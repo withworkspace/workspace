@@ -10,8 +10,9 @@ import { Status } from "../ui/status";
 import { humanError, Keys, toast } from "../ui/kit";
 import { setTheme } from "../ui/theme";
 import { clock } from "../ui/time";
-import { asks, build, type CodeEnd, type CodeHit, codeRematch, codeRuns, codeStream, type Found, findStream, type FoundGroup, type GroupKey, groupTitle, type Item, localItems, parseQuery, rematch, type Scope, scopePrefix, warmFind, withScope } from "./find";
+import { asks, build, type CodeEnd, type CodeHit, codeRematch, codeStream, type Found, findStream, type FoundGroup, type GroupKey, groupTitle, type Item, localItems, parseQuery, rematch, type Scope, scopePrefix, warmFind, withScope } from "./find";
 import type { Waiting } from "./notify";
+import { CodeText, CodeWhere } from "./CodeHitParts";
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
@@ -498,19 +499,8 @@ function CodeRow({ it, h, on, onOver, onPick }: { it: Item; h: CodeHit; on: bool
   return (
     <div id={`pal-${it.id}`} role="option" aria-selected={on} className={`find-row find-code${on ? " on" : ""}`} onMouseMove={onOver} onClick={(e) => onPick(e.metaKey || e.ctrlKey)}>
       <Icon name="file" />
-      <span className="find-code-where">
-        <span className="find-code-path">
-          <span className="dim">{h.repo}/</span>
-          {h.path}
-          <span className="dim">:{h.line}</span>
-        </span>
-        {h.worktree !== ".ground" && <span className="chip">in {h.worktree}</span>}
-      </span>
-      <code className="find-code-text">
-        {h.cut && <span className="dim">…</span>}
-        {codeRuns(h.text, h.ranges).map((r, i) => (r.hit ? <mark key={i}>{r.text}</mark> : <span key={i}>{r.text}</span>))}
-        {h.cut && <span className="dim">…</span>}
-      </code>
+      <CodeWhere h={h} repo capsule />
+      <CodeText h={h} />
     </div>
   );
 }

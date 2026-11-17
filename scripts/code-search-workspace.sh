@@ -50,6 +50,12 @@ EOF
 	echo "Deep down: greet them here, at line 240."
 	for i in $(seq 241 300); do echo "Line $i of the guide, about nothing much."; done
 } >"$capsule/guide.md"
+# A wide line, its match far along it, and a file deep in folders: a hit's
+# row shows its match and its :line however narrow it is.
+printf '%s greet loudly, at column 163 or so.\n' "$(printf 'padding%.0s ' $(seq 1 20))" >"$capsule/wide.txt"
+deep="$capsule/internal/handlers/greetings/loudness/levels/configuration"
+mkdir -p "$deep"
+printf 'package configuration\n\n// greet loudly, from a file whose path is too long for a row.\nconst Level = 11\n' >"$deep/greeting_level_configuration_test.go"
 # Enough lines that a single letter is capped.
 for i in $(seq 1 1000); do echo "line $i of a long file the capsule added"; done >"$capsule/long.txt"
 git_seed -C "$capsule" add -A
@@ -70,6 +76,9 @@ Then, in the web UI:
     notes.txt (not committed). Not search-demo's main_test.go or go.mod.
   - %greet them here: guide.md:240, a long markdown file. Choosing it opens
     the file as text at line 240, marked (so does Find's /guide.md:240).
+  - %greet loudly: wide.txt's match is at column 163, and its row starts
+    just before it ("…padding greet loudly"); the deep file's path gives way
+    from its start, keeping its name and :3.
   - %e: a single letter, capped at 200 matches, and Find says so.
   - Files › demo (/files/demo, or a file in it): mod+shift+F opens Find in %
     tagged "repo: demo"; Backspace on the empty input clears the tag and

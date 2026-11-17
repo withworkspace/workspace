@@ -2116,12 +2116,29 @@ main {
   min-width: 0;
 }
 
+/* The path gives way from its start, so its name and :line stay. */
 .find-code-path {
+  display: flex;
   min-width: 0;
   font: var(--text-xs) var(--mono);
   white-space: nowrap;
+}
+
+.find-code-file {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
+
+.find-code-file > bdi {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.find-code-line {
+  flex: none;
 }
 
 .find-code-where .chip {

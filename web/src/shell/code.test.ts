@@ -63,15 +63,52 @@ describe("the code scope", () => {
 
 describe("a hit's text", () => {
   it("is in runs, the matches marked, its indent dropped", () => {
-    expect(codeRuns("\t  if x == needle && needle {", [[21, 27], [11, 17]])).toEqual([
-      { text: "if x == ", hit: false },
-      { text: "needle", hit: true },
-      { text: " && ", hit: false },
-      { text: "needle", hit: true },
-      { text: " {", hit: false },
-    ]);
-    expect(codeRuns("needle", [[0, 6]])).toEqual([{ text: "needle", hit: true }]);
-    expect(codeRuns("x", [])).toEqual([{ text: "x", hit: false }]);
+    expect(codeRuns("\t  if x == needle && needle {", [[21, 27], [11, 17]])).toEqual({
+      runs: [
+        { text: "if x == ", hit: false },
+        { text: "needle", hit: true },
+        { text: " && ", hit: false },
+        { text: "needle", hit: true },
+        { text: " {", hit: false },
+      ],
+      clipped: false,
+    });
+    expect(codeRuns("needle", [[0, 6]]).runs).toEqual([{ text: "needle", hit: true }]);
+    expect(codeRuns("x", []).runs).toEqual([{ text: "x", hit: false }]);
+  });
+
+  it("starts just before its first match, so the match is in view however long the line", () => {
+    // The verifier's wide.txt: a match at column 163.
+    const text = `${"padding ".repeat(20)}needleword at the end`;
+    const at = text.indexOf("needleword");
+    const { runs, clipped } = codeRuns(text, [[at, at + 10]], 16);
+    expect(clipped).toBe(true);
+    const shown = runs.map((r) => r.text).join("");
+    expect(shown.indexOf("needleword")).toBeLessThanOrEqual(16);
+    expect(runs.find((r) => r.hit)?.text).toBe("needleword");
+    // From a word's start, not its tail.
+    expect(shown.startsWith("padding ")).toBe(true);
+  });
+
+  it("doesn't start in the whitespace before a word", () => {
+    const text = `${"x".repeat(40)}        // the needle`;
+    const at = text.indexOf("needle");
+    const { runs } = codeRuns(text, [[at, at + 6]], 14);
+    expect(runs[0].text.startsWith(" ")).toBe(false);
+  });
+
+  it("isn't clipped when the match is near the start", () => {
+    expect(codeRuns("func Load(key string) {", [[5, 9]], 16).clipped).toBe(false);
+    expect(codeRuns("        return needle", [[15, 21]], 12).clipped).toBe(false); // the indent isn't counted
+  });
+
+  it("never starts in the middle of a character", () => {
+    const text = `${"😀".repeat(30)}needle`;
+    const at = text.indexOf("needle");
+    const { runs } = codeRuns(text, [[at, at + 6]], 5);
+    const shown = runs.map((r) => r.text).join("");
+    expect(shown.endsWith("needle")).toBe(true);
+    expect(/^[\uDC00-\uDFFF]/.test(shown)).toBe(false);
   });
 
   it("is matched again as more's typed, until the answer comes", () => {

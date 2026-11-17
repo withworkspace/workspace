@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useKeys } from "../keys";
-import { type CodeEnd, type CodeHit, codeNote, codeRematch, codeRuns, codeStream } from "../shell/find";
+import { type CodeEnd, type CodeHit, codeNote, codeRematch, codeStream } from "../shell/find";
+import { CodeText, CodeWhere } from "../shell/CodeHitParts";
 import { Icon } from "../ui/Icon";
 import { humanError } from "../ui/kit";
 
@@ -107,17 +108,8 @@ export function CodeFinder({ repo, worktree, onPick, onClose }: { repo: string; 
               onClick={() => onPick(h.path, h.line)}
             >
               <Icon name="file" />
-              <span className="find-code-where">
-                <span className="find-code-path">
-                  {h.path}
-                  <span className="dim">:{h.line}</span>
-                </span>
-              </span>
-              <code className="find-code-text">
-                {h.cut && <span className="dim">…</span>}
-                {codeRuns(h.text, h.ranges).map((r, j) => (r.hit ? <mark key={j}>{r.text}</mark> : <span key={j}>{r.text}</span>))}
-                {h.cut && <span className="dim">…</span>}
-              </code>
+              <CodeWhere h={h} />
+              <CodeText h={h} />
             </li>
           ))}
           {!hits.length && got.done && <li className="palette-none">{want ? `No file here says “${want}”.` : "Type text to find in every file of the capsule."}</li>}

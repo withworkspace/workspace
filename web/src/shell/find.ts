@@ -668,13 +668,33 @@ export function codeNote(end: CodeEnd | undefined): string | undefined {
   return undefined;
 }
 
-// codeRuns is a line's text in runs, those the patterns matched marked;
-// leading whitespace is dropped, so lines line up by what they say.
-export function codeRuns(text: string, ranges: [number, number][]): { text: string; hit: boolean }[] {
-  const lead = text.length - text.trimStart().length;
+// codeLead is how much of a line shows before its first match, at most,
+// so the match is in view: a row holds about 80 characters of code on a
+// wide window, 34 on a phone's (codeLeadNarrow). What's before is left
+// off, and a "…" says so.
+export const codeLead = 40;
+export const codeLeadNarrow = 12;
+
+// codeRuns is a line's text as a row shows it: in runs, those the patterns
+// matched marked, its indent dropped, and starting no more than lead
+// characters before the first match (clipped: it starts later than the
+// line does).
+export function codeRuns(text: string, ranges: [number, number][], lead = codeLead): { runs: { text: string; hit: boolean }[]; clipped: boolean } {
+  const sorted = [...ranges].sort((a, b) => a[0] - b[0]);
+  const indent = text.length - text.trimStart().length;
+  let start = indent;
+  const first = sorted[0]?.[0];
+  if (first !== undefined && first - lead > start) {
+    start = first - lead;
+    // Not half a character, nor a word's tail if a space is near.
+    if (/[\uDC00-\uDFFF]/.test(text[start] ?? "")) start--;
+    const space = text.indexOf(" ", start);
+    if (space >= 0 && space < first && space - start < lead / 2) start = space + 1;
+    while (start < first && /\s/.test(text[start])) start++;
+  }
   const out: { text: string; hit: boolean }[] = [];
-  let at = lead;
-  for (const [from, to] of [...ranges].sort((a, b) => a[0] - b[0])) {
+  let at = start;
+  for (const [from, to] of sorted) {
     const s = Math.max(from, at);
     if (to <= s) continue;
     if (s > at) out.push({ text: text.slice(at, s), hit: false });
@@ -682,7 +702,7 @@ export function codeRuns(text: string, ranges: [number, number][]): { text: stri
     at = to;
   }
   if (at < text.length) out.push({ text: text.slice(at), hit: false });
-  return out;
+  return { runs: out, clipped: start > indent };
 }
 
 // codeRematch is the hits found a moment ago that still say q, its
