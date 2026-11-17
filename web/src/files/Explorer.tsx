@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from "reac
 import { capsuleAPI, docRef, type FileTree, type FileView, getFile, getTree, pageOpenTo, rawURL, type TreeFile, type Workspace } from "../api";
 import { useKeys, useOwnCodeSearch } from "../keys";
 import { CodeFinder } from "./CodeFinder";
+import { linesAsked, rendersAt } from "./lines";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../review/highlight";
 import { fuzzy, marked } from "../ui/fuzzy";
@@ -281,7 +282,14 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
     setCursor(p);
     navigate({ search: `?${next}`, hash: `#L${line}` });
   };
-  const [preview, setPreview] = useState(true);
+  // Markdown shows rendered, unless a line's asked for (a code search hit,
+  // Find's :12, a line's link): only its text has lines, so it opens as
+  // text there. m still switches.
+  const location = useLocation();
+  const [preview, setPreview] = useState(() => rendersAt(location.hash));
+  useEffect(() => {
+    if (!rendersAt(location.hash)) setPreview(false);
+  }, [location.hash, path]);
   const closeOrUp = () => {
     const r = rows[at];
     if (!r) return;
@@ -738,9 +746,9 @@ function Code({ file, path, ready }: { file: FileView; path: string; ready: bool
     }
     return m;
   }, [file]);
-  const sel = /^#L(\d+)(?:-L(\d+))?$/.exec(location.hash);
-  const from = sel ? Number(sel[1]) : 0;
-  const to = sel ? Number(sel[2] ?? sel[1]) : 0;
+  const sel = linesAsked(location.hash);
+  const from = sel?.from ?? 0;
+  const to = sel?.to ?? 0;
   const body = useRef<HTMLDivElement>(null);
   // To the line asked for (a link to it), not each time you click one.
   const clicked = (location.state as { clicked?: boolean } | null)?.clicked;
