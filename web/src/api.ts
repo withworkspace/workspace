@@ -74,13 +74,13 @@ export interface HeadlineAction {
   target?: string; // crew id, capsule, a document's ref (review-doc: its threads), PR, or a task (answer, review-step)
   url?: string;
   options?: string[];
-  look?: Look[]; // review-step: what the Review step looks at
+  look?: Look[]; // review-step: what the Review step looks at; answer: the bundles that show a step's checks, when they're yours to say
 }
 
-// Look is one thing a Review step looks at: a capsule's work to review
-// (repo/name), or a document to read (an artifact's ref). A look that's
-// read is beside the review (crew's notes, their handoffs): the plan
-// doesn't name it, so approving needn't cover it.
+// Look is one thing a step of yours looks at: a bundle to approve, a
+// capsule's work to review (repo/name), or a document to read (an
+// artifact's ref). A look that's read is beside the review (crew's notes,
+// their handoffs): the plan doesn't name it, so approving needn't cover it.
 export interface Look {
   bundle?: string; // a verification bundle (b3), on the mission's Verify tab
   capsule?: string;
@@ -900,7 +900,7 @@ export interface Bundle {
   verdictAt?: string;
   notes?: BundleNote[]; // what you said wasn't right, when you sent it back
   looked?: string[]; // its checks you've marked as looked at, by their keys in its list
-  asked?: boolean; // the mission is at a Review step (askedAt) that looks at it
+  asked?: boolean; // the mission is at a step of yours (askedAt) that looks at it: a Review step, or its own with its checks yours to say
   askedAt?: number;
   summary: string;
   try?: BundleTry[];

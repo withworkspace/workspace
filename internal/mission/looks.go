@@ -5,8 +5,10 @@ import (
 	"strings"
 )
 
-// Look is one thing a Review step looks at: a verification bundle, a
-// capsule's diff, or a document made at the steps before it.
+// Look is one thing a step of yours looks at: a verification bundle, a
+// capsule's diff, or a document made at the steps before it. A Review
+// step looks at all three (Looks); a step whose checks are yours to say,
+// at the bundles that show them (ChecksLooks).
 type Look struct {
 	Bundle  string // a bundle's ref (b3)
 	Capsule string // repo/name
@@ -82,6 +84,21 @@ func (m *Mission) Looks(states []StageState, n int) []Look {
 		}
 		return 1
 	})
+	return out
+}
+
+// ChecksLooks is what shows step n's checks when they're yours to say
+// (its checks task): the bundles handed over for the step that nothing
+// has taken the place of. Approving them passes the step, as passing it
+// as it is does.
+func (m *Mission) ChecksLooks(states []StageState, n int) []Look {
+	if n < 1 || n > len(states) {
+		return nil
+	}
+	var out []Look
+	for _, b := range m.StandingBundles(states[n-1].Text) {
+		out = append(out, Look{Bundle: b.ID, Name: b.ID})
+	}
 	return out
 }
 

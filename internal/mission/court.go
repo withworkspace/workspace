@@ -126,8 +126,9 @@ type Action struct {
 	Target  string   // crew id, capsule (repo/name) or PR (repo#N)
 	URL     string   // a PR's page
 	Options []string // a flag's suggested answers
-	// Look is what a Review step's review looks at: capsules to review,
-	// documents to read.
+	// Look is what a Review step's review looks at: bundles to approve,
+	// capsules to review, documents to read. On a flag that's a step's
+	// checks, yours to say, it's the bundles that show them.
 	Look []Look
 }
 
@@ -529,9 +530,18 @@ func Resolve(s Snapshot) []Headline {
 			add(stepReviewHeadline(s, t.Step, t.Text, strconv.Itoa(t.N), firstNonEmpty(t.By, "ws"), t.At))
 			continue
 		}
-		add(Headline{Court: CourtYou, Kind: KindFlag, Label: "! asks you", By: firstNonEmpty(t.By, "orchestrator"), Since: t.At,
+		flag := Headline{Court: CourtYou, Kind: KindFlag, Label: "! asks you", By: firstNonEmpty(t.By, "orchestrator"), Since: t.At,
 			Text:   flagWho(t.By) + ": " + t.Text,
-			Action: Action{Verb: VerbAnswer, Label: "answer", Options: t.Options, Target: strconv.Itoa(t.N)}})
+			Action: Action{Verb: VerbAnswer, Label: "answer", Options: t.Options, Target: strconv.Itoa(t.N)}}
+		if t.Verb == TaskChecks && t.Step > 0 {
+			// Its checks are yours to say: what its crew handed over to
+			// show them is the thing to look at.
+			states, _ := m.StageProgress(s.Brief)
+			if flag.Action.Look = m.ChecksLooks(states, t.Step); len(flag.Action.Look) > 0 {
+				flag.Action.Label = "verify " + flag.Action.Look[0].Name
+			}
+		}
+		add(flag)
 	}
 	for _, rr := range s.ReReview {
 		add(Headline{Court: CourtYou, Kind: KindReReview, Label: "↻ re-review", By: rr.Capsule,

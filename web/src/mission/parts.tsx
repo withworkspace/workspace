@@ -1,9 +1,9 @@
-import { createContext, Fragment, type ReactNode, useContext, useState } from "react";
+import { createContext, Fragment, type ReactNode, useContext, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { Artifact, CapsuleDetail, CrewDetail, Decision, MissionDetail, MissionEvent, Stage } from "../api";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { HoverCard } from "../ui/hover";
+import { FloatingCard, HoverCard, RefContext, useHoverDelay } from "../ui/hover";
 import { Copyable } from "../ui/kit";
 import { crewStatus, exitWords, Status } from "../ui/status";
 import { dayKey, dayLabel, duration, stamp, Time, useNow } from "../ui/time";
@@ -181,7 +181,7 @@ function StepWho({ s }: { s: Stage }) {
 
 // StepRuns is where a step that runs in several repos runs: the repos
 // once they're named, each done or not, or what its words say before.
-function StepRuns({ s }: { s: Stage }) {
+export function StepRuns({ s }: { s: Stage }) {
   const runs = s.runs ?? [];
   if (!runs.length) {
     return (
@@ -200,7 +200,7 @@ function StepRuns({ s }: { s: Stage }) {
 
 // StepLimit is a Work step's clock: its limit, when it runs out, or that
 // it has.
-function StepLimit({ s }: { s: Stage }) {
+export function StepLimit({ s }: { s: Stage }) {
   if (s.outOfTime) {
     return (
       <span className="step-who step-late" title={`Its limit (${s.limit}) ran out while its crew were at it`}>
@@ -219,7 +219,7 @@ function StepLimit({ s }: { s: Stage }) {
 
 // StepChecks is how many of a Work step's checks are met, or how many it
 // has before they've been run.
-function StepChecks({ s }: { s: Stage }) {
+export function StepChecks({ s }: { s: Stage }) {
   const checks = s.checks ?? [];
   const met = checks.filter((c) => c.result === "met").length;
   // A Verify step is held up by what's unmet: what its verifier left for
@@ -260,32 +260,9 @@ function CheckResults({ s }: { s: Stage }) {
   );
 }
 
-// CompactMeta is a step in the plan beside a mission: nothing but its name,
-// unless it needs you to look: the current step's crew and whether it's
-// yours, checks not met, time run out.
-function CompactMeta({ s }: { s: Stage }) {
-  const current = s.state === "current";
-  const unmet = !!s.round && (s.checks ?? []).some((c) => c.result !== "met");
-  const yours = current && (s.who === "you" || s.held);
-  const late = !!s.outOfTime && s.state !== "accepted";
-  if (!(current && s.crew?.length) && !yours && !unmet && !late) return null;
+export function Stepper({ stages }: { stages: Stage[] }) {
   return (
-    <span className="step-meta">
-      {yours && (
-        <span className="step-who yours" title="Yours: only you pass it">
-          <Icon name="user" size={11} /> yours
-        </span>
-      )}
-      {late && <StepLimit s={s} />}
-      {unmet && <StepChecks s={s} />}
-      {current && s.crew?.map((c) => <CrewBadge key={c} id={c} />)}
-    </span>
-  );
-}
-
-export function Stepper({ stages, compact }: { stages: Stage[]; compact?: boolean }) {
-  return (
-    <ol className={`stepper${compact ? " compact" : ""}`}>
+    <ol className="stepper">
       {stages.map((s) => (
         <li key={s.n} className={`step ${s.state}`} title={s.type ? `${s.type}: ${s.text}` : s.text}>
           <span className="step-mark" aria-hidden>
@@ -296,9 +273,7 @@ export function Stepper({ stages, compact }: { stages: Stage[]; compact?: boolea
               <span className="step-n">{s.n}</span> {s.title}
               <span className="sr-only">{s.state === "accepted" ? " (done)" : s.state === "current" ? " (now)" : ""}</span>
             </span>
-            {compact ? (
-              <CompactMeta s={s} />
-            ) : (s.crew?.length ||
+            {(s.crew?.length ||
               (s.checkIn && s.state !== "accepted") ||
               (s.who && s.who !== "crew") ||
               s.opensPR ||
@@ -353,8 +328,8 @@ export function Stepper({ stages, compact }: { stages: Stage[]; compact?: boolea
                 )}
               </span>
             )}
-            {s.why && !compact && <span className="step-why">{s.why}</span>}
-            {!compact && s.round && s.state !== "accepted" ? <CheckResults s={s} /> : null}
+            {s.why && <span className="step-why">{s.why}</span>}
+            {s.round && s.state !== "accepted" ? <CheckResults s={s} /> : null}
           </span>
         </li>
       ))}
@@ -664,9 +639,11 @@ export function CrewRow({ c, slug, detail }: { c: CrewDetail; slug: string; deta
   );
 }
 
-// Timeline is the mission's life in a strip: when each crew worked (in its
-// colour), and the moments that mattered (stages accepted, reviews,
-// decisions, what you said), from its start to now.
+// Timeline is the mission's life in a strip along the top of its page: when
+// each crew worked (in its colour, quietly; the one running now less so),
+// and the moments that mattered (stages accepted, reviews, decisions, what
+// was asked) as ticks over them, from its start to now. A tick says what
+// happened then on hover; moments too close to point at apart share one.
 export function Timeline({ d }: { d: MissionDetail }) {
   const now = useNow();
   const start = new Date(d.created).getTime();
@@ -705,15 +682,28 @@ export function Timeline({ d }: { d: MissionDetail }) {
       lanes[lane] = sp.to;
       return { ...sp, lane, key: `${sp.c.id}-${i}` };
     });
-  const marks = d.events.flatMap((e): { e: MissionEvent; icon: IconName; cls: string }[] => {
-    if (e.kind === "stage" && /accepted/.test(e.text)) return [{ e, icon: "check", cls: "done" }];
-    if (e.kind === "review") return [{ e, icon: "eye", cls: "you" }];
-    if (e.kind === "decision") return [{ e, icon: "gavel", cls: "decided" }];
-    if (e.kind === "flag" || e.kind === "crew_asked") return [{ e, icon: "question", cls: "ask" }];
+  const marks = d.events.flatMap((e): TimelineMark[] => {
+    if (e.kind === "stage" && /accepted/.test(e.text)) return [{ e, icon: "check", cls: "done", what: `${d.plan ? "Step" : "Stage"} accepted` }];
+    if (e.kind === "review") return [{ e, icon: "eye", cls: "you", what: "Reviewed" }];
+    if (e.kind === "decision") return [{ e, icon: "gavel", cls: "decided", what: "Decided" }];
+    if (e.kind === "flag" || e.kind === "crew_asked") return [{ e, icon: "question", cls: "ask", what: "Asked" }];
     return [];
   });
+  // Ticks: marks within a few pixels of each other are one, in the colour
+  // of what matters most among them.
+  const ticks: { at: number; marks: TimelineMark[] }[] = [];
+  for (const m of marks) {
+    const x = at(m.e.time);
+    const last = ticks[ticks.length - 1];
+    if (last && x - last.at < tickApart) last.marks.push(m);
+    else ticks.push({ at: x, marks: [m] });
+  }
+  const hover = useHoverDelay<number>();
+  const els = useRef(new Map<number, HTMLElement>());
   if (!bars.length && !marks.length) return null;
   const laneCount = Math.max(1, Math.min(lanes.length, 3));
+  const shown = hover.shown === undefined ? undefined : ticks[hover.shown];
+  const anchor = hover.shown === undefined ? undefined : els.current.get(hover.shown);
   return (
     <div className="timeline" style={{ "--lanes": laneCount } as React.CSSProperties} aria-label="The mission over time">
       <div className="timeline-track">
@@ -728,22 +718,61 @@ export function Timeline({ d }: { d: MissionDetail }) {
                   "--hue": crewHue(b.c.id),
                   left: `${at(b.from)}%`,
                   width: `max(3px, ${at(b.to) - at(b.from)}%)`,
-                  top: `${b.lane * 7}px`,
+                  "--lane": b.lane,
                 } as React.CSSProperties
               }
               title={`${b.c.id}: ${stamp(b.from)}${b.to < now - 60_000 ? ` to ${stamp(b.to)} (${duration(b.from, b.to)})` : ", running now"}`}
             />
           ))}
-        {marks.map((m, i) => (
-          <span key={i} className={`timeline-mark ${m.cls}`} style={{ left: `${at(m.e.time)}%` }} title={`${stamp(m.e.time)}: ${m.e.text}`}>
-            <Icon name={m.icon} size={9} />
-          </span>
+        {ticks.map((t, i) => (
+          <span
+            key={i}
+            ref={(el) => {
+              if (el) els.current.set(i, el);
+              else els.current.delete(i);
+            }}
+            className={`timeline-mark ${tickKinds.find((k) => t.marks.some((m) => m.cls === k))}`}
+            style={{ left: `${t.at}%` }}
+            tabIndex={0}
+            aria-label={t.marks.map((m) => `${stamp(m.e.time)}: ${m.what}`).join("; ")}
+            onMouseEnter={() => hover.over(i)}
+            onMouseLeave={hover.out}
+            onFocus={() => hover.over(i)}
+            onBlur={hover.out}
+          />
         ))}
       </div>
-      <div className="timeline-ends">
-        <Time iso={d.created} />
-        <span>{d.state === "archived" || d.state === "landed" ? <Time iso={new Date(end).toISOString()} /> : "now"}</span>
-      </div>
+      {shown && anchor && (
+        <FloatingCard anchor={anchor} className="timeline-card" onEnter={hover.stay} onLeave={hover.out}>
+          {/* Inside a card, refs are words: no cards in cards. */}
+          <RefContext.Provider value={undefined}>
+            {shown.marks.map((m, i) => (
+              <div key={i} className="timeline-moment">
+                <div className="hovercard-head">
+                  <span className={`timeline-kind ${m.cls}`}>
+                    <Icon name={m.icon} size={9} />
+                  </span>
+                  <span className="hovercard-strong">{m.what}</span>
+                  <span className="timeline-when">{stamp(m.e.time)}</span>
+                </div>
+                <Inline text={m.e.text} lines={3} className="timeline-what" />
+              </div>
+            ))}
+          </RefContext.Provider>
+        </FloatingCard>
+      )}
     </div>
   );
 }
+
+interface TimelineMark {
+  e: MissionEvent;
+  icon: IconName;
+  cls: "done" | "you" | "decided" | "ask";
+  what: string;
+}
+
+// How near two moments are (in hundredths of the strip) before they're
+// one tick, and which of a tick's kinds it's drawn as.
+const tickApart = 0.4;
+const tickKinds: TimelineMark["cls"][] = ["ask", "you", "done", "decided"];

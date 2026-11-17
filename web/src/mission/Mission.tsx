@@ -25,7 +25,7 @@ import {
 import { useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { TalkList, talkHref } from "../talk/Talk";
-import { Icon } from "../ui/Icon";
+import { Icon, type IconName } from "../ui/Icon";
 import { CheckingNow, checkingTitle } from "./checking";
 import { TLink } from "../ui/TLink";
 import { Inline, plain } from "../ui/inline";
@@ -43,20 +43,27 @@ import { missionRefs } from "./refs";
 import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, kindTitle, MissionData, shortPath, Stepper, Timeline, viewEvent } from "./parts";
 import { CapsuleEnds, EndButton, EndDialog, EndedCapsules, ended, endingWords, HandedOn, ZChecks } from "./Ending";
 import { canOpenPR, OpenPR } from "./OpenPR";
+import { PlanList } from "./PlanList";
 import { Verify } from "./Verify";
 import { checkRows, rowKey, shownBundle, waiting as bundleWaiting } from "./verifyRows";
 import { useLoaded } from "../load";
 
-// The mission page: where it stands, then six tabs. Summary leads with
-// what needs you; Brief is the brief (editable); Work is its capsules and
-// documents; Verify is its verification bundles, what crew handed over to
-// show their work; Log is everything that's happened, and its crew; Talk
-// is conversations about it. A details panel beside them keeps what you
-// glance at in view: state, stages, documents, capsules and crew.
+// The mission page: its time along the top edge, then one bar (back, what
+// it's doing, its name, six tabs) that stays as the page scrolls, and the
+// tab under it. Summary leads with what needs you; Brief is the brief
+// (editable); Work is its capsules and documents; Verify is its
+// verification bundles, what crew handed over to show their work; Log is
+// everything that's happened, and its crew; Talk is conversations about it.
+// The details (state, stages, documents, capsules and crew) are beside
+// Summary; on the other tabs, which want the room, s slides them in over
+// the page. Summary, Brief, Log and Talk are read, in a column; Verify and
+// Work take the page's width.
 
 const tabs = ["summary", "brief", "work", "verify", "log", "talk"] as const;
 type Tab = (typeof tabs)[number];
 const tabNames: Record<Tab, string> = { summary: "Summary", brief: "Brief", work: "Work", verify: "Verify", log: "Log", talk: "Talk" };
+// The tabs that are somewhere to work, not something to read.
+const wideTabs: Tab[] = ["work", "verify"];
 
 export const missionKeys: [string, string][] = [
   ["1–6", "Summary, Brief, Work, Verify, Log, Talk"],
@@ -66,9 +73,9 @@ export const missionKeys: [string, string][] = [
   ["o", "Open its link (a PR, a document on GitHub)"],
   ["f", "Browse the capsule's files (or the mission's only one)"],
   ["e", "Edit the brief and plan, on their own page"],
-  ["s", "Show or hide the details"],
+  ["s", "Show or hide the details: beside Summary, over the other tabs"],
   ["r", "Reload"],
-  ["esc", "Back to the missions"],
+  ["esc", "Close the details, or back to the missions"],
 ];
 
 const sideKey = "ws:mission-side";
@@ -99,7 +106,12 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
   const tab: Tab = tabs.includes(params.get("tab") as Tab) ? (params.get("tab") as Tab) : "summary";
   const navigate = useNavigate();
   const updated = workspace.missions.find((m) => m.slug === slug)?.updated;
+  // The details beside Summary (kept, as you left them), and over another
+  // tab (until you leave it).
   const [side, setSide] = useState(loadSide);
+  const [over, setOver] = useState(false);
+  useEffect(() => setOver(false), [tab, slug]);
+  const docked = tab === "summary" && side;
 
   // What's on disk first (fast), then again with the capsules' PRs (GitHub
   // is slow); again whenever the mission changes.
@@ -208,8 +220,10 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
       // Replies waiting for you on a document, when that's where it stands.
       const h = d?.headlines[0];
       if (!item?.capsule && h?.action.verb === "review-doc" && h.action.target) return navigate(docLink(slug, h.action.target));
-      // A Review step's first look: a document to read, or a capsule (below).
-      const look = h?.action.verb === "review-step" ? h.action.look?.[0] : undefined;
+      // A Review step's first look: a bundle to approve, a document to
+      // read, or a capsule (below). So is the bundle that shows a step's
+      // checks, when they're yours to say.
+      const look = h?.action.verb === "review-step" || h?.action.verb === "answer" ? h.action.look?.[0] : undefined;
       if (!item?.capsule && look?.bundle) return pickBundle(look.bundle);
       if (!item?.capsule && look?.doc) return navigate(docLink(slug, look.doc));
       const only = d?.capsules.filter((c) => c.exists);
@@ -226,9 +240,9 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
       if (c) navigate(`/missions/${slug}/files/${c.repo}/${c.name}`);
       else if (only?.length) setTab("work");
     },
-    s: toggleSide,
+    s: () => (tab === "summary" ? toggleSide() : setOver((v) => !v)),
     r: load,
-    Escape: back,
+    Escape: () => (over && tab !== "summary" ? setOver(false) : back()),
     h: back,
   });
 
@@ -271,61 +285,65 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
   return (
     <MissionData.Provider value={d}>
     <RefContext.Provider value={refs}>
-    <div className={`page mission${side ? " with-side" : ""}`}>
-      <div className="mission-main">
-        <Crumbs />
-        <header className="mission-head">
-          <Title d={d} reload={load} />
-          <Status s={missionStateStatus(d.state)} className="mission-state" />
-          <div className="page-actions">
-            <button className={`ghost small${side ? " on" : ""}`} onClick={toggleSide} aria-pressed={side} title="Show or hide the details (s)">
-              <Icon name="panel" size={14} /> Details
-            </button>
+    <div className="mission-page">
+      <Timeline d={d} />
+      <div className="mission-bar">
+        <div className="mission-bar-in">
+          <header className="mission-head">
+            <TLink to="/" className="mission-back" title="Missions (esc)" aria-label="Back to the missions">
+              <Icon name="arrow-left" size={15} />
+            </TLink>
+            {d.headlines[0] && <Status s={headlineStatus(d.headlines[0])} iconOnly size={16} className="mission-status" />}
+            <Title d={d} reload={load} />
+          </header>
+          <div className="tabs" role="tablist" aria-label="Mission">
+            {tabs.map((t) => (
+              <button
+                key={t}
+                role="tab"
+                id={`tab-${t}`}
+                aria-selected={t === tab}
+                aria-controls="mission-panel"
+                className={t === tab ? "on" : ""}
+                onClick={() => setTab(t)}
+                title={`${tabNames[t]} (${tabs.indexOf(t) + 1})`}
+              >
+                {tabNames[t]}
+                {t === "verify" && waitingBundles > 0 && (
+                  <span className="count tone-attention" title="Verification bundles waiting for you to approve">
+                    {waitingBundles}
+                  </span>
+                )}
+                {t === "verify" && !waitingBundles && standing > 0 && (
+                  <span className="count" title="Verification bundles, handed over to show the work">
+                    {standing}
+                  </span>
+                )}
+                {t === "talk" && waitingTalks > 0 && (
+                  <span className="count tone-attention" title="Your turn, or something to confirm">
+                    {waitingTalks}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
-        </header>
-        <Timeline d={d} />
-        <div className="tabs" role="tablist" aria-label="Mission">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              role="tab"
-              id={`tab-${t}`}
-              aria-selected={t === tab}
-              aria-controls="mission-panel"
-              className={t === tab ? "on" : ""}
-              onClick={() => setTab(t)}
-              title={`${tabNames[t]} (${tabs.indexOf(t) + 1})`}
-            >
-              {tabNames[t]}
-              {t === "verify" && waitingBundles > 0 && (
-                <span className="count tone-attention" title="Verification bundles waiting for you to approve">
-                  {waitingBundles}
-                </span>
-              )}
-              {t === "verify" && !waitingBundles && standing > 0 && (
-                <span className="count" title="Verification bundles, handed over to show the work">
-                  {standing}
-                </span>
-              )}
-              {t === "talk" && waitingTalks > 0 && (
-                <span className="count tone-attention" title="Your turn, or something to confirm">
-                  {waitingTalks}
-                </span>
-              )}
-            </button>
-          ))}
         </div>
-        {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
-        <div role="tabpanel" id="mission-panel" aria-labelledby={`tab-${tab}`} className="tab-panel" key={tab}>
-          {tab === "summary" && <Summary {...parts} full={!side} />}
-          {tab === "brief" && <Brief d={d} reload={load} />}
-          {tab === "work" && <Work {...parts} />}
-          {tab === "verify" && <Verify d={d} bundle={bundle} pick={pickBundle} sel={item?.key} select={setSel} reload={load} />}
-          {tab === "log" && <Log {...parts} />}
-          {tab === "talk" && <MissionTalk slug={d.slug} talks={d.talks} planner={d.planner} />}
-        </div>
+        {tab !== "summary" && <DetailSide {...parts} updated={updated} over open={over} />}
       </div>
-      {side && <DetailSide {...parts} updated={updated} onHide={toggleSide} />}
+      <div className={`page mission${docked ? " with-side" : ""}${wideTabs.includes(tab) ? " wide" : ""}`}>
+        <div className="mission-main">
+          {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
+          <div role="tabpanel" id="mission-panel" aria-labelledby={`tab-${tab}`} className="tab-panel" key={tab}>
+            {tab === "summary" && <Summary {...parts} full={!side} />}
+            {tab === "brief" && <Brief d={d} reload={load} />}
+            {tab === "work" && <Work {...parts} />}
+            {tab === "verify" && <Verify d={d} bundle={bundle} pick={pickBundle} sel={item?.key} select={setSel} reload={load} />}
+            {tab === "log" && <Log {...parts} />}
+            {tab === "talk" && <MissionTalk slug={d.slug} talks={d.talks} planner={d.planner} />}
+          </div>
+        </div>
+        {docked && <DetailSide {...parts} updated={updated} />}
+      </div>
     </div>
     </RefContext.Provider>
     </MissionData.Provider>
@@ -381,7 +399,9 @@ function Title({ d, reload }: { d: MissionDetail; reload: () => void }) {
   }
   return (
     <h1 className="mission-title">
-      {d.title}
+      <span className="mission-title-text" title={d.title}>
+        {d.title}
+      </span>
       <button
         className="ghost icon-button small rename"
         onClick={() => {
@@ -422,21 +442,21 @@ function ParkButton({ d, reload }: { d: MissionDetail; reload: () => void }) {
   );
 }
 
-// DetailSide is the mission's details beside its tabs: what it is, where
-// its stages are, its documents and capsules, who's working.
-function DetailSide({ d, selected, openArtifact, review, updated, onHide, go, reload }: Parts & { updated?: string; onHide: () => void }) {
+// DetailSide is the mission's details: what it is, where its stages are,
+// its documents and capsules, who's working. Beside Summary; over another
+// tab (over) it's a card that slides in from the right when open, there
+// all along so it can slide out again.
+function DetailSide({ d, selected, openArtifact, review, updated, over, open, go, reload }: Parts & { updated?: string; over?: boolean; open?: boolean }) {
   const live = d.crew.filter((c) => !c.ended);
   const accepted = d.stages.filter((s) => s.state === "accepted").length;
   return (
-    <aside className="detail-side" aria-label="Details">
+    <aside className={`detail-side${over ? " over" : ""}${over && open ? " open" : ""}`} aria-label="Details" inert={over && !open}>
       <div className="side-head">
         <span>Details</span>
-        <button className="ghost icon-button small" onClick={onHide} title="Hide the details (s)" aria-label="Hide the details">
-          <Icon name="x" size={13} />
-        </button>
+        <Keys k="s" />
       </div>
       <dl className="props">
-        <dt>State</dt>
+        <dt className="sr-only">State</dt>
         <dd className="state-row">
           <Status s={missionStateStatus(d.state)} />
           <ParkButton d={d} reload={reload} />
@@ -484,7 +504,7 @@ function DetailSide({ d, selected, openArtifact, review, updated, onHide, go, re
       </dl>
       {d.stages.length > 0 && (
         <SideSection title={d.plan ? "Plan" : "Stages"} count={`${accepted} of ${d.stages.length} done`}>
-          <Stepper stages={d.stages} compact />
+          <PlanList stages={d.stages} />
         </SideSection>
       )}
       {d.artifacts.length > 0 && (
@@ -639,18 +659,51 @@ function Notices({ d }: { d: MissionDetail }) {
   );
 }
 
-// Summary is what needs you, then the rest in a line or two. With the
-// details showing, stages, crew, capsules and documents are there, and
-// this keeps to the goal, where the work is now, and what's happened.
+// Summary is what needs you, then the rest in a line or two. It leads
+// with where the mission stands: the step it's on, what's happening and
+// what moves it on, and the last word from its crew, as one block. With
+// the details showing, stages, crew, capsules and documents are there, and
+// the rest keeps to the goal and what's happened.
 function Summary({ d, selected, openArtifact, review, full, go, reload }: Parts & { full: boolean }) {
   const goal = briefGoal(d.brief);
   const live = d.crew.filter((c) => !c.ended);
   const now = d.stages.find((s) => s.state === "current");
   const events = d.events.filter((e) => !isNotice(e.text));
   const recent = full ? summaryRecent : summaryRecentWithSide;
+  // The step it's on, and what crew last said: in the lead when there's a
+  // headline to lead with, else rows of their own.
+  const led = d.headlines.length > 0;
+  const step = now && (
+    <>
+      <span title={now.text}>
+        {d.plan ? "Step" : "Stage"} {now.n} of {d.stages.length}: <strong>{now.title}</strong>
+      </span>
+      {now.checkIn && <span className="dim"> · check in after</span>}
+      {now.who === "you" && <span className="dim"> · yours: only you pass it</span>}
+    </>
+  );
+  const said = live.filter((c) => c.lastReply && c.activity !== "working");
   return (
     <>
-      <Headlines d={d} reload={reload} />
+      <Headlines
+        d={d}
+        reload={reload}
+        step={step}
+        latest={
+          said.length > 0 && (
+            <dl className="lead-latest">
+              {said.map((c) => (
+                <div key={c.id} className="lead-said">
+                  <dt>From {c.id}</dt>
+                  <dd>
+                    <Said text={c.lastReply!} />
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )
+        }
+      />
       <Notices d={d} />
       <dl className="summary">
         {goal && (
@@ -661,18 +714,9 @@ function Summary({ d, selected, openArtifact, review, full, go, reload }: Parts 
             </button>
           </Row>
         )}
-        {!full && now && (
-          <Row label="Now">
-            <span title={now.text}>
-              {d.plan ? "Step" : "Stage"} {now.n} of {d.stages.length}: <strong>{now.title}</strong>
-            </span>
-            {now.checkIn && <span className="dim"> · check in after</span>}
-            {now.who === "you" && <span className="dim"> · yours: only you pass it</span>}
-          </Row>
-        )}
-        {live
-          .filter((c) => c.lastReply && c.activity !== "working")
-          .map((c) => (
+        {!led && !full && step && <Row label="Now">{step}</Row>}
+        {!led &&
+          said.map((c) => (
             <Row key={c.id} label={`From ${c.id}`}>
               <Said text={c.lastReply!} />
             </Row>
@@ -772,13 +816,57 @@ function Said({ text }: { text: string }) {
 // in, and what moves it on), then anything else raised: all that's yours
 // or outside's, and one banner for the agents at work, however many are.
 // ws mission show says the same, from the same place (mission.Resolve).
-function Headlines({ d, reload }: { d: MissionDetail; reload: () => void }) {
+function Headlines({ d, reload, step, latest }: { d: MissionDetail; reload: () => void; step?: React.ReactNode; latest?: React.ReactNode }) {
   return (
     <>
       {shownHeadlines(d.headlines).map((h, i) => (
-        <HeadlineCard key={`${h.kind}-${h.by ?? ""}-${i}`} d={d} h={h} primary={i === 0} reload={reload} />
+        <HeadlineCard key={`${h.kind}-${h.by ?? ""}-${i}`} d={d} h={h} primary={i === 0} reload={reload} step={i === 0 ? step : undefined} latest={i === 0 ? latest : undefined} />
       ))}
     </>
+  );
+}
+
+// Lead is the first headline, as the Summary's subject rather than a
+// notice on it: the step the mission's on over what's happening, at a
+// title's size; what moves it on beside that when it's one thing to do, or
+// under it when it's choices and an answer; and crew's last word, so "what
+// now, and what's mine" is one block. Its tone is a wash, not an edge.
+function Lead({
+  tone,
+  icon,
+  live,
+  title,
+  step,
+  actions,
+  latest,
+  children,
+}: {
+  tone: CalloutTone;
+  icon: IconName;
+  live?: boolean;
+  title: React.ReactNode;
+  step?: React.ReactNode;
+  actions?: React.ReactNode;
+  latest?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <section className={`lead tone-${tone}`} role={tone === "danger" ? "alert" : undefined} aria-label="Where it stands">
+      <div className="lead-main">
+        <div className="lead-body">
+          {step && <div className="lead-step">{step}</div>}
+          <div className="lead-line">
+            <span className={`status tone-${tone}${live ? " live" : ""} lead-icon`}>
+              <Icon name={icon} size={20} />
+            </span>
+            <h2 className="lead-title">{title}</h2>
+          </div>
+          <div className="lead-text">{children}</div>
+        </div>
+        {actions && <div className="lead-actions">{actions}</div>}
+      </div>
+      {latest}
+    </section>
   );
 }
 
@@ -804,19 +892,14 @@ function splitHeadline(h: Headline, words: string): [string, string | undefined]
   return [words, text];
 }
 
-function HeadlineCard({ d, h, primary, reload }: { d: MissionDetail; h: Headline; primary: boolean; reload: () => void }) {
+function HeadlineCard({ d, h, primary, reload, step, latest }: { d: MissionDetail; h: Headline; primary: boolean; reload: () => void; step?: React.ReactNode; latest?: React.ReactNode }) {
   const st = headlineStatus(h);
   const [title, detail] = h.checking ? [checkingTitle(h.checking), undefined] : splitHeadline(h, st.words);
   const long = !!detail && detail.length > 220;
   const options = (h.kind === "flag" && !primary) || h.kind === "crew-asks" ? h.action.options : undefined;
-  return (
-    <Callout
-      tone={primary ? courtTone(h, st.tone) : "quiet"}
-      icon={st.icon}
-      title={title}
-      className={primary ? "headline" : "headline also"}
-      actions={primary || h.action.verb === "resume" ? <HeadlineAct d={d} h={h} reload={reload} /> : undefined}
-    >
+  const actions = primary || h.action.verb === "resume" ? <HeadlineAct d={d} h={h} reload={reload} /> : undefined;
+  const body = (
+    <>
       {h.checking && <CheckingNow c={h.checking} />}
       {detail &&
         (h.kind === "resume" || (long && !primary) ? (
@@ -849,6 +932,16 @@ function HeadlineCard({ d, h, primary, reload }: { d: MissionDetail; h: Headline
           <HandedOn to={d.ending.to} />
         </>
       )}
+    </>
+  );
+  // The first leads the page; the rest are notices under it.
+  return primary ? (
+    <Lead tone={courtTone(h, st.tone)} icon={st.icon} live={st.live} title={title} step={step} actions={actions} latest={latest}>
+      {body}
+    </Lead>
+  ) : (
+    <Callout tone="quiet" icon={st.icon} title={title} className="headline also" actions={actions}>
+      {body}
     </Callout>
   );
 }
@@ -968,9 +1061,18 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
       // answered, or passed.
       const t = d.tasks?.find((x) => String(x.n) === a.target);
       const question = !t || (t.verb === "answer" && !t.step);
+      // A step's checks, yours to say: the bundles that show them are
+      // what to look at, on the Verify tab, where approving one passes
+      // the step and saying what's not right sends it back.
+      const bundles = (a.look ?? []).filter((l) => l.bundle);
       return (
         <div className="answer">
           <div className="button-row">
+            {bundles.map((l, i) => (
+              <Link key={l.bundle} to={bundleLink(d.slug, l.bundle!)} className={i === 0 ? "button-link primary" : "button-link"} title="Look at what it shows: approving it passes the step">
+                <Icon name="list-checks" /> Verify {l.name} {i === 0 && <Keys k="v" />}
+              </Link>
+            ))}
             {a.options?.map((o, i) => (
               <button key={i} disabled={busy} onClick={() => run("answer", o)}>
                 {o}
@@ -985,7 +1087,7 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
             }}
           >
             <input value={own} onChange={(e) => setOwn(e.target.value)} placeholder={a.options?.length ? "Or answer in your own words" : "Your answer"} disabled={busy} aria-label="Your answer" />
-            <button type="submit" className="primary" disabled={busy || !own.trim()}>
+            <button type="submit" className={bundles.length ? undefined : "primary"} disabled={busy || !own.trim()}>
               Answer
             </button>
             {question && (
@@ -1100,7 +1202,7 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
               if (l.bundle) {
                 // A bundle is what's to approve, on the Verify tab.
                 return (
-                  <Link key={l.bundle} to={`/missions/${d.slug}?${new URLSearchParams({ tab: "verify", b: l.bundle })}`} className={primary ? "button-link primary" : "button-link"} title="Look at what it shows: approving it passes the step">
+                  <Link key={l.bundle} to={bundleLink(d.slug, l.bundle)} className={primary ? "button-link primary" : "button-link"} title="Look at what it shows: approving it passes the step">
                     <Icon name="list-checks" /> Verify {l.name} {first && <Keys k="v" />}
                   </Link>
                 );
@@ -1429,6 +1531,10 @@ const cameFrom = (ref: string) => {
 
 // docLink is a mission's document's page, to read and comment on.
 const docLink = (slug: string, ref: string) => `/missions/${slug}/artifact?${new URLSearchParams({ ref })}`;
+
+// bundleLink is where a bundle is looked at: the mission's Verify tab,
+// open at it.
+const bundleLink = (slug: string, id: string) => `/missions/${slug}?${new URLSearchParams({ tab: "verify", b: id })}`;
 
 // Brief is the brief, rendered, with its plan under it. They're changed on
 // their own page (e, or Edit), where what the planner proposes for them is

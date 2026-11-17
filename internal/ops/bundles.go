@@ -245,8 +245,9 @@ type BundleView struct {
 	// another commit isn't of what the bundle shows.
 	StepChecks []mission.Check
 	Ran        *mission.CheckRound
-	// Asked: the mission is at a Review step that looks at it, so it's
-	// yours to approve, and approving it passes that step (AskedAt).
+	// Asked: the mission is at a step of yours that looks at it (a Review
+	// step, or its own step with its checks yours to say), so it's yours
+	// to approve, and approving it passes that step (AskedAt).
 	Asked   bool
 	AskedAt int
 	// Dir is the folder its files are kept in.
@@ -263,7 +264,7 @@ func (w *Workspace) Bundles(m *mission.Mission) []BundleView {
 	out := make([]BundleView, 0, len(m.Bundles))
 	for _, b := range m.Bundles {
 		v := BundleView{Bundle: b, Dir: w.Missions.BundleDir(m.Slug, b.ID)}
-		if cur, _, ok := w.reviewOf(m, b.ID); ok {
+		if cur, _, _, ok := w.waitsOn(m, b.ID); ok {
 			v.Asked, v.AskedAt = true, cur.N
 		}
 		if c, ok := m.CrewByID(b.Crew); ok {
@@ -353,28 +354,34 @@ func (w *Workspace) yourBundle(slug, id string, by Actor) (*mission.Mission, mis
 	return m, b, nil
 }
 
-// reviewOf is the Review step the mission is at, when it looks at bundle
-// id: the step approving the bundle passes.
-func (w *Workspace) reviewOf(m *mission.Mission, id string) (mission.StageState, []mission.Look, bool) {
-	cur, ok := currentStep(w.Missions, m)
-	if !ok || cur.Step.Type != mission.StepReview {
-		return mission.StageState{}, nil, false
+// waitsOn is the step of yours the mission is at, when it looks at bundle
+// id: the step approving the bundle passes, with everything it looks at.
+// That's a Review step, or the bundle's own step when its checks are
+// yours to say (checks: the task ws asked you with).
+func (w *Workspace) waitsOn(m *mission.Mission, id string) (cur mission.StageState, looks []mission.Look, checks *mission.Task, ok bool) {
+	cur, ok = currentStep(w.Missions, m)
+	if !ok {
+		return mission.StageState{}, nil, nil, false
 	}
 	brief, _ := w.Missions.ReadBrief(m.Slug)
 	states, _ := m.StageProgress(brief)
-	looks := m.Looks(states, cur.N)
-	for _, l := range looks {
-		if l.Bundle == id {
-			return cur, looks, true
-		}
+	if cur.Step.Type == mission.StepReview {
+		looks = m.Looks(states, cur.N)
+	} else if t, open := m.StepTask(cur.N); open && t.Verb == mission.TaskChecks {
+		looks, checks = m.ChecksLooks(states, cur.N), &t
 	}
-	return mission.StageState{}, nil, false
+	if slices.ContainsFunc(looks, func(l mission.Look) bool { return l.Bundle == id }) {
+		return cur, looks, checks, true
+	}
+	return mission.StageState{}, nil, nil, false
 }
 
 // ApproveBundle is your approval of a bundle, as you'd approve a review.
 // Where the mission is at a Review step that looks at it, and every bundle
 // that step looks at is approved, the step passes, as going on does: the
-// bundle is what's to approve, with the work it shows beside it.
+// bundle is what's to approve, with the work it shows beside it. So does
+// its own step when its checks are yours to say, as passing it as it is
+// does.
 func (w *Workspace) ApproveBundle(slug, id string, by Actor) (BundleDone, error) {
 	m, b, err := w.yourBundle(slug, id, by)
 	if err != nil {
@@ -393,7 +400,7 @@ func (w *Workspace) ApproveBundle(slug, id string, by Actor) (BundleDone, error)
 	if err != nil {
 		return out, nil
 	}
-	cur, looks, ok := w.reviewOf(m, b.ID)
+	cur, looks, checks, ok := w.waitsOn(m, b.ID)
 	if !ok {
 		return out, nil
 	}
@@ -407,7 +414,14 @@ func (w *Workspace) ApproveBundle(slug, id string, by Actor) (BundleDone, error)
 		out.Next = fmt.Sprintf("step %d also looks at %s, and passes once that's approved too", cur.N, strings.Join(waits, ", "))
 		return out, nil
 	}
-	acc, err := w.AcceptStage(m.Slug, AsYou, "you approved "+b.ID)
+	why := "you approved " + b.ID
+	if checks != nil {
+		// What ws asked of its checks is answered: kept for the
+		// orchestrator, the task closing as the step passes.
+		why += ", its checks as they were"
+		w.Missions.AnswerTask(m.Slug, checks.N, fmt.Sprintf("%s: approved %s", mission.ChecksPass, b.ID), by.By(), true)
+	}
+	acc, err := w.AcceptStage(m.Slug, AsYou, why)
 	if err != nil {
 		out.Next = fmt.Sprintf("step %d isn't passed yet: %v", cur.N, err)
 		return out, nil
@@ -421,7 +435,9 @@ func (w *Workspace) ApproveBundle(slug, id string, by Actor) (BundleDone, error)
 // to the crew who made the work, with each check and what the bundle
 // showed for it, as a Work step's unmet checks do. They put it right and
 // hand over another, which takes this one's place. A Review step looking
-// at it stays yours.
+// at it stays yours. A Work step whose checks were yours to say goes back
+// with it, as sending it back from what ws asked does: its crew report
+// done again, and the checks run again.
 func (w *Workspace) SendBackBundle(slug, id string, notes []mission.BundleNote, by Actor) (BundleDone, error) {
 	m, b, err := w.yourBundle(slug, id, by)
 	if err != nil {
@@ -459,7 +475,12 @@ func (w *Workspace) SendBackBundle(slug, id string, notes []mission.BundleNote, 
 		out.Next = "it has no step to send it back at: tell " + b.Crew + " yourself"
 		return out, nil
 	}
-	said, err := w.carryOn(m, st, b.Crew, bundleBackText(b), by)
+	text := bundleBackText(b)
+	if cur, _, checks, waits := w.waitsOn(m, b.ID); waits && checks != nil && cur.N == st.N && cur.Step.Type == mission.StepWork {
+		w.Missions.AnswerTask(m.Slug, checks.N, fmt.Sprintf("%s: %s isn't right yet", mission.ChecksSendBack, b.ID), by.By(), false)
+		text += fmt.Sprintf(" Then report done again with a handoff (ws mission done): ws runs step %d's checks again.", st.N)
+	}
+	said, err := w.carryOn(m, st, b.Crew, text, by)
 	if err != nil {
 		out.Next = fmt.Sprintf("couldn't reach %s (%v): tell them yourself", b.Crew, err)
 		return out, nil
