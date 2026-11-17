@@ -113,8 +113,9 @@ export function rowLine(b: Bundle, r: CheckRow): string {
   return line;
 }
 
-// waiting is whether a bundle waits for you: a Review step looks at it,
-// you've said nothing of it yet, and nothing has taken its place.
+// waiting is whether a bundle waits for you: a step of yours looks at it
+// (a Review step, or its own step with its checks yours to say), you've
+// said nothing of it yet, and nothing has taken its place.
 export function waiting(b: Bundle): boolean {
   return !!b.asked && !b.verdict && !b.replacedBy;
 }

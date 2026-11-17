@@ -112,11 +112,13 @@ type Action struct {
 	URL     string   `json:"url,omitempty"`
 	Options []string `json:"options,omitempty"` // a flag's suggested answers
 	// Look is what a Review step's review looks at (verb review-step):
-	// capsules to review, documents to read.
+	// bundles to approve, capsules to review, documents to read. On a
+	// step's checks that are yours to say (verb answer), it's the bundles
+	// that show them.
 	Look []Look `json:"look,omitempty"`
 }
 
-// Look is one thing a Review step looks at: a verification bundle (b3),
+// Look is one thing a step of yours looks at: a verification bundle (b3),
 // a capsule (repo/name), or a document (an artifact's ref), with what to
 // call it. Read is a document to read beside the review, which approving
 // needn't cover.
@@ -259,8 +261,9 @@ type Bundle struct {
 	VerdictAt *time.Time   `json:"verdictAt,omitempty"`
 	Notes     []BundleNote `json:"notes,omitempty"`
 	Looked    []string     `json:"looked,omitempty"`
-	// Asked: the mission is at a Review step (AskedAt) that looks at it,
-	// so approving it passes that step.
+	// Asked: the mission is at a step of yours (AskedAt) that looks at
+	// it, so approving it passes that step: a Review step, or its own
+	// step with its checks yours to say.
 	Asked       bool          `json:"asked,omitempty"`
 	AskedAt     int           `json:"askedAt,omitempty"`
 	Summary     string        `json:"summary"`

@@ -218,8 +218,10 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
       // Replies waiting for you on a document, when that's where it stands.
       const h = d?.headlines[0];
       if (!item?.capsule && h?.action.verb === "review-doc" && h.action.target) return navigate(docLink(slug, h.action.target));
-      // A Review step's first look: a document to read, or a capsule (below).
-      const look = h?.action.verb === "review-step" ? h.action.look?.[0] : undefined;
+      // A Review step's first look: a bundle to approve, a document to
+      // read, or a capsule (below). So is the bundle that shows a step's
+      // checks, when they're yours to say.
+      const look = h?.action.verb === "review-step" || h?.action.verb === "answer" ? h.action.look?.[0] : undefined;
       if (!item?.capsule && look?.bundle) return pickBundle(look.bundle);
       if (!item?.capsule && look?.doc) return navigate(docLink(slug, look.doc));
       const only = d?.capsules.filter((c) => c.exists);
@@ -1056,9 +1058,18 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
       // answered, or passed.
       const t = d.tasks?.find((x) => String(x.n) === a.target);
       const question = !t || (t.verb === "answer" && !t.step);
+      // A step's checks, yours to say: the bundles that show them are
+      // what to look at, on the Verify tab, where approving one passes
+      // the step and saying what's not right sends it back.
+      const bundles = (a.look ?? []).filter((l) => l.bundle);
       return (
         <div className="answer">
           <div className="button-row">
+            {bundles.map((l, i) => (
+              <Link key={l.bundle} to={bundleLink(d.slug, l.bundle!)} className={i === 0 ? "button-link primary" : "button-link"} title="Look at what it shows: approving it passes the step">
+                <Icon name="list-checks" /> Verify {l.name} {i === 0 && <Keys k="v" />}
+              </Link>
+            ))}
             {a.options?.map((o, i) => (
               <button key={i} disabled={busy} onClick={() => run("answer", o)}>
                 {o}
@@ -1073,7 +1084,7 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
             }}
           >
             <input value={own} onChange={(e) => setOwn(e.target.value)} placeholder={a.options?.length ? "Or answer in your own words" : "Your answer"} disabled={busy} aria-label="Your answer" />
-            <button type="submit" className="primary" disabled={busy || !own.trim()}>
+            <button type="submit" className={bundles.length ? undefined : "primary"} disabled={busy || !own.trim()}>
               Answer
             </button>
             {question && (
@@ -1188,7 +1199,7 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
               if (l.bundle) {
                 // A bundle is what's to approve, on the Verify tab.
                 return (
-                  <Link key={l.bundle} to={`/missions/${d.slug}?${new URLSearchParams({ tab: "verify", b: l.bundle })}`} className={primary ? "button-link primary" : "button-link"} title="Look at what it shows: approving it passes the step">
+                  <Link key={l.bundle} to={bundleLink(d.slug, l.bundle)} className={primary ? "button-link primary" : "button-link"} title="Look at what it shows: approving it passes the step">
                     <Icon name="list-checks" /> Verify {l.name} {first && <Keys k="v" />}
                   </Link>
                 );
@@ -1517,6 +1528,10 @@ const cameFrom = (ref: string) => {
 
 // docLink is a mission's document's page, to read and comment on.
 const docLink = (slug: string, ref: string) => `/missions/${slug}/artifact?${new URLSearchParams({ ref })}`;
+
+// bundleLink is where a bundle is looked at: the mission's Verify tab,
+// open at it.
+const bundleLink = (slug: string, id: string) => `/missions/${slug}?${new URLSearchParams({ tab: "verify", b: id })}`;
 
 // Brief is the brief, rendered, with its plan under it. They're changed on
 // their own page (e, or Edit), where what the planner proposes for them is
