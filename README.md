@@ -84,7 +84,7 @@ Or build it:
 go install github.com/withworkspace/workspace/cmd/workspace@latest
 ```
 
-That builds ws without its web UI (`ws web` says so). For the web UI, build from a clone with `just build` (Go, Node and [just](https://github.com/casey/just)) and put `bin/workspace` on your `PATH`.
+That builds ws without its web UI (`ws web` says so). For the web UI, build from a clone with `just build` (Go, Node, [pnpm](https://pnpm.io) and [just](https://github.com/casey/just)) and put `bin/workspace` on your `PATH`.
 
 Then add to your `~/.zshrc`:
 
