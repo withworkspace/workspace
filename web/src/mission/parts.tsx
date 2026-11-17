@@ -1,9 +1,9 @@
-import { createContext, Fragment, type ReactNode, useContext, useState } from "react";
+import { createContext, Fragment, type ReactNode, useContext, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { Artifact, CapsuleDetail, CrewDetail, Decision, MissionDetail, MissionEvent, Stage } from "../api";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { HoverCard } from "../ui/hover";
+import { FloatingCard, HoverCard, RefContext, useHoverDelay } from "../ui/hover";
 import { Copyable } from "../ui/kit";
 import { crewStatus, exitWords, Status } from "../ui/status";
 import { dayKey, dayLabel, duration, stamp, Time, useNow } from "../ui/time";
@@ -664,9 +664,11 @@ export function CrewRow({ c, slug, detail }: { c: CrewDetail; slug: string; deta
   );
 }
 
-// Timeline is the mission's life in a strip: when each crew worked (in its
-// colour), and the moments that mattered (stages accepted, reviews,
-// decisions, what you said), from its start to now.
+// Timeline is the mission's life in a strip along the top of its page: when
+// each crew worked (in its colour, quietly; the one running now less so),
+// and the moments that mattered (stages accepted, reviews, decisions, what
+// was asked) as ticks over them, from its start to now. A tick says what
+// happened then on hover; moments too close to point at apart share one.
 export function Timeline({ d }: { d: MissionDetail }) {
   const now = useNow();
   const start = new Date(d.created).getTime();
@@ -705,15 +707,28 @@ export function Timeline({ d }: { d: MissionDetail }) {
       lanes[lane] = sp.to;
       return { ...sp, lane, key: `${sp.c.id}-${i}` };
     });
-  const marks = d.events.flatMap((e): { e: MissionEvent; icon: IconName; cls: string }[] => {
-    if (e.kind === "stage" && /accepted/.test(e.text)) return [{ e, icon: "check", cls: "done" }];
-    if (e.kind === "review") return [{ e, icon: "eye", cls: "you" }];
-    if (e.kind === "decision") return [{ e, icon: "gavel", cls: "decided" }];
-    if (e.kind === "flag" || e.kind === "crew_asked") return [{ e, icon: "question", cls: "ask" }];
+  const marks = d.events.flatMap((e): TimelineMark[] => {
+    if (e.kind === "stage" && /accepted/.test(e.text)) return [{ e, icon: "check", cls: "done", what: `${d.plan ? "Step" : "Stage"} accepted` }];
+    if (e.kind === "review") return [{ e, icon: "eye", cls: "you", what: "Reviewed" }];
+    if (e.kind === "decision") return [{ e, icon: "gavel", cls: "decided", what: "Decided" }];
+    if (e.kind === "flag" || e.kind === "crew_asked") return [{ e, icon: "question", cls: "ask", what: "Asked" }];
     return [];
   });
+  // Ticks: marks within a few pixels of each other are one, in the colour
+  // of what matters most among them.
+  const ticks: { at: number; marks: TimelineMark[] }[] = [];
+  for (const m of marks) {
+    const x = at(m.e.time);
+    const last = ticks[ticks.length - 1];
+    if (last && x - last.at < tickApart) last.marks.push(m);
+    else ticks.push({ at: x, marks: [m] });
+  }
+  const hover = useHoverDelay<number>();
+  const els = useRef(new Map<number, HTMLElement>());
   if (!bars.length && !marks.length) return null;
   const laneCount = Math.max(1, Math.min(lanes.length, 3));
+  const shown = hover.shown === undefined ? undefined : ticks[hover.shown];
+  const anchor = hover.shown === undefined ? undefined : els.current.get(hover.shown);
   return (
     <div className="timeline" style={{ "--lanes": laneCount } as React.CSSProperties} aria-label="The mission over time">
       <div className="timeline-track">
@@ -728,22 +743,61 @@ export function Timeline({ d }: { d: MissionDetail }) {
                   "--hue": crewHue(b.c.id),
                   left: `${at(b.from)}%`,
                   width: `max(3px, ${at(b.to) - at(b.from)}%)`,
-                  top: `${b.lane * 7}px`,
+                  "--lane": b.lane,
                 } as React.CSSProperties
               }
               title={`${b.c.id}: ${stamp(b.from)}${b.to < now - 60_000 ? ` to ${stamp(b.to)} (${duration(b.from, b.to)})` : ", running now"}`}
             />
           ))}
-        {marks.map((m, i) => (
-          <span key={i} className={`timeline-mark ${m.cls}`} style={{ left: `${at(m.e.time)}%` }} title={`${stamp(m.e.time)}: ${m.e.text}`}>
-            <Icon name={m.icon} size={9} />
-          </span>
+        {ticks.map((t, i) => (
+          <span
+            key={i}
+            ref={(el) => {
+              if (el) els.current.set(i, el);
+              else els.current.delete(i);
+            }}
+            className={`timeline-mark ${tickKinds.find((k) => t.marks.some((m) => m.cls === k))}`}
+            style={{ left: `${t.at}%` }}
+            tabIndex={0}
+            aria-label={t.marks.map((m) => `${stamp(m.e.time)}: ${m.what}`).join("; ")}
+            onMouseEnter={() => hover.over(i)}
+            onMouseLeave={hover.out}
+            onFocus={() => hover.over(i)}
+            onBlur={hover.out}
+          />
         ))}
       </div>
-      <div className="timeline-ends">
-        <Time iso={d.created} />
-        <span>{d.state === "archived" || d.state === "landed" ? <Time iso={new Date(end).toISOString()} /> : "now"}</span>
-      </div>
+      {shown && anchor && (
+        <FloatingCard anchor={anchor} className="timeline-card" onEnter={hover.stay} onLeave={hover.out}>
+          {/* Inside a card, refs are words: no cards in cards. */}
+          <RefContext.Provider value={undefined}>
+            {shown.marks.map((m, i) => (
+              <div key={i} className="timeline-moment">
+                <div className="hovercard-head">
+                  <span className={`timeline-kind ${m.cls}`}>
+                    <Icon name={m.icon} size={9} />
+                  </span>
+                  <span className="hovercard-strong">{m.what}</span>
+                  <span className="timeline-when">{stamp(m.e.time)}</span>
+                </div>
+                <Inline text={m.e.text} lines={3} className="timeline-what" />
+              </div>
+            ))}
+          </RefContext.Provider>
+        </FloatingCard>
+      )}
     </div>
   );
 }
+
+interface TimelineMark {
+  e: MissionEvent;
+  icon: IconName;
+  cls: "done" | "you" | "decided" | "ask";
+  what: string;
+}
+
+// How near two moments are (in hundredths of the strip) before they're
+// one tick, and which of a tick's kinds it's drawn as.
+const tickApart = 0.4;
+const tickKinds: TimelineMark["cls"][] = ["ask", "you", "done", "decided"];

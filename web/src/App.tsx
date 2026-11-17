@@ -46,10 +46,11 @@ export function App() {
   const [closed, setClosed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  // Reviewing, browsing files and running an artifact want the room: the
-  // sidebar folds to a rail.
+  // A mission (and what's under it: its reviews, files and crew), a pull
+  // request's review, a repo's files and a running artifact want the room:
+  // the sidebar folds to a rail, which opens over the page on hover.
   const reviewing =
-    location.pathname.includes("/review/") || location.pathname.includes("/files/") || location.pathname.startsWith("/reviews/") || location.pathname.startsWith("/artifacts/");
+    location.pathname.startsWith("/missions/") || location.pathname.includes("/files/") || location.pathname.startsWith("/reviews/") || location.pathname.startsWith("/artifacts/");
 
   // The drawer (on a narrow window) closes on going somewhere.
   useEffect(() => setDrawer(false), [location.pathname]);
