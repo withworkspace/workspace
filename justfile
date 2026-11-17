@@ -34,3 +34,7 @@ cover-html:
 # Build a throwaway workspace for trying missions by hand (Claude Code on haiku in every role).
 test-workspace dir=(env_var('HOME') + "/Projects/ws-test"):
     ./scripts/test-workspace.sh "{{dir}}"
+
+# Try this build by hand: `just try up [seed...]` makes a fresh workspace in /tmp, running on this build, and says where; `just try down` stops and removes it (scripts/try.sh says the rest).
+try *args:
+    @./scripts/try.sh {{args}}
