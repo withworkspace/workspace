@@ -322,6 +322,7 @@ run_seeds() { # <name> <seed>...
 	shift
 	for s in "$@"; do
 		echo "Seeding $s..." >&2
+		[ -s "$dir/.try/said" ] && echo >>"$dir/.try/said"
 		# What it prints is kept to show; what its commands say as they
 		# go (stderr) is only wanted if it fails.
 		if ! (cd "$dir" && TRY_DIR="$dir" TRY_WS="$dir/.try/ws" TRY_REPO="$here" bash "$(seed_file "$s")") >>"$dir/.try/said" 2>"$dir/.try/seed.log"; then
