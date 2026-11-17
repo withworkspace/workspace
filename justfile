@@ -5,25 +5,25 @@ build: web
 web:
     #!/usr/bin/env sh
     set -e
-    if ! command -v npm >/dev/null; then echo "npm not found: building without the web UI"; exit 0; fi
+    if ! command -v pnpm >/dev/null; then echo "pnpm not found: building without the web UI"; exit 0; fi
     cd web
-    [ -d node_modules ] || npm ci --silent
-    npm run --silent build -- --logLevel warn
+    [ -d node_modules ] || pnpm install --frozen-lockfile --silent
+    pnpm --silent build --logLevel warn
 
 # Work on the web UI with hot reload at localhost:5173, against a workspace's running web UI (ws web starts it).
 web-dev ws=(env_var('HOME') + "/Projects/ws-test"):
-    cd web && [ -d node_modules ] || npm ci
-    cd web && WS_ROOT="{{ws}}" npm run dev
+    cd web && [ -d node_modules ] || pnpm install --frozen-lockfile
+    cd web && WS_ROOT="{{ws}}" pnpm dev
 
 check:
     gofmt -l . | grep . && exit 1 || true
     go vet ./...
     go build ./...
 
-# Go's tests, then the web UI's (web/src/**/*.test.ts), if npm is here.
+# Go's tests, then the web UI's (web/src/**/*.test.ts), if pnpm is here.
 test:
     go test ./...
-    @if command -v npm >/dev/null; then cd web && { [ -d node_modules ] || npm ci --silent; } && npm test --silent; else echo "npm not found: skipping the web UI's tests"; fi
+    @if command -v pnpm >/dev/null; then cd web && { [ -d node_modules ] || pnpm install --frozen-lockfile --silent; } && pnpm --silent test; else echo "pnpm not found: skipping the web UI's tests"; fi
 
 cover:
     go test ./... -coverprofile=cover.out && go tool cover -func=cover.out
