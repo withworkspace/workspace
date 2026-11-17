@@ -63,7 +63,8 @@ func (c *Claude) Available() error {
 // covered that repo's later capsules (worktrees of the same repo), but
 // trusting the workspace root (the config repo) didn't cover the repos
 // under it, so the first crew in each repo asks once. Until someone answers,
-// that crew shows as waiting in the deck.
+// no hook runs: the host watches for the dialog (crew.WatchTrust), and marks
+// the crew as asking you, or answers it where ws.local.toml says to.
 //
 // VERIFIED: --name sets the session's display name, which is also the
 // terminal title the deck shows.

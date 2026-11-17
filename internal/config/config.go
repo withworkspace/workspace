@@ -475,6 +475,11 @@ type CrewConfig struct {
 	// allowed: they're the default. Empty, crew run on the default only.
 	// ws.local.toml's replaces ws.toml's whole, when it sets one.
 	Allowed []string `toml:"allowed,omitempty"`
+	// TrustFolders, read from ws.local.toml alone, has the host answer
+	// Claude Code's trust dialog yes for crew (crew.WatchTrust): for a
+	// throwaway workspace, where every repo is new to Claude and nobody's
+	// there to answer. Trusting a folder lets its agent run what's in it.
+	TrustFolders bool `toml:"trust_folders,omitempty"`
 }
 
 // merge overrides c with whatever local sets: allowed is replaced whole.

@@ -60,6 +60,10 @@ type Server struct {
 	// CrewAtWork, if set, names the crew a restart would stop mid-turn: a
 	// restart that isn't to be now waits for them.
 	CrewAtWork func() []string
+	// TrustFolders, if set, says whether to answer Claude Code's trust
+	// dialog yes for crew (crew.WatchTrust): ws.local.toml's [crew]
+	// trust_folders. Nil leaves it to you.
+	TrustFolders func() bool
 
 	store mission.Store
 	ln    net.Listener
@@ -515,6 +519,7 @@ func (s *Server) launch(spec Spec) (int, error) {
 	if spec.Prompt != "" {
 		go crew.TypePrompt(s.Root, spec.Key(), crew.PaneTerm(pane), spec.Prompt)
 	}
+	go crew.WatchTrust(s.store, s.Root, spec, crew.PaneTerm(pane), s.TrustFolders)
 	return pane.Pid(), nil
 }
 

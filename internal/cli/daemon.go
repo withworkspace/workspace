@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/execlog"
@@ -146,6 +147,10 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 		s.Log.Printf("recorded %d crew as lost: their server went without ending them", n)
 	}
 	s.OnCrewEnded = orchestrateHook(root)
+	s.TrustFolders = func() bool {
+		l, err := config.ReadLocal(root)
+		return err == nil && l.Crew.TrustFolders
+	}
 	// A turn of crew over ACP that ended without the crew saying
 	// where it is, as a terminal crew's stop hook hands on.
 	s.OnACPTurnEnded = func(slug, crewID string) { orchestrateQuietTurn(root, slug, crewID) }
