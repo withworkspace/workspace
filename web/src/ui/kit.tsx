@@ -7,7 +7,7 @@ import { Icon, type IconName } from "./Icon";
 // Keys shows a key or a chord: "g m" is g then m, "mod+⏎" is ⌘⏎.
 export function Keys({ k, className }: { k: string; className?: string }) {
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
-  const parts = k.split(" ").map((p) => p.replace(/^mod\+/, mac ? "⌘" : "Ctrl+").replace(/^shift\+/, "⇧"));
+  const parts = k.split(" ").map((p) => p.replace(/^mod\+/, mac ? "⌘" : "Ctrl+").replace(/(^|\+|⌘)shift\+/, (_, before: string) => before + (mac ? "⇧" : "Shift+")));
   return (
     <span className={`keys${className ? ` ${className}` : ""}`}>
       {parts.map((p, i) => (

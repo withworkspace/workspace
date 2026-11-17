@@ -1,11 +1,10 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -126,17 +125,14 @@ func runRg(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	roots, err := ctx.WS().SearchRoots(cwd, selectors, mode)
+	scoped, err := ctx.SearchRoots(ops.SearchScope{Cwd: cwd, Selectors: selectors, Mode: mode})
 	if err != nil {
 		return err
-	}
-	if len(roots) == 0 {
-		return fmt.Errorf("nothing to search: no worktrees found")
 	}
 
 	if opts.roots {
 		var b strings.Builder
-		for _, r := range roots {
+		for _, r := range scoped {
 			b.WriteString(r.Path)
 			b.WriteByte('\n')
 		}
@@ -148,40 +144,20 @@ func runRg(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("missing ripgrep pattern (use --roots to inspect scope)")
 	}
 
-	rgPath, err := exec.LookPath("rg")
+	roots := make([]ops.SearchRoot, len(scoped))
+	for i, r := range scoped {
+		roots[i] = ops.SearchRoot{SearchRoot: r}
+	}
+	rg, err := ctx.Rg(roots, rest)
 	if err != nil {
-		return fmt.Errorf("ripgrep (rg) not found on PATH; install it from https://github.com/BurntSushi/ripgrep")
+		return err
 	}
-
-	prefixes := make([]string, len(roots))
-	rgArgs := make([]string, 0, len(rest)+len(roots))
-	for i, r := range roots {
-		prefixes[i] = r.RelPath()
-	}
-	rgArgs = append(rgArgs, rewriteGlobs(rest, prefixes)...)
-	for _, r := range roots {
-		rgArgs = append(rgArgs, physicalPath(r.Path))
-	}
-
-	// Run from the workspace root: ripgrep matches slash-containing globs
-	// against paths relative to its cwd, so the rewritten globs only line up
-	// from there. Roots are absolute so output paths are absolute.
-	//
-	// Both are spelled physically. ripgrep finds its cwd with getcwd, which
-	// resolves symlinks, and only strips that exact prefix from a root before
-	// matching globs: a workspace reached through a symlink (/tmp or /var on
-	// macOS, a linked home folder) otherwise matched no slash glob at all.
-	c := exec.Command(rgPath, rgArgs...)
-	c.Dir = physicalPath(ctx.WS().Root)
-	c.Stdin = os.Stdin
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
-	if err := c.Run(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			return &ExitCodeError{Code: exitErr.ExitCode()}
+	if err := rg.Run(context.Background(), os.Stdin, os.Stdout, os.Stderr); err != nil {
+		var exit *ops.RgExit
+		if errors.As(err, &exit) {
+			return &ExitCodeError{Code: exit.Code}
 		}
-		return fmt.Errorf("running rg: %w", err)
+		return err
 	}
 	return nil
 }
@@ -299,68 +275,6 @@ func resolveRgGroups(ctx *ops.Workspace, groups []string) ([]workspace.RepoSelec
 	return selectors, nil
 }
 
-// rewriteGlobs expands ripgrep -g/--glob/--iglob values that contain a slash
-// into one glob per search root, prefixed with the root's workspace-relative
-// path. Ripgrep matches such globs against the printed path relative to its
-// cwd, not relative to each root, so without this "-g 'src/*.ts'" would match
-// nothing. Basename globs (no slash) are left alone. Rewriting stops at "--".
-func rewriteGlobs(args []string, prefixes []string) []string {
-	out := make([]string, 0, len(args))
-	emit := func(flag, glob string) {
-		for _, g := range expandGlob(glob, prefixes) {
-			if flag == "" {
-				out = append(out, g)
-			} else {
-				out = append(out, flag, g)
-			}
-		}
-	}
-	for i := 0; i < len(args); i++ {
-		arg := args[i]
-		switch {
-		case arg == "--":
-			out = append(out, args[i:]...)
-			return out
-		case arg == "-g" || arg == "--glob" || arg == "--iglob":
-			if i+1 < len(args) {
-				emit(arg, args[i+1])
-				i++
-			} else {
-				out = append(out, arg)
-			}
-		case strings.HasPrefix(arg, "--glob=") || strings.HasPrefix(arg, "--iglob="):
-			flag, glob, _ := strings.Cut(arg, "=")
-			for _, g := range expandGlob(glob, prefixes) {
-				out = append(out, flag+"="+g)
-			}
-		case strings.HasPrefix(arg, "-g") && len(arg) > 2 && !strings.HasPrefix(arg, "--"):
-			for _, g := range expandGlob(arg[2:], prefixes) {
-				out = append(out, "-g"+g)
-			}
-		default:
-			out = append(out, arg)
-		}
-	}
-	return out
-}
-
-func expandGlob(glob string, prefixes []string) []string {
-	neg := ""
-	body := glob
-	if strings.HasPrefix(body, "!") {
-		neg, body = "!", body[1:]
-	}
-	if !strings.Contains(body, "/") {
-		return []string{glob}
-	}
-	body = strings.TrimPrefix(body, "/")
-	out := make([]string, 0, len(prefixes))
-	for _, p := range prefixes {
-		out = append(out, neg+p+"/"+body)
-	}
-	return out
-}
-
 // completeRgArgs completes --repo values (names, aliases, repo/worktree) and
 // the ws flags themselves. Ripgrep's own flags are not completed.
 func completeRgArgs(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -415,12 +329,4 @@ func completeRgArgs(cmd *cobra.Command, args []string, toComplete string) ([]str
 		out = append(out, prefix+n)
 	}
 	return out, cobra.ShellCompDirectiveNoFileComp
-}
-
-// physicalPath is p with symlinks resolved, or p itself if it can't be.
-func physicalPath(p string) string {
-	if real, err := filepath.EvalSymlinks(p); err == nil {
-		return real
-	}
-	return p
 }

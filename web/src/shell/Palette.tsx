@@ -10,27 +10,35 @@ import { Status } from "../ui/status";
 import { humanError, Keys, toast } from "../ui/kit";
 import { setTheme } from "../ui/theme";
 import { clock } from "../ui/time";
-import { asks, build, type Found, findStream, type FoundGroup, type GroupKey, groupTitle, type Item, localItems, parseQuery, rematch, type Scope, scopePrefix, warmFind, withScope } from "./find";
+import { asks, build, type CodeEnd, type CodeHit, codeRematch, codeStream, type Found, findStream, type FoundGroup, type GroupKey, groupTitle, type Item, localItems, parseQuery, rematch, type Scope, scopePrefix, warmFind, withScope } from "./find";
 import type { Waiting } from "./notify";
+import { CodeText, CodeWhere } from "./CodeHitParts";
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
 // has, by what you remember of it. What the page holds (missions, pages,
 // conversations, crew, things to do) is looked through here as you type;
 // files, pull requests and what's typed read as a ref are asked of the
-// server, which answers a kind at a time.
+// server, which answers a kind at a time. What the files say (%) is its
+// own scope, asked of the server's code search, tagged to the repo of the
+// page Find was opened on until Backspace widens it.
 
 const chips: { scope: Scope; label: string }[] = [
   { scope: "all", label: "Everything" },
   { scope: "pulls", label: "Pull requests" },
   { scope: "files", label: "Files" },
+  { scope: "code", label: "Code" },
   { scope: "do", label: "Do" },
 ];
 
 // stale is how old the pull requests can be before Find says how old.
 const stale = 10 * 60 * 1000;
 
-export function Palette({ workspace, waiting, start, onClose, onHelp }: { workspace: Workspace; waiting: Waiting[]; start?: string; onClose: () => void; onHelp: () => void }) {
+// codeWait is how long code search waits for typing to pause before it
+// asks: ripgrep isn't started for every letter.
+const codeWait = 150;
+
+export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }: { workspace: Workspace; waiting: Waiting[]; start?: string; pageRepo?: string; onClose: () => void; onHelp: () => void }) {
   const navigate = useNavigate();
   const [raw, setRaw] = useState(start ?? "");
   const [only, setOnly] = useState<GroupKey>(); // narrowed with ⇥ to a kind the page holds
@@ -40,6 +48,9 @@ export function Palette({ workspace, waiting, start, onClose, onHelp }: { worksp
     groups: FoundGroup[];
     done: boolean;
   }>({ q: "", groups: [], done: true });
+  // Code search's tag: the repo it's narrowed to (the page's, to start).
+  const [tag, setTag] = useState(pageRepo);
+  const [code, setCode] = useState<{ key: string; hits: CodeHit[]; end?: CodeEnd; done: boolean }>({ key: "", hits: [], done: true });
   const list = useRef<HTMLDivElement>(null);
   const wide = useWide();
 
@@ -83,6 +94,46 @@ export function Palette({ workspace, waiting, start, onClose, onHelp }: { worksp
     return () => drop.abort();
   }, [q, kinds, limit]);
 
+  // Code search: once typing pauses, streamed. A new letter (or the tag
+  // cleared) drops the last request, and the server stops ripgrep.
+  const codeQ = scope === "code" ? q : "";
+  useEffect(() => {
+    const key = `${tag ?? ""}\n${codeQ}`;
+    if (!codeQ) {
+      setCode({ key, hits: [], done: true });
+      return;
+    }
+    const drop = new AbortController();
+    // Until it answers: what was found a moment ago that still says it.
+    setCode((was) => ({ key, hits: was.key.startsWith(`${tag ?? ""}\n`) ? codeRematch(was.hits, codeQ) : [], end: undefined, done: false }));
+    const wait = setTimeout(() => {
+      const hits: CodeHit[] = [];
+      let frame = 0;
+      // Hits are shown a frame at a time, not one render each.
+      const show = () => {
+        frame = 0;
+        if (!drop.signal.aborted) setCode({ key, hits: [...hits], done: false });
+      };
+      codeStream([codeQ], { repo: tag }, drop.signal, (h) => {
+        hits.push(h);
+        if (!frame) frame = requestAnimationFrame(show);
+      }).then(
+        (end) => {
+          cancelAnimationFrame(frame);
+          if (!drop.signal.aborted) setCode({ key, hits, end, done: true });
+        },
+        (e: Error) => {
+          cancelAnimationFrame(frame);
+          if (!drop.signal.aborted) setCode({ key, hits, end: { matches: hits.length, bytes: 0, problem: humanError(e.message) }, done: true });
+        },
+      );
+    }, codeWait);
+    return () => {
+      clearTimeout(wait);
+      drop.abort();
+    };
+  }, [codeQ, tag]);
+
   const needs = useMemo(() => {
     const byId = new Map(local.map((it) => [it.to, it]));
     return waiting.flatMap((w) => {
@@ -104,8 +155,9 @@ export function Palette({ workspace, waiting, start, onClose, onHelp }: { worksp
         recent,
         memory,
         spaces: workspace.spaces,
+        code: scope === "code" ? code : undefined,
       }),
-    [q, scope, only, local, found.groups, needs, recent, memory, workspace.spaces],
+    [q, scope, only, local, found.groups, needs, recent, memory, workspace.spaces, code],
   );
   const rows = built.rows;
   const at = Math.max(
@@ -180,13 +232,18 @@ export function Palette({ workspace, waiting, start, onClose, onHelp }: { worksp
 
   const pulls = found.groups.find((g) => g.kind === "pulls");
   const pullsAge = pulls?.at ? Date.now() - new Date(pulls.at).getTime() : 0;
-  const nothing = !rows.length && (found.done || !asked);
+  const busy = scope === "code" ? !code.done : !found.done;
+  const nothing = !rows.length && (scope === "code" ? code.done : found.done || !asked);
   const placeholder =
     group === "pulls"
       ? "A number, a title, who it's by…"
       : group === "files"
         ? "A few letters of a path, and :12 for a line…"
-        : group === "do"
+        : group === "code"
+          ? tag
+            ? `Text in ${tag}'s files…`
+            : "Text in the files, across the workspace…"
+          : group === "do"
           ? "Something to do…"
           : group
             ? `Find in ${groupTitle[group].toLowerCase()}…`
@@ -201,6 +258,11 @@ export function Palette({ workspace, waiting, start, onClose, onHelp }: { worksp
             {only && scope === "all" && (
               <button className="find-only" onClick={() => setOnly(undefined)} title="Look through everything again">
                 {groupTitle[only]} <Icon name="x" size={10} />
+              </button>
+            )}
+            {scope === "code" && tag && (
+              <button className="find-only find-tag" onMouseDown={(e) => e.preventDefault()} onClick={() => setTag(undefined)} title="Search the whole workspace (⌫)">
+                repo: {tag} <Icon name="x" size={10} />
               </button>
             )}
             <input
@@ -235,6 +297,11 @@ export function Palette({ workspace, waiting, start, onClose, onHelp }: { worksp
                 } else if (e.key === "Backspace" && !raw && only) {
                   e.preventDefault();
                   setOnly(undefined);
+                } else if (e.key === "Backspace" && scope === "code" && !q && tag && e.currentTarget.selectionStart === raw.length) {
+                  // Nothing typed after %: the tag goes first, and the search
+                  // widens to the workspace. Again, and % goes.
+                  e.preventDefault();
+                  setTag(undefined);
                 } else if (mod && e.key.toLowerCase() === "c" && e.currentTarget.selectionStart === e.currentTarget.selectionEnd && on?.ref) {
                   // Nothing of what's typed is selected: copy the row's name.
                   e.preventDefault();
@@ -242,7 +309,7 @@ export function Palette({ workspace, waiting, start, onClose, onHelp }: { worksp
                 }
               }}
             />
-            {!found.done && <Icon name="spinner" size={14} className="find-busy" />}
+            {busy && <Icon name="spinner" size={14} className="find-busy" />}
           </div>
           <div className="find-chips" role="tablist" aria-label="Look through">
             {chips.map((c) => (
@@ -267,21 +334,29 @@ export function Palette({ workspace, waiting, start, onClose, onHelp }: { worksp
             {built.sections.map((s) => (
               <section key={s.group} aria-label={s.title}>
                 {(built.sections.length > 1 || s.group !== group) && <h3>{s.title}</h3>}
-                {s.items.map((it) => (
-                  <Row key={it.id} it={it} on={it.id === on?.id} section={s.group} onOver={() => it.id !== on?.id && setCursor(it.id)} onPick={(tab) => go(it, tab)} />
-                ))}
+                {s.items.map((it) =>
+                  it.code ? (
+                    <CodeRow key={it.id} it={it} h={it.code} on={it.id === on?.id} onOver={() => it.id !== on?.id && setCursor(it.id)} onPick={(tab) => go(it, tab)} />
+                  ) : (
+                    <Row key={it.id} it={it} on={it.id === on?.id} section={s.group} onOver={() => it.id !== on?.id && setCursor(it.id)} onPick={(tab) => go(it, tab)} />
+                  ),
+                )}
                 {s.more > 0 && (
                   <p className="find-more">
                     {s.more} more
                     {!group && s.group !== "best" && <Keys k="⇥" />}
                   </p>
                 )}
-                {s.note && <p className="find-note">{s.note}</p>}
+                {s.note && <p className={`find-note${s.group === "code" && code.end?.capped ? " find-capped" : ""}`}>{s.note}</p>}
               </section>
             ))}
             {nothing && (
               <p className="palette-none">
-                {q
+                {scope === "code"
+                  ? q
+                    ? `No file ${tag ? `in ${tag} ` : ""}says “${q}”.`
+                    : `Type text to find in the files of ${tag ?? "every repo, and what capsules have changed"}.`
+                  : q
                   ? `Nothing matches “${q}”.`
                   : group === "pulls" && !pulls?.at
                     ? "Pull requests show here once Reviews has been opened."
@@ -301,6 +376,11 @@ export function Palette({ workspace, waiting, start, onClose, onHelp }: { worksp
             <span>
               <Keys k="⇥" /> {group ? "everything" : "only these"}
             </span>
+            {scope === "code" && tag && !q && (
+              <span>
+                <Keys k="⌫" /> the whole workspace
+              </span>
+            )}
             {on?.ref && (
               <span>
                 <Keys k="mod+C" /> copy its name
@@ -311,7 +391,18 @@ export function Palette({ workspace, waiting, start, onClose, onHelp }: { worksp
         </div>
         {wide && (
           <aside className="find-card ref-card" aria-label="About it">
-            {on?.pull ? (
+            {on?.code ? (
+              <>
+                <span className="hovercard-head">
+                  <Icon name="file" size={13} className="dim" />
+                  <span className="hovercard-title mono">{on.code.path}</span>
+                </span>
+                <span className="hovercard-line dim">
+                  Line {on.code.line} in {on.code.repo}
+                  {on.code.worktree === ".ground" ? ", its default branch" : `, capsule ${on.code.worktree}`}
+                </span>
+              </>
+            ) : on?.pull ? (
               <PullCard it={on} />
             ) : on?.said ? (
               <SaidCard it={on} f={on.said} />
@@ -342,6 +433,7 @@ function kindOf(it?: Item): GroupKey | undefined {
   const k = it.id.slice(0, it.id.indexOf(":"));
   return (
     {
+      code: "code",
       mission: "missions",
       pr: "pulls",
       file: "files",
@@ -397,6 +489,18 @@ function Row({ it, on, section, onOver, onPick }: { it: Item; on: boolean; secti
         </span>
       ))}
       {says && <span className="palette-kind">{it.kind}</span>}
+    </div>
+  );
+}
+
+// CodeRow is a line a file says: where (its repo, path and line, and a
+// capsule's name), then the line with what matched marked.
+function CodeRow({ it, h, on, onOver, onPick }: { it: Item; h: CodeHit; on: boolean; onOver: () => void; onPick: (tab: boolean) => void }) {
+  return (
+    <div id={`pal-${it.id}`} role="option" aria-selected={on} className={`find-row find-code${on ? " on" : ""}`} onMouseMove={onOver} onClick={(e) => onPick(e.metaKey || e.ctrlKey)}>
+      <Icon name="file" />
+      <CodeWhere h={h} repo capsule />
+      <CodeText h={h} />
     </div>
   );
 }
