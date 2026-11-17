@@ -1463,7 +1463,7 @@ Returns current workspace context as a JSON object. Useful for building custom i
 
 ## Plugins
 
-A plugin is a program that adds to the workspace without being part of ws: a view in the web UI's sidebar, commands after `ws`, and a guide that tells agents the commands are there. The workspace's daemon runs each plugin as one process, started when it's first needed and kept until the daemon stops. Plugins are written with [workspace-kit](https://github.com/brudil/workspace-kit).
+A plugin is a program that adds to the workspace without being part of ws: a view in the web UI's sidebar, commands after `ws`, and a guide that tells agents the commands are there. The workspace's daemon runs each plugin as one process, started when it's first needed and kept until the daemon stops. Plugins are written with [the plugin framework](https://github.com/withworkspace/plugin), a Go package.
 
 A plugin on disk is a folder with a `plugin.toml` (its name, its version, and the command that starts it) and an executable. What it adds, it says itself when it starts.
 
@@ -1490,7 +1490,7 @@ ws plugin remove hello            # --data removes what it kept for itself, too
 - **Its config** is yours where you set it: `ws plugin config` writes `[plugin.<name>]` in `ws.local.toml`, over the team's in `ws.toml`. A secret is in neither file: it's kept beside the plugin's data, readable only by you. A plugin that requires something that isn't set says so in its view, in `ws plugin list`, and when its commands are run.
 - **Where it's kept:** `.ws/plugins/<name>/`, with the plugin itself in `app/` and what it keeps for itself (its database, its log) in `data/`.
 
-**Published plugins.** A plugin is published as a repo on GitHub, and each release of it holds a build for each platform (`<name>_<tag>_<os>_<arch>.tar.gz`: its `plugin.toml` and what its command starts) and a `checksums.txt`. `ws plugin add owner/repo` downloads this machine's build of the latest release, checks it against the release's checksums, and installs it; `ws plugin update` fetches a newer one, keeping the plugin's config and data. A repo with no release, or none built for this machine, is installed from its source, which is built here (so it needs what the plugin's built with: Go, for one written with workspace-kit). With `gh` logged in, a private repo is read as you; without it, a public one is read as anyone. `ws plugin list` says where each came from.
+**Published plugins.** A plugin is published as a repo on GitHub, and each release of it holds a build for each platform (`<name>_<tag>_<os>_<arch>.tar.gz`: its `plugin.toml` and what its command starts) and a `checksums.txt`. `ws plugin add owner/repo` downloads this machine's build of the latest release, checks it against the release's checksums, and installs it; `ws plugin update` fetches a newer one, keeping the plugin's config and data. A repo with no release, or none built for this machine, is installed from its source, which is built here (so it needs what the plugin's built with: Go, for one written with the plugin framework). With `gh` logged in, a private repo is read as you; without it, a public one is read as anyone. `ws plugin list` says where each came from.
 
 A plugin that hasn't been built is built when it's added, as its `plugin.toml` says (`build`), so one can be added straight from its source.
 

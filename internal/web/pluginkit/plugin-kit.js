@@ -2,7 +2,8 @@
 // /plugin-kit.js, and a plugin's page includes it in its <head>. It gives
 // the page ws's theme, keeps ws's address and title in step with the
 // page's, passes on the keys ws owns, and reloads the page when the plugin
-// says what it shows is stale. See PROTOCOL.md in workspace-kit.
+// says what it shows is stale. See PROTOCOL.md in the plugin framework,
+// github.com/withworkspace/plugin.
 (function () {
   "use strict";
   var framed = window.parent !== window;
