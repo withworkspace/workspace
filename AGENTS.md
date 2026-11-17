@@ -12,7 +12,10 @@ For agents working on ws itself. (`FOR_LLMS.md` is the guide for an agent workin
 just build     # the web UI into internal/web/dist, then bin/workspace. Always this, never go build -o
 just check     # gofmt, go vet, go build ./...
 just test      # go test ./..., then the web UI's tests (vitest)
-just test-workspace [dir]   # a throwaway workspace to try missions, the web UI and agents by hand
+just try up [seed...]       # try this build by hand: a fresh workspace in /tmp, seeded, its daemon and web UI up; prints dir, link, port, token and its ws
+just try restart            # rebuild, and restart its daemon (same link)
+just try down               # stop its daemon and remove it (it's also torn down when your session ends)
+just test-workspace [dir]   # the same workspace, to keep: no daemon started, nothing torn down
 ```
 
 `internal/web/dist` is built, not committed: it's gitignored but for its `.gitkeep`, which `go:embed` needs. A binary built without it (`go build` alone, or `go install`) has no web UI, and `ws web` says so.
