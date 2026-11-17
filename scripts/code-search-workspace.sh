@@ -42,6 +42,14 @@ package main
 // loudness is new in the capsule: greet loudly, in a file main doesn't have.
 const loudness = 11
 EOF
+# A long markdown file with a hit far down it: a hit at a line opens it as
+# text, scrolled to the line, not rendered at the top.
+{
+	echo "# A long guide"
+	for i in $(seq 2 239); do echo "Line $i of the guide, about nothing much."; done
+	echo "Deep down: greet them here, at line 240."
+	for i in $(seq 241 300); do echo "Line $i of the guide, about nothing much."; done
+} >"$capsule/guide.md"
 # Enough lines that a single letter is capped.
 for i in $(seq 1 1000); do echo "line $i of a long file the capsule added"; done >"$capsule/long.txt"
 git_seed -C "$capsule" add -A
@@ -60,6 +68,8 @@ Then, in the web UI:
     didn't change it), records' notes and ADR, and from search-demo its
     main.go (in place of .ground's: main.go is listed once), loud.go and
     notes.txt (not committed). Not search-demo's main_test.go or go.mod.
+  - %greet them here: guide.md:240, a long markdown file. Choosing it opens
+    the file as text at line 240, marked (so does Find's /guide.md:240).
   - %e: a single letter, capped at 200 matches, and Find says so.
   - Files › demo (/files/demo, or a file in it): mod+shift+F opens Find in %
     tagged "repo: demo"; Backspace on the empty input clears the tag and
