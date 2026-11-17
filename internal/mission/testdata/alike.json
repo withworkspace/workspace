@@ -146,7 +146,7 @@
  {
   "slug": "answering-claude-code-s-folder-trust",
   "title": "Answering Claude Code's folder-trust dialog in a crew's terminal (web UI) counts…",
-  "request": "Answering Claude Code's folder-trust dialog in a crew's terminal (web UI) counts as talking to the crew: crewPages.Key in workspace-private/internal/ops/crewpages.go marks it Conversing on any Enter. So the first crew in each repo, whose session opens on that dialog, has its opening turn treated as answering you, and the orchestrator never looks at its quiet turn. Seen on mission hold-nudges-background-work, in a throwaway workspace: 'not run for c1 (quiet): it isn't waiting on ws's message' right after trusting the folder.",
+  "request": "Answering Claude Code's folder-trust dialog in a crew's terminal (web UI) counts as talking to the crew: crewPages.Key in workspace/internal/ops/crewpages.go marks it Conversing on any Enter. So the first crew in each repo, whose session opens on that dialog, has its opening turn treated as answering you, and the orchestrator never looks at its quiet turn. Seen on mission hold-nudges-background-work, in a throwaway workspace: 'not run for c1 (quiet): it isn't waiting on ws's message' right after trusting the folder.",
   "same": ""
  },
  {

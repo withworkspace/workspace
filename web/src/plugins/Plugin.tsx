@@ -7,8 +7,9 @@ import { Empty, useTitle } from "../ui/kit";
 // A plugin's view: its own pages, served by the plugin (/plugins/<name>/…)
 // and shown here in a frame, at /x/<name>/…. The frame is this origin's
 // own, not sandboxed: a plugin is a program the workspace's owner
-// installed. The page and ws talk by postMessage (PROTOCOL.md in
-// workspace-kit): the page says where it is and what it's called, and ws
+// installed. The page and ws talk by postMessage (PROTOCOL.md in the
+// plugin framework, github.com/withworkspace/plugin): the page says where
+// it is and what it's called, and ws
 // keeps its address and title in step; ws gives it the theme, and says
 // when the plugin's said what it shows is stale.
 
