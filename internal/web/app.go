@@ -109,6 +109,7 @@ type Files interface {
 	CapsuleDir(slug, repo, name string) (dir, baseRef string, err error)
 	Landing(repo, name string) (*ops.Landing, error)
 	LandCapsule(repo, name string) (*ops.LandOutcome, error)
+	CodeSearching
 }
 
 // Crewing is crew's pages (the crew the daemon holds), sending threads to
