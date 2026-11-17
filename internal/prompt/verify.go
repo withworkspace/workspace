@@ -102,8 +102,9 @@ func Verifier(v Verifying) string {
 		fmt.Fprintf(&s, "- You have %s: ws holds the clock from when you start.\n", strings.TrimSuffix(v.Limit, "."))
 	}
 	s.WriteString("\nThen hand over a verification bundle, which ends your part (there's no `ws mission done` for you: the bundle is it):\n\n")
-	s.WriteString("  ws mission bundle --set - <<'EOF'\n  ## Summary\n  …\n  ## Try it\n  - try: …\n  ## Checks\n  1. met: …\n     - shows: `<file>` what it shows\n  ## Not verified\n  - …\n  EOF\n\n")
+	s.WriteString("  ws mission bundle --set - <<'EOF'\n  ## Summary\n  …\n  ## Try it\n  - try: `<setup> && cd <where> && <what starts it>`\n  - look for: …\n  ## Checks\n  1. met: …\n     - shows: `<file>` what it shows\n  ## Not verified\n  - …\n  EOF\n\n")
 	s.WriteString("`ws mission bundle --format` says how it's written, with your step's checks by number. ws reads it strictly, and refuses one that isn't right with every problem and its line: put them right and hand it over again. ")
+	s.WriteString("In Try it, a `try:` is one command, which the user copies once: chain setup, `cd` and what starts it with `&&` (`a && cd x && b`), with no second command and no words after it. What to do or see in the UI once it's running goes in `look for:` items, one each. ")
 	s.WriteString("Every check that's met, or left for the user, and the step is done; one unmet, and the work goes back to its crew, to be verified again once they've put it right.\n\n")
 	s.WriteString("What you write the user reads in ws's web UI, on the mission's Verify tab. " + Naming)
 	return s.String()

@@ -428,3 +428,38 @@ func (ix *Index) Grounds(ctx context.Context) (map[string]GroundTree, error) {
 	}
 	return out, nil
 }
+
+// Layout is the workspace's worktrees as the index has them: each repo's
+// ground, and each capsule with what it has changed since it branched
+// (path to Added, Modified or Removed). It's what code search searches.
+type Layout struct {
+	Grounds  []Worktree
+	Capsules []CapsuleChanges
+}
+
+// CapsuleChanges is a capsule and the files it has changed, and how.
+type CapsuleChanges struct {
+	Worktree
+	Files map[string]string
+}
+
+// Layout brings the index up to date, waiting for every capsule, and says
+// what it holds, in the order the worktrees are listed.
+func (ix *Index) Layout(ctx context.Context) (Layout, error) {
+	snap, err := ix.fresh(ctx, 0)
+	if err != nil {
+		return Layout{}, err
+	}
+	var l Layout
+	for _, g := range snap.grounds {
+		l.Grounds = append(l.Grounds, Worktree{Repo: g.repo, Name: Ground, Dir: g.dir})
+	}
+	for _, c := range snap.capsules {
+		files := make(map[string]string, len(c.status))
+		for p, st := range c.status {
+			files[p] = st
+		}
+		l.Capsules = append(l.Capsules, CapsuleChanges{Worktree: c.wt, Files: files})
+	}
+	return l, nil
+}

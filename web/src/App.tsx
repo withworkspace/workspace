@@ -8,7 +8,7 @@ import { Explorer, explorerKeys } from "./files/Explorer";
 import { docKeys } from "./files/DocPage";
 import { FilesPage, filesKeys } from "./files/Files";
 import { DocumentsPage, documentsKeys, SpacePage, spaceKeys } from "./documents/Documents";
-import { pageBinds, useKeys } from "./keys";
+import { codeSearchKey, isCodeSearchKey, pageBinds, useKeys } from "./keys";
 import { ArtifactPage, artifactKeys } from "./mission/ArtifactPage";
 import { BriefView, briefKeys } from "./mission/BriefView";
 import { CrewPage, crewKeys } from "./mission/CrewPage";
@@ -23,6 +23,7 @@ import { DocsAddress, DocumentAt, LocalPageAt, OpenAddress, PageAddress } from "
 import { Review, reviewKeys } from "./review/Review";
 import { PRReviewPage, prReviewKeys } from "./reviews/PRReview";
 import { ReviewsPage, reviewsKeys } from "./reviews/Reviews";
+import { repoOfPage, scopePrefix } from "./shell/find";
 import { Palette } from "./shell/Palette";
 import { useFaviconBadge, useNotifications, type Waiting } from "./shell/notify";
 import { noteVisit, visitAt } from "./shell/recent";
@@ -183,6 +184,7 @@ export function App() {
           workspace={workspace}
           waiting={waiting}
           start={palette}
+          pageRepo={repoOfPage(location.pathname, workspace.spaces)}
           onClose={() => setPalette(undefined)}
           onHelp={() => {
             setPalette(undefined);
@@ -449,7 +451,8 @@ function ConnectionBanner({ connection }: { connection: Connection }) {
   );
 }
 
-// useGlobalKeys: ⌘K finds anything, ? shows the keys, and g then m, c, p,
+// useGlobalKeys: ⌘K finds anything, ⌘P a file, ⌘⇧F text in the files, ?
+// shows the keys, and g then m, c, p,
 // a, r, t, f or o goes to Missions, Conversations, Pages, Artifacts,
 // Reviews, Team, Files or the Orchestrator. They're read before a page's own keys.
 function useGlobalKeys({ openPalette, openHelp }: { openPalette: (start?: string) => void; openHelp: () => void }) {
@@ -465,6 +468,17 @@ function useGlobalKeys({ openPalette, openHelp }: { openPalette: (start?: string
         e.preventDefault();
         e.stopPropagation();
         openPalette();
+        return;
+      }
+      if (isCodeSearchKey(e)) {
+        // ⌘⇧F is Find, for what the files say: except where a page has a
+        // search box of its own (a capsule's files), which is nearer.
+        e.preventDefault();
+        const does = codeSearchKey(!!document.querySelector(".overlay"));
+        if (does.to === "nothing") return; // something's open: the key's its, or nobody's
+        e.stopPropagation();
+        if (does.to === "own") does.open();
+        else openPalette(scopePrefix.code);
         return;
       }
       if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "p") {
@@ -579,6 +593,7 @@ function helpKeys(path: string): [string, string][] {
 const globalKeys: [string, string][] = [
   ["mod+K", "Find anything: a mission, a file, a pull request, an address"],
   ["mod+P", "Find a file"],
+  ["mod+shift+F", "Find text in the files: the repo you're in (⌫ for everywhere), or a capsule's own"],
   ["g m", "Go to Missions"],
   ["g c", "Go to Conversations"],
   ["g d / g p", "Go to Documents"],

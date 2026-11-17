@@ -584,7 +584,8 @@ The picker is on Settings, under Appearance. Picking a colour applies at
 once in both themes.
 
 ## Try it
-- try: `just dev`, then open http://localhost:5173/settings
+- try: `npm install && cd web && npm run dev`
+- look for: Appearance, on http://localhost:5173/settings
 - look for: the row of swatches under Accent
 
 ## Checks
@@ -604,6 +605,7 @@ EOF
 ```
 
 - **Read strictly,** as a plan is: `ws mission bundle --format` says how one is written (and, to crew, their step's checks by number), and one that isn't right is refused with every problem and its line. Where the step has checks, each one in words is there once, by its number in the step; a check that's a command is ws's to run, and is left out. Where the step has none, the checks are the bundle's own, numbered in order. A `met` needs something that shows it: a `shows:` or the `lines:` it's done in.
+- **A `try:` is one command,** in backticks with nothing after it, so you copy it once: setup, `cd` and what starts it are chained with `&&` (`a && cd x && b`). What to do or see in the UI once it's running is in `look for:` items, one each; a `try:` with nothing to run is in words. One with a second command, or words after its command, is refused, saying so.
 - **What shows a check** is a file: an image, a video, or text such as what a command printed (1 MB of text at most, 50 MB of image or video). It's named by its path from where crew stand, or in the mission's private files folder. Under a `shows:`, `before:` is the same on the default branch, shown beside it, and `made by:` the command that made it.
 - **Its files are copied** into a folder of the bundle's own, `.ws/missions/<slug>/bundles/b1/`, so it's whole whatever becomes of the files it was made from. Its record is the mission's, in the workspace's records.
 - **It's of a commit:** the one its capsule is at. It's refused while the capsule has changes that aren't committed, and it says so once the capsule has moved on (*Stale*).

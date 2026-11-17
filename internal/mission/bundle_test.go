@@ -15,8 +15,8 @@ in both themes.
 It survives a reload.
 
 ## Try it
-- try: ` + "`just dev`" + `, then open http://localhost:5173/settings
-- look for: Appearance, then the row of swatches
+- try: ` + "`npm install && cd web && npm run dev`" + `
+- look for: Appearance, on http://localhost:5173/settings
 
 ## Checks
 1. met: picked teal, then rose; tabs and buttons changed
@@ -59,7 +59,7 @@ func TestParseBundle(t *testing.T) {
 	if want := "The picker is on Settings. Picking a colour applies at once\nin both themes.\n\nIt survives a reload."; b.Summary != want {
 		t.Errorf("summary = %q", b.Summary)
 	}
-	if len(b.Try) != 2 || b.Try[0].Command != "just dev" || b.Try[0].Look || !b.Try[1].Look || b.Try[1].Command != "" {
+	if len(b.Try) != 2 || b.Try[0].Command != "npm install && cd web && npm run dev" || b.Try[0].Text != "`npm install && cd web && npm run dev`" || b.Try[0].Look || !b.Try[1].Look || b.Try[1].Command != "" {
 		t.Errorf("try = %+v", b.Try)
 	}
 	if len(b.Checks) != 2 {
@@ -139,6 +139,113 @@ func TestParseBundle_Refused(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// A try is one command, copied once: one with a second command after it,
+// or words, is refused, saying to chain what's run with && and where the
+// rest goes. Under a check, which takes no look for:, that's a try of its
+// own or Try it.
+func TestParseBundle_TryIsOneCommand(t *testing.T) {
+	in := func(tryIt, underCheck string) string {
+		s := "## Summary\nx\n"
+		if tryIt != "" {
+			s += "## Try it\n" + tryIt + "\n"
+		}
+		s += "## Checks\n1. unmet: y\n"
+		if underCheck != "" {
+			s += "   " + underCheck + "\n"
+		}
+		return s + "## Not verified\nNothing.\n"
+	}
+	const chain, look = "chain what's to run with && into one (`a && cd x && b`)", "move the rest to - look for: items, one for each thing to do or see"
+	refused := []struct {
+		name, written string
+		want          []string
+	}{
+		{"a second command", in("- try: `scripts/setup.sh ~/demo`, then `cd ~/demo && bin/app web`", ""),
+			[]string{"line 4: try: has a second command in backticks (`cd ~/demo && bin/app web`) after `scripts/setup.sh ~/demo`", chain, look}},
+		{"two commands, nothing between", in("- try: `just build` `bin/app web`", ""),
+			[]string{"line 4: try: has a second command in backticks (`bin/app web`)", chain, look}},
+		{"words after its command", in("- try: `just dev`, then open http://localhost:5173/settings", ""),
+			[]string{"line 4: try: says more after its command (\"then open http://localhost:5173/settings\")", chain, look}},
+		{"words after it, on the next line", in("- try: `just dev`\n  in Find (⌘K) type %greet", ""),
+			[]string{"line 4: try: says more after its command (\"in Find (⌘K) type %greet\")", chain, look}},
+		{"with no try:", in("- `just dev` and open the page", ""),
+			[]string{"line 4: try: says more after its command (\"and open the page\")", chain, look}},
+		{"under a check", in("", "- try: `just dev`, then open the page"),
+			[]string{"line 5: try: says more after its command (\"then open the page\")", chain, "move the rest to a - try: of its own, in words, or to - look for: items under ## Try it"}},
+		{"a second command, under a check", in("", "- try: `just build`, then `bin/app web`"),
+			[]string{"line 5: try: has a second command in backticks (`bin/app web`) after `just build`", chain, "- look for: items under ## Try it"}},
+	}
+	for _, c := range refused {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := ParseBundle(c.written, nil, nil)
+			if err == nil || !IsMalformedBundle(err) {
+				t.Fatalf("err = %v", err)
+			}
+			for _, want := range c.want {
+				if !strings.Contains(err.Error(), want) {
+					t.Errorf("want %q in:\n%s", want, err)
+				}
+			}
+		})
+	}
+
+	// What was right before still is: one command (chained or not), words
+	// only, though they name something in backticks, and what to look for,
+	// whatever it starts with.
+	b, err := ParseBundle(in("- try: `just dev`\n- try: `scripts/setup.sh ~/demo && cd ~/demo && bin/app web`\n- try: `just dev`.\n"+
+		"- try: open Settings in two tabs\n- try: open Settings, then press `Save` and `Reset`\n- look for: the row of swatches under Accent\n- look for: `teal` then `rose`, in the footer",
+		"- try: `npm test`\n   - try: open the page twice"), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []BundleTry{
+		{Text: "`just dev`", Command: "just dev"},
+		{Text: "`scripts/setup.sh ~/demo && cd ~/demo && bin/app web`", Command: "scripts/setup.sh ~/demo && cd ~/demo && bin/app web"},
+		{Text: "`just dev`", Command: "just dev"},
+		{Text: "open Settings in two tabs"},
+		{Text: "open Settings, then press `Save` and `Reset`"},
+		{Text: "the row of swatches under Accent", Look: true},
+		{Text: "`teal` then `rose`, in the footer", Look: true},
+	}
+	if len(b.Try) != len(want) {
+		t.Fatalf("try = %+v", b.Try)
+	}
+	for i, w := range want {
+		if b.Try[i] != w {
+			t.Errorf("try %d = %+v, want %+v", i+1, b.Try[i], w)
+		}
+	}
+	if under := b.Checks[0].Try; len(under) != 2 || under[0].Command != "npm test" || under[1].Command != "" || under[1].Text != "open the page twice" {
+		t.Errorf("under the check = %+v", under)
+	}
+}
+
+// What crew are told is what's held to: the format's own example is read
+// as it's written, and its Try it is one chained command, then what to
+// look for.
+func TestBundleFormat_ItsExample(t *testing.T) {
+	_, after, ok := strings.Cut(BundleFormat, "```markdown\n")
+	example, _, closed := strings.Cut(after, "```\n")
+	if !ok || !closed {
+		t.Fatal("BundleFormat has no example")
+	}
+	b, err := ParseBundle(example, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(b.Try) != 3 || b.Try[0].Command != "npm install && cd web && npm run dev" || b.Try[0].Text != "`"+b.Try[0].Command+"`" || !b.Try[1].Look || !b.Try[2].Look {
+		t.Errorf("try = %+v", b.Try)
+	}
+	if len(b.Checks) != 2 || len(b.Checks[0].Try) != 1 || b.Checks[0].Try[0].Command == "" || b.Checks[1].Try[0].Command != "" {
+		t.Errorf("checks = %+v", b.Checks)
+	}
+	for _, says := range []string{"one command in backticks, with nothing after it", "chain it with `&&` (`a && cd x && b`)", "`look for:` items, one each"} {
+		if !strings.Contains(BundleFormat, says) {
+			t.Errorf("BundleFormat doesn't say %q", says)
+		}
 	}
 }
 
