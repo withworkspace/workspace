@@ -331,3 +331,124 @@ func TestBundle_TheCapsulesReviewWaitsForIt(t *testing.T) {
 		t.Errorf("approved: %q, %v", done, err)
 	}
 }
+
+// checkedBundle is the cache mission at workPlan's step 1, c1's bundle of
+// it handed over and their done checked: the judge can't tell of the check
+// in words, so the step's checks are yours to say.
+func checkedBundle(t *testing.T) (*Workspace, mission.Task) {
+	t.Helper()
+	w, _, dir := workFixture(t, "1. can't tell: it needs production's traffic")
+	os.WriteFile(filepath.Join(dir, "cache.go"), []byte("package cache\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "shot.png"), []byte("\x89PNG\r\n"), 0o644)
+	if _, err := w.HandOverBundle("cache", "c1", bundleOf("shot.png"), dir); err != nil {
+		t.Fatal(err)
+	}
+	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "cached")
+	w.CrewDone("cache", "c1")
+	m, _ := w.Missions.Load("cache")
+	task := m.Asking()
+	if task == nil || task.Verb != mission.TaskChecks || task.Step != 1 {
+		t.Fatalf("the task = %+v", task)
+	}
+	return w, *task
+}
+
+// A step's checks that are yours to say are shown by the bundle its crew
+// handed over: what ws asks you names it, its headline looks at it (the
+// page's way to it), and it waits for you on the Verify tab, as one a
+// Review step looks at does.
+func TestBundle_ShowsChecksThatAreYours(t *testing.T) {
+	w, task := checkedBundle(t)
+	if !strings.Contains(task.Text, "Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to c1. Or pass it as it is, send it back to c1 with what's unmet, or say what to do.") {
+		t.Errorf("the task doesn't name the bundle: %q", task.Text)
+	}
+	m, _ := w.Missions.Load("cache")
+	var flag *mission.Headline
+	for _, h := range mission.Resolve(mission.Snapshot{M: m, State: mission.Active, OrchestratorOff: true}) {
+		if h.Kind == mission.KindFlag {
+			flag = &h
+		}
+	}
+	if flag == nil || flag.Action.Verb != mission.VerbAnswer || flag.Action.Target != "1" || strings.Join(flag.Action.Options, "|") != "Pass it|Send it back" {
+		t.Fatalf("the flag = %+v", flag)
+	}
+	if looks := flag.Action.Look; len(looks) != 1 || looks[0].Bundle != "b1" || looks[0].Name != "b1" {
+		t.Errorf("the flag looks at %+v, want b1", looks)
+	}
+	if v := w.Bundles(m); !v[0].Asked || v[0].AskedAt != 1 {
+		t.Errorf("b1 doesn't wait for you at step 1: asked %v at %d", v[0].Asked, v[0].AskedAt)
+	}
+
+	// A question that isn't a step's checks looks at nothing.
+	if _, err := w.Missions.Ask("cache", "Which cache?", "c1"); err != nil {
+		t.Fatal(err)
+	}
+	m, _ = w.Missions.Load("cache")
+	for _, h := range mission.Resolve(mission.Snapshot{M: m, State: mission.Active, OrchestratorOff: true}) {
+		if h.Kind == mission.KindFlag && h.Action.Target != "1" && len(h.Action.Look) != 0 {
+			t.Errorf("a question looks at %+v", h.Action.Look)
+		}
+	}
+}
+
+// Approving the bundle that shows a step's checks passes the step, as
+// passing it as it is does: what ws asked is answered.
+func TestBundle_ApprovingPassesChecksThatAreYours(t *testing.T) {
+	w, _ := checkedBundle(t)
+	_, err := w.ApproveBundle("cache", "b1", AsOrchestrator)
+	refusedWith(t, err, "bundle-is-yours")
+
+	done, err := w.ApproveBundle("cache", "b1", AsYou)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(done.String(), "Approved b1: step 1 passed; ") {
+		t.Errorf("approved: %q", done)
+	}
+	st := stepRecord(t, w, 1)
+	if !st.Accepted() || st.Record.AcceptedBy != "you" || !strings.Contains(st.Record.Why, "you approved b1") {
+		t.Errorf("step 1 = %+v", st.Record)
+	}
+	m, _ := w.Missions.Load("cache")
+	if _, open := m.StepTask(1); open {
+		t.Errorf("step 1's task is still open: %+v", m.Tasks)
+	}
+	if m.Answer == nil || m.Answer.Verb != mission.TaskChecks || !strings.Contains(m.Answer.Text, "b1") {
+		t.Errorf("the answer kept for the orchestrator = %+v", m.Answer)
+	}
+	if v := w.Bundles(m); v[0].Asked {
+		t.Errorf("b1 still waits for you: %+v", v[0])
+	}
+}
+
+// Sending that bundle back sends the step back, as sending it back from
+// what ws asked does, with what you said: its crew put it right and
+// report done, and the checks run again.
+func TestBundle_SendingBackChecksThatAreYours(t *testing.T) {
+	w, _ := checkedBundle(t)
+	done, err := w.SendBackBundle("cache", "b1", []mission.BundleNote{{Check: 2, Text: "the shot is of the wrong page"}}, AsYou)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(done.String(), "Sent b1 back: ") || !strings.Contains(done.Next, "queued") {
+		t.Errorf("sent back: %q", done)
+	}
+	m, _ := w.Missions.Load("cache")
+	if len(m.Tasks) != 0 {
+		t.Errorf("step 1's checks are still yours to say: %+v", m.Tasks)
+	}
+	if st := stepRecord(t, w, 1); st.Accepted() {
+		t.Errorf("step 1 passed: %+v", st.Record)
+	}
+	if m.Dispatch == nil || m.Dispatch.Stage != 1 {
+		t.Fatalf("nobody's to carry on at step 1: %+v", m.Dispatch)
+	}
+	for _, want := range []string{"Check 2 (the lookup is cached): the shot is of the wrong page", "it takes b1's place", "report done again with a handoff (ws mission done): ws runs step 1's checks again"} {
+		if !strings.Contains(m.Dispatch.Text, want) {
+			t.Errorf("crew aren't told %q:\n%s", want, m.Dispatch.Text)
+		}
+	}
+	if v := w.Bundles(m); v[0].Asked {
+		t.Errorf("b1 still waits for you: %+v", v[0])
+	}
+}
