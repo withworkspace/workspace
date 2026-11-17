@@ -63,8 +63,26 @@ export function useHoverDelay<T>(hideAfter = 120) {
 
 // FloatingCard is a hover card's panel: under what it's about (anchor), or
 // over it where there's no room below, kept on screen, and placed again as
-// it grows (what it shows arrives).
-export function FloatingCard({ anchor, className, onEnter, onLeave, children }: { anchor: HTMLElement; className?: string; onEnter: () => void; onLeave: () => void; children: ReactNode }) {
+// it grows (what it shows arrives). Given beside (a list the anchor is in,
+// say), it goes at that's side instead, level with the anchor, so it
+// doesn't cover what's next in the list: left of it, or right where
+// there's no room on the left; under the anchor, as ever, where there's
+// room on neither.
+export function FloatingCard({
+  anchor,
+  beside,
+  className,
+  onEnter,
+  onLeave,
+  children,
+}: {
+  anchor: HTMLElement;
+  beside?: HTMLElement | null;
+  className?: string;
+  onEnter: () => void;
+  onLeave: () => void;
+  children: ReactNode;
+}) {
   const card = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number }>();
   useLayoutEffect(() => {
@@ -72,6 +90,15 @@ export function FloatingCard({ anchor, className, onEnter, onLeave, children }: 
       if (!card.current || !anchor.isConnected) return;
       const at = anchor.getBoundingClientRect();
       const c = card.current.getBoundingClientRect();
+      if (beside?.isConnected) {
+        const edge = beside.getBoundingClientRect();
+        const fits = (x: number) => x >= 12 && x + c.width <= window.innerWidth - 12;
+        const x = [edge.left - 10 - c.width, edge.right + 10].find(fits);
+        if (x !== undefined) {
+          setPos({ top: Math.max(12, Math.min(at.top - 10, window.innerHeight - c.height - 12)), left: x });
+          return;
+        }
+      }
       const left = Math.max(12, Math.min(at.left - 6, window.innerWidth - c.width - 12));
       const below = at.bottom + 6;
       setPos({ top: below + c.height > window.innerHeight - 12 ? Math.max(12, at.top - 6 - c.height) : below, left });
@@ -80,7 +107,7 @@ export function FloatingCard({ anchor, className, onEnter, onLeave, children }: 
     const grown = new ResizeObserver(place);
     if (card.current) grown.observe(card.current);
     return () => grown.disconnect();
-  }, [anchor]);
+  }, [anchor, beside]);
   return createPortal(
     <div
       ref={card}
