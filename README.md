@@ -70,10 +70,10 @@ ws debrief                     # clean up anything that's landed
 
 ## Install
 
-From a release, with its web UI and code navigation, for macOS on Apple silicon and Linux (amd64, arm64). It downloads with [gh](https://cli.github.com), logged in:
+From a release, with its web UI and code navigation, for macOS on Apple silicon and Linux (amd64, arm64):
 
 ```sh
-gh api -H 'Accept: application/vnd.github.raw' repos/withworkspace/workspace/contents/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/withworkspace/workspace/main/scripts/install.sh | bash
 ```
 
 That installs the latest release at `~/.local/bin/workspace`, checked against the release's checksums. From a clone, it's `scripts/install.sh [version] [dir]`: a tag (`v0.0.3`) for another release, and another directory (or `$WS_INSTALL_DIR`). Run it again to upgrade.
