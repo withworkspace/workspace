@@ -12,7 +12,7 @@ import { crewStatus, headlineStatus, type StatusInfo } from "../ui/status";
 
 // The groups, in the order they show. best, needs and recent aren't kinds
 // of thing: the one that fits most, what's waiting, where you've been.
-export const groupOrder = ["best", "needs", "recent", "missions", "pulls", "documents", "said", "files", "pages", "talks", "artifacts", "crew", "capsules", "do", "places"] as const;
+export const groupOrder = ["best", "needs", "recent", "missions", "pulls", "documents", "said", "files", "code", "pages", "talks", "artifacts", "crew", "capsules", "do", "places"] as const;
 export type GroupKey = (typeof groupOrder)[number];
 
 export const groupTitle: Record<GroupKey, string> = {
@@ -24,6 +24,7 @@ export const groupTitle: Record<GroupKey, string> = {
   documents: "Documents",
   said: "Said",
   files: "Files",
+  code: "Code",
   pages: "Pages",
   talks: "Conversations",
   artifacts: "Artifacts",
@@ -72,6 +73,7 @@ export interface Item {
   card?: PageRef; // what its card shows, beside the list
   pull?: PullFound;
   said?: Found; // what ws records that says what's typed: its card shows its words, marked
+  code?: CodeHit; // a line of a file, found by what it says: its text, the match marked
 }
 
 // What a headline asks of you that Find can do outright.
@@ -578,15 +580,155 @@ function saidItem(f: Found): Item {
   };
 }
 
+// --- what the files say (code search) ---
+
+// CodeHit is a line a code search matched (ops.CodeHit): where, and the
+// line's text (a window of it, when cut), with where the patterns matched
+// in it, as string indexes.
+export interface CodeHit {
+  repo: string;
+  worktree: string;
+  path: string;
+  line: number;
+  column: number;
+  text: string;
+  cut?: boolean;
+  ranges: [number, number][];
+}
+
+// CodeEnd is how a code search ended: how many hits, and what capped it
+// (a cap on matches, or on bytes), or what went wrong part way.
+export interface CodeEnd {
+  matches: number;
+  bytes: number;
+  capped?: "matches" | "bytes";
+  problem?: string;
+}
+
+// codeStream asks the server to search the files for each of patterns,
+// across the workspace or in repo (and in the whole of one of its
+// worktrees, given it), and gives each hit to on as it comes. Aborting the
+// signal drops the request, which stops ripgrep.
+export async function codeStream(patterns: string[], where: { repo?: string; worktree?: string }, signal: AbortSignal, on: (h: CodeHit) => void): Promise<CodeEnd> {
+  const params = new URLSearchParams();
+  for (const p of patterns) params.append("p", p);
+  if (where.repo) params.set("repo", where.repo);
+  if (where.worktree) params.set("worktree", where.worktree);
+  const res = await fetch(`/api/search?${params}`, { signal, headers: { accept: "application/x-ndjson" } });
+  if (!res.ok || !res.body) {
+    const said = await res.json().catch(() => undefined);
+    throw new Error((said as { error?: string } | undefined)?.error ?? `${res.status} ${res.statusText}`);
+  }
+  const reader = res.body.getReader();
+  const text = new TextDecoder();
+  let rest = "";
+  let end: CodeEnd = { matches: 0, bytes: 0 };
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    rest += text.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = rest.indexOf("\n")) >= 0) {
+      const line = rest.slice(0, nl).trim();
+      rest = rest.slice(nl + 1);
+      if (!line) continue;
+      const data = JSON.parse(line) as CodeHit | (CodeEnd & { done: true });
+      if ("done" in data) end = data;
+      else on(data);
+    }
+  }
+  return end;
+}
+
+// codeItem is a hit as a row: it goes to the file at its line.
+export function codeItem(h: CodeHit, i: number): Item {
+  const ref: PageRef = { kind: "file", repo: h.repo, worktree: h.worktree || GROUND, path: h.path, line: h.line };
+  const where = `${h.repo}/${h.path}:${h.line}`;
+  return {
+    id: `code:${h.repo}/${h.worktree}:${h.path}:${h.line}:${i}`,
+    group: "code",
+    kind: "Code",
+    title: h.text,
+    hint: where,
+    icon: "file",
+    score: 0,
+    to: refHref(ref),
+    ref: h.worktree === GROUND ? `${h.repo}/${h.path}:${h.line}` : `${h.repo}/${h.worktree}:${h.path}:${h.line}`,
+    notes: h.worktree === GROUND ? [] : [`in ${h.worktree}`],
+    code: h,
+  };
+}
+
+// codeNote says what capped a code search, or what went wrong part way.
+export function codeNote(end: CodeEnd | undefined): string | undefined {
+  if (!end) return undefined;
+  if (end.problem) return end.problem;
+  if (end.capped === "matches") return `Stopped at the first ${end.matches} matches. There are more: say more of what you're after.`;
+  if (end.capped === "bytes") return `Stopped at ${end.matches} matches, as many as fit. There are more: say more of what you're after.`;
+  return undefined;
+}
+
+// codeRuns is a line's text in runs, those the patterns matched marked;
+// leading whitespace is dropped, so lines line up by what they say.
+export function codeRuns(text: string, ranges: [number, number][]): { text: string; hit: boolean }[] {
+  const lead = text.length - text.trimStart().length;
+  const out: { text: string; hit: boolean }[] = [];
+  let at = lead;
+  for (const [from, to] of [...ranges].sort((a, b) => a[0] - b[0])) {
+    const s = Math.max(from, at);
+    if (to <= s) continue;
+    if (s > at) out.push({ text: text.slice(at, s), hit: false });
+    out.push({ text: text.slice(s, to), hit: true });
+    at = to;
+  }
+  if (at < text.length) out.push({ text: text.slice(at), hit: false });
+  return out;
+}
+
+// codeRematch is the hits found a moment ago that still say q, its
+// matches found again: shown until the answer for q comes. Case matters
+// when q has a capital, as the server's smart case has it.
+export function codeRematch(hits: CodeHit[], q: string): CodeHit[] {
+  if (!q) return [];
+  const sensitive = q !== q.toLowerCase();
+  const want = sensitive ? q : q.toLowerCase();
+  const out: CodeHit[] = [];
+  for (const h of hits) {
+    const text = sensitive ? h.text : h.text.toLowerCase();
+    const ranges: [number, number][] = [];
+    for (let i = text.indexOf(want); i >= 0; i = text.indexOf(want, i + want.length)) ranges.push([i, i + want.length]);
+    if (ranges.length) out.push({ ...h, ranges });
+  }
+  return out;
+}
+
+// repoOfPage is the repo the page at path is of, for code search's tag: a
+// repo's files or a file in them, a capsule's files or its review, or a
+// document in a space of a repo. Elsewhere, none.
+export function repoOfPage(path: string, spaces?: SpaceRef[]): string | undefined {
+  const seg = path.split("/").map((p) => {
+    try {
+      return decodeURIComponent(p);
+    } catch {
+      return p;
+    }
+  });
+  if (seg[1] === "files" && seg[2]) return seg[2];
+  if (seg[1] === "missions" && (seg[3] === "files" || seg[3] === "review") && seg[4]) return seg[4];
+  if (seg[1] === "documents" && seg[2] && seg[3] && seg[2] !== "local" && spaces?.some((s) => s.repo === seg[2])) return seg[2];
+  return undefined;
+}
+
 // --- what's typed ---
 
 // A first character says what you're after: > things to do, # pull
-// requests, / files.
-export type Scope = "all" | "do" | "pulls" | "files";
+// requests, / files, % what the files say.
+export type Scope = "all" | "do" | "pulls" | "files" | "code";
 export const scopePrefix: Record<Exclude<Scope, "all">, string> = {
   do: ">",
   pulls: "#",
   files: "/",
+  code: "%",
 };
 
 // parseQuery reads what's typed: its scope, and the rest. A path on disk
@@ -596,6 +738,7 @@ export function parseQuery(raw: string, root?: string): { scope: Scope; q: strin
   const s = raw.trimStart();
   if (s.startsWith(">")) return { scope: "do", q: s.slice(1).trim() };
   if (s.startsWith("#")) return { scope: "pulls", q: s.slice(1).trim() };
+  if (s.startsWith("%")) return { scope: "code", q: s.slice(1).trim() };
   if (s.startsWith("/") && !(root && s.startsWith(`${root}/`))) return { scope: "files", q: s.slice(1).trim() };
   return { scope: "all", q: s.trim() };
 }
@@ -610,6 +753,7 @@ export function withScope(raw: string, scope: Scope, root?: string): string {
 // and how many of each. Nothing for things to do, which the page holds.
 export function asks(scope: Scope, only: GroupKey | undefined, q: string): { kinds?: string[]; limit: number } | undefined {
   const group = scope === "all" ? only : scope;
+  if (group === "code") return undefined; // code search asks for itself (codeStream)
   if (group === "pulls") return { kinds: ["pulls"], limit: wide };
   if (group === "files") return { kinds: ["ref", "files"], limit: wide };
   if (group === "documents" || group === "said") return q ? { kinds: [group], limit: wide } : undefined; // found by what they say
@@ -708,6 +852,7 @@ export interface Assembly {
   recent?: Item[]; // where you've been
   memory?: Memory;
   spaces?: SpaceRef[]; // the workspace's spaces: a document in one opens in Documents
+  code?: { hits: CodeHit[]; end?: CodeEnd }; // what code search found, in the code scope
 }
 
 // build is the window's sections for what's typed.
@@ -729,6 +874,13 @@ export function build(a: Assembly): Built {
       "places",
       a.local.filter((it) => it.group === "places"),
     );
+    return { sections, rows: sections.flatMap((s) => s.items) };
+  }
+
+  // What the files say: only in its own scope, never among the rest,
+  // where its lines would drown everything else. In the order found.
+  if (group === "code") {
+    if (a.q) add("code", (a.code?.hits ?? []).map(codeItem), 0, codeNote(a.code?.end));
     return { sections, rows: sections.flatMap((s) => s.items) };
   }
 

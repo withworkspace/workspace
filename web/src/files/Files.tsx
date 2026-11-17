@@ -15,6 +15,7 @@ import { useLoaded } from "../load";
 export const filesKeys: [string, string][] = [
   ["w", "Switch to the ground, or another capsule"],
   ["t / mod+P", "Find a file"],
+  ["mod+shift+F", "Search what a capsule's files say (on a repo's ground: Find, tagged to it)"],
   ["j / k", "Next / previous in the tree"],
   ["⏎ / o", "Open a file, or open or close a folder"],
   ["⏎", "On the markdown file that's open: open it as a document, to comment on"],
@@ -82,6 +83,7 @@ export function FilesPage({ workspace }: { workspace: Workspace }) {
         updated={mission?.updated}
         reviewTo={mission ? `/missions/${mission.slug}/review/${repo}/${capsule}` : undefined}
         docOf={(path) => docRef(repo, name, path)}
+        search={capsule ? { repo, worktree: capsule } : undefined}
         onEscape={() => {
           if (switching) return;
           const next = new URLSearchParams(params);

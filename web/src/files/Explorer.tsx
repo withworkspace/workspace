@@ -1,7 +1,8 @@
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { capsuleAPI, docRef, type FileTree, type FileView, getFile, getTree, pageOpenTo, rawURL, type TreeFile, type Workspace } from "../api";
-import { useKeys } from "../keys";
+import { useKeys, useOwnCodeSearch } from "../keys";
+import { CodeFinder } from "./CodeFinder";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../review/highlight";
 import { fuzzy, marked } from "../ui/fuzzy";
@@ -20,6 +21,7 @@ import { useLoaded } from "../load";
 
 export const explorerKeys: [string, string][] = [
   ["t / mod+P", "Find a file"],
+  ["mod+shift+F", "Search what the capsule's files say"],
   ["j / k", "Next / previous in the tree"],
   ["⏎ / o", "Open a file, or open or close a folder"],
   ["⏎", "On the markdown file that's open: open it as a document, to comment on"],
@@ -130,6 +132,7 @@ export function Explorer({ workspace }: { workspace: Workspace }) {
       updated={mission?.updated}
       reviewTo={`/missions/${slug}/review/${repo}/${name}`}
       docOf={(path) => docRef(repo, name, path)}
+      search={{ repo, worktree: name }}
       onEscape={() => navigate(`/missions/${slug}?tab=work`)}
       empty="The capsule is empty."
       head={
@@ -163,12 +166,15 @@ export interface BrowserProps {
   // docOf names one of its files as a document (repo:path, or
   // repo/capsule:path): a markdown file opens as one, to comment on.
   docOf?: (path: string) => string;
+  // search is the worktree its own search box searches, whole (a
+  // capsule's): it takes ⌘⇧F from Find.
+  search?: { repo: string; worktree: string };
   onEscape: () => void;
   // empty is what's said of it with no files.
   empty: string;
 }
 
-export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf, onEscape, empty }: BrowserProps) {
+export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf, search, onEscape, empty }: BrowserProps) {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const path = params.get("path") ?? "";
@@ -265,6 +271,16 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
   };
 
   const [finder, setFinder] = useState(false);
+  const [searching, setSearching] = useState(false);
+  useOwnCodeSearch(search ? () => setSearching(true) : undefined);
+  // A file at a line: a hit of the search.
+  const openAt = (p: string, line: number) => {
+    const next = new URLSearchParams(params);
+    next.set("path", p);
+    if (changedOnly && !byPath.get(p)?.status) next.delete("only");
+    setCursor(p);
+    navigate({ search: `?${next}`, hash: `#L${line}` });
+  };
   const [preview, setPreview] = useState(true);
   const closeOrUp = () => {
     const r = rows[at];
@@ -363,6 +379,11 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
               <button className="ghost icon-button small" onClick={() => setFinder(true)} title="Find a file (t)" aria-label="Find a file">
                 <Icon name="search" size={14} />
               </button>
+              {search && (
+                <button className="ghost icon-button small" onClick={() => setSearching(true)} title="Search what the files say (⌘⇧F)" aria-label="Search what the files say">
+                  <Icon name="code" size={14} />
+                </button>
+              )}
             </div>
           </div>
           <div className="explorer-rows" ref={treeRef} role="tree" aria-label={label}>
@@ -417,6 +438,17 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
             <Overview tree={tree} changed={changed} onOpen={select} onFind={() => setFinder(true)} />
           )}
         </section>
+      )}
+      {searching && search && (
+        <CodeFinder
+          repo={search.repo}
+          worktree={search.worktree}
+          onPick={(p, line) => {
+            setSearching(false);
+            openAt(p, line);
+          }}
+          onClose={() => setSearching(false)}
+        />
       )}
       {finder && tree && (
         <FileFinder

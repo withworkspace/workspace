@@ -2092,6 +2092,74 @@ main {
   color: var(--faint);
 }
 
+/* A line a file says (code search): where, then the line, the match
+   marked. Two lines, the second in the code's own font. */
+.find-row.find-code {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 1px;
+  align-items: center;
+  padding: 5px 10px;
+}
+
+.find-code > .icon {
+  grid-row: span 2;
+  align-self: start;
+  margin-top: 2px;
+}
+
+.find-code-where {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.find-code-path {
+  min-width: 0;
+  font: var(--text-xs) var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.find-code-where .chip {
+  margin-left: 0;
+}
+
+.find-code-text {
+  min-width: 0;
+  font: var(--text-sm) var(--mono);
+  color: var(--dim);
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: none;
+  padding: 0;
+}
+
+.find-code-text mark {
+  color: var(--fg);
+  background: var(--accent-soft);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}
+
+/* Code search stopped at its cap: said where it's seen, not faint. */
+.find-note.find-capped {
+  color: var(--attention);
+}
+
+.code-finder .find-list {
+  height: min(420px, 58vh);
+}
+
+.code-finder > .find-note {
+  padding: 7px 14px;
+  border-top: 1px solid var(--line);
+}
+
 .find-more .keys {
   margin-left: 6px;
 }
