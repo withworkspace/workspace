@@ -12,23 +12,41 @@ export interface Waiting {
   path: string;
 }
 
-// markIcon is ws's mark, as the tab's icon and a notification's: the tile
-// in the accent's run as the page draws it (styles.css's --brand-1..3, the
-// same in either theme), its stroke white, and with an amber dot when
-// something needs you. It's built from the page because an icon is drawn
-// outside it, where its styles don't reach; the white and the amber are the
-// icon's own, whatever the accent.
+// markIcon is ws's mark, as the tab's icon and a notification's: brand's
+// square-w (brand:svg/square-w.svg), a tile with a 12% corner radius and a
+// solid white "w" in its bottom-left, drawn in the accent's run as the page
+// draws it (styles.css's --brand-1..3, the same in either theme) on brand's
+// diagonal, with an amber dot top-right, clear of the "w", when something
+// needs you. It's built from the page because an icon is drawn outside it,
+// where its styles don't reach; the white and the amber are the icon's own,
+// whatever the accent.
 export function markIcon(dot: boolean): string {
   const [a, b, c] = ["--brand-1", "--brand-2", "--brand-3"].map(shownAs);
   return (
     "data:image/svg+xml," +
     encodeURIComponent(
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="0.62" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#g)"/><path d="M8 11.5 11.5 21 16 14l4.5 7L24 11.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ICON} ${ICON}"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="0.62" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs><rect width="${ICON}" height="${ICON}" rx="${scaled(BRAND_RX)}" fill="url(#g)"/><path d="${W}" fill="#fff"/>` +
         (dot ? `<circle cx="26" cy="6" r="6" fill="#f0a020" stroke="#fff" stroke-width="2"/>` : "") +
         `</svg>`,
     )
   );
 }
+
+// square-w's geometry as brand draws it, on its 512 tile: the corner radius
+// and the "w" outline (padded 14% in from the bottom-left), copied from
+// brand:svg/square-w.svg. markIcon draws them scaled to its own tile.
+const BRAND_TILE = 512;
+const BRAND_RX = 61;
+const BRAND_W =
+  "M98.34465 440.32 71.68 283.98072249999996H104.36093625000001L124.10530125000001 418.33693125H129.15264375L156.245675 283.98072249999996H209.25893000000002L236.35196125 418.33693125H241.39930375L261.14366875 283.98072249999996H293.824605L267.159955 440.32H212.36900500000002L185.27597375 305.96379125H180.22863125L153.1356 440.32Z";
+const ICON = 32;
+
+// scaled is a length on brand's tile on the icon's, to a hundredth.
+const scaled = (n: number) => String(Math.round((n * ICON * 100) / BRAND_TILE) / 100);
+
+// The "w" is all straight lines (M, L, H, Z), so scaling it is scaling
+// every number in it.
+const W = BRAND_W.replace(/\d+(\.\d+)?/g, (n) => scaled(Number(n)));
 
 // useFaviconBadge keeps the tab's icon the mark, in the accent as it is
 // now, with the dot while something needs you.
