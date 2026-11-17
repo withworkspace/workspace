@@ -15,7 +15,7 @@ export interface Waiting {
 // markIcon is ws's mark, as the tab's icon and a notification's: brand's
 // square-w (brand:svg/square-w.svg), a tile with a 12% corner radius and a
 // solid white "w" in its bottom-left, drawn in the accent's run as the page
-// draws it (styles.css's --brand-1..3, the same in either theme) on brand's
+// draws it (foundations.css's --brand-1..3, the same in either theme) on brand's
 // diagonal, with an amber dot top-right, clear of the "w", when something
 // needs you. It's built from the page because an icon is drawn outside it,
 // where its styles don't reach; the white and the amber are the icon's own,

@@ -4,11 +4,11 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 // The accent is one colour, --accent-pick (the server puts [ui] accent on
-// <html> as it), and every accent token in styles.css is worked out from
+// <html> as it), and every accent token in foundations.css is worked out from
 // it, in both themes: none is a colour written out by hand. See
 // workspace-records:docs/customisable-ui-accent.md.
 
-const css = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
+const css = readFileSync(new URL("./foundations.css", import.meta.url), "utf8");
 
 // block is the first rule for selector, as written: its declarations by
 // custom property.
@@ -83,7 +83,7 @@ describe("the accent", () => {
 });
 
 // The default violet is written once: as --accent-pick's default, on :root
-// in styles.css. Anywhere else in ws's code (the web UI's sources and
+// in foundations.css. Anywhere else in ws's code (the web UI's sources and
 // files, and the Go that serves pages) a copy of it, as hex or as rgb,
 // is a colour that won't follow the pick. This file doesn't name it: it
 // reads it from that one definition.
@@ -114,7 +114,7 @@ describe("the default violet", () => {
     const files = execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "web", "internal", "cmd"], { cwd: repo, encoding: "utf8" })
       .split("\0")
       .filter(Boolean);
-    expect(files).toContain("web/src/styles.css");
+    expect(files).toContain("web/src/foundations.css");
     const found: string[] = [];
     for (const f of files) {
       let data: Buffer;
@@ -126,6 +126,6 @@ describe("the default violet", () => {
       if (data.subarray(0, 8000).includes(0)) continue; // not text
       for (const c of copies(data.toString("utf8"))) found.push(`${f}:${c.line}: ${c.text}`);
     }
-    expect(found).toEqual([expect.stringMatching(/^web\/src\/styles\.css:\d+: --accent-pick: #[0-9a-f]{6};$/)]);
+    expect(found).toEqual([expect.stringMatching(/^web\/src\/foundations\.css:\d+: --accent-pick: #[0-9a-f]{6};$/)]);
   });
 });

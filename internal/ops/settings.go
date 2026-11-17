@@ -453,7 +453,7 @@ func settingDefs() []struct {
 }
 
 // accentSetting is [ui] accent: the colour the web UI is drawn in. Its
-// default is the web UI's own (in styles.css, so the violet is written
+// default is the web UI's own (in foundations.css, so the violet is written
 // once), so it has none here.
 func accentSetting() settingDef {
 	get := func(s string) any {

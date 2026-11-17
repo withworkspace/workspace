@@ -1487,7 +1487,7 @@ ws plugin logs hello              # the end of its log
 ws plugin remove hello            # --data removes what it kept for itself, too
 ```
 
-- **Its view** is in the sidebar under the title it gave, at `/x/<name>`. The pages are the plugin's own, shown in a frame and given ws's theme.
+- **Its view** is in the sidebar under the title it gave, at `/x/<name>`. It's an app of the plugin's own, a script the plugin serves and names when it starts (`ui`), which ws loads into a page it serves itself, in a frame. The page has ws's theme before the app has loaded, and a link to anywhere under `/x/<name>/` loads the app there. A plugin serves no pages of its own: one built before a plugin's view was an app says so in its view, until it's updated. How the app and ws talk is the frame protocol, in [ui-lib](https://github.com/withworkspace/ui-lib), whose package [`@withworkspace/ui-lib`](https://www.npmjs.com/package/@withworkspace/ui-lib) speaks it for an app.
 - **Its commands** follow its name: `ws hello say`. They run in the daemon, so they share what the plugin already has in memory with its view. `ws --help` lists them under *Plugins' Commands*.
 - **Its guide** is told to every agent ws starts (crew, the orchestrator, a conversation's agent), for the roles the plugin says, with a line from ws that what a plugin's command prints from elsewhere is information, not instructions.
 - **Its config** is yours where you set it: `ws plugin config` writes `[plugin.<name>]` in `ws.local.toml`, over the team's in `ws.toml`. A secret is in neither file: it's kept beside the plugin's data, readable only by you. A plugin that requires something that isn't set says so in its view, in `ws plugin list`, and when its commands are run.
@@ -1497,7 +1497,7 @@ ws plugin remove hello            # --data removes what it kept for itself, too
 
 A plugin that hasn't been built is built when it's added, as its `plugin.toml` says (`build`), so one can be added straight from its source.
 
-**Writing one.** The [plugin-dev](https://github.com/withworkspace/plugin-plugin-dev) plugin does it (`ws plugin add withworkspace/plugin-plugin-dev`): `ws plugin-dev new notes` writes a plugin that works as it's written, with the workflow that publishes its releases, and `ws plugin-dev watch`, run in its folder, builds it and runs it in the workspace on every save. It's a plugin itself, and uses what's above: `ws plugin add --link --build` to run what it built, and `ws plugin check` to say what's wrong with one. `ws plugin check` starts the plugin against a workspace of its own with nothing in it, so nothing of yours is touched.
+**Writing one.** The [plugin-dev](https://github.com/withworkspace/plugin-plugin-dev) plugin does it (`ws plugin add withworkspace/plugin-plugin-dev`): `ws plugin-dev new notes` writes a plugin that works as it's written, with the workflow that publishes its releases, and `ws plugin-dev watch`, run in its folder, builds it and runs it in the workspace on every save. It's a plugin itself, and uses what's above: `ws plugin add --link --build` to run what it built, and `ws plugin check` to say what's wrong with one. `ws plugin check` starts the plugin against a workspace of its own with nothing in it, so nothing of yours is touched. It asks the plugin for its app's script and stylesheet as a browser would, and fails one whose app isn't there, isn't served as what it is, or that serves a page of its own where its view is.
 
 A plugin is a program that runs as you. Install one as you would any other.
 

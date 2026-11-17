@@ -26,6 +26,8 @@ import (
 var testApp = fstest.MapFS{
 	"index.html":    {Data: []byte("<!doctype html><title>app</title>")},
 	"assets/app.js": {Data: []byte("console.log('app')")},
+	// What the shell of a plugin's page holds: the web build writes it.
+	"plugin-shell.css": {Data: []byte(":root{--bg:#fff;--ws-bg:var(--bg)}")},
 }
 
 // fakeWorkspace is a workspace with one mission, if it's given a title,
@@ -480,7 +482,7 @@ func TestApp(t *testing.T) {
 
 // The app's page is served with the accent as set on its <html>, which
 // is :root, as --accent-pick, so the page has it before it first paints;
-// with none, it's served as built, and styles.css's default applies.
+// with none, it's served as built, and foundations.css's default applies.
 func TestAppAccent(t *testing.T) {
 	built, err := os.ReadFile("../../web/index.html")
 	if err != nil {

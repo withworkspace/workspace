@@ -1,148 +1,123 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { type Plugin } from "../api";
 import { type IconName, icons } from "../ui/Icon";
 import { Empty, useTitle } from "../ui/kit";
+import { type Frame, listen } from "./frame";
+import { frameBase } from "./paths";
+import { onThemeChange, theme } from "./theme";
 
-// A plugin's view: its own pages, served by the plugin (/plugins/<name>/…)
-// and shown here in a frame, at /x/<name>/…. The frame is this origin's
-// own, not sandboxed: a plugin is a program the workspace's owner
-// installed. The page and ws talk by postMessage (PROTOCOL.md in the
-// plugin framework, github.com/withworkspace/plugin): the page says where
-// it is and what it's called, and ws
-// keeps its address and title in step; ws gives it the theme, and says
-// when the plugin's said what it shows is stale.
+// A plugin's view: the plugin's app, in a frame, at /x/<name>/…. The frame
+// is a page ws serves (the shell, /plugin-frame/<name>/…: ws's tokens, an
+// empty #root and the plugin's bundle), at the same path as the address
+// here, so a link to somewhere deep in the app loads it there. It's this
+// origin's own, not sandboxed: a plugin is a program the workspace's owner
+// installed. The app and ws talk over a port the app hands over as it
+// connects (the frame protocol: PROTOCOL.md in github.com/withworkspace/ui-lib):
+// the app says where it is and what it's called, and ws keeps its address
+// and title in step; ws says when its address moved, when the theme
+// changed, and when the plugin said what the app shows is stale.
 
 // pluginIcon is the icon a plugin asked for, if ws has it.
 export function pluginIcon(name?: string): IconName {
   return name && name in icons ? (name as IconName) : "box";
 }
 
-// The design tokens a plugin's page is given, as --ws-<name>: ws's own
-// (styles.css), under the names a plugin's page knows them by. This is the
-// one list of them: /plugin-kit.js asks for it (wsPluginTheme, below), and
-// /plugin-kit.css has what each is before it's given.
-const tokens = [
-  // Colour: the page, what's on it, and what marks it.
-  "bg", "panel", "raised", "fg", "dim", "faint", "line", "line-strong", "hover", "well", "code-bg",
-  "accent", "accent-soft", "accent-line", "primary", "primary-hover", "on-primary", "danger", "warn", "ok",
-  // Type.
-  "font", "mono", "text-xs", "text-sm", "text-md", "text-lg", "text-xl", "text-2xl",
-  // Space, corners and depth.
-  "space-1", "space-2", "space-3", "space-4", "space-5", "space-6", "space-8", "space-10",
-  "radius", "radius-sm", "radius-lg", "shadow",
-];
-// ws's own name for one, where it differs.
-const tokenAlias: Record<string, string> = { danger: "red", warn: "amber", ok: "green" };
-
-// theme is ws's theme as a plugin's page takes it: light or dark, and each
-// token's value now.
-export function theme() {
-  const root = document.documentElement;
-  const style = getComputedStyle(root);
-  const vars: Record<string, string> = {};
-  for (const name of tokens) {
-    const v = style.getPropertyValue(`--${tokenAlias[name] ?? name}`).trim();
-    if (v) vars[`--ws-${name}`] = v;
-  }
-  const scheme = root.dataset.theme ?? (style.colorScheme.includes("dark") ? "dark" : "light");
-  return { scheme, vars };
+// A plugin's page is its own frame and its own connection: another
+// plugin's is another of each.
+export function PluginPage({ plugins, ws }: { plugins?: Plugin[]; ws?: string }) {
+  const { name = "" } = useParams();
+  return <PluginFrame key={name} name={name} plugins={plugins} ws={ws} />;
 }
 
-// A plugin's page reads the theme from here as it loads (the frame is this
-// origin's), so it has it before it first paints and never flashes its
-// defaults. ws:hello says the same once the page asks.
-(window as unknown as { wsPluginTheme?: typeof theme }).wsPluginTheme = theme;
-
-export function PluginPage({ plugins }: { plugins?: Plugin[] }) {
-  const { name = "", "*": rest = "" } = useParams();
+function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; ws?: string }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const frame = useRef<HTMLIFrameElement>(null);
+  const iframe = useRef<HTMLIFrameElement>(null);
   const plugin = plugins?.find((p) => p.name === name);
   const [title, setTitle] = useState<string>();
   useTitle(title ?? plugin?.views[0]?.title ?? name);
+  // What ws said to an app it has no frame protocol version in common
+  // with: shown above the frame, as whoever's looking at an empty frame
+  // won't open the console.
+  const [refused, setRefused] = useState<string>();
 
-  // Where the address says the frame should be, and where the frame last
-  // said it is. The frame is sent somewhere only when the address moved
+  // Where the address says the app should be, and where the app last said
+  // it is. The app is told to go somewhere only when the address moved
   // without it: a link in ws, the sidebar, back and forward.
-  const wanted = `/${rest}${location.search}`;
+  const wanted = (location.pathname.slice(`/x/${name}`.length) || "/") + location.search;
   const shown = useRef(wanted);
-  // The frame starts where the address is. After that it's sent by hand:
-  // its src doesn't say where it's gone to since.
-  const [start] = useState(`/plugins/${name}${wanted}`);
-  // A page that routes itself (ws.onNavigate in /plugin-kit.js) is told the
-  // path, and isn't loaded again. It says so each time it loads.
-  const routing = useRef(false);
+  // The frame starts where the address is. After that the app routes
+  // itself: the frame's src doesn't say where it's gone to since.
+  const [start] = useState(`${frameBase(name)}${wanted}`);
+  const frame = useRef<Frame>(undefined);
+
+  // What the connection's given is read when it's asked for, so the
+  // listening below is set up once, and never torn down for a new render.
+  const now = useRef({ ws, navigate });
+  now.current = { ws, navigate };
+
+  // ws listens before the frame is made, so the app's first ws:connect
+  // can't come before there's anyone to hear it.
+  useLayoutEffect(() => {
+    const f = listen(
+      () => iframe.current?.contentWindow,
+      {
+        plugin: name,
+        get ws() {
+          return now.current.ws || "unknown";
+        },
+        path: () => shown.current,
+        theme,
+        moved(path) {
+          if (!path.startsWith("/") || shown.current === path) return;
+          shown.current = path;
+          now.current.navigate(`/x/${name}${path}`, { replace: true });
+        },
+        // An empty title is the view's own.
+        titled: (t) => setTitle(t || undefined),
+        // What open does is ws's to decide: today, a page of ws's own.
+        open(path) {
+          if (path.startsWith("/") && !path.startsWith("//")) now.current.navigate(path);
+        },
+        // A key ws owns, pressed in the frame: as if it were pressed here.
+        key(k) {
+          window.dispatchEvent(new KeyboardEvent("keydown", { key: k.key, metaKey: k.meta, ctrlKey: k.ctrl, shiftKey: k.shift, altKey: k.alt, bubbles: true, cancelable: true }));
+        },
+      },
+      setRefused,
+    );
+    frame.current = f;
+    // The theme and the accent are on <html>: when either changes, the app
+    // is given every token's value as it is now.
+    const unwatch = onThemeChange(() => f.theme());
+    return () => {
+      unwatch();
+      f.stop();
+      frame.current = undefined;
+    };
+  }, [name]);
+
   useEffect(() => {
     if (shown.current === wanted) return;
     shown.current = wanted;
-    const inner = frame.current?.contentWindow;
-    if (routing.current) inner?.postMessage({ type: "ws:navigate", path: wanted }, window.location.origin);
-    else inner?.location.replace(`/plugins/${name}${wanted}`);
-  }, [name, wanted]);
+    frame.current?.navigate(wanted);
+  }, [wanted]);
 
-  useEffect(() => {
-    const post = (m: object) => frame.current?.contentWindow?.postMessage(m, window.location.origin);
-    const moved = (path: unknown) => {
-      if (typeof path !== "string" || !path.startsWith("/")) return;
-      if (shown.current === path) return;
-      shown.current = path;
-      navigate(`/x/${name}${path}`, { replace: true });
-    };
-    const onMessage = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin || e.source !== frame.current?.contentWindow) return;
-      const m = e.data as { type?: string; path?: unknown; title?: unknown; key?: string; meta?: boolean; ctrl?: boolean; shift?: boolean; alt?: boolean };
-      switch (m?.type) {
-        case "ws:ready":
-          routing.current = false; // a page newly loaded: it says again if it routes itself
-          post({ type: "ws:hello", ...theme() });
-          moved(m.path);
-          if (typeof m.title === "string" && m.title) setTitle(m.title);
-          break;
-        case "ws:routing":
-          routing.current = true;
-          break;
-        case "ws:path":
-          moved(m.path);
-          break;
-        case "ws:title":
-          if (typeof m.title === "string") setTitle(m.title);
-          break;
-        case "ws:open":
-          if (typeof m.path === "string" && m.path.startsWith("/") && !m.path.startsWith("//")) navigate(m.path);
-          break;
-        case "ws:key":
-          // A key ws owns, pressed in the frame: as if it were pressed here.
-          if (typeof m.key === "string")
-            window.dispatchEvent(new KeyboardEvent("keydown", { key: m.key, metaKey: !!m.meta, ctrlKey: !!m.ctrl, shiftKey: !!m.shift, altKey: !!m.alt, bubbles: true, cancelable: true }));
-          break;
-      }
-    };
-    window.addEventListener("message", onMessage);
-    // The theme and the accent are on <html>: when either changes, the
-    // frame's told.
-    const watch = new MutationObserver(() => post({ type: "ws:theme", ...theme() }));
-    watch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "style"] });
-    return () => {
-      window.removeEventListener("message", onMessage);
-      watch.disconnect();
-    };
-  }, [name, navigate]);
-
-  // The plugin said what its view shows is stale: the page is told, and
-  // reloads itself unless it does something of its own.
+  // The plugin said what its view shows is stale: the app is told.
   const changed = plugin?.changed;
   const seen = useRef(changed);
   useEffect(() => {
     if (changed === undefined || seen.current === changed) return;
     const first = seen.current === undefined;
     seen.current = changed;
-    if (!first) frame.current?.contentWindow?.postMessage({ type: "ws:changed" }, window.location.origin);
+    if (!first) frame.current?.changed();
   }, [changed]);
 
   // It was started again (built afresh, its config changed), or came to be
-  // set up: what the frame shows is from before, so it's loaded again.
+  // set up: what the frame shows is from before, so it's loaded again,
+  // where ws's address is. (The frame's own address is where the app
+  // started, or wherever its router has put it since.)
   const state = plugin?.state;
   const starts = plugin?.starts;
   const was = useRef({ state, starts });
@@ -152,8 +127,11 @@ export function PluginPage({ plugins }: { plugins?: Plugin[] }) {
     if (before.state === undefined) return; // the first it's heard of
     const restarted = starts !== undefined && before.starts !== starts && starts > 0;
     const recovered = before.state !== state && (before.state === "setup" || before.state === "failed");
-    if (restarted || recovered) frame.current?.contentWindow?.location.reload();
-  }, [state, starts]);
+    if (!restarted && !recovered) return;
+    setRefused(undefined);
+    setTitle(undefined);
+    iframe.current?.contentWindow?.location.replace(`${frameBase(name)}${shown.current}`);
+  }, [name, state, starts]);
 
   if (plugins && !plugin) {
     return (
@@ -164,7 +142,12 @@ export function PluginPage({ plugins }: { plugins?: Plugin[] }) {
   }
   return (
     <div className="plugin-view">
-      <iframe ref={frame} src={start} title={plugin?.views[0]?.title ?? name} />
+      {refused && (
+        <div className="banner plugin-refused" role="alert">
+          {refused}
+        </div>
+      )}
+      <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} />
     </div>
   );
 }

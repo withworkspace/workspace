@@ -321,7 +321,7 @@ type WebConfig struct {
 type UIConfig struct {
 	// Accent is the colour the web UI is drawn in, from which everything
 	// accent-coloured is derived: a hex colour, #rgb or #rrggbb. Unset,
-	// the web UI's own default (in its styles.css). See
+	// the web UI's own default (in its foundations.css). See
 	// workspace-records:docs/customisable-ui-accent.md.
 	Accent string `toml:"accent,omitempty"`
 }

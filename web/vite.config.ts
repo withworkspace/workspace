@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+import { shellStyles } from "./src/plugins/tokens.ts";
 
 // `just web-dev <workspace>` runs this dev server against that workspace's
 // running web UI (ws web starts it): the API is proxied there, signed in
@@ -45,10 +46,28 @@ function keepDist(): Plugin {
   };
 }
 
+// The page ws serves for a plugin's app (the shell) has ws's tokens in a
+// <style>, so the app's first paint is in ws's colours with nothing of the
+// plugin's having run. This writes what that <style> holds, as
+// plugin-shell.css beside the app: ws's foundations, each token under the
+// name a plugin's app knows it by, and the shell's own few rules. The
+// server reads it from the built app and writes it into every shell
+// (internal/web/plugins.go).
+function pluginShell(): Plugin {
+  const read = (file: string) => readFileSync(new URL(`./src/${file}`, import.meta.url), "utf8");
+  return {
+    name: "plugin-shell",
+    apply: "build",
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "plugin-shell.css", source: shellStyles(read("foundations.css"), read("plugins/shell.css")) });
+    },
+  };
+}
+
 export default defineConfig(() => {
   const target = devTarget();
   return {
-    plugins: [react(), katexFonts(), keepDist()],
+    plugins: [react(), katexFonts(), pluginShell(), keepDist()],
     // Mermaid's diagram types and layouts are large chunks, loaded only by
     // a diagram that needs them.
     // Fonts are files, never written into the styles: the page's content
@@ -57,13 +76,20 @@ export default defineConfig(() => {
     server: {
       port: 5173,
       strictPort: true,
-      proxy: target && {
-        "/api": {
-          target: target.origin,
-          changeOrigin: true,
-          headers: { origin: target.origin, authorization: `Bearer ${target.token}` },
-        },
-      },
+      // The API, and what the server serves for plugins: the shell of a
+      // plugin's page, and the plugin's own HTTP.
+      proxy:
+        target &&
+        Object.fromEntries(
+          ["/api", "/plugin-frame", "/plugins"].map((path) => [
+            path,
+            {
+              target: target.origin,
+              changeOrigin: true,
+              headers: { origin: target.origin, authorization: `Bearer ${target.token}` },
+            },
+          ]),
+        ),
     },
   };
 });

@@ -7,6 +7,7 @@ import type { Place } from "./markdown/links";
 export interface Workspace {
   name: string;
   root: string;
+  version?: string; // ws's own, which a plugin's app is told when it connects
   org?: string; // where its repos are on GitHub, for a ref's address
   defaultBranch?: string;
   missions: Mission[];

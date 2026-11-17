@@ -13,6 +13,9 @@ import (
 type Workspace struct {
 	Name string `json:"name"`
 	Root string `json:"root"`
+	// Version is ws's own, which a plugin's app is told when it connects:
+	// "" where there are no plugins to tell.
+	Version string `json:"version,omitempty"`
 	// Org and DefaultBranch are where its repos are on GitHub, for a
 	// ref's address.
 	Org           string    `json:"org,omitempty"`

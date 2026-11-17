@@ -27,6 +27,7 @@ const (
 	envRequire  = "WS_FAKE_PLUGIN_REQUIRE" // a key it requires
 	envCommand  = "WS_FAKE_PLUGIN_COMMAND" // the word after ws it asks for
 	envProtocol = "WS_FAKE_PLUGIN_PROTOCOL"
+	envUI       = "WS_FAKE_PLUGIN_UI" // "none": it registers no app; "html": it serves a page of its own too; "broken": its app's files aren't what it says
 )
 
 // RunIfAsked runs the plugin and exits, if this process was started as
@@ -47,6 +48,15 @@ type Options struct {
 	Command string
 	// Protocol is the version it says it speaks; 0 for the right one.
 	Protocol int
+	// NoUI is a plugin from before a plugin's page was an app: it has a
+	// view, and registers no ui.
+	NoUI bool
+	// HTML is one that serves a page of its own at its view's path, as
+	// well as its app.
+	HTML bool
+	// BrokenUI is one whose app's script isn't there, and whose stylesheet
+	// isn't served as one.
+	BrokenUI bool
 }
 
 // Install puts a fake plugin called name in a folder, and returns the
@@ -71,6 +81,15 @@ func Install(t *testing.T, name string, o Options) string {
 	t.Setenv(envProtocol, "")
 	if o.Protocol != 0 {
 		t.Setenv(envProtocol, fmt.Sprint(o.Protocol))
+	}
+	t.Setenv(envUI, "")
+	switch {
+	case o.NoUI:
+		t.Setenv(envUI, "none")
+	case o.HTML:
+		t.Setenv(envUI, "html")
+	case o.BrokenUI:
+		t.Setenv(envUI, "broken")
 	}
 	return dir
 }
@@ -109,6 +128,13 @@ func run() {
 				"commands":    map[string]any{"name": os.Getenv(envCommand), "short": "A fake's commands"},
 				"agent":       map[string]any{"guide": "Use `ws " + p.Plugin.Name + "`."},
 				"config":      []map[string]any{{"key": "greeting", "title": "Greeting", "type": "string", "default": "Hello"}},
+			}
+			switch os.Getenv(envUI) {
+			case "none":
+			case "broken":
+				reg["ui"] = map[string]string{"script": "/ui/missing.js", "style": "/ui/app.txt"}
+			default:
+				reg["ui"] = map[string]string{"script": "/ui/app.js?v=1", "style": "/ui/app.css"}
 			}
 			if key := os.Getenv(envRequire); key != "" {
 				reg["config"] = append(reg["config"].([]map[string]any), map[string]any{"key": key, "title": "Token", "type": "secret", "required": true})
@@ -188,17 +214,34 @@ func run() {
 	}
 }
 
-// view is the fake's pages.
+// view is the fake's own HTTP: its app's files, and what its app asks it.
 func view(mu *sync.Mutex, config *map[string]any) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /ui/app.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		io.WriteString(w, `document.getElementById("root").textContent = "the fake's app";`) //nolint:errcheck // a test's file
+	})
+	mux.HandleFunc("GET /ui/app.css", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		io.WriteString(w, "#root { color: var(--ws-fg); }") //nolint:errcheck // a test's file
+	})
+	mux.HandleFunc("GET /ui/app.txt", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		io.WriteString(w, "#root { color: var(--ws-fg); }") //nolint:errcheck // a test's file
+	})
+	mux.HandleFunc("GET /api/greeting", func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		greeting, _ := (*config)["greeting"].(string)
 		mu.Unlock()
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Content-Security-Policy", "default-src 'none'") // ws's replaces it
-		fmt.Fprintf(w, "<h1>%s from the fake</h1><p>prefix=%s cookie=%q</p>", greeting, r.Header.Get("X-Forwarded-Prefix"), r.Header.Get("Cookie"))
+		fmt.Fprintf(w, "%s from the fake: prefix=%s cookie=%q", greeting, r.Header.Get("X-Forwarded-Prefix"), r.Header.Get("Cookie"))
 	})
+	if os.Getenv(envUI) == "html" {
+		mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			io.WriteString(w, "<h1>A page of the fake's own</h1>") //nolint:errcheck // a test's page
+		})
+	}
 	mux.HandleFunc("GET /go", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/there", http.StatusSeeOther)
 	})

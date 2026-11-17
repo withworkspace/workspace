@@ -105,6 +105,21 @@ func Problems(name string, r Registration) []Problem {
 			fatal("view %d has no title: it's what its sidebar entry says", i+1)
 		}
 	}
+	// A view is a place in the plugin's app, which ws loads into a page of
+	// its own: with no app, there's nothing to show there.
+	switch {
+	case len(r.Views) > 0 && (r.UI == nil || r.UI.Script == ""):
+		fatal("it has a view and no ui.script: ws serves a plugin's page, and loads the app the plugin names there")
+	case r.UI != nil && len(r.Views) == 0:
+		note("it has a ui and no view: nothing opens it")
+	}
+	if r.UI != nil {
+		for _, f := range []struct{ field, path string }{{"ui.script", r.UI.Script}, {"ui.style", r.UI.Style}} {
+			if f.path != "" && !ValidUIPath(f.path) {
+				fatal("%s is %q: it has to be a path in the plugin's own HTTP, starting with one / and with no ..", f.field, f.path)
+			}
+		}
+	}
 	if r.Commands != nil {
 		if word != "" && !ValidName(word) {
 			fatal("its command %q must be lower-case letters, digits and hyphens", word)

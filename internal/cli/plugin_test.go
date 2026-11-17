@@ -154,7 +154,7 @@ func TestPluginCheck(t *testing.T) {
 	if res.Err != nil {
 		t.Fatalf("a plugin with nothing wrong: %v\n%s", res.Err, res.Stdout)
 	}
-	for _, want := range []string{"fake 1.2.3", "view      Fake", "config    greeting (string)", "guide     1 lines, for agents", "note   ws fake has no subcommands"} {
+	for _, want := range []string{"fake 1.2.3", "view      Fake", "ui        /ui/app.js?v=1, /ui/app.css", "config    greeting (string)", "guide     1 lines, for agents", "note   ws fake has no subcommands"} {
 		if !strings.Contains(res.Stdout, want) {
 			t.Errorf("check lacks %q:\n%s", want, res.Stdout)
 		}
@@ -162,6 +162,32 @@ func TestPluginCheck(t *testing.T) {
 	// It ran apart from the workspace: nothing's installed here.
 	if got := plugin.Installed(w.Root); len(got) != 0 {
 		t.Errorf("check installed %v", got)
+	}
+
+	if strings.Contains(res.Stdout, "wrong") {
+		t.Errorf("something's wrong with one whose app is there:\n%s", res.Stdout)
+	}
+
+	// One with a view and no app, from before a plugin's page was an app:
+	// there's nothing to show at its view.
+	res = testutil.RunCommand(t, w.Root, nil, "plugin", "check", fakeplugin.Install(t, "old", fakeplugin.Options{NoUI: true}))
+	if res.Err == nil || !strings.Contains(res.Stdout, "wrong  it has a view and no ui.script") || strings.Contains(res.Stdout, "  ui  ") {
+		t.Errorf("a plugin with a view and no app: %v\n%s", res.Err, res.Stdout)
+	}
+
+	// One that serves a page of its own: ws serves the page now.
+	res = testutil.RunCommand(t, w.Root, nil, "plugin", "check", fakeplugin.Install(t, "paged", fakeplugin.Options{HTML: true}))
+	if res.Err == nil || !strings.Contains(res.Stdout, "wrong  it serves HTML at /: ws serves a plugin's page now, and the plugin serves its app's bundle") {
+		t.Errorf("a plugin that serves HTML: %v\n%s", res.Err, res.Stdout)
+	}
+
+	// One whose app's files aren't what it says: not there, or not served
+	// as what a browser would load.
+	res = testutil.RunCommand(t, w.Root, nil, "plugin", "check", fakeplugin.Install(t, "broken", fakeplugin.Options{BrokenUI: true}))
+	for _, want := range []string{"wrong  ui.script (/ui/missing.js) isn't there: the plugin answered 404", "wrong  ui.style (/ui/app.txt) is served as text/plain, not as CSS"} {
+		if res.Err == nil || !strings.Contains(res.Stdout, want) {
+			t.Errorf("a plugin whose app's files are wrong lacks %q: %v\n%s", want, res.Err, res.Stdout)
+		}
 	}
 
 	// One that asks for a word of ws's own doesn't start, and fails it.

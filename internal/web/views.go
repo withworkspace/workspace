@@ -41,7 +41,13 @@ type Missions interface {
 }
 
 // workspaceView is what GET /api/workspace serves.
-func (s *Server) workspaceView() (Workspace, error) { return WorkspaceOf(s.App, s.Root, s.Reviews) }
+func (s *Server) workspaceView() (Workspace, error) {
+	w, err := WorkspaceOf(s.App, s.Root, s.Reviews)
+	if s.Plugins != nil {
+		w.Version = s.Plugins.Version // as its plugins are told it
+	}
+	return w, err
+}
 
 // WorkspaceOf is the workspace at root as GET /api/workspace serves it:
 // its missions with what git knows of their capsules, the pull requests
