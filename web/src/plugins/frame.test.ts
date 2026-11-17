@@ -232,17 +232,21 @@ describe("listening for the frame", () => {
     [...others, page].forEach((p) => p.close());
   });
 
-  it("speaks to the page that connected last: each load of the frame connects again", async () => {
-    const { frame, post } = setup();
+  it("speaks to the page that connected last, and hangs up on the one before: each load of the frame connects again", async () => {
+    const { frame, ws, post } = setup();
     const first = post(hello);
     await tick();
     const second = post(hello);
     await tick();
     frame.navigate("/board");
     frame.changed();
+    // The page before is gone: what's still to come from it isn't heard.
+    first.port.postMessage({ type: "ws:path", path: "/from-the-page-before" });
+    second.port.postMessage({ type: "ws:path", path: "/things/3" });
     await tick();
     expect(first.got.map((m) => (m as { type: string }).type)).toEqual(["ws:welcome"]);
     expect(second.got.map((m) => (m as { type: string }).type)).toEqual(["ws:welcome", "ws:navigate", "ws:changed"]);
+    expect(ws.said.moved).toEqual(["/things/3"]);
     frame.stop();
     first.close();
     second.close();
