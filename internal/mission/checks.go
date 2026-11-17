@@ -172,6 +172,9 @@ func (s Store) RecordChecks(slug string, n int, round CheckRound) (CheckRound, e
 		}
 		r.Checks = append(r.Checks, round)
 		kept = round
+		if m.Checking != nil && m.Checking.Step == n {
+			m.Checking = nil // what was running is the round now
+		}
 		return nil
 	}); err != nil {
 		return CheckRound{}, err

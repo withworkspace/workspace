@@ -643,7 +643,7 @@ func (g *graph) stageView(n int) (*view, error) {
 	}
 	v.lately = g.about(func(e mission.Event) bool {
 		m := stageInEvent.FindStringSubmatch(e.Text)
-		return e.Kind == mission.EventStage && m != nil && m[1] == strconv.Itoa(n)
+		return (e.Kind == mission.EventStage || e.Kind == mission.EventChecks) && m != nil && m[1] == strconv.Itoa(n)
 	})
 	return v, nil
 }

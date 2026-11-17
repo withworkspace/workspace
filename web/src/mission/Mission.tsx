@@ -26,6 +26,7 @@ import { useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { TalkList, talkHref } from "../talk/Talk";
 import { Icon } from "../ui/Icon";
+import { CheckingNow, checkingTitle } from "./checking";
 import { TLink } from "../ui/TLink";
 import { Inline, plain } from "../ui/inline";
 import { Callout, type CalloutTone, Copyable, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useTitle } from "../ui/kit";
@@ -803,7 +804,7 @@ function splitHeadline(h: Headline, words: string): [string, string | undefined]
 
 function HeadlineCard({ d, h, primary, reload }: { d: MissionDetail; h: Headline; primary: boolean; reload: () => void }) {
   const st = headlineStatus(h);
-  const [title, detail] = splitHeadline(h, st.words);
+  const [title, detail] = h.checking ? [checkingTitle(h.checking), undefined] : splitHeadline(h, st.words);
   const long = !!detail && detail.length > 220;
   const options = (h.kind === "flag" && !primary) || h.kind === "crew-asks" ? h.action.options : undefined;
   return (
@@ -814,6 +815,7 @@ function HeadlineCard({ d, h, primary, reload }: { d: MissionDetail; h: Headline
       className={primary ? "headline" : "headline also"}
       actions={primary || h.action.verb === "resume" ? <HeadlineAct d={d} h={h} reload={reload} /> : undefined}
     >
+      {h.checking && <CheckingNow c={h.checking} />}
       {detail &&
         (h.kind === "resume" || (long && !primary) ? (
           <details className="fold">

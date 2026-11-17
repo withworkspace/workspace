@@ -271,6 +271,10 @@ type Mission struct {
 	// it finishes: while it's set (and not past Until), the mission is in
 	// the orchestrator's court.
 	Orchestrating *OrchestratorRun `toml:"orchestrating,omitempty" json:"orchestrating,omitempty"`
+	// Checking is what ws is running while it checks a step crew reported
+	// done (checking.go): set as each check begins, cleared when the
+	// round is recorded.
+	Checking *Checking `toml:"checking,omitempty" json:"checking,omitempty"`
 
 	// Plan is its plan (plan.md beside the brief), read as it's loaded,
 	// and PlanErr why it couldn't be: a plan changed by hand outside ws

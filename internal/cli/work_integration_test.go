@@ -123,4 +123,16 @@ func TestWork_ChecksWhenCrewReportDone(t *testing.T) {
 	if !logged(t, store, "step 1's checks, round 2 (c1's done): 2 of 2 met") {
 		t.Error("the round isn't logged")
 	}
+	// Each check's start, end and result, and the judge's, are in the
+	// step's Lately list.
+	_, lately, _ := strings.Cut(run(t, w, nil, "show", "-m", "cache", "-f", "llm", "--full", "s1").Stdout, "\nLately:\n")
+	for _, want := range []string{
+		"step 1, check 1 of 2 started: `test -f cache.go`", "step 1, check 1 of 2: `test -f cache.go` failed (exit 1) in 0s: unmet",
+		"step 1, check 1 of 2: `test -f cache.go` passed in 0s: met",
+		"step 1: the judge (fake-judge:judge-model) started reading check 2", "step 1: the judge (fake-judge:judge-model) finished in ", ": check 2 met",
+	} {
+		if !strings.Contains(lately, want) {
+			t.Errorf("s1's Lately list lacks %q:\n%s", want, lately)
+		}
+	}
 }

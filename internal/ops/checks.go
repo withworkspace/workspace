@@ -1,7 +1,6 @@
 package ops
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -122,21 +121,27 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 	checks := st.Step.Checks
 	results := make([]mission.CheckResult, len(checks))
 	var judged []int
-	var ran []string
 	for i, c := range checks {
 		if !c.Run() {
 			judged = append(judged, i)
+		}
+	}
+	run := w.checkRound(slug, st, crewID, judged)
+	defer w.Missions.ClearChecking(slug, st.N) // recording the round clears it; failing to, this does
+	var ran []string
+	for i, c := range checks {
+		if !c.Run() {
 			continue
 		}
 		if !hasCapsule {
 			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "the step has no capsule to run it in"}
 		} else {
-			results[i] = runCheck(dir, c, crew.Env(w.Root(), slug, ""))
+			results[i] = run.command(i, c, dir, crew.Env(w.Root(), slug, ""))
 		}
 		ran = append(ran, fmt.Sprintf("%s: %s (%s)", c.Text, results[i].Result, firstLine(results[i].Evidence)))
 	}
 	if len(judged) > 0 {
-		verdicts, by, err := w.judge(m, st, crewID, capsule, dir, commit, judged, ran)
+		verdicts, by, err := w.judge(m, st, crewID, capsule, dir, commit, judged, ran, run)
 		for k, i := range judged {
 			r := mission.CheckResult{Check: checks[i].Text, By: by}
 			if err != nil {
@@ -160,17 +165,27 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 
 // runCheck runs a check's command in dir: met when it passes or fails as
 // the check says; can't tell when it couldn't be run, or ran out of time.
-func runCheck(dir string, c mission.Check, env []string) mission.CheckResult {
+// hooks follow it as it runs; what it keeps as evidence is the same
+// without them.
+func runCheck(dir string, c mission.Check, env []string, hooks checkHooks) mission.CheckResult {
 	r := mission.CheckResult{Check: c.Text, By: "ws"}
 	ctx, cancel := context.WithTimeout(context.Background(), checkTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "sh", "-c", c.Command)
 	cmd.Dir, cmd.Env = dir, env
 	cmd.WaitDelay = 5 * time.Second
-	var out bytes.Buffer
+	var out lastLine
 	cmd.Stdout, cmd.Stderr = &out, &out
 	start := time.Now()
-	err := cmd.Run()
+	err := cmd.Start()
+	if err == nil {
+		if hooks.Started != nil {
+			hooks.Started(cmd.Process.Pid)
+		}
+		stop := out.follow(hooks.Line)
+		err = cmd.Wait()
+		stop()
+	}
 	took := time.Since(start).Round(time.Second)
 	tail := clipTail(strings.TrimSpace(out.String()), checkOutputMax)
 	var exit *exec.ExitError
@@ -204,9 +219,17 @@ func runCheck(dir string, c mission.Check, env []string) mission.CheckResult {
 
 // judge asks the judge about the step's checks at judged (their indexes),
 // in the capsule dir (the workspace's root without one), read-only. It
-// returns what it said of each, and who it was.
-func (w *Workspace) judge(m *mission.Mission, st mission.StageState, crewID, capsule, dir, commit string, judged []int, ran []string) ([]prompt.Verdict, string, error) {
+// returns what it said of each, and who it was. round, if there is one,
+// keeps and logs its turn.
+func (w *Workspace) judge(m *mission.Mission, st mission.StageState, crewID, capsule, dir, commit string, judged []int, ran []string, round *checkRound) (verdicts []prompt.Verdict, by string, err error) {
 	pick, h, err := Roles(w.Config()).ForJudge()
+	if round != nil {
+		var since time.Time
+		if err == nil {
+			since = round.judging("the judge (" + pick.String() + ")")
+		}
+		defer func() { round.judgedThem(since, by, verdicts, err) }()
+	}
 	if err != nil {
 		return nil, "", err
 	}

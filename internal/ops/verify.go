@@ -118,12 +118,14 @@ func (w *Workspace) settleVerify(m *mission.Mission, st mission.StageState, crew
 	}
 	by := "the verifier (" + crewID + ")"
 	results := make([]mission.CheckResult, len(st.Step.Checks))
+	run := w.checkRound(m.Slug, st, crewID, nil)
+	defer w.Missions.ClearChecking(m.Slug, st.N) // recording the round clears it; failing to, this does
 	for i, c := range st.Step.Checks {
 		switch {
 		case c.Run() && dir == "":
 			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "the step has no capsule to run it in"}
 		case c.Run():
-			results[i] = runCheck(dir, c, crew.Env(w.Root(), m.Slug, ""))
+			results[i] = run.command(i, c, dir, crew.Env(w.Root(), m.Slug, ""))
 		case bundle == nil:
 			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "its verifier reported done without handing over a bundle"}
 		default:
