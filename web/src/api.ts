@@ -47,6 +47,21 @@ export interface Headline {
   action: HeadlineAction;
   by?: string;
   since?: string;
+  checking?: Checking; // kind checking: what's running, so the page can tick
+}
+
+// Checking is what ws is running while it checks a step: a check that's a
+// command (n of of), or the judge (n absent), reading the checks judged.
+export interface Checking {
+  step: number;
+  n?: number;
+  of: number;
+  command?: string;
+  line?: string; // the last line it's printed
+  judged?: number[];
+  judge?: string; // who's reading, on the judge's turn
+  since: string;
+  until: string; // when it's stopped, if it hasn't finished
 }
 
 export type HeadlineGroup = "needs-you" | "in-progress" | "waiting" | "up-next" | "past";

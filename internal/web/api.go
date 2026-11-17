@@ -83,6 +83,24 @@ type Headline struct {
 	Action Action     `json:"action"`
 	By     string     `json:"by,omitempty"`
 	Since  *time.Time `json:"since,omitempty"`
+	// Checking is what's running while ws checks a step (kind checking),
+	// so the page can say how long it's been going as it goes.
+	Checking *Checking `json:"checking,omitempty"`
+}
+
+// Checking is what ws is running while it checks a step (mission.Checking):
+// a check that's a command (n of of), or the judge (n 0), reading the
+// checks at judged.
+type Checking struct {
+	Step    int       `json:"step"`
+	N       int       `json:"n,omitempty"`
+	Of      int       `json:"of"`
+	Command string    `json:"command,omitempty"`
+	Line    string    `json:"line,omitempty"` // the last line it's printed
+	Judged  []int     `json:"judged,omitempty"`
+	Judge   string    `json:"judge,omitempty"` // who's reading, on the judge's turn
+	Since   time.Time `json:"since"`
+	Until   time.Time `json:"until"` // when it's stopped, if it hasn't finished
 }
 
 // Action is what moves a headline on. Verb says what (reply, answer,

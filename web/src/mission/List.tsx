@@ -5,6 +5,7 @@ import type { Crew, HeadlineGroup, Mission } from "../api";
 import { useKeys } from "../keys";
 import { Inline, plain } from "../ui/inline";
 import { Icon } from "../ui/Icon";
+import { CheckingLine } from "./checking";
 import { Empty, Keys, useTitle } from "../ui/kit";
 import { crewStatus, headlineStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
@@ -149,7 +150,7 @@ export function MissionList({ missions }: { missions: Mission[] }) {
                       </span>
                       {m.headline.text && (
                         <span className="row-sub" title={plain(m.headline.text)}>
-                          <Inline text={m.headline.text} lines={1} />
+                          {m.headline.checking ? <CheckingLine c={m.headline.checking} /> : <Inline text={m.headline.text} lines={1} />}
                         </span>
                       )}
                     </span>
@@ -193,7 +194,9 @@ function useFlash(missions: Mission[]): Set<string> {
   const before = useRef<Map<string, string> | null>(null);
   const [flashing, setFlashing] = useState<Set<string>>(new Set());
   useEffect(() => {
-    const now = new Map(missions.map((m) => [m.slug, `${m.headline.kind}|${m.headline.text}`]));
+    // What's running while ws checks a step changes as it prints: it
+    // flashes as each check starts, not with each line.
+    const now = new Map(missions.map((m) => [m.slug, `${m.headline.kind}|${m.headline.checking ? m.headline.since : m.headline.text}`]));
     if (before.current) {
       const changed = [...now].filter(([slug, h]) => before.current!.has(slug) && before.current!.get(slug) !== h).map(([slug]) => slug);
       if (changed.length) {

@@ -177,11 +177,11 @@ func TestRunCheck(t *testing.T) {
 		{mission.Check{Command: "true", Expect: mission.CheckFails}, mission.CheckUnmet},
 		{mission.Check{Command: "no-such-command-here", Expect: mission.CheckFails}, mission.CheckCantTell},
 	} {
-		if r := runCheck(dir, c.check, os.Environ()); r.Result != c.want {
+		if r := runCheck(dir, c.check, os.Environ(), checkHooks{}); r.Result != c.want {
 			t.Errorf("%q %s: %s (%s)", c.check.Command, c.check.Expect, r.Result, r.Evidence)
 		}
 	}
-	if r := runCheck(dir, mission.Check{Command: "echo boom; exit 1", Expect: mission.CheckPasses}, os.Environ()); !strings.Contains(r.Evidence, "failed (exit 1)") || !strings.HasSuffix(r.Evidence, "boom") {
+	if r := runCheck(dir, mission.Check{Command: "echo boom; exit 1", Expect: mission.CheckPasses}, os.Environ(), checkHooks{}); !strings.Contains(r.Evidence, "failed (exit 1)") || !strings.HasSuffix(r.Evidence, "boom") {
 		t.Errorf("evidence = %q", r.Evidence)
 	}
 }

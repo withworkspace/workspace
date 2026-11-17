@@ -139,6 +139,8 @@ type Headline struct {
 	Action Action
 	By     string    // who it's from or about: crew id, orchestrator, repo#N
 	Since  time.Time // when it began, when known
+	// Checking is what's running, while ws checks a step (KindChecking).
+	Checking *Checking
 }
 
 // Key identifies a headline across re-reads: the same key is the same
@@ -616,9 +618,7 @@ func Resolve(s Snapshot) []Headline {
 	checking := false
 	if st, id, ok := m.UncheckedDone(s.Brief); ok {
 		checking = true
-		add(Headline{Court: CourtAgent, Kind: KindChecking, Label: "… checking", By: "ws",
-			Text:   fmt.Sprintf("ws is checking step %d: what %s reported done, against what has to be true for it to be done", st.N, id),
-			Action: Action{Label: "nothing to do"}})
+		add(checkingHeadline(st, id, m.Checking, s.now()))
 	}
 
 	// The orchestrator.

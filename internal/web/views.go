@@ -127,6 +127,9 @@ func headline(h mission.Headline) Headline {
 		since := h.Since
 		w.Since = &since
 	}
+	if c := h.Checking; c != nil {
+		w.Checking = &Checking{Step: c.Step, N: c.N, Of: c.Of, Command: c.Command, Line: c.Line, Judged: c.Judged, Judge: c.Judge, Since: c.Since, Until: c.Until}
+	}
 	return w
 }
 
