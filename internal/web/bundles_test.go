@@ -28,7 +28,7 @@ func TestBundles(t *testing.T) {
 	os.WriteFile(filepath.Join(dir, "before.png"), []byte("\x89PNG\r\n\x1a\nbefore"), 0o644)
 	os.WriteFile(filepath.Join(dir, "run.webm"), []byte("0123456789video"), 0o644)
 	os.WriteFile(filepath.Join(dir, "out.txt"), []byte("<b>hit</b>\n"), 0o644)
-	written := "## Summary\nIt's cached.\n\n## Try it\n- try: `just dev`, then open the page\n- look for: one request\n\n" +
+	written := "## Summary\nIt's cached.\n\n## Try it\n- try: `just dev`\n- look for: one request\n\n" +
 		"## Checks\n1. met: the page shows the cached value\n   - shows: `after.png` After\n     - before: `before.png`\n   - shows: `run.webm` Loading it twice\n     - made by: `npm run shots`\n   - shows: `out.txt` What it printed\n" +
 		"2. can't tell: whether it evicts\n   - ask: Add a test for eviction\n\n## Not verified\n- Safari.\n"
 	if _, err := s.App.(*ops.Workspace).HandOverBundle("m", "c1", written, dir); err != nil {

@@ -74,9 +74,10 @@ type BundleNote struct {
 	Text  string `toml:"text" json:"text"`
 }
 
-// BundleTry is something for the user to do, to see it themselves: in
-// words, with the command to run where it starts with one in backticks.
-// Look is what to look for, rather than something to do.
+// BundleTry is something for the user to do, to see it themselves: the
+// one command to run, in backticks, or words. Look is what to look for,
+// rather than something to do. (One kept before a command had to stand
+// alone may have words after its command in Text.)
 type BundleTry struct {
 	Text    string `toml:"text" json:"text"`
 	Command string `toml:"command,omitempty" json:"command,omitempty"`
@@ -138,8 +139,9 @@ const BundleFormat = "A verification bundle is markdown in four parts, each a `#
 	"The picker is on Settings, under Appearance. Picking a colour applies at\n" +
 	"once in both themes and survives a reload.\n\n" +
 	"## Try it\n" +
-	"- try: `just dev`, then open http://localhost:5173/settings\n" +
-	"- look for: Appearance, then the row of swatches under Accent\n\n" +
+	"- try: `npm install && cd web && npm run dev`\n" +
+	"- look for: Appearance, on http://localhost:5173/settings\n" +
+	"- look for: the row of swatches under Accent: pick one, and tabs, buttons and links change at once\n\n" +
 	"## Checks\n" +
 	"1. met: picked teal, then rose; tabs, buttons and links changed at once.\n" +
 	"   - shows: `pick.webm` Picking three colours in a row\n" +
@@ -155,7 +157,10 @@ const BundleFormat = "A verification bundle is markdown in four parts, each a `#
 	"- Safari: nothing here to run it in.\n" +
 	"```\n\n" +
 	"- `## Summary` says what you verified and what you found, in a few lines: the user reads it first.\n" +
-	"- `## Try it` is optional: how the user can see it for themselves. Each item is something to do (`try:`), with the command first in backticks where there is one, or what to look for (`look for:`).\n" +
+	"- `## Try it` is optional: how the user can see it for themselves. Each item is something to do (`try:`) or what to look for (`look for:`).\n" +
+	"  - A `try:` that's run is one command in backticks, with nothing after it: the user copies it once. Where it needs setup, chain it with `&&` (`a && cd x && b`), rather than a second command or words between.\n" +
+	"  - What to do or see in the UI once it's running goes in `look for:` items, one each.\n" +
+	"  - A `try:` with nothing to run is in words.\n" +
 	"- `## Checks` is a numbered list. Where your step has checks, each one in words is here once, by its number in the step (`ws show s<n>` lists them); a check that's a command is ws's to run, so leave it out. Where your step has none, the checks are your own: 1, 2, 3… in order, each saying what's shown. A check starts with what it came to:\n" +
 	"  - `met:` it's true, and you say what you saw. It needs something that shows it: a `shows:` or a `lines:`.\n" +
 	"  - `unmet:` it isn't, or not wholly: say what's missing or wrong.\n" +
@@ -165,7 +170,7 @@ const BundleFormat = "A verification bundle is markdown in four parts, each a `#
 	"  - `shows:` a file in backticks, then what it shows. An image (.png, .jpg, .gif, .webp, .svg, .avif), a video (.webm, .mp4, .mov), or text, such as what a command printed. Name it by its path from where you are, or in the mission's private files folder. ws copies it into the bundle, so the bundle keeps it whatever becomes of yours.\n" +
 	"  - under a `shows:`, further indented: `before:` the same on the default branch, in backticks, which is shown beside it; `made by:` the command that made it, in backticks.\n" +
 	"  - `lines:` where in the capsule it's done, as `path:from-to`.\n" +
-	"  - `try:` how the user can see this check themselves, as in Try it.\n" +
+	"  - `try:` how the user can see this check themselves, as in Try it: one command, chained with `&&`, or words. What to look for once it's running goes in Try it's `look for:` items.\n" +
 	"  - `ask:` a prompt the user could send on to crew as it's written, for something you'd suggest.\n" +
 	"- `## Not verified` lists what you didn't verify, and why, or says `Nothing.`\n" +
 	"- Nothing else: no title, no other headings. A long item can go on over indented lines.\n\n" +
@@ -209,6 +214,7 @@ var (
 	bundleVerdict = regexp.MustCompile(`(?i)^\**\s*(met|unmet|not met|can['’]?t tell|cannot tell|can not tell|yours)\s*\**\s*[:.]?\s*\**\s*(.*)$`)
 	bundleTicked  = regexp.MustCompile("^`([^`]+)`\\s*(.*)$")
 	bundleKey     = regexp.MustCompile(`^([A-Za-z]+(?: [A-Za-z]+)?)\s*:\s*(.*)$`)
+	bundleSpan    = regexp.MustCompile("`[^`]+`")
 )
 
 // bundleOpen is the item being read, continued over indented lines.
@@ -386,7 +392,7 @@ func (p *bundleParser) close() {
 	text := strings.TrimSpace(it.text)
 	switch it.kind {
 	case "try-it":
-		if t, ok := p.try(it.line, text); ok {
+		if t, ok := p.try(it.line, text, false); ok {
 			p.b.Try = append(p.b.Try, t)
 		}
 	case "not-verified":
@@ -425,9 +431,12 @@ func bundleVerdictOf(s string) string {
 	return CheckCantTell
 }
 
-// try reads something to try: a command first in backticks, or words, or
-// (look for:) what to look for.
-func (p *bundleParser) try(line int, text string) (BundleTry, bool) {
+// try reads something to try: one command in backticks, or words, or
+// (look for:) what to look for. A command stands alone, so that it's
+// copied once: a second one after it, or words, is refused, with where
+// they go instead (under a check, which takes no look for:, that's a try
+// of their own, or Try it).
+func (p *bundleParser) try(line int, text string, check bool) (BundleTry, bool) {
 	t := BundleTry{}
 	if m := bundleKey.FindStringSubmatch(text); m != nil {
 		switch strings.ToLower(m[1]) {
@@ -442,10 +451,26 @@ func (p *bundleParser) try(line int, text string) (BundleTry, bool) {
 		return t, false
 	}
 	t.Text = text
-	if m := bundleTicked.FindStringSubmatch(text); m != nil && !t.Look {
-		t.Command = strings.TrimSpace(m[1])
+	m := bundleTicked.FindStringSubmatch(text)
+	if m == nil || t.Look {
+		return t, true
 	}
-	return t, true
+	t.Command = strings.TrimSpace(m[1])
+	rest := strings.Trim(m[2], ".,;: ")
+	if rest == "" {
+		t.Text = "`" + m[1] + "`"
+		return t, true
+	}
+	fix := "chain what's to run with && into one (`a && cd x && b`), and move the rest to - look for: items, one for each thing to do or see"
+	if check {
+		fix = "chain what's to run with && into one (`a && cd x && b`), and move the rest to a - try: of its own, in words, or to - look for: items under ## " + BundleTryIt
+	}
+	if second := bundleSpan.FindString(rest); second != "" {
+		p.problem(line, "try: has a second command in backticks (%s) after `%s`: a try: is one command, copied once, so %s", second, t.Command, fix)
+	} else {
+		p.problem(line, "try: says more after its command (%q): a try: is one command, copied once, with nothing after it, so %s", clipPlan(rest), fix)
+	}
+	return t, false
 }
 
 // field reads one of a check's fields.
@@ -470,7 +495,7 @@ func (p *bundleParser) field(it *bundleOpen, text string) {
 		}
 		p.check.Lines = append(p.check.Lines, value)
 	case "try":
-		if t, ok := p.try(it.line, value); ok {
+		if t, ok := p.try(it.line, value, true); ok {
 			p.check.Try = append(p.check.Try, t)
 		}
 	case "ask":
