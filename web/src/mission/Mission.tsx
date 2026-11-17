@@ -37,6 +37,7 @@ import { PromptCard, pendingCall } from "./AgentView";
 import { archiveMission } from "./archive";
 import { briefGoal } from "./brief";
 import { briefHref } from "./BriefView";
+import { shownHeadlines } from "./headlines";
 import { mediaKind } from "./media";
 import { missionRefs } from "./refs";
 import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, kindTitle, MissionData, shortPath, Stepper, Timeline, viewEvent } from "./parts";
@@ -768,12 +769,13 @@ function Said({ text }: { text: string }) {
 }
 
 // Headlines lead the Summary: where the mission stands (whose court it's
-// in, and what moves it on), then anything else raised. ws mission show says
-// the same, from the same place (mission.Resolve).
+// in, and what moves it on), then anything else raised: all that's yours
+// or outside's, and one banner for the agents at work, however many are.
+// ws mission show says the same, from the same place (mission.Resolve).
 function Headlines({ d, reload }: { d: MissionDetail; reload: () => void }) {
   return (
     <>
-      {d.headlines.map((h, i) => (
+      {shownHeadlines(d.headlines).map((h, i) => (
         <HeadlineCard key={`${h.kind}-${h.by ?? ""}-${i}`} d={d} h={h} primary={i === 0} reload={reload} />
       ))}
     </>

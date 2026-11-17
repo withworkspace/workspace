@@ -531,3 +531,84 @@ func TestEndCrew_SaysHow(t *testing.T) {
 		t.Errorf("said:\n%s\nwant:\n%s", strings.Join(said, "\n"), strings.Join(want, "\n"))
 	}
 }
+
+// However many agents are on a mission at once, one headline says it's in
+// the agents' court: the most pressing, crew on its route before the
+// agents beside it. What's yours and what's outside all still list.
+func TestResolve_OneAgentHeadlineAtATime(t *testing.T) {
+	now := time.Date(2026, 11, 9, 12, 0, 0, 0, time.UTC)
+	ago := func(d time.Duration) *time.Time { t := now.Add(-d); return &t }
+	plan, err := ParsePlan(planWithPlanner, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := Snapshot{State: Active, Now: now, M: &Mission{Slug: "s", Title: "T", Plan: plan,
+		Crew: []Crew{
+			{ID: "c1", Capsule: "api/fix", Activity: ActivityWorking, ActivityAt: ago(time.Minute), Dispatch: "Build the cache"},
+			{ID: "c2", Capsule: "web/fix", Starting: ago(time.Second), Dispatch: "Show it"},
+			{ID: "c3", Status: CrewAsking, Note: "Per-org or global?", StatusAt: ago(time.Minute)},
+		},
+		Launching:     &Launching{What: "step 2", Since: now},
+		Orchestrating: &OrchestratorRun{For: "c3 (asked)", Since: now.Add(-time.Minute), Until: now.Add(time.Minute)},
+		Tasks:         []Task{{N: 1, Verb: TaskAnswer, Text: "CI is red", By: "orchestrator"}},
+		Waiting:       &Proposal{Text: "the platform team's deploy", By: "orchestrator", At: now},
+	}}
+	s.Threads.Answering = []DocReplies{{Doc: "records/tokens:proposal.md", Name: "proposal.md", Waiting: 1, Threads: []string{"t2"}}}
+	s.Threads.Briefing = &BriefingTalk{ID: "t1", Answering: true}
+	s.PRs = []PRFacts{{Capsule: "docs/fix", Ref: "docs#3", Review: "REVIEW_REQUIRED"}}
+
+	// kinds is the headlines' kinds by court, in the order they come.
+	kinds := func() (agent, yours, outside []Kind) {
+		for _, h := range Resolve(s) {
+			switch h.Court {
+			case CourtAgent:
+				agent = append(agent, h.Kind)
+			case CourtYou:
+				yours = append(yours, h.Kind)
+			case CourtOutside:
+				outside = append(outside, h.Kind)
+			}
+		}
+		return
+	}
+	// Each agent headline in turn, as the one before it stops applying.
+	steps := []struct {
+		want Kind
+		then func() // what stops applying, for the next
+	}{
+		{KindWorking, func() { s.M.Crew[0].Ended = ago(time.Second) }},
+		{KindLaunching, func() { s.M.Crew[1].Starting, s.M.Crew[1].Ended, s.M.Launching = nil, ago(time.Second), nil }},
+		{KindAnswering, func() { s.Threads.Answering = nil }},
+		{KindBriefing, func() { s.Threads.Briefing.Answering = false }},
+		{KindDeciding, func() { s.M.Orchestrating = nil }},
+	}
+	for _, st := range steps {
+		agent, yours, outside := kinds()
+		if len(agent) != 1 || agent[0] != st.want {
+			t.Errorf("agent-court headlines %v, want %s alone", agent, st.want)
+		}
+		// Yours and outside's are all there, yours first.
+		if got := strings.Join(kindStrings(yours), ","); got != "crew-asks,flag" {
+			t.Errorf("with %s: yours %s, want crew-asks,flag", st.want, got)
+		}
+		if got := strings.Join(kindStrings(outside), ","); got != "awaiting-review,waiting-on" {
+			t.Errorf("with %s: outside %s, want awaiting-review,waiting-on", st.want, got)
+		}
+		if first := Resolve(s)[0]; first.Court != CourtYou {
+			t.Errorf("with %s: the mission's headline is %s's %s, want yours", st.want, first.Court, first.Kind)
+		}
+		st.then()
+	}
+	// Nobody on it any more: none, and the rest as they were.
+	if agent, yours, outside := kinds(); len(agent) != 0 || len(yours) != 2 || len(outside) != 2 {
+		t.Errorf("nobody on it: agent %v, yours %v, outside %v", agent, yours, outside)
+	}
+
+	// Alone in its court, the one agent headline is the mission's.
+	alone := Snapshot{State: Active, Now: now, M: &Mission{Slug: "s", Plan: plan,
+		Crew: []Crew{{ID: "c1", Activity: ActivityWorking}, {ID: "c2", Starting: ago(time.Second)}},
+	}, Threads: DocThreads{Briefing: &BriefingTalk{ID: "t1", Answering: true}}}
+	if hs := Resolve(alone); len(hs) != 1 || hs[0].Kind != KindWorking {
+		t.Errorf("crew working, crew starting and the planner answering: %d headlines, the first %s; want working alone", len(hs), hs[0].Kind)
+	}
+}

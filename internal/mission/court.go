@@ -48,12 +48,14 @@ const (
 	KindWrapUp           Kind = "wrap-up"           // a conclusion is suggested
 	KindStalled          Kind = "stalled"           // crew worked on it; nobody is now, nothing is pending
 
-	// The agents' court.
+	// The agents' court. Of these, a mission shows one at a time, the
+	// first that applies (oneBanner): crew on its route come before the
+	// agents beside it.
 	KindWorking   Kind = "working"   // crew working
+	KindLaunching Kind = "launching" // ws starting crew: until they're recorded, then until their first activity
 	KindOwnWork   Kind = "own-work"  // crew ended a turn to wait on work they left running
 	KindAnswering Kind = "answering" // agents answering threads on a document
-	KindBriefing  Kind = "briefing"  // a briefing agent writing the brief
-	KindLaunching Kind = "launching" // ws starting crew: until they're recorded, then until their first activity
+	KindBriefing  Kind = "briefing"  // a briefing agent writing the brief, or the planner at work on the plan
 	KindDeciding  Kind = "deciding"  // the orchestrator running, or about to
 	KindChecking  Kind = "checking"  // ws running and having judged a step's checks
 
@@ -75,7 +77,7 @@ const (
 var kindOrder = []Kind{
 	KindCrewAsks, KindPermission, KindFlag, KindReReview, KindStepReview, KindReplies, KindBriefTalk, KindProposed, KindQueued, KindResume, KindReplied,
 	KindChecksFailing, KindChangesRequested, KindApprove, KindAccept, KindMerge, KindLand, KindWrapUp, KindStalled,
-	KindWorking, KindOwnWork, KindAnswering, KindBriefing, KindLaunching, KindChecking, KindDeciding,
+	KindWorking, KindLaunching, KindOwnWork, KindAnswering, KindBriefing, KindChecking, KindDeciding,
 	KindChecksRunning, KindAwaitingReview, KindWaitingOn,
 	KindLanded, KindEnded, KindToBrief, KindReady, KindParked, KindArchived,
 }
@@ -428,8 +430,10 @@ func timeOr(t *time.Time, or time.Time) time.Time {
 	return or
 }
 
-// Resolve works out where the mission stands: every headline that applies,
-// most pressing first. The first is the mission's; there's always one.
+// Resolve works out where the mission stands: every headline that applies
+// in your court and outside, and of those in the agents' court the one
+// most pressing (oneBanner), all most pressing first. The first is the
+// mission's; there's always one.
 func Resolve(s Snapshot) []Headline {
 	m := s.M
 	if s.State == Archived {
@@ -691,7 +695,23 @@ func Resolve(s Snapshot) []Headline {
 		out = append(out, s.restingHeadline())
 	}
 	slices.SortStableFunc(out, func(a, b Headline) int { return a.Kind.Rank() - b.Kind.Rank() })
-	return out
+	return oneBanner(out)
+}
+
+// oneBanner keeps one headline of the agents' court, the first: several
+// agents at once (crew working, the planner answering, the orchestrator
+// looking) are one thing to you, that it's in hand, and the most pressing
+// says who has it. What's yours and what's outside all stay, in order.
+func oneBanner(hs []Headline) []Headline {
+	shown := false
+	return slices.DeleteFunc(hs, func(h Headline) bool {
+		if h.Court != CourtAgent {
+			return false
+		}
+		drop := shown
+		shown = true
+		return drop
+	})
 }
 
 // workingHeadline is crew at work: one, or several.

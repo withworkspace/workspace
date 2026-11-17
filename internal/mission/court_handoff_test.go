@@ -99,7 +99,7 @@ func TestResolve_HandoffIsNeverIdle(t *testing.T) {
 				{name: "crew are recorded, their session starting", kind: KindLaunching, ws: func() {
 					launch(t, s, slug, "c1", "Fix it, the test passing.", 1)
 				}},
-				{name: "the planner's told what you confirmed, and answers; crew's session still starting", kind: KindBriefing, ws: func() {
+				{name: "the planner's told what you confirmed, and answers; crew's session still starting", kind: KindLaunching, ws: func() {
 					planning(t, s, slug)
 				}},
 				{name: "ws has handed crew their prompt; the planner's still answering", kind: KindWorking, ws: func() {
@@ -138,7 +138,7 @@ func TestResolve_HandoffIsNeverIdle(t *testing.T) {
 				{name: "crew are recorded, their session starting", kind: KindLaunching, ws: func() {
 					launch(t, s, slug, "c2", "Fix it, the test passing.", 3)
 				}},
-				{name: "the planner's told what you accepted, and answers; crew's session still starting", kind: KindBriefing, ws: func() {
+				{name: "the planner's told what you accepted, and answers; crew's session still starting", kind: KindLaunching, ws: func() {
 					planning(t, s, slug)
 				}},
 				{name: "crew's first activity, before ws says it's handed them their prompt", kind: KindWorking, ws: func() {
@@ -170,16 +170,16 @@ func TestResolve_HandoffIsNeverIdle(t *testing.T) {
 				case h.Kind != mo.kind:
 					t.Errorf("%s: %q (%s); want %s", mo.name, h.Text, h.Kind, mo.kind)
 				}
-				// Shown, not yet held to one: every agent-court headline that
-				// applies comes back, and the page stacks them.
+				// One banner: however many agents are on it (crew starting
+				// or at work, and the planner answering), one headline says so.
 				var agents []string
 				for _, h := range hs {
 					if h.Court == CourtAgent {
 						agents = append(agents, fmt.Sprintf("%q (%s)", h.Text, h.Kind))
 					}
 				}
-				if len(agents) > 1 {
-					t.Logf("%s: %d agent-court headlines resolve together: %s", mo.name, len(agents), strings.Join(agents, ", "))
+				if len(agents) != 1 {
+					t.Errorf("%s: %d agent-court headlines, want one: %s", mo.name, len(agents), strings.Join(agents, ", "))
 				}
 			}
 			// The handoff over, ws's marks are gone: crew's own activity
