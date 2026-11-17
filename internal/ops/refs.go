@@ -1,0 +1,150 @@
+package ops
+
+import (
+	"context"
+	"path/filepath"
+	"strings"
+
+	"github.com/withworkspace/workspace/internal/artifact"
+	"github.com/withworkspace/workspace/internal/conversation"
+	"github.com/withworkspace/workspace/internal/find"
+	"github.com/withworkspace/workspace/internal/git"
+	"github.com/withworkspace/workspace/internal/page"
+	"github.com/withworkspace/workspace/internal/ref"
+	"github.com/withworkspace/workspace/internal/workspace"
+)
+
+// Refs: what there is to name in the workspace, for ws's one grammar
+// (internal/ref), and what a name is now. A conversation's turn keeps what
+// its names were when it was said; a page's cell is written with them
+// linked; ws show reads an address.
+
+// RefsKnown is what there is to name: each repo with its default branch
+// (read with trees; otherwise none of their files are found, but
+// addresses are read), what else each is called, each one's capsules and
+// the branches they're on, the missions, pages, conversations and
+// artifacts.
+func (w *Workspace) RefsKnown(ctx context.Context, trees bool) *ref.Known {
+	ws := w.WS()
+	k := &ref.Known{
+		Repos:         map[string]ref.Tree{},
+		Aliases:       ws.AliasMap,
+		Capsules:      map[string][]string{},
+		Branches:      map[string]map[string]string{},
+		Root:          ws.Root,
+		Org:           ws.Org,
+		DefaultBranch: firstNonEmpty(ws.DefaultBranch, "main"),
+	}
+	var grounds map[string]find.GroundTree
+	if trees {
+		grounds, _ = w.FindIndex().Grounds(ctx)
+	}
+	for _, repo := range ws.RepoNames {
+		if g, ok := grounds[repo]; ok {
+			k.Repos[repo] = g
+		} else {
+			k.Repos[repo] = nil
+		}
+		capsules, _ := workspace.ListWorktrees(ws.RepoDir(repo))
+		k.Capsules[repo] = capsules
+		k.Branches[repo] = map[string]string{}
+		for _, c := range capsules {
+			if _, branch := workspace.GitHeadBranch(filepath.Join(ws.RepoDir(repo), c)); branch != "" && branch != "HEAD" {
+				k.Branches[repo][branch] = c
+			}
+		}
+	}
+	k.Missions = append(k.Missions, w.Missions.Slugs()...)
+	if ps, err := (page.Store{Root: ws.Root}).List(); err == nil {
+		for _, p := range ps {
+			k.Pages = append(k.Pages, p.ID)
+		}
+	}
+	k.Talks = conversation.ForWorkspace(ws.Root).IDs()
+	k.Artifacts = (artifact.Store{Root: ws.Root}).IDs()
+	return k
+}
+
+// Resolve is each ref in a text as it is now: a file's lines pinned to the
+// commit its worktree is at (the ground's, as last read; a capsule's
+// head), and a capsule's branch, and whether it's pushed.
+func (w *Workspace) Resolve(ctx context.Context, k *ref.Known, text string) []ref.Pinned {
+	var out []ref.Pinned
+	seen := map[string]bool{}
+	for _, f := range k.Find(text) {
+		said := text[f.From:f.To]
+		if seen[said] {
+			continue
+		}
+		seen[said] = true
+		out = append(out, w.pin(ctx, k, said, f.Ref))
+	}
+	return out
+}
+
+// pin is a ref with what ties it to now.
+func (w *Workspace) pin(ctx context.Context, k *ref.Known, said string, r ref.Ref) ref.Pinned {
+	rv := ref.Pinned{Said: said, Ref: r}
+	if r.Kind != ref.File && r.Kind != ref.Dir {
+		return rv
+	}
+	ws := w.WS()
+	if !r.InCapsule() {
+		if g, ok := k.Repos[r.Repo].(find.GroundTree); ok && r.Kind == ref.File && r.Line > 0 {
+			rv.Ref.Commit = g.Head()
+		}
+		return rv
+	}
+	dir := filepath.Join(ws.RepoDir(r.Repo), r.Worktree)
+	head, branch := workspace.GitHeadBranch(dir)
+	if branch != "" && branch != "HEAD" {
+		rv.Branch = branch
+		if out, err := git.Read(ctx, dir, "rev-parse", "--verify", "--quiet", "refs/remotes/origin/"+branch); err == nil && strings.TrimSpace(string(out)) != "" {
+			rv.Pushed = true
+		}
+	}
+	if head != "" {
+		rv.Ref.Commit = head
+	}
+	return rv
+}
+
+// pinTurn keeps, on a turn, what the names in it are now: in what it says,
+// its notes, and its findings.
+func (w *Workspace) pinTurn(t *conversation.Turn) {
+	if t.By == conversation.WS {
+		return
+	}
+	parts := []string{t.Body, t.Notes}
+	for _, f := range t.Findings {
+		parts = append(parts, f.Text, f.Suggest)
+	}
+	text := strings.Join(parts, "\n")
+	if strings.TrimSpace(text) == "" {
+		return
+	}
+	ctx := context.Background()
+	t.Refs = w.Resolve(ctx, w.RefsKnown(ctx, true), text)
+}
+
+// LinkNames is markdown going into a document with the names in it made
+// links (ref.Link): each to where it is on GitHub, a file's lines at the
+// commit they were read at, a capsule's file at its branch once pushed,
+// and what only ws has as ws:. With no org to address GitHub by, it's
+// left as it is.
+func (w *Workspace) LinkNames(md string) string {
+	ws := w.WS()
+	if ws.Org == "" || strings.TrimSpace(md) == "" {
+		return md
+	}
+	ctx := context.Background()
+	k := w.RefsKnown(ctx, true)
+	return k.Link(md, func(f ref.Found, said string) (string, bool) {
+		p := w.pin(ctx, k, said, f.Ref)
+		where := ref.Where{Org: k.Org, DefaultBranch: k.DefaultBranch}
+		if p.Pushed {
+			where.Branch = p.Branch
+		}
+		return p.Ref.Address(where), true
+	})
+}

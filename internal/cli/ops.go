@@ -1,0 +1,81 @@
+package cli
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/withworkspace/workspace/internal/config"
+	"github.com/withworkspace/workspace/internal/crew"
+	"github.com/withworkspace/workspace/internal/daemon"
+	"github.com/withworkspace/workspace/internal/job"
+	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/store"
+)
+
+func init() {
+	// A command that reads or writes a record borrows a connection to the
+	// daemon's: when there's no daemon, it's started, as for crew.
+	store.Start = func(root string) error {
+		c, err := daemon.Connect(root)
+		if err != nil {
+			return err
+		}
+		return c.Close()
+	}
+	// ws.local.toml is written by commands and the daemon both: each
+	// write takes a turn of the records' writer, so the daemon orders
+	// them as it does every write.
+	config.Turn = func(root string, fn func() error) error {
+		db, err := store.Open(root)
+		if err != nil {
+			return fmt.Errorf("writing %s: %w", config.LocalFileName, err)
+		}
+		return db.Write(context.Background(), func(*store.Tx) error { return fn() })
+	}
+}
+
+// serverHost is this process's server, when this process is the
+// workspace's daemon: crew launched in it need no socket.
+var serverHost crew.Host
+
+// hostFor is where a workspace's crew run: this process's server, else the
+// workspace's over its socket (started when crew are first launched).
+// Tests replace it.
+var hostFor = func(root string) crew.Host {
+	if serverHost != nil {
+		return serverHost
+	}
+	return daemon.NewHost(root)
+}
+
+// openOps is the workspace's operations for the daemon, its config read
+// again when it changes, and its views showing the pull requests prs has
+// (which the daemon's watcher shares).
+func openOps(root string, prs *ops.PRCache, more ...func(*ops.Options)) *ops.Workspace {
+	o := opsOptions(root)
+	o.PRs = prs
+	for _, f := range more {
+		f(&o)
+	}
+	return ops.Open(root, o)
+}
+
+// opsOptions are what ops asks of cli: where crew run, and starting the
+// orchestrator's runs and conversations' answers in the daemon.
+func opsOptions(root string) ops.Options {
+	return ops.Options{
+		Host:        hostFor(root),
+		Orchestrate: func(slug, crewID, trigger string) { orchestrateSpawner(root, slug, crewID, trigger) },
+		Check:       func(slug, crewID string) { checkSpawner(root, slug, crewID) },
+		Answer: func(kind, slug, id string) {
+			switch kind {
+			case job.Thread:
+				threadSpawner(root, slug, id)
+			case job.Draft:
+				draftSpawner(root, slug, id)
+			default:
+				talkSpawner(root, slug, id)
+			}
+		},
+	}
+}

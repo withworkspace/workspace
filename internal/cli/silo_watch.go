@@ -1,0 +1,206 @@
+package cli
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
+	"github.com/withworkspace/workspace/internal/ui"
+	"github.com/withworkspace/workspace/internal/workspace"
+)
+
+const maxSyncHistory = 3
+
+type siloWatchModel struct {
+	repoNames      []string
+	formatRepoName func(string) string
+	repos          []siloRepoView
+	spinner        spinner.Model
+	syncCh         <-chan workspace.SyncEvent
+	targetsCh      <-chan map[string]string
+	onResync       func() // triggers FullResyncAll in a goroutine
+	resyncing      bool
+	lastResync     time.Time
+}
+
+type siloRepoView struct {
+	name        string
+	displayName string
+	capsule     string
+	history     []syncEntry
+}
+
+type syncEntry struct {
+	fileCount int
+	time      time.Time
+}
+
+type syncEventMsg workspace.SyncEvent
+type resyncDoneMsg struct{}
+type targetsChangedMsg map[string]string
+
+func newSiloWatchModel(ws *workspace.Workspace, syncCh <-chan workspace.SyncEvent, targetsCh <-chan map[string]string, onResync func()) siloWatchModel {
+	var repos []siloRepoView
+	for _, name := range ws.RepoNames {
+		capsule, ok := ws.Silo[name]
+		if !ok {
+			continue
+		}
+		repos = append(repos, siloRepoView{
+			name:        name,
+			displayName: ws.FormatRepoName(name),
+			capsule:     capsule,
+		})
+	}
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	return siloWatchModel{
+		repoNames:      ws.RepoNames,
+		formatRepoName: ws.FormatRepoName,
+		repos:          repos,
+		spinner:        s,
+		syncCh:         syncCh,
+		targetsCh:      targetsCh,
+		onResync:       onResync,
+	}
+}
+
+func (m siloWatchModel) Init() tea.Cmd {
+	return tea.Batch(m.spinner.Tick, m.waitForSync(), m.waitForTargetsChanged())
+}
+
+func (m siloWatchModel) waitForSync() tea.Cmd {
+	ch := m.syncCh
+	return func() tea.Msg {
+		ev, ok := <-ch
+		if !ok {
+			return tea.Quit()
+		}
+		return syncEventMsg(ev)
+	}
+}
+
+func (m siloWatchModel) waitForTargetsChanged() tea.Cmd {
+	ch := m.targetsCh
+	if ch == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		targets, ok := <-ch
+		if !ok {
+			// targetsCh closes alongside syncCh when Watch() returns;
+			// syncCh's close triggers tea.Quit, so we just stop listening here.
+			return nil
+		}
+		return targetsChangedMsg(targets)
+	}
+}
+
+func (m siloWatchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case syncEventMsg:
+		for i := range m.repos {
+			if m.repos[i].name == msg.Repo {
+				m.repos[i].capsule = msg.Capsule
+				entry := syncEntry{fileCount: msg.FileCount, time: msg.Time}
+				m.repos[i].history = append(m.repos[i].history, entry)
+				if len(m.repos[i].history) > maxSyncHistory {
+					m.repos[i].history = m.repos[i].history[len(m.repos[i].history)-maxSyncHistory:]
+				}
+				break
+			}
+		}
+		return m, m.waitForSync()
+
+	case resyncDoneMsg:
+		m.resyncing = false
+		m.lastResync = time.Now()
+		return m, nil
+
+	case targetsChangedMsg:
+		oldRepos := make(map[string]siloRepoView)
+		for _, r := range m.repos {
+			oldRepos[r.name] = r
+		}
+		var newRepos []siloRepoView
+		for _, name := range m.repoNames {
+			capsule, ok := msg[name]
+			if !ok {
+				continue
+			}
+			if old, existed := oldRepos[name]; existed {
+				if old.capsule != capsule {
+					old.history = nil
+				}
+				old.capsule = capsule
+				newRepos = append(newRepos, old)
+			} else {
+				newRepos = append(newRepos, siloRepoView{
+					name:        name,
+					displayName: m.formatRepoName(name),
+					capsule:     capsule,
+				})
+			}
+		}
+		m.repos = newRepos
+		return m, m.waitForTargetsChanged()
+
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "ctrl+c", "q":
+			return m, tea.Quit
+		case "r":
+			if !m.resyncing {
+				m.resyncing = true
+				fn := m.onResync
+				return m, func() tea.Msg {
+					fn()
+					return resyncDoneMsg{}
+				}
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m siloWatchModel) View() tea.View { return tea.NewView(m.render()) }
+
+func (m siloWatchModel) render() string {
+	var b strings.Builder
+
+	header := fmt.Sprintf("  %s Watching", m.spinner.View())
+	if m.resyncing {
+		header += fmt.Sprintf("  %s", ui.Orange.Render("resyncing..."))
+	}
+	b.WriteString(header + "\n")
+	b.WriteString(fmt.Sprintf("  %s\n\n", ui.Dim.Render("r to resync, q to quit")))
+
+	for _, repo := range m.repos {
+		b.WriteString(fmt.Sprintf("  %s %s %s\n",
+			ui.Bold.Render(repo.displayName),
+			ui.Dim.Render("→"),
+			ui.TagDim.Render(repo.capsule)))
+
+		if len(repo.history) == 0 {
+			b.WriteString(fmt.Sprintf("    %s\n", ui.Dim.Render("waiting for changes...")))
+		} else {
+			for _, entry := range repo.history {
+				ts := entry.time.Format("15:04:05")
+				b.WriteString(fmt.Sprintf("    %s %s %d file(s)\n",
+					ui.Dim.Render(ts),
+					ui.Green.Render("✓"),
+					entry.fileCount))
+			}
+		}
+		b.WriteByte('\n')
+	}
+
+	return b.String()
+}

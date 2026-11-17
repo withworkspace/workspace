@@ -1,0 +1,163 @@
+package plugin
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+)
+
+// What ws does for a plugin being written: builds it from its source, and
+// says what's wrong with what it registers (ws plugin add --build, ws
+// plugin check). Starting one, and building it on every save, are a
+// plugin's own work: plugin-dev's.
+
+// GuideLines is how much of a plugin's guide an agent is given: it's told
+// in every prompt, so it's a pointer to the plugin's commands, not its
+// manual.
+const GuideLines = 40
+
+// Build builds the plugin in dir as its plugin.toml says (build), with
+// what the build prints written to out. A plugin with no build has
+// nothing to do.
+func Build(dir string, out io.Writer) error {
+	m, err := ReadManifest(dir)
+	if err != nil {
+		return err
+	}
+	if len(m.Build) == 0 {
+		return nil
+	}
+	cmd := exec.Command(m.Build[0], m.Build[1:]...)
+	cmd.Dir = dir
+	cmd.Stdout, cmd.Stderr = out, out
+	if err := cmd.Run(); err != nil {
+		var exit *exec.ExitError
+		if errors.As(err, &exit) {
+			return fmt.Errorf("%s failed", strings.Join(m.Build, " "))
+		}
+		return fmt.Errorf("%s: %w", strings.Join(m.Build, " "), err)
+	}
+	return nil
+}
+
+// Executable is the file a plugin's command starts, where it's a file of
+// the plugin's own ("./ws-jira"); "" where it's a program found on PATH.
+func (m Manifest) Executable(dir string) string {
+	if len(m.Command) == 0 || !strings.ContainsRune(m.Command[0], filepath.Separator) {
+		return ""
+	}
+	if filepath.IsAbs(m.Command[0]) {
+		return m.Command[0]
+	}
+	return filepath.Join(dir, m.Command[0])
+}
+
+// BuildIfMissing builds the plugin in dir if what its command starts
+// isn't there: one added from its source.
+func BuildIfMissing(dir string, out io.Writer) error {
+	m, err := ReadManifest(dir)
+	if err != nil {
+		return err
+	}
+	exe := m.Executable(dir)
+	if exe == "" {
+		return nil
+	}
+	if _, err := os.Stat(exe); err == nil {
+		return nil
+	}
+	if len(m.Build) == 0 {
+		return fmt.Errorf("%s isn't there, and %s doesn't say how it's built (build)", m.Command[0], ManifestName)
+	}
+	return Build(dir, out)
+}
+
+// Problem is something wrong with what a plugin registers. One that isn't
+// Fatal is worth knowing, and the plugin works as it is.
+type Problem struct {
+	Fatal bool
+	Text  string
+}
+
+// configTypes are the types a config key can have.
+var configTypes = []string{"string", "url", "bool", "number", "enum", "list", "secret"}
+
+// Problems are what's wrong with what a plugin called name registers, as
+// someone using it would find it: nothing to see it by, a command nothing
+// says the use of, a guide agents are given part of.
+func Problems(name string, r Registration) []Problem {
+	var out []Problem
+	note := func(format string, args ...any) { out = append(out, Problem{Text: fmt.Sprintf(format, args...)}) }
+	fatal := func(format string, args ...any) {
+		out = append(out, Problem{Fatal: true, Text: fmt.Sprintf(format, args...)})
+	}
+
+	word := r.CommandName(name)
+	if len(r.Views) == 0 && word == "" {
+		note("it adds no view and no commands: there's nothing to use it by")
+	}
+	for i, v := range r.Views {
+		if strings.TrimSpace(v.Title) == "" {
+			fatal("view %d has no title: it's what its sidebar entry says", i+1)
+		}
+	}
+	if r.Commands != nil {
+		if word != "" && !ValidName(word) {
+			fatal("its command %q must be lower-case letters, digits and hyphens", word)
+		}
+		if r.Commands.Short == "" {
+			note("ws %s has no description: ws --help lists it with nothing beside it", word)
+		}
+		if len(r.Commands.Subcommands) == 0 {
+			note("ws %s has no subcommands", word)
+		}
+		for _, c := range r.Commands.Subcommands {
+			if c.Short == "" {
+				note("ws %s %s has no description", word, c.Name)
+			}
+		}
+	}
+	guide := ""
+	if r.Agent != nil {
+		guide = strings.TrimSpace(r.Agent.Guide)
+	}
+	switch lines := strings.Count(guide, "\n") + 1; {
+	case guide == "" && word != "":
+		note("it has commands and no guide (agents.md): agents won't know ws %s is there", word)
+	case guide != "" && lines > GuideLines:
+		note("its guide is %d lines, and agents are given the first %d: keep it to what the commands are", lines, GuideLines)
+	}
+	seen := map[string]bool{}
+	for _, k := range r.Config {
+		switch {
+		case k.Key == "":
+			fatal("a config key has no name")
+			continue
+		case seen[k.Key]:
+			fatal("config key %s is declared twice", k.Key)
+		}
+		seen[k.Key] = true
+		if k.Title == "" {
+			note("config key %s has no title: it's asked for by its name", k.Key)
+		}
+		typ := k.Type
+		if typ == "" {
+			typ = "string"
+		}
+		known := false
+		for _, t := range configTypes {
+			known = known || t == typ
+		}
+		if !known {
+			fatal("config key %s is of type %q, which ws doesn't know (it knows %s)", k.Key, typ, strings.Join(configTypes, ", "))
+		}
+		if typ == "enum" && len(k.Options) == 0 {
+			fatal("config key %s is one of a list, and the list is empty", k.Key)
+		}
+	}
+	return out
+}

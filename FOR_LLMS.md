@@ -1,0 +1,134 @@
+# Workspace Guide
+
+You are working in a multi-repo workspace managed by `ws`. This file explains how the workspace is organized and how to work within it.
+
+## Layout
+
+Repos live under `repos/`. Each repo is a **bare clone** with linked worktrees.
+
+```
+workspace-root/
+  repos/
+    repo-name/
+      .bare/                     # bare git repo (do not touch)
+      .ground/                   # default branch worktree — READ-ONLY
+      my-feature/                # a capsule (worktree on a branch)
+      another-task/              # another capsule
+    another-repo/
+      .bare/
+      .ground/
+```
+
+There is no `current` symlink. `ws` infers the active repo and capsule from your working directory.
+
+## Before you edit anything
+
+1. **Check your working directory path.**
+2. **If you are in `.ground/`** — STOP. You cannot edit here. It is strictly read-only.
+3. **If you are in a capsule** (any directory under `repos/<repo>/` that is not `.bare/` or `.ground/`) — you're good, work here.
+4. **If no capsule exists for your task** — create one with `ws lift <repo> <name>`, or ask the user if an existing capsule should be used.
+
+How to tell where you are: check if your cwd contains `/.ground/`. If it does, you are in ground and must not edit.
+
+## Rules
+
+**Ground is read-only.** `.ground/` exists only for reading code and checking state. To make changes, you must be in a capsule. If you aren't in one, create one with `ws lift <repo> <name>` or ask the user which existing capsule to use.
+
+**One capsule, one concern.** Each capsule is an isolated environment for a single task. All your changes must stay within one capsule in one repo. Never modify files across multiple capsules or multiple repos in a single task.
+
+**Repo names and aliases.** Users may refer to repos by display name or alias rather than the canonical directory name. Run `ws status -f llm` to see display names and aliases for each repo.
+
+**Hidden groups.** Some repos belong to hidden groups, often other teams' platform repos. They are left out of `ws status` and `ws rg` by default and may not be cloned yet. Run `ws group` to see every group and its repos. Naming a hidden repo always works (`ws rg --repo <name>`, `ws rg --group <group>`), and clones it if needed. If the user mentions a repo you don't see in status, check `ws group` before saying it doesn't exist.
+
+## Working in a capsule
+
+Once you're inside a capsule, normal development workflows apply:
+
+- **Git works normally.** Commit, push, pull, rebase — all standard git commands work.
+- **First push auto-sets upstream.** `push.autoSetupRemote` is configured, so `git push` works without `-u` on the first push.
+- **`ws lift` and `ws dock` change your cwd.** These commands automatically `cd` into the new capsule, so you're ready to work immediately after running them.
+
+## Seeing workspace state
+
+Run `ws status -f llm` to get live state for all repos. The output includes:
+
+- Every repo (with display names and aliases) and its capsules
+- Notable state only: dirty, ahead/behind, open PRs, boarded status
+- Repos the user may refer to by alias or display name
+
+Use this to orient yourself before starting work.
+
+## Missions
+
+**If `WS_MISSION` is set, you are crew on a mission.** Run `ws mission show -f llm` first: it gives the brief, the mission's capsules (with paths) and recent log.
+
+- A mission can span several capsules across repos. You may work in any capsule of your mission, but don't touch capsules outside it.
+- Create new capsules with `ws lift`. With `WS_MISSION` set, they join the mission automatically.
+- Record significant decisions and progress with `ws mission note "<text>"`. Don't edit the brief; it belongs to the user.
+- When you need the user's decision, ask in your reply and also run `ws mission ask "<question>"` so ws flags it for them, then wait for their answer: don't report done while a question is open.
+- If you notice something worth doing that's outside your mission, don't do it: run `ws mission new "<what it is and why>"` (plain text) and mention it in one line. It waits for the user to brief it, and records that it came from your mission.
+- If the brief lists stages, your instructions say which one you're on: do only that one. If you were dispatched for one part, do that part only. Your instructions may include *Where earlier crew left off*: the last crew's handoff. Start from it rather than rediscovering what it says.
+- Record what you make that the next crew or the user will need (a proposal, an ADR, notes, a doc) with `ws mission artifact add <file|url> --kind <proposal|adr|note|doc> "<label>"`. A file can be in one of the mission's capsules, a `.ground`, or the mission's private files folder (`ws mission show -f llm` names it, and the records repo for shared proposals and ADRs if there is one). It lists every artifact with where to read it.
+- When a stage asks for something to look at and use rather than read (a mock-up of a page, options to choose between, a diagram to click through), make it an **artifact**: one HTML file, with its CSS and JS inline, that runs with no network and no storage (images as `data:` URLs). `ws artifact add page.html --title "…" --note "<what it tries out>"` adds it (as `a3`), and `ws artifact add page.html --to a3 --note "<what changed, and why>"` adds its next version (`a3.v2`), based on the latest (`--on v1` for another). ws records it on the mission. Where the workspace keeps artifacts in a repo (`[artifacts] path` in `ws.toml`), it's written in your mission's capsule of that repo, the one you're in (lift one if there's none): commit it with the rest of your work, and it lands with the capsule. Until then it's *in flight*, and if someone else's v3 lands first, yours lands as v4, said so as it lands. Name it in your handoff; `ws show a3` says what each version changed and where it came from, and `ws artifact show a3.v2` prints one. Artifacts are sketches: a live one expires 30 days after its last version unless it's promoted. Promoting (`ws artifact promote`), discarding and restoring one are the user's: say in your handoff which you'd keep, and which drop, and why.
+- The user reviews a capsule's commits and submits a review: comments on lines, each **blocking** (must change), **suggestion** (take it unless you have a reason not to), **question** (answer it) or **nit** (do it if it's cheap), and a verdict. `ws review show -f llm` prints the latest review of the capsule you're in, each comment with the lines it's on as they were (`ws review list` lists them all). If you were dispatched or resumed to address one, do as it says, commit, then answer each comment by its id: `ws review addressed <id> "what you did"` (it records the commit), `ws review wontfix <id> "why"`, or `ws review reply <id> "your answer"` for a question. Say what you did for each in your handoff too. The user re-reviews what changed and resolves the comments; until they approve, the stage isn't accepted.
+- When your part is finished, commit it: the user reviews commits, and the next crew builds on them (uncommitted work is left out). Then report done with a one-line summary and a handoff for whoever comes next, in markdown on stdin. All four sections are required; a section can say "Nothing.". *Learned* matters most: where things live, what you tried that didn't work, surprises. Keep it short. Each *Read first* entry is a file, a reference (`records:adr/0042.md`, `api#88`) or a URL, and ws checks it can find each. ws finds PRs from the mission's capsules itself.
+
+  ```sh
+  ws mission done "<one-line summary>" --handoff - <<'EOF'
+  ## Done
+  - What you did, and where it is (files, commits, PRs).
+  ## Learned
+  - Where things live, what you tried that didn't work and why, surprises.
+  ## Left
+  - What's still to do, or "Nothing."
+  ## Read first
+  - Files, references or URLs the next crew should read, or "Nothing."
+  EOF
+  ```
+
+If you were started to **brief** a mission (your instructions say so), follow those instructions instead: you write the brief and create capsules, then run `ws mission ready`, and you don't change code.
+
+If you were started to **answer the orchestrator's question** for the user (your instructions say so), find out what's needed and answer with `ws mission answer "<what should happen, and why>"`. That hands it to the orchestrator; don't do the work it leads to.
+
+If `WS_ROLE=orchestrator` is set, you are a mission's orchestrator: follow the instructions you were given, act only through `ws mission note/accept/dispatch/resume-with/flag/new/conclude` (and `ws lift` for a capsule the next crew needs), and don't change code.
+
+If `WS_MISSION` is not set, ignore missions and follow the rules above as usual.
+
+## Searching code
+
+Use `ws rg` instead of `rg` or `grep` whenever a search goes beyond your current directory. Plain `rg` from the workspace root walks `.bare/`, `.silo/`, `.ground/` and every capsule, so each match comes back once per capsule and floods your context.
+
+`ws rg` is ripgrep with the right scope. Every ripgrep flag works unchanged.
+
+```
+ws rg <pattern>                    # default scope, see below
+ws rg --repo fe,api <pattern>      # only these repos (names or aliases)
+ws rg --repo fe/my-feature TODO    # one specific capsule
+ws rg --group platform <pattern>   # every repo in a group, including hidden ones
+ws rg --ground <pattern>           # .ground of every repo (the baseline)
+ws rg --all <pattern>              # every worktree, duplicates expected
+ws rg --roots                      # print the directories it would search
+```
+
+**Default scope is "where I stand":** inside a capsule, that capsule is searched for its repo and `.ground` is searched for every other repo. Outside any worktree, `.ground` everywhere. Repos in hidden groups are skipped unless named or you are standing in one. Each match comes back once, and the absolute path on every line tells you which repo and worktree it came from.
+
+Narrow with `--repo` and `-g`, not with positional paths. Globs containing a slash (`-g 'src/**/*.ts'`) are anchored to each searched root, as in a single-repo search.
+
+## Key commands
+
+```
+ws status [-f llm]                 # live state for all repos and capsules (use llm format)
+ws lift <repo> <name> [base]       # create a new capsule (branch + worktree) from base
+ws dock <repo> <branch|PR#|PR-URL> # check out an existing branch or PR into a capsule
+ws burn [repo] <capsule>           # remove a capsule (alias: ws rm)
+ws jump [repo] [capsule]           # navigate to a capsule (alias: ws j)
+ws rg [--repo <sel>] <pattern>     # ripgrep across repos, one worktree per repo
+```
+
+Also available: `ws group` (list groups, including hidden repos), `ws debrief` (batch cleanup), `ws board`/`ws unboard` (IDE workspace management).
+
+## Terminology
+
+**Ground** (`.ground/`): The worktree for the default branch. Read-only — never commit or make changes here. All capsules branch from ground.
+
+**Capsule**: One unit of work — one branch, one worktree, one concern. Created by `lift` (new branch) or `dock` (existing branch/PR). Removed by `burn` or `debrief`.

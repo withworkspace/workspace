@@ -1,0 +1,464 @@
+package web
+
+import (
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/withworkspace/workspace/internal/artifact"
+	"github.com/withworkspace/workspace/internal/conversation"
+	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/pulls"
+)
+
+// What the API serves of the workspace, its missions and the orchestrator:
+// ops's views (ops.Overview, ops.MissionDetail, ops.Run) mapped to the
+// wire types web/src/api.ts reads.
+
+// Missions is what the workspace's pages are built from: its missions, a
+// mission's page, and the orchestrator's.
+type Missions interface {
+	Overview() (*ops.Overview, error)
+	Mission(slug string, withGitHub bool) (*ops.MissionDetail, error)
+	Orchestrator() ops.OrchestratorView
+	OrchestratorRun(slug, id string) (*ops.Run, error)
+	// Stamp names what the workspace's view is built from, cheaply: it
+	// moves when that's changed. MissionStamp is a mission's page's, but
+	// for its records, which say themselves when they change.
+	Stamp() string
+	MissionStamp(slug string) string
+	// BundleFile is a file of one of a mission's bundles: where it is, and
+	// its content type.
+	BundleFile(slug, id, name string) (path, media string, err error)
+	// Artifacts is the workspace's artifacts: on this machine, and in the
+	// repo it keeps them in, with crew's in its capsules; ArtifactsConfig
+	// where they're kept, and how long a live one lasts.
+	Artifacts() artifact.Store
+	ArtifactsConfig() artifact.Config
+}
+
+// workspaceView is what GET /api/workspace serves.
+func (s *Server) workspaceView() (Workspace, error) { return WorkspaceOf(s.App, s.Root, s.Reviews) }
+
+// WorkspaceOf is the workspace at root as GET /api/workspace serves it:
+// its missions with what git knows of their capsules, the pull requests
+// asked for lately (GitHub is slow: it's asked in the background), and
+// where each mission stands; and its conversations, pages, documents and
+// the pull requests Reviews lists (reviews; nil for none).
+func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, error) {
+	v, err := a.Overview()
+	if err != nil {
+		return Workspace{}, err
+	}
+	out := Workspace{Name: v.Name, Root: root, Org: v.Org, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: Talks(root), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Spaces: []SpaceRef{}}
+	for _, s := range v.Spaces {
+		out.Spaces = append(out.Spaces, SpaceRef{Repo: s.Repo, Folder: s.Folder, Label: s.Label, Color: s.Color})
+	}
+	for _, it := range v.Missions {
+		m := Mission{Slug: it.M.Slug, Title: it.M.Title, State: string(it.State), Created: it.M.Created, Capsules: []Capsule{}, Crew: []Crew{},
+			Updated: it.Updated, ReReview: it.ReReview, Headline: headline(it.Headline), At: it.At}
+		if t := it.M.Asking(); t != nil {
+			m.Flag = t.Text
+		}
+		for _, c := range it.Capsules {
+			m.Capsules = append(m.Capsules, Capsule{Repo: c.Repo, Name: c.Name, Branch: c.Branch, Path: c.Path, Exists: c.Exists, Head: it.Heads[c.Repo+"/"+c.Name]})
+		}
+		for _, c := range it.M.Crew {
+			m.Crew = append(m.Crew, crewOf(c))
+		}
+		out.Missions = append(out.Missions, m)
+	}
+	return out, nil
+}
+
+// reviewsCount is how many pull requests Reviews lists, as last asked.
+func reviewsCount(reviews *pulls.Service) *ReviewsCount {
+	if reviews == nil {
+		return nil
+	}
+	l := reviews.Peek()
+	if l == nil {
+		return nil
+	}
+	return &ReviewsCount{Count: l.Count, At: l.At}
+}
+
+func docKinds(kinds []ops.Kind) []DocKind {
+	out := make([]DocKind, 0, len(kinds))
+	for _, k := range kinds {
+		out = append(out, DocKind{Name: k.Name, Title: k.Title, Where: k.Where, Guide: k.Guide, Passes: k.Passes})
+	}
+	return out
+}
+
+func crewOf(c mission.Crew) Crew {
+	w := Crew{ID: c.ID, Harness: c.Harness, Model: c.Model, Role: c.Role, Capsule: c.Capsule, Started: c.Started,
+		Ended: c.Ended != nil, Activity: c.Activity, Status: c.Status, LastReply: c.LastReply, Notice: c.Notice, Options: c.Options,
+		Structured: harness.CapsOf(c.Harness).Crew == harness.CrewACP}
+	if work, ok := c.OwnWork(time.Now()); ok {
+		w.WaitingOn = mission.WorkWhat(work)
+	}
+	w.Again = workingAgain(c)
+	return w
+}
+
+// workingAgain is crew that reported done and has been at work since: its
+// done stands for ws (it handed its work back), but what it's doing now is
+// working on what it was sent back with.
+func workingAgain(c mission.Crew) bool {
+	return c.Ended == nil && c.Status == mission.CrewDone && c.Activity == mission.ActivityWorking &&
+		c.StatusAt != nil && c.ActivityAt != nil && c.ActivityAt.After(*c.StatusAt)
+}
+
+// headline is a headline as the API serves it.
+func headline(h mission.Headline) Headline {
+	w := Headline{
+		Court: string(h.Court), Kind: string(h.Kind), Label: h.Label, Text: h.Text, By: h.By,
+		Group:  strings.ToLower(strings.ReplaceAll(mission.GroupNames[h.Group()], " ", "-")),
+		Action: Action{Verb: string(h.Action.Verb), Label: h.Action.Label, Target: h.Action.Target, URL: h.Action.URL, Options: h.Action.Options},
+	}
+	for _, l := range h.Action.Look {
+		w.Action.Look = append(w.Action.Look, Look{Bundle: l.Bundle, Capsule: l.Capsule, Doc: l.Doc, Name: l.Name, Read: l.Read})
+	}
+	if !h.Since.IsZero() {
+		since := h.Since
+		w.Since = &since
+	}
+	return w
+}
+
+// conclusionOf is how a mission ends, as the API serves it.
+func conclusionOf(c mission.Conclusion) *Conclusion {
+	out := &Conclusion{Ending: string(c.Ending), Text: c.Text, To: c.To, By: c.By}
+	if !c.At.IsZero() {
+		out.At = c.At.UTC().Format(time.RFC3339)
+	}
+	for _, z := range c.Z {
+		out.Z = append(out.Z, ZCheck{Z: z.Z, Met: z.Met, How: z.How})
+	}
+	return out
+}
+
+// missionDetail is GET /api/missions/{slug}.
+func (s *Server) missionDetail(slug string, withGitHub bool) (*MissionDetail, error) {
+	return MissionOf(s.App, s.Root, slug, withGitHub)
+}
+
+// MissionOf is a mission as GET /api/missions/{slug} serves it: with what
+// GitHub says of its pull requests, when withGitHub.
+func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, error) {
+	v, err := a.Mission(slug, withGitHub)
+	if err != nil {
+		return nil, err
+	}
+	m := v.M
+	d := &MissionDetail{
+		Slug: m.Slug, Title: m.Title, State: string(v.State), Created: m.Created, Request: m.Request, From: m.From,
+		Brief: v.Brief, Plan: v.Plan, Conversation: m.Conversation, ConversationTitle: v.ConversationTitle, GitHub: withGitHub,
+		Stages: []Stage{}, Capsules: []CapsuleDetail{}, Crew: []CrewDetail{}, Artifacts: []Artifact{}, Events: []Event{},
+		Runs: []OrchestratorRun{}, Decisions: []Decision{}, Bundles: []Bundle{},
+	}
+	for _, b := range v.Bundles {
+		d.Bundles = append(d.Bundles, bundleOf(m.Slug, b, v.Status[b.Capsule].Head))
+	}
+	for _, r := range v.Runs {
+		d.Runs = append(d.Runs, orchestratorRun(r))
+	}
+	for _, dc := range v.Decisions {
+		d.Decisions = append(d.Decisions, Decision{ID: dc.ID, What: dc.What, Why: dc.Why, By: dc.By, From: dc.From, About: dc.About,
+			At: dc.At, State: dc.State, SupersededBy: dc.SupersededBy, WithdrawnWhy: dc.WithdrawnWhy})
+	}
+	talks := conversation.For(root, slug)
+	d.Talks = TalksIn(talks)
+	if c := talks.Planner(); c != nil {
+		d.Planner = c.ID
+	}
+	d.BriefUnwritten = mission.IsUnwrittenBrief(v.Brief, m.Title)
+	if t := m.Asking(); t != nil {
+		d.Flag = &Proposal{Text: t.Text, By: t.By, Options: t.Options}
+	}
+	for _, t := range m.Tasks {
+		d.Tasks = append(d.Tasks, Task{N: t.N, Verb: t.Verb, Text: t.Text, Step: t.Step, Options: t.Options, By: t.By, At: t.At})
+	}
+	if dp := m.Dispatch; dp != nil {
+		d.Dispatch = &Proposal{Text: dp.Text, By: dp.By, Capsule: dp.Capsule}
+	}
+	if c := m.Conclude; c != nil && v.State != mission.Archived {
+		d.Conclude = conclusionOf(*c)
+	}
+	if e := m.Ending; e != nil {
+		d.Ending = conclusionOf(*e)
+	}
+	for _, e := range m.EndedCapsules {
+		d.EndedCapsules = append(d.EndedCapsules, EndedCapsule{Repo: e.Repo, Name: e.Name, Ending: string(e.Ending), To: e.To, Why: e.Why, By: e.By, At: e.At.UTC().Format(time.RFC3339)})
+	}
+	d.At, d.Z = v.At, v.Z
+	for _, rr := range v.ReReviews {
+		t := rr.Review.Tally()
+		d.ReReview = append(d.ReReview, ReReview{Capsule: rr.Capsule, Review: rr.Review.ID, Answered: t.Answered(), Total: t.Total()})
+	}
+	for _, h := range v.Headlines {
+		d.Headlines = append(d.Headlines, headline(h))
+	}
+	if m.PlanErr != nil {
+		d.PlanProblem = m.PlanErr.Error()
+	}
+	for _, st := range v.Stages {
+		sg := Stage{N: st.N, Title: st.Short(), Text: st.Plain(), State: "todo", CheckIn: st.CheckIn}
+		if s := st.Step; s != nil {
+			sg.Type, sg.Who, sg.WhoSays, sg.Makes, sg.OpensPR = s.Type, s.Who, s.WhoSays(), s.Makes, s.MakesPR()
+		}
+		if st.Record != nil {
+			sg.Crew, sg.Why = st.Record.Crew, st.Record.Why
+			if !st.Accepted() {
+				sg.Deadline, sg.OutOfTime = st.Record.Deadline, st.Record.OutOfTime != nil
+			}
+		}
+		if s := st.Step; s != nil {
+			sg.OnlyIf, sg.InEach, sg.Held, sg.Skipped = s.OnlyIf, s.InEach, st.Held(), st.Skipped()
+			if st.Record != nil {
+				sg.Attempts = st.Record.Attempts
+			}
+			for _, in := range st.Instances() {
+				sg.Instances = append(sg.Instances, StageRun{Repo: in.Repo, Capsule: in.Capsule, Done: in.Done != nil})
+			}
+			sg.CarryOn, sg.Limit = s.CarryOn, s.LimitText
+			round, _ := st.Record.LatestChecks()
+			sg.Round = round.N
+			for i, c := range s.Checks {
+				sc := StageCheck{Text: c.Text, Run: c.Run()}
+				if i < len(round.Results) && round.Results[i].Check == c.Text {
+					r := round.Results[i]
+					sc.Result, sc.Evidence, sc.By = r.Result, r.Evidence, r.By
+				}
+				sg.Checks = append(sg.Checks, sc)
+			}
+		}
+		switch {
+		case st.Accepted():
+			sg.State = "accepted"
+		case st.Current:
+			sg.State = "current"
+		}
+		d.Stages = append(d.Stages, sg)
+	}
+	for _, c := range v.Capsules {
+		cd := CapsuleDetail{Capsule: Capsule{Repo: c.Repo, Name: c.Name, Branch: c.Branch, Path: c.Path, Exists: c.Exists}}
+		if st, ok := v.Status[c.Repo+"/"+c.Name]; ok {
+			cd.Dirty, cd.Ahead, cd.Behind, cd.Head = st.Dirty, st.Ahead, st.Behind, st.Head
+		}
+		if c.PR != nil {
+			cd.PR = &PR{Number: c.PR.Number, Title: c.PR.Title, URL: c.PR.URL, Merged: c.PRS == mission.PRMerged, Checks: c.PR.StatusRollup}
+		}
+		cd.Direct, cd.ToLand = c.Direct, c.Ahead
+		if c.Landed != nil {
+			cd.Landed = &c.Landed.At
+		}
+		d.Capsules = append(d.Capsules, cd)
+	}
+	for _, c := range m.Crew {
+		cd := CrewDetail{Crew: crewOf(c), EndedAt: c.Ended, Exit: c.Exit, Note: c.Note, Dispatch: c.Dispatch}
+		switch {
+		case c.Ended == nil:
+		case c.Interrupted:
+			cd.How = mission.EndedInterrupted
+		case c.Stopped && c.Status == mission.CrewDone:
+			cd.How = mission.EndedHandedBack
+		case c.Stopped:
+			cd.How = mission.EndedStopped
+		}
+		if c.HandedOff != nil {
+			cd.Handoff = mission.HandoffRef(c.ID)
+		}
+		d.Crew = append(d.Crew, cd)
+	}
+	threads := docThreads(root, slug)
+	arts := artifact.Store{Root: root}
+	for _, av := range v.Artifacts {
+		a := Artifact{
+			Ref: av.Ref, Kind: av.Kind, Label: av.Label, State: av.State, URL: av.URL, Path: av.Path,
+			By: av.Crew, Added: av.Added, Readable: av.State != "missing" && av.Path != "" && isFile(av.Path),
+			Threads: threads[av.Ref],
+		}
+		// An artifact (a3) is opened at /artifacts/a3, as the records last
+		// had it: titled as it is now, with its versions.
+		if av.Parsed.Loc == ops.LocArtifact {
+			if e, ok := arts.Known(av.Parsed.ID); ok {
+				a.Label, a.Versions = e.Title, len(e.Versions)
+			}
+		}
+		d.Artifacts = append(d.Artifacts, a)
+	}
+	for _, e := range v.Events {
+		if text, ok := mission.Sentence(e); ok {
+			ev := Event{Time: e.Time, Kind: e.Kind, Text: text, By: e.Crew}
+			if e.Kind == mission.EventResumeWith || e.Kind == mission.EventTold {
+				ev.By, ev.To = e.By, e.Crew
+			}
+			d.Events = append(d.Events, ev)
+		}
+	}
+	d.CrewPicks = crewPicks(v.CrewPicks)
+	return d, nil
+}
+
+// crewPicks are the picks a mission's page offers new crew: the first is
+// the default.
+func crewPicks(picks []harness.Pick) CrewPicks {
+	out := CrewPicks{Allowed: []Pick{}}
+	for i, p := range picks {
+		if i == 0 {
+			out.Default = Pick{Harness: p.Harness, Model: p.Model}
+		} else {
+			out.Allowed = append(out.Allowed, Pick{Harness: p.Harness, Model: p.Model})
+		}
+	}
+	return out
+}
+
+// docThreads is where the open threads on a mission's documents stand, by
+// the documents' refs.
+func docThreads(root, slug string) map[string]*ArtifactThreads {
+	out := map[string]*ArtifactThreads{}
+	threads, _ := conversation.For(root, slug).List()
+	for _, c := range threads {
+		if c.Anchor.Doc == "" || c.Status != conversation.Open {
+			continue
+		}
+		at := out[c.Anchor.Doc]
+		if at == nil {
+			at = &ArtifactThreads{}
+			out[c.Anchor.Doc] = at
+		}
+		at.Open++
+		if c.WaitingOnYou() {
+			at.Waiting++
+		}
+	}
+	return out
+}
+
+// orchestratorRun is one of the orchestrator's runs in brief.
+func orchestratorRun(r ops.Run) OrchestratorRun {
+	w := OrchestratorRun{Mission: r.Mission, MissionTitle: r.MissionTitle, ID: r.ID, Started: r.Started, Ended: r.Ended,
+		For: r.For, Trigger: r.Trigger, Harness: r.Harness, Model: r.Model, Retry: r.Retry, Acted: r.Acted, Error: r.Error,
+		Said: r.Said, Calls: len(r.Calls)}
+	for _, c := range r.Calls {
+		if c.Refused {
+			w.Refused++
+		}
+	}
+	return w
+}
+
+// isFile is whether p is a file there is.
+func isFile(p string) bool {
+	info, err := os.Stat(p)
+	return err == nil && !info.IsDir()
+}
+
+// OrchestratorOf is GET /api/orchestrator: how the orchestrator's set up,
+// and its latest runs across missions.
+func OrchestratorOf(a Missions) OrchestratorInfo {
+	v := a.Orchestrator()
+	info := OrchestratorInfo{Enabled: v.Enabled, Dispatch: v.Dispatch, MaxDispatches: v.MaxDispatches, Harness: v.Harness, Model: v.Model, Problem: v.Problem, Runs: []OrchestratorRun{}}
+	for _, r := range v.Runs {
+		info.Runs = append(info.Runs, orchestratorRun(r))
+	}
+	return info
+}
+
+// OrchestratorRunOf is one of the orchestrator's runs, in full: ErrNotFound
+// for none.
+func OrchestratorRunOf(a Missions, slug, id string) (*OrchestratorRunDetail, error) {
+	run, err := a.OrchestratorRun(slug, id)
+	if err != nil {
+		return nil, err
+	}
+	d := &OrchestratorRunDetail{OrchestratorRun: orchestratorRun(*run), Prompt: run.Prompt, Output: run.Output, Log: []OrchestratorCall{}}
+	for _, c := range run.Calls {
+		d.Log = append(d.Log, OrchestratorCall{Tool: c.Tool, Input: c.Input, Result: c.Result, Error: c.Error, Refused: c.Refused})
+	}
+	return d, nil
+}
+
+// bundleOf is a bundle as the Verify tab shows it: its files by where
+// they're served from, what ws ran of its step's checks, what the judge
+// said of each of its own, and whether its capsule (at head) has moved on.
+func bundleOf(slug string, b ops.BundleView, head string) Bundle {
+	out := Bundle{ID: b.ID, Step: b.StepN, StepName: b.StepName, Crew: b.Crew, By: b.By, Own: b.Own,
+		Capsule: b.Capsule, Commit: b.Commit, At: b.At, Replaces: b.Replaces, ReplacedBy: b.ReplacedBy,
+		Summary: b.Summary, NotVerified: b.NotVerified, Checks: []BundleCheck{},
+		Verdict: b.Verdict, VerdictAt: b.VerdictAt, Looked: b.Looked, Asked: b.Asked, AskedAt: b.AskedAt}
+	for _, n := range b.Notes {
+		out.Notes = append(out.Notes, BundleNote{Check: n.Check, Text: n.Text})
+	}
+	if b.Commit != "" && head != "" && !sameCommit(b.Commit, head) {
+		out.Stale, out.Head = true, head
+	}
+	tries := func(ts []mission.BundleTry) []BundleTry {
+		var out []BundleTry
+		for _, t := range ts {
+			out = append(out, BundleTry{Text: t.Text, Command: t.Command, Look: t.Look})
+		}
+		return out
+	}
+	out.Try = tries(b.Try)
+	base := "/api/missions/" + url.PathEscape(slug) + "/bundles/" + url.PathEscape(b.ID) + "/file/"
+	var evidence func(e mission.Evidence) BundleEvidence
+	evidence = func(e mission.Evidence) BundleEvidence {
+		ev := BundleEvidence{Name: e.File, URL: base + url.PathEscape(e.File), Kind: "text", Size: e.Size, Caption: e.Caption, MadeBy: e.MadeBy}
+		switch {
+		case strings.HasPrefix(e.Media, "image/"):
+			ev.Kind = "image"
+		case strings.HasPrefix(e.Media, "video/"):
+			ev.Kind = "video"
+		}
+		if e.Before != nil {
+			before := evidence(*e.Before)
+			ev.Before = &before
+		}
+		return ev
+	}
+	judged := map[string]mission.CheckResult{}
+	if b.Ran != nil {
+		for _, r := range b.Ran.Results {
+			// A command is ws's to run; anything else was judged (and where
+			// the judge couldn't be asked, it's ws that says so).
+			n, command := 0, r.By == "ws"
+			for i, c := range b.StepChecks {
+				if c.Text == r.Check {
+					n, command = i+1, c.Run()
+				}
+			}
+			if !command && !b.Own {
+				continue // its verifier's own word, which the bundle has already
+			}
+			if command {
+				out.Ran = append(out.Ran, BundleRan{N: n, Check: r.Check, Result: r.Result, Evidence: r.Evidence, By: r.By})
+				continue
+			}
+			judged[r.Check] = r
+		}
+	}
+	for _, c := range b.Checks {
+		bc := BundleCheck{N: c.N, Check: c.Check, Verdict: c.Verdict, Said: c.Said, Lines: c.Lines, Try: tries(c.Try), Asks: c.Asks}
+		for _, e := range c.Shows {
+			bc.Shows = append(bc.Shows, evidence(e))
+		}
+		if r, ok := judged[c.Check]; ok && c.Check != "" {
+			bc.Judged = &BundleRan{N: c.N, Check: r.Check, Result: r.Result, Evidence: r.Evidence, By: r.By}
+		}
+		out.Checks = append(out.Checks, bc)
+	}
+	return out
+}
+
+// sameCommit reports whether two commits are the same, either given
+// whole or cut short.
+func sameCommit(a, b string) bool {
+	return a != "" && b != "" && (strings.HasPrefix(a, b) || strings.HasPrefix(b, a))
+}

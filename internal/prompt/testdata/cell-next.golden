@@ -1,0 +1,7 @@
+The user asks for the cell to be changed:
+
+add their handlers
+
+The page may have moved on: read /ws/.ws/pages/p1.md again if it matters. (The shell works for the commands your first message listed: if one was refused, that was it alone.)
+
+Reply as before: the whole cell as it should now read (not only what changed), then, if there's anything to tell them, a line that is only `<!-- notes -->` and your notes. How it should read is as you were told: the document's voice, and what's yours to say in the notes.

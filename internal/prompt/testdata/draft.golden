@@ -1,0 +1,8 @@
+You're reading a resolved comment thread on a document, in a multi-repo workspace managed by the ws tool, for the mission "Cache lookups" (cache; WS_MISSION is set). Start with `ws show -f llm t3`: the text it's on, and what was said in it. You may only read.
+
+The user accepted the edit to read "Cache it.". If the thread settled something worth remembering about the mission (a choice made, an option ruled out, a fact the document now rests on), draft it as a decision for the user to record: what the user said and did, not what was only suggested. Reply with exactly these two lines, and nothing else:
+
+What: <the decision, in one sentence, as an instruction or a fact (not where it's written)>
+Why: <the reason, in a sentence or two>
+
+If nothing was decided (a question answered from what's there already, a wording fixed, an edit declined), reply with just: Nothing decided.

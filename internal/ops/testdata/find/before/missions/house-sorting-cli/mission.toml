@@ -1,0 +1,52 @@
+title = "House sorting CLI"
+created = 2026-11-10T16:15:23Z
+conversation = "w4"
+dispatches = 0
+
+[[capsules]]
+  repo = "demo"
+  name = "house-sort"
+  branch = "house-sort"
+
+[[crew]]
+  id = "c1"
+  harness = "claude"
+  conversation = "9b7ffd16-6449-4862-9973-cb5a31c53c50"
+  started = 2026-11-10T16:15:44Z
+  ended = 2026-11-10T16:33:01Z
+  exit = "exit 129"
+  stopped = true
+  pid = 84480
+  capsule = "demo/house-sort"
+  status = "done"
+  note = "Added 'demo sort [name]' to print a deterministic Hogwarts house (commit de416f9)"
+  status_at = 2026-11-10T16:18:52Z
+  activity = "waiting"
+  activity_at = 2026-11-10T16:18:56Z
+  last_reply = "The house sorting CLI is done and committed as `de416f9` on `house-sort`, and I've reported the stage done to ws. The mission had a single stage, so there's nothing left for the orchestrator to dispatch.\n\n**What works**\n- `go run . sort \"Harry Potter\"` prints `Ravenclaw`, and the same house on every run.\n- `\"harry potter\"` and `\" Harry Potter \"` give the same house as `\"Harry Potter\"`.\n- The name can also come from stdin: `echo \"Harry Potter\" | go run . sort`.\n- `sort` with no name prints usage to stderr and exits 2. An unknown command does the same.\n- `go vet`, `gofmt` and `go test ./...` all pass.\n\n**Files**\n- `sort.go`: `sortHouse` takes the sha256 of the trimmed, lower-cased name, reads the first 4 bytes as a big-endian integer, and takes it mod 4 to index Gryffindor, Hufflepuff, Ravenclaw, Slytherin. The sorting is separate from the CLI, as the brief asked.\n- `main.go`: a `run()` function takes its I/O as parameters so the tests can drive it without a process.\n- `sort_test.go`: covers determinism, a pinned value, normalisation, that all outputs are one of the four houses, and the CLI paths.\n- `README.md`: documents usage and tests.\n\n**Choices I made**\n- `sort` is a subcommand, because the acceptance criteria use `go run . sort \"Harry Potter\"`. Running with no arguments still prints the existing greeting, so `TestGreeting` keeps passing.\n- sha256 rather than fnv. Either satisfies the brief.\n- Stdin is read only when it is not a terminal, so `sort` alone at a terminal prin…"
+  notice = "Claude is waiting for your input"
+  handed_off = 2026-11-10T16:18:52Z
+  orchestrated = "2026-11-10T16:15:44Z|done@2026-11-10T16:18:52Z:Added 'demo sort [name]' to print a deterministic Hogwarts house (commit de416f9)"
+
+[conclude]
+  text = "Everything in the brief is met: 'demo sort [name]' prints a deterministic house (sha256 of the trimmed, lower-cased name, mod 4), no name gives usage with exit 2, tests and README are in commit de416f9 on house-sort. The demo repo has only a local origin, so there is no PR to merge; the branch is ready for the user to merge into main."
+  by = "orchestrator"
+  at = 2026-11-10T16:19:14Z
+  check_in = 0
+
+[[artifacts]]
+  ref = "mission:handoffs/c1.md"
+  kind = "handoff"
+  label = "Added 'demo sort [name]' to print a deterministic Hogwarts house (commit de416f9)"
+  crew = "c1"
+  added = 2026-11-10T16:18:52Z
+
+[[stages]]
+  text = ""
+  n = 1
+  of = 1
+  crew = ["c1"]
+  started = 2026-11-10T16:15:44Z
+  accepted = 2026-11-10T16:19:08Z
+  accepted_by = "orchestrator"
+  why = "The brief has one stage and it is met: 'demo sort [name]' prints a deterministic house via sha256 of the trimmed, lower-cased name mod 4; no-name gives usage with exit 2; tests, README and commit de416f9 are on house-sort. Whitespace normalisation is as the brief specifies (d3)."

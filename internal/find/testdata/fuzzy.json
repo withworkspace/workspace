@@ -1,0 +1,436 @@
+{
+  "about": "Cases for the fuzzy matcher, read by internal/find/match_test.go and web/src/ui/fuzzy.test.ts: the two matchers have to agree on every one. score and at are filled in by `go test ./internal/find -run TestFuzzyCases -update`.",
+  "cases": [
+    {
+      "text": "demo/main.go",
+      "query": "main",
+      "match": true,
+      "score": 41.76,
+      "at": [
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    {
+      "text": "demo/main.go",
+      "query": "mg",
+      "match": true,
+      "score": 16.56,
+      "at": [
+        5,
+        10
+      ]
+    },
+    {
+      "text": "demo/main.go",
+      "query": "MAIN",
+      "match": true,
+      "score": 41.76,
+      "at": [
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    {
+      "text": "demo/main.go",
+      "query": "demo main",
+      "match": true,
+      "score": 75.76,
+      "at": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    {
+      "text": "demo/main.go",
+      "query": "xyz",
+      "match": false
+    },
+    {
+      "text": "demo/main.go",
+      "query": "maing",
+      "match": true,
+      "score": 50.46,
+      "at": [
+        5,
+        6,
+        7,
+        8,
+        10
+      ]
+    },
+    {
+      "text": "demo/main.go",
+      "query": "goo",
+      "match": false
+    },
+    {
+      "text": "demo/main.go",
+      "query": "",
+      "match": true,
+      "score": 0
+    },
+    {
+      "text": "demo/main.go",
+      "query": "   ",
+      "match": true,
+      "score": 0
+    },
+    {
+      "text": "demo/internal/token/refresh.go",
+      "query": "tokref",
+      "match": true,
+      "score": 46.5,
+      "at": [
+        14,
+        15,
+        16,
+        20,
+        21,
+        22
+      ]
+    },
+    {
+      "text": "demo/internal/token/refresh.go",
+      "query": "refresh",
+      "match": true,
+      "score": 110.4,
+      "at": [
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26
+      ]
+    },
+    {
+      "text": "demo/internal/token/refresh_test.go",
+      "query": "refresh",
+      "match": true,
+      "score": 110.3,
+      "at": [
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26
+      ]
+    },
+    {
+      "text": "demo/internal/token/refresh_test.go",
+      "query": "rt",
+      "match": true,
+      "score": 15.2,
+      "at": [
+        20,
+        28
+      ]
+    },
+    {
+      "text": "api/src/TokenCache.tsx",
+      "query": "tc",
+      "match": true,
+      "score": 16.36,
+      "at": [
+        8,
+        13
+      ]
+    },
+    {
+      "text": "api/src/TokenCache.tsx",
+      "query": "tokencache",
+      "match": true,
+      "score": 221.56,
+      "at": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ]
+    },
+    {
+      "text": "api/src/TokenCache.tsx",
+      "query": "cache tsx",
+      "match": true,
+      "score": 87.56,
+      "at": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "text": "records/proposals/token-cache.md",
+      "query": "token cache",
+      "match": true,
+      "score": 121.36,
+      "at": [
+        18,
+        19,
+        20,
+        21,
+        22,
+        24,
+        25,
+        26,
+        27,
+        28
+      ]
+    },
+    {
+      "text": "records/proposals/token-cache.md",
+      "query": "tcm",
+      "match": true,
+      "score": 23.36,
+      "at": [
+        18,
+        24,
+        30
+      ]
+    },
+    {
+      "text": "web/src/pages/Page.tsx",
+      "query": "page",
+      "match": true,
+      "score": 41.56,
+      "at": [
+        14,
+        15,
+        16,
+        17
+      ]
+    },
+    {
+      "text": "web/src/pages/Pages.tsx",
+      "query": "page",
+      "match": true,
+      "score": 41.54,
+      "at": [
+        14,
+        15,
+        16,
+        17
+      ]
+    },
+    {
+      "text": "a/very/deep/path/with/a/letter/b/far/from/everything/c.txt",
+      "query": "abc",
+      "match": true,
+      "score": 17.04,
+      "at": [
+        0,
+        31,
+        53
+      ]
+    },
+    {
+      "text": "aXXXXXXXXXXXXbXXXXXXXXXXXXc",
+      "query": "abc",
+      "match": true,
+      "score": 9.66,
+      "at": [
+        0,
+        13,
+        26
+      ]
+    },
+    {
+      "text": "README.md",
+      "query": "readme",
+      "match": true,
+      "score": 83.82,
+      "at": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "text": "README.md",
+      "query": "md",
+      "match": true,
+      "score": 15.82,
+      "at": [
+        7,
+        8
+      ]
+    },
+    {
+      "text": "internal/web/server.go",
+      "query": "iws",
+      "match": true,
+      "score": 19.26,
+      "at": [
+        0,
+        9,
+        13
+      ]
+    },
+    {
+      "text": "internal/web/server.go",
+      "query": "server.go",
+      "match": true,
+      "score": 182.56,
+      "at": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "text": "internal/web/server_test.go",
+      "query": "server.go",
+      "match": true,
+      "score": 108.96,
+      "at": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        24,
+        25,
+        26
+      ]
+    },
+    {
+      "text": "Refresh the token before it expires",
+      "query": "token ref",
+      "match": true,
+      "score": 87.3,
+      "at": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "text": "Refresh the token before it expires",
+      "query": "expire",
+      "match": true,
+      "score": 83.3,
+      "at": [
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ]
+    },
+    {
+      "text": "demo/token-cache:internal/cache.go",
+      "query": "cache",
+      "match": true,
+      "score": 60.32,
+      "at": [
+        26,
+        27,
+        28,
+        29,
+        30
+      ]
+    },
+    {
+      "text": "demo/token-cache:internal/cache.go",
+      "query": "tc:cache",
+      "match": true,
+      "score": 70.22,
+      "at": [
+        5,
+        11,
+        16,
+        26,
+        27,
+        28,
+        29,
+        30
+      ]
+    },
+    {
+      "text": "xxaxxxxxxxxxxbxxxxxxxxxxxxc/",
+      "query": "abc",
+      "match": true,
+      "score": -2.36,
+      "at": [
+        2,
+        13,
+        26
+      ]
+    }
+  ],
+  "orders": [
+    {
+      "query": "main",
+      "texts": [
+        "demo/main.go",
+        "demo/main_test.go",
+        "demo/cmd/main/run.go",
+        "demo/domain/mapping.go"
+      ]
+    },
+    {
+      "query": "refresh",
+      "texts": [
+        "demo/internal/token/refresh.go",
+        "demo/internal/token/refresh_test.go",
+        "demo/internal/report/fresh.go"
+      ]
+    },
+    {
+      "query": "page",
+      "texts": [
+        "web/src/pages/Page.tsx",
+        "web/src/pages/Pages.tsx",
+        "web/src/app/landing/Entry.tsx"
+      ]
+    },
+    {
+      "query": "srv",
+      "texts": [
+        "internal/web/server.go",
+        "internal/services/review.go"
+      ]
+    }
+  ]
+}

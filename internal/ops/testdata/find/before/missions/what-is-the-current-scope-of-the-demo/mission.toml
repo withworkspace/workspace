@@ -1,0 +1,62 @@
+title = "Demo repo current scope"
+created = 2026-11-09T14:52:08Z
+request = "what is the current scope of the demo repo? make a record"
+dispatches = 0
+
+[[capsules]]
+  repo = "records"
+  name = "demo-scope-note"
+  branch = "demo-scope-note"
+
+[[crew]]
+  id = "c1"
+  harness = "claude"
+  conversation = "7d60c1ae-5edb-435a-aca5-ef3499ac8867"
+  started = 2026-11-09T14:52:08Z
+  ended = 2026-11-09T14:53:46Z
+  exit = "briefed"
+  pid = 26011
+  capsule = "workspace"
+  role = "briefing"
+  activity = "permission"
+  activity_at = 2026-11-09T14:53:09Z
+  notice = "Claude needs your permission"
+  conversing = true
+
+[[crew]]
+  id = "c2"
+  harness = "claude"
+  conversation = "156eacaf-36e0-44f2-9c21-67130f792450"
+  started = 2026-11-09T14:54:03Z
+  ended = 2026-11-09T16:53:42Z
+  exit = "exit 129"
+  stopped = true
+  pid = 7152
+  capsule = "records/demo-scope-note"
+  activity = "waiting"
+  activity_at = 2026-11-09T14:55:05Z
+  last_reply = "The scope note is written, committed and recorded as a mission artifact. The mission is marked done.\n\n**Commit discrepancy:** the brief says to describe main at `a86d200`, but that hash isn't a commit in the demo repo. It resolves only through a parent repo, where it's titled \"ws test config\". Demo's `main` is at `f4dc899` (\"Add greetings in more languages\"), the same as `origin/main`. I described `f4dc899` and said so in the note. If the brief's hash should be corrected, let me know.\n\n**What's on main:**\n- `main.go`: `greeting()` returns `\"hello\"`, and `main()` prints it. This is the only wired-up code.\n- `main_test.go`: one test, `TestGreeting`, which checks `greeting()`.\n- `greetings.go`: a table of 42 language tags to greetings, plus `languages()`, `normalizeTag()` and `greetingFor()`. Nothing on main calls any of these, so they are defined but unused.\n\nI checked this in a scratch export of `f4dc899`, without touching the demo repo: `go vet` is clean, `go test` passes, and `go run .` prints `hello`.\n\n**Where things are:**\n- Note: `records/demo-scope-note:notes/demo-scope.md`, committed as `4784102`.\n- Handoff: `/home/you/ws-test/.ws/missions/what-is-the-current-scope-of-the-demo/files/handoffs/c2.md`\n\nI left out the `greet-by-name` and `hello-world-python` branches, as the brief asked. Nothing is open for you to answer."
+  notice = "Claude is waiting for your input"
+  handed_off = 2026-11-09T14:55:02Z
+  orchestrated = "2026-11-09T14:54:03Z|done@2026-11-09T14:55:02Z:Wrote notes/demo-scope.md: demo main at f4dc899 (brief's a86d200 is not a demo commit)"
+
+[[artifacts]]
+  ref = "records/demo-scope-note:notes/demo-scope.md"
+  kind = "note"
+  label = "Current scope of demo on main (f4dc899)"
+  crew = "c2"
+  added = 2026-11-09T14:54:53Z
+
+[[artifacts]]
+  ref = "mission:handoffs/c2.md"
+  kind = "handoff"
+  label = "Wrote notes/demo-scope.md: demo main at f4dc899 (brief's a86d200 is not a demo commit)"
+  crew = "c2"
+  added = 2026-11-09T14:55:02Z
+
+[[stages]]
+  text = ""
+  n = 1
+  of = 1
+  crew = ["c2"]
+  started = 2026-11-09T14:54:03Z

@@ -1,0 +1,817 @@
+package cli
+
+import (
+	"cmp"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"runtime"
+	"slices"
+	"sort"
+	"strings"
+	"text/tabwriter"
+
+	"charm.land/huh/v2"
+	"github.com/spf13/cobra"
+	"github.com/withworkspace/workspace/internal/config"
+	"github.com/withworkspace/workspace/internal/daemon"
+	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/plugin"
+	"github.com/withworkspace/workspace/internal/ui"
+	"golang.org/x/term"
+)
+
+// ws plugin, and the commands plugins add: a plugin is a program that adds
+// a view to the web UI, commands to ws and a guide for agents, held as one
+// process by the workspace's daemon.
+
+// pluginsGroup is the heading plugins' commands are listed under in ws
+// --help.
+const pluginsGroup = "plugins"
+
+// pluginHost is the workspace's plugins in this process, when it's the
+// daemon: nil in a command, which reaches them through the daemon.
+var pluginHost *plugin.Host
+
+// newPluginHost is the daemon's host for the workspace's plugins.
+func newPluginHost(s *daemon.Server, version string) *plugin.Host {
+	return &plugin.Host{Root: s.Root, Version: version, Log: s.Log, Hold: s.Hold, Reserved: reservedWord}
+}
+
+// reservedWord says whether a word after ws is one of ws's own commands,
+// which a plugin can't take.
+func reservedWord(word string) bool {
+	if word == "help" || word == "completion" {
+		return true
+	}
+	for _, c := range newBuiltinRootCmd("").Commands() {
+		if c.Name() == word || c.HasAlias(word) {
+			return true
+		}
+	}
+	return false
+}
+
+// connectPlugins is a connection to the workspace's plugins in its daemon,
+// which is started if it isn't running.
+func connectPlugins(root string) (*plugin.Client, error) {
+	c, err := daemon.Connect(root)
+	if err != nil {
+		return nil, err
+	}
+	c.Close()
+	pc, err := plugin.Dial(root)
+	if err != nil {
+		return nil, fmt.Errorf("%w (a daemon from before plugins? run `ws daemon stop` and try again)", err)
+	}
+	return pc, nil
+}
+
+// pluginStatuses are the workspace's plugins: as the daemon has them if
+// it's running, else as they were left.
+func pluginStatuses(root string) []plugin.Status {
+	if c, err := plugin.Dial(root); err == nil {
+		defer c.Close()
+		if out, err := c.Statuses(context.Background()); err == nil {
+			return out
+		}
+	}
+	return (&plugin.Host{Root: root}).Statuses()
+}
+
+// addPluginCommands adds each installed plugin's commands to root, where
+// it's run in a workspace: ws jira … is passed to the plugin as it's
+// typed.
+func addPluginCommands(root *cobra.Command) {
+	wsRoot, err := config.Discover(userDirOr())
+	if err != nil {
+		return
+	}
+	added := false
+	for _, name := range plugin.Installed(wsRoot) {
+		reg, ok := plugin.ReadRegistration(wsRoot, name)
+		word := reg.CommandName(name)
+		if !ok || word == "" {
+			continue
+		}
+		if c, _, err := root.Find([]string{word}); err == nil && c != root {
+			continue // ws's own, or a plugin before it: said when it started
+		}
+		if !added {
+			root.AddGroup(&cobra.Group{ID: pluginsGroup, Title: "Plugins' Commands:"})
+			added = true
+		}
+		short := reg.Commands.Short
+		if short == "" {
+			short = "The " + name + " plugin's commands"
+		}
+		root.AddCommand(&cobra.Command{
+			Use:                word,
+			Short:              short,
+			GroupID:            pluginsGroup,
+			DisableFlagParsing: true, // every word is the plugin's, --help included
+			SilenceUsage:       true,
+			SilenceErrors:      true,
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return runPluginCommand(wsRoot, name, args)
+			},
+		})
+	}
+}
+
+// runPluginCommand runs a plugin's command in the daemon, with its output
+// here as it comes and its exit code this command's.
+func runPluginCommand(root, name string, args []string) error {
+	c, err := connectPlugins(root)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "ws:", err)
+		return &ExitCodeError{Code: 1}
+	}
+	defer c.Close()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	t := plugin.Terminal{TTY: term.IsTerminal(int(os.Stdout.Fd()))}
+	if t.TTY {
+		t.Width, _, _ = term.GetSize(int(os.Stdout.Fd()))
+		t.Color = os.Getenv("NO_COLOR") == ""
+	}
+	exit, err := c.Run(ctx, name, args, userDirOr(), t, func(stream, data string) {
+		if stream == "stderr" {
+			io.WriteString(os.Stderr, data) //nolint:errcheck // nowhere to say so
+			return
+		}
+		io.WriteString(os.Stdout, data) //nolint:errcheck // nowhere to say so
+	})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "ws:", err)
+		return &ExitCodeError{Code: 1}
+	}
+	if exit != 0 {
+		return &ExitCodeError{Code: exit}
+	}
+	return nil
+}
+
+func newPluginCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "plugin",
+		Short: "Plugins: programs that add views, commands and a guide for agents to the workspace",
+		Long: `A plugin is a program that adds to the workspace without being part of ws:
+a view in the web UI, commands after ws, a guide for agents. The workspace's
+daemon runs each as one process, started when it's first needed.
+
+A plugin is a folder with a plugin.toml (its name, version, and the command
+that starts it) and an executable. What it adds, it says itself when it
+starts.`,
+	}
+	cmd.AddCommand(newPluginAddCmd(), newPluginListCmd(), newPluginRemoveCmd(), newPluginConfigCmd(), newPluginRestartCmd(), newPluginLogsCmd())
+	cmd.AddCommand(newPluginCheckCmd(), newPluginUpdateCmd())
+	return cmd
+}
+
+// added is ws plugin add -f json: how adding a plugin went, for a program
+// that adds one (plugin-dev, on every save). It's printed however it
+// went.
+type added struct {
+	Name    string `json:"name"`
+	Version string `json:"version,omitempty"`
+	// Folder is the plugin's own, and Executable what its command starts
+	// there ("" for a program found on PATH).
+	Folder     string `json:"folder"`
+	Executable string `json:"executable,omitempty"`
+	// Built says whether it was built here, and BuildOutput what building
+	// it printed. Error is why it didn't build, or didn't start.
+	Built       bool   `json:"built"`
+	BuildOutput string `json:"build_output,omitempty"`
+	Error       string `json:"error,omitempty"`
+	// State and Missing are where it stands once it's started.
+	State   plugin.State `json:"state,omitempty"`
+	Missing []string     `json:"missing,omitempty"`
+	// From is the repo it was fetched from, and Release which release of
+	// it ("" for its source, built here).
+	From    string `json:"from,omitempty"`
+	Release string `json:"release,omitempty"`
+}
+
+func newPluginAddCmd() *cobra.Command {
+	var link, build bool
+	var format string
+	cmd := &cobra.Command{
+		Use:   "add <owner/repo | folder>",
+		Short: "Install a plugin, from where it's published or from a folder, and start it",
+		Long: `Installs a plugin into this workspace (.ws/plugins/<name>), starts it to
+hear what it adds, and asks for the config it requires.
+
+owner/repo is a plugin published on GitHub: this machine's build of its
+latest release is downloaded and checked against the release's checksums
+(owner/repo@v1.2.0 for a release that isn't the latest). A repo with no
+release, or none built for this machine, is installed from its source,
+which is built here. ws plugin update fetches a newer release later.
+With gh logged in, a private repo is read as you.
+
+A folder is a plugin on this machine.
+
+A plugin that hasn't been built is built first, as its plugin.toml says
+(build). --build builds it whether it has been or not.
+
+With --link the workspace runs the plugin from the folder itself, for one
+you're writing. Adding a plugin that's already here replaces it, keeping
+its config and data, so ws plugin add --link --build is "build this and
+run what I built": what the plugin-dev plugin does on every save.
+
+-f json prints how it went, for a program: whether it built, what the
+build printed, and where the plugin stands.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			if format != "" && format != "text" && format != "json" {
+				return fmt.Errorf("unknown format %q (want text or json)", format)
+			}
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			root := ctx.WS().Root
+			// What it's doing is said where what it prints isn't read as JSON.
+			say := func(line string) { fmt.Fprintln(ui.Stdout, line) }
+			if format == "json" {
+				say = func(line string) { fmt.Fprintln(os.Stderr, line) }
+			}
+			src := args[0]
+			if !filepath.IsAbs(src) {
+				src = filepath.Join(userDirOr(), src)
+			}
+			var res added
+			var st plugin.Status
+			if _, statErr := os.Stat(src); statErr != nil {
+				repo, tag, ok := plugin.ParseRepo(args[0])
+				switch {
+				case !ok:
+					return fmt.Errorf("%s isn't a folder here, or a plugin's repo (owner/repo)", args[0])
+				case link:
+					return errors.New("--link runs a plugin from a folder on this machine: give the folder")
+				}
+				res, st, err = installPlugin(root, repo, tag, build, say)
+			} else {
+				res, st, err = addPlugin(root, src, link, build)
+				if err == nil {
+					// From a folder now, wherever it was from before.
+					plugin.WriteSource(root, res.Name, plugin.Source{}) //nolint:errcheck // it only says where from
+				}
+			}
+			if format == "json" {
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				enc.Encode(res) //nolint:errcheck // nowhere to say so
+				if err != nil {
+					return &ExitCodeError{Code: 1}
+				}
+				return nil
+			}
+			if err != nil {
+				io.WriteString(ui.Stdout, res.BuildOutput) //nolint:errcheck // nowhere to say so
+				return err
+			}
+			fmt.Fprintf(ui.Stdout, "Added %s %s\n", res.Name, res.Version)
+			describePlugin(ui.Stdout, st)
+			if len(st.Missing) > 0 {
+				if !ui.IsInteractive() {
+					fmt.Fprintf(ui.Stdout, "\nIt needs setting up: ws plugin config %s %s\n", res.Name, strings.Join(placeholders(st), " "))
+					return nil
+				}
+				fmt.Fprintln(ui.Stdout)
+				if err := askPluginConfig(root, st, false); err != nil {
+					return err
+				}
+				if c, err := plugin.Dial(root); err == nil {
+					defer c.Close()
+					return c.ConfigChanged(context.Background(), res.Name)
+				}
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&link, "link", false, "run the plugin from the folder itself, for one being written")
+	cmd.Flags().BoolVar(&build, "build", false, "build it first, whether or not it's been built")
+	cmd.Flags().StringVarP(&format, "format", "f", "", "output format: text or json")
+	return cmd
+}
+
+// installPlugin fetches the plugin published at repo (its release tagged
+// tag, or with "" its latest), installs it into the workspace at root and
+// starts it, and records where it's from.
+func installPlugin(root, repo, tag string, build bool, say func(string)) (added, plugin.Status, error) {
+	tmp, err := os.MkdirTemp("", "ws-plugin-")
+	if err != nil {
+		return added{}, plugin.Status{}, err
+	}
+	defer os.RemoveAll(tmp)
+	from, err := plugin.Fetch(github.Releases{}, repo, tag, runtime.GOOS, runtime.GOARCH, tmp, say)
+	if err != nil {
+		return added{From: repo, Error: err.Error()}, plugin.Status{}, err
+	}
+	res, st, err := addPlugin(root, tmp, false, build)
+	res.From, res.Release, res.Folder, res.Executable = from.Repo, from.Tag, "", ""
+	if err != nil {
+		return res, st, err
+	}
+	if err := plugin.WriteSource(root, res.Name, from); err != nil {
+		return res, st, err
+	}
+	return res, st, nil
+}
+
+// addPlugin builds the plugin in src if it needs it (or build says to),
+// installs it into the workspace at root, and starts it. What it returns
+// says how far it got, whatever the error.
+func addPlugin(root, src string, link, build bool) (added, plugin.Status, error) {
+	res := added{Folder: src}
+	m, err := plugin.ReadManifest(src)
+	if err != nil {
+		res.Error = err.Error()
+		return res, plugin.Status{}, err
+	}
+	res.Name, res.Version, res.Executable = m.Name, m.Version, m.Executable(src)
+
+	var out strings.Builder
+	if build {
+		err = plugin.Build(src, &out)
+		res.Built = err == nil && len(m.Build) > 0
+	} else {
+		_, missing := os.Stat(res.Executable)
+		err = plugin.BuildIfMissing(src, &out)
+		res.Built = err == nil && res.Executable != "" && missing != nil
+	}
+	res.BuildOutput = out.String()
+	if err != nil {
+		res.Error = err.Error()
+		return res, plugin.Status{}, err
+	}
+	if _, err := plugin.Add(root, src, link); err != nil {
+		res.Error = err.Error()
+		return res, plugin.Status{}, err
+	}
+	c, err := connectPlugins(root)
+	if err != nil {
+		res.Error = err.Error()
+		return res, plugin.Status{}, err
+	}
+	defer c.Close()
+	st, err := c.Refresh(context.Background(), m.Name)
+	if err != nil {
+		res.State, res.Error = plugin.Failed, err.Error()
+		return res, st, fmt.Errorf("%s is installed, but didn't start: %w", m.Name, err)
+	}
+	res.State, res.Missing = st.State, st.Missing
+	return res, st, nil
+}
+
+// describePlugin says what a plugin adds.
+func describePlugin(w io.Writer, st plugin.Status) {
+	r := st.Registration
+	for _, v := range r.Views {
+		fmt.Fprintf(w, "  view      %s, in the web UI's sidebar\n", v.Title)
+	}
+	if word := r.CommandName(st.Name); word != "" {
+		fmt.Fprintf(w, "  commands  ws %s\n", word)
+	}
+	if r.Agent != nil && r.Agent.Guide != "" {
+		fmt.Fprintf(w, "  guide     for agents\n")
+	}
+}
+
+// placeholders are a plugin's missing keys as ws plugin config takes
+// them.
+func placeholders(st plugin.Status) []string {
+	out := make([]string, len(st.Missing))
+	for i, k := range st.Missing {
+		out[i] = k + "=…"
+	}
+	return out
+}
+
+func newPluginListCmd() *cobra.Command {
+	var format string
+	cmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "The workspace's plugins, and where each stands",
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			root := ctx.WS().Root
+			statuses := pluginStatuses(root)
+			if format == "json" {
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode(statuses)
+			}
+			if format != "" && format != "text" {
+				return fmt.Errorf("unknown format %q (want text or json)", format)
+			}
+			// The team's, not here: ws.toml's [plugins].
+			var wanted []string
+			for name := range ctx.Config().Plugins {
+				if !containsStatus(statuses, name) {
+					wanted = append(wanted, name)
+				}
+			}
+			sort.Strings(wanted)
+			if len(statuses) == 0 && len(wanted) == 0 {
+				fmt.Fprintln(ui.Stdout, "No plugins. ws plugin add <folder> installs one.")
+				return nil
+			}
+			tw := tabwriter.NewWriter(ui.Stdout, 0, 0, 2, ' ', 0)
+			for _, st := range statuses {
+				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", st.Name, st.Version, st.State, pluginNote(st))
+			}
+			for _, name := range wanted {
+				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", name, ctx.Config().Plugins[name].Version, "missing", "in ws.toml's [plugins], not installed here: "+ctx.Config().Plugins[name].Source)
+			}
+			return tw.Flush()
+		},
+	}
+	cmd.Flags().StringVarP(&format, "format", "f", "", "output format: text or json")
+	return cmd
+}
+
+func containsStatus(statuses []plugin.Status, name string) bool {
+	for _, st := range statuses {
+		if st.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// pluginNote is what's worth saying of a plugin beside where it stands.
+func pluginNote(st plugin.Status) string {
+	var notes []string
+	if len(st.Missing) > 0 {
+		notes = append(notes, "needs "+strings.Join(st.Missing, ", "))
+	}
+	if st.Error != "" {
+		notes = append(notes, st.Error)
+	}
+	for name, s := range st.Syncs {
+		if s.Error != "" {
+			notes = append(notes, "sync "+name+" failed: "+s.Error)
+		}
+	}
+	if st.Linked != "" {
+		notes = append(notes, "linked to "+st.Linked)
+	}
+	if st.Source != nil {
+		from := "from " + st.Source.Repo
+		switch {
+		case st.Source.File != "":
+			from += " " + st.Source.Tag
+		case st.Source.Tag != "":
+			from += " " + st.Source.Tag + ", built here"
+		default:
+			from += ", built here"
+		}
+		notes = append(notes, from)
+	}
+	return strings.Join(notes, "; ")
+}
+
+func newPluginRemoveCmd() *cobra.Command {
+	var data bool
+	cmd := &cobra.Command{
+		Use:     "remove <name>",
+		Aliases: []string{"rm"},
+		Short:   "Remove a plugin from the workspace",
+		Long: `Stops a plugin and removes it. What it kept for itself (its data folder)
+and its secrets stay unless --data is given, so adding it again picks up
+where it was. Its config in ws.toml and ws.local.toml is yours to remove.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			root := ctx.WS().Root
+			if c, err := plugin.Dial(root); err == nil {
+				c.Stop(context.Background(), args[0]) //nolint:errcheck // not running is as good
+				c.Close()
+			}
+			if err := plugin.Remove(root, args[0], data); err != nil {
+				return err
+			}
+			fmt.Fprintf(ui.Stdout, "Removed %s\n", args[0])
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&data, "data", false, "remove what the plugin kept for itself, and its secrets, too")
+	return cmd
+}
+
+func newPluginUpdateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "update [name ...]",
+		Short: "Fetch the latest release of the plugins that were installed from a repo",
+		Long: `For each plugin installed from where it's published (ws plugin add
+owner/repo), or those named: fetches its latest release if it's newer than
+what's here, and starts it afresh. Its config and data stay. One built
+from its source is fetched and built again, as there's no saying whether
+it's changed.
+
+A plugin added from a folder isn't updated: it's the folder's.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			root := ctx.WS().Root
+			statuses := pluginStatuses(root)
+			for _, name := range args {
+				st, err := pluginStatus(root, name)
+				switch {
+				case err != nil:
+					return err
+				case st.Source == nil:
+					return fmt.Errorf("%s was added from a folder, not from a repo: there's nowhere to update it from", name)
+				}
+			}
+			say := func(line string) { fmt.Fprintln(ui.Stdout, "  "+line) }
+			updated, failed := 0, 0
+			for _, st := range statuses {
+				if st.Source == nil || (len(args) > 0 && !slices.Contains(args, st.Name)) {
+					continue
+				}
+				src := *st.Source
+				latest, _, ok, err := github.Releases{}.Release(src.Repo, "")
+				if err != nil {
+					fmt.Fprintf(ui.Stdout, "%s: %v\n", st.Name, err)
+					failed++
+					continue
+				}
+				if ok && src.File != "" && latest == src.Tag {
+					fmt.Fprintf(ui.Stdout, "%s %s is the latest\n", st.Name, src.Tag)
+					continue
+				}
+				fmt.Fprintf(ui.Stdout, "%s: updating from %s\n", st.Name, src.Repo)
+				res, _, err := installPlugin(root, src.Repo, "", false, say)
+				if err != nil {
+					io.WriteString(ui.Stdout, res.BuildOutput) //nolint:errcheck // nowhere to say so
+					fmt.Fprintf(ui.Stdout, "  %v\n", err)
+					failed++
+					continue
+				}
+				was, now := cmp.Or(src.Tag, "its source"), cmp.Or(res.Release, "its source, built here")
+				fmt.Fprintf(ui.Stdout, "  %s: %s → %s\n", st.Name, was, now)
+				updated++
+			}
+			if updated == 0 && failed == 0 && len(args) == 0 {
+				fmt.Fprintln(ui.Stdout, "Nothing to update: no plugin here was installed from a repo, or all are the latest.")
+			}
+			if failed > 0 {
+				return &ExitCodeError{Code: 1}
+			}
+			return nil
+		},
+	}
+}
+
+func newPluginRestartCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "restart <name>",
+		Short: "Start a plugin afresh: after building it again, or to hear what it adds now",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			c, err := connectPlugins(ctx.WS().Root)
+			if err != nil {
+				return err
+			}
+			defer c.Close()
+			st, err := c.Refresh(context.Background(), args[0])
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(ui.Stdout, "%s %s is %s\n", st.Name, st.Version, st.State)
+			return nil
+		},
+	}
+}
+
+func newPluginLogsCmd() *cobra.Command {
+	var lines int
+	cmd := &cobra.Command{
+		Use:   "logs <name>",
+		Short: "The end of a plugin's log",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			data, err := os.ReadFile(plugin.LogPath(ctx.WS().Root, args[0]))
+			if err != nil {
+				if os.IsNotExist(err) {
+					return fmt.Errorf("%s has logged nothing (is it installed? ws plugin list)", args[0])
+				}
+				return err
+			}
+			all := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
+			if len(all) > lines {
+				all = all[len(all)-lines:]
+			}
+			fmt.Fprintln(os.Stdout, strings.Join(all, "\n"))
+			return nil
+		},
+	}
+	cmd.Flags().IntVarP(&lines, "lines", "n", 100, "how many lines from the end")
+	return cmd
+}
+
+func newPluginConfigCmd() *cobra.Command {
+	var ask bool
+	var unset []string
+	cmd := &cobra.Command{
+		Use:   "config <name> [key=value ...]",
+		Short: "A plugin's config: see it, or set it",
+		Long: `With nothing after the plugin's name, shows what it can be told and what's
+set. key=value sets a key, and --unset removes one. --ask asks for each in
+turn, which keeps a secret out of your shell's history.
+
+What you set is yours: it goes in ws.local.toml ([plugin.<name>]), over the
+team's in ws.toml. A secret goes in neither, but in a file only you can
+read beside the plugin's data.`,
+		Args: cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			root, name := ctx.WS().Root, args[0]
+			st, err := pluginStatus(root, name)
+			if err != nil {
+				return err
+			}
+			keys := map[string]plugin.ConfigKey{}
+			for _, k := range st.Registration.Config {
+				keys[k.Key] = k
+			}
+			changed := false
+			for _, pair := range args[1:] {
+				key, value, ok := strings.Cut(pair, "=")
+				k, known := keys[key]
+				switch {
+				case !ok:
+					return fmt.Errorf("%q isn't key=value", pair)
+				case !known:
+					return fmt.Errorf("%s has no key %q (it has: %s)", name, key, strings.Join(keyNames(st), ", "))
+				}
+				v, err := plugin.ParseValue(k, value)
+				if err != nil {
+					return err
+				}
+				if err := plugin.SetValue(root, name, k, v); err != nil {
+					return err
+				}
+				changed = true
+			}
+			for _, key := range unset {
+				k, known := keys[key]
+				if !known {
+					return fmt.Errorf("%s has no key %q", name, key)
+				}
+				if err := plugin.SetValue(root, name, k, nil); err != nil {
+					return err
+				}
+				changed = true
+			}
+			if ask {
+				if err := askPluginConfig(root, st, true); err != nil {
+					return err
+				}
+				changed = true
+			}
+			if changed {
+				if c, err := plugin.Dial(root); err == nil {
+					c.ConfigChanged(context.Background(), name) //nolint:errcheck // it reads its config when it next starts
+					c.Close()
+				}
+				return nil
+			}
+			return showPluginConfig(root, st)
+		},
+	}
+	cmd.Flags().BoolVar(&ask, "ask", false, "ask for each key in turn")
+	cmd.Flags().StringArrayVar(&unset, "unset", nil, "a key to remove")
+	return cmd
+}
+
+// pluginStatus is one installed plugin, or an error that says there's no
+// such one.
+func pluginStatus(root, name string) (plugin.Status, error) {
+	for _, st := range pluginStatuses(root) {
+		if st.Name == name {
+			return st, nil
+		}
+	}
+	return plugin.Status{}, fmt.Errorf("there's no plugin called %s (ws plugin list)", name)
+}
+
+func keyNames(st plugin.Status) []string {
+	out := make([]string, len(st.Registration.Config))
+	for i, k := range st.Registration.Config {
+		out[i] = k.Key
+	}
+	return out
+}
+
+// showPluginConfig lists a plugin's keys, and what each is set to.
+func showPluginConfig(root string, st plugin.Status) error {
+	if len(st.Registration.Config) == 0 {
+		fmt.Fprintf(ui.Stdout, "%s has no config.\n", st.Name)
+		return nil
+	}
+	values, err := plugin.Values(root, st.Name)
+	if err != nil {
+		return err
+	}
+	tw := tabwriter.NewWriter(ui.Stdout, 0, 0, 2, ' ', 0)
+	for _, k := range st.Registration.Config {
+		shown := "(not set)"
+		switch v, ok := values[k.Key]; {
+		case ok && k.Secret():
+			shown = "(set)"
+		case ok:
+			shown = fmt.Sprint(v)
+		case k.Default != nil:
+			shown = fmt.Sprintf("%v (the default)", k.Default)
+		case k.Required:
+			shown = "(not set, and required)"
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\n", k.Key, shown, k.Title)
+	}
+	return tw.Flush()
+}
+
+// askPluginConfig asks for a plugin's keys in the terminal: every one, or
+// (all false) those it requires that aren't set.
+func askPluginConfig(root string, st plugin.Status, all bool) error {
+	if !ui.IsInteractive() {
+		return errors.New("asking needs a terminal: give key=value instead")
+	}
+	values, err := plugin.Values(root, st.Name)
+	if err != nil {
+		return err
+	}
+	for _, k := range st.Registration.Config {
+		_, set := values[k.Key]
+		if !all && (set || !k.Required || k.Default != nil) {
+			continue
+		}
+		answer := ""
+		if set && !k.Secret() {
+			answer = fmt.Sprint(values[k.Key])
+			if list, ok := values[k.Key].([]string); ok {
+				answer = strings.Join(list, ", ")
+			}
+		}
+		title := k.Title
+		if title == "" {
+			title = k.Key
+		}
+		input := huh.NewInput().Title(title).Description(k.Help).Placeholder(k.Example).Value(&answer)
+		if k.Secret() {
+			input = input.EchoMode(huh.EchoModePassword)
+		}
+		if err := input.Run(); err != nil {
+			return err
+		}
+		if strings.TrimSpace(answer) == "" {
+			continue // left as it was
+		}
+		v, err := plugin.ParseValue(k, answer)
+		if err != nil {
+			return err
+		}
+		if err := plugin.SetValue(root, st.Name, k, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}

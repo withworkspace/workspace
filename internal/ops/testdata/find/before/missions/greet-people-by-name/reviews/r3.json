@@ -1,0 +1,28 @@
+{
+  "id": "r3",
+  "capsule": "demo/greet-by-name",
+  "baseRef": "origin/main",
+  "base": "76c6ae70578e022cb74c8bb7f96f9b4a4bb535e0",
+  "head": "6f6b123e224b73c42dc9dc375e3885c2aa34a169",
+  "state": "submitted",
+  "verdict": "approve",
+  "created": "2026-11-10T13:32:18.53101Z",
+  "submitted": "2026-11-10T13:32:23.967133Z",
+  "comments": [
+    {
+      "id": "r3.c1",
+      "path": "main_test.go",
+      "side": "new",
+      "line": 9,
+      "endLine": 9,
+      "commit": "6f6b123e224b73c42dc9dc375e3885c2aa34a169",
+      "excerpt": [
+        "\t\t{\"\", \"\", \"Hello, stranger!\"},"
+      ],
+      "kind": "suggestion",
+      "body": "Nice",
+      "status": "open",
+      "thread": []
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "id": "r1",
+  "capsule": "demo/greet-by-name",
+  "baseRef": "origin/main",
+  "base": "f4dc899a817488427457c835ca5eed2d4d2eb15a",
+  "head": "76c6ae70578e022cb74c8bb7f96f9b4a4bb535e0",
+  "state": "submitted",
+  "verdict": "changes",
+  "created": "2026-11-09T11:42:21.852321Z",
+  "submitted": "2026-11-09T12:33:09.730689Z",
+  "comments": [
+    {
+      "id": "r1.c1",
+      "path": "greetings.go",
+      "side": "new",
+      "line": 17,
+      "endLine": 17,
+      "commit": "76c6ae70578e022cb74c8bb7f96f9b4a4bb535e0",
+      "excerpt": [
+        "\t\"de\": \"Guten Tag\","
+      ],
+      "kind": "blocking",
+      "body": "Make this more friendly",
+      "status": "open",
+      "thread": []
+    },
+    {
+      "id": "r1.c2",
+      "path": "main_test.go",
+      "side": "new",
+      "line": 9,
+      "endLine": 9,
+      "commit": "76c6ae70578e022cb74c8bb7f96f9b4a4bb535e0",
+      "excerpt": [
+        "\t\t{\"\", \"\", \"Hello, world!\"},"
+      ],
+      "kind": "suggestion",
+      "body": "Let's tweak this to Hello, stranger!",
+      "status": "resolved",
+      "thread": [
+        {
+          "by": "you",
+          "at": "2026-11-09T21:59:27.419223Z",
+          "body": "",
+          "status": "resolved"
+        }
+      ]
+    },
+    {
+      "id": "r1.c3",
+      "path": "greetings.go",
+      "side": "new",
+      "line": 82,
+      "endLine": 82,
+      "commit": "76c6ae70578e022cb74c8bb7f96f9b4a4bb535e0",
+      "excerpt": [
+        "func greetingFor(lang string) string {"
+      ],
+      "kind": "question",
+      "body": "Is this the formatting standard for go?",
+      "status": "resolved",
+      "thread": [
+        {
+          "by": "you",
+          "at": "2026-11-10T13:32:07.035535Z",
+          "body": "",
+          "status": "resolved"
+        }
+      ]
+    }
+  ]
+}

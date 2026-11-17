@@ -1,0 +1,200 @@
+[
+ {
+  "slug": "document-reader-contents-getting-around",
+  "title": "Document reader: contents, getting around, asking (#123)",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "process-and-plans-build-design-22",
+  "title": "Process and plans: build design 22",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "let-conversations-write-documents",
+  "title": "Let conversations write documents",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "remove-code-nothing-uses-91",
+  "title": "Remove code nothing uses (#91)",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "adopt-react-aria-components-in-the-web",
+  "title": "Adopt react-aria-components in the web UI, starting with selects",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "debug-orchestrator-nudges-while-agent",
+  "title": "Debug orchestrator nudges while agent waits on background work",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "tests-in-internal-conversation-internal",
+  "title": "Isolate tests from crew env",
+  "request": "Tests in internal/conversation, internal/mission and internal/review fail when crew run just test: they read WS_CREW and WS_MISSION from the environment ws gives crew, so log entries are attributed to the crew (c1|t1 … where the test wants |t1 …). TestThreads, TestDecisions, TestCrewLifecycle and TestRespond. They pass with env -u WS_CREW -u WS_MISSION. The tests (or just test) should clear those variables, so crew see a clean run.",
+  "same": "crew-env"
+ },
+ {
+  "slug": "ref-parse-stored-doc-folders",
+  "title": "Parse stored doc refs with folders",
+  "request": "ref.Parse misreads a document's stored ref when its path has a folder: records:adr/0001.md parses as repo records:adr, path 0001.md (it splits at the first slash before looking for the colon), so its Name() stays records:adr/0001.md instead of records/adr/0001.md. Callers that key the graph by it (internal/conversation/graph.go docKeys, internal/mission/records.go refKey, internal/ops/graph.go) then key a thread on a document in a folder differently from the same file named elsewhere. Only demo:README.md (no folder) is covered by internal/ref's cases. Found while adding heading anchors to ws: addresses in document-reader-contents-getting-around.",
+  "same": ""
+ },
+ {
+  "slug": "launch-crew-pick-harness-and-model",
+  "title": "Launch Crew: pick harness and model",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "markdown-bridge-test-timeout",
+  "title": "Steady the markdown bridge test",
+  "request": "Web UI test 'the markdown bridge, on every document > MANUAL.md: blocks come and go block by block' (web/src/editor/markdown.test.ts) takes ~4s alone against vitest's 5s default and timed out at 6-8s under machine load (load average ~16) during just test; it grows with MANUAL.md. Give it a longer timeout or sample fewer blocks, so just test isn't red by load.",
+  "same": ""
+ },
+ {
+  "slug": "gofmt-drift-on-main-gofmt-l-lists",
+  "title": "gofmt drift on main: gofmt -l lists internal/daemon/protocol.go, internal/daemon…",
+  "request": "gofmt drift on main: gofmt -l lists internal/daemon/protocol.go, internal/daemon/server_test.go, internal/doc/doc.go, internal/mission/words.go and internal/store/words_test.go at a03501d, so just check fails.",
+  "same": "gofmt"
+ },
+ {
+  "slug": "tests-that-fail-when-crew-run-them-go",
+  "title": "Tests that fail when crew run them: go test ./... inside a ws mission fails Test…",
+  "request": "Tests that fail when crew run them: go test ./... inside a ws mission fails TestDecisions, TestCrewLifecycle (internal/mission) and TestRespond (internal/review) because WS_MISSION and WS_CREW leak in (the log says created:c1). They pass with both unset. Seen on main at a03501d. Tests should clear them, as cli's TestMain does for other environment.",
+  "same": "crew-env"
+ },
+ {
+  "slug": "tests-that-read-ws-crew-ws-mission-from",
+  "title": "Tests that read WS_CREW/WS_MISSION from the environment fail when crew run just…",
+  "request": "Tests that read WS_CREW/WS_MISSION from the environment fail when crew run just test: internal/conversation, mission and review record the author as the crew's id (c1) instead of you. The tests (or just test) should clear ws's agent env, so crew can run the suite and trust a failure.",
+  "same": "crew-env"
+ },
+ {
+  "slug": "go-tests-in-internal-conversation",
+  "title": "Go tests in internal/conversation, internal/mission and internal/review fail whe…",
+  "request": "Go tests in internal/conversation, internal/mission and internal/review fail when run by crew: they read WS_CREW/WS_MISSION from the environment (c1 shows up in their logs where none is expected). Clearing those in the tests (t.Setenv) would make just test pass under ws too.",
+  "same": "crew-env"
+ },
+ {
+  "slug": "write-plan-artifacts-as-a-top-level",
+  "title": "Write plan: Artifacts as a top-level concept",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "a-conversation-s-calls-keep-no-output",
+  "title": "A conversation's calls keep no output for a command that failed: the briefing ag…",
+  "request": "A conversation's calls keep no output for a command that failed: the briefing agent's first ws mission plan --propose was refused with why (line 19: a quote not in the process), but its call in the conversation has error true and an empty result, so Talk can't show why ws refused it. The reason is only in the agent's session file. Keep a failed call's output (stderr) as its result.",
+  "same": ""
+ },
+ {
+  "slug": "hold-nudges-background-work",
+  "title": "Hold nudges while crew wait on background work",
+  "request": "Build the fix for the orchestrator nudging crew that wait on background work, as workspace-records:docs/orchestrator-nudges-crew-waiting-on-background-work.md recommends (decisions d1-d3 in debug-orchestrator-nudges-while-agent): each harness adapter reports the work its agent left running and whether the harness will wake the agent; OrchestratorTakes declines a quiet turn while there is such work, and ws holds the nudge until work nothing wakes the agent for has ended, with a backstop for work that never ends. Also keep a done that is reported while background work runs, so the task notification's prompt hook doesn't clear it.",
+  "same": ""
+ },
+ {
+  "slug": "say-what-z-means-where-people-read-it",
+  "title": "Say what Z means where people read it",
+  "request": "Say what Z means where people read it. Design 22's Z (what has to be true for the brief's purpose to be met: the plan's ## Z, or without a plan the brief's ## Acceptance) shows bare in the web UI: the End dialog's legend is just 'Z', its intro says 'each part of Z', the endings read 'At Z, its code merged or landed', the plan card says 'ws reads it strictly: Z, …', and refusals say 'Z isn't checked right' and 'part 1 of Z'. Ending a mission, I had to ask what Z is. Use a label that explains itself where people read it ('Done when', or 'Acceptance', what it's made from without a plan), and keep Z as the name in code, the design and the plan's syntax unless the brief decides otherwise. In the same message: the End dialog's refusal shows the CLI's --met syntax with a made-up repo ('1: go test passes in api/x', internal/mission/ending.go) and runs its list together in one paragraph; in the web UI it should point at the empty How boxes. Where: web/src/mission/Ending.tsx, the plan card in web/src/mission/Mission.tsx, internal/mission/ending.go, ws mission conclude's help in internal/cli/mission_signals.go, and wherever the CLI prints Z.",
+  "same": ""
+ },
+ {
+  "slug": "just-check-fails-on-main-gofmt-l-flags",
+  "title": "just check fails on main: gofmt -l flags internal/daemon/protocol.go, internal/d…",
+  "request": "just check fails on main: gofmt -l flags internal/daemon/protocol.go, internal/daemon/server_test.go, internal/doc/doc.go, internal/mission/words.go and internal/store/words_test.go. Run gofmt on them so just check is clean again.",
+  "same": "gofmt"
+ },
+ {
+  "slug": "go-tests-pick-up-the-crew-s-environment",
+  "title": "Go tests pick up the crew's environment: run in a crew's shell (WS_CREW=c1), jus…",
+  "request": "Go tests pick up the crew's environment: run in a crew's shell (WS_CREW=c1), just test fails TestThreads and TestDecisions, TestCrewLifecycle in internal/mission, and TestRespond in internal/review, because they log c1 as who acted. The tests should clear WS_CREW and WS_MISSION, or the code should take who acted from its caller, so crew can run just test as it is.",
+  "same": "crew-env"
+ },
+ {
+  "slug": "make-internal-mission-s-testdecisions",
+  "title": "Make internal/mission's TestDecisions and TestCrewLifecycle hermetic: they read…",
+  "request": "Make internal/mission's TestDecisions and TestCrewLifecycle hermetic: they read WS_CREW from the environment (mission/log.go stamps events with it), so they fail when just test runs inside crew, as it does for every crew that tests its work. Clear WS_CREW/WS_MISSION in those tests (t.Setenv), or for the package.",
+  "same": "crew-env"
+ },
+ {
+  "slug": "artifacts-versioned-html-prototypes-end",
+  "title": "Artifacts: versioned HTML prototypes, end to end",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "resumed-claude-code-cursor-and-pi-crew",
+  "title": "Resumed Claude Code, Cursor and pi crew lose their model: harness.Resume for the…",
+  "request": "Resumed Claude Code, Cursor and pi crew lose their model: harness.Resume for the CLI harnesses (claude --resume, cursor-agent --resume, pi --session) names no model, and harness.WithModel only adds one for ACP launches, so crew launched on [crew] model (or a pick from [crew] allowed, recorded as mission.Crew.Model) resume on the agent's own default. Pass the model on resume where each CLI accepts it (claude --resume <id> --model <m> does).",
+  "same": ""
+ },
+ {
+  "slug": "checkpoints-and-flags-that-do-what-they",
+  "title": "Checkpoints and flags that do what they say",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "answering-claude-code-s-folder-trust",
+  "title": "Answering Claude Code's folder-trust dialog in a crew's terminal (web UI) counts…",
+  "request": "Answering Claude Code's folder-trust dialog in a crew's terminal (web UI) counts as talking to the crew: crewPages.Key in workspace-private/internal/ops/crewpages.go marks it Conversing on any Enter. So the first crew in each repo, whose session opens on that dialog, has its opening turn treated as answering you, and the orchestrator never looks at its quiet turn. Seen on mission hold-nudges-background-work, in a throwaway workspace: 'not run for c1 (quiet): it isn't waiting on ws's message' right after trusting the folder.",
+  "same": ""
+ },
+ {
+  "slug": "fold-the-sidebar-to-its-rail-and-back",
+  "title": "Fold the sidebar to its rail, and back",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "mermaid-blocks-render-in-the-documents",
+  "title": "Mermaid blocks render in the documents editor, with a source toggle",
+  "request": "",
+  "same": ""
+ },
+ {
+  "slug": "customisable-ui-accent-colour",
+  "title": "Customisable UI accent colour",
+  "request": "Customisable UI accent colour",
+  "same": ""
+ },
+ {
+  "slug": "settled-cards-write-a-synthetic-user",
+  "title": "Settled cards write a synthetic user turn into the conversation",
+  "request": "Settled cards write a synthetic user turn into the conversation",
+  "same": ""
+ },
+ {
+  "slug": "daemon-idle-timeout-of-3-hours",
+  "title": "Three-hour default for the daemon's idle timeout",
+  "request": "Daemon idle timeout of 3 hours",
+  "same": ""
+ },
+ {
+  "slug": "internal-ops-testlinknames-refs-test-go",
+  "title": "internal/ops TestLinkNames (refs_test.go groundRepo) commits with the user's own…",
+  "request": "internal/ops TestLinkNames (refs_test.go groundRepo) commits with the user's own git signing config: with 1Password ssh signing it waited 60s and failed ('1Password: failed to fill whole buffer') during just test. Its git commands should pass -c commit.gpgsign=false, as reviewpasses_test.go's do, or the package should use testgit.NoSigning in a TestMain.",
+  "same": "signing"
+ },
+ {
+  "slug": "tests-in-internal-ops-sign-their-commits",
+  "title": "Tests in internal/ops sign their commits through the user's global git config (1…",
+  "request": "Tests in internal/ops sign their commits through the user's global git config (1Password), so just test fails whenever signing does: TestLinkNames failed a step check with '1Password: failed to fill whole buffer'. internal/ops has no TestMain calling testgit.NoSigning(), as internal/cli, internal/workspace and others do; groundRepo in internal/ops/refs_test.go commits without -c commit.gpgsign=false. Give internal/ops a TestMain with testgit.NoSigning().",
+  "same": "signing"
+ },
+ {
+  "slug": "ws-upgrade-and-a-new-just-build-leaves",
+  "title": "ws upgrade (and a new just build) leaves the running daemon on the old binary: n…",
+  "request": "ws upgrade (and a new just build) leaves the running daemon on the old binary: now that the daemon has no idle timeout (daemon-idle-timeout-of-3-hours), it no longer idles out and restarts from the new ws, so a daemon of the same protocol keeps the old code until ws daemon stop. ws upgrade could stop or restart it (or say to), or a command could notice a daemon older than itself.",
+  "same": ""
+ }
+]

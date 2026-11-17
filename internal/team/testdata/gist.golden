@@ -1,0 +1,54 @@
+You're writing two things about a change to Bundles API (the repo `api`), for the other engineers who work in this group of repos. They'll read them in a list of what's happened lately, to learn what the change is and whether it touches their own work. You can't read or run anything: everything you have is below.
+
+**First, the gist:** one sentence, of 30 words at most, saying what the change does.
+- Say the thing itself, as it now is: "Bundles say what they contain, with `type` and `contents` on the bundle resource." Not that a change was made: no "This PR", "This change", "Updates", "Adds support for".
+- Say more than the title does, from what the change shows. If you can only restate the title, restate it plainly.
+- No "I" or "we", nothing about who wrote it, no praise, and no guess at why.
+
+**Then, what's worth knowing, if anything is.** Most changes have nothing, and the right answer for them is `know: none`. Something is worth knowing only when an engineer who didn't write this change, working somewhere else in these repos, would be caught out, or would do their own work differently, for not knowing it. Ask of each: who, outside this change, now has to do something, stop doing something, or do it another way? If nobody, it isn't worth knowing. It's one of:
+- `contract`: something other code already calls or reads now has another shape or meaning: an API, a wire format, a schema, an exported function or type, a config key, a command's flags, renamed, retyped, or answering differently.
+- `action`: something people must do: run a migration, set a variable, regenerate something, upgrade a tool.
+- `convention`: how things are to be done here from now on: a pattern, a rule, a guide or template, a check in CI, a decision recorded, that others are expected to follow.
+- `removed`: something others may use was taken away or deprecated.
+- `behaviour`: something that was already there now behaves differently for its users or callers, in a way the gist doesn't say.
+What's only new is not worth knowing: a new flag, field, endpoint, option, screen or document that leaves what was there as it was. The gist already says it's there. Nor is a fix inside one function, a tidy-up, a dependency bumped, pinned or overridden, or anything only this change's own tests see (a test id, a fixture, a helper).
+Say what the change makes so, not what might follow from it. If you'd write "may", "might" or "could", you're guessing who's affected: leave it out.
+Each names the one changed file it most rests on, written exactly as it is under *Files*. What you can't point at a file for isn't worth knowing. Each is one sentence of 30 words at most, said to that engineer: what's different for them, and what to do about it if that isn't plain. Don't say the gist again, don't list what the change did, and say nothing of how well it was done. Where there's something, it's usually one thing: give the one that matters most first, and three at most.
+
+**Reply in exactly this form, with nothing before or after:**
+
+```
+gist: <the sentence>
+know: <kind> | <file> | <the sentence>
+```
+
+with one `know:` line for each thing worth knowing, or the one line `know: none`.
+
+---
+
+**The change:** a pull request that's open, and hasn't merged: Bundles say what they hold
+
+**Its description, as its author wrote it** (it may be out of date, or say more than the change does: the diff is what's so):
+
+> <!-- template -->
+> Adds `type` and `contents`.
+
+**Files:**
+- `api/bundles.tsp` (+4 −1)
+- `src/bundle/wire.py` (+10 −0)
+
+**Some of these files are how things are done here,** and a change to one may be a change to what people are expected to do (a `convention`), if it's more than a tidy-up:
+- API contracts: `api/bundles.tsp`
+
+**The diff:**
+
+````diff
+--- a/api/bundles.tsp
++++ b/api/bundles.tsp
+@@ -1 +1,4 @@
+-model Bundle {}
++model Bundle {
++  type: string;
++  contents: string[];
++}
+````

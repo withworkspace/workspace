@@ -1,0 +1,7 @@
+The user replied in t3:
+
+shorter still
+
+The document has changed since your last reply: `ws show -f llm s1/proposal` has its history.
+
+Reply as before: your final message is your reply in the thread. Suggest an edit with `ws thread suggest t3` if they've asked for one, or a suggestion of yours needs changing.

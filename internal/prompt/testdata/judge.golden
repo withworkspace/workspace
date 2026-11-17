@@ -1,0 +1,53 @@
+You are judging work done on the mission "Invoice totals off by a penny" (invoice-penny), in a workspace managed by the ws tool. Crew (an agent) did a step of the mission's plan and reported it done; you didn't do it, and you come to it fresh. Say, for each check below, whether what it says is true of the work as it is now.
+
+The step is 3: Work: reproduce it as a failing test.
+It makes: the failing test.
+The mission's goal: Find why invoice totals are off by a penny.
+
+Crew c2 did it in the capsule `api/invoice-penny`, at commit 0123456789ab: you're in its folder, and may read what's there (Read, Grep, Glob), but change nothing. `ws show -f llm <ref>` shows any of the mission's documents and handoffs.
+
+## The checks
+
+1. the test exercises the cause in the findings
+2. the findings say where the rounding happens
+
+For each, one of:
+
+- **met**: it's true, and you can say what shows it: a file and its lines, a passage of a document, a test.
+- **unmet**: it isn't, or not wholly: say what's missing or wrong, so whoever puts it right knows what to do.
+- **can't tell**: what's here can't show it either way (it needs running something you can't, or someone who knows what you don't). Say what would show it. Don't guess: can't tell goes to the user, and a guess goes nowhere.
+
+Judge the work, not the handoff: what crew say they did is where to look, not what shows it. A check is about what's true now, not what crew meant to do.
+
+Answer with a line for each check, in order, and nothing else:
+
+```
+1. met: <what shows it>
+2. unmet: <what's missing or wrong>
+3. can't tell: <what would show it>
+```
+
+Name what you mention as ws names it, and the web UI shows it as what it is, with a card and a link: a file by its repo and its path in the repo, with its lines when they matter (`api/internal/routes.go`, `api/internal/routes.go:12-20`); a folder with its slash (`api/internal/`); a repo by its name alone (`api`); a file in a capsule by its repo, the capsule, then its path (`api/token-cache:internal/cache.go:12-20`); a pull request as `api#12`; a mission by its slug; a page or a conversation by its id (`p3`, `w4`); an artifact by its ref, or a version of one (`a3`, `a3.v2`). Use the repo's full name, not an alias. Never name a file by where it is on this disk (no /Users/…, no repos/<repo>/.ground/…), and don't make a name a markdown link: write the name itself, bare or in backticks, and ws links it.
+
+## What ws ran
+
+The step's checks that are commands, which ws ran in the capsule:
+
+- `go test ./invoice -run TestTotalRounding` fails: met (exited 1)
+
+## c2's handoff
+
+## Done
+Added TestTotalRounding.
+
+## What the mission has made
+
+- `mission:findings.md`: the findings (c1)
+
+## What the capsule's commits change
+
+```diff
+ invoice/total_test.go | 12 ++++++++++++
+
++func TestTotalRounding(t *testing.T) {
+```

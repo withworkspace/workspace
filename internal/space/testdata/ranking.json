@@ -1,0 +1,20 @@
+{
+  "about": "Questions over corpus/ (eleven of ws's own designs, as they were at b82cd48), and the document each should find. A case is what a person or an agent would ask, and its answer is what someone who'd read the designs would say. within is how far down it may be; anchor, when said, is the section it should lead to (empty for the top). A case marked weak is one search is known to get wrong: logged, not failed. These hold the choices in designs/19-store.md's Words: sections as rows, titles and headings weighted, words stemmed, what's typed quoted.",
+  "cases": [
+    {"q": "what a decision is", "want": "02-decisions.md", "anchor": "what-a-decision-is", "within": 1},
+    {"q": "cold start tests", "want": "01-information-graph.md", "anchor": "cold-start-tests", "within": 1},
+    {"q": "inverted index", "want": "13-find.md", "within": 1},
+    {"q": "suggested edits", "want": "04-document-threads.md", "within": 2},
+    {"q": "discovery", "want": "05-discovery.md", "within": 1},
+    {"q": "the ref grammar", "want": "11-refs.md", "within": 1},
+    {"q": "cited by", "want": "17-documents.md", "within": 1},
+    {"q": "settings page", "want": "15-settings.md", "within": 1},
+    {"q": "agent view", "want": "07-agent-view.md", "within": 1},
+    {"q": "capsule files", "want": "06-capsule-files.md", "anchor": "", "within": 1},
+    {"q": "decisions", "want": "02-decisions.md", "anchor": "", "within": 1},
+    {"q": "changing your mind about a decision", "want": "02-decisions.md", "anchor": "changing-your-mind", "within": 1},
+    {"q": "spaces fold away in files", "want": "17-documents.md", "anchor": "files-gives-them-up", "within": 1},
+    {"q": "token-cache", "want": "01-information-graph.md", "within": 3},
+    {"q": "how does an agent find its way from a ref", "want": "01-information-graph.md", "within": 2, "weak": "A question in a sentence: matching words finds the documents about refs (11-refs.md first), not the one about finding your way from one. Said here so it's known, not failed: an agent asks in a few words."}
+  ]
+}

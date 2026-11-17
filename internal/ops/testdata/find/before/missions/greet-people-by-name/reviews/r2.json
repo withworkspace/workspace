@@ -1,0 +1,34 @@
+{
+  "id": "r2",
+  "capsule": "",
+  "baseRef": "",
+  "base": "",
+  "head": "",
+  "state": "submitted",
+  "verdict": "comment",
+  "created": "2026-11-09T19:19:15.717884Z",
+  "submitted": "2026-11-09T19:20:21.14306Z",
+  "comments": [
+    {
+      "id": "r2.c1",
+      "path": "handoffs/c1.md",
+      "side": "",
+      "line": 12,
+      "endLine": 12,
+      "commit": "",
+      "excerpt": [
+        "- No new dependencies."
+      ],
+      "kind": "question",
+      "body": "Sure?",
+      "status": "open",
+      "thread": [
+        {
+          "by": "c1",
+          "at": "2026-11-10T13:33:50.496281Z",
+          "body": "Yes, no new dependencies. go.mod and go.sum are unchanged from main (git diff main is empty for both; there is no go.sum, and go.mod has only the module and go lines, with no require block). All imports are standard library: fmt, os, sort, strings, testing. Nothing was changed, so nothing was committed for this comment."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+bin/
+*.out
+ws.local.toml
+.DS_Store
+.idea/
+
+# The web UI, built by `just build` from web/. Only .gitkeep is committed:
+# go:embed needs something in the folder when the UI hasn't been built.
+/internal/web/dist/*
+!/internal/web/dist/.gitkeep

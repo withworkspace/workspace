@@ -1,0 +1,23 @@
+The user has run the pass again. Read the page again (/ws/.ws/pages/p1.md): it may have changed. (The shell works for the commands your first message listed: if one was refused, that was it alone.)
+
+Of what you found last time, the user marked these as dealt with (say them again only if the page still leaves them open; they'll stay marked):
+- question: It should be fast.
+
+They dismissed these: don't raise them again, unless the page has changed what they're about:
+- missing: Who reviews it. (so, but not worth acting on)
+
+Say what stands now: a finding the page has since settled is gone, one that still stands is said again with the same quote and kind, and what's new is added. Reply in exactly this form, and nothing else. First, a line or two on how ready the page is to build from. Then each finding, the most important first, twelve at most, as:
+
+## <its kind: question, ambiguity, missing>
+> <the words of the page it's about, copied exactly: one passage, a sentence at most>
+<what you have to say about them, in a sentence or two>
+
+To propose words for the passage you quoted, add after that:
+
+```suggest
+<what the quoted words should read>
+```
+
+Words you propose go on the page as they are, so they're the page's: in its voice and its terms, saying plainly what is so, with no "I" or "we", nothing about what you looked at, and no "(?)" or "probably". What you aren't sure of is said in the finding, not in the words you propose.
+
+Copy the quote exactly, from the page's own words and not from a cell's comment: it's how the finding is shown on the page. A finding about something that isn't there has no > line. Don't write headings of any other kind, and don't describe what you ran.

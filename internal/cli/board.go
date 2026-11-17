@@ -1,0 +1,66 @@
+package cli
+
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+	"github.com/withworkspace/workspace/internal/config"
+	"github.com/withworkspace/workspace/internal/ide"
+	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/ui"
+)
+
+func newBoardCmd() *cobra.Command {
+	return newBoardToggleCmd("board", "Add a capsule to IDE workspace files", "Boarded",
+		func(ctx *ops.Workspace, repo, capsule string) error { return ctx.WS().Board(repo, capsule) })
+}
+
+func newUnboardCmd() *cobra.Command {
+	return newBoardToggleCmd("unboard", "Remove a capsule from IDE workspace files", "Unboarded",
+		func(ctx *ops.Workspace, repo, capsule string) error { return ctx.WS().Unboard(repo, capsule) })
+}
+
+func newBoardToggleCmd(use, short, verb string, op func(*ops.Workspace, string, string) error) *cobra.Command {
+	return &cobra.Command{
+		Use:   use + " <repo> <capsule>",
+		Short: short,
+		Args:  cobra.ExactArgs(2),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			switch len(args) {
+			case 0:
+				return completeRepoNames(cmd, args, toComplete)
+			case 1:
+				return completeWorktreeNames(0)(cmd, args, toComplete)
+			default:
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+
+			repo, err := resolveRepo(ctx, args[0])
+			if err != nil {
+				return err
+			}
+			capsule := args[1]
+
+			if err := op(ctx, repo, capsule); err != nil {
+				return err
+			}
+
+			if err := config.SaveBoarded(ctx.WS().Root, ctx.WS().Boarded); err != nil {
+				return fmt.Errorf("saving board state: %w", err)
+			}
+
+			if err := ide.Regenerate(ctx.WS().Root, ctx.WS().Boarded, ctx.WS().DisplayNames, ctx.WS().Org); err != nil {
+				fmt.Fprintf(ui.Stderr, "  %s workspace files: %v\n", ui.Orange.Render("⚠"), err)
+			}
+
+			fmt.Fprintf(ui.Stderr, "  %s %s %s %s\n", ui.Green.Render("✓"), verb, ctx.WS().FormatRepoName(repo), ui.TagDim.Render(capsule))
+			return nil
+		},
+	}
+}

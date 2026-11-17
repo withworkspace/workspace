@@ -1,0 +1,1 @@
+{ "name": "@acme/ui", "exports": { ".": { "types": "./src/index.ts", "default": "./dist/index.js" }, "./button": "./src/button.ts" } }

@@ -1,0 +1,1185 @@
+{
+ "finds": [
+  {
+   "about": "a file its repo has, with its lines",
+   "known": {
+    "repos": {
+     "demo": [
+      "main.go",
+      "main_test.go",
+      "internal/cache/cache.go",
+      "README.md",
+      "v1.2"
+     ],
+     "api": null
+    },
+    "missions": [
+     "fix-token-refresh",
+     "cache",
+     "ab"
+    ],
+    "pages": [
+     "p1",
+     "p3"
+    ],
+    "talks": [
+     "w4"
+    ],
+    "artifacts": [
+     "a1",
+     "a3"
+    ]
+   },
+   "cases": [
+    {
+     "text": "See demo/main.go for it.",
+     "found": [
+      [
+       "demo/main.go",
+       {
+        "kind": "file",
+        "repo": "demo",
+        "worktree": ".ground",
+        "path": "main.go"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "at demo/internal/cache/cache.go:12-20, and demo/main.go:5",
+     "found": [
+      [
+       "demo/internal/cache/cache.go:12-20",
+       {
+        "kind": "file",
+        "repo": "demo",
+        "worktree": ".ground",
+        "path": "internal/cache/cache.go",
+        "line": 12,
+        "endLine": 20
+       }
+      ],
+      [
+       "demo/main.go:5",
+       {
+        "kind": "file",
+        "repo": "demo",
+        "worktree": ".ground",
+        "path": "main.go",
+        "line": 5
+       }
+      ]
+     ]
+    },
+    {
+     "text": "It's in demo/README.md.",
+     "found": [
+      [
+       "demo/README.md",
+       {
+        "kind": "file",
+        "repo": "demo",
+        "worktree": ".ground",
+        "path": "README.md"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "demo/v1.2",
+     "found": [
+      [
+       "demo/v1.2",
+       {
+        "kind": "file",
+        "repo": "demo",
+        "worktree": ".ground",
+        "path": "v1.2"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "about": "what isn't there is words",
+   "known": {
+    "repos": {
+     "demo": [
+      "main.go",
+      "main_test.go",
+      "internal/cache/cache.go",
+      "README.md",
+      "v1.2"
+     ],
+     "api": null
+    },
+    "missions": [
+     "fix-token-refresh",
+     "cache",
+     "ab"
+    ],
+    "pages": [
+     "p1",
+     "p3"
+    ],
+    "talks": [
+     "w4"
+    ],
+    "artifacts": [
+     "a1",
+     "a3"
+    ]
+   },
+   "cases": [
+    {
+     "text": "demo/missing.go, and/or other/main.go, xdemo/main.go, github.com/demo/main.go",
+     "found": []
+    },
+    {
+     "text": "api/routes.go",
+     "found": []
+    }
+   ]
+  },
+  {
+   "about": "a file as it is on disk, in the ground or a capsule",
+   "known": {
+    "repos": {
+     "demo": [
+      "main.go",
+      "main_test.go",
+      "internal/cache/cache.go",
+      "README.md",
+      "v1.2"
+     ],
+     "api": null
+    },
+    "missions": [
+     "fix-token-refresh",
+     "cache",
+     "ab"
+    ],
+    "pages": [
+     "p1",
+     "p3"
+    ],
+    "talks": [
+     "w4"
+    ],
+    "artifacts": [
+     "a1",
+     "a3"
+    ]
+   },
+   "cases": [
+    {
+     "text": "repos/demo/.ground/main.go:3",
+     "found": [
+      [
+       "repos/demo/.ground/main.go:3",
+       {
+        "kind": "file",
+        "repo": "demo",
+        "worktree": ".ground",
+        "path": "main.go",
+        "line": 3
+       }
+      ]
+     ]
+    },
+    {
+     "text": "repos/api/token-cache/internal/cache.go",
+     "found": [
+      [
+       "repos/api/token-cache/internal/cache.go",
+       {
+        "kind": "file",
+        "repo": "api",
+        "worktree": "token-cache",
+        "path": "internal/cache.go"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "repos/api/token-cache",
+     "found": []
+    }
+   ]
+  },
+  {
+   "about": "a capsule's file, by its name",
+   "known": {
+    "repos": {
+     "demo": [
+      "main.go",
+      "main_test.go",
+      "internal/cache/cache.go",
+      "README.md",
+      "v1.2"
+     ],
+     "api": null
+    },
+    "missions": [
+     "fix-token-refresh",
+     "cache",
+     "ab"
+    ],
+    "pages": [
+     "p1",
+     "p3"
+    ],
+    "talks": [
+     "w4"
+    ],
+    "capsules": {
+     "api": [
+      "token-cache"
+     ]
+    },
+    "artifacts": [
+     "a1",
+     "a3"
+    ]
+   },
+   "cases": [
+    {
+     "text": "in api/token-cache:internal/cache.go:12-20, and api/token-cache:internal/cache.go.",
+     "found": [
+      [
+       "api/token-cache:internal/cache.go:12-20",
+       {
+        "kind": "file",
+        "repo": "api",
+        "worktree": "token-cache",
+        "path": "internal/cache.go",
+        "line": 12,
+        "endLine": 20
+       }
+      ],
+      [
+       "api/token-cache:internal/cache.go",
+       {
+        "kind": "file",
+        "repo": "api",
+        "worktree": "token-cache",
+        "path": "internal/cache.go"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "api/other:internal/cache.go, api/token-cache:internal, demo/main.go:12",
+     "found": [
+      [
+       "demo/main.go:12",
+       {
+        "kind": "file",
+        "repo": "demo",
+        "worktree": ".ground",
+        "path": "main.go",
+        "line": 12
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "about": "a repo's alias",
+   "known": {
+    "repos": {
+     "demo": [
+      "main.go",
+      "main_test.go",
+      "internal/cache/cache.go",
+      "README.md",
+      "v1.2"
+     ],
+     "api": null
+    },
+    "missions": [
+     "fix-token-refresh",
+     "cache",
+     "ab"
+    ],
+    "pages": [
+     "p1",
+     "p3"
+    ],
+    "talks": [
+     "w4"
+    ],
+    "aliases": {
+     "d": "demo",
+     "api": "demo"
+    },
+    "artifacts": [
+     "a1",
+     "a3"
+    ]
+   },
+   "cases": [
+    {
+     "text": "d/main.go:5 and d#3",
+     "found": [
+      [
+       "d/main.go:5",
+       {
+        "kind": "file",
+        "repo": "demo",
+        "worktree": ".ground",
+        "path": "main.go",
+        "line": 5
+       }
+      ],
+      [
+       "d#3",
+       {
+        "kind": "pr",
+        "repo": "demo",
+        "number": 3
+       }
+      ]
+     ]
+    },
+    {
+     "text": "api#7",
+     "found": [
+      [
+       "api#7",
+       {
+        "kind": "pr",
+        "repo": "api",
+        "number": 7
+       }
+      ]
+     ]
+    },
+    {
+     "text": "the d team",
+     "found": []
+    }
+   ]
+  },
+  {
+   "about": "a whole path on disk, under the workspace's folder only",
+   "known": {
+    "repos": {
+     "demo": [
+      "main.go",
+      "main_test.go",
+      "internal/cache/cache.go",
+      "README.md",
+      "v1.2"
+     ],
+     "api": null
+    },
+    "missions": [
+     "fix-token-refresh",
+     "cache",
+     "ab"
+    ],
+    "pages": [
+     "p1",
+     "p3"
+    ],
+    "talks": [
+     "w4"
+    ],
+    "root": "/Users/me/ws",
+    "artifacts": [
+     "a1",
+     "a3"
+    ]
+   },
+   "cases": [
+    {
+     "text": "(/Users/me/ws/repos/demo/.ground/internal/cache/cache.go:15)",
+     "found": [
+      [
+       "/Users/me/ws/repos/demo/.ground/internal/cache/cache.go:15",
+       {
+        "kind": "file",
+        "repo": "demo",
+        "worktree": ".ground",
+        "path": "internal/cache/cache.go",
+        "line": 15
+       }
+      ]
+     ]
+    },
+    {
+     "text": "/Users/me/ws/repos/api/token-cache/a.go.",
+     "found": [
+      [
+       "/Users/me/ws/repos/api/token-cache/a.go",
+       {
+        "kind": "file",
+        "repo": "api",
+        "worktree": "token-cache",
+        "path": "a.go"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "/Users/someone/else/repos/demo/.ground/main.go",
+     "found": []
+    }
+   ]
+  },
+  {
+   "about": "a folder, and a repo by its name",
+   "known": {
+    "repos": {
+     "demo": [
+      "main.go",
+      "main_test.go",
+      "internal/cache/cache.go",
+      "README.md",
+      "v1.2"
+     ],
+     "api": null
+    },
+    "missions": [
+     "fix-token-refresh",
+     "cache",
+     "ab"
+    ],
+    "pages": [
+     "p1",
+     "p3"
+    ],
+    "talks": [
+     "w4"
+    ],
+    "artifacts": [
+     "a1",
+     "a3"
+    ]
+   },
+   "cases": [
+    {
+     "text": "Under demo/internal/cache/ and demo/internal.",
+     "found": [
+      [
+       "demo/internal/cache/",
+       {
+        "kind": "dir",
+        "repo": "demo",
+        "worktree": ".ground",
+        "path": "internal/cache"
+       }
+      ],
+      [
+       "demo/internal",
+       {
+        "kind": "dir",
+        "repo": "demo",
+        "worktree": ".ground",
+        "path": "internal"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "**demo** and api are deployed; demo.go, demo-x and ademo aren't repos.",
+     "found": [
+      [
+       "demo",
+       {
+        "kind": "repo",
+        "repo": "demo"
+       }
+      ],
+      [
+       "api",
+       {
+        "kind": "repo",
+        "repo": "api"
+       }
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "about": "pull requests, missions, pages, conversations and artifacts",
+   "known": {
+    "repos": {
+     "demo": [
+      "main.go",
+      "main_test.go",
+      "internal/cache/cache.go",
+      "README.md",
+      "v1.2"
+     ],
+     "api": null
+    },
+    "missions": [
+     "fix-token-refresh",
+     "cache",
+     "ab"
+    ],
+    "pages": [
+     "p1",
+     "p3"
+    ],
+    "talks": [
+     "w4"
+    ],
+    "artifacts": [
+     "a1",
+     "a3"
+    ]
+   },
+   "cases": [
+    {
+     "text": "demo#12 fixes it; api#7.",
+     "found": [
+      [
+       "demo#12",
+       {
+        "kind": "pr",
+        "repo": "demo",
+        "number": 12
+       }
+      ],
+      [
+       "api#7",
+       {
+        "kind": "pr",
+        "repo": "api",
+        "number": 7
+       }
+      ]
+     ]
+    },
+    {
+     "text": "After fix-token-refresh lands (see p3 and w4).",
+     "found": [
+      [
+       "fix-token-refresh",
+       {
+        "kind": "mission",
+        "slug": "fix-token-refresh"
+       }
+      ],
+      [
+       "p3",
+       {
+        "kind": "page",
+        "id": "p3"
+       }
+      ],
+      [
+       "w4",
+       {
+        "kind": "talk",
+        "id": "w4"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "p2, w9, the cache-miss path, token-cache, ab, http://x/p3",
+     "found": []
+    },
+    {
+     "text": "the cache is cold",
+     "found": [
+      [
+       "cache",
+       {
+        "kind": "mission",
+        "slug": "cache"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "Compare a3.v2 with a1 (and a3).",
+     "found": [
+      [
+       "a3.v2",
+       {
+        "kind": "artifact",
+        "id": "a3",
+        "version": 2
+       }
+      ],
+      [
+       "a1",
+       {
+        "kind": "artifact",
+        "id": "a1"
+       }
+      ],
+      [
+       "a3",
+       {
+        "kind": "artifact",
+        "id": "a3"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "a2, a3x, sha a3f9, xa3, a3-b, a3/v2, a03, A3 paper",
+     "found": []
+    },
+    {
+     "text": "See a3.v9: its card says there's no v9.",
+     "found": [
+      [
+       "a3.v9",
+       {
+        "kind": "artifact",
+        "id": "a3",
+        "version": 9
+       }
+      ]
+     ]
+    }
+   ]
+  }
+ ],
+ "names": [
+  {
+   "ref": {
+    "kind": "file",
+    "repo": "demo",
+    "worktree": ".ground",
+    "path": "main.go",
+    "line": 12,
+    "endLine": 20
+   },
+   "name": "demo/main.go:12-20"
+  },
+  {
+   "ref": {
+    "kind": "file",
+    "repo": "demo",
+    "worktree": "token-cache",
+    "path": "a.go",
+    "line": 3
+   },
+   "name": "demo/token-cache:a.go:3"
+  },
+  {
+   "ref": {
+    "kind": "dir",
+    "repo": "demo",
+    "worktree": ".ground",
+    "path": "internal"
+   },
+   "name": "demo/internal/"
+  },
+  {
+   "ref": {
+    "kind": "repo",
+    "repo": "demo"
+   },
+   "name": "demo"
+  },
+  {
+   "ref": {
+    "kind": "pr",
+    "repo": "demo",
+    "number": 12
+   },
+   "name": "demo#12"
+  },
+  {
+   "ref": {
+    "kind": "mission",
+    "slug": "fix-token-refresh"
+   },
+   "name": "fix-token-refresh"
+  },
+  {
+   "ref": {
+    "kind": "page",
+    "id": "p3"
+   },
+   "name": "p3"
+  },
+  {
+   "ref": {
+    "kind": "talk",
+    "id": "w4"
+   },
+   "name": "w4"
+  },
+  {
+   "ref": {
+    "kind": "artifact",
+    "id": "a3"
+   },
+   "name": "a3"
+  },
+  {
+   "ref": {
+    "kind": "artifact",
+    "id": "a3",
+    "version": 2
+   },
+   "name": "a3.v2"
+  }
+ ],
+ "addresses": [
+  {
+   "ref": {
+    "kind": "file",
+    "repo": "demo",
+    "worktree": ".ground",
+    "path": "main.go",
+    "line": 12,
+    "endLine": 20,
+    "commit": "4f2a9c1"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/acme/demo/blob/4f2a9c1/main.go#L12-L20"
+  },
+  {
+   "ref": {
+    "kind": "file",
+    "repo": "demo",
+    "worktree": ".ground",
+    "path": "main.go"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/acme/demo/blob/main/main.go"
+  },
+  {
+   "ref": {
+    "kind": "dir",
+    "repo": "demo",
+    "worktree": ".ground",
+    "path": "internal"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/acme/demo/tree/main/internal"
+  },
+  {
+   "ref": {
+    "kind": "repo",
+    "repo": "demo"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/acme/demo"
+  },
+  {
+   "ref": {
+    "kind": "pr",
+    "repo": "demo",
+    "number": 12
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/acme/demo/pull/12"
+  },
+  {
+   "ref": {
+    "kind": "file",
+    "repo": "demo",
+    "worktree": "token-cache",
+    "path": "a.go",
+    "line": 3
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "ws:demo/token-cache:a.go:3"
+  },
+  {
+   "ref": {
+    "kind": "file",
+    "repo": "demo",
+    "worktree": "token-cache",
+    "path": "a.go"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main",
+    "branch": "feat/token-cache"
+   },
+   "address": "https://github.com/acme/demo/blob/feat/token-cache/a.go"
+  },
+  {
+   "ref": {
+    "kind": "mission",
+    "slug": "fix-token-refresh"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "ws:fix-token-refresh"
+  },
+  {
+   "ref": {
+    "kind": "page",
+    "id": "p3"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "ws:p3"
+  },
+  {
+   "ref": {
+    "kind": "artifact",
+    "id": "a3",
+    "version": 2
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "ws:a3.v2"
+  },
+  {
+   "ref": {
+    "kind": "file",
+    "repo": "demo",
+    "worktree": ".ground",
+    "path": "adr/0026.md",
+    "anchor": "decision"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/acme/demo/blob/main/adr/0026.md#decision"
+  },
+  {
+   "ref": {
+    "kind": "file",
+    "repo": "demo",
+    "worktree": "token-cache",
+    "path": "adr/0026.md",
+    "anchor": "decision"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "ws:demo/token-cache:adr/0026.md#decision"
+  }
+ ],
+ "read": {
+  "known": {
+   "repos": {
+    "demo": null
+   },
+   "missions": [],
+   "pages": [],
+   "talks": [],
+   "org": "acme",
+   "defaultBranch": "main",
+   "branches": {
+    "demo": {
+     "feat/token-cache": "token-cache"
+    }
+   }
+  },
+  "cases": [
+   {
+    "address": "https://github.com/acme/demo/blob/4f2a9c1/main.go#L12-L20",
+    "ref": {
+     "kind": "file",
+     "repo": "demo",
+     "worktree": ".ground",
+     "path": "main.go",
+     "line": 12,
+     "endLine": 20,
+     "commit": "4f2a9c1"
+    }
+   },
+   {
+    "address": "https://github.com/acme/demo/blob/main/internal/a%20b.go",
+    "ref": {
+     "kind": "file",
+     "repo": "demo",
+     "worktree": ".ground",
+     "path": "internal/a b.go"
+    }
+   },
+   {
+    "address": "https://github.com/acme/demo/blob/feat/token-cache/a.go#L3",
+    "ref": {
+     "kind": "file",
+     "repo": "demo",
+     "worktree": "token-cache",
+     "path": "a.go",
+     "line": 3
+    }
+   },
+   {
+    "address": "https://github.com/acme/demo/tree/main/internal",
+    "ref": {
+     "kind": "dir",
+     "repo": "demo",
+     "worktree": ".ground",
+     "path": "internal"
+    }
+   },
+   {
+    "address": "https://github.com/acme/demo/pull/12",
+    "ref": {
+     "kind": "pr",
+     "repo": "demo",
+     "number": 12
+    }
+   },
+   {
+    "address": "https://github.com/acme/demo",
+    "ref": {
+     "kind": "repo",
+     "repo": "demo"
+    }
+   },
+   {
+    "address": "ws:demo/token-cache:a.go:3",
+    "ref": {
+     "kind": "file",
+     "repo": "demo",
+     "worktree": "token-cache",
+     "path": "a.go",
+     "line": 3
+    }
+   },
+   {
+    "address": "ws:fix-token-refresh",
+    "ref": {
+     "kind": "mission",
+     "slug": "fix-token-refresh"
+    }
+   },
+   {
+    "address": "ws:w4",
+    "ref": {
+     "kind": "talk",
+     "id": "w4"
+    }
+   },
+   {
+    "address": "https://github.com/other/demo/pull/12",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/acme/nope/pull/12",
+    "ref": null
+   },
+   {
+    "address": "https://example.com/demo/main.go",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/acme/demo/blob/main/adr/0026.md#decision",
+    "ref": {
+     "kind": "file",
+     "repo": "demo",
+     "worktree": ".ground",
+     "path": "adr/0026.md",
+     "anchor": "decision"
+    }
+   },
+   {
+    "address": "ws:demo/adr/0026.md#decision",
+    "ref": {
+     "kind": "file",
+     "repo": "demo",
+     "worktree": ".ground",
+     "path": "adr/0026.md",
+     "anchor": "decision"
+    }
+   },
+   {
+    "address": "ws:demo/token-cache:adr/0026.md#decision",
+    "ref": {
+     "kind": "file",
+     "repo": "demo",
+     "worktree": "token-cache",
+     "path": "adr/0026.md",
+     "anchor": "decision"
+    }
+   },
+   {
+    "address": "ws:demo/docs/reader.md#contents-a-rail_beside-it",
+    "ref": {
+     "kind": "file",
+     "repo": "demo",
+     "worktree": ".ground",
+     "path": "docs/reader.md",
+     "anchor": "contents-a-rail_beside-it"
+    }
+   },
+   {
+    "address": "ws:demo#12",
+    "ref": {
+     "kind": "pr",
+     "repo": "demo",
+     "number": 12
+    }
+   },
+   {
+    "address": "ws:a3",
+    "ref": {
+     "kind": "artifact",
+     "id": "a3"
+    }
+   },
+   {
+    "address": "ws:a3.v2",
+    "ref": {
+     "kind": "artifact",
+     "id": "a3",
+     "version": 2
+    }
+   }
+  ]
+ },
+ "parse": [
+  {
+   "about": "a document's stored ref, at the top of its repo",
+   "name": "demo:README.md",
+   "ref": {
+    "kind": "file",
+    "repo": "demo",
+    "worktree": ".ground",
+    "path": "README.md"
+   },
+   "written": "demo/README.md"
+  },
+  {
+   "about": "a document's stored ref, in a folder",
+   "name": "records:adr/0001.md",
+   "ref": {
+    "kind": "file",
+    "repo": "records",
+    "worktree": ".ground",
+    "path": "adr/0001.md"
+   },
+   "written": "records/adr/0001.md"
+  },
+  {
+   "about": "a document's stored ref, in a nested folder",
+   "name": "records:adr/2026/0001.md",
+   "ref": {
+    "kind": "file",
+    "repo": "records",
+    "worktree": ".ground",
+    "path": "adr/2026/0001.md"
+   },
+   "written": "records/adr/2026/0001.md"
+  },
+  {
+   "about": "a document's stored ref, in a folder, with its lines",
+   "name": "records:adr/0001.md:12-20",
+   "ref": {
+    "kind": "file",
+    "repo": "records",
+    "worktree": ".ground",
+    "path": "adr/0001.md",
+    "line": 12,
+    "endLine": 20
+   },
+   "written": "records/adr/0001.md:12-20"
+  },
+  {
+   "about": "a document's stored ref, in a folder, at a line",
+   "name": "records:adr/0001.md:12",
+   "ref": {
+    "kind": "file",
+    "repo": "records",
+    "worktree": ".ground",
+    "path": "adr/0001.md",
+    "line": 12
+   },
+   "written": "records/adr/0001.md:12"
+  },
+  {
+   "about": "a folder, as a stored ref",
+   "name": "records:adr/",
+   "ref": {
+    "kind": "dir",
+    "repo": "records",
+    "worktree": ".ground",
+    "path": "adr"
+   },
+   "written": "records/adr/"
+  },
+  {
+   "about": "a capsule's file: its colon is after the first slash",
+   "name": "records/x:adr/1.md",
+   "ref": {
+    "kind": "file",
+    "repo": "records",
+    "worktree": "x",
+    "path": "adr/1.md"
+   },
+   "written": "records/x:adr/1.md"
+  },
+  {
+   "about": "a capsule's file, with its lines",
+   "name": "records/x:adr/1.md:3-4",
+   "ref": {
+    "kind": "file",
+    "repo": "records",
+    "worktree": "x",
+    "path": "adr/1.md",
+    "line": 3,
+    "endLine": 4
+   },
+   "written": "records/x:adr/1.md:3-4"
+  },
+  {
+   "about": "a file on the default branch, with its lines",
+   "name": "records/adr/0001.md:12",
+   "ref": {
+    "kind": "file",
+    "repo": "records",
+    "worktree": ".ground",
+    "path": "adr/0001.md",
+    "line": 12
+   },
+   "written": "records/adr/0001.md:12"
+  },
+  {
+   "about": "a stored ref with no path is nothing",
+   "name": "records:",
+   "ref": null
+  },
+  {
+   "about": "an address isn't a stored ref: its colon is followed by a slash, and it's written back as it was",
+   "name": "https://github.com/acme/demo",
+   "ref": {
+    "kind": "file",
+    "repo": "https:",
+    "worktree": ".ground",
+    "path": "/github.com/acme/demo"
+   },
+   "written": "https://github.com/acme/demo"
+  }
+ ]
+}

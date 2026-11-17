@@ -1,0 +1,71 @@
+package mission
+
+import (
+	"errors"
+	"strings"
+	"testing"
+)
+
+func TestDecisions(t *testing.T) {
+	s := owned(t)
+	m, _ := s.Create("Cache")
+	if all, err := s.Decisions(m.Slug); err != nil || len(all) != 0 {
+		t.Fatalf("none yet: %v, %v", all, err)
+	}
+	if _, err := s.Decide(m.Slug, Decision{By: "you"}); err == nil {
+		t.Error("a decision needs saying what")
+	}
+	d1, err := s.Decide(m.Slug, Decision{What: "Key the cache per user.", By: "c1", About: []string{"s1"}})
+	if err != nil || d1.ID != "d1" || d1.State != DecisionCurrent {
+		t.Fatalf("d1 = %+v, %v", d1, err)
+	}
+	d2, err := s.Decide(m.Slug, Decision{What: "Key the cache per tenant.", Why: "Tokens are issued per tenant.", By: "you", From: "t2", About: []string{"records/x:p.md"}, Supersedes: "d1"})
+	if err != nil || d2.ID != "d2" {
+		t.Fatalf("d2 = %+v, %v", d2, err)
+	}
+	if _, err := s.Decide(m.Slug, Decision{What: "x", By: "you", Supersedes: "d1"}); err == nil || !strings.Contains(err.Error(), "superseded already") {
+		t.Errorf("superseding a superseded one: %v", err)
+	}
+	if _, err := s.Decide(m.Slug, Decision{What: "x", By: "you", Supersedes: "d9"}); !errors.Is(err, ErrNotFound) {
+		t.Errorf("superseding nothing: %v", err)
+	}
+	d3, _ := s.Decide(m.Slug, Decision{What: "Ship on Friday.", By: "orchestrator"})
+	if err := s.Withdraw(m.Slug, "d3", "you", ""); err == nil {
+		t.Error("withdrawing needs a why")
+	}
+	if err := s.Withdraw(m.Slug, d3.ID, "you", "Nobody's around on Fridays."); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Withdraw(m.Slug, d3.ID, "you", "again"); err == nil {
+		t.Error("withdrawn twice")
+	}
+
+	all, _ := s.Decisions(m.Slug)
+	if len(all) != 3 || all[0].State != DecisionSuperseded || all[0].SupersededBy != "d2" || all[2].State != DecisionWithdrawn || all[2].WithdrawnWhy != "Nobody's around on Fridays." {
+		t.Fatalf("all = %+v", all)
+	}
+	cur := CurrentDecisions(all)
+	if len(cur) != 1 || cur[0].ID != "d2" {
+		t.Errorf("current = %+v", cur)
+	}
+	if got := cur[0].Line(); got != "d2 (you, from t2): Key the cache per tenant. Why: Tokens are issued per tenant." {
+		t.Errorf("line = %q", got)
+	}
+	if !cur[0].IsAbout("t2") || !cur[0].IsAbout("records/x:p.md") || cur[0].IsAbout("s1") {
+		t.Error("IsAbout")
+	}
+	if !strings.HasSuffix(all[0].Line(), "[superseded by d2]") {
+		t.Errorf("superseded line = %q", all[0].Line())
+	}
+
+	events, _ := s.ReadLog(m.Slug, 0)
+	var texts []string
+	for _, e := range events {
+		if e.Kind == EventDecision {
+			texts = append(texts, e.Crew+"|"+e.Text)
+		}
+	}
+	if got := strings.Join(texts, " ; "); got != "c1|d1: Key the cache per user. ; |d2: Key the cache per tenant. (instead of d1) ; orchestrator|d3: Ship on Friday. ; |d3 withdrawn: Nobody's around on Fridays." {
+		t.Errorf("log = %s", got)
+	}
+}

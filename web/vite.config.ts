@@ -1,0 +1,69 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import react from "@vitejs/plugin-react";
+import { defineConfig, type Plugin } from "vite";
+
+// `just web-dev <workspace>` runs this dev server against that workspace's
+// running web UI (ws web starts it): the API is proxied there, signed in
+// with the workspace's token, so the page here needs no sign-in.
+function devTarget(): { origin: string; token: string } | undefined {
+  const root = process.env.WS_ROOT;
+  if (!root) return undefined;
+  try {
+    const info = JSON.parse(readFileSync(join(root, ".ws", "web.json"), "utf8"));
+    if (info.port) return { origin: `http://127.0.0.1:${info.port}`, token: info.token };
+  } catch {
+    // no web UI running there yet
+  }
+  return undefined;
+}
+
+// KaTeX's styles name each of its fonts three times over (woff2, woff,
+// ttf). Every browser this runs in reads woff2, so only those are built
+// in: the binary carries the web UI.
+function katexFonts(): Plugin {
+  return {
+    name: "katex-woff2-only",
+    enforce: "pre",
+    transform(code, id) {
+      if (!/katex[^/]*\.css/.test(id)) return undefined;
+      return code.replace(/,\s*url\([^)]*\.(?:woff|ttf)\)\s*format\("[^"]*"\)/g, "");
+    },
+  };
+}
+
+// internal/web/dist is gitignored but for its .gitkeep, which go:embed
+// needs when the web UI hasn't been built. Building empties the folder, so
+// the file is put back.
+function keepDist(): Plugin {
+  return {
+    name: "keep-dist",
+    apply: "build",
+    writeBundle(options) {
+      if (options.dir) writeFileSync(join(options.dir, ".gitkeep"), "");
+    },
+  };
+}
+
+export default defineConfig(() => {
+  const target = devTarget();
+  return {
+    plugins: [react(), katexFonts(), keepDist()],
+    // Mermaid's diagram types and layouts are large chunks, loaded only by
+    // a diagram that needs them.
+    // Fonts are files, never written into the styles: the page's content
+    // policy lets it load only what the server serves.
+    build: { outDir: "../internal/web/dist", emptyOutDir: true, chunkSizeWarningLimit: 1600, assetsInlineLimit: (file: string) => (/\.woff2?$/.test(file) ? false : undefined) },
+    server: {
+      port: 5173,
+      strictPort: true,
+      proxy: target && {
+        "/api": {
+          target: target.origin,
+          changeOrigin: true,
+          headers: { origin: target.origin, authorization: `Bearer ${target.token}` },
+        },
+      },
+    },
+  };
+});

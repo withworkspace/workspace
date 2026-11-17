@@ -1,0 +1,390 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { type ArtifactDetail, frameURL, getArtifactCompare, getArtifactDetail, type Workspace } from "../api";
+import { useKeys } from "../keys";
+import { useLoaded } from "../load";
+import { useHighlighter } from "../review/highlight";
+import { type Cell, cellHTML, type FileState, fileRows, type Row } from "../review/model";
+import { highlight, RowView } from "../review/Review";
+import { Icon } from "../ui/Icon";
+import { Inline } from "../ui/inline";
+import { Empty, ErrorCard, Keys, Loading, useMedia, useTitle } from "../ui/kit";
+import { Option, Select } from "../ui/Select";
+import { artifactHref, VersionLine, VersionStrip } from "./Artifacts";
+import { compareHref, type Pair, readPair, samePair, settle, type Side, sideRef, stepSide, swapped, withSide } from "./pair";
+import { widths } from "./shown";
+
+// Comparing: two versions side by side, of one artifact
+// (/artifacts/a3/compare?v=1,3) or of two
+// (/artifacts/compare?a=a3.v2&b=a5.v1), each in its own sandboxed frame,
+// at the same width, with its own versions; Swap puts each where the
+// other was. Or their source diff, in the diff view reviews use, the left
+// the old side. A narrow window shows one at a time. The frames scroll
+// apart (the plan's lean on its open question 8).
+
+export const compareKeys: [string, string][] = [
+  ["[ / ]", "The right one's version before, or after (on a narrow window, the one shown)"],
+  ["{ / }", "The left one's version before, or after"],
+  ["S", "Swap them: each where the other was"],
+  ["d", "Their source diff, or the frames again"],
+  ["t", "On a narrow window, the other one"],
+  ["w", "The next width: fit, 1280, 768, 390"],
+  ["u", "The diff unified, or side by side"],
+  ["r", "Reload: run them again"],
+  ["x", "Stop them, or run them again"],
+  ["esc", "Back"],
+];
+
+// NARROW is a window with room for one frame, as a review's has room for
+// one side of its diff.
+const NARROW = "(max-width: 860px)";
+
+export function ComparePage({ workspace }: { workspace: Workspace }) {
+  const { id } = useParams();
+  const [search] = useSearchParams();
+  const navigate = useNavigate();
+  const asked = useMemo(() => readPair(id, search), [id, search]);
+  const ids = asked ? [...new Set(asked.map((s) => s.id))] : [];
+  // Read again when the workspace says either has changed: a new version,
+  // or where it stands.
+  const key = ids
+    .map((i) => {
+      const b = workspace.artifacts?.find((a) => a.id === i);
+      return b ? `${i}:${b.versions}:${b.status}:${b.latest?.at ?? ""}:${b.title}` : i;
+    })
+    .join("|");
+  const { value: details, error, reload } = useLoaded(() => Promise.all(ids.map((i) => getArtifactDetail(i))), [key], { keep: true });
+  const detail = (i: string) => details?.find((d) => d.id === i);
+  const pair = asked && settle(asked, (i) => detail(i)?.all);
+  const same = !!pair && pair[0].id === pair[1].id;
+
+  const narrow = useMedia(NARROW);
+  const [width, setWidth] = useState(widths[0].key);
+  const [run, setRun] = useState(0); // reload: new frames
+  const [stopped, setStopped] = useState(false);
+  const [diff, setDiff] = useState(false);
+  const [splitChosen, setSplit] = useState(true);
+  const split = splitChosen && !narrow;
+  const [shown, setShown] = useState<0 | 1>(1); // on a narrow window: the right, at first
+  // Versions asked for run: changing either starts them again.
+  const at = pair ? `${sideRef(pair[0])}:${sideRef(pair[1])}` : "";
+  useEffect(() => setStopped(false), [at]);
+
+  const left = pair && detail(pair[0].id);
+  const right = pair && detail(pair[1].id);
+  const back = same && pair ? artifactHref(pair[1].id, pair[1].n || undefined) : "/artifacts";
+  const backLabel = same && right ? `Back to ${right.title}` : "Back to Artifacts";
+  useTitle(!pair ? "Compare" : same ? `${right?.title ?? pair[0].id} · v${pair[0].n} and v${pair[1].n}` : `${sideRef(pair[0])} and ${sideRef(pair[1])}`);
+
+  const go = (p: Pair) => pair && !samePair(p, pair) && navigate(compareHref(p), { replace: true });
+  const step = (i: 0 | 1, by: -1 | 1) => {
+    const d = pair && detail(pair[i].id);
+    if (pair && d) go(stepSide(pair, i, by, d.all));
+  };
+  const swap = () => pair && go(swapped(pair));
+  const again = () => {
+    setStopped(false);
+    setRun((x) => x + 1);
+  };
+  useKeys({
+    "[": () => step(narrow ? shown : 1, -1),
+    "]": () => step(narrow ? shown : 1, 1),
+    "{": () => step(0, -1),
+    "}": () => step(0, 1),
+    S: swap,
+    d: () => setDiff((x) => !x),
+    t: () => narrow && setShown((x) => (x ? 0 : 1)),
+    w: () => !diff && setWidth((w) => widths[(widths.findIndex((x) => x.key === w) + 1) % widths.length].key),
+    u: () => diff && !narrow && setSplit((x) => !x),
+    r: () => !diff && again(),
+    x: () => !diff && setStopped((s) => !s),
+    Escape: () => navigate(back),
+  });
+
+  if (!pair) {
+    return (
+      <div className="page narrow">
+        <Empty icon="search" title="Nothing to compare" action={<Link to="/artifacts">Artifacts</Link>}>
+          A comparison is of two versions: <code>/artifacts/a3/compare?v=1,3</code>, or of two artifacts, <code>/artifacts/compare?a=a3.v2&amp;b=a5.v1</code>.
+        </Empty>
+      </div>
+    );
+  }
+  if (error && (!left || !right)) {
+    return (
+      <div className="page narrow">
+        <ErrorCard error={error} retry={reload} title={`Couldn't compare ${sideRef(pair[0])} and ${sideRef(pair[1])}`} />
+        <p>
+          <Link to="/artifacts">Back to Artifacts</Link>
+        </p>
+      </div>
+    );
+  }
+  if (!left || !right) return <Loading what="Opening them…" />;
+
+  const px = widths.find((w) => w.key === width)?.px ?? 0;
+  const sides: (0 | 1)[] = narrow ? [shown] : [0, 1];
+  // What either side can be: the artifacts on the list, and any that's
+  // here already (a discarded one, asked for).
+  const choices = (workspace.artifacts ?? []).filter((a) => a.status !== "discarded" || pair.some((s) => s.id === a.id));
+  const pick = (i: 0 | 1, to: string) => {
+    if (to === pair[i].id) return;
+    go(withSide(pair, i, { id: to, n: workspace.artifacts?.find((a) => a.id === to)?.latest?.n ?? 0 }));
+  };
+
+  return (
+    <div className="artifact-view compare-view">
+      <header className="artifact-head">
+        <div className="artifact-title-line">
+          <Link to={back} className="ghost icon-button small" aria-label={backLabel} title={backLabel}>
+            <Icon name="arrow-left" size={14} />
+          </Link>
+          <h1>{same ? right.title : `${left.title} and ${right.title}`}</h1>
+          <span className="chip tone-quiet">
+            <Icon name="split" size={11} />
+            {same ? `v${pair[0].n} and v${pair[1].n}` : "Two artifacts"}
+          </span>
+        </div>
+        <div className="artifact-tools">
+          <div className="segmented" role="group" aria-label="What's compared">
+            <button aria-pressed={!diff} onClick={() => setDiff(false)} title="Each running in its frame (d)">
+              <Icon name="monitor" size={13} /> Frames
+            </button>
+            <button aria-pressed={diff} onClick={() => setDiff(true)} title="Their HTML, the left's against the right's (d)">
+              <Icon name="code" size={13} /> Source diff
+            </button>
+          </div>
+          {diff ? (
+            !narrow && (
+              <div className="segmented" role="group" aria-label="The diff">
+                <button aria-pressed={!split} onClick={() => setSplit(false)} title="Unified (u)">
+                  <Icon name="unified" size={13} /> Unified
+                </button>
+                <button aria-pressed={split} onClick={() => setSplit(true)} title="Side by side (u)">
+                  <Icon name="split" size={13} /> Split
+                </button>
+              </div>
+            )
+          ) : (
+            <div className="segmented" role="group" aria-label="Width">
+              {widths.map((w) => (
+                <button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={`${w.title}, both`}>
+                  {w.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {narrow && (
+            <div className="segmented compare-which" role="group" aria-label="Which one's shown">
+              {([0, 1] as const).map((i) => (
+                <button key={i} aria-pressed={shown === i} onClick={() => setShown(i)} title={`${i ? "The right" : "The left"} one (t)`}>
+                  {sideRef(pair[i])}
+                </button>
+              ))}
+            </div>
+          )}
+          <span className="artifact-tools-end">
+            <button className="ghost small" onClick={swap} title="Each where the other was: the diff the other way about">
+              <Icon name="swap" size={13} /> Swap <Keys k="S" />
+            </button>
+            {!diff && (
+              <>
+                <button className="ghost small" onClick={again} title="Run them again">
+                  <Icon name="rotate" size={13} /> Reload <Keys k="r" />
+                </button>
+                <button className="ghost small" onClick={() => setStopped((s) => !s)} title={stopped ? "Run them again" : "Unload them: a script that loops stops"}>
+                  <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
+                </button>
+              </>
+            )}
+          </span>
+        </div>
+      </header>
+      <div className={`compare-body${sides.length === 1 ? " one" : ""}`}>
+        {sides.map((i) => (
+          <SideHead
+            key={`head${i}`}
+            i={i}
+            pair={pair}
+            d={i ? right : left}
+            workspace={workspace}
+            choices={choices}
+            onPick={(to) => pick(i, to)}
+            go={go}
+            keys={narrow || i ? ["[", "]"] : ["{", "}"]}
+          />
+        ))}
+        {diff ? (
+          <div className="compare-diff">
+            <SourceDiff pair={pair} split={split} />
+          </div>
+        ) : (
+          sides.map((i) => (
+            <div key={`frame${i}`} className="artifact-stage compare-stage">
+              <SideFrame side={pair[i]} d={i ? right : left} px={px} run={run} stopped={stopped} onRun={() => setStopped(false)} />
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// SideHead is one side's head: which artifact (any of the list), its
+// versions, the version's line and note, and Open alone.
+function SideHead({
+  i,
+  pair,
+  d,
+  workspace,
+  choices,
+  onPick,
+  go,
+  keys,
+}: {
+  i: 0 | 1;
+  pair: Pair;
+  d: ArtifactDetail;
+  workspace: Workspace;
+  choices: Workspace["artifacts"];
+  onPick: (id: string) => void;
+  go: (p: Pair) => void;
+  keys: [string, string]; // that step its versions
+}) {
+  const side = pair[i];
+  const v = d.all.find((x) => x.n === side.n);
+  const runnable = !d.gone && !!v?.size;
+  return (
+    <div className={`compare-side-head side-${i ? "right" : "left"}`}>
+      <div className="compare-side-tools">
+        <Select value={side.id} onChange={onPick} aria-label={i ? "The right one's artifact" : "The left one's artifact"}>
+          {(choices ?? []).map((a) => (
+            <Option key={a.id} value={a.id} title={a.title}>
+              {`${a.id} · ${a.title}`}
+            </Option>
+          ))}
+        </Select>
+        <VersionStrip d={d} n={side.n} go={(n) => go(withSide(pair, i, { id: side.id, n }))} keys={keys} />
+        {runnable && (
+          <a className="button-link ghost small compare-alone" href={frameURL(d.id, side.n)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed">
+            <Icon name="external" size={13} /> Open alone
+          </a>
+        )}
+      </div>
+      {v && <VersionLine d={d} v={v} workspace={workspace} />}
+      {v?.note && (
+        <div className="artifact-note compare-note">
+          <Inline text={v.note} lines={2} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// SideFrame is one side's version, running: in its frame, at the width
+// both are drawn at.
+function SideFrame({ side, d, px, run, stopped, onRun }: { side: Side; d: ArtifactDetail; px: number; run: number; stopped: boolean; onRun: () => void }) {
+  const v = d.all.find((x) => x.n === side.n);
+  if (!v) {
+    return (
+      <Empty icon="search" title={`${d.id} has no v${side.n}`}>
+        Its versions are {d.all.map((x) => `v${x.n}`).join(", ")}.
+      </Empty>
+    );
+  }
+  if (d.gone || !v.size) {
+    return (
+      <Empty icon="alert" title="There's no file to run">
+        {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}.` : `v${v.n}'s file isn't in ${d.where}.`}
+      </Empty>
+    );
+  }
+  if (stopped) {
+    return (
+      <Empty icon="stop" title="Stopped" action={<button onClick={onRun}>Run them</button>}>
+        The frames are unloaded, and their scripts with them.
+      </Empty>
+    );
+  }
+  return (
+    <div className={`artifact-frame-box${px ? " sized" : ""}`}>
+      <iframe
+        key={`${d.id}.v${v.n}#${run}`}
+        className="artifact-frame"
+        src={frameURL(d.id, v.n)}
+        sandbox="allow-scripts"
+        referrerPolicy="no-referrer"
+        title={`${d.title}, v${v.n}`}
+        style={px ? { width: px } : undefined}
+      />
+    </div>
+  );
+}
+
+const noop = () => undefined;
+
+// SourceDiff is the left's HTML against the right's, as a review shows a
+// file's diff: unified or side by side, coloured, with the unchanged lines
+// between the changes there to open.
+function SourceDiff({ pair, split }: { pair: Pair; split: boolean }) {
+  const a = sideRef(pair[0]);
+  const b = sideRef(pair[1]);
+  const { value, error, reload } = useLoaded(() => getArtifactCompare(a, b), [a, b]);
+  const [expanded, setExpanded] = useState<FileState["expanded"]>({});
+  useEffect(() => setExpanded({}), [a, b]);
+  const ready = useHighlighter();
+  const state: FileState = useMemo(() => ({ viewed: false, blob: value?.lines, expanded }), [value, expanded]);
+  const rows: Row[] = useMemo(() => (value ? fileRows(0, value.file, state, split) : []), [value, state, split]);
+  // ready is a dependency: once the highlighter loads, colour.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const hl = useMemo(() => value && highlight(value.file, value.lines), [value, ready]);
+
+  if (error) return <ErrorCard error={error} retry={reload} title={`Couldn't diff ${a} and ${b}`} />;
+  if (!value || !hl) return <Loading what="Diffing their sources…" />;
+  const f = value.file;
+  if (!f.hunks.length) {
+    return (
+      <Empty icon="check" title="The same">
+        {value.a} and {value.b} are the same, byte for byte.
+      </Empty>
+    );
+  }
+  // expand opens up to n more of a gap's lines on each side (all of it if
+  // n is 0), as a review does.
+  const expand = (gap: number, n: number) =>
+    setExpanded((x) => {
+      const e = x[gap] ?? { top: 0, bottom: 0 };
+      const first = gap === 0;
+      const last = gap === f.hunks.length;
+      return { ...x, [gap]: n === 0 ? { top: 1e9, bottom: 0 } : { top: first ? 0 : e.top + n, bottom: last ? 0 : e.bottom + n } };
+    });
+  const html = (c: Cell, side: "old" | "new") => cellHTML(hl, c, side);
+  return (
+    <div className="artifact-diff">
+      <div className="artifact-diff-head">
+        <span>
+          <span className="minus">−{f.deletions}</span> in {value.a}
+        </span>
+        <span>
+          <span className="plus">+{f.additions}</span> in {value.b}
+        </span>
+      </div>
+      <div className={`lines ${split ? "split" : "unified"} plain`}>
+        {rows.slice(1).map((r) => (
+          <RowView
+            key={r.key}
+            row={r}
+            split={split}
+            cursor={false}
+            selected={false}
+            html={html}
+            onRowClick={noop}
+            onGutterDown={noop}
+            onDragOver={noop}
+            onActivate={(r) => r.type === "gap" && expand(r.gap, r.count !== undefined && r.count <= 40 ? 0 : 20)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}

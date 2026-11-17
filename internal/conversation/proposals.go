@@ -1,0 +1,379 @@
+package conversation
+
+import (
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/withworkspace/workspace/internal/store"
+)
+
+// A conversation's agent changes nothing, but proposes: a decision, a mission (briefed, or an idea to brief later), a
+// document of one of the workspace's kinds or an edit to one, an artifact or a version of one, a replan by the mission's
+// planner, each shown as a button under its reply, for you to confirm or decline. Confirming does it through ws's verbs,
+// as you.
+
+// Proposal kinds.
+const (
+	ProposeDecision = "decision"
+	ProposeMission  = "mission"
+	ProposeBrief    = "brief"    // an edit to the mission's brief
+	ProposeDispatch = "dispatch" // crew to start on the mission
+	ProposeComment  = "comment"  // a review comment on a pull request's lines
+	ProposePlan     = "plan"     // an edit to the mission's plan
+	ProposeDocument = "document" // a document of one of the workspace's kinds, added where its kind says, or (To) an edit to one
+	ProposeArtifact = "artifact" // an artifact, or a version of one: an HTML file, run in a sandboxed frame
+	ProposeReplan   = "replan"   // the mission's planner asked to revise its plan, as ws mission replan asks it
+)
+
+// Proposal states.
+const (
+	ProposalOpen     = "open"
+	ProposalAccepted = "accepted"
+	ProposalDeclined = "declined"
+	// ProposalSuperseded: a later one of the agent's took its place (its
+	// Result is the later one's number): the same brief or plan drafted
+	// again, a mission or document of the same title proposed again.
+	ProposalSuperseded = "superseded"
+)
+
+// supersedes says whether proposal p, made after q, takes its place: the
+// brief drafted again (with its plan, the plan too), the plan again, a
+// mission or a document of the same title (and kind) proposed again, or
+// an edit to the same document drafted again.
+func (p Proposal) supersedes(q Proposal) bool {
+	same := func(a, b string) bool {
+		return strings.EqualFold(strings.TrimSpace(a), strings.TrimSpace(b)) && strings.TrimSpace(a) != ""
+	}
+	switch p.Kind {
+	case ProposeBrief:
+		return q.Kind == ProposeBrief || (p.Plan != "" && q.Kind == ProposePlan)
+	case ProposePlan:
+		return q.Kind == ProposePlan
+	case ProposeMission:
+		return q.Kind == ProposeMission && same(p.Title, q.Title)
+	case ProposeDocument:
+		if p.To != "" {
+			return q.Kind == ProposeDocument && q.To == p.To
+		}
+		return q.Kind == ProposeDocument && q.To == "" && p.DocKind == q.DocKind && same(p.Title, q.Title)
+	}
+	return false
+}
+
+// Proposal is something the agent proposed in a conversation.
+type Proposal struct {
+	N    int       `json:"n"`
+	Kind string    `json:"kind"`
+	By   string    `json:"by"`
+	At   time.Time `json:"at"`
+	// A decision: what, and why.
+	What string `json:"what,omitempty"`
+	Why  string `json:"why,omitempty"`
+	// A mission: its title, and its brief ("": an idea, to brief later),
+	// and the capsules (repo/branch) to lift for it. An edit to the brief:
+	// the brief as it should read (Brief), and as it read (Was).
+	Title    string   `json:"title,omitempty"`
+	Brief    string   `json:"brief,omitempty"`
+	Was      string   `json:"was,omitempty"`
+	Capsules []string `json:"capsules,omitempty"`
+	// Briefing a mission: existing work to build on (repo/branch or
+	// repo#PR, docked), and a better slug for it.
+	Docks []string `json:"docks,omitempty"`
+	Slug  string   `json:"slug,omitempty"`
+	// A dispatch: what the crew's to do, the capsule (repo/name) it works
+	// in ("" for one no crew is in), and what it should read first. A
+	// replan: what to change (Text), asked of the planner as you; accepted,
+	// its Result is the planner's conversation.
+	Text    string   `json:"text,omitempty"`
+	Capsule string   `json:"capsule,omitempty"`
+	Reads   []string `json:"reads,omitempty"`
+	// A review comment: the pull request (api#89), the lines it's on (Path,
+	// Line to EndLine, on Side: "new", or "old" for lines the PR removes),
+	// its kind, what it says (Text) and a suggested replacement for the
+	// lines. Accepting adds it to your draft review of the PR.
+	PR         string  `json:"pr,omitempty"`
+	Path       string  `json:"path,omitempty"`
+	Line       int     `json:"line,omitempty"`
+	EndLine    int     `json:"endLine,omitempty"`
+	Side       string  `json:"side,omitempty"`
+	NoteKind   string  `json:"noteKind,omitempty"`
+	Suggestion *string `json:"suggestion,omitempty"`
+	// Excerpt is the lines it's on, as they read when it was proposed.
+	Excerpt []string `json:"excerpt,omitempty"`
+	// An edit to the mission's plan: the plan as it should read (Plan), and
+	// as it read (Was). Briefing a mission, its brief comes with its plan
+	// (Plan, and PlanWas as the plan read), confirmed together.
+	Plan    string `json:"plan,omitempty"`
+	PlanWas string `json:"planWas,omitempty"`
+	// A revision of the plan the planner proposed because it's the user's
+	// to confirm (Why says what makes it theirs), and the planner's step it
+	// was written at (Step; 0 for none): accepting it passes that step.
+	Step int `json:"step,omitempty"`
+	// A document: the kind it's of (its name in ws.toml), its text (Text),
+	// the guide it was written to (the kind's, as ws.toml names it, which
+	// the agent was shown before it could propose), and, as worked out when
+	// it was proposed, its title (its first heading), where it would go
+	// (Path, repo:path) and the first line of the commit that adds it
+	// (Subject). Accepting works the last three out again, from the text as
+	// it's accepted.
+	//
+	// An edit to a document that's there (To, its ref, repo:path, as Path
+	// is too) is the whole of it as it should read (Text), with the whole
+	// of it as it read when it was proposed (Was), which accepting merges
+	// from, as a page's save does, if it's changed since: what changed
+	// meanwhile stands. Subject is then the commit's that changes it, and
+	// Title its first heading: it isn't moved, whatever that says.
+	DocKind string `json:"docKind,omitempty"`
+	Guide   string `json:"guide,omitempty"`
+	Subject string `json:"subject,omitempty"`
+	// An artifact: its HTML, one file with its CSS and JS inline, and its
+	// note (what it tries out, or what changed and why). A new one has its
+	// title (Title); a version of one names the artifact (To, a3), the
+	// version it's based on (On), and the artifact's latest version as it
+	// was proposed (Latest): one added since makes it out of date, though
+	// it's still added, based on On. As worked out when it was proposed:
+	// where it would go (Path), its size (Size), and what in it won't load
+	// in the frame (Warnings). Accepting adds it as you, from this
+	// conversation, and Result is the version it made (a3.v1).
+	HTML     string   `json:"html,omitempty"`
+	Note     string   `json:"note,omitempty"`
+	To       string   `json:"to,omitempty"`
+	On       int      `json:"on,omitempty"`
+	Latest   int      `json:"latest,omitempty"`
+	Size     int      `json:"size,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
+
+	State string `json:"state"`
+	// Result is what accepting it made: a mission's slug, a decision's
+	// ref in its mission (slug:d3), a document's ref (repo:path, or
+	// repo/capsule:path where it was left in a capsule), or an artifact's
+	// version (a3.v1); "" for a decision kept with a workspace
+	// conversation until it becomes a mission.
+	Result    string     `json:"result,omitempty"`
+	SettledBy string     `json:"settledBy,omitempty"`
+	SettledAt *time.Time `json:"settledAt,omitempty"`
+}
+
+// ProposalOrigin is the Origin of the turn ws writes for you settling
+// proposal n: "proposal:3".
+func ProposalOrigin(n int) string { return "proposal:" + strconv.Itoa(n) }
+
+// OriginProposal is the proposal a turn was written for settling (its
+// Origin's number), or 0 for a turn that wasn't.
+func (t Turn) OriginProposal() int {
+	n, ok := strings.CutPrefix(t.Origin, "proposal:")
+	if !ok {
+		return 0
+	}
+	i, _ := strconv.Atoi(n)
+	return i
+}
+
+// Wakes is whether settling a proposal of a kind, accepted or declined
+// (state), wakes the conversation's agent to answer at once. Declining
+// anything does: a decline is feedback, usually, for it to take in.
+// Accepting a brief or a plan does: what comes of it is the agent's to
+// say. Accepting anything else (a mission, a decision, a document, crew, a
+// replan, which the planner takes up, a review comment, an artifact) is
+// done with, and needs nothing of it: the turn written for it is quiet,
+// and read on the agent's next turn.
+func Wakes(kind, state string) bool {
+	if state == ProposalDeclined {
+		return true
+	}
+	return kind == ProposeBrief || kind == ProposePlan
+}
+
+// proposalSettled is a proposal accepted (with what it made) or declined,
+// or a decision kept with the conversation moved to its mission.
+type proposalSettled struct {
+	N      int       `json:"n"`
+	State  string    `json:"state"`
+	Result string    `json:"result,omitempty"`
+	By     string    `json:"by"`
+	At     time.Time `json:"at"`
+}
+
+// Became is the mission a conversation became: the latest mission
+// proposal accepted in it, or "".
+func (c *Conversation) Became() string {
+	for i := len(c.Proposals) - 1; i >= 0; i-- {
+		if p := c.Proposals[i]; p.Kind == ProposeMission && p.State == ProposalAccepted {
+			return p.Result
+		}
+	}
+	return ""
+}
+
+// Proposal is the proposal numbered n, or nil.
+func (c *Conversation) Proposal(n int) *Proposal {
+	for i := range c.Proposals {
+		if c.Proposals[i].N == n {
+			return &c.Proposals[i]
+		}
+	}
+	return nil
+}
+
+// Propose records something proposed in an open conversation.
+func (s Store) Propose(id string, p Proposal) (*Conversation, error) {
+	p.What, p.Why, p.Title, p.Text = strings.TrimSpace(p.What), strings.TrimSpace(p.Why), strings.TrimSpace(p.Title), strings.TrimSpace(p.Text)
+	p.Note, p.To = strings.TrimSpace(p.Note), strings.TrimSpace(p.To)
+	if p.Kind != ProposeBrief {
+		p.Brief = strings.TrimSpace(p.Brief)
+	}
+	switch {
+	case p.Kind == ProposeDecision && p.What == "":
+		return nil, errors.New("say what was decided")
+	case p.Kind == ProposeMission && p.Title == "":
+		return nil, errors.New("say what the mission is")
+	case p.Kind == ProposeBrief && strings.TrimSpace(p.Brief) == "":
+		return nil, errors.New("the brief proposed is empty")
+	case p.Kind == ProposeBrief && p.Brief == p.Was && p.Plan == "":
+		// With a plan, the brief as it is is what's confirmed with it.
+		return nil, errors.New("the brief proposed is the brief as it is: propose the plan, and the brief comes with it")
+	case p.Kind == ProposeDispatch && p.Text == "":
+		return nil, errors.New("say what the crew's to do")
+	case p.Kind == ProposeComment && (p.PR == "" || p.Path == "" || p.Line < 1):
+		return nil, errors.New("a comment is on lines of a pull request: its ref, a path and a line")
+	case p.Kind == ProposeComment && p.Text == "" && p.Suggestion == nil:
+		return nil, errors.New("say something, or suggest a change")
+	case p.Kind == ProposePlan && strings.TrimSpace(p.Plan) == "":
+		return nil, errors.New("the plan proposed is empty")
+	case p.Kind == ProposePlan && p.Plan == p.Was:
+		return nil, errors.New("the plan proposed is the plan as it is")
+	case p.Kind == ProposeDocument && (p.DocKind == "" || p.Text == ""):
+		return nil, errors.New("a document is of one of the workspace's kinds, and has something in it")
+	case p.Kind == ProposeDocument && p.To != "" && p.Text == strings.TrimSpace(p.Was):
+		return nil, errors.New("the document proposed is the document as it is: change something in it")
+	case p.Kind == ProposeArtifact && strings.TrimSpace(p.HTML) == "":
+		return nil, errors.New("an artifact is an HTML file, and this one has nothing in it")
+	case p.Kind == ProposeArtifact && p.To == "" && p.Title == "":
+		return nil, errors.New("a new artifact has a title")
+	case p.Kind == ProposeArtifact && p.Note == "":
+		return nil, errors.New("an artifact's version has a note: what it tries out, or what changed and why")
+	case p.Kind == ProposeReplan && p.Text == "":
+		return nil, errors.New("say what to change in the plan, or what doesn't fit it")
+	case p.Kind != ProposeDecision && p.Kind != ProposeMission && p.Kind != ProposeBrief && p.Kind != ProposeDispatch && p.Kind != ProposeComment && p.Kind != ProposePlan && p.Kind != ProposeDocument && p.Kind != ProposeArtifact && p.Kind != ProposeReplan:
+		return nil, fmt.Errorf("a proposal is a decision, a mission, an edit to the brief or the plan, a dispatch, a replan, a review comment, a document or an artifact, not %q", p.Kind)
+	case (p.Kind == ProposeBrief || p.Kind == ProposeDispatch || p.Kind == ProposePlan || p.Kind == ProposeReplan) && s.Workspace():
+		return nil, fmt.Errorf("a %s is a mission's: this conversation is the workspace's", p.Kind)
+	}
+	c, err := s.update(id, func(tx *store.Tx, c *Conversation) error {
+		if c.Status != Open {
+			return fmt.Errorf("%s is resolved", id)
+		}
+		p.N, p.State = len(c.Proposals)+1, ProposalOpen
+		earlier := append([]Proposal(nil), c.Proposals...)
+		if err := s.add(tx, c, line{Propose: &p}); err != nil {
+			return err
+		}
+		// What it takes the place of is nothing to confirm now.
+		at := p.At
+		if at.IsZero() {
+			at = time.Now()
+		}
+		for _, q := range earlier {
+			if q.State == ProposalOpen && p.supersedes(q) {
+				if err := s.add(tx, c, line{Proposal: &proposalSettled{N: q.N, State: ProposalSuperseded, Result: strconv.Itoa(p.N), By: WS, At: at}}); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	what := p.What
+	switch p.Kind {
+	case ProposeMission:
+		what = "a mission: " + p.Title
+	case ProposeBrief:
+		what = "an edit to the brief"
+		if p.Plan != "" {
+			what = "the brief, with its plan"
+		}
+	case ProposePlan:
+		what = "an edit to the plan"
+	case ProposeDispatch:
+		what = "a dispatch: " + p.Text
+	case ProposeReplan:
+		what = "a replan: " + p.Text
+	case ProposeComment:
+		what = fmt.Sprintf("a comment on %s %s:%d: %s", p.PR, p.Path, p.Line, p.Text)
+	case ProposeDocument:
+		what = fmt.Sprintf("a document (%s), %s: %s", p.DocKind, p.Path, p.Title)
+		if p.To != "" {
+			what = fmt.Sprintf("an edit to the document %s (%s): %s", p.To, p.DocKind, p.Title)
+		}
+	case ProposeArtifact:
+		what = "an artifact: " + p.Title
+		if p.To != "" {
+			what = fmt.Sprintf("a version of %s, on v%d: %s", p.To, p.On, p.Note)
+		}
+	}
+	return c, s.log(c, p.By, fmt.Sprintf("%s %s proposes %s", id, p.By, oneLine(what)), p.At)
+}
+
+// SettleProposal records you accepting a proposal (with what it made) or
+// declining it. An accepted decision can be settled again with where it
+// moved to, once its conversation becomes a mission.
+func (s Store) SettleProposal(id string, n int, state, result, by string, at time.Time) (*Conversation, error) {
+	if by != You {
+		return nil, errors.New("only the user accepts or declines a proposal")
+	}
+	if state != ProposalAccepted && state != ProposalDeclined {
+		return nil, fmt.Errorf("a proposal is accepted or declined, not %q", state)
+	}
+	return s.update(id, func(tx *store.Tx, c *Conversation) error {
+		p := c.Proposal(n)
+		switch {
+		case p == nil:
+			return fmt.Errorf("%w: %s has no proposal %d", ErrNotFound, id, n)
+		case p.State == ProposalOpen:
+		case p.State == ProposalAccepted && state == ProposalAccepted && p.Kind == ProposeDecision && p.Result == "" && result != "":
+			// moved to its mission
+		default:
+			return fmt.Errorf("proposal %d in %s is %s already", n, id, p.State)
+		}
+		return s.add(tx, c, line{Proposal: &proposalSettled{N: n, State: state, Result: result, By: by, At: at}})
+	})
+}
+
+// LatestOpen is the latest proposal of a kind still open, or nil.
+func (c *Conversation) LatestOpen(kind string) *Proposal {
+	for i := len(c.Proposals) - 1; i >= 0; i-- {
+		if p := &c.Proposals[i]; p.Kind == kind && p.State == ProposalOpen {
+			return p
+		}
+	}
+	return nil
+}
+
+// LatestPlan is the plan last proposed in a conversation and still open:
+// on its own, or with a brief. "" for none.
+func (c *Conversation) LatestPlan() string {
+	for i := len(c.Proposals) - 1; i >= 0; i-- {
+		p := c.Proposals[i]
+		if p.State == ProposalOpen && p.Plan != "" && (p.Kind == ProposePlan || p.Kind == ProposeBrief) {
+			return p.Plan
+		}
+	}
+	return ""
+}
+
+// KeptDecisions are the decisions accepted in a conversation that aren't
+// any mission's yet.
+func (c *Conversation) KeptDecisions() []Proposal {
+	var out []Proposal
+	for _, p := range c.Proposals {
+		if p.Kind == ProposeDecision && p.State == ProposalAccepted && p.Result == "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}

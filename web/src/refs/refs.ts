@@ -1,0 +1,535 @@
+// Refs: the things words name, found where they're shown, so each can be
+// gone to and said more about without being linked by hand. One finder,
+// for a page's editor and for every reader (a conversation, a thread, a
+// pass, a handoff), so a name is the same thing wherever it's written.
+// Agents are told to write these (internal/prompt/naming.go).
+//
+//   demo/main.go                         a file on a repo's default branch
+//   demo/main.go:12-20                   the same, at those lines
+//   demo/token-cache:internal/cache.go   a file in a capsule (and :12-20)
+//   demo/internal/                       a folder (its slash is optional)
+//   demo                                 a repo, by its name
+//   demo#12                              a pull request
+//   fix-token-refresh                    a mission, by its slug
+//   p3, w4                               another page, a conversation
+//   a3, a3.v2                            an artifact, a version of one
+//
+// It also reads what agents write instead: a repo's alias for the repo,
+// and a file as it is on disk (repos/demo/token-cache/internal/cache.go,
+// and that under the workspace's folder, /Users/…/repos/demo/.ground/…).
+//
+// A ref is found only where it names something that's there: a file in its
+// repo's tree, a capsule the repo has, a mission the workspace has. So
+// words that only look like one (and/or, a path in some other project) are
+// left as words.
+
+export const GROUND = ".ground";
+
+export type PageRef =
+  | { kind: "file"; repo: string; worktree: string; path: string; line?: number; endLine?: number; commit?: string; anchor?: string }
+  | { kind: "dir"; repo: string; worktree: string; path: string; commit?: string }
+  | { kind: "repo"; repo: string }
+  | { kind: "pr"; repo: string; number: number }
+  | { kind: "mission"; slug: string }
+  | { kind: "page"; id: string }
+  | { kind: "talk"; id: string }
+  | { kind: "artifact"; id: string; version?: number };
+
+// Known is what there is to name: each repo with the files on its default
+// branch (undefined while they're not read yet), the missions' slugs, and
+// the pages, the conversations and the artifacts by id. With aliases (alias to repo), a
+// repo's alias names it; with capsules (repo to its capsules), a capsule's
+// file is named repo/capsule:path; with root (the workspace's folder), a
+// path on disk under it is read as the file it is.
+export interface Known {
+  repos: Map<string, Set<string> | undefined>;
+  aliases?: Map<string, string>;
+  capsules?: Map<string, string[]>;
+  root?: string;
+  missions: string[];
+  pages: string[];
+  talks: string[];
+  artifacts?: string[];
+  // For reading addresses: the workspace's GitHub org, its default branch,
+  // and each repo's capsules by the branch they're on.
+  org?: string;
+  defaultBranch?: string;
+  branches?: Map<string, Map<string, string>>;
+  // The workspace's spaces of documents: a file that's one of their
+  // documents goes to its address in Documents.
+  spaces?: { repo: string; folder?: string }[];
+}
+
+export interface Found {
+  from: number;
+  to: number;
+  ref: PageRef;
+}
+
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const alt = (names: string[]) =>
+  [...names]
+    .sort((a, b) => b.length - a.length)
+    .map(esc)
+    .join("|");
+
+const seg = "[\\w.@+~-]+";
+const filePath = `${seg}(?:/${seg})*`;
+const lineRange = "(?::(\\d+)(?:-(\\d+))?)?";
+const before = "(?<![\\w./@#~-])";
+
+type Lines = { line?: number; endLine?: number };
+const linesOf = (from?: string, to?: string): Lines => (from ? { line: Number(from), ...(to ? { endLine: Number(to) } : {}) } : {});
+
+// dirsOf is the folders a repo's files are in, worked out once per tree.
+const dirsCache = new WeakMap<Set<string>, Set<string>>();
+function dirsOf(tree: Set<string>): Set<string> {
+  let dirs = dirsCache.get(tree);
+  if (!dirs) {
+    dirs = new Set();
+    for (const f of tree) for (let i = f.indexOf("/"); i > 0; i = f.indexOf("/", i + 1)) dirs.add(f.slice(0, i));
+    dirsCache.set(tree, dirs);
+  }
+  return dirs;
+}
+
+// looksLikeFile is a path in a capsule, which isn't checked against a tree:
+// it has to look like a file, or name lines. A sentence's full stop is
+// taken off it.
+function looksLikeFile(path: string, lines: Lines): string | undefined {
+  if (lines.line) return path;
+  const bare = path.replace(/\.+$/, "");
+  return /\.[\w+-]+$/.test(bare) ? bare : undefined;
+}
+
+// Patterns are a Known's regular expressions, made once for it: a log of
+// hundreds of lines is looked through with the same ones.
+interface Patterns {
+  ground?: RegExp;
+  inCapsule?: RegExp;
+  onDisk?: RegExp;
+  bareRepo?: RegExp;
+  prs?: RegExp;
+  missions?: RegExp;
+  repoAtEnd?: RegExp;
+}
+const patternsCache = new WeakMap<Known, Patterns>();
+function patternsOf(known: Known): Patterns {
+  let p = patternsCache.get(known);
+  if (p) return p;
+  p = {};
+  const repos = [...known.repos.keys()];
+  const aliases = [...(known.aliases?.keys() ?? [])].filter((a) => !known.repos.has(a) && known.repos.has(known.aliases!.get(a)!));
+  const names = alt([...repos, ...aliases]);
+  if (repos.length) {
+    p.ground = new RegExp(`${before}(${names})/(${filePath})${lineRange}`, "g");
+    const capsules = [...new Set([...(known.capsules?.values() ?? [])].flat())];
+    if (capsules.length) p.inCapsule = new RegExp(`${before}(${names})/(${alt(capsules)}):(${filePath})${lineRange}`, "g");
+    const root = known.root ? `(?:${esc(known.root.replace(/\/+$/, ""))}/)?` : "";
+    p.onDisk = new RegExp(`${before}${root}repos/(${alt(repos)})/(${seg})/(${filePath})${lineRange}`, "g");
+    p.bareRepo = new RegExp(`(?<![\\w./@#:~-])(${alt(repos)})(?![\\w/#:@~-]|\\.\\w)`, "g");
+    p.prs = new RegExp(`(?<![\\w./@#-])(${names})#([1-9]\\d{0,6})(?![\\w#])`, "g");
+    p.repoAtEnd = new RegExp(`(?<![\\w./@#:~-])(${names})\\s+$`);
+  }
+  const slugs = known.missions.filter((s) => s.length >= 3);
+  if (slugs.length) p.missions = new RegExp(`(?<![\\w/.#-])(${alt(slugs)})(?![\\w/#-])`, "g");
+  patternsCache.set(known, p);
+  return p;
+}
+
+// findRefs is the refs in a run of text, in order, none over another.
+export function findRefs(text: string, known: Known): Found[] {
+  const out: Found[] = [];
+  const add = (from: number, to: number, ref: PageRef) => out.push({ from, to, ref });
+  const pat = patternsOf(known);
+  const repoOf = (name: string) => (known.repos.has(name) ? name : (known.aliases?.get(name) ?? name));
+  if (pat.ground) {
+    // A file on the default branch: checked against its tree.
+    const ground = pat.ground;
+    for (const m of text.matchAll(ground)) {
+      const at = m.index ?? 0;
+      const repo = repoOf(m[1]);
+      const tree = known.repos.get(repo);
+      if (!tree) continue;
+      let path = m[2];
+      let lines = linesOf(m[3], m[4]);
+      let to = at + m[0].length;
+      const bare = path.replace(/\.+$/, "");
+      if (!tree.has(path)) {
+        // A folder: named with its slash after it, or without.
+        const dir = !m[3] && [path, bare].find((p) => dirsOf(tree).has(p));
+        if (dir) {
+          to = at + m[1].length + 1 + dir.length + (text[at + m[1].length + 1 + dir.length] === "/" ? 1 : 0);
+          add(at, to, { kind: "dir", repo, worktree: GROUND, path: dir });
+          continue;
+        }
+        // A sentence's full stop, taken for the path's.
+        if (m[3] || bare === path || !tree.has(bare)) continue;
+        to -= path.length - bare.length;
+        path = bare;
+        lines = {};
+      }
+      add(at, to, { kind: "file", repo, worktree: GROUND, path, ...lines });
+    }
+    // A file in a capsule, by its name: repo/capsule:path.
+    if (pat.inCapsule) {
+      const inCapsule = pat.inCapsule;
+      for (const m of text.matchAll(inCapsule)) {
+        const repo = repoOf(m[1]);
+        if (!known.capsules?.get(repo)?.includes(m[2])) continue;
+        const lines = linesOf(m[4], m[5]);
+        const path = looksLikeFile(m[3], lines);
+        if (!path) continue;
+        const at = m.index ?? 0;
+        add(at, at + m[0].length - (m[3].length - path.length), { kind: "file", repo, worktree: m[2], path, ...lines });
+      }
+    }
+    // A file as it is on disk: repos/<repo>/<worktree>/<path>, maybe under
+    // the workspace's folder. A path in some other folder isn't one.
+    for (const m of text.matchAll(pat.onDisk!)) {
+      const at = m.index ?? 0;
+      const repo = m[1];
+      const worktree = m[2];
+      let path: string | undefined = m[3];
+      const lines = linesOf(m[4], m[5]);
+      if (worktree === GROUND) {
+        const tree = known.repos.get(repo);
+        if (!tree) continue;
+        path = tree.has(path) ? path : !lines.line && tree.has(path.replace(/\.+$/, "")) ? path.replace(/\.+$/, "") : undefined;
+      } else {
+        path = looksLikeFile(path, lines);
+      }
+      if (!path) continue;
+      add(at, at + m[0].length - (m[3].length - path.length), { kind: "file", repo, worktree, path, ...lines });
+    }
+    // A repo by its name alone (not an alias: those are short, and words).
+    for (const m of text.matchAll(pat.bareRepo!)) add(m.index ?? 0, (m.index ?? 0) + m[0].length, { kind: "repo", repo: m[1] });
+    for (const m of text.matchAll(pat.prs!)) add(m.index ?? 0, (m.index ?? 0) + m[0].length, { kind: "pr", repo: repoOf(m[1]), number: Number(m[2]) });
+  }
+  if (pat.missions) {
+    for (const m of text.matchAll(pat.missions)) add(m.index ?? 0, (m.index ?? 0) + m[0].length, { kind: "mission", slug: m[1] });
+  }
+  for (const m of text.matchAll(/(?<![\w/.#-])([pw])([1-9]\d{0,4})(?![\w/#-])/g)) {
+    const id = m[1] + m[2];
+    if (m[1] === "p" && known.pages.includes(id)) add(m.index ?? 0, (m.index ?? 0) + m[0].length, { kind: "page", id });
+    if (m[1] === "w" && known.talks.includes(id)) add(m.index ?? 0, (m.index ?? 0) + m[0].length, { kind: "talk", id });
+  }
+  // An artifact (a3), or a version of one (a3.v2): the artifact has to be
+  // there; whether the version is, its card says.
+  if (known.artifacts?.length) {
+    for (const m of text.matchAll(/(?<![\w/.#-])(a[1-9]\d{0,6})(?:\.v([1-9]\d{0,4}))?(?![\w/#-])/g)) {
+      if (known.artifacts.includes(m[1])) add(m.index ?? 0, (m.index ?? 0) + m[0].length, artifactRef(m[1], m[2]));
+    }
+  }
+  out.sort((a, b) => a.from - b.from || b.to - a.to);
+  return out.filter((f, i) => i === 0 || f.from >= out[i - 1].to);
+}
+
+// refAt is the ref that's the whole of a text (a link's address, a name in
+// backticks), if it is one: an address, or a name that's there.
+export function refAt(text: string, known: Known): PageRef | undefined {
+  const t = text.trim();
+  const a = parseAddress(t, known);
+  if (a) return a;
+  const f = findRefs(t, known);
+  return f.length === 1 && f[0].from === 0 && f[0].to === t.length ? f[0].ref : undefined;
+}
+
+// repoThenPath is a repo named at the end of some words with a path in it
+// after them, in backticks: cr-records `bp/proposed/plan.md`, as a writer
+// names a file in the repo they've just named. It's the file (or folder, or
+// a capsule's file), from the repo's name on. A path that isn't there
+// leaves the name as the repo.
+export function repoThenPath(before: string, code: string, known: Known): { from: number; ref: PageRef } | undefined {
+  const m = patternsOf(known).repoAtEnd?.exec(before);
+  if (!m) return undefined;
+  const ref = refAt(`${m[1]}/${code.trim().replace(/^\/+/, "")}`, known);
+  return ref && (ref.kind === "file" || ref.kind === "dir") ? { from: m.index, ref } : undefined;
+}
+
+// --- Pinned: names as they were when they were said
+
+// Pinned is a name as it was when a turn said it (ref.Pinned): what it
+// named then, with the commit its lines were of, and the branch a
+// capsule's file was on. Drawn from that, a conversation says what it
+// meant after the capsule's burned or the lines have moved.
+export interface Pinned {
+  said: string;
+  ref: PageRef;
+  branch?: string;
+  pushed?: boolean;
+}
+
+const notBefore = /[\w./@#~-]/;
+const notAfter = /[\w/#@~-]/;
+
+// findPinned is where a turn's pinned names are in its words, as words:
+// the longest first, none over another, and only whole (demo/main.go
+// isn't found in demo/main.go:3).
+export function findPinned(text: string, pinned: Pinned[]): Found[] {
+  const out: Found[] = [];
+  const taken = (from: number, to: number) => out.some((f) => from < f.to && to > f.from);
+  for (const p of [...pinned].sort((a, b) => b.said.length - a.said.length)) {
+    if (!p.said) continue;
+    for (let at = text.indexOf(p.said); at >= 0; at = text.indexOf(p.said, at + 1)) {
+      const to = at + p.said.length;
+      if (at > 0 && notBefore.test(text[at - 1]) && !p.said.startsWith("/")) continue;
+      if (to < text.length && (notAfter.test(text[to]) || (text[to] === ":" && /\d/.test(text[to + 1] ?? "")))) continue;
+      if (!taken(at, to)) out.push({ from: at, to, ref: p.ref });
+    }
+  }
+  return out.sort((a, b) => a.from - b.from);
+}
+
+// findAll is the refs in words with what a turn pinned first: what it
+// said is what it meant, and the rest is found as it is now.
+export function findAll(text: string, known: Known, pinned?: Pinned[]): Found[] {
+  if (!pinned?.length) return findRefs(text, known);
+  const kept = findPinned(text, pinned);
+  for (const f of findRefs(text, known)) if (!kept.some((k) => f.from < k.to && f.to > k.from)) kept.push(f);
+  return kept.sort((a, b) => a.from - b.from);
+}
+
+// --- Names and addresses, as internal/ref has them (the same cases test
+// both: internal/ref/testdata/cases.json).
+
+const lineSuffix = (line?: number, end?: number) => (!line ? "" : end && end > line ? `:${line}-${end}` : `:${line}`);
+const inCapsule = (r: { worktree: string }) => !!r.worktree && r.worktree !== GROUND;
+
+// refName is how a ref is written.
+export function refName(r: PageRef): string {
+  switch (r.kind) {
+    case "file":
+    case "dir": {
+      const where = inCapsule(r) ? `${r.repo}/${r.worktree}:` : `${r.repo}/`;
+      return r.kind === "dir" ? `${where}${r.path}/` : `${where}${r.path}${lineSuffix(r.line, r.endLine)}`;
+    }
+    case "repo":
+      return r.repo;
+    case "pr":
+      return `${r.repo}#${r.number}`;
+    case "mission":
+      return r.slug;
+    case "page":
+    case "talk":
+      return r.id;
+    case "artifact":
+      return r.version ? `${r.id}.v${r.version}` : r.id;
+  }
+}
+
+// Where is what an address needs that a ref doesn't say.
+export interface Where {
+  org: string;
+  defaultBranch: string;
+  branch?: string; // a capsule's, once it's pushed
+}
+
+const escapePath = (p: string) => p.split("/").map(encodeURIComponent).join("/");
+
+// refAddress is where a ref is outside ws: on GitHub, or ws:<name> for
+// what only ws has.
+export function refAddress(r: PageRef, w: Where): string {
+  const gh = `https://github.com/${w.org}/${"repo" in r ? r.repo : ""}`;
+  switch (r.kind) {
+    case "repo":
+      return gh;
+    case "pr":
+      return `${gh}/pull/${r.number}`;
+    case "file":
+    case "dir": {
+      let rev = w.defaultBranch;
+      if (inCapsule(r)) {
+        if (!w.branch) return wsAddress(r);
+        rev = w.branch;
+      }
+      if (r.commit) rev = r.commit;
+      if (r.kind === "dir") return `${gh}/tree/${escapePath(rev)}/${escapePath(r.path)}`;
+      const frag = r.line ? `#L${r.line}${r.endLine && r.endLine > r.line ? `-L${r.endLine}` : ""}` : r.anchor ? `#${r.anchor}` : "";
+      return `${gh}/blob/${escapePath(rev)}/${escapePath(r.path)}${frag}`;
+    }
+  }
+  return `ws:${refName(r)}`;
+}
+
+// wsAddress is a ref's ws: address, at its heading if it names one: how
+// the reader's links to a document's sections are written
+// (ws:demo/adr/0026.md#decision), read back by parseAddress.
+export function wsAddress(r: PageRef): string {
+  const heading = r.kind === "file" && !r.line && r.anchor ? `#${r.anchor}` : "";
+  return `ws:${refName(r)}${heading}`;
+}
+
+const prName = /^([\w.-]+)#([1-9]\d{0,8})$/;
+// An artifact, or a version of one, as internal/artifact names them.
+const artifactName = /^(a[1-9]\d{0,6})(?:\.v([1-9]\d{0,4}))?$/;
+const artifactRef = (id: string, version?: string): PageRef => (version ? { kind: "artifact", id, version: Number(version) } : { kind: "artifact", id });
+const githubURL = /^https?:\/\/(?:www\.)?github\.com\/([^/\s?#]+)\/([^/\s?#]+)(?:\/([^\s?#]*))?(?:\?[^\s#]*)?(?:#(\S*))?$/;
+const linesFrag = /^L(\d+)(?:C\d+)?(?:-L(\d+)(?:C\d+)?)?$/;
+const isCommit = (rev: string) => /^[0-9a-f]{7,40}$/.test(rev);
+
+function splitLines(s: string): [string, number?, number?] {
+  const m = /^(.*?):(\d+)(?:-(\d+))?$/.exec(s);
+  if (!m || Number(m[2]) === 0) return [s];
+  const line = Number(m[2]);
+  const end = m[3] && Number(m[3]) > line ? Number(m[3]) : undefined;
+  return [m[1], line, end];
+}
+
+// A heading's name, as GitHub makes one (markdown/links.ts).
+const anchorName = /^[\p{L}\p{M}\p{N}\p{Pc}-]+$/u;
+
+// parseName reads one name by its form alone, without knowing whether
+// what it names is there (a ws: address). A file's name may end in a
+// heading in it (demo/adr/0026.md#decision).
+export function parseName(s: string): PageRef | undefined {
+  s = s.trim();
+  const cut = s.indexOf("#");
+  if (cut >= 0 && anchorName.test(s.slice(cut + 1))) {
+    const r = nameOf(s.slice(0, cut));
+    if (r?.kind === "file" && !r.line) return { ...r, anchor: s.slice(cut + 1) };
+  }
+  return nameOf(s);
+}
+
+function nameOf(s: string): PageRef | undefined {
+  if (!s || /\s/.test(s)) return undefined;
+  const pr = prName.exec(s);
+  if (pr) return { kind: "pr", repo: pr[1], number: Number(pr[2]) };
+  const id = /^([pw])([1-9]\d{0,4})$/.exec(s);
+  if (id) return id[1] === "p" ? { kind: "page", id: s } : { kind: "talk", id: s };
+  const art = artifactName.exec(s);
+  if (art) return artifactRef(art[1], art[2]);
+  const slash = s.indexOf("/");
+  // demo:README.md or records:adr/0001.md:12-20, as a document's ref is
+  // stored: a colon before any slash, and what's after it is the path,
+  // folders and all. Not https://…, whose colon is followed by a slash.
+  const stored = s.indexOf(":");
+  if (stored > 0 && stored < s.length - 1 && (slash < 0 || stored < slash) && s[stored + 1] !== "/") {
+    const repo = s.slice(0, stored);
+    const p = s.slice(stored + 1);
+    if (p.endsWith("/")) return { kind: "dir", repo, worktree: GROUND, path: p.slice(0, -1) };
+    const [path, line, endLine] = splitLines(p);
+    return withLines({ kind: "file", repo, worktree: GROUND, path }, line, endLine);
+  }
+  if (slash < 0) return /^[a-z0-9][a-z0-9-]*$/.test(s) ? { kind: "mission", slug: s } : undefined;
+  const repo = s.slice(0, slash);
+  const rest = s.slice(slash + 1);
+  if (!repo || !rest) return undefined;
+  const colon = rest.indexOf(":");
+  if (colon > 0 && !rest.slice(0, colon).includes("/")) {
+    const p = rest.slice(colon + 1);
+    if (p && !/^\d/.test(p.split("-")[0])) {
+      const capsule = rest.slice(0, colon);
+      if (p.endsWith("/")) return { kind: "dir", repo, worktree: capsule, path: p.slice(0, -1) };
+      const [path, line, endLine] = splitLines(p);
+      return withLines({ kind: "file", repo, worktree: capsule, path }, line, endLine);
+    }
+  }
+  if (rest.endsWith("/")) return { kind: "dir", repo, worktree: GROUND, path: rest.slice(0, -1) };
+  const [path, line, endLine] = splitLines(rest);
+  return withLines({ kind: "file", repo, worktree: GROUND, path }, line, endLine);
+}
+
+function withLines(r: Extract<PageRef, { kind: "file" }>, line?: number, endLine?: number): PageRef {
+  return { ...r, ...(line ? { line } : {}), ...(endLine ? { endLine } : {}) };
+}
+
+// parseAddress reads an address back into what it names: one of the
+// workspace's on GitHub, or a ws: one. What it names needn't be there now:
+// it was named on purpose.
+export function parseAddress(addr: string, known: Known): PageRef | undefined {
+  if (addr.startsWith("ws:")) return parseName(addr.slice(3));
+  const m = githubURL.exec(addr);
+  if (!m) return undefined;
+  const [, org, repoRaw, restRaw, frag] = m;
+  const repo = repoRaw.replace(/\.git$/, "");
+  if ((known.org && org.toLowerCase() !== known.org.toLowerCase()) || !known.repos.has(repo)) return undefined;
+  const segs = (restRaw ?? "")
+    .replace(/^\/+|\/+$/g, "")
+    .split("/")
+    .filter((x) => x !== "")
+    .map((x) => {
+      try {
+        return decodeURIComponent(x);
+      } catch {
+        return x;
+      }
+    });
+  const what = segs.shift() ?? "";
+  if (what === "") return segs.length === 0 ? { kind: "repo", repo } : undefined;
+  if (what === "pull") {
+    const n = Number(segs[0]);
+    return Number.isInteger(n) && n > 0 ? { kind: "pr", repo, number: n } : undefined;
+  }
+  if (what !== "blob" && what !== "tree") return undefined;
+  const branches = known.branches?.get(repo);
+  const lines = frag ? linesFrag.exec(frag) : null;
+  const pick = (rev: string, path: string): PageRef => {
+    let worktree = GROUND;
+    let commit: string | undefined;
+    if (isCommit(rev)) commit = rev;
+    else if (rev !== known.defaultBranch && branches?.get(rev)) worktree = branches.get(rev)!;
+    if (what === "tree") return { kind: "dir", repo, worktree, path, ...(commit ? { commit } : {}) };
+    const line = lines ? Number(lines[1]) : undefined;
+    const end = lines?.[2] && Number(lines[2]) > Number(lines[1]) ? Number(lines[2]) : undefined;
+    const anchor = frag && !lines ? frag : undefined;
+    return { kind: "file", repo, worktree, path, ...(line ? { line } : {}), ...(end ? { endLine: end } : {}), ...(commit ? { commit } : {}), ...(anchor ? { anchor } : {}) };
+  };
+  for (let i = 1; i < segs.length; i++) {
+    const rev = segs.slice(0, i).join("/");
+    if (isCommit(rev) || rev === known.defaultBranch || branches?.get(rev)) return pick(rev, segs.slice(i).join("/"));
+  }
+  return segs.length > 1 ? pick(segs[0], segs.slice(1).join("/")) : undefined;
+}
+
+// reposNamed are the repos a text may name files of (demo/…, or demo
+// `main.go`): those whose files are worth reading, to tell.
+export function reposNamed(text: string, repos: string[]): string[] {
+  return repos.filter((r) => text.includes(r + "/") || new RegExp(`${esc(r)}\\s+\``).test(text));
+}
+
+// refHref is where a ref goes: a file in Files at its lines (a space's
+// document, as a whole or at a heading, in Documents: known says which
+// repos are spaces), a pull request's review, a mission, a page, a
+// conversation, an artifact (at a version).
+export function refHref(ref: PageRef, known?: Known): string {
+  switch (ref.kind) {
+    case "file": {
+      const space = !ref.line && /\.(md|markdown|mdx)$/i.test(ref.path) && known?.spaces?.find((s) => s.repo === ref.repo && ref.path.startsWith(s.folder ?? ""));
+      if (space) {
+        const at = `/documents/${encodeURIComponent(ref.repo)}/${ref.path.split("/").map(encodeURIComponent).join("/")}`;
+        return at + (ref.worktree === GROUND ? "" : `?in=${encodeURIComponent(ref.worktree)}`) + (ref.anchor ? `#${ref.anchor}` : "");
+      }
+      const tree = ref.worktree === GROUND ? "" : `/${encodeURIComponent(ref.worktree)}`;
+      const lines = ref.line ? `#L${ref.line}${ref.endLine && ref.endLine > ref.line ? `-L${ref.endLine}` : ""}` : ref.anchor ? `#${ref.anchor}` : "";
+      return `/files/${encodeURIComponent(ref.repo)}${tree}?${new URLSearchParams({ path: ref.path })}${lines}`;
+    }
+    case "dir": {
+      const tree = ref.worktree === GROUND ? "" : `/${encodeURIComponent(ref.worktree)}`;
+      return `/files/${encodeURIComponent(ref.repo)}${tree}?${new URLSearchParams({ path: ref.path })}`;
+    }
+    case "repo":
+      return `/files/${encodeURIComponent(ref.repo)}`;
+    case "pr":
+      return `/reviews/${encodeURIComponent(ref.repo)}/${ref.number}`;
+    case "mission":
+      return `/missions/${encodeURIComponent(ref.slug)}`;
+    case "page":
+      return `/pages/${ref.id}`;
+    case "talk":
+      return `/conversations/${ref.id}`;
+    case "artifact":
+      return ref.version ? `/artifacts/${ref.id}/v${ref.version}` : `/artifacts/${ref.id}`;
+  }
+}
+
+// refKey names a ref, to find it again from where it's drawn.
+export const refKey = (ref: PageRef) => JSON.stringify(ref);
+export const refOf = (key: string): PageRef | undefined => {
+  try {
+    return JSON.parse(key) as PageRef;
+  } catch {
+    return undefined;
+  }
+};

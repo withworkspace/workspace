@@ -1,0 +1,1 @@
+{"made":{"id":"d1","what":"Document only what main and greetings.go do today: no CLI flags, greetings not printed by main yet","why":"Brief forbids inventing flags or CLI options; greetingFor/languages are not called from main","by":"c1","at":"2026-11-10T11:57:54Z","state":""}}

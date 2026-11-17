@@ -1,0 +1,24 @@
+{
+  "about": "Questions over records/ (a copy of ws-test's .ws as it was before the records were kept in SQLite: five missions, one archived, with their briefs, handoffs, decisions, threads and reviews, and four of the workspace's talks; its absolute paths rewritten), brought across as the daemon brings them, and what each should find. want is scope/name as the graph keys it: house-sorting-cli/d1 a decision, /w1 a workspace talk, /house-sorting-cli a mission (its brief is its words). at, when said, is where in it a search should lead (a turn's number, a brief's section; empty for the thing as a whole). within is how far down it may be. A case marked weak is one search is known to get wrong: logged, not failed. These hold the choices in designs/19-store.md's Words for what ws records.",
+  "cases": [
+    {"q": "house sorting", "want": "/house-sorting-cli", "at": "", "within": 1},
+    {"q": "sha256", "want": "house-sorting-cli/d1", "within": 1},
+    {"q": "which hash picks the house", "want": "house-sorting-cli/d1", "within": 2, "weak": "The decision that answers it says sha256, never hash: the brief's constraint that says hash, pick and house is found first, and the decision third. Words can't know sha256 is a hash; an agent that reads the constraint is a ref away from the decision."},
+    {"q": "gryffindor", "want": "house-sorting-cli/d1", "within": 1},
+    {"q": "is whitespace collapsed", "want": "house-sorting-cli/d3", "within": 1},
+    {"q": "harry potter houses", "want": "/house-sorting-cli", "within": 2},
+    {"q": "make it more friendly", "want": "greet-people-by-name/r1.c1", "within": 1},
+    {"q": "hello stranger", "want": "greet-people-by-name/r1.c2", "within": 2},
+    {"q": "go formatting standard", "want": "greet-people-by-name/r1.c3", "within": 1},
+    {"q": "new dependencies", "want": "greet-people-by-name/r2.c1", "within": 2},
+    {"q": "conclude the mission", "want": "greet-people-by-name/d1", "within": 1},
+    {"q": "is there a git origin to push to", "want": "add-demo-manual-md/t1", "within": 1},
+    {"q": "who coined hello world", "want": "python-hello-world/t1", "within": 1},
+    {"q": "demo readme", "want": "/w1", "within": 2},
+    {"q": "demo scope", "want": "/what-is-the-current-scope-of-the-demo", "at": "", "within": 1},
+    {"q": "was the manual mission completed", "want": "/w3", "within": 1},
+    {"q": "MANUAL.md", "want": "/add-demo-manual-md", "within": 2},
+    {"q": "greetingFor is not called from main", "want": "add-demo-manual-md/d1", "within": 2},
+    {"q": "German greeting", "want": "greet-people-by-name/mission:handoffs/c1.md", "within": 3}
+  ]
+}

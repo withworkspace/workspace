@@ -1,0 +1,10 @@
+{
+  // Shared settings.
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@models/*": ["src/models/*"],
+      "@util": ["src/util/index.ts"],
+    },
+  },
+}

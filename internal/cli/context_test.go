@@ -1,0 +1,265 @@
+package cli
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestLoadOps(t *testing.T) {
+	root := t.TempDir()
+	content := `[workspace]
+org = "test-org"
+default_branch = "main"
+display_name = "Test WS"
+
+[repos]
+repo-a = { display_name = "Repo A", aliases = ["ra"], color = "#ff0000" }
+repo-b = {}
+`
+	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(content), 0644)
+
+	ctx, err := LoadOps(root)
+	if err != nil {
+		t.Fatalf("LoadOps() error: %v", err)
+	}
+
+	if ctx.WS().Org != "test-org" {
+		t.Errorf("Org = %q, want %q", ctx.WS().Org, "test-org")
+	}
+	if ctx.WS().DefaultBranch != "main" {
+		t.Errorf("DefaultBranch = %q, want %q", ctx.WS().DefaultBranch, "main")
+	}
+	if ctx.WS().Name != "Test WS" {
+		t.Errorf("Name = %q, want %q", ctx.WS().Name, "Test WS")
+	}
+	if len(ctx.WS().RepoNames) != 2 {
+		t.Fatalf("RepoNames = %v, want 2 entries", ctx.WS().RepoNames)
+	}
+	if ctx.WS().RepoNames[0] != "repo-a" || ctx.WS().RepoNames[1] != "repo-b" {
+		t.Errorf("RepoNames = %v, want [repo-a repo-b]", ctx.WS().RepoNames)
+	}
+	if ctx.WS().DisplayNames["repo-a"] != "Repo A" {
+		t.Errorf("DisplayNames[repo-a] = %q, want %q", ctx.WS().DisplayNames["repo-a"], "Repo A")
+	}
+	if ctx.WS().RepoColors["repo-a"] != "#ff0000" {
+		t.Errorf("RepoColors[repo-a] = %q, want %q", ctx.WS().RepoColors["repo-a"], "#ff0000")
+	}
+}
+
+func TestLoadOps_AliasMap(t *testing.T) {
+	root := t.TempDir()
+	content := `[workspace]
+org = "org"
+default_branch = "main"
+
+[repos]
+long-repo-name = { aliases = ["short", "lr"] }
+`
+	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(content), 0644)
+
+	ctx, err := LoadOps(root)
+	if err != nil {
+		t.Fatalf("LoadOps() error: %v", err)
+	}
+
+	if got, ok := ctx.WS().AliasMap["short"]; !ok || got != "long-repo-name" {
+		t.Errorf("AliasMap[short] = (%q, %v), want (%q, true)", got, ok, "long-repo-name")
+	}
+	if got, ok := ctx.WS().AliasMap["lr"]; !ok || got != "long-repo-name" {
+		t.Errorf("AliasMap[lr] = (%q, %v), want (%q, true)", got, ok, "long-repo-name")
+	}
+}
+
+func TestLoadOps_AliasCollidesWithRepoName(t *testing.T) {
+	root := t.TempDir()
+	content := `[workspace]
+org = "org"
+default_branch = "main"
+
+[repos]
+repo-a = { aliases = ["repo-b"] }
+repo-b = {}
+`
+	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(content), 0644)
+
+	_, err := LoadOps(root)
+	if err == nil {
+		t.Error("expected error when alias collides with canonical name")
+	}
+}
+
+func TestLoadOps_DuplicateAlias(t *testing.T) {
+	root := t.TempDir()
+	content := `[workspace]
+org = "org"
+default_branch = "main"
+
+[repos]
+repo-a = { aliases = ["x"] }
+repo-b = { aliases = ["x"] }
+`
+	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(content), 0644)
+
+	_, err := LoadOps(root)
+	if err == nil {
+		t.Error("expected error when alias is used by two repos")
+	}
+}
+
+func TestLoadOps_BoardedState(t *testing.T) {
+	root := t.TempDir()
+	base := `[workspace]
+org = "test-org"
+default_branch = "main"
+
+[repos.repo-a]
+`
+	local := `[boarded]
+repo-a = ["main", "feature-x"]
+`
+	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(base), 0644)
+	os.WriteFile(filepath.Join(root, "ws.local.toml"), []byte(local), 0644)
+
+	ctx, err := LoadOps(root)
+	if err != nil {
+		t.Fatalf("LoadOps() error: %v", err)
+	}
+	if len(ctx.WS().Boarded["repo-a"]) != 2 {
+		t.Errorf("Boarded[repo-a] = %v, want [main feature-x]", ctx.WS().Boarded["repo-a"])
+	}
+}
+
+func TestLoadOps_AfterCreateHooks(t *testing.T) {
+	root := t.TempDir()
+	content := `[workspace]
+org = "org"
+default_branch = "main"
+
+[repos]
+repo-a = { after_create = "npm install" }
+repo-b = {}
+`
+	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(content), 0644)
+
+	ctx, err := LoadOps(root)
+	if err != nil {
+		t.Fatalf("LoadOps() error: %v", err)
+	}
+
+	if hook := ctx.WS().AfterCreateHooks["repo-a"]; hook != "npm install" {
+		t.Errorf("AfterCreateHooks[repo-a] = %q, want %q", hook, "npm install")
+	}
+	if _, ok := ctx.WS().AfterCreateHooks["repo-b"]; ok {
+		t.Error("repo-b should not have an after_create hook")
+	}
+}
+
+func TestResolveCapsule_ExactMatch(t *testing.T) {
+	root := t.TempDir()
+	content := `[workspace]
+org = "org"
+default_branch = "main"
+
+[repos]
+repo-a = {}
+`
+	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(content), 0644)
+	repoDir := filepath.Join(root, "repos", "repo-a")
+	os.MkdirAll(filepath.Join(repoDir, "support-go"), 0755)
+	os.MkdirAll(filepath.Join(repoDir, "feature-x"), 0755)
+
+	ctx, _ := LoadOps(root)
+	got, err := resolveCapsule(ctx, "repo-a", "support-go")
+	if err != nil {
+		t.Fatalf("ResolveCapsule() error: %v", err)
+	}
+	if got != "support-go" {
+		t.Errorf("ResolveCapsule() = %q, want %q", got, "support-go")
+	}
+}
+
+func TestResolveCapsule_FuzzySingleMatch(t *testing.T) {
+	root := t.TempDir()
+	content := `[workspace]
+org = "org"
+default_branch = "main"
+
+[repos]
+repo-a = {}
+`
+	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(content), 0644)
+	repoDir := filepath.Join(root, "repos", "repo-a")
+	os.MkdirAll(filepath.Join(repoDir, "support-go"), 0755)
+	os.MkdirAll(filepath.Join(repoDir, "feature-x"), 0755)
+
+	ctx, _ := LoadOps(root)
+	got, err := resolveCapsule(ctx, "repo-a", "sg")
+	if err != nil {
+		t.Fatalf("ResolveCapsule() error: %v", err)
+	}
+	if got != "support-go" {
+		t.Errorf("ResolveCapsule() = %q, want %q", got, "support-go")
+	}
+}
+
+func TestResolveCapsule_NoMatch(t *testing.T) {
+	root := t.TempDir()
+	content := `[workspace]
+org = "org"
+default_branch = "main"
+
+[repos]
+repo-a = {}
+`
+	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(content), 0644)
+	repoDir := filepath.Join(root, "repos", "repo-a")
+	os.MkdirAll(filepath.Join(repoDir, "support-go"), 0755)
+
+	ctx, _ := LoadOps(root)
+	_, err := resolveCapsule(ctx, "repo-a", "xyz")
+	if err == nil {
+		t.Error("expected error for no matching capsule")
+	}
+}
+
+func TestUserDir(t *testing.T) {
+	real, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd: %v", err)
+	}
+
+	t.Run("falls back to cwd when unset", func(t *testing.T) {
+		t.Setenv(ShellPWD, "")
+		got, err := userDir()
+		if err != nil {
+			t.Fatalf("userDir: %v", err)
+		}
+		if got != real {
+			t.Errorf("userDir() = %q, want %q", got, real)
+		}
+	})
+
+	t.Run("prefers the shell directory", func(t *testing.T) {
+		dir := t.TempDir()
+		t.Setenv(ShellPWD, dir)
+		got, err := userDir()
+		if err != nil {
+			t.Fatalf("userDir: %v", err)
+		}
+		if got != dir {
+			t.Errorf("userDir() = %q, want %q", got, dir)
+		}
+	})
+
+	t.Run("ignores a directory that is gone", func(t *testing.T) {
+		t.Setenv(ShellPWD, filepath.Join(t.TempDir(), "burned"))
+		got, err := userDir()
+		if err != nil {
+			t.Fatalf("userDir: %v", err)
+		}
+		if got != real {
+			t.Errorf("userDir() = %q, want %q", got, real)
+		}
+	})
+}

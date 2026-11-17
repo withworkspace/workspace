@@ -1,0 +1,17 @@
+{"time":"2026-11-09T14:52:08Z","kind":"created","text":"what is the current scope of the demo repo? make a record"}
+{"time":"2026-11-09T14:52:08Z","kind":"crew_started","crew":"c1","text":"claude 7d60c1ae-5edb-435a-aca5-ef3499ac8867"}
+{"time":"2026-11-09T14:52:47Z","kind":"capsule_added","repo":"records","capsule":"demo-scope-note","crew":"c1"}
+{"time":"2026-11-09T14:52:55Z","kind":"note","crew":"c1","text":"brief written"}
+{"time":"2026-11-09T14:53:42Z","kind":"note","crew":"c1","text":"brief written"}
+{"time":"2026-11-09T14:53:46Z","kind":"crew_ended","crew":"c1","text":"briefed"}
+{"time":"2026-11-09T14:53:46Z","kind":"state","crew":"c1","text":"ready"}
+{"time":"2026-11-09T14:54:03Z","kind":"crew_started","crew":"c2","text":"claude 156eacaf-36e0-44f2-9c21-67130f792450"}
+{"time":"2026-11-09T14:54:03Z","kind":"stage","crew":"c2","text":"on stage 1: the whole brief"}
+{"time":"2026-11-09T14:54:53Z","kind":"artifact","crew":"c2","text":"note Current scope of demo on main (f4dc899) · records/demo-scope-note:notes/demo-scope.md"}
+{"time":"2026-11-09T14:54:53Z","kind":"note","crew":"c2","text":"Brief names commit a86d200 for demo main, but it is not a commit in the demo repo (it resolves only via a parent repo, titled 'ws test config'). demo main tip is f4dc899; the note describes that and says so."}
+{"time":"2026-11-09T14:55:02Z","kind":"crew_done","crew":"c2","text":"Wrote notes/demo-scope.md: demo main at f4dc899 (brief's a86d200 is not a demo commit) · left: Nothing, unless the brief's commit should be corrected to f4dc899."}
+{"time":"2026-11-09T14:55:02Z","kind":"orchestrate","crew":"orchestrator","text":"looking at c2 (done) with claude haiku"}
+{"time":"2026-11-09T14:55:24Z","kind":"orchestrate","crew":"orchestrator","text":"…\n**My decision:** the note is accurate and the work is good enough to build on. The one open point is the brief's acceptance line, which asks for the note to name `a86d200`. c2 used `f4dc899` and said why. This is the user's call, so I'd flag it rather than accept on my own.\n\n**Commands to run, one per call, once Bash is available:**\n\n1. `ws mission note \"Orchestrator: c2 wrote notes/demo-scope.md (records/demo-scope-note, commit 4784102). Code claims checked against demo main.go, main_test.go and greetings.go: greeting() is the only wired-up code; greetings, languages(), normalizeTag() and greetingFor() are defined but unused. The brief's a86d200 is not a demo commit, so the note describes f4dc899. Flagged the commit label for the user.\"`\n2. `ws mission flag \"The brief asks the scope note to name commit a86d200, but that hash is not in the demo repo. The note describes demo main at f4dc899 (the tip, per c2) and says so. Checked: records/demo-scope-note/notes/demo-scope.md.\" --option \"Accept the note as written (describes f4dc899)\" --option \"Change the brief's commit to f4dc899, then accept\" --option \"Keep a86d200 in the note as the brief's commit, marked as not in demo, then accept\"`\n\nOnce you answer, the next run can accept (and conclude if that's the only stage). I haven't verified that `f4dc899` is `main`'s tip; the first thing to check when Bash is back is `git -C repos/demo/.ground log -1 main`."}
+{"time":"2026-11-09T15:42:14Z","kind":"crew_ended","crew":"c2","text":"exit 129"}
+{"time":"2026-11-09T16:23:25Z","kind":"crew_resumed","crew":"c2","text":"claude 156eacaf-36e0-44f2-9c21-67130f792450"}
+{"time":"2026-11-09T16:53:42Z","kind":"crew_ended","crew":"c2","text":"exit 129"}

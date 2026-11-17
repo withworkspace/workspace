@@ -1,0 +1,12 @@
+The user says:
+
+Accepted proposal 1, the replan “Add a step for the AppBar's dropdown”: the planner's asked, in t1, and revises the plan there or says why not.
+
+Declined proposal 2, the replan “Drop the browser check”.
+
+thanks
+
+Reply as before. (The shell works for the commands your first message listed: if one was refused, that was it alone.) End your reply with these two lines, which ws takes off before the user sees it:
+
+Title: <a few words naming this conversation>
+Summary: <two or three sentences: what it's about, what's been concluded, what's still open>

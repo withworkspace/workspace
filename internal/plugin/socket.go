@@ -1,0 +1,200 @@
+package plugin
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/withworkspace/workspace/internal/acp"
+)
+
+// A command reaches the workspace's plugins through a socket the daemon
+// serves, as it reaches the records through one. What crosses it is
+// JSON-RPC, as between ws and a plugin: "run" is a command, whose output
+// comes back as "output" notifications before its answer.
+
+// SocketPath is where the daemon for the workspace at root answers for its
+// plugins.
+func SocketPath(root string) string {
+	return socketPath(root, filepath.Join(root, ".ws", "plugins.sock"), "plugins")
+}
+
+type runParams struct {
+	Name     string   `json:"name"`
+	Args     []string `json:"args"`
+	Dir      string   `json:"dir"`
+	Terminal Terminal `json:"terminal"`
+}
+
+type outputParams struct {
+	Stream string `json:"stream"`
+	Data   string `json:"data"`
+}
+
+type nameParams struct {
+	Name string `json:"name"`
+}
+
+// Listen binds the socket commands reach the workspace's plugins through.
+func (h *Host) Listen() (net.Listener, error) {
+	path := SocketPath(h.Root)
+	if c, err := net.DialTimeout("unix", path, time.Second); err == nil {
+		c.Close()
+		return nil, fmt.Errorf("something is already listening on %s", path)
+	}
+	os.Remove(path) // left by a daemon that died
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return nil, err
+	}
+	ln, err := net.Listen("unix", path)
+	if err != nil {
+		return nil, err
+	}
+	os.Chmod(path, 0o600) //nolint:errcheck // the folder's the workspace's own
+	return ln, nil
+}
+
+// Serve answers commands on ln until it's closed.
+func (h *Host) Serve(ln net.Listener) {
+	for {
+		nc, err := ln.Accept()
+		if err != nil {
+			return
+		}
+		go h.serve(nc)
+	}
+}
+
+func (h *Host) serve(nc net.Conn) {
+	// The handler's given the connection it answers on, which exists only
+	// once it's been handed the handler.
+	ready := make(chan struct{})
+	var c *acp.Conn
+	c = acp.NewConn(nc, nc, func(ctx context.Context, method string, params json.RawMessage) (any, error) {
+		<-ready
+		switch method {
+		case "run":
+			var p runParams
+			if err := json.Unmarshal(params, &p); err != nil {
+				return nil, &acp.RPCError{Code: acp.CodeInvalidParams, Message: err.Error()}
+			}
+			exit, err := h.Run(ctx, p.Name, p.Args, p.Dir, p.Terminal, func(stream, data string) {
+				c.Notify("output", outputParams{Stream: stream, Data: data}) //nolint:errcheck // the command's gone
+			})
+			if err != nil {
+				return nil, err
+			}
+			return map[string]int{"exit": exit}, nil
+		case "list":
+			return h.Statuses(), nil
+		case "refresh", "config", "stop":
+			var p nameParams
+			if err := json.Unmarshal(params, &p); err != nil || !ValidName(p.Name) {
+				return nil, &acp.RPCError{Code: acp.CodeInvalidParams, Message: "which plugin?"}
+			}
+			switch method {
+			case "refresh":
+				st, err := h.Refresh(p.Name)
+				if err != nil {
+					return nil, err
+				}
+				return st, nil
+			case "config":
+				return nil, h.ConfigChanged(p.Name)
+			}
+			h.Stop(p.Name)
+			return nil, nil
+		}
+		return nil, &acp.RPCError{Code: acp.CodeMethodNotFound, Message: "no such method: " + method}
+	})
+	close(ready)
+	<-c.Done()
+	nc.Close()
+}
+
+// Client is a command's connection to the workspace's plugins, in its
+// daemon.
+type Client struct {
+	nc   net.Conn
+	conn *acp.Conn
+	out  func(stream, data string)
+}
+
+// Dial connects to the daemon for the workspace at root, which must be
+// running.
+func Dial(root string) (*Client, error) {
+	nc, err := net.DialTimeout("unix", SocketPath(root), 2*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("the workspace's daemon isn't answering for its plugins: %w", err)
+	}
+	c := &Client{nc: nc}
+	c.conn = acp.NewConn(nc, nc, func(ctx context.Context, method string, params json.RawMessage) (any, error) {
+		if method == "output" && c.out != nil {
+			var o outputParams
+			if json.Unmarshal(params, &o) == nil {
+				c.out(o.Stream, o.Data)
+			}
+		}
+		return nil, nil
+	})
+	return c, nil
+}
+
+// Close ends the connection.
+func (c *Client) Close() { c.nc.Close() }
+
+func (c *Client) call(ctx context.Context, method string, params, result any) error {
+	err := c.conn.Call(ctx, method, params, result)
+	var re *acp.RPCError
+	switch {
+	case errors.As(err, &re):
+		return errors.New(re.Message) // what the daemon said, without the code
+	case errors.Is(err, acp.ErrClosed):
+		return errors.New("the workspace's daemon went away")
+	}
+	return err
+}
+
+// Run runs a plugin's command in the daemon (Host.Run), with out given
+// its output as it comes. One command runs on a client at a time.
+func (c *Client) Run(ctx context.Context, name string, args []string, dir string, term Terminal, out func(stream, data string)) (int, error) {
+	c.out = out
+	var answer struct {
+		Exit int `json:"exit"`
+	}
+	err := c.call(ctx, "run", runParams{Name: name, Args: args, Dir: dir, Terminal: term}, &answer)
+	if errors.Is(err, context.Canceled) {
+		return 130, nil
+	}
+	if err != nil {
+		return 1, err
+	}
+	return answer.Exit, nil
+}
+
+// Statuses are the workspace's plugins, as the daemon has them.
+func (c *Client) Statuses(ctx context.Context) ([]Status, error) {
+	var out []Status
+	return out, c.call(ctx, "list", nil, &out)
+}
+
+// Refresh starts a plugin afresh, and says where it stands.
+func (c *Client) Refresh(ctx context.Context, name string) (Status, error) {
+	var st Status
+	return st, c.call(ctx, "refresh", nameParams{Name: name}, &st)
+}
+
+// ConfigChanged tells a running plugin its config changed.
+func (c *Client) ConfigChanged(ctx context.Context, name string) error {
+	return c.call(ctx, "config", nameParams{Name: name}, nil)
+}
+
+// Stop stops a plugin.
+func (c *Client) Stop(ctx context.Context, name string) error {
+	return c.call(ctx, "stop", nameParams{Name: name}, nil)
+}

@@ -1,0 +1,40 @@
+package web
+
+import (
+	"errors"
+	"net/http"
+)
+
+// The Files page's repos: every one in the workspace, and a repo's ground
+// and capsules. Their files are read by the explorer's handlers (tree,
+// file, raw) at /api/repos/{repo}/worktrees/{name}/….
+
+func (s *Server) repos(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"repos": s.repoList()})
+}
+
+func (s *Server) worktrees(w http.ResponseWriter, r *http.Request) {
+	got, err := s.App.Worktrees(r.PathValue("repo"))
+	wts := make([]Worktree, 0, len(got))
+	for _, wt := range got {
+		wts = append(wts, Worktree(wt))
+	}
+	switch {
+	case errors.Is(err, ErrNotFound):
+		jsonError(w, http.StatusNotFound, "the workspace has no repo "+r.PathValue("repo"))
+	case err != nil:
+		jsonError(w, http.StatusInternalServerError, err.Error())
+	default:
+		writeJSON(w, http.StatusOK, map[string]any{"worktrees": wts})
+	}
+}
+
+// repoList is the workspace's repos, as the API serves them.
+func (s *Server) repoList() []Repo {
+	got := s.App.Repos()
+	out := make([]Repo, 0, len(got))
+	for _, r := range got {
+		out = append(out, Repo(r))
+	}
+	return out
+}

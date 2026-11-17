@@ -1,0 +1,205 @@
+import type { ArtifactInfo, ArtifactVersion } from "../api";
+import type { PageRef } from "../refs/refs";
+import type { StatusInfo } from "../ui/status";
+
+// Artifacts, apart from how they're drawn: which the list shows, where a
+// version came from, and stepping through versions.
+
+// Shown is the list's filter by where an artifact stands. "all" is the
+// list: live and promoted. A discarded one is gone from the list, and
+// shows only when it's asked for.
+export type Shown = "all" | "live" | "promoted" | "discarded";
+
+export const shownLabels: Record<Shown, string> = { all: "All", live: "Live", promoted: "Promoted", discarded: "Discarded" };
+
+// The list's filter by where an artifact came from: anywhere, by hand
+// (no version from a conversation or a mission), or one of those.
+export const ANYWHERE = "";
+export const BY_HAND = "-";
+
+// listed is what the list shows: by where it stands and where it came
+// from, the latest version's newest first (as the server has them).
+export function listed(all: ArtifactInfo[], shown: Shown, from: string): ArtifactInfo[] {
+  return all.filter((a) => {
+    const standing = shown === "all" ? a.status !== "discarded" : a.status === shown;
+    if (!standing) return false;
+    if (from === ANYWHERE) return true;
+    if (from === BY_HAND) return !a.from?.length;
+    return !!a.from?.some((f) => f.from === from);
+  });
+}
+
+// Source is somewhere versions came from: a conversation or a mission,
+// with its title as the version had it.
+export interface Source {
+  from: string;
+  title?: string;
+}
+
+// sources are where the artifacts' versions came from, each once, in the
+// order the list has them: for the filter.
+export function sources(all: ArtifactInfo[]): Source[] {
+  const seen = new Map<string, Source>();
+  for (const a of all) for (const f of a.from ?? []) if (!seen.has(f.from)) seen.set(f.from, { from: f.from, title: f.title });
+  return [...seen.values()];
+}
+
+// isConversation is whether a version's from is a conversation (w9);
+// otherwise it's a mission's slug, or a mission's conversation.
+export const isConversation = (from: string) => /^w[1-9]\d*$/.test(from);
+
+// missionTalk reads a version's from as a mission's conversation (glow/t3,
+// confirmed there): its mission's slug, and the conversation.
+export function missionTalk(from: string): { slug: string; id: string } | undefined {
+  const m = /^([^/\s]+)\/(t[1-9]\d*)$/.exec(from);
+  return m ? { slug: m[1], id: m[2] } : undefined;
+}
+
+// fromRef is where a version came from, as a ref: a conversation, or a
+// mission (a mission's conversation is drawn as its mission).
+export function fromRef(from: string): PageRef {
+  if (isConversation(from)) return { kind: "talk", id: from };
+  return { kind: "mission", slug: missionTalk(from)?.slug ?? from };
+}
+
+// byWords is who added a version: you, or crew (c1).
+export const byWords = (v: Pick<ArtifactVersion, "by">) => (v.by === "you" ? "by you" : `by ${v.by}`);
+
+// keptWords is where an artifact is kept, as the list says it: this
+// machine, or the repo it's in.
+export const keptWords = (place: string) => (place === ".ws" || !place ? "This machine" : place);
+
+// keptIcon is the icon beside where it's kept.
+export const keptIcon = (place: string) => (place === ".ws" || !place ? "monitor" : "branch");
+
+// keptTitle says where it's kept, in full.
+export function keptTitle(a: Pick<ArtifactInfo, "place" | "where" | "inFlight">): string {
+  if (a.inFlight) return `In ${a.inFlight}, not landed: ${a.where}`;
+  if (a.place === ".ws" || !a.place) return `On this machine only: ${a.where}`;
+  return `In ${a.place}, for everyone with it: ${a.where}`;
+}
+
+// inFlight reports whether an artifact waits, whole or in part, in a
+// capsule: crew's, not landed.
+export const inFlight = (a: Pick<ArtifactInfo, "inFlight" | "flying" | "latest">) => !!a.inFlight || !!a.latest?.capsule;
+
+// artifactStatus is where an artifact stands, as a status draws it.
+export function artifactStatus(a: Pick<ArtifactInfo, "status" | "gone"> & Partial<Pick<ArtifactInfo, "inFlight" | "latest" | "expired">>): StatusInfo {
+  if (a.gone) return { icon: "alert", tone: "danger", words: "Gone" };
+  if (a.status === "live" && (a.inFlight || a.latest?.capsule)) return { icon: "circle-dashed", tone: "progress", words: "In flight" };
+  if (a.status === "live" && a.expired) return { icon: "clock", tone: "quiet", words: "Expired" };
+  switch (a.status) {
+    case "promoted":
+      return { icon: "check-circle", tone: "done", words: "Promoted" };
+    case "discarded":
+      return { icon: "ban", tone: "quiet", words: "Discarded" };
+  }
+  return { icon: "circle-dot", tone: "progress", words: "Live" };
+}
+
+// stepVersion is the version before (-1) or after (+1) n, in the order
+// they're listed; n itself at either end.
+export function stepVersion(versions: Pick<ArtifactVersion, "n">[], n: number, by: -1 | 1): number {
+  const ns = versions.map((v) => v.n).sort((a, b) => a - b);
+  const i = ns.indexOf(n);
+  if (i < 0) return ns[ns.length - 1] ?? n;
+  return ns[Math.min(Math.max(i + by, 0), ns.length - 1)];
+}
+
+// versionOf reads a version from the address: v2 (or 2); 0 for none.
+export function versionOf(s: string | undefined): number {
+  const m = /^v?([1-9]\d{0,4})$/.exec(s ?? "");
+  return m ? Number(m[1]) : 0;
+}
+
+// Width is how wide a version's frame is drawn: fitting the page, or as a
+// desktop, a tablet or a phone would show it.
+export interface Width {
+  key: string;
+  px: number; // 0 fits the page
+  label: string;
+  title: string;
+}
+
+export const widths: Width[] = [
+  { key: "fit", px: 0, label: "Fit", title: "As wide as the page" },
+  { key: "1280", px: 1280, label: "1280", title: "A desktop's width, 1280px" },
+  { key: "768", px: 768, label: "768", title: "A tablet's width, 768px" },
+  { key: "390", px: 390, label: "390", title: "A phone's width, 390px" },
+];
+
+// sizeWords says a file's size as a person would (artifact.Size).
+export function sizeWords(n: number): string {
+  if (n >= 1 << 20) return `${(n / (1 << 20)).toFixed(1).replace(/\.0$/, "")} MB`;
+  if (n >= 1 << 10) return `${Math.round(n / 1024)} KB`;
+  return `${n} bytes`;
+}
+
+// --- Lifetime: expiry, promoting, discarding
+
+const DAY = 24 * 60 * 60 * 1000;
+
+// WARN is how long before it expires a live artifact is listed as
+// expiring: its last week (artifact.Warning).
+export const WARN = 7 * DAY;
+
+// KEEP_DISCARDED is how long a folder discarded on this machine is kept, to
+// restore it (artifact.KeepDiscarded).
+export const KEEP_DISCARDED = 30 * DAY;
+
+// Expiry is when a live artifact expires, as the list says it.
+export interface Expiry {
+  words: string; // "expires in 4 days", "expires today", "expired"
+  soon: boolean; // in its last week: the list warns, with Promote beside it
+  expired: boolean;
+}
+
+// expiryOf is when a live one expires, said as artifact.ExpiresWords says
+// it; none for one that doesn't.
+export function expiryOf(a: Pick<ArtifactInfo, "expires">, now: number): Expiry | undefined {
+  if (!a.expires) return undefined;
+  const left = Date.parse(a.expires) - now;
+  if (Number.isNaN(left)) return undefined;
+  if (left <= 0) return { words: "expired", soon: false, expired: true };
+  const days = Math.floor(left / DAY);
+  const words = days === 0 ? "expires today" : days === 1 ? "expires tomorrow" : `expires in ${days} days`;
+  return { words, soon: left <= WARN, expired: false };
+}
+
+// clearable are the expired artifacts Clear expired takes: those in the
+// repo, in one commit, and any on this machine the daemon hasn't swept
+// yet.
+export const clearable = (all: ArtifactInfo[]) => all.filter((a) => a.status === "live" && a.expired && !a.gone);
+
+// promoteVersions are the versions an artifact can be promoted at: those
+// that have landed (crew's in flight can't be chosen yet), newest first.
+export function promoteVersions(versions: Pick<ArtifactVersion, "n" | "capsule">[]): number[] {
+  return versions
+    .filter((v) => !v.capsule)
+    .map((v) => v.n)
+    .sort((a, b) => b - a);
+}
+
+// Into is what a promoted artifact went into, as the Promote dialog asks
+// it: nothing, a mission that's there, a mission started from it, or a
+// document.
+export type IntoKind = "nothing" | "mission" | "start" | "document";
+
+// promotion is what the Promote dialog sends, from what's in it.
+export function promotion(version: number, kind: IntoKind, text: string, move: boolean): { version: number; into?: string; start?: string; move?: boolean } {
+  const t = text.trim();
+  const out: { version: number; into?: string; start?: string; move?: boolean } = { version };
+  if ((kind === "mission" || kind === "document") && t) out.into = t;
+  if (kind === "start" && t) out.start = t;
+  if (move) out.move = true;
+  return out;
+}
+
+// promoteBlocked says why the Promote dialog can't promote yet, as it's
+// filled in: "" when it can.
+export function promoteBlocked(kind: IntoKind, text: string, local: boolean, move: boolean, repo?: string): string {
+  if (kind !== "nothing" && !text.trim()) return kind === "start" ? "Say what the mission is." : kind === "mission" ? "Choose the mission." : "Name the document, as repo:path.";
+  if (kind === "document" && local && !move)
+    return repo ? `A document cites it by its folder in a repo, so the link works for everyone: move it to ${repo} as you promote it.` : "A document cites it by its folder in a repo, and there's no repo for artifacts.";
+  return "";
+}

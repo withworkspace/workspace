@@ -1,0 +1,3 @@
+The headings and the empty blocks are in the page now. Write block 2 of 2, which has no heading of its own. It's to say: How it goes out.
+
+Your final message is that block, written as a cell of the page is: its content only, without its heading (the heading's in the page already), with nothing before it. Then, if there's anything to tell the user about it, a line that is only `<!-- notes -->` and your notes. Look at what you need for it first. Don't say again what another block says, or will.

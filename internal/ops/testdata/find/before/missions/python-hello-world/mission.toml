@@ -1,0 +1,64 @@
+title = "Python hello world"
+created = 2026-11-05T16:20:39Z
+request = "build a thing"
+dispatches = 0
+
+[[capsules]]
+  repo = "records"
+  name = "hello-world-proposal"
+  branch = "hello-world-proposal"
+
+[[capsules]]
+  repo = "demo"
+  name = "hello-world-python"
+  branch = "hello-world-python"
+
+[[crew]]
+  id = "c1"
+  harness = "claude"
+  conversation = "0897f305-c16a-46ae-9268-28712d2077cd"
+  started = 2026-11-05T16:20:39Z
+  ended = 2026-11-05T16:20:41Z
+  exit = "exit 1"
+  pid = 31079
+  capsule = "workspace"
+  role = "briefing"
+
+[[crew]]
+  id = "c2"
+  harness = "claude"
+  conversation = "500c0180-b440-422a-bc56-7fdcccb16218"
+  started = 2026-11-05T16:20:45Z
+  ended = 2026-11-05T16:23:47Z
+  exit = "briefed"
+  pid = 31281
+  capsule = "workspace"
+  role = "briefing"
+
+[[crew]]
+  id = "c3"
+  harness = "claude"
+  conversation = "0f5f20ac-3664-4906-8aff-85932440001f"
+  started = 2026-11-05T16:23:57Z
+  ended = 2026-11-05T16:53:15Z
+  exit = "exit 129"
+  pid = 36395
+  capsule = "records/hello-world-proposal"
+  orchestrated = "2026-11-05T16:23:57Z|done@2026-11-05T16:24:39Z:Stage 2 implemented: hello.py in demo prints Hello, world!; go test ./... passes; Go files unchanged. Uncommitted in capsule hello-world-python."
+
+[[crew]]
+  id = "c4"
+  harness = "claude"
+  conversation = "e8034291-c1af-4a53-b3d5-01c1a005f77b"
+  started = 2026-11-05T17:13:45Z
+  ended = 2026-11-09T10:42:35Z
+  exit = "exit 129"
+  pid = 83014
+  capsule = "records/hello-world-proposal"
+
+[[artifacts]]
+  ref = "records/hello-world-proposal:proposals/hello-world-python.md"
+  kind = "proposal"
+  label = "Python hello world proposal"
+  crew = "c3"
+  added = 2026-11-05T16:24:15Z

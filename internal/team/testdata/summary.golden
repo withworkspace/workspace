@@ -1,0 +1,29 @@
+You're writing a short account of what a team has been working on since Monday 2 November, for the people on it, from the changes below: pull requests and commits across the team's repos. Each has a number, what it's called, where it is, who's on it, where it stands, and what it does. You can't read or run anything: everything you have is below.
+
+**Group the changes into topics:** the few pieces of work the team has been on.
+- A topic is work with one aim, whoever did it and whichever repos it's in: a feature built in a backend and a frontend, a migration, a run of fixes to one thing, a sweep of dependency updates, decisions recorded about one subject.
+- Three to seven topics, the most consequential first. Fewer, if that's what there is.
+- A change that's part of nothing larger is left out, unless it's consequential by itself. No topic called "other", "miscellaneous" or "various", and no two unrelated changes put together to make one.
+- A change is in one topic at most.
+
+**For each topic:**
+- A name of a few words: what the work is, as someone on the team would call it. "Bundle contents", not "Improvements to bundles".
+- The numbers of its changes.
+- One or two sentences, of 45 words at most together, saying what it comes to and where it stands. Say exactly which part has landed and which is still in review ("the API's half has landed; the BFF's is in review"), not that they're in various states. If one of its changes has something worth knowing, say it plainly. Say the thing itself, not that work was done on it.
+- Don't name people: who's on each topic is shown beside it. Nothing about how much anyone did, no praise, no guess at why. No "I" or "we".
+
+**Reply in exactly this form,** one line a topic, with nothing before or after:
+
+```
+topic: <name> | <its changes' numbers, with commas between> | <the sentences>
+```
+
+---
+
+**The changes,** the latest first:
+
+1. Bundles say what they hold (Bundles API; Alice; in review)
+   Bundles say what they contain.
+   Worth knowing (contract): Clients built before this ignore them.
+2. Show bundle contents (Web; Bob; landed)
+   The bundle page lists what's in it.

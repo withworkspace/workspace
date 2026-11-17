@@ -1,0 +1,1527 @@
+# ws
+
+A multi-repo workspace manager. `ws` gives development teams a single control plane for many repositories, using git worktrees to create lightweight, isolated working environments.
+
+Work happens in **capsules**, not on the main branch. Ground is sacred.
+
+## Table of Contents
+
+- [Getting Started](#getting-started)
+- [Concepts](#concepts)
+  - [Workspaces](#workspaces)
+  - [Ground](#ground)
+  - [Capsules](#capsules)
+  - [Lifting](#lifting)
+  - [Docking](#docking)
+  - [Boarding](#boarding)
+  - [Debrief](#debrief)
+  - [Landing](#landing)
+  - [Repos and Aliases](#repos-and-aliases)
+  - [Groups](#groups)
+  - [Searching](#searching)
+  - [Spaces of documents](#spaces-of-documents)
+  - [Finding what's been said](#finding-whats-been-said)
+  - [Missions](#missions)
+- [Configuration](#configuration)
+  - [ws.toml](#wstoml)
+  - [ws.local.toml](#wslocaltoml)
+  - [ws.repo.toml](#wsrepotoml)
+- [Shell Integration](#shell-integration)
+  - [The ws Wrapper](#the-ws-wrapper)
+  - [Tab Completions](#tab-completions)
+  - [Starship](#starship)
+- [IDE Integration](#ide-integration)
+  - [VS Code / Cursor](#vs-code--cursor)
+  - [IntelliJ](#intellij)
+  - [Opening Your Editor](#opening-your-editor)
+- [Silos](#silos)
+  - [The Problem](#the-problem)
+  - [How It Works](#how-it-works)
+  - [Commands](#silo-commands)
+  - [Live Watching](#live-watching)
+  - [Hooks](#silo-hooks)
+  - [ws.repo.toml Silo Config](#wsrepotoml-silo-config)
+- [Customisation](#customisation)
+  - [Repo Colors](#repo-colors)
+  - [Post-Create Hooks](#post-create-hooks)
+  - [Fuzzy Matching](#fuzzy-matching)
+  - [JSON Output](#json-output)
+- [Plugins](#plugins)
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Git
+- [GitHub CLI](https://cli.github.com/) (`gh`) — used for PR integration and authentication.
+
+### Creating a Workspace
+
+A workspace lives in a shared config repo that contains a `ws.toml` file describing your repos. To initialise:
+
+```bash
+ws init git@github.com:your-org/workspace-config.git
+```
+
+This clones the config repo, then clones every repo listed in `ws.toml` as a bare repository with a `.ground` worktree for the default branch. The directory structure looks like this:
+
+```
+my-workspace/
+  ws.toml
+  ws.local.toml
+  repos/
+    frontend/
+      .bare/
+      .ground/
+    backend/
+      .bare/
+      .ground/
+```
+
+If you prefer SSH for git operations:
+
+```bash
+ws init git@github.com:your-org/workspace-config.git --git ssh
+```
+
+### First Capsule
+
+```bash
+ws lift frontend my-feature
+```
+
+This creates a new branch `my-feature` from the default branch and drops you into the worktree. You're ready to work.
+
+When you're done, push and open a PR. You don't need to clean up — once the PR is merged, `ws debrief` will detect that the capsule has landed and remove it automatically. If the PR is rejected or abandoned, `burn` it manually:
+
+```bash
+ws burn frontend my-feature
+```
+
+If you're standing inside the capsule you're burning, the [shell wrapper](#the-ws-wrapper) steps you out to the workspace root before the worktree is removed, so your shell is never left in a directory that no longer exists.
+
+---
+
+## Concepts
+
+### Workspaces
+
+A workspace is a directory containing a `ws.toml` config file and a `repos/` directory. The config file is typically stored in its own git repository, shared across a team, so everyone gets the same repo list, aliases, and display names.
+
+`ws` discovers the workspace by walking up from your current directory looking for `ws.toml`. Every command works from anywhere inside the workspace tree.
+
+### Ground
+
+Each repo has a special worktree called `.ground`. This is the default branch — `main`, `develop`, whatever your team uses. Ground is the source of truth.
+
+You don't work in ground. It exists so that new capsules can branch from a known-good state and so that `ws` can compare capsules against the baseline (ahead/behind counts, merge status).
+
+Ground cannot be removed with `burn`.
+
+### Capsules
+
+A capsule is the unit of work in `ws`: one branch, one worktree, one concern. Capsules are cheap to create and cheap to destroy.
+
+```
+repos/frontend/
+  .bare/            # the bare git repo
+  .ground/          # default branch (sacred)
+  my-feature/       # a capsule
+  bugfix-login/     # another capsule
+```
+
+Each capsule is a full working copy. You can have as many as you need running simultaneously. When a capsule's branch is merged or goes stale, `debrief` cleans it up.
+
+If a branch name contains slashes (e.g. `feature/my-thing`), the capsule directory uses only the last segment (`my-thing`) to avoid nested directories.
+
+### Lifting
+
+**Lifting** creates a new capsule — a fresh branch from ground.
+
+```bash
+ws lift <repo> <branch> [base]
+```
+
+- `repo` can be the canonical name, an alias, or `.` to infer from your current directory.
+- `base` defaults to `origin/<default-branch>`. Pass a different ref to branch from somewhere else.
+
+After lifting, `ws` runs the repo's `after_create` hook (if configured), boards the capsule into your IDE workspace, and `cd`s you into the new worktree.
+
+### Docking
+
+**Docking** checks out an existing branch into a new worktree. This is how you pick up work that already exists — someone else's feature branch, or a PR you want to review.
+
+```bash
+ws dock <repo> <branch>
+```
+
+You can also dock by PR number or full PR URL:
+
+```bash
+ws dock frontend 1234
+ws dock https://github.com/your-org/frontend/pull/1234
+```
+
+When docking by PR number or URL, `ws` resolves the PR's head branch via the GitHub API and creates a worktree for it.
+
+Like lifting, docking runs `after_create` hooks, boards the capsule, and `cd`s you in.
+
+### Boarding
+
+Boarding controls which capsules are visible in your IDE workspace files. When you `lift` or `dock` a capsule, it's automatically boarded. When you `burn` it, it's automatically unboarded.
+
+You can also manage boarding manually:
+
+```bash
+ws board <repo> <capsule>
+ws unboard <repo> <capsule>
+```
+
+Boarding state is stored in `ws.local.toml` and triggers regeneration of IDE workspace files (VS Code `.code-workspace`, IntelliJ project) so your editor reflects only the capsules you're actively working on.
+
+### Debrief
+
+Over time capsules accumulate. `debrief` scans all capsules across your workspace and cleans up the ones that are done:
+
+```bash
+ws debrief
+```
+
+A capsule is removed if it's:
+- **Landed** — its PR has been merged, or (a repo with no pull requests) [`ws land`](#landing) landed it.
+- **Inactive** — no commits for 90 days (configurable with `--days`).
+
+A capsule is skipped if it has uncommitted changes, even if it's landed or inactive. `--burn-dirty-landed` removes a landed capsule all the same: its work is on the default branch, and what's uncommitted is lost.
+
+Capsules that are still active are reported with their age, ahead/behind counts, and open PR status.
+
+You can scope debrief to a single repo:
+
+```bash
+ws debrief frontend
+```
+
+### Landing
+
+Most repos take work through a pull request. Some take commits straight to their default branch: a records repo of ADRs, proposals and notes, say. Say so, and `ws` lands a capsule there for you:
+
+```toml
+[repos.records]
+landing = "direct"            # commits go straight to the default branch. Default: "pr"
+verify = "just lint"          # optional: must pass in the capsule before anything's pushed
+```
+
+A repo can say it of itself, in its own [`ws.repo.toml`](#wsrepotoml) (`landing = "direct"`, `verify = "…"` at the top); `ws.toml` and `ws.local.toml` override that.
+
+```bash
+ws land                       # the capsule you're standing in
+ws land note                  # a capsule of the repo you're standing in
+ws land records note
+```
+
+`ws land` is the one place a landing is made, from a shell or the web UI:
+
+1. It refuses a capsule with uncommitted changes, or with nothing to land.
+2. It fetches, and rebases the capsule onto `origin/<default branch>`.
+3. It runs the repo's `verify` command in the capsule, if it has one.
+4. It pushes `HEAD:<default branch>`.
+5. It brings the ground up to it (a fast-forward, never anything else), and burns the capsule.
+
+It stops, with nothing pushed, where landing by hand should stop:
+
+- **A rebase that clashes** stops with the capsule as it was. Rebase it there, settle the clash, and land again.
+- **A check that fails** stops, with what it printed.
+- **A number someone else took.** A document of a numbered [kind](#wstoml) that the capsule adds, whose number is on the default branch since (two people can take the same one), stops it, saying the next number and how to move the file to it.
+- **A push that isn't a fast-forward** (someone landed first) is fetched, rebased, checked and tried again, twice. After that it stops and says so.
+- **A push refused for any other reason** (branch protection, a hook) stops, with what the remote said. Nothing is ever forced. A repo that refuses probably isn't direct.
+- There's never a merge commit.
+
+**You are the gate.** Nothing stands between a landing and everyone else seeing it, so it's yours to make: `ws land` refuses crew and the orchestrator. Crew in a direct repo are told to commit, not push, and report done.
+
+**In a mission,** a capsule of a direct repo with commits to land, and no crew in it, puts the mission in your court as `✓ land`. Its headline opens the capsule's review, which is the only review there'll be: approve it, then *Land on main* (`L`, then `⏎` to confirm). Approving and landing are two acts. A landed capsule counts as a merged pull request does: the mission is `landed` when every capsule has landed or merged, and a document in it goes from `draft` to `landed` with no `in review` between. A landing made by hand (`git push origin HEAD:main`) isn't recorded: land with `ws land`.
+
+### Repos and Aliases
+
+Every command that takes a repo argument goes through the same resolution pipeline:
+
+1. **Exact match** against canonical names in `ws.toml`.
+2. **Alias match** against aliases defined in `ws.toml` or `ws.local.toml`.
+3. **Fuzzy match** — every character in your input must appear in order in the repo name (case-insensitive). If there's exactly one match, it's used. Multiple matches show an interactive picker.
+4. **`.`** — infer the repo from your current directory.
+5. **No argument** — interactive picker.
+
+The same fuzzy matching applies to capsule arguments (e.g. in `burn` and `jump`).
+
+Repos in hidden [groups](#groups) are always found by exact name or alias. Fuzzy matching only considers them when no visible repo matches, and the picker leaves them out.
+
+### Groups
+
+A repo can belong to one group. Groups let you keep repos in the workspace that you mostly read, such as another team's platform repos, without them crowding everything else. They also let you work with a slice of the workspace (`ws --group product`).
+
+```toml
+[groups.platform]
+hidden = true
+
+[repos.frontend]
+group = "product"
+
+[repos.platform-infra]
+group = "platform"
+aliases = ["infra"]
+```
+
+**Hidden groups** are left out of commands that cover every repo: `ws`/`status`, `rg`, `debrief`, `setup`, `init` and `upgrade`. Naming a hidden repo always works (`ws jump infra`, `ws lift infra fix-alerts`, `ws rg --repo infra`), and shell completions include hidden repos.
+
+- **Cloned on first use.** `init`, `setup` and `upgrade` don't clone hidden repos. The first `jump`, `lift`, `dock` or `rg` that needs one clones it.
+- **Shown while you're working there.** A hidden repo with a capsule appears in status and debrief, marked `· platform (hidden)`. Once its capsules are debriefed, it drops out of view again.
+- **Standing in one.** `ws rg` searches the hidden repo you're standing in, as well as the visible ones.
+
+**`--group <name>`** limits a command to those groups, hidden or not. It is repeatable and comma-separated, and works on `ws`/`status`, `mc`, `rg`, `debrief` and `setup`. `ws rg --group` adds the group's repos to any `--repo` selection. `ws setup --group platform` clones a whole group up front.
+
+**Your own choice.** The team sets defaults in `ws.toml`. Each person can override them in `ws.local.toml`:
+
+```bash
+ws group                  # list groups, whether each is shown, and their repos
+ws group show platform    # show it for you, and clone its repos
+ws group hide product     # hide it for you
+ws group reset platform   # go back to the team default
+```
+
+To hide a single repo for yourself, put it in a group locally (`[repos.mobile] group = "mine"`) and hide that group.
+
+### Searching
+
+`ws rg` runs [ripgrep](https://github.com/BurntSushi/ripgrep) over the right worktree of each repo. Plain `rg` from the workspace root searches `.bare/`, `.silo/`, `.ground/` and every capsule, so every match comes back once per capsule. `ws rg` returns each match once, which matters most for agents whose context fills with duplicates.
+
+```bash
+ws rg useAuth                        # where I stand: my capsule for this repo, ground elsewhere
+ws rg --repo fe,api useAuth          # restrict to repos (names, aliases, fuzzy)
+ws rg --repo fe/login-fix TODO       # one specific capsule
+ws rg --group platform Ingress       # a whole group, hidden or not
+ws rg --ground -t go 'func Load'     # .ground everywhere
+ws rg --all FEATURE_FLAG_X           # every worktree: who else is touching this?
+ws rg -g 'src/**/*.ts' -l needle     # globs anchored per root
+ws rg --roots                        # show what would be searched, run nothing
+```
+
+Everything that is not a `ws rg` flag is passed to ripgrep unchanged, so `-i`, `-t`, `-C`, `--json`, `--files` and friends all work. Scope flags are long-form only so they never shadow ripgrep's short flags. Parsing of scope flags stops at the first ripgrep argument or at `--`.
+
+**Scope.** With no flags, the scope is "where I stand": if you are inside a capsule or `.ground`, that worktree is searched for its repo and `.ground` is searched for every other repo. Outside any worktree, `.ground` everywhere. `--ground` forces `.ground` for every repo, `--all` adds every capsule. `.bare` and `.silo` are never searched unless you name them explicitly (`--repo fe/.silo`).
+
+`--repo` takes `name` or `name/worktree`, repeatable or comma-separated. Both halves resolve like any other repo or capsule argument, except that ambiguity is an error listing the candidates rather than an interactive picker, so the command is safe to call from scripts and agents.
+
+**Output.** Paths are absolute, so each line says which repo and worktree the match came from, and you can open it from any directory. `ws` prints nothing of its own on success. Ripgrep's exit code is passed through: `0` matches, `1` none, `2` error.
+
+**Globs.** Ripgrep matches a glob containing a `/` against the printed path, not against each search root, so a multi-root search would normally make `-g 'src/*.ts'` match nothing. `ws rg` expands such globs to one per root, keeping their anchoring. Basename globs (`-g '*.ts'`) pass through untouched. Globs from a ripgrep config file (`RIPGREP_CONFIG_PATH`) are not rewritten.
+
+Do not pass positional paths; narrow with `--repo` and `-g` instead.
+
+### Spaces of documents
+
+A repo that's documents rather than code (a records repo of ADRs and proposals, a docs repo) is a **space**: `documents = true` under its `[repos.<name>]` in `ws.toml`, or at the top of its own `ws.repo.toml`. A folder of a code repo can be one (`documents = "docs/"`): its markdown under that folder. The records repo (`[missions] records`) is one without saying; `documents = false` says not, and `ws.local.toml` can turn any off for you.
+
+- **Each space is read from its default branch,** as last pulled, into the workspace's records (`.ws/ws.db`): each document's title, its sections, and the documents it cites (by a link, or named as a ref). Only what a commit changed is read again: 220 documents read in about a second, and after that a look costs a `git rev-parse` a space.
+- **`ws documents`** lists the spaces; `ws documents <repo>` a space's documents by folder, each by its title.
+- **`ws documents search <words>`** finds documents by what they say, best first, each led to the section that says it best (`repo:path#heading`). A document whose title or a heading holds the words comes before one that mentions them; words are matched by their stems (*cache* finds *caching*); a question can be asked in a sentence, the small words counting for little. It's words, not code: `AuditDispatcher` is one word to it, which `dispatcher` doesn't find (that's `ws rg`). `--space <repo>` keeps to one, `-f llm` is for agents, who may run it in a conversation.
+- **`ws show <repo>:<path>`** of a document in a space says what cites it, and what it cites.
+- **A library.** A space that the workspace's [kinds of document](#wstoml) point into is listed by kind: each kind's documents with their number or date, title, where each stands (a kind with moves: *proposed*, *accepted*, filtered by it) and who changed it last, sorted by any of them; what's of no kind is under *Other*, by folder. *New* (`n`) in a space starts a page as one of its kinds; in a space with none, it asks for a folder and a title, and the page is to be filed there. *File as…* on any page can file it of no kind, in a folder of a repo (`repo:folder/`, its name made from its title, or a file's path), landed or left in a capsule as the repo lands its changes.
+- **A space's top** says how it stands with its remote (fetched when you open it, if it hasn't been for five minutes; *N commits behind origin/main* and *Pull*, a fast-forward of its ground, refused if the ground has changes of its own), what's *in flight* (capsules of its repo with changes to its documents, and the pull request open from each, each document read as it is there), and what *changed lately* on its default branch (who, what they said, which documents). A document in flight says so on its row, and in the reader, which opens its version in the capsule (`?in=<capsule>`).
+- **Searching in the web UI:** a box at the top of *Documents* (`/`), ranked as `ws documents search` is, each document led to the section that says it best, with its words marked; kept to a kind, and where one stands (*accepted build proposals about export*). Find (`⌘K`) has the spaces' documents as a group of their own. A space's document, read, lists below it what cites it and what it cites.
+- **In the web UI,** *Documents* (`g d`) is *Local* (your pages that aren't in a space) and then each space, with its top folders; a space opens on its documents by folder, each by its title, read in the reader. A page that will live in a space is listed there as your draft, not in Local: one tied to a file there with something to save, one started as a kind whose path is there and not filed yet, and one filed there that hasn't landed. A page tied to a file with nothing to save isn't listed: the document is. In *Files*, a repo that's a space is folded into *In Documents*, at the foot of the list.
+
+### Finding what's been said
+
+`ws find <words>` finds what's been said by what it says, best first: in any mission (each decision, what was decided and why; its brief, section by section; its handoffs and other files in `files/`; its threads), in the workspace's conversations and passes, in pages (section by section, as each reads: its cells' words, not its questions), in artifacts (each one's title and its versions' notes), and in reviews (a mission's and a pull request's) and their comments. Each thing is found once, led to the place in it that says it best (a thread's turn, a section of a brief), with where it's read (a mission, the workspace, a pull request), how it stands, and its words marked.
+
+```bash
+ws find token cache                  # what ws records, then the spaces' documents
+ws find "who coined hello world"     # a question, in a sentence
+ws find sha256 -m house-sorting-cli  # only what's said in one mission
+ws find webhook retries -f llm       # for agents: each with the command that shows it
+```
+
+- **Ranked as `ws documents search` is.** Words are matched whole and by their stems (*cache* finds *caching*); every word counts for what it's worth (a rare one for more, *the* for nothing), so a question can be asked in a sentence. A thing whose title holds the words comes first (a decision is titled by what was decided, a mission's brief by the mission's title), more so the more nearly its title is just that; one that says every word that matters, before one that says some (and says so).
+- **What's in play first.** What's of an archived mission, or a decision since superseded, comes a little below what's in play; a withdrawn decision not at all, unless `--withdrawn`. Ties go to the newer.
+- **The spaces' documents are a group of their own,** the best five (`ws documents search` has the rest): their ranking is against one another, not against what ws records. `--mission` leaves them out.
+- **Kept with the records.** What each says is written with it, in the same transaction (`.ws/ws.db`), so a decision is found the moment it's made. A mission's brief and its `files/`, a page's file, and an artifact's `artifact.toml` can be edited outside ws: each is kept with its size and time, and those (of missions in play, of pages and of artifacts) that have moved are read again before a search. A dismissed finding isn't searched, and what a cell's agent writes is found as the page's words, not the conversation's.
+- **`ws doctor --reindex`** has every store say its words again from its records: what a change to what's searched needs. A workspace already in the records is read in when the daemon first starts after updating ws.
+- **Agents** are told of it: crew, the orchestrator and conversations' agents may run it.
+- **In the web UI,** Find (`⌘K`) has it as *Said*, after *Documents*: a line each, like a document's, with its words after its title and where it's read (a mission, a pull request) beside them; the card beside the list says what it is and where, with its words, those found marked. Choosing one goes to the thing's page: its mission (the *Brief* tab, for a section of the brief; *Summary*, for a decision), the review of its capsule or pull request, a handoff's page, the document a thread is on, the conversation, or the page a cell or a pass is of. `⇥` keeps to it (and to *Documents*, from one of theirs).
+
+### Missions
+
+A mission is a unit of work that the workspace owns: a brief, the capsules that carry it out (possibly across several repos), and a log of what happened. Capsules are still the building block. A mission just says which capsules belong to one piece of work, and remembers it after the agents and terminals that did the work are gone.
+
+```bash
+ws mission new "Fix token refresh race"     # creates it and opens the brief in $EDITOR
+ws mission                                   # list missions (alias: ws mission list)
+ws mission show fix-token-refresh-race       # brief, capsules, PRs, recent log
+WS_MISSION=fix-token-refresh-race ws lift fe token-race   # new capsule joins the mission
+ws mission attach -m fix-token-refresh-race api token-race   # add an existing capsule
+ws mission note "Went with a mutex, not a channel"
+```
+
+**Which mission.** Commands that act on a mission take it from the slug argument or `-m/--mission`, then `$WS_MISSION`, then the mission owning the capsule you are standing in.
+
+**`WS_MISSION`.** With it set, `ws lift` and `ws dock` attach the new capsule to that mission and print one extra `→ mission <slug>` line. `ws status -f llm` gains a short mission header. Without it, those commands behave exactly as they always have. Burning or debriefing a capsule that belongs to a mission logs the burn there. The capsule stays listed (as burned) so its PR still counts.
+
+**State.** `draft` (nothing live yet), `active`, `review` (every capsule has a PR), and `landed` (every PR merged) are worked out from git and GitHub each time, so they never drift. A mission with a plan is where it is on its plan instead: `draft` until a step starts, then `active`, with the step it's at in words (*Step 2 of 7, yours: Is this the cause?*, *Step 1 of 7: Reproduce it as a failing test (c1)*), shown as *At* in `ws mission show` and on its page, and as *Step 2 of 7* in the list; its pull requests are facts its steps read, not its state, so merging them doesn't end it. A mission ends `landed`, `answered`, `handed-on` or `dropped` when you say (see *Endings*). `ws mission park`, `ws mission archive` and `ws mission reopen` set the two manual states; reopening a mission that's ended, and neither parked nor archived, takes its ending back. Archived missions are hidden from the list unless you pass `--all`. An archived mission is cleaned up: archiving burns its capsules. Once each one's pull request has merged at the commit the capsule is at (or it landed from there), with nothing uncommitted, that's one click. Otherwise archiving is refused, saying which haven't merged and why (*api/retry (it has moved since #88 merged)*), and you agree to burn them anyway (*Archive and burn* in the web UI, `ws mission archive --burn-all`): their branches are kept, and what's not committed is lost. It's refused while crew are at work on it, as ending it is. A burned capsule's branch is kept, so its pull request is still found; reopening the mission doesn't bring the capsule back.
+
+**Brief.** `brief.md` is yours. `ws mission new --brief "..."` or `--brief-file path|-` writes it without an editor. Agents add to the log with `ws mission note` rather than editing the brief.
+
+**Where you work on them.** Missions are run from the web UI (`ws web`; see *Web UI* below): the missions, what needs you, crew's conversations and terminals, review. `ws mission …` does the same from a shell, and is what agents use. (ws had a terminal UI for missions, `ws deck`; the web UI has taken its place.)
+
+**Whose court it's in.** Every mission's ball is in one court: an agent's (crew, a briefing agent or the orchestrator is on it), yours, or outside (waiting on GitHub: reviewers, checks, a merge). Only an archived mission has none. Each mission has one **headline**: a sentence saying where it stands, and the one action that moves it on, even when that's "nothing for you to do". A mission's page leads with it, with a button for that action: going to crew that asked you something, want a permission or are waiting for your reply, answering a flag, opening a re-review, launching queued crew, resuming crew the orchestrator suggested, accepting a stage, opening a PR to merge, or archiving. The web UI and `ws mission show` give the same headline, worked out in one place.
+
+The missions list groups missions by whose court they're in, each shown by its title with its headline's short label:
+
+| Group | Court | When | Label |
+|---|---|---|---|
+| **Needs you** | yours | crew ask, want a permission or have finished their turn; the orchestrator asks, queued crew, or suggests resuming crew; a capsule is back for your re-review; a PR's checks fail, its review asks for changes, or it's ready to merge; crew report a stage done with the orchestrator off; a step of the plan is yours, or one waiting on CI or outside looks to have happened (every PR merged); an ending is suggested, or every step of the plan is done; a conversation about it proposed something to confirm; or crew have worked on it and nobody is now | `? asks`, `? permission`, `◐ waiting`, `! asks you`, `→ next crew`, `↻ resume`, `↻ re-review`, `✗ checks`, `✗ changes`, `✓ merge`, `✓ accept`, `✓ yours`, `✓ wrap up`, `↩ to confirm`, `idle` |
+| **In progress** | an agent's | crew working, a briefing agent briefing, crew launching, the orchestrator deciding (from the moment crew report done or end by themselves) | `● working`, `● briefing`, `… starting`, `◆ deciding` |
+| **Waiting** | outside | a PR waiting for review, or its checks running; a step of the plan that's CI's or outside ws's, until it's happened | `in review`, `◌ checks`, `⧗ waiting` |
+| **Up next** | yours, when you're ready | waiting to be briefed, briefed but never started, parked | `to brief`, `ready`, `parked` |
+
+When several things apply, the headline is the most pressing: anything of yours first, then an agent at work, then waiting on others. The rest are listed under it on the mission's Summary. PRs are looked at only where no crew are at work in their capsule: crew fixing red checks have them in hand.
+
+Landed, ended and archived missions are behind *Show past* (`⇧A`). *Park* beside a mission's state puts it aside, and *Unpark* takes it back. Attaching and detaching capsules (`ws mission attach`, `ws mission detach`) and capsules that belong to no mission (`ws status`) are the shell's.
+
+**Briefing.** A mission starts as a request: `fe issue 45`, a pasted issue URL, or a sentence, from a conversation whose agent proposes it, or `ws mission new "<request>"`. Until its brief and plan are confirmed it's an idea, *to brief* (there's no state for it: a mission raised from words is to brief until it's confirmed), and *Brief* on its page starts a briefing agent. Its only job is to turn your request into a brief and a plan you confirm:
+
+1. Work out what you mean: repos and aliases from `ws status -f llm`, issues and PRs with `gh`, code in `.ground`.
+2. Ask you about anything unclear.
+3. Write the brief with `ws mission brief --set -` (its purpose: goal, context, constraints, acceptance), and name the mission with `ws mission title`: a terse, plain-English name of at most 50 characters, which is how it reads in the missions list.
+4. Write the plan, from the brief and the workspace's process, with `ws mission plan --set -` (see *The plan*), asking you where you want to check in.
+5. Dock existing work it builds on, if any (`ws dock`): capsules aren't the brief's. The plan's steps name their repos, and ws lifts a capsule when each starts.
+6. Check with you, then run `ws mission ready`.
+
+The briefing is a conversation in the web UI, on the brief's own page (`/missions/<slug>/brief`, where *Brief it* goes): the brief and the plan as documents, with an ask bar at the foot that talks to the agent. The agent asks there, and proposes the brief and its plan rather than writing them; each draft after the first is shown in them as tracked changes since the one before, to accept or decline passage by passage, and then to edit in place. Nothing's written until you confirm. **Confirming its proposal is the go-ahead** (*Confirm and start*, or `mod+⏎`): the mission is recorded confirmed, by you, and starts at once: ws reaches the plan's first step (its crew start, or the step waits for a call). `in = "terminal"` under `[briefing]` runs it as crew in a terminal instead, as described above; so does having no harness that can hold a conversation. Agents that suggest a mission (`ws mission new`) brief it this way too, without a conversation.
+
+**A brief can start small.** "Find out why invoice totals are off by a penny" is a clear brief, its acceptance the cause named with where and why, and its plan finds that, then plans the rest (a *Plan* step). When what's found changes what the mission is for, the planner proposes its new brief (goal and acceptance) and the plan to get there, as one proposal in its conversation. A change to the brief is always yours to confirm, and confirming it is the go-ahead: the mission moves on (past the planner's step, or the orchestrator looks at the plan as it is now). Like any revision, it can't change the steps behind the mission.
+
+`ws mission ready` refuses until the brief is written and, for a briefing agent, the plan is (`--no-plan` to go without; then a capsule has to exist, `--no-capsules` if none is needed), can rename the mission (`--slug`), records the briefing agent as `briefed` and ends its session, and confirms the brief: the mission starts as above. A mission without a plan waits for you to launch its crew. A briefing agent asking you something puts its mission under **Needs you**; one nobody has started briefing waits under **Up next**. Stop a briefing early and its page offers to resume it.
+
+`ws mission new "<what it is>"` works from an agent too: the mission is an idea, to brief. Crew that spot something outside their mission are taught to raise it this way; the new mission records which mission and crew raised it. Raised from inside a mission (crew, or the orchestrator), one that looks like a mission in play is refused, naming it, so what was found is noted there (`ws mission note -m <mission>`) rather than raised twice; `--distinct` raises it anyway, for different work. Alike means sharing names from the code (paths, identifiers, test names, environment variables), not just words. To create a mission ready, with a brief you write yourself, pass `--brief`, `--brief-file`, `--edit` (opens `$EDITOR`) or `--no-edit` (the template).
+
+The same commands work by hand: `ws mission brief` prints or replaces a brief, `ws mission plan` its plan, `ws mission title` renames (at most 50 characters), and `ws mission ready` finishes a briefing. Crew can only change the brief or title while briefing; after that they belong to you (and the orchestrator, which names a mission still titled with the request it was raised with).
+
+**Crew.** *Launch crew* on a mission's page starts an agent on it (with crew already at work, the headline goes to them; launching more is beside it). It starts in one of the mission's capsules, with `WS_MISSION` and `WS_CREW` set, and is told to read the mission with `ws mission show`, so the capsules it lifts join the mission. Each launch is recorded on the mission as crew (`c1`, `c2`, …) with how it ended. Crew get `.ws/bin` first on `PATH`, where `ws` and `workspace` point at the binary that launched them, so the commands they're told to run always match the version running them. Crew and the orchestrator also get `GIT_CEILING_DIRECTORIES` set to the workspace's `repos` folder: `repos/<repo>/` holds a repo's clone and capsules but isn't a repository, and git run there would otherwise answer for the workspace's own config repo (an agent once took its commit for the repo's). `ws mission show -f llm` lists each repo's default branch, the commit its `.ground` is at, and where to read it.
+
+- **Several crew.** A mission's page lists its crew, each saying what it's doing and what it was dispatched for; each has a page of its own (see *A crew's page* below). Launching more puts them in a capsule nobody is working in, and refuses when every capsule has crew at work: two agents in one worktree edit the same files. Crew that have reported done (`✓`), or finished briefing, have handed their work back and don't count as working: launching in their capsule ends their session first (logged; their page resumes it later).
+- **Working or waiting.** A crew says what the agent is doing: working, waiting (it has finished its turn and is waiting for you), or asking for a permission. ws knows this from the agent itself: it installs hooks in each crew session it launches (Claude Code through `--settings`, Cursor through a plugin, pi through an extension, each for that session only, alongside your own), and the agent reports when you've sent it a message (working), when its turn ends (waiting, with what it said, which the mission's Summary and the notification show), when it asks you something with its question tool (asking, with the question and its options, rather than "needs your permission": Claude Code's, and Cursor's on the models that offer it, which `ws doctor --fix` enables as it does Cursor's other hooks), and, for Claude Code, when it needs permission (for pi, when one of your extensions' dialogs is waiting for an answer). Where there are no hooks (the `shell` harness) ws judges from the screen: still for 5 seconds means waiting. Whenever a mission's ball lands in your court (crew go quiet, ask or want a permission, the orchestrator flags you or queues crew, a capsule comes back for re-review, a PR is ready to merge…), the web UI's tab gets a dot, and, if you've turned them on, a desktop notification while the tab is in the background.
+- **Cursor's hooks need one thing from you.** Cursor runs a plugin's hooks for an event only if your own `~/.cursor/hooks.json` has a hook for it too. `ws doctor` checks this (once missions exist and the Cursor CLI is installed), and `ws doctor --fix` adds hooks for `beforeSubmitPrompt` and `stop` that do nothing (`/usr/bin/true`), keeping everything already there. Without them, ws still learns Cursor crew's session id, but judges working or waiting from the screen.
+- **Ask and done.** Crew are taught to say where they are. `ws mission ask "<question>"` marks them `?c2 asks` with the question; `ws mission done "<summary>" --handoff -` marks them `✓c2 done` (see Handoffs below), and hands the ball to the orchestrator. Each stands until you send that crew a message. A crew asking or waiting moves its mission under **Needs you**. Crew are taught not to report done while a question of theirs is open.
+- **Artifacts.** The mission view lists what the mission has produced (its *Outputs*, in the web UI): each capsule's PR (found from its branch, so a mission in several repos lists one per capsule), then the artifacts recorded on it, grouped by kind, each with where it is now. Once every PR is merged it says the mission has concluded, and *Archive* archives it. See [Artifacts](#artifacts) below.
+- **Harnesses.** A harness is the agent CLI crew run in: `cursor` (the Cursor CLI, the default), `claude` (Claude Code), `pi` (the pi coding agent) or `shell` (your `$SHELL`). Crew run the one configured for crew (see [Agents](#agents) below). If the mission's last crew can be resumed (the agent reported a conversation id), the mission's page offers to resume it beside launching new crew. Resuming continues the same crew: same `c1`, same conversation and harness, back in the capsule it worked in.
+- **The daemon.** Crew run in a per-workspace daemon, not in whatever launched them, so they keep working when you close the browser or the terminal. It also runs the orchestrator and conversations' agents (one run at a time per mission or conversation), serves the web UI and watches the missions' PRs. It starts when it's first needed (a launch, `ws web`), logs to `.ws/daemon.log`, and stays up until it's closed, however long nothing's running or open (a laptop's sleep doesn't take it down). `ws daemon status` shows what it holds; `ws daemon stop` closes it, hanging every crew up. Crew it hangs up that nobody asked to stop (a restart, an upgrade, `ws daemon stop` itself) are recorded as interrupted, and the next daemon resumes those still at their work as it starts: crew that were mid-turn are told the daemon shut down under them and to carry on, crew that were waiting for you are reopened as they were. Crew that had handed their work back, whose capsule later crew have worked in since, or whose mission has ended or is parked are left as they are. Each is looked at once, and the daemon's log says what it did with each. It also keeps the workspace's records, `.ws/ws.db`, which only it opens: a command that reads or writes one asks it over `.ws/store.sock`, starting it if it's down. A command in a sandbox that closes sockets (Codex's) has to run outside it. Conversations and threads are kept there (a run's transcript stays a file, `.ws/conversations/w4.run`, or in its mission's `conversations/`). The first time the daemon starts each day it copies the records to `.ws/backup/ws-<date>.db`, keeping the last three. `ws doctor` checks the file is sound, says when the workspace is somewhere SQLite's write-ahead log isn't safe (a network disk, or a folder iCloud Drive, Dropbox or the like copies), and finds files under `.ws` that no record has (what a write that didn't finish left, or what was kept before the records): `ws doctor --fix` moves them aside, to `.ws/swept/<date>/`, where they can be put back from.
+- If the daemon dies, crew it left recorded as running are marked `lost` when it next starts, and an orchestrator run it was in the middle of is run again.
+
+**Orchestrator.** When crew report done (at a Work step with checks, once ws has checked it and found something unmet: see *Checks*), a Work step runs out of time, crew end by themselves (not when you stop them), finish a turn without asking or reporting done after a message ws sent them (their opening prompt, or the orchestrator's nudge), or one of the mission's PRs fails its checks, gets changes requested or merges while no crew are at work in its capsule, ws runs the orchestrator: a headless agent (`cursor-agent -p`, `claude -p` or `pi -p`) that reads the brief, the log, the crew so far, each capsule's diff and PR checks, and the end of the latest crew's output, then decides what happens next. There's no fixed plan: if the brief says "write a proposal and commit it to docs, then a new agent implements it", the orchestrator sees from the history that the proposal is done and dispatches the implementation. It acts only through `ws` commands, so a mistake comes back as an error it corrects:
+
+| Command | Means | In the web UI |
+|---|---|---|
+| `ws mission note "Orchestrator: …"` | What it found and decided, always one | In the log, read by its next run |
+| `ws mission accept "<why>"` | The current stage's (or plan's step's) work is complete and good enough: the next becomes current (the why is optional, and recorded) | Stages, or the plan, on the mission's Summary |
+| `ws mission dispatch "<what to do>" [--capsule repo/name] [--stage n]` | Start fresh crew on the next piece of work, on the current stage (or stage n) | Crew appears under the mission, with *joined (dispatched)* and a notification |
+| `ws mission resume-with <crew> "<what's left>"` | That crew should carry on | Crew still running get it typed straight in (it counts toward the dispatch limit). Ended crew: the mission's page offers to resume it, and types the message in |
+| `ws mission pr-ready [<repo>]` | The Open Pull Request step's draft, its checks green, is ready for review (as the process says) | The pull request is marked ready on GitHub; held by `review_before_ready` |
+| `ws mission start [--in <repo>]…` | The step waiting for its call starts (one that applies only if, or runs in each of the repos named) | The step under way, with its runs |
+| `ws mission skip "<why>"` | The step waiting for its call doesn't apply (its only if doesn't hold) | The step marked skipped, with why |
+| `ws mission repeat [--in <repo>] "<why>"` | The Work step starts again with fresh crew, another attempt, within `max_rounds` | New crew on the step; its attempt on the mission's page |
+| `ws mission limit [--step n] <45m\|1h>` | The step has longer, from now (its time ran out, and the process says crew may have more) | The step's clock on the mission's page |
+| `ws mission flag "<question>" --option "<answer>"…` | Something only you can decide, or the brief says to check with you first | A task of yours: `! asks you` on the mission, the question and its answers on its page, with a box for your own and *Ask an agent*; your answer goes to the orchestrator, which acts on it. One open at a time: asking again takes its place. *Dismiss* dismisses |
+| `ws mission new "<follow-up>"` | Separate work worth doing | A new mission waiting to be briefed, raised from this one |
+| `ws mission conclude "<what it came to>" --as <ending> --met "<n>: <how>" --unmet "<n>: <why not>"` | How it ends (landed, answered, handed-on, dropped), each part of Z checked | `✓ wrap up` on the mission: the ending and Z as checked, *End it* ends it (see *Endings*) |
+| `ws mission hand-on <repo>/<capsule> "<what for>"` | A capsule's work belongs in a mission of its own (as a plan may say of a repo that fails) | A mission raised for it, which takes the capsule; this one lists it as handed on |
+| `ws mission replan "<what doesn't fit>"` | The plan no longer fits what's happened (once at a step; after that it flags you) | The planner at work in its conversation; its revision applies, with the log saying what changed, or comes to you when it touches a checkpoint or Z (see *Revising*) |
+| `ws mission wait "<what it waits on>"` | Nothing should happen until something ws can't see does (a teammate, another team's deploy) | `⧗ waiting` under **Waiting**: nothing for you to do. Anything happening on the mission clears it |
+
+**Watching PRs.** The daemon looks at the missions' PRs every two minutes while it's running (it shares what GitHub said with the web UI). Each capsule's PR is recorded as last seen, so a change is noticed once, and also when it happened while nothing was running: the next look catches it. Each change is logged as an event of its kind (*api#88's checks are failing*, *api#88 conflicts with its base*, *api#88 merged*, *api#88 was closed without merging*). A PR at its Open Pull Request step is that step's (see *Looking after a pull request* under *The plan*). Any other: red checks, a conflict, requested changes, a merge and closing it run the orchestrator, unless crew are at work in its capsule; approvals and passing checks only change the headline (*ready to merge*). Parked and archived missions aren't watched.
+
+A run that runs no `ws mission` command at all (a model that takes one refused command for "the shell is denied" prints what it would run instead) is run once more, told so and that its shell works. If it still does nothing, or can't run at all (a sign-in that's run out, say), ws flags you with what it said, so the mission is yours rather than nobody's; answering runs it again with your answer.
+
+Every run leaves the mission in someone's court: crew carrying on, a question for you, a stage accepted and the next started, a suggested conclusion, or waiting on others. It's told where the mission stands if it does nothing; a note alone is enough only when that's already yours for something ws shows you (crew asking, a re-review, a PR to merge), and otherwise leaves you a mission nobody's working on, with its note. Whose message crew finished their turn on decides who looks: after yours (from its page, or Enter in its terminal), it's answering you, so it's yours; after ws's, the orchestrator looks first, so a crew that stops to say "shall I write tests too?" gets an answer or a nudge, or the question comes to you as a flag.
+
+**What it waits on you for: tasks.** A mission keeps what it waits on you for as tasks, a queue, oldest first: a question the orchestrator (or crew) asked you, and each step of the plan that's yours (a Review to review, a Decide to answer, a Land to land) or that ws waits on you to start (a stage to go on to, a pull request to open once you've reviewed it). The oldest is the mission's headline, and each has its own: a question asked while a step is yours doesn't take the step's place. A step has one task, asked again in its place; each asker has one open question, asking again in its place. `ws mission show -f llm` lists them by number, and the orchestrator is told them, so it doesn't ask what's asked already. A mission from before tasks has its one question (its flag) as a task.
+
+**Answering.** `ws mission answer "<text>"` answers the oldest task, `--task <n>` another; the mission's page answers the one its headline is. A question's answer is logged as a decision, counts as you stepping in (the dispatch count starts again), and runs the orchestrator with your question and answer, so it dispatches, resumes or concludes as you said. At a step of yours, *Go on* passes it (or starts it, where ws was waiting on you); *Not yet* leaves it yours (a stage ws asked to start waits, and launching crew starts it); anything else is logged as a decision and goes to the orchestrator, the step staying yours. A Decide step's answer is the decision, and passes it. Questions usually come with two or three answers the orchestrator would act on: the page offers those, a box for your own, *Ask an agent* and *Dismiss*. Asking an agent starts crew (the crew harness and model, in the workspace root) whose one job is the oldest question: it's told the question and the suggested answers, not the whole brief; it finds out what's needed (runs the tests the orchestrator can't, reads the capsules) and answers with `ws mission answer`, which counts as your answer. It doesn't do the work the answer leads to: the orchestrator dispatches that. While it works, the mission shows it working rather than asking you. *Dismiss* (or `ws mission flag --clear`) puts aside the oldest question (or a stage ws asked to start), not a step of yours: go on, or change the plan. The orchestrator doesn't flag what crew already asked you: you answer the crew. With `[orchestrator] enabled = false`, answering a question logs it, and the rest is up to you.
+
+**Dispatch.** Dispatched crew start fresh, told the brief, what they're dispatched to do (where earlier crew's output is, what to watch for) and where earlier crew left off (see Handoffs below), and do only that part before reporting done. They run in the daemon, so the orchestrator can move a mission on with nothing open; the web UI shows them. If the next crew needs a capsule the mission doesn't have, the orchestrator lifts one first. You can dispatch by hand too (`ws mission dispatch -m <slug> "<what to do>"`). Briefing agents write a plan (below), with your checkpoints in it; a brief written by hand can still list `## Stages`.
+
+**The plan.** A mission's route from A to Z, `plan.md` beside its brief: what Z is (what has to be true for the brief's purpose to be met), where it may stop early, and its steps in order, each one of the kinds of step ws knows. The briefing agent (the planner) writes it from the brief and the workspace's process, as it's written (see *The process*), following the route the process gives the kind of work this is, and you confirm it with the brief. ws reads it strictly and refuses one that isn't right, saying every problem and its line (`ws mission plan --format` says how it's written, with every kind of step and what each takes):
+
+```markdown
+## Z
+- Merged, with its regression test.
+
+## Stops early
+- It can't be reproduced, or isn't a bug: that's an answer for product.
+
+## Steps
+1. Work: reproduce it as a failing test, and find the cause. "Bugs are reproduced first"
+   - in: `api`
+   - limit: 1h, less if you like
+   - makes: the failing test, and the cause
+   - check: `go test ./invoice -run TestTotalRounding` fails
+   - check: the test fails because of the cause the handoff names
+2. Review: the failing test, and is this the cause?
+3. Work: fix it.
+   - carrying on from: 1
+   - on: claude:haiku
+   - check: `go test ./...` passes
+   - check: it fixes the cause, not the symptom
+4. Review: is the fix right?
+5. Open Pull Request
+   - in: `api`
+6. Decide: does it go to pre and prd now?
+   - only if: it changes what pre and prd run
+```
+
+- **Kinds of step.** Each step starts with its kind, then what it's for after a colon; under it go its parameters, only those its kind takes. ws does the rest of each step, the same for every mission:
+  - **Work**: crew do a piece of work, `in` a repo (`api`: ws lifts a capsule there for the mission, if it hasn't one, when the step starts) or one of the mission's capsules (`api/invoice-total`), `on` a harness and model if the step says, and what it `makes`. Fresh crew, unless it's `carrying on from` an earlier Work step: then that step's crew carry on, told the new step (typed in if they're still running, resumed if they've ended; fresh crew told to read their handoff if they can't be). With no `check`s, done when they report done, as the orchestrator judges; with checks, see *Checks* below. A `limit` puts it on a clock (see *The limit*).
+  - **Review**: yours, a checkpoint: a review of what the steps before it made, back to your last step (the capsules their crew worked in, and the documents made there). What the plan put under review is yours to approve: those capsules, and a document the plan names by its path (in the Review step, or in the text, `makes:` or checks of a step it looks at). Crew's other documents, their notes and handoffs, are to read beside it. Its task is a review (*Step 2 is yours, to review: the fix. Review api/fix: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: docs/why.md.*), with *Review api/fix* and *Read why.md* on the mission's page (`v` opens the first). Your reviews approving what's to approve as it is now (each capsule at its head, each named document as it reads) pass the step; a review asking for changes goes to the orchestrator, which sends it back to the crew who made it, and the step stays yours, to review again. *Go on* passes it as it is; *Send back*, with what's to change in your words, goes back to the crew the same way. Where the steps before made nothing to approve (findings in words, or only notes), you read what they found and go on.
+  - **Decide**: yours, a question (`from` where the options are, if they're written down). Your answer is recorded as a decision, and passes the step.
+  - **Open Pull Request**: ws's own. It opens the pull request from the mission's capsule in the step's repo (a `draft` if the step says), titled as the mission is and described from the handoff of the crew who worked there, holding the guarantees (with `review_before_pr` on, it asks for your review first, and opens it once your review approves it). It doesn't open one that would conflict from the start: when the capsule doesn't merge cleanly onto its base (main moved on while it was built), it goes back to the crew who worked in it, told what conflicts and to merge main in (not rebase), and their done opens it; past `max_rounds`, or with no crew to send it to, it's yours to merge, and going on opens it. Opening one by hand or by crew (`ws mission open-pr`) is refused the same way, naming what conflicts. It looks after it while it's open (below), and the step passes when it merges; the orchestrator can't pass it before. Crew at other steps commit and don't open one.
+  - **Land**: yours, for a repo with no pull requests: ws asks you to land the capsule, and the step passes once it's landed.
+  - **Wait**: for something outside ws (a deploy, a teammate); the orchestrator (or you) passes it once it's happened.
+  - **Plan**: the planner writes the steps after it (see *Revising*).
+- **The orchestrator's calls.** There's no branching in a plan: when a step applies, and where it runs, are words, which the orchestrator applies, and ws records what it decided.
+  - **`only if:`** (any kind of step): it doesn't always apply. Reached, it waits for a call: the orchestrator is run (trigger `step`), and starts it (`ws mission start`) or skips it, saying why (`ws mission skip "<why>"`), by what the steps before made and the process. A step without `only if` always runs: the orchestrator can't skip it (if the plan no longer fits, it asks the planner), and can't accept a step that's waiting for its call. With the orchestrator off, it's yours: *Go on* or *Skip it*. A skipped step shows as skipped, with why (`ws show s2`, the mission's page).
+  - **`in each:`** (Work and Open Pull Request, in place of `in:`): it runs in several repos, said in words (*repo of the workspace*, *repo where step 1 made changes*). Reached, the orchestrator names them (`ws mission start --in api --in web`), and it runs once in each: crew in each repo's capsule (lifted where the mission has none), or a pull request from each. Each run is done when its crew report done (with its checks met, where it has them), or its pull request merges; the step is done when every run is, and the orchestrator can't accept it before. A step that carries on from one that ran in several repos runs in the same ones, each run's crew carrying on. Starting a step's runs counts as one dispatch toward the crew ws starts without you; with `[orchestrator] dispatch = "ask"`, they're queued one at a time, the next as each is launched. With the orchestrator off, you name the repos in your answer (*api, web*).
+  - **`ws mission repeat "<why>"`**: the Work step the mission's at, started again with fresh crew, another attempt (`--in <repo>` for one run of a step in several), when resuming the crew won't do. The orchestrator may, within `[missions] max_rounds` attempts; after that, it's yours.
+- **Looking after a pull request.** While an Open Pull Request step's pull request is open, what happens to it is the step's, and how it's looked after is the process's to say (*Tend to my pull requests: fix failing checks, and consider review comments…*), which the orchestrator reads:
+  - **Red checks, or a conflict:** a round of fixing, put to the orchestrator (trigger `pr`, told what happened since its last run and the round), which resumes the crew who worked in its capsule with what failed, or asks you, as the process says. After `[missions] max_rounds` rounds it's yours: a question, *Fix it* or *Leave it to me*. Crew at work in the capsule have it in hand.
+  - **A draft whose checks pass:** with `review_before_ready` on, your review first: ws asks for it, and marks the draft ready once your review approves the capsule as it is. Otherwise it's the orchestrator's call by the process: mark it ready (`ws mission pr-ready`), or have you review it first. With the orchestrator off, it's yours: *Go on* marks it ready.
+  - **What's said on it:** a review with something to say, a comment, or a comment in a review thread, by anyone but you, is news, logged with who said it and where (*bob on api#12, `cache.go:12` (thread PRRT_kw1): Why a map?*), and the orchestrator's to act on by the process: crew resumed to fix what's asked, or to draft a reply, or you asked.
+  - **Replies:** crew draft one with `ws mission reply api#12 --thread <id> "<text>"` (a review thread), or `--to <login>` (the pull request's own conversation). ws posts it on GitHub as you. A reply to a person waits for you first (`replies_need_me`, on unless set off): a task, *Post it* or *Don't post*, with the reply in it. A reply to a bot is posted at once.
+  - **Closed without merging:** the orchestrator's call; with it off, yours.
+- **Checks.** A Work step's `check:` lines (as many as it needs) are what has to be true for it to be done. When its crew report done, ws checks the work, before the orchestrator or you look at it (the headline says *ws is checking step 1*): a check that's a command in backticks followed by `passes` or `fails` (`` `go test ./...` passes ``) ws runs in the step's capsule (in the daemon, up to 15 minutes, as you would from a shell), met when it exits as the check says, can't tell when it can't run at all; anything else, in words, the judge judges (below). Each is *met*, *unmet* or *can't tell*, with what shows it (the end of the command's output, or the judge's words), and every round is kept on the step (`ws show s1`, the step on the mission's page, the log). **All met:** ws passes the step, and reaches the next, without waking the orchestrator. **Unmet:** the orchestrator is run with what's unmet (trigger `checks`), and decides by the process: back to the crew (`ws mission resume-with`), or yours. It can't pass the step itself. After `[missions] max_rounds` rounds unmet (3 unless set: see *Guarantees*), or with the orchestrator off, it's yours: a task, *Pass it* (as it is) or *Send it back* (to the crew whose done it checked, with what's unmet), or your own words for the orchestrator. **Can't tell:** yours, the same. You can always pass the step yourself (`ws mission accept`). A plan revision that adds a command ws hasn't been given to run before is yours to confirm, as a checkpoint removed is.
+- **The judge** judges the checks in words: an agent that didn't do the work, run once, headless and read-only (it may read the capsule, and `ws show`, but change nothing), told the step, its checks, the crew's handoff, what ws ran, the mission's documents and the capsule's diff. It runs on `[judge]`'s harness and model (in `ws.toml`, `ws.local.toml` or Settings), else the planner's: briefing's agent and model. One that can't be asked makes its checks *can't tell*. Its latest run is kept beside the mission (`judge.log`).
+- **The limit.** A Work step's `limit:` (`45m`, `1h`, `1h30m`, with words after it if they help) is how long its crew have: ws holds the clock from when they start on it. Crew may give themselves less (`ws mission limit 45m`), never more; the orchestrator and you may give it more (`ws mission limit [--step n] 1h`; with no duration, the step's limit again). When it runs out while crew are still at it, the daemon says so, once (it looks every minute): the orchestrator is run (trigger `limit`) and decides by the process (more time, have them wrap up, or yours); with it off, it's yours, a task: *More time* or *Wrap up* (ws tells them to commit what they have and report done with what they found).
+- **Before kinds of step,** a plan said who's on each step (``- who: crew, in `api/x` ``, `you`, `CI`, `outside`, `the planner`) and what it makes; one written so still reads, each step the kind its who: is (crew Work, you Review, CI and outside Wait, the planner Plan), and a crew step that makes a pull request has its crew open it, through ws, as before.
+- A step the process asks for ends with the process's words in double quotes, which have to be in `PROCESS.md` as it is when the plan's written. A step that's yours (Review, Decide, Land) is a **checkpoint**: nothing else passes it.
+- **Written** while briefing: in a conversation, the agent proposes the brief (`ws mission brief --propose`), then the plan (`ws mission plan --propose --set -`), which comes with the brief as one proposal of both: the brief's own page shows the brief and the plan (as does its card in the conversation), and *Confirm and start* writes both, as you left them, and starts it. Proposing the brief again keeps its plan. A briefing agent in a terminal writes it with `ws mission plan --set -`, and `ws mission ready` wants it there (`--no-plan` to go without). The plan is yours, and the planner's while briefing: crew and the orchestrator can't change it. You can edit it on the brief's own page (*Edit* on the mission's *Brief* tab, or `e`), where a plan ws can't read is refused with every problem shown under it, or with `ws mission plan --set -`; in the mission's *Talk*, its agent can propose an edit to it; once it's briefed, the planner revises it (see *Revising*).
+- **Followed.** A mission with a plan works from its steps in place of its brief's stages: they're its stages to ws (the progress, `ws mission accept`, `--stage n`, `ws show s2`). When a step is accepted, ws reaches the next by its kind, as above. The orchestrator is given the plan (Z, where it stops early, and the steps with their kind, who's on each and their progress) in place of the stages, and a shorter prompt than a mission without one: ws holds the route, refusing what isn't the orchestrator's (passing a step of yours or the planner's, dispatching crew to a step that isn't Work or isn't reached yet, accepting an Open Pull Request before it merges), and when the plan no longer fits it asks the planner (`ws mission replan`), once at a step, and after that you. `ws mission show` (and `ws show`) lists Z and the steps; `ws mission plan` prints it; the mission's page shows it under the brief, and its steps in the details (*Plan*), marked *yours* at a checkpoint and *ws opens it* at an Open Pull Request.
+- **Revising.** The planner comes back to the plan in the conversation the mission was briefed in (or one ws opens for it, on the mission's *Talk* tab), on briefing's agent and model: at a step of its own, where ws asks it (*The mission has reached step 3, yours: Plan the fix. Write the steps after it…*); when the orchestrator says the route doesn't fit what's happened (`ws mission replan "<what doesn't fit>"`, once at a step); and when you ask (*Ask the planner* on the plan, `ws mission replan "<what to change>"`, confirming a replan a mission's conversation proposed, or saying something in its conversation). It reads where the mission stands and what the steps before made, and writes the whole plan again with `ws mission plan --propose --set -`, which ws reads strictly and against how far the mission's got. **The steps behind the mission stay as they were**: those passed, and the one it's at once crew have begun it (or the planner's own): a revision that changes one is refused, saying which, yours too. **What's yours to confirm**: a revision that removes or moves a checkpoint (adding steps before one doesn't move it), or changes Z, comes to you as a proposal in the planner's conversation, saying why it's yours, shown as what changes; the headline says so (*The planner proposes a revision of the plan, in t2: It removes the checkpoint at step 4…*). **Anything else applies** at once, and the log says what changed (*revised the plan, in t2: step 4 added (Fix it, crew, in `api/fix`); step 4 is step 5 now (Review the fix)*). Written at the planner's own step (or accepted by you, if it was yours to confirm), it passes that step and ws moves on; written elsewhere, the orchestrator is run to look at the plan as it is now. A step in a capsule the mission hasn't got is lifted for it. The planner may decide the rest is other missions, proposing each (raised from this one) for you to confirm. While it's at work the headline is the agents' (*The planner is at work on the plan, in t2*); if it replies at its step without writing the steps after it (it asked something), the step is yours to answer it, or write them yourself and go on. You editing the plan yourself applies as you write it, the steps behind the mission held as they were.
+- **Pull requests are opened by a step.** An Open Pull Request step's is opened by ws (above). In a plan written before kinds of step, a crew step whose `makes:` says a pull request opens it: its crew commit, then run `ws mission open-pr --title "…" --body -`, which pushes the capsule's branch and opens the pull request onto the default branch, holding ws's guarantees about pull requests (see *Guarantees*); the orchestrator can't accept that step until one is open (or merged). Crew at the plan's other steps commit and report done, and don't push or open one; the orchestrator never does. You can open one whenever you like: `ws mission open-pr`, or *Open pull request* on a capsule in the mission's *Work* tab, once GitHub has said it has none. It's refused in a repo with no pull requests (land those), with changes not committed or nothing to open, or with one open from the branch already. A mission without a plan runs as before: its crew open their pull requests themselves (or with `ws mission open-pr`).
+
+**Endings.** A mission ends at Z, or earlier with a reason, in one of four ways: **landed** (at Z, its code merged or landed), **answered** (a finding and no code, at Z or stopping early: "not a bug"), **handed on** (its work raised as other missions, which take it on) or **dropped**. Z is checked when it ends, each part met or not, and how: the plan's Z, or for a mission without a plan, the items of its brief's `## Acceptance`. The orchestrator (or crew) suggests how it ends with `ws mission conclude "<what it came to>" --as answered --met "1: told in the thread" --unmet "2: no bug, so no test"`; ws doesn't judge a part, but refuses a conclusion that doesn't check each one by its number (dropping needn't), landed with a part unmet or its work not merged, and handed on to no mission. Ending it is yours: *End it* on the wrap-up (or `ws mission end`) ends it as suggested; *Say how it ends…*, *End* beside its state, and *Wrap it up* once every step of the plan is done open a form of the ending, what it came to and each part of Z (or `ws mission end --as dropped "<why>"`); *Not yet* puts a suggestion aside. An ended mission is in the past, out of what needs you, its page showing how it ended with Z as checked; *Archive* puts it out of sight, and *Reopen* (or `ws mission reopen`) takes the ending back. Ending it is refused while crew are still on it. **A capsule can end alone**, so it no longer holds the mission open: `ws mission hand-on <repo>/<capsule> "<what for>"` raises a mission for it (or `--to` names one there is), which takes the capsule; `ws mission drop <repo>/<capsule> "<why>"` drops it, keeping its worktree in no mission. Handing on is yours and the orchestrator's, dropping yours alone; both are on each capsule in the mission's *Work* tab, and the mission lists the capsules that ended alone. Ending the mission handed on names where its capsules went.
+
+**Stages.** A brief can list its work as stages for separate crew in turn, as a numbered list under `## Stages`. Briefing agents write them so, naming each stage's capsule as `repo/name` in backticks and putting "Check in with me." on any stage you want to review before the next. The brief stays yours; ws keeps each stage's progress: the crew that worked on it, when it started and when it was accepted. Crew launched or dispatched work on the current stage (the first not accepted), or the one `dispatch --stage n` names, and are told which. When a stage's work is complete, the orchestrator (or you) runs `ws mission accept "<why>"`, refused while that stage's crew are still working or asking, and the next stage becomes current. A record survives rewording a stage: it matches by text, or by position while the number of stages is unchanged. A brief without stages is one stage, the whole brief. The mission's Summary leads with the stages (`✓` accepted, `▸` current with its crew), and `ws mission show` lists them. `ws mission brief --set` and `ws mission ready` warn when a stage names a capsule the mission doesn't have. Once a stage is accepted, ws moves the plan on itself: it starts the next stage's crew in the capsule the stage names (or the mission's only one), dispatched with the stage's text, counting toward the dispatch limit (queued for you with `dispatch = "ask"`). If the accepted stage says to check in, or ws has started as many crew without you as the orchestrator may, it asks you first: *Stage 1 is done (c2: …). Go on to stage 2: …?*, answered *Go on* (ws starts it) or *Not yet* (it waits; launching crew starts it later), without running the orchestrator; any other answer goes to the orchestrator. A stage that names no capsule of the mission's, in a mission with several, isn't started: ws says so, and the orchestrator (or you) dispatches it. With the orchestrator off, crew reporting their stage done puts it in your court: the headline asks you to accept it, and *Accept* does.
+
+**Handoffs.** Work crew finish with a summary and a handoff for whoever comes next, in markdown with four sections: **Done** (what they did and where it is), **Learned** (where things live, what they tried that didn't work, surprises), **Left** (what's still to do) and **Read first** (files, references or URLs). `ws mission done` refuses without one, or with a section missing, or with a *Read first* entry ws can't find (any section can say "Nothing."). It's kept with the mission at `mission:handoffs/<crew>.md` and recorded as a `handoff` artifact; the log and the mission's Summary say what's left, and the Log tab links to it. Crew launched or dispatched next get, ahead of the brief, the latest handoff from their capsule (or else the mission's latest) with where to read what it names, and where the other capsules' latest handoffs are. The orchestrator reads the handoff in full, with less of the crew's terminal output. Briefing crew finish with `ws mission ready` and crew answering the orchestrator's question with `ws mission answer`; neither leaves one.
+
+The orchestrator may dispatch three crew in a row without you; after that `dispatch` refuses and it has to flag you. Anything you do that changes the mission (launching crew, answering or dismissing its question, accepting a stage, editing its brief or title, attaching or detaching a capsule, parking or archiving it), on its page or from a shell, starts the count again, and dispatches that fail to launch don't count. A dispatch that would launch at once refuses a capsule other crew are still working in (two agents in one worktree edit the same files). Crew that have reported done don't count: they've handed their work back, so a dispatch into their capsule ends their still-open session (logged, and resumable) and starts the new crew there. That's what lets a staged mission in one capsule move on by itself. Only one dispatch is queued at a time: a second is refused, and the orchestrator flags you instead. *Dismiss* (or `ws mission flag --clear`) dismisses the flag first, then the queued crew, and says so when there's neither. It may look around read-only (`git diff`, `gh pr checks`) and lift capsules, but doesn't change code or push. Each crew event is handled once. It runs in the daemon, one run at a time per mission (an event that comes while one runs is looked at once it's done), and its output goes to `.ws/missions/<slug>/orchestrator.log`. Each run is kept in `orchestrator/<id>.json` there (the last 50), with the prompt it was given beside it (`<id>.prompt.md`): what it looked at, its prompt, what it said, whether it acted (anything it did through ws is logged with its run's id), and, for Claude Code, every call it made, refused ones marked. `ws mission orchestrate` runs it by hand (`--crew c2` to say what prompted it, `--print-prompt` to see what it would be told). Crew output is saved to `crew-<id>.log` in the mission's folder when a run ends, so it can read it later.
+
+Configure it in `ws.toml` or `ws.local.toml`:
+
+```toml
+[orchestrator]
+harness = "claude"                  # which agent runs it: see Agents below
+model = "haiku"                     # default: claude-haiku-5-5-medium on cursor, haiku on claude, your default on pi and opencode
+enabled = true                      # false turns the automatic runs off
+dispatch = "auto"                   # "ask" queues dispatched crew, for you to launch or dismiss on the mission's page
+max_dispatches = 3                  # in a row without you
+```
+
+**Agents.** Four roles run agents, and each picks its harness and model in its own section of `ws.toml` or `ws.local.toml` (local settings win, field by field):
+
+```toml
+[crew]                 # agents doing the work
+harness = "claude"     # cursor (default), claude, pi, shell, codex, cursor-acp or opencode
+model = "opus"         # passed as --model, in that agent's own naming; default: the agent's
+allowed = ["claude:sonnet", "cursor:gpt-5.5-high"]  # others Launch crew may start crew on; default: none
+
+[briefing]             # agents turning a request into a ready mission
+harness = "cursor"     # default: crew's harness (and model)
+model = "claude-opus-5-5-high"
+
+[orchestrator]         # the headless agent deciding what's next
+harness = "claude"     # cursor, cursor-acp, claude, pi, codex or opencode (it must run headless); default: crew's, if it can
+
+[conversation]         # the agent answering threads, conversations, cells and passes
+harness = "claude"     # cursor, cursor-acp, claude, pi, codex or opencode; default: crew's, if it can hold one, else claude
+
+[judge]                # the agent judging a Work step's checks in words, read-only
+harness = "claude"     # as [conversation]; default: briefing's agent and model
+model = "opus"
+```
+
+- A model belongs to the harness it's configured with. A `[briefing]` model with no harness applies to crew's harness.
+- `[crew] allowed` lists other agents and models you may launch crew on from a mission's page: each `harness:model`, or a harness alone (on `[crew] model` if it's crew's harness, else on the agent's own model). The model is what follows the first colon, so `pi:sonnet:high` is pi on `sonnet:high`. With any listed, *Launch crew* is a split button: a click launches crew on `[crew]`'s own harness and model, which is always allowed, and its menu launches them on one of the others. The server refuses a launch on anything else. A model picked so is recorded on the crew, and `ws show` and the web UI say what they run on ("claude on sonnet"). Crew over ACP (Codex, `cursor-acp`, OpenCode) resume on it; Claude Code, Cursor and pi resume their session as before, without naming a model. It's a guarantee: crew run only on what it lists, whoever starts them. A plan's step names one in its `on:` (`claude:opus`, or a model alone, on crew's harness), as the process prefers ("bumps on the cheapest model"), and a plan naming anything else is refused, with the list; the planner and the orchestrator are told it. The orchestrator picks one with `ws mission dispatch --on` or `ws mission repeat --on` ("if a fix fails twice, try a stronger one"), refused likewise. A step of a plan written before ws checked, naming one that isn't allowed, runs on crew's own, saying so. Resumed crew run on what they ran on. `ws.local.toml`'s `allowed` replaces `ws.toml`'s whole (`allowed = []` there allows nothing else), and `ws` refuses an entry with no harness.
+- `WS_DECK_HARNESS` overrides `[crew] harness` for one session. `WS_CURSOR_AGENT`, `WS_CLAUDE_BIN` and `WS_PI_BIN` name the binaries if they aren't `cursor-agent`, `claude` and `pi`; `WS_CODEX_ACP` names Codex's adapter if it isn't `codex-acp` on your `PATH` (a path, or a command line such as `npx -y @agentclientprotocol/codex-acp`), and `WS_OPENCODE_BIN` the OpenCode binary if it isn't `opencode`.
+- **Cursor.** Crew launch with `--trust`, so Cursor's workspace-trust dialog doesn't swallow the opening prompt, which is typed in once its screen settles. The orchestrator runs with `--force`: Cursor's print mode can't limit which commands it runs, so it relies on being told to act only through `ws`. A model your Cursor plan doesn't include fails the run ("Model unavailable on Free"); `auto` works on every plan.
+- **Claude Code.** Crew get the opening prompt as their first argument and a session id ws chose (`--session-id`), so they can be resumed. Claude Code asks once per repo whether to trust it: the first crew in each repo opens on its trust dialog (and shows as waiting, under *Needs you*). Answer it, and the prompt runs; that repo's later capsules don't ask again. Crew the orchestrator dispatches into a repo nobody has trusted yet wait at that dialog for you, so answer it once per repo when you start using Claude Code. The orchestrator runs with `--permission-mode dontAsk` and an allowlist: `ws mission`, `ws lift`, `ws status`, read-only `git` (`diff`, `log`, `show`, `status`, in the mission's capsules and every repo's `.ground`) and `gh pr view/checks/list`, and reading files. Anything else is refused without a prompt.
+- **pi.** Crew get the opening prompt as their first argument and a session id ws chose (`--session-id`), so they can be resumed (`--session`). Models are in pi's naming (`anthropic/claude-opus-5-5`, `sonnet:high`), from whichever providers you've logged in to. pi doesn't ask permission for tools, but in a folder with project-local pi resources (`.pi/settings.json`, `.pi/extensions` and the like) it asks whether to trust them before the prompt runs; ws leaves that to you, since trusting a project runs the extensions it ships. The orchestrator gets `read`, `bash`, `grep`, `find` and `ls` but not `edit` or `write`. As with Cursor, nothing limits which commands it runs, so it relies on being told to act only through `ws`. With no `[orchestrator] model`, it runs on your pi default, so name a small model there if that's a large one.
+- **Codex.** OpenAI's Codex runs the headless roles (the orchestrator, conversations, threads, cells, passes and the Team page), and crew (see *Crew over ACP* below). ws speaks to it over the Agent Client Protocol, through its adapter, `codex-acp` (`npm install -g @agentclientprotocol/codex-acp`, which brings a Codex of its own; sign in as you would for Codex). Each run is held in the daemon for its one turn: it starts the adapter, runs the turn and writes what happened as it goes, which the run's page reads. Codex runs in its read-only sandbox, without network, and is told to ask to run outside it the commands that need to (`ws mission …`, `ws lift`, `gh`). ws answers each ask itself: one of the commands the role may run (the same lists as Claude Code's), run alone, is let out; anything else (another command, one chained to more, an edit) is refused, and Codex is told to carry on without it. Inside the sandbox it reads what it likes and changes nothing. A conversation's turns go on in one Codex session, which `codex resume <id>` also opens. Models are Codex's, with their reasoning effort in brackets: `gpt-6-luna[low]` for the orchestrator and `gpt-6.1-sol[medium]` for conversations unless `model` says otherwise; `gpt-6.1-sol` alone takes your Codex default effort.
+- **cursor-acp.** The Cursor CLI spoken to over the Agent Client Protocol (`cursor-agent acp`), as Codex is, rather than in its print mode: an alternative to `cursor` for the headless roles, and for crew (see *Crew over ACP* below), in Cursor's agent mode. Each run is held in the daemon for its one turn, as Codex's is, in Cursor's ask mode (it can't edit files), from the folder it works in. It signs in with what `agent login` left. Every command Cursor's own allowlists (`~/.cursor/cli-config.json`, a repo's `.cursor/cli.json`) don't already allow is asked of ws, which lets out the role's commands (the same lists as Claude Code's), run alone, and refuses anything else; Cursor goes on without it. Its questions are answered skipped (it's told to ask in its reply, or decide and say what it assumed), as nobody's there to answer. Models are named as for `cursor`, but over ACP Cursor offers each model once, at its own effort, so an effort on the end of a name is dropped (`claude-haiku-5-5-medium` runs `claude-haiku-5-5`); `auto` works on every plan. Choosing a model also makes it Cursor's default for later ACP sessions. Its sessions are kept in `~/.cursor/acp-sessions`, apart from the CLI's chats, so `cursor-agent --resume` can't open one.
+- **OpenCode.** OpenCode (opencode.ai) spoken to over the Agent Client Protocol (`opencode acp`), as Codex is: crew (see *Crew over ACP* below) and the headless roles. Sign in to your providers as you would for OpenCode (`opencode auth login`); with none, it runs on OpenCode's own free models. Crew work in OpenCode's `build` agent, as your OpenCode config has it: by default OpenCode asks for nothing but reading outside the capsule, reading a `.env` file and a call repeated three times over, so crew run what they like unless your config's `permission` says `ask`. What it does ask waits for you on the crew's card, but for crew's own commands, which ws lets out. A headless run (the orchestrator, conversations, threads, cells, passes and the Team page) is held in the daemon for its one turn, in an agent of ws's own, `ws-headless`, given to OpenCode for the run in `OPENCODE_CONFIG_CONTENT` (which replaces one of yours, for that run). Its rules come after your config's, so they hold whatever yours say: it may read and search, anywhere but a `.env` file; every shell command is asked of ws, which lets out the role's commands (the same lists as Claude Code's), run alone, and refuses anything else, and OpenCode goes on without it; editing, fetching and subagents are off. Models are OpenCode's, `provider/model` (`opencode models` lists yours), with one of the model's variants in brackets for its effort: `anthropic/claude-sonnet-5-5[high]`. With no `model`, every role runs on your OpenCode default, so name a small model under `[orchestrator]` if that's a large one. A conversation's turns go on in one OpenCode session; one OpenCode no longer has (deleted, or `OPENCODE_DB=:memory:`) starts afresh. OpenCode treats a message that starts with `/` as one of its commands, and drops one it doesn't know.
+- **Crew over ACP.** Codex, `cursor-acp` and OpenCode crew have no terminal. The daemon holds each as an agent it speaks to, and the web UI is how you see and talk to them: their crew page is their conversation alone, kept by ws as it happens (`crew-<id>.acp.jsonl` beside the mission), with no *Terminal* tab. A message from the page is sent as one; one sent mid-turn waits for the turn to end. *Interrupt* cancels the turn. A permission or a question waits on its card, answered with the agent's own options: no screen to read, no keys to guess. Crew run `ws` commands, `git add`, `git commit`, `git push`, `git fetch` and `gh pr` without asking you, on their own or chained (`git add main.go && git commit -m …`, `ws mission done … --handoff - <<'EOF'`); anything else they ask for waits for you. Codex crew work in their capsule in Codex's workspace sandbox: they change and commit files there, and anything else (Go's build cache, the network, a package to install) is asked for. Ended crew resume from their page with your message, on their session, at the role's model. `codex resume <id>` opens a Codex crew's session in Codex's own terminal.
+- Crew and the orchestrator don't inherit the session identity of an agent ws itself runs in (`CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, pi's `PI_SESSION_ID` and `PI_MODEL`, OpenCode's `OPENCODE` and `OPENCODE_PID`, and the like), so ws run from Claude Code's, pi's or OpenCode's terminal launches independent sessions.
+
+**Artifacts.** An artifact points at something the mission produced or relies on, so the next crew, the orchestrator and you can find it. `ws mission artifact add <what> [--kind <kind>] ["label"]` records one, and crew are taught to record what they make. `<what>` can be:
+
+| You give | It records | Where it is now |
+|---|---|---|
+| A file in one of the mission's capsules (path or `repo/capsule:path`) | `backend/cache-lookup:docs/proposal.md` | `draft`, `in review` (its capsule's PR is open), then `landed`: once the PR merges, or the capsule is burned and the file is on the default branch, it's read from `.ground` |
+| A file on a repo's default branch (a path in `.ground`, or `repo:path`) | `records:adr/0042-cache.md` | `landed`, or `missing` |
+| A file in the mission's private folder, `.ws/missions/<slug>/files/` (path or `mission:path`) | `mission:spike.md` | `private`: only on your machine |
+| A PR or issue (`repo#N`, or its GitHub URL) | `backend#88` | `open` or `merged` when it's a capsule's PR |
+| Any other URL | itself | `link` |
+
+Kinds say what it is: `proposal`, `adr`, `note`, `doc`, `plan`, `handoff`, `pr`, `issue`, `link`, or any lowercase word (default `pr`, `link` or `doc`). Adding the same thing again updates its kind and label; `ws mission artifact rm <ref>` forgets one. A path outside those places is refused, with what to do instead. `ws mission show -f llm` lists every artifact with where to read it, the orchestrator sees the same list, and `ws mission dispatch --read <ref>` (repeatable) gives the next crew a *Read these first* list with what it's dispatched to do. The next stage may build on an artifact still in review; a brief that wants to wait for one to land says so as a check-in.
+
+**Proof.** An image or a video (`.png`, `.jpg`, `.gif`, `.webp`, `.svg`, `.avif`; `.mp4`, `.webm`, `.mov`) recorded as an artifact is shown as it is when you open it from the mission's page: an image whole (click it for full size), a video to play. It isn't read as text, so it can't be edited or commented on there. One recorded with `--kind proof` and a label saying what it shows is crew's proof of something they checked by seeing it. A Review step's task offers to *See* an image and *Watch* a video, as it offers to *Read* a document. Crew are now taught to hand what they saw over as a verification bundle, below, where it belongs to the check it shows.
+
+**Verification bundles.** A bundle is what crew hand over to show that their work is as its checks say: each check with what it came to (`met`, `unmet` or `can't tell`) and what shows it, how you can try it yourself, and what wasn't verified. Crew write it whole, in markdown, for the step they're on, once their work is committed:
+
+```
+ws mission bundle --set - <<'EOF'
+## Summary
+The picker is on Settings, under Appearance. Picking a colour applies at
+once in both themes.
+
+## Try it
+- try: `just dev`, then open http://localhost:5173/settings
+- look for: the row of swatches under Accent
+
+## Checks
+1. met: picked teal, then rose; tabs, buttons and links changed at once.
+   - shows: `pick.webm` Picking three colours in a row
+     - made by: `npm run shots -- accent-picker --out pick.webm`
+   - shows: `settings-light.png` Light, after picking teal
+     - before: `settings-light-ground.png`
+   - lines: `web/src/settings/Appearance.tsx:41-88`
+3. can't tell: I could only drive one tab, so never saw a second change.
+   - try: open Settings in two tabs, pick in one, look at the other
+   - ask: Add a test for the storage event
+
+## Not verified
+- Safari: nothing here to run it in.
+EOF
+```
+
+- **Read strictly,** as a plan is: `ws mission bundle --format` says how one is written (and, to crew, their step's checks by number), and one that isn't right is refused with every problem and its line. Where the step has checks, each one in words is there once, by its number in the step; a check that's a command is ws's to run, and is left out. Where the step has none, the checks are the bundle's own, numbered in order. A `met` needs something that shows it: a `shows:` or the `lines:` it's done in.
+- **What shows a check** is a file: an image, a video, or text such as what a command printed (1 MB of text at most, 50 MB of image or video). It's named by its path from where crew stand, or in the mission's private files folder. Under a `shows:`, `before:` is the same on the default branch, shown beside it, and `made by:` the command that made it.
+- **Its files are copied** into a folder of the bundle's own, `.ws/missions/<slug>/bundles/b1/`, so it's whole whatever becomes of the files it was made from. Its record is the mission's, in the workspace's records.
+- **It's of a commit:** the one its capsule is at. It's refused while the capsule has changes that aren't committed, and it says so once the capsule has moved on (*Stale*).
+- **It's never edited.** A later bundle of the same step and capsule takes its place, and each says which.
+- **Its ref is `b1`,** numbered in its mission: `ws show b1` has it, with its step, its crew and its capsule; `ws mission bundle` lists the mission's.
+- **It's yours to approve or send back,** as a review is, and yours alone: crew and the orchestrator are refused. *Approve* (`ws mission bundle approve b1`) says what it shows is as its checks say. *Not right* on a check says what's wrong of it, and *Send back* (`ws mission bundle send-back b1 --check "3: it's gone after a reload"`, once for each check, with words after the ref for the bundle as a whole) records what you said on the bundle and tells the crew who made the work, with each check and what the bundle showed for it: typed in if they're running, resumed if they've ended, else fresh crew in their capsule. The bundle they hand over next takes its place. *Looked at* on a check keeps your place, as *Viewed* does on a file in a review: approving doesn't need it.
+- **A Review step looks at the bundles** of the steps before it, back to your last: each is what's to approve, first, with the capsule's review beside it. Approving every bundle it looks at passes the step, as going on does; your review of the capsule alone doesn't pass a step that looks at a bundle too. The step's headline goes to the bundle (*Verify b1*, `v`), and the tab's count is the bundles waiting for you.
+- **Where it shows:** the mission's *Verify* tab. The bundle that's open has who made it and of what, its summary, how to try it, and then its checks: *Left for you* first (what isn't met, and what the judge didn't find so), then *Settled without you*, with the step's commands as ws ran them at the bundle's commit. One check is open at a time, with what the judge said of it at that commit and what shows it: images and videos as they are (an image beside its `before:`), text as a transcript. `j`/`k` move between checks, `y` marks one as looked at, `n` says it's not right, and `mod+⏎` approves the bundle, or sends it back when you've said something isn't right.
+
+**Verify steps.** A plan's *Verify* step has work shown to be right by someone who didn't do it:
+
+```
+4. Work: **Accent picker.** Add the picker to Settings.
+   - in: `web`
+   - makes: the picker, its shots script, and a decision saying where the script is and how it's run
+5. Verify: **Browser check.** The picker, running, shown with the shots script.
+   - in: `web`
+   - check: a pick applies at once, light and dark
+   - check: `npm test` passes
+   - yours: it reads well at phone width
+6. Review: **Approve the browser check.** The bundle from step 5.
+```
+
+- **Its checks** are what's to be shown: in words, which its verifier settles; a command, which ws runs; or `- yours:`, one the verifier doesn't settle, a matter of taste or judgement kept for you, which it leaves in the bundle as `yours:` with what helps you settle it. It takes `in`, `on`, `limit` and `only if` besides, and needs at least one check.
+- **ws starts a verifier** when the mission reaches it: fresh crew in the capsule the work is in, on the step's `on:` or crew's own. They're told their step, its checks and whose each is, who made the work and where their handoff is, and to start from `ws show` (the mission's decisions say where a script is and how it's run). They aren't given the process: the planner copies what it says of verifying into the step.
+- **A verifier changes nothing.** ws refuses its bundle if the capsule's files have changed, or it has moved on from the commit it was at when the verifier started.
+- **Its bundle is its done:** handing it over ends the verifier's part (`ws mission done` is refused: there's no handoff). ws then runs the step's commands in the capsule and takes the rest from the bundle.
+- **Nothing unmet, and ws passes the step.** What the verifier couldn't tell, and what's yours, is left for you in the bundle, which a Review after it asks you to approve.
+- **Something unmet, and the work goes back** to the crew who made it, with what's unmet and what the verifier said: typed in if they're running, resumed if they've ended, else fresh crew in their capsule. When they report done, ws starts a fresh verifier, told what went back, and its bundle takes the last one's place. After `[missions] max_rounds` rounds (or with no crew to send it to), the step is yours: *Pass it* as it is, or *Send it back*.
+- **It isn't the orchestrator's to accept,** nor yours to accept from its crew's done: ws settles it on the bundle.
+
+Running a bundle's commands from the page isn't built yet.
+
+If your workspace keeps proposals, ADRs and notes in a repo of their own, name it in `ws.toml`, and crew and briefing agents are told to lift a capsule there when a stage produces one (its README or AGENTS.md keeps its conventions):
+
+```toml
+[missions]
+records = "records"
+```
+
+**Finding your way: `ws show`.** Everything in a mission has a ref: a stage (`s2`), crew (`c1`), a capsule (`repo/name`), an artifact (by its ref, or the path of its file), a review (`r1`) and its comments (`r1.c2`), a thread on a document (`t3`), a decision (`d1`), a verification bundle (`b1`), an orchestrator run (by its id). `ws show <ref>` shows one (an address works too: `ws:<name>`, or one of the workspace's on GitHub, as a link in a document has it): what it is, the essentials, and what it links to, each as a ref to show next. Crew show which stage they worked on, their dispatch and handoff, and what they recorded; a document shows its history, the stage it was made for, who recorded it, its threads and the handoffs that mention it; a stage shows its crew and what was made for it. `ws show` alone is the mission (`ws mission show`), which lists its crew, reviews, open threads and decisions too. A file (`repo/path`, `repo:path`, `:12-20` for some lines), from anywhere, says what's been said of it in any mission: comments on it (open ones first), decisions and threads about it, talk that named it, each with the mission it's in; crew are told to look before they change one. Any view says what points at it from beyond its mission. Views are short and say what they left out; `--full` shows it all. `-f llm` is for agents: crew, the orchestrator and crew answering a question are told to start from it rather than having everything pasted into their prompt. `scripts/coldstart.sh` checks that's enough: it asks a fresh agent a question about a ref, with nothing but `ws show` to go on, and prints its answer and what it read.
+
+**Decisions.** What was decided and why: `ws mission decide "<what>" --why "<why>" [--about <ref>]... [--from <ref>]`. Crew record the decisions they make within their part (an approach taken, an option ruled out), the orchestrator those about the mission's course; your answer to the orchestrator's question is recorded as one, with the question (not a check-in's *Go on* or *Not yet*). A decision is never edited: a new one replaces it (`--supersedes d1`), or it's withdrawn (`--withdraw d1 "why"`). Those that stand are shown wherever they matter: in `ws show` of what they're about, the mission's view and its *Summary* and *Log* in the web UI, and the orchestrator's prompt; crew are told not to go against one without asking you. They're kept in the workspace's records (`.ws/ws.db`), and logged.
+
+**Files.** A mission's record, its log, its decisions, its reviews and its threads and conversations are in the workspace's records (`.ws/ws.db`): `ws mission show`, `ws show <ref> --mission <slug>` and the web UI read them. What's written to be read is in `.ws/missions/<slug>/` at the workspace root (`brief.md`, the private `files/` folder with its reviews rendered for crew, its bundles' files in `bundles/`, and crew output). They are local to your machine. `ws` adds `.ws/` to the config repo's `.git/info/exclude` so they never show up in its `git status`, and `ws doctor` checks this. `ws export <mission> [dir]` writes a mission out as a folder of files, to read without ws or hand to someone: its folder as it is, and beside it its record, log, decisions, conversations and reviews as the files they were once kept in (`mission.toml`, `log.jsonl`, `decisions.jsonl`, `conversations/t1.jsonl`, `reviews/r1.json`).
+
+**What ran.** `.ws/exec.log` records every process ws starts for missions, and what it sends them:
+
+- each crew's command line (ready to paste into a shell), the folder it ran in, and its mission environment (`WS_*`, `TERM`, the first entry on `PATH`; never anything else, which may hold tokens);
+- the chat id Cursor gave it, or why it gave none;
+- the prompt typed into it, and how it ended;
+- each orchestrator run: the prompt file it wrote, the exact agent command, how long it took, and how it ended;
+- automatic runs that were skipped, and why;
+- the daemon starting.
+
+Every ws process appends to the same file, so `tail -f .ws/exec.log` follows the whole workspace. It rolls over to `exec.log.1` at 10 MB.
+
+**Web UI.** Where you work: missions, kept live as they change, crew, review, your teammates' pull requests (see *Reviews*), and what everyone's been doing (see *Team*). `ws web` opens it in your browser. It runs in the workspace's daemon (started if it isn't running), which stays up until it's closed (`ws daemon stop`). The workspace's name, at the top of the sidebar, opens its menu: *Settings*, *Keys* (`?`), the theme (from the system, light or dark), and *Shut down the daemon…*, which asks first, then closes it as `ws daemon stop` does, its crew hung up and the page with it.
+
+**A mission's page** leads with its headline: whose court it's in, and what moves it on, and you can act on it there: answer the orchestrator's question (one of its answers, or your own words), ask an agent to answer it, dismiss it or queued crew, accept a stage, end it (as suggested, or as you say, with Z checked), hand a capsule on or drop it, edit the brief, rename it, park, archive, unpark, launch crew (new crew on the current stage, the queued crew, a briefing agent) or resume ended crew; a re-review, a PR to open or merge, and the log are links. Crew start in the daemon, as dispatched crew do.
+
+**The process.** How work goes in the workspace, in prose: the steps work takes, whose turn each is, what done means, and when it's yours ("Bugs are reproduced first, with a failing test, then fixed"; "Once a draft's checks are green, it's mine to review"). It's the team's: `PROCESS.md` in the config repo beside `ws.toml` (or where `[agents] process` says), changed by commit like the rest of the config. The planner reads it as it's written to plan each mission (see *The plan*), and the orchestrator reads it to know what to do when something happens; a plan's step may end with its words in double quotes, which have to be there. `ws process` (and `ws show process`, for an agent) shows it, where it is and whether it's as committed, and so does *Process* at the foot of Settings. There's nothing to read back or confirm: what ws holds itself is a guarantee.
+
+**Guarantees.** What ws holds on every mission, where it acts, whatever an agent reads: `[missions]` in `ws.toml` (or yours, in `ws.local.toml`), each off unless it's set. What the process prefers is the planner's and the orchestrator's to apply; a guarantee is ws's, and refuses whoever asks, saying why and what to do.
+
+```toml
+[missions]
+review_before_pr = true    # no pull request until your review approves the capsule as it is
+review_before_land = true  # the same, before ws land of a mission's capsule
+review_before_ready = true # a draft isn't marked ready until your review approves it
+replies_need_me = false    # crew's replies to people post without waiting for you (default: they wait)
+end_when_merged = false    # a mission suggested landed waits for you to end it (default: ws ends it)
+max_rounds = 2             # a step's checks, or its pull request's fixes, unmet this many times, and it's yours (default 3)
+```
+
+- `review_before_pr`: `ws mission open-pr` (and *Open pull request*) opens a pull request from a mission's capsule only once your latest review of it approves the commit it's at. A checkpoint just before a step that opens one says to review the work there. Crew opening one with `gh` themselves aren't held: that's why a plan's step opens it, through ws.
+- `review_before_land`: `ws land` of a mission's capsule, in a repo with no pull requests, only once your latest review of it approves it as it is.
+- `review_before_ready`: ws marks a mission's draft pull request ready (at its Open Pull Request step, or `ws mission pr-ready`) only once your latest review of its capsule approves the commit it's at.
+- `replies_need_me`: on unless set off. A reply crew draft to a person on a mission's pull request is posted, as you, only once you approve it. A reply to a bot needn't wait.
+- `end_when_merged`: on unless set off. Once the orchestrator suggests a mission ends landed (every part of Z met, every pull request merged or capsule landed), and nothing else on it waits (a question or step of yours, crew queued or still at work, a Plan whose build is yours to say), ws ends it, landed, and it's in *Past*: archive it when you like. Held until then, it ends once nothing does. Any other ending, and one crew suggest, waits for you. A merge that passes the plan's last step wakes the orchestrator to suggest how it ends.
+- `max_rounds`: always held, 3 unless set. A Work step's checks come round unmet, or an Open Pull Request step's pull request comes back for fixing (red checks, a conflict), at most that many times before it's yours, whatever the process says (see *Checks* and *Looking after a pull request* under *The plan*).
+
+The planner and the orchestrator are told which are on. They're on the Settings page too, under *Guarantees*.
+
+**The Settings page** (*Settings* in the workspace's menu) is your settings for the workspace, the ones in `ws.local.toml`: each role's agent and model (crew, briefing, the orchestrator, conversations, the judge, the Team page), the orchestrator's switches, the Team page's, the guarantees, the git protocol, and the web UI's accent. Each says its value and where that comes from (ws's default, the team's `ws.toml`, or yours), and each role what it ends up running, why it can't run if it can't, and what it follows where it isn't set itself (the Team page's agent follows conversations', and the judge briefing's). A role's agent is picked from the harnesses that can play it, with those that aren't installed marked. Its model is free text, offered the models that harness lists (`cursor-agent --list-models`, `pi --list-models`, Codex's catalog, Claude Code's aliases); changing the agent takes your model for the old one away. A change is written at once, with *Undo*; *Reset* takes yours away, and the team's or the default applies again. A value the key can't take is refused, with why, and nothing is written. The team's `ws.toml` is shown, not changed, and repo commands (`after_create`, `verify`) and paths stay file only. Commands, the web UI and runs read the settings each time.
+
+**The orchestrator's page** (*Orchestrator* in the sidebar) says how it's set up (when it runs, its harness and model, whether its dispatches start at once or wait for you, and how many it may start in a row), which missions it's on now, and its latest runs across missions. Each run has a page: what it looked at, how it went (acted, did nothing, failed, a second try), what it said, every call it made with refused ones marked, and the prompt it was given. A mission's sidebar lists its own latest runs.
+
+**Find** (`⌘K`, or *Find…* in the sidebar) gets you to anything by what you remember of it.
+- **Type a few letters** of a mission, a page, a conversation, a pull request's title or a file's path. Results come in groups, the best of any kind first, with a card for the one the cursor's on beside them.
+- **A name or an address goes straight there:** `demo/main.go:12-20`, `demo#12`, a path on disk, or a link copied from GitHub to a file or a pull request.
+- **A file is listed once,** from the default branch, saying which capsules have changed it. What only a capsule has is listed as the capsule's (`demo/token-cache:internal/store.go`). `:12` after a path goes to the line.
+- **A pull request** is found by its number (`12`, `#12`), its title, its branch or who it's by (`@sam`), from what the Reviews page last read. Find doesn't ask GitHub, so open Reviews once first.
+- **A first character narrows:** `#` pull requests, `/` files (`⌘P` opens Find this way), `>` things to do. `⇥` narrows to the group the cursor's in, and again goes back.
+- **`⏎` goes, `⌘⏎` in a new tab, `⌘C` copies the name** of what the cursor's on.
+- **With nothing typed** it shows what needs you and where you've been lately.
+
+**Files** (*Files* in the sidebar, `g f`) shows any repo's files without an editor open.
+- **The left column** lists the workspace's repos as ws labels them: display name and colour, by group, with hidden groups folded.
+- **A repo opens on its ground,** its default branch as it's checked out, with the file tree and then the file.
+- **The title** (*Demo / ground*) switches to any of the repo's capsules (`w`), each with its branch and mission. A file you have open stays open if it's there.
+- **A capsule's files** read as in its mission's explorer: everything, or only what's changed since it left `origin/<default branch>` (`c`), with changed lines marked. `t` finds a file, and `v` reviews a mission's capsule's changes.
+- **A markdown file reads rendered,** as documents are (see *Artifacts*, below): a link to another file opens that file here, in the same tree, at the heading it names; a link to a folder opens its README, or the folder; an image is read from beside the file. `m` switches to its text.
+- **Edit as a page** (`⏎` on a markdown file that's open) opens it as a page tied to the file, with the page's tools, saved back to the repo when you say (see *A file as a page* under Pages).
+- **Only the workspace's repos and their worktrees** can be read this way.
+
+**A crew's page** is a click away (`/missions/<slug>/crew/<id>`, from the mission's crew or a headline that's about crew). Its terminal is its screen, live, and typed into while it has focus, Esc included, so you can answer it or approve what it asks to run from the browser. It's drawn at the crew's size with the font scaled to fit; ⌘C copies a selection and ⌘V pastes into the crew. Enter counts as you talking to it. *Stop* hangs it up. Only crew running in the daemon have one.
+
+**A mission's page** has six tabs (`1`–`6`): *Summary* (where it stands, the goal, stages, crew, capsules, its outputs and what happened lately), *Brief* (rendered), *Work* (capsules with their git state and PRs, and every output by kind), *Verify* (its verification bundles: what crew handed over to show their work, each check with what shows it), *Log* (the whole log, and each crew: what it was dispatched for, how it ended, its handoff) and *Talk* (the conversations about it). `j`/`k` move between capsules, artifacts and handoffs, or a bundle's checks; `⏎` opens one (a capsule's review, an artifact), `v` reviews a capsule and `o` opens a PR or an artifact's link. PRs come from GitHub after the page has drawn. A mission's outputs are what it recorded (`ws mission artifact add`): its documents, handoffs and reviews, and the artifacts its crew made (`a3`, with how many versions it has and where it stands), which open on their own page. A details sidebar beside the tabs keeps the state, stages (each in a few words: its bold lead or first sentence; hover for the whole stage), outputs, capsules (with their git state and PR) and crew at work in view; with it showing, *Summary* keeps to what needs you, the goal, the stage the work is on, what waiting crew last said, and what happened lately, and `j`/`k` there move through the sidebar. `s` hides or shows it (remembered in your browser); on a narrow window it goes under the tabs.
+
+**Artifacts** that are files here (proposals, notes, handoffs, reviews, files in a capsule or on the default branch) open in the web UI: markdown rendered to read and comment on (see *Threads on a document*), anything else as highlighted code. What they say is shown, never run: no HTML, no scripts, no script links, and Mermaid in its strict mode. Markdown is read as it's written for GitHub:
+
+- **Tables, task lists, highlighted code,** and ```` ```mermaid ```` diagrams drawn.
+- **Links between files.** A link to another file in the repo opens it in Files, in the same worktree (the capsule, or the ground), at its heading if it names one (`../adr/0009-state.md#decision`). A link to a heading in the same document goes there. One that leads out of the repo is marked, and goes nowhere.
+- **Images** that are files in the repo are read from there.
+- **Alerts.** A quote that starts `> [!NOTE]` (or `TIP`, `IMPORTANT`, `WARNING`, `CAUTION`) is drawn as one, in its kind's colour.
+- **Maths.** `$E_{gh}$` in a line and `$$…$$` on lines of their own are drawn with KaTeX, loaded when a document first needs it. Single dollars follow GitHub's rule, so `$5 to $10` and `$HOME` stay as written.
+- **Front matter** (YAML between `---` at the top) is folded away above the document. In the editor it's kept as written, as maths is: an edit beside either doesn't touch them.
+
+**Conversations.** `ws talk` is for thinking something through with an agent before, or beside, the work: a problem, an idea, a question about the code. The agent reads anything here (the repos, the missions, GitHub) and changes nothing.
+
+```bash
+ws talk "why is billing slow?"   # a new conversation about the workspace, opened in the web UI
+ws talk                          # the list of them
+ws talk -m token-cache "should stage 2 be split?"   # about a mission, on its Talk tab
+ws talk --print "..."            # print the link instead of opening it
+```
+
+- **Refs.** The workspace's conversations are `w1`, `w2`, …; a mission's are `t1`, `t2`, …, numbered with its documents' threads. `ws show w3` (or `ws show t2 -m <mission>`) shows one, with its summary and latest turns, so any agent can pick it up.
+- **What comes out of one.** The agent can propose a decision, a mission (as an idea, or with its brief: confirmed, it's created to brief, holding that brief, and its planner plans it in the mission's own conversation, where you confirm the plan, which starts it), a document of one of the workspace's [kinds](#wstoml) (*Add doc*, *Add plan*: added as `ws doc add` adds one, below) or an edit to one that's there (*Save the edit*, the card showing what it changes: saved as `ws doc amend` saves one, below), an artifact or a new version of one (*Add artifact*, *Add as v2*: running in a small frame under its reply, see [Artifacts](#artifacts)), and, in a mission's conversation, an edit to the brief, crew to dispatch, or a replan (`ws mission replan --propose "<what to change>"`: confirming asks the mission's planner as `ws mission replan` does, as you, and *Open it* goes to its conversation). A message that asks for several things has each placed: the agent names each ask and where it goes (a replan by default when it's this mission's work, an edit to the brief or a decision, or a new mission when it's clearly separate), and proposes it there. A proposal is a button under its reply: nothing happens until you confirm it, there or with `ws conversation accept <conversation> <proposal>` (`decline` to say no). *Edit* on one changes it first: a document's text, in the editor. A proposal drafted again (the same brief or plan, a mission or a document of the same title, an edit to the same document) supersedes the open one before it, which says so and is nothing to confirm: only the latest is. Once everything the agent's latest reply proposed is settled, the conversation isn't your turn any more (a declined one has the agent answer, which is). In a mission's conversation, what's open to confirm puts the mission under **Needs you** (`↩ to confirm`: *t3 proposes crew and a decision*); a conversation you've resolved asks nothing of you, though you can still settle what's in it.
+- **Keeping the list short.** `ws conversation list` lists the open ones (`--all` for resolved ones too, `-m` for a mission's). `ws conversation resolve w3` puts one away, and `reopen` takes it up again.
+- Conversations run on [`[conversation]`](#wstoml)'s harness and model, as threads and cells do.
+
+**Documents anywhere.** Any markdown file in one of the workspace's repos is a document, whether or not a mission recorded it, and it's edited as a page: *Edit as a page* in Files (`⏎` on the file that's open). See *A file as a page* under Pages.
+
+- **Read,** it's at its one address, `/documents/<repo>/<path>` (`?in=<capsule>` for its version in a capsule), where links between documents, Find and the old `/docs?ref=` lead: rendered, with its kind, the page it's edited in, and *Edit* (`e`), which edits it there (`?edit`), as the page tied to it, made the first time; *Read it* goes back. A page that isn't tied to a file is at `/documents/local/<id>`; `/pages/<id>` leads to whichever is its.
+- **A save** goes where the file is:
+
+  | The document is | Save |
+  |---|---|
+  | in a capsule | Commits the file there, as you (unless it has uncommitted changes of its own, which it's written beside). |
+  | on the default branch of a repo with [`landing = "direct"`](#landing) | Lifts a capsule for it, commits the file as you, and lands it: one commit, straight to the default branch. The commit's message is shown to change before it goes, since it's the only description there'll be. If the repo's `verify` fails, or the push is refused, nothing is saved. |
+  | on the default branch of any other repo | Lifts a capsule named for the document (`edit-<name>`), commits the file as you, and leaves it there: it's yours, to add to or open a pull request from. The page goes on with the file in that capsule. |
+
+  The capsule is lifted from the default branch as it is on the remote, so a save made from an older ground is merged with what's landed since.
+- **A file a mission records is that mission's document:** opening it from Files goes to the mission's page for it, where its threads are, and it's edited there.
+- **Threads on files outside a mission** (`w12`) aren't made any more: a question or a change is asked on the file's page (*Ask* and *Change* on words you select, `>?`, passes). Those made before are kept to read, in `.ws/conversations`, and `ws show <repo>:<path>` lists them; they take no more replies or suggestions, and `ws thread` commands refuse them.
+
+**Kinds of document.** A workspace can say what kinds of document it has ([`[documents.<name>]`](#wstoml)): where each goes and what it's called there, the first line of the commit that adds or changes one, and the file that says how one's written. A document is of a kind when its path fits the kind's, in a mission or not.
+
+- **Its page says so:** the kind's name where *Document* would be (its title says where they go, and its guide).
+- **A save starts from the kind's message,** as the commit's first line, in place of *Edit &lt;path&gt;*: in a capsule, and on a default branch. So does accepting a suggested edit, with the thread named in the commit's body.
+- **Agents are told.** Every agent `ws` starts hears which kinds there are, and that `ws show kinds` says where each goes, its messages and its guide. One answering a thread on a document of a kind is told what kind, and to read the kind's guide before it answers.
+- **`ws show <repo>:<path>`** says the kind, and `ws doctor` says when a kind's guide isn't there.
+- **`ws doc add <kind> <file>`** adds one from a markdown file (`-` for stdin): named from its first heading, where its kind says, committed with its kind's `add` message, and saved as any document on a default branch is (landed, in a repo with no pull requests; else committed in a capsule lifted for it, `add-<slug>`, and left to you). `--dry-run` says where it would go and what it would be committed as. It's yours: crew write theirs in their capsule, and a conversation's agent proposes one (`--propose`) for you to add, the commit's body naming the conversation, which then lists it as what came out of it. The agent is shown the kind's guide before it can propose one: `ws doc add --propose <kind>`, with no file, prints the guide and its version, and a proposal of a kind with a guide is refused unless it gives that version (`--guide`), the guide printed with the refusal. The card says which guide it was written to.
+- **`ws doc amend <ref> <file>`** changes one where it is (`records:docs/todos.md`; `repo/capsule:path` in a capsule) to the whole of a markdown file, saved as an edit on its page is: committed with its kind's `amend` message, in its capsule, or on a default branch landed (no pull requests) or committed in a capsule lifted for it (`edit-<name>`) and left to you. It isn't moved, whatever its first heading says. It's yours, as `ws doc add` is: a conversation's agent proposes the edit (`--propose`). It's shown the document first: `ws doc amend --propose <ref>`, with no file, prints it as it is, its kind's guide, and its version, which the edit's proposed with (`--on`); one without it, or with an old one, is refused, the document printed again. The card shows what the edit changes. If the document's changed by the time you accept it, the edit's merged into it from the version it was made on, as a page's save is; where both change the same lines, nothing's saved, and you ask for it again. A draft of it you have open on its page stays.
+
+**Review.** A capsule is reviewed in the web UI: from its mission's page (`v` on a capsule there), or the headline when one's waiting for you. A review shows the capsule's committed changes since it left `origin/<default branch>`, file by file, with syntax highlighting, keyboard first (`?` lists the keys):
+
+- `j`/`k` move line by line, `n`/`p` change by change, `J`/`K` file by file, and `t` jumps to a file by a few letters of its path.
+- `x` marks a file viewed, folds it away and moves on. Viewed files are remembered in this browser, by content: a file that changes again comes back.
+- `⏎` on a gap shows the unchanged lines it hides (and `e`, 20 more lines around the change you're on); a large file (over 3,000 changed lines, a lockfile say) waits for `⏎` too.
+- `u` switches between unified and side by side.
+- **The files are listed down the side by folder,** each folder named once over its files, so a row is a file's name. A folder too long for the list is cut from its left, and the list's edge drags wider. They're in the order they're read in: a folder's files together, a file then its tests (`cache.go`, `cache_test.go`), and last, under *To skim*, lockfiles, generated files (those the repo's `.gitattributes` marks `linguist-generated`, and names such as `*.pb.go` and `*.snap`) and files that were only renamed. Those are folded, and say why; `⏎` opens one, and they still count until you mark them viewed.
+- Work the crew hasn't committed isn't in the review, and the review says which files have some. When the crew commits while you're looking, it says so, and `r` reloads.
+
+- **The overview, the guide and passes.** A capsule's review has what a pull request's has (below): views beside the changes, findings in the diff to take (`⏎`) or dismiss (`D`), and the files in the guide's order if you choose. Its overview is its mission: a link to it, where it stands, and its brief; it has no *Discussion*. What the work is meant to do is the mission's brief, so that's what the guide compares the change with, and what a pass is told the work is for. Nothing's docked: the capsule is there. A finding you take goes into your draft, and to crew when you submit; one on no lines is under *The change as a whole* in what they read. Follow-up isn't one of a capsule's passes: crew answer a capsule's comments themselves.
+- **Comments.** `c` comments on the line you're on, or on the lines you've selected. Select lines by dragging down the line numbers (dragging over the code still selects text, to copy), clicking a line number then shift-clicking another, or with `⇧↓`/`⇧↑` (or `V`, then move); a bar under the selection says which lines and offers *Comment*. Side by side, the column you drag picks the side: the left one comments on the removed lines. A selection stays within a file and doesn't cross hidden lines. Each comment is a kind: **blocking** (must change), **suggestion** (a judgement call), **question** (wants an answer, not a change) or **nit** (only if it's cheap); `tab` switches between them as you write. *Suggest a change* adds a ```` ```suggestion ```` block with the lines as they are, to edit into what they should be. `⌘⏎` saves. Comments are a draft until you submit: `⏎` on one edits it, `D` deletes it. Viewed files are kept with the mission, so they're the same in any browser.
+- **Submitting.** `s` asks for a verdict, `a` approve, `c` request changes or `m` comment, and an optional summary, then `⌘⏎`. Requesting changes needs at least a comment or a summary; approving needs nothing. The review is then the mission's: it's kept as `mission:reviews/r1.md` (an artifact, so crew and the orchestrator find it), logged, and the orchestrator runs with it. It decides what follows (resuming the crew that did the work to address it, dispatching fresh crew with the review to read, or on an approval accepting the stage), but never changes the review: crew address comments, and you resolve them.
+- Crew read reviews with `ws review show` (the latest of the capsule they're in, as markdown: each comment with the lines it's on, as they were) and `ws review list`, and are told to commit before reporting done, since a review is of commits.
+- **Answers.** Crew answer each comment by its id once they've committed: `ws review addressed r1.c1 "what they did"` (recording the commit), `ws review wontfix r1.c2 "why"`, or `ws review reply r1.c3 "…"` for a question. Each comment shows its state (open, addressed, won't fix, resolved) and its thread, live. Only you resolve: `x` on a comment resolves or reopens it, and `⏎` replies.
+- **Changes requested means you look again.** While a capsule's latest review asks for changes, `ws mission accept` refuses its stage, for the orchestrator and you alike: crew addressing a review isn't you being satisfied with it. Once crew have committed and reported done, the capsule is back with you: its mission's headline says it's ready for your re-review (`↻ re-review`, which goes straight to it). The orchestrator notes that it's waiting for you, rather than accepting or flagging.
+- **Re-reviewing** opens on what's changed since your last review (`i` switches to all the changes and back). The last review's comments sit on the left, on the lines they were made on, so you see what became of each; comments on files that haven't changed since are listed after the files. Approve, and the stage can be accepted.
+
+**Reviews** (*Reviews* in the sidebar, `g r`) lists the open pull requests across the workspace's repos, and reviews them with the review a capsule gets. Your teammates' come first, and yours sit below them.
+
+- **Theirs are grouped by what each asks of you:** *Needs your review* (your review is asked for, by name first, then of a team you're in, and you haven't reviewed its latest commits), *Back with you* (you asked for changes or commented, and they've pushed or replied since), *Waiting on them*, *Approved*, *Everyone else's*, and, folded, *Drafts* and *Automated* (a bot's, unless it asks for your review).
+- **Yours are grouped by where each stands:** *Returned to you* (changes requested, or its checks are failing), *Ready to merge* and *Waiting for review*. One from a mission's capsule opens its mission; one with no mission opens on GitHub, where it's merged.
+- **A row** says who, which repo, how big it is, its checks and how long since it last changed. `⏎` opens the review, `o` opens it on GitHub, `/` filters by text, repo or author, and `r` asks GitHub again.
+- **A stack is one row.** A stack of pull requests (GitHub's, or a chain ws works out from each PR being based on the last one's branch) is named for its bottom layer and sits where its most pressing layer would. Its layers are listed under it, bottom first, each with its own state; `l` folds them. `⏎` opens the review at the lowest layer that needs you.
+- **The sidebar's count** is what needs your review or is back with you, and your own PRs returned or ready where no mission already says so. It's as GitHub last said: GitHub is asked while a Reviews page is open (every couple of minutes), and not otherwise.
+
+**Reviewing a pull request** (`/reviews/<repo>/<number>`) is the page a capsule's review is: the same keys, viewed files, comments by kind and a draft until you submit.
+
+- **The diff comes from git.** ws fetches the PR's head into the repo's clone, out of the way of branches (`refs/ws/pr/<number>/head`), and compares it with where it left its base. No capsule is needed, and the lines around a change open as in a capsule's review.
+- **A stack's layers** are down the side, bottom first. Each shows only its own changes, from the layer below; `[` and `]` move between them. *Whole stack* (`w`) shows every layer together, for reading: comments are made on a layer. A layer whose layer below has moved on without it says it needs a rebase, and still shows its own changes.
+- **Views.** At the top of the list down the side are *Overview*, *Guide*, *Discussion* and *Passes*, then *Changes*, with the files under it. One shows at a time, and `1` to `5` switch between them; each keeps its state while another shows (where it was scrolled, the diff's cursor, a comment half written), and the one showing is kept in the address, through a reload and moving between a stack's layers. The diff's keys work while *Changes* shows; picking a file in the list, or following a finding from *Passes*, shows it. The page opens on the overview. On a narrow window the views are tabs under the header.
+  - **Overview** is the description as its author wrote it (a template's HTML comments left out). A whole stack's is each layer's description, bottom first; a whole stack has only *Overview* and *Changes*.
+  - **Discussion** is what's been said on the pull request itself, on GitHub: who approved, asked for changes or commented and what they wrote with it, and the comments that aren't on lines, in the order they were made, bots' folded. A comment written there posts to GitHub at once, as you. What others have said since you last looked is a dot beside it in the list.
+- **Where each other reviewer stands** (approved, asked for changes) is beside the pull request's status, dimmed when it's of earlier commits.
+- **Other people's comments on lines** are GitHub's review threads, on the lines they're on. `⏎` replies and `x` resolves or reopens, each posted at once.
+- **The guide** is a view of its own: *Write the guide* has an agent say what the change does (from the change, not its description), **where that differs from what it says it does** (what the description claims that the change doesn't do, and what the change does that the description doesn't say), and the order to read its files in, in groups, each with why it's read there and a line on what the change does to each file. It's written from the description and the change alone, so nothing's checked out for it. While it's written, the view shows it as it comes (what the change does, then where it differs, then each group as its files are placed), with how long it's been and what it was given: how many files, and those it wasn't shown (lockfiles, generated code, binary or too large ones). Claude Code says it as it writes it; with cursor-agent or pi (not over ACP), the guide shows once it's done.
+  - **Each file's line is on the file.** What the guide says the change does to a file is under its name in the diff, whole, until you mark it viewed, in either order.
+  - **The files can follow its order.** *Read the files in this order* (or *Guide*, at the top of the list of files) puts the list and the diff in the guide's groups in place of folders, each group named in the diff above its first file with why it's read there; the cursor stays on the file it's on. Viewed files are kept by content, so switching loses nothing.
+  - **Nothing's hidden.** A group the guide says to skim (a rename carried through, generated code) is folded, as a lockfile is, and still counts until you mark it viewed. A file it doesn't place is under *Not placed*, last. When the pull request has been pushed to since the guide was written it says so, and the files it doesn't place come first, under *Not in the guide*: they may be what's new.
+  - **How your workspace wants to be walked through a change** is `[reviews.guide]`, in `ws.toml` or `ws.local.toml`: `looks` in a few words ("migrations first, then what reads them"), or `file`, a document that says, and `auto = true` to have it written for every pull request that needs you.
+- **Passes** are a view of its own. A pass is an agent reading the whole change and saying what it finds: a line or two on how the change stands, and findings, each of a kind, on the lines it's about, with the code it would put there where it has some. A finding may be on no lines: it's about the change as a whole ("this should be two pull requests"). *Run* runs one; it changes nothing, never runs the change's code and never posts.
+  - **Go or no go is worked out, not stated.** A pass says which of its kinds block. It's *No go* while a finding of one is open, *Go, with notes* while only others are, and *Go* when nothing is, and it moves as you settle them: dismiss the last blocker and it's go, saying what you overruled. How each pass stands is a mark beside *Passes* in the list, from any view. Approving while one is no go is said in the submit dialog, and allowed.
+  - **A finding shows in the diff,** under its lines, as a dashed card with its pass's name: nobody's said it yet. `⏎` takes it: it goes into your draft as a comment marked as the agent's, to edit or delete like any other, and is posted only when you submit. One on no lines goes in your review's body. `D` dismisses it, then `1`, `2` or `3` for why (wrong, said already, not worth it), which its agent is told when it's run again. `a` asks an agent about it. The same are buttons on the finding in *Passes*, where each pass's findings are listed, a link to its lines on each; *In the diff* hides a pass's findings from the diff.
+  - **Run again,** a finding is the same finding when it's the same kind on the same lines as they read, wherever they've moved to, so a rebase doesn't reopen what you settled. A pass says when the pull request has been pushed to since it ran.
+  - **Follow-up** is every review's, once you've reviewed. For each comment of yours that's still open, it says whether what's been pushed since deals with it (*Dealt with*, *Partly*, *Not dealt with*), and where. That's said on the comment in the diff, beside *Resolve*, and listed in *Passes* with *Resolve the comment*. Resolving the comment settles it. It's no go while a blocking comment of yours isn't dealt with. Nothing's docked for it: its agent reads the repo's clone, where the commits before and after are.
+  - **A pass is yours to define,** in `ws.toml` (the team's) or `ws.local.toml` (yours, added to the team's):
+
+    ```toml
+    [reviews.passes.security]
+    title  = "Security"
+    about  = "What an attacker could do with this change."
+    skill  = "security-review"            # or file = "…", or looks = "…"
+    args   = "the changes in this pull request"
+    kinds  = ["vulnerability", "hardening"]
+    blocks = ["vulnerability"]            # open findings of these make it no go
+    cold   = false                        # true: the change alone, nothing checked out
+    auto   = false                        # true: run it over a pull request that needs you
+    repos  = ["api"]                      # only these repos' reviews; all, left out
+    ```
+
+    `looks` says what to look for in a few words; `file` is a checklist its agent reads first; `skill` is one of the workspace's skills, followed for `args`, reporting in ws's form in place of its own. With no `kinds`, findings are a comment's kinds (blocking, suggestion, question, nit), and with no `blocks`, `blocking` blocks.
+  - **Running by themselves.** A pass with `auto = true` (and the guide, with `auto = true` under `[reviews.guide]`) runs without being asked over the pull requests in *Needs your review* and *Back with you*, while a Reviews page is open: one at a time, and again once a pull request has been pushed to. One that fails isn't tried again until you run it. It's never run over a bot's pull request or a draft, and over a fork's only if it's cold. The Reviews list then says how each pass stands on the pull request's row (*Check: no go · 1 blocking*), dimmed when it's of the commit before, so you know before you open it. A pass that reads the code docks each pull request it runs over, which costs more than a cold one: `auto` is per pass.
+  - **A pass that reads the code has the pull request docked first,** as asking does (a stack at its top layer), and starts from `ws show <repo>#<number>`, which says what's been said in review and what other passes found, so it isn't said again. A **cold** pass is given the description, what's been said and the change with its lines numbered, and nothing else: nothing's docked, so it's quick, and it works on a fork. Lockfiles and generated files are left out of what it's given, and it says so. One that reads the code is pointed at a diff that leaves out what the repo's `.gitattributes` marks `linguist-generated`, and told which files those are.
+- **Submitting posts to GitHub, as you.** It's the one thing here that leaves your machine, so `s` shows exactly what will be posted, and where, before `⌘⏎` posts it. A comment's kind is its first words, as [Conventional Comments](https://conventionalcomments.org) writes them (`issue (blocking):`, `suggestion:`, `question:`, `nitpick:`), and a suggested change is a ```` ```suggestion ```` block GitHub can apply. A comment on lines outside the PR's diff on GitHub goes in the review's body instead. A stack's dialog lists its layers, each with its own verdict (`⇧A` approves every layer); a layer with none is left alone. Your own PR takes comments, not a verdict.
+- **Looking again.** When they push, the review opens on what's changed since your last one (`i` for all of it). ws keeps the commit you reviewed (`refs/ws/pr/<number>/reviewed/<id>`), so it's there after a force-push; a review you made on GitHub counts too. After a rebase, each file's change is compared with the one you reviewed (`git patch-id`): a file whose change is the same is marked unchanged and folded, so a rebase that changes nothing shows nothing to re-read.
+- **Ask** from the bar at the foot of the review (`/` goes to it): about the whole PR (`⇧A`), the line or lines selected (`a`, or *Ask* beside *Comment*), or what a pass found (*Ask* on the finding). ws docks the PR first (a stack at its top layer), so the agent reads the code as files with the rest of the workspace beside it, starting from `ws show <repo>#<number>`. It reads, and that's all: it never runs the PR's code, and never posts. The answer is a card over the review, with the agent's steps as it reads; what you type while it's open is a follow-up, and `esc` drops it. It can propose a review comment (`ws pr comment --propose`), which shows in the card with *Add to my review*: accepting puts it in your draft, marked as the agent's, to edit or delete like any other. Like an ask about a document, it's gone an hour after its last turn unless you *Keep it as a conversation*: then it's in *Conversations*, on the PR's page, and its agent may propose anything a conversation's can.
+- **Capsules ws docks for a question** aren't boarded, don't run the repo's `after_create` hook, and are removed once the PR merges or closes, unless you've changed something in one. *Open here* (`⇧O`) docks the PR as `ws dock` does, boarded, and then it's yours.
+- **A PR from a fork** is listed and reviewed, but can't be docked (`ws dock` looks for its branch on origin), so it can't be asked about.
+- What ws keeps of a PR is in the workspace's records (`.ws/ws.db`): your reviews of it, the files you've viewed, whether it's docked, and what it says it does, so `ws find` finds it by its title or description (and *Said* in Find, where it isn't already listed). So is the list as GitHub last gave it, which a page opens on.
+
+**Team** (*Team* in the sidebar, `g t`; `ws team` opens it) says what the people working in the workspace's repos have been doing, by day, newest first. It's about the work, arranged by people so you know who to ask: there are no counts, and nothing is said of anyone who did nothing.
+
+- **What it reads.** Each visible repo's default branch, fetched into its clone and read along its first parents (a merged branch's own commits aren't each counted), and each repo's pull requests that have changed since ws last asked GitHub: opened, made ready, reviewed, merged, closed. What review comments say isn't read.
+- **A row is one piece of work on one day:** a pull request, or commits pushed straight to a default branch with no pull request. One person's commits to a repo in a day are one row where they touch the same files (a record added, then amended twice), called by the first of them; commits to different files are rows of their own.
+- **One change made in several repos is one row.** Pull requests on a branch of the same name, opened by the same person in more than one repo within two weeks of each other, are one piece of work: a dependency sweep across seventeen repos, a feature's backend and frontend halves. Its row says how many repos it's in and how many have landed (*In review, 9 of 17 landed*), what each person did and in how many (*Ana opened it in 17 repos. Ben approved it in 12 repos.*), and opens to its pull requests, each a link. It has one gist, written from all of them: when they're first seen, and again once none is still open. It's called what its pull requests are called, or by its branch where they differ.
+- **Every row has** what it's called (its title, without its `feat:`), its repo, where it stands now (*In progress* for a draft, *In review*, *Landed*, *Closed*), who's on it (whose it is first, then who reviewed it that day) and, under it, what the change does, what's worth knowing of it, and what happened that day in a sentence: *Ben approved it. Ana landed it.*
+- **What a change does** is its gist: one sentence an agent writes from the change itself (its title and description, the files it touches and its diff), saying the thing as it now is. A pull request's is written when it's first seen open, and again when it lands; commits pushed straight to a default branch have one too.
+- **Worth knowing** is what someone who didn't write a change would be caught out by, or do their own work differently for. Most changes have nothing. Each is one of *Contract* (something other code calls or reads has another shape), *To do* (something you must do: a migration, a setting, an upgrade), *How we work* (a pattern, rule or decision to follow from now on), *Removed* or *Behaviour*, in a sentence, with the changed file it rests on, which opens in Files. One that names no file of the change is dropped, so what's said can be checked. What's only new (a flag, a field, a document) isn't one: the gist says it's there. Nor is what might follow from a change, as against what it makes so. A change that only touches dependency files (manifests, with a lockfile among them) has a gist and nothing worth knowing.
+- **It's said under its change, once:** on the change's latest row, with the gist above it. *Worth knowing* (`n`) leaves only the changes that have something, each once, and says how many there are. The filter finds them by kind too: *contract*, *to do*, *how we work*.
+- **A change to how things are done says so** with a mark on its row, whether or not an agent has read it: *Guide* (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, a template), *Skill*, *CI*, *Lint*, *Workspace* (`ws.toml`, `ws.repo.toml`). It's found from the files of what's landed, and an agent that reads the change is told those files are how things are done here. Watch paths of your own, for one repo with its name first:
+
+  ```toml
+  [team.watch.patterns]
+  title = "Pattern"
+  paths = ["docs:technical/patterns/**"]
+  ```
+
+  One named as a built-in (`guides`, `skills`, `ci`, `lint`, `workspace`) replaces it, and with no paths turns it off. The filter finds them by their mark: *guide*, *ci*.
+- **Catch me up** (`c`) has an agent write what the team's been working on in the period: a few topics, each the changes that are part of one piece of work (a feature across a backend and a frontend, a sweep, decisions about one subject), with a sentence or two on what it comes to and where it stands. Who's on a topic is taken from its changes, not from what the agent says. A topic's name leaves only its changes showing (`esc` for everything again). It's written only when you ask, from the changes that have been read, and kept for the period (today, the last 7 days, all); when the period's changes move on it says so, with *Write it again*.
+- **Since you last looked.** A dot marks each row that's had something happen since you were last on the page, a line sits under the last of them (*You'd seen what's below 2 hours ago*), and the top says how many changes are new. Being on the page a few seconds counts as looking.
+- **By person** (`p`): the same changes, each once, under whose it is (what's still open first, then what's landed) and, under *Reviewing*, under whoever else was on it. People come in the order they last did something. Nobody is listed for having done nothing, and nothing is counted.
+- **Near you.** A change that's landed and touches a file one of your capsules has changed too says so (*Also changed in your `api/token-cache`: cache.go*): it's what you'll meet when you next rebase. It's worked out from each capsule's changes since it left its default branch, committed or not.
+- **When it's written.** While the page is open, changes since the start of yesterday are read as they're seen, two at a time. Older ones aren't until you ask: `w` on a row, or *Read N more changes* (`⇧W`) for everything showing. A gist is written once for what it's of, and kept. One that couldn't be written says why on its row, with *Try again*.
+- **The agent** is given the change in its prompt and no tools, replies in a form ws reads, and its session isn't kept. It runs on the harness conversations run on, on that harness's small model (`haiku` on Claude Code). `[team] harness` and `model` pick another, and `[team] narrative = false` turns gists off: the page is then the facts alone. A diff is given up to 48 KB, 6 KB a file, without lockfiles and other generated files.
+- **A merge is one thing,** whichever of git and GitHub knows of it: a commit on the default branch that names a pull request (`… (#12)`, or *Merge pull request #12*) is that pull request landing. Where there's no GitHub to ask, the page says so, and shows what git knows.
+- **People are paired** across their login on GitHub and their name and email in git: by a squash merge's commit (its author is the pull request's), by GitHub's no-reply addresses, and by the same name. Someone is called by the name on their GitHub profile, where they've set one, or their name in git; a whole name before a first name alone. Where that isn't enough (a reviewer with no name on their profile is their login), say who someone is:
+
+  ```toml
+  [team.people.ana]
+  name = "Ana Diaz"
+  logins = ["ana-acme"]
+  emails = ["ana@acme.example"]
+  ```
+
+- **Bots' rows are folded** at the foot of each day (*2 automated*; `a` shows them): GitHub's bots, and release tools that commit under names of their own.
+- **Keys.** `j`/`k` move, `⏎` opens a row to its events (each with who, when, the commit and the files it touched), `o` opens it (an open pull request's review here; anything else on GitHub), `w` has a row's change read, `n` leaves only what's worth knowing, `c` catches you up, `p` arranges by person, `1`/`2`/`3` pick today, the last 7 days or as far back as ws has looked, `/` filters by text, repo or person, and `r` looks again.
+- **Looking.** While the page is open, ws fetches and asks GitHub every couple of minutes, and not otherwise. A look goes back 14 days (`[team] window = "3w"` for more), and that's what's kept: a pull request that hasn't moved since goes, with its events. Asked for a longer period, it goes further, and keeps that for the rest of the day.
+- **`ws team --since <when>`** prints a period in the terminal: `today`, `yesterday`, a weekday, `week` (since Monday), `7d`, `2w` or a date, with the gists that have been written. `--read` has every change in the period read first, where it hasn't been: an agent run each, so a fortnight of a busy workspace is a couple of hundred. `-f json` prints it as the page reads it, and `-f llm` for an agent: each change once, with where it is, where it stands, who's on it, what it does and what's worth knowing.
+- **It's yours.** What's read and written is kept in the workspace's records (`.ws/ws.db`: the events, the pull requests as GitHub last said them, the gists, the accounts, when it last looked, and when you did), on your machine. Nothing is posted or shared. Each person's ws writes its own gists.
+
+**Pages** (listed in *Documents* in the sidebar, `g d`; `ws page` opens them, and `ws page "Token cache"` starts one) are documents you write, before or beside any mission: a problem being worked out, with an agent asked in where you want one.
+
+- **A page saves itself** a moment after you stop typing. Its text is a markdown file, `.ws/pages/p1.md`, local to your machine as missions are, and what it is beside that (the kind of document it's written as, where it was filed, the file it's tied to, the version saved) is in the workspace's records (`.ws/ws.db`). `ws page list` lists them with their files; `ws show p1` shows one, with its cells and passes and what it says. A save is refused if the page has changed since the version it was edited from, the file edited by hand included: what's edited by hand is taken in when the page is next listed, saved or searched for. *Remove* takes one out of the list and keeps its file (`p1.md.removed`); it's no longer found, and its number isn't used again.
+- **A cell is something you asked for.** Start a line with `>>` and say what you want there (`>> a table of the existing routes`), press `⏎`, and write on. An agent reads the page and what it needs of the workspace (the repos, the missions, GitHub; it changes nothing), and what it writes fills the cell. While it works, the cell says what it's doing.
+- **How a cell reads.** What's written into a page is written as the page's: no "I" or "we", nothing about what was searched or run, what's so said with the file it's so in, no guesses marked in the text. What its agent couldn't find, didn't check or had to guess is said to you instead, as its notes in the cell's panel (the cell's head says *With a note from its agent*), and isn't in the page.
+- **A question** is a line that starts with `>?`: `>? does demo parse any flags today`, `⏎`, and write on. It's answered in its panel (click its head, which says *Answered*), where you can ask more. Nothing is written into the page for it: in the page it's only its head, and in the file two comments. *Put it in the page* (`⌘⏎`) has what was answered, or what you say there, written in, and it's a cell from then on. So does asking for it in words: "draft this in the doc", "add that as a table", said as any follow-up.
+- **Ask for a change** by clicking the cell's head, or `⌘⏎` with the cursor in it: its panel has what you asked for, each version it wrote and what the latest was written from, and a box to say what to change (*add a column for how many lines each has*). *Change* (`⏎`) has the agent write the cell again, in the same session; *Just ask* (`⌘⏎`) asks about it instead, and the cell stays as it is. *Use this* puts an earlier version back.
+- **What a cell holds is yours to edit,** as any of the page. Ask for a change to one you've edited and its agent starts from your edits; how it read is kept under what you asked (*With your edits to it*), with *Use this* to put it back. *Keep as text* drops the cell and leaves what it holds; *Remove* takes both out.
+- **Your own words changed.** `⌘⏎` outside a cell (or *Change* on the page's bar) asks what should change in the paragraph the cursor's in, or the blocks you've selected: *tighten this*, *make it a table*. They become a cell, as they are until its agent has written them again, and the panel keeps *Your words, as they were* to put back. *Keep as text* when it reads right.
+- **Select words** (not in a cell) and a popover under them has *Ask* and *Change*. *Ask* asks about them: a question about those words, quoting them, put after the blocks they're in and answered beside the page, as `>?` is. *Change* is `⌘⏎` on them.
+- **Cells fill top to bottom.** One asked for under a cell that's still being filled for the first time waits for it (*Waiting for the cell above*), so "which of the files above" has them to read.
+- **What a page names is linked.** Write `demo/main.go`, or `demo/main.go:12-20` for lines of it, `demo/internal/` for a folder, a repo's name (`demo`), `demo#12` for a pull request, a mission's slug, or another page's or a conversation's id (`p3`, `w4`), and it's marked where it names something that's there. Hover says more (a file's lines, a pull request's title and checks, where a mission stands), and `⌘`-click goes there: Files at those lines, the review, the mission. A mission is followed by where it stands and a page by its title. A repo is a pill in its colour, showing its display name; on a page, put the cursor in it to edit its name. *Link names* makes what a page names links, so it links on GitHub too: a file's lines at the commit they were read at, a pull request and a repo at their GitHub address, a mission, page or conversation as `ws:<name>` (plain words on GitHub). Undo takes it back. A cell's names are linked the same way as it's written in. A link to one of the workspace's repos on GitHub, in any document ws shows, opens in ws (Files, at the heading it names, or the pull request's review) with the same card; the file isn't changed. A plain click only puts the cursor there, and nothing's added to the page's file. A file in a capsule is named `demo/token-cache:internal/cache.go` (and `:12-20` for lines), and a repo's alias names the repo. A file named as it is on disk (`repos/demo/token-cache/internal/cache.go`, or that path in full under the workspace's folder) is read as the same file.
+- **The same names are linked wherever you read.** A conversation, a thread, a pass's findings, a cell's notes, a handoff: each name is drawn as on a page, with the same card, and a click goes there. So is a link an agent made to a file by its path on disk, keeping its words. Every agent is told to write these names (`prompt.Naming`). A turn keeps what its names were when it was said, so a capsule's file it named is still drawn once the capsule's landed and gone: its card says so, and shows the file on the default branch.
+- **What it was written from.** The panel lists the files the cell's agent read, each a link to it in Files. When one changes, the cell says so (*main.go has changed since*) and the list of pages says how many are out of date; *Write it again* has its agent read what's there now. A cell is also out of date when a cell above it changes (*A cell above has changed since*), A cell never writes itself again. Only files it read count: not what it learned from `git log` or a search.
+- **More than one block is laid out first.** *Add* on the page's bar asks for something anywhere in the page (*a section after Constraints on X, and one after Release on roll out*); *Draft it* asks for a first draft of the whole page; and a `>>` asked for several sections does the same where you asked. One agent plans the blocks, and each heading goes in at once with an empty block under it saying what it'll hold. Then it writes them one by one (*To be written*, then what it's reading, then the block), while you go on writing anywhere. Each block is a cell from then on: change it, ask about it, keep it as text. One you take out before its turn isn't written. A plan only adds: it doesn't move or change what's there. 
+- **Passes** read the whole page and say things about it. They aren't part of the page: each is a tab beside *Page*, and nothing a pass says is written into the page's file.
+  - **Check:** what's open, ambiguous or missing, for someone who'd build from it. **Formalise:** what the page requires, as statements that could be checked, and what's too vague to check, with words that aren't. **Cold read:** what an agent given the page and nothing else (it can't read the workspace) would build, and everything it had to assume.
+  - **A tab** has *Run* (then *Run again*), the pass's steps while it runs, what it said of the page, and what it found: each finding a kind, the words of the page it's about, and what it says of them. Its count is the findings still open.
+  - **A finding** is dealt with by *Done*, *Dismiss* (as *Wrong*, *Already said*, or *Not worth it*), *Use these words* (the words it proposes go on the page in place of those it quoted) or *Find out* (an agent answers it there, under the finding, where you can ask more; nothing's put in the page unless you press *Put it in the page*, which has it written in under the words the finding is about). Those settled fold away, and can be opened again.
+  - **Run again** reads the page as it is now. What you marked done or dismissed stays so, what the page has since answered is gone, and what's new is added. When the page has changed since a pass ran, its tab says so.
+  - **Show on the page,** per pass, marks its open findings on the words they're about; a mark opens the finding there. They're drawn over the page, not put in it.
+  - **Your own passes** go in `ws.toml`:
+
+    ```toml
+    [pages.passes.security]
+    title = "Security"
+    about = "What could leak a secret or widen who can do what."
+    looks = "Read it as someone looking for how this could go wrong: secrets in logs, a permission widened, input trusted."
+    kinds = ["risk", "question"]
+    # cold = true gives its agent the page and nothing else
+    ```
+
+    A pass can take how it's done from a file instead of (or as well as) `looks`: `file = "path"`, from the workspace's root, a full path, or `~/…`. Its agent reads the file first: with the [humanizer](https://github.com/blader/humanizer) skill installed, `file = ".claude/skills/humanizer/SKILL.md"` and `kinds = ["tell"]` make a pass that marks where the page reads as if a model wrote it, with plainer words to put there.
+
+    **A pass can be one of the workspace's skills,** asked something: its agent follows the skill for that, on the page, and what the skill would report (a verdict, a list) comes back in a pass's form, the verdict as what it said of the page and each item as a finding on the words it's about, of the kind the skill files it under. The skill is found by its name, as `ws show skills` lists it; a pass whose skill isn't there says so on its tab, and can't be run.
+
+    ```toml
+    [pages.passes.share]
+    title = "Ready to share?"
+    skill = "build-proposals"
+    args = "ready to share?"
+    ```
+
+    **A kind's passes.** `passes = ["missing", "share"]` under a [kind of document](#wstoml) makes those of your passes tabs on pages started as that kind, and on no other page. The built-in passes are on every page.
+  - **How well a pass does.** `ws show passes` counts, for each pass over every page it's run on (and each of a review's passes over every pull request), what came of its latest findings: taken, dismissed (wrong, already said, not worth it), or still open, and, of those judged, how many were right and how many acted on. A pass run again is told which of its findings were dismissed, and why.
+- **How cells write** can be set for the workspace: `[pages] style = "path"` names a file (a style guide, a skill's instructions) that each cell's agent reads before it writes.
+- **Kinds of document.** A workspace with [kinds of document](#wstoml) can start a page as one: *New as…* (`N`) in Documents, a kind and a title. Its agents are told what it's to be and the kind's guide, and *Draft it* lays it out as the guide says. Its kind shows on the page's bar and in the list.
+- **Filing a page.** *File as…* on the page's bar files it as a document of one of the workspace's kinds: pick the kind, give it a title (the page's, unless you change it), and it shows where it goes and the commit's message, which you can change. What's filed is the page as it reads: what its cells hold is kept as text, its questions are left out, and nothing of ws's is in the file. It's saved as any document on a default branch is: landed, in a repo with no pull requests, or committed in a capsule lifted for it (`add-<slug>`) and left to you. A numbered kind's number is worked out from what's on the default branch then, and if someone lands that number first, filing takes the next and goes again. The page stays, with its cells and passes, tied to the file it was filed as: *Save to repo* saves it again (see *A file as a page*), and the document says what page it was written in. A cell still being written stops it.
+- **A file as a page.** A markdown file in a repo is edited as a page: *Edit as a page* in Files. It's the one page tied to that file, made the first time with its text (and its [kind](#wstoml), if its path fits one), so the page's tools are all there: cells, questions, *Change*, *Draft it*, passes. The page's bar names the file.
+  - **The page keeps itself** as you type, as any page does. ***Save to repo*** writes it to the file, as it reads (cells as text, questions left out), with the commit's message to change: committed in its capsule, or on a default branch landed (a repo with no pull requests) or committed in a capsule lifted for it, as a document is saved.
+  - **When the file's changed** since the page took it in (someone landed a change), the page says so, and saving waits: *Bring in what changed* merges the file's changes into the page, with what you've written and its cells. Where both changed the same lines, both are kept, marked (`<<<<<<<`), for you to settle on the page.
+  - **A filed page** is tied to the file it was filed as: *Save to repo* saves it again.
+- **The map,** beside the page on a wide window (*Map* folds it): what needs you (open, out of date, not filled), the outline, each cell and where it stands, each pass that's run with its open findings, everything not ticked off, and the files the page rests on, each with how many cells rest on it. Each goes to what it names.
+- **A cell that couldn't be filled** says why in its panel; *Try again* fills it.
+- **In the file,** a cell is its markdown between two comments (`<!-- ws:cell w7 v2 | a table of the existing routes -->` and `<!-- /ws:cell -->`), so the file reads as plain markdown. A cell is one of the workspace's conversations: `ws show w7` has what was asked and each version.
+- **What an agent writes is put into the page by the browser:** a cell that fills while its page is closed waits, and lands when you next open it. A page open in two tabs saves from one: the other says it's changed, and asks which to keep.
+- Cells run on `[conversation]`'s harness and model: with no `[conversation] harness`, crew's harness (Cursor, by default) and its conversation model. `[conversation] harness = "claude"` in `ws.toml` or `ws.local.toml` runs them in Claude Code.
+
+**Artifacts** are versioned HTML prototypes: something to look at and use rather than read, such as a mock-up of a page, two takes on a colour, or a diagram you can click through. An artifact is one HTML file, with its CSS and JS inline. It has versions, each a whole file, and each says who made it, where, what it's based on and what changed. It isn't a kind of document, and it isn't a mission's recorded artifact (`ws mission artifact add`), though a mission's list can point at one.
+
+```bash
+ws artifact add glow.html --title "Horizon glow" --note "Accent at 8% in dark and 3% in light."   # a3.v1
+ws artifact add glow.html --to a3 --note "No glow in light: at 3% it looked grey."             # a3.v2, based on v1
+ws artifact add glow.html --to a3 --on v1 --note "Softer, from v1."                             # a3.v3, based on v1
+ws artifact list                  # the newest version first (--all: discarded ones too)
+ws show a3                        # its versions, what each changed, and where each came from
+ws artifact show a3.v2            # v2's HTML (a3: the latest)
+ws artifact promote a3.v2 --into glow   # keep it for good: v2 chosen, into mission glow
+ws artifact promote a3 --move     # one on this machine, moved into the repo in one commit
+ws artifact discard a3 "v2 of a5 won"
+ws artifact restore a3            # put it back
+ws artifact clear                 # clear the expired
+ws conversation accept w9 2       # add what conversation w9 proposed (its proposal 2): a3.v2, from w9
+```
+
+- **Where they're kept.** Where `[artifacts] path` in `ws.toml` says ([ws.toml](#wstoml)): in a repo, such as the records repo (`records:artifacts/{date}-{slug}/`), or, without one, on this machine, in `.ws/artifacts/{date}-{slug}/`. Either way an artifact is a folder holding its record, `artifact.toml`, and `v1.html`, `v2.html`, …. The folder's named from the day it was made and its title (`2026-11-12-horizon-glow`; a second of the same name is `-2`), and keeps its name if the title changes. `artifact.toml` is the record: ws reads it into the workspace's records for listing, finding and refs, and where the two differ, the file wins (edit it by hand and ws reads it again). `path` only says where new ones go: ws reads both places, and a version goes where its artifact is.
+- **In a repo.** Everyone with the repo sees them, once they've landed and they've fetched. Each one you add, or a version of one (by hand, or confirming a conversation's proposal), is one commit on the repo's default branch, committed with `add` or `revise` and landed as `ws land` lands one (the repo's check runs first): its body says where it came from (*Proposed in conversation w9, "Radial horizon gradient…" (proposal 2), and added by you.*, or a mission, or by hand) and the version's note. Nothing's left of one that stops. Crew's is written in their mission's capsule of the repo, the one they're in (they're told to lift one if there's none): they commit it with the rest of their work, and it lands when the capsule does. Until then it's *in flight*: ws reads the repo's ground, so the list is as fresh as the last fetch, and the mission capsules of it, where crew's wait, and lists those with their capsule. `ws show a3` says where it's kept and which versions are in flight, and anything written for other people names the folder (`records:artifacts/2026-11-12-horizon-glow/`), as `a3` is this machine's.
+- **Clashes.** Two people can each add v3, or make folders of the same name. Yours is numbered from the branch as it is when it's added, and one that lands meanwhile has yours numbered again from it and landed as the next. Crew's v3 in a capsule, when someone else's v3 has landed first, is listed as v4 (*v3 there: v3 landed first, so it lands as v4*), and landing the capsule makes it v4, based on what it revised, and says so (*v3 of artifacts/…/ lands as v4: v3 was taken on the branch*); a folder whose name was taken meanwhile by another artifact lands as `-2`. The rest of the capsule lands as it is, and the landing stops, with the capsule as it was, if an artifact it touches isn't whole once rebased.
+- **Refs.** Each artifact is `a<n>` (`a3`), and a version `a3.v2`. They're this machine's, as `p3` and `w4` are. `ws show a3` gives the title, where it stands, where it's kept, and each version with what it's based on, who added it and where (a mission and its crew, or by hand) and its note, and how to read one. Agents are told to name them so, and wherever the web UI draws what's written (a handoff, a note, a conversation), `a3` and `a3.v2` are refs: their card says the title, which version of how many, where it stands, and the version's note, and a click opens it.
+- **Versions.** Each is a whole file, never changed or renumbered once written. A version is based on the one it revises: the latest, or another with `--on`, so versions can branch, and they're still numbered in order. Each has a note of a line or two: what changed and why, and the first's what the artifact tries out.
+- **What a version can be.** One HTML file (it must start as HTML: `<!doctype html>`, then its page), at most 1 MB, with a title (`--title`, or its `<title>`). The web UI runs it in a sandboxed frame that fetches nothing and keeps nothing, so ws warns when it loads a script, font or image from elsewhere, calls the network (`fetch`), or uses storage (`localStorage`): put them in the file, images as `data:` URLs.
+- **Crew** are taught to make one when the work calls for something to look at, or options to choose between. Theirs says it came from their mission (its slug and title, and the crew), must have a note, and is recorded on the mission as one of its artifacts (`[artifact, live] a3 — Horizon glow — ws show a3`), with the crew and the stage. The orchestrator makes none, and a conversation's agent proposes (below).
+- **Yours,** added from your own terminal, has you as its only provenance (*by you, by hand*), and needs no note.
+- **From a conversation.** A conversation changes nothing, so its agent proposes one, and you add it, or not, with one click. `ws artifact add --propose`, with no file, prints how one's written (one file, its CSS and JS inline, nothing from the network, images as `data:` URLs, both colour schemes where it matters, no `localStorage`); then `ws artifact add --propose --title "…" --note "…" -`, with the HTML on stdin, proposes it, checked first as any version is (one HTML file, under 1 MB, with a title and a note), what won't load in the frame said to the agent then. A revision is the whole file again, proposed with `--to a3` (and `--on v1` for one other than the latest), after reading it with `ws show a3` and `ws artifact show a3.v2`. The card under the reply shows the title, the note, where it would go, and the HTML running in a small sandboxed frame (served as a version is, from `/frame/w9/proposals/2`), with *Open larger*; a revision is shown beside the version it revises, and if versions have been added since it was proposed, the card says so (*Proposed on v1; v2 has been added since*). *Add artifact* (or *Add as v2*) adds it, as you, *from w9*, with the proposal's number and the conversation's title; *Decline* leaves nothing, and the proposal stays in the conversation with its frame. *Edit* changes its title and note first. A revision added after others is still based on the version it was proposed on, and takes the next number. Added, the card shows the version it made (`a3.v1`), its frame, and *Open it*; `ws show w9` lists it under what came out of it. In a mission's conversation, it's recorded on the mission too. The agent may run `ws show`, `ws artifact show`, `ws artifact list` and `ws artifact add --propose` (that, with `--propose` first), on every harness; told to add one itself, it's refused.
+- **They're sketches,** and most should go: each is *live* until it's promoted, discarded, or it expires. Promoting, discarding, restoring and clearing are yours alone: crew say in their handoff which they'd keep or drop, and why.
+- **Promoting** keeps one for good: it expires no more, and says which version was chosen (`a3.v2`, or `--version 2`; its latest that's landed for neither) and what it went into, if anything: a mission (`--into glow`, which records it among the mission's artifacts, so whoever briefs it and its crew read it), a mission started from it (`--start "build the glow"`, waiting to be briefed, with it recorded on it), or a document (`--into records:plans/glow.md`), which cites it by its folder in the repo, so the link works for everyone. In a repo it's a commit, with `promote`, landed. On this machine it's marked in its folder, and `--move` (*Promote and move to records*, in the web UI) moves it into the repo artifacts are kept in: its folder, every version and its record, promoted, in one commit, then gone from `.ws/artifacts`, its ref the same. A document cites only one that's in a repo. A promoted one still takes new versions; promoting it again chooses another, or says what it went into now. `ws show a3` and its page say what was chosen and what it went into.
+- **Discarding** takes one off the list, with its versions, saying why if you like (`ws artifact list --all` lists it). On this machine its folder moves to `.ws/artifacts/.discarded/`, and is deleted for good 30 days later. In a repo it's a commit taking its folder away, with `discard` and the reason in its body, landed; history keeps it, and `ws show a3` says where (`records@4f2a9c1`), and reads its versions from there. Someone else's discard reaches you as a commit: once you've fetched, it's listed as discarded, by them, with the reason its body gave, and not *gone*. Either way `ws show a3` still says what it was, and it takes no new versions. Its number and its folder's name aren't used again.
+- **Restoring** (`ws artifact restore a3`, or *Restore* on its page) puts it back as it was, live, or promoted if it had been: on this machine out of `.discarded`, while it's there; in a repo from history, in a new commit (`restore`), landed. Its expiry counts from then.
+- **Expiry.** A live one expires 30 days (`[artifacts] expire_after`) after its last version, or after it was restored if that's later: a new version starts the count again, and promoting ends it. One with a version in flight, crew's, doesn't expire until it's landed. The list warns in its last week (*expires in 4 days*), with *Promote* beside it, and `ws artifact list` says it too. On this machine the daemon discards an expired one itself, by *ws*, "expired" its reason, when it starts and each day it runs (and deletes what's been in `.discarded` for 30 days). In a repo ws commits nothing to a shared branch on its own: an expired one is listed as *expired*, dimmed, until you clear them: *Clear expired* on the list, or `ws artifact clear`, takes them all in one commit, with `clear` and a list of what it took, landed, and discards any here the daemon hasn't yet. Each is then discarded, "expired", and can be restored.
+- **Found with everything else:** `ws find` finds an artifact by its title and its versions' notes.
+- **In the web UI,** *Artifacts* in the sidebar (`g a`) lists them, the newest version first: each with its title, its latest version (`v3`) and its note, where its versions came from (a conversation or a mission, drawn as refs), who added the latest and when, and where it's kept (*This machine*, or the repo; *In flight* and its capsule for crew's, not landed). *All* is the live and the promoted; *Live*, *Promoted* and *Discarded* keep to those (a discarded one is shown only there), and a menu keeps to what came from one conversation or mission, or was added by hand. One in its last week says when it expires, with *Promote* beside it; one expired is dimmed, and *Clear expired* clears them all. `j`/`k` and `⏎` open one. Find (`⌘K`) has them as *Artifacts*, by title.
+- **An artifact's page** (`/artifacts/a3`, or `/artifacts/a3/v2` for a version) runs the version in a frame that fills the page under its head: the title and where it stands, the version's line (`v2 of 3 · from w9 · by you · 2h ago`, and *based on v1* where it isn't the one before), and its note. The versions are a strip, `v1 v2 v3`, each with its note on hover; `[` and `]` step through them. *Fit*, *1280*, *768* and *390* (`w`) draw it at a desktop's, a tablet's or a phone's width; *Reload* (`r`) runs it again, *Stop* (`x`) unloads it (a script that loops stops with it), *Source* (`s`) shows its HTML, highlighted, *Compare* (`c`) puts it beside another (below), and *Open alone* (`O`) opens it in a tab of its own. *Promote* (`p`) asks which version (the one you're on, at first) and what it went into, a mission, a new one, or a document, with *Promote and move to records* beside it for one on this machine; *Discard* asks why (you can leave it empty); a discarded one has *Restore*. Each in a repo says it lands, and is a commit. Under its note, the head says what was chosen and what it went into, when it expires in its last week, and, discarded, where its files are kept. The frame follows the web UI's theme: an artifact that covers both schemes (`prefers-color-scheme`) shows the one you're in. `esc` goes back to the list.
+- **Comparing** puts two versions side by side, each running in its own frame, at the same width (*Fit*, *1280*, *768*, *390*, `w`), with its own head: which artifact, its versions as a strip, the version's line and note, and *Open alone*. From an artifact's page, *Compare* opens on the version you're on and the one it's based on (`/artifacts/a3/compare?v=1,3`); on v1, v1 and the latest; on an artifact with one version, it beside the newest other artifact. Two artifacts compare the same way (`/artifacts/compare?a=a3.v2&b=a5.v1`), for two ideas rather than two takes on one: each side's menu puts any artifact there, at its latest. `]`/`[` step the right one's versions and `}`/`{` the left one's; *Swap* (`S`) puts each where the other was. *Source diff* (`d`) shows the left's HTML against the right's in the diff view reviews use, side by side or unified (`u`), with the unchanged lines between the changes there to open; swapped, it reads the other way about. *Reload* (`r`) and *Stop* (`x`) do both frames. The frames scroll apart. On a narrow window there's room for one: a toggle (`t`) says which is shown, `[`/`]` step it, and the diff is unified. `esc` goes back to the artifact.
+- **The sandbox.** A version is HTML an agent wrote, run inside the page that controls your missions, so it's served from a route of its own (`/frame/a3/v2`), outside the app and its API, and framed with `sandbox="allow-scripts"`. Its scripts run, in an origin of their own: `document.cookie`, `localStorage` and the page around it throw, nothing it asks for leaves the frame (no `fetch`, no script, font or image from elsewhere, not even ws's own API), and it can't open a window, submit a form, show an `alert` or move the page. Opened alone, its policy holds it to the same. It's still signed in: only you are served it. What the sandbox can't stop is a script that loops and makes the tab slow: *Stop*.
+- **`ws doctor`** says where they're kept, and fails a `path` it can't use (no such repo, not a folder, no `{slug}` or `{number}`), a repo that isn't cloned, and one that takes pull requests; it warns where there's a records repo and no `[artifacts]`, so they're on this machine only, and says what to add, of a `guide` that isn't there, and of expired ones in the repo waiting to be cleared (and otherwise says how long a live one lasts). It says what's in `.ws/artifacts` that belongs to no artifact: a folder with no `artifact.toml`, a version file its `artifact.toml` doesn't name (a version is written before its record names it, so that's what a write that didn't finish left), and a file beside the folders. Anything else in an artifact's folder is the artifact's.
+
+**Threads on a document.** A markdown artifact (a proposal, an ADR, a plan, a handoff) is commented on where you read it, as in a shared doc: open it from the mission's page, select text and press `c` (or click *Comment* beside it). From the keyboard, `j`/`k` move a cursor paragraph by paragraph (list items, table rows, code blocks and diagrams count), `⇧↓`/`⇧↑` take in the next, and `c` comments on them; a diagram is commented on whole. A comment is a thread, live as soon as you post it (`⌘⏎`): *Ask* (you want an answer), *Change* (you want the document changed) or *Note* (`tab` picks). Threads sit in the margin, level with the text they highlight, coloured by kind; `n`/`p` go from one open thread to the next, `⏎` replies, `x` resolves or reopens, and `a`/`d` accept or decline a suggested edit.
+
+- **What's kept.** A thread keeps the text it highlights as it reads rendered, with a little either side, and the markdown lines it's in. Crew read both (`ws show t3`), so they find it in the source; the page finds the text again however the document changes around it. A thread whose text has been rewritten or removed is listed above the document, with what it said. Each version of the document a thread or reply is on is kept, in the mission's `docs/`.
+- **An agent answers.** When you post an *Ask* or a *Change*, or reply in a thread, an agent answers in it, usually within a minute: the card says it's answering, and its reply appears in the thread. It starts from `ws show t3` (what the text is, the document's history and stage, who wrote it, the decisions about it) and reads what it needs, but can't change anything: for a change, it suggests an edit (see below) and says why. Each thread keeps its own session, so it remembers the thread as you go back and forth. It's Claude Code (`claude -p`, resumed per turn with `--resume`), with `--permission-mode dontAsk` and an allowlist of reading and `ws show`, on `[conversation] model` (default `sonnet`). If it can't answer, the thread says why. A *Note* on its own isn't answered.
+- **Suggested edits.** A suggestion replaces text in the document's markdown, quoted exactly (it must appear there once), with what it should read. The thread agent makes one for a *Change* (`ws thread suggest t3`, as crew can too); you can make one yourself from the comment box: *Suggest an edit*, then type what the highlighted text should read (when that text isn't in the markdown as it reads, around formatting say, it's posted for the agent to make into an edit). The card shows it as before and after, and the text it replaces is struck through in the document. **Accept** (`a`, or `ws thread accept t3`) writes it into the document, and resolves the thread: in a capsule, it commits just that file, as you (*Accept suggestion on proposals/x.md (t3)*), or, if the file already has uncommitted changes (crew's draft, say), writes the edit in alongside them and commits nothing, so their changes aren't committed as yours; a mission file is just written; a document on a default branch can't be changed in place. If the text it replaces has changed since, it's refused: ask for a new one. **Decline** (`d`, `ws thread decline t3`) keeps the thread open, for you to say why. A newer suggestion replaces one still waiting.
+- **Answers from crew.** Crew see a mission's open threads in `ws show` and answer them with `ws thread reply t3 "…"`, after changing the document (and committing it, when it's in a capsule) for a change. Only you resolve a thread (`ws thread resolve` refuses crew). `ws thread list` lists them.
+- **Your turn.** A thread someone has answered is your turn (while the agent is answering, the mission's headline is `… answering`, in the agent's court): the document's page says how many, the mission's page shows it beside the document, and the mission's headline is `↩ replies` in your court, with `⏎` going straight to the document. What's changed since you last commented is marked with bars in the left margin; click one for what that passage said then (`i` hides them).
+
+```toml
+[web]
+port = 47100    # default: one of 47000–47999 picked from the workspace's path, or the next free one
+
+[ui]
+accent = "#2a9d8f"   # the colour the web UI is drawn in (default: ws's own violet)
+```
+
+- Its colour is `[ui] accent`, a hex colour (`#rgb` or `#rrggbb`; anything else is refused): the team's in `ws.toml`, yours in `ws.local.toml` or on the Settings page, yours winning. The page is served with it on `:root` as `--accent-pick`, so it never shows the default first. Unset, nothing is added, and the web UI's own default applies. Everything accent-coloured (buttons, links, selection, the mark and the horizon) is worked out from it for each theme: lightened or darkened as far as it needs to read, the button's label white or near-black by contrast.
+- On the Settings page (*Appearance*) it's a colour picker, or its hex typed: the page changes as you pick, and it's written when you let go, with *Undo*; *Reset* takes it away. Beside it is the accent as the current theme shows it (in text, as a tint, on a button), and a word when the theme has had to lighten or darken your pick to read.
+
+- It listens on `127.0.0.1` only. `ws web --print [path]` prints the link instead of opening it, and `ws daemon status` says where it is.
+- The link signs your browser in with the workspace's token (kept in `.ws/web.json`, readable only by you, and the same across restarts), so open it with `ws web` rather than typing the address. Every request needs that sign-in, comes to `127.0.0.1` or `localhost` by name, and, for anything that changes something, comes from the UI's own pages.
+- Working on the UI: `just web-dev [workspace]` serves it with hot reload at `localhost:5173`, talking to that workspace's running web UI. `just build` builds it into `internal/web/dist`, which the binary embeds. It isn't committed, so a `go install` has no web UI. A running daemon keeps serving the UI it was built with: `ws daemon stop` (and `ws web` again) to see a new build.
+
+---
+
+## Configuration
+
+### ws.toml
+
+The shared workspace config. Lives at the root of the workspace and is typically checked into the config repo.
+
+```toml
+[workspace]
+org = "your-org"              # GitHub organisation
+default_branch = "main"       # default branch name for all repos
+display_name = "My Workspace" # optional — shown in prompts and the web UI
+
+[repos.frontend]
+display_name = "Frontend"
+aliases = ["fe", "front"]
+color = "#FF6B9D"
+after_create = "npm install && npm run build"
+
+[repos.backend]
+display_name = "API"
+aliases = ["api", "be"]
+after_create = "make setup"
+
+[repos.infrastructure]
+aliases = ["infra"]
+```
+
+**Workspace fields:**
+
+| Field | Required | Description |
+|---|---|---|
+| `org` | yes | GitHub organisation. Used for cloning repos and API calls. |
+| `default_branch` | yes | The branch name used for ground (e.g. `main`, `develop`). |
+| `display_name` | no | Human-friendly workspace name. Falls back to `org`. |
+
+**Repo fields:**
+
+| Field | Description |
+|---|---|
+| `display_name` | Human-friendly name shown in UI. Falls back to the canonical name. |
+| `aliases` | Short names for the repo (e.g. `fe` for `frontend`). Used in commands and completions. |
+| `color` | Terminal colour for this repo. Accepts hex (`#FF6B9D`) or 256-colour codes. |
+| `after_create` | Shell command run in the worktree after `lift` or `dock`. Failures are logged but non-fatal. |
+| `group` | The repo's [group](#groups). Ungrouped repos are always visible. |
+| `landing` | How work lands: `"pr"` (the default), or `"direct"` for commits straight to the default branch with [`ws land`](#landing). |
+| `verify` | A shell command that must pass in a capsule before `ws land` pushes it. |
+| `documents` | The repo is a [space of documents](#spaces-of-documents) (`true`), or a folder of it is (`"docs/"`), or it isn't (`false`: the records repo is one without saying). A repo can say it of itself in its `ws.repo.toml`; `ws.local.toml` can turn one off. |
+
+**Agents** (`[agents]`): the workspace's own way of working, for every agent `ws` starts.
+
+| Field | Description |
+|---|---|
+| `guide` | The workspace's guide for agents. Unset: `AGENTS.md`, or `CLAUDE.md`, at the workspace's root, if there's one. |
+| `skills` | The folder its skills are in, each a folder with a `SKILL.md`. Unset: `.agents/skills`, or `.claude/skills`, if there's one. |
+| `process` | How work goes here, in prose (see *The process* under [Missions](#missions)). Unset: `PROCESS.md` at the workspace's root, beside `ws.toml`. |
+
+Every agent is told where the guide is and to read it first: crew, briefing agents, the orchestrator, and the agents that answer threads, conversations, cells and passes. Skills are listed by `ws show skills` (each one's name, what it's for from its `SKILL.md`, and that file), and in a mission's `ws show -f llm`. An agent follows a skill by reading its file, so one that can only read can still follow one, in whichever harness it runs.
+
+Each harness also looks in a place of its own: Claude Code in `.claude/skills` and `CLAUDE.md`, others in `.agents/skills` and `AGENTS.md`. `ws doctor` says when a harness in use can't see the workspace's skills, or loads a guide that isn't the workspace's. `ws doctor --fix` links the skills, and the guide where there's none; a guide of its own that's there already is left for you to merge.
+
+**Kinds of document** (`[documents.<name>]`, in `ws.toml` only): see *Kinds of document* under [Missions](#missions).
+
+```toml
+[documents.bp]
+title = "Build proposal"
+path = "records:bp/proposed/{date}-{slug}.md"
+add = "docs: add bp {date} {slug}"
+amend = "docs: amend bp {date} {slug}"
+guide = ".agents/skills/build-proposals/SKILL.md"
+
+[documents.bp.moves.accept]
+to = "bp/accepted/"
+```
+
+| Field | Description |
+|---|---|
+| `title` | What one's called. Unset: the kind's name. |
+| `path` | Where one goes, as `repo:path` (the repo by its name or an alias). `{date}` is the day one's started (`2026-11-11`), `{slug}` its title in lowercase words joined by hyphens, `{number}` one above the highest there, to four digits. It has `{slug}` or `{number}`, and ends `.md`. |
+| `add`, `amend` | The first line of the commit that adds one, and of one that changes one, with `{date}`, `{slug}`, `{number}` and `{title}` (its first heading, or its front matter's `title`). Unset: *Edit &lt;path&gt;*. |
+| `guide` | The file that says how one's written: relative to the workspace, or `repo:path` for a file on a repo's default branch. |
+| `passes` | Your own passes (`[pages.passes.<name>]`) that are this kind's: tabs on pages started as one, and no others. |
+| `moves.<move>` | A step in one's life: `to`, the folder it goes to (with the same name). Where one is, its path's folder or a move's, is where it stands: *proposed*, *accepted*. One in a move's folder is still of the kind (its `amend` names its changes). `commit` and `asks` are for when ws makes the move, which it doesn't yet. |
+
+**Artifacts** (`[artifacts]`): where artifacts are kept, and the commits that keep them in a repo. See [Artifacts](#artifacts).
+
+```toml
+[artifacts]
+path = "records:artifacts/{date}-{slug}/"
+add = "Add artifact: {title}"
+revise = "Revise artifact {slug}: v{version}"
+guide = "records:ARTIFACTS.md"
+```
+
+| Field | Description |
+|---|---|
+| `path` | Where new ones go: a folder of a repo, as `repo:folder/name/`, the name with `{date}` and `{slug}` (or `{number}`), and ending in `/`. Unset, or `".ws"`: on this machine, in `.ws/artifacts/{date}-{slug}/`. The repo has to take commits straight to its default branch (`landing = "direct"`): `ws doctor` fails one that takes pull requests, and ws adds none there. `ws.local.toml` can say `path = ".ws"` too, and then yours stay on this machine whatever `ws.toml` says. |
+| `add`, `revise`, `promote`, `discard`, `restore`, `clear` | The first line of the commit that adds one, adds a version, promotes, discards or restores one, and clears the expired, with `{title}`, `{slug}`, `{date}`, `{number}` and `{version}`. Unset: *Add artifact: {title}*, *Revise artifact {slug}: v{version}*, *Promote artifact {slug}*, *Discard artifact {slug}*, *Restore artifact {slug}* and *Clear expired artifacts*. Each commit's body says where it came from, or who did it and why. |
+| `expire_after` | How long a live one lasts after its last version (or its restoring): a number of days (`"30d"`, the default), or `"never"`. On this machine the daemon discards an expired one; in a repo it's listed as expired until you clear them. |
+| `guide` | A file that says how one's written, shown to a conversation's agent in place of ws's own rules (`ws artifact add --propose`, with no file): relative to the workspace, or `repo:path`. |
+
+**Group fields** (`[groups.<name>]`):
+
+| Field | Description |
+|---|---|
+| `hidden` | Leave the group's repos out of commands that cover every repo. Default `false`. |
+
+### ws.local.toml
+
+Per-machine overrides. Lives alongside `ws.toml` but is gitignored. Created automatically as needed.
+
+ws writes this file as well as reading it (lifting a capsule boards it, `ws silo point` records the target, the web UI's *Settings* page sets what you choose there). It changes only the lines of the keys whose values change, so your comments, order and spacing stay, as does anything it doesn't read. A file it can't edit that way (a key in an inline table, or set as a dotted key) is written whole when ws records something itself, which loses its comments, and the Settings page says to edit it by hand instead. Writes take turns in the workspace's daemon, as every write to its records does (a command that writes the file starts the daemon if it's down), so a lift and a setting saved at once keep both.
+
+```toml
+git = "ssh"
+
+[repos.frontend]
+after_create = "pnpm install"
+aliases = ["f"]
+
+[boarded]
+frontend = [".ground", "my-feature"]
+backend = [".ground"]
+```
+
+**Top-level fields:**
+
+| Field | Description |
+|---|---|
+| `git` | Clone protocol: `"ssh"` or `"https"` (default). |
+
+**Team:** `[team] window`, `narrative`, `harness`, `model`, `[team.watch.<name>]` and `[team.people.<key>]` (see *Team* under [Missions](#missions)) can be set here too; a person here replaces the shared one of the same key.
+
+**Agent overrides:** `[agents] guide` and `skills`, and each `[crew]`, `[briefing]`, `[orchestrator]`, `[conversation]` and `[judge]` setting, replaces the shared value (see [Agents](#missions) under Missions), so you can run Claude Code while the team default is Cursor.
+
+**Artifacts:** `[artifacts] path` says where your new artifacts go, whatever `ws.toml` says: `".ws"` keeps them on this machine. What's in the team's repo is still read, and a version still goes where its artifact is.
+
+**Repo overrides:**
+
+You can override `display_name`, `color`, `after_create`, `group`, `landing`, `verify` and `aliases` per repo. Aliases are appended to the shared list; other fields replace the shared value.
+
+**Group overrides:**
+
+`[groups.<name>] hidden = true|false` replaces the team's setting for you. `ws group show`, `hide` and `reset` write this for you.
+
+**Boarded section:**
+
+Managed automatically by `ws`. You generally don't edit this by hand. Lists which capsules are currently visible in your IDE workspace.
+
+### ws.repo.toml
+
+Some repos need setup work before you can develop in them — installing dependencies, copying local config files, running code generation. These steps need to happen every time someone creates a capsule, and they're specific to the repo, not the workspace.
+
+`ws.repo.toml` lives inside the repo itself, committed alongside the code. Place it at the root of the repo (it'll be read from `.ground/ws.repo.toml`).
+
+```toml
+[capsule]
+copy_from_ground = [".env", "config/local.yaml"]
+after_create = "npm install && npm run codegen"
+```
+
+**`copy_from_ground`** — Files that exist in your ground worktree but aren't checked into git (local config, `.env` files, generated certs). When a capsule is created, these are copied from `.ground/` into the new worktree before any hooks run. Missing files are silently skipped.
+
+This solves a common pain point: you set up `.env` once in ground, and every capsule gets a copy automatically. No more "why isn't my app starting" after lifting a new branch.
+
+**`after_create`** — A shell command run in the new worktree after file copying. Use it for dependency installation, build steps, or anything the repo needs to be workable.
+
+This field is a fallback — if `after_create` is also set in `ws.toml` or `ws.local.toml` for this repo, those take precedence. The priority order is:
+
+1. `ws.local.toml` (your machine-specific override)
+2. `ws.toml` (workspace-wide config)
+3. `ws.repo.toml` (repo's own default)
+
+This lets repos ship sensible defaults while still allowing workspace-level or personal overrides.
+
+| Field | Description |
+|---|---|
+| `copy_from_ground` | List of file paths to copy from `.ground/` into new capsules. Paths are relative to the repo root. Missing files are skipped. |
+| `after_create` | Shell command run after capsule creation. Used as a fallback when no workspace-level hook is set. |
+
+Above `[capsule]`, a repo can also say how work lands in it, since that's a fact about the repo and not about one workspace (see [Landing](#landing)). The workspace's `ws.toml` and `ws.local.toml` take precedence.
+
+```toml
+landing = "direct"
+verify = "just lint"
+```
+
+| Field | Description |
+|---|---|
+| `landing` | `"direct"`: commits go straight to the default branch, with `ws land`. |
+| `verify` | Shell command that must pass in a capsule before it's landed. |
+
+---
+
+## Shell Integration
+
+### The ws Wrapper
+
+`ws` commands like `lift`, `dock`, `jump`, and `mc` need to change your shell's working directory. Since a subprocess can't change its parent's directory, these commands print a `cd` command to stdout, and a shell wrapper function captures and evaluates it.
+
+Add this to your `~/.zshrc`:
+
+```bash
+eval "$(workspace shell-init zsh)"
+```
+
+This defines a `ws` function that wraps the `workspace` binary. For `jump`, `lift`, `dock`, `init`, and `mc`, output is evaluated in your shell. All other commands pass through directly.
+
+Without this wrapper, navigation commands will print a `cd` path instead of actually navigating.
+
+`burn` (and `land`, which burns the capsule it lands) is handled differently. It removes a worktree that may be the very directory your shell is standing in, and a shell whose working directory has been deleted is in a bad state — some terminals kill it outright. So the wrapper moves first: it steps out to the workspace root, runs the burn from there, and returns you to where you were if the capsule survived. The original directory is passed along in `WS_ORIGIN_PWD`, so `ws burn <capsule>` still infers the repo from where you ran it. Without the wrapper, `ws burn` still works — you're just left standing in the deleted directory and have to `cd` out yourself.
+
+### Tab Completions
+
+The shell wrapper also sets up zsh completions. Repos, capsules, editor names, and subcommands are all completed:
+
+- `ws lift <TAB>` — repo names and aliases
+- `ws burn frontend <TAB>` — capsule names in frontend
+- `ws jump <TAB>` — repo names and aliases
+- `ws open <TAB>` — `cursor`, `code`, `cursor-agent`, `idea`
+
+### Starship
+
+Use `ws prompt` to feed workspace context into [Starship](https://starship.rs/) or any other prompt framework.
+
+**Short format** — returns `Workspace / Repo Display Name`:
+
+```bash
+ws prompt --format short
+# → My Workspace / Frontend
+```
+
+**JSON format** — returns all available context:
+
+```bash
+ws prompt --format json
+# → {"workspace_display_name":"My Workspace","repo_name":"frontend","repo_display_name":"Frontend","repo_color":"#FF6B9D","capsule_name":"my-feature","is_capsule_boarded":true}
+```
+
+**Custom template** — Go template syntax:
+
+```bash
+ws prompt --template '{{.RepoDisplayName}} {{.CapsuleName}}'
+# → Frontend my-feature
+```
+
+Available template fields: `WorkspaceDisplayName`, `RepoName`, `RepoDisplayName`, `RepoColor`, `CapsuleName`, `IsCapsuleBoarded`.
+
+**Example Starship config** (`~/.config/starship.toml`):
+
+```toml
+format = '${custom.ws}$all'
+
+[custom.ws]
+command = "workspace prompt"
+format = "[$output]($style) "
+when = true
+symbol = " "
+style = "italic cyan"
+```
+
+Add `${custom.ws}` to your `format` string to position it in your prompt. `when = true` always runs the command — Starship hides the module automatically when the output is empty, which is what `ws prompt` produces outside of a workspace.
+
+---
+
+## IDE Integration
+
+### VS Code / Cursor
+
+`ws` generates a `workspace.code-workspace` file at the workspace root. This file's `folders` array is kept in sync with your boarded capsules. When you board or unboard a capsule, the file is regenerated and your editor updates its sidebar.
+
+Each folder is named `Display Name (capsule)` — e.g. `Frontend (.ground)` or `API (my-feature)`.
+
+The workspace file must be valid JSON (no comments or trailing commas). `ws` preserves any settings or extensions you've added; it only rewrites the `folders` key.
+
+### IntelliJ
+
+`ws` generates IntelliJ project configuration at the workspace root. Boarded capsules are added as content roots in the project structure.
+
+### Opening Your Editor
+
+```bash
+ws open           # opens in Cursor (default)
+ws open code      # VS Code
+ws open idea      # IntelliJ IDEA
+ws open cursor-agent
+```
+
+This opens the workspace-level project file, which includes all your boarded capsules.
+
+---
+
+## Silos
+
+### The Problem
+
+Some tools expect a single, stable directory path. Docker compose, for example, needs volume mounts that don't change when you switch what you're working on. With git worktrees, every capsule has its own directory, so you'd have to reconfigure ports, mounts, and container setups every time you want to test a different branch.
+
+### How It Works
+
+A **silo** is a per-repo directory (`.silo/`) that acts as a stable runtime location. You point it at any capsule, and `ws` mirrors the capsule's git-tracked files into `.silo/` in real time. Docker compose always runs from `.silo/` — you switch what's being tested by re-pointing the silo, not by reconfiguring containers.
+
+```
+repos/frontend/
+  .bare/
+  .ground/          # default branch (sacred)
+  .silo/            # stable runtime mirror
+  my-feature/       # capsule
+  bugfix-login/     # capsule
+```
+
+Each repo can have at most one silo. `.silo/` is a real git worktree (with a detached HEAD), so path-dependent tools work normally. Non-tracked files in `.silo/` — `node_modules`, build artifacts, `.env` — are left alone and belong to the silo.
+
+Silo state is stored in `ws.local.toml`:
+
+```toml
+[silo]
+frontend = ".ground"
+backend = "add-health"
+```
+
+### Silo Commands
+
+**Point a silo at a capsule:**
+
+```bash
+ws silo point <repo> <capsule>
+```
+
+Creates `.silo/` if it doesn't exist, syncs all git-tracked files from the capsule, and runs hooks. `.ground` is a valid target — use it to run the main branch version.
+
+```bash
+ws silo point frontend .ground     # use main branch
+ws silo point frontend my-feature  # switch to a capsule
+```
+
+`silo point` works whether or not the watcher is running. If the watcher is running, it detects the change and starts watching the new target automatically.
+
+**Start the live watcher:**
+
+```bash
+ws silo watch
+```
+
+Watches all active silos across the workspace. One command, all repos. See [Live Watching](#live-watching).
+
+**Show silo state:**
+
+```bash
+ws silo status
+```
+
+Shows each active silo, its target, and whether the watcher is running.
+
+**Remove a silo:**
+
+```bash
+ws silo stop <repo>
+```
+
+Removes the `.silo/` worktree and clears the silo config.
+
+### Live Watching
+
+`ws silo watch` is a single foreground process that syncs all active silos in real time:
+
+- Uses `fsnotify` to watch capsule directories for changes.
+- Debounces rapid edits (200ms) to batch saves.
+- Only syncs git-tracked files — untracked files (build output, dependencies) are ignored.
+- Watches `ws.local.toml` for target changes — when you `silo point` from another terminal, the watcher picks it up, re-syncs, and starts watching the new capsule.
+- Only one watcher can run per workspace (enforced via a lock file at `.silo.lock`).
+
+Press `Ctrl+C` to stop.
+
+### Silo Hooks
+
+When a silo is created or re-pointed, two hooks run in sequence:
+
+1. **`after_create`** — the same hook that runs when creating a capsule (precedence: `ws.local.toml` > `ws.toml` > `ws.repo.toml`). Use it for dependency installation.
+2. **`after_switch`** — a silo-specific hook defined in `ws.repo.toml`. Use it for restarting services.
+
+Both hooks run with the working directory set to `.silo/`.
+
+### ws.repo.toml Silo Config
+
+Repos can define silo-specific behaviour in `ws.repo.toml`:
+
+```toml
+[silo]
+after_switch = "docker compose restart api"
+after_change = "make generate"
+```
+
+| Field | Description |
+|---|---|
+| `after_switch` | Shell command run in `.silo/` after the sync target changes. Useful for restarting services that don't hot-reload. |
+| `after_change` | Shell command run in `.silo/` after each incremental sync (debounced). Useful for code generation or build steps that need to run on every file change. |
+
+### Integration with Other Commands
+
+Silos integrate with the rest of `ws`:
+
+- **`ws burn`** — warns if the capsule you're burning is an active silo target and offers to repoint to `.ground`.
+- **`ws land`** — a silo pointed at the capsule it lands is repointed to `.ground`, which now has its work.
+- **`ws debrief`** — if a debriefed capsule was a silo target, automatically repoints to `.ground`.
+- **`ws status`** — shows a silo indicator for repos with an active silo.
+- **`ws doctor`** — checks for missing silo targets, orphaned `.silo/` directories, and stale lock files.
+
+---
+
+## Customisation
+
+### Repo Colors
+
+Each repo can have a custom terminal colour, used in status output and the web UI. Set it in `ws.toml` or override it per-machine in `ws.local.toml`:
+
+```toml
+[repos.frontend]
+color = "#FF6B9D"
+```
+
+Accepts hex colours or 256-colour codes.
+
+### Post-Create Hooks
+
+A `after_create` hook runs in the new worktree after every `lift` or `dock`. Use it for dependency installation, code generation, or build steps:
+
+```toml
+[repos.frontend]
+after_create = "npm install && npm run build"
+
+[repos.backend]
+after_create = "make setup"
+```
+
+Hook failures are logged to stderr but don't block the command. You can override a repo's hook locally in `ws.local.toml`.
+
+### Fuzzy Matching
+
+Repo and capsule arguments use subsequence matching — every character in your input must appear in order in the target, case-insensitive. This works like fzf:
+
+- `fe` matches `frontend`
+- `bk` matches `backend`
+- `mf` matches `my-feature`
+
+If there's exactly one match, it's used directly. Multiple matches show an interactive picker. Zero matches return an error.
+
+Aliases are included in fuzzy matching, so if `frontend` has alias `fe`, then `f` matches both the canonical name and the alias (deduplicating to one result).
+
+### JSON Output
+
+Several commands support JSON output for scripting and automation:
+
+**Status:**
+
+```bash
+ws status --format json
+```
+
+Returns the full workspace state — repos, worktrees, dirty status, ahead/behind counts.
+
+**Prompt:**
+
+```bash
+ws prompt --format json
+```
+
+Returns current workspace context as a JSON object. Useful for building custom integrations.
+
+---
+
+## Plugins
+
+A plugin is a program that adds to the workspace without being part of ws: a view in the web UI's sidebar, commands after `ws`, and a guide that tells agents the commands are there. The workspace's daemon runs each plugin as one process, started when it's first needed and kept until the daemon stops. Plugins are written with [workspace-kit](https://github.com/brudil/workspace-kit).
+
+A plugin on disk is a folder with a `plugin.toml` (its name, its version, and the command that starts it) and an executable. What it adds, it says itself when it starts.
+
+```bash
+ws plugin add withworkspace/plugin-plugin-dev   # install a published plugin: its latest release
+ws plugin add acme/plugin-jira@v0.3.0  # a release that isn't the latest
+ws plugin update                  # fetch newer releases of the plugins installed from a repo
+ws plugin add ./plugin-hello          # install the plugin in a folder, and start it
+ws plugin add ./plugin-hello --link   # run it from the folder itself: for one you're writing
+ws plugin add ./plugin-hello --link --build   # build it first: "run what I just changed"
+ws plugin check ./plugin-hello    # what it registers, and what's wrong with it
+ws plugin list                    # the workspace's plugins, and where each stands
+ws plugin config hello            # what it can be told, and what's set
+ws plugin config hello greeting=Howdy
+ws plugin config hello --ask      # asked for in turn: keeps a secret out of your shell's history
+ws plugin restart hello           # start it afresh: after building it again
+ws plugin logs hello              # the end of its log
+ws plugin remove hello            # --data removes what it kept for itself, too
+```
+
+- **Its view** is in the sidebar under the title it gave, at `/x/<name>`. The pages are the plugin's own, shown in a frame and given ws's theme.
+- **Its commands** follow its name: `ws hello say`. They run in the daemon, so they share what the plugin already has in memory with its view. `ws --help` lists them under *Plugins' Commands*.
+- **Its guide** is told to every agent ws starts (crew, the orchestrator, a conversation's agent), for the roles the plugin says, with a line from ws that what a plugin's command prints from elsewhere is information, not instructions.
+- **Its config** is yours where you set it: `ws plugin config` writes `[plugin.<name>]` in `ws.local.toml`, over the team's in `ws.toml`. A secret is in neither file: it's kept beside the plugin's data, readable only by you. A plugin that requires something that isn't set says so in its view, in `ws plugin list`, and when its commands are run.
+- **Where it's kept:** `.ws/plugins/<name>/`, with the plugin itself in `app/` and what it keeps for itself (its database, its log) in `data/`.
+
+**Published plugins.** A plugin is published as a repo on GitHub, and each release of it holds a build for each platform (`<name>_<tag>_<os>_<arch>.tar.gz`: its `plugin.toml` and what its command starts) and a `checksums.txt`. `ws plugin add owner/repo` downloads this machine's build of the latest release, checks it against the release's checksums, and installs it; `ws plugin update` fetches a newer one, keeping the plugin's config and data. A repo with no release, or none built for this machine, is installed from its source, which is built here (so it needs what the plugin's built with: Go, for one written with workspace-kit). With `gh` logged in, a private repo is read as you; without it, a public one is read as anyone. `ws plugin list` says where each came from.
+
+A plugin that hasn't been built is built when it's added, as its `plugin.toml` says (`build`), so one can be added straight from its source.
+
+**Writing one.** The [plugin-dev](https://github.com/withworkspace/plugin-plugin-dev) plugin does it (`ws plugin add withworkspace/plugin-plugin-dev`): `ws plugin-dev new notes` writes a plugin that works as it's written, with the workflow that publishes its releases, and `ws plugin-dev watch`, run in its folder, builds it and runs it in the workspace on every save. It's a plugin itself, and uses what's above: `ws plugin add --link --build` to run what it built, and `ws plugin check` to say what's wrong with one. `ws plugin check` starts the plugin against a workspace of its own with nothing in it, so nothing of yours is touched.
+
+A plugin is a program that runs as you. Install one as you would any other.
+
+---
+
+## Other Commands
+
+A few commands that don't fit neatly into the concepts above:
+
+**`ws doctor`** — runs health checks on your workspace (`--reindex` first has every store say its words again, for [`ws find`](#finding-whats-been-said)). Verifies repos are cloned, worktrees are intact, and required tools are available, and that the harnesses in use see the workspace's guide and skills (see `[agents]` under [ws.toml](#wstoml)). It also names anything in `ws.toml`, `ws.local.toml` or a repo's `ws.repo.toml` that ws doesn't read (a misspelt key such as `alias` for `aliases`, or one in the wrong file), which is otherwise passed over without a word.
+
+**`ws upgrade`** — pulls the latest `ws.toml` from the config repo and clones any newly added repos. Reports what changed.
+
+**`ws status`** — shows all repos and their worktrees with git status. Use `--format json` for machine-readable output.
+
+**`ws jump`** (alias `j`) — navigate to any capsule. Supports fuzzy matching and interactive pickers:
+
+```bash
+ws jump frontend my-feature   # direct
+ws jump fe mf                 # fuzzy
+ws jump frontend              # pick a capsule
+ws jump                       # pick a repo, then a capsule
+ws jump ~                     # workspace root
+```
+
+**`ws root`** — prints the path of the workspace root, for use in scripts and shell substitutions:
+
+```bash
+cd "$(ws root)"
+```

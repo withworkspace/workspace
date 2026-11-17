@@ -1,0 +1,77 @@
+title = "Greet people by name"
+created = 2026-11-09T11:10:38Z
+state = "archived"
+dispatches = 0
+
+[[capsules]]
+  repo = "demo"
+  name = "greet-by-name"
+  branch = "greet-by-name"
+
+[[crew]]
+  id = "c1"
+  harness = "claude"
+  conversation = "cb39a853-e1c6-4557-9013-417de4714cdc"
+  started = 2026-11-09T12:33:32Z
+  ended = 2026-11-10T14:41:42Z
+  exit = "exit 129"
+  stopped = true
+  pid = 99028
+  capsule = "demo/greet-by-name"
+  status = "done"
+  note = "Answered r2.c1 (no new dependencies): confirmed, nothing changed."
+  status_at = 2026-11-10T13:34:05Z
+  activity = "waiting"
+  activity_at = 2026-11-10T13:34:16Z
+  last_reply = "I answered r2.c1 and changed nothing. `go.mod` and `go.sum` are unchanged from `main`, and every import is from the standard library.\n\n- **Dependencies:** `git diff main` is empty for `go.mod` and `go.sum`. There is no `go.sum` file, and `go.mod` has only the module and go lines, with no `require` block. The imports are `fmt`, `os`, `sort`, `strings` and `testing`.\n- **Reply:** I recorded the answer on r2.c1 with `ws review reply`. The comment is left open for you to resolve.\n- **Handoff:** I added a \"Review r2\" section to `handoffs/c1.md` recording this.\n\nRunning `ws mission done` replaced the whole `handoffs/c1.md` file, which wiped the r1 content and my r2 section. I restored the file with the r1 content and the r2 section. I then ran `ws mission done` again, which may have added a second handoff entry, and I have not checked that. The mission is already marked concluded by the orchestrator, so I did not run it a third time."
+  notice = "Claude is waiting for your input"
+  dispatch = "Address every comment in review r1 (the review of demo/greet-by-name at commit 76c6ae7). Work in the capsule at repos/demo/greet-by-name on branch greet-by-name and commit your changes. (1) blocking, greetings.go:17: change the German greeting \"de\" from \"Guten Tag\" to something friendlier. (2) suggestion, main_test.go:9: change the test case {\"\", \"\", \"Hello, world!\"} so the empty-name greeting is \"Hello, stranger!\" and update any code that produces the old default to match. (3) question, greetings.go:82: the reviewer asks whether the greetingFor signature/formatting follows Go standards. Check with gofmt and go vet, fix anything they flag, and answer the question in your handoff. Keep the brief's acceptance: `go run . Ada fr` prints `Bonjour, Ada!` and tests pass. No new dependencies. Your handoff must say, for each comment by id (r1.c1, r1.c2, r1.c3), what you did or why not.\n\nRead these first:\n- [review, private] mission:reviews/r1.md — Review r1 of demo/greet-by-name: changes requested — read: /home/you/ws-test/.ws/missions/greet-people-by-name/files/reviews/r1.md"
+  handed_off = 2026-11-10T13:34:05Z
+  orchestrated = "2026-11-09T12:33:32Z|done@2026-11-10T13:34:05Z:Answered r2.c1 (no new dependencies): confirmed, nothing changed."
+
+[answer]
+  question = "The greet-people-by-name brief's acceptance is met and r3 approved the work at 6f6b123 (the only stage is accepted). Should I conclude the mission? I could not confirm the PR state for branch greet-by-name in demo/greet-by-name, so the 'PRs merged or ready' condition is unchecked. Also, r2.c1 ('No new dependencies. Sure?') is still open; c1 was asked to answer it earlier, and it's yours to resolve."
+  text = "Conclude the mission: the work is done and the PR is merged or ready"
+  at = 2026-11-10T13:32:52Z
+  by = "you"
+
+[conclude]
+  text = "Everything in the brief is met: the only stage is accepted, r3 approved 6f6b123, and the user confirmed the PR is merged or ready."
+  by = "orchestrator"
+  at = 2026-11-10T13:33:00Z
+  check_in = 0
+
+[[artifacts]]
+  ref = "mission:reviews/r1.md"
+  kind = "review"
+  label = "Review r1 of demo/greet-by-name: changes requested"
+  added = 2026-11-09T12:33:09.730689Z
+
+[[artifacts]]
+  ref = "mission:handoffs/c1.md"
+  kind = "handoff"
+  label = "Answered r2.c1 (no new dependencies): confirmed, nothing changed."
+  crew = "c1"
+  added = 2026-11-10T13:34:05Z
+
+[[artifacts]]
+  ref = "mission:reviews/r2.md"
+  kind = "review"
+  label = "Review r2 of handoffs/c1.md: comments"
+  added = 2026-11-09T19:20:21.14306Z
+
+[[artifacts]]
+  ref = "mission:reviews/r3.md"
+  kind = "review"
+  label = "Review r3 of demo/greet-by-name: approved"
+  added = 2026-11-10T13:32:23.967133Z
+
+[[stages]]
+  text = ""
+  n = 1
+  of = 1
+  crew = ["c1"]
+  started = 2026-11-09T12:33:32Z
+  accepted = 2026-11-09T12:35:02Z
+  accepted_by = "orchestrator"
+  why = "All three r1 comments are addressed in 6f6b123 (German Hallo, stranger default with test updated, greetingFor confirmed by gofmt and vet). The brief's acceptance criteria are met per the crew report and the diff."
