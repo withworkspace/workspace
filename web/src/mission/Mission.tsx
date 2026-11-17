@@ -42,6 +42,7 @@ import { missionRefs } from "./refs";
 import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, kindTitle, MissionData, shortPath, Stepper, Timeline, viewEvent } from "./parts";
 import { CapsuleEnds, EndButton, EndDialog, EndedCapsules, ended, endingWords, HandedOn, ZChecks } from "./Ending";
 import { canOpenPR, OpenPR } from "./OpenPR";
+import { PlanList } from "./PlanList";
 import { Verify } from "./Verify";
 import { checkRows, rowKey, shownBundle, waiting as bundleWaiting } from "./verifyRows";
 import { useLoaded } from "../load";
@@ -502,7 +503,7 @@ function DetailSide({ d, selected, openArtifact, review, updated, over, open, go
       </dl>
       {d.stages.length > 0 && (
         <SideSection title={d.plan ? "Plan" : "Stages"} count={`${accepted} of ${d.stages.length} done`}>
-          <Stepper stages={d.stages} compact />
+          <PlanList stages={d.stages} />
         </SideSection>
       )}
       {d.artifacts.length > 0 && (
