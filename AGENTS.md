@@ -57,6 +57,7 @@ internal/
   web/                the HTTP server and its API (the app is embedded from web/dist)
   cli/                everything else (see below)
 web/                  the web UI: React, TypeScript, Vite, ProseMirror
+testdata/plugins/     frame-fixture: a plugin with a small app, for trying the page ws serves for a plugin's app (just try up frame-fixture)
 ```
 
 ## How it's layered, and where it isn't

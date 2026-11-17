@@ -1,0 +1,4 @@
+name = "frame-fixture"
+version = "0.1.0"
+command = ["./frame-fixture"]
+build = ["go", "build", "-o", "frame-fixture", "."]

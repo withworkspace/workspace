@@ -1,0 +1,3 @@
+# What plugin.toml's build makes: ws builds it when the fixture's added.
+/frame-fixture
+/ui/node_modules/

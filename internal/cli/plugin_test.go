@@ -3,7 +3,10 @@ package cli_test
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -199,5 +202,44 @@ func TestPluginCheck(t *testing.T) {
 	// A folder that isn't a plugin's.
 	if res := testutil.RunCommand(t, w.Root, nil, "plugin", "check", t.TempDir()); res.Err == nil {
 		t.Error("a folder with no plugin.toml was checked")
+	}
+}
+
+// The fixture plugin (testdata/plugins/frame-fixture) is what ws's page for
+// a plugin's app is tried with by hand: it has to be a plugin ws takes,
+// with the app that's committed there served as a browser would load it.
+func TestFrameFixtureChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds the fixture")
+	}
+	w := testutil.SetupWorkspace(t, testutil.WorkspaceOpts{})
+	_, here, _, _ := runtime.Caller(0)
+	src := filepath.Join(filepath.Dir(here), "..", "..", "testdata", "plugins", "frame-fixture")
+	// Built apart from the source, which a test doesn't write into.
+	dir := filepath.Join(t.TempDir(), "frame-fixture")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	build := exec.Command("go", "build", "-o", filepath.Join(dir, "frame-fixture"), ".")
+	build.Dir = src
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("building the fixture: %v\n%s", err, out)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "plugin.toml"), []byte("name = \"frame-fixture\"\nversion = \"0.1.0\"\ncommand = [\"./frame-fixture\"]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	res := testutil.RunCommand(t, w.Root, nil, "plugin", "check", dir)
+	if res.Err != nil {
+		t.Fatalf("the fixture: %v\n%s", res.Err, res.Stdout)
+	}
+	for _, want := range []string{"view      Frame fixture", "view      Fixture: thing 2", "command   ws frame-fixture poke", "Nothing's wrong with it."} {
+		if !strings.Contains(res.Stdout, want) {
+			t.Errorf("check lacks %q:\n%s", want, res.Stdout)
+		}
+	}
+	// Its app's files are named with a hash of what's in each.
+	if !regexp.MustCompile(`ui        /ui/app\.js\?v=[0-9a-f]{8}, /ui/app\.css\?v=[0-9a-f]{8}\n`).MatchString(res.Stdout) {
+		t.Errorf("its ui line:\n%s", res.Stdout)
 	}
 }

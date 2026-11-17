@@ -1,0 +1,17 @@
+{
+  "name": "frame-fixture-ui",
+  "private": true,
+  "packageManager": "pnpm@10.28.1",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && esbuild app=src/main.ts app=src/app.css --bundle --format=esm --target=es2023 --outdir=dist",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@withworkspace/ui-lib": "0.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}
