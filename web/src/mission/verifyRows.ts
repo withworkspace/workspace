@@ -1,8 +1,8 @@
 import type { Bundle, BundleCheck, BundleRan, CheckVerdict } from "../api";
 
-// What the mission's Verify tab works out from its bundles: which one to
-// show, its checks in the order your attention's needed, and each in a
-// line.
+// What the mission's Verify tab works out from its bundles: which are
+// yours to approve and which one to show, its checks in the order your
+// attention's needed, and each in a line.
 
 // CheckRow is one check of a bundle as its list shows it: one the bundle
 // settled (check), or a command of its step's that ws ran (ran).
@@ -19,21 +19,49 @@ export interface CheckRow {
   ran?: BundleRan;
 }
 
-// shownBundle is the bundle the tab shows: the one picked, else the latest
-// that nothing has taken the place of.
-export function shownBundle(bundles: Bundle[], picked?: string): Bundle | undefined {
-  return bundles.find((b) => b.id === picked) ?? [...bundles].reverse().find((b) => !b.replacedBy) ?? bundles[bundles.length - 1];
+// BundleGroup is where a bundle is in the tab's queue: yours to approve;
+// sent back, and with its crew; approved; or no longer standing (stale:
+// something took its place, or its capsule has moved on since and nothing
+// waits on it).
+export type BundleGroup = "todo" | "back" | "approved" | "stale";
+
+export function bundleGroup(b: Bundle): BundleGroup {
+  if (b.replacedBy) return "stale";
+  if (b.verdict === "approved") return b.stale ? "stale" : "approved";
+  if (b.verdict === "sent back") return "back";
+  return b.stale && !b.asked ? "stale" : "todo";
 }
 
-// listed is the bundles as the tab lists them: those standing, newest
-// first, then those something took the place of.
-export function listed(bundles: Bundle[]): Bundle[] {
+export const groupTitles: Record<BundleGroup, string> = { todo: "To approve", back: "Sent back", approved: "Approved", stale: "Stale" };
+
+// queued is the mission's bundles in the order they want you: to approve
+// (what a step waits on first), sent back, approved, stale; each newest
+// first, and no group that's empty.
+export function queued(bundles: Bundle[]): { group: BundleGroup; bundles: Bundle[] }[] {
   const newest = [...bundles].reverse();
-  return [...newest.filter((b) => !b.replacedBy), ...newest.filter((b) => b.replacedBy)];
+  return (["todo", "back", "approved", "stale"] as BundleGroup[])
+    .map((group) => {
+      const mine = newest.filter((b) => bundleGroup(b) === group);
+      return { group, bundles: group === "todo" ? [...mine.filter(waiting), ...mine.filter((b) => !waiting(b))] : mine };
+    })
+    .filter((g) => g.bundles.length > 0);
 }
 
-// checkRows is a bundle's checks: what's left for you first, then what's
-// settled, each in the step's order.
+// toApprove is the bundles that are yours to approve, in the queue's order.
+export function toApprove(bundles: Bundle[]): Bundle[] {
+  return queued(bundles).find((g) => g.group === "todo")?.bundles ?? [];
+}
+
+// shownBundle is the bundle the tab shows: the one picked, else the first
+// that's yours to approve. With none picked and none to approve it shows
+// none: there's nothing to do, which the tab says.
+export function shownBundle(bundles: Bundle[], picked?: string): Bundle | undefined {
+  return bundles.find((b) => b.id === picked) ?? toApprove(bundles)[0];
+}
+
+// checkRows is a bundle's checks: what's left for you first (those you've
+// approved after those you haven't), then what's settled, each in the
+// step's order.
 export function checkRows(b: Bundle): CheckRow[] {
   const rows: CheckRow[] = [
     ...b.checks.map(
@@ -60,7 +88,13 @@ export function checkRows(b: Bundle): CheckRow[] {
     ),
   ];
   const byNumber = (x: CheckRow, y: CheckRow) => x.n - y.n;
-  return [...rows.filter((r) => r.left).sort(byNumber), ...rows.filter((r) => !r.left).sort(byNumber)];
+  return [...rows.filter((r) => r.left && !r.looked).sort(byNumber), ...rows.filter((r) => r.left && r.looked).sort(byNumber), ...rows.filter((r) => !r.left).sort(byNumber)];
+}
+
+// stillLeft is the checks left for you that you haven't said are fine: a
+// check left for you that you mark (looked) is one you've approved.
+export function stillLeft(rows: CheckRow[]): CheckRow[] {
+  return rows.filter((r) => r.left && !r.looked);
 }
 
 // rowKey is a check's key among the page's items: the bundle's, then its
@@ -123,13 +157,36 @@ export function waiting(b: Bundle): boolean {
 // standing is where a bundle stands, in a few words.
 export function standing(b: Bundle): string {
   if (b.replacedBy) return `Replaced by ${b.replacedBy}`;
-  if (b.verdict === "approved") return "Approved by you";
+  if (b.verdict === "approved") return b.stale ? "Approved, now stale" : "Approved by you";
   if (b.verdict === "sent back") return "Sent back";
   if (waiting(b)) return "Waiting for you";
   if (b.stale) return "Stale";
   return tally(b)
     .map(([v, n]) => `${n} ${v}`)
     .join(", ");
+}
+
+// nothingLeftWords says where a mission's bundles stand when none is yours
+// to approve.
+export function nothingLeftWords(bundles: Bundle[]): string {
+  const n = (g: BundleGroup) => bundles.filter((b) => bundleGroup(b) === g).length;
+  const parts: string[] = [];
+  if (n("approved")) parts.push(n("approved") === 1 ? "You've approved its one standing bundle." : `You've approved all ${n("approved")} of its standing bundles.`);
+  if (n("back")) parts.push(n("back") === 1 ? "1 is back with its crew: what they hand over next will wait for you." : `${n("back")} are back with their crew: what they hand over next will wait for you.`);
+  if (n("stale")) parts.push(n("stale") === 1 ? "1 was replaced or has gone stale." : `${n("stale")} were replaced or have gone stale.`);
+  return parts.join(" ") || "No bundle waits for you.";
+}
+
+// allClearWords says, once the last check left for you is approved, how
+// many that was, and what stands as it came out: approving the bundle
+// passes it with those.
+export function allClearWords(b: Bundle, rows: CheckRow[]): string {
+  const n = rows.filter((r) => r.left).length;
+  const not = tally(b).filter(([v]) => v !== "met");
+  const k = not.reduce((sum, [, c]) => sum + c, 0);
+  const approved = `You've approved ${n === 1 ? "the one check" : n === 2 ? "both checks" : `all ${n} checks`} left for you in ${b.id}.`;
+  if (!k) return approved;
+  return `${approved} ${not.map(([v, c]) => `${c} ${v}`).join(" and ")} ${k === 1 ? "stands as it is" : "stand as they are"}: approving passes ${b.id} with ${k === 1 ? "it" : "them"}.`;
 }
 
 // sendable is the notes that would go back with a bundle: those that say

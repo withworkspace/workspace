@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Bundle } from "../api";
-import { checkRows, listed, rowKey, rowLine, sendable, shown, shownBundle, standing, tally, waiting } from "./verifyRows";
+import { allClearWords, bundleGroup, checkRows, nothingLeftWords, queued, rowKey, rowLine, sendable, shown, shownBundle, standing, stillLeft, tally, toApprove, waiting } from "./verifyRows";
 
 const bundle = (over: Partial<Bundle>): Bundle => ({ id: "b1", crew: "c1", at: "2026-11-17T10:00:00Z", summary: "x", checks: [], ...over });
 
@@ -28,12 +28,50 @@ const browser = bundle({
 describe("the bundle the tab shows", () => {
   const bundles = [bundle({ id: "b1" }), bundle({ id: "b2", replacedBy: "b3" }), browser];
   it("is the one picked", () => expect(shownBundle(bundles, "b2")?.id).toBe("b2"));
-  it("else the latest nothing's taken the place of", () => {
+  it("else the first that's yours to approve: what a step waits on, then the newest", () => {
     expect(shownBundle(bundles)?.id).toBe("b3");
     expect(shownBundle([...bundles, bundle({ id: "b4", replacedBy: "b5" })])?.id).toBe("b3");
+    expect(shownBundle([bundle({ id: "b1", asked: true, askedAt: 2 }), ...bundles.slice(1)])?.id).toBe("b1");
   });
-  it("is none for a mission with none", () => expect(shownBundle([])).toBeUndefined());
-  it("lists those standing first, newest first", () => expect(listed(bundles).map((b) => b.id)).toEqual(["b3", "b1", "b2"]));
+  it("is none for a mission with none, or with none left to approve", () => {
+    expect(shownBundle([])).toBeUndefined();
+    expect(shownBundle([bundle({ id: "b1", verdict: "approved" }), bundle({ id: "b2", replacedBy: "b3" }), bundle({ id: "b3", verdict: "sent back" })])).toBeUndefined();
+  });
+});
+
+describe("the queue of a mission's bundles", () => {
+  const bundles = [
+    bundle({ id: "b1", verdict: "approved" }),
+    bundle({ id: "b2", verdict: "approved", stale: true }),
+    bundle({ id: "b3", replacedBy: "b5" }),
+    bundle({ id: "b4", verdict: "sent back" }),
+    bundle({ id: "b5", asked: true, askedAt: 6 }),
+    bundle({ id: "b6", stale: true }),
+    bundle({ id: "b7" }),
+    bundle({ id: "b8", stale: true, asked: true, askedAt: 6 }),
+  ];
+  it("says where each stands", () => {
+    expect(bundles.map(bundleGroup)).toEqual(["approved", "stale", "stale", "back", "todo", "stale", "todo", "todo"]);
+  });
+  it("is to approve, sent back, approved, then stale: newest first, what a step waits on before the rest", () => {
+    expect(queued(bundles).map((g) => [g.group, g.bundles.map((b) => b.id)])).toEqual([
+      ["todo", ["b8", "b5", "b7"]],
+      ["back", ["b4"]],
+      ["approved", ["b1"]],
+      ["stale", ["b6", "b3", "b2"]],
+    ]);
+    expect(toApprove(bundles).map((b) => b.id)).toEqual(["b8", "b5", "b7"]);
+  });
+  it("says where they stand when none is left to approve", () => {
+    expect(nothingLeftWords(bundles.filter((b) => bundleGroup(b) !== "todo"))).toBe(
+      "You've approved its one standing bundle. 1 is back with its crew: what they hand over next will wait for you. 3 were replaced or have gone stale.",
+    );
+    expect(nothingLeftWords([bundle({ id: "b1", verdict: "approved" }), bundle({ id: "b2", verdict: "approved" })])).toBe("You've approved all 2 of its standing bundles.");
+  });
+  it("has no group that's empty", () => {
+    expect(queued([bundle({ id: "b1", verdict: "approved" })]).map((g) => g.group)).toEqual(["approved"]);
+    expect(toApprove([bundle({ id: "b1", verdict: "approved" })])).toEqual([]);
+  });
 });
 
 describe("a bundle's checks", () => {
@@ -74,6 +112,7 @@ describe("where a bundle stands with you", () => {
   it("is said in a few words", () => {
     expect(standing(bundle({ asked: true }))).toBe("Waiting for you");
     expect(standing(bundle({ asked: true, verdict: "approved" }))).toBe("Approved by you");
+    expect(standing(bundle({ verdict: "approved", stale: true }))).toBe("Approved, now stale");
     expect(standing(bundle({ verdict: "sent back" }))).toBe("Sent back");
     expect(standing(bundle({ verdict: "sent back", replacedBy: "b2" }))).toBe("Replaced by b2");
     expect(standing(bundle({ stale: true }))).toBe("Stale");
@@ -82,6 +121,18 @@ describe("where a bundle stands with you", () => {
   it("marks the checks you've looked at", () => {
     const rows = checkRows({ ...browser, looked: ["c3", "r2"] });
     expect(rows.filter((r) => r.looked).map((r) => r.key)).toEqual(["c3", "r2"]);
+  });
+  it("puts a check left for you that you've approved after those you haven't, and counts it as no longer left", () => {
+    const rows = checkRows({ ...browser, looked: ["c3"] });
+    expect(rows.map((r) => r.key)).toEqual(["c4", "c3", "c1", "r2"]);
+    expect(stillLeft(rows).map((r) => r.key)).toEqual(["c4"]);
+    expect(stillLeft(checkRows({ ...browser, looked: ["c3", "c4"] }))).toEqual([]);
+  });
+  it("says you're clear once the last is approved, and what stands as it came out", () => {
+    const b = { ...browser, looked: ["c3", "c4"] };
+    expect(allClearWords(b, checkRows(b))).toBe("You've approved both checks left for you in b3. 1 can't tell stands as it is: approving passes b3 with it.");
+    const judged = bundle({ id: "b9", checks: [{ n: 1, check: "it reloads", verdict: "met", said: "it did", judged: { check: "it reloads", result: "unmet", by: "the judge" } }] });
+    expect(allClearWords(judged, checkRows(judged))).toBe("You've approved the one check left for you in b9.");
   });
   it("sends back the notes that say something, by their checks", () => {
     expect(sendable({ 3: " it's gone in Firefox ", 1: "", 0: "try it narrow" })).toEqual([
