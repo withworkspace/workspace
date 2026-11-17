@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Install ws from a GitHub release: the build for this machine, with its web
-# UI and code navigation in. It downloads with gh, which must be logged in
-# (gh auth login).
+# UI and code navigation in. It downloads with curl.
 #
 #   scripts/install.sh [version] [dir]
 #
@@ -9,7 +8,7 @@
 # is never a prerelease. dir is where workspace goes: $WS_INSTALL_DIR, or
 # ~/.local/bin. Without a clone:
 #
-#   gh api -H 'Accept: application/vnd.github.raw' repos/withworkspace/workspace/contents/scripts/install.sh | bash -s -- [version] [dir]
+#   curl -fsSL https://raw.githubusercontent.com/withworkspace/workspace/main/scripts/install.sh | bash -s -- [version] [dir]
 set -euo pipefail
 
 repo="${WS_REPO:-withworkspace/workspace}"
@@ -21,8 +20,7 @@ fail() {
 	exit 1
 }
 
-command -v gh >/dev/null || fail "gh not found: install it (https://cli.github.com), then gh auth login"
-gh auth status >/dev/null 2>&1 || fail "gh isn't logged in: gh auth login"
+command -v curl >/dev/null || fail "curl not found"
 
 case "$(uname -s)" in
 Darwin) os=darwin ;;
@@ -38,8 +36,11 @@ esac
 [ "$os/$arch" != darwin/amd64 ] || fail "there's no release of ws for Intel Macs: build from a clone with just build"
 
 if [ -z "$version" ]; then
-	version="$(gh release view -R "$repo" --json tagName --jq .tagName)" ||
+	# releases/latest redirects to the latest release's page, .../tag/<version>.
+	latest="$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$repo/releases/latest")" ||
 		fail "couldn't find the latest release of $repo"
+	version="${latest##*/tag/}"
+	[ "$version" != "$latest" ] || fail "$repo has no release yet"
 fi
 asset="workspace_${version}_${os}_${arch}.tar.gz"
 
@@ -47,7 +48,8 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 echo "downloading $asset from $repo"
-gh release download "$version" -R "$repo" -p "$asset" -p checksums.txt -D "$tmp" ||
+base="https://github.com/$repo/releases/download/$version"
+curl -fsSL -o "$tmp/$asset" "$base/$asset" && curl -fsSL -o "$tmp/checksums.txt" "$base/checksums.txt" ||
 	fail "couldn't download $asset from $repo's release $version"
 
 # The release lists every build's checksum: check this one's before it runs.
