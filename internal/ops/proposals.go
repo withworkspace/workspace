@@ -303,6 +303,12 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 		}
 	}
 	ms.UserActed(m.Slug)
+	// Briefing it, accepting this is the go-ahead: ws is starting it from
+	// here, through naming it and lifting its capsules, and that's marked
+	// before the proposal stops being yours to confirm.
+	slug := m.Slug
+	endLaunching := w.launchingOnConfirm(slug)
+	defer func() { endLaunching(slug) }()
 	if _, err := store.SettleProposal(c.ID, p.N, conversation.ProposalAccepted, "brief", conversation.You, time.Now()); err != nil {
 		return "", m.Slug, err
 	}
@@ -324,7 +330,6 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 			said = append(said, "Named it “"+p.Title+"”.")
 		}
 	}
-	slug := m.Slug
 	if p.Slug != "" && p.Slug != slug {
 		if err := w.RenameMission(slug, p.Slug); err != nil {
 			said = append(said, "Kept its slug ("+err.Error()+").")

@@ -125,8 +125,31 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 			s.M.Crew = []Crew{{ID: "c1"}}
 			s.Seen = Seen{Running: map[string]bool{"c1": true}, Still: map[string]time.Duration{"c1": time.Second}}
 		}, court: CourtAgent, kind: KindWorking, group: GroupInProgress, verb: VerbWatch},
-		{name: "launching", state: Active, edit: func(s *Snapshot) { s.Seen.Launching = true },
-			court: CourtAgent, kind: KindLaunching, group: GroupInProgress},
+		// ws starting crew: marked on the mission until they're recorded,
+		// then on them until they're handed their prompt.
+		{name: "ws starting crew, none recorded yet", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{{ID: "c1", Ended: ago(time.Hour), Status: CrewDone}}
+			s.M.Launching = &Launching{What: "step 2", Since: now}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, text: "Starting crew on step 2"},
+		{name: "ws starting crew, for nothing in particular", state: Active, edit: func(s *Snapshot) {
+			s.M.Launching = &Launching{Since: now}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, text: "Starting crew"},
+		{name: "a brief accepted, ws starting it before it's confirmed", state: Briefing, edit: func(s *Snapshot) {
+			s.M.Launching = &Launching{What: "step 1", Since: now}
+			s.Threads.Briefing = &BriefingTalk{ID: "t1", Waiting: true}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, text: "Starting crew on step 1"},
+		{name: "crew recorded, their session starting", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{{ID: "c2", Capsule: "api/fix", Starting: ago(time.Second), Dispatch: "Build the cache"}}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, verb: VerbWatch, text: "Starting c2: Build the cache", target: "c2"},
+		{name: "crew resumed, starting: what they last did is from before", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{{ID: "c1", Starting: ago(time.Second), Activity: ActivityWaiting, ActivityAt: ago(time.Hour), LastReply: "Done?"}}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, text: "Starting c1"},
+		{name: "several crew starting", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{{ID: "c1", Starting: ago(time.Second)}, {ID: "c2", Starting: ago(time.Second)}}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, text: "Starting c1 and c2"},
+		{name: "starting crew that ended: not starting", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{{ID: "c1", Starting: ago(time.Minute), Ended: ago(time.Second), Exit: "failed to start"}}
+		}, court: CourtYou, kind: KindStalled, group: GroupNeedsYou},
 		{name: "orchestrator running", state: Active, edit: func(s *Snapshot) {
 			s.M.Crew = []Crew{{ID: "c1", Ended: ago(time.Hour), Status: CrewDone, StatusAt: ago(time.Hour)}}
 			s.M.Orchestrating = &OrchestratorRun{For: "c1 (done)", Since: now.Add(-time.Minute), Until: now.Add(time.Minute)}

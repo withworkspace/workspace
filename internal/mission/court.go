@@ -53,7 +53,7 @@ const (
 	KindOwnWork   Kind = "own-work"  // crew ended a turn to wait on work they left running
 	KindAnswering Kind = "answering" // agents answering threads on a document
 	KindBriefing  Kind = "briefing"  // a briefing agent writing the brief
-	KindLaunching Kind = "launching" // crew starting
+	KindLaunching Kind = "launching" // ws starting crew: until they're recorded, then until their first activity
 	KindDeciding  Kind = "deciding"  // the orchestrator running, or about to
 	KindChecking  Kind = "checking"  // ws running and having judged a step's checks
 
@@ -334,8 +334,6 @@ type Seen struct {
 	Running map[string]bool
 	// Still is how long each running crew's screen has been still.
 	Still map[string]time.Duration
-	// Launching: crew are starting on the mission.
-	Launching bool
 }
 
 // StillAfter is how long crew's screen must stay still before crew that
@@ -347,6 +345,7 @@ var StillAfter = 5 * time.Second
 type CrewState string
 
 const (
+	CrewStarting   CrewState = "starting" // ws is starting its session: no activity of its own yet
 	CrewWorking    CrewState = "working"
 	CrewWaiting    CrewState = "waiting" // its turn is over: it said nothing about itself
 	CrewAsks       CrewState = "asking"
@@ -377,6 +376,10 @@ func (s Snapshot) Crew(c Crew) (CrewState, time.Time) {
 			return CrewEnded, *c.Ended
 		}
 		return CrewEnded, c.Started
+	case c.Starting != nil:
+		// A mark ws set as it recorded them, and clears: not a guess from
+		// what they last did, which for crew resumed is from before.
+		return CrewStarting, *c.Starting
 	case c.HandedBack(s.M):
 		return CrewHandedBack, timeOr(c.StatusAt, c.Started)
 	case c.Status == CrewAsking:
@@ -440,7 +443,7 @@ func Resolve(s Snapshot) []Headline {
 	add := func(h Headline) { out = append(out, h) }
 
 	// Crew.
-	var working []Crew
+	var working, starting []Crew
 	var workingSince time.Time
 	busyIn := map[string]bool{} // capsules crew are at: their PRs are theirs
 	for _, c := range m.Crew {
@@ -481,6 +484,8 @@ func Resolve(s Snapshot) []Headline {
 			}
 			add(Headline{Court: CourtYou, Kind: KindReplied, Label: "◐ waiting", By: c.ID, Since: since, Text: text,
 				Action: Action{Verb: VerbReply, Label: "reply to " + c.ID, Target: c.ID}})
+		case CrewStarting:
+			starting = append(starting, c)
 		case CrewWorking:
 			if len(working) == 0 || since.Before(workingSince) {
 				workingSince = since
@@ -491,11 +496,27 @@ func Resolve(s Snapshot) []Headline {
 	if len(working) > 0 {
 		add(workingHeadline(s, working, workingSince))
 	}
+	// ws starting crew: those recorded, until their first activity; and
+	// before any are, the launch itself. Both are marks ws set and clears
+	// (Mission.Launching, Crew.Starting), so there's no gap to guess across.
+	if len(starting) > 0 {
+		add(startingHeadline(starting))
+	}
+	if l := m.Launching; l != nil {
+		text := "Starting crew"
+		if l.What != "" {
+			text += " on " + l.What
+		}
+		add(Headline{Court: CourtAgent, Kind: KindLaunching, Label: "… starting", By: "ws", Since: l.Since, Text: text,
+			Action: Action{Label: "nothing to do"}})
+	}
+	// onIt: crew are at work on it, or about to be.
+	onIt := len(working) > 0 || len(starting) > 0 || m.Launching != nil
 
 	// Raised for you.
 	// Each task of yours, oldest first: the queue. A question crew you
 	// asked are answering is theirs for now.
-	answering := slices.ContainsFunc(working, func(c Crew) bool { return c.Role == RoleAnswer })
+	answering := slices.ContainsFunc(slices.Concat(working, starting), func(c Crew) bool { return c.Role == RoleAnswer })
 	for _, t := range m.Tasks {
 		if answering && t.Question() {
 			continue
@@ -532,7 +553,9 @@ func Resolve(s Snapshot) []Headline {
 			Text:   fmt.Sprintf("%s on %s, waiting for you (%s)", replies, r.Name, strings.Join(r.Threads, ", ")),
 			Action: Action{Verb: VerbReviewDoc, Label: "read the replies on " + r.Name, Target: r.Doc}})
 	}
-	if b := s.Threads.Briefing; b != nil && s.State == Briefing {
+	// Its briefing conversation, until ws is starting it: confirmed, what
+	// its agent last said isn't waiting on you any more.
+	if b := s.Threads.Briefing; b != nil && s.State == Briefing && m.Launching == nil {
 		switch {
 		case b.Answering:
 			add(Headline{Court: CourtAgent, Kind: KindBriefing, Label: "● briefing", By: b.ID,
@@ -571,7 +594,7 @@ func Resolve(s Snapshot) []Headline {
 			Text:   fmt.Sprintf("%s proposes %s: confirm or decline %s", p.ID, what, them),
 			Action: Action{Verb: VerbTalk, Label: "read " + p.ID, Target: p.ID}})
 	}
-	if len(working) == 0 {
+	if !onIt {
 		for _, r := range s.Threads.Approve {
 			add(Headline{Court: CourtYou, Kind: KindApprove, Label: "✓ approve", By: r.Name,
 				Text:   r.Name + " has no open threads: approve it?",
@@ -633,10 +656,6 @@ func Resolve(s Snapshot) []Headline {
 			add(h)
 		}
 	}
-	if s.Seen.Launching {
-		add(Headline{Court: CourtAgent, Kind: KindLaunching, Label: "… starting", Text: "Starting crew",
-			Action: Action{Label: "nothing to do"}})
-	}
 
 	// Placed outside by the orchestrator: waiting on something ws can't see.
 	if w := m.Waiting; w != nil {
@@ -646,7 +665,7 @@ func Resolve(s Snapshot) []Headline {
 	}
 
 	// The plan's step waits on CI or someone outside ws.
-	if st := s.waitingStep(); st != nil && len(working) == 0 && s.State != Parked && !s.orchestrating() {
+	if st := s.waitingStep(); st != nil && !onIt && s.State != Parked && !s.orchestrating() {
 		add(s.stepWaitHeadline(*st))
 	}
 
@@ -703,6 +722,34 @@ func workingHeadline(s Snapshot, working []Crew, since time.Time) Headline {
 		if c.Capsule != "" {
 			h.Text += " in " + c.Capsule
 		}
+	}
+	return h
+}
+
+// startingHeadline is crew ws is starting: recorded, their session coming
+// up, and nothing of their own done yet.
+func startingHeadline(starting []Crew) Headline {
+	c := starting[0]
+	h := Headline{Court: CourtAgent, Kind: KindLaunching, Label: "… starting", By: c.ID, Since: *c.Starting,
+		Action: Action{Verb: VerbWatch, Label: "watch " + c.ID, Target: c.ID}}
+	if len(starting) > 1 {
+		var ids []string
+		for _, s := range starting {
+			ids = append(ids, s.ID)
+		}
+		h.Text = "Starting " + strings.Join(ids[:len(ids)-1], ", ") + " and " + ids[len(ids)-1]
+		return h
+	}
+	h.Text = "Starting " + c.ID
+	switch {
+	case c.Role == RoleBriefing:
+		h.Text += ", to brief it"
+	case c.Role == RoleAnswer:
+		h.Text += ", to find out the answer to the question for you"
+	case c.Dispatch != "":
+		h.Text += ": " + firstLine(c.Dispatch, 120)
+	case c.Capsule != "":
+		h.Text += " in " + c.Capsule
 	}
 	return h
 }
