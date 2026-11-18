@@ -83,4 +83,4 @@ case ":$PATH:" in
 	;;
 *) echo "$dir isn't on your PATH: add it, then eval \"\$(workspace shell-init zsh)\" in ~/.zshrc for ws" ;;
 esac
-echo "a running daemon keeps its old ws until it restarts"
+echo "a running daemon restarts onto it once nothing's at work; one from a ws before it could keeps its old ws until: ws daemon restart --now"

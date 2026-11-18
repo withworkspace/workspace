@@ -364,7 +364,7 @@ func TestRemote_LayoutsMustAgree(t *testing.T) {
 	json.NewEncoder(nc).Encode(request{Op: "hello", Layouts: map[string]int{"store": ahead}})
 	var rep reply
 	json.NewDecoder(nc).Decode(&rep)
-	if !strings.Contains(rep.Error, "ws daemon stop") || rep.Layouts["store"] != ahead-1 {
+	if !strings.Contains(rep.Error, "ws daemon restart") || rep.Layouts["store"] != ahead-1 {
 		t.Fatalf("a newer command against an older daemon: %+v", rep)
 	}
 	if err := differ(map[string]int{"store": 2}, map[string]int{"store": 1}); err == nil || !strings.Contains(err.Error(), "older than the workspace's daemon") {

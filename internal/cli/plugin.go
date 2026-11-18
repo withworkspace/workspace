@@ -67,7 +67,7 @@ func connectPlugins(root string) (*plugin.Client, error) {
 	c.Close()
 	pc, err := plugin.Dial(root)
 	if err != nil {
-		return nil, fmt.Errorf("%w (a daemon from before plugins? run `ws daemon stop` and try again)", err)
+		return nil, fmt.Errorf("%w (a daemon from before plugins? `ws daemon restart --now` starts it again on this ws)", err)
 	}
 	return pc, nil
 }

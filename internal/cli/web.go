@@ -79,7 +79,7 @@ func webURL(root, path string) (string, error) {
 		return "", err
 	}
 	if info.Pid != c.ServerPid() || info.Port != c.WebPort() {
-		return "", fmt.Errorf("%s doesn't match the running daemon (pid %d, web UI on port %d); `ws daemon stop` and try again", web.InfoPath(root), c.ServerPid(), c.WebPort())
+		return "", fmt.Errorf("%s doesn't match the running daemon (pid %d, web UI on port %d); `ws daemon restart --now` and try again", web.InfoPath(root), c.ServerPid(), c.WebPort())
 	}
 	return info.SignInURL(path), nil
 }
