@@ -85,13 +85,17 @@ func (w *Workspace) askAtStep(m *mission.Mission, done string, st mission.StageS
 
 // reviewWhat says what Review step n looks at, and how it's passed: your
 // review approving what the plan put under review, or going on. Crew's
-// other documents are named after, to read.
+// other documents are named after, to read. A bundle you've approved
+// already (at its own step, its checks yours to say) isn't to approve
+// again: it says so, and going on is what passes the step.
 func (w *Workspace) reviewWhat(m *mission.Mission, n int) string {
 	brief, _ := w.Missions.ReadBrief(m.Slug)
 	states, _ := m.StageProgress(brief)
-	var bundles, caps, docs, reads []string
+	var bundles, approved, caps, docs, reads []string
 	for _, l := range m.Looks(states, n) {
 		switch {
+		case l.Bundle != "" && l.Approved:
+			approved = append(approved, l.Name)
 		case l.Bundle != "":
 			bundles = append(bundles, l.Name)
 		case l.Read:
@@ -105,6 +109,16 @@ func (w *Workspace) reviewWhat(m *mission.Mission, n int) string {
 	if len(bundles) > 0 {
 		// A bundle is what's to approve: the work it shows is beside it.
 		text := fmt.Sprintf("Look at %s, on the mission's Verify tab: approving %s passes the step, and saying what's not right sends it back to the crew who made it. Or go on.", strings.Join(bundles, ", "), itOrThem(len(bundles)))
+		if len(approved) > 0 {
+			text += fmt.Sprintf(" You've approved %s already.", strings.Join(approved, ", "))
+		}
+		if len(caps) > 0 {
+			text += " The work it shows is in " + strings.Join(caps, ", ") + ", to review beside it."
+		}
+		return text
+	}
+	if len(approved) > 0 {
+		text := fmt.Sprintf("You've approved %s already, on the mission's Verify tab, so there's nothing left to approve: go on to pass the step, or say what's to change, and it goes back to the crew who made it.", strings.Join(approved, ", "))
 		if len(caps) > 0 {
 			text += " The work it shows is in " + strings.Join(caps, ", ") + ", to review beside it."
 		}

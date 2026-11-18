@@ -19,6 +19,9 @@ type Look struct {
 	// plan put under review is the work, and approving that passes the
 	// step.
 	Read bool
+	// Approved is a bundle you've approved already: it's there to look at
+	// again, not what the step waits on.
+	Approved bool
 }
 
 // Looks is what step n, a Review step, looks at: the capsules crew worked
@@ -53,7 +56,7 @@ func (m *Mission) Looks(states []StageState, n int) []Look {
 	// to approve, with the work itself beside it.
 	for _, s := range steps {
 		for _, b := range m.StandingBundles(states[s-1].Text) {
-			add(Look{Bundle: b.ID, Name: b.ID})
+			add(Look{Bundle: b.ID, Name: b.ID, Approved: b.Verdict == BundleApproved})
 		}
 	}
 	for _, s := range steps {
@@ -97,7 +100,7 @@ func (m *Mission) ChecksLooks(states []StageState, n int) []Look {
 	}
 	var out []Look
 	for _, b := range m.StandingBundles(states[n-1].Text) {
-		out = append(out, Look{Bundle: b.ID, Name: b.ID})
+		out = append(out, Look{Bundle: b.ID, Name: b.ID, Approved: b.Verdict == BundleApproved})
 	}
 	return out
 }

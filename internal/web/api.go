@@ -131,6 +131,8 @@ type Look struct {
 	Doc     string `json:"doc,omitempty"`
 	Name    string `json:"name"`
 	Read    bool   `json:"read,omitempty"`
+	// Approved: a bundle you've approved already.
+	Approved bool `json:"approved,omitempty"`
 }
 
 // Capsule is one of a mission's capsules.

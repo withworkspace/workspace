@@ -125,7 +125,7 @@ func headline(h mission.Headline) Headline {
 		Action: Action{Verb: string(h.Action.Verb), Label: h.Action.Label, Target: h.Action.Target, URL: h.Action.URL, Options: h.Action.Options},
 	}
 	for _, l := range h.Action.Look {
-		w.Action.Look = append(w.Action.Look, Look{Bundle: l.Bundle, Capsule: l.Capsule, Doc: l.Doc, Name: l.Name, Read: l.Read})
+		w.Action.Look = append(w.Action.Look, Look{Bundle: l.Bundle, Capsule: l.Capsule, Doc: l.Doc, Name: l.Name, Read: l.Read, Approved: l.Approved})
 	}
 	if !h.Since.IsZero() {
 		since := h.Since
