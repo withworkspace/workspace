@@ -34,7 +34,10 @@ func installed(t *testing.T, root, name string, refs ...protocol.Ref) {
 	}
 }
 
-var jiraIssue = protocol.Ref{Kind: "issue", Title: "Jira issue", Prefixes: []string{"RAM-", "RAP-"}, Address: "https://acme.atlassian.net/browse/{ref}", Path: "/issue/{ref}"}
+var jiraIssue = protocol.Ref{
+	Kind: "issue", Title: "Jira issue", Prefixes: []string{"RAM-", "RAP-"}, Address: "https://acme.atlassian.net/browse/{ref}", Path: "/issue/{ref}",
+	Fields: []protocol.Field{{Name: "title", Type: protocol.FieldTitle}, {Name: "status", Type: protocol.FieldState}, {Name: "body", Type: protocol.FieldMarkdown}},
+}
 
 // A plugin's things are named from what ws keeps of how it names them:
 // in what there is to name, by a name, by ws: and by where one is.
@@ -149,8 +152,8 @@ func TestAPluginsThingsAreFound(t *testing.T) {
 	installed(t, root, "jira", jiraIssue)
 	// Told as the plugin tells it: through what ws answers a plugin.
 	params, _ := json.Marshal(protocol.ThingPutParams{Things: []protocol.Thing{
-		{Kind: "issue", Ref: "RAM-12", Title: "Token refresh is flaky", State: "In Progress", Text: "The clock should be injected."},
-		{Kind: "issue", Ref: "ram-13", Title: "Not one of its names"},
+		{Kind: "issue", Ref: "RAM-12", Fields: map[string]string{"title": "Token refresh is flaky", "status": "In Progress", "body": "The clock should be injected."}},
+		{Kind: "issue", Ref: "ram-13", Fields: map[string]string{"title": "Not one of its names"}},
 	}})
 	answer, err := w.AnswerPlugin(t.Context(), "jira", protocol.MethodThingPut, params)
 	if put, ok := answer.(protocol.ThingPutResult); err != nil || !ok || len(put.Refused) != 1 || put.Refused[0].Ref != "ram-13" {

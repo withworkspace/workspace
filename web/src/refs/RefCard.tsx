@@ -1,30 +1,16 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { useLoaded } from "../load";
 import { artifactStatus, byWords } from "../artifacts/shown";
-import {
-  ApiError,
-  type ArtifactDetail,
-  type FileTree,
-  type FileView,
-  getArtifactDetail,
-  type Repo,
-  getFile,
-  getPluginThing,
-  getPR,
-  getTree,
-  getWorktrees,
-  type PluginThing,
-  type PR,
-  type Workspace,
-  type Worktree,
-  worktreeAPI,
-} from "../api";
+import { type ArtifactDetail, type FileTree, type FileView, getArtifactDetail, type Repo, getFile, getPR, getTree, getWorktrees, type PR, type Workspace, type Worktree, worktreeAPI } from "../api";
 import { highlightCode, languageOf, useHighlighter } from "../review/highlight";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { headlineStatus, Status } from "../ui/status";
 import { useRefs } from "./known";
 import { GROUND, isOutside, type Known, namedOf, type PageRef, refHref } from "./refs";
+import { type Surface, thingBlocks } from "./thing";
+import { ThingView, useThing } from "./ThingView";
 import { thingIcon } from "./views";
 import { FloatingCard } from "../ui/hover";
 
@@ -71,24 +57,6 @@ const artifactOf = (id: string, versions: number) => {
     got = getArtifactDetail(id);
     artifacts.set(key, got);
     got.catch(() => artifacts.delete(key));
-  }
-  return got;
-};
-
-// What plugins have said of their things, kept while the page is open:
-// null is one its plugin has none of. That, and a plugin that couldn't be
-// asked, are asked again the next time.
-const things = new Map<string, Promise<PluginThing | null>>();
-const thingOf = (plugin: string, what: string, id: string) => {
-  const key = `${plugin}\n${what}\n${id}`;
-  let got = things.get(key);
-  if (!got) {
-    got = getPluginThing(plugin, what, id).catch((e: unknown) => {
-      things.delete(key);
-      if (e instanceof ApiError && e.status === 404) return null;
-      throw e;
-    });
-    things.set(key, got);
   }
   return got;
 };
@@ -334,26 +302,37 @@ function ArtifactCard({ r, workspace }: { r: Extract<PageRef, { kind: "artifact"
 // and its name, and what its plugin says of it now: its title, where it
 // stands, and whatever else it gives in a line each. It goes where a
 // click on its name does.
-function ThingCard({ r, known }: { r: Extract<PageRef, { kind: "thing" }>; known?: Known }) {
+// ThingCard is a plugin's thing: its fields, as ws has them or as its
+// plugin says when asked, drawn as the plugin declared for where it's
+// shown (ThingView). Around that is ws's own: that it's being asked after,
+// that there's none or the plugin couldn't be asked, and somewhere to go.
+// A thing with nothing drawn yet (it's being asked after, there's none, or
+// its kind has no fields) is its name, and what one of its kind is called.
+//
+// before is shown in place of ws's own, while there's nothing of the thing
+// to draw: Find's pane has what the search found of it already.
+export function ThingCard({ r, known, surface = "card", before }: { r: Extract<PageRef, { kind: "thing" }>; known?: Known; surface?: Surface; before?: ReactNode }) {
   const named = namedOf(r, known);
-  const { value: thing, error } = useLoaded(() => thingOf(r.plugin, r.what, r.id), [r.plugin, r.what, r.id]);
+  const { thing, error } = useThing(r);
   const what = r.what.replace(/-/g, " ");
   const href = refHref(r, known);
+  const drawn = !!thing && thingBlocks(named, thing, surface).length > 0;
+  if (!drawn && before) return <>{before}</>;
   return (
     <>
-      <span className="hovercard-head">
-        <Icon name={thingIcon(named)} size={13} className="dim" />
-        <span className="hovercard-title">{thing?.title || r.id}</span>
-      </span>
-      <span className="hovercard-line dim">
-        {named?.title || `${r.plugin} ${what}`} {r.id}
-        {thing?.state && <span className="chip tone-quiet">{thing.state}</span>}
-      </span>
-      {thing?.fields?.map((f, i) => (
-        <span key={i} className="hovercard-line dim">
-          {f.label}: {f.value}
-        </span>
-      ))}
+      {drawn ? (
+        <ThingView named={named} record={thing} surface={surface} />
+      ) : (
+        <>
+          <span className="hovercard-head">
+            <Icon name={thingIcon(named)} size={13} className="dim" />
+            <span className="hovercard-title">{r.id}</span>
+          </span>
+          <span className="hovercard-line dim">
+            {named?.title || `${r.plugin} ${what}`} {r.id}
+          </span>
+        </>
+      )}
       {thing === null && (
         <span className="hovercard-line dim">
           {r.plugin} has no {what} called {r.id}.

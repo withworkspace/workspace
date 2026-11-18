@@ -40,11 +40,41 @@ export type PageRef =
   // plugin said where its things are.
   | { kind: "thing"; plugin: string; what: string; id: string; url?: string };
 
+// ThingField is one of the fields a kind of plugin's thing has: its name,
+// what it is (title, state, text, time or markdown; one ws doesn't know is
+// drawn as text), and what it's called where it's said beside its value.
+export interface ThingField {
+  name: string;
+  type: string;
+  label?: string;
+}
+
+// ThingBlock is a piece of how a plugin's thing is drawn (a title, a
+// subtitle, a badge, a field with its label, or markdown), with the field
+// whose value it shows: key is the thing's own name. label is a field's,
+// in place of the one it was declared with; lines is how many lines its
+// markdown is kept to. A block ws doesn't know isn't drawn.
+export interface ThingBlock {
+  block: string;
+  field: string;
+  label?: string;
+  lines?: number;
+}
+
+// ThingViews are how a kind of plugin's thing is drawn, as its plugin
+// declared, where it's drawn: the card under its name, and the pane beside
+// the list in Find.
+export interface ThingViews {
+  card?: ThingBlock[];
+  pane?: ThingBlock[];
+}
+
 // Named is a kind of thing a plugin has, and how one is named, as the
 // plugin registered it: a name is one of prefixes and then its tail (a
 // number, when it doesn't say). address is where one is outside ws, and
 // path where one opens in the plugin's app, {ref} its name in each. title
-// and icon are how ws draws one.
+// and icon are how ws draws one; fields are what one holds, and views how
+// the plugin has it drawn from them (refs/thing.ts).
 export interface Named {
   plugin: string;
   what: string;
@@ -54,6 +84,8 @@ export interface Named {
   path?: string;
   title?: string;
   icon?: string;
+  fields?: ThingField[];
+  views?: ThingViews;
 }
 
 // Known is what there is to name: each repo with the files on its default

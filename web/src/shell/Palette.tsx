@@ -4,7 +4,7 @@ import { act, newPage, type Plugin, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { archiveMission } from "../mission/archive";
 import { thingsNamed } from "../refs/known";
-import { RefCardBody } from "../refs/RefCard";
+import { RefCardBody, ThingCard } from "../refs/RefCard";
 import { isOutside, type Known } from "../refs/refs";
 import { marked } from "../ui/fuzzy";
 import { Icon } from "../ui/Icon";
@@ -190,6 +190,9 @@ export function Palette({
     rows.findIndex((r) => r.id === cursor),
   );
   const on = rows[at];
+  // The plugin's thing the cursor's on, if it's on one: found by what it
+  // says, or named outright by what's typed.
+  const onThing = on?.said?.thing === "thing" && on.said.card?.kind === "thing" ? on.said.card : on?.card?.kind === "thing" ? on.card : undefined;
 
   useEffect(() => {
     list.current?.querySelector(".on")?.scrollIntoView({ block: "nearest" });
@@ -432,6 +435,11 @@ export function Palette({
               </>
             ) : on?.pull ? (
               <PullCard it={on} />
+            ) : onThing ? (
+              // A plugin's thing: its fields, as its plugin has it drawn
+              // here. What the search found of it shows until they're in
+              // hand, and if they can't be had.
+              <ThingCard r={onThing} known={known} surface="pane" before={on?.said ? <SaidCard it={on} f={on.said} /> : undefined} />
             ) : on?.said ? (
               <SaidCard it={on} f={on.said} />
             ) : on?.card ? (

@@ -382,6 +382,9 @@ describe("a plugin's things", () => {
     const b = build({ q: "RAM-12", scope: "all", local: [], found: [{ kind: "said", results: [told] }], known });
     expect(b.sections[0]).toMatchObject({ group: "best", items: [{ id: "thing:jira/RAM-12", title: "Token refresh is flaky" }] });
     expect(b.rows.filter((r) => r.id === "thing:jira/RAM-12")).toHaveLength(1);
+    // Its row has its kind's icon, where the kind says one ws has.
+    const boxed = { ...known, things: [{ ...known.things[0], icon: "box" }] };
+    expect(build({ q: "flaky", scope: "all", local: [], found: [{ kind: "said", results: [told] }], known: boxed }).rows[0].icon).toBe("box");
     // Not told of (it's not on the plugin's board): its name, to go to,
     // with a card that asks the plugin.
     const off = build({ q: "RAM-99", scope: "all", local: [], found: [], known });

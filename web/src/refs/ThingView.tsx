@@ -1,0 +1,116 @@
+import { ApiError, getPluginThing, type PluginThing } from "../api";
+import { useLoaded } from "../load";
+import { Markdown } from "../markdown/LazyMarkdown";
+import { Icon } from "../ui/Icon";
+import { exact, stamp } from "../ui/time";
+import { NoRefs } from "./known";
+import type { Named, PageRef } from "./refs";
+import { type Drawn, type Surface, thingBlocks, type ThingRecord } from "./thing";
+import { thingIcon } from "./views";
+
+// A plugin's thing, drawn from its fields as its plugin declared for where
+// it's shown: the card under its name, the pane beside the list in Find.
+// Which blocks, and what each says, is refs/thing.ts's; this is how each
+// looks. What ws says around it (asking, none there, somewhere to go) is
+// whoever shows it's.
+
+// What ws has of plugins' things, or was told when it asked, kept while
+// the page is open: null is one its plugin has none of. That, and a plugin
+// that couldn't be asked, are asked again the next time.
+const things = new Map<string, Promise<PluginThing | null>>();
+export const thingOf = (plugin: string, what: string, id: string) => {
+  const key = `${plugin}\n${what}\n${id}`;
+  let got = things.get(key);
+  if (!got) {
+    got = getPluginThing(plugin, what, id).catch((e: unknown) => {
+      things.delete(key);
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    });
+    things.set(key, got);
+  }
+  return got;
+};
+
+// useThing is a plugin's thing as ws has it, or as its plugin says when
+// asked: undefined while it's asked, null for one the plugin has none of,
+// and error for a plugin that couldn't be asked.
+export function useThing(r: Extract<PageRef, { kind: "thing" }> | undefined) {
+  const { value: thing, error } = useLoaded(r ? () => thingOf(r.plugin, r.what, r.id) : null, [r?.plugin, r?.what, r?.id]);
+  return { thing, error };
+}
+
+// said is a block's words: a time as ws says times, anything else as it
+// is.
+function said(d: Drawn) {
+  if (!d.time || Number.isNaN(Date.parse(d.value))) return d.value;
+  return (
+    <time dateTime={d.value} title={exact(d.value)}>
+      {stamp(d.value)}
+    </time>
+  );
+}
+
+// ThingView draws a thing's view for a surface: its blocks in order, a
+// badge on the line of the title or subtitle before it.
+export function ThingView({ named, record, surface }: { named?: Named; record: ThingRecord; surface: Surface }) {
+  const drawn = thingBlocks(named, record, surface);
+  // A line is a block and the badges that sit on it.
+  const lines: { of: Drawn; badges: Drawn[] }[] = [];
+  for (const d of drawn) {
+    if (d.inline && lines.length) lines[lines.length - 1].badges.push(d);
+    else lines.push({ of: d, badges: [] });
+  }
+  if (!lines.length) return null;
+  return (
+    <span className={`thing-view on-${surface}`}>
+      {lines.map(({ of: d, badges }, i) => {
+        const chips = badges.map((b, j) => (
+          <span key={j} className="chip tone-quiet">
+            {said(b)}
+          </span>
+        ));
+        switch (d.block) {
+          case "title":
+            return (
+              <span key={i} className="hovercard-head">
+                {d.icon && <Icon name={thingIcon(named)} size={13} className="dim" />}
+                <span className="hovercard-title">{said(d)}</span>
+                {chips}
+              </span>
+            );
+          case "subtitle":
+            return (
+              <span key={i} className="hovercard-line dim">
+                {said(d)}
+                {chips}
+              </span>
+            );
+          case "badge":
+            return (
+              <span key={i} className="hovercard-line dim thing-badges">
+                <span className="chip tone-quiet">{said(d)}</span>
+                {chips}
+              </span>
+            );
+          case "field":
+            return (
+              <span key={i} className="hovercard-line dim">
+                {d.label}: {said(d)}
+              </span>
+            );
+          case "markdown":
+            // What it says is its plugin's words: the names in them are
+            // only words, and it's kept to the lines its block says.
+            return (
+              <div key={i} className={`thing-md${d.lines ? " kept" : ""}`} style={d.lines ? ({ "--lines": d.lines } as React.CSSProperties) : undefined}>
+                <NoRefs>
+                  <Markdown text={d.value} />
+                </NoRefs>
+              </div>
+            );
+        }
+      })}
+    </span>
+  );
+}

@@ -53,7 +53,8 @@ brief and a note name them.
   $ws show https://fixture.example/things/THING-3
   $ws show THING-9           the fixture has none
   $ws find lantern           found by what it says, as the plugin told ws of it
-  Find (⌘K): lantern, or THING-2; THING-9, which ws wasn't told of, by its name alone
+  Find (⌘K): compass, or THING-2, drawn beside the list as the plugin's pane says, from
+                    what ws was told; THING-4, which ws wasn't told of, by its name alone
   $ws plugin list            names THING-…
   $ws plugin remove frame-fixture   and its names are words again
 SAID

@@ -1,4 +1,4 @@
-import type { Pinned } from "./refs/refs";
+import type { Pinned, ThingField, ThingViews } from "./refs/refs";
 import { useEffect, useRef, useState } from "react";
 import type { Place } from "./markdown/links";
 import { bursts } from "./load";
@@ -307,7 +307,9 @@ export interface Plugin {
 // PluginRef is a kind of thing a plugin has that words name (a Jira
 // issue), and how one is named: one of prefixes, then its tail (a number,
 // when it doesn't say). address is where one is outside ws and path where
-// one opens in the plugin's app, {ref} its name in each.
+// one opens in the plugin's app, {ref} its name in each. fields are what
+// one holds, and views how the plugin has one drawn from them: under its
+// name (card), and beside the list in Find (pane).
 export interface PluginRef {
   kind: string; // the plugin's word for it: issue
   title?: string; // what ws calls one: Jira issue
@@ -316,18 +318,25 @@ export interface PluginRef {
   tail?: string;
   address?: string;
   path?: string;
+  fields?: ThingField[];
+  views?: ThingViews;
 }
 
-// PluginThing is one of a plugin's things, as the plugin says it is now:
-// what a card says of it.
+// PluginThing is one of a plugin's things: its name (key), and its fields
+// by name, as its kind declared them (a time as RFC 3339). told is whether
+// ws had it from what the plugin's told it, and answered from its own
+// records; otherwise the plugin was asked just now.
 export interface PluginThing {
-  title: string;
-  state?: string; // where it stands, in the plugin's words: In Progress
-  fields?: { label: string; value: string }[];
+  key: string;
+  fields: Record<string, string>;
+  changed?: string;
+  told: boolean;
 }
 
-// getPluginThing asks a plugin for one of its things, by its kind and
-// name. One it has none of is an ApiError with status 404.
+// getPluginThing is one of a plugin's things, by its kind and name: as ws
+// has it, or as its plugin says when asked. One the plugin has none of is
+// an ApiError with status 404; any other failure is the plugin not being
+// there to ask.
 export const getPluginThing = (plugin: string, kind: string, ref: string) =>
   getJSON<PluginThing>(`/api/plugins/${encodeURIComponent(plugin)}/refs/${encodeURIComponent(kind)}/${encodeURIComponent(ref)}`);
 

@@ -12698,6 +12698,87 @@ button.finding-quote:hover {
   margin-left: 6px;
 }
 
+/* A plugin's thing, drawn from its fields as its plugin declared for where
+   it's shown (refs/ThingView.tsx): a line for each block, a badge on the
+   line of the title or subtitle before it. */
+.thing-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  min-width: 0;
+}
+
+.thing-view .hovercard-head .chip {
+  flex: none;
+}
+
+.thing-view .thing-badges .chip:first-child {
+  margin-left: 0;
+}
+
+/* Beside the list in Find there's room: a title wraps, as what's found by
+   what it says does. */
+.thing-view.on-pane .hovercard-head {
+  align-items: flex-start;
+}
+
+.thing-view.on-pane .hovercard-head > .icon {
+  flex: none;
+  margin-top: 3px;
+}
+
+.thing-view.on-pane .hovercard-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.thing-view.on-pane .hovercard-line {
+  overflow-wrap: anywhere;
+}
+
+/* What it says, as markdown: at the card's size, its headings no larger
+   than its words, and kept to the lines its block says (--lines). */
+.thing-md {
+  min-width: 0;
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.thing-md .markdown {
+  max-width: none;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.thing-md .markdown :is(h1, h2, h3, h4) {
+  margin: 0.8em 0 0.25em;
+  font-size: 1em;
+  line-height: inherit;
+}
+
+.thing-md .markdown > :first-child {
+  margin-top: 0;
+}
+
+.thing-md .markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.thing-md .markdown :is(p, ul, ol, blockquote, table, pre) {
+  margin-bottom: 0.5em;
+}
+
+.thing-md.kept {
+  max-height: calc(var(--lines) * 1.5em);
+  overflow: hidden;
+}
+
+/* What a thing says may be longer than Find is tall: its pane scrolls. */
+.find-card:has(.thing-view.on-pane) {
+  overflow-y: auto;
+}
+
 /* What a cell's agent had to say of what it wrote: to you, in its panel,
    never in the page. */
 .cell-notes {

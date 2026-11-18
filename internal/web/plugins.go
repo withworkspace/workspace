@@ -8,9 +8,12 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"slices"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/plugin"
 )
 
@@ -63,29 +66,30 @@ type Plugin struct {
 // PluginRef is a kind of thing a plugin has that words name, and how one
 // is named: one of Prefixes, then its Tail (a number, when it doesn't
 // say). Address is where one is outside ws and Path where one opens in
-// the plugin's app, {ref} its name in each.
+// the plugin's app, {ref} its name in each. Fields are what one is made
+// of, and Views how the web UI draws one, by where (card, pane): blocks,
+// each showing a field.
 type PluginRef struct {
-	Kind     string   `json:"kind"`
-	Title    string   `json:"title,omitempty"`
-	Icon     string   `json:"icon,omitempty"`
-	Prefixes []string `json:"prefixes"`
-	Tail     string   `json:"tail,omitempty"`
-	Address  string   `json:"address,omitempty"`
-	Path     string   `json:"path,omitempty"`
+	Kind     string                      `json:"kind"`
+	Title    string                      `json:"title,omitempty"`
+	Icon     string                      `json:"icon,omitempty"`
+	Prefixes []string                    `json:"prefixes"`
+	Tail     string                      `json:"tail,omitempty"`
+	Address  string                      `json:"address,omitempty"`
+	Path     string                      `json:"path,omitempty"`
+	Fields   []protocol.Field            `json:"fields,omitempty"`
+	Views    map[string][]protocol.Block `json:"views,omitempty"`
 }
 
-// PluginThing is one of a plugin's things, as the plugin says it is now:
-// what the card under its name says.
+// PluginThing is one of a plugin's things: its name, and a value for each
+// of its kind's fields it has one for. Told: ws has it from the plugin,
+// and this is from its own records; otherwise the plugin was asked just
+// now.
 type PluginThing struct {
-	Title  string             `json:"title"`
-	State  string             `json:"state,omitempty"`
-	Fields []PluginThingField `json:"fields,omitempty"`
-}
-
-// PluginThingField is one thing said of a thing: Assignee, Dana.
-type PluginThingField struct {
-	Label string `json:"label"`
-	Value string `json:"value"`
+	Key     string            `json:"key"`
+	Fields  map[string]string `json:"fields"`
+	Changed *time.Time        `json:"changed,omitempty"`
+	Told    bool              `json:"told"`
 }
 
 // PluginView is an entry a plugin adds to the sidebar.
@@ -108,7 +112,17 @@ func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
 		if len(statuses) > 0 {
 			kept, _ := plugin.Refs(s.Plugins.Root)
 			for _, k := range kept {
-				refs[k.Plugin] = append(refs[k.Plugin], PluginRef{Kind: k.Kind, Title: k.Title, Icon: k.Icon, Prefixes: k.Prefixes, Tail: k.Tail, Address: k.Address, Path: k.Path})
+				r := PluginRef{Kind: k.Kind, Title: k.Title, Icon: k.Icon, Prefixes: k.Prefixes, Tail: k.Tail, Address: k.Address, Path: k.Path, Fields: k.Fields}
+				// A view with nothing in it is no view: ws draws its own.
+				for where, blocks := range k.Views {
+					if len(blocks) > 0 {
+						if r.Views == nil {
+							r.Views = map[string][]protocol.Block{}
+						}
+						r.Views[where] = blocks
+					}
+				}
+				refs[k.Plugin] = append(refs[k.Plugin], r)
 			}
 		}
 		for _, st := range statuses {
@@ -126,9 +140,11 @@ func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
-// pluginThing is GET /api/plugins/{name}/refs/{kind}/{ref}: what a plugin
-// says one of its things is, for the card under its name. 404 is the
-// plugin having none by that name; anything else is the plugin not being
+// pluginThing is GET /api/plugins/{name}/refs/{kind}/{ref}: one of a
+// plugin's things, for the web UI to draw (its card, the pane beside
+// Find's list). From what the plugin's told ws of it, where it has: no
+// plugin's asked for those. Otherwise the plugin's asked, now. 404 is
+// there being none by that name; anything else is the plugin not being
 // there to ask.
 func (s *Server) pluginThing(w http.ResponseWriter, r *http.Request) {
 	name, kind, ref := r.PathValue("name"), r.PathValue("kind"), r.PathValue("ref")
@@ -136,18 +152,41 @@ func (s *Server) pluginThing(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadGateway, "there's no plugin called "+name)
 		return
 	}
+	// As ws keeps how the plugin names things: the name has to be one.
+	kept, _ := plugin.RefsOf(s.Plugins.Root, name)
+	i := slices.IndexFunc(kept, func(k plugin.KeptRef) bool { return k.Kind == kind })
+	if i >= 0 && kept[i].Named().Names(ref) {
+		if rec, ok, err := plugin.ThingOf(s.Plugins.Root, name, kind, ref); err == nil && ok {
+			out := PluginThing{Key: ref, Fields: rec.Fields, Told: true}
+			if !rec.Changed.IsZero() {
+				out.Changed = &rec.Changed
+			}
+			writeJSON(w, http.StatusOK, out)
+			return
+		}
+	}
 	shown, err := s.Plugins.Show(r.Context(), name, kind, ref, false)
 	switch {
 	case errors.Is(err, plugin.ErrNoThing):
 		jsonError(w, http.StatusNotFound, err.Error())
 		return
+	case errors.Is(err, plugin.ErrNoShow):
+		// It says no more than it's told ws, and it hasn't told ws of this.
+		jsonError(w, http.StatusNotFound, name+" hasn't told ws of "+ref)
+		return
 	case err != nil:
 		jsonError(w, http.StatusBadGateway, err.Error())
 		return
 	}
-	out := PluginThing{Title: shown.Title, State: shown.State}
-	for _, f := range shown.Fields {
-		out.Fields = append(out.Fields, PluginThingField{Label: f.Label, Value: f.Value})
+	// What its kind has a field for, as ws would keep it: its kind as ws
+	// has it now, since asking may have been what started the plugin.
+	out := PluginThing{Key: ref, Fields: map[string]string{}}
+	kept, _ = plugin.RefsOf(s.Plugins.Root, name)
+	if i := slices.IndexFunc(kept, func(k plugin.KeptRef) bool { return k.Kind == kind }); i >= 0 {
+		out.Fields = plugin.Tidy(kept[i].Ref, shown.Fields)
+	}
+	if !shown.Changed.IsZero() {
+		out.Changed = &shown.Changed
 	}
 	writeJSON(w, http.StatusOK, out)
 }

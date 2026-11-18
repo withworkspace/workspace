@@ -169,13 +169,17 @@ func TestKitRegistersRefsAndShowsAThing(t *testing.T) {
 	if k := kept[0]; k.Kind != "thing" || k.Title != "Kit thing" || !slices.Equal(k.Prefixes, []string{"KIT-"}) || k.Address != "https://kit.example/things/{ref}" || k.Path != "/thing/{ref}" || k.Icon != "box" {
 		t.Errorf("kept: %+v", k)
 	}
+	// What its things are made of, found by and drawn from is kept with it.
+	if k := kept[0]; len(k.Fields) != 4 || k.Typed(protocol.FieldTitle) != "title" || k.Typed(protocol.FieldState) != "status" || len(k.Search) != 2 || len(k.Views[protocol.ViewCard]) != 3 || len(k.Views[protocol.ViewPane]) != 5 {
+		t.Errorf("kept: fields %+v, search %+v, views %+v", k.Fields, k.Search, k.Views)
+	}
 
 	ctx := context.Background()
 	shown, err := h.Show(ctx, "kit", "thing", "KIT-1", false)
-	if err != nil || shown.Title != "The first thing" || shown.State != "Open" || len(shown.Fields) != 1 || shown.Fields[0].Value != "Dana" || shown.Markdown != "It says hello." {
+	if f := shown.Fields; err != nil || f["title"] != "The first thing" || f["status"] != "Open" || f["owner"] != "Dana" || !strings.HasPrefix(f["body"], "It says hello") || shown.Changed.IsZero() {
 		t.Errorf("KIT-1: %+v, %v", shown, err)
 	}
-	if shown, err := h.Show(ctx, "kit", "thing", "KIT-1", true); err != nil || !strings.Contains(shown.Markdown, "in full, goodbye") {
+	if shown, err := h.Show(ctx, "kit", "thing", "KIT-1", true); err != nil || !strings.Contains(shown.Fields["body"], "in full, goodbye") {
 		t.Errorf("KIT-1 in full: %+v, %v", shown, err)
 	}
 	// One the plugin has none of, and names that aren't its own: it isn't
@@ -206,7 +210,7 @@ func TestKitRegistersRefsAndShowsAThing(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer c.Close()
-	if shown, err := c.Show(ctx, "kit", "thing", "KIT-1", false); err != nil || shown.Title != "The first thing" {
+	if shown, err := c.Show(ctx, "kit", "thing", "KIT-1", false); err != nil || shown.Fields["title"] != "The first thing" {
 		t.Errorf("over the socket: %+v, %v", shown, err)
 	}
 	if _, err := c.Show(ctx, "kit", "thing", "KIT-2", false); !errors.Is(err, plugin.ErrNoThing) || err.Error() != "kit has no thing called KIT-2" {
@@ -289,13 +293,30 @@ func placesIn(t *testing.T, db *store.DB, name string) (n, latest int) {
 	return n, latest
 }
 
-// What a plugin tells ws of its things is kept in the graph, with what
-// they say, under the plugin: named as it registered, and no other way.
+// issueKind is a kind as a plugin registers one: named RAM-n and RAP-n,
+// made of a title, a status, an assignee and a body, found by its
+// assignee and the start of its body.
+var issueKind = protocol.Ref{
+	Kind: "issue", Title: "Jira issue", Prefixes: []string{"RAM-", "RAP-"},
+	Fields: []protocol.Field{
+		{Name: "title", Type: protocol.FieldTitle}, {Name: "status", Type: protocol.FieldState},
+		{Name: "assignee", Type: protocol.FieldText, Label: "Assignee"}, {Name: "body", Type: protocol.FieldMarkdown},
+	},
+	Search: []protocol.Searched{{Field: "assignee"}, {Field: "body", Max: 40}},
+}
+
+func issue(ref string, fields map[string]string) protocol.Thing {
+	return protocol.Thing{Kind: "issue", Ref: ref, Fields: fields}
+}
+
+// What a plugin tells ws of its things is kept as it's told, a value for
+// each of its kind's fields, under the plugin: named as it registered,
+// and no other way. What ws reads of one is made from that.
 func TestAPluginsThingsAreKeptUnderIt(t *testing.T) {
 	root := t.TempDir()
 	db := storetest.Own(t, root)
-	issue := protocol.Ref{Kind: "issue", Prefixes: []string{"RAM-", "RAP-"}}
-	if _, err := plugin.KeepRefs(root, "jira", []protocol.Ref{issue, {Kind: "sprint", Prefixes: []string{"SPRINT-"}}}); err != nil {
+	sprint := protocol.Ref{Kind: "sprint", Prefixes: []string{"SPRINT-"}, Fields: []protocol.Field{{Name: "name", Type: protocol.FieldTitle}}}
+	if _, err := plugin.KeepRefs(root, "jira", []protocol.Ref{issueKind, sprint, {Kind: "epic", Prefixes: []string{"EPIC-"}}}); err != nil {
 		t.Fatal(err)
 	}
 	// Something of ws's own, by a name a plugin might use.
@@ -306,15 +327,20 @@ func TestAPluginsThingsAreKeptUnderIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	when := time.Date(2026, 11, 18, 10, 0, 0, 0, time.UTC)
+	flaky := protocol.Thing{Kind: "issue", Ref: "RAM-1", Changed: when, Fields: map[string]string{
+		"title": "Token  refresh\nis flaky", "status": "In Progress", "assignee": "Dana",
+		"body": "The **clock** should be injected, as the kettle is. Past forty bytes: lantern.", "colour": "not a field of its kind",
+	}}
 	refused, err := plugin.PutThings(root, "jira", []protocol.Thing{
-		{Kind: "issue", Ref: "RAM-1", Title: "Token  refresh\nis flaky", State: "In Progress", Changed: when, Text: "The **clock** should be injected."},
-		{Kind: "issue", Ref: "RAM-2", Title: "Cache the sessions"},
-		{Kind: "sprint", Ref: "SPRINT-4", Title: "Sprint 4"},
-		{Kind: "issue", Ref: "ram-3", Title: "Lower case"},
-		{Kind: "issue", Ref: "SPRINT-5", Title: "Another kind's name"},
-		{Kind: "epic", Ref: "RAM-6", Title: "A kind it didn't register"},
-		{Kind: "issue", Ref: "RAM-7", Title: "  "},
-		{Kind: "issue", Ref: "RAP-1", Title: "ws has one of its own"},
+		flaky,
+		issue("RAM-2", map[string]string{"title": "Cache the sessions"}),
+		{Kind: "sprint", Ref: "SPRINT-4", Fields: map[string]string{"name": "Sprint 4"}},
+		issue("ram-3", map[string]string{"title": "Lower case"}),
+		issue("SPRINT-5", map[string]string{"title": "Another kind's name"}),
+		{Kind: "story", Ref: "RAM-6", Fields: map[string]string{"title": "A kind it didn't register"}},
+		issue("RAM-7", map[string]string{"title": "  ", "status": "Open"}),
+		issue("RAP-1", map[string]string{"title": "ws has one of its own"}),
+		{Kind: "epic", Ref: "EPIC-1", Fields: map[string]string{"title": "Its kind has no fields"}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -326,15 +352,16 @@ func TestAPluginsThingsAreKeptUnderIt(t *testing.T) {
 	for ref, want := range map[string]string{
 		"issue ram-3":    "isn't one of issue's names",
 		"issue SPRINT-5": "isn't one of issue's names",
-		"epic RAM-6":     "ws keeps no ref of jira's called epic",
-		"issue RAM-7":    "it has no title",
+		"story RAM-6":    "ws keeps no ref of jira's called story",
+		"issue RAM-7":    "it has nothing for title, its title",
 		"issue RAP-1":    "ws has something of its own called RAP-1",
+		"epic EPIC-1":    "epic has no title field",
 	} {
 		if !strings.Contains(why[ref], want) {
 			t.Errorf("%s refused as %q, want %q", ref, why[ref], want)
 		}
 	}
-	if len(refused) != 5 {
+	if len(refused) != 6 {
 		t.Errorf("refused: %+v", refused)
 	}
 	want := []string{"RAM-1=Token refresh is flaky In Progress", "RAM-2=Cache the sessions", "SPRINT-4=Sprint 4"}
@@ -347,25 +374,49 @@ func TestAPluginsThingsAreKeptUnderIt(t *testing.T) {
 	if got, _ := plugin.ListThings(root, "linear", "issue"); len(got) != 0 {
 		t.Errorf("another plugin's issues: %v", got)
 	}
+	// As it was told, for what its kind has a field for: what ws draws
+	// it from without asking.
+	rec, ok, err := plugin.ThingOf(root, "jira", "issue", "RAM-1")
+	if err != nil || !ok || !rec.Changed.Equal(when) || len(rec.Fields) != 4 || rec.Fields["title"] != "Token refresh is flaky" || rec.Fields["assignee"] != "Dana" || !strings.HasPrefix(rec.Fields["body"], "The **clock**") {
+		t.Errorf("RAM-1 as kept: %+v, %v, %v", rec, ok, err)
+	}
+	if _, ok, _ := plugin.ThingOf(root, "jira", "issue", "RAM-99"); ok {
+		t.Error("ws has RAM-99, which it wasn't told of")
+	}
 
-	// It's found by what it says, and by its name.
-	for _, typed := range []string{"clock injected", "RAM-1", "flaky"} {
+	finds := func(typed string) string {
+		t.Helper()
 		found, _, err := db.Find(context.Background(), store.Said{Words: typed})
-		if err != nil || len(found) == 0 || found[0].Thing.Key.Name != "RAM-1" || found[0].Thing.Kind != plugin.ThingKind || found[0].Thing.Title != "Token refresh is flaky" {
-			t.Errorf("finding %q: %+v, %v", typed, found, err)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var names []string
+		for _, f := range found {
+			if f.Thing.Kind == plugin.ThingKind {
+				names = append(names, f.Thing.Key.Name)
+			}
+		}
+		return strings.Join(names, " ")
+	}
+	// It's found by what its kind says it's found by, as far as it says,
+	// and by its title and its name whatever that is.
+	for typed, want := range map[string]string{"clock injected": "RAM-1", "dana": "RAM-1", "RAM-1": "RAM-1", "flaky": "RAM-1", "lantern": "", "progress": ""} {
+		if got := finds(typed); got != want {
+			t.Errorf("finding %q: %q, want %q", typed, got, want)
 		}
 	}
 
 	// Told again as it is, nothing's written; told otherwise, it's put in
 	// place of what was there.
 	_, before := placesIn(t, db, "jira")
-	if _, err := plugin.PutThings(root, "jira", []protocol.Thing{{Kind: "issue", Ref: "RAM-1", Title: "Token refresh is flaky", State: "In Progress", Changed: when, Text: "The **clock** should be injected."}}); err != nil {
+	if _, err := plugin.PutThings(root, "jira", []protocol.Thing{flaky}); err != nil {
 		t.Fatal(err)
 	}
 	if n, after := placesIn(t, db, "jira"); n != 3 || after != before {
 		t.Errorf("told again as it is: %d places, the latest %d, was %d", n, after, before)
 	}
-	if _, err := plugin.PutThings(root, "jira", []protocol.Thing{{Kind: "issue", Ref: "RAM-1", Title: "Token refresh is flaky", State: "Done", Changed: when.Add(time.Hour)}}); err != nil {
+	done := protocol.Thing{Kind: "issue", Ref: "RAM-1", Changed: when.Add(time.Hour), Fields: map[string]string{"title": "Token refresh is flaky", "status": "Done", "body": "Fixed: the lantern's lit."}}
+	if _, err := plugin.PutThings(root, "jira", []protocol.Thing{done}); err != nil {
 		t.Fatal(err)
 	}
 	if got := thingsIn(t, db, "jira"); got[0] != "RAM-1=Token refresh is flaky Done" {
@@ -374,8 +425,31 @@ func TestAPluginsThingsAreKeptUnderIt(t *testing.T) {
 	if n, _ := placesIn(t, db, "jira"); n != 3 {
 		t.Errorf("told otherwise: %d places, want one each", n)
 	}
-	if found, _, _ := db.Find(context.Background(), store.Said{Words: "clock injected"}); len(found) != 0 {
-		t.Errorf("what it said before is still found: %+v", found)
+	if got := finds("clock injected") + finds("dana"); got != "" {
+		t.Errorf("what it said before is still found: %q", got)
+	}
+
+	// What it's found by is ws's to make: when its kind says otherwise,
+	// it's made again from what was told, and nothing's told twice.
+	wider := issueKind
+	wider.Search = []protocol.Searched{{Field: "status"}, {Field: "body"}}
+	if _, err := plugin.KeepRefs(root, "jira", []protocol.Ref{wider, sprint}); err != nil {
+		t.Fatal(err)
+	}
+	for typed, want := range map[string]string{"lantern lit": "RAM-1", "done": "RAM-1", "cache sessions": "RAM-2"} {
+		if got := finds(typed); got != want {
+			t.Errorf("found by what its kind now says, %q: %q, want %q", typed, got, want)
+		}
+	}
+	// With none said, it's every field but the title, which is found
+	// anyway.
+	plain := issueKind
+	plain.Search = nil
+	if _, err := plugin.KeepRefs(root, "jira", []protocol.Ref{plain, sprint}); err != nil {
+		t.Fatal(err)
+	}
+	if got := finds("fixed lantern") + " " + finds("done"); got != "RAM-1 RAM-1" {
+		t.Errorf("found by every field: %q", got)
 	}
 
 	// Removed by name; one that isn't there is nothing to remove.
@@ -386,9 +460,13 @@ func TestAPluginsThingsAreKeptUnderIt(t *testing.T) {
 		t.Errorf("after removing RAM-2: %v", got)
 	}
 
-	// A kind the plugin registers no more, and a prefix it lets go of,
-	// take their things with them.
-	if _, err := plugin.KeepRefs(root, "jira", []protocol.Ref{{Kind: "issue", Prefixes: []string{"RAP-"}}}); err != nil {
+	// A field that's its title no more leaves nothing to call it by, a
+	// kind the plugin registers no more and a prefix it lets go of name
+	// nothing: their things go.
+	untitled := issueKind
+	untitled.Fields = []protocol.Field{{Name: "summary", Type: protocol.FieldTitle}, {Name: "body", Type: protocol.FieldMarkdown}}
+	untitled.Search = nil
+	if _, err := plugin.KeepRefs(root, "jira", []protocol.Ref{untitled}); err != nil {
 		t.Fatal(err)
 	}
 	if got := thingsIn(t, db, "jira"); len(got) != 0 {
@@ -396,6 +474,9 @@ func TestAPluginsThingsAreKeptUnderIt(t *testing.T) {
 	}
 	if n, _ := placesIn(t, db, "jira"); n != 0 {
 		t.Errorf("%d places kept once it names them no more", n)
+	}
+	if got, _ := plugin.ListThings(root, "jira", ""); len(got) != 0 {
+		t.Errorf("records kept once it names them no more: %v", got)
 	}
 	// And ws's own is as it was, throughout.
 	var title string
@@ -413,10 +494,12 @@ func TestForgetTakesAPluginsThingsWithIt(t *testing.T) {
 	root := t.TempDir()
 	db := storetest.Own(t, root)
 	for name, prefix := range map[string]string{"jira": "RAM-", "jira2": "ENG-"} {
-		if _, err := plugin.KeepRefs(root, name, []protocol.Ref{{Kind: "issue", Prefixes: []string{prefix}}}); err != nil {
+		kind := issueKind
+		kind.Prefixes, kind.Search = []string{prefix}, nil
+		if _, err := plugin.KeepRefs(root, name, []protocol.Ref{kind}); err != nil {
 			t.Fatal(err)
 		}
-		if refused, err := plugin.PutThings(root, name, []protocol.Thing{{Kind: "issue", Ref: prefix + "1", Title: "A lantern", Text: "On the shelf."}}); err != nil || len(refused) != 0 {
+		if refused, err := plugin.PutThings(root, name, []protocol.Thing{issue(prefix+"1", map[string]string{"title": "A lantern", "body": "On the shelf."})}); err != nil || len(refused) != 0 {
 			t.Fatalf("%s: %v, %v", name, refused, err)
 		}
 	}
@@ -425,6 +508,9 @@ func TestForgetTakesAPluginsThingsWithIt(t *testing.T) {
 	}
 	if got := thingsIn(t, db, "jira"); len(got) != 0 {
 		t.Errorf("jira's things after it's forgotten: %q", got)
+	}
+	if _, ok, _ := plugin.ThingOf(root, "jira", "issue", "RAM-1"); ok {
+		t.Error("jira's RAM-1 is kept after it's forgotten")
 	}
 	found, _, err := db.Find(context.Background(), store.Said{Words: "lantern shelf"})
 	if err != nil || len(found) != 1 || found[0].Thing.Key.Name != "ENG-1" {

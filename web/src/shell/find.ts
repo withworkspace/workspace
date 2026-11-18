@@ -959,6 +959,8 @@ export function build(a: Assembly): Built {
     const into = put(g.kind);
     for (const f of g.results) {
       const it = foundItem(f, a.spaces);
+      // A plugin's thing has its kind's icon, as its card has.
+      if (f.card?.kind === "thing" && a.known) it.icon = thingIcon(namedOf(f.card, a.known));
       // A mission's capsule is already here, from what the page holds.
       if (g.kind === "capsules" && into.items.some((x) => x.ref === it.ref)) continue;
       into.items.push({ ...it, score: it.score + boost(it, a.q, a.memory) });

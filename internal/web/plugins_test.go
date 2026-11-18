@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -304,6 +305,13 @@ func TestPluginRefsAndAThing(t *testing.T) {
 	}
 	storetest.Own(t, root)
 	host := &plugin.Host{Root: root, Version: "test", Keep: func(name string, refs []protocol.Ref) ([]string, error) { return plugin.KeepRefs(root, name, refs) }}
+	// What the plugin tells ws of its things is kept, as the daemon keeps it.
+	host.Answer = func(_ context.Context, who, method string, params json.RawMessage) (any, error) {
+		if answer, ok, err := plugin.AnswerThings(root, who, method, params); ok {
+			return answer, err
+		}
+		return nil, plugin.NoMethod(method)
+	}
 	t.Cleanup(host.Shutdown)
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -333,7 +341,10 @@ func TestPluginRefsAndAThing(t *testing.T) {
 	if err := json.NewDecoder(res.Body).Decode(&thing); err != nil || res.StatusCode != http.StatusOK {
 		t.Fatalf("KIT-1: %d, %v", res.StatusCode, err)
 	}
-	if thing.Title != "The first thing" || thing.State != "Open" || len(thing.Fields) != 1 || thing.Fields[0].Label != "Owner" || thing.Fields[0].Value != "Dana" {
+	// The plugin's sync told ws of KIT-1 as it started (or the plugin was
+	// asked, if this got there first): either way, what its kind has a
+	// field for, and nothing else.
+	if f := thing.Fields; thing.Key != "KIT-1" || f["title"] != "The first thing" || f["status"] != "Open" || f["owner"] != "Dana" || !strings.HasPrefix(f["body"], "It says hello") || len(f) != 4 || thing.Changed == nil {
 		t.Errorf("KIT-1: %+v", thing)
 	}
 	want := PluginRef{Kind: "thing", Title: "Kit thing", Icon: "box", Prefixes: []string{"KIT-"}, Address: "https://kit.example/things/{ref}", Path: "/thing/{ref}"}
@@ -341,10 +352,41 @@ func TestPluginRefsAndAThing(t *testing.T) {
 		strings.Join(got.Refs[0].Prefixes, " ") != "KIT-" || got.Refs[0].Address != want.Address || got.Refs[0].Path != want.Path {
 		t.Errorf("refs once it's started: %+v", got.Refs)
 	}
-	// Stopped, its names are still served: they're ws's to find.
+	// What its things are made of, and how they're drawn, for the web UI
+	// to draw them by.
+	if r := list().Refs[0]; len(r.Fields) != 4 || r.Fields[0].Type != protocol.FieldTitle || len(r.Views[protocol.ViewCard]) != 3 || r.Views[protocol.ViewPane][4].Block != protocol.BlockMarkdown {
+		t.Errorf("fields %+v, views %+v", r.Fields, r.Views)
+	}
+	// Told of, it's answered from ws's own records, the plugin stopped or
+	// not; one the plugin has and didn't tell ws of is asked for.
+	waitTold := time.Now().Add(5 * time.Second)
+	for {
+		var told PluginThing
+		json.NewDecoder(do(t, s, "GET", "/api/plugins/kit/refs/thing/KIT-1", true, nil).Body).Decode(&told) //nolint:errcheck // told says
+		if told.Told {
+			break
+		}
+		if time.Now().After(waitTold) {
+			t.Fatal("ws wasn't told of KIT-1 in five seconds")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	var off PluginThing
+	if res := do(t, s, "GET", "/api/plugins/kit/refs/thing/KIT-3", true, nil); json.NewDecoder(res.Body).Decode(&off) != nil || res.StatusCode != http.StatusOK || off.Told || off.Fields["title"] != "The third thing" || off.Fields["status"] != "Off the board" {
+		t.Errorf("KIT-3, which ws wasn't told of: %d %+v", res.StatusCode, off)
+	}
+	// Stopped, its names are still served: they're ws's to find. And what
+	// it told ws of is still drawn, with nobody started to ask.
 	host.Stop("kit")
 	if got := list(); got.State != "stopped" || len(got.Refs) != 1 {
 		t.Errorf("stopped: %s, %+v", got.State, got.Refs)
+	}
+	var kept PluginThing
+	if res := do(t, s, "GET", "/api/plugins/kit/refs/thing/KIT-1", true, nil); json.NewDecoder(res.Body).Decode(&kept) != nil || !kept.Told || kept.Fields["title"] != "The first thing" {
+		t.Errorf("KIT-1 with the plugin stopped: %d %+v", res.StatusCode, kept)
+	}
+	if got := list(); got.State != "stopped" {
+		t.Errorf("drawing what ws was told started the plugin: %s", got.State)
 	}
 
 	// None by that name is 404, and says so; a plugin that isn't there

@@ -90,9 +90,9 @@ func main() {
 			// finds the Lantern by what it says. ws answers once it's
 			// taken what's registered below.
 			go func() {
-				told := []map[string]string{}
+				told := []map[string]any{}
 				for _, t := range things {
-					told = append(told, map[string]string{"kind": "thing", "ref": "THING-" + itoa(int64(t.ID)), "title": t.Name, "state": "On the shelf", "text": t.Note})
+					told = append(told, map[string]any{"kind": "thing", "ref": "THING-" + itoa(int64(t.ID)), "fields": fieldsOf(t, false)})
 				}
 				conn.Call(context.Background(), "thing/put", map[string]any{"things": told}, nil) //nolint:errcheck // a ws from before it could be told
 			}()
@@ -117,10 +117,30 @@ func main() {
 				},
 				"agent": map[string]any{"guide": "`ws frame-fixture poke` tells the fixture's open app that what it shows is stale. It's for trying ws's plugin frame by hand: there's nothing in it for a mission."},
 				// How its things are named: THING-2 is the Lantern, wherever
-				// it's written in ws. ws asks what one is with ref/show.
+				// it's written in ws. What one is made of, what it's found
+				// by, and how ws draws one under its name (card) and beside
+				// the list in Find (pane), all as data. ws asks for one it
+				// wasn't told of with ref/show.
 				"refs": []map[string]any{{
 					"kind": "thing", "title": "Fixture thing", "icon": "box", "prefixes": []string{"THING-"},
 					"address": "https://fixture.example/things/{ref}", "path": "/things/{ref}",
+					"fields": []map[string]string{
+						{"name": "name", "type": "title"},
+						{"name": "state", "type": "state"},
+						{"name": "number", "type": "text", "label": "Number"},
+						{"name": "note", "type": "markdown"},
+					},
+					"search": []map[string]any{{"field": "note", "max": 2000}},
+					"views": map[string]any{
+						"card": []map[string]any{
+							{"block": "title", "field": "name"}, {"block": "subtitle", "field": "key"}, {"block": "badge", "field": "state"},
+							{"block": "markdown", "field": "note", "lines": 2},
+						},
+						"pane": []map[string]any{
+							{"block": "title", "field": "name"}, {"block": "subtitle", "field": "key"}, {"block": "badge", "field": "state"},
+							{"block": "field", "field": "number"}, {"block": "markdown", "field": "note"},
+						},
+					},
 				}},
 			}}, nil
 		case "ref/show":
@@ -132,18 +152,13 @@ func main() {
 				return nil, err
 			}
 			for _, t := range things {
-				if p.Kind != "thing" || p.Ref != "THING-"+itoa(int64(t.ID)) {
-					continue
+				if p.Kind == "thing" && p.Ref == "THING-"+itoa(int64(t.ID)) {
+					return map[string]any{"fields": fieldsOf(t, p.Full)}, nil
 				}
-				md := t.Note
-				if p.Full {
-					md += "\n\nThat's all the fixture has of it."
-				}
-				return map[string]any{
-					"title": t.Name, "state": "On the shelf",
-					"fields":   []map[string]string{{"label": "Number", "value": itoa(int64(t.ID))}},
-					"markdown": md,
-				}, nil
+			}
+			// One it has and never tells ws of: found by its name alone.
+			if p.Kind == "thing" && p.Ref == "THING-4" {
+				return map[string]any{"fields": map[string]string{"name": "Sextant", "state": "In the attic", "number": "4", "note": "ws wasn't told of this one: the fixture was asked."}}, nil
 			}
 			return nil, &acp.RPCError{Code: -32001, Message: "the fixture has no " + p.Ref}
 		case "command/run":
@@ -181,6 +196,16 @@ func main() {
 	case <-done:
 	case <-conn.Done(): // ws closed stdin
 	}
+}
+
+// fieldsOf is a thing as ws is told of it: a value for each of the
+// fields its kind registers.
+func fieldsOf(t thing, full bool) map[string]string {
+	note := t.Note
+	if full {
+		note += "\n\nThat's all the fixture has of it."
+	}
+	return map[string]string{"name": t.Name, "state": "On the shelf", "number": itoa(int64(t.ID)), "note": note}
 }
 
 func itoa(n int64) string {

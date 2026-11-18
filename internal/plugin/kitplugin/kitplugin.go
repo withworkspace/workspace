@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/plugin"
+	"github.com/withworkspace/plugin/ui"
 )
 
 // The environment that makes a test's binary the plugin.
@@ -51,21 +52,37 @@ func run() {
 	p.HandleFunc("GET /api/greeting", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"greeting": greeting.Get()}) //nolint:errcheck // to a test
 	})
-	// Its things, named KIT-1 and so on (or as its config says): the one
-	// it has is KIT-1.
+	// Its things, named KIT-1 and so on (or as its config says), each a
+	// title, where it stands, who has it and what it says. The one it
+	// has is KIT-1; KIT-3 it has too, and never tells ws of.
 	prefixes := p.Config.List("prefixes", "What its things' names start with", plugin.Default([]string{"KIT-"}))
+	first := func(name string) plugin.Thing {
+		return plugin.Thing{Name: name, Changed: time.Date(2026, 11, 18, 10, 0, 0, 0, time.UTC), Fields: map[string]string{
+			"title": "The first thing", "status": "Open", "owner": "Dana", "body": "It says hello, in a **lantern**'s light.", "colour": "not one of its fields",
+		}}
+	}
 	var thing *plugin.Ref
 	p.Setup(func() {
-		thing = p.Ref("thing", "Kit thing", func(_ context.Context, a plugin.Asked) (plugin.Shown, error) {
-			if _, n, _ := strings.Cut(a.Name, "-"); n != "1" {
-				return plugin.Shown{}, plugin.ErrNotFound
-			}
-			md := "It says hello."
-			if a.Full {
-				md += "\n\nAnd, in full, goodbye."
-			}
-			return plugin.Shown{Title: "The first thing", State: "Open", Fields: []plugin.Field{{Label: "Owner", Value: "Dana"}}, Markdown: md}, nil
-		}).Prefix(prefixes.Get()...).Address("https://kit.example/things/{ref}").Opens("/thing/{ref}").Icon("box")
+		thing = p.Ref("thing", "Kit thing").
+			Prefix(prefixes.Get()...).Address("https://kit.example/things/{ref}").Opens("/thing/{ref}").Icon("box").
+			Fields(plugin.Title("title"), plugin.State("status"), plugin.Text("owner", "Owner"), plugin.Markdown("body")).
+			Search(plugin.All("owner"), plugin.Upto("body", 200)).
+			Card(ui.Title("title"), ui.Subtitle(ui.Key), ui.Badge("status")).
+			Pane(ui.Title("title"), ui.Subtitle(ui.Key), ui.Badge("status"), ui.Field("owner"), ui.Markdown("body")).
+			Show(func(_ context.Context, a plugin.Asked) (plugin.Thing, error) {
+				_, n, _ := strings.Cut(a.Name, "-")
+				switch n {
+				case "1":
+					t := first(a.Name)
+					if a.Full {
+						t.Fields["body"] += "\n\nAnd, in full, goodbye."
+					}
+					return t, nil
+				case "3":
+					return plugin.Thing{Name: a.Name, Fields: map[string]string{"title": "The third thing", "status": "Off the board"}}, nil
+				}
+				return plugin.Thing{}, plugin.ErrNotFound
+			})
 	})
 	p.Guide("Use `ws kit hi` to be greeted.", "crew")
 	// Its sync tells ws of the things it has: the one, named by its first
@@ -76,10 +93,9 @@ func run() {
 		if len(prefixes.Get()) == 0 {
 			return nil
 		}
-		first := prefixes.Get()[0]
-		things := []plugin.Thing{{Name: first + "1", Title: "The first thing", State: "Open", Changed: time.Date(2026, 11, 18, 10, 0, 0, 0, time.UTC), Text: "It says hello, in a **lantern**'s light."}}
+		things := []plugin.Thing{first(prefixes.Get()[0] + "1")}
 		if more.Load() {
-			things = append(things, plugin.Thing{Name: first + "2", Title: "The second thing", Text: "It says goodbye."})
+			things = append(things, plugin.Thing{Name: prefixes.Get()[0] + "2", Fields: map[string]string{"title": "The second thing", "body": "It says goodbye."}})
 		}
 		if err := thing.Mirror(ctx, things); err != nil && !errors.Is(err, plugin.ErrUnsupported) {
 			return err

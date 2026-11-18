@@ -660,14 +660,26 @@ type noThing struct{ why string }
 func (e *noThing) Error() string        { return e.why }
 func (e *noThing) Is(target error) bool { return target == ErrNoThing }
 
-// Shown is one of a plugin's things, as the plugin shows it.
+// ErrNoShow is a plugin having no more to say of its things than it's
+// told ws: its kind has nothing that answers for one thing, now. What ws
+// was told is all there is to show.
+var ErrNoShow = errors.New("the plugin says no more of its things than it's told ws")
+
+type noShow struct{ why string }
+
+func (e *noShow) Error() string        { return e.why }
+func (e *noShow) Is(target error) bool { return target == ErrNoShow }
+
+// Shown is one of a plugin's things, as the plugin has it now: a value
+// for each of its kind's fields.
 type Shown = protocol.RefShowResult
 
-// Show asks a plugin what one of its things is: kind is the ref's, as it
-// registered it, and ref the thing's name as it was written (RAM-123).
-// The plugin's started if it isn't running. It's asked only about a name
-// that's one of that kind's, as it registered them: ErrNoThing otherwise,
-// and when the plugin says it has none by it.
+// Show asks a plugin what one of its things is, now: kind is the ref's,
+// as it registered it, and ref the thing's name as it was written
+// (RAM-123). The plugin's started if it isn't running. It's asked only
+// about a name that's one of that kind's, as it registered them:
+// ErrNoThing otherwise, and when the plugin says it has none by it. A
+// plugin with nothing that answers for one thing is ErrNoShow.
 func (h *Host) Show(ctx context.Context, name, kind, ref string, full bool) (Shown, error) {
 	var out Shown
 	p, err := h.ready(name)
@@ -695,7 +707,7 @@ func (h *Host) Show(ctx context.Context, name, kind, ref string, full bool) (Sho
 	case errors.As(err, &re) && re.Code == protocol.CodeNotFound:
 		return out, &noThing{fmt.Sprintf("%s has no %s called %s", name, kind, ref)}
 	case errors.As(err, &re) && re.Code == protocol.CodeMethodNotFound:
-		return out, fmt.Errorf("%s registered %s and can't say what one is: it doesn't answer %s", name, kind, protocol.MethodRefShow)
+		return out, &noShow{fmt.Sprintf("%s says no more of a %s than it's told ws", name, kind)}
 	case errors.As(err, &re):
 		return out, fmt.Errorf("%s: %s", name, re.Message)
 	case errors.Is(err, acp.ErrClosed):

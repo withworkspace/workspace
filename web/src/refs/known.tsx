@@ -47,9 +47,12 @@ const noRepos: Repo[] = [];
 const noPlugins: Plugin[] = [];
 
 // thingsNamed is how the plugins' things are named, as each registered:
-// what a name is read by (RAM-123).
+// what a name is read by (RAM-123), with what one holds and how it's
+// drawn.
 export const thingsNamed = (plugins: Plugin[]): Named[] =>
-  plugins.flatMap((p) => (p.refs ?? []).map((r) => ({ plugin: p.name, what: r.kind, prefixes: r.prefixes ?? [], tail: r.tail, address: r.address, path: r.path, title: r.title, icon: r.icon })));
+  plugins.flatMap((p) =>
+    (p.refs ?? []).map((r) => ({ plugin: p.name, what: r.kind, prefixes: r.prefixes ?? [], tail: r.tail, address: r.address, path: r.path, title: r.title, icon: r.icon, fields: r.fields, views: r.views })),
+  );
 
 export function RefsProvider({ workspace, plugins = noPlugins, children }: { workspace: Workspace; plugins?: Plugin[]; children: ReactNode }) {
   // A capsule lifted or burned changes what a capsule's file can be.
