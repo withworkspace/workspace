@@ -37,7 +37,11 @@ func youSince(c *conversation.Conversation) []string {
 // document only where the workspace has kinds of them.
 func talkProposing(h Here) string {
 	var b strings.Builder
-	b.WriteString("You change nothing yourself, but you can propose: run one of these commands yourself, and it puts a button under your reply for the user to confirm it (or not). Don't paste the command into your reply: run it.\n\n")
+	if h.Sandbox != nil {
+		b.WriteString("What's the workspace's (its missions, decisions, documents and artifacts) you don't change yourself, but you can propose: run one of these commands yourself, and it puts a button under your reply for the user to confirm it (or not). Don't paste the command into your reply: run it.\n\n")
+	} else {
+		b.WriteString("You change nothing yourself, but you can propose: run one of these commands yourself, and it puts a button under your reply for the user to confirm it (or not). Don't paste the command into your reply: run it.\n\n")
+	}
 	b.WriteString("- A decision, once the conversation settles something worth remembering (a choice made, an option ruled out): `ws mission decide --propose \"<the decision, in a sentence>\" --why \"<why, in a sentence or two>\"`.\n")
 	b.WriteString("- A mission, when there's work to do. `ws mission new --propose \"<title>\"` saves it as an idea, to brief later. With a brief, if the conversation has worked out what it's for: `ws mission new --propose \"<title>\" --brief-file - <<'EOF'`, then the brief (`## Goal`, `## Context`, `## Constraints`, `## Acceptance`), then `EOF` on a line of its own. How the work goes isn't the brief's but its plan's: confirming creates the mission with its brief, and its planner plans it, in the mission's own conversation, for the user to confirm, which starts it. No capsules either: the plan's steps name their repos.\n")
 	if len(h.Kinds) > 0 {
@@ -68,8 +72,13 @@ const talkProposingMission = "About this mission, you can also propose:\n\n" +
 const talkEnding = "End your reply with these two lines, which ws takes off before the user sees it:\n\nTitle: <a few words naming this conversation>\nSummary: <two or three sentences: what it's about, what's been concluded, what's still open>\n"
 
 // talkReading says what a conversation's agent may read, and how: it
-// changes nothing.
-func talkReading(git []string) string {
+// changes nothing. One whose shell is sandboxed (h.Sandbox) runs things
+// too: sandboxReading.
+func talkReading(h Here) string {
+	if h.Sandbox != nil {
+		return sandboxReading(h)
+	}
+	git := h.Git
 	var b strings.Builder
 	b.WriteString("You can read anything here, and change nothing:\n\n")
 	fmt.Fprintf(&b, "- The repos' default branches, read-only, are at repos/<repo>/.ground; missions' capsules (worktrees on their branches) are at repos/<repo>/<capsule>. In each, `git -C <path> <command> …` works for %s, given the path in full.\n", strings.Join(git, ", "))
@@ -123,7 +132,7 @@ func TalkFirst(h Here, c *conversation.Conversation) string {
 		fmt.Fprintf(&b, "Start with `ws show -f llm` (WS_MISSION is set): where the mission stands, its brief and stages, its crew and capsules, its decisions. `ws show -f llm <ref>` shows anything in it, each with what it links to.\n\n")
 	}
 	b.WriteString(para(h.Agents))
-	b.WriteString(talkReading(h.Git))
+	b.WriteString(talkReading(h))
 	// An ask proposes nothing until it's kept (but a pull request's review
 	// comment, which its intro says): it's a conversation like any then.
 	if c.Goal != conversation.GoalBrief && !c.Ephemeral {
@@ -255,7 +264,7 @@ func TalkNext(h Here, c *conversation.Conversation) string {
 	for _, s := range youSince(c) {
 		b.WriteString(s + "\n\n")
 	}
-	b.WriteString("Reply as before. (The shell works for the commands your first message listed: if one was refused, that was it alone.) " + talkEnding)
+	b.WriteString("Reply as before. " + shellNext(h) + talkEnding)
 	return b.String()
 }
 

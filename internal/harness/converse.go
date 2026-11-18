@@ -15,11 +15,16 @@ import (
 // session isn't there any more: start again, from what ws keeps of it.
 var ErrSessionGone = errors.New("its session is gone")
 
-// A conversation's agent reads and changes nothing: each harness that can
-// hold one runs it headless, resuming its session per turn, limited to
-// reading files and the shell commands below. Each says it its own way:
-// Claude Code's --allowedTools, Cursor's permissions in a
+// A conversation's agent changes nothing of the workspace's: each harness
+// that can hold one runs it headless, resuming its session per turn,
+// limited to reading files and the shell commands below. Each says it its
+// own way: Claude Code's --allowedTools, Cursor's permissions in a
 // .cursor/cli.json, pi's tool_call hook in an extension ws writes.
+//
+// Where the harness has a sandbox for its shell (a Sandboxer: Claude
+// Code), a run that asks for it (ConverseRun.Sandbox) runs anything there,
+// and the list is only what leaves the sandbox: ws, which keeps the
+// workspace's records, and gh, which needs your login.
 
 // converseCommands are the shell commands a conversation's agent may run,
 // each the start of a command run alone (nothing chained): reading, ws
@@ -29,9 +34,10 @@ var ErrSessionGone = errors.New("its session is gone")
 // proposing (which the user confirms, or not) a decision, a mission, an
 // edit to the brief or the plan, crew, a replan by the mission's planner,
 // a review comment, a document of one of the workspace's kinds (or an
-// edit to one), or an artifact (or a version of one). Each proposal is the --propose form of
-// the verb that would do it, with --propose first: the verb alone isn't
-// allowed, and refuses a conversation's agent besides.
+// edit to one), or an artifact (or a version of one), and, where it may
+// (Lift), lifting a capsule for its conversation. Each proposal is the
+// --propose form of the verb that would do it, with --propose first: the
+// verb alone isn't allowed, and refuses a conversation's agent besides.
 func converseCommands(r ConverseRun) []string {
 	var out []string
 	for _, ws := range []string{"ws", "workspace"} {
@@ -40,17 +46,25 @@ func converseCommands(r ConverseRun) []string {
 			out = append(out, ws+" mission list", ws+" conversation list", ws+" mission decide --propose", ws+" mission new --propose",
 				ws+" mission brief --propose", ws+" mission plan --propose", ws+" mission plan --format", ws+" mission dispatch --propose", ws+" mission replan --propose", ws+" pr comment --propose",
 				ws+" doc add --propose", ws+" doc amend --propose", ws+" artifact add --propose")
+			if r.Lift {
+				out = append(out, ws+" lift")
+			}
 		} else {
 			out = append(out, ws+" thread suggest")
 		}
 	}
 	out = append(out, "pwd", "ls", "cat", "head", "tail", "wc")
 	if r.Talk {
-		out = append(out, "gh pr view", "gh pr list", "gh pr checks", "gh issue view", "gh issue list")
+		out = append(out, talkGH...)
 		out = append(out, gitCommands(r.ReadPaths)...)
 	}
 	return out
 }
+
+// talkGH is the gh a conversation's agent may run: reading GitHub, as you.
+// (Not gh api, which writes as readily as it reads.)
+var talkGH = []string{"gh pr view", "gh pr list", "gh pr checks", "gh pr diff", "gh issue view", "gh issue list",
+	"gh run list", "gh run view", "gh workflow list", "gh workflow view", "gh release list", "gh release view", "gh repo view", "gh search"}
 
 // gitCommands are git -C <path> <sub> for each path and read-only
 // subcommand (TalkGit).

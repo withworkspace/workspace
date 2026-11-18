@@ -116,7 +116,7 @@ func PlannerFirst(h Here, c *conversation.Conversation, r Replanning) string {
 	}
 	b.WriteString("Start with `ws show -f llm` (WS_MISSION is set): the brief, the plan's steps with ws's record of each, the crew and their handoffs, what the steps made (artifacts), its decisions and the log. `ws show -f llm <ref>` shows any of it whole, with what it links to. Read what the steps before made (handoffs, documents, decisions) before you plan what comes after them.\n\n")
 	b.WriteString(para(h.Agents))
-	b.WriteString(talkReading(h.Git))
+	b.WriteString(talkReading(h))
 	b.WriteString(replanState(r))
 	b.WriteString(replanHow)
 	b.WriteString(processFor(h.Planning))
@@ -133,7 +133,7 @@ func PlannerFirst(h Here, c *conversation.Conversation, r Replanning) string {
 
 // PlannerNext is a later turn of the planner, in its session: the plan as
 // it is now, and what's been asked since.
-func PlannerNext(c *conversation.Conversation, r Replanning) string {
+func PlannerNext(h Here, c *conversation.Conversation, r Replanning) string {
 	var b strings.Builder
 	b.WriteString("You're the mission's planner, back at its plan. ")
 	b.WriteString(replanState(r))
@@ -141,7 +141,7 @@ func PlannerNext(c *conversation.Conversation, r Replanning) string {
 	for _, s := range askedSince(c) {
 		b.WriteString(s + "\n\n")
 	}
-	b.WriteString("Reply as before. (The shell works for the commands your first message listed: if one was refused, that was it alone.) " + talkEnding)
+	b.WriteString("Reply as before. " + shellNext(h) + talkEnding)
 	return b.String()
 }
 

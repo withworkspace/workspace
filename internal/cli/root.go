@@ -1,7 +1,11 @@
 package cli
 
 import (
+	"os"
+	"strings"
+
 	"github.com/spf13/cobra"
+	"github.com/withworkspace/workspace/internal/harness"
 )
 
 // NewRootCmd is ws: its own commands, and those the workspace's plugins
@@ -27,6 +31,7 @@ func newBuiltinRootCmd(version string) *cobra.Command {
 		return newStatusCmd().RunE(cmd, args)
 	}
 	addGroupFlag(cmd)
+	addStdinFlag(cmd)
 
 	cmd.AddCommand(newInitCmd())
 	cmd.AddCommand(newSetupCmd())
@@ -64,4 +69,44 @@ func newBuiltinRootCmd(version string) *cobra.Command {
 	cmd.AddCommand(newEvalCmd())
 
 	return cmd
+}
+
+// stdinFrom is the file a command reads its standard input from, when
+// it's given one (--stdin-from).
+var stdinFrom string
+
+func init() { cobra.OnInitialize(useStdinFrom) }
+
+// addStdinFlag gives every command --stdin-from: its standard input from a
+// file, removed once it's open if ws set it aside for this. It's how a conversation's agent
+// in a sandbox gives a command what it wrote for it: a command with a
+// heredoc stays inside the sandbox, where ws can't write, so ws's guard
+// moves the heredoc's body to a file of ws's own and names it here
+// (harness.GuardAnswer). Nobody types it.
+func addStdinFlag(cmd *cobra.Command) {
+	name := strings.TrimPrefix(harness.StdinFlag, "--")
+	cmd.PersistentFlags().StringVar(&stdinFrom, name, "", "read standard input from this file (ws's own: what a conversation's agent gave the command)")
+	cmd.PersistentFlags().MarkHidden(name) //nolint:errcheck // it's there
+}
+
+// useStdinFrom has the command read its standard input from the file
+// --stdin-from names, if it names one. One that can't be opened is left
+// to the command, which reads nothing and says what it's missing.
+func useStdinFrom() {
+	if stdinFrom == "" {
+		return
+	}
+	path := stdinFrom
+	stdinFrom = ""
+	f, err := os.Open(path)
+	if err != nil {
+		if null, nerr := os.Open(os.DevNull); nerr == nil {
+			os.Stdin = null
+		}
+		return
+	}
+	if harness.SetAside(path) {
+		os.Remove(path) //nolint:errcheck // open, it's read all the same
+	}
+	os.Stdin = f
 }

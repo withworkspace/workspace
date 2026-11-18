@@ -37,6 +37,9 @@ type CapsuleOptions struct {
 	// run what a teammate's branch says to), and it isn't boarded (it stays
 	// out of your editor).
 	Bare bool
+	// Aside is a capsule that isn't boarded, though it's made in full: an
+	// agent's own, to try things in, which stays out of your editor.
+	Aside bool
 	// Show runs the steps of making it, by name, through run, stopping at
 	// the first that fails, and then the repo's after_create hook (when
 	// hook isn't "") in the capsule, dir(): for someone to watch. nil does
@@ -134,7 +137,7 @@ func (w *Workspace) makeCapsule(repo, branch string, o CapsuleOptions, create fu
 		return out, err
 	}
 	out.HookErr = hookErr
-	if !o.Bare {
+	if !o.Bare && !o.Aside {
 		out.IDEErr = w.board(repo, out.Name)
 	}
 	if out.Mission = o.Mission; o.Mission != "" {

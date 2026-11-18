@@ -1287,6 +1287,16 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 	if m := c.Became(); m != "" {
 		v.body = append(v.body, "", "It became mission "+m+" (ws show -m "+m+").")
 	}
+	if len(c.Capsules) > 0 {
+		v.body = append(v.body, "", "Capsules its agent lifted, to try things in (the conversation's own, put away with it):")
+		for _, cp := range c.Capsules {
+			if cp.Away != nil {
+				v.body = append(v.body, fmt.Sprintf("- %s: put away %s, on branch %s (ws lift %s %s, run by its agent, brings it back)", cp.Ref(), when(*cp.Away), cp.Branch, cp.Repo, cp.Name))
+			} else {
+				v.body = append(v.body, fmt.Sprintf("- %s: lifted %s, on branch %s", cp.Ref(), when(cp.At), cp.Branch))
+			}
+		}
+	}
 	if len(c.Proposals) > 0 {
 		v.body = append(v.body, "", "Proposed in it:")
 		for _, p := range c.Proposals {

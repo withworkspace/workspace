@@ -12,6 +12,7 @@ import (
 	"github.com/withworkspace/workspace/internal/doc"
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/job"
+	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/ui"
 )
@@ -19,7 +20,8 @@ import (
 // Talking with an agent about the workspace, before any mission: thinking
 // something through, reading code, comparing options. Each conversation is
 // w1, w2, … in the workspace's records, lives in the web UI, and its agent
-// reads anything and changes nothing; a run per turn resumes its session.
+// reads anything and changes nothing of the workspace's (where its shell
+// is sandboxed, it runs things too); a run per turn resumes its session.
 
 // talkStore is the conversations a command means: a mission's (-m), or
 // the workspace's.
@@ -57,8 +59,11 @@ func newTalkCmd() *cobra.Command {
 		Short: "Think something through with an agent, in the web UI",
 		Long: `Start a conversation with an agent about the workspace: a problem, an
 idea, a question about the code. It reads anything here (the repos, the
-missions, GitHub) and changes nothing. The conversation is in the web UI,
-which this opens; without a first message, it opens the list of them.
+missions, GitHub) and changes nothing of the workspace's: what's to be
+kept, it proposes. On Claude Code it runs things too, in a sandbox, and
+lifts capsules of the conversation's own to change files in, which are
+put away with it. The conversation is in the web UI, which this opens;
+without a first message, it opens the list of them.
 
 With -m, it's about that mission, on its Talk tab: its plan, what to do
 next, what was decided.`,
@@ -249,8 +254,10 @@ func talkLine(c *conversation.Conversation) string {
 // newConversationAllowedCmd is Claude Code's PreToolUse hook in a
 // conversation's run: it says to allow a shell command the conversation's
 // list allows, as ws reads it (a proposal's HTML on stdin, which Claude
-// Code's own rules refuse), and nothing for anything else, which its rules
-// then decide. See harness.claudeGuard.
+// Code's own rules refuse), and what a sandboxed run may run or write
+// besides; to refuse, saying what to do, a ws or gh command that isn't
+// allowed; and nothing for anything else, which its rules then decide.
+// See harness.GuardAnswer.
 func newConversationAllowedCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:    "allowed <allow-list file>",
@@ -263,7 +270,16 @@ func newConversationAllowedCmd() *cobra.Command {
 			if err != nil {
 				return nil // nothing said: Claude Code's rules decide
 			}
-			if answer := harness.GuardAnswer(event, args[0]); answer != "" {
+			// Where its tools may write is asked as it stands now: a
+			// capsule its agent lifted a moment ago is there.
+			folders := func() []string {
+				ctx, err := loadOps()
+				if err != nil {
+					return nil
+				}
+				return ctx.ConversationFolders(os.Getenv(mission.EnvMission), agentConversation())
+			}
+			if answer := harness.GuardAnswer(event, args[0], folders); answer != "" {
 				fmt.Println(answer)
 			}
 			return nil

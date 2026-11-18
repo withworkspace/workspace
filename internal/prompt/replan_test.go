@@ -50,7 +50,7 @@ func TestPlannerFirst(t *testing.T) {
 	if got := askedSince(&missed); len(got) != 2 || got[0] != "Accepted proposal 2, the edit to the plan: written to mission login." || got[1] != "(ws) The mission has reached step 4." {
 		t.Errorf("asked since, with what it missed: %q", got)
 	}
-	next := PlannerNext(c, r)
+	next := PlannerNext(Here{}, c, r)
 	if !strings.Contains(next, "You're the mission's planner, back at its plan.") || !strings.Contains(next, "Keep it small.") {
 		t.Errorf("PlannerNext = %q", next)
 	}

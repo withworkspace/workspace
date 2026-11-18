@@ -212,7 +212,7 @@ func CrewNames() []string {
 // Converser is a harness that can hold a conversation headless: each turn
 // is a run that resumes the conversation's session with the new message,
 // reads what it needs, and replies with its final message. It may only
-// read.
+// read, unless its shell is sandboxed (Sandboxer).
 type Converser interface {
 	Harness
 	// Converse builds the headless command for one turn.
@@ -245,8 +245,40 @@ type ConverseRun struct {
 	// Guard is ws's own command, which Claude Code runs before each shell
 	// command (a PreToolUse hook) with a file of what's allowed: it allows
 	// a command on the list as ws reads it (ws conversation allowed), where
-	// Claude Code's own rules can't (claudeGuard). nil leaves it to them.
+	// Claude Code's own rules can't (claudeGuard), and says why not, and
+	// what to do, of a ws or gh command that isn't on it. nil leaves it to
+	// them.
 	Guard []string
+	// Sandbox is a run whose shell runs what it likes in the harness's own
+	// sandbox (a Sandboxer that can here): it reads anything, reaches the
+	// network, and writes only in Write and Beside, the system's temp
+	// folder, and nowhere else under Dir. Only the commands it's allowed
+	// (converseCommands: ws, gh) leave the sandbox. A harness with none runs
+	// it as it would without: reading, and the commands allowed.
+	Sandbox bool
+	// Write are the folders it works in: one of its own, and the capsules
+	// its conversation lifted. Beside are what its shell writes besides:
+	// git's own folders for the repos' capsules, and where tools keep
+	// what they've built or fetched. Room are folders that what's made
+	// after the run starts may be written in, though what's in them now
+	// is closed: the repos' folders, where a capsule it lifts as it goes
+	// is put. Each is a path in full, as it resolves.
+	Write, Beside, Room []string
+	// Lift is a run that may lift capsules for its conversation (ws lift).
+	Lift bool
+}
+
+// Sandboxer is a harness that can run a conversation's shell in a sandbox
+// of its own (ConverseRun.Sandbox).
+type Sandboxer interface {
+	// Sandboxes is whether it can on this machine.
+	Sandboxes() bool
+}
+
+// Sandboxes is whether h runs a conversation's shell in a sandbox here.
+func Sandboxes(h Harness) bool {
+	s, ok := h.(Sandboxer)
+	return ok && s.Sandboxes()
 }
 
 // Orchestrator is a harness that can run a one-shot, headless agent: a

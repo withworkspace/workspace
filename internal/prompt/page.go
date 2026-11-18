@@ -100,7 +100,7 @@ func CellFirst(h Here, c *conversation.Conversation) string {
 	fmt.Fprintf(&b, "The page is %s, the markdown file %s. Read it first: what's around the cell says what it's for. Your cell is %s: in the file it's between the comments `<!-- ws:cell %s … -->` and `<!-- /ws:cell -->`, with what it was asked for in the first. The page's other cells are marked the same way.\n\n", c.Anchor.Page, path, c.ID, c.ID)
 	b.WriteString(para(h.Agents))
 	b.WriteString(h.Kind)
-	b.WriteString(talkReading(h.Git))
+	b.WriteString(talkReading(h))
 	b.WriteString(repos(h))
 	said := youSince(c)
 	written := false
@@ -176,7 +176,7 @@ func askFirst(h Here, c *conversation.Conversation) string {
 	}
 	b.WriteString(para(h.Agents))
 	b.WriteString(h.Kind)
-	b.WriteString(talkReading(h.Git))
+	b.WriteString(talkReading(h))
 	b.WriteString(repos(h))
 	said := youSince(c)
 	if len(c.Turns) > len(said) {
@@ -264,7 +264,7 @@ func planFirst(h Here, c *conversation.Conversation) string {
 	fmt.Fprintf(&b, "The page is %s, the markdown file %s. Read it first. Where an agent wrote part of it at the user's asking, that part is between `<!-- ws:cell … -->` comments: it's the page's all the same.\n\n", c.Anchor.Page, h.Page)
 	b.WriteString(para(h.Agents))
 	b.WriteString(h.Kind)
-	b.WriteString(talkReading(h.Git))
+	b.WriteString(talkReading(h))
 	b.WriteString(repos(h))
 	b.WriteString("They ask:\n\n")
 	for _, s := range youSince(c) {
@@ -307,7 +307,7 @@ func BlockFirst(h Here, c *conversation.Conversation, b conversation.Block) stri
 	fmt.Fprintf(&s, "The page is %s, the markdown file %s. Read it first. Each block of the outline is between the comments `<!-- ws:cell %s-<its key> … -->` and `<!-- /ws:cell -->`.\n\n", c.Anchor.Page, h.Page, c.ID)
 	s.WriteString(para(h.Agents))
 	s.WriteString(h.Kind)
-	s.WriteString(talkReading(h.Git))
+	s.WriteString(talkReading(h))
 	s.WriteString(repos(h))
 	if len(c.Turns) > 0 {
 		fmt.Fprintf(&s, "What they asked for:\n\n%s\n\n", c.Turns[0].Body)
@@ -382,7 +382,7 @@ func PassFirst(h Here, c *conversation.Conversation, ps Pass) string {
 		fmt.Fprintf(&b, "The page is %s, the markdown file %s. Read it first. Where an agent wrote part of it at the user's asking, that part is between `<!-- ws:cell … -->` comments, with what was asked for in the first: it's the page's all the same.\n\n", c.Anchor.Page, h.Page)
 		b.WriteString(para(h.Agents))
 		b.WriteString(h.Kind)
-		b.WriteString(talkReading(h.Git))
+		b.WriteString(talkReading(h))
 		b.WriteString(repos(h))
 	}
 	fmt.Fprintf(&b, "This pass is %q: %s\n\n", def.Title, def.About)
