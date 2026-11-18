@@ -104,8 +104,14 @@ func BuildMissionViews(ws *workspace.Workspace, gh github.Client, missions []*mi
 
 // BuildMissionViewsFrom is BuildMissionViews with PRs supplied by the
 // caller, so a page can be told of git's changes often while GitHub is
-// asked rarely (PRCache).
+// asked rarely (PRCache). Git is asked of each capsule there and then.
 func BuildMissionViewsFrom(ws *workspace.Workspace, prs PRIndex, missions []*mission.Mission) []MissionView {
+	return buildMissionViews(askedGit{}, ws, prs, missions)
+}
+
+// buildMissionViews is BuildMissionViewsFrom, with what git says of each
+// capsule from g: as kept, for a page's view (capsuleGit).
+func buildMissionViews(g capsuleGit, ws *workspace.Workspace, prs PRIndex, missions []*mission.Mission) []MissionView {
 	views := make([]MissionView, len(missions))
 	for i, m := range missions {
 		v := MissionView{M: m, DefaultBranch: ws.DefaultBranch}
@@ -114,7 +120,7 @@ func BuildMissionViewsFrom(ws *workspace.Workspace, prs PRIndex, missions []*mis
 			cv := CapsuleView{Capsule: c, Path: filepath.Join(ws.RepoDir(c.Repo), c.Name)}
 			if info, err := os.Stat(cv.Path); err == nil && info.IsDir() {
 				cv.Exists = true
-				cv.Head, cv.Branch = workspace.GitHeadBranch(cv.Path)
+				cv.Head, cv.Branch = g.headBranch(cv.Path)
 			}
 			if cv.Branch == "" {
 				cv.Branch = c.Branch
@@ -126,11 +132,11 @@ func BuildMissionViewsFrom(ws *workspace.Workspace, prs PRIndex, missions []*mis
 				cv.PR, cv.PRS = pr, mission.PRMerged
 			}
 			if cv.Direct = ws.Direct(c.Repo); cv.Direct && cv.Exists && c.Landed == nil {
-				cv.Ahead = ws.CapsuleAhead(c.Repo, c.Name)
+				cv.Ahead = g.commitsSince(cv.Path, "origin/"+ws.DefaultBranch)
 				if cv.Ahead > 0 {
-					cv.Dirty = workspace.GitIsDirty(cv.Path)
+					cv.Dirty = g.dirty(cv.Path)
 					r, _ := review.For(ws.Root, m.Slug).Latest(c.Repo + "/" + c.Name)
-					cv.Approved = r != nil && r.Verdict == review.Approve && r.Head == workspace.GitRevParse(cv.Path, "HEAD")
+					cv.Approved = r != nil && r.Verdict == review.Approve && cv.Head != "" && r.Head == cv.Head
 				}
 			}
 			facts[capsuleKey(c)] = mission.CapsuleFacts{Exists: cv.Exists, PR: cv.PRS, Landed: c.Landed != nil}

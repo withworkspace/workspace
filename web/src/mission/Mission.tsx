@@ -47,7 +47,7 @@ import { canOpenPR, OpenPR } from "./OpenPR";
 import { PlanList } from "./PlanList";
 import { Verify } from "./Verify";
 import { checkRows, rowKey, shownBundle, toApprove, waiting as bundleWaiting } from "./verifyRows";
-import { useLoaded } from "../load";
+import { type Reload, useLoaded } from "../load";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -121,8 +121,9 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
   const mission = useLoaded<MissionDetail>(
     (soon) =>
       getMission(slug, false).then((x) => {
-        soon((cur) => (cur?.github ? { ...x, capsules: withPRs(x.capsules, cur.capsules), github: true } : x));
-        return getMission(slug, true);
+        // (Stale by now, its answer's dropped: GitHub needn't be asked.)
+        const wanted = soon((cur) => (cur?.github ? { ...x, capsules: withPRs(x.capsules, cur.capsules), github: true } : x));
+        return wanted ? getMission(slug, true) : x;
       }),
     [slug],
     { keep: true },
@@ -371,7 +372,7 @@ function Crumbs() {
 }
 
 // Title is the mission's name, renamed in place (a pencil on hover).
-function Title({ d, reload }: { d: MissionDetail; reload: () => void }) {
+function Title({ d, reload }: { d: MissionDetail; reload: Reload }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(d.title);
   const save = () => {
@@ -429,7 +430,7 @@ function Title({ d, reload }: { d: MissionDetail; reload: () => void }) {
 
 // ParkButton puts a mission aside, out of what needs you and out of the
 // orchestrator's way, until it's unparked; and unparks a parked one.
-function ParkButton({ d, reload }: { d: MissionDetail; reload: () => void }) {
+function ParkButton({ d, reload }: { d: MissionDetail; reload: Reload }) {
   const [busy, setBusy] = useState(false);
   if (d.state === "archived" || d.state === "briefing") return null;
   const parked = d.state === "parked";
@@ -439,7 +440,7 @@ function ParkButton({ d, reload }: { d: MissionDetail; reload: () => void }) {
       .then(
         (r) => {
           toast(r.message, { tone: "done" });
-          reload();
+          return reload();
         },
         (e: Error) => toast(humanError(e.message), { tone: "danger" }),
       )
@@ -617,7 +618,7 @@ interface Parts {
   openArtifact: (a: Artifact) => void;
   review: (c: CapsuleDetail) => void;
   go: (t: Tab) => void;
-  reload: () => void;
+  reload: Reload;
 }
 
 // A harness's warning the orchestrator passed on as what it said ("this
@@ -826,7 +827,7 @@ function Said({ text }: { text: string }) {
 // in, and what moves it on), then anything else raised: all that's yours
 // or outside's, and one banner for the agents at work, however many are.
 // ws mission show says the same, from the same place (mission.Resolve).
-function Headlines({ d, reload, step, latest }: { d: MissionDetail; reload: () => void; step?: React.ReactNode; latest?: React.ReactNode }) {
+function Headlines({ d, reload, step, latest }: { d: MissionDetail; reload: Reload; step?: React.ReactNode; latest?: React.ReactNode }) {
   return (
     <>
       {shownHeadlines(d.headlines).map((h, i) => (
@@ -902,7 +903,7 @@ function splitHeadline(h: Headline, words: string): [string, string | undefined]
   return [words, text];
 }
 
-function HeadlineCard({ d, h, primary, reload, step, latest }: { d: MissionDetail; h: Headline; primary: boolean; reload: () => void; step?: React.ReactNode; latest?: React.ReactNode }) {
+function HeadlineCard({ d, h, primary, reload, step, latest }: { d: MissionDetail; h: Headline; primary: boolean; reload: Reload; step?: React.ReactNode; latest?: React.ReactNode }) {
   const st = headlineStatus(h);
   const [title, detail] = h.checking ? [checkingTitle(h.checking), undefined] : splitHeadline(h, st.words);
   const long = !!detail && detail.length > 220;
@@ -1025,7 +1026,7 @@ function LaunchCrew({
 
 // HeadlineAct is what moves a headline on, as far as this page can do it;
 // talking to crew is on their crew page.
-function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: () => void }) {
+function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: Reload }) {
   const a = h.action;
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -1057,7 +1058,7 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
                 }
               : undefined,
         });
-        reload();
+        return reload();
       })
       .catch((e: Error) => toast(humanError(e.message), { tone: "danger" }))
       .finally(() => setBusy(false));
@@ -1323,7 +1324,7 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
 
 // EndAct ends the mission: as suggested, with what's suggested shown on
 // the card above it, or (nothing suggested) as you say in the End dialog.
-function EndAct({ d, reload }: { d: MissionDetail; reload: () => void }) {
+function EndAct({ d, reload }: { d: MissionDetail; reload: Reload }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const suggested = d.conclude?.ending;
@@ -1331,11 +1332,9 @@ function EndAct({ d, reload }: { d: MissionDetail; reload: () => void }) {
     setBusy(true);
     act(d.slug, verb)
       .then((r) => {
-        if (verb === "end") ended(d.slug, r.message, reload);
-        else {
-          toast(r.message, { tone: "done" });
-          reload();
-        }
+        if (verb === "end") return ended(d.slug, r.message, reload);
+        toast(r.message, { tone: "done" });
+        return reload();
       })
       .catch((e: Error) => toast(humanError(e.message), { tone: "danger" }))
       .finally(() => setBusy(false));
@@ -1394,7 +1393,7 @@ function CrewLink({ slug, id, verb }: { slug: string; id: string; verb: string }
 }
 
 // QuickReply answers crew that are waiting, from the mission's page.
-function QuickReply({ slug, id, reload }: { slug: string; id: string; reload: () => void }) {
+function QuickReply({ slug, id, reload }: { slug: string; id: string; reload: Reload }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const send = () => {
@@ -1405,7 +1404,7 @@ function QuickReply({ slug, id, reload }: { slug: string; id: string; reload: ()
         (r) => {
           setText("");
           toast(r.message, { tone: "done" });
-          reload();
+          return reload();
         },
         (e: Error) => toast(humanError(e.message), { tone: "danger" }),
       )
@@ -1570,7 +1569,7 @@ const bundleLink = (slug: string, id: string) => `/missions/${slug}?${new URLSea
 // Brief is the brief, rendered, with its plan under it. They're changed on
 // their own page (e, or Edit), where what the planner proposes for them is
 // read as tracked changes and its ask bar talks to it.
-function Brief({ d, reload }: { d: MissionDetail; reload: () => void }) {
+function Brief({ d, reload }: { d: MissionDetail; reload: Reload }) {
   return (
     <div className="brief">
       {d.request && (
@@ -1609,7 +1608,7 @@ function Brief({ d, reload }: { d: MissionDetail; reload: () => void }) {
 // Z is, where it may stop early, its steps and who's on each), which ws
 // moves it along in place of the brief's stages. It's edited on the brief's
 // own page; Ask the planner asks it for a revision.
-function Plan({ d, reload }: { d: MissionDetail; reload: () => void }) {
+function Plan({ d, reload }: { d: MissionDetail; reload: Reload }) {
   const [busy, setBusy] = useState(false);
   // Asking the planner for a change: it revises the plan in its
   // conversation, applying it, or proposing it to you there when it
@@ -1627,7 +1626,7 @@ function Plan({ d, reload }: { d: MissionDetail; reload: () => void }) {
           toast(r.message, { tone: "done" });
           setAsking(false);
           setAsk("");
-          reload();
+          return reload();
         },
         (e: Error) => toast(humanError(e.message), { tone: "danger" }),
       )

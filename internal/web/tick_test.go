@@ -109,7 +109,7 @@ func pastMissions(b *testing.B, s *Server, n int) {
 
 // tickServer is a web UI over thirty missions, each with a capsule that's
 // a repository of its own.
-func tickServer(b *testing.B) *Server {
+func tickServer(b testing.TB) *Server {
 	root := b.TempDir()
 	storetest.Own(b, root)
 	ws := &workspace.Workspace{Root: root, RepoNames: []string{"api"}, DefaultBranch: "main"}
@@ -135,4 +135,63 @@ func tickServer(b *testing.B) *Server {
 		}
 	}
 	return &Server{Root: root, App: w}
+}
+
+// BenchmarkMissionRead is what a mission's page costs each time it reads
+// its mission (GET /api/missions/{slug}), with nothing changed since the
+// last read: every button on the page reads it again, and so does every
+// event.
+func BenchmarkMissionRead(b *testing.B) {
+	s := tickServer(b)
+	read := func() {
+		d, err := s.missionDetail("mission-7", false)
+		if err != nil {
+			b.Fatal(err)
+		}
+		json.Marshal(d)
+	}
+	read()
+	b.ResetTimer()
+	before := git.Started()
+	for range b.N {
+		read()
+	}
+	b.ReportMetric(float64(git.Started()-before)/float64(b.N), "git/op")
+}
+
+// What a page reads after every button and every change costs no git once
+// it's been read, until a capsule moves: then it's what the capsule now is.
+func TestReads_StartNoGitUntilACapsuleMoves(t *testing.T) {
+	s := tickServer(t)
+	read := func() *MissionDetail {
+		t.Helper()
+		d, err := s.missionDetail("mission-7", false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.workspaceView(); err != nil {
+			t.Fatal(err)
+		}
+		return d
+	}
+	first := read()
+	if len(first.Capsules) != 1 || first.Capsules[0].Head == "" {
+		t.Fatalf("mission-7's capsules = %+v", first.Capsules)
+	}
+	before := git.Started()
+	for range 3 {
+		read()
+	}
+	if n := git.Started() - before; n != 0 {
+		t.Errorf("3 reads of a mission and the workspace, nothing moved, started git %d times: want none", n)
+	}
+
+	dir := filepath.Join(s.Root, "repos", "api", "work-7")
+	if out, err := exec.Command("git", "-C", dir, "-c", "user.email=a@b", "-c", "user.name=a", "commit", "-q", "--allow-empty", "-m", "more").CombinedOutput(); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+	head, _ := exec.Command("git", "-C", dir, "rev-parse", "HEAD").Output()
+	if got := read().Capsules[0].Head; got != strings.TrimSpace(string(head)) || got == first.Capsules[0].Head {
+		t.Errorf("after a commit the capsule's head is %q, want %q", got, strings.TrimSpace(string(head)))
+	}
 }

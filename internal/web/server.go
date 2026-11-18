@@ -196,6 +196,15 @@ func (s *Server) Start() error {
 		}
 		return nil
 	})
+	// A write to the records that names the workspace (a conversation's
+	// turn, a page, a mission's record) is looked at now: its pages
+	// needn't wait for the next poll, which is for what only files and
+	// capsules show.
+	s.missions.wrote = func(topic string) {
+		if topic == topicWorkspace {
+			ws.nudge()
+		}
+	}
 	go s.missions.run(s.ctx)
 	s.srv = &http.Server{
 		Handler:           s.Handler(),

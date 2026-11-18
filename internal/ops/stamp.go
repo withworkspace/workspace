@@ -95,6 +95,9 @@ func (w *Workspace) Stamp() string {
 		}
 	}
 	fmt.Fprintf(h, "prs %d\n", w.opts.PRs.Fetched())
+	// A capsule found dirty, or clean, since a view last said: nothing git
+	// keeps moves when a file's edited (keptGit).
+	fmt.Fprint(h, w.git.dirtyMoved())
 	// The records say themselves when they've changed: a write that names
 	// a topic moves their latest change's number.
 	if db, err := store.Dial(w.Root()); err == nil {
@@ -138,7 +141,10 @@ func (w *Workspace) MissionStamp(slug string) string {
 			for _, f := range []string{"HEAD", "index", filepath.Join("logs", "HEAD")} {
 				note(filepath.Join(trees, f))
 			}
-			note(filepath.Join(w.WS().RepoDir(c.Repo), c.Name)) // made, or burned
+			dir := filepath.Join(w.WS().RepoDir(c.Repo), c.Name)
+			note(dir) // made, or burned
+			// Found dirty, or clean, since the page was last told (keptGit).
+			fmt.Fprint(h, w.git.dirtyMoved(dir))
 		}
 	}
 	return fmt.Sprintf("%x", h.Sum64())

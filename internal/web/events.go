@@ -7,7 +7,8 @@ import (
 )
 
 // hub tells open pages when what they show has changed. While any page is
-// open it checks every poll interval; with none, it doesn't look.
+// open it checks every poll interval, and at once when it's nudged (the
+// records it's built from were written); with none, it doesn't look.
 type hub struct {
 	poll        time.Duration
 	fingerprint func() string
@@ -67,15 +68,21 @@ func (h *hub) subscribe() (<-chan string, func()) {
 	h.subs[ch] = struct{}{}
 	h.mu.Unlock()
 	if first && h.baseline != nil {
-		select {
-		case h.kick <- struct{}{}:
-		default:
-		}
+		h.nudge()
 	}
 	return ch, func() {
 		h.mu.Lock()
 		delete(h.subs, ch)
 		h.mu.Unlock()
+	}
+}
+
+// nudge has it look now, not at its next poll: what it follows has just
+// been written. One that's waiting to be heard stands for those after it.
+func (h *hub) nudge() {
+	select {
+	case h.kick <- struct{}{}:
+	default:
 	}
 }
 
