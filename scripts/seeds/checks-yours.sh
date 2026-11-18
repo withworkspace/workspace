@@ -77,10 +77,15 @@ Nothing changed: the greeting prints as main has it. The run's output is kept, a
 
 ## Checks
 2. met: the greeting printed in c1's terminal, not yours: what it printed is kept.
+   - point: `go run .`: printed `hello`.
+   - point: `go build && ./demo`: printed `hello`.
    - shows: `greeting.txt` What `go run .` printed
 
 ## Not verified
 - The greeting in a terminal of your own: only you can say.
+
+## Noticed
+- `go run .` takes a second or two the first time, while it builds.
 EOF
 )
 

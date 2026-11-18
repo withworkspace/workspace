@@ -6395,6 +6395,14 @@ button.verify-big {
   max-width: 72ch;
 }
 
+.verify-points {
+  margin: 0;
+  padding-left: 18px;
+  max-width: 72ch;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
 .verify-judged {
   margin: 0;
   padding: 8px 12px;
