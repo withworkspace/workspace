@@ -52,6 +52,14 @@ type Server struct {
 	// ReadProcs reads the user's processes, for the process check at the
 	// end of a turn of crew over ACP: nil is harness.ReadProcs.
 	ReadProcs func() (harness.Procs, error)
+	// Build is the ws this server is (its version), said in every hello.
+	Build string
+	// Exe is the ws binary this server runs, for a server that restarts
+	// itself (restart.go): "" for one that doesn't.
+	Exe string
+	// CrewAtWork, if set, names the crew a restart would stop mid-turn: a
+	// restart that isn't to be now waits for them.
+	CrewAtWork func() []string
 
 	store mission.Store
 	ln    net.Listener
@@ -64,6 +72,10 @@ type Server struct {
 	idle    *time.Timer
 	closing bool
 	done    chan struct{}
+
+	restartWanted bool   // to restart once nothing's at work
+	restarting    bool   // Shutdown was to restart: whoever ran Serve starts ws again
+	next          string // the ws found in place of Exe: its version
 
 	watchers sync.WaitGroup // crew end recorders; Shutdown waits for them
 }
@@ -132,6 +144,15 @@ func (s *Server) Listen() error {
 	s.mu.Lock()
 	s.checkIdleLocked()
 	s.mu.Unlock()
+	if s.Exe != "" {
+		// Looked at here, not once it's watching: what's installed a moment
+		// after this is another ws than the one that's running.
+		if was, err := os.Stat(s.Exe); err != nil {
+			s.Log.Printf("not watching %s for another ws in its place: %v", s.Exe, err)
+		} else {
+			go s.watchExe(was, exeTick)
+		}
+	}
 	return nil
 }
 
@@ -300,7 +321,9 @@ func (s *Server) do(c *conn, req request) message {
 	switch req.Op {
 	case "hello":
 		idle := s.IdleTimeout
-		return message{Ver: ProtocolVersion, Pid: os.Getpid(), Web: s.WebPort, Idle: &idle}
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		return message{Ver: ProtocolVersion, Pid: os.Getpid(), Web: s.WebPort, Idle: &idle, Build: s.Build, Exe: s.Exe, Wanted: s.restartWanted, Next: s.next}
 
 	case "list":
 		s.mu.Lock()
@@ -324,6 +347,21 @@ func (s *Server) do(c *conn, req request) message {
 	case "shutdown":
 		go s.Shutdown("requested")
 		return message{}
+
+	case "atwork":
+		return message{AtWork: s.AtWork()}
+
+	case "restart":
+		if s.Exe == "" {
+			// As a server from a ws before the op answers: whoever asked
+			// stops it and starts another.
+			return fail(fmt.Errorf("unknown op %q", req.Op))
+		}
+		waits, err := s.Restart(req.Now)
+		if err != nil {
+			return fail(err)
+		}
+		return message{AtWork: waits}
 
 	case "job":
 		if req.Job == nil || s.Jobs == nil {

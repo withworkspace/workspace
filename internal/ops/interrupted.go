@@ -28,6 +28,26 @@ func midTurn(c mission.Crew) bool {
 	return c.Activity != mission.ActivityWaiting && c.Activity != mission.ActivityQuestion
 }
 
+// CrewAtWork names the crew a restart of the daemon would stop mid-turn:
+// those running that aren't waiting for you. A daemon that's to restart
+// when it can waits for them; crew that are waiting it hangs up, and the
+// next reopens them as they were.
+func (w *Workspace) CrewAtWork() []string {
+	missions, err := w.Missions.InPlay()
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, m := range missions {
+		for _, c := range m.Crew {
+			if c.Ended == nil && midTurn(c) {
+				out = append(out, c.ID+" on "+m.Slug+", mid-turn")
+			}
+		}
+	}
+	return out
+}
+
 // Interrupted is crew a daemon shut down under, as the next one found it:
 // resumed, or why not.
 type Interrupted struct {

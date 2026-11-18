@@ -39,7 +39,21 @@ type Client struct {
 
 	serverVer, serverPid, webPort int
 	idle                          *time.Duration // nil: the server didn't say
+	build, exe, next              string
+	restartWanted                 bool
 }
+
+// Build is the ws the server is (its version): "" if it didn't say (one
+// from a ws built before it could).
+func (c *Client) Build() string { return c.build }
+
+// Exe is the ws binary the server runs, as a file: "" if it didn't say.
+func (c *Client) Exe() string { return c.exe }
+
+// RestartWanted is whether the server is to restart once nothing's at
+// work, and the version of the ws it found in place of its own, if that's
+// why ("" when it was asked to).
+func (c *Client) RestartWanted() (next string, wanted bool) { return c.next, c.restartWanted }
 
 // ServerPid is the server's process id.
 func (c *Client) ServerPid() int { return c.serverPid }
@@ -83,11 +97,32 @@ func dial(root string, checkVersion bool) (*Client, error) {
 		return nil, err
 	}
 	c.serverVer, c.serverPid, c.webPort, c.idle = reply.Ver, reply.Pid, reply.Web, reply.Idle
+	c.build, c.exe, c.next, c.restartWanted = reply.Build, reply.Exe, reply.Next, reply.Wanted
 	if checkVersion && reply.Ver != ProtocolVersion {
 		c.Close()
-		return nil, fmt.Errorf("the daemon running for this workspace (pid %d) speaks protocol %d, this ws speaks %d: run `ws daemon stop` and try again", reply.Pid, reply.Ver, ProtocolVersion)
+		return nil, &Incompatible{Pid: reply.Pid, Build: reply.Build, Theirs: reply.Ver}
 	}
 	return c, nil
+}
+
+// Incompatible is a daemon that speaks another protocol than this ws: one
+// started from another ws (an older one, most often, still up after an
+// upgrade).
+type Incompatible struct {
+	Pid    int
+	Build  string // its ws, if it said
+	Theirs int
+}
+
+// It says what's so, and what puts it right, without telling whoever
+// reads it to stop the daemon: crew read it too, and stopping it hangs
+// every crew up.
+func (e *Incompatible) Error() string {
+	which := ""
+	if e.Build != "" {
+		which = ", ws " + e.Build
+	}
+	return fmt.Sprintf("the daemon running for this workspace (pid %d%s) speaks protocol %d, this ws speaks %d: it has to be restarted onto this ws, which is for whoever runs the workspace to do (ws daemon restart)", e.Pid, which, e.Theirs, ProtocolVersion)
 }
 
 // Connect dials the workspace's daemon, starting one if none is running.
@@ -289,6 +324,28 @@ func (c *Client) Shutdown() error {
 }
 
 // Launch starts crew on the server and attaches to it.
+// AtWork is what a restart would stop mid-flight: crew mid-turn, an
+// agent's run.
+func (c *Client) AtWork() ([]string, error) {
+	reply, err := c.call(request{Op: "atwork"})
+	return reply.AtWork, err
+}
+
+// Restart has the server start again on the ws now at its path: at once
+// (hanging up what's at work, which the next resumes), or, when now is
+// false, once nothing's at work, which it says. A server from a ws before
+// it could restart itself says it doesn't know how (IsUnknownOp).
+func (c *Client) Restart(now bool) (waits []string, err error) {
+	reply, err := c.call(request{Op: "restart", Now: now})
+	return reply.AtWork, err
+}
+
+// IsUnknownOp reports whether err is a server saying it doesn't know what
+// it was asked: it's from a ws before the op.
+func IsUnknownOp(err error) bool {
+	return err != nil && strings.HasPrefix(err.Error(), "unknown op ")
+}
+
 func (c *Client) Launch(spec Spec) (*Term, error) {
 	t, err := c.newTerm(spec)
 	if err != nil {

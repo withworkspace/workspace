@@ -51,6 +51,7 @@ type request struct {
 	Offset int               `json:"offset,omitempty"`
 	On     bool              `json:"on,omitempty"`
 	Grace  int               `json:"grace_ms,omitempty"`
+	Now    bool              `json:"now,omitempty"` // restart: without waiting for what's at work
 	Job    *job.Job          `json:"job,omitempty"`
 }
 
@@ -64,6 +65,16 @@ type message struct {
 	Web   int            `json:"web,omitempty"`  // hello: the web UI's port; servers without one don't say
 	Idle  *time.Duration `json:"idle,omitempty"` // hello: its IdleTimeout, 0 for none; servers before it don't say
 	Crews []CrewInfo     `json:"crews,omitempty"`
+	// hello, from a server that restarts itself (servers before it say
+	// none of these): the ws it runs and where that is, whether it's to
+	// restart once nothing's at work, and the ws it found in place of its
+	// own.
+	Build  string `json:"build,omitempty"`
+	Exe    string `json:"exe,omitempty"`
+	Wanted bool   `json:"wanted,omitempty"`
+	Next   string `json:"next,omitempty"`
+	// atwork, restart: what a restart would stop mid-flight.
+	AtWork []string `json:"at_work,omitempty"`
 
 	Ev    string `json:"ev,omitempty"`
 	Crew  string `json:"crew,omitempty"`
