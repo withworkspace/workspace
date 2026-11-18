@@ -30,6 +30,9 @@ export interface Drawn {
   label?: string;
   // time: its value is a time (RFC 3339), said as ws says times.
   time?: boolean;
+  // names: a field whose value names other things (a ref, or refs), each
+  // name apart. Where there's room, each is drawn as what it names.
+  names?: string[];
   // lines is how many lines its markdown is kept to.
   lines?: number;
   // icon: it's the first title, which has the kind's icon.
@@ -43,14 +46,21 @@ export interface Drawn {
 // doesn't know, is text.
 function typeOf(named: Named | undefined, field: string): string {
   const type = named?.fields?.find((f) => f.name === field)?.type;
-  return type === "title" || type === "state" || type === "time" || type === "markdown" ? type : "text";
+  return type === "title" || type === "state" || type === "time" || type === "markdown" || type === "ref" || type === "refs" ? type : "text";
+}
+
+// namesIn is the names in a field whose value names other things: one, or
+// several apart by spaces, commas or newlines.
+export function namesIn(value: string): string[] {
+  return value.split(/[\s,]+/).filter(Boolean);
 }
 
 // viewOf is the blocks of a kind's view for a surface: as its plugin
 // declared it, or, where it declared none, one made from its fields. The
 // card is its title, its name and where it stands; the pane is those, then
-// each of its text and time fields with its label, then its markdown. A
-// kind with no fields has nothing to draw.
+// each of its text and time fields, and those that name other things,
+// with its label, then its markdown. A kind with no fields has nothing to
+// draw.
 export function viewOf(named: Named | undefined, surface: Surface): ThingBlock[] {
   const declared = named?.views?.[surface];
   if (declared?.length) return declared;
@@ -59,7 +69,7 @@ export function viewOf(named: Named | undefined, surface: Surface): ThingBlock[]
   const of = (type: string) => fields.filter((f) => typeOf(named, f.name) === type);
   const view: ThingBlock[] = [...of("title").slice(0, 1).map((f) => ({ block: "title", field: f.name })), { block: "subtitle", field: keyField }, ...of("state").slice(0, 1).map((f) => ({ block: "badge", field: f.name }))];
   if (surface === "card") return view;
-  for (const f of fields) if (["text", "time"].includes(typeOf(named, f.name))) view.push({ block: "field", field: f.name });
+  for (const f of fields) if (["text", "time", "ref", "refs"].includes(typeOf(named, f.name))) view.push({ block: "field", field: f.name });
   for (const f of of("markdown")) view.push({ block: "markdown", field: f.name });
   return view;
 }
@@ -89,6 +99,7 @@ export function thingBlocks(named: Named | undefined, record: ThingRecord, surfa
       }
       case "field":
         d.label = b.label || named?.fields?.find((f) => f.name === b.field)?.label || b.field;
+        if (b.field !== keyField && (type === "ref" || type === "refs")) d.names = namesIn(value);
         break;
       case "markdown":
         if (b.lines && b.lines > 0) d.lines = Math.floor(b.lines);

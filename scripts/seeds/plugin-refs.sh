@@ -55,6 +55,11 @@ brief and a note name them.
   $ws find lantern           found by what it says, as the plugin told ws of it
   Find (⌘K): compass, or THING-2, drawn beside the list as the plugin's pane says, from
                     what ws was told; THING-4, which ws wasn't told of, by its name alone
+  Find (⌘K): on a thing's row, act on it: Move to…, or Start a mission about it;
+                    under Do, the plugin's own: Dust the shelf
+  $ws mission new "Polish it" --about THING-2    a mission about it: its page says so,
+                    and $ws show THING-2 says the mission's about it
+  $ws show THING-3           its links: part of THING-2, which says THING-3 is in it
   $ws plugin list            names THING-…
   $ws plugin remove frame-fixture   and its names are words again
 SAID

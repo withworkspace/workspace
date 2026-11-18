@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Named } from "./refs";
-import { thingBlocks, type ThingRecord, viewOf } from "./thing";
+import { namesIn, thingBlocks, type ThingRecord, viewOf } from "./thing";
 
 const issue: Named = {
   plugin: "jira",
@@ -154,5 +154,29 @@ describe("a plugin's thing, drawn", () => {
   it("draws nothing of a kind with no fields, or one ws doesn't keep", () => {
     expect(thingBlocks({ plugin: "jira", what: "sprint", prefixes: ["SPRINT-"] }, record, "pane")).toEqual([]);
     expect(thingBlocks(undefined, record, "card")).toEqual([]);
+  });
+
+  it("reads a field that names other things as its names, each apart", () => {
+    expect(namesIn("RAM-10")).toEqual(["RAM-10"]);
+    expect(namesIn(" RAM-10, RAM-11\nRAM-12  api#7 ,")).toEqual(["RAM-10", "RAM-11", "RAM-12", "api#7"]);
+    expect(namesIn("  ")).toEqual([]);
+
+    const linked: Named = {
+      ...issue,
+      fields: [...(issue.fields ?? []), { name: "parent", type: "ref", label: "Parent" }, { name: "children", type: "refs", label: "Children" }],
+      views: { card: [{ block: "title", field: "title" }, { block: "field", field: "parent" }, { block: "badge", field: "parent" }] },
+    };
+    const r = { key: "RAM-12", fields: { ...record.fields, parent: "RAM-10", children: "RAM-13, RAM-14 not-a-name" } };
+    // In a field block, its names; in any other, its words.
+    expect(thingBlocks(linked, r, "card").slice(1)).toEqual([
+      { block: "field", field: "parent", value: "RAM-10", label: "Parent", names: ["RAM-10"] },
+      { block: "badge", field: "parent", value: "RAM-10" },
+    ]);
+    // With no view of the plugin's, the pane has them with its other
+    // fields, before what it says at length; the card doesn't.
+    const plain = { ...linked, views: undefined };
+    expect(viewOf(plain, "pane").map((b) => `${b.block}:${b.field}`)).toEqual(["title:title", "subtitle:key", "badge:status", "field:assignee", "field:updated", "field:points", "field:parent", "field:children", "markdown:body"]);
+    expect(viewOf(plain, "card").map((b) => b.field)).toEqual(["title", "key", "status"]);
+    expect(thingBlocks(plain, r, "pane").find((d) => d.field === "children")).toEqual({ block: "field", field: "children", value: "RAM-13, RAM-14 not-a-name", label: "Children", names: ["RAM-13", "RAM-14", "not-a-name"] });
   });
 });

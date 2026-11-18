@@ -149,13 +149,17 @@ func KeepRefs(root, name string, refs []protocol.Ref) (refused []string, err err
 		if err != nil {
 			return err
 		}
+		all, err := refsIn(tx) // how every plugin's things are named, as it now is
+		if err != nil {
+			return err
+		}
 		defs := map[string]protocol.Ref{}
 		for _, r := range take {
 			defs[r.Kind] = r
 		}
 		for _, t := range things {
 			if r, ok := defs[t.Kind]; ok && names[t.Kind].Names(t.Ref) {
-				if kept, err := indexThing(tx, name, r, t); err != nil {
+				if kept, err := indexThing(tx, name, r, t, all); err != nil {
 					return err
 				} else if kept {
 					continue

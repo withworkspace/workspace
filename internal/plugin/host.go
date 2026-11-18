@@ -718,6 +718,64 @@ func (h *Host) Show(ctx context.Context, name, kind, ref string, full bool) (Sho
 	return out, err
 }
 
+// actTimeout is how long a plugin has to run an action, or to ask what it
+// wants answered first.
+const actTimeout = 2 * time.Minute
+
+// ErrNoAction is a plugin having no action by an id: one it didn't
+// register, or one of a kind's asked of a name that isn't that kind's.
+var ErrNoAction = errors.New("the plugin has no such action")
+
+type noAction struct{ why string }
+
+func (e *noAction) Error() string        { return e.why }
+func (e *noAction) Is(target error) bool { return target == ErrNoAction }
+
+// Act runs one of a plugin's actions, as it's chosen in Find: its own
+// (in.Kind empty), or one of a kind's on one of its things. The plugin's
+// started if it isn't running. It's run only if the plugin registered
+// it, and for a thing, only by a name that's one of the kind's:
+// ErrNoAction otherwise. What comes back may be the action asking for
+// something (Ask): it's run again with the answer.
+func (h *Host) Act(ctx context.Context, name string, in protocol.ActionRunParams) (protocol.ActionRunResult, error) {
+	var out protocol.ActionRunResult
+	p, err := h.ready(name)
+	if err != nil {
+		return out, err
+	}
+	p.mu.Lock()
+	actions, named := p.reg.Actions, true
+	if in.Kind != "" {
+		actions, named = nil, false
+		if i := slices.IndexFunc(p.reg.Refs, func(r protocol.Ref) bool { return r.Kind == in.Kind }); i >= 0 && p.reg.Refs[i].Problem() == "" {
+			actions, named = p.reg.Refs[i].Actions, p.reg.Refs[i].Names(in.Ref)
+		}
+	}
+	p.mu.Unlock()
+	if !named || !slices.ContainsFunc(actions, func(a protocol.Action) bool { return a.ID == in.ID }) {
+		return out, &noAction{fmt.Sprintf("%s has no action %s for that", name, in.ID)}
+	}
+	if h.Hold != nil {
+		defer h.Hold()()
+	}
+	if in.Answers == nil {
+		in.Answers = []string{}
+	}
+	ctx, cancel := context.WithTimeout(ctx, actTimeout)
+	defer cancel()
+	err = p.conn.Call(ctx, protocol.MethodActionRun, in, &out)
+	var re *acp.RPCError
+	switch {
+	case errors.As(err, &re):
+		return out, fmt.Errorf("%s: %s", name, re.Message)
+	case errors.Is(err, acp.ErrClosed):
+		return out, fmt.Errorf("%s stopped while it was doing it: see %s", name, LogPath(h.Root, name))
+	case errors.Is(err, context.DeadlineExceeded):
+		return out, fmt.Errorf("%s hadn't done it in %s", name, actTimeout)
+	}
+	return out, err
+}
+
 // ViewSocket is the unix socket a plugin's view is served on, the plugin
 // started if it isn't running.
 func (h *Host) ViewSocket(name string) (string, error) {

@@ -124,6 +124,19 @@ func thingView(ctx *ops.Workspace, r wsref.Ref, kept plugin.KeptRef, fields map[
 			if at, err := time.Parse(time.RFC3339, value); err == nil {
 				value = at.UTC().Format("2 January 2006 at 15:04 UTC")
 			}
+		case protocol.FieldRef, protocol.FieldRefs:
+			// What it names: each a ref to show next, where ws reads it
+			// as one, and words where it doesn't.
+			var words []string
+			for _, name := range plugin.Names(value) {
+				_, _, pr := wsref.ParsePR(name)
+				if _, _, thing := ctx.ThingNamed(name); thing || pr {
+					v.add(name, fieldLabel(f))
+				} else {
+					words = append(words, name)
+				}
+			}
+			value = strings.Join(words, ", ")
 		}
 		if value != "" {
 			v.body = append(v.body, fieldLabel(f)+": "+oneLine(value))

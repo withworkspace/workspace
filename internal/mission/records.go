@@ -370,7 +370,7 @@ func (s Store) addDecision(tx *store.Tx, slug string, l decisionLine) error {
 }
 
 // The graph: a mission is a thing, from the talk or the crew it came out
-// of; each decision is one, by whoever made it, in where it was made, and
+// of, about what it says it's about; each decision is one, by whoever made it, in where it was made, and
 // about what it bears on. A decision's words are what was decided (its
 // title) and why; the mission's are its brief's (words.go), by its title.
 
@@ -403,6 +403,12 @@ func (s Store) missionGraph(tx *store.Tx, m *Mission) error {
 	}
 	if parent, crew, ok := cutFrom(m.From); ok {
 		if err := tx.Link(o, store.Link{Src: me, Kind: store.From, Dst: store.Key{Scope: parent, Name: crew}, At: m.Created}); err != nil {
+			return err
+		}
+	}
+	// What it's about: found from the thing, as what's been said of it.
+	for _, name := range m.About {
+		if err := tx.Link(o, store.Link{Src: me, Kind: store.About, Dst: store.Key{Name: name}, At: m.Created}); err != nil {
 			return err
 		}
 	}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Workspace } from "../api";
-import { asks, build, type Found, type FoundGroup, foundItem, type Item, localItems, parseQuery, rank, rematch, withScope } from "./find";
+import type { Plugin, Workspace } from "../api";
+import { actingOn, actsOn, askOptions, asks, build, type Found, type FoundGroup, foundItem, type Item, localItems, parseQuery, pluginActionItems, rank, rematch, withScope } from "./find";
 import { recentItems, visitAt, visitOf } from "./recent";
 
 const headline = (label: string, verb?: string) => ({
@@ -393,6 +393,78 @@ describe("a plugin's things", () => {
     expect(build({ q: "https://acme.atlassian.net/browse/RAM-7?x=1", scope: "all", local: [], found: [], known }).sections[0].items[0].id).toBe("thing:jira/RAM-7");
     // Words that only look like a name name nothing.
     expect(build({ q: "UTF-8", scope: "all", local: [], found: [], known }).sections).toHaveLength(0);
+  });
+});
+
+describe("what plugins do", () => {
+  const jira: Plugin = {
+    name: "jira",
+    state: "ready",
+    views: [],
+    changed: 0,
+    starts: 1,
+    actions: [
+      { id: "sync", title: "Sync Jira now", icon: "rotate", hint: "fetch refresh" },
+      { id: "new", title: "New issue…", icon: "not-one-of-ws's" },
+    ],
+  };
+  const issue = {
+    plugin: "jira",
+    what: "issue",
+    prefixes: ["RAM-"],
+    actions: [
+      { id: "move", title: "Move to…", hint: "status column" },
+      { id: "assign", title: "Assign to…", icon: "user" },
+    ],
+  };
+
+  it("offers a plugin's own actions among the things to do, each saying whose it is", () => {
+    expect(pluginActionItems([jira, { ...jira, name: "quiet", actions: undefined }])).toEqual([
+      { id: "do:plugin:jira/sync", group: "do", kind: "Do", title: "Sync Jira now", hint: "fetch refresh", icon: "rotate", score: 0, notes: ["jira"], doing: { plugin: "jira", action: jira.actions![0] } },
+      { id: "do:plugin:jira/new", group: "do", kind: "Do", title: "New issue…", hint: undefined, icon: "play", score: 0, notes: ["jira"], doing: { plugin: "jira", action: jira.actions![1] } },
+    ]);
+    // They're found with the rest of what the page holds: by title, and
+    // by their hint for less.
+    const all = localItems(workspace, [jira]);
+    expect(rank(all, "sync jira")[0]?.id).toBe("do:plugin:jira/sync");
+    expect(rank(all, "refresh").map((it) => it.id)).toContain("do:plugin:jira/sync");
+    expect(build({ q: "new issue", scope: "do", local: all, found: [] }).rows[0]?.id).toBe("do:plugin:jira/new");
+    expect(localItems(workspace).some((it) => it.id.startsWith("do:plugin:"))).toBe(false);
+  });
+
+  it("lists what can be done to a thing: its kind's actions, then ws's own", () => {
+    expect(actsOn(issue).map((a) => [a.id, a.ws ?? "its"])).toEqual([
+      ["move", "its"],
+      ["assign", "its"],
+      ["mission", "mission"],
+    ]);
+    // A kind with none of its own still has ws's.
+    expect(actsOn(undefined).map((a) => a.title)).toEqual(["Start a mission about it"]);
+    const all = actingOn(issue, "");
+    expect(all.map((it) => [it.id, it.title, it.icon])).toEqual([
+      ["act:its:move", "Move to…", "play"],
+      ["act:its:assign", "Assign to…", "user"],
+      ["act:ws:mission", "Start a mission about it", "flag"],
+    ]);
+    expect(all[0].act).toEqual({ id: "move", title: "Move to…", hint: "status column", icon: undefined });
+    // What's typed narrows it, by title and by hint, the best first.
+    expect(actingOn(issue, "assign").map((it) => it.id)).toEqual(["act:its:assign"]);
+    expect(actingOn(issue, "status").map((it) => it.id)).toEqual(["act:its:move"]);
+    expect(actingOn(issue, "mission")[0].id).toBe("act:ws:mission");
+    expect(actingOn(issue, "zzz")).toEqual([]);
+  });
+
+  it("lists what an action asks to pick from, and nothing for a line of words", () => {
+    const pick = { title: "Move to", type: "pick" as const, options: [{ value: "todo", label: "To Do" }, { value: "doing", label: "In Progress", hint: "started" }, { value: "done", label: "" }] };
+    expect(askOptions(pick, "").map((it) => [it.option, it.title, it.hint])).toEqual([
+      ["todo", "To Do", undefined],
+      ["doing", "In Progress", "started"],
+      ["done", "done", undefined], // one with no label is its value
+    ]);
+    expect(askOptions(pick, "prog").map((it) => it.option)).toEqual(["doing"]);
+    expect(askOptions(pick, "started").map((it) => it.option)).toEqual(["doing"]);
+    expect(askOptions({ title: "Comment", type: "text" }, "anything")).toEqual([]);
+    expect(askOptions({ title: "Pick", type: "pick" }, "")).toEqual([]);
   });
 });
 

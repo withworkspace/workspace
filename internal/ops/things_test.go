@@ -2,6 +2,7 @@ package ops
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -190,5 +191,57 @@ func TestAPluginsThingsAreFound(t *testing.T) {
 	}
 	if found, _, _ := w.Find(t.Context(), FindQuery{Words: "flaky token"}); len(found) != 0 {
 		t.Errorf("found once it's removed: %+v", found)
+	}
+}
+
+// A mission says what it's about, by a name ws reads: its record has it,
+// the graph has it from there, and a plugin's told. A word isn't
+// something a mission's about.
+func TestAMissionIsAboutWhatWSNames(t *testing.T) {
+	w, _ := fixture(t, "")
+	root := w.WS().Root
+	installed(t, root, "jira", jiraIssue)
+
+	m, err := w.SetAbout("cache", []string{"RAM-12", "https://acme.atlassian.net/browse/RAM-12?focusedCommentId=3", " ws:RAP-7 "}, nil)
+	if err != nil || strings.Join(m.About, " ") != "RAM-12 RAP-7" {
+		t.Fatalf("about: %v, %v", m, err)
+	}
+	var inv *Invalid
+	if _, err := w.SetAbout("cache", []string{"UTF-8"}, nil); !errors.As(err, &inv) || !strings.Contains(err.Error(), "ws names nothing UTF-8") {
+		t.Errorf("about a word: %v", err)
+	}
+	// From the thing, the mission's found: it's about it.
+	said, err := w.SaidOf(store.Key{Name: "RAM-12"})
+	if err != nil || len(said) != 1 || said[0].Ref != "cache" || said[0].Kind != "mission" || said[0].How != store.About {
+		t.Errorf("said of RAM-12: %+v, %v", said, err)
+	}
+	// A plugin reads what its missions are about, to draw them by its things.
+	answer, err := w.AnswerPlugin(t.Context(), "jira", protocol.MethodMissionList, nil)
+	if list, ok := answer.(protocol.MissionListResult); err != nil || !ok || len(list.Missions) != 1 || strings.Join(list.Missions[0].About, " ") != "RAM-12 RAP-7" {
+		t.Errorf("as a plugin's told: %+v, %v", answer, err)
+	}
+	// About it no more, by its name or where it is.
+	if m, err := w.SetAbout("cache", nil, []string{"https://acme.atlassian.net/browse/RAM-12"}); err != nil || strings.Join(m.About, " ") != "RAP-7" {
+		t.Errorf("about, with one taken: %v, %v", m, err)
+	}
+	if said, _ := w.SaidOf(store.Key{Name: "RAM-12"}); len(said) != 0 {
+		t.Errorf("said of RAM-12 once the mission's about it no more: %+v", said)
+	}
+
+	// A mission started about a thing ws was told of is asked for by its
+	// name and what it's called, and waits to be briefed.
+	if _, err := plugin.PutThings(root, "jira", []protocol.Thing{{Kind: "issue", Ref: "RAM-12", Fields: map[string]string{"title": "Token refresh is flaky"}}}); err != nil {
+		t.Fatal(err)
+	}
+	started, err := w.StartAbout("RAM-12")
+	if err != nil || started.Title != "RAM-12: Token refresh is flaky" || started.Request != started.Title || started.Confirmed != nil || strings.Join(started.About, " ") != "RAM-12" {
+		t.Fatalf("started about RAM-12: %+v, %v", started, err)
+	}
+	// One ws wasn't told of is asked for by its name alone; a word, not at all.
+	if started, err := w.StartAbout("RAP-9"); err != nil || started.Title != "RAP-9" || strings.Join(started.About, " ") != "RAP-9" {
+		t.Errorf("started about RAP-9: %+v, %v", started, err)
+	}
+	if _, err := w.StartAbout("UTF-8"); !errors.As(err, &inv) {
+		t.Errorf("started about a word: %v", err)
 	}
 }

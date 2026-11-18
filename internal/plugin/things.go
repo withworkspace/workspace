@@ -6,11 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/withworkspace/plugin/protocol"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/store"
 )
 
@@ -118,12 +121,52 @@ func foundBy(kind protocol.Ref, rec Record) string {
 	return clip(strings.Join(parts, "\n\n"), keptWords)
 }
 
+// linksOf is what a thing points at, from its fields that name other
+// things: each name, and how its field says it points (mentions, where it
+// says nothing ws knows). A name is one ws reads without looking further:
+// one of a plugin's things, as all holds how they're named, or a pull
+// request (demo#12).
+func linksOf(kind protocol.Ref, rec Record, all []KeptRef) []store.Link {
+	var out []store.Link
+	seen := map[string]bool{}
+	for _, f := range kind.Fields {
+		if f.Type != protocol.FieldRef && f.Type != protocol.FieldRefs {
+			continue
+		}
+		how := store.Mentions
+		switch f.Link {
+		case protocol.LinkIn, protocol.LinkAbout, protocol.LinkFrom, protocol.LinkOf:
+			how = f.Link
+		}
+		for _, named := range Names(rec.Fields[f.Name]) {
+			if named == rec.Ref || seen[how+" "+named] {
+				continue
+			}
+			_, _, pr := ref.ParsePR(named)
+			thing := slices.ContainsFunc(all, func(k KeptRef) bool { return k.Named().Names(named) })
+			if !pr && !thing {
+				continue
+			}
+			seen[how+" "+named] = true
+			out = append(out, store.Link{Src: store.Key{Name: rec.Ref}, Kind: how, Dst: store.Key{Name: named}, At: rec.Changed})
+		}
+	}
+	return out
+}
+
+// Names are the names in a field that names other things: one, or
+// several separated by spaces, commas or lines.
+func Names(value string) []string {
+	return strings.FieldsFunc(value, func(r rune) bool { return r == ',' || r == ';' || unicode.IsSpace(r) })
+}
+
 // indexThing makes what ws reads of one of name's things from its record,
-// as its kind now is: its thing in the graph and the words it's found by,
-// in place of what was made of it before. A record with nothing for its
-// kind's title makes nothing: kept is false, and it's the caller's to
-// forget.
-func indexThing(tx *store.Tx, name string, kind protocol.Ref, rec Record) (kept bool, err error) {
+// as its kind now is: its thing in the graph, what it points at, and the
+// words it's found by, in place of what was made of it before. all is
+// how every plugin's things are named, for what its fields name. A record
+// with nothing for its kind's title makes nothing: kept is false, and
+// it's the caller's to forget.
+func indexThing(tx *store.Tx, name string, kind protocol.Ref, rec Record, all []KeptRef) (kept bool, err error) {
 	fields := Tidy(kind, rec.Fields)
 	title := fields[kind.Typed(protocol.FieldTitle)]
 	if title == "" {
@@ -136,10 +179,15 @@ func indexThing(tx *store.Tx, name string, kind protocol.Ref, rec Record) (kept 
 	if err := tx.Thing(origin, store.Thing{Key: key, Kind: ThingKind, Title: title, State: fields[kind.Typed(protocol.FieldState)], Changed: rec.Changed}); err != nil {
 		return false, err
 	}
-	// Its name is among its title's words: it's looked for by its name
-	// as often as by what it says.
 	tidy := rec
 	tidy.Fields = fields
+	for _, l := range linksOf(kind, tidy, all) {
+		if err := tx.Link(origin, l); err != nil {
+			return false, err
+		}
+	}
+	// Its name is among its title's words: it's looked for by its name
+	// as often as by what it says.
 	return true, tx.Words(origin, store.Place{Thing: key, Kind: ThingKind, Title: rec.Ref + " " + title, Text: foundBy(kind, tidy), Said: rec.Changed})
 }
 
@@ -258,7 +306,7 @@ func PutThings(root, name string, things []protocol.Thing) (refused []protocol.T
 				ON CONFLICT (plugin, kind, ref) DO UPDATE SET changed = excluded.changed, fields = excluded.fields`, name, t.Kind, t.Ref, changed, string(told)); err != nil {
 				return err
 			}
-			if _, err := indexThing(tx, name, kind.Ref, Record{Kind: t.Kind, Ref: t.Ref, Changed: t.Changed, Fields: fields}); err != nil {
+			if _, err := indexThing(tx, name, kind.Ref, Record{Kind: t.Kind, Ref: t.Ref, Changed: t.Changed, Fields: fields}, kept); err != nil {
 				return err
 			}
 		}

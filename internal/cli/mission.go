@@ -62,7 +62,7 @@ With WS_MISSION set, ws lift and ws dock attach new capsules to the mission.`,
 	cmd.AddCommand(newMissionHandOnCmd(), newMissionDropCmd(), newMissionOpenPRCmd())
 	cmd.AddCommand(newMissionAcceptCmd(), newMissionLookCmd())
 	cmd.AddCommand(newMissionOrchestrateCmd(), newMissionDispatchCmd())
-	cmd.AddCommand(newMissionAttachCmd())
+	cmd.AddCommand(newMissionAttachCmd(), newMissionAboutCmd())
 	cmd.AddCommand(newMissionDetachCmd())
 	cmd.AddCommand(newMissionStateCmd("park", mission.Parked, "Park a mission (paused work)"))
 	cmd.AddCommand(newMissionArchiveCmd())
@@ -88,7 +88,7 @@ func completeMissionSlugs(cmd *cobra.Command, args []string, toComplete string) 
 func newMissionNewCmd() *cobra.Command {
 	var brief, briefFile string
 	var noEdit, edit, proposeIt, distinct bool
-	var capsules []string
+	var capsules, about []string
 	cmd := &cobra.Command{
 		Use:   "new <what the mission is>",
 		Short: "Create a mission: say what it is, and a briefing agent sets it up",
@@ -100,6 +100,11 @@ func newMissionNewCmd() *cobra.Command {
 It waits to be briefed: Brief it on its page in the web UI (ws web) and an
 agent writes the brief and creates the capsules with you. Run by crew inside another
 mission, the new mission records where it came from.
+
+A mission that's about something ws names (an issue a plugin has, a
+pull request) says so with --about RAM-123: whoever reads the mission is
+told to read it, and it's found from the thing. ws mission about adds one
+later.
 
 To create a mission ready straight away, with a brief you write yourself:
 --brief "...", --brief-file <path|->, --edit (opens $EDITOR), or --no-edit
@@ -152,6 +157,18 @@ like a mission in play is refused, naming it: note what you found there
 					return err
 				}
 			}
+			// What it's about is read before it's made: a name ws reads
+			// nothing by makes no mission.
+			if about, err = ctx.AboutNames(about); err != nil {
+				return err
+			}
+			said := func(slug string) error {
+				if len(about) == 0 {
+					return nil
+				}
+				_, err := ctx.SetAbout(slug, about, nil)
+				return err
+			}
 
 			if brief == "" && briefFile == "" && !edit && !noEdit {
 				m, err := store.CreateBriefing(text)
@@ -159,6 +176,9 @@ like a mission in play is refused, naming it: note what you found there
 					return err
 				}
 				noteOrigin(store, m.Slug, text)
+				if err := said(m.Slug); err != nil {
+					return err
+				}
 				fmt.Fprintf(ui.Stderr, "  %s Mission %s is waiting to be briefed: Brief it on its page in the web UI (ws web)\n", ui.Green.Render("✓"), ui.Bold.Render(m.Slug))
 				fmt.Println(m.Slug)
 				return nil
@@ -182,6 +202,9 @@ like a mission in play is refused, naming it: note what you found there
 				return err
 			}
 			noteOrigin(store, m.Slug, text)
+			if err := said(m.Slug); err != nil {
+				return err
+			}
 			if body != "" {
 				if err := store.WriteBrief(m.Slug, body); err != nil {
 					return err
@@ -203,6 +226,7 @@ like a mission in play is refused, naming it: note what you found there
 	cmd.Flags().BoolVar(&noEdit, "no-edit", false, "create it ready with the template brief")
 	cmd.Flags().BoolVar(&proposeIt, "propose", false, "in a conversation: propose it, for the user to create, instead of creating it")
 	cmd.Flags().StringArrayVar(&capsules, "capsule", nil, "with --propose: a capsule to lift for it, as repo/branch (repeatable)")
+	cmd.Flags().StringArrayVar(&about, "about", nil, "what it's about, by a name ws reads: one of a plugin's things (RAM-123), a pull request (repeatable)")
 	cmd.Flags().BoolVar(&distinct, "distinct", false, "from inside a mission: raise it though it looks like a mission in play, as it's different work")
 	return cmd
 }
@@ -476,6 +500,9 @@ func formatMissionLLM(ctx *ops.Workspace, v ops.MissionView, briefPath, brief st
 	if v.M.From != "" {
 		fmt.Fprintf(&b, "Raised from: %s\n", v.M.From)
 	}
+	for _, name := range v.M.About {
+		fmt.Fprintf(&b, "About: %s (ws show %s says what it is: read it)\n", name, name)
+	}
 	if c := v.M.Conversation; c != "" {
 		show := "ws show " + c
 		if slug, id, ok := strings.Cut(c, "/"); ok {
@@ -708,6 +735,10 @@ func printMissionText(ctx *ops.Workspace, v ops.MissionView, briefPath, brief st
 		for _, l := range conclusionLines(*c) {
 			fmt.Fprintf(w, "    %s\n", ui.Dim.Render(l))
 		}
+	}
+
+	if len(v.M.About) > 0 {
+		fmt.Fprintf(w, "\n  %s  %s\n", ui.Bold.Render("About"), strings.Join(v.M.About, ", "))
 	}
 
 	fmt.Fprintf(w, "\n  %s\n", ui.Bold.Render("Capsules"))
@@ -982,5 +1013,51 @@ branches kept and what's not committed lost.`,
 		},
 	}
 	cmd.Flags().BoolVar(&burnAll, "burn-all", false, "Burn every capsule, even one whose work hasn't merged: what's not committed is lost")
+	return cmd
+}
+
+// --- about ---
+
+func newMissionAboutCmd() *cobra.Command {
+	var slug string
+	var remove []string
+	cmd := &cobra.Command{
+		Use:   "about [ref...]",
+		Short: "Say what a mission is about: an issue a plugin has, a pull request",
+		Long: `Say what a mission is about, by a name ws reads: one of a plugin's things
+(RAM-123, as ws plugin list says they're named), a pull request (demo#12).
+Whoever reads the mission is told to read it, and the mission is found
+from it (ws show RAM-123). With no ref, it prints what the mission's about.
+
+  ws mission about RAM-123
+  ws mission about --remove RAM-123`,
+		PersistentPreRun:  func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
+		ValidArgsFunction: cobra.NoFileCompletions,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			m, err := resolveMission(ctx, slug)
+			if err != nil {
+				return err
+			}
+			if len(args) > 0 || len(remove) > 0 {
+				if m, err = ctx.SetAbout(m.Slug, args, remove); err != nil {
+					return err
+				}
+			}
+			if len(m.About) == 0 {
+				fmt.Fprintf(ui.Stderr, "  %s %s isn't about anything ws names\n", ui.Dim.Render("·"), m.Slug)
+				return nil
+			}
+			for _, name := range m.About {
+				fmt.Println(name)
+			}
+			return nil
+		},
+	}
+	addMissionFlag(cmd, &slug)
+	cmd.Flags().StringArrayVar(&remove, "remove", nil, "something it's about no more (repeatable)")
 	return cmd
 }

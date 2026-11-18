@@ -4,6 +4,7 @@ import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
 import { exact, stamp } from "../ui/time";
 import { NoRefs } from "./known";
+import type { ReactNode } from "react";
 import type { Named, PageRef } from "./refs";
 import { type Drawn, type Surface, thingBlocks, type ThingRecord } from "./thing";
 import { thingIcon } from "./views";
@@ -32,6 +33,10 @@ export const thingOf = (plugin: string, what: string, id: string) => {
   return got;
 };
 
+// forgetThing drops what's kept of one thing, so it's asked for again the
+// next time it's drawn: after something's been done to it.
+export const forgetThing = (plugin: string, what: string, id: string) => things.delete(`${plugin}\n${what}\n${id}`);
+
 // useThing is a plugin's thing as ws has it, or as its plugin says when
 // asked: undefined while it's asked, null for one the plugin has none of,
 // and error for a plugin that couldn't be asked.
@@ -51,9 +56,15 @@ function said(d: Drawn) {
   );
 }
 
+// Pointer draws one name a thing's field holds (a field that names other
+// things): as what it names, where whoever shows the thing has room for
+// that. Without one a name is its words, as under a name it always is: a
+// card opens no cards.
+export type Pointer = (name: string) => ReactNode;
+
 // ThingView draws a thing's view for a surface: its blocks in order, a
 // badge on the line of the title or subtitle before it.
-export function ThingView({ named, record, surface }: { named?: Named; record: ThingRecord; surface: Surface }) {
+export function ThingView({ named, record, surface, pointer }: { named?: Named; record: ThingRecord; surface: Surface; pointer?: Pointer }) {
   const drawn = thingBlocks(named, record, surface);
   // A line is a block and the badges that sit on it.
   const lines: { of: Drawn; badges: Drawn[] }[] = [];
@@ -96,7 +107,15 @@ export function ThingView({ named, record, surface }: { named?: Named; record: T
           case "field":
             return (
               <span key={i} className="hovercard-line dim">
-                {d.label}: {said(d)}
+                {d.label}:{" "}
+                {d.names
+                  ? d.names.map((name, j) => (
+                      <span key={j}>
+                        {j > 0 && ", "}
+                        {pointer ? pointer(name) : name}
+                      </span>
+                    ))
+                  : said(d)}
               </span>
             );
           case "markdown":

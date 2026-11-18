@@ -1,9 +1,9 @@
-import type { ActVerb, Workspace } from "../api";
+import type { ActionAsk, ActVerb, Plugin, Workspace } from "../api";
 import { docAddress, docRef, pageAddress, spaceAt, type SpaceRef } from "../api";
-import { GROUND, type Known, namedOf, type PageRef, refAt, refHref } from "../refs/refs";
+import { GROUND, type Known, type Named, namedOf, type PageRef, refAt, refHref, type ThingAction } from "../refs/refs";
 import { thingIcon } from "../refs/views";
 import { fuzzy } from "../ui/fuzzy";
-import type { IconName } from "../ui/Icon";
+import { type IconName, icons } from "../ui/Icon";
 import { crewStatus, headlineStatus, type StatusInfo } from "../ui/status";
 
 // Find, apart from how it's drawn: what there is to find in what the page
@@ -36,7 +36,35 @@ export const groupTitle: Record<GroupKey, string> = {
 };
 
 // What an item does that isn't going somewhere.
-export type Doing = { act: ActVerb; slug: string; crew?: string } | { theme: "light" | "dark" | "system" } | { help: true } | { page: true };
+// plugin is one of a plugin's own actions: the plugin does it, asking
+// first what it needs to know.
+export type Doing = { act: ActVerb; slug: string; crew?: string } | { theme: "light" | "dark" | "system" } | { help: true } | { page: true } | { plugin: string; action: ThingAction };
+
+// ActOn is something to do to a plugin's thing: one of its kind's actions,
+// which its plugin does, or one of ws's own.
+export interface ActOn {
+  id: string;
+  title: string;
+  hint?: string;
+  icon?: string;
+  // ws: it's ws's own, not the plugin's. mission starts a mission about
+  // the thing.
+  ws?: "mission";
+}
+
+// wsActs are what ws itself does to any plugin's thing.
+export const wsActs: ActOn[] = [{ id: "mission", title: "Start a mission about it", hint: "new brief work", icon: "flag", ws: "mission" }];
+
+// actsOn is what can be done to a thing of a kind: its kind's actions, as
+// its plugin registered them, then ws's own.
+export function actsOn(named: Named | undefined): ActOn[] {
+  return [...(named?.actions ?? []).map((a) => ({ id: a.id, title: a.title, hint: a.hint, icon: a.icon })), ...wsActs];
+}
+
+// actIcon is an action's icon: the one it asked for, if ws has it.
+export function actIcon(icon?: string): IconName {
+  return icon && icon in icons ? (icon as IconName) : "play";
+}
 
 // PullFound is a pull request as the server found it: enough to say where
 // it stands without asking GitHub.
@@ -67,6 +95,8 @@ export interface Item {
   score: number;
   to?: string; // where it goes
   doing?: Doing;
+  act?: ActOn; // something to do to the thing Find's acting on
+  option?: string; // one of what an action asks to pick from: its value
   ref?: string; // its name, to copy
   path?: boolean; // the title is a path: its folders are drawn quieter
   notes?: string[]; // said after it: changed in feature, merged
@@ -88,7 +118,7 @@ const doable: Partial<Record<string, ActVerb>> = {
 };
 
 // localItems is everything the page already holds that can be found.
-export function localItems(w: Workspace): Item[] {
+export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
   const place = (to: string, title: string, icon: IconName, hint?: string): Item => ({
     id: `place:${to}`,
     group: "places",
@@ -268,8 +298,73 @@ export function localItems(w: Workspace): Item[] {
       score: 0,
       doing: { help: true },
     },
+    ...pluginActionItems(plugins),
   );
   return out;
+}
+
+// pluginActionItems are the plugins' own actions as things to do: found
+// by their titles (and their hints), each saying whose it is.
+export function pluginActionItems(plugins: Plugin[]): Item[] {
+  return plugins.flatMap((p) =>
+    (p.actions ?? []).map((a) => ({
+      id: `do:plugin:${p.name}/${a.id}`,
+      group: "do" as const,
+      kind: "Do",
+      title: a.title,
+      hint: a.hint,
+      icon: actIcon(a.icon),
+      score: 0,
+      notes: [p.name],
+      doing: { plugin: p.name, action: a },
+    })),
+  );
+}
+
+// actingOn is what Find lists while it's acting on a plugin's thing: what
+// can be done to it (actsOn), those that match what's typed, the best
+// first, and all of them, in their order, with nothing typed.
+export function actingOn(named: Named | undefined, q: string): Item[] {
+  const items = actsOn(named).map((a) => ({
+    id: `act:${a.ws ? "ws" : "its"}:${a.id}`,
+    group: "do" as const,
+    kind: a.ws ? "ws" : "Do",
+    title: a.title,
+    hint: a.hint,
+    icon: actIcon(a.icon),
+    score: 0,
+    act: a,
+  }));
+  return ordered(items, q);
+}
+
+// askOptions is what Find lists while an action asks to pick one: its
+// options, those that match what's typed, the best first, and all of
+// them, in their order, with nothing typed. An action that asks for a
+// line of words lists nothing.
+export function askOptions(ask: ActionAsk, q: string): Item[] {
+  if (ask.type !== "pick") return [];
+  const items = (ask.options ?? []).map((o, i) => ({
+    id: `pick:${i}:${o.value}`,
+    group: "do" as const,
+    kind: "Pick",
+    title: o.label || o.value,
+    hint: o.hint,
+    icon: "chevron-right" as const,
+    score: 0,
+    option: o.value,
+  }));
+  return ordered(items, q);
+}
+
+// ordered is items as a short list of its own shows them: as they came,
+// with nothing typed, and by how well they match what is.
+function ordered(items: Item[], q: string): Item[] {
+  if (!q.trim()) return items;
+  return rank(items, q.trim())
+    .map((it, i) => ({ it, i }))
+    .sort((a, b) => b.it.score - a.it.score || a.i - b.i)
+    .map((x) => x.it);
 }
 
 // --- what the server finds ---

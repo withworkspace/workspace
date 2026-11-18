@@ -22,6 +22,8 @@ import (
 // mission's page, and the orchestrator's.
 type Missions interface {
 	Overview() (*ops.Overview, error)
+	// StartAbout makes a mission about something ws names, to brief.
+	StartAbout(name string) (*mission.Mission, error)
 	Mission(slug string, withGitHub bool) (*ops.MissionDetail, error)
 	Orchestrator() ops.OrchestratorView
 	OrchestratorRun(slug, id string) (*ops.Run, error)
@@ -65,7 +67,7 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 	}
 	for _, it := range v.Missions {
 		m := Mission{Slug: it.M.Slug, Title: it.M.Title, State: string(it.State), Created: it.M.Created, Capsules: []Capsule{}, Crew: []Crew{},
-			Updated: it.Updated, ReReview: it.ReReview, Headline: headline(it.Headline), At: it.At}
+			Updated: it.Updated, ReReview: it.ReReview, Headline: headline(it.Headline), At: it.At, About: it.M.About}
 		if t := it.M.Asking(); t != nil {
 			m.Flag = t.Text
 		}
@@ -166,7 +168,7 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 	}
 	m := v.M
 	d := &MissionDetail{
-		Slug: m.Slug, Title: m.Title, State: string(v.State), Created: m.Created, Request: m.Request, From: m.From,
+		Slug: m.Slug, Title: m.Title, State: string(v.State), Created: m.Created, Request: m.Request, From: m.From, About: m.About,
 		Brief: v.Brief, Plan: v.Plan, Conversation: m.Conversation, ConversationTitle: v.ConversationTitle, GitHub: withGitHub,
 		Stages: []Stage{}, Capsules: []CapsuleDetail{}, Crew: []CrewDetail{}, Artifacts: []Artifact{}, Events: []Event{},
 		Runs: []OrchestratorRun{}, Decisions: []Decision{}, Bundles: []Bundle{},

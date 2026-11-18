@@ -478,6 +478,9 @@ function useGlobalKeys({ openPalette, openHelp }: { openPalette: (start?: string
         // In a document being edited, ⌘K with words selected is a link, as
         // in any editor. With nothing selected, it's Find.
         if (e.target instanceof HTMLElement && e.target.closest(".pm") && !window.getSelection()?.isCollapsed) return;
+        // With Find open, ⌘K is Find's own: it acts on what the cursor's
+        // on there (shell/Palette.tsx).
+        if (document.querySelector(".palette-overlay")) return;
         e.preventDefault();
         e.stopPropagation();
         openPalette();

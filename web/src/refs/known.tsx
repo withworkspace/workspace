@@ -47,11 +47,23 @@ const noRepos: Repo[] = [];
 const noPlugins: Plugin[] = [];
 
 // thingsNamed is how the plugins' things are named, as each registered:
-// what a name is read by (RAM-123), with what one holds and how it's
-// drawn.
+// what a name is read by (RAM-123), with what one holds, how it's drawn,
+// and what can be done to one.
 export const thingsNamed = (plugins: Plugin[]): Named[] =>
   plugins.flatMap((p) =>
-    (p.refs ?? []).map((r) => ({ plugin: p.name, what: r.kind, prefixes: r.prefixes ?? [], tail: r.tail, address: r.address, path: r.path, title: r.title, icon: r.icon, fields: r.fields, views: r.views })),
+    (p.refs ?? []).map((r) => ({
+      plugin: p.name,
+      what: r.kind,
+      prefixes: r.prefixes ?? [],
+      tail: r.tail,
+      address: r.address,
+      path: r.path,
+      title: r.title,
+      icon: r.icon,
+      fields: r.fields,
+      views: r.views,
+      actions: r.actions,
+    })),
   );
 
 export function RefsProvider({ workspace, plugins = noPlugins, children }: { workspace: Workspace; plugins?: Plugin[]; children: ReactNode }) {
@@ -124,6 +136,19 @@ export function RefsProvider({ workspace, plugins = noPlugins, children }: { wor
   );
   const byName = useMemo(() => new Map(repos.map((r) => [r.name, r])), [repos]);
   const value = useMemo(() => ({ known, repos: byName, heads, want }), [known, byName, heads, want]);
+  return (
+    <WorkspaceContext.Provider value={workspace}>
+      <RefsContext.Provider value={value}>{children}</RefsContext.Provider>
+    </WorkspaceContext.Provider>
+  );
+}
+
+// RefsScope is what there is to name, as it's given: for somewhere
+// outside the pages that draws refs of its own (Find's pane, which names
+// what a plugin's thing points at). It reads no repo's files: what it's
+// given is what's found.
+export function RefsScope({ workspace, known, children }: { workspace: Workspace; known: Known; children: ReactNode }) {
+  const value = useMemo<Refs>(() => ({ known, repos: new Map(), heads: new Map(), want: () => {} }), [known]);
   return (
     <WorkspaceContext.Provider value={workspace}>
       <RefsContext.Provider value={value}>{children}</RefsContext.Provider>

@@ -170,7 +170,7 @@ func TestKitRegistersRefsAndShowsAThing(t *testing.T) {
 		t.Errorf("kept: %+v", k)
 	}
 	// What its things are made of, found by and drawn from is kept with it.
-	if k := kept[0]; len(k.Fields) != 4 || k.Typed(protocol.FieldTitle) != "title" || k.Typed(protocol.FieldState) != "status" || len(k.Search) != 2 || len(k.Views[protocol.ViewCard]) != 3 || len(k.Views[protocol.ViewPane]) != 5 {
+	if k := kept[0]; len(k.Fields) != 6 || k.Typed(protocol.FieldTitle) != "title" || k.Typed(protocol.FieldState) != "status" || len(k.Search) != 2 || len(k.Views[protocol.ViewCard]) != 3 || len(k.Views[protocol.ViewPane]) != 5 {
 		t.Errorf("kept: fields %+v, search %+v, views %+v", k.Fields, k.Search, k.Views)
 	}
 
@@ -578,6 +578,152 @@ func waitFor(t *testing.T, ok func() bool) {
 	for deadline := time.Now().Add(5 * time.Second); !ok(); time.Sleep(10 * time.Millisecond) {
 		if time.Now().After(deadline) {
 			t.Fatal("it didn't happen in five seconds")
+		}
+	}
+}
+
+// linksIn is what ws's graph has a plugin's things pointing at: each as
+// "from how to".
+func linksIn(t *testing.T, db *store.DB, name string) []string {
+	t.Helper()
+	var out []string
+	err := db.Read(context.Background(), func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT src_name, kind, dst_name FROM links WHERE origin LIKE ? ORDER BY src_name, kind, dst_name`, string(plugin.Origin(name))+"/%")
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var src, kind, dst string
+			if err := rows.Scan(&src, &kind, &dst); err != nil {
+				return err
+			}
+			out = append(out, src+" "+kind+" "+dst)
+		}
+		return rows.Err()
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// A field that names other things makes links in the graph, as its field
+// says it points: to the plugin's own things, another plugin's, and pull
+// requests, and to nothing ws doesn't read as a name. They go with the
+// thing.
+func TestAThingsFieldsLinkItToWhatTheyName(t *testing.T) {
+	root := t.TempDir()
+	db := storetest.Own(t, root)
+	linked := issueKind
+	linked.Search = nil
+	linked.Fields = append(slices.Clone(issueKind.Fields),
+		protocol.Field{Name: "parent", Type: protocol.FieldRef, Label: "Parent", Link: protocol.LinkIn},
+		protocol.Field{Name: "links", Type: protocol.FieldRefs, Label: "Links"},
+		protocol.Field{Name: "epic", Type: protocol.FieldRef, Link: "sideways"}) // a way of pointing ws doesn't know
+	if _, err := plugin.KeepRefs(root, "jira", []protocol.Ref{linked}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := plugin.KeepRefs(root, "linear", []protocol.Ref{{Kind: "issue", Prefixes: []string{"ENG-"}}}); err != nil {
+		t.Fatal(err)
+	}
+	refused, err := plugin.PutThings(root, "jira", []protocol.Thing{
+		issue("RAM-1", map[string]string{"title": "The parent"}),
+		issue("RAM-2", map[string]string{"title": "A child", "parent": "RAM-1", "links": "RAM-3, ENG-7\ndemo#12 RAM-2 ram-9 nothing UTF-8 RAM-3", "epic": "RAP-4"}),
+	})
+	if err != nil || len(refused) != 0 {
+		t.Fatalf("put: %v, %v", refused, err)
+	}
+	want := []string{"RAM-2 in RAM-1", "RAM-2 mentions ENG-7", "RAM-2 mentions RAM-3", "RAM-2 mentions RAP-4", "RAM-2 mentions demo#12"}
+	if got := linksIn(t, db, "jira"); !slices.Equal(got, want) {
+		t.Errorf("links %q, want %q", got, want)
+	}
+	// What points at the parent is found from the parent: the child, in it.
+	err = db.Read(context.Background(), func(tx *store.Tx) error {
+		to, err := tx.LinksTo(store.Key{Name: "RAM-1"})
+		if err != nil || len(to) != 1 || to[0].Src.Name != "RAM-2" || to[0].Kind != store.In || to[0].From.Kind != plugin.ThingKind || to[0].From.Title != "A child" {
+			t.Errorf("what points at RAM-1: %+v, %v", to, err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Told otherwise, its links are what it now names; removed, none.
+	if _, err := plugin.PutThings(root, "jira", []protocol.Thing{issue("RAM-2", map[string]string{"title": "A child", "links": "RAM-3"})}); err != nil {
+		t.Fatal(err)
+	}
+	if got := linksIn(t, db, "jira"); !slices.Equal(got, []string{"RAM-2 mentions RAM-3"}) {
+		t.Errorf("links once told otherwise: %q", got)
+	}
+	if err := plugin.RemoveThings(root, "jira", "issue", []string{"RAM-2"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := linksIn(t, db, "jira"); len(got) != 0 {
+		t.Errorf("links once it's removed: %q", got)
+	}
+}
+
+// ws and the framework, on actions: one's run by its id, asks what it
+// wants answered, and does it once it has; ws runs none the plugin didn't
+// register, and one on a thing only by a name that's the kind's.
+func TestKitActionsAreRunFromWS(t *testing.T) {
+	root, h := keeping(t)
+	db := storetest.Own(t, root)
+	h.Answer = func(_ context.Context, who, method string, params json.RawMessage) (any, error) {
+		if answer, ok, err := plugin.AnswerThings(root, who, method, params); ok {
+			return answer, err
+		}
+		return nil, plugin.NoMethod(method)
+	}
+	addKit(t, root)
+	st, err := h.Refresh("kit")
+	if err != nil || len(st.Registration.Actions) != 1 || st.Registration.Actions[0].ID != "ping" || len(st.Registration.Refs[0].Actions) != 1 {
+		t.Fatalf("started: %+v, %v", st.Registration, err)
+	}
+	waitFor(t, func() bool { return len(thingsIn(t, db, "kit")) == 1 })
+	// What its first thing names is in the graph, from its sync.
+	if got := linksIn(t, db, "kit"); !slices.Equal(got, []string{"KIT-1 mentions KIT-2", "KIT-1 mentions demo#12"}) {
+		t.Errorf("links: %q", got)
+	}
+	ctx := context.Background()
+	act := func(in protocol.ActionRunParams) (protocol.ActionRunResult, error) { return h.Act(ctx, "kit", in) }
+
+	// The plugin's own: asks, then says.
+	r, err := act(protocol.ActionRunParams{ID: "ping"})
+	if err != nil || r.Ask == nil || r.Ask.Type != protocol.AskText || r.Ask.Title != "Who's asking?" {
+		t.Fatalf("ping: %+v, %v", r, err)
+	}
+	if r, err := act(protocol.ActionRunParams{ID: "ping", Answers: []string{"ws"}}); err != nil || r.Ask != nil || r.Say != "pong, ws" {
+		t.Errorf("ping, answered: %+v, %v", r, err)
+	}
+	// On a thing: asks where to, moves it, and tells ws of it as it now is.
+	move := protocol.ActionRunParams{ID: "move", Kind: "thing", Ref: "KIT-1"}
+	if r, err := act(move); err != nil || r.Ask == nil || r.Ask.Type != protocol.AskPick || len(r.Ask.Options) != 2 {
+		t.Fatalf("move: %+v, %v", r, err)
+	}
+	move.Answers = []string{"Closed"}
+	if r, err := act(move); err != nil || r.Say != "KIT-1 is Closed" || r.Open != "/thing/KIT-1" {
+		t.Errorf("move, answered: %+v, %v", r, err)
+	}
+	if got := thingsIn(t, db, "kit"); len(got) != 1 || got[0] != "KIT-1=The first thing Closed" {
+		t.Errorf("as ws has it once it's moved: %q", got)
+	}
+	// One that fails says why.
+	if _, err := act(protocol.ActionRunParams{ID: "move", Kind: "thing", Ref: "KIT-2", Answers: []string{"Closed"}}); err == nil || !strings.Contains(err.Error(), "only the first thing moves") {
+		t.Errorf("one that fails: %v", err)
+	}
+	// None it didn't register, of that kind, or by a name that isn't the
+	// kind's: the plugin isn't asked.
+	for what, in := range map[string]protocol.ActionRunParams{
+		"one it hasn't":                {ID: "delete"},
+		"a thing's, with no thing":     {ID: "move"},
+		"its own, on a thing":          {ID: "ping", Kind: "thing", Ref: "KIT-1"},
+		"a kind it hasn't":             {ID: "move", Kind: "sprint", Ref: "KIT-1"},
+		"a name that isn't its kind's": {ID: "move", Kind: "thing", Ref: "OTHER-1"},
+	} {
+		if _, err := act(in); !errors.Is(err, plugin.ErrNoAction) {
+			t.Errorf("%s: %v", what, err)
 		}
 	}
 }

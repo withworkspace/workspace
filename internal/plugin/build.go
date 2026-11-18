@@ -3,6 +3,7 @@ package plugin
 import (
 	"errors"
 	"fmt"
+	"github.com/withworkspace/plugin/protocol"
 	"io"
 	"os"
 	"os/exec"
@@ -97,7 +98,7 @@ func Problems(name string, r Registration) []Problem {
 	}
 
 	word := r.CommandName(name)
-	if len(r.Views) == 0 && word == "" && len(r.Refs) == 0 {
+	if len(r.Views) == 0 && word == "" && len(r.Refs) == 0 && len(r.Actions) == 0 {
 		note("it adds no view and no commands: there's nothing to use it by")
 	}
 	for i, v := range r.Views {
@@ -145,6 +146,10 @@ func Problems(name string, r Registration) []Problem {
 		note("it has commands and no guide (agents.md): agents won't know ws %s is there", word)
 	case guide != "" && lines > GuideLines:
 		note("its guide is %d lines, and agents are given the first %d: keep it to what the commands are", lines, GuideLines)
+	}
+	// What it can do from Find.
+	if problem := protocol.ActionsProblem(r.Actions); problem != "" {
+		fatal("%s", problem)
 	}
 	// How its things are named: ws leaves out a ref that's wrong, so one
 	// here would name nothing.

@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/plugin"
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/plugin/ui"
 )
 
@@ -56,19 +57,43 @@ func run() {
 	// title, where it stands, who has it and what it says. The one it
 	// has is KIT-1; KIT-3 it has too, and never tells ws of.
 	prefixes := p.Config.List("prefixes", "What its things' names start with", plugin.Default([]string{"KIT-"}))
+	var status atomic.Value // where the first thing stands: an action moves it
+	status.Store("Open")
 	first := func(name string) plugin.Thing {
+		prefix, _, _ := strings.Cut(name, "-")
 		return plugin.Thing{Name: name, Changed: time.Date(2026, 11, 18, 10, 0, 0, 0, time.UTC), Fields: map[string]string{
-			"title": "The first thing", "status": "Open", "owner": "Dana", "body": "It says hello, in a **lantern**'s light.", "colour": "not one of its fields",
+			"title": "The first thing", "status": status.Load().(string), "owner": "Dana", "body": "It says hello, in a **lantern**'s light.", "colour": "not one of its fields",
+			// What it names: another of its own, a pull request, and
+			// words that name nothing.
+			"links": prefix + "-2, demo#12 nothing-here " + name,
 		}}
 	}
 	var thing *plugin.Ref
 	p.Setup(func() {
 		thing = p.Ref("thing", "Kit thing").
 			Prefix(prefixes.Get()...).Address("https://kit.example/things/{ref}").Opens("/thing/{ref}").Icon("box").
-			Fields(plugin.Title("title"), plugin.State("status"), plugin.Text("owner", "Owner"), plugin.Markdown("body")).
+			Fields(plugin.Title("title"), plugin.State("status"), plugin.Text("owner", "Owner"), plugin.Markdown("body"),
+				plugin.Names("parent", "Parent", protocol.LinkIn), plugin.NamesSeveral("links", "Links")).
 			Search(plugin.All("owner"), plugin.Upto("body", 200)).
 			Card(ui.Title("title"), ui.Subtitle(ui.Key), ui.Badge("status")).
 			Pane(ui.Title("title"), ui.Subtitle(ui.Key), ui.Badge("status"), ui.Field("owner"), ui.Markdown("body")).
+			// Something to do to one: it asks where to, moves it, and
+			// tells ws of it as it now is.
+			Action("move", "Move to…", func(a *plugin.Act) error {
+				to, err := a.Pick("Move "+a.Name+" to", plugin.Choices("Open", "Closed")...)
+				if err != nil {
+					return err
+				}
+				if _, n, _ := strings.Cut(a.Name, "-"); n != "1" {
+					return errors.New("only the first thing moves")
+				}
+				status.Store(to)
+				if err := thing.Put(a.Context(), first(a.Name)); err != nil && !errors.Is(err, plugin.ErrUnsupported) {
+					return err
+				}
+				a.Open("/thing/" + a.Name)
+				return a.Say(a.Name + " is " + to)
+			}).
 			Show(func(_ context.Context, a plugin.Asked) (plugin.Thing, error) {
 				_, n, _ := strings.Cut(a.Name, "-")
 				switch n {
@@ -95,13 +120,21 @@ func run() {
 		}
 		things := []plugin.Thing{first(prefixes.Get()[0] + "1")}
 		if more.Load() {
-			things = append(things, plugin.Thing{Name: prefixes.Get()[0] + "2", Fields: map[string]string{"title": "The second thing", "body": "It says goodbye."}})
+			things = append(things, plugin.Thing{Name: prefixes.Get()[0] + "2", Fields: map[string]string{"title": "The second thing", "body": "It says goodbye.", "parent": prefixes.Get()[0] + "1"}})
 		}
 		if err := thing.Mirror(ctx, things); err != nil && !errors.Is(err, plugin.ErrUnsupported) {
 			return err
 		}
 		return nil
 	})
+	// Something it can do, from Find.
+	p.Action("ping", "Ping the kit", func(a *plugin.Act) error {
+		who, err := a.Ask("Who's asking?", "A name")
+		if err != nil {
+			return err
+		}
+		return a.Say("pong, " + who)
+	}).Icon("box").Hint("It answers")
 	p.Command("more", "Has a second thing, from the next sync on", func(c *plugin.Call) error {
 		more.Store(c.Arg(0) != "less")
 		return c.Say("noted")

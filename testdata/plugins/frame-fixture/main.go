@@ -20,6 +20,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -129,6 +131,10 @@ func main() {
 						{"name": "state", "type": "state"},
 						{"name": "number", "type": "text", "label": "Number"},
 						{"name": "note", "type": "markdown"},
+						// What it names: ws links them in its graph, and
+						// draws each as what it names.
+						{"name": "part_of", "type": "ref", "label": "Part of", "link": "in"},
+						{"name": "beside", "type": "refs", "label": "Beside"},
 					},
 					"search": []map[string]any{{"field": "note", "max": 2000}},
 					"views": map[string]any{
@@ -138,11 +144,46 @@ func main() {
 						},
 						"pane": []map[string]any{
 							{"block": "title", "field": "name"}, {"block": "subtitle", "field": "key"}, {"block": "badge", "field": "state"},
-							{"block": "field", "field": "number"}, {"block": "markdown", "field": "note"},
+							{"block": "field", "field": "number"}, {"block": "field", "field": "part_of"}, {"block": "field", "field": "beside"},
+							{"block": "markdown", "field": "note"},
 						},
 					},
+					// What can be done to one, from Find.
+					"actions": []map[string]string{{"id": "move", "title": "Move to…"}},
 				}},
+				// What it can do, from Find.
+				"actions": []map[string]string{{"id": "dust", "title": "Dust the shelf", "icon": "sparkle", "hint": "Every thing on it"}},
 			}}, nil
+		case "action/run":
+			var p struct {
+				ID, Kind, Ref string
+				Answers       []string
+			}
+			if err := json.Unmarshal(params, &p); err != nil {
+				return nil, err
+			}
+			switch {
+			case p.Kind == "" && p.ID == "dust":
+				return map[string]any{"say": "Dusted " + itoa(int64(len(things))) + " things"}, nil
+			case p.Kind == "thing" && p.ID == "move":
+				// It asks where to before it does anything: ws asks, and
+				// runs it again with the answer.
+				if len(p.Answers) == 0 {
+					return map[string]any{"ask": map[string]any{"title": "Move " + p.Ref + " to", "type": "pick", "options": []map[string]string{
+						{"value": "On the shelf", "label": "The shelf"}, {"value": "On the hob", "label": "The hob", "hint": "Where the kettle goes"}, {"value": "In the attic", "label": "The attic"},
+					}}}, nil
+				}
+				for _, t := range things {
+					if p.Ref == "THING-"+itoa(int64(t.ID)) {
+						places.Store(t.ID, p.Answers[0])
+						// ws is told of it as it now is.
+						conn.Call(ctx, "thing/put", map[string]any{"things": []map[string]any{{"kind": "thing", "ref": p.Ref, "fields": fieldsOf(t, false)}}}, nil) //nolint:errcheck // a ws from before it could be told
+						return map[string]any{"say": t.Name + " is " + strings.ToLower(p.Answers[0][:1]) + p.Answers[0][1:], "open": "/things/" + p.Ref}, nil
+					}
+				}
+				return nil, &acp.RPCError{Code: -32001, Message: "the fixture has no " + p.Ref + " to move"}
+			}
+			return nil, &acp.RPCError{Code: acp.CodeInvalidParams, Message: "the fixture has no action " + p.ID}
 		case "ref/show":
 			var p struct {
 				Kind, Ref string
@@ -205,8 +246,24 @@ func fieldsOf(t thing, full bool) map[string]string {
 	if full {
 		note += "\n\nThat's all the fixture has of it."
 	}
-	return map[string]string{"name": t.Name, "state": "On the shelf", "number": itoa(int64(t.ID)), "note": note}
+	place := "On the shelf"
+	if p, ok := places.Load(t.ID); ok {
+		place = p.(string)
+	}
+	out := map[string]string{"name": t.Name, "state": place, "number": itoa(int64(t.ID)), "note": note}
+	// The compass is part of the lantern, which sits beside the others.
+	switch t.ID {
+	case 2:
+		out["beside"] = "THING-1, THING-3"
+	case 3:
+		out["part_of"] = "THING-2"
+	}
+	return out
 }
+
+// places is where each thing is, once it's been moved (ws frame-fixture's
+// Move to…, from Find).
+var places sync.Map
 
 func itoa(n int64) string {
 	b, _ := json.Marshal(n)

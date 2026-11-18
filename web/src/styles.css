@@ -12779,6 +12779,47 @@ button.finding-quote:hover {
   overflow-y: auto;
 }
 
+/* A plugin's thing in Find's pane: what it is, laid out as the pane's own
+   lines are, and under it what can be done to it. */
+.find-thing {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.find-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.find-acts button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* What Find's in the middle of (the thing it's acting on, the action
+   that's asking): said before what's typed, and a click steps back out. */
+.find-only.find-doing {
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What a mission's about, in its details: each a name, with its card. */
+.about-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+
 /* What a cell's agent had to say of what it wrote: to you, in its panel,
    never in the page. */
 .cell-notes {

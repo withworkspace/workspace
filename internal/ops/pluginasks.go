@@ -109,6 +109,7 @@ func pluginMission(v MissionView, updated time.Time, h mission.Headline, at stri
 		At:       at,
 		Capsules: []protocol.MissionCapsule{},
 		Path:     "/missions/" + v.M.Slug,
+		About:    v.M.About,
 	}
 	if h.Court != "" {
 		m.Headline = &protocol.Headline{Court: string(h.Court), Text: h.Text}

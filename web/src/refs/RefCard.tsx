@@ -10,7 +10,7 @@ import { headlineStatus, Status } from "../ui/status";
 import { useRefs } from "./known";
 import { GROUND, isOutside, type Known, namedOf, type PageRef, refHref } from "./refs";
 import { type Surface, thingBlocks } from "./thing";
-import { ThingView, useThing } from "./ThingView";
+import { type Pointer, ThingView, useThing } from "./ThingView";
 import { thingIcon } from "./views";
 import { FloatingCard } from "../ui/hover";
 
@@ -310,8 +310,22 @@ function ArtifactCard({ r, workspace }: { r: Extract<PageRef, { kind: "artifact"
 // its kind has no fields) is its name, and what one of its kind is called.
 //
 // before is shown in place of ws's own, while there's nothing of the thing
-// to draw: Find's pane has what the search found of it already.
-export function ThingCard({ r, known, surface = "card", before }: { r: Extract<PageRef, { kind: "thing" }>; known?: Known; surface?: Surface; before?: ReactNode }) {
+// to draw: Find's pane has what the search found of it already. pointer
+// draws a name one of its fields holds as what it names: Find's pane
+// does, and a card under a name leaves it as words.
+export function ThingCard({
+  r,
+  known,
+  surface = "card",
+  before,
+  pointer,
+}: {
+  r: Extract<PageRef, { kind: "thing" }>;
+  known?: Known;
+  surface?: Surface;
+  before?: ReactNode;
+  pointer?: Pointer;
+}) {
   const named = namedOf(r, known);
   const { thing, error } = useThing(r);
   const what = r.what.replace(/-/g, " ");
@@ -321,7 +335,7 @@ export function ThingCard({ r, known, surface = "card", before }: { r: Extract<P
   return (
     <>
       {drawn ? (
-        <ThingView named={named} record={thing} surface={surface} />
+        <ThingView named={named} record={thing} surface={surface} pointer={pointer} />
       ) : (
         <>
           <span className="hovercard-head">
