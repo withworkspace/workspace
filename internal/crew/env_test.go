@@ -109,3 +109,14 @@ func TestEnv_GitStopsAtTheReposFolder(t *testing.T) {
 		t.Errorf("git in a capsule: %q, %v", out, err)
 	}
 }
+
+// What turns ws eval on isn't handed to an agent: one that finds the
+// command can't run it.
+func TestEnv_DropsEval(t *testing.T) {
+	t.Setenv(EnvEval, "1")
+	for _, kv := range Env(t.TempDir(), "m", "c1") {
+		if strings.HasPrefix(kv, EnvEval+"=") {
+			t.Errorf("crew are given %s", kv)
+		}
+	}
+}

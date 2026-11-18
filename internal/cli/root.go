@@ -61,6 +61,7 @@ func newBuiltinRootCmd(version string) *cobra.Command {
 	cmd.AddCommand(newTeamCmd())
 	cmd.AddCommand(newProcessCmd())
 	cmd.AddCommand(newPluginCmd())
+	cmd.AddCommand(newEvalCmd())
 
 	return cmd
 }
