@@ -662,6 +662,11 @@ export function namedOf(ref: Extract<PageRef, { kind: "thing" }>, known?: Known)
   return known?.things?.find((t) => t.plugin === ref.plugin && t.what === ref.what);
 }
 
+// goneCapsule is whether a ref's capsule has gone since it was named
+// (landed, or burned): what there is to name no longer has it.
+export const goneCapsule = (r: { repo: string; worktree: string }, known?: Known) =>
+  r.worktree !== GROUND && !!known?.capsules && !known.capsules.get(r.repo)?.includes(r.worktree);
+
 // isOutside is whether somewhere a ref goes (refHref) is outside ws: an
 // address, not one of the web UI's own paths.
 export const isOutside = (href: string) => /^[a-z][a-z0-9+.-]*:/i.test(href);

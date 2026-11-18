@@ -67,6 +67,16 @@ a:hover {
   border-top: 1px solid var(--ws-line);
 }
 
+.names {
+  margin-top: var(--ws-space-8);
+}
+.names code {
+  padding: 1px 5px;
+  border-radius: var(--ws-radius-sm);
+  background: var(--ws-code-bg);
+  font: var(--ws-text-sm) var(--ws-mono);
+}
+
 aside {
   align-self: start;
   padding: var(--ws-space-4);

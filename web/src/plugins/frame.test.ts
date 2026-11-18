@@ -2,6 +2,7 @@ import { connect, ProtocolError } from "@withworkspace/ui-lib";
 import { isRefuse, TOKENS, V1 } from "@withworkspace/ui-lib/protocol";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { frameKeys } from "../keys";
+import type { FoundRef } from "../refs/found";
 import { answer, type Host, type KeyPress, listen, refusal, type Session, type Speak, versions } from "./frame";
 import { v1 } from "./frame/v1";
 import { tokenVar } from "./tokens";
@@ -15,8 +16,12 @@ const vars = (value: string) => Object.fromEntries(TOKENS.map((t) => [tokenVar(t
 
 // A host that keeps what the page said, with a theme a test can change.
 function fakeWs(path = "/things/2?tab=links") {
-  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[] };
+  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][] };
   let theme: V1.Theme = { scheme: "dark", vars: vars("dark") };
+  // What ws finds: THING-<n>, wherever it's written, until a test says
+  // otherwise.
+  let find = (text: string): FoundRef[] =>
+    [...text.matchAll(/THING-\d+/g)].map((m) => ({ from: m.index, to: m.index + m[0].length, ref: JSON.stringify({ kind: "thing", id: m[0] }), kind: "thing", href: `/x/jira/things/${m[0]}` }));
   const host: Host = {
     plugin: "jira",
     ws: "1.2.3",
@@ -25,8 +30,12 @@ function fakeWs(path = "/things/2?tab=links") {
     titled: (t) => void said.titled.push(t),
     go: (p, replace) => void said.went.push(replace ? `${p} (replace)` : p),
     key: (k) => void said.keys.push(k),
+    refs: (texts) => {
+      said.asked.push(texts);
+      return texts.map(find);
+    },
   };
-  return { host, said, setTheme: (t: V1.Theme) => void (theme = t) };
+  return { host, said, setTheme: (t: V1.Theme) => void (theme = t), setFind: (f: typeof find) => void (find = f) };
 }
 
 // The page's client, connected to ws's answer: what a plugin's app has.
@@ -97,7 +106,7 @@ describe("the handshake", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const ws = fakeWs();
     // A ws that has gone on to 2 and dropped 1.
-    const later: Record<number, Speak> = { 2: () => ({ version: 2, navigate() {}, theme() {}, changed() {}, close() {} }) };
+    const later: Record<number, Speak> = { 2: () => ({ version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, close() {} }) };
     const failed = connect({ host: { postMessage: (m, _o, [port]) => void answer(m as V1.Connect, port as MessagePort, ws.host, later) } });
     await expect(failed).rejects.toBeInstanceOf(ProtocolError);
     await expect(failed).rejects.toMatchObject({ page: [1], host: [2], message: "jira speaks frame protocol 1, and this ws speaks 2. Update the plugin." });
@@ -110,7 +119,7 @@ describe("the handshake", () => {
     const two: Speak = (port) => {
       spoke.push(2);
       port.postMessage({ type: "ws:welcome", version: 2 });
-      return { version: 2, navigate() {}, theme() {}, changed() {}, close: () => port.close() };
+      return { version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, close: () => port.close() };
     };
     const both: Record<number, Speak> = { 1: v1, 2: two };
 
@@ -165,6 +174,60 @@ describe("protocol 1's host", () => {
     expect(got.themes).toEqual([{ scheme: "light", vars: vars("light") }]);
     expect(client.theme.scheme).toBe("light");
     expect(got.changed).toBe(1);
+    client.close();
+    session.close();
+  });
+
+  it("says it finds names, and finds the ones in the words the app sends, each text's in its turn", async () => {
+    const { client, session, said } = await connected();
+    const [first, second] = await Promise.all([client.findRefs(["THING-2 goes beside THING-1.", "Nothing here"]), client.findRefs(["About THING-3"])]);
+    expect(first).toEqual([
+      [
+        { from: 0, to: 7, ref: '{"kind":"thing","id":"THING-2"}', kind: "thing", href: "/x/jira/things/THING-2" },
+        { from: 20, to: 27, ref: '{"kind":"thing","id":"THING-1"}', kind: "thing", href: "/x/jira/things/THING-1" },
+      ],
+      [],
+    ]);
+    expect(second).toEqual([[{ from: 6, to: 13, ref: '{"kind":"thing","id":"THING-3"}', kind: "thing", href: "/x/jira/things/THING-3" }]]);
+    // The client's askings of one turn came as one.
+    expect(said.asked).toEqual([["THING-2 goes beside THING-1.", "Nothing here", "About THING-3"]]);
+    client.close();
+    session.close();
+  });
+
+  it("sends what it found as the protocol has a ref, whatever else ws knows of it", async () => {
+    const ws = fakeWs();
+    ws.setFind(() => [{ from: 0, to: 4, ref: '{"kind":"repo","repo":"demo"}', kind: "repo", href: "/files/demo", shape: "pill", accent: "#2f7d5b" }]);
+    const { port1, port2 } = new MessageChannel();
+    const session = v1(port2, ws.host);
+    const got: unknown[] = [];
+    port1.onmessage = (e) => got.push(e.data);
+    port1.postMessage({ type: "ws:refs", id: 4, texts: ["demo"] } satisfies V1.Refs);
+    port1.postMessage({ type: "ws:refs", texts: ["demo"] }); // not as the protocol has it: no id to answer by
+    await tick();
+    expect(V1.isWelcome(got[0]) && got[0].refs).toBe(true);
+    expect(got.slice(1)).toEqual([{ type: "ws:refs-found", id: 4, found: [[{ from: 0, to: 4, ref: '{"kind":"repo","repo":"demo"}', kind: "repo", href: "/files/demo", shape: "pill", accent: "#2f7d5b" }]] }]);
+    expect(got.slice(1).every(V1.isHostMessage)).toBe(true);
+    session.close();
+    port1.close();
+  });
+
+  it("tells an app that has asked when what there is to name changed, and an app that hasn't nothing", async () => {
+    const { client, session, setFind } = await connected();
+    let changed = 0;
+    client.onRefsChanged(() => changed++);
+
+    // It hasn't asked: it drew no names, and has none to draw again.
+    session.refsChanged();
+    await tick();
+    expect(changed).toBe(0);
+
+    expect(await client.findRefs(["mission-one is under way"])).toEqual([[]]);
+    setFind((text) => (text.startsWith("mission-one") ? [{ from: 0, to: 11, ref: '{"kind":"mission","slug":"mission-one"}', kind: "mission", href: "/missions/mission-one" }] : []));
+    session.refsChanged();
+    await tick();
+    expect(changed).toBe(1);
+    expect((await client.findRefs(["mission-one is under way"]))[0]).toEqual([{ from: 0, to: 11, ref: '{"kind":"mission","slug":"mission-one"}', kind: "mission", href: "/missions/mission-one" }]);
     client.close();
     session.close();
   });

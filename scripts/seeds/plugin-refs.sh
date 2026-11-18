@@ -60,6 +60,9 @@ brief and a note name them.
   $ws mission new "Polish it" --about THING-2    a mission about it: its page says so,
                     and $ws show THING-2 says the mission's about it
   $ws show THING-3           its links: part of THING-2, which says THING-3 is in it
+  /x/frame-fixture/          the fixture's own page: under "Names in the app's own words",
+                    THING-2, the mission and the note are refs there too, found by ws
+                    for the app (its panel counts each ws:refs-changed)
   $ws plugin list            names THING-…
   $ws plugin remove frame-fixture   and its names are words again
 SAID

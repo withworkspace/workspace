@@ -3,7 +3,7 @@
 A plugin for trying ws's page for a plugin's app (the shell) and the frame protocol by hand. It isn't published, and it isn't built on the plugin framework: it speaks the plugin protocol's JSON-RPC by hand (`main.go`), so ws can be tried before the framework builds apps itself.
 
 - **`main.go`** registers two views and its app (`ui.script`, `ui.style`), and serves the app's files at `/ui/` and one JSON endpoint, `/api/things`. It serves no HTML. It registers how its things are named too (`refs`: `THING-2` is the Lantern), answers `ref/show` for one, and tells ws of all three as it starts (`thing/put`), so Find has them: `just try up plugin-refs` seeds a mission and a note that name them.
-- **`ui/`** is the app, on the published [`@withworkspace/ui-lib`](https://www.npmjs.com/package/@withworkspace/ui-lib): two screens (`/` and `/things/<id>`), a title for each, and a panel of what ws has told it.
+- **`ui/`** is the app, on the published [`@withworkspace/ui-lib`](https://www.npmjs.com/package/@withworkspace/ui-lib): two screens (`/` and `/things/<id>`), a title for each, some words of its own that name things, and a panel of what ws has told it.
 - **`ui/dist/`** is the app as built, and is committed: `go:embed` needs it when the plugin's built, so Go alone builds the plugin.
 
 ## Running it
@@ -34,6 +34,8 @@ That adds it, linked to this folder, and prints where the web UI is. In any othe
 | `ws frame-fixture looking` | Who ws last told the plugin is looking (`view/looking`): `{"app":true,"ws":true}` with the app on screen, `app` false on another page of ws's, and both false a few seconds after the tab's put behind another, or closed. |
 | `?`, `g` then `m`, ⌘K, pressed in the frame | ws's keys work there. Typed into the box, `?` and `g` stay in the box. |
 | "Missions: a page of ws's own" | A plain link to a page of ws's opens in ws, not in the frame. |
+| "Names in the app's own words" | The names are refs, drawn as in ws's own pages: `THING-2` and `THING-1`, `THING-3` in code, and `THING-9`, which has a name and isn't there. The app holds no grammar: it sent its words to ws, which found them (`ws:refs`). A click on `THING-1` goes to it in the app, by way of ws. The link's words, `ws show THING-3` and the words that only look like names are left. |
+| The same, after `just try up plugin-refs` | `shelve-the-lantern` is a ref to the mission, and the note's path one to the file, a moment after the rest: ws read the repo's files once the words named it, and said `ws:refs-changed`. "ws:refs-changed received" goes up for each. `ws mission new "Another one"` then leaves the marks as they are and the count one higher. |
 | `/x/frame-fixture/?speaks=2` | The app says it speaks only frame protocol 2. ws refuses it and says "Update ws" above the frame, and the package's `ProtocolError` is in the console. |
 
 `FRAME_FIXTURE_SPEAKS=2` in the daemon's environment does the same as `?speaks=2` for every load, without the address saying so.

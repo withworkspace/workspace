@@ -1,4 +1,5 @@
 import { chooseVersion, type Connect, isConnect, type Refuse } from "@withworkspace/ui-lib/protocol";
+import type { FoundRef } from "../refs/found";
 import type { Theme } from "./theme";
 import { v1 } from "./frame/v1";
 
@@ -38,6 +39,10 @@ export interface Host {
   go(path: string, replace: boolean): void;
   // A key ws owns was pressed in the frame.
   key(press: KeyPress): void;
+  // The refs in each of some runs of text the app shows, as ws finds them
+  // in its own pages (refs/found.ts): the app draws what it's told, since
+  // only ws knows what there is to name.
+  refs(texts: string[]): FoundRef[][];
 }
 
 // Session is a page that's connected, as ws tells it things.
@@ -50,6 +55,9 @@ export interface Session {
   theme(): void;
   // The plugin said what its view shows is stale.
   changed(): void;
+  // What there is to name changed: what the app was told of the refs in
+  // its words may be different now.
+  refsChanged(): void;
   // Stops listening, and closes the port.
   close(): void;
 }
@@ -94,6 +102,7 @@ export interface Frame {
   navigate(path: string): void;
   theme(): void;
   changed(): void;
+  refsChanged(): void;
   // Stops listening for the frame, and hangs up on the page in it.
   stop(): void;
 }
@@ -130,6 +139,7 @@ export function listen(frame: () => Window | null | undefined, host: Host, refus
     navigate: (path) => session?.navigate(path),
     theme: () => session?.theme(),
     changed: () => session?.changed(),
+    refsChanged: () => session?.refsChanged(),
     stop() {
       window.removeEventListener("message", onMessage);
       session?.close();

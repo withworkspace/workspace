@@ -8,7 +8,7 @@ import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { headlineStatus, Status } from "../ui/status";
 import { useRefs } from "./known";
-import { GROUND, isOutside, type Known, namedOf, type PageRef, refHref } from "./refs";
+import { goneCapsule, GROUND, isOutside, type Known, namedOf, type PageRef, refHref } from "./refs";
 import { type Surface, thingBlocks } from "./thing";
 import { type Pointer, ThingView, useThing } from "./ThingView";
 import { thingIcon } from "./views";
@@ -75,11 +75,6 @@ const treeOf = (repo: string, worktree: string) => {
 
 // excerptRoom is how many lines of a file a card shows.
 const excerptRoom = 12;
-
-// goneCapsule is whether a ref's capsule has gone since it was named
-// (landed, or burned): what there is to name no longer has it.
-export const goneCapsule = (r: { repo: string; worktree: string }, known?: Known) =>
-  r.worktree !== GROUND && !!known?.capsules && !known.capsules.get(r.repo)?.includes(r.worktree);
 
 // Gone is what a card says of a capsule that's gone, and where its file or
 // folder is now: on the default branch, most likely, once it's landed.
