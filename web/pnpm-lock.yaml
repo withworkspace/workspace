@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@withworkspace/ui-lib':
-        specifier: 0.3.0
-        version: 0.3.0
+        specifier: 0.4.0
+        version: 0.4.0
       '@xterm/xterm':
         specifier: 6.0.0
         version: 6.0.0
@@ -588,8 +588,8 @@ packages:
   '@vitest/spy@5.0.5':
     resolution: {integrity: sha512-lwJRExuH417257Q5wv9QYugN9IMJkoxcrKrYxGPQkBzl7wlNpTUxD/5yNX4ESKVUIShKPgkGchYPFMWOOk0wzw==}
 
-  '@withworkspace/ui-lib@0.3.0':
-    resolution: {integrity: sha512-7wBimkbzcbTLIwPKwCltRyO0WlHTpQECZYO9A0wPj9gSK1MLUXqPyOg8G5iYk1N9QGc8hF2IWcmny8/wrQuTng==}
+  '@withworkspace/ui-lib@0.4.0':
+    resolution: {integrity: sha512-vkOTtRlI5C+ttnYbn9vDZDsFl/+5hJFf7AlqJdiCpm/7OFNpO5FfE/Tm37PaLHI9z9yVXTqLTi80vUs6bHGfcw==}
 
   '@xterm/xterm@6.0.0':
     resolution: {integrity: sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg==}
@@ -1908,7 +1908,7 @@ snapshots:
 
   '@vitest/spy@5.0.5': {}
 
-  '@withworkspace/ui-lib@0.3.0': {}
+  '@withworkspace/ui-lib@0.4.0': {}
 
   '@xterm/xterm@6.0.0': {}
 
