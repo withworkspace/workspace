@@ -48,6 +48,8 @@ jobs:
             exit 1
           fi
 
+      - run: pnpm --dir web test
+
       - run: go build ./...
 
       - run: go test ./...
