@@ -1346,7 +1346,7 @@ main.stale > :not(.connection-banner) {
 .note-editor,
 .select-bar,
 .hovercard,
-.capsule-card.full,
+.work-pane,
 .change-pop,
 .composer,
 .proposal,
@@ -4792,14 +4792,6 @@ dd > .more-link,
   border-radius: var(--radius);
 }
 
-.capsule-card.full {
-  margin: 0;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  background: var(--raised);
-  box-shadow: var(--shadow-xs);
-}
-
 .capsule-card.selected {
   background: var(--selected);
 }
@@ -4814,62 +4806,6 @@ dd > .more-link,
 
 .capsule-name {
   font-weight: 500;
-}
-
-.capsule-summary {
-  display: grid;
-  gap: 6px;
-  margin: 8px 0 0 22px;
-  font-size: var(--text-sm);
-}
-
-.capsule-stat {
-  font-variant-numeric: tabular-nums;
-}
-
-.capsule-commits {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.capsule-commits li {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  min-width: 0;
-}
-
-.capsule-commits .copyable {
-  color: var(--dim);
-  font-size: var(--text-xs);
-}
-
-.capsule-commit-subject {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.capsule-pr {
-  margin: 4px 0 0 22px;
-}
-
-.capsule-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin: 6px 0 0 22px;
-  font-size: var(--text-sm);
-  color: var(--dim);
-  min-width: 0;
-}
-
-.capsule-meta > * {
-  min-width: 0;
 }
 
 .badges {
@@ -6453,6 +6389,690 @@ button.verify-big {
   padding-left: 1.4em;
   font-family: var(--mono);
   font-size: var(--text-sm);
+}
+
+/* The mission's Work tab (mission/Work.tsx). What's been made, a row
+   each: capsules in the order they need you, then outputs; and the one
+   that's open beside them, in a card whose edge stays put while its
+   columns scroll. On a wide window the tab fills what's under the
+   mission's bar (.mission-page.fills); narrower, the files go under the
+   rest, then the pane under the list, and the page scrolls. */
+.work {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+  min-width: 0;
+}
+
+.work-list {
+  min-width: 0;
+}
+
+.work-list .group:not(:first-child) {
+  margin-top: var(--space-5);
+}
+
+.work-list .ended-alone {
+  margin-top: var(--space-3);
+}
+
+.work-none {
+  margin: 0;
+  padding: 4px 8px;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+/* In hand, Up next, Done: a quiet word over its rows. Done is a button,
+   which folds them to a line. */
+.work-sub {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+  margin: 10px 0 2px;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--faint);
+  background: none;
+  border: 0;
+  box-shadow: none;
+  text-align: left;
+}
+
+button.work-sub:hover {
+  background: none;
+  color: var(--dim);
+}
+
+.work-sub .icon {
+  transition: transform var(--fast) var(--ease);
+}
+
+.work-sub[aria-expanded="true"] .icon {
+  transform: rotate(90deg);
+}
+
+.work-sub-rest {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 400;
+}
+
+/* A row: what it is, how much, who's there now, where it stands. */
+.work-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--fast) var(--ease);
+}
+
+.work-row:hover {
+  background: var(--hover);
+}
+
+.work-row.selected {
+  background: var(--selected);
+}
+
+.work-row > .icon {
+  color: var(--dim);
+}
+
+.work-row.output {
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+}
+
+.work-row-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.work-row-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.work-row.quiet .work-row-name {
+  color: var(--dim);
+}
+
+.work-row.output:not(.named) .work-row-name {
+  font-weight: 400;
+}
+
+.work-row-slug {
+  flex: 0 1000 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dim);
+}
+
+.work-row-stat {
+  flex: none;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.work-lines {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.work-row-end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.work-row-when {
+  font-size: var(--text-xs);
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.work-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2.2s var(--ease) infinite;
+}
+
+/* Where Summary (with no details) and the log point at Work. */
+.summary-work {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-sm);
+}
+
+.capsule-card + .summary-work {
+  margin-top: 6px;
+}
+
+.log-crew-moved {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* The pane: its head stays, its columns scroll. */
+.work-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-xs);
+}
+
+.work-pane:empty {
+  display: none;
+}
+
+.work-head {
+  flex: none;
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.work-head-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  min-width: 0;
+}
+
+.work-head-top > .icon {
+  color: var(--dim);
+}
+
+.work-head h2 {
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+}
+
+.work-head-slug {
+  min-width: 0;
+  color: var(--dim);
+}
+
+.work-head-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.work-head-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 14px;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.work-head-meta > * {
+  min-width: 0;
+}
+
+.work-loose {
+  color: var(--tone);
+}
+
+.work-head-pr {
+  font-size: var(--text-sm);
+}
+
+.work-kind {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--dim);
+}
+
+h2.work-title {
+  max-width: 90ch;
+  line-height: 1.4;
+}
+
+.work-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+}
+
+.work-body.one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.work-col {
+  min-width: 0;
+  padding: 4px 16px 24px;
+}
+
+.work-col + .work-col {
+  border-left: 1px solid var(--line);
+}
+
+.work-col h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  margin: 8px -16px 6px;
+  padding: 6px 16px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--dim);
+  background: var(--raised);
+}
+
+.work-col .empty {
+  padding-block: var(--space-8);
+}
+
+/* The step the mission's on, when it's in this capsule. */
+.work-now {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-top: 12px;
+  padding: 9px 12px;
+  border-left: 3px solid var(--tone);
+  border-radius: var(--radius);
+  background: var(--tone-soft);
+}
+
+.work-now p {
+  flex: 1 1 260px;
+  min-width: 0;
+  margin: 0;
+}
+
+.work-now strong {
+  color: var(--tone);
+}
+
+/* Who's been in it: a line a crew, and what it left under it. */
+.work-crew {
+  display: grid;
+  gap: 10px;
+}
+
+.work-crew-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.work-crew-line .crew-badge,
+.work-crew-line .button-link {
+  flex: none;
+  align-self: center;
+}
+
+.work-crew-say {
+  flex: 1;
+  min-width: 0;
+}
+
+.work-crew-say strong {
+  font-weight: 500;
+}
+
+.work-left {
+  all: unset;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 3px 0 0 30px;
+  font-size: var(--text-sm);
+  color: var(--dim);
+  border-radius: var(--radius-sm);
+}
+
+button.work-left {
+  cursor: pointer;
+}
+
+button.work-left:hover {
+  color: var(--fg);
+}
+
+.work-left .icon {
+  flex: none;
+  align-self: center;
+  color: var(--faint);
+}
+
+/* The steps that ran in it: a mark, its number, what it is and whose. */
+.work-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.work-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 16px 20px minmax(0, 1fr);
+  gap: 0 8px;
+  padding: 3px 0;
+}
+
+.work-step + .work-step::before {
+  content: "";
+  position: absolute;
+  left: 7.5px;
+  top: -6px;
+  height: 12px;
+  border-left: 1px solid var(--line-strong);
+}
+
+.work-step-mark {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: var(--raised);
+}
+
+.work-step.accepted .work-step-mark {
+  background: var(--done-soft);
+  color: var(--done);
+}
+
+.work-step.current .work-step-mark {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.work-step.current .work-step-mark::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.work-step.todo .work-step-mark {
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+
+.work-step-n {
+  line-height: 20px;
+  text-align: right;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.work-step-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  line-height: 20px;
+}
+
+.work-step-title {
+  font-weight: 500;
+}
+
+.work-step.todo .work-step-title {
+  font-weight: 400;
+  color: var(--dim);
+}
+
+.work-step-bundle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+}
+
+.work-step-bundle:hover {
+  text-decoration: underline;
+}
+
+.work-commits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.work-commits li {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.work-commits .copyable {
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.work-commits time {
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.work-commit-subject {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.work-made {
+  margin: 0 -10px;
+}
+
+/* Changed files, by top-level folder. */
+.work-filter {
+  width: 130px;
+  min-height: 22px;
+  padding: 1px 8px;
+  font: var(--text-xs) var(--font);
+  font-weight: 400;
+}
+
+.work-fgroup-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: calc(100% + 12px);
+  min-height: 26px;
+  margin: 4px -6px 0;
+  padding: 2px 6px;
+  font-size: var(--text-sm);
+  color: var(--fg);
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+.work-fgroup-head > .icon {
+  color: var(--faint);
+  transition: transform var(--fast) var(--ease);
+}
+
+.work-fgroup-head[aria-expanded="true"] > .icon {
+  transform: rotate(90deg);
+}
+
+.work-fgroup-n {
+  font-weight: 400;
+  color: var(--faint);
+}
+
+.work-files .work-lines {
+  margin-left: auto;
+  font: var(--text-xs) var(--mono);
+}
+
+.work-file {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 -6px;
+  padding: 2px 6px 2px 20px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+}
+
+a.work-file:hover {
+  background: var(--hover);
+}
+
+.work-file-st {
+  font: 600 10px / 16px var(--mono);
+  text-align: center;
+  color: var(--dim);
+}
+
+.work-file-st.added {
+  color: var(--done);
+}
+
+.work-file-st.deleted {
+  color: var(--danger);
+}
+
+/* Cut short from the left: a file keeps its name. */
+.work-file-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.work-file-path bdi {
+  font: 11.5px var(--mono);
+}
+
+.work-file.deleted .work-file-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--faint);
+}
+
+.work-file.skim {
+  opacity: 0.55;
+}
+
+.work-file-loose {
+  align-self: center;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--attention-fill);
+}
+
+.work-prose {
+  max-width: 84ch;
+  padding-top: 12px;
+}
+
+@media (min-width: 1021px) {
+  .mission-page.fills .work {
+    height: 100%;
+    align-items: stretch;
+  }
+
+  .mission-page.fills .work-list,
+  .mission-page.fills .work-col {
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .mission-page.fills .work-list {
+    padding: 0 8px 24px 0;
+  }
+}
+
+/* The headings stay as a column scrolls, where it does. */
+@media (min-width: 1321px) {
+  .mission-page.fills .work-col h3 {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+}
+
+/* Narrower: the files under the rest, the pane scrolling as one. */
+@media (max-width: 1320px) {
+  .work-body {
+    display: block;
+  }
+
+  .mission-page.fills .work-body {
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .mission-page.fills .work-col {
+    overflow: visible;
+  }
+
+  .work-col {
+    padding-bottom: 8px;
+  }
+
+  .work-col + .work-col {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* Narrower still: the pane under the list. */
+@media (max-width: 1020px) {
+  .work {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mission-page.fills .work-body {
+    overflow: visible;
+  }
 }
 
 /* Markdown: briefs, artifacts, handoffs, reviews */

@@ -665,6 +665,7 @@ export interface Stage {
   type?: "Work" | "Verify" | "Review" | "Decide" | "Open Pull Request" | "Land" | "Wait" | "Plan";
   who?: "crew" | "you" | "ws" | "CI" | "outside" | "the planner";
   whoSays?: string;
+  in?: string; // where it works, as the plan says: a repo, or one of the mission's capsules (repo/name)
   makes?: string;
   opensPR?: boolean; // it makes a pull request, opened through ws
   // A Work step's expansion: the step whose crew it carries on from, its
@@ -2016,9 +2017,22 @@ export type CrewAnswer = { permission: "allow" | "always" | "deny" } | { option:
 export const answerCrew = (slug: string, id: string, a: CrewAnswer) =>
   send<{ message: string }>("POST", `/api/missions/${encodeURIComponent(slug)}/crew/${encodeURIComponent(id)}/answer`, a);
 
-// A capsule in brief (its Work tab card): what's changed since its branch
-// point, committed, its latest commits, and how many files aren't
-// committed. Mirrors review.Summary.
+// A file that differs from a capsule's branch point, committed or not,
+// without its lines. Mirrors review.Changed.
+export interface ChangedFile {
+  path: string;
+  oldPath?: string;
+  status: string; // added, deleted, modified, renamed, copied or type
+  additions: number;
+  deletions: number;
+  skim?: string; // why it needn't be read closely: a lockfile, generated, a snapshot, renamed
+  uncommitted?: boolean; // it has changes that aren't committed, which a review doesn't show
+}
+
+// A capsule in brief (the Work tab's row and pane): what's changed since
+// its branch point, committed, its latest commits, how many files aren't
+// committed, and the files that differ as it is now. Mirrors
+// review.Summary.
 export interface CapsuleSummary {
   baseRef: string;
   base?: string;
@@ -2028,6 +2042,8 @@ export interface CapsuleSummary {
   additions: number;
   deletions: number;
   uncommitted: number;
+  changed: ChangedFile[]; // committed or not
+  changedMore?: number; // how many more there are than it lists
 }
 
 export const getSummary = (api: string) => getJSON<CapsuleSummary>(`${api}/summary`);

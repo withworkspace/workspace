@@ -220,6 +220,7 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 		sg := Stage{N: st.N, Title: st.Short(), Text: st.Plain(), State: "todo", CheckIn: st.CheckIn}
 		if s := st.Step; s != nil {
 			sg.Type, sg.Who, sg.WhoSays, sg.Makes, sg.OpensPR = s.Type, s.Who, s.WhoSays(), s.Makes, s.MakesPR()
+			sg.In = s.Capsule
 		}
 		if st.Record != nil {
 			sg.Crew, sg.Why = st.Record.Crew, st.Record.Why

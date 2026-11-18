@@ -6,8 +6,6 @@ import {
   type ActVerb,
   type Artifact,
   type CapsuleDetail,
-  type CapsuleSummary,
-  capsuleAPI,
   type CrewDetail,
   type CrewPick,
   type CrewPicks,
@@ -15,7 +13,6 @@ import {
   sayToCrew,
   type TranscriptEntry,
   getMission,
-  getSummary,
   type Headline,
   type Look,
   type MissionDetail,
@@ -41,11 +38,12 @@ import { briefHref } from "./BriefView";
 import { shownHeadlines } from "./headlines";
 import { mediaKind } from "./media";
 import { missionRefs } from "./refs";
-import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, kindTitle, MissionData, shortPath, Stepper, Timeline, viewEvent } from "./parts";
-import { CapsuleEnds, EndButton, EndDialog, EndedCapsules, ended, endingWords, HandedOn, ZChecks } from "./Ending";
-import { canOpenPR, OpenPR } from "./OpenPR";
+import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, MissionData, Stepper, Timeline, viewEvent } from "./parts";
+import { EndButton, EndDialog, EndedCapsules, ended, endingWords, HandedOn, ZChecks } from "./Ending";
 import { PlanList } from "./PlanList";
 import { Verify } from "./Verify";
+import { useRepoLabel, Work, workWords } from "./Work";
+import { crewElsewhere, work } from "./workRows";
 import { checkRows, rowKey, shownBundle, toApprove, waiting as bundleWaiting } from "./verifyRows";
 import { type Reload, useLoaded } from "../load";
 
@@ -69,7 +67,7 @@ const wideTabs: Tab[] = ["work", "verify"];
 export const missionKeys: [string, string][] = [
   ["1–6", "Summary, Brief, Work, Verify, Log, Talk"],
   ["j / k", "Next / previous document or capsule, or a bundle's check"],
-  ["⏎", "Open it: a capsule's review, a document"],
+  ["⏎", "Open it: a capsule's review, a document's page"],
   ["v", "Review the capsule, or read the replies on a document"],
   ["o", "Open its link (a PR, a document on GitHub)"],
   ["f", "Browse the capsule's files (or the mission's only one)"],
@@ -162,6 +160,8 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
   const pickBundle = (id?: string) => setParams(id ? { tab: "verify", b: id } : { tab: "verify" }, { replace: true });
   const bundle = useMemo(() => (d ? shownBundle(d.bundles, picked) : undefined), [d, picked]);
 
+  // What the Work tab lists, and the row it opens on.
+  const w = useMemo(() => (d ? work(d) : undefined), [d]);
   const items = useMemo((): Item[] => {
     if (!d) return [];
     const caps = d.capsules.map((c): Item => ({ key: `c:${c.repo}/${c.name}`, open: () => review(c), url: c.pr?.url, capsule: c }));
@@ -169,26 +169,32 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
     switch (tab) {
       case "summary":
         // In the order the details (or Summary without them) show them.
-        return [...arts(d.artifacts.slice(0, side ? sideArtifacts : summaryArtifacts)), ...caps];
-      case "work":
-        return [...caps, ...arts(byKind(d.artifacts).flatMap(([, list]) => list))];
+        if (!side) return caps.filter((i) => w?.hand.some((x) => x.key === i.key));
+        return [...arts(d.artifacts.slice(0, sideArtifacts)), ...caps];
+      case "work": {
+        // In the order its list has them: capsules as they need you, then outputs.
+        const all = new Map([...caps, ...arts(d.artifacts)].map((i) => [i.key, i]));
+        return (w?.keys ?? []).map((k) => all.get(k)).filter((i): i is Item => !!i);
+      }
       case "verify":
         // The open bundle's checks, in the order it lists them.
         return bundle ? checkRows(bundle).map((r): Item => ({ key: rowKey(bundle, r), open: () => {} })) : [];
       case "log":
-        return d.crew
+        return crewElsewhere(d)
           .filter((c) => c.handoff)
           .map((c): Item => ({ key: `h:${c.id}`, open: () => openArtifact({ ref: c.handoff!, readable: true } as Artifact) }));
     }
     return [];
-  }, [d, tab, side, review, openArtifact, bundle]);
+  }, [d, w, tab, side, review, openArtifact, bundle]);
   const [sel, setSelState] = useState<string | undefined>(() => remembered.get(slug));
   const setSel = (key: string) => {
     remembered.set(slug, key);
     setSelState(key);
   };
-  // Nothing's selected until j or k: the first j takes the first item.
-  const at = items.findIndex((i) => i.key === sel);
+  // Nothing's selected until j or k: the first j takes the first item. But
+  // Work always has a row open: the one it opens on, until one's picked.
+  const chosen = items.findIndex((i) => i.key === sel);
+  const at = chosen < 0 && tab === "work" ? items.findIndex((i) => i.key === w?.opensOn) : chosen;
   const item = at >= 0 ? items[at] : undefined;
   useEffect(() => {
     if (!item) return;
@@ -348,7 +354,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
   return (
     <MissionData.Provider value={d}>
     <RefContext.Provider value={refs}>
-    <div className={`mission-page${tab === "verify" ? " fills" : ""}`}>
+    <div className={`mission-page${tab === "verify" || tab === "work" ? " fills" : ""}`}>
       <Timeline d={d} />
       <div className="mission-bar">
         <div className="mission-bar-in">
@@ -385,7 +391,9 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
           <div role="tabpanel" id="mission-panel" aria-labelledby={`tab-${tab}`} className="tab-panel" key={tab}>
             {tab === "summary" && <Summary {...parts} full={!side} />}
             {tab === "brief" && <Brief d={d} reload={load} />}
-            {tab === "work" && <Work {...parts} />}
+            {tab === "work" && w && (
+              <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} />
+            )}
             {tab === "verify" && <Verify d={d} bundle={bundle} pick={pickBundle} sel={item?.key} select={setSel} reload={load} />}
             {tab === "log" && <Log {...parts} />}
             {tab === "talk" && <MissionTalk slug={d.slug} talks={d.talks} planner={d.planner} />}
@@ -611,8 +619,8 @@ function DetailSide({ d, selected, openArtifact, review, updated, over, open, go
           <CrewRow key={c.id} c={c} slug={d.slug} />
         ))}
         {d.crew.length > live.length && (
-          <button className="link more-link" onClick={() => go("log")}>
-            {live.length ? `${d.crew.length - live.length} earlier` : `${d.crew.length} so far, none on it now`}
+          <button className="link more-link" onClick={() => go("work")}>
+            {live.length ? `${d.crew.length - live.length} earlier, in Work` : `${d.crew.length} so far, none on it now: in Work`}
           </button>
         )}
         {!d.crew.length && <div className="side-none">Nobody yet.</div>}
@@ -633,7 +641,6 @@ function SideSection({ title, count, children }: { title: string; count?: string
   );
 }
 
-const summaryArtifacts = 6;
 const sideArtifacts = 6;
 const summaryRecent = 5;
 const summaryRecentWithSide = 7;
@@ -642,12 +649,6 @@ const summaryDecisions = 3;
 // withPRs keeps the PRs already known while what's on disk refreshes.
 function withPRs(next: CapsuleDetail[], known: CapsuleDetail[]): CapsuleDetail[] {
   return next.map((c) => ({ ...c, pr: c.pr ?? known.find((k) => k.repo === c.repo && k.name === c.name)?.pr }));
-}
-
-function byKind(list: Artifact[]): [string, Artifact[]][] {
-  const groups = new Map<string, Artifact[]>();
-  for (const a of list) groups.set(a.kind, [...(groups.get(a.kind) ?? []), a]);
-  return [...groups];
 }
 
 interface Parts {
@@ -713,8 +714,10 @@ function Notices({ d }: { d: MissionDetail }) {
 // what moves it on, and the last word from its crew, as one block. With
 // the details showing, stages, crew, capsules and documents are there, and
 // the rest keeps to the goal and what's happened.
-function Summary({ d, selected, openArtifact, review, full, go, reload }: Parts & { full: boolean }) {
+function Summary({ d, selected, review, full, go, reload }: Parts & { full: boolean }) {
   const goal = briefGoal(d.brief);
+  const w = useMemo(() => work(d), [d]);
+  const label = useRepoLabel();
   const live = d.crew.filter((c) => !c.ended);
   const now = d.stages.find((s) => s.state === "current");
   const events = d.events.filter((e) => !isNotice(e.text));
@@ -775,41 +778,26 @@ function Summary({ d, selected, openArtifact, review, full, go, reload }: Parts 
             <Stepper stages={d.stages} />
           </Row>
         )}
-        {full && d.artifacts.length > 0 && (
-          <Row label="Outputs">
-            {d.artifacts.slice(0, summaryArtifacts).map((a) => (
-              <ArtifactRow key={a.ref} id={`item-a:${a.ref}`} a={a} compact selected={!!selected(`a:${a.ref}`)} open={openArtifact} />
+        {full && (
+          <Row label="Work">
+            {w.hand.map((x) => (
+              <CapsuleCard key={x.key} c={x.c} selected={selected} review={review} />
             ))}
-            {d.artifacts.length > summaryArtifacts && (
-              <button className="link more-link" onClick={() => go("work")}>
-                {d.artifacts.length - summaryArtifacts} more in Work
-              </button>
-            )}
+            <span className="dim summary-work">
+              {workWords(w, label, d.slug) || "Nothing yet: crew lift a capsule when they start."}{" "}
+              {(w.capsules.length > 0 || w.outputs.length > 0) && (
+                <button className="link more-link" onClick={() => go("work")}>
+                  All of it in Work
+                </button>
+              )}
+            </span>
           </Row>
         )}
-        {full && (
-          <Row label="Capsules">
-            {d.capsules.map((c) => (
-              <CapsuleCard key={`${c.repo}/${c.name}`} c={c} selected={selected} review={review} />
-            ))}
-            {!d.capsules.length && <span className="dim">None yet: crew lift one when they start.</span>}
-          </Row>
-        )}
-        {full && (
+        {full && live.length > 0 && (
           <Row label="Crew">
             {live.map((c) => (
               <CrewRow key={c.id} c={c} slug={d.slug} />
             ))}
-            {!live.length && (
-              <span className="dim">
-                {d.crew.length ? `Nobody's on it now; ${d.crew.length} so far. ` : "Nobody yet. "}
-                {d.crew.length > 0 && (
-                  <button className="link more-link" onClick={() => go("log")}>
-                    Crew in the log
-                  </button>
-                )}
-              </span>
-            )}
           </Row>
         )}
         {d.decisions.some((x) => x.state === "current") && (
@@ -1478,30 +1466,12 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-// CapsuleCard is a capsule: its name and branch, where it stands, its last
-// commit and folder (each copies), and a way to review it. In full (the
-// Work tab), what it's changed since its branch point and its latest
-// commits too.
-function CapsuleCard({
-  c,
-  selected,
-  review,
-  full,
-  ends,
-}: {
-  c: CapsuleDetail;
-  selected: (k: string) => string;
-  review: (c: CapsuleDetail) => void;
-  full?: boolean;
-  ends?: React.ReactNode; // what ends it alone: handing it on, dropping it
-}) {
+// CapsuleCard is a capsule in a line on Summary: its name and branch, where
+// it stands, and a way to review it. The Work tab has the rest.
+function CapsuleCard({ c, selected, review }: { c: CapsuleDetail; selected: (k: string) => string; review: (c: CapsuleDetail) => void }) {
   const key = `c:${c.repo}/${c.name}`;
-  const { slug = "" } = useParams();
-  const { value: sum } = useLoaded<CapsuleSummary>(full && c.exists ? () => getSummary(capsuleAPI(slug, c.repo, c.name)) : null, [full, c.exists, c.head, c.dirty, slug, c.repo, c.name], {
-    keep: true,
-  });
   return (
-    <div id={`item-${key}`} className={`capsule-card${selected(key)}${full ? " full" : ""}`}>
+    <div id={`item-${key}`} className={`capsule-card${selected(key)}`}>
       <div className="capsule-line">
         <Icon name="box" size={14} className="dim" />
         <span className="mono capsule-name">
@@ -1515,67 +1485,12 @@ function CapsuleCard({
         )}
         <CapsuleBadges c={c} />
         <span className="spacer" />
-        {c.exists && full && (
-          <Link to={`/missions/${slug}/files/${c.repo}/${c.name}`} className="button-link small-link" title="Browse its files (f)">
-            <Icon name="file" size={12} /> Files
-          </Link>
-        )}
         {c.exists && (
           <button className="small" onClick={() => review(c)} title="Review its changes (v)">
             <Icon name="eye" /> Review
           </button>
         )}
       </div>
-      {full && c.pr && <div className="capsule-pr">{c.pr.title}</div>}
-      {full && sum && (
-        <div className="capsule-summary">
-          {sum.base ? (
-            <span className="capsule-stat">
-              {sum.commitCount} {sum.commitCount === 1 ? "commit" : "commits"} since it left {sum.baseRef.replace(/^origin\//, "")}
-              {sum.files > 0 && (
-                <>
-                  {" · "}
-                  {sum.files} {sum.files === 1 ? "file" : "files"} <span className="plus">+{sum.additions}</span> <span className="minus">−{sum.deletions}</span>
-                </>
-              )}
-              {sum.uncommitted > 0 && ` · ${sum.uncommitted} not committed`}
-            </span>
-          ) : (
-            <span className="capsule-stat dim">Can't tell what's changed: {sum.baseRef} isn't fetched here.</span>
-          )}
-          {sum.commits.length > 0 && (
-            <ul className="capsule-commits">
-              {sum.commits.map((m) => (
-                <li key={m.sha}>
-                  <Copyable text={m.sha.slice(0, 7)} className="mono" title="Copy the commit" />
-                  <span className="capsule-commit-subject">{m.subject}</span>
-                  <Time iso={m.time} as="relative" className="dim" />
-                </li>
-              ))}
-              {sum.commitCount > sum.commits.length && <li className="dim">and {sum.commitCount - sum.commits.length} more</li>}
-            </ul>
-          )}
-        </div>
-      )}
-      {full && c.exists && (
-        <div className="capsule-meta">
-          {c.head && !sum?.commits.length && (
-            <span>
-              <Icon name="commit" size={12} /> <Copyable text={c.head.slice(0, 7)} className="mono" title="Copy the commit" />
-            </span>
-          )}
-          <Copyable text={c.path} className="mono" title="Copy its folder">
-            {shortPath(c.path)}
-          </Copyable>
-          {ends && (
-            <>
-              <span className="spacer" />
-              {ends}
-            </>
-          )}
-        </div>
-      )}
-      {full && !c.exists && ends && <div className="capsule-meta">{ends}</div>}
     </div>
   );
 }
@@ -1724,67 +1639,6 @@ function Plan({ d, reload }: { d: MissionDetail; reload: Reload }) {
   );
 }
 
-function Work({ d, selected, openArtifact, review, reload }: Parts) {
-  const open = !d.ending && d.state !== "archived";
-  return (
-    <>
-      <section>
-        <h2 className="group">
-          Capsules <span className="count">{d.capsules.length}</span>
-        </h2>
-        <div className="cards">
-          {d.capsules.map((c) => (
-            <CapsuleCard
-              key={`${c.repo}/${c.name}`}
-              c={c}
-              selected={selected}
-              review={review}
-              full
-              ends={
-                open ? (
-                  <>
-                    {canOpenPR(d, c) && <OpenPR d={d} c={c} reload={reload} />}
-                    <CapsuleEnds slug={d.slug} c={c} reload={reload} />
-                  </>
-                ) : undefined
-              }
-            />
-          ))}
-        </div>
-        {d.endedCapsules?.length ? (
-          <div className="ended-alone">
-            <h3>Ended alone</h3>
-            <EndedCapsules list={d.endedCapsules} />
-          </div>
-        ) : null}
-        {!d.capsules.length && !d.endedCapsules?.length && (
-          <Empty icon="box" title="No capsules yet">
-            A capsule is a worktree the mission's crew work in. Crew lift one when they start; <code>ws lift &lt;repo&gt; &lt;name&gt;</code> lifts one by hand.
-          </Empty>
-        )}
-      </section>
-      {byKind(d.artifacts).map(([kind, list]) => (
-        <section key={kind}>
-          <h2 className="group">
-            {kindTitle(kind)} <span className="count">{list.length}</span>
-          </h2>
-          {list.map((a) => (
-            <ArtifactRow key={a.ref} id={`item-a:${a.ref}`} a={a} selected={!!selected(`a:${a.ref}`)} open={openArtifact} />
-          ))}
-        </section>
-      ))}
-      {!d.artifacts.length && (
-        <section>
-          <h2 className="group">Outputs</h2>
-          <Empty icon="file" title="Nothing yet">
-            Proposals, notes, decision records, artifacts and handoffs show here as crew make them.
-          </Empty>
-        </section>
-      )}
-    </>
-  );
-}
-
 const logFilters = [
   { id: "all", label: "Everything" },
   { id: "you", label: "You" },
@@ -1793,7 +1647,8 @@ const logFilters = [
   { id: "threads", label: "Threads" },
 ] as const;
 
-function Log({ d, selected, openArtifact }: Parts) {
+function Log({ d, selected, openArtifact, go }: Parts) {
+  const elsewhere = crewElsewhere(d);
   const [filter, setFilter] = useState<(typeof logFilters)[number]["id"]>("all");
   const [q, setQ] = useState("");
   const events = d.events.filter((e) => {
@@ -1824,11 +1679,25 @@ function Log({ d, selected, openArtifact }: Parts) {
         )}
       </section>
       {d.crew.length > 0 && (
+        <p className="log-crew-moved dim">
+          {elsewhere.length < d.crew.length && (
+            <>
+              Crew are on{" "}
+              <button className="link more-link" onClick={() => go("work")}>
+                Work
+              </button>
+              , with the capsule each worked in.{" "}
+            </>
+          )}
+          {elsewhere.length > 0 && "These worked in none of the mission's capsules."}
+        </p>
+      )}
+      {elsewhere.length > 0 && (
         <section>
           <h2 className="group">
-            Crew <span className="count">{d.crew.length}</span>
+            Crew <span className="count">{elsewhere.length}</span>
           </h2>
-          {[...d.crew].reverse().map((c) => (
+          {[...elsewhere].reverse().map((c) => (
             <div key={c.id} className="crew-detail">
               <CrewRow c={c} slug={d.slug} detail />
               {c.handoff && (
