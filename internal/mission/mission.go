@@ -146,6 +146,11 @@ type Crew struct {
 	Status   string     `toml:"status,omitempty" json:"status,omitempty"`
 	Note     string     `toml:"note,omitempty" json:"note,omitempty"`
 	StatusAt *time.Time `toml:"status_at,omitempty" json:"status_at,omitempty"`
+	// Starting is since when ws has been starting this crew's session: set
+	// as they're recorded by a launch (Mission.Launching), and cleared once
+	// ws has handed them their prompt or they've done anything (a hook, a
+	// status, their end). While it's set they're starting, not working.
+	Starting *time.Time `toml:"starting,omitempty" json:"starting,omitempty"`
 	// Activity is what the agent last reported through its own hooks, which
 	// ws installs when it launches crew: ActivityWorking once it's sent a
 	// message, ActivityWaiting once it has finished its turn,
@@ -271,6 +276,15 @@ type Mission struct {
 	// it finishes: while it's set (and not past Until), the mission is in
 	// the orchestrator's court.
 	Orchestrating *OrchestratorRun `toml:"orchestrating,omitempty" json:"orchestrating,omitempty"`
+	// Launching is ws starting crew, from when it begins (a launch asked
+	// for, a brief confirmed, a step reached) until the crew are recorded:
+	// nothing else says so in between. Crew recorded while it's set are
+	// the crew it's starting: they take it over (Crew.Starting).
+	Launching *Launching `toml:"launching,omitempty" json:"launching,omitempty"`
+	// Planning is the planner's turn in its conversation (briefing the
+	// mission, or coming back to its plan): set as ws asks for the turn,
+	// cleared once its reply is recorded and the run that had it is over.
+	Planning *PlannerTurn `toml:"planning,omitempty" json:"planning,omitempty"`
 	// Checking is what ws is running while it checks a step crew reported
 	// done (checking.go): set as each check begins, cleared when the
 	// round is recorded.
@@ -281,6 +295,20 @@ type Mission struct {
 	// that doesn't read. Neither is kept in its record.
 	Plan    *Plan `toml:"-" json:"-"`
 	PlanErr error `toml:"-" json:"-"`
+}
+
+// Launching is ws starting crew on a mission, before the crew are
+// recorded: a mark ws sets as it begins and clears itself, with no time
+// after which it stops counting.
+type Launching struct {
+	What  string    `toml:"what,omitempty" json:"what,omitempty"` // what they're for: "step 3", or ""
+	Since time.Time `toml:"since" json:"since"`
+}
+
+// PlannerTurn is a turn of the planner's underway in its conversation.
+type PlannerTurn struct {
+	In    string    `toml:"in" json:"in"` // the conversation: t1
+	Since time.Time `toml:"since" json:"since"`
 }
 
 // OrchestratorRun is the orchestrator at work on a mission.

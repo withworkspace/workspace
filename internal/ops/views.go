@@ -299,11 +299,11 @@ func DocThreadCourt(ws *workspace.Workspace, v MissionView, brief string) missio
 	}
 	for _, c := range threads {
 		if c.Goal == conversation.GoalBrief && c.Status == conversation.Open {
-			b := &mission.BriefingTalk{ID: c.ID, Answering: c.Answering, Waiting: c.WaitingOnYou()}
-			if !v.M.ToBrief() {
-				// The planner's: asked, it's at work until it's answered.
-				b.Answering = b.Answering || c.NeedsAnswer()
-			}
+			// Its agent's at work while its turn is marked underway on the
+			// mission: set as ws asks for it, cleared once its reply is
+			// recorded (Mission.Planning). Not whether a process is alive,
+			// nor for how long.
+			b := &mission.BriefingTalk{ID: c.ID, Answering: planningIn(v.M, c.ID), Waiting: c.WaitingOnYou()}
 			for _, p := range c.Proposals {
 				b.Proposed = b.Proposed || (p.Kind == conversation.ProposeBrief && p.State == conversation.ProposalOpen)
 				if p.Kind == conversation.ProposePlan && p.State == conversation.ProposalOpen {

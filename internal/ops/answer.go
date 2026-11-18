@@ -165,6 +165,13 @@ func (w *Workspace) AnswerConversation(sc doc.Scope, id string) error {
 	a := &answering{w: w, sc: sc, store: store, here: w.here(sc, c)}
 	pick, converser, perr := r.role(Roles(w.Config()))
 	a.pick = pick
+	// The planner's turn is marked on its mission from when it was asked
+	// for (markPlanning), and here for a run nobody asked ws for; it ends with
+	// this run, its reply recorded, however the run ends.
+	planner := !sc.IsWorkspace() && isPlannerTalk(c)
+	if planner {
+		defer w.Missions.EndPlanning(sc.Mission, id) //nolint:errcheck // a mark
+	}
 	for range r.turns {
 		c, err := store.Load(id)
 		if err != nil {
@@ -172,6 +179,9 @@ func (w *Workspace) AnswerConversation(sc doc.Scope, id string) error {
 		}
 		if !c.NeedsAnswer() {
 			return nil
+		}
+		if planner {
+			w.Missions.StartPlanning(sc.Mission, id) //nolint:errcheck // a mark
 		}
 		a.c, a.block, a.above, a.around = c, c.Working(), "", ""
 		if r.skip != nil {
