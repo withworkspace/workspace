@@ -160,7 +160,9 @@ function SettingRow({
     }
     return change(changes, undo);
   };
-  const reset = () => void change([{ ...at, clear: true }], [back(s)]);
+  // The places' two keys are one arrangement: reset together.
+  const together = s.kind === "places" ? group.filter((x) => x.kind === "places") : [s];
+  const reset = () => void change([{ ...at, clear: true }], together.map(back));
   const src = sources[s.source];
   return (
     <div className="summary-row setting-row">
@@ -175,7 +177,7 @@ function SettingRow({
             {src.words}
           </span>
           {s.source === "yours" && (
-            <button className="ghost small" disabled={busy} onClick={reset} title={s.team !== undefined ? `Back to the team's: ${shown(s.team) || "none"}` : `Back to the default: ${shown(s.default) || (s.kind === "picks" ? "none" : s.kind === "color" ? "ws's own" : "the agent's own")}`}>
+            <button className="ghost small" disabled={busy} onClick={reset} title={s.team !== undefined ? `Back to the team's: ${shown(s.team) || "none"}` : `Back to the default: ${shown(s.default) || (s.kind === "picks" ? "none" : s.kind === "color" ? "ws's own" : s.kind === "places" ? "as ws has them" : "the agent's own")}`}>
               Reset
             </button>
           )}
@@ -219,6 +221,10 @@ function Control({ s, busy, set }: { s: Setting; busy: boolean; set: Set }) {
       return <ModelInput s={s} busy={busy} set={set} />;
     case "picks":
       return <TextInput s={s} busy={busy} set={set} placeholder="claude:sonnet, cursor:gpt-5.5-high" />;
+    case "places":
+      // Arranged in the sidebar itself (the workspace's menu, Arrange the
+      // sidebar…): here, what it says.
+      return <span className="setting-places">{shown(s.value) || (s.value ? "none" : "as ws has them")}</span>;
     case "color":
       // The one colour setting is the accent, which the page wears.
       return s.section === "ui" && s.key === "accent" ? <AccentInput s={s} busy={busy} set={set} /> : <TextInput s={s} busy={busy} set={set} />;

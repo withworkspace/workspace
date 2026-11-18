@@ -55,6 +55,9 @@ func (w *Workspace) Stamp() string {
 	// of it comes from there. (Without the records, every one is.)
 	inPlay, known := w.Missions.InPlaySlugs()
 	walk(ws, known)
+	// ws.toml and ws.local.toml: what the view says of config (its spaces,
+	// where the web UI's places go) moves with them.
+	fmt.Fprintln(h, configStamp(w.Root()))
 	if known {
 		for _, slug := range slices.Sorted(maps.Keys(inPlay)) {
 			walk(filepath.Join(ws, "missions", slug), false)

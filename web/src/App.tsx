@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Button as AriaButton, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from "react-router";
-import { type Connection, NotSignedIn, type Plugin, shutDownDaemon, usePlugins, useWorkspace, type Workspace } from "./api";
+import { type Connection, NotSignedIn, type Plugin, setSettings, shutDownDaemon, usePlugins, useWorkspace, type Workspace } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
 import { ComparePage, compareKeys } from "./artifacts/Compare";
 import { Explorer, explorerKeys } from "./files/Explorer";
@@ -26,6 +26,8 @@ import { ReviewsPage, reviewsKeys } from "./reviews/Reviews";
 import { repoOfPage, scopePrefix } from "./shell/find";
 import { Palette } from "./shell/Palette";
 import { useFaviconBadge, useNotifications, type Waiting } from "./shell/notify";
+import { Arrange } from "./shell/Arrange";
+import { arrange, headed, type Arrangement, type Arranged, type Place, sameArrangement, saving } from "./shell/places";
 import { noteVisit, visitAt } from "./shell/recent";
 import { wantsRoom } from "./shell/room";
 import { shortVersion } from "./shell/version";
@@ -47,16 +49,20 @@ export function App() {
   // Find, open: with what it starts with typed ("/" for files, from ⌘P).
   const [palette, setPalette] = useState<string>();
   const [drawer, setDrawer] = useState(false);
+  // Arranging the sidebar: its places, and which are in the menu instead.
+  const [arranging, setArranging] = useState(false);
   // The daemon closed from the workspace's menu: this page went with it.
   const [closed, setClosed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   // On a page that wants the room the sidebar folds to a rail, which opens
   // over the page on hover.
-  const reviewing = wantsRoom(location.pathname);
+  const reviewing = wantsRoom(location.pathname) && !arranging;
 
   // The drawer (on a narrow window) closes on going somewhere.
   useEffect(() => setDrawer(false), [location.pathname]);
+  // Arranging ends, unsaved, on going somewhere or leaving the drawer.
+  useEffect(() => setArranging(false), [location.pathname]);
 
   // Where you go is kept, for Find to offer before anything's typed.
   const root = workspace?.root;
@@ -78,6 +84,44 @@ export function App() {
   const openPath = useCallback((p: string) => navigate(p), [navigate]);
   const notify = useNotifications(waiting, openPath);
 
+  const places = useMemo(() => placesOf(workspace, waiting, plugins), [workspace, waiting, plugins]);
+  // What's just been arranged, until the workspace says it back.
+  const [arranged, setArranged] = useState<Arrangement>();
+  const saved = workspace?.places;
+  const savedKey = saved && JSON.stringify(saved);
+  useEffect(() => setArranged(undefined), [savedKey]);
+  const { sidebar, menu } = arrange(places, arranged ?? saved);
+  const saveArrangement = async (a: Arranged) => {
+    setArranging(false);
+    const next = saving(a, places, saved);
+    if (sameArrangement(next, saving(arrange(places, saved), places, saved))) return;
+    setArranged(next);
+    try {
+      await setSettings([
+        { section: "ui", key: "sidebar", value: next.sidebar },
+        { section: "ui", key: "menu", value: next.menu },
+      ]);
+    } catch (e) {
+      setArranged(undefined);
+      toast(`Couldn't keep the sidebar as arranged: ${humanError(String(e))}`, { tone: "danger" });
+    }
+  };
+  const resetArrangement = async () => {
+    setArranging(false);
+    try {
+      await setSettings([
+        { section: "ui", key: "sidebar", clear: true },
+        { section: "ui", key: "menu", clear: true },
+      ]);
+    } catch (e) {
+      toast(`Couldn't reset the sidebar: ${humanError(String(e))}`, { tone: "danger" });
+    }
+  };
+  const startArranging = () => {
+    setArranging(true);
+    setDrawer(true); // on a narrow window, the sidebar is the drawer
+  };
+
   if (closed) {
     return (
       <Notice title="The daemon is closed">
@@ -98,42 +142,33 @@ export function App() {
         <button className="ghost icon-button" onClick={() => setDrawer(true)} aria-label="Open the menu">
           <Icon name="menu" size={18} />
         </button>
-        <WorkspaceMenu workspace={workspace} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
+        <WorkspaceMenu workspace={workspace} places={menu} onArrange={startArranging} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
         {waiting.length > 0 && <span className="count tone-attention" title="Needs you">{waiting.length}</span>}
       </div>
-      <div className="scrim" onClick={() => setDrawer(false)} />
+      <div
+        className="scrim"
+        onClick={() => {
+          setDrawer(false);
+          setArranging(false);
+        }}
+      />
       <aside className="sidebar" aria-label="Workspace">
-        <WorkspaceMenu workspace={workspace} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
+        <WorkspaceMenu workspace={workspace} places={menu} onArrange={startArranging} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
         <button className="find" onClick={() => setPalette("")}>
           <Icon name="search" size={14} />
           <span>Find…</span>
           <Keys k="mod+K" />
         </button>
-        <nav className="nav" aria-label="Places">
-          <NavItem to="/" icon="flag" label="Missions" count={waiting.filter((w) => w.kind === "mission").length} match={(p) => p === "/" || p.startsWith("/missions/")} />
-          <NavItem
-            to="/conversations"
-            icon="message"
-            label="Conversations"
-            count={waiting.filter((w) => w.kind === "talk").length}
-            match={(p) => p.startsWith("/conversations")}
-          />
-          <NavItem to="/documents" icon="file" label="Documents" match={(p) => p === "/documents" || p.startsWith("/documents/") || p.startsWith("/pages/") || p === "/docs"} />
-          <NavItem to="/artifacts" icon="artifact" label="Artifacts" match={(p) => p === "/artifacts" || p.startsWith("/artifacts/")} />
-          <NavItem
-            to="/reviews"
-            icon="pr"
-            label="Reviews"
-            count={workspace?.reviews?.count}
-            countTitle="pull requests need you"
-            match={(p) => p === "/reviews" || p.startsWith("/reviews/")}
-          />
-          <NavItem to="/team" icon="user" label="Team" match={(p) => p === "/team"} />
-          <NavItem to="/files" icon="layers" label="Files" match={(p) => p === "/files" || p.startsWith("/files/")} />
-          <NavItem to="/orchestrator" icon="sparkle" label="Orchestrator" match={(p) => p.startsWith("/orchestrator")} />
-          <PluginNav plugins={plugins} />
-        </nav>
-        {workspace && <Inbox workspace={workspace} path={location.pathname} notify={notify} />}
+        {arranging ? (
+          <Arrange start={{ sidebar, menu }} canReset={!!saved} onDone={saveArrangement} onCancel={() => setArranging(false)} onReset={resetArrangement} />
+        ) : (
+          <nav className="nav" aria-label="Places">
+            {headed(sidebar).map((title, i) => (
+              <NavPlace key={sidebar[i].id} place={sidebar[i]} title={title} />
+            ))}
+          </nav>
+        )}
+        {workspace && !arranging && <Inbox workspace={workspace} path={location.pathname} notify={notify} />}
       </aside>
       <main className={connection === "lost" && workspace ? "stale" : undefined} id="main">
         <ConnectionBanner connection={connection} />
@@ -212,9 +247,25 @@ const themes: [ThemeChoice, IconName, string][] = [
 // daemon down, which otherwise stays open until it's closed. At its foot
 // is what this is and which: the logotype, and the version of ws that
 // serves the page.
-function WorkspaceMenu({ workspace, onKeys, onClosed }: { workspace?: Workspace; onKeys: () => void; onClosed: () => void }) {
+function WorkspaceMenu({
+  workspace,
+  places,
+  onArrange,
+  onKeys,
+  onClosed,
+}: {
+  workspace?: Workspace;
+  places: Place[];
+  onArrange: () => void;
+  onKeys: () => void;
+  onClosed: () => void;
+}) {
   const name = workspace?.name ?? "ws";
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  // A place in the menu that wants you says so on the name, as the
+  // sidebar's would.
+  const counted = places.filter((p) => p.count);
   const { choice } = useTheme();
   const shutDown = async () => {
     const yes = await confirm({
@@ -240,12 +291,35 @@ function WorkspaceMenu({ workspace, onKeys, onClosed }: { workspace?: Workspace;
         </span>
         <span title={workspace?.root}>{name}</span>
         <Icon name="chevron-down" size={12} className="workspace-name-more" />
+        {counted.length > 0 && (
+          <span className="workspace-name-dot" title={counted.map((p) => `${p.label}: ${p.count} ${p.countTitle ?? "need you"}`).join("\n")} aria-label="In the menu, something wants you" />
+        )}
       </AriaButton>
       <Popover className="select-popover workspace-menu" placement="bottom start" offset={4} data-field>
         <Menu className="select-list" aria-label="The workspace">
+          {places.length > 0 && (
+            <MenuSection aria-label="Places">
+              {places.map((p) => (
+                <MenuItem key={p.id} id={`place:${p.id}`} textValue={p.label} className={`select-option${p.match(pathname) ? " current" : ""}`} onAction={() => navigate(p.to)}>
+                  <Icon name={p.icon} />
+                  <span className="select-option-text">{p.label}</span>
+                  {!!p.count && (
+                    <span className="count tone-attention" title={`${p.count} ${p.countTitle ?? "need you"}`}>
+                      {p.count}
+                    </span>
+                  )}
+                </MenuItem>
+              ))}
+            </MenuSection>
+          )}
+          {places.length > 0 && <Separator className="menu-separator" />}
           <MenuItem id="settings" textValue="Settings" className="select-option" onAction={() => navigate("/settings")}>
             <Icon name="sliders" />
             <span className="select-option-text">Settings</span>
+          </MenuItem>
+          <MenuItem id="arrange" textValue="Arrange the sidebar" className="select-option" onAction={onArrange}>
+            <Icon name="grip" />
+            <span className="select-option-text">Arrange the sidebar…</span>
           </MenuItem>
           <MenuItem id="keys" textValue="Keys" className="select-option" onAction={onKeys}>
             <Icon name="keyboard" />
@@ -295,35 +369,57 @@ function WorkspaceMenu({ workspace, onKeys, onClosed }: { workspace?: Workspace;
   );
 }
 
-// PluginNav is what plugins add to the sidebar: each view an entry, those
-// that name a group (under) together beneath its name.
-function PluginNav({ plugins }: { plugins?: Plugin[] }) {
-  const entries = (plugins ?? []).flatMap((p) => p.views.map((v) => ({ plugin: p, view: v })));
-  if (!entries.length) return null;
-  const groups = [...new Set(entries.map((e) => e.view.under ?? ""))].sort((a, b) => (a === "" ? -1 : b === "" ? 1 : a.localeCompare(b)));
+// placesOf is the sidebar's places as they come: ws's own, then each
+// view a plugin adds, those naming a group (under) together beneath its
+// name, the groups by name. Where each goes is yours to arrange
+// (shell/places.ts).
+function placesOf(workspace: Workspace | undefined, waiting: ReturnType<typeof waitingFor>, plugins?: Plugin[]): Place[] {
+  const own: Place[] = [
+    { id: "missions", to: "/", icon: "flag", label: "Missions", count: waiting.filter((w) => w.kind === "mission").length, match: (p) => p === "/" || p.startsWith("/missions/") },
+    { id: "conversations", to: "/conversations", icon: "message", label: "Conversations", count: waiting.filter((w) => w.kind === "talk").length, match: (p) => p.startsWith("/conversations") },
+    { id: "documents", to: "/documents", icon: "file", label: "Documents", match: (p) => p === "/documents" || p.startsWith("/documents/") || p.startsWith("/pages/") || p === "/docs" },
+    { id: "artifacts", to: "/artifacts", icon: "artifact", label: "Artifacts", match: (p) => p === "/artifacts" || p.startsWith("/artifacts/") },
+    {
+      id: "reviews",
+      to: "/reviews",
+      icon: "pr",
+      label: "Reviews",
+      count: workspace?.reviews?.count,
+      countTitle: "pull requests need you",
+      match: (p) => p === "/reviews" || p.startsWith("/reviews/"),
+    },
+    { id: "team", to: "/team", icon: "user", label: "Team", match: (p) => p === "/team" },
+    { id: "files", to: "/files", icon: "layers", label: "Files", match: (p) => p === "/files" || p.startsWith("/files/") },
+    { id: "orchestrator", to: "/orchestrator", icon: "sparkle", label: "Orchestrator", match: (p) => p.startsWith("/orchestrator") },
+  ];
+  const views: Place[] = (plugins ?? []).flatMap((plugin) =>
+    plugin.views.map((view) => {
+      const to = `/x/${plugin.name}${view.path === "/" ? "" : view.path}`;
+      return {
+        id: to.slice(1),
+        to,
+        icon: plugin.state === "failed" ? "alert" : pluginIcon(view.icon),
+        label: view.title,
+        count: view.badge,
+        countTitle: "to see",
+        match: (p: string) => p === `/x/${plugin.name}` || p.startsWith(`/x/${plugin.name}/`),
+        under: view.under || undefined,
+      };
+    }),
+  );
+  // Those in no group first, then the groups by name; within each, as they came.
+  const group = (p: Place) => p.under ?? "";
+  views.sort((a, b) => (group(a) === group(b) ? 0 : group(a) === "" ? -1 : group(b) === "" ? 1 : group(a).localeCompare(group(b))));
+  return [...own, ...views];
+}
+
+// NavPlace is a place in the sidebar, with its group's title above it
+// where its group starts.
+function NavPlace({ place, title }: { place: Place; title?: string }) {
   return (
     <>
-      {groups.map((group) => (
-        <div className="nav-group" key={group}>
-          {group && <div className="nav-group-title">{group}</div>}
-          {entries
-            .filter((e) => (e.view.under ?? "") === group)
-            .map(({ plugin, view }) => {
-              const to = `/x/${plugin.name}${view.path === "/" ? "" : view.path}`;
-              return (
-                <NavItem
-                  key={to}
-                  to={to}
-                  icon={plugin.state === "failed" ? "alert" : pluginIcon(view.icon)}
-                  label={view.title}
-                  count={view.badge}
-                  countTitle="to see"
-                  match={(p) => p === `/x/${plugin.name}` || p.startsWith(`/x/${plugin.name}/`)}
-                />
-              );
-            })}
-        </div>
-      ))}
+      {title && <div className="nav-group-title">{title}</div>}
+      <NavItem to={place.to} icon={place.icon} label={place.label} count={place.count} countTitle={place.countTitle} match={place.match} />
     </>
   );
 }

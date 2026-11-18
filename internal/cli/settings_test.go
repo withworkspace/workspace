@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -255,7 +256,7 @@ func TestWebSettingsAccent(t *testing.T) {
 	if s := setting(t, info, "ui", "accent"); s.Kind != "color" || s.Value != nil || s.Source != "default" || s.Default != nil || s.Team != nil || s.Yours != nil {
 		t.Errorf("unset: %+v", s)
 	}
-	if g := group(t, info, "ui"); g.Title == "" || len(g.Settings) != 1 {
+	if g := group(t, info, "ui"); g.Title == "" || len(g.Settings) != 3 {
 		t.Errorf("the group: %+v", g)
 	}
 
@@ -304,5 +305,51 @@ func TestWebSettingsAccent(t *testing.T) {
 	}
 	if s := setting(t, info, "ui", "accent"); s.Value != nil || s.Source != "default" {
 		t.Errorf("none set: %+v", s)
+	}
+}
+
+// Where the web UI's places go, [ui] sidebar and menu: written together,
+// as one arrangement, and cleared together, back to the team's.
+func TestWebSettingsPlaces(t *testing.T) {
+	root := settingsWorkspace(t, settingsLocal)
+	team, _ := os.ReadFile(filepath.Join(root, "ws.toml"))
+	os.WriteFile(filepath.Join(root, "ws.toml"), append(team, "\n[ui]\nsidebar = [\"missions\", \"reviews\"]\n"...), 0o644)
+	info, err := cli.WebSettings(root)()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "ui", "menu"); s.Kind != "places" || s.Source != "team" || fmt.Sprint(s.Value) != "[]" {
+		t.Errorf("the team's menu: %+v", s)
+	}
+
+	info, err = cli.WebSetSettings(root)([]web.SettingChange{
+		{Section: "ui", Key: "sidebar", Value: []any{"reviews", " missions ", "jira/board"}},
+		{Section: "ui", Key: "menu", Value: []any{"team"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "ui", "sidebar"); s.Source != "yours" || fmt.Sprint(s.Value) != "[reviews missions jira/board]" {
+		t.Errorf("yours: %+v", s)
+	}
+	if data, _ := os.ReadFile(filepath.Join(root, "ws.local.toml")); string(data) != settingsLocal+"\n[ui]\nmenu = [\"team\"]\nsidebar = [\"reviews\", \"missions\", \"jira/board\"]\n" {
+		t.Errorf("ws.local.toml:\n%s", data)
+	}
+
+	for _, bad := range []any{"team", []any{"team", "team"}, []any{""}} {
+		if _, err := cli.WebSetSettings(root)([]web.SettingChange{{Section: "ui", Key: "menu", Value: bad}}); !errors.Is(err, web.ErrSettingRefused) {
+			t.Errorf("%v: err = %v, want it refused", bad, err)
+		}
+	}
+
+	// Clearing one clears both: the team's stands again.
+	if info, err = cli.WebSetSettings(root)([]web.SettingChange{{Section: "ui", Key: "menu", Clear: true}}); err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "ui", "sidebar"); s.Source != "team" || s.Yours != nil {
+		t.Errorf("cleared: %+v", s)
+	}
+	if data, _ := os.ReadFile(filepath.Join(root, "ws.local.toml")); string(data) != settingsLocal {
+		t.Errorf("ws.local.toml cleared:\n%s", data)
 	}
 }

@@ -49,6 +49,16 @@ type Workspace struct {
 	// The web UI says which it's talking to, and tells a plugin's app as
 	// it connects: the same its plugin was told when it started.
 	Version string `json:"version,omitempty"`
+	// Places is where the web UI's places go, as [ui] sidebar and menu
+	// say: absent for as they come.
+	Places *Places `json:"places,omitempty"`
+}
+
+// Places is where the web UI's places go: the sidebar's, in order, and
+// the workspace menu's. Their ids are the web UI's.
+type Places struct {
+	Sidebar []string `json:"sidebar"`
+	Menu    []string `json:"menu"`
 }
 
 // SpaceRef is a space of documents, as what links to one needs it.

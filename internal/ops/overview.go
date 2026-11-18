@@ -36,6 +36,9 @@ type Overview struct {
 	// Spaces are its spaces of documents, as config says them: where a
 	// document's address is in Documents rather than Files.
 	Spaces []SpaceView
+	// Sidebar and Menu are where the web UI's places go, as config says
+	// (config.UIConfig): nil for as they come.
+	Sidebar, Menu []string
 }
 
 // MissionItem is a mission in a list: its view, when anything of it last
@@ -82,6 +85,7 @@ func (w *Workspace) Overview() (*Overview, error) {
 		return nil, err
 	}
 	out := &Overview{Name: ws.Name, Missions: []MissionItem{}, Kinds: w.Kinds(), Org: ws.Org, DefaultBranch: firstNonEmpty(ws.DefaultBranch, "main"), Spaces: []SpaceView{}}
+	out.Sidebar, out.Menu = w.Config().UI.Sidebar, w.Config().UI.Menu
 	colors := w.repoColors()
 	for _, s := range ws.Spaces() {
 		out.Spaces = append(out.Spaces, SpaceView{Repo: s.Repo, Folder: s.Folder, Label: ws.DisplayNameFor(s.Repo), Color: colors[s.Repo]})
