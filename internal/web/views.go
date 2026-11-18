@@ -102,7 +102,8 @@ func docKinds(kinds []ops.Kind) []DocKind {
 
 func crewOf(c mission.Crew) Crew {
 	w := Crew{ID: c.ID, Harness: c.Harness, Model: c.Model, Role: c.Role, Capsule: c.Capsule, Started: c.Started,
-		Ended: c.Ended != nil, Activity: c.Activity, Status: c.Status, LastReply: c.LastReply, Notice: c.Notice, Options: c.Options,
+		Ended: c.Ended != nil, Starting: c.Ended == nil && c.Starting != nil,
+		Activity: c.Activity, Status: c.Status, LastReply: c.LastReply, Notice: c.Notice, Options: c.Options,
 		Structured: harness.CapsOf(c.Harness).Crew == harness.CrewACP}
 	if work, ok := c.OwnWork(time.Now()); ok {
 		w.WaitingOn = mission.WorkWhat(work)

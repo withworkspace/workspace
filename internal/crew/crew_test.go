@@ -251,29 +251,41 @@ func TestPreferFree(t *testing.T) {
 	}
 }
 
-// Crew recorded by a launch ws marked are starting until ws has handed
-// them their prompt: typed in, once their screen has settled. With no
-// prompt to hand them, they're started once their session's up.
-func TestStart_StartingUntilHandedTheirPrompt(t *testing.T) {
-	h, store, slug, _ := localFixture(t)
+// crewRecord reads crew's record, which mustn't have ended.
+func crewRecord(t *testing.T, store mission.Store, slug, id string) mission.Crew {
+	t.Helper()
+	m, err := store.Load(slug)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, ok := m.CrewByID(id)
+	if !ok {
+		t.Fatalf("no crew %s", id)
+	}
+	if c.Ended != nil {
+		t.Fatalf("%s ended: %s", id, c.Exit)
+	}
+	return c
+}
+
+// quickPrompts has the host type a prompt in as soon as the screen has
+// been still a moment.
+func quickPrompts(t *testing.T) {
+	t.Helper()
 	settle := PromptSettle
 	PromptSettle = 50 * time.Millisecond
 	t.Cleanup(func() { PromptSettle = settle })
-	starting := func(id string) *time.Time {
-		t.Helper()
-		m, err := store.Load(slug)
-		if err != nil {
-			t.Fatal(err)
-		}
-		c, ok := m.CrewByID(id)
-		if !ok {
-			t.Fatalf("no crew %s", id)
-		}
-		if c.Ended != nil {
-			t.Fatalf("%s ended: %s", id, c.Exit)
-		}
-		return c.Starting
-	}
+}
+
+// Crew whose harness has no hooks (a shell) report nothing as they begin:
+// recorded by a launch ws marked, they're starting until ws has handed
+// them their prompt, typed in once their screen has settled, and no
+// longer. With no prompt to hand them, they're started once their
+// session's up.
+func TestStart_WithoutHooksStartingUntilHandedTheirPrompt(t *testing.T) {
+	h, store, slug, _ := localFixture(t)
+	quickPrompts(t)
+	starting := func(id string) *time.Time { return crewRecord(t, store, slug, id).Starting }
 
 	// A screen that never draws: its prompt isn't typed in yet.
 	if _, err := store.StartLaunching(slug, "step 1"); err != nil {
@@ -290,7 +302,8 @@ func TestStart_StartingUntilHandedTheirPrompt(t *testing.T) {
 		t.Error("c1 isn't starting, with no prompt handed to it yet")
 	}
 
-	// One that draws, and settles: handed its prompt, it's started.
+	// One that draws, and settles: handed its prompt, it's started, with
+	// nothing reported.
 	store.StartLaunching(slug, "step 1")
 	req.Prepare = shellLaunch(`printf 'ready\n'; sleep 30`)
 	if _, err := Start(req); err != nil {
@@ -301,7 +314,7 @@ func TestStart_StartingUntilHandedTheirPrompt(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	if starting("c2") != nil {
-		t.Error("c2 is still starting after its prompt was typed in")
+		t.Error("c2 is still starting after its prompt was typed in, and its harness has no hooks")
 	}
 
 	// No prompt to hand over: started as its session's up.
@@ -322,5 +335,75 @@ func TestStart_StartingUntilHandedTheirPrompt(t *testing.T) {
 	}
 	if starting("c4") != nil {
 		t.Error("c4 is starting, though ws marked no launch")
+	}
+}
+
+// Crew whose session has ws's hooks report for themselves, so ws handing
+// over their prompt doesn't start them: they're starting until their
+// first report. It's what kept the banner at "c1 is working" while Claude
+// Code sat asking whether to trust the folder, with nothing done.
+func TestStart_WithHooksStartingUntilFirstReport(t *testing.T) {
+	h, store, slug, _ := localFixture(t)
+	quickPrompts(t)
+	starting := func(id string) *time.Time { return crewRecord(t, store, slug, id).Starting }
+	// An agent that takes whatever it's given (the hooks' arguments, which
+	// a shell wouldn't), draws its screen and waits.
+	agent := filepath.Join(t.TempDir(), "agent")
+	if err := os.WriteFile(agent, []byte("#!/bin/sh\nprintf 'trust this folder?\\n'\nsleep 30\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Claude Code has hooks, and ws installs them in its sessions.
+	req := Request{Store: store, Host: h, Root: store.Root, Slug: slug, Harness: "claude", Width: 40, Height: 5}
+
+	// Its prompt given as an argument, as Claude Code's is: ws has nothing
+	// to hand over once its session's up, and it's still starting.
+	store.StartLaunching(slug, "step 1")
+	req.Prepare = func() (harness.Launch, error) {
+		return harness.Launch{Args: []string{agent, "--", "the opening prompt"}}, nil
+	}
+	if _, err := Start(req); err != nil {
+		t.Fatal(err)
+	}
+	if c := crewRecord(t, store, slug, "c1"); !c.AwaitsReport || !c.Handed {
+		t.Fatalf("c1's session is up: hooks installed %v, ws's part done %v, want both", c.AwaitsReport, c.Handed)
+	}
+	if starting("c1") == nil {
+		t.Fatal("c1 isn't starting, its session up and nothing reported")
+	}
+	// Its first report, its session's start: it's started.
+	if err := store.CrewHook(slug, "c1", mission.Hook{Conversation: "abc"}); err != nil {
+		t.Fatal(err)
+	}
+	if starting("c1") != nil {
+		t.Error("c1 is still starting after its first report")
+	}
+
+	// Its prompt typed in by the host, as Cursor's is: handed over, and
+	// still starting, until its first report.
+	store.StartLaunching(slug, "step 1")
+	req.Prepare = func() (harness.Launch, error) {
+		return harness.Launch{Args: []string{agent}, Prompt: "the opening prompt"}, nil
+	}
+	if _, err := Start(req); err != nil {
+		t.Fatal(err)
+	}
+	if c := crewRecord(t, store, slug, "c2"); !c.AwaitsReport || c.Handed {
+		t.Fatalf("c2's session is up: hooks installed %v, its prompt handed over %v, want hooks and not yet", c.AwaitsReport, c.Handed)
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for !crewRecord(t, store, slug, "c2").Handed && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !crewRecord(t, store, slug, "c2").Handed {
+		t.Fatal("c2's prompt was never typed in")
+	}
+	if starting("c2") == nil {
+		t.Fatal("c2 isn't starting after its prompt was typed in, with nothing reported")
+	}
+	if err := store.CrewHook(slug, "c2", mission.Hook{Prompted: true}); err != nil {
+		t.Fatal(err)
+	}
+	if starting("c2") != nil {
+		t.Error("c2 is still starting after its first report")
 	}
 }

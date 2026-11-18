@@ -158,6 +158,7 @@ type Crew struct {
 	Capsule   string    `json:"capsule,omitempty"`
 	Started   time.Time `json:"started"`
 	Ended     bool      `json:"ended"`
+	Starting  bool      `json:"starting,omitempty"` // ws is starting its session: the mark the mission's headline reads (mission.Crew.Starting)
 	Activity  string    `json:"activity,omitempty"` // working, waiting, permission, question
 	Status    string    `json:"status,omitempty"`   // done, …
 	LastReply string    `json:"lastReply,omitempty"`

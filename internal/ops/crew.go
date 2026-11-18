@@ -188,7 +188,8 @@ func (w *Workspace) Launch(slug string, d Dispatch, by Actor) (Launched, error) 
 		d.Harness = firstNonEmpty(d.Harness, roles.ForCrew().Harness)
 	}
 	// ws is starting crew from here: marked until they're recorded, who
-	// then hold the mark until they've their prompt (crew.Start), or
+	// then hold the mark until their first report (or, with no hooks of
+	// ws's in their session, until they've their prompt: crew.Start), or
 	// until this returns without any.
 	what := ""
 	if d.Stage > 0 {

@@ -148,9 +148,18 @@ type Crew struct {
 	StatusAt *time.Time `toml:"status_at,omitempty" json:"status_at,omitempty"`
 	// Starting is since when ws has been starting this crew's session: set
 	// as they're recorded by a launch (Mission.Launching), and cleared once
-	// ws has handed them their prompt or they've done anything (a hook, a
-	// status, their end). While it's set they're starting, not working.
+	// ws has handed them their prompt and, where ws's hooks are in their
+	// session, the session has reported (Handed, AwaitsReport); or before
+	// that, at anything they do (a turn, a status, their end). While it's
+	// set they're starting, not working.
 	Starting *time.Time `toml:"starting,omitempty" json:"starting,omitempty"`
+	// AwaitsReport and Handed are how far a start has got, and mean
+	// nothing once Starting's cleared. AwaitsReport: ws installed its hooks
+	// in the session it's starting, so the crew will report that it's up
+	// (and what they do in it), and they haven't yet. Handed: ws has handed
+	// them their prompt, or had none to hand them.
+	AwaitsReport bool `toml:"awaits_report,omitempty" json:"awaits_report,omitempty"`
+	Handed       bool `toml:"handed,omitempty" json:"handed,omitempty"`
 	// Activity is what the agent last reported through its own hooks, which
 	// ws installs when it launches crew: ActivityWorking once it's sent a
 	// message, ActivityWaiting once it has finished its turn,

@@ -58,9 +58,14 @@ func Start(r Request) (Started, error) {
 		execlog.Note(r.Root, "crew "+r.Slug, "%s couldn't get ready to launch: %v", r.Harness, err)
 		return Started{}, err
 	}
+	// hooked: ws's hooks are in the session this starts, so the crew
+	// report for themselves, their session's start first of all (an ACP
+	// session takes no arguments: its host reports its turns).
+	hooked := false
 	if args, note := hookArgs(r.Root, r.Harness); len(args) > 0 && len(l.Args) > 0 {
 		l.Args = append([]string{l.Args[0]}, append(args, l.Args[1:]...)...)
 		l.Notes = append(l.Notes, note)
+		hooked = l.ACP == nil
 	} else if note != "" {
 		l.Notes = append(l.Notes, note)
 	}
@@ -78,6 +83,9 @@ func Start(r Request) (Started, error) {
 	if err != nil {
 		return Started{}, err
 	}
+	// Recorded before their session's up: with hooks, they're starting
+	// until their first report, not until ws has handed over their prompt.
+	r.Store.SetCrewHooks(r.Slug, c.ID, hooked) //nolint:errcheck // a mark
 	who := "crew " + r.Slug + "/" + c.ID
 	for _, n := range l.Notes {
 		execlog.Note(r.Root, who, "%s", n)
@@ -115,8 +123,12 @@ func Start(r Request) (Started, error) {
 	execlog.Start(r.Root, who, args, l.Dir, spec.Env, pid)
 	r.Store.SetCrewProcess(r.Slug, c.ID, pid, r.Place.Capsule)
 	if prompt == "" {
-		// Nothing to hand them: their session's up, and they're started.
-		r.Store.CrewStarted(r.Slug, c.ID) //nolint:errcheck // a mark
+		// Nothing for ws to hand them once their session's up (a prompt
+		// given as an argument, as Claude Code's is, they take up
+		// themselves). ws's part is over: that starts crew whose session
+		// has no hooks of ws's, and with them their first report does
+		// (CrewHandedPrompt).
+		r.Store.CrewHandedPrompt(r.Slug, c.ID) //nolint:errcheck // a mark
 	}
 	return Started{Crew: c, Pid: pid, Dir: l.Dir}, nil
 }
@@ -137,10 +149,11 @@ func TypePrompt(root, key string, t Term, prompt string) bool {
 		return false
 	}
 	execlog.Note(root, "crew "+key, "typed in its prompt (%d chars):\n%s", len(prompt), prompt)
-	// Handed their prompt, they're started: what they do next is theirs
-	// to report (their hooks), or to be taken as working.
+	// Handed their prompt, ws's part of starting them is over. That
+	// starts crew whose session has no hooks of ws's, who are then taken
+	// as working; with them, their first report does (CrewHandedPrompt).
 	if slug, id, ok := strings.Cut(key, "/"); ok {
-		mission.Store{Root: root}.CrewStarted(slug, id) //nolint:errcheck // a mark
+		mission.Store{Root: root}.CrewHandedPrompt(slug, id) //nolint:errcheck // a mark
 	}
 	return true
 }

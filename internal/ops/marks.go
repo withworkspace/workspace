@@ -13,8 +13,9 @@ import (
 // agent to the next, it marks what it's doing on the mission as it begins
 // and clears the mark itself, the way the orchestrator's run is marked as
 // its event is taken (Notify). Starting crew is marked from when ws
-// begins until the crew are recorded, who then hold it until they've been
-// handed their prompt; the planner's turn (briefing the mission, or coming
+// begins until the crew are recorded, who then hold it until their first
+// report (or, with no hooks of ws's in their session, until they've been
+// handed their prompt); the planner's turn (briefing the mission, or coming
 // back to its plan) from when it's asked for until the run that has it is
 // over, its reply recorded. No mark lapses with time, and none is read
 // from whether a process is alive.

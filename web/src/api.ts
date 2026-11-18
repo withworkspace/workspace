@@ -143,6 +143,7 @@ export interface Crew {
   capsule?: string;
   started: string;
   ended: boolean;
+  starting?: boolean; // ws is starting its session, which has reported nothing yet: the mark the mission's headline reads
   activity?: "working" | "waiting" | "permission" | "question";
   status?: string;
   lastReply?: string;
