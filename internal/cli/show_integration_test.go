@@ -133,7 +133,7 @@ func TestShow_WhatsBeenSaidOfAFile(t *testing.T) {
 		strings.Contains(lines, "w1  ") || !strings.Contains(lines, "… 1 more elsewhere in it: ws show backend:README.md") {
 		t.Errorf("lines 2:\n%s", lines)
 	}
-	if said := show("w1"); !strings.Contains(said, "Made in it (1, 1 still standing):") || !strings.Contains(said, "d1  a decision, mission notes, current") {
+	if said := show("w1"); !strings.Contains(said, "In it (1, 1 still standing):") || !strings.Contains(said, "d1  a decision, mission notes, current") {
 		t.Errorf("the talk:\n%s", said)
 	}
 	// In a mission, what's said of a thing elsewhere: the capsule's file,

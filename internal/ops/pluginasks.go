@@ -17,8 +17,9 @@ import (
 )
 
 // AnswerPlugin answers what a plugin asks ws (plugin.Host's Answer): the
-// workspace's missions and repos, in the protocol's types, which are what
-// ws promises a plugin, not its own. who is the plugin that asked.
+// workspace's missions and repos, and what it tells ws of its own things,
+// in the protocol's types, which are what ws promises a plugin, not its
+// own. who is the plugin that asked.
 func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params json.RawMessage) (any, error) {
 	switch method {
 	case protocol.MethodMissionList:
@@ -35,6 +36,12 @@ func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params
 		return w.pluginMission(in.Slug)
 	case protocol.MethodRepoList:
 		return w.pluginRepos()
+	}
+	// What a plugin tells ws of its things: kept in the workspace's
+	// records under the plugin that told it, so ws finds and names them
+	// without asking.
+	if answer, ok, err := plugin.AnswerThings(w.WS().Root, who, method, params); ok {
+		return answer, err
 	}
 	return nil, plugin.NoMethod(method)
 }
@@ -102,6 +109,7 @@ func pluginMission(v MissionView, updated time.Time, h mission.Headline, at stri
 		At:       at,
 		Capsules: []protocol.MissionCapsule{},
 		Path:     "/missions/" + v.M.Slug,
+		About:    v.M.About,
 	}
 	if h.Court != "" {
 		m.Headline = &protocol.Headline{Court: string(h.Court), Text: h.Text}

@@ -232,9 +232,14 @@ type Mission struct {
 	From string `toml:"from,omitempty" json:"from,omitempty"`
 	// Conversation is the conversation it came out of (w3), when you
 	// confirmed it there.
-	Conversation string    `toml:"conversation,omitempty" json:"conversation,omitempty"`
-	Capsules     []Capsule `toml:"capsules,omitempty" json:"capsules,omitempty"`
-	Crew         []Crew    `toml:"crew,omitempty" json:"crew,omitempty"`
+	Conversation string `toml:"conversation,omitempty" json:"conversation,omitempty"`
+	// About is what it's about, by name, as ws names things: one of a
+	// plugin's things (RAM-123), a pull request (demo#12). It's the
+	// mission's to say: whoever makes it, or works on it, says so (ws
+	// mission about), and the graph has it from here.
+	About    []string  `toml:"about,omitempty" json:"about,omitempty"`
+	Capsules []Capsule `toml:"capsules,omitempty" json:"capsules,omitempty"`
+	Crew     []Crew    `toml:"crew,omitempty" json:"crew,omitempty"`
 	// Tasks are what the mission waits on the user for, oldest first: its
 	// questions, and the steps of its route that are theirs (tasks.go).
 	// TaskSeq numbers them.

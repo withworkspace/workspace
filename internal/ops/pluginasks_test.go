@@ -133,7 +133,7 @@ func TestPluginAsksForRepos(t *testing.T) {
 
 func TestPluginAsksWhatWSHasNot(t *testing.T) {
 	w, _ := fixture(t, "")
-	if _, err := w.AnswerPlugin(context.Background(), "jira", "thing/put", nil); rpcCode(err) != acp.CodeMethodNotFound {
+	if _, err := w.AnswerPlugin(context.Background(), "jira", "link/put", nil); rpcCode(err) != acp.CodeMethodNotFound {
 		t.Errorf("a method ws hasn't: %v", err)
 	}
 }

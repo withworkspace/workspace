@@ -644,6 +644,154 @@
      ]
     }
    ]
+  },
+  {
+   "about": "a plugin's things, by the names it registered",
+   "known": {
+    "repos": {
+     "demo": [
+      "main.go"
+     ]
+    },
+    "missions": [
+     "fix-token-refresh",
+     "ram-fix"
+    ],
+    "pages": [],
+    "talks": [],
+    "things": [
+     {
+      "plugin": "jira",
+      "what": "issue",
+      "prefixes": [
+       "RAM-",
+       "RAP-"
+      ],
+      "tail": "number",
+      "address": "https://acme.atlassian.net/browse/{ref}"
+     },
+     {
+      "plugin": "jira",
+      "what": "sprint",
+      "prefixes": [
+       "SPRINT-"
+      ]
+     },
+     {
+      "plugin": "sentry",
+      "what": "event",
+      "prefixes": [
+       "EV-"
+      ],
+      "tail": "hex"
+     }
+    ]
+   },
+   "cases": [
+    {
+     "text": "Fixes RAM-123, and RAP-7.",
+     "found": [
+      [
+       "RAM-123",
+       {
+        "kind": "thing",
+        "plugin": "jira",
+        "what": "issue",
+        "id": "RAM-123",
+        "url": "https://acme.atlassian.net/browse/RAM-123"
+       }
+      ],
+      [
+       "RAP-7",
+       {
+        "kind": "thing",
+        "plugin": "jira",
+        "what": "issue",
+        "id": "RAP-7",
+        "url": "https://acme.atlassian.net/browse/RAP-7"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "(RAM-123) RAM-45: done, RAM-6's",
+     "found": [
+      [
+       "RAM-123",
+       {
+        "kind": "thing",
+        "plugin": "jira",
+        "what": "issue",
+        "id": "RAM-123",
+        "url": "https://acme.atlassian.net/browse/RAM-123"
+       }
+      ],
+      [
+       "RAM-45",
+       {
+        "kind": "thing",
+        "plugin": "jira",
+        "what": "issue",
+        "id": "RAM-45",
+        "url": "https://acme.atlassian.net/browse/RAM-45"
+       }
+      ],
+      [
+       "RAM-6",
+       {
+        "kind": "thing",
+        "plugin": "jira",
+        "what": "issue",
+        "id": "RAM-6",
+        "url": "https://acme.atlassian.net/browse/RAM-6"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "In SPRINT-4, RAM-123 for fix-token-refresh",
+     "found": [
+      [
+       "SPRINT-4",
+       {
+        "kind": "thing",
+        "plugin": "jira",
+        "what": "sprint",
+        "id": "SPRINT-4"
+       }
+      ],
+      [
+       "RAM-123",
+       {
+        "kind": "thing",
+        "plugin": "jira",
+        "what": "issue",
+        "id": "RAM-123",
+        "url": "https://acme.atlassian.net/browse/RAM-123"
+       }
+      ],
+      [
+       "fix-token-refresh",
+       {
+        "kind": "mission",
+        "slug": "fix-token-refresh"
+       }
+      ]
+     ]
+    },
+    {
+     "text": "UTF-8, RAM-0, RAM-, ram-12, XRAM-12, RAM-12-fix, RAM-12/x, docs/RAM-12.md, RAM-12x, RAM-1234567890",
+     "found": []
+    },
+    {
+     "text": "A tail ws doesn't know isn't found in words: EV-4f2, EV-12",
+     "found": []
+    },
+    {
+     "text": "at https://acme.atlassian.net/browse/RAM-123 it says",
+     "found": []
+    }
+   ]
   }
  ],
  "names": [
@@ -727,6 +875,16 @@
     "version": 2
    },
    "name": "a3.v2"
+  },
+  {
+   "ref": {
+    "kind": "thing",
+    "plugin": "jira",
+    "what": "issue",
+    "id": "RAM-123",
+    "url": "https://acme.atlassian.net/browse/RAM-123"
+   },
+   "name": "RAM-123"
   }
  ],
  "addresses": [
@@ -884,6 +1042,33 @@
     "defaultBranch": "main"
    },
    "address": "ws:demo/token-cache:adr/0026.md#decision"
+  },
+  {
+   "ref": {
+    "kind": "thing",
+    "plugin": "jira",
+    "what": "issue",
+    "id": "RAM-123",
+    "url": "https://acme.atlassian.net/browse/RAM-123"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "https://acme.atlassian.net/browse/RAM-123"
+  },
+  {
+   "ref": {
+    "kind": "thing",
+    "plugin": "jira",
+    "what": "sprint",
+    "id": "SPRINT-4"
+   },
+   "where": {
+    "org": "acme",
+    "defaultBranch": "main"
+   },
+   "address": "ws:SPRINT-4"
   }
  ],
  "read": {
@@ -900,7 +1085,42 @@
     "demo": {
      "feat/token-cache": "token-cache"
     }
-   }
+   },
+   "things": [
+    {
+     "plugin": "jira",
+     "what": "issue",
+     "prefixes": [
+      "RAM-",
+      "RAP-"
+     ],
+     "tail": "number",
+     "address": "https://acme.atlassian.net/browse/{ref}"
+    },
+    {
+     "plugin": "jira",
+     "what": "sprint",
+     "prefixes": [
+      "SPRINT-"
+     ]
+    },
+    {
+     "plugin": "sentry",
+     "what": "event",
+     "prefixes": [
+      "EV-"
+     ],
+     "tail": "hex"
+    },
+    {
+     "plugin": "tracker",
+     "what": "bug",
+     "prefixes": [
+      "BUG-"
+     ],
+     "address": "https://bugs.example/show?id={ref}"
+    }
+   ]
   },
   "cases": [
    {
@@ -1056,6 +1276,85 @@
      "id": "a3",
      "version": 2
     }
+   },
+   {
+    "address": "https://acme.atlassian.net/browse/RAM-123",
+    "ref": {
+     "kind": "thing",
+     "plugin": "jira",
+     "what": "issue",
+     "id": "RAM-123",
+     "url": "https://acme.atlassian.net/browse/RAM-123"
+    }
+   },
+   {
+    "address": "https://acme.atlassian.net/browse/RAM-123?focusedCommentId=10042",
+    "ref": {
+     "kind": "thing",
+     "plugin": "jira",
+     "what": "issue",
+     "id": "RAM-123",
+     "url": "https://acme.atlassian.net/browse/RAM-123"
+    }
+   },
+   {
+    "address": "https://acme.atlassian.net/browse/RAP-7#comment-3",
+    "ref": {
+     "kind": "thing",
+     "plugin": "jira",
+     "what": "issue",
+     "id": "RAP-7",
+     "url": "https://acme.atlassian.net/browse/RAP-7"
+    }
+   },
+   {
+    "address": "ws:RAM-123",
+    "ref": {
+     "kind": "thing",
+     "plugin": "jira",
+     "what": "issue",
+     "id": "RAM-123",
+     "url": "https://acme.atlassian.net/browse/RAM-123"
+    }
+   },
+   {
+    "address": "ws:SPRINT-4",
+    "ref": {
+     "kind": "thing",
+     "plugin": "jira",
+     "what": "sprint",
+     "id": "SPRINT-4"
+    }
+   },
+   {
+    "address": "https://acme.atlassian.net/browse/UTF-8",
+    "ref": null
+   },
+   {
+    "address": "https://acme.atlassian.net/browse/RAM-123/attachments",
+    "ref": null
+   },
+   {
+    "address": "https://other.atlassian.net/browse/RAM-123",
+    "ref": null
+   },
+   {
+    "address": "https://bugs.example/show?id=BUG-7",
+    "ref": {
+     "kind": "thing",
+     "plugin": "tracker",
+     "what": "bug",
+     "id": "BUG-7",
+     "url": "https://bugs.example/show?id=BUG-7"
+    }
+   },
+   {
+    "address": "https://bugs.example/show?id=BUG-7&tab=all",
+    "ref": null
+   },
+   {
+    "address": "ws:EV-12",
+    "ref": null
    }
   ]
  },

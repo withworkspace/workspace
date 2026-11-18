@@ -140,7 +140,7 @@ export function App() {
         {error && <div className="banner">{error.message}</div>}
         {!workspace && !error && <Loading what="Opening the workspace…" />}
         {workspace && (
-          <RefsProvider workspace={workspace}>
+          <RefsProvider workspace={workspace} plugins={plugins}>
             <Routes>
               <Route path="/" element={<MissionList missions={workspace.missions} />} />
               <Route path="/missions/:slug" element={<MissionPage workspace={workspace} />} />
@@ -184,6 +184,7 @@ export function App() {
       {palette !== undefined && workspace && (
         <Palette
           workspace={workspace}
+          plugins={plugins}
           waiting={waiting}
           start={palette}
           pageRepo={repoOfPage(location.pathname, workspace.spaces)}
@@ -478,6 +479,9 @@ function useGlobalKeys({ openPalette, openHelp }: { openPalette: (start?: string
         // In a document being edited, ⌘K with words selected is a link, as
         // in any editor. With nothing selected, it's Find.
         if (e.target instanceof HTMLElement && e.target.closest(".pm") && !window.getSelection()?.isCollapsed) return;
+        // With Find open, ⌘K is Find's own: it acts on what the cursor's
+        // on there (shell/Palette.tsx).
+        if (document.querySelector(".palette-overlay")) return;
         e.preventDefault();
         e.stopPropagation();
         openPalette();

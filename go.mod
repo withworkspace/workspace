@@ -20,15 +20,9 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/spf13/cobra v1.10.2
-	github.com/tree-sitter/go-tree-sitter v0.25.0
-	github.com/tree-sitter/tree-sitter-c-sharp v0.23.5
-	github.com/tree-sitter/tree-sitter-go v0.25.0
-	github.com/tree-sitter/tree-sitter-python v0.25.0
-	github.com/tree-sitter/tree-sitter-typescript v0.23.2
-	github.com/withworkspace/plugin v0.4.1-0.20261118155437-df8040e64db1
+	github.com/withworkspace/plugin v0.5.0
 	golang.org/x/sys v0.49.0
 	golang.org/x/term v0.47.0
-	modernc.org/sqlite v1.62.0
 )
 
 require (
@@ -56,9 +50,15 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/tree-sitter/go-tree-sitter v0.25.0 // indirect
+	github.com/tree-sitter/tree-sitter-c-sharp v0.23.5 // indirect
+	github.com/tree-sitter/tree-sitter-go v0.25.0 // indirect
+	github.com/tree-sitter/tree-sitter-python v0.25.0 // indirect
+	github.com/tree-sitter/tree-sitter-typescript v0.23.2 // indirect
 	github.com/xo/terminfo v1.3.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	modernc.org/libc v1.80.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
+	modernc.org/sqlite v1.62.0 // indirect
 )

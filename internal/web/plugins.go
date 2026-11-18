@@ -2,15 +2,19 @@ package web
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"html"
 	"io/fs"
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"slices"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/plugin"
 )
 
@@ -49,12 +53,49 @@ type Plugin struct {
 	Error   string       `json:"error,omitempty"`
 	Missing []string     `json:"missing,omitempty"`
 	Views   []PluginView `json:"views"`
+	// Refs are how its things are named, as ws keeps them (plugin.Refs):
+	// what the web UI finds its names by, running or not.
+	Refs []PluginRef `json:"refs,omitempty"`
+	// Actions are what it can do, offered in Find among what there is to
+	// do: as it registered when it last started.
+	Actions []protocol.Action `json:"actions,omitempty"`
 	// Changed counts the times it's said what its view shows is stale: an
 	// app showing it is told when it moves.
 	Changed uint64 `json:"changed"`
 	// Starts counts the times it's been started: a page showing its view
 	// loads its app again when it moves.
 	Starts uint64 `json:"starts"`
+}
+
+// PluginRef is a kind of thing a plugin has that words name, and how one
+// is named: one of Prefixes, then its Tail (a number, when it doesn't
+// say). Address is where one is outside ws and Path where one opens in
+// the plugin's app, {ref} its name in each. Fields are what one is made
+// of, and Views how the web UI draws one, by where (card, pane): blocks,
+// each showing a field.
+type PluginRef struct {
+	Kind     string                      `json:"kind"`
+	Title    string                      `json:"title,omitempty"`
+	Icon     string                      `json:"icon,omitempty"`
+	Prefixes []string                    `json:"prefixes"`
+	Tail     string                      `json:"tail,omitempty"`
+	Address  string                      `json:"address,omitempty"`
+	Path     string                      `json:"path,omitempty"`
+	Fields   []protocol.Field            `json:"fields,omitempty"`
+	Views    map[string][]protocol.Block `json:"views,omitempty"`
+	// Actions are what can be done to one of its things, from Find.
+	Actions []protocol.Action `json:"actions,omitempty"`
+}
+
+// PluginThing is one of a plugin's things: its name, and a value for each
+// of its kind's fields it has one for. Told: ws has it from the plugin,
+// and this is from its own records; otherwise the plugin was asked just
+// now.
+type PluginThing struct {
+	Key     string            `json:"key"`
+	Fields  map[string]string `json:"fields"`
+	Changed *time.Time        `json:"changed,omitempty"`
+	Told    bool              `json:"told"`
 }
 
 // PluginView is an entry a plugin adds to the sidebar.
@@ -70,8 +111,28 @@ type PluginView struct {
 func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
 	out := []Plugin{}
 	if s.Plugins != nil {
-		for _, st := range s.Plugins.Statuses() {
-			p := Plugin{Name: st.Name, Description: st.Registration.Description, State: string(st.State), Error: st.Error, Missing: st.Missing, Views: []PluginView{}, Changed: st.Changed, Starts: st.Starts}
+		statuses := s.Plugins.Statuses()
+		// How each one's things are named, read once for them all: none
+		// to read with no plugins.
+		refs := map[string][]PluginRef{}
+		if len(statuses) > 0 {
+			kept, _ := plugin.Refs(s.Plugins.Root)
+			for _, k := range kept {
+				r := PluginRef{Kind: k.Kind, Title: k.Title, Icon: k.Icon, Prefixes: k.Prefixes, Tail: k.Tail, Address: k.Address, Path: k.Path, Fields: k.Fields, Actions: k.Actions}
+				// A view with nothing in it is no view: ws draws its own.
+				for where, blocks := range k.Views {
+					if len(blocks) > 0 {
+						if r.Views == nil {
+							r.Views = map[string][]protocol.Block{}
+						}
+						r.Views[where] = blocks
+					}
+				}
+				refs[k.Plugin] = append(refs[k.Plugin], r)
+			}
+		}
+		for _, st := range statuses {
+			p := Plugin{Refs: refs[st.Name], Actions: st.Registration.Actions, Name: st.Name, Description: st.Registration.Description, State: string(st.State), Error: st.Error, Missing: st.Missing, Views: []PluginView{}, Changed: st.Changed, Starts: st.Starts}
 			for _, v := range st.Registration.Views {
 				path := v.Path
 				if path == "" {
@@ -83,6 +144,134 @@ func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+// pluginThing is GET /api/plugins/{name}/refs/{kind}/{ref}: one of a
+// plugin's things, for the web UI to draw (its card, the pane beside
+// Find's list). From what the plugin's told ws of it, where it has: no
+// plugin's asked for those. Otherwise the plugin's asked, now. 404 is
+// there being none by that name; anything else is the plugin not being
+// there to ask.
+func (s *Server) pluginThing(w http.ResponseWriter, r *http.Request) {
+	name, kind, ref := r.PathValue("name"), r.PathValue("kind"), r.PathValue("ref")
+	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
+		jsonError(w, http.StatusBadGateway, "there's no plugin called "+name)
+		return
+	}
+	// As ws keeps how the plugin names things: the name has to be one.
+	kept, _ := plugin.RefsOf(s.Plugins.Root, name)
+	i := slices.IndexFunc(kept, func(k plugin.KeptRef) bool { return k.Kind == kind })
+	if i >= 0 && kept[i].Named().Names(ref) {
+		if rec, ok, err := plugin.ThingOf(s.Plugins.Root, name, kind, ref); err == nil && ok {
+			out := PluginThing{Key: ref, Fields: rec.Fields, Told: true}
+			if !rec.Changed.IsZero() {
+				out.Changed = &rec.Changed
+			}
+			writeJSON(w, http.StatusOK, out)
+			return
+		}
+	}
+	shown, err := s.Plugins.Show(r.Context(), name, kind, ref, false)
+	switch {
+	case errors.Is(err, plugin.ErrNoThing):
+		jsonError(w, http.StatusNotFound, err.Error())
+		return
+	case errors.Is(err, plugin.ErrNoShow):
+		// It says no more than it's told ws, and it hasn't told ws of this.
+		jsonError(w, http.StatusNotFound, name+" hasn't told ws of "+ref)
+		return
+	case err != nil:
+		jsonError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	// What its kind has a field for, as ws would keep it: its kind as ws
+	// has it now, since asking may have been what started the plugin.
+	out := PluginThing{Key: ref, Fields: map[string]string{}}
+	kept, _ = plugin.RefsOf(s.Plugins.Root, name)
+	if i := slices.IndexFunc(kept, func(k plugin.KeptRef) bool { return k.Kind == kind }); i >= 0 {
+		out.Fields = plugin.Tidy(kept[i].Ref, shown.Fields)
+	}
+	if !shown.Changed.IsZero() {
+		out.Changed = &shown.Changed
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// PluginActRequest is POST /api/plugins/{name}/actions/{id}: an action
+// chosen in Find. Kind and Ref are for one of a kind's, on one of its
+// things; neither is for one of the plugin's own. Answers are what's been
+// answered so far to what the action asked.
+type PluginActRequest struct {
+	Kind    string   `json:"kind,omitempty"`
+	Ref     string   `json:"ref,omitempty"`
+	Answers []string `json:"answers"`
+}
+
+// PluginActed is what came of an action: Ask, when it wants something
+// answered first and has done nothing yet; else a line to say, and where
+// in ws to go.
+type PluginActed struct {
+	Ask  *protocol.Ask `json:"ask,omitempty"`
+	Say  string        `json:"say,omitempty"`
+	Open string        `json:"open,omitempty"`
+}
+
+// pluginAct is POST /api/plugins/{name}/actions/{id}: run one of a
+// plugin's actions, or ask what it asks.
+func (s *Server) pluginAct(w http.ResponseWriter, r *http.Request) {
+	name, id := r.PathValue("name"), r.PathValue("id")
+	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
+		jsonError(w, http.StatusNotFound, "there's no plugin called "+name)
+		return
+	}
+	var req PluginActRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, http.StatusBadRequest, "what to do isn't JSON: "+err.Error())
+		return
+	}
+	done, err := s.Plugins.Act(r.Context(), name, protocol.ActionRunParams{ID: id, Kind: req.Kind, Ref: req.Ref, Answers: req.Answers})
+	switch {
+	case errors.Is(err, plugin.ErrNoAction):
+		jsonError(w, http.StatusNotFound, err.Error())
+		return
+	case err != nil:
+		jsonError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	out := PluginActed{Ask: done.Ask, Say: done.Say}
+	// Where it opens is a path in the plugin's app: its page in ws.
+	if done.Open != "" && plugin.ValidUIPath(done.Open) {
+		out.Open = "/x/" + name + done.Open
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// StartRequest is POST /api/missions: a mission to make, about something
+// ws names (one of a plugin's things, chosen in Find).
+type StartRequest struct {
+	About string `json:"about"`
+}
+
+// Started is the mission that was made: its slug, and its page.
+type Started struct {
+	Slug string `json:"slug"`
+	Path string `json:"path"`
+}
+
+// startMission is POST /api/missions: a mission about something ws names,
+// made to brief: whoever briefs it starts from what it's about.
+func (s *Server) startMission(w http.ResponseWriter, r *http.Request) {
+	var req StartRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.About) == "" {
+		jsonError(w, http.StatusUnprocessableEntity, "say what the mission's about")
+		return
+	}
+	m, err := s.App.StartAbout(req.About)
+	if err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, Started{Slug: m.Slug, Path: "/missions/" + m.Slug})
 }
 
 // pluginHeaders are what every answer under /plugins has, in place of the

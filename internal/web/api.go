@@ -75,6 +75,9 @@ type Mission struct {
 	Crew     []Crew    `json:"crew"`
 	// At is where it is on its route, in words: "Step 2 of 7, yours: …".
 	At string `json:"at,omitempty"`
+	// About is what it's about, by name: one of a plugin's things, a
+	// pull request.
+	About []string `json:"about,omitempty"`
 }
 
 // Headline is where a mission stands (mission.Headline): whose court it's
@@ -187,6 +190,7 @@ type MissionDetail struct {
 	Created time.Time `json:"created"`
 	Request string    `json:"request,omitempty"` // what was asked for, when a briefing agent made it
 	From    string    `json:"from,omitempty"`    // the mission/crew that raised it
+	About   []string  `json:"about,omitempty"`   // what it's about, by name
 	// Conversation is the conversation it came out of (w3), and its title.
 	Conversation      string `json:"conversation,omitempty"`
 	ConversationTitle string `json:"conversationTitle,omitempty"`

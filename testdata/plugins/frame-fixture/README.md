@@ -2,7 +2,7 @@
 
 A plugin for trying ws's page for a plugin's app (the shell) and the frame protocol by hand. It isn't published, and it isn't built on the plugin framework: it speaks the plugin protocol's JSON-RPC by hand (`main.go`), so ws can be tried before the framework builds apps itself.
 
-- **`main.go`** registers two views and its app (`ui.script`, `ui.style`), and serves the app's files at `/ui/` and one JSON endpoint, `/api/things`. It serves no HTML.
+- **`main.go`** registers two views and its app (`ui.script`, `ui.style`), and serves the app's files at `/ui/` and one JSON endpoint, `/api/things`. It serves no HTML. It registers how its things are named too (`refs`: `THING-2` is the Lantern), answers `ref/show` for one, and tells ws of all three as it starts (`thing/put`), so Find has them: `just try up plugin-refs` seeds a mission and a note that name them.
 - **`ui/`** is the app, on the published [`@withworkspace/ui-lib`](https://www.npmjs.com/package/@withworkspace/ui-lib): two screens (`/` and `/things/<id>`), a title for each, and a panel of what ws has told it.
 - **`ui/dist/`** is the app as built, and is committed: `go:embed` needs it when the plugin's built, so Go alone builds the plugin.
 

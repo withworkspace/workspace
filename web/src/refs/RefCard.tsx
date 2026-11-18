@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { useLoaded } from "../load";
 import { artifactStatus, byWords } from "../artifacts/shown";
@@ -7,13 +8,17 @@ import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { headlineStatus, Status } from "../ui/status";
 import { useRefs } from "./known";
-import { GROUND, type Known, type PageRef, refHref } from "./refs";
+import { GROUND, isOutside, type Known, namedOf, type PageRef, refHref } from "./refs";
+import { type Surface, thingBlocks } from "./thing";
+import { type Pointer, ThingView, useThing } from "./ThingView";
+import { thingIcon } from "./views";
 import { FloatingCard } from "../ui/hover";
 
 // RefCard says more about what words name, under them while the
 // pointer's there: a file's lines, a pull request's title and where it
 // stands, a mission's headline, another page, a conversation, an
-// artifact's version and its note. Each has somewhere to go.
+// artifact's version and its note, a plugin's thing as its plugin says it
+// is. Each has somewhere to go.
 
 // What's been read for cards, kept while the page is open: a file's lines,
 // a pull request.
@@ -293,6 +298,80 @@ function ArtifactCard({ r, workspace }: { r: Extract<PageRef, { kind: "artifact"
   );
 }
 
+// ThingCard is a plugin's thing (a Jira issue): what kind of thing it is
+// and its name, and what its plugin says of it now: its title, where it
+// stands, and whatever else it gives in a line each. It goes where a
+// click on its name does.
+// ThingCard is a plugin's thing: its fields, as ws has them or as its
+// plugin says when asked, drawn as the plugin declared for where it's
+// shown (ThingView). Around that is ws's own: that it's being asked after,
+// that there's none or the plugin couldn't be asked, and somewhere to go.
+// A thing with nothing drawn yet (it's being asked after, there's none, or
+// its kind has no fields) is its name, and what one of its kind is called.
+//
+// before is shown in place of ws's own, while there's nothing of the thing
+// to draw: Find's pane has what the search found of it already. pointer
+// draws a name one of its fields holds as what it names: Find's pane
+// does, and a card under a name leaves it as words.
+export function ThingCard({
+  r,
+  known,
+  surface = "card",
+  before,
+  pointer,
+}: {
+  r: Extract<PageRef, { kind: "thing" }>;
+  known?: Known;
+  surface?: Surface;
+  before?: ReactNode;
+  pointer?: Pointer;
+}) {
+  const named = namedOf(r, known);
+  const { thing, error } = useThing(r);
+  const what = r.what.replace(/-/g, " ");
+  const href = refHref(r, known);
+  const drawn = !!thing && thingBlocks(named, thing, surface).length > 0;
+  if (!drawn && before) return <>{before}</>;
+  return (
+    <>
+      {drawn ? (
+        <ThingView named={named} record={thing} surface={surface} pointer={pointer} />
+      ) : (
+        <>
+          <span className="hovercard-head">
+            <Icon name={thingIcon(named)} size={13} className="dim" />
+            <span className="hovercard-title">{r.id}</span>
+          </span>
+          <span className="hovercard-line dim">
+            {named?.title || `${r.plugin} ${what}`} {r.id}
+          </span>
+        </>
+      )}
+      {thing === null && (
+        <span className="hovercard-line dim">
+          {r.plugin} has no {what} called {r.id}.
+        </span>
+      )}
+      {error && (
+        <span className="hovercard-line dim">
+          {r.plugin} couldn't be asked about it: {error}
+        </span>
+      )}
+      {thing === undefined && !error && <span className="hovercard-line dim">Asking {r.plugin}…</span>}
+      {/* One that isn't there has nowhere to go. */}
+      {thing === null ? null : isOutside(href) ? (
+        <a href={href} target="_blank" rel="noreferrer" className="hovercard-link">
+          Open the {what} <Icon name="external" size={11} />
+        </a>
+      ) : (
+        <Link to={href} className="hovercard-link">
+          Open the {what} <Icon name="arrow-right" size={11} />
+        </Link>
+      )}
+    </>
+  );
+}
+
 function body(r: PageRef, workspace: Workspace, known?: Known, repos?: Map<string, Repo>) {
   switch (r.kind) {
     case "file":
@@ -368,13 +447,18 @@ function body(r: PageRef, workspace: Workspace, known?: Known, repos?: Map<strin
     }
     case "artifact":
       return <ArtifactCard r={r} workspace={workspace} />;
+    case "thing":
+      return <ThingCard r={r} known={known} />;
   }
 }
 
 // RefCardBody is what a ref's card says, for wherever a card is shown: on
 // hover in a page, and beside the list in Find.
-export function RefCardBody({ r, workspace }: { r: PageRef; workspace: Workspace }) {
-  return <>{body(r, workspace)}</>;
+export function RefCardBody({ r, workspace, known }: { r: PageRef; workspace: Workspace; known?: Known }) {
+  // What there is to name says what a plugin's thing is called, and
+  // where it opens: given, where the card's shown outside the pages (Find).
+  const refs = useRefs();
+  return <>{body(r, workspace, known ?? refs?.known, refs?.repos)}</>;
 }
 
 // RefCard is the card for a ref, under the words that name it (el), or

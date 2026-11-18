@@ -21,9 +21,10 @@ type Tree interface {
 // Tree while it isn't read: none of its files are found), what else each
 // repo is called (alias to repo), each repo's capsules, the workspace's
 // folder (a path on disk under it is read as the file it is), the
-// missions' slugs, and the pages, conversations and artifacts by id. Org, the default
-// branch and each repo's capsules by branch (repo to branch to capsule)
-// are for reading addresses.
+// missions' slugs, the pages, conversations and artifacts by id, and how
+// each plugin's things are named. Org, the default branch and each repo's
+// capsules by branch (repo to branch to capsule) are for reading
+// addresses.
 type Known struct {
 	Repos         map[string]Tree
 	Aliases       map[string]string
@@ -33,6 +34,7 @@ type Known struct {
 	Pages         []string
 	Talks         []string
 	Artifacts     []string
+	Things        []Named
 	Org           string
 	DefaultBranch string
 	Branches      map[string]map[string]string
@@ -68,6 +70,9 @@ const (
 type patterns struct {
 	ground, inCapsule, onDisk, bareRepo, prs, missions *regexp.Regexp
 	ids, artifacts                                     *regexp.Regexp
+	// things are the Known's Things' names, in their order: nil for one
+	// whose tail isn't known, none of whose names are found in words.
+	things []*regexp.Regexp
 }
 
 // alt is names as alternatives, the longest first, so the longest wins.
@@ -129,6 +134,9 @@ func (k *Known) patterns() *patterns {
 		}
 		if len(slugs) > 0 {
 			p.missions = regexp.MustCompile(`(` + alt(slugs) + `)`)
+		}
+		for _, n := range k.Things {
+			p.things = append(p.things, n.pattern())
 		}
 		p.ids = regexp.MustCompile(`([pw])([1-9]\d{0,4})`)
 		p.artifacts = regexp.MustCompile(`(a[1-9]\d{0,6})(?:\.v([1-9]\d{0,4}))?`)
@@ -378,6 +386,21 @@ func (k *Known) Find(text string) []Found {
 		add(m[0], m[1], Ref{Kind: Artifact, ID: id, Version: v})
 		return true
 	})
+	// A plugin's thing, by a name its plugin registered: RAM-123. Whether
+	// there's one by that name, its plugin says when it's shown.
+	for i, re := range p.things {
+		if re == nil {
+			continue
+		}
+		n := k.Things[i]
+		scan(re, text, func(m []int) bool {
+			if before(text, m[0], notBeforeWord) || after(text, m[1], notAfterWord) {
+				return false
+			}
+			add(m[0], m[1], n.ref(text[m[0]:m[1]]))
+			return true
+		})
+	}
 	sort.SliceStable(out, func(i, j int) bool {
 		if out[i].From != out[j].From {
 			return out[i].From < out[j].From

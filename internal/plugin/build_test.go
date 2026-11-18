@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/plugin"
 )
 
@@ -130,6 +131,28 @@ func TestProblems(t *testing.T) {
 	fatal, notes = texts(plugin.Problems("hidden", plugin.Registration{UI: &plugin.UI{Script: "/ui/app.js"}}))
 	if fatal != "" || !strings.Contains(notes, "nothing opens it") {
 		t.Errorf("an app and no view: fatal %q, notes %q", fatal, notes)
+	}
+
+	// How its things are named: a ref ws would leave out is what's wrong,
+	// and one that names things and has nothing else is still of use.
+	fatal, notes = texts(plugin.Problems("names", plugin.Registration{Refs: []protocol.Ref{
+		{Kind: "issue", Title: "Issue", Prefixes: []string{"RAM-"}, Address: "https://acme.example/{ref}"},
+		{Kind: "issue", Title: "Issue", Prefixes: []string{"RAP-"}, Path: "/issue/{ref}"},
+		{Kind: "sprint", Prefixes: []string{"sprint"}},
+		{Kind: "event", Prefixes: []string{"EV-"}, Tail: "hex"},
+	}}))
+	for _, want := range []string{`its ref "issue" is registered twice`, `its ref "sprint": its prefix "sprint"`} {
+		if !strings.Contains(fatal, want) {
+			t.Errorf("what's wrong with its refs lacks %q:\n%s", want, fatal)
+		}
+	}
+	for _, want := range []string{`its ref "event" has the tail "hex"`, `its ref "event" has no title`, `its ref "event" has no address and no path`} {
+		if !strings.Contains(notes, want) {
+			t.Errorf("what's worth knowing of its refs lacks %q:\n%s", want, notes)
+		}
+	}
+	if strings.Contains(notes, "nothing to use it by") {
+		t.Errorf("one that names things is of use:\n%s", notes)
 	}
 
 	// Commands and no guide: agents aren't told.
