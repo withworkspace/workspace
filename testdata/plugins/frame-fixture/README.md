@@ -21,6 +21,7 @@ That adds it, linked to this folder, and prints where the web UI is. In any othe
 | Where | What |
 |---|---|
 | `/x/frame-fixture/` | The app, in ws's theme from its first paint, light and dark. Its panel says frame protocol 1. |
+| The top of `/x/frame-fixture/` | ws's glow carries on behind the app: the frame's page is see-through. `/plugin-frame/frame-fixture/` opened alone is plain `--ws-bg`. |
 | `/x/frame-fixture/things/2` | A deep link, loaded fresh: the app starts there, and the tab's title is "Lantern". |
 | A thing's link, then back | The address and the title follow, and "ws:navigate received" goes up each time: ws keeps the history, and tells the app. One click is one step back. |
 | ⌘-click a thing's link | It opens in a tab of its own at `/x/frame-fixture/things/<id>`, ws's page, not the bare shell. |

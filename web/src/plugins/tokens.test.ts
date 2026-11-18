@@ -40,6 +40,10 @@ describe("the shell's styles", () => {
   it("paint the page in ws's colours before the app has loaded", () => {
     expect(shell).toMatch(/html,\s*body \{[^}]*background: var\(--ws-bg\);[^}]*color: var\(--ws-fg\);/);
   });
+
+  it("leave the page see-through in ws's frame, so ws's backdrop shows behind it", () => {
+    expect(shell).toMatch(/html\[data-framed\],\s*html\[data-framed\] body \{\s*background: transparent;?\s*\}/);
+  });
 });
 
 // The foundations are in a plugin's page too: a rule there, of anything
