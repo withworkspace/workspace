@@ -1,7 +1,7 @@
 // Package ref is ws's one grammar for naming things in words: a file, some lines of it, a folder, a
 // repo, a capsule's file, a pull request, a mission, a page, a conversation, an artifact or a version of
-// one. What a name is written as, what it's read back as, and its address (on GitHub, or ws: for what
-// only ws has).
+// one, and a plugin's thing (a Jira issue), named as the plugin registered. What a name is written as,
+// what it's read back as, and its address (on GitHub, or ws: for what only ws has).
 //
 // The web UI has the same grammar in TypeScript (web/src/refs/refs.ts).
 // Both are tested against one file of cases (testdata/cases.json), so they
@@ -37,6 +37,10 @@ const (
 	// Artifact is a versioned HTML prototype (internal/artifact): a3, and
 	// a3.v2 for one of its versions.
 	Artifact Kind = "artifact"
+	// Thing is something a plugin has (a Jira issue, RAM-123), named as
+	// the plugin registered (Named): ws knows its name and whose it is,
+	// and asks the plugin what it is.
+	Thing Kind = "thing"
 )
 
 // Ref is one thing named. Its JSON is the web UI's PageRef.
@@ -49,13 +53,20 @@ type Ref struct {
 	EndLine  int    `json:"endLine,omitempty"`
 	Number   int    `json:"number,omitempty"`  // a pull request's
 	Slug     string `json:"slug,omitempty"`    // a mission's
-	ID       string `json:"id,omitempty"`      // a page's, a conversation's or an artifact's
+	ID       string `json:"id,omitempty"`      // a page's, a conversation's or an artifact's; a thing's name
 	Version  int    `json:"version,omitempty"` // an artifact's version (a3.v2), 0 for the artifact
 	// Commit is the commit its lines are of, when it's pinned to one: what
 	// they meant when it was written.
 	Commit string `json:"commit,omitempty"`
 	// Anchor is a heading in a file, as an address names one (#decision).
 	Anchor string `json:"anchor,omitempty"`
+	// Plugin is whose a thing is, and What its kind there (jira's issue).
+	Plugin string `json:"plugin,omitempty"`
+	What   string `json:"what,omitempty"`
+	// URL is where a thing is outside ws, as its plugin said when it was
+	// named: kept with it, so it's still somewhere to go once the plugin
+	// isn't here.
+	URL string `json:"url,omitempty"`
 }
 
 // InCapsule is whether it's a file or folder in a capsule.
@@ -82,7 +93,7 @@ func (r Ref) Name() string {
 		return r.Repo + "#" + strconv.Itoa(r.Number)
 	case Mission:
 		return r.Slug
-	case Page, Talk:
+	case Page, Talk, Thing:
 		return r.ID
 	case Artifact:
 		if r.Version > 0 {
@@ -236,6 +247,10 @@ type Where struct {
 func (r Ref) Address(w Where) string {
 	gh := "https://github.com/" + w.Org + "/" + r.Repo
 	switch r.Kind {
+	case Thing:
+		if r.URL != "" {
+			return r.URL
+		}
 	case Repo:
 		return gh
 	case PR:
@@ -344,12 +359,19 @@ func (g GitHub) Splits() [][2]string {
 func IsCommit(rev string) bool { return shaShape.MatchString(rev) }
 
 // ParseAddress reads an address back into what it names: one of the
-// workspace's on GitHub (its org, a repo it has), or a ws: one. What an
+// workspace's on GitHub (its org, a repo it has), a plugin's thing where
+// its plugin said one is, or a ws: one. What an
 // address names needn't be there now (a capsule burned since): it was
 // named on purpose, so it's read as written.
 func ParseAddress(addr string, k *Known) (Ref, bool) {
 	if name, ok := strings.CutPrefix(addr, "ws:"); ok {
+		if r, ok := k.thingNamed(strings.TrimSpace(name)); ok {
+			return r, true
+		}
 		return Parse(name)
+	}
+	if r, ok := k.thingAt(addr); ok {
+		return r, true
 	}
 	g, ok := ParseGitHub(addr)
 	if !ok || (k.Org != "" && !strings.EqualFold(g.Org, k.Org)) {

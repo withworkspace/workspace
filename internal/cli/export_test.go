@@ -9,7 +9,9 @@ import (
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/pulls"
+	wsref "github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/web"
 )
 
@@ -248,3 +250,12 @@ func SweepArtifacts(root string) []string {
 // EvalMade is evalMade, for a test to own the records of the workspace an
 // eval's run is made in.
 var EvalMade = &evalMade
+
+// UseThings has ask stand in for the workspace's plugins when ws show
+// asks one what a thing is, and returns a cleanup: no daemon runs one in
+// these tests.
+func UseThings(ask func(r wsref.Ref, full bool) (plugin.Shown, error)) func() {
+	old := askPlugin
+	askPlugin = func(_ string, r wsref.Ref, full bool) (plugin.Shown, error) { return ask(r, full) }
+	return func() { askPlugin = old }
+}

@@ -110,6 +110,26 @@ func (tx *Tx) Forget(origin Origin) error {
 	return tx.ForgetWords(origin, "")
 }
 
+// ForgetUnder removes what the record at origin implied, and what every
+// record under it did (origin/…): a plugin's things are each a record
+// under the plugin, so that removing the plugin forgets them all.
+func (tx *Tx) ForgetUnder(origin Origin) error {
+	// Under it: from origin/ up to, and not, what follows the slash.
+	own, lo, hi := string(origin), string(origin)+"/", string(origin)+"0"
+	const under = `origin = ? OR (origin >= ? AND origin < ?)`
+	for _, q := range []string{
+		`DELETE FROM things WHERE ` + under,
+		`DELETE FROM links WHERE ` + under,
+		`DELETE FROM words WHERE rowid IN (SELECT id FROM places WHERE ` + under + `)`,
+		`DELETE FROM places WHERE ` + under,
+	} {
+		if _, err := tx.Exec(q, own, lo, hi); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Links is what points at a thing, or what it points at (from), latest
 // first: for whoever asks of the graph.
 func (tx *Tx) Links(k Key, from bool) ([]Link, error) {

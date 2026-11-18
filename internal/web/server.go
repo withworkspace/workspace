@@ -306,6 +306,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/missions/{slug}/draft", s.getDraft)
 	mux.HandleFunc("PUT /api/missions/{slug}/draft", s.putDraft)
 	mux.HandleFunc("DELETE /api/missions/{slug}/draft", s.dropDraft)
+	mux.HandleFunc("POST /api/missions", s.startMission)
 	mux.HandleFunc("POST /api/missions/{slug}/act", s.act)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/screen", s.crewScreen)
 	mux.HandleFunc("POST /api/missions/{slug}/crew/{id}/input", s.crewInput)
@@ -441,6 +442,8 @@ func (s *Server) Handler() http.Handler {
 	// Plugins: what they add, the page ws serves for one's app (the
 	// shell), and each one's own HTTP (asked of the plugin).
 	mux.HandleFunc("GET /api/plugins", s.pluginsList)
+	mux.HandleFunc("GET /api/plugins/{name}/refs/{kind}/{ref}", s.pluginThing)
+	mux.HandleFunc("POST /api/plugins/{name}/actions/{id}", s.pluginAct)
 	mux.HandleFunc("GET /plugin-frame/{name}", s.pluginShellRoot)
 	mux.HandleFunc("GET /plugin-frame/{name}/{rest...}", s.pluginShell)
 	mux.HandleFunc("/plugins/{name}", s.pluginRoot)

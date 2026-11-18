@@ -31,6 +31,9 @@ import { Callout, type CalloutTone, Copyable, Empty, ErrorCard, humanError, Keys
 import { headlineStatus, missionStateStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { RefContext } from "../ui/hover";
+import { useRefs } from "../refs/known";
+import { refAt, refKey } from "../refs/refs";
+import { RefTag } from "../refs/RefTag";
 import { PromptCard, pendingCall } from "./AgentView";
 import { archiveMission } from "./archive";
 import { briefGoal } from "./brief";
@@ -108,6 +111,9 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
   const tab: Tab = tabs.includes(params.get("tab") as Tab) ? (params.get("tab") as Tab) : "summary";
   const navigate = useNavigate();
   const updated = workspace.missions.find((m) => m.slug === slug)?.updated;
+  // What it's about, by name (a plugin's thing, a pull request): as the
+  // workspace says of it.
+  const about = workspace.missions.find((m) => m.slug === slug)?.about;
   // The details beside Summary (kept, as you left them), and over another
   // tab (until you leave it).
   const [side, setSide] = useState(loadSide);
@@ -384,7 +390,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
             </>
           ))}
         </div>
-        {tab !== "summary" && <DetailSide {...parts} updated={updated} over open={over} />}
+        {tab !== "summary" && <DetailSide {...parts} updated={updated} about={about} over open={over} />}
       </div>
       <div className={`page mission${docked ? " with-side" : ""}${wideTabs.includes(tab) ? " wide" : ""}`}>
         <div className="mission-main">
@@ -400,7 +406,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
             {tab === "talk" && <MissionTalk slug={d.slug} talks={d.talks} planner={d.planner} />}
           </div>
         </div>
-        {docked && <DetailSide {...parts} updated={updated} />}
+        {docked && <DetailSide {...parts} updated={updated} about={about} />}
       </div>
     </div>
     </RefContext.Provider>
@@ -504,7 +510,7 @@ function ParkButton({ d, reload }: { d: MissionDetail; reload: Reload }) {
 // its documents and capsules, who's working. Beside Summary; over another
 // tab (over) it's a card that slides in from the right when open, there
 // all along so it can slide out again.
-function DetailSide({ d, selected, openArtifact, review, updated, over, open, go, reload }: Parts & { updated?: string; over?: boolean; open?: boolean }) {
+function DetailSide({ d, selected, openArtifact, review, updated, about, over, open, go, reload }: Parts & { updated?: string; about?: string[]; over?: boolean; open?: boolean }) {
   const live = d.crew.filter((c) => !c.ended);
   const accepted = d.stages.filter((s) => s.state === "accepted").length;
   return (
@@ -542,6 +548,16 @@ function DetailSide({ d, selected, openArtifact, review, updated, over, open, go
         <dd>
           <Copyable text={d.slug} className="mono" />
         </dd>
+        {about && about.length > 0 && (
+          <>
+            <dt>About</dt>
+            <dd className="about-row">
+              {about.map((name) => (
+                <About key={name} name={name} />
+              ))}
+            </dd>
+          </>
+        )}
         {d.from && (
           <>
             <dt>Raised from</dt>
@@ -659,6 +675,15 @@ interface Parts {
   review: (c: CapsuleDetail) => void;
   go: (t: Tab) => void;
   reload: Reload;
+}
+
+// About is one thing a mission's about, by its name: drawn as what it
+// names (a plugin's thing, a pull request, anything ws names), with its
+// card, and as its words where ws doesn't read it as a name.
+function About({ name }: { name: string }) {
+  const known = useRefs()?.known;
+  const ref = known ? refAt(name, known) : undefined;
+  return ref ? <RefTag refKey={refKey(ref)}>{name}</RefTag> : <span className="mono">{name}</span>;
 }
 
 // A harness's warning the orchestrator passed on as what it said ("this

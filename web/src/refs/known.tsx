@@ -1,13 +1,15 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { getRepos, getTree, type Repo, type Workspace, worktreeAPI } from "../api";
+import { getRepos, getTree, type Plugin, type Repo, type Workspace, worktreeAPI } from "../api";
 import { useLoaded } from "../load";
-import { GROUND, type Known, reposNamed } from "./refs";
+import { GROUND, type Known, type Named, reposNamed } from "./refs";
 
 // What there is to name, held once for the whole web UI, so a name is
 // found the same in a page's editor, a conversation, a thread, a pass or a
 // handoff: the repos (with their aliases and capsules), the missions, the
-// pages, the conversations and the artifacts. A repo's files are read the
-// first time something shown names the repo (demo/…), and kept.
+// pages, the conversations and the artifacts, and the kinds of thing the
+// workspace's plugins have (a Jira issue), each named as its plugin
+// registered. A repo's files are read the first time something shown names
+// the repo (demo/…), and kept.
 
 export interface Refs {
   known: Known;
@@ -42,7 +44,29 @@ export const useRefsWorkspace = () => useContext(WorkspaceContext);
 
 const noRepos: Repo[] = [];
 
-export function RefsProvider({ workspace, children }: { workspace: Workspace; children: ReactNode }) {
+const noPlugins: Plugin[] = [];
+
+// thingsNamed is how the plugins' things are named, as each registered:
+// what a name is read by (RAM-123), with what one holds, how it's drawn,
+// and what can be done to one.
+export const thingsNamed = (plugins: Plugin[]): Named[] =>
+  plugins.flatMap((p) =>
+    (p.refs ?? []).map((r) => ({
+      plugin: p.name,
+      what: r.kind,
+      prefixes: r.prefixes ?? [],
+      tail: r.tail,
+      address: r.address,
+      path: r.path,
+      title: r.title,
+      icon: r.icon,
+      fields: r.fields,
+      views: r.views,
+      actions: r.actions,
+    })),
+  );
+
+export function RefsProvider({ workspace, plugins = noPlugins, children }: { workspace: Workspace; plugins?: Plugin[]; children: ReactNode }) {
   // A capsule lifted or burned changes what a capsule's file can be.
   const capsules = workspace.missions.flatMap((m) => m.capsules.map((c) => `${c.repo}/${c.name}`)).join(",");
   const repos = useLoaded(() => getRepos().then((rs) => rs.filter((r) => r.cloned)), [capsules], { keep: true }).value ?? noRepos;
@@ -74,6 +98,14 @@ export function RefsProvider({ workspace, children }: { workspace: Workspace; ch
     },
     [names],
   );
+  // The plugins are read again whenever one says anything: what there is
+  // to name changes only when what they registered does.
+  const named = JSON.stringify(plugins.map((p) => [p.name, p.refs ?? []]));
+  const things = useMemo<Named[]>(
+    () => thingsNamed(plugins),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [named],
+  );
   const naming = [
     workspace.root,
     workspace.org,
@@ -97,12 +129,26 @@ export function RefsProvider({ workspace, children }: { workspace: Workspace; ch
       defaultBranch: workspace.defaultBranch,
       branches: new Map(repos.map((r) => [r.name, new Map(Object.entries(r.branches ?? {}).map(([capsule, branch]) => [branch, capsule]))])),
       spaces: (workspace.spaces ?? []).map((s) => ({ repo: s.repo, folder: s.folder })),
+      things,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [repos, trees, naming],
+    [repos, trees, naming, things],
   );
   const byName = useMemo(() => new Map(repos.map((r) => [r.name, r])), [repos]);
   const value = useMemo(() => ({ known, repos: byName, heads, want }), [known, byName, heads, want]);
+  return (
+    <WorkspaceContext.Provider value={workspace}>
+      <RefsContext.Provider value={value}>{children}</RefsContext.Provider>
+    </WorkspaceContext.Provider>
+  );
+}
+
+// RefsScope is what there is to name, as it's given: for somewhere
+// outside the pages that draws refs of its own (Find's pane, which names
+// what a plugin's thing points at). It reads no repo's files: what it's
+// given is what's found.
+export function RefsScope({ workspace, known, children }: { workspace: Workspace; known: Known; children: ReactNode }) {
+  const value = useMemo<Refs>(() => ({ known, repos: new Map(), heads: new Map(), want: () => {} }), [known]);
   return (
     <WorkspaceContext.Provider value={workspace}>
       <RefsContext.Provider value={value}>{children}</RefsContext.Provider>

@@ -13,6 +13,7 @@
 //   fix-token-refresh                    a mission, by its slug
 //   p3, w4                               another page, a conversation
 //   a3, a3.v2                            an artifact, a version of one
+//   RAM-123                              a plugin's thing, by a name it registered
 //
 // It also reads what agents write instead: a repo's alias for the repo,
 // and a file as it is on disk (repos/demo/token-cache/internal/cache.go,
@@ -33,7 +34,72 @@ export type PageRef =
   | { kind: "mission"; slug: string }
   | { kind: "page"; id: string }
   | { kind: "talk"; id: string }
-  | { kind: "artifact"; id: string; version?: number };
+  | { kind: "artifact"; id: string; version?: number }
+  // Something a plugin has (a Jira issue): the plugin, its word for the
+  // kind of thing, the thing's name, and where it is outside ws, when the
+  // plugin said where its things are.
+  | { kind: "thing"; plugin: string; what: string; id: string; url?: string };
+
+// ThingField is one of the fields a kind of plugin's thing has: its name,
+// what it is (title, state, text, time, markdown, or ref and refs, whose
+// value names other things; one ws doesn't know is drawn as text), and
+// what it's called where it's said beside its value.
+export interface ThingField {
+  name: string;
+  type: string;
+  label?: string;
+}
+
+// ThingBlock is a piece of how a plugin's thing is drawn (a title, a
+// subtitle, a badge, a field with its label, or markdown), with the field
+// whose value it shows: key is the thing's own name. label is a field's,
+// in place of the one it was declared with; lines is how many lines its
+// markdown is kept to. A block ws doesn't know isn't drawn.
+export interface ThingBlock {
+  block: string;
+  field: string;
+  label?: string;
+  lines?: number;
+}
+
+// ThingAction is something a plugin does when asked: to one of its
+// things (a kind's actions), or of its own (the plugin's). hint is more
+// words it's found by.
+export interface ThingAction {
+  id: string;
+  title: string;
+  icon?: string;
+  hint?: string;
+}
+
+// ThingViews are how a kind of plugin's thing is drawn, as its plugin
+// declared, where it's drawn: the card under its name, and the pane beside
+// the list in Find.
+export interface ThingViews {
+  card?: ThingBlock[];
+  pane?: ThingBlock[];
+}
+
+// Named is a kind of thing a plugin has, and how one is named, as the
+// plugin registered it: a name is one of prefixes and then its tail (a
+// number, when it doesn't say). address is where one is outside ws, and
+// path where one opens in the plugin's app, {ref} its name in each. title
+// and icon are how ws draws one; fields are what one holds, views how the
+// plugin has it drawn from them (refs/thing.ts), and actions what can be
+// done to one.
+export interface Named {
+  plugin: string;
+  what: string;
+  prefixes: string[];
+  tail?: string;
+  address?: string;
+  path?: string;
+  title?: string;
+  icon?: string;
+  fields?: ThingField[];
+  views?: ThingViews;
+  actions?: ThingAction[];
+}
 
 // Known is what there is to name: each repo with the files on its default
 // branch (undefined while they're not read yet), the missions' slugs, and
@@ -58,6 +124,9 @@ export interface Known {
   // The workspace's spaces of documents: a file that's one of their
   // documents goes to its address in Documents.
   spaces?: { repo: string; folder?: string }[];
+  // The kinds of thing plugins have, and how each is named: the first to
+  // name some words has them.
+  things?: Named[];
 }
 
 export interface Found {
@@ -77,6 +146,22 @@ const seg = "[\\w.@+~-]+";
 const filePath = `${seg}(?:/${seg})*`;
 const lineRange = "(?::(\\d+)(?:-(\\d+))?)?";
 const before = "(?<![\\w./@#~-])";
+
+// What follows a prefix in a plugin's thing's name, by the tail its kind
+// registered. One with a tail that isn't here isn't found in words.
+const tails: Record<string, string> = { number: "[1-9]\\d{0,8}" };
+
+// thingRef is a plugin's thing by its name, at its address if its kind
+// has one.
+function thingRef(of: Named, id: string): PageRef {
+  return { kind: "thing", plugin: of.plugin, what: of.what, id, ...(of.address ? { url: of.address.replace("{ref}", id) } : {}) };
+}
+
+// thingNamed is the plugin's thing a whole name is, if it's one.
+function thingNamed(name: string, known: Known): PageRef | undefined {
+  for (const t of patternsOf(known).things) if (t.whole.test(name)) return thingRef(t.of, name);
+  return undefined;
+}
 
 type Lines = { line?: number; endLine?: number };
 const linesOf = (from?: string, to?: string): Lines => (from ? { line: Number(from), ...(to ? { endLine: Number(to) } : {}) } : {});
@@ -112,12 +197,21 @@ interface Patterns {
   prs?: RegExp;
   missions?: RegExp;
   repoAtEnd?: RegExp;
+  // Each kind of plugin's thing that's found in words, with what finds
+  // one in a run of text, and what a whole name is.
+  things: { of: Named; find: RegExp; whole: RegExp }[];
 }
 const patternsCache = new WeakMap<Known, Patterns>();
 function patternsOf(known: Known): Patterns {
   let p = patternsCache.get(known);
   if (p) return p;
-  p = {};
+  p = { things: [] };
+  for (const of of known.things ?? []) {
+    const tail = tails[of.tail ?? "number"];
+    if (!tail || !of.prefixes.length) continue;
+    const name = `(?:${alt(of.prefixes)})${tail}`;
+    p.things.push({ of, find: new RegExp(`(?<![\\w/.#-])(${name})(?![\\w/#-])`, "g"), whole: new RegExp(`^${name}$`) });
+  }
   const repos = [...known.repos.keys()];
   const aliases = [...(known.aliases?.keys() ?? [])].filter((a) => !known.repos.has(a) && known.repos.has(known.aliases!.get(a)!));
   const names = alt([...repos, ...aliases]);
@@ -221,6 +315,11 @@ export function findRefs(text: string, known: Known): Found[] {
       if (known.artifacts.includes(m[1])) add(m.index ?? 0, (m.index ?? 0) + m[0].length, artifactRef(m[1], m[2]));
     }
   }
+  // A plugin's thing, by a name its kind registered: the first kind to
+  // name some words has them.
+  for (const t of pat.things) {
+    for (const m of text.matchAll(t.find)) add(m.index ?? 0, (m.index ?? 0) + m[0].length, thingRef(t.of, m[1]));
+  }
   out.sort((a, b) => a.from - b.from || b.to - a.to);
   return out.filter((f, i) => i === 0 || f.from >= out[i - 1].to);
 }
@@ -315,6 +414,8 @@ export function refName(r: PageRef): string {
       return r.id;
     case "artifact":
       return r.version ? `${r.id}.v${r.version}` : r.id;
+    case "thing":
+      return r.id;
   }
 }
 
@@ -327,9 +428,10 @@ export interface Where {
 
 const escapePath = (p: string) => p.split("/").map(encodeURIComponent).join("/");
 
-// refAddress is where a ref is outside ws: on GitHub, or ws:<name> for
-// what only ws has.
+// refAddress is where a ref is outside ws: on GitHub, where a plugin said
+// its thing is, or ws:<name> for what only ws has.
 export function refAddress(r: PageRef, w: Where): string {
+  if (r.kind === "thing") return r.url ?? `ws:${r.id}`;
   const gh = `https://github.com/${w.org}/${"repo" in r ? r.repo : ""}`;
   switch (r.kind) {
     case "repo":
@@ -439,7 +541,9 @@ function withLines(r: Extract<PageRef, { kind: "file" }>, line?: number, endLine
 // workspace's on GitHub, or a ws: one. What it names needn't be there now:
 // it was named on purpose.
 export function parseAddress(addr: string, known: Known): PageRef | undefined {
-  if (addr.startsWith("ws:")) return parseName(addr.slice(3));
+  if (addr.startsWith("ws:")) return thingNamed(addr.slice(3), known) ?? parseName(addr.slice(3));
+  const thing = thingAt(addr, known);
+  if (thing) return thing;
   const m = githubURL.exec(addr);
   if (!m) return undefined;
   const [, org, repoRaw, restRaw, frag] = m;
@@ -483,6 +587,27 @@ export function parseAddress(addr: string, known: Known): PageRef | undefined {
   return segs.length > 1 ? pick(segs[0], segs.slice(1).join("/")) : undefined;
 }
 
+// thingAt is the plugin's thing an address is, where its kind said its
+// things are: the kind's address with one of its names where {ref} is.
+// What follows after a ? or a # is beside the point (?focusedCommentId=…),
+// unless the kind's address has one itself.
+function thingAt(addr: string, known: Known): PageRef | undefined {
+  const cut = addr.search(/[?#]/);
+  const bare = cut < 0 ? addr : addr.slice(0, cut);
+  for (const t of patternsOf(known).things) {
+    const where = t.of.address;
+    const hole = where?.indexOf("{ref}") ?? -1;
+    if (!where || hole < 0) continue;
+    const at = /[?#]/.test(where) ? addr : bare;
+    const before = where.slice(0, hole);
+    const after = where.slice(hole + "{ref}".length);
+    if (at.length <= before.length + after.length || !at.startsWith(before) || !at.endsWith(after)) continue;
+    const name = at.slice(before.length, at.length - after.length);
+    if (t.whole.test(name)) return thingRef(t.of, name);
+  }
+  return undefined;
+}
+
 // reposNamed are the repos a text may name files of (demo/…, or demo
 // `main.go`): those whose files are worth reading, to tell.
 export function reposNamed(text: string, repos: string[]): string[] {
@@ -492,7 +617,9 @@ export function reposNamed(text: string, repos: string[]): string[] {
 // refHref is where a ref goes: a file in Files at its lines (a space's
 // document, as a whole or at a heading, in Documents: known says which
 // repos are spaces), a pull request's review, a mission, a page, a
-// conversation, an artifact (at a version).
+// conversation, an artifact (at a version). A plugin's thing goes to where
+// its kind opens one in the plugin's app; one whose kind opens nowhere
+// goes to its address outside ws (isOutside), or to the plugin.
 export function refHref(ref: PageRef, known?: Known): string {
   switch (ref.kind) {
     case "file": {
@@ -521,8 +648,23 @@ export function refHref(ref: PageRef, known?: Known): string {
       return `/conversations/${ref.id}`;
     case "artifact":
       return ref.version ? `/artifacts/${ref.id}/v${ref.version}` : `/artifacts/${ref.id}`;
+    case "thing": {
+      const path = namedOf(ref, known)?.path;
+      if (path) return `/x/${encodeURIComponent(ref.plugin)}${path.replace("{ref}", encodeURIComponent(ref.id))}`;
+      return ref.url ?? `/x/${encodeURIComponent(ref.plugin)}`;
+    }
   }
 }
+
+// namedOf is the kind a plugin's thing is of, as its plugin registered it;
+// undefined once the plugin's gone, or no longer has the kind.
+export function namedOf(ref: Extract<PageRef, { kind: "thing" }>, known?: Known): Named | undefined {
+  return known?.things?.find((t) => t.plugin === ref.plugin && t.what === ref.what);
+}
+
+// isOutside is whether somewhere a ref goes (refHref) is outside ws: an
+// address, not one of the web UI's own paths.
+export const isOutside = (href: string) => /^[a-z][a-z0-9+.-]*:/i.test(href);
 
 // refKey names a ref, to find it again from where it's drawn.
 export const refKey = (ref: PageRef) => JSON.stringify(ref);

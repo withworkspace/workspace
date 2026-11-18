@@ -1,16 +1,45 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { act, newPage, type Workspace } from "../api";
+import { act, type ActionAsk, newPage, type Plugin, runPluginAction, startMissionAbout, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { archiveMission } from "../mission/archive";
-import { RefCardBody } from "../refs/RefCard";
+import { RefsScope, thingsNamed } from "../refs/known";
+import { RefCardBody, ThingCard } from "../refs/RefCard";
+import { isOutside, type Known, namedOf, type PageRef, refAt, refKey, type ThingAction } from "../refs/refs";
+import { RefTag } from "../refs/RefTag";
+import { forgetThing } from "../refs/ThingView";
 import { marked } from "../ui/fuzzy";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/status";
 import { humanError, Keys, toast } from "../ui/kit";
 import { setTheme } from "../ui/theme";
 import { clock } from "../ui/time";
-import { asks, build, type CodeEnd, type CodeHit, codeRematch, codeStream, type Found, findStream, type FoundGroup, type GroupKey, groupTitle, type Item, localItems, parseQuery, rematch, type Scope, scopePrefix, warmFind, withScope } from "./find";
+import {
+  actIcon,
+  actingOn,
+  type ActOn,
+  actsOn,
+  askOptions,
+  asks,
+  build,
+  type CodeEnd,
+  type CodeHit,
+  codeRematch,
+  codeStream,
+  type Found,
+  findStream,
+  type FoundGroup,
+  type GroupKey,
+  groupTitle,
+  type Item,
+  localItems,
+  parseQuery,
+  rematch,
+  type Scope,
+  scopePrefix,
+  warmFind,
+  withScope,
+} from "./find";
 import type { Waiting } from "./notify";
 import { CodeText, CodeWhere } from "./CodeHitParts";
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
@@ -31,6 +60,16 @@ const chips: { scope: Scope; label: string }[] = [
   { scope: "do", label: "Do" },
 ];
 
+// Thing is a plugin's thing, as a ref.
+type Thing = Extract<PageRef, { kind: "thing" }>;
+
+// thingOf is the plugin's thing a row is, if it's one: found by what it
+// says, or named outright by what's typed.
+function thingOf(it?: Item): Thing | undefined {
+  if (it?.said?.thing === "thing" && it.said.card?.kind === "thing") return it.said.card;
+  return it?.card?.kind === "thing" ? it.card : undefined;
+}
+
 // stale is how old the pull requests can be before Find says how old.
 const stale = 10 * 60 * 1000;
 
@@ -38,8 +77,58 @@ const stale = 10 * 60 * 1000;
 // asks: ripgrep isn't started for every letter.
 const codeWait = 150;
 
-export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }: { workspace: Workspace; waiting: Waiting[]; start?: string; pageRepo?: string; onClose: () => void; onHelp: () => void }) {
+export function Palette({
+  workspace,
+  plugins,
+  waiting,
+  start,
+  pageRepo,
+  onClose,
+  onHelp,
+}: {
+  workspace: Workspace;
+  plugins?: Plugin[];
+  waiting: Waiting[];
+  start?: string;
+  pageRepo?: string;
+  onClose: () => void;
+  onHelp: () => void;
+}) {
   const navigate = useNavigate();
+  // How the plugins' things are named: what's typed may be one's name
+  // (RAM-123), or where one is. Find sits outside what the pages name
+  // things by, so it's worked out here, from the same plugins.
+  // With them, what else the workspace says it has by name (its missions,
+  // pages, conversations and artifacts, and the repos they're of): a
+  // thing may point at any of those, and the pane draws what it points at.
+  const named = JSON.stringify((plugins ?? []).map((p) => [p.name, p.refs ?? []]));
+  const naming = [
+    workspace.missions.map((m) => `${m.slug}:${m.capsules.map((c) => c.repo).join("+")}`).join(","),
+    (workspace.pages ?? []).map((p) => p.id).join(","),
+    workspace.conversations.map((t) => t.id).join(","),
+    (workspace.artifacts ?? []).map((a) => a.id).join(","),
+    (workspace.spaces ?? []).map((s) => s.repo).join(","),
+  ].join("|");
+  const known = useMemo<Known>(
+    () => ({
+      repos: new Map([...workspace.missions.flatMap((m) => m.capsules.map((c) => c.repo)), ...(workspace.spaces ?? []).map((s) => s.repo)].map((r) => [r, undefined])),
+      missions: workspace.missions.map((m) => m.slug),
+      pages: (workspace.pages ?? []).map((p) => p.id),
+      talks: workspace.conversations.map((t) => t.id),
+      artifacts: (workspace.artifacts ?? []).map((a) => a.id),
+      things: thingsNamed(plugins ?? []),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [named, naming],
+  );
+  // Acting on a plugin's thing (⌘K on its row): what can be done to it is
+  // the list, until one's chosen or it's left.
+  const [acting, setActing] = useState<{ thing: Thing; typed: string }>();
+  // An action that's asked something before it goes on: of a thing, or a
+  // plugin's own. What it's been answered so far is sent again with each
+  // answer, until it asks nothing more.
+  const [asking, setAsking] = useState<{ plugin: string; action: ThingAction; thing?: Thing; answers: string[]; ask: ActionAsk; typed: string }>();
+  const [working, setWorking] = useState(false);
   const [raw, setRaw] = useState(start ?? "");
   const [only, setOnly] = useState<GroupKey>(); // narrowed with ⇥ to a kind the page holds
   const [cursor, setCursor] = useState<string>(); // the id of the row the cursor's on
@@ -52,11 +141,15 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
   const [tag, setTag] = useState(pageRepo);
   const [code, setCode] = useState<{ key: string; hits: CodeHit[]; end?: CodeEnd; done: boolean }>({ key: "", hits: [], done: true });
   const list = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLInputElement>(null);
   const wide = useWide();
 
   const { scope, q } = parseQuery(raw, workspace.root);
   const group = scope === "all" ? only : scope;
-  const local = useMemo(() => localItems(workspace), [workspace]);
+  // What the page holds, with what the plugins do of their own.
+  const does = JSON.stringify((plugins ?? []).map((p) => [p.name, p.actions ?? []]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const local = useMemo(() => localItems(workspace, plugins), [workspace, does]);
   const memory = useMemo(() => loadMemory(workspace.root), [workspace.root]);
 
   // Opening Find has the server read what's due, before the first letter.
@@ -155,16 +248,25 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
         recent,
         memory,
         spaces: workspace.spaces,
+        known,
         code: scope === "code" ? code : undefined,
       }),
-    [q, scope, only, local, found.groups, needs, recent, memory, workspace.spaces, code],
+    [q, scope, only, local, found.groups, needs, recent, memory, workspace.spaces, known, code],
   );
-  const rows = built.rows;
+  // What the list is: what an action asks to pick from, what can be done
+  // to the thing Find's acting on, or, most of the time, what's found.
+  const mode = asking ? "asking" : acting ? "acting" : undefined;
+  const typed = asking ? asking.typed : acting ? acting.typed : raw;
+  const rows = asking ? askOptions(asking.ask, asking.typed) : acting ? actingOn(namedOf(acting.thing, known), acting.typed) : built.rows;
   const at = Math.max(
     0,
     rows.findIndex((r) => r.id === cursor),
   );
   const on = rows[at];
+  // The plugin's thing the cursor's on, if it's on one: found by what it
+  // says, or named outright by what's typed. While Find acts on one, or
+  // one's action asks, it's that one.
+  const onThing = mode ? (asking?.thing ?? acting?.thing) : thingOf(on);
 
   useEffect(() => {
     list.current?.querySelector(".on")?.scrollIntoView({ block: "nearest" });
@@ -175,11 +277,95 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
     setCursor(rows[(at + d + rows.length) % rows.length].id);
   };
 
+  // run runs a plugin's action: one of its own, or, with a thing, one done
+  // to it. What it asks first, Find asks, and runs it again with the
+  // answer. Done, it says what the plugin said, goes where it said, and
+  // closes; what went wrong is said, and Find stays where it was.
+  const run = (plugin: string, action: ThingAction, thing: Thing | undefined, answers: string[]) => {
+    if (working) return;
+    setWorking(true);
+    runPluginAction(plugin, action.id, { kind: thing?.what, ref: thing?.id, answers })
+      .then(
+        (res) => {
+          if (res.ask) {
+            setAsking({ plugin, action, thing, answers, ask: res.ask, typed: "" });
+            setCursor(undefined);
+            return;
+          }
+          // What's kept of the thing is as it was before: it's read again.
+          if (thing) forgetThing(thing.plugin, thing.what, thing.id);
+          if (res.say) toast(res.say, { tone: "done" });
+          onClose();
+          if (res.open) navigate(res.open);
+        },
+        (e: Error) => toast(humanError(e.message), { tone: "danger" }),
+      )
+      .finally(() => {
+        setWorking(false);
+        input.current?.focus(); // what it asks next is typed, or picked, from here
+      });
+  };
+
+  // doTo does something to a plugin's thing: one of its kind's actions,
+  // which its plugin does, or ws's own.
+  const doTo = (thing: Thing, a: ActOn) => {
+    if (!a.ws) {
+      run(thing.plugin, { id: a.id, title: a.title }, thing, []);
+      return;
+    }
+    if (working) return;
+    setWorking(true);
+    startMissionAbout(thing.id)
+      .then(
+        (m) => {
+          onClose();
+          navigate(m.path);
+        },
+        (e: Error) => toast(humanError(e.message), { tone: "danger" }),
+      )
+      .finally(() => setWorking(false));
+  };
+
+  // back steps out of what Find's in the middle of: an ask, to the one
+  // before it (the action's run again with one answer fewer) or, from its
+  // first, to where it was asked from; and acting on a thing, to what was
+  // typed.
+  const back = () => {
+    setCursor(undefined);
+    if (asking) {
+      if (asking.answers.length > 0) run(asking.plugin, asking.action, asking.thing, asking.answers.slice(0, -1));
+      else setAsking(undefined);
+      return;
+    }
+    setActing(undefined);
+  };
+
+  // choose is Enter, or a click, on a row of an ask or of what can be
+  // done to a thing; and Enter on a line an ask wants typed.
+  const choose = (it: Item | undefined) => {
+    if (asking) {
+      const answer = asking.ask.type === "pick" ? it?.option : asking.typed;
+      if (answer === undefined) return;
+      run(asking.plugin, asking.action, asking.thing, [...asking.answers, answer]);
+      return;
+    }
+    if (acting && it?.act) doTo(acting.thing, it.act);
+  };
+
   const go = (it: Item | undefined, tab: boolean) => {
+    if (mode) {
+      choose(it);
+      return;
+    }
     if (!it) return;
     const visit = visitOf(it, Date.now());
     if (visit) noteVisit(workspace.root, visit);
     noteChosen(workspace.root, q, it.id);
+    if (it.doing && "plugin" in it.doing) {
+      // A plugin's own: Find stays, for what it may ask first.
+      run(it.doing.plugin, it.doing.action, undefined, []);
+      return;
+    }
     if (it.doing) {
       onClose();
       const d = it.doing;
@@ -198,8 +384,11 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
       return;
     }
     if (!it.to) return;
-    if (tab) {
+    // Outside ws (a plugin's thing with nowhere to open here): a tab of
+    // its own, whichever way it was chosen.
+    if (tab || isOutside(it.to)) {
       window.open(it.to, "_blank", "noopener");
+      if (!tab) onClose();
       return;
     }
     onClose();
@@ -228,14 +417,22 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
     navigator.clipboard?.writeText(on.ref).then(() => toast(`Copied ${on.ref}`));
   };
 
-  useKeys({ Escape: onClose }, { modal: true });
+  // Escape, from where it's not typed into: a step back out of what Find's
+  // in the middle of, and Find closed from where it finds.
+  useKeys({ Escape: mode ? back : onClose }, { modal: true });
 
   const pulls = found.groups.find((g) => g.kind === "pulls");
   const pullsAge = pulls?.at ? Date.now() - new Date(pulls.at).getTime() : 0;
-  const busy = scope === "code" ? !code.done : !found.done;
-  const nothing = !rows.length && (scope === "code" ? code.done : found.done || !asked);
-  const placeholder =
-    group === "pulls"
+  const busy = working || (mode ? false : scope === "code" ? !code.done : !found.done);
+  const nothing = !mode && !rows.length && (scope === "code" ? code.done : found.done || !asked);
+  // What it's in the middle of, said before what's typed: the thing it's
+  // acting on, and the action that's asking.
+  const doing = asking ? `${asking.thing ? `${asking.thing.id}: ` : ""}${asking.action.title}` : acting ? acting.thing.id : undefined;
+  const placeholder = asking
+    ? asking.ask.placeholder || (asking.ask.type === "pick" ? `${asking.ask.title}…` : `${asking.ask.title}: type it, then ⏎`)
+    : acting
+      ? `Do something to ${acting.thing.id}…`
+      : group === "pulls"
       ? "A number, a title, who it's by…"
       : group === "files"
         ? "A few letters of a path, and :12 for a line…"
@@ -248,6 +445,26 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
           : group
             ? `Find in ${groupTitle[group].toLowerCase()}…`
             : "Find anything: a mission, a file, a pull request, an address…";
+  // What's typed is the mode's own while Find's in one, and what's being
+  // found stays as it was, to come back to.
+  const type = (text: string) => {
+    if (asking) setAsking({ ...asking, typed: text });
+    else if (acting) setActing({ ...acting, typed: text });
+    else setRaw(text);
+    setCursor(undefined);
+  };
+  // A name one of a thing's fields holds, in the pane: as what it names,
+  // where ws reads it as a name, and its words where it doesn't.
+  const pointer = (name: string) => {
+    const ref = refAt(name, known);
+    return ref ? (
+      <RefTag refKey={refKey(ref)} inline>
+        {name}
+      </RefTag>
+    ) : (
+      name
+    );
+  };
 
   return (
     <div className="overlay palette-overlay" onMouseDown={onClose}>
@@ -255,19 +472,25 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
         <div className="find-main">
           <div className="palette-input">
             <Icon name="search" size={16} />
-            {only && scope === "all" && (
+            {doing && (
+              <button className="find-only find-doing" onMouseDown={(e) => e.preventDefault()} onClick={back} title="Back (esc)">
+                {doing} <Icon name="x" size={10} />
+              </button>
+            )}
+            {!mode && only && scope === "all" && (
               <button className="find-only" onClick={() => setOnly(undefined)} title="Look through everything again">
                 {groupTitle[only]} <Icon name="x" size={10} />
               </button>
             )}
-            {scope === "code" && tag && (
+            {!mode && scope === "code" && tag && (
               <button className="find-only find-tag" onMouseDown={(e) => e.preventDefault()} onClick={() => setTag(undefined)} title="Search the whole workspace (⌫)">
                 repo: {tag} <Icon name="x" size={10} />
               </button>
             )}
             <input
+              ref={input}
               autoFocus
-              value={raw}
+              value={typed}
               placeholder={placeholder}
               aria-label="Find"
               role="combobox"
@@ -276,10 +499,7 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
               aria-activedescendant={on ? `pal-${on.id}` : undefined}
               spellCheck={false}
               autoComplete="off"
-              onChange={(e) => {
-                setRaw(e.target.value);
-                setCursor(undefined);
-              }}
+              onChange={(e) => type(e.target.value)}
               onKeyDown={(e) => {
                 const mod = e.metaKey || e.ctrlKey;
                 if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
@@ -291,6 +511,22 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
                 } else if (e.key === "Enter") {
                   e.preventDefault();
                   go(on, mod);
+                } else if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "k") {
+                  // ⌘K, with Find open: act on the plugin's thing the
+                  // cursor's on. What can be done to it is the list.
+                  e.preventDefault();
+                  if (!mode && onThing) {
+                    setActing({ thing: onThing, typed: "" });
+                    setCursor(undefined);
+                  }
+                } else if (mode && (e.key === "Escape" || (e.key === "Backspace" && !typed))) {
+                  // Out of what it's in the middle of, a step at a time:
+                  // Escape closes Find only from where it finds.
+                  e.preventDefault();
+                  back();
+                } else if (mode) {
+                  // The rest are for finding: ⇥ narrows nothing here.
+                  if (e.key === "Tab") e.preventDefault();
                 } else if (e.key === "Tab" && !e.shiftKey) {
                   e.preventDefault();
                   narrow();
@@ -311,7 +547,7 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
             />
             {busy && <Icon name="spinner" size={14} className="find-busy" />}
           </div>
-          <div className="find-chips" role="tablist" aria-label="Look through">
+          <div className="find-chips" role="tablist" aria-label="Look through" style={mode ? { display: "none" } : undefined}>
             {chips.map((c) => (
               <button
                 key={c.scope}
@@ -330,8 +566,19 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
               </button>
             ))}
           </div>
-          <div className="find-list" id="palette-list" role="listbox" ref={list}>
-            {built.sections.map((s) => (
+          <div className="find-list" id="palette-list" role="listbox" ref={list} onMouseDown={mode ? (e) => e.preventDefault() : undefined}>
+            {mode && (
+              <section aria-label={asking ? asking.ask.title : "What can be done to it"}>
+                <h3>{asking ? asking.ask.title : `Do to ${acting?.thing.id}`}</h3>
+                {rows.map((it) => (
+                  <Row key={it.id} it={it} on={it.id === on?.id} section="do" onOver={() => it.id !== on?.id && setCursor(it.id)} onPick={() => choose(it)} />
+                ))}
+                {asking?.ask.type === "text" && <p className="find-note">Type it, then ⏎ sends it.</p>}
+                {!rows.length && asking?.ask.type !== "text" && <p className="palette-none">{typed ? `Nothing here matches “${typed}”.` : "Nothing here."}</p>}
+              </section>
+            )}
+            {!mode &&
+              built.sections.map((s) => (
               <section key={s.group} aria-label={s.title}>
                 {(built.sections.length > 1 || s.group !== group) && <h3>{s.title}</h3>}
                 {s.items.map((it) =>
@@ -349,7 +596,7 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
                 )}
                 {s.note && <p className={`find-note${s.group === "code" && code.end?.capped ? " find-capped" : ""}`}>{s.note}</p>}
               </section>
-            ))}
+              ))}
             {nothing && (
               <p className="palette-none">
                 {scope === "code"
@@ -366,28 +613,44 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
               </p>
             )}
           </div>
-          <div className="find-foot">
-            <span>
-              <Keys k="⏎" /> go
-            </span>
-            <span>
-              <Keys k="mod+⏎" /> new tab
-            </span>
-            <span>
-              <Keys k="⇥" /> {group ? "everything" : "only these"}
-            </span>
-            {scope === "code" && tag && !q && (
+          {mode ? (
+            <div className="find-foot">
               <span>
-                <Keys k="⌫" /> the whole workspace
+                <Keys k="⏎" /> {asking ? (asking.ask.type === "pick" ? "pick it" : "send it") : "do it"}
               </span>
-            )}
-            {on?.ref && (
               <span>
-                <Keys k="mod+C" /> copy its name
+                <Keys k="esc" /> back
               </span>
-            )}
-            {pulls?.at && pullsAge > stale && <span className="find-age">Pull requests as of {clock(pulls.at)}</span>}
-          </div>
+            </div>
+          ) : (
+            <div className="find-foot">
+              <span>
+                <Keys k="⏎" /> go
+              </span>
+              <span>
+                <Keys k="mod+⏎" /> new tab
+              </span>
+              <span>
+                <Keys k="⇥" /> {group ? "everything" : "only these"}
+              </span>
+              {scope === "code" && tag && !q && (
+                <span>
+                  <Keys k="⌫" /> the whole workspace
+                </span>
+              )}
+              {onThing && (
+                <span>
+                  <Keys k="mod+K" /> act on it
+                </span>
+              )}
+              {on?.ref && (
+                <span>
+                  <Keys k="mod+C" /> copy its name
+                </span>
+              )}
+              {pulls?.at && pullsAge > stale && <span className="find-age">Pull requests as of {clock(pulls.at)}</span>}
+            </div>
+          )}
         </div>
         {wide && (
           <aside className="find-card ref-card" aria-label="About it">
@@ -404,10 +667,28 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
               </>
             ) : on?.pull ? (
               <PullCard it={on} />
+            ) : onThing ? (
+              // A plugin's thing: its fields, as its plugin has it drawn
+              // here. What the search found of it shows until they're in
+              // hand, and if they can't be had. A name one of its fields
+              // holds is what it names, to go to (which closes Find), and
+              // under it is what can be done to it.
+              <RefsScope workspace={workspace} known={known}>
+                <div className="find-thing" onClickCapture={(e) => (e.target as HTMLElement).closest(".named-ref, .hovercard-link") && onClose()}>
+                  <ThingCard r={onThing} known={known} surface="pane" pointer={pointer} before={!mode && on?.said ? <SaidCard it={on} f={on.said} /> : undefined} />
+                </div>
+                <div className="find-acts" aria-label="Do to it">
+                  {actsOn(namedOf(onThing, known)).map((a) => (
+                    <button key={`${a.ws ?? "its"}:${a.id}`} type="button" className="ghost small" disabled={working} onMouseDown={(e) => e.preventDefault()} onClick={() => doTo(onThing, a)}>
+                      <Icon name={actIcon(a.icon)} size={12} /> {a.title}
+                    </button>
+                  ))}
+                </div>
+              </RefsScope>
             ) : on?.said ? (
               <SaidCard it={on} f={on.said} />
             ) : on?.card ? (
-              <RefCardBody r={on.card} workspace={workspace} />
+              <RefCardBody r={on.card} workspace={workspace} known={known} />
             ) : on ? (
               <>
                 <span className="hovercard-head">

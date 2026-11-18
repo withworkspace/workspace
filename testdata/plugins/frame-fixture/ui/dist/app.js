@@ -344,7 +344,7 @@ async function main() {
   }
   function screen() {
     const path = ws.path.split("?")[0];
-    const one = /^\/things\/(\d+)$/.exec(path);
+    const one = /^\/things\/(?:THING-)?(\d+)$/.exec(path);
     if (path === "/") {
       const list = things?.map((t) => h("li", {}, h("a", { href: ws.href(`/things/${t.id}`) }, t.name), " ", h("span", { className: "dim" }, t.note)));
       return { title: "Things", body: [h("h1", {}, "Things"), failed ? h("p", { className: "error" }, failed) : list ? h("ul", { className: "things" }, ...list) : h("p", { className: "dim" }, "Loading\u2026")] };

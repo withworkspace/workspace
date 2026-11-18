@@ -1,4 +1,4 @@
-import type { Pinned } from "./refs/refs";
+import type { Pinned, ThingAction, ThingField, ThingViews } from "./refs/refs";
 import { useEffect, useRef, useState } from "react";
 import type { Place } from "./markdown/links";
 import { bursts } from "./load";
@@ -38,6 +38,9 @@ export interface Mission {
   capsules: Capsule[];
   crew: Crew[];
   at?: string; // where it is on its route, in words: "Step 2 of 7, yours: …"
+  // about is what it's about, by name: a plugin's thing (RAM-123), a pull
+  // request, anything ws names.
+  about?: string[];
 }
 
 // Headline is where a mission stands: whose court it's in (an agent's,
@@ -296,11 +299,84 @@ export interface Plugin {
   error?: string;
   missing?: string[];
   views: PluginView[];
+  // refs are the kinds of thing it has that words name, as ws took them.
+  refs?: PluginRef[];
+  // actions are what it does of its own when asked: Find's Do has them.
+  actions?: PluginAction[];
   // changed counts the times it's said what its view shows is stale.
   changed: number;
   // starts counts the times it's been started.
   starts: number;
 }
+
+// PluginRef is a kind of thing a plugin has that words name (a Jira
+// issue), and how one is named: one of prefixes, then its tail (a number,
+// when it doesn't say). address is where one is outside ws and path where
+// one opens in the plugin's app, {ref} its name in each. fields are what
+// one holds, and views how the plugin has one drawn from them: under its
+// name (card), and beside the list in Find (pane).
+export interface PluginRef {
+  kind: string; // the plugin's word for it: issue
+  title?: string; // what ws calls one: Jira issue
+  icon?: string;
+  prefixes: string[];
+  tail?: string;
+  address?: string;
+  path?: string;
+  fields?: ThingField[];
+  views?: ThingViews;
+  actions?: PluginAction[]; // what can be done to one of them
+}
+
+// PluginAction is something a plugin does when asked: of its own, or to
+// one of its things.
+export type PluginAction = ThingAction;
+
+// ActionAsk is what a plugin's action wants to know before it goes on:
+// one of some options (pick), or a line of words (text).
+export interface ActionAsk {
+  title: string;
+  type: "pick" | "text";
+  options?: { value: string; label: string; hint?: string }[];
+  placeholder?: string;
+}
+
+// ActionAnswer is what running a plugin's action came to: something it
+// asks first, or, done, a line to say and somewhere in ws to go.
+export interface ActionAnswer {
+  ask?: ActionAsk;
+  say?: string;
+  open?: string;
+}
+
+// runPluginAction runs a plugin's action: one of its own, or, with a
+// thing's kind and name, one done to that thing. answers are what's been
+// answered to what it asked so far, in order: it's run again with each
+// answer until it asks nothing more.
+export const runPluginAction = (plugin: string, id: string, on: { kind?: string; ref?: string; answers: string[] }) =>
+  send<ActionAnswer>("POST", `/api/plugins/${encodeURIComponent(plugin)}/actions/${encodeURIComponent(id)}`, on);
+
+// startMissionAbout starts a mission about something ws names (a plugin's
+// thing, RAM-123): it waits to be briefed, on its page.
+export const startMissionAbout = (about: string) => send<{ slug: string; path: string }>("POST", "/api/missions", { about });
+
+// PluginThing is one of a plugin's things: its name (key), and its fields
+// by name, as its kind declared them (a time as RFC 3339). told is whether
+// ws had it from what the plugin's told it, and answered from its own
+// records; otherwise the plugin was asked just now.
+export interface PluginThing {
+  key: string;
+  fields: Record<string, string>;
+  changed?: string;
+  told: boolean;
+}
+
+// getPluginThing is one of a plugin's things, by its kind and name: as ws
+// has it, or as its plugin says when asked. One the plugin has none of is
+// an ApiError with status 404; any other failure is the plugin not being
+// there to ask.
+export const getPluginThing = (plugin: string, kind: string, ref: string) =>
+  getJSON<PluginThing>(`/api/plugins/${encodeURIComponent(plugin)}/refs/${encodeURIComponent(kind)}/${encodeURIComponent(ref)}`);
 
 export interface PluginView {
   title: string;

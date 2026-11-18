@@ -74,7 +74,10 @@ Outside a mission:
                     in any mission: comments on it, decisions and threads
                     about it, talk that named it
   repo#12           an open pull request: what it says it does, its stack,
-                    its checks, what's been said in review, where it's docked`
+                    its checks, what's been said in review, where it's docked
+  RAM-123           one of a plugin's things, by a name the plugin registered
+                    (ws plugin list says which): what its plugin says it is,
+                    and what's been said of it in the workspace`
 
 func newShowCmd() *cobra.Command {
 	var slug, format string
@@ -121,6 +124,11 @@ Views are kept short and say what they left out; --full shows it all.`,
 					_, err = io.WriteString(ui.Stdout, v.render(true, full))
 				}
 				return err
+			}
+			// A plugin's thing, by a name its plugin registered (RAM-123):
+			// the workspace's, whichever mission it's asked from.
+			if thing, kept, ok := ctx.ThingNamed(ref); ok {
+				return showThing(ctx, thing, kept, format, full)
 			}
 			if page.IsRef(ref) || conversation.IsWorkspaceRef(ref) || artifact.IsRef(ref) { // the workspace's, not a mission's
 				var v *view

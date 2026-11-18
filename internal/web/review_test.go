@@ -16,12 +16,14 @@ import (
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/plugin/fakeplugin"
+	"github.com/withworkspace/workspace/internal/plugin/kitplugin"
 	"github.com/withworkspace/workspace/internal/review"
 	"github.com/withworkspace/workspace/internal/testgit"
 )
 
 func TestMain(m *testing.M) {
 	fakeplugin.RunIfAsked() // this binary, started as a plugin (plugins_test.go)
+	kitplugin.RunIfAsked()  // and as one written with the framework
 	cleanup := testgit.NoSigning()
 	code := m.Run()
 	cleanup()

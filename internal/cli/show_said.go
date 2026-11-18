@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/plugin"
 	wsref "github.com/withworkspace/workspace/internal/ref"
 )
 
@@ -20,7 +21,7 @@ var saidHow = []struct{ how, title string }{
 	{"on", "Comments on it"},
 	{"about", "About it"},
 	{"of", "Reviews of it"},
-	{"in", "Made in it"},
+	{"in", "In it"}, // a decision made in a thread, a cell of a page, a plugin's thing that's part of another
 	{"from", "Came out of it"},
 	{"mentions", "Named in"},
 	{"by", "By it"},
@@ -167,6 +168,8 @@ func saidKind(kind string) string {
 		return "a " + kind
 	case "ask":
 		return "a question in a page"
+	case plugin.ThingKind:
+		return "a plugin's thing"
 	}
 	return kind
 }

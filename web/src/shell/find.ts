@@ -1,8 +1,9 @@
-import type { ActVerb, Workspace } from "../api";
+import type { ActionAsk, ActVerb, Plugin, Workspace } from "../api";
 import { docAddress, docRef, pageAddress, spaceAt, type SpaceRef } from "../api";
-import { GROUND, type PageRef, refHref } from "../refs/refs";
+import { GROUND, type Known, type Named, namedOf, type PageRef, refAt, refHref, type ThingAction } from "../refs/refs";
+import { thingIcon } from "../refs/views";
 import { fuzzy } from "../ui/fuzzy";
-import type { IconName } from "../ui/Icon";
+import { type IconName, icons } from "../ui/Icon";
 import { crewStatus, headlineStatus, type StatusInfo } from "../ui/status";
 
 // Find, apart from how it's drawn: what there is to find in what the page
@@ -35,7 +36,35 @@ export const groupTitle: Record<GroupKey, string> = {
 };
 
 // What an item does that isn't going somewhere.
-export type Doing = { act: ActVerb; slug: string; crew?: string } | { theme: "light" | "dark" | "system" } | { help: true } | { page: true };
+// plugin is one of a plugin's own actions: the plugin does it, asking
+// first what it needs to know.
+export type Doing = { act: ActVerb; slug: string; crew?: string } | { theme: "light" | "dark" | "system" } | { help: true } | { page: true } | { plugin: string; action: ThingAction };
+
+// ActOn is something to do to a plugin's thing: one of its kind's actions,
+// which its plugin does, or one of ws's own.
+export interface ActOn {
+  id: string;
+  title: string;
+  hint?: string;
+  icon?: string;
+  // ws: it's ws's own, not the plugin's. mission starts a mission about
+  // the thing.
+  ws?: "mission";
+}
+
+// wsActs are what ws itself does to any plugin's thing.
+export const wsActs: ActOn[] = [{ id: "mission", title: "Start a mission about it", hint: "new brief work", icon: "flag", ws: "mission" }];
+
+// actsOn is what can be done to a thing of a kind: its kind's actions, as
+// its plugin registered them, then ws's own.
+export function actsOn(named: Named | undefined): ActOn[] {
+  return [...(named?.actions ?? []).map((a) => ({ id: a.id, title: a.title, hint: a.hint, icon: a.icon })), ...wsActs];
+}
+
+// actIcon is an action's icon: the one it asked for, if ws has it.
+export function actIcon(icon?: string): IconName {
+  return icon && icon in icons ? (icon as IconName) : "play";
+}
 
 // PullFound is a pull request as the server found it: enough to say where
 // it stands without asking GitHub.
@@ -66,6 +95,8 @@ export interface Item {
   score: number;
   to?: string; // where it goes
   doing?: Doing;
+  act?: ActOn; // something to do to the thing Find's acting on
+  option?: string; // one of what an action asks to pick from: its value
   ref?: string; // its name, to copy
   path?: boolean; // the title is a path: its folders are drawn quieter
   notes?: string[]; // said after it: changed in feature, merged
@@ -87,7 +118,7 @@ const doable: Partial<Record<string, ActVerb>> = {
 };
 
 // localItems is everything the page already holds that can be found.
-export function localItems(w: Workspace): Item[] {
+export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
   const place = (to: string, title: string, icon: IconName, hint?: string): Item => ({
     id: `place:${to}`,
     group: "places",
@@ -267,8 +298,73 @@ export function localItems(w: Workspace): Item[] {
       score: 0,
       doing: { help: true },
     },
+    ...pluginActionItems(plugins),
   );
   return out;
+}
+
+// pluginActionItems are the plugins' own actions as things to do: found
+// by their titles (and their hints), each saying whose it is.
+export function pluginActionItems(plugins: Plugin[]): Item[] {
+  return plugins.flatMap((p) =>
+    (p.actions ?? []).map((a) => ({
+      id: `do:plugin:${p.name}/${a.id}`,
+      group: "do" as const,
+      kind: "Do",
+      title: a.title,
+      hint: a.hint,
+      icon: actIcon(a.icon),
+      score: 0,
+      notes: [p.name],
+      doing: { plugin: p.name, action: a },
+    })),
+  );
+}
+
+// actingOn is what Find lists while it's acting on a plugin's thing: what
+// can be done to it (actsOn), those that match what's typed, the best
+// first, and all of them, in their order, with nothing typed.
+export function actingOn(named: Named | undefined, q: string): Item[] {
+  const items = actsOn(named).map((a) => ({
+    id: `act:${a.ws ? "ws" : "its"}:${a.id}`,
+    group: "do" as const,
+    kind: a.ws ? "ws" : "Do",
+    title: a.title,
+    hint: a.hint,
+    icon: actIcon(a.icon),
+    score: 0,
+    act: a,
+  }));
+  return ordered(items, q);
+}
+
+// askOptions is what Find lists while an action asks to pick one: its
+// options, those that match what's typed, the best first, and all of
+// them, in their order, with nothing typed. An action that asks for a
+// line of words lists nothing.
+export function askOptions(ask: ActionAsk, q: string): Item[] {
+  if (ask.type !== "pick") return [];
+  const items = (ask.options ?? []).map((o, i) => ({
+    id: `pick:${i}:${o.value}`,
+    group: "do" as const,
+    kind: "Pick",
+    title: o.label || o.value,
+    hint: o.hint,
+    icon: "chevron-right" as const,
+    score: 0,
+    option: o.value,
+  }));
+  return ordered(items, q);
+}
+
+// ordered is items as a short list of its own shows them: as they came,
+// with nothing typed, and by how well they match what is.
+function ordered(items: Item[], q: string): Item[] {
+  if (!q.trim()) return items;
+  return rank(items, q.trim())
+    .map((it, i) => ({ it, i }))
+    .sort((a, b) => b.it.score - a.it.score || a.i - b.i)
+    .map((x) => x.it);
 }
 
 // --- what the server finds ---
@@ -315,6 +411,11 @@ export interface Found {
   on?: string;
   of?: string;
   ended?: boolean;
+  // A plugin's thing (thing "thing": a Jira issue its plugin told ws
+  // of): the ref it is, and where it opens, in the plugin's app or, with
+  // nowhere there, where it is outside ws.
+  card?: PageRef;
+  to?: string;
 }
 
 // FoundGroup is a kind's results (find.Group): "ref" (what's typed, read
@@ -471,6 +572,8 @@ export function foundItem(f: Found, spaces?: SpaceRef[]): Item {
 
 // saidKind is what a thing found by what it says is, in a word.
 function saidKind(f: Found): string {
+  // A plugin's thing is what its plugin calls one: Jira issue.
+  if (f.thing === "thing") return f.card && f.what ? f.what : "Thing";
   switch (f.place) {
     case "brief":
       return f.anchor ? "Brief" : "Mission";
@@ -530,6 +633,7 @@ const saidIcon: Record<string, IconName> = {
 // document a thread is on, the conversation, or the page a cell or a pass
 // is of.
 function saidTo(f: Found): string {
+  if (f.thing === "thing") return f.to ?? "";
   const scope = f.scope ?? "";
   const slug = encodeURIComponent(scope);
   const pr = /^([\w.-]+)#(\d+)$/.exec(scope) ?? (f.of ? /^([\w.-]+)#(\d+)$/.exec(f.of) : null);
@@ -564,19 +668,44 @@ function saidTo(f: Found): string {
 function saidItem(f: Found): Item {
   const kind = saidKind(f);
   const scope = f.scope ?? "";
-  const notes = [...(scope ? [scope] : []), ...(f.ended ? ["archived"] : [])];
+  // A plugin's thing is said with its name and where it stands: it's
+  // looked for by its name as often as by what it says.
+  const thing = f.thing === "thing" && f.card?.kind === "thing" ? f.card : undefined;
+  const notes = thing ? [f.ref, ...(f.state ? [f.state] : [])] : [...(scope ? [scope] : []), ...(f.ended ? ["archived"] : [])];
   return {
-    id: `said:${scope}/${f.ref}`,
+    id: thing ? thingId(thing) : `said:${scope}/${f.ref}`,
     group: "said",
     kind,
     title: f.title,
     hint: f.hint,
-    icon: saidIcon[kind] ?? "message",
+    icon: thing ? "hash" : (saidIcon[kind] ?? "message"),
     score: f.score,
-    to: saidTo(f),
+    to: saidTo(f) || undefined,
     ref: f.ref,
     notes,
     said: f,
+  };
+}
+
+// thingId is a plugin's thing's item, however it was found: by what it
+// says, or by its name typed whole.
+const thingId = (r: Extract<PageRef, { kind: "thing" }>) => `thing:${r.plugin}/${r.id}`;
+
+// thingItem is a plugin's thing named outright by what's typed (RAM-123,
+// or where it is): somewhere to go, whether or not its plugin has told ws
+// of it. Its card asks the plugin what it is.
+function thingItem(r: Extract<PageRef, { kind: "thing" }>, known: Known): Item {
+  const named = namedOf(r, known);
+  return {
+    id: thingId(r),
+    group: "said",
+    kind: named?.title || `${r.plugin} ${r.what.replace(/-/g, " ")}`,
+    title: r.id,
+    icon: thingIcon(named),
+    score: 1,
+    to: refHref(r, known),
+    ref: r.id,
+    card: r,
   };
 }
 
@@ -873,6 +1002,7 @@ export interface Assembly {
   memory?: Memory;
   spaces?: SpaceRef[]; // the workspace's spaces: a document in one opens in Documents
   code?: { hits: CodeHit[]; end?: CodeEnd }; // what code search found, in the code scope
+  known?: Known; // what there is to name: what's typed may be a plugin's thing's name
 }
 
 // build is the window's sections for what's typed.
@@ -924,6 +1054,8 @@ export function build(a: Assembly): Built {
     const into = put(g.kind);
     for (const f of g.results) {
       const it = foundItem(f, a.spaces);
+      // A plugin's thing has its kind's icon, as its card has.
+      if (f.card?.kind === "thing" && a.known) it.icon = thingIcon(namedOf(f.card, a.known));
       // A mission's capsule is already here, from what the page holds.
       if (g.kind === "capsules" && into.items.some((x) => x.ref === it.ref)) continue;
       into.items.push({ ...it, score: it.score + boost(it, a.q, a.memory) });
@@ -940,6 +1072,13 @@ export function build(a: Assembly): Built {
   const kept = new Set(["pull-request", "page", "artifact"]);
   if (said) said.items = said.items.filter((it) => !kept.has(it.said?.thing ?? "") || !listed.has(it.ref));
   for (const got of byGroup.values()) got.items.sort((x, y) => y.score - x.score);
+  // What's typed naming a plugin's thing outright (RAM-123, or where it
+  // is): the thing as its plugin told ws of it, if it has, and otherwise
+  // its name, to go to.
+  if (!exact && a.known && a.q) {
+    const named = refAt(a.q.trim(), a.known);
+    if (named?.kind === "thing") exact = said?.items.find((it) => it.id === thingId(named)) ?? thingItem(named, a.known);
+  }
   // A pull request that isn't among those in hand is offered after those
   // that are: demo#1 is on its way to demo#12 more often than it's meant.
   if (exact?.pull?.asks && byGroup.get("pulls")?.items.length) {

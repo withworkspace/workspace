@@ -1,7 +1,9 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -10,10 +12,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/plugin/fakeplugin"
+	"github.com/withworkspace/workspace/internal/plugin/kitplugin"
 	"github.com/withworkspace/workspace/internal/store/storetest"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -287,5 +291,185 @@ func TestNoPlugins(t *testing.T) {
 	}
 	if res := do(t, s, "GET", "/plugin-frame/fake/", true, nil); res.StatusCode != http.StatusNotFound {
 		t.Errorf("a shell with no plugins: %d", res.StatusCode)
+	}
+}
+
+// How a plugin's things are named is served from what ws keeps of it,
+// running or not, and what one is comes from the plugin when it's asked.
+func TestPluginRefsAndAThing(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "ws.toml"), []byte("[workspace]\norg = \"acme\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := plugin.Add(root, kitplugin.Install(t, "kit"), false); err != nil {
+		t.Fatal(err)
+	}
+	storetest.Own(t, root)
+	host := &plugin.Host{Root: root, Version: "test", Keep: func(name string, refs []protocol.Ref) ([]string, error) { return plugin.KeepRefs(root, name, refs) }}
+	// What the plugin tells ws of its things is kept, as the daemon keeps it.
+	host.Answer = func(_ context.Context, who, method string, params json.RawMessage) (any, error) {
+		if answer, ok, err := plugin.AnswerThings(root, who, method, params); ok {
+			return answer, err
+		}
+		return nil, plugin.NoMethod(method)
+	}
+	t.Cleanup(host.Shutdown)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &Server{Root: root, Poll: 20 * time.Millisecond, Assets: testApp, listener: ln, Plugins: host}
+	s.App = testOps(s, ops.Options{})
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	list := func() Plugin {
+		t.Helper()
+		var out []Plugin
+		if err := json.NewDecoder(do(t, s, "GET", "/api/plugins", true, nil).Body).Decode(&out); err != nil || len(out) != 1 {
+			t.Fatalf("plugins: %+v, %v", out, err)
+		}
+		return out[0]
+	}
+	if got := list(); len(got.Refs) != 0 {
+		t.Errorf("before it's ever started: %+v", got.Refs)
+	}
+
+	// Asking about a thing starts the plugin, which registers its refs.
+	res := do(t, s, "GET", "/api/plugins/kit/refs/thing/KIT-1", true, nil)
+	var thing PluginThing
+	if err := json.NewDecoder(res.Body).Decode(&thing); err != nil || res.StatusCode != http.StatusOK {
+		t.Fatalf("KIT-1: %d, %v", res.StatusCode, err)
+	}
+	// The plugin's sync told ws of KIT-1 as it started (or the plugin was
+	// asked, if this got there first): either way, what its kind has a
+	// field for, and nothing else.
+	if f := thing.Fields; thing.Key != "KIT-1" || f["title"] != "The first thing" || f["status"] != "Open" || f["owner"] != "Dana" || !strings.HasPrefix(f["body"], "It says hello") || f["colour"] != "" || len(f) != 5 || thing.Changed == nil {
+		t.Errorf("KIT-1: %+v", thing)
+	}
+	want := PluginRef{Kind: "thing", Title: "Kit thing", Icon: "box", Prefixes: []string{"KIT-"}, Address: "https://kit.example/things/{ref}", Path: "/thing/{ref}"}
+	if got := list(); len(got.Refs) != 1 || got.Refs[0].Kind != want.Kind || got.Refs[0].Title != want.Title || got.Refs[0].Icon != want.Icon ||
+		strings.Join(got.Refs[0].Prefixes, " ") != "KIT-" || got.Refs[0].Address != want.Address || got.Refs[0].Path != want.Path {
+		t.Errorf("refs once it's started: %+v", got.Refs)
+	}
+	// What its things are made of, and how they're drawn, for the web UI
+	// to draw them by.
+	if r := list().Refs[0]; len(r.Fields) != 6 || r.Fields[0].Type != protocol.FieldTitle || len(r.Views[protocol.ViewCard]) != 3 || r.Views[protocol.ViewPane][4].Block != protocol.BlockMarkdown {
+		t.Errorf("fields %+v, views %+v", r.Fields, r.Views)
+	}
+	// Told of, it's answered from ws's own records, the plugin stopped or
+	// not; one the plugin has and didn't tell ws of is asked for.
+	waitTold := time.Now().Add(5 * time.Second)
+	for {
+		var told PluginThing
+		json.NewDecoder(do(t, s, "GET", "/api/plugins/kit/refs/thing/KIT-1", true, nil).Body).Decode(&told) //nolint:errcheck // told says
+		if told.Told {
+			break
+		}
+		if time.Now().After(waitTold) {
+			t.Fatal("ws wasn't told of KIT-1 in five seconds")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	var off PluginThing
+	if res := do(t, s, "GET", "/api/plugins/kit/refs/thing/KIT-3", true, nil); json.NewDecoder(res.Body).Decode(&off) != nil || res.StatusCode != http.StatusOK || off.Told || off.Fields["title"] != "The third thing" || off.Fields["status"] != "Off the board" {
+		t.Errorf("KIT-3, which ws wasn't told of: %d %+v", res.StatusCode, off)
+	}
+	// Stopped, its names are still served: they're ws's to find. And what
+	// it told ws of is still drawn, with nobody started to ask.
+	host.Stop("kit")
+	if got := list(); got.State != "stopped" || len(got.Refs) != 1 {
+		t.Errorf("stopped: %s, %+v", got.State, got.Refs)
+	}
+	var kept PluginThing
+	if res := do(t, s, "GET", "/api/plugins/kit/refs/thing/KIT-1", true, nil); json.NewDecoder(res.Body).Decode(&kept) != nil || !kept.Told || kept.Fields["title"] != "The first thing" {
+		t.Errorf("KIT-1 with the plugin stopped: %d %+v", res.StatusCode, kept)
+	}
+	if got := list(); got.State != "stopped" {
+		t.Errorf("drawing what ws was told started the plugin: %s", got.State)
+	}
+
+	// None by that name is 404, and says so; a plugin that isn't there
+	// to ask isn't.
+	for path, status := range map[string]int{
+		"/api/plugins/kit/refs/thing/KIT-2":    http.StatusNotFound,
+		"/api/plugins/kit/refs/thing/OTHER-1":  http.StatusNotFound,
+		"/api/plugins/kit/refs/sprint/KIT-1":   http.StatusNotFound,
+		"/api/plugins/nobody/refs/thing/KIT-1": http.StatusBadGateway,
+	} {
+		res := do(t, s, "GET", path, true, nil)
+		if said := body(res); res.StatusCode != status || !strings.Contains(said, `"error"`) {
+			t.Errorf("%s: %d %s, want %d", path, res.StatusCode, said, status)
+		}
+	}
+	if res := do(t, s, "GET", "/api/plugins/kit/refs/thing/KIT-1", false, nil); res.StatusCode == http.StatusOK {
+		t.Error("a thing was shown to someone not signed in")
+	}
+
+	// What it can do is served for Find: its own, and what's done to one
+	// of its things. Run, one asks first, and is run again with the answer.
+	host.Refresh("kit") //nolint:errcheck // it was stopped above
+	if got := list(); len(got.Actions) != 1 || got.Actions[0].ID != "ping" || got.Actions[0].Hint != "It answers" || len(got.Refs[0].Actions) != 1 || got.Refs[0].Actions[0].Title != "Move to…" {
+		t.Errorf("actions: %+v, a thing's %+v", got.Actions, got.Refs[0].Actions)
+	}
+	post := func(path, body string) (*http.Response, PluginActed) {
+		t.Helper()
+		res := do(t, s, "POST", path, true, func(r *http.Request) {
+			r.Body, r.ContentLength = io.NopCloser(strings.NewReader(body)), int64(len(body))
+			r.Header.Set("Content-Type", "application/json")
+			r.Header.Set("Origin", s.Info().Origin())
+		})
+		var acted PluginActed
+		json.NewDecoder(res.Body).Decode(&acted) //nolint:errcheck // the status says
+		return res, acted
+	}
+	if res, acted := post("/api/plugins/kit/actions/move", `{"kind":"thing","ref":"KIT-1","answers":[]}`); res.StatusCode != http.StatusOK || acted.Ask == nil || len(acted.Ask.Options) != 2 {
+		t.Errorf("move: %d %+v", res.StatusCode, acted)
+	}
+	// Done, it says so, and where it opens is its page in ws.
+	if res, acted := post("/api/plugins/kit/actions/move", `{"kind":"thing","ref":"KIT-1","answers":["Closed"]}`); res.StatusCode != http.StatusOK || acted.Say != "KIT-1 is Closed" || acted.Open != "/x/kit/thing/KIT-1" {
+		t.Errorf("move, answered: %d %+v", res.StatusCode, acted)
+	}
+	if res, acted := post("/api/plugins/kit/actions/ping", `{"answers":["ws"]}`); res.StatusCode != http.StatusOK || acted.Say != "pong, ws" {
+		t.Errorf("ping: %d %+v", res.StatusCode, acted)
+	}
+	for path, status := range map[string]int{
+		"/api/plugins/kit/actions/delete":  http.StatusNotFound,
+		"/api/plugins/nobody/actions/ping": http.StatusNotFound,
+		"/api/plugins/kit/actions/move":    http.StatusNotFound, // a thing's, with no thing
+	} {
+		if res, _ := post(path, `{"answers":[]}`); res.StatusCode != status {
+			t.Errorf("%s: %d, want %d", path, res.StatusCode, status)
+		}
+	}
+	if res, _ := post("/api/plugins/kit/actions/move", `{"kind":"thing","ref":"KIT-2","answers":["Closed"]}`); res.StatusCode != http.StatusBadGateway {
+		t.Errorf("one that fails: %d", res.StatusCode)
+	}
+
+	// ws's own, on any thing: a mission about it, made to brief, asked
+	// for as its name and what it's called.
+	res = do(t, s, "POST", "/api/missions", true, func(r *http.Request) {
+		body := `{"about":"KIT-1"}`
+		r.Body, r.ContentLength = io.NopCloser(strings.NewReader(body)), int64(len(body))
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("Origin", s.Info().Origin())
+	})
+	var started Started
+	if err := json.NewDecoder(res.Body).Decode(&started); err != nil || res.StatusCode != http.StatusOK || started.Slug == "" || started.Path != "/missions/"+started.Slug {
+		t.Fatalf("a mission about KIT-1: %d %+v, %v", res.StatusCode, started, err)
+	}
+	var made MissionDetail
+	if err := json.NewDecoder(do(t, s, "GET", "/api/missions/"+started.Slug, true, nil).Body).Decode(&made); err != nil || made.Title != "KIT-1: The first thing" || strings.Join(made.About, " ") != "KIT-1" {
+		t.Errorf("the mission it made: %+v, %v", made, err)
+	}
+	res = do(t, s, "POST", "/api/missions", true, func(r *http.Request) {
+		body := `{"about":"UTF-8"}`
+		r.Body, r.ContentLength = io.NopCloser(strings.NewReader(body)), int64(len(body))
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("Origin", s.Info().Origin())
+	})
+	if res.StatusCode != http.StatusUnprocessableEntity {
+		t.Errorf("a mission about a word: %d", res.StatusCode)
 	}
 }
