@@ -13355,14 +13355,16 @@ body.nav-pointing .lines code[data-rev] {
   margin: 2px 0 0 2px;
 }
 
-/* Documents (documents/Documents.tsx): Local, then each space of
-   documents; a space's own page, its drafts then its folders. */
-.documents-page section + section {
-  margin-top: var(--space-5);
+/* Documents (documents/Documents.tsx): what's happening across the
+   spaces, then a card per space with Local beside them; a space's own
+   page, its list beside the document picked. Both take the window's
+   width. */
+.page.documents-page {
+  max-width: none;
 }
 
-.documents-page .space-block + .space-block {
-  margin-top: var(--space-2);
+.documents-page section + section {
+  margin-top: var(--space-5);
 }
 
 .documents-sub {
@@ -13493,19 +13495,11 @@ body.nav-pointing .lines code[data-rev] {
   color: var(--red);
 }
 
-.space-lately .lately-by {
-  flex: none;
-  margin-left: auto;
-  font-size: var(--text-xs);
-}
-
-.space-flights .row-main,
-.space-lately .row-main {
+.space-flights .row-main {
   gap: 3px;
 }
 
-.space-flights .row.static,
-.space-lately .row.static {
+.space-flights .row.static {
   align-items: flex-start;
 }
 
@@ -15100,4 +15094,711 @@ button.accent-button:hover:not(:disabled) {
 
 .checking-after {
   font-size: var(--text-sm);
+}
+
+/* Two sections side by side, where there's room for both. */
+.two-up {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 0 var(--space-6);
+  align-items: start;
+}
+
+.documents-page .two-up > section,
+.documents-page .two-up > section + section {
+  margin: 0;
+  min-width: 0;
+}
+
+/* A change on one line (documents/Activity.tsx): what was done, to which
+   document, what the commit said if it says more, who and when. */
+.doc-changes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.doc-change {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 32px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+}
+
+.doc-change:hover {
+  background: var(--hover);
+}
+
+.doc-change-how {
+  flex: none;
+  width: 1.2ch;
+  text-align: center;
+  font-family: var(--mono);
+  color: var(--dim);
+}
+
+.doc-change-how.added {
+  color: var(--green);
+}
+
+.doc-change-how.removed {
+  color: var(--red);
+}
+
+.doc-change-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.doc-change-what,
+.doc-change-more {
+  flex: none;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.doc-change-subject {
+  flex: 0 1000 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.doc-change-by {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: var(--text-xs);
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.doc-changes-more {
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+}
+
+.space-tag {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--dim);
+}
+
+.space-flights .space-tag {
+  margin-left: auto;
+}
+
+.space-tag .repo-dot {
+  width: 7px;
+  height: 7px;
+}
+
+/* Documents: across the spaces on top; the cards, and Local beside. */
+.documents-across {
+  margin-bottom: var(--space-5);
+}
+
+.documents-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.documents-page .documents-grid > section,
+.documents-page .documents-grid > section + section {
+  margin: 0;
+  min-width: 0;
+}
+
+/* A space as a card (documents/Cards.tsx). One or two share the row. */
+.space-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.space-cards.few {
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+}
+
+.space-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-xs);
+  transition:
+    border-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.space-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow);
+}
+
+.keyboarding .space-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.space-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 14px 8px;
+  color: var(--fg);
+}
+
+.space-card-head .repo-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+}
+
+.space-card-head > .mono {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+}
+
+.space-card-title {
+  flex: none;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.space-card-count {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--text-sm);
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.space-card-kinds {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 6px;
+}
+
+.space-card-kinds a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1px 8px;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  color: var(--fg);
+}
+
+.space-card-kinds a:hover {
+  background: var(--hover);
+}
+
+.space-card-kind {
+  flex: none;
+  font-weight: 500;
+}
+
+.space-card-kind.mono {
+  font-weight: 400;
+  font-size: var(--text-sm);
+}
+
+.space-card-last {
+  flex: 0 1 auto;
+  max-width: 70%;
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+/* Where they stand: a line of its own under the kind. */
+.space-card-stands {
+  order: 3;
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.space-card-reading {
+  padding: 5px 8px;
+  font-size: var(--text-sm);
+}
+
+.space-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: auto;
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.space-card-foot .icon {
+  vertical-align: -2px;
+}
+
+.space-card-foot .chip:first-of-type {
+  margin-left: auto;
+}
+
+.space-card-behind {
+  color: var(--fg);
+}
+
+/* A space's page: its heading on one line. */
+.space-head {
+  gap: 8px 10px;
+  margin-bottom: var(--space-4);
+}
+
+.space-head .space-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--dim);
+}
+
+.space-head .space-back:hover {
+  color: var(--fg);
+}
+
+.space-head .space-slash {
+  margin-inline: -2px;
+  font-size: var(--text-lg);
+  color: var(--faint);
+}
+
+.space-head .space-count {
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.space-head .space-fresh {
+  margin: 0 0 0 6px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+
+/* Its list (search, what's happening, the tabs over the documents) and,
+   beside it, the edge and the document picked. The list's width is the
+   dragged one, else five parts to the preview's seven. */
+.space-split {
+  display: grid;
+  grid-template-columns: var(--space-list-w, minmax(280px, 5fr)) var(--space-6) minmax(380px, 7fr);
+  align-items: start;
+}
+
+.space-list {
+  min-width: 0;
+}
+
+.space-list-scroll > section + section {
+  margin-top: var(--space-4);
+}
+
+/* A narrow list drops the files' names, for their titles. */
+.space-list-scroll {
+  container-type: inline-size;
+}
+
+@container (max-width: 560px) {
+  .space-list-scroll .doc-file {
+    display: none;
+  }
+}
+
+.space-search {
+  margin-bottom: var(--space-3);
+  padding: 5px 10px;
+}
+
+.space-search input,
+.space-search input:focus,
+.space-search input:focus-visible {
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.space-search-count {
+  flex: none;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.space-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 0 var(--space-2);
+}
+
+.space-tabs button {
+  gap: 5px;
+  min-height: 24px;
+  padding: 0 10px;
+  font-size: var(--text-xs);
+}
+
+.space-tabs button .count {
+  font-size: 10px;
+}
+
+.space-tabs button:disabled {
+  opacity: 0.4;
+}
+
+.row.picked {
+  background: var(--selected);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* Where a search found it, under its title. */
+.doc-hit-line {
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.doc-hit-heading {
+  flex: none;
+  color: var(--fg);
+}
+
+.doc-hit-snippet {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-hit-line mark,
+.doc-preview mark {
+  background: var(--accent-soft, var(--selected));
+  color: inherit;
+  border-radius: 2px;
+}
+
+/* What's happening in a space, folded to a line. */
+.activity-fold {
+  margin: 0 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--raised) 70%, transparent);
+}
+
+.activity-fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-lg);
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.activity-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.activity-fold > summary:hover {
+  background: var(--hover);
+}
+
+.activity-fold > summary strong {
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.activity-fold-latest {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-fold-caret {
+  flex: none;
+  margin-left: auto;
+  transition: transform var(--fast) var(--ease);
+}
+
+.activity-fold[open] > summary {
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.activity-fold[open] .activity-fold-caret {
+  transform: rotate(180deg);
+}
+
+.activity-fold-body {
+  padding: 4px 6px 6px;
+}
+
+.activity-fold-body .group {
+  position: static;
+  background: none;
+}
+
+.space-page .activity-fold-body > section,
+.space-page .activity-fold-body > section + section {
+  margin: 0;
+  min-width: 0;
+}
+
+/* The edge between the list and the preview. */
+.space-edge {
+  position: relative;
+  align-self: stretch;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.space-edge::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  transition: background var(--fast) var(--ease);
+}
+
+.space-edge:hover::after,
+.space-edge:focus-visible::after,
+.space-edge.dragging::after {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* The document picked (documents/Preview.tsx). */
+.doc-preview {
+  position: sticky;
+  top: var(--space-4);
+  max-height: calc(100vh - 2 * var(--space-4));
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-xs);
+}
+
+.doc-preview-none {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+}
+
+.doc-preview-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--raised);
+}
+
+.doc-preview-where {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: 8px;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.doc-preview-ref {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-preview-title {
+  margin: 0 0 4px;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.doc-preview-meta {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.doc-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.button-link.ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.doc-preview-flight {
+  margin: 12px 24px 0;
+}
+
+.doc-preview-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.doc-preview-sections button {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--dim);
+  font-size: var(--text-xs);
+  text-decoration: none;
+}
+
+.doc-preview-sections button:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.doc-preview > .skeleton,
+.doc-preview > .error-card {
+  margin: 16px 24px;
+}
+
+.doc-preview-body {
+  max-width: 76ch;
+  padding: 16px 24px 8px;
+}
+
+.doc-preview-changes {
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.doc-preview-changes h3 {
+  margin: 0 8px 4px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--dim);
+}
+
+/* Wide, the page doesn't scroll: the list and the preview fill the
+   window, each scrolling by itself; what's over the list stays. Narrow,
+   it's the list alone, and the page scrolls. */
+@media (width > 1020px) {
+  main .page.space-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-bottom: var(--space-4);
+    overflow: hidden;
+  }
+
+  .space-page > :not(.space-split) {
+    flex: none;
+  }
+
+  .space-page .space-split {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .space-list {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .space-list-top {
+    flex: none;
+  }
+
+  .space-list-top .activity-fold-body {
+    max-height: 40vh;
+    overflow: auto;
+  }
+
+  .space-list-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-bottom: var(--space-6);
+  }
+
+  .space-page .doc-preview {
+    position: static;
+    max-height: none;
+    height: 100%;
+  }
+}
+
+@media (width <= 1020px) {
+  .documents-grid,
+  .space-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .space-head .space-fresh {
+    flex-basis: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
 }

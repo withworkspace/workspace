@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { docTo, type SpaceDoc, type SpaceKind } from "../api";
+import { type DocHit, docTo, type SpaceDoc, type SpaceKind } from "../api";
 import { Icon } from "../ui/Icon";
 import { Option, Select } from "../ui/Select";
 import { Time } from "../ui/time";
@@ -27,6 +27,16 @@ export function sorted(docs: SpaceDoc[], by: Sort, states: string[] = []): Space
   return [...docs].sort((a, b) => cmp[by](a, b) || a.path.localeCompare(b.path));
 }
 
+// A list's rows can be picked (a space's page shows the one picked beside
+// its list): a click picks it, a double click (or ⏎) opens it, and a
+// modified click is the browser's. A search's hit says where in it.
+export type Picking = {
+  picked?: string; // its path
+  onPick: (d: SpaceDoc) => void;
+  onOpen: (d: SpaceDoc) => void;
+  hits?: Map<string, DocHit>;
+};
+
 export function KindList({
   repo,
   kind,
@@ -35,29 +45,42 @@ export function KindList({
   index,
   setIndex,
   flights,
+  picking,
 }: {
   repo: string;
   kind: SpaceKind;
   docs: SpaceDoc[]; // as they're shown
   at: number; // the index of its first row, among the page's
   index: number;
-  setIndex: (i: number) => void;
+  setIndex?: (i: number) => void; // the cursor follows the pointer
   flights?: Map<string, string[]>; // the paths in flight, and in which capsules
+  picking?: Picking;
 }) {
+  // The column of numbers or dates, if any of them has one.
+  const made = docs.some((d) => d.number || d.date);
   return (
     <ul className="rows library" role="listbox" aria-label={kind.title}>
       {docs.map((d, j) => {
         const i = at + j;
+        const hit = picking?.hits?.get(d.path);
         return (
-          <li key={d.path} id={libraryID(d.path)} role="option" aria-selected={i === index} className={`row${i === index ? " selected" : ""}`} onMouseMove={() => i !== index && setIndex(i)}>
-            <TLink to={docTo(`${repo}:${d.path}`)} className="row-link">
-              <span className="lib-made mono dim">{d.number ?? d.date ?? ""}</span>
+          <li
+            key={d.path}
+            id={libraryID(d.path)}
+            role="option"
+            aria-selected={i === index}
+            className={`row${i === index ? " selected" : ""}${picking?.picked === d.path ? " picked" : ""}`}
+            onMouseMove={setIndex && (() => i !== index && setIndex(i))}
+          >
+            <TLink to={docTo(`${repo}:${d.path}`)} className="row-link" onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
+              {made && <span className="lib-made mono dim">{d.number ?? d.date ?? ""}</span>}
               <span className="row-main">
                 <span className="row-line">
                   <span className="title">{d.title}</span>
                   {d.state && kind.states && <span className={`chip ${d.state === kind.states[0] ? "tone-quiet" : "tone-done"}`}>{d.state}</span>}
                   {flights?.has(d.path) && <InFlightChip capsules={flights.get(d.path)!} />}
                 </span>
+                {hit && <HitLine hit={hit} />}
               </span>
               {d.changed && (
                 <span className="lib-changed dim" title={`Last changed by ${d.changedBy ?? "someone"}`}>
@@ -72,8 +95,27 @@ export function KindList({
   );
 }
 
-// KindHead is a kind's list's heading: its title and how many, where they
-// stand, and how it's sorted.
+// pickOn is a row's click, where its list's rows are picked: a plain click
+// picks it; a modified one opens it as a link does.
+export const pickOn = (picking: Picking, d: SpaceDoc) => (e: React.MouseEvent) => {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  if (e.detail < 2) picking.onPick(d);
+};
+
+// HitLine is where a search found a document: the section, and its words
+// with those found marked.
+export function HitLine({ hit }: { hit: DocHit }) {
+  return (
+    <span className="row-line doc-hit-line">
+      {hit.heading && <span className="doc-hit-heading">{hit.heading} ›</span>}
+      <span className="doc-hit-snippet">{hit.snippet.map((p, j) => (p.mark ? <mark key={j}>{p.text}</mark> : <span key={j}>{p.text}</span>))}</span>
+    </span>
+  );
+}
+
+// KindHead is a kind's list's heading: its title and how many (of them,
+// how many a search found), where they stand, and how it's sorted.
 export function KindHead({
   kind,
   docs,
@@ -81,6 +123,7 @@ export function KindHead({
   setSort,
   stand,
   setStand,
+  found,
 }: {
   kind: SpaceKind;
   docs: SpaceDoc[]; // all of the kind's
@@ -88,6 +131,7 @@ export function KindHead({
   setSort: (s: Sort) => void;
   stand: string; // "" for all
   setStand: (s: string) => void;
+  found?: number; // of them, how many a search found
 }) {
   const counts = useMemo(() => {
     const c = new Map<string, number>();
@@ -97,7 +141,7 @@ export function KindHead({
   const states = kind.states ?? [];
   return (
     <h2 className="group library-head">
-      {kind.title} <span className="count">{docs.length}</span>
+      {kind.title} <span className="count">{found === undefined ? docs.length : `${found} of ${docs.length}`}</span>
       {states.length > 0 && (
         <span className="segmented lib-stands" aria-label={`Where each ${kind.title} stands`}>
           <button aria-pressed={stand === ""} onClick={() => setStand("")}>

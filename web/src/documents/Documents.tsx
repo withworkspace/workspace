@@ -1,49 +1,44 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router";
-import {
-  docTo,
-  getSpace,
-  getSpaceActivity,
-  getSpaces,
-  pageAddress,
-  type SpaceDoc,
-  type SpaceKind,
-  type Workspace,
-} from "../api";
-import { Fresh, InFlight, inFlightPaths, Lately } from "./Activity";
-import {
-  InFlightChip,
-  KindHead,
-  KindList,
-  libraryID,
-  sorted,
-  useKindOrder,
-} from "./Library";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
+import { type DocHit, docTo, getSpace, getSpaceActivity, getSpaces, pageAddress, searchDocuments, type SpaceActivity, type SpaceDoc, type SpaceKind, spaceTo, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { NewAsKind, PageRow, useStartPage } from "../pages/Pages";
 import { Icon } from "../ui/Icon";
-import { Dialog, Empty, ErrorCard, Keys, Loading, useTitle } from "../ui/kit";
+import { Dialog, Empty, ErrorCard, humanError, Keys, Loading, useMedia, useTitle } from "../ui/kit";
 import { TLink } from "../ui/TLink";
+import { ActivityFold, Fresh, InFlight, inFlightPaths, Lately } from "./Activity";
+import { acrossSpaces } from "./happening";
+import { SpaceCard, useSpaceDetails } from "./Cards";
+import { HitLine, InFlightChip, KindHead, KindList, libraryID, type Picking, pickOn, sorted, useKindOrder } from "./Library";
 import { type Placed, placePages } from "./place";
+import { Preview } from "./Preview";
 import { hitTo, Results, SearchBox, useDocSearch } from "./Search";
 
 // Documents: where the workspace's writing is read. Local is the pages
 // that aren't in a space (written here, on this machine); each space is a
 // repo of documents, or a folder of one, read from its default branch. A
 // page that will live in a space is listed there, as your draft.
+//
+// Documents takes the window's width: what changed and what's in flight
+// across every space on top, each space as a card below (its kinds and
+// how it stands), and Local beside them. A space's page is its list and,
+// beside it, the document picked, each scrolling by itself.
 
 export const documentsKeys: [string, string][] = [
   ["n", "Start a page"],
   ["N", "Start a page as one of the workspace's kinds of document"],
-  ["j / k", "Move between pages and spaces"],
+  ["/", "Search the documents"],
+  ["j / k", "Move between spaces and pages"],
   ["⏎ or o", "Open it"],
 ];
 
 export const spaceKeys: [string, string][] = [
-  ["j / k", "Move between documents"],
+  ["j / k", "Move between documents: the one picked is shown beside the list"],
   ["⏎ or o", "Read it"],
-  ["esc", "Back to Documents"],
+  ["/", "Search the space"],
+  ["n", "Start a page here"],
+  ["esc", "Clear the search, or back to Documents"],
 ];
 
 // A row the cursor can be on: a page, or a space.
@@ -55,11 +50,15 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
   const { value, error, reload } = useLoaded(getSpaces, [], { keep: true });
   const spaces = useMemo(() => value?.spaces ?? [], [value]);
   const kinds = useMemo(() => workspace.kinds ?? [], [workspace.kinds]);
-  const placed = useMemo(
-    () => placePages(workspace.pages ?? [], spaces, kinds),
-    [workspace.pages, spaces, kinds],
-  );
+  const placed = useMemo(() => placePages(workspace.pages ?? [], spaces, kinds), [workspace.pages, spaces, kinds]);
   const local = placed.filter((p) => !p.repo);
+  const details = useSpaceDetails(spaces);
+  const across = useMemo(() => {
+    const activity = new Map<string, SpaceActivity>();
+    for (const [repo, d] of details) if (d.activity) activity.set(repo, d.activity);
+    return acrossSpaces(spaces, activity);
+  }, [spaces, details]);
+  const spaceOf = (repo: string) => (spaces.length > 1 ? spaces.find((s) => s.repo === repo) : undefined);
   const { start, starting } = useStartPage();
   const [asKind, setAsKind] = useState(false);
   const [index, setIndex] = useState(0);
@@ -90,19 +89,15 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
     }
   };
 
+  // The cursor goes down the spaces, then Local, as they read.
   const targets: Target[] = [
+    ...spaces.map((s) => ({ id: `space-${s.repo}`, to: spaceTo(s.repo) })),
     ...local.map((p) => ({ id: `page-${p.page.id}`, to: pageAddress(p.page) })),
-    ...spaces.map((s) => ({
-      id: `space-${s.repo}`,
-      to: `/documents/${encodeURIComponent(s.repo)}`,
-    })),
   ];
   const move = (i: number) => {
     const n = Math.min(Math.max(i, 0), targets.length - 1);
     setIndex(n);
-    document
-      .getElementById(targets[n]?.id ?? "")
-      ?.scrollIntoView({ block: "nearest" });
+    document.getElementById(targets[n]?.id ?? "")?.scrollIntoView({ block: "nearest" });
   };
   const open = () => targets[index] && navigate(targets[index].to);
   useKeys({
@@ -129,7 +124,7 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
   const filling = local.reduce((n, p) => n + (p.page.filling ? 1 : 0), 0);
 
   return (
-    <div className="page narrow documents-page">
+    <div className="page documents-page">
       <header className="page-head">
         <h1>Documents</h1>
         <div className="page-actions">
@@ -142,275 +137,187 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
               New as… <Keys k="N" />
             </button>
           )}
-          <button
-            className="primary"
-            onClick={() => start()}
-            disabled={starting}
-          >
+          <button className="primary" onClick={() => start()} disabled={starting}>
             <Icon name="plus" /> New page <Keys k="n" />
           </button>
         </div>
       </header>
-      {asKind && (
-        <NewAsKind
-          kinds={kinds}
-          busy={starting}
-          onStart={(title, kind) => start(title, kind)}
-          onClose={() => setAsKind(false)}
-        />
-      )}
+      {asKind && <NewAsKind kinds={kinds} busy={starting} onStart={(title, kind) => start(title, kind)} onClose={() => setAsKind(false)} />}
       {spaces.length > 0 && (
-        <SearchBox
-          q={q}
-          setQ={setQ}
-          inputRef={search}
-          spaces={spaces}
-          kind={kind}
-          setKind={setKind}
-          state={stand}
-          setState={setStand}
-          onKey={searchKeys}
-        />
+        <SearchBox q={q} setQ={setQ} inputRef={search} spaces={spaces} kind={kind} setKind={setKind} state={stand} setState={setStand} onKey={searchKeys} />
       )}
       {searching ? (
-        <Results
-          hits={found.hits}
-          more={found.more}
-          error={found.error}
-          index={hit}
-          setIndex={setHit}
-        />
+        <Results hits={found.hits} more={found.more} error={found.error} index={hit} setIndex={setHit} />
       ) : (
         <>
-          <section aria-label="Local">
-            <h2
-              className="group"
-              title="Pages written here, on this machine, that aren't in a space: no one else sees them. File as… is the way out."
-            >
-              Local <span className="count">{local.length}</span>
-              {filling > 0 && (
-                <span className="dim documents-sub">· {filling} filling</span>
-              )}
-            </h2>
-            {local.length === 0 ? (
-              <p className="dim documents-empty">
-                No pages here. A page is somewhere to write a problem down and
-                work it out:{" "}
-                <button className="link" onClick={() => start()}>
-                  start one
-                </button>
-                .
-              </p>
-            ) : (
-              <ul
-                className="rows pages"
-                role="listbox"
-                aria-label="Local pages"
-              >
-                {local.map((p, i) => (
-                  <PageRow
-                    key={p.page.id}
-                    page={p.page}
-                    kinds={kinds}
-                    selected={i === index}
-                    onHover={() => i !== index && setIndex(i)}
-                    note={
-                      p.page.source && (
-                        <span
-                          className="chip tone-quiet"
-                          title="Its file isn't in a space of documents"
-                        >
-                          {p.page.source.ref.split(":")[0]}
-                        </span>
-                      )
-                    }
-                  />
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section aria-label="Spaces">
-            {error && !value && (
-              <ErrorCard
-                title="Couldn't read the spaces"
-                error={error}
-                retry={reload}
+          {(across.lately.length > 0 || across.inFlight.length > 0) && (
+            <div className="two-up documents-across">
+              <Lately
+                lately={across.lately}
+                spaceOf={spaceOf}
+                label={
+                  <>
+                    Changed lately{spaces.length > 1 && <span className="dim documents-sub"> · across {spaces.length} spaces</span>}
+                  </>
+                }
               />
-            )}
-            {value?.problem && (
-              <div className="banner tone-attention">
-                Some of it may be behind: {value.problem}
-              </div>
-            )}
-            {!value && !error && <Loading what="Reading the spaces…" />}
-            {value && spaces.length === 0 && (
-              <Empty icon="file" title="No spaces of documents">
-                A repo of documents (ADRs, proposals, guides) is read here, by
-                its titles, rather than in Files: say{" "}
-                <code>documents = true</code> under its{" "}
-                <code>[repos.&lt;name&gt;]</code> in <code>ws.toml</code>, or
-                name it as <code>[missions] records</code>.
-              </Empty>
-            )}
-            {spaces.map((s, i) => {
-              const at = local.length + i;
-              const drafts = placed.filter((p) => p.repo === s.repo);
-              return (
-                <div key={s.repo} className="space-block">
-                  <h2 className="group">
-                    <span
-                      className="repo-dot"
-                      style={{ background: s.color }}
-                    />{" "}
-                    {s.label}
-                    {s.folder && <span className="mono">{s.folder}</span>}
-                    {s.label !== s.repo && (
-                      <span className="dim mono">{s.repo}</span>
-                    )}
-                  </h2>
-                  <ul className="rows" role="listbox" aria-label={s.label}>
-                    <li
+              <InFlight flights={across.inFlight} spaceOf={spaceOf} />
+            </div>
+          )}
+          <div className="documents-grid">
+            <section aria-label="Spaces">
+              <h2 className="group">
+                Spaces <span className="count">{spaces.length}</span>
+              </h2>
+              {error && !value && <ErrorCard title="Couldn't read the spaces" error={error} retry={reload} />}
+              {value?.problem && <div className="banner tone-attention">Some of it may be behind: {value.problem}</div>}
+              {!value && !error && <Loading what="Reading the spaces…" />}
+              {value && spaces.length === 0 && (
+                <Empty icon="file" title="No spaces of documents">
+                  A repo of documents (ADRs, proposals, guides) is read here, by its titles, rather than in Files: say <code>documents = true</code> under its{" "}
+                  <code>[repos.&lt;name&gt;]</code> in <code>ws.toml</code>, or name it as <code>[missions] records</code>.
+                </Empty>
+              )}
+              {spaces.length > 0 && (
+                <div className={`space-cards${spaces.length <= 2 ? " few" : ""}`}>
+                  {spaces.map((s, i) => (
+                    <SpaceCard
+                      key={s.repo}
                       id={`space-${s.repo}`}
-                      role="option"
-                      aria-selected={at === index}
-                      className={`row${at === index ? " selected" : ""}`}
-                      onMouseMove={() => at !== index && setIndex(at)}
-                    >
-                      <TLink
-                        to={`/documents/${encodeURIComponent(s.repo)}`}
-                        className="row-link"
-                      >
-                        <Icon name="layers" size={16} className="row-status" />
-                        <span className="row-main">
-                          <span className="row-line">
-                            <span className="title">
-                              {s.cloned
-                                ? `${s.count} ${s.count === 1 ? "document" : "documents"}`
-                                : "Not cloned"}
-                            </span>
-                            {drafts.length > 0 && (
-                              <span className="chip tone-attention">
-                                {drafts.length === 1
-                                  ? "1 draft of yours"
-                                  : `${drafts.length} drafts of yours`}
-                              </span>
-                            )}
-                          </span>
-                          {s.folders.length > 0 && (
-                            <span className="row-line dim space-folders">
-                              {s.folders.map((f, j) => (
-                                <span key={f.name}>
-                                  {j > 0 && " · "}
-                                  {f.name}{" "}
-                                  <span className="count">{f.count}</span>
-                                </span>
-                              ))}
-                            </span>
-                          )}
-                        </span>
-                        <Icon name="chevron-right" size={14} className="dim" />
-                      </TLink>
-                    </li>
-                  </ul>
+                      space={s}
+                      detail={details.get(s.repo)}
+                      drafts={placed.filter((p) => p.repo === s.repo).length}
+                      selected={i === index}
+                      onHover={() => i !== index && setIndex(i)}
+                    />
+                  ))}
                 </div>
-              );
-            })}
-          </section>
+              )}
+            </section>
+            <section aria-label="Local">
+              <h2 className="group" title="Pages written here, on this machine, that aren't in a space: no one else sees them. File as… is the way out.">
+                Local <span className="count">{local.length}</span>
+                {filling > 0 && <span className="dim documents-sub">· {filling} filling</span>}
+              </h2>
+              {local.length === 0 ? (
+                <p className="dim documents-empty">
+                  No pages here. A page is somewhere to write a problem down and work it out:{" "}
+                  <button className="link" onClick={() => start()}>
+                    start one
+                  </button>
+                  .
+                </p>
+              ) : (
+                <ul className="rows pages" role="listbox" aria-label="Local pages">
+                  {local.map((p, j) => {
+                    const i = spaces.length + j;
+                    return (
+                      <PageRow
+                        key={p.page.id}
+                        page={p.page}
+                        kinds={kinds}
+                        selected={i === index}
+                        onHover={() => i !== index && setIndex(i)}
+                        note={
+                          p.page.source && (
+                            <span className="chip tone-quiet" title="Its file isn't in a space of documents">
+                              {p.page.source.ref.split(":")[0]}
+                            </span>
+                          )
+                        }
+                      />
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          </div>
         </>
       )}
     </div>
   );
 }
 
-// SpacePage is a space: your drafts in it first, then its documents by
-// folder, each by its title (in the order of their paths), read in the
-// reader.
+// SpacePage is a space: its list down the left (your drafts in it first,
+// then its documents by kind, the rest by folder) and, beside it, the
+// document picked, as the reader shows it. Above the list, a search of
+// the space, what's happening in it folded to a line, and a tab for each
+// kind that jumps the list there. The page doesn't scroll: the list and
+// the preview do, each by itself, and the edge between them is dragged.
+// On a narrow window it's the list alone, each document opened to read.
 export function SpacePage({ workspace }: { workspace: Workspace }) {
   const { repo = "" } = useParams();
   const navigate = useNavigate();
-  const { value, error, reload } = useLoaded(() => getSpace(repo), [repo], {
-    keep: true,
-  });
-  const {
-    value: activity,
-    error: activityError,
-    reload: reloadActivity,
-  } = useLoaded(
-    () => getSpaceActivity(repo),
-    [repo],
-    { keep: true },
-  );
+  const { value, error, reload } = useLoaded(() => getSpace(repo), [repo], { keep: true });
+  const { value: activity, error: activityError, reload: reloadActivity } = useLoaded(() => getSpaceActivity(repo), [repo], { keep: true });
   const flights = useMemo(() => inFlightPaths(activity), [activity]);
   const space = value?.space;
   useTitle(space ? space.label : repo);
   const kinds = useMemo(() => workspace.kinds ?? [], [workspace.kinds]);
-  const drafts = useMemo(
-    () =>
-      space
-        ? placePages(workspace.pages ?? [], [space], kinds).filter(
-            (p) => p.repo === space.repo,
-          )
-        : [],
-    [workspace.pages, space, kinds],
-  );
+  const drafts = useMemo(() => (space ? placePages(workspace.pages ?? [], [space], kinds).filter((p) => p.repo === space.repo) : []), [workspace.pages, space, kinds]);
+  const wide = useMedia("(min-width: 1021px)");
+  // Searching the space: the lists keep to what's found, each row saying
+  // where in it.
+  const [q, setQ] = useState("");
+  const search = useRef<HTMLInputElement>(null);
+  const found = useSpaceSearch(repo, q);
+  const hits = q.trim() ? found.hits : undefined;
+  const matches = (d: SpaceDoc) => !hits || hits.has(d.path);
   // Its library: a list for each kind whose path is in it, and the rest by
   // folder, under Other.
   const library = useMemo(() => space?.kinds ?? [], [space]);
   const order0 = useKindOrder();
   const byKind = useMemo(() => {
     const m = new Map<string, SpaceDoc[]>();
-    for (const d of value?.docs ?? [])
-      if (d.kind && library.some((k) => k.name === d.kind))
-        m.set(d.kind, [...(m.get(d.kind) ?? []), d]);
+    for (const d of value?.docs ?? []) if (d.kind && library.some((k) => k.name === d.kind)) m.set(d.kind, [...(m.get(d.kind) ?? []), d]);
     return m;
   }, [value, library]);
   const shown = (k: SpaceKind) =>
     sorted(
-      (byKind.get(k.name) ?? []).filter(
-        (d) => !order0.standOf(k.name) || d.state === order0.standOf(k.name),
-      ),
+      (byKind.get(k.name) ?? []).filter((d) => (!order0.standOf(k.name) || d.state === order0.standOf(k.name)) && matches(d)),
       order0.sortOf(k.name),
       k.states,
     );
-  const folders = useMemo(
-    () =>
-      byFolder(
-        (value?.docs ?? []).filter(
-          (d) => !(d.kind && library.some((k) => k.name === d.kind)),
-        ),
-        space?.folder ?? "",
-      ),
-    [value, space, library],
-  );
-  const order: Target[] = [
-    ...drafts.map((p) => ({
-      id: `page-${p.page.id}`,
-      to: pageAddress(p.page),
-    })),
-    ...library.flatMap((k) =>
-      shown(k).map((d) => ({
-        id: libraryID(d.path),
-        to: docTo(`${repo}:${d.path}`),
-      })),
-    ),
-    ...folders.flatMap(([, docs]) =>
-      docs.map((d) => ({ id: docID(d.path), to: docTo(`${repo}:${d.path}`) })),
-    ),
+  const others = useMemo(() => (value?.docs ?? []).filter((d) => !(d.kind && library.some((k) => k.name === d.kind))), [value, library]);
+  const folders = useMemo(() => byFolder(others.filter(matches), space?.folder ?? ""), [others, space, hits]); // eslint-disable-line react-hooks/exhaustive-deps
+  const kindsShown = library.filter((k) => !hits || shown(k).length > 0);
+  const docsShown: SpaceDoc[] = [...kindsShown.flatMap((k) => shown(k)), ...folders.flatMap(([, docs]) => docs)];
+  // What the cursor goes down: your drafts, then the documents as listed.
+  const order: (Target & { doc?: SpaceDoc })[] = [
+    ...drafts.map((p) => ({ id: `page-${p.page.id}`, to: pageAddress(p.page) })),
+    ...docsShown.map((d) => ({ id: d.kind && library.some((k) => k.name === d.kind) ? libraryID(d.path) : docID(d.path), to: docTo(`${repo}:${d.path}`), doc: d })),
   ];
-  // New starts a page as one of its kinds.
-  const ownKinds = kinds.filter((k) => library.some((x) => x.name === k.name));
+  // The document picked: in the address (?doc=), else the first listed.
+  const [params, setParams] = useSearchParams();
+  const asked = params.get("doc") ?? "";
+  const picked = docsShown.find((d) => d.path === asked) ?? docsShown[0];
+  const pick = (d: SpaceDoc) =>
+    setParams(
+      (p) => {
+        const n = new URLSearchParams(p);
+        n.set("doc", d.path);
+        return n;
+      },
+      { replace: true },
+    );
   const { start, starting } = useStartPage();
   const [asKind, setAsKind] = useState(false);
   const [index, setIndex] = useState(0);
+  // The cursor is on the document picked, when it's moved there some other way.
+  const pickedAt = picked ? order.findIndex((o) => o.doc?.path === picked.path) : -1;
+  useEffect(() => {
+    if (wide && pickedAt >= 0 && order[index]?.doc?.path !== picked?.path) setIndex(pickedAt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickedAt, wide]);
   const move = (i: number) => {
     const n = Math.min(Math.max(i, 0), order.length - 1);
     setIndex(n);
-    document
-      .getElementById(order[n]?.id ?? "")
-      ?.scrollIntoView({ block: "nearest" });
+    const d = order[n]?.doc;
+    if (wide && d) pick(d);
+    document.getElementById(order[n]?.id ?? "")?.scrollIntoView({ block: "nearest" });
   };
   const open = () => order[index] && navigate(order[index].to);
+  const back = () => (q ? setQ("") : navigate("/documents"));
   useKeys({
     j: () => move(index + 1),
     ArrowDown: () => move(index + 1),
@@ -418,50 +325,110 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
     ArrowUp: () => move(index - 1),
     Enter: open,
     o: open,
-    Escape: () => navigate("/documents"),
+    "/": () => search.current?.focus(),
+    Escape: back,
     n: () => setAsKind(true),
   });
+  const searchKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const go: Record<string, () => void> = {
+      ArrowDown: () => move(index + 1),
+      ArrowUp: () => move(index - 1),
+      Enter: open,
+      Escape: () => (q ? setQ("") : search.current?.blur()),
+    };
+    if (go[e.key]) {
+      e.preventDefault();
+      go[e.key]();
+    }
+  };
+  const picking: Picking | undefined = wide
+    ? {
+        picked: picked?.path,
+        hits,
+        onPick: (d) => {
+          const i = order.findIndex((o) => o.doc?.path === d.path);
+          if (i >= 0) setIndex(i);
+          pick(d);
+        },
+        onOpen: (d) => navigate(docTo(`${repo}:${d.path}`)),
+      }
+    : hits && { hits, onPick: (d) => navigate(docTo(`${repo}:${d.path}`)), onOpen: (d) => navigate(docTo(`${repo}:${d.path}`)) };
+  // The list and the edge between it and the preview.
+  const list = useRef<HTMLDivElement>(null);
+  const [listWidth, setListWidth] = useListWidth();
+  const [foldOpen, setFoldOpen] = useState(false);
+  // The tabs: a kind each (Other, for what's of none), else a folder each.
+  const tabs: { id: string; label: string; n: number; total: number }[] = library.length
+    ? [
+        ...library.map((k) => ({ id: listID("kind", k.name), label: k.title, n: shown(k).length, total: (byKind.get(k.name) ?? []).length })),
+        ...(others.length ? [{ id: "list-other", label: "Other", n: folders.reduce((n, [, d]) => n + d.length, 0), total: others.length }] : []),
+      ]
+    : folders.map(([f, docs]) => ({ id: listID("folder", f), label: f || "(top)", n: docs.length, total: docs.length }));
+  const [tab, setTab] = useState(0);
+  const spy = () => {
+    const box = list.current;
+    if (!box) return;
+    const top = box.getBoundingClientRect().top;
+    let at = 0;
+    tabs.forEach((t, i) => {
+      const el = document.getElementById(t.id);
+      if (el && el.getBoundingClientRect().top - top <= 12) at = i;
+    });
+    // At the foot of a list that scrolls, the last that can be reached.
+    if (box.scrollHeight > box.clientHeight + 2 && box.scrollTop + box.clientHeight >= box.scrollHeight - 2) at = tabs.map((t) => t.n > 0).lastIndexOf(true);
+    setTab(Math.max(0, at));
+  };
+  const jump = (id: string) => {
+    const el = document.getElementById(id);
+    const box = list.current;
+    if (!el || !box) return;
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (box.scrollHeight > box.clientHeight) box.scrollTo({ top: el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop, behavior: still ? "auto" : "smooth" });
+    else el.scrollIntoView({ block: "start", behavior: still ? "auto" : "smooth" });
+  };
   // Opened at one of its lists (spaceTo: the reader's crumbs, "Open in the
-  // space"): there, its first document chosen. A folder with no documents
-  // of its own is the first folder below it that has some. Once what's
-  // above its lists is there (what changed lately), so it stays in sight.
+  // space", a space's card): there, its first document picked. A folder
+  // with no documents of its own is the first folder below it that has
+  // some.
   const { hash } = useLocation();
   const wentTo = useRef("");
   useEffect(() => {
     if (!value || !space || !hash || wentTo.current === hash) return;
-    if (!activity && !activityError) return;
     wentTo.current = hash;
     const want = new URLSearchParams(hash.slice(1));
     const kind = library.find((k) => k.name === want.get("kind"));
     const folder = want.get("folder")?.slice((space.folder ?? "").length);
-    let list: { id: string; first?: SpaceDoc } | undefined;
-    if (kind) list = { id: listID("kind", kind.name), first: shown(kind)[0] };
+    let to: { id: string; first?: SpaceDoc } | undefined;
+    if (kind) to = { id: listID("kind", kind.name), first: shown(kind)[0] };
     else if (folder !== undefined) {
-      const f =
-        folders.find(([x]) => x === folder) ??
-        folders.find(([x]) => x.startsWith(folder));
-      if (f) list = { id: listID("folder", f[0]), first: f[1][0] };
+      const f = folders.find(([x]) => x === folder) ?? folders.find(([x]) => x.startsWith(folder));
+      if (f) to = { id: listID("folder", f[0]), first: f[1][0] };
     }
-    if (!list) return;
-    const first = list.first;
-    const i = first
-      ? order.findIndex(
-          (o) => o.id === libraryID(first.path) || o.id === docID(first.path),
-        )
-      : -1;
-    if (i >= 0) setIndex(i);
-    document.getElementById(list.id)?.scrollIntoView({ block: "start" });
+    if (!to) return;
+    if (to.first) {
+      const i = order.findIndex((o) => o.doc?.path === to.first!.path);
+      if (i >= 0) setIndex(i);
+      if (wide) pick(to.first);
+    }
+    const id = to.id;
+    requestAnimationFrame(() => jump(id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, activity, activityError, hash]);
+  }, [value, hash]);
+  useEffect(spy, [value, hits, foldOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Opened at a document (?doc=), the list's scrolled to it, once.
+  const shownAt = useRef("");
+  useEffect(() => {
+    // Once what's over the list is there too, so it doesn't move it after.
+    if (!value || (!activity && !activityError) || !asked || shownAt.current === repo || pickedAt < 0) return;
+    shownAt.current = repo;
+    requestAnimationFrame(() => document.getElementById(order[pickedAt].id)?.scrollIntoView({ block: "center" }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, activity, activityError, pickedAt]);
 
   if (error && !value) {
     return (
       <div className="page narrow">
-        <ErrorCard
-          title={`Couldn't read ${repo}`}
-          error={error}
-          retry={reload}
-        />
+        <ErrorCard title={`Couldn't read ${repo}`} error={error} retry={reload} />
         <p>
           <Link to="/documents">Back to Documents</Link>
         </p>
@@ -475,182 +442,287 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
     at += shown(k).length;
     return first;
   };
+  const searched = !!hits;
   return (
-    <div className="page narrow documents-page space-page">
-      <nav className="crumbs" aria-label="Breadcrumb">
-        <Link to="/documents">
+    <div className="page documents-page space-page">
+      <header className="page-head space-head">
+        <Link to="/documents" className="space-back" title="Back to Documents (esc)">
           <Icon name="arrow-left" size={13} /> Documents
         </Link>
-      </nav>
-      <header className="page-head">
+        <span className="space-slash" aria-hidden>
+          /
+        </span>
         <h1>
-          <span className="repo-dot" style={{ background: space.color }} />{" "}
-          {space.label}
+          <span className="repo-dot" style={{ background: space.color }} /> {space.label}
           {space.folder && <span className="mono dim"> {space.folder}</span>}
         </h1>
-        <span className="dim">
-          {space.count} {space.count === 1 ? "document" : "documents"}, as on
-          its default branch
+        <span className="space-count" title="As on its default branch">
+          {space.count} {space.count === 1 ? "document" : "documents"}
         </span>
+        {activity && (
+          <Fresh
+            repo={repo}
+            fresh={activity.fresh}
+            onMoved={() => {
+              reload();
+              reloadActivity();
+            }}
+          />
+        )}
         <div className="page-actions">
           <button
             className="primary"
             onClick={() => setAsKind(true)}
             disabled={starting || !space.cloned}
-            title={
-              ownKinds.length
-                ? `Start a page as one of ${space.label}'s kinds of document: written as its guide says, and filed here`
-                : `Start a page to file in one of ${space.label}'s folders`
-            }
+            title={library.length ? `Start a page as one of ${space.label}'s kinds of document: written as its guide says, and filed here` : `Start a page to file in one of ${space.label}'s folders`}
           >
             <Icon name="plus" /> New <Keys k="n" />
           </button>
         </div>
       </header>
-      {activity && (
-        <Fresh
-          repo={repo}
-          fresh={activity.fresh}
-          onMoved={() => {
-            reload();
-            reloadActivity();
-          }}
-        />
+      {asKind && library.length > 0 && (
+        <NewAsKind kinds={kinds.filter((k) => library.some((x) => x.name === k.name))} busy={starting} onStart={(title, kind) => start(title, kind)} onClose={() => setAsKind(false)} />
       )}
-      {asKind && ownKinds.length > 0 && (
-        <NewAsKind
-          kinds={ownKinds}
-          busy={starting}
-          onStart={(title, kind) => start(title, kind)}
-          onClose={() => setAsKind(false)}
-        />
+      {asKind && library.length === 0 && (
+        <NewInFolder repo={repo} label={space.label} root={space.folder ?? ""} folders={folders.map(([f]) => f)} busy={starting} onStart={(title, to) => start(title, "", to)} onClose={() => setAsKind(false)} />
       )}
-      {asKind && ownKinds.length === 0 && (
-        <NewInFolder
-          repo={repo}
-          label={space.label}
-          root={space.folder ?? ""}
-          folders={folders.map(([f]) => f)}
-          busy={starting}
-          onStart={(title, to) => start(title, "", to)}
-          onClose={() => setAsKind(false)}
-        />
-      )}
-      {value.problem && (
-        <div className="banner tone-attention">
-          It may be behind: {value.problem}
-        </div>
-      )}
-      {drafts.length > 0 && (
-        <section aria-label="Your drafts">
-          <h2
-            className="group"
-            title="Pages of yours that will live here: only you see them until they're saved or filed"
-          >
-            Your drafts <span className="count">{drafts.length}</span>
-          </h2>
-          <ul className="rows pages" role="listbox" aria-label="Your drafts">
-            {drafts.map((p, i) => (
-              <PageRow
-                key={p.page.id}
-                page={p.page}
-                kinds={kinds}
-                selected={i === index}
-                onHover={() => i !== index && setIndex(i)}
-                note={<DraftNote p={p} />}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
-      {activity && <InFlight repo={repo} activity={activity} />}
-      {activity && <Lately repo={repo} activity={activity} />}
-      {!space.cloned && (
+      {value.problem && <div className="banner tone-attention">It may be behind: {value.problem}</div>}
+      {!space.cloned ? (
         <Empty icon="box" title="Not cloned here">
           <code>ws setup {space.repo}</code> clones it.
         </Empty>
-      )}
-      {space.cloned && folders.length === 0 && (
+      ) : (value.docs ?? []).length === 0 ? (
         <Empty icon="file" title="No documents yet">
-          It has no markdown{space.folder ? ` under ${space.folder}` : ""} on
-          its default branch.
+          It has no markdown{space.folder ? ` under ${space.folder}` : ""} on its default branch.
         </Empty>
+      ) : (
+        <div className="space-split" style={listWidth ? ({ "--space-list-w": `${listWidth}px` } as React.CSSProperties) : undefined}>
+          <div className="space-list">
+            <div className="space-list-top">
+              <label className="doc-search-box space-search">
+                <Icon name="search" size={14} className="dim" />
+                <input ref={search} value={q} placeholder={`Search ${space.label}: what its documents say`} aria-label={`Search ${space.label}`} onChange={(e) => setQ(e.target.value)} onKeyDown={searchKeys} />
+                {q.trim() ? (
+                  <span className="dim space-search-count">{found.error ? "Couldn't search" : !found.hits ? "Searching…" : `${found.hits.size} of ${space.count}`}</span>
+                ) : (
+                  <Keys k="/" />
+                )}
+              </label>
+              {activity && <ActivityFold repo={repo} activity={activity} open={foldOpen} setOpen={setFoldOpen} />}
+              {activityError && !activity && <p className="dim documents-empty">Couldn't read what's happening in it.</p>}
+              {tabs.length > 1 && (
+                <nav className="segmented space-tabs" aria-label={library.length ? "Jump to a kind" : "Jump to a folder"}>
+                  {tabs.map((t, i) => (
+                    <button key={t.id} aria-pressed={i === tab} disabled={t.n === 0} onClick={() => jump(t.id)}>
+                      {t.label} <span className="count">{searched && t.n !== t.total ? `${t.n}/${t.total}` : t.total}</span>
+                    </button>
+                  ))}
+                </nav>
+              )}
+            </div>
+            <div className="space-list-scroll" ref={list} onScroll={spy}>
+              {drafts.length > 0 && (
+                <section aria-label="Your drafts">
+                  <h2 className="group" title="Pages of yours that will live here: only you see them until they're saved or filed">
+                    Your drafts <span className="count">{drafts.length}</span>
+                  </h2>
+                  <ul className="rows pages" role="listbox" aria-label="Your drafts">
+                    {drafts.map((p, i) => (
+                      <PageRow key={p.page.id} page={p.page} kinds={kinds} selected={i === index} onHover={() => {}} note={<DraftNote p={p} />} />
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {searched && !docsShown.length && <p className="dim documents-empty">Nothing in {space.label} says that.</p>}
+              {kindsShown.map((k) => (
+                <section key={k.name} id={listID("kind", k.name)} aria-label={k.title}>
+                  <KindHead
+                    kind={k}
+                    docs={byKind.get(k.name) ?? []}
+                    sort={order0.sortOf(k.name)}
+                    setSort={(s) => order0.setSort(k.name, s)}
+                    stand={order0.standOf(k.name)}
+                    setStand={(s) => order0.setStand(k.name, s)}
+                    found={searched ? shown(k).length : undefined}
+                  />
+                  <KindList repo={repo} kind={k} docs={shown(k)} at={kindAt(k)} index={index} setIndex={wide ? undefined : setIndex} flights={flights} picking={picking} />
+                </section>
+              ))}
+              {kindsShown.length > 0 && folders.length > 0 && (
+                <h2 className="other-head" id="list-other">
+                  Other
+                </h2>
+              )}
+              {/* Where Other's tab goes when no kind's list is shown above it. */}
+              {library.length > 0 && kindsShown.length === 0 && folders.length > 0 && <span id="list-other" />}
+              {folders.map(([folder, docs]) => (
+                <section key={folder} id={listID("folder", folder)} aria-label={folder || "Top"}>
+                  <h2 className="group">
+                    <span className="mono">{folder || "(top)"}</span> <span className="count">{docs.length}</span>
+                  </h2>
+                  <ul className="rows space-docs" role="listbox" aria-label={folder || "Top"}>
+                    {docs.map((d) => {
+                      const i = at++;
+                      const hit = hits?.get(d.path);
+                      return (
+                        <li
+                          key={d.path}
+                          id={docID(d.path)}
+                          role="option"
+                          aria-selected={i === index}
+                          className={`row${i === index ? " selected" : ""}${picking?.picked === d.path ? " picked" : ""}`}
+                          onMouseMove={wide ? undefined : () => i !== index && setIndex(i)}
+                        >
+                          <TLink to={docTo(`${repo}:${d.path}`)} className="row-link" onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
+                            <Icon name="file" size={16} className="row-status" />
+                            <span className="row-main">
+                              <span className="row-line">
+                                <span className="title">{d.title}</span>
+                                {flights.has(d.path) && <InFlightChip capsules={flights.get(d.path)!} />}
+                              </span>
+                              {hit && <HitLine hit={hit} />}
+                            </span>
+                            <span className="dim mono doc-file">{d.path.split("/").pop()}</span>
+                          </TLink>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          </div>
+          {wide && (
+            <>
+              <ListEdge width={listWidth} setWidth={setListWidth} />
+              {picked ? (
+                <Preview
+                  key={picked.path}
+                  repo={repo}
+                  doc={picked}
+                  kind={library.find((k) => k.name === picked.kind)}
+                  activity={activity}
+                  flights={flights.get(picked.path)}
+                  anchor={hits?.get(picked.path)?.anchor}
+                />
+              ) : (
+                <aside className="doc-preview doc-preview-none">
+                  <p className="dim">{searched ? "Nothing found to show." : "Nothing to show."}</p>
+                </aside>
+              )}
+            </>
+          )}
+        </div>
       )}
-      {library.map((k) => (
-        <section
-          key={k.name}
-          id={listID("kind", k.name)}
-          aria-label={k.title}
-        >
-          <KindHead
-            kind={k}
-            docs={byKind.get(k.name) ?? []}
-            sort={order0.sortOf(k.name)}
-            setSort={(s) => order0.setSort(k.name, s)}
-            stand={order0.standOf(k.name)}
-            setStand={(s) => order0.setStand(k.name, s)}
-          />
-          <KindList
-            repo={repo}
-            kind={k}
-            docs={shown(k)}
-            at={kindAt(k)}
-            index={index}
-            setIndex={setIndex}
-            flights={flights}
-          />
-        </section>
-      ))}
-      {library.length > 0 && folders.length > 0 && (
-        <h2 className="other-head">Other</h2>
-      )}
-      {folders.map(([folder, docs]) => (
-        <section
-          key={folder}
-          id={listID("folder", folder)}
-          aria-label={folder || "Top"}
-        >
-          <h2 className="group">
-            <span className="mono">{folder || "(top)"}</span>{" "}
-            <span className="count">{docs.length}</span>
-          </h2>
-          <ul
-            className="rows space-docs"
-            role="listbox"
-            aria-label={folder || "Top"}
-          >
-            {docs.map((d) => {
-              const i = at++;
-              return (
-                <li
-                  key={d.path}
-                  id={docID(d.path)}
-                  role="option"
-                  aria-selected={i === index}
-                  className={`row${i === index ? " selected" : ""}`}
-                  onMouseMove={() => i !== index && setIndex(i)}
-                >
-                  <TLink to={docTo(`${repo}:${d.path}`)} className="row-link">
-                    <Icon name="file" size={16} className="row-status" />
-                    <span className="row-main">
-                      <span className="row-line">
-                        <span className="title">{d.title}</span>
-                        {flights.has(d.path) && (
-                          <InFlightChip capsules={flights.get(d.path)!} />
-                        )}
-                      </span>
-                    </span>
-                    <span className="dim mono doc-file">
-                      {d.path.split("/").pop()}
-                    </span>
-                  </TLink>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
     </div>
+  );
+}
+
+// useSpaceSearch is what a search of one space finds, by document (each
+// led to the section that says it best), as it's typed (a moment after
+// the last key).
+function useSpaceSearch(repo: string, q: string) {
+  const [hits, setHits] = useState<Map<string, DocHit>>();
+  const [error, setError] = useState<string>();
+  useEffect(() => {
+    if (!q.trim()) {
+      setHits(undefined);
+      setError(undefined);
+      return;
+    }
+    let stale = false;
+    const t = setTimeout(() => {
+      searchDocuments(q, { repos: [repo], limit: 500 }).then(
+        (r) => {
+          if (stale) return;
+          setHits(new Map(r.hits.filter((h) => h.repo === repo).map((h) => [h.path, h])));
+          setError(undefined);
+        },
+        (e: Error) => !stale && setError(humanError(e.message)),
+      );
+    }, 200);
+    return () => {
+      stale = true;
+      clearTimeout(t);
+    };
+  }, [repo, q]);
+  return { hits, error };
+}
+
+// The list's width, as dragged (kept in this browser); none, as it was
+// laid out: five parts to the preview's seven.
+const LIST_MIN = 280;
+const PREVIEW_MIN = 380;
+
+function useListWidth(): [number | undefined, (w: number | undefined) => void] {
+  const [w, setW] = useState<number | undefined>(() => {
+    try {
+      const n = Number(localStorage.getItem("ws:space-list-w"));
+      return n >= LIST_MIN ? n : undefined;
+    } catch {
+      return undefined;
+    }
+  });
+  const set = (n: number | undefined) => {
+    setW(n);
+    try {
+      if (n) localStorage.setItem("ws:space-list-w", `${n}`);
+      else localStorage.removeItem("ws:space-list-w");
+    } catch {
+      // fine
+    }
+  };
+  return [w, set];
+}
+
+// ListEdge is the edge between a space's list and its preview: dragged,
+// or ←/→ on it, to make the list wider or narrower; a double click puts
+// it back.
+function ListEdge({ width, setWidth }: { width?: number; setWidth: (w: number | undefined) => void }) {
+  const clamp = (split: HTMLElement, w: number) => Math.round(Math.min(Math.max(w, LIST_MIN), split.getBoundingClientRect().width - PREVIEW_MIN - 24));
+  const listOf = (edge: HTMLElement) => edge.parentElement!.querySelector<HTMLElement>(".space-list")!;
+  const drag = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const edge = e.currentTarget;
+    const split = edge.parentElement!;
+    const left = split.getBoundingClientRect().left;
+    edge.setPointerCapture(e.pointerId);
+    edge.classList.add("dragging");
+    let w: number | undefined;
+    const move = (ev: PointerEvent) => {
+      w = clamp(split, ev.clientX - left - 12);
+      split.style.setProperty("--space-list-w", `${w}px`);
+    };
+    const up = () => {
+      edge.removeEventListener("pointermove", move);
+      edge.classList.remove("dragging");
+      if (w) setWidth(w);
+    };
+    edge.addEventListener("pointermove", move);
+    edge.addEventListener("pointerup", up, { once: true });
+    edge.addEventListener("pointercancel", up, { once: true });
+  };
+  const key = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    e.stopPropagation();
+    const now = width ?? listOf(e.currentTarget).getBoundingClientRect().width;
+    setWidth(clamp(e.currentTarget.parentElement!, now + (e.key === "ArrowRight" ? 24 : -24)));
+  };
+  return (
+    <div
+      className="space-edge"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="The list's width"
+      tabIndex={0}
+      title="Drag to make the list wider or narrower; double-click to put it back"
+      onPointerDown={drag}
+      onDoubleClick={() => {
+        setWidth(undefined);
+      }}
+      onKeyDown={key}
+    />
   );
 }
 
