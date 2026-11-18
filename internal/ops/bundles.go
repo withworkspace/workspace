@@ -121,7 +121,7 @@ func (w *Workspace) keepBundle(slug, crewID, written, dir string) (mission.Bundl
 	if err != nil {
 		return none, verifier, err
 	}
-	b.Summary, b.Try, b.Checks, b.NotVerified = read.Summary, read.Try, read.Checks, read.NotVerified
+	b.Summary, b.Try, b.Checks, b.NotVerified, b.Noticed = read.Summary, read.Try, read.Checks, read.NotVerified, read.Noticed
 	b, err = w.Missions.KeepBundle(m.Slug, b, func(to string, b *mission.Bundle) error {
 		names := map[string]string{} // a file copied, by where it was
 		for _, e := range b.Files() {

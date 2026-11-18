@@ -906,6 +906,7 @@ export interface Bundle {
   try?: BundleTry[];
   checks: BundleCheck[];
   notVerified?: string[];
+  noticed?: string[]; // what its crew came across that isn't one of its checks
   ran?: BundleRan[]; // its step's checks that are commands, as ws ran them at its commit
 }
 
@@ -933,6 +934,7 @@ export interface BundleCheck {
   check?: string; // the step's check; none for one of the bundle's own
   verdict: CheckVerdict;
   said: string;
+  points?: string[]; // facts of the same kind, listed under what it said
   shows?: BundleEvidence[];
   lines?: string[];
   try?: BundleTry[];

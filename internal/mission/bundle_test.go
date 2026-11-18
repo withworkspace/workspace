@@ -1,6 +1,7 @@
 package mission
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,6 +34,10 @@ It survives a reload.
 
 ## Not verified
 - Safari: nothing here to run it in.
+
+## Noticed
+- The swatches' names are cut off
+  at phone width.
 `
 
 func stepChecks(t *testing.T) []Check {
@@ -84,6 +89,9 @@ func TestParseBundle(t *testing.T) {
 	}
 	if len(b.NotVerified) != 1 || b.Tally() != "1 met, 1 can't tell" {
 		t.Errorf("not verified %v, tally %q", b.NotVerified, b.Tally())
+	}
+	if len(b.Noticed) != 1 || b.Noticed[0] != "The swatches' names are cut off at phone width." {
+		t.Errorf("noticed = %q", b.Noticed)
 	}
 	if files := b.Files(); len(files) != 3 {
 		t.Errorf("files = %d", len(files))
@@ -239,13 +247,108 @@ func TestBundleFormat_ItsExample(t *testing.T) {
 	if len(b.Try) != 3 || b.Try[0].Command != "npm install && cd web && npm run dev" || b.Try[0].Text != "`"+b.Try[0].Command+"`" || !b.Try[1].Look || !b.Try[2].Look {
 		t.Errorf("try = %+v", b.Try)
 	}
-	if len(b.Checks) != 2 || len(b.Checks[0].Try) != 1 || b.Checks[0].Try[0].Command == "" || b.Checks[1].Try[0].Command != "" {
+	if len(b.Checks) != 3 || len(b.Checks[0].Try) != 1 || b.Checks[0].Try[0].Command == "" || b.Checks[1].Try[0].Command != "" || b.Checks[2].Verdict != CheckUnmet {
 		t.Errorf("checks = %+v", b.Checks)
+	}
+	if len(b.Noticed) != 1 || len(b.Checks[2].Points) != 2 || len(b.Checks[2].Asks) != 1 {
+		t.Errorf("noticed = %q, check 3 = %+v", b.Noticed, b.Checks[2])
 	}
 	for _, says := range []string{"one command in backticks, with nothing after it", "chain it with `&&` (`a && cd x && b`)", "`look for:` items, one each"} {
 		if !strings.Contains(BundleFormat, says) {
 			t.Errorf("BundleFormat doesn't say %q", says)
 		}
+	}
+}
+
+// A bundle is held to a length, so that what's to act on isn't lost in
+// what was measured: its summary, each check by what it came to, and each
+// item of Not verified and Noticed. One a little over what crew are told
+// is let by, since an agent can't count its words as it writes; one well
+// over is refused, saying where the rest goes.
+func TestParseBundle_Lengths(t *testing.T) {
+	words := func(n int) string { return strings.TrimSpace(strings.Repeat("word ", n)) }
+	written := func(summary, met, unmet, not, noticed int) string {
+		return "## Summary\n" + words(summary) + "\n## Checks\n1. met: " + words(met) + "\n   - shows: `a.png`\n2. unmet: " + words(unmet) +
+			"\n## Not verified\n- " + words(not) + "\n## Noticed\n- " + words(noticed) + "\n"
+	}
+	if _, err := ParseBundle(written(BundleSummaryWords, BundleMetWords, BundleCheckWords, BundleItemWords, BundleItemWords), nil, nil); err != nil {
+		t.Errorf("at length: %v", err)
+	}
+	if _, err := ParseBundle(written(BundleSummaryWords+10, BundleMetWords+10, BundleCheckWords+10, BundleItemWords+10, BundleItemWords+10), nil, nil); err != nil {
+		t.Errorf("a little over: %v", err)
+	}
+	_, err := ParseBundle(written(200, 120, 300, 90, 80), nil, nil)
+	if err == nil || !IsMalformedBundle(err) {
+		t.Fatalf("err = %v", err)
+	}
+	for _, want := range []string{
+		"## Summary is 200 words, and it's 80 at most: say how it came out",
+		"line 4: check 1 is 120 words, and one that's met is 50 at most: say what you did and saw, once; what you counted and timed goes in a text file it shows:",
+		"line 6: check 2 is 300 words, and one that's unmet is 100 at most: say what's wrong, then where it shows",
+		"line 8: this item of ## Not verified is 90 words, and one is 50 at most",
+		"line 10: this item of ## Noticed is 80 words, and one is 50 at most",
+	} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("want %q in:\n%s", want, err)
+		}
+	}
+}
+
+// The lengths crew are told are the ones a bundle is held to.
+func TestBundleFormat_ItsLengths(t *testing.T) {
+	for _, says := range []string{
+		fmt.Sprintf("three sentences at most (%d words)", BundleSummaryWords),
+		fmt.Sprintf("what you saw, once (%d words at most)", BundleMetWords),
+		fmt.Sprintf("whoever puts it right (%d words at most)", BundleCheckWords),
+		fmt.Sprintf("say what would (%d words at most)", BundleCheckWords),
+		fmt.Sprintf("what there is to weigh (%d words at most)", BundleCheckWords),
+		fmt.Sprintf("and why, a line each (%d words at most)", BundleItemWords),
+		fmt.Sprintf("older than it), a line each (%d words at most)", BundleItemWords),
+	} {
+		if !strings.Contains(BundleFormat, says) {
+			t.Errorf("BundleFormat doesn't say %q", says)
+		}
+	}
+}
+
+// A check takes a few points: facts of the same kind, kept as a list
+// under what it said. They count in its length, and are part of what it
+// found, as the crew the work goes back to are told it.
+func TestParseBundle_Points(t *testing.T) {
+	written := "## Summary\nx\n## Checks\n1. unmet: the colour is lost on a reload.\n   - point: Chrome: 5 of 5.\n   - point: Firefox: 2 of 5,\n     in dark mode.\n   - shows: `a.png`\n## Not verified\nNothing.\n"
+	b, err := ParseBundle(written, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := b.Checks[0]
+	if len(c.Points) != 2 || c.Points[1] != "Firefox: 2 of 5, in dark mode." || len(c.Shows) != 1 {
+		t.Errorf("check = %+v", c)
+	}
+	if want := "the colour is lost on a reload. Chrome: 5 of 5.; Firefox: 2 of 5, in dark mode."; c.Found() != want {
+		t.Errorf("found = %q", c.Found())
+	}
+	long := "## Summary\nx\n## Checks\n1. unmet: " + strings.TrimSpace(strings.Repeat("word ", 80)) + "\n   - point: " + strings.TrimSpace(strings.Repeat("word ", 60)) + "\n   - point:\n## Not verified\nNothing.\n"
+	_, err = ParseBundle(long, nil, nil)
+	if err == nil {
+		t.Fatal("a check over length with its points, and an empty point, were taken")
+	}
+	for _, want := range []string{"line 4: check 1 is 140 words, and one that's unmet is 100 at most", "line 6: point: says nothing"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("want %q in:\n%s", want, err)
+		}
+	}
+}
+
+// Noticed is optional, and may say there's nothing.
+func TestParseBundle_Noticed(t *testing.T) {
+	for _, noticed := range []string{"", "## Noticed\nNothing.\n", "## Noticed\n- Nothing.\n"} {
+		b, err := ParseBundle("## Summary\nx\n## Checks\n1. unmet: y\n## Not verified\nNothing.\n"+noticed, nil, nil)
+		if err != nil || len(b.Noticed) != 0 {
+			t.Errorf("%q: %v, %q", noticed, err, b.Noticed)
+		}
+	}
+	if _, err := ParseBundle("## Summary\nx\n## Checks\n1. unmet: y\n## Not verified\nNothing.\n## Noticed\nthe label is cut off\n", nil, nil); err == nil || !strings.Contains(err.Error(), "isn't an item of a list: ## Noticed is a list") {
+		t.Errorf("err = %v", err)
 	}
 }
 

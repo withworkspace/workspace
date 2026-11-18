@@ -13,7 +13,10 @@ import (
 
 // A verification bundle (a bundle) is what's handed over to show that work
 // is as its checks say: each check with a verdict and what shows it
-// (images, video, text), how to try it yourself, and what wasn't verified.
+// (images, video, text), how to try it yourself, what wasn't verified, and
+// what was noticed beside the checks. It's read on a page by someone
+// deciding whether to approve it, so it's held to a length too: what was
+// measured goes in a file it shows, not in its words.
 // Its crew write it whole, in markdown, and ws reads it strictly
 // (ParseBundle), refusing one that isn't right with each thing wrong and
 // its line, as it reads a plan. It's one thing, with a ref of its own
@@ -48,6 +51,9 @@ type Bundle struct {
 	Checks  []BundleCheck `toml:"checks" json:"checks"`
 	// NotVerified is what it says it didn't verify, and why.
 	NotVerified []string `toml:"not_verified,omitempty" json:"not_verified,omitempty"`
+	// Noticed is what its crew came across that isn't one of the checks:
+	// it's for the user to know, and sends nothing back.
+	Noticed []string `toml:"noticed,omitempty" json:"noticed,omitempty"`
 
 	// Verdict is yours of it, as a review has one: BundleApproved, or
 	// BundleSentBack with Notes, what you said wasn't right ("" until you
@@ -95,6 +101,9 @@ type BundleCheck struct {
 	// found: what was seen, what's missing, or what would show it.
 	Verdict string `toml:"verdict" json:"verdict"`
 	Said    string `toml:"said" json:"said"`
+	// Points are facts of the same kind (a result at each size, in each
+	// browser), shown as a list under what it said.
+	Points []string `toml:"points,omitempty" json:"points,omitempty"`
 	// Shows are the files that show it; Lines, where in the capsule it's
 	// done; Try, how to see it yourself; Asks, prompts to send on to crew.
 	Shows []Evidence  `toml:"shows,omitempty" json:"shows,omitempty"`
@@ -129,50 +138,90 @@ const (
 	BundleTryIt       = "Try it"
 	BundleChecks      = "Checks"
 	BundleNotVerified = "Not verified"
+	BundleNoticed     = "Noticed"
+)
+
+// How long a bundle's words may be, in words: its summary, a check that's
+// met, a check that came to anything else (what's wrong, what would show
+// it, what there is to weigh), and an item of Not verified or Noticed.
+// One over is refused, as anything else wrong with it is: a bundle written
+// with no limit grew with every round, each check a page of what was
+// measured, and the one thing to act on was lost in it. These are what
+// crew are told; one is refused at a fifth over (overLength), since an
+// agent writing to a length can't count its words, and lands a few past.
+const (
+	BundleSummaryWords = 80
+	BundleMetWords     = 50
+	BundleCheckWords   = 100
+	BundleItemWords    = 50
 )
 
 // BundleFormat says how a bundle is written: what crew are told, and what
-// ParseBundle holds it to.
-const BundleFormat = "A verification bundle is markdown in four parts, each a `##` heading:\n\n" +
+// ParseBundle holds it to. The lengths it gives are the ones above
+// (TestBundleFormat_ItsLengths). Its example, and what it says of how to
+// write, are in the plain sentences it asks for: crew write a bundle in
+// the voice they're told in.
+const BundleFormat = "A verification bundle is markdown in parts, each a `##` heading:\n\n" +
 	"```markdown\n" +
 	"## Summary\n" +
-	"The picker is on Settings, under Appearance. Picking a colour applies at\n" +
-	"once in both themes and survives a reload.\n\n" +
+	"Check 3 is unmet, so this goes back. In dark mode, the chosen colour is\n" +
+	"lost when the page reloads. Check 1 is met. Check 2 could not be tested,\n" +
+	"because only one tab could be driven.\n\n" +
 	"## Try it\n" +
 	"- try: `npm install && cd web && npm run dev`\n" +
 	"- look for: Appearance, on http://localhost:5173/settings\n" +
 	"- look for: the row of swatches under Accent: pick one, and tabs, buttons and links change at once\n\n" +
 	"## Checks\n" +
-	"1. met: picked teal, then rose; tabs, buttons and links changed at once.\n" +
+	"1. met: Picking teal and then rose changed the tabs, buttons and links immediately, in light and dark mode.\n" +
 	"   - shows: `pick.webm` Picking three colours in a row\n" +
 	"     - made by: `npm run shots -- accent-picker --out pick.webm`\n" +
 	"   - shows: `settings-light.png` Light, after picking teal\n" +
 	"     - before: `settings-light-ground.png`\n" +
 	"   - lines: `web/src/settings/Appearance.tsx:41-88`\n" +
 	"   - try: `npm run shots -- accent-picker --headed`\n" +
-	"2. can't tell: I could only drive one tab, so never saw a second change.\n" +
+	"2. can't tell: Only one tab could be driven, so a change in a second tab was never observed.\n" +
 	"   - try: open Settings in two tabs, pick in one, look at the other\n" +
-	"   - ask: Add a test for the storage event\n\n" +
+	"   - ask: Add a test for the storage event\n" +
+	"3. unmet: In dark mode, the chosen colour is lost when the page reloads. The Accent row shows `Blue (default)` again, so the user has to choose the colour a second time. Light mode keeps it.\n" +
+	"   - point: Chrome: lost on every reload, 5 of 5.\n" +
+	"   - point: Firefox: lost on 2 of 5 reloads.\n" +
+	"   - shows: `reload-dark.webm` Teal chosen in dark mode, then a reload\n" +
+	"   - ask: Keep the chosen accent colour after a reload in dark mode, as light mode does. The colour is read before the theme is set (`web/src/settings/Appearance.tsx:52`).\n\n" +
 	"## Not verified\n" +
-	"- Safari: nothing here to run it in.\n" +
+	"- Safari: it is not installed here.\n\n" +
+	"## Noticed\n" +
+	"- At phone width, the names of the swatches are cut off.\n" +
 	"```\n\n" +
-	"- `## Summary` says what you verified and what you found, in a few lines: the user reads it first.\n" +
+	"A bundle is read on a page, by someone who wasn't there and is deciding whether to approve it. Write it for them:\n\n" +
+	"- Most important first, as a news report is written. The summary starts with the outcome, a check starts with its finding, and a list starts with its most important item. Detail follows, and the least important detail goes last or into a file.\n" +
+	"- A check's first sentence stands alone. In about 15 words it says what was found, as the user of the work would see it. A reader who stops there knows the finding.\n" +
+	"- Short, plain sentences. One fact to a sentence, in the usual order: what, did what, to what. If a sentence lists more than three things or passes about 25 words, split it or cut it.\n" +
+	"- Precise, in simple words. Give the exact name, number or text on screen, and a figure as you measured it: \"7 of 20 rows\", not \"about a third\"; \"8 to 28 ms\", not \"very fast\". Use everyday words, with no idioms, figures of speech or shorthand of your own: write \"the button is hidden\", not \"the button drops out of sight\".\n" +
+	"- The words of the work's user, not of your test. Name a thing as the page names it. Say what a thing is the first time you name it (\"the test query `%accent`\", \"the capsule `accent-picker`\"): the reader hasn't seen your setup. Give a size as what it is, with the figure after it: \"phone width (390px)\".\n" +
+	"- A number comes with what it means for the user: what they can no longer see or do.\n" +
+	"- The check's words are for the person approving: what is wrong, and how much of it. Why it happens in the code and how to put it right are for crew: they go in `ask:` and `lines:`.\n" +
+	"- Keep it short: ws refuses a bundle that's over length. What you measured goes in a file the bundle shows, and the bundle gives the result.\n\n" +
+	"- `## Summary` is read first. It says how it came out, in three sentences at most (80 words): what's unmet and what's wrong with it, or that every check is met; then what's left for the user. Don't go through the checks one by one (they're below), and don't tell how you went about it or what an earlier bundle found.\n" +
 	"- `## Try it` is optional: how the user can see it for themselves. Each item is something to do (`try:`) or what to look for (`look for:`).\n" +
 	"  - A `try:` that's run is one command in backticks, with nothing after it: the user copies it once. Where it needs setup, chain it with `&&` (`a && cd x && b`), rather than a second command or words between.\n" +
 	"  - What to do or see in the UI once it's running goes in `look for:` items, one each.\n" +
 	"  - A `try:` with nothing to run is in words.\n" +
-	"- `## Checks` is a numbered list. Where your step has checks, each one in words is here once, by its number in the step (`ws show s<n>` lists them); a check that's a command is ws's to run, so leave it out. Where your step has none, the checks are your own: 1, 2, 3… in order, each saying what's shown. A check starts with what it came to:\n" +
-	"  - `met:` it's true, and you say what you saw. It needs something that shows it: a `shows:` or a `lines:`.\n" +
-	"  - `unmet:` it isn't, or not wholly: say what's missing or wrong.\n" +
-	"  - `can't tell:` you couldn't show it either way: say what would. It's left for the user, so don't guess.\n" +
-	"  - `yours:` only for a check the plan keeps for the user (a `- yours:` of your step): you don't settle it. Say what you've left to help them, and show it.\n" +
+	"- `## Checks` is a numbered list. Where your step has checks, each one in words is here once, by its number in the step (`ws show s<n>` lists them); a check that's a command is ws's to run, so leave it out. Where your step has none, the checks are your own: 1, 2, 3… in order, each saying what's shown. A check starts with what it came to, and says it in a sentence or two:\n" +
+	"  - `met:` it's true: what you did and what you saw, once (50 words at most). It needs something that shows it: a `shows:` or a `lines:`.\n" +
+	"  - `unmet:` it isn't, or not wholly: what's wrong, first, then where it shows, plainly enough for whoever puts it right (100 words at most). Show one example of it as it is on screen: the exact text in backticks, or the screenshot that has it. If the rest of the check holds, say so in one short sentence, without listing it.\n" +
+	"  - `can't tell:` you couldn't show it either way: say what would (100 words at most). It's left for the user, so don't guess.\n" +
+	"  - `yours:` only for a check the plan keeps for the user (a `- yours:` of your step): you don't settle it. Say what you've left to help them, and what there is to weigh (100 words at most).\n" +
+	"  - Counts, timings, every size and query you tried, what a command printed: these go in a text file the check `shows:`, with what it holds as its caption. The check says what they come to, with the one or two figures that matter.\n" +
+	"  - Say a thing once. What the summary or another check says isn't said again: name the check (`as in check 1`).\n" +
 	"- Under a check, indented, each `- key: value`:\n" +
-	"  - `shows:` a file in backticks, then what it shows. An image (.png, .jpg, .gif, .webp, .svg, .avif), a video (.webm, .mp4, .mov), or text, such as what a command printed. Name it by its path from where you are, or in the mission's private files folder. ws copies it into the bundle, so the bundle keeps it whatever becomes of yours.\n" +
+	"  - `point:` one of two to four facts of the same kind (a result at each size, in each browser, for each query), which are shown as a list under the check's words. Each starts with what it's of, then the fact. They count in the check's length.\n" +
+	"  - `shows:` a file in backticks, then what it shows. An image (.png, .jpg, .gif, .webp, .svg, .avif), a video (.webm, .mp4, .mov), or text, such as what a command printed. Name it by its path from where you are, or in the mission's private files folder. ws copies it into the bundle, so the bundle keeps it whatever becomes of yours. Give the fewest that show it: one where one does.\n" +
 	"  - under a `shows:`, further indented: `before:` the same on the default branch, in backticks, which is shown beside it; `made by:` the command that made it, in backticks.\n" +
 	"  - `lines:` where in the capsule it's done, as `path:from-to`.\n" +
 	"  - `try:` how the user can see this check themselves, as in Try it: one command, chained with `&&`, or words. What to look for once it's running goes in Try it's `look for:` items.\n" +
 	"  - `ask:` a prompt the user could send on to crew as it's written, for something you'd suggest.\n" +
-	"- `## Not verified` lists what you didn't verify, and why, or says `Nothing.`\n" +
+	"- `## Not verified` lists what you didn't verify, and why, a line each (50 words at most), or says `Nothing.`\n" +
+	"- `## Noticed` is optional: what you came across that isn't one of the checks (something off beside the work, something older than it), a line each (50 words at most). It doesn't send the work back.\n" +
 	"- Nothing else: no title, no other headings. A long item can go on over indented lines.\n\n" +
 	"A bundle is of a commit: commit your work before you hand it over. It's never edited: hand over another, and it takes this one's place.\n"
 
@@ -221,7 +270,7 @@ var (
 type bundleOpen struct {
 	line   int
 	indent int
-	kind   string // try-it, not-verified, check, field or sub
+	kind   string // try-it, not-verified, noticed, check, field or sub
 	number string // a check's
 	text   string
 }
@@ -281,6 +330,9 @@ func (p *bundleParser) read(written string) {
 					p.none = true
 					continue
 				}
+				if p.part == BundleNoticed && isNothing(trimmed) {
+					continue
+				}
 				p.problem(n, "%q isn't an item of a list: ## %s is a list", clipPlan(trimmed), p.part)
 				continue
 			}
@@ -292,9 +344,11 @@ func (p *bundleParser) read(written string) {
 	p.endCheck()
 	p.b.Summary = strings.TrimSpace(strings.Join(p.summary, "\n"))
 	if !p.seen[BundleSummary] {
-		p.problems = append(p.problems, fmt.Sprintf("it has no ## %s: say what you verified and found, in a few lines", BundleSummary))
+		p.problems = append(p.problems, fmt.Sprintf("it has no ## %s: say how it came out, in three sentences at most", BundleSummary))
 	} else if p.b.Summary == "" {
-		p.problems = append(p.problems, fmt.Sprintf("## %s says nothing: say what you verified and found, in a few lines", BundleSummary))
+		p.problems = append(p.problems, fmt.Sprintf("## %s says nothing: say how it came out, in three sentences at most", BundleSummary))
+	} else if n := wordsIn(p.b.Summary); overLength(n, BundleSummaryWords) {
+		p.problems = append(p.problems, fmt.Sprintf("## %s is %d words, and it's %d at most: say how it came out (what's unmet and what's wrong with it, or that every check is met, then what's left for the user), and leave the rest to the checks", BundleSummary, n, BundleSummaryWords))
 	}
 	if !p.seen[BundleChecks] {
 		p.problems = append(p.problems, fmt.Sprintf("it has no ## %s: a numbered list, each check with what it came to", BundleChecks))
@@ -322,6 +376,17 @@ func indentOf(line string) int {
 	return n
 }
 
+// wordsIn is how many words s is, as a bundle's lengths are counted.
+func wordsIn(s string) int {
+	return len(strings.Fields(s))
+}
+
+// overLength reports whether n words is too many where most is the
+// length told: more than a fifth over.
+func overLength(n, most int) bool {
+	return n > most+most/5
+}
+
 // isNothing reports whether a part says there's nothing in it.
 func isNothing(s string) bool {
 	return isNone(s) || nothing(s)
@@ -332,7 +397,7 @@ func (p *bundleParser) heading(n int, title string) {
 	switch {
 	case part == "":
 		p.part = "?"
-		p.problem(n, "%q isn't a part of a bundle: its parts are ## %s, ## %s, ## %s and ## %s", clipPlan(title), BundleSummary, BundleTryIt, BundleChecks, BundleNotVerified)
+		p.problem(n, "%q isn't a part of a bundle: its parts are ## %s, ## %s, ## %s, ## %s and ## %s", clipPlan(title), BundleSummary, BundleTryIt, BundleChecks, BundleNotVerified, BundleNoticed)
 	case p.seen[part]:
 		p.part = part
 		p.problem(n, "## %s is there twice: once", part)
@@ -351,18 +416,22 @@ func bundlePartOf(title string) string {
 		return BundleChecks
 	case "not verified", "unverified":
 		return BundleNotVerified
+	case "noticed", "also noticed":
+		return BundleNoticed
 	}
 	return ""
 }
 
 // item starts an item of the part being read: something to try, a check,
-// one of a check's fields, or something not verified.
+// one of a check's fields, or something not verified or noticed.
 func (p *bundleParser) item(n, indent int, number, text string) {
 	switch p.part {
 	case BundleTryIt:
 		p.open = &bundleOpen{line: n, indent: indent, kind: "try-it", text: text}
 	case BundleNotVerified:
 		p.open = &bundleOpen{line: n, indent: indent, kind: "not-verified", text: text}
+	case BundleNoticed:
+		p.open = &bundleOpen{line: n, indent: indent, kind: "noticed", text: text}
 	case BundleChecks:
 		switch {
 		case indent < 2 && number == "":
@@ -400,7 +469,14 @@ func (p *bundleParser) close() {
 			p.none = true
 			return
 		}
+		p.itemLength(it.line, BundleNotVerified, text)
 		p.b.NotVerified = append(p.b.NotVerified, text)
+	case "noticed":
+		if isNothing(text) {
+			return
+		}
+		p.itemLength(it.line, BundleNoticed, text)
+		p.b.Noticed = append(p.b.Noticed, text)
 	case "check":
 		n, _ := strconv.Atoi(it.number)
 		c := BundleCheck{N: n, line: it.line}
@@ -416,6 +492,13 @@ func (p *bundleParser) close() {
 		p.field(it, text)
 	case "sub":
 		p.sub(it, text)
+	}
+}
+
+// itemLength holds an item of Not verified or Noticed to a line.
+func (p *bundleParser) itemLength(line int, part, text string) {
+	if n := wordsIn(text); overLength(n, BundleItemWords) {
+		p.problem(line, "this item of ## %s is %d words, and one is %d at most: a line saying what, and why", part, n, BundleItemWords)
 	}
 }
 
@@ -488,6 +571,12 @@ func (p *bundleParser) field(it *bundleOpen, text string) {
 		}
 		p.check.Shows = append(p.check.Shows, e)
 		p.shows, p.showsAt = &p.check.Shows[len(p.check.Shows)-1], it.indent
+	case "point":
+		if value == "" {
+			p.problem(it.line, "point: says nothing: one of a few facts of the same kind, starting with what it's of")
+			return
+		}
+		p.check.Points = append(p.check.Points, value)
 	case "lines":
 		if value = strings.Trim(value, "` "); value == "" {
 			p.problem(it.line, "lines: says nothing: where in the capsule it's done, as `path:from-to`")
@@ -507,7 +596,7 @@ func (p *bundleParser) field(it *bundleOpen, text string) {
 	case "before", "made by":
 		p.problem(it.line, "%s: goes under the shows: it's of, indented further than it", key)
 	default:
-		p.problem(it.line, "%q isn't something a check takes: under a check go - shows:, - lines:, - try: and - ask:", clipPlan(text))
+		p.problem(it.line, "%q isn't something a check takes: under a check go - point:, - shows:, - lines:, - try: and - ask:", clipPlan(text))
 	}
 }
 
@@ -605,6 +694,9 @@ func (p *bundleParser) hold(checks []Check) {
 		if c.Said == "" {
 			p.problem(c.line, "check %d is %s, but not how: %s", c.N, c.Verdict, bundleSays(c.Verdict))
 		}
+		if n, most := wordsIn(c.Found()), bundleCheckWords(c.Verdict); overLength(n, most) {
+			p.problem(c.line, "check %d is %d words, and one that's %s is %d at most: %s", c.N, n, c.Verdict, most, bundleShorter(c.Verdict))
+		}
 		if c.Verdict == CheckMet && len(c.Shows) == 0 && len(c.Lines) == 0 {
 			p.problem(c.line, "check %d is met, with nothing that shows it: give it a - shows: (an image, a video, or what a command printed) or the - lines: it's done in", c.N)
 		}
@@ -627,6 +719,37 @@ func bundleSays(verdict string) string {
 		return "say what you've left to help them settle it"
 	}
 	return "say what would show it"
+}
+
+// bundleCheckWords is how many words a check that came to verdict may be.
+func bundleCheckWords(verdict string) int {
+	if verdict == CheckMet {
+		return BundleMetWords
+	}
+	return BundleCheckWords
+}
+
+// bundleShorter is how a check that's over length is made shorter.
+func bundleShorter(verdict string) string {
+	file := "what you counted and timed goes in a text file it shows:, and what another check says isn't said again"
+	switch verdict {
+	case CheckMet:
+		return "say what you did and saw, once; " + file
+	case CheckUnmet:
+		return "say what's wrong, then where it shows, and give what holds a clause; " + file
+	case CheckYours:
+		return "say what you've left to help them and what there is to weigh; " + file
+	}
+	return "say what would show it; " + file
+}
+
+// Found is what the check found, whole and in a line: what it said, then
+// its points.
+func (c BundleCheck) Found() string {
+	if len(c.Points) == 0 {
+		return c.Said
+	}
+	return strings.TrimSpace(c.Said + " " + strings.Join(c.Points, "; "))
 }
 
 // With is the bundle's checks that came to verdict.

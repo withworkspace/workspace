@@ -485,6 +485,20 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id?: string) => void }) {
           </ul>
         </details>
       ) : null}
+      {b.noticed?.length ? (
+        <details className="verify-fold">
+          <summary>
+            Noticed<span className="verify-n">{b.noticed.length}</span>
+          </summary>
+          <ul>
+            {b.noticed.map((n, i) => (
+              <li key={i}>
+                <Inline text={n} />
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
       {b.try?.length ? (
         <details className="verify-fold">
           <summary>
@@ -598,6 +612,15 @@ function CheckDetail({
             <Inline text={c.said} />
           </p>
         )}
+        {c?.points?.length ? (
+          <ul className="verify-points">
+            {c.points.map((pt, i) => (
+              <li key={i}>
+                <Inline text={pt} />
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </header>
       {c?.judged && (
         <p className={`verify-judged tone-${verdictTone(c.judged.result)}`}>
