@@ -226,7 +226,7 @@ ws land records note
 1. It refuses a capsule with uncommitted changes, or with nothing to land.
 2. It fetches, and rebases the capsule onto `origin/<default branch>`.
 3. It runs the repo's `verify` command in the capsule, if it has one.
-4. It pushes `HEAD:<default branch>`.
+4. It pushes the checked commit to the default branch.
 5. It brings the ground up to it (a fast-forward, never anything else), and burns the capsule.
 
 It stops, with nothing pushed, where landing by hand should stop:
@@ -241,6 +241,8 @@ It stops, with nothing pushed, where landing by hand should stop:
 **You are the gate.** Nothing stands between a landing and everyone else seeing it, so it's yours to make: `ws land` refuses crew and the orchestrator. Crew in a direct repo are told to commit, not push, and report done.
 
 **In a mission,** a capsule of a direct repo with commits to land, and no crew in it, puts the mission in your court as `✓ land`. Its headline opens the capsule's review, which is the only review there'll be: approve it, then *Land on main* (`L`, then `⏎` to confirm). Approving and landing are two acts. A landed capsule counts as a merged pull request does: the mission is `landed` when every capsule has landed or merged, and a document in it goes from `draft` to `landed` with no `in review` between. A landing made by hand (`git push origin HEAD:main`) isn't recorded: land with `ws land`.
+
+When `missions.review_before_land` is on, an approval carries across a clean rebase if the rebased tree matches the approved change applied to the new base. If it differs, review the rebased capsule before retrying. If Git accepts a push but ws can't record it, the capsule is kept. Retry `ws land` to check the remote and finish recording the same commit.
 
 ### Repos and Aliases
 

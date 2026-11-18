@@ -114,12 +114,15 @@ func runDebrief(ctx *ops.Workspace, days int, repoFilter string, burnDirtyLanded
 	// Cross-reference: mark capsules as merged if they have a merged PR, or
 	// (a repo with none) their mission records them landed and they haven't
 	// moved since.
+	pending := make(map[string]bool)
 	for i := range capsules {
 		c := &capsules[i]
 		if !c.Merged && mergedBranches[c.Branch] {
 			c.Merged = true
 		}
-		if !c.Merged && landedWhereItIs(ctx, c.Repo, c.Name) {
+		if landed, attempt := capsuleLanding(ctx, c.Repo, c.Name); attempt {
+			pending[c.Repo+"/"+c.Name] = true
+		} else if landed {
 			c.Merged = true
 		}
 	}
@@ -146,6 +149,12 @@ func runDebrief(ctx *ops.Workspace, days int, repoFilter string, burnDirtyLanded
 		tagPad := strings.Repeat(" ", maxTagW-lipgloss.Width(tag))
 
 		if c.Merged || c.Inactive {
+			if pending[c.Repo+"/"+c.Name] {
+				fmt.Fprintf(ui.Stderr, "  %s %s%s %s%s has a pending landing — retry ws land\n",
+					ui.Dim.Render("-"), repoName, repoPad, tag, tagPad)
+				skipped++
+				continue
+			}
 			forceBurn := c.Dirty && c.Merged && burnDirtyLanded
 			if c.Dirty && !forceBurn {
 				fmt.Fprintf(ui.Stderr, "  %s %s%s %s%s %s, but %d uncommitted files — skipped\n",
@@ -501,18 +510,20 @@ func fetchPRsByBranch(ctx *ops.Workspace, capsules []workspace.CapsuleInfo) (map
 	return result, mergedBranches
 }
 
-// landedWhereItIs reports whether a capsule's mission records it landed
-// (ws land), and it's still at the commit that landed: one that ws land
-// couldn't burn, which has nothing left to keep.
-func landedWhereItIs(ctx *ops.Workspace, repo, capsule string) bool {
+// capsuleLanding reports whether a direct landing is at the recorded commit
+// or still needs reconciliation before the capsule can be debriefed.
+func capsuleLanding(ctx *ops.Workspace, repo, capsule string) (landed, pending bool) {
 	m, ok := missionStore(ctx).FindByCapsule(repo, capsule)
 	if !ok {
-		return false
+		return false, false
 	}
 	for _, c := range m.Capsules {
-		if c.Repo == repo && c.Name == capsule && c.Landed != nil {
-			return c.Landed.Head != "" && workspace.GitRevParse(filepath.Join(ctx.WS().RepoDir(repo), capsule), "HEAD") == c.Landed.Head
+		if c.Repo != repo || c.Name != capsule {
+			continue
 		}
+		return c.Landed != nil && c.Landed.Head != "" &&
+				workspace.GitRevParse(filepath.Join(ctx.WS().RepoDir(repo), capsule), "HEAD") == c.Landed.Head,
+			c.PendingLanding != nil
 	}
-	return false
+	return false, false
 }

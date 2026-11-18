@@ -2,7 +2,6 @@ package cli_test
 
 import (
 	"context"
-	"github.com/withworkspace/workspace/internal/store"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/cli"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/store"
 	"github.com/withworkspace/workspace/internal/testutil"
 )
 
@@ -196,6 +196,21 @@ func TestLand_VerifyMustPass(t *testing.T) {
 	}
 }
 
+func TestLand_VerifyCannotChangeTheCommitBeingLanded(t *testing.T) {
+	w := landWorkspace(t, "git -c user.name=Test -c user.email=test@test.com commit --allow-empty -m generated")
+	run(t, w, nil, "lift", "records", "note")
+	dir := capsuleDir(w, "records", "note")
+	commitIn(t, dir, "notes/a.md", "# A\n", "docs: add note a")
+
+	r := testutil.RunCommand(t, w.Root, nil, "land", "records", "note")
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "changed during landing") {
+		t.Fatalf("land: %v, want the changed commit to stop landing", r.Err)
+	}
+	if got := subjects(t, w.Sources["records"], "main"); got != "initial" {
+		t.Errorf("something was pushed: %s", got)
+	}
+}
+
 func TestLand_TriesAgainWhenMainMovesUnderIt(t *testing.T) {
 	// The check itself moves main, the first time it's run: the push that
 	// follows isn't a fast-forward.
@@ -306,7 +321,9 @@ func TestLand_AMissionThatCantRecordItKeepsTheCapsule(t *testing.T) {
 	// The mission's record refuses to be written.
 	records, _ := store.Open(w.Root)
 	if err := records.Write(context.Background(), func(tx *store.Tx) error {
-		_, err := tx.Exec(`CREATE TRIGGER notes_read_only BEFORE UPDATE ON missions WHEN old.slug = 'notes' BEGIN SELECT RAISE(ABORT, 'read-only'); END`)
+		_, err := tx.Exec(`CREATE TRIGGER notes_read_only BEFORE UPDATE ON missions
+			WHEN old.slug = 'notes' AND json_extract(new.record, '$.capsules[0].landed.head') IS NOT NULL
+			BEGIN SELECT RAISE(ABORT, 'read-only'); END`)
 		return err
 	}); err != nil {
 		t.Fatal(err)
@@ -323,8 +340,31 @@ func TestLand_AMissionThatCantRecordItKeepsTheCapsule(t *testing.T) {
 	if _, err := os.Stat(capsuleDir(w, "records", "note")); err != nil {
 		t.Errorf("the capsule was burned: %v", err)
 	}
-	if m := loadMission(t, w, "notes"); len(m.Capsules) != 1 {
-		t.Errorf("the mission lost its capsule: %+v", m.Capsules)
+	if m := loadMission(t, w, "notes"); len(m.Capsules) != 1 || m.Capsules[0].PendingLanding == nil {
+		t.Fatalf("the mission lost its pending landing: %+v", m.Capsules)
+	}
+	run(t, w, nil, "debrief", "records", "--days", "0")
+	if _, err := os.Stat(capsuleDir(w, "records", "note")); err != nil {
+		t.Fatalf("debrief burned the capsule before it could be reconciled: %v", err)
+	}
+	commitIn(t, w.Sources["records"], "notes/later.md", "# Later\n", "docs: add a later note")
+	if err := records.Write(context.Background(), func(tx *store.Tx) error {
+		_, err := tx.Exec(`DROP TRIGGER notes_read_only`)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	run(t, w, nil, "land", "records", "note")
+	m := loadMission(t, w, "notes")
+	if c := m.Capsules[0]; c.PendingLanding != nil || c.Landed == nil ||
+		c.Landed.Head != strings.TrimSpace(gitOut(t, w.Sources["records"], "rev-parse", "main^")) {
+		t.Fatalf("retry didn't record the commit that landed: %+v", c)
+	}
+	if got := strings.Join(logKinds(t, w, "notes"), " "); strings.Count(got, "landed") != 1 {
+		t.Errorf("expected one landing in the log, got %s", got)
+	}
+	if _, err := os.Stat(capsuleDir(w, "records", "note")); !os.IsNotExist(err) {
+		t.Errorf("capsule remained after recovery: %v", err)
 	}
 }
 

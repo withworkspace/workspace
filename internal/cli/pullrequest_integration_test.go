@@ -214,8 +214,72 @@ func TestLand_HoldsTheReviewGuarantee(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	review.For(w.Root, "notes").Submit("records/note", review.Diffed{Dir: dir, BaseRef: "origin/main", Base: d.Base, Head: d.Head}, review.Approve, "", time.Now())
+	if _, err := review.For(w.Root, "notes").Submit("records/note", review.Diffed{Dir: dir, BaseRef: "origin/main", Base: d.Base, Head: d.Head}, review.Approve, "", time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	commitIn(t, w.Sources["records"], "notes/other.md", "# Other\n", "docs: add another note")
 	run(t, w, nil, "land", "records", "note")
+	if got := subjects(t, w.Sources["records"], "main"); got != "docs: add note a | docs: add another note | initial" {
+		t.Errorf("approved change didn't land after a clean rebase: %s", got)
+	}
+}
+
+func TestLand_AcceptsApprovalFromChangesSinceTheLastReview(t *testing.T) {
+	w := landWorkspace(t, "")
+	holdReviews(t, w.Root)
+	run(t, w, nil, "mission", "new", "Notes", "--brief", "## Goal\nA note.\n")
+	t.Setenv(mission.EnvMission, "notes")
+	run(t, w, nil, "lift", "records", "note")
+	t.Setenv(mission.EnvMission, "")
+	dir := capsuleDir(w, "records", "note")
+	commitIn(t, dir, "notes/a.md", "# A\n", "docs: add note a")
+	first := strings.TrimSpace(gitOut(t, dir, "rev-parse", "HEAD"))
+	commitIn(t, dir, "notes/a.md", "# A with more detail\n", "docs: clarify note a")
+	d, err := review.CompareSince(dir, "origin/main", first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := review.For(w.Root, "notes").Submit("records/note", review.Diffed{Dir: dir, BaseRef: "origin/main", Base: d.Base, Head: d.Head}, review.Approve, "", time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	run(t, w, nil, "land", "records", "note")
+}
+
+func TestLand_RequiresReviewOfChangesMadeDuringRebase(t *testing.T) {
+	w := landWorkspace(t, "")
+	holdReviews(t, w.Root)
+	run(t, w, nil, "mission", "new", "Notes", "--brief", "## Goal\nA note.\n")
+	t.Setenv(mission.EnvMission, "notes")
+	run(t, w, nil, "lift", "records", "note")
+	t.Setenv(mission.EnvMission, "")
+	dir := capsuleDir(w, "records", "note")
+	commitIn(t, dir, "notes/a.md", "# A\n", "docs: add note a")
+	d, err := review.Compare(dir, "origin/main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := review.For(w.Root, "notes").Submit("records/note", review.Diffed{Dir: dir, BaseRef: "origin/main", Base: d.Base, Head: d.Head}, review.Approve, "", time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	commitIn(t, w.Sources["records"], "notes/other.md", "# Other\n", "docs: add another note")
+	hooks := t.TempDir()
+	testutil.GitCmd(t, dir, "config", "core.hooksPath", hooks)
+	if err := os.WriteFile(filepath.Join(hooks, "post-rewrite"), []byte(`#!/bin/sh
+set -e
+printf 'New during rebase\n' > notes/rewrite.md
+git add notes/rewrite.md
+git -c user.name=Test -c user.email=test@test.com -c commit.gpgsign=false commit -qm rewritten
+`), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	r := testutil.RunCommand(t, w.Root, nil, "land", "records", "note")
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "the rebased changes differ from what was approved") {
+		t.Fatalf("land: %v, want a fresh review of the changed diff", r.Err)
+	}
+	if got := subjects(t, w.Sources["records"], "main"); got != "docs: add another note | initial" {
+		t.Errorf("unapproved changes landed: %s", got)
+	}
 }
 
 func logged(t *testing.T, store mission.Store, text string) bool {

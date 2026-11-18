@@ -100,6 +100,8 @@ type Capsule struct {
 	// Landed is its landing, for a capsule of a repo that takes commits
 	// straight to its default branch: ws land records it.
 	Landed *Landing `toml:"landed,omitempty" json:"landed,omitempty"`
+	// PendingLanding is persisted before a push so a retry can reconcile it.
+	PendingLanding *LandingAttempt `toml:"pending_landing,omitempty" json:"pending_landing,omitempty"`
 }
 
 // Landing is a capsule's commits pushed to its repo's default branch, with

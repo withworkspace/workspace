@@ -827,6 +827,7 @@ export interface Landing {
   verify?: string;
   mission?: string;
   approved: boolean;
+  pending?: boolean;
   landed?: Landed;
 }
 

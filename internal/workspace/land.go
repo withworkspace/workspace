@@ -86,6 +86,12 @@ type Landed struct {
 	Settled []string
 }
 
+// LandCandidate identifies the immutable commit and base of one push.
+type LandCandidate struct {
+	Landed
+	Base, OriginalHead string
+}
+
 // LandOptions are for Land.
 type LandOptions struct {
 	// Step is told each step as it starts.
@@ -101,6 +107,13 @@ type LandOptions struct {
 	// Check checks what's been rebased before it's pushed: an error stops
 	// the landing, with the capsule put back as it was before the rebase.
 	Check func(dir, base string) error
+	// BeforeRebase checks permission to prepare a new landing after recovery
+	// has had a chance to finish any earlier push.
+	BeforeRebase func() error
+	// Pending is a previous push to reconcile against the freshly fetched branch.
+	Pending *Landed
+	// BeforePush checks or records the exact candidate, after verification.
+	BeforePush func(LandCandidate) error
 }
 
 // CapsuleConflicts says whether a capsule merges cleanly onto its repo's
@@ -165,24 +178,72 @@ func (w *Workspace) Land(repo, capsule string, o LandOptions) (*Landed, error) {
 	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
 		return stop("check", "no capsule "+name, "")
 	}
-	if GitIsDirty(dir) {
-		return stop("check", name+" has changes that aren't committed: commit them (or put them aside) and land again", "")
+	checkClean := func() error {
+		out, err := run("status", "--porcelain")
+		if err != nil {
+			return &LandError{Step: "check", Msg: "couldn't check " + name + "'s uncommitted changes", Output: strings.TrimSpace(out)}
+		}
+		if strings.TrimSpace(out) != "" {
+			return &LandError{Step: "check", Msg: name + " has changes that aren't committed: commit them (or put them aside) and land again"}
+		}
+		return nil
 	}
-
+	if o.Pending == nil {
+		if err := checkClean(); err != nil {
+			return nil, err
+		}
+	}
+	fetch := func() (string, error) {
+		return run("fetch", "origin", "+refs/heads/"+branch+":refs/remotes/origin/"+branch)
+	}
 	step("Fetching " + base)
-	if out, err := run("fetch", "origin"); err != nil {
+	if out, err := fetch(); err != nil {
 		return stop("fetch", "couldn't fetch "+repo+"'s remote", out)
+	}
+	originalHead, err := run("rev-parse", "--verify", "HEAD^{commit}")
+	if err != nil {
+		return stop("check", "couldn't read "+name+"'s commit", originalHead)
+	}
+	originalHead = strings.TrimSpace(originalHead)
+	if pending := o.Pending; pending != nil && pending.Branch == branch {
+		out, err := run("merge-base", "--is-ancestor", pending.Head, base)
+		switch {
+		case err == nil:
+			if originalHead != pending.Head {
+				return stop("check", fmt.Sprintf("%s landed at %s and has since moved. Keep the new commits in another capsule and return this one to %s before retrying", name, pending.Head, pending.Head), "")
+			}
+			landed := *pending
+			landed.Ground = w.alignLandedGround(repo, base, step)
+			return &landed, nil
+		case git.ExitCode(err) != 1:
+			return stop("check", "couldn't check whether "+name+"'s earlier push landed", out)
+		}
+	}
+	if o.Pending != nil {
+		if err := checkClean(); err != nil {
+			return nil, err
+		}
 	}
 	if GitCommitsSince(dir, base) == 0 {
 		return stop("check", fmt.Sprintf("nothing to land: %s has no commits that aren't on %s", name, branch), "")
 	}
 
+	if o.BeforeRebase != nil {
+		if err := o.BeforeRebase(); err != nil {
+			return nil, err
+		}
+	}
 	landed := &Landed{Repo: repo, Capsule: capsule, Branch: branch}
 	verify := w.VerifyCommand(repo)
 	for {
 		landed.Tries++
 		step("Rebasing onto " + base)
-		out, err := run("rebase", base)
+		baseHead, err := run("rev-parse", "--verify", base+"^{commit}")
+		if err != nil {
+			return stop("rebase", "couldn't read "+base, baseHead)
+		}
+		baseHead = strings.TrimSpace(baseHead)
+		out, err := run("rebase", baseHead)
 		for err != nil && o.Settle != nil {
 			clash, _ := run("diff", "--name-only", "--diff-filter=U")
 			files := strings.Fields(clash)
@@ -209,18 +270,23 @@ func (w *Workspace) Land(repo, capsule string, o LandOptions) (*Landed, error) {
 			}
 			return stop("rebase", fmt.Sprintf("%s clashes with what's on %s since, in %s. It's as it was: rebase it in the capsule (git rebase %s), settle the clash, and land again", name, branch, files, base), out)
 		}
-		if GitCommitsSince(dir, base) == 0 {
+		if GitCommitsSince(dir, baseHead) == 0 {
 			return stop("check", fmt.Sprintf("nothing to land: what %s changes is on %s already", name, branch), "")
 		}
-		if taken := w.numberTaken(repo, dir, base); taken != "" {
+		if taken := w.numberTaken(repo, dir, baseHead); taken != "" {
 			return stop("number", taken, "")
 		}
 		if o.Check != nil {
-			if err := o.Check(dir, base); err != nil {
+			if err := o.Check(dir, baseHead); err != nil {
 				run("reset", "-q", "--hard", "ORIG_HEAD")
 				return stop("number", fmt.Sprintf("%s's artifacts aren't whole once it's rebased onto %s (%v). It's as it was: rebase it in the capsule (git rebase %s), put them right, and land again", name, base, err, base), "")
 			}
 		}
+		head, err := run("rev-parse", "--verify", "HEAD^{commit}")
+		if err != nil {
+			return stop("check", "couldn't read "+name+"'s rebased commit", head)
+		}
+		landed.Head = strings.TrimSpace(head)
 		if verify != "" {
 			step("Verifying: " + verify)
 			var out bytes.Buffer
@@ -228,12 +294,25 @@ func (w *Workspace) Land(repo, capsule string, o LandOptions) (*Landed, error) {
 				return stop("verify", fmt.Sprintf("%s doesn't pass %s's check (%s): nothing was pushed", name, repo, verify), tail(out.String(), 40))
 			}
 		}
-		if subjects, err := run("log", "--reverse", "--format=%s", base+"..HEAD"); err == nil {
-			landed.Commits = strings.Split(strings.TrimSpace(subjects), "\n")
+		if err := checkClean(); err != nil {
+			return nil, err
+		}
+		if GitRevParse(dir, "HEAD") != landed.Head {
+			return stop("verify", name+" changed during landing. Review the changes and try again", "")
+		}
+		subjects, err := run("log", "--reverse", "--format=%s", baseHead+".."+landed.Head)
+		if err != nil {
+			return stop("check", "couldn't read "+name+"'s commits", subjects)
+		}
+		landed.Commits = strings.Split(strings.TrimSuffix(subjects, "\n"), "\n")
+		if o.BeforePush != nil {
+			if err := o.BeforePush(LandCandidate{Landed: *landed, Base: baseHead, OriginalHead: originalHead}); err != nil {
+				return stop("check", err.Error(), "")
+			}
 		}
 
 		step("Pushing to " + branch)
-		out, err = run("push", "--porcelain", "origin", "HEAD:refs/heads/"+branch)
+		out, err = run("push", "--porcelain", "origin", landed.Head+":refs/heads/"+branch)
 		if err == nil {
 			break
 		}
@@ -244,21 +323,23 @@ func (w *Workspace) Land(repo, capsule string, o LandOptions) (*Landed, error) {
 			return stop("push", fmt.Sprintf("%s moved %d times while this was landing, and nothing was pushed. Land again when it's quieter", branch, LandTries), out)
 		}
 		step(branch + " moved: fetching it again")
-		if out, err := run("fetch", "origin"); err != nil {
+		if out, err := fetch(); err != nil {
 			return stop("fetch", "couldn't fetch "+repo+"'s remote", out)
 		}
 	}
-	landed.Head = GitRevParse(dir, "HEAD")
+	landed.Ground = w.alignLandedGround(repo, base, step)
+	return landed, nil
+}
 
-	// The ground sees the push right away. It's the one write the ground
-	// gets, and only ever a fast-forward.
+func (w *Workspace) alignLandedGround(repo, base string, step func(string)) error {
 	step("Bringing the ground up to it")
 	if err := GitFetch(w.BareDir(repo)); err != nil {
-		landed.Ground = err
-	} else if err := GitFFMerge(w.MainWorktree(repo), base); err != nil {
-		landed.Ground = errors.New("the ground isn't a fast-forward from " + base + ": it's drifted")
+		return err
 	}
-	return landed, nil
+	if err := GitFFMerge(w.MainWorktree(repo), base); err != nil {
+		return errors.New("the ground isn't a fast-forward from " + base + ": it's drifted")
+	}
+	return nil
 }
 
 // pushBehind reports whether a push (git push --porcelain) was refused
