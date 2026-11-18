@@ -1,6 +1,7 @@
 import type { Pinned } from "./refs/refs";
 import { useEffect, useRef, useState } from "react";
 import type { Place } from "./markdown/links";
+import { bursts } from "./load";
 
 // Mirrors internal/web/api.go.
 
@@ -225,7 +226,8 @@ export interface EventHandlers {
 
 // useEvents follows a topic while the page is showing (one stream each:
 // browsers allow only a few connections to a server, and every tab's
-// count). Showing again opens it again, and its hello catches up.
+// count). Showing again opens it again, and its hello catches up. A change
+// is told at once; those within a moment of it, once, after it (bursts).
 export function useEvents(topic: Topic, on: EventHandlers) {
   const visible = useVisible();
   const handlers = useRef(on);
@@ -233,10 +235,14 @@ export function useEvents(topic: Topic, on: EventHandlers) {
   useEffect(() => {
     if (!visible) return;
     const events = new EventSource(`/api/events?topic=${topic}`);
+    const changes = bursts(() => handlers.current.changed());
     events.addEventListener("hello", () => handlers.current.hello?.());
-    events.addEventListener(topic, () => handlers.current.changed());
+    events.addEventListener(topic, changes.changed);
     events.onerror = () => handlers.current.lost?.(events.readyState === EventSource.CLOSED);
-    return () => events.close();
+    return () => {
+      changes.stop();
+      events.close();
+    };
   }, [topic, visible]);
   return visible;
 }

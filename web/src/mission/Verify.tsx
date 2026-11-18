@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button as AriaButton, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { act, type ActOpts, type ActVerb, type Bundle, type BundleEvidence, type BundleTry, type MissionDetail } from "../api";
+import type { Reload } from "../load";
 import { useKeys } from "../keys";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
@@ -55,7 +56,7 @@ export function Verify({
   pick: (id?: string) => void; // open a bundle, or (none) close the one that's open
   sel?: string; // the page's selected item
   select: (key: string) => void;
-  reload: () => void;
+  reload: Reload;
 }) {
   // What you've said isn't right, a check each, until it's sent back: by
   // bundle, then by the check's number.
@@ -92,7 +93,7 @@ export function Verify({
         if (!quiet) toast(r.message, { tone: "done" });
         if (verb === "bundle-send-back") setNotes((all) => ({ ...all, [bundle.id]: {} }));
         then?.();
-        reload();
+        return reload();
       })
       .catch((e: Error) => {
         setCleared(undefined);

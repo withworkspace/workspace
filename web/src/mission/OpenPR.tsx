@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { act, type CapsuleDetail, type MissionDetail } from "../api";
+import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
 import { Dialog, humanError, toast } from "../ui/kit";
 
@@ -16,7 +17,7 @@ export function canOpenPR(d: MissionDetail, c: CapsuleDetail) {
   return d.github && c.exists && !c.direct && !c.pr && (c.ahead ?? 0) > 0;
 }
 
-export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; reload: () => void }) {
+export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; reload: Reload }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(d.title);
   const [body, setBody] = useState("");
@@ -35,7 +36,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
       .then((r) => {
         close();
         toast(r.message, { tone: "done" });
-        reload();
+        return reload();
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setBusy(false));

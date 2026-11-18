@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { act, type CapsuleDetail, type Conclusion, type EndedCapsule, type Ending, type MissionDetail } from "../api";
+import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { Dialog, humanError, toast } from "../ui/kit";
@@ -64,8 +65,9 @@ export function HandedOn({ to }: { to?: string[] }) {
   );
 }
 
-// ended toasts an ending, with an undo.
-export function ended(slug: string, message: string, reload: () => void) {
+// ended toasts an ending, with an undo, and reads the mission again: its
+// promise is that read's (Reload).
+export function ended(slug: string, message: string, reload: Reload): Promise<void> {
   toast(message, {
     tone: "done",
     action: {
@@ -80,13 +82,13 @@ export function ended(slug: string, message: string, reload: () => void) {
         ),
     },
   });
-  reload();
+  return reload();
 }
 
 // EndDialog ends the mission as you say: how it ends, what it came to,
 // and each part of Z met or not, with how. It starts from what's
 // suggested, if anything is.
-export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: () => void; reload: () => void }) {
+export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: () => void; reload: Reload }) {
   const from = d.conclude?.ending ? d.conclude : undefined;
   const z = d.z ?? [];
   const [ending, setEnding] = useState<Ending | undefined>(from?.ending);
@@ -114,7 +116,7 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
     act(d.slug, "end", { ending, text, met, unmet, to: ending === "handed-on" ? to.split(/[\s,]+/).filter(Boolean) : undefined })
       .then((r) => {
         onClose();
-        ended(d.slug, r.message, reload);
+        return ended(d.slug, r.message, reload);
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setBusy(false));
@@ -174,7 +176,7 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
 
 // EndButton opens the End dialog: ending the mission yourself, whatever's
 // suggested.
-export function EndButton({ d, reload }: { d: MissionDetail; reload: () => void }) {
+export function EndButton({ d, reload }: { d: MissionDetail; reload: Reload }) {
   const [open, setOpen] = useState(false);
   if (d.ending || d.state === "archived") return null;
   return (
@@ -189,7 +191,7 @@ export function EndButton({ d, reload }: { d: MissionDetail; reload: () => void 
 
 // CapsuleEnds are what ends a capsule alone: handed on to a mission of its
 // own (raised for it, or one there is), which takes it, or dropped.
-export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetail; reload: () => void }) {
+export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetail; reload: Reload }) {
   const [open, setOpen] = useState<"hand-on" | "drop">();
   const [text, setText] = useState("");
   const [to, setTo] = useState("");
@@ -207,7 +209,7 @@ export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetai
       .then((r) => {
         close();
         toast(r.message, { tone: "done" });
-        reload();
+        return reload();
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setBusy(false));

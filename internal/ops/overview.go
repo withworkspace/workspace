@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/conversation"
@@ -93,7 +94,7 @@ func (w *Workspace) Overview() (*Overview, error) {
 		idx = w.opts.PRs.Peek(ws, gh, MissionRepos(missions))
 	}
 	off := !w.Config().OrchestratorEnabled()
-	for _, v := range BuildMissionViewsFrom(ws, idx, missions) {
+	for _, v := range buildMissionViews(&w.git, ws, idx, missions) {
 		it := MissionItem{MissionView: v, Updated: MissionUpdated(w.Missions, v.M.Slug), Heads: map[string]string{}}
 		rrs := ReReviews(ws, v.M)
 		for _, rr := range rrs {
@@ -211,7 +212,7 @@ func (w *Workspace) Mission(slug string, withGitHub bool) (*MissionDetail, error
 	if gh := w.GitHub(); withGitHub && w.opts.PRs != nil && gh != nil {
 		idx = w.opts.PRs.Get(ws, gh, MissionRepos([]*mission.Mission{m}))
 	}
-	v := BuildMissionViewsFrom(ws, idx, []*mission.Mission{m})[0]
+	v := buildMissionViews(&w.git, ws, idx, []*mission.Mission{m})[0]
 	d := &MissionDetail{MissionView: v, Status: map[string]CapsuleStatus{}, Runs: w.runsOf(m, missionRuns)}
 	d.Brief, _ = w.Missions.ReadBrief(slug)
 	d.Plan, _ = w.Missions.ReadPlan(slug)
@@ -243,16 +244,31 @@ func (w *Workspace) Mission(slug string, withGitHub bool) (*MissionDetail, error
 	if states, _ := m.StageProgress(d.Brief); !(len(states) == 1 && states[0].Implicit) {
 		d.Stages = states
 	}
-	for _, c := range v.Capsules {
-		if c.Exists {
-			st := workspace.QueryWorktreeStatus(c.Path)
-			// Never pushed, it has no upstream to be ahead of: what it has
-			// that the default branch hasn't is what it's ahead by (what a
-			// pull request would open with).
-			if st.Ahead == 0 && !workspace.GitHasUpstream(c.Path) {
-				st.Ahead = ws.CapsuleAhead(c.Repo, c.Name)
+	// Each capsule's, asked of git together where it isn't kept: the
+	// first read after the daemon starts, or after they've moved.
+	statuses := make([]CapsuleStatus, len(v.Capsules))
+	var asking sync.WaitGroup
+	for i, c := range v.Capsules {
+		if !c.Exists {
+			continue
+		}
+		asking.Go(func() {
+			st := CapsuleStatus{Dirty: w.git.dirty(c.Path), Head: c.Head}
+			if w.git.hasUpstream(c.Path) {
+				st.Ahead, st.Behind = w.git.aheadBehind(c.Path)
+			} else {
+				// Never pushed, it has no upstream to be ahead of: what it
+				// has that the default branch hasn't is what it's ahead by
+				// (what a pull request would open with).
+				st.Ahead = w.git.commitsSince(c.Path, "origin/"+ws.DefaultBranch)
 			}
-			d.Status[c.Repo+"/"+c.Name] = CapsuleStatus{Dirty: st.Dirty, Ahead: st.Ahead, Behind: st.Behind, Head: c.Head}
+			statuses[i] = st
+		})
+	}
+	asking.Wait()
+	for i, c := range v.Capsules {
+		if c.Exists {
+			d.Status[c.Repo+"/"+c.Name] = statuses[i]
 		}
 	}
 	d.Artifacts = ResolveArtifacts(ws, w.Missions, v)

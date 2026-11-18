@@ -42,6 +42,10 @@ type Workspace struct {
 
 	findOnce sync.Once
 	findIx   *find.Index
+
+	// git is what git said of each capsule, kept for the views pages read
+	// until the capsule moves.
+	git keptGit
 }
 
 // loaded is the workspace's config, and what follows from it, as last
