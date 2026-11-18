@@ -15,6 +15,7 @@ import { CrewPage, crewKeys } from "./mission/CrewPage";
 import { listKeys, MissionList } from "./mission/List";
 import { MissionPage, missionKeys } from "./mission/Mission";
 import { OrchestratorPage, OrchestratorRunPage } from "./orchestrator/Orchestrator";
+import { useFrameDim } from "./plugins/dim";
 import { PluginPage, pluginIcon } from "./plugins/Plugin";
 import { RefsProvider } from "./refs/known";
 import { SettingsPage } from "./settings/Settings";
@@ -73,6 +74,9 @@ export function App() {
     // Only on going somewhere: not each time the workspace changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, location.search, root]);
+
+  // A plugin's app has a backdrop up: what's beside its frame dims with it.
+  const dim = useFrameDim();
 
   useGlobalKeys({ openPalette: (start = "") => setPalette(start), openHelp: () => setHelp(true) });
   useKeyboarding();
@@ -138,7 +142,7 @@ export function App() {
   }
   return (
     <div className={`shell${reviewing ? " reviewing" : ""}${drawer ? " drawer" : ""}`}>
-      <div className="topbar">
+      <div className="topbar" inert={dim}>
         <button className="ghost icon-button" onClick={() => setDrawer(true)} aria-label="Open the menu">
           <Icon name="menu" size={18} />
         </button>
@@ -152,7 +156,7 @@ export function App() {
           setArranging(false);
         }}
       />
-      <aside className="sidebar" aria-label="Workspace">
+      <aside className="sidebar" aria-label="Workspace" inert={dim}>
         <WorkspaceMenu workspace={workspace} places={menu} onArrange={startArranging} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
         <button className="find" onClick={() => setPalette("")}>
           <Icon name="search" size={14} />
@@ -170,6 +174,11 @@ export function App() {
         )}
         {workspace && !arranging && <Inbox workspace={workspace} path={location.pathname} notify={notify} />}
       </aside>
+      {/* ws's half of a backdrop the app in the frame has up. A press on
+          it is said to the app like any press in ws (ws:outside), and
+          takes no focus from the frame: the dialog there still has the
+          keys. */}
+      {dim && <div className="frame-dim" onMouseDown={(e) => e.preventDefault()} />}
       <main className={connection === "lost" && workspace ? "stale" : undefined} id="main">
         <ConnectionBanner connection={connection} />
         {error && <div className="banner">{error.message}</div>}

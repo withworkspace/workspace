@@ -16,7 +16,7 @@ const vars = (value: string) => Object.fromEntries(TOKENS.map((t) => [tokenVar(t
 
 // A host that keeps what the page said, with a theme a test can change.
 function fakeWs(path = "/things/2?tab=links") {
-  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][] };
+  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[] };
   let theme: V1.Theme = { scheme: "dark", vars: vars("dark") };
   // What ws finds: THING-<n>, wherever it's written, until a test says
   // otherwise.
@@ -34,6 +34,7 @@ function fakeWs(path = "/things/2?tab=links") {
       said.asked.push(texts);
       return texts.map(find);
     },
+    dim: (on) => void said.dims.push(on),
   };
   return { host, said, setTheme: (t: V1.Theme) => void (theme = t), setFind: (f: typeof find) => void (find = f) };
 }
@@ -106,7 +107,7 @@ describe("the handshake", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const ws = fakeWs();
     // A ws that has gone on to 2 and dropped 1.
-    const later: Record<number, Speak> = { 2: () => ({ version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, close() {} }) };
+    const later: Record<number, Speak> = { 2: () => ({ version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, close() {} }) };
     const failed = connect({ host: { postMessage: (m, _o, [port]) => void answer(m as V1.Connect, port as MessagePort, ws.host, later) } });
     await expect(failed).rejects.toBeInstanceOf(ProtocolError);
     await expect(failed).rejects.toMatchObject({ page: [1], host: [2], message: "jira speaks frame protocol 1, and this ws speaks 2. Update the plugin." });
@@ -119,7 +120,7 @@ describe("the handshake", () => {
     const two: Speak = (port) => {
       spoke.push(2);
       port.postMessage({ type: "ws:welcome", version: 2 });
-      return { version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, close: () => port.close() };
+      return { version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, close: () => port.close() };
     };
     const both: Record<number, Speak> = { 1: v1, 2: two };
 
@@ -232,6 +233,18 @@ describe("protocol 1's host", () => {
     session.close();
   });
 
+  it("tells the app of a press in ws, outside the frame, whether it asked or not", async () => {
+    const { client, session } = await connected();
+    let presses = 0;
+    const twice = new Promise<void>((resolve) => client.onOutside(() => ++presses === 2 && resolve()));
+    session.outside();
+    session.outside();
+    await twice;
+    expect(presses).toBe(2);
+    client.close();
+    session.close();
+  });
+
   it("passes on a key the page says was ws's, and drops what it doesn't know", async () => {
     const ws = fakeWs();
     const { port1, port2 } = new MessageChannel();
@@ -258,13 +271,24 @@ describe("listening for the frame", () => {
   function setup() {
     const win = Object.assign(new EventTarget(), { location: { origin: "http://127.0.0.1:4000" } });
     vi.stubGlobal("window", win);
-    const frameWindow = {} as Window;
+    // The frame's window is the same one from load to load; its document
+    // is each page's own.
+    const frameWindow = { document: {} } as Window;
+    const load = () => void Object.assign(frameWindow, { document: {} });
     const ws = fakeWs();
     const refusals: (string | undefined)[] = [];
+    // The watch on the connected page for a backdrop, fired by hand: what
+    // each page was watched with, and whether its watch was stopped.
+    const watched: { page: Document; backdrop: (on: boolean) => void; stopped: boolean }[] = [];
     const frame = listen(
       () => frameWindow,
       ws.host,
       (m) => refusals.push(m),
+      (page, said) => {
+        const w = { page, backdrop: said, stopped: false };
+        watched.push(w);
+        return () => void (w.stopped = true);
+      },
     );
     // A message as the window gets it, with the page's end of a channel.
     const post = (data: unknown, from: { source?: unknown; origin?: string; port?: boolean } = {}) => {
@@ -275,7 +299,7 @@ describe("listening for the frame", () => {
       win.dispatchEvent(Object.assign(new Event("message"), { data, source: from.source ?? frameWindow, origin: from.origin ?? "http://127.0.0.1:4000", ports }));
       return { got, close: () => port1.close(), port: port1 };
     };
-    return { frame, ws, refusals, post };
+    return { frame, ws, refusals, post, load, watched };
   }
   const hello = { type: "ws:connect", versions: [1], client: "@withworkspace/ui-lib@0.1.0" };
 
@@ -315,6 +339,79 @@ describe("listening for the frame", () => {
     frame.stop();
     first.close();
     second.close();
+  });
+
+  it("says a press outside to the page that's connected, and to nobody while none is", async () => {
+    const { frame, post } = setup();
+    frame.outside();
+    const page = post(hello);
+    await tick();
+    frame.outside();
+    await tick();
+    expect(page.got.map((m) => (m as { type: string }).type)).toEqual(["ws:welcome", "ws:outside"]);
+    frame.stop();
+    page.close();
+  });
+
+  it("watches the page that's connected for a backdrop, and dims while it has one", async () => {
+    const { frame, ws, post, watched } = setup();
+    expect(watched).toEqual([]);
+    const page = post(hello);
+    await tick();
+    expect(watched).toHaveLength(1);
+    watched[0].backdrop(true);
+    watched[0].backdrop(false);
+    expect(ws.said.dims).toEqual([true, false]);
+    frame.stop();
+    page.close();
+  });
+
+  it("ends the dim when the page with the backdrop is hung up on: another connects, or ws stops listening", async () => {
+    const { frame, ws, post, watched } = setup();
+    const first = post(hello);
+    await tick();
+    watched[0].backdrop(true);
+    expect(ws.said.dims).toEqual([true]);
+
+    // The frame loaded again and its page connected: the one before went
+    // with its backdrop up, and isn't watched any more.
+    const second = post(hello);
+    await tick();
+    expect(ws.said.dims).toEqual([true, false]);
+    expect(watched.map((w) => w.stopped)).toEqual([true, false]);
+
+    watched[1].backdrop(true);
+    frame.stop();
+    expect(ws.said.dims).toEqual([true, false, true, false]);
+    expect(watched.map((w) => w.stopped)).toEqual([true, true]);
+    first.close();
+    second.close();
+  });
+
+  it("hangs up on a page the frame has loaded past, and leaves the one it's showing", async () => {
+    const { frame, ws, post, load, watched } = setup();
+    const page = post(hello);
+    await tick();
+    watched[0].backdrop(true);
+
+    // The frame's load, for the page that's connected: it's left.
+    frame.loaded();
+    frame.outside();
+    await tick();
+    expect(ws.said.dims).toEqual([true]);
+    expect(page.got.map((m) => (m as { type: string }).type)).toEqual(["ws:welcome", "ws:outside"]);
+
+    // The frame loaded another page, which didn't connect (its bundle
+    // failed, say): the page before is gone, and so is its dim.
+    load();
+    frame.loaded();
+    frame.outside();
+    await tick();
+    expect(ws.said.dims).toEqual([true, false]);
+    expect(watched[0].stopped).toBe(true);
+    expect(page.got).toHaveLength(2);
+    frame.stop();
+    page.close();
   });
 
   it("says what it refused, and takes it back when a page connects", async () => {

@@ -5,6 +5,7 @@ import { type IconName, icons } from "../ui/Icon";
 import { refsFound } from "../refs/found";
 import { useRefs, useRefsWorkspace } from "../refs/known";
 import { Empty, useTitle } from "../ui/kit";
+import { setFrameDim } from "./dim";
 import { type Frame, listen } from "./frame";
 import { frameBase, viewBase } from "./paths";
 import { onThemeChange, theme } from "./theme";
@@ -23,7 +24,10 @@ import { onThemeChange, theme } from "./theme";
 // plugin said what the app shows is stale. The names in the app's words
 // (a file, a mission, a plugin's thing) are ws's to find: the app sends
 // the words it shows and draws the refs ws finds in them, and ws says when
-// what there is to name has changed.
+// what there is to name has changed. And the frame's edge is no edge to
+// whoever's looking: a press in ws is said to the app, which never sees
+// one, so its menus close as they would for a press in the app; and
+// while the app has a backdrop up, ws dims what's beside the frame.
 
 // pluginIcon is the icon a plugin asked for, if ws has it.
 export function pluginIcon(name?: string): IconName {
@@ -104,6 +108,9 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
           refs.want(texts.join("\n"));
           return texts.map((text) => refsFound(text, { known: refs.known, repos: refs.repos, workspace }));
         },
+        // The app has a backdrop up, as ws sees in its page: the shell
+        // dims what's beside the frame (App.tsx) for as long as it has.
+        dim: setFrameDim,
       },
       setRefused,
     );
@@ -111,8 +118,15 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
     // The theme and the accent are on <html>: when either changes, the app
     // is given every token's value as it is now.
     const unwatch = onThemeChange(() => f.theme());
+    // A press anywhere in ws's own page is one outside the frame: a press
+    // in the frame goes to the frame's window and never comes here. It's
+    // heard on the way down, before whatever is pressed can stop it.
+    const pressed = () => f.outside();
+    window.addEventListener("pointerdown", pressed, true);
     return () => {
       unwatch();
+      window.removeEventListener("pointerdown", pressed, true);
+      // Hanging up ends the dim, if the app had a backdrop up.
       f.stop();
       frame.current = undefined;
     };
@@ -178,7 +192,7 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
           {refused}
         </div>
       )}
-      <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} />
+      <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} onLoad={() => frame.current?.loaded()} />
     </div>
   );
 }

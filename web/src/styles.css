@@ -15338,6 +15338,29 @@ button.accent-button:hover:not(:disabled) {
   min-height: 0;
   border: 0;
 }
+/* The app in the frame has a backdrop up: what's beside the frame dims
+   with it, in the same scrim, fading in as the app's does, so the two
+   read as one. It's the whole first cell of the shell's grid, the
+   sidebar's, and not the card in it: the frame is see-through, so the
+   app's backdrop has dimmed the glow behind it, and the glow round the
+   sidebar has to go the same way, up to a straight edge where the two
+   meet. On a narrow window the first cell is the bar across the top. A
+   positioned child of a grid is laid out in the cell it names, and takes
+   no part in placing the others; it names both of the cell's ends, since
+   an end left out is the grid's own edge. It's cut when it goes, as the
+   app's half is. */
+.shell {
+  position: relative;
+}
+.frame-dim {
+  position: absolute;
+  inset: 0;
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+  z-index: 2; /* over the sidebar, which is over the page */
+  background: var(--scrim);
+  animation: fade var(--fast) var(--ease);
+}
 /* What ws said to an app it couldn't meet (no frame protocol version in
    common), above the frame the app would have been in. */
 .plugin-view .plugin-refused {

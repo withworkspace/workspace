@@ -136,6 +136,47 @@ input {
   color: var(--ws-fg);
   font: inherit;
 }
+.menu {
+  position: fixed;
+  z-index: 10;
+  min-width: 180px;
+  padding: var(--ws-space-1);
+  border: 1px solid var(--ws-line);
+  border-radius: var(--ws-radius);
+  background: var(--ws-raised);
+  box-shadow: var(--ws-shadow);
+}
+.menu button {
+  display: block;
+  width: 100%;
+  padding: var(--ws-space-1) var(--ws-space-2);
+  border: 0;
+  border-radius: var(--ws-radius-sm);
+  background: transparent;
+  color: var(--ws-fg);
+  font: inherit;
+  text-align: left;
+}
+.menu button:hover {
+  background: var(--ws-hover);
+}
+.ws-backdrop {
+  z-index: 20;
+  display: grid;
+  place-items: start center;
+  padding: 14vh var(--ws-space-4) var(--ws-space-4);
+}
+.dialog {
+  width: min(420px, 100%);
+  padding: var(--ws-space-4) var(--ws-space-5);
+  border: 1px solid var(--ws-line);
+  border-radius: var(--ws-radius-lg);
+  background: var(--ws-raised);
+  box-shadow: var(--ws-shadow);
+}
+.dialog p:last-child {
+  margin: var(--ws-space-3) 0 0;
+}
 @media (max-width: 760px) {
   main {
     grid-template-columns: minmax(0, 1fr);

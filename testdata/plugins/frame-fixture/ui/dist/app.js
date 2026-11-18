@@ -4,7 +4,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/mark.js
+// ../../../../../../ui-lib/frame-overlays/dist/mark.js
 var skipped = "a, pre, h1, h2, h3, h4, h5, h6, script, style, textarea, select, button, svg, [contenteditable]";
 var isElement = (n) => n.nodeType === 1;
 var isText = (n) => n.nodeType === 3;
@@ -136,7 +136,7 @@ function mark(el, finder) {
   return stop;
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/shape.js
+// ../../../../../../ui-lib/frame-overlays/dist/shape.js
 function isRecord(v) {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -150,7 +150,7 @@ function isVersions(v) {
   return Array.isArray(v) && v.every((n) => Number.isInteger(n) && n >= 1);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/v1.js
+// ../../../../../../ui-lib/frame-overlays/dist/v1.js
 var v1_exports = {};
 __export(v1_exports, {
   isFoundRef: () => isFoundRef,
@@ -208,21 +208,23 @@ function isHostMessage(m) {
       return isIndex(m.id) && Array.isArray(m.found) && m.found.every((of) => Array.isArray(of) && of.every(isFoundRef));
     case "ws:refs-changed":
       return true;
+    case "ws:outside":
+      return true;
     default:
       return false;
   }
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/protocol.js
+// ../../../../../../ui-lib/frame-overlays/dist/protocol.js
 var PROTOCOL_VERSIONS = [1];
 function isRefuse(m) {
   return isRecord(m) && m.type === "ws:refuse" && isVersions(m.versions) && isString(m.message);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/version.js
-var VERSION = "0.3.0";
+// ../../../../../../ui-lib/frame-overlays/dist/version.js
+var VERSION = "0.0.0";
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/client.js
+// ../../../../../../ui-lib/frame-overlays/dist/client.js
 var ProtocolError = class extends Error {
   /** The versions the page speaks. */
   page;
@@ -297,7 +299,9 @@ function client(port, welcome, doc) {
   const changed = /* @__PURE__ */ new Set();
   const themed = /* @__PURE__ */ new Set();
   const refsChanged = /* @__PURE__ */ new Set();
+  const outside = /* @__PURE__ */ new Set();
   const marks = /* @__PURE__ */ new Set();
+  const dismissals = /* @__PURE__ */ new Set();
   const asked = /* @__PURE__ */ new Map();
   let asking = [];
   let askings = 0;
@@ -372,6 +376,10 @@ function client(port, welcome, doc) {
         for (const fn of [...refsChanged])
           fn();
         break;
+      case "ws:outside":
+        for (const fn of [...outside])
+          fn();
+        break;
     }
   };
   return {
@@ -404,6 +412,25 @@ function client(port, welcome, doc) {
         stop();
       };
     },
+    onOutside: (fn) => on(outside, fn),
+    dismissOutside(within, fn) {
+      const els = "nodeType" in within ? [within] : within;
+      const pressed = (e) => {
+        const on2 = e.target;
+        if (on2 && els.some((el) => el.contains(on2)))
+          return;
+        fn();
+      };
+      doc?.addEventListener("pointerdown", pressed, true);
+      const unheard = on(outside, () => fn());
+      const stop = () => {
+        dismissals.delete(stop);
+        doc?.removeEventListener("pointerdown", pressed, true);
+        unheard();
+      };
+      dismissals.add(stop);
+      return stop;
+    },
     go(to, options2 = {}) {
       if (!to.startsWith("/"))
         throw new TypeError(`go("${to}"): a path in the plugin starts with "/".`);
@@ -420,6 +447,8 @@ function client(port, welcome, doc) {
       for (const stop of [...marks])
         stop();
       marks.clear();
+      for (const stop of [...dismissals])
+        stop();
       closed = true;
       for (const b of asking.splice(0))
         b.found(b.texts.map(() => []));
@@ -530,7 +559,54 @@ async function main() {
   let things;
   let poked = 0;
   let failed = "";
-  const counts = { changed: 0, themes: 0, navigated: 0, refs: 0 };
+  const counts = { changed: 0, themes: 0, navigated: 0, refs: 0, outside: 0 };
+  let closeMenu = () => {
+  };
+  function menu(button) {
+    const items = ["Rename", "Move", "Put back on the shelf"].map((name) => h("button", { type: "button", role: "menuitem", onclick: () => closeMenu() }, name));
+    const list = h("div", { className: "menu", role: "menu", data: { fixture: "menu" } }, ...items);
+    const at = button.getBoundingClientRect();
+    list.style.left = `${at.left}px`;
+    list.style.top = `${at.bottom + 4}px`;
+    document.body.append(list);
+    const stop = ws.dismissOutside([button, list], () => closeMenu());
+    closeMenu = () => {
+      stop();
+      list.remove();
+      closeMenu = () => {
+      };
+    };
+  }
+  let closeDialog = () => {
+  };
+  function dialog(light) {
+    closeDialog();
+    const box = h(
+      "div",
+      { className: "dialog", role: "dialog", data: { fixture: "dialog" } },
+      h("h1", {}, light ? "A dialog a press elsewhere closes" : "A dialog that stays"),
+      h("p", {}, light ? "Press the dimmed frame, or the dimmed sidebar: either closes it." : "Press the dimmed sidebar: it stays, and Escape still closes it, since the press took no focus from the frame."),
+      h("input", { placeholder: "Typed in here" }),
+      h("p", {}, h("button", { type: "button", className: "primary", onclick: () => closeDialog() }, "Close"))
+    );
+    box.setAttribute("aria-modal", "true");
+    const backdrop = h("div", { className: "ws-backdrop" }, box);
+    document.body.append(backdrop);
+    box.querySelector("input")?.focus();
+    const stop = light ? ws.dismissOutside(box, () => closeDialog()) : () => {
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") closeDialog();
+    };
+    document.addEventListener("keydown", onKey);
+    closeDialog = () => {
+      stop();
+      document.removeEventListener("keydown", onKey);
+      backdrop.remove();
+      closeDialog = () => {
+      };
+    };
+  }
   async function load() {
     try {
       const res = await fetch(ws.api("/api/things"));
@@ -587,12 +663,22 @@ async function main() {
         row("Pokes, as the plugin counts them", poked, "poked"),
         row("ws:theme received", counts.themes, "themes"),
         row("ws:navigate received", counts.navigated, "navigated"),
-        row("ws:refs-changed received", counts.refs, "refs")
+        row("ws:refs-changed received", counts.refs, "refs"),
+        row("ws:outside received", counts.outside, "outside")
       ),
       h("p", { className: "swatches" }, ...["bg", "panel", "raised", "line", "fg", "dim", "accent", "primary", "danger", "warn", "ok"].map(swatch)),
       h("p", {}, h("button", { type: "button", className: "primary" }, "A button in ws's accent"), " ", h("input", { placeholder: "Typed in here, ? and g stay here" })),
       h("p", {}, h("a", { href: "/" }, "Missions: a page of ws's own"), " \xB7 ", h("a", { href: "things/3" }, "a relative link"), " \xB7 ", h("a", { href: "#notes" }, "a place in this page")),
       h("p", {}, h("button", { type: "button", data: { fixture: "go" }, onclick: () => ws.go("/things/1") }, "ws.go to thing 1"), " ", h("button", { type: "button", data: { fixture: "replace" }, onclick: () => ws.go(`${ws.path.split("?")[0]}?filtered=${Date.now() % 1e3}`, { replace: true }) }, "Filter (replace)")),
+      h(
+        "p",
+        {},
+        h("button", { type: "button", data: { fixture: "menu-button" }, onclick: (e) => document.querySelector(".menu") ? closeMenu() : menu(e.currentTarget) }, "A menu"),
+        " ",
+        h("button", { type: "button", data: { fixture: "light-dialog" }, onclick: () => dialog(true) }, "A dialog"),
+        " ",
+        h("button", { type: "button", data: { fixture: "staying-dialog" }, onclick: () => dialog(false) }, "A dialog that stays")
+      ),
       h("p", { id: "notes", className: "dim" }, "Notes: back after a filter skips it, as it replaced the entry it was on.")
     );
   }
@@ -601,6 +687,7 @@ async function main() {
   function render() {
     const { title, body } = screen();
     ws.setTitle(title);
+    closeMenu();
     unmark();
     const words = names();
     ws.root.replaceChildren(h("main", {}, h("section", {}, ...body, words), status()));
@@ -622,6 +709,11 @@ async function main() {
     counts.refs++;
     const cell = ws.root.querySelector('[data-fixture="refs"]');
     if (cell) cell.textContent = String(counts.refs);
+  });
+  ws.onOutside(() => {
+    counts.outside++;
+    const cell = ws.root.querySelector('[data-fixture="outside"]');
+    if (cell) cell.textContent = String(counts.outside);
   });
   render();
   await load();
