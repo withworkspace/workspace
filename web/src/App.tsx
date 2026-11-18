@@ -27,9 +27,11 @@ import { repoOfPage, scopePrefix } from "./shell/find";
 import { Palette } from "./shell/Palette";
 import { useFaviconBadge, useNotifications, type Waiting } from "./shell/notify";
 import { noteVisit, visitAt } from "./shell/recent";
+import { shortVersion } from "./shell/version";
 import { TalkPage, TalksPage, talkKeys, talksKeys } from "./talk/Talk";
 import { TeamPage, teamKeys } from "./team/Team";
 import { Icon, type IconName } from "./ui/Icon";
+import { Logotype } from "./ui/Logotype";
 import { plain } from "./ui/inline";
 import { confirm, Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useTitle } from "./ui/kit";
 import { headlineStatus, Status } from "./ui/status";
@@ -206,7 +208,9 @@ const themes: [ThemeChoice, IconName, string][] = [
 
 // WorkspaceMenu is the workspace's name, opening what's of the workspace
 // rather than a place in it: Settings, Keys, the theme, and shutting its
-// daemon down, which otherwise stays open until it's closed.
+// daemon down, which otherwise stays open until it's closed. At its foot
+// is what this is and which: the logotype, and the version of ws that
+// serves the page.
 function WorkspaceMenu({ workspace, onKeys, onClosed }: { workspace?: Workspace; onKeys: () => void; onClosed: () => void }) {
   const name = workspace?.name ?? "ws";
   const navigate = useNavigate();
@@ -276,6 +280,15 @@ function WorkspaceMenu({ workspace, onKeys, onClosed }: { workspace?: Workspace;
             <span className="select-option-text">Shut down the daemon…</span>
           </MenuItem>
         </Menu>
+        {/* What this is, and which: not an item, so the keys pass it by. */}
+        <div className="workspace-menu-foot">
+          <Logotype />
+          {workspace?.version && (
+            <span className="workspace-menu-version" title={`ws ${workspace.version}: the daemon's, which serves this page`}>
+              {shortVersion(workspace.version)}
+            </span>
+          )}
+        </div>
       </Popover>
     </MenuTrigger>
   );

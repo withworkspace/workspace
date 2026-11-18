@@ -145,7 +145,7 @@ func differ(daemon, command map[string]int) error {
 	}
 	switch {
 	case len(older) > 0:
-		return fmt.Errorf("the workspace's daemon is from an older ws than this command (its records: %s): run `ws daemon stop`, and it starts again from this ws", strings.Join(older, "; "))
+		return fmt.Errorf("the workspace's daemon is from an older ws than this command (its records: %s): it restarts onto this ws once nothing's at work, or at once when whoever runs the workspace says so (ws daemon restart --now)", strings.Join(older, "; "))
 	case len(newer) > 0:
 		return fmt.Errorf("this ws is older than the workspace's daemon (its records: %s): rebuild or update ws", strings.Join(newer, "; "))
 	}

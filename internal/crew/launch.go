@@ -114,6 +114,10 @@ func Start(r Request) (Started, error) {
 	}
 	execlog.Start(r.Root, who, args, l.Dir, spec.Env, pid)
 	r.Store.SetCrewProcess(r.Slug, c.ID, pid, r.Place.Capsule)
+	if prompt == "" {
+		// Nothing to hand them: their session's up, and they're started.
+		r.Store.CrewStarted(r.Slug, c.ID) //nolint:errcheck // a mark
+	}
 	return Started{Crew: c, Pid: pid, Dir: l.Dir}, nil
 }
 
@@ -133,6 +137,11 @@ func TypePrompt(root, key string, t Term, prompt string) bool {
 		return false
 	}
 	execlog.Note(root, "crew "+key, "typed in its prompt (%d chars):\n%s", len(prompt), prompt)
+	// Handed their prompt, they're started: what they do next is theirs
+	// to report (their hooks), or to be taken as working.
+	if slug, id, ok := strings.Cut(key, "/"); ok {
+		mission.Store{Root: root}.CrewStarted(slug, id) //nolint:errcheck // a mark
+	}
 	return true
 }
 

@@ -730,3 +730,24 @@ func TestShutdown_ClosesTheDaemon(t *testing.T) {
 		t.Errorf("no daemon to close: %d", res.StatusCode)
 	}
 }
+
+// The workspace says which ws serves it, for the web UI's menu: the
+// daemon's own, and nothing where it wasn't told.
+func TestWorkspaceSaysItsVersion(t *testing.T) {
+	s := startTest(t, t.TempDir(), &fakeWorkspace{title: "The glow"}, nil)
+	asked := func() map[string]any {
+		t.Helper()
+		var ws map[string]any
+		if err := json.NewDecoder(do(t, s, "GET", "/api/workspace", true, nil).Body).Decode(&ws); err != nil {
+			t.Fatal(err)
+		}
+		return ws
+	}
+	if v, ok := asked()["version"]; ok {
+		t.Errorf("version = %v, with none given", v)
+	}
+	s.Version = "v1.4.0"
+	if v := asked()["version"]; v != "v1.4.0" {
+		t.Errorf("version = %v, want v1.4.0", v)
+	}
+}

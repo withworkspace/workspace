@@ -79,7 +79,7 @@ func webURL(root, path string) (string, error) {
 		return "", err
 	}
 	if info.Pid != c.ServerPid() || info.Port != c.WebPort() {
-		return "", fmt.Errorf("%s doesn't match the running daemon (pid %d, web UI on port %d); `ws daemon stop` and try again", web.InfoPath(root), c.ServerPid(), c.WebPort())
+		return "", fmt.Errorf("%s doesn't match the running daemon (pid %d, web UI on port %d); `ws daemon restart --now` and try again", web.InfoPath(root), c.ServerPid(), c.WebPort())
 	}
 	return info.SignInURL(path), nil
 }
@@ -109,8 +109,9 @@ func openBrowser(url string) error {
 
 // startWeb runs the web UI inside the daemon. A web UI that can't
 // start leaves the daemon running without one.
-func startWeb(s *daemon.Server, prs *ops.PRCache) *web.Server {
+func startWeb(s *daemon.Server, prs *ops.PRCache, version string) *web.Server {
 	w := newWeb(s, prs)
+	w.Version = version
 	if err := w.Start(); err != nil {
 		s.Log.Printf("no web UI: %v", err)
 		return nil

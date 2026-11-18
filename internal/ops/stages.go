@@ -276,6 +276,11 @@ func stageDoneSummary(m *mission.Mission, st mission.StageState) string {
 // without the user, and is queued for them with [orchestrator] dispatch =
 // "ask". It says what it did.
 func (w *Workspace) startStage(m *mission.Mission, st mission.StageState) string {
+	if w.Config().OrchestratorAutoDispatch() && w.opts.Host != nil {
+		// Marked from here, not from the launch: finding its capsule, or
+		// lifting one, comes first.
+		defer w.launching(m.Slug, launchWhat(st))()
+	}
 	if st.Step != nil && st.Step.Type == mission.StepVerify {
 		return w.startVerifier(m, st)
 	}

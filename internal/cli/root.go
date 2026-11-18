@@ -38,7 +38,7 @@ func newBuiltinRootCmd(version string) *cobra.Command {
 	cmd.AddCommand(newOpenCmd())
 	cmd.AddCommand(newDebriefCmd())
 	cmd.AddCommand(newPromptCmd())
-	cmd.AddCommand(newUpgradeCmd())
+	cmd.AddCommand(newSyncCmd(), newUpgradeCmd())
 	cmd.AddCommand(newDoctorCmd())
 	cmd.AddCommand(newJumpCmd())
 	cmd.AddCommand(newRootPathCmd())
@@ -61,6 +61,7 @@ func newBuiltinRootCmd(version string) *cobra.Command {
 	cmd.AddCommand(newTeamCmd())
 	cmd.AddCommand(newProcessCmd())
 	cmd.AddCommand(newPluginCmd())
+	cmd.AddCommand(newEvalCmd())
 
 	return cmd
 }

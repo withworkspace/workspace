@@ -90,7 +90,7 @@ func Verifier(v Verifying) string {
 		} else {
 			s.WriteString(". ")
 		}
-		fmt.Fprintf(&s, "Verify all of it afresh, not only what was unmet: a fix can break what worked (`ws show -f llm %s` has what was shown before).\n\n", v.Before)
+		fmt.Fprintf(&s, "Verify all of it afresh, not only what was unmet: a fix can break what worked (`ws show -f llm %s` has what was shown before). Your bundle is of the work as it is now: that what went back is put right is a clause in it, not the story of both rounds.\n\n", v.Before)
 	}
 	s.WriteString("How to go about it:\n\n")
 	s.WriteString("- Use it as its user would: run it, drive it, look. Where the step or a decision names a script or a skill for showing it (a shots script, a demo), use that. A check you settle from the code alone, say so.\n")
@@ -103,9 +103,9 @@ func Verifier(v Verifying) string {
 	}
 	s.WriteString("\nThen hand over a verification bundle, which ends your part (there's no `ws mission done` for you: the bundle is it):\n\n")
 	s.WriteString("  ws mission bundle --set - <<'EOF'\n  ## Summary\n  …\n  ## Try it\n  - try: `<setup> && cd <where> && <what starts it>`\n  - look for: …\n  ## Checks\n  1. met: …\n     - shows: `<file>` what it shows\n  ## Not verified\n  - …\n  EOF\n\n")
-	s.WriteString("`ws mission bundle --format` says how it's written, with your step's checks by number. ws reads it strictly, and refuses one that isn't right with every problem and its line: put them right and hand it over again. ")
+	s.WriteString("`ws mission bundle --format` says how it's written, with your step's checks by number. ws reads it strictly, and refuses one that isn't right, or that's over length, with every problem and its line: put them right and hand it over again. ")
 	s.WriteString("In Try it, a `try:` is one command, which the user copies once: chain setup, `cd` and what starts it with `&&` (`a && cd x && b`), with no second command and no words after it. What to do or see in the UI once it's running goes in `look for:` items, one each. ")
 	s.WriteString("Every check that's met, or left for the user, and the step is done; one unmet, and the work goes back to its crew, to be verified again once they've put it right.\n\n")
-	s.WriteString("What you write the user reads in ws's web UI, on the mission's Verify tab. " + Naming)
+	s.WriteString("What you write the user reads in ws's web UI, on the mission's Verify tab, to decide whether to approve it. They weren't there, and you'll have seen far more than they need. Put the most important thing first: the outcome, then each check's finding in a sentence or two. A check's first sentence says the finding by itself, as the work's user would see it; why it happens and how to put it right go in the check's `ask:`, which is for crew. Write short, plain sentences, one fact in each, with exact names and numbers, everyday words and no idioms. The counts, the timings and each thing you tried go in a text file a check shows, and the bundle gives the result. Say a thing once. What you came across that isn't one of your checks goes in `## Noticed`, a line each. " + Naming)
 	return s.String()
 }

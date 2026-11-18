@@ -18,11 +18,13 @@ just try down               # stop its daemon and remove it (it's also torn down
 just test-workspace [dir]   # the same workspace, to keep: no daemon started, nothing torn down
 ```
 
+`ws eval` puts a role's prompt to fixtures, cases whose right answer is known, on a harness and model you name, and scores what comes back: for telling whether a change to a prompt, or another model in a role, does as well (`WS_EVAL=1 ws eval judge --help` says how, and what a fixture is; `internal/ops/testdata/judge` has one). It's off unless `WS_EVAL` is set, not listed and refused, and no agent ws starts is given the variable: it starts agents of its own, so it isn't for one to come on. The judge is the role it knows so far.
+
 `internal/web/dist` is built, not committed: it's gitignored but for its `.gitkeep`, which `go:embed` needs. A binary built without it (`go build` alone, or `go install`) has no web UI, and `ws web` says so.
 
 ## Releases
 
-Pushing a `v*` tag (`v1.4.0`; one with a `-`, `v1.4.0-rc.1`, is a prerelease) runs `.github/workflows/release.yml`: it builds ws with its web UI for darwin/arm64, linux/amd64 and linux/arm64, cgo on for code navigation, and publishes them as a GitHub release with checksums. A pull request that changes the workflow runs the builds without releasing.
+Pushing a `v*` tag (`v1.4.0`; one with a `-`, `v1.4.0-rc.1`, is a prerelease) runs `.github/workflows/release.yml`: it builds ws with its web UI for darwin/arm64, linux/amd64 and linux/arm64, cgo on for code navigation, and publishes them as a GitHub release with checksums. A pull request that changes the workflow runs the builds without releasing. `ws upgrade` installs a release over the ws that's running (`internal/release`, which reads the same assets and `checksums.txt` as `scripts/install.sh`: change what a release publishes, and change both); a daemon restarts onto it once nothing's at work (`internal/daemon/restart.go`).
 
 ## Where things are
 
@@ -47,6 +49,7 @@ internal/
   find/               the web UI's search index
   store/ words/       the workspace's records (.ws/ws.db, the daemon's): transactions, layouts, things, links and words; ranking what's said
   execlog/            .ws/exec.log: every process ws starts
+  release/            ws's own releases: finding the latest, fetching one, putting it in place of the ws that's running (ws upgrade)
 
   ops/                the application layer: each operation that spans stores, once, and the views every front end shows
   doc/                a document's version, its kept versions and drafts, by scope (a mission's, or the workspace's)

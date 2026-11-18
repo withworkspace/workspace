@@ -350,6 +350,9 @@ func (g *graph) bundleView(id string) (*view, error) {
 		if c.Check != "" {
 			lines = append(lines, "   "+c.Said)
 		}
+		for _, pt := range c.Points {
+			lines = append(lines, "   - "+pt)
+		}
 		for _, e := range c.Shows {
 			lines = append(lines, "   shows: "+evidenceLine(b.Dir, e))
 			if e.Before != nil {
@@ -385,6 +388,9 @@ func (g *graph) bundleView(id string) (*view, error) {
 		v.body = append(v.body, "Not verified:\n- "+strings.Join(b.NotVerified, "\n- "))
 	} else {
 		v.body = append(v.body, "Not verified: nothing.")
+	}
+	if len(b.Noticed) > 0 {
+		v.body = append(v.body, "Noticed, beside the checks:\n- "+strings.Join(b.Noticed, "\n- "))
 	}
 	if b.StepN > 0 {
 		v.add(fmt.Sprintf("s%d", b.StepN), "the step it's of: "+b.StepName)

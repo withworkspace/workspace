@@ -37,13 +37,15 @@ import { PromptCard, pendingCall } from "./AgentView";
 import { archiveMission } from "./archive";
 import { briefGoal } from "./brief";
 import { briefHref } from "./BriefView";
+import { shownHeadlines } from "./headlines";
 import { mediaKind } from "./media";
 import { missionRefs } from "./refs";
 import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, kindTitle, MissionData, shortPath, Stepper, Timeline, viewEvent } from "./parts";
 import { CapsuleEnds, EndButton, EndDialog, EndedCapsules, ended, endingWords, HandedOn, ZChecks } from "./Ending";
 import { canOpenPR, OpenPR } from "./OpenPR";
+import { PlanList } from "./PlanList";
 import { Verify } from "./Verify";
-import { checkRows, rowKey, shownBundle, waiting as bundleWaiting } from "./verifyRows";
+import { checkRows, rowKey, shownBundle, toApprove, waiting as bundleWaiting } from "./verifyRows";
 import { useLoaded } from "../load";
 
 // The mission page: its time along the top edge, then one bar (back, what
@@ -73,7 +75,9 @@ export const missionKeys: [string, string][] = [
   ["e", "Edit the brief and plan, on their own page"],
   ["s", "Show or hide the details: beside Summary, over the other tabs"],
   ["r", "Reload"],
-  ["esc", "Close the details, or back to the missions"],
+  ["y / n", "On Verify: approve the check (or mark it looked at) / say it's not right"],
+  ["mod+⏎", "On Verify: approve the bundle, or send it back with what you said"],
+  ["esc", "Close the details or a bundle you opened, or back to the missions"],
 ];
 
 const sideKey = "ws:mission-side";
@@ -153,7 +157,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
   // The bundle Verify has open: the one its address names (b), else the
   // latest standing.
   const picked = params.get("b") ?? undefined;
-  const pickBundle = (id: string) => setParams({ tab: "verify", b: id }, { replace: true });
+  const pickBundle = (id?: string) => setParams(id ? { tab: "verify", b: id } : { tab: "verify" }, { replace: true });
   const bundle = useMemo(() => (d ? shownBundle(d.bundles, picked) : undefined), [d, picked]);
 
   const items = useMemo((): Item[] => {
@@ -240,7 +244,12 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
     },
     s: () => (tab === "summary" ? toggleSide() : setOver((v) => !v)),
     r: load,
-    Escape: () => (over && tab !== "summary" ? setOver(false) : back()),
+    Escape: () => {
+      if (over && tab !== "summary") return setOver(false);
+      // A bundle opened when none is yours to approve closes, to Verify saying so.
+      if (tab === "verify" && picked && d && !toApprove(d.bundles).length) return pickBundle();
+      back();
+    },
     h: back,
   });
 
@@ -283,7 +292,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
   return (
     <MissionData.Provider value={d}>
     <RefContext.Provider value={refs}>
-    <div className="mission-page">
+    <div className={`mission-page${tab === "verify" ? " fills" : ""}`}>
       <Timeline d={d} />
       <div className="mission-bar">
         <div className="mission-bar-in">
@@ -502,7 +511,7 @@ function DetailSide({ d, selected, openArtifact, review, updated, over, open, go
       </dl>
       {d.stages.length > 0 && (
         <SideSection title={d.plan ? "Plan" : "Stages"} count={`${accepted} of ${d.stages.length} done`}>
-          <Stepper stages={d.stages} compact />
+          <PlanList stages={d.stages} />
         </SideSection>
       )}
       {d.artifacts.length > 0 && (
@@ -811,12 +820,13 @@ function Said({ text }: { text: string }) {
 }
 
 // Headlines lead the Summary: where the mission stands (whose court it's
-// in, and what moves it on), then anything else raised. ws mission show says
-// the same, from the same place (mission.Resolve).
+// in, and what moves it on), then anything else raised: all that's yours
+// or outside's, and one banner for the agents at work, however many are.
+// ws mission show says the same, from the same place (mission.Resolve).
 function Headlines({ d, reload, step, latest }: { d: MissionDetail; reload: () => void; step?: React.ReactNode; latest?: React.ReactNode }) {
   return (
     <>
-      {d.headlines.map((h, i) => (
+      {shownHeadlines(d.headlines).map((h, i) => (
         <HeadlineCard key={`${h.kind}-${h.by ?? ""}-${i}`} d={d} h={h} primary={i === 0} reload={reload} step={i === 0 ? step : undefined} latest={i === 0 ? latest : undefined} />
       ))}
     </>

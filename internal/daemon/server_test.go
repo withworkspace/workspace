@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"errors"
+	"fmt"
 	"github.com/withworkspace/workspace/internal/store/storetest"
 	"os"
 	"path/filepath"
@@ -532,21 +533,31 @@ func TestServer_InProcessScreen(t *testing.T) {
 		t.Fatal("can't watch a running crew")
 	}
 	defer cancel()
-	waitScreen := func(want string) *Frame {
+	waitFor := func(what string, seen func(screen string) bool) *Frame {
 		t.Helper()
 		deadline := time.After(5 * time.Second)
 		for {
 			f, ok := s.Screen(key)
-			if ok && strings.Contains(f.Screen, want) {
+			if ok && seen(f.Screen) {
 				return f
 			}
 			select {
 			case <-changes:
 			case <-time.After(50 * time.Millisecond):
 			case <-deadline:
-				t.Fatalf("never saw %q; screen:\n%s", want, f.Screen)
+				t.Fatalf("never saw %s; screen:\n%s", what, f.Screen)
 			}
 		}
+	}
+	waitScreen := func(want string) *Frame {
+		t.Helper()
+		return waitFor(fmt.Sprintf("%q", want), func(screen string) bool { return strings.Contains(screen, want) })
+	}
+	// waitPrompts waits for the shell's nth prompt: it's read what came
+	// before, and what's sent next is echoed after the prompt, not before.
+	waitPrompts := func(n int) {
+		t.Helper()
+		waitFor(fmt.Sprintf("%d prompts", n), func(screen string) bool { return strings.Count(screen, "$") >= n })
 	}
 	f := waitScreen("$")
 	if f.Width != 40 || f.Height != 6 {
@@ -557,6 +568,7 @@ func TestServer_InProcessScreen(t *testing.T) {
 	}
 	s.SendKey(key, uv.KeyPressEvent{Code: uv.KeyEnter})
 	waitScreen("\ntyped")
+	waitPrompts(2)
 	s.Paste(key, "echo pasted\r")
 	waitScreen("\npasted")
 

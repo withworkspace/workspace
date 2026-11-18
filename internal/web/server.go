@@ -57,6 +57,9 @@ func Built() fs.FS {
 // Server serves one workspace's web UI.
 type Server struct {
 	Root string
+	// Version is the ws this is, as ws --version says it: the web UI says
+	// which it's talking to.
+	Version string
 	// Port is [web] port; 0 picks the workspace's own (DefaultPort), or one
 	// of the next few if that's taken.
 	Port int

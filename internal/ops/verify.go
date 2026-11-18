@@ -89,7 +89,7 @@ func (w *Workspace) verifying(m *mission.Mission, states []mission.StageState, s
 		b := before[len(before)-1]
 		v.Before = b.ID
 		for _, c := range b.With(mission.CheckUnmet) {
-			v.Unmet = append(v.Unmet, fmt.Sprintf("check %d (%s): %s", c.N, oneLine(firstNonEmpty(c.Check, c.Said)), oneLine(c.Said)))
+			v.Unmet = append(v.Unmet, fmt.Sprintf("check %d (%s): %s", c.N, oneLine(firstNonEmpty(c.Check, c.Said)), oneLine(c.Found())))
 		}
 	}
 	return v
@@ -132,7 +132,7 @@ func (w *Workspace) settleVerify(m *mission.Mission, st mission.StageState, crew
 			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: by, Evidence: "the bundle says nothing of it"}
 			for _, bc := range bundle.Checks {
 				if bc.N == i+1 {
-					results[i].Result, results[i].Evidence = bc.Verdict, bc.Said
+					results[i].Result, results[i].Evidence = bc.Verdict, bc.Found()
 				}
 			}
 		}

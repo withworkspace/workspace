@@ -191,6 +191,11 @@ func (w *Workspace) acceptPlan(store conversation.Store, c *conversation.Convers
 		brief, _ := w.Missions.ReadBrief(m.Slug)
 		start = !mission.IsUnwrittenBrief(brief, m.Title)
 	}
+	if start {
+		// The go-ahead: ws is starting it from here, through lifting its
+		// capsules.
+		defer w.launchingOnConfirm(m.Slug)(m.Slug)
+	}
 	if !m.ToBrief() || start {
 		// Accepting it, as accepting a brief, lifts the capsules it names.
 		if lifted := w.liftForPlan(m.Slug, set.Plan, set.Revision.Fixed); len(lifted) > 0 {

@@ -125,8 +125,31 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 			s.M.Crew = []Crew{{ID: "c1"}}
 			s.Seen = Seen{Running: map[string]bool{"c1": true}, Still: map[string]time.Duration{"c1": time.Second}}
 		}, court: CourtAgent, kind: KindWorking, group: GroupInProgress, verb: VerbWatch},
-		{name: "launching", state: Active, edit: func(s *Snapshot) { s.Seen.Launching = true },
-			court: CourtAgent, kind: KindLaunching, group: GroupInProgress},
+		// ws starting crew: marked on the mission until they're recorded,
+		// then on them until they're handed their prompt.
+		{name: "ws starting crew, none recorded yet", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{{ID: "c1", Ended: ago(time.Hour), Status: CrewDone}}
+			s.M.Launching = &Launching{What: "step 2", Since: now}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, text: "Starting crew on step 2"},
+		{name: "ws starting crew, for nothing in particular", state: Active, edit: func(s *Snapshot) {
+			s.M.Launching = &Launching{Since: now}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, text: "Starting crew"},
+		{name: "a brief accepted, ws starting it before it's confirmed", state: Briefing, edit: func(s *Snapshot) {
+			s.M.Launching = &Launching{What: "step 1", Since: now}
+			s.Threads.Briefing = &BriefingTalk{ID: "t1", Waiting: true}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, text: "Starting crew on step 1"},
+		{name: "crew recorded, their session starting", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{{ID: "c2", Capsule: "api/fix", Starting: ago(time.Second), Dispatch: "Build the cache"}}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, verb: VerbWatch, text: "Starting c2: Build the cache", target: "c2"},
+		{name: "crew resumed, starting: what they last did is from before", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{{ID: "c1", Starting: ago(time.Second), Activity: ActivityWaiting, ActivityAt: ago(time.Hour), LastReply: "Done?"}}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, text: "Starting c1"},
+		{name: "several crew starting", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{{ID: "c1", Starting: ago(time.Second)}, {ID: "c2", Starting: ago(time.Second)}}
+		}, court: CourtAgent, kind: KindLaunching, group: GroupInProgress, text: "Starting c1 and c2"},
+		{name: "starting crew that ended: not starting", state: Active, edit: func(s *Snapshot) {
+			s.M.Crew = []Crew{{ID: "c1", Starting: ago(time.Minute), Ended: ago(time.Second), Exit: "failed to start"}}
+		}, court: CourtYou, kind: KindStalled, group: GroupNeedsYou},
 		{name: "orchestrator running", state: Active, edit: func(s *Snapshot) {
 			s.M.Crew = []Crew{{ID: "c1", Ended: ago(time.Hour), Status: CrewDone, StatusAt: ago(time.Hour)}}
 			s.M.Orchestrating = &OrchestratorRun{For: "c1 (done)", Since: now.Add(-time.Minute), Until: now.Add(time.Minute)}
@@ -506,5 +529,86 @@ func TestEndCrew_SaysHow(t *testing.T) {
 	}
 	if strings.Join(said, "\n") != strings.Join(want, "\n") {
 		t.Errorf("said:\n%s\nwant:\n%s", strings.Join(said, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+// However many agents are on a mission at once, one headline says it's in
+// the agents' court: the most pressing, crew on its route before the
+// agents beside it. What's yours and what's outside all still list.
+func TestResolve_OneAgentHeadlineAtATime(t *testing.T) {
+	now := time.Date(2026, 11, 9, 12, 0, 0, 0, time.UTC)
+	ago := func(d time.Duration) *time.Time { t := now.Add(-d); return &t }
+	plan, err := ParsePlan(planWithPlanner, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := Snapshot{State: Active, Now: now, M: &Mission{Slug: "s", Title: "T", Plan: plan,
+		Crew: []Crew{
+			{ID: "c1", Capsule: "api/fix", Activity: ActivityWorking, ActivityAt: ago(time.Minute), Dispatch: "Build the cache"},
+			{ID: "c2", Capsule: "web/fix", Starting: ago(time.Second), Dispatch: "Show it"},
+			{ID: "c3", Status: CrewAsking, Note: "Per-org or global?", StatusAt: ago(time.Minute)},
+		},
+		Launching:     &Launching{What: "step 2", Since: now},
+		Orchestrating: &OrchestratorRun{For: "c3 (asked)", Since: now.Add(-time.Minute), Until: now.Add(time.Minute)},
+		Tasks:         []Task{{N: 1, Verb: TaskAnswer, Text: "CI is red", By: "orchestrator"}},
+		Waiting:       &Proposal{Text: "the platform team's deploy", By: "orchestrator", At: now},
+	}}
+	s.Threads.Answering = []DocReplies{{Doc: "records/tokens:proposal.md", Name: "proposal.md", Waiting: 1, Threads: []string{"t2"}}}
+	s.Threads.Briefing = &BriefingTalk{ID: "t1", Answering: true}
+	s.PRs = []PRFacts{{Capsule: "docs/fix", Ref: "docs#3", Review: "REVIEW_REQUIRED"}}
+
+	// kinds is the headlines' kinds by court, in the order they come.
+	kinds := func() (agent, yours, outside []Kind) {
+		for _, h := range Resolve(s) {
+			switch h.Court {
+			case CourtAgent:
+				agent = append(agent, h.Kind)
+			case CourtYou:
+				yours = append(yours, h.Kind)
+			case CourtOutside:
+				outside = append(outside, h.Kind)
+			}
+		}
+		return
+	}
+	// Each agent headline in turn, as the one before it stops applying.
+	steps := []struct {
+		want Kind
+		then func() // what stops applying, for the next
+	}{
+		{KindWorking, func() { s.M.Crew[0].Ended = ago(time.Second) }},
+		{KindLaunching, func() { s.M.Crew[1].Starting, s.M.Crew[1].Ended, s.M.Launching = nil, ago(time.Second), nil }},
+		{KindAnswering, func() { s.Threads.Answering = nil }},
+		{KindBriefing, func() { s.Threads.Briefing.Answering = false }},
+		{KindDeciding, func() { s.M.Orchestrating = nil }},
+	}
+	for _, st := range steps {
+		agent, yours, outside := kinds()
+		if len(agent) != 1 || agent[0] != st.want {
+			t.Errorf("agent-court headlines %v, want %s alone", agent, st.want)
+		}
+		// Yours and outside's are all there, yours first.
+		if got := strings.Join(kindStrings(yours), ","); got != "crew-asks,flag" {
+			t.Errorf("with %s: yours %s, want crew-asks,flag", st.want, got)
+		}
+		if got := strings.Join(kindStrings(outside), ","); got != "awaiting-review,waiting-on" {
+			t.Errorf("with %s: outside %s, want awaiting-review,waiting-on", st.want, got)
+		}
+		if first := Resolve(s)[0]; first.Court != CourtYou {
+			t.Errorf("with %s: the mission's headline is %s's %s, want yours", st.want, first.Court, first.Kind)
+		}
+		st.then()
+	}
+	// Nobody on it any more: none, and the rest as they were.
+	if agent, yours, outside := kinds(); len(agent) != 0 || len(yours) != 2 || len(outside) != 2 {
+		t.Errorf("nobody on it: agent %v, yours %v, outside %v", agent, yours, outside)
+	}
+
+	// Alone in its court, the one agent headline is the mission's.
+	alone := Snapshot{State: Active, Now: now, M: &Mission{Slug: "s", Plan: plan,
+		Crew: []Crew{{ID: "c1", Activity: ActivityWorking}, {ID: "c2", Starting: ago(time.Second)}},
+	}, Threads: DocThreads{Briefing: &BriefingTalk{ID: "t1", Answering: true}}}
+	if hs := Resolve(alone); len(hs) != 1 || hs[0].Kind != KindWorking {
+		t.Errorf("crew working, crew starting and the planner answering: %d headlines, the first %s; want working alone", len(hs), hs[0].Kind)
 	}
 }

@@ -250,3 +250,77 @@ func TestPreferFree(t *testing.T) {
 		t.Errorf("asked for fe/a: got %+v", p)
 	}
 }
+
+// Crew recorded by a launch ws marked are starting until ws has handed
+// them their prompt: typed in, once their screen has settled. With no
+// prompt to hand them, they're started once their session's up.
+func TestStart_StartingUntilHandedTheirPrompt(t *testing.T) {
+	h, store, slug, _ := localFixture(t)
+	settle := PromptSettle
+	PromptSettle = 50 * time.Millisecond
+	t.Cleanup(func() { PromptSettle = settle })
+	starting := func(id string) *time.Time {
+		t.Helper()
+		m, err := store.Load(slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c, ok := m.CrewByID(id)
+		if !ok {
+			t.Fatalf("no crew %s", id)
+		}
+		if c.Ended != nil {
+			t.Fatalf("%s ended: %s", id, c.Exit)
+		}
+		return c.Starting
+	}
+
+	// A screen that never draws: its prompt isn't typed in yet.
+	if _, err := store.StartLaunching(slug, "step 1"); err != nil {
+		t.Fatal(err)
+	}
+	req := Request{Store: store, Host: h, Root: store.Root, Slug: slug, Harness: "shell", Width: 40, Height: 5, Prepare: shellLaunch(`sleep 30`)}
+	if _, err := Start(req); err != nil {
+		t.Fatal(err)
+	}
+	if m, _ := store.Load(slug); m.Launching != nil {
+		t.Errorf("the mission's mark outlived the crew's record: %+v", m.Launching)
+	}
+	if starting("c1") == nil {
+		t.Error("c1 isn't starting, with no prompt handed to it yet")
+	}
+
+	// One that draws, and settles: handed its prompt, it's started.
+	store.StartLaunching(slug, "step 1")
+	req.Prepare = shellLaunch(`printf 'ready\n'; sleep 30`)
+	if _, err := Start(req); err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for starting("c2") != nil && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if starting("c2") != nil {
+		t.Error("c2 is still starting after its prompt was typed in")
+	}
+
+	// No prompt to hand over: started as its session's up.
+	store.StartLaunching(slug, "")
+	req.Prepare = func() (harness.Launch, error) {
+		return harness.Launch{Args: []string{"/bin/sh", "-c", "sleep 30"}}, nil
+	}
+	if _, err := Start(req); err != nil {
+		t.Fatal(err)
+	}
+	if starting("c3") != nil {
+		t.Error("c3 is starting, with no prompt to wait for")
+	}
+
+	// Launched with no mark (not through ws's launch), nothing's starting.
+	if _, err := Start(req); err != nil {
+		t.Fatal(err)
+	}
+	if starting("c4") != nil {
+		t.Error("c4 is starting, though ws marked no launch")
+	}
+}

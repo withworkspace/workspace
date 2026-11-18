@@ -66,7 +66,8 @@ ws debrief                     # clean up anything that's landed
 | `ws open` | Open workspace in Cursor, VS Code, or IntelliJ |
 | `ws board` | Add a capsule to your IDE workspace |
 | `ws doctor` | Health check your workspace |
-| `ws upgrade` | Pull latest config and set up new repos |
+| `ws sync` | Pull latest config and set up new repos |
+| `ws upgrade` | Upgrade ws to the latest release |
 
 ## Install
 
@@ -76,7 +77,7 @@ From a release, with its web UI and code navigation, for macOS on Apple silicon 
 curl -fsSL https://raw.githubusercontent.com/withworkspace/workspace/main/scripts/install.sh | bash
 ```
 
-That installs the latest release at `~/.local/bin/workspace`, checked against the release's checksums. From a clone, it's `scripts/install.sh [version] [dir]`: a tag (`v0.0.3`) for another release, and another directory (or `$WS_INSTALL_DIR`). Run it again to upgrade.
+That installs the latest release at `~/.local/bin/workspace`, checked against the release's checksums. From a clone, it's `scripts/install.sh [version] [dir]`: a tag (`v0.0.3`) for another release, and another directory (or `$WS_INSTALL_DIR`). Once it's installed, `ws upgrade` installs the latest release in its place.
 
 Or build it:
 

@@ -6,11 +6,16 @@ import (
 	"runtime/debug"
 
 	"github.com/withworkspace/workspace/internal/cli"
+	"github.com/withworkspace/workspace/internal/release"
 )
 
 var version = "dev"
 
 func main() {
+	// A release's build is stamped with its tag (release.yml), and is the
+	// kind ws upgrade replaces. One built by go install says its module's
+	// version, which looks the same and isn't.
+	cli.ReleaseBuild = release.IsTag(version)
 	if version == "dev" {
 		if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
 			version = info.Main.Version

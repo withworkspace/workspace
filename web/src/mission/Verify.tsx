@@ -1,20 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Button as AriaButton, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { act, type ActOpts, type ActVerb, type Bundle, type BundleEvidence, type BundleTry, type MissionDetail } from "../api";
 import { useKeys } from "../keys";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { Callout, Copyable, Empty, humanError, Keys, toast } from "../ui/kit";
 import { Time } from "../ui/time";
-import { checkRows, type CheckRow, listed, rowKey, rowLine, sendable, shortCommit, standing, tally, verdictTone, verdictWords, waiting } from "./verifyRows";
+import {
+  allClearWords,
+  type BundleGroup,
+  checkRows,
+  type CheckRow,
+  groupTitles,
+  nothingLeftWords,
+  queued,
+  rowKey,
+  rowLine,
+  sendable,
+  shortCommit,
+  standing,
+  stillLeft,
+  tally,
+  toApprove,
+  verdictTone,
+  verdictWords,
+  waiting,
+} from "./verifyRows";
 
 // The mission's Verify tab: its verification bundles, what crew handed
-// over to show their work is as its checks say. One bundle is open: who
-// made it and of what, its summary, how to try it, then its checks in the
-// order your attention's needed, one at a time with what shows it (images
-// and videos as they are, text as a transcript). A bundle is yours to
-// approve or send back, as a review is: Looked at keeps your place, Not
-// right says what's wrong of a check, and the bar at the foot approves it
-// or sends it back with what you said.
+// over to show their work is as its checks say. Those yours to approve are
+// in a row at the top, the rest behind a button. One bundle is open, in
+// two columns that fill the tab and scroll by themselves: who made it and
+// of what, its summary, then its checks in the order your attention's
+// needed; and beside them the check that's open, with what shows it
+// (images and videos as they are, text as a transcript). A bundle is yours
+// to approve or send back, as a review is. A check left for you is yours
+// to approve (it leaves what's left for a fold of its own) or to say isn't
+// right; under what's left is the bundle's approval, or its sending back
+// with what you said. With the last check approved its pane says you're
+// clear, and with the last bundle the tab says nothing's left.
 
 const verdictIcon: Record<string, IconName> = { met: "check-circle", unmet: "x-circle", "can't tell": "question", yours: "user" };
 
@@ -27,8 +51,8 @@ export function Verify({
   reload,
 }: {
   d: MissionDetail;
-  bundle?: Bundle; // the one open
-  pick: (id: string) => void;
+  bundle?: Bundle; // the one open: none when nothing's yours to approve and you haven't opened one
+  pick: (id?: string) => void; // open a bundle, or (none) close the one that's open
   sel?: string; // the page's selected item
   select: (key: string) => void;
   reload: () => void;
@@ -37,32 +61,55 @@ export function Verify({
   // bundle, then by the check's number.
   const [notes, setNotes] = useState<Record<string, Record<number, string>>>({});
   const [busy, setBusy] = useState(false);
+  // The bundle whose last check left for you you've just approved: its
+  // pane says you're clear, until you go to a check again.
+  const [cleared, setCleared] = useState<string>();
+  // Whether the checks you've approved are unfolded.
+  const [unfolded, setUnfolded] = useState(false);
+  useEffect(() => setCleared(undefined), [sel]);
+  useEffect(() => setUnfolded(false), [bundle?.id]);
+
   const rows = bundle ? checkRows(bundle) : [];
-  const cur = bundle ? (rows.find((r) => rowKey(bundle, r) === sel) ?? rows[0]) : undefined;
   // It's yours to give a verdict of until you have, or something takes its
   // place.
   const open = !!bundle && !bundle.verdict && !bundle.replacedBy;
   const mine = bundle ? (notes[bundle.id] ?? {}) : {};
   const going = sendable(mine);
+  const left = stillLeft(rows);
+  const clear = open && cleared === bundle?.id && !going.length;
+  const cur = bundle && !clear ? (rows.find((r) => rowKey(bundle, r) === sel) ?? rows[0]) : undefined;
+  const choose = (r: CheckRow) => {
+    if (!bundle) return;
+    setCleared(undefined);
+    select(rowKey(bundle, r));
+  };
 
-  const run = (verb: ActVerb, opts: ActOpts, quiet = false) => {
+  const run = (verb: ActVerb, opts: ActOpts, quiet = false, then?: () => void) => {
     if (!bundle) return;
     setBusy(true);
     act(d.slug, verb, { bundle: bundle.id, ...opts })
       .then((r) => {
         if (!quiet) toast(r.message, { tone: "done" });
         if (verb === "bundle-send-back") setNotes((all) => ({ ...all, [bundle.id]: {} }));
+        then?.();
         reload();
       })
-      .catch((e: Error) => toast(humanError(e.message), { tone: "danger" }))
+      .catch((e: Error) => {
+        setCleared(undefined);
+        toast(humanError(e.message), { tone: "danger" });
+      })
       .finally(() => setBusy(false));
   };
+  // Marking a check: one left for you is approved, and leaves what's left
+  // for the next of them, or, when it was the last, for the all clear. A
+  // settled one is looked at, to keep your place: on to the next that isn't.
   const look = (r: CheckRow) => {
     if (!bundle) return;
     run("bundle-looked", { check: r.key, looked: !r.looked }, true);
-    // Looked at: on to the next that isn't.
-    const next = rows.find((x) => x !== r && !x.looked);
-    if (!r.looked && next) select(rowKey(bundle, next));
+    if (r.looked) return;
+    const next = r.left ? left.find((x) => x !== r) : rows.find((x) => x !== r && !x.left && !x.looked);
+    if (next) choose(next);
+    else if (r.left && !going.length) setCleared(bundle.id);
   };
   const note = (n: number, text?: string) => {
     if (!bundle) return;
@@ -73,7 +120,14 @@ export function Verify({
       return { ...all, [bundle.id]: of };
     });
   };
-  const settle = () => (going.length ? run("bundle-send-back", { notes: going }) : run("bundle-approve", {}));
+  // Approved or sent back, it's on to the next that's yours to approve;
+  // with none, the tab says there's nothing left.
+  const settle = () => {
+    if (!bundle) return;
+    const on = () => pick(toApprove(d.bundles).find((b) => b.id !== bundle.id)?.id);
+    if (going.length) run("bundle-send-back", { notes: going }, false, on);
+    else run("bundle-approve", {}, false, on);
+  };
   useKeys({
     y: () => open && cur && look(cur),
     n: () => open && cur?.check && note(cur.check.n, mine[cur.check.n] ?? ""),
@@ -81,6 +135,7 @@ export function Verify({
   });
 
   if (!bundle) {
+    if (d.bundles.length) return <NothingLeft bundles={d.bundles} pick={pick} />;
     return (
       <Empty icon="list-checks" title="No bundles yet">
         A verification bundle is what crew hand over to show their work is as its checks say: each check with what it came to and what shows it. Crew hand one over with{" "}
@@ -88,102 +143,105 @@ export function Verify({
       </Empty>
     );
   }
-  const left = rows.filter((r) => r.left);
+  const approved = rows.filter((r) => r.left && r.looked);
   const settled = rows.filter((r) => !r.left);
-  const group = (title: string, tone: string, list: CheckRow[]) =>
-    list.length > 0 && (
-      <div className="verify-group">
-        <h3 className={tone}>{title}</h3>
-        {list.map((r) => {
-          const notRight = !!r.check && mine[r.check.n] !== undefined;
-          return (
-            <button
-              key={r.key}
-              id={`item-${rowKey(bundle, r)}`}
-              type="button"
-              className={`verify-row${r === cur ? " selected" : ""}`}
-              aria-pressed={r === cur}
-              onClick={() => select(rowKey(bundle, r))}
-            >
-              <span className={`verify-mark tone-${notRight ? "danger" : verdictTone(r.verdict)}`}>
-                <Icon name={notRight ? "x-circle" : verdictIcon[r.verdict]} size={16} />
-              </span>
-              <span className="verify-row-text">
-                <span className="verify-row-title">
-                  <Inline text={r.title} lines={2} />
-                </span>
-                <span className="verify-row-line">
-                  {notRight ? "Not right, you say" : rowLine(bundle, r)}
-                  {r.looked && " · looked at"}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+  const showApproved = unfolded || (!!cur && approved.includes(cur));
+  const row = (r: CheckRow, lines: number) => {
+    const notRight = !!r.check && mine[r.check.n] !== undefined;
+    return (
+      <button key={r.key} id={`item-${rowKey(bundle, r)}`} type="button" className={`verify-row${r === cur ? " selected" : ""}`} aria-pressed={r === cur} onClick={() => choose(r)}>
+        <span className={`verify-mark tone-${notRight ? "danger" : verdictTone(r.verdict)}`}>
+          <Icon name={notRight ? "x-circle" : verdictIcon[r.verdict]} size={16} />
+        </span>
+        <span className="verify-row-text">
+          <span className="verify-row-title">
+            <Inline text={r.title} lines={lines} />
+          </span>
+          <span className="verify-row-line">
+            {notRight ? "Not right, you say" : rowLine(bundle, r)}
+            {r.looked && !r.left && " · looked at"}
+          </span>
+        </span>
+      </button>
     );
-  const unlooked = left.filter((r) => !r.looked).length;
+  };
+  const todo = toApprove(d.bundles);
+  const settleTitle = going.length ? "Send it back to its crew, with what you said" : left.length ? "Approve it as it is: checks are still left for you" : "Approve it: what it shows is as its checks say";
   return (
     <div className="verify">
-      {d.bundles.length > 1 && (
-        <div className="verify-bundles" role="group" aria-label="This mission's verification bundles">
-          {listed(d.bundles).map((b) => (
-            <button key={b.id} type="button" className={`verify-bundle${b.id === bundle.id ? " selected" : ""}`} aria-pressed={b.id === bundle.id} onClick={() => pick(b.id)}>
-              <span className="ref">{b.id}</span>
-              <span className="verify-bundle-text">
-                <span className="verify-bundle-title">{stepTitle(b)}</span>
-                <span className={`verify-bundle-state${standingTone(b)}`}>{standing(b)}</span>
-              </span>
-            </button>
-          ))}
+      {(d.bundles.length > 1 || !todo.includes(bundle)) && <BundleRow bundles={d.bundles} open={bundle} pick={pick} />}
+      <div className="verify-panes">
+        <div className="verify-side">
+          <BundleHead b={bundle} pick={pick} />
+          <div className={`verify-list${open ? " verify-list-open" : ""}`}>
+            {left.length > 0 && (
+              <div className="verify-group verify-left">
+                <h3 className="tone-attention">
+                  Left for you<span className="verify-n">{left.length}</span>
+                </h3>
+                {left.map((r) => row(r, 2))}
+              </div>
+            )}
+            {open && (
+              <div className="verify-approve">
+                {/* The one to press once nothing's left for you; before that it still approves, as it is. */}
+                <button className={going.length || !left.length ? "primary" : "verify-plain"} disabled={busy} onClick={settle} title={settleTitle}>
+                  {going.length ? `Send back to ${bundle.crew} (${going.length})` : `Approve ${bundle.id}`} <Keys k="mod+⏎" />
+                </button>
+                <span role="status" className="verify-approve-text">
+                  {going.length
+                    ? `${going.length} ${going.length === 1 ? "check goes" : "checks go"} back to ${bundle.crew}, with what the bundle showed and what you said. The one they hand over next takes its place.`
+                    : `${settles(bundle)}${left.length ? ` ${left.length} ${left.length === 1 ? "check is" : "checks are"} still left for you.` : ""}`}
+                </span>
+              </div>
+            )}
+            {approved.length > 0 && (
+              <div className="verify-group verify-approved">
+                <h3>
+                  <button type="button" className="verify-fold-toggle" aria-expanded={showApproved} onClick={() => setUnfolded(!showApproved)}>
+                    <Icon name={showApproved ? "chevron-down" : "chevron-right"} size={12} />
+                    You approved<span className="verify-n">{approved.length}</span>
+                  </button>
+                </h3>
+                {showApproved && approved.map((r) => row(r, 1))}
+              </div>
+            )}
+            {settled.length > 0 && (
+              <div className="verify-group verify-settled">
+                <h3>
+                  {left.length || approved.length ? "Settled without you" : "Its checks"}
+                  <span className="verify-n">{settled.length}</span>
+                </h3>
+                {settled.map((r) => row(r, 1))}
+              </div>
+            )}
+          </div>
         </div>
-      )}
-      <BundleHead b={bundle} pick={pick} />
-      {bundle.try?.length ? (
-        <section className="verify-try" aria-label="Try it">
-          <h3>Try it</h3>
-          <ul>
-            {bundle.try.map((t, i) => (
-              <li key={i}>
-                <Try t={t} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      <div className="verify-body">
-        <div className="verify-list">
-          {group("Left for you", "tone-attention", left)}
-          {group(left.length ? "Settled without you" : "Its checks", "", settled)}
+        <div className="verify-pane">
+          {clear ? (
+            <AllClear b={bundle} rows={rows} busy={busy} settle={settle} again={() => rows[0] && choose(rows[0])} />
+          ) : (
+            cur && (
+              <CheckDetail
+                b={bundle}
+                r={cur}
+                open={open}
+                busy={busy}
+                look={() => look(cur)}
+                note={cur.check ? mine[cur.check.n] : undefined}
+                setNote={(text) => cur.check && note(cur.check.n, text)}
+              />
+            )
+          )}
         </div>
-        {cur && (
-          <CheckDetail
-            b={bundle}
-            r={cur}
-            open={open}
-            busy={busy}
-            look={() => look(cur)}
-            note={cur.check ? mine[cur.check.n] : undefined}
-            setNote={(text) => cur.check && note(cur.check.n, text)}
-          />
-        )}
       </div>
-      {open && (
-        <div className="verify-foot">
-          <span role="status" className="verify-foot-text">
-            {going.length
-              ? `${going.length} ${going.length === 1 ? "check goes" : "checks go"} back to ${bundle.crew}, with what the bundle showed and what you said. The one they hand over next takes its place.`
-              : `${bundle.asked ? `Approving ${bundle.id} passes step ${bundle.askedAt}.` : `No step waits on ${bundle.id}: your verdict is kept with it.`}${
-                  bundle.stale ? " It's stale: its capsule has moved on since." : ""
-                }${unlooked ? ` ${unlooked} of the checks left for you ${unlooked === 1 ? "isn't" : "aren't"} marked as looked at.` : ""}`}
-          </span>
-          <button className="primary" disabled={busy} onClick={settle} title={going.length ? "Send it back to its crew, with what you said" : "Approve it: what it shows is as its checks say"}>
-            {going.length ? `Send back to ${bundle.crew} (${going.length})` : `Approve ${bundle.id}`} <Keys k="mod+⏎" />
-          </button>
-        </div>
-      )}
     </div>
   );
+}
+
+// settles is what approving a bundle does, and that it's stale where it is.
+function settles(b: Bundle): string {
+  return `${b.asked ? `Approving ${b.id} passes step ${b.askedAt}.` : `No step waits on ${b.id}: your verdict is kept with it.`}${b.stale ? " It's stale: its capsule has moved on since." : ""}`;
 }
 
 // stepTitle is what a bundle is of, as its step is listed.
@@ -195,15 +253,130 @@ function stepTitle(b: Bundle): string {
 // standingTone is the tone a bundle's standing is said in.
 function standingTone(b: Bundle): string {
   if (b.replacedBy) return "";
-  if (b.verdict === "approved") return " tone-done";
+  if (b.verdict === "approved") return b.stale ? "" : " tone-done";
   if (waiting(b) || b.verdict === "sent back" || b.stale) return " tone-attention";
   return "";
 }
 
+// BundleRow is the mission's bundles in a line: those yours to approve,
+// each with how many of its checks are left for you; the one that's open,
+// when it isn't one of those (with a way to close it when there are none);
+// and the rest behind a button.
+function BundleRow({ bundles, open, pick }: { bundles: Bundle[]; open: Bundle; pick: (id?: string) => void }) {
+  const groups = queued(bundles);
+  const todo = groups.find((g) => g.group === "todo")?.bundles ?? [];
+  const rest = groups.filter((g) => g.group !== "todo");
+  const others = rest.reduce((n, g) => n + g.bundles.length, 0);
+  const chip = (b: Bundle, other = false) => {
+    const left = !b.verdict && !b.replacedBy ? stillLeft(checkRows(b)).length : 0;
+    return (
+      <button key={b.id} type="button" className={`verify-bundle${b.id === open.id ? " selected" : ""}${other ? " verify-bundle-other" : ""}`} aria-pressed={b.id === open.id} onClick={() => pick(b.id)}>
+        <span className="ref">{b.id}</span>
+        <span className="verify-bundle-title">{stepTitle(b)}</span>
+        <span className={`verify-bundle-state${standingTone(b)}`}>{standing(b)}</span>
+        {left > 0 && (
+          <span className="count tone-attention" title={`${left} of its checks ${left === 1 ? "is" : "are"} left for you`}>
+            {left}
+          </span>
+        )}
+      </button>
+    );
+  };
+  return (
+    <div className="verify-bundles" role="group" aria-label="This mission's verification bundles">
+      <span className={`verify-bundles-label${todo.length ? " tone-attention" : ""}`}>{todo.length ? "To approve" : "Nothing to approve"}</span>
+      {todo.map((b) => chip(b))}
+      {!todo.includes(open) && chip(open, true)}
+      {!todo.length && (
+        <button type="button" className="ghost icon-button small" onClick={() => pick()} title={`Close ${open.id} (esc)`} aria-label={`Close ${open.id}`}>
+          <Icon name="x" size={13} />
+        </button>
+      )}
+      {others > 0 && <BundleMenu groups={rest} label={`${others} ${todo.length ? "other " : ""}${others === 1 ? "bundle" : "bundles"}`} pick={pick} end />}
+    </div>
+  );
+}
+
+// BundleMenu is the bundles that aren't in the row, behind a button: by
+// where they stand, those that no longer stand sitting back.
+function BundleMenu({ groups, label, pick, end }: { groups: { group: BundleGroup; bundles: Bundle[] }[]; label: string; pick: (id?: string) => void; end?: boolean }) {
+  // data-field: keys typed in the menu are its own, not the page's (keys.ts).
+  return (
+    <MenuTrigger>
+      <AriaButton className={`verify-more${end ? " verify-more-end" : ""}`} data-field>
+        {label} <Icon name="chevron-down" size={12} />
+      </AriaButton>
+      <Popover className="select-popover verify-menu" placement={end ? "bottom end" : "bottom"} offset={4} data-field>
+        <Menu className="select-list" aria-label="This mission's verification bundles" onAction={(k) => pick(String(k))}>
+          {groups.flatMap((g, i) => [
+            ...(i > 0 ? [<Separator key={`sep-${g.group}`} className="menu-separator" />] : []),
+            <MenuSection key={g.group}>
+              <Header className="menu-header">{groupTitles[g.group]}</Header>
+              {g.bundles.map((b) => (
+                <MenuItem key={b.id} id={b.id} textValue={`${b.id} ${stepTitle(b)}`} className={`select-option verify-menu-item${g.group === "stale" ? " verify-menu-stale" : ""}`}>
+                  <span className="ref">{b.id}</span>
+                  <span className="select-option-text">{stepTitle(b)}</span>
+                  <span className={`verify-bundle-state${standingTone(b)}`}>{standing(b)}</span>
+                </MenuItem>
+              ))}
+            </MenuSection>,
+          ])}
+        </Menu>
+      </Popover>
+    </MenuTrigger>
+  );
+}
+
+// NothingLeft is the whole tab when no bundle is yours to approve and you
+// haven't opened one: that, where the rest stand, and a way to them.
+function NothingLeft({ bundles, pick }: { bundles: Bundle[]; pick: (id?: string) => void }) {
+  return (
+    <div className="verify verify-done">
+      <div className="empty">
+        <span className="verify-clear-mark">
+          <Icon name="check" size={22} />
+        </span>
+        <div className="empty-title">Nothing left to approve</div>
+        <div className="empty-text">{nothingLeftWords(bundles)} A bundle that needs you will show here, and on the tab.</div>
+        <div className="empty-action">
+          <BundleMenu groups={queued(bundles)} label={bundles.length === 1 ? "Look at the bundle" : `Look at the ${bundles.length} bundles`} pick={pick} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// AllClear is the check's pane once the last check left for you is
+// approved: that, what still stands as it was, and the bundle's approval
+// at a size you can't miss.
+function AllClear({ b, rows, busy, settle, again }: { b: Bundle; rows: CheckRow[]; busy: boolean; settle: () => void; again: () => void }) {
+  return (
+    <article className="verify-check verify-clear" aria-label="Nothing's left for you">
+      <div className="empty">
+        <span className="verify-clear-mark">
+          <Icon name="check" size={22} />
+        </span>
+        <div className="empty-title">You're all clear</div>
+        <div className="empty-text">{allClearWords(b, rows)}</div>
+        <div className="empty-action">
+          <button className="primary verify-big" disabled={busy} onClick={settle} title="Approve it, with the checks as you've approved them">
+            Approve {b.id} <Keys k="mod+⏎" />
+          </button>
+        </div>
+        <div className="verify-clear-after">{settles(b)}</div>
+        <button type="button" className="link more-link" onClick={again}>
+          Look again
+        </button>
+      </div>
+    </article>
+  );
+}
+
 // BundleHead is the open bundle: who made it and of what, whether it's
-// still of its capsule as it is, what you've said of it, its summary, and
-// what it didn't verify.
-function BundleHead({ b, pick }: { b: Bundle; pick: (id: string) => void }) {
+// still of its capsule as it is, what you've said of it, its summary (a
+// few lines, until you ask for the rest), and, folded, what it didn't
+// verify and how to try it.
+function BundleHead({ b, pick }: { b: Bundle; pick: (id?: string) => void }) {
   return (
     <section className="verify-head" aria-label="The bundle">
       <div className="verify-head-top">
@@ -281,13 +454,7 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id: string) => void }) {
           Its capsule has moved on to <span className="mono">{shortCommit(b.head)}</span> since. What this shows is of <span className="mono">{shortCommit(b.commit)}</span>.
         </Callout>
       )}
-      <div className="verify-summary">
-        {b.summary.split(/\n\s*\n/).map((para, i) => (
-          <p key={i}>
-            <Inline text={para} />
-          </p>
-        ))}
-      </div>
+      <Summary text={b.summary} />
       <div className="verify-tally">
         {tally(b).map(([v, n]) => (
           <span key={v} className={`chip tone-${verdictTone(v)}`}>
@@ -305,8 +472,10 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id: string) => void }) {
         )}
       </div>
       {b.notVerified?.length ? (
-        <div className="verify-not">
-          <h3>Not verified</h3>
+        <details className="verify-fold">
+          <summary>
+            Not verified<span className="verify-n">{b.notVerified.length}</span>
+          </summary>
           <ul>
             {b.notVerified.map((n, i) => (
               <li key={i}>
@@ -314,9 +483,66 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id: string) => void }) {
               </li>
             ))}
           </ul>
-        </div>
+        </details>
+      ) : null}
+      {b.noticed?.length ? (
+        <details className="verify-fold">
+          <summary>
+            Noticed<span className="verify-n">{b.noticed.length}</span>
+          </summary>
+          <ul>
+            {b.noticed.map((n, i) => (
+              <li key={i}>
+                <Inline text={n} />
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      {b.try?.length ? (
+        <details className="verify-fold">
+          <summary>
+            Try it<span className="verify-n">{b.try.length}</span>
+          </summary>
+          <ul>
+            {b.try.map((t, i) => (
+              <li key={i}>
+                <Try t={t} />
+              </li>
+            ))}
+          </ul>
+        </details>
       ) : null}
     </section>
+  );
+}
+
+// Summary is what a bundle's crew say of it, a few lines of it until you
+// ask for the rest: its checks are what you came for.
+function Summary({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [long, setLong] = useState(false);
+  useEffect(() => {
+    setOpen(false);
+    const el = ref.current;
+    if (el) setLong(el.scrollHeight > el.clientHeight + 4);
+  }, [text]);
+  return (
+    <div className="verify-summary-block">
+      <div ref={ref} className={`verify-summary${open ? " open" : ""}`}>
+        {text.split(/\n\s*\n/).map((para, i) => (
+          <p key={i}>
+            <Inline text={para} />
+          </p>
+        ))}
+      </div>
+      {(long || open) && (
+        <button type="button" className="link more-link" onClick={() => setOpen((o) => !o)}>
+          {open ? "Less" : "More"}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -346,8 +572,10 @@ function Try({ t }: { t: BundleTry }) {
 }
 
 // CheckDetail is one check of the open bundle: what it came to, what was
-// said of it, what shows it, and (while the bundle's yours to settle)
-// Looked at and Not right.
+// said of it, what shows it, and (while the bundle's yours to settle, kept
+// at the pane's foot as the check scrolls) what's yours of it: Approve
+// check for one left for you, Looked at for one that's settled, and Not
+// right.
 function CheckDetail({
   b,
   r,
@@ -384,6 +612,15 @@ function CheckDetail({
             <Inline text={c.said} />
           </p>
         )}
+        {c?.points?.length ? (
+          <ul className="verify-points">
+            {c.points.map((pt, i) => (
+              <li key={i}>
+                <Inline text={pt} />
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </header>
       {c?.judged && (
         <p className={`verify-judged tone-${verdictTone(c.judged.result)}`}>
@@ -426,11 +663,51 @@ function CheckDetail({
           </ul>
         </div>
       ) : null}
+      {c?.asks?.length ? (
+        open ? (
+          <div className="verify-asks">
+            <h4>{b.crew} suggests, to send back</h4>
+            <div className="verify-ask-chips">
+              {c.asks.map((a, i) => (
+                <button key={i} type="button" onClick={() => setNote(a)} title="Send this back with the bundle, as what's to do">
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="verify-asks">
+            <h4>{b.crew} suggested</h4>
+            <ul>
+              {c.asks.map((a, i) => (
+                <li key={i}>
+                  <Inline text={a} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      ) : null}
       {open && (
         <div className="verify-yours">
+          {c && note !== undefined && (
+            <label className="verify-note">
+              <span>
+                What's not right? It goes back to {b.crew} with this check and what's shown here.
+              </span>
+              <textarea autoFocus rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Say what you saw" />
+            </label>
+          )}
           <div className="verify-yours-buttons">
-            <button type="button" className={r.looked ? "on" : ""} aria-pressed={r.looked} disabled={busy} onClick={look} title="Mark it as looked at, to keep your place: approving doesn't need it">
-              <Icon name="check" size={14} /> Looked at <Keys k="y" />
+            <button
+              type="button"
+              className={r.looked ? "on" : ""}
+              aria-pressed={r.looked}
+              disabled={busy}
+              onClick={look}
+              title={r.left ? "Say it's fine as it is: it leaves what's left for you" : "Mark it as looked at, to keep your place: approving doesn't need it"}
+            >
+              <Icon name="check" size={14} /> {r.left ? "Approve check" : "Looked at"} <Keys k="y" />
             </button>
             {c && (
               <button
@@ -444,40 +721,8 @@ function CheckDetail({
               </button>
             )}
           </div>
-          {c && note !== undefined && (
-            <label className="verify-note">
-              <span>
-                What's not right? It goes back to {b.crew} with this check and what's shown here.
-              </span>
-              <textarea autoFocus rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Say what you saw" />
-            </label>
-          )}
-          {c?.asks?.length ? (
-            <div className="verify-asks">
-              <h4>{b.crew} suggests, to send back</h4>
-              <div className="verify-ask-chips">
-                {c.asks.map((a, i) => (
-                  <button key={i} type="button" onClick={() => setNote(a)} title="Send this back with the bundle, as what's to do">
-                    {a}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </div>
       )}
-      {!open && c?.asks?.length ? (
-        <div className="verify-asks">
-          <h4>{b.crew} suggested</h4>
-          <ul>
-            {c.asks.map((a, i) => (
-              <li key={i}>
-                <Inline text={a} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
     </article>
   );
 }

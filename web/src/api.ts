@@ -7,7 +7,6 @@ import type { Place } from "./markdown/links";
 export interface Workspace {
   name: string;
   root: string;
-  version?: string; // ws's own, which a plugin's app is told when it connects
   org?: string; // where its repos are on GitHub, for a ref's address
   defaultBranch?: string;
   missions: Mission[];
@@ -21,6 +20,9 @@ export interface Workspace {
   // reviews: how many pull requests need you, as GitHub last said; absent
   // until the Reviews page has been opened, or where there's no GitHub.
   reviews?: { count: number; at: string };
+  // The ws that serves it (its daemon's), as ws --version says it: what
+  // the menu says, and what a plugin's app is told when it connects.
+  version?: string;
 }
 
 export interface Mission {
@@ -907,6 +909,7 @@ export interface Bundle {
   try?: BundleTry[];
   checks: BundleCheck[];
   notVerified?: string[];
+  noticed?: string[]; // what its crew came across that isn't one of its checks
   ran?: BundleRan[]; // its step's checks that are commands, as ws ran them at its commit
 }
 
@@ -934,6 +937,7 @@ export interface BundleCheck {
   check?: string; // the step's check; none for one of the bundle's own
   verdict: CheckVerdict;
   said: string;
+  points?: string[]; // facts of the same kind, listed under what it said
   shows?: BundleEvidence[];
   lines?: string[];
   try?: BundleTry[];

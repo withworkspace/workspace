@@ -30,6 +30,7 @@ func (w *Workspace) now() time.Time {
 // (job.Thread), or draft what a resolved thread decided (job.Draft).
 func (w *Workspace) answer(kind string, sc doc.Scope, id string) {
 	if w.opts.Answer != nil {
+		w.markPlanning(kind, sc, id)
 		w.opts.Answer(kind, sc.Mission, id)
 	}
 }

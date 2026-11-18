@@ -181,7 +181,7 @@ function StepWho({ s }: { s: Stage }) {
 
 // StepRuns is where a step that runs in several repos runs: the repos
 // once they're named, each done or not, or what its words say before.
-function StepRuns({ s }: { s: Stage }) {
+export function StepRuns({ s }: { s: Stage }) {
   const runs = s.runs ?? [];
   if (!runs.length) {
     return (
@@ -200,7 +200,7 @@ function StepRuns({ s }: { s: Stage }) {
 
 // StepLimit is a Work step's clock: its limit, when it runs out, or that
 // it has.
-function StepLimit({ s }: { s: Stage }) {
+export function StepLimit({ s }: { s: Stage }) {
   if (s.outOfTime) {
     return (
       <span className="step-who step-late" title={`Its limit (${s.limit}) ran out while its crew were at it`}>
@@ -219,7 +219,7 @@ function StepLimit({ s }: { s: Stage }) {
 
 // StepChecks is how many of a Work step's checks are met, or how many it
 // has before they've been run.
-function StepChecks({ s }: { s: Stage }) {
+export function StepChecks({ s }: { s: Stage }) {
   const checks = s.checks ?? [];
   const met = checks.filter((c) => c.result === "met").length;
   // A Verify step is held up by what's unmet: what its verifier left for
@@ -260,32 +260,9 @@ function CheckResults({ s }: { s: Stage }) {
   );
 }
 
-// CompactMeta is a step in the plan beside a mission: nothing but its name,
-// unless it needs you to look: the current step's crew and whether it's
-// yours, checks not met, time run out.
-function CompactMeta({ s }: { s: Stage }) {
-  const current = s.state === "current";
-  const unmet = !!s.round && (s.checks ?? []).some((c) => c.result !== "met");
-  const yours = current && (s.who === "you" || s.held);
-  const late = !!s.outOfTime && s.state !== "accepted";
-  if (!(current && s.crew?.length) && !yours && !unmet && !late) return null;
+export function Stepper({ stages }: { stages: Stage[] }) {
   return (
-    <span className="step-meta">
-      {yours && (
-        <span className="step-who yours" title="Yours: only you pass it">
-          <Icon name="user" size={11} /> yours
-        </span>
-      )}
-      {late && <StepLimit s={s} />}
-      {unmet && <StepChecks s={s} />}
-      {current && s.crew?.map((c) => <CrewBadge key={c} id={c} />)}
-    </span>
-  );
-}
-
-export function Stepper({ stages, compact }: { stages: Stage[]; compact?: boolean }) {
-  return (
-    <ol className={`stepper${compact ? " compact" : ""}`}>
+    <ol className="stepper">
       {stages.map((s) => (
         <li key={s.n} className={`step ${s.state}`} title={s.type ? `${s.type}: ${s.text}` : s.text}>
           <span className="step-mark" aria-hidden>
@@ -296,9 +273,7 @@ export function Stepper({ stages, compact }: { stages: Stage[]; compact?: boolea
               <span className="step-n">{s.n}</span> {s.title}
               <span className="sr-only">{s.state === "accepted" ? " (done)" : s.state === "current" ? " (now)" : ""}</span>
             </span>
-            {compact ? (
-              <CompactMeta s={s} />
-            ) : (s.crew?.length ||
+            {(s.crew?.length ||
               (s.checkIn && s.state !== "accepted") ||
               (s.who && s.who !== "crew") ||
               s.opensPR ||
@@ -353,8 +328,8 @@ export function Stepper({ stages, compact }: { stages: Stage[]; compact?: boolea
                 )}
               </span>
             )}
-            {s.why && !compact && <span className="step-why">{s.why}</span>}
-            {!compact && s.round && s.state !== "accepted" ? <CheckResults s={s} /> : null}
+            {s.why && <span className="step-why">{s.why}</span>}
+            {s.round && s.state !== "accepted" ? <CheckResults s={s} /> : null}
           </span>
         </li>
       ))}

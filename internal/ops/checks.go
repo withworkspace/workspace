@@ -260,14 +260,27 @@ func (w *Workspace) judge(m *mission.Mission, st mission.StageState, crewID, cap
 		}
 		j.Artifacts = append(j.Artifacts, line)
 	}
-	run := harness.ConverseRun{Prompt: prompt.Judge(j), Dir: firstNonEmpty(dir, w.Root()), Model: pick.Model, Once: true}
 	runPath := filepath.Join(w.Missions.Dir(), m.Slug, "judge.log")
-	rep, err := RunHeadless(w.Root(), "judge "+m.Slug, crew.Env(w.Root(), m.Slug, ""), runPath, judgeTimeout, h, run)
+	_, verdicts, err = w.askJudge(pick, h, j, "judge "+m.Slug, crew.Env(w.Root(), m.Slug, ""), runPath)
 	if err != nil {
 		execlog.Note(w.Root(), "judge "+m.Slug, "couldn't judge step %d: %v", st.N, err)
 		return nil, "", err
 	}
-	return prompt.ReadVerdicts(rep.Output, len(judged)), "the judge (" + pick.String() + ")", nil
+	return verdicts, "the judge (" + pick.String() + ")", nil
+}
+
+// askJudge is the judge's one run: what j says, put to pick's agent in
+// j.Dir (the workspace's root without one), headless and never gone back
+// to, and its answer read as a verdict for each of j's checks. A mission's
+// checks and an eval's fixture both come through here, so an eval judges
+// as a mission's judge does.
+func (w *Workspace) askJudge(pick harness.Pick, h harness.Converser, j prompt.Judging, who string, env []string, runPath string) (harness.Report, []prompt.Verdict, error) {
+	run := harness.ConverseRun{Prompt: prompt.Judge(j), Dir: firstNonEmpty(j.Dir, w.Root()), Model: pick.Model, Once: true}
+	rep, err := RunHeadless(w.Root(), who, env, runPath, judgeTimeout, h, run)
+	if err != nil {
+		return rep, nil, err
+	}
+	return rep, prompt.ReadVerdicts(rep.Output, len(j.Checks)), nil
 }
 
 // afterChecks acts on a round of step n's checks: all met, ws passes the
