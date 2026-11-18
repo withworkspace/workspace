@@ -678,6 +678,65 @@ func TestMissionEvents(t *testing.T) {
 	}
 }
 
+// The workspace's pages are told at once of a write to the records that
+// names the workspace (a mission made, a conversation's turn), before any
+// look at the files could have seen it: here the next is five seconds off.
+func TestWorkspaceEvents_ToldAtOnceOfAWriteToTheRecords(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	ms := mission.Store{Root: root}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &Server{Root: root, Poll: 5 * time.Second, Assets: testApp, listener: ln}
+	s.App = testOps(s, ops.Options{})
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+
+	req, _ := http.NewRequest("GET", s.Info().Origin()+"/api/events?topic=workspace", nil)
+	req.AddCookie(&http.Cookie{Name: s.cookieName(), Value: s.Info().Token})
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	events := make(chan string, 10)
+	go func() {
+		sc := bufio.NewScanner(res.Body)
+		for sc.Scan() {
+			if name, ok := strings.CutPrefix(sc.Text(), "event: "); ok {
+				events <- name
+			}
+		}
+		close(events)
+	}()
+	next := func(within time.Duration) string {
+		select {
+		case e := <-events:
+			return e
+		case <-time.After(within):
+			return "(nothing)"
+		}
+	}
+	if e := next(3 * time.Second); e != "hello" {
+		t.Fatalf("first event %q", e)
+	}
+	one, err := ms.Create("One")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e := next(2 * time.Second); e != "workspace" {
+		t.Errorf("a mission made: %q", e)
+	}
+	ms.AppendLog(one.Slug, mission.Event{Kind: mission.EventNote, Text: "hi"})
+	if e := next(2 * time.Second); e != "workspace" {
+		t.Errorf("a write to its log: %q", e)
+	}
+}
+
 // The workspace's menu shuts the daemon down: the page is told it has
 // been, then the daemon goes. Without a daemon to close there's no such
 // thing, and like any write it's refused from another site's page.

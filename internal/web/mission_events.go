@@ -15,6 +15,9 @@ import (
 // own files or its capsules move (Missions.MissionStamp), which the records
 // can't see. Nothing's looked at for a mission nobody has open, and the
 // workspace's view isn't built.
+//
+// The records' other topics are heard here too, and passed on (wrote):
+// the workspace's, for its hub to look at once and not at its next poll.
 
 const missionTopic = "mission:"
 
@@ -22,6 +25,9 @@ type missionHub struct {
 	poll    time.Duration
 	stamp   func(slug string) string
 	records func() *store.DB // nil when there are none to watch
+	// wrote, if set, is told each topic a write to the records named that
+	// isn't a mission's.
+	wrote func(topic string)
 
 	mu   sync.Mutex
 	subs map[string]map[chan string]struct{} // by slug
@@ -102,6 +108,8 @@ func (h *missionHub) run(ctx context.Context) {
 			for _, topic := range topics {
 				if slug, ok := strings.CutPrefix(topic, missionTopic); ok {
 					h.tell(slug)
+				} else if h.wrote != nil {
+					h.wrote(topic)
 				}
 			}
 		case <-t.C:
