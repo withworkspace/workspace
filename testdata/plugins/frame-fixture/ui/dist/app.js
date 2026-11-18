@@ -4,7 +4,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// ../../../../../../ui-lib/frame-routing/dist/shape.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.2.0/node_modules/@withworkspace/ui-lib/dist/shape.js
 function isRecord(v) {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -18,7 +18,7 @@ function isVersions(v) {
   return Array.isArray(v) && v.every((n) => Number.isInteger(n) && n >= 1);
 }
 
-// ../../../../../../ui-lib/frame-routing/dist/v1.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.2.0/node_modules/@withworkspace/ui-lib/dist/v1.js
 var v1_exports = {};
 __export(v1_exports, {
   isHostMessage: () => isHostMessage,
@@ -70,16 +70,16 @@ function isHostMessage(m) {
   }
 }
 
-// ../../../../../../ui-lib/frame-routing/dist/protocol.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.2.0/node_modules/@withworkspace/ui-lib/dist/protocol.js
 var PROTOCOL_VERSIONS = [1];
 function isRefuse(m) {
   return isRecord(m) && m.type === "ws:refuse" && isVersions(m.versions) && isString(m.message);
 }
 
-// ../../../../../../ui-lib/frame-routing/dist/version.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.2.0/node_modules/@withworkspace/ui-lib/dist/version.js
 var VERSION = "0.2.0";
 
-// ../../../../../../ui-lib/frame-routing/dist/client.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.2.0/node_modules/@withworkspace/ui-lib/dist/client.js
 var ProtocolError = class extends Error {
   /** The versions the page speaks. */
   page;
