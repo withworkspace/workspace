@@ -63,8 +63,11 @@ describe("the foundations", () => {
 describe("the shell's own rules", () => {
   it("use only the tokens a plugin's app is promised", () => {
     // --ws-ref-accent isn't a token: it's a ref's own colour, which
-    // whoever drew the ref put on its link.
-    const used = [...uncommented(base).matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]).filter((name) => name !== "--ws-ref-accent");
+    // whoever drew the ref put on its link. --fast and --ease are ws's own
+    // names, for the backdrop's fade alone: it has to move as ws's half of
+    // the dim does (styles.css: .frame-dim), which is timed by them.
+    const own = ["--ws-ref-accent", "--fast", "--ease"];
+    const used = [...uncommented(base).matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]).filter((name) => !own.includes(name));
     expect(used.length).toBeGreaterThan(0);
     for (const name of used) expect(TOKENS.map(tokenVar) as string[], name).toContain(name);
   });
@@ -72,9 +75,19 @@ describe("the shell's own rules", () => {
   it("style a ref as the frame protocol says one is drawn, and nothing else of the app's", () => {
     expect(shell).toMatch(/a\.ws-ref\[data-ws-ref\] \{[^}]*text-decoration: underline dotted var\(--ws-faint\);/);
     expect(shell).toMatch(/a\.ws-ref\[data-ws-ref\]\[data-ws-shape="pill"\] \{[^}]*var\(--ws-ref-accent, var\(--ws-accent\)\)/);
-    // Every rule of the shell's is the page's own, a message of ws's, or a
-    // ref's: none reaches into what the app renders.
-    const selectors = [...uncommented(base).matchAll(/(?:^|\})\s*([^{}]+?)\s*\{/g)].flatMap((m) => m[1].split(/,\s*(?![^(]*\))/));
-    for (const s of selectors) expect(s, s).toMatch(/^(html(\[data-framed\])?( body)?|body|\.ws-shell-message( \w+)?|a\.ws-ref\[data-ws-ref\].*)$/);
+    // Every rule of the shell's is the page's own, a message of ws's, a
+    // ref's, or the backdrop's: none reaches into what the app renders.
+    // (An at-rule and a keyframe's step aren't selectors.)
+    const selectors = [...uncommented(base).matchAll(/(?:^|\})\s*([^{}]+?)\s*\{/g)].flatMap((m) => m[1].split(/,\s*(?![^(]*\))/)).filter((s) => !s.startsWith("@") && s !== "from");
+    for (const s of selectors) expect(s, s).toMatch(/^(html(\[data-framed\])?( body)?|body|\.ws-shell-message( \w+)?|a\.ws-ref\[data-ws-ref\].*|\.ws-backdrop)$/);
+  });
+
+  it("style a backdrop in ws's scrim, fading in as ws's half of the dim does", () => {
+    expect(shell).toMatch(/\.ws-backdrop \{[^}]*position: fixed;[^}]*inset: 0;[^}]*background: var\(--ws-scrim\);[^}]*animation: ws-fade var\(--fast\) var\(--ease\);/);
+    // ws's half, beside the frame: the same scrim, and the same fade.
+    const styles = read("../styles.css");
+    expect(styles).toMatch(/\.frame-dim \{[^}]*background: var\(--scrim\);[^}]*animation: fade var\(--fast\) var\(--ease\);/);
+    expect(styles).toMatch(/@keyframes fade \{\s*from \{\s*opacity: 0;\s*\}\s*\}/);
+    expect(shell).toMatch(/@keyframes ws-fade \{\s*from \{\s*opacity: 0;\s*\}\s*\}/);
   });
 });

@@ -3,7 +3,9 @@
 // shell); this connects to ws, renders into #root, shows one of two
 // screens for the path ws says it's at, says its title for each, and counts
 // the ws:changed it's had. It keeps no history: ws does. The names in its
-// own words (THING-2, a mission) are ws's to find: it marks them.
+// own words (THING-2, a mission) are ws's to find: it marks them. And it
+// has a menu and two dialogs, for what the frame's edge would get in the
+// way of: a press in ws closes the menu, and ws dims beside a backdrop.
 
 import { type Client, connect, type ConnectOptions, NoHostError, ProtocolError } from "@withworkspace/ui-lib";
 
@@ -52,7 +54,61 @@ async function main() {
   let things: Thing[] | undefined;
   let poked = 0;
   let failed = "";
-  const counts = { changed: 0, themes: 0, navigated: 0, refs: 0 };
+  const counts = { changed: 0, themes: 0, navigated: 0, refs: 0, outside: 0 };
+
+  // A menu under its button, which a press anywhere else closes: in the
+  // app, or in ws outside the frame, which the app never sees and ws says
+  // (dismissOutside hears both). The button is given with the menu, so a
+  // press on it doesn't close a menu its click is about to.
+  let closeMenu = () => {};
+  function menu(button: HTMLElement) {
+    const items = ["Rename", "Move", "Put back on the shelf"].map((name) => h("button", { type: "button", role: "menuitem", onclick: () => closeMenu() }, name));
+    const list = h("div", { className: "menu", role: "menu", data: { fixture: "menu" } }, ...items);
+    const at = button.getBoundingClientRect();
+    list.style.left = `${at.left}px`;
+    list.style.top = `${at.bottom + 4}px`;
+    document.body.append(list);
+    const stop = ws.dismissOutside([button, list], () => closeMenu());
+    closeMenu = () => {
+      stop();
+      list.remove();
+      closeMenu = () => {};
+    };
+  }
+
+  // A dialog, in the shell's backdrop (.ws-backdrop): it dims the frame,
+  // and ws dims what's beside the frame for as long as it's in the page.
+  // Nothing here tells ws: it watches the page for the class. One that's light
+  // closes on a press anywhere else, either side of the frame's edge; the
+  // other stays until it's closed, and keeps the keys while ws's side is
+  // pressed, so Escape still closes it.
+  let closeDialog = () => {};
+  function dialog(light: boolean) {
+    closeDialog();
+    const box = h(
+      "div",
+      { className: "dialog", role: "dialog", data: { fixture: "dialog" } },
+      h("h1", {}, light ? "A dialog a press elsewhere closes" : "A dialog that stays"),
+      h("p", {}, light ? "Press the dimmed frame, or the dimmed sidebar: either closes it." : "Press the dimmed sidebar: it stays, and Escape still closes it, since the press took no focus from the frame."),
+      h("input", { placeholder: "Typed in here" }),
+      h("p", {}, h("button", { type: "button", className: "primary", onclick: () => closeDialog() }, "Close")),
+    );
+    box.setAttribute("aria-modal", "true");
+    const backdrop = h("div", { className: "ws-backdrop" }, box);
+    document.body.append(backdrop);
+    box.querySelector("input")?.focus();
+    const stop = light ? ws.dismissOutside(box, () => closeDialog()) : () => {};
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeDialog();
+    };
+    document.addEventListener("keydown", onKey);
+    closeDialog = () => {
+      stop();
+      document.removeEventListener("keydown", onKey);
+      backdrop.remove();
+      closeDialog = () => {};
+    };
+  }
 
   async function load() {
     try {
@@ -121,11 +177,21 @@ async function main() {
         row("ws:theme received", counts.themes, "themes"),
         row("ws:navigate received", counts.navigated, "navigated"),
         row("ws:refs-changed received", counts.refs, "refs"),
+        row("ws:outside received", counts.outside, "outside"),
       ),
       h("p", { className: "swatches" }, ...["bg", "panel", "raised", "line", "fg", "dim", "accent", "primary", "danger", "warn", "ok"].map(swatch)),
       h("p", {}, h("button", { type: "button", className: "primary" }, "A button in ws's accent"), " ", h("input", { placeholder: "Typed in here, ? and g stay here" })),
       h("p", {}, h("a", { href: "/" }, "Missions: a page of ws's own"), " · ", h("a", { href: "things/3" }, "a relative link"), " · ", h("a", { href: "#notes" }, "a place in this page")),
       h("p", {}, h("button", { type: "button", data: { fixture: "go" }, onclick: () => ws.go("/things/1") }, "ws.go to thing 1"), " ", h("button", { type: "button", data: { fixture: "replace" }, onclick: () => ws.go(`${ws.path.split("?")[0]}?filtered=${Date.now() % 1000}`, { replace: true }) }, "Filter (replace)")),
+      h(
+        "p",
+        {},
+        h("button", { type: "button", data: { fixture: "menu-button" }, onclick: (e) => (document.querySelector(".menu") ? closeMenu() : menu(e.currentTarget as HTMLElement)) }, "A menu"),
+        " ",
+        h("button", { type: "button", data: { fixture: "light-dialog" }, onclick: () => dialog(true) }, "A dialog"),
+        " ",
+        h("button", { type: "button", data: { fixture: "staying-dialog" }, onclick: () => dialog(false) }, "A dialog that stays"),
+      ),
       h("p", { id: "notes", className: "dim" }, "Notes: back after a filter skips it, as it replaced the entry it was on."),
     );
   }
@@ -136,6 +202,8 @@ async function main() {
   function render() {
     const { title, body } = screen();
     ws.setTitle(title);
+    // The menu hangs off a button that's about to be drawn again.
+    closeMenu();
     unmark();
     const words = names();
     ws.root.replaceChildren(h("main", {}, h("section", {}, ...body, words), status()));
@@ -163,6 +231,13 @@ async function main() {
     counts.refs++;
     const cell = ws.root.querySelector('[data-fixture="refs"]');
     if (cell) cell.textContent = String(counts.refs);
+  });
+
+  // A press in ws, outside the frame: counted, for whoever's trying it.
+  ws.onOutside(() => {
+    counts.outside++;
+    const cell = ws.root.querySelector('[data-fixture="outside"]');
+    if (cell) cell.textContent = String(counts.outside);
   });
 
   render();

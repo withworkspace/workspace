@@ -1,5 +1,6 @@
 import { chooseVersion, type Connect, isConnect, type Refuse } from "@withworkspace/ui-lib/protocol";
 import type { FoundRef } from "../refs/found";
+import { watchBackdrop } from "./backdrop";
 import type { Theme } from "./theme";
 import { v1 } from "./frame/v1";
 
@@ -43,6 +44,11 @@ export interface Host {
   // in its own pages (refs/found.ts): the app draws what it's told, since
   // only ws knows what there is to name.
   refs(texts: string[]): FoundRef[][];
+  // The app has a backdrop up, or has taken its last one down: ws dims
+  // what's beside the frame for as long as it has one. No version says
+  // it: ws sees the backdrop in the page that's connected (backdrop.ts).
+  // The dim is off, too, once that page is hung up on.
+  dim(on: boolean): void;
 }
 
 // Session is a page that's connected, as ws tells it things.
@@ -58,6 +64,8 @@ export interface Session {
   // What there is to name changed: what the app was told of the refs in
   // its words may be different now.
   refsChanged(): void;
+  // A press landed in ws, outside the frame: the app never sees one.
+  outside(): void;
   // Stops listening, and closes the port.
   close(): void;
 }
@@ -103,6 +111,11 @@ export interface Frame {
   theme(): void;
   changed(): void;
   refsChanged(): void;
+  outside(): void;
+  // The frame loaded a page. If it isn't the one that's connected, that
+  // one is gone, and is hung up on: a page that went with a backdrop up,
+  // with nothing connecting after it, doesn't leave ws dimmed.
+  loaded(): void;
   // Stops listening for the frame, and hangs up on the page in it.
   stop(): void;
 }
@@ -113,16 +126,36 @@ export interface Frame {
 // the frame connects again, and the page before is hung up on. refused is
 // told what ws said to a page it couldn't meet, and undefined once one
 // connects. Call it before the frame is made (a layout effect), so the
-// frame's first ws:connect can't come before ws is listening.
-export function listen(frame: () => Window | null | undefined, host: Host, refused: (message: string | undefined) => void): Frame {
+// frame's first ws:connect can't come before ws is listening. The page
+// that's connected is watched for a backdrop (watch: backdrop.ts), and the
+// host told as it has one and as it hasn't.
+export function listen(
+  frame: () => Window | null | undefined,
+  host: Host,
+  refused: (message: string | undefined) => void,
+  watch: (page: Document, said: (on: boolean) => void) => () => void = watchBackdrop,
+): Frame {
   let session: Session | undefined;
+  // The document of the page that's connected: the frame's window stays
+  // the same from one load to the next, and its document doesn't.
+  let page: Document | undefined;
+  let unwatch = () => {};
+  // A page that's gone has no backdrop up, whatever it had.
+  const hangUp = () => {
+    if (!session) return;
+    session.close();
+    session = undefined;
+    page = undefined;
+    unwatch();
+    unwatch = () => {};
+    host.dim(false);
+  };
   const onMessage = (e: MessageEvent) => {
     const source = frame();
     if (!source || e.source !== source || e.origin !== window.location.origin) return;
     const port = e.ports[0];
     if (!port || !isConnect(e.data)) return;
-    session?.close();
-    session = undefined;
+    hangUp();
     const a = answer(e.data, port, host);
     if ("refused" in a) {
       // The page has it too, as an error: this is for whoever's looking at
@@ -132,6 +165,8 @@ export function listen(frame: () => Window | null | undefined, host: Host, refus
       return;
     }
     session = a.session;
+    page = documentOf(source);
+    if (page) unwatch = watch(page, (on) => host.dim(on));
     refused(undefined);
   };
   window.addEventListener("message", onMessage);
@@ -140,10 +175,24 @@ export function listen(frame: () => Window | null | undefined, host: Host, refus
     theme: () => session?.theme(),
     changed: () => session?.changed(),
     refsChanged: () => session?.refsChanged(),
+    outside: () => session?.outside(),
+    loaded() {
+      const now = frame();
+      if (now && documentOf(now) !== page) hangUp();
+    },
     stop() {
       window.removeEventListener("message", onMessage);
-      session?.close();
-      session = undefined;
+      hangUp();
     },
   };
+}
+
+// The document a window shows now. The frame is this origin's own, so
+// it's there to read: one that isn't has no page of a plugin's in it.
+function documentOf(win: Window): Document | undefined {
+  try {
+    return win.document;
+  } catch {
+    return undefined;
+  }
 }

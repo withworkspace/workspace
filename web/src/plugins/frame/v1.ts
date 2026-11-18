@@ -58,6 +58,9 @@ export function v1(port: MessagePort, host: Host): Session {
     refsChanged: () => {
       if (asked) send({ type: "ws:refs-changed" } satisfies V1.RefsChanged);
     },
+    // Said to every page, asked for or not: one with nothing open does
+    // nothing with it.
+    outside: () => send({ type: "ws:outside" } satisfies V1.Outside),
     close() {
       port.onmessage = null;
       port.close();

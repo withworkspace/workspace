@@ -67,6 +67,31 @@ a.ws-ref[data-ws-ref][data-ws-shape="pill"]:hover {
   background: color-mix(in srgb, var(--ws-ref-accent, var(--ws-accent)) 24%, transparent);
 }
 
+/* A backdrop: what an app puts behind a dialog. It covers the frame in
+   ws's scrim and fades in as ws's own does (styles.css: .overlay), and
+   while the page has one ws dims what's beside the frame to match (ws
+   watches the page for the class: backdrop.ts; styles.css: .frame-dim),
+   so the two read as one. The fade's time and curve are ws's own names, from the foundations
+   this comes after, and not tokens an app is promised: the two halves
+   have to move as one, whatever ws's motion comes to be. Where the dialog
+   sits in the backdrop, and what's over what, is the app's to say. */
+.ws-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--ws-scrim);
+  animation: ws-fade var(--fast) var(--ease);
+}
+@keyframes ws-fade {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-backdrop {
+    animation-duration: 0.01ms;
+  }
+}
+
 /* A message of ws's, where the app can't be loaded: the plugin needs
    setting up, didn't start, or has no app. */
 .ws-shell-message {
