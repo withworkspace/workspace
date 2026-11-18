@@ -161,8 +161,10 @@ const (
 	ScoreNone = ""
 )
 
-// JudgedCheck is one check as an eval's judge came to it.
-type JudgedCheck struct {
+// EvalCheck is one thing an eval looked for, and how it came out: a
+// check as the judge came to it, or a command the orchestrator was to
+// run, or never to.
+type EvalCheck struct {
 	N      int    `json:"n"`
 	Check  string `json:"check"`
 	Expect string `json:"expect,omitempty"`
@@ -172,29 +174,34 @@ type JudgedCheck struct {
 	Note   string `json:"note,omitempty"`
 }
 
-// JudgeResult is an eval of one fixture.
-type JudgeResult struct {
+// EvalResult is an eval of one fixture, whichever role's.
+type EvalResult struct {
 	Fixture string `json:"fixture"`
 	Pick    string `json:"pick"`
 	// Checks are its checks as judged. Right is how many came to what was
 	// expected, of Scored, those anything was expected of.
-	Checks []JudgedCheck `json:"checks,omitempty"`
-	Right  int           `json:"right"`
-	Scored int           `json:"scored"`
-	// Calls is how many tools the judge used, and TookMS how long it took.
+	Checks []EvalCheck `json:"checks,omitempty"`
+	Right  int         `json:"right"`
+	Scored int         `json:"scored"`
+	// Calls is how many tools the agent used, and TookMS how long it took.
 	Calls  int   `json:"calls"`
 	TookMS int64 `json:"took_ms"`
-	// Output is what the judge said, as it said it.
+	// Ran is each ws mission command the orchestrator ran, in order, as
+	// OrchestratorCommand.String says one.
+	Ran []string `json:"ran,omitempty"`
+	// Output is what the agent said, as it said it.
 	Output string `json:"output,omitempty"`
-	// Error is why it wasn't judged: the judge couldn't be run, or failed.
+	// Error is why there's nothing to score: the agent couldn't be run,
+	// or failed.
 	Error string `json:"error,omitempty"`
-	// Dir is where it was judged, kept (JudgeEval.Keep).
+	// Dir is the folder it was judged in, or the workspace it was run
+	// in, kept.
 	Dir string `json:"dir,omitempty"`
 }
 
 // AllRight says whether every check that was scored came out right, and
 // the judge ran.
-func (r JudgeResult) AllRight() bool { return r.Error == "" && r.Right == r.Scored }
+func (r EvalResult) AllRight() bool { return r.Error == "" && r.Right == r.Scored }
 
 // scoreJudged is how got compares with expect.
 func scoreJudged(expect, got string) string {
@@ -242,8 +249,8 @@ func (w *Workspace) JudgePrompt(f JudgeFixture, e JudgeEval) (string, error) {
 // EvalJudge puts f to the judge and scores what it says. A judge that
 // can't be run, or fails, is the result's Error, not EvalJudge's: one
 // fixture failing doesn't end a run of them.
-func (w *Workspace) EvalJudge(f JudgeFixture, e JudgeEval) JudgeResult {
-	res := JudgeResult{Fixture: f.Name, Pick: e.Pick}
+func (w *Workspace) EvalJudge(f JudgeFixture, e JudgeEval) EvalResult {
+	res := EvalResult{Fixture: f.Name, Pick: e.Pick}
 	pick, h, err := w.judgePick(e.Pick)
 	if err != nil {
 		res.Error = err.Error()
@@ -269,7 +276,7 @@ func (w *Workspace) EvalJudge(f JudgeFixture, e JudgeEval) JudgeResult {
 		return res
 	}
 	for i, c := range f.Checks {
-		jc := JudgedCheck{N: i + 1, Check: c.Text, Expect: c.Expect, Got: verdicts[i].Result, Why: verdicts[i].Why, Note: c.Note}
+		jc := EvalCheck{N: i + 1, Check: c.Text, Expect: c.Expect, Got: verdicts[i].Result, Why: verdicts[i].Why, Note: c.Note}
 		jc.Score = scoreJudged(c.Expect, jc.Got)
 		if jc.Score != ScoreNone {
 			res.Scored++

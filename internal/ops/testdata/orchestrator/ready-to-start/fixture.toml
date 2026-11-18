@@ -1,0 +1,6 @@
+about = "A mission with a confirmed plan at its first Work step, nobody on it: ws couldn't start it, and the orchestrator is to. One that flags the user instead, or passes the step, has left the mission where it was or moved it on with nothing done; one whose dispatch its harness refuses (backticks in what it says) has too."
+
+mission = "greet-by-name"
+trigger = "manual"
+expect = ["dispatch"]
+never = ["accept", "skip", "conclude"]

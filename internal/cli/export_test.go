@@ -241,3 +241,7 @@ func SweepArtifacts(root string) []string {
 	sweepArtifacts(root, func(f string, a ...any) { said = append(said, fmt.Sprintf(f, a...)) })
 	return said
 }
+
+// EvalMade is evalMade, for a test to own the records of the workspace an
+// eval's run is made in.
+var EvalMade = &evalMade
