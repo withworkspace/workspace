@@ -23,6 +23,11 @@ import (
 // What's looked for is the words that matter: "the" would find every row,
 // and mark itself in every snippet. The small words still count for how
 // nearly a heading says what was typed ("What a decision is").
+//
+// The last word may be only begun: it's looked for as the start of a word
+// ("bin" finds binary, as it's typed), unless it's followed by a space
+// (finished), it's a small word, or it's a single letter or digit (which
+// starts too many).
 type Query struct {
 	All, Any               string
 	ContentAll, ContentAny string
@@ -34,13 +39,19 @@ type Query struct {
 // is a word.
 func Match(typed string) Query {
 	var terms, content, smalls []string
-	for _, w := range strings.Fields(typed) {
+	fields := strings.Fields(typed)
+	begun := len(typed) > 0 && !unicode.IsSpace(rune(typed[len(typed)-1]))
+	for i, w := range fields {
 		if !strings.ContainsFunc(w, func(r rune) bool { return unicode.IsLetter(r) || unicode.IsNumber(r) }) {
 			continue // nothing in it is a word
 		}
 		t := `"` + strings.ReplaceAll(w, `"`, `""`) + `"`
+		bare := strings.ToLower(strings.Trim(w, `"'?!.,:;()`))
+		if begun && i == len(fields)-1 && !small[bare] && countWordRunes(bare) > 1 {
+			t += " *" // the start of a word: FTS5's prefix query
+		}
 		terms = append(terms, t)
-		if bare := strings.ToLower(strings.Trim(w, `"'?!.,:;()`)); small[bare] {
+		if small[bare] {
 			smalls = append(smalls, bare)
 		} else {
 			content = append(content, t)
@@ -54,6 +65,17 @@ func Match(typed string) Query {
 		q.ContentAll, q.ContentAny = strings.Join(content, " "), strings.Join(content, " OR ")
 	}
 	return q
+}
+
+// countWordRunes is how many letters and digits s has.
+func countWordRunes(s string) int {
+	n := 0
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsNumber(r) {
+			n++
+		}
+	}
+	return n
 }
 
 // Looked is what's looked for: any of the words that matter, or of every
