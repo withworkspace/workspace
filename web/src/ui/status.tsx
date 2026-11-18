@@ -32,6 +32,7 @@ const byKind: Record<string, Omit<StatusInfo, "words"> & { words?: string }> = {
   flag: { icon: "question", tone: "attention", words: "Asks you" },
   "re-review": { icon: "rotate", tone: "attention", words: "Re-review" },
   "step-review": { icon: "eye", tone: "attention", words: "Review" },
+  "to-do": { icon: "user", tone: "attention", words: "To do" },
   replies: { icon: "reply", tone: "attention", words: "Replies" },
   "brief-talk": { icon: "reply", tone: "attention" },
   queued: { icon: "play", tone: "attention", words: "Next crew" },
@@ -51,6 +52,7 @@ const byKind: Record<string, Omit<StatusInfo, "words"> & { words?: string }> = {
   briefing: { icon: "pencil", tone: "progress", words: "Briefing", live: true },
   launching: { icon: "spinner", tone: "progress", words: "Starting", live: true },
   deciding: { icon: "sparkle", tone: "progress", words: "Deciding", live: true },
+  "moving-on": { icon: "spinner", tone: "progress", words: "Moving on", live: true },
   // outside
   "checks-running": { icon: "spinner", tone: "waiting", words: "Checks running", live: true },
   "awaiting-review": { icon: "pr", tone: "waiting", words: "Awaiting review" },

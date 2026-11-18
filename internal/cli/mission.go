@@ -60,7 +60,7 @@ With WS_MISSION set, ws lift and ws dock attach new capsules to the mission.`,
 	cmd.AddCommand(newMissionStartCmd(), newMissionSkipCmd(), newMissionRepeatCmd())
 	cmd.AddCommand(newMissionConcludeCmd(), newMissionEndCmd(), newMissionWaitCmd())
 	cmd.AddCommand(newMissionHandOnCmd(), newMissionDropCmd(), newMissionOpenPRCmd())
-	cmd.AddCommand(newMissionAcceptCmd())
+	cmd.AddCommand(newMissionAcceptCmd(), newMissionLookCmd())
 	cmd.AddCommand(newMissionOrchestrateCmd(), newMissionDispatchCmd())
 	cmd.AddCommand(newMissionAttachCmd())
 	cmd.AddCommand(newMissionDetachCmd())

@@ -41,6 +41,7 @@ import { missionRefs } from "./refs";
 import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, MissionData, Stepper, Timeline, viewEvent } from "./parts";
 import { EndButton, EndDialog, EndedCapsules, ended, endingWords, HandedOn, ZChecks } from "./Ending";
 import { PlanList } from "./PlanList";
+import { waitHow } from "./planRows";
 import { Verify } from "./Verify";
 import { useRepoLabel, Work, workWords } from "./Work";
 import { crewElsewhere, work } from "./workRows";
@@ -731,7 +732,13 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
         {d.plan ? "Step" : "Stage"} {now.n} of {d.stages.length}: <strong>{now.title}</strong>
       </span>
       {now.checkIn && <span className="dim"> · check in after</span>}
-      {now.who === "you" && <span className="dim"> · yours: only you pass it</span>}
+      {now.who === "you" && !waitHow(now) && <span className="dim"> · yours: only you pass it</span>}
+      {waitHow(now) && (
+        <span className="lead-wait">
+          {" "}
+          · <span className={`chip ${waitHow(now)!.auto ? "tone-progress" : "tone-attention"}`}>{waitHow(now)!.word}</span> <span className="dim">{waitHow(now)!.says}</span>
+        </span>
+      )}
     </>
   );
   const said = live.filter((c) => c.lastReply && c.activity !== "working");
@@ -1050,6 +1057,57 @@ function LaunchCrew({
   );
 }
 
+// WaitActs is what moves a Wait step on from the page. Marking it done
+// passes it, with a note (what you did, or what happened) kept for the
+// crew after. A step ws watches can be looked at now; marked done, one of
+// yours is looked at first, and passed as it is only when you say so.
+function WaitActs({ d, yours, passIt, busy, run }: { d: MissionDetail; yours?: boolean; passIt?: boolean; busy: boolean; run: (verb: ActVerb, text?: string) => void }) {
+  const [note, setNote] = useState("");
+  const now = d.stages.find((s) => s.state === "current");
+  const watched = now?.passes === "watched";
+  const said = note.trim();
+  const done = () => (yours ? run("answer", said ? `Done: ${said}` : "Done") : run("accept", said));
+  // Watched and not yours, ws passes it: looking now is the thing to do,
+  // and marking it done passes it whatever its check says.
+  const lookFirst = watched && !yours;
+  return (
+    <div className="answer wait-acts">
+      <form
+        className="own-answer"
+        onSubmit={(e) => {
+          e.preventDefault();
+          done();
+        }}
+      >
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder={yours ? "What you did, if the crew after should know" : "What happened, if the crew after should know"}
+          disabled={busy}
+          aria-label="A note for the crew after (optional)"
+        />
+        <button type="submit" className={lookFirst ? undefined : "primary"} disabled={busy} title={lookFirst ? "Pass the step as it is, whatever its check says" : watched ? "ws looks, and passes the step if it's happened" : "Pass the step"}>
+          <Icon name="check" /> {lookFirst ? "Mark done anyway" : "Mark done"}
+        </button>
+      </form>
+      {(watched || passIt) && (
+        <div className="button-row">
+          {watched && (
+            <button className={lookFirst ? "primary" : undefined} disabled={busy} onClick={() => run("look")} title="Run its check now, rather than when ws next would">
+              <Icon name="rotate" /> Look now
+            </button>
+          )}
+          {passIt && (
+            <button className="ghost" disabled={busy} onClick={() => run("answer", "Pass it")} title="Pass the step as it is, whatever its check says">
+              Pass it as it is
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // HeadlineAct is what moves a headline on, as far as this page can do it;
 // talking to crew is on their crew page.
 function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: Reload }) {
@@ -1097,6 +1155,8 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
       // A question can be put to crew, or dismissed; a step's task is
       // answered, or passed.
       const t = d.tasks?.find((x) => String(x.n) === a.target);
+      // A Wait on you: marked done, with what you did if it's worth saying.
+      if (t?.verb === "do") return <WaitActs d={d} yours passIt={a.options?.includes("Pass it")} busy={busy} run={run} />;
       const question = !t || (t.verb === "answer" && !t.step);
       // A step's checks, yours to say: the bundles that show them are
       // what to look at, on the Verify tab, where approving one passes
@@ -1150,6 +1210,10 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
         </div>
       );
     }
+    case "wait":
+      // A Wait on someone else: marked done once it's happened; watched,
+      // ws can look now.
+      return <WaitActs d={d} busy={busy} run={run} />;
     case "accept":
     case "archive":
     case "unpark":

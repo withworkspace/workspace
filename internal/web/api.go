@@ -460,6 +460,24 @@ type Stage struct {
 	Skipped   bool       `json:"skipped,omitempty"`
 	Attempts  int        `json:"attempts,omitempty"`
 	Instances []StageRun `json:"runs,omitempty"`
+	// A Wait step's expansion: who it waits on (you, or who or what, in
+	// the plan's words; "" for one that doesn't say), and how it's passed
+	// (Passes: watched, ws running its checks; done, you marking it done;
+	// said, anyone saying it's happened). Watch is since when it's waited,
+	// and ws's last look at its checks, whose results are on Checks.
+	On     string      `json:"on,omitempty"`
+	Passes string      `json:"passes,omitempty"`
+	Watch  *StageWatch `json:"watch,omitempty"`
+}
+
+// StageWatch is a Wait step being waited for.
+type StageWatch struct {
+	Since  time.Time  `json:"since"`
+	Looked *time.Time `json:"looked,omitempty"` // when ws last ran its checks
+	Looks  int        `json:"looks,omitempty"`
+	// Came is what the last look came to, in a few words: met, not yet,
+	// ws couldn't tell.
+	Came string `json:"came,omitempty"`
 }
 
 // StageRun is one of a step's runs, in a repo.

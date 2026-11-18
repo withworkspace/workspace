@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Bundle, MissionEvent, Stage } from "../api";
-import { foldNote, planWindow, stepBundle, stepText, stepTimes, worthOpening } from "./planRows";
+import { foldNote, planWindow, stepBundle, stepText, stepTimes, waitHow, watchWords, worthOpening } from "./planRows";
 
 // A plan of n steps at step `at` (0: none started; n + 1: all done).
 function plan(n: number, at: number, over: Record<number, Partial<Stage>> = {}): Stage[] {
@@ -76,7 +76,6 @@ describe("worthOpening", () => {
   it("leaves a step that's only its kind and whose it is as a row", () => {
     expect(worthOpening(step({ type: "Open Pull Request", who: "ws", whoSays: "ws", opensPR: true, crew: [] }))).toBe(false);
     expect(worthOpening(step({ type: "Review", who: "you", whoSays: "you" }))).toBe(false);
-    expect(worthOpening(step({ type: "Wait", who: "outside", whoSays: "outside" }))).toBe(false);
   });
 });
 
@@ -115,5 +114,35 @@ describe("stepText", () => {
   it("drops the title a step's text begins with", () => {
     expect(stepText({ n: 4, title: "Build ui-lib", text: "Build ui-lib. Build the package from the design.", state: "todo" })).toBe("Build the package from the design.");
     expect(stepText({ n: 1, title: "Design", text: "Write the design as a Plan.", state: "todo" })).toBe("Write the design as a Plan.");
+  });
+});
+
+describe("waitHow", () => {
+  const wait = (over: Partial<Stage>): Stage => ({ n: 2, title: "Release", text: "Release. It's released.", state: "current", type: "Wait", ...over });
+
+  it("says a Wait with a check is watched, and passes by itself", () => {
+    expect(waitHow(wait({ on: "npm", passes: "watched" }))).toMatchObject({ auto: true, word: "Watched" });
+    expect(waitHow(wait({ on: "you", passes: "watched" }))?.says).toContain("or mark it done");
+  });
+
+  it("says a Wait without one is manual, and who moves it", () => {
+    expect(waitHow(wait({ on: "you", passes: "done" }))).toEqual({ auto: false, word: "Manual", says: "nothing's watching for it: it moves when you mark it done" });
+    expect(waitHow(wait({ on: "the platform team", passes: "said" }))?.says).toBe("nothing's watching for it: it moves when someone marks it done");
+    // One from before a Wait said who it's on.
+    expect(waitHow(wait({}))).toMatchObject({ auto: false, word: "Manual" });
+  });
+
+  it("is nothing for any other kind of step", () => {
+    expect(waitHow(wait({ type: "Work" }))).toBeUndefined();
+  });
+
+  it("opens the Wait the plan is on: how it's passed is the thing to know", () => {
+    expect(worthOpening(wait({ on: "you", passes: "done" }))).toBe(true);
+  });
+
+  it("says what ws's last look came to", () => {
+    const at = () => "14:02";
+    expect(watchWords(wait({ passes: "watched" }), at)).toBe("ws hasn't looked yet");
+    expect(watchWords(wait({ passes: "watched", watch: { since: "x", looked: "y", looks: 3, came: "not yet" } }), at)).toBe("ws last looked 14:02: not yet");
   });
 });

@@ -15,6 +15,7 @@ type Acting interface {
 	AnswerTask(slug string, n int, by ops.Actor, text string) (ops.Answered, error)
 	Dismiss(slug string, by ops.Actor) (ops.Dismissed, error)
 	AcceptStage(slug string, by ops.Actor, why string) (ops.Accepted, error)
+	CheckWait(slug string, by ops.Actor) (string, error)
 	SetState(slug string, state mission.State, by ops.Actor) (ops.StateSet, error)
 	Archive(slug string, burnAll bool, by ops.Actor) (ops.StateSet, error)
 	Reopen(slug string, from mission.State, by ops.Actor) (ops.StateSet, error)
@@ -50,6 +51,9 @@ func ActOn(a Acting, slug string, req ActRequest) (string, error) {
 		return said(a.Dismiss(slug, you))
 	case "accept":
 		return said(a.AcceptStage(slug, you, text))
+	case "look":
+		// A watched Wait step: ws looks now, not when it next would.
+		return a.CheckWait(slug, you)
 	case "archive":
 		// Refused while a capsule's work hasn't merged, unless you've
 		// agreed to burn it anyway (BurnAll).

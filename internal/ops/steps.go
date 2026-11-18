@@ -42,6 +42,9 @@ func (w *Workspace) startStep(m *mission.Mission, st mission.StageState) string 
 		}
 		return w.openPRStep(m, st, "")
 	}
+	if st.Step != nil && st.Step.Type == mission.StepWait {
+		return w.reachWait(m, "", st)
+	}
 	return w.startStage(m, st)
 }
 

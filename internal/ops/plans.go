@@ -69,6 +69,33 @@ func (w *Workspace) CheckPlan(text string) (*mission.Plan, error) {
 	return p, nil
 }
 
+// waitsSaid holds a plan as it's written now to each Wait saying who it's
+// on, for the steps ahead of the mission (after its first fixed steps): a
+// step behind it, written before a Wait said, stays as it was.
+func waitsSaid(p *mission.Plan, fixed int) error {
+	var problems []string
+	for _, st := range p.Steps {
+		if st.N > fixed && st.WaitUnsaid() {
+			problems = append(problems, fmt.Sprintf("line %d: step %d is a Wait that doesn't say who it's on: add - on: you, for something the user does themselves (ws asks them, and they mark it done), or - on: and who or what it waits for (the platform team, npm). Give it a - check: too, a command, where one can show it's happened: without one nobody's watching, and it's passed when someone says so", st.Line, st.N))
+		}
+	}
+	if len(problems) == 0 {
+		return nil
+	}
+	return &Invalid{Reason: (&mission.MalformedPlan{Problems: problems}).Error()}
+}
+
+// fixedSteps is how many of the mission's plan's first steps a plan
+// written again keeps as they were: none, before it's briefed.
+func (w *Workspace) fixedSteps(m *mission.Mission) int {
+	if m == nil || m.Plan == nil || m.ToBrief() {
+		return 0
+	}
+	brief, _ := w.Missions.ReadBrief(m.Slug)
+	states, _ := m.StageProgress(brief)
+	return min(mission.FixedSteps(states), len(m.Plan.Steps))
+}
+
 // SetPlan replaces a mission's plan, refused with every problem and its
 // line when it isn't right. It's yours, and the planner's while it's
 // briefing the mission; crew and the orchestrator follow it, and never
@@ -86,6 +113,9 @@ func (w *Workspace) SetPlan(slug, text string, by Actor) (PlanSet, error) {
 	}
 	p, err := w.CheckPlan(text)
 	if err != nil {
+		return PlanSet{}, err
+	}
+	if err := waitsSaid(p, w.fixedSteps(m)); err != nil {
 		return PlanSet{}, err
 	}
 	logged := fmt.Sprintf("plan written: %d %s", len(p.Steps), plural(len(p.Steps), "step"))
@@ -121,6 +151,11 @@ func (w *Workspace) PlanProposal(store conversation.Store, id, text string) (con
 	p, err := w.CheckPlan(text)
 	if err != nil {
 		return conversation.Proposal{}, err
+	}
+	if m, err := w.Missions.Load(store.Slug); err == nil {
+		if err := waitsSaid(p, w.fixedSteps(m)); err != nil {
+			return conversation.Proposal{}, err
+		}
 	}
 	was, _ := w.Missions.ReadPlan(store.Slug)
 	c, err := store.Load(id)

@@ -35,6 +35,9 @@ const (
 	TaskApprove = "approve"
 	// TaskLand is a Land step: land its capsule.
 	TaskLand = "land"
+	// TaskDo is a Wait step on you: something you do yourself, and mark
+	// done (WaitDone).
+	TaskDo = "do"
 	// TaskChecks is a Work step whose checks weren't all met, or the
 	// judge couldn't tell: pass it as it is, or send it back.
 	TaskChecks = "checks"

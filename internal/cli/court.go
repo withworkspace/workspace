@@ -71,7 +71,7 @@ func courtWords(c mission.Court, forAgents bool) string {
 		}
 		return "your court"
 	case mission.CourtOutside:
-		return "outside (waiting on GitHub: reviewers, checks, a merge)"
+		return "outside (waiting on someone else: reviewers, checks, a merge, what a Wait step waits for)"
 	}
 	return "nobody's (archived)"
 }

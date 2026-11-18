@@ -278,6 +278,75 @@ func editFixture(t *testing.T, gh github.FixtureClient, fn func(f *github.Fixtur
 	os.WriteFile(gh.Path, data, 0o644)
 }
 
+// A merge a page hears of from GitHub is acted on at once: the daemon's
+// watcher, which otherwise looks every ops.WatchPRsEvery, is told of the
+// news, and passes the Open Pull Request step without waiting for its
+// next look.
+func TestSteps_AMergeAPageHearsOfPassesTheStepAtOnce(t *testing.T) {
+	w, store := orchestrateFixture(t)
+	gh := fixtureGitHub(t)
+	useFixtureGitHub(t, w.Root, gh)
+	_, restore := cli.CaptureOrchestratorRuns()
+	defer restore()
+	withStdin(t, typedPlan)
+	run(t, w, gh, "mission", "plan", "-m", "cache", "--set", "-")
+	store.JoinStage("cache", "c1", 1)
+	commitIn(t, capsuleDir(w, "backend", "cache-lookup"), "cache.go", "package cache\n", "Cache the lookup")
+	store.SetCrewStatus("cache", "c1", mission.CrewDone, "cached")
+	t.Setenv("WS_ROLE", "orchestrator")
+	run(t, w, gh, "mission", "accept", "-m", "cache", "cached")
+	t.Setenv("WS_ROLE", "")
+	if open, _ := gh.PRsForRepo("test-org", "backend"); len(open) != 1 {
+		t.Fatalf("GitHub has %+v", open)
+	}
+	ctx, err := cli.LoadOps(w.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	prs := ops.NewPRCache()
+	stop, stopped := make(chan struct{}), make(chan struct{})
+	go func() {
+		defer close(stopped)
+		cli.WatchPRsLoop(w.Root, prs, stop)
+	}()
+	defer func() {
+		close(stop)
+		<-stopped
+	}()
+	// look is a page showing the missions: it asks the cache, which asks
+	// GitHub in the background where it hasn't lately.
+	look := func() {
+		t.Helper()
+		was := prs.Fetched()
+		prs.Forget("backend") // as if GitHub were last asked a while ago
+		prs.Peek(ctx.WS(), ctx.GitHub(), []string{"backend"})
+		for deadline := time.Now().Add(5 * time.Second); prs.Fetched() == was; time.Sleep(time.Millisecond) {
+			if time.Now().After(deadline) {
+				t.Fatal("GitHub's answer never reached the cache")
+			}
+		}
+	}
+	look() // open, as ws opened it
+	if m := loadMission(t, w, "cache"); m.Asking() != nil {
+		t.Fatalf("before the merge: %+v", m.Asking())
+	}
+
+	mergeAll(t, gh, "backend")
+	look()
+	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(5 * time.Millisecond) {
+		if m := loadMission(t, w, "cache"); m.Asking() != nil && m.Asking().Step == 3 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the merge the page heard of didn't pass step 2: %+v", loadMission(t, w, "cache").Asking())
+		}
+	}
+	if !logged(t, store, "backend#1 merged") {
+		t.Error("the merge isn't logged")
+	}
+}
+
 // An Open Pull Request step looks after its pull request: ws opens a
 // draft; what happens to it (its checks passing, a comment) goes to the
 // orchestrator, which marks it ready as the process says; crew's reply to

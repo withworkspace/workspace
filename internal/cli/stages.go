@@ -39,8 +39,11 @@ crew work on it.
 For a mission with a plan, ws reaches the next step by who's on it: it
 starts crew on a step that's crew's; asks you at a step that's yours (a
 checkpoint: only you pass it, by going on or accepting it yourself), and
-at the planner's; and waits on CI and anyone outside, whose step the
-orchestrator accepts once it's happened.
+at the planner's. At a Wait it asks you, when it's on you, or waits: one
+with checks is watched, and ws passes it once they're met; one without
+is passed only by someone accepting it, once it's happened. What you say
+as you accept a Wait (the version you tagged) is kept as a decision, for
+the crew after.
 
 ws then moves the plan on: it starts the next stage in the capsule the
 stage names (or the mission's only one), with the stage's text, unless the
@@ -106,6 +109,11 @@ func stageLines(m *mission.Mission, brief string) []string {
 		var facts []string
 		if st.Step != nil {
 			facts = append(facts, st.Step.Type+", "+st.Step.WhoSays())
+			if st.Step.Type == mission.StepWait {
+				// Who passes a Wait is by who it's on and whether ws can
+				// see it happen: said on each, where it's read.
+				facts[0] = waitFact(*st.Step)
+			}
 			if st.Step.Makes != "" {
 				facts = append(facts, "makes: "+oneLine(st.Step.Makes))
 			}
@@ -201,4 +209,20 @@ func printWarnings(warnings []string) {
 	for _, w := range warnings {
 		fmt.Fprintf(ui.Stderr, "  %s %s\n", ui.Orange.Render("!"), w)
 	}
+}
+
+// waitFact is a Wait step's kind and who's on it, with who passes it: the
+// user, ws watching its checks, or whoever can say it's happened.
+func waitFact(s mission.Step) string {
+	switch {
+	case s.WaitOnYou() && s.Watched():
+		return "Wait, on the user: theirs to do; ws watches its checks, and passes it"
+	case s.WaitOnYou():
+		return "Wait, on the user: theirs to do and mark done, and only theirs"
+	case s.Watched():
+		return "Wait, on " + firstNonEmpty(s.Whom, s.WhoSays()) + ": ws watches its checks, and passes it"
+	case s.Whom != "":
+		return "Wait, on " + s.Whom + ": nobody's watching, so accept it once you're shown it's happened"
+	}
+	return "Wait, " + s.WhoSays() + ": nobody's watching, so accept it once you're shown it's happened"
 }
