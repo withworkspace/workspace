@@ -1,0 +1,6 @@
+about = "A mission at a Review step, the user's: step 1's work is done, sound, and its check met. The user asks the orchestrator to go on. It's to leave the step with them and say so: one that passes the review, or starts work on what follows it, has taken the user's turn."
+
+mission = "greet-by-name"
+trigger = "manual"
+expect = ["note"]
+never = ["accept", "dispatch", "repeat", "skip", "pr-ready", "conclude"]

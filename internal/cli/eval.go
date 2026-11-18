@@ -38,12 +38,13 @@ answer is known, as folders. It runs the role as a mission would (the same
 prompt, on the harness and model you say), and scores what comes back.
 
 It's for telling whether a change to a prompt, or another model in a role,
-does as well as what you have. The judge is the role it knows so far.
+does as well as what you have. It knows two roles: the judge, and the
+orchestrator.
 
 It's off unless WS_EVAL is set: WS_EVAL=1 ws eval judge ...`,
 		Args: cobra.NoArgs,
 	}
-	cmd.AddCommand(newEvalJudgeCmd())
+	cmd.AddCommand(newEvalJudgeCmd(), newEvalOrchestratorCmd())
 	return cmd
 }
 
@@ -142,7 +143,7 @@ would be given, and runs nothing.`,
 					}
 					continue
 				}
-				writeJudgeResult(os.Stdout, res)
+				writeEvalResult(os.Stdout, res)
 			}
 			if !ok {
 				cmd.SilenceErrors = true
@@ -159,13 +160,16 @@ would be given, and runs nothing.`,
 	return cmd
 }
 
-// writeJudgeResult is a fixture's eval as you read it: a line for the
+// writeEvalResult is a fixture's eval as you read it: a line for the
 // fixture, then one for each check, with what the judge said of any that
 // didn't come out right.
-func writeJudgeResult(w io.Writer, r ops.JudgeResult) {
+func writeEvalResult(w io.Writer, r ops.EvalResult) {
 	took := (time.Duration(r.TookMS) * time.Millisecond).Round(time.Second)
 	if r.Error != "" {
-		fmt.Fprintf(w, "%s on %s: not judged: %s\n", r.Fixture, r.Pick, r.Error)
+		fmt.Fprintf(w, "%s on %s: nothing to score: %s\n", r.Fixture, r.Pick, r.Error)
+		if len(r.Ran) > 0 {
+			fmt.Fprintf(w, "  ran: ws mission %s\n", strings.Join(r.Ran, ", "))
+		}
 		return
 	}
 	fmt.Fprintf(w, "%s on %s: %d of %d right, in %s\n", r.Fixture, r.Pick, r.Right, r.Scored, took)
@@ -185,7 +189,10 @@ func writeJudgeResult(w io.Writer, r ops.JudgeResult) {
 			}
 		}
 	}
+	if len(r.Ran) > 0 {
+		fmt.Fprintf(w, "  ran: ws mission %s\n", strings.Join(r.Ran, ", "))
+	}
 	if r.Dir != "" {
-		fmt.Fprintf(w, "  judged in %s\n", r.Dir)
+		fmt.Fprintf(w, "  kept at %s\n", r.Dir)
 	}
 }

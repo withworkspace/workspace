@@ -18,7 +18,17 @@ just try down               # stop its daemon and remove it (it's also torn down
 just test-workspace [dir]   # the same workspace, to keep: no daemon started, nothing torn down
 ```
 
-`ws eval` puts a role's prompt to fixtures, cases whose right answer is known, on a harness and model you name, and scores what comes back: for telling whether a change to a prompt, or another model in a role, does as well (`WS_EVAL=1 ws eval judge --help` says how, and what a fixture is; `internal/ops/testdata/judge` has one). It's off unless `WS_EVAL` is set, not listed and refused, and no agent ws starts is given the variable: it starts agents of its own, so it isn't for one to come on. The judge is the role it knows so far.
+`ws eval` puts a role's prompt to fixtures, cases whose right answer is known, on a harness and model you name, and scores what comes back: for telling whether a change to a prompt, or another model in a role, does as well. It's off unless `WS_EVAL` is set, not listed and refused, and no agent ws starts is given the variable: it starts agents of its own, so it isn't for one to come on. It knows two roles (each one's `--help` says what a fixture is):
+
+```sh
+WS_EVAL=1 ws eval judge --pick claude:haiku internal/ops/testdata/judge/*    # the judge, on a step's work as its crew left it
+WS_EVAL=1 ws eval orchestrator --pick claude:haiku \
+  --before 'TRY_ROOT=$WS_EVAL_TMP scripts/try.sh up --no-build' \
+  --after 'TRY_ROOT=$WS_EVAL_TMP scripts/try.sh down "$WS_EVAL_NAME"' \
+  internal/ops/testdata/orchestrator/*    # the orchestrator, run for real on a mission a seed makes
+```
+
+The orchestrator's run is in a workspace made for it and removed after, which ws doesn't make: `--before` and `--after` are yours, and `scripts/try.sh` is what makes one here (`just build` first: `--no-build` uses `bin/workspace` as it is). A fixture's seed is a script as a try's is (`scripts/seeds`).
 
 `internal/web/dist` is built, not committed: it's gitignored but for its `.gitkeep`, which `go:embed` needs. A binary built without it (`go build` alone, or `go install`) has no web UI, and `ws web` says so.
 
