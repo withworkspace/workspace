@@ -28,8 +28,13 @@ import (
 // Each conversation has its own agent session, resumed turn by turn. It's
 // what the daemon's answer and thread jobs run.
 
-// TurnFor is how long one turn of a conversation's agent may take.
-const TurnFor = 5 * time.Minute
+// TurnFor is how long one turn of a conversation's agent may take; one
+// whose shell is sandboxed runs things as well as reading (a test suite, a
+// build), and may take TurnForRunning.
+const (
+	TurnFor        = 5 * time.Minute
+	TurnForRunning = 20 * time.Minute
+)
 
 // answering is a conversation being answered: where it is, by which agent,
 // and, turn by turn, the conversation as it stands and what the turn is
@@ -110,7 +115,7 @@ var responders = func() map[string]responder {
 	}
 	briefing.next = func(a *answering) string {
 		if r, ok := a.w.replanning(a.here.Mission); ok {
-			return prompt.PlannerNext(a.c, r)
+			return prompt.PlannerNext(a.here, a.c, r)
 		}
 		return prompt.TalkNext(a.here, a.c)
 	}
@@ -231,6 +236,13 @@ func (a *answering) converse(r responder, h harness.Converser) (harness.Report, 
 	run := harness.ConverseRun{Dir: a.w.Root(), Model: a.pick.Model}
 	if r.run != nil {
 		r.run(a, &run)
+	}
+	// Where its harness sandboxes its shell, a conversation that talks
+	// runs things: its agent's told so, turn by turn, with where it may
+	// write as it then stands (the capsules it's lifted since).
+	a.here.Sandbox = nil
+	if run.Talk && !run.Alone {
+		a.here.Sandbox = a.w.sandboxFor(a.store, c, h, &run)
 	}
 	rep, err := turn.Converse(session, func(session string) (harness.Report, error) {
 		run.Session, run.Prompt = session, r.first(a)
@@ -697,7 +709,11 @@ func (w *Workspace) runConverse(store conversation.Store, id string, h harness.C
 	// What it proposes or suggests is the agent's, in this conversation.
 	env := append(crew.Env(w.Root(), store.Slug, conversation.Agent), conversation.EnvConversation+"="+id)
 	who := "conversation " + firstNonEmpty(store.Slug, "workspace") + "/" + id
-	return RunHeadless(w.Root(), who, env, store.RunPath(id), TurnFor, h, r)
+	limit := TurnFor
+	if r.Sandbox {
+		limit = TurnForRunning
+	}
+	return RunHeadless(w.Root(), who, env, store.RunPath(id), limit, h, r)
 }
 
 // RunHeadless runs a conversing agent once, headless, and reads what it

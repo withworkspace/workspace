@@ -1,7 +1,13 @@
 package cli
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
+	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/ui"
 )
 
 func newLiftCmd() *cobra.Command {
@@ -10,6 +16,11 @@ func newLiftCmd() *cobra.Command {
 		Short: "Create a new capsule",
 		Long: `Create a new branch and worktree for fresh work. Use "." as the repo to
 infer from the current directory. Base defaults to origin/<default-branch>.
+
+Run by a conversation's agent, the capsule is that conversation's, to try
+things in: it joins no mission, stays out of your editor, and is put away
+when the conversation is (its branch kept, so lifting it again brings it
+back).
 
 Examples:
   ws lift frontend my-feature
@@ -43,8 +54,28 @@ Examples:
 				base = args[2]
 			}
 
+			if id := agentConversation(); id != "" {
+				return liftForConversation(ctx, id, repo, branch, base)
+			}
 			c, err := ctx.Lift(repo, branch, base, capsuleOptions(ctx))
 			return madeCapsule(ctx, c, err, "Lift off!")
 		},
 	}
+}
+
+// liftForConversation lifts a capsule for the conversation the agent
+// running this is answering, and says where it is and whose.
+func liftForConversation(ctx *ops.Workspace, id, repo, branch, base string) error {
+	c, err := ctx.LiftForConversation(os.Getenv(mission.EnvMission), id, repo, branch, base, ops.CapsuleOptions{Show: showCapsuleMaking, By: ops.ActorFromEnv()})
+	if err != nil {
+		return err
+	}
+	if c.HookErr != nil {
+		fmt.Fprintf(ui.Stderr, "  %s after_create hook failed: %v\n", ui.Orange.Render("⚠"), c.HookErr)
+	}
+	fmt.Fprintf(ui.Stderr, "\n%s/%s is lifted for %s, at %s: yours to change, build and commit in. It's put away with the conversation, its branch kept.\n", c.Repo, c.Name, id, c.Path)
+	// As ws lift always ends: the shell's ws (a function, in the agent's
+	// shell as in yours) runs what's printed, and goes there.
+	fmt.Printf("cd %s\n", shellQuote(c.Path))
+	return nil
 }

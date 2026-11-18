@@ -239,7 +239,7 @@ func ReviewPassFirst(h Here, c *conversation.Conversation, rp ReviewPass) string
 		b.WriteString(rp.start())
 		b.WriteString(reviewPassChange(rp))
 		b.WriteString(para(h.Agents))
-		b.WriteString(talkReading(h.Git))
+		b.WriteString(talkReading(h))
 		b.WriteString(repos(h))
 	}
 	fmt.Fprintf(&b, "This pass is %q: %s\n\n", def.Title, def.About)
@@ -383,7 +383,7 @@ func FollowUpFirst(h Here, c *conversation.Conversation, rp ReviewPass) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "You're following up a review, in the web UI of ws, which manages this multi-repo workspace (%s). The user reviewed the pull request %s (%q) and left comments on its lines. For each one that's still open, say whether what's been pushed since deals with it. What you say is shown to the user on each comment, for them to resolve it or answer. You change nothing, you never run the change's code, and you never post anything.\n\n", h.Root, rp.PR, rp.Title)
 	b.WriteString(followUpChange(rp))
-	b.WriteString(talkReading(h.Git))
+	b.WriteString(talkReading(h))
 	b.WriteString(repos(h))
 	b.WriteString(followUpThreads(rp))
 	b.WriteString(followUpForm(rp))

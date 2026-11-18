@@ -50,6 +50,21 @@ ws rg useAuth                  # ripgrep across repos, one worktree each
 ws debrief                     # clean up anything that's landed
 ```
 
+## Take a mission from brief to review
+
+Create a mission for a change and lift a capsule that belongs to it. This example uses the `frontend` repo from the configuration above.
+
+```sh
+ws mission new "Fix login redirect" --brief "## Goal
+After login, return users to the page they originally requested."
+WS_MISSION=fix-login-redirect ws lift frontend login-redirect
+ws web
+```
+
+Make and commit the change in the capsule, or assign it to an agent from the mission page if you've configured crew. Open the capsule from the mission's **Work** tab and use **Review** to inspect the commits and approve them. For a repo that takes pull requests, open and merge a PR. For a repo configured for direct landing, choose **Land** from the review. The mission shows the outcome alongside the original brief.
+
+See the [mission guide](MANUAL.md#missions) for adding capsules across repos and configuring crew.
+
 ## Commands
 
 | Command | What it does |
