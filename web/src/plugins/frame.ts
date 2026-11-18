@@ -30,12 +30,12 @@ export interface Host {
   path(): string;
   // ws's theme now.
   theme(): Theme;
-  // The app moved, on its own, to this path in the plugin.
-  moved(path: string): void;
   // The page's title; "" for the view's own.
   titled(title: string): void;
-  // Go to a page of ws's own.
-  open(path: string): void;
+  // Go to this address of ws's: a page in the plugin (/x/jira/browse/2),
+  // or one of ws's own. Every link and move in the app is one: ws keeps
+  // the history, and tells the app with navigate when it's in the plugin.
+  go(path: string, replace: boolean): void;
   // A key ws owns was pressed in the frame.
   key(press: KeyPress): void;
 }
@@ -44,7 +44,7 @@ export interface Host {
 export interface Session {
   // The frame protocol version it's in.
   readonly version: number;
-  // ws's address moved within the plugin without the page saying so.
+  // ws's address moved within the plugin: the app shows that path.
   navigate(path: string): void;
   // The theme changed: the host's theme, as it is now.
   theme(): void;

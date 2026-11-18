@@ -1,7 +1,8 @@
 // The fixture's app: what a plugin's app is, at its smallest, on the
 // published @withworkspace/ui-lib. ws serves the page this runs in (the
-// shell); this connects to ws, renders into #root, routes itself between
-// two screens, says its title for each, and counts the ws:changed it's had.
+// shell); this connects to ws, renders into #root, shows one of two
+// screens for the path ws says it's at, says its title for each, and counts
+// the ws:changed it's had. It keeps no history: ws does.
 
 import { type Client, connect, type ConnectOptions, NoHostError, ProtocolError } from "@withworkspace/ui-lib";
 
@@ -52,17 +53,6 @@ async function main() {
   let failed = "";
   const counts = { changed: 0, themes: 0, navigated: 0 };
 
-  // Where the frame's own address is, as a path in the plugin.
-  const here = () => (location.pathname.slice(ws.base.length) || "/") + location.search;
-
-  // The app moved, on its own: its own history gains an entry, and ws's
-  // address follows.
-  function go(path: string) {
-    history.pushState(null, "", ws.base + path);
-    ws.setPath(path);
-    render();
-  }
-
   async function load() {
     try {
       const res = await fetch(ws.api("/api/things"));
@@ -79,17 +69,17 @@ async function main() {
     const path = ws.path.split("?")[0];
     const one = /^\/things\/(\d+)$/.exec(path);
     if (path === "/") {
-      const list = things?.map((t) => h("li", {}, h("a", { href: `${ws.base}/things/${t.id}` }, t.name), " ", h("span", { className: "dim" }, t.note)));
+      const list = things?.map((t) => h("li", {}, h("a", { href: ws.href(`/things/${t.id}`) }, t.name), " ", h("span", { className: "dim" }, t.note)));
       return { title: "Things", body: [h("h1", {}, "Things"), failed ? h("p", { className: "error" }, failed) : list ? h("ul", { className: "things" }, ...list) : h("p", { className: "dim" }, "Loading…")] };
     }
     if (one) {
       const t = things?.find((t) => t.id === Number(one[1]));
-      const back = h("p", {}, h("a", { href: `${ws.base}/` }, "← All things"));
+      const back = h("p", {}, h("a", { href: ws.href("/") }, "← All things"));
       if (!things && !failed) return { title: `Thing ${one[1]}`, body: [back, h("p", { className: "dim" }, "Loading…")] };
       if (!t) return { title: `No thing ${one[1]}`, body: [back, h("h1", {}, `There's no thing ${one[1]}`), failed ? h("p", { className: "error" }, failed) : ""] };
       return { title: t.name, body: [back, h("h1", {}, t.name), h("p", {}, t.note)] };
     }
-    return { title: "Nothing here", body: [h("h1", {}, "Nothing here"), h("p", {}, `The fixture has no screen at ${path}. `, h("a", { href: `${ws.base}/` }, "All things"))] };
+    return { title: "Nothing here", body: [h("h1", {}, "Nothing here"), h("p", {}, `The fixture has no screen at ${path}. `, h("a", { href: ws.href("/") }, "All things"))] };
   }
 
   // What ws has told this page, and what it's been given: for whoever's
@@ -118,7 +108,9 @@ async function main() {
       ),
       h("p", { className: "swatches" }, ...["bg", "panel", "raised", "line", "fg", "dim", "accent", "primary", "danger", "warn", "ok"].map(swatch)),
       h("p", {}, h("button", { type: "button", className: "primary" }, "A button in ws's accent"), " ", h("input", { placeholder: "Typed in here, ? and g stay here" })),
-      h("p", {}, h("a", { href: "/", data: { ws: "/" } }, "Missions: a page of ws's own (data-ws)")),
+      h("p", {}, h("a", { href: "/" }, "Missions: a page of ws's own"), " · ", h("a", { href: "things/3" }, "a relative link"), " · ", h("a", { href: "#notes" }, "a place in this page")),
+      h("p", {}, h("button", { type: "button", data: { fixture: "go" }, onclick: () => ws.go("/things/1") }, "ws.go to thing 1"), " ", h("button", { type: "button", data: { fixture: "replace" }, onclick: () => ws.go(`${ws.path.split("?")[0]}?filtered=${Date.now() % 1000}`, { replace: true }) }, "Filter (replace)")),
+      h("p", { id: "notes", className: "dim" }, "Notes: back after a filter skips it, as it replaced the entry it was on."),
     );
   }
 
@@ -128,26 +120,11 @@ async function main() {
     ws.root.replaceChildren(h("main", {}, h("section", {}, ...body), status()));
   }
 
-  // A link to a screen of the app's own goes there without loading the
-  // page again. (A data-ws link is the package's: it opens in ws.)
-  ws.root.addEventListener("click", (e) => {
-    const a = (e.target as Element).closest?.("a[href]");
-    if (!(a instanceof HTMLAnchorElement) || a.dataset.ws !== undefined || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-    const path = a.pathname + a.search;
-    if (a.origin !== location.origin || !(path === ws.base || path.startsWith(`${ws.base}/`))) return;
-    e.preventDefault();
-    go(path.slice(ws.base.length) || "/");
-  });
-  // Back and forward in the frame's own history: ws's address follows.
-  window.addEventListener("popstate", () => {
-    ws.setPath(here());
-    render();
-  });
-  // ws's address moved without the app: the sidebar, a link in ws, back
-  // and forward there. The app goes there, replacing its own entry.
-  ws.onNavigate((path) => {
+  // Wherever ws's address moves in the plugin (a link here, a go, the
+  // sidebar, back and forward), the app shows it. Links need nothing of
+  // the app's: the package hands each click to ws.
+  ws.onNavigate(() => {
     counts.navigated++;
-    history.replaceState(null, "", ws.base + path);
     render();
   });
   ws.onChanged(() => {
@@ -159,8 +136,6 @@ async function main() {
     render();
   });
 
-  // The frame's own address starts where ws's is.
-  if (here() !== ws.path) history.replaceState(null, "", ws.base + ws.path);
   render();
   await load();
 }

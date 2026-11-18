@@ -22,12 +22,16 @@ That adds it, linked to this folder, and prints where the web UI is. In any othe
 |---|---|
 | `/x/frame-fixture/` | The app, in ws's theme from its first paint, light and dark. Its panel says frame protocol 1. |
 | `/x/frame-fixture/things/2` | A deep link, loaded fresh: the app starts there, and the tab's title is "Lantern". |
-| A thing's link, then back | The address and the title follow the app. "ws:navigate received" stays as it was. |
+| A thing's link, then back | The address and the title follow, and "ws:navigate received" goes up each time: ws keeps the history, and tells the app. One click is one step back. |
+| ⌘-click a thing's link | It opens in a tab of its own at `/x/frame-fixture/things/<id>`, ws's page, not the bare shell. |
+| "a relative link", ⌘-clicked | The tab asks for the bare shell's address, and is sent on to `/x/frame-fixture/things/3`. |
+| "ws.go to thing 1", "Filter (replace)" | The first adds a step to back; the filter puts its address in place of the one it was on. |
+| "a place in this page" | The page scrolls, and back has no new step. |
 | "Frame fixture" and "Fixture: thing 2" in the sidebar | ws moves the app without loading it again: "ws:navigate received" goes up. |
 | The theme switch, and the accent in Settings | The app follows: "ws:theme received" goes up, and the swatches change. |
 | `ws frame-fixture poke` | "ws:changed received" goes up, and the app fetches the plugin's count again. |
 | `?`, `g` then `m`, ⌘K, pressed in the frame | ws's keys work there. Typed into the box, `?` and `g` stay in the box. |
-| "Missions: a page of ws's own" | A `data-ws` link opens in ws, not in the frame. |
+| "Missions: a page of ws's own" | A plain link to a page of ws's opens in ws, not in the frame. |
 | `/x/frame-fixture/?speaks=2` | The app says it speaks only frame protocol 2. ws refuses it and says "Update ws" above the frame, and the package's `ProtocolError` is in the console. |
 
 `FRAME_FIXTURE_SPEAKS=2` in the daemon's environment does the same as `?speaks=2` for every load, without the address saying so.

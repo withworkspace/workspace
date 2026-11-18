@@ -1,7 +1,7 @@
 import { V1 } from "@withworkspace/ui-lib/protocol";
 import { frameKeys } from "../../keys";
 import type { Host, Session } from "../frame";
-import { apiBase, frameBase } from "../paths";
+import { apiBase, frameBase, viewBase } from "../paths";
 
 // Frame protocol 1's host: ws's side of it, once the handshake has chosen
 // it. Every message it sends is checked against the protocol's own types
@@ -16,14 +16,11 @@ export function v1(port: MessagePort, host: Host): Session {
     const m: unknown = e.data;
     if (!V1.isPageMessage(m)) return;
     switch (m.type) {
-      case "ws:path":
-        host.moved(m.path);
+      case "ws:go":
+        host.go(m.path, m.replace ?? false);
         break;
       case "ws:title":
         host.titled(m.title);
-        break;
-      case "ws:open":
-        host.open(m.path);
         break;
       case "ws:key":
         host.key({ key: m.key, meta: m.meta, ctrl: m.ctrl, shift: m.shift, alt: m.alt });
@@ -35,7 +32,7 @@ export function v1(port: MessagePort, host: Host): Session {
     type: "ws:welcome",
     version: 1,
     ws: host.ws,
-    plugin: { name: host.plugin, base: frameBase(host.plugin), api: apiBase(host.plugin) },
+    plugin: { name: host.plugin, at: viewBase(host.plugin), base: frameBase(host.plugin), api: apiBase(host.plugin) },
     path: host.path(),
     theme: host.theme(),
     // Which keys are ws's is ws's to say (keys.ts, beside the shortcuts

@@ -174,6 +174,21 @@ func TestPluginShell(t *testing.T) {
 	if res := do(t, s, "GET", "/plugin-frame/fake", true, nil); res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/plugin-frame/fake/" {
 		t.Errorf("without the slash: %d to %q", res.StatusCode, res.Header.Get("Location"))
 	}
+	// Asked for as a page of its own, not in ws's frame, it's ws's page of
+	// that path: the bare shell is no use in a tab.
+	for path, want := range map[string]string{
+		"/plugin-frame/fake/things/2?tab=links": "/x/fake/things/2?tab=links",
+		"/plugin-frame/fake/":                   "/x/fake/",
+		"/plugin-frame/fake":                    "/x/fake/",
+	} {
+		res := do(t, s, "GET", path, true, func(r *http.Request) { r.Header.Set("Sec-Fetch-Dest", "document") })
+		if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != want {
+			t.Errorf("%s as a page of its own: %d to %q, want %q", path, res.StatusCode, res.Header.Get("Location"), want)
+		}
+	}
+	if res := do(t, s, "GET", "/plugin-frame/fake/things/2", true, func(r *http.Request) { r.Header.Set("Sec-Fetch-Dest", "iframe") }); res.StatusCode != http.StatusOK {
+		t.Errorf("in a frame: %d", res.StatusCode)
+	}
 	// Signed out, there's nothing of it.
 	if res := do(t, s, "GET", "/plugin-frame/fake/", false, nil); res.StatusCode != http.StatusUnauthorized {
 		t.Errorf("signed out: %d", res.StatusCode)

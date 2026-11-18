@@ -173,10 +173,13 @@ func (s *Server) pluginSocket(w http.ResponseWriter, name string) (sock string, 
 
 // pluginShell is GET /plugin-frame/{name}/{rest...}: the shell, for every
 // path under the plugin's name. Which paths the app has is the app's to
-// say, once it's loaded: so a link to somewhere deep in it, a reload, and
-// back and forward all load it there.
+// say, once it's loaded: so a link to somewhere deep in it, and a reload,
+// load it there.
 func (s *Server) pluginShell(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
+	if outsideFrame(w, r, name) {
+		return
+	}
 	if _, ok := s.pluginSocket(w, name); !ok {
 		return
 	}
@@ -204,7 +207,27 @@ func (s *Server) pluginShell(w http.ResponseWriter, r *http.Request) {
 // pluginShellRoot is GET /plugin-frame/{name}: the shell at the app's
 // first path.
 func (s *Server) pluginShellRoot(w http.ResponseWriter, r *http.Request) {
+	if outsideFrame(w, r, r.PathValue("name")) {
+		return
+	}
 	http.Redirect(w, r, FrameBase(r.PathValue("name"))+"/", http.StatusSeeOther)
+}
+
+// outsideFrame sends a shell asked for as a page of its own, not in ws's
+// frame (a relative link in the app opened in a tab, say), to the same
+// path under /x/<name>/, where ws shows it: the bare shell is no use to
+// anyone. The browser says which (Sec-Fetch-Dest); one that doesn't say is
+// given the shell.
+func outsideFrame(w http.ResponseWriter, r *http.Request, name string) bool {
+	if r.Header.Get("Sec-Fetch-Dest") != "document" {
+		return false
+	}
+	to := "/x/" + name + "/" + r.PathValue("rest")
+	if r.URL.RawQuery != "" {
+		to += "?" + r.URL.RawQuery
+	}
+	http.Redirect(w, r, to, http.StatusSeeOther)
+	return true
 }
 
 // pluginView is /plugins/{name}/{rest...}: the plugin's own HTTP, asked of
