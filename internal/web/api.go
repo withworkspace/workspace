@@ -44,6 +44,9 @@ type Workspace struct {
 	// one), as config says them: a document in one is read in Documents.
 	// Counts and folders aren't said here (GET /api/documents).
 	Spaces []SpaceRef `json:"spaces"`
+	// Version is the ws that serves it, as ws --version says it: the
+	// daemon's, which a newer ws on the path isn't until it's restarted.
+	Version string `json:"version,omitempty"`
 }
 
 // SpaceRef is a space of documents, as what links to one needs it.

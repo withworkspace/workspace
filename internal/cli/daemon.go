@@ -118,7 +118,7 @@ func newDaemonRunCmd() *cobra.Command {
 			}
 			defer pluginHost.Shutdown()
 			prs := ops.NewPRCache() // the web UI and the PR watcher share what GitHub said
-			if w := startWeb(s, prs); w != nil {
+			if w := startWeb(s, prs, cmd.Root().Version); w != nil {
 				s.WebPort = w.Info().Port
 				defer w.Close()
 			}
