@@ -103,3 +103,38 @@ func TestJobs_OneRunAtATimePerMission(t *testing.T) {
 		t.Errorf("ran %v, %d at once", ran, most)
 	}
 }
+
+// What a server before this one had marked underway on a mission, and
+// didn't live to clear, is cleared: the planner's turn went with it, and
+// the crew it was starting were never recorded. Neither lapses with time,
+// so nothing else would.
+func TestJobs_MarksLeftByAServerThatWentAreCleared(t *testing.T) {
+	ws := serverWorkspace(t, map[string][]string{"frontend": {"work"}})
+	slug := seedMission(t, ws, "Served", "")
+	store := mission.Store{Root: ws.Root}
+	if _, err := store.StartPlanning(slug, "t1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.StartLaunching(slug, "step 1"); err != nil {
+		t.Fatal(err)
+	}
+	q := &job.Queue{Run: func(j job.Job) error { return nil }}
+	reconcileJobs(ws.Root, q, t.Logf)
+	q.Wait()
+	if m, _ := store.Load(slug); m.Planning != nil || m.Launching != nil {
+		t.Errorf("still marked: planning %+v, launching %+v", m.Planning, m.Launching)
+	}
+
+	// A turn asked for that no job will have is ended: only an answer's,
+	// in that conversation.
+	store.StartPlanning(slug, "t1")
+	endPlanning(ws.Root, job.Job{Kind: job.Thread, Mission: slug, ID: "t1"})
+	endPlanning(ws.Root, job.Job{Kind: job.Answer, Mission: slug, ID: "t2"})
+	if m, _ := store.Load(slug); m.Planning == nil {
+		t.Fatal("ended by a job that wasn't its turn")
+	}
+	endPlanning(ws.Root, job.Job{Kind: job.Answer, Mission: slug, ID: "t1"})
+	if m, _ := store.Load(slug); m.Planning != nil {
+		t.Errorf("still marked after its job couldn't run: %+v", m.Planning)
+	}
+}

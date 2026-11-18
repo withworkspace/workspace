@@ -187,6 +187,17 @@ func (w *Workspace) Launch(slug string, d Dispatch, by Actor) (Launched, error) 
 		}
 		d.Harness = firstNonEmpty(d.Harness, roles.ForCrew().Harness)
 	}
+	// ws is starting crew from here: marked until they're recorded, who
+	// then hold the mark until they've their prompt (crew.Start), or
+	// until this returns without any.
+	what := ""
+	if d.Stage > 0 {
+		what = fmt.Sprintf("stage %d", d.Stage)
+		if m.Plan != nil {
+			what = fmt.Sprintf("step %d", d.Stage)
+		}
+	}
+	defer w.launching(m.Slug, what)()
 	h, err := harness.Get(d.Harness)
 	if err == nil {
 		err = h.Available()

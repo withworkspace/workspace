@@ -41,7 +41,11 @@ type Missions interface {
 }
 
 // workspaceView is what GET /api/workspace serves.
-func (s *Server) workspaceView() (Workspace, error) { return WorkspaceOf(s.App, s.Root, s.Reviews) }
+func (s *Server) workspaceView() (Workspace, error) {
+	v, err := WorkspaceOf(s.App, s.Root, s.Reviews)
+	v.Version = s.Version
+	return v, err
+}
 
 // WorkspaceOf is the workspace at root as GET /api/workspace serves it:
 // its missions with what git knows of their capsules, the pull requests
@@ -394,7 +398,7 @@ func OrchestratorRunOf(a Missions, slug, id string) (*OrchestratorRunDetail, err
 func bundleOf(slug string, b ops.BundleView, head string) Bundle {
 	out := Bundle{ID: b.ID, Step: b.StepN, StepName: b.StepName, Crew: b.Crew, By: b.By, Own: b.Own,
 		Capsule: b.Capsule, Commit: b.Commit, At: b.At, Replaces: b.Replaces, ReplacedBy: b.ReplacedBy,
-		Summary: b.Summary, NotVerified: b.NotVerified, Checks: []BundleCheck{},
+		Summary: b.Summary, NotVerified: b.NotVerified, Noticed: b.Noticed, Checks: []BundleCheck{},
 		Verdict: b.Verdict, VerdictAt: b.VerdictAt, Looked: b.Looked, Asked: b.Asked, AskedAt: b.AskedAt}
 	for _, n := range b.Notes {
 		out.Notes = append(out.Notes, BundleNote{Check: n.Check, Text: n.Text})
@@ -448,7 +452,7 @@ func bundleOf(slug string, b ops.BundleView, head string) Bundle {
 		}
 	}
 	for _, c := range b.Checks {
-		bc := BundleCheck{N: c.N, Check: c.Check, Verdict: c.Verdict, Said: c.Said, Lines: c.Lines, Try: tries(c.Try), Asks: c.Asks}
+		bc := BundleCheck{N: c.N, Check: c.Check, Verdict: c.Verdict, Said: c.Said, Points: c.Points, Lines: c.Lines, Try: tries(c.Try), Asks: c.Asks}
 		for _, e := range c.Shows {
 			bc.Shows = append(bc.Shows, evidence(e))
 		}

@@ -65,6 +65,7 @@ func spawnAnswer(kind string) func(root, slug, id string) {
 	return func(root, slug, id string) {
 		if err := startJob(root, job.Job{Kind: kind, Mission: slug, ID: id}); err != nil {
 			execlog.Note(root, kind+" "+firstNonEmpty(slug, "workspace")+"/"+id, "couldn't start: %v", err)
+			endPlanning(root, job.Job{Kind: kind, Mission: slug, ID: id})
 		}
 	}
 }
@@ -96,6 +97,7 @@ func runJob(root string) func(job.Job) error {
 	return func(j job.Job) error {
 		ctx, err := LoadOps(root)
 		if err != nil {
+			endPlanning(root, j)
 			return err
 		}
 		switch j.Kind {
@@ -121,11 +123,23 @@ func runJob(root string) func(job.Job) error {
 	}
 }
 
+// endPlanning ends the planner's turn a job was to have, when the job
+// won't run: the mark was set as the turn was asked for (ops), and the run
+// that would have ended it never began. It's nothing for a job that isn't
+// an answer in a mission's planner's conversation.
+func endPlanning(root string, j job.Job) {
+	if j.Kind == job.Answer && j.Mission != "" {
+		mission.Store{Root: root}.EndPlanning(j.Mission, j.ID) //nolint:errcheck // a mark
+	}
+}
+
 // reconcileJobs is what's left of jobs a server before this one was
 // running when it went: an orchestrator's run still marked underway is
 // taken again, as its event wasn't; a conversation's answer is taken up
 // again the next time it's said to (an answering mark whose server's gone
-// counts for nothing).
+// counts for nothing). What that server had marked underway on a mission
+// and didn't live to clear is cleared: the planner's turn, whose run went
+// with it, and crew it was starting and hadn't recorded.
 func reconcileJobs(root string, q *job.Queue, logf func(string, ...any)) {
 	missions, err := mission.Store{Root: root}.InPlay()
 	if err != nil {
@@ -137,6 +151,14 @@ func reconcileJobs(root string, q *job.Queue, logf func(string, ...any)) {
 		if st, crewID, ok := m.UncheckedDone(brief); ok {
 			logf("%s's done at step %d of %s wasn't checked: checking it", crewID, st.N, m.Slug)
 			q.Start(job.Job{Kind: job.Check, Mission: m.Slug, ID: crewID})
+		}
+		if m.Planning != nil {
+			logf("the planner's turn in %s of %s was underway when the server before this one went: it's over", m.Planning.In, m.Slug)
+			mission.Store{Root: root}.EndPlanning(m.Slug, m.Planning.In)
+		}
+		if m.Launching != nil {
+			logf("crew were being started on %s when the server before this one went: they weren't", m.Slug)
+			mission.Store{Root: root}.EndLaunching(m.Slug, *m.Launching)
 		}
 		if m.Orchestrating == nil {
 			continue

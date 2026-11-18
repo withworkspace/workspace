@@ -17,6 +17,9 @@ import (
 // starts it: the plan's first step is reached. A mission without a plan
 // waits for its crew to be launched. It says what it did.
 func (w *Workspace) ConfirmBrief(slug string, by Actor) (string, error) {
+	// Starting its first step's crew is marked before it's confirmed: at
+	// no moment is it confirmed with nobody on it.
+	defer w.launchingOnConfirm(slug)(slug)
 	if err := w.Missions.Confirm(slug, by.By()); err != nil {
 		if errors.Is(err, mission.ErrConfirmed) {
 			return "", refused("confirmed", "%v", err)

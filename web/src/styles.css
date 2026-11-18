@@ -1192,6 +1192,87 @@ main > .banner {
   margin-left: auto;
 }
 
+/* Its foot: what this is, and which. The logotype, small, and the version
+   of ws that serves the page, under a rule. Not an item. */
+.workspace-menu-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border-top: 1px solid var(--line);
+}
+
+.workspace-menu-version {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--text-xs) / 1 var(--mono);
+  color: var(--faint);
+}
+
+/* The logotype, as brand draws it: "work" in ink (white on a dark
+   ground), "space" in the wordmark's run for the ground. On a light one
+   that's --brand-1..3. On a dark one brand draws it lighter and through
+   to a warm yellow: four steps from --brand-1, as --brand-2 and 3 are,
+   which for the default pick are brand's own colours. Its box is tight to
+   the ink, so beside text it sits a little low: lifted by its descender. */
+.logotype-light-1 {
+  stop-color: var(--brand-1);
+}
+
+.logotype-light-2 {
+  stop-color: var(--brand-2);
+}
+
+.logotype-light-3 {
+  stop-color: var(--brand-3);
+}
+
+.logotype-dark-1 {
+  stop-color: oklch(from var(--brand-1) calc(l + 0.203) calc(c * 0.816) calc(h + 1));
+}
+
+.logotype-dark-2 {
+  stop-color: oklch(from var(--brand-1) calc(l + 0.318) calc(c * 0.426) calc(h + 9.9));
+}
+
+.logotype-dark-3 {
+  stop-color: oklch(from var(--brand-1) calc(l + 0.387) calc(c * 0.171) calc(h + 117.7));
+}
+
+.logotype-dark-4 {
+  stop-color: oklch(from var(--brand-1) calc(l + 0.337) calc(c * 0.465) calc(h + 154.5));
+}
+
+.logotype {
+  display: block;
+  flex: none;
+  width: auto;
+  translate: 0 8%;
+}
+
+.logotype-work {
+  fill: #0d0b1e;
+}
+
+.logotype .on-dark {
+  display: none;
+}
+
+[data-theme="dark"] .logotype-work {
+  fill: #fff;
+}
+
+[data-theme="dark"] .logotype .on-light {
+  display: none;
+}
+
+[data-theme="dark"] .logotype .on-dark {
+  display: inline;
+}
+
 .menu-separator {
   height: 1px;
   margin: 4px 2px;
@@ -6312,6 +6393,14 @@ button.verify-big {
 
 .verify-said {
   max-width: 72ch;
+}
+
+.verify-points {
+  margin: 0;
+  padding-left: 18px;
+  max-width: 72ch;
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .verify-judged {

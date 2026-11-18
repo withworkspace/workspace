@@ -44,6 +44,9 @@ type Workspace struct {
 	// one), as config says them: a document in one is read in Documents.
 	// Counts and folders aren't said here (GET /api/documents).
 	Spaces []SpaceRef `json:"spaces"`
+	// Version is the ws that serves it, as ws --version says it: the
+	// daemon's, which a newer ws on the path isn't until it's restarted.
+	Version string `json:"version,omitempty"`
 }
 
 // SpaceRef is a space of documents, as what links to one needs it.
@@ -270,6 +273,8 @@ type Bundle struct {
 	Try         []BundleTry   `json:"try,omitempty"`
 	Checks      []BundleCheck `json:"checks"`
 	NotVerified []string      `json:"notVerified,omitempty"`
+	// Noticed is what its crew came across that isn't one of its checks.
+	Noticed []string `json:"noticed,omitempty"`
 	// Ran are its step's checks that are commands, as ws last ran them in
 	// its capsule at its commit.
 	Ran []BundleRan `json:"ran,omitempty"`
@@ -297,6 +302,7 @@ type BundleCheck struct {
 	Check   string           `json:"check,omitempty"` // the step's, "" for one of the bundle's own
 	Verdict string           `json:"verdict"`         // met, unmet, can't tell
 	Said    string           `json:"said"`
+	Points  []string         `json:"points,omitempty"` // facts of the same kind, listed under what it said
 	Shows   []BundleEvidence `json:"shows,omitempty"`
 	Lines   []string         `json:"lines,omitempty"`
 	Try     []BundleTry      `json:"try,omitempty"`

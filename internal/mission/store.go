@@ -258,6 +258,11 @@ func (s Store) StartCrewOn(slug, harness, model, conversation, role string) (Cre
 			Started:      now(),
 			Role:         role,
 		}
+		if m.Launching != nil {
+			// The crew ws was starting: recorded, they hold the mark.
+			t := crew.Started
+			crew.Starting, m.Launching = &t, nil
+		}
 		m.Crew = append(m.Crew, crew)
 		m.Waiting = nil
 		return nil
@@ -317,6 +322,7 @@ func (s Store) endCrew(slug, id, exit string, stopped, interrupted bool) error {
 				done = m.Crew[i].Status == CrewDone
 				t := now()
 				m.Crew[i].Ended = &t
+				m.Crew[i].Starting = nil
 				m.Crew[i].Exit = exit
 				m.Crew[i].Stopped = stopped
 				m.Crew[i].Interrupted = interrupted
@@ -377,6 +383,11 @@ func (s Store) ResumeCrew(slug, id string) (Crew, error) {
 				m.Crew[i].PID = 0
 				m.Crew[i].Pending = nil // a new session waits on nothing yet
 				m.Crew[i].Status, m.Crew[i].Note, m.Crew[i].StatusAt = "", "", nil
+				if m.Launching != nil {
+					// The crew ws was starting again: they hold the mark.
+					t := now()
+					m.Crew[i].Starting, m.Launching = &t, nil
+				}
 				crew, found = m.Crew[i], true
 			}
 		}
@@ -612,6 +623,9 @@ func (s Store) Rename(old, slug string) error {
 		if err != nil {
 			return err
 		}
+		// A turn of the planner's underway was begun under the old slug,
+		// and can't record its reply under this one: its mark goes.
+		m.Planning = nil
 		if err := s.keep(tx, m); err != nil {
 			return err
 		}
@@ -637,6 +651,7 @@ func (s Store) SetCrewStatus(slug, id, status, note string) error {
 			if m.Crew[i].ID == id {
 				t := now()
 				m.Crew[i].Status, m.Crew[i].Note, m.Crew[i].StatusAt = status, note, &t
+				m.Crew[i].Starting = nil // it's said something: it's started
 				found = true
 			}
 		}
@@ -926,6 +941,79 @@ func (s Store) EndOrchestrating(slug string, r OrchestratorRun) error {
 	return err
 }
 
+// StartLaunching marks ws starting crew on a mission, for what ("step 3",
+// or ""): from now until the crew are recorded, which take the mark over
+// (StartCrewOn, ResumeCrew), or EndLaunching says none were. One underway
+// already stands, and is returned: a step reached and the launch it makes
+// are one start.
+func (s Store) StartLaunching(slug, what string) (Launching, error) {
+	l := Launching{What: what, Since: now()}
+	_, err := s.Update(slug, func(m *Mission) error {
+		if m.Launching != nil {
+			l = *m.Launching
+			return nil
+		}
+		m.Launching = &l
+		return nil
+	})
+	return l, err
+}
+
+// EndLaunching ends the mark l, if it still stands: no crew were recorded
+// under it (the launch was refused, failed, or queued for you instead).
+func (s Store) EndLaunching(slug string, l Launching) error {
+	_, err := s.Update(slug, func(m *Mission) error {
+		if o := m.Launching; o != nil && o.Since.Equal(l.Since) {
+			m.Launching = nil
+		}
+		return nil
+	})
+	return err
+}
+
+// CrewStarted records that ws has finished starting crew: it's handed
+// them their prompt, or there was none to hand them. They're no longer
+// starting.
+func (s Store) CrewStarted(slug, id string) error {
+	_, err := s.Update(slug, func(m *Mission) error {
+		for i := range m.Crew {
+			if m.Crew[i].ID == id {
+				m.Crew[i].Starting = nil
+			}
+		}
+		return nil
+	})
+	return err
+}
+
+// StartPlanning marks a turn of the planner's underway in its conversation
+// in, as ws asks for it. One underway there already stands: what's said
+// while it answers is answered in the same turn.
+func (s Store) StartPlanning(slug, in string) (PlannerTurn, error) {
+	t := PlannerTurn{In: in, Since: now()}
+	_, err := s.Update(slug, func(m *Mission) error {
+		if m.Planning != nil && m.Planning.In == in {
+			t = *m.Planning
+			return nil
+		}
+		m.Planning = &t
+		return nil
+	})
+	return t, err
+}
+
+// EndPlanning ends the planner's turn in in: its reply's recorded, or the
+// run that was to have it is over without one.
+func (s Store) EndPlanning(slug, in string) error {
+	_, err := s.Update(slug, func(m *Mission) error {
+		if m.Planning != nil && m.Planning.In == in {
+			m.Planning = nil
+		}
+		return nil
+	})
+	return err
+}
+
 // ErrDispatchLimit is returned when the orchestrator has dispatched as many
 // crew in a row as it may without the user.
 var ErrDispatchLimit = errors.New("dispatch limit reached")
@@ -1046,6 +1134,9 @@ func (s Store) CrewHook(slug, id string, h Hook) error {
 			// permission prompt, and the notification that follows says
 			// only that: the question says more.
 			aboutQuestion := c.Activity == ActivityQuestion && h.Activity == ActivityPermission
+			if h.Prompted || h.Activity != "" {
+				c.Starting = nil // its first activity: it's started
+			}
 			switch {
 			case h.Prompted:
 				c.Activity, c.ActivityAt, c.Notice, c.Options = ActivityWorking, &t, "", nil
