@@ -989,11 +989,9 @@ main > .banner {
 }
 
 /* The logotype, as brand draws it: "work" in ink (white on a dark
-   ground), "space" in the wordmark's run for the ground. On a light one
-   that's --brand-1..3. On a dark one brand draws it lighter and through
-   to a warm yellow: four steps from --brand-1, as --brand-2 and 3 are,
-   which for the default pick are brand's own colours. Its box is tight to
-   the ink, so beside text it sits a little low: lifted by its descender. */
+   ground), "space" in the wordmark's run for the ground: --brand-1..3 on a
+   light one, --brand-on-dark-1..4 on a dark one. Its box is tight to the
+   ink, so beside text it sits a little low: lifted by its descender. */
 .logotype-light-1 {
   stop-color: var(--brand-1);
 }
@@ -1007,19 +1005,19 @@ main > .banner {
 }
 
 .logotype-dark-1 {
-  stop-color: oklch(from var(--brand-1) calc(l + 0.203) calc(c * 0.816) calc(h + 1));
+  stop-color: var(--brand-on-dark-1);
 }
 
 .logotype-dark-2 {
-  stop-color: oklch(from var(--brand-1) calc(l + 0.318) calc(c * 0.426) calc(h + 9.9));
+  stop-color: var(--brand-on-dark-2);
 }
 
 .logotype-dark-3 {
-  stop-color: oklch(from var(--brand-1) calc(l + 0.387) calc(c * 0.171) calc(h + 117.7));
+  stop-color: var(--brand-on-dark-3);
 }
 
 .logotype-dark-4 {
-  stop-color: oklch(from var(--brand-1) calc(l + 0.337) calc(c * 0.465) calc(h + 154.5));
+  stop-color: var(--brand-on-dark-4);
 }
 
 .logotype {
