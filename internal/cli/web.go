@@ -109,8 +109,9 @@ func openBrowser(url string) error {
 
 // startWeb runs the web UI inside the daemon. A web UI that can't
 // start leaves the daemon running without one.
-func startWeb(s *daemon.Server, prs *ops.PRCache) *web.Server {
+func startWeb(s *daemon.Server, prs *ops.PRCache, version string) *web.Server {
 	w := newWeb(s, prs)
+	w.Version = version
 	if err := w.Start(); err != nil {
 		s.Log.Printf("no web UI: %v", err)
 		return nil

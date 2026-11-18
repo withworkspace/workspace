@@ -20,6 +20,7 @@ export interface Workspace {
   // reviews: how many pull requests need you, as GitHub last said; absent
   // until the Reviews page has been opened, or where there's no GitHub.
   reviews?: { count: number; at: string };
+  version?: string; // the ws that serves it (its daemon's), as ws --version says it
 }
 
 export interface Mission {
