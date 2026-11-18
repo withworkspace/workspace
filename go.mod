@@ -20,7 +20,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/spf13/cobra v1.10.2
-	github.com/withworkspace/plugin v0.2.0
+	github.com/withworkspace/plugin v0.2.1-0.20261118122309-2c792a792c96
 	golang.org/x/sys v0.49.0
 	golang.org/x/term v0.47.0
 )
@@ -62,5 +62,3 @@ require (
 	modernc.org/memory v1.12.1 // indirect
 	modernc.org/sqlite v1.62.0 // indirect
 )
-
-replace github.com/withworkspace/plugin => ../../plugin/negotiated-protocol
