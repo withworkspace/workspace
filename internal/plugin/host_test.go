@@ -15,9 +15,11 @@ import (
 
 	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/plugin/fakeplugin"
+	"github.com/withworkspace/workspace/internal/plugin/kitplugin"
 )
 
 func TestMain(m *testing.M) {
+	kitplugin.RunIfAsked()
 	fakeplugin.RunIfAsked()
 	os.Exit(m.Run())
 }
