@@ -4,13 +4,14 @@ import { useHoverDelay } from "../ui/hover";
 import { Icon } from "../ui/Icon";
 import { useRefs, useRefsWorkspace } from "./known";
 import { goneCapsule, RefCard } from "./RefCard";
-import { GROUND, type PageRef, refHref, refName, refOf } from "./refs";
+import { GROUND, isOutside, type PageRef, refHref, refName, refOf } from "./refs";
 import { lookOf } from "./views";
 
 // RefTag is a ref where something's only read (a conversation, a thread,
 // a pass, a handoff), drawn as its kind's Look says (views.tsx): its words
 // or a pill, with where it stands after them, and its card on hover. A
-// click goes there. words is a link
+// click goes there: in ws, or, for a plugin's thing with nowhere to open
+// in ws, to its address outside, in a tab of its own. words is a link
 // whose words are the writer's own (the auth config), not the thing's name:
 // they're kept, with the kind's icon before them.
 //
@@ -25,12 +26,14 @@ export function RefTag({ refKey, words, inline, children }: { refKey: string; wo
   const known = refs?.known;
   const r = refOf(refKey);
   if (!r || !workspace) return <>{children}</>;
-  const look = lookOf(r, { workspace, repos: refs?.repos ?? new Map() });
+  const look = lookOf(r, { workspace, repos: refs?.repos ?? new Map(), things: known?.things });
   // A link whose words are the ref's name is drawn as the ref.
   const said = typeof children === "string" ? children : Array.isArray(children) && children.every((c) => typeof c === "string") ? children.join("") : undefined;
   words = words && said !== refName(r);
   // A capsule that's gone: its file's on the default branch now, most likely.
   const to: PageRef = (r.kind === "file" || r.kind === "dir") && goneCapsule(r, known) ? { ...r, worktree: GROUND } : r;
+  const href = refHref(to, known);
+  const outside = isOutside(href);
   const { label, tone } = (!inline && look.after) || {};
   // Its own text in place of its name, unless the words are the writer's.
   const text = !words && look.text ? look.text : undefined;
@@ -60,13 +63,18 @@ export function RefTag({ refKey, words, inline, children }: { refKey: string; wo
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            navigate(refHref(to, refs?.known));
+            if (outside) window.open(href, "_blank", "noopener,noreferrer");
+            else navigate(href);
           }}
         >
           {inside}
         </span>
+      ) : outside ? (
+        <a href={href} target="_blank" rel="noreferrer" {...props}>
+          {inside}
+        </a>
       ) : (
-        <Link to={refHref(to, refs?.known)} {...props}>
+        <Link to={href} {...props}>
           {inside}
         </Link>
       )}

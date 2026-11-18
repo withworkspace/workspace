@@ -18,6 +18,7 @@ import (
 
 	"charm.land/huh/v2"
 	"github.com/spf13/cobra"
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/github"
@@ -40,7 +41,11 @@ var pluginHost *plugin.Host
 
 // newPluginHost is the daemon's host for the workspace's plugins.
 func newPluginHost(s *daemon.Server, version string) *plugin.Host {
-	return &plugin.Host{Root: s.Root, Version: version, Log: s.Log, Hold: s.Hold, Reserved: reservedWord}
+	return &plugin.Host{Root: s.Root, Version: version, Log: s.Log, Hold: s.Hold, Reserved: reservedWord,
+		// How a plugin's things are named is kept in the workspace's
+		// records, by the plugin: names are found from there.
+		Keep: func(name string, refs []protocol.Ref) ([]string, error) { return plugin.KeepRefs(s.Root, name, refs) },
+	}
 }
 
 // reservedWord says whether a word after ws is one of ws's own commands,
@@ -468,6 +473,17 @@ func pluginNote(st plugin.Status) string {
 			notes = append(notes, "sync "+name+" failed: "+s.Error)
 		}
 	}
+	// How its things are named, and what of that ws left out.
+	var names []string
+	for _, r := range st.Registration.Refs {
+		for _, p := range r.Prefixes {
+			names = append(names, p+"…")
+		}
+	}
+	if len(names) > 0 {
+		notes = append(notes, "names "+strings.Join(names, ", "))
+	}
+	notes = append(notes, st.Refused...)
 	if st.Linked != "" {
 		notes = append(notes, "linked to "+st.Linked)
 	}
@@ -494,7 +510,10 @@ func newPluginRemoveCmd() *cobra.Command {
 		Short:   "Remove a plugin from the workspace",
 		Long: `Stops a plugin and removes it. What it kept for itself (its data folder)
 and its secrets stay unless --data is given, so adding it again picks up
-where it was. Its config in ws.toml and ws.local.toml is yours to remove.`,
+where it was. Its config in ws.toml and ws.local.toml is yours to remove.
+
+What ws kept of it goes with it: its things' names (RAM-123) are words
+again, wherever they're written.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
@@ -509,6 +528,11 @@ where it was. Its config in ws.toml and ws.local.toml is yours to remove.`,
 			}
 			if err := plugin.Remove(root, args[0], data); err != nil {
 				return err
+			}
+			// What ws kept of it in its records goes with it: how its
+			// things are named, and anything of its in the graph.
+			if err := plugin.Forget(root, args[0]); err != nil {
+				return fmt.Errorf("%s is removed, but what ws kept of it in its records isn't forgotten: %w", args[0], err)
 			}
 			fmt.Fprintf(ui.Stdout, "Removed %s\n", args[0])
 			return nil

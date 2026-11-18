@@ -296,11 +296,40 @@ export interface Plugin {
   error?: string;
   missing?: string[];
   views: PluginView[];
+  // refs are the kinds of thing it has that words name, as ws took them.
+  refs?: PluginRef[];
   // changed counts the times it's said what its view shows is stale.
   changed: number;
   // starts counts the times it's been started.
   starts: number;
 }
+
+// PluginRef is a kind of thing a plugin has that words name (a Jira
+// issue), and how one is named: one of prefixes, then its tail (a number,
+// when it doesn't say). address is where one is outside ws and path where
+// one opens in the plugin's app, {ref} its name in each.
+export interface PluginRef {
+  kind: string; // the plugin's word for it: issue
+  title?: string; // what ws calls one: Jira issue
+  icon?: string;
+  prefixes: string[];
+  tail?: string;
+  address?: string;
+  path?: string;
+}
+
+// PluginThing is one of a plugin's things, as the plugin says it is now:
+// what a card says of it.
+export interface PluginThing {
+  title: string;
+  state?: string; // where it stands, in the plugin's words: In Progress
+  fields?: { label: string; value: string }[];
+}
+
+// getPluginThing asks a plugin for one of its things, by its kind and
+// name. One it has none of is an ApiError with status 404.
+export const getPluginThing = (plugin: string, kind: string, ref: string) =>
+  getJSON<PluginThing>(`/api/plugins/${encodeURIComponent(plugin)}/refs/${encodeURIComponent(kind)}/${encodeURIComponent(ref)}`);
 
 export interface PluginView {
   title: string;

@@ -441,6 +441,7 @@ func (s *Server) Handler() http.Handler {
 	// Plugins: what they add, the page ws serves for one's app (the
 	// shell), and each one's own HTTP (asked of the plugin).
 	mux.HandleFunc("GET /api/plugins", s.pluginsList)
+	mux.HandleFunc("GET /api/plugins/{name}/refs/{kind}/{ref}", s.pluginThing)
 	mux.HandleFunc("GET /plugin-frame/{name}", s.pluginShellRoot)
 	mux.HandleFunc("GET /plugin-frame/{name}/{rest...}", s.pluginShell)
 	mux.HandleFunc("/plugins/{name}", s.pluginRoot)

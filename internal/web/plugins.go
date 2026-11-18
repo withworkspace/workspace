@@ -49,12 +49,43 @@ type Plugin struct {
 	Error   string       `json:"error,omitempty"`
 	Missing []string     `json:"missing,omitempty"`
 	Views   []PluginView `json:"views"`
+	// Refs are how its things are named, as ws keeps them (plugin.Refs):
+	// what the web UI finds its names by, running or not.
+	Refs []PluginRef `json:"refs,omitempty"`
 	// Changed counts the times it's said what its view shows is stale: an
 	// app showing it is told when it moves.
 	Changed uint64 `json:"changed"`
 	// Starts counts the times it's been started: a page showing its view
 	// loads its app again when it moves.
 	Starts uint64 `json:"starts"`
+}
+
+// PluginRef is a kind of thing a plugin has that words name, and how one
+// is named: one of Prefixes, then its Tail (a number, when it doesn't
+// say). Address is where one is outside ws and Path where one opens in
+// the plugin's app, {ref} its name in each.
+type PluginRef struct {
+	Kind     string   `json:"kind"`
+	Title    string   `json:"title,omitempty"`
+	Icon     string   `json:"icon,omitempty"`
+	Prefixes []string `json:"prefixes"`
+	Tail     string   `json:"tail,omitempty"`
+	Address  string   `json:"address,omitempty"`
+	Path     string   `json:"path,omitempty"`
+}
+
+// PluginThing is one of a plugin's things, as the plugin says it is now:
+// what the card under its name says.
+type PluginThing struct {
+	Title  string             `json:"title"`
+	State  string             `json:"state,omitempty"`
+	Fields []PluginThingField `json:"fields,omitempty"`
+}
+
+// PluginThingField is one thing said of a thing: Assignee, Dana.
+type PluginThingField struct {
+	Label string `json:"label"`
+	Value string `json:"value"`
 }
 
 // PluginView is an entry a plugin adds to the sidebar.
@@ -70,8 +101,18 @@ type PluginView struct {
 func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
 	out := []Plugin{}
 	if s.Plugins != nil {
-		for _, st := range s.Plugins.Statuses() {
-			p := Plugin{Name: st.Name, Description: st.Registration.Description, State: string(st.State), Error: st.Error, Missing: st.Missing, Views: []PluginView{}, Changed: st.Changed, Starts: st.Starts}
+		statuses := s.Plugins.Statuses()
+		// How each one's things are named, read once for them all: none
+		// to read with no plugins.
+		refs := map[string][]PluginRef{}
+		if len(statuses) > 0 {
+			kept, _ := plugin.Refs(s.Plugins.Root)
+			for _, k := range kept {
+				refs[k.Plugin] = append(refs[k.Plugin], PluginRef{Kind: k.Kind, Title: k.Title, Icon: k.Icon, Prefixes: k.Prefixes, Tail: k.Tail, Address: k.Address, Path: k.Path})
+			}
+		}
+		for _, st := range statuses {
+			p := Plugin{Refs: refs[st.Name], Name: st.Name, Description: st.Registration.Description, State: string(st.State), Error: st.Error, Missing: st.Missing, Views: []PluginView{}, Changed: st.Changed, Starts: st.Starts}
 			for _, v := range st.Registration.Views {
 				path := v.Path
 				if path == "" {
@@ -81,6 +122,32 @@ func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
 			}
 			out = append(out, p)
 		}
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// pluginThing is GET /api/plugins/{name}/refs/{kind}/{ref}: what a plugin
+// says one of its things is, for the card under its name. 404 is the
+// plugin having none by that name; anything else is the plugin not being
+// there to ask.
+func (s *Server) pluginThing(w http.ResponseWriter, r *http.Request) {
+	name, kind, ref := r.PathValue("name"), r.PathValue("kind"), r.PathValue("ref")
+	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
+		jsonError(w, http.StatusBadGateway, "there's no plugin called "+name)
+		return
+	}
+	shown, err := s.Plugins.Show(r.Context(), name, kind, ref, false)
+	switch {
+	case errors.Is(err, plugin.ErrNoThing):
+		jsonError(w, http.StatusNotFound, err.Error())
+		return
+	case err != nil:
+		jsonError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	out := PluginThing{Title: shown.Title, State: shown.State}
+	for _, f := range shown.Fields {
+		out.Fields = append(out.Fields, PluginThingField{Label: f.Label, Value: f.Value})
 	}
 	writeJSON(w, http.StatusOK, out)
 }

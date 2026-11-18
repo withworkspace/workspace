@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -48,6 +49,21 @@ func run() {
 	p.View("Board", plugin.Icon("kanban"), plugin.At("/board"))
 	p.HandleFunc("GET /api/greeting", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"greeting": greeting.Get()}) //nolint:errcheck // to a test
+	})
+	// Its things, named KIT-1 and so on (or as its config says): the one
+	// it has is KIT-1.
+	prefixes := p.Config.List("prefixes", "What its things' names start with", plugin.Default([]string{"KIT-"}))
+	p.Setup(func() {
+		p.Ref("thing", "Kit thing", func(_ context.Context, a plugin.Asked) (plugin.Shown, error) {
+			if _, n, _ := strings.Cut(a.Name, "-"); n != "1" {
+				return plugin.Shown{}, plugin.ErrNotFound
+			}
+			md := "It says hello."
+			if a.Full {
+				md += "\n\nAnd, in full, goodbye."
+			}
+			return plugin.Shown{Title: "The first thing", State: "Open", Fields: []plugin.Field{{Label: "Owner", Value: "Dana"}}, Markdown: md}, nil
+		}).Prefix(prefixes.Get()...).Address("https://kit.example/things/{ref}").Opens("/thing/{ref}").Icon("box")
 	})
 	p.Guide("Use `ws kit hi` to be greeted.", "crew")
 	p.Sync("things", time.Hour, func(ctx context.Context) error { return nil })

@@ -106,7 +106,36 @@ func main() {
 					"subcommands": []map[string]string{{"name": "poke", "short": "Say what the view shows is stale: the open app is told (ws:changed)"}},
 				},
 				"agent": map[string]any{"guide": "`ws frame-fixture poke` tells the fixture's open app that what it shows is stale. It's for trying ws's plugin frame by hand: there's nothing in it for a mission."},
+				// How its things are named: THING-2 is the Lantern, wherever
+				// it's written in ws. ws asks what one is with ref/show.
+				"refs": []map[string]any{{
+					"kind": "thing", "title": "Fixture thing", "icon": "box", "prefixes": []string{"THING-"},
+					"address": "https://fixture.example/things/{ref}", "path": "/things/{ref}",
+				}},
 			}}, nil
+		case "ref/show":
+			var p struct {
+				Kind, Ref string
+				Full      bool
+			}
+			if err := json.Unmarshal(params, &p); err != nil {
+				return nil, err
+			}
+			for _, t := range things {
+				if p.Kind != "thing" || p.Ref != "THING-"+itoa(int64(t.ID)) {
+					continue
+				}
+				md := t.Note
+				if p.Full {
+					md += "\n\nThat's all the fixture has of it."
+				}
+				return map[string]any{
+					"title": t.Name, "state": "On the shelf",
+					"fields":   []map[string]string{{"label": "Number", "value": itoa(int64(t.ID))}},
+					"markdown": md,
+				}, nil
+			}
+			return nil, &acp.RPCError{Code: -32001, Message: "the fixture has no " + p.Ref}
 		case "command/run":
 			var p struct {
 				ID   string   `json:"id"`

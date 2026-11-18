@@ -139,7 +139,7 @@ export function App() {
         {error && <div className="banner">{error.message}</div>}
         {!workspace && !error && <Loading what="Opening the workspace…" />}
         {workspace && (
-          <RefsProvider workspace={workspace}>
+          <RefsProvider workspace={workspace} plugins={plugins}>
             <Routes>
               <Route path="/" element={<MissionList missions={workspace.missions} />} />
               <Route path="/missions/:slug" element={<MissionPage workspace={workspace} />} />

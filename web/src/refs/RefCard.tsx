@@ -1,19 +1,38 @@
 import { Link } from "react-router";
 import { useLoaded } from "../load";
 import { artifactStatus, byWords } from "../artifacts/shown";
-import { type ArtifactDetail, type FileTree, type FileView, getArtifactDetail, type Repo, getFile, getPR, getTree, getWorktrees, type PR, type Workspace, type Worktree, worktreeAPI } from "../api";
+import {
+  ApiError,
+  type ArtifactDetail,
+  type FileTree,
+  type FileView,
+  getArtifactDetail,
+  type Repo,
+  getFile,
+  getPluginThing,
+  getPR,
+  getTree,
+  getWorktrees,
+  type PluginThing,
+  type PR,
+  type Workspace,
+  type Worktree,
+  worktreeAPI,
+} from "../api";
 import { highlightCode, languageOf, useHighlighter } from "../review/highlight";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { headlineStatus, Status } from "../ui/status";
 import { useRefs } from "./known";
-import { GROUND, type Known, type PageRef, refHref } from "./refs";
+import { GROUND, isOutside, type Known, namedOf, type PageRef, refHref } from "./refs";
+import { thingIcon } from "./views";
 import { FloatingCard } from "../ui/hover";
 
 // RefCard says more about what words name, under them while the
 // pointer's there: a file's lines, a pull request's title and where it
 // stands, a mission's headline, another page, a conversation, an
-// artifact's version and its note. Each has somewhere to go.
+// artifact's version and its note, a plugin's thing as its plugin says it
+// is. Each has somewhere to go.
 
 // What's been read for cards, kept while the page is open: a file's lines,
 // a pull request.
@@ -52,6 +71,24 @@ const artifactOf = (id: string, versions: number) => {
     got = getArtifactDetail(id);
     artifacts.set(key, got);
     got.catch(() => artifacts.delete(key));
+  }
+  return got;
+};
+
+// What plugins have said of their things, kept while the page is open:
+// null is one its plugin has none of. That, and a plugin that couldn't be
+// asked, are asked again the next time.
+const things = new Map<string, Promise<PluginThing | null>>();
+const thingOf = (plugin: string, what: string, id: string) => {
+  const key = `${plugin}\n${what}\n${id}`;
+  let got = things.get(key);
+  if (!got) {
+    got = getPluginThing(plugin, what, id).catch((e: unknown) => {
+      things.delete(key);
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    });
+    things.set(key, got);
   }
   return got;
 };
@@ -293,6 +330,55 @@ function ArtifactCard({ r, workspace }: { r: Extract<PageRef, { kind: "artifact"
   );
 }
 
+// ThingCard is a plugin's thing (a Jira issue): what kind of thing it is
+// and its name, and what its plugin says of it now: its title, where it
+// stands, and whatever else it gives in a line each. It goes where a
+// click on its name does.
+function ThingCard({ r, known }: { r: Extract<PageRef, { kind: "thing" }>; known?: Known }) {
+  const named = namedOf(r, known);
+  const { value: thing, error } = useLoaded(() => thingOf(r.plugin, r.what, r.id), [r.plugin, r.what, r.id]);
+  const what = r.what.replace(/-/g, " ");
+  const href = refHref(r, known);
+  return (
+    <>
+      <span className="hovercard-head">
+        <Icon name={thingIcon(named)} size={13} className="dim" />
+        <span className="hovercard-title">{thing?.title || r.id}</span>
+      </span>
+      <span className="hovercard-line dim">
+        {named?.title || `${r.plugin} ${what}`} {r.id}
+        {thing?.state && <span className="chip tone-quiet">{thing.state}</span>}
+      </span>
+      {thing?.fields?.map((f, i) => (
+        <span key={i} className="hovercard-line dim">
+          {f.label}: {f.value}
+        </span>
+      ))}
+      {thing === null && (
+        <span className="hovercard-line dim">
+          {r.plugin} has no {what} called {r.id}.
+        </span>
+      )}
+      {error && (
+        <span className="hovercard-line dim">
+          {r.plugin} couldn't be asked about it: {error}
+        </span>
+      )}
+      {thing === undefined && !error && <span className="hovercard-line dim">Asking {r.plugin}…</span>}
+      {/* One that isn't there has nowhere to go. */}
+      {thing === null ? null : isOutside(href) ? (
+        <a href={href} target="_blank" rel="noreferrer" className="hovercard-link">
+          Open the {what} <Icon name="external" size={11} />
+        </a>
+      ) : (
+        <Link to={href} className="hovercard-link">
+          Open the {what} <Icon name="arrow-right" size={11} />
+        </Link>
+      )}
+    </>
+  );
+}
+
 function body(r: PageRef, workspace: Workspace, known?: Known, repos?: Map<string, Repo>) {
   switch (r.kind) {
     case "file":
@@ -368,6 +454,8 @@ function body(r: PageRef, workspace: Workspace, known?: Known, repos?: Map<strin
     }
     case "artifact":
       return <ArtifactCard r={r} workspace={workspace} />;
+    case "thing":
+      return <ThingCard r={r} known={known} />;
   }
 }
 

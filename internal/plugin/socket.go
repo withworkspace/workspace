@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/acp"
 )
 
@@ -39,6 +40,17 @@ type outputParams struct {
 type nameParams struct {
 	Name string `json:"name"`
 }
+
+type showParams struct {
+	Name string `json:"name"`
+	Kind string `json:"kind"`
+	Ref  string `json:"ref"`
+	Full bool   `json:"full,omitempty"`
+}
+
+// codeNoThing is the daemon's answer for a thing a plugin hasn't:
+// ErrNoThing, across the socket.
+const codeNoThing = protocol.CodeNotFound
 
 // Listen binds the socket commands reach the workspace's plugins through.
 func (h *Host) Listen() (net.Listener, error) {
@@ -92,6 +104,19 @@ func (h *Host) serve(nc net.Conn) {
 			return map[string]int{"exit": exit}, nil
 		case "list":
 			return h.Statuses(), nil
+		case "show":
+			var p showParams
+			if err := json.Unmarshal(params, &p); err != nil || !ValidName(p.Name) {
+				return nil, &acp.RPCError{Code: acp.CodeInvalidParams, Message: "which plugin's thing?"}
+			}
+			shown, err := h.Show(ctx, p.Name, p.Kind, p.Ref, p.Full)
+			if errors.Is(err, ErrNoThing) {
+				return nil, &acp.RPCError{Code: codeNoThing, Message: err.Error()}
+			}
+			if err != nil {
+				return nil, err
+			}
+			return shown, nil
 		case "refresh", "config", "stop":
 			var p nameParams
 			if err := json.Unmarshal(params, &p); err != nil || !ValidName(p.Name) {
@@ -175,6 +200,23 @@ func (c *Client) Run(ctx context.Context, name string, args []string, dir string
 		return 1, err
 	}
 	return answer.Exit, nil
+}
+
+// Show asks a plugin what one of its things is, in the daemon (Host.Show).
+// One it hasn't is ErrNoThing.
+func (c *Client) Show(ctx context.Context, name, kind, ref string, full bool) (Shown, error) {
+	var out Shown
+	err := c.conn.Call(ctx, "show", showParams{Name: name, Kind: kind, Ref: ref, Full: full}, &out)
+	var re *acp.RPCError
+	switch {
+	case errors.As(err, &re) && re.Code == codeNoThing:
+		return out, &noThing{re.Message}
+	case errors.As(err, &re):
+		return out, errors.New(re.Message)
+	case errors.Is(err, acp.ErrClosed):
+		return out, errors.New("the workspace's daemon went away")
+	}
+	return out, err
 }
 
 // Statuses are the workspace's plugins, as the daemon has them.

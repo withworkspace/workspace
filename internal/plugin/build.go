@@ -97,7 +97,7 @@ func Problems(name string, r Registration) []Problem {
 	}
 
 	word := r.CommandName(name)
-	if len(r.Views) == 0 && word == "" {
+	if len(r.Views) == 0 && word == "" && len(r.Refs) == 0 {
 		note("it adds no view and no commands: there's nothing to use it by")
 	}
 	for i, v := range r.Views {
@@ -145,6 +145,28 @@ func Problems(name string, r Registration) []Problem {
 		note("it has commands and no guide (agents.md): agents won't know ws %s is there", word)
 	case guide != "" && lines > GuideLines:
 		note("its guide is %d lines, and agents are given the first %d: keep it to what the commands are", lines, GuideLines)
+	}
+	// How its things are named: ws leaves out a ref that's wrong, so one
+	// here would name nothing.
+	kinds := map[string]bool{}
+	for _, ref := range r.Refs {
+		if problem := ref.Problem(); problem != "" {
+			fatal("its ref %q: %s", ref.Kind, problem)
+			continue
+		}
+		if kinds[ref.Kind] {
+			fatal("its ref %q is registered twice", ref.Kind)
+		}
+		kinds[ref.Kind] = true
+		if !named(name, ref).Names(ref.Prefixes[0] + "1") {
+			note("its ref %q has the tail %q, which this ws doesn't know: none of its names are read", ref.Kind, ref.Tail)
+		}
+		if ref.Title == "" {
+			note("its ref %q has no title: one is called %s %s", ref.Kind, name, ref.Kind)
+		}
+		if ref.Address == "" && ref.Path == "" {
+			note("its ref %q has no address and no path: a name of its goes nowhere but the plugin's first page", ref.Kind)
+		}
 	}
 	seen := map[string]bool{}
 	for _, k := range r.Config {

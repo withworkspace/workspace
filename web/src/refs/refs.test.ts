@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { findAll, findRefs, GROUND, type Known, type PageRef, parseAddress, parseName, refAddress, refAt, refHref, refName, reposNamed, type Where } from "./refs";
+import { findAll, findRefs, GROUND, isOutside, type Known, type Named, type PageRef, parseAddress, parseName, refAddress, refAt, refHref, refName, reposNamed, type Where } from "./refs";
 
 // The cases internal/ref is tested against: one grammar, in Go and here.
 interface KnownJSON {
@@ -15,6 +15,7 @@ interface KnownJSON {
   org?: string;
   defaultBranch?: string;
   branches?: Record<string, Record<string, string>>;
+  things?: Named[];
 }
 const cases = JSON.parse(readFileSync(new URL("../../../internal/ref/testdata/cases.json", import.meta.url), "utf8")) as {
   finds: { about: string; known: KnownJSON; cases: { text: string; found: [string, PageRef][] }[] }[];
@@ -36,6 +37,7 @@ const knownOf = (j: KnownJSON): Known => ({
   org: j.org,
   defaultBranch: j.defaultBranch,
   branches: j.branches && new Map(Object.entries(j.branches).map(([r, b]) => [r, new Map(Object.entries(b))])),
+  things: j.things,
 });
 
 describe("refs, as internal/ref has them", () => {
@@ -49,7 +51,9 @@ describe("refs, as internal/ref has them", () => {
   it("writes each kind's name, and reads it back", () => {
     for (const c of cases.names) {
       expect(refName(c.ref)).toBe(c.name);
-      if (c.ref.kind !== "repo") expect(parseName(c.name)).toEqual(c.ref);
+      // A repo's name alone is read as a mission's, and a plugin's
+      // thing's isn't read by its form: which names are things is known.
+      if (c.ref.kind !== "repo" && c.ref.kind !== "thing") expect(parseName(c.name)).toEqual(c.ref);
     }
   });
 
@@ -84,6 +88,42 @@ describe("refs in words", () => {
     expect(refHref({ kind: "mission", slug: "cache" })).toBe("/missions/cache");
     expect(reposNamed("see demo/main.go and the api", ["demo", "api"])).toEqual(["demo"]);
     expect(reposNamed("in the api `src/x.ts`", ["demo", "api"])).toEqual(["api"]);
+  });
+});
+
+describe("a plugin's thing", () => {
+  const jira = "https://acme.atlassian.net/browse/";
+  const issue: PageRef = { kind: "thing", plugin: "jira", what: "issue", id: "RAM-123", url: `${jira}RAM-123` };
+  const sprint: PageRef = { kind: "thing", plugin: "jira", what: "sprint", id: "SPRINT-4" };
+  const things: Named[] = [
+    { plugin: "jira", what: "issue", prefixes: ["RAM-", "RAP-"], tail: "number", address: `${jira}{ref}`, path: "/issue/{ref}" },
+    { plugin: "jira", what: "sprint", prefixes: ["SPRINT-"] },
+    { plugin: "jira", what: "epic", prefixes: ["RAM-"], path: "/epic/{ref}" },
+  ];
+  const known: Known = { repos: new Map(), missions: [], pages: [], talks: [], things };
+
+  it("goes where its kind opens one in the plugin's app", () => {
+    expect(refHref(issue, known)).toBe("/x/jira/issue/RAM-123");
+    expect(isOutside(refHref(issue, known))).toBe(false);
+  });
+  it("goes to its address outside ws when its kind opens nowhere, or to the plugin", () => {
+    expect(refHref(issue, { ...known, things: [{ ...things[0], path: undefined }] })).toBe(`${jira}RAM-123`);
+    expect(isOutside(`${jira}RAM-123`)).toBe(true);
+    // Its plugin's gone, or what there is to name isn't given.
+    expect(refHref(issue)).toBe(`${jira}RAM-123`);
+    expect(refHref(sprint, known)).toBe("/x/jira");
+    expect(isOutside("/x/jira")).toBe(false);
+  });
+  it("is the first kind's to name its words", () => {
+    expect(findRefs("RAM-123 in SPRINT-4", known).map((f) => f.ref)).toEqual([issue, sprint]);
+    expect(refAt("RAM-123", known)).toEqual(issue);
+    expect(refAt("ws:SPRINT-4", known)).toEqual(sprint);
+    expect(refAt(`${jira}RAM-123?focusedCommentId=7`, known)).toEqual(issue);
+  });
+  it("is only words where what there is to name has none", () => {
+    const none: Known = { repos: new Map(), missions: [], pages: [], talks: [] };
+    expect(findRefs("RAM-123", none)).toEqual([]);
+    expect(parseAddress(`${jira}RAM-123`, none)).toBeUndefined();
   });
 });
 

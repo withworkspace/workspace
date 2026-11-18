@@ -74,6 +74,9 @@ type Status struct {
 	// loads it again when it moves, as what's there is from a run before.
 	Starts uint64               `json:"starts"`
 	Syncs  map[string]SyncState `json:"syncs,omitempty"`
+	// Refused is what it registered that ws left out, and why: a ref
+	// that's wrong in itself, a prefix that's another plugin's already.
+	Refused []string `json:"refused,omitempty"`
 }
 
 // SyncState is how a plugin's sync last went.
@@ -119,6 +122,12 @@ type Host struct {
 	// NoMethod and NotFound, or anything else, as an internal error. nil
 	// answers nothing: every request is NoMethod.
 	Answer func(ctx context.Context, plugin, method string, params json.RawMessage) (any, error)
+	// Keep keeps how a plugin's things are named (the refs it registered)
+	// in the workspace's records, when it starts, and says what it left
+	// out: KeepRefs, in the daemon. nil keeps nothing, as a host with no
+	// records to keep them in has it (ws plugin check): nothing it runs
+	// names anything.
+	Keep func(plugin string, refs []protocol.Ref) (refused []string, err error)
 
 	mu      sync.Mutex
 	procs   map[string]*proc
@@ -151,6 +160,7 @@ type proc struct {
 	changed uint64
 	syncs   map[string]SyncState
 	lastErr string
+	refused []string // what it registered that ws left out
 
 	// A plugin that didn't start: why, how many times running, and when
 	// it's worth trying again.
@@ -346,6 +356,16 @@ func (h *Host) start(name string) (*proc, error) {
 	p.reg = answer.Registration
 	if err := writeRegistration(h.Root, name, p.reg); err != nil {
 		h.logf("%s: keeping what it registered: %v", name, err)
+	}
+	if h.Keep != nil {
+		refused, err := h.Keep(name, p.reg.Refs)
+		if err != nil {
+			h.logf("%s: keeping how its things are named: %v", name, err)
+		}
+		for _, r := range refused {
+			h.logf("%s: %s", name, r)
+		}
+		p.refused = refused
 	}
 	h.mu.Lock()
 	if h.runs == nil {
@@ -613,6 +633,65 @@ func (h *Host) Run(ctx context.Context, name string, args []string, dir string, 
 	return answer.Exit, nil
 }
 
+// showTimeout is how long a plugin has to say what one of its things is.
+const showTimeout = 20 * time.Second
+
+// ErrNoThing is a plugin having nothing by a name: one that isn't a name
+// it registered, or one it says isn't there. What's returned says which,
+// and is this (errors.Is).
+var ErrNoThing = errors.New("the plugin has nothing by that name")
+
+type noThing struct{ why string }
+
+func (e *noThing) Error() string        { return e.why }
+func (e *noThing) Is(target error) bool { return target == ErrNoThing }
+
+// Shown is one of a plugin's things, as the plugin shows it.
+type Shown = protocol.RefShowResult
+
+// Show asks a plugin what one of its things is: kind is the ref's, as it
+// registered it, and ref the thing's name as it was written (RAM-123).
+// The plugin's started if it isn't running. It's asked only about a name
+// that's one of that kind's, as it registered them: ErrNoThing otherwise,
+// and when the plugin says it has none by it.
+func (h *Host) Show(ctx context.Context, name, kind, ref string, full bool) (Shown, error) {
+	var out Shown
+	p, err := h.ready(name)
+	if err != nil {
+		return out, err
+	}
+	p.mu.Lock()
+	i := slices.IndexFunc(p.reg.Refs, func(r protocol.Ref) bool { return r.Kind == kind })
+	var registered protocol.Ref
+	if i >= 0 {
+		registered = p.reg.Refs[i]
+	}
+	p.mu.Unlock()
+	if i < 0 || registered.Problem() != "" || !named(name, registered).Names(ref) {
+		return out, &noThing{fmt.Sprintf("%s isn't a name %s registered for its %s", ref, name, kind)}
+	}
+	if h.Hold != nil {
+		defer h.Hold()()
+	}
+	ctx, cancel := context.WithTimeout(ctx, showTimeout)
+	defer cancel()
+	err = p.conn.Call(ctx, protocol.MethodRefShow, protocol.RefShowParams{Kind: kind, Ref: ref, Full: full}, &out)
+	var re *acp.RPCError
+	switch {
+	case errors.As(err, &re) && re.Code == protocol.CodeNotFound:
+		return out, &noThing{fmt.Sprintf("%s has no %s called %s", name, kind, ref)}
+	case errors.As(err, &re) && re.Code == protocol.CodeMethodNotFound:
+		return out, fmt.Errorf("%s registered %s and can't say what one is: it doesn't answer %s", name, kind, protocol.MethodRefShow)
+	case errors.As(err, &re):
+		return out, fmt.Errorf("%s: %s", name, re.Message)
+	case errors.Is(err, acp.ErrClosed):
+		return out, fmt.Errorf("%s stopped while it was asked about %s: see %s", name, ref, LogPath(h.Root, name))
+	case errors.Is(err, context.DeadlineExceeded):
+		return out, fmt.Errorf("%s didn't say what %s is in %s", name, ref, showTimeout)
+	}
+	return out, err
+}
+
 // ViewSocket is the unix socket a plugin's view is served on, the plugin
 // started if it isn't running.
 func (h *Host) ViewSocket(name string) (string, error) {
@@ -724,6 +803,7 @@ func (h *Host) Status(name string) Status {
 		if p.err == nil {
 			st.Error = p.lastErr
 			st.Changed = p.changed
+			st.Refused = slices.Clone(p.refused)
 			if len(p.badges) > 0 {
 				st.Badges = map[string]int{}
 				for k, v := range p.badges {

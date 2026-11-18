@@ -65,7 +65,7 @@ import { Time } from "../ui/time";
 import { RefCard } from "../refs/RefCard";
 import { useRefs } from "../refs/known";
 import { lookOf } from "../refs/views";
-import { findRefs, GROUND, type Known, type PageRef, parseAddress, refAddress, refHref, refKey, refName, refOf } from "../refs/refs";
+import { findRefs, GROUND, isOutside, type Known, type PageRef, parseAddress, refAddress, refHref, refKey, refName, refOf } from "../refs/refs";
 import { useLoaded } from "../load";
 import { useHoverDelay } from "../ui/hover";
 
@@ -315,7 +315,7 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
   const hover = hovering.shown;
   // A ref, drawn as its kind's Look says (refs/views.tsx).
   const markOf = (ref: PageRef, from: number, to: number): RefMark => {
-    const look = lookOf(ref, { workspace: workspaceRef.current, repos: reposRef.current });
+    const look = lookOf(ref, { workspace: workspaceRef.current, repos: reposRef.current, things: knownRef.current.things });
     return { from, to, key: refKey(ref), kind: ref.kind, shape: look.shape, accent: look.accent, text: look.text, label: look.after?.label, tone: look.after?.tone };
   };
   const refHost = useMemo<RefHost>(
@@ -333,7 +333,12 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
       out: hovering.out,
       follow(key) {
         const r = refOf(key);
-        if (r) navigate(refHref(r, shared?.known));
+        if (!r) return;
+        // A plugin's thing with nowhere to open in ws goes to its address
+        // outside, in a tab of its own.
+        const href = refHref(r, knownRef.current);
+        if (isOutside(href)) window.open(href, "_blank", "noopener,noreferrer");
+        else navigate(href);
       },
     }),
     [navigate, hovering.over, hovering.out],

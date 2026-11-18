@@ -12579,7 +12579,8 @@ button.finding-quote:hover {
 .markdown .named-ref.k-talk,
 .markdown .named-ref.k-pr,
 .inline-md .named-ref.k-mission,
-.inline-md .named-ref.k-pr {
+.inline-md .named-ref.k-pr,
+:is(.pm, .markdown, .inline-md) .named-ref.k-thing {
   font-weight: 500;
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/withworkspace/workspace/internal/find"
 	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/page"
+	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -23,7 +24,7 @@ import (
 // (read with trees; otherwise none of their files are found, but
 // addresses are read), what else each is called, each one's capsules and
 // the branches they're on, the missions, pages, conversations and
-// artifacts.
+// artifacts, and how each plugin's things are named.
 func (w *Workspace) RefsKnown(ctx context.Context, trees bool) *ref.Known {
 	ws := w.WS()
 	k := &ref.Known{
@@ -62,7 +63,60 @@ func (w *Workspace) RefsKnown(ctx context.Context, trees bool) *ref.Known {
 	}
 	k.Talks = conversation.ForWorkspace(ws.Root).IDs()
 	k.Artifacts = (artifact.Store{Root: ws.Root}).IDs()
+	k.Things = w.thingsNamed()
 	return k
+}
+
+// thingsNamed is how each plugin's things are named, as the workspace's
+// records keep it (plugin.KeepRefs, when a plugin registers), in the
+// plugins' order: a plugin that's no longer here names nothing.
+func (w *Workspace) thingsNamed() []ref.Named {
+	root := w.WS().Root
+	if len(plugin.Installed(root)) == 0 {
+		return nil // nothing to name, and no records to open for it
+	}
+	kept, err := plugin.Refs(root)
+	if err != nil {
+		return nil
+	}
+	var out []ref.Named
+	for _, k := range kept {
+		if plugin.IsInstalled(root, k.Plugin) {
+			out = append(out, k.Named())
+		}
+	}
+	return out
+}
+
+// ThingNamed is the plugin's thing that s is, whole: a name its plugin
+// registered (RAM-123), ws: and that, or where its plugin said one is.
+// With it is how its kind is named, as ws keeps it. It reads nothing but
+// how plugins' things are named: a workspace with no plugins has none.
+func (w *Workspace) ThingNamed(s string) (ref.Ref, plugin.KeptRef, bool) {
+	root := w.WS().Root
+	if strings.TrimSpace(s) == "" || len(plugin.Installed(root)) == 0 {
+		return ref.Ref{}, plugin.KeptRef{}, false
+	}
+	kept, err := plugin.Refs(root)
+	if err != nil {
+		return ref.Ref{}, plugin.KeptRef{}, false
+	}
+	k := &ref.Known{}
+	for _, kr := range kept {
+		if plugin.IsInstalled(root, kr.Plugin) {
+			k.Things = append(k.Things, kr.Named())
+		}
+	}
+	r, ok := k.At(s)
+	if !ok || r.Kind != ref.Thing {
+		return ref.Ref{}, plugin.KeptRef{}, false
+	}
+	for _, kr := range kept {
+		if kr.Plugin == r.Plugin && kr.Kind == r.What {
+			return r, kr, true
+		}
+	}
+	return ref.Ref{}, plugin.KeptRef{}, false
 }
 
 // Resolve is each ref in a text as it is now: a file's lines pinned to the

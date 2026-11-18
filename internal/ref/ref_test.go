@@ -13,14 +13,21 @@ import (
 // tested against the same file.
 
 type knownJSON struct {
-	Repos         map[string]*[]string         `json:"repos"`
-	Aliases       map[string]string            `json:"aliases"`
-	Capsules      map[string][]string          `json:"capsules"`
-	Root          string                       `json:"root"`
-	Missions      []string                     `json:"missions"`
-	Pages         []string                     `json:"pages"`
-	Talks         []string                     `json:"talks"`
-	Artifacts     []string                     `json:"artifacts"`
+	Repos     map[string]*[]string `json:"repos"`
+	Aliases   map[string]string    `json:"aliases"`
+	Capsules  map[string][]string  `json:"capsules"`
+	Root      string               `json:"root"`
+	Missions  []string             `json:"missions"`
+	Pages     []string             `json:"pages"`
+	Talks     []string             `json:"talks"`
+	Artifacts []string             `json:"artifacts"`
+	Things    []struct {
+		Plugin   string   `json:"plugin"`
+		What     string   `json:"what"`
+		Prefixes []string `json:"prefixes"`
+		Tail     string   `json:"tail"`
+		Address  string   `json:"address"`
+	} `json:"things"`
 	Org           string                       `json:"org"`
 	DefaultBranch string                       `json:"defaultBranch"`
 	Branches      map[string]map[string]string `json:"branches"`
@@ -77,6 +84,9 @@ func (p Paths) HasDir(path string) bool {
 
 func (j knownJSON) known() *Known {
 	k := &Known{Repos: map[string]Tree{}, Aliases: j.Aliases, Capsules: j.Capsules, Root: j.Root, Missions: j.Missions, Pages: j.Pages, Talks: j.Talks, Artifacts: j.Artifacts, Org: j.Org, DefaultBranch: j.DefaultBranch, Branches: j.Branches}
+	for _, n := range j.Things {
+		k.Things = append(k.Things, Named{Plugin: n.Plugin, What: n.What, Prefixes: n.Prefixes, Tail: n.Tail, Address: n.Address})
+	}
 	for r, files := range j.Repos {
 		if files == nil {
 			k.Repos[r] = nil
@@ -141,7 +151,8 @@ func TestNames(t *testing.T) {
 		}
 		// A name is read back as what it names (a repo's alone is read as
 		// a mission's, without knowing which repos there are).
-		if c.Ref.Kind == Repo {
+		// A plugin's thing is read with how its plugin names things.
+		if c.Ref.Kind == Repo || c.Ref.Kind == Thing {
 			continue
 		}
 		if got, ok := Parse(c.Name); !ok || !reflect.DeepEqual(got, c.Ref) {
