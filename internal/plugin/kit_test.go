@@ -2,13 +2,17 @@ package plugin_test
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net"
 	"net/http"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/plugin/kitplugin"
 )
@@ -40,8 +44,8 @@ func TestKitRegistersWhatItDeclared(t *testing.T) {
 	if r.UI == nil || !strings.HasPrefix(r.UI.Script, "/ui/app.js?v=") || !plugin.ValidUIPath(r.UI.Script) {
 		t.Errorf("ui = %+v", r.UI)
 	}
-	// Its own three, and the framework's sync, for a plugin with syncs.
-	if r.CommandName("kit") != "kit" || len(r.Commands.Subcommands) != 4 {
+	// Its own four, and the framework's sync, for a plugin with syncs.
+	if r.CommandName("kit") != "kit" || len(r.Commands.Subcommands) != 5 {
 		t.Errorf("commands = %+v", r.Commands)
 	}
 	if r.Agent == nil || !strings.Contains(r.Agent.Guide, "ws kit hi") || len(r.Agent.Roles) != 1 || r.Agent.Roles[0] != "crew" {
@@ -162,5 +166,70 @@ func TestKitServesItsApp(t *testing.T) {
 	}
 	if code, _, body := get("/api/greeting"); code != 200 || !strings.Contains(body, `"greeting":"Hello"`) {
 		t.Errorf("/api/greeting: %d %q", code, body)
+	}
+}
+
+// What the kit asks ws reaches Answer, said by which plugin, and comes
+// back in the protocol's types, errors and all.
+func TestKitAsksWS(t *testing.T) {
+	root, h := workspace(t)
+	var answering atomic.Bool
+	var mu sync.Mutex
+	var asked []string
+	h.Answer = func(ctx context.Context, who, method string, params json.RawMessage) (any, error) {
+		if !answering.Load() {
+			return nil, plugin.NoMethod(method)
+		}
+		mu.Lock()
+		asked = append(asked, who+" "+method+" "+string(params))
+		mu.Unlock()
+		switch method {
+		case protocol.MethodMissionList:
+			return protocol.MissionListResult{Missions: []protocol.Mission{{Slug: "cache", State: protocol.MissionActive, Created: time.Date(2026, 11, 18, 9, 0, 0, 0, time.UTC),
+				Headline: &protocol.Headline{Court: protocol.CourtAgent, Text: "c1 is working"}, Capsules: []protocol.MissionCapsule{}, Path: "/missions/cache"}}}, nil
+		case protocol.MethodMissionShow:
+			var in protocol.MissionShowParams
+			json.Unmarshal(params, &in) //nolint:errcheck // a test's
+			if in.Slug != "cache" {
+				return nil, plugin.NotFound("there's no mission " + in.Slug)
+			}
+			return protocol.MissionDetail{Mission: protocol.Mission{Slug: "cache"}, Brief: "## Goal"}, nil
+		case protocol.MethodRepoList:
+			return protocol.RepoListResult{Repos: []protocol.Repo{{Name: "api", Capsules: []protocol.Capsule{{Name: ".ground", Ground: true}}}}}, nil
+		}
+		return nil, plugin.NoMethod(method)
+	}
+	addKit(t, root)
+	run := func(args ...string) string {
+		t.Helper()
+		o := &output{}
+		exit, err := h.Run(context.Background(), "kit", args, root, plugin.Terminal{}, o.write)
+		if err != nil || exit != 0 {
+			t.Fatalf("ask %v: exit %d, %v, %s", args, exit, err, o.errOut.String())
+		}
+		return o.stdout()
+	}
+
+	// A ws that answers nothing: the plugin's told to update ws.
+	if got := run("ask", "repos"); !strings.Contains(got, "unsupported: ws test can't answer repo/list") {
+		t.Errorf("unanswered: %q", got)
+	}
+	answering.Store(true)
+	if got := run("ask", "missions", "--archived"); !strings.Contains(got, `"slug":"cache","title":"","state":"active","created":"2026-11-18T09:00:00Z"`) || !strings.Contains(got, `"headline":{"court":"agent","text":"c1 is working"}`) {
+		t.Errorf("missions: %s", got)
+	}
+	if got := run("ask", "mission", "cache"); !strings.Contains(got, `"brief":"## Goal"`) {
+		t.Errorf("mission: %s", got)
+	}
+	if got := run("ask", "mission", "nope"); !strings.Contains(got, "not found: there's no mission nope") {
+		t.Errorf("no such mission: %s", got)
+	}
+	if got := run("ask", "repos"); !strings.Contains(got, `"ground":true`) {
+		t.Errorf("repos: %s", got)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(asked) != 4 || asked[0] != `kit mission/list {"archived":true}` || asked[1] != `kit mission/show {"slug":"cache"}` {
+		t.Errorf("asked = %q", asked)
 	}
 }

@@ -164,9 +164,12 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 	s.Jobs = jobQueue(root, s.Log.Printf)
 	serverJobs = s.Jobs
 	reconcileJobs(root, s.Jobs, s.Log.Printf)
+	prs := ops.NewPRCache() // the web UI, the PR watcher and plugins share what GitHub said
 	// The workspace's plugins run in here, one process each, started
-	// when one's first needed. Commands reach them over their socket.
+	// when one's first needed. Commands reach them over their socket, and
+	// what they ask ws is answered from the workspace's operations.
 	pluginHost = newPluginHost(s, cmd.Root().Version)
+	pluginHost.Answer = openOps(root, prs).AnswerPlugin
 	if ln, err := pluginHost.Listen(); err != nil {
 		s.Log.Printf("plugins: commands can't reach them: %v", err)
 	} else {
@@ -174,7 +177,6 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 		go pluginHost.Serve(ln)
 	}
 	defer pluginHost.Shutdown()
-	prs := ops.NewPRCache() // the web UI and the PR watcher share what GitHub said
 	if w := startWeb(s, prs, cmd.Root().Version); w != nil {
 		s.WebPort = w.Info().Port
 		defer w.Close()

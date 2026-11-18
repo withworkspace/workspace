@@ -114,6 +114,11 @@ type Host struct {
 	// Hold keeps the daemon up while a plugin's command runs; nil for
 	// nothing to hold.
 	Hold func() (release func())
+	// Answer answers what a plugin asks ws (a request: protocol's
+	// mission/list and the rest), given which plugin asked. Its errors are
+	// NoMethod and NotFound, or anything else, as an internal error. nil
+	// answers nothing: every request is NoMethod.
+	Answer func(ctx context.Context, plugin, method string, params json.RawMessage) (any, error)
 
 	mu      sync.Mutex
 	procs   map[string]*proc
@@ -284,7 +289,7 @@ func (h *Host) start(name string) (*proc, error) {
 		started: time.Now(),
 	}
 	p.conn = acp.NewConn(stdout, stdin, func(ctx context.Context, method string, params json.RawMessage) (any, error) {
-		return h.handle(p, method, params)
+		return h.handle(ctx, p, method, params)
 	})
 	go func() {
 		<-p.conn.Done()   // its stdout's been read to the end
@@ -358,6 +363,22 @@ func (h *Host) start(name string) (*proc, error) {
 // types doesn't do. Each is one the package has (a test says so), and
 // once spoken, one ws goes on speaking.
 var Protocols = []int{1}
+
+// NoMethod is the answer to a request ws doesn't have.
+func NoMethod(method string) error {
+	return &acp.RPCError{Code: acp.CodeMethodNotFound, Message: "ws has no method " + method}
+}
+
+// NotFound is the answer to a request for something by name that ws
+// hasn't: what says so.
+func NotFound(what string) error {
+	return &acp.RPCError{Code: protocol.CodeNotFound, Message: what}
+}
+
+// InvalidParams is the answer to a request whose params aren't its own.
+func InvalidParams(err error) error {
+	return &acp.RPCError{Code: acp.CodeInvalidParams, Message: err.Error()}
+}
 
 // agreed refuses a plugin whose answer to initialize isn't in a version
 // of the protocol ws speaks, and says which side is behind.
@@ -433,8 +454,9 @@ func (h *Host) acceptable(name string, r Registration) error {
 	return nil
 }
 
-// handle is what a plugin tells ws unasked.
-func (h *Host) handle(p *proc, method string, params json.RawMessage) (any, error) {
+// handle is what a plugin tells ws unasked (notifications), and what it
+// asks (requests, which Answer answers).
+func (h *Host) handle(ctx context.Context, p *proc, method string, params json.RawMessage) (any, error) {
 	switch method {
 	case protocol.MethodCommandOutput:
 		var o protocol.CommandOutputParams
@@ -496,7 +518,10 @@ func (h *Host) handle(p *proc, method string, params json.RawMessage) (any, erro
 		p.mu.Unlock()
 		h.seq.Add(1)
 	default:
-		return nil, &acp.RPCError{Code: acp.CodeMethodNotFound, Message: "ws has no method " + method}
+		if h.Answer == nil {
+			return nil, NoMethod(method)
+		}
+		return h.Answer(ctx, p.name, method, params)
 	}
 	return nil, nil
 }
