@@ -27,6 +27,7 @@ type Landing struct {
 	// review there approves it as it is now.
 	Mission  string `json:"mission,omitempty"`
 	Approved bool   `json:"approved"`
+	Pending  bool   `json:"pending,omitempty"`
 	// Landed is its landing, once it has one (a capsule ws couldn't burn).
 	Landed *Landed `json:"landed,omitempty"`
 }
@@ -65,7 +66,7 @@ func (s *Server) landing(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		jsonError(w, http.StatusInternalServerError, err.Error())
 	default:
-		out := Landing{Direct: l.Direct, Branch: l.Branch, Commits: l.Commits, Dirty: l.Dirty, Verify: l.Verify, Mission: l.Mission, Approved: l.Approved}
+		out := Landing{Direct: l.Direct, Branch: l.Branch, Commits: l.Commits, Dirty: l.Dirty, Verify: l.Verify, Mission: l.Mission, Approved: l.Approved, Pending: l.Pending}
 		if l.Landed != nil {
 			landed := Landed(*l.Landed)
 			out.Landed = &landed

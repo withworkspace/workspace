@@ -28,6 +28,7 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
   const land = () => {
     setBusy(true);
     setError(undefined);
+    setStopped(undefined);
     landCapsule(repo, name)
       .then(
         (r) => {
@@ -69,13 +70,25 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
   return (
     <>
       {stopped && (
-        <Callout tone="danger" title="It didn't land, and nothing was pushed" actions={<button onClick={() => setStopped(undefined)}>Dismiss</button>}>
+        <Callout tone="danger" title="Landing stopped" actions={<button onClick={() => setStopped(undefined)}>Dismiss</button>}>
           {stopped.message}
           {stopped.output && <pre className="land-output">{stopped.output}</pre>}
         </Callout>
       )}
       {error && <Callout tone="danger" title="Couldn't land it">{error}</Callout>}
-      {n === 0 ? (
+      {l.pending && n === 0 ? (
+        <Callout
+          tone="attention"
+          title="Landing needs to be checked"
+          actions={
+            <button className="primary" onClick={land} disabled={busy}>
+              {busy ? "Checking…" : "Retry landing"}
+            </button>
+          }
+        >
+          Check whether the earlier push landed and finish recording it.
+        </Callout>
+      ) : n === 0 ? (
         <Callout tone="quiet" icon="info" title={`Nothing to land yet`}>
           This repo has no pull requests: what's committed here lands straight on {l.branch}, when you say.
         </Callout>

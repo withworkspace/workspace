@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/artifact"
@@ -270,16 +272,77 @@ type Landed struct {
 
 // Land lands a capsule of a repo that takes commits straight to its
 // default branch, for you: never for crew or the orchestrator, as a
-// landing is public the moment it's made. An error is a landing that
-// stopped (a *workspace.LandError), with nothing pushed. Once it's pushed
-// there's no error to give: what went wrong after is in what comes back.
+// landing is public the moment it's made. A confirmed push is returned
+// with any errors from recording the landing or cleaning up the capsule.
 func (w *Workspace) Land(repo, name string, by Actor, o workspace.LandOptions) (Landed, error) {
 	if err := MayLand(by); err != nil {
 		return Landed{}, err
 	}
-	if owner, ok := w.Missions.FindByCapsule(repo, name); ok && w.WS().Direct(repo) {
-		if err := w.holdReview(GuaranteeReviewBeforeLand, owner.Slug, repo, name, "landing", reviewThen(by, "land it")); err != nil {
-			return Landed{}, err
+	ws := w.WS()
+	lock, err := os.OpenFile(filepath.Join(ws.BareDir(repo), "ws-land.lock"), os.O_CREATE|os.O_RDWR, 0600)
+	if err != nil {
+		return Landed{}, fmt.Errorf("open landing lock: %w", err)
+	}
+	defer lock.Close()
+	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		if errors.Is(err, syscall.EWOULDBLOCK) {
+			return Landed{}, refused("landing", "%s already has a landing in progress", repo)
+		}
+		return Landed{}, fmt.Errorf("lock landing: %w", err)
+	}
+
+	missions, err := w.Missions.List()
+	if err != nil {
+		return Landed{}, fmt.Errorf("find the mission before landing: %w", err)
+	}
+	dir := filepath.Join(ws.RepoDir(repo), name)
+	var owner *mission.Mission
+	for _, m := range missions {
+		for _, c := range m.Capsules {
+			if c.Repo != repo || c.Name != name {
+				continue
+			}
+			owner = m
+			if p := c.PendingLanding; p != nil {
+				if p.Branch != ws.DefaultBranch {
+					return Landed{}, refused("landing", "%s/%s has a pending landing on %s. Restore that default branch and retry the landing first", repo, name, p.Branch)
+				}
+				o.Pending = &workspace.Landed{Repo: repo, Capsule: name, Branch: p.Branch, Head: p.Head, Commits: p.Commits, Settled: p.Settled}
+			}
+			break
+		}
+		if owner != nil {
+			break
+		}
+	}
+	if owner != nil {
+		beforeRebase := o.BeforeRebase
+		o.BeforeRebase = func() error {
+			if beforeRebase != nil {
+				if err := beforeRebase(); err != nil {
+					return err
+				}
+			}
+			return w.holdReview(GuaranteeReviewBeforeLand, owner.Slug, repo, name, "landing", reviewThen(by, "land it"))
+		}
+		beforePush := o.BeforePush
+		o.BeforePush = func(candidate workspace.LandCandidate) error {
+			if beforePush != nil {
+				if err := beforePush(candidate); err != nil {
+					return err
+				}
+			}
+			if err := w.holdLandingReview(owner.Slug, dir, repo+"/"+name, by, candidate); err != nil {
+				return err
+			}
+			err := w.Missions.PrepareLanding(owner.Slug, repo, name, mission.LandingAttempt{
+				Landing: mission.Landing{At: time.Now(), Head: candidate.Head},
+				Branch:  candidate.Branch, Commits: candidate.Commits, Settled: candidate.Settled,
+			})
+			if err != nil {
+				return fmt.Errorf("couldn't record the landing before pushing: %w", err)
+			}
+			return nil
 		}
 	}
 	if c := w.ArtifactsConfig(); c.Repo == repo {
@@ -293,43 +356,65 @@ func (w *Workspace) Land(repo, name string, by Actor, o workspace.LandOptions) (
 			o.Check = settler.Check
 		}
 	}
-	landed, err := w.WS().Land(repo, name, o)
+	landed, err := ws.Land(repo, name, o)
 	if err != nil {
 		return Landed{}, err
 	}
 	out := Landed{Landed: landed}
-	if owner, ok := w.Missions.FindByCapsule(repo, name); ok {
+	if owner != nil {
 		out.Mission = owner.Slug
-		at := time.Now()
-		record := func() error {
-			_, err := w.Missions.Update(owner.Slug, func(m *mission.Mission) error {
-				for i := range m.Capsules {
-					if c := &m.Capsules[i]; c.Repo == repo && c.Name == name {
-						c.Landed = &mission.Landing{At: at, Head: landed.Head}
-					}
-				}
-				return nil
-			})
-			return err
+		if workspace.GitRevParse(dir, "HEAD") != landed.Head {
+			out.RecordErr = fmt.Errorf("%s/%s moved during landing", repo, name)
+			return out, nil
 		}
-		// The commits are public now, and the record is all that says so
-		// once the capsule's gone: a mission that's busy gets a second go.
-		if err := record(); err != nil {
-			if err = record(); err != nil {
-				out.RecordErr = err
-				return out, nil
-			}
+		text := fmt.Sprintf("%s on %s (%s)", commitsWord(len(landed.Commits)), landed.Branch, short(landed.Head))
+		if err := w.Missions.RecordLanding(owner.Slug, repo, name, landed.Head, text); err != nil {
+			out.RecordErr = err
+			return out, nil
 		}
-		w.Missions.AppendLog(owner.Slug, mission.Event{Kind: mission.EventLanded, Repo: repo, Capsule: name, Crew: "you",
-			Text: fmt.Sprintf("%s on %s (%s)", commitsWord(len(landed.Commits)), landed.Branch, short(landed.Head))})
 		w.youActed(owner.Slug, by)
-		// A Land step waiting on it is done.
 		w.passOnLand(owner.Slug, repo, name)
 	}
-	if _, err := w.Burn(repo, name, BurnOptions{}); err != nil {
+	if workspace.GitRevParse(dir, "HEAD") != landed.Head {
+		out.BurnErr = fmt.Errorf("%s/%s moved during landing", repo, name)
+	} else if _, err := w.Burn(repo, name, BurnOptions{}); err != nil {
 		out.BurnErr = err
 	}
 	return out, nil
+}
+
+func (w *Workspace) holdLandingReview(slug, dir, capsule string, by Actor, c workspace.LandCandidate) error {
+	g := GuaranteeReviewBeforeLand
+	if !w.holding(g) {
+		return nil
+	}
+	refuse := func(why string) error {
+		return refused("guarantee", "ws holds %s before landing: %s. %s", g.Key, why, reviewThen(by, "land it"))
+	}
+	r, err := review.For(w.Root(), slug).Latest(capsule)
+	if err != nil {
+		return refuse(fmt.Sprintf("the latest review couldn't be read (%v)", err))
+	}
+	if r == nil || r.Verdict != review.Approve || (r.Head != c.OriginalHead && r.Head != c.Head) {
+		return refuse("the latest review doesn't approve " + capsule + " at the commit being landed")
+	}
+	if r.Head == c.Head {
+		return nil
+	}
+	// Compare the tree about to be pushed with a clean replay of the
+	// approved change. Rebase or settlement can change the submitted diff.
+	ctx := context.Background()
+	base, err := git.ReadLine(ctx, dir, "merge-base", c.Base, r.Head)
+	if err == nil && base == r.Base {
+		expected, err := git.ReadLine(ctx, dir, "merge-tree", "--write-tree", "--no-messages", c.Base, r.Head)
+		if err == nil {
+			actual, err := git.ReadLine(ctx, dir, "rev-parse", c.Head+"^{tree}")
+			if err == nil && actual == expected {
+				return nil
+			}
+		}
+	}
+	return refuse("the rebased changes differ from what was approved")
 }
 
 // MayLand refuses anyone but you: a landing is public the moment it's
@@ -375,6 +460,7 @@ type Landing struct {
 	Verify   string
 	Mission  string
 	Approved bool
+	Pending  bool
 	Landed   *LandedOn
 }
 
@@ -429,8 +515,11 @@ func (w *Workspace) Landing(repo, name string) (*Landing, error) {
 		r, _ := review.For(w.Root(), m.Slug).Latest(repo + "/" + name)
 		l.Approved = r != nil && r.Verdict == review.Approve && r.Head == head
 		for _, c := range m.Capsules {
-			if c.Repo == repo && c.Name == name && c.Landed != nil && c.Landed.Head == head {
-				l.Landed = &LandedOn{Branch: l.Branch, Head: c.Landed.Head, Mission: m.Slug}
+			if c.Repo == repo && c.Name == name {
+				l.Pending = c.PendingLanding != nil
+				if c.Landed != nil && c.Landed.Head == head {
+					l.Landed = &LandedOn{Branch: l.Branch, Head: c.Landed.Head, Mission: m.Slug}
+				}
 			}
 		}
 	}
@@ -476,6 +565,6 @@ func (w *Workspace) LandCapsule(repo, name string) (*LandOutcome, error) {
 
 // Unrecorded says a landing went out but its mission couldn't be told.
 func (l Landed) Unrecorded() string {
-	return fmt.Sprintf("Mission %s couldn't record the landing (%v). The capsule is kept, so the mission still has it: its commits are on %s",
+	return fmt.Sprintf("Mission %s couldn't record the landing (%v). The capsule is kept, so the mission still has it: its commits are on %s. Retry the landing to finish recording it",
 		l.Mission, l.RecordErr, l.Landed.Branch)
 }
