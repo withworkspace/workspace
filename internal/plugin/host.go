@@ -12,12 +12,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/acp"
 )
 
@@ -301,24 +303,22 @@ func (h *Host) start(name string) (*proc, error) {
 		}
 	}()
 
-	values, err := Values(h.Root, name)
+	values, err := wireValues(h.Root, name)
 	if err != nil {
 		h.kill(p)
 		return nil, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), startTimeout)
 	defer cancel()
-	var answer struct {
-		Protocol     int          `json:"protocol"`
-		Registration Registration `json:"registration"`
-	}
-	err = p.conn.Call(ctx, "initialize", map[string]any{
-		"protocol":  ProtocolVersion,
-		"ws":        map[string]string{"version": h.Version, "executable": h.executable()},
-		"plugin":    map[string]string{"name": name, "version": m.Version, "dir": app, "data": data},
-		"workspace": map[string]string{"root": h.Root},
-		"config":    values,
-		"view":      map[string]string{"listen": p.viewSock, "base": ViewBase(name)},
+	var answer protocol.InitializeResult
+	err = p.conn.Call(ctx, protocol.MethodInitialize, protocol.InitializeParams{
+		Protocol:  slices.Max(Protocols),
+		Protocols: Protocols,
+		WS:        protocol.WSInfo{Version: h.Version, Executable: h.executable()},
+		Plugin:    protocol.PluginInfo{Name: name, Version: m.Version, Dir: app, Data: data},
+		Workspace: protocol.Workspace{Root: h.Root},
+		Config:    values,
+		View:      protocol.ViewInfo{Listen: p.viewSock, Base: ViewBase(name)},
 	}, &answer)
 	if err != nil {
 		h.kill(p)
@@ -330,9 +330,9 @@ func (h *Host) start(name string) (*proc, error) {
 		}
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}
-	if answer.Protocol != ProtocolVersion {
+	if err := agreed(name, answer); err != nil {
 		h.kill(p)
-		return nil, fmt.Errorf("%s speaks version %d of the plugin protocol, and this ws speaks %d", name, answer.Protocol, ProtocolVersion)
+		return nil, err
 	}
 	if err := h.acceptable(name, answer.Registration); err != nil {
 		h.kill(p)
@@ -350,6 +350,46 @@ func (h *Host) start(name string) (*proc, error) {
 	h.mu.Unlock()
 	h.logf("%s %s started", name, m.Version)
 	return p, nil
+}
+
+// Protocols are the versions of the plugin protocol ws speaks, oldest
+// first. It's ws's own list, not the protocol package's: a version is
+// spoken once ws handles it, which a release of the package that adds its
+// types doesn't do. Each is one the package has (a test says so), and
+// once spoken, one ws goes on speaking.
+var Protocols = []int{1}
+
+// agreed refuses a plugin whose answer to initialize isn't in a version
+// of the protocol ws speaks, and says which side is behind.
+func agreed(name string, answer protocol.InitializeResult) error {
+	if slices.Contains(Protocols, answer.Protocol) {
+		return nil
+	}
+	speaks := answer.Protocols
+	if len(speaks) == 0 && answer.Protocol > 0 {
+		speaks = []int{answer.Protocol} // from before versions were chosen
+	}
+	if len(speaks) == 0 {
+		return fmt.Errorf("%s doesn't say which version of the plugin protocol it speaks, and this ws speaks %s. Update the plugin", name, versions(Protocols))
+	}
+	update := "Update the plugin"
+	if slices.Max(speaks) > slices.Max(Protocols) {
+		update = "Update ws"
+	}
+	return fmt.Errorf("%s speaks the plugin protocol's %s, and this ws speaks %s. %s", name, versions(speaks), versions(Protocols), update)
+}
+
+// versions says a list of the protocol's versions: "version 1",
+// "versions 1 and 2".
+func versions(vs []int) string {
+	if len(vs) == 1 {
+		return "version " + strconv.Itoa(vs[0])
+	}
+	words := make([]string, len(vs))
+	for i, v := range vs {
+		words[i] = strconv.Itoa(v)
+	}
+	return "versions " + strings.Join(words[:len(words)-1], ", ") + " and " + words[len(words)-1]
 }
 
 // executable is the program a plugin's told is ws.
@@ -396,12 +436,8 @@ func (h *Host) acceptable(name string, r Registration) error {
 // handle is what a plugin tells ws unasked.
 func (h *Host) handle(p *proc, method string, params json.RawMessage) (any, error) {
 	switch method {
-	case "command/output":
-		var o struct {
-			ID     string `json:"id"`
-			Stream string `json:"stream"`
-			Data   string `json:"data"`
-		}
+	case protocol.MethodCommandOutput:
+		var o protocol.CommandOutputParams
 		if json.Unmarshal(params, &o) != nil {
 			return nil, nil
 		}
@@ -411,11 +447,8 @@ func (h *Host) handle(p *proc, method string, params json.RawMessage) (any, erro
 		if out != nil {
 			out(o.Stream, o.Data)
 		}
-	case "log":
-		var l struct {
-			Level   string `json:"level"`
-			Message string `json:"message"`
-		}
+	case protocol.MethodLog:
+		var l protocol.LogParams
 		if json.Unmarshal(params, &l) != nil {
 			return nil, nil
 		}
@@ -428,16 +461,13 @@ func (h *Host) handle(p *proc, method string, params json.RawMessage) (any, erro
 		if l.Level == "error" || l.Level == "warn" {
 			h.logf("%s: %s: %s", p.name, l.Level, l.Message)
 		}
-	case "view/changed":
+	case protocol.MethodViewChanged:
 		p.mu.Lock()
 		p.changed++
 		p.mu.Unlock()
 		h.seq.Add(1)
-	case "view/badge":
-		var b struct {
-			Path  string `json:"path"`
-			Count int    `json:"count"`
-		}
+	case protocol.MethodViewBadge:
+		var b protocol.ViewBadgeParams
 		if json.Unmarshal(params, &b) != nil {
 			return nil, nil
 		}
@@ -449,16 +479,17 @@ func (h *Host) handle(p *proc, method string, params json.RawMessage) (any, erro
 		}
 		p.mu.Unlock()
 		h.seq.Add(1)
-	case "sync/state":
-		var s struct {
-			Name string `json:"name"`
-			SyncState
-		}
+	case protocol.MethodSyncState:
+		var s protocol.SyncStateParams
 		if json.Unmarshal(params, &s) != nil || s.Name == "" {
 			return nil, nil
 		}
+		at, err := time.Parse(time.RFC3339, s.At)
+		if err != nil {
+			return nil, nil
+		}
 		p.mu.Lock()
-		p.syncs[s.Name] = s.SyncState
+		p.syncs[s.Name] = SyncState{At: at, TookMS: int(s.TookMS), Error: s.Error}
 		if s.Error == "" && p.lastErr != "" {
 			p.lastErr = "" // it's well again
 		}
@@ -486,7 +517,7 @@ func (h *Host) stop(p *proc) {
 	}
 	// A plugin waits a little for its commands before it answers.
 	ctx, cancel := context.WithTimeout(context.Background(), stopGrace)
-	p.conn.Call(ctx, "shutdown", nil, nil) //nolint:errcheck // it's told by its stdin closing too
+	p.conn.Call(ctx, protocol.MethodShutdown, nil, nil) //nolint:errcheck // it's told by its stdin closing too
 	cancel()
 	p.stdin.Close()
 	select {
@@ -518,11 +549,7 @@ func (h *Host) ready(name string) (*proc, error) {
 }
 
 // Terminal is what a command's output is going to.
-type Terminal struct {
-	TTY   bool `json:"tty"`
-	Width int  `json:"width,omitempty"`
-	Color bool `json:"color"`
-}
+type Terminal = protocol.Terminal
 
 // Run runs one of a plugin's commands: args are what followed its word,
 // dir is where it was run from, and out is given its output as it comes
@@ -548,10 +575,8 @@ func (h *Host) Run(ctx context.Context, name string, args []string, dir string, 
 	if args == nil {
 		args = []string{}
 	}
-	var answer struct {
-		Exit int `json:"exit"`
-	}
-	err = p.conn.Call(ctx, "command/run", map[string]any{"id": id, "args": args, "dir": dir, "terminal": term}, &answer)
+	var answer protocol.CommandRunResult
+	err = p.conn.Call(ctx, protocol.MethodCommandRun, protocol.CommandRunParams{ID: id, Args: args, Dir: dir, Terminal: term}, &answer)
 	switch {
 	case errors.Is(err, acp.ErrClosed):
 		return 1, fmt.Errorf("%s stopped while the command ran: see %s", name, LogPath(h.Root, name))
@@ -582,11 +607,28 @@ func (h *Host) ConfigChanged(name string) error {
 	if !p.alive() {
 		return nil
 	}
-	values, err := Values(h.Root, name)
+	values, err := wireValues(h.Root, name)
 	if err != nil {
 		return err
 	}
-	return p.conn.Notify("config/changed", map[string]any{"config": values})
+	return p.conn.Notify(protocol.MethodConfigChanged, protocol.ConfigChangedParams{Config: values})
+}
+
+// wireValues is a plugin's config as it's sent: each value as JSON.
+func wireValues(root, name string) (map[string]json.RawMessage, error) {
+	values, err := Values(root, name)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]json.RawMessage, len(values))
+	for k, v := range values {
+		data, err := json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("%s's config %s: %w", name, k, err)
+		}
+		out[k] = data
+	}
+	return out, nil
 }
 
 // Stop stops a plugin, if it's running. It's started again when it's next

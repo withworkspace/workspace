@@ -16,10 +16,8 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/withworkspace/plugin/protocol"
 )
-
-// ProtocolVersion is the version of the protocol ws speaks to a plugin.
-const ProtocolVersion = 1
 
 // ManifestName is the file that says how to start a plugin.
 const ManifestName = "plugin.toml"
@@ -113,39 +111,19 @@ func Linked(root, name string) (string, bool) {
 	return target, err == nil
 }
 
-// Registration is what a plugin adds to ws, as it said when it last
-// started. Every part is optional.
-type Registration struct {
-	Description   string      `json:"description,omitempty"`
-	Views         []View      `json:"views,omitempty"`
-	UI            *UI         `json:"ui,omitempty"`
-	Commands      *Commands   `json:"commands,omitempty"`
-	Agent         *Agent      `json:"agent,omitempty"`
-	Syncs         []Sync      `json:"syncs,omitempty"`
-	ConfigVersion int         `json:"config_version,omitempty"`
-	Config        []ConfigKey `json:"config,omitempty"`
-}
-
-// View is an entry in the web UI's sidebar, and where in the plugin's
-// app it opens.
-type View struct {
-	Title string `json:"title"`
-	Icon  string `json:"icon,omitempty"`
-	Under string `json:"under,omitempty"`
-	Path  string `json:"path,omitempty"`
-}
-
-// UI is a plugin's app: what ws's page for it (the shell, at
-// /plugin-frame/<name>/…) loads. A plugin has one, whatever views it has,
-// and serves no HTML of its own. Each is a path in the plugin's own HTTP,
-// with whatever query it has (/ui/app.js?v=3f9c2a), loaded from under
-// ViewBase.
-type UI struct {
-	// Script is the app's entry, loaded as a module.
-	Script string `json:"script,omitempty"`
-	// Style is its stylesheet, if it has one, in the page's head.
-	Style string `json:"style,omitempty"`
-}
+// What a plugin registers (Registration: what it adds to ws, as it said
+// when it last started) is in the protocol's own types, which ws shares
+// with the framework plugins are written with, so the two can't differ.
+type (
+	Registration = protocol.Registration
+	View         = protocol.View
+	UI           = protocol.UI
+	Commands     = protocol.Commands
+	Subcommand   = protocol.Subcommand
+	Agent        = protocol.Agent
+	Sync         = protocol.Sync
+	ConfigKey    = protocol.ConfigKey
+)
 
 // ValidUIPath says whether p can be one of a UI's: a path from the root of
 // the plugin's HTTP, which stays inside it. A query is the plugin's own.
@@ -165,61 +143,6 @@ func ValidUIPath(p string) bool {
 		}
 	}
 	return true
-}
-
-// Commands are what a plugin adds after ws: one word, and what follows it.
-type Commands struct {
-	Name        string       `json:"name,omitempty"`
-	Short       string       `json:"short,omitempty"`
-	Subcommands []Subcommand `json:"subcommands,omitempty"`
-}
-
-// Subcommand is one of a plugin's commands, for help.
-type Subcommand struct {
-	Name  string `json:"name"`
-	Short string `json:"short,omitempty"`
-	Args  string `json:"args,omitempty"`
-}
-
-// Agent is what a plugin tells agents: a guide, and the roles it's for
-// (none: every role).
-type Agent struct {
-	Roles []string `json:"roles,omitempty"`
-	Guide string   `json:"guide,omitempty"`
-}
-
-// Sync is something a plugin fetches in the background, for show.
-type Sync struct {
-	Name  string `json:"name"`
-	Every int    `json:"every,omitempty"` // seconds
-}
-
-// ConfigKey is one thing a plugin can be told in config.
-type ConfigKey struct {
-	Key      string   `json:"key"`
-	Title    string   `json:"title,omitempty"`
-	Type     string   `json:"type,omitempty"`
-	Required bool     `json:"required,omitempty"`
-	Default  any      `json:"default,omitempty"`
-	Help     string   `json:"help,omitempty"`
-	Example  string   `json:"example,omitempty"`
-	Options  []string `json:"options,omitempty"`
-	Scope    string   `json:"scope,omitempty"`
-}
-
-// Secret says whether the key's value is kept apart from config's files.
-func (k ConfigKey) Secret() bool { return k.Type == "secret" }
-
-// CommandName is the word after ws that runs the plugin's commands: its
-// own, or the plugin's name. "" if it adds none.
-func (r Registration) CommandName(plugin string) string {
-	if r.Commands == nil {
-		return ""
-	}
-	if r.Commands.Name != "" {
-		return r.Commands.Name
-	}
-	return plugin
 }
 
 // ReadRegistration is what the plugin said it adds when it last started;
