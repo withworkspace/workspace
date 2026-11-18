@@ -1524,3 +1524,41 @@ func TestLoad_UIAccent(t *testing.T) {
 		t.Errorf("a config not loaded: %q", a)
 	}
 }
+
+// Where the web UI's places go is one arrangement: yours, saying either
+// list, replaces the team's two; saying neither, the team's stands.
+func TestLoad_UIPlaces(t *testing.T) {
+	team := `[workspace]
+org = "test-org"
+
+[repos.repo-a]
+
+[ui]
+sidebar = ["missions", "reviews"]
+menu = ["team"]
+`
+	for _, tc := range []struct {
+		name, local   string
+		sidebar, menu []string
+	}{
+		{"the team's", "", []string{"missions", "reviews"}, []string{"team"}},
+		{"yours, both", "[ui]\nsidebar = [\"reviews\"]\nmenu = [\"files\", \"team\"]\n", []string{"reviews"}, []string{"files", "team"}},
+		{"yours, the menu alone", "[ui]\nmenu = [\"missions\"]\n", nil, []string{"missions"}},
+		{"yours, an accent alone", "[ui]\naccent = \"#123456\"\n", []string{"missions", "reviews"}, []string{"team"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			os.WriteFile(filepath.Join(root, "ws.toml"), []byte(team), 0644)
+			if tc.local != "" {
+				os.WriteFile(filepath.Join(root, "ws.local.toml"), []byte(tc.local), 0644)
+			}
+			cfg, _, err := Load(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(cfg.UI.Sidebar, tc.sidebar) || !slices.Equal(cfg.UI.Menu, tc.menu) {
+				t.Errorf("sidebar %q, menu %q; want %q, %q", cfg.UI.Sidebar, cfg.UI.Menu, tc.sidebar, tc.menu)
+			}
+		})
+	}
+}

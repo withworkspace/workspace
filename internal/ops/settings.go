@@ -448,7 +448,11 @@ func settingDefs() []struct {
 	out = append(out, struct {
 		group    roleDef
 		settings []settingDef
-	}{roleDef{id: "ui", title: "Appearance", about: "How the web UI looks."}, []settingDef{accentSetting()}})
+	}{roleDef{id: "ui", title: "Appearance", about: "How the web UI looks."}, []settingDef{
+		accentSetting(),
+		placesSetting("sidebar", "Sidebar", "The places in the sidebar, in order. A place in neither list goes at the sidebar's end. Arrange them from the workspace's menu (Arrange the sidebar…). Yours, setting either list, replaces the team's arrangement."),
+		placesSetting("menu", "In the menu", "The places moved out of the sidebar into the workspace's menu, in order. Arrange them from the workspace's menu (Arrange the sidebar…)."),
+	}})
 	return out
 }
 
@@ -482,6 +486,65 @@ func accentSetting() settingDef {
 				return err
 			}
 			l.UI.Accent = a
+			return nil
+		},
+	}
+}
+
+// placesSetting is [ui] sidebar or [ui] menu: where the web UI's places
+// go, as their ids in order. What a place's id is is the web UI's to say
+// (a plugin's view's is its plugin's name and path), so any id is kept:
+// one that isn't a place now is passed by. Clearing either clears both,
+// as they're one arrangement (config.UIConfig), and the team's stands.
+func placesSetting(key, label, about string) settingDef {
+	field := func(u *config.UIConfig) *[]string {
+		if key == "menu" {
+			return &u.Menu
+		}
+		return &u.Sidebar
+	}
+	get := func(u config.UIConfig) any {
+		if u.Sidebar == nil && u.Menu == nil {
+			return nil
+		}
+		list := *field(&u)
+		if list == nil {
+			list = []string{}
+		}
+		return list
+	}
+	return settingDef{
+		section: "ui", key: key, label: label, kind: "places", about: about,
+		team:  func(c *config.Config) any { return get(c.UI) },
+		yours: func(l *config.LocalConfig) any { return get(l.UI) },
+		def:   func(config.Config) any { return nil },
+		set: func(l *config.LocalConfig, v any) error {
+			if v == nil {
+				l.UI.Sidebar, l.UI.Menu = nil, nil
+				return nil
+			}
+			list, ok := v.([]any)
+			switch {
+			case !ok:
+				return errors.New("it's a list of places")
+			case len(list) > 200:
+				return errors.New("that's more than 200")
+			}
+			out := make([]string, 0, len(list))
+			for _, x := range list {
+				id, err := settingText(x, 200)
+				if err != nil {
+					return err
+				}
+				if slices.Contains(out, id) {
+					return fmt.Errorf("%s is in it twice", id)
+				}
+				out = append(out, id)
+			}
+			if len(out) == 0 {
+				out = nil
+			}
+			*field(&l.UI) = out
 			return nil
 		},
 	}

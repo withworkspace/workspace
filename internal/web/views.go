@@ -62,6 +62,9 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 		return Workspace{}, err
 	}
 	out := Workspace{Name: v.Name, Root: root, Org: v.Org, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: Talks(root), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Spaces: []SpaceRef{}}
+	if v.Sidebar != nil || v.Menu != nil {
+		out.Places = &Places{Sidebar: append([]string{}, v.Sidebar...), Menu: append([]string{}, v.Menu...)}
+	}
 	for _, s := range v.Spaces {
 		out.Spaces = append(out.Spaces, SpaceRef{Repo: s.Repo, Folder: s.Folder, Label: s.Label, Color: s.Color})
 	}

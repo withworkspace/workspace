@@ -24,6 +24,9 @@ export interface Workspace {
   // The ws that serves it (its daemon's), as ws --version says it: what
   // the menu says, and what a plugin's app is told when it connects.
   version?: string;
+  // places: where the sidebar's places go, as [ui] sidebar and menu say
+  // (shell/places.ts); absent for as they come.
+  places?: { sidebar: string[]; menu: string[] };
 }
 
 export interface Mission {
@@ -1408,7 +1411,7 @@ export interface Setting {
   key: string;
   label: string;
   about?: string;
-  kind: "harness" | "model" | "choice" | "bool" | "number" | "text" | "picks" | "color"; // picks: a list of harness:model; color: a hex colour, #rrggbb
+  kind: "harness" | "model" | "choice" | "bool" | "number" | "text" | "picks" | "color" | "places"; // picks: a list of harness:model; color: a hex colour, #rrggbb; places: the sidebar's, by id (shell/places.ts)
   choices?: SettingChoice[];
   value: unknown;
   source: "default" | "team" | "yours";

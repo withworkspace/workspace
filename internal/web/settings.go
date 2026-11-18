@@ -117,6 +117,11 @@ func (s *Server) setSettings(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		jsonError(w, http.StatusInternalServerError, err.Error())
 	default:
+		// Some of it is the workspace's view ([ui] sidebar and menu): its
+		// pages needn't wait for the next poll.
+		if h := s.topics[topicWorkspace]; h != nil {
+			h.nudge()
+		}
 		writeJSON(w, http.StatusOK, SettingsOf(info))
 	}
 }

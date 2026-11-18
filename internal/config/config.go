@@ -324,6 +324,14 @@ type UIConfig struct {
 	// the web UI's own default (in its foundations.css). See
 	// workspace-records:docs/customisable-ui-accent.md.
 	Accent string `toml:"accent,omitempty"`
+	// Sidebar and Menu are where the web UI's places go (Missions,
+	// Conversations, a plugin's views…), each a list of their ids in
+	// order: Sidebar is the sidebar's, Menu the workspace menu's (from the
+	// workspace's name). A place in neither goes at the sidebar's end, as
+	// it comes; an id that isn't a place now is passed by. The two are one
+	// arrangement: yours, setting either, replaces the team's.
+	Sidebar []string `toml:"sidebar,omitempty"`
+	Menu    []string `toml:"menu,omitempty"`
 }
 
 // ParseAccent is s as an accent: a hex colour, #rgb or #rrggbb, given as
@@ -899,6 +907,9 @@ func Load(startDir string) (*Config, string, error) {
 		}
 		if local.UI.Accent != "" {
 			cfg.UI.Accent = local.UI.Accent
+		}
+		if local.UI.Sidebar != nil || local.UI.Menu != nil {
+			cfg.UI.Sidebar, cfg.UI.Menu = local.UI.Sidebar, local.UI.Menu
 		}
 		if local.Team.Window != "" {
 			cfg.Team.Window = local.Team.Window
