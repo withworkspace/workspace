@@ -59,6 +59,7 @@ const (
 	KindBriefing  Kind = "briefing"  // a briefing agent writing the brief, or the planner at work on the plan
 	KindDeciding  Kind = "deciding"  // the orchestrator running, or about to
 	KindChecking  Kind = "checking"  // ws running and having judged a step's checks
+	KindMovingOn  Kind = "moving-on" // ws taking in a merge at its Open Pull Request step: the plan moves on
 
 	// Outside.
 	KindChecksRunning  Kind = "checks-running"  // a PR's checks are running
@@ -78,7 +79,7 @@ const (
 var kindOrder = []Kind{
 	KindCrewAsks, KindPermission, KindFlag, KindReReview, KindStepReview, KindToDo, KindReplies, KindBriefTalk, KindProposed, KindQueued, KindResume, KindReplied,
 	KindChecksFailing, KindChangesRequested, KindApprove, KindAccept, KindMerge, KindLand, KindWrapUp, KindStalled,
-	KindWorking, KindLaunching, KindOwnWork, KindAnswering, KindBriefing, KindChecking, KindDeciding,
+	KindWorking, KindLaunching, KindOwnWork, KindAnswering, KindBriefing, KindChecking, KindMovingOn, KindDeciding,
 	KindChecksRunning, KindAwaitingReview, KindWaitingOn,
 	KindLanded, KindEnded, KindToBrief, KindReady, KindParked, KindArchived,
 }
@@ -699,8 +700,15 @@ func Resolve(s Snapshot) []Headline {
 		add(s.stepWaitHeadline(*st))
 	}
 
-	// PRs: crew at work in a capsule have its PR in hand.
+	// PRs: crew at work in a capsule have its PR in hand. One that's
+	// merged, at its Open Pull Request step, which ws hasn't passed yet,
+	// is ws's.
 	for _, pr := range s.PRs {
+		if pr.Merged && s.State != Parked {
+			if h, ok := s.mergedHeadline(pr); ok {
+				add(h)
+			}
+		}
 		if pr.Merged || busyIn[pr.Capsule] || s.State == Parked {
 			continue
 		}
@@ -969,6 +977,31 @@ func waitedFor(d time.Duration) string {
 		return "an hour"
 	}
 	return fmt.Sprintf("%d hours", int(d/time.Hour))
+}
+
+// mergedHeadline is a pull request GitHub says has merged, which ws last
+// saw open, while the plan's at an Open Pull Request step: ws takes the
+// merge in when it next looks (ops.WatchPRs, which a page's news of it
+// starts), passing the step once each of its pull requests has merged.
+// Until then it's ws's, not a mission nobody's working on.
+func (s Snapshot) mergedHeadline(pr PRFacts) (Headline, bool) {
+	st, ok := s.currentStep()
+	if !ok || st.Step.Type != StepOpenPR {
+		return Headline{}, false
+	}
+	seen := slices.ContainsFunc(s.M.Capsules, func(c Capsule) bool {
+		return c.Repo+"/"+c.Name == pr.Capsule && c.SeenPR != nil && !c.SeenPR.Merged && !c.SeenPR.Closed &&
+			fmt.Sprintf("%s#%d", c.Repo, c.SeenPR.Number) == pr.Ref
+	})
+	if !seen {
+		return Headline{}, false
+	}
+	text := fmt.Sprintf("%s has merged: ws is passing step %d and moving the plan on", pr.Ref, st.N)
+	if len(st.Instances()) > 1 {
+		text = fmt.Sprintf("%s has merged: ws is taking it in at step %d, which passes once each of its pull requests has merged", pr.Ref, st.N)
+	}
+	return Headline{Court: CourtAgent, Kind: KindMovingOn, Label: "… moving on", By: "ws", Text: text,
+		Action: Action{Label: "nothing to do"}}, true
 }
 
 // waitsOn is what a step that's CI's or outside ws's waits on, after

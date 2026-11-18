@@ -345,6 +345,20 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 			s.PRs = []PRFacts{{Capsule: "a/b", Ref: "a#1", Merged: true}, {Capsule: "c/d", Ref: "c#2", Review: "REVIEW_REQUIRED"}}
 		}, court: CourtOutside, kind: KindAwaitingReview, target: "c#2", group: GroupWaiting},
 		{name: "in review, GitHub not asked", state: Review, court: CourtOutside, kind: KindAwaitingReview, group: GroupWaiting},
+		// A page hears of a merge before ws has passed the Open Pull
+		// Request step it's at: it's ws's, not a mission nobody's on.
+		{name: "merged at its Open Pull Request step, ws yet to pass it", state: Active, edit: func(s *Snapshot) {
+			atOpenPR(s, &SeenPR{Number: 88, Checks: "success"}, ago(time.Minute))
+			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", Merged: true}}
+		}, court: CourtAgent, kind: KindMovingOn, group: GroupInProgress, verb: VerbNone, text: "api#88 has merged: ws is passing step 2 and moving the plan on"},
+		{name: "merged, as ws has seen, and the step still stands", state: Active, edit: func(s *Snapshot) {
+			atOpenPR(s, &SeenPR{Number: 88, Merged: true}, ago(time.Minute))
+			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", Merged: true}}
+		}, court: CourtYou, kind: KindStalled, group: GroupNeedsYou, verb: VerbLaunch},
+		{name: "merged away from an Open Pull Request step", state: Active, edit: func(s *Snapshot) {
+			atOpenPR(s, &SeenPR{Number: 88}, nil)
+			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", Merged: true}}
+		}, court: CourtYou, kind: KindStalled, group: GroupNeedsYou, verb: VerbLaunch, text: "Nobody's on step 1, crew's"},
 	}
 	for _, c := range cases {
 		s := Snapshot{M: &Mission{Slug: "s", Title: "T"}, State: c.state, Now: now}
@@ -389,6 +403,20 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 				t.Errorf("%s: %s's action has no words", c.name, h.Kind)
 			}
 		}
+	}
+}
+
+// atOpenPR is a mission whose crew fixed it in api/fix, with ws having
+// last seen its pull request as seen: at step 2, Open Pull Request, once
+// step 1 was accepted (when), or still at step 1.
+func atOpenPR(s *Snapshot, seen *SeenPR, accepted *time.Time) {
+	s.M.Plan, _ = ParsePlan("## Z\n- Merged.\n## Stops early\n- None.\n## Steps\n1. Work: fix it.\n   - in: `api/fix`\n2. Open Pull Request\n   - in: `api/fix`\n", nil)
+	s.M.Capsules = []Capsule{{Repo: "api", Name: "fix", SeenPR: seen}}
+	s.M.Crew = []Crew{{ID: "c1", Capsule: "api/fix", Status: CrewDone, Ended: accepted}}
+	s.M.Stages = []StageRecord{{Text: "fix it.", N: 1, Of: 2, Crew: []string{"c1"}, Accepted: accepted}}
+	if accepted == nil {
+		ended := s.Now.Add(-time.Hour)
+		s.M.Crew[0].Status, s.M.Crew[0].Ended = "", &ended
 	}
 }
 
