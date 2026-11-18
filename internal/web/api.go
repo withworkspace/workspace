@@ -433,7 +433,11 @@ type Stage struct {
 	Type    string `json:"type,omitempty"`
 	Who     string `json:"who,omitempty"`
 	WhoSays string `json:"whoSays,omitempty"`
-	Makes   string `json:"makes,omitempty"`
+	// In is where it works, as the plan says: a repo, or one of the
+	// mission's capsules (repo/name). The Work tab lists a capsule's steps
+	// by it.
+	In    string `json:"in,omitempty"`
+	Makes string `json:"makes,omitempty"`
 	// OpensPR: the step makes a pull request, which is opened through ws.
 	OpensPR bool `json:"opensPR,omitempty"`
 	// A Work step's expansion: the step whose crew it carries on from,
