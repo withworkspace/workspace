@@ -92,8 +92,9 @@ func (s *seen) want(when string, kind mission.Kind, text string) {
 
 // Starting crew is marked from the moment ws begins: while it's getting
 // them ready, then on the crew once they're recorded, until ws has handed
-// them their prompt. It's the gap that said "Nobody's on step 4" and
-// offered to launch crew ws was already launching.
+// them their prompt (these crew's harness has no hooks). It's the gap that
+// said "Nobody's on step 4" and offered to launch crew ws was already
+// launching.
 func TestLaunch_StartingFromWhenWsBegins(t *testing.T) {
 	w, _ := replanFixture(t)
 	// Crew worked on it before: without the mark, it reads as stalled.
@@ -127,8 +128,8 @@ func TestLaunch_StartingFromWhenWsBegins(t *testing.T) {
 		t.Errorf("their session starting: %s %q, to %s %s", h.Kind, h.Text, h.Action.Verb, h.Action.Target)
 	}
 	// Handed their prompt (as the host does once it's typed it in), they're
-	// at work.
-	w.Missions.CrewStarted("cache", "c2")
+	// at work: their harness has no hooks to report it with.
+	w.Missions.CrewHandedPrompt("cache", "c2")
 	if h := s.now(); h.Kind != mission.KindWorking || h.By != "c2" {
 		t.Errorf("handed their prompt: %s %q", h.Kind, h.Text)
 	}

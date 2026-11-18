@@ -73,8 +73,14 @@ export function headlineStatus(h: Headline): StatusInfo {
   return { icon: tone === "attention" ? "alert" : "circle", tone, words };
 }
 
-// crewStatus is where crew stand.
-export function crewStatus(c: Pick<Crew, "ended" | "activity" | "status" | "waitingOn" | "again">): StatusInfo {
+// crewStatus is where crew stand. Starting is ws's mark on them, the one
+// the mission's headline reads, so the two agree: crew are starting while
+// it stands, whatever they last did (crew resumed did it in the session
+// before), and not for having reported nothing. Crew who've reported no
+// activity and aren't starting (a harness with no hooks) are taken as
+// working, as the headline takes them.
+export function crewStatus(c: Pick<Crew, "ended" | "starting" | "activity" | "status" | "waitingOn" | "again">): StatusInfo {
+  if (c.starting && !c.ended) return { icon: "spinner", tone: "progress", words: "Starting", live: true };
   // Sent back after it reported done: what it's doing now is what counts.
   if (c.status === "done" && c.again && !c.ended) return { icon: "circle-dot", tone: "progress", words: "Working again", live: true };
   if (c.status === "done") return { icon: "check-circle", tone: "done", words: c.ended ? "Done" : "Reported done" };
@@ -91,7 +97,7 @@ export function crewStatus(c: Pick<Crew, "ended" | "activity" | "status" | "wait
     case "question":
       return { icon: "question", tone: "attention", words: "Asks you" };
   }
-  return { icon: "spinner", tone: "progress", words: "Starting", live: true };
+  return { icon: "circle-dot", tone: "progress", words: "Working", live: true };
 }
 
 const stateInfo: Record<MissionState, StatusInfo> = {

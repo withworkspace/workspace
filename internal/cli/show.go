@@ -423,7 +423,13 @@ func crewStanding(c mission.Crew) string {
 		parts = append(parts, ended)
 	} else {
 		running := "running"
-		if c.Activity != "" {
+		switch {
+		case c.Starting != nil:
+			// ws's mark, as the mission's headline reads it: what they
+			// last did (resumed, in the session before) isn't where they
+			// stand.
+			running += ", starting"
+		case c.Activity != "":
 			running += ", " + c.Activity
 		}
 		if work, ok := c.OwnWork(time.Now()); ok {

@@ -42,8 +42,9 @@ func TestResolve_HandoffIsNeverIdle(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// launch records crew as crew.Start does: the crew, what they were
-	// dispatched to do, and the step they're on.
+	// launch records crew as crew.Start does: the crew, that ws's hooks
+	// are in their session (Claude Code's), what they were dispatched to
+	// do, and the step they're on.
 	launch := func(t *testing.T, s Store, slug, id, text string, step int) {
 		t.Helper()
 		c, err := s.StartCrewOn(slug, "claude", "", "", "")
@@ -51,6 +52,7 @@ func TestResolve_HandoffIsNeverIdle(t *testing.T) {
 		if c.ID != id {
 			t.Fatalf("started %s, want %s", c.ID, id)
 		}
+		must(t, s.SetCrewHooks(slug, id, true))
 		must(t, s.SetCrewDispatch(slug, id, "ws", text))
 		_, err = s.JoinStage(slug, id, step)
 		must(t, err)
@@ -102,12 +104,17 @@ func TestResolve_HandoffIsNeverIdle(t *testing.T) {
 				{name: "the planner's told what you confirmed, and answers; crew's session still starting", kind: KindLaunching, ws: func() {
 					planning(t, s, slug)
 				}},
-				{name: "ws has handed crew their prompt; the planner's still answering", kind: KindWorking, ws: func() {
-					must(t, s.CrewStarted(slug, "c1"))
+				{name: "ws has handed crew their prompt, and they've reported nothing (Claude Code asks whether to trust the folder): still starting", kind: KindLaunching, ws: func() {
+					must(t, s.CrewHandedPrompt(slug, "c1"))
 				}},
-				{name: "crew's first activity, and the planner's reply recorded: crew are at work", kind: KindWorking, ws: func() {
-					must(t, s.CrewHook(slug, "c1", Hook{Prompted: true}))
+				{name: "the planner's reply recorded; crew still haven't reported", kind: KindLaunching, ws: func() {
 					planned(t, s, slug)
+				}},
+				{name: "crew's first report, their session's start: they're started", kind: KindWorking, ws: func() {
+					must(t, s.CrewHook(slug, "c1", Hook{Conversation: "abc"}))
+				}},
+				{name: "crew's first activity: crew are at work", kind: KindWorking, ws: func() {
+					must(t, s.CrewHook(slug, "c1", Hook{Prompted: true}))
 				}},
 			}
 		}},
@@ -223,8 +230,9 @@ func idleFallback(s Snapshot, hs []Headline) bool {
 
 // ws's marks are set and cleared by what ws does, and by nothing else: a
 // launch's mark stands until crew are recorded under it or it's ended; the
-// crew's until they've their prompt or have done anything; the planner's
-// turn until it's ended in its conversation.
+// crew's until they've their prompt (and, with ws's hooks in their
+// session, have reported) or have done anything; the planner's turn until
+// it's ended in its conversation.
 func TestStore_HandoffMarks(t *testing.T) {
 	s := owned(t)
 	m, _ := s.Create("Cache tokens")
@@ -274,10 +282,12 @@ func TestStore_HandoffMarks(t *testing.T) {
 		t.Error("c2 is starting, with no launch marked")
 	}
 
-	// What ends a crew's starting: ws handing them their prompt, anything
-	// they report, a status, their end. Their session id isn't activity.
+	// What ends a crew's starting, with no hooks of ws's in their session:
+	// ws handing them their prompt, anything they do, a status, their end.
+	// Their session id (which ws's host reports for crew over ACP) isn't
+	// activity.
 	for name, happen := range map[string]func(id string){
-		"handed its prompt": func(id string) { s.CrewStarted(slug, id) },
+		"handed its prompt": func(id string) { s.CrewHandedPrompt(slug, id) },
 		"prompted":          func(id string) { s.CrewHook(slug, id, Hook{Prompted: true}) },
 		"a permission":      func(id string) { s.CrewHook(slug, id, Hook{Activity: ActivityPermission}) },
 		"reported done":     func(id string) { s.SetCrewStatus(slug, id, CrewDone, "built it") },
@@ -293,6 +303,46 @@ func TestStore_HandoffMarks(t *testing.T) {
 		if starting(c.ID) {
 			t.Errorf("%s: %s is still starting", name, c.ID)
 		}
+	}
+
+	// With ws's hooks in their session, crew report for themselves: ws
+	// handing them their prompt doesn't start them, their first report
+	// does, however long it takes. A session that reports before ws has
+	// typed its prompt in is starting until ws has.
+	hooked := func() string {
+		t.Helper()
+		s.StartLaunching(slug, "")
+		c, _ := s.StartCrew(slug, "claude", "")
+		if err := s.SetCrewHooks(slug, c.ID, true); err != nil {
+			t.Fatal(err)
+		}
+		return c.ID
+	}
+	id := hooked()
+	s.CrewHandedPrompt(slug, id)
+	if !starting(id) {
+		t.Errorf("%s has hooks, and isn't starting once handed its prompt, before its first report", id)
+	}
+	s.CrewHook(slug, id, Hook{Conversation: "abc"})
+	if starting(id) {
+		t.Errorf("%s is still starting after its first report", id)
+	}
+	id = hooked()
+	s.CrewHook(slug, id, Hook{Conversation: "abc"})
+	if !starting(id) {
+		t.Errorf("%s isn't starting, its session up and its prompt not yet handed to it", id)
+	}
+	s.CrewHandedPrompt(slug, id)
+	if starting(id) {
+		t.Errorf("%s is still starting, its session up and its prompt handed to it", id)
+	}
+	id = hooked()
+	s.CrewHook(slug, id, Hook{Prompted: true})
+	if starting(id) {
+		t.Errorf("%s is still starting after its first turn began", id)
+	}
+	if c, _ := load().CrewByID(id); c.AwaitsReport || c.Handed {
+		t.Errorf("%s started, with marks of its start left: %+v", id, c)
 	}
 
 	// Resumed under a mark, crew are starting again, whatever they last did.

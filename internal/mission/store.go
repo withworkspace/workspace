@@ -322,7 +322,7 @@ func (s Store) endCrew(slug, id, exit string, stopped, interrupted bool) error {
 				done = m.Crew[i].Status == CrewDone
 				t := now()
 				m.Crew[i].Ended = &t
-				m.Crew[i].Starting = nil
+				m.Crew[i].started()
 				m.Crew[i].Exit = exit
 				m.Crew[i].Stopped = stopped
 				m.Crew[i].Interrupted = interrupted
@@ -387,6 +387,7 @@ func (s Store) ResumeCrew(slug, id string) (Crew, error) {
 					// The crew ws was starting again: they hold the mark.
 					t := now()
 					m.Crew[i].Starting, m.Launching = &t, nil
+					m.Crew[i].AwaitsReport, m.Crew[i].Handed = false, false
 				}
 				crew, found = m.Crew[i], true
 			}
@@ -651,7 +652,7 @@ func (s Store) SetCrewStatus(slug, id, status, note string) error {
 			if m.Crew[i].ID == id {
 				t := now()
 				m.Crew[i].Status, m.Crew[i].Note, m.Crew[i].StatusAt = status, note, &t
-				m.Crew[i].Starting = nil // it's said something: it's started
+				m.Crew[i].started() // it's said something: it's started
 				found = true
 			}
 		}
@@ -971,19 +972,51 @@ func (s Store) EndLaunching(slug string, l Launching) error {
 	return err
 }
 
-// CrewStarted records that ws has finished starting crew: it's handed
-// them their prompt, or there was none to hand them. They're no longer
-// starting.
-func (s Store) CrewStarted(slug, id string) error {
+// SetCrewHooks records, as ws starts a session for crew, whether it
+// installed its hooks in it: with them the crew report for themselves, so
+// they're starting until their first report, however long ago ws handed
+// over their prompt (CrewHandedPrompt). Without them nothing's reported as
+// a session begins, and handing over their prompt is what starts them.
+func (s Store) SetCrewHooks(slug, id string, installed bool) error {
 	_, err := s.Update(slug, func(m *Mission) error {
 		for i := range m.Crew {
-			if m.Crew[i].ID == id {
-				m.Crew[i].Starting = nil
+			if c := &m.Crew[i]; c.ID == id && c.Starting != nil {
+				c.AwaitsReport, c.Handed = installed, false
 			}
 		}
 		return nil
 	})
 	return err
+}
+
+// CrewHandedPrompt records that ws has done its part of starting crew:
+// it's handed them their prompt, or had none to hand them. Crew whose
+// session has no hooks of ws's are started by that: it's the last ws
+// knows of how they begin. Crew with them are starting until their first
+// report (CrewHook), which a session held up before its first turn
+// (Claude Code asking whether to trust the folder) hasn't made.
+func (s Store) CrewHandedPrompt(slug, id string) error {
+	_, err := s.Update(slug, func(m *Mission) error {
+		for i := range m.Crew {
+			if c := &m.Crew[i]; c.ID == id && c.Starting != nil {
+				c.Handed = true
+				c.settleStart()
+			}
+		}
+		return nil
+	})
+	return err
+}
+
+// started ends a crew's start: they're no longer starting.
+func (c *Crew) started() { c.Starting, c.AwaitsReport, c.Handed = nil, false, false }
+
+// settleStart ends a crew's start once it has nothing left to wait for:
+// ws has handed over their prompt, and a session that reports has.
+func (c *Crew) settleStart() {
+	if c.Handed && !c.AwaitsReport {
+		c.started()
+	}
 }
 
 // StartPlanning marks a turn of the planner's underway in its conversation
@@ -1135,7 +1168,13 @@ func (s Store) CrewHook(slug, id string, h Hook) error {
 			// only that: the question says more.
 			aboutQuestion := c.Activity == ActivityQuestion && h.Activity == ActivityPermission
 			if h.Prompted || h.Activity != "" {
-				c.Starting = nil // its first activity: it's started
+				c.started() // its first activity: it's started
+			} else {
+				// Anything else its hooks report (its session's start,
+				// first of all) says the session's up: it's started if ws
+				// has handed over its prompt, and once it has if not.
+				c.AwaitsReport = false
+				c.settleStart()
 			}
 			switch {
 			case h.Prompted:
