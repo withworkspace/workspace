@@ -1563,6 +1563,18 @@ main {
   }
 }
 
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes page-in-folded {
+  from {
+    opacity: 0;
+  }
+}
+
 @keyframes pop {
   from {
     opacity: 0;
@@ -2224,6 +2236,17 @@ main {
 @media (min-width: 861px) {
   .shell {
     transition: grid-template-columns var(--slow) var(--ease);
+  }
+
+  /* The page that comes as the sidebar folds or opens fades in, in its
+     column as that moves. The two names are one animation: it's the change
+     of name, when the shell folds or opens, that runs it again. */
+  main {
+    animation: page-in 180ms var(--ease);
+  }
+
+  .shell.reviewing main {
+    animation-name: page-in-folded;
   }
 
   .shell.reviewing {

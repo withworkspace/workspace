@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { Button as AriaButton, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import {
@@ -257,6 +257,33 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
     h: back,
   });
 
+  // The bar's ends, the same while the mission loads as once it has: back
+  // to the missions, and the tabs (with what's waiting in each, once known).
+  const backLink = (
+    <TLink to="/" className="mission-back" title="Missions (esc)" aria-label="Back to the missions">
+      <Icon name="arrow-left" size={15} />
+    </TLink>
+  );
+  const tabRow = (count?: (t: Tab) => ReactNode) => (
+    <div className="tabs" role="tablist" aria-label="Mission">
+      {tabs.map((t) => (
+        <button
+          key={t}
+          role="tab"
+          id={`tab-${t}`}
+          aria-selected={t === tab}
+          aria-controls="mission-panel"
+          className={t === tab ? "on" : ""}
+          onClick={() => setTab(t)}
+          title={`${tabNames[t]} (${tabs.indexOf(t) + 1})`}
+        >
+          {tabNames[t]}
+          {count?.(t)}
+        </button>
+      ))}
+    </div>
+  );
+
   if (error && !d) {
     return (
       <div className="page narrow">
@@ -273,13 +300,38 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
     );
   }
   if (!d) {
+    // The page's own frame while it loads, so nothing moves when it has:
+    // the bar where it will be, with what the list already says of the
+    // mission (where it stands, its name) and the tabs.
+    const listed = workspace.missions.find((m) => m.slug === slug);
     return (
-      <div className="page">
-        <Crumbs />
-        <div className="mission-head">
-          <h1 className="skeleton-title">&nbsp;</h1>
+      <div className="mission-page">
+        <div className="timeline" aria-hidden>
+          <div className="timeline-track" />
         </div>
-        <Skeleton rows={6} />
+        <div className="mission-bar">
+          <div className="mission-bar-in">
+            <header className="mission-head">
+              {backLink}
+              {listed && <Status s={headlineStatus(listed.headline)} iconOnly size={16} className="mission-status" />}
+              {listed ? (
+                <h1 className="mission-title">
+                  <span className="mission-title-text" title={listed.title}>
+                    {listed.title}
+                  </span>
+                </h1>
+              ) : (
+                <h1 className="skeleton-title">&nbsp;</h1>
+              )}
+            </header>
+            {tabRow()}
+          </div>
+        </div>
+        <div className="page mission">
+          <div className="mission-main">
+            <Skeleton rows={6} />
+          </div>
+        </div>
       </div>
     );
   }
@@ -301,43 +353,29 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
       <div className="mission-bar">
         <div className="mission-bar-in">
           <header className="mission-head">
-            <TLink to="/" className="mission-back" title="Missions (esc)" aria-label="Back to the missions">
-              <Icon name="arrow-left" size={15} />
-            </TLink>
+            {backLink}
             {d.headlines[0] && <Status s={headlineStatus(d.headlines[0])} iconOnly size={16} className="mission-status" />}
             <Title d={d} reload={load} />
           </header>
-          <div className="tabs" role="tablist" aria-label="Mission">
-            {tabs.map((t) => (
-              <button
-                key={t}
-                role="tab"
-                id={`tab-${t}`}
-                aria-selected={t === tab}
-                aria-controls="mission-panel"
-                className={t === tab ? "on" : ""}
-                onClick={() => setTab(t)}
-                title={`${tabNames[t]} (${tabs.indexOf(t) + 1})`}
-              >
-                {tabNames[t]}
-                {t === "verify" && waitingBundles > 0 && (
-                  <span className="count tone-attention" title="Verification bundles waiting for you to approve">
-                    {waitingBundles}
-                  </span>
-                )}
-                {t === "verify" && !waitingBundles && standing > 0 && (
-                  <span className="count" title="Verification bundles, handed over to show the work">
-                    {standing}
-                  </span>
-                )}
-                {t === "talk" && waitingTalks > 0 && (
-                  <span className="count tone-attention" title="Your turn, or something to confirm">
-                    {waitingTalks}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+          {tabRow((t) => (
+            <>
+              {t === "verify" && waitingBundles > 0 && (
+                <span className="count tone-attention" title="Verification bundles waiting for you to approve">
+                  {waitingBundles}
+                </span>
+              )}
+              {t === "verify" && !waitingBundles && standing > 0 && (
+                <span className="count" title="Verification bundles, handed over to show the work">
+                  {standing}
+                </span>
+              )}
+              {t === "talk" && waitingTalks > 0 && (
+                <span className="count tone-attention" title="Your turn, or something to confirm">
+                  {waitingTalks}
+                </span>
+              )}
+            </>
+          ))}
         </div>
         {tab !== "summary" && <DetailSide {...parts} updated={updated} over open={over} />}
       </div>

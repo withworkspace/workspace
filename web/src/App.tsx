@@ -27,6 +27,7 @@ import { repoOfPage, scopePrefix } from "./shell/find";
 import { Palette } from "./shell/Palette";
 import { useFaviconBadge, useNotifications, type Waiting } from "./shell/notify";
 import { noteVisit, visitAt } from "./shell/recent";
+import { wantsRoom } from "./shell/room";
 import { shortVersion } from "./shell/version";
 import { TalkPage, TalksPage, talkKeys, talksKeys } from "./talk/Talk";
 import { TeamPage, teamKeys } from "./team/Team";
@@ -49,11 +50,9 @@ export function App() {
   const [closed, setClosed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  // A mission (and what's under it: its reviews, files and crew), a pull
-  // request's review, a repo's files and a running artifact want the room:
-  // the sidebar folds to a rail, which opens over the page on hover.
-  const reviewing =
-    location.pathname.startsWith("/missions/") || location.pathname.includes("/files/") || location.pathname.startsWith("/reviews/") || location.pathname.startsWith("/artifacts/");
+  // On a page that wants the room the sidebar folds to a rail, which opens
+  // over the page on hover.
+  const reviewing = wantsRoom(location.pathname);
 
   // The drawer (on a narrow window) closes on going somewhere.
   useEffect(() => setDrawer(false), [location.pathname]);
