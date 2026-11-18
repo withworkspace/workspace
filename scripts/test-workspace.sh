@@ -679,12 +679,16 @@ for name in demo records; do
 done
 
 # Per machine: Claude Code on haiku in every role. Launch crew's menu
-# offers crew on sonnet too, to try picking one.
+# offers crew on sonnet too, to try picking one. Every repo here is new to
+# Claude, so its first crew would open on Claude's trust dialog, with
+# nobody there to answer it when an agent's driving: trust_folders has ws
+# answer it.
 cat >"$dir/ws.local.toml" <<'EOF'
 [crew]
 harness = "claude"
 model = "haiku"
 allowed = ["claude:sonnet"]
+trust_folders = true
 
 [briefing]
 harness = "claude"
@@ -733,8 +737,8 @@ Test workspace ready: $dir
   ws web               # Conversations: say what you want, and its agent proposes a mission
   ws process           # PROCESS.md, as the planner and the orchestrator read it
 
-Claude Code (haiku) plays every role (ws.local.toml). The first crew in each
-repo opens on Claude's trust dialog: answer it once per repo. GitHub isn't
+Claude Code (haiku) plays every role (ws.local.toml), and ws answers its
+trust dialog for this workspace's repos ([crew] trust_folders). GitHub isn't
 real here (org example-org): .remotes/github.json answers for it, with open
 pull requests on demo for the web UI's Reviews page (ws web /reviews), and
 a few days of merges and commits for its Team page (ws team). A review you

@@ -23,6 +23,9 @@ const LeaveGrace = 3 * time.Second
 type LocalHost struct {
 	Store   mission.Store
 	OnEnded EndHook
+	// TrustFolders, as daemon.Server's: whether to answer Claude Code's
+	// trust dialog yes for crew. Nil leaves it to you.
+	TrustFolders func() bool
 
 	mu      sync.Mutex
 	terms   []*localTerm
@@ -97,6 +100,7 @@ func (h *LocalHost) Launch(s Spec) (int, error) {
 	if s.Prompt != "" {
 		go TypePrompt(h.Store.Root, s.Key(), t, s.Prompt)
 	}
+	go WatchTrust(h.Store, h.Store.Root, s, t, h.TrustFolders)
 	return p.Pid(), nil
 }
 
