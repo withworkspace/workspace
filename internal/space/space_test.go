@@ -289,3 +289,19 @@ func TestRefresh_FromACommand(t *testing.T) {
 		t.Fatalf("%+v %v", hits, err)
 	}
 }
+
+func TestSearch_TheLastWordAsItsBegun(t *testing.T) {
+	db := corpus(t)
+	// "decis" is no word, but it's how "decisions" starts.
+	hits, _, err := Search(bg, db, Query{Words: "decis", Limit: 3})
+	if err != nil || len(hits) == 0 || hits[0].Path != "02-decisions.md" {
+		t.Fatalf("begun: %+v %v", hits, err)
+	}
+	if !slices.ContainsFunc(hits[0].Snippet, func(p Part) bool { return p.Mark }) {
+		t.Errorf("what it begins isn't marked: %+v", hits[0].Snippet)
+	}
+	// Finished (a space after it), it's the word it is: none.
+	if hits, _, _ := Search(bg, db, Query{Words: "decis "}); len(hits) != 0 {
+		t.Errorf("finished: %+v", hits)
+	}
+}
