@@ -44,8 +44,8 @@ func TestKitRegistersWhatItDeclared(t *testing.T) {
 	if r.UI == nil || !strings.HasPrefix(r.UI.Script, "/ui/app.js?v=") || !plugin.ValidUIPath(r.UI.Script) {
 		t.Errorf("ui = %+v", r.UI)
 	}
-	// Its own four, and the framework's sync, for a plugin with syncs.
-	if r.CommandName("kit") != "kit" || len(r.Commands.Subcommands) != 5 {
+	// Its own five, and the framework's sync, for a plugin with syncs.
+	if r.CommandName("kit") != "kit" || len(r.Commands.Subcommands) != 6 {
 		t.Errorf("commands = %+v", r.Commands)
 	}
 	if r.Agent == nil || !strings.Contains(r.Agent.Guide, "ws kit hi") || len(r.Agent.Roles) != 1 || r.Agent.Roles[0] != "crew" {
@@ -138,6 +138,74 @@ func TestKitTellsWS(t *testing.T) {
 	if st.Error != "it went wrong" {
 		t.Errorf("last error = %q", st.Error)
 	}
+}
+
+// Who's looking reaches the framework: a plugin that starts while
+// someone is, is told as it starts; one that's running, as it changes;
+// and nobody's looking only once they've been gone a moment.
+func TestKitIsToldWhosLooking(t *testing.T) {
+	root, h := workspace(t)
+	h.LookLinger = 300 * time.Millisecond
+	addKit(t, root)
+	looking := func() string {
+		t.Helper()
+		o := &output{}
+		if exit, err := h.Run(context.Background(), "kit", []string{"looking"}, root, plugin.Terminal{}, o.write); err != nil || exit != 0 {
+			t.Fatalf("looking: %d, %v", exit, err)
+		}
+		return strings.TrimSpace(o.stdout())
+	}
+	eventually := func(want string) {
+		t.Helper()
+		deadline := time.Now().Add(5 * time.Second)
+		for got := looking(); got != want; got = looking() {
+			if time.Now().After(deadline) {
+				t.Fatalf("the plugin was told %q, not %q", got, want)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+
+	// A page of ws's is showing before the plugin's started.
+	page := h.Look("")
+	if st := h.Status("kit"); st.State != plugin.Stopped {
+		t.Fatalf("a page showing started the plugin: %+v", st)
+	}
+	eventually("app false, ws true")
+
+	// Its app comes on screen, in another page.
+	app := h.Look("kit")
+	eventually("app true, ws true")
+
+	// That page goes, and for a moment the plugin isn't told: whoever it
+	// was may be back.
+	app()
+	app() // (gone twice is gone once)
+	if got := looking(); got != "app true, ws true" {
+		t.Errorf("straight after its page went, the plugin was told %q", got)
+	}
+	eventually("app false, ws true")
+
+	// Back within the moment, it never hears they went: not when its page
+	// comes back, and not when another page of ws's is told of meanwhile.
+	app = h.Look("kit")
+	eventually("app true, ws true")
+	app()
+	other := h.Look("")
+	time.Sleep(50 * time.Millisecond) // the other page's telling is done
+	if got := looking(); got != "app true, ws true" {
+		t.Errorf("another page showing, straight after its own went, had the plugin told %q", got)
+	}
+	app = h.Look("kit")
+	other()
+	time.Sleep(h.LookLinger + 100*time.Millisecond)
+	if got := looking(); got != "app true, ws true" {
+		t.Errorf("its page went and came back within the moment, and the plugin was told %q", got)
+	}
+
+	app()
+	page()
+	eventually("app false, ws false")
 }
 
 func TestKitServesItsApp(t *testing.T) {

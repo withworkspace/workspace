@@ -97,6 +97,7 @@ func Install(t *testing.T, name string, o Options) string {
 func run() {
 	var mu sync.Mutex
 	config := map[string]any{}
+	looking := "" // view/looking's params, as last told
 	done := make(chan struct{})
 
 	var conn *acp.Conn
@@ -121,7 +122,7 @@ func run() {
 			if err != nil {
 				return nil, err
 			}
-			go http.Serve(ln, view(&mu, &config)) //nolint:errcheck // ends with the process
+			go http.Serve(ln, view(&mu, &config, &looking)) //nolint:errcheck // ends with the process
 			reg := map[string]any{
 				"description": "A plugin for tests",
 				"views":       []map[string]any{{"title": "Fake", "icon": "box", "path": "/"}},
@@ -153,6 +154,11 @@ func run() {
 				config = p.Config
 				mu.Unlock()
 			}
+			return nil, nil
+		case "view/looking":
+			mu.Lock()
+			looking = string(params)
+			mu.Unlock()
 			return nil, nil
 		case "command/run":
 			var p struct {
@@ -215,8 +221,14 @@ func run() {
 }
 
 // view is the fake's own HTTP: its app's files, and what its app asks it.
-func view(mu *sync.Mutex, config *map[string]any) http.Handler {
+func view(mu *sync.Mutex, config *map[string]any, looking *string) http.Handler {
 	mux := http.NewServeMux()
+	// Who ws last said is looking, as it said it: "" if it hasn't.
+	mux.HandleFunc("GET /api/looking", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		io.WriteString(w, *looking) //nolint:errcheck // to a test
+	})
 	mux.HandleFunc("GET /ui/app.js", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 		io.WriteString(w, `document.getElementById("root").textContent = "the fake's app";`) //nolint:errcheck // a test's file

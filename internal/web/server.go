@@ -568,9 +568,10 @@ func (s *Server) fingerprint() string {
 }
 
 // stream is a page's event stream on a topic (?topic=workspace, the
-// default; reviews; team; mission:<slug>): it says when something the page
-// shows has changed, so the page never polls. An open stream holds the
-// daemon up.
+// default; reviews; team; plugins; mission:<slug>): it says when something
+// the page shows has changed, so the page never polls. An open stream holds
+// the daemon up. The plugins topic takes ?app=<name> from a page showing
+// that plugin's app.
 func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 	topic := cmp.Or(r.URL.Query().Get("topic"), topicWorkspace)
 	var subscribe func() (<-chan string, func())
@@ -600,6 +601,16 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 	}
 	if s.Hold != nil {
 		defer s.Hold()()
+	}
+	// Every page follows the plugins while it's showing, and says which
+	// plugin's app it shows, if it shows one: plugins are told who's
+	// looking, to fetch to suit.
+	if topic == topicPlugins && s.Plugins != nil {
+		app := r.URL.Query().Get("app")
+		if !plugin.IsInstalled(s.Plugins.Root, app) {
+			app = ""
+		}
+		defer s.Plugins.Look(app)()
 	}
 	ch, done := subscribe()
 	defer done()

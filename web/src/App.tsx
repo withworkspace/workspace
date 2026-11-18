@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Button as AriaButton, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
-import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useNavigationType } from "react-router";
+import { Link, Navigate, NavLink, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from "react-router";
 import { type Connection, NotSignedIn, type Plugin, shutDownDaemon, usePlugins, useWorkspace, type Workspace } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
 import { ComparePage, compareKeys } from "./artifacts/Compare";
@@ -41,7 +41,8 @@ import { duration } from "./ui/time";
 
 export function App() {
   const { workspace, error, connection } = useWorkspace();
-  const plugins = usePlugins();
+  // On a plugin's page, ws is told whose app is on screen.
+  const plugins = usePlugins(useMatch("/x/:name/*")?.params.name);
   const [help, setHelp] = useState(false);
   // Find, open: with what it starts with typed ("/" for files, from ⌘P).
   const [palette, setPalette] = useState<string>();
