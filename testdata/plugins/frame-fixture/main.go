@@ -86,6 +86,16 @@ func main() {
 				return nil, err
 			}
 			go http.Serve(ln, serve()) //nolint:errcheck // ends with the process
+			// It tells ws of its things, so ws has them without asking: Find
+			// finds the Lantern by what it says. ws answers once it's
+			// taken what's registered below.
+			go func() {
+				told := []map[string]string{}
+				for _, t := range things {
+					told = append(told, map[string]string{"kind": "thing", "ref": "THING-" + itoa(int64(t.ID)), "title": t.Name, "state": "On the shelf", "text": t.Note})
+				}
+				conn.Call(context.Background(), "thing/put", map[string]any{"things": told}, nil) //nolint:errcheck // a ws from before it could be told
+			}()
 			script := versioned("app.js")
 			// FRAME_FIXTURE_SPEAKS=2, in the daemon's environment, makes the
 			// app say it speaks only that frame protocol version, which ws

@@ -2,13 +2,14 @@
 # A plugin whose things have names (THING-2), and a mission and a note that name them.
 #
 # For seeing a plugin's refs: a name found in what's written, its card,
-# where it goes, what ws show says of it, and all of it gone when the
-# plugin's removed.
+# where it goes, what ws show says of it, its things found by what they
+# say, and all of it gone when the plugin's removed.
 #
 #   scripts/try.sh up plugin-refs
 #
 # It adds the fixture plugin (testdata/plugins/frame-fixture), which
-# registers how its things are named (THING-1 to THING-3 are there), a
+# registers how its things are named (THING-1 to THING-3 are there) and
+# tells ws of the three, so they're found by what they say, a
 # mission, shelve-the-lantern, whose brief names two of them, and a note in
 # records that names them, one by where it is, beside some words that only
 # look like names.
@@ -51,6 +52,8 @@ brief and a note name them.
   $ws show THING-2 --full    with what it left out
   $ws show https://fixture.example/things/THING-3
   $ws show THING-9           the fixture has none
+  $ws find lantern           found by what it says, as the plugin told ws of it
+  Find (⌘K): lantern, or THING-2; THING-9, which ws wasn't told of, by its name alone
   $ws plugin list            names THING-…
   $ws plugin remove frame-fixture   and its names are words again
 SAID

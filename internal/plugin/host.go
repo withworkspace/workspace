@@ -148,7 +148,10 @@ type proc struct {
 	conn     *acp.Conn
 	viewSock string
 	exited   chan struct{}
-	started  time.Time
+	// ready is closed once it's started: what it registered is kept, and
+	// what it asks ws can be answered.
+	ready   chan struct{}
+	started time.Time
 	// stopping is set once ws has told it to go: its going isn't its own
 	// idea.
 	stopping atomic.Bool
@@ -293,7 +296,7 @@ func (h *Host) start(name string) (*proc, error) {
 		return nil, fmt.Errorf("starting %s: %w", strings.Join(m.Command, " "), err)
 	}
 	p := &proc{
-		name: name, manifest: m, cmd: cmd, stdin: stdin, exited: make(chan struct{}),
+		name: name, manifest: m, cmd: cmd, stdin: stdin, exited: make(chan struct{}), ready: make(chan struct{}),
 		viewSock: socketPath(h.Root, filepath.Join(data, "view.sock"), "view:"+name),
 		outputs:  map[string]func(string, string){}, badges: map[string]int{}, syncs: map[string]SyncState{},
 		started: time.Now(),
@@ -373,6 +376,7 @@ func (h *Host) start(name string) (*proc, error) {
 	}
 	h.runs[name]++
 	h.mu.Unlock()
+	close(p.ready)
 	h.logf("%s %s started", name, m.Version)
 	return p, nil
 }
@@ -540,6 +544,16 @@ func (h *Host) handle(ctx context.Context, p *proc, method string, params json.R
 	default:
 		if h.Answer == nil {
 			return nil, NoMethod(method)
+		}
+		// It may ask as soon as it's answered initialize, which is before
+		// ws has taken what it registered: what it asks waits for that,
+		// since what it tells ws of its things is checked against it.
+		select {
+		case <-p.ready:
+		case <-p.exited:
+			return nil, errors.New("the plugin stopped before it was started")
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
 		return h.Answer(ctx, p.name, method, params)
 	}

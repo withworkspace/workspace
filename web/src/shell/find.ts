@@ -1,6 +1,7 @@
 import type { ActVerb, Workspace } from "../api";
 import { docAddress, docRef, pageAddress, spaceAt, type SpaceRef } from "../api";
-import { GROUND, type PageRef, refHref } from "../refs/refs";
+import { GROUND, type Known, namedOf, type PageRef, refAt, refHref } from "../refs/refs";
+import { thingIcon } from "../refs/views";
 import { fuzzy } from "../ui/fuzzy";
 import type { IconName } from "../ui/Icon";
 import { crewStatus, headlineStatus, type StatusInfo } from "../ui/status";
@@ -315,6 +316,11 @@ export interface Found {
   on?: string;
   of?: string;
   ended?: boolean;
+  // A plugin's thing (thing "thing": a Jira issue its plugin told ws
+  // of): the ref it is, and where it opens, in the plugin's app or, with
+  // nowhere there, where it is outside ws.
+  card?: PageRef;
+  to?: string;
 }
 
 // FoundGroup is a kind's results (find.Group): "ref" (what's typed, read
@@ -471,6 +477,8 @@ export function foundItem(f: Found, spaces?: SpaceRef[]): Item {
 
 // saidKind is what a thing found by what it says is, in a word.
 function saidKind(f: Found): string {
+  // A plugin's thing is what its plugin calls one: Jira issue.
+  if (f.thing === "thing") return f.card && f.what ? f.what : "Thing";
   switch (f.place) {
     case "brief":
       return f.anchor ? "Brief" : "Mission";
@@ -530,6 +538,7 @@ const saidIcon: Record<string, IconName> = {
 // document a thread is on, the conversation, or the page a cell or a pass
 // is of.
 function saidTo(f: Found): string {
+  if (f.thing === "thing") return f.to ?? "";
   const scope = f.scope ?? "";
   const slug = encodeURIComponent(scope);
   const pr = /^([\w.-]+)#(\d+)$/.exec(scope) ?? (f.of ? /^([\w.-]+)#(\d+)$/.exec(f.of) : null);
@@ -564,19 +573,44 @@ function saidTo(f: Found): string {
 function saidItem(f: Found): Item {
   const kind = saidKind(f);
   const scope = f.scope ?? "";
-  const notes = [...(scope ? [scope] : []), ...(f.ended ? ["archived"] : [])];
+  // A plugin's thing is said with its name and where it stands: it's
+  // looked for by its name as often as by what it says.
+  const thing = f.thing === "thing" && f.card?.kind === "thing" ? f.card : undefined;
+  const notes = thing ? [f.ref, ...(f.state ? [f.state] : [])] : [...(scope ? [scope] : []), ...(f.ended ? ["archived"] : [])];
   return {
-    id: `said:${scope}/${f.ref}`,
+    id: thing ? thingId(thing) : `said:${scope}/${f.ref}`,
     group: "said",
     kind,
     title: f.title,
     hint: f.hint,
-    icon: saidIcon[kind] ?? "message",
+    icon: thing ? "hash" : (saidIcon[kind] ?? "message"),
     score: f.score,
-    to: saidTo(f),
+    to: saidTo(f) || undefined,
     ref: f.ref,
     notes,
     said: f,
+  };
+}
+
+// thingId is a plugin's thing's item, however it was found: by what it
+// says, or by its name typed whole.
+const thingId = (r: Extract<PageRef, { kind: "thing" }>) => `thing:${r.plugin}/${r.id}`;
+
+// thingItem is a plugin's thing named outright by what's typed (RAM-123,
+// or where it is): somewhere to go, whether or not its plugin has told ws
+// of it. Its card asks the plugin what it is.
+function thingItem(r: Extract<PageRef, { kind: "thing" }>, known: Known): Item {
+  const named = namedOf(r, known);
+  return {
+    id: thingId(r),
+    group: "said",
+    kind: named?.title || `${r.plugin} ${r.what.replace(/-/g, " ")}`,
+    title: r.id,
+    icon: thingIcon(named),
+    score: 1,
+    to: refHref(r, known),
+    ref: r.id,
+    card: r,
   };
 }
 
@@ -873,6 +907,7 @@ export interface Assembly {
   memory?: Memory;
   spaces?: SpaceRef[]; // the workspace's spaces: a document in one opens in Documents
   code?: { hits: CodeHit[]; end?: CodeEnd }; // what code search found, in the code scope
+  known?: Known; // what there is to name: what's typed may be a plugin's thing's name
 }
 
 // build is the window's sections for what's typed.
@@ -940,6 +975,13 @@ export function build(a: Assembly): Built {
   const kept = new Set(["pull-request", "page", "artifact"]);
   if (said) said.items = said.items.filter((it) => !kept.has(it.said?.thing ?? "") || !listed.has(it.ref));
   for (const got of byGroup.values()) got.items.sort((x, y) => y.score - x.score);
+  // What's typed naming a plugin's thing outright (RAM-123, or where it
+  // is): the thing as its plugin told ws of it, if it has, and otherwise
+  // its name, to go to.
+  if (!exact && a.known && a.q) {
+    const named = refAt(a.q.trim(), a.known);
+    if (named?.kind === "thing") exact = said?.items.find((it) => it.id === thingId(named)) ?? thingItem(named, a.known);
+  }
   // A pull request that isn't among those in hand is offered after those
   // that are: demo#1 is on its way to demo#12 more often than it's meant.
   if (exact?.pull?.asks && byGroup.get("pulls")?.items.length) {

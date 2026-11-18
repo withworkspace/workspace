@@ -2,10 +2,12 @@ package plugin_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/plugin"
@@ -246,5 +248,250 @@ func TestAPrefixIsTheFirstPluginsToRegisterIt(t *testing.T) {
 	}
 	if got := prefixesOf(t, root); len(got) != 1 || got["second/thing"] != "KIT-" {
 		t.Errorf("kept once kit's gone: %v", got)
+	}
+}
+
+// thingsIn is what ws keeps in its graph under a plugin: each thing's
+// name with its title and where it stands.
+func thingsIn(t *testing.T, db *store.DB, name string) []string {
+	t.Helper()
+	var out []string
+	err := db.Read(context.Background(), func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT name, title, state FROM things WHERE origin LIKE ? ORDER BY name`, string(plugin.Origin(name))+"/%")
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var n, title, state string
+			if err := rows.Scan(&n, &title, &state); err != nil {
+				return err
+			}
+			out = append(out, strings.TrimSpace(n+"="+title+" "+state))
+		}
+		return rows.Err()
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// placesIn counts the places words are kept at under a plugin.
+func placesIn(t *testing.T, db *store.DB, name string) (n, latest int) {
+	t.Helper()
+	err := db.Read(context.Background(), func(tx *store.Tx) error {
+		return tx.QueryRow(`SELECT count(*), coalesce(max(id), 0) FROM places WHERE origin LIKE ?`, string(plugin.Origin(name))+"/%").Scan(&n, &latest)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return n, latest
+}
+
+// What a plugin tells ws of its things is kept in the graph, with what
+// they say, under the plugin: named as it registered, and no other way.
+func TestAPluginsThingsAreKeptUnderIt(t *testing.T) {
+	root := t.TempDir()
+	db := storetest.Own(t, root)
+	issue := protocol.Ref{Kind: "issue", Prefixes: []string{"RAM-", "RAP-"}}
+	if _, err := plugin.KeepRefs(root, "jira", []protocol.Ref{issue, {Kind: "sprint", Prefixes: []string{"SPRINT-"}}}); err != nil {
+		t.Fatal(err)
+	}
+	// Something of ws's own, by a name a plugin might use.
+	err := db.Write(context.Background(), func(tx *store.Tx) error {
+		return tx.Thing(store.Origin("mission:RAP-1"), store.Thing{Key: store.Key{Name: "RAP-1"}, Kind: "mission", Title: "ws's own"})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	when := time.Date(2026, 11, 18, 10, 0, 0, 0, time.UTC)
+	refused, err := plugin.PutThings(root, "jira", []protocol.Thing{
+		{Kind: "issue", Ref: "RAM-1", Title: "Token  refresh\nis flaky", State: "In Progress", Changed: when, Text: "The **clock** should be injected."},
+		{Kind: "issue", Ref: "RAM-2", Title: "Cache the sessions"},
+		{Kind: "sprint", Ref: "SPRINT-4", Title: "Sprint 4"},
+		{Kind: "issue", Ref: "ram-3", Title: "Lower case"},
+		{Kind: "issue", Ref: "SPRINT-5", Title: "Another kind's name"},
+		{Kind: "epic", Ref: "RAM-6", Title: "A kind it didn't register"},
+		{Kind: "issue", Ref: "RAM-7", Title: "  "},
+		{Kind: "issue", Ref: "RAP-1", Title: "ws has one of its own"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	why := map[string]string{}
+	for _, r := range refused {
+		why[r.Kind+" "+r.Ref] = r.Why
+	}
+	for ref, want := range map[string]string{
+		"issue ram-3":    "isn't one of issue's names",
+		"issue SPRINT-5": "isn't one of issue's names",
+		"epic RAM-6":     "ws keeps no ref of jira's called epic",
+		"issue RAM-7":    "it has no title",
+		"issue RAP-1":    "ws has something of its own called RAP-1",
+	} {
+		if !strings.Contains(why[ref], want) {
+			t.Errorf("%s refused as %q, want %q", ref, why[ref], want)
+		}
+	}
+	if len(refused) != 5 {
+		t.Errorf("refused: %+v", refused)
+	}
+	want := []string{"RAM-1=Token refresh is flaky In Progress", "RAM-2=Cache the sessions", "SPRINT-4=Sprint 4"}
+	if got := thingsIn(t, db, "jira"); !slices.Equal(got, want) {
+		t.Errorf("kept %q, want %q", got, want)
+	}
+	if got, err := plugin.ListThings(root, "jira", "issue"); err != nil || !slices.Equal(got, []string{"RAM-1", "RAM-2"}) {
+		t.Errorf("issues listed: %v, %v", got, err)
+	}
+	if got, _ := plugin.ListThings(root, "linear", "issue"); len(got) != 0 {
+		t.Errorf("another plugin's issues: %v", got)
+	}
+
+	// It's found by what it says, and by its name.
+	for _, typed := range []string{"clock injected", "RAM-1", "flaky"} {
+		found, _, err := db.Find(context.Background(), store.Said{Words: typed})
+		if err != nil || len(found) == 0 || found[0].Thing.Key.Name != "RAM-1" || found[0].Thing.Kind != plugin.ThingKind || found[0].Thing.Title != "Token refresh is flaky" {
+			t.Errorf("finding %q: %+v, %v", typed, found, err)
+		}
+	}
+
+	// Told again as it is, nothing's written; told otherwise, it's put in
+	// place of what was there.
+	_, before := placesIn(t, db, "jira")
+	if _, err := plugin.PutThings(root, "jira", []protocol.Thing{{Kind: "issue", Ref: "RAM-1", Title: "Token refresh is flaky", State: "In Progress", Changed: when, Text: "The **clock** should be injected."}}); err != nil {
+		t.Fatal(err)
+	}
+	if n, after := placesIn(t, db, "jira"); n != 3 || after != before {
+		t.Errorf("told again as it is: %d places, the latest %d, was %d", n, after, before)
+	}
+	if _, err := plugin.PutThings(root, "jira", []protocol.Thing{{Kind: "issue", Ref: "RAM-1", Title: "Token refresh is flaky", State: "Done", Changed: when.Add(time.Hour)}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := thingsIn(t, db, "jira"); got[0] != "RAM-1=Token refresh is flaky Done" {
+		t.Errorf("told otherwise: %q", got)
+	}
+	if n, _ := placesIn(t, db, "jira"); n != 3 {
+		t.Errorf("told otherwise: %d places, want one each", n)
+	}
+	if found, _, _ := db.Find(context.Background(), store.Said{Words: "clock injected"}); len(found) != 0 {
+		t.Errorf("what it said before is still found: %+v", found)
+	}
+
+	// Removed by name; one that isn't there is nothing to remove.
+	if err := plugin.RemoveThings(root, "jira", "issue", []string{"RAM-2", "RAM-99"}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := plugin.ListThings(root, "jira", "issue"); !slices.Equal(got, []string{"RAM-1"}) {
+		t.Errorf("after removing RAM-2: %v", got)
+	}
+
+	// A kind the plugin registers no more, and a prefix it lets go of,
+	// take their things with them.
+	if _, err := plugin.KeepRefs(root, "jira", []protocol.Ref{{Kind: "issue", Prefixes: []string{"RAP-"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := thingsIn(t, db, "jira"); len(got) != 0 {
+		t.Errorf("kept once it names them no more: %q", got)
+	}
+	if n, _ := placesIn(t, db, "jira"); n != 0 {
+		t.Errorf("%d places kept once it names them no more", n)
+	}
+	// And ws's own is as it was, throughout.
+	var title string
+	db.Read(context.Background(), func(tx *store.Tx) error { //nolint:errcheck // the scan says
+		return tx.QueryRow(`SELECT title FROM things WHERE name = 'RAP-1'`).Scan(&title)
+	})
+	if title != "ws's own" {
+		t.Errorf("ws's own RAP-1 is %q", title)
+	}
+}
+
+// Removing a plugin forgets the things it told ws of, and what they say:
+// another plugin's stay.
+func TestForgetTakesAPluginsThingsWithIt(t *testing.T) {
+	root := t.TempDir()
+	db := storetest.Own(t, root)
+	for name, prefix := range map[string]string{"jira": "RAM-", "jira2": "ENG-"} {
+		if _, err := plugin.KeepRefs(root, name, []protocol.Ref{{Kind: "issue", Prefixes: []string{prefix}}}); err != nil {
+			t.Fatal(err)
+		}
+		if refused, err := plugin.PutThings(root, name, []protocol.Thing{{Kind: "issue", Ref: prefix + "1", Title: "A lantern", Text: "On the shelf."}}); err != nil || len(refused) != 0 {
+			t.Fatalf("%s: %v, %v", name, refused, err)
+		}
+	}
+	if err := plugin.Forget(root, "jira"); err != nil {
+		t.Fatal(err)
+	}
+	if got := thingsIn(t, db, "jira"); len(got) != 0 {
+		t.Errorf("jira's things after it's forgotten: %q", got)
+	}
+	found, _, err := db.Find(context.Background(), store.Said{Words: "lantern shelf"})
+	if err != nil || len(found) != 1 || found[0].Thing.Key.Name != "ENG-1" {
+		t.Errorf("found after jira's forgotten: %+v, %v", found, err)
+	}
+}
+
+// ws and the framework, on telling ws of things: the plugin's sync
+// mirrors what it has, and ws keeps it, finds it, and forgets what's gone.
+func TestKitTellsWSOfItsThings(t *testing.T) {
+	root, h := keeping(t)
+	db := storetest.Own(t, root)
+	h.Answer = func(_ context.Context, who, method string, params json.RawMessage) (any, error) {
+		if answer, ok, err := plugin.AnswerThings(root, who, method, params); ok {
+			return answer, err
+		}
+		return nil, plugin.NoMethod(method)
+	}
+	addKit(t, root)
+	if _, err := h.Refresh("kit"); err != nil {
+		t.Fatal(err)
+	}
+	run := func(args ...string) {
+		t.Helper()
+		if exit, err := h.Run(context.Background(), "kit", args, root, plugin.Terminal{}, func(string, string) {}); err != nil || exit != 0 {
+			t.Fatalf("ws kit %v: exit %d, %v", args, exit, err)
+		}
+	}
+	// Its sync runs as it starts, the moment it's answered initialize:
+	// what it tells ws waits for ws to have taken what it registered.
+	waitFor(t, func() bool { return len(thingsIn(t, db, "kit")) == 1 })
+	if got := thingsIn(t, db, "kit"); got[0] != "KIT-1=The first thing Open" {
+		t.Errorf("kept: %q", got)
+	}
+	found, _, err := db.Find(context.Background(), store.Said{Words: "lantern"})
+	if err != nil || len(found) != 1 || found[0].Thing.Key.Name != "KIT-1" {
+		t.Errorf("found by what it says: %+v, %v", found, err)
+	}
+	// One more, then one fewer: all of them told again each time.
+	run("more")
+	run("sync")
+	if got := thingsIn(t, db, "kit"); len(got) != 2 || got[1] != "KIT-2=The second thing" {
+		t.Errorf("with a second: %q", got)
+	}
+	run("more", "less")
+	run("sync")
+	if got := thingsIn(t, db, "kit"); len(got) != 1 {
+		t.Errorf("with the second gone: %q", got)
+	}
+	// Removed and forgotten, nothing of it is left.
+	h.Stop("kit")
+	if err := plugin.Remove(root, "kit", false); err != nil {
+		t.Fatal(err)
+	}
+	if err := plugin.Forget(root, "kit"); err != nil {
+		t.Fatal(err)
+	}
+	if got := thingsIn(t, db, "kit"); len(got) != 0 {
+		t.Errorf("kept once it's removed: %q", got)
+	}
+}
+
+func waitFor(t *testing.T, ok func() bool) {
+	t.Helper()
+	for deadline := time.Now().Add(5 * time.Second); !ok(); time.Sleep(10 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("it didn't happen in five seconds")
+		}
 	}
 }

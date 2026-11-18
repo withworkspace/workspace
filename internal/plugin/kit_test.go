@@ -44,8 +44,8 @@ func TestKitRegistersWhatItDeclared(t *testing.T) {
 	if r.UI == nil || !strings.HasPrefix(r.UI.Script, "/ui/app.js?v=") || !plugin.ValidUIPath(r.UI.Script) {
 		t.Errorf("ui = %+v", r.UI)
 	}
-	// Its own four, and the framework's sync, for a plugin with syncs.
-	if r.CommandName("kit") != "kit" || len(r.Commands.Subcommands) != 5 {
+	// Its own five, and the framework's sync, for a plugin with syncs.
+	if r.CommandName("kit") != "kit" || len(r.Commands.Subcommands) != 6 {
 		t.Errorf("commands = %+v", r.Commands)
 	}
 	if r.Agent == nil || !strings.Contains(r.Agent.Guide, "ws kit hi") || len(r.Agent.Roles) != 1 || r.Agent.Roles[0] != "crew" {

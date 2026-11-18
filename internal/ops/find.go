@@ -4,12 +4,14 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/page"
+	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/review"
@@ -18,7 +20,8 @@ import (
 
 // Find over what ws records: what's been said in any mission, in the
 // workspace's conversations, pages and artifacts (their titles and
-// versions' notes), and of and in reviews of pull requests, ranked as the
+// versions' notes), of and in reviews of pull requests, and by the things
+// plugins have told ws of (a Jira issue's title and words), ranked as the
 // documents' search is, a thing found once and led to the place in it
 // that says it best. The spaces' documents are a search of their own
 // (SearchDocuments): their scores are against their own rows, and don't
@@ -51,6 +54,12 @@ type Found struct {
 	// the thread has it), the page a conversation is a cell or a pass of,
 	// or a page's own.
 	On, Of string
+	// Named is the plugin's thing it is (a Jira issue, as its plugin told
+	// ws of it): whose, its name and where it is. Called is what one of
+	// its kind is called (Jira issue), and Opens where it opens in the
+	// plugin's app (/x/jira/issue/RAM-123), "" for nowhere in ws.
+	Named         *ref.Ref
+	Called, Opens string
 }
 
 // Find is the things in the records whose words best match q, best first,
@@ -82,6 +91,7 @@ func (w *Workspace) Find(ctx context.Context, q FindQuery) ([]Found, int, error)
 	if err := db.Read(ctx, func(tx *store.Tx) error { return whereOf(tx, out) }); err != nil {
 		return nil, 0, err
 	}
+	w.nameThings(out)
 	for i := range out { // a thread's document, as it has it
 		if f := &out[i]; strings.HasPrefix(f.Thing.Kind, "thread") {
 			if c, err := conversation.For(w.Root(), f.Scope).Load(f.Ref); err == nil {
@@ -90,6 +100,36 @@ func (w *Workspace) Find(ctx context.Context, q FindQuery) ([]Found, int, error)
 		}
 	}
 	return out, more, nil
+}
+
+// nameThings says, of each plugin's thing found, whose it is and where it
+// goes, from how ws keeps the plugin's things named: one whose plugin has
+// gone since is left as its name.
+func (w *Workspace) nameThings(found []Found) {
+	var kept []plugin.KeptRef
+	read := false
+	for i := range found {
+		f := &found[i]
+		if f.Thing.Kind != plugin.ThingKind || f.Scope != "" {
+			continue
+		}
+		if !read {
+			kept, _ = plugin.Refs(w.WS().Root)
+			read = true
+		}
+		for _, k := range kept {
+			n := k.Named()
+			if !n.Names(f.Ref) || !plugin.IsInstalled(w.WS().Root, k.Plugin) {
+				continue
+			}
+			r, _ := (&ref.Known{Things: []ref.Named{n}}).At(f.Ref)
+			f.Named, f.Called = &r, cmp.Or(k.Title, k.Plugin+" "+strings.ReplaceAll(k.Kind, "-", " "))
+			if k.Path != "" {
+				f.Opens = "/x/" + k.Plugin + strings.Replace(k.Path, ref.Placeholder, url.PathEscape(f.Ref), 1)
+			}
+			break
+		}
+	}
 }
 
 // named is a thing found as ws show names it.
@@ -127,7 +167,7 @@ func whereOf(tx *store.Tx, found []Found) error {
 		f := &found[i]
 		k := f.Thing.Key
 		switch f.Thing.Kind {
-		case "decision", "mission", pulls.ThingKind, "":
+		case "decision", "mission", pulls.ThingKind, plugin.ThingKind, "":
 			continue
 		case page.ThingKind:
 			f.Of = k.Name // the page itself, for a page to go to
@@ -187,6 +227,8 @@ func linked(links []store.Link, kind string) string {
 // or the workspace.
 func (f Found) Where() string {
 	switch {
+	case f.Named != nil:
+		return "the " + f.Named.Plugin + " plugin"
 	case f.Scope == "":
 		return "the workspace"
 	case isPRScope(f.Scope):
@@ -198,6 +240,9 @@ func (f Found) Where() string {
 // What says what a thing found is, and where in it it was found: a turn
 // of a thread, a decision, a mission's brief (its heading is Heading).
 func (f Found) What() string {
+	if f.Named != nil {
+		return f.Called
+	}
 	switch f.Place {
 	case "brief":
 		if f.At != "" {
@@ -249,6 +294,8 @@ func thingKind(kind string) string {
 		return "a question in a page"
 	case artifact.ThingKind:
 		return "an artifact"
+	case plugin.ThingKind:
+		return "something a plugin had" // its plugin's gone, or names it no more
 	}
 	return "a " + kind
 }

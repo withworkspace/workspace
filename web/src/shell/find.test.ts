@@ -344,6 +344,55 @@ describe("the window", () => {
   });
 });
 
+describe("a plugin's things", () => {
+  const known = {
+    repos: new Map(),
+    missions: [],
+    pages: [],
+    talks: [],
+    things: [{ plugin: "jira", what: "issue", title: "Jira issue", prefixes: ["RAM-"], address: "https://acme.atlassian.net/browse/{ref}", path: "/issue/{ref}" }],
+  };
+  const card = { kind: "thing", plugin: "jira", what: "issue", id: "RAM-12", url: "https://acme.atlassian.net/browse/RAM-12" } as const;
+  const told: Found = {
+    kind: "said",
+    ref: "RAM-12",
+    title: "Token refresh is flaky",
+    thing: "thing",
+    place: "thing",
+    what: "Jira issue",
+    where: "the jira plugin",
+    state: "In Progress",
+    hint: "The clock should be injected.",
+    score: 300,
+    card,
+    to: "/x/jira/issue/RAM-12",
+  };
+
+  it("are found by what they say, as their plugin told ws of them", () => {
+    const it = foundItem(told);
+    expect(it).toMatchObject({ id: "thing:jira/RAM-12", group: "said", kind: "Jira issue", title: "Token refresh is flaky", to: "/x/jira/issue/RAM-12", ref: "RAM-12", notes: ["RAM-12", "In Progress"] });
+    // One with nowhere to open in ws goes to where it is outside.
+    expect(foundItem({ ...told, to: card.url }).to).toBe(card.url);
+    // One whose plugin has gone is a name, and goes nowhere.
+    expect(foundItem({ ...told, card: undefined, to: undefined, what: "something a plugin had" })).toMatchObject({ kind: "Thing", to: undefined });
+  });
+
+  it("are named outright by a name typed whole, told of or not", () => {
+    // Told of: the best line is the thing as ws has it.
+    const b = build({ q: "RAM-12", scope: "all", local: [], found: [{ kind: "said", results: [told] }], known });
+    expect(b.sections[0]).toMatchObject({ group: "best", items: [{ id: "thing:jira/RAM-12", title: "Token refresh is flaky" }] });
+    expect(b.rows.filter((r) => r.id === "thing:jira/RAM-12")).toHaveLength(1);
+    // Not told of (it's not on the plugin's board): its name, to go to,
+    // with a card that asks the plugin.
+    const off = build({ q: "RAM-99", scope: "all", local: [], found: [], known });
+    expect(off.sections[0]).toMatchObject({ group: "best", items: [{ id: "thing:jira/RAM-99", kind: "Jira issue", title: "RAM-99", to: "/x/jira/issue/RAM-99", card: { kind: "thing", id: "RAM-99" } }] });
+    // By where it is, too.
+    expect(build({ q: "https://acme.atlassian.net/browse/RAM-7?x=1", scope: "all", local: [], found: [], known }).sections[0].items[0].id).toBe("thing:jira/RAM-7");
+    // Words that only look like a name name nothing.
+    expect(build({ q: "UTF-8", scope: "all", local: [], found: [], known }).sections).toHaveLength(0);
+  });
+});
+
 describe("what the server found", () => {
   it("is a file to open at its lines, saying who's changed it", () => {
     const it = foundItem(

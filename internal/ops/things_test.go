@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -137,5 +138,54 @@ func TestATurnThatNamesAPluginsThingIsSaidOfIt(t *testing.T) {
 	said, err := w.SaidOf(store.Key{Name: "RAM-12"})
 	if err != nil || len(said) != 1 || said[0].How != store.Mentions || said[0].Scope != "cache" || said[0].Ref != c.ID {
 		t.Errorf("said of RAM-12: %+v, %v", said, err)
+	}
+}
+
+// A thing a plugin's told ws of is found by what it says, as the plugin's:
+// what one's called, whose it is, where it opens, and how it's shown.
+func TestAPluginsThingsAreFound(t *testing.T) {
+	w, _ := fixture(t, "")
+	root := w.WS().Root
+	installed(t, root, "jira", jiraIssue)
+	// Told as the plugin tells it: through what ws answers a plugin.
+	params, _ := json.Marshal(protocol.ThingPutParams{Things: []protocol.Thing{
+		{Kind: "issue", Ref: "RAM-12", Title: "Token refresh is flaky", State: "In Progress", Text: "The clock should be injected."},
+		{Kind: "issue", Ref: "ram-13", Title: "Not one of its names"},
+	}})
+	answer, err := w.AnswerPlugin(t.Context(), "jira", protocol.MethodThingPut, params)
+	if put, ok := answer.(protocol.ThingPutResult); err != nil || !ok || len(put.Refused) != 1 || put.Refused[0].Ref != "ram-13" {
+		t.Fatalf("thing/put: %+v, %v", answer, err)
+	}
+	if answer, err := w.AnswerPlugin(t.Context(), "jira", protocol.MethodThingList, json.RawMessage(`{"kind":"issue"}`)); err != nil || len(answer.(protocol.ThingListResult).Refs) != 1 {
+		t.Errorf("thing/list: %+v, %v", answer, err)
+	}
+
+	for _, typed := range []string{"flaky token", "RAM-12", "clock injected"} {
+		found, _, err := w.Find(t.Context(), FindQuery{Words: typed})
+		if err != nil || len(found) != 1 {
+			t.Fatalf("finding %q: %+v, %v", typed, found, err)
+		}
+		f := found[0]
+		if f.Ref != "RAM-12" || f.Scope != "" || f.Show != "ws show RAM-12" || f.Title() != "Token refresh is flaky" || f.Thing.State != "In Progress" {
+			t.Errorf("finding %q: %+v", typed, f)
+		}
+		if f.Named == nil || f.Named.Plugin != "jira" || f.Named.What != "issue" || f.Named.URL != "https://acme.atlassian.net/browse/RAM-12" || f.Called != "Jira issue" || f.Opens != "/x/jira/issue/RAM-12" {
+			t.Errorf("finding %q: named %+v, called %q, opens %q", typed, f.Named, f.Called, f.Opens)
+		}
+		if f.What() != "Jira issue" || f.Where() != "the jira plugin" {
+			t.Errorf("finding %q: %q, %q", typed, f.What(), f.Where())
+		}
+	}
+	// Kept to a mission, it isn't that mission's.
+	if found, _, _ := w.Find(t.Context(), FindQuery{Words: "flaky token", Mission: "cache"}); len(found) != 0 {
+		t.Errorf("found in a mission: %+v", found)
+	}
+
+	// Removed with its plugin, it's found no more.
+	if _, err := w.AnswerPlugin(t.Context(), "jira", protocol.MethodThingRemove, json.RawMessage(`{"kind":"issue","refs":["RAM-12"]}`)); err != nil {
+		t.Fatal(err)
+	}
+	if found, _, _ := w.Find(t.Context(), FindQuery{Words: "flaky token"}); len(found) != 0 {
+		t.Errorf("found once it's removed: %+v", found)
 	}
 }

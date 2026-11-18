@@ -46,6 +46,11 @@ const noRepos: Repo[] = [];
 
 const noPlugins: Plugin[] = [];
 
+// thingsNamed is how the plugins' things are named, as each registered:
+// what a name is read by (RAM-123).
+export const thingsNamed = (plugins: Plugin[]): Named[] =>
+  plugins.flatMap((p) => (p.refs ?? []).map((r) => ({ plugin: p.name, what: r.kind, prefixes: r.prefixes ?? [], tail: r.tail, address: r.address, path: r.path, title: r.title, icon: r.icon })));
+
 export function RefsProvider({ workspace, plugins = noPlugins, children }: { workspace: Workspace; plugins?: Plugin[]; children: ReactNode }) {
   // A capsule lifted or burned changes what a capsule's file can be.
   const capsules = workspace.missions.flatMap((m) => m.capsules.map((c) => `${c.repo}/${c.name}`)).join(",");
@@ -82,7 +87,7 @@ export function RefsProvider({ workspace, plugins = noPlugins, children }: { wor
   // to name changes only when what they registered does.
   const named = JSON.stringify(plugins.map((p) => [p.name, p.refs ?? []]));
   const things = useMemo<Named[]>(
-    () => plugins.flatMap((p) => (p.refs ?? []).map((r) => ({ plugin: p.name, what: r.kind, prefixes: r.prefixes ?? [], tail: r.tail, address: r.address, path: r.path, title: r.title, icon: r.icon }))),
+    () => thingsNamed(plugins),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [named],
   );

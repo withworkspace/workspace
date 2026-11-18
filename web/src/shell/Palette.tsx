@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { act, newPage, type Workspace } from "../api";
+import { act, newPage, type Plugin, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { archiveMission } from "../mission/archive";
+import { thingsNamed } from "../refs/known";
 import { RefCardBody } from "../refs/RefCard";
+import { isOutside, type Known } from "../refs/refs";
 import { marked } from "../ui/fuzzy";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/status";
@@ -38,8 +40,30 @@ const stale = 10 * 60 * 1000;
 // asks: ripgrep isn't started for every letter.
 const codeWait = 150;
 
-export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }: { workspace: Workspace; waiting: Waiting[]; start?: string; pageRepo?: string; onClose: () => void; onHelp: () => void }) {
+export function Palette({
+  workspace,
+  plugins,
+  waiting,
+  start,
+  pageRepo,
+  onClose,
+  onHelp,
+}: {
+  workspace: Workspace;
+  plugins?: Plugin[];
+  waiting: Waiting[];
+  start?: string;
+  pageRepo?: string;
+  onClose: () => void;
+  onHelp: () => void;
+}) {
   const navigate = useNavigate();
+  // How the plugins' things are named: what's typed may be one's name
+  // (RAM-123), or where one is. Find sits outside what the pages name
+  // things by, so it's worked out here, from the same plugins.
+  const named = JSON.stringify((plugins ?? []).map((p) => [p.name, p.refs ?? []]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const known = useMemo<Known>(() => ({ repos: new Map(), missions: [], pages: [], talks: [], things: thingsNamed(plugins ?? []) }), [named]);
   const [raw, setRaw] = useState(start ?? "");
   const [only, setOnly] = useState<GroupKey>(); // narrowed with ⇥ to a kind the page holds
   const [cursor, setCursor] = useState<string>(); // the id of the row the cursor's on
@@ -155,9 +179,10 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
         recent,
         memory,
         spaces: workspace.spaces,
+        known,
         code: scope === "code" ? code : undefined,
       }),
-    [q, scope, only, local, found.groups, needs, recent, memory, workspace.spaces, code],
+    [q, scope, only, local, found.groups, needs, recent, memory, workspace.spaces, known, code],
   );
   const rows = built.rows;
   const at = Math.max(
@@ -198,8 +223,11 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
       return;
     }
     if (!it.to) return;
-    if (tab) {
+    // Outside ws (a plugin's thing with nowhere to open here): a tab of
+    // its own, whichever way it was chosen.
+    if (tab || isOutside(it.to)) {
       window.open(it.to, "_blank", "noopener");
+      if (!tab) onClose();
       return;
     }
     onClose();
@@ -407,7 +435,7 @@ export function Palette({ workspace, waiting, start, pageRepo, onClose, onHelp }
             ) : on?.said ? (
               <SaidCard it={on} f={on.said} />
             ) : on?.card ? (
-              <RefCardBody r={on.card} workspace={workspace} />
+              <RefCardBody r={on.card} workspace={workspace} known={known} />
             ) : on ? (
               <>
                 <span className="hovercard-head">

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/withworkspace/workspace/internal/find"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/pulls"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/space"
 )
 
@@ -172,6 +174,11 @@ type SaidFound struct {
 	Ended bool    `json:"ended,omitempty"`
 	Every bool    `json:"every,omitempty"`
 	Score float64 `json:"score"`
+	// Card is the plugin's thing it is, as a ref (the web UI's PageRef):
+	// what its card asks its plugin about. To is where it opens: in the
+	// plugin's app, or, with nowhere there, where it is outside ws.
+	Card *ref.Ref `json:"card,omitempty"`
+	To   string   `json:"to,omitempty"`
 }
 
 // findSaid is what ws records that says what's typed, ranked: asked for
@@ -191,12 +198,16 @@ func (s *Server) findSaid(r *http.Request, req find.Request) (SaidGroup, bool) {
 		return SaidGroup{}, false
 	}
 	for _, f := range found {
-		g.Results = append(g.Results, SaidFound{
+		said := SaidFound{
 			Kind: "said", Ref: f.Ref, Scope: f.Scope, Thing: f.Thing.Kind, Place: f.Place, Anchor: f.At, Of: f.Of,
 			What: f.What(), Where: f.Where(), Title: f.Title(),
 			Snippet: f.Snippet, Hint: space.Text(f.Snippet, "", ""),
 			State: f.Thing.State, On: f.On, Ended: f.Ended, Every: f.Every, Score: f.Score,
-		})
+		}
+		if f.Named != nil {
+			said.Card, said.To = f.Named, cmp.Or(f.Opens, f.Named.URL)
+		}
+		g.Results = append(g.Results, said)
 	}
 	g.More = more
 	return g, true

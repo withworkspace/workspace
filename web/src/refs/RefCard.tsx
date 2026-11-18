@@ -461,8 +461,11 @@ function body(r: PageRef, workspace: Workspace, known?: Known, repos?: Map<strin
 
 // RefCardBody is what a ref's card says, for wherever a card is shown: on
 // hover in a page, and beside the list in Find.
-export function RefCardBody({ r, workspace }: { r: PageRef; workspace: Workspace }) {
-  return <>{body(r, workspace)}</>;
+export function RefCardBody({ r, workspace, known }: { r: PageRef; workspace: Workspace; known?: Known }) {
+  // What there is to name says what a plugin's thing is called, and
+  // where it opens: given, where the card's shown outside the pages (Find).
+  const refs = useRefs();
+  return <>{body(r, workspace, known ?? refs?.known, refs?.repos)}</>;
 }
 
 // RefCard is the card for a ref, under the words that name it (el), or

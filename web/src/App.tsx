@@ -183,6 +183,7 @@ export function App() {
       {palette !== undefined && workspace && (
         <Palette
           workspace={workspace}
+          plugins={plugins}
           waiting={waiting}
           start={palette}
           pageRepo={repoOfPage(location.pathname, workspace.spaces)}

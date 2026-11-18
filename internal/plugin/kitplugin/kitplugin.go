@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -53,8 +54,9 @@ func run() {
 	// Its things, named KIT-1 and so on (or as its config says): the one
 	// it has is KIT-1.
 	prefixes := p.Config.List("prefixes", "What its things' names start with", plugin.Default([]string{"KIT-"}))
+	var thing *plugin.Ref
 	p.Setup(func() {
-		p.Ref("thing", "Kit thing", func(_ context.Context, a plugin.Asked) (plugin.Shown, error) {
+		thing = p.Ref("thing", "Kit thing", func(_ context.Context, a plugin.Asked) (plugin.Shown, error) {
 			if _, n, _ := strings.Cut(a.Name, "-"); n != "1" {
 				return plugin.Shown{}, plugin.ErrNotFound
 			}
@@ -66,7 +68,28 @@ func run() {
 		}).Prefix(prefixes.Get()...).Address("https://kit.example/things/{ref}").Opens("/thing/{ref}").Icon("box")
 	})
 	p.Guide("Use `ws kit hi` to be greeted.", "crew")
-	p.Sync("things", time.Hour, func(ctx context.Context) error { return nil })
+	// Its sync tells ws of the things it has: the one, named by its first
+	// prefix, and a second it's been told of (ws kit more), so ws has
+	// them without asking. A ws that can't be told is one from before it.
+	var more atomic.Bool
+	p.Sync("things", time.Hour, func(ctx context.Context) error {
+		if len(prefixes.Get()) == 0 {
+			return nil
+		}
+		first := prefixes.Get()[0]
+		things := []plugin.Thing{{Name: first + "1", Title: "The first thing", State: "Open", Changed: time.Date(2026, 11, 18, 10, 0, 0, 0, time.UTC), Text: "It says hello, in a **lantern**'s light."}}
+		if more.Load() {
+			things = append(things, plugin.Thing{Name: first + "2", Title: "The second thing", Text: "It says goodbye."})
+		}
+		if err := thing.Mirror(ctx, things); err != nil && !errors.Is(err, plugin.ErrUnsupported) {
+			return err
+		}
+		return nil
+	})
+	p.Command("more", "Has a second thing, from the next sync on", func(c *plugin.Call) error {
+		more.Store(c.Arg(0) != "less")
+		return c.Say("noted")
+	}).Args("[less]")
 
 	p.Command("hi", "Says the greeting", func(c *plugin.Call) error {
 		fmt.Fprintln(c.Stderr(), "to stderr")
