@@ -140,6 +140,9 @@ type StageRecord struct {
 	// Instances are the step's runs, one per repo, for a step that runs
 	// in each of several.
 	Instances []StepInstance `toml:"instances,omitempty" json:"instances,omitempty"`
+	// Watch, for a Wait step, is since when it's been waited for, and what
+	// ws's last look at its checks came to (wait.go).
+	Watch *Watch `toml:"watch,omitempty" json:"watch,omitempty"`
 }
 
 // StageState is a stage with its progress.

@@ -90,6 +90,19 @@ const (
 // before made and say go on, and nothing else passes it.
 func (s Step) Checkpoint() bool { return s.Who == WhoYou }
 
+// WaitOnYou reports whether the step is a Wait on the user: something they
+// do themselves, which ws asks them for and they mark done.
+func (s Step) WaitOnYou() bool { return s.Type == StepWait && s.Who == WhoYou }
+
+// Watched reports whether ws watches for what a Wait step waits for: it
+// has checks, commands ws runs until they're met. A Wait without one is
+// passed only by someone saying it's happened.
+func (s Step) Watched() bool { return s.Type == StepWait && len(s.Checks) > 0 }
+
+// WaitUnsaid reports whether the step is a Wait that doesn't say who it's
+// on: one written before a Wait said, which waits on someone outside.
+func (s Step) WaitUnsaid() bool { return s.Type == StepWait && s.Who == WhoOutside && s.Whom == "" }
+
 // makesPR is a makes: that names a pull request.
 var makesPR = regexp.MustCompile(`(?i)\bpull[- ]requests?\b|\bPRs?\b`)
 
@@ -172,6 +185,7 @@ var PlanFormat = "The plan is markdown in three parts, each a `##` heading:\n\n"
 	"- `## Stops early` lists where the mission may end before Z, and what that end is (an answer, work handed on as a mission of its own). `None.` if it can't.\n" +
 	"- `## Steps` is the route: a numbered list, 1, 2, 3… in order, each step done after the one before. Each step starts with its kind (below), then a colon, its name in bold, then what it's for, in words (`3. Work: **Fix.** Fix it.`). The name is how the step is listed in the web UI beside the mission: one to four words, a heading, not a sentence (`**Rework CSS.**`, `**Settings picker.**`, `**Browser check.**`), with the detail in the words after it. A kind whose words are optional can stand alone (`4. Open Pull Request`), and is listed by its kind. Under it, indented, go its parameters, each `- key: value`, and only those its kind takes.\n" +
 	"- A Work step's checks are how ws knows it's done, so give it one for each thing that has to be true: a command where one shows it, words where it takes judgement. Unmet, it goes back to its crew (or the user), so a check is what you'd send it back for.\n" +
+	"- A Wait step says who it's on (`- on: you` for what the user does themselves, else who or what), and nothing passes it by itself unless it has a `- check:`, a command that shows it's happened, which ws watches. Without one it waits until someone says it's happened, so give one wherever a command can tell.\n" +
 	"- No branches or loops: the plan is a list. A step that doesn't always apply says when, in words, with `- only if:`, and the orchestrator starts it or skips it; a step that runs in several repos says which, in words, with `- in each:` (repo where step 1 made changes), and the orchestrator names them when it starts.\n" +
 	"- A step the process asks for ends with the words of the process it carries out, in double quotes, as they're written there (a few words are enough; `…` leaves words out).\n" +
 	"- Nothing else: no title, no text outside the lists. A long item can go on over indented lines.\n\n" +

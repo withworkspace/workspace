@@ -166,7 +166,7 @@ func TestOpenPR_ByAStepHoldingTheGuarantees(t *testing.T) {
 	store.SetCrewStatus("cache", c2.ID, mission.CrewDone, "opened it")
 	t.Setenv(mission.EnvCrew, "")
 	t.Setenv("WS_ROLE", "orchestrator")
-	if r := testutil.RunCommand(t, w.Root, gh, "mission", "accept", "-m", "cache", "opened"); r.Err != nil || !strings.Contains(r.Stderr, "step 4 is outside ws's") {
+	if r := testutil.RunCommand(t, w.Root, gh, "mission", "accept", "-m", "cache", "opened"); r.Err != nil || !strings.Contains(r.Stderr, "step 4 waits on a teammate's review, and nobody's watching for it") {
 		t.Errorf("accepting step 3 with its pull request open: %v\n%s", r.Err, r.Stderr)
 	}
 }

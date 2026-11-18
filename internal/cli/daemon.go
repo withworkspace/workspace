@@ -183,6 +183,7 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 	go watchHeldLoop(root, s.ACPCallDone, stop)     // turns held on crew's own work
 	go sweepAsksLoop(root, s.Log.Printf, stop)      // asks nobody kept
 	go watchLimitsLoop(root, s.Log.Printf, stop)    // steps out of time
+	go watchWaitsLoop(root, s.Log.Printf, stop)     // Wait steps ws watches
 	go sweepArtifactsLoop(root, s.Log.Printf, stop) // artifacts on this machine that expired
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)

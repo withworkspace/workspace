@@ -517,10 +517,12 @@ func (g *graph) stageView(n int) (*view, error) {
 		if s.Type == mission.StepVerify {
 			who = "A Verify step. Who: a verifier, crew who didn't do the work, " + strings.TrimPrefix(s.WhoSays(), "crew, ") + ". It shows the work by using it, changes nothing, and hands over a bundle; ws passes the step once nothing in it is unmet."
 		}
-		switch s.Who {
-		case mission.WhoYou:
+		switch {
+		case s.Type == mission.StepWait:
+			who = waitWho(*s)
+		case s.Who == mission.WhoYou:
 			who += " It's a checkpoint: only the user passes it."
-		case mission.WhoPlanner:
+		case s.Who == mission.WhoPlanner:
 			who += " It writes the steps after it."
 		}
 		v.body = append(v.body, who)
@@ -554,6 +556,12 @@ func (g *graph) stageView(n int) (*view, error) {
 		}
 		if len(s.Checks) > 0 {
 			lines := []string{"It's done when these are true (ws runs the commands in its capsule once crew report done, and the judge judges the rest):"}
+			if s.Type == mission.StepWait {
+				lines[0] = "It's happened when these are true (ws runs them every few minutes while the mission waits, and when the user has it look):"
+				if w := st.Watch(); w != nil && w.Looked != nil {
+					lines[0] = fmt.Sprintf("It's happened when these are true (ws runs them every few minutes while the mission waits; it last looked %s: %s):", when(*w.Looked), w.Summary())
+				}
+			}
 			if s.Type == mission.StepVerify {
 				lines[0] = "It shows whether these are true (ws runs the commands in its capsule, its verifier settles the rest, and one marked yours is the user's):"
 			}
@@ -1380,4 +1388,25 @@ func fromAddress(ctx *ops.Workspace, s string, slug *string) string {
 		return r.Repo + ":" + r.Path
 	}
 	return r.Name()
+}
+
+// waitWho says who a Wait step is on, and what passes it: which is the
+// thing to know about one, since nothing does by itself without a check.
+func waitWho(s mission.Step) string {
+	who := "A Wait step, on someone outside ws."
+	switch {
+	case s.WaitOnYou():
+		who = "A Wait step, on the user: something they do themselves. ws asks them, and they mark it done."
+	case s.Whom != "":
+		who = "A Wait step, on " + s.Whom + "."
+	case s.Who == mission.WhoCI:
+		who = "A Wait step, on " + s.WhoSays() + "."
+	}
+	if s.Watched() {
+		return who + " It's watched: ws runs its checks, and passes the step once every one is met. The user can pass it as it is."
+	}
+	if s.WaitOnYou() {
+		return who + " Nobody's watching for it: nothing moves until they do."
+	}
+	return who + " Nobody's watching for it: it's passed when someone says it's happened (the user marks it done; ws mission accept, once it has)."
 }

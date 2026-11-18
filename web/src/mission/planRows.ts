@@ -66,10 +66,40 @@ export function foldNote(run: Stage[], side: "earlier" | "later"): FoldNote | un
 }
 
 // worthOpening is whether the step the plan is on says more opened than
-// its row does: what it makes, who's on it, its checks, its clock. A step
-// that's only its kind and whose it is (ws opening a pull request, a
-// review that's yours, a wait on something outside) stays a row.
-export const worthOpening = (s: Stage) => !!(s.makes || s.crew?.length || s.checks?.length || s.limit || s.carryOn || s.onlyIf || s.inEach || s.attempts);
+// its row does: what it makes, who's on it, its checks, its clock; and of
+// a Wait, how it's passed, which is the thing to know while it waits. A
+// step that's only its kind and whose it is (ws opening a pull request, a
+// review that's yours) stays a row.
+export const worthOpening = (s: Stage) => !!(s.makes || s.crew?.length || s.checks?.length || s.limit || s.carryOn || s.onlyIf || s.inEach || s.attempts || s.type === "Wait");
+
+// WaitHow is how a Wait step is passed: whether anything's watching for
+// what it waits for, in a word, and what that means, in a sentence.
+export interface WaitHow {
+  auto: boolean; // ws watches for it, and passes it
+  word: string;
+  says: string;
+}
+
+// waitHow says how a Wait is passed. Watched, ws runs its checks and
+// passes it by itself; otherwise nothing does, and it waits for you (when
+// it's yours to do) or for whoever can say it's happened.
+export function waitHow(s: Stage): WaitHow | undefined {
+  if (s.type !== "Wait") return undefined;
+  const yours = s.on === "you";
+  if (s.passes === "watched") {
+    return { auto: true, word: "Watched", says: yours ? "ws runs its check every few minutes, and passes it; or mark it done, and ws looks then" : "ws runs its check every few minutes, and passes it by itself" };
+  }
+  if (yours) return { auto: false, word: "Manual", says: "nothing's watching for it: it moves when you mark it done" };
+  return { auto: false, word: "Manual", says: "nothing's watching for it: it moves when someone marks it done" };
+}
+
+// watchWords is what ws's watch of a Wait step last came to: "ws last
+// looked 14:02: not yet", or that it hasn't looked.
+export function watchWords(s: Stage, at: (iso: string) => string): string {
+  const w = s.watch;
+  if (!w?.looked) return "ws hasn't looked yet";
+  return `ws last looked ${at(w.looked)}${w.came ? `: ${w.came}` : ""}`;
+}
 
 // stepKind is a plan's step's kind as an icon and a word. A brief's stage
 // has none.

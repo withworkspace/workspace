@@ -168,8 +168,14 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 // hooks follow it as it runs; what it keeps as evidence is the same
 // without them.
 func runCheck(dir string, c mission.Check, env []string, hooks checkHooks) mission.CheckResult {
+	return runCheckWithin(dir, c, env, hooks, checkTimeout)
+}
+
+// runCheckWithin is runCheck, the command stopped once it's run for
+// timeout.
+func runCheckWithin(dir string, c mission.Check, env []string, hooks checkHooks, timeout time.Duration) mission.CheckResult {
 	r := mission.CheckResult{Check: c.Text, By: "ws"}
-	ctx, cancel := context.WithTimeout(context.Background(), checkTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "sh", "-c", c.Command)
 	cmd.Dir, cmd.Env = dir, env
@@ -191,7 +197,7 @@ func runCheck(dir string, c mission.Check, env []string, hooks checkHooks) missi
 	var exit *exec.ExitError
 	switch {
 	case ctx.Err() != nil:
-		r.Result, r.Evidence = mission.CheckCantTell, fmt.Sprintf("it ran past %s, and was stopped", checkTimeout)
+		r.Result, r.Evidence = mission.CheckCantTell, fmt.Sprintf("it ran past %s, and was stopped", timeout)
 		return r
 	case err != nil && !errors.As(err, &exit):
 		r.Result, r.Evidence = mission.CheckCantTell, "couldn't run it: "+err.Error()

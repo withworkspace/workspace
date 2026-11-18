@@ -275,7 +275,7 @@ func TestMission_ResumeWithRunningCrewAndWait(t *testing.T) {
 	run(t, w, nil, "mission", "wait", "the platform team's deploy")
 	t.Setenv(mission.EnvRole, "")
 	show = run(t, w, nil, "mission", "show", "-f", "llm")
-	if !strings.Contains(show.Stdout, "Where it stands: outside (waiting on GitHub: reviewers, checks, a merge): Waiting on the platform team's deploy") {
+	if !strings.Contains(show.Stdout, "Where it stands: outside (waiting on someone else: reviewers, checks, a merge, what a Wait step waits for): Waiting on the platform team's deploy") {
 		t.Errorf("show:\n%s", show.Stdout)
 	}
 }

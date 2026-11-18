@@ -238,6 +238,24 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 			sg.CarryOn, sg.Limit = s.CarryOn, s.LimitText
 			round, _ := st.Record.LatestChecks()
 			sg.Round = round.N
+			if s.Type == mission.StepWait {
+				// Its checks aren't run in rounds: ws looks, every so often,
+				// and its last look is what they came to.
+				sg.On, sg.Passes = s.Whom, "said"
+				switch {
+				case s.Watched():
+					sg.Passes = "watched"
+				case s.WaitOnYou():
+					sg.Passes = "done"
+				}
+				if s.WaitOnYou() {
+					sg.On = "you"
+				}
+				if w := st.Watch(); w != nil {
+					sg.Watch = &StageWatch{Since: w.Since, Looked: w.Looked, Looks: w.Looks, Came: w.Summary()}
+					round = mission.CheckRound{Results: w.Results}
+				}
+			}
 			for i, c := range s.Checks {
 				sc := StageCheck{Text: c.Text, Run: c.Run()}
 				if i < len(round.Results) && round.Results[i].Check == c.Text {
