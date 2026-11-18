@@ -113,8 +113,8 @@ github.com/tree-sitter/tree-sitter-python v0.25.0 h1:O6XD9v8U1LOcRc3cNj9nM7Xufrt
 github.com/tree-sitter/tree-sitter-python v0.25.0/go.mod h1:cpdthSy/Yoa28aJFBscFHlGiU+cnSiSh1kuDVtI8YeM=
 github.com/tree-sitter/tree-sitter-typescript v0.23.2 h1:/Odvphn18PniVixb9e97X0DbNVsU6Qocv9mfkyzdXwU=
 github.com/tree-sitter/tree-sitter-typescript v0.23.2/go.mod h1:zjzMXT/Ulffel2xfOcAkQQkiAkmgnbtPGlFQw/5X4xA=
-github.com/withworkspace/plugin v0.3.1-0.20261118131441-6dd7a6a32e12 h1:NKt73UDJoxmTgFKBEyeZ/lb5nXC2VAqED2SWMi3p6Bs=
-github.com/withworkspace/plugin v0.3.1-0.20261118131441-6dd7a6a32e12/go.mod h1:KADsp9oEKs9a4gDJtdqLS19os47ym9/MTn36n+O3jaU=
+github.com/withworkspace/plugin v0.4.1-0.20261118170226-b2e080b9496d h1:HloHcO70dK67/3C/UixBqUon4lt1WFwtM2i9IIFYd+8=
+github.com/withworkspace/plugin v0.4.1-0.20261118170226-b2e080b9496d/go.mod h1:KADsp9oEKs9a4gDJtdqLS19os47ym9/MTn36n+O3jaU=
 github.com/xo/terminfo v1.3.0 h1:KstyePbNW6UaLq9y12+544VK4aTP3Eku/sym3a9+UgQ=
 github.com/xo/terminfo v1.3.0/go.mod h1:lGzkSo8Fe7IRh/w+Gqz7n5mDog4FVXCj3gy/DYTBqio=
 go.yaml.in/yaml/v3 v3.0.4/go.mod h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=
