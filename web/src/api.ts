@@ -88,6 +88,7 @@ export interface Look {
   doc?: string;
   name: string;
   read?: boolean;
+  approved?: boolean; // a bundle you've approved already: there to look at again, not what the step waits on
 }
 
 export type MissionState = "briefing" | "draft" | "active" | "review" | "landed" | "answered" | "handed-on" | "dropped" | "parked" | "archived";

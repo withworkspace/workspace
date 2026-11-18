@@ -331,6 +331,9 @@ func (w *Workspace) afterChecks(slug string, n int, round mission.CheckRound) st
 // askAboutChecks makes step n yours, its checks not all met: pass it as it
 // is, send it back to its crew with what's unmet, or say what to do.
 func (w *Workspace) askAboutChecks(slug string, n int, round mission.CheckRound, why string) string {
+	if said := w.passApproved(slug, n, round); said != "" {
+		return said
+	}
 	text := fmt.Sprintf("Step %d's checks, round %d: %s. %s. %sass it as it is, send it back to %s with what's unmet, or say what to do.", n, round.N, round.Summary(), upperFirst(why), w.checksShownBy(slug, n, round.Crew), round.Crew)
 	if _, err := w.Missions.AskAtStep(slug, mission.TaskChecks, text, n, mission.ChecksPass, mission.ChecksSendBack); err != nil {
 		return "couldn't ask the user: " + err.Error()
@@ -338,9 +341,57 @@ func (w *Workspace) askAboutChecks(slug string, n int, round mission.CheckRound,
 	return fmt.Sprintf("step %d's checks aren't all met (%s): it's the user's, as %s", n, round.Summary(), why)
 }
 
+// passApproved passes step n, its checks about to be yours to say, where
+// you've said already: you approved every bundle that shows them before
+// ws came to ask, and the work is as it was when they were handed over.
+// Approving them once asked passes the step, and so does having approved
+// them. A bundle whose capsule has moved on since shows work that's
+// changed, so that's still asked. It says what it did, or "" when you're
+// to be asked.
+func (w *Workspace) passApproved(slug string, n int, round mission.CheckRound) string {
+	m, err := w.Missions.Load(slug)
+	if err != nil {
+		return ""
+	}
+	cur, ok := currentStep(w.Missions, m)
+	if !ok || cur.N != n || len(cur.Instances()) > 0 {
+		// A step that runs in several repos passes run by run.
+		return ""
+	}
+	brief, _ := w.Missions.ReadBrief(slug)
+	states, _ := m.StageProgress(brief)
+	looks := m.ChecksLooks(states, n)
+	if len(looks) == 0 {
+		return ""
+	}
+	var ids []string
+	for _, l := range looks {
+		b, ok := m.Bundle(l.Bundle)
+		if !ok || !l.Approved || w.bundleMovedOn(b) {
+			return ""
+		}
+		ids = append(ids, b.ID)
+	}
+	why := fmt.Sprintf("you approved %s, its checks as they were (round %d: %s)", strings.Join(ids, ", "), round.N, round.Summary())
+	return w.passStep(slug, n, "you", why, cur.Step.Type)
+}
+
+// bundleMovedOn reports whether a bundle's capsule isn't at the commit it
+// was handed over at: the work it shows has changed since, or can't be
+// found to say.
+func (w *Workspace) bundleMovedOn(b mission.Bundle) bool {
+	if b.Capsule == "" || b.Commit == "" {
+		return false
+	}
+	repo, name, _ := strings.Cut(b.Capsule, "/")
+	head := gitOut(filepath.Join(w.WS().RepoDir(repo), name), "rev-parse", "HEAD")
+	return head == "" || !(strings.HasPrefix(head, b.Commit) || strings.HasPrefix(b.Commit, head))
+}
+
 // checksShownBy says which bundles show step n's checks, yours to say,
 // and what approving them does, leading into the answers ws suggests:
-// "Look at b4, …. Or p" with a bundle, "P" with none.
+// "Look at b4, …. Or p" with a bundle, "P" with none. One you've approved
+// already isn't there to approve: the mission's headline says so.
 func (w *Workspace) checksShownBy(slug string, n int, crew string) string {
 	m, err := w.Missions.Load(slug)
 	if err != nil {
@@ -350,7 +401,9 @@ func (w *Workspace) checksShownBy(slug string, n int, crew string) string {
 	states, _ := m.StageProgress(brief)
 	var bundles []string
 	for _, l := range m.ChecksLooks(states, n) {
-		bundles = append(bundles, l.Name)
+		if !l.Approved {
+			bundles = append(bundles, l.Name)
+		}
 	}
 	if len(bundles) == 0 {
 		return "P"

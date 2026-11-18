@@ -452,3 +452,102 @@ func TestBundle_SendingBackChecksThatAreYours(t *testing.T) {
 		t.Errorf("b1 still waits for you: %+v", v[0])
 	}
 }
+
+// approvedEarly is the cache mission at workPlan's step 1, c1's bundle of
+// it handed over and approved by you before their done is checked: the
+// judge hasn't said yet. With moved, c1 commit more to the capsule after
+// you approved, before they report done.
+func approvedEarly(t *testing.T, moved bool) *Workspace {
+	t.Helper()
+	w, _, dir := workFixture(t, "1. can't tell: it needs production's traffic")
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", dir, "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	git("init", "-q")
+	os.WriteFile(filepath.Join(dir, "cache.go"), []byte("package cache\n"), 0o644)
+	git("add", "cache.go")
+	git("commit", "-q", "-m", "cache")
+	os.WriteFile(filepath.Join(dir, "shot.png"), []byte("\x89PNG\r\n"), 0o644)
+	if _, err := w.HandOverBundle("cache", "c1", bundleOf("shot.png"), dir); err != nil {
+		t.Fatal(err)
+	}
+	done, err := w.ApproveBundle("cache", "b1", AsYou)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if done.Next != "" {
+		t.Fatalf("approving b1 before its checks are run did something: %q", done.Next)
+	}
+	if moved {
+		os.WriteFile(filepath.Join(dir, "cache.go"), []byte("package cache\n\nvar hits int\n"), 0o644)
+		git("commit", "-q", "-am", "count the hits")
+	}
+	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "cached")
+	w.CrewDone("cache", "c1")
+	return w
+}
+
+// A bundle you approved before ws came to ask of its step's checks is your
+// answer when it does: the step passes, and nothing's asked. Approving is
+// only possible once, so asking would leave the step with nothing to
+// approve.
+func TestBundle_ApprovedBeforeItsChecksAreYours(t *testing.T) {
+	w := approvedEarly(t, false)
+	st := stepRecord(t, w, 1)
+	if !st.Accepted() || st.Record.AcceptedBy != "you" || !strings.Contains(st.Record.Why, "you approved b1, its checks as they were (round 1: ") {
+		t.Errorf("step 1 = %+v", st.Record)
+	}
+	m, _ := w.Missions.Load("cache")
+	if _, open := m.StepTask(1); open {
+		t.Errorf("step 1's checks were asked of: %+v", m.Tasks)
+	}
+
+	// The Review step after looks at b1 too: it isn't to approve again.
+	if _, err := w.AcceptStage("cache", AsYou, "tested"); err != nil {
+		t.Fatal(err)
+	}
+	m, _ = w.Missions.Load("cache")
+	task, open := m.StepTask(3)
+	if !open || !strings.Contains(task.Text, "You've approved b1 already, on the mission's Verify tab, so there's nothing left to approve: go on to pass the step") || strings.Contains(task.Text, "passes the step") {
+		t.Errorf("step 3's task = %+v", task)
+	}
+	for _, h := range mission.Resolve(mission.Snapshot{M: m, State: mission.Active, OrchestratorOff: true}) {
+		if h.Kind == mission.KindStepReview && (strings.HasPrefix(h.Action.Label, "verify") || len(h.Action.Look) == 0 || !h.Action.Look[0].Approved) {
+			t.Errorf("step 3's review = %+v", h.Action)
+		}
+	}
+}
+
+// One approved before its capsule moved on shows work that's changed: the
+// step's checks are still yours to say. What ws asks doesn't send you to
+// approve it again, and the headline says passing it is what's left.
+func TestBundle_ApprovedBeforeItsCapsuleMovedOn(t *testing.T) {
+	w := approvedEarly(t, true)
+	if st := stepRecord(t, w, 1); st.Accepted() {
+		t.Fatalf("step 1 passed on a bundle of work that's changed: %+v", st.Record)
+	}
+	m, _ := w.Missions.Load("cache")
+	task := m.Asking()
+	if task == nil || task.Verb != mission.TaskChecks || task.Step != 1 {
+		t.Fatalf("the task = %+v", task)
+	}
+	if strings.Contains(task.Text, "approving it passes the step") {
+		t.Errorf("the task sends you to approve b1 again: %q", task.Text)
+	}
+	var flag *mission.Headline
+	for _, h := range mission.Resolve(mission.Snapshot{M: m, State: mission.Active, OrchestratorOff: true}) {
+		if h.Kind == mission.KindFlag {
+			flag = &h
+		}
+	}
+	if flag == nil || flag.Action.Label != "pass it" || !strings.HasSuffix(flag.Text, "You've approved b1 already, so there's nothing left to approve: pass it to go on.") {
+		t.Fatalf("the flag = %+v", flag)
+	}
+	if looks := flag.Action.Look; len(looks) != 1 || looks[0].Bundle != "b1" || !looks[0].Approved {
+		t.Errorf("the flag looks at %+v, want b1, approved", looks)
+	}
+}

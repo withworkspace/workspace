@@ -537,8 +537,16 @@ func Resolve(s Snapshot) []Headline {
 			// Its checks are yours to say: what its crew handed over to
 			// show them is the thing to look at.
 			states, _ := m.StageProgress(s.Brief)
-			if flag.Action.Look = m.ChecksLooks(states, t.Step); len(flag.Action.Look) > 0 {
-				flag.Action.Label = "verify " + flag.Action.Look[0].Name
+			flag.Action.Look = m.ChecksLooks(states, t.Step)
+			if i := slices.IndexFunc(flag.Action.Look, func(l Look) bool { return !l.Approved }); i >= 0 {
+				flag.Action.Label = "verify " + flag.Action.Look[i].Name
+			} else if len(flag.Action.Look) > 0 {
+				// You've approved what shows them, and the step still
+				// waits (ws didn't pass it then: the capsule had moved
+				// on, or the step couldn't be passed): there's nothing
+				// left to approve, so passing it is what moves it on.
+				flag.Text += fmt.Sprintf(" You've approved %s already, so there's nothing left to approve: %s to go on.", lookNames(flag.Action.Look), strings.ToLower(ChecksPass))
+				flag.Action.Label = strings.ToLower(ChecksPass)
 			}
 		}
 		add(flag)
@@ -1224,6 +1232,8 @@ func stepReviewHeadline(s Snapshot, n int, text, task, by string, since time.Tim
 	if i := slices.IndexFunc(looks, func(l Look) bool { return l.Read }); i > 0 {
 		named = looks[:i]
 	}
+	// A bundle you've approved already isn't what's to approve.
+	named = slices.DeleteFunc(slices.Clone(named), func(l Look) bool { return l.Approved })
 	label := fmt.Sprintf("go on: pass step %d", n)
 	switch {
 	case len(named) > 0 && named[0].Bundle != "":
@@ -1237,6 +1247,18 @@ func stepReviewHeadline(s Snapshot, n int, text, task, by string, since time.Tim
 	}
 	return Headline{Court: CourtYou, Kind: KindStepReview, Label: "✓ review", By: by, Since: since, Text: text,
 		Action: Action{Verb: VerbReviewStep, Label: label, Target: task, Look: looks}}
+}
+
+// lookNames lists what's looked at, by name: b1, or b1 and b2.
+func lookNames(looks []Look) string {
+	names := make([]string, len(looks))
+	for i, l := range looks {
+		names[i] = l.Name
+	}
+	if len(names) < 2 {
+		return strings.Join(names, "")
+	}
+	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
 }
 
 func flagWho(by string) string {

@@ -17,6 +17,7 @@ import {
   getMission,
   getSummary,
   type Headline,
+  type Look,
   type MissionDetail,
   type Talk,
   useEvents,
@@ -225,7 +226,9 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
       // A Review step's first look: a bundle to approve, a document to
       // read, or a capsule (below). So is the bundle that shows a step's
       // checks, when they're yours to say.
-      const look = h?.action.verb === "review-step" || h?.action.verb === "answer" ? h.action.look?.[0] : undefined;
+      // One you've approved already isn't what it waits on.
+      const looks = h?.action.verb === "review-step" || h?.action.verb === "answer" ? h.action.look : undefined;
+      const look = looks?.find((l) => !l.approved) ?? looks?.[0];
       if (!item?.capsule && look?.bundle) return pickBundle(look.bundle);
       if (!item?.capsule && look?.doc) return navigate(docLink(slug, look.doc));
       const only = d?.capsules.filter((c) => c.exists);
@@ -1071,20 +1074,29 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
       // A step's checks, yours to say: the bundles that show them are
       // what to look at, on the Verify tab, where approving one passes
       // the step and saying what's not right sends it back.
+      // One you've approved already is there to look at again: with
+      // nothing left to approve, what ws suggests first (passing it)
+      // is what moves it on.
       const bundles = (a.look ?? []).filter((l) => l.bundle);
+      const toVerify = bundles.filter((l) => !l.approved);
       return (
         <div className="answer">
           <div className="button-row">
-            {bundles.map((l, i) => (
+            {toVerify.map((l, i) => (
               <Link key={l.bundle} to={bundleLink(d.slug, l.bundle!)} className={i === 0 ? "button-link primary" : "button-link"} title="Look at what it shows: approving it passes the step">
                 <Icon name="list-checks" /> Verify {l.name} {i === 0 && <Keys k="v" />}
               </Link>
             ))}
             {a.options?.map((o, i) => (
-              <button key={i} disabled={busy} onClick={() => run("answer", o)}>
+              <button key={i} className={bundles.length > 0 && toVerify.length === 0 && i === 0 ? "primary" : undefined} disabled={busy} onClick={() => run("answer", o)}>
                 {o}
               </button>
             ))}
+            {bundles
+              .filter((l) => l.approved)
+              .map((l) => (
+                <ApprovedLook key={l.bundle} slug={d.slug} look={l} keys={toVerify.length === 0 && l === bundles[0]} />
+              ))}
           </div>
           <form
             className="own-answer"
@@ -1199,13 +1211,15 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
       // crew who made it.
       const task = a.target ? Number(a.target) || undefined : undefined;
       const looks = a.look ?? [];
-      const toApprove = looks.some((l) => !l.read);
+      const toApprove = looks.some((l) => !l.read && !l.approved);
+      const lead = looks.find((l) => !l.approved) ?? looks[0];
       return (
         <div className="answer">
           <div className="button-row">
-            {looks.map((l, i) => {
-              const first = i === 0;
-              const primary = first && !l.read;
+            {looks.map((l) => {
+              const first = l === lead;
+              const primary = first && !l.read && !l.approved;
+              if (l.bundle && l.approved) return <ApprovedLook key={l.bundle} slug={d.slug} look={l} keys={first} />;
               if (l.bundle) {
                 // A bundle is what's to approve, on the Verify tab.
                 return (
@@ -1541,6 +1555,16 @@ const docLink = (slug: string, ref: string) => `/missions/${slug}/artifact?${new
 
 // bundleLink is where a bundle is looked at: the mission's Verify tab,
 // open at it.
+// ApprovedLook is the way back to a bundle you've approved, at a step that
+// looks at it: it's not what the step waits on.
+function ApprovedLook({ slug, look, keys }: { slug: string; look: Look; keys: boolean }) {
+  return (
+    <Link to={bundleLink(slug, look.bundle!)} className="button-link" title="You approved it: look at what it shows again">
+      <Icon name="check-circle" /> {look.name}, approved {keys && <Keys k="v" />}
+    </Link>
+  );
+}
+
 const bundleLink = (slug: string, id: string) => `/missions/${slug}?${new URLSearchParams({ tab: "verify", b: id })}`;
 
 // Brief is the brief, rendered, with its plan under it. They're changed on
