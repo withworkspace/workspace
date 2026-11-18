@@ -1,0 +1,233 @@
+/* Foundations: one type scale, one spacing scale, colours by what they
+   mean, three radii, and motion. The theme is html[data-theme], set before
+   the page draws (index.html) from your choice or the system's.
+
+   These are in a file of their own because two pages have them: the web
+   UI (styles.css imports this), and the page ws serves for a plugin's app
+   (the shell), which has this in a <style> so the app's first paint is in
+   ws's colours (plugins/tokens.ts, vite.config.ts). Only custom properties
+   on :root belong here: a rule here would style a plugin's app too. */
+
+:root {
+  color-scheme: light;
+
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-lg: 15px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --fast: 120ms;
+  --slow: 200ms;
+
+  --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.04);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 4px 14px rgb(0 0 0 / 0.07);
+  --shadow-lg: 0 2px 6px rgb(0 0 0 / 0.08), 0 18px 48px rgb(0 0 0 / 0.18);
+
+  --bg: #fbfbfc;
+  --panel: #f4f4f6;
+  --raised: #ffffff;
+  --fg: #1d1d21;
+  --dim: #66666f;
+  --faint: #a0a0aa;
+  --line: #e6e6ea;
+  --line-strong: #d6d6dc;
+  --hover: #efeff3;
+  --code-bg: rgb(0 0 0 / 0.045);
+  --scrim: rgb(20 20 28 / 0.32);
+
+  /* The accent is one colour, picked: [ui] accent, which the server puts
+     on <html> as --accent-pick before the page paints, and the Settings
+     page changes there. Everything accent-coloured is worked out from it,
+     here and in the dark theme, so the violet is written once: this is its
+     default, the wordmark's (docs/assets/wordmark-*.png). See
+     workspace-records:docs/customisable-ui-accent.md. */
+  --accent-pick: #6e509c;
+
+  /* The wordmark's run, "space" from violet through lavender to a warm
+     taupe, as steps from the pick: the pick as it reads on the light page
+     (its OKLCH lightness held to at most 0.5, its chroma coming down with
+     it as a mix towards black would), a lighter and slightly warmer step,
+     and a muted warm one. The mark's gradient, in both themes: it's a tile
+     with a white letter on it. */
+  --brand-1: oklch(from var(--accent-pick) min(l, 0.5) calc(c * min(1, 0.5 / l)) h);
+  --brand-2: oklch(from var(--brand-1) calc(l + 0.153) calc(c * 0.883) calc(h + 2.3));
+  --brand-3: oklch(from var(--brand-1) calc(l + 0.198) calc(c * 0.245) calc(h + 48.4));
+  --brand-gradient: linear-gradient(135deg, var(--brand-1), var(--brand-2) 62%, var(--brand-3));
+
+  /* The same run as the horizon behind every page (.shell), with how
+     strongly it shows, and the grain over it: noise faded out across the
+     glow's ellipse, its strength in the image. */
+  --horizon-1: var(--brand-1);
+  --horizon-2: var(--brand-2);
+  --horizon-3: var(--brand-3);
+  --horizon-strength: 0.3;
+  --horizon-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3CradialGradient id='g' cx='0' cy='0' r='1' gradientTransform='translate(.5 0) scale(.5 1)'%3E%3Cstop offset='.2'/%3E%3Cstop offset='1' stop-opacity='0'/%3E%3C/radialGradient%3E%3Cmask id='m' style='mask-type:alpha'%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3C/mask%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' mask='url(%23m)' opacity='.054'/%3E%3C/svg%3E");
+
+  /* A well (a chip, a count, a code block, a segmented control's track):
+     a tint of what's behind it, so it reads the same on the page and over
+     the horizon. On a solid surface it's the solid panel (see the
+     horizon). What's pressed in one is lifted from the well. */
+  --well: rgb(0 0 0 / 0.027);
+  --well-pressed: var(--raised);
+
+  /* On the light page the accent is the run's first step: text in it
+     keeps 4.5:1 on the page and on its soft tint, whatever the pick. Its
+     tint and its line are it, see-through. The button is the accent, a
+     step towards the text colour when hovered. */
+  --accent: var(--brand-1);
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 35%, transparent);
+  --primary: var(--accent);
+  --primary-hover: oklch(from var(--primary) calc(l - 0.041) c h);
+
+  /* The accent as it reads on a dark surface: the pick lifted to an OKLCH
+     lightness of at least 0.77, keeping its hue, its chroma easing as it
+     lifts (as a tint's does, a little less than a mix towards white). It's
+     the dark theme's accent, and the link on the light theme's toast,
+     which is dark. */
+  --accent-lifted: oklch(from var(--accent-pick) max(l, 0.77) calc(c * pow((1 - max(l, 0.77)) / (1 - l), 0.66)) h);
+
+  /* A selected row: the accent, a tenth of the way into the page, the
+     accent no darker than the default's (OKLCH 0.49), so dim text on the
+     row keeps 4.5:1 whatever the pick. */
+  --selected: color-mix(in srgb, oklch(from var(--accent) max(l, 0.49) c h) 10%, var(--bg));
+
+  /* The button's label: white or near-black (#121212), whichever has the
+     more contrast with the button, in either theme. They cross where the
+     button's luminance (its XYZ y) is 0.1925: below it, white. Where they
+     cross each is only 4.33:1, so no fill is let sit between 0.181 and
+     0.203, where neither reaches 4.5:1 (see the dark theme's button; the
+     light theme's is never that light). The hovered button's label is
+     chosen the same way, against the hovered fill. */
+  --on-primary: color(
+    from var(--primary) xyz-d65 calc(0.95047 * (0.006 + 0.994 * clamp(0, (0.1925 - y) * 10000, 1)))
+      calc(0.006 + 0.994 * clamp(0, (0.1925 - y) * 10000, 1)) calc(1.08883 * (0.006 + 0.994 * clamp(0, (0.1925 - y) * 10000, 1)))
+  );
+  --on-primary-hover: color(
+    from var(--primary-hover) xyz-d65 calc(0.95047 * (0.006 + 0.994 * clamp(0, (0.1925 - y) * 10000, 1)))
+      calc(0.006 + 0.994 * clamp(0, (0.1925 - y) * 10000, 1)) calc(1.08883 * (0.006 + 0.994 * clamp(0, (0.1925 - y) * 10000, 1)))
+  );
+
+  /* Text-strength hues (4.5:1 on the page and on their soft tints), the
+     fill version for dots and bars, and a soft tint for backgrounds. */
+  --amber: #9a5800;
+  --amber-fill: #d38b1d;
+  --amber-soft: rgb(211 139 29 / 0.13);
+  --green: #1b7a43;
+  --green-fill: #2f9e5b;
+  --green-soft: rgb(47 158 91 / 0.12);
+  --red: #b8342f;
+  --red-fill: #d44c47;
+  --red-soft: rgb(212 76 71 / 0.1);
+  --violet: #7a52c7;
+  --violet-fill: #8a63d2;
+  --violet-soft: rgb(138 99 210 / 0.11);
+
+  /* What colours mean. */
+  --attention: var(--amber);
+  --attention-fill: var(--amber-fill);
+  --attention-soft: var(--amber-soft);
+  --progress: var(--green);
+  --progress-fill: var(--green-fill);
+  --progress-soft: var(--green-soft);
+  --done: var(--green);
+  --done-fill: var(--green-fill);
+  --done-soft: var(--green-soft);
+  --waiting: var(--violet);
+  --waiting-fill: var(--violet-fill);
+  --waiting-soft: var(--violet-soft);
+  --danger: var(--red);
+  --danger-fill: var(--red-fill);
+  --danger-soft: var(--red-soft);
+  --info: var(--accent);
+  --info-fill: var(--accent);
+  --info-soft: var(--accent-soft);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --shadow-xs: 0 1px 1px rgb(0 0 0 / 0.3);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 2px 8px rgb(0 0 0 / 0.45), 0 22px 56px rgb(0 0 0 / 0.55);
+
+  --bg: #0f0f11;
+  --panel: #151518;
+  --raised: #1a1a1f;
+  --fg: #e8e8ec;
+  --dim: #8f8f99;
+  --faint: #55555e;
+  --line: #24242a;
+  --line-strong: #32323a;
+  --hover: #1d1d23;
+  --code-bg: rgb(255 255 255 / 0.06);
+  --scrim: rgb(0 0 0 / 0.55);
+
+  /* On the dark page the pick is lifted, keeping its hue. The accent, for
+     text, is :root's lifted one (an OKLCH lightness of at least 0.77); the
+     button, a fill, is lifted to at least 0.55, so it keeps 3:1 on the
+     page. The button's label is :root's, chosen against this button. The
+     button, and the button hovered, is first brought into sRGB (as it will
+     be drawn, so its label is chosen against what's seen), then darkened
+     (in XYZ, keeping its chromaticity) to a luminance of 0.181 where it
+     would sit between 0.181 and 0.203, so its label keeps 4.5:1. With
+     nothing set the button is below that band and unchanged, and hovered
+     it's at its edge (0.184, darkened by less than anyone could see). The
+     line is the accent at 0.77 whatever the pick, and a selected row is
+     never lighter than the default's (a luminance of 0.0221), so dim text
+     on it keeps 4.5:1 whatever the pick. */
+  --accent: var(--accent-lifted);
+  --accent-soft: color-mix(in srgb, var(--accent) 13%, transparent);
+  --accent-line: color-mix(in srgb, oklch(from var(--accent) 0.77 c h) 40%, transparent);
+  --primary-lift: color(from oklch(from var(--accent-pick) max(l, 0.55) c h) srgb-linear clamp(0, r, 1) clamp(0, g, 1) clamp(0, b, 1));
+  --primary: color(from var(--primary-lift) xyz-d65 calc(x * (1 - clamp(0, (y - 0.181) * 10000, 1) * clamp(0, (0.203 - y) * 10000, 1) * (1 - 0.181 / max(y, 0.001)))) calc(y * (1 - clamp(0, (y - 0.181) * 10000, 1) * clamp(0, (0.203 - y) * 10000, 1) * (1 - 0.181 / max(y, 0.001)))) calc(z * (1 - clamp(0, (y - 0.181) * 10000, 1) * clamp(0, (0.203 - y) * 10000, 1) * (1 - 0.181 / max(y, 0.001)))));
+  --primary-hover-lift: color(from oklch(from var(--primary) calc(l + 0.031) c h) srgb-linear clamp(0, r, 1) clamp(0, g, 1) clamp(0, b, 1));
+  --primary-hover: color(from var(--primary-hover-lift) xyz-d65 calc(x * (1 - clamp(0, (y - 0.181) * 10000, 1) * clamp(0, (0.203 - y) * 10000, 1) * (1 - 0.181 / max(y, 0.001)))) calc(y * (1 - clamp(0, (y - 0.181) * 10000, 1) * clamp(0, (0.203 - y) * 10000, 1) * (1 - 0.181 / max(y, 0.001)))) calc(z * (1 - clamp(0, (y - 0.181) * 10000, 1) * clamp(0, (0.203 - y) * 10000, 1) * (1 - 0.181 / max(y, 0.001)))));
+  --selected: color(
+    from color-mix(in srgb, var(--primary) 28%, var(--bg)) xyz-d65 calc(x * min(1, 0.0221 / max(y, 0.0001)))
+      calc(y * min(1, 0.0221 / max(y, 0.0001))) calc(z * min(1, 0.0221 / max(y, 0.0001)))
+  );
+
+  /* The horizon runs from the button to the accent, then a muted warm step
+     of its own. The mark keeps the light run. */
+  --horizon-1: var(--primary);
+  --horizon-2: var(--accent);
+  --horizon-3: oklch(from var(--primary) calc(l + 0.23) calc(c * 0.262) calc(h + 108));
+  --horizon-strength: 0.54;
+  --horizon-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3CradialGradient id='g' cx='0' cy='0' r='1' gradientTransform='translate(.5 0) scale(.5 1)'%3E%3Cstop offset='.2'/%3E%3Cstop offset='1' stop-opacity='0'/%3E%3C/radialGradient%3E%3Cmask id='m' style='mask-type:alpha'%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3C/mask%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' mask='url(%23m)' opacity='.076'/%3E%3C/svg%3E");
+
+  --well: rgb(255 255 255 / 0.027);
+  --well-pressed: rgb(255 255 255 / 0.025);
+
+  --amber: #e0a346;
+  --amber-fill: #d8952c;
+  --amber-soft: rgb(224 163 70 / 0.13);
+  --green: #4cc283;
+  --green-fill: #3aa96e;
+  --green-soft: rgb(76 194 131 / 0.12);
+  --red: #f0726c;
+  --red-fill: #e0524c;
+  --red-soft: rgb(240 114 108 / 0.13);
+  --violet: #b394f0;
+  --violet-fill: #9b78e6;
+  --violet-soft: rgb(179 148 240 / 0.13);
+}

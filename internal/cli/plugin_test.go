@@ -3,7 +3,10 @@ package cli_test
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -154,7 +157,7 @@ func TestPluginCheck(t *testing.T) {
 	if res.Err != nil {
 		t.Fatalf("a plugin with nothing wrong: %v\n%s", res.Err, res.Stdout)
 	}
-	for _, want := range []string{"fake 1.2.3", "view      Fake", "config    greeting (string)", "guide     1 lines, for agents", "note   ws fake has no subcommands"} {
+	for _, want := range []string{"fake 1.2.3", "view      Fake", "ui        /ui/app.js?v=1, /ui/app.css", "config    greeting (string)", "guide     1 lines, for agents", "note   ws fake has no subcommands"} {
 		if !strings.Contains(res.Stdout, want) {
 			t.Errorf("check lacks %q:\n%s", want, res.Stdout)
 		}
@@ -162,6 +165,32 @@ func TestPluginCheck(t *testing.T) {
 	// It ran apart from the workspace: nothing's installed here.
 	if got := plugin.Installed(w.Root); len(got) != 0 {
 		t.Errorf("check installed %v", got)
+	}
+
+	if strings.Contains(res.Stdout, "wrong") {
+		t.Errorf("something's wrong with one whose app is there:\n%s", res.Stdout)
+	}
+
+	// One with a view and no app, from before a plugin's page was an app:
+	// there's nothing to show at its view.
+	res = testutil.RunCommand(t, w.Root, nil, "plugin", "check", fakeplugin.Install(t, "old", fakeplugin.Options{NoUI: true}))
+	if res.Err == nil || !strings.Contains(res.Stdout, "wrong  it has a view and no ui.script") || strings.Contains(res.Stdout, "  ui  ") {
+		t.Errorf("a plugin with a view and no app: %v\n%s", res.Err, res.Stdout)
+	}
+
+	// One that serves a page of its own: ws serves the page now.
+	res = testutil.RunCommand(t, w.Root, nil, "plugin", "check", fakeplugin.Install(t, "paged", fakeplugin.Options{HTML: true}))
+	if res.Err == nil || !strings.Contains(res.Stdout, "wrong  it serves HTML at /: ws serves a plugin's page now, and the plugin serves its app's bundle") {
+		t.Errorf("a plugin that serves HTML: %v\n%s", res.Err, res.Stdout)
+	}
+
+	// One whose app's files aren't what it says: not there, or not served
+	// as what a browser would load.
+	res = testutil.RunCommand(t, w.Root, nil, "plugin", "check", fakeplugin.Install(t, "broken", fakeplugin.Options{BrokenUI: true}))
+	for _, want := range []string{"wrong  ui.script (/ui/missing.js) isn't there: the plugin answered 404", "wrong  ui.style (/ui/app.txt) is served as text/plain, not as CSS"} {
+		if res.Err == nil || !strings.Contains(res.Stdout, want) {
+			t.Errorf("a plugin whose app's files are wrong lacks %q: %v\n%s", want, res.Err, res.Stdout)
+		}
 	}
 
 	// One that asks for a word of ws's own doesn't start, and fails it.
@@ -173,5 +202,44 @@ func TestPluginCheck(t *testing.T) {
 	// A folder that isn't a plugin's.
 	if res := testutil.RunCommand(t, w.Root, nil, "plugin", "check", t.TempDir()); res.Err == nil {
 		t.Error("a folder with no plugin.toml was checked")
+	}
+}
+
+// The fixture plugin (testdata/plugins/frame-fixture) is what ws's page for
+// a plugin's app is tried with by hand: it has to be a plugin ws takes,
+// with the app that's committed there served as a browser would load it.
+func TestFrameFixtureChecks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds the fixture")
+	}
+	w := testutil.SetupWorkspace(t, testutil.WorkspaceOpts{})
+	_, here, _, _ := runtime.Caller(0)
+	src := filepath.Join(filepath.Dir(here), "..", "..", "testdata", "plugins", "frame-fixture")
+	// Built apart from the source, which a test doesn't write into.
+	dir := filepath.Join(t.TempDir(), "frame-fixture")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	build := exec.Command("go", "build", "-o", filepath.Join(dir, "frame-fixture"), ".")
+	build.Dir = src
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("building the fixture: %v\n%s", err, out)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "plugin.toml"), []byte("name = \"frame-fixture\"\nversion = \"0.1.0\"\ncommand = [\"./frame-fixture\"]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	res := testutil.RunCommand(t, w.Root, nil, "plugin", "check", dir)
+	if res.Err != nil {
+		t.Fatalf("the fixture: %v\n%s", res.Err, res.Stdout)
+	}
+	for _, want := range []string{"view      Frame fixture", "view      Fixture: thing 2", "command   ws frame-fixture poke", "Nothing's wrong with it."} {
+		if !strings.Contains(res.Stdout, want) {
+			t.Errorf("check lacks %q:\n%s", want, res.Stdout)
+		}
+	}
+	// Its app's files are named with a hash of what's in each.
+	if !regexp.MustCompile(`ui        /ui/app\.js\?v=[0-9a-f]{8}, /ui/app\.css\?v=[0-9a-f]{8}\n`).MatchString(res.Stdout) {
+		t.Errorf("its ui line:\n%s", res.Stdout)
 	}
 }

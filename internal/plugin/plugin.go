@@ -8,10 +8,12 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
@@ -95,6 +97,15 @@ func Installed(root string) []string {
 	return names
 }
 
+// IsInstalled says whether the workspace at root has a plugin called name.
+func IsInstalled(root, name string) bool {
+	if !ValidName(name) {
+		return false
+	}
+	_, err := os.Stat(filepath.Join(appDir(root, name), ManifestName))
+	return err == nil
+}
+
 // Linked says whether a plugin is a link to a folder elsewhere (ws plugin
 // add --link), and where to.
 func Linked(root, name string) (string, bool) {
@@ -107,6 +118,7 @@ func Linked(root, name string) (string, bool) {
 type Registration struct {
 	Description   string      `json:"description,omitempty"`
 	Views         []View      `json:"views,omitempty"`
+	UI            *UI         `json:"ui,omitempty"`
 	Commands      *Commands   `json:"commands,omitempty"`
 	Agent         *Agent      `json:"agent,omitempty"`
 	Syncs         []Sync      `json:"syncs,omitempty"`
@@ -115,12 +127,44 @@ type Registration struct {
 }
 
 // View is an entry in the web UI's sidebar, and where in the plugin's
-// pages it opens.
+// app it opens.
 type View struct {
 	Title string `json:"title"`
 	Icon  string `json:"icon,omitempty"`
 	Under string `json:"under,omitempty"`
 	Path  string `json:"path,omitempty"`
+}
+
+// UI is a plugin's app: what ws's page for it (the shell, at
+// /plugin-frame/<name>/…) loads. A plugin has one, whatever views it has,
+// and serves no HTML of its own. Each is a path in the plugin's own HTTP,
+// with whatever query it has (/ui/app.js?v=3f9c2a), loaded from under
+// ViewBase.
+type UI struct {
+	// Script is the app's entry, loaded as a module.
+	Script string `json:"script,omitempty"`
+	// Style is its stylesheet, if it has one, in the page's head.
+	Style string `json:"style,omitempty"`
+}
+
+// ValidUIPath says whether p can be one of a UI's: a path from the root of
+// the plugin's HTTP, which stays inside it. A query is the plugin's own.
+func ValidUIPath(p string) bool {
+	if !strings.HasPrefix(p, "/") || strings.HasPrefix(p, "//") || strings.ContainsAny(p, "\\#") {
+		return false
+	}
+	u, err := url.Parse(p)
+	if err != nil || u.Scheme != "" || u.Host != "" {
+		return false
+	}
+	// A browser reads %2e%2e as .. too: it's the path as it's read that
+	// mustn't climb out.
+	for _, seg := range strings.Split(u.Path, "/") {
+		if seg == "." || seg == ".." {
+			return false
+		}
+	}
+	return true
 }
 
 // Commands are what a plugin adds after ws: one word, and what follows it.

@@ -1,8 +1,8 @@
-// The accent: one colour, --accent-pick on <html>, from which styles.css
+// The accent: one colour, --accent-pick on <html>, from which foundations.css
 // works out every accent colour for the theme. The server puts [ui] accent
 // there as it serves the page, so it's there before the page first paints;
 // the Settings page changes it there as you pick, so the page follows
-// without a reload. With none there, styles.css's own default applies. See
+// without a reload. With none there, foundations.css's own default applies. See
 // workspace-records:docs/customisable-ui-accent.md.
 
 import { useSyncExternalStore } from "react";
@@ -30,7 +30,7 @@ export function useAccent(): string {
   return useSyncExternalStore(subscribe, () => document.documentElement.style.getPropertyValue(pick));
 }
 
-// defaultAccent is styles.css's own accent, the one the page has when none
+// defaultAccent is foundations.css's own accent, the one the page has when none
 // is set, as #rrggbb. The one set is taken off <html> while it's read, and
 // put back, before anything paints.
 export function defaultAccent(): string {

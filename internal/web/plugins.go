@@ -2,9 +2,9 @@ package web
 
 import (
 	"context"
-	"embed"
 	"errors"
 	"html"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -14,19 +14,30 @@ import (
 	"github.com/withworkspace/workspace/internal/plugin"
 )
 
-// Plugins in the web UI: each one's view is its own pages, served by the
-// plugin and shown in a frame. /plugins/<name>/… is passed to the plugin;
-// /api/plugins says what each adds to the sidebar, and where it stands.
-
-//go:embed pluginkit/plugin-kit.js pluginkit/plugin-kit.css
-var pluginKit embed.FS
+// Plugins in the web UI: each one's view is an app of the plugin's, which
+// runs in a page ws serves (the shell), shown in a frame.
+// /plugin-frame/<name>/… is the shell; /plugins/<name>/… is passed to the
+// plugin, for its app's files and what its app asks it; /api/plugins says
+// what each adds to the sidebar, and where it stands. How the app and ws
+// talk is the frame protocol: PROTOCOL.md in github.com/withworkspace/ui-lib.
 
 const topicPlugins = "plugins"
 
-// PluginPolicy is the Content-Security-Policy of a plugin's page: its own
-// scripts and styles, inline too, and images from anywhere. It's a program
-// the workspace's owner installed, in a frame of the web UI's own.
+// PluginPolicy is the Content-Security-Policy of what a plugin's own HTTP
+// answers: its own scripts and styles, inline too, and images from
+// anywhere. It's a program the workspace's owner installed.
 const PluginPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; frame-ancestors 'self'"
+
+// ShellPolicy is the Content-Security-Policy of the shell: scripts, styles,
+// fonts and connections from this origin alone, and no inline script (the
+// shell has none, and the app is a file). Inline style is allowed, for ws's
+// tokens and for an app that styles from its script.
+const ShellPolicy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
+
+// shellStyles is the file in the built web UI that the shell's <style>
+// holds: ws's tokens, light and dark, under the names a plugin's app knows
+// them by (web/vite.config.ts writes it).
+const shellStyles = "plugin-shell.css"
 
 // Plugin is one of the workspace's plugins, as GET /api/plugins serves it.
 type Plugin struct {
@@ -38,11 +49,11 @@ type Plugin struct {
 	Error   string       `json:"error,omitempty"`
 	Missing []string     `json:"missing,omitempty"`
 	Views   []PluginView `json:"views"`
-	// Changed counts the times it's said what its view shows is stale: a
-	// page showing it reloads when it moves.
+	// Changed counts the times it's said what its view shows is stale: an
+	// app showing it is told when it moves.
 	Changed uint64 `json:"changed"`
 	// Starts counts the times it's been started: a page showing its view
-	// loads it again when it moves.
+	// loads its app again when it moves.
 	Starts uint64 `json:"starts"`
 }
 
@@ -51,7 +62,7 @@ type PluginView struct {
 	Title string `json:"title"`
 	Icon  string `json:"icon,omitempty"`
 	Under string `json:"under,omitempty"`
-	// Path is where in the plugin's pages it opens.
+	// Path is where in the plugin's app it opens.
 	Path  string `json:"path"`
 	Badge int    `json:"badge,omitempty"`
 }
@@ -74,22 +85,26 @@ func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
-// pluginKitFile is GET /plugin-kit.js and /plugin-kit.css: a plugin's
-// page's side of the frame, and ws's look for it.
-func (s *Server) pluginKitFile(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "no-cache")
-	http.ServeFileFS(w, r, pluginKit, "pluginkit"+r.URL.Path)
-}
-
 // pluginHeaders are what every answer under /plugins has, in place of the
 // guard's, which would refuse to be framed and run no inline script.
 func pluginHeaders(h http.Header) {
 	h.Set("Content-Security-Policy", PluginPolicy)
 	h.Set("X-Frame-Options", "SAMEORIGIN")
-	// A plugin's page says where it is to its own pages (a form's handler
-	// sends the person back there), and to nowhere else. The app's pages
-	// say it to nobody: the sign-in link's address carries the token.
+	// What a plugin serves says where it is to its own HTTP, and to nowhere
+	// else. The app's pages say it to nobody: the sign-in link's address
+	// carries the token.
 	h.Set("Referrer-Policy", "same-origin")
+}
+
+// shellHeaders are what the shell has: as pluginHeaders, under the shell's
+// own policy. It carries the accent and what the plugin registered, so
+// it's never kept.
+func shellHeaders(h http.Header) {
+	h.Set("Content-Security-Policy", ShellPolicy)
+	h.Set("X-Frame-Options", "SAMEORIGIN")
+	h.Set("Referrer-Policy", "same-origin")
+	h.Set("Content-Type", "text/html; charset=utf-8")
+	h.Set("Cache-Control", "no-store")
 }
 
 // pluginTransports are the connections to plugins' views, by socket.
@@ -109,14 +124,29 @@ func pluginTransport(sock string) *http.Transport {
 	return actual.(*http.Transport)
 }
 
-// pluginView is /plugins/{name}/{rest...}: a plugin's own page, asked of
-// the plugin, which is started if it isn't running.
-func (s *Server) pluginView(w http.ResponseWriter, r *http.Request) {
-	pluginHeaders(w.Header())
-	name := r.PathValue("name")
-	if s.Plugins == nil || !plugin.ValidName(name) {
-		pluginPage(w, http.StatusNotFound, "There's no such plugin", "")
-		return
+// FrameBase is the path a plugin's shell is served under: the address of
+// its view in ws, /x/<name>/…, under a prefix of the frame's own.
+func FrameBase(name string) string { return "/plugin-frame/" + name }
+
+// shell is the page ws serves for a plugin's view: ws's tokens, an empty
+// #root, and the plugin's app. Where the app can't be loaded, it has a
+// message of ws's in #root and no app.
+type shell struct {
+	Title string
+	// Script and Style are the app's entry and its stylesheet, as addresses
+	// in ws; "" for none.
+	Script, Style string
+	// Message is HTML for #root, in place of the app.
+	Message string
+}
+
+// pluginSocket is the socket of a plugin's own HTTP, the plugin started if
+// it isn't running. Where it can't be asked, the answer's written, as the
+// shell with a message saying why, and ok is false.
+func (s *Server) pluginSocket(w http.ResponseWriter, name string) (sock string, ok bool) {
+	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
+		s.shellMessage(w, http.StatusNotFound, "There's no such plugin", "<p><code>ws plugin list</code> says which this workspace has.</p>")
+		return "", false
 	}
 	sock, err := s.Plugins.ViewSocket(name)
 	var setup *plugin.SetupError
@@ -128,14 +158,63 @@ func (s *Server) pluginView(w http.ResponseWriter, r *http.Request) {
 			if title == "" {
 				title = k.Key
 			}
-			keys[i] = "<li>" + html.EscapeString(title) + " <span class=\"dim\">(<code>" + html.EscapeString(k.Key) + "</code>)</span></li>"
+			keys[i] = "<li>" + html.EscapeString(title) + " (<code>" + html.EscapeString(k.Key) + "</code>)</li>"
 		}
-		pluginPage(w, http.StatusServiceUnavailable, html.EscapeString(name)+" needs setting up",
+		s.shellMessage(w, http.StatusServiceUnavailable, name+" needs setting up",
 			"<p>It can't be used until these are set:</p><ul>"+strings.Join(keys, "")+"</ul><p>In a terminal: <code>ws plugin config "+html.EscapeString(name)+" --ask</code></p>")
-		return
+		return "", false
 	case err != nil:
-		pluginPage(w, http.StatusBadGateway, html.EscapeString(name)+" didn't start",
+		s.shellMessage(w, http.StatusBadGateway, name+" didn't start",
 			"<p>"+html.EscapeString(err.Error())+"</p><p>Its log: <code>ws plugin logs "+html.EscapeString(name)+"</code></p>")
+		return "", false
+	}
+	return sock, true
+}
+
+// pluginShell is GET /plugin-frame/{name}/{rest...}: the shell, for every
+// path under the plugin's name. Which paths the app has is the app's to
+// say, once it's loaded: so a link to somewhere deep in it, a reload, and
+// back and forward all load it there.
+func (s *Server) pluginShell(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	if _, ok := s.pluginSocket(w, name); !ok {
+		return
+	}
+	reg := s.Plugins.Status(name).Registration
+	switch {
+	case reg.UI == nil || reg.UI.Script == "":
+		s.shellMessage(w, http.StatusBadGateway, name+" has no app to show",
+			"<p>It was built on a framework from before plugin pages were apps: update it.</p>")
+		return
+	case !plugin.ValidUIPath(reg.UI.Script) || reg.UI.Style != "" && !plugin.ValidUIPath(reg.UI.Style):
+		s.shellMessage(w, http.StatusBadGateway, name+"'s app can't be loaded",
+			"<p>What it registered as its <code>ui</code> isn't a path in its own HTTP. <code>ws plugin check</code> says what's wrong with it.</p>")
+		return
+	}
+	page := shell{Title: name, Script: plugin.ViewBase(name) + reg.UI.Script}
+	if len(reg.Views) > 0 && reg.Views[0].Title != "" {
+		page.Title = reg.Views[0].Title
+	}
+	if reg.UI.Style != "" {
+		page.Style = plugin.ViewBase(name) + reg.UI.Style
+	}
+	s.writeShell(w, http.StatusOK, page)
+}
+
+// pluginShellRoot is GET /plugin-frame/{name}: the shell at the app's
+// first path.
+func (s *Server) pluginShellRoot(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, FrameBase(r.PathValue("name"))+"/", http.StatusSeeOther)
+}
+
+// pluginView is /plugins/{name}/{rest...}: the plugin's own HTTP, asked of
+// the plugin, which is started if it isn't running. It's where its app's
+// files are, and what its app asks it.
+func (s *Server) pluginView(w http.ResponseWriter, r *http.Request) {
+	pluginHeaders(w.Header())
+	name := r.PathValue("name")
+	sock, ok := s.pluginSocket(w, name)
+	if !ok {
 		return
 	}
 	base := plugin.ViewBase(name)
@@ -151,7 +230,7 @@ func (s *Server) pluginView(w http.ResponseWriter, r *http.Request) {
 			pr.Out.Header.Set("X-Forwarded-Prefix", base)
 		},
 		ModifyResponse: func(res *http.Response) error {
-			// ws's policy for a plugin's page is the one that holds.
+			// ws's policy for what a plugin serves is the one that holds.
 			res.Header.Del("Content-Security-Policy")
 			res.Header.Del("X-Frame-Options")
 			// A redirect to a path of the plugin's own is to it under its base.
@@ -161,26 +240,57 @@ func (s *Server) pluginView(w http.ResponseWriter, r *http.Request) {
 			return nil
 		},
 		ErrorHandler: func(w http.ResponseWriter, _ *http.Request, err error) {
-			pluginPage(w, http.StatusBadGateway, html.EscapeString(name)+" isn't answering",
+			s.shellMessage(w, http.StatusBadGateway, name+" isn't answering",
 				"<p>"+html.EscapeString(err.Error())+"</p><p>Its log: <code>ws plugin logs "+html.EscapeString(name)+"</code></p>")
 		},
 	}
 	proxy.ServeHTTP(w, r)
 }
 
-// pluginRoot is /plugins/{name}: the plugin's first page.
+// pluginRoot is /plugins/{name}: the root of the plugin's own HTTP.
 func (s *Server) pluginRoot(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, plugin.ViewBase(r.PathValue("name"))+"/", http.StatusSeeOther)
 }
 
-// pluginPage is a page of ws's own in a plugin's frame: why the plugin's
-// can't be shown. body is HTML.
-func pluginPage(w http.ResponseWriter, status int, title, body string) {
-	pluginHeaders(w.Header())
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
+// shellMessage is the shell with a message of ws's in place of an app: why
+// the plugin's can't be shown. title is text, and body is HTML.
+func (s *Server) shellMessage(w http.ResponseWriter, status int, title, body string) {
+	s.writeShell(w, status, shell{Title: title, Message: "<h2>" + html.EscapeString(title) + "</h2>" + body})
+}
+
+// writeShell writes the shell. The theme is there before anything of the
+// plugin's has loaded: /theme.js (the web UI's own, a file, as the policy
+// runs no inline script) sets light or dark on <html> as it does for the
+// web UI, the accent is on <html> as it is there, and the <style> has every
+// token for both, worked out from those two by the browser. So the frame's
+// first paint is in ws's colours.
+func (s *Server) writeShell(w http.ResponseWriter, status int, p shell) {
+	styles, err := fs.ReadFile(s.Assets, shellStyles)
+	if err != nil {
+		page(w, http.StatusInternalServerError, "No web UI built", "This ws was built without its web UI: run <code>just build</code>.")
+		return
+	}
+	var b strings.Builder
+	b.WriteString("<!doctype html>\n<html lang=\"en\"")
+	if accent := s.App.Accent(); hexColor(accent) {
+		b.WriteString(` style="--accent-pick: ` + accent + `"`)
+	}
+	b.WriteString(">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"color-scheme\" content=\"light dark\">\n<script src=\"/theme.js\"></script>\n")
+	b.WriteString("<title>" + html.EscapeString(p.Title) + "</title>\n<style>")
+	b.Write(styles)
+	b.WriteString("</style>\n")
+	if p.Message == "" {
+		if p.Style != "" {
+			b.WriteString(`<link rel="stylesheet" href="` + html.EscapeString(p.Style) + "\">\n")
+		}
+		b.WriteString(`<script type="module" src="` + html.EscapeString(p.Script) + "\"></script>\n")
+	}
+	b.WriteString("</head>\n<body><div id=\"root\">")
+	if p.Message != "" {
+		b.WriteString(`<div class="ws-shell-message">` + p.Message + "</div>")
+	}
+	b.WriteString("</div></body>\n</html>\n")
+	shellHeaders(w.Header())
 	w.WriteHeader(status)
-	w.Write([]byte(`<!doctype html><html><head><meta charset="utf-8"><title>` + title + `</title>` +
-		`<link rel="stylesheet" href="/plugin-kit.css"><script src="/plugin-kit.js"></script></head>` +
-		`<body><main><div class="empty"><h2>` + title + `</h2>` + body + `</div></main></body></html>`))
+	w.Write([]byte(b.String()))
 }

@@ -364,7 +364,9 @@ func (h *Host) executable() string {
 	return self
 }
 
-// ViewBase is the path a plugin's view is served under.
+// ViewBase is the path a plugin's own HTTP is served under: its app's
+// files, and what its app asks it. (The page its app runs in is ws's, at
+// /plugin-frame/<name>/….)
 func ViewBase(name string) string { return "/plugins/" + name }
 
 // acceptable refuses a registration that takes a word after ws that's

@@ -83,6 +83,7 @@ func TestProblems(t *testing.T) {
 	}
 	good := plugin.Registration{
 		Views:    []plugin.View{{Title: "Jira"}},
+		UI:       &plugin.UI{Script: "/ui/app.js?v=3f9c2a", Style: "/ui/app.css"},
 		Commands: &plugin.Commands{Short: "Jira issues", Subcommands: []plugin.Subcommand{{Name: "mine", Short: "Yours"}}},
 		Agent:    &plugin.Agent{Guide: "`ws jira mine` lists yours."},
 		Config:   []plugin.ConfigKey{{Key: "site", Title: "Site", Type: "url"}},
@@ -98,6 +99,7 @@ func TestProblems(t *testing.T) {
 
 	bad := plugin.Registration{
 		Views:    []plugin.View{{Title: " "}},
+		UI:       &plugin.UI{Script: "/ui/../../api/app.js", Style: "//elsewhere.example/app.css"},
 		Commands: &plugin.Commands{Name: "Not OK", Subcommands: []plugin.Subcommand{{Name: "go"}}},
 		Agent:    &plugin.Agent{Guide: strings.Repeat("line\n", 60)},
 		Config: []plugin.ConfigKey{
@@ -108,7 +110,7 @@ func TestProblems(t *testing.T) {
 		},
 	}
 	fatal, notes = texts(plugin.Problems("bad", bad))
-	for _, want := range []string{"view 1 has no title", `its command "Not OK"`, `of type "colour"`, "declared twice", "the list is empty", "has no name"} {
+	for _, want := range []string{"view 1 has no title", `ui.script is "/ui/../../api/app.js"`, `ui.style is "//elsewhere.example/app.css"`, `its command "Not OK"`, `of type "colour"`, "declared twice", "the list is empty", "has no name"} {
 		if !strings.Contains(fatal, want) {
 			t.Errorf("what's wrong lacks %q:\n%s", want, fatal)
 		}
@@ -119,9 +121,41 @@ func TestProblems(t *testing.T) {
 		}
 	}
 
+	// A view is a place in the plugin's app: one with no app has nothing
+	// to show, and an app with no view has nothing that opens it.
+	fatal, _ = texts(plugin.Problems("old", plugin.Registration{Views: []plugin.View{{Title: "Old"}}}))
+	if !strings.Contains(fatal, "it has a view and no ui.script") {
+		t.Errorf("a view and no app: %q", fatal)
+	}
+	fatal, notes = texts(plugin.Problems("hidden", plugin.Registration{UI: &plugin.UI{Script: "/ui/app.js"}}))
+	if fatal != "" || !strings.Contains(notes, "nothing opens it") {
+		t.Errorf("an app and no view: fatal %q, notes %q", fatal, notes)
+	}
+
 	// Commands and no guide: agents aren't told.
 	_, notes = texts(plugin.Problems("quiet", plugin.Registration{Commands: &plugin.Commands{Short: "x", Subcommands: []plugin.Subcommand{{Name: "a", Short: "b"}}}}))
 	if !strings.Contains(notes, "agents won't know ws quiet is there") {
 		t.Errorf("commands with no guide: %q", notes)
+	}
+}
+
+func TestValidUIPath(t *testing.T) {
+	for path, want := range map[string]bool{
+		"/ui/app.js":                     true,
+		"/ui/app.js?v=3f9c2a":            true,
+		"/app.css":                       true,
+		"":                               false,
+		"ui/app.js":                      false,
+		"//elsewhere.example/a":          false,
+		"https://elsewhere.example/a.js": false,
+		"/ui/../app.js":                  false,
+		"/ui/%2e%2e/app.js":              false,
+		"/ui/./app.js":                   false,
+		`/\elsewhere.example/a`:          false,
+		"/ui/app.js#x":                   false,
+	} {
+		if got := plugin.ValidUIPath(path); got != want {
+			t.Errorf("ValidUIPath(%q) = %v, want %v", path, got, want)
+		}
 	}
 }

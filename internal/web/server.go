@@ -89,7 +89,8 @@ type Server struct {
 	// and used. nil for none.
 	Nav *nav.Service
 	// Plugins are the workspace's plugins: what each adds to the sidebar,
-	// and its pages, which are passed to it. nil for none.
+	// its app, which ws serves a page for, and its own HTTP, which is
+	// passed to it. nil for none.
 	Plugins *plugin.Host
 	// Hold keeps the daemon up while a page is open (each holds an
 	// event stream); nil for nothing to hold.
@@ -437,13 +438,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /frame/{id}/{version}", s.frame)
 	mux.HandleFunc("GET /frame/{id}/proposals/{n}", s.proposalFrame)
 	mux.HandleFunc("GET /frame/missions/{slug}/{id}/proposals/{n}", s.proposalFrame)
-	// Plugins: what they add, their pages (asked of the plugin), and what
-	// a plugin's page is given by ws.
+	// Plugins: what they add, the page ws serves for one's app (the
+	// shell), and each one's own HTTP (asked of the plugin).
 	mux.HandleFunc("GET /api/plugins", s.pluginsList)
+	mux.HandleFunc("GET /plugin-frame/{name}", s.pluginShellRoot)
+	mux.HandleFunc("GET /plugin-frame/{name}/{rest...}", s.pluginShell)
 	mux.HandleFunc("/plugins/{name}", s.pluginRoot)
 	mux.HandleFunc("/plugins/{name}/{rest...}", s.pluginView)
-	mux.HandleFunc("GET /plugin-kit.js", s.pluginKitFile)
-	mux.HandleFunc("GET /plugin-kit.css", s.pluginKitFile)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusNotFound, "no such API: "+r.Method+" "+r.URL.Path)
 	})
@@ -504,8 +505,8 @@ func (s *Server) guard(next http.Handler) http.Handler {
 				jsonError(w, http.StatusForbidden, "cross-origin request refused")
 				return
 			}
-			// A plugin's page posts its own forms, as forms: what's refused
-			// there is another site's request, above.
+			// A plugin's app posts to the plugin as the plugin takes it, a
+			// form too: what's refused there is another site's request, above.
 			plugins := strings.HasPrefix(r.URL.Path, "/plugins/")
 			if mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); mt != "application/json" && !plugins {
 				jsonError(w, http.StatusUnsupportedMediaType, "send JSON")
@@ -655,7 +656,7 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 // never flashes the default first. It's a style attribute, not a script,
 // as the page's Content-Security-Policy runs no inline script, and allows
 // inline style. With no accent, or one that isn't #rgb or #rrggbb, the
-// page is as built, and styles.css's default applies: nothing but a hex
+// page is as built, and foundations.css's default applies: nothing but a hex
 // colour reaches the attribute.
 func withAccent(index []byte, accent string) []byte {
 	tag := htmlTag.FindIndex(index)

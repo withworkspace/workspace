@@ -8,7 +8,7 @@ import { Explorer, explorerKeys } from "./files/Explorer";
 import { docKeys } from "./files/DocPage";
 import { FilesPage, filesKeys } from "./files/Files";
 import { DocumentsPage, documentsKeys, SpacePage, spaceKeys } from "./documents/Documents";
-import { codeSearchKey, isCodeSearchKey, pageBinds, useKeys } from "./keys";
+import { codeSearchKey, isCodeSearchKey, leaderWithin, pageBinds, useKeys } from "./keys";
 import { ArtifactPage, artifactKeys } from "./mission/ArtifactPage";
 import { BriefView, briefKeys } from "./mission/BriefView";
 import { CrewPage, crewKeys } from "./mission/CrewPage";
@@ -174,7 +174,7 @@ export function App() {
               <Route path="/missions/:slug/conversations/:id" element={<TalkPage workspace={workspace} />} />
               <Route path="/missions/:slug/review/:repo/:name" element={<Review workspace={workspace} />} />
               <Route path="/missions/:slug/files/:repo/:name" element={<Explorer workspace={workspace} />} />
-              <Route path="/x/:name/*" element={<PluginPage plugins={plugins} />} />
+              <Route path="/x/:name/*" element={<PluginPage plugins={plugins} ws={workspace?.version} />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </RefsProvider>
@@ -514,7 +514,7 @@ function useGlobalKeys({ openPalette, openHelp }: { openPalette: (start?: string
       // g then a key goes somewhere, unless the page uses that key itself
       // (g, first, then o, open it, on a list): the page's keys win.
       const to = { m: "/", c: "/conversations", p: "/documents", d: "/documents", a: "/artifacts", r: "/reviews", t: "/team", f: "/files", o: "/orchestrator" }[e.key];
-      if (to && Date.now() - g < 900 && !pageBinds(e.key)) {
+      if (to && Date.now() - g < leaderWithin && !pageBinds(e.key)) {
         e.preventDefault();
         e.stopPropagation();
         g = 0;

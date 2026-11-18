@@ -1,0 +1,45 @@
+/* The shell's own rules: what the page ws serves for a plugin's app has
+   besides the tokens. It's little on purpose: the page is the app's, and
+   every rule here is one the app would have to undo. vite.config.ts puts
+   this after foundations.css and the --ws-* names, as plugin-shell.css. */
+
+html,
+body {
+  margin: 0;
+  background: var(--ws-bg);
+  color: var(--ws-fg);
+  font: var(--ws-text-md) / 1.5 var(--ws-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A message of ws's, where the app can't be loaded: the plugin needs
+   setting up, didn't start, or has no app. */
+.ws-shell-message {
+  max-width: 60ch;
+  margin: 0 auto;
+  padding: 64px var(--ws-space-4);
+  color: var(--ws-dim);
+  text-align: center;
+}
+.ws-shell-message h2 {
+  margin: 0 0 var(--ws-space-2);
+  color: var(--ws-fg);
+  font-size: var(--ws-text-lg);
+  font-weight: 600;
+}
+.ws-shell-message p {
+  margin: 0 0 var(--ws-space-2);
+}
+.ws-shell-message ul {
+  display: inline-block;
+  margin: 0 0 var(--ws-space-2);
+  padding-left: var(--ws-space-5);
+  text-align: left;
+}
+.ws-shell-message code {
+  padding: 1px 5px;
+  border-radius: var(--ws-radius-sm);
+  background: var(--ws-code-bg);
+  color: var(--ws-fg);
+  font: var(--ws-text-sm) var(--ws-mono);
+}

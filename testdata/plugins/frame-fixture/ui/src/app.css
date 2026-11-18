@@ -1,0 +1,144 @@
+/* The fixture's own styles. Every colour, size and space is one of ws's
+   tokens, by the names the frame protocol promises a page (--ws-*), which
+   the shell has defined before this loads. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  gap: var(--ws-space-8);
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: var(--ws-space-6) var(--ws-space-8) var(--ws-space-10);
+}
+main.failed {
+  display: block;
+  max-width: 60ch;
+  padding-top: 64px;
+}
+
+h1 {
+  margin: 0 0 var(--ws-space-3);
+  font-size: var(--ws-text-xl);
+  font-weight: 600;
+}
+h2 {
+  margin: 0 0 var(--ws-space-2);
+  font-size: var(--ws-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ws-faint);
+}
+p {
+  margin: 0 0 var(--ws-space-3);
+}
+a {
+  color: var(--ws-accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.dim {
+  color: var(--ws-dim);
+}
+.error {
+  color: var(--ws-danger);
+}
+
+.things {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--ws-line);
+  border-radius: var(--ws-radius);
+  background: var(--ws-raised);
+}
+.things li {
+  padding: var(--ws-space-2) var(--ws-space-3);
+}
+.things li + li {
+  border-top: 1px solid var(--ws-line);
+}
+
+aside {
+  align-self: start;
+  padding: var(--ws-space-4);
+  border: 1px solid var(--ws-line);
+  border-radius: var(--ws-radius-lg);
+  background: var(--ws-panel);
+  box-shadow: var(--ws-shadow);
+}
+table {
+  width: 100%;
+  margin: 0 0 var(--ws-space-3);
+  border-collapse: collapse;
+  font-size: var(--ws-text-sm);
+}
+th,
+td {
+  padding: var(--ws-space-1) 0;
+  border-bottom: 1px solid var(--ws-line);
+  text-align: left;
+  font-weight: 400;
+}
+th {
+  color: var(--ws-dim);
+}
+td {
+  font-family: var(--ws-mono);
+  text-align: right;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ws-space-2);
+  font-size: var(--ws-text-xs);
+  color: var(--ws-dim);
+}
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ws-space-1);
+}
+.swatch i {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--ws-line-strong);
+  border-radius: var(--ws-radius-sm);
+}
+
+button.primary {
+  padding: var(--ws-space-1) var(--ws-space-3);
+  border: 0;
+  border-radius: var(--ws-radius);
+  background: var(--ws-primary);
+  color: var(--ws-on-primary);
+  font: inherit;
+}
+button.primary:hover {
+  background: var(--ws-primary-hover);
+}
+input {
+  width: 100%;
+  margin-top: var(--ws-space-2);
+  padding: var(--ws-space-1) var(--ws-space-2);
+  border: 1px solid var(--ws-line-strong);
+  border-radius: var(--ws-radius);
+  background: var(--ws-raised);
+  color: var(--ws-fg);
+  font: inherit;
+}
+
+@media (max-width: 760px) {
+  main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

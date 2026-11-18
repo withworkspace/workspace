@@ -218,14 +218,14 @@ func TestViewSocket(t *testing.T) {
 	client := &http.Client{Transport: &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 		return net.Dial("unix", sock)
 	}}}
-	res, err := client.Get("http://plugin/")
+	res, err := client.Get("http://plugin/api/greeting")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer res.Body.Close()
 	body, _ := io.ReadAll(res.Body)
 	if !strings.Contains(string(body), "from the fake") {
-		t.Errorf("page = %q", body)
+		t.Errorf("what it answered = %q", body)
 	}
 }
 

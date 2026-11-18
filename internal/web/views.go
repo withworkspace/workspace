@@ -43,6 +43,8 @@ type Missions interface {
 // workspaceView is what GET /api/workspace serves.
 func (s *Server) workspaceView() (Workspace, error) {
 	v, err := WorkspaceOf(s.App, s.Root, s.Reviews)
+	// The daemon's own, which is what it gives its plugin host too: so a
+	// plugin's app is told the ws its plugin was.
 	v.Version = s.Version
 	return v, err
 }

@@ -46,6 +46,8 @@ type Workspace struct {
 	Spaces []SpaceRef `json:"spaces"`
 	// Version is the ws that serves it, as ws --version says it: the
 	// daemon's, which a newer ws on the path isn't until it's restarted.
+	// The web UI says which it's talking to, and tells a plugin's app as
+	// it connects: the same its plugin was told when it started.
 	Version string `json:"version,omitempty"`
 }
 

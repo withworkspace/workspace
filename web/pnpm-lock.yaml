@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@withworkspace/ui-lib':
+        specifier: 0.1.0
+        version: 0.1.0
       '@xterm/xterm':
         specifier: 6.0.0
         version: 6.0.0
@@ -584,6 +587,9 @@ packages:
 
   '@vitest/spy@5.0.5':
     resolution: {integrity: sha512-lwJRExuH417257Q5wv9QYugN9IMJkoxcrKrYxGPQkBzl7wlNpTUxD/5yNX4ESKVUIShKPgkGchYPFMWOOk0wzw==}
+
+  '@withworkspace/ui-lib@0.1.0':
+    resolution: {integrity: sha512-GXfj0rBn8Zc/oP6o1nPorCnACX/1gO1OhYa3DBh2CkrRwHrIM2+PT1+sBUMKZFCYZOklMUCYCpnF8xVH7WwZGQ==}
 
   '@xterm/xterm@6.0.0':
     resolution: {integrity: sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg==}
@@ -1901,6 +1907,8 @@ snapshots:
       vite: 8.3.6(@types/node@26.6.6)
 
   '@vitest/spy@5.0.5': {}
+
+  '@withworkspace/ui-lib@0.1.0': {}
 
   '@xterm/xterm@6.0.0': {}
 
