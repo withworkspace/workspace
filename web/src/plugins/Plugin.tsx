@@ -4,7 +4,7 @@ import { type Plugin } from "../api";
 import { type IconName, icons } from "../ui/Icon";
 import { Empty, useTitle } from "../ui/kit";
 import { type Frame, listen } from "./frame";
-import { frameBase } from "./paths";
+import { frameBase, viewBase } from "./paths";
 import { onThemeChange, theme } from "./theme";
 
 // A plugin's view: the plugin's app, in a frame, at /x/<name>/…. The frame
@@ -13,10 +13,12 @@ import { onThemeChange, theme } from "./theme";
 // here, so a link to somewhere deep in the app loads it there. It's this
 // origin's own, not sandboxed: a plugin is a program the workspace's owner
 // installed. The app and ws talk over a port the app hands over as it
-// connects (the frame protocol: PROTOCOL.md in github.com/withworkspace/ui-lib):
-// the app says where it is and what it's called, and ws keeps its address
-// and title in step; ws says when its address moved, when the theme
-// changed, and when the plugin said what the app shows is stale.
+// connects (the frame protocol: PROTOCOL.md in github.com/withworkspace/ui-lib).
+// ws keeps the history and the frame keeps none: every link clicked in the
+// app, and every move it makes, is the app asking ws to go there, and ws
+// says where the app is whenever its address moves within the plugin. The
+// app says what it's called; ws says when the theme changed, and when the
+// plugin said what the app shows is stale.
 
 // pluginIcon is the icon a plugin asked for, if ws has it.
 export function pluginIcon(name?: string): IconName {
@@ -42,10 +44,10 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
   // won't open the console.
   const [refused, setRefused] = useState<string>();
 
-  // Where the address says the app should be, and where the app last said
-  // it is. The app is told to go somewhere only when the address moved
-  // without it: a link in ws, the sidebar, back and forward.
-  const wanted = (location.pathname.slice(`/x/${name}`.length) || "/") + location.search;
+  // Where the address says the app should be, and where the app was last
+  // told it is. Whatever moved the address (the app, a link in ws, the
+  // sidebar, back and forward), the app is told.
+  const wanted = (location.pathname.slice(viewBase(name).length) || "/") + location.search;
   const shown = useRef(wanted);
   // The frame starts where the address is. After that the app routes
   // itself: the frame's src doesn't say where it's gone to since.
@@ -69,16 +71,15 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
         },
         path: () => shown.current,
         theme,
-        moved(path) {
-          if (!path.startsWith("/") || shown.current === path) return;
-          shown.current = path;
-          now.current.navigate(`/x/${name}${path}`, { replace: true });
-        },
         // An empty title is the view's own.
         titled: (t) => setTitle(t || undefined),
-        // What open does is ws's to decide: today, a page of ws's own.
-        open(path) {
-          if (path.startsWith("/") && !path.startsWith("//")) now.current.navigate(path);
+        // What a go does is ws's to decide: today, any address of ws's
+        // own, the plugin's pages among them. Going to where ws already
+        // is adds no history, as a link to the page you're on doesn't.
+        go(path, replace) {
+          if (!path.startsWith("/") || path.startsWith("//")) return;
+          const here = window.location.pathname + window.location.search + window.location.hash;
+          now.current.navigate(path, { replace: replace || path === here });
         },
         // A key ws owns, pressed in the frame: as if it were pressed here.
         key(k) {

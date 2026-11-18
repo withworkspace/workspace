@@ -15,16 +15,15 @@ const vars = (value: string) => Object.fromEntries(TOKENS.map((t) => [tokenVar(t
 
 // A host that keeps what the page said, with a theme a test can change.
 function fakeWs(path = "/things/2?tab=links") {
-  const said = { moved: [] as string[], titled: [] as string[], opened: [] as string[], keys: [] as KeyPress[] };
+  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[] };
   let theme: V1.Theme = { scheme: "dark", vars: vars("dark") };
   const host: Host = {
     plugin: "jira",
     ws: "1.2.3",
     path: () => path,
     theme: () => theme,
-    moved: (p) => void said.moved.push(p),
     titled: (t) => void said.titled.push(t),
-    open: (p) => void said.opened.push(p),
+    go: (p, replace) => void said.went.push(replace ? `${p} (replace)` : p),
     key: (k) => void said.keys.push(k),
   };
   return { host, said, setTheme: (t: V1.Theme) => void (theme = t) };
@@ -65,7 +64,7 @@ describe("the handshake", () => {
     expect(session.version).toBe(1);
     expect(client.name).toBe("jira");
     expect(client.path).toBe("/things/2?tab=links");
-    expect(client.base).toBe("/plugin-frame/jira");
+    expect(client.href("/things/3")).toBe("/x/jira/things/3");
     expect(client.api("/issues")).toBe("/plugins/jira/issues");
     expect(client.theme).toEqual({ scheme: "dark", vars: vars("dark") });
     client.close();
@@ -131,16 +130,18 @@ describe("the handshake", () => {
 });
 
 describe("protocol 1's host", () => {
-  it("hears where the app went, what it's called, what it opens and the keys it passes on", async () => {
+  it("hears where the app asks to go, as ws's address, and what it's called", async () => {
     const { client, session, said } = await connected();
-    client.setPath("/things/3");
+    client.go("/things/3");
+    client.go("/board?q=cache", { replace: true });
     client.setTitle("Thing 3");
     client.setTitle("");
     client.open("/missions/token-cache");
     await tick();
-    expect(said.moved).toEqual(["/things/3"]);
+    expect(said.went).toEqual(["/x/jira/things/3", "/x/jira/board?q=cache (replace)", "/missions/token-cache"]);
     expect(said.titled).toEqual(["Thing 3", ""]);
-    expect(said.opened).toEqual(["/missions/token-cache"]);
+    // The app hasn't moved: it moves when ws says so.
+    expect(client.path).toBe("/things/2?tab=links");
     client.close();
     session.close();
   });
@@ -174,11 +175,12 @@ describe("protocol 1's host", () => {
     const session = v1(port2, ws.host);
     port1.postMessage({ type: "ws:key", key: "k", meta: true, ctrl: false, shift: false, alt: false });
     port1.postMessage({ type: "ws:room", width: 1200 }); // a message from a later release of the package
-    port1.postMessage({ type: "ws:path" }); // not as the protocol has it
+    port1.postMessage({ type: "ws:go" }); // not as the protocol has it
+    port1.postMessage({ type: "ws:path", path: "/things/3" }); // from before ws kept the history
     port1.postMessage("ws:title");
     await tick();
     expect(ws.said.keys).toEqual([{ key: "k", meta: true, ctrl: false, shift: false, alt: false }]);
-    expect(ws.said.moved).toEqual([]);
+    expect(ws.said.went).toEqual([]);
     expect(ws.said.titled).toEqual([]);
     session.close();
     port1.close();
@@ -241,12 +243,12 @@ describe("listening for the frame", () => {
     frame.navigate("/board");
     frame.changed();
     // The page before is gone: what's still to come from it isn't heard.
-    first.port.postMessage({ type: "ws:path", path: "/from-the-page-before" });
-    second.port.postMessage({ type: "ws:path", path: "/things/3" });
+    first.port.postMessage({ type: "ws:go", path: "/x/jira/from-the-page-before" });
+    second.port.postMessage({ type: "ws:go", path: "/x/jira/things/3" });
     await tick();
     expect(first.got.map((m) => (m as { type: string }).type)).toEqual(["ws:welcome"]);
     expect(second.got.map((m) => (m as { type: string }).type)).toEqual(["ws:welcome", "ws:navigate", "ws:changed"]);
-    expect(ws.said.moved).toEqual(["/things/3"]);
+    expect(ws.said.went).toEqual(["/x/jira/things/3"]);
     frame.stop();
     first.close();
     second.close();
