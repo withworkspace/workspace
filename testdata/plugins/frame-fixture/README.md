@@ -31,6 +31,7 @@ That adds it, linked to this folder, and prints where the web UI is. In any othe
 | "Frame fixture" and "Fixture: thing 2" in the sidebar | ws moves the app without loading it again: "ws:navigate received" goes up. |
 | The theme switch, and the accent in Settings | The app follows: "ws:theme received" goes up, and the swatches change. |
 | `ws frame-fixture poke` | "ws:changed received" goes up, and the app fetches the plugin's count again. |
+| `ws frame-fixture looking` | Who ws last told the plugin is looking (`view/looking`): `{"app":true,"ws":true}` with the app on screen, `app` false on another page of ws's, and both false a few seconds after the tab's put behind another, or closed. |
 | `?`, `g` then `m`, ⌘K, pressed in the frame | ws's keys work there. Typed into the box, `?` and `g` stay in the box. |
 | "Missions: a page of ws's own" | A plain link to a page of ws's opens in ws, not in the frame. |
 | `/x/frame-fixture/?speaks=2` | The app says it speaks only frame protocol 2. ws refuses it and says "Update ws" above the frame, and the package's `ProtocolError` is in the console. |

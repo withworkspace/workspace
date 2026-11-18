@@ -68,6 +68,10 @@ var things = []thing{
 // time it's told what it shows is stale.
 var poked atomic.Int64
 
+// looking is who ws last said is looking (view/looking's params, as they
+// came): ws frame-fixture looking prints it.
+var looking atomic.Value
+
 func main() {
 	done := make(chan struct{})
 	var conn *acp.Conn
@@ -114,8 +118,11 @@ func main() {
 				},
 				"ui": map[string]string{"script": script, "style": versioned("app.css")},
 				"commands": map[string]any{
-					"short":       "Try ws's page for a plugin's app",
-					"subcommands": []map[string]string{{"name": "poke", "short": "Say what the view shows is stale: the open app is told (ws:changed)"}},
+					"short": "Try ws's page for a plugin's app",
+					"subcommands": []map[string]string{
+						{"name": "poke", "short": "Say what the view shows is stale: the open app is told (ws:changed)"},
+						{"name": "looking", "short": "Print who ws last said is looking at the app, and at ws (view/looking)"},
+					},
 				},
 				"agent": map[string]any{"guide": "`ws frame-fixture poke` tells the fixture's open app that what it shows is stale. It's for trying ws's plugin frame by hand: there's nothing in it for a mission."},
 				// How its things are named: THING-2 is the Lantern, wherever
@@ -213,8 +220,16 @@ func main() {
 			out := func(stream, data string) {
 				conn.Notify("command/output", map[string]string{"id": p.ID, "stream": stream, "data": data}) //nolint:errcheck // ws has gone
 			}
+			if len(p.Args) == 1 && p.Args[0] == "looking" {
+				said, _ := looking.Load().(string)
+				if said == "" {
+					said = "ws hasn't said: nobody's looking"
+				}
+				out("stdout", said+"\n")
+				return map[string]int{"exit": 0}, nil
+			}
 			if len(p.Args) != 1 || p.Args[0] != "poke" {
-				out("stderr", "usage: ws frame-fixture poke\n")
+				out("stderr", "usage: ws frame-fixture poke|looking\n")
 				return map[string]int{"exit": 2}, nil
 			}
 			n := poked.Add(1)
@@ -222,6 +237,9 @@ func main() {
 			out("stdout", "Poked ("+itoa(n)+"): the open app is told what it shows is stale.\n")
 			return map[string]int{"exit": 0}, nil
 		case "config/changed":
+			return nil, nil
+		case "view/looking":
+			looking.Store(string(params))
 			return nil, nil
 		case "shutdown":
 			go func() {

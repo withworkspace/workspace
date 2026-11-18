@@ -149,6 +149,10 @@ func run() {
 		p.Badge("/board", 3)
 		return c.Say("told")
 	})
+	p.Command("looking", "Says who ws has said is looking", func(c *plugin.Call) error {
+		l := p.Looking()
+		return c.Say(fmt.Sprintf("app %t, ws %t", l.App, l.WS))
+	})
 	p.Command("fail", "Logs an error and exits 3", func(c *plugin.Call) error {
 		p.Log.Error("it went wrong")
 		return plugin.Exit(3, errors.New("failed"))

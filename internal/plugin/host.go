@@ -122,6 +122,9 @@ type Host struct {
 	// NoMethod and NotFound, or anything else, as an internal error. nil
 	// answers nothing: every request is NoMethod.
 	Answer func(ctx context.Context, plugin, method string, params json.RawMessage) (any, error)
+	// LookLinger is how long nobody has to have been looking before a
+	// plugin is told so (Look): 0 is five seconds.
+	LookLinger time.Duration
 	// Keep keeps how a plugin's things are named (the refs it registered)
 	// in the workspace's records, when it starts, and says what it left
 	// out: KeepRefs, in the daemon. nil keeps nothing, as a host with no
@@ -129,11 +132,16 @@ type Host struct {
 	// names anything.
 	Keep func(plugin string, refs []protocol.Ref) (refused []string, err error)
 
-	mu      sync.Mutex
-	procs   map[string]*proc
-	starts  map[string]*sync.Mutex // one start of a plugin at a time
-	runs    map[string]uint64      // how many times each has been started
-	closing bool
+	mu        sync.Mutex
+	procs     map[string]*proc
+	starts    map[string]*sync.Mutex // one start of a plugin at a time
+	runs      map[string]uint64      // how many times each has been started
+	closing   bool
+	pages     int                  // pages of the web UI that are showing
+	apps      map[string]int       // those showing a plugin's app, by plugin
+	pagesGone time.Time            // when the last page stopped showing
+	appsGone  map[string]time.Time // when the last page showing a plugin's app did
+	lookMu    sync.Mutex           // one telling of who's looking at a time
 
 	seq      atomic.Uint64 // counts changes to what Statuses says
 	commands atomic.Uint64
@@ -155,6 +163,9 @@ type proc struct {
 	// stopping is set once ws has told it to go: its going isn't its own
 	// idea.
 	stopping atomic.Bool
+	// told is who it was last told is looking (Host.lookMu): nobody, for
+	// one that's just started.
+	told protocol.ViewLookingParams
 
 	mu      sync.Mutex
 	reg     Registration
@@ -255,6 +266,8 @@ func (h *Host) ensure(name string) (*proc, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Whoever's looking as it starts, it's told of.
+	go h.tellLooking()
 	return p, nil
 }
 

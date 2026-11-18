@@ -234,13 +234,15 @@ export interface EventHandlers {
 // browsers allow only a few connections to a server, and every tab's
 // count). Showing again opens it again, and its hello catches up. A change
 // is told at once; those within a moment of it, once, after it (bursts).
-export function useEvents(topic: Topic, on: EventHandlers) {
+// says is what the stream's address says of the page besides its topic
+// ("&app=jira"): the stream is opened again when it changes.
+export function useEvents(topic: Topic, on: EventHandlers, says = "") {
   const visible = useVisible();
   const handlers = useRef(on);
   handlers.current = on;
   useEffect(() => {
     if (!visible) return;
-    const events = new EventSource(`/api/events?topic=${topic}`);
+    const events = new EventSource(`/api/events?topic=${topic}${says}`);
     const changes = bursts(() => handlers.current.changed());
     events.addEventListener("hello", () => handlers.current.hello?.());
     events.addEventListener(topic, changes.changed);
@@ -249,7 +251,7 @@ export function useEvents(topic: Topic, on: EventHandlers) {
       changes.stop();
       events.close();
     };
-  }, [topic, visible]);
+  }, [topic, says, visible]);
   return visible;
 }
 
@@ -387,15 +389,18 @@ export interface PluginView {
 }
 
 // usePlugins are the workspace's plugins, kept up to date while the page
-// is showing. undefined until they're first read.
-export function usePlugins(): Plugin[] | undefined {
+// is showing. undefined until they're first read. showing is the plugin
+// whose app the page shows, if it shows one. The stream that follows them
+// is how ws knows a page is showing, and with showing, which plugin's app
+// is on screen: it tells plugins who's looking, and they fetch to suit.
+export function usePlugins(showing?: string): Plugin[] | undefined {
   const [plugins, setPlugins] = useState<Plugin[]>();
   const load = () =>
     getJSON<Plugin[]>("/api/plugins").then(
       (p) => setPlugins(p),
       () => setPlugins((was) => was ?? []), // none it can show is none
     );
-  useEvents("plugins", { hello: load, changed: load });
+  useEvents("plugins", { hello: load, changed: load }, showing ? `&app=${encodeURIComponent(showing)}` : "");
   return plugins;
 }
 

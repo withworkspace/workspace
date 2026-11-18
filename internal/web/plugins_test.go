@@ -266,6 +266,54 @@ func TestPluginsList(t *testing.T) {
 	}
 }
 
+// A page following the plugins is a page that's showing, and says which
+// plugin's app it shows: the plugin is told who's looking, and that
+// they've gone a moment after they have.
+func TestPluginIsToldWhosLooking(t *testing.T) {
+	s := startWithPlugin(t, fakeplugin.Options{})
+	s.Plugins.LookLinger = 50 * time.Millisecond
+	do(t, s, "GET", "/plugin-frame/fake/", true, nil) // it's started
+	follow := func(query string) (stop func()) {
+		t.Helper()
+		req, _ := http.NewRequest("GET", s.Info().Origin()+"/api/events?topic=plugins"+query, nil)
+		req.AddCookie(&http.Cookie{Name: s.cookieName(), Value: s.Info().Token})
+		res, err := http.DefaultClient.Do(req)
+		if err != nil || res.StatusCode != http.StatusOK {
+			t.Fatalf("following the plugins: %v, %v", res, err)
+		}
+		return func() { res.Body.Close() }
+	}
+	told := func(want string) {
+		t.Helper()
+		deadline := time.Now().Add(5 * time.Second)
+		for {
+			got := body(do(t, s, "GET", "/plugins/fake/api/looking", true, nil))
+			if got == want {
+				return
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("the plugin was told %q, not %q", got, want)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}
+	told("") // nobody's looking, as a plugin takes it until it's told
+
+	onApp := follow("&app=fake")
+	told(`{"app":true,"ws":true}`)
+	// Another page, on something of ws's own; and one that names a plugin
+	// there isn't, which is a page of ws's and no more.
+	elsewhere := follow("")
+	onApp()
+	told(`{"app":false,"ws":true}`)
+	elsewhere()
+	nowhere := follow("&app=nothing-like-it")
+	time.Sleep(s.Plugins.LookLinger + 50*time.Millisecond)
+	told(`{"app":false,"ws":true}`)
+	nowhere()
+	told(`{"app":false,"ws":false}`)
+}
+
 func TestPluginNeedsSettingUp(t *testing.T) {
 	s := startWithPlugin(t, fakeplugin.Options{Require: "token"})
 	// Its shell says so, in ws's look, and so does its own HTTP.

@@ -16,7 +16,10 @@
 #   /x/frame-fixture/?speaks=2    the app says it speaks only frame protocol 2: ws refuses it
 #
 # and `<dir>/.try/ws frame-fixture poke` tells the open app that what it
-# shows is stale: its "ws:changed received" goes up.
+# shows is stale: its "ws:changed received" goes up. `<dir>/.try/ws
+# frame-fixture looking` prints who ws last told it is looking: its app
+# while that's on screen, ws alone on another page, and nobody a few
+# seconds after the tab's put behind another.
 set -euo pipefail
 
 ws="$TRY_WS"
@@ -37,4 +40,5 @@ In the web UI:
   /x/frame-fixture/?speaks=2    ws refuses it: "Update ws"
 
   $ws frame-fixture poke        the open app is told (ws:changed)
+  $ws frame-fixture looking     who ws last said is looking (view/looking)
 SAID
