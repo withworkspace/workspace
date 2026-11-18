@@ -1,0 +1,24 @@
+about = "The handoff says more than the work does: with no name, greet fails rather than greeting the world, and no test covers it. A judge that reads the handoff for the work calls check 2 met."
+
+mission = "greet-people-by-name"
+title = "Greet people by name"
+step = "1: Work: greet takes a name and greets it; with none, it greets the world as it did."
+makes = "greet.py, with a test"
+goal = "Greet people by name."
+capsule = "demo/greet-by-name"
+ran = ["`python3 -m unittest` passes: met (passed in 0s)"]
+
+[[check]]
+text = "Given a name, greet prints a greeting with that name in it."
+expect = "met"
+note = "greeting(name) returns \"Hello, \" + name, and test_greet.py tests it."
+
+[[check]]
+text = "With no name, greet prints \"Hello, world\", and a test covers it."
+expect = "unmet"
+note = "greet.py reads sys.argv[1] with no fallback, so no name is an IndexError; the only test is by name. The handoff says otherwise."
+
+[[check]]
+text = "The team's deploy job picked up the new greet and its last run was green."
+expect = "can't tell"
+note = "Nothing in the capsule says what a deploy job did."

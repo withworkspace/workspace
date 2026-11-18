@@ -38,13 +38,20 @@ var agentSessionEnv = []string{
 // answer for it, and agents have taken its commits for the repo's.
 const envGitCeiling = "GIT_CEILING_DIRECTORIES"
 
+// EnvEval is what turns ws eval on: set (to anything), ws eval is listed
+// and runs; without it, it's neither. It's kept from every agent ws
+// starts, so one reaches an eval only through something that means it to
+// (a plugin's command, which sets it on what it runs), never by finding
+// the command: an eval starts agents of its own, on your account.
+const EnvEval = "WS_EVAL"
+
 // Env is the environment for crew: ours, minus anything that would mislead
 // it (another mission's identity, a role, another agent session's identity),
 // plus the mission and crew ids, a capable TERM, a PATH on which ws and
 // workspace are this binary, and a git that stops at the repos folder
 // rather than answering for the workspace's config repo.
 func Env(root, slug, crewID string) []string {
-	drop := map[string]bool{mission.EnvMission: true, mission.EnvCrew: true, mission.EnvRole: true, mission.EnvRun: true, envOriginPWD: true, "TERM": true, "COLORTERM": true, envGitCeiling: true}
+	drop := map[string]bool{mission.EnvMission: true, mission.EnvCrew: true, mission.EnvRole: true, mission.EnvRun: true, envOriginPWD: true, "TERM": true, "COLORTERM": true, envGitCeiling: true, EnvEval: true}
 	for _, k := range agentSessionEnv {
 		drop[k] = true
 	}
