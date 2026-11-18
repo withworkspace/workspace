@@ -11,6 +11,9 @@ import { apiBase, frameBase, viewBase } from "../paths";
 // which is what lets the version gain messages.
 export function v1(port: MessagePort, host: Host): Session {
   const send = (m: V1.HostMessage) => port.postMessage(m);
+  // Whether the page has asked which of its words are names: one that
+  // hasn't drew none, and isn't told when what there is to name changes.
+  let asked = false;
 
   port.onmessage = (e: MessageEvent) => {
     const m: unknown = e.data;
@@ -24,6 +27,10 @@ export function v1(port: MessagePort, host: Host): Session {
         break;
       case "ws:key":
         host.key({ key: m.key, meta: m.meta, ctrl: m.ctrl, shift: m.shift, alt: m.alt });
+        break;
+      case "ws:refs":
+        asked = true;
+        send({ type: "ws:refs-found", id: m.id, found: host.refs(m.texts) } satisfies V1.RefsFound);
         break;
     }
   };
@@ -39,6 +46,8 @@ export function v1(port: MessagePort, host: Host): Session {
     // themselves): the page passes on what it's told to, so a new shortcut
     // reaches every plugin with no new release of the package.
     keys: frameKeys,
+    // ws finds its names in the app's words, when it's asked (ws:refs).
+    refs: true,
   } satisfies V1.Welcome);
 
   return {
@@ -46,6 +55,9 @@ export function v1(port: MessagePort, host: Host): Session {
     navigate: (path) => send({ type: "ws:navigate", path } satisfies V1.Navigate),
     theme: () => send({ type: "ws:theme", ...host.theme() } satisfies V1.ThemeChanged),
     changed: () => send({ type: "ws:changed" } satisfies V1.Changed),
+    refsChanged: () => {
+      if (asked) send({ type: "ws:refs-changed" } satisfies V1.RefsChanged);
+    },
     close() {
       port.onmessage = null;
       port.close();

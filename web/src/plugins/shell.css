@@ -24,6 +24,49 @@ html[data-framed] body {
   background: transparent;
 }
 
+/* A ref: one of ws's names in the app's words (a file, a mission, a
+   plugin's thing), which the app asked ws to find and drew as a link where
+   it stands, as the frame protocol says one is drawn (a.ws-ref, with ws's
+   word for it in data-ws-ref). It looks as a ref does in ws's own pages
+   (styles.css: .named-ref), so a name reads the same in a plugin's page as
+   beside it. Nothing has the class unless the app asked. The class and
+   the attribute are both in the selector so that an app's rule for the
+   links in its prose doesn't take a ref over; one that names .ws-ref can. */
+a.ws-ref[data-ws-ref] {
+  color: inherit;
+  text-decoration: underline dotted var(--ws-faint);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+a.ws-ref[data-ws-ref]:hover {
+  color: var(--ws-accent);
+  text-decoration-color: var(--ws-accent);
+}
+a.ws-ref[data-ws-ref]:is([data-ws-kind="mission"], [data-ws-kind="page"], [data-ws-kind="talk"], [data-ws-kind="pr"], [data-ws-kind="thing"]) {
+  font-weight: 500;
+}
+
+/* One drawn as a pill (a repo), in its own accent where it has one: the
+   link has it as --ws-ref-accent. */
+a.ws-ref[data-ws-ref][data-ws-shape="pill"] {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--ws-fg);
+  background: color-mix(in srgb, var(--ws-ref-accent, var(--ws-accent)) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ws-ref-accent, var(--ws-accent)) 45%, transparent);
+}
+a.ws-ref[data-ws-ref][data-ws-shape="pill"]:hover {
+  color: var(--ws-fg);
+  background: color-mix(in srgb, var(--ws-ref-accent, var(--ws-accent)) 24%, transparent);
+}
+
 /* A message of ws's, where the app can't be loaded: the plugin needs
    setting up, didn't start, or has no app. */
 .ws-shell-message {

@@ -2,7 +2,8 @@
 // published @withworkspace/ui-lib. ws serves the page this runs in (the
 // shell); this connects to ws, renders into #root, shows one of two
 // screens for the path ws says it's at, says its title for each, and counts
-// the ws:changed it's had. It keeps no history: ws does.
+// the ws:changed it's had. It keeps no history: ws does. The names in its
+// own words (THING-2, a mission) are ws's to find: it marks them.
 
 import { type Client, connect, type ConnectOptions, NoHostError, ProtocolError } from "@withworkspace/ui-lib";
 
@@ -51,7 +52,7 @@ async function main() {
   let things: Thing[] | undefined;
   let poked = 0;
   let failed = "";
-  const counts = { changed: 0, themes: 0, navigated: 0 };
+  const counts = { changed: 0, themes: 0, navigated: 0, refs: 0 };
 
   async function load() {
     try {
@@ -84,6 +85,18 @@ async function main() {
     return { title: "Nothing here", body: [h("h1", {}, "Nothing here"), h("p", {}, `The fixture has no screen at ${path}. `, h("a", { href: ws.href("/") }, "All things"))] };
   }
 
+  // Words of the app's own that name things, set as HTML, as a
+  // description from somewhere else would be: ws says which are names
+  // (markRefs, in render), and they're drawn as refs are in ws.
+  function names(): HTMLElement {
+    const words = h("div", { className: "names" });
+    words.innerHTML = `
+      <h2>Names in the app's own words</h2>
+      <p>THING-2 goes back on the shelf, beside THING-1. The mission is shelve-the-lantern, and its note is records/notes/where-the-things-are.md, in records.</p>
+      <p><code>THING-3</code> is a name in code, and <code>ws show THING-3</code> isn't one. <a href="${ws.href("/things/1")}">A link's words, THING-1 among them,</a> are the link's. THING-9 has a name and isn't there; THING-2-fix and docs/THING-2.md aren't names at all.</p>`;
+    return words;
+  }
+
   // What ws has told this page, and what it's been given: for whoever's
   // trying the frame to read off.
   function status(): Node {
@@ -107,6 +120,7 @@ async function main() {
         row("Pokes, as the plugin counts them", poked, "poked"),
         row("ws:theme received", counts.themes, "themes"),
         row("ws:navigate received", counts.navigated, "navigated"),
+        row("ws:refs-changed received", counts.refs, "refs"),
       ),
       h("p", { className: "swatches" }, ...["bg", "panel", "raised", "line", "fg", "dim", "accent", "primary", "danger", "warn", "ok"].map(swatch)),
       h("p", {}, h("button", { type: "button", className: "primary" }, "A button in ws's accent"), " ", h("input", { placeholder: "Typed in here, ? and g stay here" })),
@@ -116,10 +130,16 @@ async function main() {
     );
   }
 
+  // The marks of the words last rendered: stopped when they're replaced.
+  let unmark = () => {};
+
   function render() {
     const { title, body } = screen();
     ws.setTitle(title);
-    ws.root.replaceChildren(h("main", {}, h("section", {}, ...body), status()));
+    unmark();
+    const words = names();
+    ws.root.replaceChildren(h("main", {}, h("section", {}, ...body, words), status()));
+    unmark = ws.markRefs(words);
   }
 
   // Wherever ws's address moves in the plugin (a link here, a go, the
@@ -136,6 +156,13 @@ async function main() {
   ws.onTheme(() => {
     counts.themes++;
     render();
+  });
+  // What there is to name changed: the marks follow by themselves, and
+  // only the count is this app's to draw.
+  ws.onRefsChanged(() => {
+    counts.refs++;
+    const cell = ws.root.querySelector('[data-fixture="refs"]');
+    if (cell) cell.textContent = String(counts.refs);
   });
 
   render();

@@ -4,7 +4,139 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.2.0/node_modules/@withworkspace/ui-lib/dist/shape.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/mark.js
+var skipped = "a, pre, h1, h2, h3, h4, h5, h6, script, style, textarea, select, button, svg, [contenteditable]";
+var isElement = (n) => n.nodeType === 1;
+var isText = (n) => n.nodeType === 3;
+var drawn = /* @__PURE__ */ new WeakMap();
+var marked = /* @__PURE__ */ new WeakMap();
+function runsIn(root) {
+  const runs = [];
+  const walk = (parent, whole) => {
+    let run;
+    for (const node of Array.from(parent.childNodes)) {
+      if (isText(node) || isElement(node) && drawn.has(node)) {
+        if (!run)
+          runs.push(run = { nodes: [], text: "", whole });
+        run.nodes.push(node);
+        run.text += node.textContent ?? "";
+        continue;
+      }
+      run = void 0;
+      if (isElement(node) && !node.matches(skipped))
+        walk(node, whole || node.localName === "code");
+    }
+  };
+  walk(root, root.localName === "code");
+  return runs.filter((r) => r.text.trim() !== "");
+}
+var drawnFrom = (f) => JSON.stringify([f.ref, f.kind, f.href, f.shape ?? "", f.accent ?? ""]);
+function toDraw(run, found) {
+  const out = [];
+  let at = 0;
+  for (const f of found) {
+    if (f.from < at || f.to <= f.from || f.to > run.text.length)
+      continue;
+    out.push(f);
+    at = f.to;
+  }
+  if (!run.whole)
+    return out;
+  const start = run.text.length - run.text.trimStart().length;
+  const end = run.text.trimEnd().length;
+  return out.length === 1 && out[0].from === start && out[0].to === end ? out : [];
+}
+function isDrawn(run, refs) {
+  const have = [];
+  let at = 0;
+  for (const n of run.nodes) {
+    const length = (n.textContent ?? "").length;
+    if (isElement(n))
+      have.push(`${at}-${at + length} ${drawn.get(n)}`);
+    at += length;
+  }
+  const want = refs.map((f) => `${f.from}-${f.to} ${drawnFrom(f)}`);
+  return have.length === want.length && have.every((h2, i) => h2 === want[i]);
+}
+function link(doc, f, text) {
+  const a = doc.createElement("a");
+  a.className = "ws-ref";
+  a.setAttribute("href", f.href);
+  a.dataset.wsRef = f.ref;
+  a.dataset.wsKind = f.kind;
+  if (f.shape)
+    a.dataset.wsShape = f.shape;
+  if (f.accent)
+    a.style.setProperty("--ws-ref-accent", f.accent);
+  a.textContent = text;
+  drawn.set(a, drawnFrom(f));
+  return a;
+}
+function draw(run, found) {
+  const first = run.nodes[0];
+  const parent = first?.parentNode;
+  if (!first || !parent)
+    return;
+  const asRead = run.nodes.every((n, i) => n.parentNode === parent && (i === 0 || run.nodes[i - 1].nextSibling === n));
+  if (!asRead || run.nodes.map((n) => n.textContent ?? "").join("") !== run.text)
+    return;
+  const refs = toDraw(run, found);
+  if (isDrawn(run, refs))
+    return;
+  const doc = parent.ownerDocument;
+  if (!doc)
+    return;
+  const words = doc.createDocumentFragment();
+  let at = 0;
+  for (const f of refs) {
+    if (f.from > at)
+      words.append(doc.createTextNode(run.text.slice(at, f.from)));
+    words.append(link(doc, f, run.text.slice(f.from, f.to)));
+    at = f.to;
+  }
+  if (at < run.text.length)
+    words.append(doc.createTextNode(run.text.slice(at)));
+  parent.insertBefore(words, first);
+  for (const n of run.nodes)
+    n.remove();
+}
+function mark(el, finder) {
+  const was = marked.get(el);
+  if (was) {
+    was.again();
+    return was.stop;
+  }
+  let stopped = false;
+  let turn = 0;
+  const again = () => {
+    if (stopped)
+      return;
+    const runs = runsIn(el);
+    const mine = ++turn;
+    if (!runs.length)
+      return;
+    void finder.find(runs.map((r) => r.text)).then((found) => {
+      if (stopped || mine !== turn)
+        return;
+      runs.forEach((run, i) => draw(run, found[i] ?? []));
+    });
+  };
+  const unwatch = finder.onChanged(again);
+  const stop = () => {
+    if (stopped)
+      return;
+    stopped = true;
+    unwatch();
+    marked.delete(el);
+    for (const run of runsIn(el))
+      draw(run, []);
+  };
+  marked.set(el, { again, stop });
+  again();
+  return stop;
+}
+
+// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/shape.js
 function isRecord(v) {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -18,9 +150,10 @@ function isVersions(v) {
   return Array.isArray(v) && v.every((n) => Number.isInteger(n) && n >= 1);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.2.0/node_modules/@withworkspace/ui-lib/dist/v1.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/v1.js
 var v1_exports = {};
 __export(v1_exports, {
+  isFoundRef: () => isFoundRef,
   isHostMessage: () => isHostMessage,
   isPageMessage: () => isPageMessage,
   isWelcome: () => isWelcome
@@ -35,7 +168,11 @@ function isPlugin(m) {
   return isRecord(m) && isString(m.name) && isString(m.at) && isString(m.base) && isString(m.api);
 }
 function isWelcome(m) {
-  return isRecord(m) && m.type === "ws:welcome" && m.version === 1 && isString(m.ws) && isPlugin(m.plugin) && isString(m.path) && isTheme(m.theme) && isKeys(m.keys);
+  return isRecord(m) && m.type === "ws:welcome" && m.version === 1 && isString(m.ws) && isPlugin(m.plugin) && isString(m.path) && isTheme(m.theme) && isKeys(m.keys) && (m.refs === void 0 || typeof m.refs === "boolean");
+}
+var isIndex = (v) => Number.isInteger(v) && v >= 0;
+function isFoundRef(m) {
+  return isRecord(m) && isIndex(m.from) && isIndex(m.to) && m.to > m.from && isString(m.ref) && isString(m.kind) && isString(m.href) && (m.shape === void 0 || isString(m.shape)) && (m.accent === void 0 || isString(m.accent));
 }
 function isPageMessage(m) {
   if (!isRecord(m))
@@ -47,6 +184,8 @@ function isPageMessage(m) {
       return isString(m.title);
     case "ws:key":
       return isString(m.key) && [m.meta, m.ctrl, m.shift, m.alt].every((v) => typeof v === "boolean");
+    case "ws:refs":
+      return isIndex(m.id) && isStrings(m.texts);
     default:
       return false;
   }
@@ -65,21 +204,25 @@ function isHostMessage(m) {
       return isTheme(m);
     case "ws:changed":
       return true;
+    case "ws:refs-found":
+      return isIndex(m.id) && Array.isArray(m.found) && m.found.every((of) => Array.isArray(of) && of.every(isFoundRef));
+    case "ws:refs-changed":
+      return true;
     default:
       return false;
   }
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.2.0/node_modules/@withworkspace/ui-lib/dist/protocol.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/protocol.js
 var PROTOCOL_VERSIONS = [1];
 function isRefuse(m) {
   return isRecord(m) && m.type === "ws:refuse" && isVersions(m.versions) && isString(m.message);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.2.0/node_modules/@withworkspace/ui-lib/dist/version.js
-var VERSION = "0.2.0";
+// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/version.js
+var VERSION = "0.3.0";
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.2.0/node_modules/@withworkspace/ui-lib/dist/client.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.3.0/node_modules/@withworkspace/ui-lib/dist/client.js
 var ProtocolError = class extends Error {
   /** The versions the page speaks. */
   page;
@@ -153,6 +296,12 @@ function client(port, welcome, doc) {
   const navigated = /* @__PURE__ */ new Set();
   const changed = /* @__PURE__ */ new Set();
   const themed = /* @__PURE__ */ new Set();
+  const refsChanged = /* @__PURE__ */ new Set();
+  const marks = /* @__PURE__ */ new Set();
+  const asked = /* @__PURE__ */ new Map();
+  let asking = [];
+  let askings = 0;
+  let closed = false;
   const send = (m) => port.postMessage(m);
   const on = (fns, fn) => {
     fns.add(fn);
@@ -162,6 +311,28 @@ function client(port, welcome, doc) {
   };
   const { at, base } = welcome.plugin;
   const open = (to, replace) => send(replace ? { type: "ws:go", path: to, replace } : { type: "ws:go", path: to });
+  const ask = () => {
+    const batch = asking;
+    asking = [];
+    if (!batch.length)
+      return;
+    const id = ++askings;
+    asked.set(id, (found) => {
+      let at2 = 0;
+      for (const b of batch) {
+        b.found(b.texts.map((_, i) => found[at2 + i] ?? []));
+        at2 += b.texts.length;
+      }
+    });
+    send({ type: "ws:refs", id, texts: batch.flatMap((b) => [...b.texts]) });
+  };
+  const findRefs = (texts) => new Promise((resolve) => {
+    if (!welcome.refs || closed || !texts.length)
+      return resolve(texts.map(() => []));
+    if (!asking.length)
+      queueMicrotask(ask);
+    asking.push({ texts: [...texts], found: resolve });
+  });
   if (doc)
     applyTheme(doc, theme);
   const unwire = doc ? wire(doc, welcome, send, open) : () => {
@@ -191,6 +362,16 @@ function client(port, welcome, doc) {
         for (const fn of [...changed])
           fn();
         break;
+      case "ws:refs-found": {
+        const found = asked.get(m.id);
+        asked.delete(m.id);
+        found?.(m.found);
+        break;
+      }
+      case "ws:refs-changed":
+        for (const fn of [...refsChanged])
+          fn();
+        break;
     }
   };
   return {
@@ -213,6 +394,16 @@ function client(port, welcome, doc) {
     onNavigate: (fn) => on(navigated, fn),
     onChanged: (fn) => on(changed, fn),
     onTheme: (fn) => on(themed, fn),
+    findRefs,
+    onRefsChanged: (fn) => on(refsChanged, fn),
+    markRefs(element) {
+      const stop = mark(element, { find: (texts) => findRefs(texts), onChanged: (fn) => on(refsChanged, fn) });
+      marks.add(stop);
+      return () => {
+        marks.delete(stop);
+        stop();
+      };
+    },
     go(to, options2 = {}) {
       if (!to.startsWith("/"))
         throw new TypeError(`go("${to}"): a path in the plugin starts with "/".`);
@@ -226,6 +417,15 @@ function client(port, welcome, doc) {
     open: (to) => open(to),
     close() {
       unwire();
+      for (const stop of [...marks])
+        stop();
+      marks.clear();
+      closed = true;
+      for (const b of asking.splice(0))
+        b.found(b.texts.map(() => []));
+      for (const found of [...asked.values()])
+        found([]);
+      asked.clear();
       port.onmessage = null;
       port.close();
     }
@@ -330,7 +530,7 @@ async function main() {
   let things;
   let poked = 0;
   let failed = "";
-  const counts = { changed: 0, themes: 0, navigated: 0 };
+  const counts = { changed: 0, themes: 0, navigated: 0, refs: 0 };
   async function load() {
     try {
       const res = await fetch(ws.api("/api/things"));
@@ -358,6 +558,14 @@ async function main() {
     }
     return { title: "Nothing here", body: [h("h1", {}, "Nothing here"), h("p", {}, `The fixture has no screen at ${path}. `, h("a", { href: ws.href("/") }, "All things"))] };
   }
+  function names() {
+    const words = h("div", { className: "names" });
+    words.innerHTML = `
+      <h2>Names in the app's own words</h2>
+      <p>THING-2 goes back on the shelf, beside THING-1. The mission is shelve-the-lantern, and its note is records/notes/where-the-things-are.md, in records.</p>
+      <p><code>THING-3</code> is a name in code, and <code>ws show THING-3</code> isn't one. <a href="${ws.href("/things/1")}">A link's words, THING-1 among them,</a> are the link's. THING-9 has a name and isn't there; THING-2-fix and docs/THING-2.md aren't names at all.</p>`;
+    return words;
+  }
   function status() {
     const row = (name, value, id) => h("tr", {}, h("th", {}, name), h("td", { data: { fixture: id } }, String(value)));
     const swatch = (token) => {
@@ -378,7 +586,8 @@ async function main() {
         row("ws:changed received", counts.changed, "changed"),
         row("Pokes, as the plugin counts them", poked, "poked"),
         row("ws:theme received", counts.themes, "themes"),
-        row("ws:navigate received", counts.navigated, "navigated")
+        row("ws:navigate received", counts.navigated, "navigated"),
+        row("ws:refs-changed received", counts.refs, "refs")
       ),
       h("p", { className: "swatches" }, ...["bg", "panel", "raised", "line", "fg", "dim", "accent", "primary", "danger", "warn", "ok"].map(swatch)),
       h("p", {}, h("button", { type: "button", className: "primary" }, "A button in ws's accent"), " ", h("input", { placeholder: "Typed in here, ? and g stay here" })),
@@ -387,10 +596,15 @@ async function main() {
       h("p", { id: "notes", className: "dim" }, "Notes: back after a filter skips it, as it replaced the entry it was on.")
     );
   }
+  let unmark = () => {
+  };
   function render() {
     const { title, body } = screen();
     ws.setTitle(title);
-    ws.root.replaceChildren(h("main", {}, h("section", {}, ...body), status()));
+    unmark();
+    const words = names();
+    ws.root.replaceChildren(h("main", {}, h("section", {}, ...body, words), status()));
+    unmark = ws.markRefs(words);
   }
   ws.onNavigate(() => {
     counts.navigated++;
@@ -403,6 +617,11 @@ async function main() {
   ws.onTheme(() => {
     counts.themes++;
     render();
+  });
+  ws.onRefsChanged(() => {
+    counts.refs++;
+    const cell = ws.root.querySelector('[data-fixture="refs"]');
+    if (cell) cell.textContent = String(counts.refs);
   });
   render();
   await load();

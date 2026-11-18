@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { type Plugin } from "../api";
 import { type IconName, icons } from "../ui/Icon";
+import { refsFound } from "../refs/found";
+import { useRefs, useRefsWorkspace } from "../refs/known";
 import { Empty, useTitle } from "../ui/kit";
 import { type Frame, listen } from "./frame";
 import { frameBase, viewBase } from "./paths";
@@ -18,7 +20,10 @@ import { onThemeChange, theme } from "./theme";
 // app, and every move it makes, is the app asking ws to go there, and ws
 // says where the app is whenever its address moves within the plugin. The
 // app says what it's called; ws says when the theme changed, and when the
-// plugin said what the app shows is stale.
+// plugin said what the app shows is stale. The names in the app's words
+// (a file, a mission, a plugin's thing) are ws's to find: the app sends
+// the words it shows and draws the refs ws finds in them, and ws says when
+// what there is to name has changed.
 
 // pluginIcon is the icon a plugin asked for, if ws has it.
 export function pluginIcon(name?: string): IconName {
@@ -54,10 +59,15 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
   const [start] = useState(`${frameBase(name)}${wanted}`);
   const frame = useRef<Frame>(undefined);
 
+  // What there is to name, and the workspace: what the refs in the app's
+  // words are found by, and drawn from.
+  const refs = useRefs();
+  const workspace = useRefsWorkspace();
+
   // What the connection's given is read when it's asked for, so the
   // listening below is set up once, and never torn down for a new render.
-  const now = useRef({ ws, navigate });
-  now.current = { ws, navigate };
+  const now = useRef({ ws, navigate, refs, workspace });
+  now.current = { ws, navigate, refs, workspace };
 
   // ws listens before the frame is made, so the app's first ws:connect
   // can't come before there's anyone to hear it.
@@ -85,6 +95,15 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
         key(k) {
           window.dispatchEvent(new KeyboardEvent("keydown", { key: k.key, metaKey: k.meta, ctrlKey: k.ctrl, shiftKey: k.shift, altKey: k.alt, bubbles: true, cancelable: true }));
         },
+        // The refs in the app's words, found as in ws's own pages. A repo
+        // a text names has its files read, so its files can be found: the
+        // app is told when they have been (what there is to name changed).
+        refs(texts) {
+          const { refs, workspace } = now.current;
+          if (!refs || !workspace) return texts.map(() => []);
+          refs.want(texts.join("\n"));
+          return texts.map((text) => refsFound(text, { known: refs.known, repos: refs.repos, workspace }));
+        },
       },
       setRefused,
     );
@@ -104,6 +123,17 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
     shown.current = wanted;
     frame.current?.navigate(wanted);
   }, [wanted]);
+
+  // What there is to name changed (a mission began, a repo's files were
+  // read, a plugin registered its names): an app that asked which of its
+  // words are names is told, and asks again.
+  const known = refs?.known;
+  const named = useRef(known);
+  useEffect(() => {
+    if (named.current === known) return;
+    named.current = known;
+    frame.current?.refsChanged();
+  }, [known]);
 
   // The plugin said what its view shows is stale: the app is told.
   const changed = plugin?.changed;

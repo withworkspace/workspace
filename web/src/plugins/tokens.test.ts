@@ -62,8 +62,19 @@ describe("the foundations", () => {
 // example of what an app can rely on.
 describe("the shell's own rules", () => {
   it("use only the tokens a plugin's app is promised", () => {
-    const used = [...uncommented(base).matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]);
+    // --ws-ref-accent isn't a token: it's a ref's own colour, which
+    // whoever drew the ref put on its link.
+    const used = [...uncommented(base).matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]).filter((name) => name !== "--ws-ref-accent");
     expect(used.length).toBeGreaterThan(0);
     for (const name of used) expect(TOKENS.map(tokenVar) as string[], name).toContain(name);
+  });
+
+  it("style a ref as the frame protocol says one is drawn, and nothing else of the app's", () => {
+    expect(shell).toMatch(/a\.ws-ref\[data-ws-ref\] \{[^}]*text-decoration: underline dotted var\(--ws-faint\);/);
+    expect(shell).toMatch(/a\.ws-ref\[data-ws-ref\]\[data-ws-shape="pill"\] \{[^}]*var\(--ws-ref-accent, var\(--ws-accent\)\)/);
+    // Every rule of the shell's is the page's own, a message of ws's, or a
+    // ref's: none reaches into what the app renders.
+    const selectors = [...uncommented(base).matchAll(/(?:^|\})\s*([^{}]+?)\s*\{/g)].flatMap((m) => m[1].split(/,\s*(?![^(]*\))/));
+    for (const s of selectors) expect(s, s).toMatch(/^(html(\[data-framed\])?( body)?|body|\.ws-shell-message( \w+)?|a\.ws-ref\[data-ws-ref\].*)$/);
   });
 });

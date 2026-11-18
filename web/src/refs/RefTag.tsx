@@ -3,8 +3,8 @@ import { Link, useNavigate } from "react-router";
 import { useHoverDelay } from "../ui/hover";
 import { Icon } from "../ui/Icon";
 import { useRefs, useRefsWorkspace } from "./known";
-import { goneCapsule, RefCard } from "./RefCard";
-import { GROUND, isOutside, type PageRef, refHref, refName, refOf } from "./refs";
+import { RefCard } from "./RefCard";
+import { goneCapsule, GROUND, isOutside, type PageRef, refHref, refName, refOf } from "./refs";
 import { lookOf } from "./views";
 
 // RefTag is a ref where something's only read (a conversation, a thread,
