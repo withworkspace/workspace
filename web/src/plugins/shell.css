@@ -12,6 +12,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* In ws's frame, the page is see-through: what's behind it is ws's own
+   backdrop, the horizon's glow and grain, which is pinned to ws's window
+   and placed by its sidebar, so an app couldn't draw it in the frame. The
+   first paint is still ws's colours, as ws's page has painted them. The
+   frame's colour scheme is always ws's (the shell's theme.js, then the
+   client), so the browser doesn't give the frame a canvas of its own.
+   Opened alone, the page keeps --ws-bg. */
+html[data-framed],
+html[data-framed] body {
+  background: transparent;
+}
+
 /* A message of ws's, where the app can't be loaded: the plugin needs
    setting up, didn't start, or has no app. */
 .ws-shell-message {
