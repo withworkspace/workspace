@@ -708,7 +708,8 @@ func TestClaude_Converse(t *testing.T) {
 // string in braces, in the heredoc's body, is refused under an allowed
 // prefix), so a talk's run asks ws first: a PreToolUse hook on Bash runs
 // ws's guard with a file of what's allowed, and it says allow for a
-// command ws reads as allowed, and nothing for anything else.
+// command ws reads as allowed, deny (with what to do) for one that runs ws
+// and isn't, and nothing for anything else.
 func TestClaude_ConverseGuard(t *testing.T) {
 	t.Setenv(EnvClaudeBin, "")
 	c := fakeClaude(map[string]string{"claude": "/bin/claude"})
@@ -739,9 +740,9 @@ func TestClaude_ConverseGuard(t *testing.T) {
 	if file == cmd || filepath.Dir(file) != filepath.Join(scratch, "claude") {
 		t.Fatalf("the hook's command: %s", cmd)
 	}
-	var allow []string
+	var list guardList
 	data, _ := os.ReadFile(file)
-	if json.Unmarshal(data, &allow) != nil || !slices.Equal(allow, converseCommands(ConverseRun{Talk: true})) {
+	if json.Unmarshal(data, &list) != nil || !slices.Equal(list.Allow, converseCommands(ConverseRun{Talk: true})) || list.Sandboxed {
 		t.Errorf("the allow list: %s", data)
 	}
 	// None without a guard, or with no tools at all.
@@ -756,25 +757,28 @@ func TestClaude_ConverseGuard(t *testing.T) {
 		return b
 	}
 	glow := "ws artifact add --propose --title \"Glow\" --note \"8% in dark\" - <<'EOF'\n<!doctype html>\n<style>.p::before { content: \"\"; }</style>\n<script>const o = { \"k\": 1 };</script>\nEOF"
-	for command, want := range map[string]bool{
-		glow:                                 true,
-		"ws artifact add --propose":          true,
-		"ws show -f llm a3":                  true,
-		"ws artifact add glow.html --note x": false,
-		"ws artifact add --propose x.html && touch y":          false,
-		"ws artifact add --propose - <<EOF\n$(touch y)\nEOF":   false,
-		"ws artifact add --propose - <<'EOF'\nx\nEOF\ntouch y": false,
-		"touch y": false,
+	for command, want := range map[string]string{
+		glow:                                 "allow",
+		"ws artifact add --propose":          "allow",
+		"ws show -f llm a3":                  "allow",
+		"ws artifact add glow.html --note x": "deny",
+		"ws artifact add --propose x.html && touch y":          "deny",
+		"ws artifact add --propose - <<EOF\n$(touch y)\nEOF":   "deny",
+		"ws artifact add --propose - <<'EOF'\nx\nEOF\ntouch y": "deny",
+		"touch y": "",
 	} {
-		answer := GuardAnswer(event("Bash", command), file)
-		if got := strings.Contains(answer, `"permissionDecision":"allow"`); got != want {
-			t.Errorf("%q: %s, want allowed %v", command, answer, want)
+		answer := GuardAnswer(event("Bash", command), file, nil)
+		got := ""
+		for _, d := range []string{"allow", "deny"} {
+			if strings.Contains(answer, `"permissionDecision":"`+d+`"`) {
+				got = d
+			}
 		}
-		if !want && answer != "" {
-			t.Errorf("%q: said %s, not nothing", command, answer)
+		if got != want {
+			t.Errorf("%q: %s, want %q", command, answer, want)
 		}
 	}
-	if GuardAnswer(event("Write", "x"), file) != "" || GuardAnswer([]byte("{"), file) != "" || GuardAnswer(event("Bash", "ws show"), filepath.Join(scratch, "none.json")) != "" {
+	if GuardAnswer(event("Write", "x"), file, nil) != "" || GuardAnswer([]byte("{"), file, nil) != "" || GuardAnswer(event("Bash", "ws show"), filepath.Join(scratch, "none.json"), nil) != "" {
 		t.Error("allowed what isn't a shell command on the list")
 	}
 }

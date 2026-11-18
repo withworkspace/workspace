@@ -754,6 +754,21 @@ function TalkSide({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug: stri
           </ul>
         </section>
       )}
+      {(d?.capsules?.length ?? 0) > 0 && (
+        <section>
+          <h3 title="Capsules its agent lifted to try things in: the conversation's own, not a mission's, and put away with it">Capsules</h3>
+          <ul className="side-named">
+            {d!.capsules!.map((c) => (
+              <li key={`${c.repo}/${c.name}`} title={c.away ? `Put away with the conversation, its branch (${c.branch}) kept${c.kept ? ", with what wasn't committed" : ""}` : `On branch ${c.branch}`}>
+                <code>
+                  {c.repo}/{c.name}
+                </code>
+                {c.away && <span className="dim"> put away</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {named.length > 0 && (
         <section>
           <h3>Mentioned</h3>
@@ -779,7 +794,7 @@ function TalkSide({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug: stri
           </div>
         </section>
       )}
-      {d && !items.length && !named.length && !d.summary && <p className="map-empty">As it goes on, this is what's come of the conversation: what's to confirm, what it's made, what it names, and its summary so far.</p>}
+      {d && !items.length && !named.length && !d.summary && !d.capsules?.length && <p className="map-empty">As it goes on, this is what's come of the conversation: what's to confirm, what it's made, what it names, and its summary so far.</p>}
     </aside>
   );
 }

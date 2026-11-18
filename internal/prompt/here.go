@@ -30,6 +30,10 @@ type Here struct {
 	// conversation it came out of.
 	Planning Planning
 	Brief    string
+	// Sandbox is its shell's sandbox, where its harness has one and the
+	// conversation is one that runs things (Sandboxed): nil for an agent
+	// that only reads.
+	Sandbox *Sandbox
 }
 
 // para is a note as a paragraph of a prompt, or nothing.

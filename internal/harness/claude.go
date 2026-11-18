@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"slices"
 	"strings"
 )
 
@@ -17,9 +19,11 @@ import (
 // Every assumption about the Claude Code CLI lives in this file. Those
 // checked against a real claude (2.1.318) say VERIFIED.
 type Claude struct {
-	// lookPath and newID are swapped in tests.
+	// lookPath and newID are swapped in tests, as is goos (the system it's
+	// on: "" for this one).
 	lookPath func(string) (string, error)
 	newID    func() (string, error)
+	goos     string
 }
 
 // EnvClaudeBin overrides the Claude Code binary (name or path).
@@ -211,8 +215,35 @@ const ClaudeConverseModel = "sonnet"
 // pager it names.)
 var TalkGit = []string{"diff", "log", "show", "status", "ls-files", "ls-tree", "blame"}
 
-// claudeConverseTurns bounds how far one turn can wander.
-const claudeConverseTurns = "30"
+// claudeConverseTurns bounds how far one turn can wander; a sandboxed one
+// (claudeSandboxTurns), which runs things as well as reading, goes further.
+const (
+	claudeConverseTurns = "30"
+	claudeSandboxTurns  = "150"
+)
+
+// Sandboxes is whether Claude Code's sandbox runs here.
+//
+// READ (code.claude.com/docs/en/sandboxing): on macOS it's Seatbelt, which
+// is always there; on Linux and WSL2 it needs bubblewrap and socat; it
+// runs nowhere else. Where it can't start, Claude Code runs commands
+// unsandboxed, and then none is allowed for being sandboxed: so ws only
+// asks for it where it's there.
+func (c *Claude) Sandboxes() bool {
+	goos := c.goos
+	if goos == "" {
+		goos = runtime.GOOS
+	}
+	switch goos {
+	case "darwin":
+		return true
+	case "linux":
+		_, bwrap := c.lookPath("bwrap")
+		_, socat := c.lookPath("socat")
+		return bwrap == nil && socat == nil
+	}
+	return false
+}
 
 // Converse runs one turn of a conversation headless.
 //
@@ -225,7 +256,12 @@ func (c *Claude) Converse(r ConverseRun) (Launch, error) {
 	if err != nil {
 		return Launch{}, err
 	}
-	args := []string{bin, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "dontAsk", "--max-turns", claudeConverseTurns}
+	sandbox := r.Sandbox && !r.Alone && c.Sandboxes()
+	turns := claudeConverseTurns
+	if sandbox {
+		turns = claudeSandboxTurns
+	}
+	args := []string{bin, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "dontAsk", "--max-turns", turns}
 	if r.Model != "" {
 		args = append(args, "--model", r.Model)
 	}
@@ -252,19 +288,89 @@ func (c *Claude) Converse(r ConverseRun) (Launch, error) {
 	for _, cmd := range allow {
 		args = append(args, "Bash("+cmd+")", "Bash("+cmd+" *)")
 	}
+	settings := map[string]any{}
 	if len(r.Guard) > 0 && r.Scratch != "" {
-		settings, err := claudeGuard(r.Guard, filepath.Join(r.Scratch, "claude"), allow)
+		hooks, err := claudeGuard(r.Guard, filepath.Join(r.Scratch, "claude"), allow, sandbox)
 		if err != nil {
 			return Launch{}, err
 		}
-		args = append(args, "--settings", settings)
+		settings["hooks"] = hooks
+	}
+	if sandbox {
+		box, err := claudeSandbox(r)
+		if err != nil {
+			return Launch{}, err
+		}
+		settings["sandbox"] = box
+	}
+	if len(settings) > 0 {
+		data, err := json.Marshal(settings)
+		if err != nil {
+			return Launch{}, err
+		}
+		args = append(args, "--settings", string(data))
 	}
 	return Launch{Args: append(args, "--", r.Prompt), Dir: r.Dir, Stream: StreamClaude, Conversation: r.Session}, nil
 }
 
-// claudeGuard is the --settings that has Claude Code ask ws before each
-// shell command (a PreToolUse hook on Bash): guard, then a file holding
-// allow, written in dir and named by what it allows.
+// claudeSandbox is the --settings that runs a conversation's shell in
+// Claude Code's sandbox: anything runs there unasked, reading anything
+// and reaching the network; it writes in r.Write and r.Beside, the
+// system's temp folder, and nowhere else under r.Dir (closedUnder); and
+// the commands that can't run inside it (outside) leave it, where the
+// rules above and ws's guard decide them as they always did.
+//
+// It's loose on purpose, for now: every host, every socket. A conversation
+// competes with a harness run by hand, which asks nothing, so what's
+// closed is what would change the workspace under a mission or under you,
+// and no more. Tighten it from what goes wrong.
+//
+// VERIFIED (claude 2.1.327, -p --permission-mode dontAsk, on macOS):
+//   - With enabled and autoAllowBashIfSandboxed, a plain command runs with
+//     no rule allowing it, piped and chained as it likes; what Claude Code
+//     doesn't read as plain (a loop, a variable set before a command), ws's
+//     guard allows (GuardAnswer).
+//   - It writes in the folder it runs in and the system's temp folder
+//     ($TMPDIR is /tmp/claude-<uid> there), and in allowWrite's; anywhere
+//     else is "Operation not permitted". A path in denyWrite stays closed
+//     though allowWrite names it, or a folder inside it: so what's open
+//     under r.Dir is left off denyWrite, not opened over it.
+//   - The network is closed unless allowedDomains names the host; "*" is
+//     every host. A commit signed over a socket (1Password's agent) needs
+//     allowAllUnixSockets, and a test that listens on localhost needs
+//     allowLocalBinding.
+//   - excludedCommands takes a Bash rule's pattern ("ws *", not "ws"): a
+//     command matching one runs outside the sandbox, by the rules (so
+//     refused, in dontAsk, unless one allows it). Only alone: piped,
+//     chained or redirected (a heredoc is a redirection), the whole stays
+//     inside, where ws can't write its records and gh can't read the
+//     keychain. So ws's guard moves a heredoc's body to a file
+//     (heredocAside).
+//   - With allowUnsandboxedCommands false the agent can't ask to run a
+//     command outside (the Bash tool's dangerouslyDisableSandbox).
+func claudeSandbox(r ConverseRun) (map[string]any, error) {
+	open := append(append([]string{}, r.Write...), r.Beside...)
+	closed, err := closedUnder(r.Dir, open, r.Room)
+	if err != nil {
+		return nil, err
+	}
+	var excluded []string
+	for _, name := range outside {
+		excluded = append(excluded, name+" *")
+	}
+	return map[string]any{
+		"enabled":                  true,
+		"autoAllowBashIfSandboxed": true,
+		"allowUnsandboxedCommands": false,
+		"excludedCommands":         excluded,
+		"network":                  map[string]any{"allowedDomains": []string{"*"}, "allowAllUnixSockets": true, "allowLocalBinding": true},
+		"filesystem":               map[string]any{"allowWrite": open, "denyWrite": closed},
+	}, nil
+}
+
+// claudeGuard is the hooks, for --settings, that have Claude Code ask ws
+// before each shell command (a PreToolUse hook on Bash): guard, then a
+// file holding allow, written in dir and named by what it allows.
 //
 // Its own rules (Bash(ws artifact add --propose *)) can't admit a
 // proposal's HTML. VERIFIED (claude 2.1.325, --permission-mode dontAsk):
@@ -274,59 +380,130 @@ func (c *Claude) Converse(r ConverseRun) (Launch, error) {
 // its lines is allowed alone. A PreToolUse hook that answers
 // permissionDecision "allow" lets it run; one that answers nothing leaves
 // it to the rules, which still refuse what they don't allow. So the hook
-// only ever allows, and only what ws's own reading of the command allows
-// (commandAllowed, as the ACP policy reads it: one command, a quoted
-// heredoc read as it is, nothing chained).
-func claudeGuard(guard []string, dir string, allow []string) (string, error) {
-	list, _ := json.Marshal(allow)
+// allows only what ws's own reading of the command allows (commandAllowed,
+// as the ACP policy reads it: one command, a quoted heredoc read as it
+// is, nothing chained).
+//
+// VERIFIED (claude 2.1.327): an answer of "deny" refuses the command, and
+// its permissionDecisionReason is what the agent's told ("PreToolUse:Bash
+// hook error: <reason>"); an answer of "allow" with updatedInput runs the
+// command it gives in place of the agent's, placed in or out of the
+// sandbox by what it then is.
+func claudeGuard(guard []string, dir string, allow []string, sandboxed bool) (map[string]any, error) {
+	list, _ := json.Marshal(guardList{Allow: allow, Sandboxed: sandboxed})
 	sum := sha256.Sum256(list)
 	file := filepath.Join(dir, "allow-"+hex.EncodeToString(sum[:])[:12]+".json")
 	if _, err := os.Stat(file); err != nil {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return "", err
+			return nil, err
 		}
 		if err := writeAtomically(file, list); err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 	var cmd []string
 	for _, c := range append(append([]string{}, guard...), file) {
 		cmd = append(cmd, shellQuote(c))
 	}
-	settings, err := json.Marshal(map[string]any{"hooks": map[string]any{
-		"PreToolUse": []map[string]any{{"matcher": "Bash", "hooks": []map[string]string{{"type": "command", "command": strings.Join(cmd, " ")}}}},
-	}})
-	return string(settings), err
+	// A sandboxed run's tools for writing files are ws's to decide too:
+	// the sandbox is the shell's alone.
+	matcher := "Bash"
+	if sandboxed {
+		matcher = "Bash|" + strings.Join(claudeFileTools, "|")
+	}
+	return map[string]any{
+		"PreToolUse": []map[string]any{{"matcher": matcher, "hooks": []map[string]string{{"type": "command", "command": strings.Join(cmd, " ")}}}},
+	}, nil
+}
+
+// claudeFileTools are Claude Code's tools that write files.
+var claudeFileTools = []string{"Write", "Edit", "MultiEdit", "NotebookEdit"}
+
+// guardList is what ws's guard goes by, as its file holds it: the
+// commands allowed, and whether the run's shell is sandboxed.
+type guardList struct {
+	Allow     []string `json:"allow"`
+	Sandboxed bool     `json:"sandboxed,omitempty"`
 }
 
 // GuardAnswer is what ws's PreToolUse hook says to Claude Code of the tool
-// call event it's given (its JSON), with the allow list in allowFile:
-// allow, for a shell command the list allows; nothing ("") for anything
-// else, which Claude Code's own rules then decide.
-func GuardAnswer(event []byte, allowFile string) string {
+// call event it's given (its JSON), with what it goes by in allowFile:
+// allow, for a shell command the list allows (a ws command given its
+// input by a heredoc as one reading it from a file beside allowFile:
+// heredocAside); deny, saying why and what to do, for one that runs ws or
+// gh and isn't allowed (whyRefused); for anything else, allow where the
+// run's shell is sandboxed, and nothing ("") where it isn't, which leaves
+// it to Claude Code's own rules.
+//
+// VERIFIED (claude 2.1.327, dontAsk, sandboxed): being sandboxed allows
+// only a command Claude Code reads as plain. A loop, a variable set
+// before a command or exported, a command run by its path
+// (/usr/bin/time -p …): each is refused, by the rules, though it would
+// have run in the sandbox. Allowed by this hook, it runs, and in the
+// sandbox still: what it writes outside is "Operation not permitted". So
+// a command is only allowed here for staying in the sandbox if it runs
+// neither ws nor gh (runsOutside), the commands Claude Code lets out.
+//
+// A sandboxed run's tools for writing files (Write, Edit) aren't the
+// sandbox's to stop, and no rule allows them: ws allows one writing in
+// folders() (a folder of the agent's own, and the capsules its
+// conversation has lifted, as they stand when it's asked: one lifted a
+// moment ago is there), and refuses any other, saying where it may write.
+// VERIFIED (claude 2.1.327, dontAsk): the hook's allow lets Write and Edit
+// run, and its deny's reason is what the agent's told.
+func GuardAnswer(event []byte, allowFile string, folders func() []string) string {
 	var e struct {
-		Tool  string `json:"tool_name"`
-		Input struct {
-			Command string `json:"command"`
-		} `json:"tool_input"`
+		Tool  string         `json:"tool_name"`
+		Input map[string]any `json:"tool_input"`
 	}
-	if json.Unmarshal(event, &e) != nil || e.Tool != "Bash" || e.Input.Command == "" {
+	if json.Unmarshal(event, &e) != nil {
 		return ""
 	}
 	data, err := os.ReadFile(allowFile)
 	if err != nil {
 		return ""
 	}
-	var allow []string
-	if json.Unmarshal(data, &allow) != nil || len(allow) == 0 || !commandAllowed(e.Input.Command, allow) {
+	var list guardList
+	if json.Unmarshal(data, &list) != nil || len(list.Allow) == 0 {
 		return ""
 	}
-	out, _ := json.Marshal(map[string]any{"hookSpecificOutput": map[string]string{
-		"hookEventName":            "PreToolUse",
-		"permissionDecision":       "allow",
-		"permissionDecisionReason": "on ws's list of what a conversation may run",
-	}})
-	return string(out)
+	answer := map[string]any{"hookEventName": "PreToolUse"}
+	say := func(decision, why string) string {
+		answer["permissionDecision"], answer["permissionDecisionReason"] = decision, why
+		out, _ := json.Marshal(map[string]any{"hookSpecificOutput": answer})
+		return string(out)
+	}
+	if slices.Contains(claudeFileTools, e.Tool) {
+		if !list.Sandboxed || folders == nil {
+			return ""
+		}
+		path, _ := e.Input["file_path"].(string)
+		if path == "" {
+			path, _ = e.Input["notebook_path"].(string)
+		}
+		dirs := folders()
+		if path != "" && within(path, dirs) {
+			return say("allow", "in a folder the conversation's agent works in")
+		}
+		return say("deny", whyNotWritten(path, dirs))
+	}
+	command, _ := e.Input["command"].(string)
+	if e.Tool != "Bash" || command == "" {
+		return ""
+	}
+	switch {
+	case commandAllowed(command, list.Allow):
+		if aside := heredocAside(command, filepath.Join(filepath.Dir(allowFile), asideDir)); aside != "" {
+			e.Input["command"] = aside
+			answer["updatedInput"] = e.Input
+		}
+		return say("allow", "on ws's list of what a conversation may run")
+	case runsOutside(command) != "":
+		return say("deny", whyRefused(command, list.Allow))
+	case list.Sandboxed:
+		return say("allow", "it runs in the conversation's sandbox")
+	}
+	return ""
 }
 
 // ConverseModel is the model conversations run on by default.

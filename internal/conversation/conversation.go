@@ -378,6 +378,9 @@ type Conversation struct {
 	Draft *Draft `json:"draft,omitempty"`
 	// Proposals are what its agent proposed, oldest first.
 	Proposals []Proposal `json:"proposals,omitempty"`
+	// Capsules are those its agent lifted to try things in, oldest first:
+	// its own, put away with it (capsules.go).
+	Capsules []Capsule `json:"capsules,omitempty"`
 	// Settled is, for a pass, the findings you've marked done or dismissed,
 	// by key; Dismissed, why each dismissed one was, where you said.
 	Settled   map[string]string `json:"settled,omitempty"`
@@ -637,6 +640,8 @@ type line struct {
 	Settle     *findingSettled  `json:"settle,omitempty"`
 	Placed     *time.Time       `json:"placed,omitempty"`
 	Kept       *keptLine        `json:"kept,omitempty"`
+	Lifted     *Capsule         `json:"lifted,omitempty"`
+	Away       *awayLine        `json:"away,omitempty"`
 }
 
 // keptLine is an ask kept: Ephemeral cleared.
@@ -1321,8 +1326,9 @@ func (s Store) SetSession(id string, sess Session) error {
 }
 
 // answerFor is how long an answering run counts as underway without
-// finishing: longer than any turn should take.
-const answerFor = 15 * time.Minute
+// finishing: longer than any turn should take (ops.TurnForRunning, for
+// one that runs things).
+const answerFor = 30 * time.Minute
 
 // StartAnswering marks an agent answering a conversation, by its process.
 // It's false if one already is: that run answers what's new when it's

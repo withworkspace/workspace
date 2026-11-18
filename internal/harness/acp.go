@@ -439,6 +439,13 @@ type heredoc struct {
 // substitution or expansion ($, backticks), a subshell, a background job,
 // an unclosed quote, a heredoc with no end, or one whose body would expand.
 func parseShell(s string) (cmds [][]string, ok bool) {
+	cmds, _, ok = parseScript(s)
+	return cmds, ok
+}
+
+// parseScript is parseShell, with each heredoc's body as it was given, in
+// the order they were.
+func parseScript(s string) (cmds [][]string, bodies []string, ok bool) {
 	var words []string
 	var cur strings.Builder
 	var pending []heredoc
@@ -466,10 +473,11 @@ func parseShell(s string) (cmds [][]string, ok bool) {
 		case c == '\n':
 			endWord()
 			if len(pending) > 0 {
-				next, ok := heredocBodies(s, i+1, pending)
+				next, got, ok := heredocBodies(s, i+1, pending)
 				if !ok {
-					return nil, false
+					return nil, nil, false
 				}
+				bodies = append(bodies, got...)
 				pending, i = nil, next-1
 			}
 			if len(words) > 0 {
@@ -478,7 +486,7 @@ func parseShell(s string) (cmds [][]string, ok bool) {
 		case c == '\'':
 			j := strings.IndexByte(s[i+1:], '\'')
 			if j < 0 {
-				return nil, false
+				return nil, nil, false
 			}
 			cur.WriteString(s[i+1 : i+1+j])
 			inWord, i = true, i+1+j
@@ -488,7 +496,7 @@ func parseShell(s string) (cmds [][]string, ok bool) {
 			for ; i < len(s) && s[i] != '"'; i++ {
 				switch s[i] {
 				case '$', '`':
-					return nil, false
+					return nil, nil, false
 				case '\\':
 					if i+1 < len(s) && strings.IndexByte("\"\\$`\n", s[i+1]) >= 0 {
 						i++
@@ -497,23 +505,23 @@ func parseShell(s string) (cmds [][]string, ok bool) {
 				cur.WriteByte(s[i])
 			}
 			if i >= len(s) {
-				return nil, false
+				return nil, nil, false
 			}
 		case c == '\\':
 			if i+1 >= len(s) || s[i+1] == '\n' {
-				return nil, false
+				return nil, nil, false
 			}
 			i++
 			cur.WriteByte(s[i])
 			inWord = true
 		case strings.HasPrefix(s[i:], "&&"), strings.HasPrefix(s[i:], "||"):
 			if !endCmd() {
-				return nil, false
+				return nil, nil, false
 			}
 			i++
 		case c == ';':
 			if !endCmd() {
-				return nil, false
+				return nil, nil, false
 			}
 		case strings.HasPrefix(s[i:], "<<") && !strings.HasPrefix(s[i:], "<<<"):
 			endWord()
@@ -529,7 +537,7 @@ func parseShell(s string) (cmds [][]string, ok bool) {
 			if i < len(s) && (s[i] == '\'' || s[i] == '"') {
 				j := strings.IndexByte(s[i+1:], s[i])
 				if j < 0 {
-					return nil, false
+					return nil, nil, false
 				}
 				h.delim, h.quoted, i = s[i+1:i+1+j], true, i+1+j
 			} else {
@@ -540,36 +548,39 @@ func parseShell(s string) (cmds [][]string, ok bool) {
 				h.delim, i = s[i:j], j-1
 			}
 			if h.delim == "" {
-				return nil, false
+				return nil, nil, false
 			}
 			pending = append(pending, h)
 		case strings.IndexByte(";&|<>()`$\r", c) >= 0:
-			return nil, false
+			return nil, nil, false
 		default:
 			cur.WriteByte(c)
 			inWord = true
 		}
 	}
 	if len(pending) > 0 {
-		return nil, false // a heredoc never given its body
+		return nil, nil, false // a heredoc never given its body
 	}
 	endWord()
 	if len(words) > 0 {
 		cmds = append(cmds, words)
 	}
-	return cmds, true
+	return cmds, bodies, true
 }
 
 // heredocBodies reads the bodies of heredocs, one after another, from the
 // line starting at from: each ends at a line that's its delimiter. It's
-// where the script goes on after them. ok false for one with no end, or
-// an unquoted one whose body would expand ($, backticks, a backslash).
-func heredocBodies(s string, from int, hs []heredoc) (int, bool) {
+// where the script goes on after them, and each body, as its command
+// would read it. ok false for one with no end, or an unquoted one whose
+// body would expand ($, backticks, a backslash).
+func heredocBodies(s string, from int, hs []heredoc) (int, []string, bool) {
 	i := from
+	var bodies []string
 	for _, h := range hs {
+		var body strings.Builder
 		for {
 			if i >= len(s) {
-				return 0, false
+				return 0, nil, false
 			}
 			end := strings.IndexByte(s[i:], '\n')
 			line, next := s[i:], len(s)
@@ -584,11 +595,13 @@ func heredocBodies(s string, from int, hs []heredoc) (int, bool) {
 				break
 			}
 			if !h.quoted && strings.ContainsAny(line, "$`\\") {
-				return 0, false
+				return 0, nil, false
 			}
+			body.WriteString(line + "\n")
 		}
+		bodies = append(bodies, body.String())
 	}
-	return i, true
+	return i, bodies, true
 }
 
 // readACPStream reads an ACP session's record: its session, each tool call

@@ -219,10 +219,21 @@ func (w *Workspace) SayInTalk(sc doc.Scope, id, body string, by Actor) (*convers
 }
 
 // SetTalkStatus is you putting a conversation away, or taking it up again.
+// The capsules its agent lifted are put away first (putAwayCapsules); if
+// one can't be, the conversation isn't put away either, and why is said,
+// so a capsule is never left with nothing saying whose it was.
 func (w *Workspace) SetTalkStatus(sc doc.Scope, id, status string, by Actor) (*conversation.Conversation, error) {
 	store, err := w.Conversations(sc)
 	if err != nil {
 		return nil, err
+	}
+	if status == conversation.Resolved && by.By() == conversation.You {
+		if c, err := store.Load(id); err == nil && len(c.Lifted()) > 0 {
+			if left := w.putAwayCapsules(store, c); len(left) > 0 {
+				return nil, refused("capsules-left", "%s isn't put away: the capsules its agent lifted are put away with it, and %s couldn't be. Put it right there, or burn it yourself (ws burn <repo> <name>), then put the conversation away again",
+					id, strings.Join(left, "; "))
+			}
+		}
 	}
 	return store.SetStatus(id, by.By(), status, w.now())
 }

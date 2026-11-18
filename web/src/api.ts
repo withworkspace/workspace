@@ -1784,6 +1784,9 @@ export interface TalkDetail {
   // run: the agent answering now, as far as it's got.
   run?: { calls: TalkCall[]; said?: string };
   proposals?: TalkProposal[];
+  // The capsules its agent lifted, to try things in: the conversation's
+  // own, put away with it (away: when, their branches kept).
+  capsules?: TalkCapsule[];
   message?: string; // what a write did (accepting a proposal)
   path?: string; // where the conversation is now, when it's moved (its mission renamed)
 }
@@ -2597,3 +2600,13 @@ export const askPR = (api: string, q: { body: string; path?: string; side?: "new
 
 // dockPR checks a pull request out here, as ws dock does.
 export const dockPR = (api: string) => send<{ message: string }>("POST", `${api}/dock`);
+
+// A capsule a conversation's agent lifted.
+export interface TalkCapsule {
+  repo: string;
+  name: string;
+  branch: string;
+  at: string;
+  away?: string;
+  kept?: boolean;
+}

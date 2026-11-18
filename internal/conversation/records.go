@@ -317,6 +317,17 @@ func (c *Conversation) apply(l line) {
 	case l.Kept != nil:
 		at := l.Kept.At
 		c.Ephemeral, c.Kept = false, &at
+	case l.Lifted != nil:
+		if cp := c.Capsule(l.Lifted.Repo, l.Lifted.Name); cp != nil {
+			*cp = *l.Lifted
+		} else {
+			c.Capsules = append(c.Capsules, *l.Lifted)
+		}
+	case l.Away != nil:
+		if cp := c.Capsule(l.Away.Repo, l.Away.Name); cp != nil {
+			at := l.Away.At
+			cp.Away, cp.Kept = &at, l.Away.Kept
+		}
 	case l.Summary != nil:
 		if l.Summary.Title != "" {
 			c.Title = l.Summary.Title

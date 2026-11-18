@@ -135,6 +135,22 @@ func (w *Workspace) Archive(slug string, burnAll bool, by Actor) (StateSet, erro
 		}
 		burned = append(burned, c.Repo+"/"+c.Name)
 	}
+	// And those its conversations' agents lifted, which were never the
+	// mission's: put away as they'd be with their conversations.
+	convs := conversation.For(w.Root(), m.Slug)
+	if talks, err := convs.Talks(); err == nil {
+		for _, c := range talks {
+			if len(c.Lifted()) == 0 {
+				continue
+			}
+			if left := w.putAwayCapsules(convs, c); len(left) > 0 {
+				return StateSet{}, refused("capsules-left", "%s's agent lifted capsules that couldn't be put away, so the mission isn't archived: %s", c.ID, strings.Join(left, "; "))
+			}
+			for _, cp := range c.Lifted() {
+				burned = append(burned, cp.Ref())
+			}
+		}
+	}
 	out, err := w.putIn(m.Slug, mission.Archived, by)
 	out.Burned = burned
 	return out, err
