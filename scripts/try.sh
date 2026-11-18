@@ -73,6 +73,7 @@ main() {
 	ls) cmd_ls ;;
 	seeds) cmd_seeds ;;
 	_reap) reap "$1" ;;
+	_owner) owner_lines "$1" ;;
 	"" | -h | --help | help) usage ;;
 	*)
 		echo "try.sh: no such command: $cmd" >&2
@@ -162,8 +163,37 @@ age_of() { # <pid>
 }
 
 # When a process started, as ps says it: with its pid, which process it is
-# (a pid alone is given out again).
-started() { ps -o lstart= -p "$1" 2>/dev/null | sed 's/  */ /g; s/^ //; s/ $//'; }
+# (a pid alone is given out again). ps writes it in the caller's locale
+# and time zone, and a try is looked at by more than whoever made it (a
+# terminal's shell, crew with no LANG), so it's asked for in one of each.
+started() { LC_ALL=C TZ=UTC ps -o lstart= -p "$1" 2>/dev/null | sed 's/  */ /g; s/^ //; s/ $//'; }
+
+# Whether a process has gone: nothing has its pid, or something that
+# started at another time has. A ps that can't see init can't say who's
+# there (in a sandbox it sees only its own), and nothing has gone by it.
+gone() { # <pid> [when it started]
+	local now
+	now="$(started "$1")"
+	if [ -z "$now" ]; then
+		[ -n "$(started 1)" ]
+		return
+	fi
+	[ -n "${2:-}" ] && [ "$now" != "$2" ]
+}
+
+# What's kept about a try's owner. Not as owner and owner_started, which
+# is what copies of this script in other checkouts once kept, and still
+# read: they compare the start time with their own locale's, and tore
+# down tries whose owners were there. Finding neither, they leave it be.
+owner_lines() { printf 'owner_pid=%s\nowner_began=%s\n' "$1" "$(started "$1")"; }
+
+# A try's owner's pid: one made by such a copy has it as owner.
+owner_of() { # <name>
+	local owner
+	owner="$(get "$1" owner_pid)"
+	[ -n "$owner" ] || owner="$(get "$1" owner)"
+	echo "${owner:-0}"
+}
 
 # A try's owner, when nobody says: the nearest process above this one
 # that's been running a minute or more. The shells and the just between
@@ -194,9 +224,11 @@ daemon_pids() { # <dir>
 # Why a try's time is up, or nothing if it isn't.
 stale() { # <name>
 	local owner expires
-	owner="$(get "$1" owner)"
+	owner="$(owner_of "$1")"
 	expires="$(get "$1" expires)"
-	if [ "${owner:-0}" -gt 0 ] && [ "$(started "$owner")" != "$(get "$1" owner_started)" ]; then
+	# owner_began is empty for a try an older copy made: its start time is
+	# in a locale nobody kept, so that one's owner has gone when its pid has.
+	if [ "$owner" -gt 0 ] && gone "$owner" "$(get "$1" owner_began)"; then
 		echo "its owner (pid $owner) has gone"
 	elif [ "${expires:-0}" -gt 0 ] && [ "$(date +%s)" -ge "$expires" ]; then
 		echo "its time was up"
@@ -414,8 +446,10 @@ cmd_up() {
 	now="$(date +%s)"
 	expires=0
 	[ "$ttl" -gt 0 ] && expires=$((now + ttl * 3600))
-	printf 'name=%s\nrepo=%s\nbin=%s\ncreated=%s\nexpires=%s\nowner=%s\nowner_started=%s\n' \
-		"$name" "$here" "$bin" "$now" "$expires" "$owner" "$(started "$owner")" >"$dir/.try/info"
+	{
+		printf 'name=%s\nrepo=%s\nbin=%s\ncreated=%s\nexpires=%s\n' "$name" "$here" "$bin" "$now" "$expires"
+		owner_lines "$owner"
+	} >"$dir/.try/info"
 	write_ws "$dir"
 	# From here there's something to leave behind: a try that doesn't come
 	# up is torn down, not left half-made.
@@ -440,9 +474,9 @@ cmd_up() {
 # When a try is torn down without being asked, in words.
 lasts() { # <name>
 	local owner expires left what=""
-	owner="$(get "$1" owner)"
+	owner="$(owner_of "$1")"
 	expires="$(get "$1" expires)"
-	if [ "${owner:-0}" -gt 0 ]; then
+	if [ "$owner" -gt 0 ]; then
 		what="when pid $owner ($(ps -o comm= -p "$owner" 2>/dev/null | sed 's:.*/::')) exits"
 	fi
 	if [ "${expires:-0}" -gt 0 ]; then
