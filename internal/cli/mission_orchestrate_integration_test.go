@@ -280,6 +280,34 @@ func TestMission_ResumeWithRunningCrewAndWait(t *testing.T) {
 	}
 }
 
+// resume-with on crew that have ended is left on the page for you, unless
+// they'd handed back their work (closed once they reported done) and ws may
+// start crew without you: then it's they who are resumed.
+func TestMission_ResumeWithEndedCrew(t *testing.T) {
+	w, store := orchestrateFixture(t)
+	t.Setenv(mission.EnvMission, "cache")
+	t.Setenv(mission.EnvRole, mission.RoleOrchestrator)
+
+	// Stopped mid-work: yours to resume.
+	store.EndCrewStopped("cache", "c1", "hangup", true)
+	r := run(t, w, nil, "mission", "resume-with", "c1", "write the tests")
+	if strings.Contains(r.Stderr, "couldn't") || !strings.Contains(r.Stderr, "the mission's page offers to resume c1") {
+		t.Errorf("stderr = %s", r.Stderr)
+	}
+
+	// Closed after reporting done, with crew waiting for you to start them.
+	store.SetResumeWith("cache", "c1", "")
+	store.Update("cache", func(m *mission.Mission) error { m.Crew[0].Status = mission.CrewDone; return nil })
+	os.WriteFile(filepath.Join(w.Root, "ws.local.toml"), []byte("[orchestrator]\ndispatch = \"ask\"\n"), 0o644)
+	r = run(t, w, nil, "mission", "resume-with", "c1", "write the tests")
+	if strings.Contains(r.Stderr, "couldn't") || !strings.Contains(r.Stderr, "the mission's page offers to resume c1") {
+		t.Errorf("stderr = %s", r.Stderr)
+	}
+	if m, _ := store.Load("cache"); m.Dispatches != 0 {
+		t.Errorf("dispatches %d, want none: nothing was started", m.Dispatches)
+	}
+}
+
 // A PR's change is told as such, what happened since the orchestrator's
 // last run listed: what's done about it is the process's to say.
 func TestOrchestrate_PRChangePrompt(t *testing.T) {

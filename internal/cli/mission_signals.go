@@ -352,8 +352,10 @@ error path has no test").
 
 Crew still running get the message typed straight in; for the
 orchestrator that counts toward [orchestrator] max_dispatches, as
-dispatching does. Ended crew are suggested for resuming: the mission's page
-offers it, and resuming types the message in. Only crew that
+dispatching does. Crew that reported done and were closed (ws closes them
+once their turn is over) are resumed with it, and so count too; with
+[orchestrator] dispatch = "ask", or for crew that ended otherwise, the
+mission's page offers to resume them, which types the message in. Only crew that
 recorded a conversation can be resumed; for anything else, raise a
 follow-up with ws mission new.`,
 		Args: cobra.MinimumNArgs(2),
@@ -382,22 +384,36 @@ follow-up with ws mission new.`,
 			}
 			msg := strings.TrimSpace(strings.Join(args[1:], " "))
 			store := missionStore(ctx)
-			if c.Ended == nil {
+			actor := ops.ActorFromEnv()
+			// Crew closed after reporting done (ws closes them once their
+			// turn's over) are resumed with it, as a failing check resumes
+			// them, unless crew wait for the user to start them.
+			handedBack := c.Ended != nil && c.Status == mission.CrewDone &&
+				(actor.IsYou() || ctx.Config().OrchestratorAutoDispatch())
+			if c.Ended == nil || handedBack {
 				by := raisedBy()
 				if by == mission.RoleOrchestrator {
 					if err := store.CountDispatch(m.Slug, ctx.Config().OrchestratorMaxDispatches()); err != nil {
 						return dispatchLimitErr(err)
 					}
 				}
-				_, err := ctx.Say(m.Slug, c.ID, msg, ops.ActorFromEnv())
-				if err == nil {
+				_, err := ctx.Say(m.Slug, c.ID, msg, actor)
+				switch {
+				case err == nil && c.Ended == nil:
 					fmt.Fprintf(ui.Stderr, "  %s typed it into %s, which is still running\n", ui.Green.Render("✓"), c.ID)
+					return nil
+				case err == nil:
+					fmt.Fprintf(ui.Stderr, "  %s resumed %s, which had handed back its work, with it\n", ui.Green.Render("✓"), c.ID)
 					return nil
 				}
 				if by == mission.RoleOrchestrator {
 					store.ReleaseDispatch(m.Slug)
 				}
-				fmt.Fprintf(ui.Stderr, "  %s couldn't type it into %s (%v): the user is asked to pass it on\n", ui.Dim.Render("·"), c.ID, err)
+				how := "type it into"
+				if c.Ended != nil {
+					how = "resume"
+				}
+				fmt.Fprintf(ui.Stderr, "  %s couldn't %s %s (%v): the user is asked to pass it on\n", ui.Dim.Render("·"), how, c.ID, err)
 			}
 			if err := store.SetResumeWithBy(m.Slug, c.ID, msg, ops.ActorFromEnv().By()); err != nil {
 				return err

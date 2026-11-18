@@ -125,6 +125,9 @@ func (w *Workspace) Archive(slug string, burnAll bool, by Actor) (StateSet, erro
 		return StateSet{}, refused("unmerged-capsules", "Archiving burns its capsules, and %s: %s. Archive it anyway to burn them: their branches are kept, and what's not committed is lost",
 			which, strings.Join(unmerged, ", "))
 	}
+	// Before their capsules go: a session left open would sit in a folder
+	// that's gone.
+	w.closeEnded(m, "the mission is archived")
 	var burned []string
 	for _, c := range burn {
 		if _, err := w.Burn(c.Repo, c.Name, BurnOptions{Force: burnAll}); err != nil {

@@ -178,6 +178,7 @@ func (w *Workspace) End(slug string, as *EndAs, by Actor) (Concluded, error) {
 	if err := w.Missions.End(m.Slug, c); err != nil {
 		return Concluded{}, wrap(err)
 	}
+	w.closeEnded(m, "the mission has ended")
 	w.youActed(m.Slug, by)
 	return Concluded{Slug: m.Slug, Conclusion: c, Ended: true}, nil
 }

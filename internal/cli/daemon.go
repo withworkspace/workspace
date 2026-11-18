@@ -181,6 +181,7 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 	defer close(stop)
 	go watchPRsLoop(root, prs, stop)
 	go watchHeldLoop(root, s.ACPCallDone, stop)     // turns held on crew's own work
+	go closeDoneLoop(root, s.Log.Printf, stop)      // crew that reported done, their turn over
 	go sweepAsksLoop(root, s.Log.Printf, stop)      // asks nobody kept
 	go watchLimitsLoop(root, s.Log.Printf, stop)    // steps out of time
 	go watchWaitsLoop(root, s.Log.Printf, stop)     // Wait steps ws watches
