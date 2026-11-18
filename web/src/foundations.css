@@ -73,6 +73,15 @@
   --brand-3: oklch(from var(--brand-1) calc(l + 0.198) calc(c * 0.245) calc(h + 48.4));
   --brand-gradient: linear-gradient(135deg, var(--brand-1), var(--brand-2) 62%, var(--brand-3));
 
+  /* The same run as brand draws it for a dark ground: lighter, and through
+     to a warm yellow, in four steps from --brand-1 as --brand-2 and 3 are.
+     For the default pick they are brand's own colours. The logotype and the
+     mark use them on a dark ground. */
+  --brand-on-dark-1: oklch(from var(--brand-1) calc(l + 0.203) calc(c * 0.816) calc(h + 1));
+  --brand-on-dark-2: oklch(from var(--brand-1) calc(l + 0.318) calc(c * 0.426) calc(h + 9.9));
+  --brand-on-dark-3: oklch(from var(--brand-1) calc(l + 0.387) calc(c * 0.171) calc(h + 117.7));
+  --brand-on-dark-4: oklch(from var(--brand-1) calc(l + 0.337) calc(c * 0.465) calc(h + 154.5));
+
   /* The same run as the horizon behind every page (.shell), with how
      strongly it shows, and the grain over it: noise faded out across the
      glow's ellipse, its strength in the image. */

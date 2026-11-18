@@ -3,61 +3,64 @@ import { describe, expect, it, vi } from "vitest";
 // The tests run without a page, so the accent's colours are given: each
 // token stands for itself, to show which stop it lands on.
 vi.mock("../ui/accent", () => ({
-  shownAs: (token: string) => ({ "--brand-1": "#111111", "--brand-2": "#222222", "--brand-3": "#333333" })[token],
+  shownAs: (token: string) =>
+    ({
+      "--brand-1": "#111111",
+      "--brand-2": "#222222",
+      "--brand-3": "#333333",
+      "--brand-on-dark-1": "#aaaaaa",
+      "--brand-on-dark-2": "#bbbbbb",
+      "--brand-on-dark-3": "#cccccc",
+      "--brand-on-dark-4": "#dddddd",
+    })[token],
   useAccent: () => "",
 }));
 
 const { markIcon } = await import("./notify");
 
-const svg = (dot: boolean) => {
-  const uri = markIcon(dot);
+const svg = (lit: boolean) => {
+  const uri = markIcon(lit);
   expect(uri.startsWith("data:image/svg+xml,")).toBe(true);
   return decodeURIComponent(uri.slice("data:image/svg+xml,".length));
 };
 
-// The numbers in a path, as [x, y] points: H gives an x on the last y.
-function points(d: string): [number, number][] {
-  const out: [number, number][] = [];
-  let y = 0;
-  for (const m of d.matchAll(/([MLHZ])?\s*([\d.]+)?(?:\s+([\d.]+))?/g)) {
-    if (m[1] === "H") out.push([Number(m[2]), y]);
-    else if (m[2] && m[3]) {
-      y = Number(m[3]);
-      out.push([Number(m[2]), y]);
-    }
-  }
-  return out;
-}
+// brand:svg/mark.svg's two shapes: what shows of the disc behind, and the disc in front.
+const BEHIND = "M155.56 86.23A192 192 0 1 1 425.77 356.44A224 224 0 0 0 155.56 86.23Z";
+const FRONT = "M16 304a192 192 0 1 0 384 0a192 192 0 1 0 -384 0Z";
 
 describe("markIcon", () => {
-  it("is brand's square-w: a 12% radius tile and a solid white w in its bottom-left", () => {
+  it("is brand's eclipse, on brand's 512 square with no tile", () => {
     const s = svg(false);
-    expect(s).toContain('viewBox="0 0 32 32"');
-    expect(s).toMatch(/<rect width="32" height="32" rx="3.81" fill="url\(#g\)"\/>/); // 61/512 of 32
-    const d = s.match(/<path d="([^"]+)" fill="#fff"\/>/)![1];
-    expect(s).not.toContain("stroke");
-    // brand's "w", scaled from 512 to 32
-    expect(d).toBe("M6.15 27.52 4.48 17.75H6.52L7.76 26.15H8.07L9.77 17.75H13.08L14.77 26.15H15.09L16.32 17.75H18.36L16.7 27.52H13.27L11.58 19.12H11.26L9.57 27.52Z");
-    const ps = points(d);
-    expect(Math.min(...ps.map((p) => p[0]))).toBeCloseTo(4.48, 2); // 14% in from the left
-    expect(Math.max(...ps.map((p) => p[1]))).toBeCloseTo(27.52, 2); // and from the bottom
+    expect(s).toContain('viewBox="0 0 512 512"');
+    expect(s).not.toContain("<rect");
+    expect(s).toContain(`<path d="${BEHIND}" class="g"/>`);
+    expect(s).toContain(`<path d="${FRONT}" class="i"/>`);
+    expect(s.indexOf(BEHIND)).toBeLessThan(s.indexOf(FRONT)); // the front disc is drawn over
   });
 
-  it("runs the accent's three stops on brand's diagonal", () => {
-    expect(svg(false)).toContain(
-      '<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#111111"/><stop offset="0.62" stop-color="#222222"/><stop offset="1" stop-color="#333333"/></linearGradient>',
+  it("runs the accent's light run behind on a light tab bar, and its dark run on a dark one", () => {
+    const s = svg(false);
+    expect(s).toContain(
+      '<linearGradient id="l" x1="112" y1="0" x2="496" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#111111"/><stop offset="0.62" stop-color="#222222"/><stop offset="1" stop-color="#333333"/></linearGradient>',
     );
+    expect(s).toContain(
+      '<linearGradient id="d" x1="112" y1="0" x2="496" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#aaaaaa"/><stop offset="0.55" stop-color="#bbbbbb"/><stop offset="0.78" stop-color="#cccccc"/><stop offset="1" stop-color="#dddddd"/></linearGradient>',
+    );
+    expect(s).toContain(".g{fill:url(#l)}");
+    expect(s).toMatch(/@media \(prefers-color-scheme:dark\)\{\.g\{fill:url\(#d\)\}/);
   });
 
-  it("draws the amber dot only when asked, clear of the w", () => {
-    expect(svg(false)).not.toContain("<circle");
+  it("keeps the disc in front darker than the light behind: the ink on light, the dark run's first step dimmed on dark", () => {
+    const s = svg(false);
+    expect(s).toContain(".i{fill:#0d0b1e;fill-opacity:0.8}");
+    expect(s).toContain(".i{fill:#aaaaaa;fill-opacity:0.45}");
+  });
+
+  it("is lit while something needs you: the light behind turns amber, in either theme", () => {
+    expect(svg(false)).not.toContain("#f0a020");
     const s = svg(true);
-    const [, cx, cy, r, sw] = s.match(/<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)" fill="#f0a020" stroke="#fff" stroke-width="([\d.]+)"\/>/)!.map(Number);
-    const d = s.match(/<path d="([^"]+)"/)![1];
-    const ps = points(d);
-    const outer = r + sw / 2;
-    // the dot's outer edge is above and right of the "w"'s bounds
-    expect(cy + outer).toBeLessThan(Math.min(...ps.map((p) => p[1])));
-    expect(cx - outer).toBeGreaterThan(Math.min(...ps.map((p) => p[0])));
+    expect(s).toContain(`<path d="${BEHIND}" fill="#f0a020"/>`);
+    expect(s).not.toContain('class="g"');
+    expect(s).toContain(`<path d="${FRONT}" class="i"/>`);
   });
 });

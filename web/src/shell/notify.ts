@@ -13,43 +13,49 @@ export interface Waiting {
 }
 
 // markIcon is ws's mark, as the tab's icon and a notification's: brand's
-// square-w (brand:svg/square-w.svg), a tile with a 12% corner radius and a
-// solid white "w" in its bottom-left, drawn in the accent's run as the page
-// draws it (foundations.css's --brand-1..3, the same in either theme) on brand's
-// diagonal, with an amber dot top-right, clear of the "w", when something
-// needs you. It's built from the page because an icon is drawn outside it,
-// where its styles don't reach; the white and the amber are the icon's own,
-// whatever the accent.
-export function markIcon(dot: boolean): string {
-  const [a, b, c] = ["--brand-1", "--brand-2", "--brand-3"].map(shownAs);
+// eclipse (brand:svg/mark.svg), with no tile. The light behind is the
+// wordmark's run, a disc in front of it is the ink, and the icon follows the
+// browser's theme as brand's does, so it suits the tab bar it sits in: on a
+// light one the run is --brand-1..3 and the disc is the ink at 80%, on a dark
+// one the run is --brand-on-dark-1..4 and the disc is that run's first step,
+// dimmed, so the light behind is always the brighter. While something needs
+// you it is lit: the light behind turns amber (brand:svg/mark-lit.svg). It's
+// built from the page because an icon is drawn outside it, where its styles
+// don't reach; the ink and the amber are the icon's own, whatever the accent.
+export function markIcon(lit: boolean): string {
+  const light = ["--brand-1", "--brand-2", "--brand-3"].map(shownAs);
+  const dark = ["--brand-on-dark-1", "--brand-on-dark-2", "--brand-on-dark-3", "--brand-on-dark-4"].map(shownAs);
+  const run = (id: string, colours: string[], offsets: number[]) =>
+    `<linearGradient id="${id}" x1="${RUN[0]}" y1="0" x2="${RUN[1]}" y2="0" gradientUnits="userSpaceOnUse">` +
+    colours.map((c, i) => `<stop offset="${offsets[i]}" stop-color="${c}"/>`).join("") +
+    `</linearGradient>`;
+  const style =
+    `.g{fill:url(#l)}.i{fill:${INK};fill-opacity:0.8}` +
+    `@media (prefers-color-scheme:dark){.g{fill:url(#d)}.i{fill:${dark[0]};fill-opacity:0.45}}`;
   return (
     "data:image/svg+xml," +
     encodeURIComponent(
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ICON} ${ICON}"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="0.62" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs><rect width="${ICON}" height="${ICON}" rx="${scaled(BRAND_RX)}" fill="url(#g)"/><path d="${W}" fill="#fff"/>` +
-        (dot ? `<circle cx="26" cy="6" r="6" fill="#f0a020" stroke="#fff" stroke-width="2"/>` : "") +
-        `</svg>`,
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><style>${style}</style>` +
+        run("l", light, [0, 0.62, 1]) +
+        run("d", dark, [0, 0.55, 0.78, 1]) +
+        `</defs>` +
+        (lit ? `<path d="${BEHIND}" fill="${NEEDS}"/>` : `<path d="${BEHIND}" class="g"/>`) +
+        `<path d="${FRONT}" class="i"/></svg>`,
     )
   );
 }
 
-// square-w's geometry as brand draws it, on its 512 tile: the corner radius
-// and the "w" outline (padded 14% in from the bottom-left), copied from
-// brand:svg/square-w.svg. markIcon draws them scaled to its own tile.
-const BRAND_TILE = 512;
-const BRAND_RX = 61;
-const BRAND_W =
-  "M98.34465 440.32 71.68 283.98072249999996H104.36093625000001L124.10530125000001 418.33693125H129.15264375L156.245675 283.98072249999996H209.25893000000002L236.35196125 418.33693125H241.39930375L261.14366875 283.98072249999996H293.824605L267.159955 440.32H212.36900500000002L185.27597375 305.96379125H180.22863125L153.1356 440.32Z";
-const ICON = 32;
-
-// scaled is a length on brand's tile on the icon's, to a hundredth.
-const scaled = (n: number) => String(Math.round((n * ICON * 100) / BRAND_TILE) / 100);
-
-// The "w" is all straight lines (M, L, H, Z), so scaling it is scaling
-// every number in it.
-const W = BRAND_W.replace(/\d+(\.\d+)?/g, (n) => scaled(Number(n)));
+// The eclipse as brand draws it, on its 512 square (brand:svg/mark.svg): what
+// shows of the disc behind, the disc in front, and where the run starts and
+// ends across them.
+const BEHIND = "M155.56 86.23A192 192 0 1 1 425.77 356.44A224 224 0 0 0 155.56 86.23Z";
+const FRONT = "M16 304a192 192 0 1 0 384 0a192 192 0 1 0 -384 0Z";
+const RUN = [112, 496];
+const INK = "#0d0b1e";
+const NEEDS = "#f0a020";
 
 // useFaviconBadge keeps the tab's icon the mark, in the accent as it is
-// now, with the dot while something needs you.
+// now, lit while something needs you.
 export function useFaviconBadge(on: boolean) {
   const accent = useAccent();
   useEffect(() => {
