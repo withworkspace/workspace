@@ -34,8 +34,21 @@ func (a Accepted) String() string {
 // and you; refused while the stage's crew are still on it, a review of its
 // capsules asks for changes, or a change asked for on one of its documents
 // is open. A step of the plan that's yours (a checkpoint) only you pass.
-// Then ws moves the plan on (see afterAccept). why may be empty.
+// Then ws moves the plan on (see afterAccept). why may be empty. What you
+// say as you pass a Wait (the version tagged, where it was deployed) is
+// kept as a decision too: the crew after are told those.
 func (w *Workspace) AcceptStage(slug string, by Actor, why string) (Accepted, error) {
+	why = strings.TrimSpace(why)
+	_, wait, atWait := w.waitAt(slug)
+	acc, err := w.acceptStage(slug, by, why)
+	if err == nil && atWait && by.IsYou() && why != "" {
+		w.waitNote(slug, wait, by, why)
+	}
+	return acc, err
+}
+
+// acceptStage is AcceptStage, for a why that's ws's own words.
+func (w *Workspace) acceptStage(slug string, by Actor, why string) (Accepted, error) {
 	if by.Kind != You && by.Kind != Orchestrator {
 		return Accepted{}, refused("not-yours", "crew report done (ws mission done); the orchestrator or the user accepts the stage")
 	}
@@ -94,6 +107,12 @@ func orchestratorMayAccept(store mission.Store, m *mission.Mission) error {
 	}
 	if cur.Step.Type == mission.StepVerify {
 		return refused("verify", "step %d is a Verify step: ws passes it on its verifier's bundle, once nothing in it is unmet, and sends the work back to its crew when something is. There's nothing for you to accept: note what it waits on, or flag the user", cur.N)
+	}
+	if cur.Step.WaitOnYou() {
+		return refused("checkpoint", "step %d waits on the user, for something they do themselves: only they say it's done (ws has asked them). There's nothing for you to do until they have: note that it waits for them", cur.N)
+	}
+	if cur.Step.Watched() && !cur.Watch().Met() {
+		return refused("watched", "step %d is watched: ws runs its check (%s) every few minutes, and passes the step once it's met (%s). There's nothing for you to accept: note what it waits on", cur.N, waitCommands(cur), firstNonEmpty(cur.Watch().Summary(), "it hasn't looked yet"))
 	}
 	switch cur.Step.Who {
 	case mission.WhoYou:
@@ -197,8 +216,9 @@ func (w *Workspace) afterAccept(slug string, acc mission.StageState, states []mi
 // kind (steps.go): crew are started on Work; you're asked at Review,
 // Decide and Land; the planner is asked to write the steps after its own,
 // and ws passes it once it has; ws opens an Open Pull Request step's pull
-// request, and passes the step when it merges; a Wait is waited for, and
-// the orchestrator passes it once it's happened. It says what it did.
+// request, and passes the step when it merges; a Wait is yours to do, or
+// waited for, and watched where it has checks (waits.go). It says what it
+// did.
 func (w *Workspace) reachStep(m *mission.Mission, acc, next mission.StageState) string {
 	if next.Step == nil {
 		return w.startStage(m, next)
@@ -230,7 +250,7 @@ func (w *Workspace) reachStep(m *mission.Mission, acc, next mission.StageState) 
 		}
 		return fmt.Sprintf("step %d is the planner's, which couldn't be asked: the user is asked to write the steps after it and go on", next.N)
 	case mission.StepWait:
-		return fmt.Sprintf("step %d is %s (%s): it's waited for, and accepted once it's happened", next.N, next.Step.Whose(), next.Step.WhoSays())
+		return w.reachWait(m, done, next)
 	case mission.StepOpenPR:
 		return w.openPRStep(m, next, done)
 	}
@@ -402,6 +422,8 @@ func (w *Workspace) routeWarnings(m *mission.Mission, route []mission.Stage, cha
 			r, ok := w.WS().ResolveAlias(repo)
 			switch {
 			case !ok || named && have[r+"/"+name]:
+			case !named && st.Step != nil && st.Step.Type == mission.StepWait:
+				// A Wait's checks run in the repo's ground, with no capsule there.
 			case !named && st.Step != nil && st.Step.Type == mission.StepWork:
 				worked[r] = true // ws lifts one when the step starts
 			case !named && (worked[r] || slices.ContainsFunc(m.Capsules, func(c mission.Capsule) bool { return c.Repo == r })):
@@ -489,6 +511,11 @@ func (w *Workspace) AnswerTask(slug string, n int, by Actor, text string) (Answe
 			return out, err
 		}
 	}
+	if t.Step > 0 && t.Verb == mission.TaskDo {
+		if out, ok, err := w.answerWait(m, t, by, text); ok || err != nil {
+			return out, err
+		}
+	}
 	if t.Step > 0 && (t.Verb == mission.TaskChecks || t.Verb == mission.TaskTime) {
 		if out, ok, err := w.answerAtWork(m, t, by, text); ok || err != nil {
 			return out, err
@@ -539,7 +566,7 @@ func (w *Workspace) AnswerTask(slug string, n int, by Actor, text string) (Answe
 		}
 		if cur.Step != nil && cur.N == t.Step && (cur.Step.Who == mission.WhoYou || cur.Step.Who == mission.WhoPlanner) {
 			// Going on at a checkpoint (or the planner's step) passes it.
-			acc, err := w.AcceptStage(m.Slug, AsYou, "the user went on")
+			acc, err := w.acceptStage(m.Slug, AsYou, "the user went on")
 			if err != nil {
 				return Answered{}, err
 			}

@@ -32,6 +32,7 @@ const byKind: Record<string, Omit<StatusInfo, "words"> & { words?: string }> = {
   flag: { icon: "question", tone: "attention", words: "Asks you" },
   "re-review": { icon: "rotate", tone: "attention", words: "Re-review" },
   "step-review": { icon: "eye", tone: "attention", words: "Review" },
+  "to-do": { icon: "user", tone: "attention", words: "To do" },
   replies: { icon: "reply", tone: "attention", words: "Replies" },
   "brief-talk": { icon: "reply", tone: "attention" },
   queued: { icon: "play", tone: "attention", words: "Next crew" },

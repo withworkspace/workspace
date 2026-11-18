@@ -231,6 +231,9 @@ func (w *Workspace) RevisePlan(slug, id, text string) (Revised, error) {
 	if err != nil {
 		return Revised{}, err
 	}
+	if err := waitsSaid(p, w.fixedSteps(m)); err != nil {
+		return Revised{}, err
+	}
 	brief, _ := w.Missions.ReadBrief(m.Slug)
 	states, _ := m.StageProgress(brief)
 	rev := mission.Revise(m.Plan, p, states)

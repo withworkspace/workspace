@@ -197,7 +197,7 @@ func TestSnapshotPosition(t *testing.T) {
 			want: "Step 2 of 3, yours: Is this the cause?"},
 		{name: "outside", state: Active, m: Mission{Plan: plan,
 			Stages: []StageRecord{{Text: "Reproduce it as a failing test.", N: 1, Of: 3, Accepted: ago(time.Hour)}, {Text: "Is this the cause?", N: 2, Of: 3, Accepted: ago(time.Hour)}}},
-			want: "Step 3 of 3, waiting on outside: a teammate: Merged"},
+			want: "Step 3 of 3, waiting on a teammate: Merged"},
 		{name: "every step done", state: Active, m: Mission{Plan: plan,
 			Stages: []StageRecord{{Text: "Reproduce it as a failing test.", N: 1, Of: 3, Accepted: ago(time.Hour)}, {Text: "Is this the cause?", N: 2, Of: 3, Accepted: ago(time.Hour)}, {Text: "Merged.", N: 3, Of: 3, Accepted: ago(time.Hour)}}},
 			want: "Every step done: at Z, if what Z says is true"},

@@ -313,8 +313,12 @@ answers them too). A question the orchestrator asked: your answer goes in
 the log as a decision, and the orchestrator runs again with it. A step of
 yours: "Go on" passes it, "Not yet" leaves it yours, and anything else
 goes to the orchestrator, the step staying yours; a Decide step's answer
-is the decision, and passes it. Crew you asked to answer a question (Ask
-an agent) answer the same way, and that's their part done.`,
+is the decision, and passes it. A Wait on you, something you do yourself:
+"Done" marks it done, alone or with what you did after it ("Done: tagged
+v1.4.0"), which is kept as a decision for the crew after; where the step
+has a check, ws looks first, and it stays yours until the look shows it,
+or you answer "Pass it". Crew you asked to answer a question (Ask an
+agent) answer the same way, and that's their part done.`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := loadOps()

@@ -73,7 +73,7 @@ export type HeadlineGroup = "needs-you" | "in-progress" | "waiting" | "up-next" 
 // HeadlineAction is what moves a headline on; verb "" (absent) is nothing
 // to do.
 export interface HeadlineAction {
-  verb?: string; // reply, permission, watch, answer, review, review-doc, review-step, launch, launch-queued, resume, accept, open, merge, archive, brief, confirm, unpark, log
+  verb?: string; // reply, permission, watch, answer, review, review-doc, review-step, launch, launch-queued, resume, accept, wait, open, merge, archive, brief, confirm, unpark, log
   label: string;
   target?: string; // crew id, capsule, a document's ref (review-doc: its threads), PR, or a task (answer, review-step)
   url?: string;
@@ -685,6 +685,22 @@ export interface Stage {
   skipped?: boolean;
   attempts?: number;
   runs?: StageRun[];
+  // A Wait step's expansion: who it waits on (you, or who or what, in the
+  // plan's words; absent when it doesn't say), and how it's passed:
+  // watched (ws runs its checks, and passes it), done (you mark it done)
+  // or said (anyone says it's happened). watch is since when it's waited,
+  // and ws's last look at its checks, whose results are on checks.
+  on?: string;
+  passes?: "watched" | "done" | "said";
+  watch?: StageWatch;
+}
+
+// StageWatch is a Wait step being waited for.
+export interface StageWatch {
+  since: string;
+  looked?: string; // when ws last ran its checks
+  looks?: number;
+  came?: string; // what that look came to: met, not yet, ws couldn't tell
 }
 
 // StageRun is one of a step's runs, in one repo.
@@ -1155,6 +1171,7 @@ export type ActVerb =
   | "dismiss"
   | "ask-agent"
   | "accept"
+  | "look"
   | "archive"
   | "unarchive"
   | "park"
@@ -1182,7 +1199,7 @@ export type ActVerb =
 // step of its route that's yours (to review, answer, land, or go on from).
 export interface MissionTask {
   n: number;
-  verb: "answer" | "review" | "approve" | "land" | "checks" | "time" | "reply";
+  verb: "answer" | "review" | "approve" | "land" | "do" | "checks" | "time" | "reply";
   text: string;
   step?: number;
   options?: string[];

@@ -77,7 +77,7 @@ func TestSetPlan(t *testing.T) {
 
 // A mission with a plan moves along its steps: ws starts crew on crew's,
 // asks you at yours (a checkpoint, which only you pass), and waits on
-// outside's, which the orchestrator accepts once it's happened.
+// outside's, which is passed when someone says it's happened.
 func TestPlanSteps(t *testing.T) {
 	w, runs := fixture(t, "## Goal\nCache it.\n\n## Stages\n1. Not these.\n", "one", "two")
 	w.Missions.WritePlan("cache", strings.Replace(cachePlan, ` "Features are explored"`, "", 1))
@@ -117,7 +117,7 @@ func TestPlanSteps(t *testing.T) {
 	// Step 3 done: step 4 is waited for, and accepted once it's happened.
 	w.Missions.SetCrewStatus("cache", "c1", mission.CrewDone, "built it")
 	acc, err = w.AcceptStage("cache", AsOrchestrator, "built")
-	if err != nil || !strings.Contains(acc.Next, "step 4 is outside ws's (outside: a teammate's review): it's waited for") {
+	if err != nil || !strings.Contains(acc.Next, "step 4 waits on a teammate's review, and nobody's watching for it: it's passed when someone says it's happened") {
 		t.Fatalf("accept 3: %s, %v", acc, err)
 	}
 	if m, _ := w.Missions.Load("cache"); m.Asking() != nil {

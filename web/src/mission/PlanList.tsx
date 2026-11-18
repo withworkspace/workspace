@@ -6,7 +6,7 @@ import { Inline } from "../ui/inline";
 import { crewStatus } from "../ui/status";
 import { duration, stamp } from "../ui/time";
 import { CrewBadge, crewHue, MissionData, StepChecks, StepLimit, StepRuns } from "./parts";
-import { checksUnmet, foldNote, passedUnmet, planWindow, stepBundle, stepKind, stepText, stepTimes, stepYours, type StepTime, worthOpening } from "./planRows";
+import { checksUnmet, foldNote, passedUnmet, planWindow, stepBundle, stepKind, stepText, stepTimes, stepYours, type StepTime, waitHow, type WaitHow, watchWords, worthOpening } from "./planRows";
 
 // PlanList is the mission's plan (or its brief's stages) in its details: a
 // row a step, with how it stands, its number and name, and its kind at
@@ -112,6 +112,7 @@ type CardProps = {
 // time run out), or it's the one the plan is on and worth opening.
 function StepRow({ s, d, card }: { s: Stage; d?: MissionDetail; card: CardProps }) {
   const kind = stepKind(s);
+  const how = waitHow(s);
   const current = s.state === "current";
   const opened = current && worthOpening(s);
   const yours = current && (stepYours(s) || s.held);
@@ -142,7 +143,7 @@ function StepRow({ s, d, card }: { s: Stage; d?: MissionDetail; card: CardProps 
         {opened && <StepNow s={s} d={d} />}
       </span>
       {kind && !opened && (
-        <span className="step-kind" title={kind[1]}>
+        <span className="step-kind" title={how && s.state !== "accepted" ? `${kind[1]} · ${how.word.toLowerCase()}: ${how.says}` : kind[1]}>
           <Icon name={kind[0]} size={12} />
         </span>
       )}
@@ -156,15 +157,17 @@ function StepRow({ s, d, card }: { s: Stage; d?: MissionDetail; card: CardProps 
 function StepNow({ s, d }: { s: Stage; d?: MissionDetail }) {
   const kind = stepKind(s);
   const checks = s.checks ?? [];
+  const how = waitHow(s);
   return (
     <div className="plan-now">
       {kind && (
         <div className="plan-line">
           <Icon name={kind[0]} size={12} />
           <strong>{kind[1]}</strong>
-          {s.whoSays && <Inline text={s.whoSays} />}
+          {how ? s.on && s.on !== "you" && <Inline text={`on ${s.on}`} /> : s.whoSays && <Inline text={s.whoSays} />}
         </div>
       )}
+      {how && <WaitLine how={how} />}
       {s.makes && (
         <div className="plan-makes">
           Makes <Inline text={s.makes} />
@@ -185,7 +188,7 @@ function StepNow({ s, d }: { s: Stage; d?: MissionDetail }) {
       )}
       {(stepYours(s) || s.held) && (
         <div className="plan-line plan-yours">
-          <Icon name="user" size={12} /> Yours: only you pass it
+          <Icon name="user" size={12} /> {how ? "Yours to do" : "Yours: only you pass it"}
         </div>
       )}
       {!!s.carryOn && (
@@ -229,8 +232,22 @@ function StepNow({ s, d }: { s: Stage; d?: MissionDetail }) {
   );
 }
 
+const upperFirst = (t: string) => (t.startsWith("ws ") ? t : t[0].toUpperCase() + t.slice(1));
+
+// WaitLine says how a Wait is passed: watched by ws, or not at all.
+function WaitLine({ how }: { how: WaitHow }) {
+  return (
+    <div className="plan-line plan-wait-how">
+      <span className={`chip ${how.auto ? "tone-progress" : "tone-attention"}`}>{how.word}</span>
+      <span>{how.says}</span>
+    </div>
+  );
+}
+
 const checksWords = (s: Stage) => {
   const checks = s.checks ?? [];
+  // A Wait's checks aren't run in rounds: ws looks, every so often.
+  if (s.type === "Wait") return s.state === "accepted" ? (checks.length === 1 ? "Its check, as ws last saw it" : "Its checks, as ws last saw them") : upperFirst(watchWords(s, (iso) => stamp(iso)));
   if (!s.round) return `${checks.length} ${checks.length === 1 ? "check" : "checks"}, not run yet`;
   return `Checks, round ${s.round}: ${checks.filter((c) => c.result === "met").length} of ${checks.length} met`;
 };
@@ -293,9 +310,19 @@ function StepCard({ s, of, d, time }: { s: Stage; of: number; d?: MissionDetail;
     );
   const rows: [string, React.ReactNode][] = [];
   const row = (label: string, value: React.ReactNode) => value && rows.push([label, value]);
+  const how = waitHow(s);
+  row("Waits on", how && (s.on === "you" ? "you: it's yours to do" : s.on ? <Inline text={s.on} /> : "something outside ws"));
+  row(
+    "Passed by",
+    how && s.state !== "accepted" && (
+      <>
+        <span className={`chip ${how.auto ? "tone-progress" : "tone-attention"}`}>{how.word}</span> {how.says}
+      </>
+    ),
+  );
   row(
     "Who",
-    (s.whoSays || s.who || !!s.crew?.length) && (
+    !how && (s.whoSays || s.who || !!s.crew?.length) && (
       <>
         {(s.whoSays || s.who) && <Inline text={s.whoSays || s.who || ""} />}{" "}
         {s.crew?.map((id) => (

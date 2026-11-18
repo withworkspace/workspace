@@ -68,13 +68,33 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Crew: []string{"c1"}, Accepted: ago(time.Minute)}}
 			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
-		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, text: "Step 2 waits on outside: a teammate's merge: Merged."},
+		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbWait, text: "Step 2 waits on a teammate's merge: Merged. Nobody's watching for it: mark it done when it's happened"},
 		{name: "at an outside step, every PR merged", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Crew: []string{"c1"}, Accepted: ago(time.Minute)}}
 			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
 			s.CapsulesLanded = true
-		}, court: CourtYou, kind: KindAccept, group: GroupNeedsYou, verb: VerbAccept, text: "Every pull request has merged"},
+		}, court: CourtYou, kind: KindAccept, group: GroupNeedsYou, verb: VerbWait, text: "Every pull request has merged"},
+		// A Wait says how it ends: who it's on, and whether ws watches for it.
+		{name: "a wait nobody's watching, a day on", state: Active, edit: func(s *Snapshot) {
+			s.M.Plan, _ = ParsePlan(planWithWait("   - on: the platform team\n"), nil)
+			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(50 * time.Hour)}, {Text: "**Deploy.** The token service is deployed.", N: 2, Of: 2, Watch: &Watch{Since: *ago(50 * time.Hour)}}}
+		}, court: CourtYou, kind: KindAccept, group: GroupNeedsYou, verb: VerbWait, text: "Step 2 has waited 2 days on the platform team: Deploy. The token service is deployed. Nobody's watching for it: has it happened?"},
+		{name: "a wait ws watches", state: Active, edit: func(s *Snapshot) {
+			s.M.Plan, _ = ParsePlan(planWithWait("   - on: npm\n   - check: `npm view pkg@1.0.0 version` passes\n"), nil)
+			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(50 * time.Hour)}, {Text: "**Deploy.** The token service is deployed.", N: 2, Of: 2,
+				Watch: &Watch{Since: *ago(50 * time.Hour), Looked: ago(2 * time.Minute), Looks: 9, Results: []CheckResult{{Check: "`npm view pkg@1.0.0 version` passes", Result: CheckUnmet}}}}}
+			s.CapsulesLanded = true // watched, it isn't asked of you however long it waits
+		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbWait, text: "Step 2 waits on npm: Deploy. The token service is deployed. ws is watching for it (`npm view pkg@1.0.0 version`), and passes the step once it's happened; it last looked 2m ago: not yet"},
+		{name: "a wait on you, asked", state: Active, edit: func(s *Snapshot) {
+			s.M.Plan, _ = ParsePlan(planWithWait("   - on: you\n"), nil)
+			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(time.Minute)}}
+			s.M.Tasks = []Task{{N: 1, Verb: TaskDo, Step: 2, Text: "Step 2 is yours, to do: Deploy.", Options: []string{WaitDone}, By: "ws", At: now}}
+		}, court: CourtYou, kind: KindToDo, group: GroupNeedsYou, verb: VerbAnswer, target: "1", text: "Step 2 is yours, to do: Deploy."},
+		{name: "a wait on you, nothing asking", state: Active, edit: func(s *Snapshot) {
+			s.M.Plan, _ = ParsePlan(planWithWait("   - on: you\n"), nil)
+			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(time.Minute)}}
+		}, court: CourtYou, kind: KindToDo, group: GroupNeedsYou, verb: VerbAccept, text: "Step 2 is yours, to do: Deploy. The token service is deployed. Mark it done when you have"},
 		// Every step passed: at Z, if Z holds.
 		{name: "every step passed, nothing suggested", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
@@ -611,4 +631,10 @@ func TestResolve_OneAgentHeadlineAtATime(t *testing.T) {
 	if hs := Resolve(alone); len(hs) != 1 || hs[0].Kind != KindWorking {
 		t.Errorf("crew working, crew starting and the planner answering: %d headlines, the first %s; want working alone", len(hs), hs[0].Kind)
 	}
+}
+
+// planWithWait is a plan of a Work step and a Wait, with the Wait's
+// parameters as given.
+func planWithWait(params string) string {
+	return "## Z\n- Deployed.\n## Stops early\n- None.\n## Steps\n1. Work: Fix it.\n2. Wait: **Deploy.** The token service is deployed.\n" + params
 }

@@ -36,8 +36,8 @@ func (m *Mission) Looks(states []StageState, n int) []Look {
 	var steps []int
 	for i := n - 1; i >= 1 && i <= len(states); i-- {
 		st := states[i-1]
-		if st.Step != nil && (st.Step.Who == WhoYou || st.Step.Who == WhoPlanner) {
-			break
+		if st.Step != nil && (st.Step.Who == WhoYou || st.Step.Who == WhoPlanner) && st.Step.Type != StepWait {
+			break // your last look (a Wait on you is something you did, not a look)
 		}
 		steps = append(steps, st.N)
 	}

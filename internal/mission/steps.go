@@ -78,8 +78,8 @@ var Catalogue = []StepType{
 		About:  "the user lands the mission's capsule in a repo that has no pull requests (its commits go straight to its default branch). The step is done once it's landed.",
 		Params: []StepParam{paramIn, paramOnlyIf}},
 	{Name: StepWait, Who: WhoOutside, Words: WordsNeeded,
-		About:  "the mission waits on something outside ws: a deploy, a teammate's review, another team. Say what it waits for. It's passed once it's happened.",
-		Params: []StepParam{paramOnlyIf}},
+		About:  "the mission waits on something that happens outside it. Say what it waits for, and who it's on. On the user, for what they do themselves (cut a release tag, approve a publish, flip a setting): ws asks them, with what to do, and they mark it done. On anyone or anything else (a deploy, a teammate's review, another team): it waits. Nothing passes a Wait by itself unless it has a check: where a command can show it's happened, give one, and ws watches for it and passes the step; without one, nobody is watching, and it's passed when someone says it's happened.",
+		Params: []StepParam{paramWaitOn, paramWaitIn, paramWaitCheck, paramOnlyIf}},
 	{Name: StepPlan, Who: WhoPlanner, Words: WordsMay,
 		About:  "the planner writes the steps after this one, from what the steps before it made: for what can't be planned until they've run (the fix, once the cause is found).",
 		Params: []StepParam{paramOnlyIf}},
@@ -207,6 +207,33 @@ var (
 				return fmt.Sprintf("yours: %q is a command, which ws runs itself: a check that's the user's is in words", v)
 			}
 			c.Yours = true
+			st.Checks = append(st.Checks, c)
+			return ""
+		}}
+	paramWaitOn = StepParam{Key: "on", About: "who it waits on: you, for something the user does themselves; else who or what, in a few words (the platform team, npm, the nightly deploy)",
+		read: func(st *Step, v string) string {
+			v = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(v), "."))
+			switch strings.ToLower(v) {
+			case "you", "the user", "user", "me":
+				st.Who, st.Whom = WhoYou, ""
+			case "":
+				return "on: is empty: say who it waits on (you, or who or what in a few words)"
+			default:
+				st.Who, st.Whom = WhoOutside, v
+			}
+			return ""
+		}}
+	paramWaitIn = StepParam{Key: "in", About: "the repo its checks run in, in backticks (`api`): the mission's capsule there, or with none, the repo's ground. Without it they run in the workspace's root",
+		read: paramIn.read}
+	paramWaitCheck = StepParam{Key: "check", Many: true, About: "what shows it's happened: a command in backticks, then passes or fails (`gh release view v1.4.0` passes), a line each. ws runs them every few minutes while the mission waits, and passes the step once every one is met. Only a command: what takes judgement isn't a Wait's check. Leave it out when no command can show it",
+		read: func(st *Step, v string) string {
+			c, why := parseCheck(v)
+			if why != "" {
+				return why
+			}
+			if !c.Run() {
+				return fmt.Sprintf("check: %q is in words, and a Wait's check is a command ws runs to see whether it's happened (`gh release view v1.4.0` passes): give a command, or leave the check out and say what it waits for in the step", v)
+			}
 			st.Checks = append(st.Checks, c)
 			return ""
 		}}

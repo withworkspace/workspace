@@ -38,6 +38,7 @@ const (
 	KindProposed         Kind = "proposed"          // a conversation about it proposed something for you to confirm (crew, a decision, a mission…)
 	KindQueued           Kind = "queued"            // crew queued for you to launch
 	KindResume           Kind = "resume"            // the orchestrator suggests resuming crew
+	KindToDo             Kind = "to-do"             // a Wait step on you: something you do yourself, and mark done
 	KindReplied          Kind = "replied"           // crew finished its turn without asking or reporting done
 	KindChecksFailing    Kind = "checks-failing"    // a PR's checks are failing
 	KindChangesRequested Kind = "changes-requested" // a PR's review asks for changes
@@ -62,7 +63,7 @@ const (
 	// Outside.
 	KindChecksRunning  Kind = "checks-running"  // a PR's checks are running
 	KindAwaitingReview Kind = "awaiting-review" // a PR waits for review or a merge
-	KindWaitingOn      Kind = "waiting-on"      // waiting on something ws can't see (ws mission wait)
+	KindWaitingOn      Kind = "waiting-on"      // waiting on something outside: a Wait step (watched, or not), or what the orchestrator said (ws mission wait)
 
 	// Your court, for work not started, paused or finished.
 	KindLanded  Kind = "landed"   // every PR merged, every capsule landed: archive it
@@ -75,7 +76,7 @@ const (
 )
 
 var kindOrder = []Kind{
-	KindCrewAsks, KindPermission, KindFlag, KindReReview, KindStepReview, KindReplies, KindBriefTalk, KindProposed, KindQueued, KindResume, KindReplied,
+	KindCrewAsks, KindPermission, KindFlag, KindReReview, KindStepReview, KindToDo, KindReplies, KindBriefTalk, KindProposed, KindQueued, KindResume, KindReplied,
 	KindChecksFailing, KindChangesRequested, KindApprove, KindAccept, KindMerge, KindLand, KindWrapUp, KindStalled,
 	KindWorking, KindLaunching, KindOwnWork, KindAnswering, KindBriefing, KindChecking, KindDeciding,
 	KindChecksRunning, KindAwaitingReview, KindWaitingOn,
@@ -107,6 +108,7 @@ const (
 	VerbLaunchNext Verb = "launch-queued" // launch the queued crew
 	VerbResume     Verb = "resume"        // resume crew Target
 	VerbAccept     Verb = "accept"        // accept the current stage
+	VerbWait       Verb = "wait"          // a Wait step on someone else: mark it done (it's happened), or, watched, have ws look now
 	VerbOpen       Verb = "open"          // open URL (a PR)
 	VerbMerge      Verb = "merge"         // merge PR Target, at URL
 	VerbLand       Verb = "land"          // review capsule Target's commits, and land them (ws land)
@@ -530,6 +532,12 @@ func Resolve(s Snapshot) []Headline {
 			add(stepReviewHeadline(s, t.Step, t.Text, strconv.Itoa(t.N), firstNonEmpty(t.By, "ws"), t.At))
 			continue
 		}
+		if t.Verb == TaskDo && t.Step > 0 {
+			add(Headline{Court: CourtYou, Kind: KindToDo, Label: "→ to do", By: firstNonEmpty(t.By, "ws"), Since: t.At,
+				Text:   t.Text,
+				Action: Action{Verb: VerbAnswer, Label: "mark it done", Options: t.Options, Target: strconv.Itoa(t.N)}})
+			continue
+		}
 		flag := Headline{Court: CourtYou, Kind: KindFlag, Label: "! asks you", By: firstNonEmpty(t.By, "orchestrator"), Since: t.At,
 			Text:   flagWho(t.By) + ": " + t.Text,
 			Action: Action{Verb: VerbAnswer, Label: "answer", Options: t.Options, Target: strconv.Itoa(t.N)}}
@@ -893,21 +901,74 @@ func (s Snapshot) waitingStep() *StageState {
 	return &cur
 }
 
-// stepWaitHeadline is the plan at a step that's CI's or outside ws's: it
-// waits, in their court, until what it waits for looks to have happened
-// (every pull request merged, every capsule landed). Then passing it is
-// the orchestrator's, which a merge wakes; it's offered to you too, in
-// case it hasn't.
+// stepWaitHeadline is the plan at a step that waits on someone else (CI,
+// or anyone outside ws), and says how it ends, which is one of three:
+//
+//   - watched: it has checks, which ws runs every so often and passes the
+//     step on. Outside's court; you can have ws look now, or mark it done.
+//   - not watched: nobody's looking, and it's passed when someone says
+//     it's happened. Outside's court, with marking it done offered. It's
+//     yours once it looks to have happened (every pull request merged,
+//     every capsule landed), or has waited a while (StaleWait): to say
+//     whether it has.
 func (s Snapshot) stepWaitHeadline(st StageState) Headline {
 	who := waitsOn(*st.Step, "")
-	if s.CapsulesLanded {
-		return Headline{Court: CourtYou, Kind: KindAccept, Label: "✓ accept", By: fmt.Sprintf("step %d", st.N),
-			Text:   fmt.Sprintf("Step %d %s: %s Every pull request has merged, and every capsule landed: accept it, if that's what it waits for", st.N, who, sentenceOf(st.Plain())),
-			Action: Action{Verb: VerbAccept, Label: fmt.Sprintf("accept step %d", st.N)}}
+	what := sentenceOf(st.Plain())
+	by := fmt.Sprintf("step %d", st.N)
+	done := Action{Verb: VerbWait, Label: fmt.Sprintf("mark step %d done", st.N)}
+	var since time.Time
+	watch := st.Watch()
+	if watch != nil {
+		since = watch.Since
 	}
-	return Headline{Court: CourtOutside, Kind: KindWaitingOn, Label: "⧗ waiting", By: fmt.Sprintf("step %d", st.N),
-		Text:   fmt.Sprintf("Step %d %s: %s Nothing for you to do until it's happened", st.N, who, sentenceOf(st.Plain())),
-		Action: Action{Label: "nothing to do"}}
+	if st.Step.Watched() {
+		looked := "it hasn't looked yet"
+		if watch != nil && watch.Looked != nil {
+			looked = fmt.Sprintf("it last looked %s ago: %s", Elapsed(s.now().Sub(*watch.Looked)), watch.Summary())
+		}
+		return Headline{Court: CourtOutside, Kind: KindWaitingOn, Label: "⧗ watching", By: by, Since: since,
+			Text:   fmt.Sprintf("Step %d %s: %s ws is watching for it (%s), and passes the step once it's happened; %s", st.N, who, what, checkCommands(st.Step.Checks), looked),
+			Action: done}
+	}
+	if s.CapsulesLanded {
+		return Headline{Court: CourtYou, Kind: KindAccept, Label: "✓ accept", By: by, Since: since,
+			Text:   fmt.Sprintf("Step %d %s: %s Every pull request has merged, and every capsule landed: mark it done, if that's what it waits for", st.N, who, what),
+			Action: done}
+	}
+	if !since.IsZero() && s.now().Sub(since) >= StaleWait {
+		return Headline{Court: CourtYou, Kind: KindAccept, Label: "? happened", By: by, Since: since,
+			Text:   fmt.Sprintf("Step %d has waited %s%s: %s Nobody's watching for it: has it happened? Mark it done if it has", st.N, waitedFor(s.now().Sub(since)), strings.TrimPrefix(who, "waits"), what),
+			Action: done}
+	}
+	return Headline{Court: CourtOutside, Kind: KindWaitingOn, Label: "⧗ waiting", By: by, Since: since,
+		Text:   fmt.Sprintf("Step %d %s: %s Nobody's watching for it: mark it done when it's happened", st.N, who, what),
+		Action: done}
+}
+
+// checkCommands is a step's checks that are commands, as a sentence names
+// them: `gh release view v1.4.0`.
+func checkCommands(checks []Check) string {
+	var out []string
+	for _, c := range checks {
+		if c.Run() {
+			out = append(out, "`"+c.Command+"`")
+		}
+	}
+	return strings.Join(out, ", ")
+}
+
+// waitedFor is how long a step has waited, in whole days or hours: "2
+// days", "a day", "5 hours".
+func waitedFor(d time.Duration) string {
+	switch days, hours := int(d/(24*time.Hour)), int(d/time.Hour); {
+	case days > 1:
+		return fmt.Sprintf("%d days", days)
+	case days == 1:
+		return "a day"
+	case hours == 1:
+		return "an hour"
+	}
+	return fmt.Sprintf("%d hours", int(d/time.Hour))
 }
 
 // waitsOn is what a step that's CI's or outside ws's waits on, after
@@ -916,8 +977,11 @@ func waitsOn(st Step, verb string) string {
 	if verb == "" {
 		verb = "waits"
 	}
-	if st.Who == WhoOutside && st.Whom == "" && st.Type == StepWait {
+	switch {
+	case st.Who == WhoOutside && st.Whom == "" && st.Type == StepWait:
 		return verb
+	case st.Who == WhoOutside && st.Whom != "" && st.Type == StepWait:
+		return verb + " on " + st.Whom
 	}
 	return verb + " on " + st.WhoSays()
 }
@@ -1027,6 +1091,12 @@ func (s Snapshot) restingHeadline() Headline {
 		}
 		text := fmt.Sprintf("Step %d is yours: %s Go on when you're satisfied", st.N, strings.TrimSuffix(st.Plain(), "."))
 		action := Action{Verb: VerbAccept, Label: fmt.Sprintf("go on: pass step %d", st.N)}
+		if st.Step.WaitOnYou() {
+			// Something you do yourself, and nothing's asking you of it.
+			return Headline{Court: CourtYou, Kind: KindToDo, Label: "→ to do",
+				Text:   fmt.Sprintf("Step %d is yours, to do: %s Mark it done when you have", st.N, sentenceOf(st.Plain())),
+				Action: Action{Verb: VerbAccept, Label: fmt.Sprintf("mark step %d done", st.N)}}
+		}
 		if st.Step.Who == WhoPlanner {
 			// The planner had its turn and didn't write the steps after it
 			// (it asked something, or couldn't): it's yours to say more, or
