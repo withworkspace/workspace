@@ -31,6 +31,9 @@ func UseLocalDispatchHost(root string) func() {
 // callDone for the daemon's ACP sessions.
 var WatchHeld = watchHeldAt
 
+// WatchPRsLoop is the daemon's watch of the missions' pull requests.
+var WatchPRsLoop = watchPRsLoop
+
 // UseProcs stands procs in for the user's processes, which ws's hook
 // command reads for the process check, and returns a cleanup.
 func UseProcs(procs harness.Procs) func() {

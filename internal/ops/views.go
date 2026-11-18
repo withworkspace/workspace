@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -178,6 +179,20 @@ type PRCache struct {
 	// fetched counts the answers GitHub has given: a view that shows them
 	// has changed when it moves (Stamp).
 	fetched int64
+	// news is told when a page's fetch (Peek) comes back with something
+	// changed: the watcher acts on it then (News).
+	news chan struct{}
+}
+
+// News is told when GitHub's answer to a page's fetch isn't what the cache
+// held: a pull request merged, say. The daemon's watcher looks then, so
+// what a page shows is acted on at once and not at the watcher's next
+// look. One telling stands for any number not yet taken.
+func (c *PRCache) News() <-chan struct{} {
+	if c == nil {
+		return nil
+	}
+	return c.news
 }
 
 // Fetched counts the answers the cache has had from GitHub.
@@ -191,7 +206,7 @@ func (c *PRCache) Fetched() int64 {
 }
 
 func NewPRCache() *PRCache {
-	return &PRCache{at: map[string]time.Time{}, prs: PRIndex{}, fetching: map[string]bool{}}
+	return &PRCache{at: map[string]time.Time{}, prs: PRIndex{}, fetching: map[string]bool{}, news: make(chan struct{}, 1)}
 }
 
 // peek is the repos' PRs as last fetched, without waiting on GitHub: repos
@@ -215,11 +230,19 @@ func (c *PRCache) Peek(ws *workspace.Workspace, gh github.Client, repos []string
 			fresh := FetchPRs(ws, gh, stale)
 			c.mu.Lock()
 			defer c.mu.Unlock()
+			changed := false
 			for _, r := range stale {
+				changed = changed || !reflect.DeepEqual(c.prs[r], fresh[r])
 				c.prs[r], c.at[r] = fresh[r], time.Now()
 				delete(c.fetching, r)
 			}
 			c.fetched++
+			if changed {
+				select {
+				case c.news <- struct{}{}:
+				default: // the watcher's already been told
+				}
+			}
 		}()
 	}
 	return out
