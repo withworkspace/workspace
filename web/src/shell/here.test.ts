@@ -70,6 +70,20 @@ describe("where you are", () => {
     expect(hereAt("/x/other/issue/RAM-12", "", workspace, known)).toBeUndefined();
   });
 
+  it("is what a plugin's page said it shows beyond its address, over the address, if ws can read it", () => {
+    // An issue in a panel over the board: the address says nothing of it.
+    expect(hereAt("/x/jira/board", "", workspace, known, { plugin: "jira", name: "RAM-77" })).toMatchObject({ ref: "RAM-77", thing: { id: "RAM-77" } });
+    // Over the issue's own page, too: what's open in front is what's here.
+    expect(hereAt("/x/jira/issue/RAM-12", "", workspace, known, { plugin: "jira", name: "RAM-77" })?.ref).toBe("RAM-77");
+    // Any of ws's names: a mission.
+    expect(hereAt("/x/jira/board", "", workspace, known, { plugin: "jira", name: "cache" })).toMatchObject({ ref: "cache", id: "mission:cache", title: "Cache the sessions" });
+    // Said by another plugin's page, or not a name ws can read: the address.
+    expect(hereAt("/x/jira/issue/RAM-12", "", workspace, known, { plugin: "other", name: "RAM-77" })?.ref).toBe("RAM-12");
+    expect(hereAt("/x/jira/issue/RAM-12", "", workspace, known, { plugin: "jira", name: "a word" })?.ref).toBe("RAM-12");
+    // Only on that plugin's pages.
+    expect(hereAt("/missions/cache", "", workspace, known, { plugin: "jira", name: "RAM-77" })?.ref).toBe("cache");
+  });
+
   it("is nothing on a list, or a mission that's gone", () => {
     for (const p of ["/", "/documents", "/reviews", "/conversations", "/missions/gone"]) expect(hereAt(p, "", workspace, known)).toBeUndefined();
   });

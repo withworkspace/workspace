@@ -16,7 +16,7 @@ const vars = (value: string) => Object.fromEntries(TOKENS.map((t) => [tokenVar(t
 
 // A host that keeps what the page said, with a theme a test can change.
 function fakeWs(path = "/things/2?tab=links") {
-  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[] };
+  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[], heres: [] as (string | undefined)[] };
   let theme: V1.Theme = { scheme: "dark", vars: vars("dark") };
   // What ws finds: THING-<n>, wherever it's written, until a test says
   // otherwise.
@@ -35,6 +35,7 @@ function fakeWs(path = "/things/2?tab=links") {
       return texts.map(find);
     },
     dim: (on) => void said.dims.push(on),
+    here: (name) => void said.heres.push(name),
   };
   return { host, said, setTheme: (t: V1.Theme) => void (theme = t), setFind: (f: typeof find) => void (find = f) };
 }
@@ -245,6 +246,17 @@ describe("protocol 1's host", () => {
     session.close();
   });
 
+  it("hears what the app says it shows beyond its address, and none once it's taken off", async () => {
+    const { client, session, said } = await connected();
+    const panel = client.pushHere("THING-2");
+    await tick();
+    panel();
+    await tick();
+    expect(said.heres).toEqual(["THING-2", undefined]);
+    client.close();
+    session.close();
+  });
+
   it("passes on a key the page says was ws's, and drops what it doesn't know", async () => {
     const ws = fakeWs();
     const { port1, port2 } = new MessageChannel();
@@ -383,6 +395,8 @@ describe("listening for the frame", () => {
     watched[1].backdrop(true);
     frame.stop();
     expect(ws.said.dims).toEqual([true, false, true, false]);
+    // What either page said it showed is forgotten with it, as the dim is.
+    expect(ws.said.heres).toEqual([undefined, undefined]);
     expect(watched.map((w) => w.stopped)).toEqual([true, true]);
     first.close();
     second.close();

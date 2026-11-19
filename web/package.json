@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@withworkspace/ui-lib": "0.4.0",
+    "@withworkspace/ui-lib": "0.5.0",
     "@xterm/xterm": "6.0.0",
     "highlight.js": "11.12.0",
     "katex": "0.19.1",

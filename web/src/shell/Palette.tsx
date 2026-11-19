@@ -42,6 +42,7 @@ import {
 } from "./find";
 import type { Waiting } from "./notify";
 import { CodeText, CodeWhere } from "./CodeHitParts";
+import type { FrameHere } from "../plugins/here";
 import { around, hereAt, hereItems, keptAround, type Near, nearIds, nearItems } from "./here";
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
 import { PinButton, pinNameOf, useFocus } from "./focus";
@@ -87,6 +88,7 @@ export function Palette({
   pageRepo,
   path,
   search,
+  frameHere,
   onClose,
   onHelp,
 }: {
@@ -97,6 +99,7 @@ export function Palette({
   pageRepo?: string;
   path: string; // where Find was opened: what's around it shows first
   search: string;
+  frameHere?: FrameHere; // what a plugin's page said it shows beyond its address
   onClose: () => void;
   onHelp: () => void;
 }) {
@@ -244,7 +247,7 @@ export function Palette({
 
   // What the page is of, what can be done to it, and what's one link from
   // it: as last answered for it, at once, then as answered now.
-  const here = useMemo(() => hereAt(path, search, workspace, known), [path, search, workspace, known]);
+  const here = useMemo(() => hereAt(path, search, workspace, known, frameHere), [path, search, workspace, known, frameHere]);
   const [near, setNear] = useState<Near[]>(() => (here ? keptAround(here) : []));
   const hereKey = here && `${here.scope ?? ""}\n${here.ref}`;
   useEffect(() => {
