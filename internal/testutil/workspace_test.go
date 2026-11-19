@@ -72,7 +72,7 @@ func TestSetupWorkspace_ReposAreCopiesOfTheirOwn(t *testing.T) {
 	}
 	for _, dir := range dirs {
 		err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
-			if err != nil || d.IsDir() {
+			if err != nil || !d.Type().IsRegular() { // the records' socket is there too
 				return err
 			}
 			data, err := os.ReadFile(path)
