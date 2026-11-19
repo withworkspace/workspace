@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/withworkspace/workspace/internal/config"
+	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/ide"
 	"github.com/withworkspace/workspace/internal/ui"
 	"github.com/withworkspace/workspace/internal/workspace"
@@ -38,23 +39,26 @@ func newSyncCmd() *cobra.Command {
 			// Enable workspace git, pull, then disable
 			workspace.EnableWorkspaceGit(root)
 
+			oldHead := workspace.GitRevParse(root, "HEAD")
 			newCfg, pullErr := pullAndParse(root, configPath)
 			if pullErr != nil {
 				workspace.DisableWorkspaceGit(root)
 				return pullErr
 			}
+			files := changedFiles(root, oldHead)
 
 			workspace.DisableWorkspaceGit(root)
 
 			// Diff configs
 			diff := config.Diff(oldCfg, newCfg)
 
-			if diff.IsEmpty() {
+			if diff.IsEmpty() && len(files) == 0 {
 				fmt.Fprintln(ui.Stderr, "Already up to date.")
 				return nil
 			}
 
 			// Print summary
+			printFileChanges(files)
 			printDiffSummary(diff)
 
 			// Clone new repos
@@ -118,6 +122,68 @@ func pullAndParse(root, configPath string) (*config.Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// fileChange is a file in the workspace root that sync changed.
+type fileChange struct {
+	Path string
+	From string // where it was, for a rename
+	Verb string // added, updated, removed, renamed
+}
+
+// changedFiles is what the pull changed in the root's files since oldHead.
+// None when oldHead is unknown (an empty repo) or git can't say.
+func changedFiles(root, oldHead string) []fileChange {
+	if oldHead == "" {
+		return nil
+	}
+	return parseNameStatus(git.Lines(root, "diff", "--no-color", "--name-status", "-M", oldHead, "HEAD"))
+}
+
+// parseNameStatus reads git diff --name-status lines.
+func parseNameStatus(lines []string) []fileChange {
+	var out []fileChange
+	for _, l := range lines {
+		parts := strings.Split(l, "\t")
+		if len(parts) < 2 || parts[0] == "" {
+			continue
+		}
+		c := fileChange{Path: parts[len(parts)-1]}
+		switch parts[0][0] {
+		case 'A':
+			c.Verb = "added"
+		case 'D':
+			c.Verb = "removed"
+		case 'R':
+			c.Verb = "renamed"
+			if len(parts) == 3 {
+				c.From = parts[1]
+			}
+		case 'C':
+			c.Verb = "added"
+		default:
+			c.Verb = "updated"
+		}
+		out = append(out, c)
+	}
+	return out
+}
+
+func printFileChanges(files []fileChange) {
+	for _, f := range files {
+		mark := ui.Dim.Render("~")
+		switch f.Verb {
+		case "added":
+			mark = ui.Green.Render("+")
+		case "removed":
+			mark = ui.Orange.Render("-")
+		}
+		if f.Verb == "renamed" && f.From != "" {
+			fmt.Fprintf(ui.Stderr, "  %s %s renamed to %s\n", mark, f.From, f.Path)
+			continue
+		}
+		fmt.Fprintf(ui.Stderr, "  %s %s %s\n", mark, f.Path, f.Verb)
+	}
 }
 
 func printDiffSummary(diff config.ConfigDiff) {
