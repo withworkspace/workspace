@@ -1,0 +1,111 @@
+#!/usr/bin/env node
+// A stand-in for Claude Code, which the marketing seed puts first on its
+// try's PATH (scripts/seeds/marketing.sh): agents there are launched as
+// Claude Code's, so the web UI shows them as it shows real ones, and no
+// model is asked anything.
+//
+// Launched as crew (in a terminal), it waits to be closed: the seed does
+// crew's work, and says what their hooks would.
+//
+// Asked to answer without a terminal (-p: a conversation's turn, the
+// orchestrator's run), it plays a script, and prints what Claude Code
+// would have as it went (stream-json: internal/harness/stream.go reads
+// it). The scripts are in the try's .try/agent/, one a run:
+//
+//   w1-1.md                      conversation w1's first turn
+//   <mission>-orchestrator-2.md  the orchestrator's second run on a mission
+//
+// A script is the steps the agent takes, then what it says:
+//
+//   > read repos/records/.ground/proposals/csv-export.md
+//   > run ws mission new --propose "Late fees" --brief-file -
+//   | ## Goal
+//   | …
+//   Everything after the steps is its reply, as markdown.
+//
+// A read is shown and not acted on; a run is really run, from where the
+// agent stands and as it (so `ws … --propose` proposes in its
+// conversation), with the lines under it that start "| " as its input.
+// With no script for a run, the orchestrator notes that it had nothing to
+// decide, and a conversation says there's nobody here.
+const { spawnSync } = require("node:child_process");
+const { randomUUID } = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const all = process.argv.slice(2);
+const end = all.indexOf("--");
+const flags = end < 0 ? all : all.slice(0, end);
+
+if (flags.includes("-v") || flags.includes("--version")) {
+  console.log("0.0.0 (a stand-in: scripts/seeds/marketing.sh)");
+  process.exit(0);
+}
+
+if (!flags.includes("-p") && !flags.includes("--print")) {
+  console.log("A stand-in for Claude Code: no agent runs in this try (scripts/seeds/marketing.sh).");
+  setInterval(() => {}, 1 << 30);
+} else {
+  answer();
+}
+
+function answer() {
+  const scripts = path.join(__dirname, "..", "agent");
+  const env = process.env;
+  const orchestrator = env.WS_ROLE === "orchestrator";
+  const key = orchestrator ? `${env.WS_MISSION}-orchestrator` : [env.WS_MISSION, env.WS_CONVERSATION].filter(Boolean).join("-") || "run";
+
+  // Which of its runs this is: counted in a file beside the scripts.
+  const turns = path.join(scripts, ".turns");
+  fs.mkdirSync(turns, { recursive: true });
+  const counter = path.join(turns, key);
+  const turn = (fs.existsSync(counter) ? Number(fs.readFileSync(counter, "utf8")) : 0) + 1;
+  fs.writeFileSync(counter, String(turn));
+
+  const resumed = flags.indexOf("--resume");
+  const session = resumed >= 0 ? flags[resumed + 1] : randomUUID();
+  const say = (line) => console.log(JSON.stringify({ ...line, session_id: session }));
+  say({ type: "system", subtype: "init" });
+
+  const file = path.join(scripts, `${key}-${turn}.md`);
+  let script;
+  if (fs.existsSync(file)) script = fs.readFileSync(file, "utf8");
+  else if (orchestrator) script = '> run ws mission note "Orchestrator: nothing to decide here."\nNothing to decide.';
+  else script = "No agent runs in this try: scripts/seeds/marketing.sh stands in for Claude Code, and has nothing written for this.";
+
+  // The steps, then the reply.
+  const lines = script.split("\n");
+  let n = 0;
+  let failed = "";
+  while (lines[0]?.startsWith("> ")) {
+    const step = lines.shift();
+    const [kind, ...rest] = step.slice(2).split(" ");
+    const what = rest.join(" ");
+    const input = [];
+    while (lines[0]?.startsWith("|")) input.push(lines.shift().replace(/^\| ?/, ""));
+    const id = `toolu_${++n}`;
+    if (kind === "read") {
+      const where = path.resolve(what);
+      say({ type: "assistant", message: { content: [{ type: "tool_use", id, name: "Read", input: { file_path: where } }] } });
+      const text = fs.existsSync(where) ? fs.readFileSync(where, "utf8") : "";
+      say({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: id, content: text.slice(0, 2000) }] } });
+    } else if (kind === "run") {
+      say({ type: "assistant", message: { content: [{ type: "tool_use", id, name: "Bash", input: { command: what } }] } });
+      const r = spawnSync("sh", ["-c", what], { input: input.length ? input.join("\n") + "\n" : undefined, encoding: "utf8" });
+      const out = `${r.stdout ?? ""}${r.stderr ?? ""}`.trim();
+      const bad = r.status !== 0;
+      say({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: id, content: out.slice(0, 4000), is_error: bad }] } });
+      if (bad && !failed) failed = `${what}: ${out}`;
+    } else if (!failed) {
+      failed = `${path.basename(file)}: a step is "> read <file>" or "> run <command>", not "${step}"`;
+    }
+  }
+  const reply = lines.join("\n").trim();
+  if (failed) {
+    // The script is the seed's, so a step that fails is the seed's to put right.
+    say({ type: "result", subtype: "error_during_execution", is_error: true, result: `the stand-in's script failed at ${failed}` });
+    process.exit(1);
+  }
+  say({ type: "assistant", message: { content: [{ type: "text", text: reply }] } });
+  say({ type: "result", subtype: "success", is_error: false, result: reply });
+}

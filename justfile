@@ -38,3 +38,7 @@ test-workspace dir=(env_var('HOME') + "/Projects/ws-test"):
 # Try this build by hand: `just try up [seed...]` makes a fresh workspace in /tmp, running on this build, and says where; `just try down` stops and removes it (scripts/try.sh says the rest).
 try *args:
     @./scripts/try.sh {{args}}
+
+# Take the README's pictures again: a try seeded with marketing, in a headless Chrome, light and dark, into docs/assets/shots (scripts/shots.mjs says the rest).
+shots *args:
+    @node scripts/shots.mjs {{args}}
