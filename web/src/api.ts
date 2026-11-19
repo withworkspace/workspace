@@ -475,6 +475,7 @@ export interface Repo {
   capsules: string[];
   aliases?: string[]; // what else it's called, which names it in what's written
   branches?: Record<string, string>; // each capsule's branch
+  landing?: "pr" | "direct"; // how work lands in it: through a pull request, or straight to its default branch
 }
 
 // Worktree is a repo's ground (GROUND: its default branch, checked out) or

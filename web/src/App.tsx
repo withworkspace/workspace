@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Button as AriaButton, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from "react-router";
-import { type Connection, NotSignedIn, type Plugin, setSettings, shutDownDaemon, usePlugins, useWorkspace, type Workspace } from "./api";
+import { type Connection, NotSignedIn, type Plugin, setSettings, usePlugins, useWorkspace, type Workspace } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
 import { ComparePage, compareKeys } from "./artifacts/Compare";
 import { Explorer, explorerKeys } from "./files/Explorer";
@@ -19,7 +19,7 @@ import { useFrameDim } from "./plugins/dim";
 import { useFrameHere } from "./plugins/here";
 import { PluginPage, pluginIcon } from "./plugins/Plugin";
 import { RefsProvider } from "./refs/known";
-import { SettingsPage } from "./settings/Settings";
+import { SettingsPage, settingsKeys } from "./settings/Settings";
 import { pageKeys } from "./pages/Pages";
 import { DocsAddress, DocumentAt, LocalPageAt, OpenAddress, PageAddress } from "./documents/DocumentAt";
 import { Review, reviewKeys } from "./review/Review";
@@ -29,6 +29,7 @@ import { repoOfPage, scopePrefix } from "./shell/find";
 import { Palette } from "./shell/Palette";
 import { useFaviconBadge, useNotifications, type Waiting } from "./shell/notify";
 import { Arrange } from "./shell/Arrange";
+import { askShutDown } from "./shell/daemon";
 import { arrange, headed, type Arrangement, type Arranged, type Place, sameArrangement, saving } from "./shell/places";
 import { FocusKeys, FocusProvider, FocusSection } from "./shell/focus";
 import { noteVisit, visitAt } from "./shell/recent";
@@ -39,7 +40,7 @@ import { TeamPage, teamKeys } from "./team/Team";
 import { Icon, type IconName } from "./ui/Icon";
 import { Logotype } from "./ui/Logotype";
 import { plain } from "./ui/inline";
-import { confirm, Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useTitle } from "./ui/kit";
+import { Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useTitle } from "./ui/kit";
 import { headlineStatus, Status } from "./ui/status";
 import { type ThemeChoice, setTheme, useTheme } from "./ui/theme";
 import { duration } from "./ui/time";
@@ -198,7 +199,8 @@ export function App() {
                 <Route path="/missions/:slug/crew/:id" element={<CrewPage workspace={workspace} />} />
                 <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
                 <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/settings" element={<SettingsPage workspace={workspace} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
+                <Route path="/settings/:section" element={<SettingsPage workspace={workspace} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
                 <Route path="/docs" element={<DocsAddress />} />
                 <Route path="/files" element={<FilesPage workspace={workspace} />} />
                 <Route path="/files/:repo" element={<FilesPage workspace={workspace} />} />
@@ -286,21 +288,7 @@ function WorkspaceMenu({
   // sidebar's would.
   const counted = places.filter((p) => p.count);
   const { choice } = useTheme();
-  const shutDown = async () => {
-    const yes = await confirm({
-      title: "Shut down the daemon?",
-      body: "Every crew it holds is hung up, as ws daemon stop does, and this page closes with it. ws web starts it again.",
-      confirm: "Shut down",
-      danger: true,
-    });
-    if (!yes) return;
-    try {
-      await shutDownDaemon();
-      onClosed();
-    } catch (e) {
-      toast(`Couldn't shut the daemon down: ${humanError(String(e))}`, { tone: "danger" });
-    }
-  };
+  const shutDown = () => void askShutDown(onClosed);
   // data-field: keys typed in the menu are its own, not the page's (keys.ts).
   return (
     <MenuTrigger>
@@ -708,6 +696,7 @@ function helpKeys(path: string): [string, string][] {
   if (path.startsWith("/documents/")) return spaceKeys;
   if (path === "/reviews") return reviewsKeys;
   if (path === "/team") return teamKeys;
+  if (path === "/settings" || path.startsWith("/settings/")) return settingsKeys;
   if (path.startsWith("/reviews/")) return [...prReviewKeys, ...reviewKeys.filter(([k]) => k !== "esc"), ["esc", "Clear the selection, or back to Reviews"]];
   if (path.includes("/review/")) return [...reviewKeys.filter(([k]) => k !== "esc"), ["L", "Land it on the default branch (a repo with no pull requests)"], ...reviewKeys.filter(([k]) => k === "esc")];
   if (path.includes("/files/")) return explorerKeys;

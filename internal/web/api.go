@@ -816,6 +816,9 @@ type Repo struct {
 	Capsules  []string          `json:"capsules"`
 	Aliases   []string          `json:"aliases"`
 	Branches  map[string]string `json:"branches,omitempty"` // each capsule's branch
+	// Landing is how work lands in it: "pr", or "direct" (straight to its
+	// default branch).
+	Landing string `json:"landing,omitempty"`
 }
 
 // Worktree is a repo's ground (Name ".ground": its default branch,
