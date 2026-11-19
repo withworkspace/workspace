@@ -37,6 +37,7 @@ import { PassesSection, PassMarks, standingWords } from "./Passes";
 import { useReviewPasses } from "./usePasses";
 import { Checks, prHref, prStatus, useReviewsEvents } from "./Reviews";
 import { useLatest } from "../load";
+import { PagePin } from "../shell/focus";
 
 // A pull request's review: the page a capsule's review is, on commits
 // fetched into the repo's clone. A stack opens as one review, its layers
@@ -261,6 +262,7 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
     side: d.stack ? <LayerList d={d} whole={whole} search={viewQ} onWhole={toggleWhole} /> : undefined,
     actions: (
       <>
+        <PagePin r={{ kind: "pr", repo: pr.repo, number: pr.number }} />
         <button
           className="ghost small desktop-only"
           onClick={dock}

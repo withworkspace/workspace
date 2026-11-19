@@ -29,7 +29,7 @@ import { Palette } from "./shell/Palette";
 import { useFaviconBadge, useNotifications, type Waiting } from "./shell/notify";
 import { Arrange } from "./shell/Arrange";
 import { arrange, headed, type Arrangement, type Arranged, type Place, sameArrangement, saving } from "./shell/places";
-import { FocusProvider, FocusSection } from "./shell/focus";
+import { FocusKeys, FocusProvider, FocusSection } from "./shell/focus";
 import { noteVisit, visitAt } from "./shell/recent";
 import { wantsRoom } from "./shell/room";
 import { shortVersion } from "./shell/version";
@@ -244,6 +244,7 @@ export function App() {
         )}
         <Toasts />
         <Confirmer />
+        <FocusKeys workspace={workspace} plugins={plugins} />
       </div>
     </FocusProvider>
   );
@@ -728,6 +729,7 @@ const globalKeys: [string, string][] = [
   ["g t", "Go to Team"],
   ["g f", "Go to Files"],
   ["g o", "Go to the Orchestrator"],
+  [".", "Pin what the page is to your Focus, or unpin it"],
   ["?", "These keys"],
   ["esc", "Close, or go back"],
 ];

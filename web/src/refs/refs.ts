@@ -163,6 +163,22 @@ function thingNamed(name: string, known: Known): PageRef | undefined {
   return undefined;
 }
 
+// thingAtPath is the plugin's thing whose page in ws is at path (as its
+// plugin registered where one is, /x/jira/issue/RAM-123), if it's one.
+export function thingAtPath(path: string, known: Known): PageRef | undefined {
+  for (const t of patternsOf(known).things) {
+    const where = t.of.path;
+    const hole = where?.indexOf("{ref}") ?? -1;
+    if (!where || hole < 0) continue;
+    const before = `/x/${encodeURIComponent(t.of.plugin)}${where.slice(0, hole)}`;
+    const after = where.slice(hole + "{ref}".length);
+    if (path.length <= before.length + after.length || !path.startsWith(before) || !path.endsWith(after)) continue;
+    const name = decodeURIComponent(path.slice(before.length, path.length - after.length));
+    if (t.whole.test(name)) return thingRef(t.of, name);
+  }
+  return undefined;
+}
+
 // refNamed is what a name, as ws writes it, names: a plugin's thing by
 // how its plugin names them (RAM-123), anything else by its form.
 export function refNamed(name: string, known?: Known): PageRef | undefined {
