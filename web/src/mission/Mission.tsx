@@ -38,7 +38,7 @@ import { PromptCard, pendingCall } from "./AgentView";
 import { archiveMission } from "./archive";
 import { briefGoal } from "./brief";
 import { briefHref } from "./BriefView";
-import { shownHeadlines } from "./headlines";
+import { shownHeadlines, splitHeadline } from "./headlines";
 import { mediaKind } from "./media";
 import { missionRefs } from "./refs";
 import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, MissionData, Stepper, Timeline, viewEvent } from "./parts";
@@ -948,20 +948,6 @@ const courtTone = (h: Headline, tone: string): CalloutTone => {
   if (h.court === "outside") return "info";
   return "quiet";
 };
-
-// splitHeadline makes a headline's sentence a title and what follows:
-// "Looks finished: everything in the brief is met…".
-function splitHeadline(h: Headline, words: string): [string, string | undefined] {
-  const text = h.text.trim();
-  if (h.kind === "resume") {
-    const m = /^Resume (\S+) with: ([\s\S]+)$/.exec(text);
-    if (m) return [`Suggested: resume ${m[1]}`, m[2]];
-  }
-  const m = /^([^:\n]{3,90}?): ([\s\S]+)$/.exec(text);
-  if (m) return [m[1], /^[a-z]+\b/.test(m[2]) && !/^[a-z]+\d/.test(m[2]) ? m[2][0].toUpperCase() + m[2].slice(1) : m[2]];
-  if (text.length <= 100) return [text, undefined];
-  return [words, text];
-}
 
 function HeadlineCard({ d, h, primary, reload, step, latest }: { d: MissionDetail; h: Headline; primary: boolean; reload: Reload; step?: React.ReactNode; latest?: React.ReactNode }) {
   const st = headlineStatus(h);

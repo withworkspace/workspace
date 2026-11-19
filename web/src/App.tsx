@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Button as AriaButton, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
+import { Button as AriaButton, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from "react-router";
-import { type Connection, NotSignedIn, type Plugin, setSettings, shutDownDaemon, usePlugins, useWorkspace, type Workspace } from "./api";
+import { type Connection, NotSignedIn, type Plugin, setSettings, usePlugins, useWorkspace, type Workspace } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
 import { ComparePage, compareKeys } from "./artifacts/Compare";
 import { Explorer, explorerKeys } from "./files/Explorer";
@@ -19,7 +19,7 @@ import { useFrameDim } from "./plugins/dim";
 import { useFrameHere } from "./plugins/here";
 import { PluginPage, pluginIcon } from "./plugins/Plugin";
 import { RefsProvider } from "./refs/known";
-import { SettingsPage } from "./settings/Settings";
+import { SettingsPage, settingsKeys } from "./settings/Settings";
 import { pageKeys } from "./pages/Pages";
 import { DocsAddress, DocumentAt, LocalPageAt, OpenAddress, PageAddress } from "./documents/DocumentAt";
 import { Review, reviewKeys } from "./review/Review";
@@ -29,6 +29,7 @@ import { repoOfPage, scopePrefix } from "./shell/find";
 import { Palette } from "./shell/Palette";
 import { useFaviconBadge, useNotifications, type Waiting } from "./shell/notify";
 import { Arrange } from "./shell/Arrange";
+import { askShutDown } from "./shell/daemon";
 import { arrange, headed, type Arrangement, type Arranged, type Place, sameArrangement, saving } from "./shell/places";
 import { FocusKeys, FocusProvider, FocusSection } from "./shell/focus";
 import { noteVisit, visitAt } from "./shell/recent";
@@ -39,9 +40,8 @@ import { TeamPage, teamKeys } from "./team/Team";
 import { Icon, type IconName } from "./ui/Icon";
 import { Logotype } from "./ui/Logotype";
 import { plain } from "./ui/inline";
-import { confirm, Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useTitle } from "./ui/kit";
+import { Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useTitle } from "./ui/kit";
 import { headlineStatus, Status } from "./ui/status";
-import { type ThemeChoice, setTheme, useTheme } from "./ui/theme";
 import { duration } from "./ui/time";
 
 export function App() {
@@ -150,7 +150,7 @@ export function App() {
           <button className="ghost icon-button" onClick={() => setDrawer(true)} aria-label="Open the menu">
             <Icon name="menu" size={18} />
           </button>
-          <WorkspaceMenu workspace={workspace} places={menu} onArrange={startArranging} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
+          <WorkspaceMenu workspace={workspace} places={menu} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
           {waiting.length > 0 && <span className="count tone-attention" title="Needs you">{waiting.length}</span>}
         </div>
         <div
@@ -161,7 +161,7 @@ export function App() {
           }}
         />
         <aside className="sidebar" aria-label="Workspace" inert={dim}>
-          <WorkspaceMenu workspace={workspace} places={menu} onArrange={startArranging} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
+          <WorkspaceMenu workspace={workspace} places={menu} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
           <button className="find" onClick={() => setPalette("")}>
             <Icon name="search" size={14} />
             <span>Find…</span>
@@ -198,7 +198,8 @@ export function App() {
                 <Route path="/missions/:slug/crew/:id" element={<CrewPage workspace={workspace} />} />
                 <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
                 <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/settings" element={<SettingsPage workspace={workspace} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
+                <Route path="/settings/:section" element={<SettingsPage workspace={workspace} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
                 <Route path="/docs" element={<DocsAddress />} />
                 <Route path="/files" element={<FilesPage workspace={workspace} />} />
                 <Route path="/files/:repo" element={<FilesPage workspace={workspace} />} />
@@ -255,27 +256,20 @@ export function App() {
   );
 }
 
-const themes: [ThemeChoice, IconName, string][] = [
-  ["system", "monitor", "From the system"],
-  ["light", "sun", "Light"],
-  ["dark", "moon", "Dark"],
-];
-
 // WorkspaceMenu is the workspace's name, opening what's of the workspace
-// rather than a place in it: Settings, Keys, the theme, and shutting its
-// daemon down, which otherwise stays open until it's closed. At its foot
-// is what this is and which: the logotype, and the version of ws that
-// serves the page.
+// rather than a place in it: Settings (where the theme is, and the way to
+// arrange the sidebar), Keys, and shutting its daemon down, which
+// otherwise stays open until it's closed. Places moved out of the sidebar
+// are at its top. At its foot is what this is and which: the logotype, and
+// the version of ws that serves the page.
 function WorkspaceMenu({
   workspace,
   places,
-  onArrange,
   onKeys,
   onClosed,
 }: {
   workspace?: Workspace;
   places: Place[];
-  onArrange: () => void;
   onKeys: () => void;
   onClosed: () => void;
 }) {
@@ -285,22 +279,7 @@ function WorkspaceMenu({
   // A place in the menu that wants you says so on the name, as the
   // sidebar's would.
   const counted = places.filter((p) => p.count);
-  const { choice } = useTheme();
-  const shutDown = async () => {
-    const yes = await confirm({
-      title: "Shut down the daemon?",
-      body: "Every crew it holds is hung up, as ws daemon stop does, and this page closes with it. ws web starts it again.",
-      confirm: "Shut down",
-      danger: true,
-    });
-    if (!yes) return;
-    try {
-      await shutDownDaemon();
-      onClosed();
-    } catch (e) {
-      toast(`Couldn't shut the daemon down: ${humanError(String(e))}`, { tone: "danger" });
-    }
-  };
+  const shutDown = () => void askShutDown(onClosed);
   // data-field: keys typed in the menu are its own, not the page's (keys.ts).
   return (
     <MenuTrigger>
@@ -336,38 +315,11 @@ function WorkspaceMenu({
             <Icon name="sliders" />
             <span className="select-option-text">Settings</span>
           </MenuItem>
-          <MenuItem id="arrange" textValue="Arrange the sidebar" className="select-option" onAction={onArrange}>
-            <Icon name="grip" />
-            <span className="select-option-text">Arrange the sidebar…</span>
-          </MenuItem>
           <MenuItem id="keys" textValue="Keys" className="select-option" onAction={onKeys}>
             <Icon name="keyboard" />
             <span className="select-option-text">Keys</span>
             <Keys k="?" />
           </MenuItem>
-          <Separator className="menu-separator" />
-          <MenuSection
-            selectionMode="single"
-            disallowEmptySelection
-            selectedKeys={[choice]}
-            onSelectionChange={(keys) => {
-              const [k] = keys === "all" ? [] : [...keys];
-              if (k) setTheme(k as ThemeChoice);
-            }}
-          >
-            <Header className="menu-header">Theme</Header>
-            {themes.map(([c, icon, label]) => (
-              <MenuItem key={c} id={c} textValue={label} className="select-option">
-                {({ isSelected }) => (
-                  <>
-                    <Icon name={icon} />
-                    <span className="select-option-text">{label}</span>
-                    {isSelected && <Icon name="check" size={14} className="select-check" />}
-                  </>
-                )}
-              </MenuItem>
-            ))}
-          </MenuSection>
           <Separator className="menu-separator" />
           <MenuItem id="shutdown" textValue="Shut down the daemon" className="select-option danger" onAction={shutDown}>
             <Icon name="power" />
@@ -708,6 +660,7 @@ function helpKeys(path: string): [string, string][] {
   if (path.startsWith("/documents/")) return spaceKeys;
   if (path === "/reviews") return reviewsKeys;
   if (path === "/team") return teamKeys;
+  if (path === "/settings" || path.startsWith("/settings/")) return settingsKeys;
   if (path.startsWith("/reviews/")) return [...prReviewKeys, ...reviewKeys.filter(([k]) => k !== "esc"), ["esc", "Clear the selection, or back to Reviews"]];
   if (path.includes("/review/")) return [...reviewKeys.filter(([k]) => k !== "esc"), ["L", "Land it on the default branch (a repo with no pull requests)"], ...reviewKeys.filter(([k]) => k === "esc")];
   if (path.includes("/files/")) return explorerKeys;

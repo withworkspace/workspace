@@ -52,6 +52,11 @@
 #
 # What a seed prints is shown after the try's details: say what's there
 # to look at, and where.
+#
+# A seed that wants crew to look like an agent's without running one puts
+# a stand-in for its CLI in $TRY_DIR/.try/bin, before its first ws
+# command: that folder is first on the PATH of the try's ws, and so of
+# the daemon it starts and the crew that daemon launches.
 set -euo pipefail
 
 # All of it runs from main, called on this file's last line: bash reads a
@@ -324,6 +329,10 @@ unset CLAUDE_CODE_SESSION_ID CLAUDE_CODE_CHILD_SESSION CLAUDE_CODE_SESSION_ATTEN
 unset CLAUDE_CODE_MESSAGING_SOCKET CLAUDE_CODE_MESSAGING_TOKEN
 unset AI_AGENT PI_CODING_AGENT PI_SESSION_ID PI_SESSION_FILE PI_PROVIDER PI_MODEL PI_REASONING_LEVEL
 unset AGENT OPENCODE OPENCODE_PID OPENCODE_CLIENT
+# What a seed stands in for a program with (an agent's CLI, say), which
+# the daemon a command here starts finds first.
+PATH="\$dir/.try/bin:\$PATH"
+export PATH
 while [ \$# -gt 0 ]; do
 	case "\$1" in
 	[A-Za-z_]*=*) export "\$1" && shift ;;

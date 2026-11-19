@@ -51,7 +51,7 @@ export function OrchestratorPage({ workspace }: { workspace: Workspace }) {
           )}
           {!info.enabled && (
             <Callout tone="quiet" icon="pause" title="It's off: nothing moves missions on but you">
-              Turn it on for you in <Link to="/settings#orchestrator">Settings</Link>, or for everyone in <code>ws.toml</code>:
+              Turn it on for you in <Link to="/settings/missions#orchestrator">Settings</Link>, or for everyone in <code>ws.toml</code>:
               <div className="command snippet">
                 <code>{"[orchestrator]\nenabled = true"}</code>
                 <Copyable text={"[orchestrator]\nenabled = true"}>Copy</Copyable>
@@ -69,7 +69,7 @@ export function OrchestratorPage({ workspace }: { workspace: Workspace }) {
               {info.dispatch === "auto" ? "Start at once" : "Wait for you to launch them"}; up to {info.maxDispatches} in a row, then it asks you
             </Row>
             <Row label="Settings">
-              <Link to="/settings#orchestrator">Yours, in Settings</Link>; the team's are <code>[orchestrator]</code> in <code>ws.toml</code>
+              <Link to="/settings/missions#orchestrator">Yours, in Settings</Link>; the team's are <code>[orchestrator]</code> in <code>ws.toml</code>
             </Row>
           </dl>
           <section>

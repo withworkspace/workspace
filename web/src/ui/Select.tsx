@@ -39,14 +39,17 @@ export function Select({
 }
 
 // Option is one of a Select's choices: its value, and the words it shows
-// (which typing a name finds it by). The chosen one is ticked.
-export function Option({ value, children, title }: { value: string; children: string; title?: string }) {
+// (which typing a name finds it by, and which the button says once it's
+// chosen). The chosen one is ticked. A note is more about it, said quietly
+// after its words in the list alone.
+export function Option({ value, children, title, note }: { value: string; children: string; title?: string; note?: string }) {
   return (
     <ListBoxItem id={value} textValue={children} className="select-option">
       {({ isSelected }) => (
         <>
           <span className="select-option-text" title={title}>
             {children}
+            {note && <span className="select-option-note">{note}</span>}
           </span>
           {isSelected && <Icon name="check" size={14} className="select-check" />}
         </>
