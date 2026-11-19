@@ -1,4 +1,5 @@
 import { chooseVersion, type Connect, isConnect, type Refuse, type V1 } from "@withworkspace/ui-lib/protocol";
+import type { ConversationHost, Status } from "../conversation/host";
 import type { FoundRef } from "../refs/found";
 import { watchBackdrop } from "./backdrop";
 import type { Theme } from "./theme";
@@ -56,6 +57,10 @@ export interface Host {
   // How the app wants ws's chrome laid out: expanded, ws folds its
   // sidebar to a rail. It's standard again once the page is hung up on.
   chromeLayout(mode: V1.ChromeMode): void;
+  // The conversation about the page: ws's own (conversation/host.ts),
+  // which the page drives as ws's own pages do. What the page said of it
+  // is forgotten once the page is hung up on.
+  conversation: ConversationHost;
 }
 
 // Session is a page that's connected, as ws tells it things.
@@ -73,6 +78,8 @@ export interface Session {
   refsChanged(): void;
   // A press landed in ws, outside the frame: the app never sees one.
   outside(): void;
+  // Where the conversation about the page is now.
+  conversation(status: Status): void;
   // Stops listening, and closes the port.
   close(): void;
 }
@@ -119,6 +126,7 @@ export interface Frame {
   changed(): void;
   refsChanged(): void;
   outside(): void;
+  conversation(status: Status): void;
   // The frame loaded a page. If it isn't the one that's connected, that
   // one is gone, and is hung up on: a page that went with a backdrop up,
   // with nothing connecting after it, doesn't leave ws dimmed.
@@ -158,6 +166,7 @@ export function listen(
     host.dim(false);
     host.here(undefined);
     host.chromeLayout("standard");
+    host.conversation.forget();
   };
   const onMessage = (e: MessageEvent) => {
     const source = frame();
@@ -185,6 +194,7 @@ export function listen(
     changed: () => session?.changed(),
     refsChanged: () => session?.refsChanged(),
     outside: () => session?.outside(),
+    conversation: (status) => session?.conversation(status),
     loaded() {
       const now = frame();
       if (now && documentOf(now) !== page) hangUp();

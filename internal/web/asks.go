@@ -18,12 +18,20 @@ func (s *Server) ask(w http.ResponseWriter, r *http.Request) {
 		Doc     string              `json:"doc"`
 		Quote   *conversation.Quote `json:"quote,omitempty"`
 		Section string              `json:"section,omitempty"`
-		Body    string              `json:"body"`
+		// Thing is a plugin's thing asked about from its page, and Given
+		// what the page gave the agent with it.
+		Thing string              `json:"thing,omitempty"`
+		Given *conversation.Given `json:"given,omitempty"`
+		Body  string              `json:"body"`
 	}
 	if !readBody(w, r, &b) {
 		return
 	}
-	c, err := s.App.Ask(ops.Asked{Doc: b.Doc, Quote: b.Quote, Section: b.Section, Body: b.Body}, ops.AsYou)
+	a := ops.Asked{Doc: b.Doc, Quote: b.Quote, Section: b.Section, Thing: b.Thing, Body: b.Body}
+	if b.Given != nil {
+		a.Given = *b.Given
+	}
+	c, err := s.App.Ask(a, ops.AsYou)
 	if err != nil {
 		writeError(w, err, http.StatusUnprocessableEntity)
 		return

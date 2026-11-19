@@ -35,6 +35,7 @@ type Talk struct {
 	Doc       string    `json:"doc,omitempty"`      // the document it's about, an ask kept (records:notes/x.md)
 	Section   string    `json:"section,omitempty"`  // the section it was asked of, if a passage was
 	Quote     string    `json:"quote,omitempty"`    // the passage, clipped
+	Thing     string    `json:"thing,omitempty"`    // the plugin's thing it's about, asked from its page (sketch-13)
 	At        time.Time `json:"at"`
 	Updated   time.Time `json:"updated"`
 }
@@ -96,6 +97,9 @@ func talksOf(store conversation.Store, list []*conversation.Conversation) []Talk
 		}
 		if len(c.Turns) > 0 {
 			t.Opening = clipRunes(strings.Join(strings.Fields(c.Turns[0].Body), " "), 140)
+		}
+		if c.What == conversation.WhatThing {
+			t.Thing = c.Anchor.Thing
 		}
 		if a := c.Anchor; c.What == conversation.WhatDoc {
 			t.Doc, t.Section = a.Doc, a.Section
@@ -207,6 +211,8 @@ func (s *Server) startTalk(w http.ResponseWriter, r *http.Request) {
 func (s *Server) sayInTalk(w http.ResponseWriter, r *http.Request) {
 	var b struct {
 		Body string `json:"body"`
+		// Given is what a plugin's page gave the agent with it.
+		Given *conversation.Given `json:"given,omitempty"`
 	}
 	if !readBody(w, r, &b) {
 		return
@@ -217,7 +223,7 @@ func (s *Server) sayInTalk(w http.ResponseWriter, r *http.Request) {
 			s.answerTalk(w, store, id, err)
 			return
 		}
-		_, err := s.App.SayInTalk(scope(r), id, b.Body, ops.AsYou)
+		_, err := s.App.SayInTalkGiven(scope(r), id, b.Body, b.Given, ops.AsYou)
 		s.answerTalk(w, store, id, err)
 	})
 }

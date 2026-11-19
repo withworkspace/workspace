@@ -63,6 +63,7 @@ const (
 	WhatBriefing     = "briefing"
 	WhatPR           = "pr"
 	WhatDoc          = "doc"
+	WhatThing        = "thing"
 	WhatCell         = "cell"
 	WhatAsk          = "ask"
 	WhatOutline      = "outline"
@@ -85,6 +86,8 @@ func whatOf(c *Conversation) string {
 			return WhatBriefing
 		case c.Anchor.PR != "":
 			return WhatPR
+		case c.Anchor.Thing != "":
+			return WhatThing
 		case c.Anchor.Doc != "":
 			return WhatDoc
 		}
@@ -161,6 +164,10 @@ type Anchor struct {
 	// Section is the heading of the section a quote is in, as the reader
 	// draws it: for an ask about a passage (ask.go).
 	Section string `json:"section,omitempty"`
+	// Thing is a plugin's thing a conversation is about (sketch-13), asked
+	// from the plugin's page as it's open, and Plugin is whose it is.
+	Thing  string `json:"thing,omitempty"`
+	Plugin string `json:"plugin,omitempty"`
 }
 
 // Turn is one message.
@@ -237,6 +244,71 @@ type Turn struct {
 	// be changed: what its agent starts from, kept so it isn't lost when
 	// the cell's written again.
 	Edited string `json:"edited,omitempty"`
+	// Given, on a turn of yours, is what the page it was said on gave the
+	// agent with it: not your words, and not shown as them.
+	Given *Given `json:"given,omitempty"`
+}
+
+// Given is what a plugin's page gave a conversation's agent with
+// something you said there (ws.conversation in the page): information
+// for the agent, not instructions, and folded under what you said, so you
+// can see what it was told.
+type Given struct {
+	// From is what gave it: the plugin's title (Sketch).
+	From string `json:"from,omitempty"`
+	// Page is the page's standing context, its state as words: given only
+	// when it's changed since the agent was last given it (StandingGiven).
+	Page string `json:"page,omitempty"`
+	// Holding is what you had in hand there (a selection): its label, and
+	// it as words.
+	Holding     string `json:"holding,omitempty"`
+	HoldingText string `json:"holdingText,omitempty"`
+	// Context is what the page gave with this message alone.
+	Context string `json:"context,omitempty"`
+}
+
+// Empty is whether it gives nothing.
+func (g *Given) Empty() bool {
+	return g == nil || strings.TrimSpace(g.Page+g.HoldingText+g.Context) == "" && strings.TrimSpace(g.Holding) == ""
+}
+
+// givenMax is the most of any one part of what's given that's kept.
+const givenMax = 20000
+
+// Clipped is it with each part no longer than ws keeps.
+func (g Given) Clipped() Given {
+	g.From = clipRunes(strings.TrimSpace(g.From), 80)
+	g.Page = clipRunes(strings.TrimSpace(g.Page), givenMax)
+	g.Holding = clipRunes(strings.TrimSpace(g.Holding), 200)
+	g.HoldingText = clipRunes(strings.TrimSpace(g.HoldingText), givenMax)
+	g.Context = clipRunes(strings.TrimSpace(g.Context), givenMax)
+	return g
+}
+
+// StandingGiven is the page's standing context as its agent was last
+// given it: what a page's next has to differ from to be given again.
+func (c *Conversation) StandingGiven() string {
+	for i := len(c.Turns) - 1; i >= 0; i-- {
+		if g := c.Turns[i].Given; g != nil && g.Page != "" {
+			return g.Page
+		}
+	}
+	return ""
+}
+
+// Give is what the page gives with a turn now, against what the
+// conversation's agent was given before (nil: a new conversation): its
+// standing context only if it's changed since. nil when that leaves
+// nothing.
+func (c *Conversation) Give(g Given) *Given {
+	g = g.Clipped()
+	if c != nil && g.Page != "" && g.Page == c.StandingGiven() {
+		g.Page = ""
+	}
+	if g.Empty() {
+		return nil
+	}
+	return &g
 }
 
 // Source is a file a cell was written from, as it was when it was read:

@@ -26,6 +26,9 @@ type Here struct {
 	Mission *mission.Mission
 	Page    string // the page's file, for a cell, a question, an outline or a pass
 	Doc     string // the document's file, for an ask about one
+	// Plugin is what the plugin a thing's asked about from is called
+	// (Sketch), for an ask about one.
+	Plugin string
 	Style   string // the file saying how pages should read, if there's one
 	// Planning is the process a mission's planner works from, for a
 	// briefing conversation; Brief the brief it's written already, if

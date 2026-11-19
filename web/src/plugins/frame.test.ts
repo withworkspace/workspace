@@ -2,6 +2,7 @@ import { connect, ProtocolError } from "@withworkspace/ui-lib";
 import { isRefuse, TOKENS, V1 } from "@withworkspace/ui-lib/protocol";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { frameKeys } from "../keys";
+import { createHost } from "../conversation/host";
 import type { FoundRef } from "../refs/found";
 import { answer, type Host, type KeyPress, listen, refusal, type Session, type Speak, versions } from "./frame";
 import { v1 } from "./frame/v1";
@@ -37,6 +38,7 @@ function fakeWs(path = "/things/2?tab=links") {
     dim: (on) => void said.dims.push(on),
     here: (name) => void said.heres.push(name),
     chromeLayout: (mode) => void said.layouts.push(mode),
+    conversation: createHost("jira"),
   };
   return { host, said, setTheme: (t: V1.Theme) => void (theme = t), setFind: (f: typeof find) => void (find = f) };
 }
@@ -109,7 +111,7 @@ describe("the handshake", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const ws = fakeWs();
     // A ws that has gone on to 2 and dropped 1.
-    const later: Record<number, Speak> = { 2: () => ({ version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, close() {} }) };
+    const later: Record<number, Speak> = { 2: () => ({ version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, conversation() {}, close() {} }) };
     const failed = connect({ host: { postMessage: (m, _o, [port]) => void answer(m as V1.Connect, port as MessagePort, ws.host, later) } });
     await expect(failed).rejects.toBeInstanceOf(ProtocolError);
     await expect(failed).rejects.toMatchObject({ page: [1], host: [2], message: "jira speaks frame protocol 1, and this ws speaks 2. Update the plugin." });
@@ -122,7 +124,7 @@ describe("the handshake", () => {
     const two: Speak = (port) => {
       spoke.push(2);
       port.postMessage({ type: "ws:welcome", version: 2 });
-      return { version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, close: () => port.close() };
+      return { version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, conversation() {}, close: () => port.close() };
     };
     const both: Record<number, Speak> = { 1: v1, 2: two };
 
@@ -269,6 +271,27 @@ describe("protocol 1's host", () => {
     session.close();
   });
 
+  it("says the app's conversation to ws's own host, and tells the app where it is", async () => {
+    const { client, session, host } = await connected();
+    expect(client.conversation.available).toBe(true);
+    const heard: unknown[] = [];
+    client.conversation.onChange((s) => heard.push(s));
+    client.conversation.set({ ask: true, allow: ["card", "popover"], holding: { label: "2 selected", text: "`plan`" }, context: "Brief → Plan" });
+    client.conversation.open({ message: "Tidy it", as: "popover" });
+    await tick();
+    expect(host.conversation.state.settings).toEqual({ ask: true, allow: ["card", "popover"], holding: { label: "2 selected", text: "`plan`" }, context: "Brief → Plan" });
+    expect(host.conversation.state).toMatchObject({ open: true, want: "popover", opening: { message: "Tidy it", as: "popover" } });
+
+    session.conversation({ open: true, as: "popover", working: true });
+    await tick();
+    expect(heard).toEqual([{ open: true, as: "popover", working: true }]);
+    client.conversation.close();
+    await tick();
+    expect(host.conversation.state.open).toBe(false);
+    client.close();
+    session.close();
+  });
+
   it("passes on a key the page says was ws's, and drops what it doesn't know", async () => {
     const ws = fakeWs();
     const { port1, port2 } = new MessageChannel();
@@ -411,6 +434,7 @@ describe("listening for the frame", () => {
     // and its layout is standard again.
     expect(ws.said.heres).toEqual([undefined, undefined]);
     expect(ws.said.layouts).toEqual(["standard", "standard"]);
+    expect(ws.host.conversation.state.settings).toEqual({ ask: false, allow: [] });
     expect(watched.map((w) => w.stopped)).toEqual([true, true]);
     first.close();
     second.close();

@@ -31,12 +31,19 @@ const SweepEvery = 5 * time.Minute
 // the passage asked about; or a pull request's, and the lines), with the
 // question asked.
 func (s Store) OpenAsk(anchor Anchor, by, body string, at time.Time) (*Conversation, error) {
-	body = strings.TrimSpace(body)
+	return s.OpenAskTurn(anchor, Turn{By: by, At: at, Body: body})
+}
+
+// OpenAskTurn starts an ask with its first turn as it's given: with what
+// the page it was asked on gave the agent with it, say.
+func (s Store) OpenAskTurn(anchor Anchor, t Turn) (*Conversation, error) {
+	by, at := t.By, t.At
+	t.Body = strings.TrimSpace(t.Body)
 	switch {
-	case body == "":
+	case t.Body == "":
 		return nil, errors.New("say something")
-	case anchor.Doc == "" && anchor.PR == "":
-		return nil, errors.New("an ask is about a document or a pull request: its ref")
+	case anchor.Doc == "" && anchor.PR == "" && anchor.Thing == "":
+		return nil, errors.New("an ask is about a document, a pull request or a plugin's thing: its ref")
 	}
 	if q := anchor.Quote; q != nil {
 		anchor.Quote = &Quote{Exact: clipRunes(q.Exact, quoteMax), Prefix: lastRunes(q.Prefix, contextMax), Suffix: clipRunes(q.Suffix, contextMax)}
@@ -44,7 +51,7 @@ func (s Store) OpenAsk(anchor Anchor, by, body string, at time.Time) (*Conversat
 			anchor.Quote = nil
 		}
 	}
-	return s.open(&Conversation{Kind: Talk, Anchor: anchor, By: by, At: at, Status: Open, Ephemeral: true}, Turn{By: by, At: at, Body: body})
+	return s.open(&Conversation{Kind: Talk, Anchor: anchor, By: by, At: at, Status: Open, Ephemeral: true}, t)
 }
 
 // ErrKeepNotYours is the answer for anyone but the user keeping an ask.
