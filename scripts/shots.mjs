@@ -49,7 +49,7 @@ const shots = [
   { name: "conversation", path: "/conversations/w1" },
   { name: "files", path: "/files/api?path=internal/invoice/invoice.go" },
   { name: "team", path: "/team" },
-  { name: "settings", path: "/settings" },
+  { name: "settings", path: "/settings/agents" },
   { name: "orchestrator", path: "/orchestrator" },
   // Find, opened over the missions and asked something.
   { name: "find", path: "/", find: "rounding" },
