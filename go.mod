@@ -20,7 +20,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/spf13/cobra v1.10.2
-	github.com/withworkspace/plugin v0.5.0
+	github.com/withworkspace/plugin v0.5.1-0.20261119090159-d48b79c11faa
 	golang.org/x/sys v0.49.0
 	golang.org/x/term v0.47.0
 )
