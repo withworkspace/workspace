@@ -122,11 +122,14 @@ func TestKitTellsWS(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Its sync runs as it starts, says how it went, and says its view is
-	// stale.
+	// stale. It says so a second time, in no order with the first: it has
+	// a table in its config, so ws gives it its config again once it's
+	// registered, and its view may follow its config. Both are waited
+	// for, so that neither is counted as the command's below.
 	deadline := time.Now().Add(5 * time.Second)
-	for st := h.Status("kit"); st.Syncs["things"].At.IsZero() || st.Changed == 0; st = h.Status("kit") {
+	for st := h.Status("kit"); st.Syncs["things"].At.IsZero() || st.Changed < 2; st = h.Status("kit") {
 		if time.Now().After(deadline) {
-			t.Fatalf("no sync/state heard: %+v", h.Status("kit").Syncs)
+			t.Fatalf("no sync/state heard, or its view said stale %d times, not twice: %+v", st.Changed, st.Syncs)
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
