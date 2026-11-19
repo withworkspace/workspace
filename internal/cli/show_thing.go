@@ -5,8 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"strings"
 	"time"
 
@@ -15,7 +13,6 @@ import (
 	"github.com/withworkspace/workspace/internal/plugin"
 	wsref "github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/store"
-	"github.com/withworkspace/workspace/internal/ui"
 )
 
 // ws show RAM-123: one of a plugin's things, by a name its plugin
@@ -26,22 +23,6 @@ import (
 // and what it says at length marked as written outside the workspace.
 // What ws knows of it is beside that: what's been said of it in the
 // workspace, from the graph.
-
-// showThing shows a plugin's thing: what its plugin says it is, and
-// what's been said of it here.
-func showThing(ctx *ops.Workspace, r wsref.Ref, kept plugin.KeptRef, format string, full bool) error {
-	fields, asOf, err := thingNow(ctx.WS().Root, r, kept, full)
-	if err != nil {
-		return err
-	}
-	v := thingView(ctx, r, kept, fields, asOf, full)
-	if format == "llm" {
-		_, err = os.Stdout.WriteString(v.render(false, full))
-	} else {
-		_, err = io.WriteString(ui.Stdout, v.render(true, full))
-	}
-	return err
-}
 
 // askPlugin asks a thing's plugin what it is, in the workspace's daemon,
 // which is started if it isn't running. A test stands in for the plugin.

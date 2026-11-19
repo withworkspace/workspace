@@ -574,6 +574,11 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
           </details>
         )}
         {!d && !error && <Skeleton rows={6} />}
+        {d?.via && (
+          <p className="dim talk-via">
+            Started from the {d.via} plugin, which worded the first message.
+          </p>
+        )}
         {d?.ephemeral && (
           <Callout
             tone="quiet"
@@ -1205,7 +1210,7 @@ export function ProposalCard({
         return (
           <>
             {p.brief ? briefBody(p.brief) : <div className="dim">An idea, to brief later: a briefing agent starts from this conversation.</div>}
-            {meta([p.capsules?.length ? `Lifts ${p.capsules.join(", ")}` : undefined])}
+            {meta([p.about?.length ? `About ${p.about.join(", ")}` : undefined, p.capsules?.length ? `Lifts ${p.capsules.join(", ")}` : undefined])}
           </>
         );
       case "brief":

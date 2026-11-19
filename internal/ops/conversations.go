@@ -203,6 +203,27 @@ func (w *Workspace) StartTalk(sc doc.Scope, body string, by Actor) (*conversatio
 	return c, nil
 }
 
+// StartTalkVia starts one of the workspace's conversations for you from
+// a plugin, with what it has you say first, and has its agent answer:
+// what a plugin's app does to hand something on to be talked over.
+func (w *Workspace) StartTalkVia(plugin, body string) (*conversation.Conversation, error) {
+	store, err := w.Conversations(doc.Workspace)
+	if err != nil {
+		return nil, err
+	}
+	// What it names is pinned, as a reply's is: the thing a plugin
+	// starts a conversation about says the conversation mentions it at
+	// once, not from the agent's first reply.
+	first := conversation.Turn{By: AsYou.By(), At: w.now(), Body: body}
+	w.pinTurn(&first)
+	c, err := store.OpenTalkVia(plugin, first)
+	if err != nil {
+		return nil, &Invalid{Reason: err.Error()}
+	}
+	w.answer(job.Answer, doc.Workspace, c.ID)
+	return c, nil
+}
+
 // SayInTalk is you saying something in a conversation, taking it up again
 // if it was put away. Its agent answers.
 func (w *Workspace) SayInTalk(sc doc.Scope, id, body string, by Actor) (*conversation.Conversation, error) {

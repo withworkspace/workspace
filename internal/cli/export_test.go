@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -42,6 +44,15 @@ func UseProcs(procs harness.Procs) func() {
 	old := readProcs
 	readProcs = func() (harness.Procs, error) { return procs, nil }
 	return func() { readProcs = old }
+}
+
+// CaptureTalkAnswers records the conversations ws would have an agent
+// answer, as slug/id, instead of starting one.
+func CaptureTalkAnswers() (*[]string, func()) {
+	old := talkSpawner
+	var asked []string
+	talkSpawner = func(root, slug, id string) { asked = append(asked, slug+"/"+id) }
+	return &asked, func() { talkSpawner = old }
 }
 
 // CaptureOrchestratorRuns records the orchestrator runs ws would spawn, as
@@ -250,6 +261,12 @@ func SweepArtifacts(root string) []string {
 // EvalMade is evalMade, for a test to own the records of the workspace an
 // eval's run is made in.
 var EvalMade = &evalMade
+
+// AnswerPlugin is what the daemon answers a plugin's requests with, in
+// the workspace at root.
+func AnswerPlugin(root string) func(context.Context, string, string, json.RawMessage) (any, error) {
+	return answerPlugin(openOps(root, nil))
+}
 
 // UseThings has ask stand in for the workspace's plugins when ws show
 // asks one what a thing is, and returns a cleanup: no daemon runs one in

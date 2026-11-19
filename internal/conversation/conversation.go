@@ -356,7 +356,10 @@ type Conversation struct {
 	Anchor  Anchor    `json:"anchor"`
 	By      string    `json:"by"`
 	At      time.Time `json:"at"`
-	Status  string    `json:"status"`
+	// Via is the plugin a talk was started from, for you: it worded the
+	// first message. "" for one you started yourself.
+	Via    string `json:"via,omitempty"`
+	Status string `json:"status"`
 	// StatusBy and StatusAt are who resolved or reopened it, and when.
 	StatusBy string     `json:"statusBy,omitempty"`
 	StatusAt *time.Time `json:"statusAt,omitempty"`
@@ -993,15 +996,28 @@ func (s Store) open(c *Conversation, first Turn) (*Conversation, error) {
 // OpenTalk starts a conversation that isn't on a document (about the
 // workspace, or the mission), with your first message.
 func (s Store) OpenTalk(by, body string, at time.Time) (*Conversation, error) {
-	body = strings.TrimSpace(body)
-	if body == "" {
+	return s.OpenTalkVia("", Turn{By: by, At: at, Body: body})
+}
+
+// OpenTalkVia is OpenTalk for a conversation started from a plugin (via),
+// which worded your first message (first: who it's by, when, what it
+// says, and what that names, pinned, so what's named says the
+// conversation mentions it from the start). It's yours all the same, and
+// says where it came from.
+func (s Store) OpenTalkVia(via string, first Turn) (*Conversation, error) {
+	first.Body = strings.TrimSpace(first.Body)
+	if first.Body == "" {
 		return nil, errors.New("say something")
 	}
-	c, err := s.open(&Conversation{Kind: Talk, By: by, At: at, Status: Open}, Turn{By: by, At: at, Body: body})
+	c, err := s.open(&Conversation{Kind: Talk, By: first.By, Via: via, At: first.At, Status: Open}, first)
 	if err != nil {
 		return nil, err
 	}
-	return c, s.log(c, by, fmt.Sprintf("%s talk: %s", c.ID, oneLine(body)), at)
+	what := c.ID + " talk"
+	if via != "" {
+		what += ", started from the " + via + " plugin"
+	}
+	return c, s.log(c, first.By, what+": "+oneLine(first.Body), first.At)
 }
 
 // OpenCell starts a cell of a page: what you asked for is its first

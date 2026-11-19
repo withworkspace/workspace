@@ -9,10 +9,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/withworkspace/plugin/protocol"
+	"github.com/withworkspace/workspace/internal/acp"
 	"github.com/withworkspace/workspace/internal/cli"
 	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/plugin/fakeplugin"
@@ -99,7 +101,7 @@ func TestPluginConfig(t *testing.T) {
 		t.Errorf("the secret is in ws.local.toml:\n%s", local)
 	}
 	res = run()
-	if strings.Contains(res.Stdout, "s3cret") || !strings.Contains(res.Stdout, "(set)") || !strings.Contains(res.Stdout, "[PROJ OPS]") {
+	if strings.Contains(res.Stdout, "s3cret") || !strings.Contains(res.Stdout, "(set)") || !strings.Contains(res.Stdout, "PROJ, OPS") {
 		t.Errorf("once it's set:\n%s", res.Stdout)
 	}
 	values, err := plugin.Values(w.Root, "jira")
@@ -121,6 +123,136 @@ func TestPluginConfig(t *testing.T) {
 	}
 	if res := testutil.RunCommand(t, w.Root, nil, "plugin", "config", "nobody"); res.Err == nil {
 		t.Error("a plugin that isn't installed has config")
+	}
+}
+
+// A plugin's tables are shown a row at a time, in the order they were
+// written, and a row's field is set by its path, in your own file: the
+// team's rows stay theirs, and what's wrong in any of it is said.
+func TestPluginConfigInTables(t *testing.T) {
+	w := testutil.SetupWorkspace(t, testutil.WorkspaceOpts{})
+	registerPlugin(t, w.Root, "jira", plugin.Registration{Commands: &plugin.Commands{}, Config: []plugin.ConfigKey{
+		{Key: "site", Title: "Jira site", Type: protocol.TypeURL},
+		{Key: "queries", Title: "Queries", Type: protocol.TypeTable, Row: "Query", Required: true, Fields: []plugin.ConfigKey{
+			{Key: "label", Type: protocol.TypeString},
+			{Key: "query", Type: protocol.TypeString, Required: true},
+			{Key: "limit", Type: protocol.TypeNumber, Default: 50},
+			{Key: "tags", Type: protocol.TypeList},
+		}},
+		{Key: "spaces", Title: "Spaces", Type: protocol.TypeTable, Row: "Space key", Fields: []plugin.ConfigKey{
+			{Key: "label", Type: protocol.TypeString},
+			{Key: "columns", Type: protocol.TypeMap},
+			{Key: "custom_fields", Type: protocol.TypeTable, Row: "Field", Fields: []plugin.ConfigKey{{Key: "card", Type: protocol.TypeBool}}},
+		}},
+	}})
+	run := func(args ...string) testutil.Result {
+		t.Helper()
+		return testutil.RunCommand(t, w.Root, nil, append([]string{"plugin", "config", "jira"}, args...)...)
+	}
+	if res := run(); !strings.Contains(res.Stdout, "(no rows, and it needs one)") || !strings.Contains(res.Stdout, "0 rows") {
+		t.Errorf("before a row's set:\n%s", res.Stdout)
+	}
+
+	// The team's rows, in ws.toml.
+	team, _ := os.ReadFile(filepath.Join(w.Root, "ws.toml"))
+	team = append(team, []byte(`
+[plugin.jira.queries.initiatives]
+label = "Initiatives"
+query = 'project = RAP'
+
+[plugin.jira.queries.bugs]
+label = "Bugs"
+query = 'project = RAM, type = Bug'
+lable = "a typo"
+
+[plugin.jira.spaces.ram]
+label = "Risk Modelling"
+columns = { "Ready for Development" = "To Do" }
+`)...)
+	if err := os.WriteFile(filepath.Join(w.Root, "ws.toml"), team, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// A field by its path, with nothing split at a comma; a row of a
+	// row, its name quoted; an entry of a map; and a list, which is.
+	for _, set := range []string{
+		"queries.mine.query=assignee = currentUser(), status != Done",
+		`spaces.ram.custom_fields."Story Points".card=true`,
+		`spaces.ram.columns."In Review"=Review`,
+		"queries.bugs.limit=5",
+		"queries.bugs.tags=a, b",
+		"queries.initiatives.enabled=false",
+	} {
+		if res := run(set); res.Err != nil {
+			t.Fatalf("%s: %v", set, res.Err)
+		}
+	}
+	after, _ := os.ReadFile(filepath.Join(w.Root, "ws.toml"))
+	if string(after) != string(team) {
+		t.Errorf("the team's file changed:\n%s", after)
+	}
+	local, _ := os.ReadFile(filepath.Join(w.Root, "ws.local.toml"))
+	for _, want := range []string{"[plugin.jira.queries.mine]", `query = "assignee = currentUser(), status != Done"`, `[plugin.jira.spaces.ram.custom_fields."Story Points"]`, "card = true", `"In Review" = "Review"`, "limit = 5", `tags = ["a", "b"]`} {
+		if !strings.Contains(string(local), want) {
+			t.Errorf("ws.local.toml lacks %q:\n%s", want, local)
+		}
+	}
+
+	res := run()
+	for _, want := range []string{
+		"queries  3 rows     Queries",
+		"spaces   1 row      Spaces",
+		"queries, a row for each query (queries.<query>.<field>=value sets a field):",
+		"  initiatives  (off: enabled = false)",
+		"  bugs\n    label  Bugs\n    query  project = RAM, type = Bug\n    limit  5\n    tags   a, b\n",
+		"  mine\n    query  assignee = currentUser(), status != Done\n    limit  50 (the default)\n",
+		"spaces, a row for each space key",
+		"  ram\n    label    Risk Modelling\n    columns  In Review = Review, Ready for Development = To Do\n    custom_fields:\n      \"Story Points\"\n        card  true\n",
+		"Wrong in it, and left out of what jira is given:\n  queries.bugs.lable isn't a field of queries (it has: label, query, limit, tags)\n",
+	} {
+		if !strings.Contains(res.Stdout, want) {
+			t.Errorf("shown lacks %q:\n%s", want, res.Stdout)
+		}
+	}
+	// The order they're shown in is the order they're given in.
+	if i, j, k := strings.Index(res.Stdout, "  initiatives"), strings.Index(res.Stdout, "  bugs\n"), strings.Index(res.Stdout, "  mine\n"); !(i < j && j < k) {
+		t.Errorf("rows aren't in the order written (the team's, then yours):\n%s", res.Stdout)
+	}
+
+	// What can't be right is refused, saying what can, and nothing's
+	// set.
+	for bad, want := range map[string]string{
+		"queries.bugs.lable=x":             "queries.bugs.lable isn't in queries.bugs (it has: label, query, limit, tags)",
+		"queries.bugs.limit=many":          "queries.bugs.limit: limit is a number",
+		"queries.bugs=x":                   "queries.bugs is a row of queries: set a field of it, as queries.bugs.<field>=value (it has: label, query, limit, tags)",
+		"queries=x":                        "queries is a table: name a row and a field of it",
+		"spaces.ram.columns=x":             "spaces.ram.columns is text by text: set one of its entries, as spaces.ram.columns.<name>=value",
+		"spaces.ram.custom_fields.Team=x":  "is a row of custom_fields",
+		`spaces.ram.custom_fields."Team=x`: "isn't key=value",
+		"queries.bugs.enabled=maybe":       "is true or false",
+	} {
+		if res := run(bad); res.Err == nil || !strings.Contains(res.Err.Error(), want) {
+			t.Errorf("%s: %v, want %q", bad, res.Err, want)
+		}
+	}
+	if now, _ := os.ReadFile(filepath.Join(w.Root, "ws.local.toml")); string(now) != string(local) {
+		t.Errorf("something refused was set:\n%s", now)
+	}
+
+	// A field unset, a row of yours taken out; the team's isn't yours to
+	// take out, and says how to leave it out.
+	if res := run("--unset", "queries.bugs.limit", "--unset", "queries.mine", "--unset", "queries.initiatives.enabled"); res.Err != nil {
+		t.Fatal(res.Err)
+	}
+	if res := run("--unset", "spaces.ram"); res.Err != nil {
+		t.Fatalf("a row with something of yours in it: %v", res.Err)
+	}
+	if res := run("--unset", "queries.initiatives"); res.Err == nil || !strings.Contains(res.Err.Error(), "queries.initiatives.enabled=false leaves it out for you") {
+		t.Errorf("unsetting the team's row: %v", res.Err)
+	}
+	res = run()
+	if strings.Contains(res.Stdout, "mine") || strings.Contains(res.Stdout, "(off") || !strings.Contains(res.Stdout, "limit  50 (the default)") || strings.Contains(res.Stdout, "In Review") || !strings.Contains(res.Stdout, "queries  2 rows") {
+		t.Errorf("after unsetting:\n%s", res.Stdout)
 	}
 }
 
@@ -343,6 +475,155 @@ func TestShowAPluginsThing(t *testing.T) {
 	// What only looks like one isn't the plugin's to be asked about.
 	if res := testutil.RunCommand(t, root, nil, "show", "UTF-8"); res.Err == nil || strings.Contains(res.Err.Error(), "jira") {
 		t.Errorf("UTF-8: %v\n%s", res.Err, res.Stdout)
+	}
+}
+
+// A plugin asks ws what ws show shows, and gets it as data: one of its
+// own things with the mission about it, that mission in turn, and
+// nothing for what isn't there.
+func TestAPluginAsksWhatWSShows(t *testing.T) {
+	root := naming(t)
+	if refused, err := plugin.PutThings(root, "jira", []protocol.Thing{{Kind: "issue", Ref: "RAM-12", Fields: map[string]string{"title": "Token refresh is flaky", "status": "In Progress", "parent": "RAP-1"}}}); err != nil || len(refused) != 0 {
+		t.Fatalf("telling ws of RAM-12: %v, %v", refused, err)
+	}
+	res := testutil.RunCommand(t, root, nil, "mission", "new", "Fix the refresh", "--about", "RAM-12", "--no-edit")
+	if res.Err != nil {
+		t.Fatalf("new --about: %v\n%s", res.Err, res.Stderr)
+	}
+	slug := strings.TrimSpace(res.Stdout)
+	answer := cli.AnswerPlugin(root)
+	show := func(in protocol.ShowParams) (protocol.Shown, error) {
+		t.Helper()
+		params, _ := json.Marshal(in)
+		got, err := answer(t.Context(), "jira", protocol.MethodShow, params)
+		if err != nil {
+			return protocol.Shown{}, err
+		}
+		return got.(protocol.Shown), nil
+	}
+	code := func(err error) int {
+		var re *acp.RPCError
+		if errors.As(err, &re) {
+			return re.Code
+		}
+		return 0
+	}
+
+	// One of its own: as ws was last told (the plugin that's asking
+	// isn't asked back), what it links to, where it opens, and the
+	// mission about it.
+	got, err := show(protocol.ShowParams{Ref: "RAM-12"})
+	if err != nil {
+		t.Fatalf("show RAM-12: %v", err)
+	}
+	if got.Ref != "RAM-12" || got.Head != "RAM-12: Token refresh is flaky" || got.Path != "/x/jira/issue/RAM-12" {
+		t.Errorf("RAM-12: %+v", got)
+	}
+	if body := strings.Join(got.Body, "\n"); !strings.Contains(body, "Jira issue, from the jira plugin. In Progress.") || !strings.Contains(body, "As the jira plugin last told ws.") {
+		t.Errorf("RAM-12's body:\n%s", body)
+	}
+	if len(got.Links) != 1 || got.Links[0] != (protocol.ShownLink{Ref: "RAP-1", What: "Parent"}) {
+		t.Errorf("RAM-12's links: %+v", got.Links)
+	}
+	if len(got.Said) != 1 {
+		t.Fatalf("said of RAM-12: %+v", got.Said)
+	}
+	if said := got.Said[0]; said.Ref != slug || said.Mission != "" || said.Kind != "mission" || said.Title != "Fix the refresh" || said.How != protocol.SaidAbout || !said.Standing || said.Path != "/missions/"+slug || said.At.IsZero() {
+		t.Errorf("the mission about RAM-12: %+v", said)
+	}
+
+	// What's said is asked for in turn, with its ref as it's said: the
+	// mission by its slug, which is also how a mission's named.
+	for _, in := range []protocol.ShowParams{{Ref: got.Said[0].Ref, Mission: got.Said[0].Mission}, {Mission: slug}} {
+		m, err := show(in)
+		if err != nil {
+			t.Fatalf("show the mission (%+v): %v", in, err)
+		}
+		if m.Head != "Mission "+slug+": Fix the refresh" || m.Path != "/missions/"+slug || !strings.Contains(strings.Join(m.Body, "\n"), "About: RAM-12") || m.Links == nil || m.Said == nil {
+			t.Errorf("the mission (%+v): %+v", in, m)
+		}
+	}
+
+	// By where it is, as by its name.
+	if got, err := show(protocol.ShowParams{Ref: "https://acme.atlassian.net/browse/RAM-12"}); err != nil || got.Head != "RAM-12: Token refresh is flaky" || len(got.Said) != 1 {
+		t.Errorf("RAM-12 by its address: %v %+v", err, got)
+	}
+	// One ws hasn't been told of is still shown, by its name: what's
+	// said of it doesn't wait on the plugin.
+	if got, err := show(protocol.ShowParams{Ref: "RAM-77"}); err != nil || got.Head != "RAM-77" || !strings.Contains(strings.Join(got.Body, "\n"), "The jira plugin hasn't told ws of it.") || len(got.Said) != 0 || got.Said == nil {
+		t.Errorf("RAM-77: %v %+v", err, got)
+	}
+
+	// Nothing by that name, a mission's own asked for without its
+	// mission, and a mission that isn't there: each not found, in words.
+	for _, in := range []protocol.ShowParams{{Ref: "UTF-8"}, {Ref: "d1"}, {Ref: "d1", Mission: "nope"}, {Mission: "nope"}, {Ref: "d9", Mission: slug}} {
+		if _, err := show(in); code(err) != protocol.CodeNotFound || err.Error() == "" {
+			t.Errorf("show %+v: %v", in, err)
+		}
+	}
+	if _, err := show(protocol.ShowParams{}); code(err) != acp.CodeInvalidParams {
+		t.Errorf("show nothing: %v", err)
+	}
+
+	// A conversation the plugin has ws start for the person: its agent
+	// answers, and the thing its first message names says at once that
+	// the conversation mentions it, with its page.
+	answers, restore := cli.CaptureTalkAnswers()
+	t.Cleanup(restore)
+	params, _ := json.Marshal(protocol.ConversationStartParams{Message: "Let's work out a mission for RAM-12."})
+	started, err := answer(t.Context(), "jira", protocol.MethodConversationStart, params)
+	if c, ok := started.(protocol.ConversationStarted); err != nil || !ok || c.ID != "w1" || c.Path != "/conversations/w1" {
+		t.Fatalf("a conversation started: %v %+v", err, started)
+	}
+	if len(*answers) != 1 || (*answers)[0] != "/w1" {
+		t.Errorf("answered: %q", *answers)
+	}
+	got, err = show(protocol.ShowParams{Ref: "RAM-12"})
+	if err != nil || len(got.Said) != 2 {
+		t.Fatalf("RAM-12, with a conversation that names it: %v %+v", err, got.Said)
+	}
+	var talk protocol.Said
+	for _, s := range got.Said {
+		if s.Ref == "w1" {
+			talk = s
+		}
+	}
+	if talk.Kind != "talk" || talk.How != protocol.SaidMentions || !talk.Standing || talk.Mission != "" || talk.Path != "/conversations/w1" {
+		t.Errorf("the conversation that names RAM-12: %+v", talk)
+	}
+	// A mission whose brief only names it is said of it too, by its
+	// brief, which opens on the mission's page.
+	res = testutil.RunCommand(t, root, nil, "mission", "new", "Cache the sessions", "--brief", "## Goal\nWhat RAM-12 leaves undone.\n")
+	if res.Err != nil {
+		t.Fatalf("new --brief: %v\n%s", res.Err, res.Stderr)
+	}
+	named := strings.TrimSpace(res.Stdout)
+	got, err = show(protocol.ShowParams{Ref: "RAM-12"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var brief protocol.Said
+	for _, s := range got.Said {
+		if s.Mission == named {
+			brief = s
+		}
+	}
+	if brief.Ref != "brief" || brief.Kind != "brief" || brief.How != protocol.SaidMentions || brief.Path != "/missions/"+named+"?tab=brief" {
+		t.Errorf("the brief that names RAM-12: %+v\nof: %+v", brief, got.Said)
+	}
+	if b, err := show(protocol.ShowParams{Ref: brief.Ref, Mission: brief.Mission}); err != nil || b.Path != "/missions/"+named+"?tab=brief" || !strings.Contains(strings.Join(b.Body, "\n"), "What RAM-12 leaves undone.") {
+		t.Errorf("the brief, asked for in turn: %v %+v", err, b)
+	}
+
+	// And asked for in turn, it says where it came from.
+	if w1, err := show(protocol.ShowParams{Ref: "w1"}); err != nil || w1.Path != "/conversations/w1" || !strings.Contains(strings.Join(w1.Body, "\n"), "from the jira plugin, which worded its first message") {
+		t.Errorf("the conversation: %v %+v", err, w1)
+	}
+
+	// The rest of what a plugin asks is answered as it was.
+	list, err := answer(t.Context(), "jira", protocol.MethodMissionList, nil)
+	if ms, ok := list.(protocol.MissionListResult); err != nil || !ok || len(ms.Missions) != 2 || !slices.ContainsFunc(ms.Missions, func(m protocol.Mission) bool { return m.Slug == slug }) {
+		t.Errorf("mission/list: %v %+v", err, list)
 	}
 }
 

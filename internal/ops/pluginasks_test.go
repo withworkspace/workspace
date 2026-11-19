@@ -6,10 +6,15 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/acp"
+	"github.com/withworkspace/workspace/internal/conversation"
+	"github.com/withworkspace/workspace/internal/job"
+	"github.com/withworkspace/workspace/internal/store"
 )
 
 // ask is AnswerPlugin, its answer as a plugin reads it: as JSON, into the
@@ -135,5 +140,76 @@ func TestPluginAsksWhatWSHasNot(t *testing.T) {
 	w, _ := fixture(t, "")
 	if _, err := w.AnswerPlugin(context.Background(), "jira", "link/put", nil); rpcCode(err) != acp.CodeMethodNotFound {
 		t.Errorf("a method ws hasn't: %v", err)
+	}
+}
+
+// A plugin has ws start a conversation for the person: it's theirs, it
+// says which plugin it came from, and its agent answers. A mission its
+// agent then proposes as about something is about it once accepted.
+func TestPluginStartsAConversation(t *testing.T) {
+	w, _ := fixture(t, "")
+	var answers []string
+	w.opts.Answer = func(kind, slug, id string) { answers = append(answers, kind+" "+slug+"/"+id) }
+
+	got, err := ask[protocol.ConversationStarted](t, w, protocol.MethodConversationStart, protocol.ConversationStartParams{Message: " Let's work out a mission for frontend#12. "})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ID != "w1" || got.Path != "/conversations/w1" {
+		t.Errorf("started: %+v", got)
+	}
+	talks := conversation.ForWorkspace(w.Root())
+	c, err := talks.Load("w1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Via != "jira" || c.By != conversation.You || c.Kind != conversation.Talk || len(c.Turns) != 1 || c.Turns[0].By != conversation.You || c.Turns[0].Body != "Let's work out a mission for frontend#12." {
+		t.Errorf("the conversation: via %q, by %q, turns %+v", c.Via, c.By, c.Turns)
+	}
+	if want := []string{job.Answer + " /w1"}; !slices.Equal(answers, want) {
+		t.Errorf("answered %q, want %q", answers, want)
+	}
+	// What its first message names says the conversation mentions it,
+	// from the start.
+	named, err := w.SaidOf(store.Key{Name: "frontend#12"})
+	if err != nil || len(named) != 1 || named[0].Ref != "w1" || named[0].Scope != "" || named[0].How != store.Mentions || named[0].Kind != conversation.WhatTalk {
+		t.Errorf("said of what it names: %v %+v", err, named)
+	}
+
+	// Nothing said starts nothing.
+	if _, err := ask[protocol.ConversationStarted](t, w, protocol.MethodConversationStart, protocol.ConversationStartParams{Message: " \n"}); rpcCode(err) != acp.CodeInvalidParams {
+		t.Errorf("nothing said: %v", err)
+	}
+	if all, _ := talks.List(); len(all) != 1 || len(answers) != 1 {
+		t.Errorf("after nothing said: %d conversations, answered %q", len(all), answers)
+	}
+
+	// The mission its agent proposes, about what was named: accepted,
+	// its record says so.
+	if _, err := talks.Propose("w1", conversation.Proposal{Kind: conversation.ProposeMission, By: conversation.Agent, Title: "Fix the refresh", Brief: "## Goal\nFix it.\n", About: []string{"frontend#12"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := w.SettleProposal("", "w1", 1, true, ProposalEdits{}); err != nil {
+		t.Fatal(err)
+	}
+	m, err := w.Missions.Load("fix-the-refresh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(m.About, []string{"frontend#12"}) || m.Conversation != "w1" {
+		t.Errorf("the mission: about %q, from %q", m.About, m.Conversation)
+	}
+
+	// One proposed as about a name ws doesn't read (its plugin's gone
+	// since) is made all the same, and says what it couldn't record.
+	if _, err := talks.Propose("w1", conversation.Proposal{Kind: conversation.ProposeMission, By: conversation.Agent, Title: "Cache the sessions", About: []string{"RAM-12"}}); err != nil {
+		t.Fatal(err)
+	}
+	said, _, err := w.SettleProposal("", "w1", 2, true, ProposalEdits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m, err := w.Missions.Load("cache-the-sessions"); err != nil || len(m.About) != 0 || !strings.Contains(said, "It isn't recorded as about RAM-12") {
+		t.Errorf("about a name ws doesn't read: %v, about %v, said %q", err, m, said)
 	}
 }

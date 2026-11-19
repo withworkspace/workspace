@@ -155,6 +155,51 @@ func TestProblems(t *testing.T) {
 		t.Errorf("one that names things is of use:\n%s", notes)
 	}
 
+	// Config in tables: a table with its rows' fields, one of them a
+	// table in turn, and text by text, are nothing wrong; what's wrong
+	// with one is said with where it is.
+	tables := plugin.Registration{Commands: &plugin.Commands{Short: "x", Subcommands: []plugin.Subcommand{{Name: "a", Short: "b"}}}, Agent: &plugin.Agent{Guide: "g"}, Config: []plugin.ConfigKey{
+		{Key: "statuses", Title: "Statuses", Type: protocol.TypeMap},
+		{Key: "spaces", Title: "Spaces", Type: protocol.TypeTable, Row: "Space key", Fields: []plugin.ConfigKey{
+			{Key: "label", Title: "Label", Type: protocol.TypeString},
+			{Key: "columns", Title: "Columns", Type: protocol.TypeMap},
+			{Key: "custom_fields", Title: "Custom fields", Type: protocol.TypeTable, Fields: []plugin.ConfigKey{{Key: "card", Title: "On cards", Type: protocol.TypeBool}}},
+		}},
+	}}
+	if ps := plugin.Problems("board", tables); len(ps) != 0 {
+		t.Errorf("nothing's wrong with its tables, and it said: %+v", ps)
+	}
+	fatal, notes = texts(plugin.Problems("board", plugin.Registration{Commands: &plugin.Commands{Short: "x", Subcommands: []plugin.Subcommand{{Name: "a", Short: "b"}}}, Agent: &plugin.Agent{Guide: "g"}, Config: []plugin.ConfigKey{
+		{Key: "empty", Title: "Empty", Type: protocol.TypeTable},
+		{Key: "site", Title: "Site", Type: protocol.TypeURL, Fields: []plugin.ConfigKey{{Key: "x", Title: "X"}}},
+		{Key: "spaces", Title: "Spaces", Type: protocol.TypeTable, Fields: []plugin.ConfigKey{
+			{Key: "label", Title: "Label"},
+			{Key: "label", Title: "Label again"},
+			{Key: "token", Title: "Token", Type: protocol.TypeSecret},
+			{Key: "enabled", Title: "Enabled", Type: protocol.TypeBool},
+			{Key: "kind", Type: "colour"},
+			{Key: "custom_fields", Title: "Custom fields", Type: protocol.TypeTable, Fields: []plugin.ConfigKey{
+				{Key: "options", Title: "Options", Type: protocol.TypeTable, Fields: []plugin.ConfigKey{{Key: "x", Title: "X"}}},
+			}},
+		}},
+	}}))
+	for _, want := range []string{
+		"config key empty is a table, and its rows have no fields",
+		"config key site has fields, and isn't a table",
+		"config table spaces's field label is declared twice",
+		"config table spaces's field token is a secret, and a secret is a key of its own, not a row's",
+		"config table spaces's field enabled is every row's already",
+		`config table spaces's field kind is of type "colour", which ws doesn't know (it knows string, url, bool, number, enum, list, secret, map, table)`,
+		"config table spaces.custom_fields's field options is a table in a table in a table: a table goes one level down",
+	} {
+		if !strings.Contains(fatal, want) {
+			t.Errorf("what's wrong with its tables lacks %q:\n%s", want, fatal)
+		}
+	}
+	if !strings.Contains(notes, "config table spaces's field kind has no title") {
+		t.Errorf("a field with no title: %q", notes)
+	}
+
 	// Commands and no guide: agents aren't told.
 	_, notes = texts(plugin.Problems("quiet", plugin.Registration{Commands: &plugin.Commands{Short: "x", Subcommands: []plugin.Subcommand{{Name: "a", Short: "b"}}}}))
 	if !strings.Contains(notes, "agents won't know ws quiet is there") {

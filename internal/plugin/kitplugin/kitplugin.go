@@ -140,6 +140,22 @@ func run() {
 		return c.Say("noted")
 	}).Args("[less]")
 
+	// A table: shelves, each with a label, what's on it, and its hooks.
+	shelves := p.Config.Table("shelves", "Shelves", plugin.RowName("Shelf"))
+	shelfLabel := shelves.String("label", "Label", plugin.Required)
+	shelfHolds := shelves.Number("holds", "How many it holds", plugin.Default(3))
+	hooks := shelves.Table("hooks", "Hooks", plugin.RowName("Hook"))
+	hookFor := hooks.String("for", "What hangs on it")
+	p.Command("shelves", "Says its shelves, a row a line, as config has them", func(c *plugin.Call) error {
+		for _, row := range shelves.Rows() {
+			line := fmt.Sprintf("%s: %s holds %v", row.Name, shelfLabel.In(row), shelfHolds.In(row))
+			for _, hook := range hooks.RowsIn(row) {
+				line += fmt.Sprintf(" [%s for %s]", hook.Name, hookFor.In(hook))
+			}
+			fmt.Fprintln(c.Stdout(), line)
+		}
+		return nil
+	})
 	p.Command("hi", "Says the greeting", func(c *plugin.Call) error {
 		fmt.Fprintln(c.Stderr(), "to stderr")
 		return c.Say(greeting.Get() + ", ws")
@@ -157,7 +173,7 @@ func run() {
 		p.Log.Error("it went wrong")
 		return plugin.Exit(3, errors.New("failed"))
 	})
-	p.Command("ask", "Asks ws for missions, a mission or repos, and prints the answer as JSON", func(c *plugin.Call) error {
+	p.Command("ask", "Asks ws for missions, a mission, repos or what it shows of a ref, or has it start a conversation, and prints the answer as JSON", func(c *plugin.Call) error {
 		var answer any
 		var err error
 		switch c.Arg(0) {
@@ -167,6 +183,10 @@ func run() {
 			answer, err = p.Mission(c.Context(), c.Arg(1))
 		case "repos":
 			answer, err = p.Repos(c.Context())
+		case "show":
+			answer, err = p.ShowIn(c.Context(), c.Option("mission"), c.Arg(1))
+		case "talk":
+			answer, err = p.StartConversation(c.Context(), c.Arg(1))
 		}
 		switch {
 		case errors.Is(err, plugin.ErrNotFound):
@@ -177,7 +197,7 @@ func run() {
 			return err
 		}
 		return json.NewEncoder(c.Stdout()).Encode(answer)
-	}).Args("missions|mission SLUG|repos").Flag("archived", "archived missions too")
+	}).Args("missions|mission SLUG|repos|show REF|talk MESSAGE").Flag("archived", "archived missions too").Option("mission", "the mission a ref shown is one of")
 	p.Run()
 }
 

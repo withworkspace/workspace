@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -677,9 +678,22 @@ func newPluginConfigCmd() *cobra.Command {
 set. key=value sets a key, and --unset removes one. --ask asks for each in
 turn, which keeps a secret out of your shell's history.
 
+A key that's a table holds named rows, each with the same fields, and a
+field is set by its path: the table, the row's name, then the field. A row
+is there once one of its fields is. A part of a path with a dot or a space
+in it is quoted:
+
+  ws plugin config jira queries.bugs.query='project = RAM, type = Bug'
+  ws plugin config jira spaces.ram.custom_fields."Story Points".card=true
+  ws plugin config jira spaces.ram.columns."In Review"=Review
+  ws plugin config jira --unset queries.bugs
+
+--unset with a row's path takes the row out of your file. A row that's the
+team's stays theirs: <row>.enabled=false leaves it out for you.
+
 What you set is yours: it goes in ws.local.toml ([plugin.<name>]), over the
-team's in ws.toml. A secret goes in neither, but in a file only you can
-read beside the plugin's data.`,
+team's in ws.toml, row by row and field by field. A secret goes in
+neither, but in a file only you can read beside the plugin's data.`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
@@ -692,35 +706,49 @@ read beside the plugin's data.`,
 			if err != nil {
 				return err
 			}
-			keys := map[string]plugin.ConfigKey{}
-			for _, k := range st.Registration.Config {
-				keys[k.Key] = k
-			}
+			keys := st.Registration.Config
 			changed := false
 			for _, pair := range args[1:] {
-				key, value, ok := strings.Cut(pair, "=")
-				k, known := keys[key]
-				switch {
-				case !ok:
+				typed, value, ok := cutPair(pair)
+				if !ok {
 					return fmt.Errorf("%q isn't key=value", pair)
-				case !known:
-					return fmt.Errorf("%s has no key %q (it has: %s)", name, key, strings.Join(keyNames(st), ", "))
 				}
-				v, err := plugin.ParseValue(k, value)
+				at, err := configPlace(name, keys, typed)
 				if err != nil {
 					return err
 				}
-				if err := plugin.SetValue(root, name, k, v); err != nil {
+				switch {
+				case at.Row:
+					return fmt.Errorf("%s is a row of %s: set a field of it, as %s.<field>=value (it has: %s)", typed, at.Table.Key, typed, strings.Join(fieldKeys(at.Table), ", "))
+				case len(at.Path) == 1 && (at.Key.Type == protocol.TypeTable || at.Key.Type == protocol.TypeMap):
+					return fmt.Errorf("%s is %s: set one of its entries, as %s.<name>=value", typed, typeSaid(at.Key), typed)
+				case at.Key.Type == protocol.TypeMap && !at.Entry:
+					return fmt.Errorf("%s is text by text: set one of its entries, as %s.<name>=value", typed, typed)
+				}
+				k := at.Key
+				if at.Entry {
+					k = plugin.ConfigKey{Key: typed, Type: protocol.TypeString} // an entry of a map is text
+				}
+				v, err := plugin.ParseValue(k, value)
+				if err != nil {
+					return fmt.Errorf("%s: %w", typed, err)
+				}
+				if err := plugin.SetAt(root, name, at, v); err != nil {
 					return err
 				}
 				changed = true
 			}
-			for _, key := range unset {
-				k, known := keys[key]
-				if !known {
-					return fmt.Errorf("%s has no key %q", name, key)
+			for _, typed := range unset {
+				at, err := configPlace(name, keys, typed)
+				if err != nil {
+					return err
 				}
-				if err := plugin.SetValue(root, name, k, nil); err != nil {
+				// A row that's only the team's isn't in your file to take
+				// out: it's left out, for you, by saying so.
+				if at.Row && !plugin.Yours(root, name, at.Path) {
+					return fmt.Errorf("%s isn't in your ws.local.toml: if it's the team's, %s.enabled=false leaves it out for you", typed, typed)
+				}
+				if err := plugin.SetAt(root, name, at, nil); err != nil {
 					return err
 				}
 				changed = true
@@ -757,32 +785,231 @@ func pluginStatus(root, name string) (plugin.Status, error) {
 	return plugin.Status{}, fmt.Errorf("there's no plugin called %s (ws plugin list)", name)
 }
 
-func keyNames(st plugin.Status) []string {
-	out := make([]string, len(st.Registration.Config))
-	for i, k := range st.Registration.Config {
-		out[i] = k.Key
+// askRows asks for a table's rows in the terminal, until it's told
+// they're done: a row added, by its name and then its fields; one
+// changed, a field at a time; or one taken out (of your file, or, where
+// it's the team's, left out for you). path is the table's: a key, or a
+// field of a row.
+func askRows(root string, st plugin.Status, table plugin.ConfigKey, path []string) error {
+	what := cmp.Or(table.Title, table.Key)
+	for {
+		rows, err := rowsAt(root, st, path)
+		if err != nil {
+			return err
+		}
+		options := []huh.Option[string]{huh.NewOption("Done", ""), huh.NewOption("Add a "+rowSaid(table), "+")}
+		for _, r := range rows {
+			said := r.Name
+			if r.Off {
+				said += " (off)"
+			}
+			options = append(options, huh.NewOption("Change "+said, "="+r.Name))
+		}
+		for _, r := range rows {
+			if !r.Off {
+				options = append(options, huh.NewOption("Take out "+r.Name, "-"+r.Name))
+			}
+		}
+		choice := ""
+		title := fmt.Sprintf("%s: %d %s", what, len(rows), plural(len(rows), "row"))
+		if err := huh.NewSelect[string]().Title(title).Description(table.Help).Options(options...).Value(&choice).Run(); err != nil {
+			return err
+		}
+		switch {
+		case choice == "":
+			return nil
+		case choice == "+":
+			name := ""
+			if err := huh.NewInput().Title(cmp.Or(table.Row, "Name")).Description("What the new row is called: it's how it's named in the config.").Value(&name).Run(); err != nil {
+				return err
+			}
+			if name = strings.TrimSpace(name); name == "" {
+				continue
+			}
+			if err := askRow(root, st, table, append(slices.Clone(path), name), plugin.Row{Name: name}); err != nil {
+				return err
+			}
+		case strings.HasPrefix(choice, "="):
+			for _, r := range rows {
+				if r.Name == choice[1:] {
+					if err := askRow(root, st, table, append(slices.Clone(path), r.Name), r); err != nil {
+						return err
+					}
+				}
+			}
+		default:
+			if err := takeOutRow(root, st.Name, append(slices.Clone(path), choice[1:])); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+// rowsAt are the rows of the table at path, as they're set: a key's, or
+// those of a row's field that's a table.
+func rowsAt(root string, st plugin.Status, path []string) ([]plugin.Row, error) {
+	values, _, err := plugin.Shaped(root, st.Name, st.Registration.Config)
+	if err != nil {
+		return nil, err
+	}
+	rows, _ := values[path[0]].([]plugin.Row)
+	for i := 1; i+1 < len(path); i += 2 {
+		var next []plugin.Row
+		for _, r := range rows {
+			if r.Name == path[i] {
+				next, _ = r.Values[path[i+1]].([]plugin.Row)
+			}
+		}
+		rows = next
+	}
+	return rows, nil
+}
+
+// askRow asks for each field of a row in turn, with what it's set to now:
+// one left empty is left as it was. Its tables are asked for after, a
+// row at a time.
+func askRow(root string, st plugin.Status, table plugin.ConfigKey, path []string, row plugin.Row) error {
+	for _, f := range table.Fields {
+		fieldPath := append(slices.Clone(path), f.Key)
+		switch f.Type {
+		case protocol.TypeTable:
+			if err := askRows(root, st, f, fieldPath); err != nil {
+				return err
+			}
+			continue
+		case protocol.TypeMap:
+			fmt.Fprintf(ui.Stderr, "  %s is text by text: ws plugin config %s %s.<name>=value sets an entry\n", f.Key, st.Name, plugin.JoinPath(fieldPath))
+			continue
+		}
+		answer := ""
+		if v, ok := row.Values[f.Key]; ok {
+			answer = configShown(v)
+		}
+		title := cmp.Or(f.Title, f.Key)
+		if f.Required {
+			title += " (needed)"
+		}
+		if err := huh.NewInput().Title(row.Name + ": " + title).Description(f.Help).Placeholder(f.Example).Value(&answer).Run(); err != nil {
+			return err
+		}
+		if strings.TrimSpace(answer) == "" {
+			continue // left as it was
+		}
+		v, err := plugin.ParseValue(f, answer)
+		if err != nil {
+			return err
+		}
+		at, err := plugin.Find(st.Registration.Config, fieldPath)
+		if err != nil {
+			return err
+		}
+		if err := plugin.SetAt(root, st.Name, at, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// takeOutRow takes a row out: of your file, where it's there, and if
+// it's still set after that (it's the team's too), it's left out for you
+// with enabled = false.
+func takeOutRow(root, name string, path []string) error {
+	if plugin.Yours(root, name, path) {
+		if err := plugin.SetAt(root, name, plugin.Place{Path: path, Row: true}, nil); err != nil {
+			return err
+		}
+	}
+	cfg, _, err := config.Load(root)
+	if err != nil {
+		return err
+	}
+	var in any = cfg.Plugin[name]
+	for _, part := range path {
+		m, ok := in.(map[string]any)
+		if !ok {
+			return nil
+		}
+		if in, ok = m[part]; !ok {
+			return nil // it was only yours, and it's gone
+		}
+	}
+	off := plugin.Place{Path: append(slices.Clone(path), plugin.RowEnabled), Key: plugin.ConfigKey{Key: plugin.RowEnabled, Type: protocol.TypeBool}}
+	return plugin.SetAt(root, name, off, false)
+}
+
+// cutPair is key=value, cut at the first = that isn't in a quoted part
+// of the key: a row's name may have one in it.
+func cutPair(pair string) (key, value string, ok bool) {
+	quoted := false
+	for i, r := range pair {
+		switch {
+		case r == '"':
+			quoted = !quoted
+		case r == '=' && !quoted:
+			return pair[:i], pair[i+1:], true
+		}
+	}
+	return pair, "", false
+}
+
+// configPlace is where a key's path, as it's typed, leads in a plugin's
+// config.
+func configPlace(name string, keys []plugin.ConfigKey, typed string) (plugin.Place, error) {
+	path, err := plugin.SplitPath(typed)
+	if err != nil {
+		return plugin.Place{}, err
+	}
+	at, err := plugin.Find(keys, path)
+	if err != nil {
+		return at, fmt.Errorf("%s: %w", name, err)
+	}
+	return at, nil
+}
+
+func fieldKeys(table plugin.ConfigKey) []string {
+	out := make([]string, len(table.Fields))
+	for i, f := range table.Fields {
+		out[i] = f.Key
 	}
 	return out
 }
 
-// showPluginConfig lists a plugin's keys, and what each is set to.
+// typeSaid is what a key that holds more than one value is, in words.
+func typeSaid(k plugin.ConfigKey) string {
+	if k.Type == protocol.TypeTable {
+		return "a table of rows"
+	}
+	return "text by text"
+}
+
+// showPluginConfig lists a plugin's keys, and what each is set to: a
+// table's rows under it, in the order the plugin's given them, and what's
+// wrong in any of it last.
 func showPluginConfig(root string, st plugin.Status) error {
 	if len(st.Registration.Config) == 0 {
 		fmt.Fprintf(ui.Stdout, "%s has no config.\n", st.Name)
 		return nil
 	}
-	values, err := plugin.Values(root, st.Name)
+	values, problems, err := plugin.Shaped(root, st.Name, st.Registration.Config)
 	if err != nil {
 		return err
 	}
 	tw := tabwriter.NewWriter(ui.Stdout, 0, 0, 2, ' ', 0)
+	var tables []plugin.ConfigKey
 	for _, k := range st.Registration.Config {
 		shown := "(not set)"
 		switch v, ok := values[k.Key]; {
+		case k.Type == protocol.TypeTable:
+			rows, _ := v.([]plugin.Row)
+			shown = fmt.Sprintf("%d %s", len(rows), plural(len(rows), "row"))
+			if len(rows) == 0 && k.Required {
+				shown = "(no rows, and it needs one)"
+			}
+			tables = append(tables, k)
 		case ok && k.Secret():
 			shown = "(set)"
 		case ok:
-			shown = fmt.Sprint(v)
+			shown = configShown(v)
 		case k.Default != nil:
 			shown = fmt.Sprintf("%v (the default)", k.Default)
 		case k.Required:
@@ -790,7 +1017,89 @@ func showPluginConfig(root string, st plugin.Status) error {
 		}
 		fmt.Fprintf(tw, "%s\t%s\t%s\n", k.Key, shown, k.Title)
 	}
-	return tw.Flush()
+	if err := tw.Flush(); err != nil {
+		return err
+	}
+	for _, k := range tables {
+		rows, _ := values[k.Key].([]plugin.Row)
+		if len(rows) == 0 {
+			continue
+		}
+		fmt.Fprintf(ui.Stdout, "\n%s, a row for each %s (%s.<%s>.<field>=value sets a field):\n", k.Key, rowSaid(k), k.Key, rowSaid(k))
+		showRows(ui.Stdout, k, rows, []string{k.Key}, "  ")
+	}
+	if len(problems) > 0 {
+		fmt.Fprintf(ui.Stdout, "\nWrong in it, and left out of what %s is given:\n", st.Name)
+		for _, p := range problems {
+			fmt.Fprintf(ui.Stdout, "  %s\n", p)
+		}
+	}
+	return nil
+}
+
+// rowSaid is what a table's rows are named by, in words.
+func rowSaid(table plugin.ConfigKey) string {
+	if table.Row != "" {
+		return strings.ToLower(table.Row)
+	}
+	return "name"
+}
+
+// showRows prints a table's rows, each with its fields that are set: a
+// field that's a table as its own rows, under it.
+func showRows(w io.Writer, table plugin.ConfigKey, rows []plugin.Row, path []string, indent string) {
+	for _, r := range rows {
+		name := plugin.JoinPath([]string{r.Name})
+		switch {
+		case r.Off:
+			name += "  (off: enabled = false)"
+		case r.Left != "":
+			name += "  (left out: " + r.Left + ")"
+		}
+		fmt.Fprintf(w, "%s%s\n", indent, name)
+		tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+		var inner []plugin.ConfigKey
+		for _, f := range table.Fields {
+			v, ok := r.Values[f.Key]
+			switch {
+			case f.Type == protocol.TypeTable:
+				if rows, _ := v.([]plugin.Row); len(rows) > 0 {
+					inner = append(inner, f)
+				}
+			case ok:
+				fmt.Fprintf(tw, "%s  %s\t%s\n", indent, f.Key, configShown(v))
+			case f.Default != nil:
+				fmt.Fprintf(tw, "%s  %s\t%v (the default)\n", indent, f.Key, f.Default)
+			}
+		}
+		tw.Flush() //nolint:errcheck // to the terminal
+		for _, f := range inner {
+			fmt.Fprintf(w, "%s  %s:\n", indent, f.Key)
+			showRows(w, f, r.Values[f.Key].([]plugin.Row), append(slices.Clone(path), r.Name, f.Key), indent+"    ")
+		}
+	}
+}
+
+// configShown is a value as it's listed: a list with commas, text by
+// text as name = value.
+func configShown(v any) string {
+	switch x := v.(type) {
+	case []string:
+		return strings.Join(x, ", ")
+	case map[string]string:
+		names := make([]string, 0, len(x))
+		for name := range x {
+			names = append(names, name)
+		}
+		slices.Sort(names)
+		for i, name := range names {
+			names[i] = name + " = " + x[name]
+		}
+		return strings.Join(names, ", ")
+	case float64:
+		return strconv.FormatFloat(x, 'f', -1, 64)
+	}
+	return fmt.Sprint(v)
 }
 
 // askPluginConfig asks for a plugin's keys in the terminal: every one, or
@@ -806,6 +1115,18 @@ func askPluginConfig(root string, st plugin.Status, all bool) error {
 	for _, k := range st.Registration.Config {
 		_, set := values[k.Key]
 		if !all && (set || !k.Required || k.Default != nil) {
+			continue
+		}
+		// A table's rows are asked for a row at a time, and text by text
+		// is set an entry at a time: neither is one line to type.
+		if k.Type == protocol.TypeTable {
+			if err := askRows(root, st, k, []string{k.Key}); err != nil {
+				return err
+			}
+			continue
+		}
+		if k.Type == protocol.TypeMap {
+			fmt.Fprintf(ui.Stderr, "  %s is text by text: ws plugin config %s %s.<name>=value sets an entry\n", k.Key, st.Name, k.Key)
 			continue
 		}
 		answer := ""

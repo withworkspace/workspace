@@ -79,6 +79,9 @@ type Proposal struct {
 	Brief    string   `json:"brief,omitempty"`
 	Was      string   `json:"was,omitempty"`
 	Capsules []string `json:"capsules,omitempty"`
+	// A mission: what it's about, by names ws reads (one of a plugin's
+	// things, a pull request), as its record will say once it's created.
+	About []string `json:"about,omitempty"`
 	// Briefing a mission: existing work to build on (repo/branch or
 	// repo#PR, docked), and a better slug for it.
 	Docks []string `json:"docks,omitempty"`

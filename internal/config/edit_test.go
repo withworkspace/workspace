@@ -173,6 +173,49 @@ func TestEditLocalLeavesTheRest(t *testing.T) {
 	}
 }
 
+// A plugin's rows are tables under its key, a table for each row: one is
+// added with its own header, a key that isn't a bare one quoted (a row's
+// name, an entry of a map), and the file's comments stay. A row that
+// loses its last key goes, header and all.
+func TestEditLocalAddsAPluginsRows(t *testing.T) {
+	root := writeLocal(t, "# mine\n[plugin.jira]\nsite = \"https://example.com\" # the test one\n")
+	set := func(path []string, value any) {
+		t.Helper()
+		if err := EditLocal(root, func(l *LocalConfig) {
+			in := l.Plugin["jira"]
+			for _, part := range path[:len(path)-1] {
+				next, ok := in[part].(map[string]any)
+				if !ok {
+					next = map[string]any{}
+					in[part] = next
+				}
+				in = next
+			}
+			if value == nil {
+				delete(in, path[len(path)-1])
+				return
+			}
+			in[path[len(path)-1]] = value
+		}); err != nil {
+			t.Fatalf("setting %v: %v", path, err)
+		}
+	}
+	set([]string{"queries", "bugs", "query"}, "project = RAM, type = Bug")
+	set([]string{"spaces", "ram", "custom_fields", "Story Points", "card"}, true)
+	set([]string{"spaces", "ram", "columns", "In Review"}, "Review")
+	want := "# mine\n[plugin.jira]\nsite = \"https://example.com\" # the test one\n\n" +
+		"[plugin.jira.queries.bugs]\nquery = \"project = RAM, type = Bug\"\n\n" +
+		"[plugin.jira.spaces.ram.custom_fields.\"Story Points\"]\ncard = true\n\n" +
+		"[plugin.jira.spaces.ram.columns]\n\"In Review\" = \"Review\"\n"
+	if got := readLocal(t, root); got != want {
+		t.Errorf("after adding rows:\n%s\nwant:\n%s", got, want)
+	}
+	set([]string{"queries", "bugs", "query"}, nil)
+	if got := readLocal(t, root); strings.Contains(got, "queries") || !strings.Contains(got, "# the test one") || !strings.Contains(got, `"In Review" = "Review"`) {
+		t.Errorf("after a row's last key went:\n%s", got)
+	}
+}
+
 // Writers at once (a lift and the settings page) don't lose each other's
 // changes.
 func TestUpdateLocalLocked(t *testing.T) {

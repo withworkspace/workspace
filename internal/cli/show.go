@@ -23,6 +23,7 @@ import (
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/orchestrator"
 	"github.com/withworkspace/workspace/internal/page"
+	"github.com/withworkspace/workspace/internal/plugin"
 	wsref "github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/review"
 	"github.com/withworkspace/workspace/internal/store"
@@ -127,63 +128,12 @@ Views are kept short and say what they left out; --full shows it all.`,
 				}
 				return err
 			}
-			// A plugin's thing, by a name its plugin registered (RAM-123):
-			// the workspace's, whichever mission it's asked from.
-			if thing, kept, ok := ctx.ThingNamed(ref); ok {
-				return showThing(ctx, thing, kept, format, full)
-			}
-			if page.IsRef(ref) || conversation.IsWorkspaceRef(ref) || artifact.IsRef(ref) { // the workspace's, not a mission's
-				var v *view
-				switch {
-				case page.IsRef(ref):
-					v, err = pageView(ctx, ref, full)
-				case artifact.IsRef(ref):
-					v, err = artifactShowView(ctx, ref, full)
-				default:
-					v, err = workspaceTalkView(ctx, ref, full)
-				}
-				if err != nil {
-					return err
-				}
-				if format == "llm" {
-					_, err = os.Stdout.WriteString(v.render(false, full))
-				} else {
-					_, err = io.WriteString(ui.Stdout, v.render(true, full))
-				}
-				return err
-			}
-			m, err := resolveMission(ctx, slug)
-			// repo#12 is a mission's artifact when one records it; else, and
-			// outside a mission, it's the pull request itself.
-			_, _, isPR := wsref.ParsePR(ref)
-			// repo:path is a mission's document when one records it; else,
-			// and outside a mission, it's the file itself (as refs name it
-			// too: repo/path, with lines).
-			isFile := isFileName(ref)
+			v, m, err := showView(ctx, slug, ref, full, showAsked{mission: resolveMission, thing: thingNow})
 			if err != nil {
-				if isPR && slug == "" {
-					return showPR(ctx, ref, format, full)
-				}
-				if isFile && slug == "" {
-					return showDoc(ctx, ref, format, full)
-				}
 				return err
 			}
-			if ref == "" {
+			if v == nil {
 				return showMission(ctx, m, format)
-			}
-			g := loadGraph(ctx, m, full)
-			v, err := g.view(ref)
-			if err != nil && isPR {
-				return showPR(ctx, ref, format, full)
-			}
-			if err != nil && isFile {
-				if derr := showDoc(ctx, ref, format, full); derr == nil {
-					return nil
-				}
-			}
-			if err != nil {
-				return err
 			}
 			if format == "llm" {
 				_, err = os.Stdout.WriteString(v.render(false, full))
@@ -197,6 +147,82 @@ Views are kept short and say what they left out; --full shows it all.`,
 	cmd.Flags().StringVarP(&format, "format", "f", "text", "output format: text or llm")
 	cmd.Flags().BoolVar(&full, "full", false, "show everything a view would leave out")
 	return cmd
+}
+
+// showAsked is who a view is found for: how its mission is found (the
+// command's is the one it's run in, where none is named), and how one of
+// a plugin's things is read.
+type showAsked struct {
+	mission func(ctx *ops.Workspace, slug string) (*mission.Mission, error)
+	thing   func(root string, r wsref.Ref, kept plugin.KeptRef, full bool) (fields map[string]string, asOf string, err error)
+}
+
+// showView finds what ref names and shows it: one of a plugin's things,
+// one of the workspace's, or one of mission slug's own. It's the one way
+// a ref is read, for the command and for a plugin that asks (shownFor).
+// A mission itself (no ref) has no view: the mission is returned, for
+// each to show its own way. A view of one of a mission's own comes with
+// its mission.
+func showView(ctx *ops.Workspace, slug, ref string, full bool, asked showAsked) (*view, *mission.Mission, error) {
+	// A plugin's thing, by a name its plugin registered (RAM-123): the
+	// workspace's, whichever mission it's asked from.
+	if thing, kept, ok := ctx.ThingNamed(ref); ok {
+		fields, asOf, err := asked.thing(ctx.WS().Root, thing, kept, full)
+		if err != nil {
+			return nil, nil, err
+		}
+		return thingView(ctx, thing, kept, fields, asOf, full), nil, nil
+	}
+	if page.IsRef(ref) || conversation.IsWorkspaceRef(ref) || artifact.IsRef(ref) { // the workspace's, not a mission's
+		var v *view
+		var err error
+		switch {
+		case page.IsRef(ref):
+			v, err = pageView(ctx, ref, full)
+		case artifact.IsRef(ref):
+			v, err = artifactShowView(ctx, ref, full)
+		default:
+			v, err = workspaceTalkView(ctx, ref, full)
+		}
+		return v, nil, err
+	}
+	m, err := asked.mission(ctx, slug)
+	// repo#12 is a mission's artifact when one records it; else, and
+	// outside a mission, it's the pull request itself.
+	_, _, isPR := wsref.ParsePR(ref)
+	// repo:path is a mission's document when one records it; else, and
+	// outside a mission, it's the file itself (as refs name it too:
+	// repo/path, with lines).
+	isFile := isFileName(ref)
+	if err != nil {
+		if isPR && slug == "" {
+			v, err := prShowView(ctx, ref, full)
+			return v, nil, err
+		}
+		if isFile && slug == "" {
+			v, err := docView(ctx, ref, full)
+			return v, nil, err
+		}
+		return nil, nil, err
+	}
+	if ref == "" {
+		return nil, m, nil
+	}
+	g := loadGraph(ctx, m, full)
+	v, err := g.view(ref)
+	if err != nil && isPR {
+		v, err := prShowView(ctx, ref, full)
+		return v, nil, err
+	}
+	if err != nil && isFile {
+		if v, derr := docView(ctx, ref, full); derr == nil {
+			return v, nil, nil
+		}
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	return v, m, nil
 }
 
 // showMission is the mission's own view: ws mission show.
@@ -1262,7 +1288,11 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 		}
 	}
 	v := &view{head: head}
-	v.body = append(v.body, fmt.Sprintf("Started by %s, %s.", c.By, when(c.At)))
+	if c.Via != "" {
+		v.body = append(v.body, fmt.Sprintf("Started by %s, %s, from the %s plugin, which worded its first message.", c.By, when(c.At), c.Via))
+	} else {
+		v.body = append(v.body, fmt.Sprintf("Started by %s, %s.", c.By, when(c.At)))
+	}
 	if c.Kind == conversation.Cell {
 		v.body = append(v.body, "Its first message is what the user asked for there; each reply of the agent's is the cell as it then read, and what the user says after is what they wanted changed. The page is .ws/pages/"+c.Anchor.Page+".md, the cell between its `<!-- ws:cell "+c.ID+" … -->` and `<!-- /ws:cell -->` comments.")
 	}
@@ -1325,6 +1355,9 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 				what = "mission: " + p.Title
 				if p.Brief == "" {
 					what += " (an idea, to brief later)"
+				}
+				if len(p.About) > 0 {
+					what += ", about " + strings.Join(p.About, ", ")
 				}
 			case conversation.ProposeComment:
 				what = fmt.Sprintf("review comment on %s %s:%d (%s): %s", p.PR, p.Path, p.Line, p.NoteKind, p.Text)

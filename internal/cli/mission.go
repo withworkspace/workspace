@@ -112,7 +112,8 @@ To create a mission ready straight away, with a brief you write yourself:
 
 In a conversation, its agent proposes one instead (--propose): an idea to
 brief later, or with --brief or --brief-file, ready, with --capsule for
-each capsule to lift. The user creates it, or not.
+each capsule to lift, and --about for what it's about. The user creates
+it, or not.
 
 Raised from inside a mission (by crew, or the orchestrator), one that looks
 like a mission in play is refused, naming it: note what you found there
@@ -144,7 +145,13 @@ like a mission in play is refused, naming it: note what you found there
 					}
 					brief = string(data)
 				}
-				return propose(ctx, conversation.Proposal{Kind: conversation.ProposeMission, Title: text, Brief: brief, Capsules: capsules})
+				// What it's about is read now, so a name ws reads
+				// nothing by is said to the agent, not to the user
+				// accepting it.
+				if about, err = ctx.AboutNames(about); err != nil {
+					return err
+				}
+				return propose(ctx, conversation.Proposal{Kind: conversation.ProposeMission, Title: text, Brief: brief, Capsules: capsules, About: about})
 			}
 			if len(capsules) > 0 {
 				return errors.New("--capsule is for proposing a mission: lift its capsules with ws lift once it's created")

@@ -1680,6 +1680,7 @@ export interface TalkProposal {
   title?: string;
   brief?: string;
   capsules?: string[];
+  about?: string[]; // a mission: what it's about, by names ws reads (RAM-123, api#12)
   docks?: string[]; // briefing: existing work to build on (repo/branch, repo#PR)
   slug?: string; // briefing: a better slug
   was?: string; // an edit to the brief: the brief it replaces (brief is the new one); to a document, the document as it was read
@@ -1776,6 +1777,7 @@ export interface TalkDetail {
     quote?: DocQuote;
     section?: string;
   };
+  via?: string; // the plugin a talk was started from, which worded its first message
   ephemeral?: boolean; // an ask nobody's kept: not listed, and swept an hour after its last turn
   kept?: string; // when an ask was kept: a conversation like any since
   title?: string;

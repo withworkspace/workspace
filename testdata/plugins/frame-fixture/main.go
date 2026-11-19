@@ -11,6 +11,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"embed"
@@ -72,6 +73,10 @@ var poked atomic.Int64
 // came): ws frame-fixture looking prints it.
 var looking atomic.Value
 
+// shelves is its config's table as ws last gave it: its rows, in the
+// order they were written, as JSON.
+var shelves atomic.Value
+
 func main() {
 	done := make(chan struct{})
 	var conn *acp.Conn
@@ -81,11 +86,13 @@ func main() {
 		switch method {
 		case "initialize":
 			var p struct {
-				View struct{ Listen string } `json:"view"`
+				View   struct{ Listen string }    `json:"view"`
+				Config map[string]json.RawMessage `json:"config"`
 			}
 			if err := json.Unmarshal(params, &p); err != nil {
 				return nil, err
 			}
+			shelves.Store(string(p.Config["shelves"]))
 			os.Remove(p.View.Listen)
 			ln, err := net.Listen("unix", p.View.Listen)
 			if err != nil {
@@ -122,9 +129,25 @@ func main() {
 					"subcommands": []map[string]string{
 						{"name": "poke", "short": "Say what the view shows is stale: the open app is told (ws:changed)"},
 						{"name": "looking", "short": "Print who ws last said is looking at the app, and at ws (view/looking)"},
+						{"name": "said", "short": "Print what ws shows of a ref, as it answers a plugin (show): said THING-2, or said <mission> <ref>"},
+						{"name": "shelves", "short": "Print its config's table as ws last gave it: its rows, in the order they were written"},
+						{"name": "talk", "short": "Have ws start a conversation with what you'd say first (conversation/start): talk \"Let's shelve THING-2\""},
 					},
 				},
 				"agent": map[string]any{"guide": "`ws frame-fixture poke` tells the fixture's open app that what it shows is stale. It's for trying ws's plugin frame by hand: there's nothing in it for a mission."},
+				// Config in a table: named rows, each with the same fields,
+				// one of them a table in turn. ws checks them, lists them
+				// and sets them a field at a time (ws plugin config
+				// frame-fixture), and gives them in the order written.
+				"config": []map[string]any{{
+					"key": "shelves", "title": "Shelves", "type": "table", "row": "Shelf",
+					"fields": []map[string]any{
+						{"key": "label", "title": "Label", "type": "string", "required": true},
+						{"key": "holds", "title": "How many it holds", "type": "number", "default": 3},
+						{"key": "hooks", "title": "Hooks", "type": "table", "row": "Hook",
+							"fields": []map[string]any{{"key": "for", "title": "What hangs on it", "type": "string"}}},
+					},
+				}},
 				// How its things are named: THING-2 is the Lantern, wherever
 				// it's written in ws. What one is made of, what it's found
 				// by, and how ws draws one under its name (card) and beside
@@ -228,8 +251,46 @@ func main() {
 				out("stdout", said+"\n")
 				return map[string]int{"exit": 0}, nil
 			}
+			if len(p.Args) >= 2 && p.Args[0] == "said" {
+				// What ws show shows, asked of ws as a plugin asks: one of
+				// the workspace's by its ref, or one of a mission's own.
+				ask := map[string]any{"ref": p.Args[1]}
+				if len(p.Args) > 2 {
+					ask = map[string]any{"mission": p.Args[1], "ref": p.Args[2]}
+				}
+				var shown json.RawMessage
+				if err := conn.Call(context.Background(), "show", ask, &shown); err != nil {
+					out("stderr", err.Error()+"\n")
+					return map[string]int{"exit": 1}, nil
+				}
+				var pretty bytes.Buffer
+				json.Indent(&pretty, shown, "", "  ") //nolint:errcheck // ws's own JSON
+				out("stdout", pretty.String()+"\n")
+				return map[string]int{"exit": 0}, nil
+			}
+			if len(p.Args) == 1 && p.Args[0] == "shelves" {
+				given, _ := shelves.Load().(string)
+				if given == "" {
+					given = "[]"
+				}
+				var pretty bytes.Buffer
+				json.Indent(&pretty, []byte(given), "", "  ") //nolint:errcheck // ws's own JSON
+				out("stdout", pretty.String()+"\n")
+				return map[string]int{"exit": 0}, nil
+			}
+			if len(p.Args) >= 2 && p.Args[0] == "talk" {
+				// A conversation, started for the person with what the
+				// plugin has them say first.
+				var started struct{ ID, Path string }
+				if err := conn.Call(context.Background(), "conversation/start", map[string]any{"message": strings.Join(p.Args[1:], " ")}, &started); err != nil {
+					out("stderr", err.Error()+"\n")
+					return map[string]int{"exit": 1}, nil
+				}
+				out("stdout", started.ID+" "+started.Path+"\n")
+				return map[string]int{"exit": 0}, nil
+			}
 			if len(p.Args) != 1 || p.Args[0] != "poke" {
-				out("stderr", "usage: ws frame-fixture poke|looking\n")
+				out("stderr", "usage: ws frame-fixture poke|looking|said <ref>|talk <message>|shelves\n")
 				return map[string]int{"exit": 2}, nil
 			}
 			n := poked.Add(1)
@@ -237,6 +298,13 @@ func main() {
 			out("stdout", "Poked ("+itoa(n)+"): the open app is told what it shows is stale.\n")
 			return map[string]int{"exit": 0}, nil
 		case "config/changed":
+			var p struct {
+				Config map[string]json.RawMessage `json:"config"`
+			}
+			if err := json.Unmarshal(params, &p); err != nil {
+				return nil, err
+			}
+			shelves.Store(string(p.Config["shelves"]))
 			return nil, nil
 		case "view/looking":
 			looking.Store(string(params))
