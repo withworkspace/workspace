@@ -170,6 +170,7 @@ type proc struct {
 	mu      sync.Mutex
 	reg     Registration
 	outputs map[string]func(stream, data string)
+	inputs  map[string]*Input // a running command's standard input, by its id
 	badges  map[string]int
 	changed uint64
 	syncs   map[string]SyncState
@@ -311,7 +312,7 @@ func (h *Host) start(name string) (*proc, error) {
 	p := &proc{
 		name: name, manifest: m, cmd: cmd, stdin: stdin, exited: make(chan struct{}), ready: make(chan struct{}),
 		viewSock: socketPath(h.Root, filepath.Join(data, "view.sock"), "view:"+name),
-		outputs:  map[string]func(string, string){}, badges: map[string]int{}, syncs: map[string]SyncState{},
+		outputs:  map[string]func(string, string){}, inputs: map[string]*Input{}, badges: map[string]int{}, syncs: map[string]SyncState{},
 		started: time.Now(),
 	}
 	p.conn = acp.NewConn(stdout, stdin, func(ctx context.Context, method string, params json.RawMessage) (any, error) {
@@ -519,6 +520,18 @@ func (h *Host) handle(ctx context.Context, p *proc, method string, params json.R
 		if out != nil {
 			out(o.Stream, o.Data)
 		}
+	case protocol.MethodCommandRead:
+		var r protocol.CommandReadParams
+		if err := json.Unmarshal(params, &r); err != nil {
+			return nil, &acp.RPCError{Code: acp.CodeInvalidParams, Message: err.Error()}
+		}
+		p.mu.Lock()
+		in := p.inputs[r.ID]
+		p.mu.Unlock()
+		if in == nil {
+			return nil, &acp.RPCError{Code: protocol.CodeNotFound, Message: "no running command " + r.ID + " with input to read"}
+		}
+		return in.read(r.Max)
 	case protocol.MethodLog:
 		var l protocol.LogParams
 		if json.Unmarshal(params, &l) != nil {
@@ -586,6 +599,29 @@ func (h *Host) handle(ctx context.Context, p *proc, method string, params json.R
 	return nil, nil
 }
 
+// read is what's next of a command's input: at least a byte, or the end.
+func (in *Input) read(max int) (protocol.CommandReadResult, error) {
+	if max <= 0 || max > protocol.ReadAtOnce {
+		max = protocol.ReadAtOnce
+	}
+	in.mu.Lock()
+	defer in.mu.Unlock()
+	b := make([]byte, max)
+	for {
+		n, err := in.R.Read(b)
+		switch {
+		case n > 0:
+			// What came with an error is given, and the error's met again
+			// on the next read.
+			return protocol.CommandReadResult{Data: b[:n]}, nil
+		case errors.Is(err, io.EOF):
+			return protocol.CommandReadResult{EOF: true}, nil
+		case err != nil:
+			return protocol.CommandReadResult{}, fmt.Errorf("reading the command's input: %w", err)
+		}
+	}
+}
+
 // kill ends a plugin's process without asking.
 func (h *Host) kill(p *proc) {
 	p.stopping.Store(true)
@@ -636,11 +672,22 @@ func (h *Host) ready(name string) (*proc, error) {
 // Terminal is what a command's output is going to.
 type Terminal = protocol.Terminal
 
+// Input is a command's standard input, which the plugin reads from ws as
+// the command reads it (command/read): nothing's read from R that the
+// command doesn't ask for, so one that never reads never waits on it.
+type Input struct {
+	// Kind is protocol.InputPiped or protocol.InputTerminal.
+	Kind string
+	R    io.Reader
+
+	mu sync.Mutex // one read at a time
+}
+
 // Run runs one of a plugin's commands: args are what followed its word,
-// dir is where it was run from, and out is given its output as it comes
-// (stream is "stdout" or "stderr"). It's the command's exit code. ctx
-// ending is Ctrl-C.
-func (h *Host) Run(ctx context.Context, name string, args []string, dir string, term Terminal, out func(stream, data string)) (int, error) {
+// dir is where it was run from, in is its standard input (nil for none),
+// and out is given its output as it comes (stream is "stdout" or
+// "stderr"). It's the command's exit code. ctx ending is Ctrl-C.
+func (h *Host) Run(ctx context.Context, name string, args []string, dir string, term Terminal, in *Input, out func(stream, data string)) (int, error) {
 	p, err := h.ready(name)
 	if err != nil {
 		return 1, err
@@ -651,17 +698,25 @@ func (h *Host) Run(ctx context.Context, name string, args []string, dir string, 
 	id := "c" + strconv.FormatUint(h.commands.Add(1), 10)
 	p.mu.Lock()
 	p.outputs[id] = out
+	if in != nil {
+		p.inputs[id] = in
+	}
 	p.mu.Unlock()
 	defer func() {
 		p.mu.Lock()
 		delete(p.outputs, id)
+		delete(p.inputs, id)
 		p.mu.Unlock()
 	}()
 	if args == nil {
 		args = []string{}
 	}
+	run := protocol.CommandRunParams{ID: id, Args: args, Dir: dir, Terminal: term}
+	if in != nil {
+		run.Input = in.Kind
+	}
 	var answer protocol.CommandRunResult
-	err = p.conn.Call(ctx, protocol.MethodCommandRun, protocol.CommandRunParams{ID: id, Args: args, Dir: dir, Terminal: term}, &answer)
+	err = p.conn.Call(ctx, protocol.MethodCommandRun, run, &answer)
 	switch {
 	case errors.Is(err, acp.ErrClosed):
 		return 1, fmt.Errorf("%s stopped while the command ran: see %s", name, LogPath(h.Root, name))

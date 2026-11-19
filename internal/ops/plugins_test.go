@@ -77,3 +77,39 @@ func TestPluginsNote(t *testing.T) {
 		t.Errorf("a long guide: %d lines of it\n%s", n, long)
 	}
 }
+
+func TestPluginCommandsForConversations(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "ws.toml"), []byte("[workspace]\norg = \"acme\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	registered(t, root, "sketch", plugin.Registration{Commands: &plugin.Commands{Subcommands: []plugin.Subcommand{
+		{Name: "show", Conversations: true}, {Name: "edit", Conversations: true}, {Name: "delete"}, {Name: "a b", Conversations: true},
+	}}})
+	registered(t, root, "jira", plugin.Registration{
+		Commands: &plugin.Commands{Name: "j", Subcommands: []plugin.Subcommand{{Name: "mine", Conversations: true}}},
+		Agent:    &plugin.Agent{Guide: "`ws j mine` lists your issues."},
+	})
+	registered(t, root, "unset", plugin.Registration{
+		Commands: &plugin.Commands{Subcommands: []plugin.Subcommand{{Name: "go", Conversations: true}}},
+		Config:   []plugin.ConfigKey{{Key: "token", Type: "secret", Required: true}},
+	})
+	got := strings.Join(PluginConversationCommands(root), "|")
+	if got != "j mine|sketch show|sketch edit" {
+		t.Errorf("commands for conversations: %s", got)
+	}
+	// A conversation's agent is told which it runs, even of a plugin with
+	// no guide; crew aren't (they run any).
+	talk := PluginsNote(root, RoleConversation)
+	for _, want := range []string{"The sketch plugin:\nIn this conversation you run these of its commands yourself, rather than proposing: `ws sketch show`, `ws sketch edit`.", "`ws j mine`."} {
+		if !strings.Contains(talk, want) {
+			t.Errorf("a conversation's note lacks %q:\n%s", want, talk)
+		}
+	}
+	if strings.Contains(talk, "delete") || strings.Contains(talk, "unset") {
+		t.Errorf("a conversation's note has what it can't run:\n%s", talk)
+	}
+	if crew := PluginsNote(root, RoleCrew); strings.Contains(crew, "In this conversation") {
+		t.Errorf("crew are told of conversations:\n%s", crew)
+	}
+}

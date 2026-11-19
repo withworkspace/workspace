@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -198,6 +199,11 @@ func run() {
 			fmt.Fprintln(c.Stdout(), line)
 		}
 		return nil
+	})
+	p.Command("cat", "Says whether its input's piped, then prints it, prompting first", func(c *plugin.Call) error {
+		fmt.Fprintf(c.Stdout(), "piped %v\n> ", c.Piped())
+		_, err := io.Copy(c.Stdout(), c.Stdin())
+		return err
 	})
 	p.Command("hi", "Says the greeting", func(c *plugin.Call) error {
 		fmt.Fprintln(c.Stderr(), "to stderr")

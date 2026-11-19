@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -17,7 +18,8 @@ import (
 // A command reaches the workspace's plugins through a socket the daemon
 // serves, as it reaches the records through one. What crosses it is
 // JSON-RPC, as between ws and a plugin: "run" is a command, whose output
-// comes back as "output" notifications before its answer.
+// comes back as "output" notifications before its answer. One with input
+// has the daemon ask for it, a "read" at a time, as the plugin asks.
 
 // SocketPath is where the daemon for the workspace at root answers for its
 // plugins.
@@ -30,6 +32,13 @@ type runParams struct {
 	Args     []string `json:"args"`
 	Dir      string   `json:"dir"`
 	Terminal Terminal `json:"terminal"`
+	// Input is the kind of input the command has (protocol.InputPiped or
+	// InputTerminal), which the daemon reads: "" for none.
+	Input string `json:"input,omitempty"`
+}
+
+type readParams struct {
+	Max int `json:"max"`
 }
 
 type outputParams struct {
@@ -101,7 +110,11 @@ func (h *Host) serve(nc net.Conn) {
 			if err := json.Unmarshal(params, &p); err != nil {
 				return nil, &acp.RPCError{Code: acp.CodeInvalidParams, Message: err.Error()}
 			}
-			exit, err := h.Run(ctx, p.Name, p.Args, p.Dir, p.Terminal, func(stream, data string) {
+			var in *Input
+			if p.Input != "" {
+				in = &Input{Kind: p.Input, R: &askedInput{ctx: ctx, c: c}}
+			}
+			exit, err := h.Run(ctx, p.Name, p.Args, p.Dir, p.Terminal, in, func(stream, data string) {
 				c.Notify("output", outputParams{Stream: stream, Data: data}) //nolint:errcheck // the command's gone
 			})
 			if err != nil {
@@ -151,12 +164,41 @@ func (h *Host) serve(nc net.Conn) {
 	nc.Close()
 }
 
+// askedInput is a command's input, in the daemon: asked of the command
+// that ran it, as it's read.
+type askedInput struct {
+	ctx  context.Context
+	c    *acp.Conn
+	left []byte
+	eof  bool
+}
+
+func (a *askedInput) Read(b []byte) (int, error) {
+	for len(a.left) == 0 {
+		if a.eof {
+			return 0, io.EOF
+		}
+		var got protocol.CommandReadResult
+		if err := a.c.Call(a.ctx, "read", readParams{Max: len(b)}, &got); err != nil {
+			return 0, err
+		}
+		a.left, a.eof = got.Data, got.EOF
+		if len(got.Data) == 0 && !got.EOF {
+			return 0, io.ErrNoProgress
+		}
+	}
+	n := copy(b, a.left)
+	a.left = a.left[n:]
+	return n, nil
+}
+
 // Client is a command's connection to the workspace's plugins, in its
 // daemon.
 type Client struct {
 	nc   net.Conn
 	conn *acp.Conn
 	out  func(stream, data string)
+	in   *Input
 }
 
 // Dial connects to the daemon for the workspace at root, which must be
@@ -168,11 +210,19 @@ func Dial(root string) (*Client, error) {
 	}
 	c := &Client{nc: nc}
 	c.conn = acp.NewConn(nc, nc, func(ctx context.Context, method string, params json.RawMessage) (any, error) {
-		if method == "output" && c.out != nil {
+		switch {
+		case method == "output" && c.out != nil:
 			var o outputParams
 			if json.Unmarshal(params, &o) == nil {
 				c.out(o.Stream, o.Data)
 			}
+		case method == "read":
+			if c.in == nil {
+				return nil, &acp.RPCError{Code: codeNoThing, Message: "the command has no input"}
+			}
+			var r readParams
+			json.Unmarshal(params, &r) //nolint:errcheck // no max is the most
+			return c.in.read(r.Max)
 		}
 		return nil, nil
 	})
@@ -194,14 +244,19 @@ func (c *Client) call(ctx context.Context, method string, params, result any) er
 	return err
 }
 
-// Run runs a plugin's command in the daemon (Host.Run), with out given
-// its output as it comes. One command runs on a client at a time.
-func (c *Client) Run(ctx context.Context, name string, args []string, dir string, term Terminal, out func(stream, data string)) (int, error) {
-	c.out = out
+// Run runs a plugin's command in the daemon (Host.Run), with in read as
+// the command reads it (nil for no input) and out given its output as it
+// comes. One command runs on a client at a time.
+func (c *Client) Run(ctx context.Context, name string, args []string, dir string, term Terminal, in *Input, out func(stream, data string)) (int, error) {
+	c.out, c.in = out, in
+	run := runParams{Name: name, Args: args, Dir: dir, Terminal: term}
+	if in != nil {
+		run.Input = in.Kind
+	}
 	var answer struct {
 		Exit int `json:"exit"`
 	}
-	err := c.call(ctx, "run", runParams{Name: name, Args: args, Dir: dir, Terminal: term}, &answer)
+	err := c.call(ctx, "run", run, &answer)
 	if errors.Is(err, context.Canceled) {
 		return 130, nil
 	}
