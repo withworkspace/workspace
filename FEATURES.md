@@ -301,19 +301,20 @@ Every repo's files, on its default branch or in any capsule.
 
 ### Settings
 
-What's yours in this workspace, kept in `ws.local.toml` beside the team's `ws.toml`: which agent and model each role runs on, and the guarantees ws holds.
+What's yours in this workspace, kept in `ws.local.toml` beside the team's `ws.toml`, in sections: how the web UI looks, which agent and model each role runs on, how a mission goes and the guarantees ws holds.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/shots/settings-dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="docs/assets/shots/settings-light.webp">
-    <img alt="Settings: the agent and model for crew and for briefing, each marked as yours" src="docs/assets/shots/settings-light.webp">
+    <img alt="Settings, under Agents: each role's agent and model in one table, with whose each is" src="docs/assets/shots/settings-light.webp">
   </picture>
 </p>
 
 - A role is who does a kind of work: crew, briefing, the orchestrator, conversations, the judge.
 - Each setting says whether it's yours or the team's, and *Reset* goes back to the team's.
-- The team's process is at its foot, as the planner and the orchestrator read it.
+- *Set by you* lists everything your file sets, and *Find a setting…* (`/`) reads every section.
+- The team's process is a section of its own, as the planner and the orchestrator read it.
 
 ### Plugins
 
