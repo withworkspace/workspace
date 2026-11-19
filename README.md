@@ -7,12 +7,12 @@
 </p>
 
 <p align="center">
-  Agentic control plane for real work
+  Bring agents into your process.
 </p>
 
 ---
 
-**workspace** (`ws`) is where you and agents work together. Agents plan the work, do it and check it. ws brings you in where your judgement is needed, and not before: to confirm a plan, to answer a question, to read a proposal, to review a change, to say whether it looks right.
+**workspace** (`ws`) is where you and agents work together, to a process you wrote. Agents plan the work, do it and check it. ws brings you in where your judgement is needed, and not before: to confirm a plan, to answer a question, to read a proposal, to review a change, to say whether it looks right.
 
 It isn't trying to take you out of the work. It's trying to spend your attention well. Each time it comes to you, what you need to decide is ready: the diff, the document, a prototype to click through, proof that it works.
 
@@ -150,7 +150,7 @@ eval "$(workspace shell-init zsh)"
 
 This gives you `ws`, with completions and `cd` into capsules.
 
-**You'll need** Git, the [GitHub CLI](https://cli.github.com/) signed in, and an agent's CLI for crew: [Claude Code](https://claude.com/claude-code), Cursor's, pi, Codex or OpenCode. `[crew]` in your config says which.
+**You'll need** Git, the [GitHub CLI](https://cli.github.com/) signed in, and an agent's CLI for crew: [Claude Code](https://www.anthropic.com/claude-code), Cursor's, pi, Codex or OpenCode. `[crew]` in your config says which.
 
 **Make a workspace.** A workspace is a config repo, which says what your repos are, and the clones beside it. If your team has one:
 
