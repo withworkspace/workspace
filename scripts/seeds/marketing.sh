@@ -19,15 +19,18 @@
 #
 # Everything it's made of is in scripts/seeds/marketing/: the repos as
 # they start (repos/), what teammates' pull requests change (prs/), what
-# crew commit at each step (work/<mission>/<n>/), and what a verifier
-# shows (bundle/).
+# crew commit at each step (work/<mission>/<n>/), what a verifier shows
+# (bundle/), what agents answer (agent/), and a prototype (artifacts/).
 #
-# Crew are Claude Code's to ws, and no agent runs: stand-in/claude is
-# first on the try's PATH (scripts/try.sh says how), a program that waits
-# to be closed. The seed does crew's work as them, and reports what
-# their hooks would. The orchestrator is off, so a mission moves only as
-# ws moves it: when a step's checks are met, a review approves, or a
-# pull request opens.
+# Every agent is Claude Code's to ws, and no model is asked anything:
+# stand-in/claude is first on the try's PATH (scripts/try.sh says how).
+# As crew it waits to be closed: the seed does their work as them, and
+# reports what their hooks would. Asked for an answer (a conversation's
+# turn, the orchestrator's run) it plays a script from agent/, which says
+# what it reads, what it runs (for real: its proposals are ws's own), and
+# what it says. So a mission moves as ws moves it: when a step's checks
+# are met, a review approves, a pull request opens, or the orchestrator's
+# script accepts a step.
 #
 # It needs go (the plans' checks are go test, which ws runs), and curl
 # and node, for what only the web UI's pages and "GitHub" can be told.
@@ -225,9 +228,7 @@ for name in api web records; do
 	git -C "$repo/.bare" worktree add -q "$repo/.ground" main
 done
 
-# Per machine: Claude Code in every role, which here is the stand-in. The
-# orchestrator is off: the seed makes its moves, and a real one would
-# find nobody to ask.
+# Per machine: Claude Code in every role, which here is the stand-in.
 cat >"$dir/ws.local.toml" <<'EOF'
 [crew]
 harness = "claude"
@@ -242,7 +243,6 @@ model = "opus"
 [orchestrator]
 harness = "claude"
 model = "haiku"
-enabled = false
 
 [conversation]
 harness = "claude"
@@ -362,9 +362,10 @@ cat >"$dir/.remotes/github.json" <<JSON
 }
 JSON
 
-mkdir -p "$dir/.try/bin"
+mkdir -p "$dir/.try/bin" "$dir/.try/agent"
 cp "$from/stand-in/claude" "$dir/.try/bin/claude"
 chmod +x "$dir/.try/bin/claude"
+cp "$from"/agent/*.md "$dir/.try/agent/"
 
 # --- missions --------------------------------------------------------------
 
@@ -630,8 +631,7 @@ work "$slug" c1 records/overdue-reminders 1 "Propose reminders for overdue invoi
 (cd "$dir/repos/records/overdue-reminders" && as "$slug" c1 mission artifact add proposals/overdue-reminders.md "Reminders for overdue invoices" --kind proposal >/dev/null)
 handoff 'The proposal, `proposals/overdue-reminders.md`: a reminder at seven days and at twenty-one, the studio copied in, and a switch for each customer.' 'Late fees are left out: they are a decision about money.' 'The build: a daily job in the api, and `invoice.reminded`.' |
 	done_with "$slug" c1 records/overdue-reminders "The proposal is written: a reminder at seven days and at twenty-one, with a switch for each customer."
-"$ws" mission accept -m "$slug" >/dev/null 2>&1 || true # step 1, which has no checks
-at "$slug" 2
+at "$slug" 2 # step 1 has no checks: the orchestrator accepts it (agent/$slug-orchestrator-1.md)
 says "$slug" c1 stop
 "$ws" mission accept -m "$slug" "Seven and twenty-one days. No late fees in this." >/dev/null
 at "$slug" 3
@@ -770,8 +770,7 @@ work "$slug" c2 web/csv-export web "feat(invoices): export what the list shows a
 (cd "$dir/repos/web/csv-export" && as "$slug" c2 mission decide "The dashboard is run with pnpm dev, against the api on :8080 (go run ./cmd/api, in its capsule)" --why "The verifier needs both running to see the export work" >/dev/null 2>&1) || true
 handoff '`ExportButton` in `src/invoices/ExportButton.tsx`, at the end of the toolbar: it downloads `/invoices.csv` with the filter as it stands.' 'With nothing to export it is a disabled button, not a link, so it takes no click and no focus.' 'Nothing.' |
 	done_with "$slug" c2 web/csv-export "Export is in the invoices toolbar, and downloads what the filter shows."
-"$ws" mission accept -m "$slug" >/dev/null 2>&1 || true # step 2, which has no checks
-at "$slug" 3
+at "$slug" 3 # step 2 has no checks: the orchestrator accepts it (agent/$slug-orchestrator-1.md)
 says "$slug" c2 stop
 crew "$slug" c3
 says "$slug" c3 prompt
@@ -875,6 +874,30 @@ at "$slug" 3
 says "$slug" c1 stop
 pr_is api rate-limit "{\"statusRollup\": \"success\", \"reviewDecision\": \"APPROVED\", \"additions\": 58, \"deletions\": 0, \"changedFiles\": 2, \"latest\": [{\"author\": \"tomas\", \"state\": \"APPROVED\", \"submittedAt\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}]}"
 
+# -- Conversations, which the stand-in answers from agent/w<n>-1.md.
+
+# talk <id> <what you say> <words its answer has>: a conversation, and its
+# agent's answer.
+talk() {
+	"$ws" talk "$2" --print >/dev/null
+	for _ in $(seq 1 150); do
+		"$ws" show "$1" 2>/dev/null | grep -q "$3" && return 0
+		sleep 0.2
+	done
+	echo "$1 was never answered:" >&2
+	"$ws" show "$1" >&2 || true
+	return 1
+}
+talk w1 "Two studios asked this week for late fees on overdue invoices. Should we do it, and what would it take?" "flat fee or interest"
+talk w2 "Where do we round money, and is it the same everywhere?" "half away from zero"
+
+# -- An artifact: two takes on where Export goes, by you.
+
+"$ws" artifact add "$from/artifacts/export-v1.html" --title "Where Export goes" \
+	--note "Export at the end of the toolbar, after the filter: it's the last thing you do with a list." >/dev/null
+"$ws" artifact add "$from/artifacts/export-v2.html" --to a1 \
+	--note "Export under the list, beside the count it exports, so the button says how many." >/dev/null
+
 cat <<EOF
 marketing: Sorrel's workspace, with eleven missions.
 
@@ -884,12 +907,15 @@ marketing: Sorrel's workspace, with eleven missions.
   /missions/export-invoices-as-csv?tab=verify&b=b1   a verifier's bundle, yours to approve
   /reviews                                     teammates' pull requests, and yours
   /documents                                   records: ADRs, proposals and notes
+  /conversations/w1                            a conversation, whose agent proposed a mission
+  /artifacts/a1                                a prototype, in two versions
 
 Needs you: a review, a bundle to verify, a question from crew, a pull
 request to merge. In progress: crew at work on two. Waiting: a pull
 request in review, and a step on another team. Up next: one to brief,
 one ready, one parked.
 
-Crew are a stand-in for Claude Code (.try/bin/claude): they wait, and
-answer nothing. The orchestrator is off.
+Agents are a stand-in for Claude Code (.try/bin/claude). Crew wait, and
+do nothing; a conversation and the orchestrator answer only what
+.try/agent/ has a script for.
 EOF

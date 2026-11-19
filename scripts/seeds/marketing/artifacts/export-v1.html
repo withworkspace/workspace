@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Where Export goes</title>
+<style>
+  :root { --bg: #fbfaf8; --ink: #1d1a17; --muted: #6f6a63; --line: #e6e2db; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #171513; --ink: #f1ede6; --muted: #a39c92; --line: #35302a; } }
+  body { margin: 0; padding: 32px 40px; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, sans-serif; }
+  .toolbar { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0 auto 0 0; font-size: 20px; }
+  input, button { font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; }
+  button:disabled { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { padding: 10px 0; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .amount { text-align: right; font-variant-numeric: tabular-nums; }
+  .foot { display: flex; align-items: center; gap: 12px; padding-top: 14px; color: var(--muted); font-size: 13px; }
+</style>
+<header class="toolbar">
+  <h1>Invoices</h1>
+  <input id="filter" type="search" placeholder="Filter by customer">
+  <button id="export">Export</button>
+</header>
+<table>
+  <thead><tr><th>Number</th><th>Customer</th><th class="amount">Total</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<div class="foot"><span id="count"></span></div>
+<script>
+  const invoices = [
+    ["INV-0042", "Marlow Studio", "£1,094.40"], ["INV-0041", "Fenwick & Daughters", "£2,880.00"],
+    ["INV-0040", "Tideway Print", "£310.00"], ["INV-0039", "Marlow Studio", "£480.00"],
+    ["INV-0038", "Ostrich & Co", "£1,250.00"], ["INV-0031", "Marlow Studio", "£2,160.00"],
+  ];
+  const filter = document.getElementById("filter");
+  function draw() {
+    const shown = invoices.filter((i) => i[1].toLowerCase().includes(filter.value.toLowerCase()));
+    document.getElementById("rows").innerHTML = shown.map((i) => `<tr><td>${i[0]}</td><td>${i[1]}</td><td class="amount">${i[2]}</td></tr>`).join("");
+    document.getElementById("count").textContent = `${shown.length} of ${invoices.length} invoices`;
+    document.getElementById("export").disabled = shown.length === 0;
+  }
+  filter.addEventListener("input", draw);
+  draw();
+</script>
+</html>
