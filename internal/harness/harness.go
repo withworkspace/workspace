@@ -266,6 +266,10 @@ type ConverseRun struct {
 	Write, Beside, Room []string
 	// Lift is a run that may lift capsules for its conversation (ws lift).
 	Lift bool
+	// Plugins are the plugins' commands a conversation's agent may run itself, as
+	// the words after ws ("sketch edit"): those a plugin marked for
+	// conversations.
+	Plugins []string
 }
 
 // Sandboxer is a harness that can run a conversation's shell in a sandbox

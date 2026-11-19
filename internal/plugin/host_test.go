@@ -104,19 +104,19 @@ func TestRunCommand(t *testing.T) {
 	ctx := context.Background()
 
 	var o output
-	exit, err := h.Run(ctx, "fake", []string{"echo", "one", "two"}, "/somewhere", plugin.Terminal{}, o.write)
+	exit, err := h.Run(ctx, "fake", []string{"echo", "one", "two"}, "/somewhere", plugin.Terminal{}, nil, o.write)
 	if err != nil || exit != 0 || o.stdout() != "one two\n" {
 		t.Errorf("echo: exit %d, err %v, out %q", exit, err, o.stdout())
 	}
 
 	o = output{}
-	exit, err = h.Run(ctx, "fake", []string{"dir"}, "/somewhere", plugin.Terminal{}, o.write)
+	exit, err = h.Run(ctx, "fake", []string{"dir"}, "/somewhere", plugin.Terminal{}, nil, o.write)
 	if err != nil || o.stdout() != "/somewhere\n" {
 		t.Errorf("dir: exit %d, err %v, out %q", exit, err, o.stdout())
 	}
 
 	o = output{}
-	exit, err = h.Run(ctx, "fake", []string{"fail"}, "", plugin.Terminal{}, o.write)
+	exit, err = h.Run(ctx, "fake", []string{"fail"}, "", plugin.Terminal{}, nil, o.write)
 	if err != nil || exit != 3 || o.errOut.String() != "it failed\n" {
 		t.Errorf("fail: exit %d, err %v, stderr %q", exit, err, o.errOut.String())
 	}
@@ -126,7 +126,7 @@ func TestRunCommand(t *testing.T) {
 	for _, word := range []string{"alpha", "beta"} {
 		wg.Go(func() {
 			var o output
-			if _, err := h.Run(ctx, "fake", []string{"echo", word}, "", plugin.Terminal{}, o.write); err != nil || o.stdout() != word+"\n" {
+			if _, err := h.Run(ctx, "fake", []string{"echo", word}, "", plugin.Terminal{}, nil, o.write); err != nil || o.stdout() != word+"\n" {
 				t.Errorf("%s: err %v, out %q", word, err, o.stdout())
 			}
 		})
@@ -141,7 +141,7 @@ func TestRunCancelled(t *testing.T) {
 	var o output
 	done := make(chan int, 1)
 	go func() {
-		exit, _ := h.Run(ctx, "fake", []string{"sleep"}, "", plugin.Terminal{}, o.write)
+		exit, _ := h.Run(ctx, "fake", []string{"sleep"}, "", plugin.Terminal{}, nil, o.write)
 		done <- exit
 	}()
 	for deadline := time.Now().Add(5 * time.Second); o.stdout() == "" && time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {
@@ -157,7 +157,7 @@ func TestRunCancelled(t *testing.T) {
 	}
 	// The plugin's still there for the next one.
 	o = output{}
-	if _, err := h.Run(context.Background(), "fake", []string{"echo", "after"}, "", plugin.Terminal{}, o.write); err != nil || o.stdout() != "after\n" {
+	if _, err := h.Run(context.Background(), "fake", []string{"echo", "after"}, "", plugin.Terminal{}, nil, o.write); err != nil || o.stdout() != "after\n" {
 		t.Errorf("after a cancel: err %v, out %q", err, o.stdout())
 	}
 }
@@ -173,7 +173,7 @@ func TestSetupThenConfig(t *testing.T) {
 		t.Fatalf("with a required key unset: %+v", st)
 	}
 	var setup *plugin.SetupError
-	if _, err := h.Run(context.Background(), "fake", []string{"echo"}, "", plugin.Terminal{}, func(string, string) {}); !errors.As(err, &setup) {
+	if _, err := h.Run(context.Background(), "fake", []string{"echo"}, "", plugin.Terminal{}, nil, func(string, string) {}); !errors.As(err, &setup) {
 		t.Fatalf("a command before it's set up: %v", err)
 	}
 	if _, err := h.ViewSocket("fake"); !errors.As(err, &setup) {
@@ -202,7 +202,7 @@ func TestSetupThenConfig(t *testing.T) {
 		t.Errorf("once it's set up: %+v", st)
 	}
 	var o output
-	if _, err := h.Run(context.Background(), "fake", []string{"config"}, "", plugin.Terminal{}, o.write); err != nil {
+	if _, err := h.Run(context.Background(), "fake", []string{"config"}, "", plugin.Terminal{}, nil, o.write); err != nil {
 		t.Fatal(err)
 	}
 	if got := o.stdout(); !strings.Contains(got, `"token":"s3cret"`) || !strings.Contains(got, `"greeting":"Howdy"`) {
@@ -236,7 +236,7 @@ func TestBadgeAndChanged(t *testing.T) {
 	add(t, root, "fake", fakeplugin.Options{})
 	run := func(word string) {
 		t.Helper()
-		if _, err := h.Run(context.Background(), "fake", []string{word}, "", plugin.Terminal{}, func(string, string) {}); err != nil {
+		if _, err := h.Run(context.Background(), "fake", []string{word}, "", plugin.Terminal{}, nil, func(string, string) {}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -276,11 +276,11 @@ func TestRefusals(t *testing.T) {
 func TestCrashIsStartedAgain(t *testing.T) {
 	root, h := workspace(t)
 	add(t, root, "fake", fakeplugin.Options{})
-	if _, err := h.Run(context.Background(), "fake", []string{"crash"}, "", plugin.Terminal{}, func(string, string) {}); err == nil || !strings.Contains(err.Error(), "stopped while") {
+	if _, err := h.Run(context.Background(), "fake", []string{"crash"}, "", plugin.Terminal{}, nil, func(string, string) {}); err == nil || !strings.Contains(err.Error(), "stopped while") {
 		t.Errorf("a command the plugin died in: %v", err)
 	}
 	var o output
-	if _, err := h.Run(context.Background(), "fake", []string{"echo", "back"}, "", plugin.Terminal{}, o.write); err != nil || o.stdout() != "back\n" {
+	if _, err := h.Run(context.Background(), "fake", []string{"echo", "back"}, "", plugin.Terminal{}, nil, o.write); err != nil || o.stdout() != "back\n" {
 		t.Errorf("after a crash: err %v, out %q", err, o.stdout())
 	}
 }
@@ -306,15 +306,15 @@ func TestClient(t *testing.T) {
 		t.Fatalf("refresh: %+v, %v", st, err)
 	}
 	var o output
-	exit, err := c.Run(ctx, "fake", []string{"echo", "over", "the", "socket"}, "", plugin.Terminal{}, o.write)
+	exit, err := c.Run(ctx, "fake", []string{"echo", "over", "the", "socket"}, "", plugin.Terminal{}, nil, o.write)
 	if err != nil || exit != 0 || o.stdout() != "over the socket\n" {
 		t.Errorf("run: exit %d, err %v, out %q", exit, err, o.stdout())
 	}
-	exit, err = c.Run(ctx, "fake", []string{"fail"}, "", plugin.Terminal{}, o.write)
+	exit, err = c.Run(ctx, "fake", []string{"fail"}, "", plugin.Terminal{}, nil, o.write)
 	if err != nil || exit != 3 {
 		t.Errorf("fail: exit %d, err %v", exit, err)
 	}
-	if _, err := c.Run(ctx, "nobody", nil, "", plugin.Terminal{}, o.write); err == nil {
+	if _, err := c.Run(ctx, "nobody", nil, "", plugin.Terminal{}, nil, o.write); err == nil {
 		t.Error("a command of a plugin that isn't installed ran")
 	}
 	all, err := c.Statuses(ctx)
@@ -327,7 +327,7 @@ func TestClient(t *testing.T) {
 	o = output{}
 	done := make(chan int, 1)
 	go func() {
-		exit, _ := c.Run(cctx, "fake", []string{"sleep"}, "", plugin.Terminal{}, o.write)
+		exit, _ := c.Run(cctx, "fake", []string{"sleep"}, "", plugin.Terminal{}, nil, o.write)
 		done <- exit
 	}()
 	for deadline := time.Now().Add(5 * time.Second); o.stdout() == "" && time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {

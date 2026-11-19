@@ -48,7 +48,13 @@ func PluginsNote(root, role string) string {
 		if reg.Agent != nil && (len(reg.Agent.Roles) == 0 || slices.Contains(reg.Agent.Roles, role)) {
 			guide = strings.TrimSpace(reg.Agent.Guide)
 		}
-		if guide == "" && names[name] == "" {
+		var runs []string
+		if role == RoleConversation {
+			for _, c := range conversationCommands(reg, name) {
+				runs = append(runs, "`ws "+c+"`")
+			}
+		}
+		if guide == "" && names[name] == "" && len(runs) == 0 {
 			continue
 		}
 		if values, err := plugin.Values(root, name); err != nil || len(plugin.Missing(reg, values)) > 0 {
@@ -64,8 +70,51 @@ func PluginsNote(root, role string) string {
 		if names[name] != "" {
 			b.WriteString(names[name] + "\n")
 		}
+		if len(runs) > 0 {
+			b.WriteString("In this conversation you run these of its commands yourself, rather than proposing: " + strings.Join(runs, ", ") + ". What one changes is changed as it runs, where the user sees it: run it when they've asked for the change, or clearly would want it, and say what you changed. Its other commands are refused here.\n")
+		}
 	}
 	return strings.TrimRight(b.String(), "\n")
+}
+
+// PluginConversationCommands are the workspace's plugins' commands that a
+// conversation's agent may run itself, as the words after ws ("sketch
+// edit"): those its plugin marked for conversations, as it registered
+// them when it last started, of plugins that are set up.
+func PluginConversationCommands(root string) []string {
+	var out []string
+	for _, name := range plugin.Installed(root) {
+		reg, ok := plugin.ReadRegistration(root, name)
+		if !ok {
+			continue
+		}
+		if values, err := plugin.Values(root, name); err != nil || len(plugin.Missing(reg, values)) > 0 {
+			continue
+		}
+		out = append(out, conversationCommands(reg, name)...)
+	}
+	return out
+}
+
+// conversationCommands are a plugin's commands marked for conversations,
+// as the words after ws: "sketch edit".
+func conversationCommands(reg plugin.Registration, name string) []string {
+	if reg.Commands == nil {
+		return nil
+	}
+	// Each word as ws allows a plugin's: nothing a shell would split or
+	// expand, so the allow list matches what runs.
+	word := reg.CommandName(name)
+	if !plugin.ValidName(word) {
+		return nil
+	}
+	var out []string
+	for _, sub := range reg.Commands.Subcommands {
+		if sub.Conversations && plugin.ValidName(sub.Name) {
+			out = append(out, word+" "+sub.Name)
+		}
+	}
+	return out
 }
 
 // thingNames is, for each plugin whose things ws knows by name, a line
