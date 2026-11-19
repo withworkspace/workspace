@@ -198,19 +198,24 @@ func (s *Server) findSaid(r *http.Request, req find.Request) (SaidGroup, bool) {
 		return SaidGroup{}, false
 	}
 	for _, f := range found {
-		said := SaidFound{
-			Kind: "said", Ref: f.Ref, Scope: f.Scope, Thing: f.Thing.Kind, Place: f.Place, Anchor: f.At, Of: f.Of,
-			What: f.What(), Where: f.Where(), Title: f.Title(),
-			Snippet: f.Snippet, Hint: space.Text(f.Snippet, "", ""),
-			State: f.Thing.State, On: f.On, Ended: f.Ended, Every: f.Every, Score: f.Score,
-		}
-		if f.Named != nil {
-			said.Card, said.To = f.Named, cmp.Or(f.Opens, f.Named.URL)
-		}
-		g.Results = append(g.Results, said)
+		g.Results = append(g.Results, saidFound(f))
 	}
 	g.More = more
 	return g, true
+}
+
+// saidFound is a thing ws records as the find window draws one.
+func saidFound(f ops.Found) SaidFound {
+	said := SaidFound{
+		Kind: "said", Ref: f.Ref, Scope: f.Scope, Thing: f.Thing.Kind, Place: f.Place, Anchor: f.At, Of: f.Of,
+		What: f.What(), Where: f.Where(), Title: f.Title(),
+		Snippet: f.Snippet, Hint: space.Text(f.Snippet, "", ""),
+		State: f.Thing.State, On: f.On, Ended: f.Ended, Every: f.Every, Score: f.Score,
+	}
+	if f.Named != nil {
+		said.Card, said.To = f.Named, cmp.Or(f.Opens, f.Named.URL)
+	}
+	return said
 }
 
 // findDocuments is the spaces' documents that say what's typed, ranked: a
