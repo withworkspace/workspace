@@ -1347,6 +1347,81 @@ main > .banner {
   white-space: nowrap;
 }
 
+/* Focus: your pins (shell/focus.tsx), drawn as Needs you is, so the rail
+   folds them the same way. A row's ✕ is there while it's pointed at. */
+.focus a > span:not(.status) {
+  flex: 1;
+}
+
+.focus-unpin {
+  display: none;
+  flex: none;
+  margin: -2px -4px -2px auto;
+  padding: 2px;
+  min-width: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--faint);
+  border-radius: 4px;
+  line-height: 0;
+}
+
+.focus-unpin:hover {
+  color: var(--fg);
+  background: var(--well);
+}
+
+.focus a:is(:hover, :focus-visible) .focus-unpin {
+  display: inline-flex;
+}
+
+/* Put in order by dragging: where it'd go is a line. */
+.focus a[draggable="true"] {
+  cursor: default;
+}
+
+.focus a.dragging {
+  opacity: 0.4;
+}
+
+.focus a.drop-before {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.focus a.drop-after {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+/* A card's foot: how to go there, and pinning it. */
+.ref-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ref-foot:empty {
+  display: none;
+}
+
+.ref-foot .pin-button {
+  margin-left: auto;
+}
+
+.pin-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pin-button.on {
+  color: var(--accent);
+}
+
+.pin-button.on .icon {
+  fill: currentColor;
+}
+
 .topbar {
   display: none;
 }
@@ -2502,6 +2577,10 @@ main {
   .shell.reviewing .sidebar:not(:hover, :has(:focus-visible)) :is(.workspace-name > span:not(.mark), .workspace-name-more, .find > span, .nav a > span, .inbox h2, .inbox a > span:not(.status), .inbox a.inbox-more) {
     opacity: 0;
     transition: opacity var(--fast) var(--ease);
+  }
+
+  .shell.reviewing .sidebar:not(:hover, :has(:focus-visible)) .focus-unpin {
+    display: none;
   }
 
   /* Folded, a count is a dot on its icon. */

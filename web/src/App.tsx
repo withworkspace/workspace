@@ -29,6 +29,7 @@ import { Palette } from "./shell/Palette";
 import { useFaviconBadge, useNotifications, type Waiting } from "./shell/notify";
 import { Arrange } from "./shell/Arrange";
 import { arrange, headed, type Arrangement, type Arranged, type Place, sameArrangement, saving } from "./shell/places";
+import { FocusProvider, FocusSection } from "./shell/focus";
 import { noteVisit, visitAt } from "./shell/recent";
 import { wantsRoom } from "./shell/room";
 import { shortVersion } from "./shell/version";
@@ -141,107 +142,110 @@ export function App() {
     );
   }
   return (
-    <div className={`shell${reviewing ? " reviewing" : ""}${drawer ? " drawer" : ""}`}>
-      <div className="topbar" inert={dim}>
-        <button className="ghost icon-button" onClick={() => setDrawer(true)} aria-label="Open the menu">
-          <Icon name="menu" size={18} />
-        </button>
-        <WorkspaceMenu workspace={workspace} places={menu} onArrange={startArranging} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
-        {waiting.length > 0 && <span className="count tone-attention" title="Needs you">{waiting.length}</span>}
-      </div>
-      <div
-        className="scrim"
-        onClick={() => {
-          setDrawer(false);
-          setArranging(false);
-        }}
-      />
-      <aside className="sidebar" aria-label="Workspace" inert={dim}>
-        <WorkspaceMenu workspace={workspace} places={menu} onArrange={startArranging} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
-        <button className="find" onClick={() => setPalette("")}>
-          <Icon name="search" size={14} />
-          <span>Find…</span>
-          <Keys k="mod+K" />
-        </button>
-        {arranging ? (
-          <Arrange start={{ sidebar, menu }} canReset={!!saved} onDone={saveArrangement} onCancel={() => setArranging(false)} onReset={resetArrangement} />
-        ) : (
-          <nav className="nav" aria-label="Places">
-            {headed(sidebar).map((title, i) => (
-              <NavPlace key={sidebar[i].id} place={sidebar[i]} title={title} />
-            ))}
-          </nav>
-        )}
-        {workspace && !arranging && <Inbox workspace={workspace} path={location.pathname} notify={notify} />}
-      </aside>
-      {/* ws's half of a backdrop the app in the frame has up. A press on
-          it is said to the app like any press in ws (ws:outside), and
-          takes no focus from the frame: the dialog there still has the
-          keys. */}
-      {dim && <div className="frame-dim" onMouseDown={(e) => e.preventDefault()} />}
-      <main className={connection === "lost" && workspace ? "stale" : undefined} id="main">
-        <ConnectionBanner connection={connection} />
-        {error && <div className="banner">{error.message}</div>}
-        {!workspace && !error && <Loading what="Opening the workspace…" />}
-        {workspace && (
-          <RefsProvider workspace={workspace} plugins={plugins}>
-            <Routes>
-              <Route path="/" element={<MissionList missions={workspace.missions} />} />
-              <Route path="/missions/:slug" element={<MissionPage workspace={workspace} />} />
-              <Route path="/missions/:slug/artifact" element={<ArtifactPage workspace={workspace} />} />
-              <Route path="/missions/:slug/brief" element={<BriefView workspace={workspace} />} />
-              <Route path="/missions/:slug/crew/:id" element={<CrewPage workspace={workspace} />} />
-              <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
-              <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/docs" element={<DocsAddress />} />
-              <Route path="/files" element={<FilesPage workspace={workspace} />} />
-              <Route path="/files/:repo" element={<FilesPage workspace={workspace} />} />
-              <Route path="/files/:repo/:capsule" element={<FilesPage workspace={workspace} />} />
-              <Route path="/reviews" element={<ReviewsPage />} />
-              <Route path="/reviews/:repo/:number" element={<PRReviewPage workspace={workspace} />} />
-              <Route path="/team" element={<TeamPage />} />
-              <Route path="/documents" element={<DocumentsPage workspace={workspace} />} />
-              <Route path="/documents/:repo" element={<SpacePage workspace={workspace} />} />
-              <Route path="/documents/local/:id" element={<LocalPageAt workspace={workspace} />} />
-              <Route path="/documents/:repo/*" element={<DocumentAt workspace={workspace} />} />
-              <Route path="/pages" element={<Navigate to="/documents" replace />} />
-              <Route path="/pages/open" element={<OpenAddress />} />
-              <Route path="/pages/:id" element={<PageAddress workspace={workspace} />} />
-              <Route path="/artifacts" element={<ArtifactsPage workspace={workspace} />} />
-              <Route path="/artifacts/compare" element={<ComparePage workspace={workspace} />} />
-              <Route path="/artifacts/:id" element={<ArtifactView workspace={workspace} />} />
-              <Route path="/artifacts/:id/compare" element={<ComparePage workspace={workspace} />} />
-              <Route path="/artifacts/:id/:version" element={<ArtifactView workspace={workspace} />} />
-              <Route path="/conversations" element={<TalksPage workspace={workspace} />} />
-              <Route path="/conversations/:id" element={<TalkPage workspace={workspace} />} />
-              <Route path="/missions/:slug/conversations/:id" element={<TalkPage workspace={workspace} />} />
-              <Route path="/missions/:slug/review/:repo/:name" element={<Review workspace={workspace} />} />
-              <Route path="/missions/:slug/files/:repo/:name" element={<Explorer workspace={workspace} />} />
-              <Route path="/x/:name/*" element={<PluginPage plugins={plugins} ws={workspace?.version} />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </RefsProvider>
-        )}
-      </main>
-      {help && <Help keys={helpKeys(location.pathname)} onClose={() => setHelp(false)} />}
-      {palette !== undefined && workspace && (
-        <Palette
-          workspace={workspace}
-          plugins={plugins}
-          waiting={waiting}
-          start={palette}
-          pageRepo={repoOfPage(location.pathname, workspace.spaces)}
-          onClose={() => setPalette(undefined)}
-          onHelp={() => {
-            setPalette(undefined);
-            setHelp(true);
+    <FocusProvider workspace={workspace}>
+      <div className={`shell${reviewing ? " reviewing" : ""}${drawer ? " drawer" : ""}`}>
+        <div className="topbar" inert={dim}>
+          <button className="ghost icon-button" onClick={() => setDrawer(true)} aria-label="Open the menu">
+            <Icon name="menu" size={18} />
+          </button>
+          <WorkspaceMenu workspace={workspace} places={menu} onArrange={startArranging} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
+          {waiting.length > 0 && <span className="count tone-attention" title="Needs you">{waiting.length}</span>}
+        </div>
+        <div
+          className="scrim"
+          onClick={() => {
+            setDrawer(false);
+            setArranging(false);
           }}
         />
-      )}
-      <Toasts />
-      <Confirmer />
-    </div>
+        <aside className="sidebar" aria-label="Workspace" inert={dim}>
+          <WorkspaceMenu workspace={workspace} places={menu} onArrange={startArranging} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
+          <button className="find" onClick={() => setPalette("")}>
+            <Icon name="search" size={14} />
+            <span>Find…</span>
+            <Keys k="mod+K" />
+          </button>
+          {arranging ? (
+            <Arrange start={{ sidebar, menu }} canReset={!!saved} onDone={saveArrangement} onCancel={() => setArranging(false)} onReset={resetArrangement} />
+          ) : (
+            <nav className="nav" aria-label="Places">
+              {headed(sidebar).map((title, i) => (
+                <NavPlace key={sidebar[i].id} place={sidebar[i]} title={title} />
+              ))}
+            </nav>
+          )}
+          {workspace && !arranging && <FocusSection workspace={workspace} plugins={plugins} path={location.pathname} />}
+          {workspace && !arranging && <Inbox workspace={workspace} path={location.pathname} notify={notify} />}
+        </aside>
+        {/* ws's half of a backdrop the app in the frame has up. A press on
+            it is said to the app like any press in ws (ws:outside), and
+            takes no focus from the frame: the dialog there still has the
+            keys. */}
+        {dim && <div className="frame-dim" onMouseDown={(e) => e.preventDefault()} />}
+        <main className={connection === "lost" && workspace ? "stale" : undefined} id="main">
+          <ConnectionBanner connection={connection} />
+          {error && <div className="banner">{error.message}</div>}
+          {!workspace && !error && <Loading what="Opening the workspace…" />}
+          {workspace && (
+            <RefsProvider workspace={workspace} plugins={plugins}>
+              <Routes>
+                <Route path="/" element={<MissionList missions={workspace.missions} />} />
+                <Route path="/missions/:slug" element={<MissionPage workspace={workspace} />} />
+                <Route path="/missions/:slug/artifact" element={<ArtifactPage workspace={workspace} />} />
+                <Route path="/missions/:slug/brief" element={<BriefView workspace={workspace} />} />
+                <Route path="/missions/:slug/crew/:id" element={<CrewPage workspace={workspace} />} />
+                <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
+                <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/docs" element={<DocsAddress />} />
+                <Route path="/files" element={<FilesPage workspace={workspace} />} />
+                <Route path="/files/:repo" element={<FilesPage workspace={workspace} />} />
+                <Route path="/files/:repo/:capsule" element={<FilesPage workspace={workspace} />} />
+                <Route path="/reviews" element={<ReviewsPage />} />
+                <Route path="/reviews/:repo/:number" element={<PRReviewPage workspace={workspace} />} />
+                <Route path="/team" element={<TeamPage />} />
+                <Route path="/documents" element={<DocumentsPage workspace={workspace} />} />
+                <Route path="/documents/:repo" element={<SpacePage workspace={workspace} />} />
+                <Route path="/documents/local/:id" element={<LocalPageAt workspace={workspace} />} />
+                <Route path="/documents/:repo/*" element={<DocumentAt workspace={workspace} />} />
+                <Route path="/pages" element={<Navigate to="/documents" replace />} />
+                <Route path="/pages/open" element={<OpenAddress />} />
+                <Route path="/pages/:id" element={<PageAddress workspace={workspace} />} />
+                <Route path="/artifacts" element={<ArtifactsPage workspace={workspace} />} />
+                <Route path="/artifacts/compare" element={<ComparePage workspace={workspace} />} />
+                <Route path="/artifacts/:id" element={<ArtifactView workspace={workspace} />} />
+                <Route path="/artifacts/:id/compare" element={<ComparePage workspace={workspace} />} />
+                <Route path="/artifacts/:id/:version" element={<ArtifactView workspace={workspace} />} />
+                <Route path="/conversations" element={<TalksPage workspace={workspace} />} />
+                <Route path="/conversations/:id" element={<TalkPage workspace={workspace} />} />
+                <Route path="/missions/:slug/conversations/:id" element={<TalkPage workspace={workspace} />} />
+                <Route path="/missions/:slug/review/:repo/:name" element={<Review workspace={workspace} />} />
+                <Route path="/missions/:slug/files/:repo/:name" element={<Explorer workspace={workspace} />} />
+                <Route path="/x/:name/*" element={<PluginPage plugins={plugins} ws={workspace?.version} />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </RefsProvider>
+          )}
+        </main>
+        {help && <Help keys={helpKeys(location.pathname)} onClose={() => setHelp(false)} />}
+        {palette !== undefined && workspace && (
+          <Palette
+            workspace={workspace}
+            plugins={plugins}
+            waiting={waiting}
+            start={palette}
+            pageRepo={repoOfPage(location.pathname, workspace.spaces)}
+            onClose={() => setPalette(undefined)}
+            onHelp={() => {
+              setPalette(undefined);
+              setHelp(true);
+            }}
+          />
+        )}
+        <Toasts />
+        <Confirmer />
+      </div>
+    </FocusProvider>
   );
 }
 

@@ -129,11 +129,20 @@ func (tx *Tx) Forget(origin Origin) error {
 
 // ForgetUnder removes what the record at origin implied, and what every
 // record under it did (origin/…): a plugin's things are each a record
-// under the plugin, so that removing the plugin forgets them all.
+// under the plugin, so that removing the plugin forgets them all. It's for
+// what's gone for good, so their pins go too (focus.go), as Forget, which
+// a record calls before it writes its things again, leaves them.
 func (tx *Tx) ForgetUnder(origin Origin) error {
 	// Under it: from origin/ up to, and not, what follows the slash.
 	own, lo, hi := string(origin), string(origin)+"/", string(origin)+"0"
 	const under = `origin = ? OR (origin >= ? AND origin < ?)`
+	res, err := tx.Exec(`DELETE FROM focus WHERE (scope, name) IN (SELECT scope, name FROM things WHERE `+under+`)`, own, lo, hi)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n > 0 {
+		tx.Changed(FocusTopic)
+	}
 	for _, q := range []string{
 		`DELETE FROM things WHERE ` + under,
 		`DELETE FROM links WHERE ` + under,

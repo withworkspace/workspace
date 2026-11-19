@@ -318,6 +318,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/orchestrator", s.orchestrator)
 	mux.HandleFunc("GET /api/settings", s.settings)
 	mux.HandleFunc("POST /api/settings", s.setSettings)
+	mux.HandleFunc("POST /api/focus", s.focus)
 	mux.HandleFunc("GET /api/settings/models", s.models)
 	mux.HandleFunc("GET /api/process", s.process)
 	mux.HandleFunc("GET /api/missions/{slug}/orchestrator/{id}", s.orchestratorRun)

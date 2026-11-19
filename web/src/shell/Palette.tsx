@@ -43,6 +43,7 @@ import {
 import type { Waiting } from "./notify";
 import { CodeText, CodeWhere } from "./CodeHitParts";
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
+import { PinButton, pinNameOf, useFocus } from "./focus";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
 // has, by what you remember of it. What the page holds (missions, pages,
@@ -267,6 +268,11 @@ export function Palette({
   // says, or named outright by what's typed. While Find acts on one, or
   // one's action asks, it's that one.
   const onThing = mode ? (asking?.thing ?? acting?.thing) : thingOf(on);
+  // ⌘. pins what the row is, or unpins it: anything with a card.
+  const focus = useFocus();
+  const pinRef = mode ? undefined : (onThing ?? on?.card);
+  const pinName = pinRef && focus?.supported ? pinNameOf(pinRef) : undefined;
+  const pinnedNow = !!pinName && !!focus?.pinned(pinName);
 
   useEffect(() => {
     list.current?.querySelector(".on")?.scrollIntoView({ block: "nearest" });
@@ -519,6 +525,10 @@ export function Palette({
                     setActing({ thing: onThing, typed: "" });
                     setCursor(undefined);
                   }
+                } else if (mod && e.key === "." && pinName && focus) {
+                  e.preventDefault();
+                  if (pinnedNow) focus.unpin(pinName);
+                  else focus.pin(pinName);
                 } else if (mode && (e.key === "Escape" || (e.key === "Backspace" && !typed))) {
                   // Out of what it's in the middle of, a step at a time:
                   // Escape closes Find only from where it finds.
@@ -648,6 +658,11 @@ export function Palette({
                   <Keys k="mod+C" /> copy its name
                 </span>
               )}
+              {pinName && (
+                <span>
+                  <Keys k="mod+." /> {pinnedNow ? "unpin it" : "pin it"}
+                </span>
+              )}
               {pulls?.at && pullsAge > stale && <span className="find-age">Pull requests as of {clock(pulls.at)}</span>}
             </div>
           )}
@@ -678,6 +693,7 @@ export function Palette({
                   <ThingCard r={onThing} known={known} surface="pane" pointer={pointer} before={!mode && on?.said ? <SaidCard it={on} f={on.said} /> : undefined} />
                 </div>
                 <div className="find-acts" aria-label="Do to it">
+                  {!mode && <PinButton r={onThing} />}
                   {actsOn(namedOf(onThing, known)).map((a) => (
                     <button key={`${a.ws ?? "its"}:${a.id}`} type="button" className="ghost small" disabled={working} onMouseDown={(e) => e.preventDefault()} onClick={() => doTo(onThing, a)}>
                       <Icon name={actIcon(a.icon)} size={12} /> {a.title}
@@ -688,7 +704,12 @@ export function Palette({
             ) : on?.said ? (
               <SaidCard it={on} f={on.said} />
             ) : on?.card ? (
-              <RefCardBody r={on.card} workspace={workspace} known={known} />
+              <>
+                <RefCardBody r={on.card} workspace={workspace} known={known} />
+                <span className="ref-foot">
+                  <PinButton r={on.card} />
+                </span>
+              </>
             ) : on ? (
               <>
                 <span className="hovercard-head">

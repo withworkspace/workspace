@@ -163,6 +163,12 @@ function thingNamed(name: string, known: Known): PageRef | undefined {
   return undefined;
 }
 
+// refNamed is what a name, as ws writes it, names: a plugin's thing by
+// how its plugin names them (RAM-123), anything else by its form.
+export function refNamed(name: string, known?: Known): PageRef | undefined {
+  return (known && thingNamed(name, known)) || parseName(name);
+}
+
 type Lines = { line?: number; endLine?: number };
 const linesOf = (from?: string, to?: string): Lines => (from ? { line: Number(from), ...(to ? { endLine: Number(to) } : {}) } : {});
 

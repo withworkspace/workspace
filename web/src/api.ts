@@ -11,6 +11,9 @@ export interface Workspace {
   org?: string; // where its repos are on GitHub, for a ref's address
   defaultBranch?: string;
   missions: Mission[];
+  // focus: what you've pinned that stands, in your order: the sidebar's
+  // Focus (shell/focus.tsx). Absent from a daemon from before it.
+  focus?: FocusPin[];
   spaces?: SpaceRef[]; // its spaces of documents, as config says them
   conversations: Talk[]; // the workspace's conversations, newest first
   pages: PageInfo[]; // the workspace's pages, the latest changed first
@@ -1459,6 +1462,23 @@ export interface ModelInfo {
 
 export const getSettings = () => getJSON<SettingsInfo>("/api/settings");
 export const setSettings = (changes: SettingChange[]) => send<SettingsInfo>("POST", "/api/settings", { changes });
+
+// FocusPin is a pin: its name, as ws writes it (a ref is read back from
+// it), and what the graph says of it, where it says: what it is (mission,
+// talk, pull-request, thing…), what it's called, how it stands. Mirrors
+// internal/web/api.go.
+export interface FocusPin {
+  name: string;
+  kind?: string;
+  title?: string;
+  state?: string;
+}
+export interface FocusDone {
+  said: string;
+  focus: FocusPin[];
+}
+// Pin, unpin or put your pins in order: one at a time.
+export const changeFocus = (change: { pin: string } | { unpin: string } | { order: string[] }) => send<FocusDone>("POST", "/api/focus", change);
 // The workspace's process (PROCESS.md: how work goes here, in prose), as
 // it's written. The planner and the orchestrator read it as it is.
 export interface ProcessInfo {

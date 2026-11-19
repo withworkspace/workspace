@@ -18,6 +18,9 @@ type Workspace struct {
 	Org           string    `json:"org,omitempty"`
 	DefaultBranch string    `json:"defaultBranch,omitempty"`
 	Missions      []Mission `json:"missions"`
+	// Focus is what you've pinned that stands, in your order: the
+	// sidebar's Focus.
+	Focus []FocusPin `json:"focus"`
 	// Conversations are the workspace's conversations with an agent,
 	// newest first.
 	Conversations []Talk `json:"conversations"`
@@ -59,6 +62,18 @@ type Workspace struct {
 type Places struct {
 	Sidebar []string `json:"sidebar"`
 	Menu    []string `json:"menu"`
+}
+
+// FocusPin is a pin, as the sidebar draws it: its name, as ws writes it
+// (what a ref is read back from), and what the graph says of it where it
+// does: what it is (mission, talk, pull-request, thing…), what it's
+// called, how it stands. A pull request ws keeps nothing of, or a file,
+// has only its name.
+type FocusPin struct {
+	Name  string `json:"name"`
+	Kind  string `json:"kind,omitempty"`
+	Title string `json:"title,omitempty"`
+	State string `json:"state,omitempty"`
 }
 
 // SpaceRef is a space of documents, as what links to one needs it.

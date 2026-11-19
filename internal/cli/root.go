@@ -58,6 +58,7 @@ func newBuiltinRootCmd(version string) *cobra.Command {
 	cmd.AddCommand(newWebCmd())
 	cmd.AddCommand(newReviewCmd(), newNavCmd())
 	cmd.AddCommand(newShowCmd())
+	cmd.AddCommand(newPinCmd(), newUnpinCmd())
 	cmd.AddCommand(newDocumentsCmd(), newDocCmd(), newFindCmd())
 	cmd.AddCommand(newExportCmd())
 	cmd.AddCommand(newThreadCmd())
