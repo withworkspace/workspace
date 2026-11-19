@@ -50,6 +50,33 @@ func TestCommandPolicyCursorTitles(t *testing.T) {
 	if ans, _ := policy(acp.Ask{Permission: q}); ans.Option != "__ask_question_skip__" {
 		t.Errorf("a question = %+v, want skipped", ans)
 	}
+	// In agent mode, from a folder of ws's own: a read outside it (asked
+	// where a read boundary is set) is allowed, a write outside it refused.
+	for title, allowed := range map[string]bool{"Read `/w/main.go`": true, "Edit `/w/main.go`": false, "Write /w/new.go": false} {
+		kind := "read"
+		if !strings.HasPrefix(title, "Read") {
+			kind = "edit"
+		}
+		r := permission(kind, title, nil)
+		r.Options = []acp.PermissionOption{
+			{OptionID: "allow-once", Name: "Allow once", Kind: acp.AllowOnce},
+			{OptionID: "reject-once", Name: "Reject", Kind: acp.RejectOnce},
+		}
+		if ans, _ := policy(acp.Ask{Permission: r}); (ans.Option == "allow-once") != allowed {
+			t.Errorf("%s: answered %+v, want allowed %v", title, ans, allowed)
+		}
+	}
+}
+
+func TestCursorWorksIn(t *testing.T) {
+	if got := cursorWorksIn("/w/.ws/converse/cursor-acp", "/w/c"); !strings.Contains(got, "the folder you work on is /w/c") || !strings.HasSuffix(got, "\n\n") {
+		t.Errorf("cursorWorksIn = %q", got)
+	}
+	for _, dir := range []string{"", "/s"} {
+		if got := cursorWorksIn("/s", dir); got != "" {
+			t.Errorf("cursorWorksIn(/s, %q) = %q, want nothing", dir, got)
+		}
+	}
 }
 
 func TestCursorACPModel(t *testing.T) {
@@ -100,10 +127,26 @@ func TestCursorACPLaunches(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := *l.ACP
-	if l.Stream != StreamACP || strings.Join(r.Agent, " ") != "/bin/cursor-agent acp" || r.Mode != "ask" || r.Model != "claude-sonnet-5-5" ||
-		r.Load != "ran-1" || r.Prompt != "hi" || r.Settings != nil || !commandAllowed("ws thread suggest t1", r.Allow) ||
+	// Agent mode, so it can run ws's --propose commands (ask mode runs no
+	// command but in a read-only sandbox), from a folder of ws's own, as
+	// Cursor writes in its session's folder without asking: told where
+	// it works.
+	runDir := filepath.Join(scratch, "cursor-acp")
+	if l.Stream != StreamACP || strings.Join(r.Agent, " ") != "/bin/cursor-agent acp" || r.Mode != "agent" || r.Model != "claude-sonnet-5-5" ||
+		r.Load != "ran-1" || !strings.HasSuffix(r.Prompt, "\n\nhi") || !strings.Contains(r.Prompt, "the folder you work on is /w") ||
+		r.Settings != nil || !commandAllowed("ws thread suggest t1", r.Allow) || r.Dir != runDir || l.Dir != runDir ||
 		r.Auth != "cursor_login" || !strings.Contains(string(r.Answers["cursor/ask_question"]), `"skipped"`) {
 		t.Errorf("conversation run = %+v", r)
+	}
+	if fi, err := os.Stat(runDir); err != nil || !fi.IsDir() {
+		t.Errorf("run folder: %v", err)
+	}
+	talk, err := c.Converse(ConverseRun{Prompt: "brief it", Dir: "/w", Talk: true, Scratch: scratch})
+	if err != nil || talk.ACP.Mode != "agent" || !commandAllowed("ws mission brief --propose m1", talk.ACP.Allow) {
+		t.Errorf("talk run = %+v, %v", talk.ACP, err)
+	}
+	if _, err := c.Converse(ConverseRun{Prompt: "hi", Dir: "/w"}); err == nil {
+		t.Error("a conversation with no scratch folder ran")
 	}
 	for _, id := range []string{"refused-1", "gone-1", "../x"} {
 		if _, err := c.Converse(ConverseRun{Prompt: "hi", Dir: "/w", Session: id, Scratch: scratch}); !errors.Is(err, ErrSessionGone) {
@@ -116,7 +159,8 @@ func TestCursorACPLaunches(t *testing.T) {
 		t.Fatal(err)
 	}
 	r = *l.ACP
-	if r.Mode != "ask" || r.Model != "auto" || !commandAllowed("ws mission note x", r.Allow) || commandAllowed("ws burn a/b", r.Allow) {
+	if r.Mode != "agent" || r.Model != "auto" || r.Dir != runDir || !strings.Contains(r.Prompt, "the folder you work on is /w") ||
+		!commandAllowed("ws mission note x", r.Allow) || commandAllowed("ws burn a/b", r.Allow) {
 		t.Errorf("orchestrator run = %+v", r)
 	}
 	l, err = c.Start(Brief{Slug: "m", Title: "M", Dir: "/w/c", Model: CursorOrchestratorModel})
