@@ -42,6 +42,7 @@ import {
 } from "./find";
 import type { Waiting } from "./notify";
 import { CodeText, CodeWhere } from "./CodeHitParts";
+import { around, hereAt, hereItems, keptAround, type Near, nearIds, nearItems } from "./here";
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
 import { PinButton, pinNameOf, useFocus } from "./focus";
 
@@ -84,6 +85,8 @@ export function Palette({
   waiting,
   start,
   pageRepo,
+  path,
+  search,
   onClose,
   onHelp,
 }: {
@@ -92,6 +95,8 @@ export function Palette({
   waiting: Waiting[];
   start?: string;
   pageRepo?: string;
+  path: string; // where Find was opened: what's around it shows first
+  search: string;
   onClose: () => void;
   onHelp: () => void;
 }) {
@@ -237,6 +242,27 @@ export function Palette({
   }, [waiting, local]);
   const recent = useMemo(() => recentItems(memory.visits, local), [memory, local]);
 
+  // What the page is of, what can be done to it, and what's one link from
+  // it: as last answered for it, at once, then as answered now.
+  const here = useMemo(() => hereAt(path, search, workspace, known), [path, search, workspace, known]);
+  const [near, setNear] = useState<Near[]>(() => (here ? keptAround(here) : []));
+  const hereKey = here && `${here.scope ?? ""}\n${here.ref}`;
+  useEffect(() => {
+    if (!here) return;
+    const drop = new AbortController();
+    // At once as the records stand, then as they are once read again.
+    // What can't be asked is said by saying nothing.
+    around(here, false, drop.signal)
+      .then(setNear)
+      .then(() => around(here, true, drop.signal))
+      .then(setNear, () => undefined);
+    return () => drop.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hereKey]);
+  const doHere = useMemo(() => hereItems(here, workspace, known), [here, workspace, known]);
+  const linked = useMemo(() => (here ? nearItems(near, here, local, workspace.spaces) : []), [near, here, local, workspace.spaces]);
+  const nearby = useMemo(() => nearIds(linked, near), [linked, near]);
+
   const built = useMemo(
     () =>
       build({
@@ -247,23 +273,29 @@ export function Palette({
         found: found.groups,
         needs,
         recent,
+        at: here?.id,
+        hereTitle: here?.title,
+        here: doHere,
+        linked,
+        near: nearby,
         memory,
         spaces: workspace.spaces,
         known,
         code: scope === "code" ? code : undefined,
       }),
-    [q, scope, only, local, found.groups, needs, recent, memory, workspace.spaces, known, code],
+    [q, scope, only, local, found.groups, needs, recent, here, doHere, linked, nearby, memory, workspace.spaces, known, code],
   );
   // What the list is: what an action asks to pick from, what can be done
   // to the thing Find's acting on, or, most of the time, what's found.
   const mode = asking ? "asking" : acting ? "acting" : undefined;
   const typed = asking ? asking.typed : acting ? acting.typed : raw;
   const rows = asking ? askOptions(asking.ask, asking.typed) : acting ? actingOn(namedOf(acting.thing, known), acting.typed) : built.rows;
-  const at = Math.max(
-    0,
-    rows.findIndex((r) => r.id === cursor),
-  );
-  const on = rows[at];
+  // Until the cursor's moved, it's on the first row that goes somewhere:
+  // what can be done to where you are is a step down, so ⌘K then ⏎ never
+  // does it by reflex.
+  const chosen = rows.findIndex((r) => r.id === cursor);
+  const at = chosen >= 0 ? chosen : mode ? 0 : rows.findIndex((r) => r.group !== "here");
+  const on = at >= 0 ? rows[at] : undefined;
   // The plugin's thing the cursor's on, if it's on one: found by what it
   // says, or named outright by what's typed. While Find acts on one, or
   // one's action asks, it's that one.
@@ -280,7 +312,7 @@ export function Palette({
 
   const move = (d: number) => {
     if (!rows.length) return;
-    setCursor(rows[(at + d + rows.length) % rows.length].id);
+    setCursor(rows[(Math.max(at, d > 0 ? -1 : 0) + d + rows.length) % rows.length].id);
   };
 
   // run runs a plugin's action: one of its own, or, with a thing, one done
@@ -367,6 +399,11 @@ export function Palette({
     const visit = visitOf(it, Date.now());
     if (visit) noteVisit(workspace.root, visit);
     noteChosen(workspace.root, q, it.id);
+    if (it.doing && "does" in it.doing) {
+      // Done to the thing the page is of: Find stays, for what it may ask.
+      doTo(it.doing.thing, it.doing.does);
+      return;
+    }
     if (it.doing && "plugin" in it.doing) {
       // A plugin's own: Find stays, for what it may ask first.
       run(it.doing.plugin, it.doing.action, undefined, []);
@@ -411,7 +448,7 @@ export function Palette({
     const g = built.sections.find((s) => s.items.some((it) => it.id === on?.id))?.group;
     // The best line, what needs you and where you've been aren't kinds:
     // narrow to the kind of thing the row is.
-    const kind = g === "best" || g === "needs" || g === "recent" ? kindOf(on) : g;
+    const kind = g === "best" || g === "here" || g === "needs" || g === "linked" || g === "recent" ? kindOf(on) : g;
     if (!kind) return;
     if (kind === "pulls" || kind === "files" || kind === "do") setRaw(withScope(raw, kind, workspace.root));
     else setOnly(kind);
@@ -757,7 +794,7 @@ function Row({ it, on, section, onOver, onPick }: { it: Item; on: boolean; secti
   const cut = it.path ? Math.max(it.title.lastIndexOf("/"), it.title.lastIndexOf(":")) + 1 : 0;
   let pos = 0;
   // Among other kinds, a row says what it is.
-  const says = section === "best" || section === "needs" || section === "recent";
+  const says = section === "best" || section === "needs" || section === "linked" || section === "recent";
   return (
     <div id={`pal-${it.id}`} role="option" aria-selected={on} className={`find-row${on ? " on" : ""}`} onMouseMove={onOver} onClick={(e) => onPick(e.metaKey || e.ctrlKey)}>
       {it.status ? <Status s={it.status} iconOnly /> : <Icon name={it.icon ?? "chevron-right"} />}

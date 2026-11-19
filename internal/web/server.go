@@ -294,6 +294,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/missions/{slug}/artifact/raw", s.artifactRaw)
 	mux.HandleFunc("GET /api/missions/{slug}/bundles/{id}/file/{name}", s.bundleFile)
 	mux.HandleFunc("GET /api/find", s.find)
+	mux.HandleFunc("GET /api/around", s.around)
 	mux.HandleFunc("GET /api/search", s.codeSearch)
 	mux.HandleFunc("GET /api/repos", s.repos)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees", s.worktrees)

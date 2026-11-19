@@ -630,6 +630,23 @@ function thingAt(addr: string, known: Known): PageRef | undefined {
   return undefined;
 }
 
+// thingOpenAt is the plugin's thing a page of its app is open on: the path
+// in the app (after /x/<plugin>) where its kind said one opens, its name
+// where {ref} is. A page of the app that isn't one thing's is none.
+export function thingOpenAt(plugin: string, path: string, known: Known): Extract<PageRef, { kind: "thing" }> | undefined {
+  for (const t of patternsOf(known).things) {
+    const where = t.of.path;
+    const hole = where?.indexOf("{ref}") ?? -1;
+    if (t.of.plugin !== plugin || !where || hole < 0) continue;
+    const before = where.slice(0, hole);
+    const after = where.slice(hole + "{ref}".length);
+    if (path.length <= before.length + after.length || !path.startsWith(before) || !path.endsWith(after)) continue;
+    const name = decodeURIComponent(path.slice(before.length, path.length - after.length));
+    if (t.whole.test(name)) return thingRef(t.of, name) as Extract<PageRef, { kind: "thing" }>;
+  }
+  return undefined;
+}
+
 // reposNamed are the repos a text may name files of (demo/…, or demo
 // `main.go`): those whose files are worth reading, to tell.
 export function reposNamed(text: string, repos: string[]): string[] {

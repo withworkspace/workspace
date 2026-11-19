@@ -11,14 +11,18 @@ import { crewStatus, headlineStatus, type StatusInfo } from "../ui/status";
 // pull requests, what's typed read as a ref), and how the two are put
 // together into the groups the window shows.
 
-// The groups, in the order they show. best, needs and recent aren't kinds
-// of thing: the one that fits most, what's waiting, where you've been.
-export const groupOrder = ["best", "needs", "recent", "missions", "pulls", "documents", "said", "files", "code", "pages", "talks", "artifacts", "crew", "capsules", "do", "places"] as const;
+// The groups, in the order they show. best, here, needs, linked and
+// recent aren't kinds of thing: the one that fits most, what can be done
+// to what the page is of, what's waiting, what's one link from what the
+// page is of, where you've been.
+export const groupOrder = ["best", "here", "needs", "linked", "recent", "missions", "pulls", "documents", "said", "files", "code", "pages", "talks", "artifacts", "crew", "capsules", "do", "places"] as const;
 export type GroupKey = (typeof groupOrder)[number];
 
 export const groupTitle: Record<GroupKey, string> = {
   best: "Best",
+  here: "Here",
   needs: "Needs you",
+  linked: "Linked",
   recent: "Recent",
   missions: "Missions",
   pulls: "Pull requests",
@@ -37,8 +41,15 @@ export const groupTitle: Record<GroupKey, string> = {
 
 // What an item does that isn't going somewhere.
 // plugin is one of a plugin's own actions: the plugin does it, asking
-// first what it needs to know.
-export type Doing = { act: ActVerb; slug: string; crew?: string } | { theme: "light" | "dark" | "system" } | { help: true } | { page: true } | { plugin: string; action: ThingAction };
+// first what it needs to know. does is something done to a plugin's
+// thing (one of its kind's actions, or ws's own), from beside it.
+export type Doing =
+  | { act: ActVerb; slug: string; crew?: string }
+  | { theme: "light" | "dark" | "system" }
+  | { help: true }
+  | { page: true }
+  | { plugin: string; action: ThingAction }
+  | { thing: Extract<PageRef, { kind: "thing" }>; does: ActOn };
 
 // ActOn is something to do to a plugin's thing: one of its kind's actions,
 // which its plugin does, or one of ws's own.
@@ -117,6 +128,23 @@ const doable: Partial<Record<string, ActVerb>> = {
   brief: "brief",
 };
 
+// missionDo is what a mission's headline asks of you, if Find can do it
+// outright: titled by what's done (Resume), not by the mission.
+export function missionDo(m: Workspace["missions"][number]): Item | undefined {
+  const verb = doable[m.headline.action.verb ?? ""];
+  if (!verb || !m.headline.action.label) return undefined;
+  return {
+    id: `do:${verb}:${m.slug}`,
+    group: "do",
+    kind: "Do",
+    title: m.headline.action.label[0].toUpperCase() + m.headline.action.label.slice(1),
+    hint: m.headline.text,
+    icon: "play",
+    score: 0,
+    doing: { act: verb, slug: m.slug, crew: m.headline.action.target },
+  };
+}
+
 // localItems is everything the page already holds that can be found.
 export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
   const place = (to: string, title: string, icon: IconName, hint?: string): Item => ({
@@ -172,20 +200,8 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
       ref: m.slug,
       card: { kind: "mission", slug: m.slug },
     });
-    const verb = doable[m.headline.action.verb ?? ""];
-    if (verb && m.headline.action.label) {
-      const label = m.headline.action.label[0].toUpperCase() + m.headline.action.label.slice(1);
-      out.push({
-        id: `do:${verb}:${m.slug}`,
-        group: "do",
-        kind: "Do",
-        title: `${label}: ${m.title}`,
-        hint: m.headline.text,
-        icon: "play",
-        score: 0,
-        doing: { act: verb, slug: m.slug, crew: m.headline.action.target },
-      });
-    }
+    const does = missionDo(m);
+    if (does) out.push({ ...does, title: `${does.title}: ${m.title}` });
     for (const c of m.capsules) {
       out.push({
         id: `capsule:${m.slug}/${c.repo}/${c.name}`,
@@ -913,6 +929,10 @@ export function asks(scope: Scope, only: GroupKey | undefined, q: string): { kin
 
 // How many of a group show among the others, and when it's the only one.
 export const few = 5;
+
+// linkedRoom is how many of what's one link from where you are show
+// before anything's typed: the nearest, the rest a word away.
+const linkedRoom = 6;
 export const wide = 60;
 
 // --- putting it together ---
@@ -968,10 +988,11 @@ export interface Memory {
   chosen: Record<string, string>;
 }
 
-// boost is how much more an item counts for being somewhere you go.
-function boost(it: Item, q: string, memory?: Memory): number {
-  if (!memory) return 0;
-  let b = 0;
+// boost is how much more an item counts for being somewhere you go, or
+// one link from where you are (near).
+function boost(it: Item, q: string, memory?: Memory, near?: Set<string>): number {
+  let b = near?.has(it.id) ? 4 : 0;
+  if (!memory) return b;
   const i = memory.visits.findIndex((v) => v.id === it.id);
   if (i >= 0 && i < 20) b += 6 - i * 0.3;
   if (memory.chosen[q.toLowerCase()] === it.id) b += 40;
@@ -999,6 +1020,15 @@ export interface Assembly {
   found: FoundGroup[]; // what the server's answered, for this q
   needs?: Item[]; // what's waiting for you
   recent?: Item[]; // where you've been
+  // What the page is of (Here): its id among the rows, and what's said
+  // over what can be done to it; what can be done to it; what's one link
+  // from it (linked); and the ids of those, which count for more as
+  // what's typed is found.
+  at?: string;
+  hereTitle?: string;
+  here?: Item[];
+  linked?: Item[];
+  near?: Set<string>;
   memory?: Memory;
   spaces?: SpaceRef[]; // the workspace's spaces: a document in one opens in Documents
   code?: { hits: CodeHit[]; end?: CodeEnd }; // what code search found, in the code scope
@@ -1013,17 +1043,26 @@ export function build(a: Assembly): Built {
     if (items.length || note) sections.push({ group: g, title, items, more, note });
   };
 
-  // Nothing typed, and not narrowed: what needs you, where you've been,
-  // and the places.
+  // Nothing typed, and not narrowed: what can be done to what the page
+  // is of, what needs you, what's one link from what the page is of,
+  // where you've been, and (somewhere that isn't of one thing) the
+  // places. Each thing once, where it's first.
   if (!a.q && !group) {
-    const needs = a.needs ?? [];
-    const seen = new Set(needs.map((n) => n.id));
-    add("needs", needs.slice(0, few));
-    add("recent", (a.recent ?? []).filter((r) => !seen.has(r.id)).slice(0, 8));
-    add(
-      "places",
-      a.local.filter((it) => it.group === "places"),
-    );
+    const here = (a.here ?? []).slice(0, 4);
+    const needs = (a.needs ?? []).slice(0, few);
+    const seen = new Set([a.at, ...needs.map((n) => n.id)]);
+    const linked = (a.linked ?? []).filter((it) => !seen.has(it.id)).slice(0, linkedRoom);
+    for (const it of linked) seen.add(it.id);
+    const around = here.length > 0 || linked.length > 0;
+    add("here", here, 0, undefined, a.hereTitle || groupTitle.here);
+    add("needs", needs);
+    add("linked", linked);
+    add("recent", (a.recent ?? []).filter((r) => !seen.has(r.id)).slice(0, around ? 5 : 8));
+    if (!around)
+      add(
+        "places",
+        a.local.filter((it) => it.group === "places"),
+      );
     return { sections, rows: sections.flatMap((s) => s.items) };
   }
 
@@ -1043,7 +1082,7 @@ export function build(a: Assembly): Built {
   for (const it of rank(a.local, a.q))
     put(it.group).items.push({
       ...it,
-      score: it.score + boost(it, a.q, a.memory),
+      score: it.score + boost(it, a.q, a.memory, a.near),
     });
   let exact: Item | undefined;
   for (const g of a.found) {
@@ -1058,7 +1097,7 @@ export function build(a: Assembly): Built {
       if (f.card?.kind === "thing" && a.known) it.icon = thingIcon(namedOf(f.card, a.known));
       // A mission's capsule is already here, from what the page holds.
       if (g.kind === "capsules" && into.items.some((x) => x.ref === it.ref)) continue;
-      into.items.push({ ...it, score: it.score + boost(it, a.q, a.memory) });
+      into.items.push({ ...it, score: it.score + boost(it, a.q, a.memory, a.near) });
     }
     into.more += g.more ?? 0;
     if (g.problem) into.note = g.problem;

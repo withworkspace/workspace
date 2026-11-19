@@ -1,6 +1,8 @@
 package store
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -179,6 +181,28 @@ func (tx *Tx) Links(k Key, from bool) ([]Link, error) {
 		out = append(out, l)
 	}
 	return out, rows.Err()
+}
+
+// ThingsAt is the things at keys, as their rows say: a key with no thing
+// isn't among them.
+func (tx *Tx) ThingsAt(keys ...Key) (map[Key]Thing, error) {
+	out := map[Key]Thing{}
+	for _, k := range keys {
+		var t Thing
+		var changed string
+		err := tx.QueryRow(`SELECT kind, title, state, changed FROM things WHERE scope = ? AND name = ?`, k.Scope, k.Name).
+			Scan(&t.Kind, &t.Title, &t.State, &changed)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		t.Key = k
+		t.Changed, _ = time.Parse(Stamp, changed)
+		out[k] = t
+	}
+	return out, nil
 }
 
 // Linked is a link to a thing, and what's at its other end, as its thing

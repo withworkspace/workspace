@@ -235,6 +235,8 @@ export function App() {
             waiting={waiting}
             start={palette}
             pageRepo={repoOfPage(location.pathname, workspace.spaces)}
+            path={location.pathname}
+            search={location.search}
             onClose={() => setPalette(undefined)}
             onHelp={() => {
               setPalette(undefined);
