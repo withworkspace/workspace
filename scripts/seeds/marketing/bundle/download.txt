@@ -1,0 +1,8 @@
+$ curl -s 'http://localhost:8080/invoices.csv?customer=marlow'
+number,customer,currency,subtotal,tax,total
+INV-0042,Marlow Studio,GBP,912.00,182.40,1094.40
+INV-0039,Marlow Studio,GBP,400.00,80.00,480.00
+INV-0031,Marlow Studio,GBP,1800.00,360.00,2160.00
+
+$ curl -s 'http://localhost:8080/invoices.csv?customer=marlow' | wc -l
+       4

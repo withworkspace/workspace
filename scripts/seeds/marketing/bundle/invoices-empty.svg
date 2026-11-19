@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" width="760" height="400" font-family="system-ui, -apple-system, sans-serif" font-size="15">
+  <rect width="760" height="400" fill="#fbfaf8"/>
+  <text x="40" y="58" font-size="20" font-weight="600" fill="#1d1a17">Invoices</text>
+  <rect x="430" y="36" width="190" height="34" rx="6" fill="#fff" stroke="#e6e2db"/>
+  <text x="444" y="58" fill="#1d1a17">zzz</text>
+  <rect x="632" y="36" width="88" height="34" rx="6" fill="none" stroke="#e6e2db"/>
+  <text x="676" y="58" text-anchor="middle" fill="#b5aea3">Export</text>
+  <line x1="40" y1="88" x2="720" y2="88" stroke="#e6e2db"/>
+  <g fill="#6f6a63" font-size="13">
+    <text x="40" y="118">Number</text>
+    <text x="180" y="118">Customer</text>
+    <text x="720" y="118" text-anchor="end">Total</text>
+  </g>
+  <line x1="40" y1="132" x2="720" y2="132" stroke="#e6e2db"/>
+  <g fill="#1d1a17">
+  </g>
+  <text x="380" y="200" text-anchor="middle" fill="#6f6a63">No invoices match “zzz”.</text>
+</svg>
