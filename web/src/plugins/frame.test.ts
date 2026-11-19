@@ -16,7 +16,7 @@ const vars = (value: string) => Object.fromEntries(TOKENS.map((t) => [tokenVar(t
 
 // A host that keeps what the page said, with a theme a test can change.
 function fakeWs(path = "/things/2?tab=links") {
-  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[], heres: [] as (string | undefined)[], rooms: [] as boolean[] };
+  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[], heres: [] as (string | undefined)[], layouts: [] as string[] };
   let theme: V1.Theme = { scheme: "dark", vars: vars("dark") };
   // What ws finds: THING-<n>, wherever it's written, until a test says
   // otherwise.
@@ -36,7 +36,7 @@ function fakeWs(path = "/things/2?tab=links") {
     },
     dim: (on) => void said.dims.push(on),
     here: (name) => void said.heres.push(name),
-    room: (wants) => void said.rooms.push(wants),
+    chromeLayout: (mode) => void said.layouts.push(mode),
   };
   return { host, said, setTheme: (t: V1.Theme) => void (theme = t), setFind: (f: typeof find) => void (find = f) };
 }
@@ -258,13 +258,13 @@ describe("protocol 1's host", () => {
     session.close();
   });
 
-  it("hears that the app wants the room, and when it gives it back", async () => {
+  it("hears how the app wants the chrome laid out", async () => {
     const { client, session, said } = await connected();
-    const back = client.wantRoom();
+    client.setChromeLayout("expanded");
     await tick();
-    back();
+    client.setChromeLayout("standard");
     await tick();
-    expect(said.rooms).toEqual([true, false]);
+    expect(said.layouts).toEqual(["expanded", "standard"]);
     client.close();
     session.close();
   });
@@ -408,9 +408,9 @@ describe("listening for the frame", () => {
     frame.stop();
     expect(ws.said.dims).toEqual([true, false, true, false]);
     // What either page said it showed is forgotten with it, as the dim is,
-    // and so is whether it wanted the room.
+    // and its layout is standard again.
     expect(ws.said.heres).toEqual([undefined, undefined]);
-    expect(ws.said.rooms).toEqual([false, false]);
+    expect(ws.said.layouts).toEqual(["standard", "standard"]);
     expect(watched.map((w) => w.stopped)).toEqual([true, true]);
     first.close();
     second.close();

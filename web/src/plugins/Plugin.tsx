@@ -7,7 +7,7 @@ import { useRefs, useRefsWorkspace } from "../refs/known";
 import { Empty, useTitle } from "../ui/kit";
 import { setFrameDim } from "./dim";
 import { setFrameHere } from "./here";
-import { setFrameRoom } from "./room";
+import { setFrameLayout } from "./layout";
 import { type Frame, listen } from "./frame";
 import { frameBase, viewBase } from "./paths";
 import { onThemeChange, theme } from "./theme";
@@ -115,8 +115,9 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
         dim: setFrameDim,
         // What the app shows beyond its address: Find starts from it.
         here: (n) => setFrameHere(name, n),
-        // The app wants the room: the shell folds its sidebar (App.tsx).
-        room: (wants) => setFrameRoom(name, wants),
+        // How the app wants the chrome: expanded, the shell folds its
+        // sidebar (App.tsx).
+        chromeLayout: (mode) => setFrameLayout(name, mode),
       },
       setRefused,
     );
