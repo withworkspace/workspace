@@ -14,6 +14,7 @@ import (
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/orchestrator"
 	"github.com/withworkspace/workspace/internal/review"
+	"github.com/withworkspace/workspace/internal/runs"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
 
@@ -193,6 +194,10 @@ type MissionDetail struct {
 	// Bundles are its verification bundles, oldest first.
 	Bundles []BundleView
 	Runs    []Run // the orchestrator's latest on it
+	// CapsuleRuns are the runs in each capsule (ws run), and Recipes the
+	// names of the recipes each can run, by repo/name.
+	CapsuleRuns map[string][]runs.Run
+	Recipes     map[string][]string
 	// CrewPicks are what new crew may be launched on from its page: the
 	// default first, then what [crew] allowed lists.
 	CrewPicks []harness.Pick
@@ -223,6 +228,7 @@ func (w *Workspace) Mission(slug string, withGitHub bool) (*MissionDetail, error
 	}
 	v := buildMissionViews(&w.git, ws, idx, []*mission.Mission{m})[0]
 	d := &MissionDetail{MissionView: v, Status: map[string]CapsuleStatus{}, Runs: w.runsOf(m, missionRuns)}
+	d.CapsuleRuns, d.Recipes = w.capsuleRuns(v)
 	d.Brief, _ = w.Missions.ReadBrief(slug)
 	d.Plan, _ = w.Missions.ReadPlan(slug)
 	d.Events, _ = w.Missions.ReadLog(slug, 0)

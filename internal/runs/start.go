@@ -115,6 +115,9 @@ func (s Store) Start(o Start, now time.Time) (Run, error) {
 		Port: port, PID: pid, Began: began, Owner: o.Owner,
 		Created: now.UTC().Truncate(time.Second), By: o.By,
 	}
+	if o.Owner.Kind == ByLooking {
+		rec.Looked = rec.Created
+	}
 	if o.TTL > 0 {
 		rec.Expires = now.Add(o.TTL).UTC().Truncate(time.Second)
 	}

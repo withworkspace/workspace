@@ -197,6 +197,7 @@ func (s *Server) Start() error {
 		}
 		return nil
 	})
+	go s.markLooked() // runs started from a mission's page last while it's open
 	// A write to the records that names the workspace (a conversation's
 	// turn, a page, a mission's record) is looked at now: its pages
 	// needn't wait for the next poll, which is for what only files and
@@ -309,6 +310,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/missions/{slug}/draft", s.dropDraft)
 	mux.HandleFunc("POST /api/missions", s.startMission)
 	mux.HandleFunc("POST /api/missions/{slug}/act", s.act)
+	mux.HandleFunc("POST /api/missions/{slug}/runs", s.startRun)
+	mux.HandleFunc("POST /api/missions/{slug}/runs/stop", s.stopRun)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/screen", s.crewScreen)
 	mux.HandleFunc("POST /api/missions/{slug}/crew/{id}/input", s.crewInput)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/transcript", s.crewTranscript)

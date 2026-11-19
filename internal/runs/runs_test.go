@@ -432,3 +432,23 @@ func TestFind(t *testing.T) {
 		t.Errorf("web, from nowhere: %v, want it to say there are several", err)
 	}
 }
+
+func TestALookingRunEndsWhenNobodyHasLooked(t *testing.T) {
+	s, dir := setup(t)
+	start(t, s, dir, "web", "sleep 300", Owner{Kind: ByLooking, Mission: "m1"}, time.Hour)
+	now := time.Now()
+	if swept, _ := s.Sweep(nil, now.Add(LookLinger-time.Minute)); len(swept) != 0 {
+		t.Fatal("swept while it had been looked at")
+	}
+	// Someone has m1 open 10 minutes on: it lasts 15 from then.
+	if err := s.Looked(map[string]bool{"m1": true}, now.Add(10*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if swept, _ := s.Sweep(nil, now.Add(20*time.Minute)); len(swept) != 0 {
+		t.Fatal("swept though it was looked at since")
+	}
+	swept, _ := s.Sweep(nil, now.Add(26*time.Minute))
+	if len(swept) != 1 || !strings.Contains(swept[0].Why, "nobody has looked") {
+		t.Fatalf("Sweep = %v", swept)
+	}
+}

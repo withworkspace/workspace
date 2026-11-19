@@ -819,7 +819,37 @@ export interface CapsuleDetail extends Capsule {
   direct?: boolean;
   toLand?: number;
   landed?: string;
+  // runs are what's running in it (ws run), and recipes the names of what
+  // its ws.repo.toml says it can run.
+  runs?: RunDetail[];
+  recipes?: string[];
 }
+
+// RunDetail is a run (ws run) in a capsule. Mirrors internal/web/api.go.
+export interface RunDetail {
+  ref: string;
+  name: string;
+  recipe?: string;
+  link: string;
+  port: number;
+  state: "running" | "exited" | "gone";
+  status?: number; // its exit status, once exited
+  up?: boolean; // something listens on its port
+  ends?: string; // when it's ended without being asked, in words, while it runs
+  ended?: string;
+  owner: string;
+  by?: string;
+  command: string;
+  started: string;
+}
+
+// runRecipe starts a capsule's recipe, for as long as someone has the
+// mission open (and 15 minutes after).
+export const runRecipe = (slug: string, repo: string, capsule: string, recipe: string) =>
+  send<RunDetail>("POST", `/api/missions/${encodeURIComponent(slug)}/runs`, { repo, capsule, recipe });
+
+// stopRun ends a run now.
+export const stopRun = (slug: string, ref: string) => send<{ stopped: string }>("POST", `/api/missions/${encodeURIComponent(slug)}/runs/stop`, { ref });
 
 // Landing is where a capsule stands for landing, in a repo that takes
 // commits straight to its default branch (direct): what would land, and

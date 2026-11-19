@@ -38,6 +38,17 @@ func newMissionHub(poll time.Duration, stamp func(string) string, records func()
 	return &missionHub{poll: poll, stamp: stamp, records: records, subs: map[string]map[chan string]struct{}{}, last: map[string]string{}}
 }
 
+// open is the missions someone has open: each followed by a page.
+func (h *missionHub) open() map[string]bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	out := make(map[string]bool, len(h.subs))
+	for slug := range h.subs {
+		out[slug] = true
+	}
+	return out
+}
+
 // subscribe follows a mission: a channel of event names, and a function
 // to stop.
 func (h *missionHub) subscribe(slug string) (<-chan string, func()) {

@@ -25,6 +25,10 @@ func Stale(r Run, procs Procs, owners Owners, now time.Time) string {
 		if procs.gone(r.Owner.PID, r.Owner.Began) {
 			return fmt.Sprintf("its owner (pid %d%s) has gone", r.Owner.PID, said(r.Owner.Command))
 		}
+	case ByLooking:
+		if now.Sub(r.Looked) >= LookLinger {
+			return fmt.Sprintf("nobody has looked at it for %d minutes", int(LookLinger/time.Minute))
+		}
 	case ByMission, ByStep, ByCrew, ByConversation:
 		if owners != nil {
 			if why := owners.Ended(r.Owner); why != "" {
@@ -179,6 +183,8 @@ func Ends(r Run, now time.Time) string {
 		what = fmt.Sprintf("when crew %s of mission %s close", r.Owner.Crew, r.Owner.Mission)
 	case ByConversation:
 		what = fmt.Sprintf("when conversation %s is resolved", r.Owner.Conversation)
+	case ByLooking:
+		what = fmt.Sprintf("%d minutes after nobody has mission %s open", int(LookLinger/time.Minute), r.Owner.Mission)
 	}
 	if !r.Expires.IsZero() {
 		left := r.Expires.Sub(now)

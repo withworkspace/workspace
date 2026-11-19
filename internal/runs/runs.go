@@ -40,6 +40,9 @@ const (
 	// KeepEnded is how long a run that ended by itself is kept, its log
 	// with it, before a sweep removes it.
 	KeepEnded = time.Hour
+	// LookLinger is how long a run owned by looking lasts with nobody
+	// looking.
+	LookLinger = 15 * time.Minute
 	// OwnerAge is how long a process has to have been running to be a
 	// run's owner when none is named: the shells, just and ws between it
 	// and the run were started for this command, and end with it.
@@ -64,6 +67,9 @@ const (
 	ByCrew Kind = "crew"
 	// ByConversation ends when a conversation is resolved.
 	ByConversation Kind = "conversation"
+	// ByLooking ends once nobody has had the page it was started from
+	// open for LookLinger: "Run it" in the web UI.
+	ByLooking Kind = "looking"
 	// ByNone ends only when its time is up, or when it's stopped.
 	ByNone Kind = "none"
 )
@@ -134,6 +140,9 @@ type Record struct {
 	Expires time.Time `json:"expires,omitzero"`
 	// By is who started it: "you", or crew's id.
 	By string `json:"by,omitempty"`
+	// Looked is when someone last had open the page it was started
+	// from, for a run owned by looking.
+	Looked time.Time `json:"looked,omitzero"`
 }
 
 // State is where a run is.
@@ -316,6 +325,25 @@ func (s Store) Find(ref, repo, worktree string) (Run, error) {
 		refs = append(refs, r.Ref())
 	}
 	return Run{}, fmt.Errorf("there are runs named %s in several places: say which (%s)", ref, strings.Join(refs, ", "))
+}
+
+// Looked marks the runs owned by looking at the missions in slugs as
+// looked at now.
+func (s Store) Looked(slugs map[string]bool, now time.Time) error {
+	runs, err := s.List()
+	if err != nil {
+		return err
+	}
+	var errs []error
+	for _, r := range runs {
+		if r.State == Running && r.Owner.Kind == ByLooking && slugs[r.Owner.Mission] {
+			r.Looked = now.UTC().Truncate(time.Second)
+			if err := save(r.Record, r.Path); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // Keep sets how long a run has left from now: d of 0 is no limit.

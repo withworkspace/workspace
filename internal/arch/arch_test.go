@@ -60,9 +60,9 @@ var allowed = map[string][]string{
 	"plugin/fakeplugin": {"acp"},
 	"ops": append([]string{
 		"config", "workspace", "git", "slug", "execlog", "github", "ide",
-		"harness", "acp", "prompt", "turn", "crew", "orchestrator", "termpane", "plugin",
+		"harness", "acp", "prompt", "turn", "crew", "orchestrator", "termpane", "plugin", "runs",
 	}, domain...),
-	"web":      append([]string{"ops", "crew", "harness", "nav", "plugin"}, domain...),
+	"web":      append([]string{"ops", "crew", "harness", "nav", "plugin", "runs"}, domain...),
 	"cli":      anything,
 	"testutil": anything,
 }

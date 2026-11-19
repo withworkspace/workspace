@@ -1331,6 +1331,8 @@ command = "docker compose up"
 stop = "docker compose down"   # run where it ran, once the run is ended
 ```
 
+In the web UI, a capsule on a mission's Work tab lists its runs (each with its link, when it ends, and Stop) and a **Run** button for each recipe that isn't running. A run started there lasts while someone has the mission open, and 15 minutes after, or 4 hours at most.
+
 `stop` is given a minute, with `$PORT` set. If the place it ran has gone (the capsule was burned), it can't be run, and the daemon's log says so.
 
 **Owners** (`--for`):

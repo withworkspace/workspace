@@ -178,7 +178,7 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 	if err != nil {
 		return nil, err
 	}
-	m := v.M
+	m, now := v.M, time.Now()
 	d := &MissionDetail{
 		Slug: m.Slug, Title: m.Title, State: string(v.State), Created: m.Created, Request: m.Request, From: m.From, About: m.About,
 		Brief: v.Brief, Plan: v.Plan, Conversation: m.Conversation, ConversationTitle: v.ConversationTitle, GitHub: withGitHub,
@@ -300,6 +300,10 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 		if c.Landed != nil {
 			cd.Landed = &c.Landed.At
 		}
+		for _, r := range v.CapsuleRuns[c.Repo+"/"+c.Name] {
+			cd.Runs = append(cd.Runs, RunDetailOf(r, now))
+		}
+		cd.Recipes = v.Recipes[c.Repo+"/"+c.Name]
 		d.Capsules = append(d.Capsules, cd)
 	}
 	for _, c := range m.Crew {

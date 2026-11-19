@@ -7189,6 +7189,74 @@ button.work-left:hover {
   white-space: nowrap;
 }
 
+/* A capsule's runs (ws run): a line each, its link and when it ends. */
+.work-runs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.work-run {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+}
+
+.work-run-mark {
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+  color: var(--dim);
+}
+
+.work-run-mark.up {
+  color: var(--green);
+}
+
+.work-run.ended .work-run-mark {
+  padding-top: 4px;
+}
+
+.work-run-main {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.work-run-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
+.work-run-name {
+  font-weight: 600;
+}
+
+.work-run-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-sm);
+}
+
+.work-run-ends {
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.work-run-recipes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 .work-commit-subject {
   min-width: 0;
   overflow: hidden;
