@@ -179,7 +179,7 @@ const here = (
   </div>
 );
 
-// ThemeRow is the theme: the workspace's menu has it too.
+// ThemeRow is the theme: this is where it's chosen.
 function ThemeRow() {
   const { choice } = useTheme();
   return (

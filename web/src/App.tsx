@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Button as AriaButton, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
+import { Button as AriaButton, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from "react-router";
 import { type Connection, NotSignedIn, type Plugin, setSettings, usePlugins, useWorkspace, type Workspace } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
@@ -42,7 +42,6 @@ import { Logotype } from "./ui/Logotype";
 import { plain } from "./ui/inline";
 import { Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useTitle } from "./ui/kit";
 import { headlineStatus, Status } from "./ui/status";
-import { type ThemeChoice, setTheme, useTheme } from "./ui/theme";
 import { duration } from "./ui/time";
 
 export function App() {
@@ -151,7 +150,7 @@ export function App() {
           <button className="ghost icon-button" onClick={() => setDrawer(true)} aria-label="Open the menu">
             <Icon name="menu" size={18} />
           </button>
-          <WorkspaceMenu workspace={workspace} places={menu} onArrange={startArranging} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
+          <WorkspaceMenu workspace={workspace} places={menu} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
           {waiting.length > 0 && <span className="count tone-attention" title="Needs you">{waiting.length}</span>}
         </div>
         <div
@@ -162,7 +161,7 @@ export function App() {
           }}
         />
         <aside className="sidebar" aria-label="Workspace" inert={dim}>
-          <WorkspaceMenu workspace={workspace} places={menu} onArrange={startArranging} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
+          <WorkspaceMenu workspace={workspace} places={menu} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
           <button className="find" onClick={() => setPalette("")}>
             <Icon name="search" size={14} />
             <span>Find…</span>
@@ -257,27 +256,20 @@ export function App() {
   );
 }
 
-const themes: [ThemeChoice, IconName, string][] = [
-  ["system", "monitor", "From the system"],
-  ["light", "sun", "Light"],
-  ["dark", "moon", "Dark"],
-];
-
 // WorkspaceMenu is the workspace's name, opening what's of the workspace
-// rather than a place in it: Settings, Keys, the theme, and shutting its
-// daemon down, which otherwise stays open until it's closed. At its foot
-// is what this is and which: the logotype, and the version of ws that
-// serves the page.
+// rather than a place in it: Settings (where the theme is, and the way to
+// arrange the sidebar), Keys, and shutting its daemon down, which
+// otherwise stays open until it's closed. Places moved out of the sidebar
+// are at its top. At its foot is what this is and which: the logotype, and
+// the version of ws that serves the page.
 function WorkspaceMenu({
   workspace,
   places,
-  onArrange,
   onKeys,
   onClosed,
 }: {
   workspace?: Workspace;
   places: Place[];
-  onArrange: () => void;
   onKeys: () => void;
   onClosed: () => void;
 }) {
@@ -287,7 +279,6 @@ function WorkspaceMenu({
   // A place in the menu that wants you says so on the name, as the
   // sidebar's would.
   const counted = places.filter((p) => p.count);
-  const { choice } = useTheme();
   const shutDown = () => void askShutDown(onClosed);
   // data-field: keys typed in the menu are its own, not the page's (keys.ts).
   return (
@@ -324,38 +315,11 @@ function WorkspaceMenu({
             <Icon name="sliders" />
             <span className="select-option-text">Settings</span>
           </MenuItem>
-          <MenuItem id="arrange" textValue="Arrange the sidebar" className="select-option" onAction={onArrange}>
-            <Icon name="grip" />
-            <span className="select-option-text">Arrange the sidebar…</span>
-          </MenuItem>
           <MenuItem id="keys" textValue="Keys" className="select-option" onAction={onKeys}>
             <Icon name="keyboard" />
             <span className="select-option-text">Keys</span>
             <Keys k="?" />
           </MenuItem>
-          <Separator className="menu-separator" />
-          <MenuSection
-            selectionMode="single"
-            disallowEmptySelection
-            selectedKeys={[choice]}
-            onSelectionChange={(keys) => {
-              const [k] = keys === "all" ? [] : [...keys];
-              if (k) setTheme(k as ThemeChoice);
-            }}
-          >
-            <Header className="menu-header">Theme</Header>
-            {themes.map(([c, icon, label]) => (
-              <MenuItem key={c} id={c} textValue={label} className="select-option">
-                {({ isSelected }) => (
-                  <>
-                    <Icon name={icon} />
-                    <span className="select-option-text">{label}</span>
-                    {isSelected && <Icon name="check" size={14} className="select-check" />}
-                  </>
-                )}
-              </MenuItem>
-            ))}
-          </MenuSection>
           <Separator className="menu-separator" />
           <MenuItem id="shutdown" textValue="Shut down the daemon" className="select-option danger" onAction={shutDown}>
             <Icon name="power" />
