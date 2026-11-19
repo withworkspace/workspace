@@ -14,7 +14,9 @@ import (
 // What's been said of a thing, in any mission: what points at it in the
 // graph. It's how ws show tells an agent what's known of a file or a thread
 // beyond the mission it's in: a review comment on the lines it's about to
-// change, a decision about the file, a talk that named it.
+// change, a decision about the file, and whatever named it: a talk, a
+// mission's brief or a handoff, a decision, a document (store.Words links
+// what words name as they're written).
 
 // Said is something that points at a thing: where it's read (a mission's
 // slug, a pull request, or "" for the workspace's), its ref there, what it
@@ -39,11 +41,19 @@ func (s Said) Standing() bool {
 }
 
 // SaidOf is what points at any of keys, standing first, then latest first.
+// What's edited outside ws is read again first where it's moved, as a
+// search reads it (the briefs and files of missions in play, the pages,
+// each space's documents), so that what they name now is what's said:
+// what can't be read just now is as it was last read.
 func (w *Workspace) SaidOf(keys ...store.Key) ([]Said, error) {
 	db, err := w.Records()
 	if err != nil {
 		return nil, err
 	}
+	ctx := context.Background()
+	w.Missions.Reread(ctx)
+	w.pages().Reread(ctx)
+	w.Spaces(ctx)
 	var out []Said
 	err = db.Read(context.Background(), func(tx *store.Tx) error {
 		links, err := tx.LinksTo(keys...)

@@ -429,6 +429,28 @@ func (ix *Index) Grounds(ctx context.Context) (map[string]GroundTree, error) {
 	return out, nil
 }
 
+// GroundsWithin is Grounds for whoever can't wait long for it (what's
+// written to the records, which every other writer waits behind): a read
+// that's due is started and waited for as long as wait, and after that
+// each repo answers as it was last read, or not at all if it never has
+// been. The reads go on, for whoever asks next.
+func (ix *Index) GroundsWithin(ctx context.Context, wait time.Duration) map[string]GroundTree {
+	c, cancel := context.WithTimeout(ctx, wait)
+	defer cancel()
+	if out, err := ix.Grounds(c); err == nil {
+		return out
+	}
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	out := map[string]GroundTree{}
+	for repo, e := range ix.grounds {
+		if e != nil && e.data != nil {
+			out[repo] = GroundTree{e.data}
+		}
+	}
+	return out
+}
+
 // Layout is the workspace's worktrees as the index has them: each repo's
 // ground, and each capsule with what it has changed since it branched
 // (path to Added, Modified or Removed). It's what code search searches.

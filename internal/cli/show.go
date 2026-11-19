@@ -47,6 +47,7 @@ const showRefs = `  (none)            the mission: where it stands, and everythi
   r1, r1.c2         a review, or one of its comments
   t3                a thread on a document
   d1                a decision
+  brief             the mission's brief: its file, and what it says
   b1                a verification bundle
   20261109-150405   an orchestrator run
   an address        ws:<a name> (ws:fix-token-refresh, ws:w4), or one of the
@@ -72,7 +73,8 @@ Outside a mission:
   repo:path         a file in a repo (repo/path, repo/capsule:path in a
                     capsule, :12-20 for lines), and what's been said of it
                     in any mission: comments on it, decisions and threads
-                    about it, talk that named it
+                    about it, and what names it (talk, a brief, a handoff,
+                    a decision, a document)
   repo#12           an open pull request: what it says it does, its stack,
                     its checks, what's been said in review, where it's docked
   RAM-123           one of a plugin's things, by a name the plugin registered
@@ -288,6 +290,8 @@ func (g *graph) find(ref string) (*view, string, error) {
 		return v, "", err
 	case mission.IsBundleRef(ref):
 		v, err = g.bundleView(ref)
+	case ref == mission.BriefRef:
+		v = g.briefView()
 	default:
 		if repo, name, ok := strings.Cut(ref, "/"); ok && !strings.ContainsAny(ref, ":#") && g.m.HasCapsule(repo, name) {
 			v, err = g.capsuleView(repo, name)
@@ -299,6 +303,21 @@ func (g *graph) find(ref string) (*view, string, error) {
 		return nil, "", fmt.Errorf("mission %s has nothing called %q. A ref is one of:\n%s", g.m.Slug, ref, showRefs)
 	}
 	return v, ref, err
+}
+
+// briefView is the mission's brief: the thing in the graph that what its
+// words name is linked from (ws show RAM-123 lists it), so an agent that
+// follows the link reads what named it.
+func (g *graph) briefView() *view {
+	v := &view{head: fmt.Sprintf("The brief of mission %s: %s", g.m.Slug, g.m.Title)}
+	v.body = append(v.body, "File: "+g.store.BriefPath(g.m.Slug))
+	if text := strings.TrimSpace(g.brief); text != "" {
+		v.body = append(v.body, "", clipText(text, g.full))
+	} else {
+		v.body = append(v.body, "", "It isn't written yet.")
+	}
+	v.more = append(v.more, "ws show --mission "+g.m.Slug+" for the mission it's of")
+	return v
 }
 
 // artifact finds an artifact by its ref, or by a path to its file.

@@ -12,11 +12,14 @@ import (
 )
 
 // read is what a document is, read from its text: its title, its sections
-// (the places a search leads to) and what it cites.
+// (the places a search leads to), what it cites, and what else its words
+// name (a plugin's thing, a pull request, a mission, a file that isn't a
+// document), each as it's first named.
 type read struct {
 	title    string
 	sections []section
 	links    []link
+	names    []ref.Ref
 }
 
 // section is a heading and what's under it: a place a search leads to.
@@ -39,15 +42,15 @@ var (
 func parse(repo, rel string, text []byte, known *ref.Known) read {
 	r := read{title: workspace.DocTitle(text)}
 	r.sections = words.Sections(text, r.title)
-	r.links = links(repo, rel, strings.Split(strings.ReplaceAll(string(text), "\r\n", "\n"), "\n"), known)
+	r.links, r.names = links(repo, rel, strings.Split(strings.ReplaceAll(string(text), "\r\n", "\n"), "\n"), known)
 	return r
 }
 
 // links is what a document cites: markdown documents its links lead to (in
 // its repo, by a relative path), and files its words name as refs (in any
-// repo), each once, where it's first cited.
-func links(repo, rel string, lines []string, known *ref.Known) []link {
-	var out []link
+// repo), each once, where it's first cited. names is what else its words
+// name, which isn't a document to cite: what the graph links it to.
+func links(repo, rel string, lines []string, known *ref.Known) (out []link, names []ref.Ref) {
 	seen := map[string]bool{}
 	add := func(l link) {
 		if l.repo == repo && l.path == rel {
@@ -88,13 +91,20 @@ func links(repo, rel string, lines []string, known *ref.Known) []link {
 		if known == nil {
 			continue
 		}
+		var found []ref.Ref
 		for _, f := range known.Find(line) {
-			if f.Ref.Kind == ref.File && (f.Ref.Worktree == "" || f.Ref.Worktree == ref.Ground) && isMarkdown(f.Ref.Path) {
-				add(link{repo: f.Ref.Repo, path: f.Ref.Path, line: i + 1, how: "ref"})
+			found = append(found, f.Ref)
+		}
+		// And what's named by where it is: an address written out, or a link's.
+		for _, r := range append(found, known.Addressed(line)...) {
+			if r.Kind == ref.File && (r.Worktree == "" || r.Worktree == ref.Ground) && isMarkdown(r.Path) {
+				add(link{repo: r.Repo, path: r.Path, line: i + 1, how: "ref"})
+				continue
 			}
+			names = append(names, r)
 		}
 	}
-	return out
+	return out, names
 }
 
 func isMarkdown(p string) bool {

@@ -219,6 +219,25 @@ func graph(tx *store.Tx, id, title string, text []byte, changed time.Time) error
 	return nil
 }
 
+// IDs is the listed pages' ids, as the records have them: nothing's read
+// again from their files, so it's safe where the records are being
+// written.
+func (s Store) IDs() []string {
+	db, err := s.records()
+	if err != nil {
+		return nil
+	}
+	var out []string
+	db.Read(context.Background(), func(tx *store.Tx) error {
+		listed, err := listedIn(tx)
+		for _, k := range listed {
+			out = append(out, k.id)
+		}
+		return err
+	})
+	return out
+}
+
 // List is the workspace's pages, the latest changed first. Pages whose
 // files have moved since ws last wrote or read them are read again first.
 func (s Store) List() ([]Page, error) {

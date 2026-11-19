@@ -49,8 +49,14 @@ func init() {
 			line TEXT NOT NULL,
 			PRIMARY KEY (slug, n)
 		) WITHOUT ROWID;
-	`), store.Retired, wordsStep, confirmedStep)
+	`), store.Retired, wordsStep, confirmedStep, filesAgainStep)
 }
+
+// filesAgainStep is the part's fifth step: the files of missions in play
+// are read again when next asked for (Reread), to be things in the graph,
+// what their words name linked from them. An ended mission's are read
+// again by ws doctor --reindex.
+var filesAgainStep = store.SQL(`DELETE FROM mission_files`)
 
 // confirmedStep is the part's fourth step: the briefing state goes. A
 // mission that was being briefed is to brief because its brief isn't
@@ -373,6 +379,7 @@ func (s Store) addDecision(tx *store.Tx, slug string, l decisionLine) error {
 // of, about what it says it's about; each decision is one, by whoever made it, in where it was made, and
 // about what it bears on. A decision's words are what was decided (its
 // title) and why; the mission's are its brief's (words.go), by its title.
+// Its brief and the files beside it are things in it too (words.go).
 
 func missionOrigin(slug string) store.Origin { return store.Origin("mission:" + slug) }
 
@@ -386,14 +393,18 @@ func (s Store) missionGraph(tx *store.Tx, m *Mission) error {
 		return err
 	}
 	me := store.Key{Name: m.Slug}
-	state := string(m.State)
-	if state == "" {
-		state = "in play"
-	}
+	state := standing(string(m.State))
 	if err := tx.Thing(o, store.Thing{Key: me, Kind: "mission", Title: m.Title, State: state, Changed: time.Now()}); err != nil {
 		return err
 	}
 	if err := tx.Retitle(fileOrigin(m.Slug, briefFile), m.Title); err != nil {
+		return err
+	}
+	// Its brief is called what it is, and its files stand as it does.
+	if err := tx.Titled(fileOrigin(m.Slug, briefFile), m.Title); err != nil {
+		return err
+	}
+	if err := tx.StatedUnder(filesOrigin(m.Slug), state); err != nil {
 		return err
 	}
 	if m.Conversation != "" {

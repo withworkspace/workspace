@@ -2,6 +2,7 @@ package mission
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"io/fs"
 	"os"
@@ -21,6 +22,13 @@ import (
 // again when either's moved: whoever asks (a search) has the files of
 // missions in play read again first (Reread), which is dozens of stats
 // however many missions there have been.
+//
+// Each file read is a thing in the mission as well, in it (store.In): its
+// brief (brief, called what the mission is), and a file in files/
+// (mission:<its path there>, a handoff or a file, by its own title). What
+// its words name is linked from it, as mentions (store.Words): so what
+// names a thing leads to the brief or the handoff that does, and from
+// there to its mission.
 
 // Kinds of place a mission's words are at.
 const (
@@ -177,41 +185,84 @@ func (s Store) filesOf(slug string) []fileStamp {
 	return out
 }
 
+// filesOrigin is what the records of a mission's files are under.
+func filesOrigin(slug string) store.Origin { return store.Origin("missionfile:" + slug) }
+
 func fileOrigin(slug, rel string) store.Origin {
-	return store.Origin("missionfile:" + slug + "/" + rel)
+	return store.Origin(string(filesOrigin(slug)) + "/" + rel)
+}
+
+// standing is a mission's state as the graph says it: one that's neither
+// parked nor archived is in play.
+func standing(state string) string {
+	if state == "" {
+		return "in play"
+	}
+	return state
+}
+
+// BriefRef is what a mission's brief is called in it: its thing in the
+// graph, in the mission's scope.
+const BriefRef = "brief"
+
+// fileThing is what a file of a mission is in the graph: the brief, by
+// the mission's title, or a file in files/ (mission:<its path there>, a
+// handoff or a file), by its own, or its name where it has none. It
+// stands as its mission does (state).
+func fileThing(slug, title, state string, f fileStamp, text []byte) store.Thing {
+	changed, _ := time.Parse(store.Stamp, f.mod)
+	if f.rel == briefFile {
+		return store.Thing{Key: store.Key{Scope: slug, Name: BriefRef}, Kind: placeBrief, Title: title, State: state, Changed: changed}
+	}
+	inFiles := strings.TrimPrefix(f.rel, MissionFilesDir+"/")
+	kind := placeFile
+	if strings.HasPrefix(inFiles, "handoffs/") {
+		kind = placeHandoff
+	}
+	if title = words.Title(text); title == "" {
+		title = path.Base(inFiles)
+	}
+	return store.Thing{Key: store.Key{Scope: slug, Name: "mission:" + inFiles}, Kind: kind, Title: title, State: state, Changed: changed}
 }
 
 // placesOf is what a file of a mission says: its sections, each a place.
-// The brief's are the mission's own, by its title; a file in files/ is
-// read in the mission as mission:<its path there>, by its own title.
-func placesOf(slug, title string, f fileStamp, text []byte) []store.Place {
-	said, _ := time.Parse(store.Stamp, f.mod)
-	thing, kind := store.Key{Name: slug}, placeBrief
-	if f.rel != briefFile {
-		inFiles := strings.TrimPrefix(f.rel, MissionFilesDir+"/")
-		thing, kind = store.Key{Scope: slug, Name: "mission:" + inFiles}, placeFile
-		if strings.HasPrefix(inFiles, "handoffs/") {
-			kind = placeHandoff
-		}
-		if title = words.Title(text); title == "" {
-			title = path.Base(inFiles)
-		}
+// The brief's are found as the mission's own, by its title, and said by
+// the brief; a file in files/ is its own thing's, by its own title.
+func placesOf(slug string, t store.Thing, text []byte) []store.Place {
+	in, by := t.Key, store.Key{}
+	if t.Kind == placeBrief {
+		in, by = store.Key{Name: slug}, t.Key
 	}
 	var out []store.Place
-	for _, sec := range words.Sections(text, title) {
-		out = append(out, store.Place{Thing: thing, At: sec.Anchor, Kind: kind, Title: title, Heading: sec.Heading, Text: sec.Body, Said: said})
+	for _, sec := range words.Sections(text, t.Title) {
+		out = append(out, store.Place{Thing: in, By: by, At: sec.Anchor, Kind: t.Kind, Title: t.Title, Heading: sec.Heading, Text: sec.Body, Said: t.Changed})
 	}
 	return out
 }
 
-// sayFile writes what a file says, and how it was when it was read, in tx:
-// what it said before is forgotten first.
+// sayFile writes what a file is and says, and how it was when it was
+// read, in tx: what was made of it before is forgotten first. A brief
+// that's missing or empty is no thing: the mission is still found by its
+// title.
 func sayFile(tx *store.Tx, slug, title string, f fileStamp, text []byte) error {
 	o := fileOrigin(slug, f.rel)
-	if err := tx.ForgetWords(o, ""); err != nil {
+	if err := tx.Forget(o); err != nil {
 		return err
 	}
-	for _, p := range placesOf(slug, title, f, text) {
+	var state string
+	if err := tx.QueryRow(`SELECT state FROM missions WHERE slug = ?`, slug).Scan(&state); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	t := fileThing(slug, title, standing(state), f, text)
+	if f.rel != briefFile || strings.TrimSpace(string(text)) != "" {
+		if err := tx.Thing(o, t); err != nil {
+			return err
+		}
+		if err := tx.Link(o, store.Link{Src: t.Key, Kind: store.In, Dst: store.Key{Name: slug}, At: t.Changed}); err != nil {
+			return err
+		}
+	}
+	for _, p := range placesOf(slug, t, text) {
 		if err := tx.Words(o, p); err != nil {
 			return err
 		}
@@ -221,9 +272,9 @@ func sayFile(tx *store.Tx, slug, title string, f fileStamp, text []byte) error {
 	return err
 }
 
-// forgetFile lets go of what a file said, and that it was read.
+// forgetFile lets go of what a file was and said, and that it was read.
 func forgetFile(tx *store.Tx, slug, rel string) error {
-	if err := tx.ForgetWords(fileOrigin(slug, rel), ""); err != nil {
+	if err := tx.Forget(fileOrigin(slug, rel)); err != nil {
 		return err
 	}
 	_, err := tx.Exec(`DELETE FROM mission_files WHERE slug = ? AND path = ?`, slug, rel)

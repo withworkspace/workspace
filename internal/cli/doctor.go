@@ -26,7 +26,10 @@ func newDoctorCmd() *cobra.Command {
 ws find searches): each mission's decisions, brief and files, each
 conversation's turns and findings, each review's comments, what each
 pull request ws keeps says it does, and each artifact's title and notes. It's what a change to what's searched
-needs, and it's safe to run at any time.`,
+needs, and it's safe to run at any time. What those words name is linked
+again with them (what ws show lists under a thing), and each space's
+documents are read again for what they name: run it after a plugin that
+names things is added, so that what was written before it names them too.`,
 		ValidArgsFunction: cobra.NoFileCompletions,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := loadOps()
@@ -39,9 +42,10 @@ needs, and it's safe to run at any time.`,
 				if err != nil {
 					return fmt.Errorf("saying the records' words again: %w", err)
 				}
-				fmt.Fprintf(ui.Stderr, "%s %s\n\n", ui.Green.Render("✓"), fmt.Sprintf("Said again what %d %s, %d %s, %d %s, %d %s, %d %s and %d %s say (%s)",
+				fmt.Fprintf(ui.Stderr, "%s %s\n\n", ui.Green.Render("✓"), fmt.Sprintf("Said again what %d %s, %d %s, %d %s, %d %s, %d %s and %d %s say, and read %d %s again (%s)",
 					n.Missions, plural(n.Missions, "mission"), n.Conversations, plural(n.Conversations, "conversation"), n.Reviews, plural(n.Reviews, "review"),
-					n.PRs, plural(n.PRs, "pull request"), n.Pages, plural(n.Pages, "page"), n.Artifacts, plural(n.Artifacts, "artifact"), time.Since(start).Round(time.Millisecond)))
+					n.PRs, plural(n.PRs, "pull request"), n.Pages, plural(n.Pages, "page"), n.Artifacts, plural(n.Artifacts, "artifact"),
+					n.Documents, plural(n.Documents, "document"), time.Since(start).Round(time.Millisecond)))
 			}
 
 			categories := ctx.WS().Doctor(checkMissions)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/conversation"
@@ -26,6 +27,26 @@ import (
 // the branches they're on, the missions, pages, conversations and
 // artifacts, and how each plugin's things are named.
 func (w *Workspace) RefsKnown(ctx context.Context, trees bool) *ref.Known {
+	return w.refsKnown(ctx, trees, false)
+}
+
+// namesWait is how long what's written to the records waits for the
+// repos' files to be read, where a read is due: every other writer waits
+// behind it meanwhile.
+var namesWait = 500 * time.Millisecond
+
+// namesKnown is RefsKnown for the records to find what words name as
+// they're written (store.Name): asked inside a Write, so it reads the
+// records and never writes them (the pages are as last read, not read
+// again from their files), and it doesn't wait long for the repos' files
+// (namesWait): a repo that's slow to read is as it was last read, or its
+// files go unfound this once, which leaves a file's name unlinked until
+// what names it is written again.
+func (w *Workspace) namesKnown() *ref.Known {
+	return w.refsKnown(context.Background(), true, true)
+}
+
+func (w *Workspace) refsKnown(ctx context.Context, trees, writing bool) *ref.Known {
 	ws := w.WS()
 	k := &ref.Known{
 		Repos:         map[string]ref.Tree{},
@@ -37,7 +58,10 @@ func (w *Workspace) RefsKnown(ctx context.Context, trees bool) *ref.Known {
 		DefaultBranch: firstNonEmpty(ws.DefaultBranch, "main"),
 	}
 	var grounds map[string]find.GroundTree
-	if trees {
+	switch {
+	case trees && writing:
+		grounds = w.FindIndex().GroundsWithin(ctx, namesWait)
+	case trees:
 		grounds, _ = w.FindIndex().Grounds(ctx)
 	}
 	for _, repo := range ws.RepoNames {
@@ -56,7 +80,9 @@ func (w *Workspace) RefsKnown(ctx context.Context, trees bool) *ref.Known {
 		}
 	}
 	k.Missions = append(k.Missions, w.Missions.Slugs()...)
-	if ps, err := (page.Store{Root: ws.Root}).List(); err == nil {
+	if writing {
+		k.Pages = (page.Store{Root: ws.Root}).IDs()
+	} else if ps, err := (page.Store{Root: ws.Root}).List(); err == nil {
 		for _, p := range ps {
 			k.Pages = append(k.Pages, p.ID)
 		}

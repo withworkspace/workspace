@@ -21,6 +21,7 @@ import (
 	"github.com/withworkspace/workspace/internal/github"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/pulls"
+	"github.com/withworkspace/workspace/internal/store"
 	"github.com/withworkspace/workspace/internal/team"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -92,7 +93,11 @@ type Options struct {
 // New is the operations of a workspace whose config and repos are loaded
 // (Load), for as long as one command runs. gh is nil for no GitHub.
 func New(cfg *config.Config, ws *workspace.Workspace, gh github.Client, o Options) *Workspace {
-	return &Workspace{Missions: mission.Store{Root: ws.Root}, root: ws.Root, opts: o, cur: loaded{cfg: cfg, ws: ws, gh: gh}}
+	w := &Workspace{Missions: mission.Store{Root: ws.Root}, root: ws.Root, opts: o, cur: loaded{cfg: cfg, ws: ws, gh: gh}}
+	// What the records' words name is found as this workspace names things
+	// (refs.go): the latest to be made for a root says how.
+	store.Name(ws.Root, w.namesKnown)
+	return w
 }
 
 // Open is the operations of the workspace at root for a process that

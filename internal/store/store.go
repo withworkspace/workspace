@@ -22,6 +22,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/withworkspace/workspace/internal/ref"
 )
 
 // DB is a workspace's records: the file, in the process that owns it (the
@@ -42,6 +44,9 @@ type Tx struct {
 	write  bool
 	topics []string
 	after  []func()
+	// known is what there is to name, once it's been asked for (names.go).
+	known *ref.Known
+	asked bool
 }
 
 // Root is the workspace whose records these are.

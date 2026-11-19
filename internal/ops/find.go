@@ -15,6 +15,7 @@ import (
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/review"
+	"github.com/withworkspace/workspace/internal/space"
 	"github.com/withworkspace/workspace/internal/store"
 )
 
@@ -167,8 +168,8 @@ func whereOf(tx *store.Tx, found []Found) error {
 		f := &found[i]
 		k := f.Thing.Key
 		switch f.Thing.Kind {
-		case "decision", "mission", pulls.ThingKind, plugin.ThingKind, "":
-			continue
+		case "decision", "mission", pulls.ThingKind, plugin.ThingKind, "", "handoff", "file":
+			continue // a mission's file among them: it's in its mission, and of nothing else
 		case page.ThingKind:
 			f.Of = k.Name // the page itself, for a page to go to
 			continue
@@ -301,11 +302,13 @@ func thingKind(kind string) string {
 }
 
 // Reindexed is how many of each store's records said their words again.
-type Reindexed struct{ Missions, Conversations, Reviews, PRs, Pages, Artifacts int }
+type Reindexed struct{ Missions, Conversations, Reviews, PRs, Pages, Artifacts, Documents int }
 
 // SaidWords is what ws doctor --reindex asks: every store says its words
 // again from its records (missions' files read again), a transaction at a
-// time.
+// time, and each space's documents are read again. What their words name
+// is linked again with them, as things are named now: it's what links
+// what was written before a plugin named its things.
 func (w *Workspace) SaidWords(ctx context.Context) (n Reindexed, err error) {
 	if n.Missions, err = w.Missions.SayWords(ctx); err != nil {
 		return
@@ -325,6 +328,17 @@ func (w *Workspace) SaidWords(ctx context.Context) (n Reindexed, err error) {
 	if _, err = w.Artifacts().Reread(ctx); err != nil {
 		return
 	}
-	n.Artifacts, err = artifact.SayWords(ctx, w.Root())
+	if n.Artifacts, err = artifact.SayWords(ctx, w.Root()); err != nil {
+		return
+	}
+	db, err := w.Records()
+	if err != nil {
+		return
+	}
+	if err = space.ReadAgain(ctx, db); err != nil {
+		return
+	}
+	_, st, err := w.Spaces(ctx)
+	n.Documents = st.Read
 	return
 }

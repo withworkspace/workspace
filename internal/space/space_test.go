@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/withworkspace/workspace/internal/config"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/store"
 	"github.com/withworkspace/workspace/internal/testgit"
 	"github.com/withworkspace/workspace/internal/workspace"
@@ -197,7 +198,7 @@ func TestRefresh_ReadsWhatACommitChanged(t *testing.T) {
 	}
 	rec := ws.MainWorktree("records")
 	write(t, rec, "adr/0001-cache.md", "# Cache tokens\n\nPer tenant.\n")
-	write(t, rec, "bp/proposed/2026-11-12-retries.md", "# Retries\n\nSee [the ADR](../../adr/0001-cache.md).\n")
+	write(t, rec, "bp/proposed/2026-11-12-retries.md", "# Retries\n\nSee [the ADR](../../adr/0001-cache.md). It's what RAM-12 asks of the api (api#4), and RAM-12 again.\n")
 	write(t, rec, "logo.png", "not a document")
 	gitIn(t, rec, "add", ".")
 	gitIn(t, rec, "commit", "-q", "-m", "first")
@@ -208,12 +209,29 @@ func TestRefresh_ReadsWhatACommitChanged(t *testing.T) {
 	gitIn(t, api, "commit", "-q", "-m", "first")
 	write(t, ws.MainWorktree("notes"), "a.md", "# Not a space\n")
 
-	st, err := Refresh(bg, db, ws, nil)
+	// What there is to name: the repos, and a plugin's issues.
+	known := func() *ref.Known {
+		return &ref.Known{Repos: map[string]ref.Tree{"api": nil, "notes": nil, "records": nil},
+			Things: []ref.Named{{Plugin: "jira", What: "issue", Prefixes: []string{"RAM-"}}}}
+	}
+	st, err := Refresh(bg, db, ws, known)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if st.Spaces != 2 || st.Read != 3 {
 		t.Fatalf("first: %+v", st)
+	}
+	// Each is a thing in the graph, as the repo's file is named, and what
+	// its words name is linked from it: not the repo by its name alone.
+	retries, issue := store.Key{Name: "records/bp/proposed/2026-11-12-retries.md"}, store.Key{Name: "RAM-12"}
+	if got := naming(t, db, issue); len(got) != 1 || got[0].Src != retries || got[0].Kind != store.Mentions || got[0].From.Kind != ThingKind || got[0].From.Title != "Retries" {
+		t.Fatalf("what names RAM-12: %+v", got)
+	}
+	if got := naming(t, db, store.Key{Name: "api#4"}); len(got) != 1 || got[0].Src != retries {
+		t.Fatalf("what names api#4: %+v", got)
+	}
+	if got := naming(t, db, store.Key{Name: "api"}); len(got) != 0 {
+		t.Fatalf("the api repo, named by its name alone, is linked: %+v", got)
 	}
 	docs, _ := Docs(bg, db, "records")
 	if len(docs) != 2 || docs[0].Title != "Cache tokens" || docs[0].ChangedBy == "" || docs[0].Changed == "" {
@@ -255,6 +273,9 @@ func TestRefresh_ReadsWhatACommitChanged(t *testing.T) {
 	if cited, _ := CitedBy(bg, db, "records", "adr/0001-cache.md"); len(cited) != 0 {
 		t.Fatalf("a removed document's citations: %+v", cited)
 	}
+	if got := naming(t, db, issue); len(got) != 0 {
+		t.Fatalf("a removed document still names RAM-12: %+v", got)
+	}
 
 	// The records repo isn't a space once the workspace says so.
 	ws.DocumentsSaid["records"] = &config.Documents{On: false}
@@ -264,6 +285,26 @@ func TestRefresh_ReadsWhatACommitChanged(t *testing.T) {
 	if docs, _ := Docs(bg, db, "records"); len(docs) != 0 {
 		t.Fatalf("let go of: %+v", docs)
 	}
+	var things int
+	db.Read(bg, func(tx *store.Tx) error {
+		return tx.QueryRow(`SELECT count(*) FROM things WHERE kind = ? AND name LIKE 'records/%'`, ThingKind).Scan(&things)
+	})
+	if things != 0 {
+		t.Fatalf("%d of its documents are still things in the graph", things)
+	}
+}
+
+// naming is what points at a thing in the graph.
+func naming(t testing.TB, db *store.DB, k store.Key) []store.Linked {
+	t.Helper()
+	var out []store.Linked
+	if err := db.Read(bg, func(tx *store.Tx) (err error) {
+		out, err = tx.LinksTo(k)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return out
 }
 
 // Through a command's connection to the daemon, as `ws documents` reads.

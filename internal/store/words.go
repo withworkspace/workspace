@@ -48,13 +48,26 @@ type Place struct {
 	Title, Heading string
 	Text           string
 	Said           time.Time // when it was said: of two found alike, the newer first
+	// By is what says it, when that's not the thing it's in: a mission's
+	// brief, whose words are found as the mission's. What its words name
+	// is linked from it (names.go).
+	By Key
+	// Pinned: its record links what it names itself, as the names were
+	// when it was said (a conversation's turn), so they aren't found again
+	// here.
+	Pinned bool
 }
 
 // Words records what's said at a place, for the record at origin: its
 // text as words (markdown's marks, and what links point at, left out, so
-// a snippet of it reads as words). A place with nothing said and no title
-// isn't one.
+// a snippet of it reads as words), and what its words name as links from
+// what says them (names.go: read before the marks are left out, so a
+// link's address names what it leads to). A place with nothing said and
+// no title isn't one.
 func (tx *Tx) Words(origin Origin, p Place) error {
+	if err := tx.named(origin, p); err != nil {
+		return err
+	}
 	p.Text = words.Clean(p.Text)
 	if p.Title == "" && p.Heading == "" && p.Text == "" {
 		return nil
