@@ -119,8 +119,8 @@ github.com/withworkspace/plugin v0.5.1-0.20261119090159-d48b79c11faa h1:hheiJrvR
 github.com/withworkspace/plugin v0.5.1-0.20261119090159-d48b79c11faa/go.mod h1:KADsp9oEKs9a4gDJtdqLS19os47ym9/MTn36n+O3jaU=
 github.com/withworkspace/plugin v0.6.0 h1:lQ0dJz7WYcSt3gncZSHW64DsmMAEdZBcWjhY/GA7b+I=
 github.com/withworkspace/plugin v0.6.0/go.mod h1:KADsp9oEKs9a4gDJtdqLS19os47ym9/MTn36n+O3jaU=
-github.com/withworkspace/plugin v0.6.1-0.20261119105648-eaae4cde2f93 h1:hztDqQyImHcxS8HMpjhb0vZWEjcRFxDkp1BFsRN3mOk=
-github.com/withworkspace/plugin v0.6.1-0.20261119105648-eaae4cde2f93/go.mod h1:KADsp9oEKs9a4gDJtdqLS19os47ym9/MTn36n+O3jaU=
+github.com/withworkspace/plugin v0.7.0 h1:tesldH9kC9cdzp/xrm6qTtQFJZNgI3dL7UY3/+aflU8=
+github.com/withworkspace/plugin v0.7.0/go.mod h1:KADsp9oEKs9a4gDJtdqLS19os47ym9/MTn36n+O3jaU=
 github.com/xo/terminfo v1.3.0 h1:KstyePbNW6UaLq9y12+544VK4aTP3Eku/sym3a9+UgQ=
 github.com/xo/terminfo v1.3.0/go.mod h1:lGzkSo8Fe7IRh/w+Gqz7n5mDog4FVXCj3gy/DYTBqio=
 go.yaml.in/yaml/v3 v3.0.4/go.mod h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=
