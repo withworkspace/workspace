@@ -114,6 +114,10 @@ func (w *Workspace) settle(store conversation.Store, c *conversation.Conversatio
 		_, err := store.SettleProposal(c.ID, p.N, conversation.ProposalDeclined, "", conversation.You, time.Now())
 		return "Declined.", store.Slug, err
 	}
+	if p.Kind == conversation.ProposePlugin {
+		said, err := w.acceptPlugin(store, c, *p, edits.Items)
+		return said, store.Slug, err
+	}
 	if p.Kind == conversation.ProposeBrief {
 		return w.acceptBrief(store, c, *p, edits)
 	}

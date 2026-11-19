@@ -19,6 +19,9 @@ type Here struct {
 	// Kinds are the workspace's kinds of document, by name (doc, plan): a
 	// talk may propose one of them. None: it isn't told it can.
 	Kinds []string
+	// Proposes are what the workspace's plugins propose: a talk may
+	// propose them, with ws propose.
+	Proposes []PluginProposes
 	// Mission is the mission it's in; nil for the workspace's.
 	Mission *mission.Mission
 	Page    string // the page's file, for a cell, a question, an outline or a pass
@@ -34,6 +37,12 @@ type Here struct {
 	// conversation is one that runs things (Sandboxed): nil for an agent
 	// that only reads.
 	Sandbox *Sandbox
+}
+
+// PluginProposes is something a plugin proposes, as an agent's told it:
+// its name (jira:issues), what it is, and when to propose it.
+type PluginProposes struct {
+	Name, Title, When string
 }
 
 // para is a note as a paragraph of a prompt, or nothing.

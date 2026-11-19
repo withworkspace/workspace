@@ -122,6 +122,7 @@ changes before it's accepted.
 		},
 	}
 	cmd.Flags().BoolVar(&proposeIt, "propose", false, "in a conversation: propose the edit, for the user to save, instead of saving it (with no file: show the document as it is, to edit)")
+	revisesFlag(cmd)
 	cmd.Flags().StringVar(&on, "on", "", "with --propose: the version of the document the edit was made from, as ws doc amend --propose <ref> prints it")
 	return cmd
 }

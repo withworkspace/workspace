@@ -183,6 +183,8 @@ func main() {
 				}},
 				// What it can do, from Find.
 				"actions": []map[string]string{{"id": "dust", "title": "Dust the shelf", "icon": "sparkle", "hint": "Every thing on it"}},
+				// What a conversation's agent may propose of it.
+				"proposes": []map[string]string{{"id": "things", "title": "Fixture things", "icon": "box", "when": "New things for the shelf, or a thing's note rewritten."}},
 			}}, nil
 		case "action/run":
 			var p struct {
@@ -214,6 +216,10 @@ func main() {
 				return nil, &acp.RPCError{Code: -32001, Message: "the fixture has no " + p.Ref + " to move"}
 			}
 			return nil, &acp.RPCError{Code: acp.CodeInvalidParams, Message: "the fixture has no action " + p.ID}
+		case "proposal/draft":
+			return draftThings(params)
+		case "proposal/accept":
+			return acceptThings(ctx, conn, params)
 		case "ref/show":
 			var p struct {
 				Kind, Ref string
@@ -368,4 +374,145 @@ func serve() http.Handler {
 		json.NewEncoder(w).Encode(map[string]any{"things": things, "poked": poked.Load()}) //nolint:errcheck // the app has gone
 	})
 	return mux
+}
+
+// What a conversation's agent proposes of the fixture's: things, new
+// (name, note, and beside, which may be an earlier one's #N) or a new
+// note on one that's there (thing, note). A thing named "Anvil" is too
+// heavy for the shelf: accepting it fails, to see what an item that
+// isn't done looks like.
+
+type proposedThing struct {
+	Thing  string `json:"thing,omitempty"`
+	Name   string `json:"name,omitempty"`
+	Note   string `json:"note"`
+	Beside string `json:"beside,omitempty"`
+}
+
+const thingsGuide = `Write a JSON list, each one of:
+
+- a new thing: {"name": "Teapot", "note": "Where it is, in a sentence.", "beside": "THING-1"}
+  (beside is optional: a thing there, or an earlier new one of this list as "#1")
+- a thing that's there given a note in place of its own (the whole of it, as it should read): {"thing": "THING-2", "note": "The note."}
+
+The things there: THING-1 Kettle, THING-2 Lantern, THING-3 Compass.`
+
+func draftThings(params json.RawMessage) (any, error) {
+	var p struct {
+		Input json.RawMessage `json:"input"`
+	}
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, err
+	}
+	if len(p.Input) == 0 {
+		return map[string]any{"guide": thingsGuide}, nil
+	}
+	dec := json.NewDecoder(bytes.NewReader(p.Input))
+	dec.DisallowUnknownFields()
+	var list []proposedThing
+	if err := dec.Decode(&list); err != nil {
+		return map[string]any{"refused": "that isn't a JSON list of things as the guide says (" + err.Error() + "): ws propose frame-fixture:things prints it"}, nil
+	}
+	var items []map[string]any
+	for i, t := range list {
+		payload, _ := json.Marshal(t)
+		if t.Thing != "" {
+			was := ""
+			for _, x := range things {
+				if t.Thing == "THING-"+itoa(int64(x.ID)) {
+					was = x.Note
+				}
+			}
+			if was == "" {
+				return map[string]any{"refused": "item " + itoa(int64(i+1)) + ": there's no " + t.Thing + " (THING-1 to THING-3 are there)"}, nil
+			}
+			items = append(items, map[string]any{"title": "The note on " + t.Thing + ", rewritten", "on": t.Thing, "rows": []map[string]any{{"label": "Note", "value": t.Note, "was": was}}, "payload": json.RawMessage(payload)})
+			continue
+		}
+		if strings.TrimSpace(t.Name) == "" {
+			return map[string]any{"refused": "item " + itoa(int64(i+1)) + " has no name: a new thing has one, or names the thing it's a note on (thing)"}, nil
+		}
+		rows := []map[string]any{{"label": "Kind", "value": "Thing"}}
+		if t.Beside != "" {
+			rows = append(rows, map[string]any{"label": "Beside", "value": t.Beside})
+		}
+		items = append(items, map[string]any{"title": t.Name, "rows": rows, "markdown": t.Note, "payload": json.RawMessage(payload)})
+	}
+	if len(items) == 0 {
+		return map[string]any{"refused": "there's nothing in it: write at least one"}, nil
+	}
+	title := items[0]["title"]
+	if len(items) > 1 {
+		title = itoa(int64(len(items))) + " things for the shelf"
+	}
+	return map[string]any{"proposal": map[string]any{"title": title, "items": items}}, nil
+}
+
+var (
+	accepted   sync.Mutex
+	acceptedBy = map[string]map[string]any{} // what an item's key made, so it's made once
+)
+
+func acceptThings(ctx context.Context, conn *acp.Conn, params json.RawMessage) (any, error) {
+	var p struct {
+		Key   string `json:"key"`
+		Items []struct {
+			N       int             `json:"n"`
+			Payload json.RawMessage `json:"payload"`
+		} `json:"items"`
+		Made map[string]string `json:"made"`
+	}
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, err
+	}
+	accepted.Lock()
+	defer accepted.Unlock()
+	made := map[string]string{}
+	for n, m := range p.Made {
+		made[n] = m
+	}
+	var out []map[string]any
+	for _, it := range p.Items {
+		n := itoa(int64(it.N))
+		if was, ok := acceptedBy[p.Key+"/"+n]; ok {
+			out = append(out, was)
+			made[n], _ = was["made"].(string)
+			continue
+		}
+		var t proposedThing
+		json.Unmarshal(it.Payload, &t) //nolint:errcheck // it's what the draft wrote
+		if after, ok := strings.CutPrefix(t.Beside, "#"); ok {
+			if made[after] == "" {
+				out = append(out, map[string]any{"n": it.N, "problem": "it goes beside item " + after + ", which isn't made: accept that one first"})
+				continue
+			}
+		}
+		if t.Name == "Anvil" {
+			out = append(out, map[string]any{"n": it.N, "problem": "the shelf won't take an anvil"})
+			continue
+		}
+		var ref string
+		var fields map[string]string
+		if t.Thing != "" {
+			for i := range things {
+				if t.Thing == "THING-"+itoa(int64(things[i].ID)) {
+					things[i].Note = t.Note
+					ref, fields = t.Thing, fieldsOf(things[i], false)
+				}
+			}
+		} else {
+			nt := thing{ID: len(things) + 1, Name: t.Name, Note: t.Note}
+			things = append(things, nt)
+			ref, fields = "THING-"+itoa(int64(nt.ID)), fieldsOf(nt, false)
+		}
+		conn.Call(ctx, "thing/put", map[string]any{"things": []map[string]any{{"kind": "thing", "ref": ref, "fields": fields}}}, nil) //nolint:errcheck // a ws from before it could be told
+		r := map[string]any{"n": it.N, "made": ref, "open": "/things/" + ref}
+		if t.Thing != "" {
+			r["say"] = "Its note is changed"
+		}
+		acceptedBy[p.Key+"/"+n] = r
+		made[n] = ref
+		out = append(out, r)
+	}
+	return map[string]any{"items": out}, nil
 }

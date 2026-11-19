@@ -141,6 +141,7 @@ kind with a guide is refused without it.
 		},
 	}
 	cmd.Flags().BoolVar(&proposeIt, "propose", false, "in a conversation: propose it, for the user to add, instead of adding it (with no file: show how one of the kind is written)")
+	revisesFlag(cmd)
 	cmd.Flags().StringVar(&guide, "guide", "", "with --propose: the version of the kind's guide it's written to, as ws doc add --propose <kind> prints it")
 	cmd.Flags().BoolVar(&dry, "dry-run", false, "say where it would go and what it would be committed as, and add nothing")
 	return cmd

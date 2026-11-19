@@ -35,7 +35,8 @@ import { useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
 import { refKey } from "../refs/refs";
 import { ArtifactProposalBody } from "./ArtifactProposal";
-import { addedVersion, artifactNext, kindName, type Made, made, type Settled, settled } from "./proposals";
+import { PluginProposalCard } from "./PluginProposal";
+import { addedVersion, artifactNext, kindName, type Made, made, revisedText, type Settled, settled } from "./proposals";
 import { PagePin } from "../shell/focus";
 
 // Conversations with an agent about the workspace: thinking something
@@ -440,7 +441,11 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
         if (x.message) toast(x.message, { tone: "done" });
         if (x.path) navigate(x.path, { replace: true });
       },
-      (e: Error) => toast(humanError(e.message), { tone: "danger" }),
+      (e: Error) => {
+        toast(humanError(e.message), { tone: "danger" });
+        // A plugin's items done before one wasn't are kept: show them.
+        load();
+      },
     );
   // An artifact proposed runs from the conversation's records.
   const frameOf = (n: number) => proposalFrameURL(slug, id, n);
@@ -458,6 +463,8 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
   };
   const pending = proposals.filter((p) => !agentTurns.length || ms(p.at) > ms(agentTurns[agentTurns.length - 1].at));
   const became = proposals.filter((p) => p.kind === "mission" && p.state === "accepted").pop()?.result;
+  // The proposal a revision revises, to say what it changed.
+  const revisedFrom = (p: TalkProposal) => (p.revises ? proposals.find((q) => q.n === p.revises) : undefined);
   const toggle = () =>
     d &&
     setTalkStatus(slug, id, d.status === "resolved" ? "open" : "resolved").then(
@@ -615,7 +622,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
             <div key={t.n} className={settled(t, proposals) ? "turn-group settled" : "turn-group"}>
               <TurnView t={t} root={workspace.root} proposals={proposals} said={t.n === latestReply ? reply : undefined} landed={landed.current.turns.has(t.n)} />
               {t.by !== "you" &&
-                under(t).map((p) => <ProposalCard key={p.n} p={p} kinds={workspace.kinds} artifacts={workspace.artifacts} frameOf={frameOf} slug={slug} onSettle={settle} anchor={`proposal-${p.n}`} />)}
+                under(t).map((p) => <ProposalCard key={p.n} p={p} revisedFrom={revisedFrom(p)} kinds={workspace.kinds} artifacts={workspace.artifacts} frameOf={frameOf} slug={slug} onSettle={settle} anchor={`proposal-${p.n}`} />)}
             </div>
           ))}
           {running && (
@@ -629,7 +636,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
                 )}
                 <Calls calls={(d.run?.calls ?? []).map((c, i, all) => (i === all.length - 1 && !c.result ? { ...c, pending: true } : c))} root={workspace.root} open live tail={5} />
                 {pending.map((p) => (
-                  <ProposalCard key={p.n} p={p} kinds={workspace.kinds} artifacts={workspace.artifacts} frameOf={frameOf} slug={slug} onSettle={settle} replying anchor={`proposal-${p.n}`} />
+                  <ProposalCard key={p.n} p={p} revisedFrom={revisedFrom(p)} kinds={workspace.kinds} artifacts={workspace.artifacts} frameOf={frameOf} slug={slug} onSettle={settle} replying anchor={`proposal-${p.n}`} />
                 ))}
                 <div className="typing">
                   <span className="typing-dots" aria-hidden>
@@ -893,8 +900,36 @@ export function SettledMarker({ m, t, compact }: { m: Settled; t: TalkTurn; comp
 // reply it came with, so it can't be confirmed until that's there to read.
 // anchor is its id on the page, where it's gone to from beside the
 // conversation.
-export function ProposalCard({
+export function ProposalCard(props: ProposalCardProps) {
+  if (props.p.kind === "plugin")
+    return (
+      <PluginProposalCard
+        p={props.p}
+        changes={props.revisedFrom && props.p.state === "open" ? <RevisionChanges was={props.revisedFrom} now={props.p} /> : undefined}
+        replying={props.replying}
+        anchor={props.anchor}
+        onSettle={props.onSettle}
+      />
+    );
+  return <WsProposalCard {...props} />;
+}
+
+interface ProposalCardProps {
+  p: TalkProposal;
+  revisedFrom?: TalkProposal;
+  kinds?: DocKind[];
+  artifacts?: ArtifactInfo[];
+  frameOf?: (n: number) => string;
+  inReview?: boolean;
+  slug?: string;
+  replying?: boolean;
+  anchor?: string;
+  onSettle: (n: number, action: "accept" | "decline", edits?: object) => Promise<void>;
+}
+
+function WsProposalCard({
   p,
+  revisedFrom,
   kinds,
   artifacts,
   frameOf,
@@ -905,6 +940,7 @@ export function ProposalCard({
   onSettle,
 }: {
   p: TalkProposal;
+  revisedFrom?: TalkProposal;
   kinds?: DocKind[];
   artifacts?: ArtifactInfo[];
   frameOf?: (n: number) => string;
@@ -975,6 +1011,7 @@ export function ProposalCard({
     plan: p.was ? "Edit to the plan" : "The plan",
     document: p.to ? `Edit to the ${kindName(kindTitle)}` : kindTitle,
     artifact: p.to ? `A version of ${p.to}` : "Artifact",
+    plugin: p.label ?? "Proposal", // drawn by PluginProposalCard
   }[p.kind] ?? "Proposal"; // a kind ws no longer has, from before
   const icon: IconName = proposalIcons[p.kind] ?? "pencil";
   // A review comment: the pull request's page, at the lines it's on.
@@ -991,6 +1028,7 @@ export function ProposalCard({
     plan: "Accept the plan",
     document: p.to ? "Save the edit" : `Add ${kindName(kindTitle)}`,
     artifact: p.to ? `Add as v${artifactNext(p, artifact)}` : "Add artifact",
+    plugin: "Accept",
   }[p.kind];
   const ready = {
     decision: what.trim(),
@@ -1002,6 +1040,7 @@ export function ProposalCard({
     plan: !briefEmpty,
     document: !docEmpty,
     artifact: note.trim() && (p.to || title.trim()),
+    plugin: true,
   }[p.kind];
   const outcome = () => {
     if (p.state === "declined")
@@ -1013,7 +1052,16 @@ export function ProposalCard({
     if (p.state === "superseded")
       return (
         <span className="settled-line dim">
-          <Icon name="arrow-down" size={13} /> Superseded by proposal {p.result}, proposed after it: nothing to confirm here
+          <Icon name="arrow-down" size={13} />
+          <span>
+            Superseded by <a href={`#proposal-${p.result}`}>proposal {p.result}</a>, proposed after it: nothing to confirm here
+          </span>
+        </span>
+      );
+    if (p.state === "withdrawn")
+      return (
+        <span className="settled-line dim">
+          <Icon name="x" size={13} /> Withdrawn{p.because ? `: ${p.because}` : ""}
         </span>
       );
     const done = (children: React.ReactNode) => (
@@ -1339,19 +1387,25 @@ export function ProposalCard({
         {(p.kind === "mission" || p.kind === "document" || briefing) && !editing && p.title && <span className="proposal-title">{p.title}</span>}
         {p.kind === "artifact" && !editing && (p.title || artifact) && <span className="proposal-title">{p.title || artifact?.title}</span>}
         <span className="spacer" />
+        {p.revises && (
+          <a className="proposal-revises dim" href={`#proposal-${p.revises}`} title={`It takes the place of proposal ${p.revises}`}>
+            Revises {p.revises}
+          </a>
+        )}
         {p.state === "open" && !editing && (
           <button className="ghost small" onClick={() => setEditing(true)}>
             <Icon name="pencil" size={12} /> Edit
           </button>
         )}
       </div>
+      {revisedFrom && p.state === "open" && <RevisionChanges was={revisedFrom} now={p} />}
       <div className="proposal-body">{body()}</div>
       {p.state === "open" ? (
         <div className="proposal-actions">
           {busy && (
             <span className="dim busy">
               <Icon name="spinner" className="spin" />{" "}
-              {{ decision: "Recording…", mission: "Creating…", brief: "Writing…", dispatch: "Starting…", replan: "Asking…", comment: "Adding…", plan: "Writing…", document: p.to ? "Saving…" : "Adding…", artifact: "Adding…" }[p.kind]}
+              {{ decision: "Recording…", mission: "Creating…", brief: "Writing…", dispatch: "Starting…", replan: "Asking…", comment: "Adding…", plan: "Writing…", document: p.to ? "Saving…" : "Adding…", artifact: "Adding…", plugin: "Doing it…" }[p.kind]}
             </span>
           )}
           <span className="spacer" />
@@ -1366,6 +1420,20 @@ export function ProposalCard({
         <div className="proposal-actions settled">{outcome()}</div>
       )}
     </div>
+  );
+}
+
+// RevisionChanges is what a revision changed of the proposal it revises,
+// folded: the words each is mostly made of, as they read and as they do.
+function RevisionChanges({ was, now }: { was: TalkProposal; now: TalkProposal }) {
+  const a = revisedText(was);
+  const b = revisedText(now);
+  if (!a && !b) return null;
+  return (
+    <details className="proposal-changes">
+      <summary className="dim">What changed since proposal {was.n}</summary>
+      {a === b ? <div className="dim">Its words are as they were.</div> : <BriefDiff was={a} now={b} />}
+    </details>
   );
 }
 

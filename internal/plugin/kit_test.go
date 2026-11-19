@@ -3,6 +3,7 @@ package plugin_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -402,5 +403,78 @@ holds = 1
 			t.Fatalf("shelves, after a change:\n%s\nwant:\n%s", got, want)
 		}
 		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// What a kit plugin proposes: listed for agents once it's registered,
+// its guide asked for, what's written refused or drafted, and items done
+// in order, each told what an earlier one made, nothing done twice under
+// its key; through the daemon's socket, as ws propose and accepting reach
+// it.
+func TestKitProposes(t *testing.T) {
+	root, h := workspace(t)
+	addKit(t, root)
+	if _, err := h.Refresh("kit"); err != nil {
+		t.Fatal(err)
+	}
+	if got := plugin.Proposables(root); len(got) != 1 || got[0].Name() != "kit:notes" || got[0].When != "Notes to keep." {
+		t.Errorf("proposables: %+v", got)
+	}
+	ln, err := h.Listen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	go h.Serve(ln)
+	c, err := plugin.Dial(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	ctx := context.Background()
+	draft := func(input string) (plugin.Drafted, error) {
+		var raw json.RawMessage
+		if input != "" {
+			raw = json.RawMessage(input)
+		}
+		return c.Draft(ctx, "kit", protocol.ProposalDraftParams{ID: "notes", Input: raw, Conversation: "w1"})
+	}
+	if d, err := draft(""); err != nil || !strings.Contains(d.Guide, "JSON list") || d.Proposes.Title != "Kit notes" {
+		t.Errorf("the guide: %+v, %v", d, err)
+	}
+	if d, err := draft(`[{"text": ""}]`); err != nil || d.Refused != "every note has text" {
+		t.Errorf("refused: %+v, %v", d, err)
+	}
+	if _, err := c.Draft(ctx, "kit", protocol.ProposalDraftParams{ID: "bugs", Input: json.RawMessage(`[]`)}); !errors.Is(err, plugin.ErrNoProposes) || !strings.Contains(err.Error(), "kit:notes") {
+		t.Errorf("what it doesn't propose: %v", err)
+	}
+	d, err := draft(`[{"text": "First"}, {"text": "Second", "under": "#1"}]`)
+	if err != nil || d.Proposal == nil || len(d.Proposal.Items) != 2 || d.Proposal.Items[1].Rows[0].Value != "#1" {
+		t.Fatalf("drafted: %+v, %v", d, err)
+	}
+	accept := func(made map[int]string, ns ...int) protocol.ProposalAcceptResult {
+		t.Helper()
+		in := protocol.ProposalAcceptParams{ID: "notes", Key: "workspace/w1/1", Made: made, Conversation: "w1"}
+		for _, n := range ns {
+			in.Items = append(in.Items, protocol.AcceptItem{N: n, Payload: d.Proposal.Items[n-1].Payload})
+		}
+		out, err := c.Accept(ctx, "kit", in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	if out := accept(nil, 2); len(out.Items) != 1 || !strings.Contains(out.Items[0].Problem, "item 1") {
+		t.Errorf("the second before the first: %+v", out)
+	}
+	if out := accept(nil, 1); out.Items[0].Made != "NOTE-1" {
+		t.Errorf("the first: %+v", out)
+	}
+	if out := accept(map[int]string{1: "NOTE-1"}, 2); out.Items[0].Made != "NOTE-2" || out.Items[0].Say != "NOTE-2 under NOTE-1" {
+		t.Errorf("the second: %+v", out)
+	}
+	// Asked again, under the same key: as it was, nothing made again.
+	if out := accept(nil, 1, 2); out.Items[0].Made != "NOTE-1" || out.Items[1].Made != "NOTE-2" {
+		t.Errorf("asked again: %+v", out)
 	}
 }

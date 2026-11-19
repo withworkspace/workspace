@@ -315,7 +315,12 @@ func browserKey(k TermKey) (uv.KeyPressEvent, bool) {
 }
 
 // ProposalEdits are what you changed in a proposal before accepting it.
-type ProposalEdits struct{ What, Why, Title, Brief, Text, Plan, Note string }
+type ProposalEdits struct {
+	What, Why, Title, Brief, Text, Plan, Note string
+	// Items are a plugin's proposal's items accepted, by number: none,
+	// every one still open.
+	Items []int
+}
 
 // PRQuestion is a question about a pull request: what you ask, and the
 // lines it's about, if it's about some (at Commit).

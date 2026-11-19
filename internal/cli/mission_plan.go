@@ -134,6 +134,7 @@ at once begun, stay as they were.`,
 	addMissionFlag(cmd, &slug)
 	cmd.Flags().StringVar(&set, "set", "", "replace the plan from a file, or - for stdin")
 	cmd.Flags().BoolVar(&proposeIt, "propose", false, "in a conversation: propose the plan (--set), for the user to accept, instead of writing it")
+	revisesFlag(cmd)
 	cmd.Flags().BoolVar(&format, "format", false, "say how a plan is written, and what ws holds it to")
 	return cmd
 }

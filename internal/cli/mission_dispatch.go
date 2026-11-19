@@ -138,6 +138,7 @@ In a conversation about the mission, its agent proposes a dispatch instead
 	cmd.Flags().IntVar(&stage, "stage", 0, "the stage of the brief's plan it's for (default: the current one, the first not accepted)")
 	cmd.Flags().BoolVar(&queue, "queue", false, "queue it for the user to launch instead of launching now")
 	cmd.Flags().BoolVar(&proposeIt, "propose", false, "in a conversation: propose it, for the user to start, instead of starting it")
+	revisesFlag(cmd)
 	return cmd
 }
 

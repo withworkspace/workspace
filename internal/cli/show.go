@@ -1366,6 +1366,20 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 				if p.Plan != "" {
 					what = "the brief, and its plan"
 				}
+			case conversation.ProposePlugin:
+				what = p.Says()
+				for i, it := range p.Items {
+					switch {
+					case it.State == conversation.ItemMade:
+						what += fmt.Sprintf("; %d. %s: made %s", i+1, it.Title, firstNonEmpty(it.Made, "done"))
+					case it.State == conversation.ItemLeft:
+						what += fmt.Sprintf("; %d. %s: not accepted", i+1, it.Title)
+					case it.Problem != "":
+						what += fmt.Sprintf("; %d. %s: not done (%s)", i+1, it.Title, it.Problem)
+					default:
+						what += fmt.Sprintf("; %d. %s", i+1, it.Title)
+					}
+				}
 			case conversation.ProposeDispatch:
 				what = "crew: " + p.Text
 			case conversation.ProposeReplan:
@@ -1393,6 +1407,10 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 			switch {
 			case p.State == conversation.ProposalOpen:
 				state = "waiting for the user"
+			case p.State == conversation.ProposalSuperseded:
+				state = "superseded by " + p.Result
+			case p.State == conversation.ProposalWithdrawn:
+				state = "withdrawn: " + p.Because
 			case p.State == conversation.ProposalAccepted && p.Kind == conversation.ProposeComment:
 				state = "added to the user's draft review"
 			case p.State == conversation.ProposalAccepted && p.Result != "" && p.Kind != conversation.ProposePlan && p.Kind != conversation.ProposeBrief:
@@ -1402,7 +1420,11 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 			case p.State == conversation.ProposalAccepted:
 				state = "accepted, kept with " + c.ID + " until it's a mission"
 			}
-			v.body = append(v.body, fmt.Sprintf("  %d. %s (%s)", p.N, clipLine(what, 140), state))
+			width := 140
+			if p.Kind == conversation.ProposePlugin {
+				width = 600 // each item, and what came of it
+			}
+			v.body = append(v.body, fmt.Sprintf("  %d. %s (%s)", p.N, clipLine(what, width), state))
 		}
 	}
 	turns := c.Turns

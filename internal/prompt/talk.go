@@ -48,10 +48,28 @@ func talkProposing(h Here) string {
 		fmt.Fprintf(&b, "- A document of one of the workspace's kinds (%s), when the user asks for one, or wants what's been worked out kept as one. Each kind's guide says how one's written, and you read it before you write: first run `ws doc add --propose <kind>`, which proposes nothing but prints the kind's guide and the `--guide` value to propose with (a proposal without it is refused, with the guide). Write the document as the guide says, then run `ws doc add --propose <kind> --guide <value> - <<'EOF'`, then the whole document in markdown, its title as its first heading (`# …`), then `EOF` on a line of its own. Confirming adds it where its kind says, named from its title and committed with its kind's message: you don't choose its path, and you don't write it anywhere yourself. To change one that's there (yours, once it's added, as ws told you: records:docs/x.md), first run `ws doc amend --propose <ref>`, which proposes nothing but prints it as it is and the `--on` value to propose with; then run `ws doc amend --propose <ref> --on <value> - <<'EOF'`, then the whole of it as it should read, then `EOF` on a line of its own. The user sees what it changes; confirming saves it where it is, committed with its kind's message.\n", strings.Join(h.Kinds, ", "))
 	}
 	b.WriteString("- An artifact: one HTML file that shows an idea, for the user to look at and use, when something's better seen than described (a colour, a layout, a diagram to click through) or they ask for one. First run `ws artifact add --propose`, which proposes nothing but says how one's written (one file, CSS and JS inline, nothing from the network). Then run `ws artifact add --propose --title \"<what it is>\" --note \"<what it tries out>\" - <<'EOF'`, then the whole HTML file, then `EOF` on a line of its own. To revise one, read it first (`ws show a3`, `ws artifact show a3.v2`), then propose the whole file again with `--to a3 --on v2 --note \"<what changed, and why>\"` in place of the title: each revision is a new version. Confirming adds it, running, under your reply: you don't write it anywhere yourself.\n")
-	b.WriteString("\nPropose when the user wants it, or clearly would, and say in your reply what you proposed. Don't propose the same thing twice: a new proposal is a new button.\n\n")
+	if len(h.Proposes) > 0 {
+		b.WriteString("- Something of one of the workspace's plugins, which it does once the user accepts it: ")
+		for i, p := range h.Proposes {
+			if i > 0 {
+				b.WriteString("; ")
+			}
+			fmt.Fprintf(&b, "`%s` (%s)", p.Name, p.Title)
+			if when := strings.TrimSpace(p.When); when != "" {
+				b.WriteString(": " + strings.TrimSuffix(oneLine(when), "."))
+			}
+		}
+		b.WriteString(". How one's written is the plugin's, as things are now: first run `ws propose <name>`, which proposes nothing but prints how. Then run `ws propose <name> - <<'EOF'`, then what you wrote as that says, then `EOF` on a line of its own. The plugin checks it and says what it'll do, which is what the user's shown, item by item; or it says what's wrong, and you write it again. Several of the same go in one proposal, as items (an item can name an earlier one as #1, as the guide says): the user accepts them all, or some. What the plugin made is said when it's accepted.\n")
+	}
+	b.WriteString("\nPropose when the user wants it, or clearly would, and say in your reply what you proposed. Each proposal is numbered (ws says its number when you propose it). Don't propose the same thing twice: a new proposal is a new button.\n\n")
+	b.WriteString(talkRevising)
 	b.WriteString(talkSettled)
 	return b.String()
 }
+
+// talkRevising is how a conversation's agent changes what it proposed
+// that's still open: by its number, so one card stands where two would.
+const talkRevising = "When the user asks you to change something you proposed that's still open, revise it: propose it again, as it should now be, with the same command and `--revises <its number>`. The revision takes its place, and the user sees what changed; don't propose it as a new one beside it. When what they've said rules one out, withdraw it: `ws conversation withdraw <its number> --why \"<why, in a sentence>\"`. One they haven't mentioned stays as it is. What's been accepted isn't revised: change what it made, as you would anything that's there.\n\n"
 
 // talkSettled is how a conversation's agent hears what became of what it
 // proposed: a turn of the user's that ws writes (ops.tellAgent).
@@ -268,7 +286,25 @@ func TalkNext(h Here, c *conversation.Conversation) string {
 	for _, s := range youSince(c) {
 		b.WriteString(s + "\n\n")
 	}
+	b.WriteString(stillOpen(c))
 	b.WriteString("Reply as before. " + shellNext(h) + talkEnding)
+	return b.String()
+}
+
+// stillOpen is what the agent proposed that the user hasn't settled, said
+// after what they said since, so that it revises or withdraws what that
+// changes. "" when nothing is.
+func stillOpen(c *conversation.Conversation) string {
+	open := c.Open()
+	if len(open) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("Still open, of what you proposed (if what they said changes one, revise it with --revises; if it rules one out, withdraw it):\n")
+	for _, p := range open {
+		fmt.Fprintf(&b, "- %d: %s\n", p.N, clipLine(p.Says(), 140))
+	}
+	b.WriteString("\n")
 	return b.String()
 }
 

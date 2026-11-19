@@ -45,7 +45,7 @@ func converseCommands(r ConverseRun) []string {
 		if r.Talk {
 			out = append(out, ws+" mission list", ws+" conversation list", ws+" mission decide --propose", ws+" mission new --propose",
 				ws+" mission brief --propose", ws+" mission plan --propose", ws+" mission plan --format", ws+" mission dispatch --propose", ws+" mission replan --propose", ws+" pr comment --propose",
-				ws+" doc add --propose", ws+" doc amend --propose", ws+" artifact add --propose")
+				ws+" doc add --propose", ws+" doc amend --propose", ws+" artifact add --propose", ws+" conversation withdraw", ws+" propose")
 			if r.Lift {
 				out = append(out, ws+" lift")
 			}

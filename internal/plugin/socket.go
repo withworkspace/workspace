@@ -92,6 +92,9 @@ func (h *Host) serve(nc net.Conn) {
 	var c *acp.Conn
 	c = acp.NewConn(nc, nc, func(ctx context.Context, method string, params json.RawMessage) (any, error) {
 		<-ready
+		if out, ok, err := h.serveProposals(ctx, method, params); ok {
+			return out, err
+		}
 		switch method {
 		case "run":
 			var p runParams

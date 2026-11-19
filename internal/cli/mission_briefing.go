@@ -101,6 +101,7 @@ and a --dock for existing work to build on (repo/branch, or repo#PR), and
 	addMissionFlag(cmd, &slug)
 	cmd.Flags().StringVar(&set, "set", "", "replace the brief from a file, or - for stdin")
 	cmd.Flags().BoolVar(&proposeIt, "propose", false, "in a conversation: propose the new brief (--set), for the user to accept, instead of writing it")
+	revisesFlag(cmd)
 	cmd.Flags().StringVar(&title, "title", "", "with --propose: a title for the mission, when briefing it")
 	cmd.Flags().StringArrayVar(&capsules, "capsule", nil, "with --propose: a capsule to lift for it, as repo/branch (repeatable), when briefing it")
 	cmd.Flags().StringArrayVar(&docks, "dock", nil, "with --propose: existing work to build on, as repo/branch or repo#PR (repeatable), when briefing it")

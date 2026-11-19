@@ -85,6 +85,7 @@ or it can be withdrawn (--withdraw d1 "why").
 		},
 	}
 	cmd.Flags().BoolVar(&proposeIt, "propose", false, "in a conversation: propose it, for the user to confirm, instead of recording it")
+	revisesFlag(cmd)
 	addMissionFlag(cmd, &slug)
 	cmd.Flags().StringVar(&why, "why", "", "why it was decided")
 	cmd.Flags().StringArrayVar(&about, "about", nil, "a ref it bears on: a stage (s2), a document, a capsule, crew… (repeatable)")

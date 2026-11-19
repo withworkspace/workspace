@@ -16,6 +16,7 @@ import (
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/page"
+	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/prompt"
 	"github.com/withworkspace/workspace/internal/turn"
 )
@@ -629,6 +630,9 @@ func (w *Workspace) here(sc doc.Scope, c *conversation.Conversation) prompt.Here
 	}
 	for _, k := range w.WS().Kinds {
 		h.Kinds = append(h.Kinds, k.Name)
+	}
+	for _, p := range plugin.Proposables(w.Root()) {
+		h.Proposes = append(h.Proposes, prompt.PluginProposes{Name: p.Name(), Title: p.Title, When: p.When})
 	}
 	if !sc.IsWorkspace() {
 		if m, err := w.Missions.Load(sc.Mission); err == nil {

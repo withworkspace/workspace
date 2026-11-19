@@ -253,6 +253,7 @@ func (s *Server) settleProposal(w http.ResponseWriter, r *http.Request) {
 		Text   string `json:"text"`
 		Plan   string `json:"plan"`
 		Note   string `json:"note"`
+		Items  []int  `json:"items"`
 	}
 	if !readBody(w, r, &b) {
 		return
@@ -276,7 +277,7 @@ func (s *Server) settleProposal(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "action is accept or decline")
 		return
 	}
-	said, after, err := s.App.SettleProposal(store.Slug, id, n, b.Action == "accept", ops.ProposalEdits{What: b.What, Why: b.Why, Title: b.Title, Brief: b.Brief, Text: b.Text, Plan: b.Plan, Note: b.Note})
+	said, after, err := s.App.SettleProposal(store.Slug, id, n, b.Action == "accept", ops.ProposalEdits{What: b.What, Why: b.Why, Title: b.Title, Brief: b.Brief, Text: b.Text, Plan: b.Plan, Note: b.Note, Items: b.Items})
 	moved := !store.Workspace() && after != "" && after != store.Slug
 	if moved {
 		store = conversation.For(s.Root, after)

@@ -253,3 +253,42 @@ func TestTalkNext_KeptAsk(t *testing.T) {
 		}
 	}
 }
+
+// What's still open of what the agent proposed is said after what the
+// user said, so that it revises or withdraws what that changes; nothing's
+// said when nothing is.
+func TestTalkNext_StillOpen(t *testing.T) {
+	c := &conversation.Conversation{ID: "w9", Kind: conversation.Talk, Turns: []conversation.Turn{{N: 1, By: "you", Body: "a cache?"}, {N: 2, By: "agent", Body: "x"}, {N: 3, By: "you", Body: "per tenant, please"}},
+		Proposals: []conversation.Proposal{
+			{N: 1, Kind: conversation.ProposeMission, Title: "Token cache", State: conversation.ProposalOpen},
+			{N: 2, Kind: conversation.ProposeDecision, What: "Keep it small.", State: conversation.ProposalAccepted},
+		}}
+	got := TalkNext(goldenHere, c)
+	if !strings.Contains(got, "- 1: a mission: Token cache") || strings.Contains(got, "Keep it small") {
+		t.Errorf("what's still open:\n%s", got)
+	}
+	if strings.Index(got, "per tenant") > strings.Index(got, "Still open") {
+		t.Error("what's open is said before what the user said")
+	}
+	c.Proposals[0].State = conversation.ProposalDeclined
+	if strings.Contains(TalkNext(goldenHere, c), "Still open") {
+		t.Error("said what's open with nothing open")
+	}
+}
+
+// What the workspace's plugins propose is listed among what a talk may
+// propose, each by the name it's proposed by, with when to.
+func TestTalkFirst_PluginProposes(t *testing.T) {
+	h := goldenHere
+	h.Proposes = []PluginProposes{{Name: "jira:issues", Title: "Jira issues", When: "Issues to create."}}
+	c := &conversation.Conversation{ID: "w9", Kind: conversation.Talk, Turns: []conversation.Turn{{N: 1, By: "you", Body: "make issues"}}}
+	got := TalkFirst(h, c)
+	for _, want := range []string{"`jira:issues` (Jira issues): Issues to create.", "ws propose <name> - <<'EOF'"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+	if strings.Contains(TalkFirst(goldenHere, c), "ws propose") {
+		t.Error("told of plugins' proposals with none")
+	}
+}

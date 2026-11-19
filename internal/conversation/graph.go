@@ -93,12 +93,22 @@ func (s Store) linkTurn(tx *store.Tx, c *Conversation, t Turn) error {
 // linkMade links what accepting a proposal made to the conversation it
 // came from: a document added (a mission is linked by its own record).
 func (s Store) linkMade(tx *store.Tx, c *Conversation, p Proposal) error {
-	if p.Kind != ProposeDocument || p.State != ProposalAccepted || p.Result == "" {
-		return nil
-	}
 	at := c.At
 	if p.SettledAt != nil {
 		at = *p.SettledAt
+	}
+	if p.Kind == ProposePlugin && p.State == ProposalAccepted {
+		// What a plugin's items made or changed, by its name (RAM-130),
+		// came from it.
+		for _, name := range p.made() {
+			if err := tx.Link(s.origin(c.ID), store.Link{Src: store.Key{Name: name}, Kind: store.From, Dst: s.key(c.ID), At: at}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if p.Kind != ProposeDocument || p.State != ProposalAccepted || p.Result == "" {
+		return nil
 	}
 	for _, k := range docKeys(s.Slug, p.Result) {
 		if err := tx.Link(s.origin(c.ID), store.Link{Src: k, Kind: store.From, Dst: s.key(c.ID), At: at}); err != nil {

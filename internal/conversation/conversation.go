@@ -640,6 +640,7 @@ type line struct {
 	Summary    *summaryLine     `json:"summary,omitempty"`
 	Propose    *Proposal        `json:"propose,omitempty"`
 	Proposal   *proposalSettled `json:"proposal,omitempty"`
+	Items      *itemsDone       `json:"items,omitempty"`
 	Settle     *findingSettled  `json:"settle,omitempty"`
 	Placed     *time.Time       `json:"placed,omitempty"`
 	Kept       *keptLine        `json:"kept,omitempty"`

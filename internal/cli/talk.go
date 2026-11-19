@@ -118,7 +118,7 @@ its threads).`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 	}
 	cmd.AddCommand(newConversationListCmd(), newConversationAnswerCmd(), newConversationAllowedCmd(), newConversationStatusCmd(conversation.Resolved), newConversationStatusCmd(conversation.Open),
-		newConversationSettleCmd(true), newConversationSettleCmd(false), newConversationKeepCmd())
+		newConversationSettleCmd(true), newConversationSettleCmd(false), newConversationKeepCmd(), newConversationWithdrawCmd())
 	return cmd
 }
 
