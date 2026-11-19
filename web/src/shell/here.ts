@@ -1,6 +1,7 @@
 import type { Workspace } from "../api";
 import type { SpaceRef } from "../api";
-import { GROUND, type Known, namedOf, type PageRef, thingOpenAt } from "../refs/refs";
+import type { FrameHere } from "../plugins/here";
+import { GROUND, type Known, namedOf, type PageRef, refAt, thingOpenAt } from "../refs/refs";
 import { actIcon, actsOn, type Found, foundItem, type Item, missionDo } from "./find";
 import { visitAt } from "./recent";
 
@@ -25,8 +26,10 @@ export interface Here {
 // hereAt is the thing the page at pathname is of, if it's of one: a
 // mission (any page of it), a conversation, a page, an artifact, a pull
 // request, a file, a space's document, or a plugin's thing open in its
-// app. A list is of nothing.
-export function hereAt(pathname: string, search: string, w: Workspace, known: Known): Here | undefined {
+// app. A list is of nothing. On a plugin's pages, what the page said it
+// shows beyond its address (frame: an issue in a panel) comes first, if
+// ws can read it; the address after.
+export function hereAt(pathname: string, search: string, w: Workspace, known: Known, frame?: FrameHere): Here | undefined {
   const parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
   const [a, b, c] = parts;
   if (a === "missions" && b) {
@@ -42,6 +45,9 @@ export function hereAt(pathname: string, search: string, w: Workspace, known: Kn
     return { ref, id: `document:${ref}`, title: parts[parts.length - 1] };
   }
   if (a === "x" && b) {
+    const said = frame?.plugin === b ? refAt(frame.name, known) : undefined;
+    const of = said && hereOf(said, w);
+    if (of) return of;
     const thing = thingOpenAt(b, "/" + pathname.split("/").filter(Boolean).slice(2).join("/"), known);
     return thing && { ref: thing.id, id: `thing:${thing.plugin}/${thing.id}`, title: thing.id, thing };
   }
@@ -49,6 +55,34 @@ export function hereAt(pathname: string, search: string, w: Workspace, known: Kn
   if (!v) return undefined;
   const ref = v.id.slice(v.id.indexOf(":") + 1);
   return { ref, id: v.id, title: v.title };
+}
+
+// hereOf is a ref as what a page is of: a plugin's thing, a mission, a
+// page, a conversation, an artifact, a pull request or a file.
+function hereOf(r: PageRef, w: Workspace): Here | undefined {
+  switch (r.kind) {
+    case "thing":
+      return { ref: r.id, id: `thing:${r.plugin}/${r.id}`, title: r.id, thing: r };
+    case "mission": {
+      const m = w.missions.find((x) => x.slug === r.slug);
+      return m && { ref: r.slug, id: `mission:${r.slug}`, title: m.title };
+    }
+    case "page":
+      return { ref: r.id, id: `page:${r.id}`, title: w.pages?.find((x) => x.id === r.id)?.title };
+    case "talk": {
+      const t = w.conversations.find((x) => x.id === r.id);
+      return { ref: r.id, id: `talk:${r.id}`, title: t ? t.title || t.opening : r.id };
+    }
+    case "artifact":
+      return { ref: r.id, id: `artifact:${r.id}`, title: w.artifacts?.find((x) => x.id === r.id)?.title };
+    case "pr":
+      return { ref: `${r.repo}#${r.number}`, id: `pr:${r.repo}#${r.number}`, title: `${r.repo}#${r.number}` };
+    case "file": {
+      const title = r.worktree === GROUND ? `${r.repo}/${r.path}` : `${r.repo}/${r.worktree}:${r.path}`;
+      return { ref: title, id: `file:${title}`, title };
+    }
+  }
+  return undefined;
 }
 
 // Near is a thing one link from where you are (web.NearFound): how it's

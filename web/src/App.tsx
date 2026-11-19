@@ -16,6 +16,7 @@ import { listKeys, MissionList } from "./mission/List";
 import { MissionPage, missionKeys } from "./mission/Mission";
 import { OrchestratorPage, OrchestratorRunPage } from "./orchestrator/Orchestrator";
 import { useFrameDim } from "./plugins/dim";
+import { useFrameHere } from "./plugins/here";
 import { PluginPage, pluginIcon } from "./plugins/Plugin";
 import { RefsProvider } from "./refs/known";
 import { SettingsPage } from "./settings/Settings";
@@ -78,6 +79,7 @@ export function App() {
 
   // A plugin's app has a backdrop up: what's beside its frame dims with it.
   const dim = useFrameDim();
+  const frameHere = useFrameHere();
 
   useGlobalKeys({ openPalette: (start = "") => setPalette(start), openHelp: () => setHelp(true) });
   useKeyboarding();
@@ -237,6 +239,7 @@ export function App() {
             pageRepo={repoOfPage(location.pathname, workspace.spaces)}
             path={location.pathname}
             search={location.search}
+            frameHere={frameHere}
             onClose={() => setPalette(undefined)}
             onHelp={() => {
               setPalette(undefined);

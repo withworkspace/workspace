@@ -4,7 +4,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.4.0/node_modules/@withworkspace/ui-lib/dist/mark.js
+// ../../../../../../ui-lib/frame-here/dist/mark.js
 var skipped = "a, pre, h1, h2, h3, h4, h5, h6, script, style, textarea, select, button, svg, [contenteditable]";
 var isElement = (n) => n.nodeType === 1;
 var isText = (n) => n.nodeType === 3;
@@ -136,7 +136,7 @@ function mark(el, finder) {
   return stop;
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.4.0/node_modules/@withworkspace/ui-lib/dist/shape.js
+// ../../../../../../ui-lib/frame-here/dist/shape.js
 function isRecord(v) {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -150,7 +150,7 @@ function isVersions(v) {
   return Array.isArray(v) && v.every((n) => Number.isInteger(n) && n >= 1);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.4.0/node_modules/@withworkspace/ui-lib/dist/v1.js
+// ../../../../../../ui-lib/frame-here/dist/v1.js
 var v1_exports = {};
 __export(v1_exports, {
   isFoundRef: () => isFoundRef,
@@ -186,6 +186,8 @@ function isPageMessage(m) {
       return isString(m.key) && [m.meta, m.ctrl, m.shift, m.alt].every((v) => typeof v === "boolean");
     case "ws:refs":
       return isIndex(m.id) && isStrings(m.texts);
+    case "ws:here":
+      return m.name === void 0 || isString(m.name) && m.name !== "";
     default:
       return false;
   }
@@ -215,16 +217,16 @@ function isHostMessage(m) {
   }
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.4.0/node_modules/@withworkspace/ui-lib/dist/protocol.js
+// ../../../../../../ui-lib/frame-here/dist/protocol.js
 var PROTOCOL_VERSIONS = [1];
 function isRefuse(m) {
   return isRecord(m) && m.type === "ws:refuse" && isVersions(m.versions) && isString(m.message);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.4.0/node_modules/@withworkspace/ui-lib/dist/version.js
-var VERSION = "0.4.0";
+// ../../../../../../ui-lib/frame-here/dist/version.js
+var VERSION = "0.0.0";
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.4.0/node_modules/@withworkspace/ui-lib/dist/client.js
+// ../../../../../../ui-lib/frame-here/dist/client.js
 var ProtocolError = class extends Error {
   /** The versions the page speaks. */
   page;
@@ -307,6 +309,15 @@ function client(port, welcome, doc) {
   let askings = 0;
   let closed = false;
   const send = (m) => port.postMessage(m);
+  const here = [];
+  let told;
+  const tellHere = () => {
+    const name = here.at(-1)?.name;
+    if (name === told || closed)
+      return;
+    told = name;
+    send(name === void 0 ? { type: "ws:here" } : { type: "ws:here", name });
+  };
   const on = (fns, fn) => {
     fns.add(fn);
     return () => {
@@ -436,6 +447,21 @@ function client(port, welcome, doc) {
         throw new TypeError(`go("${to}"): a path in the plugin starts with "/".`);
       open(at + to, options2.replace);
     },
+    pushHere(name) {
+      if (!name)
+        throw new TypeError('pushHere(""): a name says what the page shows.');
+      const entry = { name };
+      here.push(entry);
+      tellHere();
+      let gone = false;
+      return () => {
+        if (gone)
+          return;
+        gone = true;
+        here.splice(here.indexOf(entry), 1);
+        tellHere();
+      };
+    },
     setTitle(title) {
       if (doc)
         doc.title = title;
@@ -449,6 +475,7 @@ function client(port, welcome, doc) {
       marks.clear();
       for (const stop of [...dismissals])
         stop();
+      here.length = 0;
       closed = true;
       for (const b of asking.splice(0))
         b.found(b.texts.map(() => []));
@@ -607,6 +634,32 @@ async function main() {
       };
     };
   }
+  const peeks = /* @__PURE__ */ new Set();
+  function peek(t) {
+    const panel = h(
+      "aside",
+      { className: "peek", data: { fixture: "peek" } },
+      h("p", { className: "dim" }, `THING-${t.id}, peeked at`),
+      h("h1", {}, t.name),
+      h("p", {}, t.note),
+      h(
+        "p",
+        {},
+        h("button", { type: "button", onclick: () => close() }, "Close"),
+        " ",
+        h("button", { type: "button", onclick: () => peek(things?.find((o) => o.id === t.id % 3 + 1) ?? t) }, `Peek THING-${t.id % 3 + 1} over it`)
+      )
+    );
+    panel.style.setProperty("--peeked", String(peeks.size));
+    document.body.append(panel);
+    const off = ws.pushHere(`THING-${t.id}`);
+    const close = () => {
+      off();
+      panel.remove();
+      peeks.delete(close);
+    };
+    peeks.add(close);
+  }
   async function load() {
     try {
       const res = await fetch(ws.api("/api/things"));
@@ -622,7 +675,9 @@ async function main() {
     const path = ws.path.split("?")[0];
     const one = /^\/things\/(?:THING-)?(\d+)$/.exec(path);
     if (path === "/") {
-      const list = things?.map((t) => h("li", {}, h("a", { href: ws.href(`/things/${t.id}`) }, t.name), " ", h("span", { className: "dim" }, t.note)));
+      const list = things?.map(
+        (t) => h("li", {}, h("a", { href: ws.href(`/things/${t.id}`) }, t.name), " ", h("span", { className: "dim" }, t.note), " ", h("button", { type: "button", data: { fixture: "peek-button" }, onclick: () => peek(t) }, "Peek"))
+      );
       return { title: "Things", body: [h("h1", {}, "Things"), failed ? h("p", { className: "error" }, failed) : list ? h("ul", { className: "things" }, ...list) : h("p", { className: "dim" }, "Loading\u2026")] };
     }
     if (one) {

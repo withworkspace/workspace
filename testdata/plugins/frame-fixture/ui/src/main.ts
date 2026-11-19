@@ -110,6 +110,38 @@ async function main() {
     };
   }
 
+  // A thing peeked at, in a panel over the list: the address doesn't
+  // move, so the page says what it shows (pushHere), for ws's Find to
+  // start from. Peeked over a peek, each panel says its own, and closing
+  // either, in any order, takes its own off: ws is left with whichever is
+  // still open, and the address once none is.
+  const peeks = new Set<() => void>();
+  function peek(t: Thing) {
+    const panel = h(
+      "aside",
+      { className: "peek", data: { fixture: "peek" } },
+      h("p", { className: "dim" }, `THING-${t.id}, peeked at`),
+      h("h1", {}, t.name),
+      h("p", {}, t.note),
+      h(
+        "p",
+        {},
+        h("button", { type: "button", onclick: () => close() }, "Close"),
+        " ",
+        h("button", { type: "button", onclick: () => peek(things?.find((o) => o.id === (t.id % 3) + 1) ?? t) }, `Peek THING-${(t.id % 3) + 1} over it`),
+      ),
+    );
+    panel.style.setProperty("--peeked", String(peeks.size));
+    document.body.append(panel);
+    const off = ws.pushHere(`THING-${t.id}`);
+    const close = () => {
+      off();
+      panel.remove();
+      peeks.delete(close);
+    };
+    peeks.add(close);
+  }
+
   async function load() {
     try {
       const res = await fetch(ws.api("/api/things"));
@@ -128,7 +160,9 @@ async function main() {
     // where a name written anywhere in ws opens.
     const one = /^\/things\/(?:THING-)?(\d+)$/.exec(path);
     if (path === "/") {
-      const list = things?.map((t) => h("li", {}, h("a", { href: ws.href(`/things/${t.id}`) }, t.name), " ", h("span", { className: "dim" }, t.note)));
+      const list = things?.map((t) =>
+        h("li", {}, h("a", { href: ws.href(`/things/${t.id}`) }, t.name), " ", h("span", { className: "dim" }, t.note), " ", h("button", { type: "button", data: { fixture: "peek-button" }, onclick: () => peek(t) }, "Peek")),
+      );
       return { title: "Things", body: [h("h1", {}, "Things"), failed ? h("p", { className: "error" }, failed) : list ? h("ul", { className: "things" }, ...list) : h("p", { className: "dim" }, "Loading…")] };
     }
     if (one) {

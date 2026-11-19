@@ -49,6 +49,10 @@ export interface Host {
   // it: ws sees the backdrop in the page that's connected (backdrop.ts).
   // The dim is off, too, once that page is hung up on.
   dim(on: boolean): void;
+  // What the app shows now that its address doesn't say: one of ws's
+  // names (an issue in a panel), or none. Find starts from it. It's none,
+  // too, once the page is hung up on.
+  here(name: string | undefined): void;
 }
 
 // Session is a page that's connected, as ws tells it things.
@@ -149,6 +153,7 @@ export function listen(
     unwatch();
     unwatch = () => {};
     host.dim(false);
+    host.here(undefined);
   };
   const onMessage = (e: MessageEvent) => {
     const source = frame();

@@ -199,3 +199,21 @@ input {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* A thing peeked at, beside the list: the address stays where it was.
+   Each peek over another sits a little further in. */
+.peek {
+  position: fixed;
+  z-index: 5;
+  top: calc(var(--ws-space-4) + var(--peeked, 0) * var(--ws-space-6));
+  right: calc(var(--ws-space-4) + var(--peeked, 0) * var(--ws-space-6));
+  width: 280px;
+  padding: var(--ws-space-4);
+  border: 1px solid var(--ws-line);
+  border-radius: var(--ws-radius);
+  background: var(--ws-raised);
+  box-shadow: var(--ws-shadow);
+}
+.peek h1 {
+  margin-top: 0;
+}

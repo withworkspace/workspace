@@ -6,6 +6,7 @@ import { refsFound } from "../refs/found";
 import { useRefs, useRefsWorkspace } from "../refs/known";
 import { Empty, useTitle } from "../ui/kit";
 import { setFrameDim } from "./dim";
+import { setFrameHere } from "./here";
 import { type Frame, listen } from "./frame";
 import { frameBase, viewBase } from "./paths";
 import { onThemeChange, theme } from "./theme";
@@ -111,6 +112,8 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
         // The app has a backdrop up, as ws sees in its page: the shell
         // dims what's beside the frame (App.tsx) for as long as it has.
         dim: setFrameDim,
+        // What the app shows beyond its address: Find starts from it.
+        here: (n) => setFrameHere(name, n),
       },
       setRefused,
     );
