@@ -1,7 +1,6 @@
 package artifact
 
 import (
-	"cmp"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -14,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/store"
 )
 
@@ -41,14 +39,14 @@ func init() {
 		CREATE TABLE artifacts (
 			id TEXT NOT NULL PRIMARY KEY,   -- a3
 			n INTEGER NOT NULL UNIQUE,      -- its number: none is used twice
-			place TEXT NOT NULL,            -- where it's kept: '.ws', this machine's, or a repo's name
-			folder TEXT NOT NULL,           -- its folder: {date}-{slug} in .ws/artifacts, its path in a repo
+			place TEXT NOT NULL,            -- where it's kept: '.ws', this machine's (a repo's name, for one from before they all were: BringHome)
+			folder TEXT NOT NULL,           -- its folder in .ws/artifacts: {date}-{slug}
 			title TEXT NOT NULL,
 			status TEXT NOT NULL,           -- live, promoted, discarded
 			versions INTEGER NOT NULL,      -- its latest version's number
 			last TEXT NOT NULL,             -- when its latest version was added
 			size INTEGER NOT NULL,          -- its artifact.toml's size when last read; -1 when its folder had gone
-			changed TEXT NOT NULL,          -- that file's time then (in a repo: each of its records' size and time, the ground's and capsules')
+			changed TEXT NOT NULL,          -- that file's time then
 			record TEXT NOT NULL,           -- artifact.toml as it was last read (Artifact), as JSON
 			UNIQUE (place, folder)
 		) WITHOUT ROWID;
@@ -69,15 +67,9 @@ const placeVersion = "artifact-version"
 // ErrNotFound is the answer for an artifact that isn't there.
 var ErrNotFound = errors.New("not found")
 
-// Store keeps a workspace's artifacts: those on this machine, in
-// .ws/artifacts, and those in the repo the workspace keeps them in, if it
-// has one (Repo, repo.go).
+// Store keeps a workspace's artifacts: on this machine, in .ws/artifacts.
 type Store struct {
 	Root string
-	// Repo is the repo the workspace keeps artifacts in, as it's read:
-	// nil for none, or for a reader that needs only what the records
-	// have.
-	Repo *Repo
 }
 
 // Dir is where artifacts on this machine are kept.
@@ -91,11 +83,11 @@ func (s Store) DiscardedDir() string { return filepath.Join(s.Dir(), ".discarded
 type Entry struct {
 	ID string `json:"id"` // a3
 	N  int    `json:"n"`
-	// Place is where it's kept: Local, or the repo's name (records).
+	// Place is where it's kept: Local. (A repo's name, for one kept there
+	// before they were all kept here, until it's brought home: BringHome.)
 	Place string `json:"place"`
-	// Folder is its folder: its name in .ws/artifacts
-	// (2026-11-12-horizon-glow), or its path in the repo
-	// (artifacts/2026-11-12-horizon-glow).
+	// Folder is its folder's name in .ws/artifacts
+	// (2026-11-12-horizon-glow).
 	Folder string `json:"folder"`
 	// Gone: its folder isn't where it was, and it wasn't discarded. What's
 	// known of it is what the records kept.
@@ -108,77 +100,47 @@ type Entry struct {
 }
 
 // Path is the artifact's folder: in .ws/artifacts, or in its .discarded
-// once it's discarded; in a repo, in its ground, or in the capsule it's in
-// while none of it has landed.
+// once it's discarded.
 func (s Store) Path(e Entry) string {
-	if e.Place != Local && e.Place != "" {
-		return s.Repo.folder(e, e.InFlight())
-	}
 	if e.Status == Discarded {
 		return filepath.Join(s.DiscardedDir(), e.Folder)
 	}
 	return filepath.Join(s.Dir(), e.Folder)
 }
 
-// VersionPath is version n's file: in a repo, in the capsule it waits in
-// while it's in flight, under the number it has there.
+// VersionPath is version n's file.
 func (s Store) VersionPath(e Entry, n int) string {
-	if v, ok := e.Version(n); ok && v.Capsule != "" && e.Place != Local {
-		return filepath.Join(s.Repo.folder(e, v.Capsule), VersionFile(cmp.Or(v.Was, n)))
-	}
 	return filepath.Join(s.Path(e), VersionFile(n))
 }
 
-// InRepo reports whether it's kept in a repo, not on this machine.
-func (e Entry) InRepo() bool { return e.Place != Local && e.Place != "" }
+// Away reports whether it's one from before artifacts were all kept on
+// this machine, still where it was: its row names a repo, and its files
+// aren't here until it's brought home (BringHome).
+func (e Entry) Away() bool { return e.Place != Local && e.Place != "" }
 
-// InFlight is the capsule it's in (records/glow) while none of it has
-// landed: crew made it there, and it lands with their capsule. "" once
-// any of it has, and for one on this machine.
-func (e Entry) InFlight() string {
-	if !e.InRepo() || len(e.Versions) == 0 {
-		return ""
-	}
-	for _, v := range e.Versions {
-		if v.Capsule == "" {
-			return ""
-		}
-	}
-	return e.Versions[0].Capsule
-}
-
-// Flying are its versions that wait in a capsule, not landed: crew's.
-func (e Entry) Flying() []Version {
-	var out []Version
-	for _, v := range e.Versions {
-		if v.Capsule != "" {
-			out = append(out, v)
-		}
-	}
-	return out
-}
-
-// Where is the folder as it's said to people: .ws/artifacts/<folder>/ on
-// this machine, records:artifacts/<folder>/ in a repo (records/glow:… in
-// the capsule it's in, while none of it has landed).
+// Where is its folder as it's said to people: .ws/artifacts/<folder>/.
 func (e Entry) Where() string {
-	if e.InRepo() {
-		if c := e.InFlight(); c != "" {
-			return c + ":" + e.Folder + "/"
-		}
-		return e.Place + ":" + e.Folder + "/"
-	}
 	if e.Status == Discarded {
 		return ".ws/artifacts/.discarded/" + e.Folder + "/"
 	}
 	return ".ws/artifacts/" + e.Folder + "/"
 }
 
-// Kept is where it's kept, as the web UI and ws show say it: this
-// machine, or the repo.
+// Lives is where it lives in a repo, as it's said to people
+// (records:artifacts/<folder>/): "" for one on this machine only, and
+// for one discarded, whose folder there was taken away.
+func (e Entry) Lives() string {
+	if e.Home == nil || e.Status == Discarded {
+		return ""
+	}
+	return e.Home.Where()
+}
+
+// Kept is where it's kept, as ws show says it: this machine, and the
+// repo it lives in, promoted.
 func (e Entry) Kept() string {
-	if e.InRepo() {
-		return e.Place
+	if e.Home != nil && e.Status != Discarded {
+		return "this machine, and " + e.Home.Repo
 	}
 	return "this machine"
 }
@@ -189,6 +151,12 @@ func stampOf(t time.Time) string { return t.UTC().Format(store.Stamp) }
 
 func notFound(id string) error {
 	return fmt.Errorf("%w: the workspace has no artifact %s", ErrNotFound, id)
+}
+
+// awayError is the answer for a change to an artifact that hasn't been
+// brought home.
+func awayError(e Entry) error {
+	return fmt.Errorf("%s is from when artifacts were kept in %s, and hasn't been brought onto this machine yet: ws doctor does it", e.ID, e.Place)
 }
 
 // kept is an artifact's row: what the records hold of it.
@@ -230,7 +198,7 @@ func keptWhere(tx *store.Tx, where string, args ...any) (*kept, error) {
 // gone is whether an artifact's folder has gone without its being
 // discarded, and whether one discarded on this machine has no files left.
 func gone(k *kept) (bool, bool) {
-	return k.size < 0 && k.Status != Discarded, k.size < 0 && k.Status == Discarded && !k.InRepo()
+	return k.size < 0 && k.Status != Discarded, k.size < 0 && k.Status == Discarded
 }
 
 // keptIn is artifact id's row in tx, if it has one.
@@ -435,13 +403,6 @@ func (s Store) ReadVersion(ctx context.Context, id string, n int) ([]byte, Entry
 	if e.Erased {
 		return nil, e, n, fmt.Errorf("%s was discarded, and its files are gone for good: there's no file to read", id)
 	}
-	if s.inHistory(e) {
-		text, ok := s.fromHistory(e, n)
-		if !ok {
-			return nil, e, n, fmt.Errorf("%s isn't in %s@%s, where history keeps %s", VersionRef(id, n), e.Place, shortCommit(e.Discarded.Commit), id)
-		}
-		return text, e, n, nil
-	}
 	text, err := os.ReadFile(s.VersionPath(e, n))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, e, n, fmt.Errorf("%s's file isn't there (%s)", VersionRef(id, n), s.VersionPath(e, n))
@@ -449,43 +410,17 @@ func (s Store) ReadVersion(ctx context.Context, id string, n int) ([]byte, Entry
 	return text, e, n, err
 }
 
-// inHistory reports whether an artifact's files are only in its repo's
-// history: discarded there, a commit having taken its folder away.
-func (s Store) inHistory(e Entry) bool {
-	return e.InRepo() && e.Status == Discarded && e.Discarded != nil && e.Discarded.Commit != "" && s.Repo != nil && s.Repo.Name == e.Place
-}
-
-// fromHistory is version n's file of an artifact discarded in a repo, as
-// the commit before its discard has it.
-func (s Store) fromHistory(e Entry, n int) ([]byte, bool) {
-	return show(s.Repo.Ground, e.Discarded.Commit, e.Folder+"/"+VersionFile(n))
-}
-
 // VersionSize is version n's file's size, and false where there's no file
-// to read: its folder's gone, or it's missing. One discarded in a repo is
-// read from history.
+// to read: its folder's gone, or it's missing.
 func (s Store) VersionSize(e Entry, n int) (int, bool) {
 	if e.Gone || e.Erased {
 		return 0, false
-	}
-	if s.inHistory(e) {
-		out, err := git.Line(s.Repo.Ground, "cat-file", "-s", e.Discarded.Commit+":"+e.Folder+"/"+VersionFile(n))
-		size, perr := strconv.Atoi(out)
-		return size, err == nil && perr == nil
 	}
 	info, err := os.Stat(s.VersionPath(e, n))
 	if err != nil {
 		return 0, false
 	}
 	return int(info.Size()), true
-}
-
-// shortCommit is a commit as people read it: its first seven.
-func shortCommit(c string) string {
-	if len(c) > 7 {
-		return c[:7]
-	}
-	return c
 }
 
 // versionsSaid lists an artifact's versions: v1, v2 and v3.
@@ -571,11 +506,7 @@ func (s Store) freshen(ctx context.Context) (int, error) {
 			gone = append(gone, k)
 		}
 	}
-	flown, err := s.Repo.scan(all)
-	if err != nil {
-		return 0, err
-	}
-	if len(reads) == 0 && len(gone) == 0 && len(flown) == 0 {
+	if len(reads) == 0 && len(gone) == 0 {
 		return 0, nil
 	}
 	// What was read still holds: a row written through ws since is left
@@ -598,9 +529,6 @@ func (s Store) freshen(ctx context.Context) (int, error) {
 					return err
 				}
 			}
-		}
-		if err := s.Repo.save(tx, flown); err != nil {
-			return err
 		}
 		for _, r := range reads {
 			var k *kept
@@ -634,7 +562,7 @@ func (s Store) freshen(ctx context.Context) (int, error) {
 		}
 		return nil
 	})
-	return len(reads) + len(flown), err
+	return len(reads), err
 }
 
 func nextNumber(tx *store.Tx) (int, error) {
@@ -767,11 +695,11 @@ func (s Store) AddVersion(ctx context.Context, id string, r Revision) (Entry, in
 		if k.Status == Discarded {
 			return fmt.Errorf("%w: %s was discarded, so it takes no new versions: add a new artifact", ErrDiscarded, id)
 		}
-		if k.InRepo() {
-			return fmt.Errorf("%s is kept in %s, where a version's added in git, not here", id, k.Place)
+		if k.Away() {
+			return awayError(k.Entry)
 		}
 		dir := s.Path(k.Entry)
-		a, num, file, err := revise(dir, id, r, 0)
+		a, num, file, err := revise(dir, id, r)
 		made, n = file, num
 		if err != nil {
 			return err
@@ -819,8 +747,8 @@ func (s Store) Discard(ctx context.Context, id string, d Discard) (Entry, error)
 		if k.Status == Discarded {
 			return fmt.Errorf("%w: %s was discarded already, on %s", ErrDiscarded, id, k.Discarded.At.Local().Format("2006-01-02"))
 		}
-		if k.InRepo() {
-			return fmt.Errorf("%s is kept in %s, where it's discarded in git, not here", id, k.Place)
+		if k.Away() {
+			return awayError(k.Entry)
 		}
 		dir := s.Path(k.Entry)
 		was, err := os.ReadFile(filepath.Join(dir, RecordFile))

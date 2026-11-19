@@ -161,7 +161,7 @@ Something to look at and use, for when that's better than a description: a mock-
 - Each version says who made it, what it's based on and what changed. *Compare* (`c`) puts two side by side.
 - It runs in a frame that fetches nothing and keeps nothing, at the width you pick.
 - Where there's something to choose between, the page says what can be changed and ws draws the controls beside it: its **tweaks**, with the agent's presets as buttons. The state is in the address, and *Compare* puts a version beside itself in two.
-- They're sketches, and expire. *Promote* (`p`) keeps one.
+- They're sketches, on your machine, and expire. *Promote* (`p`) keeps one, and puts the version you chose in a repo, for everyone with it. Where it lives is asked once: promote it again, versions later, and the one chosen then goes to the same folder.
 
 ---
 

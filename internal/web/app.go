@@ -4,6 +4,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/doc"
 	"github.com/withworkspace/workspace/internal/ops"
@@ -57,6 +58,7 @@ type Focusing interface {
 // restoring one, and clearing the expired, each as you.
 type Artifacting interface {
 	PromoteArtifact(p ops.ArtifactPromote, by ops.Actor) (ops.ArtifactDone, error)
+	ArtifactHomeOffered(e artifact.Entry) string
 	DiscardArtifact(ref, reason string, by ops.Actor) (ops.ArtifactDone, error)
 	RestoreArtifact(ref string, by ops.Actor) (ops.ArtifactDone, error)
 	ClearExpiredArtifacts(by ops.Actor) (ops.ArtifactsCleared, error)

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { type ArtifactDetail, type ArtifactInfo, type ArtifactVersion, frameURL, getArtifactDetail, getArtifactSource, type Workspace } from "../api";
+import { type ArtifactDetail, type ArtifactInfo, type ArtifactVersion, frameURL, getArtifactDetail, getArtifactSource, promoteArtifact, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
@@ -9,7 +9,7 @@ import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../revie
 import { HoverCard } from "../ui/hover";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Copyable, Empty, ErrorCard, Keys, Loading, useTitle } from "../ui/kit";
+import { Copyable, Empty, ErrorCard, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import { Status } from "../ui/status";
 import { Time } from "../ui/time";
@@ -26,7 +26,7 @@ import {
   keptWords,
   keptIcon,
   keptTitle,
-  inFlight,
+  behind,
   missionTalk,
   listed,
   type Shown,
@@ -191,7 +191,7 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
             <span className="chip tone-quiet" title={`${a.versions} ${a.versions === 1 ? "version" : "versions"}`}>
               v{v?.n ?? a.versions}
             </span>
-            {a.status !== "live" || a.gone || inFlight(a) || a.expired ? <span className={`chip tone-${artifactStatus(a).tone}`}>{artifactStatus(a).words}</span> : null}
+            {a.status !== "live" || a.gone || a.expired ? <span className={`chip tone-${artifactStatus(a).tone}`}>{artifactStatus(a).words}</span> : null}
             {expiry?.soon && (
               <span className="chip tone-attention" title={`No new version since ${new Date(v?.at ?? a.made).toLocaleDateString()}: promote it to keep it`}>
                 <Icon name="clock" size={11} /> {expiry.words}
@@ -216,7 +216,8 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
               </span>
             )}
             <span title={keptTitle(a)}>
-              <Icon name={keptIcon(a.place)} size={11} /> {a.inFlight ?? keptWords(a.place)}
+              <Icon name={keptIcon(a)} size={11} /> {keptWords(a)}
+              {behind(a) > 0 && <span className="dim">, v{a.latest?.n} here</span>}
             </span>
             <span className="mono">{a.id}</span>
           </span>
@@ -246,7 +247,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
   const brief = workspace.artifacts?.find((a) => a.id === id);
   // Read again when the workspace says it's changed: a new version, or
   // where it stands.
-  const key = brief ? `${brief.versions}:${brief.status}:${brief.latest?.at ?? ""}:${brief.title}:${brief.place}:${brief.promoted?.version ?? ""}:${brief.promoted?.into ?? ""}` : "";
+  const key = brief ? `${brief.versions}:${brief.status}:${brief.latest?.at ?? ""}:${brief.title}:${brief.home?.where ?? ""}:${brief.home?.version ?? ""}:${brief.promoted?.version ?? ""}:${brief.promoted?.into ?? ""}` : "";
   const { value: d, error, reload } = useLoaded<ArtifactDetail>(() => getArtifactDetail(id), [id, key], { keep: true });
   const asked = versionOf(version);
   const n = asked || d?.latest?.n || 0;
@@ -296,7 +297,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
     s: () => setSource((s) => !s),
     t: () => hasTweaks(told) && setTray((x) => !x),
     c: () => comparing && navigate(compareHref(comparing)),
-    p: () => d && d.status !== "discarded" && !d.gone && !d.inFlight && setDialog("promote"),
+    p: () => d && d.status !== "discarded" && !d.gone && setDialog("promote"),
     O: () => n && window.open(frameURL(id, n, opensAs), "_blank", "noopener,noreferrer"),
     Escape: () => navigate("/artifacts"),
   });
@@ -317,7 +318,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
   const missing = !!asked && !v;
   const runnable = !d.gone && !!v?.size;
   const expiry = d.status === "live" ? expiryOf(d, Date.now()) : undefined;
-  const keepable = d.status !== "discarded" && !d.gone && !d.inFlight;
+  const keepable = d.status !== "discarded" && !d.gone;
   // The frame's on the page: there's a version, running, not its source.
   const framed = !missing && runnable && !source && !stopped;
 
@@ -346,13 +347,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           <div className="artifact-note dim">
             Discarded <Time iso={d.discarded.at} as="relative" /> by {d.discarded.by}
             {d.discarded.reason ? `: ${d.discarded.reason}${/[.!?]$/.test(d.discarded.reason) ? "" : "."}` : "."} It's off the list, and takes no new versions.{" "}
-            {d.erased
-              ? "Its files have been deleted for good."
-              : d.place !== ".ws" && d.discarded.commit
-                ? `History keeps it, at ${d.place}@${d.discarded.commit.slice(0, 7)}.`
-                : d.place === ".ws"
-                  ? `Its folder is kept in .ws/artifacts/.discarded until ${new Date(Date.parse(d.discarded.at) + KEEP_DISCARDED).toLocaleDateString()}.`
-                  : null}
+            {d.erased ? "Its files have been deleted for good." : `Its folder is kept in .ws/artifacts/.discarded until ${new Date(Date.parse(d.discarded.at) + KEEP_DISCARDED).toLocaleDateString()}.`}
           </div>
         )}
         {d.status === "promoted" && d.promoted && (
@@ -373,14 +368,11 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             . It's kept for good.
           </div>
         )}
+        {d.home && d.status === "promoted" && <HomeLine d={d} n={n} onDone={reload} />}
         {expiry && (expiry.soon || expiry.expired) && (
           <div className={`artifact-note artifact-expiry${expiry.expired ? " expired" : ""}`}>
             <Icon name="clock" size={12} />{" "}
-            {expiry.expired
-              ? d.place === ".ws"
-                ? "Expired: it's had no new version for a while, and the daemon discards it today. Promote it to keep it."
-                : `Expired: it's had no new version for a while. Clear expired, on Artifacts, takes it from ${d.place}; promote it to keep it.`
-              : `It ${expiry.words}: a new version, or promoting it, keeps it.`}
+            {expiry.expired ? "Expired: it's had no new version for a while, and the daemon discards it today. Promote it to keep it." : `It ${expiry.words}: a new version, or promoting it, keeps it.`}
           </div>
         )}
         <div className="artifact-tools">
@@ -494,6 +486,40 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
   );
 }
 
+// HomeLine says where a promoted artifact lives in a repo, and which
+// version is there. Where the version on the page is another, it's one
+// press to put it there: where it lives was chosen the first time, so
+// nothing's asked.
+function HomeLine({ d, n, onDone }: { d: ArtifactDetail; n: number; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const home = d.home;
+  if (!home) return null;
+  const put = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const done = await promoteArtifact(d.id, { version: n, into: d.promoted?.into || undefined });
+      toast(`Promoted ${d.id}: v${n} is in ${home.where}${done.landed ? ` (${done.landed})` : ""}`, { tone: "done", ms: 6000 });
+      onDone();
+    } catch (e) {
+      toast(humanError((e as Error).message), { tone: "danger", ms: 8000 });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="artifact-note artifact-home dim">
+      <Icon name="branch" size={12} /> It lives in <Copyable text={home.where} className="mono" title="Copy its folder: how it's named for other people" /> too, for everyone with {home.repo}: v{home.version} is there
+      {home.commit ? ` (${home.commit.slice(0, 7)})` : ""}.
+      {n && n !== home.version && d.all.some((x) => x.n === n) ? (
+        <button className="ghost small" onClick={put} disabled={busy} title={`Promote v${n}: it takes v${home.version}'s place there, in one commit`}>
+          <Icon name="check-circle" size={12} /> {busy ? "Landing…" : `Put v${n} there`}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 // VersionLine is a version in a line: v2 of 3, based on v1 (when it isn't
 // the one before), from where, by whom, and when.
 export function VersionLine({ d, v, workspace }: { d: ArtifactDetail; v: ArtifactVersion; workspace: Workspace }) {
@@ -512,14 +538,13 @@ export function VersionLine({ d, v, workspace }: { d: ArtifactDetail; v: Artifac
       <span>{v.from ? byWords(v) : v.by === "you" ? "by you, by hand" : byWords(v)}</span>
       <Time iso={v.at} as="relative" />
       {v.size ? <span>{sizeWords(v.size)}</span> : null}
-      {v.capsule ? (
-        <span className="artifact-in-flight" title={v.was ? `v${v.was} in ${v.capsule}: v${v.was} landed first, so it lands as v${v.n}` : `In ${v.capsule}: it lands with it`}>
-          <Icon name="circle-dashed" size={11} /> in flight, in {v.capsule}
-          {v.was ? `, as v${v.was}` : ""}
+      {d.home?.version === v.n ? (
+        <span title={keptTitle(d)}>
+          <Icon name="branch" size={11} /> in {d.home.repo}
         </span>
       ) : (
-        <span title={keptTitle(d)}>
-          <Icon name={keptIcon(d.place)} size={11} /> {keptWords(d.place)}
+        <span title={`On this machine: ${d.where}`}>
+          <Icon name="monitor" size={11} /> This machine
         </span>
       )}
     </div>
@@ -536,7 +561,7 @@ export function VersionStrip({ d, n, go, keys = ["[", "]"] }: { d: ArtifactDetai
           key={x.n}
           className="artifact-version-host"
           trigger={
-            <button aria-pressed={x.n === n} onClick={() => go(x.n)} tabIndex={-1} className={x.capsule ? "in-flight" : undefined}>
+            <button aria-pressed={x.n === n} onClick={() => go(x.n)} tabIndex={-1} className={d.home?.version === x.n ? "at-home" : undefined}>
               v{x.n}
             </button>
           }
@@ -548,7 +573,7 @@ export function VersionStrip({ d, n, go, keys = ["[", "]"] }: { d: ArtifactDetai
             </span>
           </span>
           <span className="hovercard-line">{x.note || <span className="dim">No note.</span>}</span>
-          {x.capsule && <span className="hovercard-line dim">In flight, in {x.capsule}: it lands with it.</span>}
+          {d.home?.version === x.n && <span className="hovercard-line dim">It's the version in {d.home.repo}: {d.home.where}</span>}
         </HoverCard>
       ))}
       <span className="artifact-step-keys dim">

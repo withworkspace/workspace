@@ -1,4 +1,4 @@
-import type { ArtifactInfo, ArtifactVersion } from "../api";
+import type { ArtifactInfo, ArtifactPromotion, ArtifactVersion } from "../api";
 import type { PageRef } from "../refs/refs";
 import type { StatusInfo } from "../ui/status";
 
@@ -65,28 +65,31 @@ export function fromRef(from: string): PageRef {
 // byWords is who added a version: you, or crew (c1).
 export const byWords = (v: Pick<ArtifactVersion, "by">) => (v.by === "you" ? "by you" : `by ${v.by}`);
 
+// An artifact is on this machine. One that's promoted may live in a repo
+// too, for everyone with it (its home): the version chosen, in a folder
+// there.
+
 // keptWords is where an artifact is kept, as the list says it: this
-// machine, or the repo it's in.
-export const keptWords = (place: string) => (place === ".ws" || !place ? "This machine" : place);
+// machine, or the repo it lives in, with the version that's there.
+export const keptWords = (a: Pick<ArtifactInfo, "home">) => (a.home ? `${a.home.repo} · v${a.home.version}` : "This machine");
 
 // keptIcon is the icon beside where it's kept.
-export const keptIcon = (place: string) => (place === ".ws" || !place ? "monitor" : "branch");
+export const keptIcon = (a: Pick<ArtifactInfo, "home">) => (a.home ? "branch" : "monitor");
 
 // keptTitle says where it's kept, in full.
-export function keptTitle(a: Pick<ArtifactInfo, "place" | "where" | "inFlight">): string {
-  if (a.inFlight) return `In ${a.inFlight}, not landed: ${a.where}`;
-  if (a.place === ".ws" || !a.place) return `On this machine only: ${a.where}`;
-  return `In ${a.place}, for everyone with it: ${a.where}`;
+export function keptTitle(a: Pick<ArtifactInfo, "where" | "home">): string {
+  if (!a.home) return `On this machine only: ${a.where}`;
+  return `v${a.home.version} lives in ${a.home.where}, for everyone with ${a.home.repo}. Every version is on this machine: ${a.where}`;
 }
 
-// inFlight reports whether an artifact waits, whole or in part, in a
-// capsule: crew's, not landed.
-export const inFlight = (a: Pick<ArtifactInfo, "inFlight" | "flying" | "latest">) => !!a.inFlight || !!a.latest?.capsule;
+// behind is how many versions an artifact has that are newer than the one
+// in the repo it lives in: 0 for one that lives in none, or whose latest
+// is there.
+export const behind = (a: Pick<ArtifactInfo, "home" | "latest">) => (a.home && a.latest ? Math.max(0, a.latest.n - a.home.version) : 0);
 
 // artifactStatus is where an artifact stands, as a status draws it.
-export function artifactStatus(a: Pick<ArtifactInfo, "status" | "gone"> & Partial<Pick<ArtifactInfo, "inFlight" | "latest" | "expired">>): StatusInfo {
+export function artifactStatus(a: Pick<ArtifactInfo, "status" | "gone"> & Partial<Pick<ArtifactInfo, "expired">>): StatusInfo {
   if (a.gone) return { icon: "alert", tone: "danger", words: "Gone" };
-  if (a.status === "live" && (a.inFlight || a.latest?.capsule)) return { icon: "circle-dashed", tone: "progress", words: "In flight" };
   if (a.status === "live" && a.expired) return { icon: "clock", tone: "quiet", words: "Expired" };
   switch (a.status) {
     case "promoted":
@@ -166,18 +169,14 @@ export function expiryOf(a: Pick<ArtifactInfo, "expires">, now: number): Expiry 
   return { words, soon: left <= WARN, expired: false };
 }
 
-// clearable are the expired artifacts Clear expired takes: those in the
-// repo, in one commit, and any on this machine the daemon hasn't swept
-// yet.
+// clearable are the expired artifacts Clear expired takes: those the
+// daemon hasn't swept yet.
 export const clearable = (all: ArtifactInfo[]) => all.filter((a) => a.status === "live" && a.expired && !a.gone);
 
-// promoteVersions are the versions an artifact can be promoted at: those
-// that have landed (crew's in flight can't be chosen yet), newest first.
-export function promoteVersions(versions: Pick<ArtifactVersion, "n" | "capsule">[]): number[] {
-  return versions
-    .filter((v) => !v.capsule)
-    .map((v) => v.n)
-    .sort((a, b) => b - a);
+// promoteVersions are the versions an artifact can be promoted at, newest
+// first.
+export function promoteVersions(versions: Pick<ArtifactVersion, "n">[]): number[] {
+  return versions.map((v) => v.n).sort((a, b) => b - a);
 }
 
 // Into is what a promoted artifact went into, as the Promote dialog asks
@@ -185,21 +184,38 @@ export function promoteVersions(versions: Pick<ArtifactVersion, "n" | "capsule">
 // document.
 export type IntoKind = "nothing" | "mission" | "start" | "document";
 
-// promotion is what the Promote dialog sends, from what's in it.
-export function promotion(version: number, kind: IntoKind, text: string, move: boolean): { version: number; into?: string; start?: string; move?: boolean } {
+// Lives is where a promoted artifact is to live, as the Promote dialog
+// asks it the first time: the folder the workspace offers it in a repo,
+// this machine only, or another folder (named as repo:folder/). "home" is
+// where it lives already, which isn't asked.
+export type Lives = "home" | "offered" | "here" | "other";
+
+// livesAt is what the Promote dialog opens on, for where it's to live:
+// where it lives; else, unless it was promoted to stay here before, the
+// folder the workspace offers it; else this machine.
+export function livesAt(a: Pick<ArtifactInfo, "home" | "here">, offered?: string): Lives {
+  if (a.home) return "home";
+  return offered && !a.here ? "offered" : "here";
+}
+
+// promotion is what the Promote dialog sends, from what's in it: the
+// version, what it went into, and, for one that lives in no repo yet,
+// where it's to live.
+export function promotion(version: number, kind: IntoKind, text: string, lives: Lives = "home", folder = ""): ArtifactPromotion {
   const t = text.trim();
-  const out: { version: number; into?: string; start?: string; move?: boolean } = { version };
+  const out: ArtifactPromotion = { version };
   if ((kind === "mission" || kind === "document") && t) out.into = t;
   if (kind === "start" && t) out.start = t;
-  if (move) out.move = true;
+  if (lives === "here") out.here = true;
+  if ((lives === "offered" || lives === "other") && folder.trim()) out.home = folder.trim();
   return out;
 }
 
 // promoteBlocked says why the Promote dialog can't promote yet, as it's
 // filled in: "" when it can.
-export function promoteBlocked(kind: IntoKind, text: string, local: boolean, move: boolean, repo?: string): string {
+export function promoteBlocked(kind: IntoKind, text: string, lives: Lives = "home", folder = ""): string {
   if (kind !== "nothing" && !text.trim()) return kind === "start" ? "Say what the mission is." : kind === "mission" ? "Choose the mission." : "Name the document, as repo:path.";
-  if (kind === "document" && local && !move)
-    return repo ? `A document cites it by its folder in a repo, so the link works for everyone: move it to ${repo} as you promote it.` : "A document cites it by its folder in a repo, and there's no repo for artifacts.";
+  if (lives === "other" && !/^[^:\s]+:[^:]+$/.test(folder.trim())) return "Name the folder, as repo:folder/.";
+  if (kind === "document" && lives === "here") return "A document cites it by its folder in a repo, so the link works for everyone: give it a folder there to live in.";
   return "";
 }

@@ -149,7 +149,7 @@ func TestArtifactsAPI(t *testing.T) {
 	}
 	a := ws.Artifacts[0]
 	if a.ID != "a1" || a.Title != "Horizon glow" || a.Status != "live" || a.Versions != 2 || a.Latest == nil || a.Latest.N != 2 || a.Latest.Note != "v2's note" ||
-		a.Place != artifact.Local || !strings.HasSuffix(a.Where, "-horizon-glow/") || len(a.From) != 1 || a.From[0].From != "glow" || a.From[0].Title != "The glow" {
+		a.Home != nil || !strings.HasPrefix(a.Where, ".ws/artifacts/") || !strings.HasSuffix(a.Where, "-horizon-glow/") || len(a.From) != 1 || a.From[0].From != "glow" || a.From[0].Title != "The glow" {
 		t.Errorf("listed %+v (latest %+v)", a, a.Latest)
 	}
 
@@ -160,6 +160,10 @@ func TestArtifactsAPI(t *testing.T) {
 	}
 	if len(d.All) != 2 || d.All[0].N != 1 || d.All[0].By != "you" || d.All[1].BasedOn != 1 || d.All[1].By != "c1" || d.All[1].Size == 0 || d.All[0].Note != "v1's note" {
 		t.Errorf("versions %+v", d.All)
+	}
+	// With no repo for promoted ones, promoting it would leave it here.
+	if d.HomeOffered != "" {
+		t.Errorf("offered a home, %q, with none to offer", d.HomeOffered)
 	}
 	for _, p := range []string{"/api/artifacts/a9", "/api/artifacts/nope", "/api/artifacts/a1.v1"} {
 		if res := do(t, s, "GET", p, true, nil); res.StatusCode != http.StatusNotFound {
@@ -359,7 +363,7 @@ func TestArtifactLifetimeAPI(t *testing.T) {
 	}
 
 	var cleared ArtifactsCleared
-	if code := send(t, s, "/api/artifacts/clear", "{}", &cleared); code != 200 || len(cleared.Local) != 1 || cleared.Local[0] != "a2" || len(cleared.Repo) != 0 {
+	if code := send(t, s, "/api/artifacts/clear", "{}", &cleared); code != 200 || len(cleared.Local) != 1 || cleared.Local[0] != "a2" {
 		t.Errorf("clear: %d %+v", code, cleared)
 	}
 	var done ArtifactDone
@@ -371,11 +375,19 @@ func TestArtifactLifetimeAPI(t *testing.T) {
 		t.Errorf("discard: %d %+v", code, done.Artifact)
 	}
 
-	done = ArtifactDone{}
-	if code := send(t, s, "/api/artifacts/a1/promote", `{"version": 1}`, &done); code != 200 || done.Artifact.Status != "promoted" || done.Artifact.Promoted.Version != 1 || done.Artifact.Expires != nil {
-		t.Errorf("promote: %d %+v", code, done.Artifact)
-	}
 	var e struct{ Error string }
+	done = ArtifactDone{}
+	if code := send(t, s, "/api/artifacts/a1/promote", `{"version": 1}`, &done); code != 200 || done.Artifact.Status != "promoted" || done.Artifact.Promoted.Version != 1 || done.Artifact.Expires != nil || done.Home != "" || done.Artifact.Home != nil {
+		t.Errorf("promote: %d %+v", code, done)
+	}
+	// A home that isn't a folder of one of the workspace's repos is said,
+	// and nothing's promoted to it.
+	if code := send(t, s, "/api/artifacts/a1/promote", `{"home": "nowhere:artifacts/glow/"}`, &e); code != http.StatusUnprocessableEntity || !strings.Contains(e.Error, "nowhere isn't one of the workspace's repos") {
+		t.Errorf("a home in no repo: %d %q", code, e.Error)
+	}
+	if code := send(t, s, "/api/artifacts/a1/promote", `{"home": "artifacts/glow"}`, &e); code != http.StatusUnprocessableEntity || !strings.Contains(e.Error, "isn't a folder in a repo") {
+		t.Errorf("a home that's no folder: %d %q", code, e.Error)
+	}
 	if code := send(t, s, "/api/artifacts/a1/promote", `{"into": "nosuch"}`, &e); code != http.StatusUnprocessableEntity || !strings.Contains(e.Error, "neither a mission nor a document") {
 		t.Errorf("into nothing that's there: %d %q", code, e.Error)
 	}

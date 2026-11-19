@@ -119,9 +119,6 @@ It's checked before anything's proposed: one HTML file, under the limit, with a 
 func showArtifactGuide(ctx *ops.Workspace) {
 	where := "on this machine (in .ws/artifacts)"
 	if ctx != nil {
-		if c := ctx.ArtifactsConfig(); c.InRepo() {
-			where = fmt.Sprintf("in %s (%s), committed and landed on its default branch when the user adds it", c.Repo, c.Path)
-		}
 		if name, text, ok := ctx.ArtifactGuide(); ok {
 			fmt.Printf("An artifact is one HTML file that shows an idea, to look at and use rather than read. The user sees it running under your reply, in a small sandboxed frame, and adds it with a click, or not. Each version is a whole file, never changed once added. Its frame fetches nothing (no network: images as data: URLs) and keeps nothing (no storage), and a version is at most %s.\n\nHow one's written, from the workspace's guide, %s:\n\n-----\n%s\n-----\n\n", artifact.Size(artifact.MaxSize), name, strings.TrimRight(text, "\n"))
 			fmt.Print(artifactTweaks)
@@ -178,10 +175,8 @@ func proposeArtifact(ctx *ops.Workspace, html []byte, title, note, to, on string
 		switch {
 		case e.Status == artifact.Discarded:
 			return fmt.Errorf("not proposed: %s was discarded, so it takes no new versions: propose a new artifact", id)
-		case e.Gone:
+		case e.Gone || e.Away():
 			return fmt.Errorf("not proposed: %s's folder has gone (it was %s): propose a new artifact", id, e.Where())
-		case e.InFlight() != "":
-			return fmt.Errorf("not proposed: %s hasn't landed: it's crew's, in %s, and lands with it. Propose a version once it has, or a new artifact", id, e.InFlight())
 		}
 		latest, _ := e.Latest()
 		if n == 0 {
@@ -202,10 +197,7 @@ func proposeArtifact(ctx *ops.Workspace, html []byte, title, note, to, on string
 	if len(checked.Warnings) > 0 {
 		fmt.Fprintf(ui.Stderr, "  %s it's proposed as it is: to put that right, propose it again, and say which to add\n", ui.Dim.Render("·"))
 	}
-	what := fmt.Sprintf("it's added as the user's, from this conversation, at %s (on this machine)", p.Path)
-	if c := ctx.ArtifactsConfig(); c.InRepo() {
-		what = fmt.Sprintf("it's added as the user's, from this conversation, at %s, committed and landed on the default branch of %s (a -2, or the next number, if the name's taken by then)", p.Path, c.Repo)
-	}
+	what := fmt.Sprintf("it's added as the user's, from this conversation, at %s (on this machine; a -2 if the name's taken by then)", p.Path)
 	if p.To != "" {
 		what = fmt.Sprintf("it's added to %s as v%d (the number's taken then), based on v%d, from this conversation", p.To, p.Latest+1, p.On)
 	}

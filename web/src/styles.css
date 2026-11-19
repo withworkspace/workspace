@@ -16083,15 +16083,29 @@ button.accent-button:hover:not(:disabled) {
   outline: none;
 }
 
-/* A version in flight: crew's, waiting in a capsule to land. */
-.artifact-versions button.in-flight {
-  border-style: dashed;
-  font-style: italic;
+/* The version that's in the repo an artifact lives in. */
+.artifact-versions button.at-home {
+  text-decoration: underline;
+  text-decoration-color: var(--accent-line);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
-.artifact-in-flight {
-  color: var(--dim);
-  font-style: italic;
+/* Where it lives, read as a sentence, with the one press that puts the
+   version on the page there after it. */
+.artifact-note.artifact-home {
+  max-width: none;
+}
+
+.artifact-home .copyable {
+  display: inline-flex;
+  vertical-align: baseline;
+  font-size: var(--text-sm);
+}
+
+.artifact-home button.ghost {
+  margin-left: 8px;
+  vertical-align: baseline;
 }
 
 .artifact-step-keys {

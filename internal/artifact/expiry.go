@@ -2,8 +2,6 @@ package artifact
 
 import (
 	"fmt"
-	"path"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -15,26 +13,24 @@ import (
 // written down: it's worked out from the record and the setting, so
 // changing the setting changes it for every artifact.
 //
-// On this machine the daemon discards an expired one itself, "expired"
-// its reason. In a repo, ws commits nothing to a shared default branch on
-// its own: an expired one is listed as expired until you clear them, all
-// in one commit (Clear expired). One with a version in flight, crew's in
-// their capsule, doesn't expire until that's landed.
+// The daemon discards an expired one itself, "expired" its reason. Only
+// a live one expires, and a live one is on this machine only, so nothing
+// of it is in a repo for ws to take away.
 
 // Warning is how long before it expires an artifact is listed as
 // expiring: its last week.
 const Warning = 7 * 24 * time.Hour
 
-// KeepDiscarded is how long a folder discarded on this machine is kept
-// in .ws/artifacts/.discarded, to restore it, before the daemon deletes it
+// KeepDiscarded is how long a discarded folder is kept in
+// .ws/artifacts/.discarded, to restore it, before the daemon deletes it
 // for good.
 const KeepDiscarded = 30 * 24 * time.Hour
 
 // Expires is when artifact e expires, and false where it doesn't: it's
-// promoted or discarded, its folder has gone, a version of it waits in a
-// capsule, or the workspace says they never do.
+// promoted or discarded, its folder has gone, or the workspace says they
+// never do.
 func (c Config) Expires(e Entry) (time.Time, bool) {
-	if c.ExpireAfter <= 0 || e.Status != Live || e.Gone || len(e.Flying()) > 0 {
+	if c.ExpireAfter <= 0 || e.Status != Live || e.Gone || e.Away() {
 		return time.Time{}, false
 	}
 	return e.Since().Add(c.ExpireAfter), true
@@ -82,10 +78,11 @@ func (c Config) ExpiryWords() string {
 	return fmt.Sprintf("%d days", days)
 }
 
-// --- Commits that take artifacts away, and what they say
+// --- The commit that takes one out of the repo it lives in
 
-// DiscardBody is the body of the commit that discards an artifact kept in
-// a repo: who did, why, and what it was.
+// DiscardBody is the body of the commit that takes a discarded
+// artifact's folder out of the repo it lived in: who discarded it, why,
+// and what it was.
 func DiscardBody(by, reason string, a *Artifact) string {
 	var b strings.Builder
 	if reason = strings.TrimSpace(reason); reason != "" {
@@ -93,18 +90,7 @@ func DiscardBody(by, reason string, a *Artifact) string {
 	} else {
 		fmt.Fprintf(&b, "Discarded by %s, with no reason given.", by)
 	}
-	fmt.Fprintf(&b, "\n\n%s. History keeps it: ws artifact restore puts it back.", what(a))
-	return b.String()
-}
-
-// ClearBody is the body of the commit that clears expired artifacts: each
-// folder it removed, with what it was.
-func ClearBody(by, expiry string, gone []Entry) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "Cleared by %s: %d %s, each live and with no new version for %s.\n", by, len(gone), map[bool]string{true: "artifact", false: "artifacts"}[len(gone) == 1], expiry)
-	for _, e := range gone {
-		fmt.Fprintf(&b, "\n- %s/: %s", e.Folder, what(&e.Artifact))
-	}
+	fmt.Fprintf(&b, "\n\n%s. Its versions are on the machine it was discarded on for %d days, where ws artifact restore puts it back, here too.", what(a), int(KeepDiscarded.Hours()/24))
 	return b.String()
 }
 
@@ -120,20 +106,3 @@ func what(a *Artifact) string {
 }
 
 func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
-
-var discardedBy = regexp.MustCompile(`(?m)^Discarded by [^:\n]+: (.+)$`)
-
-// RemovedWhy is why a commit took an artifact's folder (its path in the
-// repo) away, as its body says: "expired", for one Clear expired took,
-// what the person who discarded it said, or "" where it says nothing.
-func RemovedWhy(folder, body string) string {
-	for _, l := range strings.Split(body, "\n") {
-		if strings.HasPrefix(l, "- "+path.Clean(folder)+"/:") {
-			return "expired"
-		}
-	}
-	if m := discardedBy.FindStringSubmatch(body); m != nil {
-		return strings.TrimSpace(m[1])
-	}
-	return ""
-}
