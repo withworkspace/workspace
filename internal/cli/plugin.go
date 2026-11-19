@@ -23,6 +23,7 @@ import (
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/ui"
 	"golang.org/x/term"
@@ -130,9 +131,20 @@ func addPluginCommands(root *cobra.Command) {
 	}
 }
 
-// runPluginCommand runs a plugin's command in the daemon, with its output
-// here as it comes and its exit code this command's.
+// runPluginCommand runs a plugin's command in the daemon, with its input
+// read from here as the plugin reads it, its output here as it comes, and
+// its exit code this command's.
 func runPluginCommand(root, name string, args []string) error {
+	// Every word is the plugin's but ws's own --stdin-from, which ws's
+	// guard puts last (harness.heredocAside).
+	if n := len(args); n >= 2 && args[n-2] == harness.StdinFlag {
+		stdinFrom, args = args[n-1], args[:n-2]
+		useStdinFrom()
+	}
+	in := &plugin.Input{Kind: protocol.InputPiped, R: os.Stdin}
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		in.Kind = protocol.InputTerminal
+	}
 	c, err := connectPlugins(root)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ws:", err)
@@ -147,7 +159,7 @@ func runPluginCommand(root, name string, args []string) error {
 		t.Width, _, _ = term.GetSize(int(os.Stdout.Fd()))
 		t.Color = os.Getenv("NO_COLOR") == ""
 	}
-	exit, err := c.Run(ctx, name, args, userDirOr(), t, func(stream, data string) {
+	exit, err := c.Run(ctx, name, args, userDirOr(), t, in, func(stream, data string) {
 		if stream == "stderr" {
 			io.WriteString(os.Stderr, data) //nolint:errcheck // nowhere to say so
 			return

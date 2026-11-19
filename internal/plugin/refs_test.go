@@ -535,7 +535,7 @@ func TestKitTellsWSOfItsThings(t *testing.T) {
 	}
 	run := func(args ...string) {
 		t.Helper()
-		if exit, err := h.Run(context.Background(), "kit", args, root, plugin.Terminal{}, func(string, string) {}); err != nil || exit != 0 {
+		if exit, err := h.Run(context.Background(), "kit", args, root, plugin.Terminal{}, nil, func(string, string) {}); err != nil || exit != 0 {
 			t.Fatalf("ws kit %v: exit %d, %v", args, exit, err)
 		}
 	}

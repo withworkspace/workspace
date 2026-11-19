@@ -47,8 +47,8 @@ func TestKitRegistersWhatItDeclared(t *testing.T) {
 	if r.UI == nil || !strings.HasPrefix(r.UI.Script, "/ui/app.js?v=") || !plugin.ValidUIPath(r.UI.Script) {
 		t.Errorf("ui = %+v", r.UI)
 	}
-	// Its own seven, and the framework's sync, for a plugin with syncs.
-	if r.CommandName("kit") != "kit" || len(r.Commands.Subcommands) != 8 {
+	// Its own eight, and the framework's sync, for a plugin with syncs.
+	if r.CommandName("kit") != "kit" || len(r.Commands.Subcommands) != 9 {
 		t.Errorf("commands = %+v", r.Commands)
 	}
 	if r.Agent == nil || !strings.Contains(r.Agent.Guide, "ws kit hi") || len(r.Agent.Roles) != 1 || r.Agent.Roles[0] != "crew" {
@@ -76,7 +76,7 @@ func TestKitCommandsAndConfig(t *testing.T) {
 	run := func(args ...string) (int, *output) {
 		t.Helper()
 		o := &output{}
-		exit, err := h.Run(context.Background(), "kit", args, root, plugin.Terminal{Width: 80}, o.write)
+		exit, err := h.Run(context.Background(), "kit", args, root, plugin.Terminal{Width: 80}, nil, o.write)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -115,6 +115,64 @@ func TestKitCommandsAndConfig(t *testing.T) {
 	}
 }
 
+func TestKitCommandReadsItsInput(t *testing.T) {
+	root, h := workspace(t)
+	addKit(t, root)
+	ln, err := h.Listen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	go h.Serve(ln)
+	c, err := plugin.Dial(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	ctx := context.Background()
+
+	// Over the socket as a command runs it: more than one read's worth.
+	// (Text: a command's output is JSON strings, so bytes that aren't
+	// UTF-8 don't come out as they went in.)
+	piped := strings.Repeat("a line of input\n", protocol.ReadAtOnce/8)
+	var o output
+	exit, err := c.Run(ctx, "kit", []string{"cat"}, root, plugin.Terminal{}, &plugin.Input{Kind: protocol.InputPiped, R: strings.NewReader(piped)}, o.write)
+	if err != nil || exit != 0 || o.stdout() != "piped true\n> "+piped {
+		t.Errorf("cat: exit %d, err %v, %d bytes out", exit, err, len(o.stdout()))
+	}
+
+	// The prompt is out before ws reads: the person sees it, then types.
+	r, w := io.Pipe()
+	o = output{}
+	done := make(chan int, 1)
+	go func() {
+		exit, _ := c.Run(ctx, "kit", []string{"cat"}, root, plugin.Terminal{}, &plugin.Input{Kind: protocol.InputTerminal, R: r}, o.write)
+		done <- exit
+	}()
+	for deadline := time.Now().Add(5 * time.Second); !strings.HasSuffix(o.stdout(), "> ") && time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {
+	}
+	if o.stdout() != "piped false\n> " {
+		t.Fatalf("before typing: %q", o.stdout())
+	}
+	io.WriteString(w, "typed\n") //nolint:errcheck // a pipe
+	w.Close()
+	if exit := <-done; exit != 0 || o.stdout() != "piped false\n> typed\n" {
+		t.Errorf("typed: exit %d, %q", exit, o.stdout())
+	}
+
+	// No input is nothing to read, and a command that doesn't read its
+	// input isn't held up by it.
+	o = output{}
+	if exit, err := c.Run(ctx, "kit", []string{"cat"}, root, plugin.Terminal{}, nil, o.write); err != nil || exit != 0 || o.stdout() != "piped false\n> " {
+		t.Errorf("no input: exit %d, err %v, %q", exit, err, o.stdout())
+	}
+	never, _ := io.Pipe()
+	o = output{}
+	if exit, err := c.Run(ctx, "kit", []string{"hi"}, root, plugin.Terminal{}, &plugin.Input{Kind: protocol.InputPiped, R: never}, o.write); err != nil || exit != 0 || o.stdout() != "Hello, ws\n" {
+		t.Errorf("unread input: exit %d, err %v, %q", exit, err, o.stdout())
+	}
+}
+
 func TestKitTellsWS(t *testing.T) {
 	root, h := workspace(t)
 	addKit(t, root)
@@ -134,10 +192,10 @@ func TestKitTellsWS(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	before := h.Status("kit").Changed
-	if exit, err := h.Run(context.Background(), "kit", []string{"stale"}, "", plugin.Terminal{}, func(string, string) {}); err != nil || exit != 0 {
+	if exit, err := h.Run(context.Background(), "kit", []string{"stale"}, "", plugin.Terminal{}, nil, func(string, string) {}); err != nil || exit != 0 {
 		t.Fatalf("stale: %d, %v", exit, err)
 	}
-	if exit, err := h.Run(context.Background(), "kit", []string{"fail"}, "", plugin.Terminal{}, func(string, string) {}); err != nil || exit != 3 {
+	if exit, err := h.Run(context.Background(), "kit", []string{"fail"}, "", plugin.Terminal{}, nil, func(string, string) {}); err != nil || exit != 3 {
 		t.Fatalf("fail: %d, %v", exit, err)
 	}
 	// Notifications sent before a command's answer are heard before it.
@@ -160,7 +218,7 @@ func TestKitIsToldWhosLooking(t *testing.T) {
 	looking := func() string {
 		t.Helper()
 		o := &output{}
-		if exit, err := h.Run(context.Background(), "kit", []string{"looking"}, root, plugin.Terminal{}, o.write); err != nil || exit != 0 {
+		if exit, err := h.Run(context.Background(), "kit", []string{"looking"}, root, plugin.Terminal{}, nil, o.write); err != nil || exit != 0 {
 			t.Fatalf("looking: %d, %v", exit, err)
 		}
 		return strings.TrimSpace(o.stdout())
@@ -291,7 +349,7 @@ func TestKitAsksWS(t *testing.T) {
 	run := func(args ...string) string {
 		t.Helper()
 		o := &output{}
-		exit, err := h.Run(context.Background(), "kit", args, root, plugin.Terminal{}, o.write)
+		exit, err := h.Run(context.Background(), "kit", args, root, plugin.Terminal{}, nil, o.write)
 		if err != nil || exit != 0 {
 			t.Fatalf("ask %v: exit %d, %v, %s", args, exit, err, o.errOut.String())
 		}
@@ -359,7 +417,7 @@ holds = 1
 	run := func(args ...string) string {
 		t.Helper()
 		o := &output{}
-		if exit, err := h.Run(context.Background(), "kit", args, root, plugin.Terminal{Width: 80}, o.write); err != nil || exit != 0 {
+		if exit, err := h.Run(context.Background(), "kit", args, root, plugin.Terminal{Width: 80}, nil, o.write); err != nil || exit != 0 {
 			t.Fatalf("%v: exit %d, %v, %s", args, exit, err, o.errOut.String())
 		}
 		return o.stdout()
