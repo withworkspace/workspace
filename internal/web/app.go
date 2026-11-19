@@ -1,6 +1,7 @@
 package web
 
 import (
+	"io"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/conversation"
@@ -9,6 +10,7 @@ import (
 	pages "github.com/withworkspace/workspace/internal/page"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/review"
+	"github.com/withworkspace/workspace/internal/runs"
 	"github.com/withworkspace/workspace/internal/team"
 )
 
@@ -29,6 +31,17 @@ type App interface {
 	Reviewing
 	Artifacting
 	Focusing
+	Running
+}
+
+// Running is runs on a mission's page (internal/runs): a capsule's recipe
+// started, a run stopped, and which missions someone has open, for the
+// runs started from them.
+type Running interface {
+	RunRecipe(slug, repo, capsule, recipe string, by ops.Actor) (runs.Run, error)
+	StopRun(slug, ref string) error
+	LookedAt(slugs map[string]bool) error
+	PointSilo(repo, capsule string, out io.Writer) error
 }
 
 // Focusing is your pins: what's pinned, and pinning, unpinning and

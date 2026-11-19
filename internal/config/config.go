@@ -84,6 +84,9 @@ type LocalConfig struct {
 	Team         TeamConfig             `toml:"team,omitempty"`
 	Reviews      ReviewsConfig          `toml:"reviews,omitempty"`
 	GitHub       GitHubConfig           `toml:"github,omitempty"`
+	// Router is the local names (internal/router): yours alone, as it
+	// listens on your machine.
+	Router RouterConfig `toml:"router,omitempty"`
 	// Plugin is your config for each plugin, over the team's.
 	Plugin map[string]map[string]any `toml:"plugin,omitempty"`
 }
@@ -578,6 +581,9 @@ type SiloRepoConfig struct {
 type RepoFileConfig struct {
 	Capsule CapsuleConfig  `toml:"capsule"`
 	Silo    SiloRepoConfig `toml:"silo"`
+	// Run is how the repo is run, by name ([run.web]): what `ws run web`
+	// starts in the worktree you stand in.
+	Run map[string]RunRecipe `toml:"run,omitempty"`
 	// Landing and Verify are the repo's own account of how work lands in
 	// it (see RepoConfig): a workspace's ws.toml or ws.local.toml says
 	// otherwise for itself.
@@ -588,6 +594,32 @@ type RepoFileConfig struct {
 	Documents *Documents `toml:"documents,omitempty"`
 	// Unknown is what the file says that ws doesn't read (see Config.Unknown).
 	Unknown []string `toml:"-"`
+}
+
+// RouterConfig is ws.local.toml's [router]: whether this workspace's
+// daemon gives it and its runs names under .localhost (internal/router),
+// and the name it goes by.
+type RouterConfig struct {
+	Enabled bool `toml:"enabled,omitempty"`
+	// Name is the workspace's name there: "" is its folder's.
+	Name string `toml:"name,omitempty"`
+}
+
+// RunRecipe is one of a repo's [run.<name>]: something ws run starts
+// (internal/runs).
+type RunRecipe struct {
+	// Command is what's run, in a shell: {port} is the run's port, which
+	// $PORT holds too.
+	Command string `toml:"command"`
+	// Ready is a path asked for over HTTP until it answers anything below
+	// 500: then the run's up. "" is up once something listens on its port.
+	Ready string `toml:"ready,omitempty"`
+	// Stop is run in the same place once the command's process has been
+	// ended (docker compose down): "" for nothing.
+	Stop string `toml:"stop,omitempty"`
+	// Where is where it runs: "" for the worktree you stand in, "silo" for
+	// the repo's silo (.silo), whichever capsule it's pointed at.
+	Where string `toml:"where,omitempty"`
 }
 
 type CapsuleConfig struct {

@@ -34,6 +34,7 @@ Work happens in **capsules**, not on the main branch. Ground is sacred.
   - [VS Code / Cursor](#vs-code--cursor)
   - [IntelliJ](#intellij)
   - [Opening Your Editor](#opening-your-editor)
+- [Runs](#runs)
 - [Silos](#silos)
   - [The Problem](#the-problem)
   - [How It Works](#how-it-works)
@@ -1317,6 +1318,77 @@ ws open cursor-agent
 This opens the workspace-level project file, which includes all your boarded capsules.
 
 ---
+
+## Runs
+
+`ws run` starts a dev server, a compose stack or anything long-lived where you stand (a capsule, `.ground` or `.silo`), on a free port, and ends it for you. Every run has an **owner** and a **time**. It's ended once either has gone, so nothing is left running after the work it was for.
+
+```bash
+ws run -- pnpm dev --port {port}
+ws run --name api --for mission --ttl 8 -- go run ./cmd/api
+```
+
+`{port}` in the command is replaced with the run's port, and `$PORT` is set as well. Ports come from 48000–48999, and a run started again gets the port it had if that's still free. `ws run` waits for the run to be up (`--wait`, a minute unless you say), then prints the run's name, its link and when it ends. Up means something listens on the port, or for a recipe with `ready`, that path answers below 500. If the command ends first, it prints the end of the command's output instead.
+
+**Recipes.** A repo says how it's run in its `ws.repo.toml`, and `ws run <name>` runs that recipe in the worktree you stand in. `ws run` alone lists them.
+
+```toml
+[run.web]
+command = "pnpm dev --port {port} --strictPort"
+ready = "/"                    # up once this answers below 500
+
+[run.stack]
+command = "docker compose up"
+stop = "docker compose down"   # run where it ran, once the run is ended
+```
+
+In the web UI, a capsule on a mission's Work tab lists its runs (each with its link, when it ends, and Stop) and a **Run** button for each recipe that isn't running. A run started there lasts while someone has the mission open, and 15 minutes after, or 4 hours at most.
+
+`stop` is given a minute, with `$PORT` set. If the place it ran has gone (the capsule was burned), it can't be run, and the daemon's log says so.
+
+**Owners** (`--for`):
+
+| `--for` | Ends when | Default for |
+|---|---|---|
+| `pid` | the process that started it exits: your terminal's shell, or the agent whose command it is (the nearest above `ws` that's been running a minute or more; `--owner <pid>` names another) | everyone else |
+| `capsule` | the capsule it runs in is burned or landed | |
+| `mission` | the mission (`$WS_MISSION`, or the capsule's) ends | |
+| `step` | the step of the plan crew are on passes or is skipped | crew |
+| `crew` | crew's session closes | crew on no step |
+| `conversation` | the conversation (`$WS_CONVERSATION`) is resolved | a conversation's agent |
+| `none` | only its time, or `ws run stop` | |
+
+**Time** (`--ttl`): hours, 4 unless you say. `0` is no limit, which crew can't have. `ws run keep <name> [hours]` gives a running run more time from now.
+
+**Names.** A run is named for its command's first word, or `--name`, and is said as `<name>.<worktree>.<repo>` everywhere (`web.my-capsule.api`, `web.ground.api`). If a run in the same place is running with that name already, the new one gets the next free name (`web-2`) and ws says so. A run that has ended gives its name up.
+
+```bash
+ws run ls [--json]          # every run in the workspace, ending any that are due first
+ws run logs <name> [-f]     # its output; -f follows it until it ends
+ws run stop [name...]       # end runs now: those named, or every run where you stand (--all: every one)
+ws run keep <name> [hours]  # more time
+```
+
+**What ends them.** The workspace's daemon looks every 15 seconds, as it starts, and at once when crew end. What fell due while it was down is ended when it's back. `ws run` starts the daemon if it isn't up. A run isn't the daemon's child: it leads a session of its own, so restarting or upgrading ws leaves it running. Ending a run asks its process group to stop (`SIGTERM`), gives it 5 seconds, then makes it (`SIGKILL`). ws only ends runs it started.
+
+A run whose command exits by itself is kept for an hour, with its status and output (`ws run ls` shows `exited 1, 14:05`), then removed.
+
+**Names.** With `[router] enabled = true` in `ws.local.toml`, the workspace and its runs have names under `.localhost`, which browsers send to this machine by themselves:
+
+| Name | Goes to |
+|---|---|
+| `<workspace>.localhost` | the web UI (`ws web` signs in there) |
+| `<run>.<capsule>.<repo>.<workspace>.localhost` | a run in a capsule |
+| `<run>.ground.<repo>.<workspace>.localhost` | a run in a repo's `.ground` |
+| `<run>.silo.<repo>.<workspace>.localhost` | a run in a repo's silo |
+
+`<workspace>` is `[router] name`, or the workspace's folder's name. Every name has its own cookies and storage, so two capsules' logins don't overwrite each other as two ports' do. Links ws prints and shows use names while they're served; `ws run` prints the `127.0.0.1` address too.
+
+One router serves every workspace on the machine, with no process of its own. Each daemon with names on tries to listen on port 80 (or 7080, where 80 is another program's or the system keeps it for root, as Linux does), and the one the system lets is the router. If it goes, another takes over within 2 seconds. Each daemon writes its routes to `~/.local/state/ws/routes/` (or under `$XDG_STATE_HOME`). The router listens on every interface, as macOS lets a user have port 80 no other way, and answers this machine alone: a request from anywhere else, or for a name not under `.localhost`, is refused. Where two workspaces ask for the same name, the first keeps it and the other has four letters of its own after it (`shop-15a4`), which it keeps while its daemon runs. `ws router` says where names are served and what this workspace's are.
+
+A recipe with `where = "silo"` runs in the repo's silo, whichever capsule it's pointed at, as `<run>.silo.<repo>.<workspace>.localhost`. Asking for it by a capsule's name (`stack.my-capsule.api.shop.localhost`) goes straight through when the silo is on that capsule. When it's on another, a page offers to point the silo there, which you confirm in the web UI; a request alone never moves it.
+
+**Where it's kept.** Each run is a folder, `.ws/runs/<repo>/<worktree>/<name>/`, holding `run.json` (its command, port, process, owner and time) and `out.log`. Nothing about a run is kept anywhere else.
 
 ## Silos
 

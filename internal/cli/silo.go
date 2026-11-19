@@ -62,57 +62,8 @@ func newSiloPointCmd() *cobra.Command {
 				}
 			}
 
-			siloDir := ctx.WS().SiloWorktree(repo)
-			capsuleDir := filepath.Join(ctx.WS().RepoDir(repo), capsule)
-
-			// Create .silo/ worktree if doesn't exist (detached HEAD to avoid branch conflicts)
-			if _, err := os.Stat(siloDir); os.IsNotExist(err) {
-				fmt.Fprintf(ui.Stderr, "  Creating silo for %s...\n", ctx.WS().FormatRepoName(repo))
-				bareDir := ctx.WS().BareDir(repo)
-				if err := workspace.GitWorktreeAddDetached(bareDir, siloDir, ctx.WS().DefaultBranch); err != nil {
-					return fmt.Errorf("creating silo worktree: %w", err)
-				}
-			}
-
-			// Update silo state
-			if ctx.WS().Silo == nil {
-				ctx.WS().Silo = make(map[string]string)
-			}
-			ctx.WS().Silo[repo] = capsule
-			if err := config.SaveSilo(ctx.WS().Root, ctx.WS().Silo); err != nil {
-				return fmt.Errorf("saving silo state: %w", err)
-			}
-
-			// Full sync
-			fmt.Fprintf(ui.Stderr, "  Syncing %s -> .silo...\n", capsule)
-			if _, err := workspace.FullSync(capsuleDir, siloDir); err != nil {
-				return fmt.Errorf("syncing: %w", err)
-			}
-
-			// Run after_create hook (precedence: ws.local.toml > ws.toml > ws.repo.toml)
-			hook, hasHook := ctx.WS().AfterCreateHooks[repo]
-			repoConfigPath := filepath.Join(ctx.WS().MainWorktree(repo), config.RepoFileName)
-			repoCfg, err := config.ParseRepoConfig(repoConfigPath)
-			if err != nil {
+			if err := ctx.PointSilo(repo, capsule, os.Stderr); err != nil {
 				return err
-			}
-			if !hasHook && repoCfg != nil && repoCfg.Capsule.AfterCreate != "" {
-				hook = repoCfg.Capsule.AfterCreate
-				hasHook = true
-			}
-			if hasHook {
-				fmt.Fprintf(ui.Stderr, "  Running after_create hook...\n")
-				if err := workspace.RunHook(siloDir, hook, os.Stderr, os.Stderr); err != nil {
-					fmt.Fprintf(ui.Stderr, "  %s after_create hook failed: %v\n", ui.Orange.Render("⚠"), err)
-				}
-			}
-
-			// Run after_switch hook from ws.repo.toml
-			if repoCfg != nil && repoCfg.Silo.AfterSwitch != "" {
-				fmt.Fprintf(ui.Stderr, "  Running after_switch hook...\n")
-				if err := workspace.RunHook(siloDir, repoCfg.Silo.AfterSwitch, os.Stderr, os.Stderr); err != nil {
-					fmt.Fprintf(ui.Stderr, "  %s after_switch hook failed: %v\n", ui.Orange.Render("⚠"), err)
-				}
 			}
 
 			fmt.Fprintf(ui.Stderr, "  %s Silo for %s now points at %s\n",

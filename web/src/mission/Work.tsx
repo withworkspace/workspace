@@ -10,6 +10,7 @@ import { crewStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { CapsuleEnds, EndedCapsules } from "./Ending";
 import { canOpenPR, OpenPR } from "./OpenPR";
+import { RunsHere } from "./Runs";
 import { ArtifactState, ArtifactThreads, artifactTitle, CrewBadge, endedWords, isArtifact, kindTitle, shortPath } from "./parts";
 import { type Home, type Work as WorkModel, type WorkCapsule, type WorkState, fileGroups, outputHome, outputKey } from "./workRows";
 
@@ -345,6 +346,7 @@ function CapsulePane({ d, x, label, select, review, reload }: { d: MissionDetail
               </div>
             </>
           )}
+          <RunsHere slug={d.slug} c={c} open={open} reload={reload} />
           {x.steps.length > 0 && (
             <>
               <h3>

@@ -47,6 +47,7 @@ Once you're inside a capsule, normal development workflows apply:
 - **Git works normally.** Commit, push, pull, rebase — all standard git commands work.
 - **First push auto-sets upstream.** `push.autoSetupRemote` is configured, so `git push` works without `-u` on the first push.
 - **`ws lift` and `ws dock` change your cwd.** These commands automatically `cd` into the new capsule, so you're ready to work immediately after running them.
+- **Start servers with `ws run`, not in the background.** A dev server, a compose stack, anything left running: `ws run <recipe>` runs one of the repo's recipes (`ws run` alone lists them), and `ws run -- <command> --port {port}` runs anything else. ws gives it a free port, waits until it's up, prints its link, and ends it when what it was for is over (crew's step passes, a conversation is resolved, your terminal closes) or after 4 hours. `ws run ls` lists runs, `ws run logs <name>` prints one's output, and `ws run stop <name>` ends one now. Where the workspace has names (`ws router`), the link is one (`web.my-capsule.api.shop.localhost`), and `127.0.0.1:<port>` reaches it too.
 
 ## Seeing workspace state
 

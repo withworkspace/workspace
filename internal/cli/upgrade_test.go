@@ -22,7 +22,7 @@ func installedWS(t *testing.T, r *releasetest.Releases, version string) upgrader
 	return upgrader{Exe: exe, Version: version, Release: true, Source: release.Source{Base: r.URL}, OS: "linux", Arch: "amd64"}
 }
 
-func runs(t *testing.T, u upgrader) string {
+func versionRun(t *testing.T, u upgrader) string {
 	t.Helper()
 	v, err := release.VersionOf(u.Exe)
 	if err != nil {
@@ -44,7 +44,7 @@ func TestUpgrade_InstallsTheLatest(t *testing.T) {
 	if !got.Installed || !got.Kept || got.From != "v1.3.0" || got.To != "v1.4.0" {
 		t.Errorf("upgrade() = %+v", got)
 	}
-	if v := runs(t, u); v != "v1.4.0" {
+	if v := versionRun(t, u); v != "v1.4.0" {
 		t.Errorf("the ws in place is %s, want v1.4.0", v)
 	}
 }
@@ -69,7 +69,7 @@ func TestUpgrade_LeavesTheWSAsItIs(t *testing.T) {
 		if err != nil || got != tc.want {
 			t.Errorf("%s: upgrade() = %+v, %v: want %+v", tc.name, got, err, tc.want)
 		}
-		if v := runs(t, u); v != tc.running {
+		if v := versionRun(t, u); v != tc.running {
 			t.Errorf("%s: the ws in place is %s, want %s still", tc.name, v, tc.running)
 		}
 	}
@@ -88,7 +88,7 @@ func TestUpgrade_ToAReleaseThatsNamed(t *testing.T) {
 		if err != nil || !got.Installed || got.To != version {
 			t.Errorf("upgrade(%s) = %+v, %v", version, got, err)
 		}
-		if v := runs(t, u); v != version {
+		if v := versionRun(t, u); v != version {
 			t.Errorf("the ws in place is %s, want %s", v, version)
 		}
 	}
@@ -124,7 +124,7 @@ func TestUpgrade_Refuses(t *testing.T) {
 			if err == nil || !strings.Contains(err.Error(), tc.want) || got.Installed {
 				t.Errorf("upgrade() = %+v, %v: want an error with %q", got, err, tc.want)
 			}
-			if v := runs(t, u); v != "v1.3.0" {
+			if v := versionRun(t, u); v != "v1.3.0" {
 				t.Errorf("the ws in place is %s, want v1.3.0 still", v)
 			}
 		})

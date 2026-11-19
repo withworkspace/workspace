@@ -5,6 +5,9 @@ import (
 
 	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/review"
+
+	"github.com/withworkspace/workspace/internal/router"
+	"github.com/withworkspace/workspace/internal/runs"
 )
 
 // What the API serves. web/src/api.ts mirrors these.
@@ -540,6 +543,52 @@ type CapsuleDetail struct {
 	Direct bool       `json:"direct,omitempty"`
 	ToLand int        `json:"toLand,omitempty"`
 	Landed *time.Time `json:"landed,omitempty"`
+	// Runs are what's running in it (ws run), and Recipes the names of
+	// what its ws.repo.toml says it can run.
+	Runs    []RunDetail `json:"runs,omitempty"`
+	Recipes []string    `json:"recipes,omitempty"`
+}
+
+// RunDetail is a run (ws run) as a capsule's page shows it.
+type RunDetail struct {
+	Ref    string `json:"ref"`
+	Name   string `json:"name"`
+	Recipe string `json:"recipe,omitempty"`
+	// Link is where it's reached: by its name, when the workspace has
+	// names (ws router), else Local, at 127.0.0.1 and its port.
+	Link  string `json:"link"`
+	Local string `json:"local"`
+	Port  int    `json:"port"`
+	// State is running, exited (Status its exit status) or gone.
+	State  string `json:"state"`
+	Status int    `json:"status,omitempty"`
+	// Up: something listens on its port.
+	Up bool `json:"up,omitempty"`
+	// Ends says when it's ended without being asked, in words, while it
+	// runs; Ended is when it ended, once it has.
+	Ends    string     `json:"ends,omitempty"`
+	Ended   *time.Time `json:"ended,omitempty"`
+	Owner   string     `json:"owner"`
+	By      string     `json:"by,omitempty"`
+	Command string     `json:"command"`
+	Started time.Time  `json:"started"`
+}
+
+// RunDetailOf is a run of the workspace at root as a page shows it.
+func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
+	d := RunDetail{Ref: r.Ref(), Name: r.Name, Recipe: r.Recipe, Link: router.RunAddress(root, r), Local: r.Link(), Port: r.Port, State: string(r.State),
+		Owner: string(r.Owner.Kind), By: r.By, Command: r.Command, Started: r.Created}
+	switch r.State {
+	case runs.Running:
+		d.Up, d.Ends = r.Listening(), runs.Ends(r, now)
+	case runs.Exited:
+		d.Status = r.Status
+		fallthrough
+	default:
+		ended := r.Ended
+		d.Ended = &ended
+	}
+	return d
 }
 
 // PR is a capsule's pull request.
