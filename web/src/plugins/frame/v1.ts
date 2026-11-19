@@ -35,6 +35,9 @@ export function v1(port: MessagePort, host: Host): Session {
       case "ws:here":
         host.here(m.name);
         break;
+      case "ws:room":
+        host.room(m.room);
+        break;
     }
   };
 

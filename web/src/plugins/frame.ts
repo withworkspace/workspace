@@ -53,6 +53,9 @@ export interface Host {
   // names (an issue in a panel), or none. Find starts from it. It's none,
   // too, once the page is hung up on.
   here(name: string | undefined): void;
+  // Whether the app wants the room: ws folds its sidebar to a rail while
+  // it does. It doesn't, too, once the page is hung up on.
+  room(wants: boolean): void;
 }
 
 // Session is a page that's connected, as ws tells it things.
@@ -154,6 +157,7 @@ export function listen(
     unwatch = () => {};
     host.dim(false);
     host.here(undefined);
+    host.room(false);
   };
   const onMessage = (e: MessageEvent) => {
     const source = frame();
