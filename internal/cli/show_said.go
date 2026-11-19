@@ -164,8 +164,12 @@ func saidKind(kind string) string {
 		return "a talk about a document" // an ask, kept
 	case "review-pass":
 		return "a pass over a review"
-	case "pass", "cell", "talk", "review", "comment", "decision", "mission", "briefing", "outline":
+	case "pass", "cell", "talk", "review", "comment", "decision", "mission", "briefing", "outline", "handoff", "document":
 		return "a " + kind
+	case "brief":
+		return "a mission's brief"
+	case "file":
+		return "a file of a mission's"
 	case "ask":
 		return "a question in a page"
 	case plugin.ThingKind:

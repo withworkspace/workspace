@@ -109,7 +109,9 @@ func runStep(ctx context.Context, root string, db *sql.DB, name string, i int, s
 		return err
 	}
 	defer stx.Rollback()
-	tx := &Tx{tx: stx, root: root, write: true}
+	// A step names nothing (asked): it runs as the file's taken, before
+	// there's a workspace to ask what there is to name.
+	tx := &Tx{tx: stx, root: root, write: true, asked: true}
 	if err := step(tx); err != nil {
 		return err
 	}

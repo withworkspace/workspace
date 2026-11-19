@@ -69,14 +69,13 @@ func (s Store) linkAnchor(tx *store.Tx, c *Conversation) error {
 	return nil
 }
 
-// linkTurn links a conversation to what a turn of it names, each once.
+// linkTurn links a conversation to what a turn of it names, each once: as
+// the turn pinned them when it was said, which is why its words aren't
+// read for names again where they're written (store.Place's Pinned).
 func (s Store) linkTurn(tx *store.Tx, c *Conversation, t Turn) error {
 	seen := map[store.Key]map[string]bool{}
 	for _, p := range t.Refs {
-		r := p.Ref
-		at := lines(r.Line, r.EndLine)
-		r.Line, r.EndLine = 0, 0
-		k := store.Key{Name: r.Name()}
+		k, at := store.KeyOf(p.Ref)
 		if k.Name == "" || seen[k][at] {
 			continue
 		}
@@ -126,7 +125,7 @@ func (s Store) sayTurn(tx *store.Tx, c *Conversation, t Turn) error {
 	if body == "" {
 		return nil
 	}
-	return tx.Words(s.origin(c.ID), store.Place{Thing: s.key(c.ID), At: strconv.Itoa(t.N), Kind: placeTurn, Title: c.Title, Text: body, Said: t.At})
+	return tx.Words(s.origin(c.ID), store.Place{Thing: s.key(c.ID), At: strconv.Itoa(t.N), Kind: placeTurn, Title: c.Title, Text: body, Said: t.At, Pinned: true})
 }
 
 // sayFindings writes again what a pass found: its latest run's findings,
@@ -145,7 +144,7 @@ func (s Store) sayFindings(tx *store.Tx, c *Conversation) error {
 			continue
 		}
 		text := strings.TrimSpace(strings.TrimSpace(f.Text) + "\n\n" + strings.TrimSpace(f.Suggest))
-		if err := tx.Words(o, store.Place{Thing: s.key(c.ID), At: f.Key, Kind: placeFinding, Title: c.Title, Text: text, Said: w.At}); err != nil {
+		if err := tx.Words(o, store.Place{Thing: s.key(c.ID), At: f.Key, Kind: placeFinding, Title: c.Title, Text: text, Said: w.At, Pinned: true}); err != nil {
 			return err
 		}
 	}

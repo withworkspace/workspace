@@ -64,7 +64,38 @@ func init() {
 		-- A document with a title and nothing else has a section, so it's
 		-- found by its title: read again.
 		DELETE FROM doc_words; DELETE FROM doc_sections; DELETE FROM doc_links; DELETE FROM docs; DELETE FROM space_heads;
+	`), store.SQL(`
+		-- A document is a thing in the graph, what its words name linked
+		-- from it: read again.
+		DELETE FROM doc_words; DELETE FROM doc_sections; DELETE FROM doc_links; DELETE FROM docs; DELETE FROM space_heads;
 	`))
+}
+
+// ThingKind is what a space's document is in the graph.
+const ThingKind = "document"
+
+// The graph: a document on a space's default branch is a thing, named as
+// the repo's file is (records/adr/0001.md: what a thread about it, or a
+// turn that names it, points at), by its title. What its words name that
+// isn't a document it cites (a plugin's thing, a pull request, a mission,
+// a file of code) is linked from it, as mentions: its citations of other
+// documents stay doc_links'. It's forgotten with the document.
+
+func origin(repo, p string) store.Origin { return store.Origin("space:" + repo + "/" + p) }
+
+func graph(tx *store.Tx, repo string, e entry, title string, r read, c change) error {
+	o := origin(repo, e.path)
+	me, _ := store.KeyOf(ref.Ref{Kind: ref.File, Repo: repo, Path: e.path})
+	at, _ := time.Parse(time.RFC3339, c.at)
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: at}); err != nil {
+		return err
+	}
+	for _, n := range r.names {
+		if err := tx.Mention(o, me, n, at); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Stats is what a Refresh read.
@@ -242,7 +273,7 @@ func refreshSpace(ctx context.Context, db *store.DB, ws *workspace.Workspace, s 
 }
 
 // keepDoc writes what a document is: its row, its sections and their
-// words, and what it cites.
+// words, what it cites, and what it is and names in the graph.
 func keepDoc(tx *store.Tx, repo string, e entry, size int, r read, c change) error {
 	title := r.title
 	if title == "" {
@@ -269,7 +300,7 @@ func keepDoc(tx *store.Tx, repo string, e entry, size int, r read, c change) err
 			return err
 		}
 	}
-	return nil
+	return graph(tx, repo, e, title, r, c)
 }
 
 // forget removes what's kept of a document: its words by their sections'
@@ -285,7 +316,39 @@ func forget(tx *store.Tx, repo, p string) error {
 			return err
 		}
 	}
-	return nil
+	return tx.Forget(origin(repo, p))
+}
+
+// ReadAgain lets go of what's kept of every space, so that the next
+// Refresh reads each of its documents again: what a change to what
+// documents name needs (a plugin whose things are named now), as ws
+// doctor --reindex asks.
+func ReadAgain(ctx context.Context, db *store.DB) error {
+	return db.Write(ctx, func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT repo FROM space_heads`)
+		if err != nil {
+			return err
+		}
+		var repos []string
+		for rows.Next() {
+			var repo string
+			if err := rows.Scan(&repo); err != nil {
+				rows.Close()
+				return err
+			}
+			repos = append(repos, repo)
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		for _, repo := range repos {
+			if err := forgetRepo(tx, repo); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 // forgetRepo removes what's kept of a repo that's no longer a space.
@@ -302,7 +365,7 @@ func forgetRepo(tx *store.Tx, repo string) error {
 		}
 	}
 	tx.Changed("space:" + repo)
-	return nil
+	return tx.ForgetUnder(store.Origin("space:" + repo))
 }
 
 // blobs reads documents' contents from a repo through one cat-file

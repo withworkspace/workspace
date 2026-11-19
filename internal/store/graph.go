@@ -89,6 +89,23 @@ func (tx *Tx) Thing(origin Origin, t Thing) error {
 	return err
 }
 
+// Titled gives the things the record at origin wrote a title, where
+// theirs has changed: for what's called after something else (a mission's
+// brief, as its mission is).
+func (tx *Tx) Titled(origin Origin, title string) error {
+	_, err := tx.Exec(`UPDATE things SET title = ? WHERE origin = ? AND title != ?`, title, string(origin), title)
+	return err
+}
+
+// StatedUnder gives the things of the records under origin (origin/…) a
+// state, where theirs differs: for what stands as something else does (a
+// mission's files, as their mission).
+func (tx *Tx) StatedUnder(origin Origin, state string) error {
+	lo, hi := string(origin)+"/", string(origin)+"0"
+	_, err := tx.Exec(`UPDATE things SET state = ? WHERE origin >= ? AND origin < ? AND state != ?`, state, lo, hi, state)
+	return err
+}
+
 // Link records what a thing points at, for the record at origin.
 func (tx *Tx) Link(origin Origin, l Link) error {
 	if !slices.Contains(linkKinds, l.Kind) {
