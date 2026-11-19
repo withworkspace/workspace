@@ -34,6 +34,7 @@ Work happens in **capsules**, not on the main branch. Ground is sacred.
   - [VS Code / Cursor](#vs-code--cursor)
   - [IntelliJ](#intellij)
   - [Opening Your Editor](#opening-your-editor)
+- [Runs](#runs)
 - [Silos](#silos)
   - [The Problem](#the-problem)
   - [How It Works](#how-it-works)
@@ -1306,6 +1307,43 @@ ws open cursor-agent
 This opens the workspace-level project file, which includes all your boarded capsules.
 
 ---
+
+## Runs
+
+`ws run` starts a dev server, a compose stack or anything long-lived where you stand (a capsule, `.ground` or `.silo`), on a free port, and ends it for you. Every run has an **owner** and a **time**. It's ended once either has gone, so nothing is left running after the work it was for.
+
+```bash
+ws run -- pnpm dev --port {port}
+ws run --name api --for mission --ttl 8 -- go run ./cmd/api
+```
+
+`{port}` in the command is replaced with the run's port, and `$PORT` is set as well. Ports come from 48000–48999, and a run started again gets the port it had if that's still free. `ws run` waits for something to listen on the port (`--wait`, a minute unless you say), then prints the run's name, its link and when it ends. If the command ends first, it prints the end of the command's output instead.
+
+**Owners** (`--for`):
+
+| `--for` | Ends when | Default for |
+|---|---|---|
+| `pid` | the process that started it exits: your terminal's shell, or the agent whose command it is (the nearest above `ws` that's been running a minute or more; `--owner <pid>` names another) | everyone but crew |
+| `capsule` | the capsule it runs in is burned or landed | |
+| `mission` | the mission (`$WS_MISSION`, or the capsule's) ends | crew |
+| `none` | only its time, or `ws run stop` | |
+
+**Time** (`--ttl`): hours, 4 unless you say. `0` is no limit, which crew can't have. `ws run keep <name> [hours]` gives a running run more time from now.
+
+**Names.** A run is named for its command's first word, or `--name`, and is said as `<name>.<worktree>.<repo>` everywhere (`web.my-capsule.api`, `web.ground.api`). If a run in the same place is running with that name already, the new one gets the next free name (`web-2`) and ws says so. A run that has ended gives its name up.
+
+```bash
+ws run ls [--json]          # every run in the workspace, ending any that are due first
+ws run logs <name> [-f]     # its output; -f follows it until it ends
+ws run stop [name...]       # end runs now: those named, or every run where you stand (--all: every one)
+ws run keep <name> [hours]  # more time
+```
+
+**What ends them.** The workspace's daemon looks every 15 seconds and as it starts, so what fell due while it was down is ended when it's back. `ws run` starts the daemon if it isn't up. A run isn't the daemon's child: it leads a session of its own, so restarting or upgrading ws leaves it running. Ending a run asks its process group to stop (`SIGTERM`), gives it 5 seconds, then makes it (`SIGKILL`). ws only ends runs it started.
+
+A run whose command exits by itself is kept for an hour, with its status and output (`ws run ls` shows `exited 1, 14:05`), then removed.
+
+**Where it's kept.** Each run is a folder, `.ws/runs/<repo>/<worktree>/<name>/`, holding `run.json` (its command, port, process, owner and time) and `out.log`. Nothing about a run is kept anywhere else.
 
 ## Silos
 

@@ -51,6 +51,7 @@ func newBuiltinRootCmd(version string) *cobra.Command {
 	cmd.AddCommand(newBoardCmd())
 	cmd.AddCommand(newUnboardCmd())
 	cmd.AddCommand(newSiloCmd())
+	cmd.AddCommand(newRunCmd())
 	cmd.AddCommand(newRgCmd())
 	cmd.AddCommand(newGroupCmd())
 	cmd.AddCommand(newMissionCmd())

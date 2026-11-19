@@ -276,3 +276,10 @@ func UseThings(ask func(r wsref.Ref, full bool) (plugin.Shown, error)) func() {
 	askPlugin = func(_ string, r wsref.Ref, full bool) (plugin.Shown, error) { return ask(r, full) }
 	return func() { askPlugin = old }
 }
+
+// NoRunsWatcher has ws run start no daemon, for the test's length.
+func NoRunsWatcher(t interface{ Cleanup(func()) }) {
+	old := ensureRunsWatched
+	ensureRunsWatched = func(string) error { return nil }
+	t.Cleanup(func() { ensureRunsWatched = old })
+}
