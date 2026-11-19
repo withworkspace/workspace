@@ -36,6 +36,7 @@ import { RefTag } from "../refs/RefTag";
 import { refKey } from "../refs/refs";
 import { ArtifactProposalBody } from "./ArtifactProposal";
 import { addedVersion, artifactNext, kindName, type Made, made, type Settled, settled } from "./proposals";
+import { PagePin } from "../shell/focus";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -540,6 +541,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
           {d && <Time iso={d.at} as="relative" className="dim" />}
         </div>
         <div className="talk-actions">
+          {!slug && <PagePin r={{ kind: "talk", id }} />}
           {slug && d?.goal === "brief" && (
             <Link to={`/missions/${slug}/brief`} className="button-link small-link" title="The brief and plan it's about, on their own page: what it proposes for them is read and confirmed there">
               <Icon name="file" size={13} /> The brief

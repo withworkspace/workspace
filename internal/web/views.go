@@ -62,6 +62,7 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 		return Workspace{}, err
 	}
 	out := Workspace{Name: v.Name, Root: root, Org: v.Org, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: Talks(root), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Spaces: []SpaceRef{}}
+	out.Focus = focusOf(v.Focus)
 	if v.Sidebar != nil || v.Menu != nil {
 		out.Places = &Places{Sidebar: append([]string{}, v.Sidebar...), Menu: append([]string{}, v.Menu...)}
 	}
@@ -83,6 +84,14 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 		out.Missions = append(out.Missions, m)
 	}
 	return out, nil
+}
+
+func focusOf(items []ops.FocusItem) []FocusPin {
+	out := []FocusPin{}
+	for _, it := range items {
+		out = append(out, FocusPin{Name: it.Name, Kind: it.Kind, Title: it.Title, State: it.State})
+	}
+	return out
 }
 
 // reviewsCount is how many pull requests Reviews lists, as last asked.

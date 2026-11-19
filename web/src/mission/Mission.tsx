@@ -50,6 +50,7 @@ import { useRepoLabel, Work, workWords } from "./Work";
 import { crewElsewhere, work } from "./workRows";
 import { checkRows, rowKey, shownBundle, toApprove, waiting as bundleWaiting } from "./verifyRows";
 import { type Reload, useLoaded } from "../load";
+import { PagePin } from "../shell/focus";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -369,6 +370,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
             {backLink}
             {d.headlines[0] && <Status s={headlineStatus(d.headlines[0])} iconOnly size={16} className="mission-status" />}
             <Title d={d} reload={load} />
+            <PagePin r={{ kind: "mission", slug: d.slug }} />
           </header>
           {tabRow((t) => (
             <>

@@ -39,6 +39,7 @@ import {
 } from "./shown";
 import { compareFrom, compareHref } from "./pair";
 import { ClearExpired, DiscardDialog, PromoteDialog, restore } from "./Lifetime";
+import { PagePin } from "../shell/focus";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
 // sandboxed frame. A version runs from a route of its own (/frame/a3/v2),
@@ -307,6 +308,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             {st.words}
           </span>
           <Copyable text={v ? `${d.id}.v${v.n}` : d.id} className="ref" title="Copy its ref" />
+          <PagePin r={{ kind: "artifact", id: d.id }} />
         </div>
         {v && <VersionLine d={d} v={v} workspace={workspace} />}
         {v?.note && (

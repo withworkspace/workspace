@@ -28,6 +28,16 @@ type App interface {
 	Paging
 	Reviewing
 	Artifacting
+	Focusing
+}
+
+// Focusing is your pins: what's pinned, and pinning, unpinning and
+// putting them in order, each as you.
+type Focusing interface {
+	Focus() ([]ops.FocusItem, error)
+	Pin(a ops.Actor, name string) (ops.Pinned, error)
+	Unpin(a ops.Actor, name string) (ops.Unpinned, error)
+	ArrangeFocus(a ops.Actor, names []string) error
 }
 
 // Artifacting is an artifact's lifetime: promoting, discarding and

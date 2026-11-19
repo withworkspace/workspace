@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { useLoaded } from "../load";
 import { artifactStatus, byWords } from "../artifacts/shown";
-import { type ArtifactDetail, type FileTree, type FileView, getArtifactDetail, type Repo, getFile, getPR, getTree, getWorktrees, type PR, type Workspace, type Worktree, worktreeAPI } from "../api";
+import { type ArtifactDetail, type FileTree, type FileView, getArtifactDetail, type Repo, getFile, getTree, getWorktrees, type Workspace, type Worktree, worktreeAPI } from "../api";
 import { highlightCode, languageOf, useHighlighter } from "../review/highlight";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
@@ -13,6 +13,8 @@ import { type Surface, thingBlocks } from "./thing";
 import { type Pointer, ThingView, useThing } from "./ThingView";
 import { thingIcon } from "./views";
 import { FloatingCard } from "../ui/hover";
+import { PinButton } from "../shell/focus";
+import { prOf } from "./prs";
 
 // RefCard says more about what words name, under them while the
 // pointer's there: a file's lines, a pull request's title and where it
@@ -20,10 +22,9 @@ import { FloatingCard } from "../ui/hover";
 // artifact's version and its note, a plugin's thing as its plugin says it
 // is. Each has somewhere to go.
 
-// What's been read for cards, kept while the page is open: a file's lines,
-// a pull request.
+// What's been read for cards, kept while the page is open: a file's lines
+// (and a pull request, prs.ts).
 const files = new Map<string, Promise<FileView>>();
-const prs = new Map<string, Promise<PR>>();
 
 const fileOf = (repo: string, worktree: string, path: string) => {
   const key = `${repo}\n${worktree}\n${path}`;
@@ -32,17 +33,6 @@ const fileOf = (repo: string, worktree: string, path: string) => {
     got = getFile(worktreeAPI(repo, worktree), path);
     files.set(key, got);
     got.catch(() => files.delete(key));
-  }
-  return got;
-};
-
-const prOf = (repo: string, number: number) => {
-  const key = `${repo}#${number}`;
-  let got = prs.get(key);
-  if (!got) {
-    got = getPR(repo, number).then((d) => d.pr);
-    prs.set(key, got);
-    got.catch(() => prs.delete(key));
   }
   return got;
 };
@@ -465,7 +455,10 @@ export function RefCard({ r, el, workspace, onEnter, onLeave, hint = true }: { r
   return (
     <FloatingCard anchor={el} className={`ref-card k-${r.kind}`} onEnter={onEnter} onLeave={onLeave}>
       {body(r, workspace, refs?.known, refs?.repos)}
-      {hint && <span className="ref-hint dim">⌘-click its words to go there</span>}
+      <span className="ref-foot">
+        {hint && <span className="ref-hint dim">⌘-click its words to go there</span>}
+        <PinButton r={r} />
+      </span>
     </FloatingCard>
   );
 }
