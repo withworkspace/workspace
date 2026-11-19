@@ -238,6 +238,11 @@ func (a *answering) converse(r responder, h harness.Converser) (harness.Report, 
 	if r.run != nil {
 		r.run(a, &run)
 	}
+	// The plugins' commands marked for conversations, which its agent's
+	// told of (PluginsNote), as they're registered now.
+	if !run.Alone {
+		run.Plugins = PluginConversationCommands(a.w.Root())
+	}
 	// Where its harness sandboxes its shell, a conversation that talks
 	// runs things: its agent's told so, turn by turn, with where it may
 	// write as it then stands (the capsules it's lifted since).

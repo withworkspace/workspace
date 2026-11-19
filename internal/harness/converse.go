@@ -38,6 +38,9 @@ var ErrSessionGone = errors.New("its session is gone")
 // (Lift), lifting a capsule for its conversation. Each proposal is the
 // --propose form of the verb that would do it, with --propose first: the
 // verb alone isn't allowed, and refuses a conversation's agent besides.
+// Every conversation also runs the plugins' commands their plugins marked
+// for conversations (Plugins), which change things as they run: the
+// plugin's call, made for what the user watches change and can undo.
 func converseCommands(r ConverseRun) []string {
 	var out []string
 	for _, ws := range []string{"ws", "workspace"} {
@@ -51,6 +54,9 @@ func converseCommands(r ConverseRun) []string {
 			}
 		} else {
 			out = append(out, ws+" thread suggest")
+		}
+		for _, c := range r.Plugins {
+			out = append(out, ws+" "+c)
 		}
 	}
 	out = append(out, "pwd", "ls", "cat", "head", "tail", "wc")

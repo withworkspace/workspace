@@ -825,6 +825,19 @@ func TestRoles_ForJudge(t *testing.T) {
 // and its kin, a thread's suggestion, and for a talk, the missions, GitHub
 // and read-only git by each path in full; never ws mission's other verbs,
 // editing, or git with options before its subcommand.
+func TestConverseCommandsTakeThePluginsMarked(t *testing.T) {
+	talk := converseCommands(ConverseRun{Talk: true, Plugins: []string{"sketch edit"}})
+	if !commandAllowed("ws sketch edit sketch-1 '[]'", talk) || !commandAllowed("workspace sketch edit sketch-1 <<'EOF'\n[]\nEOF", talk) {
+		t.Errorf("a talk can't run a plugin's command marked for it: %v", talk)
+	}
+	if commandAllowed("ws sketch delete sketch-1", talk) || commandAllowed("ws sketch", talk) {
+		t.Error("a talk may run a plugin's command that isn't marked")
+	}
+	if !commandAllowed("ws sketch edit sketch-1 '[]'", converseCommands(ConverseRun{Plugins: []string{"sketch edit"}})) {
+		t.Error("a thread can't run a plugin's command marked for conversations")
+	}
+}
+
 func TestConverseCommands(t *testing.T) {
 	thread := strings.Join(converseCommands(ConverseRun{}), "|")
 	talk := strings.Join(converseCommands(ConverseRun{Talk: true, ReadPaths: []string{"/ws/repos/api/.ground", "/has space"}}), "|")
