@@ -37,17 +37,25 @@ import (
 // cursor/update_todos, cursor/task and cursor/generate_image need no
 // answer (the CLI sends them as requests all the same, READ).
 //
-// READ: ACP's ask mode is the CLI's read-only one (no edit tools), as
-// print mode's --mode ask is. Without --force, a call that Cursor's own
-// allowlists (~/.cursor/cli-config.json, a project's .cursor/cli.json)
-// don't allow is asked of the client: a shell command with the command as
-// its title, in backticks; a write with its diff. So ws's policy decides
-// every command but what you've allowed Cursor yourself, with no
-// cli.json of ws's. A no is "reject-once" and the turn goes on. Its
-// questions (cursor/ask_question) are answered skipped, with why, and a
-// plan for approval (cursor/create_plan, plan mode's) rejected: nobody's
-// there. Unanswered, Cursor would ask each single-choice question as a
-// permission instead, and drop the rest.
+// READ: ask mode ("Q&A mode - no edits or command execution", Cursor
+// says of it) runs a shell command only in a read-only sandbox, or not at
+// all, so it can't run ws's --propose commands: a conversation in it can't
+// brief or plan, nor the orchestrator dispatch. Plan mode is read-only
+// too. So every role runs in agent mode. There, without --force, a shell
+// command that Cursor's own allowlists (~/.cursor/cli-config.json, a
+// project's .cursor/cli.json) don't allow is asked of the client, with
+// the command as its title, in backticks, and ws's policy decides it, with
+// no cli.json of ws's. A no is "reject-once" and the turn goes on. A write
+// in the session's folder (its workspace) isn't asked for at all, unless
+// you've told Cursor to ask; one outside it is, with its diff ("Out of
+// workspace"), and ws refuses it. A read outside it is asked for only
+// where a read boundary is set, and ws allows it. So the headless roles
+// run from a folder of ws's own (cursorRunDir), not the one they work on,
+// and are told where that is: Cursor's shell takes the folder to run a
+// command in. Its questions (cursor/ask_question) are answered skipped,
+// with why, and a plan for approval (cursor/create_plan, plan mode's)
+// rejected: nobody's there. Unanswered, Cursor would ask each
+// single-choice question as a permission instead, and drop the rest.
 type CursorACP struct {
 	// cursor finds the CLI (nil: the cursor harness's own); tests set one.
 	cursor *Cursor
@@ -55,9 +63,6 @@ type CursorACP struct {
 	// ~/.cursor/acp-sessions); tests change it.
 	sessions string
 }
-
-// cursorACPMode is the mode ws runs Cursor's headless roles in.
-const cursorACPMode = "ask"
 
 // cursorLogin is Cursor's ACP auth method: what `agent login` signed in.
 const cursorLogin = "cursor_login"
@@ -114,9 +119,11 @@ func (c *CursorACP) Available() error {
 	return err
 }
 
-// cursorCrewMode is the mode crew run in: Cursor's own agent mode, all
-// its tools, asking leave for what its allowlists don't allow.
-const cursorCrewMode = "agent"
+// cursorACPMode is the mode every role runs in: Cursor's own agent mode,
+// all its tools, asking leave for what its allowlists don't allow. Crew
+// work in their capsule; the headless roles in a folder of ws's own
+// (cursorRunDir), which is all they may write in.
+const cursorACPMode = "agent"
 
 // Start is new crew: a Cursor session in the capsule, in agent mode, its
 // opening prompt the brief. Its questions (cursor/ask_question) wait for
@@ -127,7 +134,7 @@ func (c *CursorACP) Start(b Brief) (Launch, error) {
 	if err != nil {
 		return Launch{}, err
 	}
-	run := ACPRun{Agent: agent, Dir: b.Dir, Mode: cursorCrewMode, Model: cursorACPModel(b.Model), Allow: crewCommands,
+	run := ACPRun{Agent: agent, Dir: b.Dir, Mode: cursorACPMode, Model: cursorACPModel(b.Model), Allow: crewCommands,
 		Prompt: b.Prompt, Auth: cursorLogin, Ask: []string{"cursor/ask_question"},
 		Answers: map[string]json.RawMessage{"cursor/create_plan": cursorHeadlessAnswers["cursor/create_plan"]}}
 	return Launch{Dir: b.Dir, ACP: &run}, nil
@@ -143,7 +150,7 @@ func (c *CursorACP) Resume(dir, conversation string) (Launch, error) {
 	if err != nil {
 		return Launch{}, err
 	}
-	run := ACPRun{Agent: agent, Dir: dir, Load: conversation, Mode: cursorCrewMode, Allow: crewCommands, Auth: cursorLogin,
+	run := ACPRun{Agent: agent, Dir: dir, Load: conversation, Mode: cursorACPMode, Allow: crewCommands, Auth: cursorLogin,
 		Ask: []string{"cursor/ask_question"}, Answers: map[string]json.RawMessage{"cursor/create_plan": cursorHeadlessAnswers["cursor/create_plan"]}}
 	return Launch{Dir: dir, Conversation: conversation, ACP: &run}, nil
 }
@@ -152,40 +159,70 @@ func (c *CursorACP) Resume(dir, conversation string) (Launch, error) {
 func (c *CursorACP) ConverseModel() string     { return CursorConverseModel }
 func (c *CursorACP) OrchestratorModel() string { return CursorOrchestratorModel }
 
-// Converse runs one turn of a conversation in ask mode, its commands
-// those a conversation may run, going on with its session.
+// Converse runs one turn of a conversation in agent mode, from a folder
+// of ws's own, its commands those a conversation may run, going on with
+// its session.
 func (c *CursorACP) Converse(r ConverseRun) (Launch, error) {
 	agent, err := c.agent()
 	if err != nil {
 		return Launch{}, err
 	}
-	if r.Scratch == "" {
-		return Launch{}, errors.New("cursor-acp: no folder to keep its run in")
-	}
 	if r.Session != "" && !c.sessionKept(r.Session) {
 		return Launch{}, fmt.Errorf("%w: Cursor has no ACP session %s", ErrSessionGone, r.Session)
 	}
-	run := ACPRun{Agent: agent, Dir: r.Dir, Load: r.Session, Mode: cursorACPMode, Model: cursorACPModel(r.Model), Prompt: r.Prompt, Allow: converseCommands(r),
-		Auth: cursorLogin, Answers: cursorHeadlessAnswers}
+	dir, err := cursorRunDir(r.Scratch)
+	if err != nil {
+		return Launch{}, err
+	}
+	run := ACPRun{Agent: agent, Dir: dir, Load: r.Session, Mode: cursorACPMode, Model: cursorACPModel(r.Model), Prompt: cursorWorksIn(dir, r.Dir) + r.Prompt,
+		Allow: converseCommands(r), Auth: cursorLogin, Answers: cursorHeadlessAnswers}
 	if r.Alone {
 		run.Allow = nil
 	}
 	return acpLaunch(run, r.Scratch)
 }
 
-// Orchestrate runs the orchestrator in ask mode, its commands those it
-// may run.
+// Orchestrate runs the orchestrator in agent mode, from a folder of ws's
+// own, its commands those it may run.
 func (c *CursorACP) Orchestrate(r OrchestratorRun) (Launch, error) {
 	agent, err := c.agent()
 	if err != nil {
 		return Launch{}, err
 	}
-	if r.Scratch == "" {
-		return Launch{}, errors.New("cursor-acp: no folder to keep its run in")
+	dir, err := cursorRunDir(r.Scratch)
+	if err != nil {
+		return Launch{}, err
 	}
-	run := ACPRun{Agent: agent, Dir: r.Dir, Mode: cursorACPMode, Model: cursorACPModel(r.Model), Prompt: r.Prompt, Allow: orchestratorCommands(r),
-		Auth: cursorLogin, Answers: cursorHeadlessAnswers}
+	run := ACPRun{Agent: agent, Dir: dir, Mode: cursorACPMode, Model: cursorACPModel(r.Model), Prompt: cursorWorksIn(dir, r.Dir) + r.Prompt,
+		Allow: orchestratorCommands(r), Auth: cursorLogin, Answers: cursorHeadlessAnswers}
 	return acpLaunch(run, r.Scratch)
+}
+
+// cursorRunDir is the folder a headless role's Cursor session runs from:
+// one of ws's own in scratch. Cursor writes in its session's folder
+// without asking, so that's this, never the workspace or a capsule; a
+// write anywhere else is asked of ws, which refuses it. One folder for
+// every run: a conversation's session is loaded from where it began.
+func cursorRunDir(scratch string) (string, error) {
+	if scratch == "" {
+		return "", errors.New("cursor-acp: no folder to keep its run in")
+	}
+	dir := filepath.Join(scratch, "cursor-acp")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
+// cursorWorksIn tells a headless role run from ran that the folder it
+// works on is dir: its prompt says "you're in" that one.
+func cursorWorksIn(ran, dir string) string {
+	if dir == "" || dir == ran {
+		return ""
+	}
+	return "(ws runs you from " + ran + ", a folder of its own, but the folder you work on is " + dir +
+		": where your instructions say \"here\" or \"you're in\", they mean " + dir +
+		". Give it in full when you read a file, and as the folder to run a shell command in. Don't write files: you may only read, and run the commands your instructions allow.)\n\n"
 }
 
 func (c *CursorACP) agent() ([]string, error) {

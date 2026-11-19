@@ -253,8 +253,8 @@ func stopFailure(stop string) string {
 
 // CommandPolicy answers a headless run's asks, with nobody there to: a
 // shell command that's one of allow (or starts with one), run alone, may
-// run; anything else asked for (a command not allowed, one chained to
-// another, an edit, a fetch) is refused, and a form or anything else the
+// run, and a read may be made; anything else asked for (a command not
+// allowed, one chained to another, an edit, a fetch) is refused, and a form or anything else the
 // agent asks is cancelled. Only what leaves the agent's sandbox is asked
 // for: the sandbox is the limit for the rest.
 func CommandPolicy(allow []string) acp.Policy {
@@ -264,6 +264,12 @@ func CommandPolicy(allow []string) acp.Policy {
 		}
 		r := *a.Permission
 		if cmd, ok := permissionCommand(r.ToolCall); ok && commandAllowed(cmd, allow) {
+			return acp.Allow(r), true
+		}
+		if r.ToolCall.Kind == "read" {
+			// The headless roles read what they like. Cursor asks to read
+			// outside its session's folder where a read boundary is set,
+			// and its headless runs work on a folder that isn't that one.
 			return acp.Allow(r), true
 		}
 		return acp.Reject(r), true
