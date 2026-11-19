@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/withworkspace/plugin/protocol"
 )
 
 func proposalStates(c *Conversation) string {
@@ -98,5 +100,69 @@ func TestProposals_Withdraw(t *testing.T) {
 	c, _ = ws.Load("w1")
 	if p := c.Proposal(2); p.State != ProposalWithdrawn || p.Because == "" {
 		t.Errorf("withdrawn, read back: %+v", p)
+	}
+}
+
+func pluginProposal(title string, items ...string) Proposal {
+	p := Proposal{Kind: ProposePlugin, Plugin: "jira", Proposes: "issues", Label: "Jira issues", Title: title, By: Agent, At: at}
+	for _, it := range items {
+		p.Items = append(p.Items, PluginItem{ProposalItem: protocol.ProposalItem{Title: it, Payload: []byte(`{"summary":"` + it + `"}`)}})
+	}
+	return p
+}
+
+// A plugin's proposal is settled once none of its items is open: an item
+// that wasn't done stays open with why; what's done stands, through a
+// decline or a withdrawal of the rest.
+func TestProposals_PluginItems(t *testing.T) {
+	ws := ForWorkspace(owned(t))
+	ws.OpenTalk(You, "issues for this?", at)
+	if _, err := ws.Propose("w1", Proposal{Kind: ProposePlugin, Plugin: "jira", Proposes: "issues", By: Agent, At: at}); err == nil {
+		t.Error("proposed a plugin's proposal with nothing in it")
+	}
+	ws.Propose("w1", pluginProposal("Epic and story", "Epic", "Story", "Spike"))
+	c, err := ws.ItemsDone("w1", 1, []ItemOutcome{{N: 1, State: ItemMade, Made: "RAM-130"}, {N: 2, Problem: "Jira said no"}}, You, at)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := c.Proposal(1)
+	if p.State != ProposalOpen || fmt.Sprint(p.OpenItems()) != "[2 3]" || p.Items[1].Problem != "Jira said no" || p.MadeByItem()[1] != "RAM-130" {
+		t.Errorf("one done, one not: %+v", p)
+	}
+	if _, err := ws.Propose("w1", Proposal{Kind: ProposePlugin, Plugin: "jira", Proposes: "issues", Title: "X", Items: pluginProposal("", "X").Items, Revises: 1, By: Agent, At: at}); err == nil || !strings.Contains(err.Error(), "RAM-130") {
+		t.Errorf("revising one with an item done: %v", err)
+	}
+	c, err = ws.ItemsDone("w1", 1, []ItemOutcome{{N: 2, State: ItemMade, Made: "RAM-131"}, {N: 3, State: ItemLeft}}, You, at)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := c.Proposal(1); p.State != ProposalAccepted || p.Result != "RAM-130 RAM-131" || p.Items[2].State != ItemLeft {
+		t.Errorf("settled: %+v", p)
+	}
+
+	// Declining the rest, once one's done, accepts what was.
+	ws.Propose("w1", pluginProposal("Two more", "A", "B"))
+	ws.ItemsDone("w1", 2, []ItemOutcome{{N: 1, State: ItemMade, Made: "RAM-132"}, {N: 2, Problem: "no"}}, You, at)
+	c, _ = ws.SettleProposal("w1", 2, ProposalDeclined, "", You, at)
+	if p := c.Proposal(2); p.State != ProposalAccepted || p.Result != "RAM-132" || p.Items[1].State != ItemLeft {
+		t.Errorf("the rest declined: %+v", p)
+	}
+	// Withdrawing the rest, likewise.
+	ws.Propose("w1", pluginProposal("Two again", "C", "D"))
+	ws.ItemsDone("w1", 3, []ItemOutcome{{N: 1, State: ItemMade, Made: "RAM-133"}, {N: 2, Problem: "no"}}, You, at)
+	c, _ = ws.Withdraw("w1", 3, "They'll do D themselves.", at)
+	if p := c.Proposal(3); p.State != ProposalAccepted || p.Result != "RAM-133" || p.Because == "" {
+		t.Errorf("the rest withdrawn: %+v", p)
+	}
+	// One of the same title again supersedes one with nothing done.
+	ws.Propose("w1", pluginProposal("Bugs", "E"))
+	c, _ = ws.Propose("w1", pluginProposal("bugs", "E", "F"))
+	if got := c.Proposal(4).State; got != ProposalSuperseded {
+		t.Errorf("the same title again: %s", got)
+	}
+	// Read back from its file, with what each item made.
+	c, _ = ws.Load("w1")
+	if p := c.Proposal(1); p.Items[0].Made != "RAM-130" || p.Items[1].Made != "RAM-131" || p.Items[2].State != ItemLeft {
+		t.Errorf("read back: %+v", p.Items)
 	}
 }

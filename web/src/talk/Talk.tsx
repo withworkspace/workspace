@@ -35,6 +35,7 @@ import { useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
 import { refKey } from "../refs/refs";
 import { ArtifactProposalBody } from "./ArtifactProposal";
+import { PluginProposalCard } from "./PluginProposal";
 import { addedVersion, artifactNext, kindName, type Made, made, revisedText, type Settled, settled } from "./proposals";
 import { PagePin } from "../shell/focus";
 
@@ -440,7 +441,11 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
         if (x.message) toast(x.message, { tone: "done" });
         if (x.path) navigate(x.path, { replace: true });
       },
-      (e: Error) => toast(humanError(e.message), { tone: "danger" }),
+      (e: Error) => {
+        toast(humanError(e.message), { tone: "danger" });
+        // A plugin's items done before one wasn't are kept: show them.
+        load();
+      },
     );
   // An artifact proposed runs from the conversation's records.
   const frameOf = (n: number) => proposalFrameURL(slug, id, n);
@@ -895,7 +900,34 @@ export function SettledMarker({ m, t, compact }: { m: Settled; t: TalkTurn; comp
 // reply it came with, so it can't be confirmed until that's there to read.
 // anchor is its id on the page, where it's gone to from beside the
 // conversation.
-export function ProposalCard({
+export function ProposalCard(props: ProposalCardProps) {
+  if (props.p.kind === "plugin")
+    return (
+      <PluginProposalCard
+        p={props.p}
+        changes={props.revisedFrom && props.p.state === "open" ? <RevisionChanges was={props.revisedFrom} now={props.p} /> : undefined}
+        replying={props.replying}
+        anchor={props.anchor}
+        onSettle={props.onSettle}
+      />
+    );
+  return <WsProposalCard {...props} />;
+}
+
+interface ProposalCardProps {
+  p: TalkProposal;
+  revisedFrom?: TalkProposal;
+  kinds?: DocKind[];
+  artifacts?: ArtifactInfo[];
+  frameOf?: (n: number) => string;
+  inReview?: boolean;
+  slug?: string;
+  replying?: boolean;
+  anchor?: string;
+  onSettle: (n: number, action: "accept" | "decline", edits?: object) => Promise<void>;
+}
+
+function WsProposalCard({
   p,
   revisedFrom,
   kinds,
@@ -979,6 +1011,7 @@ export function ProposalCard({
     plan: p.was ? "Edit to the plan" : "The plan",
     document: p.to ? `Edit to the ${kindName(kindTitle)}` : kindTitle,
     artifact: p.to ? `A version of ${p.to}` : "Artifact",
+    plugin: p.label ?? "Proposal", // drawn by PluginProposalCard
   }[p.kind] ?? "Proposal"; // a kind ws no longer has, from before
   const icon: IconName = proposalIcons[p.kind] ?? "pencil";
   // A review comment: the pull request's page, at the lines it's on.
@@ -995,6 +1028,7 @@ export function ProposalCard({
     plan: "Accept the plan",
     document: p.to ? "Save the edit" : `Add ${kindName(kindTitle)}`,
     artifact: p.to ? `Add as v${artifactNext(p, artifact)}` : "Add artifact",
+    plugin: "Accept",
   }[p.kind];
   const ready = {
     decision: what.trim(),
@@ -1006,6 +1040,7 @@ export function ProposalCard({
     plan: !briefEmpty,
     document: !docEmpty,
     artifact: note.trim() && (p.to || title.trim()),
+    plugin: true,
   }[p.kind];
   const outcome = () => {
     if (p.state === "declined")
@@ -1017,7 +1052,10 @@ export function ProposalCard({
     if (p.state === "superseded")
       return (
         <span className="settled-line dim">
-          <Icon name="arrow-down" size={13} /> Superseded by <a href={`#proposal-${p.result}`}>proposal {p.result}</a>, proposed after it: nothing to confirm here
+          <Icon name="arrow-down" size={13} />
+          <span>
+            Superseded by <a href={`#proposal-${p.result}`}>proposal {p.result}</a>, proposed after it: nothing to confirm here
+          </span>
         </span>
       );
     if (p.state === "withdrawn")
@@ -1367,7 +1405,7 @@ export function ProposalCard({
           {busy && (
             <span className="dim busy">
               <Icon name="spinner" className="spin" />{" "}
-              {{ decision: "Recording…", mission: "Creating…", brief: "Writing…", dispatch: "Starting…", replan: "Asking…", comment: "Adding…", plan: "Writing…", document: p.to ? "Saving…" : "Adding…", artifact: "Adding…" }[p.kind]}
+              {{ decision: "Recording…", mission: "Creating…", brief: "Writing…", dispatch: "Starting…", replan: "Asking…", comment: "Adding…", plan: "Writing…", document: p.to ? "Saving…" : "Adding…", artifact: "Adding…", plugin: "Doing it…" }[p.kind]}
             </span>
           )}
           <span className="spacer" />

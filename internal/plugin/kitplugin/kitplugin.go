@@ -135,6 +135,49 @@ func run() {
 		}
 		return a.Say("pong, " + who)
 	}).Icon("box").Hint("It answers")
+	// Something a conversation's agent may propose: notes, each made with
+	// the next number, one under another (#N) saying so.
+	var notes atomic.Int32
+	p.Proposes("notes", "Kit notes").Icon("box").
+		When("Notes to keep.").
+		Guide(func(context.Context) (string, error) {
+			return `A JSON list of notes: [{"text": "…", "under": "#1"}]`, nil
+		}).
+		Draft(func(d *plugin.Draft) error {
+			var in []struct {
+				Text  string `json:"text"`
+				Under string `json:"under,omitempty"`
+			}
+			if err := d.Decode(&in); err != nil {
+				return err
+			}
+			for _, n := range in {
+				if n.Text == "" {
+					return d.Refuse("every note has text")
+				}
+				d.Item(n.Text, n).Row("Under", n.Under)
+			}
+			return nil
+		}).
+		Accept(func(a *plugin.Accepting) error {
+			var n struct {
+				Text  string `json:"text"`
+				Under string `json:"under,omitempty"`
+			}
+			if err := a.Decode(&n); err != nil {
+				return err
+			}
+			under, err := a.Resolve(n.Under)
+			if err != nil {
+				return err
+			}
+			made := fmt.Sprintf("NOTE-%d", notes.Add(1))
+			a.Made(made)
+			if under != "" {
+				a.Say(made + " under " + under)
+			}
+			return nil
+		})
 	p.Command("more", "Has a second thing, from the next sync on", func(c *plugin.Call) error {
 		more.Store(c.Arg(0) != "less")
 		return c.Say("noted")

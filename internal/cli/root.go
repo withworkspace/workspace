@@ -62,7 +62,7 @@ func newBuiltinRootCmd(version string) *cobra.Command {
 	cmd.AddCommand(newDocumentsCmd(), newDocCmd(), newFindCmd())
 	cmd.AddCommand(newExportCmd())
 	cmd.AddCommand(newThreadCmd())
-	cmd.AddCommand(newTalkCmd(), newConversationCmd(), newPageCmd(), newArtifactCmd())
+	cmd.AddCommand(newTalkCmd(), newConversationCmd(), newPageCmd(), newArtifactCmd(), newProposeCmd())
 	cmd.AddCommand(newPRCmd())
 	cmd.AddCommand(newTeamCmd())
 	cmd.AddCommand(newProcessCmd())

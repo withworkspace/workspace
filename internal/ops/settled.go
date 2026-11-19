@@ -70,6 +70,9 @@ func settledText(p conversation.Proposal, slug, id string, e ProposalEdits) stri
 	if p.State == conversation.ProposalDeclined {
 		return fmt.Sprintf("Declined proposal %d, %s.", p.N, proposalWhat(p, ProposalEdits{}))
 	}
+	if p.Kind == conversation.ProposePlugin {
+		return pluginSettledText(p)
+	}
 	text := fmt.Sprintf("Accepted proposal %d, %s", p.N, proposalWhat(p, e))
 	if made := proposalMade(p, slug, id); made != "" {
 		text += ": " + made
@@ -120,8 +123,39 @@ func proposalWhat(p conversation.Proposal, e ProposalEdits) string {
 			return fmt.Sprintf("a version of %s, on v%d", p.To, p.On)
 		}
 		return "the artifact “" + edited(e.Title, p.Title) + "”"
+	case conversation.ProposePlugin:
+		return fmt.Sprintf("%s:%s “%s”", p.Plugin, p.Proposes, p.Title)
 	}
 	return "the " + firstNonEmpty(p.Kind, "proposal") // a kind ws no longer has
+}
+
+// pluginSettledText is what the agent's told of a plugin's proposal, once
+// none of its items is open: each item, and what came of it.
+func pluginSettledText(p conversation.Proposal) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Accepted proposal %d, %s", p.N, proposalWhat(p, ProposalEdits{}))
+	if p.SettledBy == conversation.Agent {
+		b.WriteString(", what of it was done (you withdrew the rest)")
+	}
+	b.WriteString(".")
+	if len(p.Items) == 1 && p.Items[0].State == conversation.ItemMade {
+		if p.Items[0].Made != "" {
+			fmt.Fprintf(&b, " It made %s.", p.Items[0].Made)
+		}
+		return b.String()
+	}
+	b.WriteString("\n\n")
+	for i, it := range p.Items {
+		switch {
+		case it.State == conversation.ItemMade && it.Made != "":
+			fmt.Fprintf(&b, "- %d, %s: made %s\n", i+1, it.Title, it.Made)
+		case it.State == conversation.ItemMade:
+			fmt.Fprintf(&b, "- %d, %s: done\n", i+1, it.Title)
+		default:
+			fmt.Fprintf(&b, "- %d, %s: not accepted\n", i+1, it.Title)
+		}
+	}
+	return strings.TrimRight(b.String(), "\n")
 }
 
 // proposalMade is what accepting a proposal made, in words: "" for

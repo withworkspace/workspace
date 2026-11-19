@@ -309,6 +309,16 @@ func (c *Conversation) apply(l line) {
 		if p := c.Proposal(l.Proposal.N); p != nil {
 			at := l.Proposal.At
 			p.State, p.Result, p.SettledBy, p.SettledAt, p.Because = l.Proposal.State, l.Proposal.Result, l.Proposal.By, &at, l.Proposal.Because
+			// A plugin's items still open are left with it.
+			for i := range p.Items {
+				if p.Items[i].State == "" && p.State != ProposalOpen {
+					p.Items[i].State = ItemLeft
+				}
+			}
+		}
+	case l.Items != nil:
+		if p := c.Proposal(l.Items.N); p != nil {
+			p.applyItems(l.Items.Items)
 		}
 	case l.Settle != nil:
 		c.settle(l.Settle.Key, l.Settle.State, l.Settle.Why)
@@ -598,6 +608,8 @@ func lineAt(l line) time.Time {
 		return l.Propose.At
 	case l.Proposal != nil:
 		return l.Proposal.At
+	case l.Items != nil:
+		return l.Items.At
 	case l.Settle != nil:
 		return l.Settle.At
 	case l.Placed != nil:

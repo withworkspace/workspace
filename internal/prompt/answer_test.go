@@ -275,3 +275,20 @@ func TestTalkNext_StillOpen(t *testing.T) {
 		t.Error("said what's open with nothing open")
 	}
 }
+
+// What the workspace's plugins propose is listed among what a talk may
+// propose, each by the name it's proposed by, with when to.
+func TestTalkFirst_PluginProposes(t *testing.T) {
+	h := goldenHere
+	h.Proposes = []PluginProposes{{Name: "jira:issues", Title: "Jira issues", When: "Issues to create."}}
+	c := &conversation.Conversation{ID: "w9", Kind: conversation.Talk, Turns: []conversation.Turn{{N: 1, By: "you", Body: "make issues"}}}
+	got := TalkFirst(h, c)
+	for _, want := range []string{"`jira:issues` (Jira issues): Issues to create.", "ws propose <name> - <<'EOF'"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q", want)
+		}
+	}
+	if strings.Contains(TalkFirst(goldenHere, c), "ws propose") {
+		t.Error("told of plugins' proposals with none")
+	}
+}

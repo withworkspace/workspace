@@ -1,12 +1,15 @@
 package conversation
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/store"
 )
 
@@ -26,6 +29,7 @@ const (
 	ProposeDocument = "document" // a document of one of the workspace's kinds, added where its kind says, or (To) an edit to one
 	ProposeArtifact = "artifact" // an artifact, or a version of one: an HTML file, run in a sandboxed frame
 	ProposeReplan   = "replan"   // the mission's planner asked to revise its plan, as ws mission replan asks it
+	ProposePlugin   = "plugin"   // something of a plugin's (issues to create), drafted by the plugin, done by it once accepted
 )
 
 // Proposal states.
@@ -57,6 +61,8 @@ func (p Proposal) supersedes(q Proposal) bool {
 		return q.Kind == ProposePlan
 	case ProposeMission:
 		return q.Kind == ProposeMission && same(p.Title, q.Title)
+	case ProposePlugin:
+		return q.Kind == ProposePlugin && q.Plugin == p.Plugin && q.Proposes == p.Proposes && same(p.Title, q.Title) && !q.anyMade()
 	case ProposeDocument:
 		if p.To != "" {
 			return q.Kind == ProposeDocument && q.To == p.To
@@ -152,6 +158,18 @@ type Proposal struct {
 	Size     int      `json:"size,omitempty"`
 	Warnings []string `json:"warnings,omitempty"`
 
+	// A plugin's: the plugin (Plugin), which of what it proposes (Proposes,
+	// its id), what the card calls that (Label), what the agent wrote
+	// (Input, in the plugin's own shape), and what the plugin drafted of
+	// it: Title for the whole, and its Items, each accepted on its own or
+	// with the rest. Result, once it's settled, is what its items made.
+	Plugin   string          `json:"plugin,omitempty"`
+	Proposes string          `json:"proposes,omitempty"`
+	Label    string          `json:"label,omitempty"`
+	Icon     string          `json:"icon,omitempty"`
+	Input    json.RawMessage `json:"input,omitempty"`
+	Items    []PluginItem    `json:"items,omitempty"`
+
 	// Revises is the proposal this one revises, by its number: the agent
 	// asked to change it, it proposed it again, as it should now be, and
 	// that one's superseded by this. 0: it revises none.
@@ -168,6 +186,131 @@ type Proposal struct {
 	Result    string     `json:"result,omitempty"`
 	SettledBy string     `json:"settledBy,omitempty"`
 	SettledAt *time.Time `json:"settledAt,omitempty"`
+}
+
+// PluginItem is one thing a plugin's proposal does, as the plugin drafted
+// it, and what came of it: open (State ""), made (what it made or
+// changed, by name, in Made), or declined or withdrawn with the rest.
+// Problem is why it wasn't done the last time it was accepted: it's open
+// still, to accept again.
+type PluginItem struct {
+	protocol.ProposalItem
+	State   string `json:"state,omitempty"`
+	Made    string `json:"made,omitempty"`
+	Say     string `json:"say,omitempty"`
+	Open    string `json:"open,omitempty"`
+	Problem string `json:"problem,omitempty"`
+}
+
+// The states of a plugin's proposal's item, past open ("").
+const (
+	ItemMade = "made"
+	// ItemLeft is an item the user didn't accept with the rest, declined
+	// or withdrawn with what was left open.
+	ItemLeft = "left"
+)
+
+// ItemOutcome is what came of an item asked to be done: as the plugin
+// answered (protocol.AcceptedItem), or left.
+type ItemOutcome struct {
+	N       int    `json:"n"`
+	State   string `json:"state,omitempty"`
+	Made    string `json:"made,omitempty"`
+	Say     string `json:"say,omitempty"`
+	Open    string `json:"open,omitempty"`
+	Problem string `json:"problem,omitempty"`
+}
+
+// itemsDone is what came of a plugin's proposal's items, once asked.
+type itemsDone struct {
+	N     int           `json:"n"`
+	Items []ItemOutcome `json:"items"`
+	At    time.Time     `json:"at"`
+}
+
+// OpenItems are the numbers of a plugin's proposal's items still open.
+func (p Proposal) OpenItems() []int {
+	var out []int
+	for i, it := range p.Items {
+		if it.State == "" {
+			out = append(out, i+1)
+		}
+	}
+	return out
+}
+
+// MadeByItem is what each item made, by number.
+func (p Proposal) MadeByItem() map[int]string {
+	out := map[int]string{}
+	for i, it := range p.Items {
+		if it.State == ItemMade && it.Made != "" {
+			out[i+1] = it.Made
+		}
+	}
+	return out
+}
+
+// made is what a plugin's proposal's items made, in order.
+func (p Proposal) made() []string {
+	var out []string
+	for _, it := range p.Items {
+		if it.State == ItemMade && it.Made != "" {
+			out = append(out, it.Made)
+		}
+	}
+	return out
+}
+
+// anyMade is whether any of a plugin's proposal's items was done.
+func (p Proposal) anyMade() bool {
+	return slices.ContainsFunc(p.Items, func(it PluginItem) bool { return it.State == ItemMade })
+}
+
+// applyItems is what came of items happening to a proposal.
+func (p *Proposal) applyItems(out []ItemOutcome) {
+	for _, o := range out {
+		if o.N < 1 || o.N > len(p.Items) {
+			continue
+		}
+		it := &p.Items[o.N-1]
+		if it.State != "" {
+			continue // done already, or left
+		}
+		it.State, it.Made, it.Say, it.Open, it.Problem = o.State, o.Made, o.Say, o.Open, o.Problem
+	}
+}
+
+// ItemsDone records what came of a plugin's proposal's items, asked to be
+// done (or left), and settles it once none is open: accepted, with what
+// they made, if any was done; declined otherwise. An item that wasn't
+// done (a Problem, no State) stays open.
+func (s Store) ItemsDone(id string, n int, out []ItemOutcome, by string, at time.Time) (*Conversation, error) {
+	if by != You {
+		return nil, errors.New("only the user accepts or declines a proposal")
+	}
+	return s.update(id, func(tx *store.Tx, c *Conversation) error {
+		p := c.Proposal(n)
+		switch {
+		case p == nil:
+			return fmt.Errorf("%w: %s has no proposal %d", ErrNotFound, id, n)
+		case p.Kind != ProposePlugin:
+			return fmt.Errorf("proposal %d in %s isn't a plugin's", n, id)
+		case p.State != ProposalOpen:
+			return fmt.Errorf("proposal %d in %s is %s already", n, id, p.State)
+		}
+		if err := s.add(tx, c, line{Items: &itemsDone{N: n, Items: out, At: at}}); err != nil {
+			return err
+		}
+		p = c.Proposal(n)
+		if len(p.OpenItems()) > 0 {
+			return nil
+		}
+		state := ProposalDeclined
+		if p.anyMade() {
+			state = ProposalAccepted
+		}
+		return s.add(tx, c, line{Proposal: &proposalSettled{N: n, State: state, Result: strings.Join(p.made(), " "), By: by, At: at}})
+	})
 }
 
 // ProposalOrigin is the Origin of the turn ws writes for you settling
@@ -271,8 +414,10 @@ func (s Store) Propose(id string, p Proposal) (*Conversation, error) {
 		return nil, errors.New("an artifact's version has a note: what it tries out, or what changed and why")
 	case p.Kind == ProposeReplan && p.Text == "":
 		return nil, errors.New("say what to change in the plan, or what doesn't fit it")
-	case p.Kind != ProposeDecision && p.Kind != ProposeMission && p.Kind != ProposeBrief && p.Kind != ProposeDispatch && p.Kind != ProposeComment && p.Kind != ProposePlan && p.Kind != ProposeDocument && p.Kind != ProposeArtifact && p.Kind != ProposeReplan:
-		return nil, fmt.Errorf("a proposal is a decision, a mission, an edit to the brief or the plan, a dispatch, a replan, a review comment, a document or an artifact, not %q", p.Kind)
+	case p.Kind == ProposePlugin && (p.Plugin == "" || p.Proposes == "" || len(p.Items) == 0):
+		return nil, errors.New("a plugin's proposal is of something it proposes, and has something in it to do")
+	case p.Kind != ProposeDecision && p.Kind != ProposeMission && p.Kind != ProposeBrief && p.Kind != ProposeDispatch && p.Kind != ProposeComment && p.Kind != ProposePlan && p.Kind != ProposeDocument && p.Kind != ProposeArtifact && p.Kind != ProposeReplan && p.Kind != ProposePlugin:
+		return nil, fmt.Errorf("a proposal is a decision, a mission, an edit to the brief or the plan, a dispatch, a replan, a review comment, a document, an artifact or a plugin's, not %q", p.Kind)
 	case (p.Kind == ProposeBrief || p.Kind == ProposeDispatch || p.Kind == ProposePlan || p.Kind == ProposeReplan) && s.Workspace():
 		return nil, fmt.Errorf("a %s is a mission's: this conversation is the workspace's", p.Kind)
 	}
@@ -345,6 +490,11 @@ func (p Proposal) Says() string {
 		if p.To != "" {
 			what = fmt.Sprintf("a version of %s, on v%d: %s", p.To, p.On, p.Note)
 		}
+	case ProposePlugin:
+		what = fmt.Sprintf("%s:%s (%s): %s", p.Plugin, p.Proposes, firstNonEmptyString(p.Label, "a plugin's"), p.Title)
+		if len(p.Items) > 1 {
+			what += fmt.Sprintf(", %d items", len(p.Items))
+		}
 	}
 	return what
 }
@@ -375,6 +525,10 @@ func (c *Conversation) revisable(p Proposal) error {
 		return fmt.Errorf("proposal %d is a document of the kind %s, and this is a %s: a revision is of the same kind", q.N, q.DocKind, p.DocKind)
 	case p.Kind == ProposeArtifact && q.To != p.To:
 		return fmt.Errorf("proposal %d is %s, and this is %s: a revision is of the same artifact", q.N, q.Says(), p.Says())
+	case p.Kind == ProposePlugin && (q.Plugin != p.Plugin || q.Proposes != p.Proposes):
+		return fmt.Errorf("proposal %d is %s, and this is %s: a revision is of the same plugin's same kind of proposal", q.N, q.Says(), p.Says())
+	case p.Kind == ProposePlugin && q.anyMade():
+		return fmt.Errorf("proposal %d had items done already (%s): propose what's left as a new one, naming those by what they made, and withdraw %d", q.N, strings.Join(q.made(), ", "), q.N)
 	case p.Kind == ProposeComment && q.PR != p.PR:
 		return fmt.Errorf("proposal %d is a comment on %s, and this is on %s: a revision is on the same pull request", q.N, q.PR, p.PR)
 	}
@@ -407,6 +561,10 @@ func (s Store) Withdraw(id string, n int, because string, at time.Time) (*Conver
 			return fmt.Errorf("proposal %d was revised as proposal %s: withdraw that one", n, p.Result)
 		case p.State != ProposalOpen:
 			return fmt.Errorf("proposal %d is %s already: there's nothing to withdraw", n, p.State)
+		}
+		if p.Kind == ProposePlugin && p.anyMade() {
+			// What was done stands: it's accepted, with what's left withdrawn.
+			return s.add(tx, c, line{Proposal: &proposalSettled{N: n, State: ProposalAccepted, Result: strings.Join(p.made(), " "), Because: because, By: Agent, At: at}})
 		}
 		return s.add(tx, c, line{Proposal: &proposalSettled{N: n, State: ProposalWithdrawn, Because: because, By: Agent, At: at}})
 	})
@@ -442,6 +600,9 @@ func (s Store) SettleProposal(id string, n int, state, result, by string, at tim
 		switch {
 		case p == nil:
 			return fmt.Errorf("%w: %s has no proposal %d", ErrNotFound, id, n)
+		case p.State == ProposalOpen && p.Kind == ProposePlugin && state == ProposalDeclined && p.anyMade():
+			// What was done stands: it's accepted, with what's left declined.
+			state, result = ProposalAccepted, strings.Join(p.made(), " ")
 		case p.State == ProposalOpen:
 		case p.State == ProposalAccepted && state == ProposalAccepted && p.Kind == ProposeDecision && p.Result == "" && result != "":
 			// moved to its mission

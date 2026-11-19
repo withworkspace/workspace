@@ -9777,6 +9777,130 @@ button.settled-marker-more {
   opacity: 0.6;
 }
 
+/* Something of a plugin's proposed (talk/PluginProposal.tsx): its items,
+   each ticked to accept with the rest, its rows, what it says, and what
+   came of it. */
+.plugin-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.plugin-item {
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--well);
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.plugin-items.one .plugin-item {
+  padding: 0;
+  background: none;
+}
+
+.plugin-items.one .plugin-item-n {
+  display: none;
+}
+
+.plugin-item.s-left {
+  opacity: 0.6;
+}
+
+.plugin-item-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.plugin-item-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.plugin-item-n {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+}
+
+.plugin-item-title {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.plugin-item-on {
+  font-size: var(--text-sm);
+}
+
+.plugin-item-made {
+  color: var(--green);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.plugin-item-rows {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  font-size: var(--text-md);
+}
+
+.plugin-item-rows > div {
+  display: contents;
+}
+
+.plugin-item-rows dt {
+  color: var(--dim);
+}
+
+.plugin-item-rows dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* What an item says at length reads as the rows do, a size under the
+   reply's. */
+.plugin-item .plugin-item-text,
+.plugin-item .plugin-item-text :is(p, li, blockquote) {
+  font-size: var(--text-md);
+}
+
+.plugin-item .plugin-item-text .markdown > :first-child {
+  margin-top: 0;
+}
+
+.plugin-item .plugin-item-text .markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.plugin-item-text > summary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.plugin-item-problem {
+  color: var(--red);
+  font-size: var(--text-sm);
+}
+
+.plugin-item-say {
+  font-size: var(--text-sm);
+}
+
+.proposal-from {
+  font-size: var(--text-xs);
+}
+
 /* An artifact proposed (talk/ArtifactProposal.tsx): running in a small
    sandboxed frame, a version beside the one it revises. */
 .proposal-frames {

@@ -1692,7 +1692,7 @@ export interface Talk {
 // of one).
 export interface TalkProposal {
   n: number;
-  kind: "decision" | "mission" | "brief" | "dispatch" | "replan" | "comment" | "plan" | "document" | "artifact";
+  kind: "decision" | "mission" | "brief" | "dispatch" | "replan" | "comment" | "plan" | "document" | "artifact" | "plugin";
   by: string;
   at: string;
   what?: string;
@@ -1745,10 +1745,35 @@ export interface TalkProposal {
   latest?: number;
   size?: number;
   warnings?: string[];
+  // a plugin's: the plugin, which of what it proposes (its id), what the
+  // card calls that (label) and its icon; title is the plugin's line for
+  // the whole, and items what it'll do, each accepted on its own or with
+  // the rest. Result, settled, is what the items made, by name.
+  plugin?: string;
+  proposes?: string;
+  label?: string;
+  icon?: string;
+  items?: PluginProposalItem[];
   revises?: number; // the agent's revision of an open proposal of its, by number: that one's superseded by this
   state: "open" | "accepted" | "declined" | "superseded" | "withdrawn"; // superseded: a later one took its place; withdrawn: the agent took it back
   because?: string; // withdrawn: why
   result?: string; // a mission's slug, slug:d3, a document's ref (an edit's: where it was saved), or an artifact's version (a3.v1); "" for a decision kept with the conversation; a superseded one's, the later one's number
+}
+
+// PluginProposalItem is one thing a plugin's proposal does, as the plugin
+// drafted it: what it's called, the thing it changes (on), what it'll be
+// row by row (was, for a change) and at length (markdown); and what came
+// of it: made (with what, by name), left (not accepted with the rest), or
+// open, with why it wasn't done the last time it was accepted (problem).
+export interface PluginProposalItem {
+  title: string;
+  on?: string;
+  rows?: { label: string; value: string; was?: string }[];
+  markdown?: string;
+  state?: "made" | "left";
+  made?: string;
+  say?: string;
+  problem?: string;
 }
 
 // TalkCall is a tool call the agent made on the way to a reply.
@@ -2097,7 +2122,7 @@ export const settleTalkProposal = (
   id: string,
   n: number,
   action: "accept" | "decline",
-  edits: { what?: string; why?: string; title?: string; brief?: string; text?: string; plan?: string; note?: string } = {},
+  edits: { what?: string; why?: string; title?: string; brief?: string; text?: string; plan?: string; note?: string; items?: number[] } = {},
 ) => send<TalkDetail>("POST", talkPath(slug, id, `/proposals/${n}`), { action, ...edits });
 
 // A crew's transcript: its session as its harness keeps it (Claude Code's
