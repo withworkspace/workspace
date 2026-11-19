@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -590,6 +591,30 @@ func TestAPluginAsksWhatWSShows(t *testing.T) {
 	if talk.Kind != "talk" || talk.How != protocol.SaidMentions || !talk.Standing || talk.Mission != "" || talk.Path != "/conversations/w1" {
 		t.Errorf("the conversation that names RAM-12: %+v", talk)
 	}
+	// A mission whose brief only names it is said of it too, by its
+	// brief, which opens on the mission's page.
+	res = testutil.RunCommand(t, root, nil, "mission", "new", "Cache the sessions", "--brief", "## Goal\nWhat RAM-12 leaves undone.\n")
+	if res.Err != nil {
+		t.Fatalf("new --brief: %v\n%s", res.Err, res.Stderr)
+	}
+	named := strings.TrimSpace(res.Stdout)
+	got, err = show(protocol.ShowParams{Ref: "RAM-12"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var brief protocol.Said
+	for _, s := range got.Said {
+		if s.Mission == named {
+			brief = s
+		}
+	}
+	if brief.Ref != "brief" || brief.Kind != "brief" || brief.How != protocol.SaidMentions || brief.Path != "/missions/"+named+"?tab=brief" {
+		t.Errorf("the brief that names RAM-12: %+v\nof: %+v", brief, got.Said)
+	}
+	if b, err := show(protocol.ShowParams{Ref: brief.Ref, Mission: brief.Mission}); err != nil || b.Path != "/missions/"+named+"?tab=brief" || !strings.Contains(strings.Join(b.Body, "\n"), "What RAM-12 leaves undone.") {
+		t.Errorf("the brief, asked for in turn: %v %+v", err, b)
+	}
+
 	// And asked for in turn, it says where it came from.
 	if w1, err := show(protocol.ShowParams{Ref: "w1"}); err != nil || w1.Path != "/conversations/w1" || !strings.Contains(strings.Join(w1.Body, "\n"), "from the jira plugin, which worded its first message") {
 		t.Errorf("the conversation: %v %+v", err, w1)
@@ -597,7 +622,7 @@ func TestAPluginAsksWhatWSShows(t *testing.T) {
 
 	// The rest of what a plugin asks is answered as it was.
 	list, err := answer(t.Context(), "jira", protocol.MethodMissionList, nil)
-	if ms, ok := list.(protocol.MissionListResult); err != nil || !ok || len(ms.Missions) != 1 || ms.Missions[0].Slug != slug {
+	if ms, ok := list.(protocol.MissionListResult); err != nil || !ok || len(ms.Missions) != 2 || !slices.ContainsFunc(ms.Missions, func(m protocol.Mission) bool { return m.Slug == slug }) {
 		t.Errorf("mission/list: %v %+v", err, list)
 	}
 }

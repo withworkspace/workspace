@@ -168,6 +168,10 @@ func shownPath(ctx *ops.Workspace, scope, ref string) string {
 			kind = "decision"
 		case reviewShape.MatchString(ref), commentShape.MatchString(ref):
 			kind = "review"
+		case ref == mission.BriefRef:
+			kind = "brief"
+		case strings.HasPrefix(ref, "mission:"):
+			kind = "file"
 		}
 		return missionPath(scope, ref, kind)
 	}
@@ -175,13 +179,18 @@ func shownPath(ctx *ops.Workspace, scope, ref string) string {
 }
 
 // missionPath is where one of a mission's own is read: a conversation
-// has its page, a review is the mission's work, and the rest are on the
-// mission's.
+// has its page, its brief has its tab, a handoff or another of its files
+// is read as an artifact, a review is the mission's work, and the rest
+// are on the mission's.
 func missionPath(slug, ref, kind string) string {
 	at := "/missions/" + url.PathEscape(slug)
 	switch {
 	case kind == "comment" || kind == "review":
 		return at + "?tab=work"
+	case kind == "brief":
+		return at + "?tab=brief"
+	case kind == mission.HandoffKind || kind == "file":
+		return at + "/artifact?" + url.Values{"ref": {ref}}.Encode()
 	case kind == "decision":
 		return at
 	case conversation.IsRef(ref):
