@@ -160,6 +160,7 @@ Something to look at and use, for when that's better than a description: a mock-
 
 - Each version says who made it, what it's based on and what changed. *Compare* (`c`) puts two side by side.
 - It runs in a frame that fetches nothing and keeps nothing, at the width you pick.
+- Where there's something to choose between, the page says what can be changed and ws draws the controls beside it: its **tweaks**, with the agent's presets as buttons. The state is in the address, and *Compare* puts a version beside itself in two.
 - They're sketches, and expire. *Promote* (`p`) keeps one.
 
 ---

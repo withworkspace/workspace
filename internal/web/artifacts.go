@@ -49,7 +49,9 @@ func frameHeaders(w http.ResponseWriter) {
 }
 
 // frame is GET /frame/{id}/{version}: a version's HTML, as it was
-// written, to run in the web UI's sandboxed frame or opened alone.
+// written, with ws.tweaks written in ahead of it (tweaks.go), to run in
+// the web UI's sandboxed frame or opened alone. What its address says
+// after ? is the page's to read (the state of its tweaks), not ws's.
 func (s *Server) frame(w http.ResponseWriter, r *http.Request) {
 	frameHeaders(w)
 	id, vs := r.PathValue("id"), r.PathValue("version")
@@ -72,19 +74,20 @@ func (s *Server) frame(w http.ResponseWriter, r *http.Request) {
 	// again in the same folder (just test-workspace) numbers its own from
 	// a1, on the same port. So it's asked again each time, and a 304
 	// answers when it's the same file.
+	out := withTweaks(text)
 	h := fnv.New64a()
 	h.Write([]byte(e.Folder))
-	h.Write(text)
+	h.Write(out)
 	w.Header().Set("ETag", `"`+strconv.FormatUint(h.Sum64(), 36)+`"`)
 	w.Header().Set("Cache-Control", "private, no-cache")
-	http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(text))
+	http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(out))
 }
 
 // proposalFrame is GET /frame/w9/proposals/2 (a mission's conversation:
 // /frame/missions/{slug}/t3/proposals/2): an artifact a conversation's
 // agent proposed, as it proposed it, from the conversation's records. It's
-// served as a version is, so it runs in the card's frame as it would once
-// added; and it's there whatever became of the proposal: one declined
+// served as a version is, ws.tweaks and all, so it runs in the card's
+// frame as it would once added; and it's there whatever became of the proposal: one declined
 // isn't an artifact, but it stays in the conversation, with its frame.
 func (s *Server) proposalFrame(w http.ResponseWriter, r *http.Request) {
 	frameHeaders(w)
@@ -107,12 +110,13 @@ func (s *Server) proposalFrame(w http.ResponseWriter, r *http.Request) {
 	// What a proposal names can change as a version's can (a workspace
 	// made again numbers its conversations from w1): asked again each
 	// time, as a version is.
+	out := withTweaks([]byte(p.HTML))
 	h := fnv.New64a()
 	h.Write([]byte(store.Slug + "/" + id + "/" + strconv.Itoa(n) + "\n"))
-	h.Write([]byte(p.HTML))
+	h.Write(out)
 	w.Header().Set("ETag", `"`+strconv.FormatUint(h.Sum64(), 36)+`"`)
 	w.Header().Set("Cache-Control", "private, no-cache")
-	http.ServeContent(w, r, "", time.Time{}, strings.NewReader(p.HTML))
+	http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(out))
 }
 
 // framePage is what a frame shows when there's no version to run: a
