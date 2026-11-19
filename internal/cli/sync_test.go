@@ -21,3 +21,30 @@ func TestPluralize(t *testing.T) {
 		}
 	}
 }
+
+func TestParseNameStatus(t *testing.T) {
+	got := parseNameStatus([]string{
+		"M\tPROCESS.md",
+		"A\tdocs/new.md",
+		"D\told.txt",
+		"R087\tnotes.md\tdocs/notes.md",
+		"T\tlink",
+		"",
+		"garbage",
+	})
+	want := []fileChange{
+		{Path: "PROCESS.md", Verb: "updated"},
+		{Path: "docs/new.md", Verb: "added"},
+		{Path: "old.txt", Verb: "removed"},
+		{Path: "docs/notes.md", From: "notes.md", Verb: "renamed"},
+		{Path: "link", Verb: "updated"},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d changes %+v, want %d", len(got), got, len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("change %d = %+v, want %+v", i, got[i], want[i])
+		}
+	}
+}
