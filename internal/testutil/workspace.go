@@ -73,42 +73,10 @@ func SetupWorkspace(t *testing.T, opts WorkspaceOpts) *Workspace {
 	os.MkdirAll(reposDir, 0755)
 
 	for _, repo := range opts.Repos {
-		// Create source repo (acts as the "remote")
+		// The source repo acts as the "remote".
 		srcDir := t.TempDir()
-		initRepo(t, srcDir, opts.DefaultBranch)
 		sources[repo.Name] = srcDir
-		if repo.Landing == "direct" {
-			GitCmd(t, srcDir, "config", "receive.denyCurrentBranch", "updateInstead")
-		}
-
-		// Create extra branches in source
-		for _, branch := range repo.Branches {
-			GitCmd(t, srcDir, "checkout", "-b", branch)
-			os.WriteFile(filepath.Join(srcDir, branch+".txt"), []byte(branch), 0644)
-			GitCmd(t, srcDir, "add", ".")
-			GitCmd(t, srcDir, "commit", "-m", "add "+branch)
-			GitCmd(t, srcDir, "checkout", opts.DefaultBranch)
-		}
-
-		if repo.NotCloned {
-			continue
-		}
-
-		// Create repo directory structure
-		repoDir := filepath.Join(reposDir, repo.Name)
-		os.MkdirAll(repoDir, 0755)
-
-		// Bare clone from source
-		bareDir := filepath.Join(repoDir, ".bare")
-		GitCmd(t, "", "clone", "--bare", srcDir, bareDir)
-		// Configure fetch refspec (same as ws does)
-		GitCmd(t, bareDir, "config", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*")
-		// Fetch to populate remote refs
-		GitCmd(t, bareDir, "fetch", "--all")
-
-		// Add .ground worktree
-		groundDir := filepath.Join(repoDir, ".ground")
-		GitCmd(t, bareDir, "worktree", "add", groundDir, opts.DefaultBranch)
+		copyRepo(t, repoTemplate(t, opts.DefaultBranch, repo), srcDir, filepath.Join(reposDir, repo.Name), !repo.NotCloned)
 	}
 
 	return &Workspace{Root: root, Org: opts.Org, Sources: sources}
