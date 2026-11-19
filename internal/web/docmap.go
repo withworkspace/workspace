@@ -5,6 +5,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/space"
+	"github.com/withworkspace/workspace/internal/store"
 )
 
 // Documents is reading, saving and filing documents and pages: a mission's
@@ -29,6 +30,8 @@ type Documents interface {
 	SearchDocuments(ctx context.Context, q ops.DocQuery) ([]ops.DocHit, int, error)
 	// What ws records, by what it says (Find's said group).
 	Find(ctx context.Context, q ops.FindQuery) ([]ops.Found, int, error)
+	// What's one link from a thing in the graph (Find's before anything's typed).
+	Around(ctx context.Context, keys []store.Key, limit int, fresh bool) ([]ops.Near, error)
 	DocCitations(ctx context.Context, repo, path string) (citedBy, cites []space.Citation, err error)
 }
 
