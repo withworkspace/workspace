@@ -68,6 +68,9 @@ brief and a note name them.
   /x/frame-fixture/          the fixture's own page: under "Names in the app's own words",
                     THING-2, the mission and the note are refs there too, found by ws
                     for the app (its panel counts each ws:refs-changed)
+  $ws plugin config frame-fixture shelves.top.label=Top   config in a table: a row's field set by
+                    its path; $ws plugin config frame-fixture lists the rows, --ask asks a row
+                    at a time, and $ws frame-fixture shelves prints them as the plugin was given them
   $ws plugin list            names THING-…
   $ws plugin remove frame-fixture   and its names are words again
 SAID

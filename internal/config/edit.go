@@ -500,7 +500,7 @@ func (d *tomlDoc) set(table []string, key string, value any) error {
 		if d.mentioned(table) {
 			return ErrHandEdit
 		}
-		d.appendTable(table, key+" = "+val)
+		d.appendTable(table, quoteKey(key)+" = "+val)
 		return nil
 	}
 	start, end, err := d.findKey(sec, key)

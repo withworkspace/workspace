@@ -100,7 +100,7 @@ func TestPluginConfig(t *testing.T) {
 		t.Errorf("the secret is in ws.local.toml:\n%s", local)
 	}
 	res = run()
-	if strings.Contains(res.Stdout, "s3cret") || !strings.Contains(res.Stdout, "(set)") || !strings.Contains(res.Stdout, "[PROJ OPS]") {
+	if strings.Contains(res.Stdout, "s3cret") || !strings.Contains(res.Stdout, "(set)") || !strings.Contains(res.Stdout, "PROJ, OPS") {
 		t.Errorf("once it's set:\n%s", res.Stdout)
 	}
 	values, err := plugin.Values(w.Root, "jira")
@@ -122,6 +122,136 @@ func TestPluginConfig(t *testing.T) {
 	}
 	if res := testutil.RunCommand(t, w.Root, nil, "plugin", "config", "nobody"); res.Err == nil {
 		t.Error("a plugin that isn't installed has config")
+	}
+}
+
+// A plugin's tables are shown a row at a time, in the order they were
+// written, and a row's field is set by its path, in your own file: the
+// team's rows stay theirs, and what's wrong in any of it is said.
+func TestPluginConfigInTables(t *testing.T) {
+	w := testutil.SetupWorkspace(t, testutil.WorkspaceOpts{})
+	registerPlugin(t, w.Root, "jira", plugin.Registration{Commands: &plugin.Commands{}, Config: []plugin.ConfigKey{
+		{Key: "site", Title: "Jira site", Type: protocol.TypeURL},
+		{Key: "queries", Title: "Queries", Type: protocol.TypeTable, Row: "Query", Required: true, Fields: []plugin.ConfigKey{
+			{Key: "label", Type: protocol.TypeString},
+			{Key: "query", Type: protocol.TypeString, Required: true},
+			{Key: "limit", Type: protocol.TypeNumber, Default: 50},
+			{Key: "tags", Type: protocol.TypeList},
+		}},
+		{Key: "spaces", Title: "Spaces", Type: protocol.TypeTable, Row: "Space key", Fields: []plugin.ConfigKey{
+			{Key: "label", Type: protocol.TypeString},
+			{Key: "columns", Type: protocol.TypeMap},
+			{Key: "custom_fields", Type: protocol.TypeTable, Row: "Field", Fields: []plugin.ConfigKey{{Key: "card", Type: protocol.TypeBool}}},
+		}},
+	}})
+	run := func(args ...string) testutil.Result {
+		t.Helper()
+		return testutil.RunCommand(t, w.Root, nil, append([]string{"plugin", "config", "jira"}, args...)...)
+	}
+	if res := run(); !strings.Contains(res.Stdout, "(no rows, and it needs one)") || !strings.Contains(res.Stdout, "0 rows") {
+		t.Errorf("before a row's set:\n%s", res.Stdout)
+	}
+
+	// The team's rows, in ws.toml.
+	team, _ := os.ReadFile(filepath.Join(w.Root, "ws.toml"))
+	team = append(team, []byte(`
+[plugin.jira.queries.initiatives]
+label = "Initiatives"
+query = 'project = RAP'
+
+[plugin.jira.queries.bugs]
+label = "Bugs"
+query = 'project = RAM, type = Bug'
+lable = "a typo"
+
+[plugin.jira.spaces.ram]
+label = "Risk Modelling"
+columns = { "Ready for Development" = "To Do" }
+`)...)
+	if err := os.WriteFile(filepath.Join(w.Root, "ws.toml"), team, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// A field by its path, with nothing split at a comma; a row of a
+	// row, its name quoted; an entry of a map; and a list, which is.
+	for _, set := range []string{
+		"queries.mine.query=assignee = currentUser(), status != Done",
+		`spaces.ram.custom_fields."Story Points".card=true`,
+		`spaces.ram.columns."In Review"=Review`,
+		"queries.bugs.limit=5",
+		"queries.bugs.tags=a, b",
+		"queries.initiatives.enabled=false",
+	} {
+		if res := run(set); res.Err != nil {
+			t.Fatalf("%s: %v", set, res.Err)
+		}
+	}
+	after, _ := os.ReadFile(filepath.Join(w.Root, "ws.toml"))
+	if string(after) != string(team) {
+		t.Errorf("the team's file changed:\n%s", after)
+	}
+	local, _ := os.ReadFile(filepath.Join(w.Root, "ws.local.toml"))
+	for _, want := range []string{"[plugin.jira.queries.mine]", `query = "assignee = currentUser(), status != Done"`, `[plugin.jira.spaces.ram.custom_fields."Story Points"]`, "card = true", `"In Review" = "Review"`, "limit = 5", `tags = ["a", "b"]`} {
+		if !strings.Contains(string(local), want) {
+			t.Errorf("ws.local.toml lacks %q:\n%s", want, local)
+		}
+	}
+
+	res := run()
+	for _, want := range []string{
+		"queries  3 rows     Queries",
+		"spaces   1 row      Spaces",
+		"queries, a row for each query (queries.<query>.<field>=value sets a field):",
+		"  initiatives  (off: enabled = false)",
+		"  bugs\n    label  Bugs\n    query  project = RAM, type = Bug\n    limit  5\n    tags   a, b\n",
+		"  mine\n    query  assignee = currentUser(), status != Done\n    limit  50 (the default)\n",
+		"spaces, a row for each space key",
+		"  ram\n    label    Risk Modelling\n    columns  In Review = Review, Ready for Development = To Do\n    custom_fields:\n      \"Story Points\"\n        card  true\n",
+		"Wrong in it, and left out of what jira is given:\n  queries.bugs.lable isn't a field of queries (it has: label, query, limit, tags)\n",
+	} {
+		if !strings.Contains(res.Stdout, want) {
+			t.Errorf("shown lacks %q:\n%s", want, res.Stdout)
+		}
+	}
+	// The order they're shown in is the order they're given in.
+	if i, j, k := strings.Index(res.Stdout, "  initiatives"), strings.Index(res.Stdout, "  bugs\n"), strings.Index(res.Stdout, "  mine\n"); !(i < j && j < k) {
+		t.Errorf("rows aren't in the order written (the team's, then yours):\n%s", res.Stdout)
+	}
+
+	// What can't be right is refused, saying what can, and nothing's
+	// set.
+	for bad, want := range map[string]string{
+		"queries.bugs.lable=x":             "queries.bugs.lable isn't in queries.bugs (it has: label, query, limit, tags)",
+		"queries.bugs.limit=many":          "queries.bugs.limit: limit is a number",
+		"queries.bugs=x":                   "queries.bugs is a row of queries: set a field of it, as queries.bugs.<field>=value (it has: label, query, limit, tags)",
+		"queries=x":                        "queries is a table: name a row and a field of it",
+		"spaces.ram.columns=x":             "spaces.ram.columns is text by text: set one of its entries, as spaces.ram.columns.<name>=value",
+		"spaces.ram.custom_fields.Team=x":  "is a row of custom_fields",
+		`spaces.ram.custom_fields."Team=x`: "isn't key=value",
+		"queries.bugs.enabled=maybe":       "is true or false",
+	} {
+		if res := run(bad); res.Err == nil || !strings.Contains(res.Err.Error(), want) {
+			t.Errorf("%s: %v, want %q", bad, res.Err, want)
+		}
+	}
+	if now, _ := os.ReadFile(filepath.Join(w.Root, "ws.local.toml")); string(now) != string(local) {
+		t.Errorf("something refused was set:\n%s", now)
+	}
+
+	// A field unset, a row of yours taken out; the team's isn't yours to
+	// take out, and says how to leave it out.
+	if res := run("--unset", "queries.bugs.limit", "--unset", "queries.mine", "--unset", "queries.initiatives.enabled"); res.Err != nil {
+		t.Fatal(res.Err)
+	}
+	if res := run("--unset", "spaces.ram"); res.Err != nil {
+		t.Fatalf("a row with something of yours in it: %v", res.Err)
+	}
+	if res := run("--unset", "queries.initiatives"); res.Err == nil || !strings.Contains(res.Err.Error(), "queries.initiatives.enabled=false leaves it out for you") {
+		t.Errorf("unsetting the team's row: %v", res.Err)
+	}
+	res = run()
+	if strings.Contains(res.Stdout, "mine") || strings.Contains(res.Stdout, "(off") || !strings.Contains(res.Stdout, "limit  50 (the default)") || strings.Contains(res.Stdout, "In Review") || !strings.Contains(res.Stdout, "queries  2 rows") {
+		t.Errorf("after unsetting:\n%s", res.Stdout)
 	}
 }
 

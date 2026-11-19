@@ -85,7 +85,7 @@ type Problem struct {
 }
 
 // configTypes are the types a config key can have.
-var configTypes = []string{"string", "url", "bool", "number", "enum", "list", "secret"}
+var configTypes = []string{"string", "url", "bool", "number", "enum", "list", "secret", "map", "table"}
 
 // Problems are what's wrong with what a plugin called name registers, as
 // someone using it would find it: nothing to see it by, a command nothing
@@ -173,33 +173,60 @@ func Problems(name string, r Registration) []Problem {
 			note("its ref %q has no address and no path: a name of its goes nowhere but the plugin's first page", ref.Kind)
 		}
 	}
-	seen := map[string]bool{}
-	for _, k := range r.Config {
-		switch {
-		case k.Key == "":
-			fatal("a config key has no name")
-			continue
-		case seen[k.Key]:
-			fatal("config key %s is declared twice", k.Key)
+	// A key, and for a table its rows' fields in turn: at is where it is
+	// (spaces.custom_fields), and depth how many tables it's inside.
+	var checkKeys func(keys []ConfigKey, at string, depth int)
+	checkKeys = func(keys []ConfigKey, at string, depth int) {
+		what := "config key"
+		if depth > 0 {
+			what = "config table " + at + "'s field"
 		}
-		seen[k.Key] = true
-		if k.Title == "" {
-			note("config key %s has no title: it's asked for by its name", k.Key)
-		}
-		typ := k.Type
-		if typ == "" {
-			typ = "string"
-		}
-		known := false
-		for _, t := range configTypes {
-			known = known || t == typ
-		}
-		if !known {
-			fatal("config key %s is of type %q, which ws doesn't know (it knows %s)", k.Key, typ, strings.Join(configTypes, ", "))
-		}
-		if typ == "enum" && len(k.Options) == 0 {
-			fatal("config key %s is one of a list, and the list is empty", k.Key)
+		seen := map[string]bool{}
+		for _, k := range keys {
+			switch {
+			case k.Key == "":
+				fatal("a %s has no name", what)
+				continue
+			case seen[k.Key]:
+				fatal("%s %s is declared twice", what, k.Key)
+			case depth > 0 && k.Key == RowEnabled:
+				fatal("%s %s is every row's already: whether it's given to the plugin", what, k.Key)
+			}
+			seen[k.Key] = true
+			if k.Title == "" {
+				note("%s %s has no title: it's asked for by its name", what, k.Key)
+			}
+			typ := k.Type
+			if typ == "" {
+				typ = "string"
+			}
+			known := false
+			for _, t := range configTypes {
+				known = known || t == typ
+			}
+			switch {
+			case !known:
+				fatal("%s %s is of type %q, which ws doesn't know (it knows %s)", what, k.Key, typ, strings.Join(configTypes, ", "))
+			case typ == "enum" && len(k.Options) == 0:
+				fatal("%s %s is one of a list, and the list is empty", what, k.Key)
+			case typ == "secret" && depth > 0:
+				fatal("%s %s is a secret, and a secret is a key of its own, not a row's", what, k.Key)
+			case typ == protocol.TypeTable && depth > 1:
+				fatal("%s %s is a table in a table in a table: a table goes one level down", what, k.Key)
+			case typ == protocol.TypeTable && len(k.Fields) == 0:
+				fatal("%s %s is a table, and its rows have no fields", what, k.Key)
+			case typ != protocol.TypeTable && len(k.Fields) > 0:
+				fatal("%s %s has fields, and isn't a table", what, k.Key)
+			}
+			if typ == protocol.TypeTable {
+				in := k.Key
+				if at != "" {
+					in = at + "." + k.Key
+				}
+				checkKeys(k.Fields, in, depth+1)
+			}
 		}
 	}
+	checkKeys(r.Config, "", 0)
 	return out
 }

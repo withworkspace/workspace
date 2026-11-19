@@ -140,6 +140,22 @@ func run() {
 		return c.Say("noted")
 	}).Args("[less]")
 
+	// A table: shelves, each with a label, what's on it, and its hooks.
+	shelves := p.Config.Table("shelves", "Shelves", plugin.RowName("Shelf"))
+	shelfLabel := shelves.String("label", "Label", plugin.Required)
+	shelfHolds := shelves.Number("holds", "How many it holds", plugin.Default(3))
+	hooks := shelves.Table("hooks", "Hooks", plugin.RowName("Hook"))
+	hookFor := hooks.String("for", "What hangs on it")
+	p.Command("shelves", "Says its shelves, a row a line, as config has them", func(c *plugin.Call) error {
+		for _, row := range shelves.Rows() {
+			line := fmt.Sprintf("%s: %s holds %v", row.Name, shelfLabel.In(row), shelfHolds.In(row))
+			for _, hook := range hooks.RowsIn(row) {
+				line += fmt.Sprintf(" [%s for %s]", hook.Name, hookFor.In(hook))
+			}
+			fmt.Fprintln(c.Stdout(), line)
+		}
+		return nil
+	})
 	p.Command("hi", "Says the greeting", func(c *plugin.Call) error {
 		fmt.Fprintln(c.Stderr(), "to stderr")
 		return c.Say(greeting.Get() + ", ws")

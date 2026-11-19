@@ -58,6 +58,11 @@ type Config struct {
 	// key that's misspelt (alias for aliases), or in the wrong file. Each is
 	// "ws.toml: repos.api.alias". ws doctor lists them.
 	Unknown []string `toml:"-"`
+	// PluginOrder is every key under [plugin] in the order the files have
+	// them, ws.toml's then ws.local.toml's, each as its path below plugin
+	// (jira, queries, bugs, label): a plugin's rows are given to it in
+	// the order they were written, which a map doesn't keep.
+	PluginOrder [][]string `toml:"-"`
 }
 
 type LocalConfig struct {
@@ -744,7 +749,20 @@ func Parse(path string) (*Config, error) {
 		return nil, fmt.Errorf("parsing %s: %w", path, err)
 	}
 	cfg.Unknown = unknownKeys(filepath.Base(path), md)
+	cfg.PluginOrder = pluginOrder(md)
 	return &cfg, nil
+}
+
+// pluginOrder is the keys a file has under [plugin], in the order it has
+// them, each as its path below plugin.
+func pluginOrder(md toml.MetaData) [][]string {
+	var out [][]string
+	for _, k := range md.Keys() {
+		if len(k) > 1 && k[0] == "plugin" {
+			out = append(out, slices.Clone([]string(k[1:])))
+		}
+	}
+	return out
 }
 
 func Discover(startDir string) (string, error) {
@@ -854,8 +872,10 @@ func Load(startDir string) (*Config, string, error) {
 
 		// Merge repo overrides using existing Merge function
 		localCfg := &Config{Repos: local.Repos, Groups: local.Groups, Reviews: local.Reviews, Plugin: local.Plugin}
+		order := append(cfg.PluginOrder, pluginOrder(md)...)
 		cfg = Merge(cfg, localCfg)
 		cfg.Unknown = unknown
+		cfg.PluginOrder = order
 
 		// Preserve Boarded from local config
 		if local.Boarded != nil {
@@ -1121,7 +1141,9 @@ func mergeReviews(base, local ReviewsConfig) ReviewsConfig {
 }
 
 // mergePlugin is each plugin's config with yours over the team's, key by
-// key.
+// key. A key that's a table in both (a plugin's rows, a row's fields) is
+// laid over in turn: your row changes that row and leaves the team's
+// others, and your field of a row leaves the row's other fields.
 func mergePlugin(base, local map[string]map[string]any) map[string]map[string]any {
 	if len(base) == 0 && len(local) == 0 {
 		return nil
@@ -1132,8 +1154,30 @@ func mergePlugin(base, local map[string]map[string]any) map[string]map[string]an
 			if out[name] == nil {
 				out[name] = map[string]any{}
 			}
-			maps.Copy(out[name], values)
+			layOver(out[name], values)
 		}
 	}
 	return out
+}
+
+// layOver lays over's keys on under, table by table: a value that's a
+// table on both sides is laid over key by key, and anything else replaces
+// what was there. What's laid is copied, so neither file's own values
+// change.
+func layOver(under, over map[string]any) {
+	for k, v := range over {
+		table, ok := v.(map[string]any)
+		if !ok {
+			under[k] = v
+			continue
+		}
+		was, ok := under[k].(map[string]any)
+		if !ok {
+			was = map[string]any{}
+		}
+		laid := map[string]any{}
+		layOver(laid, was)
+		layOver(laid, table)
+		under[k] = laid
+	}
 }

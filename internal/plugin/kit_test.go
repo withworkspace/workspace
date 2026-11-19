@@ -6,6 +6,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -44,8 +46,8 @@ func TestKitRegistersWhatItDeclared(t *testing.T) {
 	if r.UI == nil || !strings.HasPrefix(r.UI.Script, "/ui/app.js?v=") || !plugin.ValidUIPath(r.UI.Script) {
 		t.Errorf("ui = %+v", r.UI)
 	}
-	// Its own six, and the framework's sync, for a plugin with syncs.
-	if r.CommandName("kit") != "kit" || len(r.Commands.Subcommands) != 7 {
+	// Its own seven, and the framework's sync, for a plugin with syncs.
+	if r.CommandName("kit") != "kit" || len(r.Commands.Subcommands) != 8 {
 		t.Errorf("commands = %+v", r.Commands)
 	}
 	if r.Agent == nil || !strings.Contains(r.Agent.Guide, "ws kit hi") || len(r.Agent.Roles) != 1 || r.Agent.Roles[0] != "crew" {
@@ -57,6 +59,10 @@ func TestKitRegistersWhatItDeclared(t *testing.T) {
 	}
 	if keys["greeting"].Default != "Hello" || !keys["token"].Secret() {
 		t.Errorf("config = %+v", r.Config)
+	}
+	// A table, with its rows' fields, one of them a table in turn.
+	if s := keys["shelves"]; s.Type != protocol.TypeTable || s.Row != "Shelf" || len(s.Fields) != 3 || !s.Fields[0].Required || s.Fields[2].Type != protocol.TypeTable || len(s.Fields[2].Fields) != 1 {
+		t.Errorf("a table = %+v", s)
 	}
 	if len(r.Syncs) != 1 || r.Syncs[0].Name != "things" || r.Syncs[0].Every != 3600 {
 		t.Errorf("syncs = %+v", r.Syncs)
@@ -318,5 +324,83 @@ func TestKitAsksWS(t *testing.T) {
 	defer mu.Unlock()
 	if len(asked) != 7 || asked[0] != `kit mission/list {"archived":true}` || asked[1] != `kit mission/show {"slug":"cache"}` || asked[4] != `kit show {"ref":"KIT-1"}` || asked[5] != `kit show {"ref":"d1","mission":"cache"}` || asked[6] != `kit conversation/start {"message":"Let's talk about KIT-1."}` {
 		t.Errorf("asked = %q", asked)
+	}
+}
+
+// A plugin built on the kit is given a table's rows in the order they
+// were written, the team's with yours laid over them, each field as its
+// type and with its default: from its first start, when ws hasn't yet
+// heard what it declares, and after a change.
+func TestKitReadsItsTablesAsRows(t *testing.T) {
+	root, h := workspace(t)
+	team, _ := os.ReadFile(filepath.Join(root, "ws.toml"))
+	team = append(team, []byte(`
+[plugin.kit.shelves.top]
+label = "Top shelf"
+
+[plugin.kit.shelves.top.hooks.left]
+for = "the lantern"
+
+[plugin.kit.shelves.bottom]
+label = "Bottom shelf"
+holds = 9
+
+[plugin.kit.shelves.broken]
+holds = 1
+`)...)
+	if err := os.WriteFile(filepath.Join(root, "ws.toml"), team, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	addKit(t, root)
+	run := func(args ...string) string {
+		t.Helper()
+		o := &output{}
+		if exit, err := h.Run(context.Background(), "kit", args, root, plugin.Terminal{Width: 80}, o.write); err != nil || exit != 0 {
+			t.Fatalf("%v: exit %d, %v, %s", args, exit, err, o.errOut.String())
+		}
+		return o.stdout()
+	}
+	// Written top then bottom, which isn't their order by name; the row
+	// without the label it needs isn't given.
+	want := "top: Top shelf holds 3 [left for the lantern]\nbottom: Bottom shelf holds 9\n"
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		got := run("shelves")
+		if got == want {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("shelves, as first given:\n%s\nwant:\n%s", got, want)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	// Yours over the team's: a field of one row, a row of your own, and
+	// one of theirs left out.
+	st, _ := h.Refresh("kit")
+	for typed, value := range map[string]any{"shelves.bottom.holds": 2.0, "shelves.mine.label": "My shelf", "shelves.top.enabled": false} {
+		path, _ := plugin.SplitPath(typed)
+		at, err := plugin.Find(st.Registration.Config, path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := plugin.SetAt(root, "kit", at, value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := h.ConfigChanged("kit"); err != nil {
+		t.Fatal(err)
+	}
+	want = "bottom: Bottom shelf holds 2\nmine: My shelf holds 3\n"
+	deadline = time.Now().Add(5 * time.Second)
+	for {
+		got := run("shelves")
+		if got == want {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("shelves, after a change:\n%s\nwant:\n%s", got, want)
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }

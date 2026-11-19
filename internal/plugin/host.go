@@ -334,7 +334,11 @@ func (h *Host) start(name string) (*proc, error) {
 		}
 	}()
 
-	values, err := wireValues(h.Root, name)
+	// Its config is shaped by what it declared when it last ran: its
+	// tables as rows, in order. One that's never run is given the files'
+	// own shape, and its config again once it's said what it declares.
+	known, _ := ReadRegistration(h.Root, name)
+	values, err := h.wireValues(name, known.Config)
 	if err != nil {
 		h.kill(p)
 		return nil, err
@@ -372,6 +376,15 @@ func (h *Host) start(name string) (*proc, error) {
 	p.reg = answer.Registration
 	if err := writeRegistration(h.Root, name, p.reg); err != nil {
 		h.logf("%s: keeping what it registered: %v", name, err)
+	}
+	// What it declares of its tables isn't what ws shaped its config by:
+	// it's given its config again, as it now reads it.
+	if HasTables(p.reg.Config) && !sameKeys(known.Config, p.reg.Config) {
+		if values, err := h.wireValues(name, p.reg.Config); err != nil {
+			h.logf("%s: its config, as it declares it: %v", name, err)
+		} else if err := p.conn.Notify(protocol.MethodConfigChanged, protocol.ConfigChangedParams{Config: values}); err != nil {
+			h.logf("%s: telling it its config: %v", name, err)
+		}
 	}
 	if h.Keep != nil {
 		refused, err := h.Keep(name, p.reg.Refs)
@@ -808,19 +821,25 @@ func (h *Host) ConfigChanged(name string) error {
 	if !p.alive() {
 		return nil
 	}
-	values, err := wireValues(h.Root, name)
+	values, err := h.wireValues(name, p.reg.Config)
 	if err != nil {
 		return err
 	}
 	return p.conn.Notify(protocol.MethodConfigChanged, protocol.ConfigChangedParams{Config: values})
 }
 
-// wireValues is a plugin's config as it's sent: each value as JSON.
-func wireValues(root, name string) (map[string]json.RawMessage, error) {
-	values, err := Values(root, name)
+// wireValues is a plugin's config as it's sent: each value as JSON, a
+// table as its rows that are given, in the order they were written. What's
+// wrong in it is in ws's log, and is what ws plugin config says.
+func (h *Host) wireValues(name string, keys []ConfigKey) (map[string]json.RawMessage, error) {
+	shaped, problems, err := Shaped(h.Root, name, keys)
 	if err != nil {
 		return nil, err
 	}
+	for _, p := range problems {
+		h.logf("%s's config: %s (ws plugin config %s)", name, p, name)
+	}
+	values := Wire(shaped)
 	out := make(map[string]json.RawMessage, len(values))
 	for k, v := range values {
 		data, err := json.Marshal(v)
@@ -936,4 +955,11 @@ func (h *Host) Statuses() []Status {
 		out = append(out, h.Status(name))
 	}
 	return out
+}
+
+// sameKeys is whether two registrations declare the same config.
+func sameKeys(a, b []ConfigKey) bool {
+	x, _ := json.Marshal(a)
+	y, _ := json.Marshal(b)
+	return string(x) == string(y)
 }
