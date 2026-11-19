@@ -16,8 +16,9 @@
 // It needs node 22 or later (for its WebSocket) and a Chrome or Chromium:
 // $CHROME names one that isn't where it looks.
 //
-// A shot is a page at a size, and may say what to bring into view first.
-// Add one here when a picture is worth taking more than once.
+// A shot is a page at a size. It may say what to bring into view first
+// (show: words on the page), or what to ask Find (find: words to type
+// into it). Add one here when a picture is worth taking more than once.
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -36,9 +37,22 @@ const shots = [
     readme: true,
   },
   { name: "verify", path: "/missions/export-invoices-as-csv?tab=verify&b=b1", readme: true },
-  // The rest, for when they're asked for by name.
+  // The rest: FEATURES.md's, a view each.
+  { name: "brief", path: "/missions/invoice-totals-off-by-a-penny?tab=brief" },
+  { name: "work", path: "/missions/export-invoices-as-csv?tab=work" },
   { name: "reviews", path: "/reviews" },
+  { name: "pull-request", path: "/reviews/api/41?view=changes" },
   { name: "documents", path: "/documents" },
+  { name: "space", path: "/documents/records" },
+  { name: "document", path: "/documents/records/proposals/csv-export.md" },
+  { name: "artifact", path: "/artifacts/a1" },
+  { name: "conversation", path: "/conversations/w1" },
+  { name: "files", path: "/files/api?path=internal/invoice/invoice.go" },
+  { name: "team", path: "/team" },
+  { name: "settings", path: "/settings" },
+  { name: "orchestrator", path: "/orchestrator" },
+  // Find, opened over the missions and asked something.
+  { name: "find", path: "/", find: "rounding" },
 ];
 
 // The page's size, and how many pixels a point of it is drawn with: a
@@ -132,15 +146,25 @@ async function openTab(port) {
   return { send, evaluate, close: () => socket.close() };
 }
 
-// Once the page has drawn what it was asked for, and nothing's moved for
-// a moment: its fonts are in, and it says something.
-async function settled(tab) {
-  for (let i = 0; i < 100; i++) {
-    const ready = await tab.evaluate(`document.fonts.status === "loaded" && (document.querySelector("main")?.innerText.trim().length ?? 0) > 40 && !/Opening the workspace/.test(document.body.innerText)`);
-    if (ready) break;
-    await sleep(100);
+// Open a page, and wait until it has drawn what it was asked for and
+// nothing's moved for a moment. A page loaded straight after another now
+// and then sits on "Opening the workspace…" (its request for the
+// workspace never answered, in the browser: the daemon answers it at
+// once), which loading it again clears: so it's loaded again, a few
+// times, and a page that never opens is said, not pictured.
+async function open(tab, url) {
+  for (let tries = 0; tries < 5; tries++) {
+    await tab.send("Page.navigate", { url });
+    for (let i = 0; i < 70; i++) {
+      await sleep(100);
+      const opened = await tab.evaluate(`document.fonts.status === "loaded" && (document.querySelector("main")?.innerText.trim().length ?? 0) > 40 && !/Opening the workspace/.test(document.body.innerText)`);
+      if (opened) {
+        await sleep(1200);
+        return;
+      }
+    }
   }
-  await sleep(1200);
+  fail(`${url} never opened`);
 }
 
 async function main() {
@@ -164,14 +188,12 @@ async function main() {
     await tab.send("Page.enable");
     await tab.send("Emulation.setDeviceMetricsOverride", { width: size.width, height: size.height, deviceScaleFactor: size.scale, mobile: false });
     // The link signs the browser in.
-    await tab.send("Page.navigate", { url: link });
-    await settled(tab);
+    await open(tab, link);
     mkdirSync(out, { recursive: true });
     for (const shot of shots.filter((s) => wanted.includes(s.name))) {
       for (const theme of ["light", "dark"]) {
         await tab.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }] });
-        await tab.send("Page.navigate", { url: origin + shot.path });
-        await settled(tab);
+        await open(tab, origin + shot.path);
         if (shot.show) {
           const found = await tab.evaluate(`(() => {
             const words = ${JSON.stringify(shot.show)};
@@ -183,7 +205,16 @@ async function main() {
           await sleep(400);
         }
         // WebP: a fifth of the PNG's size, and the words as sharp.
-        const { data } = await tab.send("Page.captureScreenshot", { format: "webp", quality: 90 });
+        if (shot.find) {
+          // mod+K opens Find, wherever the page's focus is.
+          const key = { key: "k", code: "KeyK", windowsVirtualKeyCode: 75, modifiers: 4 };
+          await tab.send("Input.dispatchKeyEvent", { type: "keyDown", ...key });
+          await tab.send("Input.dispatchKeyEvent", { type: "keyUp", ...key });
+          await sleep(400);
+          await tab.send("Input.insertText", { text: shot.find });
+          await sleep(1500);
+        }
+        const { data } = await tab.send("Page.captureScreenshot", { format: "webp", quality: 82 });
         const file = join(out, `${shot.name}-${theme}.webp`);
         writeFileSync(file, Buffer.from(data, "base64"));
         console.log(file);
