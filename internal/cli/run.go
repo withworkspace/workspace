@@ -20,6 +20,7 @@ import (
 	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/router"
 	"github.com/withworkspace/workspace/internal/runs"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -108,6 +109,13 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 				if name == "" {
 					name = args[0]
 				}
+				if recipe.Where == "silo" {
+					silo := w.WS().SiloWorktree(here.repo)
+					if _, err := os.Stat(silo); err != nil {
+						return fmt.Errorf("%s runs in %s's silo, and it has none: ws silo point %s <capsule> makes one", args[0], here.repo, here.repo)
+					}
+					here = runHere{repo: here.repo, worktree: workspace.SiloDir, dir: silo}
+				}
 			}
 			if cmd.Flags().Changed("owner") {
 				if forKind != "" && forKind != string(runs.ByPID) {
@@ -158,7 +166,11 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 				}
 			}
 			out := os.Stdout
-			fmt.Fprintf(out, "name   %s\nlink   %s\nport   %d\nlog    %s\n\n", run.Ref(), run.Link(), run.Port, run.LogPath())
+			fmt.Fprintf(out, "name   %s\nlink   %s\n", run.Ref(), router.RunAddress(w.WS().Root, run))
+			if a := router.RunAddress(w.WS().Root, run); a != run.Link() {
+				fmt.Fprintf(out, "local  %s\n", run.Link())
+			}
+			fmt.Fprintf(out, "port   %d\nlog    %s\n\n", run.Port, run.LogPath())
 			fmt.Fprintf(out, "It ends %s. ws run stop %s ends it now.\n", runs.Ends(run, time.Now()), run.Ref())
 			if watchErr != nil {
 				fmt.Fprintf(os.Stderr, "\n%v\n", watchErr)
@@ -453,7 +465,7 @@ func newRunLsCmd() *cobra.Command {
 				return err
 			}
 			if asJSON {
-				return writeRunsJSON(os.Stdout, list)
+				return writeRunsJSON(os.Stdout, root, list)
 			}
 			if len(list) == 0 {
 				fmt.Fprintln(os.Stderr, "No runs.")
@@ -470,7 +482,7 @@ func newRunLsCmd() *cobra.Command {
 				if r.State != runs.Running {
 					ends = "-"
 				}
-				fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\n", r.Ref(), r.Port, state, ends, r.Link())
+				fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\n", r.Ref(), r.Port, state, ends, router.RunAddress(root, r))
 			}
 			return tw.Flush()
 		},
@@ -489,6 +501,7 @@ type runJSON struct {
 	Command string     `json:"command"`
 	Port    int        `json:"port"`
 	Link    string     `json:"link"`
+	Local   string     `json:"local"`
 	State   string     `json:"state"`
 	Status  *int       `json:"status,omitempty"`
 	Owner   runs.Owner `json:"owner"`
@@ -498,13 +511,13 @@ type runJSON struct {
 	Log     string     `json:"log"`
 }
 
-func writeRunsJSON(out io.Writer, list []runs.Run) error {
+func writeRunsJSON(out io.Writer, root string, list []runs.Run) error {
 	now := time.Now()
 	rows := make([]runJSON, 0, len(list))
 	for _, r := range list {
 		j := runJSON{
 			Ref: r.Ref(), Name: r.Name, Repo: r.Repo, Where: runs.Label(r.Worktree), Dir: r.Dir,
-			Command: r.Command, Port: r.Port, Link: r.Link(), State: string(r.State),
+			Command: r.Command, Port: r.Port, Link: router.RunAddress(root, r), Local: r.Link(), State: string(r.State),
 			Owner: r.Owner, By: r.By, Log: r.LogPath(),
 		}
 		if r.State == runs.Exited {

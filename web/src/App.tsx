@@ -43,6 +43,7 @@ import { plain } from "./ui/inline";
 import { Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useTitle } from "./ui/kit";
 import { headlineStatus, Status } from "./ui/status";
 import { duration } from "./ui/time";
+import { SiloPoint } from "./silo/SiloPoint";
 
 export function App() {
   const { workspace, error, connection } = useWorkspace();
@@ -207,6 +208,7 @@ export function App() {
                 <Route path="/reviews" element={<ReviewsPage />} />
                 <Route path="/reviews/:repo/:number" element={<PRReviewPage workspace={workspace} />} />
                 <Route path="/team" element={<TeamPage />} />
+                <Route path="/silo/:repo" element={<SiloPoint />} />
                 <Route path="/documents" element={<DocumentsPage workspace={workspace} />} />
                 <Route path="/documents/:repo" element={<SpacePage workspace={workspace} />} />
                 <Route path="/documents/local/:id" element={<LocalPageAt workspace={workspace} />} />

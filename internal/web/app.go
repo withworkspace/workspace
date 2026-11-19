@@ -1,6 +1,7 @@
 package web
 
 import (
+	"io"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/conversation"
@@ -40,6 +41,7 @@ type Running interface {
 	RunRecipe(slug, repo, capsule, recipe string, by ops.Actor) (runs.Run, error)
 	StopRun(slug, ref string) error
 	LookedAt(slugs map[string]bool) error
+	PointSilo(repo, capsule string, out io.Writer) error
 }
 
 // Focusing is your pins: what's pinned, and pinning, unpinning and

@@ -10,6 +10,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/runs"
+	"github.com/withworkspace/workspace/internal/workspace"
 )
 
 // Runs on a mission's page (internal/runs): what's running in each of its
@@ -44,8 +45,10 @@ func (w *Workspace) capsuleRuns(v MissionView) (map[string][]runs.Run, map[strin
 			}
 		}
 		if c.Exists {
-			if rs := w.recipes(c.Repo, c.Name); len(rs) > 0 {
-				recipes[key] = slices.Sorted(maps.Keys(rs))
+			for _, n := range slices.Sorted(maps.Keys(w.recipes(c.Repo, c.Name))) {
+				if w.recipes(c.Repo, c.Name)[n].Where != "silo" { // the silo's, not the capsule's
+					recipes[key] = append(recipes[key], n)
+				}
 			}
 		}
 	}
@@ -84,9 +87,16 @@ func (w *Workspace) RunRecipe(slug, repo, capsule, recipe string, by Actor) (run
 	if !ok {
 		return runs.Run{}, invalid("%s/%s has no recipe %s ([run.%s] in its %s)", repo, capsule, recipe, recipe, config.RepoFileName)
 	}
+	worktree := capsule
+	if rc.Where == "silo" {
+		worktree, dir = workspace.SiloDir, w.WS().SiloWorktree(repo)
+		if !dirExists(dir) {
+			return runs.Run{}, refused("no-silo", "%s runs in %s's silo, and it has none: point one at a capsule first", recipe, repo)
+		}
+	}
 	store := w.runStore()
 	r, err := store.Start(runs.Start{
-		Name: recipe, Repo: repo, Worktree: capsule, Dir: dir,
+		Name: recipe, Repo: repo, Worktree: worktree, Dir: dir,
 		Command: rc.Command, Recipe: recipe, Ready: rc.Ready, Stop: rc.Stop,
 		Owner: runs.Owner{Kind: runs.ByLooking, Mission: slug},
 		TTL:   runs.DefaultTTL, By: by.By(),

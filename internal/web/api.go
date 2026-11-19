@@ -6,6 +6,7 @@ import (
 	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/review"
 
+	"github.com/withworkspace/workspace/internal/router"
 	"github.com/withworkspace/workspace/internal/runs"
 )
 
@@ -553,8 +554,11 @@ type RunDetail struct {
 	Ref    string `json:"ref"`
 	Name   string `json:"name"`
 	Recipe string `json:"recipe,omitempty"`
-	Link   string `json:"link"`
-	Port   int    `json:"port"`
+	// Link is where it's reached: by its name, when the workspace has
+	// names (ws router), else Local, at 127.0.0.1 and its port.
+	Link  string `json:"link"`
+	Local string `json:"local"`
+	Port  int    `json:"port"`
 	// State is running, exited (Status its exit status) or gone.
 	State  string `json:"state"`
 	Status int    `json:"status,omitempty"`
@@ -570,9 +574,9 @@ type RunDetail struct {
 	Started time.Time  `json:"started"`
 }
 
-// RunDetailOf is a run as a page shows it.
-func RunDetailOf(r runs.Run, now time.Time) RunDetail {
-	d := RunDetail{Ref: r.Ref(), Name: r.Name, Recipe: r.Recipe, Link: r.Link(), Port: r.Port, State: string(r.State),
+// RunDetailOf is a run of the workspace at root as a page shows it.
+func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
+	d := RunDetail{Ref: r.Ref(), Name: r.Name, Recipe: r.Recipe, Link: router.RunAddress(root, r), Local: r.Link(), Port: r.Port, State: string(r.State),
 		Owner: string(r.Owner.Kind), By: r.By, Command: r.Command, Started: r.Created}
 	switch r.State {
 	case runs.Running:

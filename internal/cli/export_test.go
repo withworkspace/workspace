@@ -283,3 +283,6 @@ func NoRunsWatcher(t interface{ Cleanup(func()) }) {
 	ensureRunsWatched = func(string) error { return nil }
 	t.Cleanup(func() { ensureRunsWatched = old })
 }
+
+// RouteFile is routeFile, for the tests.
+var RouteFile = routeFile

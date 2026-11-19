@@ -72,8 +72,8 @@ function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => v
             {r.name}
           </span>
           {live ? (
-            <a href={r.link} target="_blank" rel="noopener noreferrer" className="mono work-run-link" title={r.up ? "Open it" : "Nothing's listening on its port yet"}>
-              {r.link.replace(/^https?:\/\//, "")}
+            <a href={r.link} target="_blank" rel="noopener noreferrer" className="mono work-run-link" title={`${r.up ? "Open it" : "Nothing's listening on its port yet"}${r.link !== r.local ? `: ${r.local.replace(/^https?:\/\//, "")}` : ""}`}>
+              {r.link.replace(/^https?:\/\//, "").replace(/\/$/, "")}
               <Icon name="arrow-up-right" size={11} />
             </a>
           ) : (

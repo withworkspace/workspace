@@ -301,7 +301,7 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 			cd.Landed = &c.Landed.At
 		}
 		for _, r := range v.CapsuleRuns[c.Repo+"/"+c.Name] {
-			cd.Runs = append(cd.Runs, RunDetailOf(r, now))
+			cd.Runs = append(cd.Runs, RunDetailOf(r, root, now))
 		}
 		cd.Recipes = v.Recipes[c.Repo+"/"+c.Name]
 		d.Capsules = append(d.Capsules, cd)

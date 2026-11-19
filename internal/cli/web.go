@@ -12,6 +12,7 @@ import (
 	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/nav"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/router"
 	"github.com/withworkspace/workspace/internal/team"
 	"github.com/withworkspace/workspace/internal/ui"
 	"github.com/withworkspace/workspace/internal/web"
@@ -81,7 +82,13 @@ func webURL(root, path string) (string, error) {
 	if info.Pid != c.ServerPid() || info.Port != c.WebPort() {
 		return "", fmt.Errorf("%s doesn't match the running daemon (pid %d, web UI on port %d); `ws daemon restart --now` and try again", web.InfoPath(root), c.ServerPid(), c.WebPort())
 	}
-	return info.SignInURL(path), nil
+	link := info.SignInURL(path)
+	// With names on, it's the web UI's name: a browser signs in by name,
+	// its cookie being the name's.
+	if a, ok := router.Address(root, ""); ok {
+		link = strings.TrimSuffix(a, "/") + strings.TrimPrefix(link, info.Origin())
+	}
+	return link, nil
 }
 
 // noWebError says why a running daemon has no web UI, and what
@@ -138,7 +145,19 @@ func newWeb(s *daemon.Server, prs *ops.PRCache) *web.Server {
 		Reviews: app.PRService(), Team: teamSvc, Find: app.FindIndex(),
 		Nav:     nav.New(navCache(s.Root)),
 		Plugins: pluginHost,
+		Names:   func() []string { return webNames(s.Root) },
 	}
+}
+
+// webNames are the names the web UI is reached at through ws's router:
+// <workspace>.localhost, with the router's port where it isn't 80.
+func webNames(root string) []string {
+	name, ok := router.NameOf(root)
+	if !ok {
+		return nil
+	}
+	host := router.Host("", name)
+	return []string{host, fmt.Sprintf("%s:%d", host, router.Fallback), host + ":80"}
 }
 
 // navCache is where code navigation keeps what it's parsed.

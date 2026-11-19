@@ -1373,6 +1373,21 @@ ws run keep <name> [hours]  # more time
 
 A run whose command exits by itself is kept for an hour, with its status and output (`ws run ls` shows `exited 1, 14:05`), then removed.
 
+**Names.** With `[router] enabled = true` in `ws.local.toml`, the workspace and its runs have names under `.localhost`, which browsers send to this machine by themselves:
+
+| Name | Goes to |
+|---|---|
+| `<workspace>.localhost` | the web UI (`ws web` signs in there) |
+| `<run>.<capsule>.<repo>.<workspace>.localhost` | a run in a capsule |
+| `<run>.ground.<repo>.<workspace>.localhost` | a run in a repo's `.ground` |
+| `<run>.silo.<repo>.<workspace>.localhost` | a run in a repo's silo |
+
+`<workspace>` is `[router] name`, or the workspace's folder's name. Every name has its own cookies and storage, so two capsules' logins don't overwrite each other as two ports' do. Links ws prints and shows use names while they're served; `ws run` prints the `127.0.0.1` address too.
+
+One router serves every workspace on the machine, with no process of its own. Each daemon with names on tries to listen on port 80 (or 7080, where 80 is another program's or the system keeps it for root, as Linux does), and the one the system lets is the router. If it goes, another takes over within 2 seconds. Each daemon writes its routes to `~/.local/state/ws/routes/` (or under `$XDG_STATE_HOME`). The router listens on every interface, as macOS lets a user have port 80 no other way, and answers this machine alone: a request from anywhere else, or for a name not under `.localhost`, is refused. Where two workspaces ask for the same name, the first keeps it and the other has four letters of its own after it (`shop-15a4`), which it keeps while its daemon runs. `ws router` says where names are served and what this workspace's are.
+
+A recipe with `where = "silo"` runs in the repo's silo, whichever capsule it's pointed at, as `<run>.silo.<repo>.<workspace>.localhost`. Asking for it by a capsule's name (`stack.my-capsule.api.shop.localhost`) goes straight through when the silo is on that capsule. When it's on another, a page offers to point the silo there, which you confirm in the web UI; a request alone never moves it.
+
 **Where it's kept.** Each run is a folder, `.ws/runs/<repo>/<worktree>/<name>/`, holding `run.json` (its command, port, process, owner and time) and `out.log`. Nothing about a run is kept anywhere else.
 
 ## Silos

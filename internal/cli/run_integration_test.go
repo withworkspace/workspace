@@ -240,3 +240,32 @@ func TestRun_AConversationsRunEndsWhenItsResolved(t *testing.T) {
 		t.Fatalf("ls:\n%s%s", res.Stdout, res.Stderr)
 	}
 }
+
+func TestRun_TheRouteFileHasTheRunsAndSilos(t *testing.T) {
+	w, dir := runsWorkspace(t)
+	ground := filepath.Join(w.Root, "repos", "api", ".ground")
+	os.WriteFile(filepath.Join(ground, "ws.repo.toml"), []byte("[run.stack]\ncommand = \"sleep 300\"\nwhere = \"silo\"\n\n[run.web]\ncommand = \"sleep 300\"\n"), 0o644)
+	testutil.StubConfirm(t, true)
+	if res := testutil.RunCommand(t, w.Root, nil, "silo", "point", "api", "feat"); res.Err != nil {
+		t.Fatalf("silo point: %v\n%s", res.Err, res.Stderr)
+	}
+	if res := testutil.RunCommand(t, w.Root, nil, "run", "--wait", "0", "--for", "none", "-n", "web", "--", "sleep", "300"); res.Err != nil {
+		t.Fatalf("ws run: %v\n%s", res.Err, res.Stderr)
+	}
+	t.Setenv(cli.ShellPWD, ground)
+	res := testutil.RunCommand(t, w.Root, nil, "run", "--wait", "0", "--for", "none", "stack")
+	if res.Err != nil || !strings.Contains(res.Stdout, "name   stack.silo.api") {
+		t.Fatalf("ws run stack, a silo's recipe, from .ground: %v\n%s%s", res.Err, res.Stdout, res.Stderr)
+	}
+	f := cli.RouteFile(w.Root, 47001, "My Shop", t.TempDir())
+	if f.Name != "my-shop" || f.Web != 47001 || f.Given != "my-shop" {
+		t.Errorf("name %q given %q web %d", f.Name, f.Given, f.Web)
+	}
+	if f.Routes["web.feat.api"].Port == 0 || f.Routes["stack.silo.api"].Port == 0 {
+		t.Errorf("routes %v", f.Routes)
+	}
+	if s := f.Silos["api"]; s.Target != "feat" || strings.Join(s.Recipes, ",") != "stack" {
+		t.Errorf("silos %v", f.Silos)
+	}
+	_ = dir
+}

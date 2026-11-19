@@ -84,6 +84,9 @@ type LocalConfig struct {
 	Team         TeamConfig             `toml:"team,omitempty"`
 	Reviews      ReviewsConfig          `toml:"reviews,omitempty"`
 	GitHub       GitHubConfig           `toml:"github,omitempty"`
+	// Router is the local names (internal/router): yours alone, as it
+	// listens on your machine.
+	Router RouterConfig `toml:"router,omitempty"`
 	// Plugin is your config for each plugin, over the team's.
 	Plugin map[string]map[string]any `toml:"plugin,omitempty"`
 }
@@ -593,6 +596,15 @@ type RepoFileConfig struct {
 	Unknown []string `toml:"-"`
 }
 
+// RouterConfig is ws.local.toml's [router]: whether this workspace's
+// daemon gives it and its runs names under .localhost (internal/router),
+// and the name it goes by.
+type RouterConfig struct {
+	Enabled bool `toml:"enabled,omitempty"`
+	// Name is the workspace's name there: "" is its folder's.
+	Name string `toml:"name,omitempty"`
+}
+
 // RunRecipe is one of a repo's [run.<name>]: something ws run starts
 // (internal/runs).
 type RunRecipe struct {
@@ -605,6 +617,9 @@ type RunRecipe struct {
 	// Stop is run in the same place once the command's process has been
 	// ended (docker compose down): "" for nothing.
 	Stop string `toml:"stop,omitempty"`
+	// Where is where it runs: "" for the worktree you stand in, "silo" for
+	// the repo's silo (.silo), whichever capsule it's pointed at.
+	Where string `toml:"where,omitempty"`
 }
 
 type CapsuleConfig struct {

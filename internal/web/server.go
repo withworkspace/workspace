@@ -99,6 +99,10 @@ type Server struct {
 	// up and the web UI goes with it (POST /api/shutdown, from the
 	// workspace's menu). nil for none to close.
 	Shutdown func(reason string)
+	// Names are the names it's also reached at through ws's router
+	// (<workspace>.localhost, with its port where it has one): nil for
+	// none.
+	Names func() []string
 	// Poll is how often open pages are checked for changes to tell them
 	// about (default 2s).
 	Poll time.Duration
@@ -312,6 +316,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/missions/{slug}/act", s.act)
 	mux.HandleFunc("POST /api/missions/{slug}/runs", s.startRun)
 	mux.HandleFunc("POST /api/missions/{slug}/runs/stop", s.stopRun)
+	mux.HandleFunc("POST /api/silos/{repo}/point", s.pointSilo)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/screen", s.crewScreen)
 	mux.HandleFunc("POST /api/missions/{slug}/crew/{id}/input", s.crewInput)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/transcript", s.crewTranscript)
@@ -462,12 +467,31 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) origins() []string {
 	p := strconv.Itoa(s.info.Port)
-	return []string{"http://127.0.0.1:" + p, "http://localhost:" + p}
+	out := []string{"http://127.0.0.1:" + p, "http://localhost:" + p}
+	for _, n := range s.names() {
+		out = append(out, "http://"+n)
+	}
+	return out
 }
 
 func (s *Server) hostAllowed(host string) bool {
 	p := strconv.Itoa(s.info.Port)
-	return host == "127.0.0.1:"+p || host == "localhost:"+p
+	if host == "127.0.0.1:"+p || host == "localhost:"+p {
+		return true
+	}
+	for _, n := range s.names() {
+		if host == n {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Server) names() []string {
+	if s.Names == nil {
+		return nil
+	}
+	return s.Names()
 }
 
 func (s *Server) signedIn(r *http.Request) bool {

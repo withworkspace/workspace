@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/ops"
@@ -17,6 +18,25 @@ type RunStart struct {
 	Repo    string `json:"repo"`
 	Capsule string `json:"capsule"`
 	Recipe  string `json:"recipe"`
+}
+
+// SiloPoint is POST /api/silos/{repo}/point: the capsule to point a repo's
+// silo at, from the page ws's router sends you to.
+type SiloPoint struct {
+	To string `json:"to"`
+}
+
+func (s *Server) pointSilo(w http.ResponseWriter, r *http.Request) {
+	var b SiloPoint
+	if !readBody(w, r, &b) {
+		return
+	}
+	var said strings.Builder
+	if err := s.App.PointSilo(r.PathValue("repo"), b.To, &said); err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"said": said.String()})
 }
 
 // RunStop is POST /api/missions/{slug}/runs/stop: a run to end.
@@ -38,7 +58,7 @@ func (s *Server) startRun(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, http.StatusOK, RunDetailOf(run, time.Now()))
+	writeJSON(w, http.StatusOK, RunDetailOf(run, s.Root, time.Now()))
 }
 
 func (s *Server) stopRun(w http.ResponseWriter, r *http.Request) {

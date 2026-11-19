@@ -54,6 +54,8 @@ var allowed = map[string][]string{
 	// user's processes as the process check does; whose records say an
 	// owner has ended is its caller's to say.
 	"runs": {"harness"},
+	// The router: names under .localhost for workspaces and their runs.
+	"router": {"runs", "harness"},
 	// Plugins: each a process the daemon holds, spoken to as an agent over
 	// ACP is. Its tests' stand-in speaks the same way.
 	"plugin":            {"config", "acp"},
@@ -62,7 +64,7 @@ var allowed = map[string][]string{
 		"config", "workspace", "git", "slug", "execlog", "github", "ide",
 		"harness", "acp", "prompt", "turn", "crew", "orchestrator", "termpane", "plugin", "runs",
 	}, domain...),
-	"web":      append([]string{"ops", "crew", "harness", "nav", "plugin", "runs"}, domain...),
+	"web":      append([]string{"ops", "crew", "harness", "nav", "plugin", "runs", "router"}, domain...),
 	"cli":      anything,
 	"testutil": anything,
 }

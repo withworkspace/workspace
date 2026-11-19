@@ -199,6 +199,7 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 	go watchWaitsLoop(root, s.Log.Printf, stop)          // Wait steps ws watches
 	go sweepArtifactsLoop(root, s.Log.Printf, stop)      // artifacts on this machine that expired
 	go sweepRunsLoop(root, s.Log.Printf, runsPoke, stop) // runs whose owner has gone, or whose time is up
+	go routerLoop(root, s.WebPort, s.Log.Printf, stop)   // names under .localhost, with [router] enabled
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	go func() {

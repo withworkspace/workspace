@@ -831,7 +831,8 @@ export interface RunDetail {
   ref: string;
   name: string;
   recipe?: string;
-  link: string;
+  link: string; // by its name, when the workspace has names; else local
+  local: string; // at 127.0.0.1 and its port
   port: number;
   state: "running" | "exited" | "gone";
   status?: number; // its exit status, once exited
@@ -848,6 +849,10 @@ export interface RunDetail {
 // mission open (and 15 minutes after).
 export const runRecipe = (slug: string, repo: string, capsule: string, recipe: string) =>
   send<RunDetail>("POST", `/api/missions/${encodeURIComponent(slug)}/runs`, { repo, capsule, recipe });
+
+// pointSilo points a repo's silo at a capsule (ws silo point), and says
+// what it did.
+export const pointSilo = (repo: string, to: string) => send<{ said: string }>("POST", `/api/silos/${encodeURIComponent(repo)}/point`, { to });
 
 // stopRun ends a run now.
 export const stopRun = (slug: string, ref: string) => send<{ stopped: string }>("POST", `/api/missions/${encodeURIComponent(slug)}/runs/stop`, { ref });
