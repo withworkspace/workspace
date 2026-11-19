@@ -37,6 +37,9 @@ const (
 	// Result is the later one's number): the same brief or plan drafted
 	// again, a mission or document of the same title proposed again.
 	ProposalSuperseded = "superseded"
+	// ProposalWithdrawn: the agent took it back, as what the user said
+	// since ruled it out (Because says how).
+	ProposalWithdrawn = "withdrawn"
 )
 
 // supersedes says whether proposal p, made after q, takes its place: the
@@ -149,7 +152,14 @@ type Proposal struct {
 	Size     int      `json:"size,omitempty"`
 	Warnings []string `json:"warnings,omitempty"`
 
+	// Revises is the proposal this one revises, by its number: the agent
+	// asked to change it, it proposed it again, as it should now be, and
+	// that one's superseded by this. 0: it revises none.
+	Revises int `json:"revises,omitempty"`
+
 	State string `json:"state"`
+	// Because is why the agent withdrew it.
+	Because string `json:"because,omitempty"`
 	// Result is what accepting it made: a mission's slug, a decision's
 	// ref in its mission (slug:d3), a document's ref (repo:path, or
 	// repo/capsule:path where it was left in a capsule), or an artifact's
@@ -193,11 +203,12 @@ func Wakes(kind, state string) bool {
 // proposalSettled is a proposal accepted (with what it made) or declined,
 // or a decision kept with the conversation moved to its mission.
 type proposalSettled struct {
-	N      int       `json:"n"`
-	State  string    `json:"state"`
-	Result string    `json:"result,omitempty"`
-	By     string    `json:"by"`
-	At     time.Time `json:"at"`
+	N       int       `json:"n"`
+	State   string    `json:"state"`
+	Result  string    `json:"result,omitempty"`
+	Because string    `json:"because,omitempty"`
+	By      string    `json:"by"`
+	At      time.Time `json:"at"`
 }
 
 // Became is the mission a conversation became: the latest mission
@@ -270,6 +281,11 @@ func (s Store) Propose(id string, p Proposal) (*Conversation, error) {
 			return fmt.Errorf("%s is resolved", id)
 		}
 		p.N, p.State = len(c.Proposals)+1, ProposalOpen
+		if p.Revises != 0 {
+			if err := c.revisable(p); err != nil {
+				return err
+			}
+		}
 		earlier := append([]Proposal(nil), c.Proposals...)
 		if err := s.add(tx, c, line{Propose: &p}); err != nil {
 			return err
@@ -280,7 +296,7 @@ func (s Store) Propose(id string, p Proposal) (*Conversation, error) {
 			at = time.Now()
 		}
 		for _, q := range earlier {
-			if q.State == ProposalOpen && p.supersedes(q) {
+			if q.State == ProposalOpen && (q.N == p.Revises || p.supersedes(q)) {
 				if err := s.add(tx, c, line{Proposal: &proposalSettled{N: q.N, State: ProposalSuperseded, Result: strconv.Itoa(p.N), By: WS, At: at}}); err != nil {
 					return err
 				}
@@ -291,8 +307,19 @@ func (s Store) Propose(id string, p Proposal) (*Conversation, error) {
 	if err != nil {
 		return nil, err
 	}
+	what := p.Says()
+	if p.Revises != 0 {
+		what = fmt.Sprintf("%s, revising proposal %d", what, p.Revises)
+	}
+	return c, s.log(c, p.By, fmt.Sprintf("%s %s proposes %s", id, p.By, oneLine(what)), p.At)
+}
+
+// Says is what a proposal is, in a line: "a mission: Token cache".
+func (p Proposal) Says() string {
 	what := p.What
 	switch p.Kind {
+	case ProposeDecision:
+		what = "a decision: " + p.What
 	case ProposeMission:
 		what = "a mission: " + p.Title
 	case ProposeBrief:
@@ -319,7 +346,85 @@ func (s Store) Propose(id string, p Proposal) (*Conversation, error) {
 			what = fmt.Sprintf("a version of %s, on v%d: %s", p.To, p.On, p.Note)
 		}
 	}
-	return c, s.log(c, p.By, fmt.Sprintf("%s %s proposes %s", id, p.By, oneLine(what)), p.At)
+	return what
+}
+
+// revisable says why the agent's proposal p can't revise the one it
+// names (p.Revises), or nil: that one's open, and of what p is.
+func (c *Conversation) revisable(p Proposal) error {
+	q := c.Proposal(p.Revises)
+	if q == nil {
+		return fmt.Errorf("there's no proposal %d in %s to revise: leave --revises off to propose it as a new one", p.Revises, c.ID)
+	}
+	switch q.State {
+	case ProposalOpen:
+	case ProposalAccepted:
+		return fmt.Errorf("proposal %d was accepted, so there's nothing to revise: change what it made (%s) as you would anything that's there, or propose it as a new one", q.N, firstNonEmptyString(q.Result, "see ws show "+c.ID))
+	case ProposalSuperseded:
+		return fmt.Errorf("proposal %d was revised already, as proposal %s: revise that one", q.N, q.Result)
+	default:
+		return fmt.Errorf("proposal %d is %s: propose it as a new one, without --revises", q.N, q.State)
+	}
+	same := q.Kind == p.Kind || (p.Kind == ProposeBrief && p.Plan != "" && q.Kind == ProposePlan)
+	switch {
+	case !same:
+		return fmt.Errorf("proposal %d is %s, and this is %s: a revision is of the same kind, so propose this as a new one (and withdraw %d if it's ruled out: ws conversation withdraw %d --why \"…\")", q.N, q.Says(), p.Says(), q.N, q.N)
+	case p.Kind == ProposeDocument && q.To != p.To:
+		return fmt.Errorf("proposal %d is %s, and this is %s: a revision is of the same document", q.N, q.Says(), p.Says())
+	case p.Kind == ProposeDocument && p.To == "" && q.DocKind != p.DocKind:
+		return fmt.Errorf("proposal %d is a document of the kind %s, and this is a %s: a revision is of the same kind", q.N, q.DocKind, p.DocKind)
+	case p.Kind == ProposeArtifact && q.To != p.To:
+		return fmt.Errorf("proposal %d is %s, and this is %s: a revision is of the same artifact", q.N, q.Says(), p.Says())
+	case p.Kind == ProposeComment && q.PR != p.PR:
+		return fmt.Errorf("proposal %d is a comment on %s, and this is on %s: a revision is on the same pull request", q.N, q.PR, p.PR)
+	}
+	return nil
+}
+
+func firstNonEmptyString(s ...string) string {
+	for _, x := range s {
+		if strings.TrimSpace(x) != "" {
+			return x
+		}
+	}
+	return ""
+}
+
+// Withdraw records the agent taking back a proposal of its own that's
+// still open, as what the user said since rules it out: why, in a
+// sentence. Nothing's done, and the user isn't asked any more.
+func (s Store) Withdraw(id string, n int, because string, at time.Time) (*Conversation, error) {
+	because = strings.TrimSpace(because)
+	if because == "" {
+		return nil, errors.New("say why it's withdrawn (--why), in a sentence: the user reads it on the card")
+	}
+	c, err := s.update(id, func(tx *store.Tx, c *Conversation) error {
+		p := c.Proposal(n)
+		switch {
+		case p == nil:
+			return fmt.Errorf("%w: %s has no proposal %d", ErrNotFound, id, n)
+		case p.State == ProposalSuperseded:
+			return fmt.Errorf("proposal %d was revised as proposal %s: withdraw that one", n, p.Result)
+		case p.State != ProposalOpen:
+			return fmt.Errorf("proposal %d is %s already: there's nothing to withdraw", n, p.State)
+		}
+		return s.add(tx, c, line{Proposal: &proposalSettled{N: n, State: ProposalWithdrawn, Because: because, By: Agent, At: at}})
+	})
+	if err != nil {
+		return nil, err
+	}
+	return c, s.log(c, Agent, fmt.Sprintf("%s %s withdraws proposal %d: %s", id, Agent, n, oneLine(because)), at)
+}
+
+// Open is the proposals still open in a conversation, oldest first.
+func (c *Conversation) Open() []Proposal {
+	var out []Proposal
+	for _, p := range c.Proposals {
+		if p.State == ProposalOpen {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // SettleProposal records you accepting a proposal (with what it made) or

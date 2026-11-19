@@ -1393,6 +1393,10 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 			switch {
 			case p.State == conversation.ProposalOpen:
 				state = "waiting for the user"
+			case p.State == conversation.ProposalSuperseded:
+				state = "superseded by " + p.Result
+			case p.State == conversation.ProposalWithdrawn:
+				state = "withdrawn: " + p.Because
 			case p.State == conversation.ProposalAccepted && p.Kind == conversation.ProposeComment:
 				state = "added to the user's draft review"
 			case p.State == conversation.ProposalAccepted && p.Result != "" && p.Kind != conversation.ProposePlan && p.Kind != conversation.ProposeBrief:

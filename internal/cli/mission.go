@@ -232,6 +232,7 @@ like a mission in play is refused, naming it: note what you found there
 	cmd.Flags().BoolVar(&edit, "edit", false, "create it ready and write the brief in $EDITOR")
 	cmd.Flags().BoolVar(&noEdit, "no-edit", false, "create it ready with the template brief")
 	cmd.Flags().BoolVar(&proposeIt, "propose", false, "in a conversation: propose it, for the user to create, instead of creating it")
+	revisesFlag(cmd)
 	cmd.Flags().StringArrayVar(&capsules, "capsule", nil, "with --propose: a capsule to lift for it, as repo/branch (repeatable)")
 	cmd.Flags().StringArrayVar(&about, "about", nil, "what it's about, by a name ws reads: one of a plugin's things (RAM-123), a pull request (repeatable)")
 	cmd.Flags().BoolVar(&distinct, "distinct", false, "from inside a mission: raise it though it looks like a mission in play, as it's different work")

@@ -62,5 +62,6 @@ planner as this does, as you; declining changes nothing.`,
 	}
 	addMissionFlag(cmd, &slug)
 	cmd.Flags().BoolVar(&proposeIt, "propose", false, "in a conversation: propose it, for the user to confirm, instead of asking the planner")
+	revisesFlag(cmd)
 	return cmd
 }

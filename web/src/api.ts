@@ -1745,7 +1745,9 @@ export interface TalkProposal {
   latest?: number;
   size?: number;
   warnings?: string[];
-  state: "open" | "accepted" | "declined" | "superseded"; // superseded: a later one took its place
+  revises?: number; // the agent's revision of an open proposal of its, by number: that one's superseded by this
+  state: "open" | "accepted" | "declined" | "superseded" | "withdrawn"; // superseded: a later one took its place; withdrawn: the agent took it back
+  because?: string; // withdrawn: why
   result?: string; // a mission's slug, slug:d3, a document's ref (an edit's: where it was saved), or an artifact's version (a3.v1); "" for a decision kept with the conversation; a superseded one's, the later one's number
 }
 

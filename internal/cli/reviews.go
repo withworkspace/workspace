@@ -335,6 +335,7 @@ them with from stdin, which the author can apply.`,
 		},
 	}
 	cmd.Flags().BoolVar(&proposing, "propose", false, "propose it in the conversation you're answering, for the user to add to their review")
+	revisesFlag(cmd)
 	cmd.Flags().StringVar(&path, "path", "", "the file, as the pull request names it")
 	cmd.Flags().IntVar(&line, "line", 0, "the line it's on (the first, of several)")
 	cmd.Flags().IntVar(&endLine, "end-line", 0, "the last line, when it's on several")

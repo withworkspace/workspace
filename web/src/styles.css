@@ -9653,7 +9653,8 @@ button.settled-marker-more {
 }
 
 .proposal.s-declined .proposal-icon,
-.proposal.s-superseded .proposal-icon {
+.proposal.s-superseded .proposal-icon,
+.proposal.s-withdrawn .proposal-icon {
   color: var(--dim);
 }
 
@@ -9671,6 +9672,24 @@ button.settled-marker-more {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.proposal-revises {
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.proposal-changes {
+  margin: 8px 14px 0;
+  font-size: var(--text-sm);
+}
+
+.proposal-changes > summary {
+  cursor: pointer;
+}
+
+.proposal-changes > .brief-diff {
+  margin-top: 6px;
 }
 
 .proposal-body {
@@ -9753,7 +9772,8 @@ button.settled-marker-more {
 }
 
 .proposal.s-declined .proposal-body,
-.proposal.s-superseded .proposal-body {
+.proposal.s-superseded .proposal-body,
+.proposal.s-withdrawn .proposal-body {
   opacity: 0.6;
 }
 

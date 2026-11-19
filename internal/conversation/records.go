@@ -308,7 +308,7 @@ func (c *Conversation) apply(l line) {
 	case l.Proposal != nil:
 		if p := c.Proposal(l.Proposal.N); p != nil {
 			at := l.Proposal.At
-			p.State, p.Result, p.SettledBy, p.SettledAt = l.Proposal.State, l.Proposal.Result, l.Proposal.By, &at
+			p.State, p.Result, p.SettledBy, p.SettledAt, p.Because = l.Proposal.State, l.Proposal.Result, l.Proposal.By, &at, l.Proposal.Because
 		}
 	case l.Settle != nil:
 		c.settle(l.Settle.Key, l.Settle.State, l.Settle.Why)

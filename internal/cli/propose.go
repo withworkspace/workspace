@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -17,6 +18,15 @@ import (
 // Proposals: a conversation's agent changes nothing, but proposes a
 // decision or a mission with --propose on the verb that would do it; you
 // confirm it under its reply, and ws does it, as you.
+
+// revising is the proposal the agent's proposing this to revise
+// (--revises), by its number: 0 for none. One command runs at a time.
+var revising int
+
+// revisesFlag gives a verb's --propose its --revises.
+func revisesFlag(cmd *cobra.Command) {
+	cmd.Flags().IntVar(&revising, "revises", 0, "with --propose: the number of an open proposal of yours this revises, as the user asked; it takes that one's place")
+}
 
 // agentConversation is the conversation the agent running this command is
 // answering ($WS_CONVERSATION), or "" for anyone else.
@@ -44,9 +54,16 @@ func proposeFrom(ctx *ops.Workspace, make func(store conversation.Store, id stri
 		return err
 	}
 	p.By, p.At = conversation.Agent, time.Now()
+	if revising != 0 {
+		p.Revises = revising
+	}
 	c, err := store.Propose(id, p)
 	if err != nil {
 		return err
+	}
+	if p.Revises != 0 {
+		fmt.Fprintf(ui.Stderr, "  %s proposed in %s (proposal %d), in place of proposal %d: the user confirms it, or not, with a button under your reply\n", ui.Green.Render("✓"), id, len(c.Proposals), p.Revises)
+		return nil
 	}
 	fmt.Fprintf(ui.Stderr, "  %s proposed in %s (proposal %d): the user confirms it, or not, with a button under your reply\n", ui.Green.Render("✓"), id, len(c.Proposals))
 	return nil
@@ -100,5 +117,41 @@ func newConversationSettleCmd(accept bool) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&slug, "mission", "m", "", "the mission whose conversation it is (none: the workspace's)")
+	return cmd
+}
+
+// newConversationWithdrawCmd is the agent taking back a proposal of its
+// own, still open, that what the user said since rules out.
+func newConversationWithdrawCmd() *cobra.Command {
+	var why string
+	cmd := &cobra.Command{
+		Use:   "withdraw <proposal>",
+		Short: "Take back a proposal of yours the user has since ruled out (a conversation's agent only)",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			id := agentConversation()
+			if id == "" {
+				return errors.New("withdraw is for a conversation's agent, taking back what it proposed: the user declines it instead")
+			}
+			n, err := strconv.Atoi(strings.TrimPrefix(args[0], "#"))
+			if err != nil {
+				return fmt.Errorf("proposals are numbered 1, 2, …, not %q", args[0])
+			}
+			store, err := ops.ConversationStore(ctx.WS().Root, os.Getenv(mission.EnvMission), id)
+			if err != nil {
+				return err
+			}
+			if _, err := store.Withdraw(id, n, why, time.Now()); err != nil {
+				return err
+			}
+			fmt.Fprintf(ui.Stderr, "  %s withdrew proposal %d in %s: the user isn't asked it any more\n", ui.Green.Render("✓"), n, id)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&why, "why", "", "why it's withdrawn, in a sentence: the user reads it on the card")
 	return cmd
 }

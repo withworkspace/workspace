@@ -206,3 +206,29 @@ export function made(proposals: TalkProposal[], slug = "", titleOf: (id: string)
   }
   return out;
 }
+
+// --- A revision
+
+// revisedText is the words a proposal is mostly made of, to say what a
+// revision changed of it: its brief, plan, text or decision. "" for one
+// whose change is better seen another way (an artifact runs).
+export function revisedText(p: TalkProposal): string {
+  switch (p.kind) {
+    case "decision":
+      return [p.what, p.why].filter(Boolean).join("\n\n");
+    case "mission":
+      return [p.title ? `# ${p.title}` : "", p.brief ?? ""].filter(Boolean).join("\n\n");
+    case "brief":
+      return [p.brief ?? "", p.plan ?? ""].filter(Boolean).join("\n\n");
+    case "plan":
+      return p.plan ?? "";
+    case "dispatch":
+    case "replan":
+    case "comment":
+    case "document":
+      return p.text ?? "";
+    case "artifact":
+      return p.note ?? "";
+  }
+  return "";
+}
