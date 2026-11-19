@@ -1331,6 +1331,39 @@ records = "notes"
 	}
 }
 
+// A plugin's config is the plugin's to say, tables nested in it too: none
+// of it is named as unread, from either file.
+func TestLoad_PluginConfigIsNotUnknown(t *testing.T) {
+	root := t.TempDir()
+	os.WriteFile(filepath.Join(root, FileName), []byte(`[workspace]
+org = "acme"
+
+[plugin.jira]
+url = "https://jira.example"
+
+[plugin.jira.queries.bugs]
+label = "Bugs"
+`), 0o644)
+	os.WriteFile(filepath.Join(root, LocalFileName), []byte(`[plugin.jira]
+token = "t"
+
+[plugin.jira.queries.mine]
+label = "Mine"
+jql = "assignee = currentUser()"
+`), 0o644)
+
+	cfg, _, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Unknown) != 0 {
+		t.Errorf("Unknown = %q, want none", cfg.Unknown)
+	}
+	if got := cfg.Plugin["jira"]["queries"].(map[string]any)["mine"].(map[string]any)["jql"]; got != "assignee = currentUser()" {
+		t.Errorf("plugin.jira.queries.mine.jql = %v", got)
+	}
+}
+
 func TestParseRepoConfig_NamesWhatItDoesntRead(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "ws.repo.toml")
 	os.WriteFile(path, []byte("landing = \"direct\"\nverfy = \"make test\"\n"), 0o644)
