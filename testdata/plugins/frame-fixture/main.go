@@ -11,6 +11,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"embed"
@@ -122,6 +123,7 @@ func main() {
 					"subcommands": []map[string]string{
 						{"name": "poke", "short": "Say what the view shows is stale: the open app is told (ws:changed)"},
 						{"name": "looking", "short": "Print who ws last said is looking at the app, and at ws (view/looking)"},
+						{"name": "said", "short": "Print what ws shows of a ref, as it answers a plugin (show): said THING-2, or said <mission> <ref>"},
 					},
 				},
 				"agent": map[string]any{"guide": "`ws frame-fixture poke` tells the fixture's open app that what it shows is stale. It's for trying ws's plugin frame by hand: there's nothing in it for a mission."},
@@ -228,8 +230,25 @@ func main() {
 				out("stdout", said+"\n")
 				return map[string]int{"exit": 0}, nil
 			}
+			if len(p.Args) >= 2 && p.Args[0] == "said" {
+				// What ws show shows, asked of ws as a plugin asks: one of
+				// the workspace's by its ref, or one of a mission's own.
+				ask := map[string]any{"ref": p.Args[1]}
+				if len(p.Args) > 2 {
+					ask = map[string]any{"mission": p.Args[1], "ref": p.Args[2]}
+				}
+				var shown json.RawMessage
+				if err := conn.Call(context.Background(), "show", ask, &shown); err != nil {
+					out("stderr", err.Error()+"\n")
+					return map[string]int{"exit": 1}, nil
+				}
+				var pretty bytes.Buffer
+				json.Indent(&pretty, shown, "", "  ") //nolint:errcheck // ws's own JSON
+				out("stdout", pretty.String()+"\n")
+				return map[string]int{"exit": 0}, nil
+			}
 			if len(p.Args) != 1 || p.Args[0] != "poke" {
-				out("stderr", "usage: ws frame-fixture poke|looking\n")
+				out("stderr", "usage: ws frame-fixture poke|looking|said <ref>\n")
 				return map[string]int{"exit": 2}, nil
 			}
 			n := poked.Add(1)

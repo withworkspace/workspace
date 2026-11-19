@@ -264,6 +264,14 @@ func TestKitAsksWS(t *testing.T) {
 			return protocol.MissionDetail{Mission: protocol.Mission{Slug: "cache"}, Brief: "## Goal"}, nil
 		case protocol.MethodRepoList:
 			return protocol.RepoListResult{Repos: []protocol.Repo{{Name: "api", Capsules: []protocol.Capsule{{Name: ".ground", Ground: true}}}}}, nil
+		case protocol.MethodShow:
+			var in protocol.ShowParams
+			json.Unmarshal(params, &in) //nolint:errcheck // a test's
+			if in.Ref != "KIT-1" {
+				return nil, plugin.NotFound("ws has nothing called " + in.Ref)
+			}
+			return protocol.Shown{Ref: in.Ref, Mission: in.Mission, Head: "KIT-1: A thing", Body: []string{}, Links: []protocol.ShownLink{},
+				Said: []protocol.Said{{Ref: "cache", Kind: "mission", How: protocol.SaidAbout, Standing: true, Path: "/missions/cache"}}}, nil
 		}
 		return nil, plugin.NoMethod(method)
 	}
@@ -295,9 +303,15 @@ func TestKitAsksWS(t *testing.T) {
 	if got := run("ask", "repos"); !strings.Contains(got, `"ground":true`) {
 		t.Errorf("repos: %s", got)
 	}
+	if got := run("ask", "show", "KIT-1"); !strings.Contains(got, `"head":"KIT-1: A thing"`) || !strings.Contains(got, `"said":[{"ref":"cache","kind":"mission","title":"","standing":true,"how":"about"`) || !strings.Contains(got, `"path":"/missions/cache"`) {
+		t.Errorf("show: %s", got)
+	}
+	if got := run("ask", "show", "d1", "--mission", "cache"); !strings.Contains(got, "not found: ws has nothing called d1") {
+		t.Errorf("show what isn't there: %s", got)
+	}
 	mu.Lock()
 	defer mu.Unlock()
-	if len(asked) != 4 || asked[0] != `kit mission/list {"archived":true}` || asked[1] != `kit mission/show {"slug":"cache"}` {
+	if len(asked) != 6 || asked[0] != `kit mission/list {"archived":true}` || asked[1] != `kit mission/show {"slug":"cache"}` || asked[4] != `kit show {"ref":"KIT-1"}` || asked[5] != `kit show {"ref":"d1","mission":"cache"}` {
 		t.Errorf("asked = %q", asked)
 	}
 }

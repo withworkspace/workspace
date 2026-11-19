@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/withworkspace/plugin/protocol"
+	"github.com/withworkspace/workspace/internal/acp"
 	"github.com/withworkspace/workspace/internal/cli"
 	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/plugin/fakeplugin"
@@ -343,6 +344,100 @@ func TestShowAPluginsThing(t *testing.T) {
 	// What only looks like one isn't the plugin's to be asked about.
 	if res := testutil.RunCommand(t, root, nil, "show", "UTF-8"); res.Err == nil || strings.Contains(res.Err.Error(), "jira") {
 		t.Errorf("UTF-8: %v\n%s", res.Err, res.Stdout)
+	}
+}
+
+// A plugin asks ws what ws show shows, and gets it as data: one of its
+// own things with the mission about it, that mission in turn, and
+// nothing for what isn't there.
+func TestAPluginAsksWhatWSShows(t *testing.T) {
+	root := naming(t)
+	if refused, err := plugin.PutThings(root, "jira", []protocol.Thing{{Kind: "issue", Ref: "RAM-12", Fields: map[string]string{"title": "Token refresh is flaky", "status": "In Progress", "parent": "RAP-1"}}}); err != nil || len(refused) != 0 {
+		t.Fatalf("telling ws of RAM-12: %v, %v", refused, err)
+	}
+	res := testutil.RunCommand(t, root, nil, "mission", "new", "Fix the refresh", "--about", "RAM-12", "--no-edit")
+	if res.Err != nil {
+		t.Fatalf("new --about: %v\n%s", res.Err, res.Stderr)
+	}
+	slug := strings.TrimSpace(res.Stdout)
+	answer := cli.AnswerPlugin(root)
+	show := func(in protocol.ShowParams) (protocol.Shown, error) {
+		t.Helper()
+		params, _ := json.Marshal(in)
+		got, err := answer(t.Context(), "jira", protocol.MethodShow, params)
+		if err != nil {
+			return protocol.Shown{}, err
+		}
+		return got.(protocol.Shown), nil
+	}
+	code := func(err error) int {
+		var re *acp.RPCError
+		if errors.As(err, &re) {
+			return re.Code
+		}
+		return 0
+	}
+
+	// One of its own: as ws was last told (the plugin that's asking
+	// isn't asked back), what it links to, where it opens, and the
+	// mission about it.
+	got, err := show(protocol.ShowParams{Ref: "RAM-12"})
+	if err != nil {
+		t.Fatalf("show RAM-12: %v", err)
+	}
+	if got.Ref != "RAM-12" || got.Head != "RAM-12: Token refresh is flaky" || got.Path != "/x/jira/issue/RAM-12" {
+		t.Errorf("RAM-12: %+v", got)
+	}
+	if body := strings.Join(got.Body, "\n"); !strings.Contains(body, "Jira issue, from the jira plugin. In Progress.") || !strings.Contains(body, "As the jira plugin last told ws.") {
+		t.Errorf("RAM-12's body:\n%s", body)
+	}
+	if len(got.Links) != 1 || got.Links[0] != (protocol.ShownLink{Ref: "RAP-1", What: "Parent"}) {
+		t.Errorf("RAM-12's links: %+v", got.Links)
+	}
+	if len(got.Said) != 1 {
+		t.Fatalf("said of RAM-12: %+v", got.Said)
+	}
+	if said := got.Said[0]; said.Ref != slug || said.Mission != "" || said.Kind != "mission" || said.Title != "Fix the refresh" || said.How != protocol.SaidAbout || !said.Standing || said.Path != "/missions/"+slug || said.At.IsZero() {
+		t.Errorf("the mission about RAM-12: %+v", said)
+	}
+
+	// What's said is asked for in turn, with its ref as it's said: the
+	// mission by its slug, which is also how a mission's named.
+	for _, in := range []protocol.ShowParams{{Ref: got.Said[0].Ref, Mission: got.Said[0].Mission}, {Mission: slug}} {
+		m, err := show(in)
+		if err != nil {
+			t.Fatalf("show the mission (%+v): %v", in, err)
+		}
+		if m.Head != "Mission "+slug+": Fix the refresh" || m.Path != "/missions/"+slug || !strings.Contains(strings.Join(m.Body, "\n"), "About: RAM-12") || m.Links == nil || m.Said == nil {
+			t.Errorf("the mission (%+v): %+v", in, m)
+		}
+	}
+
+	// By where it is, as by its name.
+	if got, err := show(protocol.ShowParams{Ref: "https://acme.atlassian.net/browse/RAM-12"}); err != nil || got.Head != "RAM-12: Token refresh is flaky" || len(got.Said) != 1 {
+		t.Errorf("RAM-12 by its address: %v %+v", err, got)
+	}
+	// One ws hasn't been told of is still shown, by its name: what's
+	// said of it doesn't wait on the plugin.
+	if got, err := show(protocol.ShowParams{Ref: "RAM-77"}); err != nil || got.Head != "RAM-77" || !strings.Contains(strings.Join(got.Body, "\n"), "The jira plugin hasn't told ws of it.") || len(got.Said) != 0 || got.Said == nil {
+		t.Errorf("RAM-77: %v %+v", err, got)
+	}
+
+	// Nothing by that name, a mission's own asked for without its
+	// mission, and a mission that isn't there: each not found, in words.
+	for _, in := range []protocol.ShowParams{{Ref: "UTF-8"}, {Ref: "d1"}, {Ref: "d1", Mission: "nope"}, {Mission: "nope"}, {Ref: "d9", Mission: slug}} {
+		if _, err := show(in); code(err) != protocol.CodeNotFound || err.Error() == "" {
+			t.Errorf("show %+v: %v", in, err)
+		}
+	}
+	if _, err := show(protocol.ShowParams{}); code(err) != acp.CodeInvalidParams {
+		t.Errorf("show nothing: %v", err)
+	}
+
+	// The rest of what a plugin asks is answered as it was.
+	list, err := answer(t.Context(), "jira", protocol.MethodMissionList, nil)
+	if ms, ok := list.(protocol.MissionListResult); err != nil || !ok || len(ms.Missions) != 1 || ms.Missions[0].Slug != slug {
+		t.Errorf("mission/list: %v %+v", err, list)
 	}
 }
 

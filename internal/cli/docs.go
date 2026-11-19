@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	wsref "github.com/withworkspace/workspace/internal/ref"
-	"io"
 	"os"
 	"slices"
 	"strings"
@@ -13,7 +12,6 @@ import (
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/space"
-	"github.com/withworkspace/workspace/internal/ui"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
 
@@ -24,13 +22,13 @@ import (
 // ref, kept in the workspace's records with the versions of the document they were made on. A document a mission records
 // keeps its threads with the mission.
 
-// showDoc is ws show <repo:path>: a document outside a mission, and the
+// docView is ws show <repo:path>: a document outside a mission, and the
 // threads on it.
-func showDoc(ctx *ops.Workspace, ref, format string, full bool) error {
+func docView(ctx *ops.Workspace, ref string, full bool) (*view, error) {
 	name, line, end := fileName(ref)
 	d, err := ctx.FindDoc(name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	v := &view{head: fmt.Sprintf("Document %s (on %s)", d.Ref, d.Where())}
 	if d.Worktree != workspace.GroundDir {
@@ -83,12 +81,7 @@ func showDoc(ctx *ops.Workspace, ref, format string, full bool) error {
 		})
 		v.addSaid(saidSection{title: "Said of it, in any mission", said: said, line: line, end: end, elsewhere: d.Ref})
 	}
-	if format == "llm" {
-		_, err = os.Stdout.WriteString(v.render(false, full))
-	} else {
-		_, err = io.WriteString(ui.Stdout, v.render(true, full))
-	}
-	return err
+	return v, nil
 }
 
 // isFileName is whether ref names a file in a repo, as a document's ref

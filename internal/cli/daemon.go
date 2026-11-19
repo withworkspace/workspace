@@ -169,7 +169,7 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 	// when one's first needed. Commands reach them over their socket, and
 	// what they ask ws is answered from the workspace's operations.
 	pluginHost = newPluginHost(s, cmd.Root().Version)
-	pluginHost.Answer = openOps(root, prs).AnswerPlugin
+	pluginHost.Answer = answerPlugin(openOps(root, prs))
 	if ln, err := pluginHost.Listen(); err != nil {
 		s.Log.Printf("plugins: commands can't reach them: %v", err)
 	} else {

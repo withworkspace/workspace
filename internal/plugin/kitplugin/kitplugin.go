@@ -157,7 +157,7 @@ func run() {
 		p.Log.Error("it went wrong")
 		return plugin.Exit(3, errors.New("failed"))
 	})
-	p.Command("ask", "Asks ws for missions, a mission or repos, and prints the answer as JSON", func(c *plugin.Call) error {
+	p.Command("ask", "Asks ws for missions, a mission, repos or what it shows of a ref, and prints the answer as JSON", func(c *plugin.Call) error {
 		var answer any
 		var err error
 		switch c.Arg(0) {
@@ -167,6 +167,8 @@ func run() {
 			answer, err = p.Mission(c.Context(), c.Arg(1))
 		case "repos":
 			answer, err = p.Repos(c.Context())
+		case "show":
+			answer, err = p.ShowIn(c.Context(), c.Option("mission"), c.Arg(1))
 		}
 		switch {
 		case errors.Is(err, plugin.ErrNotFound):
@@ -177,7 +179,7 @@ func run() {
 			return err
 		}
 		return json.NewEncoder(c.Stdout()).Encode(answer)
-	}).Args("missions|mission SLUG|repos").Flag("archived", "archived missions too")
+	}).Args("missions|mission SLUG|repos|show REF").Flag("archived", "archived missions too").Option("mission", "the mission a ref shown is one of")
 	p.Run()
 }
 

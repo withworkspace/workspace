@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -250,6 +252,12 @@ func SweepArtifacts(root string) []string {
 // EvalMade is evalMade, for a test to own the records of the workspace an
 // eval's run is made in.
 var EvalMade = &evalMade
+
+// AnswerPlugin is what the daemon answers a plugin's requests with, in
+// the workspace at root.
+func AnswerPlugin(root string) func(context.Context, string, string, json.RawMessage) (any, error) {
+	return answerPlugin(openOps(root, nil))
+}
 
 // UseThings has ask stand in for the workspace's plugins when ws show
 // asks one what a thing is, and returns a cleanup: no daemon runs one in

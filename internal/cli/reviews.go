@@ -18,7 +18,6 @@ import (
 	"github.com/withworkspace/workspace/internal/page"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/review"
-	"github.com/withworkspace/workspace/internal/ui"
 )
 
 // The Reviews page's side of the CLI: the service the web UI serves it
@@ -255,15 +254,16 @@ func reviewCounts(r *review.Review) string {
 	return " (" + strings.Join(parts, ", ") + ")"
 }
 
-// showPR prints ws show <repo>#<number>.
-func showPR(ctx *ops.Workspace, ref, format string, full bool) error {
+// prShowView is ws show <repo>#<number>: the pull request, and what
+// missions have said of it.
+func prShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) {
 	repo, number, err := ctx.ParsePRRef(ref)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	v, err := prView(ctx, repo, number, full)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// What missions have said of it: the workspace's talk and its own
 	// reviews are in the view already.
@@ -272,12 +272,7 @@ func showPR(ctx *ops.Workspace, ref, format string, full bool) error {
 		said = slices.DeleteFunc(said, func(x ops.Said) bool { return x.Scope == "" || x.Scope == key })
 		v.addSaid(saidSection{title: "Said of it in missions", said: said})
 	}
-	if format == "llm" {
-		_, err = os.Stdout.WriteString(v.render(false, full))
-	} else {
-		_, err = io.WriteString(ui.Stdout, v.render(true, full))
-	}
-	return err
+	return v, nil
 }
 
 func newPRCmd() *cobra.Command {

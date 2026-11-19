@@ -32,6 +32,7 @@ That adds it, linked to this folder, and prints where the web UI is. In any othe
 | The theme switch, and the accent in Settings | The app follows: "ws:theme received" goes up, and the swatches change. |
 | `ws frame-fixture poke` | "ws:changed received" goes up, and the app fetches the plugin's count again. |
 | `ws frame-fixture looking` | Who ws last told the plugin is looking (`view/looking`): `{"app":true,"ws":true}` with the app on screen, `app` false on another page of ws's, and both false a few seconds after the tab's put behind another, or closed. |
+| `ws frame-fixture said THING-2` | What ws shows of a ref, as it answers a plugin that asks (`show`): what it is, what it links to, and what's said of it in the workspace, as JSON. `said <mission> <ref>` is one of a mission's own. |
 | `?`, `g` then `m`, ⌘K, pressed in the frame | ws's keys work there. Typed into the box, `?` and `g` stay in the box. |
 | "Missions: a page of ws's own" | A plain link to a page of ws's opens in ws, not in the frame. |
 | "Names in the app's own words" | The names are refs, drawn as in ws's own pages: `THING-2` and `THING-1`, `THING-3` in code, and `THING-9`, which has a name and isn't there. The app holds no grammar: it sent its words to ws, which found them (`ws:refs`). A click on `THING-1` goes to it in the app, by way of ws. The link's words, `ws show THING-3` and the words that only look like names are left. |
