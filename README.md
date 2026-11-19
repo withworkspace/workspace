@@ -7,12 +7,14 @@
 </p>
 
 <p align="center">
-  Missions for you and your coding agents, across all your repos.
+  Agentic control plane for real work
 </p>
 
 ---
 
-**workspace** (`ws`) takes a piece of work from a sentence to a merged pull request. You say what you want. An agent turns it into a brief and a plan, which you confirm. Agents then do the work, each in a worktree of its own, and it comes back to you where the plan says it's yours: to answer a question, to review the diff, to merge.
+**workspace** (`ws`) is where you and agents work together. Agents plan the work, do it and check it. ws brings you in where your judgement is needed, and not before: to confirm a plan, to answer a question, to read a proposal, to review a change, to say whether it looks right.
+
+It isn't trying to take you out of the work. It's trying to spend your attention well. Each time it comes to you, what you need to decide is ready: the diff, the document, a prototype to click through, proof that it works.
 
 It runs on your machine: a daemon that keeps agents working after you close the tab, a web UI that shows what needs you, and a CLI that you and the agents both use.
 
@@ -26,18 +28,17 @@ It runs on your machine: a daemon that keeps agents working after you close the 
 
 A bug, at the fourth of its five steps. Crew reproduced it as a failing test, you agreed that was the cause, crew fixed it, and ws ran the plan's checks. Now it's yours to review, and no pull request opens until you have.
 
-## How a mission goes
+## Where you come in
 
-A **mission** is a unit of work: a brief, a plan, the worktrees it's done in, and a record of what happened.
+Most of a piece of work happens without you. These are the moments that don't, and what ws puts in front of you at each.
 
-1. **Ask.** `ws mission new "Invoice totals are off by a penny"`, or say it in a conversation, or paste an issue's address.
-2. **Brief and plan.** A briefing agent reads the code, asks you what's unclear, and proposes a brief and a plan: the steps in order, what has to be true for each to be done, and the steps that are yours. Nothing starts until you confirm it.
-3. **Work.** **Crew** are agents in your own CLI (Claude Code, Cursor, pi, Codex, OpenCode), on your own account. Each works a step in a **capsule**, a git worktree off main, one in each repo the mission touches. They hand over to each other in writing, so the next agent starts from what the last one learned.
-4. **Check.** When crew say they're done, ws checks. A check that's a command (`go test ./...` passes) ws runs itself. One in words goes to a judge, an agent that didn't do the work. Where the plan asks for it, a verifier uses the thing and hands over what it saw.
-5. **Review.** A step that's yours is a checkpoint, and nothing else passes it. You read the capsule's diff in the web UI, comment on its lines, and approve it or send it back to the crew who wrote it.
-6. **Land.** ws opens the pull request and looks after it while it's open: failing checks go back to crew. When it merges, the mission ends, and what it decided and made stays findable.
-
-Between steps, an orchestrator (a headless agent) reads what happened and decides what's next. It acts only through `ws` commands, so what it may do is what ws lets it.
+- **A plan to confirm.** An agent reads the code, asks you what's unclear, and proposes a brief and the steps to get there, saying which are yours. Nothing starts until you confirm it.
+- **A question to answer.** When an agent can't decide something, it asks, with the answers it would act on. Yours is kept as a decision.
+- **A document to read.** A proposal or an ADR is commented on in its margin, as a shared doc is, before anything is built from it.
+- **A prototype to try.** An artifact is a page you can click through, kept in versions you can put side by side.
+- **A change to review.** The diff, file by file, with your comments on its lines.
+- **Proof to check.** An agent who didn't build the thing runs it, and hands over what it saw and what's left for your eye.
+- **A pull request to merge.**
 
 <p align="center">
   <picture>
@@ -47,11 +48,24 @@ Between steps, an orchestrator (a headless agent) reads what happened and decide
   </picture>
 </p>
 
-Every mission is in one court: yours, an agent's, or outside (reviewers, CI, another team). The list is grouped that way, so **Needs you** is everything waiting on you, each with the one thing that moves it on.
+Every piece of work is in one court: yours, an agent's, or outside (reviewers, CI, another team). The list is grouped that way, so **Needs you** is everything waiting on you, each with the one thing that moves it on. The tab's icon lights when something lands there.
+
+## How a mission goes
+
+A **mission** is a unit of work: a brief, a plan, the worktrees it's done in, and a record of what happened.
+
+1. **Ask.** `ws mission new "Invoice totals are off by a penny"`, or say it in a conversation, or paste an issue's address.
+2. **Brief and plan.** A briefing agent proposes a brief and a plan: the steps in order, what has to be true for each to be done, and the steps that are yours. You confirm it.
+3. **Work.** **Crew** are agents in your own CLI (Claude Code, Cursor, pi, Codex, OpenCode), on your own account. Each works a step in a **capsule**, a git worktree off main, one in each repo the mission touches. They hand over to each other in writing, so the next agent starts from what the last one learned.
+4. **Check.** When crew say they're done, ws checks. A check that's a command (`go test ./...` passes) ws runs itself. One in words goes to a judge, an agent that didn't do the work.
+5. **Review.** A step that's yours is a checkpoint, and nothing else passes it. You approve the work, or send it back to the crew who made it.
+6. **Land.** ws opens the pull request and looks after it while it's open: failing checks go back to crew. When it merges, the mission ends, and what it decided and made stays findable.
+
+Between steps, an orchestrator (a headless agent) reads what happened and decides what's next. It acts only through `ws` commands, so what it may do is what ws lets it.
 
 ## Your process, and what ws holds
 
-How work goes is yours to say, in prose, in a `PROCESS.md` beside your config:
+When you're brought in is yours to say. How work goes is written in prose, in a `PROCESS.md` beside your config:
 
 ```markdown
 Bugs are reproduced first, with a failing test, then fixed. I see the
@@ -104,7 +118,7 @@ A diff doesn't show that a button works. A **Verify** step has an agent who didn
 - **Team.** What the people in your repos have been doing, by day.
 - **Plugins.** Programs that add a view, commands and names ws recognises wherever they're written, such as a tracker's `RAM-123`. They're written with [the plugin framework](https://github.com/withworkspace/plugin).
 
-The [manual](MANUAL.md) has all of it.
+[FEATURES.md](FEATURES.md) shows every view, and the [manual](MANUAL.md) says how each works.
 
 ## Capsules
 
