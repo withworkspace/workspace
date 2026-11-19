@@ -1,4 +1,4 @@
-import { chooseVersion, type Connect, isConnect, type Refuse } from "@withworkspace/ui-lib/protocol";
+import { chooseVersion, type Connect, isConnect, type Refuse, type V1 } from "@withworkspace/ui-lib/protocol";
 import type { FoundRef } from "../refs/found";
 import { watchBackdrop } from "./backdrop";
 import type { Theme } from "./theme";
@@ -53,6 +53,9 @@ export interface Host {
   // names (an issue in a panel), or none. Find starts from it. It's none,
   // too, once the page is hung up on.
   here(name: string | undefined): void;
+  // How the app wants ws's chrome laid out: expanded, ws folds its
+  // sidebar to a rail. It's standard again once the page is hung up on.
+  chromeLayout(mode: V1.ChromeMode): void;
 }
 
 // Session is a page that's connected, as ws tells it things.
@@ -154,6 +157,7 @@ export function listen(
     unwatch = () => {};
     host.dim(false);
     host.here(undefined);
+    host.chromeLayout("standard");
   };
   const onMessage = (e: MessageEvent) => {
     const source = frame();

@@ -16,7 +16,7 @@ const vars = (value: string) => Object.fromEntries(TOKENS.map((t) => [tokenVar(t
 
 // A host that keeps what the page said, with a theme a test can change.
 function fakeWs(path = "/things/2?tab=links") {
-  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[], heres: [] as (string | undefined)[] };
+  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[], heres: [] as (string | undefined)[], layouts: [] as string[] };
   let theme: V1.Theme = { scheme: "dark", vars: vars("dark") };
   // What ws finds: THING-<n>, wherever it's written, until a test says
   // otherwise.
@@ -36,6 +36,7 @@ function fakeWs(path = "/things/2?tab=links") {
     },
     dim: (on) => void said.dims.push(on),
     here: (name) => void said.heres.push(name),
+    chromeLayout: (mode) => void said.layouts.push(mode),
   };
   return { host, said, setTheme: (t: V1.Theme) => void (theme = t), setFind: (f: typeof find) => void (find = f) };
 }
@@ -257,12 +258,23 @@ describe("protocol 1's host", () => {
     session.close();
   });
 
+  it("hears how the app wants the chrome laid out", async () => {
+    const { client, session, said } = await connected();
+    client.setChromeLayout("expanded");
+    await tick();
+    client.setChromeLayout("standard");
+    await tick();
+    expect(said.layouts).toEqual(["expanded", "standard"]);
+    client.close();
+    session.close();
+  });
+
   it("passes on a key the page says was ws's, and drops what it doesn't know", async () => {
     const ws = fakeWs();
     const { port1, port2 } = new MessageChannel();
     const session = v1(port2, ws.host);
     port1.postMessage({ type: "ws:key", key: "k", meta: true, ctrl: false, shift: false, alt: false });
-    port1.postMessage({ type: "ws:room", width: 1200 }); // a message from a later release of the package
+    port1.postMessage({ type: "ws:sidebar", open: false }); // a message from a later release of the package
     port1.postMessage({ type: "ws:go" }); // not as the protocol has it
     port1.postMessage({ type: "ws:path", path: "/things/3" }); // from before ws kept the history
     port1.postMessage("ws:title");
@@ -395,8 +407,10 @@ describe("listening for the frame", () => {
     watched[1].backdrop(true);
     frame.stop();
     expect(ws.said.dims).toEqual([true, false, true, false]);
-    // What either page said it showed is forgotten with it, as the dim is.
+    // What either page said it showed is forgotten with it, as the dim is,
+    // and its layout is standard again.
     expect(ws.said.heres).toEqual([undefined, undefined]);
+    expect(ws.said.layouts).toEqual(["standard", "standard"]);
     expect(watched.map((w) => w.stopped)).toEqual([true, true]);
     first.close();
     second.close();

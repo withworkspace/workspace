@@ -17,6 +17,7 @@ import { MissionPage, missionKeys } from "./mission/Mission";
 import { OrchestratorPage, OrchestratorRunPage } from "./orchestrator/Orchestrator";
 import { useFrameDim } from "./plugins/dim";
 import { useFrameHere } from "./plugins/here";
+import { useFrameExpanded } from "./plugins/layout";
 import { PluginPage, pluginIcon } from "./plugins/Plugin";
 import { RefsProvider } from "./refs/known";
 import { SettingsPage, settingsKeys } from "./settings/Settings";
@@ -48,7 +49,8 @@ import { SiloPoint } from "./silo/SiloPoint";
 export function App() {
   const { workspace, error, connection } = useWorkspace();
   // On a plugin's page, ws is told whose app is on screen.
-  const plugins = usePlugins(useMatch("/x/:name/*")?.params.name);
+  const onPlugin = useMatch("/x/:name/*")?.params.name;
+  const plugins = usePlugins(onPlugin);
   const [help, setHelp] = useState(false);
   // Find, open: with what it starts with typed ("/" for files, from ⌘P).
   const [palette, setPalette] = useState<string>();
@@ -60,8 +62,11 @@ export function App() {
   const location = useLocation();
   const navigate = useNavigate();
   // On a page that wants the room the sidebar folds to a rail, which opens
-  // over the page on hover.
-  const reviewing = wantsRoom(location.pathname) && !arranging;
+  // over the page on hover: one of ws's own (room.ts), or a plugin's page
+  // that asks for the chrome expanded (ws:chrome-layout), while ws is on
+  // that plugin's pages.
+  const expandedFor = useFrameExpanded();
+  const reviewing = (wantsRoom(location.pathname) || (expandedFor !== undefined && expandedFor === onPlugin)) && !arranging;
 
   // The drawer (on a narrow window) closes on going somewhere.
   useEffect(() => setDrawer(false), [location.pathname]);
