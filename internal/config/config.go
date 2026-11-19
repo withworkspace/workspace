@@ -650,10 +650,16 @@ func ReadLocal(root string) (LocalConfig, error) {
 
 // unknownKeys is what a decoded file said that nothing read, each as
 // "file: a.b.c". A table that's unknown is named once, not key by key.
+// Nothing under [plugin] is: what a plugin's keys are is the plugin's to
+// say, and a table nested in one ([plugin.jira.queries.bugs]) is held as
+// it's written, which the decoder counts as unread.
 func unknownKeys(file string, md toml.MetaData) []string {
 	var keys []string
 	var tables []string
 	for _, k := range md.Undecoded() {
+		if len(k) > 1 && k[0] == "plugin" {
+			continue
+		}
 		name := k.String()
 		if slices.ContainsFunc(tables, func(t string) bool { return strings.HasPrefix(name, t+".") }) {
 			continue
