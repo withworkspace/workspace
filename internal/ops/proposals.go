@@ -496,6 +496,15 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 		}
 		return nil
 	})
+	// What it was proposed as being about, which the thing then says of
+	// it. A name ws no longer reads (its plugin's gone since) is left
+	// out, and said: the mission's made all the same.
+	var notAbout string
+	if len(p.About) > 0 {
+		if _, err := w.SetAbout(m.Slug, p.About, nil); err != nil {
+			notAbout = "It isn't recorded as about " + strings.Join(p.About, ", ") + " (" + err.Error() + "): ws mission about -m " + m.Slug + " <name> says so."
+		}
+	}
 	title := firstNonEmpty(c.Title, "“"+clipLine(c.Turns[0].Body, 80)+"”")
 	ms.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: "came from conversation " + ref + ": " + title})
 	if !store.Workspace() {
@@ -541,6 +550,9 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 	}
 	if moved > 0 {
 		said = append(said, fmt.Sprintf("%d %s from %s moved to it.", moved, plural(moved, "decision"), c.ID))
+	}
+	if notAbout != "" {
+		said = append(said, notAbout)
 	}
 	return strings.Join(said, " "), nil
 }

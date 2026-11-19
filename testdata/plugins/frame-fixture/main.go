@@ -124,6 +124,7 @@ func main() {
 						{"name": "poke", "short": "Say what the view shows is stale: the open app is told (ws:changed)"},
 						{"name": "looking", "short": "Print who ws last said is looking at the app, and at ws (view/looking)"},
 						{"name": "said", "short": "Print what ws shows of a ref, as it answers a plugin (show): said THING-2, or said <mission> <ref>"},
+						{"name": "talk", "short": "Have ws start a conversation with what you'd say first (conversation/start): talk \"Let's shelve THING-2\""},
 					},
 				},
 				"agent": map[string]any{"guide": "`ws frame-fixture poke` tells the fixture's open app that what it shows is stale. It's for trying ws's plugin frame by hand: there's nothing in it for a mission."},
@@ -247,8 +248,19 @@ func main() {
 				out("stdout", pretty.String()+"\n")
 				return map[string]int{"exit": 0}, nil
 			}
+			if len(p.Args) >= 2 && p.Args[0] == "talk" {
+				// A conversation, started for the person with what the
+				// plugin has them say first.
+				var started struct{ ID, Path string }
+				if err := conn.Call(context.Background(), "conversation/start", map[string]any{"message": strings.Join(p.Args[1:], " ")}, &started); err != nil {
+					out("stderr", err.Error()+"\n")
+					return map[string]int{"exit": 1}, nil
+				}
+				out("stdout", started.ID+" "+started.Path+"\n")
+				return map[string]int{"exit": 0}, nil
+			}
 			if len(p.Args) != 1 || p.Args[0] != "poke" {
-				out("stderr", "usage: ws frame-fixture poke|looking|said <ref>\n")
+				out("stderr", "usage: ws frame-fixture poke|looking|said <ref>|talk <message>\n")
 				return map[string]int{"exit": 2}, nil
 			}
 			n := poked.Add(1)

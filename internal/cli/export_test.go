@@ -46,6 +46,15 @@ func UseProcs(procs harness.Procs) func() {
 	return func() { readProcs = old }
 }
 
+// CaptureTalkAnswers records the conversations ws would have an agent
+// answer, as slug/id, instead of starting one.
+func CaptureTalkAnswers() (*[]string, func()) {
+	old := talkSpawner
+	var asked []string
+	talkSpawner = func(root, slug, id string) { asked = append(asked, slug+"/"+id) }
+	return &asked, func() { talkSpawner = old }
+}
+
 // CaptureOrchestratorRuns records the orchestrator runs ws would spawn, as
 // slug/crew/trigger, instead of spawning them.
 func CaptureOrchestratorRuns() (*[]string, func()) {

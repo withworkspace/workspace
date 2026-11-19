@@ -646,13 +646,21 @@ func TestTalk_Proposals(t *testing.T) {
 	}
 	run(t, w, nil, "mission", "decide", "--propose", "Key the cache per tenant.", "--why", "Tokens are issued per tenant.")
 	withStdin(t, "## Goal\nCache tokens.\n\n## Stages\n1. Build it in `backend/token-cache`.\n")
-	run(t, w, nil, "mission", "new", "--propose", "Token cache", "--brief-file", "-", "--capsule", "backend/token-bench")
+	run(t, w, nil, "mission", "new", "--propose", "Token cache", "--brief-file", "-", "--capsule", "backend/token-bench", "--about", "backend#7")
 	run(t, w, nil, "mission", "new", "--propose", "Rate limits, later")
+	// What it's about is a name ws reads: one it doesn't is said to the
+	// agent, and nothing's proposed.
+	if r := testutil.RunCommand(t, w.Root, nil, "mission", "new", "--propose", "Encode it", "--about", "UTF-8"); r.Err == nil || !strings.Contains(r.Err.Error(), "ws names nothing UTF-8") {
+		t.Errorf("proposing a mission about a word: %v", r.Err)
+	}
 	t.Setenv(conversation.EnvConversation, "")
 	t.Setenv(mission.EnvCrew, "")
 	c, _ := talks.Load("w1")
 	if len(c.Proposals) != 3 || c.Proposals[1].Brief != "## Goal\nCache tokens.\n\n## Stages\n1. Build it in `backend/token-cache`." || c.Proposals[1].Capsules[0] != "backend/token-bench" || c.Proposals[2].Brief != "" {
 		t.Fatalf("proposals = %+v", c.Proposals)
+	}
+	if got := c.Proposals[1].About; len(got) != 1 || got[0] != "backend#7" || len(c.Proposals[2].About) != 0 {
+		t.Errorf("what the proposals are about: %q, %q", got, c.Proposals[2].About)
 	}
 
 	// A decision before there's a mission is kept with the conversation.
@@ -665,6 +673,10 @@ func TestTalk_Proposals(t *testing.T) {
 	}
 	if strings.Join(lifted, " ") != "token-cache:backend/token-bench token-cache:backend/token-cache" {
 		t.Errorf("lifted %v", lifted)
+	}
+	// It's about what it was proposed as about.
+	if r := testutil.RunCommand(t, w.Root, nil, "mission", "about", "-m", "token-cache"); r.Stdout != "backend#7\n" {
+		t.Errorf("the mission accepted is about %q", r.Stdout)
 	}
 	m, err := store.Load("token-cache")
 	// It's to brief: its planner plans it from its brief, in its own
@@ -694,7 +706,7 @@ func TestTalk_Proposals(t *testing.T) {
 	}
 
 	show := run(t, w, nil, "show", "-f", "llm", "w1").Stdout
-	for _, want := range []string{"It became mission rate-limits-later", "1. decision: Key the cache per tenant. (accepted: token-cache:d1)", "2. mission: Token cache (accepted: token-cache)", "3. mission: Rate limits, later (an idea, to brief later) (accepted: rate-limits-later)"} {
+	for _, want := range []string{"It became mission rate-limits-later", "1. decision: Key the cache per tenant. (accepted: token-cache:d1)", "2. mission: Token cache, about backend#7 (accepted: token-cache)", "3. mission: Rate limits, later (an idea, to brief later) (accepted: rate-limits-later)"} {
 		if !strings.Contains(show, want) {
 			t.Errorf("ws show w1 lacks %q:\n%s", want, show)
 		}

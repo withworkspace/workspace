@@ -1288,7 +1288,11 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 		}
 	}
 	v := &view{head: head}
-	v.body = append(v.body, fmt.Sprintf("Started by %s, %s.", c.By, when(c.At)))
+	if c.Via != "" {
+		v.body = append(v.body, fmt.Sprintf("Started by %s, %s, from the %s plugin, which worded its first message.", c.By, when(c.At), c.Via))
+	} else {
+		v.body = append(v.body, fmt.Sprintf("Started by %s, %s.", c.By, when(c.At)))
+	}
 	if c.Kind == conversation.Cell {
 		v.body = append(v.body, "Its first message is what the user asked for there; each reply of the agent's is the cell as it then read, and what the user says after is what they wanted changed. The page is .ws/pages/"+c.Anchor.Page+".md, the cell between its `<!-- ws:cell "+c.ID+" … -->` and `<!-- /ws:cell -->` comments.")
 	}
@@ -1351,6 +1355,9 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 				what = "mission: " + p.Title
 				if p.Brief == "" {
 					what += " (an idea, to brief later)"
+				}
+				if len(p.About) > 0 {
+					what += ", about " + strings.Join(p.About, ", ")
 				}
 			case conversation.ProposeComment:
 				what = fmt.Sprintf("review comment on %s %s:%d (%s): %s", p.PR, p.Path, p.Line, p.NoteKind, p.Text)

@@ -434,6 +434,37 @@ func TestAPluginAsksWhatWSShows(t *testing.T) {
 		t.Errorf("show nothing: %v", err)
 	}
 
+	// A conversation the plugin has ws start for the person: its agent
+	// answers, and the thing its first message names says at once that
+	// the conversation mentions it, with its page.
+	answers, restore := cli.CaptureTalkAnswers()
+	t.Cleanup(restore)
+	params, _ := json.Marshal(protocol.ConversationStartParams{Message: "Let's work out a mission for RAM-12."})
+	started, err := answer(t.Context(), "jira", protocol.MethodConversationStart, params)
+	if c, ok := started.(protocol.ConversationStarted); err != nil || !ok || c.ID != "w1" || c.Path != "/conversations/w1" {
+		t.Fatalf("a conversation started: %v %+v", err, started)
+	}
+	if len(*answers) != 1 || (*answers)[0] != "/w1" {
+		t.Errorf("answered: %q", *answers)
+	}
+	got, err = show(protocol.ShowParams{Ref: "RAM-12"})
+	if err != nil || len(got.Said) != 2 {
+		t.Fatalf("RAM-12, with a conversation that names it: %v %+v", err, got.Said)
+	}
+	var talk protocol.Said
+	for _, s := range got.Said {
+		if s.Ref == "w1" {
+			talk = s
+		}
+	}
+	if talk.Kind != "talk" || talk.How != protocol.SaidMentions || !talk.Standing || talk.Mission != "" || talk.Path != "/conversations/w1" {
+		t.Errorf("the conversation that names RAM-12: %+v", talk)
+	}
+	// And asked for in turn, it says where it came from.
+	if w1, err := show(protocol.ShowParams{Ref: "w1"}); err != nil || w1.Path != "/conversations/w1" || !strings.Contains(strings.Join(w1.Body, "\n"), "from the jira plugin, which worded its first message") {
+		t.Errorf("the conversation: %v %+v", err, w1)
+	}
+
 	// The rest of what a plugin asks is answered as it was.
 	list, err := answer(t.Context(), "jira", protocol.MethodMissionList, nil)
 	if ms, ok := list.(protocol.MissionListResult); err != nil || !ok || len(ms.Missions) != 1 || ms.Missions[0].Slug != slug {

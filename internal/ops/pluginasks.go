@@ -17,7 +17,8 @@ import (
 )
 
 // AnswerPlugin answers what a plugin asks ws (plugin.Host's Answer): the
-// workspace's missions and repos, and what it tells ws of its own things,
+// workspace's missions and repos, a conversation started for the person,
+// and what it tells ws of its own things,
 // in the protocol's types, which are what ws promises a plugin, not its
 // own. who is the plugin that asked.
 func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params json.RawMessage) (any, error) {
@@ -36,6 +37,12 @@ func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params
 		return w.pluginMission(in.Slug)
 	case protocol.MethodRepoList:
 		return w.pluginRepos()
+	case protocol.MethodConversationStart:
+		var in protocol.ConversationStartParams
+		if err := decodeParams(params, &in); err != nil {
+			return nil, err
+		}
+		return w.pluginStartsTalk(who, in.Message)
 	}
 	// What a plugin tells ws of its things: kept in the workspace's
 	// records under the plugin that told it, so ws finds and names them
@@ -44,6 +51,21 @@ func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params
 		return answer, err
 	}
 	return nil, plugin.NoMethod(method)
+}
+
+// pluginStartsTalk starts one of the workspace's conversations for the
+// person from plugin who, with what it has them say first: the
+// conversation, and its page.
+func (w *Workspace) pluginStartsTalk(who, message string) (protocol.ConversationStarted, error) {
+	c, err := w.StartTalkVia(who, message)
+	var invalid *Invalid
+	if errors.As(err, &invalid) {
+		return protocol.ConversationStarted{}, plugin.InvalidParams(err)
+	}
+	if err != nil {
+		return protocol.ConversationStarted{}, err
+	}
+	return protocol.ConversationStarted{ID: c.ID, Path: "/conversations/" + c.ID}, nil
 }
 
 // decodeParams reads a request's params; none is the zero value.

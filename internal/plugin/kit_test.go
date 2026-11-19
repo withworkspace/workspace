@@ -264,6 +264,8 @@ func TestKitAsksWS(t *testing.T) {
 			return protocol.MissionDetail{Mission: protocol.Mission{Slug: "cache"}, Brief: "## Goal"}, nil
 		case protocol.MethodRepoList:
 			return protocol.RepoListResult{Repos: []protocol.Repo{{Name: "api", Capsules: []protocol.Capsule{{Name: ".ground", Ground: true}}}}}, nil
+		case protocol.MethodConversationStart:
+			return protocol.ConversationStarted{ID: "w4", Path: "/conversations/w4"}, nil
 		case protocol.MethodShow:
 			var in protocol.ShowParams
 			json.Unmarshal(params, &in) //nolint:errcheck // a test's
@@ -309,9 +311,12 @@ func TestKitAsksWS(t *testing.T) {
 	if got := run("ask", "show", "d1", "--mission", "cache"); !strings.Contains(got, "not found: ws has nothing called d1") {
 		t.Errorf("show what isn't there: %s", got)
 	}
+	if got := run("ask", "talk", "Let's talk about KIT-1."); !strings.Contains(got, `{"id":"w4","path":"/conversations/w4"}`) {
+		t.Errorf("a conversation started: %s", got)
+	}
 	mu.Lock()
 	defer mu.Unlock()
-	if len(asked) != 6 || asked[0] != `kit mission/list {"archived":true}` || asked[1] != `kit mission/show {"slug":"cache"}` || asked[4] != `kit show {"ref":"KIT-1"}` || asked[5] != `kit show {"ref":"d1","mission":"cache"}` {
+	if len(asked) != 7 || asked[0] != `kit mission/list {"archived":true}` || asked[1] != `kit mission/show {"slug":"cache"}` || asked[4] != `kit show {"ref":"KIT-1"}` || asked[5] != `kit show {"ref":"d1","mission":"cache"}` || asked[6] != `kit conversation/start {"message":"Let's talk about KIT-1."}` {
 		t.Errorf("asked = %q", asked)
 	}
 }
