@@ -245,23 +245,69 @@ func TestSweepEndsARunWhoseTimeIsUp(t *testing.T) {
 	}
 }
 
-func TestSweepEndsAMissionsRunOnceItEnds(t *testing.T) {
+func TestSweepAsksAfterOwnersInWSsRecords(t *testing.T) {
 	s, dir := setup(t)
-	start(t, s, dir, "web", "sleep 300", Owner{Kind: ByMission, Mission: "m1"}, time.Hour)
-	inPlay := map[string]bool{"m1": true}
-	known := true
-	missions := func() (map[string]bool, bool) { return inPlay, known }
-	if swept, _ := s.Sweep(missions, time.Now()); len(swept) != 0 {
-		t.Fatal("swept while its mission was in play")
+	start(t, s, dir, "web", "sleep 300", Owner{Kind: ByStep, Mission: "m1", Step: 2, StepText: "Build it"}, time.Hour)
+	start(t, s, dir, "api", "sleep 300", Owner{Kind: ByPID, PID: os.Getpid()}, time.Hour)
+	ended := ""
+	var asked []Owner
+	owners := OwnersFunc(func(o Owner) string { asked = append(asked, o); return ended })
+	if swept, _ := s.Sweep(owners, time.Now()); len(swept) != 0 {
+		t.Fatal("swept while its step was going")
 	}
-	inPlay, known = map[string]bool{}, false
-	if swept, _ := s.Sweep(missions, time.Now()); len(swept) != 0 {
-		t.Fatal("swept when the missions couldn't be asked")
+	if len(asked) != 1 || asked[0].StepText != "Build it" {
+		t.Fatalf("asked after %v, want the step alone (a pid isn't ws's records')", asked)
 	}
-	known = true
-	swept, _ := s.Sweep(missions, time.Now())
-	if len(swept) != 1 || swept[0].Why != "mission m1 has ended" {
+	ended = "step 2 of mission m1 has passed"
+	swept, _ := s.Sweep(owners, time.Now())
+	if len(swept) != 1 || swept[0].Why != ended || swept[0].Run.Name != "web" {
 		t.Fatalf("Sweep = %v", swept)
+	}
+	if swept, _ := s.Sweep(nil, time.Now()); len(swept) != 0 {
+		t.Fatal("with nobody to ask, something was swept")
+	}
+}
+
+func TestEndRunsTheRecipesStop(t *testing.T) {
+	s, dir := setup(t)
+	r, err := s.Start(Start{Name: "stack", Repo: "demo", Worktree: "feat", Dir: dir, Command: "sleep 300",
+		Recipe: "stack", Stop: "echo down $PORT > stopped", Owner: Owner{Kind: ByNone}}, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.End(r); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(dir, "stopped"))
+	if err != nil || strings.TrimSpace(string(b)) != fmt.Sprintf("down %d", r.Port) {
+		t.Fatalf("stop said %q, %v", b, err)
+	}
+	// A stop that fails says so, and the run's removed all the same.
+	r, _ = s.Start(Start{Name: "stack", Repo: "demo", Worktree: "feat", Dir: dir, Command: "sleep 300",
+		Stop: "echo nope; exit 3", Owner: Owner{Kind: ByNone}}, time.Now())
+	err = s.End(r)
+	if err == nil || !strings.Contains(err.Error(), "nope") {
+		t.Fatalf("End = %v, want the stop's failure", err)
+	}
+	if _, serr := os.Stat(r.Path); !os.IsNotExist(serr) {
+		t.Error("the run's still there")
+	}
+}
+
+func TestWaitAsksTheReadyPath(t *testing.T) {
+	s, dir := setup(t)
+	// Something listens, but nothing answers HTTP: not up by its path.
+	r, err := s.Start(Start{Name: "web", Repo: "demo", Worktree: "feat", Dir: dir, Command: listener(),
+		Ready: "/health", Owner: Owner{Kind: ByNone}}, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ready, err := s.Wait(r, 2*time.Second)
+	if ready || err != nil {
+		t.Fatalf("Wait = %v, %v; want not up, no error", ready, err)
+	}
+	if !r.Listening() {
+		t.Error("it isn't listening at all")
 	}
 }
 

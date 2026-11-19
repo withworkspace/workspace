@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,7 +34,9 @@ type Start struct {
 	Worktree string
 	Dir      string
 	Command  string
-	Owner    Owner
+	// Recipe, Ready and Stop are the recipe it's started from, if it is.
+	Recipe, Ready, Stop string
+	Owner               Owner
 	// TTL is how long it may last: 0 for no limit.
 	TTL time.Duration
 	By  string
@@ -108,7 +111,8 @@ func (s Store) Start(o Start, now time.Time) (Run, error) {
 	}
 	rec := Record{
 		Version: Version, Name: name, Repo: o.Repo, Worktree: o.Worktree, Dir: o.Dir,
-		Command: command, Port: port, PID: pid, Began: began, Owner: o.Owner,
+		Command: command, Recipe: o.Recipe, Ready: o.Ready, Stop: o.Stop,
+		Port: port, PID: pid, Began: began, Owner: o.Owner,
 		Created: now.UTC().Truncate(time.Second), By: o.By,
 	}
 	if o.TTL > 0 {
@@ -168,6 +172,25 @@ func portFree(port int) bool {
 	return true
 }
 
+// Up is whether the run is ready: its Ready path answers below 500, or
+// with none, something listens on its port.
+func (r Run) Up() bool {
+	if r.Ready == "" {
+		return r.Listening()
+	}
+	path := r.Ready
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	client := http.Client{Timeout: time.Second}
+	resp, err := client.Get(r.Link() + path)
+	if err != nil {
+		return false
+	}
+	resp.Body.Close()
+	return resp.StatusCode < 500
+}
+
 // Listening is whether something answers on the run's port.
 func (r Run) Listening() bool {
 	for _, host := range []string{"127.0.0.1", "::1"} {
@@ -180,13 +203,13 @@ func (r Run) Listening() bool {
 	return false
 }
 
-// Wait waits up to d for the run to listen on its port. It's ready when it
-// does; an error when it ends first; and neither (false, nil) when the
-// time passes with it running and nothing listening.
+// Wait waits up to d for the run to be up (Up). It's ready when it is;
+// an error when it ends first; and neither (false, nil) when the time
+// passes with it running and not up.
 func (s Store) Wait(r Run, d time.Duration) (bool, error) {
 	deadline := time.Now().Add(d)
 	for {
-		if r.Listening() {
+		if r.Up() {
 			return true, nil
 		}
 		now, err := load(r.Path, s.snapshot())
@@ -208,9 +231,9 @@ type EndedError struct{ Run Run }
 
 func (e *EndedError) Error() string {
 	if e.Run.State == Exited {
-		return fmt.Sprintf("%s exited (%d) before it listened on %d", e.Run.Ref(), e.Run.Status, e.Run.Port)
+		return fmt.Sprintf("%s exited (%d) before it was up on %d", e.Run.Ref(), e.Run.Status, e.Run.Port)
 	}
-	return fmt.Sprintf("%s ended before it listened on %d", e.Run.Ref(), e.Run.Port)
+	return fmt.Sprintf("%s ended before it was up on %d", e.Run.Ref(), e.Run.Port)
 }
 
 // Tail is the last n lines of the run's log.

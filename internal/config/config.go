@@ -578,6 +578,9 @@ type SiloRepoConfig struct {
 type RepoFileConfig struct {
 	Capsule CapsuleConfig  `toml:"capsule"`
 	Silo    SiloRepoConfig `toml:"silo"`
+	// Run is how the repo is run, by name ([run.web]): what `ws run web`
+	// starts in the worktree you stand in.
+	Run map[string]RunRecipe `toml:"run,omitempty"`
 	// Landing and Verify are the repo's own account of how work lands in
 	// it (see RepoConfig): a workspace's ws.toml or ws.local.toml says
 	// otherwise for itself.
@@ -588,6 +591,20 @@ type RepoFileConfig struct {
 	Documents *Documents `toml:"documents,omitempty"`
 	// Unknown is what the file says that ws doesn't read (see Config.Unknown).
 	Unknown []string `toml:"-"`
+}
+
+// RunRecipe is one of a repo's [run.<name>]: something ws run starts
+// (internal/runs).
+type RunRecipe struct {
+	// Command is what's run, in a shell: {port} is the run's port, which
+	// $PORT holds too.
+	Command string `toml:"command"`
+	// Ready is a path asked for over HTTP until it answers anything below
+	// 500: then the run's up. "" is up once something listens on its port.
+	Ready string `toml:"ready,omitempty"`
+	// Stop is run in the same place once the command's process has been
+	// ended (docker compose down): "" for nothing.
+	Stop string `toml:"stop,omitempty"`
 }
 
 type CapsuleConfig struct {

@@ -1,23 +1,22 @@
 package runs
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 )
 
-// Missions says which missions are in play (not ended, not archived), for
-// runs a mission owns. ok is false when that can't be said: then no
-// mission has ended by it.
-type Missions func() (inPlay map[string]bool, ok bool)
-
 // Stale is why a running run's time is up, or "" if it isn't: its owner
-// has gone, the place it runs in has, or its time has run out.
-func Stale(r Run, procs Procs, inPlay map[string]bool, missionsKnown bool, now time.Time) string {
+// has gone, the place it runs in has, or its time has run out. owners
+// says after owners in ws's records: nil, and none of those has ended.
+func Stale(r Run, procs Procs, owners Owners, now time.Time) string {
 	if _, err := os.Stat(r.Dir); errors.Is(err, os.ErrNotExist) {
 		return "where it ran has gone"
 	}
@@ -26,9 +25,11 @@ func Stale(r Run, procs Procs, inPlay map[string]bool, missionsKnown bool, now t
 		if procs.gone(r.Owner.PID, r.Owner.Began) {
 			return fmt.Sprintf("its owner (pid %d%s) has gone", r.Owner.PID, said(r.Owner.Command))
 		}
-	case ByMission:
-		if missionsKnown && !inPlay[r.Owner.Mission] {
-			return fmt.Sprintf("mission %s has ended", r.Owner.Mission)
+	case ByMission, ByStep, ByCrew, ByConversation:
+		if owners != nil {
+			if why := owners.Ended(r.Owner); why != "" {
+				return why
+			}
 		}
 	}
 	if !r.Expires.IsZero() && !now.Before(r.Expires) {
@@ -46,12 +47,16 @@ func said(command string) string {
 
 // End stops a run, if it's running, and removes it. Its process group is
 // asked to end (SIGTERM), given 5 seconds, and then made to (SIGKILL).
-// Only a folder holding a run's record, under the store's, is removed.
+// Then its recipe's stop command is run, where it ran, for up to
+// StopLimit. Only a folder holding a run's record, under the store's, is
+// removed. The run is removed even when its stop command fails: the
+// error says so.
 func (s Store) End(r Run) error {
 	if !s.owns(r.Path) {
 		return fmt.Errorf("%s isn't a run's folder", r.Path)
 	}
 	s.stop(r)
+	stopErr := s.runStop(r)
 	if err := os.RemoveAll(r.Path); err != nil {
 		return err
 	}
@@ -59,6 +64,34 @@ func (s Store) End(r Run) error {
 	parent := filepath.Dir(r.Path)
 	if os.Remove(parent) == nil {
 		os.Remove(filepath.Dir(parent))
+	}
+	return stopErr
+}
+
+// StopLimit is how long a recipe's stop command has.
+var StopLimit = time.Minute
+
+// runStop runs the run's stop command, if it has one, where it ran.
+func (s Store) runStop(r Run) error {
+	if strings.TrimSpace(r.Stop) == "" {
+		return nil
+	}
+	if _, err := os.Stat(r.Dir); err != nil {
+		return fmt.Errorf("its stop command (%s) wasn't run: where it ran has gone", r.Stop)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), StopLimit)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", r.Stop)
+	cmd.Dir = r.Dir
+	cmd.Env = append(withoutKey(os.Environ(), "PORT"), "PORT="+strconv.Itoa(r.Port))
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		tail := strings.TrimSpace(string(out))
+		if i := strings.LastIndex(tail, "\n"); i >= 0 {
+			tail = tail[i+1:]
+		}
+		return fmt.Errorf("its stop command (%s) failed: %v %s", r.Stop, err, tail)
 	}
 	return nil
 }
@@ -96,37 +129,31 @@ type Swept struct {
 
 // Sweep ends every running run whose time is up, and removes those that
 // ended by themselves more than KeepEnded ago.
-func (s Store) Sweep(missions Missions, now time.Time) ([]Swept, error) {
+func (s Store) Sweep(owners Owners, now time.Time) ([]Swept, error) {
 	runs, err := s.List()
 	if err != nil || len(runs) == 0 {
 		return nil, err
 	}
 	procs := s.snapshot()
-	var inPlay map[string]bool
-	known := false
-	for _, r := range runs {
-		if r.Owner.Kind == ByMission && missions != nil {
-			inPlay, known = missions()
-			break
-		}
-	}
 	var out []Swept
 	var errs []error
 	for _, r := range runs {
 		why := ""
 		if r.State == Running {
-			why = Stale(r, procs, inPlay, known, now)
+			why = Stale(r, procs, owners, now)
 		} else if now.Sub(r.Ended) >= KeepEnded {
 			why = "it ended " + r.Ended.Local().Format("15:04")
 		}
 		if why == "" {
 			continue
 		}
-		if err := s.End(r); err != nil {
+		err := s.End(r)
+		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", r.Ref(), err))
-			continue
 		}
-		out = append(out, Swept{Run: r, Why: why})
+		if _, serr := os.Stat(r.Path); errors.Is(serr, os.ErrNotExist) {
+			out = append(out, Swept{Run: r, Why: why})
+		}
 	}
 	return out, errors.Join(errs...)
 }
@@ -146,6 +173,12 @@ func Ends(r Run, now time.Time) string {
 		what = fmt.Sprintf("when capsule %s is burned or landed", r.Worktree)
 	case ByMission:
 		what = fmt.Sprintf("when mission %s ends", r.Owner.Mission)
+	case ByStep:
+		what = fmt.Sprintf("when step %d of mission %s passes", r.Owner.Step, r.Owner.Mission)
+	case ByCrew:
+		what = fmt.Sprintf("when crew %s of mission %s close", r.Owner.Crew, r.Owner.Mission)
+	case ByConversation:
+		what = fmt.Sprintf("when conversation %s is resolved", r.Owner.Conversation)
 	}
 	if !r.Expires.IsZero() {
 		left := r.Expires.Sub(now)

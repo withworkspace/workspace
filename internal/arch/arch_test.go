@@ -50,6 +50,10 @@ var allowed = map[string][]string{
 	"crew":         {"harness", "mission", "termpane", "execlog", "acp"},
 	"orchestrator": {"mission", "harness", "prompt", "turn", "crew", "execlog", "git"},
 	"daemon":       {"crew", "harness", "acp", "termpane", "mission", "execlog"},
+	// Runs: what ws starts for someone and ends for them. It reads the
+	// user's processes as the process check does; whose records say an
+	// owner has ended is its caller's to say.
+	"runs": {"harness"},
 	// Plugins: each a process the daemon holds, spoken to as an agent over
 	// ACP is. Its tests' stand-in speaks the same way.
 	"plugin":            {"config", "acp"},

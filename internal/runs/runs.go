@@ -57,12 +57,19 @@ const (
 	ByCapsule Kind = "capsule"
 	// ByMission ends when the mission ends or is archived.
 	ByMission Kind = "mission"
+	// ByStep ends when a step of a mission's plan passes or is skipped:
+	// what crew start is for the step they're on.
+	ByStep Kind = "step"
+	// ByCrew ends when crew's session closes.
+	ByCrew Kind = "crew"
+	// ByConversation ends when a conversation is resolved.
+	ByConversation Kind = "conversation"
 	// ByNone ends only when its time is up, or when it's stopped.
 	ByNone Kind = "none"
 )
 
 // Kinds are the owners `ws run --for` takes.
-var Kinds = []Kind{ByPID, ByCapsule, ByMission, ByNone}
+var Kinds = []Kind{ByPID, ByCapsule, ByMission, ByStep, ByCrew, ByConversation, ByNone}
 
 // Owner is who a run is for.
 type Owner struct {
@@ -72,9 +79,33 @@ type Owner struct {
 	PID     int       `json:"pid,omitempty"`
 	Began   time.Time `json:"began,omitzero"`
 	Command string    `json:"command,omitempty"`
-	// Mission is the owning mission's slug, for ByMission.
+	// Mission is the mission's slug, for ByMission, ByStep, ByCrew, and
+	// ByConversation for one of a mission's conversations.
 	Mission string `json:"mission,omitempty"`
+	// Step is the step's number when the run started, and StepText its
+	// words, which find it again after the plan's renumbered (ByStep).
+	Step     int    `json:"step,omitempty"`
+	StepText string `json:"step_text,omitempty"`
+	// Crew is the crew's id (ByCrew), and Conversation the conversation's
+	// (ByConversation).
+	Crew         string `json:"crew,omitempty"`
+	Conversation string `json:"conversation,omitempty"`
 }
+
+// Owners says whether owners ws keeps records of (missions, their steps
+// and crew, conversations) have ended. ws's records are the caller's:
+// runs knows processes and folders.
+type Owners interface {
+	// Ended is why o has ended, or "" while it hasn't, or when that can't
+	// be told.
+	Ended(o Owner) string
+}
+
+// OwnersFunc is a func as Owners.
+type OwnersFunc func(o Owner) string
+
+// Ended is f(o).
+func (f OwnersFunc) Ended(o Owner) string { return f(o) }
 
 // Record is a run as run.json keeps it.
 type Record struct {
@@ -87,7 +118,12 @@ type Record struct {
 	// Dir is where its command runs.
 	Dir     string `json:"dir"`
 	Command string `json:"command"`
-	Port    int    `json:"port"`
+	// Recipe is the repo's [run.<name>] it was started from, if it was.
+	// Ready and Stop are that recipe's (config.RunRecipe).
+	Recipe string `json:"recipe,omitempty"`
+	Ready  string `json:"ready,omitempty"`
+	Stop   string `json:"stop,omitempty"`
+	Port   int    `json:"port"`
 	// PID leads the run's session and process group; Began is its start,
 	// as the kernel has it.
 	PID     int       `json:"pid"`

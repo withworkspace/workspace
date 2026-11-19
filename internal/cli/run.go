@@ -5,14 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/withworkspace/workspace/internal/config"
+	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
@@ -28,7 +32,7 @@ func newRunCmd() *cobra.Command {
 	var ttl float64
 	var wait time.Duration
 	cmd := &cobra.Command{
-		Use:   "run [flags] -- <command>",
+		Use:   "run [flags] [<recipe> | -- <command>]",
 		Short: "Run a dev server or the like on a free port, ended for you when its owner goes",
 		Long: `ws run starts a command where you stand (a capsule, .ground or .silo) on a
 free port, and ends it for you: when its owner goes, or when its time is
@@ -39,8 +43,21 @@ up, whichever is first. Nobody has to remember to stop it.
   ws run -- pnpm dev --port {port}
   ws run --name api --for mission --ttl 8 -- go run ./cmd/api
 
-It waits until something listens on the port (--wait), then prints the
-link and when the run will be ended. Its output is kept: ws run logs.
+A repo can say how it's run, in its ws.repo.toml, and ws run <name> runs
+that recipe ({port} as above; ready, a path it's up once it answers;
+stop, run where it ran once it's ended). ws run alone lists them:
+
+  [run.web]
+  command = "pnpm dev --port {port} --strictPort"
+  ready = "/"
+
+  [run.stack]
+  command = "docker compose up"
+  stop = "docker compose down"
+
+It waits until the run is up (something listens on the port, or its
+recipe's ready path answers), then prints the link and when the run will
+be ended. Its output is kept: ws run logs.
 
 Its owner (--for):
   pid       the process that started it: your terminal's shell, or the
@@ -48,10 +65,15 @@ Its owner (--for):
             running a minute or more; --owner names another)
   capsule   the capsule it runs in, until it's burned or landed
   mission   the mission ($WS_MISSION, or the capsule's), until it ends
+  step      the step of the mission's plan crew are on, until it passes
+  crew      crew ($WS_CREW), until their session closes
+  conversation
+            the conversation ($WS_CONVERSATION), until it's resolved
   none      nobody: only its time, or ws run stop, ends it
 
-The default is the mission for crew ($WS_MISSION set), and pid for
-everyone else. Every run also has a time (--ttl, in hours, 4 unless
+The default is the step for crew (or their session, when they're on no
+step), the conversation for a conversation's agent, and pid for everyone
+else. Every run also has a time (--ttl, in hours, 4 unless
 said; 0 is no limit, which crew can't have): ws run keep gives it more.
 
 A run is named for its command's first word, or --name. If a running run
@@ -60,7 +82,6 @@ said as <name>.<worktree>.<repo> everywhere: web.my-capsule.workspace.
 
 The daemon ends runs: it looks every 15 seconds, and as it starts. A run
 isn't the daemon's child, so restarting ws leaves it running.`,
-		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true // what's wrong now is the run's, not how it was asked for
 			w, err := loadOps()
@@ -70,6 +91,23 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 			here, err := whereRun(w)
 			if err != nil {
 				return err
+			}
+			recipes, err := runRecipes(w, here)
+			if err != nil {
+				return err
+			}
+			if len(args) == 0 {
+				return listRecipes(here, recipes)
+			}
+			start := runs.Start{Command: strings.Join(args, " ")}
+			if recipe, ok := recipes[args[0]]; ok && len(args) == 1 && cmd.ArgsLenAtDash() < 0 {
+				if strings.TrimSpace(recipe.Command) == "" {
+					return fmt.Errorf("[run.%s] in %s has no command", args[0], config.RepoFileName)
+				}
+				start = runs.Start{Command: recipe.Command, Recipe: args[0], Ready: recipe.Ready, Stop: recipe.Stop}
+				if name == "" {
+					name = args[0]
+				}
 			}
 			if cmd.Flags().Changed("owner") {
 				if forKind != "" && forKind != string(runs.ByPID) {
@@ -91,11 +129,9 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 			by := ops.ActorFromEnv().By()
 			now := time.Now()
 			store := runs.Store{Root: w.WS().Root}
-			run, err := store.Start(runs.Start{
-				Name: name, Repo: here.repo, Worktree: here.worktree, Dir: here.dir,
-				Command: strings.Join(args, " "), Owner: owner,
-				TTL: time.Duration(ttl * float64(time.Hour)), By: by,
-			}, now)
+			start.Name, start.Repo, start.Worktree, start.Dir = name, here.repo, here.worktree, here.dir
+			start.Owner, start.TTL, start.By = owner, time.Duration(ttl*float64(time.Hour)), by
+			run, err := store.Start(start, now)
 			if err != nil {
 				return err
 			}
@@ -118,7 +154,7 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 					return err
 				}
 				if !ready {
-					fmt.Fprintf(os.Stderr, "%s is running, but nothing has listened on %d in %s: ws run logs %s says what it's doing.\n\n", run.Ref(), run.Port, wait, run.Ref())
+					fmt.Fprintf(os.Stderr, "%s is running, but wasn't up on %d in %s: ws run logs %s says what it's doing.\n\n", run.Ref(), run.Port, wait, run.Ref())
 				}
 			}
 			out := os.Stdout
@@ -132,10 +168,10 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 	}
 	cmd.Flags().SetInterspersed(false) // what follows the command is the command's
 	cmd.Flags().StringVarP(&name, "name", "n", "", "what it's called (default: its command's first word)")
-	cmd.Flags().StringVar(&forKind, "for", "", "who it's for: pid, capsule, mission or none (default: the mission for crew, else pid)")
+	cmd.Flags().StringVar(&forKind, "for", "", "who it's for: pid, capsule, mission, step, crew, conversation or none (default: crew's step, a conversation, else pid)")
 	cmd.Flags().IntVar(&ownerPID, "owner", 0, "the process it lasts as long as (with --for pid)")
 	cmd.Flags().Float64Var(&ttl, "ttl", runs.DefaultTTL.Hours(), "how long it may last, in hours (0: no limit)")
-	cmd.Flags().DurationVar(&wait, "wait", time.Minute, "how long to wait for it to listen on its port (0: don't)")
+	cmd.Flags().DurationVar(&wait, "wait", time.Minute, "how long to wait for it to be up (0: don't)")
 	cmd.AddCommand(newRunLsCmd(), newRunStopCmd(), newRunLogsCmd(), newRunKeepCmd())
 	return cmd
 }
@@ -178,13 +214,24 @@ func whereRun(w *ops.Workspace) (runHere, error) {
 	return runHere{repo: repo, worktree: worktree, dir: cwd}, nil
 }
 
-// runOwner is who a run is for: kind, or the default for whoever's asking.
+// runOwner is who a run is for: kind, or the default for whoever's asking:
+// crew's step (or with none, their session), a conversation's agent's
+// conversation, else the process that asked.
 func runOwner(w *ops.Workspace, here runHere, kind runs.Kind, pid int) (runs.Owner, error) {
 	slug := os.Getenv(mission.EnvMission)
+	crew := os.Getenv(mission.EnvCrew)
+	talk := os.Getenv(conversation.EnvConversation)
 	if kind == "" {
-		kind = runs.ByPID
-		if slug != "" {
-			kind = runs.ByMission
+		switch {
+		case crew != "" && slug != "":
+			if o, err := runOwner(w, here, runs.ByStep, 0); err == nil {
+				return o, nil
+			}
+			return runOwner(w, here, runs.ByCrew, 0)
+		case talk != "":
+			kind = runs.ByConversation
+		default:
+			kind = runs.ByPID
 		}
 	}
 	switch kind {
@@ -207,6 +254,33 @@ func runOwner(w *ops.Workspace, here runHere, kind runs.Kind, pid int) (runs.Own
 			return runs.Owner{}, fmt.Errorf("mission %s: %w", slug, err)
 		}
 		return runs.Owner{Kind: runs.ByMission, Mission: slug}, nil
+	case runs.ByStep, runs.ByCrew:
+		if slug == "" || crew == "" {
+			return runs.Owner{}, fmt.Errorf("--for %s is for crew: $%s and $%s say whose", kind, mission.EnvMission, mission.EnvCrew)
+		}
+		m, err := w.Missions.Load(slug)
+		if err != nil {
+			return runs.Owner{}, fmt.Errorf("mission %s: %w", slug, err)
+		}
+		if kind == runs.ByCrew {
+			if !slices.ContainsFunc(m.Crew, func(c mission.Crew) bool { return c.ID == crew }) {
+				return runs.Owner{}, fmt.Errorf("mission %s has no crew %s", slug, crew)
+			}
+			return runs.Owner{Kind: runs.ByCrew, Mission: slug, Crew: crew}, nil
+		}
+		st, ok := crewStep(m, crew)
+		if !ok {
+			return runs.Owner{}, fmt.Errorf("crew %s of mission %s are on no step that's still going: say --for crew or mission", crew, slug)
+		}
+		return runs.Owner{Kind: runs.ByStep, Mission: slug, Step: st.N, StepText: st.Text, Crew: crew}, nil
+	case runs.ByConversation:
+		if talk == "" {
+			return runs.Owner{}, fmt.Errorf("--for conversation is for a conversation's agent: $%s says which", conversation.EnvConversation)
+		}
+		if _, err := conversationStore(w.WS().Root, slug).Load(talk); err != nil {
+			return runs.Owner{}, fmt.Errorf("conversation %s: %w", talk, err)
+		}
+		return runs.Owner{Kind: runs.ByConversation, Mission: slug, Conversation: talk}, nil
 	case runs.ByPID:
 		procs, err := runs.ReadProcs()
 		if err != nil {
@@ -227,12 +301,129 @@ func runOwner(w *ops.Workspace, here runHere, kind runs.Kind, pid int) (runs.Own
 		}
 		return o, nil
 	}
-	return runs.Owner{}, fmt.Errorf("--for is pid, capsule, mission or none, not %s", kind)
+	return runs.Owner{}, fmt.Errorf("--for is pid, capsule, mission, step, crew, conversation or none, not %s", kind)
 }
 
-// runMissions is which missions are in play, for a sweep.
-func runMissions(root string) runs.Missions {
-	return func() (map[string]bool, bool) { return mission.Store{Root: root}.InPlaySlugs() }
+// conversationStore is a mission's conversations, or with no mission, the
+// workspace's.
+func conversationStore(root, slug string) conversation.Store {
+	if slug == "" {
+		return conversation.ForWorkspace(root)
+	}
+	return conversation.For(root, slug)
+}
+
+// crewStep is the step crew are on: the latest of the mission's steps
+// they're recorded on that hasn't passed.
+func crewStep(m *mission.Mission, crew string) (mission.StageRecord, bool) {
+	for i := len(m.Stages) - 1; i >= 0; i-- {
+		st := m.Stages[i]
+		if st.Accepted == nil && slices.Contains(st.Crew, crew) {
+			return st, true
+		}
+	}
+	return mission.StageRecord{}, false
+}
+
+// runOwners says whether owners in the workspace's records have ended, for
+// a sweep: each mission read once.
+type runOwners struct {
+	root     string
+	missions map[string]*mission.Mission
+	missing  map[string]bool
+}
+
+func newRunOwners(root string) *runOwners {
+	return &runOwners{root: root, missions: map[string]*mission.Mission{}, missing: map[string]bool{}}
+}
+
+// mission is the mission slug, read once: gone is true when it isn't
+// there at all, and m is nil (gone false) when it couldn't be read.
+func (o *runOwners) mission(slug string) (m *mission.Mission, gone bool) {
+	if m, ok := o.missions[slug]; ok {
+		return m, false
+	}
+	if o.missing[slug] {
+		return nil, true
+	}
+	m, err := mission.Store{Root: o.root}.Load(slug)
+	if errors.Is(err, mission.ErrNotFound) {
+		o.missing[slug] = true
+		return nil, true
+	}
+	if err != nil {
+		return nil, false
+	}
+	o.missions[slug] = m
+	return m, false
+}
+
+func (o *runOwners) Ended(ow runs.Owner) string {
+	if ow.Mission != "" {
+		m, gone := o.mission(ow.Mission)
+		if gone {
+			return fmt.Sprintf("mission %s has gone", ow.Mission)
+		}
+		if m == nil {
+			return ""
+		}
+		if m.Ending != nil || m.State == mission.Archived {
+			return fmt.Sprintf("mission %s has ended", ow.Mission)
+		}
+		switch ow.Kind {
+		case runs.ByStep:
+			i := slices.IndexFunc(m.Stages, func(st mission.StageRecord) bool { return st.Text == ow.StepText })
+			switch {
+			case i < 0:
+				return fmt.Sprintf("step %d is no longer in mission %s's plan", ow.Step, ow.Mission)
+			case m.Stages[i].Skipped:
+				return fmt.Sprintf("step %d of mission %s was skipped", m.Stages[i].N, ow.Mission)
+			case m.Stages[i].Accepted != nil:
+				return fmt.Sprintf("step %d of mission %s has passed", m.Stages[i].N, ow.Mission)
+			}
+		case runs.ByCrew:
+			i := slices.IndexFunc(m.Crew, func(c mission.Crew) bool { return c.ID == ow.Crew })
+			if i < 0 || m.Crew[i].Ended != nil {
+				return fmt.Sprintf("crew %s of mission %s have closed", ow.Crew, ow.Mission)
+			}
+		}
+	}
+	if ow.Kind == runs.ByConversation {
+		c, err := conversationStore(o.root, ow.Mission).Load(ow.Conversation)
+		switch {
+		case errors.Is(err, conversation.ErrNotFound):
+			return fmt.Sprintf("conversation %s has gone", ow.Conversation)
+		case err != nil:
+			return ""
+		case c.Status == conversation.Resolved:
+			return fmt.Sprintf("conversation %s was resolved", ow.Conversation)
+		}
+	}
+	return ""
+}
+
+// runRecipes is the [run.*] of the ws.repo.toml where you stand.
+func runRecipes(w *ops.Workspace, here runHere) (map[string]config.RunRecipe, error) {
+	top := filepath.Join(w.WS().RepoDir(here.repo), here.worktree)
+	cfg, err := config.ParseRepoConfig(filepath.Join(top, config.RepoFileName))
+	if err != nil || cfg == nil {
+		return nil, err
+	}
+	return cfg.Run, nil
+}
+
+// listRecipes says what ws run <name> can run where you stand.
+func listRecipes(here runHere, recipes map[string]config.RunRecipe) error {
+	if len(recipes) == 0 {
+		fmt.Fprintf(os.Stderr, "%s has no recipes ([run.<name>] in its %s): ws run -- <command> runs one by hand.\n", here.repo, config.RepoFileName)
+		return nil
+	}
+	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(tw, "RECIPE\tCOMMAND")
+	for _, n := range slices.Sorted(maps.Keys(recipes)) {
+		fmt.Fprintf(tw, "%s\t%s\n", n, recipes[n].Command)
+	}
+	return tw.Flush()
 }
 
 func newRunLsCmd() *cobra.Command {
@@ -248,7 +439,7 @@ func newRunLsCmd() *cobra.Command {
 			}
 			root := w.WS().Root
 			store := runs.Store{Root: root}
-			swept, err := store.Sweep(runMissions(root), time.Now())
+			swept, err := store.Sweep(newRunOwners(root), time.Now())
 			for _, s := range swept {
 				if s.Run.State == runs.Running {
 					fmt.Fprintf(os.Stderr, "Ended %s: %s.\n", s.Run.Ref(), s.Why)
