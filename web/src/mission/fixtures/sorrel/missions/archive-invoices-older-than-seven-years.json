@@ -1,0 +1,68 @@
+{
+  "slug": "archive-invoices-older-than-seven-years",
+  "title": "Archive invoices older than seven years",
+  "state": "briefing",
+  "created": "2026-11-20T15:14:14Z",
+  "request": "Archive invoices older than seven years",
+  "talks": [],
+  "brief": "",
+  "briefUnwritten": true,
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "to-brief",
+      "group": "up-next",
+      "label": "to brief",
+      "text": "Waiting to be briefed: Archive invoices older than seven years",
+      "action": {
+        "verb": "brief",
+        "label": "brief it"
+      }
+    }
+  ],
+  "cards": [
+    {
+      "kind": "to-brief",
+      "court": "you",
+      "tone": "quiet",
+      "title": "Waiting to be briefed",
+      "detail": "Archive invoices older than seven years",
+      "primary": {
+        "do": "brief",
+        "label": "Brief it",
+        "icon": "pencil"
+      }
+    }
+  ],
+  "runs": [],
+  "stages": [],
+  "capsules": [],
+  "crew": [],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:14Z",
+      "kind": "created",
+      "text": "mission created"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "claude",
+      "model": "sonnet"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "opus"
+      },
+      {
+        "harness": "claude",
+        "model": "haiku"
+      }
+    ]
+  }
+}

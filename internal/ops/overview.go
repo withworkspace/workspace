@@ -182,7 +182,9 @@ type MissionDetail struct {
 	ConversationTitle string // of the conversation it came from
 	ReReviews         []review.ReReview
 	Headlines         []mission.Headline
-	Stages            []mission.StageState // none for a brief with no stages
+	// Cards is the headlines as the page draws them (mission.Cards).
+	Cards  []mission.Card
+	Stages []mission.StageState // none for a brief with no stages
 	// At is where it is on its route, in words (Snapshot.Position), and
 	// Z what has to be true for it to end there: its plan's, or its
 	// brief's Acceptance.
@@ -256,6 +258,7 @@ func (w *Workspace) Mission(slug string, withGitHub bool) (*MissionDetail, error
 	}
 	snap := MissionSnapshot(v, d.Brief, tail, d.ReReviews, DocThreadCourt(ws, v, d.Brief), !w.Config().OrchestratorEnabled())
 	d.Headlines, d.At, d.Z = mission.Resolve(snap), snap.Position(), m.Z(d.Brief)
+	d.Cards = mission.CardsOf(snap, d.Headlines)
 	if states, _ := m.StageProgress(d.Brief); !(len(states) == 1 && states[0].Implicit) {
 		d.Stages = states
 	}

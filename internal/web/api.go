@@ -259,6 +259,10 @@ type MissionDetail struct {
 	// Headlines is where it stands, most pressing first: the first is the
 	// mission's.
 	Headlines []Headline `json:"headlines"`
+	// Cards is the headlines as the page draws them, the lead first: each
+	// with its title, its sentence, the one action meant to move it and
+	// what comes after (mission.Cards).
+	Cards []mission.Card `json:"cards"`
 	// Runs are the orchestrator's latest runs on it, newest first.
 	Runs      []OrchestratorRun `json:"runs"`
 	Stages    []Stage           `json:"stages"`

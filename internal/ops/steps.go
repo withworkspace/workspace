@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/doc"
@@ -361,6 +362,7 @@ func (w *Workspace) PassOnMerge(slug, capsule string) bool {
 	if !slices.Contains(w.stepCapsules(m, cur), capsule) {
 		return false
 	}
+	began := w.stepBegan(m, cur.N)
 	if _, ok := cur.Instance(capsule); ok {
 		// One of its runs: the step passes once every one has merged.
 		said := w.instanceDone(slug, cur, capsule, "ws", "its pull requests merged")
@@ -370,9 +372,40 @@ func (w *Workspace) PassOnMerge(slug, capsule string) bool {
 	} else if w.passStep(slug, cur.N, "ws", capsule+"'s pull request merged", mission.StepOpenPR) == "" {
 		return false
 	}
-	// What ws asked about the pull request while it was open is moot.
+	// What ws asked about the pull request while it was open is moot, and
+	// so is what the orchestrator asked at the step (whether to merge it,
+	// what to do about a check).
 	w.Missions.Ask(slug, "", "ws")
+	w.settleAsked(m, cur.N, began, "its pull request merged")
 	return true
+}
+
+// settleAsked closes what the orchestrator asked you at step n, since the
+// plan reached it (began), now that the step has passed (how, in words):
+// m is the mission as it was before. A question about a step that's done,
+// left open, would be what the mission waits on you for and lead its
+// page, and hold an ending that's otherwise ws's to make. What it asked
+// before the step, and what crew asked, stay yours to answer.
+func (w *Workspace) settleAsked(m *mission.Mission, n int, began time.Time, how string) {
+	for _, t := range m.Tasks {
+		if t.Question() && t.By == AsOrchestrator.By() && !t.At.Before(began) {
+			w.Missions.CloseTask(m.Slug, t.N, "ws", fmt.Sprintf("step %d passed, %s: what the orchestrator asked at it is settled", n, how)) //nolint:errcheck // answered meanwhile, it's closed already
+		}
+	}
+}
+
+// stepBegan is when the plan reached step n: when the step before it was
+// passed. The zero time for the first step, or where that isn't recorded.
+func (w *Workspace) stepBegan(m *mission.Mission, n int) time.Time {
+	brief, _ := w.Missions.ReadBrief(m.Slug)
+	states, _ := m.StageProgress(brief)
+	if n < 2 || n-2 >= len(states) {
+		return time.Time{}
+	}
+	if r := states[n-2].Record; r != nil && r.Accepted != nil {
+		return *r.Accepted
+	}
+	return time.Time{}
 }
 
 // passOnLand passes the Land step a mission is at, once its capsule in

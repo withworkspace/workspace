@@ -1,0 +1,367 @@
+{
+  "slug": "invoice-totals-off-by-a-penny",
+  "title": "Invoice totals off by a penny",
+  "state": "active",
+  "created": "2026-11-20T15:14:17Z",
+  "talks": [],
+  "brief": "## Goal\nAn invoice's total is what its lines and its VAT add up to, to the penny.\n\n## Context\n- Support has three studios whose invoices are a penny over. INV-0388 says £3.57, and its lines and VAT add up to £3.56.\n- Amounts are whole minor units (ADR 0001), so this isn't a float.\n- A sent invoice is frozen (ADR 0003): a fix applies to invoices sent after it.\n\n## Acceptance\n- The cause is named, with a test that fails because of it.\n- That test passes, and so does everything else.\n",
+  "plan": "## Z\n- An invoice's total is what its lines and VAT add up to, with a regression test, merged.\n## Stops early\n- It can't be reproduced: that's an answer for support.\n## Steps\n1. Work: **Reproduce it.** As a failing test, and find the cause. \"Bugs are reproduced first, with a failing test, then fixed.\"\n   - in: `api/tax-rounding`\n   - makes: the failing test, and the cause\n   - check: `go test ./internal/invoice -run TestTaxRoundsOnce` fails\n2. Review: **Is this the cause?** The failing test, and what its crew found. \"I see the cause before the fix is written.\"\n3. Work: **Fix it.** So the total is what a customer adds up.\n   - carrying on from: 1\n   - check: `go test ./...` passes\n4. Review: **Read the fix.** Before its pull request. \"I review every change before its pull request is opened\"\n5. Open Pull Request: **Open it.**\n   - in: `api`\n",
+  "flag": {
+    "text": "Step 3 is done (c1: Fixed: tax is worked out for each rate on what its lines come to, and rounded once. INV-0388 comes to £3.56). Step 4 is yours, to review: Read the fix. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review api/tax-rounding: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c1.md.",
+    "by": "ws",
+    "options": [
+      "Go on",
+      "Not yet"
+    ]
+  },
+  "tasks": [
+    {
+      "n": 2,
+      "verb": "review",
+      "text": "Step 3 is done (c1: Fixed: tax is worked out for each rate on what its lines come to, and rounded once. INV-0388 comes to £3.56). Step 4 is yours, to review: Read the fix. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review api/tax-rounding: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c1.md.",
+      "step": 4,
+      "options": [
+        "Go on",
+        "Not yet"
+      ],
+      "by": "ws",
+      "at": "2026-11-20T15:14:19Z"
+    }
+  ],
+  "at": "Step 4 of 5, yours: Read the fix",
+  "z": [
+    "An invoice's total is what its lines and VAT add up to, with a regression test, merged."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "step-review",
+      "group": "needs-you",
+      "label": "✓ review",
+      "text": "Step 3 is done (c1: Fixed: tax is worked out for each rate on what its lines come to, and rounded once. INV-0388 comes to £3.56). Step 4 is yours, to review: Read the fix. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review api/tax-rounding: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c1.md.",
+      "action": {
+        "verb": "review-step",
+        "label": "review api/tax-rounding",
+        "target": "2",
+        "look": [
+          {
+            "capsule": "api/tax-rounding",
+            "name": "api/tax-rounding"
+          },
+          {
+            "doc": "mission:handoffs/c1.md",
+            "name": "handoffs/c1.md",
+            "read": true
+          }
+        ]
+      },
+      "by": "ws",
+      "since": "2026-11-20T15:14:19Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "step-review",
+      "court": "you",
+      "tone": "you",
+      "title": "Step 4 is yours to review: Read the fix",
+      "detail": "c1: Fixed: tax is worked out for each rate on what its lines come to, and rounded once. INV-0388 comes to £3.56",
+      "primary": {
+        "do": "review",
+        "label": "Review api/tax-rounding",
+        "icon": "eye",
+        "target": "api/tax-rounding",
+        "key": "v"
+      },
+      "more": [
+        {
+          "do": "read",
+          "label": "Read handoffs/c1.md",
+          "icon": "file",
+          "target": "mission:handoffs/c1.md"
+        },
+        {
+          "do": "answer",
+          "label": "Go on",
+          "task": 2,
+          "text": "Go on"
+        },
+        {
+          "do": "answer",
+          "label": "Send back…",
+          "task": 2,
+          "field": "Say what's to change, and it goes back to its crew",
+          "quiet": true
+        }
+      ],
+      "by": "ws",
+      "since": "2026-11-20T15:14:19Z"
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Reproduce it",
+      "text": "Reproduce it. As a failing test, and find the cause.",
+      "state": "accepted",
+      "crew": [
+        "c1"
+      ],
+      "why": "its checks are met (round 1)",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `api/tax-rounding`",
+      "in": "api/tax-rounding",
+      "makes": "the failing test, and the cause",
+      "checks": [
+        {
+          "text": "`go test ./internal/invoice -run TestTaxRoundsOnce` fails",
+          "run": true,
+          "result": "met",
+          "evidence": "failed (exit 1) in 0s:\n--- FAIL: TestTaxRoundsOnce (0.00s)\n    invoice_test.go:37: Tax() = 60, want 59: each line's tax is rounded, then they're added up\n    invoice_test.go:40: Total() = 357, want 356\nFAIL\nFAIL\texample.com/api/internal/invoice\t0.288s\nFAIL",
+          "by": "ws"
+        }
+      ],
+      "round": 1
+    },
+    {
+      "n": 2,
+      "title": "Is this the cause?",
+      "text": "Is this the cause? The failing test, and what its crew found.",
+      "state": "accepted",
+      "why": "That's the cause. Round once for each rate, as the PDF shows it.",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 3,
+      "title": "Fix it",
+      "text": "Fix it. So the total is what a customer adds up.",
+      "state": "accepted",
+      "crew": [
+        "c1"
+      ],
+      "why": "its checks are met (round 1)",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew",
+      "carryOn": 1,
+      "checks": [
+        {
+          "text": "`go test ./...` passes",
+          "run": true,
+          "result": "met",
+          "evidence": "passed in 0s:\n?   \texample.com/api/cmd/api\t[no test files]\nok  \texample.com/api/internal/httpapi\t(cached)\nok  \texample.com/api/internal/invoice\t(cached)\nok  \texample.com/api/internal/webhook\t(cached)",
+          "by": "ws"
+        }
+      ],
+      "round": 1
+    },
+    {
+      "n": 4,
+      "title": "Read the fix",
+      "text": "Read the fix. Before its pull request.",
+      "state": "current",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 5,
+      "title": "Open it",
+      "text": "Open it.",
+      "state": "todo",
+      "type": "Open Pull Request",
+      "who": "ws",
+      "whoSays": "ws",
+      "in": "api",
+      "opensPR": true
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "api",
+      "name": "tax-rounding",
+      "branch": "tax-rounding",
+      "path": "/try/sorrel/repos/api/tax-rounding",
+      "exists": true,
+      "head": "bfa52fbbb2bdf29144a91fe99c5fe9df1c3fcf44",
+      "ahead": 2
+    }
+  ],
+  "crew": [
+    {
+      "id": "c1",
+      "harness": "claude",
+      "model": "opus",
+      "capsule": "api/tax-rounding",
+      "started": "2026-11-20T15:14:18Z",
+      "ended": false,
+      "activity": "waiting",
+      "status": "done",
+      "note": "Fixed: tax is worked out for each rate on what its lines come to, and rounded once. INV-0388 comes to £3.56.",
+      "dispatch": "Reproduce INV-0388 as a failing test in internal/invoice, and find the cause.",
+      "handoff": "mission:handoffs/c1.md"
+    }
+  ],
+  "artifacts": [
+    {
+      "ref": "mission:handoffs/c1.md",
+      "kind": "handoff",
+      "label": "Fixed: tax is worked out for each rate on what its lines come to, and rounded once. INV-0388 comes to £3.56.",
+      "state": "private",
+      "path": "/try/sorrel/.ws/missions/invoice-totals-off-by-a-penny/files/handoffs/c1.md",
+      "by": "c1",
+      "added": "2026-11-20T15:14:19Z",
+      "readable": true
+    }
+  ],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "capsule_added",
+      "text": "capsule api/tax-rounding added"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "note",
+      "text": "note: plan written: 5 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:18Z",
+      "kind": "crew_started",
+      "text": "c1 started",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:18Z",
+      "kind": "dispatch",
+      "text": "c1 dispatched you: Reproduce INV-0388 as a failing test in internal/invoice, and find the cause.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:18Z",
+      "kind": "stage",
+      "text": "on step 1: **Reproduce it.** As a failing test, and find the cause.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:18Z",
+      "kind": "crew_done",
+      "text": "c1 done: Reproduced: tax is rounded on each line, then added up. Three lines at 99p come to 60p of VAT, where the VAT on £2.97 is 59p. · left: The fix: work the tax out for each rate on what its lines come to together, and round once.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:18Z",
+      "kind": "checks",
+      "text": "step 1, check 1 of 1 started: `go test ./internal/invoice -run TestTaxRoundsOnce`",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:18Z",
+      "kind": "checks",
+      "text": "step 1, check 1 of 1: `go test ./internal/invoice -run TestTaxRoundsOnce` failed (exit 1) in 0s: met",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:18Z",
+      "kind": "checks",
+      "text": "step 1's checks, round 1 (c1's done): 1 of 1 met",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:18Z",
+      "kind": "stage",
+      "text": "step 1 accepted: **Reproduce it.** As a failing test, and find the cause. · its checks are met (round 1)",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:18Z",
+      "kind": "flag",
+      "text": "asks you: Step 1 is done (c1: Reproduced: tax is rounded on each line, then added up. Three lines at 99p come to 60p of VAT, where the VAT on £2.97 is 59p). Step 2 is yours, to review: Is this the cause? The failing test, and what its crew found. Review api/tax-rounding: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c1.md.",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:18Z",
+      "kind": "stage",
+      "text": "step 2 accepted: **Is this the cause?** The failing test, and what its crew found. · That's the cause. Round once for each rate, as the PDF shows it.",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:19Z",
+      "kind": "resume_with",
+      "text": "told c1: Step 1 is done, and you carry on with step 3 of the plan: **Fix it.** So the total is what a customer adds up. …",
+      "by": "ws",
+      "to": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:19Z",
+      "kind": "stage",
+      "text": "on step 3: **Fix it.** So the total is what a customer adds up.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:19Z",
+      "kind": "crew_done",
+      "text": "c1 done: Fixed: tax is worked out for each rate on what its lines come to, and rounded once. INV-0388 comes to £3.56. · left: Whether support writes to those three studios is theirs to say.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:19Z",
+      "kind": "checks",
+      "text": "step 3, check 1 of 1 started: `go test ./...`",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:19Z",
+      "kind": "checks",
+      "text": "step 3, check 1 of 1: `go test ./...` passed in 0s: met",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:19Z",
+      "kind": "checks",
+      "text": "step 3's checks, round 1 (c1's done): 1 of 1 met",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:19Z",
+      "kind": "stage",
+      "text": "step 3 accepted: **Fix it.** So the total is what a customer adds up. · its checks are met (round 1)",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:19Z",
+      "kind": "flag",
+      "text": "asks you: Step 3 is done (c1: Fixed: tax is worked out for each rate on what its lines come to, and rounded once. INV-0388 comes to £3.56). Step 4 is yours, to review: Read the fix. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review api/tax-rounding: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c1.md.",
+      "by": "ws"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "claude",
+      "model": "sonnet"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "opus"
+      },
+      {
+        "harness": "claude",
+        "model": "haiku"
+      }
+    ]
+  }
+}

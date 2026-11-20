@@ -1,0 +1,123 @@
+{
+  "slug": "which-query-is-slow",
+  "title": "Which query is slow",
+  "state": "active",
+  "created": "2026-11-20T15:14:58Z",
+  "talks": [],
+  "brief": "## Goal\nWhich query is slow, and say.\n\n## Acceptance\n- It's named, with what shows it.\n",
+  "plan": "## Z\n- It's named, with what shows it.\n## Stops early\n- None.\n## Steps\n1. Review: **Read the finding.** What was found, before it's written up.\n",
+  "conclude": {
+    "ending": "answered",
+    "text": "The invoices list is the slow one: it reads every line item to total each invoice.",
+    "z": [
+      {
+        "z": "It's named, with what shows it.",
+        "met": true,
+        "how": "the query plan in the handoff shows the scan"
+      }
+    ],
+    "by": "orchestrator",
+    "at": "2026-11-20T15:14:58Z"
+  },
+  "at": "Every step done: ending it, answered, is suggested",
+  "z": [
+    "It's named, with what shows it."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "wrap-up",
+      "group": "needs-you",
+      "label": "✓ wrap up",
+      "text": "Ready to end, answered (at Z: 1 of 1 met): The invoices list is the slow one: it reads every line item to total each invoice.",
+      "action": {
+        "verb": "end",
+        "label": "end it, answered"
+      },
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:58.914866Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "wrap-up",
+      "court": "you",
+      "tone": "done",
+      "title": "Ready to end, answered (at Z: 1 of 1 met)",
+      "detail": "The invoices list is the slow one: it reads every line item to total each invoice.",
+      "primary": {
+        "do": "end",
+        "label": "End it, answered",
+        "icon": "check"
+      },
+      "more": [
+        {
+          "do": "end-how",
+          "label": "Say how it ends…",
+          "quiet": true
+        },
+        {
+          "do": "not-yet",
+          "label": "Not yet",
+          "quiet": true
+        }
+      ],
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:58.914866Z"
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Read the finding",
+      "text": "Read the finding. What was found, before it's written up.",
+      "state": "accepted",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    }
+  ],
+  "capsules": [],
+  "crew": [],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:58Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:58Z",
+      "kind": "note",
+      "text": "note: plan written: 1 step",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:58Z",
+      "kind": "stage",
+      "text": "step 1 accepted: **Read the finding.** What was found, before it's written up.",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:58Z",
+      "kind": "conclude_suggested",
+      "text": "suggested ending it, answered (at Z: 1 of 1 met): The invoices list is the slow one: it reads every line item to total each invoice.",
+      "by": "orchestrator"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "shell"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "sonnet"
+      }
+    ]
+  }
+}

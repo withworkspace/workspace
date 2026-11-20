@@ -1,0 +1,203 @@
+{
+  "slug": "which-cache-is-slow",
+  "title": "Which cache is slow",
+  "state": "active",
+  "created": "2026-11-20T15:14:58Z",
+  "talks": [],
+  "brief": "## Goal\nWhich cache is slow, and say.\n\n## Acceptance\n- It's named, with what shows it.\n",
+  "plan": "## Z\n- It's named, with what shows it.\n## Stops early\n- None.\n## Steps\n1. Review: **Read the finding.** What was found, before it's written up.\n",
+  "flag": {
+    "text": "The token cache and the tenant cache are both slow under load. Name both, or only the slowest?",
+    "by": "orchestrator",
+    "options": [
+      "Both",
+      "Only the slowest"
+    ]
+  },
+  "tasks": [
+    {
+      "n": 1,
+      "verb": "answer",
+      "text": "The token cache and the tenant cache are both slow under load. Name both, or only the slowest?",
+      "options": [
+        "Both",
+        "Only the slowest"
+      ],
+      "by": "orchestrator",
+      "at": "2026-11-20T15:14:58Z"
+    }
+  ],
+  "conclude": {
+    "ending": "answered",
+    "text": "The token cache is the slow one: its lookups scan every tenant.",
+    "z": [
+      {
+        "z": "It's named, with what shows it.",
+        "met": true,
+        "how": "the profile in the handoff names the token cache"
+      }
+    ],
+    "by": "orchestrator",
+    "at": "2026-11-20T15:14:58Z"
+  },
+  "at": "Every step done: ending it, answered, is suggested",
+  "z": [
+    "It's named, with what shows it."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "flag",
+      "group": "needs-you",
+      "label": "! asks you",
+      "text": "The orchestrator asks: The token cache and the tenant cache are both slow under load. Name both, or only the slowest?",
+      "action": {
+        "verb": "answer",
+        "label": "answer",
+        "target": "1",
+        "options": [
+          "Both",
+          "Only the slowest"
+        ]
+      },
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:58Z"
+    },
+    {
+      "court": "you",
+      "kind": "wrap-up",
+      "group": "needs-you",
+      "label": "✓ wrap up",
+      "text": "Ready to end, answered (at Z: 1 of 1 met): The token cache is the slow one: its lookups scan every tenant.",
+      "action": {
+        "verb": "end",
+        "label": "end it, answered"
+      },
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:58.82689Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "flag",
+      "court": "you",
+      "tone": "you",
+      "title": "The orchestrator asks",
+      "detail": "The token cache and the tenant cache are both slow under load. Name both, or only the slowest?",
+      "more": [
+        {
+          "do": "answer",
+          "label": "Both",
+          "task": 1,
+          "text": "Both"
+        },
+        {
+          "do": "answer",
+          "label": "Only the slowest",
+          "task": 1,
+          "text": "Only the slowest"
+        },
+        {
+          "do": "answer",
+          "label": "Answer…",
+          "task": 1,
+          "field": "Answer in your own words",
+          "quiet": true
+        },
+        {
+          "do": "ask-agent",
+          "label": "Ask an agent",
+          "quiet": true
+        },
+        {
+          "do": "dismiss",
+          "label": "Dismiss",
+          "quiet": true
+        }
+      ],
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:58Z"
+    },
+    {
+      "kind": "wrap-up",
+      "court": "you",
+      "tone": "done",
+      "title": "Ready to end, answered (at Z: 1 of 1 met)",
+      "detail": "The token cache is the slow one: its lookups scan every tenant.",
+      "primary": {
+        "do": "end",
+        "label": "End it, answered",
+        "icon": "check"
+      },
+      "more": [
+        {
+          "do": "end-how",
+          "label": "Say how it ends…",
+          "quiet": true
+        }
+      ],
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:58.82689Z"
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Read the finding",
+      "text": "Read the finding. What was found, before it's written up.",
+      "state": "accepted",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    }
+  ],
+  "capsules": [],
+  "crew": [],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:58Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:58Z",
+      "kind": "note",
+      "text": "note: plan written: 1 step",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:58Z",
+      "kind": "stage",
+      "text": "step 1 accepted: **Read the finding.** What was found, before it's written up.",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:58Z",
+      "kind": "flag",
+      "text": "asks you: The token cache and the tenant cache are both slow under load. Name both, or only the slowest?",
+      "by": "orchestrator"
+    },
+    {
+      "time": "2026-11-20T15:14:58Z",
+      "kind": "conclude_suggested",
+      "text": "suggested ending it, answered (at Z: 1 of 1 met): The token cache is the slow one: its lookups scan every tenant.",
+      "by": "orchestrator"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "shell"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "sonnet"
+      }
+    ]
+  }
+}

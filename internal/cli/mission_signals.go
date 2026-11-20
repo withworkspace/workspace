@@ -640,8 +640,9 @@ here: nothing for the user to do until it happens.
 For the orchestrator, when nothing else should happen yet. Not for what
 ws already sees (a PR waiting for review, crew at work, the user's
 re-review), and not for something the user must do: flag them instead.
-Anything happening on the mission clears it: crew starting, the user
-acting, the orchestrator's next run.`,
+Nor at a Wait step of the plan, which says what it waits on itself, and
+how it's passed. Anything happening on the mission clears it: crew
+starting, the user acting, the orchestrator's next run.`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if clear {
 				return cobra.NoArgs(cmd, args)
@@ -658,7 +659,7 @@ acting, the orchestrator's next run.`,
 				return err
 			}
 			text := strings.TrimSpace(strings.Join(args, " "))
-			if err := missionStore(ctx).SetWaiting(m.Slug, text, raisedBy()); err != nil {
+			if err := ctx.SayWaiting(m.Slug, text, ops.ActorFromEnv()); err != nil {
 				return err
 			}
 			if clear {

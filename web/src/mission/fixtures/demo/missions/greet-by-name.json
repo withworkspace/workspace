@@ -1,0 +1,122 @@
+{
+  "slug": "greet-by-name",
+  "title": "Greet by name",
+  "state": "active",
+  "created": "2026-11-20T15:14:28Z",
+  "talks": [],
+  "brief": "## Goal\ndemo greets whoever it's told to: `go run . Ada` prints hello, Ada.\n\n## Context\n- Seeded by the workspace repo's scripts/seeds/mission.sh.\n",
+  "plan": "## Z\n- `go run . Ada` prints hello, Ada, with a test, and its pull request is open.\n## Stops early\n- None.\n## Steps\n1. Work: **Greet by name.** greeting takes a name, and falls back to world.\n   - in: `demo/greet-by-name`\n   - check: `go test ./...` passes\n2. Review: **Read it.** The change, before its pull request.\n3. Open Pull Request: **Open it.** From `demo/greet-by-name`.\n",
+  "at": "Step 1 of 3: Greet by name",
+  "z": [
+    "`go run . Ada` prints hello, Ada, with a test, and its pull request is open."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "ready",
+      "group": "up-next",
+      "label": "ready",
+      "text": "Ready: nobody has started it",
+      "action": {
+        "verb": "launch",
+        "label": "launch crew"
+      }
+    }
+  ],
+  "cards": [
+    {
+      "kind": "ready",
+      "court": "you",
+      "tone": "quiet",
+      "title": "Ready",
+      "detail": "Nobody has started it",
+      "primary": {
+        "do": "launch",
+        "label": "Launch crew",
+        "icon": "play"
+      }
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Greet by name",
+      "text": "Greet by name. greeting takes a name, and falls back to world.",
+      "state": "current",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `demo/greet-by-name`",
+      "in": "demo/greet-by-name",
+      "checks": [
+        {
+          "text": "`go test ./...` passes",
+          "run": true
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "title": "Read it",
+      "text": "Read it. The change, before its pull request.",
+      "state": "todo",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 3,
+      "title": "Open it",
+      "text": "Open it. From demo/greet-by-name.",
+      "state": "todo",
+      "type": "Open Pull Request",
+      "who": "ws",
+      "whoSays": "ws",
+      "opensPR": true
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "demo",
+      "name": "greet-by-name",
+      "branch": "greet-by-name",
+      "path": "/try/demo/repos/demo/greet-by-name",
+      "exists": true,
+      "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+    }
+  ],
+  "crew": [],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:28Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:28Z",
+      "kind": "capsule_added",
+      "text": "capsule demo/greet-by-name added"
+    },
+    {
+      "time": "2026-11-20T15:14:28Z",
+      "kind": "note",
+      "text": "note: plan written: 3 steps",
+      "by": "you"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "shell"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "sonnet"
+      }
+    ]
+  }
+}

@@ -2,7 +2,8 @@ import type { Workspace } from "../api";
 import type { SpaceRef } from "../api";
 import type { FrameHere } from "../plugins/here";
 import { GROUND, type Known, namedOf, type PageRef, refAt, thingOpenAt } from "../refs/refs";
-import { actIcon, actsOn, type Found, foundItem, type Item, missionDo } from "./find";
+import { actsFor, subjectOf } from "./acts";
+import { actIcon, actsOn, type Found, foundItem, type Item } from "./find";
 import { visitAt } from "./recent";
 
 // What Find shows of where you are before anything's typed: the thing the
@@ -114,9 +115,9 @@ export async function around(h: Here, fresh: boolean, signal?: AbortSignal): Pro
   return got;
 }
 
-// hereItems is what can be done to the thing the page is of: a mission's
-// headline, where Find can do it outright; a plugin's thing's actions, and
-// ws's own (start a mission about it).
+// hereItems is what can be done to the thing the page is of: a plugin's
+// thing's actions, and ws's own (start a mission about it); or what can be
+// done to one of ws's own things (actsFor), a mission's headline first.
 export function hereItems(h: Here | undefined, w: Workspace, known: Known): Item[] {
   if (h?.thing) {
     const thing = h.thing;
@@ -131,12 +132,8 @@ export function hereItems(h: Here | undefined, w: Workspace, known: Known): Item
       doing: { thing, does: a },
     }));
   }
-  if (h?.id.startsWith("mission:")) {
-    const m = w.missions.find((x) => x.slug === h.ref);
-    const does = m && missionDo(m);
-    return does ? [{ ...does, group: "here" }] : [];
-  }
-  return [];
+  const s = subjectOf(h?.id);
+  return s ? actsFor(s, w).map((it) => ({ ...it, group: "here" as const })) : [];
 }
 
 // How each kind of link is said of what's at its other end, from where

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/mission"
@@ -39,10 +40,19 @@ func (a Accepted) String() string {
 // kept as a decision too: the crew after are told those.
 func (w *Workspace) AcceptStage(slug string, by Actor, why string) (Accepted, error) {
 	why = strings.TrimSpace(why)
-	_, wait, atWait := w.waitAt(slug)
+	m, wait, atWait := w.waitAt(slug)
+	var began time.Time
+	if atWait {
+		began = w.stepBegan(m, wait.N)
+	}
 	acc, err := w.acceptStage(slug, by, why)
 	if err == nil && atWait && by.IsYou() && why != "" {
 		w.waitNote(slug, wait, by, why)
+	}
+	if err == nil && atWait {
+		// What the orchestrator asked at the Wait (has it happened, what
+		// to do meanwhile) is settled by its passing.
+		w.settleAsked(m, wait.N, began, "marked done")
 	}
 	return acc, err
 }

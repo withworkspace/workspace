@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { act, type ActionAsk, newPage, type Plugin, runPluginAction, startMissionAbout, type Workspace } from "../api";
+import { act, type ActionAsk, dockPR, newPage, type Plugin, restoreArtifact, runPluginAction, setTalkStatus, startMissionAbout, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { archiveMission } from "../mission/archive";
 import { RefsScope, thingsNamed } from "../refs/known";
@@ -11,7 +11,7 @@ import { forgetThing } from "../refs/ThingView";
 import { marked } from "../ui/fuzzy";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/status";
-import { humanError, Keys, toast } from "../ui/kit";
+import { confirm, humanError, Keys, toast } from "../ui/kit";
 import { setTheme } from "../ui/theme";
 import { clock } from "../ui/time";
 import {
@@ -33,6 +33,7 @@ import {
   groupTitle,
   type Item,
   localItems,
+  ordered,
   parseQuery,
   rematch,
   type Scope,
@@ -46,6 +47,7 @@ import type { FrameHere } from "../plugins/here";
 import { around, hereAt, hereItems, keptAround, type Near, nearIds, nearItems } from "./here";
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
 import { PinButton, pinNameOf, useFocus } from "./focus";
+import { actsFor, type Subject, subjectOf, type WsDoing } from "./acts";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
 // has, by what you remember of it. What the page holds (missions, pages,
@@ -73,6 +75,17 @@ function thingOf(it?: Item): Thing | undefined {
   return it?.card?.kind === "thing" ? it.card : undefined;
 }
 
+// stopCrew stops a crew, once you've said so, as its own page asks.
+async function stopCrew(slug: string, crew: string) {
+  const yes = await confirm({
+    title: `Stop ${crew}?`,
+    body: "Its session can be resumed later if it recorded one: what it's in the middle of is lost.",
+    confirm: `Stop ${crew}`,
+    danger: true,
+  });
+  return yes ? act(slug, "stop", { crew }) : undefined;
+}
+
 // stale is how old the pull requests can be before Find says how old.
 const stale = 10 * 60 * 1000;
 
@@ -91,6 +104,7 @@ export function Palette({
   frameHere,
   onClose,
   onHelp,
+  onShutDown,
 }: {
   workspace: Workspace;
   plugins?: Plugin[];
@@ -102,6 +116,7 @@ export function Palette({
   frameHere?: FrameHere; // what a plugin's page said it shows beyond its address
   onClose: () => void;
   onHelp: () => void;
+  onShutDown: () => void;
 }) {
   const navigate = useNavigate();
   // How the plugins' things are named: what's typed may be one's name
@@ -130,9 +145,9 @@ export function Palette({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [named, naming],
   );
-  // Acting on a plugin's thing (⌘K on its row): what can be done to it is
-  // the list, until one's chosen or it's left.
-  const [acting, setActing] = useState<{ thing: Thing; typed: string }>();
+  // Acting on a thing (⌘K on its row), a plugin's or one of ws's own:
+  // what can be done to it is the list, until one's chosen or it's left.
+  const [acting, setActing] = useState<{ thing?: Thing; subject?: Subject; title: string; typed: string }>();
   // An action that's asked something before it goes on: of a thing, or a
   // plugin's own. What it's been answered so far is sent again with each
   // answer, until it asks nothing more.
@@ -292,7 +307,13 @@ export function Palette({
   // to the thing Find's acting on, or, most of the time, what's found.
   const mode = asking ? "asking" : acting ? "acting" : undefined;
   const typed = asking ? asking.typed : acting ? acting.typed : raw;
-  const rows = asking ? askOptions(asking.ask, asking.typed) : acting ? actingOn(namedOf(acting.thing, known), acting.typed) : built.rows;
+  const rows = asking
+    ? askOptions(asking.ask, asking.typed)
+    : acting?.thing
+      ? actingOn(namedOf(acting.thing, known), acting.typed)
+      : acting?.subject
+        ? ordered(actsFor(acting.subject, workspace), acting.typed)
+        : built.rows;
   // Until the cursor's moved, it's on the first row that goes somewhere:
   // what can be done to where you are is a step down, so ⌘K then ⏎ never
   // does it by reflex.
@@ -303,6 +324,9 @@ export function Palette({
   // says, or named outright by what's typed. While Find acts on one, or
   // one's action asks, it's that one.
   const onThing = mode ? (asking?.thing ?? acting?.thing) : thingOf(on);
+  // One of ws's own things the cursor's on, with something to do to it.
+  const onSubject = mode ? undefined : subjectOf(on?.id);
+  const actable = !!onSubject && actsFor(onSubject, workspace).length > 0;
   // ⌘. pins what the row is, or unpins it: anything with a card.
   const focus = useFocus();
   const pinRef = mode ? undefined : (onThing ?? on?.card);
@@ -390,8 +414,18 @@ export function Palette({
       run(asking.plugin, asking.action, asking.thing, [...asking.answers, answer]);
       return;
     }
-    if (acting && it?.act) doTo(acting.thing, it.act);
+    if (acting?.thing && it?.act) doTo(acting.thing, it.act);
+    else if (acting?.subject && it) perform(it, false);
   };
+
+  // doWs does what ws does to one of its things that isn't a mission's
+  // act, and says what it did.
+  const doWs = (d: WsDoing): Promise<string> =>
+    "talk" in d
+      ? setTalkStatus("", d.talk, d.status).then((t) => (t.status === "resolved" ? "Resolved." : "Reopened."))
+      : "restore" in d
+        ? restoreArtifact(d.restore).then(() => "Restored.")
+        : dockPR(d.dock).then((r) => r.message);
 
   const go = (it: Item | undefined, tab: boolean) => {
     if (mode) {
@@ -402,6 +436,12 @@ export function Palette({
     const visit = visitOf(it, Date.now());
     if (visit) noteVisit(workspace.root, visit);
     noteChosen(workspace.root, q, it.id);
+    perform(it, tab);
+  };
+
+  // perform does what a row does: goes where it goes, or does what it
+  // does.
+  const perform = (it: Item, tab: boolean) => {
     if (it.doing && "does" in it.doing) {
       // Done to the thing the page is of: Find stays, for what it may ask.
       doTo(it.doing.thing, it.doing.does);
@@ -417,13 +457,19 @@ export function Palette({
       const d = it.doing;
       if ("theme" in d) setTheme(d.theme);
       else if ("help" in d) onHelp();
+      else if ("shutDown" in d) onShutDown();
+      else if ("ws" in d)
+        doWs(d.ws).then(
+          (said) => toast(said, { tone: "done" }),
+          (e: Error) => toast(humanError(e.message), { tone: "danger" }),
+        );
       else if ("page" in d)
         newPage().then(
           (p) => navigate(`/documents/local/${encodeURIComponent(p.id)}`),
           (e: Error) => toast(humanError(e.message), { tone: "danger" }),
         );
       else
-        (d.act === "archive" ? archiveMission(d.slug) : act(d.slug, d.act, { crew: d.crew })).then(
+        (d.act === "archive" ? archiveMission(d.slug) : d.act === "stop" ? stopCrew(d.slug, d.crew ?? "") : act(d.slug, d.act, { crew: d.crew })).then(
           (r) => r && toast(r.message, { tone: "done" }),
           (e: Error) => toast(humanError(e.message), { tone: "danger" }),
         );
@@ -473,11 +519,11 @@ export function Palette({
   const nothing = !mode && !rows.length && (scope === "code" ? code.done : found.done || !asked);
   // What it's in the middle of, said before what's typed: the thing it's
   // acting on, and the action that's asking.
-  const doing = asking ? `${asking.thing ? `${asking.thing.id}: ` : ""}${asking.action.title}` : acting ? acting.thing.id : undefined;
+  const doing = asking ? `${asking.thing ? `${asking.thing.id}: ` : ""}${asking.action.title}` : acting ? acting.title : undefined;
   const placeholder = asking
     ? asking.ask.placeholder || (asking.ask.type === "pick" ? `${asking.ask.title}…` : `${asking.ask.title}: type it, then ⏎`)
     : acting
-      ? `Do something to ${acting.thing.id}…`
+      ? `Do something to ${acting.title}…`
       : group === "pulls"
       ? "A number, a title, who it's by…"
       : group === "files"
@@ -558,11 +604,15 @@ export function Palette({
                   e.preventDefault();
                   go(on, mod);
                 } else if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "k") {
-                  // ⌘K, with Find open: act on the plugin's thing the
-                  // cursor's on. What can be done to it is the list.
+                  // ⌘K, with Find open: act on the thing the cursor's on,
+                  // a plugin's or ws's own. What can be done to it is the
+                  // list.
                   e.preventDefault();
                   if (!mode && onThing) {
-                    setActing({ thing: onThing, typed: "" });
+                    setActing({ thing: onThing, title: onThing.id, typed: "" });
+                    setCursor(undefined);
+                  } else if (!mode && actable && on) {
+                    setActing({ subject: onSubject, title: on.title, typed: "" });
                     setCursor(undefined);
                   }
                 } else if (mod && e.key === "." && pinName && focus) {
@@ -619,7 +669,7 @@ export function Palette({
           <div className="find-list" id="palette-list" role="listbox" ref={list} onMouseDown={mode ? (e) => e.preventDefault() : undefined}>
             {mode && (
               <section aria-label={asking ? asking.ask.title : "What can be done to it"}>
-                <h3>{asking ? asking.ask.title : `Do to ${acting?.thing.id}`}</h3>
+                <h3>{asking ? asking.ask.title : `Do to ${acting?.title}`}</h3>
                 {rows.map((it) => (
                   <Row key={it.id} it={it} on={it.id === on?.id} section="do" onOver={() => it.id !== on?.id && setCursor(it.id)} onPick={() => choose(it)} />
                 ))}
@@ -688,7 +738,7 @@ export function Palette({
                   <Keys k="⌫" /> the whole workspace
                 </span>
               )}
-              {onThing && (
+              {(onThing || actable) && (
                 <span>
                   <Keys k="mod+K" /> act on it
                 </span>

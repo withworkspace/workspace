@@ -1,0 +1,62 @@
+{
+  "repos": [
+    {
+      "name": "api",
+      "label": "API",
+      "color": "#5f5fff",
+      "cloned": true,
+      "capsules": [
+        "csv-export",
+        "key-rotation",
+        "overdue-reminders",
+        "paginate",
+        "pdf-vat-rows",
+        "rate-limit",
+        "tax-rounding",
+        "webhook-retries"
+      ],
+      "aliases": [],
+      "branches": {
+        "csv-export": "csv-export",
+        "key-rotation": "key-rotation",
+        "overdue-reminders": "overdue-reminders",
+        "paginate": "paginate",
+        "pdf-vat-rows": "pdf-vat-rows",
+        "rate-limit": "rate-limit",
+        "tax-rounding": "tax-rounding",
+        "webhook-retries": "webhook-retries"
+      },
+      "landing": "pr"
+    },
+    {
+      "name": "records",
+      "label": "Records",
+      "color": "#00d7af",
+      "cloned": true,
+      "documents": true,
+      "capsules": [],
+      "aliases": [
+        "rec"
+      ],
+      "landing": "direct"
+    },
+    {
+      "name": "web",
+      "label": "Web",
+      "color": "#d75f87",
+      "cloned": true,
+      "capsules": [
+        "csv-export",
+        "dark-mode"
+      ],
+      "aliases": [
+        "fe"
+      ],
+      "branches": {
+        "csv-export": "csv-export",
+        "dark-mode": "dark-mode"
+      },
+      "landing": "pr"
+    }
+  ]
+}

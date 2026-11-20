@@ -1,0 +1,347 @@
+{
+  "slug": "reminders-for-overdue-invoices",
+  "title": "Reminders for overdue invoices",
+  "state": "active",
+  "created": "2026-11-20T15:14:16Z",
+  "talks": [],
+  "brief": "## Goal\nA customer is reminded of an invoice that's overdue, so a studio doesn't have to chase it by hand.\n\n## Context\n- It changes what customers see, so it's proposed first.\n\n## Acceptance\n- The proposal is in records, read by me.\n- A reminder goes seven days after the due date, and `invoice.reminded` with it.\n",
+  "plan": "## Z\n- The proposal has landed in records, and the reminder is sent, merged.\n## Stops early\n- The proposal is turned down: that's the answer.\n## Steps\n1. Work: **Propose it.** What's sent, when, and who can turn it off. \"Anything that changes what customers see is proposed first\"\n   - in: `records/overdue-reminders`\n   - makes: `proposals/overdue-reminders.md`\n2. Review: **Read the proposal.** `proposals/overdue-reminders.md`, before it lands.\n3. Land: **Land it.** The proposal, on records' main.\n   - in: `records/overdue-reminders`\n4. Work: **Send the reminder.** The daily job, and `invoice.reminded`.\n   - in: `api/overdue-reminders`\n   - check: `go test ./...` passes\n5. Review: **Read it.** Before its pull request. \"I review every change before its pull request is opened\"\n6. Open Pull Request: **Open it.**\n   - in: `api`\n",
+  "at": "Step 4 of 6: Send the reminder (c2)",
+  "z": [
+    "The proposal has landed in records, and the reminder is sent, merged."
+  ],
+  "headlines": [
+    {
+      "court": "agent",
+      "kind": "working",
+      "group": "in-progress",
+      "label": "● working",
+      "text": "c2 is working: Send the reminder. The daily job, and `invoice.reminded`. It's done when these are true, which ws checks once you repor…",
+      "action": {
+        "verb": "watch",
+        "label": "watch c2",
+        "target": "c2"
+      },
+      "by": "c2",
+      "since": "2026-11-20T15:14:17Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "working",
+      "court": "agent",
+      "tone": "agent",
+      "title": "c2 is working",
+      "detail": "Send the reminder. The daily job, and `invoice.reminded`. It's done when these are true, which ws checks once you repor…",
+      "primary": {
+        "do": "crew",
+        "label": "Watch c2",
+        "icon": "message",
+        "target": "c2"
+      },
+      "by": "c2",
+      "since": "2026-11-20T15:14:17Z"
+    }
+  ],
+  "runs": [
+    {
+      "mission": "reminders-for-overdue-invoices",
+      "missionTitle": "Reminders for overdue invoices",
+      "id": "20261120-151416",
+      "started": "2026-11-20T15:14:16.902967Z",
+      "ended": "2026-11-20T15:14:17.049921Z",
+      "for": "c1 (done)",
+      "trigger": "done",
+      "harness": "claude",
+      "model": "haiku",
+      "acted": true,
+      "said": "Accepted step 1. Step 2 is yours: the proposal, to read.",
+      "calls": 3,
+      "refused": 0
+    }
+  ],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Propose it",
+      "text": "Propose it. What's sent, when, and who can turn it off.",
+      "state": "accepted",
+      "crew": [
+        "c1"
+      ],
+      "why": "The proposal is written, and committed in records/overdue-reminders.",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `records/overdue-reminders`",
+      "in": "records/overdue-reminders",
+      "makes": "`proposals/overdue-reminders.md`"
+    },
+    {
+      "n": 2,
+      "title": "Read the proposal",
+      "text": "Read the proposal. proposals/overdue-reminders.md, before it lands.",
+      "state": "accepted",
+      "why": "Seven and twenty-one days. No late fees in this.",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 3,
+      "title": "Land it",
+      "text": "Land it. The proposal, on records' main.",
+      "state": "accepted",
+      "why": "records/overdue-reminders landed",
+      "type": "Land",
+      "who": "you",
+      "whoSays": "you",
+      "in": "records/overdue-reminders"
+    },
+    {
+      "n": 4,
+      "title": "Send the reminder",
+      "text": "Send the reminder. The daily job, and invoice.reminded.",
+      "state": "current",
+      "crew": [
+        "c2"
+      ],
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `api/overdue-reminders`",
+      "in": "api/overdue-reminders",
+      "checks": [
+        {
+          "text": "`go test ./...` passes",
+          "run": true
+        }
+      ]
+    },
+    {
+      "n": 5,
+      "title": "Read it",
+      "text": "Read it. Before its pull request.",
+      "state": "todo",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 6,
+      "title": "Open it",
+      "text": "Open it.",
+      "state": "todo",
+      "type": "Open Pull Request",
+      "who": "ws",
+      "whoSays": "ws",
+      "in": "api",
+      "opensPR": true
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "records",
+      "name": "overdue-reminders",
+      "branch": "overdue-reminders",
+      "path": "/try/sorrel/repos/records/overdue-reminders",
+      "exists": false,
+      "direct": true,
+      "landed": "2026-11-20T15:14:17.426339Z"
+    },
+    {
+      "repo": "api",
+      "name": "overdue-reminders",
+      "branch": "overdue-reminders",
+      "path": "/try/sorrel/repos/api/overdue-reminders",
+      "exists": true,
+      "head": "9f9b8ef83fccf355982a1fb60da20bd876d5b5fb"
+    }
+  ],
+  "crew": [
+    {
+      "id": "c1",
+      "harness": "claude",
+      "capsule": "records/overdue-reminders",
+      "started": "2026-11-20T15:14:16Z",
+      "ended": false,
+      "activity": "waiting",
+      "status": "done",
+      "note": "The proposal is written: a reminder at seven days and at twenty-one, with a switch for each customer.",
+      "dispatch": "Write the proposal: what's sent, when, and who can turn it off.",
+      "handoff": "mission:handoffs/c1.md"
+    },
+    {
+      "id": "c2",
+      "harness": "claude",
+      "capsule": "api/overdue-reminders",
+      "started": "2026-11-20T15:14:17Z",
+      "ended": false,
+      "activity": "working",
+      "dispatch": "**Send the reminder.** The daily job, and `invoice.reminded`. It's done when these are true, which ws checks once you report done (the commands it runs in your capsule; the rest an agent who didn't do the work judges): 1. `go test ./...` passes"
+    }
+  ],
+  "artifacts": [
+    {
+      "ref": "records/overdue-reminders:proposals/overdue-reminders.md",
+      "kind": "proposal",
+      "label": "Reminders for overdue invoices",
+      "state": "landed",
+      "url": "https://github.com/example-org/records/blob/main/proposals/overdue-reminders.md",
+      "path": "/try/sorrel/repos/records/.ground/proposals/overdue-reminders.md",
+      "by": "c1",
+      "added": "2026-11-20T15:14:16Z",
+      "readable": true
+    },
+    {
+      "ref": "mission:handoffs/c1.md",
+      "kind": "handoff",
+      "label": "The proposal is written: a reminder at seven days and at twenty-one, with a switch for each customer.",
+      "state": "private",
+      "path": "/try/sorrel/.ws/missions/reminders-for-overdue-invoices/files/handoffs/c1.md",
+      "by": "c1",
+      "added": "2026-11-20T15:14:16Z",
+      "readable": true
+    }
+  ],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "capsule_added",
+      "text": "capsule records/overdue-reminders added"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "capsule_added",
+      "text": "capsule api/overdue-reminders added"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "note",
+      "text": "note: plan written: 6 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "crew_started",
+      "text": "c1 started",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "dispatch",
+      "text": "c1 dispatched you: Write the proposal: what's sent, when, and who can turn it off.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "stage",
+      "text": "on step 1: **Propose it.** What's sent, when, and who can turn it off.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "artifact",
+      "text": "c1 added proposal Reminders for overdue invoices · records/overdue-reminders:proposals/overdue-reminders.md",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "crew_done",
+      "text": "c1 done: The proposal is written: a reminder at seven days and at twenty-one, with a switch for each customer. · left: The build: a daily job in the api, and `invoice.reminded`.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "note",
+      "text": "orchestrator: step 1 made proposals/overdue-reminders.md, in one commit in records/overdue-reminders, as the plan says. It's a document, so there's nothing to run. Accepted: step 2 is the user's, to read it."
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "stage",
+      "text": "step 1 accepted: **Propose it.** What's sent, when, and who can turn it off. · The proposal is written, and committed in records/overdue-reminders.",
+      "by": "orchestrator"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "flag",
+      "text": "asks you: Step 1 is done (c1: The proposal is written: a reminder at seven days and at twenty-one, with a switch for each customer). Step 2 is yours, to review: Read the proposal. proposals/overdue-reminders.md, before it lands. Review records/overdue-reminders, and read proposals/overdue-reminders.md: approving it all passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c1.md.",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "orchestrate",
+      "text": "orchestrator: Accepted step 1. Step 2 is yours: the proposal, to read.",
+      "by": "orchestrator"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "stage",
+      "text": "step 2 accepted: **Read the proposal.** `proposals/overdue-reminders.md`, before it lands. · Seven and twenty-one days. No late fees in this.",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "flag",
+      "text": "asks you: Step 2 is done. Step 3 is yours: land records/overdue-reminders (ws land, or Land on its capsule). ws passes the step once it's landed; go on if it's landed some other way.",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "landed",
+      "text": "you landed records/overdue-reminders: 1 commit on main (5e4cfe3)",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "stage",
+      "text": "step 3 accepted: **Land it.** The proposal, on records' main. · records/overdue-reminders landed",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "crew_started",
+      "text": "c2 started",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "dispatch",
+      "text": "c2 dispatched ws: **Send the reminder.** The daily job, and `invoice.reminded`. It's done when these are true, which ws checks once you report done (the commands it runs in your capsule; the rest an agent who didn't do the work judges): 1. `go test ./...` passes",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "stage",
+      "text": "on step 4: **Send the reminder.** The daily job, and `invoice.reminded`.",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:17Z",
+      "kind": "capsule_burned",
+      "text": "capsule records/overdue-reminders burned"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "claude",
+      "model": "sonnet"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "opus"
+      },
+      {
+        "harness": "claude",
+        "model": "haiku"
+      }
+    ]
+  }
+}
