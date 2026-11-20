@@ -1,8 +1,18 @@
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join, relative } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 import { shellStyles } from "./src/plugins/tokens.ts";
+
+// scopedName is a CSS module's class as the page has it: the file's name,
+// the class's, and a hash of where the file is, which keeps two files of
+// one name apart (Runs.module.css's .row is Runs_row_x1y2z).
+function scopedName(local: string, file: string): string {
+  const from = relative(import.meta.dirname, file.split("?")[0]);
+  const hash = createHash("sha256").update(from).digest("base64url").slice(0, 5);
+  return `${basename(from, ".module.css")}_${local}_${hash}`;
+}
 
 // `just web-dev <workspace>` runs this dev server against that workspace's
 // running web UI (ws web starts it): the API is proxied there, signed in
@@ -68,6 +78,11 @@ export default defineConfig(() => {
   const target = devTarget();
   return {
     plugins: [react(), katexFonts(), pluginShell(), keepDist()],
+    // A component's own styles are a CSS module beside it (Runs.module.css),
+    // its classes scoped to it. The scoped name keeps the file's and the
+    // class's, so a page's classes still say where they're from in the
+    // browser's inspector: Runs_row_x1y2z.
+    css: { modules: { generateScopedName: scopedName } },
     // Mermaid's diagram types and layouts are large chunks, loaded only by
     // a diagram that needs them.
     // Fonts are files, never written into the styles: the page's content

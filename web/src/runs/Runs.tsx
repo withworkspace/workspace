@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { endRun, getRunLog, getRuns, type Names, type RunDetail, type RunsInfo, resyncSilo, type SiloState, type Workspace } from "../api";
 import { type Reload, useLoaded } from "../load";
+import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Callout, Copyable, Empty, ErrorCard, humanError, Skeleton, toast, useTitle } from "../ui/kit";
 import { Time } from "../ui/time";
+import css from "./Runs.module.css";
 import { bare, forWhom, listed, placeOf, plain, type Said, split } from "./runRows";
 
 // The Runs page: everything ws is running for someone in this workspace
@@ -29,7 +31,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
   const { running, ended } = split(info?.runs ?? []);
   const up = new Set(running.map((r) => r.ref));
   return (
-    <div className="page runs-page">
+    <div className="page">
       <header className="page-head">
         <h1>Runs</h1>
         {running.length > 0 && <span className="chip tone-done">{running.length} running</span>}
@@ -53,7 +55,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
                 here, with its link.
               </Empty>
             ) : (
-              <ul className="rows run-rows">
+              <ul className={cx("rows", css.list)}>
                 {running.map((r) => (
                   <RunRow key={r.ref} r={r} up={up} workspace={workspace} reload={reload} />
                 ))}
@@ -67,7 +69,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
                 Ended <span className="count">{ended.length}</span>
               </h2>
               <p className="quiet-line">Runs that ended by themselves, kept an hour with their output.</p>
-              <ul className="rows run-rows">
+              <ul className={cx("rows", css.list)}>
                 {ended.map((r) => (
                   <RunRow key={r.ref} r={r} up={up} workspace={workspace} reload={reload} />
                 ))}
@@ -105,13 +107,13 @@ function NamesPart({ names: n }: { names: Names }) {
       </>
     );
   return (
-    <dl className="summary settings runs-names">
+    <dl className={cx("summary settings", css.names)}>
       <div className="summary-row">
         <dt>Names</dt>
         <dd>
           {state}
           {n.name && n.name !== n.want && (
-            <div className="dim runs-names-note">
+            <div className={cx("dim", css.namesNote)}>
               {n.want} was another workspace's first: this one is {n.name} while that one's daemon runs.
             </div>
           )}
@@ -153,7 +155,7 @@ function To({ s }: { s: Said }) {
 function NeedsLine({ r, up }: { r: RunDetail; up: Set<string> }) {
   if (!r.needs?.length) return null;
   return (
-    <span className="row-sub run-row-sub run-needs">
+    <span className={cx("row-sub", css.sub, "run-needs")}>
       {r.needs.map((n) =>
         n.folder ? (
           <span key={n.name}>
@@ -200,13 +202,13 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
   };
   const by = r.by && r.by !== "you" ? `crew ${r.by}` : r.by;
   return (
-    <li className={`row run-row${live ? "" : " ended"}${open ? " open" : ""}`}>
-      <div className="run-row-line">
+    <li className={cx("row", css.row, !live && css.ended, open && css.open)}>
+      <div className={css.line}>
         <span className={`work-run-mark${live && r.up ? " up" : ""}`} aria-hidden title={live ? (r.up ? "Up" : "Not up yet") : undefined}>
           {live ? <span className="work-live-dot" /> : <Icon name="circle" size={8} />}
         </span>
         <span className="row-main">
-          <span className="run-row-top">
+          <span className={css.top}>
             <span className="mono work-run-name" title={r.ref}>
               {r.name}
             </span>
@@ -233,7 +235,7 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
             )}
             {live && !r.up && <span className="chip tone-quiet">not up</span>}
           </span>
-          <span className="row-sub run-row-sub">
+          <span className={cx("row-sub", css.sub)}>
             <span>
               In <To s={placeOf(r, workspace.missions)} />
             </span>
@@ -246,10 +248,10 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
           {live && <NeedsLine r={r} up={up} />}
           {live && r.ends && <span className="work-run-ends">Ends {r.ends}</span>}
         </span>
-        <span className="run-row-when">
+        <span className={css.when}>
           <Time iso={r.started} as="age" className="age" />
         </span>
-        <span className="run-row-actions">
+        <span className={css.actions}>
           <button className="ghost small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide its output" : "Its output, and how it was started"}>
             <Icon name={open ? "chevron-up" : "terminal"} size={11} /> {open ? "Hide" : "Output"}
           </button>
@@ -283,8 +285,8 @@ function RunMore({ r, by }: { r: RunDetail; by?: string }) {
     if (el && stuck.current) el.scrollTop = el.scrollHeight;
   }, [text]);
   return (
-    <div className="run-more">
-      <dl className="run-facts">
+    <div className={css.more}>
+      <dl className={css.facts}>
         <dt>Command</dt>
         <dd className="mono">
           <Copyable text={r.command}>{r.command}</Copyable>
@@ -328,7 +330,7 @@ function RunMore({ r, by }: { r: RunDetail; by?: string }) {
       ) : (
         <pre
           ref={pre}
-          className="verify-output run-log"
+          className={cx("verify-output", css.log)}
           onScroll={(e) => {
             const el = e.currentTarget;
             stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
