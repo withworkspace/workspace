@@ -11067,6 +11067,26 @@ button.settled-marker-more {
   flex: none;
 }
 
+/* A step that ran ws's commands, as what it's doing: one line, however
+   many it ran. */
+.call-tool.doing {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The command a step read as, above what came back. */
+.call-command {
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+
+.call-command:last-child {
+  margin-bottom: 0;
+}
+
 .call-input {
   font: var(--text-xs) var(--mono);
   color: var(--dim);
@@ -19151,5 +19171,82 @@ a [data-viewable] {
 
   .viewer-hint {
     display: none;
+  }
+}
+
+/* A run going now, as one line: what the agent's doing this moment. The
+   newest step comes in from below, its words lit by a sheen passing over
+   them; the steps are beside it, asked for. */
+.doing {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doing-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.doing-line .typing-dots {
+  flex: none;
+}
+
+.doing-now {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: transparent;
+  background: linear-gradient(90deg, var(--dim) 0%, var(--dim) 40%, var(--fg) 50%, var(--dim) 60%, var(--dim) 100%) 0 0 / 250% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation:
+    doing-in 220ms var(--ease) both,
+    doing-sheen 2.4s linear infinite;
+}
+
+@keyframes doing-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes doing-sheen {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+.doing-steps {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.doing-chevron {
+  transition: transform 150ms var(--ease);
+}
+
+.doing-chevron.open {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doing-now {
+    animation: none;
+    color: var(--dim);
+    background: none;
   }
 }

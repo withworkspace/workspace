@@ -23,6 +23,7 @@ import {
   type ReviewPass,
   type ReviewState,
   submitPRReview,
+  useEvents,
   type Verdict,
   type Workspace,
 } from "../api";
@@ -38,7 +39,7 @@ import { GuideMark, GuideSection } from "./Guide";
 import { PRDescription, PRDiscussion, StackDescriptions } from "./Overview";
 import { PassesSection, PassMarks, standingWords } from "./Passes";
 import { useReviewPasses } from "./usePasses";
-import { Checks, prHref, prStatus, useReviewsEvents } from "./Reviews";
+import { Checks, prHref, prStatus } from "./Reviews";
 import { useLatest } from "../load";
 import { PagePin } from "../shell/focus";
 
@@ -203,13 +204,17 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- still reads a ref
   }, []);
-  // When the list changes (a push, a review, a reply), so may this.
-  useReviewsEvents(() => {
-    load();
-    loadThreads();
-    loadDiscussion();
-    loadPasses();
-    loadGuide();
+  // When the list changes (a push, a review), or ws has read this again
+  // behind and found it changed (a reply, a push), what's shown is read
+  // again: as ws keeps it, at once.
+  useEvents(`pr:${ref}`, {
+    changed: () => {
+      load();
+      loadThreads();
+      loadDiscussion();
+      loadPasses();
+      loadGuide();
+    },
   });
 
   const layers = d?.stack?.layers ?? [];

@@ -1,4 +1,5 @@
 import { type KeyboardEvent, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Doing } from "../ui/Doing";
 import { Link } from "react-router";
 import { ApiError, askThing, getTalk, keepAsk, sayInTalk, type TalkDetail, type TalkTurn } from "../api";
 import { waiting } from "../ask/ask";
@@ -260,15 +261,7 @@ export function PageConversation({ host, about, root, children }: { host: Conver
               <Markdown text={talk.run.said} />
             </div>
           )}
-          <Calls calls={(talk.run?.calls ?? []).map((c, i, all) => (i === all.length - 1 && !c.result ? { ...c, pending: true } : c))} root={root} open live />
-          <div className="typing">
-            <span className="typing-dots" aria-hidden>
-              <span />
-              <span />
-              <span />
-            </span>
-            {talk.run?.calls.length ? "Working" : "Thinking"}
-          </div>
+          <Doing calls={talk.run?.calls ?? []} root={root} />
         </div>
       )}
     </div>

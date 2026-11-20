@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -214,7 +215,12 @@ func TestKeptGit_SoonAnswersWithoutWaitingAndSaysWhenItsLooked(t *testing.T) {
 	if _, ok := g.dirtySoon(dir); ok {
 		t.Fatal("a capsule never asked of was said known to be dirty or not")
 	}
+	// Both looks run behind the reads, each in its own slot: each counts
+	// once it's in (a first answer is news), and they may land apart.
 	moved := movedSince(t, g, dir, "")
+	if moved != fmt.Sprintf("%s 2\n", dir) {
+		moved = movedSince(t, g, dir, moved)
+	}
 	if ab, ok := ahead(); !ok || ab != (aheadAndBehind{}) {
 		t.Fatalf("after the look: %+v, %v; want 0 ahead, known", ab, ok)
 	}

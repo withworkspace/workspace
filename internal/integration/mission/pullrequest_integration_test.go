@@ -319,7 +319,7 @@ func TestWeb_OpenPR(t *testing.T) {
 	if _, err := act("cache", web.ActRequest{Verb: "edit-plan", Text: prPlan}); err != nil {
 		t.Fatal(err)
 	}
-	d, _ := testutil.WebMission(w.Root)("cache", true)
+	d, _ := testutil.WebMissionAnswered(w.Root)("cache")
 	if d == nil || len(d.Stages) != 4 || !d.Stages[2].OpensPR || d.Stages[0].OpensPR {
 		t.Fatalf("the steps: %+v", d)
 	}
@@ -335,7 +335,7 @@ func TestWeb_OpenPR(t *testing.T) {
 	if err != nil || !strings.Contains(said, "Opened backend#1 from backend/cache-lookup") {
 		t.Fatalf("opened: %q, %v", said, err)
 	}
-	if d, _ = testutil.WebMission(w.Root)("cache", true); d.Capsules[0].PR == nil || d.Capsules[0].PR.Number != 1 {
+	if d, _ = testutil.WebMissionAnswered(w.Root)("cache"); d.Capsules[0].PR == nil || d.Capsules[0].PR.Number != 1 {
 		t.Errorf("the page's capsule: %+v", d.Capsules[0])
 	}
 

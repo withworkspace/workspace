@@ -24,7 +24,7 @@ type Missions interface {
 	Overview() (*ops.Overview, error)
 	// StartAbout makes a mission about something ws names, to brief.
 	StartAbout(name string) (*mission.Mission, error)
-	Mission(slug string, withGitHub bool) (*ops.MissionDetail, error)
+	Mission(slug string) (*ops.MissionDetail, error)
 	Orchestrator() ops.OrchestratorView
 	OrchestratorRun(slug, id string) (*ops.Run, error)
 	// Stamp names what the workspace's view is built from, cheaply: it
@@ -176,21 +176,22 @@ func conclusionOf(c mission.Conclusion) *Conclusion {
 }
 
 // missionDetail is GET /api/missions/{slug}.
-func (s *Server) missionDetail(slug string, withGitHub bool) (*MissionDetail, error) {
-	return MissionOf(s.App, s.Root, slug, withGitHub)
+func (s *Server) missionDetail(slug string) (*MissionDetail, error) {
+	return MissionOf(s.App, s.Root, slug)
 }
 
 // MissionOf is a mission as GET /api/missions/{slug} serves it: with what
-// GitHub says of its pull requests, when withGitHub.
-func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, error) {
-	v, err := a.Mission(slug, withGitHub)
+// GitHub last said of its pull requests, never waiting on it (its event
+// moves when GitHub, asked behind the read, says something different).
+func MissionOf(a Missions, root, slug string) (*MissionDetail, error) {
+	v, err := a.Mission(slug)
 	if err != nil {
 		return nil, err
 	}
 	m, now := v.M, time.Now()
 	d := &MissionDetail{
 		Slug: m.Slug, Title: m.Title, State: v.State, Created: m.Created, Request: m.Request, From: m.From, About: m.About,
-		Brief: v.Brief, Plan: v.Plan, Conversation: m.Conversation, ConversationTitle: v.ConversationTitle, GitHub: withGitHub,
+		Brief: v.Brief, Plan: v.Plan, Conversation: m.Conversation, ConversationTitle: v.ConversationTitle, GitHub: v.GitHub,
 		Stages: []Stage{}, Capsules: []CapsuleDetail{}, Crew: []CrewDetail{}, Artifacts: []Artifact{}, Events: []Event{},
 		Runs: []OrchestratorRun{}, Decisions: []Decision{}, Bundles: []Bundle{},
 	}

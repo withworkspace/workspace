@@ -659,6 +659,21 @@ export interface Citation {
 // From web/enums.go
 export type CitationHow = "link" | "ref";
 
+// From web/commands.go
+/**
+ * CommandLabel is what one of ws's commands is doing, as a conversation
+ * shows an agent's step that ran it: "Looking up sketch-5" for ws show
+ * sketch-5 -f llm. Words are the command's after ws (none for ws on its
+ * own); in Label, {1} is its first argument, {2} its second. Options are
+ * the flags it takes that have a value, as they're typed (--format, -f):
+ * how the web UI tells an option's value from an argument.
+ */
+export interface CommandLabel {
+    words: string[];
+    label: string;
+    options?: string[];
+}
+
 // From web/api.go
 /**
  * Conclusion is how a mission ends, suggested or made (mission.Conclusion):
@@ -2111,8 +2126,9 @@ export type MissionCourt = "" | "agent" | "outside" | "you";
 // From web/api.go
 /**
  * MissionDetail is GET /api/missions/{slug}: everything a mission's page
- * view shows. Capsules' PRs are only there with ?github=1 (GitHub is slow,
- * so the page asks after it has drawn).
+ * view shows. Capsules' PRs are as GitHub last said: it's slow, so it's
+ * asked behind the read, and the mission's event moves when it answers
+ * with something different.
  */
 export interface MissionDetail {
     slug: string;
@@ -2196,7 +2212,11 @@ export interface MissionDetail {
      */
     decisions: Decision[];
     events: Event[]; // the log, oldest first
-    github: boolean; // PRs were looked up
+    /**
+     * GitHub: GitHub has answered for its capsules' repos, so a capsule
+     * with no PR has none (as last asked).
+     */
+    github: boolean;
     /**
      * CrewPicks are what Launch crew may start crew on.
      */

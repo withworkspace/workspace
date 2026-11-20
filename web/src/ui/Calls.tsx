@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { useCommandLabels } from "../api";
+import type { CommandLabel } from "../wire.gen";
+import { stepLabel } from "./commandLabel";
 import { Icon, type IconName } from "./Icon";
 
 // Calls are the steps an agent took on the way to a reply: each tool it
@@ -7,7 +10,8 @@ import { Icon, type IconName } from "./Icon";
 // steps", but for a run going now. The same in conversations, a crew's
 // transcript and an orchestrator's run. Some steps read as themselves: an
 // edit as a diff (with a link to the file), the plan as its items, a
-// question as its options.
+// question as its options. A step that ran ws's commands reads as what
+// it's doing ("Looking up sketch-5"), its command there when it's opened.
 
 export interface Call {
   tool: string;
@@ -48,6 +52,7 @@ interface CallsOptions {
 // doesn't grow step by step and fall back when it's done.
 export function Calls({ calls, open, tail, ...opts }: { calls: Call[]; open?: boolean; tail?: number } & CallsOptions) {
   const [all, setAll] = useState(false);
+  const labels = useCommandLabels();
   if (!calls.length) return null;
   const refused = calls.filter((c) => c.refused).length;
   const failed = calls.filter((c) => c.error && !c.refused).length;
@@ -57,7 +62,7 @@ export function Calls({ calls, open, tail, ...opts }: { calls: Call[]; open?: bo
   const from = open && tail && !all && calls.length > tail + 1 ? calls.length - tail : 0;
   const list = (
     <ol className="calls">
-      {calls.map((c, i) => i >= from && <CallLine key={i} c={c} {...opts} running={opts.live && (c.pending ?? false)} />)}
+      {calls.map((c, i) => i >= from && <CallLine key={i} c={c} {...opts} labels={labels} running={opts.live && (c.pending ?? false)} />)}
     </ol>
   );
   if (open)
@@ -85,7 +90,7 @@ export function Calls({ calls, open, tail, ...opts }: { calls: Call[]; open?: bo
   );
 }
 
-function CallLine({ c, root, running, fileLink }: { c: Call; running?: boolean } & CallsOptions) {
+function CallLine({ c, root, running, fileLink, labels }: { c: Call; running?: boolean; labels: readonly CommandLabel[] } & CallsOptions) {
   const [open, setOpen] = useState(false);
   // Paths in the workspace read from its root.
   const short = (s: string) => (root ? s.split(root + "/").join("") : s);
@@ -101,14 +106,17 @@ function CallLine({ c, root, running, fileLink }: { c: Call; running?: boolean }
       : c.edit
         ? short(c.edit.path)
         : short(c.input);
-  const label = c.todos ? "Plan" : c.questions?.length ? "Asked" : c.tool;
-  const body = c.edit || c.todos || c.questions?.length || result;
+  const doing = /^(bash|shell|exec|terminal)/i.test(c.tool) ? stepLabel(c.input, labels) : undefined;
+  const label = c.todos ? "Plan" : c.questions?.length ? "Asked" : (doing ?? c.tool);
+  const body = c.edit || c.todos || c.questions?.length || result || doing;
   return (
     <li className={`call${c.refused ? " refused" : c.error ? " error" : ""}${open ? " open" : ""}${running ? " running" : ""}`}>
       <button className="call-line" onClick={() => body && setOpen((o) => !o)} aria-expanded={body ? open : undefined} disabled={!body}>
         <Icon name={running ? "spinner" : c.refused ? "ban" : iconFor(c.tool)} size={13} className={`call-icon${running ? " spin" : ""}`} />
-        <span className="call-tool">{label}</span>
-        <span className="call-input">{what}</span>
+        <span className={`call-tool${doing ? " doing" : ""}`} title={doing ? short(c.input) : undefined}>
+          {label}
+        </span>
+        {!doing && <span className="call-input">{what}</span>}
         {running && <span className="chip tone-progress">Running</span>}
         {c.refused && <span className="chip tone-danger">Refused</span>}
         {c.error && !c.refused && <span className="chip tone-quiet">Failed</span>}
@@ -136,7 +144,12 @@ function CallLine({ c, root, running, fileLink }: { c: Call; running?: boolean }
           )}
         </div>
       ))}
-      {open && !c.edit && !c.todos && !c.questions?.length && result && <pre className="call-result">{short(result)}</pre>}
+      {open && !c.edit && !c.todos && !c.questions?.length && (result || doing) && (
+        <pre className="call-result">
+          {doing && <div className="call-command">$ {short(c.input)}</div>}
+          {result && short(result)}
+        </pre>
+      )}
     </li>
   );
 }

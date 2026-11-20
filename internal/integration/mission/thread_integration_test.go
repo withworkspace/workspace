@@ -70,7 +70,7 @@ func TestThreads_CrewAnswer(t *testing.T) {
 	}
 	// It's your turn: the mission says so, and the document's line too.
 	hasReplies := func() bool {
-		md, _ := testutil.WebMission(w.Root)("cache", false)
+		md, _ := testutil.WebMission(w.Root)("cache")
 		for _, h := range md.Headlines {
 			if h.Kind == "replies" && h.Action.Verb == "review-doc" && h.Action.Target == ref && strings.Contains(h.Text, "a reply on docs/proposal.md, waiting for you (t1)") {
 				return true
@@ -79,10 +79,10 @@ func TestThreads_CrewAnswer(t *testing.T) {
 		return false
 	}
 	if !hasReplies() {
-		md, _ := testutil.WebMission(w.Root)("cache", false)
+		md, _ := testutil.WebMission(w.Root)("cache")
 		t.Errorf("no replies headline: %+v", md.Headlines)
 	}
-	md, _ := testutil.WebMission(w.Root)("cache", false)
+	md, _ := testutil.WebMission(w.Root)("cache")
 	for _, art := range md.Artifacts {
 		if art.Ref == ref && (art.Threads == nil || art.Threads.Open != 1 || art.Threads.Waiting != 1) {
 			t.Errorf("the document's threads = %+v", art.Threads)
@@ -96,7 +96,7 @@ func TestThreads_CrewAnswer(t *testing.T) {
 		t.Errorf("not resolved: %+v", c)
 	}
 
-	md, _ = testutil.WebMission(w.Root)("cache", false)
+	md, _ = testutil.WebMission(w.Root)("cache")
 	log := eventsText(md.Events)
 	for _, want := range []string{"you asked for a change on docs/proposal.md (t1): Per tenant, surely?", "c1 on t1: Keyed per tenant now.", "you resolved t1"} {
 		if !strings.Contains(log, want) {
@@ -253,7 +253,7 @@ func TestThreads_SuggestAndAccept(t *testing.T) {
 		t.Errorf("text that's gone: %v", r.Err)
 	}
 
-	md, _ := testutil.WebMission(w.Root)("cache", false)
+	md, _ := testutil.WebMission(w.Root)("cache")
 	log := eventsText(md.Events)
 	for _, want := range []string{"agent suggested an edit on t1: Ship on Tuesday.", "you accepted the edit on t1 (" + head[:7] + ")", "you declined the edit on t3"} {
 		if !strings.Contains(log, want) {
@@ -290,7 +290,7 @@ func TestThreads_StageWaitsOnChanges(t *testing.T) {
 		t.Errorf("accepting with a change open: %v", r.Err)
 	}
 	headlines := func() string {
-		md, _ := testutil.WebMission(w.Root)("cache", false)
+		md, _ := testutil.WebMission(w.Root)("cache")
 		var b strings.Builder
 		for _, h := range md.Headlines {
 			fmt.Fprintf(&b, "%s|%s|%s|%s\n", h.Kind, h.Text, h.Action.Verb, h.Action.Target)
@@ -328,7 +328,7 @@ func TestThreads_StageWaitsOnChanges(t *testing.T) {
 		t.Errorf("ws show of a changed document:\n%s", out)
 	}
 	testutil.Run(t, w, nil, "mission", "accept", "approved docs/proposal.md")
-	md, _ := testutil.WebMission(w.Root)("cache", false)
+	md, _ := testutil.WebMission(w.Root)("cache")
 	if log := eventsText(md.Events); !strings.Contains(log, "you approved docs/proposal.md") {
 		t.Errorf("log:\n%s", log)
 	}
@@ -432,7 +432,7 @@ func TestThreads_SendToCrew(t *testing.T) {
 	if c, _ := threads.Load("t2"); c.Sent != nil || !c.WaitingOnYou() || !c.Last().Changed {
 		t.Errorf("after c2 changed it: %+v", c)
 	}
-	md, _ := testutil.WebMission(w.Root)("cache", false)
+	md, _ := testutil.WebMission(w.Root)("cache")
 	log := eventsText(md.Events)
 	for _, want := range []string{"you sent t1 to c3", "you sent t2 to c2", "c2 on t2: changed the document: Keyed per tenant."} {
 		if !strings.Contains(log, want) {
@@ -739,7 +739,7 @@ func TestTalk_Briefing(t *testing.T) {
 		t.Fatalf("the briefing agent: %+v", c.Turns)
 	}
 	headline := func() string {
-		md, _ := testutil.WebMission(w.Root)(m.Slug, false)
+		md, _ := testutil.WebMission(w.Root)(m.Slug)
 		h := md.Headlines[0]
 		return string(h.Court) + "|" + h.Kind + "|" + h.Text + "|" + h.Action.Verb + "|" + h.Action.Target
 	}

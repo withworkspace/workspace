@@ -15,6 +15,7 @@ import type {
   BundleNote,
   CellSource,
   Citation,
+  CommandLabel,
   ConversationApproval,
   ConversationCapsule,
   ConversationGuideGroup,
@@ -245,7 +246,7 @@ export function useVisible(): boolean {
 
 // A topic of the server's events: what a page follows to know when what it
 // shows has changed (internal/web/events.go).
-export type Topic = "workspace" | "reviews" | "team" | "plugins" | `mission:${string}`;
+export type Topic = "workspace" | "reviews" | "team" | "plugins" | `mission:${string}` | `pr:${string}`;
 
 // EventHandlers are what a page does as it follows a topic: when the
 // stream's open (hello: fetch what it shows, so nothing's missed), on each
@@ -269,7 +270,7 @@ export function useEvents(topic: Topic, on: EventHandlers, says = "") {
   handlers.current = on;
   useEffect(() => {
     if (!visible) return;
-    const events = new EventSource(`/api/events?topic=${topic}${says}`);
+    const events = new EventSource(`/api/events?topic=${encodeURIComponent(topic)}${says}`);
     const changes = bursts(() => handlers.current.changed());
     events.addEventListener("hello", () => handlers.current.hello?.());
     events.addEventListener(topic, changes.changed);
@@ -369,11 +370,44 @@ export function usePlugins(showing?: string): Plugin[] | undefined {
   const [plugins, setPlugins] = useState<Plugin[]>();
   const load = () =>
     getJSON<Plugin[]>("/api/plugins").then(
-      (p) => setPlugins(p),
+      (p) => {
+        loadCommandLabels(); // a plugin's commands are as it last started
+        setPlugins(p);
+      },
       () => setPlugins((was) => was ?? []), // none it can show is none
     );
   useEvents("plugins", { hello: load, changed: load }, showing ? `&app=${encodeURIComponent(showing)}` : "");
   return plugins;
+}
+
+// What ws's commands are doing, as an agent's steps show them ("Looking
+// up sketch-5"): ws's own and its plugins'. Read once for the page, and
+// again as the plugins change (usePlugins); [] until it's read, when
+// steps show their commands.
+let commandLabels: CommandLabel[] = [];
+let commandLabelsAsked = false;
+const commandLabelsHeard = new Set<(l: CommandLabel[]) => void>();
+
+function loadCommandLabels() {
+  commandLabelsAsked = true;
+  getJSON<CommandLabel[]>("/api/commands").then(
+    (l) => {
+      commandLabels = l;
+      commandLabelsHeard.forEach((f) => f(l));
+    },
+    () => {}, // steps show their commands
+  );
+}
+
+export function useCommandLabels(): CommandLabel[] {
+  const [labels, setLabels] = useState(commandLabels);
+  useEffect(() => {
+    if (!commandLabelsAsked) loadCommandLabels();
+    commandLabelsHeard.add(setLabels);
+    setLabels(commandLabels);
+    return () => void commandLabelsHeard.delete(setLabels);
+  }, []);
+  return labels;
 }
 
 // Review: mirrors internal/review/diff.go.
@@ -836,8 +870,10 @@ export const getModels = (harness: string) => getJSON<ModelInfo[]>(`/api/setting
 export const getOrchestratorRun = (slug: string, id: string) =>
   getJSON<OrchestratorRunDetail>(`/api/missions/${encodeURIComponent(slug)}/orchestrator/${encodeURIComponent(id)}`);
 
-export const getMission = (slug: string, github: boolean) =>
-  getJSON<MissionDetail>(`/api/missions/${encodeURIComponent(slug)}${github ? "?github=1" : ""}`);
+// getMission is a mission's page. Its pull requests are as GitHub last
+// said: the daemon asks again behind the read, and the mission's event
+// tells of a different answer.
+export const getMission = (slug: string) => getJSON<MissionDetail>(`/api/missions/${encodeURIComponent(slug)}`);
 
 export const getArtifact = (slug: string, ref: string) =>
   getJSON<ArtifactContent>(`/api/missions/${encodeURIComponent(slug)}/artifact?${new URLSearchParams({ ref })}`);

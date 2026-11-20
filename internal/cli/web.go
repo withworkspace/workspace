@@ -145,6 +145,7 @@ func newWeb(s *daemon.Server, prs *ops.PRCache) *web.Server {
 		Reviews: app.PRService(), Team: teamSvc, Find: app.FindIndex(),
 		Nav:     nav.New(navCache(s.Root)),
 		Plugins: pluginHost,
+		Labels:  commandLabels(newBuiltinRootCmd("")),
 		Names:   func() []string { return webNames(s.Root) },
 	}
 }
