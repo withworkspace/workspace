@@ -298,8 +298,12 @@ func Names(files []File) map[string]string {
 	return out
 }
 
-// RunKey is a run's name below its workspace's: <run>.<worktree>.<repo>.
+// RunKey is a run's name below its workspace's: <run>.<worktree>.<repo>,
+// or for the workspace's own run (no repo), <run> alone.
 func RunKey(name, worktree, repo string) string {
+	if repo == "" {
+		return Label(name)
+	}
 	return Label(name) + "." + Label(runs.Label(worktree)) + "." + Label(repo)
 }
 

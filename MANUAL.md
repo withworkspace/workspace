@@ -1409,6 +1409,24 @@ mount = "/api"           # and below web's own name (see Names, below)
 - **One run, shared.** Two runs that need the same thing, in the same place, share one run of it. A run ws started for a need is for whatever needs it: it's ended once no run that needs it is running, at the daemon's next look, or at once when you stop the last of them. A run that was someone's before another needed it isn't ended while that one runs, whoever it's for and whatever its time. ws counts what needs a run afresh each time it looks, from the runs that are there, so nothing's left running by a count that went wrong.
 - **Asked for again.** `ws run web` where web is running starts again whatever it needs that has ended. Where that comes back at another address (no names, and its port taken meanwhile), ws says so: web has to be started again to be given it.
 - A run started for a need isn't the asker's: it's started without the mission, crew or conversation the asker is.
+- **A folder, not a run.** `repo = "…"` in place of `run` is a need of one of that repo's worktrees, not of a run: chosen as a run's would be (the mission's capsule there, else the ground, or `--with`), and handed over in `env` and as `{name}` in the command, as its path. Nothing's started for it. This is for what's built from another repo's files (an API reference from its spec), not served by it. A run started on a folder that has gone since (its capsule burned) is ended.
+
+**The workspace's own runs.** What belongs to no one repo (API docs drawn from two repos' specs, a mail catcher every capsule sends to) is a recipe of the workspace's, in `ws.toml`, run once for the whole workspace at its root. `ws run docs`, anywhere in the workspace but its repos, runs it; `ws run` there lists them. It's said by its name alone (`docs`), and named `docs.<workspace>.localhost` where the workspace has names.
+
+```toml
+# ws.toml
+[run.docs]
+command = "uv run tsp-serve.py --port {port} --spec BFF={bff}/spec/main.tsp --spec API={api}/packages/api-http"
+ready = "/"
+
+[run.docs.needs.bff]
+repo = "bff"            # bff's folder: its ground until it's pointed elsewhere
+
+[run.docs.needs.api]
+repo = "api"
+```
+
+A workspace recipe is asked for from nowhere in particular, so its needs aren't the nearest to where it was asked: each is **pointed** at one of its repo's worktrees, and is met by the repo's ground until it is. `ws run point docs` says what each need is pointed at and could be (the ground, the silo, and every capsule of the repo, or for a run, those with its recipe); `ws run point docs bff=my-capsule` points one (`ground`, `silo`, or `nearest` to go back). A pointer is kept, and outlasts the run. Pointing a need of a recipe that's running starts it again on what it's pointed at now, for whoever it was for and with the time it had left. A need pointed at a capsule that's gone since is met by the nearest, which `ws run` says. Pointing is yours: crew and agents are refused, as it changes what's shown to whoever has it open. A need that's another of the workspace's recipes (`run = "mailpit"`) can't be pointed: there's only the one.
 
 In the web UI, a capsule on a mission's Work tab lists its runs (each with its link, what it needs, when it ends, and Stop) and a **Run** button for each recipe that isn't running. A run started there lasts while someone has the mission open, and 15 minutes after, or 4 hours at most; what it needs is started with it.
 
@@ -1421,7 +1439,7 @@ The web UI's **Runs** page (`/runs`, in the workspace's menu until you arrange i
 | `--for` | Ends when | Default for |
 |---|---|---|
 | `pid` | the process that started it exits: your terminal's shell, or the agent whose command it is (the nearest above `ws` that's been running a minute or more; `--owner <pid>` names another) | everyone else |
-| `capsule` | the capsule it runs in is burned or landed | |
+| `capsule` | the capsule it runs in is burned or landed (not for the workspace's own runs) | |
 | `mission` | the mission (`$WS_MISSION`, or the capsule's) ends | |
 | `step` | the step of the plan crew are on passes or is skipped | crew |
 | `crew` | crew's session closes | crew on no step |
@@ -1451,6 +1469,7 @@ A run whose command exits by itself is kept for an hour, with its status and out
 | `<run>.<capsule>.<repo>.<workspace>.localhost` | a run in a capsule |
 | `<run>.ground.<repo>.<workspace>.localhost` | a run in a repo's `.ground` |
 | `<run>.silo.<repo>.<workspace>.localhost` | a run in a repo's silo |
+| `<run>.<workspace>.localhost` | one of the workspace's own runs |
 | `<run>.<capsule>.<repo>.<workspace>.localhost/api/…` | what the run needs, mounted at `/api` |
 
 `<workspace>` is `[router] name`, or the workspace's folder's name. Every name has its own cookies and storage, so two capsules' logins don't overwrite each other as two ports' do. Links ws prints and shows use names while they're served; `ws run` prints the `127.0.0.1` address too.
@@ -1461,7 +1480,7 @@ A need with a `mount` answers below the run's own name, at that path and everyth
 
 A recipe with `where = "silo"` runs in the repo's silo, whichever capsule it's pointed at, as `<run>.silo.<repo>.<workspace>.localhost`. Asking for it by a capsule's name (`stack.my-capsule.api.shop.localhost`) goes straight through when the silo is on that capsule. When it's on another, a page offers to point the silo there, which you confirm in the web UI; a request alone never moves it.
 
-**Where it's kept.** Each run is a folder, `.ws/runs/<repo>/<worktree>/<name>/`, holding `run.json` (its command, port, process, who it's for, what it needs and its time) and `out.log`. Nothing about a run is kept anywhere else.
+**Where it's kept.** Each run is a folder, `.ws/runs/<repo>/<worktree>/<name>/` (the workspace's own, `.ws/runs/@workspace/@/<name>/`), holding `run.json` (its command, port, process, who it's for, what it needs and its time) and `out.log`. Nothing about a run is kept anywhere else, but what the workspace's recipes' needs are pointed at, in `.ws/runs/@workspace/points.json`.
 
 ## Silos
 

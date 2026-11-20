@@ -36,6 +36,11 @@ func staleAlone(r Run, procs Procs, owners Owners, now time.Time) string {
 	if _, err := os.Stat(r.Dir); errors.Is(err, os.ErrNotExist) {
 		return placeGone
 	}
+	for _, n := range r.Needs {
+		if _, err := os.Stat(n.Dir); n.IsFolder() && errors.Is(err, os.ErrNotExist) {
+			return fmt.Sprintf("%s, the folder it was started on for %s, has gone", Label(n.Worktree), n.Name)
+		}
+	}
 	var gone []string
 	for _, o := range r.Owners() {
 		why := ownerGone(r, o, procs, owners, now)

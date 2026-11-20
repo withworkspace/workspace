@@ -23,8 +23,12 @@ var RunUpWait = 15 * time.Second
 
 func (w *Workspace) runStore() runs.Store { return runs.Store{Root: w.Root()} }
 
-// recipes is the [run.*] of a repo's worktree, by name.
+// recipes is the [run.*] of a repo's worktree, by name; with no repo,
+// the workspace's own, in ws.toml.
 func (w *Workspace) recipes(repo, worktree string) map[string]config.RunRecipe {
+	if repo == "" {
+		return w.Config().Run
+	}
 	cfg, err := config.ParseRepoConfig(filepath.Join(w.WS().RepoDir(repo), worktree, config.RepoFileName))
 	if err != nil || cfg == nil {
 		return nil
