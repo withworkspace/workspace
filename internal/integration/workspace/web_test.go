@@ -82,7 +82,7 @@ func TestWebMissionAndArtifact(t *testing.T) {
 	store.AddArtifact("cache", mission.Artifact{Ref: "https://example.com/design", Kind: "link"})
 	store.Ask("cache", "Ship it?", "orchestrator", "Yes", "No")
 
-	d, err := testutil.WebMission(w.Root)("cache", false)
+	d, err := testutil.WebMission(w.Root)("cache")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestWebMissionAndArtifact(t *testing.T) {
 			t.Fatalf("git %v: %v\n%s", args, err, out)
 		}
 	}
-	if d, _ := testutil.WebMission(w.Root)("cache", false); len(d.Capsules) != 1 || d.Capsules[0].Ahead != 1 {
+	if d, _ := testutil.WebMission(w.Root)("cache"); len(d.Capsules) != 1 || d.Capsules[0].Ahead != 1 {
 		t.Errorf("a capsule never pushed, one commit on: %+v", d.Capsules)
 	}
 	arts := map[string]web.Artifact{}
@@ -133,7 +133,7 @@ func TestWebMissionAndArtifact(t *testing.T) {
 	if all := strings.Join(words, " | "); !strings.Contains(all, "capsule backend/cache-lookup added") {
 		t.Errorf("events = %s", all)
 	}
-	if _, err := testutil.WebMission(w.Root)("nope", false); !errors.Is(err, web.ErrNotFound) {
+	if _, err := testutil.WebMission(w.Root)("nope"); !errors.Is(err, web.ErrNotFound) {
 		t.Errorf("no mission: %v", err)
 	}
 

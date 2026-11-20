@@ -225,7 +225,7 @@ func TestWaitIsntSaidTwice(t *testing.T) {
 	if err := w.SayWaiting("cache", "the platform team's deploy", AsYou); err != nil {
 		t.Fatal(err)
 	}
-	v, err := w.Mission("cache", false)
+	v, err := w.Mission("cache")
 	if err != nil {
 		t.Fatal(err)
 	}

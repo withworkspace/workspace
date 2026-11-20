@@ -13,7 +13,7 @@ import (
 
 // mission is the mission's page: everything about it.
 func (s *Server) mission(w http.ResponseWriter, r *http.Request) {
-	d, err := s.missionDetail(r.PathValue("slug"), r.URL.Query().Get("github") == "1")
+	d, err := s.missionDetail(r.PathValue("slug"))
 	switch {
 	case errors.Is(err, ErrNotFound):
 		jsonError(w, http.StatusNotFound, "no mission "+r.PathValue("slug"))

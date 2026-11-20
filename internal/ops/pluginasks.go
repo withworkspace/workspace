@@ -102,7 +102,7 @@ func (w *Workspace) pluginMission(slug string) (protocol.MissionDetail, error) {
 	if slug == "" {
 		return protocol.MissionDetail{}, plugin.InvalidParams(errors.New("which mission: slug is empty"))
 	}
-	d, err := w.Mission(slug, true)
+	d, err := w.Mission(slug)
 	if errors.Is(err, ErrNotFound) {
 		return protocol.MissionDetail{}, plugin.NotFound("there's no mission " + slug)
 	}

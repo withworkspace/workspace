@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/artifact"
+	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/store"
 )
 
@@ -80,7 +81,9 @@ func (w *Workspace) Stamp() string {
 			note(repo, info) // a capsule's folder made, or burned
 		}
 	}
-	fmt.Fprintf(h, "prs %d\n", w.opts.PRs.Fetched())
+	// GitHub's answer for a repo, different from what was kept (asked
+	// behind a read, or by the watcher).
+	fmt.Fprintf(h, "prs %d\n", w.opts.PRs.Changes())
 	// A capsule found dirty, or clean, since a view last said: nothing git
 	// keeps moves when a file's edited (keptGit).
 	fmt.Fprint(h, w.git.dirtyMoved())
@@ -122,6 +125,11 @@ func (w *Workspace) MissionStamp(slug string) string {
 		return nil
 	})
 	if m, err := w.Missions.Load(slug); err == nil {
+		// What GitHub says of its repos' pull requests, when it's said
+		// something different (asked behind the page's read: PRCache).
+		for _, repo := range MissionRepos([]*mission.Mission{m}) {
+			fmt.Fprintf(h, "prs %s %d\n", repo, w.opts.PRs.Changes(repo))
+		}
 		for _, c := range m.Capsules {
 			trees := filepath.Join(w.WS().BareDir(c.Repo), "worktrees", c.Name)
 			for _, f := range []string{"HEAD", "index", filepath.Join("logs", "HEAD")} {

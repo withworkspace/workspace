@@ -47,9 +47,28 @@ func WebWorkspace(root string) func() (web.Workspace, error) {
 	}
 }
 
-func WebMission(root string) func(string, bool) (*web.MissionDetail, error) {
-	return func(slug string, gh bool) (*web.MissionDetail, error) {
-		return web.MissionOf(daemonOps(root, ops.NewPRCache()), root, slug, gh)
+// WebMission is a mission as its page first reads it, in a daemon just
+// started: GitHub not yet answered for its pull requests.
+func WebMission(root string) func(string) (*web.MissionDetail, error) {
+	return func(slug string) (*web.MissionDetail, error) {
+		return web.MissionOf(daemonOps(root, ops.NewPRCache()), root, slug)
+	}
+}
+
+// WebMissionAnswered is a mission as its page reads it again once GitHub,
+// asked behind its first read, has answered for its pull requests.
+func WebMissionAnswered(root string) func(string) (*web.MissionDetail, error) {
+	return func(slug string) (*web.MissionDetail, error) {
+		w := daemonOps(root, ops.NewPRCache())
+		for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(5 * time.Millisecond) {
+			d, err := web.MissionOf(w, root, slug)
+			if err != nil || d.GitHub {
+				return d, err
+			}
+			if time.Now().After(deadline) {
+				return d, errors.New("GitHub's answer never reached the mission's page")
+			}
+		}
 	}
 }
 

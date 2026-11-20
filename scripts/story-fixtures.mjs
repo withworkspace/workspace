@@ -17,7 +17,7 @@
 //
 //   workspace.json        GET /api/workspace
 //   repos.json            GET /api/repos
-//   missions/<slug>.json  GET /api/missions/<slug>?github=1
+//   missions/<slug>.json  GET /api/missions/<slug>
 //
 // and fixtures/court.json: the cards of every case in the court's table of
 // tests, which has each kind of card, most of which no seed reaches.
@@ -138,7 +138,7 @@ async function capture(t) {
     return text.replace(/("version": )"[^"]*"/g, '$1"stories"');
   };
   const write = (file, data) => writeFileSync(join(to, file), plain(data) + "\n");
-  const mission = async (slug, name = slug) => write(`missions/${name}.json`, await get(`/api/missions/${encodeURIComponent(slug)}?github=1`));
+  const mission = async (slug, name = slug) => write(`missions/${name}.json`, await get(`/api/missions/${encodeURIComponent(slug)}`));
   let n = 0;
   for (const m of (await get("/api/workspace")).missions) {
     await mission(m.slug);
