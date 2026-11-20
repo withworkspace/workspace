@@ -2228,7 +2228,7 @@ export type MissionEnding = "answered" | "dropped" | "handed-on" | "landed";
 /**
  * Kind is the situation a headline describes.
  */
-export type MissionKind = "accept" | "answering" | "approve" | "archived" | "awaiting-review" | "brief-talk" | "briefing" | "changes-requested" | "checking" | "checks-failing" | "checks-running" | "crew-asks" | "deciding" | "ended" | "flag" | "land" | "landed" | "launching" | "merge" | "moving-on" | "own-work" | "parked" | "permission" | "proposed" | "queued" | "re-review" | "ready" | "replied" | "replies" | "resume" | "stalled" | "step-review" | "to-brief" | "to-do" | "waiting-on" | "working" | "wrap-up";
+export type MissionKind = "accept" | "answering" | "approve" | "archived" | "awaiting-review" | "brief-talk" | "briefing" | "changes-requested" | "checking" | "checks-failing" | "checks-running" | "crew-asks" | "deciding" | "ended" | "flag" | "land" | "landed" | "launching" | "merge" | "moving-on" | "own-work" | "parked" | "permission" | "proposed" | "queued" | "re-review" | "ready" | "replied" | "replies" | "resume" | "stalled" | "step-review" | "to-brief" | "to-do" | "waiting-on" | "working" | "wrap-up" | "writing-pr";
 
 // From mission/mission.go
 /**
@@ -2425,6 +2425,25 @@ export interface PRQuestion {
     line: number;
     endLine: number;
     commit: string;
+}
+
+// From web/runs.go
+/**
+ * PRWrite is POST /api/missions/{slug}/pr-write: a capsule whose pull
+ * request the PR writer writes, for you to read and change before you
+ * open it. It answers once it's written (PRWritten), which takes a while.
+ */
+export interface PRWrite {
+    capsule: string; // repo/name
+}
+
+// From web/runs.go
+/**
+ * PRWritten is what the PR writer wrote.
+ */
+export interface PRWritten {
+    title: string;
+    body: string;
 }
 
 // From web/pages.go

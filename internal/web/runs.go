@@ -198,3 +198,33 @@ func (s *Server) runLog(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, RunLog{Ref: ref, Log: log})
 }
+
+// PRWrite is POST /api/missions/{slug}/pr-write: a capsule whose pull
+// request the PR writer writes, for you to read and change before you
+// open it. It answers once it's written (PRWritten), which takes a while.
+type PRWrite struct {
+	Capsule string `json:"capsule"` // repo/name
+}
+
+// PRWritten is what the PR writer wrote.
+type PRWritten struct {
+	Title string `json:"title"`
+	Body  string `json:"body"`
+}
+
+func (s *Server) writePR(w http.ResponseWriter, r *http.Request) {
+	var b PRWrite
+	if !readBody(w, r, &b) {
+		return
+	}
+	if b.Capsule == "" {
+		jsonError(w, http.StatusBadRequest, "name the capsule, as repo/name")
+		return
+	}
+	o, err := s.App.WritePR(r.PathValue("slug"), b.Capsule, ops.AsYou)
+	if err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, PRWritten{Title: o.Title, Body: o.Body})
+}

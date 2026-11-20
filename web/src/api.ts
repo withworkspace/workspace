@@ -46,6 +46,7 @@ import type {
   ProcessInfo,
   Repo,
   ReviewGuide,
+  PRWritten,
   RunDetail,
   RunsInfo,
   SettingChange,
@@ -635,6 +636,12 @@ export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(
 // mission open (and 15 minutes after).
 export const runRecipe = (slug: string, repo: string, capsule: string, recipe: string) =>
   send<RunDetail>("POST", `/api/missions/${encodeURIComponent(slug)}/runs`, { repo, capsule, recipe });
+
+// writePR has the PR writer write a capsule's pull request, for you to
+// read and change before you open it. It answers once it's written: a
+// minute or more.
+export const writePR = (slug: string, capsule: string) =>
+  send<PRWritten>("POST", `/api/missions/${encodeURIComponent(slug)}/pr-write`, { capsule });
 
 // pointSilo points a repo's silo at a capsule (ws silo point), and says
 // what it did.

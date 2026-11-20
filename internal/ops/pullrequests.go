@@ -21,12 +21,16 @@ import (
 // step until one's open.
 
 // NewPullRequest is a pull request to open from a capsule: what it says,
-// and whether it's a draft. Quiet stops git asking for a password where
-// there's no terminal (the web UI).
+// and whether it's a draft. With no title, the PR writer writes it (and
+// its description, where there's none). Quiet stops git asking for a
+// password where there's no terminal (the web UI).
 type NewPullRequest struct {
 	Title, Body string
 	Draft       bool
 	Quiet       bool
+	// inJob is the PR writer's job opening what it marked writing: it's
+	// written there and then, not handed to the daemon again.
+	inJob bool
 }
 
 // PROpened is a pull request opened from a capsule of a mission.
@@ -36,12 +40,18 @@ type PROpened struct {
 	Repo    string
 	PR      *github.PR
 	Step    int // the step of the plan it was opened at, if any
+	// Writing is a pull request the PR writer is writing, which ws opens
+	// once it's written: PR is nil.
+	Writing bool
 }
 
 func (p PROpened) String() string {
 	at := ""
 	if p.Step > 0 {
 		at = fmt.Sprintf(", at step %d", p.Step)
+	}
+	if p.Writing {
+		return fmt.Sprintf("The PR writer is writing %s's pull request%s: ws opens it once it's written", p.Capsule, at)
 	}
 	return fmt.Sprintf("Opened %s#%d from %s%s: %s", p.Repo, p.PR.Number, p.Capsule, at, p.PR.URL)
 }
@@ -91,8 +101,8 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 		}
 	}
 	o.Title = strings.TrimSpace(o.Title)
-	if o.Title == "" {
-		return PROpened{}, invalid("say what the pull request is, as its title (--title)")
+	if _, ok := m.WritingPR(out.Capsule); ok && !o.inJob {
+		return PROpened{}, refused("pr-writing", "the PR writer is writing %s's pull request already: ws opens it once it's written", out.Capsule)
 	}
 	dir := filepath.Join(ws.RepoDir(c.Repo), c.Name)
 	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
@@ -124,6 +134,22 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 	}
 	if err := w.holdReview(GuaranteeReviewBeforePR, m.Slug, c.Repo, c.Name, "opening a pull request", reviewThen(by, "open it")); err != nil {
 		return PROpened{}, err
+	}
+	if o.Title == "" {
+		// It can be opened: the PR writer writes it first. That takes a
+		// while, so it's the daemon's, where there's one to hand it to.
+		if w.opts.WritePR != nil && !o.inJob {
+			_, started, err := w.Missions.StartWritingPR(m.Slug, mission.WritingPR{Capsule: out.Capsule, Step: out.Step, Draft: o.Draft, By: by.By()})
+			if err != nil {
+				return PROpened{}, err
+			}
+			if started {
+				w.opts.WritePR(m.Slug, out.Capsule)
+			}
+			out.Writing = true
+			return out, nil
+		}
+		o = w.writtenPR(m, c, out.Step, o)
 	}
 	branch, said, err := ws.PushBranch(c.Repo, c.Name, o.Quiet)
 	if err != nil {
@@ -230,6 +256,11 @@ func (w *Workspace) stepPRs(m *mission.Mission, cur mission.StageState) error {
 	}
 	if len(mine) == 0 || w.GitHub() == nil {
 		return nil // nowhere it could open one (a direct repo's work lands), or no GitHub to ask
+	}
+	for _, c := range mine {
+		if p, ok := m.WritingPR(c.Repo + "/" + c.Name); ok {
+			return refused("pr-writing", "the PR writer is writing %s's pull request, for step %d: ws opens it once it's written. Nothing to do but wait for it", p.Capsule, cur.N)
+		}
 	}
 	v := BuildMissionViews(ws, w.GitHub(), []*mission.Mission{{Slug: m.Slug, Capsules: mine}})[0]
 	if cur.Step.Type == mission.StepOpenPR {

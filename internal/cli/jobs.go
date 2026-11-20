@@ -59,6 +59,21 @@ func spawnChecks(root, slug, crewID string) {
 // checkSpawner starts a step's checks; tests replace it.
 var checkSpawner = spawnChecks
 
+// spawnPRWriter has the server write and open the pull request the PR
+// writer's marked writing for a mission's capsule. Where it can't be
+// asked, the mark comes off: nothing would ever open it.
+func spawnPRWriter(root, slug, capsule string) {
+	if err := startJob(root, job.Job{Kind: job.PR, Mission: slug, ID: capsule}); err != nil {
+		execlog.Note(root, "pr-writer "+slug, "couldn't start for %s: %v", capsule, err)
+		store := mission.Store{Root: root}
+		store.EndWritingPR(slug, capsule)
+		store.AppendLog(slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Text: fmt.Sprintf("couldn't have %s's pull request written (%v): open it again", capsule, err)})
+	}
+}
+
+// prWriterSpawner starts the PR writer; tests replace it.
+var prWriterSpawner = spawnPRWriter
+
 // spawnAnswer has the server answer a conversation (kind job.Answer) or a
 // thread (job.Thread), or draft what a resolved thread decided (job.Draft).
 func spawnAnswer(kind string) func(root, slug, id string) {
@@ -118,6 +133,11 @@ func runJob(root string) func(job.Job) error {
 				execlog.Note(root, "checks "+j.Mission, "%s", said)
 			}
 			return err
+		case job.PR:
+			if said := ctx.OpenWrittenPR(j.Mission, j.ID); said != "" {
+				execlog.Note(root, "pr-writer "+j.Mission, "%s", said)
+			}
+			return nil
 		}
 		return fmt.Errorf("no such job as %q", j.Kind)
 	}
@@ -151,6 +171,10 @@ func reconcileJobs(root string, q *job.Queue, logf func(string, ...any)) {
 		if st, crewID, ok := m.UncheckedDone(brief); ok {
 			logf("%s's done at step %d of %s wasn't checked: checking it", crewID, st.N, m.Slug)
 			q.Start(job.Job{Kind: job.Check, Mission: m.Slug, ID: crewID})
+		}
+		for _, p := range m.WritingPRs {
+			logf("the PR writer was writing %s's pull request on %s when the server before this one went: writing it again", p.Capsule, m.Slug)
+			q.Start(job.Job{Kind: job.PR, Mission: m.Slug, ID: p.Capsule})
 		}
 		if m.Planning != nil {
 			logf("the planner's turn in %s of %s was underway when the server before this one went: it's over", m.Planning.In, m.Slug)

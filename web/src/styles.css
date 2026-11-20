@@ -16366,6 +16366,23 @@ body.nav-pointing .lines code[data-rev] {
   margin-bottom: 8px;
 }
 
+.open-pr-title {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.open-pr-title input {
+  flex: 1;
+  min-width: 0;
+}
+
+.open-pr-title button {
+  flex: none;
+  min-width: 82px;
+  justify-content: center;
+}
+
 .open-pr-form textarea {
   width: 100%;
   resize: vertical;
