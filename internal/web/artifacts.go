@@ -145,7 +145,7 @@ func ArtifactsOf(st artifact.Store, cfg artifact.Config) []ArtifactInfo {
 }
 
 func artifactInfo(e artifact.Entry, cfg artifact.Config, now time.Time) ArtifactInfo {
-	info := ArtifactInfo{ID: e.ID, Title: e.Title, Status: string(e.Status), Gone: e.Gone || e.Away(), Folder: e.Folder,
+	info := ArtifactInfo{ID: e.ID, Title: e.Title, Status: e.Status, Gone: e.Gone || e.Away(), Folder: e.Folder,
 		Where: e.Where(), Made: e.Made, Versions: len(e.Versions), Promoted: e.Promoted, Discarded: e.Discarded,
 		Erased: e.Erased, Restorable: e.Restorable(), Here: e.Here && e.Home == nil}
 	if h := e.Home; h != nil && e.Lives() != "" {

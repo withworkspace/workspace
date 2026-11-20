@@ -70,7 +70,7 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 		out.Spaces = append(out.Spaces, SpaceRef{Repo: s.Repo, Folder: s.Folder, Label: s.Label, Color: s.Color})
 	}
 	for _, it := range v.Missions {
-		m := Mission{Slug: it.M.Slug, Title: it.M.Title, State: string(it.State), Created: it.M.Created, Capsules: []Capsule{}, Crew: []Crew{},
+		m := Mission{Slug: it.M.Slug, Title: it.M.Title, State: it.State, Created: it.M.Created, Capsules: []Capsule{}, Crew: []Crew{},
 			Updated: it.Updated, ReReview: it.ReReview, Headline: headline(it.Headline), At: it.At, About: it.M.About}
 		if t := it.M.Asking(); t != nil {
 			m.Flag = t.Text
@@ -117,7 +117,7 @@ func docKinds(kinds []ops.Kind) []DocKind {
 func crewOf(c mission.Crew) Crew {
 	w := Crew{ID: c.ID, Harness: c.Harness, Model: c.Model, Role: c.Role, Capsule: c.Capsule, Started: c.Started,
 		Ended: c.Ended != nil, Starting: c.Ended == nil && c.Starting != nil,
-		Activity: c.Activity, Status: c.Status, LastReply: c.LastReply, Notice: c.Notice, Options: c.Options,
+		Activity: CrewActivity(c.Activity), Status: c.Status, LastReply: c.LastReply, Notice: c.Notice, Options: c.Options,
 		Structured: harness.CapsOf(c.Harness).Crew == harness.CrewACP}
 	if work, ok := c.OwnWork(time.Now()); ok {
 		w.WaitingOn = mission.WorkWhat(work)
@@ -137,8 +137,8 @@ func workingAgain(c mission.Crew) bool {
 // headline is a headline as the API serves it.
 func headline(h mission.Headline) Headline {
 	w := Headline{
-		Court: string(h.Court), Kind: string(h.Kind), Label: h.Label, Text: h.Text, By: h.By,
-		Group:  strings.ToLower(strings.ReplaceAll(mission.GroupNames[h.Group()], " ", "-")),
+		Court: h.Court, Kind: string(h.Kind), Label: h.Label, Text: h.Text, By: h.By,
+		Group:  HeadlineGroup(strings.ToLower(strings.ReplaceAll(mission.GroupNames[h.Group()], " ", "-"))),
 		Action: Action{Verb: string(h.Action.Verb), Label: h.Action.Label, Target: h.Action.Target, URL: h.Action.URL, Options: h.Action.Options},
 	}
 	for _, l := range h.Action.Look {
@@ -156,7 +156,7 @@ func headline(h mission.Headline) Headline {
 
 // conclusionOf is how a mission ends, as the API serves it.
 func conclusionOf(c mission.Conclusion) *Conclusion {
-	out := &Conclusion{Ending: string(c.Ending), Text: c.Text, To: c.To, By: c.By}
+	out := &Conclusion{Ending: c.Ending, Text: c.Text, To: c.To, By: c.By}
 	if !c.At.IsZero() {
 		out.At = c.At.UTC().Format(time.RFC3339)
 	}
@@ -180,7 +180,7 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 	}
 	m, now := v.M, time.Now()
 	d := &MissionDetail{
-		Slug: m.Slug, Title: m.Title, State: string(v.State), Created: m.Created, Request: m.Request, From: m.From, About: m.About,
+		Slug: m.Slug, Title: m.Title, State: v.State, Created: m.Created, Request: m.Request, From: m.From, About: m.About,
 		Brief: v.Brief, Plan: v.Plan, Conversation: m.Conversation, ConversationTitle: v.ConversationTitle, GitHub: withGitHub,
 		Stages: []Stage{}, Capsules: []CapsuleDetail{}, Crew: []CrewDetail{}, Artifacts: []Artifact{}, Events: []Event{},
 		Runs: []OrchestratorRun{}, Decisions: []Decision{}, Bundles: []Bundle{},
@@ -193,7 +193,7 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 	}
 	for _, dc := range v.Decisions {
 		d.Decisions = append(d.Decisions, Decision{ID: dc.ID, What: dc.What, Why: dc.Why, By: dc.By, From: dc.From, About: dc.About,
-			At: dc.At, State: dc.State, SupersededBy: dc.SupersededBy, WithdrawnWhy: dc.WithdrawnWhy})
+			At: dc.At, State: DecisionState(dc.State), SupersededBy: dc.SupersededBy, WithdrawnWhy: dc.WithdrawnWhy})
 	}
 	talks := conversation.For(root, slug)
 	d.Talks = TalksIn(talks)
@@ -205,7 +205,7 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 		d.Flag = &Proposal{Text: t.Text, By: t.By, Options: t.Options}
 	}
 	for _, t := range m.Tasks {
-		d.Tasks = append(d.Tasks, Task{N: t.N, Verb: t.Verb, Text: t.Text, Step: t.Step, Options: t.Options, By: t.By, At: t.At})
+		d.Tasks = append(d.Tasks, Task{N: t.N, Verb: TaskVerb(t.Verb), Text: t.Text, Step: t.Step, Options: t.Options, By: t.By, At: t.At})
 	}
 	if dp := m.Dispatch; dp != nil {
 		d.Dispatch = &Proposal{Text: dp.Text, By: dp.By, Capsule: dp.Capsule}
@@ -217,7 +217,7 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 		d.Ending = conclusionOf(*e)
 	}
 	for _, e := range m.EndedCapsules {
-		d.EndedCapsules = append(d.EndedCapsules, EndedCapsule{Repo: e.Repo, Name: e.Name, Ending: string(e.Ending), To: e.To, Why: e.Why, By: e.By, At: e.At.UTC().Format(time.RFC3339)})
+		d.EndedCapsules = append(d.EndedCapsules, EndedCapsule{Repo: e.Repo, Name: e.Name, Ending: CapsuleEnding(e.Ending), To: e.To, Why: e.Why, By: e.By, At: e.At.UTC().Format(time.RFC3339)})
 	}
 	d.At, d.Z = v.At, v.Z
 	for _, rr := range v.ReReviews {
@@ -233,7 +233,7 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 	for _, st := range v.Stages {
 		sg := Stage{N: st.N, Title: st.Short(), Text: st.Plain(), State: "todo", CheckIn: st.CheckIn}
 		if s := st.Step; s != nil {
-			sg.Type, sg.Who, sg.WhoSays, sg.Makes, sg.OpensPR = s.Type, s.Who, s.WhoSays(), s.Makes, s.MakesPR()
+			sg.Type, sg.Who, sg.WhoSays, sg.Makes, sg.OpensPR = StepType(s.Type), StepWho(s.Who), s.WhoSays(), s.Makes, s.MakesPR()
 			sg.In = s.Capsule
 		}
 		if st.Record != nil {
@@ -256,12 +256,12 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 			if s.Type == mission.StepWait {
 				// Its checks aren't run in rounds: ws looks, every so often,
 				// and its last look is what they came to.
-				sg.On, sg.Passes = s.Whom, "said"
+				sg.On, sg.Passes = s.Whom, PassesSaid
 				switch {
 				case s.Watched():
-					sg.Passes = "watched"
+					sg.Passes = PassesWatched
 				case s.WaitOnYou():
-					sg.Passes = "done"
+					sg.Passes = PassesDone
 				}
 				if s.WaitOnYou() {
 					sg.On = "you"
@@ -275,7 +275,7 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 				sc := StageCheck{Text: c.Text, Run: c.Run()}
 				if i < len(round.Results) && round.Results[i].Check == c.Text {
 					r := round.Results[i]
-					sc.Result, sc.Evidence, sc.By = r.Result, r.Evidence, r.By
+					sc.Result, sc.Evidence, sc.By = CheckVerdict(r.Result), r.Evidence, r.By
 				}
 				sg.Checks = append(sg.Checks, sc)
 			}
@@ -411,7 +411,7 @@ func isFile(p string) bool {
 // and its latest runs across missions.
 func OrchestratorOf(a Missions) OrchestratorInfo {
 	v := a.Orchestrator()
-	info := OrchestratorInfo{Enabled: v.Enabled, Dispatch: v.Dispatch, MaxDispatches: v.MaxDispatches, Harness: v.Harness, Model: v.Model, Problem: v.Problem, Runs: []OrchestratorRun{}}
+	info := OrchestratorInfo{Enabled: v.Enabled, Dispatch: Dispatch(v.Dispatch), MaxDispatches: v.MaxDispatches, Harness: v.Harness, Model: v.Model, Problem: v.Problem, Runs: []OrchestratorRun{}}
 	for _, r := range v.Runs {
 		info.Runs = append(info.Runs, orchestratorRun(r))
 	}
@@ -439,7 +439,7 @@ func bundleOf(slug string, b ops.BundleView, head string) Bundle {
 	out := Bundle{ID: b.ID, Step: b.StepN, StepName: b.StepName, Crew: b.Crew, By: b.By, Own: b.Own,
 		Capsule: b.Capsule, Commit: b.Commit, At: b.At, Replaces: b.Replaces, ReplacedBy: b.ReplacedBy,
 		Summary: b.Summary, NotVerified: b.NotVerified, Noticed: b.Noticed, Checks: []BundleCheck{},
-		Verdict: b.Verdict, VerdictAt: b.VerdictAt, Looked: b.Looked, Asked: b.Asked, AskedAt: b.AskedAt}
+		Verdict: BundleVerdict(b.Verdict), VerdictAt: b.VerdictAt, Looked: b.Looked, Asked: b.Asked, AskedAt: b.AskedAt}
 	for _, n := range b.Notes {
 		out.Notes = append(out.Notes, BundleNote{Check: n.Check, Text: n.Text})
 	}
@@ -485,19 +485,19 @@ func bundleOf(slug string, b ops.BundleView, head string) Bundle {
 				continue // its verifier's own word, which the bundle has already
 			}
 			if command {
-				out.Ran = append(out.Ran, BundleRan{N: n, Check: r.Check, Result: r.Result, Evidence: r.Evidence, By: r.By})
+				out.Ran = append(out.Ran, BundleRan{N: n, Check: r.Check, Result: CheckVerdict(r.Result), Evidence: r.Evidence, By: r.By})
 				continue
 			}
 			judged[r.Check] = r
 		}
 	}
 	for _, c := range b.Checks {
-		bc := BundleCheck{N: c.N, Check: c.Check, Verdict: c.Verdict, Said: c.Said, Points: c.Points, Lines: c.Lines, Try: tries(c.Try), Asks: c.Asks}
+		bc := BundleCheck{N: c.N, Check: c.Check, Verdict: CheckVerdict(c.Verdict), Said: c.Said, Points: c.Points, Lines: c.Lines, Try: tries(c.Try), Asks: c.Asks}
 		for _, e := range c.Shows {
 			bc.Shows = append(bc.Shows, evidence(e))
 		}
 		if r, ok := judged[c.Check]; ok && c.Check != "" {
-			bc.Judged = &BundleRan{N: c.N, Check: r.Check, Result: r.Result, Evidence: r.Evidence, By: r.By}
+			bc.Judged = &BundleRan{N: c.N, Check: r.Check, Result: CheckVerdict(r.Result), Evidence: r.Evidence, By: r.By}
 		}
 		out.Checks = append(out.Checks, bc)
 	}

@@ -20,8 +20,8 @@ type OrchestratorInfo struct {
 	// Dispatch is "auto" (dispatched crew start at once) or "ask" (they're
 	// queued for you), and MaxDispatches how many crew it may start in a
 	// row without you.
-	Dispatch      string `json:"dispatch"`
-	MaxDispatches int    `json:"maxDispatches"`
+	Dispatch      Dispatch `json:"dispatch"`
+	MaxDispatches int      `json:"maxDispatches"`
 	// Runs are the latest runs across missions, newest first.
 	Runs []OrchestratorRun `json:"runs"`
 }

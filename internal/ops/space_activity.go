@@ -41,8 +41,18 @@ type SpaceCommit struct {
 // its title (as it is where it changed), and how (added, changed,
 // removed).
 type SpaceDocChange struct {
-	Path, Title, How string
+	Path, Title string
+	How         DocChange
 }
+
+// DocChange is what a commit or a capsule did to a document.
+type DocChange string
+
+const (
+	DocAdded   DocChange = "added"
+	DocChanged DocChange = "changed"
+	DocRemoved DocChange = "removed"
+)
 
 // SpaceFlight is a capsule of a space's repo with changes to its
 // documents: its name and branch, the mission it's in (if it is), the
@@ -150,14 +160,14 @@ func spaceLately(ctx context.Context, ground string, s workspace.Space, titles m
 	return commits, nil
 }
 
-func how(status string) string {
+func how(status string) DocChange {
 	switch {
 	case strings.HasPrefix(status, "A"), status == "??":
-		return "added"
+		return DocAdded
 	case strings.HasPrefix(status, "D"):
-		return "removed"
+		return DocRemoved
 	}
-	return "changed"
+	return DocChanged
 }
 
 // spaceInFlight is the capsules of the space's repo that change its
@@ -178,7 +188,7 @@ func (w *Workspace) spaceInFlight(ctx context.Context, s workspace.Space, titles
 		if err != nil {
 			continue
 		}
-		changed := map[string]string{}
+		changed := map[string]DocChange{}
 		if d, err := (git.Cmd{Ctx: ctx, Dir: dir, Args: []string{"diff", "--no-renames", "--name-status", base, "--"}, ReadOnly: true}).Output(); err == nil {
 			for _, line := range strings.Split(string(d), "\n") {
 				if status, p, ok := strings.Cut(line, "\t"); ok && s.Has(p) {

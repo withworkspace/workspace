@@ -20,6 +20,7 @@ const (
 	CourtAgent   Court = "agent"   // crew, a briefing agent or the orchestrator is on it
 	CourtYou     Court = "you"     // it waits on you
 	CourtOutside Court = "outside" // it waits on GitHub: reviewers, checks, a merge
+	CourtNone    Court = ""        // it waits on no one: it's ended or archived
 )
 
 // Kind is the situation a headline describes.

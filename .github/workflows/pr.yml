@@ -28,6 +28,9 @@ jobs:
             exit 1
           fi
 
+      - name: The web UI's types of the API are current
+        run: go run ./scripts/wiretypes -check
+
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: web/package.json
