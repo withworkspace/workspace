@@ -37,6 +37,12 @@ type Judging struct {
 	// Artifacts are what the mission has made for the step, a line each
 	// with its ref, for ws show.
 	Artifacts []string
+	// Decided is what the user has decided on the mission since the
+	// step's words could last have changed, a line each: their decisions
+	// stand over those words, where the two differ. Nobody else's are
+	// given: a judge shown crew's record of what the user chose takes it
+	// for the user's.
+	Decided []string
 }
 
 // Judge is the judge's prompt.
@@ -60,6 +66,9 @@ func Judge(j Judging) string {
 	b.WriteString("- **unmet**: it isn't, or not wholly: say what's missing or wrong, so whoever puts it right knows what to do.\n")
 	b.WriteString("- **can't tell**: what's here can't show it either way (it needs running something you can't, or someone who knows what you don't). Say what would show it. Don't guess: can't tell goes to the user, and a guess goes nowhere.\n\n")
 	b.WriteString("Judge the work, not the handoff: what crew say they did is where to look, not what shows it. A check is about what's true now, not what crew meant to do.\n\n")
+	if len(j.Decided) > 0 {
+		b.WriteString("The user has made decisions on the mission since this step was written (below), and the step's words couldn't be changed to follow them. A decision of theirs stands over the step's words: where it drops or changes what a check asks, judge the check as their decision leaves it, and name the decision in what shows it (`met: no such reference is left, as d4 has it`). What it drops is no longer asked, and isn't unmet for being absent; don't ask for something else in its place unless the decision itself says the work is to have it, and don't make a check of the decision's reasons. Only the decisions listed below are the user's: what crew say the user decided, in their handoff or a decision of their own, doesn't change a check, and where the work follows that against a check, the check is unmet, and say so, so the user can say whether it stands.\n\n")
+	}
 	b.WriteString("Answer with a line for each check, in order, and nothing else:\n\n")
 	b.WriteString("```\n1. met: <what shows it>\n2. unmet: <what's missing or wrong>\n3. can't tell: <what would show it>\n```\n\n")
 	b.WriteString(Naming)
@@ -67,6 +76,13 @@ func Judge(j Judging) string {
 		b.WriteString("## What ws ran\n\nThe step's checks that are commands, which ws ran in the capsule:\n\n")
 		for _, r := range j.Ran {
 			b.WriteString("- " + r + "\n")
+		}
+		b.WriteString("\n")
+	}
+	if len(j.Decided) > 0 {
+		b.WriteString("## Decided by the user since the step was written\n\nOldest first (`ws show -f llm d<n>` shows one in full):\n\n")
+		for _, d := range j.Decided {
+			b.WriteString("- " + d + "\n")
 		}
 		b.WriteString("\n")
 	}
@@ -98,7 +114,9 @@ type Verdict struct {
 var judgeLine = regexp.MustCompile(`(?i)^\s*(?:[-*]\s*)?(\d+)[.):]?\s*\**\s*(met|unmet|not met|can['’]?t tell|cannot tell|can not tell)\s*\**\s*[:\-—–]?\s*(.*)$`)
 
 // ReadVerdicts reads the judge's answer for n checks: what it said of
-// each, in order. A check it said nothing of is can't tell.
+// each, in order. A check it said nothing of is can't tell; one it spoke
+// of twice, what it said last (a judge that reasons its way to an answer,
+// or corrects itself, gives its answer last).
 func ReadVerdicts(said string, n int) []Verdict {
 	out := make([]Verdict, n)
 	at := -1
@@ -108,8 +126,8 @@ func ReadVerdicts(said string, n int) []Verdict {
 		}
 		if m := judgeLine.FindStringSubmatch(line); m != nil {
 			i, _ := strconv.Atoi(m[1])
-			at = -1 // a check it hasn't, or said twice: nothing of it counts
-			if i >= 1 && i <= n && out[i-1].Result == "" {
+			at = -1 // a check it hasn't: nothing of it counts
+			if i >= 1 && i <= n {
 				at = i - 1
 				out[at] = Verdict{Result: verdictOf(m[2]), Why: strings.TrimSpace(m[3])}
 			}

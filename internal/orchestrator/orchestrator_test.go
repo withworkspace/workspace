@@ -265,3 +265,41 @@ func TestPrompt_SentBackFromAReview(t *testing.T) {
 		t.Error("told it asked")
 	}
 }
+
+// A step's checks not all met, where the user decided otherwise since the
+// plan was written, isn't sent back to go against them or put to the
+// planner, which can't change a step that's begun: the user's flagged,
+// and what they answer in their own words is acted on, passing the step
+// where that's what they said.
+func TestPrompt_ChecksTheUserDecidedOtherwise(t *testing.T) {
+	plan, _ := mission.ParsePlan("## Z\n- x\n## Stops early\n- None.\n## Steps\n1. Work: a\n   - check: it pins the version\n", nil)
+	m := &mission.Mission{Slug: "cache", Title: "Cache", Plan: plan}
+	p := Prompt(Input{Mission: m, Trigger: "checks", CrewID: "c1", Round: 1, MaxRounds: 3})
+	for _, want := range []string{
+		"Where a check is unmet only because the user has decided otherwise since the plan was written",
+		"don't ask the planner, which revises what's ahead and can't change a step that's begun: flag the user, saying which check and which decision",
+		"Your question at this step is the step's own",
+		"never a step that's begun",
+	} {
+		if !strings.Contains(p, want) {
+			t.Errorf("the checks prompt lacks %q", want)
+		}
+	}
+
+	m.Answer = &mission.Answer{Question: "Check 1 asks for a pin you decided against. How should step 1 go?", Text: "accept it with the check waived", By: "you", Step: 1, Verb: mission.TaskChecks}
+	p = Prompt(Input{Mission: m, Trigger: "answer"})
+	for _, want := range []string{
+		"Step 1's checks weren't all met, and the user was asked what's to happen",
+		"what they say stands over the checks as they're written",
+		"They were asked: Check 1 asks for a pin you decided against. How should step 1 go?",
+		"They answered: accept it with the check waived",
+		"accept the step (ws mission accept, with what they said as the reason): ws lets you, on their answer",
+	} {
+		if !strings.Contains(p, want) {
+			t.Errorf("the answer prompt lacks %q", want)
+		}
+	}
+	if strings.Contains(p, "You flagged the user, and they've answered") {
+		t.Error("told it as a plain question")
+	}
+}

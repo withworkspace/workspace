@@ -255,6 +255,15 @@ func (w *Workspace) acceptPlan(store conversation.Store, c *conversation.Convers
 		said = append(said, upperFirst(sentence(started)))
 	case m.ToBrief():
 		said = append(said, "It's still being briefed: confirming its brief makes it ready.")
+	case p.Step == 0 && set.Revised && set.Revision.Changed():
+		// A revision of a mission under way that was yours to confirm: the
+		// orchestrator looks at the plan as it is now, as it does when the
+		// planner's revision applies without you. It was told it would be
+		// run again once the planner had revised it; without this the
+		// mission rests where it was until something else happens.
+		if w.Notify(m.Slug, mission.OrchestratorEvent{Trigger: "plan"}) {
+			said = append(said, "The orchestrator looks at the plan as it is now.")
+		}
 	}
 	if len(warnings) > 0 {
 		said = append(said, strings.Join(warnings, "; ")+".")

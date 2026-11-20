@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 	"unicode"
 
@@ -240,6 +241,7 @@ func (w *Workspace) Say(slug, id, text string, by Actor) (string, error) {
 	switch {
 	case err == nil:
 		if by.IsYou() {
+			w.answeredCrew(slug, c, text)
 			w.Missions.TalkedTo(slug, id, text)
 		} else if err := w.Missions.Nudged(slug, id, text, by.By()); err != nil {
 			return said, err
@@ -261,7 +263,25 @@ func (w *Workspace) Say(slug, id, text string, by Actor) (string, error) {
 		w.Missions.SetResumeWith(slug, id, "")
 		return "", err
 	}
+	if by.IsYou() {
+		w.answeredCrew(slug, c, text)
+	}
 	return l.String(), nil
+}
+
+// answeredCrew keeps what you tell crew who'd asked you something (ws
+// mission ask) as a decision of yours, with their question as its why, as
+// your answer to the orchestrator's question is kept. Crew record what
+// they take from it themselves, but that's their word for yours: ws
+// knowing you said it is what lets it stand over a check the plan wrote
+// before you did.
+func (w *Workspace) answeredCrew(slug string, c mission.Crew, text string) {
+	text = strings.TrimSpace(text)
+	if c.Status != mission.CrewAsking || strings.TrimSpace(c.Note) == "" || text == "" {
+		return
+	}
+	w.Missions.Decide(slug, mission.Decision{What: text, By: AsYou.By(),
+		Why: fmt.Sprintf("the answer to %s's question: %s", c.ID, oneLine(c.Note))})
 }
 
 // browserKeys are the keys a browser names (KeyboardEvent.key) that aren't

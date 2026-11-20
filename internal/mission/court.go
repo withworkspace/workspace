@@ -1152,6 +1152,8 @@ func (s Snapshot) restingHeadline() Headline {
 		// Every capsule has a PR, but GitHub wasn't asked how they stand.
 		return Headline{Court: CourtOutside, Kind: KindAwaitingReview, Label: "in review", Text: "Its PRs are up, waiting for review and merge · nothing for you to do",
 			Action: Action{Label: "nothing to do"}}
+	case s.checksUnmet() != nil:
+		return *s.checksUnmet()
 	case !hadWorkCrew(m):
 		text := "Ready: nobody has started it"
 		if st, ok := s.currentStep(); ok && st.Held() {
@@ -1292,6 +1294,23 @@ func (s Snapshot) yourStep() *StageState {
 		return nil // its task says so
 	}
 	return &cur
+}
+
+// checksUnmet is the headline of a mission resting at a Work step whose
+// checks came round not all met, with nobody on it and nothing asked of
+// it (the orchestrator noted and left it, or its question was dismissed):
+// it's yours, to pass as it is. ws passes such a step only once every
+// check is met, and nobody else can, so resting here without saying so
+// would leave the mission with no way on.
+func (s Snapshot) checksUnmet() *Headline {
+	st, round, ok := s.M.ChecksUnmet(s.Brief)
+	if !ok {
+		return nil
+	}
+	return &Headline{Court: CourtYou, Kind: KindAccept, Label: "✓ yours", By: "ws", Since: round.At,
+		Text: fmt.Sprintf("Step %d's checks, round %d: %s. Nobody's on it: pass it as it is, or resume %s with what's left to put right",
+			st.N, round.N, round.Summary(), round.Crew),
+		Action: Action{Verb: VerbAccept, Label: fmt.Sprintf("pass step %d as it is", st.N)}}
 }
 
 // orchestratorSaid is what the orchestrator last said, if its run is the

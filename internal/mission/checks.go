@@ -343,6 +343,33 @@ func (m *Mission) UncheckedDone(brief string) (StageState, string, bool) {
 	return StageState{}, "", false
 }
 
+// ChecksUnmet is the Work step the mission is at whose checks came round
+// not all met, with that round, while the crew whose done it checked have
+// left it there: they've reported done, or ended, and haven't been sent
+// back. ws passes such a step only once every check is met, and neither
+// the orchestrator nor the planner can change that (one can't accept it,
+// the other can't change a step that's begun), so it's the user's to pass
+// as it is whenever nobody's putting it right.
+func (m *Mission) ChecksUnmet(brief string) (StageState, CheckRound, bool) {
+	states, _ := m.StageProgress(brief)
+	cur, ok := CurrentStage(states)
+	if !ok || cur.Step == nil || cur.Step.Type != StepWork || len(cur.Step.Checks) == 0 || cur.Record == nil || len(cur.Instances()) > 0 {
+		// A step that runs in several repos is passed run by run.
+		return StageState{}, CheckRound{}, false
+	}
+	round, ok := cur.Record.LatestChecks()
+	if !ok || round.Met() {
+		return StageState{}, CheckRound{}, false
+	}
+	if c, ok := m.CrewByID(round.Crew); ok && c.Ended == nil && c.Status != CrewDone {
+		return StageState{}, CheckRound{}, false // sent back: it's theirs again
+	}
+	if d := m.Dispatch; d != nil && d.Stage == cur.N {
+		return StageState{}, CheckRound{}, false // sent back: fresh crew are queued for it
+	}
+	return cur, round, true
+}
+
 // DoneKey says which of crew's dones it's at, for telling one apart from
 // the next: when, and what it said.
 func (c Crew) DoneKey() string {

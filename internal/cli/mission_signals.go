@@ -263,7 +263,12 @@ func newMissionFlagCmd() *cobra.Command {
 Needs you, with any --option answers to pick from, and the user answers it
 there or with ws mission answer. The orchestrator then runs again with
 their answer and acts on it. Give each option as a short instruction you'd
-act on ("Commit both and open PRs"); the user can always write their own.`,
+act on ("Commit both and open PRs"); the user can always write their own.
+
+The orchestrator's question at a Work step whose checks came round not all
+met is that step's own: ws adds "Pass it" and "Send it back" to its
+answers, so the user can pass the step as it is from the question, and
+approving the bundle that shows its checks passes it too.`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if !clear && len(args) == 0 {
 				return errors.New("say why the user is needed")
@@ -287,11 +292,20 @@ act on ("Commit both and open PRs"); the user can always write their own.`,
 				fmt.Fprintf(ui.Stderr, "  %s %s on %s\n", ui.Green.Render("✓"), strings.TrimSuffix(d.String(), "."), m.Slug)
 				return nil
 			}
-			t, err := missionStore(ctx).Ask(m.Slug, strings.Join(args, " "), raisedBy(), options...)
+			f, err := ctx.Flag(m.Slug, strings.Join(args, " "), ops.ActorFromEnv(), options...)
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(ui.Stderr, "  %s %s asks the user (task %d)\n", ui.Orange.Render("!"), m.Slug, t.N)
+			switch {
+			case f.Passed != "":
+				// The user had approved what shows the step's checks: there
+				// was nothing left to ask.
+				fmt.Fprintf(ui.Stderr, "  %s nothing to ask on %s: %s\n", ui.Green.Render("✓"), m.Slug, f.Passed)
+			case f.AtStep > 0:
+				fmt.Fprintf(ui.Stderr, "  %s %s asks the user (task %d), as step %d's own: its checks aren't all met, so they can pass it as it is from your question, or send it back. It waits on them: there's nothing more for you to do\n", ui.Orange.Render("!"), m.Slug, f.Task.N, f.AtStep)
+			default:
+				fmt.Fprintf(ui.Stderr, "  %s %s asks the user (task %d)\n", ui.Orange.Render("!"), m.Slug, f.Task.N)
+			}
 			return nil
 		},
 	}
