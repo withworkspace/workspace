@@ -1,11 +1,14 @@
 import { changes } from "../annotate/diff";
-import type { MissionDetail, TalkProposal, TalkTurn } from "../api";
+import type { MissionDetail, Stage, TalkDetail, TalkProposal, TalkTurn } from "../api";
+import { placed } from "../ask/ask";
 
-// What the brief's own page (BriefView.tsx) works out, apart from drawing
+// What a mission's Brief tab (BriefTab.tsx) works out, apart from drawing
 // it: the brief and the plan as it shows them (as they are, or as the agent
 // last proposed them), what each changed since the version before, as
 // edits to accept or decline one by one, and the proposal confirming them
-// settles.
+// settles; and, for what's beside them, the plan's steps as its markdown
+// has them, the heading each change is under, and what the planner
+// proposed for them, by the reply it came with.
 
 export type Phase = "briefing" | "underway";
 
@@ -172,4 +175,145 @@ export function reading(was: string, list: Edit[], settled: Settled): { base: st
     list.filter((e) => settled[e.id] !== "decline"),
   );
   return { base, pending, comes, result: pending.length ? undefined : base };
+}
+
+const stepKinds = ["Open Pull Request", "Work", "Verify", "Review", "Decide", "Land", "Wait", "Plan"] as const;
+const stepWho: Record<(typeof stepKinds)[number], NonNullable<Stage["who"]>> = {
+  Work: "crew",
+  Verify: "crew",
+  Review: "you",
+  Decide: "you",
+  Land: "you",
+  "Open Pull Request": "ws",
+  Wait: "outside",
+  Plan: "the planner",
+};
+
+// planSteps reads a plan's steps from its markdown, enough to list them
+// beside it: each step's number, kind, name and what's under it. ws reads
+// a plan strictly, and says what's wrong with one when it's saved; this
+// lists what it can see, so the list follows the plan as it's typed, and a
+// plan its planner proposed (which ws has no steps of yet) can be listed
+// at all. known is the mission's steps as ws has them: a step of the same
+// number keeps where it stands, and what its checks came to while its
+// name's the same.
+export function planSteps(plan: string, known: Stage[] = []): Stage[] {
+  const lines = plan.replace(/\r\n/g, "\n").split("\n");
+  const from = lines.findIndex((l) => /^##\s+Steps\s*$/i.test(l));
+  if (from < 0) return [];
+  const steps: Stage[] = [];
+  let at: Stage | undefined;
+  for (const line of lines.slice(from + 1)) {
+    if (/^##\s/.test(line)) break;
+    const step = /^\d+\.\s+(.*)$/.exec(line);
+    if (step) {
+      const rest = step[1].trim();
+      const type = stepKinds.find((k) => rest === k || rest.startsWith(`${k}:`));
+      const words = type ? rest.slice(type.length).replace(/^:\s*/, "") : rest;
+      const name = /^\*\*(.+?)\*\*\s*(.*)$/.exec(words);
+      // What the process's words it quotes are isn't what it's for.
+      const text = (name ? `${name[1]} ${name[2]}` : words).replace(/\s*"[^"]*"\s*$/, "").trim();
+      const title = (name ? name[1] : type && !words ? type : words).replace(/\.$/, "");
+      at = { n: steps.length + 1, title, text: text || title, state: "todo", ...(type ? { type, who: stepWho[type] } : {}) };
+      steps.push(at);
+      continue;
+    }
+    const param = /^\s+-\s+([a-z ]+?):\s*(.*)$/.exec(line);
+    if (!param || !at) continue;
+    const [, key, value] = param;
+    if (key === "in") at.in = value.replace(/^`|`$/g, "");
+    else if (key === "makes") at.makes = value;
+    else if (key === "limit") at.limit = value;
+    else if (key === "only if") at.onlyIf = value;
+    else if (key === "check" || key === "yours") (at.checks ??= []).push({ text: value });
+    else if (key === "on" && at.type === "Wait") {
+      at.on = value;
+      at.who = value === "you" ? "you" : "outside";
+    }
+  }
+  return steps.map((s) => {
+    const k = known.find((x) => x.n === s.n);
+    if (!k) return s;
+    return { ...s, state: k.state, crew: k.crew, round: k.round, skipped: k.skipped, held: k.held, checks: k.title === s.title ? (k.checks ?? s.checks) : s.checks };
+  });
+}
+
+// sectionOf is the heading a place in a document's markdown is under: its
+// own, for a place on a heading's line.
+export function sectionOf(text: string, at: number): string | undefined {
+  if (at < 0) return undefined;
+  const start = text.lastIndexOf("\n", at - 1) + 1;
+  const own = /^#{1,3}\s+(.*)$/.exec(text.slice(start).split("\n")[0]);
+  if (own) return own[1].trim();
+  const before = text.slice(0, start).split("\n");
+  for (let i = before.length - 1; i >= 0; i--) {
+    const h = /^#{1,3}\s+(.*)$/.exec(before[i]);
+    if (h) return h[1].trim();
+  }
+  return undefined;
+}
+
+// editsBySection is a document's edits still to settle, by the heading
+// each is under in it as it reads now (base); "" for those before its
+// first. An edit that puts a heading in is under the one it starts at.
+export function editsBySection(base: string, pending: Edit[]): Map<string, Edit[]> {
+  const by = new Map<string, Edit[]>();
+  for (const e of pending) {
+    // (An edit starts with lines that were there, to be found by: the
+    // place it changes is past them, but under the same heading or the
+    // one it adds.)
+    const section = sectionOf(base, base.indexOf(e.from)) ?? "";
+    by.set(section, [...(by.get(section) ?? []), e]);
+  }
+  return by;
+}
+
+// draftOf is which draft of the brief a proposal is: counted by what they
+// say, as shown counts them (the same brief again, with its plan, is the
+// same draft).
+export function draftOf(proposals: TalkProposal[], p: TalkProposal): number {
+  const all = proposals.filter((x) => x.kind === "brief" && x.brief);
+  return new Set(all.slice(0, all.indexOf(p) + 1).map((x) => x.brief)).size;
+}
+
+// DocLine is something the planner proposed for the brief or the plan, as
+// its conversation lists it beside them: what it is, what became of it,
+// and whether it's the one the documents show, to confirm.
+export interface DocLine {
+  p: TalkProposal;
+  name: string;
+  fate: string;
+  shown: boolean;
+}
+
+// docLines are what a conversation proposed for the brief and plan, by
+// the reply each came with (after: since its agent last replied). One
+// replaced in the answer it came with (the brief, then the brief with its
+// plan) was never there to read, and is left out. shown is the one the
+// documents show.
+export function docLines(t: Pick<TalkDetail, "turns" | "proposals">, shown?: number): { under: Map<number, DocLine[]>; after: DocLine[] } {
+  const all = t.proposals ?? [];
+  const { under, after } = placed(t as TalkDetail, isDoc);
+  const lines = (list: TalkProposal[]) =>
+    list
+      .filter((p) => !(p.state === "superseded" && list.some((x) => String(x.n) === p.result)))
+      .map((p): DocLine => {
+        const mine = p.n === shown;
+        const name = p.kind === "plan" ? (p.was ? "A revision of the plan" : "The plan") : p.was !== undefined && !p.plan ? "An edit to the brief" : `Draft ${Math.max(draftOf(all, p), 1)} of the brief${p.plan ? ", with its plan" : ""}`;
+        const fate = mine ? "in the documents, to confirm" : p.state === "superseded" ? "replaced" : p.state === "open" ? "to confirm" : p.state;
+        return { p, name, fate, shown: mine };
+      });
+  return { under: new Map([...under].map(([n, list]) => [n, lines(list)])), after: lines(after) };
+}
+
+// planAsk is what the planner's asked when the plan is to be rewritten
+// from the brief (or written, with none yet). unseen is a brief the
+// planner hasn't read as it is: briefing, your changes to its draft aren't
+// written until you confirm, so the brief goes with the ask, for it to
+// propose the two together again. Otherwise the brief is as it's written,
+// and the planner reads it there.
+export function planAsk(o: { planned: boolean; unseen?: string }): string {
+  const what = o.planned ? "Rewrite the plan" : "Write the plan";
+  if (o.unseen === undefined) return `${what} to fit the brief as it reads now.`;
+  return `${what} to fit the brief as I've changed it, and propose the two together again. The brief, as it reads now:\n\n${o.unseen.trim()}`;
 }

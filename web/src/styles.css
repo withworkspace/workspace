@@ -5293,71 +5293,332 @@ dd > .more-link,
   box-shadow: var(--shadow-xs), 0 0 0 1px var(--line);
 }
 
-/* The brief: rendered to read, and edited as it reads. */
-.brief {
-  position: relative;
+/* A mission's Brief tab (mission/BriefTab.tsx): the brief and the plan as
+   documents, edited as they read, with what they're made of down the left
+   and the planner's conversation down the right. One bar over them holds
+   where they stand, the editor's toolbar and what there is to confirm. On
+   a wide window it has the page under the mission's bar to itself, each
+   pane scrolling by itself; on a narrow one it's the documents, then the
+   conversation, down the page. */
+.brief-tab {
+  --brief-outline: 232px;
+  --brief-planner: 384px;
+  /* A document's measure: 70 characters, as one reads anywhere. */
+  --brief-measure: 680px;
 }
 
-.brief-tools {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: -28px;
-  position: relative;
-  z-index: 1;
-}
-
-/* The plan, under the brief: its route from A to Z. */
-.brief .plan {
-  margin-top: 28px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-}
-
-.brief .plan h2.group {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-/* The brief's own page (mission/BriefView.tsx): the brief and the plan as
-   documents, edited as they read, under a bar saying what's to confirm,
-   with the ask bar at the foot talking to its planner. */
+/* Where it stands, the toolbar, what's to confirm. */
 .brief-bar {
   position: sticky;
-  top: 0;
+  top: var(--mission-bar-h);
   z-index: 3;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-bottom: var(--space-4);
-  padding: 10px 12px;
+  gap: 4px 12px;
+  min-height: 45px;
+  margin: 0 var(--space-8);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--backdrop);
+  font-size: var(--text-sm);
+}
+
+.brief-what {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.brief-what .icon {
+  flex: none;
+}
+
+.brief-what.tone-attention .icon {
+  color: var(--attention);
+}
+
+.brief-what-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.brief-what-text .dim {
+  font-weight: 400;
+}
+
+/* The editor's toolbar, for whichever document is being edited: under the
+   rest of the bar here, in it on a wide window. */
+.brief-toolbar {
+  order: 3;
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.brief-toolbar:not(:has(.doc-toolbar, .brief-toolbar-none:not(:empty))) {
+  display: none;
+}
+
+.brief-toolbar-slot {
+  flex: 1;
+  min-width: 0;
+  max-width: var(--brief-measure);
+}
+
+.brief-toolbar-slot:empty {
+  display: none;
+}
+
+.brief-toolbar .doc-toolbar {
+  position: static;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.brief-toolbar .doc-toolbar .sep {
+  flex: none;
+}
+
+.brief-toolbar .doc-toolbar .spacer {
+  min-width: 8px;
+}
+
+/* Which document the toolbar's for, while the other's changes are being
+   read and it isn't the one in front of you. */
+.brief-toolbar-for {
+  flex: none;
+  margin-right: 14px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--well);
+  color: var(--dim);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.brief-toolbar-none {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brief-act {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* The changes still to read, stepped through from the bar: where the
+   outline, which has them on a wide window, isn't. */
+.brief-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 6px;
+}
+
+.brief-nav .chip {
+  margin-right: 4px;
+}
+
+.brief-unfold {
+  position: relative;
+}
+
+.brief-unfold-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--attention);
+}
+
+/* --- the outline --- */
+
+.brief-outline {
+  display: none;
+  font-size: var(--text-sm);
+}
+
+.brief-outline section {
+  margin-bottom: 18px;
+}
+
+.brief-outline h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 5px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.brief-outline h3 .chip,
+.brief-outline h3 .count,
+.brief-changes-at {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.brief-outline h3 .spacer {
+  flex: 1;
+}
+
+.brief-outline ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.brief-outline .map-empty {
+  line-height: 1.5;
+}
+
+/* (A map's item, as a page's map has them, with what's to read at its end.) */
+.brief-outline .brief-item {
+  position: relative;
+  justify-content: space-between;
+  align-items: center;
+  width: calc(100% + 12px);
+  padding: 3px 6px;
+}
+
+.brief-outline .brief-item.here {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+/* The one being read: a tick in the margin, as a tab's line is under it. */
+.brief-item.here::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.brief-changes,
+.brief-at {
+  margin: 0 -8px 18px;
+  padding: 9px 10px 10px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--raised);
   box-shadow: var(--shadow-xs);
-  font-size: var(--text-sm);
 }
 
-.brief-bar-what {
-  display: inline-flex;
-  align-items: center;
+.brief-changes h3 {
+  color: var(--attention);
+}
+
+.brief-changes-at {
+  color: var(--dim);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.brief-changes p,
+.brief-at p,
+.brief-requested p {
+  margin: 0;
+  color: var(--dim);
+  line-height: 1.45;
+}
+
+.brief-at p {
+  color: var(--fg);
+}
+
+.brief-requested p {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.brief-changes-nav {
+  display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
+  margin-top: 8px;
+}
+
+.brief-changes-nav .small {
+  gap: 3px;
+  padding-inline: 6px;
+}
+
+.brief-changes-nav .spacer {
+  flex: 1;
+}
+
+/* The plan's steps, as the mission's details list them: a row each, the
+   one it's at too (what that says opened is in its card, and in the plan
+   itself, beside it). A row goes to its step. */
+.brief-steps {
+  margin: 4px -6px 0 -2px;
+}
+
+.brief-steps .plan-list .step {
+  cursor: pointer;
+}
+
+.brief-steps .plan-now {
+  display: none;
+}
+
+/* --- the documents --- */
+
+.brief-main {
+  position: relative;
   min-width: 0;
 }
 
-.brief-note {
-  margin: 0 0 var(--space-4);
-  font-size: var(--text-sm);
+.brief-docs {
+  position: relative;
+  min-width: 0;
+  padding: 22px var(--space-8) 48px;
 }
 
 .brief-doc {
-  margin-bottom: var(--space-6);
+  max-width: var(--brief-measure);
+  margin: 0 auto var(--space-6);
 }
 
-.brief-doc + .brief-doc {
+.brief-docs > .callout {
+  max-width: var(--brief-measure);
+  margin-inline: auto;
+}
+
+/* The documents' measure is the tab's to say, heads and text alike. */
+.brief-doc .prose .markdown {
+  max-width: none;
+}
+
+.brief-doc + .brief-doc,
+.brief-doc + .callout + .brief-doc {
   padding-top: var(--space-4);
   border-top: 1px solid var(--line);
 }
@@ -5367,6 +5628,7 @@ dd > .more-link,
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  min-height: 24px;
   margin-bottom: var(--space-3);
   font-size: var(--text-xs);
   font-weight: 600;
@@ -5381,9 +5643,23 @@ dd > .more-link,
   letter-spacing: 0;
 }
 
-/* Its editors' toolbars go with them: the bar above is what stays. */
-.brief-view .doc-toolbar {
-  position: static;
+.brief-doc :is(h1, h2, h3),
+.brief-doc li {
+  scroll-margin-top: calc(var(--mission-bar-h) + 64px);
+}
+
+.brief-doc .pm {
+  min-height: 6em;
+  padding-bottom: 1em;
+}
+
+.brief-docs > .brief-doc:last-of-type .pm {
+  min-height: 12em;
+}
+
+.brief-note {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
 }
 
 .brief-waiting {
@@ -5393,9 +5669,542 @@ dd > .more-link,
   padding: var(--space-5) 0;
 }
 
-@media (max-width: 640px) {
+/* Where the mission is, on its plan (PlanMarks): the step it's at, with
+   who's on it, and those behind it. */
+.brief-doc[data-doc="plan"] .markdown > ol:first-of-type > li {
+  border-radius: 2px;
+}
+
+.brief-doc[data-doc="plan"] .markdown > ol:first-of-type > li::before {
+  float: right;
+  margin: 3px 0 0 12px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--progress-soft);
+  color: var(--progress);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 18px;
+  pointer-events: none;
+}
+
+.brief-flash {
+  animation: brief-flash 1.2s var(--ease);
+}
+
+@keyframes brief-flash {
+  from {
+    background: var(--accent-soft);
+  }
+}
+
+/* --- the planner --- */
+
+.brief-planner {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-top: 1px solid var(--line);
+}
+
+.brief-planner-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px var(--space-8);
+  font-size: var(--text-sm);
+}
+
+.brief-planner-name {
+  font-weight: 600;
+}
+
+.brief-planner-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--well);
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+}
+
+.brief-planner-id:hover {
+  color: var(--fg);
+}
+
+.brief-planner-head .spacer {
+  flex: 1;
+}
+
+.brief-planner-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 6px var(--space-8) 18px;
+}
+
+/* (Each is as tall as it is: the conversation scrolls, it isn't squeezed.) */
+.brief-planner-body > * {
+  flex: none;
+}
+
+.brief-planner-body > p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.brief-planner-body .turn {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  min-width: 0;
+}
+
+.brief-planner-body .said {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.brief-planner-body .calls-fold {
+  min-width: 0;
+}
+
+/* Beside the documents there's no room for who said it at each turn:
+   yours is the bubble, to the right; the planner's is the text. */
+.brief-planner-body .turn.by-you .said {
+  justify-self: end;
+  max-width: 88%;
+  border-radius: var(--radius-lg) 4px var(--radius-lg) var(--radius-lg);
+  font-size: var(--text-md);
+}
+
+.brief-planner-body .said .markdown {
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.brief-planner-body .said .markdown > :first-child {
+  margin-top: 0;
+}
+
+.brief-planner-body .said .markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.brief-planner-body .settled-marker {
+  padding-left: 0;
+}
+
+/* The passage a turn of yours was about. */
+.brief-quoted {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  margin-bottom: 6px;
+  padding-left: 8px;
+  overflow: hidden;
+  border-left: 2px solid var(--accent-line);
+  color: var(--dim);
+  font-style: italic;
+}
+
+/* What it proposed for the documents: a line, not a card. The one they
+   show leads back to them. */
+.brief-proposed {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  width: 100%;
+  min-height: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--well);
+  box-shadow: none;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  text-align: left;
+}
+
+.brief-proposed:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.brief-proposed .icon {
+  flex: none;
+}
+
+.brief-proposed-name {
+  flex: none;
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.brief-proposed-fate {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brief-proposed:is(.is-superseded, .is-declined, .is-withdrawn) .brief-proposed-name {
+  color: var(--dim);
+  font-weight: 400;
+  text-decoration: line-through;
+  text-decoration-color: var(--faint);
+}
+
+.brief-proposed.shown {
+  border-color: color-mix(in srgb, var(--attention) 45%, var(--line));
+  background: var(--attention-soft);
+}
+
+.brief-proposed.shown .icon:first-child,
+.brief-proposed.shown .brief-proposed-fate {
+  color: var(--attention);
+}
+
+.brief-proposed.shown:hover {
+  border-color: var(--attention);
+}
+
+/* Where it's asked: at the conversation's foot, which stays in reach as
+   the page scrolls. */
+.brief-planner-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 4px var(--space-8) 14px;
+  background: linear-gradient(to bottom, transparent, var(--bg) 30%);
+}
+
+.brief-planner-foot:empty {
+  display: none;
+}
+
+.brief-ask.askbar-wrap {
+  position: relative;
+  bottom: auto;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+
+/* What to ask, offered over the foot of what's above the field, which
+   fades under it. */
+.brief-ask .ask-suggest {
+  left: -12px;
+  right: -12px;
+  bottom: 100%;
+  padding: 28px 12px 6px;
+  background: linear-gradient(to bottom, transparent, var(--bg) 26px);
+}
+
+.brief-ask .ask-suggestion {
+  background: var(--raised);
+  text-align: left;
+  white-space: normal;
+}
+
+.brief-ask .ask-suggestion.sel,
+.brief-ask .ask-suggestion:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--raised));
+}
+
+/* --- nothing drafted: the conversation is the tab, or where it's begun --- */
+
+.brief-talk {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+.brief-planner.centre {
+  width: min(100%, 780px);
+  border: 0;
+}
+
+.brief-planner.centre .brief-planner-body .said .markdown {
+  font-size: var(--text-lg);
+  line-height: 1.6;
+}
+
+.brief-start {
+  align-self: start;
+  width: min(100%, 620px);
+  margin-top: 9vh;
+  padding: 0 var(--space-6) var(--space-8);
+}
+
+.brief-start-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--well);
+  color: var(--dim);
+}
+
+.brief-start h2 {
+  margin: 14px 0 10px;
+  font-size: var(--text-xl);
+  letter-spacing: -0.01em;
+}
+
+.brief-request {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--line-strong);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--well);
+  font-size: var(--text-lg);
+}
+
+.brief-start p {
+  margin: 0 0 18px;
+  line-height: 1.55;
+}
+
+.brief-start-act {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 639.98px) {
+  .brief-bar {
+    margin-inline: var(--space-4);
+  }
+
+  .brief-docs,
+  .brief-planner-head,
+  .brief-planner-body,
+  .brief-planner-foot {
+    padding-inline: var(--space-4);
+  }
+}
+
+/* A wide window: the tab is what's under the mission's bar, no more. The
+   outline, the documents and the planner are its three panes, and the
+   bar's three parts are their columns. */
+@media (min-width: 1021px) {
+  .mission-page.fills .brief-panel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .brief-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
   .brief-bar {
     position: static;
+    flex: none;
+    display: grid;
+    grid-template-columns: calc(var(--brief-outline) - var(--space-8)) minmax(0, 1fr) auto;
+    gap: 0;
+    padding: 0;
+    background: none;
+  }
+
+  .brief-what {
+    padding-right: 16px;
+  }
+
+  /* (Its left padding is set by the tab: where the documents' text starts.) */
+  .brief-toolbar,
+  .brief-toolbar:not(:has(.doc-toolbar, .brief-toolbar-none:not(:empty))) {
+    order: 0;
+    display: flex;
+  }
+
+  .brief-toolbar .doc-toolbar {
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  /* Its first button's glyph, not its padding, is where the text starts. */
+  .brief-toolbar-slot {
+    margin-left: -7px;
+  }
+
+  .brief-act {
+    flex-wrap: nowrap;
+    margin-left: 0;
+    padding-left: 16px;
+  }
+
+  .brief-nav {
+    display: none;
+  }
+
+  /* The panes paint the page's own ground (as the mission's bar does), so
+     what's drawn over them with a blur has something to blur: the details,
+     slid in over the planner. Text straight on the shell's ground, which
+     is outside the page's own layer, shows through one sharp. */
+  .brief-panes {
+    flex: 1;
+    display: grid;
+    grid-template-columns: var(--brief-outline) minmax(0, 1fr);
+    min-height: 0;
+    background: var(--backdrop);
+  }
+
+  .brief-tab.planner-on .brief-panes {
+    grid-template-columns: var(--brief-outline) minmax(0, 1fr) var(--brief-planner);
+  }
+
+  .brief-outline {
+    display: block;
+    min-height: 0;
+    padding: 18px 14px 32px var(--space-8);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .brief-main {
+    display: flex;
+    min-height: 0;
+    border-left: 1px solid var(--line);
+  }
+
+  .brief-docs {
+    flex: 1;
+    min-height: 0;
+    padding: 22px 40px 120px;
+    overflow-y: auto;
+    scroll-padding-top: 16px;
+  }
+
+  .brief-doc :is(h1, h2, h3),
+  .brief-doc li {
+    scroll-margin-top: 20px;
+  }
+
+  /* Side by side, when there's room for both at a column worth reading:
+     the brief and the plan each have the tab's height. */
+  .brief-tab.side .brief-docs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .brief-tab.side .brief-docs > .callout {
+    grid-column: 1 / -1;
+    max-width: none;
+    margin: 16px 32px 0;
+  }
+
+  .brief-tab.side .brief-doc {
+    grid-row: 2;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    padding: 22px 32px 120px;
+    overflow-y: auto;
+    border-top: 0;
+  }
+
+  .brief-tab.side .brief-doc > * {
+    max-width: var(--brief-measure);
+    margin-inline: auto;
+  }
+
+  .brief-tab.side .brief-doc[data-doc="plan"] {
+    border-left: 1px solid var(--line);
+  }
+
+  /* The planner's field at the documents' foot, when it's folded away:
+     over their last lines, which fade under it, as the ask bar is on a
+     document. */
+  .brief-ask-foot {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    padding: 30px 40px 16px;
+    background: linear-gradient(to bottom, transparent, var(--bg) 46%);
+    pointer-events: none;
+  }
+
+  .brief-ask-foot > * {
+    max-width: var(--brief-measure);
+    margin-inline: auto !important;
+    pointer-events: auto;
+  }
+
+  .brief-tab.side .brief-ask-foot > * {
+    max-width: 720px;
+  }
+
+  .brief-planner {
+    min-height: 0;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+
+  .brief-planner-head {
+    padding: 10px 12px 10px 16px;
+  }
+
+  .brief-planner-body {
+    padding: 6px 16px 18px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .brief-planner-foot {
+    position: relative;
+    flex: none;
+    padding: 4px 12px 14px;
+    background: none;
+  }
+
+  /* Nothing drafted: the outline, and the conversation in the documents'
+     place. */
+  .brief-tab.talking .brief-panes {
+    grid-template-columns: var(--brief-outline) minmax(0, 1fr);
+  }
+
+  .brief-talk {
+    border-left: 1px solid var(--line);
+  }
+
+  .brief-planner.centre .brief-planner-head {
+    padding: 16px 24px 8px;
+  }
+
+  .brief-planner.centre .brief-planner-body {
+    padding: 8px 24px 24px;
+  }
+
+  .brief-planner.centre .brief-planner-foot {
+    padding: 4px 24px 24px;
+  }
+}
+
+/* Not much wider than that: the outline and the planner give a little. */
+@media (min-width: 1021px) and (max-width: 1180px) {
+  .brief-tab {
+    --brief-outline: 200px;
+    --brief-planner: 340px;
   }
 }
 
@@ -5488,7 +6297,16 @@ dd > .more-link,
   color: var(--dim);
 }
 
-/* What to write, while there's nothing. */
+/* What to write, while there's nothing. (The paragraph it's said in is
+   the editor's own .empty, not a page's empty state: it's a line of the
+   document, where its text will be.) */
+.pm > .empty {
+  display: block;
+  padding: 0;
+  color: inherit;
+  text-align: inherit;
+}
+
 .pm .empty::before {
   content: attr(data-placeholder);
   float: left;
@@ -10039,17 +10857,6 @@ details[open] > summary .fold-chevron {
   background: var(--accent-soft);
 }
 
-.plan-ask {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.plan-ask textarea {
-  width: 100%;
-  resize: vertical;
-}
-
 .turn.by-ws .said {
   color: var(--dim);
 }
@@ -10861,7 +11668,10 @@ div.tc-bar {
   .doc-cursor,
   .add-comment,
   .callout,
-  .brief-tools,
+  .brief-bar,
+  .brief-outline,
+  .brief-planner,
+  .brief-ask-foot,
   .page-actions,
   .timeline,
   button {

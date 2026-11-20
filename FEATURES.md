@@ -49,19 +49,20 @@ Where one mission stands, and what to do about it. The page leads with its headl
 
 ### The brief and the plan
 
-What the mission is for, and the route there. The brief is yours: its goal, context and acceptance. The plan is its steps in order, each a kind ws knows (Work, Review, Verify, Decide, Open Pull Request, Land, Wait), with what has to be true for each to be done.
+What the mission is for, and the route there. The brief is yours: its goal, context and acceptance. The plan is its steps in order, each a kind ws knows (Work, Review, Verify, Decide, Open Pull Request, Land, Wait), with what has to be true for each to be done. Both are documents on the mission's **Brief** tab, with what they're made of down one side and the planner down the other.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/shots/brief-dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="docs/assets/shots/brief-light.webp">
-    <img alt="A mission's brief, with its goal, context and acceptance, and the plan under it" src="docs/assets/shots/brief-light.webp">
+    <img alt="A mission's Brief tab: its sections and the plan's steps listed down the left, the brief and the plan as documents in the middle, and where the planner is asked on the right" src="docs/assets/shots/brief-light.webp">
   </picture>
 </p>
 
 - A briefing agent proposes both, in a conversation, and nothing starts until you confirm them.
 - A step the process asks for quotes its words, so you can see why it's there.
-- *Edit* (`e`) changes either. *Ask the planner* has it revise the plan, and a revision that removes one of your steps comes to you first.
+- Click into the brief and type to change it, and *Save*. What the planner proposes shows in both as changes to read, each to accept or decline.
+- The plan has a form ws holds it to, so it's read, not typed in: *Rewrite from the brief* has the planner write it again to fit the brief, and *Edit by hand* is there when you want it. A revision that removes one of your steps comes to you first.
 
 ### Work
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TalkProposal } from "../api";
 import { trackChanges } from "../editor/track";
-import { applied, edits, reading, shown } from "./briefpage";
+import { applied, docLines, draftOf, edits, editsBySection, planAsk, planSteps, reading, sectionOf, shown } from "./briefpage";
 
 const brief = `# Flaky test
 
@@ -127,5 +127,139 @@ describe("shown", () => {
     const s = shown({ state: "active", brief, plan }, { proposals: [proposal(1, { brief: "x", state: "accepted" }), proposal(2, { kind: "decision", what: "y" })] });
     expect(s.proposal).toBeUndefined();
     expect(s.draft).toBe(1);
+  });
+});
+
+const plan = `## Z
+- Merged, with its tests.
+
+## Stops early
+- None.
+
+## Steps
+1. Work: **Write the proposal.** What's archived and when. "Anything that changes what customers see is proposed first"
+   - in: \`records\`
+   - makes: a proposal, \`proposals/archive-old-invoices.md\`
+   - check: it says when an invoice is archived
+   - check: \`go test ./...\` passes
+2. Review: **Accept the proposal.** Read it, and say whether it's built.
+3. Wait: **Tell the studios.** Before it's merged.
+   - on: you
+4. Wait: **The new key.** The platform team adds it.
+   - on: the platform team
+5. Open Pull Request
+   - in: \`api\`
+6. A step of no kind ws knows
+`;
+
+describe("planSteps", () => {
+  const steps = planSteps(plan);
+
+  it("lists a plan's steps as its markdown has them", () => {
+    expect(steps.map((s) => [s.n, s.type, s.title])).toEqual([
+      [1, "Work", "Write the proposal"],
+      [2, "Review", "Accept the proposal"],
+      [3, "Wait", "Tell the studios"],
+      [4, "Wait", "The new key"],
+      [5, "Open Pull Request", "Open Pull Request"],
+      [6, undefined, "A step of no kind ws knows"],
+    ]);
+    expect(steps.every((s) => s.state === "todo")).toBe(true);
+  });
+
+  it("reads what's under a step, and leaves the process's words out of what it's for", () => {
+    expect(steps[0]).toMatchObject({ in: "records", makes: "a proposal, `proposals/archive-old-invoices.md`", text: "Write the proposal. What's archived and when." });
+    expect(steps[0].checks?.map((c) => c.text)).toEqual(["it says when an invoice is archived", "`go test ./...` passes"]);
+    expect(steps[4].in).toBe("api");
+  });
+
+  it("says whose each is: yours at a checkpoint and a Wait on you, ws's at a pull request", () => {
+    expect(steps.map((s) => s.who)).toEqual(["crew", "you", "you", "outside", "ws", undefined]);
+  });
+
+  it("keeps where the mission stands on a step ws has, and its checks while its name is the same", () => {
+    const known = [
+      { n: 1, title: "Write the proposal", text: "", state: "accepted" as const, checks: [{ text: "it says when an invoice is archived", result: "met" as const }] },
+      { n: 2, title: "Read it", text: "", state: "current" as const, crew: ["c2"] },
+    ];
+    const now = planSteps(plan, known);
+    expect(now[0]).toMatchObject({ state: "accepted", checks: [{ result: "met" }] });
+    expect(now[1]).toMatchObject({ state: "current", crew: ["c2"], title: "Accept the proposal" });
+    expect(now[2].state).toBe("todo");
+  });
+
+  it("is nothing for a plan with no steps yet", () => {
+    expect(planSteps("## Z\n- Done.\n")).toEqual([]);
+    expect(planSteps("")).toEqual([]);
+  });
+});
+
+describe("sectionOf", () => {
+  it("is the heading a place is under, or its own", () => {
+    expect(sectionOf(brief, brief.indexOf("fails one run"))).toBe("Context");
+    expect(sectionOf(brief, brief.indexOf("## Acceptance"))).toBe("Acceptance");
+    expect(sectionOf(brief, brief.indexOf("50 runs"))).toBe("Acceptance");
+    expect(sectionOf("No headings here.\n", 3)).toBeUndefined();
+    expect(sectionOf(brief, -1)).toBeUndefined();
+  });
+});
+
+describe("editsBySection", () => {
+  it("counts the edits still to settle under each heading", () => {
+    const now = brief.replace("every time", "always").replace("- It fails one run in ten.", "- It fails one run in five.").replace("50 runs", "100 runs");
+    const by = editsBySection(brief, edits(brief, now));
+    expect([...by].map(([section, list]) => [section, list.length])).toEqual([
+      ["Goal", 1],
+      ["Context", 1],
+      ["Acceptance", 1],
+    ]);
+    // Nothing left to settle is nothing to count.
+    expect(editsBySection(brief, []).size).toBe(0);
+  });
+});
+
+describe("docLines", () => {
+  const at = (s: number) => new Date(Date.UTC(2026, 10, 20, 9, 0, s)).toISOString();
+  const p = (n: number, over: Partial<TalkProposal>): TalkProposal => ({ n, kind: "brief", by: "agent", at: at(n * 10), state: "open", ...over });
+  const turns = [
+    { n: 1, by: "you", at: at(0), body: "Archive old invoices" },
+    { n: 2, by: "agent", at: at(11), body: "Proposed." },
+    { n: 3, by: "you", at: at(15), body: "In tax years." },
+    { n: 4, by: "agent", at: at(31), body: "Proposed again, with its plan." },
+  ];
+  const proposals = [
+    p(1, { brief: "one", state: "superseded", result: "2" }),
+    p(2, { brief: "two", state: "superseded", result: "3" }),
+    p(3, { brief: "two", plan: "## Z" }),
+  ];
+
+  it("counts drafts by what they say", () => {
+    expect(proposals.map((x) => draftOf(proposals, x))).toEqual([1, 2, 2]);
+  });
+
+  it("lists each under the reply it came with, but for one replaced in that answer", () => {
+    const { under, after } = docLines({ turns, proposals }, 3);
+    expect(under.get(2)?.map((l) => [l.name, l.fate, l.shown])).toEqual([["Draft 1 of the brief", "replaced", false]]);
+    expect(under.get(4)?.map((l) => [l.name, l.fate, l.shown])).toEqual([["Draft 2 of the brief, with its plan", "in the documents, to confirm", true]]);
+    expect(after).toEqual([]);
+  });
+
+  it("names a revision of the plan, and lists one made since the last reply after them all", () => {
+    const more = [...proposals.map((x) => ({ ...x, state: "accepted" as const })), p(9, { kind: "plan", plan: "## Z\n- More.", was: "## Z" })];
+    const { after } = docLines({ turns, proposals: more }, 9);
+    expect(after.map((l) => [l.name, l.shown])).toEqual([["A revision of the plan", true]]);
+  });
+});
+
+describe("planAsk", () => {
+  it("asks for the plan to be rewritten, or written when there's none", () => {
+    expect(planAsk({ planned: true })).toBe("Rewrite the plan to fit the brief as it reads now.");
+    expect(planAsk({ planned: false })).toBe("Write the plan to fit the brief as it reads now.");
+  });
+
+  it("sends a brief the planner hasn't read as it is", () => {
+    const ask = planAsk({ planned: true, unseen: "## Goal\nIn tax years.\n" });
+    expect(ask).toMatch(/^Rewrite the plan to fit the brief as I've changed it, and propose the two together again\./);
+    expect(ask.endsWith("\n\n## Goal\nIn tax years.")).toBe(true);
   });
 });
