@@ -1,0 +1,415 @@
+{
+  "slug": "checks-unmet",
+  "title": "Checks unmet",
+  "state": "active",
+  "created": "2026-11-20T15:14:32Z",
+  "talks": [],
+  "brief": "## Goal\nSee the way on from a step whose check you decided against, once its judge has held to the check.\n\n## Context\n- Seeded by the workspace repo's scripts/seeds/checks-unmet.sh. Nothing is to change: c1 is a shell, and a stand-in plays the judge and the orchestrator.\n",
+  "plan": "## Z\n- The question at step 1 has been seen, and the step passed as it is.\n## Stops early\n- None.\n## Steps\n1. Work: **Version the greeting.** Give the release a version.\n   - in: `demo/checks-unmet`\n   - check: `go test ./...` passes\n   - check: the greeting comes from `greeting()` in `main.go`, and a `VERSION` file holds the release's version\n2. Review: **Look at it.** What step 1 came to.\n",
+  "flag": {
+    "text": "Step 1's check 2 still asks for a VERSION file, but you decided against one (d1): the release's version is its tag. The judge marks it unmet on that half alone. Which should it be? Step 1's checks, round 1, came to 1 of 2 met. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to c1. Or pass it as it is, send it back to c1 with what's unmet, or say what to do.",
+    "by": "orchestrator",
+    "options": [
+      "Pass it",
+      "Send it back",
+      "Go by d1: no VERSION file, and accept step 1",
+      "Reverse d1: c1 adds a VERSION file"
+    ]
+  },
+  "tasks": [
+    {
+      "n": 1,
+      "verb": "checks",
+      "text": "Step 1's check 2 still asks for a VERSION file, but you decided against one (d1): the release's version is its tag. The judge marks it unmet on that half alone. Which should it be? Step 1's checks, round 1, came to 1 of 2 met. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to c1. Or pass it as it is, send it back to c1 with what's unmet, or say what to do.",
+      "step": 1,
+      "options": [
+        "Pass it",
+        "Send it back",
+        "Go by d1: no VERSION file, and accept step 1",
+        "Reverse d1: c1 adds a VERSION file"
+      ],
+      "by": "orchestrator",
+      "at": "2026-11-20T15:14:34Z"
+    }
+  ],
+  "at": "Step 1 of 2: Version the greeting (c1)",
+  "z": [
+    "The question at step 1 has been seen, and the step passed as it is."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "flag",
+      "group": "needs-you",
+      "label": "! asks you",
+      "text": "The orchestrator asks: Step 1's check 2 still asks for a VERSION file, but you decided against one (d1): the release's version is its tag. The judge marks it unmet on that half alone. Which should it be? Step 1's checks, round 1, came to 1 of 2 met. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to c1. Or pass it as it is, send it back to c1 with what's unmet, or say what to do.",
+      "action": {
+        "verb": "answer",
+        "label": "verify b1",
+        "target": "1",
+        "options": [
+          "Pass it",
+          "Send it back",
+          "Go by d1: no VERSION file, and accept step 1",
+          "Reverse d1: c1 adds a VERSION file"
+        ],
+        "look": [
+          {
+            "bundle": "b1",
+            "name": "b1"
+          }
+        ]
+      },
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:34Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "flag",
+      "court": "you",
+      "tone": "you",
+      "title": "Step 1's checks came to 1 of 2 met",
+      "detail": "Step 1's check 2 still asks for a VERSION file, but you decided against one (d1): the release's version is its tag. The judge marks it unmet on that half alone. Which should it be? Step 1's checks, round 1, came to 1 of 2 met. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to c1. Or pass it as it is, send it back to c1 with what's unmet, or say what to do.",
+      "primary": {
+        "do": "verify",
+        "label": "Verify b1",
+        "icon": "list-checks",
+        "target": "b1",
+        "key": "v"
+      },
+      "more": [
+        {
+          "do": "answer",
+          "label": "Pass it",
+          "task": 1,
+          "text": "Pass it"
+        },
+        {
+          "do": "answer",
+          "label": "Send it back",
+          "task": 1,
+          "text": "Send it back"
+        },
+        {
+          "do": "answer",
+          "label": "Go by d1: no VERSION file, and accept step 1",
+          "task": 1,
+          "text": "Go by d1: no VERSION file, and accept step 1"
+        },
+        {
+          "do": "answer",
+          "label": "Reverse d1: c1 adds a VERSION file",
+          "task": 1,
+          "text": "Reverse d1: c1 adds a VERSION file"
+        },
+        {
+          "do": "answer",
+          "label": "Answer…",
+          "task": 1,
+          "field": "Answer in your own words",
+          "quiet": true
+        }
+      ],
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:34Z"
+    }
+  ],
+  "runs": [
+    {
+      "mission": "checks-unmet",
+      "missionTitle": "Checks unmet",
+      "id": "20261120-151434",
+      "started": "2026-11-20T15:14:34.137664Z",
+      "ended": "2026-11-20T15:14:34.313965Z",
+      "for": "c1 (checks)",
+      "trigger": "checks",
+      "harness": "claude",
+      "model": "haiku",
+      "acted": true,
+      "said": "I didn't send c1 back, as that would go against your decision d1. Step 1's check 2 is the only one unmet, and I've asked you which should stand.",
+      "calls": 3,
+      "refused": 0
+    }
+  ],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Version the greeting",
+      "text": "Version the greeting. Give the release a version.",
+      "state": "current",
+      "crew": [
+        "c1"
+      ],
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `demo/checks-unmet`",
+      "in": "demo/checks-unmet",
+      "checks": [
+        {
+          "text": "`go test ./...` passes",
+          "run": true,
+          "result": "met",
+          "evidence": "passed in 0s:\nok  \texample.com/demo\t(cached)",
+          "by": "ws"
+        },
+        {
+          "text": "the greeting comes from `greeting()` in `main.go`, and a `VERSION` file holds the release's version",
+          "result": "unmet",
+          "evidence": "the first half holds: `main.go:5` has `greeting()`, and `main` prints what it returns. The second doesn't: there is no `VERSION` file in the capsule. Decision d2 says the removal was deliberate and that it replaces this check's wording, but d2 is c1's record of the user's choice, and the check still asks for the file. Either the check is reworded to match, or the file is added.",
+          "by": "the judge (claude:haiku)"
+        }
+      ],
+      "round": 1
+    },
+    {
+      "n": 2,
+      "title": "Look at it",
+      "text": "Look at it. What step 1 came to.",
+      "state": "todo",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "demo",
+      "name": "checks-unmet",
+      "branch": "checks-unmet",
+      "path": "/try/demo/repos/demo/checks-unmet",
+      "exists": true,
+      "head": "e002a14e81194155f63121fd29676f7acb9f7438",
+      "dirty": true
+    }
+  ],
+  "crew": [
+    {
+      "id": "c1",
+      "harness": "shell",
+      "capsule": "demo/checks-unmet",
+      "started": "2026-11-20T15:14:32Z",
+      "ended": false,
+      "status": "done",
+      "note": "No VERSION file, as the user chose: the release's version is its tag",
+      "dispatch": "You're a shell: nothing to do. A question is asked as you, a bundle handed over, and done reported, to run the step's checks.",
+      "handoff": "mission:handoffs/c1.md"
+    }
+  ],
+  "artifacts": [
+    {
+      "ref": "mission:handoffs/c1.md",
+      "kind": "handoff",
+      "label": "No VERSION file, as the user chose: the release's version is its tag",
+      "state": "private",
+      "path": "/try/demo/.ws/missions/checks-unmet/files/handoffs/c1.md",
+      "by": "c1",
+      "added": "2026-11-20T15:14:33Z",
+      "readable": true
+    }
+  ],
+  "bundles": [
+    {
+      "id": "b1",
+      "step": 1,
+      "stepName": "Version the greeting",
+      "crew": "c1",
+      "by": "shell",
+      "own": true,
+      "capsule": "demo/checks-unmet",
+      "commit": "e002a14e81194155f63121fd29676f7acb9f7438",
+      "at": "2026-11-20T15:14:33Z",
+      "asked": true,
+      "askedAt": 1,
+      "summary": "The greeting still comes from `greeting()`. As you chose, there is no VERSION file: the release's version is its tag.",
+      "try": [
+        {
+          "text": "`go test ./...`",
+          "command": "go test ./..."
+        }
+      ],
+      "checks": [
+        {
+          "n": 2,
+          "check": "the greeting comes from `greeting()` in `main.go`, and a `VERSION` file holds the release's version",
+          "verdict": "met",
+          "said": "the greeting comes from `greeting()` in `main.go`. By your decision there is no VERSION file.",
+          "shows": [
+            {
+              "name": "checks.txt",
+              "url": "/api/missions/checks-unmet/bundles/b1/file/checks.txt",
+              "kind": "text",
+              "size": 99,
+              "caption": "The tests passing, and no VERSION file"
+            }
+          ],
+          "judged": {
+            "n": 2,
+            "check": "the greeting comes from `greeting()` in `main.go`, and a `VERSION` file holds the release's version",
+            "result": "unmet",
+            "evidence": "the first half holds: `main.go:5` has `greeting()`, and `main` prints what it returns. The second doesn't: there is no `VERSION` file in the capsule. Decision d2 says the removal was deliberate and that it replaces this check's wording, but d2 is c1's record of the user's choice, and the check still asks for the file. Either the check is reworded to match, or the file is added.",
+            "by": "the judge (claude:haiku)"
+          }
+        }
+      ],
+      "ran": [
+        {
+          "n": 1,
+          "check": "`go test ./...` passes",
+          "result": "met",
+          "evidence": "passed in 0s:\nok  \texample.com/demo\t(cached)",
+          "by": "ws"
+        }
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "d2",
+      "what": "No VERSION file: the release's version is its tag",
+      "why": "User chose option A. This replaces step 1's check 2 wording about a VERSION file.",
+      "by": "c1",
+      "at": "2026-11-20T15:14:33Z",
+      "state": "current"
+    },
+    {
+      "id": "d1",
+      "what": "A",
+      "why": "the answer to c1's question: A VERSION file would have to be kept in step with the tag by hand, and the release reads the tag. Options: (A, my recommendation) no VERSION file: the release's version is its tag, and nothing in the repo holds it; (B) add a VERSION file, as check 2 asks. A goes against check 2 as worded, so I need your call. Which one?",
+      "by": "you",
+      "at": "2026-11-20T15:14:33Z",
+      "state": "current"
+    }
+  ],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "capsule_added",
+      "text": "capsule demo/checks-unmet added"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "note",
+      "text": "note: plan written: 2 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "crew_started",
+      "text": "c1 started",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "dispatch",
+      "text": "c1 dispatched you: You're a shell: nothing to do. A question is asked as you, a bundle handed over, and done reported, to run the step's checks.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "stage",
+      "text": "on step 1: **Version the greeting.** Give the release a version.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "crew_asked",
+      "text": "c1 asks: A VERSION file would have to be kept in step with the tag by hand, and the release reads the tag. Options: (A, my recommendation) no VERSION file: the release's version is its tag, and nothing in the repo holds it; (B) add a VERSION file, as check 2 asks. A goes against check 2 as worded, so I need your call. Which one?",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:33Z",
+      "kind": "decision",
+      "text": "you decided d1: A"
+    },
+    {
+      "time": "2026-11-20T15:14:33Z",
+      "kind": "told",
+      "text": "told c1: A",
+      "by": "you",
+      "to": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:33Z",
+      "kind": "decision",
+      "text": "c1 decided d2: No VERSION file: the release's version is its tag",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:33Z",
+      "kind": "bundle",
+      "text": "c1 handed over bundle b1 for step 1: 1 met",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:33Z",
+      "kind": "crew_done",
+      "text": "c1 done: No VERSION file, as the user chose: the release's version is its tag",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:33Z",
+      "kind": "checks",
+      "text": "step 1, check 1 of 2 started: `go test ./...`",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:33Z",
+      "kind": "checks",
+      "text": "step 1, check 1 of 2: `go test ./...` passed in 0s: met",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:33Z",
+      "kind": "checks",
+      "text": "step 1: the judge (claude:haiku) started reading check 2",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:34Z",
+      "kind": "checks",
+      "text": "step 1: the judge (claude:haiku) finished in 0s: check 2 unmet",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:34Z",
+      "kind": "checks",
+      "text": "step 1's checks, round 1 (c1's done): 1 of 2 met; unmet: the greeting comes from `greeting()` in `main.go`, and a `VERSION` file holds t…",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:34Z",
+      "kind": "note",
+      "text": "orchestrator: step 1's round 1 is 1 of 2 met. Check 2 is unmet only on its VERSION file half, and the user decided against one (d1, their answer to c1). Sending c1 back would go against d1, and the planner can't change a step that's begun, so I flagged the user."
+    },
+    {
+      "time": "2026-11-20T15:14:34Z",
+      "kind": "flag",
+      "text": "asks you: Step 1's check 2 still asks for a VERSION file, but you decided against one (d1): the release's version is its tag. The judge marks it unmet on that half alone. Which should it be? Step 1's checks, round 1, came to 1 of 2 met. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to c1. Or pass it as it is, send it back to c1 with what's unmet, or say what to do.",
+      "by": "orchestrator"
+    },
+    {
+      "time": "2026-11-20T15:14:34Z",
+      "kind": "orchestrate",
+      "text": "orchestrator: I didn't send c1 back, as that would go against your decision d1. Step 1's check 2 is the only one unmet, and I've asked you which should stand.",
+      "by": "orchestrator"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "shell"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "sonnet"
+      }
+    ]
+  }
+}

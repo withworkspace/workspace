@@ -127,6 +127,39 @@ func TestDeriveStatus_QueuedPending(t *testing.T) {
 	}
 }
 
+// GitHub lists every run made on the head commit. A pull request whose
+// title failed its check, was edited and passed has both runs there: the
+// check's result is the later one.
+func TestDeriveStatus_ALaterRunReplacesAnEarlierOne(t *testing.T) {
+	run := func(workflow, name, conclusion, status, started string) string {
+		return `{"__typename": "CheckRun", "workflowName": "` + workflow + `", "name": "` + name + `", "conclusion": "` + conclusion + `", "status": "` + status + `", "startedAt": "` + started + `"}`
+	}
+	failedTitle := run("PR Title", "PR Title", "FAILURE", "COMPLETED", "2026-11-20T12:55:31Z")
+	passedTitle := run("PR Title", "PR Title", "SUCCESS", "COMPLETED", "2026-11-20T12:56:40Z")
+	runningTitle := run("PR Title", "PR Title", "", "IN_PROGRESS", "2026-11-20T12:56:40Z")
+	passedTest := run("CI", "Test", "SUCCESS", "COMPLETED", "2026-11-20T12:55:33Z")
+	for _, c := range []struct {
+		name string
+		runs []string
+		want string
+	}{
+		{"a failure, then the same check passing", []string{failedTitle, passedTest, passedTitle}, "success"},
+		{"listed the other way round", []string{passedTitle, passedTest, failedTitle}, "success"},
+		{"a failure, and the same check running again", []string{failedTitle, passedTest, runningTitle}, "pending"},
+		{"a pass, then the same check failing", []string{
+			run("PR Title", "PR Title", "SUCCESS", "COMPLETED", "2026-11-20T12:55:31Z"), passedTest,
+			run("PR Title", "PR Title", "FAILURE", "COMPLETED", "2026-11-20T12:56:40Z")}, "failure"},
+		{"the same name in another workflow is another check", []string{
+			run("Lint", "check", "FAILURE", "COMPLETED", "2026-11-20T12:55:31Z"),
+			run("CI", "check", "SUCCESS", "COMPLETED", "2026-11-20T12:56:40Z")}, "failure"},
+	} {
+		raw := json.RawMessage(`{"statusCheckRollup": [` + strings.Join(c.runs, ",") + `]}`)
+		if got := deriveStatus(raw); got != c.want {
+			t.Errorf("%s: deriveStatus() = %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
 func TestDeriveStatus_PendingStatus(t *testing.T) {
 	raw := json.RawMessage(`{
 		"statusCheckRollup": [

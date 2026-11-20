@@ -4139,6 +4139,19 @@ dd > .more-link,
   margin-top: -4px;
 }
 
+/* A notice's control is there to use, not to lead the page: the lead's is
+   the one primary, so a notice's reads as an ordinary button. */
+.headline.also :is(button, .button-link).primary:not(:disabled) {
+  color: var(--fg);
+  background: var(--raised);
+  border-color: var(--line-strong);
+}
+
+.headline.also :is(button, .button-link).primary:hover:not(:disabled) {
+  color: var(--fg);
+  background: var(--hover);
+}
+
 .headline .request {
   margin-top: 6px;
 }

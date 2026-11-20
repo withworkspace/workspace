@@ -1,0 +1,71 @@
+{
+  "slug": "invoices-in-more-than-one-currency",
+  "title": "Invoices in more than one currency",
+  "state": "parked",
+  "created": "2026-11-20T15:14:14Z",
+  "talks": [],
+  "brief": "## Goal\nA studio can send an invoice in the currency its customer pays in, and see what it's worth in its own.\n\n## Context\n- Waits on the exchange rates tomas is caching (api#43, api#44).\n",
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "parked",
+      "group": "up-next",
+      "label": "parked",
+      "text": "Parked: nothing moves until you unpark it",
+      "action": {
+        "verb": "unpark",
+        "label": "unpark it"
+      }
+    }
+  ],
+  "cards": [
+    {
+      "kind": "parked",
+      "court": "you",
+      "tone": "quiet",
+      "title": "Parked",
+      "detail": "Nothing moves until you unpark it",
+      "primary": {
+        "do": "unpark",
+        "label": "Unpark it",
+        "icon": "play"
+      }
+    }
+  ],
+  "runs": [],
+  "stages": [],
+  "capsules": [],
+  "crew": [],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:14Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:14Z",
+      "kind": "state",
+      "text": "parked"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "claude",
+      "model": "sonnet"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "opus"
+      },
+      {
+        "harness": "claude",
+        "model": "haiku"
+      }
+    ]
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "slug": "rotate-the-webhook-signing-key",
+  "title": "Rotate the webhook signing key",
+  "state": "active",
+  "created": "2026-11-20T15:14:14Z",
+  "talks": [],
+  "brief": "## Goal\nWebhooks are signed with a new key, and the old one is gone, with no delivery refused in between.\n\n## Context\n- The api signs with either key while both are in the vault. The platform team adds the new one.\n",
+  "plan": "## Z\n- Webhooks are signed with the new key, and the old one is gone.\n## Stops early\n- None.\n## Steps\n1. Review: **Ready to rotate.** The api signs with either key.\n2. Wait: **The new key is in the vault.** The platform team adds it, in prd.\n   - on: the platform team\n3. Work: **Drop the old key.** Sign with the new one alone.\n   - in: `api/key-rotation`\n   - check: `go test ./...` passes\n",
+  "at": "Step 2 of 3, waiting on the platform team: The new key is in the vault",
+  "z": [
+    "Webhooks are signed with the new key, and the old one is gone."
+  ],
+  "headlines": [
+    {
+      "court": "outside",
+      "kind": "waiting-on",
+      "group": "waiting",
+      "label": "⧗ waiting",
+      "text": "Step 2 waits on the platform team: The new key is in the vault. The platform team adds it, in prd. Nobody's watching for it: mark it done when it's happened",
+      "action": {
+        "verb": "wait",
+        "label": "mark step 2 done"
+      },
+      "by": "step 2",
+      "since": "2026-11-20T15:14:14Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "waiting-on",
+      "court": "outside",
+      "tone": "outside",
+      "title": "Step 2 waits on the platform team",
+      "detail": "The new key is in the vault. The platform team adds it, in prd. Nobody's watching for it: mark it done when it's happened",
+      "primary": {
+        "do": "accept",
+        "label": "Mark done",
+        "icon": "check",
+        "field": "What happened, if the crew after should know"
+      },
+      "by": "step 2",
+      "since": "2026-11-20T15:14:14Z"
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Ready to rotate",
+      "text": "Ready to rotate. The api signs with either key.",
+      "state": "accepted",
+      "why": "It signs with either. Asked the platform team for the new key on Monday.",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 2,
+      "title": "The new key is in the vault",
+      "text": "The new key is in the vault. The platform team adds it, in prd.",
+      "state": "current",
+      "type": "Wait",
+      "who": "outside",
+      "whoSays": "outside: the platform team",
+      "on": "the platform team",
+      "passes": "said",
+      "watch": {
+        "since": "2026-11-20T15:14:14Z"
+      }
+    },
+    {
+      "n": 3,
+      "title": "Drop the old key",
+      "text": "Drop the old key. Sign with the new one alone.",
+      "state": "todo",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `api/key-rotation`",
+      "in": "api/key-rotation",
+      "checks": [
+        {
+          "text": "`go test ./...` passes",
+          "run": true
+        }
+      ]
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "api",
+      "name": "key-rotation",
+      "branch": "key-rotation",
+      "path": "/try/sorrel/repos/api/key-rotation",
+      "exists": true,
+      "head": "9f9b8ef83fccf355982a1fb60da20bd876d5b5fb"
+    }
+  ],
+  "crew": [],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:14Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:14Z",
+      "kind": "capsule_added",
+      "text": "capsule api/key-rotation added"
+    },
+    {
+      "time": "2026-11-20T15:14:14Z",
+      "kind": "note",
+      "text": "note: plan written: 3 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:14Z",
+      "kind": "stage",
+      "text": "step 1 accepted: **Ready to rotate.** The api signs with either key. · It signs with either. Asked the platform team for the new key on Monday.",
+      "by": "you"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "claude",
+      "model": "sonnet"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "opus"
+      },
+      {
+        "harness": "claude",
+        "model": "haiku"
+      }
+    ]
+  }
+}

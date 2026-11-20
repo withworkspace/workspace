@@ -227,6 +227,10 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 	for _, h := range v.Headlines {
 		d.Headlines = append(d.Headlines, headline(h))
 	}
+	d.Cards = v.Cards
+	if d.Cards == nil {
+		d.Cards = []mission.Card{}
+	}
 	if m.PlanErr != nil {
 		d.PlanProblem = m.PlanErr.Error()
 	}

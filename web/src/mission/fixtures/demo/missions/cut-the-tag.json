@@ -1,0 +1,164 @@
+{
+  "slug": "cut-the-tag",
+  "title": "Cut the tag",
+  "state": "active",
+  "created": "2026-11-20T15:14:31Z",
+  "talks": [],
+  "brief": "## Goal\nCut the tag, then carry on from what was released.\n\n## Context\n- Seeded by the workspace repo's scripts/seeds/waits.sh.\n",
+  "plan": "## Z\n- It's released, and demo is moved on to it.\n## Stops early\n- None.\n## Steps\n1. Review: **Ready to release.** The change, before it's released.\n2. Wait: **Cut the tag.** The user tags a release of demo, and it's published.\n   - on: you\n3. Work: **Move on to it.** demo requires the released version.\n   - in: `demo/cut-the-tag`\n",
+  "flag": {
+    "text": "Step 1 is done. Step 2 is yours, to do: Cut the tag. The user tags a release of demo, and it's published. ws can't see it happen, so nothing moves until you mark it done. Say what you did after it, if the crew after should know (Done: tagged v1.4.0).",
+    "by": "ws",
+    "options": [
+      "Done"
+    ]
+  },
+  "tasks": [
+    {
+      "n": 1,
+      "verb": "do",
+      "text": "Step 1 is done. Step 2 is yours, to do: Cut the tag. The user tags a release of demo, and it's published. ws can't see it happen, so nothing moves until you mark it done. Say what you did after it, if the crew after should know (Done: tagged v1.4.0).",
+      "step": 2,
+      "options": [
+        "Done"
+      ],
+      "by": "ws",
+      "at": "2026-11-20T15:14:31Z"
+    }
+  ],
+  "at": "Step 2 of 3, yours: Cut the tag",
+  "z": [
+    "It's released, and demo is moved on to it."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "to-do",
+      "group": "needs-you",
+      "label": "→ to do",
+      "text": "Step 1 is done. Step 2 is yours, to do: Cut the tag. The user tags a release of demo, and it's published. ws can't see it happen, so nothing moves until you mark it done. Say what you did after it, if the crew after should know (Done: tagged v1.4.0).",
+      "action": {
+        "verb": "answer",
+        "label": "mark it done",
+        "target": "1",
+        "options": [
+          "Done"
+        ]
+      },
+      "by": "ws",
+      "since": "2026-11-20T15:14:31Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "to-do",
+      "court": "you",
+      "tone": "you",
+      "title": "Step 2 is yours to do: Cut the tag",
+      "detail": "The user tags a release of demo, and it's published. ws can't see it happen, so nothing moves until you mark it done.",
+      "primary": {
+        "do": "answer",
+        "label": "Mark done",
+        "icon": "check",
+        "task": 1,
+        "text": "Done",
+        "field": "What you did, if the crew after should know",
+        "prefix": "Done: "
+      },
+      "by": "ws",
+      "since": "2026-11-20T15:14:31Z"
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Ready to release",
+      "text": "Ready to release. The change, before it's released.",
+      "state": "accepted",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 2,
+      "title": "Cut the tag",
+      "text": "Cut the tag. The user tags a release of demo, and it's published.",
+      "state": "current",
+      "type": "Wait",
+      "who": "you",
+      "whoSays": "you",
+      "on": "you",
+      "passes": "done",
+      "watch": {
+        "since": "2026-11-20T15:14:31Z"
+      }
+    },
+    {
+      "n": 3,
+      "title": "Move on to it",
+      "text": "Move on to it. demo requires the released version.",
+      "state": "todo",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `demo/cut-the-tag`",
+      "in": "demo/cut-the-tag"
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "demo",
+      "name": "cut-the-tag",
+      "branch": "cut-the-tag",
+      "path": "/try/demo/repos/demo/cut-the-tag",
+      "exists": true,
+      "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+    }
+  ],
+  "crew": [],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:31Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:31Z",
+      "kind": "capsule_added",
+      "text": "capsule demo/cut-the-tag added"
+    },
+    {
+      "time": "2026-11-20T15:14:31Z",
+      "kind": "note",
+      "text": "note: plan written: 3 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:31Z",
+      "kind": "stage",
+      "text": "step 1 accepted: **Ready to release.** The change, before it's released.",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:31Z",
+      "kind": "flag",
+      "text": "asks you: Step 1 is done. Step 2 is yours, to do: Cut the tag. The user tags a release of demo, and it's published. ws can't see it happen, so nothing moves until you mark it done. Say what you did after it, if the crew after should know (Done: tagged v1.4.0).",
+      "by": "ws"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "shell"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "sonnet"
+      }
+    ]
+  }
+}

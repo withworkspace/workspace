@@ -1,0 +1,655 @@
+{
+  "slug": "export-invoices-as-csv",
+  "title": "Export invoices as CSV",
+  "state": "active",
+  "created": "2026-11-20T15:14:19Z",
+  "talks": [],
+  "brief": "## Goal\nA studio downloads the invoices its page is showing, filter included, as a CSV for its accountant.\n\n## Context\n- Proposed in records (`proposals/csv-export.md`), and accepted.\n- One row an invoice. Amounts as a customer reads them, not minor units.\n\n## Acceptance\n- **api:** `GET /invoices.csv` takes the filter `GET /invoices` does.\n- **web:** an Export button in the invoices toolbar, which can't be pressed with nothing to export.\n",
+  "plan": "## Z\n- The invoices page exports what it shows as a CSV, shown working in a browser, merged in api and web.\n## Stops early\n- None.\n## Steps\n1. Work: **The endpoint.** `GET /invoices.csv`, which takes the filter `GET /invoices` does.\n   - in: `api/csv-export`\n   - check: `go test ./...` passes\n2. Work: **The button.** Export, in the invoices toolbar, which downloads what the filter shows.\n   - in: `web/csv-export`\n   - makes: the button, and a decision saying how the dashboard is run against the api\n3. Verify: **Browser check.** The export, running. \"A change to the dashboard is shown working in a browser, by someone who didn't build it.\"\n   - in: `web/csv-export`\n   - check: the file has the invoices the filter shows, and no others\n   - check: Export can't be pressed while there's nothing to export\n   - yours: the button sits well in the toolbar, light and dark\n4. Review: **Approve the browser check.** The bundle from step 3, and both changes. \"I review every change before its pull request is opened\"\n5. Open Pull Request: **Open the api's.**\n   - in: `api`\n6. Open Pull Request: **Open the dashboard's.**\n   - in: `web`\n",
+  "flag": {
+    "text": "Step 3 is done (c3: handed over b1: 2 met, 1 yours). Step 4 is yours, to review: Approve the browser check. The bundle from step 3, and both changes. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to the crew who made it. Or go on. The work it shows is in api/csv-export, web/csv-export, to review beside it.",
+    "by": "ws",
+    "options": [
+      "Go on",
+      "Not yet"
+    ]
+  },
+  "tasks": [
+    {
+      "n": 1,
+      "verb": "review",
+      "text": "Step 3 is done (c3: handed over b1: 2 met, 1 yours). Step 4 is yours, to review: Approve the browser check. The bundle from step 3, and both changes. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to the crew who made it. Or go on. The work it shows is in api/csv-export, web/csv-export, to review beside it.",
+      "step": 4,
+      "options": [
+        "Go on",
+        "Not yet"
+      ],
+      "by": "ws",
+      "at": "2026-11-20T15:14:21Z"
+    }
+  ],
+  "at": "Step 4 of 6, yours: Approve the browser check",
+  "z": [
+    "The invoices page exports what it shows as a CSV, shown working in a browser, merged in api and web."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "step-review",
+      "group": "needs-you",
+      "label": "✓ review",
+      "text": "Step 3 is done (c3: handed over b1: 2 met, 1 yours). Step 4 is yours, to review: Approve the browser check. The bundle from step 3, and both changes. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to the crew who made it. Or go on. The work it shows is in api/csv-export, web/csv-export, to review beside it.",
+      "action": {
+        "verb": "review-step",
+        "label": "verify b1",
+        "target": "1",
+        "look": [
+          {
+            "bundle": "b1",
+            "name": "b1"
+          },
+          {
+            "capsule": "api/csv-export",
+            "name": "api/csv-export"
+          },
+          {
+            "capsule": "web/csv-export",
+            "name": "web/csv-export"
+          },
+          {
+            "doc": "mission:handoffs/c1.md",
+            "name": "handoffs/c1.md",
+            "read": true
+          },
+          {
+            "doc": "mission:handoffs/c2.md",
+            "name": "handoffs/c2.md",
+            "read": true
+          }
+        ]
+      },
+      "by": "ws",
+      "since": "2026-11-20T15:14:21Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "step-review",
+      "court": "you",
+      "tone": "you",
+      "title": "Step 4 is yours to review: Approve the browser check",
+      "detail": "c3: handed over b1: 2 met, 1 yours",
+      "primary": {
+        "do": "verify",
+        "label": "Verify b1",
+        "icon": "list-checks",
+        "target": "b1",
+        "key": "v"
+      },
+      "more": [
+        {
+          "do": "review",
+          "label": "Review api/csv-export",
+          "icon": "eye",
+          "target": "api/csv-export"
+        },
+        {
+          "do": "review",
+          "label": "Review web/csv-export",
+          "icon": "eye",
+          "target": "web/csv-export"
+        },
+        {
+          "do": "read",
+          "label": "Read handoffs/c1.md",
+          "icon": "file",
+          "target": "mission:handoffs/c1.md"
+        },
+        {
+          "do": "read",
+          "label": "Read handoffs/c2.md",
+          "icon": "file",
+          "target": "mission:handoffs/c2.md"
+        },
+        {
+          "do": "answer",
+          "label": "Go on",
+          "task": 1,
+          "text": "Go on"
+        },
+        {
+          "do": "answer",
+          "label": "Send back…",
+          "task": 1,
+          "field": "Say what's to change, and it goes back to its crew",
+          "quiet": true
+        }
+      ],
+      "by": "ws",
+      "since": "2026-11-20T15:14:21Z"
+    }
+  ],
+  "runs": [
+    {
+      "mission": "export-invoices-as-csv",
+      "missionTitle": "Export invoices as CSV",
+      "id": "20261120-151421",
+      "started": "2026-11-20T15:14:21.144302Z",
+      "ended": "2026-11-20T15:14:21.334266Z",
+      "for": "c2 (done)",
+      "trigger": "done",
+      "harness": "claude",
+      "model": "haiku",
+      "acted": true,
+      "said": "Accepted step 2. Its verifier starts on step 3.",
+      "calls": 3,
+      "refused": 0
+    }
+  ],
+  "stages": [
+    {
+      "n": 1,
+      "title": "The endpoint",
+      "text": "The endpoint. GET /invoices.csv, which takes the filter GET /invoices does.",
+      "state": "accepted",
+      "crew": [
+        "c1"
+      ],
+      "why": "its checks are met (round 1)",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `api/csv-export`",
+      "in": "api/csv-export",
+      "checks": [
+        {
+          "text": "`go test ./...` passes",
+          "run": true,
+          "result": "met",
+          "evidence": "passed in 0s:\n?   \texample.com/api/cmd/api\t[no test files]\nok  \texample.com/api/internal/httpapi\t(cached)\nok  \texample.com/api/internal/invoice\t(cached)\nok  \texample.com/api/internal/webhook\t(cached)",
+          "by": "ws"
+        }
+      ],
+      "round": 1
+    },
+    {
+      "n": 2,
+      "title": "The button",
+      "text": "The button. Export, in the invoices toolbar, which downloads what the filter shows.",
+      "state": "accepted",
+      "crew": [
+        "c2"
+      ],
+      "why": "The button is in the toolbar and downloads what the filter shows.",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `web/csv-export`",
+      "in": "web/csv-export",
+      "makes": "the button, and a decision saying how the dashboard is run against the api"
+    },
+    {
+      "n": 3,
+      "title": "Browser check",
+      "text": "Browser check. The export, running.",
+      "state": "accepted",
+      "crew": [
+        "c3"
+      ],
+      "why": "b1 shows it (2 of 3 met; yours: the button sits well in the toolbar, light and dark)",
+      "type": "Verify",
+      "who": "crew",
+      "whoSays": "crew, in `web/csv-export`",
+      "in": "web/csv-export",
+      "checks": [
+        {
+          "text": "the file has the invoices the filter shows, and no others",
+          "result": "met",
+          "evidence": "With the filter at \"marlow\", the page showed three invoices, and the file had those three and no others. The page: INV-0042, INV-0039 and INV-0031.; The file: a heading and the same three rows.",
+          "by": "the verifier (c3)"
+        },
+        {
+          "text": "Export can't be pressed while there's nothing to export",
+          "result": "met",
+          "evidence": "With a filter that matches nothing, Export is grey, and a click on it does nothing.",
+          "by": "the verifier (c3)"
+        },
+        {
+          "text": "the button sits well in the toolbar, light and dark",
+          "result": "yours",
+          "evidence": "Export is the last thing in the toolbar, after the filter and as tall as it.",
+          "by": "the verifier (c3)"
+        }
+      ],
+      "round": 1
+    },
+    {
+      "n": 4,
+      "title": "Approve the browser check",
+      "text": "Approve the browser check. The bundle from step 3, and both changes.",
+      "state": "current",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 5,
+      "title": "Open the api's",
+      "text": "Open the api's.",
+      "state": "todo",
+      "type": "Open Pull Request",
+      "who": "ws",
+      "whoSays": "ws",
+      "in": "api",
+      "opensPR": true
+    },
+    {
+      "n": 6,
+      "title": "Open the dashboard's",
+      "text": "Open the dashboard's.",
+      "state": "todo",
+      "type": "Open Pull Request",
+      "who": "ws",
+      "whoSays": "ws",
+      "in": "web",
+      "opensPR": true
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "api",
+      "name": "csv-export",
+      "branch": "csv-export",
+      "path": "/try/sorrel/repos/api/csv-export",
+      "exists": true,
+      "head": "d7549d614f138efde37665da904181053ed99304",
+      "ahead": 1
+    },
+    {
+      "repo": "web",
+      "name": "csv-export",
+      "branch": "csv-export",
+      "path": "/try/sorrel/repos/web/csv-export",
+      "exists": true,
+      "head": "998975c3b4a40c644defca01074e2e3ce551715f",
+      "ahead": 1
+    }
+  ],
+  "crew": [
+    {
+      "id": "c1",
+      "harness": "claude",
+      "capsule": "api/csv-export",
+      "started": "2026-11-20T15:14:20Z",
+      "ended": false,
+      "activity": "waiting",
+      "status": "done",
+      "note": "GET /invoices.csv gives a row an invoice, kept to the filter.",
+      "dispatch": "Write GET /invoices.csv, which takes the filter GET /invoices does.",
+      "handoff": "mission:handoffs/c1.md"
+    },
+    {
+      "id": "c2",
+      "harness": "claude",
+      "capsule": "web/csv-export",
+      "started": "2026-11-20T15:14:20Z",
+      "ended": true,
+      "activity": "waiting",
+      "status": "done",
+      "endedAt": "2026-11-20T15:14:21Z",
+      "exit": "hangup",
+      "how": "handed-back",
+      "note": "Export is in the invoices toolbar, and downloads what the filter shows.",
+      "dispatch": "**The button.** Export, in the invoices toolbar, which downloads what the filter shows. It makes: the button, and a decision saying how the dashboard is run against the api.",
+      "handoff": "mission:handoffs/c2.md"
+    },
+    {
+      "id": "c3",
+      "harness": "claude",
+      "capsule": "web/csv-export",
+      "started": "2026-11-20T15:14:21Z",
+      "ended": false,
+      "activity": "waiting",
+      "status": "done",
+      "note": "handed over b1: 2 met, 1 yours",
+      "dispatch": "**Browser check.** The export, running. It shows whether these are true (ws runs the commands itself; one marked yours is the user's to settle, with what's left to help them): 1. the file has the invoices the filter shows, and no others 2. Export can't be pressed while there's nothing to export 3. the button sits well in the toolbar, light and dark (yours)"
+    }
+  ],
+  "artifacts": [
+    {
+      "ref": "mission:handoffs/c1.md",
+      "kind": "handoff",
+      "label": "GET /invoices.csv gives a row an invoice, kept to the filter.",
+      "state": "private",
+      "path": "/try/sorrel/.ws/missions/export-invoices-as-csv/files/handoffs/c1.md",
+      "by": "c1",
+      "added": "2026-11-20T15:14:20Z",
+      "readable": true
+    },
+    {
+      "ref": "mission:handoffs/c2.md",
+      "kind": "handoff",
+      "label": "Export is in the invoices toolbar, and downloads what the filter shows.",
+      "state": "private",
+      "path": "/try/sorrel/.ws/missions/export-invoices-as-csv/files/handoffs/c2.md",
+      "by": "c2",
+      "added": "2026-11-20T15:14:21Z",
+      "readable": true
+    }
+  ],
+  "bundles": [
+    {
+      "id": "b1",
+      "step": 3,
+      "stepName": "Browser check",
+      "crew": "c3",
+      "by": "claude",
+      "capsule": "web/csv-export",
+      "commit": "998975c3b4a40c644defca01074e2e3ce551715f",
+      "at": "2026-11-20T15:14:21Z",
+      "asked": true,
+      "askedAt": 4,
+      "summary": "Both checks are met. The file holds the three invoices the filter shows, and Export can't be pressed when the filter shows none. How the button sits in the toolbar is yours to say.",
+      "try": [
+        {
+          "text": "`pnpm install && pnpm dev`",
+          "command": "pnpm install && pnpm dev"
+        },
+        {
+          "text": "Invoices, on http://localhost:5173",
+          "look": true
+        },
+        {
+          "text": "Export, at the end of the toolbar",
+          "look": true
+        }
+      ],
+      "checks": [
+        {
+          "n": 1,
+          "check": "the file has the invoices the filter shows, and no others",
+          "verdict": "met",
+          "said": "With the filter at \"marlow\", the page showed three invoices, and the file had those three and no others.",
+          "points": [
+            "The page: INV-0042, INV-0039 and INV-0031.",
+            "The file: a heading and the same three rows."
+          ],
+          "shows": [
+            {
+              "name": "download.txt",
+              "url": "/api/missions/export-invoices-as-csv/bundles/b1/file/download.txt",
+              "kind": "text",
+              "size": 334,
+              "caption": "The file, as the api gave it"
+            },
+            {
+              "name": "invoices-light.svg",
+              "url": "/api/missions/export-invoices-as-csv/bundles/b1/file/invoices-light.svg",
+              "kind": "image",
+              "size": 1639,
+              "caption": "The page, filtered to marlow"
+            }
+          ]
+        },
+        {
+          "n": 2,
+          "check": "Export can't be pressed while there's nothing to export",
+          "verdict": "met",
+          "said": "With a filter that matches nothing, Export is grey, and a click on it does nothing.",
+          "shows": [
+            {
+              "name": "invoices-empty.svg",
+              "url": "/api/missions/export-invoices-as-csv/bundles/b1/file/invoices-empty.svg",
+              "kind": "image",
+              "size": 1015,
+              "caption": "No invoices, and Export greyed"
+            }
+          ]
+        },
+        {
+          "n": 3,
+          "check": "the button sits well in the toolbar, light and dark",
+          "verdict": "yours",
+          "said": "Export is the last thing in the toolbar, after the filter and as tall as it.",
+          "shows": [
+            {
+              "name": "invoices-light.svg",
+              "url": "/api/missions/export-invoices-as-csv/bundles/b1/file/invoices-light.svg",
+              "kind": "image",
+              "size": 1639,
+              "caption": "Light",
+              "before": {
+                "name": "invoices-light-before.svg",
+                "url": "/api/missions/export-invoices-as-csv/bundles/b1/file/invoices-light-before.svg",
+                "kind": "image",
+                "size": 1482
+              }
+            },
+            {
+              "name": "invoices-dark.svg",
+              "url": "/api/missions/export-invoices-as-csv/bundles/b1/file/invoices-dark.svg",
+              "kind": "image",
+              "size": 1642,
+              "caption": "Dark",
+              "before": {
+                "name": "invoices-dark-before.svg",
+                "url": "/api/missions/export-invoices-as-csv/bundles/b1/file/invoices-dark-before.svg",
+                "kind": "image",
+                "size": 1485
+              }
+            }
+          ]
+        }
+      ],
+      "notVerified": [
+        "Safari: it isn't installed here.",
+        "A list of more than fifty invoices: the sample has 41."
+      ],
+      "noticed": [
+        "An amount in yen is written with two decimals (`1200.00`), and yen has none."
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "d1",
+      "what": "The dashboard is run with pnpm dev, against the api on :8080 (go run ./cmd/api, in its capsule)",
+      "why": "The verifier needs both running to see the export work",
+      "by": "c2",
+      "at": "2026-11-20T15:14:20Z",
+      "state": "current"
+    }
+  ],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:19Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:19Z",
+      "kind": "capsule_added",
+      "text": "capsule api/csv-export added"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "capsule_added",
+      "text": "capsule web/csv-export added"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "note",
+      "text": "note: plan written: 6 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "crew_started",
+      "text": "c1 started",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "dispatch",
+      "text": "c1 dispatched you: Write GET /invoices.csv, which takes the filter GET /invoices does.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "stage",
+      "text": "on step 1: **The endpoint.** `GET /invoices.csv`, which takes the filter `GET /invoices` does.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "crew_done",
+      "text": "c1 done: GET /invoices.csv gives a row an invoice, kept to the filter. · left: The button in the dashboard.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "checks",
+      "text": "step 1, check 1 of 1 started: `go test ./...`",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "checks",
+      "text": "step 1, check 1 of 1: `go test ./...` passed in 0s: met",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "checks",
+      "text": "step 1's checks, round 1 (c1's done): 1 of 1 met",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "stage",
+      "text": "step 1 accepted: **The endpoint.** `GET /invoices.csv`, which takes the filter `GET /invoices` does. · its checks are met (round 1)",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "crew_started",
+      "text": "c2 started",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "dispatch",
+      "text": "c2 dispatched ws: **The button.** Export, in the invoices toolbar, which downloads what the filter shows. It makes: the button, and a decision saying how the dashboard is run against the api.",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:20Z",
+      "kind": "stage",
+      "text": "on step 2: **The button.** Export, in the invoices toolbar, which downloads what the filter shows.",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "decision",
+      "text": "c2 decided d1: The dashboard is run with pnpm dev, against the api on :8080 (go run ./cmd/api, in its capsule)",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "crew_done",
+      "text": "c2 done: Export is in the invoices toolbar, and downloads what the filter shows.",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "note",
+      "text": "orchestrator: step 2 has no checks, so it's mine to judge. c2's change is one commit in web/csv-export: ExportButton, in the toolbar, with the filter in its address. That's what the step asks. Accepted: step 3 has it shown in a browser."
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "stage",
+      "text": "step 2 accepted: **The button.** Export, in the invoices toolbar, which downloads what the filter shows. · The button is in the toolbar and downloads what the filter shows.",
+      "by": "orchestrator"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "note",
+      "text": "note: ended c2's session in web/csv-export: it had handed back its work, and new crew start there (its page resumes it)"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "crew_started",
+      "text": "c3 started",
+      "by": "c3"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "dispatch",
+      "text": "c3 dispatched ws: **Browser check.** The export, running. It shows whether these are true (ws runs the commands itself; one marked yours is the user's to settle, with what's left to help them): 1. the file has the invoices the filter shows, and no others 2. Export can't be pressed while there's nothing to export 3. the button sits well in the toolbar, light and dark (yours)",
+      "by": "c3"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "stage",
+      "text": "on step 3: **Browser check.** The export, running.",
+      "by": "c3"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "orchestrate",
+      "text": "orchestrator: Accepted step 2. Its verifier starts on step 3.",
+      "by": "orchestrator"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "crew_ended",
+      "text": "c2's session was closed: it had handed its work back",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "bundle",
+      "text": "c3 handed over bundle b1 for step 3: 2 met, 1 yours",
+      "by": "c3"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "crew_done",
+      "text": "c3 done: handed over b1: 2 met, 1 yours",
+      "by": "c3"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "checks",
+      "text": "step 3's checks, round 1 (c3's done): 2 of 3 met; yours: the button sits well in the toolbar, light and dark",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "stage",
+      "text": "step 3 accepted: **Browser check.** The export, running. · b1 shows it (2 of 3 met; yours: the button sits well in the toolbar, light and dark)",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "flag",
+      "text": "asks you: Step 3 is done (c3: handed over b1: 2 met, 1 yours). Step 4 is yours, to review: Approve the browser check. The bundle from step 3, and both changes. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to the crew who made it. Or go on. The work it shows is in api/csv-export, web/csv-export, to review beside it.",
+      "by": "ws"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "claude",
+      "model": "sonnet"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "opus"
+      },
+      {
+        "harness": "claude",
+        "model": "haiku"
+      }
+    ]
+  }
+}

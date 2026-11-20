@@ -1945,6 +1945,116 @@ export interface Mission {
     about?: string[];
 }
 
+// From mission/card.go
+/**
+ * Act is one thing a card offers.
+ */
+export interface MissionAct {
+    do: string;
+    label: string;
+    icon?: string;
+    /**
+     * Target is what it's done to: crew, a capsule, a bundle, a document,
+     * a conversation.
+     */
+    target?: string;
+    url?: string;
+    /**
+     * Task is the task an answer is to; Text what it answers with.
+     */
+    task?: number;
+    text?: string;
+    /**
+     * Field is the placeholder of a field for words that go with it: the
+     * card's Primary has it beside it; any other opens it when pressed.
+     * What's written goes after Prefix, in place of Text.
+     */
+    field?: string;
+    prefix?: string;
+    /**
+     * Quiet is one that overrides the Primary, or puts the card aside.
+     */
+    quiet?: boolean;
+    /**
+     * Key is the key that does it on the mission's page.
+     */
+    key?: string;
+}
+
+// From mission/card.go
+/**
+ * Card is one headline as it's drawn.
+ */
+export interface MissionCard {
+    kind: MissionKind;
+    court: MissionCourt;
+    tone: MissionTone;
+    /**
+     * Title says what's happening; Detail is a sentence more, or "".
+     */
+    title: string;
+    detail?: string;
+    /**
+     * Nothing is true where there's nothing for you to do.
+     */
+    nothing?: boolean;
+    /**
+     * Primary is the one action meant to move it, or nil.
+     */
+    primary?: MissionAct;
+    /**
+     * More is what comes after it, in order: choices, then the quiet ones.
+     */
+    more?: MissionAct[];
+    /**
+     * Folded is the kind of the step's own headline this card carries the
+     * control of, where the plan waits at a step and something else leads.
+     */
+    folded?: MissionKind;
+    by?: string;
+    since?: string;
+    /**
+     * Checking is what's running, while ws checks a step.
+     */
+    checking?: MissionChecking;
+}
+
+// From mission/checking.go
+/**
+ * Checking is what ws is running while it checks step Step: a check that's
+ * a command (N, from 1, of the step's Of), or the judge (N 0), reading the
+ * checks at Judged.
+ */
+export interface MissionChecking {
+    step: number;
+    crew: string; // whose done it checks
+    of: number; // how many checks the step has
+    /**
+     * N is the check running, from 1; 0 while the judge is reading.
+     */
+    n?: number;
+    command?: string;
+    /**
+     * Line is the last line the command has printed so far.
+     */
+    line?: string;
+    /**
+     * Judged are the checks the judge judges (from 1): after the
+     * commands, or now, with N 0.
+     */
+    judged?: number[];
+    /**
+     * Judge is who's reading them, once the judge has started.
+     */
+    judge?: string;
+    /**
+     * Since is when the check, or the judge, started; Until when it's
+     * stopped if it hasn't finished (its timeout).
+     */
+    since: string;
+    until: string;
+}
+
 // From mission/court.go
 /**
  * Court is who a mission waits on.
@@ -2016,6 +2126,12 @@ export interface MissionDetail {
      */
     headlines: Headline[];
     /**
+     * Cards is the headlines as the page draws them, the lead first: each
+     * with its title, its sentence, the one action meant to move it and
+     * what comes after (mission.Cards).
+     */
+    cards: MissionCard[];
+    /**
      * Runs are the orchestrator's latest runs on it, newest first.
      */
     runs: OrchestratorRun[];
@@ -2046,6 +2162,12 @@ export interface MissionDetail {
  */
 export type MissionEnding = "answered" | "dropped" | "handed-on" | "landed";
 
+// From mission/court.go
+/**
+ * Kind is the situation a headline describes.
+ */
+export type MissionKind = "accept" | "answering" | "approve" | "archived" | "awaiting-review" | "brief-talk" | "briefing" | "changes-requested" | "checking" | "checks-failing" | "checks-running" | "crew-asks" | "deciding" | "ended" | "flag" | "land" | "landed" | "launching" | "merge" | "moving-on" | "own-work" | "parked" | "permission" | "proposed" | "queued" | "re-review" | "ready" | "replied" | "replies" | "resume" | "stalled" | "step-review" | "to-brief" | "to-do" | "waiting-on" | "working" | "wrap-up";
+
 // From mission/mission.go
 /**
  * State is a mission's lifecycle state. Parked and Archived are stored,
@@ -2054,6 +2176,13 @@ export type MissionEnding = "answered" | "dropped" | "handed-on" | "landed";
  * from capsule and PR facts (see DeriveState).
  */
 export type MissionState = "active" | "answered" | "archived" | "briefing" | "draft" | "dropped" | "handed-on" | "landed" | "parked" | "review";
+
+// From mission/card.go
+/**
+ * Tone is whose a card is, as its colour says: yours, failing (and yours),
+ * an agent's, outside's, done, or nobody's in particular.
+ */
+export type MissionTone = "agent" | "done" | "failing" | "outside" | "quiet" | "you";
 
 // From web/runs.go
 /**

@@ -303,3 +303,24 @@ func TestPrompt_ChecksTheUserDecidedOtherwise(t *testing.T) {
 		t.Error("told it as a plain question")
 	}
 }
+
+// A change to a step's pull request that asks nothing of anyone by the
+// time it's looked at (a check that passes now, a bot's summary) is noted
+// and left: the pull request is on the user's page as waiting for review
+// or for their merge, and they aren't asked to merge it. Nor is a wait
+// said at a Wait step, which says it itself.
+func TestPrompt_APullRequestWithNothingToDoIsLeft(t *testing.T) {
+	plan, _ := mission.ParsePlan("## Z\n- x\n## Stops early\n- None.\n## Steps\n1. Open Pull Request\n   - in: `api/fix`\n", nil)
+	p := Prompt(Input{Mission: &mission.Mission{Slug: "cache", Title: "Cache", Plan: plan}, Trigger: "pr", PRStep: "1 of 1", Round: 1, MaxRounds: 3,
+		PREvents: []string{"api#5's checks are failing"}})
+	for _, want := range []string{
+		"Where what happened asks nothing of anyone by the time you look",
+		"note what you found and leave it there",
+		"so don't ask them to merge it",
+		"a step that isn't a Wait waits on something ws can't see happen",
+	} {
+		if !strings.Contains(p, want) {
+			t.Errorf("the pull request prompt lacks %q", want)
+		}
+	}
+}
