@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { endRun, getRunLog, getRuns, type Names, type RunDetail, type RunsInfo, type Workspace } from "../api";
+import { endRun, getRunLog, getRuns, type Names, type RunDetail, type RunsInfo, resyncSilo, type SiloState, type Workspace } from "../api";
 import { type Reload, useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Callout, Copyable, Empty, ErrorCard, humanError, Skeleton, toast, useTitle } from "../ui/kit";
@@ -60,6 +60,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
               </ul>
             )}
           </section>
+          {info.silos.length > 0 && <SilosPart silos={info.silos} reload={reload} />}
           {ended.length > 0 && (
             <section>
               <h2 className="group">
@@ -328,5 +329,104 @@ function RunMore({ r, by }: { r: RunDetail; by?: string }) {
         </pre>
       )}
     </div>
+  );
+}
+
+// SilosPart is the repos' silos, as the daemon keeping them has them:
+// what each is pointed at, its last sync, and its last hook.
+function SilosPart({ silos, reload }: { silos: SiloState[]; reload: Reload }) {
+  return (
+    <section>
+      <h2 className="group">
+        Silos <span className="count">{silos.length}</span>
+      </h2>
+      <p className="quiet-line">
+        Each mirrors the capsule it's pointed at, kept by the daemon as files change. <code>ws silo point</code> points one elsewhere.
+      </p>
+      <ul className="rows run-rows">
+        {silos.map((st) => (
+          <SiloRow key={st.repo} st={st} reload={reload} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function SiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const last = st.syncs?.[st.syncs.length - 1];
+  const hook = st.hook;
+  const trouble = st.error || last?.error || hook?.error;
+  const resync = () => {
+    setBusy(true);
+    resyncSilo(st.repo)
+      .then(() => {
+        toast(`Resynced ${st.repo}'s silo`, { tone: "done" });
+        return reload();
+      })
+      .catch((e: Error) => toast(humanError(e.message), { tone: "danger" }))
+      .finally(() => setBusy(false));
+  };
+  return (
+    <li className={`row run-row${open ? " open" : ""}`}>
+      <div className="run-row-line">
+        <span className={`work-run-mark${st.watching ? " up" : ""}`} aria-hidden title={st.watching ? "Kept as files change" : "Not kept"}>
+          {st.watching ? <span className="work-live-dot" /> : <Icon name="circle" size={8} />}
+        </span>
+        <span className="row-main">
+          <span className="run-row-top">
+            <span className="mono work-run-name">{st.repo}</span>
+            <span className="dim">on</span>
+            <span className="mono">{st.target}</span>
+            {trouble && <span className="chip tone-waiting">{st.error ? "not kept" : last?.error ? "sync failed" : `${hook?.name} failed`}</span>}
+          </span>
+          <span className="row-sub run-row-sub">
+            {st.error ? (
+              <span>{st.error}</span>
+            ) : (
+              <span>
+                Watching {st.dirs} folder{st.dirs === 1 ? "" : "s"}
+              </span>
+            )}
+            {last && (
+              <span>
+                {last.error ? "Last sync failed" : `Last synced ${last.files} file${last.files === 1 ? "" : "s"}`}
+                {last.full && last.why ? ` (${last.why})` : ""}, <Time iso={last.at} as="relative" />
+              </span>
+            )}
+            {hook && (
+              <span>
+                {hook.name} {hook.error ? "failed" : "ran"} <Time iso={hook.at} as="relative" />
+              </span>
+            )}
+          </span>
+        </span>
+        <span className="run-row-when" />
+        <span className="run-row-actions">
+          {(hook || last?.error) && (
+            <button className="ghost small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide" : "What its last hook said, and why a sync failed"}>
+              <Icon name={open ? "chevron-up" : "terminal"} size={11} /> {open ? "Hide" : "Output"}
+            </button>
+          )}
+          <button className="ghost small" disabled={busy || !!st.error} onClick={resync} title="Give it its capsule's files in full again">
+            <Icon name={busy ? "spinner" : "rotate"} size={11} /> Resync
+          </button>
+        </span>
+      </div>
+      {open && (
+        <div className="run-more">
+          {last?.error && <p className="tone-danger">{last.error}</p>}
+          {hook && (
+            <>
+              <p className="dim">
+                Its {hook.name} hook{hook.error ? `: ${hook.error}` : ""}
+              </p>
+              <pre className="verify-output run-log">{hook.output || "It said nothing."}</pre>
+            </>
+          )}
+        </div>
+      )}
+    </li>
   );
 }

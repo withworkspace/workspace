@@ -111,6 +111,12 @@ type Server struct {
 	// (<workspace>.localhost, with its port where it has one): nil for
 	// none.
 	Names func() []string
+	// Silos is where each silo the daemon keeps stands, for the Runs
+	// page: nil for none kept.
+	Silos func() []ops.SiloState
+	// ResyncSilo gives a repo's silo its target's files in full (POST
+	// /api/silos/{repo}/resync): nil when nothing keeps them.
+	ResyncSilo func(repo string) error
 	// Poll is how often open pages are checked for changes to tell them
 	// about (default 2s).
 	Poll time.Duration
@@ -369,6 +375,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/runs/stop", s.endRun)
 	mux.HandleFunc("GET /api/runs/log", s.runLog)
 	mux.HandleFunc("POST /api/silos/{repo}/point", s.pointSilo)
+	mux.HandleFunc("POST /api/silos/{repo}/resync", s.resyncSilo)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/screen", s.crewScreen)
 	mux.HandleFunc("POST /api/missions/{slug}/crew/{id}/input", s.crewInput)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/transcript", s.crewTranscript)

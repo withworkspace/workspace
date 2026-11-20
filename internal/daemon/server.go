@@ -64,6 +64,11 @@ type Server struct {
 	// dialog yes for crew (crew.WatchTrust): ws.local.toml's [crew]
 	// trust_folders. Nil leaves it to you.
 	TrustFolders func() bool
+	// Silos, if set, is where each silo the daemon keeps stands, as JSON
+	// (workspace.SiloState), for ws silo status and watch; ResyncSilo
+	// gives a repo's silo its target's files in full ("" for every one).
+	Silos      func() json.RawMessage
+	ResyncSilo func(repo string) error
 
 	store mission.Store
 	ln    net.Listener
@@ -380,6 +385,21 @@ func (s *Server) do(c *conn, req request) message {
 			return fail(err)
 		}
 		return message{Text: said}
+
+	case "silos":
+		if s.Silos == nil {
+			return fail(errors.New("this server keeps no silos"))
+		}
+		return message{Silos: s.Silos()}
+
+	case "silo-resync":
+		if s.ResyncSilo == nil {
+			return fail(errors.New("this server keeps no silos"))
+		}
+		if err := s.ResyncSilo(req.Text); err != nil {
+			return fail(err)
+		}
+		return message{}
 	}
 
 	if a, ok := s.acpCrew(req.Crew); ok {

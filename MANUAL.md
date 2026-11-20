@@ -39,7 +39,7 @@ Work happens in **capsules**, not on the main branch. Ground is sacred.
   - [The Problem](#the-problem)
   - [How It Works](#how-it-works)
   - [Commands](#silo-commands)
-  - [Live Watching](#live-watching)
+  - [How the Daemon Keeps Them](#how-the-daemon-keeps-them)
   - [Hooks](#silo-hooks)
   - [ws.repo.toml Silo Config](#wsrepotoml-silo-config)
 - [Customisation](#customisation)
@@ -1473,7 +1473,7 @@ Some tools expect a single, stable directory path. Docker compose, for example, 
 
 ### How It Works
 
-A **silo** is a per-repo directory (`.silo/`) that acts as a stable runtime location. You point it at any capsule, and `ws` mirrors the capsule's git-tracked files into `.silo/` in real time. Docker compose always runs from `.silo/` — you switch what's being tested by re-pointing the silo, not by reconfiguring containers.
+A **silo** is a per-repo directory (`.silo/`) that acts as a stable runtime location. You point it at any capsule, and the workspace's daemon mirrors the capsule's files into `.silo/` as they change, with no terminal kept open for it. Docker compose always runs from `.silo/` — you switch what's being tested by re-pointing the silo, not by reconfiguring containers.
 
 ```
 repos/frontend/
@@ -1502,22 +1502,14 @@ backend = "add-health"
 ws silo point <repo> <capsule>
 ```
 
-Creates `.silo/` if it doesn't exist, syncs all git-tracked files from the capsule, and runs hooks. `.ground` is a valid target — use it to run the main branch version.
+Creates `.silo/` if it doesn't exist, syncs the capsule's files into it, and runs hooks. The daemon keeps it from then on (it's started if it isn't running). `.ground` is a valid target — use it to run the main branch version.
 
 ```bash
 ws silo point frontend .ground     # use main branch
 ws silo point frontend my-feature  # switch to a capsule
 ```
 
-`silo point` works whether or not the watcher is running. If the watcher is running, it detects the change and starts watching the new target automatically.
-
-**Start the live watcher:**
-
-```bash
-ws silo watch
-```
-
-Watches all active silos across the workspace. One command, all repos. See [Live Watching](#live-watching).
+The web UI points one too: ws's router offers to when you ask for a silo's run by another capsule's name (see [Runs](#runs)).
 
 **Show silo state:**
 
@@ -1525,7 +1517,15 @@ Watches all active silos across the workspace. One command, all repos. See [Live
 ws silo status
 ```
 
-Shows each active silo, its target, and whether the watcher is running.
+Shows each active silo, its target and how the daemon's keeping it: the folders it watches and when it last synced, or why it can't (the capsule's gone, there's no `.silo/`), and a hook that failed. The web UI's *Runs* page shows the same, with each hook's output and a *Resync* button.
+
+**Watch it sync:**
+
+```bash
+ws silo watch
+```
+
+Shows the daemon's syncs into every silo as they're made, and its hooks. `r` asks for a full resync of each. Closing it changes nothing: the silos are kept either way. `-v` prints a line per sync instead, for a log.
 
 **Remove a silo:**
 
@@ -1535,21 +1535,19 @@ ws silo stop <repo>
 
 Removes the `.silo/` worktree and clears the silo config.
 
-### Live Watching
+### How the Daemon Keeps Them
 
-`ws silo watch` is a single foreground process that syncs all active silos in real time:
+- **What's synced:** the capsule's tracked files, and its untracked ones that aren't ignored. Ignored ones (dependencies, build output) aren't, and nor are their folders watched: on macOS every file in a watched folder holds a file open, so a `target/` or `.venv/` would cost thousands.
+- **As files change:** rapid edits are batched (200ms). A folder made in the capsule is watched, and the files already in it synced.
+- **When its HEAD moves** (a checkout, pull or rebase in the capsule): a full sync.
+- **As the daemon starts** (after an upgrade or a restart): a full sync of each silo, taking whatever changed while it was down. A full sync writes only the files that differ, so one that finds nothing changed touches nothing a dev server would reload for, and runs no hook.
+- **When `ws.local.toml` points it elsewhere,** however that happened (`ws silo point`, `ws burn`, `ws land`, an edit by hand): it's given the new target's files, and its hooks run, unless `ws silo point` has already done both.
 
-- Uses `fsnotify` to watch capsule directories for changes.
-- Debounces rapid edits (200ms) to batch saves.
-- Only syncs git-tracked files — untracked files (build output, dependencies) are ignored.
-- Watches `ws.local.toml` for target changes — when you `silo point` from another terminal, the watcher picks it up, re-syncs, and starts watching the new capsule.
-- Only one watcher can run per workspace (enforced via a lock file at `.silo.lock`).
-
-Press `Ctrl+C` to stop.
+The daemon's log (`.ws/daemon.log`) says what it does with each, on lines starting `silos:`.
 
 ### Silo Hooks
 
-When a silo is created or re-pointed, two hooks run in sequence:
+When a silo is created or re-pointed, two hooks run in sequence (`ws silo point` runs them where you can see them; otherwise the daemon runs them, and its last hook's output is on the *Runs* page):
 
 1. **`after_create`** — the same hook that runs when creating a capsule (precedence: `ws.local.toml` > `ws.toml` > `ws.repo.toml`). Use it for dependency installation.
 2. **`after_switch`** — a silo-specific hook defined in `ws.repo.toml`. Use it for restarting services.
@@ -1569,7 +1567,7 @@ after_change = "make generate"
 | Field | Description |
 |---|---|
 | `after_switch` | Shell command run in `.silo/` after the sync target changes. Useful for restarting services that don't hot-reload. |
-| `after_change` | Shell command run in `.silo/` after each incremental sync (debounced). Useful for code generation or build steps that need to run on every file change. |
+| `after_change` | Shell command run in `.silo/` after each sync that changed something (debounced). Useful for code generation or build steps that need to run on every file change. One runs at a time: changes made while it runs have it run once more after. |
 
 ### Integration with Other Commands
 
@@ -1579,7 +1577,7 @@ Silos integrate with the rest of `ws`:
 - **`ws land`** — a silo pointed at the capsule it lands is repointed to `.ground`, which now has its work.
 - **`ws debrief`** — if a debriefed capsule was a silo target, automatically repoints to `.ground`.
 - **`ws status`** — shows a silo indicator for repos with an active silo.
-- **`ws doctor`** — checks for missing silo targets, orphaned `.silo/` directories, and stale lock files.
+- **`ws doctor`** — checks for missing silo targets and orphaned `.silo/` directories, and for a `.silo.lock` left by an older ws's `ws silo watch` (which synced the silos itself): one still running syncs them as the daemon does, so stop it.
 
 ---
 
