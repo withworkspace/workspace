@@ -124,6 +124,8 @@ type Server struct {
 	// (pr:<repo>#<number>): nil without Reviews.
 	prs    *prHub
 	findMu sync.Mutex // guards giving Find its pull requests
+	// reads are a capsule's files as pages have read them (kept.go).
+	reads  keptReads
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -167,7 +169,11 @@ func (s *Server) Start() error {
 	ws := newHub(topicWorkspace, s.Poll, s.fingerprint)
 	// The view's built only when what it's built from has moved, and
 	// every half a minute regardless.
-	ws.stamp, ws.floor = s.App.Stamp, 30*time.Second
+	// What's kept for pages behind their reads (a capsule's tree and
+	// summary, the repos' files refs are checked against) moves the view
+	// too, when a read behind finds it changed: looked at as soon as it has.
+	ws.stamp, ws.floor = func() string { return s.App.Stamp() + " " + s.keptStamp() }, 30*time.Second
+	s.reads.told = ws.nudge
 	s.topics[topicWorkspace] = ws
 	if s.Reviews != nil {
 		if s.ReviewsPoll == 0 {
@@ -321,6 +327,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/around", s.around)
 	mux.HandleFunc("GET /api/search", s.codeSearch)
 	mux.HandleFunc("GET /api/repos", s.repos)
+	mux.HandleFunc("POST /api/refs/paths", s.refPaths)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees", s.worktrees)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees/{name}/tree", s.tree)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees/{name}/file", s.file)
@@ -333,6 +340,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/missions/{slug}/draft", s.dropDraft)
 	mux.HandleFunc("POST /api/missions", s.startMission)
 	mux.HandleFunc("POST /api/missions/{slug}/act", s.act)
+	mux.HandleFunc("POST /api/missions/{slug}/pr-write", s.writePR)
 	mux.HandleFunc("POST /api/missions/{slug}/runs", s.startRun)
 	mux.HandleFunc("POST /api/missions/{slug}/runs/stop", s.stopRun)
 	mux.HandleFunc("GET /api/runs", s.allRuns)

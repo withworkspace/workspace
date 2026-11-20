@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -967,6 +968,36 @@ func (s Store) EndLaunching(slug string, l Launching) error {
 		if o := m.Launching; o != nil && o.Since.Equal(l.Since) {
 			m.Launching = nil
 		}
+		return nil
+	})
+	return err
+}
+
+// StartWritingPR marks the PR writer writing p.Capsule's pull request.
+// One underway already stands, and is returned with false: it's one pull
+// request, written once.
+func (s Store) StartWritingPR(slug string, p WritingPR) (WritingPR, bool, error) {
+	started := false
+	_, err := s.Update(slug, func(m *Mission) error {
+		if o, ok := m.WritingPR(p.Capsule); ok {
+			p = o
+			return nil
+		}
+		if p.Since.IsZero() {
+			p.Since = now()
+		}
+		m.WritingPRs = append(m.WritingPRs, p)
+		started = true
+		return nil
+	})
+	return p, started, err
+}
+
+// EndWritingPR clears the PR writer's mark on capsule's pull request:
+// it's opened, or it couldn't be.
+func (s Store) EndWritingPR(slug, capsule string) error {
+	_, err := s.Update(slug, func(m *Mission) error {
+		m.WritingPRs = slices.DeleteFunc(m.WritingPRs, func(p WritingPR) bool { return p.Capsule == capsule })
 		return nil
 	})
 	return err

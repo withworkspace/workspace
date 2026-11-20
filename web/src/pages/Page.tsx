@@ -299,7 +299,9 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
   // isn't a ref in itself, and a repo's files are read once it names one.
   const shared = useRefs();
   useEffect(() => {
-    if (view) shared?.want(view.state.doc.textContent);
+    // A block a line of its own: a path at a paragraph's end isn't run
+    // into the next one's words.
+    if (view) shared?.want(view.state.doc.textBetween(0, view.state.doc.content.size, "\n", "\n"));
   }, [view, rev, shared]);
   const known = useMemo<Known>(
     () => (shared ? { ...shared.known, pages: shared.known.pages.filter((p) => p !== id) } : noKnown),

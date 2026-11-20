@@ -46,6 +46,8 @@ type Roles struct {
 	Team Pick
 	// Judge is who judges a Work step's checks in words, from [judge].
 	Judge Pick
+	// PRWriter is who writes the pull requests ws opens, from [pr_writer].
+	PRWriter Pick
 	// CrewAllowed are the other picks crew may be launched on from a
 	// mission's page ([crew] allowed); a pick with no model takes the
 	// one ForCrew gives its harness, if any.
@@ -238,6 +240,34 @@ func (r Roles) ForJudge() (Pick, Converser, error) {
 		return Pick{}, nil, err
 	}
 	p := Pick{Harness: c.Name(), Model: r.Judge.Model}
+	if p.Model == "" {
+		p.Model = c.ConverseModel()
+	}
+	return p, c, nil
+}
+
+// ForPRWriter picks who writes a pull request's title and description:
+// headless, read-only, with fresh context. [pr_writer] harness, else
+// conversations' (ForConversation). The model is [pr_writer] model, else,
+// on conversations' harness, theirs, else the harness's conversation
+// default: it reads the change and writes for people, which wants more
+// than the orchestrator's small model.
+func (r Roles) ForPRWriter() (Pick, Converser, error) {
+	if r.PRWriter.Harness == "" {
+		p, c, err := r.ForConversation()
+		if err != nil {
+			return Pick{}, nil, err
+		}
+		if r.PRWriter.Model != "" {
+			p.Model = r.PRWriter.Model
+		}
+		return p, c, nil
+	}
+	c, err := converserNamed(r.PRWriter.Harness)
+	if err != nil {
+		return Pick{}, nil, err
+	}
+	p := Pick{Harness: c.Name(), Model: r.PRWriter.Model}
 	if p.Model == "" {
 		p.Model = c.ConverseModel()
 	}
