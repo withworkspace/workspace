@@ -202,6 +202,9 @@ var settingRoles = []roleDef{
 			return p, err
 		},
 		note: func(c *config.Config) string {
+			if !c.PRWriterEnabled() {
+				return "It's off ([pr_writer] enabled = false): ws titles each pull request as the mission is, and opens it at once."
+			}
 			if c.PRWriter.Harness == "" {
 				return "It follows conversations' agent and model, as none is set here."
 			}

@@ -32,7 +32,7 @@ type Config struct {
 	// PRWriter is the agent that writes the title and description of a
 	// pull request ws opens, from the step it's for and PR.md: unset,
 	// conversations' agent and model.
-	PRWriter AgentConfig    `toml:"pr_writer"`
+	PRWriter PRWriterConfig `toml:"pr_writer"`
 	Missions MissionsConfig `toml:"missions"`
 	Agents   AgentsConfig   `toml:"agents"`
 	Pages    PagesConfig    `toml:"pages"`
@@ -80,7 +80,7 @@ type LocalConfig struct {
 	Orchestrator OrchestratorConfig     `toml:"orchestrator,omitempty"`
 	Conversation AgentConfig            `toml:"conversation,omitempty"`
 	Judge        AgentConfig            `toml:"judge,omitempty"`
-	PRWriter     AgentConfig            `toml:"pr_writer,omitempty"`
+	PRWriter     PRWriterConfig         `toml:"pr_writer,omitempty"`
 	Missions     MissionsConfig         `toml:"missions,omitempty"`
 	Artifacts    LocalArtifactsConfig   `toml:"artifacts,omitempty"`
 	Agents       AgentsConfig           `toml:"agents,omitempty"`
@@ -475,6 +475,35 @@ type AgentConfig struct {
 	// in the web UI whose goal is the brief, or "terminal", a briefing
 	// agent in a terminal, as before conversations.
 	In string `toml:"in,omitempty"`
+}
+
+// PRWriterConfig is [pr_writer]: the agent writing the pull requests ws
+// opens, and whether there's one. Off (enabled = false), ws titles a pull
+// request as the mission is and opens it at once, with no agent: for a
+// workspace that wants no agent at that step, or has none to run (a
+// seed's).
+type PRWriterConfig struct {
+	Harness string `toml:"harness,omitempty"`
+	Model   string `toml:"model,omitempty"`
+	Enabled *bool  `toml:"enabled,omitempty"`
+}
+
+// PRWriterEnabled is whether an agent writes the pull requests ws opens
+// with no title given (default on).
+func (c *Config) PRWriterEnabled() bool {
+	return c.PRWriter.Enabled == nil || *c.PRWriter.Enabled
+}
+
+func (c *PRWriterConfig) merge(local PRWriterConfig) {
+	if local.Harness != "" {
+		c.Harness = local.Harness
+	}
+	if local.Model != "" {
+		c.Model = local.Model
+	}
+	if local.Enabled != nil {
+		c.Enabled = local.Enabled
+	}
 }
 
 // merge overrides c with whatever local sets.
