@@ -133,6 +133,7 @@ describe("what the page holds", () => {
       "Light theme",
       "Dark theme",
       "Theme from the system",
+      "Shut down the daemon…",
       "Show the keys",
     ]);
   });
@@ -179,7 +180,7 @@ describe("the window", () => {
     expect(b.sections.map((s) => s.group)).toEqual(["needs", "recent", "places"]);
     // What needs you isn't said again as recent, and what's gone isn't said.
     expect(titles(section(b, "recent")!.items)).toEqual(["demo/main.go"]);
-    expect(b.rows.length).toBe(1 + 1 + 9);
+    expect(b.rows.length).toBe(1 + 1 + 10);
   });
 
   it("groups what's found, a few of each, with the best of any kind first", () => {

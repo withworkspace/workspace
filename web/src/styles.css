@@ -18638,3 +18638,247 @@ input[type="text"].tweak-text {
     margin-left: 0;
   }
 }
+
+/* The Plugins page: the field a plugin's added from, then each plugin a
+   row, with what it's from and adds under its name and what's to be done
+   to it at its right. */
+.plugins-looked {
+  font-size: var(--text-sm);
+}
+
+.plugins-updates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: var(--space-3);
+}
+
+.plugins-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 6px 8px;
+  max-width: 720px;
+  margin-bottom: var(--space-6);
+}
+
+.plugins-add-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.plugins-add-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.plugins-add-field input {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+}
+
+.plugins-add button {
+  height: 32px;
+}
+
+.plugins-add-about {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.plugins-output {
+  max-height: 260px;
+  margin: 8px 0 0;
+  overflow: auto;
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.plugin-rows {
+  display: grid;
+  gap: 2px;
+}
+
+.plugin-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 8px;
+}
+
+.plugin-row-icon {
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+  color: var(--dim);
+}
+
+.plugin-row.state-ready .plugin-row-icon {
+  color: var(--accent);
+}
+
+.plugin-row.state-failed .plugin-row-icon {
+  color: var(--danger);
+}
+
+.plugin-row-main {
+  display: grid;
+  gap: 3px;
+}
+
+.plugin-row-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.plugin-row-title {
+  font-weight: 500;
+  color: var(--fg);
+}
+
+a.plugin-row-title:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.plugin-row.wanted .plugin-row-title {
+  color: var(--dim);
+}
+
+.plugin-row-top .mono {
+  font-size: var(--text-sm);
+}
+
+a.plugin-row-out {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.plugin-row-about {
+  max-width: 72ch;
+}
+
+.plugin-row-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+}
+
+.plugin-row-sub a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 2px;
+}
+
+.plugin-row-sub a:hover {
+  color: var(--fg);
+  text-decoration-color: currentColor;
+}
+
+.plugin-row-note {
+  max-width: 72ch;
+  font-size: var(--text-sm);
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+
+.plugin-row-note[class*="tone-"] {
+  color: var(--tone);
+}
+
+.plugin-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.plugins-remove-data {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.plugins-remove-data .dim {
+  display: block;
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 640px) {
+  .plugin-row {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+  .plugin-row-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+  .plugins-looked {
+    display: none;
+  }
+}
+
+/* Updates, on Settings' About: what's out, over where it was found. */
+.settings-updates {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.settings-updates .callout {
+  margin: 0;
+}
+
+.settings-update-notes {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.settings-update-waits {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+
+.settings-update-error {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 3px;
+  font-size: var(--text-sm);
+  color: var(--danger);
+}
+
+.settings-update-error .icon {
+  flex: none;
+  align-self: flex-start;
+  margin-top: 3px;
+}
+
+.settings-update-looked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+/* In the workspace's menu: a later release is out. */
+.workspace-menu .select-option.later,
+.workspace-menu .select-option.later .icon {
+  color: var(--accent);
+}

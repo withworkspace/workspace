@@ -48,6 +48,8 @@ func (s *Server) workspaceView() (Workspace, error) {
 	// The daemon's own, which is what it gives its plugin host too: so a
 	// plugin's app is told the ws its plugin was.
 	v.Version = s.Version
+	// A release later than it, as the daemon last found: the menu says so.
+	v.Later = s.App.LaterWS()
 	return v, err
 }
 

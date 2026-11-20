@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Button as AriaButton, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType, useParams } from "react-router";
-import { type Connection, NotSignedIn, type Plugin, setSettings, usePlugins, useWorkspace, type Workspace } from "./api";
+import { type Connection, NotSignedIn, setSettings, usePlugins, useWorkspace, type Workspace } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
 import { ComparePage, compareKeys } from "./artifacts/Compare";
 import { Explorer, explorerKeys } from "./files/Explorer";
@@ -19,7 +19,7 @@ import { RunsPage } from "./runs/Runs";
 import { useFrameDim } from "./plugins/dim";
 import { useFrameHere } from "./plugins/here";
 import { useFrameExpanded } from "./plugins/layout";
-import { PluginPage, pluginIcon } from "./plugins/Plugin";
+import { PluginPage } from "./plugins/Plugin";
 import { RefsProvider } from "./refs/known";
 import { SettingsPage, settingsKeys } from "./settings/Settings";
 import { pageKeys } from "./pages/Pages";
@@ -32,7 +32,7 @@ import { Palette } from "./shell/Palette";
 import { useFaviconBadge, useNotifications, type Waiting } from "./shell/notify";
 import { Arrange } from "./shell/Arrange";
 import { askShutDown } from "./shell/daemon";
-import { arrange, headed, type Arrangement, type Arranged, type Place, sameArrangement, saving } from "./shell/places";
+import { arrange, headed, type Arrangement, type Arranged, type Place, placesOf, sameArrangement, saving } from "./shell/places";
 import { FocusKeys, FocusProvider, FocusSection } from "./shell/focus";
 import { noteVisit, visitAt } from "./shell/recent";
 import { wantsRoom } from "./shell/room";
@@ -206,8 +206,9 @@ export function App() {
                 <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
                 <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
                 <Route path="/runs" element={<RunsPage workspace={workspace} />} />
-                <Route path="/settings" element={<SettingsPage workspace={workspace} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
-                <Route path="/settings/:section" element={<SettingsPage workspace={workspace} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
+                <Route path="/plugins" element={<Navigate to="/settings/plugins" replace />} />
+                <Route path="/settings" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
+                <Route path="/settings/:section" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
                 <Route path="/docs" element={<DocsAddress />} />
                 <Route path="/files" element={<FilesPage workspace={workspace} />} />
                 <Route path="/files/:repo" element={<FilesPage workspace={workspace} />} />
@@ -255,6 +256,7 @@ export function App() {
               setPalette(undefined);
               setHelp(true);
             }}
+            onShutDown={() => void askShutDown(() => setClosed(true))}
           />
         )}
         <Toasts />
@@ -329,6 +331,13 @@ function WorkspaceMenu({
             <span className="select-option-text">Keys</span>
             <Keys k="?" />
           </MenuItem>
+          {/* A later release, as the daemon last found: to where it's installed from. */}
+          {workspace?.later && (
+            <MenuItem id="later" textValue={`ws ${workspace.later} is out`} className="select-option later" onAction={() => navigate("/settings/about#updates")}>
+              <Icon name="arrow-up" />
+              <span className="select-option-text">ws {workspace.later} is out</span>
+            </MenuItem>
+          )}
           <Separator className="menu-separator" />
           <MenuItem id="shutdown" textValue="Shut down the daemon" className="select-option danger" onAction={shutDown}>
             <Icon name="power" />
@@ -347,51 +356,6 @@ function WorkspaceMenu({
       </Popover>
     </MenuTrigger>
   );
-}
-
-// placesOf is the sidebar's places as they come: ws's own, then each
-// view a plugin adds, those naming a group (under) together beneath its
-// name, the groups by name. Where each goes is yours to arrange
-// (shell/places.ts).
-function placesOf(workspace: Workspace | undefined, waiting: ReturnType<typeof waitingFor>, plugins?: Plugin[]): Place[] {
-  const own: Place[] = [
-    { id: "missions", to: "/", icon: "flag", label: "Missions", count: waiting.filter((w) => w.kind === "mission").length, match: (p) => p === "/" || p.startsWith("/missions/") },
-    { id: "conversations", to: "/conversations", icon: "message", label: "Conversations", count: waiting.filter((w) => w.kind === "talk").length, match: (p) => p.startsWith("/conversations") },
-    { id: "documents", to: "/documents", icon: "file", label: "Documents", match: (p) => p === "/documents" || p.startsWith("/documents/") || p.startsWith("/pages/") || p === "/docs" },
-    { id: "artifacts", to: "/artifacts", icon: "artifact", label: "Artifacts", match: (p) => p === "/artifacts" || p.startsWith("/artifacts/") },
-    {
-      id: "reviews",
-      to: "/reviews",
-      icon: "pr",
-      label: "Reviews",
-      count: workspace?.reviews?.count,
-      countTitle: "pull requests need you",
-      match: (p) => p === "/reviews" || p.startsWith("/reviews/"),
-    },
-    { id: "team", to: "/team", icon: "user", label: "Team", match: (p) => p === "/team" },
-    { id: "files", to: "/files", icon: "layers", label: "Files", match: (p) => p === "/files" || p.startsWith("/files/") },
-    { id: "orchestrator", to: "/orchestrator", icon: "sparkle", label: "Orchestrator", match: (p) => p.startsWith("/orchestrator") },
-    { id: "runs", to: "/runs", icon: "play", label: "Runs", match: (p) => p === "/runs", home: "menu" },
-  ];
-  const views: Place[] = (plugins ?? []).flatMap((plugin) =>
-    plugin.views.map((view) => {
-      const to = `/x/${plugin.name}${view.path === "/" ? "" : view.path}`;
-      return {
-        id: to.slice(1),
-        to,
-        icon: plugin.state === "failed" ? "alert" : pluginIcon(view.icon),
-        label: view.title,
-        count: view.badge,
-        countTitle: "to see",
-        match: (p: string) => p === `/x/${plugin.name}` || p.startsWith(`/x/${plugin.name}/`),
-        under: view.under || undefined,
-      };
-    }),
-  );
-  // Those in no group first, then the groups by name; within each, as they came.
-  const group = (p: Place) => p.under ?? "";
-  views.sort((a, b) => (group(a) === group(b) ? 0 : group(a) === "" ? -1 : group(b) === "" ? 1 : group(a).localeCompare(group(b))));
-  return [...own, ...views];
 }
 
 // NavPlace is a place in the sidebar, with its group's title above it

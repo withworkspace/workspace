@@ -1,4 +1,6 @@
-import type { IconName } from "../ui/Icon";
+import type { Plugin, Workspace } from "../api";
+import { type IconName, icons } from "../ui/Icon";
+import type { Waiting } from "./notify";
 
 // Places are where the sidebar goes: ws's own (Missions, Conversations…)
 // and each view a plugin adds. You arrange them: their order in the
@@ -91,4 +93,49 @@ export function move(arranged: Arranged, ids: string[], into: keyof Arranged, at
 // plugin's group starts.
 export function headed(list: Place[]): (string | undefined)[] {
   return list.map((p, i) => (p.under && p.under !== list[i - 1]?.under ? p.under : undefined));
+}
+
+// placesOf is the sidebar's places as they come: ws's own, then each
+// view a plugin adds, those naming a group (under) together beneath its
+// name, the groups by name. Where each goes is yours to arrange
+// (shell/places.ts).
+export function placesOf(workspace: Workspace | undefined, waiting: (Waiting & { kind: string })[], plugins?: Plugin[]): Place[] {
+  const own: Place[] = [
+    { id: "missions", to: "/", icon: "flag", label: "Missions", count: waiting.filter((w) => w.kind === "mission").length, match: (p) => p === "/" || p.startsWith("/missions/") },
+    { id: "conversations", to: "/conversations", icon: "message", label: "Conversations", count: waiting.filter((w) => w.kind === "talk").length, match: (p) => p.startsWith("/conversations") },
+    { id: "documents", to: "/documents", icon: "file", label: "Documents", match: (p) => p === "/documents" || p.startsWith("/documents/") || p.startsWith("/pages/") || p === "/docs" },
+    { id: "artifacts", to: "/artifacts", icon: "artifact", label: "Artifacts", match: (p) => p === "/artifacts" || p.startsWith("/artifacts/") },
+    {
+      id: "reviews",
+      to: "/reviews",
+      icon: "pr",
+      label: "Reviews",
+      count: workspace?.reviews?.count,
+      countTitle: "pull requests need you",
+      match: (p) => p === "/reviews" || p.startsWith("/reviews/"),
+    },
+    { id: "team", to: "/team", icon: "user", label: "Team", match: (p) => p === "/team" },
+    { id: "files", to: "/files", icon: "layers", label: "Files", match: (p) => p === "/files" || p.startsWith("/files/") },
+    { id: "orchestrator", to: "/orchestrator", icon: "sparkle", label: "Orchestrator", match: (p) => p.startsWith("/orchestrator") },
+    { id: "runs", to: "/runs", icon: "play", label: "Runs", match: (p) => p === "/runs", home: "menu" },
+  ];
+  const views: Place[] = (plugins ?? []).flatMap((plugin) =>
+    plugin.views.map((view) => {
+      const to = `/x/${plugin.name}${view.path === "/" ? "" : view.path}`;
+      return {
+        id: to.slice(1),
+        to,
+        icon: plugin.state === "failed" ? "alert" : (view.icon && view.icon in icons ? (view.icon as IconName) : "box"),
+        label: view.title,
+        count: view.badge,
+        countTitle: "to see",
+        match: (p: string) => p === `/x/${plugin.name}` || p.startsWith(`/x/${plugin.name}/`),
+        under: view.under || undefined,
+      };
+    }),
+  );
+  // Those in no group first, then the groups by name; within each, as they came.
+  const group = (p: Place) => p.under ?? "";
+  views.sort((a, b) => (group(a) === group(b) ? 0 : group(a) === "" ? -1 : group(b) === "" ? 1 : group(a).localeCompare(group(b))));
+  return [...own, ...views];
 }

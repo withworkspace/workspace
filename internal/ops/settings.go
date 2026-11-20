@@ -455,6 +455,15 @@ func settingDefs(root string) []struct {
 	out = append(out, struct {
 		group    roleDef
 		settings []settingDef
+	}{roleDef{id: "updates", title: "Updates", about: "Later releases of ws, and of the plugins installed from a repo."}, []settingDef{
+		// Yours alone (ws.toml has no [updates]): it's your machine that asks.
+		boolSetting("updates", "check", "Look for updates", "Once a day, the daemon asks GitHub for the latest release of ws, and of each plugin installed from a repo. Nothing's installed by looking. Off, it asks only when you say: Check now, here and under Plugins.", true,
+			func(*config.Config) **bool { var none *bool; return &none },
+			func(l *config.LocalConfig) **bool { return &l.Updates.Check }),
+	}})
+	out = append(out, struct {
+		group    roleDef
+		settings []settingDef
 	}{roleDef{id: "ui", title: "Appearance", about: "How the web UI looks."}, []settingDef{
 		accentSetting(),
 		placesSetting("sidebar", "Sidebar", "The places in the sidebar, in order. A place in neither list goes at the sidebar's end, or the menu's for one whose home is the menu (Runs). Arrange them from Settings, under Appearance (Arrange the sidebar…). Yours, setting either list, replaces the team's arrangement."),

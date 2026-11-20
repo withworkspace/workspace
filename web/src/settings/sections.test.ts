@@ -50,6 +50,7 @@ const info = (extra: SettingsGroup[] = []): SettingsInfo => ({
     },
     { id: "workspace", title: "Repos", settings: [setting("", "git", "choice", { label: "Git protocol" })] },
     { id: "router", title: "Local names", settings: [setting("router", "enabled", "bool", { label: "Names" }), setting("router", "name", "text", { label: "Name", default: "w" })] },
+    { id: "updates", title: "Updates", settings: [setting("updates", "check", "bool", { label: "Look for updates", default: true })] },
     {
       id: "ui",
       title: "Appearance",
@@ -64,11 +65,11 @@ const settingsIn = (rows: Row[]) => rows.flatMap((r) => (r.kind === "setting" ? 
 
 describe("sectionsOf", () => {
   it("lists the sections before anything's loaded", () => {
-    expect(sectionsOf().map((s) => s.id)).toEqual(["appearance", "notifications", "agents", "missions", "team", "repos", "runs", "process", "yours", "about"]);
+    expect(sectionsOf().map((s) => s.id)).toEqual(["appearance", "notifications", "agents", "missions", "team", "repos", "runs", "process", "plugins", "yours", "about"]);
     expect(sectionsOf().filter((s) => s.heading).map((s) => [s.heading, s.id])).toEqual([
       ["Interface", "appearance"],
       ["How work goes", "agents"],
-      ["This workspace", "yours"],
+      ["This workspace", "plugins"],
     ]);
   });
 
@@ -95,6 +96,11 @@ describe("sectionsOf", () => {
     expect(rowsOf("team")).toEqual([["team", ["[team] narrative"]]]);
     expect(rowsOf("repos")).toEqual([["workspace", ["git"]]]);
     expect(rowsOf("runs")).toEqual([["router", ["[router] enabled", "[router] name"]]]);
+    // Whether the daemon looks for updates is with which ws this is, before the daemon's switch.
+    expect(rowsOf("about")).toEqual([
+      ["updates", ["[updates] check"]],
+      ["daemon", ["daemon"]],
+    ]);
     expect(rowsOf("appearance")).toEqual([["ui", ["theme", "[ui] accent", "places"]]]);
   });
 
@@ -107,7 +113,7 @@ describe("sectionsOf", () => {
 
   it("makes a group it doesn't know a section of its own, before the process", () => {
     const sections = sectionsOf(info([{ id: "github", title: "GitHub", about: "How ws asks GitHub.", settings: [setting("github", "host", "text")] }]));
-    expect(sections.map((s) => s.id)).toEqual(["appearance", "notifications", "agents", "missions", "team", "repos", "runs", "github", "process", "yours", "about"]);
+    expect(sections.map((s) => s.id)).toEqual(["appearance", "notifications", "agents", "missions", "team", "repos", "runs", "github", "process", "plugins", "yours", "about"]);
     expect(rowsOf("github", sections)).toEqual([["github", ["[github] host"]]]);
   });
 

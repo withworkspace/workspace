@@ -33,6 +33,8 @@ type App interface {
 	Artifacting
 	Focusing
 	Running
+	Updating
+	Plugging
 }
 
 // Running is runs (internal/runs): on a mission's page, a capsule's

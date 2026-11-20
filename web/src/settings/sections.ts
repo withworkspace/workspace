@@ -91,8 +91,15 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   const repos = section("repos", "Repos", "branch", "How repos are cloned and fetched, and the repos the team has here.");
   const runs = section("runs", "Runs", "play", "Where what ws runs for you and your agents is reached.");
   const process = section("process", "Process", "book", "How work goes here, in prose.");
-  const yours = section("yours", "Set by you", "pencil", "What's yours alone: your file's settings, each with what it would be without yours, and what this browser keeps.", "This workspace");
-  const about = section("about", "About", "info", "Which ws this is, and where the workspace keeps its files.");
+  const plugins = section(
+    "plugins",
+    "Plugins",
+    "box",
+    "Programs that add to the workspace without being part of ws: a view in the sidebar, commands after ws, names for their things, a guide for agents. The daemon runs each as one process, started when it's first needed.",
+    "This workspace",
+  );
+  const yours = section("yours", "Set by you", "pencil", "What's yours alone: your file's settings, each with what it would be without yours, and what this browser keeps.");
+  const about = section("about", "About", "info", "Which ws this is and whether a later one's out, and where the workspace keeps its files.");
   const others: Section[] = [];
 
   const rows = (settings: Setting[], crumb?: string): Row[] => settings.map((s) => ({ kind: "setting", s, crumb }));
@@ -126,6 +133,9 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
       case "router":
         runs.blocks.push({ id: g.id, title: g.title, about: g.about, rows: rows(g.settings, g.title) });
         break;
+      case "updates":
+        about.blocks.push({ id: g.id, title: g.title, rows: rows(g.settings, g.title) });
+        break;
       default:
         others.push({ ...section(g.id, g.title, "sliders", g.about ?? ""), blocks: [{ id: g.id, rows: rows(g.settings) }] });
     }
@@ -133,7 +143,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   appearance.blocks.push({ id: "ui", rows: ui });
   notifications.blocks.push({ id: "notify", rows: [{ kind: "notify" }] });
   about.blocks.push({ id: "daemon", title: "Daemon", rows: [{ kind: "daemon" }] });
-  return [appearance, notifications, agents, missions, team, repos, runs, ...others, process, yours, about];
+  return [appearance, notifications, agents, missions, team, repos, runs, ...others, process, plugins, yours, about];
 }
 
 // sectionAt is the section an old address's hash named (/settings#process,

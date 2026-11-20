@@ -404,3 +404,42 @@ func TestWebSettingsRouter(t *testing.T) {
 		t.Errorf("ws.local.toml cleared:\n%s", data)
 	}
 }
+
+// Whether the daemon looks for updates, [updates] check: on unless you
+// say not, and yours alone (ws.toml has no [updates]).
+func TestWebSettingsUpdates(t *testing.T) {
+	root := settingsWorkspace(t, settingsLocal)
+	info, err := testutil.WebSettings(root)()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "updates", "check"); s.Kind != "bool" || s.Value != true || s.Source != "default" || s.Team != nil {
+		t.Errorf("check, unset: %+v", s)
+	}
+
+	info, err = testutil.WebSetSettings(root)([]web.SettingChange{{Section: "updates", Key: "check", Value: false}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "updates", "check"); s.Value != false || s.Source != "yours" {
+		t.Errorf("check, off: %+v", s)
+	}
+	if data, _ := os.ReadFile(filepath.Join(root, "ws.local.toml")); string(data) != settingsLocal+"\n[updates]\ncheck = false\n" {
+		t.Errorf("ws.local.toml:\n%s", data)
+	}
+	if len(info.Unknown) != 0 {
+		t.Errorf("keys ws doesn't read, with [updates] set: %v", info.Unknown)
+	}
+
+	// Reset: the file as it was, and it looks again.
+	info, err = testutil.WebSetSettings(root)([]web.SettingChange{{Section: "updates", Key: "check", Clear: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "updates", "check"); s.Value != true || s.Source != "default" {
+		t.Errorf("check, reset: %+v", s)
+	}
+	if data, _ := os.ReadFile(filepath.Join(root, "ws.local.toml")); string(data) != settingsLocal {
+		t.Errorf("ws.local.toml reset:\n%s", data)
+	}
+}

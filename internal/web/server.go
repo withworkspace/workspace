@@ -191,8 +191,12 @@ func (s *Server) Start() error {
 	}
 	if s.Plugins != nil {
 		// What plugins add, and where each stands: the host counts its
-		// changes, so there's nothing to work out.
-		s.topics[topicPlugins] = newHub(topicPlugins, s.Poll, s.Plugins.Stamp)
+		// changes, so there's nothing to work out but which are installed.
+		// One removed is stopped before its files go, and one added from a
+		// folder may never start: neither is a change the host counts.
+		s.topics[topicPlugins] = newHub(topicPlugins, s.Poll, func() string {
+			return s.Plugins.Stamp() + " " + strings.Join(plugin.Installed(s.Plugins.Root), ",")
+		})
 	}
 	for _, h := range s.topics {
 		go h.run(s.ctx)
@@ -295,6 +299,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /auth", s.auth)
 	mux.HandleFunc("GET /api/workspace", s.workspace)
 	mux.HandleFunc("POST /api/shutdown", s.shutdown)
+	mux.HandleFunc("GET /api/updates", s.updates)
+	mux.HandleFunc("POST /api/updates/check", s.checkUpdates)
+	mux.HandleFunc("POST /api/upgrade", s.upgrade)
 	mux.HandleFunc("GET /api/events", s.stream)
 	mux.HandleFunc("GET /api/missions/{slug}", s.mission)
 	mux.HandleFunc("GET /api/missions/{slug}/artifact", s.artifact)
@@ -458,6 +465,10 @@ func (s *Server) Handler() http.Handler {
 	// Plugins: what they add, the page ws serves for one's app (the
 	// shell), and each one's own HTTP (asked of the plugin).
 	mux.HandleFunc("GET /api/plugins", s.pluginsList)
+	mux.HandleFunc("GET /api/plugins/installed", s.pluginsInstalled)
+	mux.HandleFunc("POST /api/plugins", s.addPlugin)
+	mux.HandleFunc("POST /api/plugins/{name}/update", s.updatePlugin)
+	mux.HandleFunc("POST /api/plugins/{name}/remove", s.removePlugin)
 	mux.HandleFunc("GET /api/plugins/{name}/refs/{kind}/{ref}", s.pluginThing)
 	mux.HandleFunc("POST /api/plugins/{name}/actions/{id}", s.pluginAct)
 	mux.HandleFunc("GET /plugin-frame/{name}", s.pluginShellRoot)

@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"runtime"
@@ -18,98 +17,13 @@ import (
 // go install, is changed where it was built.
 var ReleaseBuild bool
 
-// upgrader is what an upgrade works on: the ws that's running, and where
-// its releases are.
-type upgrader struct {
-	Exe     string // the ws that's running, as a file
-	Version string // the version it says
-	Release bool   // it's a release's build
-	Source  release.Source
-	OS      string
-	Arch    string
-}
-
-// thisWS is the ws that's running, upgraded from where ws is released.
-func thisWS(cmd *cobra.Command) upgrader {
-	return upgrader{
-		Exe: ownBinary(), Version: cmd.Root().Version, Release: ReleaseBuild,
+// thisWS is the ws that's running, which says it's the version given,
+// upgraded from where ws is released.
+func thisWS(version string) release.Upgrader {
+	return release.Upgrader{
+		Exe: ownBinary(), Version: version, Release: ReleaseBuild,
 		Source: release.FromEnv(), OS: runtime.GOOS, Arch: runtime.GOARCH,
 	}
-}
-
-// upgraded is what an upgrade found or did.
-type upgraded struct {
-	From, To string // the ws that was running, and the release looked at
-	// Installed says To is now in place of From, which is Kept if it could
-	// be. Otherwise nothing changed: To is what's running (Current), is
-	// older than it (Older), or is there to install (neither).
-	Installed, Kept bool
-	Current, Older  bool
-}
-
-// errNotARelease is why a ws that isn't a release's build isn't upgraded.
-func (u upgrader) errNotARelease() error {
-	return fmt.Errorf("this ws (%s, at %s) isn't a release's build, and ws upgrade only replaces one that is: build it again where it was built (just build in its clone, or go install), or install a release with scripts/install.sh", u.Version, u.Exe)
-}
-
-// look finds the release an upgrade would install: the one named, or the
-// latest. It's not to be installed if it's what's running (Current), or
-// the latest and older than what's running (Older).
-func (u upgrader) look(ctx context.Context, version string) (upgraded, error) {
-	r := upgraded{From: u.Version, To: version}
-	switch {
-	case !u.Release || u.Exe == "":
-		return r, u.errNotARelease()
-	case version != "" && !release.IsTag(version):
-		return r, fmt.Errorf("%q isn't a release's tag: they're like v1.4.0, or v1.4.0-rc.1 for a prerelease", version)
-	}
-	// Said before anything's fetched, for a platform with no builds.
-	if _, err := release.Asset("", u.OS, u.Arch); err != nil {
-		return r, err
-	}
-	if version == "" {
-		latest, err := u.Source.Latest(ctx)
-		if err != nil {
-			return r, err
-		}
-		r.To = latest
-		// The latest is taken only if it's later: a prerelease that's
-		// installed is ahead of it, and isn't taken back.
-		r.Older = release.Newer(u.Version, latest)
-	}
-	r.Current = r.To == u.Version
-	return r, nil
-}
-
-// install fetches the release look found and puts it in place of the ws
-// that's running.
-func (u upgrader) install(ctx context.Context, r upgraded) (upgraded, error) {
-	path, says, err := u.Source.Fetch(ctx, r.To, u.OS, u.Arch, u.Exe)
-	if err != nil {
-		var unwritable *release.Unwritable
-		if errors.As(err, &unwritable) {
-			return r, fmt.Errorf("%w: ws upgrade replaces %s where it is. Run it as whoever that folder belongs to, or install a release somewhere of your own with scripts/install.sh [version] [dir]", err, u.Exe)
-		}
-		return r, err
-	}
-	if err := release.Install(path, u.Exe); err != nil {
-		return r, fmt.Errorf("putting ws %s in place of %s: %w", says, u.Exe, err)
-	}
-	r.To, r.Installed = says, true
-	_, err = release.VersionOf(release.PrevPath(u.Exe))
-	r.Kept = err == nil
-	return r, nil
-}
-
-// upgrade installs a release in place of the ws that's running: the one
-// named, or the latest if it's later than this one. With check it only
-// looks.
-func (u upgrader) upgrade(ctx context.Context, version string, check bool) (upgraded, error) {
-	r, err := u.look(ctx, version)
-	if err != nil || r.Current || r.Older || check {
-		return r, err
-	}
-	return u.install(ctx, r)
 }
 
 func newUpgradeCmd() *cobra.Command {
@@ -140,13 +54,13 @@ which ws upgrade used to do, is ws sync.)`,
 			if err := yoursToDo("upgrading ws", "it changes the ws every crew and the daemon run"); err != nil {
 				return err
 			}
-			u := thisWS(cmd)
+			u := thisWS(cmd.Root().Version)
 			if rollback {
 				if len(args) > 0 || check {
 					return errors.New("--rollback puts back the ws the last upgrade replaced: it takes no version, and not --check")
 				}
-				if !u.Release || u.Exe == "" {
-					return u.errNotARelease()
+				if !u.Replaceable() {
+					return u.ErrNotARelease()
 				}
 				version, err := release.Rollback(u.Exe)
 				if err != nil {
@@ -161,13 +75,13 @@ which ws upgrade used to do, is ws sync.)`,
 			if len(args) > 0 {
 				version = args[0]
 			}
-			r, err := u.look(cmd.Context(), version)
+			r, err := u.Look(cmd.Context(), version)
 			if err != nil {
 				return err
 			}
 			if !r.Current && !r.Older && !check {
 				fmt.Fprintf(ui.Stderr, "  %s downloading ws %s for %s/%s\n", ui.Dim.Render("↓"), r.To, u.OS, u.Arch)
-				if r, err = u.install(cmd.Context(), r); err != nil {
+				if r, err = u.Install(cmd.Context(), r); err != nil {
 					return err
 				}
 			}

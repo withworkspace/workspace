@@ -81,7 +81,9 @@ export default defineConfig(() => {
       proxy:
         target &&
         Object.fromEntries(
-          ["/api", "/plugin-frame", "/plugins"].map((path) => [
+          // /plugins/ with its slash: a plugin's own HTTP is under it, and
+          // /plugins alone is the web UI's Plugins page.
+          ["/api", "/plugin-frame", "/plugins/"].map((path) => [
             path,
             {
               target: target.origin,

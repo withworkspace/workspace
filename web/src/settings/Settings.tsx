@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, NavLink, useLocation, useParams } from "react-router";
-import { getProcess, getRepos, getSettings, setSettings, type Repo, type SettingChange, type SettingsGroup, type SettingsInfo, type Workspace } from "../api";
+import { getProcess, getRepos, getSettings, type Plugin, setSettings, type Repo, type SettingChange, type SettingsGroup, type SettingsInfo, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { shortVersion } from "../shell/version";
@@ -8,7 +8,9 @@ import { Icon } from "../ui/Icon";
 import { Callout, ErrorCard, Keys, Skeleton, toast, useTitle } from "../ui/kit";
 import { useTheme } from "../ui/theme";
 import { forgetModels, valueSaid } from "./controls";
+import { PluginsSection } from "../plugins/Plugins";
 import { ProcessAbout, ProcessFile } from "./Process";
+import { Updates } from "./Updates";
 import { type Page, PageContext, RowOf, SettingCell, usePage, useSetting, without } from "./Row";
 import { type Block, find, type Found, keyOf, type Mine, minesOf, name, sectionAt, type Section, sectionsOf, wordsOf } from "./sections";
 
@@ -36,11 +38,13 @@ const fileName = (path: string) => path.split("/").pop() ?? path;
 
 export function SettingsPage({
   workspace,
+  plugins,
   notify,
   onArrange,
   onClosed,
 }: {
   workspace: Workspace;
+  plugins?: Plugin[];
   notify: Page["notify"];
   onArrange: () => void;
   onClosed: () => void;
@@ -155,7 +159,7 @@ export function SettingsPage({
           {error && <ErrorCard error={error} retry={load} />}
           {/* An old address, till the settings say which section it's in now. */}
           {!section && !finding && !settled && <Skeleton rows={6} />}
-          {finding ?<Results found={found} query={query} clear={() => setQuery("")} /> : section && <SectionView section={section} sections={sections} info={info} loading={!settled} workspace={workspace} />}
+          {finding ?<Results found={found} query={query} clear={() => setQuery("")} /> : section && <SectionView section={section} sections={sections} info={info} loading={!settled} workspace={workspace} plugins={plugins} />}
         </div>
       </div>
     </PageContext.Provider>
@@ -193,9 +197,9 @@ function Results({ found, query, clear }: { found: Found[]; query: string; clear
   );
 }
 
-function SectionView({ section, sections, info, loading, workspace }: { section: Section; sections: Section[]; info?: SettingsInfo; loading: boolean; workspace: Workspace }) {
+function SectionView({ section, sections, info, loading, workspace, plugins }: { section: Section; sections: Section[]; info?: SettingsInfo; loading: boolean; workspace: Workspace; plugins?: Plugin[] }) {
   // The sections whose rows are all the page's own needn't wait.
-  const waits = section.id !== "notifications" && section.id !== "process" && section.id !== "about";
+  const waits = section.id !== "notifications" && section.id !== "process" && section.id !== "about" && section.id !== "plugins";
   return (
     <>
       <header className="page-head">
@@ -203,11 +207,9 @@ function SectionView({ section, sections, info, loading, workspace }: { section:
       </header>
       <p className="lede">{section.id === "process" ? <ProcessAbout /> : section.about}</p>
       {section.id === "yours" && info && <Yours info={info} sections={sections} />}
-      {section.id === "about" && <About info={info} workspace={workspace} />}
-      {section.blocks.map((b) => (
-        <BlockView key={b.id} block={b} />
-      ))}
+      {section.id === "about" ? <About info={info} workspace={workspace} section={section} /> : section.blocks.map((b) => <BlockView key={b.id} block={b} />)}
       {loading && waits && <Skeleton rows={4} />}
+      {section.id === "plugins" && <PluginsSection plugins={plugins} />}
       {section.id === "repos" && <Repos branch={workspace.defaultBranch} />}
       {section.id === "process" && <ProcessFile />}
     </>
@@ -414,10 +416,12 @@ function MineRow({ m }: { m: Mine }) {
   );
 }
 
-// About is which ws this is, and where the workspace keeps what Settings
-// shows.
-function About({ info, workspace }: { info?: SettingsInfo; workspace: Workspace }) {
+// About is which ws this is and what's out that's later, and where the
+// workspace keeps what Settings shows. Its blocks are placed among those:
+// Updates under the version, the daemon last.
+function About({ info, workspace, section }: { info?: SettingsInfo; workspace: Workspace; section: Section }) {
   const process = useLoaded(getProcess, [], { keep: true }).value;
+  const updates = section.blocks.find((b) => b.id === "updates");
   return (
     <>
       <section className="settings-block">
@@ -431,6 +435,17 @@ function About({ info, workspace }: { info?: SettingsInfo; workspace: Workspace 
             <div className="dim">The daemon's, which serves this page.</div>
           </dd>
         </dl>
+      </section>
+      <section id="updates" className="settings-block">
+        <h2 className="group">Updates</h2>
+        <Updates running={workspace.version} />
+        {updates && (
+          <div className="setting-rows">
+            {updates.rows.map((row) => (
+              <RowOf key={keyOf(row)} row={row} />
+            ))}
+          </div>
+        )}
       </section>
       <section className="settings-block">
         <h2 className="group">This workspace</h2>
@@ -472,6 +487,11 @@ function About({ info, workspace }: { info?: SettingsInfo; workspace: Workspace 
           )}
         </dl>
       </section>
+      {section.blocks
+        .filter((b) => b.id !== "updates")
+        .map((b) => (
+          <BlockView key={b.id} block={b} />
+        ))}
     </>
   );
 }
