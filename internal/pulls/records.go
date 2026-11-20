@@ -14,8 +14,9 @@ import (
 
 // What ws keeps of pull requests is in the workspace's records: a row each
 // in pulls (what pr.json held, as JSON, beside its repo, number, title,
-// branch, head and who docked it), and in pull_list the Reviews page's
-// list as GitHub last said it. A pull request ws keeps something of is a
+// branch, head and who docked it), in pull_list the Reviews page's list as
+// GitHub last said it, and in pull_pages each open one's page as it was
+// last read. A pull request ws keeps something of is a
 // thing in the graph (demo#12), and what it says it does, its title and
 // description, are its words.
 
@@ -38,7 +39,19 @@ func init() {
 			at TEXT NOT NULL,
 			list TEXT NOT NULL
 		);
-	`), store.Retired)
+	`), store.Retired, store.SQL(`
+		-- Each open pull request's page as it was last read (page.go): what
+		-- GitHub says of it, its layer as fetched, and what's been said on
+		-- it, as JSON; and its diffs, by what they're of. Kept from when
+		-- it's first shown until it's merged or closed.
+		CREATE TABLE pull_pages (
+			repo TEXT NOT NULL, number INTEGER NOT NULL,
+			at TEXT NOT NULL,
+			page TEXT NOT NULL,
+			diffs TEXT NOT NULL,
+			PRIMARY KEY (repo, number)
+		) WITHOUT ROWID;
+	`))
 }
 
 func readRecords(root string, fn func(tx *store.Tx) error) error {
@@ -264,6 +277,85 @@ func keepList(root string, l *List) (string, error) {
 			return err
 		}
 		tx.Changed("reviews")
+		return nil
+	})
+}
+
+// A page, as it's kept (page.go): for the daemon when it starts again.
+
+// keptPage is a PR's page in the records: nil if none's kept.
+func keptPage(root, repo string, number int) (*page, error) {
+	var pg *page
+	err := readRecords(root, func(tx *store.Tx) error {
+		var data, diffs string
+		err := tx.QueryRow(`SELECT page, diffs FROM pull_pages WHERE repo = ? AND number = ?`, repo, number).Scan(&data, &diffs)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		var got page
+		if json.Unmarshal([]byte(data), &got) != nil { // one that can't be read is read again
+			return nil
+		}
+		if json.Unmarshal([]byte(diffs), &got.Diffs) != nil || got.Diffs == nil {
+			got.Diffs = map[string]*Diffed{}
+		}
+		pg = &got
+		return nil
+	})
+	return pg, err
+}
+
+// keepPage writes a PR's page to the records, with its diffs.
+func keepPage(root, repo string, number int, pg *page, diffs map[string]*Diffed) error {
+	data, err := json.Marshal(pg)
+	if err != nil {
+		return err
+	}
+	dd, err := json.Marshal(diffs)
+	if err != nil {
+		return err
+	}
+	return writeRecords(root, func(tx *store.Tx) error {
+		_, err := tx.Exec(`INSERT INTO pull_pages (repo, number, at, page, diffs) VALUES (?, ?, ?, ?, ?)
+			ON CONFLICT (repo, number) DO UPDATE SET at = excluded.at, page = excluded.page, diffs = excluded.diffs`,
+			repo, number, stampOf(pg.At), string(data), string(dd))
+		return err
+	})
+}
+
+// dropPages forgets the pages of PRs that gone says are: merged or
+// closed. It's those it forgot.
+func dropPages(root string, gone func(repo string, number int) bool) ([]Kept, error) {
+	var out []Kept
+	err := readRecords(root, func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT repo, number FROM pull_pages`)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var k Kept
+			if err := rows.Scan(&k.Repo, &k.Number); err != nil {
+				return err
+			}
+			if gone(k.Repo, k.Number) {
+				out = append(out, k)
+			}
+		}
+		return rows.Err()
+	})
+	if err != nil || len(out) == 0 {
+		return nil, err
+	}
+	return out, writeRecords(root, func(tx *store.Tx) error {
+		for _, k := range out {
+			if _, err := tx.Exec(`DELETE FROM pull_pages WHERE repo = ? AND number = ?`, k.Repo, k.Number); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 }

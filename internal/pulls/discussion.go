@@ -83,11 +83,7 @@ func (s *Service) Discussion(repo string, number int) (*Discussion, error) {
 	if err != nil {
 		return nil, err
 	}
-	me := ""
-	if list := s.Peek(); list != nil {
-		me = list.Me
-	}
-	return discussion(said, me, pr.Head), nil
+	return discussion(said, s.me(), pr.Head), nil
 }
 
 func discussion(said []github.Said, me, head string) *Discussion {

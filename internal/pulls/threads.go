@@ -36,10 +36,20 @@ func (s *Service) Threads(repo string, number int) (*review.Review, error) {
 	if err != nil {
 		return nil, err
 	}
-	me := ""
+	return threadsReview(repo, number, threads, l, s.me()), nil
+}
+
+// me is who you are on GitHub, as the list last said: "" if it's never
+// been asked.
+func (s *Service) me() string {
 	if list := s.Peek(); list != nil {
-		me = list.Me
+		return list.Me
 	}
+	return ""
+}
+
+// threadsReview is GitHub's threads on a PR as one review's comments.
+func threadsReview(repo string, number int, threads []github.ReviewThread, l *layer, me string) *review.Review {
 	out := &review.Review{ID: ThreadsID, Capsule: Key(repo, number), BaseRef: l.baseRef, Base: l.base, Head: l.head, State: review.Submitted, Comments: []review.Note{}}
 	for _, t := range threads {
 		if len(t.Comments) == 0 {
@@ -47,7 +57,7 @@ func (s *Service) Threads(repo string, number int) (*review.Review, error) {
 		}
 		out.Comments = append(out.Comments, threadNote(t, l, me))
 	}
-	return out, nil
+	return out
 }
 
 // threadNote is a GitHub thread as a comment on lines. One whose lines
