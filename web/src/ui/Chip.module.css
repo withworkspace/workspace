@@ -11,6 +11,9 @@
     color: var(--dim);
     background: var(--well);
     white-space: nowrap;
+    /* It's a few words that don't wrap: in a row of things, it doesn't
+       give way either. */
+    flex: none;
   }
 
   /* In a tone: the tone-<tone> class beside this one sets the colours. */

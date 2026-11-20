@@ -44,6 +44,7 @@ import { useReviewPasses } from "../reviews/usePasses";
 import { type FileGroup, groupByOrder, type Order, orderFiles, skimWords } from "./files";
 import { type Cell, cellHTML, type Editing, type FileState, type Found, fileRows, type Highlighted, isChange, isHead, navigable, type Placed, type Row, sameLine, type Target } from "./model";
 import { useLatest } from "../load";
+import { Chip } from "../ui/Chip";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -1047,9 +1048,9 @@ export function ReviewView({ source }: { source: ReviewSource }) {
           {diff && (
             <span className="review-scope">
               {sinceShown ? (
-                <span className="chip tone-attention" title={diff.since ? `What's changed since ${sinceName}, at ${diff.since.slice(0, 7)}` : `Each file's change, compared with what you reviewed (${sinceName})`}>
+                <Chip tone="attention" title={diff.since ? `What's changed since ${sinceName}, at ${diff.since.slice(0, 7)}` : `Each file's change, compared with what you reviewed (${sinceName})`}>
                   <Icon name="rotate" size={11} /> Since {sinceName}
-                </span>
+                </Chip>
               ) : null}
               <span className="dim">
                 {diff.commits.length} {diff.commits.length === 1 ? "commit" : "commits"}

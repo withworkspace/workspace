@@ -9,6 +9,8 @@ import { CheckingLine } from "./checking";
 import { Empty, Keys, useTitle } from "../ui/kit";
 import { crewStatus, headlineStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // The missions, grouped by whose court they're
 // in (their headline's group): what needs you first. Each says where it
@@ -123,7 +125,7 @@ export function MissionList({ missions }: { missions: Mission[] }) {
       {sections.map((s) => (
         <section key={s.title} aria-label={s.title}>
           <h2 className="group">
-            {s.title} <span className="count">{s.missions.length}</span>
+            {s.title} <Count>{s.missions.length}</Count>
           </h2>
           <ul className="rows missions" role="listbox" aria-label={s.title}>
             {s.missions.map((m) => {
@@ -154,7 +156,7 @@ export function MissionList({ missions }: { missions: Mission[] }) {
                         </span>
                       )}
                     </span>
-                    <span className={`chip tone-${st.tone} row-chip`}>{st.words}</span>
+                    <Chip tone={st.tone} className="row-chip">{st.words}</Chip>
                     {m.at && onRoute(m.at) && (
                       <span className="row-meta" title={m.at}>
                         {onRoute(m.at)}
@@ -181,10 +183,10 @@ export function MissionList({ missions }: { missions: Mission[] }) {
 function CrewChip({ crew }: { crew: Crew }) {
   const st = crewStatus(crew);
   return (
-    <span className={`chip tone-${st.tone} crew-chip`} title={`${crew.id}: ${st.words}`}>
+    <Chip tone={st.tone} className="crew-chip" title={`${crew.id}: ${st.words}`}>
       <Icon name={st.icon} size={12} className={st.live ? (st.icon === "spinner" ? "spin" : "pulse") : undefined} />
       {crew.id}
-    </span>
+    </Chip>
   );
 }
 

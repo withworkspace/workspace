@@ -13,6 +13,7 @@ import { Time } from "../ui/time";
 import { BriefOutline, type DocId } from "./BriefOutline";
 import { BriefPlanner, PassageTool, pickedIn, PlannerField, quoted } from "./BriefPlanner";
 import { type Doc, type Edit, edits, planAsk, planSteps, reading, type Settled, shown } from "./briefpage";
+import { Chip } from "../ui/Chip";
 
 // A mission's Brief tab: its brief and its plan as documents, in the
 // mission's own page. The brief is edited as it reads. The plan is read:
@@ -562,7 +563,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
   );
   const nav = toRead > 0 && (
     <span className="brief-nav">
-      <span className="chip tone-attention">{at >= 0 ? `${at + 1} of ${toRead}` : `${toRead} ${toRead === 1 ? "change" : "changes"}`}</span>
+      <Chip tone="attention" className="brief-nav-chip">{at >= 0 ? `${at + 1} of ${toRead}` : `${toRead} ${toRead === 1 ? "change" : "changes"}`}</Chip>
       <button type="button" className="ghost icon-button" onClick={() => move(-1)} title="The change before (k)" aria-label="The change before">
         <Icon name="chevron-up" size={13} />
       </button>
@@ -788,9 +789,9 @@ function DocPanel({
       <h2 className="brief-doc-head">
         {title}
         {toSettle && (
-          <span className="chip tone-attention">
+          <Chip tone="attention" className="brief-head-chip">
             {r.pending.length} {r.pending.length === 1 ? "change" : "changes"} to read
-          </span>
+          </Chip>
         )}
         <span className="spacer" />
         {toSettle && (

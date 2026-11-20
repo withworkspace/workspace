@@ -5,6 +5,8 @@ import { Copyable, Keys } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
 import { changed, presetOn, readChange, readTold, said, type State, stateWords, takes, type Told, type Tweak, type Value } from "./tweaks";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // Tweaks: what a version's page says can be changed about it, drawn
 // here, beside its frame, and not by the page: a tray of its presets and
@@ -89,7 +91,7 @@ export function TweaksButton({ told, set, label }: { told: Told | undefined; set
     <DialogTrigger>
       <AriaButton className="ghost small tweaks-button" aria-label={label}>
         <Icon name="sliders" size={13} /> Tweaks
-        {n ? <span className="count">{n}</span> : null}
+        {n ? <Count>{n}</Count> : null}
       </AriaButton>
       <Popover className="select-popover tweaks-popover" placement="bottom end" offset={4} data-field>
         <AriaDialog className="tweaks-dialog" aria-label={label}>
@@ -106,7 +108,7 @@ function TweaksHead({ told, children }: { told: Told; children?: ReactNode }) {
   return (
     <header className="tweaks-head">
       <h2>Tweaks</h2>
-      {n ? <span className="chip">{n} changed</span> : null}
+      {n ? <Chip>{n} changed</Chip> : null}
       <span className="tweaks-head-end">
         <Copyable text={stateWords(told)} className="tweaks-copy" title="Copy what each is set to, as text: to say which you'd keep">
           Copy
@@ -325,7 +327,7 @@ export function TweaksToggle({ told, shown, onToggle }: { told: Told | undefined
   return (
     <button className="ghost small" aria-pressed={shown} onClick={onToggle} title="What its page says can be changed about it">
       <Icon name="sliders" size={13} /> Tweaks
-      {n ? <span className="count">{n}</span> : null} <Keys k="t" />
+      {n ? <Count>{n}</Count> : null} <Keys k="t" />
     </button>
   );
 }

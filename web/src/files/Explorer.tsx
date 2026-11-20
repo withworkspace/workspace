@@ -13,6 +13,8 @@ import { Icon, type IconName } from "../ui/Icon";
 import { Callout, Copyable, Empty, ErrorCard, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
 import { useLoaded } from "../load";
 import { TabbedBrowser } from "./WorktreeTabs";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // The file explorer: a capsule's files as they are now, without an editor
 // open. A tree on the left (everything, or only what's changed since the
@@ -687,7 +689,7 @@ function Overview({ tree, changed, onOpen, onFind }: { tree?: FileTree; changed:
       {changed.length > 0 && (
         <section>
           <h2 className="group">
-            Changed <span className="count">{changed.length}</span>
+            Changed <Count>{changed.length}</Count>
           </h2>
           <ul className="overview-changed">
             {changed.slice(0, 40).map((f) => (
@@ -696,7 +698,7 @@ function Overview({ tree, changed, onOpen, onFind }: { tree?: FileTree; changed:
                   <StatusMark f={f} />
                   <FileIcon path={f.path} />
                   <span className="mono">{f.path}</span>
-                  {f.uncommitted && <span className="chip tone-attention">Not committed</span>}
+                  {f.uncommitted && <Chip tone="attention">Not committed</Chip>}
                 </button>
               </li>
             ))}
@@ -817,14 +819,14 @@ function FilePane({
       </header>
       <div className="file-meta">
         {entry?.status ? (
-          <span className={`chip tone-${entry.status === "deleted" ? "danger" : entry.status === "added" ? "done" : "attention"}`}>
+          <Chip tone={entry.status === "deleted" ? "danger" : entry.status === "added" ? "done" : "attention"}>
             {statusWords[entry.status]} since {base}
-          </span>
+          </Chip>
         ) : (
-          base && <span className="chip tone-quiet">Unchanged since {base}</span>
+          base && <Chip tone="quiet">Unchanged since {base}</Chip>
         )}
         {entry?.oldPath && <span className="dim">from {entry.oldPath}</span>}
-        {entry?.uncommitted && <span className="chip tone-attention">Not committed</span>}
+        {entry?.uncommitted && <Chip tone="attention">Not committed</Chip>}
         {file && image && !file.deleted && <span className="dim num">{sizeWords(file.size)}</span>}
         {file && !image && !file.binary && !file.tooLarge && (
           <span className="dim num">

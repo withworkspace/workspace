@@ -15,6 +15,7 @@ import { compareHref, type Pair, readPair, settle, type Side, sideRef, sideTweak
 import { widths } from "./shown";
 import { type FrameTweaks, TweaksButton, useTweaks } from "./Tray";
 import { followed, frameSearch, type Params, readTweakParams } from "./tweaks";
+import { Chip } from "../ui/Chip";
 
 // Comparing: two versions side by side, of one artifact
 // (/artifacts/a3/compare?v=1,3) or of two
@@ -181,10 +182,10 @@ export function ComparePage({ workspace }: { workspace: Workspace }) {
             <Icon name="arrow-left" size={14} />
           </Link>
           <h1>{same ? right.title : `${left.title} and ${right.title}`}</h1>
-          <span className="chip tone-quiet">
+          <Chip tone="quiet">
             <Icon name="split" size={11} />
             {same ? `v${pair[0].n} and v${pair[1].n}` : "Two artifacts"}
-          </span>
+          </Chip>
         </div>
         <div className="artifact-tools">
           <div className="segmented" role="group" aria-label="What's compared">
@@ -460,7 +461,7 @@ function FileDiff({ file: f, lines, a, b, split, named }: { file: DiffFile; line
         {named && (
           <span className="artifact-diff-path">
             <Icon name="file" size={12} /> {f.path}
-            {f.status !== "modified" && <span className={`chip tone-${f.status === "added" ? "done" : "quiet"}`}>{statusWords[f.status] ?? f.status}</span>}
+            {f.status !== "modified" && <Chip tone={f.status === "added" ? "done" : "quiet"}>{statusWords[f.status] ?? f.status}</Chip>}
           </span>
         )}
         {f.binary ? (

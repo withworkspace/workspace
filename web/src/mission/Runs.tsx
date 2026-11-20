@@ -4,6 +4,8 @@ import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
 import { humanError, toast } from "../ui/kit";
 import { Time } from "../ui/time";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // A capsule's runs (ws run): what's running in it, each with its link and
 // when it ends, and its repo's recipes not running, each to run. One run
@@ -37,7 +39,7 @@ export function RunsHere({ slug, c, open, reload }: { slug: string; c: CapsuleDe
   return (
     <>
       <h3>
-        Runs {runs.length > 0 && <span className="count">{runs.length}</span>}
+        Runs {runs.length > 0 && <Count>{runs.length}</Count>}
       </h3>
       {runs.length > 0 && (
         <ul className="work-runs">
@@ -86,7 +88,7 @@ export function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: 
               )}
             </span>
           )}
-          {live && !r.up && <span className="chip tone-quiet">not up</span>}
+          {live && !r.up && <Chip tone="quiet">not up</Chip>}
         </span>
         {live && (r.needs?.length ?? 0) > 0 && (
           <span className="work-run-ends">

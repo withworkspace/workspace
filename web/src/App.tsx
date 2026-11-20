@@ -50,6 +50,7 @@ import { Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, t
 import { headlineStatus, Status } from "./ui/status";
 import { duration } from "./ui/time";
 import { SiloPoint } from "./silo/SiloPoint";
+import { Count } from "./ui/Count";
 
 export function App() {
   const { workspace, error, connection } = useWorkspace();
@@ -162,7 +163,7 @@ export function App() {
             <Icon name="menu" size={18} />
           </button>
           <WorkspaceMenu workspace={workspace} places={menu} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
-          {waiting.length > 0 && <span className="count tone-attention" title="Needs you">{waiting.length}</span>}
+          {waiting.length > 0 && <Count tone="attention" className="topbar-count" title="Needs you">{waiting.length}</Count>}
         </div>
         <div
           className="scrim"
@@ -321,9 +322,9 @@ function WorkspaceMenu({
                   <Icon name={p.icon} />
                   <span className="select-option-text">{p.label}</span>
                   {!!p.count && (
-                    <span className="count tone-attention" title={`${p.count} ${p.countTitle ?? "need you"}`}>
+                    <Count tone="attention" className="menu-count" title={`${p.count} ${p.countTitle ?? "need you"}`}>
                       {p.count}
-                    </span>
+                    </Count>
                   )}
                 </MenuItem>
               ))}
@@ -399,9 +400,9 @@ function NavItem({
       <Icon name={icon} size={15} />
       <span>{label}</span>
       {!!count && (
-        <span className="count tone-attention" title={`${count} ${countTitle}`}>
+        <Count tone="attention" className="nav-count" title={`${count} ${countTitle}`}>
           {count}
-        </span>
+        </Count>
       )}
     </NavLink>
   );

@@ -5,6 +5,8 @@ import { Icon } from "../ui/Icon";
 import { ErrorCard, humanError, Keys } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import { TLink } from "../ui/TLink";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // Search over the spaces' documents: ranked, each led to the section
 // that says it best; kept to a kind, and where one stands, once a kind's
@@ -98,7 +100,7 @@ export function Results({ hits, more, error, index, setIndex }: { hits?: DocHit[
   return (
     <section aria-label="Found">
       <h2 className="group">
-        Found <span className="count">{hits.length + more}</span>
+        Found <Count>{hits.length + more}</Count>
       </h2>
       <ul className="rows doc-hits" role="listbox" aria-label="Documents found">
         {hits.map((h, i) => (
@@ -111,11 +113,11 @@ export function Results({ hits, more, error, index, setIndex }: { hits?: DocHit[
                     {h.title}
                     {h.heading && <span className="dim"> › {h.heading}</span>}
                   </span>
-                  {h.state && <span className="chip tone-quiet">{h.state}</span>}
+                  {h.state && <Chip tone="quiet">{h.state}</Chip>}
                   {!h.every && (
-                    <span className="chip tone-quiet" title="Not every word was found in it">
+                    <Chip tone="quiet" title="Not every word was found in it">
                       some of the words
-                    </span>
+                    </Chip>
                   )}
                 </span>
                 {h.snippet.length > 0 && (

@@ -9,6 +9,7 @@ import { Copyable, ErrorCard, Keys, Skeleton } from "../ui/kit";
 import { Time } from "../ui/time";
 import { ChangeLine } from "./Activity";
 import { withoutTitle, wordsIn } from "./happening";
+import { Chip } from "../ui/Chip";
 
 // Preview is a space's document beside its list, as the reader shows it:
 // what it is and where, who changed it last, how long it is, its sections
@@ -50,8 +51,8 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
     <aside className="doc-preview" ref={pane} aria-label={`${doc.title}, previewed`}>
       <header className="doc-preview-head">
         <div className="doc-preview-where">
-          {kind && <span className="chip tone-quiet">{kind.title}</span>}
-          {doc.state && kind?.states && <span className={`chip ${doc.state === kind.states[0] ? "tone-quiet" : "tone-done"}`}>{doc.state}</span>}
+          {kind && <Chip tone="quiet">{kind.title}</Chip>}
+          {doc.state && kind?.states && <Chip tone={doc.state === kind.states[0] ? "quiet" : "done"}>{doc.state}</Chip>}
           {(doc.number || doc.date) && <span className="mono">{doc.number ?? doc.date}</span>}
           <Copyable text={ref} className="mono doc-preview-ref" title="Copy its ref">
             {`${repo} · ${doc.path}`}

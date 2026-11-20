@@ -14,6 +14,8 @@ import { HitLine, InFlightChip, KindHead, KindList, libraryID, type Picking, pic
 import { type Placed, placePages } from "./place";
 import { Preview } from "./Preview";
 import { hitTo, Results, SearchBox, useDocSearch } from "./Search";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // Documents: where the workspace's writing is read. Local is the pages
 // that aren't in a space (written here, on this machine); each space is a
@@ -169,7 +171,7 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
           <div className="documents-grid">
             <section aria-label="Spaces">
               <h2 className="group">
-                Spaces <span className="count">{spaces.length}</span>
+                Spaces <Count>{spaces.length}</Count>
               </h2>
               {error && !value && <ErrorCard title="Couldn't read the spaces" error={error} retry={reload} />}
               {value?.problem && <div className="banner tone-attention">Some of it may be behind: {value.problem}</div>}
@@ -198,7 +200,7 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
             </section>
             <section aria-label="Local">
               <h2 className="group" title="Pages written here, on this machine, that aren't in a space: no one else sees them. File as… is the way out.">
-                Local <span className="count">{local.length}</span>
+                Local <Count>{local.length}</Count>
                 {filling > 0 && <span className="dim documents-sub">· {filling} filling</span>}
               </h2>
               {local.length === 0 ? (
@@ -222,9 +224,9 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
                         onHover={() => i !== index && setIndex(i)}
                         note={
                           p.page.source && (
-                            <span className="chip tone-quiet" title="Its file isn't in a space of documents">
+                            <Chip tone="quiet" title="Its file isn't in a space of documents">
                               {p.page.source.ref.split(":")[0]}
-                            </span>
+                            </Chip>
                           )
                         }
                       />
@@ -520,7 +522,7 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
                 <nav className="segmented space-tabs" aria-label={library.length ? "Jump to a kind" : "Jump to a folder"}>
                   {tabs.map((t, i) => (
                     <button key={t.id} aria-pressed={i === tab} disabled={t.n === 0} onClick={() => jump(t.id)}>
-                      {t.label} <span className="count">{searched && t.n !== t.total ? `${t.n}/${t.total}` : t.total}</span>
+                      {t.label} <Count className="space-tab-count">{searched && t.n !== t.total ? `${t.n}/${t.total}` : t.total}</Count>
                     </button>
                   ))}
                 </nav>
@@ -530,7 +532,7 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
               {drafts.length > 0 && (
                 <section aria-label="Your drafts">
                   <h2 className="group" title="Pages of yours that will live here: only you see them until they're saved or filed">
-                    Your drafts <span className="count">{drafts.length}</span>
+                    Your drafts <Count>{drafts.length}</Count>
                   </h2>
                   <ul className="rows pages" role="listbox" aria-label="Your drafts">
                     {drafts.map((p, i) => (
@@ -564,7 +566,7 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
               {folders.map(([folder, docs]) => (
                 <section key={folder} id={listID("folder", folder)} aria-label={folder || "Top"}>
                   <h2 className="group">
-                    <span className="mono">{folder || "(top)"}</span> <span className="count">{docs.length}</span>
+                    <span className="mono">{folder || "(top)"}</span> <Count>{docs.length}</Count>
                   </h2>
                   <ul className="rows space-docs" role="listbox" aria-label={folder || "Top"}>
                     {docs.map((d) => {
@@ -736,39 +738,27 @@ function DraftNote({ p }: { p: Placed }) {
   switch (p.why) {
     case "to":
       return (
-        <span
-          className="chip tone-quiet"
-          title={`To be filed in ${p.path || "its top"}, not filed yet`}
-        >
+        <Chip tone="quiet" title={`To be filed in ${p.path || "its top"}, not filed yet`}>
           Not filed · {p.path || "top"}
-        </span>
+        </Chip>
       );
     case "unsaved":
       return (
-        <span
-          className="chip tone-attention"
-          title={`Your edits to ${p.path}, not saved to the repo yet`}
-        >
+        <Chip tone="attention" title={`Your edits to ${p.path}, not saved to the repo yet`}>
           Unsaved
-        </span>
+        </Chip>
       );
     case "filed":
       return (
-        <span
-          className="chip tone-progress"
-          title={`Filed as ${p.path}, in a capsule: it's here once it lands`}
-        >
+        <Chip tone="progress" title={`Filed as ${p.path}, in a capsule: it's here once it lands`}>
           Filed, not landed
-        </span>
+        </Chip>
       );
     default:
       return (
-        <span
-          className="chip tone-quiet"
-          title="Started as one of this space's kinds, not filed yet"
-        >
+        <Chip tone="quiet" title="Started as one of this space's kinds, not filed yet">
           Not filed
-        </span>
+        </Chip>
       );
   }
 }

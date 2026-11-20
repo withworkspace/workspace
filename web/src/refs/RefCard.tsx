@@ -15,6 +15,7 @@ import { thingIcon } from "./views";
 import { type Anchor, FloatingCard } from "../ui/hover";
 import { PinButton } from "../shell/focus";
 import { prOf } from "./prs";
+import { Chip } from "../ui/Chip";
 
 // RefCard says more about what words name, under them while the
 // pointer's there: a file's lines, a pull request's title and where it
@@ -224,7 +225,7 @@ function PRCard({ r }: { r: Extract<PageRef, { kind: "pr" }> }) {
           </span>
           <span className="hovercard-line">
             {pr.words}
-            {pr.checks && <span className={`chip ${pr.checks === "success" ? "tone-done" : pr.checks === "failure" ? "tone-danger" : "tone-quiet"}`}>checks {pr.checks === "success" ? "pass" : pr.checks === "failure" ? "fail" : "running"}</span>}
+            {pr.checks && <Chip className="line-chip" tone={pr.checks === "success" ? "done" : pr.checks === "failure" ? "danger" : "quiet"}>checks {pr.checks === "success" ? "pass" : pr.checks === "failure" ? "fail" : "running"}</Chip>}
           </span>
           <span className="hovercard-line dim">
             +{pr.additions} −{pr.deletions}, {pr.files} {pr.files === 1 ? "file" : "files"}
@@ -260,7 +261,7 @@ function ArtifactCard({ r, workspace }: { r: Extract<PageRef, { kind: "artifact"
         <span className="hovercard-line dim">
           {r.version ? `${r.id}.v${r.version}, ` : `${r.id}, `}
           {v ? `v${v.n} of ${brief.versions}` : d ? `it has no v${n}: ${d.all.map((x) => `v${x.n}`).join(", ")}` : `${brief.versions} ${brief.versions === 1 ? "version" : "versions"}`}
-          {st && <span className={`chip tone-${st.tone}`}>{st.words}</span>}
+          {st && <Chip className="line-chip" tone={st.tone}>{st.words}</Chip>}
         </span>
       )}
       {v?.note && (

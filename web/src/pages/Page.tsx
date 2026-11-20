@@ -68,6 +68,9 @@ import { lookOf } from "../refs/views";
 import { findRefs, GROUND, isOutside, type Known, type PageRef, parseAddress, refAddress, refHref, refKey, refName, refOf } from "../refs/refs";
 import { useLoaded } from "../load";
 import { useHoverDelay } from "../ui/hover";
+import { Chip, chipClass } from "../ui/Chip";
+import { type Tone } from "../ui/tone";
+import { Count } from "../ui/Count";
 
 // A page: a document you write, saved as you go, with cells an agent fills
 // in. A line that starts with >> asks for something; ⏎ makes it a cell and
@@ -678,12 +681,12 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
         </Link>
         <span className="dim">{id}</span>
         {kind && (
-          <span className="chip tone-quiet" title={kindHint(kind)}>
+          <Chip tone="quiet" title={kindHint(kind)}>
             {kind.title}
-          </span>
+          </Chip>
         )}
         {tied?.in && (
-          <Link to={filesTo(tied.in.repo, tied.in.worktree, tied.in.path)} className="chip tone-quiet mono page-file" title={`Tied to ${tied.ref}: saving writes there. Open it in Files`}>
+          <Link to={filesTo(tied.in.repo, tied.in.worktree, tied.in.path)} className={chipClass("quiet", "mono page-file")} title={`Tied to ${tied.ref}: saving writes there. Open it in Files`}>
             <Icon name="file" size={11} /> {tied.ref.replace(":", " · ")}
           </Link>
         )}
@@ -694,9 +697,9 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
               <Icon name="alert" size={12} /> Couldn't plan it: try again
             </button>
           ) : (
-            <span className="chip tone-progress" title={planning.turns[0]?.body}>
+            <Chip tone="progress" title={planning.turns[0]?.body}>
               <Icon name="spinner" size={11} className="spin" /> Planning{planning.run?.calls.length ? `: ${doing(planning.run.calls.at(-1)!, workspace.root).toLowerCase()}` : "…"}
-            </span>
+            </Chip>
           ))}
         <button
           className="ghost small"
@@ -829,9 +832,9 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
               {p.running ? (
                 <Icon name="spinner" size={11} className="spin" />
               ) : open > 0 ? (
-                <span className={`count${p.moved ? "" : " tone-attention"}`} title={`${open} open${p.moved ? ", from before the page changed" : ""}`}>
+                <Count tone={p.moved ? undefined : "attention"} title={`${open} open${p.moved ? ", from before the page changed" : ""}`}>
                   {open}
-                </span>
+                </Count>
               ) : p.failed ? (
                 <Icon name="alert" size={11} className="tab-failed" />
               ) : null}
@@ -1053,7 +1056,7 @@ function ChangeBox({
 
 // --- Passes
 
-const kindTone: Record<string, string> = { requirement: "tone-done", vague: "tone-attention", assumption: "tone-waiting", missing: "tone-attention", ambiguity: "tone-attention" };
+const kindTone: Record<string, Tone> = { requirement: "done", vague: "attention", assumption: "waiting", missing: "attention", ambiguity: "attention" };
 
 // FindingBody is what a finding says: its kind, the words it's about, what
 // it has to say of them, and the words it proposes in their place.
@@ -1061,7 +1064,7 @@ function FindingBody({ f, lost, onWords }: { f: PassFinding; lost?: boolean; onW
   return (
     <>
       <div className="finding-head">
-        <span className={`chip ${kindTone[f.kind] ?? "tone-quiet"}`}>{f.kind}</span>
+        <Chip tone={kindTone[f.kind] ?? "quiet"}>{f.kind}</Chip>
         {f.quote &&
           (onWords && !lost ? (
             <button className="finding-quote" onClick={onWords} title="Go to these words on the page">
@@ -1534,13 +1537,13 @@ function PageMap({
     <aside className="page-map" aria-label="This page's map">
       {(map.open.length > 0 || stale > 0 || filling > 0 || failed > 0) && (
         <div className="map-sum">
-          {map.open.length > 0 && <span className="chip tone-attention">{map.open.length} open</span>}
-          {stale > 0 && <span className="chip tone-attention">{stale} out of date</span>}
-          {failed > 0 && <span className="chip tone-danger">{failed} not filled</span>}
+          {map.open.length > 0 && <Chip tone="attention">{map.open.length} open</Chip>}
+          {stale > 0 && <Chip tone="attention">{stale} out of date</Chip>}
+          {failed > 0 && <Chip tone="danger">{failed} not filled</Chip>}
           {filling > 0 && (
-            <span className="chip tone-progress">
+            <Chip tone="progress">
               <Icon name="spinner" size={11} className="spin" /> {filling} filling
-            </span>
+            </Chip>
           )}
         </div>
       )}
@@ -1959,13 +1962,13 @@ function CellPanel({
               </>
             );
             return href ? (
-              <Link key={src.path} to={href} className={`chip source${src.state ? " tone-attention" : ""}`} title={`${said}. Open it in Files.`}>
+              <Link key={src.path} to={href} className={chipClass(src.state ? "attention" : undefined, "source-chip")} title={`${said}. Open it in Files.`}>
                 {inner}
               </Link>
             ) : (
-              <span key={src.path} className={`chip source${src.state ? " tone-attention" : ""}`} title={said}>
+              <Chip tone={src.state ? "attention" : undefined} key={src.path} className="source-chip" title={said}>
                 {inner}
-              </span>
+              </Chip>
             );
           })}
         </div>

@@ -8,6 +8,8 @@ import { Status, type StatusInfo, type Tone } from "../ui/status";
 import { Time } from "../ui/time";
 import { useLatest } from "../load";
 import { RowPasses } from "./Passes";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // Reviews: the open pull requests across every repo in the workspace.
 // Your teammates' come first, grouped by what each asks of you; yours sit
@@ -250,7 +252,7 @@ export function ReviewsPage() {
               ) : (
                 s.title
               )}{" "}
-              <span className="count">{s.rows.length}</span>
+              <Count>{s.rows.length}</Count>
             </h2>
             {isOpen && (
               <ul className="rows prs" role="listbox" aria-label={s.title}>
@@ -346,30 +348,30 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
         <span className="row-line">
           <span className="title">{of((p) => p.title, (s) => s.title)}</span>
           {st && (
-            <span className="chip tone-quiet" title={st.workedOut ? "A stack ws worked out: each of these pull requests is based on the last one's branch" : `Stack ${st.number} on GitHub`}>
+            <Chip tone="quiet" title={st.workedOut ? "A stack ws worked out: each of these pull requests is based on the last one's branch" : `Stack ${st.number} on GitHub`}>
               <Icon name="layers" size={11} /> stack of {st.layers.length}
-            </span>
+            </Chip>
           )}
-          {pr?.draft && <span className="chip tone-quiet">Draft</span>}
+          {pr?.draft && <Chip tone="quiet">Draft</Chip>}
           {pr?.asked === "team" && (
-            <span className="chip tone-quiet" title="Asked of a team you're in">
+            <Chip tone="quiet" title="Asked of a team you're in">
               Your team
-            </span>
+            </Chip>
           )}
           {!!onTopOf && (
-            <span className="chip tone-quiet" title="Its base is that pull request's branch">
+            <Chip tone="quiet" title="Its base is that pull request's branch">
               on top of #{onTopOf}
-            </span>
+            </Chip>
           )}
           {mission && (
-            <span className="chip tone-quiet" title={`From the mission ${mission.title}`}>
+            <Chip tone="quiet" title={`From the mission ${mission.title}`}>
               <Icon name="flag" size={11} /> {mission.title}
-            </span>
+            </Chip>
           )}
           {pr?.capsule && (
-            <span className="chip tone-quiet" title={`Checked out here in ${pr.repo}/${pr.capsule}`}>
+            <Chip tone="quiet" title={`Checked out here in ${pr.repo}/${pr.capsule}`}>
               <Icon name="box" size={11} /> {pr.capsule}
-            </span>
+            </Chip>
           )}
           {pr && <RowPasses marks={passes?.[`${pr.repo}#${pr.number}`]} />}
         </span>

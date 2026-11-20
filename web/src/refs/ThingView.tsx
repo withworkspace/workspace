@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import type { Named, PageRef } from "./refs";
 import { type Drawn, type Surface, thingBlocks, type ThingRecord } from "./thing";
 import { thingIcon } from "./views";
+import { Chip } from "../ui/Chip";
 
 // A plugin's thing, drawn from its fields as its plugin declared for where
 // it's shown: the card under its name, the pane beside the list in Find.
@@ -77,9 +78,9 @@ export function ThingView({ named, record, surface, pointer }: { named?: Named; 
     <span className={`thing-view on-${surface}`}>
       {lines.map(({ of: d, badges }, i) => {
         const chips = badges.map((b, j) => (
-          <span key={j} className="chip tone-quiet">
+          <Chip tone="quiet" className="line-chip" key={j}>
             {said(b)}
-          </span>
+          </Chip>
         ));
         switch (d.block) {
           case "title":
@@ -100,7 +101,7 @@ export function ThingView({ named, record, surface, pointer }: { named?: Named; 
           case "badge":
             return (
               <span key={i} className="hovercard-line dim thing-badges">
-                <span className="chip tone-quiet">{said(d)}</span>
+                <Chip tone="quiet" className="line-chip">{said(d)}</Chip>
                 {chips}
               </span>
             );

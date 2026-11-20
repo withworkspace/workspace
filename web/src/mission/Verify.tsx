@@ -27,6 +27,8 @@ import {
   verdictWords,
   waiting,
 } from "./verifyRows";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // The mission's Verify tab: its verification bundles, what crew handed
 // over to show their work is as its checks say. Those yours to approve are
@@ -276,9 +278,9 @@ function BundleRow({ bundles, open, pick }: { bundles: Bundle[]; open: Bundle; p
         <span className="verify-bundle-title">{stepTitle(b)}</span>
         <span className={`verify-bundle-state${standingTone(b)}`}>{standing(b)}</span>
         {left > 0 && (
-          <span className="count tone-attention" title={`${left} of its checks ${left === 1 ? "is" : "are"} left for you`}>
+          <Count tone="attention" title={`${left} of its checks ${left === 1 ? "is" : "are"} left for you`}>
             {left}
-          </span>
+          </Count>
         )}
       </button>
     );
@@ -458,9 +460,9 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id?: string) => void }) {
       <Summary text={b.summary} />
       <div className="verify-tally">
         {tally(b).map(([v, n]) => (
-          <span key={v} className={`chip tone-${verdictTone(v)}`}>
+          <Chip tone={verdictTone(v)} key={v}>
             {n} {v}
-          </span>
+          </Chip>
         ))}
         {b.replaces && (
           <span className="verify-replaces">
@@ -599,7 +601,7 @@ function CheckDetail({
     <article className="verify-check" aria-label="The check, and what shows it">
       <header>
         <div className="verify-check-top">
-          <span className={`chip tone-${verdictTone(r.verdict)}`}>{verdictWords[r.verdict]}</span>
+          <Chip tone={verdictTone(r.verdict)}>{verdictWords[r.verdict]}</Chip>
           <span className="verify-meta">
             {r.n ? `Check ${r.n}, ` : ""}
             {r.ran ? "ws ran it" : r.verdict === "yours" ? `left for you by ${b.crew}` : `${b.crew}${b.own ? ", who did the work" : ", its verifier"}`}

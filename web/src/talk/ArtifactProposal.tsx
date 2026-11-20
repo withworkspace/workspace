@@ -2,6 +2,7 @@ import { type ArtifactInfo, frameURL, type TalkProposal } from "../api";
 import { filesWords } from "../artifacts/shown";
 import { Icon } from "../ui/Icon";
 import { addedVersion, artifactWhere, staleWords } from "./proposals";
+import { Chip } from "../ui/Chip";
 
 // An artifact a conversation's agent proposed, or a version of one, in its
 // card under the reply: its note, then its page running in a small
@@ -68,9 +69,9 @@ function ArtifactMeta({ p, artifact }: { p: TalkProposal; artifact?: ArtifactInf
       {chips.length > 0 && (
         <div className="proposal-meta">
           {chips.map((c) => (
-            <span key={c} className="chip tone-quiet">
+            <Chip tone="quiet" key={c}>
               {c}
-            </span>
+            </Chip>
           ))}
         </div>
       )}

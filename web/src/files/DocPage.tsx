@@ -17,6 +17,8 @@ import { ContentsMenu, ContentsPill, ContentsRail, goToSection, useRailFits, use
 import { FolderMenu, Pager, PathCrumbs, useShelves } from "./Path";
 import { type Here, type Shelf, siblings, trail } from "./shelves";
 import { PagePin } from "../shell/focus";
+import { Chip, chipClass } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 export const docKeys: [string, string][] = [
   ["e", "Edit it, here: as the page tied to it"],
@@ -274,16 +276,16 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
             ) : (
               <span className="doc-kind">Document</span>
             )}
-            <span className={`chip ${where.worktree === GROUND ? "tone-done" : "tone-quiet"}`} title={where.worktree === GROUND ? "As it is on the repo's default branch (its ground)" : `As it is in the capsule ${where.repo}/${where.worktree}`}>
+            <Chip tone={where.worktree === GROUND ? "done" : "quiet"} title={where.worktree === GROUND ? "As it is on the repo's default branch (its ground)" : `As it is in the capsule ${where.repo}/${where.worktree}`}>
               <Icon name={where.worktree === GROUND ? "layers" : "box"} size={11} /> {where.worktree === GROUND ? "On the default branch" : `In ${where.worktree}`}
-            </span>
+            </Chip>
             {a.page && (
               <Link to={docAddress(a.ref, a.page)} className="dim" title="It's edited in this page, which keeps its cells and passes">
                 Edited in {a.page}
               </Link>
             )}
             {flights.map((f) => (
-              <Link key={f.capsule} to={docAddress(`${where.repo}/${f.capsule}:${where.path}`)} className="chip tone-progress" title={`It's changed in the capsule ${f.capsule}${f.pr ? `, in pull request #${f.pr.number}` : ""}: read it as it is there`}>
+              <Link key={f.capsule} to={docAddress(`${where.repo}/${f.capsule}:${where.path}`)} className={chipClass("progress")} title={`It's changed in the capsule ${f.capsule}${f.pr ? `, in pull request #${f.pr.number}` : ""}: read it as it is there`}>
                 <Icon name="box" size={11} /> In flight in {f.capsule}
                 {f.pr ? ` · #${f.pr.number}` : ""}
               </Link>
@@ -410,7 +412,7 @@ function DocTalks({ list }: { list: Talk[] }) {
   return (
     <section>
       <h2 className="group">
-        Conversations about it <span className="count">{list.length}</span>
+        Conversations about it <Count>{list.length}</Count>
       </h2>
       <ul className="rows">
         {list.map((t) => (
@@ -443,7 +445,7 @@ function CiteList({ title, list }: { title: string; list: Citation[] }) {
   return (
     <section>
       <h2 className="group">
-        {title} <span className="count">{list.length}</span>
+        {title} <Count>{list.length}</Count>
       </h2>
       <ul className="rows">
         {list.map((c) => (

@@ -7,6 +7,8 @@ import { Callout, Copyable, Dialog, Empty, ErrorCard, humanError, Skeleton, toas
 import { Time } from "../ui/time";
 import { addsOf, changedSaid, fromOf, outCount, repoLink, stateOf, updateOf, wantedFrom } from "./installed";
 import { pluginIcon } from "./Plugin";
+import { Chip, chipClass } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // Plugins, a section of Settings: the workspace's plugins, each with where it's from,
 // where it stands and what it adds; adding one, from the repo it's
@@ -62,9 +64,9 @@ export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
       {info && fromRepo && (
         <div className="plugins-updates">
           {out > 0 && (
-            <span className="chip tone-attention">
+            <Chip tone="attention">
               {out} {out === 1 ? "update" : "updates"}
-            </span>
+            </Chip>
           )}
             <span className="dim plugins-looked">
               {info.checked ? (
@@ -92,7 +94,7 @@ export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
         <>
           <section>
             <h2 className="group">
-              Installed <span className="count">{installed.length}</span>
+              Installed <Count>{installed.length}</Count>
             </h2>
             {installed.length === 0 ? (
               <Empty icon="box" title="No plugins yet">
@@ -109,7 +111,7 @@ export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
           {info.wanted.length > 0 && (
             <section>
               <h2 className="group">
-                The team's, not installed here <span className="count">{info.wanted.length}</span>
+                The team's, not installed here <Count>{info.wanted.length}</Count>
               </h2>
               <p className="quiet-line">
                 In <code>ws.toml</code>, under <code>[plugins]</code>.
@@ -244,11 +246,11 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
             <span className="plugin-row-title">{title}</span>
           )}
           {p.version && <span className="mono dim">{p.version}</span>}
-          <span className={`chip tone-${state.tone}`} title={state.title}>
+          <Chip tone={state.tone} title={state.title}>
             {state.label}
-          </span>
+          </Chip>
           {update.out && (
-            <a className="chip tone-attention plugin-row-out" href={repoLink(p.from.repo ?? "", p.latest)} target="_blank" rel="noopener noreferrer" title="What's in it, on GitHub">
+            <a className={chipClass("attention", "plugin-row-out")} href={repoLink(p.from.repo ?? "", p.latest)} target="_blank" rel="noopener noreferrer" title="What's in it, on GitHub">
               {p.latest} is out
               <Icon name="arrow-up-right" size={10} />
             </a>

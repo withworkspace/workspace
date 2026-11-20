@@ -4,6 +4,8 @@ import { Icon } from "../ui/Icon";
 import { Option, Select } from "../ui/Select";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // A space's library: a list for each of the workspace's kinds of document
 // whose path is in it, each with its number or date, its title, where it
@@ -77,7 +79,7 @@ export function KindList({
               <span className="row-main">
                 <span className="row-line">
                   <span className="title">{d.title}</span>
-                  {d.state && kind.states && <span className={`chip ${d.state === kind.states[0] ? "tone-quiet" : "tone-done"}`}>{d.state}</span>}
+                  {d.state && kind.states && <Chip tone={d.state === kind.states[0] ? "quiet" : "done"}>{d.state}</Chip>}
                   {flights?.has(d.path) && <InFlightChip capsules={flights.get(d.path)!} />}
                 </span>
                 {hit && <HitLine hit={hit} />}
@@ -141,7 +143,7 @@ export function KindHead({
   const states = kind.states ?? [];
   return (
     <h2 className="group library-head">
-      {kind.title} <span className="count">{found === undefined ? docs.length : `${found} of ${docs.length}`}</span>
+      {kind.title} <Count>{found === undefined ? docs.length : `${found} of ${docs.length}`}</Count>
       {states.length > 0 && (
         <span className="segmented lib-stands" aria-label={`Where each ${kind.title} stands`}>
           <button aria-pressed={stand === ""} onClick={() => setStand("")}>
@@ -171,9 +173,9 @@ export function KindHead({
 // InFlightChip says a document is changed in capsules: in flight.
 export function InFlightChip({ capsules }: { capsules: string[] }) {
   return (
-    <span className="chip tone-progress" title={`Changed in ${capsules.join(", ")}: in flight`}>
+    <Chip tone="progress" title={`Changed in ${capsules.join(", ")}: in flight`}>
       in flight
-    </span>
+    </Chip>
   );
 }
 

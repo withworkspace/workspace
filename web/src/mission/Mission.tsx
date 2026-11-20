@@ -50,6 +50,8 @@ import { crewElsewhere, work } from "./workRows";
 import { checkRows, rowKey, shownBundle, toApprove, waiting as bundleWaiting } from "./verifyRows";
 import { type Reload, useLoaded } from "../load";
 import { PagePin } from "../shell/focus";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -383,24 +385,24 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
           {tabRow((t) => (
             <>
               {t === "brief" && briefWaiting > 0 && (
-                <span className="count tone-attention" title={planning?.proposed ? "Its planner proposed something, for you to confirm" : "Its planner's waiting on you"}>
+                <Count tone="attention" title={planning?.proposed ? "Its planner proposed something, for you to confirm" : "Its planner's waiting on you"}>
                   {briefWaiting}
-                </span>
+                </Count>
               )}
               {t === "verify" && waitingBundles > 0 && (
-                <span className="count tone-attention" title="Verification bundles waiting for you to approve">
+                <Count tone="attention" title="Verification bundles waiting for you to approve">
                   {waitingBundles}
-                </span>
+                </Count>
               )}
               {t === "verify" && !waitingBundles && standing > 0 && (
-                <span className="count" title="Verification bundles, handed over to show the work">
+                <Count title="Verification bundles, handed over to show the work">
                   {standing}
-                </span>
+                </Count>
               )}
               {t === "talk" && waitingTalks > 0 && (
-                <span className="count tone-attention" title="Your turn, or something to confirm">
+                <Count tone="attention" title="Your turn, or something to confirm">
                   {waitingTalks}
-                </span>
+                </Count>
               )}
             </>
           ))}
@@ -857,7 +859,7 @@ function stepLine(d: MissionDetail): React.ReactNode {
         {waitHow(now) && (
           <span className="lead-wait">
             {" "}
-            · <span className={`chip ${waitHow(now)!.auto ? "tone-progress" : "tone-attention"}`}>{waitHow(now)!.word}</span> <span className="dim">{waitHow(now)!.says}</span>
+            · <Chip tone={waitHow(now)!.auto ? "progress" : "attention"}>{waitHow(now)!.word}</Chip> <span className="dim">{waitHow(now)!.says}</span>
           </span>
         )}
       </>
@@ -1092,7 +1094,7 @@ function LaunchCrew({
                   {p.model ? ` · ${p.model}` : ""}
                 </span>
                 {!p.model && <span className="dim">its own model</span>}
-                {i === 0 && <span className="chip">default</span>}
+                {i === 0 && <Chip>default</Chip>}
               </MenuItem>
             ))}
           </Menu>
@@ -1392,10 +1394,10 @@ function CapsuleCard({ c, selected, review }: { c: CapsuleDetail; selected: (k: 
           {c.repo}/{c.name}
         </span>
         {c.branch && c.branch !== c.name && (
-          <span className="chip tone-quiet" title="Its branch">
+          <Chip tone="quiet" title="Its branch">
             <Icon name="branch" size={11} />
             {c.branch}
-          </span>
+          </Chip>
         )}
         <CapsuleBadges c={c} />
         <span className="spacer" />
@@ -1479,7 +1481,7 @@ function Log({ d, selected, openArtifact, go }: Parts) {
       {elsewhere.length > 0 && (
         <section>
           <h2 className="group">
-            Crew <span className="count">{elsewhere.length}</span>
+            Crew <Count>{elsewhere.length}</Count>
           </h2>
           {[...elsewhere].reverse().map((c) => (
             <div key={c.id} className="crew-detail">

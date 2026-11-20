@@ -8,6 +8,7 @@ import { placesOf } from "./places";
 import { fuzzy } from "../ui/fuzzy";
 import { type IconName, icons } from "../ui/Icon";
 import { crewStatus, headlineStatus, type StatusInfo } from "../ui/status";
+import { type Tone } from "../ui/tone";
 
 // Find, apart from how it's drawn: what there is to find in what the page
 // holds of the workspace, what the server's asked for the rest (files,
@@ -119,7 +120,7 @@ export interface Item {
   ref?: string; // its name, to copy
   path?: boolean; // the title is a path: its folders are drawn quieter
   notes?: string[]; // said after it: changed in feature, merged
-  tone?: string;
+  tone?: Tone;
   card?: PageRef; // what its card shows, beside the list
   pull?: PullFound;
   said?: Found; // what ws records that says what's typed: its card shows its words, marked
@@ -544,7 +545,7 @@ export function warmFind(): void {
   );
 }
 
-const pullTone = (state?: string) => (state && ["needs-review", "back-with-you", "returned", "ready"].includes(state) ? "attention" : "quiet");
+const pullTone = (state?: string): Tone => (state && ["needs-review", "back-with-you", "returned", "ready"].includes(state) ? "attention" : "quiet");
 
 // foundItem is a server's result as an item of the list.
 export function foundItem(f: Found, spaces?: SpaceRef[]): Item {

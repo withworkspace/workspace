@@ -4,6 +4,8 @@ import { Icon } from "../ui/Icon";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import { lastChanged } from "./happening";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // A space as a card on Documents: its kinds, each with how many, where
 // they stand and which changed last (else its folders), and how it
@@ -86,7 +88,7 @@ export function SpaceCard({ space, detail, drafts, id, selected, onHover }: { sp
             return (
               <li key={r.key}>
                 <TLink to={r.to}>
-                  <span className={`space-card-kind${r.mono ? " mono" : ""}`}>{r.name}</span> <span className="count">{r.docs.length}</span>
+                  <span className={`space-card-kind${r.mono ? " mono" : ""}`}>{r.name}</span> <Count>{r.docs.length}</Count>
                   {last && (
                     <span className="space-card-last" title={`Changed last: ${last.title}`}>
                       {last.title} · <Time iso={last.changed!} as="age" />
@@ -126,8 +128,8 @@ export function SpaceCard({ space, detail, drafts, id, selected, onHover }: { sp
             </>
           ) : null}
         </span>
-        {!!a?.inFlight.length && <span className="chip tone-progress">{a.inFlight.length} in flight</span>}
-        {drafts > 0 && <span className="chip tone-attention">{drafts === 1 ? "1 draft of yours" : `${drafts} drafts of yours`}</span>}
+        {!!a?.inFlight.length && <Chip tone="progress" className="foot-chip">{a.inFlight.length} in flight</Chip>}
+        {drafts > 0 && <Chip tone="attention" className="foot-chip">{drafts === 1 ? "1 draft of yours" : `${drafts} drafts of yours`}</Chip>}
       </footer>
     </article>
   );

@@ -9,6 +9,8 @@ import { Callout, Copyable, Empty, ErrorCard, Skeleton, useTitle } from "../ui/k
 import { headlineStatus, Status, type StatusInfo } from "../ui/status";
 import { duration, Time } from "../ui/time";
 import { useLoaded } from "../load";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // The orchestrator's page: whether it's on and how it's set up, the
 // missions it's on now, and its latest runs; each run's own page has what
@@ -74,7 +76,7 @@ export function OrchestratorPage({ workspace }: { workspace: Workspace }) {
           </dl>
           <section>
             <h2 className="group">
-              On it now <span className="count">{deciding.length}</span>
+              On it now <Count>{deciding.length}</Count>
             </h2>
             {deciding.length === 0 ? (
               <div className="quiet-line">Nothing right now.</div>
@@ -96,7 +98,7 @@ export function OrchestratorPage({ workspace }: { workspace: Workspace }) {
           </section>
           <section>
             <h2 className="group">
-              Recent runs <span className="count">{info.runs.length}</span>
+              Recent runs <Count>{info.runs.length}</Count>
             </h2>
             {info.runs.length === 0 ? (
               <Empty icon="sparkle" title="No runs yet">
@@ -124,7 +126,7 @@ export function RunList({ runs, withMission }: { runs: OrchestratorRun[]; withMi
               <span className="row-line">
                 {withMission && <span className="title">{r.missionTitle}</span>}
                 <span className="dim">on {lookedAt(r)}</span>
-                <span className={`chip tone-${outcome(r).tone}`}>{outcome(r).words}</span>
+                <Chip tone={outcome(r).tone}>{outcome(r).words}</Chip>
               </span>
               {r.said && (
                 <span className="row-sub">
@@ -204,7 +206,7 @@ export function OrchestratorRunPage({ workspace }: { workspace: Workspace }) {
           </section>
           <section>
             <h2 className="group">
-              What it ran <span className="count">{d.log.length}</span>
+              What it ran <Count>{d.log.length}</Count>
             </h2>
             {d.log.length === 0 ? <div className="quiet-line">No calls recorded: only Claude Code reports them.</div> : <Calls calls={d.log} root={workspace.root} open />}
           </section>

@@ -6,6 +6,7 @@ import { Icon } from "../ui/Icon";
 import { Dialog, humanError, Keys, Loading, toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
+import { Chip } from "../ui/Chip";
 
 // Pages: documents you write here, before or beside any mission. A line
 // that starts with >> asks for something (a table of the routes, what
@@ -60,20 +61,20 @@ export function PageRow({ page: p, kinds, selected, onHover, note }: { page: Pag
             <span className="title">{p.title}</span>
             {p.kind && <KindChip kind={kinds.find((k) => k.name === p.kind)} name={p.kind} />}
             {p.source && (
-              <span className="chip tone-quiet mono" title={`Tied to ${p.source.ref}: saving it writes there`}>
+              <Chip tone="quiet" className="mono" title={`Tied to ${p.source.ref}: saving it writes there`}>
                 <Icon name="file" size={11} /> {p.source.ref.replace(/^[^:]*:/, "").split("/").pop()}
-              </span>
+              </Chip>
             )}
             {!!p.filling && (
-              <span className="chip tone-progress">
+              <Chip tone="progress">
                 <Icon name="spinner" size={11} className="spin" /> Filling {p.filling === 1 ? "a cell" : `${p.filling} cells`}
-              </span>
+              </Chip>
             )}
-            {!!p.cells && !p.filling && <span className="chip tone-quiet">{p.cells === 1 ? "1 cell" : `${p.cells} cells`}</span>}
+            {!!p.cells && !p.filling && <Chip tone="quiet">{p.cells === 1 ? "1 cell" : `${p.cells} cells`}</Chip>}
             {!!p.stale && !p.filling && (
-              <span className="chip tone-attention" title="Written from files that have changed since">
+              <Chip tone="attention" title="Written from files that have changed since">
                 {p.stale === 1 ? "1 out of date" : `${p.stale} out of date`}
-              </span>
+              </Chip>
             )}
             {note}
           </span>
@@ -87,9 +88,9 @@ export function PageRow({ page: p, kinds, selected, onHover, note }: { page: Pag
 
 function KindChip({ kind, name }: { kind?: DocKind; name: string }) {
   return (
-    <span className="chip tone-quiet" title={kind ? kindHint(kind) : `A kind the workspace no longer has (${name})`}>
+    <Chip tone="quiet" title={kind ? kindHint(kind) : `A kind the workspace no longer has (${name})`}>
       {kind?.title ?? name}
-    </span>
+    </Chip>
   );
 }
 

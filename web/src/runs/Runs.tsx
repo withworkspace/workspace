@@ -8,6 +8,8 @@ import { Callout, Copyable, Empty, ErrorCard, humanError, Skeleton, toast, useTi
 import { Time } from "../ui/time";
 import css from "./Runs.module.css";
 import { bare, forWhom, listed, placeOf, plain, type Said, split } from "./runRows";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // The Runs page: everything ws is running for someone in this workspace
 // (ws run): dev servers, previews, compose stacks, whether you, crew or a
@@ -34,7 +36,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
     <div className="page">
       <header className="page-head">
         <h1>Runs</h1>
-        {running.length > 0 && <span className="chip tone-done">{running.length} running</span>}
+        {running.length > 0 && <Chip tone="done">{running.length} running</Chip>}
       </header>
       <p className="lede">
         What ws runs for you and your agents: dev servers, previews, compose stacks. Each is given a free port, and ends by itself once whoever it's for goes, or its time's
@@ -47,7 +49,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
           <NamesPart names={info.names} />
           <section>
             <h2 className="group">
-              Running <span className="count">{running.length}</span>
+              Running <Count>{running.length}</Count>
             </h2>
             {running.length === 0 ? (
               <Empty icon="play" title="Nothing's running">
@@ -66,7 +68,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
           {ended.length > 0 && (
             <section>
               <h2 className="group">
-                Ended <span className="count">{ended.length}</span>
+                Ended <Count>{ended.length}</Count>
               </h2>
               <p className="quiet-line">Runs that ended by themselves, kept an hour with their output.</p>
               <ul className={cx("rows", css.list)}>
@@ -233,7 +235,7 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
                 )}
               </span>
             )}
-            {live && !r.up && <span className="chip tone-quiet">not up</span>}
+            {live && !r.up && <Chip tone="quiet">not up</Chip>}
           </span>
           <span className={cx("row-sub", css.sub)}>
             <span>

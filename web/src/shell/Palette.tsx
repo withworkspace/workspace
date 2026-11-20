@@ -49,6 +49,7 @@ import { around, hereAt, hereItems, keptAround, type Near, nearIds, nearItems } 
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
 import { PinButton, pinNameOf, useFocus } from "./focus";
 import { actsFor, type Subject, subjectOf, type WsDoing } from "./acts";
+import { Chip } from "../ui/Chip";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
 // has, by what you remember of it. What the page holds (missions, pages,
@@ -887,9 +888,9 @@ function Row({ it, on, section, onOver, onPick }: { it: Item; on: boolean; secti
       </span>
       {it.hint && <span className="palette-hint">{it.hint}</span>}
       {it.notes?.map((n) => (
-        <span key={n} className={`chip${it.tone && it.tone !== "quiet" ? ` tone-${it.tone}` : ""}`}>
+        <Chip tone={it.tone && it.tone !== "quiet" ? it.tone : undefined} className="find-chip" key={n}>
           {n}
-        </span>
+        </Chip>
       ))}
       {says && <span className="palette-kind">{it.kind}</span>}
     </div>
@@ -952,9 +953,9 @@ function PullCard({ it }: { it: Item }) {
             <span className="hovercard-line">
               {p.words}
               {p.checks && (
-                <span className={`chip ${p.checks === "success" ? "tone-done" : p.checks === "failure" ? "tone-danger" : "tone-quiet"}`}>
+                <Chip tone={p.checks === "success" ? "done" : p.checks === "failure" ? "danger" : "quiet"}>
                   checks {p.checks === "success" ? "pass" : p.checks === "failure" ? "fail" : "running"}
-                </span>
+                </Chip>
               )}
             </span>
           )}

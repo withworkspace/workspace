@@ -39,6 +39,7 @@ import { ArtifactProposalBody } from "./ArtifactProposal";
 import { PluginProposalCard } from "./PluginProposal";
 import { addedVersion, artifactNext, kindName, type Made, made, revisedText, type Settled, settled } from "./proposals";
 import { PagePin } from "../shell/focus";
+import { Chip } from "../ui/Chip";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -241,25 +242,25 @@ export function TalkList({
                   <span className="row-main">
                     <span className="row-line">
                       <span className="title">{name(t)}</span>
-                      {t.waiting && t.status === "open" && <span className="chip tone-attention">Your turn</span>}
-                      {!!t.proposed && <span className="chip tone-attention">{t.proposed} to confirm</span>}
+                      {t.waiting && t.status === "open" && <Chip tone="attention">Your turn</Chip>}
+                      {!!t.proposed && <Chip tone="attention">{t.proposed} to confirm</Chip>}
                       {t.pr && (
-                        <span className="chip tone-quiet" title="The pull request it's about">
+                        <Chip tone="quiet" title="The pull request it's about">
                           <Icon name="pr" size={11} />
                           {t.pr}
-                        </span>
+                        </Chip>
                       )}
                       {t.doc && (
-                        <span className="chip tone-quiet" title={`The document it's about: ${t.doc}${t.section ? `, § ${t.section}` : ""}`}>
+                        <Chip tone="quiet" title={`The document it's about: ${t.doc}${t.section ? `, § ${t.section}` : ""}`}>
                           <Icon name="book" size={11} />
                           {docName(t.doc)}
-                        </span>
+                        </Chip>
                       )}
                       {t.became && (
-                        <span className="chip tone-quiet" title="The mission it became">
+                        <Chip tone="quiet" title="The mission it became">
                           <Icon name="flag" size={11} />
                           {t.became}
-                        </span>
+                        </Chip>
                       )}
                     </span>
                     {t.summary && (
@@ -1161,9 +1162,9 @@ function WsProposalCard({
     return list.length ? (
       <div className="proposal-meta">
         {list.map((m) => (
-          <span key={m} className="chip tone-quiet">
+          <Chip tone="quiet" key={m}>
             {m}
-          </span>
+          </Chip>
         ))}
       </div>
     ) : null;

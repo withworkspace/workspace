@@ -7,8 +7,8 @@
 
    The cascade is in layers, first to last:
 
-     base   the elements and the few utilities below: what anything is
-            before it says what it is;
+     base   the elements (button, a, h1, input…), by their names alone:
+            what anything is before it says what it is;
      ui     the library's parts (ui/*.module.css): Button, Chip, Count…;
      (none) the pages: the rest of this file, and a part's own module.
 
@@ -52,16 +52,6 @@
     text-decoration: none;
   }
 
-  a.link,
-  .prose a {
-    color: var(--accent);
-  }
-
-  a.link:hover {
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
   h1,
   h2,
   h3 {
@@ -69,8 +59,7 @@
     font-weight: 600;
   }
 
-  code,
-  .mono {
+  code {
     font-family: var(--mono);
     font-size: 0.92em;
   }
@@ -94,38 +83,8 @@
     background: var(--raised);
   }
 
-  .keys {
-    display: inline-flex;
-    gap: 3px;
-    vertical-align: baseline;
-  }
-
-  .dim {
-    color: var(--dim);
-  }
-
-  .num,
-  time,
-  .age {
+  time {
     font-variant-numeric: tabular-nums;
-  }
-
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
-
-  :focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  :focus:not(:focus-visible) {
-    outline: none;
   }
 
   /* Buttons: one look, three weights (primary, plain, ghost) and danger.
@@ -156,22 +115,6 @@
       box-shadow var(--fast) var(--ease);
   }
 
-  button:hover {
-    background: var(--hover);
-  }
-
-  button:active:not(:disabled) {
-    transform: translateY(0.5px);
-  }
-
-  button:disabled {
-    cursor: default;
-    color: var(--dim);
-    background: var(--well);
-    border-color: var(--line);
-    box-shadow: none;
-  }
-
   button kbd {
     color: inherit;
     opacity: 0.65;
@@ -182,81 +125,6 @@
     min-width: 16px;
   }
 
-  button.primary {
-    color: var(--on-primary);
-    background: var(--primary);
-    border-color: transparent;
-  }
-
-  button.primary:hover:not(:disabled) {
-    color: var(--on-primary-hover);
-    background: var(--primary-hover);
-  }
-
-  button.primary:disabled {
-    color: var(--dim);
-    background: var(--well);
-    border-color: var(--line);
-  }
-
-  button.danger {
-    color: #fff;
-    background: var(--red-fill);
-    border-color: transparent;
-  }
-
-  button.danger:hover:not(:disabled) {
-    filter: brightness(1.06);
-  }
-
-  button.ghost {
-    background: transparent;
-    border-color: transparent;
-    box-shadow: none;
-    color: var(--dim);
-  }
-
-  button.ghost:hover:not(:disabled) {
-    background: var(--hover);
-    color: var(--fg);
-  }
-
-  button.icon-button {
-    padding: 4px;
-    min-width: 28px;
-  }
-
-  button.small {
-    min-height: 24px;
-    padding: 2px 8px;
-    font-size: var(--text-xs);
-  }
-
-  button.link {
-    all: unset;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-  }
-
-  button.link:hover {
-    color: var(--fg);
-  }
-
-  button.link:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-
-  .button-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2);
-  }
-
   input,
   textarea {
     font: inherit;
@@ -264,9 +132,7 @@
     color: var(--fg);
   }
 
-  textarea,
-  input[type="text"],
-  input:not([type]) {
+  textarea {
     background: var(--raised);
     border: 1px solid var(--line-strong);
     border-radius: var(--radius);
@@ -280,28 +146,184 @@
     resize: none;
     line-height: 1.5;
   }
+}
 
-  textarea::placeholder,
-  input::placeholder {
-    color: var(--dim);
-    opacity: 0.8;
-    font-family: var(--font);
-  }
+/* The rest of what anything is before it says what it is, not in a layer:
+   each has a class or a state in it, and a page's rule for the same thing
+   was weighed against it, so it stays where that weighing is as it was.
+   The raw buttons' states leave a library Button ([data-ui]) to its own
+   module; :where() keeps them at the weight they had. */
 
-  textarea:focus,
-  input[type="text"]:focus,
-  input:not([type]):focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
+a.link,
+.prose a {
+  color: var(--accent);
+}
 
-  input[type="checkbox"] {
-    accent-color: var(--accent);
-    width: 14px;
-    height: 14px;
-    margin: 0;
-  }
+a.link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 0.92em;
+}
+
+.keys {
+  display: inline-flex;
+  gap: 3px;
+  vertical-align: baseline;
+}
+
+.dim {
+  color: var(--dim);
+}
+
+.num,
+.age {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+button:where(:not([data-ui])):hover {
+  background: var(--hover);
+}
+
+button:where(:not([data-ui])):active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+button:where(:not([data-ui])):disabled {
+  cursor: default;
+  color: var(--dim);
+  background: var(--well);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+button.primary {
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: transparent;
+}
+
+button.primary:hover:not(:disabled) {
+  color: var(--on-primary-hover);
+  background: var(--primary-hover);
+}
+
+button.primary:disabled {
+  color: var(--dim);
+  background: var(--well);
+  border-color: var(--line);
+}
+
+button.danger {
+  color: #fff;
+  background: var(--red-fill);
+  border-color: transparent;
+}
+
+button.danger:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+button.ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--dim);
+}
+
+button.ghost:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+button.icon-button {
+  padding: 4px;
+  min-width: 28px;
+}
+
+button.small {
+  min-height: 24px;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+}
+
+button.link {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+button.link:hover {
+  color: var(--fg);
+}
+
+button.link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+input[type="text"],
+input:not([type]) {
+  background: var(--raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  transition:
+    border-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+textarea::placeholder,
+input::placeholder {
+  color: var(--dim);
+  opacity: 0.8;
+  font-family: var(--font);
+}
+
+textarea:focus,
+input[type="text"]:focus,
+input:not([type]):focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  margin: 0;
 }
 
 /* A switch (ui/Switch.tsx): on or off, changed at once. */
@@ -513,9 +535,14 @@ button.switch:disabled {
 
 /* Icons, statuses and chips */
 
-.icon {
-  flex: none;
-  vertical-align: -2px;
+/* An icon (ui/Icon.tsx) is a part of the library, so in its layer: a part
+   that places its icons (a chip's) does so over this, and a page over both.
+   Its class stays global, as pages name it. */
+@layer ui {
+  .icon {
+    flex: none;
+    vertical-align: -2px;
+  }
 }
 
 .spin {
@@ -583,46 +610,6 @@ button.switch:disabled {
 
 .status.live .icon-spinner {
   animation: spin 1s linear infinite;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font: 500 var(--text-xs) / 18px var(--font);
-  padding: 0 7px;
-  border-radius: 999px;
-  color: var(--dim);
-  background: var(--well);
-  white-space: nowrap;
-}
-
-.chip[class*="tone-"] {
-  color: var(--tone);
-  background: var(--tone-soft);
-}
-
-.chip .icon {
-  width: 12px;
-  height: 12px;
-  vertical-align: 0;
-}
-
-.count {
-  display: inline-block;
-  min-width: 18px;
-  padding: 0 5px;
-  font: 600 var(--text-xs) / 16px var(--font);
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  border-radius: 999px;
-  color: var(--dim);
-  background: var(--well);
-}
-
-.count.tone-attention {
-  color: #fff;
-  background: var(--attention-fill);
 }
 
 .ref {
@@ -1194,13 +1181,13 @@ main > .banner {
   color: var(--accent);
 }
 
-.nav .count {
+.nav .nav-count {
   margin-left: auto;
 }
 
 /* A place moved into the workspace's menu: its count at the row's end,
    and the page you're on said by weight, as the sidebar's active one. */
-.workspace-menu .count {
+.workspace-menu .menu-count {
   margin-left: auto;
 }
 
@@ -1603,7 +1590,7 @@ main.stale > :not(.connection-banner) {
     padding: 0;
   }
 
-  .topbar .count {
+  .topbar .topbar-count {
     margin-left: auto;
   }
 
@@ -2306,15 +2293,11 @@ main {
   flex: 1 1 0;
 }
 
-.find-row .chip {
-  flex: none;
-}
-
-.find-row .chip:first-of-type {
+.find-row .find-chip:first-of-type {
   margin-left: auto;
 }
 
-.find-row .palette-hint + .chip {
+.find-row .palette-hint + .find-chip {
   margin-left: 0;
 }
 
@@ -2375,7 +2358,7 @@ main {
   flex: none;
 }
 
-.find-code-where .chip {
+.find-code-where .where-chip {
   margin-left: 0;
 }
 
@@ -2694,7 +2677,7 @@ main {
     position: relative;
   }
 
-  .shell.reviewing .sidebar:not(:hover, :has(:focus-visible)) .nav a > .count {
+  .shell.reviewing .sidebar:not(:hover, :has(:focus-visible)) .nav a > .nav-count {
     position: absolute;
     left: 19px;
     top: 3px;
@@ -5464,7 +5447,7 @@ dd > .more-link,
   margin-right: 6px;
 }
 
-.brief-nav .chip {
+.brief-nav .brief-nav-chip {
   margin-right: 4px;
 }
 
@@ -5505,8 +5488,7 @@ dd > .more-link,
   color: var(--faint);
 }
 
-.brief-outline h3 .chip,
-.brief-outline h3 .count,
+.brief-outline h3 .outline-tag,
 .brief-changes-at {
   letter-spacing: 0;
   text-transform: none;
@@ -5671,7 +5653,7 @@ dd > .more-link,
   color: var(--dim);
 }
 
-.brief-doc-head .chip,
+.brief-doc-head .brief-head-chip,
 .brief-doc-head button {
   text-transform: none;
   letter-spacing: 0;
@@ -9089,7 +9071,7 @@ a.work-file:hover {
   background: var(--attention-fill);
 }
 
-.settings-nav .settings-unread + .count {
+.settings-nav .settings-unread + .nav-count {
   margin-left: 0;
 }
 
@@ -13061,10 +13043,6 @@ details.repo-group > summary::-webkit-details-marker {
   justify-content: flex-end;
 }
 
-.pr-row .row-line .chip {
-  flex: none;
-}
-
 .pr-size {
   font: var(--text-xs) var(--mono);
   font-variant-numeric: tabular-nums;
@@ -13154,7 +13132,7 @@ details.repo-group > summary::-webkit-details-marker {
   font-weight: 400;
 }
 
-.pr-name .chip {
+.pr-name .pr-name-chip {
   align-self: center;
 }
 
@@ -13178,7 +13156,7 @@ details.repo-group > summary::-webkit-details-marker {
   gap: 5px;
 }
 
-.pr-meta a.chip:hover {
+.pr-meta a.pr-meta-chip:hover {
   filter: brightness(0.96);
 }
 
@@ -14465,16 +14443,16 @@ a.note-id:hover {
   font-size: var(--text-sm);
 }
 
-a.chip.source {
+a.source-chip {
   text-decoration: none;
 }
 
-a.chip.source:hover {
+a.source-chip:hover {
   color: var(--fg);
   background: var(--hover);
 }
 
-a.chip.source.tone-attention:hover {
+a.source-chip.tone-attention:hover {
   color: var(--tone);
   filter: brightness(0.95);
 }
@@ -14637,10 +14615,6 @@ a.chip.source.tone-attention:hover {
   align-items: baseline;
   gap: 8px;
   margin-bottom: 4px;
-}
-
-.finding-head .chip {
-  flex: none;
 }
 
 .finding-quote {
@@ -14875,7 +14849,7 @@ button.finding-quote:hover {
   font-size: var(--text-xs);
 }
 
-.ref-card .hovercard-line .chip {
+.ref-card .hovercard-line .line-chip {
   margin-left: 6px;
 }
 
@@ -14889,11 +14863,7 @@ button.finding-quote:hover {
   min-width: 0;
 }
 
-.thing-view .hovercard-head .chip {
-  flex: none;
-}
-
-.thing-view .thing-badges .chip:first-child {
+.thing-view .thing-badges .line-chip:first-child {
   margin-left: 0;
 }
 
@@ -15122,10 +15092,6 @@ button.finding-quote:hover {
   padding: 8px 10px;
   color: inherit;
   cursor: pointer;
-}
-
-.team-row .row-line .chip {
-  flex: none;
 }
 
 .team-repo {
@@ -18528,7 +18494,7 @@ input[type="text"].tweak-text {
   vertical-align: -2px;
 }
 
-.space-card-foot .chip:first-of-type {
+.space-card-foot .foot-chip:first-of-type {
   margin-left: auto;
 }
 
@@ -18631,7 +18597,7 @@ input[type="text"].tweak-text {
   font-size: var(--text-xs);
 }
 
-.space-tabs button .count {
+.space-tabs button .space-tab-count {
   font-size: 10px;
 }
 

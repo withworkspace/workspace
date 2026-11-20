@@ -5,6 +5,8 @@ import { Inline } from "../ui/inline";
 import { Keys } from "../ui/kit";
 import { type Edit, editsBySection } from "./briefpage";
 import { PlanList } from "./PlanList";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // The outline beside a mission's brief and plan (BriefTab.tsx): what
 // they're made of, each leading to its place in them.
@@ -138,9 +140,9 @@ export function BriefOutline({
         <button type="button" className={`map-item brief-item${here.has(h.el) ? " here" : ""}`} aria-current={here.has(h.el) || undefined} onClick={() => (list.length ? focus(h.doc, list[0].id) : goTo(h.el))}>
           <span>{h.text}</span>
           {list.length > 0 && (
-            <span className="count tone-attention" title={`${list.length} to read here`}>
+            <Count tone="attention" className="outline-tag" title={`${list.length} to read here`}>
               {list.length}
-            </span>
+            </Count>
           )}
         </button>
       </li>
@@ -163,7 +165,7 @@ export function BriefOutline({
         <section className="brief-changes">
           <h3>
             To read
-            <span className="count tone-attention">{toRead}</span>
+            <Count tone="attention" className="outline-tag">{toRead}</Count>
             <span className="spacer" />
             {at >= 0 && (
               <span className="brief-changes-at">
@@ -203,7 +205,7 @@ export function BriefOutline({
       <section>
         <h3>
           The plan
-          {fresh && <span className="chip tone-quiet">new</span>}
+          {fresh && <Chip tone="quiet" className="outline-tag">new</Chip>}
         </h3>
         {planned ? (
           <>

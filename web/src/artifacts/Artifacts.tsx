@@ -44,6 +44,7 @@ import { changed, followed, frameSearch, readTweakParams, TWEAK, tweakParams } f
 import { ClearExpired, DiscardDialog, PromoteDialog, restore } from "./Lifetime";
 import { PagePin } from "../shell/focus";
 import { FoundArtifacts } from "./Found";
+import { Chip } from "../ui/Chip";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
 // sandboxed frame. A version is its page and the files it loads beside
@@ -193,14 +194,14 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
         <span className="row-main">
           <span className="row-line">
             <span className="title">{a.title}</span>
-            <span className="chip tone-quiet" title={`${a.versions} ${a.versions === 1 ? "version" : "versions"}`}>
+            <Chip tone="quiet" title={`${a.versions} ${a.versions === 1 ? "version" : "versions"}`}>
               v{v?.n ?? a.versions}
-            </span>
-            {a.status !== "live" || a.gone || a.expired ? <span className={`chip tone-${artifactStatus(a).tone}`}>{artifactStatus(a).words}</span> : null}
+            </Chip>
+            {a.status !== "live" || a.gone || a.expired ? <Chip tone={artifactStatus(a).tone}>{artifactStatus(a).words}</Chip> : null}
             {expiry?.soon && (
-              <span className="chip tone-attention" title={`No new version since ${new Date(v?.at ?? a.made).toLocaleDateString()}: promote it to keep it`}>
+              <Chip tone="attention" title={`No new version since ${new Date(v?.at ?? a.made).toLocaleDateString()}: promote it to keep it`}>
                 <Icon name="clock" size={11} /> {expiry.words}
-              </span>
+              </Chip>
             )}
           </span>
           {v?.note && (
@@ -335,10 +336,10 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             <Icon name="arrow-left" size={14} />
           </Link>
           <h1>{d.title}</h1>
-          <span className={`chip tone-${st.tone}`}>
+          <Chip tone={st.tone}>
             <Icon name={st.icon} size={11} />
             {st.words}
-          </span>
+          </Chip>
           <Copyable text={v ? `${d.id}.v${v.n}` : d.id} className="ref" title="Copy its ref" />
           <PagePin r={{ kind: "artifact", id: d.id }} />
         </div>

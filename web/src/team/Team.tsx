@@ -9,6 +9,8 @@ import { Callout, Empty, humanError, Keys, Loading, toast, useTitle } from "../u
 import { Status, type StatusInfo } from "../ui/status";
 import { dayLabel, Time } from "../ui/time";
 import { useLatest } from "../load";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // Team: what the people working in the workspace's repos have been doing,
 // by day, newest first. Each pull request, and each run of one person's
@@ -374,7 +376,7 @@ export function TeamPage() {
         </div>
         {narrative?.on && (
           <button className={`ghost small team-only-know${onlyKnow ? " on" : ""}`} aria-pressed={onlyKnow} onClick={know} title="Only the changes with something worth knowing (n)">
-            <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <span className="count tone-attention">{worth}</span>}
+            <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
           </button>
         )}
         <input
@@ -539,7 +541,7 @@ export function TeamPage() {
         days.map((d) => (
           <section key={d.date} aria-label={d.date}>
             <h2 className="group">
-              {dayLabel(`${d.date}T12:00:00`)} <span className="count">{d.items.length}</span>
+              {dayLabel(`${d.date}T12:00:00`)} <Count>{d.items.length}</Count>
             </h2>
             <ul className="rows team-rows" role="listbox" aria-label={d.date}>
               {d.items.map((it) => (
@@ -590,9 +592,9 @@ export function TeamPage() {
 function KnowChip({ kind }: { kind: KnowKind }) {
   const info = knowInfo[kind] ?? knowInfo.behaviour;
   return (
-    <span className={`chip tone-attention team-know-kind`} title={info.title}>
+    <Chip tone="attention" className="team-know-kind" title={info.title}>
       <Icon name={info.icon} size={11} /> {info.label}
-    </span>
+    </Chip>
   );
 }
 
@@ -632,23 +634,23 @@ function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, 
             {fresh && <span className="team-new" title="Something's happened to it since you last looked" />}
             <span className="title">{it.name}</span>
             {several ? (
-              <span className="chip tone-quiet team-repo" title={(it.repos ?? []).map((r) => repoOf(r).label).join(", ")}>
+              <Chip tone="quiet" className="team-repo" title={(it.repos ?? []).map((r) => repoOf(r).label).join(", ")}>
                 {(it.repos ?? []).slice(0, 4).map((r) => (
                   <span key={r} className="repo-dot" style={{ background: repoOf(r).color }} />
                 ))}
                 {it.repos?.length} repos
-              </span>
+              </Chip>
             ) : (
-              <span className="chip tone-quiet team-repo" title={it.repo}>
+              <Chip tone="quiet" className="team-repo" title={it.repo}>
                 <span className="repo-dot" style={{ background: repo.color }} />
                 {repo.label}
                 {it.pr ? <span className="mono"> #{it.pr}</span> : null}
-              </span>
+              </Chip>
             )}
             {it.touches?.map((t) => (
-              <span key={t.name} className="chip tone-progress team-touch" title={`It changes how things are done:\n${t.files.join("\n")}`}>
+              <Chip tone="progress" key={t.name} className="team-touch" title={`It changes how things are done:\n${t.files.join("\n")}`}>
                 {t.title}
-              </span>
+              </Chip>
             ))}
             <span className={`team-state tone-${status.tone}`}>
               {status.words}
@@ -664,9 +666,9 @@ function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, 
           {know && it.know?.map((k) => <KnowLine key={`${k.kind}:${k.file}:${k.text}`} know={k} repo={it.repo} />)}
           {it.near?.map((n) => (
             <span key={n.capsule} className="team-know-line team-near" title={n.files.join("\n")}>
-              <span className="chip tone-progress team-know-kind" title="A capsule of yours has changed some of the same files">
+              <Chip tone="progress" className="team-know-kind" title="A capsule of yours has changed some of the same files">
                 <Icon name="box" size={11} /> Near you
-              </span>
+              </Chip>
               <span>
                 Also changed in your <span className="mono">{n.capsule}</span>: {n.files.slice(0, 2).map((f) => f.split("/").pop()).join(", ")}
                 {n.files.length > 2 ? `, and ${n.files.length - 2} more` : ""}

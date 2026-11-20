@@ -12,9 +12,10 @@ export type ButtonLook = {
 type ButtonProps = ButtonLook & React.ComponentProps<"button">;
 
 // Button is a button. Its type is the browser's (submit, in a form) unless
-// it's given one.
+// it's given one. data-ui says it's the library's: styles.css's rules for a
+// page's own buttons' states leave it to its module.
 export function Button({ variant, size, square, className, ...rest }: ButtonProps) {
-  return <button className={cx(lookOf({ variant, size, square }), className)} {...rest} />;
+  return <button data-ui="" className={cx(lookOf({ variant, size, square }), className)} {...rest} />;
 }
 
 // buttonClass is a button's look for a link: a <Link> or an <a> that's an

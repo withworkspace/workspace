@@ -42,6 +42,7 @@ import { useReviewPasses } from "./usePasses";
 import { Checks, prHref, prStatus } from "./Reviews";
 import { useLatest } from "../load";
 import { PagePin } from "../shell/focus";
+import { Chip, chipClass } from "../ui/Chip";
 
 // A pull request's review: the page a capsule's review is, on commits
 // fetched into the repo's clone. A stack opens as one review, its layers
@@ -320,17 +321,17 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
         {whole && d.stack ? (
           <>
             {d.stack.title}
-            <span className="chip tone-quiet" title="Every layer's changes together: where the stack ends up">
+            <Chip tone="quiet" className="pr-name-chip" title="Every layer's changes together: where the stack ends up">
               <Icon name="layers" size={11} /> the whole stack · {layers.length} layers
-            </span>
+            </Chip>
           </>
         ) : (
           <>
             {pr.title} <span className="mono dim">{ref}</span>
             {d.stack && d.layer ? (
-              <span className="chip tone-quiet" title="Where this layer sits in its stack: 1 is the bottom">
+              <Chip tone="quiet" className="pr-name-chip" title="Where this layer sits in its stack: 1 is the bottom">
                 <Icon name="layers" size={11} /> {d.layer} of {layers.length}
-              </span>
+              </Chip>
             ) : null}
           </>
         )}
@@ -390,17 +391,17 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
             ))}
           {pr.updated && <Time iso={pr.updated} as="relative" className="dim" />}
           {pr.mission && (
-            <Link to={`/missions/${pr.mission.slug}`} className="chip tone-quiet">
+            <Link to={`/missions/${pr.mission.slug}`} className={chipClass("quiet", "pr-meta-chip")}>
               <Icon name="flag" size={11} /> {pr.mission.title}
             </Link>
           )}
           {d.docked && (
-            <Link to={`/files/${pr.repo}/${d.docked.capsule}`} className="chip tone-quiet" title={d.docked.by === "ws" ? "ws docked it for a question: it's removed once this merges or closes, unless you change something in it" : "It's checked out here: browse its files"}>
+            <Link to={`/files/${pr.repo}/${d.docked.capsule}`} className={chipClass("quiet", "pr-meta-chip")} title={d.docked.by === "ws" ? "ws docked it for a question: it's removed once this merges or closes, unless you change something in it" : "It's checked out here: browse its files"}>
               <Icon name="box" size={11} /> {pr.repo}/{d.docked.capsule}
             </Link>
           )}
           {talks.map((t) => (
-            <Link key={t.id} to={`/conversations/${t.id}`} className={`chip ${t.waiting && t.status === "open" ? "tone-attention" : "tone-quiet"}`} title={t.title || t.opening}>
+            <Link key={t.id} to={`/conversations/${t.id}`} className={chipClass(t.waiting && t.status === "open" ? "attention" : "quiet", "pr-meta-chip")} title={t.title || t.opening}>
               <Icon name={t.answering ? "spinner" : "message"} size={11} className={t.answering ? "spin" : undefined} />
               {t.answering ? "Answering" : t.waiting && t.status === "open" ? "Answered" : t.status === "resolved" ? "Resolved" : "Asked"}: {clip(t.title || t.opening, 48)}
             </Link>

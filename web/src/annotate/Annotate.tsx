@@ -33,6 +33,7 @@ import { exact, stamp } from "../ui/time";
 import { BLOCK, blockLike, blockLines, blockSpan, blockWithLines, buildIndex, find, offsetOf, rangeOf, type Target, type TextIndex, targetOf, targetOfRange } from "./anchor";
 import { changes } from "./diff";
 import { useLatest, useLoaded } from "../load";
+import { Chip } from "../ui/Chip";
 
 // Commenting on a document, as in a shared doc: you read it rendered,
 // highlight text and comment on it, and the comment is a thread, live at
@@ -760,24 +761,24 @@ export function AnnotatedDoc({
       <div className="annotate-bar">
         <span className="annotate-counts">
           {open.length > 0 && (
-            <span className="chip tone-quiet">
+            <Chip tone="quiet">
               <Icon name="message" size={11} /> {open.length} open
-            </span>
+            </Chip>
           )}
           {waiting.length > 0 && (
-            <span className="chip tone-attention">
+            <Chip tone="attention">
               <Icon name="reply" size={11} /> {waiting.length} your turn
-            </span>
+            </Chip>
           )}
           {answering.length > 0 && (
-            <span className="chip tone-progress">
+            <Chip tone="progress">
               <Icon name="spinner" size={11} className="spin" /> {answering.length} answering
-            </span>
+            </Chip>
           )}
           {drafts.length > 0 && (
-            <span className="chip tone-attention">
+            <Chip tone="attention">
               <Icon name="gavel" size={11} /> {drafts.length} {drafts.length === 1 ? "decision" : "decisions"} to record
-            </span>
+            </Chip>
           )}
         </span>
         <span className="spacer-left" />
@@ -796,9 +797,9 @@ export function AnnotatedDoc({
           </button>
         )}
         {own ? null : approvedNow ? (
-          <span className="chip tone-done approved" title={`You approved this version ${exact(approved.at)}`}>
+          <Chip tone="done" className="approved" title={`You approved this version ${exact(approved.at)}`}>
             <Icon name="check-circle" size={12} /> Approved
-          </span>
+          </Chip>
         ) : (
           <>
             {approved && <span className="dim approved-before">You approved an earlier version</span>}
@@ -1063,18 +1064,18 @@ function ThreadCard({ thread, active, hovered, replying, unplaced, onFocus, onHo
       onMouseLeave={() => onHover(false)}
     >
       <div className="note-head">
-        <span className={`chip kind-chip k-${thread.kind}`}>
+        <Chip className={`kind-chip k-${thread.kind}`}>
           <Icon name={kindIcon[thread.kind]} size={11} />
           {kindWords[thread.kind]}
-        </span>
+        </Chip>
         {resolved ? (
-          <span className="chip tone-done">
+          <Chip tone="done">
             <Icon name="check" size={11} /> Resolved
-          </span>
+          </Chip>
         ) : crew ? (
-          <span className="chip tone-progress">{crew} is on it</span>
+          <Chip tone="progress">{crew} is on it</Chip>
         ) : yours ? (
-          <span className="chip tone-attention">Your turn</span>
+          <Chip tone="attention">Your turn</Chip>
         ) : null}
         <span className="spacer-left" />
         <span className="note-id">{thread.id}</span>

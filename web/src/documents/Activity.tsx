@@ -5,6 +5,8 @@ import { humanError, toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import { changedSince, type InSpace, saysNoMore } from "./happening";
+import { Chip, chipClass } from "../ui/Chip";
+import { Count } from "../ui/Count";
 
 // What's happening in a space, so it reads as somewhere people are
 // working: how fresh it is, what's in flight in capsules, and what changed
@@ -88,7 +90,7 @@ export function InFlight({ flights, spaceOf }: { flights: InSpace<SpaceFlight>[]
   return (
     <section aria-label="In flight">
       <h2 className="group" title="Capsules with changes to the documents: yours and others', and the pull requests open from them">
-        In flight <span className="count">{flights.length}</span>
+        In flight <Count>{flights.length}</Count>
       </h2>
       <ul className="rows space-flights">
         {flights.map((f) => {
@@ -99,9 +101,9 @@ export function InFlight({ flights, spaceOf }: { flights: InSpace<SpaceFlight>[]
               <span className="row-main">
                 <span className="row-line">
                   <span className="title mono">{f.capsule}</span>
-                  {f.mission && <span className="chip tone-quiet">{f.mission}</span>}
+                  {f.mission && <Chip tone="quiet">{f.mission}</Chip>}
                   {f.pr && (
-                    <TLink to={`/reviews/${encodeURIComponent(f.repo)}/${f.pr.number}`} className="chip tone-progress" title={f.pr.title}>
+                    <TLink to={`/reviews/${encodeURIComponent(f.repo)}/${f.pr.number}`} className={chipClass("progress")} title={f.pr.title}>
                       #{f.pr.number}
                     </TLink>
                   )}
@@ -131,7 +133,7 @@ export function Lately({ lately, limit = 5, spaceOf, label = "Changed lately" }:
   return (
     <section aria-label="Changed lately">
       <h2 className="group">
-        {label} <span className="count">{lately.length}</span>
+        {label} <Count>{lately.length}</Count>
       </h2>
       <ul className="doc-changes">
         {shown.map((c) => (

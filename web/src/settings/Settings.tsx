@@ -14,6 +14,7 @@ import { Updates } from "./Updates";
 import { openWhatsNew } from "../shell/WhatsNew";
 import { type Page, PageContext, RowOf, SettingCell, usePage, useSetting, without } from "./Row";
 import { type Block, find, type Found, keyOf, type Mine, minesOf, name, sectionAt, type Section, sectionsOf, wordsOf } from "./sections";
+import { Count } from "../ui/Count";
 
 // The Settings page: your settings for this workspace, in sections, the
 // list of them beside the sidebar and the one you're in beside that, to a
@@ -142,12 +143,12 @@ export function SettingsPage({
                     <NavLink to={`/settings/${sec.id}`} className={() => (on ? "active" : finding && hits === 0 ? "none" : "")} aria-current={on ? "page" : undefined} onClick={() => setQuery("")}>
                       <Icon name={sec.icon} size={15} />
                       <span>{sec.title}</span>
-                      {finding && hits > 0 && <span className="count">{hits}</span>}
+                      {finding && hits > 0 && <Count className="nav-count">{hits}</Count>}
                       {!finding && sec.id === "yours" && unread > 0 && <span className="settings-unread" title={unread === 1 ? "A key ws doesn't read" : `${unread} keys ws doesn't read`} />}
                       {!finding && sec.id === "yours" && mine > 0 && (
-                        <span className="count" title={`${mine} set by you`}>
+                        <Count className="nav-count" title={`${mine} set by you`}>
                           {mine}
-                        </span>
+                        </Count>
                       )}
                     </NavLink>
                   </Fragment>
@@ -287,7 +288,7 @@ function Repos({ branch }: { branch?: string }) {
     <section id="repos" className="settings-block">
       <h2 className="group">
         The team's repos
-        {repos && <span className="count">{repos.length}</span>}
+        {repos && <Count>{repos.length}</Count>}
       </h2>
       <p className="settings-about">
         In <code>ws.toml</code>: shown here, changed there.
@@ -356,7 +357,7 @@ function Yours({ info, sections }: { info: SettingsInfo; sections: Section[] }) 
       <Unread info={info} />
       <section className="settings-block">
         <h2 className="group">
-          What {fileName(info.file)} sets <span className="count">{mines.length}</span>
+          What {fileName(info.file)} sets <Count>{mines.length}</Count>
         </h2>
         {mines.length === 0 && <div className="quiet-line">Nothing: every setting is the team's, or ws's default.</div>}
         <div className="settings-mine">
