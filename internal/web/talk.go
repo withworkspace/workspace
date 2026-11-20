@@ -125,6 +125,18 @@ func (s *Server) talkStore(r *http.Request) (conversation.Store, error) {
 	return conversation.For(s.Root, sc.Mission), nil
 }
 
+// talkStoreOf is mission slug's conversations, or the workspace's own
+// for "".
+func (s *Server) talkStoreOf(slug string) (conversation.Store, error) {
+	if slug == "" {
+		return conversation.ForWorkspace(s.Root), nil
+	}
+	if _, err := (mission.Store{Root: s.Root}).Load(slug); err != nil {
+		return conversation.Store{}, fmt.Errorf("%w: no mission %s", conversation.ErrNotFound, slug)
+	}
+	return conversation.For(s.Root, slug), nil
+}
+
 // withTalkStore runs fn with the request's conversations, or answers why
 // there aren't any.
 func (s *Server) withTalkStore(w http.ResponseWriter, r *http.Request, fn func(conversation.Store)) {
@@ -163,10 +175,11 @@ func talkDetail(store conversation.Store, id string) (*TalkDetail, error) {
 		return nil, fmt.Errorf("%w: %s is a thread on a document, not a conversation", conversation.ErrNotFound, id)
 	}
 	// An artifact proposed is run from its frame (proposalFrame), not sent
-	// whole with every load of the conversation: its size says what it is.
+	// whole with every load of the conversation: its size says what it is,
+	// and its files, for one that's more than its page.
 	for i := range c.Proposals {
 		if c.Proposals[i].Kind == conversation.ProposeArtifact {
-			c.Proposals[i].HTML = ""
+			c.Proposals[i].HTML, c.Proposals[i].Tree = "", ""
 		}
 	}
 	d := &TalkDetail{Conversation: c}

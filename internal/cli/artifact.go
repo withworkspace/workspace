@@ -16,9 +16,10 @@ import (
 	"github.com/withworkspace/workspace/internal/ui"
 )
 
-// ws artifact: versioned HTML prototypes (internal/artifact), added by
-// crew and by you, kept on this machine in .ws/artifacts (one you promote
-// may live in a repo too), and shown by ws show a3. Not ws mission artifact,
+// ws artifact: versioned HTML prototypes (internal/artifact), each version
+// a page and the files beside it, added by crew and by you, kept on this
+// machine in .ws/artifacts (one you promote may live in a repo too), and
+// shown by ws show a3. Not ws mission artifact,
 // which records a pointer to what a mission made (crew's artifacts are
 // recorded there as a3).
 
@@ -27,16 +28,20 @@ func newArtifactCmd() *cobra.Command {
 		Use:     "artifact",
 		Aliases: []string{"artifacts"},
 		Short:   "Add, list, show, promote and discard artifacts: versioned HTML prototypes",
-		Long: `An artifact is one HTML file, with its CSS and JS inline, that shows an
-idea: something to look at and use rather than read, such as a mock-up of a
-page, two takes on a colour, or a diagram you can click through. Each
-version is a whole file, never changed once written, and says who made it,
-where (a mission, or by hand), what it's based on, and what changed.
+		Long: `An artifact is a page that shows an idea: something to look at and use
+rather than read, such as a mock-up of a page, two takes on a colour, or a
+diagram you can click through. A version is its page (index.html) and
+whatever files it loads beside it: stylesheets, scripts, images, fonts,
+data. One HTML file with everything inline is a version too. Each version
+is whole, never changed once written, and says who made it, where (a
+mission, or by hand), what it's based on, and what changed.
 
-Each is a folder, {date}-{slug}/, holding its record (artifact.toml) and
-v1.html, v2.html, …, named a1, a2, … on this machine: a version is a3.v2.
+Each is a folder, {date}-{slug}/, holding its record (artifact.toml) and a
+git repo of its own (files.git), where each version is a commit, tagged
+v1, v2, …. They're named a1, a2, … on this machine: a version is a3.v2.
 ws show a3 shows one, with its versions, their notes and where each came
-from.
+from. ws artifact checkout a3 puts a version's files in a folder to work
+on, and ws artifact add <folder> --to a3 adds what you made of them.
 
 They're on this machine, in .ws/artifacts. Crew's are recorded on their
 mission, as one of its artifacts. That's ws mission artifact add's list,
@@ -56,7 +61,7 @@ later, and the one chosen then goes to the same folder, in one commit
 landed on the repo's default branch.`,
 		Args: cobra.NoArgs,
 	}
-	cmd.AddCommand(newArtifactAddCmd(), newArtifactListCmd(), newArtifactShowCmd(), newArtifactPromoteCmd(), newArtifactDiscardCmd(), newArtifactRestoreCmd(), newArtifactClearCmd(), newArtifactTweaksCmd())
+	cmd.AddCommand(newArtifactAddCmd(), newArtifactListCmd(), newArtifactShowCmd(), newArtifactCheckoutCmd(), newArtifactPromoteCmd(), newArtifactDiscardCmd(), newArtifactRestoreCmd(), newArtifactClearCmd(), newArtifactTweaksCmd())
 	return cmd
 }
 
@@ -64,20 +69,28 @@ func newArtifactAddCmd() *cobra.Command {
 	var title, note, to, on string
 	var proposeIt bool
 	cmd := &cobra.Command{
-		Use:   "add <file>",
-		Short: "Add an artifact from an HTML file (- for stdin), or a version of one (--to)",
-		Long: `Add an artifact from one HTML file (- for stdin), with its CSS and JS
-inline, as its first version; or, with --to a3, a new version of artifact
-a3, based on its latest (--on v1 for another). Each version is a whole file.
+		Use:   "add <file|folder>",
+		Short: "Add an artifact from an HTML file (- for stdin) or a folder, or a version of one (--to)",
+		Long: `Add an artifact as its first version; or, with --to a3, a new version of
+artifact a3, based on its latest (--on v1 for another). What's added is:
 
-Its title is --title, or the HTML's <title>. Its note (--note) says, in a
+  a folder     its page, index.html at the top, and every file in it and
+               under it (stylesheets, scripts, images, fonts, data), each
+               at its path. Hidden files (.git, .DS_Store) are left out.
+  a file, or - one HTML file, with its CSS and JS inline: the page alone.
+
+Each version is whole: to change one that has files, check it out
+(ws artifact checkout a3), change what you're changing, and add the folder.
+
+Its title is --title, or its page's <title>. Its note (--note) says, in a
 line or two, what changed and why; the first version's says what the
 artifact tries out. Crew must give one.
 
-A version is at most 1 MB, and runs in the web UI in a sandboxed frame that
-fetches nothing and keeps nothing: ws warns of a script, font or image it
-loads from elsewhere, a call to the network, and storage, so they can be
-put in the file instead (images as data: URLs).
+A version's files come to at most 10 MB, 200 of them at most. It runs in
+the web UI in a sandboxed frame that loads the version's own files and
+nothing else, and keeps nothing: ws warns of a script, font or image
+loaded from elsewhere, a file the page loads that isn't among them, a call
+to the network, and storage.
 
 Where there's something to choose between (a density, a colour, two takes
 on a layout), its page says what can be changed (ws.tweaks) and the web UI
@@ -95,7 +108,7 @@ small frame. ws artifact add --propose, with no file, prints how one's
 written and proposed.
 
   ws artifact add glow.html --title "Horizon glow" --note "Accent at 8% in dark, 3% in light."
-  ws artifact add glow.html --to a3 --note "No glow in light: at 3% it looked grey."
+  ws artifact add glow/ --to a3 --note "No glow in light: at 3% it looked grey."
   ws artifact add --propose --to a3 --on v1 --note "…" - <<'EOF'`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if proposeIt {
@@ -118,11 +131,11 @@ written and proposed.
 				return err
 			}
 			if proposeIt {
-				html, err := readHTML(args[0])
+				files, err := readVersion(args[0])
 				if err != nil {
 					return err
 				}
-				return proposeArtifact(ctx, html, title, note, strings.TrimSpace(to), on)
+				return proposeArtifact(ctx, files, title, note, strings.TrimSpace(to), on)
 			}
 			a := ops.ArtifactAdd{Title: title, Note: note, To: strings.TrimSpace(to), Mission: os.Getenv(mission.EnvMission)}
 			if on != "" {
@@ -135,7 +148,7 @@ written and proposed.
 				}
 				a.On = n
 			}
-			if a.HTML, err = readHTML(args[0]); err != nil {
+			if a.Files, err = readVersion(args[0]); err != nil {
 				return err
 			}
 			added, err := ctx.AddArtifact(a, ops.ActorFromEnv())
@@ -151,7 +164,7 @@ written and proposed.
 			return err
 		},
 	}
-	cmd.Flags().StringVar(&title, "title", "", "its title (default: the HTML's <title>); with --to, a new title for the artifact")
+	cmd.Flags().StringVar(&title, "title", "", "its title (default: its page's <title>); with --to, a new title for the artifact")
 	cmd.Flags().StringVar(&note, "note", "", "what this version changed and why, in a line or two (the first: what it tries out)")
 	cmd.Flags().StringVar(&to, "to", "", "add a version to this artifact (a3) instead of a new artifact")
 	cmd.Flags().StringVar(&on, "on", "", "with --to: the version it's based on, as v1 (default: the latest)")
@@ -160,19 +173,17 @@ written and proposed.
 	return cmd
 }
 
-// readHTML is a version's HTML, from a file or stdin (-).
-func readHTML(file string) ([]byte, error) {
-	var data []byte
-	var err error
-	if file == "-" {
-		data, err = io.ReadAll(io.LimitReader(os.Stdin, artifact.MaxSize*4))
-	} else {
-		data, err = os.ReadFile(file)
+// readVersion is a version's files as ws artifact add is given them: a
+// folder, whole, or its page alone, from a file or stdin (-).
+func readVersion(arg string) (artifact.Files, error) {
+	if arg == "-" {
+		data, err := io.ReadAll(io.LimitReader(os.Stdin, artifact.MaxSize+1))
+		if err != nil {
+			return nil, fmt.Errorf("reading the artifact: %w", err)
+		}
+		return artifact.Page(data), nil
 	}
-	if err != nil {
-		return nil, fmt.Errorf("reading the artifact: %w", err)
-	}
-	return data, nil
+	return ops.ReadArtifactFiles(arg)
 }
 
 func newArtifactListCmd() *cobra.Command {
@@ -252,13 +263,19 @@ func artifactListLine(e artifact.Entry, cfg artifact.Config, now time.Time) stri
 }
 
 func newArtifactShowCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "show <a3|a3.v2>",
-		Short: "Print a version of an artifact: its HTML (the latest, for a3)",
-		Long: `Print a version of an artifact, its HTML as it was added: a3.v2 for v2,
-or a3 for the latest. ws show a3 says what each version is: its note,
-what it's based on, and where it came from.`,
-		Args:   cobra.ExactArgs(1),
+	var list bool
+	cmd := &cobra.Command{
+		Use:   "show <a3|a3.v2> [file]",
+		Short: "Print a version of an artifact: its page, or another of its files (the latest, for a3)",
+		Long: `Print a version of an artifact, as it was added: a3.v2 for v2, or a3 for
+the latest. With no file it's the version's page (index.html); name
+another of its files to print that (ws artifact show a3.v2 css/glow.css),
+and --files lists them, each with its size.
+
+ws show a3 says what each version is: its note, what it's based on, and
+where it came from. ws artifact checkout a3 puts a version's files in a
+folder, to work on.`,
+		Args:   cobra.RangeArgs(1, 2),
 		PreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, n, ok := artifact.ParseRef(args[0])
@@ -269,12 +286,84 @@ what it's based on, and where it came from.`,
 			if err != nil {
 				return err
 			}
-			text, _, _, err := ctx.Artifacts().ReadVersion(context.Background(), id, n)
+			st := ctx.Artifacts()
+			if list {
+				files, _, _, err := st.VersionFiles(context.Background(), id, n)
+				if err != nil {
+					return err
+				}
+				for _, f := range files {
+					fmt.Printf("%s\t%s\n", f.Path, artifact.Size(f.Size))
+				}
+				return nil
+			}
+			file := artifact.IndexFile
+			if len(args) == 2 {
+				file = strings.TrimPrefix(args[1], "./")
+			}
+			data, _, _, n, err := st.ReadFile(context.Background(), id, n, file)
+			if errors.Is(err, artifact.ErrNoFile) {
+				return fmt.Errorf("%s has no file %s: ws artifact show %s --files lists its files", artifact.VersionRef(id, n), file, artifact.VersionRef(id, n))
+			}
 			if err != nil {
 				return err
 			}
-			_, err = os.Stdout.Write(text)
+			_, err = os.Stdout.Write(data)
 			return err
+		},
+	}
+	cmd.Flags().BoolVar(&list, "files", false, "list the version's files, each with its size, instead of printing one")
+	return cmd
+}
+
+func newArtifactCheckoutCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "checkout <a3|a3.v2> [folder]",
+		Short: "Put a version's files in a folder, to work on (the latest, for a3)",
+		Long: `Put a version's files in a folder, as they were added: a3.v2 for v2, or
+a3 for the latest. It's how a version that has files is revised: change
+what you're changing in the folder, and add the folder as the next version,
+
+  ws artifact add <folder> --to a3 --note "<what changed, and why>"
+
+(in a conversation, ws artifact add --propose --to a3 --note "…" <folder>).
+The version is whole, so the files you left alone go in again as they are.
+
+With no folder, ws makes one and prints it: in the system's temp folder,
+or, for a conversation's agent, in the folder that's its own to write in.
+A folder you name is made, and must be empty if it's there. Nothing links
+the folder to the artifact: delete it when you're done.`,
+		Args:   cobra.RangeArgs(1, 2),
+		PreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			dir := ""
+			if len(args) == 2 {
+				dir = args[1]
+			}
+			out, err := ctx.CheckoutArtifact(args[0], dir, os.Getenv(mission.EnvMission), agentConversation())
+			if err != nil {
+				return err
+			}
+			ref := artifact.VersionRef(out.Entry.ID, out.Version)
+			size := 0
+			for _, f := range out.Files {
+				size += f.Size
+			}
+			fmt.Fprintf(ui.Stderr, "  %s %s's files (%s) are in %s\n", ui.Green.Render("✓"), ref, artifact.FilesWords(len(out.Files), size), out.Dir)
+			for _, f := range out.Files {
+				fmt.Fprintf(ui.Stderr, "      %s  %s\n", f.Path, ui.Dim.Render(artifact.Size(f.Size)))
+			}
+			add := fmt.Sprintf("ws artifact add %s --to %s --on v%d --note \"…\"", out.Dir, out.Entry.ID, out.Version)
+			if agentConversation() != "" {
+				add = fmt.Sprintf("ws artifact add --propose --to %s --on v%d --note \"…\" %s", out.Entry.ID, out.Version, out.Dir)
+			}
+			fmt.Fprintf(ui.Stderr, "  %s change what you're changing there, then: %s\n", ui.Dim.Render("·"), add)
+			fmt.Println(out.Dir)
+			return nil
 		},
 	}
 }

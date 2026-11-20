@@ -136,13 +136,24 @@ export interface Artifact {
 
 // From web/api.go
 /**
- * ArtifactCompare is GET /api/artifacts/compare: two versions' HTML, a's
- * against b's, as a review's file is diffed, and b's lines (to show the
- * unchanged ones between the changes).
+ * ArtifactCompare is GET /api/artifacts/compare: two versions' files, a's
+ * against b's: each file that differs, as a review's file is diffed, by
+ * path. None: the two are the same.
  */
 export interface ArtifactCompare {
     a: string; // a3.v1
     b: string;
+    files: ArtifactCompareFile[];
+}
+
+// From web/api.go
+/**
+ * ArtifactCompareFile is one file that differs between two versions: its
+ * diff (added, deleted or modified; Binary for one that isn't text, which
+ * has no hunks), and its lines in b, to show the unchanged ones between
+ * the changes.
+ */
+export interface ArtifactCompareFile {
     file: ReviewFile;
     lines: string[];
 }
@@ -250,6 +261,16 @@ export interface ArtifactDone {
 
 // From web/api.go
 /**
+ * ArtifactFile is one of a version's files: its path in the version, and
+ * its size.
+ */
+export interface ArtifactFile {
+    path: string;
+    size: number;
+}
+
+// From web/api.go
+/**
  * ArtifactFrom is where versions of an artifact came from.
  */
 export interface ArtifactFrom {
@@ -343,11 +364,17 @@ export interface ArtifactPromotion {
 
 // From web/api.go
 /**
- * ArtifactSource is GET /api/artifacts/{id}/source: a version's HTML.
+ * ArtifactSource is GET /api/artifacts/{id}/source: one of a version's
+ * files (its page, unless another's asked for), as text, and the
+ * version's files. Binary: it isn't text, and Text is empty.
  */
 export interface ArtifactSource {
     version: number;
+    file: string;
     text: string;
+    binary?: boolean;
+    size: number;
+    files: ArtifactFile[];
 }
 
 // From artifact/artifact.go
@@ -380,9 +407,10 @@ export interface ArtifactVersion {
     fromTitle?: string;
     note?: string;
     /**
-     * Size is its file's, in bytes; 0 while there's no file to read (only
-     * on an artifact's page).
+     * Files is how many files it has, and Size what they come to, in
+     * bytes; 0 while there are none to read (only on an artifact's page).
      */
+    files?: number;
     size?: number;
 }
 
@@ -1091,17 +1119,21 @@ export interface ConversationProposal {
     guide?: string;
     subject?: string;
     /**
-     * An artifact: its HTML, one file with its CSS and JS inline, and its
-     * note (what it tries out, or what changed and why). A new one has its
-     * title (Title); a version of one names the artifact (To, a3), the
-     * version it's based on (On), and the artifact's latest version as it
-     * was proposed (Latest): one added since makes it out of date, though
-     * it's still added, based on On. As worked out when it was proposed:
-     * where it would go (Path), its size (Size), and what in it won't load
-     * in the frame (Warnings). Accepting adds it as you, from this
+     * An artifact: its page (HTML), or, for one that's more than its page,
+     * the commit that keeps its files until it's added (Tree, in the repo
+     * beside the artifacts) and what they are (Files); and its note (what
+     * it tries out, or what changed and why). A new one has its title
+     * (Title); a version of one names the artifact (To, a3), the version
+     * it's based on (On), and the artifact's latest version as it was
+     * proposed (Latest): one added since makes it out of date, though it's
+     * still added, based on On. As worked out when it was proposed: where
+     * it would go (Path), its size (Size), and what in it won't load in
+     * the frame (Warnings). Accepting adds it as you, from this
      * conversation, and Result is the version it made (a3.v1).
      */
     html?: string;
+    tree?: string;
+    files?: ConversationProposedFile[];
     note?: string;
     to?: string;
     on?: number;
@@ -1143,6 +1175,16 @@ export interface ConversationProposal {
     result?: string;
     settledBy?: string;
     settledAt?: string;
+}
+
+// From conversation/proposals.go
+/**
+ * ProposedFile is one file of an artifact proposed with files: its path
+ * and its size.
+ */
+export interface ConversationProposedFile {
+    path: string;
+    size: number;
 }
 
 // From conversation/conversation.go
@@ -1667,14 +1709,6 @@ export interface FocusPin {
     title?: string;
     state?: string;
 }
-
-// From web/artifacts.go
-/**
- * FramePolicy is a version's Content-Security-Policy: sandboxed, with its
- * scripts and styles inline, its images, fonts and media in it, and
- * framed only by the web UI.
- */
-export const FramePolicy = "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; frame-ancestors 'self'";
 
 // From harness/stream.go
 /**

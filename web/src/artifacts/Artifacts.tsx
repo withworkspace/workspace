@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { type ArtifactDetail, type ArtifactInfo, type ArtifactVersion, frameURL, getArtifactDetail, getArtifactSource, promoteArtifact, type Workspace } from "../api";
+import { type ArtifactDetail, type ArtifactInfo, type ArtifactSource, type ArtifactVersion, frameURL, getArtifactDetail, getArtifactSource, promoteArtifact, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
@@ -20,6 +20,7 @@ import {
   BY_HAND,
   byWords,
   expiryOf,
+  filesWords,
   KEEP_DISCARDED,
   fromRef,
   isConversation,
@@ -44,10 +45,12 @@ import { ClearExpired, DiscardDialog, PromoteDialog, restore } from "./Lifetime"
 import { PagePin } from "../shell/focus";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
-// sandboxed frame. A version runs from a route of its own (/frame/a3/v2),
-// in <iframe sandbox="allow-scripts">: its scripts run, in an origin of
-// their own, so they can't read ws's cookie, its storage or this page,
-// and its policy lets nothing leave. What its page says can be changed
+// sandboxed frame. A version is its page and the files it loads beside
+// it. It runs from a route of its own (/frame/a3/v2, which sends the
+// frame to where the version's files are), in <iframe
+// sandbox="allow-scripts">: its scripts run, in an origin of their own,
+// so they can't read ws's cookie, its storage or this page, and its
+// policy lets it load its own files and nothing else. What its page says can be changed
 // about it (its tweaks) is drawn beside the frame (Tray.tsx), and the
 // state they're in is in the address.
 
@@ -61,7 +64,7 @@ export const artifactKeys: [string, string][] = [
   ["w", "The next width: fit, 1280, 768, 390"],
   ["r", "Reload: run it again"],
   ["x", "Stop it, or run it again"],
-  ["s", "Its source, or the frame again"],
+  ["s", "Its source, file by file, or the frame again"],
   ["t", "Its tweaks, shown or hidden: what its page says can be changed"],
   ["c", "Compare it, side by side: beside the version it's based on"],
   ["p", "Promote it: keep it for good, choosing this version"],
@@ -156,7 +159,7 @@ export function ArtifactsPage({ workspace }: { workspace: Workspace }) {
       </header>
       {all.length === 0 ? (
         <Empty icon="artifact" title="No artifacts yet">
-          An artifact is a sketch to look at and use: one HTML file, with its CSS and JS inline, in versions you can step through. Crew add them with{" "}
+          An artifact is a sketch to look at and use: a page, alone or with the files it loads beside it, in versions you can step through. Crew add them with{" "}
           <code>ws artifact add</code>, and so can you.
         </Empty>
       ) : list.length === 0 ? (
@@ -399,7 +402,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             <button className="ghost small" onClick={() => setStopped((s) => !s)} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"}>
               <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
             </button>
-            <button className="ghost small" aria-pressed={source} onClick={() => setSource((s) => !s)} disabled={!runnable} title="Its HTML">
+            <button className="ghost small" aria-pressed={source} onClick={() => setSource((s) => !s)} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"}>
               <Icon name="code" size={13} /> Source <Keys k="s" />
             </button>
             {framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} />}
@@ -447,7 +450,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             </Empty>
           ) : !runnable ? (
             <Empty icon="alert" title="There's no file to run">
-              {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}: what's here is what the records kept.` : `v${n}'s file isn't in ${d.where}.`}
+              {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}: what's here is what the records kept.` : `v${n}'s files aren't in ${d.where}.`}
             </Empty>
           ) : source ? (
             <Source id={d.id} n={n} />
@@ -537,7 +540,7 @@ export function VersionLine({ d, v, workspace }: { d: ArtifactDetail; v: Artifac
       )}
       <span>{v.from ? byWords(v) : v.by === "you" ? "by you, by hand" : byWords(v)}</span>
       <Time iso={v.at} as="relative" />
-      {v.size ? <span>{sizeWords(v.size)}</span> : null}
+      {v.size ? <span>{filesWords(v.files, v.size)}</span> : null}
       {d.home?.version === v.n ? (
         <span title={keptTitle(d)}>
           <Icon name="branch" size={11} /> in {d.home.repo}
@@ -583,26 +586,64 @@ export function VersionStrip({ d, n, go, keys = ["[", "]"] }: { d: ArtifactDetai
   );
 }
 
-// Source is a version's HTML, as Files shows a file.
+// Source is a version's files, as they were written: its page, and for
+// one with more, a list of them beside it to read another. A file that
+// isn't text (an image, a font) says what it is.
 function Source({ id, n }: { id: string; n: number }) {
-  const { value, error } = useLoaded(() => getArtifactSource(id, n), [id, n]);
+  const [file, setFile] = useState("");
+  // Another version opens at its page.
+  useEffect(() => setFile(""), [id, n]);
+  const { value, error } = useLoaded<ArtifactSource>(() => getArtifactSource(id, n, file), [id, n, file], { keep: true });
   const ready = useHighlighter();
   const lines = useMemo(() => {
-    if (!value) return [];
+    if (!value || value.binary) return [];
     const ls = value.text.split("\n");
-    return ready && ls.length <= 20000 ? highlightLines(ls, languageOf("v.html")) : ls.map(escapeHTML);
+    return ready && ls.length <= 20000 ? highlightLines(ls, languageOf(value.file)) : ls.map(escapeHTML);
   }, [value, ready]);
-  if (error) return <ErrorCard error={error} />;
+  if (error && !value) return <ErrorCard error={error} />;
   if (!value) return <Loading what="Reading its source…" />;
+  const many = value.files.length > 1;
   return (
-    <div className="code-view artifact-source">
-      {lines.map((h, i) => (
-        <div key={i} className="code-line">
-          <span className="code-ln">{i + 1}</span>
-          <span className="code-mark" aria-hidden />
-          <code dangerouslySetInnerHTML={{ __html: h || " " }} />
+    <div className={`artifact-source-view${many ? " many" : ""}`}>
+      {many && (
+        <nav className="artifact-files" aria-label={`v${value.version}'s files`}>
+          <div className="artifact-files-head dim">
+            {value.files.length} files, {sizeWords(value.files.reduce((sum, f) => sum + f.size, 0))}
+          </div>
+          {value.files.map((f) => (
+            <button
+              key={f.path}
+              // The one being read is kept in sight: on a narrow window the list is a row that scrolls.
+              ref={f.path === value.file ? (el) => el?.scrollIntoView({ block: "nearest", inline: "nearest" }) : undefined}
+              className="artifact-file"
+              aria-current={f.path === value.file ? "true" : undefined}
+              onClick={() => setFile(f.path)}
+              title={`${f.path}, ${sizeWords(f.size)}`}
+            >
+              <Icon name={f.path === "index.html" ? "artifact" : "file"} size={12} />
+              <span className="artifact-file-path">{f.path}</span>
+              <span className="artifact-file-size dim">{sizeWords(f.size)}</span>
+            </button>
+          ))}
+        </nav>
+      )}
+      {error ? (
+        <ErrorCard error={error} />
+      ) : value.binary ? (
+        <Empty icon="file" title={`${value.file} isn't text`}>
+          It's {sizeWords(value.size)}, and the page shows it where it uses it.
+        </Empty>
+      ) : (
+        <div className="code-view artifact-source">
+          {lines.map((h, i) => (
+            <div key={i} className="code-line">
+              <span className="code-ln">{i + 1}</span>
+              <span className="code-mark" aria-hidden />
+              <code dangerouslySetInnerHTML={{ __html: h || " " }} />
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }

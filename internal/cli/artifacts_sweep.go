@@ -10,7 +10,8 @@ import (
 // for good (ops.ExpireArtifacts). It's done when the daemon starts, as it
 // takes the day's copy of the records, and once a day while it runs. Any
 // that were kept in a repo whole, from before they all lived on this
-// machine, are brought here first.
+// machine, are brought here first, and any from when a version was a file
+// in its folder have their versions put in a repo of their own.
 
 // sweepArtifactsEvery is how often a daemon that keeps running sweeps
 // again.
@@ -47,6 +48,9 @@ func sweepArtifacts(root string, logf func(string, ...any)) {
 	}
 	if n := len(swept.Brought); n > 0 {
 		logf("artifacts: brought %d onto this machine, from the repo they were kept in (%s)", n, ids(n, func(i int) string { return swept.Brought[i].ID }))
+	}
+	if n := len(swept.Converted); n > 0 {
+		logf("artifacts: put the versions of %d in a repo of their own (%s)", n, ids(n, func(i int) string { return swept.Converted[i].ID }))
 	}
 	if n := len(swept.Discarded); n > 0 {
 		logf("artifacts: discarded %d expired (%s)", n, ids(n, func(i int) string { return swept.Discarded[i].ID }))

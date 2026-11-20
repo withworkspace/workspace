@@ -58,10 +58,15 @@ func TestArtifact_CrewAddTwoVersionsAndShowSaysWhatEachIs(t *testing.T) {
 		t.Fatalf(".ws/artifacts holds %v", entries)
 	}
 	folder = filepath.Join(folder, entries[0].Name())
-	for name, want := range map[string]string{"v1.html": glowV1, "v2.html": glowV2} {
-		if got, _ := os.ReadFile(filepath.Join(folder, name)); string(got) != want {
-			t.Errorf("%s is %q", name, got)
+	// Its folder holds its record and its repo, where each version's a
+	// commit: read back, it's the file as it was added.
+	for ref, want := range map[string]string{"a1.v1": glowV1, "a1.v2": glowV2} {
+		if got := testutil.Run(t, w, nil, "artifact", "show", ref).Stdout; got != want {
+			t.Errorf("%s is %q", ref, got)
 		}
+	}
+	if _, err := os.Stat(filepath.Join(folder, "files.git", "HEAD")); err != nil {
+		t.Errorf("no repo in its folder: %v", err)
 	}
 	record, _ := os.ReadFile(filepath.Join(folder, "artifact.toml"))
 	for _, want := range []string{`title = "Horizon glow"`, `status = "live"`, "based_on = 1", `by = "c1"`, `from = "glow"`, `from_title = "Glow"`, `note = "No glow in light: it looked grey there."`} {
@@ -92,7 +97,8 @@ func TestArtifact_CrewAddTwoVersionsAndShowSaysWhatEachIs(t *testing.T) {
 		"v2 · based on v1 ·",
 		"No glow in light: it looked grey there.",
 		"ws:glow",
-		"ws artifact show a1.v2   prints v2's HTML",
+		"ws artifact show a1.v2   prints v2's page",
+		"ws artifact checkout a1.v2   puts v2's files in a folder",
 	} {
 		if !strings.Contains(show, want) {
 			t.Errorf("ws show a1 doesn't say %q:\n%s", want, show)

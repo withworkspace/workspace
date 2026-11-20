@@ -12,8 +12,9 @@ import (
 	"github.com/withworkspace/workspace/internal/workspace"
 )
 
-// Artifacts: versioned HTML prototypes (internal/artifact), added by you
-// by hand and by crew, kept in .ws/artifacts, on this machine. Crew's are
+// Artifacts: versioned HTML prototypes (internal/artifact), each version
+// a page and the files beside it, added by you by hand and by crew, kept
+// in .ws/artifacts, on this machine. Crew's are
 // recorded on their mission, as one of its artifacts (artifacts.go: a
 // pointer, a3, among the pull requests and documents it made). One you
 // promote may live in a repo too, for everyone with it (artifact_life.go).
@@ -72,7 +73,10 @@ func (w *Workspace) ArtifactWhere(title string) string {
 
 // ArtifactAdd is an artifact, or a version of one, to add.
 type ArtifactAdd struct {
-	HTML []byte
+	// HTML is its page alone; Files, the page (index.html) with the files
+	// beside it, in place of HTML.
+	HTML  []byte
+	Files artifact.Files
 	// Title is the artifact's; "" takes the HTML's <title>. With To, it
 	// retitles the artifact ("" keeps its title).
 	Title string
@@ -99,8 +103,6 @@ type ArtifactAdd struct {
 type ArtifactAdded struct {
 	Entry   artifact.Entry
 	Version int
-	// Path is the version's file.
-	Path string
 	// Warnings are what in it won't work in the web UI's frame.
 	Warnings []string
 	// Recorded is the mission it was recorded on: crew's.
@@ -111,8 +113,9 @@ type ArtifactAdded struct {
 func (a ArtifactAdded) Ref() string { return artifact.VersionRef(a.Entry.ID, a.Version) }
 
 func (a ArtifactAdded) String() string {
-	s := fmt.Sprintf("Added %s, %q, as %s%s", a.Ref(), a.Entry.Title, a.Entry.Where(), artifact.VersionFile(a.Version))
-	if v, ok := a.Entry.Version(a.Version); ok && v.BasedOn != 0 && v.BasedOn != a.Version-1 {
+	v, _ := a.Entry.Version(a.Version)
+	s := fmt.Sprintf("Added %s, %q (%s), in %s", a.Ref(), a.Entry.Title, artifact.FilesWords(v.Files, v.Size), a.Entry.Where())
+	if v.BasedOn != 0 && v.BasedOn != a.Version-1 {
 		s += fmt.Sprintf(", based on v%d", v.BasedOn)
 	}
 	if h := a.Entry.Home; h != nil && a.Entry.Lives() != "" {
@@ -139,7 +142,11 @@ func (w *Workspace) AddArtifact(a ArtifactAdd, by Actor) (ArtifactAdded, error) 
 	case WS:
 		return ArtifactAdded{}, refused("not-yours", "ws adds no artifacts of its own")
 	}
-	checked, err := artifact.Check(a.HTML)
+	files := a.Files
+	if len(files) == 0 {
+		files = artifact.Page(a.HTML)
+	}
+	checked, err := artifact.Check(files)
 	if err != nil {
 		return ArtifactAdded{}, invalid("not added: %v", err)
 	}
@@ -174,9 +181,9 @@ func (w *Workspace) AddArtifact(a ArtifactAdd, by Actor) (ArtifactAdded, error) 
 			title = checked.Title
 		}
 		if title == "" {
-			return ArtifactAdded{}, invalid("not added: give it a title (--title), or give its HTML one (<title>)")
+			return ArtifactAdded{}, invalid("not added: give it a title (--title), or give its page one (<title>)")
 		}
-		out.Entry, err = store.Add(ctx, artifact.New{Title: title, HTML: a.HTML, Version: v, At: w.now()})
+		out.Entry, err = store.Add(ctx, artifact.New{Title: title, Files: checked.Files, Version: v, At: w.now()})
 		out.Version = 1
 	} else {
 		id, on, ok := artifact.ParseRef(a.To)
@@ -186,12 +193,11 @@ func (w *Workspace) AddArtifact(a ArtifactAdd, by Actor) (ArtifactAdded, error) 
 		if a.On != 0 {
 			on = a.On
 		}
-		out.Entry, out.Version, err = store.AddVersion(ctx, id, artifact.Revision{HTML: a.HTML, On: on, Title: a.Title, Version: v, At: w.now()})
+		out.Entry, out.Version, err = store.AddVersion(ctx, id, artifact.Revision{Files: checked.Files, On: on, Title: a.Title, Version: v, At: w.now()})
 	}
 	if err != nil {
 		return ArtifactAdded{}, wrapArtifact(err)
 	}
-	out.Path = store.VersionPath(out.Entry, out.Version)
 	if m != nil {
 		rec := mission.Artifact{Ref: out.Entry.ID, Kind: ArtifactKind, Label: out.Entry.Title, Crew: by.ID}
 		if err := w.Missions.AddArtifact(m.Slug, rec); err != nil {

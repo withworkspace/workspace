@@ -126,7 +126,7 @@ func TestPromoteRestoreErase(t *testing.T) {
 	if e.Status != Promoted || e.Discarded != nil || e.Restored == nil || !e.Restored.At.Equal(back.UTC()) || e.Lives() == "" {
 		t.Errorf("restored: %+v", e.Artifact)
 	}
-	if _, err := os.Stat(filepath.Join(s.Dir(), e.Folder, "v2.html")); err != nil {
+	if _, _, _, err := s.ReadVersion(ctx, "a1", 2); err != nil {
 		t.Errorf("its folder isn't back: %v", err)
 	}
 	if _, err := s.Restore(ctx, "a1", Restoration{At: back, By: "you"}); err == nil {
@@ -171,7 +171,8 @@ func TestWriteHome(t *testing.T) {
 	os.MkdirAll(dir, 0o755)
 	os.WriteFile(filepath.Join(dir, "v1.html"), []byte("old"), 0o644)
 	p := Promotion{At: day.UTC(), By: "you", Version: 2, Into: "glow"}
-	if err := WriteHome(dir, a, p, []byte(page)); err != nil {
+	files := Files{{Path: IndexFile, Data: []byte(page)}, {Path: "css/glow.css", Data: []byte("body{}")}}
+	if err := WriteHome(dir, a, p, files); err != nil {
 		t.Fatal(err)
 	}
 	entries, _ := os.ReadDir(dir)
@@ -179,8 +180,11 @@ func TestWriteHome(t *testing.T) {
 	for _, e := range entries {
 		names = append(names, e.Name())
 	}
-	if strings.Join(names, " ") != "artifact.toml index.html" {
+	if strings.Join(names, " ") != "artifact.toml css index.html" {
 		t.Errorf("the folder holds %v", names)
+	}
+	if got, _ := os.ReadFile(filepath.Join(dir, "css", "glow.css")); string(got) != "body{}" {
+		t.Errorf("css/glow.css: %q", got)
 	}
 	if got, _ := os.ReadFile(filepath.Join(dir, HomeFile)); string(got) != page {
 		t.Errorf("index.html: %q", got)

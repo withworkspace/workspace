@@ -16,8 +16,8 @@ import (
 	"github.com/withworkspace/workspace/internal/store"
 )
 
-// An artifact's folder is its record: artifact.toml, and a file for each
-// version. The workspace's records hold an index of them, a row each in
+// An artifact's folder is its record: artifact.toml, and the repo its
+// versions' files are in. The workspace's records hold an index of them, a row each in
 // artifacts, for listing and finding them and for their refs: its number
 // (a3), where it's kept, its folder's name, its title, status and
 // versions, and its artifact.toml as it was last read, as JSON. The row
@@ -29,10 +29,11 @@ import (
 // a write whose row didn't commit) is read again when the artifacts are
 // next listed, and a folder with no row is given one.
 //
-// A version's file is written before the [[versions]] entry that names it
-// in artifact.toml, and that before the row: so a version file that
-// artifact.toml doesn't name is litter, what a write that didn't finish
-// left (Litter), and anything else in the folder belongs to the artifact.
+// A version's commit is written before the [[versions]] entry that names
+// it in artifact.toml, and that before the row: so a version in the repo
+// that artifact.toml doesn't name is litter, what a write that didn't
+// finish left (Litter), and anything else in the folder belongs to the
+// artifact.
 
 func init() {
 	store.Define("artifact", store.SQL(`
@@ -108,10 +109,8 @@ func (s Store) Path(e Entry) string {
 	return filepath.Join(s.Dir(), e.Folder)
 }
 
-// VersionPath is version n's file.
-func (s Store) VersionPath(e Entry, n int) string {
-	return filepath.Join(s.Path(e), VersionFile(n))
-}
+// Repo is the artifact's repo, where its versions' files are.
+func (s Store) Repo(e Entry) Repo { return Repo(filepath.Join(s.Path(e), RepoDir)) }
 
 // Away reports whether it's one from before artifacts were all kept on
 // this machine, still where it was: its row names a repo, and its files
@@ -380,47 +379,161 @@ func (s Store) IDs() []string {
 	return out
 }
 
-// ReadVersion is version n's HTML (0 for the latest), and which version
-// it is.
-func (s Store) ReadVersion(ctx context.Context, id string, n int) ([]byte, Entry, int, error) {
+// version is the artifact id names and the version n does (0 for the
+// latest), where there are files of it to read.
+func (s Store) version(ctx context.Context, id string, n int) (Entry, int, error) {
 	e, err := s.Get(ctx, id)
 	if err != nil {
-		return nil, Entry{}, 0, err
+		return Entry{}, 0, err
 	}
 	if n == 0 {
 		latest, ok := e.Latest()
 		if !ok {
-			return nil, e, 0, fmt.Errorf("%s has no versions", id)
+			return e, 0, fmt.Errorf("%s has no versions", id)
 		}
 		n = latest.N
 	}
 	if _, ok := e.Version(n); !ok {
-		return nil, e, 0, fmt.Errorf("%w: %s has no v%d (%s)", ErrNotFound, id, n, versionsSaid(e.Artifact))
+		return e, 0, fmt.Errorf("%w: %s has no v%d (%s)", ErrNotFound, id, n, versionsSaid(e.Artifact))
 	}
 	if e.Gone {
-		return nil, e, n, fmt.Errorf("%s's folder has gone from %s: there's no file to read", id, strings.TrimSuffix(e.Where(), path.Base(e.Folder)+"/"))
+		return e, n, fmt.Errorf("%s's folder has gone from %s: there's no file to read", id, strings.TrimSuffix(e.Where(), path.Base(e.Folder)+"/"))
 	}
 	if e.Erased {
-		return nil, e, n, fmt.Errorf("%s was discarded, and its files are gone for good: there's no file to read", id)
+		return e, n, fmt.Errorf("%s was discarded, and its files are gone for good: there's no file to read", id)
 	}
-	text, err := os.ReadFile(s.VersionPath(e, n))
-	if errors.Is(err, os.ErrNotExist) {
-		return nil, e, n, fmt.Errorf("%s's file isn't there (%s)", VersionRef(id, n), s.VersionPath(e, n))
-	}
-	return text, e, n, err
+	return e, n, nil
 }
 
-// VersionSize is version n's file's size, and false where there's no file
-// to read: its folder's gone, or it's missing.
-func (s Store) VersionSize(e Entry, n int) (int, bool) {
-	if e.Gone || e.Erased {
-		return 0, false
-	}
-	info, err := os.Stat(s.VersionPath(e, n))
+// ReadVersion is version n's page (0 for the latest), and which version
+// it is.
+func (s Store) ReadVersion(ctx context.Context, id string, n int) ([]byte, Entry, int, error) {
+	data, _, e, n, err := s.ReadFile(ctx, id, n, IndexFile)
+	return data, e, n, err
+}
+
+// ReadFile is the file at path in version n (0 for the latest), what
+// names its bytes (the same for the same file), and which version it is.
+// A file the version hasn't is ErrNoFile.
+func (s Store) ReadFile(ctx context.Context, id string, n int, p string) ([]byte, string, Entry, int, error) {
+	e, n, err := s.version(ctx, id, n)
 	if err != nil {
-		return 0, false
+		return nil, "", e, n, err
 	}
-	return int(info.Size()), true
+	repo := s.Repo(e)
+	if !repo.Exists() {
+		// From when a version was a file in the folder, and not yet put in
+		// a repo (Convert): its page is that file.
+		if p != IndexFile {
+			return nil, "", e, n, fmt.Errorf("%w: %s has no %s", ErrNoFile, VersionRef(id, n), p)
+		}
+		old := filepath.Join(s.Path(e), VersionFile(n))
+		data, err := os.ReadFile(old)
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, "", e, n, fmt.Errorf("%s's files aren't there (%s)", VersionRef(id, n), s.Path(e))
+		}
+		return data, "", e, n, err
+	}
+	if !repo.Has(ctx, n) {
+		return nil, "", e, n, fmt.Errorf("%s's files aren't there (%s)", VersionRef(id, n), string(repo))
+	}
+	data, blob, err := repo.Read(ctx, n, p)
+	if errors.Is(err, ErrNoFile) {
+		return nil, "", e, n, fmt.Errorf("%w: %s has no %s", ErrNoFile, VersionRef(id, n), p)
+	}
+	return data, blob, e, n, err
+}
+
+// VersionFiles lists version n's files (0 for the latest), by path, and
+// which version it is.
+func (s Store) VersionFiles(ctx context.Context, id string, n int) ([]FileInfo, Entry, int, error) {
+	e, n, err := s.version(ctx, id, n)
+	if err != nil {
+		return nil, e, n, err
+	}
+	repo := s.Repo(e)
+	if !repo.Exists() {
+		info, err := os.Stat(filepath.Join(s.Path(e), VersionFile(n)))
+		if err != nil {
+			return nil, e, n, fmt.Errorf("%s's files aren't there (%s)", VersionRef(id, n), s.Path(e))
+		}
+		return []FileInfo{{Path: IndexFile, Size: int(info.Size())}}, e, n, nil
+	}
+	list, err := repo.List(ctx, n)
+	if err != nil {
+		return nil, e, n, fmt.Errorf("%s's files aren't there (%s)", VersionRef(id, n), string(repo))
+	}
+	return list, e, n, nil
+}
+
+// AllFiles is version n's files, whole (0 for the latest), and which
+// version it is.
+func (s Store) AllFiles(ctx context.Context, id string, n int) (Files, Entry, int, error) {
+	e, n, err := s.version(ctx, id, n)
+	if err != nil {
+		return nil, e, n, err
+	}
+	repo := s.Repo(e)
+	if !repo.Exists() {
+		data, _, _, _, err := s.ReadFile(ctx, id, n, IndexFile)
+		if err != nil {
+			return nil, e, n, err
+		}
+		return Page(data), e, n, nil
+	}
+	files, err := repo.All(ctx, n)
+	if err != nil || len(files) == 0 {
+		return nil, e, n, fmt.Errorf("%s's files aren't there (%s)", VersionRef(id, n), string(repo))
+	}
+	return files, e, n, nil
+}
+
+// Checkout writes version n's files (0 for the latest) into dir, to be
+// worked on: what's made of them is added as a new version, whole. dir
+// is made, and must be empty if it's there. It's which version it was.
+func (s Store) Checkout(ctx context.Context, id string, n int, dir string) (Entry, int, []FileInfo, error) {
+	files, e, n, err := s.AllFiles(ctx, id, n)
+	if err != nil {
+		return e, n, nil, err
+	}
+	if entries, err := os.ReadDir(dir); err == nil && len(entries) > 0 {
+		return e, n, nil, fmt.Errorf("%s has files in it already: name an empty folder, or one that isn't there", dir)
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return e, n, nil, err
+	}
+	if err := files.WriteFolder(dir); err != nil {
+		return e, n, nil, err
+	}
+	return e, n, files.Infos(), nil
+}
+
+// VersionSize is how many files version n has and what they come to, and
+// false where there are none to read: its folder's gone, or they're
+// missing.
+func (s Store) VersionSize(e Entry, n int) (files, size int, ok bool) {
+	if e.Gone || e.Erased {
+		return 0, 0, false
+	}
+	if v, has := e.Version(n); has && v.Size > 0 {
+		return max(v.Files, 1), v.Size, true
+	}
+	repo := s.Repo(e)
+	if !repo.Exists() {
+		info, err := os.Stat(filepath.Join(s.Path(e), VersionFile(n)))
+		if err != nil {
+			return 0, 0, false
+		}
+		return 1, int(info.Size()), true
+	}
+	list, err := repo.List(context.Background(), n)
+	if err != nil || len(list) == 0 {
+		return 0, 0, false
+	}
+	for _, f := range list {
+		size += f.Size
+	}
+	return len(list), size, true
 }
 
 // versionsSaid lists an artifact's versions: v1, v2 and v3.
@@ -573,24 +686,39 @@ func nextNumber(tx *store.Tx) (int, error) {
 
 // --- Writing
 
-// New is an artifact to add: its title, its first version's HTML, and
+// New is an artifact to add: its title, its first version's files (its
+// page alone, HTML, or the page with the files beside it, Files), and
 // that version's provenance and note (its number, basis and time are set
 // when it's added).
 type New struct {
 	Title   string
 	HTML    []byte
+	Files   Files
 	Version Version
 	At      time.Time
 }
 
+// filesOf is a version's files as they were given: the files, or the page
+// alone.
+func filesOf(html []byte, files Files) Files {
+	if len(files) > 0 {
+		return files
+	}
+	return Page(html)
+}
+
 // Add adds an artifact on this machine, with its first version: its
 // folder, named from the day and its title (with -2, -3 for a name that's
-// been used), then v1.html, then artifact.toml, then its row, numbered one
-// past the highest there's been.
+// been used), then its repo with v1 in it, then artifact.toml, then its
+// row, numbered one past the highest there's been.
 func (s Store) Add(ctx context.Context, n New) (Entry, error) {
 	title := CleanTitle(n.Title)
 	if title == "" {
 		return Entry{}, errors.New("an artifact needs a title")
+	}
+	files, err := checkFiles(filesOf(n.HTML, n.Files))
+	if err != nil {
+		return Entry{}, err
 	}
 	at := n.At.UTC().Truncate(time.Second)
 	if err := os.MkdirAll(s.Dir(), 0o755); err != nil {
@@ -626,11 +754,12 @@ func (s Store) Add(ctx context.Context, n New) (Entry, error) {
 				return err
 			}
 			made = dir
-			if err := writeNew(filepath.Join(dir, VersionFile(1)), n.HTML); err != nil {
-				return err
-			}
 			v := n.Version
 			v.N, v.BasedOn, v.At, v.Note = 1, 0, at, CleanNote(v.Note)
+			v.Files, v.Size = len(files), files.Size()
+			if _, err := Repo(filepath.Join(dir, RepoDir)).CommitVersion(ctx, 1, 0, files, versionMessage(title, v), at); err != nil {
+				return err
+			}
 			a := &Artifact{Title: title, Status: Live, Made: at, Versions: []Version{v}}
 			info, err := writeRecord(dir, a)
 			if err != nil {
@@ -658,30 +787,34 @@ func (s Store) Add(ctx context.Context, n New) (Entry, error) {
 	return out, nil
 }
 
-// Revision is a new version of an artifact: its HTML, the version it's
+// Revision is a new version of an artifact: its files (its page alone,
+// HTML, or the page with the files beside it, Files), the version it's
 // based on (0 for the latest), a new title for the artifact ("" keeps
 // it), and the version's provenance and note.
 type Revision struct {
 	HTML    []byte
+	Files   Files
 	On      int
 	Title   string
 	Version Version
 	At      time.Time
 }
 
+func (r Revision) files() Files { return filesOf(r.HTML, r.Files) }
+
 // ErrDiscarded is the answer for a change to an artifact that's been
 // discarded.
 var ErrDiscarded = errors.New("discarded")
 
 // AddVersion adds a version to artifact id: numbered one past its latest,
-// written to its file, then named in artifact.toml, then its row. It's the
-// artifact as it now is, and the version's number.
+// committed to its repo, then named in artifact.toml, then its row. It's
+// the artifact as it now is, and the version's number.
 func (s Store) AddVersion(ctx context.Context, id string, r Revision) (Entry, int, error) {
 	db, err := s.records()
 	if err != nil {
 		return Entry{}, 0, err
 	}
-	var made string
+	var undo func()
 	var out Entry
 	var n int
 	err = db.Write(ctx, func(tx *store.Tx) error {
@@ -699,8 +832,8 @@ func (s Store) AddVersion(ctx context.Context, id string, r Revision) (Entry, in
 			return awayError(k.Entry)
 		}
 		dir := s.Path(k.Entry)
-		a, num, file, err := revise(dir, id, r)
-		made, n = file, num
+		a, num, drop, err := revise(ctx, dir, id, r)
+		undo, n = drop, num
 		if err != nil {
 			return err
 		}
@@ -708,7 +841,7 @@ func (s Store) AddVersion(ctx context.Context, id string, r Revision) (Entry, in
 		if err != nil {
 			return err
 		}
-		made = "" // artifact.toml names it: it's a version, whatever happens to the row
+		undo = nil // artifact.toml names it: it's a version, whatever happens to the row
 		k.Artifact = *a
 		if err := saveIn(tx, k, info); err != nil {
 			return err
@@ -717,8 +850,8 @@ func (s Store) AddVersion(ctx context.Context, id string, r Revision) (Entry, in
 		return nil
 	})
 	if err != nil {
-		if made != "" {
-			os.Remove(made)
+		if undo != nil {
+			undo()
 		}
 		return Entry{}, 0, err
 	}
@@ -802,22 +935,6 @@ func (s Store) Discard(ctx context.Context, id string, d Discard) (Entry, error)
 	return out, err
 }
 
-// writeNew writes a file that mustn't be there already.
-func writeNew(path string, data []byte) error {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
-	if err != nil {
-		return err
-	}
-	_, err = f.Write(data)
-	if cerr := f.Close(); err == nil {
-		err = cerr
-	}
-	if err != nil {
-		os.Remove(path)
-	}
-	return err
-}
-
 // writeRecord writes an artifact's record in its folder, by rename, and
 // says how it is now.
 func writeRecord(dir string, a *Artifact) (os.FileInfo, error) {
@@ -865,11 +982,12 @@ func SayWords(ctx context.Context, root string) (int, error) {
 }
 
 // Litter is what's in .ws/artifacts that belongs to no artifact (ws
-// doctor): a folder with no artifact.toml, a version file its
-// artifact.toml doesn't name, a file beside the folders, and what a write
-// that didn't finish left (a .tmp). Each is more than a minute old: a
-// younger one may be a write under way. Anything else in an artifact's
-// folder belongs to it.
+// doctor): a folder with no artifact.toml, a version in its repo (or,
+// from when each was a file, a version file) that its artifact.toml
+// doesn't name, a file beside the folders, and what a write that didn't
+// finish left (a .tmp). Each is more than a minute old: a younger one may
+// be a write under way. Anything else in an artifact's folder belongs to
+// it.
 func (s Store) Litter(ctx context.Context) ([]string, error) {
 	old := func(info os.FileInfo) bool { return time.Since(info.ModTime()) >= time.Minute }
 	entries, err := os.ReadDir(s.Dir())
@@ -917,14 +1035,93 @@ func (s Store) Litter(ctx context.Context) ([]string, error) {
 		files, _ := os.ReadDir(path)
 		for _, f := range files {
 			fi, err := f.Info()
-			if err != nil || f.IsDir() || !old(fi) {
+			if err != nil || !old(fi) {
 				continue
 			}
-			n, isVersion := IsVersionFile(f.Name())
-			if isVersion && !named[n] || strings.HasSuffix(f.Name(), ".tmp") {
+			if strings.HasSuffix(f.Name(), ".tmp") {
 				out = append(out, filepath.Join(path, f.Name()))
+				continue
+			}
+			if f.IsDir() {
+				continue
+			}
+			if n, isVersion := IsVersionFile(f.Name()); isVersion && !named[n] {
+				out = append(out, filepath.Join(path, f.Name()))
+			}
+		}
+		// A version committed that the record doesn't name, once the record
+		// has sat a minute since: a write whose record was never written.
+		if rec, err := os.Stat(filepath.Join(path, RecordFile)); err == nil && old(rec) {
+			repo := Repo(filepath.Join(path, RepoDir))
+			for _, n := range repo.Versions(ctx) {
+				if !named[n] {
+					out = append(out, string(repo)+" (v"+strconv.Itoa(n)+", which "+RecordFile+" doesn't name)")
+				}
 			}
 		}
 	}
 	return out, nil
+}
+
+// Convert puts in a repo of its own the versions of each artifact from
+// when a version was a file in its folder (v1.html, v2.html, …): ws
+// doctor, and the daemon as it starts. Until it has, such a one's pages
+// are read from those files, and a new version of it converts it first.
+// It's those it converted.
+func (s Store) Convert(ctx context.Context) ([]Entry, error) {
+	db, err := s.records()
+	if err != nil {
+		return nil, err
+	}
+	var old []*kept
+	if err := db.Read(ctx, func(tx *store.Tx) error {
+		all, err := allIn(tx)
+		for _, k := range all {
+			if !k.Away() && k.size >= 0 && !s.Repo(k.Entry).Exists() {
+				old = append(old, k)
+			}
+		}
+		return err
+	}); err != nil || len(old) == 0 {
+		return nil, err
+	}
+	var out []Entry
+	err = db.Write(ctx, func(tx *store.Tx) error {
+		for _, was := range old {
+			k, err := keptIn(tx, was.ID)
+			if err != nil {
+				return err
+			}
+			if k == nil || k.Away() || k.size < 0 {
+				continue
+			}
+			dir := s.Path(k.Entry)
+			data, err := os.ReadFile(filepath.Join(dir, RecordFile))
+			if err != nil {
+				continue // its folder's gone: there's nothing to convert
+			}
+			a, err := Parse(data)
+			if err != nil {
+				continue // can't be read: left as it is, to be put right
+			}
+			did, err := convert(ctx, dir, a)
+			if err != nil {
+				return fmt.Errorf("putting %s's versions in its repo: %w", k.ID, err)
+			}
+			if !did {
+				continue
+			}
+			info, err := writeRecord(dir, a)
+			if err != nil {
+				return err
+			}
+			k.Artifact = *a
+			if err := saveIn(tx, k, info); err != nil {
+				return err
+			}
+			out = append(out, k.Entry)
+		}
+		return nil
+	})
+	return out, err
 }
