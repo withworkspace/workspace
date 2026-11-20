@@ -305,6 +305,10 @@ type Mission struct {
 	// done (checking.go): set as each check begins, cleared when the
 	// round is recorded.
 	Checking *Checking `toml:"checking,omitempty" json:"checking,omitempty"`
+	// WritingPRs are the pull requests the PR writer is writing, a capsule
+	// each: set once ws has found one can be opened, cleared once it's
+	// opened, or couldn't be.
+	WritingPRs []WritingPR `toml:"writing_prs,omitempty" json:"writingPRs,omitempty"`
 
 	// Plan is its plan (plan.md beside the brief), read as it's loaded,
 	// and PlanErr why it couldn't be: a plan changed by hand outside ws
@@ -319,6 +323,28 @@ type Mission struct {
 type Launching struct {
 	What  string    `toml:"what,omitempty" json:"what,omitempty"` // what they're for: "step 3", or ""
 	Since time.Time `toml:"since" json:"since"`
+}
+
+// WritingPR is the PR writer writing the pull request of one of a
+// mission's capsules, before ws opens it: what ws was asked to open, so
+// it's opened as asked once it's written, by whoever asked.
+type WritingPR struct {
+	Capsule string    `toml:"capsule" json:"capsule"` // repo/name
+	Step    int       `toml:"step,omitempty" json:"step,omitempty"`
+	Draft   bool      `toml:"draft,omitempty" json:"draft,omitempty"`
+	By      string    `toml:"by" json:"by"` // who asked: you, ws, or crew's id
+	Since   time.Time `toml:"since" json:"since"`
+}
+
+// WritingPR is the PR writer's mark on capsule's pull request, if it's
+// writing it.
+func (m *Mission) WritingPR(capsule string) (WritingPR, bool) {
+	for _, p := range m.WritingPRs {
+		if p.Capsule == capsule {
+			return p, true
+		}
+	}
+	return WritingPR{}, false
 }
 
 // PlannerTurn is a turn of the planner's underway in its conversation.

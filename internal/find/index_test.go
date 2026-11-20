@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/testgit"
 )
 
@@ -330,6 +331,77 @@ func TestReadAgainOnlyWhenItsMoved(t *testing.T) {
 	s.later()
 	if got := s.files("newly"); byRef(got, "demo/feature:newly_made.txt") != nil {
 		t.Errorf("a capsule that's gone still answers: %v", refs(got))
+	}
+}
+
+// waitSeen waits for the index's Seen to pass n.
+func (s *space) waitSeen(n int64) {
+	s.t.Helper()
+	for i := 0; i < 500 && s.ix.Seen() <= n; i++ {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if s.ix.Seen() <= n {
+		s.t.Fatalf("Seen stayed at %d", s.ix.Seen())
+	}
+}
+
+// waitIdle waits for every ground read under way to finish.
+func (s *space) waitIdle() {
+	s.t.Helper()
+	for i := 0; i < 500; i++ {
+		s.ix.mu.Lock()
+		busy := false
+		for _, e := range s.ix.grounds {
+			busy = busy || e.job != nil
+		}
+		s.ix.mu.Unlock()
+		if !busy {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	s.t.Fatal("a ground read never finished")
+}
+
+func TestGroundsKeptNeverWait(t *testing.T) {
+	s := newSpace(t)
+	// Never read: nothing to answer, and a read's started behind it.
+	if got := s.ix.GroundsKept(); len(got) != 0 {
+		t.Fatalf("answered before anything was read: %v", got)
+	}
+	s.waitSeen(0)
+	seen := s.ix.Seen()
+	got := s.ix.GroundsKept()["demo"]
+	if !got.Has("main.go") || !got.HasDir("internal/token") || got.Has("nope.go") || got.Head() == "" {
+		t.Errorf("kept ground: has main.go %v, internal/token %v, nope.go %v, head %q", got.Has("main.go"), got.HasDir("internal/token"), got.Has("nope.go"), got.Head())
+	}
+	// Asked again before it's due a look: from memory, no git.
+	before := git.Started()
+	for range 5 {
+		s.ix.GroundsKept()
+	}
+	if n := git.Started() - before; n != 0 {
+		t.Errorf("answering what's kept started %d git processes", n)
+	}
+	// The ground moves: what's kept is answered while it's read again,
+	// and Seen moves when the read finds it.
+	write(t, s.ground, "newly.go", "package main\n")
+	s.commit(s.ground, "add")
+	s.later()
+	if s.ix.GroundsKept()["demo"].Has("newly.go") {
+		t.Error("answered after waiting on git")
+	}
+	s.waitSeen(seen)
+	if !s.ix.GroundsKept()["demo"].Has("newly.go") {
+		t.Error("the read behind didn't keep what it found")
+	}
+	// A look that finds it hasn't moved doesn't move Seen.
+	seen = s.ix.Seen()
+	s.later()
+	s.ix.GroundsKept()
+	s.waitIdle()
+	if s.ix.Seen() != seen {
+		t.Errorf("Seen moved from %d to %d though nothing had", seen, s.ix.Seen())
 	}
 }
 

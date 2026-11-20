@@ -216,7 +216,7 @@ var kindWords = map[Kind]string{
 	KindQueued: "Crew queued", KindResume: "Crew to resume", KindReplied: "Crew wait for you", KindChecksFailing: "Checks failing",
 	KindChangesRequested: "Changes asked for", KindApprove: "To approve", KindAccept: "To accept", KindMerge: "Ready to merge", KindLand: "To land",
 	KindWrapUp: "Ready to end", KindStalled: "Nobody's on it", KindWorking: "Crew at work", KindLaunching: "Crew starting", KindOwnWork: "Your own work",
-	KindAnswering: "An agent's answering", KindBriefing: "Being briefed", KindChecking: "ws is checking", KindMovingOn: "Moving on", KindDeciding: "The orchestrator's deciding",
+	KindAnswering: "An agent's answering", KindBriefing: "Being briefed", KindChecking: "ws is checking", KindWritingPR: "Writing a pull request", KindMovingOn: "Moving on", KindDeciding: "The orchestrator's deciding",
 	KindChecksRunning: "Checks running", KindAwaitingReview: "In review", KindWaitingOn: "Waiting", KindLanded: "Landed", KindEnded: "Ended",
 	KindToBrief: "Waiting to be briefed", KindReady: "Ready", KindParked: "Parked", KindArchived: "Archived",
 }

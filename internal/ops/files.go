@@ -48,6 +48,9 @@ type Worktree struct {
 	Branch        string
 	Dirty         bool
 	Ahead, Behind int
+	// Unread: git hasn't been asked yet whether it's dirty or how far it
+	// is from its upstream, and is being; a page's told when it's said.
+	Unread bool
 }
 
 // Repos is the workspace's repos, in ws's order: each with its display
@@ -76,7 +79,7 @@ func (w *Workspace) Repos() []Repo {
 				r.Capsules = append(r.Capsules, capsules...)
 				r.Branches = map[string]string{}
 				for _, c := range capsules {
-					if _, branch := workspace.GitHeadBranch(filepath.Join(ws.RepoDir(name), c)); branch != "" && branch != "HEAD" {
+					if branch := branchOf(filepath.Join(ws.RepoDir(name), c)); branch != "" && branch != "HEAD" {
 						r.Branches[c] = branch
 					}
 				}
@@ -148,9 +151,13 @@ func (w *Workspace) Worktrees(repo string) ([]Worktree, error) {
 		if info, err := os.Stat(ws.MainWorktree(repo)); err == nil && info.IsDir() {
 			names = append([]string{workspace.GroundDir}, names...)
 		}
+		// Answered without waiting on git: its branch from its HEAD, and
+		// the rest as last said, asked again behind the read (keptGit.soon).
 		for _, name := range names {
-			st := workspace.QueryWorktreeStatus(filepath.Join(ws.RepoDir(repo), name))
-			out = append(out, Worktree{Name: name, Ground: name == workspace.GroundDir, Branch: st.Branch, Dirty: st.Dirty, Ahead: st.Ahead, Behind: st.Behind})
+			dir := filepath.Join(ws.RepoDir(repo), name)
+			dirty, saidDirty := w.git.dirtySoon(dir)
+			ab, saidAhead := soon(&w.git, dir, "ahead", func() answer[aheadAndBehind] { return askAheadBehind(dir) })
+			out = append(out, Worktree{Name: name, Ground: name == workspace.GroundDir, Branch: branchOf(dir), Dirty: dirty, Ahead: ab.ahead, Behind: ab.behind, Unread: !saidDirty || !saidAhead})
 		}
 		return out, nil
 	}

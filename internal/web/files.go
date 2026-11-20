@@ -7,23 +7,36 @@ import (
 	"path"
 	"strings"
 
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/review"
 )
 
 // A capsule's files, for the file explorer: GET .../tree, .../file?path=,
 // .../raw?path= (an image, to show) and .../summary (the Work tab's).
 
+// unreadTree is a tree that's never been read, and is being: the
+// workspace's readsSeen moves when it has.
+type unreadTree struct {
+	*review.Tree
+	Unread bool `json:"unread"`
+}
+
+// tree answers at once, as kept (keptReads.soon): read again behind the
+// read when the capsule's moved or a while has passed.
 func (s *Server) tree(w http.ResponseWriter, r *http.Request) {
 	dir, baseRef, ok := s.capsuleDir(w, r)
 	if !ok {
 		return
 	}
-	t, err := review.ReadTree(dir, baseRef)
-	if err != nil {
+	t, unread, err := s.reads.soon(keyOf("tree", dir, baseRef), dir, func() (any, error) { return review.ReadTree(dir, baseRef) })
+	switch {
+	case err != nil:
 		jsonError(w, http.StatusUnprocessableEntity, err.Error())
-		return
+	case unread:
+		writeJSON(w, http.StatusOK, unreadTree{&review.Tree{BaseRef: baseRef, Files: []review.TreeFile{}}, true})
+	default:
+		writeJSON(w, http.StatusOK, t)
 	}
-	writeJSON(w, http.StatusOK, t)
 }
 
 func (s *Server) file(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +49,16 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "need a path in the capsule")
 		return
 	}
-	v, err := review.ReadFile(dir, baseRef, p)
+	// Kept by the capsule as it is (its commits, what's staged, its
+	// base) and the file as it is: what the lines that changed are of.
+	read := func() (any, error) { return review.ReadFile(dir, baseRef, p) }
+	var v any
+	var err error
+	if stamp := ops.CapsuleStamp(dir); stamp != "" {
+		v, err = s.reads.kept(keyOf("file", dir, baseRef, p, stamp, fileStamp(dir, p)), read)
+	} else {
+		v, err = read()
+	}
 	switch {
 	case errors.Is(err, review.ErrOutside):
 		jsonError(w, http.StatusBadRequest, err.Error())

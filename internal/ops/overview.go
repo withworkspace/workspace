@@ -2,9 +2,11 @@ package ops
 
 import (
 	"errors"
+	"hash/fnv"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -42,6 +44,10 @@ type Overview struct {
 	Sidebar, Menu []string
 	// Focus is what you've pinned that stands, in your order (focus.go).
 	Focus []FocusItem
+	// CapsulesSeen moves when a look behind a read finds a capsule other
+	// than the read said (keptGit.dirtyMoved): a page showing capsules'
+	// statuses that weren't in this view reads them again.
+	CapsulesSeen string
 }
 
 // MissionItem is a mission in a list: its view, when anything of it last
@@ -89,6 +95,11 @@ func (w *Workspace) Overview() (*Overview, error) {
 	}
 	out := &Overview{Name: ws.Name, Missions: []MissionItem{}, Kinds: w.Kinds(), Org: ws.Org, DefaultBranch: firstNonEmpty(ws.DefaultBranch, "main"), Spaces: []SpaceView{}}
 	out.Sidebar, out.Menu = w.Config().UI.Sidebar, w.Config().UI.Menu
+	if moved := w.git.dirtyMoved(); moved != "" {
+		h := fnv.New64a()
+		h.Write([]byte(moved))
+		out.CapsulesSeen = strconv.FormatUint(h.Sum64(), 16)
+	}
 	if out.Focus, err = w.Focus(); err != nil {
 		return nil, err
 	}

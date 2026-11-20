@@ -43,8 +43,10 @@ import type {
   PluginThing,
   PluginsInstalled,
   ProcessInfo,
+  RefPathsFound,
   Repo,
   ReviewGuide,
+  PRWritten,
   RunDetail,
   RunsInfo,
   SettingChange,
@@ -601,6 +603,12 @@ export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(
 // mission open (and 15 minutes after).
 export const runRecipe = (slug: string, repo: string, capsule: string, recipe: string) =>
   send<RunDetail>("POST", `/api/missions/${encodeURIComponent(slug)}/runs`, { repo, capsule, recipe });
+
+// writePR has the PR writer write a capsule's pull request, for you to
+// read and change before you open it. It answers once it's written: a
+// minute or more.
+export const writePR = (slug: string, capsule: string) =>
+  send<PRWritten>("POST", `/api/missions/${encodeURIComponent(slug)}/pr-write`, { capsule });
 
 // pointSilo points a repo's silo at a capsule (ws silo point), and says
 // what it did.
@@ -1450,7 +1458,9 @@ export interface CapsuleSummary {
   changedMore?: number; // how many more there are than it lists
 }
 
-export const getSummary = (api: string) => getJSON<CapsuleSummary>(`${api}/summary`);
+// unread: it's never been read, and is being (or, asked as kept, nobody's
+// shown it yet): the workspace's readsSeen moves when it has been.
+export const getSummary = (api: string, kept?: boolean) => getJSON<CapsuleSummary & { unread?: boolean }>(`${api}/summary${kept ? "?kept=1" : ""}`);
 
 // A capsule's files, for the file explorer: mirrors review.Tree and
 // review.FileView.
@@ -1468,6 +1478,9 @@ export interface FileTree {
   branch?: string;
   files: TreeFile[];
   truncated?: boolean;
+  // unread: it's never been read, and is being: the workspace's readsSeen
+  // moves when it has been.
+  unread?: boolean;
 }
 
 export interface LineChange {
@@ -1487,6 +1500,12 @@ export interface FileView {
 }
 
 export const getTree = (api: string) => getJSON<FileTree>(`${api}/tree`);
+
+// checkRefPaths is which of the paths a page's words name are files or
+// folders on each repo's default branch, as the daemon keeps them: a repo
+// that's not been read yet isn't in the answer (the workspace's
+// groundsSeen moves when it has been).
+export const checkRefPaths = (repos: Record<string, string[]>) => send<RefPathsFound>("POST", "/api/refs/paths", { repos });
 export const getFile = (api: string, path: string) => getJSON<FileView>(`${api}/file?${new URLSearchParams({ path })}`);
 export const rawURL = (api: string, path: string) => `${api}/raw?${new URLSearchParams({ path })}`;
 

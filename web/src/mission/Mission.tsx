@@ -421,7 +421,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
           <div role="tabpanel" id="mission-panel" aria-labelledby={`tab-${tab}`} className="tab-panel" key={tab}>
             {tab === "summary" && <Summary {...parts} full={!side} />}
             {tab === "work" && w && (
-              <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} />
+              <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} seen={workspace.readsSeen} />
             )}
             {tab === "verify" && <Verify d={d} bundle={bundle} pick={pickBundle} sel={item?.key} select={setSel} reload={load} />}
             {tab === "log" && <Log {...parts} />}

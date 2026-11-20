@@ -30,7 +30,7 @@ export function useShelves(where: DocIn | undefined, space: SpaceRef | undefined
     setSource(had?.source);
     if (had && Date.now() - had.at < fresh) return;
     let stale = false;
-    const read: Promise<Source> = space ? getSpace(space.repo).then((r) => ({ space: r.space, docs: r.docs })) : getTree(worktreeAPI(where.repo, where.worktree)).then((t) => ({ files: t.files.filter((f) => f.status !== "deleted").map((f) => f.path) }));
+    const read: Promise<Source> = space ? getSpace(space.repo).then((r) => ({ space: r.space, docs: r.docs })) : getTree(worktreeAPI(where.repo, where.worktree)).then((t) => (t.unread ? Promise.reject(new Error("still being read")) : { files: t.files.filter((f) => f.status !== "deleted").map((f) => f.path) }));
     read.then(
       (s) => {
         kept.set(key, { at: Date.now(), source: s });

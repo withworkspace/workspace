@@ -33,6 +33,7 @@ type Workspace struct {
 	AgentsGuide      string                       // [agents] guide: the workspace's guide for agents, where it says (see Guide)
 	AgentsSkills     string                       // [agents] skills: the folder its skills are in, where it says (see SkillsDir)
 	AgentsProcess    string                       // [agents] process: how work goes here, where it says (see Process)
+	AgentsPR         string                       // [agents] pr: how pull requests are written here, where it says (see PRGuide)
 	Kinds            []*Kind                      // [documents.<name>]: the kinds of document it has, by name (see KindOf)
 	Harnesses        []string                     // the harnesses in use: what's configured for crew, briefing, the orchestrator and conversations
 	Boarded          map[string][]string          // repo → boarded capsule names (from ws.local.toml)

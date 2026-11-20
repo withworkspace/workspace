@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { act, type CapsuleDetail, type MissionDetail } from "../api";
+import { act, writePR, type CapsuleDetail, type MissionDetail } from "../api";
 import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
 import { Dialog, humanError, toast } from "../ui/kit";
@@ -8,7 +8,10 @@ import { Dialog, humanError, toast } from "../ui/kit";
 // held where ws is the one acting: it pushes the capsule's branch and opens
 // it, or refuses, saying which rule isn't met (your review first, say). In
 // a mission with a plan, it's the step that makes one that opens it; you
-// may open one whenever you like.
+// may open one whenever you like. Its title and description are ws's PR
+// writer's to write, from the step it's for and PR.md: "Write it" has it
+// write them here, for you to change before you open it, and opening it
+// with no title leaves them to it, and ws opens it once they're written.
 
 // canOpenPR is whether a capsule could have a pull request opened from it:
 // a repo that takes them, commits to open, and none open already (once
@@ -19,16 +22,28 @@ export function canOpenPR(d: MissionDetail, c: CapsuleDetail) {
 
 export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; reload: Reload }) {
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState(d.title);
+  const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [draft, setDraft] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [writing, setWriting] = useState(false);
   const [error, setError] = useState("");
   const name = `${c.repo}/${c.name}`;
   const step = d.stages?.find((s) => s.opensPR && s.state !== "accepted");
   const close = () => {
     setOpen(false);
     setError("");
+  };
+  const write = () => {
+    setWriting(true);
+    setError("");
+    writePR(d.slug, name)
+      .then((w) => {
+        setTitle(w.title);
+        setBody(w.body);
+      })
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setWriting(false));
   };
   const submit = () => {
     setBusy(true);
@@ -51,11 +66,30 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
           <p>
             ws pushes its branch and opens the pull request onto the default branch, holding the process's rules about pull requests: one that wants your
             review first refuses it until you've approved the capsule as it is.
-            {step && ` Step ${step.n} of the plan opens it; its crew would, through ws.`}
+            {step && ` Step ${step.n} of the plan opens it.`} Its title and description are the PR writer's to write, from the step it's for and the workspace's PR.md, unless you give them.
           </p>
           <div className="open-pr-form">
-            <input value={title} autoFocus aria-label="Title" placeholder="Its title" onChange={(e) => setTitle(e.target.value)} />
-            <textarea value={body} rows={6} aria-label="Description" placeholder="What it does, and why" onChange={(e) => setBody(e.target.value)} />
+            <div className="open-pr-title">
+              <input
+                value={title}
+                autoFocus
+                aria-label="Title"
+                placeholder="Its title, or leave it to the PR writer"
+                disabled={writing}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+              <button className="ghost small" onClick={write} disabled={writing || busy} title="Have the PR writer write its title and description, from the step it's for and PR.md">
+                <Icon name={writing ? "spinner" : "pencil"} size={12} /> {writing ? "Writing…" : "Write it"}
+              </button>
+            </div>
+            <textarea
+              value={body}
+              rows={8}
+              aria-label="Description"
+              placeholder="What it does, and why"
+              disabled={writing}
+              onChange={(e) => setBody(e.target.value)}
+            />
           </div>
           <label className="setting-toggle open-pr-draft">
             <input type="checkbox" checked={draft} onChange={(e) => setDraft(e.target.checked)} />
@@ -66,8 +100,13 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
             <button className="ghost" onClick={close}>
               Cancel
             </button>
-            <button className="primary" onClick={submit} disabled={busy || !title.trim()}>
-              Open it
+            <button
+              className="primary"
+              onClick={submit}
+              disabled={busy || writing}
+              title={title.trim() ? undefined : "The PR writer writes its title and description, and ws opens it once they're written"}
+            >
+              {title.trim() ? "Open it" : "Write and open it"}
             </button>
           </div>
         </Dialog>

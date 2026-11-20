@@ -101,14 +101,22 @@ export interface Named {
   actions?: ThingAction[];
 }
 
+// Files is a repo's files on its default branch, as far as they're known:
+// all of them (a Set of their paths), or what's been checked of them so far
+// (refs/known.tsx), which says undefined of a path that hasn't been.
+export interface Files {
+  has(path: string): boolean | undefined;
+  hasDir?(path: string): boolean | undefined;
+}
+
 // Known is what there is to name: each repo with the files on its default
-// branch (undefined while they're not read yet), the missions' slugs, and
+// branch (undefined while none are known), the missions' slugs, and
 // the pages, the conversations and the artifacts by id. With aliases (alias to repo), a
 // repo's alias names it; with capsules (repo to its capsules), a capsule's
 // file is named repo/capsule:path; with root (the workspace's folder), a
 // path on disk under it is read as the file it is.
 export interface Known {
-  repos: Map<string, Set<string> | undefined>;
+  repos: Map<string, Files | undefined>;
   aliases?: Map<string, string>;
   capsules?: Map<string, string[]>;
   root?: string;
@@ -200,6 +208,13 @@ function dirsOf(tree: Set<string>): Set<string> {
   return dirs;
 }
 
+// isDir is whether a repo's files have a folder at path: undefined when
+// that hasn't been checked.
+function isDir(tree: Files, path: string): boolean | undefined {
+  if (tree.hasDir) return tree.hasDir(path);
+  return tree instanceof Set ? dirsOf(tree).has(path) : undefined;
+}
+
 // looksLikeFile is a path in a capsule, which isn't checked against a tree:
 // it has to look like a file, or name lines. A sentence's full stop is
 // taken off it.
@@ -271,19 +286,28 @@ export function findRefs(text: string, known: Known): Found[] {
       let lines = linesOf(m[3], m[4]);
       let to = at + m[0].length;
       const bare = path.replace(/\.+$/, "");
-      if (!tree.has(path)) {
+      const file = tree.has(path);
+      if (file !== true) {
         // A folder: named with its slash after it, or without.
-        const dir = !m[3] && [path, bare].find((p) => dirsOf(tree).has(p));
+        const dir = !m[3] && [path, bare].find((p) => isDir(tree, p) === true);
         if (dir) {
           to = at + m[1].length + 1 + dir.length + (text[at + m[1].length + 1 + dir.length] === "/" ? 1 : 0);
           add(at, to, { kind: "dir", repo, worktree: GROUND, path: dir });
           continue;
         }
         // A sentence's full stop, taken for the path's.
-        if (m[3] || bare === path || !tree.has(bare)) continue;
-        to -= path.length - bare.length;
-        path = bare;
-        lines = {};
+        const fileBare = !m[3] && bare !== path ? tree.has(bare) : undefined;
+        // Not checked yet: what looks like a file is taken for one, as a
+        // capsule's is, until it's checked: the words don't change when
+        // it's found there.
+        const looks = file === undefined && fileBare !== false ? looksLikeFile(path, lines) : undefined;
+        const named = fileBare === true ? bare : looks;
+        if (!named) continue;
+        if (named !== path) {
+          to -= path.length - named.length;
+          path = named;
+          lines = {};
+        }
       }
       add(at, to, { kind: "file", repo, worktree: GROUND, path, ...lines });
     }
@@ -311,7 +335,11 @@ export function findRefs(text: string, known: Known): Found[] {
       if (worktree === GROUND) {
         const tree = known.repos.get(repo);
         if (!tree) continue;
-        path = tree.has(path) ? path : !lines.line && tree.has(path.replace(/\.+$/, "")) ? path.replace(/\.+$/, "") : undefined;
+        const file = tree.has(path);
+        const bare = path.replace(/\.+$/, "");
+        const fileBare = !lines.line && bare !== path ? tree.has(bare) : undefined;
+        // Not checked yet: taken for a file if it looks like one.
+        path = file ? path : fileBare ? bare : file === undefined && fileBare !== false ? looksLikeFile(path, lines) : undefined;
       } else {
         path = looksLikeFile(path, lines);
       }
@@ -651,6 +679,31 @@ export function thingOpenAt(plugin: string, path: string, known: Known): Extract
 // `main.go`): those whose files are worth reading, to tell.
 export function reposNamed(text: string, repos: string[]): string[] {
   return repos.filter((r) => text.includes(r + "/") || new RegExp(`${esc(r)}\\s+\``).test(text));
+}
+
+// groundPaths are the paths a text may name on repos' default branches,
+// by repo (demo/main.go, demo/internal/, a path on disk in its ground, or
+// demo `main.go`): what's to be checked of each to tell whether it names
+// a file or a folder there. A sentence's full stop after one is checked
+// without it too.
+export function groundPaths(text: string, known: Known): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>();
+  const pat = patternsOf(known);
+  const repoOf = (name: string) => (known.repos.has(name) ? name : (known.aliases?.get(name) ?? name));
+  const note = (repo: string, path: string) => {
+    if (!known.repos.has(repo)) return;
+    const paths = out.get(repo) ?? new Set<string>();
+    out.set(repo, paths);
+    for (const p of [path, path.replace(/\.+$/, "")]) if (p) paths.add(p);
+  };
+  if (!pat.ground) return out;
+  for (const m of text.matchAll(pat.ground)) note(repoOf(m[1]), m[2]);
+  for (const m of text.matchAll(pat.onDisk!)) if (m[2] === GROUND) note(m[1], m[3]);
+  const names = alt([...known.repos.keys(), ...(known.aliases?.keys() ?? [])]);
+  for (const m of text.matchAll(new RegExp(`(?<![\\w./@#:~-])(${names})\\s+\`([^\`\\n]+)\``, "g"))) {
+    note(repoOf(m[1]), m[2].trim().replace(/^\/+/, "").replace(/(?::\d+(?:-\d+)?)$/, "").replace(/\/+$/, ""));
+  }
+  return out;
 }
 
 // refHref is where a ref goes: a file in Files at its lines (a space's

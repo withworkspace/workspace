@@ -52,22 +52,51 @@ func (s *Server) diff(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var d *review.Diff
-	var err error
-	if since := r.URL.Query().Get("since"); since != "" {
-		if !fullSHA.MatchString(since) {
-			jsonError(w, http.StatusBadRequest, "since is a full commit id")
+	since := r.URL.Query().Get("since")
+	if since != "" && !fullSHA.MatchString(since) {
+		jsonError(w, http.StatusBadRequest, "since is a full commit id")
+		return
+	}
+	read := func() (any, error) {
+		if since != "" {
+			return review.CompareSince(dir, baseRef, since)
+		}
+		return review.Compare(dir, baseRef)
+	}
+	// Its commits are kept by the capsule's stamp, which moves with its
+	// HEAD and its base. What's not committed isn't in them: that's as the
+	// summary has it (kept, and read behind), unless it's never been read.
+	stamp := ops.CapsuleStamp(dir)
+	if stamp == "" {
+		v, err := read()
+		if err != nil {
+			jsonError(w, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
-		d, err = review.CompareSince(dir, baseRef, since)
-	} else {
-		d, err = review.Compare(dir, baseRef)
+		writeJSON(w, http.StatusOK, v)
+		return
 	}
+	v, err := s.reads.kept(keyOf("diff", dir, baseRef, since, stamp), read)
 	if err != nil {
 		jsonError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
+	d := *v.(*review.Diff)
+	if sum, unread, err := s.reads.soon(keyOf("summary", dir, baseRef), dir, func() (any, error) { return review.Summarize(dir, baseRef) }); err == nil && !unread {
+		d.Uncommitted = uncommittedOf(sum.(*review.Summary))
+	}
 	writeJSON(w, http.StatusOK, d)
+}
+
+// uncommittedOf is the paths a summary has that aren't committed.
+func uncommittedOf(sum *review.Summary) []string {
+	out := []string{}
+	for _, f := range sum.Changed {
+		if f.Uncommitted {
+			out = append(out, f.Path)
+		}
+	}
+	return out
 }
 
 // fileDiff is one file's changes in full, for a file too large to come
@@ -83,7 +112,8 @@ func (s *Server) fileDiff(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "need base and head (full commit ids) and a path")
 		return
 	}
-	f, err := review.FileDiff(dir, base, head, path)
+	// Between two commits: kept for good (in keptMax).
+	f, err := s.reads.kept(keyOf("file-diff", dir, base, head, path), func() (any, error) { return review.FileDiff(dir, base, head, path) })
 	if err != nil {
 		jsonError(w, http.StatusUnprocessableEntity, err.Error())
 		return
@@ -103,7 +133,7 @@ func (s *Server) blob(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "need rev (a full commit id) and a path")
 		return
 	}
-	lines, err := review.Blob(dir, rev, path)
+	lines, err := s.reads.kept(keyOf("blob", dir, rev, path), func() (any, error) { return review.Blob(dir, rev, path) })
 	if err != nil {
 		jsonError(w, http.StatusUnprocessableEntity, err.Error())
 		return

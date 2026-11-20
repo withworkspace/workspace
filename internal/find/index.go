@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/git"
@@ -59,6 +60,9 @@ type Index struct {
 	grounds  map[string]*groundEntry
 	capsules map[string]*capsuleEntry
 	sem      chan struct{}
+	// seen counts the reads of a ground that found its files other than
+	// they were (or read them for the first time): see Seen.
+	seen atomic.Int64
 }
 
 func (ix *Index) now() time.Time {
@@ -237,15 +241,9 @@ func (s *snapshot) capsule(repo, name string) *capsuleData {
 	return nil
 }
 
-// fresh brings the index up to date and answers it as it stands. Reads
-// that are due are started (one at a time for each worktree, whoever
-// asks), and go on if ctx ends: a letter typed drops the request, not the
-// reading. It waits for every ground, and for capsules for wait (0: as
-// long as it takes); after that a capsule answers as it was last read, or
-// not at all if it never has been.
-func (ix *Index) fresh(ctx context.Context, wait time.Duration) (*snapshot, error) {
-	now := ix.now()
-	ix.mu.Lock()
+// list brings the list of worktrees up to date, if it's due, and forgets
+// what's kept of those that have gone. ix.mu is held.
+func (ix *Index) list(now time.Time) error {
 	if ix.grounds == nil {
 		ix.grounds, ix.capsules, ix.sem = map[string]*groundEntry{}, map[string]*capsuleEntry{}, make(chan struct{}, reading)
 	}
@@ -271,7 +269,53 @@ func (ix *Index) fresh(ctx context.Context, wait time.Duration) (*snapshot, erro
 		}
 	}
 	if ix.wts == nil && ix.listErr != nil {
-		err := ix.listErr
+		return ix.listErr
+	}
+	return nil
+}
+
+// groundDue starts reading a repo's ground again, if that's due, and is
+// the read under way (nil when there's none). A read that finds its files
+// other than they were moves Seen. ix.mu is held.
+func (ix *Index) groundDue(wt Worktree, now time.Time) chan struct{} {
+	e := ix.grounds[wt.Repo]
+	if e == nil {
+		e = &groundEntry{}
+		ix.grounds[wt.Repo] = e
+	}
+	if e.job == nil && (e.data == nil || now.Sub(e.checked) >= groundAge) {
+		job := make(chan struct{})
+		e.job = job
+		was := e.data
+		go func() {
+			c, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			data, err := readGround(c, wt, was)
+			cancel()
+			ix.mu.Lock()
+			if err == nil {
+				if data != was {
+					ix.seen.Add(1)
+				}
+				e.data = data
+			}
+			e.checked, e.job = ix.now(), nil
+			ix.mu.Unlock()
+			close(job)
+		}()
+	}
+	return e.job
+}
+
+// fresh brings the index up to date and answers it as it stands. Reads
+// that are due are started (one at a time for each worktree, whoever
+// asks), and go on if ctx ends: a letter typed drops the request, not the
+// reading. It waits for every ground, and for capsules for wait (0: as
+// long as it takes); after that a capsule answers as it was last read, or
+// not at all if it never has been.
+func (ix *Index) fresh(ctx context.Context, wait time.Duration) (*snapshot, error) {
+	now := ix.now()
+	ix.mu.Lock()
+	if err := ix.list(now); err != nil {
 		ix.mu.Unlock()
 		return nil, err
 	}
@@ -279,30 +323,8 @@ func (ix *Index) fresh(ctx context.Context, wait time.Duration) (*snapshot, erro
 	for _, wt := range ix.wts {
 		wt := wt
 		if wt.Name == Ground {
-			e := ix.grounds[wt.Repo]
-			if e == nil {
-				e = &groundEntry{}
-				ix.grounds[wt.Repo] = e
-			}
-			if e.job == nil && (e.data == nil || now.Sub(e.checked) >= groundAge) {
-				job := make(chan struct{})
-				e.job = job
-				was := e.data
-				go func() {
-					c, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-					data, err := readGround(c, wt, was)
-					cancel()
-					ix.mu.Lock()
-					if err == nil {
-						e.data = data
-					}
-					e.checked, e.job = ix.now(), nil
-					ix.mu.Unlock()
-					close(job)
-				}()
-			}
-			if e.job != nil {
-				grounds = append(grounds, e.job)
+			if job := ix.groundDue(wt, now); job != nil {
+				grounds = append(grounds, job)
 			}
 			continue
 		}
@@ -415,6 +437,9 @@ func (t GroundTree) HasDir(path string) bool { return t.g.hasDir(path) }
 // Head is the commit it was read at.
 func (t GroundTree) Head() string { return t.g.head }
 
+// Dir is the ground's folder.
+func (t GroundTree) Dir() string { return t.g.dir }
+
 // Grounds is each repo's default branch, brought up to date (capsules
 // aren't waited for).
 func (ix *Index) Grounds(ctx context.Context) (map[string]GroundTree, error) {
@@ -450,6 +475,51 @@ func (ix *Index) GroundsWithin(ctx context.Context, wait time.Duration) map[stri
 	}
 	return out
 }
+
+// GroundsKept is each repo's default branch as the index last read it,
+// without waiting on git: a repo that's never been read isn't in it. A
+// read that's due is started behind it (a ground's head is looked at again
+// every groundAge, while it's asked), and Seen moves when one finds a
+// repo's files other than they were. Capsules aren't read.
+func (ix *Index) GroundsKept() map[string]GroundTree {
+	now := ix.now()
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	out := map[string]GroundTree{}
+	if ix.list(now) != nil {
+		return out
+	}
+	for _, wt := range ix.wts {
+		if wt.Name != Ground {
+			continue
+		}
+		ix.groundDue(wt, now)
+		if e := ix.grounds[wt.Repo]; e.data != nil {
+			out[wt.Repo] = GroundTree{e.data}
+		}
+	}
+	return out
+}
+
+// GroundsRead is each repo's default branch as the index last read it,
+// with nothing read for it: what's kept, as it is.
+func (ix *Index) GroundsRead() map[string]GroundTree {
+	ix.mu.Lock()
+	defer ix.mu.Unlock()
+	out := map[string]GroundTree{}
+	for repo, e := range ix.grounds {
+		if e.data != nil {
+			out[repo] = GroundTree{e.data}
+		}
+	}
+	return out
+}
+
+// Seen moves each time a read of a repo's default branch finds its files
+// other than they were, or reads them for the first time: what a page
+// that was answered from what was kept (GroundsKept) is told by, to ask
+// again. It starts no process.
+func (ix *Index) Seen() int64 { return ix.seen.Load() }
 
 // Layout is the workspace's worktrees as the index has them: each repo's
 // ground, and each capsule with what it has changed since it branched

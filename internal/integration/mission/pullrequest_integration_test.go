@@ -174,8 +174,9 @@ func TestOpenPR_ByAStepHoldingTheGuarantees(t *testing.T) {
 // A mission without a plan has no steps: its crew may open one through
 // ws whenever they like, and the guarantees ws holds still hold.
 func TestOpenPR_WithoutAPlan(t *testing.T) {
-	w, _ := testutil.OrchestrateFixture(t)
+	w, store := testutil.OrchestrateFixture(t)
 	gh := fixtureGitHub(t)
+	useFixtureGitHub(t, w.Root, gh) // the PR writer's job opens it as the daemon would, reaching GitHub as ws.local.toml says
 	capsule := filepath.Join(w.Root, "repos", "backend", "cache-lookup")
 	t.Setenv(mission.EnvMission, "cache")
 	t.Setenv(mission.EnvCrew, "c1")
@@ -188,12 +189,23 @@ func TestOpenPR_WithoutAPlan(t *testing.T) {
 	}
 	testutil.GitCmd(t, capsule, "add", "-A")
 	testutil.GitCmd(t, capsule, "commit", "-q", "-m", "cache")
-	if r := testutil.RunCommand(t, w.Root, gh, "mission", "open-pr"); r.Err == nil || !strings.Contains(r.Err.Error(), "--title") {
-		t.Errorf("no title: %v", r.Err)
+	// No title: the PR writer writes it, with no plan to say what it's
+	// for but the goal, and as the workspace's PR.md says.
+	os.WriteFile(filepath.Join(w.Root, "PR.md"), []byte("Titles start with the area.\n"), 0o644)
+	r := testutil.Run(t, w, gh, "mission", "open-pr", "--draft")
+	if !strings.Contains(r.Stderr, "The PR writer is writing backend/cache-lookup's pull request: ws opens it once it's written") {
+		t.Errorf("said:\n%s", r.Stderr)
 	}
-	testutil.Run(t, w, gh, "mission", "open-pr", "--title", "Cache it", "--draft")
-	if open, _ := gh.PRsForRepo("test-org", "backend"); len(open) != 1 || !open[0].IsDraft {
-		t.Errorf("GitHub has %+v", open)
+	open, _ := gh.PRsForRepo("test-org", "backend")
+	if len(open) != 1 || !open[0].IsDraft || open[0].Title != "The goal, written" {
+		events, _ := store.ReadLog("cache", 0)
+		t.Fatalf("GitHub has %+v\nlog %+v", open, events)
+	}
+	if d, _ := gh.PRDetail("test-org", "backend", open[0].Number); !strings.Contains(d.Body, "Written for the task. As PR.md says.") {
+		t.Errorf("its description: %q", d.Body)
+	}
+	if m := testutil.LoadMission(t, w, "cache"); len(m.WritingPRs) != 0 {
+		t.Errorf("still marked writing: %+v", m.WritingPRs)
 	}
 }
 
