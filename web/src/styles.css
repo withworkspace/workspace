@@ -16754,30 +16754,53 @@ button.accent-button:hover:not(:disabled) {
   margin: 0 0 10px;
   font-size: 12.5px;
 }
-/* A folder of them: the repo, as ws calls it, and the folders they're
-   grouped in under where promoted artifacts live there. */
-.artifacts-folder + .artifacts-folder {
-  margin-top: 14px;
+/* As a tree: a repo, the folders its artifacts are grouped in, and
+   theirs. Each folds, and stays as it was left. */
+.artifacts-tree .tree-node + .tree-node,
+.artifacts-tree .tree-body > .rows + .tree-node {
+  margin-top: 4px;
 }
-.artifacts-folder-name {
+.artifacts-tree .tree-node > summary {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  margin: 0 0 4px;
+  align-items: center;
+  gap: 0.5em;
+  width: fit-content;
+  padding: 3px 8px 3px 0;
   font-size: 12.5px;
   font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
 }
-.artifacts-folder-part::before {
-  content: "/";
-  margin: 0 0.4em;
-  color: var(--dim);
-  font-weight: 400;
+.artifacts-tree .tree-node > summary::-webkit-details-marker {
+  display: none;
 }
-.artifacts-folder-count {
-  margin-left: 0.6em;
+.artifacts-tree .tree-node > summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin: 0 4px 0 2px;
+  border-right: 1.5px solid var(--dim);
+  border-bottom: 1.5px solid var(--dim);
+  transform: rotate(-45deg);
+  transition: transform var(--fast) var(--ease);
+}
+.artifacts-tree .tree-node[open] > summary::before {
+  transform: rotate(45deg);
+}
+.artifacts-tree .tree-node .tree-node > summary {
+  font-weight: 500;
+}
+.artifacts-tree .tree-count {
   color: var(--dim);
   font-weight: 400;
   font-variant-numeric: tabular-nums;
+}
+/* What's in a folder is in from it, down a line. */
+.artifacts-tree .tree-body {
+  margin: 2px 0 8px 5px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
 }
 .artifact-row-meta {
   display: flex;

@@ -1,4 +1,4 @@
-import type { ArtifactInfo, ArtifactPromotion, ArtifactVersion } from "../api";
+import type { ArtifactFound, ArtifactInfo, ArtifactPromotion, ArtifactVersion } from "../api";
 import type { PageRef } from "../refs/refs";
 import type { StatusInfo } from "../ui/status";
 
@@ -224,4 +224,53 @@ export function promoteBlocked(kind: IntoKind, text: string, lives: Lives = "hom
   if (lives === "other" && !/^[^:\s]+:[^:]+$/.test(folder.trim())) return "Name the folder, as repo:folder/.";
   if (kind === "document" && lives === "here") return "A document cites it by its folder in a repo, so the link works for everyone: give it a folder there to live in.";
   return "";
+}
+
+// A folder of the artifacts ws found in the workspace's repos
+// (Found.tsx), as the list's tree has them: a repo, at the top, or a
+// folder its artifacts are grouped in.
+export interface FoundFolder {
+  // What it's called: the repo as ws calls it, at the top, or the
+  // folder's own name.
+  name: string;
+  // The repo it's in, and where it is under where promoted artifacts live
+  // there ("" for the repo itself, boards, 2026/q4).
+  repo: string;
+  path: string;
+  // The artifacts straight in it, and the folders in it.
+  found: ArtifactFound[];
+  folders: FoundFolder[];
+  // How many artifacts are in it, and in the folders in it.
+  count: number;
+}
+
+// foundTree lays them out as they're organised in their repos: a tree for
+// each repo, in order of what ws calls it, of the folders its artifacts
+// are grouped in, by name. A folder that holds only folders is in it too.
+// The artifacts in each keep the order they came in.
+export function foundTree(found: ArtifactFound[]): FoundFolder[] {
+  const repos = new Map<string, FoundFolder>();
+  // The folder of that name in one, made where there's none yet.
+  const within = (at: FoundFolder, part: string): FoundFolder => {
+    const there = at.folders.find((f) => f.name === part);
+    if (there) return there;
+    const made: FoundFolder = { name: part, repo: at.repo, path: at.path ? `${at.path}/${part}` : part, found: [], folders: [], count: 0 };
+    at.folders.push(made);
+    return made;
+  };
+  for (const a of found) {
+    let at: FoundFolder = repos.get(a.repo) ?? { name: a.label || a.repo, repo: a.repo, path: "", found: [], folders: [], count: 0 };
+    repos.set(a.repo, at);
+    at.count++;
+    for (const part of (a.group ?? "").split("/").filter(Boolean)) {
+      at = within(at, part);
+      at.count++;
+    }
+    at.found.push(a);
+  }
+  const sorted = (folders: FoundFolder[]): FoundFolder[] => {
+    for (const f of folders) sorted(f.folders);
+    return folders.sort((a, b) => a.name.localeCompare(b.name) || a.repo.localeCompare(b.repo));
+  };
+  return sorted([...repos.values()]);
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ArtifactInfo } from "../api";
-import { ANYWHERE, artifactStatus, behind, BY_HAND, filesWords, keptIcon, keptTitle, keptWords, fromRef, listed, missionTalk, sizeWords, sources, stepVersion, versionOf } from "./shown";
+import type { ArtifactFound, ArtifactInfo } from "../api";
+import { ANYWHERE, artifactStatus, behind, BY_HAND, filesWords, type FoundFolder, foundTree, keptIcon, keptTitle, keptWords, fromRef, listed, missionTalk, sizeWords, sources, stepVersion, versionOf } from "./shown";
 
 const art = (id: string, status: ArtifactInfo["status"], from: string[] = []): ArtifactInfo => ({
   id,
@@ -105,3 +105,20 @@ describe("how much a version is", () => {
   });
 });
 
+describe("the artifacts ws found in the repos, as they're organised there", () => {
+  const found = (title: string, more: Partial<ArtifactFound> = {}): ArtifactFound => ({ name: `records/artifacts/${title}/`, where: `records:artifacts/${title}/`, repo: "records", label: "Records", title, version: "", frame: "", changed: "2026-11-20T10:00:00Z", ...more });
+  // said is a tree in a line: each folder with how many are in it, its own artifacts, and its folders.
+  const said = (folders: FoundFolder[]): string => folders.map((f) => `${f.name}(${f.count})[${f.found.map((a) => a.title).join(" ")}]${f.folders.length ? `{${said(f.folders)}}` : ""}`).join(" ");
+
+  it("are a tree for each repo, as ws calls it, of the folders they're grouped in", () => {
+    const tree = foundTree([found("q4", { group: "2026/q4" }), found("flat"), found("guide", { repo: "docs", label: "Docs", group: "boards" }), found("board", { group: "boards" })]);
+    // A folder with only a folder in it (2026) is there, and counts what's under it.
+    expect(said(tree)).toBe("Docs(1)[]{boards(1)[guide]} Records(3)[flat]{2026(1)[]{q4(1)[q4]} boards(1)[board]}");
+    expect(tree[1]?.folders[0]?.folders[0]).toMatchObject({ name: "q4", repo: "records", path: "2026/q4" });
+  });
+
+  it("none are no tree, and one repo with nothing grouped is a tree of one", () => {
+    expect(foundTree([])).toEqual([]);
+    expect(said(foundTree([found("a"), found("b")]))).toBe("Records(2)[a b]");
+  });
+});

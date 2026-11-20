@@ -8,7 +8,7 @@ import { Inline } from "../ui/inline";
 import { Copyable, Empty, ErrorCard, Keys, Loading, useTitle } from "../ui/kit";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
-import { filesWords, widths } from "./shown";
+import { filesWords, type FoundFolder as Folder, foundTree, widths } from "./shown";
 
 // Artifacts that live in the workspace's repos and aren't this machine's:
 // someone else promoted them, or you did on another machine. ws finds each
@@ -36,35 +36,89 @@ function byWords(a: ArtifactFound): string {
   return a.changedBy ? `changed by ${a.changedBy}` : "";
 }
 
-// A folder of them, as the list lays them out: the repo, as ws calls it,
-// the folders under where promoted artifacts live there ("" for none), and
-// the artifacts in it.
-interface Folder {
-  repo: string;
-  label: string;
-  group: string;
-  found: ArtifactFound[];
-}
-
-// inFolders lays them out as they're organised in their repos: by repo,
-// in order of what ws calls each, and in a repo by the folders they're
-// grouped in, those in none first. Each folder's keep the order they came
-// in.
-export function inFolders(found: ArtifactFound[]): Folder[] {
-  const by = new Map<string, Folder>();
-  for (const a of found) {
-    const group = a.group ?? "";
-    const key = `${a.repo}\n${group}`;
-    const folder = by.get(key) ?? { repo: a.repo, label: a.label || a.repo, group, found: [] };
-    folder.found.push(a);
-    by.set(key, folder);
+// Which folders of the tree are folded, kept for the next time the page's
+// opened: by repo and path.
+const FOLDED = "ws.artifacts.found.folded";
+function folded(): Set<string> {
+  try {
+    const kept: unknown = JSON.parse(localStorage.getItem(FOLDED) ?? "[]");
+    return new Set(Array.isArray(kept) ? kept.filter((k): k is string => typeof k === "string") : []);
+  } catch {
+    return new Set();
   }
-  return [...by.values()].sort((a, b) => a.label.localeCompare(b.label) || a.repo.localeCompare(b.repo) || a.group.localeCompare(b.group));
 }
 
-// FoundArtifacts lists them, under the Artifacts page's own, by repo and
-// by the folders they're grouped in there. Nothing's drawn while there are
-// none.
+// FoundRow is one of them, in the list.
+function FoundRow({ a }: { a: ArtifactFound }) {
+  return (
+    <li className="row artifact-list-row">
+      <TLink to={foundHref(a.name)} className="row-link">
+        <Icon name="artifact" size={16} className="row-status" />
+        <span className="row-main">
+          <span className="row-line">
+            <span className="title">{a.title}</span>
+            <span className="chip tone-done">Promoted</span>
+          </span>
+          <span className="row-sub artifact-row-meta">
+            <span title={`It lives in ${a.where}`}>
+              <Icon name="branch" size={11} /> {a.label}
+            </span>
+            <span className="mono">{a.where}</span>
+          </span>
+        </span>
+        <span className="age artifact-row-when" title={byWords(a)}>
+          {byWords(a)}
+          {byWords(a) && " · "}
+          <Time iso={a.changed} as="age" />
+        </span>
+      </TLink>
+    </li>
+  );
+}
+
+// FoundFolder is a repo, or a folder of its artifacts, in the list's tree:
+// its name and how many are in it, and, unfolded, the artifacts straight
+// in it and its folders.
+function FoundFolder({ folder }: { folder: Folder }) {
+  const id = `${folder.repo}:${folder.path}`;
+  const [open, setOpen] = useState(() => !folded().has(id));
+  const toggled = (now: boolean) => {
+    if (now === open) return;
+    setOpen(now);
+    try {
+      const kept = folded();
+      if (now) kept.delete(id);
+      else kept.add(id);
+      localStorage.setItem(FOLDED, JSON.stringify([...kept]));
+    } catch {
+      // Nowhere to keep it: it's folded for now.
+    }
+  };
+  return (
+    <details className="tree-node" open={open} onToggle={(e) => toggled(e.currentTarget.open)}>
+      <summary title={folder.path ? `${folder.repo}: ${folder.path}/` : folder.repo}>
+        <span className="tree-name">{folder.name}</span>
+        <span className="tree-count">{folder.count}</span>
+      </summary>
+      <div className="tree-body">
+        {folder.found.length > 0 && (
+          <ul className="rows artifacts">
+            {folder.found.map((a) => (
+              <FoundRow key={a.name} a={a} />
+            ))}
+          </ul>
+        )}
+        {folder.folders.map((f) => (
+          <FoundFolder key={f.path} folder={f} />
+        ))}
+      </div>
+    </details>
+  );
+}
+
+// FoundArtifacts lists them, under the Artifacts page's own, as a tree:
+// each repo, and the folders they're grouped in there. Nothing's drawn
+// while there are none.
 export function FoundArtifacts({ workspace }: { workspace: Workspace }) {
   // Read again when the artifacts here change: one promoted here is this
   // machine's, and leaves the list.
@@ -72,59 +126,27 @@ export function FoundArtifacts({ workspace }: { workspace: Workspace }) {
   const { value } = useLoaded(() => getArtifactsFound(), [key], { keep: true });
   const found = value?.found ?? [];
   if (found.length === 0) return null;
-  const folders = inFolders(found);
+  const tree = foundTree(found);
   return (
     <section className="artifacts-found" aria-labelledby="artifacts-found-title">
       <h2 id="artifacts-found-title" className="artifacts-found-title">
         In the workspace's repos
       </h2>
       <p className="dim artifacts-found-about">Promoted by someone else, or by you on another machine: each runs from its repo's files.</p>
-      {folders.map((f) => (
-        <div key={`${f.repo} ${f.group}`} className="artifacts-folder">
-          {/* One folder alone, with nothing grouped in it, needs no saying. */}
-          {(folders.length > 1 || f.group) && (
-            <h3 className="artifacts-folder-name" title={`${f.repo}${f.group ? `: ${f.group}/` : ""}`}>
-              <span>{f.label}</span>
-              {f.group
-                .split("/")
-                .filter(Boolean)
-                .map((part, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: a folder's parts are in their order, and a name can come twice
-                  <span key={i} className="artifacts-folder-part">
-                    {part}
-                  </span>
-                ))}
-              <span className="artifacts-folder-count">{f.found.length}</span>
-            </h3>
-          )}
-          <ul className="rows artifacts">
-            {f.found.map((a) => (
-              <li key={a.name} className="row artifact-list-row">
-                <TLink to={foundHref(a.name)} className="row-link">
-                  <Icon name="artifact" size={16} className="row-status" />
-                  <span className="row-main">
-                    <span className="row-line">
-                      <span className="title">{a.title}</span>
-                      <span className="chip tone-done">Promoted</span>
-                    </span>
-                    <span className="row-sub artifact-row-meta">
-                      <span title={`It lives in ${a.where}`}>
-                        <Icon name="branch" size={11} /> {a.label}
-                      </span>
-                      <span className="mono">{a.where}</span>
-                    </span>
-                  </span>
-                  <span className="age artifact-row-when" title={byWords(a)}>
-                    {byWords(a)}
-                    {byWords(a) && " · "}
-                    <Time iso={a.changed} as="age" />
-                  </span>
-                </TLink>
-              </li>
-            ))}
-          </ul>
+      {/* One repo with nothing grouped in it is a plain list: there's no tree to draw. */}
+      {tree.length === 1 && tree[0]?.folders.length === 0 ? (
+        <ul className="rows artifacts">
+          {found.map((a) => (
+            <FoundRow key={a.name} a={a} />
+          ))}
+        </ul>
+      ) : (
+        <div className="artifacts-tree">
+          {tree.map((repo) => (
+            <FoundFolder key={repo.repo} folder={repo} />
+          ))}
         </div>
-      ))}
+      )}
     </section>
   );
 }
