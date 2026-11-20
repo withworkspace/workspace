@@ -457,7 +457,7 @@ func settingDefs(root string) []struct {
 		settings []settingDef
 	}{roleDef{id: "ui", title: "Appearance", about: "How the web UI looks."}, []settingDef{
 		accentSetting(),
-		placesSetting("sidebar", "Sidebar", "The places in the sidebar, in order. A place in neither list goes at the sidebar's end. Arrange them from Settings, under Appearance (Arrange the sidebar…). Yours, setting either list, replaces the team's arrangement."),
+		placesSetting("sidebar", "Sidebar", "The places in the sidebar, in order. A place in neither list goes at the sidebar's end, or the menu's for one whose home is the menu (Runs). Arrange them from Settings, under Appearance (Arrange the sidebar…). Yours, setting either list, replaces the team's arrangement."),
 		placesSetting("menu", "In the menu", "The places moved out of the sidebar into the workspace's menu, in order. Arrange them from Settings, under Appearance (Arrange the sidebar…)."),
 	}})
 	return out

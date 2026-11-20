@@ -371,7 +371,7 @@ function placesOf(workspace: Workspace | undefined, waiting: ReturnType<typeof w
     { id: "team", to: "/team", icon: "user", label: "Team", match: (p) => p === "/team" },
     { id: "files", to: "/files", icon: "layers", label: "Files", match: (p) => p === "/files" || p.startsWith("/files/") },
     { id: "orchestrator", to: "/orchestrator", icon: "sparkle", label: "Orchestrator", match: (p) => p.startsWith("/orchestrator") },
-    { id: "runs", to: "/runs", icon: "play", label: "Runs", match: (p) => p === "/runs" },
+    { id: "runs", to: "/runs", icon: "play", label: "Runs", match: (p) => p === "/runs", home: "menu" },
   ];
   const views: Place[] = (plugins ?? []).flatMap((plugin) =>
     plugin.views.map((view) => {
