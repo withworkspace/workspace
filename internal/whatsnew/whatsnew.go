@@ -68,6 +68,10 @@ type Index struct {
 	// none left out): what's new in it and before is on the releases page.
 	Before  string  `json:"before,omitempty"`
 	Entries []Entry `json:"entries"`
+	// Dir is the entries' folder in the clone the build was made from: a
+	// build of a clone shows their pictures from there, as they'll read
+	// before they're published. A release's build doesn't use it.
+	Dir string `json:"dir,omitempty"`
 }
 
 // Held is what this build holds.

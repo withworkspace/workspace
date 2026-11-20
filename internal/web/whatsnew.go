@@ -55,11 +55,14 @@ type WhatsNewEntry struct {
 	Picture string `json:"picture,omitempty"`
 }
 
-func whatsNewEntries(es []whatsnew.Entry, pictures bool) []WhatsNewEntry {
+// whatsNewEntries is entries as the API serves them. A picture is served
+// where it can be had: a released entry's from its release (pictures), or,
+// in a build of a clone, any entry's from the clone (local).
+func whatsNewEntries(es []whatsnew.Entry, pictures, local bool) []WhatsNewEntry {
 	out := make([]WhatsNewEntry, 0, len(es))
 	for _, e := range es {
 		entry := WhatsNewEntry{Slug: e.Slug, Version: e.Version, Title: e.Title, Body: e.Body, Link: e.Link}
-		if pictures && e.Picture != "" && e.Version != "" {
+		if e.Picture != "" && (local || pictures && e.Version != "") {
 			entry.Picture = "/api/whats-new/pictures/" + url.PathEscape(e.Picture)
 		}
 		out = append(out, entry)
@@ -71,8 +74,8 @@ func (s *Server) whatsNew(w http.ResponseWriter, r *http.Request) {
 	n := s.App.WhatsNew()
 	writeJSON(w, http.StatusOK, WhatsNewInfo{
 		Version: n.Version, Release: n.Release,
-		Unseen:  whatsNewEntries(n.Unseen, n.Pictures),
-		Entries: whatsNewEntries(n.Entries, n.Pictures),
+		Unseen:  whatsNewEntries(n.Unseen, n.Pictures, n.Local),
+		Entries: whatsNewEntries(n.Entries, n.Pictures, n.Local),
 		Seen:    n.Seen,
 		Missing: n.Missing, Releases: n.Releases,
 	})

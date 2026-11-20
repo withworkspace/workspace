@@ -46,6 +46,10 @@ type WhatsNew struct {
 	// release's own files, and fetching is looking at GitHub, which
 	// [updates] check = false says not to.
 	Pictures bool
+	// Local is whether a build of a clone shows entries' pictures from the
+	// clone, unreleased ones too: so whoever writes one sees it as it'll
+	// read.
+	Local bool
 }
 
 // keptSeen is the release whose news was last seen here.
@@ -100,6 +104,7 @@ func (w *Workspace) WhatsNew() WhatsNew {
 		out.Releases = ws.Source.Base + "/releases"
 	}
 	if !out.Release {
+		out.Pictures, out.Local = false, ix.Dir != ""
 		return out
 	}
 	out.Entries = ix.UpTo(ws.Version)
@@ -153,8 +158,12 @@ func (w *Workspace) NoteRunning(before func() string) {
 // entries name are fetched, and none where looking at GitHub is turned
 // off.
 func (w *Workspace) WhatsNewPicture(ctx context.Context, name string) (string, error) {
+	ix := held()
+	if !isRelease(w.opts.WS) {
+		return localPicture(ix, name)
+	}
 	var of *whatsnew.Entry
-	for _, e := range held().Entries {
+	for _, e := range ix.Entries {
 		if e.Picture == name && e.Version != "" {
 			of = &e
 			break
@@ -204,4 +213,20 @@ func (w *Workspace) WhatsNewPicture(ctx context.Context, name string) (string, e
 		return "", err
 	}
 	return path, os.Rename(tmp, path)
+}
+
+// localPicture is an entry's picture as a build of a clone shows it: from
+// the entries' folder in the clone, released or not.
+func localPicture(ix whatsnew.Index, name string) (string, error) {
+	for _, e := range ix.Entries {
+		if e.Picture != name || ix.Dir == "" {
+			continue
+		}
+		path := filepath.Join(ix.Dir, name)
+		if _, err := os.Stat(path); err != nil {
+			return "", fmt.Errorf("%s isn't in %s any more: %w", name, ix.Dir, ErrNotFound)
+		}
+		return path, nil
+	}
+	return "", fmt.Errorf("no entry has the picture %q: %w", name, ErrNotFound)
 }

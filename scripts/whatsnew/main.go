@@ -57,7 +57,15 @@ func run(check bool, notes, base, pictures string) error {
 		}
 		return nil
 	}
-	data, err := json.MarshalIndent(whatsnew.Arrange(entries, whatsnew.Keep), "", "  ")
+	ix := whatsnew.Arrange(entries, whatsnew.Keep)
+	// Where the entries are, for a build of this clone to show their
+	// pictures from: not for a release's build (CI), which doesn't use it.
+	if os.Getenv("CI") == "" {
+		if ix.Dir, err = filepath.Abs(whatsnew.EntriesDir); err != nil {
+			return err
+		}
+	}
+	data, err := json.MarshalIndent(ix, "", "  ")
 	if err != nil {
 		return err
 	}

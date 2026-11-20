@@ -174,3 +174,34 @@ func TestWhatsNew_AnUpgradeWithNoEntriesSaysNothing(t *testing.T) {
 		t.Fatalf("v1.5.0 has no entries, and unseen is %q", slugs(got.Unseen))
 	}
 }
+
+func TestWhatsNewPicture_ABuildOfACloneShowsTheClones(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "next.png"), []byte("PNG"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ix := whatsnew.Arrange([]whatsnew.Entry{
+		{Slug: "next", Title: "Next", Body: "b", Picture: "next.png"},
+		{Slug: "gone", Title: "Gone", Body: "b", Picture: "gone.png"},
+	}, whatsnew.Keep)
+	ix.Dir = dir
+	w := newsWorld(t, "v1.4.1-0.20261120000000-abcdefabcdef", "https://github.com/o/r", ix)
+	if got := w.WhatsNew(); !got.Local || got.Pictures {
+		t.Fatalf("a clone's build: local %v, pictures %v", got.Local, got.Pictures)
+	}
+	path, err := w.WhatsNewPicture(context.Background(), "next.png")
+	if err != nil || path != filepath.Join(dir, "next.png") {
+		t.Fatalf("got %q, %v", path, err)
+	}
+	if _, err := w.WhatsNewPicture(context.Background(), "gone.png"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("a picture that's not in the clone: %v", err)
+	}
+	if _, err := w.WhatsNewPicture(context.Background(), "../ws.db"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("a picture no entry names: %v", err)
+	}
+	// A release's build doesn't look in a folder it was built from.
+	rel := newsWorld(t, "v1.4.0", "", ix)
+	if rel.WhatsNew().Local {
+		t.Fatal("a release's build says it shows pictures from a clone")
+	}
+}

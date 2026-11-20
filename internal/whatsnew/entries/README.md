@@ -34,6 +34,10 @@ first entry's picture is shown 4:3, beside its words, so crop that one near
 newest release first and by file name within one, so the first entry is the
 release's first by name.
 
+To see it as it'll read, `just try up` and open **Settings › About › Show
+what's new**: a build of a clone shows every entry, with its picture from
+this folder.
+
 Don't say which release it's in. A build works that out from the tags
 (`scripts/whatsnew`): an entry is in the first release that has the commit
 that added it. `go run ./scripts/whatsnew -check` reads every entry, and
