@@ -18,7 +18,7 @@ func newMissionOpenPRCmd() *cobra.Command {
 	var slug, title, body string
 	var draft bool
 	cmd := &cobra.Command{
-		Use:   "open-pr [<repo>/<capsule>] --title <title> [--body <text>|-]",
+		Use:   "open-pr [<repo>/<capsule>] [--title <title> [--body <text>|-]]",
 		Short: "Open a pull request from one of the mission's capsules, through ws",
 		Long: `Push a capsule's branch and open a pull request from it onto the default
 branch, through ws, so the process's rules about pull requests are held
@@ -31,10 +31,18 @@ one (its makes: says a pull request): crew open it there and nowhere else,
 and the orchestrator doesn't accept that step until one's open. You may
 open one whenever you like.
 
+With no --title, ws's PR writer writes its title and description, for
+the task it's for (the plan's steps whose work it carries) and as the
+workspace says its pull requests are written (PR.md beside ws.toml, or
+[agents] pr): ws finds it can be opened, then the PR writer writes it in
+the background, and ws opens it once it's written. With --title, it's
+opened as you say.
+
 The capsule is the one named, else the crew's own, else the one you're
 standing in, else the mission's only one. Refused in a repo with no pull
 requests, with changes not committed or nothing to open, and when one is
-open from its branch already. --body - reads the description from stdin.`,
+open from its branch already, or being written. --body - reads the
+description from stdin.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := loadOps()
@@ -64,12 +72,14 @@ open from its branch already. --body - reads the description from stdin.`,
 				return err
 			}
 			fmt.Fprintf(ui.Stderr, "  %s %s\n", ui.Green.Render("✓"), out)
-			fmt.Println(out.PR.URL)
+			if out.PR != nil {
+				fmt.Println(out.PR.URL)
+			}
 			return nil
 		},
 	}
 	addMissionFlag(cmd, &slug)
-	cmd.Flags().StringVar(&title, "title", "", "the pull request's title")
+	cmd.Flags().StringVar(&title, "title", "", "the pull request's title (none: the PR writer writes it)")
 	cmd.Flags().StringVar(&body, "body", "", "its description (- reads it from stdin)")
 	cmd.Flags().BoolVar(&draft, "draft", false, "open it as a draft")
 	return cmd

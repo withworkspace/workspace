@@ -85,6 +85,10 @@ type Options struct {
 	// Check has the daemon run and judge the checks of the step crew
 	// reported done at (job.Check). nil runs them there and then.
 	Check func(slug, crewID string)
+	// WritePR has the daemon write the pull request the PR writer's
+	// marked writing for a mission's capsule, and open it (job.PR). nil
+	// writes and opens it there and then.
+	WritePR func(slug, capsule string)
 	// Answer has the daemon answer a conversation (kind job.Answer) or a
 	// thread (job.Thread) in a mission ("" for the workspace's), or draft
 	// what a resolved thread decided (job.Draft). nil for no answers.

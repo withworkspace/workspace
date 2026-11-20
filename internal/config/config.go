@@ -28,7 +28,11 @@ type Config struct {
 	Conversation AgentConfig `toml:"conversation"`
 	// Judge is the agent that judges a Work step's checks in words, with
 	// fresh context: unset, the planner's (briefing's) agent and model.
-	Judge    AgentConfig    `toml:"judge"`
+	Judge AgentConfig `toml:"judge"`
+	// PRWriter is the agent that writes the title and description of a
+	// pull request ws opens, from the step it's for and PR.md: unset,
+	// conversations' agent and model.
+	PRWriter AgentConfig    `toml:"pr_writer"`
 	Missions MissionsConfig `toml:"missions"`
 	Agents   AgentsConfig   `toml:"agents"`
 	Pages    PagesConfig    `toml:"pages"`
@@ -76,6 +80,7 @@ type LocalConfig struct {
 	Orchestrator OrchestratorConfig     `toml:"orchestrator,omitempty"`
 	Conversation AgentConfig            `toml:"conversation,omitempty"`
 	Judge        AgentConfig            `toml:"judge,omitempty"`
+	PRWriter     AgentConfig            `toml:"pr_writer,omitempty"`
 	Missions     MissionsConfig         `toml:"missions,omitempty"`
 	Artifacts    LocalArtifactsConfig   `toml:"artifacts,omitempty"`
 	Agents       AgentsConfig           `toml:"agents,omitempty"`
@@ -113,6 +118,9 @@ type AgentsConfig struct {
 	// turn each is, and when it's the user's. The planner and the
 	// orchestrator read it as it's written.
 	Process string `toml:"process,omitempty"`
+	// PR is how the workspace's pull requests are written, in prose: the
+	// PR writer reads it as it's written. Default: PR.md at the root.
+	PR string `toml:"pr,omitempty"`
 }
 
 // DocumentKind is a kind of document the workspace has: where one goes and
@@ -884,6 +892,7 @@ func Merge(base, local *Config) *Config {
 		Orchestrator: base.Orchestrator,
 		Conversation: base.Conversation,
 		Judge:        base.Judge,
+		PRWriter:     base.PRWriter,
 		Missions:     base.Missions,
 		Agents:       base.Agents,
 		Pages:        base.Pages,
@@ -987,6 +996,9 @@ func Load(startDir string) (*Config, string, error) {
 		if local.Agents.Process != "" {
 			cfg.Agents.Process = local.Agents.Process
 		}
+		if local.Agents.PR != "" {
+			cfg.Agents.PR = local.Agents.PR
+		}
 		if local.Missions.Records != "" {
 			cfg.Missions.Records = local.Missions.Records
 		}
@@ -1046,6 +1058,7 @@ func Load(startDir string) (*Config, string, error) {
 		cfg.Briefing.merge(local.Briefing)
 		cfg.Conversation.merge(local.Conversation)
 		cfg.Judge.merge(local.Judge)
+		cfg.PRWriter.merge(local.PRWriter)
 		if local.Orchestrator.Harness != "" {
 			cfg.Orchestrator.Harness = local.Orchestrator.Harness
 		}

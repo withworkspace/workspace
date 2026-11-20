@@ -69,6 +69,26 @@ func (f FakeConverser) Converse(r harness.ConverseRun) (harness.Launch, error) {
 			reply = "first: talked"
 		}
 		reply += fmt.Sprintf(" (%d paths)\\nTitle: Token cache\\nSummary: What a cache would take.", len(r.ReadPaths))
+	case strings.Contains(r.Prompt, "You are writing a pull request's title and description"):
+		// The PR writer: titled for the steps it was told are its task,
+		// and saying whether the workspace's PR.md was given.
+		var steps []string
+		for _, l := range strings.Split(r.Prompt, "\n") {
+			if n, ok := strings.CutPrefix(l, "Step "); ok {
+				if i := strings.Index(n, " ("); i > 0 {
+					steps = append(steps, n[:i])
+				}
+			}
+		}
+		title := "The goal, written"
+		if len(steps) > 0 {
+			title = "Steps " + strings.Join(steps, ",") + " written"
+		}
+		reply = "<title>" + title + "</title>\\n<body>\\nWritten for the task."
+		if strings.Contains(r.Prompt, "The workspace says so in `PR.md`") {
+			reply += " As PR.md says."
+		}
+		reply += "\\n</body>"
 	case strings.Contains(r.Prompt, "draft it as a decision"):
 		reply = `What: Key the cache per tenant.\nWhy: Tokens are issued per tenant,\nnot per user.` // \n: a newline in the JSON
 	case strings.Contains(r.Prompt, "Start with `ws show -f llm t"):

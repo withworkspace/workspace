@@ -2213,7 +2213,7 @@ export type MissionEnding = "answered" | "dropped" | "handed-on" | "landed";
 /**
  * Kind is the situation a headline describes.
  */
-export type MissionKind = "accept" | "answering" | "approve" | "archived" | "awaiting-review" | "brief-talk" | "briefing" | "changes-requested" | "checking" | "checks-failing" | "checks-running" | "crew-asks" | "deciding" | "ended" | "flag" | "land" | "landed" | "launching" | "merge" | "moving-on" | "own-work" | "parked" | "permission" | "proposed" | "queued" | "re-review" | "ready" | "replied" | "replies" | "resume" | "stalled" | "step-review" | "to-brief" | "to-do" | "waiting-on" | "working" | "wrap-up";
+export type MissionKind = "accept" | "answering" | "approve" | "archived" | "awaiting-review" | "brief-talk" | "briefing" | "changes-requested" | "checking" | "checks-failing" | "checks-running" | "crew-asks" | "deciding" | "ended" | "flag" | "land" | "landed" | "launching" | "merge" | "moving-on" | "own-work" | "parked" | "permission" | "proposed" | "queued" | "re-review" | "ready" | "replied" | "replies" | "resume" | "stalled" | "step-review" | "to-brief" | "to-do" | "waiting-on" | "working" | "wrap-up" | "writing-pr";
 
 // From mission/mission.go
 /**
@@ -2410,6 +2410,25 @@ export interface PRQuestion {
     line: number;
     endLine: number;
     commit: string;
+}
+
+// From web/runs.go
+/**
+ * PRWrite is POST /api/missions/{slug}/pr-write: a capsule whose pull
+ * request the PR writer writes, for you to read and change before you
+ * open it. It answers once it's written (PRWritten), which takes a while.
+ */
+export interface PRWrite {
+    capsule: string; // repo/name
+}
+
+// From web/runs.go
+/**
+ * PRWritten is what the PR writer wrote.
+ */
+export interface PRWritten {
+    title: string;
+    body: string;
 }
 
 // From web/pages.go
@@ -3362,6 +3381,24 @@ export interface ReReview {
  */
 export type RefKind = "artifact" | "dir" | "file" | "mission" | "page" | "pr" | "repo" | "talk" | "thing";
 
+// From web/refpaths.go
+/**
+ * RefPaths is what a page asks of the repos' default branches: paths in
+ * each, by repo.
+ */
+export interface RefPaths {
+    repos: Record<string, string[]>;
+}
+
+// From web/refpaths.go
+/**
+ * RefPathsFound is what's there of what was asked, by repo: those whose
+ * files are kept.
+ */
+export interface RefPathsFound {
+    repos: Record<string, RepoPaths>;
+}
+
 // From ref/ref.go
 /**
  * Pinned is a name as it was when it was said or written: what it named
@@ -3441,6 +3478,17 @@ export interface Repo {
      * default branch).
      */
     landing?: OpsRepoLanding;
+}
+
+// From web/refpaths.go
+/**
+ * RepoPaths is what's there on a repo's default branch, of what was asked:
+ * the files and the folders, as read at Head.
+ */
+export interface RepoPaths {
+    head: string;
+    files: string[];
+    dirs: string[];
 }
 
 // From review/diff.go
@@ -4873,6 +4921,12 @@ export interface Workspace {
      */
     focus: FocusPin[];
     /**
+     * CapsulesSeen moves when git, asked behind a read that didn't wait
+     * on it, said something of a capsule other than the read was given:
+     * a page showing capsules' statuses (Files' switcher) reads again.
+     */
+    capsulesSeen?: string;
+    /**
      * Conversations are the workspace's conversations with an agent,
      * newest first.
      */
@@ -4929,6 +4983,18 @@ export interface Workspace {
      */
     version?: string;
     /**
+     * GroundsSeen moves when the repos' default branches do, or the files
+     * read of one (refs are checked against them) are found other than
+     * they were: a page that's checked what it names checks again.
+     */
+    groundsSeen?: string;
+    /**
+     * ReadsSeen moves when a capsule's tree or summary, answered as it
+     * was kept while it was read again, is found other than it was told:
+     * a page showing one reads it again.
+     */
+    readsSeen?: string;
+    /**
      * Later is a release of ws that's out and later than Version, as the
      * daemon last found (it looks once a day): none for none, or for one
      * that's installed and waiting for the daemon to restart onto it.
@@ -4954,6 +5020,11 @@ export interface Worktree {
     dirty?: boolean;
     ahead?: number;
     behind?: number;
+    /**
+     * Unread: whether it's dirty, or where it stands, hasn't been read
+     * yet and is being: the workspace's capsulesSeen moves when it has.
+     */
+    unread?: boolean;
 }
 
 // From web/api.go

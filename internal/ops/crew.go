@@ -27,6 +27,7 @@ func Roles(cfg *config.Config) harness.Roles {
 		Conversation: harness.Pick{Harness: cfg.Conversation.Harness, Model: cfg.Conversation.Model},
 		Team:         harness.Pick{Harness: cfg.Team.Harness, Model: cfg.Team.Model},
 		Judge:        harness.Pick{Harness: cfg.Judge.Harness, Model: cfg.Judge.Model},
+		PRWriter:     harness.Pick{Harness: cfg.PRWriter.Harness, Model: cfg.PRWriter.Model},
 	}
 	for _, a := range cfg.Crew.Allowed {
 		if h, m, err := config.ParsePick(a); err == nil { // Load refuses the rest

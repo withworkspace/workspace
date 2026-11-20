@@ -53,6 +53,7 @@ const byKind: Record<string, Omit<StatusInfo, "words"> & { words?: string }> = {
   launching: { icon: "spinner", tone: "progress", words: "Starting", live: true },
   deciding: { icon: "sparkle", tone: "progress", words: "Deciding", live: true },
   "moving-on": { icon: "spinner", tone: "progress", words: "Moving on", live: true },
+  "writing-pr": { icon: "pencil", tone: "progress", words: "Writing PR", live: true },
   // outside
   "checks-running": { icon: "spinner", tone: "waiting", words: "Checks running", live: true },
   "awaiting-review": { icon: "pr", tone: "waiting", words: "Awaiting review" },

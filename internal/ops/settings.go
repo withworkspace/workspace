@@ -193,6 +193,22 @@ var settingRoles = []roleDef{
 		},
 	},
 	{
+		id: "pr_writer", title: "PR writer", about: "The agent writing the title and description of each pull request ws opens, from the step it's for and PR.md: fresh to the work, read-only.",
+		names: converserNames,
+		team:  func(c *config.Config) (*string, *string) { return &c.PRWriter.Harness, &c.PRWriter.Model },
+		local: func(l *config.LocalConfig) (*string, *string) { return &l.PRWriter.Harness, &l.PRWriter.Model },
+		resolve: func(c *config.Config) (harness.Pick, error) {
+			p, _, err := Roles(c).ForPRWriter()
+			return p, err
+		},
+		note: func(c *config.Config) string {
+			if c.PRWriter.Harness == "" {
+				return "It follows conversations' agent and model, as none is set here."
+			}
+			return ""
+		},
+	},
+	{
 		id: "team", title: "Team", about: "The agent writing the Team page's gist of each change.",
 		names: converserNames,
 		team:  func(c *config.Config) (*string, *string) { return &c.Team.Harness, &c.Team.Model },
