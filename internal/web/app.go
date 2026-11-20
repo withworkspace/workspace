@@ -82,6 +82,7 @@ type Conversing interface {
 	SkipDraft(sc doc.Scope, id string, by ops.Actor) error
 	StartTalk(sc doc.Scope, body string, by ops.Actor) (*conversation.Conversation, error)
 	SayInTalk(sc doc.Scope, id, body string, by ops.Actor) (*conversation.Conversation, error)
+	SayInTalkGiven(sc doc.Scope, id, body string, given *conversation.Given, by ops.Actor) (*conversation.Conversation, error)
 	SetTalkStatus(sc doc.Scope, id, status string, by ops.Actor) (*conversation.Conversation, error)
 	Ask(a ops.Asked, by ops.Actor) (*conversation.Conversation, error)
 	KeepAsk(sc doc.Scope, id string, by ops.Actor) (*conversation.Conversation, error)

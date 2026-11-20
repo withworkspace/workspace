@@ -19,11 +19,11 @@ export const leaderWithin = 900;
 // it. The frame is another document, so a key pressed there never reaches
 // this one: the plugin's page is told these (the frame protocol's
 // welcome), and passes each on as it's pressed. With ⌘ or Ctrl held, k
-// (Find) and p (Find, for files), always; bare, when nothing's being typed
+// (Find), p (Find, for files) and j (the page's conversation), always; bare, when nothing's being typed
 // in, ? (these keys) and g, and the letter after g. They're ws's global
 // keys (useGlobalKeys in App.tsx): one added there that should work in a
 // plugin's page is added here.
-export const frameKeys = { chords: ["k", "p"], bare: ["?", "g"], leaders: ["g"], within: leaderWithin };
+export const frameKeys = { chords: ["k", "p", "j"], bare: ["?", "g"], leaders: ["g"], within: leaderWithin };
 
 // typing says a key's typed into a field: a text box, an editor, or what
 // says it's one with data-field (a Select's button and its list, where

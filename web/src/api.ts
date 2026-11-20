@@ -1921,6 +1921,21 @@ export interface TalkTurn {
   // agent wasn't woken for, which doesn't change whose turn it is.
   origin?: string;
   quiet?: boolean;
+  // given: on a turn of yours said on a plugin's page, what the page gave
+  // the agent with it. Not your words: folded under them.
+  given?: TalkGiven;
+}
+
+// TalkGiven is what a plugin's page gave a conversation's agent with
+// something said there (conversation.Given): its state as words (page,
+// only when it's changed since the agent last had it), what was held,
+// and context for the message alone.
+export interface TalkGiven {
+  from?: string;
+  page?: string;
+  holding?: string;
+  holdingText?: string;
+  context?: string;
 }
 
 export interface TalkDetail {
@@ -1942,6 +1957,8 @@ export interface TalkDetail {
     excerpt?: string[];
     quote?: DocQuote;
     section?: string;
+    thing?: string; // a plugin's thing, asked about from its page
+    plugin?: string;
   };
   via?: string; // the plugin a talk was started from, which worded its first message
   ephemeral?: boolean; // an ask nobody's kept: not listed, and swept an hour after its last turn
@@ -1969,7 +1986,8 @@ const talkPath = (slug: string, id = "", rest = "") =>
 
 export const getTalk = (slug: string, id: string) => getJSON<TalkDetail>(talkPath(slug, id));
 export const startTalk = (slug: string, body: string) => send<TalkDetail>("POST", talkPath(slug), { body });
-export const sayInTalk = (slug: string, id: string, body: string) => send<TalkDetail>("POST", talkPath(slug, id, "/say"), { body });
+export const sayInTalk = (slug: string, id: string, body: string, given?: TalkGiven) =>
+  send<TalkDetail>("POST", talkPath(slug, id, "/say"), given ? { body, given } : { body });
 export const setTalkStatus = (slug: string, id: string, status: "open" | "resolved") => send<TalkDetail>("POST", talkPath(slug, id, "/status"), { status });
 
 // Asking from an ask bar (ask/AskBar.tsx): mirrors internal/web/asks.go. An
@@ -1978,6 +1996,9 @@ export const setTalkStatus = (slug: string, id: string, status: "open" | "resolv
 // the section it's in); followed with getTalk and said to again with
 // sayInTalk, and kept only if you keep it.
 export const startAsk = (q: { doc: string; quote?: DocQuote; section?: string; body: string }) => send<TalkDetail>("POST", "/api/asks", q);
+// askThing asks about a plugin's thing (sketch-13) from its page, with
+// what the page gives the agent.
+export const askThing = (q: { thing: string; body: string; given?: TalkGiven }) => send<TalkDetail>("POST", "/api/asks", q);
 // keepAsk keeps one (Keep as a conversation): it's listed in Conversations
 // from then on, about its document, and isn't swept.
 export const keepAsk = (slug: string, id: string) => send<TalkDetail>("POST", talkPath(slug, id, "/keep"));

@@ -171,3 +171,16 @@ func clipGuide(guide, name, word string) string {
 	}
 	return strings.Join(lines[:plugin.GuideLines], "\n") + "\n" + more
 }
+
+// pluginTitle is what a plugin's called for a person: its first view's
+// title, or else its name.
+func (w *Workspace) pluginTitle(name string) string {
+	if reg, ok := plugin.ReadRegistration(w.WS().Root, name); ok {
+		for _, v := range reg.Views {
+			if t := strings.TrimSpace(v.Title); t != "" {
+				return t
+			}
+		}
+	}
+	return name
+}
