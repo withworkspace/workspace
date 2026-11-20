@@ -1,9 +1,11 @@
 package runs
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -239,11 +241,30 @@ func (e *EndedError) Error() string {
 	return fmt.Sprintf("%s ended before it was up on %d", e.Run.Ref(), e.Run.Port)
 }
 
-// Tail is the last n lines of the run's log.
+// tailBytes is as much of a log's end as Tail reads: a dev server's log
+// can run to megabytes.
+const tailBytes = 256 << 10
+
+// Tail is the last n lines of the run's log (of its last tailBytes).
 func (r Run) Tail(n int) string {
-	b, err := os.ReadFile(r.LogPath())
+	f, err := os.Open(r.LogPath())
 	if err != nil {
 		return ""
+	}
+	defer f.Close()
+	cut := false
+	if st, err := f.Stat(); err == nil && st.Size() > tailBytes {
+		if _, err := f.Seek(-tailBytes, io.SeekEnd); err != nil {
+			return ""
+		}
+		cut = true
+	}
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return ""
+	}
+	if i := bytes.IndexByte(b, '\n'); cut && i >= 0 {
+		b = b[i+1:] // the line it began in the middle of
 	}
 	lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
 	if len(lines) > n {

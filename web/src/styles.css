@@ -17069,3 +17069,121 @@ button.accent-button:hover:not(:disabled) {
     border: 0;
   }
 }
+
+/* The Runs page (runs/Runs.tsx): every run, a line each, its output
+   opened under it. */
+.runs-names {
+  margin-bottom: var(--space-6);
+}
+
+.runs-names a {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.runs-names-note {
+  margin-top: 4px;
+  font-size: var(--text-sm);
+}
+
+.run-rows {
+  display: grid;
+  gap: 2px;
+}
+
+.run-row {
+  padding: 8px;
+}
+
+.run-row.open {
+  background: var(--hover);
+}
+
+.run-row-line {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto auto;
+  align-items: start;
+  gap: 10px;
+}
+
+.run-row-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
+.run-row-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+}
+
+.run-row-sub a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 2px;
+}
+
+.run-row-sub a:hover {
+  color: var(--fg);
+  text-decoration-color: currentColor;
+}
+
+.run-row-when {
+  padding-top: 2px;
+}
+
+.run-row-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.run-row.ended .work-run-name {
+  color: var(--dim);
+}
+
+.run-more {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 2px 22px;
+}
+
+.run-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 14px;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.run-facts dt {
+  color: var(--dim);
+}
+
+.run-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.run-log {
+  max-height: 420px;
+  font-size: var(--text-xs);
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .run-row-line {
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+  }
+  .run-row-when {
+    display: none;
+  }
+  .run-more {
+    margin-left: 0;
+  }
+}

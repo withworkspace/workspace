@@ -100,7 +100,7 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 			if len(args) == 0 {
 				return listRecipes(here, recipes)
 			}
-			start := runs.Start{Command: strings.Join(args, " ")}
+			start := runs.Start{Command: commandOf(args)}
 			if recipe, ok := recipes[args[0]]; ok && len(args) == 1 && cmd.ArgsLenAtDash() < 0 {
 				if strings.TrimSpace(recipe.Command) == "" {
 					return fmt.Errorf("[run.%s] in %s has no command", args[0], config.RepoFileName)
@@ -692,4 +692,28 @@ func newRunKeepCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+// commandOf is the command a run's words after -- say, as the shell it
+// runs in reads it: one word is a command line of its own (ws run --
+// 'pnpm build && pnpm preview'); several are each a word, quoted where the
+// shell would otherwise split or read them (ws run -- sh -c 'echo hi').
+func commandOf(args []string) string {
+	if len(args) == 1 {
+		return args[0]
+	}
+	words := make([]string, len(args))
+	for i, a := range args {
+		words[i] = a
+		if a == "" || strings.ContainsFunc(a, func(r rune) bool { return !plainWord(r) }) {
+			words[i] = shellQuote(a)
+		}
+	}
+	return strings.Join(words, " ")
+}
+
+// plainWord is whether r needs no quoting in a shell word. { and } are
+// kept plain, so {port} reads as written.
+func plainWord(r rune) bool {
+	return r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("-_./:=@%+,{}", r)
 }
