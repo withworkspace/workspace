@@ -870,8 +870,10 @@ export const getModels = (harness: string) => getJSON<ModelInfo[]>(`/api/setting
 export const getOrchestratorRun = (slug: string, id: string) =>
   getJSON<OrchestratorRunDetail>(`/api/missions/${encodeURIComponent(slug)}/orchestrator/${encodeURIComponent(id)}`);
 
-export const getMission = (slug: string, github: boolean) =>
-  getJSON<MissionDetail>(`/api/missions/${encodeURIComponent(slug)}${github ? "?github=1" : ""}`);
+// getMission is a mission's page. Its pull requests are as GitHub last
+// said: the daemon asks again behind the read, and the mission's event
+// tells of a different answer.
+export const getMission = (slug: string) => getJSON<MissionDetail>(`/api/missions/${encodeURIComponent(slug)}`);
 
 export const getArtifact = (slug: string, ref: string) =>
   getJSON<ArtifactContent>(`/api/missions/${encodeURIComponent(slug)}/artifact?${new URLSearchParams({ ref })}`);

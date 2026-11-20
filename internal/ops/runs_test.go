@@ -43,7 +43,7 @@ func TestRunRecipe(t *testing.T) {
 	if r.Owner.Kind != runs.ByLooking || r.Owner.Mission != "cache" || r.Ref() != "web.cache.frontend" {
 		t.Fatalf("run %+v", r)
 	}
-	d, err := w.Mission("cache", false)
+	d, err := w.Mission("cache")
 	if err != nil {
 		t.Fatal(err)
 	}

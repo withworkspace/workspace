@@ -61,7 +61,7 @@ func watching(t *testing.T, w *Workspace, slug string) *seen {
 // now is the mission's headline, as its page and ws mission show have it.
 func (s *seen) now() mission.Headline {
 	s.t.Helper()
-	d, err := s.w.Mission(s.slug, false)
+	d, err := s.w.Mission(s.slug)
 	if err != nil {
 		s.t.Fatal(err)
 	}
@@ -185,7 +185,7 @@ func TestConfirmBrief_StartingBeforeItsConfirmed(t *testing.T) {
 	// Marked, it's ws's from before it's confirmed, whatever its briefing
 	// conversation last said.
 	end := w.launchingOnConfirm(slug)
-	d, _ := w.Mission(slug, false)
+	d, _ := w.Mission(slug)
 	if h := d.Headlines[0]; d.State != mission.Briefing || h.Kind != mission.KindLaunching || h.Text != "Starting crew on step 1" {
 		t.Errorf("accepted, not yet confirmed: %s, %s %q", d.State, h.Kind, h.Text)
 	}

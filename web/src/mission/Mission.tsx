@@ -123,18 +123,9 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
   useEffect(() => setOver(false), [tab, slug]);
   const docked = tab === "summary" && side;
 
-  // What's on disk first (fast), then again with the capsules' PRs (GitHub
-  // is slow); again whenever the mission changes.
-  const mission = useLoaded<MissionDetail>(
-    (soon) =>
-      getMission(slug, false).then((x) => {
-        // (Stale by now, its answer's dropped: GitHub needn't be asked.)
-        const wanted = soon((cur) => (cur?.github ? { ...x, capsules: withPRs(x.capsules, cur.capsules), github: true } : x));
-        return wanted ? getMission(slug, true) : x;
-      }),
-    [slug],
-    { keep: true },
-  );
+  // As the daemon has it, with the capsules' PRs as GitHub last said;
+  // again whenever the mission changes (GitHub answering differently, too).
+  const mission = useLoaded<MissionDetail>(() => getMission(slug), [slug], { keep: true });
   const { value: d, error, reload: load } = mission;
   // The mission follows its own topic: told at once when its records
   // change, and of its files and capsules at the server's next look. A
@@ -694,11 +685,6 @@ const sideArtifacts = 6;
 const summaryRecent = 5;
 const summaryRecentWithSide = 7;
 const summaryDecisions = 3;
-
-// withPRs keeps the PRs already known while what's on disk refreshes.
-function withPRs(next: CapsuleDetail[], known: CapsuleDetail[]): CapsuleDetail[] {
-  return next.map((c) => ({ ...c, pr: c.pr ?? known.find((k) => k.repo === c.repo && k.name === c.name)?.pr }));
-}
 
 interface Parts {
   d: MissionDetail;

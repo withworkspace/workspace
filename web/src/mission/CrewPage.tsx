@@ -30,7 +30,7 @@ export function CrewPage({ workspace }: { workspace: Workspace }) {
   const listed = m?.crew.find((c) => c.id === id);
   // An archived mission's crew aren't in the workspace's list: its own
   // page says them.
-  const detail = useLoaded(listed || !m ? null : () => getMission(slug, false), [slug, !!listed]);
+  const detail = useLoaded(listed || !m ? null : () => getMission(slug), [slug, !!listed]);
   const c = listed ?? detail.value?.crew.find((c) => c.id === id);
   useTitle(`${id}${m ? ` · ${m.title}` : ""}`);
   const [termState, setState] = useState<TermState>("connecting");

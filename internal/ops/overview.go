@@ -185,6 +185,10 @@ func MissionUpdated(store mission.Store, slug string) time.Time {
 // MissionDetail is a mission as its page shows it.
 type MissionDetail struct {
 	MissionView
+	// GitHub: what GitHub said of its capsules' pull requests is in it,
+	// as last asked. Until it has answered for each of its repos, a
+	// capsule with none may yet have one.
+	GitHub bool
 	Brief  string
 	Plan   string          // plan.md, "" for none
 	Events []mission.Event // its whole log
@@ -227,20 +231,25 @@ type CapsuleStatus struct {
 // lists, and runsShown how many its own page lists across missions.
 const missionRuns, runsShown = 8, 40
 
-// Mission is a mission as its page shows it: with what GitHub says of its
-// pull requests (asked, if it hasn't been lately), when withGitHub.
-func (w *Workspace) Mission(slug string, withGitHub bool) (*MissionDetail, error) {
+// Mission is a mission as its page shows it, with what GitHub last said of
+// its pull requests (Options.PRs): never waiting on GitHub, which is asked
+// behind the read when it hasn't been lately. Its stamp moves when the
+// answer's different (MissionStamp), and the page reads again.
+func (w *Workspace) Mission(slug string) (*MissionDetail, error) {
 	m, err := w.load(slug)
 	if err != nil {
 		return nil, err
 	}
 	ws := w.WS()
 	var idx PRIndex
-	if gh := w.GitHub(); withGitHub && w.opts.PRs != nil && gh != nil {
-		idx = w.opts.PRs.Get(ws, gh, MissionRepos([]*mission.Mission{m}))
+	answered := true
+	if gh := w.GitHub(); w.opts.PRs != nil && gh != nil {
+		repos := MissionRepos([]*mission.Mission{m})
+		idx = w.opts.PRs.Peek(ws, gh, repos)
+		answered = len(idx) == len(repos) // Peek has only those GitHub's answered for
 	}
 	v := buildMissionViews(&w.git, ws, idx, []*mission.Mission{m})[0]
-	d := &MissionDetail{MissionView: v, Status: map[string]CapsuleStatus{}, Runs: w.runsOf(m, missionRuns)}
+	d := &MissionDetail{MissionView: v, GitHub: answered, Status: map[string]CapsuleStatus{}, Runs: w.runsOf(m, missionRuns)}
 	d.CapsuleRuns, d.Recipes = w.capsuleRuns(v)
 	d.Brief, _ = w.Missions.ReadBrief(slug)
 	d.Plan, _ = w.Missions.ReadPlan(slug)

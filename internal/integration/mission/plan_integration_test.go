@@ -186,7 +186,7 @@ func TestWeb_ThePlan(t *testing.T) {
 	if said, err := say(plan); err != nil || said != "Wrote the plan: 2 steps." {
 		t.Fatalf("edit-plan: %q, %v", said, err)
 	}
-	d, err := testutil.WebMission(w.Root)("cache", false)
+	d, err := testutil.WebMission(w.Root)("cache")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +202,7 @@ func TestWeb_ThePlan(t *testing.T) {
 	// A plan changed by hand that doesn't read is said, and the mission
 	// works from its brief.
 	os.WriteFile(mission.Store{Root: w.Root}.PlanPath("cache"), []byte("## Steps\n- oops\n"), 0o644)
-	d, _ = testutil.WebMission(w.Root)("cache", false)
+	d, _ = testutil.WebMission(w.Root)("cache")
 	if !strings.Contains(d.PlanProblem, "isn't numbered") || len(d.Stages) != 0 {
 		t.Errorf("a plan that doesn't read: %q, stages %+v", d.PlanProblem, d.Stages)
 	}

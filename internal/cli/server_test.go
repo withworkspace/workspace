@@ -244,7 +244,7 @@ func TestWebAct_LaunchesOnAPick(t *testing.T) {
 
 	// The page offers the default, then the others (shell alone is the
 	// default, so it's said once).
-	d, err := web.MissionOf(openOps(ws.Root, nil), ws.Root, slug, false)
+	d, err := web.MissionOf(openOps(ws.Root, nil), ws.Root, slug)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,7 +292,7 @@ func TestWebAct_LaunchesOnAPick(t *testing.T) {
 	// With nothing allowed, there's only the default.
 	writeConfig("")
 	store.EndCrew(slug, "c1", "exit 0")
-	if d, _ := web.MissionOf(openOps(ws.Root, nil), ws.Root, slug, false); d.CrewPicks.Default.Harness != "shell" || len(d.CrewPicks.Allowed) != 0 {
+	if d, _ := web.MissionOf(openOps(ws.Root, nil), ws.Root, slug); d.CrewPicks.Default.Harness != "shell" || len(d.CrewPicks.Allowed) != 0 {
 		t.Errorf("crew picks with none allowed = %+v", d.CrewPicks)
 	}
 	var refused *ops.Refused

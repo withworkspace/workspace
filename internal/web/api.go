@@ -227,8 +227,9 @@ type Crew struct {
 }
 
 // MissionDetail is GET /api/missions/{slug}: everything a mission's page
-// view shows. Capsules' PRs are only there with ?github=1 (GitHub is slow,
-// so the page asks after it has drawn).
+// view shows. Capsules' PRs are as GitHub last said: it's slow, so it's
+// asked behind the read, and the mission's event moves when it answers
+// with something different.
 type MissionDetail struct {
 	Slug    string        `json:"slug"`
 	Title   string        `json:"title"`
@@ -287,7 +288,9 @@ type MissionDetail struct {
 	// that stand, then those superseded or withdrawn.
 	Decisions []Decision `json:"decisions"`
 	Events    []Event    `json:"events"` // the log, oldest first
-	GitHub    bool       `json:"github"` // PRs were looked up
+	// GitHub: GitHub has answered for its capsules' repos, so a capsule
+	// with no PR has none (as last asked).
+	GitHub bool `json:"github"`
 	// CrewPicks are what Launch crew may start crew on.
 	CrewPicks CrewPicks `json:"crewPicks"`
 }

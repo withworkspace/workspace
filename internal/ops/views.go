@@ -168,17 +168,27 @@ func capsuleKey(c mission.Capsule) mission.Capsule {
 }
 
 // prCacheFor is how long a repo's PRs, once fetched, answer for the web UI:
-// an open page refetches on every change, and GitHub is slow.
+// an open page reads again on every change, and GitHub is slow.
 const prCacheFor = time.Minute
 
+// PRCache is what GitHub last said of each repo's pull requests, shared by
+// the daemon's pages, its watcher and plugins. A page reads it as kept
+// (Peek) and never waits on GitHub: a repo not asked lately is asked
+// behind the read, once however many read meanwhile, and the page's stamp
+// moves (Changes) when the answer isn't what was kept.
 type PRCache struct {
-	mu       sync.Mutex
-	at       map[string]time.Time
-	prs      PRIndex
-	fetching map[string]bool
-	// fetched counts the answers GitHub has given: a view that shows them
-	// has changed when it moves (Stamp).
+	mu  sync.Mutex
+	at  map[string]time.Time
+	prs PRIndex
+	// fetching is each repo GitHub is being asked of now: closed when its
+	// answer's kept, for a Get that would ask again to wait on instead.
+	fetching map[string]chan struct{}
+	// fetched counts the answers GitHub has given.
 	fetched int64
+	// changes counts, by repo, the answers that weren't what the cache
+	// held (the first among them): a view that shows the repo's PRs has
+	// changed when it moves.
+	changes map[string]int64
 	// news is told when a page's fetch (Peek) comes back with something
 	// changed: the watcher acts on it then (News).
 	news chan struct{}
@@ -205,12 +215,35 @@ func (c *PRCache) Fetched() int64 {
 	return c.fetched
 }
 
-func NewPRCache() *PRCache {
-	return &PRCache{at: map[string]time.Time{}, prs: PRIndex{}, fetching: map[string]bool{}, news: make(chan struct{}, 1)}
+// Changes counts the answers from GitHub that weren't what the cache held
+// for the repos named, or for any repo when none are: a page showing
+// their PRs is out of date when it moves.
+func (c *PRCache) Changes(repos ...string) int64 {
+	if c == nil {
+		return 0
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var n int64
+	if len(repos) == 0 {
+		for _, k := range c.changes {
+			n += k
+		}
+	}
+	for _, r := range repos {
+		n += c.changes[r]
+	}
+	return n
 }
 
-// peek is the repos' PRs as last fetched, without waiting on GitHub: repos
-// not fetched lately are fetched in the background, for the next ask.
+func NewPRCache() *PRCache {
+	return &PRCache{at: map[string]time.Time{}, prs: PRIndex{}, fetching: map[string]chan struct{}{}, changes: map[string]int64{}, news: make(chan struct{}, 1)}
+}
+
+// Peek is the repos' PRs as last fetched, without waiting on GitHub: only
+// the repos GitHub has answered for are in it. Those not asked lately are
+// asked in the background, for the next read, unless they're being asked
+// already.
 func (c *PRCache) Peek(ws *workspace.Workspace, gh github.Client, repos []string) PRIndex {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -220,30 +253,13 @@ func (c *PRCache) Peek(ws *workspace.Workspace, gh github.Client, repos []string
 		if pr, ok := c.prs[r]; ok {
 			out[r] = pr
 		}
-		if gh != nil && time.Since(c.at[r]) > prCacheFor && !c.fetching[r] {
-			c.fetching[r] = true
+		if _, asking := c.fetching[r]; gh != nil && !asking && time.Since(c.at[r]) > prCacheFor {
+			c.fetching[r] = make(chan struct{})
 			stale = append(stale, r)
 		}
 	}
 	if len(stale) > 0 {
-		go func() {
-			fresh := FetchPRs(ws, gh, stale)
-			c.mu.Lock()
-			defer c.mu.Unlock()
-			changed := false
-			for _, r := range stale {
-				changed = changed || !reflect.DeepEqual(c.prs[r], fresh[r])
-				c.prs[r], c.at[r] = fresh[r], time.Now()
-				delete(c.fetching, r)
-			}
-			c.fetched++
-			if changed {
-				select {
-				case c.news <- struct{}{}:
-				default: // the watcher's already been told
-				}
-			}
-		}()
+		go c.fetch(ws, gh, stale, true)
 	}
 	return out
 }
@@ -259,30 +275,61 @@ func (c *PRCache) Forget(repo string) {
 	delete(c.at, repo)
 }
 
-// get is the repos' PRs, fetching those not fetched lately.
+// Get is the repos' PRs, fetching those not fetched lately, and waiting
+// for those being fetched already: for the watcher, which acts on what
+// GitHub says, never for a page.
 func (c *PRCache) Get(ws *workspace.Workspace, gh github.Client, repos []string) PRIndex {
 	c.mu.Lock()
 	var stale []string
+	var waits []chan struct{}
 	for _, r := range repos {
-		if time.Since(c.at[r]) > prCacheFor {
+		if ch, asking := c.fetching[r]; asking {
+			waits = append(waits, ch)
+		} else if time.Since(c.at[r]) > prCacheFor {
+			c.fetching[r] = make(chan struct{})
 			stale = append(stale, r)
 		}
 	}
 	c.mu.Unlock()
-	fresh := FetchPRs(ws, gh, stale)
+	if len(stale) > 0 {
+		c.fetch(ws, gh, stale, false)
+	}
+	for _, ch := range waits {
+		<-ch
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for _, r := range stale {
-		c.prs[r], c.at[r] = fresh[r], time.Now()
-	}
-	if len(stale) > 0 {
-		c.fetched++
-	}
 	out := PRIndex{}
 	for _, r := range repos {
 		out[r] = c.prs[r]
 	}
 	return out
+}
+
+// fetch asks GitHub for the repos' PRs, which the caller has marked as
+// being fetched, and keeps the answer. One that isn't what was kept moves
+// the repos' Changes, and is news for the watcher when tell.
+func (c *PRCache) fetch(ws *workspace.Workspace, gh github.Client, repos []string, tell bool) {
+	fresh := FetchPRs(ws, gh, repos)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	changed := false
+	for _, r := range repos {
+		if kept, ok := c.prs[r]; !ok || !reflect.DeepEqual(kept, fresh[r]) {
+			c.changes[r]++
+			changed = true
+		}
+		c.prs[r], c.at[r] = fresh[r], time.Now()
+		close(c.fetching[r])
+		delete(c.fetching, r)
+	}
+	c.fetched++
+	if changed && tell {
+		select {
+		case c.news <- struct{}{}:
+		default: // the watcher's already been told
+		}
+	}
 }
 
 // MissionSnapshot gathers what mission.Resolve needs from a mission's view
