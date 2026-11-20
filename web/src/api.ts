@@ -10,6 +10,8 @@ import type {
   ArtifactContent,
   ArtifactDetail,
   ArtifactDone,
+  ArtifactFile,
+  ArtifactSource,
   BundleNote,
   CellSource,
   Citation,
@@ -63,7 +65,9 @@ export type {
   ArtifactContent,
   ArtifactDetail,
   ArtifactDone,
+  ArtifactFile,
   ArtifactInfo,
+  ArtifactSource,
   ArtifactStatus,
   ArtifactVersion,
   Bundle,
@@ -601,32 +605,40 @@ export const landCapsule = (repo: string, name: string) => send<{ landed?: Lande
 
 // ArtifactPromotion is promoting one: the version chosen (0: its latest),
 // and what it went into (a mission's slug, or a document's ref), or a
-// mission to start from it; move takes one on this machine into the repo.
+// mission to start from it. For one that lives in no repo yet, home is
+// the folder it's to live in (repo:folder/), and here keeps it on this
+// machine only; neither is where the workspace says promoted ones live.
+// One that lives in a repo goes there, with nothing said.
 export interface ArtifactPromotion {
   version?: number;
   into?: string;
   start?: string;
-  move?: boolean;
+  home?: string;
+  here?: boolean;
 }
 
 const artifactPath = (id: string, what: string) => `/api/artifacts/${encodeURIComponent(id)}/${what}`;
 export const promoteArtifact = (id: string, p: ArtifactPromotion) => send<ArtifactDone>("POST", artifactPath(id, "promote"), p);
 export const discardArtifact = (id: string, reason: string) => send<ArtifactDone>("POST", artifactPath(id, "discard"), { reason });
 export const restoreArtifact = (id: string) => send<ArtifactDone>("POST", artifactPath(id, "restore"), {});
-export const clearExpiredArtifacts = () => send<{ local: string[]; repo: string[]; landed?: string }>("POST", "/api/artifacts/clear", {});
+export const clearExpiredArtifacts = () => send<{ local: string[] }>("POST", "/api/artifacts/clear", {});
 
 export const getArtifactDetail = (id: string) => getJSON<ArtifactDetail>(`/api/artifacts/${encodeURIComponent(id)}`);
-export const getArtifactSource = (id: string, version: number) =>
-  getJSON<{ version: number; text: string }>(`/api/artifacts/${encodeURIComponent(id)}/source?${new URLSearchParams({ v: String(version) })}`);
+// A version's source is one of its files, as text to read (its page,
+// index.html, unless another's asked for), with the version's files, to
+// choose another.
+export const getArtifactSource = (id: string, version: number, file = "") =>
+  getJSON<ArtifactSource>(`/api/artifacts/${encodeURIComponent(id)}/source?${new URLSearchParams(file ? { v: String(version), file } : { v: String(version) })}`);
 
-// ArtifactCompare is two versions' HTML, a's against b's, diffed as a
-// review's file is (internal/web/artifacts.go): each named as it was read
-// (a3.v2), and b's lines, to show the unchanged ones between the changes.
+// ArtifactCompare is two versions' files, a's against b's: each file that
+// differs, diffed as a review's file is (internal/web/artifacts.go), with
+// its lines in b, to show the unchanged ones between the changes. Each
+// version is named as it was read (a3.v2). No files: the two are the
+// same. A file that isn't text is binary, with no hunks.
 export interface ArtifactCompare {
   a: string;
   b: string;
-  file: DiffFile;
-  lines: string[];
+  files: { file: DiffFile; lines: string[] }[];
 }
 
 export const getArtifactCompare = (a: string, b: string) => getJSON<ArtifactCompare>(`/api/artifacts/compare?${new URLSearchParams({ a, b })}`);
@@ -1017,8 +1029,10 @@ export interface TalkProposal {
   // it's a version of (to, a3), the version it's based on (on) and the
   // artifact's latest version as it was proposed (latest); as proposed,
   // where it would go (path), its size, and what in it won't load in the
-  // frame. Its HTML isn't sent: it runs from proposalFrameURL.
+  // frame. Its HTML isn't sent: it runs from proposalFrameURL. files:
+  // what it's made of, for one that's more than its page.
   note?: string;
+  files?: ArtifactFile[];
   to?: string;
   on?: number;
   latest?: number;

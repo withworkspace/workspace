@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { type ArtifactDetail, type ArtifactInfo, type ArtifactVersion, frameURL, getArtifactDetail, getArtifactSource, type Workspace } from "../api";
+import { type ArtifactDetail, type ArtifactInfo, type ArtifactSource, type ArtifactVersion, frameURL, getArtifactDetail, getArtifactSource, promoteArtifact, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
@@ -9,7 +9,7 @@ import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../revie
 import { HoverCard } from "../ui/hover";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Copyable, Empty, ErrorCard, Keys, Loading, useTitle } from "../ui/kit";
+import { Copyable, Empty, ErrorCard, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import { Status } from "../ui/status";
 import { Time } from "../ui/time";
@@ -20,13 +20,14 @@ import {
   BY_HAND,
   byWords,
   expiryOf,
+  filesWords,
   KEEP_DISCARDED,
   fromRef,
   isConversation,
   keptWords,
   keptIcon,
   keptTitle,
-  inFlight,
+  behind,
   missionTalk,
   listed,
   type Shown,
@@ -44,10 +45,12 @@ import { ClearExpired, DiscardDialog, PromoteDialog, restore } from "./Lifetime"
 import { PagePin } from "../shell/focus";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
-// sandboxed frame. A version runs from a route of its own (/frame/a3/v2),
-// in <iframe sandbox="allow-scripts">: its scripts run, in an origin of
-// their own, so they can't read ws's cookie, its storage or this page,
-// and its policy lets nothing leave. What its page says can be changed
+// sandboxed frame. A version is its page and the files it loads beside
+// it. It runs from a route of its own (/frame/a3/v2, which sends the
+// frame to where the version's files are), in <iframe
+// sandbox="allow-scripts">: its scripts run, in an origin of their own,
+// so they can't read ws's cookie, its storage or this page, and its
+// policy lets it load its own files and nothing else. What its page says can be changed
 // about it (its tweaks) is drawn beside the frame (Tray.tsx), and the
 // state they're in is in the address.
 
@@ -61,7 +64,7 @@ export const artifactKeys: [string, string][] = [
   ["w", "The next width: fit, 1280, 768, 390"],
   ["r", "Reload: run it again"],
   ["x", "Stop it, or run it again"],
-  ["s", "Its source, or the frame again"],
+  ["s", "Its source, file by file, or the frame again"],
   ["t", "Its tweaks, shown or hidden: what its page says can be changed"],
   ["c", "Compare it, side by side: beside the version it's based on"],
   ["p", "Promote it: keep it for good, choosing this version"],
@@ -156,7 +159,7 @@ export function ArtifactsPage({ workspace }: { workspace: Workspace }) {
       </header>
       {all.length === 0 ? (
         <Empty icon="artifact" title="No artifacts yet">
-          An artifact is a sketch to look at and use: one HTML file, with its CSS and JS inline, in versions you can step through. Crew add them with{" "}
+          An artifact is a sketch to look at and use: a page, alone or with the files it loads beside it, in versions you can step through. Crew add them with{" "}
           <code>ws artifact add</code>, and so can you.
         </Empty>
       ) : list.length === 0 ? (
@@ -191,7 +194,7 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
             <span className="chip tone-quiet" title={`${a.versions} ${a.versions === 1 ? "version" : "versions"}`}>
               v{v?.n ?? a.versions}
             </span>
-            {a.status !== "live" || a.gone || inFlight(a) || a.expired ? <span className={`chip tone-${artifactStatus(a).tone}`}>{artifactStatus(a).words}</span> : null}
+            {a.status !== "live" || a.gone || a.expired ? <span className={`chip tone-${artifactStatus(a).tone}`}>{artifactStatus(a).words}</span> : null}
             {expiry?.soon && (
               <span className="chip tone-attention" title={`No new version since ${new Date(v?.at ?? a.made).toLocaleDateString()}: promote it to keep it`}>
                 <Icon name="clock" size={11} /> {expiry.words}
@@ -216,7 +219,8 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
               </span>
             )}
             <span title={keptTitle(a)}>
-              <Icon name={keptIcon(a.place)} size={11} /> {a.inFlight ?? keptWords(a.place)}
+              <Icon name={keptIcon(a)} size={11} /> {keptWords(a)}
+              {behind(a) > 0 && <span className="dim">, v{a.latest?.n} here</span>}
             </span>
             <span className="mono">{a.id}</span>
           </span>
@@ -246,7 +250,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
   const brief = workspace.artifacts?.find((a) => a.id === id);
   // Read again when the workspace says it's changed: a new version, or
   // where it stands.
-  const key = brief ? `${brief.versions}:${brief.status}:${brief.latest?.at ?? ""}:${brief.title}:${brief.place}:${brief.promoted?.version ?? ""}:${brief.promoted?.into ?? ""}` : "";
+  const key = brief ? `${brief.versions}:${brief.status}:${brief.latest?.at ?? ""}:${brief.title}:${brief.home?.where ?? ""}:${brief.home?.version ?? ""}:${brief.promoted?.version ?? ""}:${brief.promoted?.into ?? ""}` : "";
   const { value: d, error, reload } = useLoaded<ArtifactDetail>(() => getArtifactDetail(id), [id, key], { keep: true });
   const asked = versionOf(version);
   const n = asked || d?.latest?.n || 0;
@@ -296,7 +300,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
     s: () => setSource((s) => !s),
     t: () => hasTweaks(told) && setTray((x) => !x),
     c: () => comparing && navigate(compareHref(comparing)),
-    p: () => d && d.status !== "discarded" && !d.gone && !d.inFlight && setDialog("promote"),
+    p: () => d && d.status !== "discarded" && !d.gone && setDialog("promote"),
     O: () => n && window.open(frameURL(id, n, opensAs), "_blank", "noopener,noreferrer"),
     Escape: () => navigate("/artifacts"),
   });
@@ -317,7 +321,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
   const missing = !!asked && !v;
   const runnable = !d.gone && !!v?.size;
   const expiry = d.status === "live" ? expiryOf(d, Date.now()) : undefined;
-  const keepable = d.status !== "discarded" && !d.gone && !d.inFlight;
+  const keepable = d.status !== "discarded" && !d.gone;
   // The frame's on the page: there's a version, running, not its source.
   const framed = !missing && runnable && !source && !stopped;
 
@@ -346,13 +350,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           <div className="artifact-note dim">
             Discarded <Time iso={d.discarded.at} as="relative" /> by {d.discarded.by}
             {d.discarded.reason ? `: ${d.discarded.reason}${/[.!?]$/.test(d.discarded.reason) ? "" : "."}` : "."} It's off the list, and takes no new versions.{" "}
-            {d.erased
-              ? "Its files have been deleted for good."
-              : d.place !== ".ws" && d.discarded.commit
-                ? `History keeps it, at ${d.place}@${d.discarded.commit.slice(0, 7)}.`
-                : d.place === ".ws"
-                  ? `Its folder is kept in .ws/artifacts/.discarded until ${new Date(Date.parse(d.discarded.at) + KEEP_DISCARDED).toLocaleDateString()}.`
-                  : null}
+            {d.erased ? "Its files have been deleted for good." : `Its folder is kept in .ws/artifacts/.discarded until ${new Date(Date.parse(d.discarded.at) + KEEP_DISCARDED).toLocaleDateString()}.`}
           </div>
         )}
         {d.status === "promoted" && d.promoted && (
@@ -373,14 +371,11 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             . It's kept for good.
           </div>
         )}
+        {d.home && d.status === "promoted" && <HomeLine d={d} n={n} onDone={reload} />}
         {expiry && (expiry.soon || expiry.expired) && (
           <div className={`artifact-note artifact-expiry${expiry.expired ? " expired" : ""}`}>
             <Icon name="clock" size={12} />{" "}
-            {expiry.expired
-              ? d.place === ".ws"
-                ? "Expired: it's had no new version for a while, and the daemon discards it today. Promote it to keep it."
-                : `Expired: it's had no new version for a while. Clear expired, on Artifacts, takes it from ${d.place}; promote it to keep it.`
-              : `It ${expiry.words}: a new version, or promoting it, keeps it.`}
+            {expiry.expired ? "Expired: it's had no new version for a while, and the daemon discards it today. Promote it to keep it." : `It ${expiry.words}: a new version, or promoting it, keeps it.`}
           </div>
         )}
         <div className="artifact-tools">
@@ -407,7 +402,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             <button className="ghost small" onClick={() => setStopped((s) => !s)} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"}>
               <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
             </button>
-            <button className="ghost small" aria-pressed={source} onClick={() => setSource((s) => !s)} disabled={!runnable} title="Its HTML">
+            <button className="ghost small" aria-pressed={source} onClick={() => setSource((s) => !s)} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"}>
               <Icon name="code" size={13} /> Source <Keys k="s" />
             </button>
             {framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} />}
@@ -455,7 +450,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             </Empty>
           ) : !runnable ? (
             <Empty icon="alert" title="There's no file to run">
-              {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}: what's here is what the records kept.` : `v${n}'s file isn't in ${d.where}.`}
+              {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}: what's here is what the records kept.` : `v${n}'s files aren't in ${d.where}.`}
             </Empty>
           ) : source ? (
             <Source id={d.id} n={n} />
@@ -494,6 +489,40 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
   );
 }
 
+// HomeLine says where a promoted artifact lives in a repo, and which
+// version is there. Where the version on the page is another, it's one
+// press to put it there: where it lives was chosen the first time, so
+// nothing's asked.
+function HomeLine({ d, n, onDone }: { d: ArtifactDetail; n: number; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const home = d.home;
+  if (!home) return null;
+  const put = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const done = await promoteArtifact(d.id, { version: n, into: d.promoted?.into || undefined });
+      toast(`Promoted ${d.id}: v${n} is in ${home.where}${done.landed ? ` (${done.landed})` : ""}`, { tone: "done", ms: 6000 });
+      onDone();
+    } catch (e) {
+      toast(humanError((e as Error).message), { tone: "danger", ms: 8000 });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="artifact-note artifact-home dim">
+      <Icon name="branch" size={12} /> It lives in <Copyable text={home.where} className="mono" title="Copy its folder: how it's named for other people" /> too, for everyone with {home.repo}: v{home.version} is there
+      {home.commit ? ` (${home.commit.slice(0, 7)})` : ""}.
+      {n && n !== home.version && d.all.some((x) => x.n === n) ? (
+        <button className="ghost small" onClick={put} disabled={busy} title={`Promote v${n}: it takes v${home.version}'s place there, in one commit`}>
+          <Icon name="check-circle" size={12} /> {busy ? "Landing…" : `Put v${n} there`}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 // VersionLine is a version in a line: v2 of 3, based on v1 (when it isn't
 // the one before), from where, by whom, and when.
 export function VersionLine({ d, v, workspace }: { d: ArtifactDetail; v: ArtifactVersion; workspace: Workspace }) {
@@ -511,15 +540,14 @@ export function VersionLine({ d, v, workspace }: { d: ArtifactDetail; v: Artifac
       )}
       <span>{v.from ? byWords(v) : v.by === "you" ? "by you, by hand" : byWords(v)}</span>
       <Time iso={v.at} as="relative" />
-      {v.size ? <span>{sizeWords(v.size)}</span> : null}
-      {v.capsule ? (
-        <span className="artifact-in-flight" title={v.was ? `v${v.was} in ${v.capsule}: v${v.was} landed first, so it lands as v${v.n}` : `In ${v.capsule}: it lands with it`}>
-          <Icon name="circle-dashed" size={11} /> in flight, in {v.capsule}
-          {v.was ? `, as v${v.was}` : ""}
+      {v.size ? <span>{filesWords(v.files, v.size)}</span> : null}
+      {d.home?.version === v.n ? (
+        <span title={keptTitle(d)}>
+          <Icon name="branch" size={11} /> in {d.home.repo}
         </span>
       ) : (
-        <span title={keptTitle(d)}>
-          <Icon name={keptIcon(d.place)} size={11} /> {keptWords(d.place)}
+        <span title={`On this machine: ${d.where}`}>
+          <Icon name="monitor" size={11} /> This machine
         </span>
       )}
     </div>
@@ -536,7 +564,7 @@ export function VersionStrip({ d, n, go, keys = ["[", "]"] }: { d: ArtifactDetai
           key={x.n}
           className="artifact-version-host"
           trigger={
-            <button aria-pressed={x.n === n} onClick={() => go(x.n)} tabIndex={-1} className={x.capsule ? "in-flight" : undefined}>
+            <button aria-pressed={x.n === n} onClick={() => go(x.n)} tabIndex={-1} className={d.home?.version === x.n ? "at-home" : undefined}>
               v{x.n}
             </button>
           }
@@ -548,7 +576,7 @@ export function VersionStrip({ d, n, go, keys = ["[", "]"] }: { d: ArtifactDetai
             </span>
           </span>
           <span className="hovercard-line">{x.note || <span className="dim">No note.</span>}</span>
-          {x.capsule && <span className="hovercard-line dim">In flight, in {x.capsule}: it lands with it.</span>}
+          {d.home?.version === x.n && <span className="hovercard-line dim">It's the version in {d.home.repo}: {d.home.where}</span>}
         </HoverCard>
       ))}
       <span className="artifact-step-keys dim">
@@ -558,26 +586,64 @@ export function VersionStrip({ d, n, go, keys = ["[", "]"] }: { d: ArtifactDetai
   );
 }
 
-// Source is a version's HTML, as Files shows a file.
+// Source is a version's files, as they were written: its page, and for
+// one with more, a list of them beside it to read another. A file that
+// isn't text (an image, a font) says what it is.
 function Source({ id, n }: { id: string; n: number }) {
-  const { value, error } = useLoaded(() => getArtifactSource(id, n), [id, n]);
+  const [file, setFile] = useState("");
+  // Another version opens at its page.
+  useEffect(() => setFile(""), [id, n]);
+  const { value, error } = useLoaded<ArtifactSource>(() => getArtifactSource(id, n, file), [id, n, file], { keep: true });
   const ready = useHighlighter();
   const lines = useMemo(() => {
-    if (!value) return [];
+    if (!value || value.binary) return [];
     const ls = value.text.split("\n");
-    return ready && ls.length <= 20000 ? highlightLines(ls, languageOf("v.html")) : ls.map(escapeHTML);
+    return ready && ls.length <= 20000 ? highlightLines(ls, languageOf(value.file)) : ls.map(escapeHTML);
   }, [value, ready]);
-  if (error) return <ErrorCard error={error} />;
+  if (error && !value) return <ErrorCard error={error} />;
   if (!value) return <Loading what="Reading its source…" />;
+  const many = value.files.length > 1;
   return (
-    <div className="code-view artifact-source">
-      {lines.map((h, i) => (
-        <div key={i} className="code-line">
-          <span className="code-ln">{i + 1}</span>
-          <span className="code-mark" aria-hidden />
-          <code dangerouslySetInnerHTML={{ __html: h || " " }} />
+    <div className={`artifact-source-view${many ? " many" : ""}`}>
+      {many && (
+        <nav className="artifact-files" aria-label={`v${value.version}'s files`}>
+          <div className="artifact-files-head dim">
+            {value.files.length} files, {sizeWords(value.files.reduce((sum, f) => sum + f.size, 0))}
+          </div>
+          {value.files.map((f) => (
+            <button
+              key={f.path}
+              // The one being read is kept in sight: on a narrow window the list is a row that scrolls.
+              ref={f.path === value.file ? (el) => el?.scrollIntoView({ block: "nearest", inline: "nearest" }) : undefined}
+              className="artifact-file"
+              aria-current={f.path === value.file ? "true" : undefined}
+              onClick={() => setFile(f.path)}
+              title={`${f.path}, ${sizeWords(f.size)}`}
+            >
+              <Icon name={f.path === "index.html" ? "artifact" : "file"} size={12} />
+              <span className="artifact-file-path">{f.path}</span>
+              <span className="artifact-file-size dim">{sizeWords(f.size)}</span>
+            </button>
+          ))}
+        </nav>
+      )}
+      {error ? (
+        <ErrorCard error={error} />
+      ) : value.binary ? (
+        <Empty icon="file" title={`${value.file} isn't text`}>
+          It's {sizeWords(value.size)}, and the page shows it where it uses it.
+        </Empty>
+      ) : (
+        <div className="code-view artifact-source">
+          {lines.map((h, i) => (
+            <div key={i} className="code-line">
+              <span className="code-ln">{i + 1}</span>
+              <span className="code-mark" aria-hidden />
+              <code dangerouslySetInnerHTML={{ __html: h || " " }} />
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }

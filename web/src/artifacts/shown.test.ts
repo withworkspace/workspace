@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { ArtifactInfo } from "../api";
-import { ANYWHERE, artifactStatus, BY_HAND, keptTitle, keptWords, fromRef, listed, missionTalk, sizeWords, sources, stepVersion, versionOf } from "./shown";
+import { ANYWHERE, artifactStatus, behind, BY_HAND, filesWords, keptIcon, keptTitle, keptWords, fromRef, listed, missionTalk, sizeWords, sources, stepVersion, versionOf } from "./shown";
 
 const art = (id: string, status: ArtifactInfo["status"], from: string[] = []): ArtifactInfo => ({
   id,
   title: id,
   status,
-  place: ".ws",
   folder: `2026-11-12-${id}`,
   where: `.ws/artifacts/2026-11-12-${id}/`,
   made: "2026-11-12T18:46:00Z",
@@ -72,18 +71,37 @@ describe("a version", () => {
     expect(artifactStatus({ status: "live" }).words).toBe("Live");
     expect(artifactStatus({ status: "live", gone: true }).words).toBe("Gone");
     expect(artifactStatus({ status: "promoted" }).tone).toBe("done");
-    expect(artifactStatus({ status: "live", inFlight: "records/glow" }).words).toBe("In flight");
-    expect(artifactStatus({ status: "live", latest: { n: 3, at: "", by: "c1", capsule: "records/glow" } }).words).toBe("In flight");
-    expect(artifactStatus({ status: "promoted", inFlight: "records/glow" }).words).toBe("Promoted");
+    expect(artifactStatus({ status: "live", expired: true }).words).toBe("Expired");
   });
 });
 
 describe("where it's kept", () => {
-  it("is this machine, or the repo, and in flight in a capsule", () => {
-    expect(keptWords(".ws")).toBe("This machine");
-    expect(keptWords("records")).toBe("records");
-    expect(keptTitle({ place: ".ws", where: ".ws/artifacts/x/" })).toBe("On this machine only: .ws/artifacts/x/");
-    expect(keptTitle({ place: "records", where: "records:artifacts/x/" })).toBe("In records, for everyone with it: records:artifacts/x/");
-    expect(keptTitle({ place: "records", where: "records/glow:artifacts/x/", inFlight: "records/glow" })).toBe("In records/glow, not landed: records/glow:artifacts/x/");
+  const home = { where: "records:artifacts/x/", repo: "records", version: 2, at: "2026-11-12T18:46:00Z" };
+  const v = (n: number) => ({ n, at: "", by: "you" });
+
+  it("is this machine, and the repo it lives in, promoted there", () => {
+    expect(keptWords({})).toBe("This machine");
+    expect(keptIcon({})).toBe("monitor");
+    expect(keptWords({ home })).toBe("records · v2");
+    expect(keptIcon({ home })).toBe("branch");
+    expect(keptTitle({ where: ".ws/artifacts/x/" })).toBe("On this machine only: .ws/artifacts/x/");
+    expect(keptTitle({ where: ".ws/artifacts/x/", home })).toBe("v2 lives in records:artifacts/x/, for everyone with records. Every version is on this machine: .ws/artifacts/x/");
+  });
+
+  it("says how many versions are newer than the one that's there", () => {
+    expect(behind({ latest: v(5) })).toBe(0);
+    expect(behind({ home, latest: v(2) })).toBe(0);
+    expect(behind({ home, latest: v(5) })).toBe(3);
+    // One promoted back to an earlier version has nothing newer to put there.
+    expect(behind({ home: { ...home, version: 4 }, latest: v(4) })).toBe(0);
   });
 });
+describe("how much a version is", () => {
+  it("says its size alone for one that's its page only, and how many files for one with more", () => {
+    expect(filesWords(undefined, 2048)).toBe("2 KB");
+    expect(filesWords(1, 2048)).toBe("2 KB");
+    expect(filesWords(9, 5 * 1024)).toBe("9 files, 5 KB");
+    expect(filesWords(3, 3 << 20)).toBe("3 files, 3 MB");
+  });
+});
+

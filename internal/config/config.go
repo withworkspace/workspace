@@ -148,20 +148,19 @@ type DocumentKind struct {
 // HTML prototypes) are kept, and the first lines of the commits that keep
 // them in a repo.
 type ArtifactsConfig struct {
-	// Path is where new ones go: a folder of a repo, as a kind's path is
-	// a file of one, with {date} and {slug} (or {number}) in its last
-	// part, ending in /: "records:artifacts/{date}-{slug}/". None, or
-	// ".ws": .ws/artifacts/{date}-{slug}/, on this machine.
+	// Path is where a promoted one lives: a folder of a repo, as a
+	// kind's path is a file of one, with {date} and {slug} (or {number})
+	// in its last part, ending in /: "records:artifacts/{date}-{slug}/".
+	// None, or ".ws": it stays on this machine, in .ws/artifacts, where
+	// every artifact is.
 	Path string `toml:"path,omitempty"`
-	// Add, Revise, Promote, Discard, Restore and Clear are the first
-	// lines of the commits that keep them in a repo, with {title},
-	// {slug}, {date}, {number} and {version} filled in. None: ws's own.
-	Add     string `toml:"add,omitempty"`
-	Revise  string `toml:"revise,omitempty"`
+	// Promote, Discard and Restore are the first lines of the commits
+	// that put a promoted one in that repo, take it out and put it back,
+	// with {title}, {slug}, {date}, {number} and {version} filled in.
+	// None: ws's own.
 	Promote string `toml:"promote,omitempty"`
 	Discard string `toml:"discard,omitempty"`
 	Restore string `toml:"restore,omitempty"`
-	Clear   string `toml:"clear,omitempty"`
 	// ExpireAfter is how long a live one lasts after its last version: a
 	// number of days ("30d"), or "never".
 	ExpireAfter string `toml:"expire_after,omitempty"`
@@ -169,13 +168,13 @@ type ArtifactsConfig struct {
 	// conversation's agent before it proposes one in place of ws's own
 	// note: relative to the workspace, or repo:path.
 	Guide string `toml:"guide,omitempty"`
-	// Local is ws.local.toml's path, if it says one: where your new ones
-	// go, whatever the team's says (".ws": on this machine).
+	// Local is ws.local.toml's path, if it says one: where the ones you
+	// promote live, whatever the team's says (".ws": on this machine).
 	Local string `toml:"-"`
 }
 
-// LocalArtifactsConfig is [artifacts] in ws.local.toml: where your new
-// artifacts go (".ws" keeps them on this machine).
+// LocalArtifactsConfig is [artifacts] in ws.local.toml: where the
+// artifacts you promote live (".ws" keeps them on this machine).
 type LocalArtifactsConfig struct {
 	Path string `toml:"path,omitempty"`
 }

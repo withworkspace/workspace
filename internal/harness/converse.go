@@ -28,7 +28,8 @@ var ErrSessionGone = errors.New("its session is gone")
 
 // converseCommands are the shell commands a conversation's agent may run,
 // each the start of a command run alone (nothing chained): reading, ws
-// show and its kin (an artifact's versions printed among them), and for a
+// show and its kin (an artifact's versions printed among them, and
+// checked out into a folder it may write in, to work on), and for a
 // thread, suggesting an edit (which the user accepts or not); for a talk,
 // the missions, GitHub's views, read-only git in each of ReadPaths,
 // proposing (which the user confirms, or not) a decision, a mission, an
@@ -44,7 +45,7 @@ var ErrSessionGone = errors.New("its session is gone")
 func converseCommands(r ConverseRun) []string {
 	var out []string
 	for _, ws := range []string{"ws", "workspace"} {
-		out = append(out, ws+" show", ws+" review show", ws+" thread list", ws+" status", ws+" rg", ws+" documents", ws+" find", ws+" artifact show", ws+" artifact list")
+		out = append(out, ws+" show", ws+" review show", ws+" thread list", ws+" status", ws+" rg", ws+" documents", ws+" find", ws+" artifact show", ws+" artifact list", ws+" artifact checkout")
 		if r.Talk {
 			out = append(out, ws+" mission list", ws+" conversation list", ws+" mission decide --propose", ws+" mission new --propose",
 				ws+" mission brief --propose", ws+" mission plan --propose", ws+" mission plan --format", ws+" mission dispatch --propose", ws+" mission replan --propose", ws+" pr comment --propose",

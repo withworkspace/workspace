@@ -39,7 +39,7 @@ func TestArtifact_ProposedInATalkAndAccepted(t *testing.T) {
 
 	// How one's written, with nothing proposed.
 	guide := testutil.Run(t, w, nil, "artifact", "add", "--propose")
-	for _, want := range []string{"One HTML file, starting <!doctype html>, with its CSS and JS inline", "No network", "At most 1 MB", "prefers-color-scheme", "Don't depend on localStorage", "ws.tweaks({", "The first preset is what the page opens as", `data-density="compact"`, "ws artifact add --propose --title", "ws artifact add --propose --to a3 --on v2"} {
+	for _, want := range []string{"Its page is index.html, starting <!doctype html>", "One with more to it is a folder", "Nothing from elsewhere", "At most 10 MB for all of a version's files, and 200 of them", "ws artifact checkout a3.v2", "--note \"<what changed, and why>\" <folder>", "prefers-color-scheme", "Don't depend on localStorage", "ws.tweaks({", "The first preset is what the page opens as", `data-density="compact"`, "ws artifact add --propose --title", "ws artifact add --propose --to a3 --on v2"} {
 		if !strings.Contains(guide.Stdout, want) {
 			t.Errorf("the guide lacks %q:\n%s", want, guide.Stdout)
 		}
@@ -58,7 +58,7 @@ func TestArtifact_ProposedInATalkAndAccepted(t *testing.T) {
 
 	testutil.WithStdin(t, glowV1+`<link rel="stylesheet" href="https://fonts.example.com/inter.css">`)
 	r := testutil.Run(t, w, nil, "artifact", "add", "--propose", "--title", "Horizon glow on the web UI background", "--note", "Accent at 8% in dark and 3% in light, fading out by 55% of the height.", "-")
-	if !strings.Contains(r.Stderr, "proposed in w1 (proposal 1)") || !strings.Contains(r.Stderr, "loads https://fonts.example.com/inter.css") || !strings.Contains(r.Stderr, "-horizon-glow-on-the-web-ui-background/v1.html (on this machine)") {
+	if !strings.Contains(r.Stderr, "proposed in w1 (proposal 1)") || !strings.Contains(r.Stderr, "loads https://fonts.example.com/inter.css") || !strings.Contains(r.Stderr, "-horizon-glow-on-the-web-ui-background/ (on this machine;") {
 		t.Errorf("proposing:\n%s", r.Stderr)
 	}
 	if entries, _ := os.ReadDir(stored); len(entries) != 0 {
@@ -96,7 +96,7 @@ func TestArtifact_ProposedInATalkAndAccepted(t *testing.T) {
 	if len(c.Proposals) != 4 {
 		t.Fatalf("proposals: %+v", c.Proposals)
 	}
-	if p := c.Proposals[1]; p.Kind != conversation.ProposeArtifact || p.To != "a1" || p.On != 1 || p.Latest != 1 || p.HTML != glowV2 || p.Size != len(glowV2) || !strings.HasSuffix(p.Path, "-horizon-glow-on-the-web-ui-background/v2.html") {
+	if p := c.Proposals[1]; p.Kind != conversation.ProposeArtifact || p.To != "a1" || p.On != 1 || p.Latest != 1 || p.HTML != glowV2 || p.Size != len(glowV2) || !strings.HasSuffix(p.Path, "-horizon-glow-on-the-web-ui-background/") {
 		t.Errorf("the revision proposed: %+v", p)
 	}
 	if p := c.Proposals[3]; p.To != "a1" || p.On != 1 {
@@ -131,10 +131,10 @@ func TestArtifact_ProposedInATalkAndAccepted(t *testing.T) {
 			t.Errorf("v%d: %+v", i+1, v)
 		}
 	}
-	if got, _ := os.ReadFile(filepath.Join(stored, entries[0].Name(), "v2.html")); string(got) != glowV2 {
-		t.Errorf("v2.html: %q", got)
+	if got := testutil.Run(t, w, nil, "artifact", "show", "a1.v2").Stdout; got != glowV2 {
+		t.Errorf("v2's page: %q", got)
 	}
-	if _, err := os.Stat(filepath.Join(stored, entries[0].Name(), "v4.html")); err == nil {
+	if r := testutil.RunCommand(t, w.Root, nil, "artifact", "show", "a1.v4"); r.Err == nil {
 		t.Error("the declined proposal was added")
 	}
 
@@ -145,7 +145,7 @@ func TestArtifact_ProposedInATalkAndAccepted(t *testing.T) {
 		}
 	}
 	show := testutil.Run(t, w, nil, "show", "a1").Stdout
-	for _, want := range []string{"by you, accepting proposal 1 in conversation w1 (\"Radial horizon gradient on web UI background\")", "v2 · based on v1", "accepting proposal 2 in conversation w1", "v3 · based on v1", "No glow in light: at 3% the page looked grey.", "ws artifact add <file> --to a1"} {
+	for _, want := range []string{"by you, accepting proposal 1 in conversation w1 (\"Radial horizon gradient on web UI background\")", "v2 · based on v1", "accepting proposal 2 in conversation w1", "v3 · based on v1", "No glow in light: at 3% the page looked grey.", "ws artifact add <file|folder> --to a1"} {
 		if !strings.Contains(show, want) {
 			t.Errorf("ws show a1 lacks %q:\n%s", want, show)
 		}

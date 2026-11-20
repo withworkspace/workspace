@@ -16,9 +16,10 @@ import (
 	"github.com/withworkspace/workspace/internal/ui"
 )
 
-// ws artifact: versioned HTML prototypes (internal/artifact), added by
-// crew and by you, kept on this machine in .ws/artifacts or in the repo
-// [artifacts] names, and shown by ws show a3. Not ws mission artifact,
+// ws artifact: versioned HTML prototypes (internal/artifact), each version
+// a page and the files beside it, added by crew and by you, kept on this
+// machine in .ws/artifacts (one you promote may live in a repo too), and
+// shown by ws show a3. Not ws mission artifact,
 // which records a pointer to what a mission made (crew's artifacts are
 // recorded there as a3).
 
@@ -27,36 +28,40 @@ func newArtifactCmd() *cobra.Command {
 		Use:     "artifact",
 		Aliases: []string{"artifacts"},
 		Short:   "Add, list, show, promote and discard artifacts: versioned HTML prototypes",
-		Long: `An artifact is one HTML file, with its CSS and JS inline, that shows an
-idea: something to look at and use rather than read, such as a mock-up of a
-page, two takes on a colour, or a diagram you can click through. Each
-version is a whole file, never changed once written, and says who made it,
-where (a mission, or by hand), what it's based on, and what changed.
+		Long: `An artifact is a page that shows an idea: something to look at and use
+rather than read, such as a mock-up of a page, two takes on a colour, or a
+diagram you can click through. A version is its page (index.html) and
+whatever files it loads beside it: stylesheets, scripts, images, fonts,
+data. One HTML file with everything inline is a version too. Each version
+is whole, never changed once written, and says who made it, where (a
+mission, or by hand), what it's based on, and what changed.
 
-Each is a folder, {date}-{slug}/, holding its record (artifact.toml) and
-v1.html, v2.html, …, named a1, a2, … on this machine: a version is a3.v2.
+Each is a folder, {date}-{slug}/, holding its record (artifact.toml) and a
+git repo of its own (files.git), where each version is a commit, tagged
+v1, v2, …. They're named a1, a2, … on this machine: a version is a3.v2.
 ws show a3 shows one, with its versions, their notes and where each came
-from.
+from. ws artifact checkout a3 puts a version's files in a folder to work
+on, and ws artifact add <folder> --to a3 adds what you made of them.
 
-They're kept where [artifacts] path in ws.toml says: in a repo
-("records:artifacts/{date}-{slug}/"), or, without one, on this machine, in
-.ws/artifacts (ws.local.toml's path = ".ws" keeps yours here whatever
-ws.toml says). In a repo, each you add is a commit, landed on its default
-branch; crew's are written in their mission's capsule of it, and land
-with it. ws reads both places.
-
-Crew's are recorded on their mission, as one of its artifacts. That's
-ws mission artifact add's list, which points at anything a mission made.
+They're on this machine, in .ws/artifacts. Crew's are recorded on their
+mission, as one of its artifacts. That's ws mission artifact add's list,
+which points at anything a mission made.
 
 They're sketches, and most should go. A live one expires 30 days after its
-last version ([artifacts] expire_after): on this machine the daemon
-discards it, and in a repo it's listed as expired until you clear them
-(ws artifact clear). You promote one worth keeping (ws artifact promote),
-which ends its expiry, and discard one that isn't (ws artifact discard),
-which ws artifact restore undoes.`,
+last version ([artifacts] expire_after), and the daemon discards it. You
+promote one worth keeping (ws artifact promote), which ends its expiry, and
+discard one that isn't (ws artifact discard), which ws artifact restore
+undoes.
+
+A promoted one can live in a repo too, for everyone with it: the version
+chosen, in a folder there ([artifacts] path in ws.toml says where, as
+"records:artifacts/{date}-{slug}/", or you name one). Where it lives is
+chosen the first time it's promoted, and kept: promote it again, versions
+later, and the one chosen then goes to the same folder, in one commit
+landed on the repo's default branch.`,
 		Args: cobra.NoArgs,
 	}
-	cmd.AddCommand(newArtifactAddCmd(), newArtifactListCmd(), newArtifactShowCmd(), newArtifactPromoteCmd(), newArtifactDiscardCmd(), newArtifactRestoreCmd(), newArtifactClearCmd(), newArtifactTweaksCmd())
+	cmd.AddCommand(newArtifactAddCmd(), newArtifactListCmd(), newArtifactShowCmd(), newArtifactCheckoutCmd(), newArtifactPromoteCmd(), newArtifactDiscardCmd(), newArtifactRestoreCmd(), newArtifactClearCmd(), newArtifactTweaksCmd())
 	return cmd
 }
 
@@ -64,30 +69,38 @@ func newArtifactAddCmd() *cobra.Command {
 	var title, note, to, on string
 	var proposeIt bool
 	cmd := &cobra.Command{
-		Use:   "add <file>",
-		Short: "Add an artifact from an HTML file (- for stdin), or a version of one (--to)",
-		Long: `Add an artifact from one HTML file (- for stdin), with its CSS and JS
-inline, as its first version; or, with --to a3, a new version of artifact
-a3, based on its latest (--on v1 for another). Each version is a whole file.
+		Use:   "add <file|folder>",
+		Short: "Add an artifact from an HTML file (- for stdin) or a folder, or a version of one (--to)",
+		Long: `Add an artifact as its first version; or, with --to a3, a new version of
+artifact a3, based on its latest (--on v1 for another). What's added is:
 
-Its title is --title, or the HTML's <title>. Its note (--note) says, in a
+  a folder     its page, index.html at the top, and every file in it and
+               under it (stylesheets, scripts, images, fonts, data), each
+               at its path. Hidden files (.git, .DS_Store) are left out.
+  a file, or - one HTML file, with its CSS and JS inline: the page alone.
+
+Each version is whole: to change one that has files, check it out
+(ws artifact checkout a3), change what you're changing, and add the folder.
+
+Its title is --title, or its page's <title>. Its note (--note) says, in a
 line or two, what changed and why; the first version's says what the
 artifact tries out. Crew must give one.
 
-A version is at most 1 MB, and runs in the web UI in a sandboxed frame that
-fetches nothing and keeps nothing: ws warns of a script, font or image it
-loads from elsewhere, a call to the network, and storage, so they can be
-put in the file instead (images as data: URLs).
+A version's files come to at most 10 MB, 200 of them at most. It runs in
+the web UI in a sandboxed frame that loads the version's own files and
+nothing else, and keeps nothing: ws warns of a script, font or image
+loaded from elsewhere, a file the page loads that isn't among them, a call
+to the network, and storage.
 
 Where there's something to choose between (a density, a colour, two takes
 on a layout), its page says what can be changed (ws.tweaks) and the web UI
 draws the controls beside its frame, with the page's presets as buttons:
 ws artifact tweaks says how.
 
-Run by crew, it's recorded on their mission, and says it came from it;
-kept in a repo, it's written in their capsule of it (the one they're in),
-to commit with their work. Run by you, it's yours, by hand; kept in a
-repo, it's committed and landed there.
+Run by crew, it's recorded on their mission, and says it came from it.
+Run by you, it's yours, by hand. Either way it's on this machine: a
+version of one that lives in a repo too goes there when you next promote
+it.
 
 In a conversation, its agent proposes one instead (--propose, first), and
 the user adds it, or not, with a button under its reply, where it runs in a
@@ -95,7 +108,7 @@ small frame. ws artifact add --propose, with no file, prints how one's
 written and proposed.
 
   ws artifact add glow.html --title "Horizon glow" --note "Accent at 8% in dark, 3% in light."
-  ws artifact add glow.html --to a3 --note "No glow in light: at 3% it looked grey."
+  ws artifact add glow/ --to a3 --note "No glow in light: at 3% it looked grey."
   ws artifact add --propose --to a3 --on v1 --note "…" - <<'EOF'`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if proposeIt {
@@ -118,13 +131,13 @@ written and proposed.
 				return err
 			}
 			if proposeIt {
-				html, err := readHTML(args[0])
+				files, err := readVersion(args[0])
 				if err != nil {
 					return err
 				}
-				return proposeArtifact(ctx, html, title, note, strings.TrimSpace(to), on)
+				return proposeArtifact(ctx, files, title, note, strings.TrimSpace(to), on)
 			}
-			a := ops.ArtifactAdd{Title: title, Note: note, To: strings.TrimSpace(to), Mission: os.Getenv(mission.EnvMission), In: userDirOr()}
+			a := ops.ArtifactAdd{Title: title, Note: note, To: strings.TrimSpace(to), Mission: os.Getenv(mission.EnvMission)}
 			if on != "" {
 				if a.To == "" {
 					return errors.New("--on says which version a new one is based on: give the artifact too (--to a3)")
@@ -135,7 +148,7 @@ written and proposed.
 				}
 				a.On = n
 			}
-			if a.HTML, err = readHTML(args[0]); err != nil {
+			if a.Files, err = readVersion(args[0]); err != nil {
 				return err
 			}
 			added, err := ctx.AddArtifact(a, ops.ActorFromEnv())
@@ -151,7 +164,7 @@ written and proposed.
 			return err
 		},
 	}
-	cmd.Flags().StringVar(&title, "title", "", "its title (default: the HTML's <title>); with --to, a new title for the artifact")
+	cmd.Flags().StringVar(&title, "title", "", "its title (default: its page's <title>); with --to, a new title for the artifact")
 	cmd.Flags().StringVar(&note, "note", "", "what this version changed and why, in a line or two (the first: what it tries out)")
 	cmd.Flags().StringVar(&to, "to", "", "add a version to this artifact (a3) instead of a new artifact")
 	cmd.Flags().StringVar(&on, "on", "", "with --to: the version it's based on, as v1 (default: the latest)")
@@ -160,19 +173,17 @@ written and proposed.
 	return cmd
 }
 
-// readHTML is a version's HTML, from a file or stdin (-).
-func readHTML(file string) ([]byte, error) {
-	var data []byte
-	var err error
-	if file == "-" {
-		data, err = io.ReadAll(io.LimitReader(os.Stdin, artifact.MaxSize*4))
-	} else {
-		data, err = os.ReadFile(file)
+// readVersion is a version's files as ws artifact add is given them: a
+// folder, whole, or its page alone, from a file or stdin (-).
+func readVersion(arg string) (artifact.Files, error) {
+	if arg == "-" {
+		data, err := io.ReadAll(io.LimitReader(os.Stdin, artifact.MaxSize+1))
+		if err != nil {
+			return nil, fmt.Errorf("reading the artifact: %w", err)
+		}
+		return artifact.Page(data), nil
 	}
-	if err != nil {
-		return nil, fmt.Errorf("reading the artifact: %w", err)
-	}
-	return data, nil
+	return ops.ReadArtifactFiles(arg)
 }
 
 func newArtifactListCmd() *cobra.Command {
@@ -185,8 +196,9 @@ its ref, its latest version, its state, its title, and who added its
 latest version, where and when. --all lists discarded ones too.
 
 A live one in its last week says when it expires (expires in 4 days), and
-one kept in a repo that has expired says so (expired): ws artifact clear
-clears them, and ws artifact promote keeps one.`,
+one that has says so (expired) until the daemon discards it, or
+ws artifact clear does: ws artifact promote keeps one. A promoted one that
+lives in a repo says where, and which version is there.`,
 		Args:   cobra.NoArgs,
 		PreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -228,15 +240,14 @@ clears them, and ws artifact promote keeps one.`,
 
 // artifactListLine is an artifact on a line: a3 v2 live "Title" · by c1
 // in mission-slug, 2026-11-12 18:52. A live one in its last week says when
-// it expires, and one expired says so.
+// it expires, one expired says so, and one that lives in a repo says
+// where, and which version is there.
 func artifactListLine(e artifact.Entry, cfg artifact.Config, now time.Time) string {
 	latest, _ := e.Latest()
 	state := string(e.Status)
 	switch {
-	case e.Gone:
+	case e.Gone || e.Away():
 		state = "gone"
-	case e.InFlight() != "" || latest.Capsule != "":
-		state = "in flight"
 	case cfg.Expired(e, now):
 		state = "expired"
 	}
@@ -245,23 +256,26 @@ func artifactListLine(e artifact.Entry, cfg artifact.Config, now time.Time) stri
 		expiring = " · " + artifact.ExpiresWords(at, now)
 	}
 	where := ""
-	if e.InRepo() {
-		where = " · in " + e.Place
-		if latest.Capsule != "" {
-			where = " · in " + latest.Capsule
-		}
+	if h := e.Home; h != nil && e.Lives() != "" {
+		where = fmt.Sprintf(" · v%d in %s", h.Version, h.Where())
 	}
 	return fmt.Sprintf("%-4s v%-3d %-9s %s · %s, %s%s%s", e.ID, latest.N, state, e.Title, provenance(latest), when(latest.At), where, expiring)
 }
 
 func newArtifactShowCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "show <a3|a3.v2>",
-		Short: "Print a version of an artifact: its HTML (the latest, for a3)",
-		Long: `Print a version of an artifact, its HTML as it was added: a3.v2 for v2,
-or a3 for the latest. ws show a3 says what each version is: its note,
-what it's based on, and where it came from.`,
-		Args:   cobra.ExactArgs(1),
+	var list bool
+	cmd := &cobra.Command{
+		Use:   "show <a3|a3.v2> [file]",
+		Short: "Print a version of an artifact: its page, or another of its files (the latest, for a3)",
+		Long: `Print a version of an artifact, as it was added: a3.v2 for v2, or a3 for
+the latest. With no file it's the version's page (index.html); name
+another of its files to print that (ws artifact show a3.v2 css/glow.css),
+and --files lists them, each with its size.
+
+ws show a3 says what each version is: its note, what it's based on, and
+where it came from. ws artifact checkout a3 puts a version's files in a
+folder, to work on.`,
+		Args:   cobra.RangeArgs(1, 2),
 		PreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, n, ok := artifact.ParseRef(args[0])
@@ -272,36 +286,118 @@ what it's based on, and where it came from.`,
 			if err != nil {
 				return err
 			}
-			text, _, _, err := ctx.Artifacts().ReadVersion(context.Background(), id, n)
+			st := ctx.Artifacts()
+			if list {
+				files, _, _, err := st.VersionFiles(context.Background(), id, n)
+				if err != nil {
+					return err
+				}
+				for _, f := range files {
+					fmt.Printf("%s\t%s\n", f.Path, artifact.Size(f.Size))
+				}
+				return nil
+			}
+			file := artifact.IndexFile
+			if len(args) == 2 {
+				file = strings.TrimPrefix(args[1], "./")
+			}
+			data, _, _, n, err := st.ReadFile(context.Background(), id, n, file)
+			if errors.Is(err, artifact.ErrNoFile) {
+				return fmt.Errorf("%s has no file %s: ws artifact show %s --files lists its files", artifact.VersionRef(id, n), file, artifact.VersionRef(id, n))
+			}
 			if err != nil {
 				return err
 			}
-			_, err = os.Stdout.Write(text)
+			_, err = os.Stdout.Write(data)
 			return err
+		},
+	}
+	cmd.Flags().BoolVar(&list, "files", false, "list the version's files, each with its size, instead of printing one")
+	return cmd
+}
+
+func newArtifactCheckoutCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "checkout <a3|a3.v2> [folder]",
+		Short: "Put a version's files in a folder, to work on (the latest, for a3)",
+		Long: `Put a version's files in a folder, as they were added: a3.v2 for v2, or
+a3 for the latest. It's how a version that has files is revised: change
+what you're changing in the folder, and add the folder as the next version,
+
+  ws artifact add <folder> --to a3 --note "<what changed, and why>"
+
+(in a conversation, ws artifact add --propose --to a3 --note "…" <folder>).
+The version is whole, so the files you left alone go in again as they are.
+
+With no folder, ws makes one and prints it: in the system's temp folder,
+or, for a conversation's agent, in the folder that's its own to write in.
+A folder you name is made, and must be empty if it's there. Nothing links
+the folder to the artifact: delete it when you're done.`,
+		Args:   cobra.RangeArgs(1, 2),
+		PreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			dir := ""
+			if len(args) == 2 {
+				dir = args[1]
+			}
+			out, err := ctx.CheckoutArtifact(args[0], dir, os.Getenv(mission.EnvMission), agentConversation())
+			if err != nil {
+				return err
+			}
+			ref := artifact.VersionRef(out.Entry.ID, out.Version)
+			size := 0
+			for _, f := range out.Files {
+				size += f.Size
+			}
+			fmt.Fprintf(ui.Stderr, "  %s %s's files (%s) are in %s\n", ui.Green.Render("✓"), ref, artifact.FilesWords(len(out.Files), size), out.Dir)
+			for _, f := range out.Files {
+				fmt.Fprintf(ui.Stderr, "      %s  %s\n", f.Path, ui.Dim.Render(artifact.Size(f.Size)))
+			}
+			add := fmt.Sprintf("ws artifact add %s --to %s --on v%d --note \"…\"", out.Dir, out.Entry.ID, out.Version)
+			if agentConversation() != "" {
+				add = fmt.Sprintf("ws artifact add --propose --to %s --on v%d --note \"…\" %s", out.Entry.ID, out.Version, out.Dir)
+			}
+			fmt.Fprintf(ui.Stderr, "  %s change what you're changing there, then: %s\n", ui.Dim.Render("·"), add)
+			fmt.Println(out.Dir)
+			return nil
 		},
 	}
 }
 
 func newArtifactPromoteCmd() *cobra.Command {
 	var version int
-	var into, start string
-	var move bool
+	var into, start, home string
+	var here bool
 	cmd := &cobra.Command{
 		Use:   "promote <a3|a3.v2>",
-		Short: "Keep an artifact for good: the version chosen, and what it went into (the user only)",
+		Short: "Keep an artifact for good: the version chosen, what it went into, and where it lives (the user only)",
 		Long: `Promote an artifact worth keeping: it expires no more, and says which version
 was chosen (a3.v2, or --version 2; its latest for neither) and what it went
 into, if anything:
 
   --into <slug>        a mission: it's recorded on it, so its crew read it
-  --into <repo:path>   a document, which cites it by its folder in the repo
+  --into <repo:path>   a document, which cites it by its folder in a repo
   --start "<what>"     a new mission started from it, waiting to be briefed,
                        with it recorded on it
 
-Kept in a repo, promoting it is a commit landed there. On this machine, it's
-marked in its folder; --move moves it into the repo artifacts are kept in,
-its versions and record in one commit, and takes it from .ws/artifacts. A
-document can cite only one in a repo.
+A promoted one can live in a repo, for everyone with it: the version chosen
+(index.html) and a record of it (artifact.toml), in a folder there, in one
+commit landed on the repo's default branch. Where it lives is chosen the
+first time it's promoted:
+
+  (neither)                 where [artifacts] path in ws.toml says promoted
+                            ones live; with none, it stays on this machine
+  --home <repo:folder/>     that folder
+  --here                    on this machine only, whatever ws.toml says
+
+and kept in its record. Promote it again, versions later, and the version
+chosen then goes to the same folder, with nothing asked: ws show a3 says
+which version is there. Its other versions stay on this machine. A document
+can cite only one that lives in a repo.
 
 A promoted one still takes new versions. Promote it again to choose
 another, or say what it went into now. Only you promote one: crew say in
@@ -313,7 +409,7 @@ their handoff which they'd keep.`,
 			if err != nil {
 				return err
 			}
-			done, err := ctx.PromoteArtifact(ops.ArtifactPromote{Ref: args[0], Version: version, Into: into, Start: start, Move: move}, ops.ActorFromEnv())
+			done, err := ctx.PromoteArtifact(ops.ArtifactPromote{Ref: args[0], Version: version, Into: into, Start: start, Home: home, Here: here}, ops.ActorFromEnv())
 			if err != nil && done.Entry.ID == "" {
 				return err
 			}
@@ -322,11 +418,8 @@ their handoff which they'd keep.`,
 			if done.Into != "" {
 				line += ", into " + done.Into
 			}
-			switch {
-			case done.Moved:
-				line += fmt.Sprintf(", and moved to %s: %s", e.Where(), done.Landed)
-			case done.Landed != "":
-				line += ": " + done.Landed
+			if done.Home != "" {
+				line += fmt.Sprintf(", and put in %s: %s", done.Home, done.Landed)
 			}
 			fmt.Fprintf(ui.Stderr, "  %s %s\n", ui.Green.Render("✓"), line)
 			switch {
@@ -335,10 +428,11 @@ their handoff which they'd keep.`,
 			case done.Recorded != "":
 				fmt.Fprintf(ui.Stderr, "  %s recorded it on %s, among its artifacts\n", ui.Dim.Render("·"), done.Recorded)
 			}
-			if !e.InRepo() && !move {
-				if c := ctx.ArtifactsConfig(); c.Repo != "" {
-					fmt.Fprintf(ui.Stderr, "  %s it's on this machine only: --move moves it to %s\n", ui.Dim.Render("·"), c.Repo)
-				}
+			switch {
+			case done.First:
+				fmt.Fprintf(ui.Stderr, "  %s it lives there from now on: promoting it again puts the version chosen then in the same folder\n", ui.Dim.Render("·"))
+			case done.Home == "":
+				fmt.Fprintf(ui.Stderr, "  %s it's on this machine only: --home <repo:folder/> gives it a folder in a repo, for everyone with it\n", ui.Dim.Render("·"))
 			}
 			return err
 		},
@@ -346,7 +440,8 @@ their handoff which they'd keep.`,
 	cmd.Flags().IntVar(&version, "version", 0, "the version chosen (default: its latest, or the one the ref names)")
 	cmd.Flags().StringVar(&into, "into", "", "what it went into: a mission's slug, or a document's ref (repo:path)")
 	cmd.Flags().StringVar(&start, "start", "", "start a mission from it, saying what the mission is")
-	cmd.Flags().BoolVar(&move, "move", false, "on this machine: move it into the repo artifacts are kept in, in the same commit")
+	cmd.Flags().StringVar(&home, "home", "", "the first time: the folder in a repo it's to live in, as repo:folder/ (default: where [artifacts] path says)")
+	cmd.Flags().BoolVar(&here, "here", false, "the first time: keep it on this machine only, whatever [artifacts] path says")
 	return cmd
 }
 
@@ -358,10 +453,10 @@ func newArtifactDiscardCmd() *cobra.Command {
 no more (ws artifact list --all lists it), and ws show a3 still says what it
 was, where it came from, and why it was discarded.
 
-On this machine its folder moves to .ws/artifacts/.discarded/, and is
-deleted for good 30 days later. In a repo, a commit takes its folder away,
-landed on its default branch, and history keeps it. Either way,
-ws artifact restore puts it back. Only you discard one.`,
+Its folder moves to .ws/artifacts/.discarded/, and is deleted for good 30
+days later. Where it lives in a repo, a commit takes its folder there away
+first, landed on the repo's default branch. ws artifact restore puts it
+back, there too. Only you discard one.`,
 		Args:   cobra.MinimumNArgs(1),
 		PreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -374,27 +469,14 @@ ws artifact restore puts it back. Only you discard one.`,
 				return err
 			}
 			e := done.Entry
-			if e.InRepo() {
-				fmt.Fprintf(ui.Stderr, "  %s Discarded %s, %q: %s. History keeps it (%s), ws show %s still says what it was, and ws artifact restore %s puts it back\n", ui.Green.Render("✓"), e.ID, e.Title, done.Landed, keptAt(e), e.ID, e.ID)
-				return nil
+			out := ""
+			if done.Home != "" {
+				out = fmt.Sprintf(" It's out of %s too: %s.", done.Home, done.Landed)
 			}
-			fmt.Fprintf(ui.Stderr, "  %s Discarded %s, %q: its folder is in %s for %d days, ws show %s still says what it was, and ws artifact restore %s puts it back\n", ui.Green.Render("✓"), e.ID, e.Title, e.Where(), int(artifact.KeepDiscarded.Hours()/24), e.ID, e.ID)
+			fmt.Fprintf(ui.Stderr, "  %s Discarded %s, %q: its folder is in %s for %d days, ws show %s still says what it was, and ws artifact restore %s puts it back.%s\n", ui.Green.Render("✓"), e.ID, e.Title, e.Where(), int(artifact.KeepDiscarded.Hours()/24), e.ID, e.ID, out)
 			return nil
 		},
 	}
-}
-
-// keptAt is where history keeps an artifact discarded in a repo:
-// records@4f2a9c1.
-func keptAt(e artifact.Entry) string {
-	if e.Discarded == nil || e.Discarded.Commit == "" {
-		return e.Place
-	}
-	c := e.Discarded.Commit
-	if len(c) > 7 {
-		c = c[:7]
-	}
-	return e.Place + "@" + c
 }
 
 func newArtifactRestoreCmd() *cobra.Command {
@@ -402,9 +484,10 @@ func newArtifactRestoreCmd() *cobra.Command {
 		Use:   "restore <a3>",
 		Short: "Put a discarded artifact back (the user only)",
 		Long: `Put a discarded artifact back, as it was (live, or promoted if it had been),
-with its ref: on this machine, its folder out of .ws/artifacts/.discarded/,
-while it's there (30 days); in a repo, its folder from history, in a new
-commit landed on its default branch. Its expiry counts from now.`,
+with its ref: its folder out of .ws/artifacts/.discarded/, while it's there
+(30 days). Where it lived in a repo, the version that was there goes back,
+in a commit landed on the repo's default branch. Its expiry counts from
+now.`,
 		Args:   cobra.ExactArgs(1),
 		PreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -413,16 +496,16 @@ commit landed on its default branch. Its expiry counts from now.`,
 				return err
 			}
 			done, err := ctx.RestoreArtifact(args[0], ops.ActorFromEnv())
-			if err != nil {
+			if err != nil && done.Entry.ID == "" {
 				return err
 			}
 			e := done.Entry
 			line := fmt.Sprintf("Restored %s, %q, to %s (%s)", e.ID, e.Title, e.Where(), e.Status)
-			if done.Landed != "" {
-				line += ": " + done.Landed
+			if done.Home != "" {
+				line += fmt.Sprintf(", and put back in %s: %s", done.Home, done.Landed)
 			}
 			fmt.Fprintf(ui.Stderr, "  %s %s\n", ui.Green.Render("✓"), line)
-			return nil
+			return err
 		},
 	}
 }
@@ -430,13 +513,11 @@ commit landed on its default branch. Its expiry counts from now.`,
 func newArtifactClearCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "clear",
-		Short: "Clear the expired artifacts (the user only)",
+		Short: "Clear the expired artifacts now (the user only)",
 		Long: `Clear the expired artifacts: live ones with no new version for 30 days
-([artifacts] expire_after). Those in the repo artifacts are kept in are
-taken away in one commit, with [artifacts]' clear message and a list of
-what it took, landed on its default branch; history keeps them. Those on
-this machine are discarded, as the daemon does each day. Each is listed as
-discarded, "expired", and ws artifact restore puts one back.`,
+([artifacts] expire_after). Each is discarded, as the daemon does each
+day: listed as discarded, "expired", and ws artifact restore puts one
+back.`,
 		Args:   cobra.NoArgs,
 		PreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -448,17 +529,10 @@ discarded, "expired", and ws artifact restore puts one back.`,
 			for _, e := range done.Local {
 				fmt.Fprintf(ui.Stderr, "  %s Discarded %s, %q, expired: its folder is in %s\n", ui.Green.Render("✓"), e.ID, e.Title, e.Where())
 			}
-			if len(done.Repo) > 0 {
-				var ids []string
-				for _, e := range done.Repo {
-					ids = append(ids, e.ID)
-				}
-				fmt.Fprintf(ui.Stderr, "  %s Cleared %s from %s, expired: %s. History keeps them (%s)\n", ui.Green.Render("✓"), strings.Join(ids, ", "), done.Repo[0].Place, done.Landed, keptAt(done.Repo[0]))
-			}
 			if err != nil {
 				return err
 			}
-			if len(done.Local)+len(done.Repo) == 0 {
+			if len(done.Local) == 0 {
 				fmt.Fprintf(ui.Stderr, "  %s nothing's expired\n", ui.Dim.Render("·"))
 			}
 			return nil

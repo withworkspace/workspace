@@ -7,8 +7,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
-	"time"
 
 	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/git"
@@ -17,37 +17,49 @@ import (
 
 // An artifact's lifetime: you promote one worth keeping, choosing a
 // version and saying what it went into; discard one, and restore it; and
-// the expired go. On this machine each is a change to its folder; in the
-// repo artifacts are kept in, a commit landed on its default branch, as
-// adding one is.
+// the expired go. Each is a change to its folder on this machine.
+//
+// A promoted one may live in a repo too, for everyone with it: its home,
+// a folder there holding the version chosen. Where that is is chosen the
+// first time it's promoted (what [artifacts] path says, or a folder you
+// name), and kept in its record: promoting it again, four versions on,
+// puts the version chosen then in the same folder, in one commit landed
+// on the repo's default branch, with nothing asked. Discarding it takes
+// its folder out of the repo, and restoring it puts it back.
 //
 // Only you do any of it. Crew say in their handoff which they'd keep or
-// drop, and why; ws itself discards only what's expired on this machine
-// (the daemon, ExpireArtifacts), and commits nothing to a shared branch
-// on its own: in a repo, expired ones wait for Clear expired.
+// drop, and why; ws itself discards only what's expired (the daemon,
+// ExpireArtifacts), which is never in a repo: only a live one expires.
 
 // ArtifactPromote is an artifact to promote: the version chosen (in Ref,
 // a3.v2, or Version; its latest for neither), and what it went into: a
 // mission (its slug) or a document (its ref) in Into, or a mission started
-// from it (Start, what the mission is). Move moves one on this machine
-// into the repo artifacts are kept in, in the same commit.
+// from it (Start, what the mission is).
 type ArtifactPromote struct {
 	Ref     string
 	Version int
 	Into    string
 	Start   string
-	Move    bool
+	// Home is where it's to live in a repo, for one that lives in none
+	// yet: a folder, as repo:folder/. "" is where it lives already, or,
+	// for one that lives in none, where [artifacts] says promoted ones do
+	// (nowhere: it stays on this machine).
+	Home string
+	// Here keeps one that lives in no repo on this machine only, whatever
+	// [artifacts] says.
+	Here bool
 }
 
 // ArtifactDone is what promoting, discarding or restoring an artifact
 // did.
 type ArtifactDone struct {
 	Entry artifact.Entry
-	// Commit is the commit it landed in, kept in a repo, and Landed what
-	// landing did.
-	Commit, Landed string
-	// Moved: promoted, it moved from this machine into the repo.
-	Moved bool
+	// Home is the folder in a repo it was put in, taken out of, or put
+	// back in (records:artifacts/…/), Commit the commit that did, and
+	// Landed what landing it did. First: it's the first time it was put
+	// there.
+	Home, Commit, Landed string
+	First                bool
 	// Into is what it was promoted into, as its record says it; Started,
 	// a mission started from it, and Recorded the mission it was recorded
 	// on (that one, or the one it went into).
@@ -71,12 +83,122 @@ func artifactRef(ref string) (string, int, error) {
 	return id, v, nil
 }
 
+// homeFor is the folder in a repo a promoted artifact is to be put in:
+// the repo, the folder ("" for one to be named as [artifacts] names
+// them, once the repo's default branch is in hand), and whether it's the
+// first time.
+type homeFor struct {
+	repo, folder string
+	first        bool
+}
+
+// homeOf works out where a promotion puts an artifact: where it lives;
+// or, for one that lives in no repo, the folder asked for, else, unless
+// it was chosen to stay here, where [artifacts] says promoted ones live.
+// Nil is nowhere: it stays on this machine, and here says that's chosen
+// now.
+func (w *Workspace) homeOf(e artifact.Entry, cfg artifact.Config, p ArtifactPromote) (h *homeFor, here bool, err error) {
+	asked := strings.TrimSpace(p.Home)
+	switch {
+	case p.Here && asked != "":
+		return nil, false, invalid("it lives in %s, or on this machine only: not both", asked)
+	case e.Home != nil:
+		if p.Here {
+			return nil, false, invalid("%s lives in %s, where promoting it puts the version chosen: it isn't kept on this machine only", e.ID, e.Home.Where())
+		}
+		if asked != "" {
+			repo, folder, err := w.homeNamed(asked)
+			if err != nil {
+				return nil, false, err
+			}
+			if repo != e.Home.Repo || folder != e.Home.Folder {
+				return nil, false, invalid("%s lives in %s already, where promoting it puts the version chosen: ws doesn't move it", e.ID, e.Home.Where())
+			}
+		}
+		h = &homeFor{repo: e.Home.Repo, folder: e.Home.Folder}
+	case p.Here:
+		return nil, true, nil
+	case asked != "":
+		repo, folder, err := w.homeNamed(asked)
+		if err != nil {
+			return nil, false, err
+		}
+		h = &homeFor{repo: repo, folder: folder, first: true}
+	case cfg.Homes() && !e.Here:
+		h = &homeFor{repo: cfg.Repo, first: true}
+	default:
+		return nil, false, nil
+	}
+	if !w.WS().Direct(h.repo) {
+		return nil, false, invalid("%s takes pull requests, so a promoted artifact would wait there in review: one lives in a repo with no pull requests (landing = \"direct\"), or on this machine (ws artifact promote --here). ws doctor says the same", h.repo)
+	}
+	return h, false, nil
+}
+
+// homeNamed reads a home as it's named: repo:folder/, a folder of one of
+// the workspace's repos.
+func (w *Workspace) homeNamed(s string) (repo, folder string, err error) {
+	name, rest, ok := strings.Cut(s, ":")
+	rest = strings.Trim(rest, "/")
+	if !ok || name == "" || rest == "" {
+		return "", "", invalid("%q isn't a folder in a repo: it's repo:folder/, as records:artifacts/horizon-glow/", s)
+	}
+	parts := strings.Split(rest, "/")
+	if slices.Contains(parts, "..") || slices.Contains(parts, ".") || slices.Contains(parts, "") || parts[0] == ".git" {
+		return "", "", invalid("%q leads out of %s, or nowhere in it", s, name)
+	}
+	repo, known := w.WS().ResolveAlias(name)
+	if !known {
+		return "", "", invalid("%s isn't one of the workspace's repos", name)
+	}
+	return repo, path.Clean(rest), nil
+}
+
+// ArtifactHomeOffered is the folder in a repo an artifact has, or is
+// offered, to live in, as it's said to people
+// (records:artifacts/2026-11-12-horizon-glow/): where it lives, or, for
+// one that lives in none, the folder [artifacts] names for it, as the
+// repo's ground stands. "" where there's none to offer.
+func (w *Workspace) ArtifactHomeOffered(e artifact.Entry) string {
+	if e.Home != nil {
+		return e.Home.Where()
+	}
+	cfg := w.ArtifactsConfig()
+	if !cfg.Homes() {
+		return ""
+	}
+	name, err := homeName(cfg, e, filepath.Join(w.WS().MainWorktree(cfg.Repo), filepath.FromSlash(cfg.Dir)))
+	if err != nil {
+		return ""
+	}
+	return cfg.Repo + ":" + path.Join(cfg.Dir, name) + "/"
+}
+
+// homeName names an artifact's folder among those in parent (the folder
+// of a worktree [artifacts] keeps them in): its own name, where the repo
+// names them the same way and it's free, else named as [artifacts] says,
+// from the day it was made.
+func homeName(cfg artifact.Config, e artifact.Entry, parent string) (string, error) {
+	var names []string
+	if entries, err := os.ReadDir(parent); err == nil {
+		for _, d := range entries {
+			names = append(names, d.Name())
+		}
+	}
+	taken := func(name string) bool { return slices.Contains(names, name) }
+	if _, ok := artifact.MatchName(cfg.Name, e.Folder); ok && !taken(e.Folder) {
+		return e.Folder, nil
+	}
+	return artifact.NameFolder(cfg.Name, e.Made, e.Title, names, taken)
+}
+
 // PromoteArtifact promotes an artifact: it's kept for good, with the
-// version chosen and what it went into, if anything. Into a mission, it's
-// recorded on it as one of its artifacts, so its crew read it; into a
-// document, the document cites it by its folder in the repo, so it must be
-// there (Move takes one on this machine there). Promoted again, it says
-// what it says now.
+// version chosen and what it went into, if anything, and the version
+// chosen is put where it lives in a repo, if it lives in one (homeOf).
+// Into a mission, it's recorded on it as one of its artifacts, so its
+// crew read it; into a document, the document cites it by its folder in
+// the repo, so it must live in one. Promoted again, it says what it says
+// now.
 func (w *Workspace) PromoteArtifact(p ArtifactPromote, by Actor) (ArtifactDone, error) {
 	if err := youOnly(by, "promotes"); err != nil {
 		return ArtifactDone{}, err
@@ -104,36 +226,19 @@ func (w *Workspace) PromoteArtifact(p ArtifactPromote, by Actor) (ArtifactDone, 
 	switch {
 	case e.Status == artifact.Discarded:
 		return ArtifactDone{}, &Refused{Code: "discarded", Reason: fmt.Sprintf("%s was discarded: restore it first (ws artifact restore %s)", id, id)}
-	case e.Gone:
-		return ArtifactDone{}, invalid("%s's folder has gone from %s: there's nothing to keep", id, e.Kept())
-	case e.InFlight() != "":
-		return ArtifactDone{}, invalid("%s hasn't landed: it's in %s, crew's, and lands with it. Promote it once it has", id, e.InFlight())
+	case e.Gone || e.Away():
+		return ArtifactDone{}, invalid("%s's folder isn't on this machine: there's nothing to keep", id)
 	}
 	if v == 0 {
-		for _, ver := range e.Versions {
-			if ver.Capsule == "" && ver.N > v {
-				v = ver.N // the latest that's landed
-			}
-		}
+		latest, _ := e.Latest()
+		v = latest.N
 	}
-	chosen, ok := e.Version(v)
-	switch {
-	case !ok:
+	if _, ok := e.Version(v); !ok {
 		return ArtifactDone{}, invalid("%s has no v%d: ws show %s lists its versions", id, v, id)
-	case chosen.Capsule != "":
-		return ArtifactDone{}, invalid("%s is in flight, crew's, in %s: choose a version that's landed, or promote it once it has", artifact.VersionRef(id, v), chosen.Capsule)
 	}
-	if e.InRepo() && (store.Repo == nil || store.Repo.Name != e.Place) {
-		return ArtifactDone{}, invalid("%s is kept in %s, which [artifacts] in ws.toml doesn't name now: ws reads none there (ws doctor)", id, e.Place)
-	}
-	move := p.Move && !e.InRepo()
-	if move {
-		switch {
-		case cfg.Repo == "":
-			return ArtifactDone{}, invalid("there's no repo for artifacts to move %s into: [artifacts] path in ws.toml names one", id)
-		case !w.WS().Direct(cfg.Repo):
-			return ArtifactDone{}, invalid("artifacts are kept in %s, which takes pull requests: ws doesn't move one there (ws doctor)", cfg.Repo)
-		}
+	home, here, err := w.homeOf(e, cfg, p)
+	if err != nil {
+		return ArtifactDone{}, err
 	}
 	// What it went into: a mission that's there, or a document, which
 	// cites it by its folder in the repo.
@@ -149,11 +254,8 @@ func (w *Workspace) PromoteArtifact(p ArtifactPromote, by Actor) (ArtifactDone, 
 		if err != nil {
 			return ArtifactDone{}, invalid("%q is neither a mission nor a document: --into takes a mission's slug, or a document's ref (repo:path)", into)
 		}
-		if !e.InRepo() && !move {
-			if cfg.Repo == "" {
-				return ArtifactDone{}, invalid("a document cites an artifact by its folder in a repo, so the link works for everyone, and %s is on this machine, with no repo for artifacts ([artifacts] path in ws.toml): promote it into nothing, or a mission", id)
-			}
-			return ArtifactDone{}, invalid("a document cites an artifact by its folder in a repo, so the link works for everyone, and %s is on this machine: move it to %s as you promote it (--move)", id, cfg.Repo)
+		if home == nil {
+			return ArtifactDone{}, invalid("a document cites an artifact by its folder in a repo, so the link works for everyone, and %s would stay on this machine: say where it's to live (--home repo:folder/), or name a repo for them ([artifacts] path in ws.toml)", id)
 		}
 		went = d.Ref
 	case start != "":
@@ -166,13 +268,15 @@ func (w *Workspace) PromoteArtifact(p ArtifactPromote, by Actor) (ArtifactDone, 
 	}
 	promo := artifact.Promotion{At: w.now(), By: by.By(), Version: v, Into: went}
 	var out ArtifactDone
-	switch {
-	case move:
-		out, err = w.promoteMoving(store, cfg, e, promo)
-	case e.InRepo():
-		out, err = w.promoteLanded(store, cfg, e, promo)
-	default:
-		out.Entry, err = store.Promote(ctx, id, promo)
+	var lives *artifact.Home
+	if home != nil {
+		out, lives, err = w.putHome(store, cfg, e, promo, home, cfg.Messages.Promote, "Promoted")
+	}
+	if err == nil {
+		out.Entry, err = store.Promote(ctx, id, promo, lives, here)
+		if err != nil && lives != nil {
+			err = fmt.Errorf("v%d is in %s (%s), but %s's record on this machine couldn't say so: %w", v, lives.Where(), out.Landed, id, err)
+		}
 	}
 	if err != nil {
 		if start != "" {
@@ -194,61 +298,45 @@ func (w *Workspace) PromoteArtifact(p ArtifactPromote, by Actor) (ArtifactDone, 
 	return out, nil
 }
 
-// fieldsOf is what an artifact's commits' messages are filled in from: its
-// folder's slug, date and number, as its name says them, and its title.
-func fieldsOf(cfg artifact.Config, e artifact.Entry) artifact.Fields {
-	g, _ := artifact.MatchName(cfg.Name, path.Base(e.Folder))
-	return artifact.Fields{Date: cmpStr(g.Date, e.Made.Local().Format("2006-01-02")), Slug: artifact.SlugOf(cfg.Name, e.Folder), Number: g.Number, Title: e.Title}
+// homeFields is what the messages of an artifact's commits in the repo it
+// lives in are filled in from: its folder's slug, date and number there,
+// as its name says them, and its title.
+func homeFields(cfg artifact.Config, e artifact.Entry, folder string, version int) artifact.Fields {
+	g, _ := artifact.MatchName(cfg.Name, path.Base(folder))
+	return artifact.Fields{
+		Date:    cmpStr(g.Date, e.Made.Local().Format("2006-01-02")),
+		Slug:    cmpStr(g.Slug, artifact.SlugOf(cfg.Name, folder)),
+		Number:  g.Number,
+		Title:   e.Title,
+		Version: version,
+	}
 }
 
-// promoteBody is the body of the commit that promotes an artifact: who,
-// the version chosen and what it went into, and, moved from this machine,
-// that.
-func promoteBody(p artifact.Promotion, a *artifact.Artifact, moved bool) string {
+// promoteBody is the body of the commit that puts a promoted artifact's
+// version where it lives: who, the version chosen and what it went into,
+// what the version is, and that the rest of its versions aren't here.
+func promoteBody(p artifact.Promotion, a *artifact.Artifact, first bool) string {
 	latest, _ := a.Latest()
 	s := fmt.Sprintf("Promoted by %s: v%d of %d chosen", p.By, p.Version, latest.N)
 	if p.Into != "" {
 		s += ", into " + p.Into
 	}
 	s += "."
-	if moved {
-		s += fmt.Sprintf("\n\nIt was on one machine only (.ws/artifacts), and moved here with all its versions and where each came from (%s).", artifact.RecordFile)
+	if v, ok := a.Version(p.Version); ok {
+		s += "\n\n" + artifact.Body(v)
+	}
+	if first {
+		s += fmt.Sprintf("\n\nThis folder holds the version chosen (%s, and the files beside it) and a record of it (%s). Its other versions are on the machine it was promoted on.", artifact.HomeFile, artifact.RecordFile)
 	}
 	return s
 }
 
-// promoted is a record as promoting it says: promoted, as p says, and
-// written in its folder dir.
-func promoted(dir string, p artifact.Promotion) (*artifact.Artifact, error) {
-	file := filepath.Join(dir, artifact.RecordFile)
-	data, err := os.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-	a, err := artifact.Parse(data)
-	if err != nil {
-		return nil, fmt.Errorf("its record can't be read: %w", err)
-	}
-	p.At = p.At.UTC().Truncate(time.Second)
-	a.Status, a.Promoted = artifact.Promoted, &p
-	return a, writeArtifactRecord(dir, a)
-}
-
-func writeArtifactRecord(dir string, a *artifact.Artifact) error {
-	data, err := artifact.Encode(a)
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(filepath.Join(dir, artifact.RecordFile), data, 0o644)
-}
-
-// inLift is a change to an artifact kept in a repo, made in a capsule
-// lifted from its default branch, committed and landed: change makes it,
-// in the capsule's folder of the artifacts (dir), and says the subject and
-// body of its commit, and the path in the repo to commit (rel). Nothing's
-// left of one that stops. Someone else's change landing between the lift
-// and the push stops it: it's done again from the start, as it is then,
-// by the caller, not settled.
+// inLift is a change to a repo's default branch, made in a capsule lifted
+// from it as it is on the remote, committed and landed: change makes it,
+// in the capsule, and says the subject and body of its commit, and the
+// path in the repo to commit (rel). Nothing's left of one that stops.
+// Someone else's change to the same lines landing between the lift and
+// the push stops it, unsettled.
 func (w *Workspace) inLift(repo, branch, what string, change func(capsule string) (rel, subject, body string, add bool, err error)) (*DocSaved, error) {
 	l, err := w.liftForDefaultBranch(repo, w.freeBranch(repo, branch))
 	if err != nil {
@@ -263,120 +351,55 @@ func (w *Workspace) inLift(repo, branch, what string, change func(capsule string
 	return l.commitAndLand(rel, subject, body, what, add)
 }
 
-// before is the commit before c, in repo: where a folder c took away is
-// kept.
-func (w *Workspace) before(repo, c string) string {
-	out, _ := git.Line(w.WS().BareDir(repo), "rev-parse", c+"^")
-	return out
-}
+// settleNothing settles no clash: the landing stops at it.
+func settleNothing(string, []string) ([]string, bool) { return nil, false }
 
-// promoteLanded promotes yours kept in a repo: its record's [promoted], in
-// a commit landed on its default branch.
-func (w *Workspace) promoteLanded(store artifact.Store, cfg artifact.Config, e artifact.Entry, p artifact.Promotion) (ArtifactDone, error) {
-	f := fieldsOf(cfg, e)
-	f.Version = p.Version
-	saved, err := w.inLift(e.Place, "artifact-"+f.Slug, "Promoted", func(capsule string) (string, string, string, bool, error) {
-		dir := filepath.Join(capsule, filepath.FromSlash(e.Folder))
-		a, err := promoted(dir, p)
-		if errors.Is(err, os.ErrNotExist) {
-			return "", "", "", false, fmt.Errorf("%s isn't on %s's %s any more: fetch, and ws show %s says where it is", e.Where(), e.Place, w.WS().DefaultBranch, e.ID)
-		}
-		if err != nil {
-			return "", "", "", false, err
-		}
-		return e.Folder, f.Subject(cfg.Messages.Promote), promoteBody(p, a, false), true, nil
-	})
+// putHome puts a version of an artifact where it lives in a repo: its
+// files and a record of it, in the folder (named now, for one [artifacts]
+// names), in place of whatever was there, in one commit landed on the
+// repo's default branch. msg is the commit's first line, as [artifacts]
+// has it, and what how what it did is said ("Promoted", "Restored"). It's
+// where it lives now, as its record is to say.
+func (w *Workspace) putHome(store artifact.Store, cfg artifact.Config, e artifact.Entry, p artifact.Promotion, h *homeFor, msg, what string) (ArtifactDone, *artifact.Home, error) {
+	files, _, _, err := store.AllFiles(context.Background(), e.ID, p.Version)
 	if err != nil {
-		return ArtifactDone{}, err
+		return ArtifactDone{}, nil, err
 	}
-	out := ArtifactDone{Commit: saved.Commit, Landed: strings.TrimPrefix(saved.Message, "Promoted: ")}
-	out.Entry, err = store.At(context.Background(), e.Place, e.Folder)
-	if err != nil {
-		// Landed, but the ground hasn't it yet: said as it was written.
-		out.Entry, err = e, nil
-		out.Entry.Status, out.Entry.Promoted = artifact.Promoted, &p
-	}
-	return out, err
-}
-
-// promoteMoving promotes yours on this machine and moves it into the repo
-// artifacts are kept in: its folder, all its versions and its record,
-// promoted, in one commit landed on its default branch, then taken from
-// .ws/artifacts. Its ref goes with it. Its folder keeps its name where the
-// repo names them the same way and it's free, else it's named as a new
-// one there would be, from the day it was made.
-func (w *Workspace) promoteMoving(store artifact.Store, cfg artifact.Config, e artifact.Entry, p artifact.Promotion) (ArtifactDone, error) {
-	repo, r := cfg.Repo, store.Repo
-	from := store.Path(e)
-	var folder string
-	var moving *artifact.Moving
-	saved, err := w.inLift(repo, "artifact-"+artifact.SlugOf("{date}-{slug}", e.Folder), "Promoted", func(capsule string) (string, string, string, bool, error) {
-		parent := filepath.Join(capsule, filepath.FromSlash(r.Dir))
-		var names []string
-		if entries, err := os.ReadDir(parent); err == nil {
-			for _, d := range entries {
-				names = append(names, d.Name())
-			}
-		}
-		taken := func(name string) bool {
-			if store.Named(repo, r.FolderPath(name)) {
-				return true
-			}
-			_, err := os.Lstat(filepath.Join(parent, name))
-			return err == nil
-		}
-		name := e.Folder
-		if _, ok := artifact.MatchName(cfg.Name, name); !ok || taken(name) {
-			var err error
-			if name, err = artifact.NameFolder(cfg.Name, e.Made, e.Title, names, taken); err != nil {
+	folder := h.folder
+	saved, err := w.inLift(h.repo, "artifact-"+artifact.SlugOf("{date}-{slug}", e.Folder), what, func(capsule string) (string, string, string, bool, error) {
+		switch {
+		case folder == "":
+			name, err := homeName(cfg, e, filepath.Join(capsule, filepath.FromSlash(cfg.Dir)))
+			if err != nil {
 				return "", "", "", false, err
 			}
-		}
-		folder = r.FolderPath(name)
-		dir := filepath.Join(parent, name)
-		if err := copyArtifact(from, dir); err != nil {
-			return "", "", "", false, fmt.Errorf("copying %s into %s: %w", e.Where(), repo, err)
-		}
-		a, err := promoted(dir, p)
-		if err != nil {
-			return "", "", "", false, err
-		}
-		moved := e
-		moved.Folder = folder
-		f := fieldsOf(cfg, moved)
-		f.Version = p.Version
-		// Its row goes to the repo's folder, and its folder here aside, as
-		// it lands: listed once, whenever it's listed.
-		if moving, err = store.StartMove(context.Background(), e.ID, repo, folder); err != nil {
-			return "", "", "", false, err
-		}
-		return folder, f.Subject(cfg.Messages.Promote), promoteBody(p, a, true), true, nil
-	})
-	if err != nil {
-		if moving != nil {
-			if uerr := moving.Undo(context.Background()); uerr != nil {
-				return ArtifactDone{}, fmt.Errorf("%w; and %s couldn't be put back on this machine: %v", err, e.ID, uerr)
+			folder = path.Join(cfg.Dir, name)
+		case h.first:
+			if _, err := os.Lstat(filepath.Join(capsule, filepath.FromSlash(folder))); err == nil {
+				return "", "", "", false, invalid("there's something at %s:%s/ already: name another folder for %s to live in", h.repo, folder, e.ID)
 			}
 		}
-		return ArtifactDone{}, err
-	}
-	out := ArtifactDone{Commit: saved.Commit, Landed: strings.TrimPrefix(saved.Message, "Promoted: "), Moved: true}
-	if err := moving.Done(); err != nil {
-		out.Landed += fmt.Sprintf("; its old folder on this machine couldn't be removed (%v): it's %s", err, filepath.Join(store.Dir(), ".moving-"+e.Folder))
-	}
-	out.Entry, err = store.At(context.Background(), repo, folder)
+		if err := artifact.WriteHome(filepath.Join(capsule, filepath.FromSlash(folder)), &e.Artifact, p, files); err != nil {
+			return "", "", "", false, fmt.Errorf("writing %s into %s: %w", artifact.VersionRef(e.ID, p.Version), h.repo, err)
+		}
+		body := promoteBody(p, &e.Artifact, h.first)
+		if what == "Restored" {
+			body = fmt.Sprintf("Restored by %s: put back as it was, at v%d.", p.By, p.Version)
+		}
+		return folder, homeFields(cfg, e, folder, p.Version).Subject(msg), body, true, nil
+	})
 	if err != nil {
-		out.Entry, err = e, nil
-		out.Entry.Place, out.Entry.Folder, out.Entry.Status, out.Entry.Promoted = repo, folder, artifact.Promoted, &p
+		return ArtifactDone{}, nil, err
 	}
-	return out, err
+	lives := &artifact.Home{Repo: h.repo, Folder: folder, Version: p.Version, Commit: saved.Commit, At: w.now()}
+	return ArtifactDone{Home: lives.Where(), Commit: saved.Commit, Landed: strings.TrimPrefix(saved.Message, what+": "), First: h.first}, lives, nil
 }
 
 // DiscardArtifact discards an artifact: you do, saying why if you like.
-// On this machine its folder goes to .ws/artifacts/.discarded, deleted for
-// good 30 days on; in a repo, a commit takes its folder away, and history
-// keeps it. Either way its ref still says what it was, and restoring it
-// puts it back.
+// Its folder goes to .ws/artifacts/.discarded, deleted for good 30 days
+// on, and where it lives in a repo, its folder there is taken away first,
+// in a commit landed on the repo's default branch. Its ref still says
+// what it was, and restoring it puts it back, there too.
 func (w *Workspace) DiscardArtifact(ref, reason string, by Actor) (ArtifactDone, error) {
 	if err := youOnly(by, "discards"); err != nil {
 		return ArtifactDone{}, err
@@ -388,50 +411,46 @@ func (w *Workspace) DiscardArtifact(ref, reason string, by Actor) (ArtifactDone,
 	if v != 0 {
 		return ArtifactDone{}, invalid("an artifact is discarded whole, with its versions: discard %s", id)
 	}
-	store := w.Artifacts()
+	store, cfg := w.Artifacts(), w.ArtifactsConfig()
 	ctx := context.Background()
 	e, err := store.Get(ctx, id)
 	if err != nil {
 		return ArtifactDone{}, wrapArtifact(err)
 	}
-	if !e.InRepo() {
-		e, err := store.Discard(ctx, id, artifact.Discard{At: w.now(), By: by.By(), Reason: reason})
-		return ArtifactDone{Entry: e}, wrapArtifact(err)
-	}
-	switch {
-	case e.Status == artifact.Discarded:
-		return ArtifactDone{}, &Refused{Code: "discarded", Reason: fmt.Sprintf("%s was discarded already, on %s", id, e.Discarded.At.Local().Format("2006-01-02"))}
-	case e.InFlight() != "":
-		return ArtifactDone{}, invalid("%s hasn't landed: it's in %s, crew's, and lands with it. Say so in a review of it, or discard it once it's landed", id, e.InFlight())
-	case e.Gone:
-		return ArtifactDone{}, invalid("%s's folder has gone from %s already", id, e.Place)
-	case store.Repo == nil || store.Repo.Name != e.Place:
-		return ArtifactDone{}, invalid("%s is kept in %s, which [artifacts] in ws.toml doesn't name now: ws reads none there (ws doctor)", id, e.Place)
-	}
-	cfg := w.ArtifactsConfig()
 	d := artifact.Discard{At: w.now(), By: by.By(), Reason: strings.TrimSpace(reason)}
-	saved, err := w.inLift(e.Place, "artifact-"+fieldsOf(cfg, e).Slug, "Discarded", func(capsule string) (string, string, string, bool, error) {
-		if _, err := os.Stat(filepath.Join(capsule, filepath.FromSlash(e.Folder))); err != nil {
-			return "", "", "", false, fmt.Errorf("%s isn't on %s's %s any more: fetch, and ws show %s says where it is", e.Where(), e.Place, w.WS().DefaultBranch, id)
+	var out ArtifactDone
+	if h := e.Home; h != nil && e.Status != artifact.Discarded && !e.Gone {
+		saved, err := w.inLift(h.Repo, "artifact-"+artifact.SlugOf("{date}-{slug}", e.Folder), "Discarded", func(capsule string) (string, string, string, bool, error) {
+			if _, err := os.Stat(filepath.Join(capsule, filepath.FromSlash(h.Folder))); err != nil {
+				return "", "", "", false, errNotThere // taken away already
+			}
+			if out, err := git.Combined(capsule, "rm", "-r", "-q", "--", h.Folder); err != nil {
+				return "", "", "", false, fmt.Errorf("taking %s away: %v: %s", h.Folder, err, clipString(out, 300))
+			}
+			return h.Folder, homeFields(cfg, e, h.Folder, h.Version).Subject(cfg.Messages.Discard), artifact.DiscardBody(d.By, d.Reason, &e.Artifact), false, nil
+		})
+		switch {
+		case errors.Is(err, errNotThere):
+		case err != nil:
+			return ArtifactDone{}, err
+		default:
+			out = ArtifactDone{Home: h.Where(), Commit: saved.Commit, Landed: strings.TrimPrefix(saved.Message, "Discarded: ")}
 		}
-		if out, err := git.Combined(capsule, "rm", "-r", "-q", "--", e.Folder); err != nil {
-			return "", "", "", false, fmt.Errorf("taking %s away: %v: %s", e.Folder, err, clipString(out, 300))
-		}
-		return e.Folder, fieldsOf(cfg, e).Subject(cfg.Messages.Discard), artifact.DiscardBody(d.By, d.Reason, &e.Artifact), false, nil
-	})
-	if err != nil {
-		return ArtifactDone{}, err
 	}
-	d.Commit = w.before(e.Place, saved.Commit)
-	out := ArtifactDone{Commit: saved.Commit, Landed: strings.TrimPrefix(saved.Message, "Discarded: ")}
-	out.Entry, err = store.MarkDiscarded(ctx, id, d)
+	out.Entry, err = store.Discard(ctx, id, d)
+	if err != nil && out.Landed != "" {
+		err = fmt.Errorf("its folder was taken out of %s (%s), but it couldn't be discarded on this machine: %w", e.Home.Repo, out.Landed, err)
+	}
 	return out, wrapArtifact(err)
 }
 
+var errNotThere = errors.New("not there")
+
 // RestoreArtifact puts a discarded artifact back, as it was before it was
-// discarded (live, or promoted if it had been): on this machine, its folder
-// out of .discarded; in a repo, its folder from history, in a new commit.
-// Its expiry counts from now.
+// discarded (live, or promoted if it had been): its folder out of
+// .discarded, and, where it lived in a repo, the version that was there
+// put back, in a commit landed on its default branch. Its expiry counts
+// from now.
 func (w *Workspace) RestoreArtifact(ref string, by Actor) (ArtifactDone, error) {
 	if err := youOnly(by, "restores"); err != nil {
 		return ArtifactDone{}, err
@@ -443,178 +462,118 @@ func (w *Workspace) RestoreArtifact(ref string, by Actor) (ArtifactDone, error) 
 	if v != 0 {
 		return ArtifactDone{}, invalid("an artifact is restored whole, with its versions: restore %s", id)
 	}
-	store := w.Artifacts()
+	store, cfg := w.Artifacts(), w.ArtifactsConfig()
 	ctx := context.Background()
-	e, err := store.Get(ctx, id)
+	e, err := store.Restore(ctx, id, artifact.Restoration{At: w.now(), By: by.By()})
 	if err != nil {
 		return ArtifactDone{}, wrapArtifact(err)
 	}
-	r := artifact.Restoration{At: w.now(), By: by.By()}
-	if !e.InRepo() {
-		e, err := store.Restore(ctx, id, r)
-		return ArtifactDone{Entry: e}, wrapArtifact(err)
+	out := ArtifactDone{Entry: e}
+	h := e.Home
+	if h == nil || e.Promoted == nil {
+		return out, nil
 	}
-	switch {
-	case e.Status != artifact.Discarded:
-		return ArtifactDone{}, invalid("%s isn't discarded: it's %s", id, e.Status)
-	case e.Discarded == nil || e.Discarded.Commit == "":
-		return ArtifactDone{}, invalid("ws doesn't know which commit of %s keeps %s: put its folder (%s) back by hand", e.Place, id, e.Folder)
-	case store.Repo == nil || store.Repo.Name != e.Place:
-		return ArtifactDone{}, invalid("%s is kept in %s, which [artifacts] in ws.toml doesn't name now: ws reads none there (ws doctor)", id, e.Place)
-	}
-	cfg := w.ArtifactsConfig()
-	f := fieldsOf(cfg, e)
-	saved, err := w.inLift(e.Place, "artifact-"+f.Slug, "Restored", func(capsule string) (string, string, string, bool, error) {
-		dir := filepath.Join(capsule, filepath.FromSlash(e.Folder))
-		if _, err := os.Lstat(dir); err == nil {
-			return "", "", "", false, fmt.Errorf("there's a folder at %s:%s/ again: ws artifact list says whose", e.Place, e.Folder)
+	// It lived in a repo: the version that was there goes back.
+	back := func() error {
+		if !w.WS().Direct(h.Repo) {
+			return fmt.Errorf("%s takes pull requests now", h.Repo)
 		}
-		if out, err := git.Combined(capsule, "checkout", e.Discarded.Commit, "--", e.Folder); err != nil {
-			return "", "", "", false, fmt.Errorf("taking %s from %s: %v: %s", e.Folder, shortSHA(e.Discarded.Commit), err, clipString(out, 300))
-		}
-		data, err := os.ReadFile(filepath.Join(dir, artifact.RecordFile))
+		p := *e.Promoted
+		p.Version, p.By = h.Version, by.By()
+		done, lives, err := w.putHome(store, cfg, e, p, &homeFor{repo: h.Repo, folder: h.Folder}, cfg.Messages.Restore, "Restored")
 		if err != nil {
-			return "", "", "", false, err
+			return err
 		}
-		a, err := artifact.Parse(data)
-		if err != nil {
-			return "", "", "", false, fmt.Errorf("its record, as %s has it, can't be read: %w", shortSHA(e.Discarded.Commit), err)
-		}
-		r.At = r.At.UTC().Truncate(time.Second)
-		a.Status, a.Discarded, a.Restored = artifact.Live, nil, &r
-		if a.Promoted != nil {
-			a.Status = artifact.Promoted
-		}
-		if err := writeArtifactRecord(dir, a); err != nil {
-			return "", "", "", false, err
-		}
-		body := fmt.Sprintf("Restored by %s, from %s, where history kept it.", r.By, shortSHA(e.Discarded.Commit))
-		return e.Folder, f.Subject(cfg.Messages.Restore), body, true, nil
-	})
-	if err != nil {
-		return ArtifactDone{}, err
+		out.Home, out.Commit, out.Landed = done.Home, done.Commit, done.Landed
+		out.Entry, err = store.PutHome(ctx, id, *lives)
+		return err
 	}
-	out := ArtifactDone{Commit: saved.Commit, Landed: strings.TrimPrefix(saved.Message, "Restored: ")}
-	out.Entry, err = store.At(ctx, e.Place, e.Folder)
-	if err != nil {
-		out.Entry, err = e, nil // landed, but the ground hasn't it yet
+	if err := back(); err != nil {
+		return out, fmt.Errorf("restored %s on this machine, but it couldn't be put back in %s: %w. Promote it again to put it there", id, h.Where(), err)
 	}
-	return out, err
+	return out, nil
 }
 
-// ArtifactsCleared is what clearing the expired did: those on this machine
-// discarded, and those in the repo taken away in one commit (Commit,
-// landed as Landed says).
+// ArtifactsCleared is what clearing the expired did: those it discarded.
 type ArtifactsCleared struct {
-	Local, Repo    []artifact.Entry
-	Commit, Landed string
+	Local []artifact.Entry
 }
 
-// ClearExpiredArtifacts clears the expired artifacts, as you: those on
-// this machine are discarded, "expired" their reason, as the daemon would;
-// those in the repo are taken away in one commit, with [artifacts]' clear
-// message and a list of what it took, landed on its default branch.
+// ClearExpiredArtifacts clears the expired artifacts now, as you: each is
+// discarded, "expired" its reason, as the daemon would within the day.
 func (w *Workspace) ClearExpiredArtifacts(by Actor) (ArtifactsCleared, error) {
 	if err := youOnly(by, "clears expired"); err != nil {
 		return ArtifactsCleared{}, err
 	}
+	var out ArtifactsCleared
+	var err error
+	out.Local, err = w.discardExpired(by)
+	return out, err
+}
+
+// discardExpired discards every expired artifact, by by, and says which.
+func (w *Workspace) discardExpired(by Actor) ([]artifact.Entry, error) {
 	store, cfg := w.Artifacts(), w.ArtifactsConfig()
 	ctx := context.Background()
 	list, err := store.List(ctx)
 	if err != nil {
-		return ArtifactsCleared{}, err
+		return nil, err
 	}
 	now := w.now()
-	var out ArtifactsCleared
-	var inRepo []artifact.Entry
+	var out []artifact.Entry
 	for _, e := range list {
 		if !cfg.Expired(e, now) {
-			continue
-		}
-		if e.InRepo() {
-			if store.Repo != nil && store.Repo.Name == e.Place {
-				inRepo = append(inRepo, e)
-			}
 			continue
 		}
 		d, err := store.Discard(ctx, e.ID, artifact.Discard{At: now, By: by.By(), Reason: "expired"})
 		if err != nil {
 			return out, fmt.Errorf("discarding %s: %w", e.ID, wrapArtifact(err))
 		}
-		out.Local = append(out.Local, d)
-	}
-	if len(inRepo) == 0 {
-		return out, nil
-	}
-	r := store.Repo
-	var taken []artifact.Entry
-	saved, err := w.inLift(r.Name, "artifacts-clear", "Cleared", func(capsule string) (string, string, string, bool, error) {
-		for _, e := range inRepo {
-			if _, err := os.Stat(filepath.Join(capsule, filepath.FromSlash(e.Folder))); err != nil {
-				continue // taken away meanwhile
-			}
-			if out, err := git.Combined(capsule, "rm", "-r", "-q", "--", e.Folder); err != nil {
-				return "", "", "", false, fmt.Errorf("taking %s away: %v: %s", e.Folder, err, clipString(out, 300))
-			}
-			taken = append(taken, e)
-		}
-		if len(taken) == 0 {
-			return "", "", "", false, errNothingToClear
-		}
-		rel := cmpStr(r.Dir, ".")
-		return rel, artifact.Fields{Date: now.Local().Format("2006-01-02")}.Subject(cfg.Messages.Clear), artifact.ClearBody(by.By(), cfg.ExpiryWords(), taken), false, nil
-	})
-	if errors.Is(err, errNothingToClear) {
-		return out, nil
-	}
-	if err != nil {
-		return out, err
-	}
-	out.Commit, out.Landed = saved.Commit, strings.TrimPrefix(saved.Message, "Cleared: ")
-	was := w.before(r.Name, saved.Commit)
-	for _, e := range taken {
-		d, err := store.MarkDiscarded(ctx, e.ID, artifact.Discard{At: now, By: by.By(), Reason: "expired", Commit: was})
-		if err != nil {
-			return out, err
-		}
-		out.Repo = append(out.Repo, d)
+		out = append(out, d)
 	}
 	return out, nil
 }
 
-var errNothingToClear = errors.New("nothing to clear")
-
-// ExpiredArtifacts is what the daemon's sweep did: the artifacts on this
-// machine it discarded, expired, and those it deleted for good, discarded
-// 30 days before.
-type ExpiredArtifacts struct {
-	Discarded, Erased []artifact.Entry
+// BringArtifactsHome brings onto this machine the artifacts that were
+// kept in a repo whole, from before they all lived here (ws doctor, and
+// the daemon as it starts): those it brought.
+func (w *Workspace) BringArtifactsHome() ([]artifact.Entry, error) {
+	return w.Artifacts().BringHome(context.Background(), func(repo string) string {
+		if name, known := w.WS().ResolveAlias(repo); known {
+			if dir := w.WS().MainWorktree(name); dir != "" {
+				if info, err := os.Stat(dir); err == nil && info.IsDir() {
+					return dir
+				}
+			}
+		}
+		return ""
+	})
 }
 
-// ExpireArtifacts is the daemon's sweep of the artifacts on this machine:
-// each expired one is discarded, by ws, "expired" its reason, and each
-// folder that's been in .discarded for 30 days is deleted for good. Those
-// in a repo are left to you (Clear expired): ws commits nothing to a
-// shared branch on its own.
+// ExpiredArtifacts is what the daemon's sweep did: the artifacts it
+// discarded, expired, those it deleted for good, discarded 30 days
+// before, those it brought onto this machine from a repo they were kept
+// in whole, and those whose versions it put in a repo of their own, from
+// when each was a file.
+type ExpiredArtifacts struct {
+	Discarded, Erased, Brought, Converted []artifact.Entry
+}
+
+// ExpireArtifacts is the daemon's sweep of the artifacts: each expired
+// one is discarded, by ws, "expired" its reason, and each folder that's
+// been in .discarded for 30 days is deleted for good.
 func (w *Workspace) ExpireArtifacts() (ExpiredArtifacts, error) {
-	store, cfg := w.Artifacts(), w.ArtifactsConfig()
-	ctx := context.Background()
-	list, err := store.List(ctx)
-	if err != nil {
-		return ExpiredArtifacts{}, err
-	}
-	now := w.now()
 	var out ExpiredArtifacts
-	for _, e := range list {
-		if e.InRepo() || !cfg.Expired(e, now) {
-			continue
-		}
-		d, err := store.Discard(ctx, e.ID, artifact.Discard{At: now, By: AsWS.By(), Reason: "expired"})
-		if err != nil {
-			return out, fmt.Errorf("discarding %s: %w", e.ID, err)
-		}
-		out.Discarded = append(out.Discarded, d)
+	var err error
+	if out.Brought, err = w.BringArtifactsHome(); err != nil {
+		return out, err
 	}
-	out.Erased, err = store.Erase(ctx, now.Add(-artifact.KeepDiscarded))
+	if out.Converted, err = w.Artifacts().Convert(context.Background()); err != nil {
+		return out, err
+	}
+	if out.Discarded, err = w.discardExpired(AsWS); err != nil {
+		return out, err
+	}
+	out.Erased, err = w.Artifacts().Erase(context.Background(), w.now().Add(-artifact.KeepDiscarded))
 	return out, err
 }

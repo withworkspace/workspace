@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { ArtifactInfo } from "../api";
-import { artifactStatus, clearable, expiryOf, promoteBlocked, promoteVersions, promotion } from "./shown";
+import { artifactStatus, clearable, expiryOf, livesAt, promoteBlocked, promoteVersions, promotion } from "./shown";
 
 // An artifact's lifetime, apart from drawing: when it expires, as the list
-// says it, what Clear expired takes, and what the Promote dialog sends.
+// says it, what Clear expired takes, and what the Promote dialog asks and
+// sends.
 
 const DAY = 24 * 60 * 60 * 1000;
 const now = Date.parse("2026-11-16T12:00:00Z");
@@ -13,7 +14,6 @@ const art = (id: string, a: Partial<ArtifactInfo> = {}): ArtifactInfo => ({
   id,
   title: id,
   status: "live",
-  place: ".ws",
   folder: `2026-10-16-${id}`,
   where: `.ws/artifacts/2026-10-16-${id}/`,
   made: "2026-10-16T12:00:00Z",
@@ -41,9 +41,9 @@ describe("expiry", () => {
     expect(artifactStatus(art("a1", { status: "promoted" })).words).toBe("Promoted");
   });
 
-  it("clears the live and expired, here and in the repo", () => {
+  it("clears the live and expired", () => {
     const all = [
-      art("a1", { expired: true, place: "records" }),
+      art("a1", { expired: true }),
       art("a2", { expired: true }),
       art("a3", { expires: at(3) }),
       art("a4", { status: "promoted" }),
@@ -55,24 +55,42 @@ describe("expiry", () => {
 });
 
 describe("promoting", () => {
-  it("chooses among the versions that have landed, newest first", () => {
-    expect(promoteVersions([{ n: 1 }, { n: 3 }, { n: 2 }, { n: 4, capsule: "records/glow" }])).toEqual([3, 2, 1]);
+  const home = { where: "records:artifacts/glow/", repo: "records", version: 2, at: "2026-11-16T12:00:00Z" };
+
+  it("chooses among its versions, newest first", () => {
+    expect(promoteVersions([{ n: 1 }, { n: 3 }, { n: 2 }])).toEqual([3, 2, 1]);
   });
 
-  it("sends what it went into, or the mission to start", () => {
-    expect(promotion(2, "nothing", "glow", false)).toEqual({ version: 2 });
-    expect(promotion(2, "mission", " glow ", false)).toEqual({ version: 2, into: "glow" });
-    expect(promotion(1, "document", "records:plans/glow.md", true)).toEqual({ version: 1, into: "records:plans/glow.md", move: true });
-    expect(promotion(1, "start", "Build the glow", false)).toEqual({ version: 1, start: "Build the glow" });
+  it("asks where it's to live once: where it lives isn't asked again", () => {
+    // The first time: what the workspace offers, or this machine.
+    expect(livesAt({}, "records:artifacts/glow/")).toBe("offered");
+    expect(livesAt({}, undefined)).toBe("here");
+    // Promoted to stay here before, it opens on that, whatever's offered.
+    expect(livesAt({ here: true }, "records:artifacts/glow/")).toBe("here");
+    // It lives in a repo: that's where it goes.
+    expect(livesAt({ home }, undefined)).toBe("home");
   });
 
-  it("says what's missing, and that a document cites only one in a repo", () => {
-    expect(promoteBlocked("nothing", "", true, false, "records")).toBe("");
-    expect(promoteBlocked("mission", "", false, false)).toBe("Choose the mission.");
-    expect(promoteBlocked("start", " ", false, false)).toBe("Say what the mission is.");
-    expect(promoteBlocked("document", "records:plans/glow.md", false, false, "records")).toBe("");
-    expect(promoteBlocked("document", "records:plans/glow.md", true, true, "records")).toBe("");
-    expect(promoteBlocked("document", "records:plans/glow.md", true, false, "records")).toContain("move it to records as you promote it");
-    expect(promoteBlocked("document", "records:plans/glow.md", true, false)).toContain("there's no repo for artifacts");
+  it("sends what it went into, or the mission to start, and where it's to live", () => {
+    expect(promotion(2, "nothing", "glow")).toEqual({ version: 2 });
+    expect(promotion(2, "mission", " glow ")).toEqual({ version: 2, into: "glow" });
+    expect(promotion(1, "start", "Build the glow")).toEqual({ version: 1, start: "Build the glow" });
+    // One that lives in a repo says nothing of where: the server knows.
+    expect(promotion(5, "nothing", "", "home", "records:artifacts/glow/")).toEqual({ version: 5 });
+    expect(promotion(1, "document", "records:plans/glow.md", "offered", "records:artifacts/glow/")).toEqual({ version: 1, into: "records:plans/glow.md", home: "records:artifacts/glow/" });
+    expect(promotion(1, "nothing", "", "other", " records:kept/glow/ ")).toEqual({ version: 1, home: "records:kept/glow/" });
+    expect(promotion(1, "nothing", "", "here", "records:artifacts/glow/")).toEqual({ version: 1, here: true });
+  });
+
+  it("says what's missing, and that a document cites only one that lives in a repo", () => {
+    expect(promoteBlocked("nothing", "")).toBe("");
+    expect(promoteBlocked("mission", "")).toBe("Choose the mission.");
+    expect(promoteBlocked("start", " ")).toBe("Say what the mission is.");
+    expect(promoteBlocked("document", "records:plans/glow.md", "home")).toBe("");
+    expect(promoteBlocked("document", "records:plans/glow.md", "offered", "records:artifacts/glow/")).toBe("");
+    expect(promoteBlocked("document", "records:plans/glow.md", "here")).toContain("give it a folder there to live in");
+    expect(promoteBlocked("nothing", "", "other", "")).toBe("Name the folder, as repo:folder/.");
+    expect(promoteBlocked("nothing", "", "other", "records:")).toBe("Name the folder, as repo:folder/.");
+    expect(promoteBlocked("nothing", "", "other", "records:kept/glow/")).toBe("");
   });
 });
