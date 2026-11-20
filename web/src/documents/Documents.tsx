@@ -47,12 +47,14 @@ type Target = { id: string; to: string };
 export function DocumentsPage({ workspace }: { workspace: Workspace }) {
   useTitle("Documents");
   const navigate = useNavigate();
-  const { value, error, reload } = useLoaded(getSpaces, [], { keep: true });
+  // Answered at once from what ws keeps: read again when it's read a
+  // space again and found something new (the workspace's spacesSeen).
+  const { value, error, reload } = useLoaded(getSpaces, [workspace.spacesSeen], { keep: true });
   const spaces = useMemo(() => value?.spaces ?? [], [value]);
   const kinds = useMemo(() => workspace.kinds ?? [], [workspace.kinds]);
   const placed = useMemo(() => placePages(workspace.pages ?? [], spaces, kinds), [workspace.pages, spaces, kinds]);
   const local = placed.filter((p) => !p.repo);
-  const details = useSpaceDetails(spaces);
+  const details = useSpaceDetails(spaces, workspace.spacesSeen);
   const across = useMemo(() => {
     const activity = new Map<string, SpaceActivity>();
     for (const [repo, d] of details) if (d.activity) activity.set(repo, d.activity);
@@ -248,8 +250,12 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
 export function SpacePage({ workspace }: { workspace: Workspace }) {
   const { repo = "" } = useParams();
   const navigate = useNavigate();
-  const { value, error, reload } = useLoaded(() => getSpace(repo), [repo], { keep: true });
-  const { value: activity, error: activityError, reload: reloadActivity } = useLoaded(() => getSpaceActivity(repo), [repo], { keep: true });
+  // Both answered at once from what ws keeps, and read again when it's
+  // found the space other than it said (the workspace's spacesSeen). What's
+  // happening that's not been read yet is nothing to show.
+  const { value, error, reload } = useLoaded(() => getSpace(repo), [repo, workspace.spacesSeen], { keep: true });
+  const { value: said, error: activityError, reload: reloadActivity } = useLoaded(() => getSpaceActivity(repo), [repo, workspace.spacesSeen], { keep: true });
+  const activity = said?.unread ? undefined : said;
   const flights = useMemo(() => inFlightPaths(activity), [activity]);
   const space = value?.space;
   useTitle(space ? space.label : repo);

@@ -8,3 +8,8 @@ ws.local.toml
 # go:embed needs something in the folder when the UI hasn't been built.
 /internal/web/dist/*
 !/internal/web/dist/.gitkeep
+
+# What's new, as a build found it (scripts/whatsnew): only .gitkeep is
+# committed, for go:embed.
+/internal/whatsnew/gen/*
+!/internal/whatsnew/gen/.gitkeep

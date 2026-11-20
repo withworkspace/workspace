@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -185,5 +186,77 @@ func TestKeptGit_ForgetsACapsuleThatsGone(t *testing.T) {
 	g.dirtyMoved()
 	if len(g.of) != 0 {
 		t.Errorf("still keeps %d capsules", len(g.of))
+	}
+}
+
+// movedSince waits for a look behind a read to find the capsule other
+// than it was (dirtyMoved moves from was).
+func movedSince(t *testing.T, g *keptGit, dir, was string) string {
+	t.Helper()
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {
+		if now := g.dirtyMoved(dir); now != was {
+			return now
+		}
+	}
+	t.Fatalf("no look behind the read found %s changed", dir)
+	return ""
+}
+
+func TestKeptGit_SoonAnswersWithoutWaitingAndSaysWhenItsLooked(t *testing.T) {
+	dir, run := capsuleFixture(t)
+	g := &keptGit{}
+	ahead := func() (aheadAndBehind, bool) {
+		return soon(g, dir, "ahead", func() answer[aheadAndBehind] { return askAheadBehind(dir) })
+	}
+	before := git.Started()
+	if _, ok := ahead(); ok {
+		t.Fatal("a capsule never asked of was said known")
+	}
+	if _, ok := g.dirtySoon(dir); ok {
+		t.Fatal("a capsule never asked of was said known to be dirty or not")
+	}
+	// Both looks run behind the reads, each in its own slot: each counts
+	// once it's in (a first answer is news), and they may land apart.
+	moved := movedSince(t, g, dir, "")
+	if moved != fmt.Sprintf("%s 2\n", dir) {
+		moved = movedSince(t, g, dir, moved)
+	}
+	if ab, ok := ahead(); !ok || ab != (aheadAndBehind{}) {
+		t.Fatalf("after the look: %+v, %v; want 0 ahead, known", ab, ok)
+	}
+	if dirty, ok := g.dirtySoon(dir); !ok || dirty {
+		t.Fatalf("after the look: dirty %v, known %v; want clean, known", dirty, ok)
+	}
+	if n := git.Started() - before; n != 2 {
+		t.Errorf("git started %d times, want 2 (one look for each)", n)
+	}
+
+	// A commit moves the capsule: the read's told what was, at once, and
+	// the look behind it says it's moved.
+	run("repo/work", "commit", "-q", "--allow-empty", "-m", "more")
+	if ab, ok := ahead(); !ok || ab.ahead != 0 {
+		t.Fatalf("read after a commit: %+v, %v; want what was (0 ahead), known", ab, ok)
+	}
+	movedSince(t, g, dir, moved)
+	if ab, ok := ahead(); !ok || ab.ahead != 1 {
+		t.Fatalf("after the look: %+v, %v; want 1 ahead", ab, ok)
+	}
+}
+
+func TestBranchOf_ReadsHEADWithoutGit(t *testing.T) {
+	dir, run := capsuleFixture(t)
+	before := git.Started()
+	if got := branchOf(dir); got != "work" {
+		t.Errorf("branchOf = %q, want work", got)
+	}
+	if n := git.Started() - before; n != 0 {
+		t.Errorf("branchOf started git %d times, want none", n)
+	}
+	run("repo/work", "checkout", "-q", "--detach")
+	if got := branchOf(dir); got != "HEAD" {
+		t.Errorf("detached: branchOf = %q, want HEAD", got)
+	}
+	if got := branchOf(t.TempDir()); got != "" {
+		t.Errorf("not a worktree: branchOf = %q, want empty", got)
 	}
 }

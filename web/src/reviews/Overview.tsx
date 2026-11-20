@@ -44,7 +44,7 @@ export function MissionContext({ mission, capsule }: { mission: Mission; capsule
   const [brief, setBrief] = useState<string | null>();
   useEffect(() => {
     let stopped = false;
-    getMission(mission.slug, false).then(
+    getMission(mission.slug).then(
       (d) => !stopped && setBrief(d.brief),
       () => !stopped && setBrief(null),
     );

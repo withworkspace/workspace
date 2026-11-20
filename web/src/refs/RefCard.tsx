@@ -58,7 +58,8 @@ const treeOf = (repo: string, worktree: string) => {
   if (!got) {
     got = getTree(worktreeAPI(repo, worktree));
     trees.set(key, got);
-    got.catch(() => trees.delete(key));
+    // One still being read is asked again next time.
+    got.then((t) => t.unread && trees.delete(key)).catch(() => trees.delete(key));
   }
   return got;
 };
@@ -153,9 +154,10 @@ function DirCard({ r: named, known }: { r: Extract<PageRef, { kind: "dir" }>; kn
       </span>
       <span className="hovercard-line dim">
         {r.repo}, {r.worktree === GROUND ? "default branch" : r.worktree}
-        {tree ? `, ${names.length} ${names.length === 1 ? "thing" : "things"} in it` : ""}
+        {tree && !tree.unread ? `, ${names.length} ${names.length === 1 ? "thing" : "things"} in it` : ""}
       </span>
-      {gone && <Gone r={named} there={names.length > 0} />}
+      {tree?.unread && <span className="hovercard-line dim">Its files are still being read.</span>}
+      {gone && !tree?.unread && <Gone r={named} there={names.length > 0} />}
       {error && <span className="hovercard-line dim">It can't be read: {error}</span>}
       {names.length > 0 && (
         <span className="ref-excerpt">

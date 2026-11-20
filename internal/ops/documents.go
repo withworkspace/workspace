@@ -320,7 +320,9 @@ func (w *Workspace) RecordedBy(d *DocFile) (m *mission.Mission, ref string, ok b
 		if !named {
 			continue
 		}
-		v := BuildMissionViewsFrom(w.WS(), nil, []*mission.Mission{m})[0]
+		// What git says of its capsules as kept: a page reads this each
+		// time a document opens.
+		v := buildMissionViews(&w.git, w.WS(), nil, []*mission.Mission{m})[0]
 		for _, av := range ResolveArtifacts(w.WS(), store, v) {
 			if av.Path == "" || av.State == "missing" {
 				continue

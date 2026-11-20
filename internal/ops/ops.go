@@ -49,6 +49,9 @@ type Workspace struct {
 	// git is what git said of each capsule, kept for the views pages read
 	// until the capsule moves.
 	git keptGit
+	// spaces is what's kept of the spaces of documents, for the pages that
+	// read them (spaces_kept.go).
+	spaces keptSpaces
 
 	// updates is one look for later releases, or one upgrade, at a time;
 	// plugins is one plugin added, updated or removed at a time.
@@ -82,6 +85,10 @@ type Options struct {
 	// Check has the daemon run and judge the checks of the step crew
 	// reported done at (job.Check). nil runs them there and then.
 	Check func(slug, crewID string)
+	// WritePR has the daemon write the pull request the PR writer's
+	// marked writing for a mission's capsule, and open it (job.PR). nil
+	// writes and opens it there and then.
+	WritePR func(slug, capsule string)
 	// Answer has the daemon answer a conversation (kind job.Answer) or a
 	// thread (job.Thread) in a mission ("" for the workspace's), or draft
 	// what a resolved thread decided (job.Draft). nil for no answers.

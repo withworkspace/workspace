@@ -66,6 +66,20 @@ func (w *Workspace) Process() string {
 	return filepath.Join(w.Root, ProcessName)
 }
 
+// PRGuideName is where the workspace says how its pull requests are
+// written when [agents] doesn't say: beside ws.toml, in the config repo.
+const PRGuideName = "PR.md"
+
+// PRGuide is where the workspace says how its pull requests are written,
+// for the PR writer: [agents] pr, else PR.md at its root, whether or not
+// it's there.
+func (w *Workspace) PRGuide() string {
+	if w.AgentsPR != "" {
+		return w.inWorkspace(w.AgentsPR)
+	}
+	return filepath.Join(w.Root, PRGuideName)
+}
+
 // SkillsDir is the folder the workspace's skills are in: [agents] skills,
 // else .agents/skills or .claude/skills. "" with none.
 func (w *Workspace) SkillsDir() string {

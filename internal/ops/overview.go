@@ -2,9 +2,11 @@ package ops
 
 import (
 	"errors"
+	"hash/fnv"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -42,6 +44,14 @@ type Overview struct {
 	Sidebar, Menu []string
 	// Focus is what you've pinned that stands, in your order (focus.go).
 	Focus []FocusItem
+	// SpacesSeen moves when a look behind a read finds a space of
+	// documents other than the pages were given (keptSpaces): a page
+	// showing one reads it again.
+	SpacesSeen string
+	// CapsulesSeen moves when a look behind a read finds a capsule other
+	// than the read said (keptGit.dirtyMoved): a page showing capsules'
+	// statuses that weren't in this view reads them again.
+	CapsulesSeen string
 }
 
 // MissionItem is a mission in a list: its view, when anything of it last
@@ -89,6 +99,12 @@ func (w *Workspace) Overview() (*Overview, error) {
 	}
 	out := &Overview{Name: ws.Name, Missions: []MissionItem{}, Kinds: w.Kinds(), Org: ws.Org, DefaultBranch: firstNonEmpty(ws.DefaultBranch, "main"), Spaces: []SpaceView{}}
 	out.Sidebar, out.Menu = w.Config().UI.Sidebar, w.Config().UI.Menu
+	out.SpacesSeen = w.SpacesSeen()
+	if moved := w.git.dirtyMoved(); moved != "" {
+		h := fnv.New64a()
+		h.Write([]byte(moved))
+		out.CapsulesSeen = strconv.FormatUint(h.Sum64(), 16)
+	}
 	if out.Focus, err = w.Focus(); err != nil {
 		return nil, err
 	}
@@ -174,6 +190,10 @@ func MissionUpdated(store mission.Store, slug string) time.Time {
 // MissionDetail is a mission as its page shows it.
 type MissionDetail struct {
 	MissionView
+	// GitHub: what GitHub said of its capsules' pull requests is in it,
+	// as last asked. Until it has answered for each of its repos, a
+	// capsule with none may yet have one.
+	GitHub bool
 	Brief  string
 	Plan   string          // plan.md, "" for none
 	Events []mission.Event // its whole log
@@ -182,7 +202,9 @@ type MissionDetail struct {
 	ConversationTitle string // of the conversation it came from
 	ReReviews         []review.ReReview
 	Headlines         []mission.Headline
-	Stages            []mission.StageState // none for a brief with no stages
+	// Cards is the headlines as the page draws them (mission.Cards).
+	Cards  []mission.Card
+	Stages []mission.StageState // none for a brief with no stages
 	// At is where it is on its route, in words (Snapshot.Position), and
 	// Z what has to be true for it to end there: its plan's, or its
 	// brief's Acceptance.
@@ -214,20 +236,25 @@ type CapsuleStatus struct {
 // lists, and runsShown how many its own page lists across missions.
 const missionRuns, runsShown = 8, 40
 
-// Mission is a mission as its page shows it: with what GitHub says of its
-// pull requests (asked, if it hasn't been lately), when withGitHub.
-func (w *Workspace) Mission(slug string, withGitHub bool) (*MissionDetail, error) {
+// Mission is a mission as its page shows it, with what GitHub last said of
+// its pull requests (Options.PRs): never waiting on GitHub, which is asked
+// behind the read when it hasn't been lately. Its stamp moves when the
+// answer's different (MissionStamp), and the page reads again.
+func (w *Workspace) Mission(slug string) (*MissionDetail, error) {
 	m, err := w.load(slug)
 	if err != nil {
 		return nil, err
 	}
 	ws := w.WS()
 	var idx PRIndex
-	if gh := w.GitHub(); withGitHub && w.opts.PRs != nil && gh != nil {
-		idx = w.opts.PRs.Get(ws, gh, MissionRepos([]*mission.Mission{m}))
+	answered := true
+	if gh := w.GitHub(); w.opts.PRs != nil && gh != nil {
+		repos := MissionRepos([]*mission.Mission{m})
+		idx = w.opts.PRs.Peek(ws, gh, repos)
+		answered = len(idx) == len(repos) // Peek has only those GitHub's answered for
 	}
 	v := buildMissionViews(&w.git, ws, idx, []*mission.Mission{m})[0]
-	d := &MissionDetail{MissionView: v, Status: map[string]CapsuleStatus{}, Runs: w.runsOf(m, missionRuns)}
+	d := &MissionDetail{MissionView: v, GitHub: answered, Status: map[string]CapsuleStatus{}, Runs: w.runsOf(m, missionRuns)}
 	d.CapsuleRuns, d.Recipes = w.capsuleRuns(v)
 	d.Brief, _ = w.Missions.ReadBrief(slug)
 	d.Plan, _ = w.Missions.ReadPlan(slug)
@@ -256,6 +283,7 @@ func (w *Workspace) Mission(slug string, withGitHub bool) (*MissionDetail, error
 	}
 	snap := MissionSnapshot(v, d.Brief, tail, d.ReReviews, DocThreadCourt(ws, v, d.Brief), !w.Config().OrchestratorEnabled())
 	d.Headlines, d.At, d.Z = mission.Resolve(snap), snap.Position(), m.Z(d.Brief)
+	d.Cards = mission.CardsOf(snap, d.Headlines)
 	if states, _ := m.StageProgress(d.Brief); !(len(states) == 1 && states[0].Implicit) {
 		d.Stages = states
 	}

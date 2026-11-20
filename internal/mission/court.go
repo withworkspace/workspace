@@ -53,14 +53,15 @@ const (
 	// The agents' court. Of these, a mission shows one at a time, the
 	// first that applies (oneBanner): crew on its route come before the
 	// agents beside it.
-	KindWorking   Kind = "working"   // crew working
-	KindLaunching Kind = "launching" // ws starting crew: until they're recorded, then until their first activity
-	KindOwnWork   Kind = "own-work"  // crew ended a turn to wait on work they left running
-	KindAnswering Kind = "answering" // agents answering threads on a document
-	KindBriefing  Kind = "briefing"  // a briefing agent writing the brief, or the planner at work on the plan
-	KindDeciding  Kind = "deciding"  // the orchestrator running, or about to
-	KindChecking  Kind = "checking"  // ws running and having judged a step's checks
-	KindMovingOn  Kind = "moving-on" // ws taking in a merge at its Open Pull Request step: the plan moves on
+	KindWorking   Kind = "working"    // crew working
+	KindLaunching Kind = "launching"  // ws starting crew: until they're recorded, then until their first activity
+	KindOwnWork   Kind = "own-work"   // crew ended a turn to wait on work they left running
+	KindAnswering Kind = "answering"  // agents answering threads on a document
+	KindBriefing  Kind = "briefing"   // a briefing agent writing the brief, or the planner at work on the plan
+	KindDeciding  Kind = "deciding"   // the orchestrator running, or about to
+	KindChecking  Kind = "checking"   // ws running and having judged a step's checks
+	KindMovingOn  Kind = "moving-on"  // ws taking in a merge at its Open Pull Request step: the plan moves on
+	KindWritingPR Kind = "writing-pr" // the PR writer writing a pull request ws then opens
 
 	// Outside.
 	KindChecksRunning  Kind = "checks-running"  // a PR's checks are running
@@ -80,7 +81,7 @@ const (
 var kindOrder = []Kind{
 	KindCrewAsks, KindPermission, KindFlag, KindReReview, KindStepReview, KindToDo, KindReplies, KindBriefTalk, KindProposed, KindQueued, KindResume, KindReplied,
 	KindChecksFailing, KindChangesRequested, KindApprove, KindAccept, KindMerge, KindLand, KindWrapUp, KindStalled,
-	KindWorking, KindLaunching, KindOwnWork, KindAnswering, KindBriefing, KindChecking, KindMovingOn, KindDeciding,
+	KindWorking, KindLaunching, KindOwnWork, KindAnswering, KindBriefing, KindChecking, KindWritingPR, KindMovingOn, KindDeciding,
 	KindChecksRunning, KindAwaitingReview, KindWaitingOn,
 	KindLanded, KindEnded, KindToBrief, KindReady, KindParked, KindArchived,
 }
@@ -676,6 +677,16 @@ func Resolve(s Snapshot) []Headline {
 		add(checkingHeadline(st, id, m.Checking, s.now()))
 	}
 
+	// The PR writer, writing a pull request ws opens once it's written.
+	for _, p := range m.WritingPRs {
+		text := "The PR writer is writing " + p.Capsule + "'s pull request: ws opens it once it's written"
+		if p.Step > 0 {
+			text += fmt.Sprintf(", for step %d", p.Step)
+		}
+		add(Headline{Court: CourtAgent, Kind: KindWritingPR, Label: "… writing", By: "the PR writer", Since: p.Since, Text: text,
+			Action: Action{Label: "nothing to do"}})
+	}
+
 	// The orchestrator.
 	// Its run is marked underway as the event it's for is taken (ops.Notify),
 	// so there's no gap to guess across.
@@ -689,16 +700,21 @@ func Resolve(s Snapshot) []Headline {
 		}
 	}
 
+	// The plan's step waits on CI or someone outside ws.
+	stepWaits := false
+	if st := s.waitingStep(); st != nil && !onIt && s.State != Parked && !s.orchestrating() {
+		stepWaits = true
+		add(s.stepWaitHeadline(*st))
+	}
+
 	// Placed outside by the orchestrator: waiting on something ws can't see.
-	if w := m.Waiting; w != nil {
+	// Not at a step that waits: the step says what it waits on, and how
+	// it's passed, and "nothing for you to do" said of the same wait would
+	// stand in front of marking it done.
+	if w := m.Waiting; w != nil && !stepWaits {
 		add(Headline{Court: CourtOutside, Kind: KindWaitingOn, Label: "⧗ waiting", By: firstNonEmpty(w.By, "orchestrator"), Since: w.At,
 			Text:   "Waiting on " + w.Text + " · nothing for you to do",
 			Action: Action{Label: "nothing to do"}})
-	}
-
-	// The plan's step waits on CI or someone outside ws.
-	if st := s.waitingStep(); st != nil && !onIt && s.State != Parked && !s.orchestrating() {
-		add(s.stepWaitHeadline(*st))
 	}
 
 	// PRs: crew at work in a capsule have its PR in hand. One that's

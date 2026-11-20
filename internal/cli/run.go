@@ -32,6 +32,7 @@ func newRunCmd() *cobra.Command {
 	var ownerPID int
 	var ttl float64
 	var wait time.Duration
+	var withs []string
 	cmd := &cobra.Command{
 		Use:   "run [flags] [<recipe> | -- <command>]",
 		Short: "Run a dev server or the like on a free port, ended for you when its owner goes",
@@ -55,6 +56,25 @@ stop, run where it ran once it's ended). ws run alone lists them:
   [run.stack]
   command = "docker compose up"
   stop = "docker compose down"
+
+A recipe runs once in a worktree: asked for where it's running already,
+ws run gives you that run, and it's then yours as well as whoever
+started it, ended only once all of you have gone.
+
+A recipe can say what it needs running first, and how it's told where:
+
+  [run.web.needs.api]
+  run = "backend/server"   # a recipe of another repo; "server" is this repo's
+  env = "API_URL"          # its address, in the run's environment
+  mount = "/api"           # and below the run's own name (ws router)
+
+ws run web then finds the server where it's nearest (the same worktree
+for this repo's; for another repo's, the mission's capsule there, or its
+ground), starts it if it isn't running, waits for it, and starts web with
+its address ({api} and {api.port} in the command say it too). One run of
+the server serves every run that needs it, and it's ended once none does.
+--with api=<capsule>, ground, silo or an address (https://staging…) says
+what meets a need in place of the nearest.
 
 It waits until the run is up (something listens on the port, or its
 recipe's ready path answers), then prints the link and when the run will
@@ -100,22 +120,26 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 			if len(args) == 0 {
 				return listRecipes(here, recipes)
 			}
-			start := runs.Start{Command: commandOf(args)}
+			ask := ops.RunAsk{Command: commandOf(args)}
+			// forHere is where its owner is asked after: where it runs,
+			// which for a silo's recipe is the silo.
+			forHere := here
 			if recipe, ok := recipes[args[0]]; ok && len(args) == 1 && cmd.ArgsLenAtDash() < 0 {
 				if strings.TrimSpace(recipe.Command) == "" {
 					return fmt.Errorf("[run.%s] in %s has no command", args[0], config.RepoFileName)
 				}
-				start = runs.Start{Command: recipe.Command, Recipe: args[0], Ready: recipe.Ready, Stop: recipe.Stop}
-				if name == "" {
-					name = args[0]
-				}
+				ask = ops.RunAsk{Recipe: args[0]}
 				if recipe.Where == "silo" {
 					silo := w.WS().SiloWorktree(here.repo)
 					if _, err := os.Stat(silo); err != nil {
 						return fmt.Errorf("%s runs in %s's silo, and it has none: ws silo point %s <capsule> makes one", args[0], here.repo, here.repo)
 					}
-					here = runHere{repo: here.repo, worktree: workspace.SiloDir, dir: silo}
+					forHere = runHere{repo: here.repo, worktree: workspace.SiloDir, dir: silo}
 				}
+			}
+			with, err := withOf(withs)
+			if err != nil {
+				return err
 			}
 			if cmd.Flags().Changed("owner") {
 				if forKind != "" && forKind != string(runs.ByPID) {
@@ -130,28 +154,47 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 			if ttl == 0 && crew != "" {
 				return errors.New("crew's runs need an end: --ttl takes hours, more than 0")
 			}
-			owner, err := runOwner(w, here, runs.Kind(forKind), ownerPID)
+			owner, err := runOwner(w, forHere, runs.Kind(forKind), ownerPID)
 			if err != nil {
 				return err
 			}
-			by := ops.ActorFromEnv().By()
-			now := time.Now()
 			store := runs.Store{Root: w.WS().Root}
-			start.Name, start.Repo, start.Worktree, start.Dir = name, here.repo, here.worktree, here.dir
-			start.Owner, start.TTL, start.By = owner, time.Duration(ttl*float64(time.Hour)), by
-			run, err := store.Start(start, now)
+			// The daemon first: it ends runs, and serves the names that
+			// what this one needs is reached by.
+			watchErr := ensureRunsWatched(w.WS().Root)
+			ask.Name, ask.Repo, ask.Worktree, ask.Dir = name, here.repo, here.worktree, here.dir
+			ask.Owner, ask.TTL, ask.By = owner, time.Duration(ttl*float64(time.Hour)), ops.ActorFromEnv().By()
+			ask.With, ask.Wait, ask.Mission = with, wait, os.Getenv(mission.EnvMission)
+			up, err := w.StartRun(ask)
+			var ended *runs.EndedError
+			if errors.As(err, &ended) {
+				if tail := ended.Run.Tail(20); tail != "" {
+					fmt.Fprintf(os.Stderr, "%s\n\n", tail)
+				}
+				return fmt.Errorf("%w: its log is above, and ws run logs %s has it all", err, ended.Run.Ref())
+			}
 			if err != nil {
 				return err
 			}
-			if want := runs.Slug(name); want != "" && run.Name != want {
+			run := up.Run
+			switch want := runs.Slug(name); {
+			case !up.Started:
+				fmt.Fprintf(os.Stderr, "%s is running here already (started %s by %s): it's yours as well now.\n", run.Name, run.Created.Local().Format("15:04"), run.By)
+			case want != "" && run.Name != want:
 				fmt.Fprintf(os.Stderr, "%s is running already: this one is %s.\n", want, run.Name)
-			} else if want == "" && run.Name != runs.NameFor(run.Command) {
+			case want == "" && ask.Recipe == "" && run.Name != runs.NameFor(run.Command):
 				fmt.Fprintf(os.Stderr, "%s is running already: this one is %s.\n", runs.NameFor(run.Command), run.Name)
 			}
-			watchErr := ensureRunsWatched(w.WS().Root)
+			for _, n := range up.Needs {
+				if n.Started {
+					fmt.Fprintf(os.Stderr, "Started %s for %s%s.\n", n.Run, n.Name, whereSaid(n))
+				}
+			}
+			for _, note := range up.Notes {
+				fmt.Fprintln(os.Stderr, note)
+			}
 			if wait > 0 {
 				ready, err := store.Wait(run, wait)
-				var ended *runs.EndedError
 				if errors.As(err, &ended) {
 					if tail := ended.Run.Tail(20); tail != "" {
 						fmt.Fprintf(os.Stderr, "%s\n\n", tail)
@@ -166,12 +209,20 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 				}
 			}
 			out := os.Stdout
-			fmt.Fprintf(out, "name   %s\nlink   %s\n", run.Ref(), router.RunAddress(w.WS().Root, run))
-			if a := router.RunAddress(w.WS().Root, run); a != run.Link() {
+			link := router.RunAddress(w.WS().Root, run)
+			fmt.Fprintf(out, "name   %s\nlink   %s\n", run.Ref(), link)
+			if link != run.Link() {
 				fmt.Fprintf(out, "local  %s\n", run.Link())
 			}
-			fmt.Fprintf(out, "port   %d\nlog    %s\n\n", run.Port, run.LogPath())
-			fmt.Fprintf(out, "It ends %s. ws run stop %s ends it now.\n", runs.Ends(run, time.Now()), run.Ref())
+			fmt.Fprintf(out, "port   %d\nlog    %s\n", run.Port, run.LogPath())
+			for _, n := range up.Needs {
+				fmt.Fprintf(out, "needs  %s\n", needSaid(n.Need, link, link != run.Link()))
+			}
+			// As List has it: with who needs it, which says when it ends.
+			if now, err := store.Find(run.Ref(), run.Repo, run.Worktree); err == nil {
+				run = now
+			}
+			fmt.Fprintf(out, "\nIt ends %s. ws run stop %s ends it now.\n", runs.Ends(run, time.Now()), run.Ref())
 			if watchErr != nil {
 				fmt.Fprintf(os.Stderr, "\n%v\n", watchErr)
 			}
@@ -183,9 +234,59 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 	cmd.Flags().StringVar(&forKind, "for", "", "who it's for: pid, capsule, mission, step, crew, conversation or none (default: crew's step, a conversation, else pid)")
 	cmd.Flags().IntVar(&ownerPID, "owner", 0, "the process it lasts as long as (with --for pid)")
 	cmd.Flags().Float64Var(&ttl, "ttl", runs.DefaultTTL.Hours(), "how long it may last, in hours (0: no limit)")
-	cmd.Flags().DurationVar(&wait, "wait", time.Minute, "how long to wait for it to be up (0: don't)")
+	cmd.Flags().DurationVar(&wait, "wait", time.Minute, "how long to wait for it, and each run it needs, to be up (0: don't)")
+	cmd.Flags().StringArrayVar(&withs, "with", nil, "what meets one of the recipe's needs, in place of the nearest: <need>=<capsule>, ground, silo, or an address (https://…)")
 	cmd.AddCommand(newRunLsCmd(), newRunStopCmd(), newRunLogsCmd(), newRunKeepCmd())
 	return cmd
+}
+
+// withOf is --with's pairs, by need: api=ground, api=https://staging….
+func withOf(said []string) (map[string]string, error) {
+	if len(said) == 0 {
+		return nil, nil
+	}
+	out := map[string]string{}
+	for _, s := range said {
+		need, what, ok := strings.Cut(s, "=")
+		need, what = strings.TrimSpace(need), strings.TrimSpace(what)
+		if !ok || need == "" || what == "" {
+			return nil, fmt.Errorf("--with is <need>=<capsule>, ground, silo or an address, not %s", s)
+		}
+		out[need] = what
+	}
+	return out, nil
+}
+
+// whereSaid says how a need's run was chosen, when it's worth saying: in
+// another repo, ws picked the worktree.
+func whereSaid(n ops.NeedUp) string {
+	if n.Where == "" || n.Where == "as you said" {
+		return ""
+	}
+	return fmt.Sprintf(" (%s: --with %s=<capsule> runs another)", n.Where, n.Name)
+}
+
+// needSaid is one of a run's needs on a line: its name, what meets it,
+// the address the run was given, and where it's mounted. link is the
+// run's own, by name when named is true: a mount is only there then, and
+// is said as its path alone otherwise.
+func needSaid(n runs.Need, link string, named bool) string {
+	what := n.Run
+	if what == "" {
+		what = "outside ws"
+	}
+	line := fmt.Sprintf("%s  %s  %s", n.Name, what, n.Addr)
+	if n.Env != "" {
+		line += "  $" + n.Env
+	}
+	if n.Mount != "" {
+		if named {
+			line += "  at " + strings.TrimRight(link, "/") + n.Mount
+		} else {
+			line += "  at " + n.Mount
+		}
+	}
+	return line
 }
 
 // ensureRunsWatched has the workspace's daemon up, as it's what ends runs.
@@ -430,10 +531,35 @@ func listRecipes(here runHere, recipes map[string]config.RunRecipe) error {
 		fmt.Fprintf(os.Stderr, "%s has no recipes ([run.<name>] in its %s): ws run -- <command> runs one by hand.\n", here.repo, config.RepoFileName)
 		return nil
 	}
+	needy := false
+	for _, rc := range recipes {
+		needy = needy || len(rc.Needs) > 0
+	}
 	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "RECIPE\tCOMMAND")
+	if needy {
+		fmt.Fprintln(tw, "RECIPE\tCOMMAND\tNEEDS")
+	} else {
+		fmt.Fprintln(tw, "RECIPE\tCOMMAND")
+	}
 	for _, n := range slices.Sorted(maps.Keys(recipes)) {
-		fmt.Fprintf(tw, "%s\t%s\n", n, recipes[n].Command)
+		rc := recipes[n]
+		if !needy {
+			fmt.Fprintf(tw, "%s\t%s\n", n, rc.Command)
+			continue
+		}
+		var needs []string
+		for _, name := range slices.Sorted(maps.Keys(rc.Needs)) {
+			repo, recipe := rc.Needs[name].Recipe(name)
+			if repo != "" {
+				recipe = repo + "/" + recipe
+			}
+			if recipe == name {
+				needs = append(needs, name)
+			} else {
+				needs = append(needs, name+" ("+recipe+")")
+			}
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\n", n, rc.Command, strings.Join(needs, ", "))
 	}
 	return tw.Flush()
 }
@@ -505,10 +631,15 @@ type runJSON struct {
 	State   string     `json:"state"`
 	Status  *int       `json:"status,omitempty"`
 	Owner   runs.Owner `json:"owner"`
-	Expires *time.Time `json:"expires,omitempty"`
-	Ends    string     `json:"ends,omitempty"`
-	By      string     `json:"by,omitempty"`
-	Log     string     `json:"log"`
+	// Also are who else it's for; Needs what it was started needing; and
+	// NeededBy the running runs that need it, which keep it.
+	Also     []runs.Owner `json:"also,omitempty"`
+	Needs    []runs.Need  `json:"needs,omitempty"`
+	NeededBy []string     `json:"needed_by,omitempty"`
+	Expires  *time.Time   `json:"expires,omitempty"`
+	Ends     string       `json:"ends,omitempty"`
+	By       string       `json:"by,omitempty"`
+	Log      string       `json:"log"`
 }
 
 func writeRunsJSON(out io.Writer, root string, list []runs.Run) error {
@@ -518,7 +649,7 @@ func writeRunsJSON(out io.Writer, root string, list []runs.Run) error {
 		j := runJSON{
 			Ref: r.Ref(), Name: r.Name, Repo: r.Repo, Where: runs.Label(r.Worktree), Dir: r.Dir,
 			Command: r.Command, Port: r.Port, Link: router.RunAddress(root, r), Local: r.Link(), State: string(r.State),
-			Owner: r.Owner, By: r.By, Log: r.LogPath(),
+			Owner: r.Owner, Also: r.Also, Needs: r.Needs, NeededBy: r.NeededBy, By: r.By, Log: r.LogPath(),
 		}
 		if r.State == runs.Exited {
 			s := r.Status
@@ -592,12 +723,37 @@ stand in; with --all, every run in the workspace.`,
 				return nil
 			}
 			var errs []error
+			stopped := map[string]bool{}
+			for _, r := range which {
+				stopped[r.Ref()] = true
+			}
+			needs := false
 			for _, r := range which {
 				if err := store.End(r); err != nil {
 					errs = append(errs, fmt.Errorf("%s: %w", r.Ref(), err))
 					continue
 				}
 				fmt.Fprintf(os.Stderr, "Stopped %s.\n", r.Ref())
+				needs = needs || len(r.Needs) > 0
+				// What still runs and needed it is left without it.
+				left := slices.DeleteFunc(slices.Clone(r.NeededBy), func(ref string) bool { return stopped[ref] })
+				switch len(left) {
+				case 0:
+				case 1:
+					fmt.Fprintf(os.Stderr, "%s needed it, and is still running: asking for that again (ws run) starts this again.\n", left[0])
+				default:
+					fmt.Fprintf(os.Stderr, "%s needed it, and are still running: asking for either again (ws run) starts this again.\n", strings.Join(left, " and "))
+				}
+			}
+			// What was started for those, and nothing needs now, ends with
+			// them, not at the daemon's next look.
+			if needs {
+				swept, _ := store.Sweep(newRunOwners(w.WS().Root), time.Now())
+				for _, s := range swept {
+					if s.Run.State == runs.Running {
+						fmt.Fprintf(os.Stderr, "Ended %s: %s.\n", s.Run.Ref(), s.Why)
+					}
+				}
 			}
 			return errors.Join(errs...)
 		},

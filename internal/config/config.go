@@ -28,7 +28,11 @@ type Config struct {
 	Conversation AgentConfig `toml:"conversation"`
 	// Judge is the agent that judges a Work step's checks in words, with
 	// fresh context: unset, the planner's (briefing's) agent and model.
-	Judge    AgentConfig    `toml:"judge"`
+	Judge AgentConfig `toml:"judge"`
+	// PRWriter is the agent that writes the title and description of a
+	// pull request ws opens, from the step it's for and PR.md: unset,
+	// conversations' agent and model.
+	PRWriter AgentConfig    `toml:"pr_writer"`
 	Missions MissionsConfig `toml:"missions"`
 	Agents   AgentsConfig   `toml:"agents"`
 	Pages    PagesConfig    `toml:"pages"`
@@ -79,6 +83,7 @@ type LocalConfig struct {
 	Orchestrator OrchestratorConfig     `toml:"orchestrator,omitempty"`
 	Conversation AgentConfig            `toml:"conversation,omitempty"`
 	Judge        AgentConfig            `toml:"judge,omitempty"`
+	PRWriter     AgentConfig            `toml:"pr_writer,omitempty"`
 	Missions     MissionsConfig         `toml:"missions,omitempty"`
 	Artifacts    LocalArtifactsConfig   `toml:"artifacts,omitempty"`
 	Agents       AgentsConfig           `toml:"agents,omitempty"`
@@ -116,6 +121,9 @@ type AgentsConfig struct {
 	// turn each is, and when it's the user's. The planner and the
 	// orchestrator read it as it's written.
 	Process string `toml:"process,omitempty"`
+	// PR is how the workspace's pull requests are written, in prose: the
+	// PR writer reads it as it's written. Default: PR.md at the root.
+	PR string `toml:"pr,omitempty"`
 }
 
 // DocumentKind is a kind of document the workspace has: where one goes and
@@ -653,6 +661,43 @@ type RunRecipe struct {
 	// Where is where it runs: "" for the worktree you stand in, "silo" for
 	// the repo's silo (.silo), whichever capsule it's pointed at.
 	Where string `toml:"where,omitempty"`
+	// Needs are the runs this one needs up before it starts, each by the
+	// name this recipe calls it ([run.web.needs.api]). ws finds each, or
+	// starts it, and hands its address over.
+	Needs map[string]RunNeed `toml:"needs,omitempty"`
+}
+
+// RunNeed is one of a recipe's needs: another recipe's run, and how this
+// one is given its address.
+type RunNeed struct {
+	// Run is the recipe that's needed: "server" for one of this repo's,
+	// "backend/server" for another repo's, as the workspace names it. ""
+	// is this repo's recipe of the need's own name.
+	Run string `toml:"run,omitempty"`
+	// Env is the variable its address is handed over in (API_URL). The
+	// command can say it too: {api} for the address, {api.port} for the
+	// port.
+	Env string `toml:"env,omitempty"`
+	// Mount is a path of this run's own name the need answers at (/api),
+	// through ws's router: the same origin, as behind an ingress. Strip
+	// takes the path off before the need is asked (/api/users is asked
+	// for as /users).
+	Mount string `toml:"mount,omitempty"`
+	Strip bool   `toml:"strip,omitempty"`
+}
+
+// Recipe is the repo and recipe a need names: n.Run, or with none said,
+// the recipe of the need's own name. repo is "" for the repo the need is
+// said in.
+func (n RunNeed) Recipe(name string) (repo, recipe string) {
+	said := strings.TrimSpace(n.Run)
+	if said == "" {
+		return "", name
+	}
+	if r, rc, ok := strings.Cut(said, "/"); ok {
+		return strings.TrimSpace(r), strings.TrimSpace(rc)
+	}
+	return "", said
 }
 
 type CapsuleConfig struct {
@@ -867,6 +912,7 @@ func Merge(base, local *Config) *Config {
 		Orchestrator: base.Orchestrator,
 		Conversation: base.Conversation,
 		Judge:        base.Judge,
+		PRWriter:     base.PRWriter,
 		Missions:     base.Missions,
 		Agents:       base.Agents,
 		Pages:        base.Pages,
@@ -971,6 +1017,9 @@ func Load(startDir string) (*Config, string, error) {
 		if local.Agents.Process != "" {
 			cfg.Agents.Process = local.Agents.Process
 		}
+		if local.Agents.PR != "" {
+			cfg.Agents.PR = local.Agents.PR
+		}
 		if local.Missions.Records != "" {
 			cfg.Missions.Records = local.Missions.Records
 		}
@@ -1030,6 +1079,7 @@ func Load(startDir string) (*Config, string, error) {
 		cfg.Briefing.merge(local.Briefing)
 		cfg.Conversation.merge(local.Conversation)
 		cfg.Judge.merge(local.Judge)
+		cfg.PRWriter.merge(local.PRWriter)
 		if local.Orchestrator.Harness != "" {
 			cfg.Orchestrator.Harness = local.Orchestrator.Harness
 		}

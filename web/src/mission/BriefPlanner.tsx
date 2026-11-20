@@ -1,4 +1,5 @@
 import { type ReactNode, type Ref, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Doing } from "../ui/Doing";
 import { Link } from "react-router";
 import type { TalkDetail, TalkProposal } from "../api";
 import { type Chip, placed, readsAs, waiting } from "../ask/ask";
@@ -127,8 +128,7 @@ export function BriefPlanner({
                 <Markdown text={t.run.said} />
               </div>
             )}
-            <Calls calls={(t.run?.calls ?? []).map((c, i, all) => (i === all.length - 1 && !c.result ? { ...c, pending: true } : c))} root={root} open live tail={4} />
-            <Typing reading={!!t.run?.calls.length} />
+            <Doing calls={t.run?.calls ?? []} root={root} />
           </div>
         )}
         {lines.after.map(line)}
@@ -136,19 +136,6 @@ export function BriefPlanner({
       </div>
       <div className="brief-planner-foot">{field}</div>
     </aside>
-  );
-}
-
-export function Typing({ reading }: { reading: boolean }) {
-  return (
-    <div className="typing">
-      <span className="typing-dots" aria-hidden>
-        <span />
-        <span />
-        <span />
-      </span>
-      {reading ? "Reading" : "Thinking"}
-    </div>
   );
 }
 

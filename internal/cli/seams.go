@@ -20,12 +20,17 @@ import (
 // NoDaemon is for a test binary, which has no daemon to hand work to (one
 // started from it would be the test binary run again): the orchestrator
 // isn't run, and a step's checks run there and then, as the server would
-// run them.
+// run them, as does the PR writer.
 func NoDaemon() {
 	orchestrateSpawner = func(root, slug, crewID, trigger string) {}
 	checkSpawner = func(root, slug, crewID string) {
 		if ctx, err := LoadOps(root); err == nil {
 			ctx.RunChecks(slug, crewID)
+		}
+	}
+	prWriterSpawner = func(root, slug, capsule string) {
+		if ctx, err := LoadOps(root); err == nil {
+			ctx.OpenWrittenPR(slug, capsule)
 		}
 	}
 }

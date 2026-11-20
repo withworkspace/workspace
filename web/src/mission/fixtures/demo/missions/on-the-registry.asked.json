@@ -1,0 +1,213 @@
+{
+  "slug": "on-the-registry",
+  "title": "On the registry",
+  "state": "active",
+  "created": "2026-11-20T15:14:31Z",
+  "talks": [],
+  "brief": "## Goal\nOn the registry, then carry on from what was released.\n\n## Context\n- Seeded by the workspace repo's scripts/seeds/waits.sh.\n",
+  "plan": "## Z\n- It's released, and demo is moved on to it.\n## Stops early\n- None.\n## Steps\n1. Review: **Ready to release.** The change, before it's released.\n2. Wait: **On the registry.** The release workflow publishes the version to the registry.\n   - on: the release workflow\n   - check: `test -f published` passes\n3. Work: **Move on to it.** demo requires the released version.\n   - in: `demo/on-the-registry`\n",
+  "flag": {
+    "text": "The release workflow's last run failed on a flaky upload. Re-run it, or wait for the nightly?",
+    "by": "orchestrator",
+    "options": [
+      "Re-run it",
+      "Wait for the nightly"
+    ]
+  },
+  "tasks": [
+    {
+      "n": 1,
+      "verb": "answer",
+      "text": "The release workflow's last run failed on a flaky upload. Re-run it, or wait for the nightly?",
+      "options": [
+        "Re-run it",
+        "Wait for the nightly"
+      ],
+      "by": "orchestrator",
+      "at": "2026-11-20T15:14:58Z"
+    }
+  ],
+  "at": "Step 2 of 3, waiting on the release workflow: On the registry",
+  "z": [
+    "It's released, and demo is moved on to it."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "flag",
+      "group": "needs-you",
+      "label": "! asks you",
+      "text": "The orchestrator asks: The release workflow's last run failed on a flaky upload. Re-run it, or wait for the nightly?",
+      "action": {
+        "verb": "answer",
+        "label": "answer",
+        "target": "1",
+        "options": [
+          "Re-run it",
+          "Wait for the nightly"
+        ]
+      },
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:58Z"
+    },
+    {
+      "court": "outside",
+      "kind": "waiting-on",
+      "group": "waiting",
+      "label": "⧗ watching",
+      "text": "Step 2 waits on the release workflow: On the registry. The release workflow publishes the version to the registry. ws is watching for it (`test -f published`), and passes the step once it's happened; it hasn't looked yet",
+      "action": {
+        "verb": "wait",
+        "label": "mark step 2 done"
+      },
+      "by": "step 2",
+      "since": "2026-11-20T15:14:32Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "flag",
+      "court": "you",
+      "tone": "you",
+      "title": "The orchestrator asks",
+      "detail": "The release workflow's last run failed on a flaky upload. Re-run it, or wait for the nightly?",
+      "primary": {
+        "do": "look",
+        "label": "Look now",
+        "icon": "rotate"
+      },
+      "more": [
+        {
+          "do": "answer",
+          "label": "Re-run it",
+          "task": 1,
+          "text": "Re-run it"
+        },
+        {
+          "do": "answer",
+          "label": "Wait for the nightly",
+          "task": 1,
+          "text": "Wait for the nightly"
+        },
+        {
+          "do": "answer",
+          "label": "Answer…",
+          "task": 1,
+          "field": "Answer in your own words",
+          "quiet": true
+        },
+        {
+          "do": "ask-agent",
+          "label": "Ask an agent",
+          "quiet": true
+        },
+        {
+          "do": "dismiss",
+          "label": "Dismiss",
+          "quiet": true
+        }
+      ],
+      "folded": "waiting-on",
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:58Z"
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Ready to release",
+      "text": "Ready to release. The change, before it's released.",
+      "state": "accepted",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 2,
+      "title": "On the registry",
+      "text": "On the registry. The release workflow publishes the version to the registry.",
+      "state": "current",
+      "type": "Wait",
+      "who": "outside",
+      "whoSays": "outside: the release workflow",
+      "checks": [
+        {
+          "text": "`test -f published` passes",
+          "run": true
+        }
+      ],
+      "on": "the release workflow",
+      "passes": "watched",
+      "watch": {
+        "since": "2026-11-20T15:14:32Z"
+      }
+    },
+    {
+      "n": 3,
+      "title": "Move on to it",
+      "text": "Move on to it. demo requires the released version.",
+      "state": "todo",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `demo/on-the-registry`",
+      "in": "demo/on-the-registry"
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "demo",
+      "name": "on-the-registry",
+      "branch": "on-the-registry",
+      "path": "/try/demo/repos/demo/on-the-registry",
+      "exists": true,
+      "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+    }
+  ],
+  "crew": [],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:31Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "capsule_added",
+      "text": "capsule demo/on-the-registry added"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "note",
+      "text": "note: plan written: 3 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "stage",
+      "text": "step 1 accepted: **Ready to release.** The change, before it's released.",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:58Z",
+      "kind": "flag",
+      "text": "asks you: The release workflow's last run failed on a flaky upload. Re-run it, or wait for the nightly?",
+      "by": "orchestrator"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "shell"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "sonnet"
+      }
+    ]
+  }
+}

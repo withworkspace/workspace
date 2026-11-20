@@ -231,3 +231,62 @@ func waitFor(t *testing.T, ok func() bool) {
 	}
 	t.Fatal("it never happened")
 }
+
+// What a run needs answers below the run's own name, at the path it's
+// mounted on: the same origin, with the rest of the name the run's.
+func TestAMountAnswersBelowTheRunsOwnName(t *testing.T) {
+	dir := t.TempDir()
+	said := func(what string) *httptest.Server {
+		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "%s: %s?%s at %s", what, r.URL.Path, r.URL.RawQuery, r.Host)
+		}))
+		t.Cleanup(s.Close)
+		return s
+	}
+	web, api, auth, outside := said("web"), said("api"), said("auth"), said("outside")
+	Write(dir, File{PID: os.Getpid(), Root: "/x/shop", Name: "shop", Created: time.Now(), Web: 1, Routes: map[string]Route{
+		"web.feat.front": {Port: portOf(web), Mounts: []Mount{
+			{Path: "/api", Need: "api", Run: "server.ground.back", Port: portOf(api)},
+			{Path: "/api/auth", Need: "auth", Port: portOf(auth), Strip: true},
+			{Path: "/cdn", Need: "cdn", URL: outside.URL + "/assets", Strip: true},
+			{Path: "/down", Need: "search", Run: "search.ground.back"},
+		}},
+	}})
+	rt := &Router{Dir: dir, Procs: func() (runs.Procs, error) { return runs.Procs{}, nil }}
+	get := func(path string) (int, string) {
+		r := httptest.NewRequest("GET", "http://web.feat.front.shop.localhost"+path, nil)
+		r.RemoteAddr = "127.0.0.1:50000"
+		w := httptest.NewRecorder()
+		rt.ServeHTTP(w, r)
+		b, _ := io.ReadAll(w.Result().Body)
+		return w.Code, string(b)
+	}
+	outsideHost := strings.TrimPrefix(outside.URL, "http://")
+	for _, c := range []struct {
+		path string
+		code int
+		has  string
+	}{
+		{"/", 200, "web: /? at web.feat.front.shop.localhost"},
+		{"/apiary", 200, "web: /apiary?"}, // a path that only begins the same isn't the mount's
+		{"/api", 200, "api: /api? at web.feat.front.shop.localhost"},
+		{"/api/users?page=2", 200, "api: /api/users?page=2 at web.feat.front.shop.localhost"},
+		{"/api/auth/login", 200, "auth: /login?"}, // the longer mount, its path taken off
+		{"/api/auth", 200, "auth: /?"},
+		{"/cdn/app.css?v=1", 200, "outside: /assets/app.css?v=1 at " + outsideHost}, // an address outside ws is asked by its own name
+		{"/down/q", 502, "search</b> (search.ground.back) is mounted here at <b>/down</b>, and isn't running"},
+	} {
+		code, body := get(c.path)
+		if code != c.code || !strings.Contains(body, c.has) {
+			t.Errorf("%s: %d %q, want %d with %q", c.path, code, body, c.code, c.has)
+		}
+	}
+}
+
+func TestMountPath(t *testing.T) {
+	for in, want := range map[string]string{"/api": "/api", "api/": "/api", " /api/v1/ ": "/api/v1", "/": "", "": ""} {
+		if got := MountPath(in); got != want {
+			t.Errorf("MountPath(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

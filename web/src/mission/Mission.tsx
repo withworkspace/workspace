@@ -14,7 +14,8 @@ import {
   type TranscriptEntry,
   getMission,
   type Headline,
-  type Look,
+  type MissionAct,
+  type MissionCard,
   type MissionDetail,
   type Talk,
   useEvents,
@@ -38,11 +39,9 @@ import { PromptCard, pendingCall } from "./AgentView";
 import { archiveMission } from "./archive";
 import { briefGoal } from "./brief";
 import { BriefTab, briefHref, briefKeys } from "./BriefTab";
-import { shownHeadlines, splitHeadline } from "./headlines";
-import { mediaKind } from "./media";
 import { missionRefs } from "./refs";
 import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, MissionData, Stepper, Timeline, viewEvent } from "./parts";
-import { EndButton, EndDialog, EndedCapsules, ended, endingWords, HandedOn, ZChecks } from "./Ending";
+import { EndButton, EndDialog, EndedCapsules, ended, HandedOn, ZChecks } from "./Ending";
 import { PlanList } from "./PlanList";
 import { waitHow } from "./planRows";
 import { Verify } from "./Verify";
@@ -124,18 +123,9 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
   useEffect(() => setOver(false), [tab, slug]);
   const docked = tab === "summary" && side;
 
-  // What's on disk first (fast), then again with the capsules' PRs (GitHub
-  // is slow); again whenever the mission changes.
-  const mission = useLoaded<MissionDetail>(
-    (soon) =>
-      getMission(slug, false).then((x) => {
-        // (Stale by now, its answer's dropped: GitHub needn't be asked.)
-        const wanted = soon((cur) => (cur?.github ? { ...x, capsules: withPRs(x.capsules, cur.capsules), github: true } : x));
-        return wanted ? getMission(slug, true) : x;
-      }),
-    [slug],
-    { keep: true },
-  );
+  // As the daemon has it, with the capsules' PRs as GitHub last said;
+  // again whenever the mission changes (GitHub answering differently, too).
+  const mission = useLoaded<MissionDetail>(() => getMission(slug), [slug], { keep: true });
   const { value: d, error, reload: load } = mission;
   // The mission follows its own topic: told at once when its records
   // change, and of its files and capsules at the server's next look. A
@@ -431,7 +421,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
           <div role="tabpanel" id="mission-panel" aria-labelledby={`tab-${tab}`} className="tab-panel" key={tab}>
             {tab === "summary" && <Summary {...parts} full={!side} />}
             {tab === "work" && w && (
-              <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} />
+              <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} seen={workspace.readsSeen} />
             )}
             {tab === "verify" && <Verify d={d} bundle={bundle} pick={pickBundle} sel={item?.key} select={setSel} reload={load} />}
             {tab === "log" && <Log {...parts} />}
@@ -696,11 +686,6 @@ const summaryRecent = 5;
 const summaryRecentWithSide = 7;
 const summaryDecisions = 3;
 
-// withPRs keeps the PRs already known while what's on disk refreshes.
-function withPRs(next: CapsuleDetail[], known: CapsuleDetail[]): CapsuleDetail[] {
-  return next.map((c) => ({ ...c, pr: c.pr ?? known.find((k) => k.repo === c.repo && k.name === c.name)?.pr }));
-}
-
 interface Parts {
   d: MissionDetail;
   selected: (key: string) => string;
@@ -778,49 +763,16 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
   const w = useMemo(() => work(d), [d]);
   const label = useRepoLabel();
   const live = d.crew.filter((c) => !c.ended);
-  const now = d.stages.find((s) => s.state === "current");
   const events = d.events.filter((e) => !isNotice(e.text));
   const recent = full ? summaryRecent : summaryRecentWithSide;
   // The step it's on, and what crew last said: in the lead when there's a
   // headline to lead with, else rows of their own.
   const led = d.headlines.length > 0;
-  const step = now && (
-    <>
-      <span title={now.text}>
-        {d.plan ? "Step" : "Stage"} {now.n} of {d.stages.length}: <strong>{now.title}</strong>
-      </span>
-      {now.checkIn && <span className="dim"> · check in after</span>}
-      {now.who === "you" && !waitHow(now) && <span className="dim"> · yours: only you pass it</span>}
-      {waitHow(now) && (
-        <span className="lead-wait">
-          {" "}
-          · <span className={`chip ${waitHow(now)!.auto ? "tone-progress" : "tone-attention"}`}>{waitHow(now)!.word}</span> <span className="dim">{waitHow(now)!.says}</span>
-        </span>
-      )}
-    </>
-  );
-  const said = live.filter((c) => c.lastReply && c.activity !== "working");
+  const step = stepLine(d);
+  const said = saidLately(d);
   return (
     <>
-      <Headlines
-        d={d}
-        reload={reload}
-        step={step}
-        latest={
-          said.length > 0 && (
-            <dl className="lead-latest">
-              {said.map((c) => (
-                <div key={c.id} className="lead-said">
-                  <dt>From {c.id}</dt>
-                  <dd>
-                    <Said text={c.lastReply!} />
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          )
-        }
-      />
+      <SummaryLead d={d} reload={reload} />
       <Notices d={d} />
       <dl className="summary">
         {goal && (
@@ -890,6 +842,62 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
   );
 }
 
+// stepLine is the step the mission's on, as its lead says it over what's
+// happening: which it is, and for a Wait, whether anything's watching.
+function stepLine(d: MissionDetail): React.ReactNode {
+  const now = d.stages.find((s) => s.state === "current");
+  return (
+    now && (
+      <>
+        <span title={now.text}>
+          {d.plan ? "Step" : "Stage"} {now.n} of {d.stages.length}: <strong>{now.title}</strong>
+        </span>
+        {now.checkIn && <span className="dim"> · check in after</span>}
+        {now.who === "you" && !waitHow(now) && <span className="dim"> · yours: only you pass it</span>}
+        {waitHow(now) && (
+          <span className="lead-wait">
+            {" "}
+            · <span className={`chip ${waitHow(now)!.auto ? "tone-progress" : "tone-attention"}`}>{waitHow(now)!.word}</span> <span className="dim">{waitHow(now)!.says}</span>
+          </span>
+        )}
+      </>
+    )
+  );
+}
+
+// saidLately is the crew still there who've said something and aren't at
+// work: their last word is shown with where the mission stands.
+const saidLately = (d: MissionDetail) => d.crew.filter((c) => !c.ended && c.lastReply && c.activity !== "working");
+
+// SummaryLead is where the mission stands, as its Summary leads with it:
+// the headlines, the first with the step it's on and what crew last said.
+// It's drawn alone by the stories (Banners.stories.tsx), which is why it's
+// a part of its own.
+export function SummaryLead({ d, reload }: { d: MissionDetail; reload: Reload }) {
+  const said = saidLately(d);
+  return (
+    <Cards
+      d={d}
+      reload={reload}
+      step={stepLine(d)}
+      latest={
+        said.length > 0 && (
+          <dl className="lead-latest">
+            {said.map((c) => (
+              <div key={c.id} className="lead-said">
+                <dt>From {c.id}</dt>
+                <dd>
+                  <Said text={c.lastReply!} />
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )
+      }
+    />
+  );
+}
+
 // Said is what crew last said, rendered, a few lines of it until you ask
 // for the rest.
 function Said({ text }: { text: string }) {
@@ -914,15 +922,15 @@ function Said({ text }: { text: string }) {
   );
 }
 
-// Headlines lead the Summary: where the mission stands (whose court it's
-// in, and what moves it on), then anything else raised: all that's yours
-// or outside's, and one banner for the agents at work, however many are.
-// ws mission show says the same, from the same place (mission.Resolve).
-function Headlines({ d, reload, step, latest }: { d: MissionDetail; reload: Reload; step?: React.ReactNode; latest?: React.ReactNode }) {
+// Cards lead the Summary: where the mission stands, as ws says it's drawn
+// (mission.Cards): the first as the page's subject, with the step it's on
+// and what crew last said, and anything else under it as a notice. One
+// card, while things are as they should be.
+function Cards({ d, reload, step, latest }: { d: MissionDetail; reload: Reload; step?: React.ReactNode; latest?: React.ReactNode }) {
   return (
     <>
-      {shownHeadlines(d.headlines).map((h, i) => (
-        <HeadlineCard key={`${h.kind}-${h.by ?? ""}-${i}`} d={d} h={h} primary={i === 0} reload={reload} step={i === 0 ? step : undefined} latest={i === 0 ? latest : undefined} />
+      {d.cards.map((c, i) => (
+        <CardView key={`${c.kind}-${c.by ?? ""}-${i}`} d={d} c={c} lead={i === 0} reload={reload} step={i === 0 ? step : undefined} latest={i === 0 ? latest : undefined} />
       ))}
     </>
   );
@@ -972,27 +980,26 @@ function Lead({
   );
 }
 
-const courtTone = (h: Headline, tone: string): CalloutTone => {
-  if (tone === "danger" || tone === "done") return tone;
-  if (h.court === "you") return h.group === "needs-you" && h.kind !== "stalled" ? "attention" : "quiet";
-  if (h.court === "agent") return "progress";
-  if (h.court === "outside") return "info";
-  return "quiet";
-};
+// A card's tone is whose it is: yours, failing (and yours), an agent's,
+// outside's, done, or nobody's in particular.
+const cardTone: Record<MissionCard["tone"], CalloutTone> = { you: "attention", failing: "danger", agent: "progress", outside: "info", done: "done", quiet: "quiet" };
 
-function HeadlineCard({ d, h, primary, reload, step, latest }: { d: MissionDetail; h: Headline; primary: boolean; reload: Reload; step?: React.ReactNode; latest?: React.ReactNode }) {
-  const st = headlineStatus(h);
-  const [title, detail] = h.checking ? [checkingTitle(h.checking), undefined] : splitHeadline(h, st.words);
+// CardView draws a card as it's given: its title, its sentence, and what
+// it offers. Nothing about how is worked out here.
+function CardView({ d, c, lead, reload, step, latest }: { d: MissionDetail; c: MissionCard; lead: boolean; reload: Reload; step?: React.ReactNode; latest?: React.ReactNode }) {
+  const st = headlineStatus({ kind: c.kind, court: c.court, label: "" } as Headline);
+  const title = c.checking ? checkingTitle(c.checking as unknown as NonNullable<Headline["checking"]>) : c.title;
+  const detail = c.checking ? undefined : c.detail;
   const long = !!detail && detail.length > 220;
-  const options = (h.kind === "flag" && !primary) || h.kind === "crew-asks" ? h.action.options : undefined;
-  const actions = primary || h.action.verb === "resume" ? <HeadlineAct d={d} h={h} reload={reload} /> : undefined;
+  const offers = !!c.primary || !!c.more?.length;
+  const actions = offers ? <CardActs d={d} c={c} lead={lead} reload={reload} /> : undefined;
   const body = (
     <>
-      {h.checking && <CheckingNow c={h.checking} />}
+      {c.checking && <CheckingNow c={c.checking as unknown as NonNullable<Headline["checking"]>} />}
       {detail &&
-        (h.kind === "resume" || (long && !primary) ? (
+        (c.kind === "resume" || (long && !lead) ? (
           <details className="fold">
-            <summary>{h.kind === "resume" ? `What ${h.action.target ?? "crew"} will be told` : "Read it all"}</summary>
+            <summary>{c.kind === "resume" ? `What ${c.primary?.target ?? "crew"} will be told` : "Read it all"}</summary>
             <Inline text={detail} />
           </details>
         ) : long ? (
@@ -1000,21 +1007,15 @@ function HeadlineCard({ d, h, primary, reload, step, latest }: { d: MissionDetai
         ) : (
           <Inline text={detail} />
         ))}
-      {!!options?.length && (
-        <ol className="options">
-          {options.map((o, j) => (
-            <li key={j}>{o}</li>
-          ))}
-        </ol>
-      )}
-      {primary && (h.kind === "to-brief" || h.kind === "briefing") && d.request && <div className="dim request">Requested: {d.request}</div>}
-      {h.kind === "wrap-up" && d.conclude?.ending && (
+      {c.nothing && <div className="dim card-nothing">Nothing for you to do</div>}
+      {lead && (c.kind === "to-brief" || c.kind === "briefing") && d.request && <div className="dim request">Requested: {d.request}</div>}
+      {c.kind === "wrap-up" && d.conclude?.ending && (
         <>
           <ZChecks c={d.conclude} />
           <HandedOn to={d.conclude.to} />
         </>
       )}
-      {h.kind === "ended" && d.ending && (
+      {c.kind === "ended" && d.ending && (
         <>
           <ZChecks c={d.ending} />
           <HandedOn to={d.ending.to} />
@@ -1023,8 +1024,8 @@ function HeadlineCard({ d, h, primary, reload, step, latest }: { d: MissionDetai
     </>
   );
   // The first leads the page; the rest are notices under it.
-  return primary ? (
-    <Lead tone={courtTone(h, st.tone)} icon={st.icon} live={st.live} title={title} step={step} actions={actions} latest={latest}>
+  return lead ? (
+    <Lead tone={cardTone[c.tone]} icon={st.icon} live={st.live} title={title} step={step} actions={actions} latest={latest}>
       {body}
     </Lead>
   ) : (
@@ -1101,73 +1102,55 @@ function LaunchCrew({
   );
 }
 
-// WaitActs is what moves a Wait step on from the page. Marking it done
-// passes it, with a note (what you did, or what happened) kept for the
-// crew after. A step ws watches can be looked at now; marked done, one of
-// yours is looked at first, and passed as it is only when you say so.
-function WaitActs({ d, yours, passIt, busy, run }: { d: MissionDetail; yours?: boolean; passIt?: boolean; busy: boolean; run: (verb: ActVerb, text?: string) => void }) {
-  const [note, setNote] = useState("");
-  const now = d.stages.find((s) => s.state === "current");
-  const watched = now?.passes === "watched";
-  const said = note.trim();
-  const done = () => (yours ? run("answer", said ? `Done: ${said}` : "Done") : run("accept", said));
-  // Watched and not yours, ws passes it: looking now is the thing to do,
-  // and marking it done passes it whatever its check says.
-  const lookFirst = watched && !yours;
-  return (
-    <div className="answer wait-acts">
-      <form
-        className="own-answer"
-        onSubmit={(e) => {
-          e.preventDefault();
-          done();
-        }}
-      >
-        <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder={yours ? "What you did, if the crew after should know" : "What happened, if the crew after should know"}
-          disabled={busy}
-          aria-label="A note for the crew after (optional)"
-        />
-        <button type="submit" className={lookFirst ? undefined : "primary"} disabled={busy} title={lookFirst ? "Pass the step as it is, whatever its check says" : watched ? "ws looks, and passes the step if it's happened" : "Pass the step"}>
-          <Icon name="check" /> {lookFirst ? "Mark done anyway" : "Mark done"}
-        </button>
-      </form>
-      {(watched || passIt) && (
-        <div className="button-row">
-          {watched && (
-            <button className={lookFirst ? "primary" : undefined} disabled={busy} onClick={() => run("look")} title="Run its check now, rather than when ws next would">
-              <Icon name="rotate" /> Look now
-            </button>
-          )}
-          {passIt && (
-            <button className="ghost" disabled={busy} onClick={() => run("answer", "Pass it")} title="Pass the step as it is, whatever its check says">
-              Pass it as it is
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
+// What putting a card aside does is done to the first question a mission
+// has, whichever card says it: only the lead offers these.
+const leadOnly = new Set(["dismiss", "ask-agent", "not-yet"]);
+
+// actHref is where an act that opens something goes, in ws.
+function actHref(d: MissionDetail, c: MissionCard, a: MissionAct): string | undefined {
+  const t = a.target ?? "";
+  switch (a.do) {
+    case "crew":
+      return `/missions/${d.slug}/crew/${t}`;
+    case "review": {
+      const [repo, name] = t.split("/");
+      return `/missions/${d.slug}/review/${repo}/${name}`;
+    }
+    case "verify":
+      return bundleLink(d.slug, t);
+    case "read":
+      return docLink(d.slug, t);
+    case "talk":
+      // Its planner's conversation is the brief's own page's: what it
+      // proposes for the brief and plan is read and confirmed there. What
+      // else a conversation proposed is confirmed in the conversation.
+      return t && t === d.planner && c.kind !== "proposed" ? briefHref(d.slug) : `/missions/${d.slug}/conversations/${t}`;
+    case "brief-page":
+      return briefHref(d.slug);
+    case "log":
+      return `/missions/${d.slug}?tab=log`;
+  }
+  return undefined;
 }
 
-// HeadlineAct is what moves a headline on, as far as this page can do it;
-// talking to crew is on their crew page.
-function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: Reload }) {
-  const a = h.action;
+// CardActs is what a card offers, in the order it's given: the one meant
+// to move it first, accented, then the rest, the quiet ones quiet. An act
+// that takes words has its field beside it when it's the card's first, and
+// opens it when pressed otherwise. How each is done is here; which there
+// are, and in what order, is ws's to say (mission.Cards).
+function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; lead: boolean; reload: Reload }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
-  const [own, setOwn] = useState("");
-  const run = (verb: ActVerb, text?: string, crew?: string, pick?: CrewPick) => {
+  const [words, setWords] = useState("");
+  const [opened, setOpened] = useState<MissionAct | undefined>();
+  const [how, setHow] = useState(false);
+  const send = (verb: ActVerb, body: { text?: string; crew?: string; task?: number; harness?: string; model?: string } = {}) => {
     setBusy(true);
-    // An answer answers the task its headline is: a mission can be waiting on
-    // you for several.
-    const task = verb === "answer" && a.target ? Number(a.target) || undefined : undefined;
     // Archiving asks first when it would burn work that hasn't merged.
-    (verb === "archive" ? archiveMission(d.slug) : act(d.slug, verb, { text, crew, task, harness: pick?.harness, model: pick?.model }))
+    (verb === "archive" ? archiveMission(d.slug) : act(d.slug, verb, body))
       .then((r) => {
         if (!r) return;
+        if (verb === "end") return ended(d.slug, r.message, reload);
         if (r.path) return navigate(r.path);
         toast(r.message, {
           tone: "done",
@@ -1191,311 +1174,134 @@ function HeadlineAct({ d, h, reload }: { d: MissionDetail; h: Headline; reload: 
       .catch((e: Error) => toast(humanError(e.message), { tone: "danger" }))
       .finally(() => setBusy(false));
   };
-  const label = (s: string) => s[0].toUpperCase() + s.slice(1);
-  switch (a.verb) {
-    case "end":
-      return <EndAct d={d} reload={reload} />;
-    case "answer": {
-      // A question can be put to crew, or dismissed; a step's task is
-      // answered, or passed.
-      const t = d.tasks?.find((x) => String(x.n) === a.target);
-      // A Wait on you: marked done, with what you did if it's worth saying.
-      if (t?.verb === "do") return <WaitActs d={d} yours passIt={a.options?.includes("Pass it")} busy={busy} run={run} />;
-      const question = !t || (t.verb === "answer" && !t.step);
-      // A step's checks, yours to say: the bundles that show them are
-      // what to look at, on the Verify tab, where approving one passes
-      // the step and saying what's not right sends it back.
-      // One you've approved already is there to look at again: with
-      // nothing left to approve, what ws suggests first (passing it)
-      // is what moves it on.
-      const bundles = (a.look ?? []).filter((l) => l.bundle);
-      const toVerify = bundles.filter((l) => !l.approved);
+  // run does an act, with what was written in its field, if it has one.
+  const run = (a: MissionAct, written = "") => {
+    const said = written.trim();
+    switch (a.do) {
+      case "answer": {
+        const text = said ? `${a.prefix ?? ""}${said}` : a.text;
+        if (text) send("answer", { text, task: a.task || undefined });
+        return;
+      }
+      case "accept":
+        return send("accept", { text: said });
+      case "resume":
+        return send("resume", { crew: a.target });
+      case "not-yet":
+        return send("dismiss");
+      case "end-how":
+        return setHow(true);
+      default:
+        return send(a.do as ActVerb);
+    }
+  };
+  const acts = [...(c.primary ? [c.primary] : []), ...(c.more ?? [])].filter((a) => lead || !leadOnly.has(a.do));
+  const first = c.primary && acts[0] === c.primary ? c.primary : undefined;
+  // Crew stopped on something are answered where they are: what they're
+  // asking, here; a reply, written here.
+  if (first && (first.do === "reply" || first.do === "permission")) {
+    const crew = d.crew.find((x) => x.id === first.target && !x.ended);
+    if (crew && (crew.activity === "permission" || crew.activity === "question")) return <HeadlinePrompt slug={d.slug} crew={crew} />;
+    if (crew && first.do === "reply" && crew.status !== "asking") return <QuickReply slug={d.slug} id={crew.id} reload={reload} />;
+    if (crew) return <CrewLink slug={d.slug} id={crew.id} verb={first.do} />;
+    return null;
+  }
+  const one = (a: MissionAct, i: number) => {
+    const accent = a === first;
+    const cls = accent ? "primary" : a.quiet ? "ghost" : undefined;
+    const inside = (
+      <>
+        {a.icon && <Icon name={a.icon as IconName} />} {a.label} {lead && a.key && <Keys k={a.key} />}
+      </>
+    );
+    if (a.do === "launch") return <LaunchCrew key={i} picks={d.crewPicks} primary={accent} again={!accent} busy={busy} launch={(p) => send("launch", { harness: p?.harness, model: p?.model })} />;
+    if (a.do === "url") {
+      // GitHub hasn't said where it is yet: its words, with nothing to open.
+      if (!a.url) {
+        return (
+          <span key={i} className="dim">
+            {a.label}
+          </span>
+        );
+      }
       return (
-        <div className="answer">
-          <div className="button-row">
-            {toVerify.map((l, i) => (
-              <Link key={l.bundle} to={bundleLink(d.slug, l.bundle!)} className={i === 0 ? "button-link primary" : "button-link"} title="Look at what it shows: approving it passes the step">
-                <Icon name="list-checks" /> Verify {l.name} {i === 0 && <Keys k="v" />}
-              </Link>
-            ))}
-            {a.options?.map((o, i) => (
-              <button key={i} className={bundles.length > 0 && toVerify.length === 0 && i === 0 ? "primary" : undefined} disabled={busy} onClick={() => run("answer", o)}>
-                {o}
-              </button>
-            ))}
-            {bundles
-              .filter((l) => l.approved)
-              .map((l) => (
-                <ApprovedLook key={l.bundle} slug={d.slug} look={l} keys={toVerify.length === 0 && l === bundles[0]} />
-              ))}
-          </div>
+        <a key={i} href={a.url} target="_blank" rel="noopener" className={`button-link${accent ? " primary" : ""}`}>
+          {inside} <Icon name="external" size={12} />
+        </a>
+      );
+    }
+    const href = actHref(d, c, a);
+    if (href) {
+      return (
+        <Link key={i} to={href} className={`button-link${accent ? " primary" : ""}${a.quiet ? " ghost" : ""}`}>
+          {inside}
+        </Link>
+      );
+    }
+    // One that takes words opens its field, but the card's first, whose
+    // field is beside it.
+    if (a.field && !accent) {
+      return opened === a ? null : (
+        <button
+          key={i}
+          className={cls}
+          disabled={busy}
+          onClick={() => {
+            setWords("");
+            setOpened(a);
+          }}
+        >
+          {inside}
+        </button>
+      );
+    }
+    return (
+      <button key={i} type={accent && a.field ? "submit" : "button"} className={cls} disabled={busy || (accent && !!a.field && !a.text && a.do === "answer" && !words.trim() && !opened)} onClick={accent && a.field ? undefined : () => run(a)}>
+        {inside}
+      </button>
+    );
+  };
+  // Words are all the first asks for: the field, then its button.
+  const wordsOnly = !!first?.field && first.do === "answer" && !first.text;
+  const field = (a: MissionAct, focus: boolean) => (
+    <input value={words} onChange={(e) => setWords(e.target.value)} placeholder={a.field} disabled={busy} aria-label={a.field} autoFocus={focus} />
+  );
+  return (
+    <div className="answer">
+      {first?.field && !opened ? (
+        <>
           <form
             className="own-answer"
             onSubmit={(e) => {
               e.preventDefault();
-              if (own.trim()) run("answer", own);
+              run(first, words);
             }}
           >
-            <input value={own} onChange={(e) => setOwn(e.target.value)} placeholder={a.options?.length ? "Or answer in your own words" : "Your answer"} disabled={busy} aria-label="Your answer" />
-            <button type="submit" className={bundles.length ? undefined : "primary"} disabled={busy || !own.trim()}>
-              Answer
-            </button>
-            {question && (
-              <>
-                <button type="button" className="ghost" disabled={busy} onClick={() => run("ask-agent")} title="Crew look into it and answer for you">
-                  Ask an agent
-                </button>
-                <button type="button" className="ghost" disabled={busy} onClick={() => run("dismiss")}>
-                  Dismiss
-                </button>
-              </>
-            )}
+            {wordsOnly && field(first, false)}
+            {one(first, 0)}
+            {!wordsOnly && field(first, false)}
           </form>
-        </div>
-      );
-    }
-    case "wait":
-      // A Wait on someone else: marked done once it's happened; watched,
-      // ws can look now.
-      return <WaitActs d={d} busy={busy} run={run} />;
-    case "accept":
-    case "archive":
-    case "unpark":
-      return (
-        <>
-          <button className="primary" disabled={busy} onClick={() => run(a.verb as "accept" | "archive" | "unpark")}>
-            {label(a.label)}
-          </button>
-          {h.kind === "ended" && (
-            <button className="ghost" disabled={busy} onClick={() => run("unend")} title="Take the ending back: it's in play again">
-              Reopen
-            </button>
-          )}
-        </>
-      );
-    case "launch-queued":
-      return (
-        <>
-          <button className="primary" disabled={busy} onClick={() => run("launch-queued")}>
-            Launch the queued crew
-          </button>
-          <button className="ghost" disabled={busy} onClick={() => run("dismiss")}>
-            Dismiss it
-          </button>
-        </>
-      );
-    case "launch":
-      return (
-        <>
-          {a.target && (
-            <button className="primary" disabled={busy} onClick={() => run("resume", undefined, a.target)}>
-              <Icon name="rotate" /> Resume {a.target}
-            </button>
-          )}
-          <LaunchCrew picks={d.crewPicks} primary={!a.target} again={!!a.target} busy={busy} launch={(p) => run("launch", undefined, undefined, p)} />
-        </>
-      );
-    case "resume":
-      return (
-        <button className="primary" disabled={busy} onClick={() => run("resume", undefined, a.target)}>
-          <Icon name="rotate" /> Resume {a.target}
-        </button>
-      );
-    case "brief":
-      return (
-        <button className="primary" disabled={busy} onClick={() => run("brief")}>
-          <Icon name="pencil" /> Brief it
-        </button>
-      );
-    case "confirm":
-      return (
-        <>
-          <button className="primary" disabled={busy} onClick={() => run("confirm")}>
-            <Icon name="play" /> Confirm and start
-          </button>
-          <Link to={briefHref(d.slug)} className="button-link">
-            Read them first
-          </Link>
-        </>
-      );
-    case undefined:
-    case "":
-      return a.label ? <span className="dim">{label(a.label)}</span> : null;
-    case "review": {
-      const [repo, name] = (a.target ?? "").split("/");
-      return (
-        <Link to={`/missions/${d.slug}/review/${repo}/${name}`} className="button-link primary" title="Review it (v)">
-          <Icon name="rotate" /> Re-review {a.target} <Keys k="v" />
-        </Link>
-      );
-    }
-    case "land": {
-      // No pull request: it's reviewed, and then landed, on its review.
-      const [repo, name] = (a.target ?? "").split("/");
-      return (
-        <Link to={`/missions/${d.slug}/review/${repo}/${name}`} className="button-link primary" title="Review it, and land it (v)">
-          <Icon name="eye" /> {label(a.label)} <Keys k="v" />
-        </Link>
-      );
-    }
-    case "review-step": {
-      // A Review step: what the steps before made, yours to review. Your
-      // review approving what the plan put under review passes the step,
-      // as going on does; crew's notes beside it are only to read. Asking
-      // for changes (on the review, or here in words) sends it back to the
-      // crew who made it.
-      const task = a.target ? Number(a.target) || undefined : undefined;
-      const looks = a.look ?? [];
-      const toApprove = looks.some((l) => !l.read && !l.approved);
-      const lead = looks.find((l) => !l.approved) ?? looks[0];
-      return (
-        <div className="answer">
-          <div className="button-row">
-            {looks.map((l) => {
-              const first = l === lead;
-              const primary = first && !l.read && !l.approved;
-              if (l.bundle && l.approved) return <ApprovedLook key={l.bundle} slug={d.slug} look={l} keys={first} />;
-              if (l.bundle) {
-                // A bundle is what's to approve, on the Verify tab.
-                return (
-                  <Link key={l.bundle} to={bundleLink(d.slug, l.bundle)} className={primary ? "button-link primary" : "button-link"} title="Look at what it shows: approving it passes the step">
-                    <Icon name="list-checks" /> Verify {l.name} {first && <Keys k="v" />}
-                  </Link>
-                );
-              }
-              if (l.capsule) {
-                const [repo, name] = l.capsule.split("/");
-                return (
-                  <Link key={l.capsule} to={`/missions/${d.slug}/review/${repo}/${name}`} className={primary ? "button-link primary" : "button-link"} title="Review its work: approving it passes the step">
-                    <Icon name="eye" /> Review {l.name} {first && <Keys k="v" />}
-                  </Link>
-                );
-              }
-              // An image or a video (crew's proof) is seen, not read.
-              const media = mediaKind(l.doc ?? l.name ?? "");
-              const verb = media === "video" ? "Watch" : media ? "See" : "Read";
-              const why = l.read ? "crew's notes on the work, which approving needn't cover" : "approving it passes the step";
-              return (
-                <Link key={l.doc} to={docLink(d.slug, l.doc ?? "")} className={primary ? "button-link primary" : "button-link"} title={`${verb} it: ${why}`}>
-                  <Icon name={media ? "eye" : "file"} /> {verb} {l.name} {first && <Keys k="v" />}
-                </Link>
-              );
-            })}
-            <button className={toApprove ? undefined : "primary"} disabled={busy} onClick={() => (task ? run("answer", "Go on") : run("accept"))} title="Pass the step as it is">
-              Go on
-            </button>
-          </div>
-          {task && (
-            <form
-              className="own-answer"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (own.trim()) run("answer", own);
-              }}
-            >
-              <input value={own} onChange={(e) => setOwn(e.target.value)} placeholder="Or say what's to change, and it goes back to its crew" disabled={busy} aria-label="What's to change" />
-              <button type="submit" disabled={busy || !own.trim()}>
-                Send back
-              </button>
-            </form>
-          )}
-        </div>
-      );
-    }
-    case "review-doc":
-      return (
-        <Link to={docLink(d.slug, a.target ?? "")} className="button-link primary" title="Read them (v)">
-          <Icon name="reply" /> {label(a.label)} <Keys k="v" />
-        </Link>
-      );
-    case "open":
-    case "merge":
-      return a.url ? (
-        <a href={a.url} target="_blank" rel="noopener" className="button-link primary">
-          <Icon name="pr" /> {a.verb === "merge" ? `Open ${a.target} to merge it` : `Open ${a.target}`} <Icon name="external" size={12} />
-        </a>
-      ) : (
-        <span className="dim">{label(a.label)}</span>
-      );
-    case "log":
-      return (
-        <Link to={`/missions/${d.slug}?tab=log`} className="button-link">
-          Read the log
-        </Link>
-      );
-    case "talk":
-      // Its planner's conversation is the brief's own page's: what it
-      // proposes for the brief and plan is read and confirmed there. What
-      // else a conversation proposed (crew, a decision) is confirmed in the
-      // conversation, where its cards are.
-      return (
-        <Link to={a.target && a.target === d.planner && h.kind !== "proposed" ? briefHref(d.slug) : `/missions/${d.slug}/conversations/${a.target}`} className="button-link primary">
-          <Icon name="reply" /> {label(a.label)}
-        </Link>
-      );
-    case "reply":
-    case "permission": {
-      // What crew's asking, answered here; a reply, written here.
-      const c = d.crew.find((x) => x.id === a.target && !x.ended);
-      if (c && (c.activity === "permission" || c.activity === "question")) return <HeadlinePrompt slug={d.slug} crew={c} />;
-      if (c && a.verb === "reply" && c.status !== "asking") return <QuickReply slug={d.slug} id={c.id} reload={reload} />;
-      if (c) return <CrewLink slug={d.slug} id={c.id} verb={a.verb} />;
-      break;
-    }
-    case "watch":
-      if (d.crew.some((c) => c.id === a.target && !c.ended)) {
-        return (
-          <Link to={`/missions/${d.slug}/crew/${a.target}`} className="button-link primary">
-            <Icon name="message" /> {a.verb === "watch" ? "Watch" : "Open"} {a.target}
-          </Link>
-        );
-      }
-  }
-  return (
-    <span className="dim">{label(a.label)}</span>
-  );
-}
-
-// EndAct ends the mission: as suggested, with what's suggested shown on
-// the card above it, or (nothing suggested) as you say in the End dialog.
-function EndAct({ d, reload }: { d: MissionDetail; reload: Reload }) {
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const suggested = d.conclude?.ending;
-  const run = (verb: "end" | "dismiss") => {
-    setBusy(true);
-    act(d.slug, verb)
-      .then((r) => {
-        if (verb === "end") return ended(d.slug, r.message, reload);
-        toast(r.message, { tone: "done" });
-        return reload();
-      })
-      .catch((e: Error) => toast(humanError(e.message), { tone: "danger" }))
-      .finally(() => setBusy(false));
-  };
-  return (
-    <>
-      {suggested ? (
-        <>
-          <button className="primary" disabled={busy} onClick={() => run("end")}>
-            End it, {endingWords[suggested]}
-          </button>
-          <button className="ghost" disabled={busy} onClick={() => setOpen(true)}>
-            Say how it ends…
-          </button>
-          {!d.flag && !d.dispatch && (
-            <button className="ghost" disabled={busy} onClick={() => run("dismiss")} title="It doesn't end yet: put the suggestion aside">
-              Not yet
-            </button>
-          )}
+          {acts.length > 1 && <div className="button-row">{acts.slice(1).map((a, i) => one(a, i + 1))}</div>}
         </>
       ) : (
-        <button className="primary" onClick={() => setOpen(true)}>
-          Wrap it up
-        </button>
+        <div className="button-row">{acts.map((a, i) => (a === first && a.field ? <button key={i} className="primary" disabled={busy} onClick={() => setOpened(undefined)}>{a.label}…</button> : one(a, i)))}</div>
       )}
-      {open && <EndDialog d={d} onClose={() => setOpen(false)} reload={reload} />}
-    </>
+      {opened && (
+        <form
+          className="own-answer"
+          onSubmit={(e) => {
+            e.preventDefault();
+            run(opened, words);
+          }}
+        >
+          {field(opened, true)}
+          <button type="submit" disabled={busy || (opened.do === "answer" && !opened.text && !words.trim())}>
+            {opened.label.replace(/…$/, "")}
+          </button>
+        </form>
+      )}
+      {how && <EndDialog d={d} onClose={() => setHow(false)} reload={reload} />}
+    </div>
   );
 }
 
@@ -1615,16 +1421,6 @@ const docLink = (slug: string, ref: string) => `/missions/${slug}/artifact?${new
 
 // bundleLink is where a bundle is looked at: the mission's Verify tab,
 // open at it.
-// ApprovedLook is the way back to a bundle you've approved, at a step that
-// looks at it: it's not what the step waits on.
-function ApprovedLook({ slug, look, keys }: { slug: string; look: Look; keys: boolean }) {
-  return (
-    <Link to={bundleLink(slug, look.bundle!)} className="button-link" title="You approved it: look at what it shows again">
-      <Icon name="check-circle" /> {look.name}, approved {keys && <Keys k="v" />}
-    </Link>
-  );
-}
-
 const bundleLink = (slug: string, id: string) => `/missions/${slug}?${new URLSearchParams({ tab: "verify", b: id })}`;
 
 const logFilters = [

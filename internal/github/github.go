@@ -329,13 +329,63 @@ func extractAuthor(raw json.RawMessage) string {
 	return data.Author.Login
 }
 
-// deriveStatus extracts an overall status from statusCheckRollup JSON.
+// rollupRun is one entry of gh's statusCheckRollup: a check's run, or a
+// commit status (which has a context where a run has a name).
+type rollupRun struct {
+	Name         string `json:"name"`
+	WorkflowName string `json:"workflowName"`
+	Context      string `json:"context"`
+	Conclusion   string `json:"conclusion"`
+	Status       string `json:"status"`
+	StartedAt    string `json:"startedAt"`
+}
+
+// check is which check a run is of: its workflow and name, or a status's
+// context. "" when it says neither, and can't be told from another.
+func (r rollupRun) check() string {
+	switch {
+	case r.Name != "":
+		return r.WorkflowName + "\x00" + r.Name
+	case r.Context != "":
+		return "status\x00" + r.Context
+	}
+	return ""
+}
+
+// latestRuns is each check's latest run, in the order the checks first
+// come. GitHub lists every run made on the head commit, not the latest of
+// each check: one whose workflow ran again (the pull request was edited,
+// say, and its title checked a second time) is there twice. A run that a
+// later one replaced isn't the check's result any more, which is how gh
+// pr checks and GitHub's own page have it. Runs started at the same time
+// keep the one listed last.
+func latestRuns(runs []rollupRun) []rollupRun {
+	at := map[string]int{}
+	var out []rollupRun
+	for _, r := range runs {
+		key := r.check()
+		i, seen := at[key]
+		switch {
+		case key == "" || !seen:
+			if key != "" {
+				at[key] = len(out)
+			}
+			out = append(out, r)
+		case r.StartedAt >= out[i].StartedAt:
+			out[i] = r
+		}
+	}
+	return out
+}
+
+// deriveStatus extracts an overall status from statusCheckRollup JSON:
+// failure where a check's latest run failed, pending where one's still
+// running, success otherwise, and "" with no checks. A failure that a
+// later run of the same check replaced doesn't count: it would hold the
+// pull request at failing for as long as that commit is its head.
 func deriveStatus(raw json.RawMessage) string {
 	var data struct {
-		StatusCheckRollup []struct {
-			Conclusion string `json:"conclusion"`
-			Status     string `json:"status"`
-		} `json:"statusCheckRollup"`
+		StatusCheckRollup []rollupRun `json:"statusCheckRollup"`
 	}
 	if err := json.Unmarshal(raw, &data); err != nil || len(data.StatusCheckRollup) == 0 {
 		return ""
@@ -343,7 +393,7 @@ func deriveStatus(raw json.RawMessage) string {
 
 	hasFailure := false
 	hasPending := false
-	for _, check := range data.StatusCheckRollup {
+	for _, check := range latestRuns(data.StatusCheckRollup) {
 		switch check.Conclusion {
 		case "FAILURE", "ERROR", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED":
 			hasFailure = true

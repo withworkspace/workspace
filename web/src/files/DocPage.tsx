@@ -110,20 +110,21 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
     return () => {
       stale = true;
     };
-  }, [space?.repo, where?.path]);
-  // A space's document says when it's in flight: changed in a capsule.
+  }, [space?.repo, where?.path, workspace.spacesSeen]);
+  // A space's document says when it's in flight: changed in a capsule. As
+  // ws keeps it, and read again when ws has found the space changed.
   const [flights, setFlights] = useState<SpaceFlight[]>([]);
   useEffect(() => {
     if (!space || !where) return setFlights([]);
     let stale = false;
     getSpaceActivity(space.repo).then(
-      (a) => !stale && setFlights(a.inFlight.filter((f) => f.docs.some((d) => d.path === where.path))),
+      (a) => !stale && !a.unread && setFlights(a.inFlight.filter((f) => f.docs.some((d) => d.path === where.path))),
       () => {},
     );
     return () => {
       stale = true;
     };
-  }, [space?.repo, where?.path]);
+  }, [space?.repo, where?.path, workspace.spacesSeen]);
   // The conversations about it: asks that were kept, newest first.
   const asked = a?.ref;
   const talks = useMemo(() => (asked ? workspace.conversations.filter((t) => t.doc === asked) : []), [workspace.conversations, asked]);

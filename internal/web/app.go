@@ -35,6 +35,7 @@ type App interface {
 	Focusing
 	Running
 	Updating
+	WhatsNewing
 	Plugging
 }
 

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { findAll, findRefs, GROUND, isOutside, type Known, type Named, type PageRef, parseAddress, parseName, refAddress, refAt, refHref, refName, reposNamed, thingAtPath, thingOpenAt, type Where } from "./refs";
+import { type Files, findAll, findRefs, GROUND, groundPaths, isOutside, type Known, type Named, type PageRef, parseAddress, parseName, refAddress, refAt, refHref, refName, reposNamed, thingAtPath, thingOpenAt, type Where } from "./refs";
 
 // The cases internal/ref is tested against: one grammar, in Go and here.
 interface KnownJSON {
@@ -88,6 +88,41 @@ describe("refs in words", () => {
     expect(refHref({ kind: "mission", slug: "cache" })).toBe("/missions/cache");
     expect(reposNamed("see demo/main.go and the api", ["demo", "api"])).toEqual(["demo"]);
     expect(reposNamed("in the api `src/x.ts`", ["demo", "api"])).toEqual(["api"]);
+  });
+});
+
+describe("refs on a repo whose files are checked as they're named", () => {
+  // demo's files as a page has them: main.go and internal/greet checked
+  // and there, nope.go checked and not; nothing else asked yet.
+  const answered = new Set(["main.go", "nope.go", "internal/greet", "README"]);
+  const files: Files = {
+    has: (p) => (answered.has(p) ? p === "main.go" || p === "README" : undefined),
+    hasDir: (p) => (answered.has(p) ? p === "internal/greet" : undefined),
+  };
+  const k: Known = { repos: new Map([["demo", files]]), missions: [], pages: [], talks: [] };
+  const found = (text: string) => findRefs(text, k).map((f) => [text.slice(f.from, f.to), f.ref.kind]);
+
+  it("finds what's been checked as it is", () => {
+    expect(found("see demo/main.go, demo/internal/greet/ and demo/README.")).toEqual([
+      ["demo/main.go", "file"],
+      ["demo/internal/greet/", "dir"],
+      ["demo/README", "file"],
+    ]);
+    expect(found("demo/nope.go isn't there")).toEqual([]);
+  });
+  it("takes what looks like a file for one until it's checked, and nothing else", () => {
+    expect(found("demo/later.go:3 and demo/later.md. demo/internal/other")).toEqual([
+      ["demo/later.go:3", "file"],
+      ["demo/later.md", "file"],
+    ]);
+  });
+  it("says what's to be checked of each repo a text names", () => {
+    const known: Known = { repos: new Map([["demo", undefined], ["records", undefined]]), aliases: new Map([["dm", "demo"]]), missions: [], pages: [], talks: [], root: "/ws" };
+    const got = groundPaths("demo/main.go:3, dm/internal/ and /ws/repos/records/.ground/adr/one.md. In records `notes/a.md:2`; demo/x/y.", known);
+    expect(Object.fromEntries([...got].map(([r, ps]) => [r, [...ps].sort()]))).toEqual({
+      demo: ["internal", "main.go", "x/y", "x/y."],
+      records: ["adr/one.md", "adr/one.md.", "notes/a.md"],
+    });
   });
 });
 

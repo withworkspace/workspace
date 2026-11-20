@@ -41,7 +41,10 @@ export async function drawMermaid(code: string, dark: boolean): Promise<Drawn> {
 // in the other theme's colours when it changes, and as written, with the
 // first line of what's wrong, when it can't be drawn. data is the block's
 // data- attributes (which lines it's from), kept on what draws it.
-export function Mermaid({ code, data = {} }: { code: string; data?: Record<string, unknown> }) {
+//
+// A click opens it in the viewer (ui/Viewer.tsx), to move around in,
+// unless viewable is false (the editor's, where a click selects it).
+export function Mermaid({ code, data = {}, viewable = true }: { code: string; data?: Record<string, unknown>; viewable?: boolean }) {
   const [drawn, setDrawn] = useState<Drawn>();
   const { dark } = useTheme();
   useEffect(() => {
@@ -67,5 +70,6 @@ export function Mermaid({ code, data = {} }: { code: string; data?: Record<strin
         {code}
       </pre>
     );
-  return <div className="mermaid" {...data} data-skip="" dangerouslySetInnerHTML={{ __html: drawn.svg }} />;
+  const open = viewable ? { "data-viewable": "Diagram", title: "Open it larger" } : {};
+  return <div className="mermaid" {...data} {...open} data-skip="" dangerouslySetInnerHTML={{ __html: drawn.svg }} />;
 }

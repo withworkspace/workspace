@@ -17,6 +17,7 @@ import type {
   BundleNote,
   CellSource,
   Citation,
+  CommandLabel,
   ConversationApproval,
   ConversationCapsule,
   ConversationGuideGroup,
@@ -45,8 +46,10 @@ import type {
   PluginThing,
   PluginsInstalled,
   ProcessInfo,
+  RefPathsFound,
   Repo,
   ReviewGuide,
+  PRWritten,
   RunDetail,
   RunsInfo,
   SettingChange,
@@ -66,6 +69,7 @@ import type {
   ThingSaved,
   UpdatesInfo,
   Upgraded,
+  WhatsNewInfo,
   Workspace,
   Worktree,
 } from "./wire.gen";
@@ -116,6 +120,8 @@ export type {
   Landing,
   Look,
   Mission,
+  MissionAct,
+  MissionCard,
   MissionDetail,
   MissionState,
   OrchestratorCall,
@@ -169,6 +175,8 @@ export type {
   ThingSaved,
   UpdatesInfo,
   Upgraded,
+  WhatsNewEntry,
+  WhatsNewInfo,
   WantedPlugin,
   Workspace,
   Worktree,
@@ -252,7 +260,7 @@ export function useVisible(): boolean {
 
 // A topic of the server's events: what a page follows to know when what it
 // shows has changed (internal/web/events.go).
-export type Topic = "workspace" | "reviews" | "team" | "plugins" | `mission:${string}`;
+export type Topic = "workspace" | "reviews" | "team" | "plugins" | `mission:${string}` | `pr:${string}`;
 
 // EventHandlers are what a page does as it follows a topic: when the
 // stream's open (hello: fetch what it shows, so nothing's missed), on each
@@ -276,7 +284,7 @@ export function useEvents(topic: Topic, on: EventHandlers, says = "") {
   handlers.current = on;
   useEffect(() => {
     if (!visible) return;
-    const events = new EventSource(`/api/events?topic=${topic}${says}`);
+    const events = new EventSource(`/api/events?topic=${encodeURIComponent(topic)}${says}`);
     const changes = bursts(() => handlers.current.changed());
     events.addEventListener("hello", () => handlers.current.hello?.());
     events.addEventListener(topic, changes.changed);
@@ -385,11 +393,44 @@ export function usePlugins(showing?: string): Plugin[] | undefined {
   const [plugins, setPlugins] = useState<Plugin[]>();
   const load = () =>
     getJSON<Plugin[]>("/api/plugins").then(
-      (p) => setPlugins(p),
+      (p) => {
+        loadCommandLabels(); // a plugin's commands are as it last started
+        setPlugins(p);
+      },
       () => setPlugins((was) => was ?? []), // none it can show is none
     );
   useEvents("plugins", { hello: load, changed: load }, showing ? `&app=${encodeURIComponent(showing)}` : "");
   return plugins;
+}
+
+// What ws's commands are doing, as an agent's steps show them ("Looking
+// up sketch-5"): ws's own and its plugins'. Read once for the page, and
+// again as the plugins change (usePlugins); [] until it's read, when
+// steps show their commands.
+let commandLabels: CommandLabel[] = [];
+let commandLabelsAsked = false;
+const commandLabelsHeard = new Set<(l: CommandLabel[]) => void>();
+
+function loadCommandLabels() {
+  commandLabelsAsked = true;
+  getJSON<CommandLabel[]>("/api/commands").then(
+    (l) => {
+      commandLabels = l;
+      commandLabelsHeard.forEach((f) => f(l));
+    },
+    () => {}, // steps show their commands
+  );
+}
+
+export function useCommandLabels(): CommandLabel[] {
+  const [labels, setLabels] = useState(commandLabels);
+  useEffect(() => {
+    if (!commandLabelsAsked) loadCommandLabels();
+    commandLabelsHeard.add(setLabels);
+    setLabels(commandLabels);
+    return () => void commandLabelsHeard.delete(setLabels);
+  }, []);
+  return labels;
 }
 
 // Review: mirrors internal/review/diff.go.
@@ -619,6 +660,12 @@ export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(
 // mission open (and 15 minutes after).
 export const runRecipe = (slug: string, repo: string, capsule: string, recipe: string) =>
   send<RunDetail>("POST", `/api/missions/${encodeURIComponent(slug)}/runs`, { repo, capsule, recipe });
+
+// writePR has the PR writer write a capsule's pull request, for you to
+// read and change before you open it. It answers once it's written: a
+// minute or more.
+export const writePR = (slug: string, capsule: string) =>
+  send<PRWritten>("POST", `/api/missions/${encodeURIComponent(slug)}/pr-write`, { capsule });
 
 // pointSilo points a repo's silo at a capsule (ws silo point), and says
 // what it did.
@@ -851,8 +898,10 @@ export const getModels = (harness: string) => getJSON<ModelInfo[]>(`/api/setting
 export const getOrchestratorRun = (slug: string, id: string) =>
   getJSON<OrchestratorRunDetail>(`/api/missions/${encodeURIComponent(slug)}/orchestrator/${encodeURIComponent(id)}`);
 
-export const getMission = (slug: string, github: boolean) =>
-  getJSON<MissionDetail>(`/api/missions/${encodeURIComponent(slug)}${github ? "?github=1" : ""}`);
+// getMission is a mission's page. Its pull requests are as GitHub last
+// said: the daemon asks again behind the read, and the mission's event
+// tells of a different answer.
+export const getMission = (slug: string) => getJSON<MissionDetail>(`/api/missions/${encodeURIComponent(slug)}`);
 
 export const getArtifact = (slug: string, ref: string) =>
   getJSON<ArtifactContent>(`/api/missions/${encodeURIComponent(slug)}/artifact?${new URLSearchParams({ ref })}`);
@@ -1471,7 +1520,9 @@ export interface CapsuleSummary {
   changedMore?: number; // how many more there are than it lists
 }
 
-export const getSummary = (api: string) => getJSON<CapsuleSummary>(`${api}/summary`);
+// unread: it's never been read, and is being (or, asked as kept, nobody's
+// shown it yet): the workspace's readsSeen moves when it has been.
+export const getSummary = (api: string, kept?: boolean) => getJSON<CapsuleSummary & { unread?: boolean }>(`${api}/summary${kept ? "?kept=1" : ""}`);
 
 // A capsule's files, for the file explorer: mirrors review.Tree and
 // review.FileView.
@@ -1489,6 +1540,9 @@ export interface FileTree {
   branch?: string;
   files: TreeFile[];
   truncated?: boolean;
+  // unread: it's never been read, and is being: the workspace's readsSeen
+  // moves when it has been.
+  unread?: boolean;
 }
 
 export interface LineChange {
@@ -1508,6 +1562,12 @@ export interface FileView {
 }
 
 export const getTree = (api: string) => getJSON<FileTree>(`${api}/tree`);
+
+// checkRefPaths is which of the paths a page's words name are files or
+// folders on each repo's default branch, as the daemon keeps them: a repo
+// that's not been read yet isn't in the answer (the workspace's
+// groundsSeen moves when it has been).
+export const checkRefPaths = (repos: Record<string, string[]>) => send<RefPathsFound>("POST", "/api/refs/paths", { repos });
 export const getFile = (api: string, path: string) => getJSON<FileView>(`${api}/file?${new URLSearchParams({ path })}`);
 export const rawURL = (api: string, path: string) => `${api}/raw?${new URLSearchParams({ path })}`;
 
@@ -1755,6 +1815,11 @@ export const seenTeam = () => send<{ ok: boolean }>("POST", "/api/team/seen", {}
 export const getUpdates = () => getJSON<UpdatesInfo>("/api/updates");
 export const checkUpdates = () => send<UpdatesInfo>("POST", "/api/updates/check", {});
 export const upgradeWS = () => send<Upgraded>("POST", "/api/upgrade", {});
+
+// What's new: what this ws says is new, and what of it is unseen in this
+// workspace; and saying it's been seen.
+export const getWhatsNew = () => getJSON<WhatsNewInfo>("/api/whats-new");
+export const seenWhatsNew = () => send<{ ok: boolean }>("POST", "/api/whats-new/seen", {});
 
 // The Plugins page: the workspace's plugins as it lists them, and adding
 // one (from the repo it's published at, or a folder on this machine),

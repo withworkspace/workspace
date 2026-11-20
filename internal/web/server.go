@@ -94,6 +94,10 @@ type Server struct {
 	// its app, which ws serves a page for, and its own HTTP, which is
 	// passed to it. nil for none.
 	Plugins *plugin.Host
+	// Labels are what ws's own commands are doing, as a conversation
+	// shows an agent's step that ran one (GET /api/commands, with the
+	// plugins' after them). nil for none: steps show their commands.
+	Labels []CommandLabel
 	// Hold keeps the daemon up while a page is open (each holds an
 	// event stream); nil for nothing to hold.
 	Hold func() (release func())
@@ -120,9 +124,14 @@ type Server struct {
 	topics map[string]*hub
 	// missions tells a mission's open page when it changes (mission:<slug>).
 	missions *missionHub
-	findMu   sync.Mutex // guards giving Find its pull requests
-	ctx      context.Context
-	cancel   context.CancelFunc
+	// prs tells a pull request's open page when it changes
+	// (pr:<repo>#<number>): nil without Reviews.
+	prs    *prHub
+	findMu sync.Mutex // guards giving Find its pull requests
+	// reads are a capsule's files as pages have read them (kept.go).
+	reads  keptReads
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // Start binds, writes .ws/web.json and serves in the background.
@@ -164,7 +173,11 @@ func (s *Server) Start() error {
 	ws := newHub(topicWorkspace, s.Poll, s.fingerprint)
 	// The view's built only when what it's built from has moved, and
 	// every half a minute regardless.
-	ws.stamp, ws.floor = s.App.Stamp, 30*time.Second
+	// What's kept for pages behind their reads (a capsule's tree and
+	// summary, the repos' files refs are checked against) moves the view
+	// too, when a read behind finds it changed: looked at as soon as it has.
+	ws.stamp, ws.floor = func() string { return s.App.Stamp() + " " + s.keptStamp() }, 30*time.Second
+	s.reads.told = ws.nudge
 	s.topics[topicWorkspace] = ws
 	if s.Reviews != nil {
 		if s.ReviewsPoll == 0 {
@@ -178,6 +191,13 @@ func (s *Server) Start() error {
 			return listFingerprint(l, s.App.PassMarks(listHeads(l)))
 		}
 		s.topics[topicReviews] = h
+		// A pull request's page: its page as kept is looked at as often as
+		// any page's, and read again behind when it's stale.
+		s.prs = newPRHub(s.Poll, func(r prRef) string {
+			s.Reviews.Freshen(r.repo, r.number)
+			return strconv.FormatInt(s.Reviews.PageSeen(r.repo, r.number), 10)
+		})
+		go s.prs.run(s.ctx)
 	}
 	if s.Team != nil {
 		if s.TeamPoll == 0 {
@@ -218,6 +238,19 @@ func (s *Server) Start() error {
 		}
 	}
 	go s.missions.run(s.ctx)
+	// What's read behind a read that didn't wait (a space of documents)
+	// and found something new is looked at now.
+	seen := s.App.Seen() // the App the server starts with: read here, not in the goroutine
+	go func() {
+		for {
+			select {
+			case <-s.ctx.Done():
+				return
+			case <-seen:
+				ws.nudge()
+			}
+		}
+	}()
 	s.srv = &http.Server{
 		Handler:           s.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
@@ -302,6 +335,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/updates", s.updates)
 	mux.HandleFunc("POST /api/updates/check", s.checkUpdates)
 	mux.HandleFunc("POST /api/upgrade", s.upgrade)
+	mux.HandleFunc("GET /api/whats-new", s.whatsNew)
+	mux.HandleFunc("POST /api/whats-new/seen", s.seenWhatsNew)
+	mux.HandleFunc("GET /api/whats-new/pictures/{name}", s.whatsNewPicture)
 	mux.HandleFunc("GET /api/events", s.stream)
 	mux.HandleFunc("GET /api/missions/{slug}", s.mission)
 	mux.HandleFunc("GET /api/missions/{slug}/artifact", s.artifact)
@@ -311,6 +347,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/around", s.around)
 	mux.HandleFunc("GET /api/search", s.codeSearch)
 	mux.HandleFunc("GET /api/repos", s.repos)
+	mux.HandleFunc("POST /api/refs/paths", s.refPaths)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees", s.worktrees)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees/{name}/tree", s.tree)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees/{name}/file", s.file)
@@ -323,6 +360,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/missions/{slug}/draft", s.dropDraft)
 	mux.HandleFunc("POST /api/missions", s.startMission)
 	mux.HandleFunc("POST /api/missions/{slug}/act", s.act)
+	mux.HandleFunc("POST /api/missions/{slug}/pr-write", s.writePR)
 	mux.HandleFunc("POST /api/missions/{slug}/runs", s.startRun)
 	mux.HandleFunc("POST /api/missions/{slug}/runs/stop", s.stopRun)
 	mux.HandleFunc("GET /api/runs", s.allRuns)
@@ -468,6 +506,7 @@ func (s *Server) Handler() http.Handler {
 	// Plugins: what they add, the page ws serves for one's app (the
 	// shell), and each one's own HTTP (asked of the plugin).
 	mux.HandleFunc("GET /api/plugins", s.pluginsList)
+	mux.HandleFunc("GET /api/commands", s.commandLabels)
 	mux.HandleFunc("GET /api/plugins/installed", s.pluginsInstalled)
 	mux.HandleFunc("POST /api/plugins", s.addPlugin)
 	mux.HandleFunc("POST /api/plugins/{name}/update", s.updatePlugin)
@@ -629,7 +668,7 @@ func (s *Server) fingerprint() string {
 }
 
 // stream is a page's event stream on a topic (?topic=workspace, the
-// default; reviews; team; plugins; mission:<slug>): it says when something
+// default; reviews; team; plugins; mission:<slug>; pr:<repo>#<number>): it says when something
 // the page shows has changed, so the page never polls. An open stream holds
 // the daemon up. The plugins topic takes ?app=<name> from a page showing
 // that plugin's app.
@@ -643,9 +682,12 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 	if slug, ok := strings.CutPrefix(topic, missionTopic); ok && slug != "" && !strings.ContainsAny(slug, "/ ") {
 		subscribe = func() (<-chan string, func()) { return s.missions.subscribe(slug) }
 	}
+	if ref, ok := prTopicRef(topic); ok && s.prs != nil {
+		subscribe = func() (<-chan string, func()) { return s.followPR(ref) }
+	}
 	switch {
 	case subscribe != nil:
-	case topic == topicReviews:
+	case topic == topicReviews, strings.HasPrefix(topic, prTopic):
 		jsonError(w, http.StatusNotFound, "there's no GitHub to ask here")
 		return
 	case topic == topicTeam:

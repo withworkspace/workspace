@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/doc"
@@ -173,7 +174,7 @@ func (w *Workspace) openPRStep(m *mission.Mission, st mission.StageState, done s
 				continue
 			}
 			w.Missions.SetInstance(m.Slug, st.N, in.Repo, capsule, false)
-			s, ask := w.openPRIn(m, st, capsule)
+			s, ask := w.openPRIn(m, st, capsule, false)
 			if ask != "" {
 				asks = append(asks, ask)
 			} else {
@@ -193,20 +194,25 @@ func (w *Workspace) openPRStep(m *mission.Mission, st mission.StageState, done s
 		}
 		return w.askAboutPR(m, st, fmt.Sprintf("%sStep %d opens a pull request from %s, and the mission has no capsule there to open it from: lift one, or say which (edit the plan), then go on.", done, st.N, where))
 	}
-	said, ask := w.openPRIn(m, st, capsule)
+	said, ask := w.openPRIn(m, st, capsule, false)
 	if ask != "" {
 		return w.askAboutPR(m, st, done+fmt.Sprintf("Step %d %s.", st.N, ask))
 	}
 	return said
 }
 
-// openPRIn opens a step's pull request from capsule: what it did, or,
-// where it couldn't, what to ask the user ("opens a pull request from …,
-// and …").
-func (w *Workspace) openPRIn(m *mission.Mission, st mission.StageState, capsule string) (said, ask string) {
-	opened, err := w.openPR(m.Slug, capsule, w.prDraft(m, capsule, st), AsWS)
+// openPRIn opens a step's pull request from capsule, as the PR writer
+// writes it (handed to the daemon, unless inJob: the PR writer's job
+// itself): what it did, or, where it couldn't, what to ask the user
+// ("opens a pull request from …, and …").
+func (w *Workspace) openPRIn(m *mission.Mission, st mission.StageState, capsule string, inJob bool) (said, ask string) {
+	opened, err := w.openPR(m.Slug, capsule, NewPullRequest{Draft: st.Step.Draft, Quiet: true, inJob: inJob}, AsWS)
 	var r *Refused
 	switch {
+	case err == nil && opened.Writing:
+		return fmt.Sprintf("step %d is ws's: the PR writer is writing %s's pull request, which ws opens once it's written, and passes the step once it merges", st.N, capsule), ""
+	case errors.As(err, &r) && r.Code == "pr-writing":
+		return fmt.Sprintf("step %d is ws's: the PR writer is writing %s's pull request already, and ws opens it once it's written", st.N, capsule), ""
 	case err == nil:
 		return fmt.Sprintf("step %d is ws's: it opened %s#%d from %s, and passes the step once it merges", st.N, opened.Repo, opened.PR.Number, capsule), ""
 	case errors.As(err, &r) && r.Code == "pr-open":
@@ -269,15 +275,15 @@ func (w *Workspace) askAboutPR(m *mission.Mission, st mission.StageState, text s
 	return fmt.Sprintf("step %d is ws's, to open a pull request, and it waits for the user first", st.N)
 }
 
-// prDraft is the pull request ws opens at a step: titled as the mission
-// is, and saying what the crew who worked in the capsule did (the Done of
-// their latest handoff), else what the mission's for.
-func (w *Workspace) prDraft(m *mission.Mission, capsule string, st mission.StageState) NewPullRequest {
-	title := m.Title
+// prDraft is ws's own words for a pull request, where the PR writer
+// couldn't write it: titled as the mission is, and saying what the crew
+// who worked in the capsule did (the Done of their latest handoff), else
+// what the mission's for.
+func (w *Workspace) prDraft(m *mission.Mission, capsule string, step int) (title, body string) {
+	title = m.Title
 	if m.TitleIsRequest() || strings.TrimSpace(title) == "" {
 		title = m.Slug
 	}
-	var body string
 	for i := len(m.Crew) - 1; i >= 0 && body == ""; i-- {
 		c := m.Crew[i]
 		if c.Capsule != capsule || c.HandedOff == nil {
@@ -293,8 +299,12 @@ func (w *Workspace) prDraft(m *mission.Mission, capsule string, st mission.Stage
 		brief, _ := w.Missions.ReadBrief(m.Slug)
 		body = strings.TrimSpace(briefGoal(brief))
 	}
-	body += fmt.Sprintf("\n\nOpened by ws, at step %d of the mission %q.", st.N, m.Title)
-	return NewPullRequest{Title: title, Body: strings.TrimSpace(body), Draft: st.Step.Draft, Quiet: true}
+	if step > 0 {
+		body += fmt.Sprintf("\n\nOpened by ws, at step %d of the mission %q.", step, m.Title)
+	} else {
+		body += fmt.Sprintf("\n\nOpened by ws, from the mission %q.", m.Title)
+	}
+	return title, strings.TrimSpace(body)
 }
 
 // briefGoal is what's under a brief's ## Goal, or "".
@@ -336,7 +346,7 @@ func (w *Workspace) RetryOpenPRStep(slug, capsule string) string {
 	}
 	w.Missions.CloseStepTasks(slug, cur.N) // what it asked of you is done
 	if _, ok := cur.Instance(capsule); ok {
-		said, ask := w.openPRIn(m, cur, capsule)
+		said, ask := w.openPRIn(m, cur, capsule, false)
 		if ask != "" {
 			return w.askAboutPR(m, cur, fmt.Sprintf("Step %d %s.", cur.N, ask))
 		}
@@ -361,6 +371,7 @@ func (w *Workspace) PassOnMerge(slug, capsule string) bool {
 	if !slices.Contains(w.stepCapsules(m, cur), capsule) {
 		return false
 	}
+	began := w.stepBegan(m, cur.N)
 	if _, ok := cur.Instance(capsule); ok {
 		// One of its runs: the step passes once every one has merged.
 		said := w.instanceDone(slug, cur, capsule, "ws", "its pull requests merged")
@@ -370,9 +381,40 @@ func (w *Workspace) PassOnMerge(slug, capsule string) bool {
 	} else if w.passStep(slug, cur.N, "ws", capsule+"'s pull request merged", mission.StepOpenPR) == "" {
 		return false
 	}
-	// What ws asked about the pull request while it was open is moot.
+	// What ws asked about the pull request while it was open is moot, and
+	// so is what the orchestrator asked at the step (whether to merge it,
+	// what to do about a check).
 	w.Missions.Ask(slug, "", "ws")
+	w.settleAsked(m, cur.N, began, "its pull request merged")
 	return true
+}
+
+// settleAsked closes what the orchestrator asked you at step n, since the
+// plan reached it (began), now that the step has passed (how, in words):
+// m is the mission as it was before. A question about a step that's done,
+// left open, would be what the mission waits on you for and lead its
+// page, and hold an ending that's otherwise ws's to make. What it asked
+// before the step, and what crew asked, stay yours to answer.
+func (w *Workspace) settleAsked(m *mission.Mission, n int, began time.Time, how string) {
+	for _, t := range m.Tasks {
+		if t.Question() && t.By == AsOrchestrator.By() && !t.At.Before(began) {
+			w.Missions.CloseTask(m.Slug, t.N, "ws", fmt.Sprintf("step %d passed, %s: what the orchestrator asked at it is settled", n, how)) //nolint:errcheck // answered meanwhile, it's closed already
+		}
+	}
+}
+
+// stepBegan is when the plan reached step n: when the step before it was
+// passed. The zero time for the first step, or where that isn't recorded.
+func (w *Workspace) stepBegan(m *mission.Mission, n int) time.Time {
+	brief, _ := w.Missions.ReadBrief(m.Slug)
+	states, _ := m.StageProgress(brief)
+	if n < 2 || n-2 >= len(states) {
+		return time.Time{}
+	}
+	if r := states[n-2].Record; r != nil && r.Accepted != nil {
+		return *r.Accepted
+	}
+	return time.Time{}
 }
 
 // passOnLand passes the Land step a mission is at, once its capsule in

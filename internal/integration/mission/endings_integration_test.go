@@ -76,7 +76,7 @@ func TestWeb_Endings(t *testing.T) {
 	if _, err := act("cache", web.ActRequest{Verb: "edit-plan", Text: plan}); err != nil {
 		t.Fatal(err)
 	}
-	d, _ := testutil.WebMission(w.Root)("cache", false)
+	d, _ := testutil.WebMission(w.Root)("cache")
 	if d.At != "Step 1 of 2: Cache it" || len(d.Z) != 2 {
 		t.Errorf("at %q, Z %q", d.At, d.Z)
 	}
@@ -85,7 +85,7 @@ func TestWeb_Endings(t *testing.T) {
 	t.Setenv("WS_ROLE", "orchestrator")
 	testutil.Run(t, w, nil, "mission", "conclude", "Cached; product told", "--as", "answered", "--met", "1: api#3", "--met", "2: in the thread")
 	t.Setenv("WS_ROLE", "")
-	d, _ = testutil.WebMission(w.Root)("cache", false)
+	d, _ = testutil.WebMission(w.Root)("cache")
 	if c := d.Conclude; c == nil || c.Ending != "answered" || len(c.Z) != 2 || !c.Z[1].Met || c.Z[1].How != "in the thread" {
 		t.Errorf("conclude = %+v", d.Conclude)
 	}
@@ -97,7 +97,7 @@ func TestWeb_Endings(t *testing.T) {
 	if err != nil || !strings.HasPrefix(said, "Ended, answered (at Z: 2 of 2 met)") {
 		t.Fatalf("end: %q, %v", said, err)
 	}
-	d, _ = testutil.WebMission(w.Root)("cache", false)
+	d, _ = testutil.WebMission(w.Root)("cache")
 	if d.State != "answered" || d.Ending == nil || d.Conclude != nil || d.Headlines[0].Kind != "ended" || d.Headlines[0].Group != "past" {
 		t.Errorf("ended: state %q, ending %+v, headline %+v", d.State, d.Ending, d.Headlines[0])
 	}
@@ -117,7 +117,7 @@ func TestWeb_Endings(t *testing.T) {
 	if _, err := act("cache", web.ActRequest{Verb: "end", Ending: "dropped", Text: "done elsewhere"}); err != nil {
 		t.Fatal(err)
 	}
-	d, _ = testutil.WebMission(w.Root)("cache", false)
+	d, _ = testutil.WebMission(w.Root)("cache")
 	if len(d.EndedCapsules) != 1 || d.EndedCapsules[0].Ending != "dropped" || d.State != "dropped" || len(d.Capsules) != 0 {
 		t.Errorf("after dropping: state %q, capsules %+v, ended %+v", d.State, d.Capsules, d.EndedCapsules)
 	}

@@ -18,17 +18,11 @@ export interface Loaded<T> {
 // just changed, before the change is.
 export type Reload = () => Promise<void>;
 
-// Soon is how a load shows what it has so far, before its answer: what's
-// on disk, say, before what GitHub says. It's dropped once the load's
-// stale, as the answer is, and says so (false): a stale load needn't go
-// on to ask for the rest.
-export type Soon<T> = (v: SetStateAction<T | undefined>) => boolean;
-
 // useLoaded is what load gives, loaded again whenever deps change, and on
 // reload; an answer that comes after a later load has begun is dropped.
 // While it's loading again for new deps, value is what came before (keep),
 // or nothing. A null load is nothing to load: value is cleared.
-export function useLoaded<T>(load: ((soon: Soon<T>) => Promise<T>) | null, deps: DependencyList, opts: { keep?: boolean } = {}): Loaded<T> {
+export function useLoaded<T>(load: (() => Promise<T>) | null, deps: DependencyList, opts: { keep?: boolean } = {}): Loaded<T> {
   const [value, set] = useState<T>();
   const [error, setError] = useState<string>();
   const [again, reload] = useReducer((n: number) => n + 1, 0);
@@ -53,14 +47,7 @@ export function useLoaded<T>(load: ((soon: Soon<T>) => Promise<T>) | null, deps:
       set(undefined);
       setError(undefined);
     }
-    const soon: Soon<T> = (v) => {
-      if (stale) return false;
-      set(v);
-      setError(undefined);
-      shown();
-      return true;
-    };
-    load(soon).then(
+    load().then(
       (v) => {
         if (stale) return;
         set(v);

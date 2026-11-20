@@ -44,10 +44,19 @@ const bundleLink = (slug: string, id: string) => `/missions/${slug}?${new URLSea
 const count = (n: number, word: string) => `${n.toLocaleString()} ${word}${n === 1 ? "" : "s"}`;
 
 // useSummary is a capsule in brief, read again when it moves on (its head,
-// or whether it's all committed), and for one with changes not committed,
-// whenever fresh changes: what's there is still being written.
-function useSummary(slug: string, c: CapsuleDetail, fresh?: unknown) {
-  return useLoaded(c.exists ? () => getSummary(capsuleAPI(slug, c.repo, c.name)) : null, [slug, c.repo, c.name, c.exists, c.head, c.dirty, c.dirty ? fresh : undefined], { keep: true });
+// or whether it's all committed), when the daemon has read it again and
+// found it changed (seen: the workspace's readsSeen), and for one with
+// changes not committed, whenever fresh changes: what's there is still
+// being written. The daemon answers as it last read it, and reads it again
+// behind the answer. kept asks only what it has: a row doesn't have a
+// capsule read, only the capsule that's shown does. Unread, it's nothing
+// yet.
+function useSummary(slug: string, c: CapsuleDetail, o: { seen?: string; fresh?: unknown; kept?: boolean }) {
+  return useLoaded(
+    c.exists ? () => getSummary(capsuleAPI(slug, c.repo, c.name), o.kept).then((s) => (s.unread ? undefined : s)) : null,
+    [slug, c.repo, c.name, c.exists, c.head, c.dirty, o.seen, o.kept, c.dirty ? o.fresh : undefined],
+    { keep: true },
+  );
 }
 
 function Lines({ additions, deletions }: { additions: number; deletions: number }) {
@@ -85,6 +94,7 @@ export function Work({
   review,
   openArtifact,
   reload,
+  seen,
 }: {
   d: MissionDetail;
   w: WorkModel;
@@ -93,6 +103,8 @@ export function Work({
   review: (c: CapsuleDetail) => void;
   openArtifact: (a: Artifact) => void;
   reload: Reload;
+  // seen is the workspace's readsSeen: a capsule's summary read again.
+  seen?: string;
 }) {
   const label = useRepoLabel();
   const [doneOpen, setDoneOpen] = useState(loadDone);
@@ -110,7 +122,7 @@ export function Work({
     }
     if (!open && capsule?.where === "done" && w.opensOn && w.opensOn !== capsule.key) select(w.opensOn);
   };
-  const rows = (list: WorkCapsule[]) => list.map((x) => <CapsuleRow key={x.key} d={d} x={x} selected={x.key === shown} select={select} label={label} review={review} />);
+  const rows = (list: WorkCapsule[]) => list.map((x) => <CapsuleRow key={x.key} d={d} x={x} selected={x.key === shown} select={select} label={label} review={review} seen={seen} />);
 
   if (!w.capsules.length && !w.outputs.length && !d.endedCapsules?.length) {
     return (
@@ -154,7 +166,7 @@ export function Work({
         {!w.outputs.length && <p className="work-none">Nothing yet: proposals, notes, handoffs and artifacts show here as crew make them.</p>}
       </div>
       <section className="work-pane" aria-live="polite">
-        {capsule && <CapsulePane key={capsule.key} d={d} x={capsule} label={label} select={select} review={review} reload={reload} />}
+        {capsule && <CapsulePane key={capsule.key} d={d} x={capsule} label={label} select={select} review={review} reload={reload} seen={seen} />}
         {output && <OutputPane key={output.ref} d={d} a={output} home={outputHome(d, w, output)} label={label} select={select} open={openArtifact} />}
       </section>
     </div>
@@ -186,9 +198,10 @@ function doneWords(done: WorkCapsule[], label: (repo: string) => string, slug: s
 
 // A capsule in a line: its repo (and its own name, when that isn't the
 // mission's), how much has changed, who's in it now, and where it stands.
-function CapsuleRow({ d, x, selected, select, label, review }: { d: MissionDetail; x: WorkCapsule; selected: boolean; select: (key: string) => void; label: (repo: string) => string; review: (c: CapsuleDetail) => void }) {
+function CapsuleRow({ d, x, selected, select, label, review, seen }: { d: MissionDetail; x: WorkCapsule; selected: boolean; select: (key: string) => void; label: (repo: string) => string; review: (c: CapsuleDetail) => void; seen?: string }) {
   const { c } = x;
-  const { value: sum } = useSummary(d.slug, c);
+  // What's known of it: it's read when it's the capsule shown.
+  const { value: sum } = useSummary(d.slug, c, { seen, kept: !selected });
   const loose = sum?.changed.filter((f) => f.uncommitted).length ?? 0;
   // A crew who's at work is in the chip already.
   const here = x.live && !x.state.live ? x.live : undefined;
@@ -254,10 +267,10 @@ function OutputRow({ a, selected, select, open, made }: { a: Artifact; selected:
 // The open capsule: its head (what it is, where it stands, what you can do
 // with it), then who's been in it and the steps that ran there, its
 // commits, and its changed files beside them.
-function CapsulePane({ d, x, label, select, review, reload }: { d: MissionDetail; x: WorkCapsule; label: (repo: string) => string; select: (key: string) => void; review: (c: CapsuleDetail) => void; reload: Reload }) {
+function CapsulePane({ d, x, label, select, review, reload, seen }: { d: MissionDetail; x: WorkCapsule; label: (repo: string) => string; select: (key: string) => void; review: (c: CapsuleDetail) => void; reload: Reload; seen?: string }) {
   const { c } = x;
   // Read again as the mission moves, while what's there isn't committed.
-  const { value: sum, error } = useSummary(d.slug, c, d.events.length);
+  const { value: sum, error } = useSummary(d.slug, c, { seen, fresh: d.events.length });
   const open = !d.ending && d.state !== "archived";
   // Landed or merged, its work is the default branch's: there's nothing of
   // it left to hand on or drop.

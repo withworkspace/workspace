@@ -29,6 +29,10 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Every commit and tag: what's new is in the release whose tag
+          # first holds it (scripts/whatsnew).
+          fetch-depth: 0
 
       - uses: actions/setup-go@v6
         with:
@@ -48,6 +52,9 @@ jobs:
         run: |
           pnpm --dir web install --frozen-lockfile
           pnpm --dir web build
+
+      - name: Work out what's new
+        run: go run ./scripts/whatsnew
 
       - name: Install the cross compiler
         if: matrix.cross_cc
@@ -86,10 +93,24 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
       - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
+
+      # The release's what's-new entries head its notes, above the pull
+      # requests GitHub lists, and their pictures are its files: the ws
+      # that says what's new fetches them from there.
+      - name: Write what's new
+        run: go run ./scripts/whatsnew -notes "$GITHUB_REF_NAME" -base "https://github.com/$GITHUB_REPOSITORY" -pictures dist > whatsnew.md
 
       - name: Publish the release
         env:
@@ -100,4 +121,5 @@ jobs:
           sha256sum workspace_*.tar.gz > checksums.txt
           prerelease=""
           if [[ "$GITHUB_REF_NAME" == *-* ]]; then prerelease="--prerelease"; fi
-          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes $prerelease workspace_*.tar.gz checksums.txt
+          shopt -s nullglob
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --notes-file ../whatsnew.md $prerelease workspace_*.tar.gz checksums.txt whatsnew-*

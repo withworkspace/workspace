@@ -144,7 +144,7 @@ func tickServer(b testing.TB) *Server {
 func BenchmarkMissionRead(b *testing.B) {
 	s := tickServer(b)
 	read := func() {
-		d, err := s.missionDetail("mission-7", false)
+		d, err := s.missionDetail("mission-7")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -165,7 +165,7 @@ func TestReads_StartNoGitUntilACapsuleMoves(t *testing.T) {
 	s := tickServer(t)
 	read := func() *MissionDetail {
 		t.Helper()
-		d, err := s.missionDetail("mission-7", false)
+		d, err := s.missionDetail("mission-7")
 		if err != nil {
 			t.Fatal(err)
 		}

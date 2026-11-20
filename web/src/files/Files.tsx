@@ -25,6 +25,7 @@ export const filesKeys: [string, string][] = [
   ["m", "Markdown: rendered, or as text"],
   ["v", "Review the capsule's changes (a mission's)"],
   ["y", "Copy the file's path"],
+  ["p", "Panes: the repos, the tree and the file; the tree and the file; or the file alone"],
   ["r", "Reload"],
   ["esc", "Close the file"],
 ];
@@ -80,7 +81,7 @@ export function FilesPage({ workspace }: { workspace: Workspace }) {
         api={api}
         label={`${r.label}/${capsule ?? "ground"}`}
         before={narrow ? undefined : column}
-        updated={mission?.updated}
+        updated={`${mission?.updated ?? ""}:${workspace.readsSeen ?? ""}`}
         reviewTo={mission ? `/missions/${mission.slug}/review/${repo}/${capsule}` : undefined}
         docOf={(path) => docRef(repo, name, path)}
         search={capsule ? { repo, worktree: capsule } : undefined}
@@ -194,7 +195,9 @@ function WorktreeSwitch({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { value: wts } = useLoaded<Worktree[]>(() => getWorktrees(repo.name).catch(() => []), [repo.name]);
+  // Answered at once, with what git hasn't said yet unread: read again when
+  // it has (the workspace's capsulesSeen moves).
+  const { value: wts } = useLoaded<Worktree[]>(() => getWorktrees(repo.name).catch(() => []), [repo.name, workspace.capsulesSeen], { keep: true });
   // Until their branches are read, what the repo's listing says.
   const list: Worktree[] = wts ?? [{ name: GROUND, ground: true, branch: "" }, ...repo.capsules.map((c) => ({ name: c, branch: "" }))];
   const [sel, setSel] = useState(0);

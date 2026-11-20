@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -45,21 +46,135 @@ type Start struct {
 	// Env is the environment it runs in, PORT added: nil is this
 	// process's.
 	Env []string
+	// Needs are what it's started needing, each met already (Record.Needs).
+	Needs []Need
+	// Hold is until when it isn't ended for nothing needing it, for one
+	// owned by what needs it (Record.Hold).
+	Hold time.Time
 }
 
 // Start starts a run: claims its name, picks its port, starts its command
 // in a session of its own with its output to its log, and records it.
 func (s Store) Start(o Start, now time.Time) (Run, error) {
+	r, _, err := s.start(o, now, false)
+	return r, err
+}
+
+// Ensure is the run of o's recipe in its worktree: the one running there
+// already, which is then o's owner's as well (Join), or one started now
+// (started). A recipe runs once in a worktree, whoever asks for it; a
+// command that's no recipe's is started as Start starts it.
+func (s Store) Ensure(o Start, now time.Time) (r Run, started bool, err error) {
+	if o.Recipe == "" {
+		r, err = s.Start(o, now)
+		return r, err == nil, err
+	}
+	if list, err := s.List(); err == nil {
+		for _, old := range list {
+			if old.State == Running && old.Repo == o.Repo && old.Worktree == o.Worktree && old.Recipe == o.Recipe {
+				r, err = s.Join(old, o.Owner, o.TTL, now)
+				return r, false, err
+			}
+		}
+	}
+	return s.start(o, now, true)
+}
+
+// Join makes o one more of who a running run is for, and its time the
+// later of what it had and ttl from now (0: no limit). It's then ended
+// for its owners' going only once all of them have. An owner it has
+// already isn't added again; nor is ByRun, which is whatever needs it.
+func (s Store) Join(r Run, o Owner, ttl time.Duration, now time.Time) (Run, error) {
+	if o.Kind == "" || o.Kind == ByRun {
+		return r, nil
+	}
+	r = s.again(r)
+	changed := false
+	if !slices.ContainsFunc(r.Owners(), func(has Owner) bool { return sameOwner(has, o) }) {
+		r.Also = append(r.Also, o)
+		changed = true
+	}
+	if !r.Expires.IsZero() {
+		switch until := now.Add(ttl).UTC().Truncate(time.Second); {
+		case ttl <= 0:
+			r.Expires, changed = time.Time{}, true
+		case until.After(r.Expires):
+			r.Expires, changed = until, true
+		}
+	}
+	if !changed {
+		return r, nil
+	}
+	return r, save(r.Record, r.Path)
+}
+
+// sameOwner is whether a and b are one owner: the same process, capsule,
+// mission, step, crew or conversation.
+func sameOwner(a, b Owner) bool {
+	if a.Kind != b.Kind {
+		return false
+	}
+	switch a.Kind {
+	case ByPID:
+		return a.PID == b.PID && sameStart(a.Began, b.Began)
+	case ByStep:
+		return a.Mission == b.Mission && a.StepText == b.StepText
+	case ByCrew:
+		return a.Mission == b.Mission && a.Crew == b.Crew
+	case ByConversation:
+		return a.Mission == b.Mission && a.Conversation == b.Conversation
+	}
+	return a.Mission == b.Mission
+}
+
+// HoldUntil keeps a running run from being ended for nothing needing it
+// until then (the zero time: no longer), while the run it's for is being
+// started.
+func (s Store) HoldUntil(r Run, until time.Time) (Run, error) {
+	if !until.IsZero() {
+		until = until.UTC().Truncate(time.Second)
+	}
+	r = s.again(r)
+	if r.Hold.Equal(until) {
+		return r, nil
+	}
+	r.Hold = until
+	return r, save(r.Record, r.Path)
+}
+
+// again is r as its record says now: another ws may have written it
+// since r was read. What List found of it (who needs it) is kept.
+func (s Store) again(r Run) Run {
+	now, err := load(r.Path, s.snapshot())
+	if err != nil {
+		return r
+	}
+	now.NeededBy = r.NeededBy
+	return now
+}
+
+// start starts o. With single, o is a recipe's, and where a run of the
+// recipe turns out to be running in its worktree (another ws started it
+// this moment), that one is returned, joined, and nothing's started.
+func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 	if strings.TrimSpace(o.Command) == "" {
-		return Run{}, errors.New("a run needs a command")
+		return Run{}, false, errors.New("a run needs a command")
 	}
 	want := Slug(o.Name)
 	if want == "" {
 		want = NameFor(o.Command)
 	}
-	name, dir, err := s.claim(o.Repo, o.Worktree, want)
+	recipe := ""
+	if single {
+		recipe = o.Recipe
+	}
+	name, dir, running, err := s.claim(o.Repo, o.Worktree, want, recipe)
 	if err != nil {
-		return Run{}, err
+		return Run{}, false, err
+	}
+	if running != nil {
+		r, err := s.Join(*running, o.Owner, o.TTL, now)
+		return r, false, err
 	}
 	keep := false
 	defer func() {
@@ -77,18 +192,18 @@ func (s Store) Start(o Start, now time.Time) (Run, error) {
 	}
 	port, err := pickPort(o.Repo+"/"+o.Worktree+"/"+name, taken)
 	if err != nil {
-		return Run{}, err
+		return Run{}, false, err
 	}
 	command := strings.ReplaceAll(o.Command, PortWord, strconv.Itoa(port))
 
 	log, err := os.OpenFile(filepath.Join(dir, logFile), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
-		return Run{}, err
+		return Run{}, false, err
 	}
 	defer log.Close()
 	null, err := os.Open(os.DevNull)
 	if err != nil {
-		return Run{}, err
+		return Run{}, false, err
 	}
 	defer null.Close()
 	// The command runs under a shell that writes its status when it ends,
@@ -104,7 +219,7 @@ func (s Store) Start(o Start, now time.Time) (Run, error) {
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = null, log, log
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	if err := cmd.Start(); err != nil {
-		return Run{}, fmt.Errorf("starting %s: %w", name, err)
+		return Run{}, false, fmt.Errorf("starting %s: %w", name, err)
 	}
 	pid := cmd.Process.Pid
 	began := now
@@ -114,8 +229,11 @@ func (s Store) Start(o Start, now time.Time) (Run, error) {
 	rec := Record{
 		Version: Version, Name: name, Repo: o.Repo, Worktree: o.Worktree, Dir: o.Dir,
 		Command: command, Recipe: o.Recipe, Ready: o.Ready, Stop: o.Stop,
-		Port: port, PID: pid, Began: began, Owner: o.Owner,
+		Port: port, PID: pid, Began: began, Owner: o.Owner, Needs: o.Needs,
 		Created: now.UTC().Truncate(time.Second), By: o.By,
+	}
+	if !o.Hold.IsZero() {
+		rec.Hold = o.Hold.UTC().Truncate(time.Second)
 	}
 	if o.Owner.Kind == ByLooking {
 		rec.Looked = rec.Created
@@ -126,12 +244,12 @@ func (s Store) Start(o Start, now time.Time) (Run, error) {
 	if err := save(rec, dir); err != nil {
 		syscall.Kill(-pid, syscall.SIGKILL)
 		cmd.Wait()
-		return Run{}, err
+		return Run{}, false, err
 	}
 	keep = true
 	// It's nobody's child to wait for: the sweep sees it end.
 	go cmd.Wait()
-	return Run{Record: rec, Path: dir, State: Running}, nil
+	return Run{Record: rec, Path: dir, State: Running}, true, nil
 }
 
 func withoutKey(env []string, key string) []string {

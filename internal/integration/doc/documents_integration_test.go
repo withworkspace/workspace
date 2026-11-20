@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/testutil"
 )
 
@@ -20,8 +21,22 @@ func TestDocuments_ChangedLatelyInFlightAndFresh(t *testing.T) {
 	f.Close()
 	ctx := context.Background()
 	o := testutil.OpsAt(w.Root, time.Now())
+	// What's kept is said at once, and read again behind the read where
+	// it's moved: the read after that look has what it found.
+	activity := func() (*ops.SpaceActivity, error) {
+		t.Helper()
+		if _, err := o.SpaceActivity(ctx, "records"); err != nil {
+			return nil, err
+		}
+		select {
+		case <-o.Seen():
+		case <-time.After(10 * time.Second):
+			t.Fatal("the look behind the read found nothing")
+		}
+		return o.SpaceActivity(ctx, "records")
+	}
 
-	a, err := o.SpaceActivity(ctx, "records")
+	a, err := activity()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +52,7 @@ func TestDocuments_ChangedLatelyInFlightAndFresh(t *testing.T) {
 	capsule := filepath.Join(w.Root, "repos", "records", "edit-plan")
 	os.WriteFile(filepath.Join(capsule, "docs", "plan.md"), []byte("# Plan\n\nKey it per tenant.\n"), 0o644)
 	os.WriteFile(filepath.Join(capsule, "docs", "note.md"), []byte("# A note\n"), 0o644)
-	if a, _ = o.SpaceActivity(ctx, "records"); len(a.InFlight) != 1 || a.InFlight[0].Capsule != "edit-plan" || len(a.InFlight[0].Docs) != 2 ||
+	if a, _ = activity(); len(a.InFlight) != 1 || a.InFlight[0].Capsule != "edit-plan" || len(a.InFlight[0].Docs) != 2 ||
 		a.InFlight[0].Docs[0].Path != "docs/note.md" || a.InFlight[0].Docs[0].How != "added" || a.InFlight[0].Docs[0].Title != "A note" || a.InFlight[0].Docs[1].How != "changed" {
 		t.Fatalf("in flight: %+v", a.InFlight)
 	}
@@ -53,6 +68,15 @@ func TestDocuments_ChangedLatelyInFlightAndFresh(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(w.Root, "repos", "records", ".ground", "docs", "later.md")); err != nil {
 		t.Errorf("the ground after: %v", err)
+	}
+	// The pull read its documents in: the page that pulled reads them at once.
+	_, docs, _ := o.SpaceDocs(ctx, "records")
+	pulled := false
+	for _, d := range docs {
+		pulled = pulled || d.Path == "docs/later.md"
+	}
+	if !pulled {
+		t.Errorf("after the pull, the space's documents are %+v", docs)
 	}
 	if _, err := o.SpaceActivity(ctx, "api"); err == nil {
 		t.Error("api isn't a space")

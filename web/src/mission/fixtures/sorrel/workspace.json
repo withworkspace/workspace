@@ -1,0 +1,558 @@
+{
+  "name": "Sorrel",
+  "root": "/try/sorrel",
+  "org": "example-org",
+  "defaultBranch": "main",
+  "missions": [
+    {
+      "slug": "archive-invoices-older-than-seven-years",
+      "title": "Archive invoices older than seven years",
+      "state": "briefing",
+      "created": "2026-11-20T15:14:14Z",
+      "updated": "2026-11-20T15:14:14.370287972Z",
+      "headline": {
+        "court": "you",
+        "kind": "to-brief",
+        "group": "up-next",
+        "label": "to brief",
+        "text": "Waiting to be briefed: Archive invoices older than seven years",
+        "action": {
+          "verb": "brief",
+          "label": "brief it"
+        }
+      },
+      "capsules": [],
+      "crew": []
+    },
+    {
+      "slug": "invoices-in-more-than-one-currency",
+      "title": "Invoices in more than one currency",
+      "state": "parked",
+      "created": "2026-11-20T15:14:14Z",
+      "updated": "2026-11-20T15:14:14.591996Z",
+      "headline": {
+        "court": "you",
+        "kind": "parked",
+        "group": "up-next",
+        "label": "parked",
+        "text": "Parked: nothing moves until you unpark it",
+        "action": {
+          "verb": "unpark",
+          "label": "unpark it"
+        }
+      },
+      "capsules": [],
+      "crew": []
+    },
+    {
+      "slug": "paginate-the-invoices-endpoint",
+      "title": "Paginate the invoices endpoint",
+      "state": "active",
+      "created": "2026-11-20T15:14:14Z",
+      "updated": "2026-11-20T15:14:25.571821Z",
+      "headline": {
+        "court": "outside",
+        "kind": "checks-running",
+        "group": "waiting",
+        "label": "◌ checks",
+        "text": "api#45's checks are running · nothing for you to do",
+        "action": {
+          "verb": "open",
+          "label": "open api#45",
+          "target": "api#45",
+          "url": "https://github.com/example-org/api/pull/45"
+        },
+        "by": "api#45"
+      },
+      "capsules": [
+        {
+          "repo": "api",
+          "name": "paginate",
+          "branch": "paginate",
+          "path": "/try/sorrel/repos/api/paginate",
+          "exists": true,
+          "head": "5f6eadcb2599e6c66bda675931c2f17056bd8cc7"
+        }
+      ],
+      "crew": [
+        {
+          "id": "c1",
+          "harness": "claude",
+          "capsule": "api/paginate",
+          "started": "2026-11-20T15:14:14Z",
+          "ended": false,
+          "activity": "waiting",
+          "status": "done"
+        }
+      ],
+      "at": "Step 3 of 3, ws's: Open it"
+    },
+    {
+      "slug": "rotate-the-webhook-signing-key",
+      "title": "Rotate the webhook signing key",
+      "state": "active",
+      "created": "2026-11-20T15:14:14Z",
+      "updated": "2026-11-20T15:14:14.779574Z",
+      "headline": {
+        "court": "outside",
+        "kind": "waiting-on",
+        "group": "waiting",
+        "label": "⧗ waiting",
+        "text": "Step 2 waits on the platform team: The new key is in the vault. The platform team adds it, in prd. Nobody's watching for it: mark it done when it's happened",
+        "action": {
+          "verb": "wait",
+          "label": "mark step 2 done"
+        },
+        "by": "step 2",
+        "since": "2026-11-20T15:14:14Z"
+      },
+      "capsules": [
+        {
+          "repo": "api",
+          "name": "key-rotation",
+          "branch": "key-rotation",
+          "path": "/try/sorrel/repos/api/key-rotation",
+          "exists": true,
+          "head": "9f9b8ef83fccf355982a1fb60da20bd876d5b5fb"
+        }
+      ],
+      "crew": [],
+      "at": "Step 2 of 3, waiting on the platform team: The new key is in the vault"
+    },
+    {
+      "slug": "show-vat-by-rate-on-the-pdf",
+      "title": "Show VAT by rate on the PDF",
+      "state": "active",
+      "created": "2026-11-20T15:14:14Z",
+      "updated": "2026-11-20T15:14:14.548872Z",
+      "headline": {
+        "court": "you",
+        "kind": "ready",
+        "group": "up-next",
+        "label": "ready",
+        "text": "Ready: nobody has started it",
+        "action": {
+          "verb": "launch",
+          "label": "launch crew"
+        }
+      },
+      "capsules": [
+        {
+          "repo": "api",
+          "name": "pdf-vat-rows",
+          "branch": "pdf-vat-rows",
+          "path": "/try/sorrel/repos/api/pdf-vat-rows",
+          "exists": true,
+          "head": "9f9b8ef83fccf355982a1fb60da20bd876d5b5fb"
+        }
+      ],
+      "crew": [],
+      "at": "Step 1 of 3: The rows"
+    },
+    {
+      "slug": "dark-mode-for-the-dashboard",
+      "title": "Dark mode for the dashboard",
+      "state": "active",
+      "created": "2026-11-20T15:14:16Z",
+      "updated": "2026-11-20T15:14:16.277618Z",
+      "headline": {
+        "court": "agent",
+        "kind": "working",
+        "group": "in-progress",
+        "label": "● working",
+        "text": "c1 is working: Write the dark theme: the variables in theme.css, under prefers-color-scheme: dark.",
+        "action": {
+          "verb": "watch",
+          "label": "watch c1",
+          "target": "c1"
+        },
+        "by": "c1",
+        "since": "2026-11-20T15:14:16Z"
+      },
+      "capsules": [
+        {
+          "repo": "web",
+          "name": "dark-mode",
+          "branch": "dark-mode",
+          "path": "/try/sorrel/repos/web/dark-mode",
+          "exists": true,
+          "head": "e0228ebabc0b5c2a8124464291f2a108b1459450"
+        }
+      ],
+      "crew": [
+        {
+          "id": "c1",
+          "harness": "claude",
+          "model": "opus",
+          "capsule": "web/dark-mode",
+          "started": "2026-11-20T15:14:16Z",
+          "ended": false,
+          "activity": "working"
+        }
+      ],
+      "at": "Step 1 of 4: The dark theme (c1)"
+    },
+    {
+      "slug": "reminders-for-overdue-invoices",
+      "title": "Reminders for overdue invoices",
+      "state": "active",
+      "created": "2026-11-20T15:14:16Z",
+      "updated": "2026-11-20T15:14:17.831103Z",
+      "headline": {
+        "court": "agent",
+        "kind": "working",
+        "group": "in-progress",
+        "label": "● working",
+        "text": "c2 is working: Send the reminder. The daily job, and `invoice.reminded`. It's done when these are true, which ws checks once you repor…",
+        "action": {
+          "verb": "watch",
+          "label": "watch c2",
+          "target": "c2"
+        },
+        "by": "c2",
+        "since": "2026-11-20T15:14:17Z"
+      },
+      "capsules": [
+        {
+          "repo": "records",
+          "name": "overdue-reminders",
+          "branch": "overdue-reminders",
+          "path": "/try/sorrel/repos/records/overdue-reminders",
+          "exists": false
+        },
+        {
+          "repo": "api",
+          "name": "overdue-reminders",
+          "branch": "overdue-reminders",
+          "path": "/try/sorrel/repos/api/overdue-reminders",
+          "exists": true,
+          "head": "9f9b8ef83fccf355982a1fb60da20bd876d5b5fb"
+        }
+      ],
+      "crew": [
+        {
+          "id": "c1",
+          "harness": "claude",
+          "capsule": "records/overdue-reminders",
+          "started": "2026-11-20T15:14:16Z",
+          "ended": false,
+          "activity": "waiting",
+          "status": "done"
+        },
+        {
+          "id": "c2",
+          "harness": "claude",
+          "capsule": "api/overdue-reminders",
+          "started": "2026-11-20T15:14:17Z",
+          "ended": false,
+          "activity": "working"
+        }
+      ],
+      "at": "Step 4 of 6: Send the reminder (c2)"
+    },
+    {
+      "slug": "invoice-totals-off-by-a-penny",
+      "title": "Invoice totals off by a penny",
+      "state": "active",
+      "created": "2026-11-20T15:14:17Z",
+      "updated": "2026-11-20T15:14:19.752418Z",
+      "flag": "Step 3 is done (c1: Fixed: tax is worked out for each rate on what its lines come to, and rounded once. INV-0388 comes to £3.56). Step 4 is yours, to review: Read the fix. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review api/tax-rounding: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c1.md.",
+      "headline": {
+        "court": "you",
+        "kind": "step-review",
+        "group": "needs-you",
+        "label": "✓ review",
+        "text": "Step 3 is done (c1: Fixed: tax is worked out for each rate on what its lines come to, and rounded once. INV-0388 comes to £3.56). Step 4 is yours, to review: Read the fix. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review api/tax-rounding: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c1.md.",
+        "action": {
+          "verb": "review-step",
+          "label": "review api/tax-rounding",
+          "target": "2",
+          "look": [
+            {
+              "capsule": "api/tax-rounding",
+              "name": "api/tax-rounding"
+            },
+            {
+              "doc": "mission:handoffs/c1.md",
+              "name": "handoffs/c1.md",
+              "read": true
+            }
+          ]
+        },
+        "by": "ws",
+        "since": "2026-11-20T15:14:19Z"
+      },
+      "capsules": [
+        {
+          "repo": "api",
+          "name": "tax-rounding",
+          "branch": "tax-rounding",
+          "path": "/try/sorrel/repos/api/tax-rounding",
+          "exists": true,
+          "head": "bfa52fbbb2bdf29144a91fe99c5fe9df1c3fcf44"
+        }
+      ],
+      "crew": [
+        {
+          "id": "c1",
+          "harness": "claude",
+          "model": "opus",
+          "capsule": "api/tax-rounding",
+          "started": "2026-11-20T15:14:18Z",
+          "ended": false,
+          "activity": "waiting",
+          "status": "done"
+        }
+      ],
+      "at": "Step 4 of 5, yours: Read the fix"
+    },
+    {
+      "slug": "export-invoices-as-csv",
+      "title": "Export invoices as CSV",
+      "state": "active",
+      "created": "2026-11-20T15:14:19Z",
+      "updated": "2026-11-20T15:14:21.69414Z",
+      "flag": "Step 3 is done (c3: handed over b1: 2 met, 1 yours). Step 4 is yours, to review: Approve the browser check. The bundle from step 3, and both changes. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to the crew who made it. Or go on. The work it shows is in api/csv-export, web/csv-export, to review beside it.",
+      "headline": {
+        "court": "you",
+        "kind": "step-review",
+        "group": "needs-you",
+        "label": "✓ review",
+        "text": "Step 3 is done (c3: handed over b1: 2 met, 1 yours). Step 4 is yours, to review: Approve the browser check. The bundle from step 3, and both changes. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to the crew who made it. Or go on. The work it shows is in api/csv-export, web/csv-export, to review beside it.",
+        "action": {
+          "verb": "review-step",
+          "label": "verify b1",
+          "target": "1",
+          "look": [
+            {
+              "bundle": "b1",
+              "name": "b1"
+            },
+            {
+              "capsule": "api/csv-export",
+              "name": "api/csv-export"
+            },
+            {
+              "capsule": "web/csv-export",
+              "name": "web/csv-export"
+            },
+            {
+              "doc": "mission:handoffs/c1.md",
+              "name": "handoffs/c1.md",
+              "read": true
+            },
+            {
+              "doc": "mission:handoffs/c2.md",
+              "name": "handoffs/c2.md",
+              "read": true
+            }
+          ]
+        },
+        "by": "ws",
+        "since": "2026-11-20T15:14:21Z"
+      },
+      "capsules": [
+        {
+          "repo": "api",
+          "name": "csv-export",
+          "branch": "csv-export",
+          "path": "/try/sorrel/repos/api/csv-export",
+          "exists": true,
+          "head": "d7549d614f138efde37665da904181053ed99304"
+        },
+        {
+          "repo": "web",
+          "name": "csv-export",
+          "branch": "csv-export",
+          "path": "/try/sorrel/repos/web/csv-export",
+          "exists": true,
+          "head": "998975c3b4a40c644defca01074e2e3ce551715f"
+        }
+      ],
+      "crew": [
+        {
+          "id": "c1",
+          "harness": "claude",
+          "capsule": "api/csv-export",
+          "started": "2026-11-20T15:14:20Z",
+          "ended": false,
+          "activity": "waiting",
+          "status": "done"
+        },
+        {
+          "id": "c2",
+          "harness": "claude",
+          "capsule": "web/csv-export",
+          "started": "2026-11-20T15:14:20Z",
+          "ended": true,
+          "activity": "waiting",
+          "status": "done"
+        },
+        {
+          "id": "c3",
+          "harness": "claude",
+          "capsule": "web/csv-export",
+          "started": "2026-11-20T15:14:21Z",
+          "ended": false,
+          "activity": "waiting",
+          "status": "done"
+        }
+      ],
+      "at": "Step 4 of 6, yours: Approve the browser check"
+    },
+    {
+      "slug": "retry-failed-webhooks-with-backoff",
+      "title": "Retry failed webhooks with backoff",
+      "state": "active",
+      "created": "2026-11-20T15:14:21Z",
+      "updated": "2026-11-20T15:14:22.067712Z",
+      "headline": {
+        "court": "you",
+        "kind": "crew-asks",
+        "group": "needs-you",
+        "label": "? asks",
+        "text": "c1 asks: How long do we keep trying before a delivery is marked failed? ADR 0002 leaves it open. Three days, as Stripe does, covers a weekend's outage; one day keeps a customer's books from being wrong for long.",
+        "action": {
+          "verb": "reply",
+          "label": "answer c1",
+          "target": "c1"
+        },
+        "by": "c1",
+        "since": "2026-11-20T15:14:22Z"
+      },
+      "capsules": [
+        {
+          "repo": "api",
+          "name": "webhook-retries",
+          "branch": "webhook-retries",
+          "path": "/try/sorrel/repos/api/webhook-retries",
+          "exists": true,
+          "head": "9f9b8ef83fccf355982a1fb60da20bd876d5b5fb"
+        }
+      ],
+      "crew": [
+        {
+          "id": "c1",
+          "harness": "claude",
+          "capsule": "api/webhook-retries",
+          "started": "2026-11-20T15:14:21Z",
+          "ended": false,
+          "activity": "waiting",
+          "status": "asking"
+        }
+      ],
+      "at": "Step 1 of 3: Retry with backoff (c1)"
+    },
+    {
+      "slug": "rate-limit-the-public-api",
+      "title": "Rate-limit the public API",
+      "state": "active",
+      "created": "2026-11-20T15:14:22Z",
+      "updated": "2026-11-20T15:14:25.572893Z",
+      "headline": {
+        "court": "you",
+        "kind": "merge",
+        "group": "needs-you",
+        "label": "✓ merge",
+        "text": "api#46 is ready to merge: it's approved and its checks pass",
+        "action": {
+          "verb": "merge",
+          "label": "merge api#46",
+          "target": "api#46",
+          "url": "https://github.com/example-org/api/pull/46"
+        },
+        "by": "api#46"
+      },
+      "capsules": [
+        {
+          "repo": "api",
+          "name": "rate-limit",
+          "branch": "rate-limit",
+          "path": "/try/sorrel/repos/api/rate-limit",
+          "exists": true,
+          "head": "f7ea2fa5c42f98b93179336fbabcfc25d08f1678"
+        }
+      ],
+      "crew": [
+        {
+          "id": "c1",
+          "harness": "claude",
+          "capsule": "api/rate-limit",
+          "started": "2026-11-20T15:14:22Z",
+          "ended": false,
+          "activity": "waiting",
+          "status": "done"
+        }
+      ],
+      "at": "Step 3 of 3, ws's: Open it"
+    }
+  ],
+  "focus": [],
+  "conversations": [
+    {
+      "id": "w2",
+      "opening": "Where do we round money, and is it the same everywhere?",
+      "status": "open",
+      "waiting": true,
+      "at": "2026-11-20T15:14:24.29616Z",
+      "updated": "2026-11-20T15:14:24.677193Z"
+    },
+    {
+      "id": "w1",
+      "opening": "Two studios asked this week for late fees on overdue invoices. Should we do it, and what would it take?",
+      "status": "open",
+      "waiting": true,
+      "proposed": 1,
+      "at": "2026-11-20T15:14:23.633184Z",
+      "updated": "2026-11-20T15:14:24.122764Z"
+    }
+  ],
+  "pages": [],
+  "artifacts": [
+    {
+      "id": "a1",
+      "title": "Where Export goes",
+      "status": "live",
+      "folder": "2026-11-20-where-export-goes",
+      "where": ".ws/artifacts/2026-11-20-where-export-goes/",
+      "made": "2026-11-20T15:14:24Z",
+      "versions": 2,
+      "latest": {
+        "n": 2,
+        "basedOn": 1,
+        "at": "2026-11-20T15:14:25Z",
+        "by": "you",
+        "note": "Export under the list, beside the count it exports, so the button says how many."
+      },
+      "expires": "2026-12-20T15:14:25Z"
+    }
+  ],
+  "artifactsRepo": "records",
+  "kinds": [
+    {
+      "name": "adr",
+      "title": "ADR",
+      "where": "records:adr/{number}-{slug}.md",
+      "guide": "/try/sorrel/repos/records/.ground/README.md"
+    },
+    {
+      "name": "note",
+      "title": "Note",
+      "where": "records:notes/{slug}.md"
+    },
+    {
+      "name": "proposal",
+      "title": "Proposal",
+      "where": "records:proposals/{slug}.md",
+      "guide": "/try/sorrel/repos/records/.ground/README.md"
+    }
+  ],
+  "spaces": [
+    {
+      "repo": "records",
+      "label": "Records",
+      "color": "#00d7af"
+    }
+  ],
+  "version": "stories"
+}

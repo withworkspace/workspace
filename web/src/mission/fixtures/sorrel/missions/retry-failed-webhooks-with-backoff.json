@@ -1,0 +1,183 @@
+{
+  "slug": "retry-failed-webhooks-with-backoff",
+  "title": "Retry failed webhooks with backoff",
+  "state": "active",
+  "created": "2026-11-20T15:14:21Z",
+  "talks": [],
+  "brief": "## Goal\nA webhook that isn't delivered is tried again, further apart each time, until it is or we give up and say so.\n\n## Context\n- ADR 0002: delivered at least once. It doesn't say how long we keep trying.\n\n## Acceptance\n- A delivery that fails is tried again, with the same `Sorrel-Delivery`.\n- One that's given up on is marked failed.\n",
+  "plan": "## Z\n- A failed delivery is retried with backoff, and marked failed when it's given up on, merged.\n## Stops early\n- None.\n## Steps\n1. Work: **Retry with backoff.** Further apart each time, with the same `Sorrel-Delivery`.\n   - in: `api/webhook-retries`\n   - check: `go test ./...` passes\n2. Review: **Read it.** Before its pull request. \"I review every change before its pull request is opened\"\n3. Open Pull Request: **Open it.**\n   - in: `api`\n",
+  "at": "Step 1 of 3: Retry with backoff (c1)",
+  "z": [
+    "A failed delivery is retried with backoff, and marked failed when it's given up on, merged."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "crew-asks",
+      "group": "needs-you",
+      "label": "? asks",
+      "text": "c1 asks: How long do we keep trying before a delivery is marked failed? ADR 0002 leaves it open. Three days, as Stripe does, covers a weekend's outage; one day keeps a customer's books from being wrong for long.",
+      "action": {
+        "verb": "reply",
+        "label": "answer c1",
+        "target": "c1"
+      },
+      "by": "c1",
+      "since": "2026-11-20T15:14:22Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "crew-asks",
+      "court": "you",
+      "tone": "you",
+      "title": "c1 asks",
+      "detail": "How long do we keep trying before a delivery is marked failed? ADR 0002 leaves it open. Three days, as Stripe does, covers a weekend's outage; one day keeps a customer's books from being wrong for long.",
+      "primary": {
+        "do": "reply",
+        "label": "Reply",
+        "icon": "message",
+        "target": "c1",
+        "field": "Reply to c1"
+      },
+      "more": [
+        {
+          "do": "crew",
+          "label": "Open c1",
+          "icon": "message",
+          "target": "c1",
+          "quiet": true
+        }
+      ],
+      "by": "c1",
+      "since": "2026-11-20T15:14:22Z"
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Retry with backoff",
+      "text": "Retry with backoff. Further apart each time, with the same Sorrel-Delivery.",
+      "state": "current",
+      "crew": [
+        "c1"
+      ],
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `api/webhook-retries`",
+      "in": "api/webhook-retries",
+      "checks": [
+        {
+          "text": "`go test ./...` passes",
+          "run": true
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "title": "Read it",
+      "text": "Read it. Before its pull request.",
+      "state": "todo",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 3,
+      "title": "Open it",
+      "text": "Open it.",
+      "state": "todo",
+      "type": "Open Pull Request",
+      "who": "ws",
+      "whoSays": "ws",
+      "in": "api",
+      "opensPR": true
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "api",
+      "name": "webhook-retries",
+      "branch": "webhook-retries",
+      "path": "/try/sorrel/repos/api/webhook-retries",
+      "exists": true,
+      "head": "9f9b8ef83fccf355982a1fb60da20bd876d5b5fb"
+    }
+  ],
+  "crew": [
+    {
+      "id": "c1",
+      "harness": "claude",
+      "capsule": "api/webhook-retries",
+      "started": "2026-11-20T15:14:21Z",
+      "ended": false,
+      "activity": "waiting",
+      "status": "asking",
+      "note": "How long do we keep trying before a delivery is marked failed? ADR 0002 leaves it open. Three days, as Stripe does, covers a weekend's outage; one day keeps a customer's books from being wrong for long.",
+      "dispatch": "Retry a failed delivery with backoff, and mark it failed when it's given up on."
+    }
+  ],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "capsule_added",
+      "text": "capsule api/webhook-retries added"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "note",
+      "text": "note: plan written: 3 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "crew_started",
+      "text": "c1 started",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "dispatch",
+      "text": "c1 dispatched you: Retry a failed delivery with backoff, and mark it failed when it's given up on.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:21Z",
+      "kind": "stage",
+      "text": "on step 1: **Retry with backoff.** Further apart each time, with the same `Sorrel-Delivery`.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "crew_asked",
+      "text": "c1 asks: How long do we keep trying before a delivery is marked failed? ADR 0002 leaves it open. Three days, as Stripe does, covers a weekend's outage; one day keeps a customer's books from being wrong for long.",
+      "by": "c1"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "claude",
+      "model": "sonnet"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "opus"
+      },
+      {
+        "harness": "claude",
+        "model": "haiku"
+      }
+    ]
+  }
+}

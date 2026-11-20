@@ -1,5 +1,9 @@
-build: web
+build: web whatsnew
     go build -trimpath -ldflags="-s -w" -o bin/workspace ./cmd/workspace
+
+# Work out which release each what's-new entry is in, into internal/whatsnew/gen (gitignored), which the binary holds (internal/whatsnew/entries/README.md says how to write one).
+whatsnew:
+    @go run ./scripts/whatsnew
 
 # Build the web UI (web/) into internal/web/dist (gitignored), which the binary embeds.
 web:
@@ -20,10 +24,25 @@ check:
     go vet ./...
     go build ./...
     go run ./scripts/wiretypes -check
+    go run ./scripts/whatsnew -check
 
 # Write web/src/wire.gen.ts, the web UI's types of the API, from internal/web's Go types (scripts/wiretypes says how).
 wire:
     go run ./scripts/wiretypes
+
+# Write web/src/ui/fileIcons.gen.ts, the trees' icons for a file's language or kind, from Material Icon Theme (web/scripts/fileicons.mjs names them).
+icons:
+    cd web && [ -d node_modules ] || pnpm install --frozen-lockfile
+    cd web && node scripts/fileicons.mjs
+
+# Storybook, at localhost:6006: parts of the web UI drawn alone, from missions ws gave (web/src/mission/fixtures), to look at every state one has side by side.
+stories:
+    cd web && [ -d node_modules ] || pnpm install --frozen-lockfile
+    cd web && pnpm stories
+
+# Take the stories' missions again, from tries seeded for it (scripts/story-fixtures.mjs says the rest).
+story-fixtures:
+    @node scripts/story-fixtures.mjs
 
 # Go's tests, then the web UI's (web/src/**/*.test.ts), if pnpm is here.
 test:

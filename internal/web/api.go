@@ -26,6 +26,10 @@ type Workspace struct {
 	// Focus is what you've pinned that stands, in your order: the
 	// sidebar's Focus.
 	Focus []FocusPin `json:"focus"`
+	// CapsulesSeen moves when git, asked behind a read that didn't wait
+	// on it, said something of a capsule other than the read was given:
+	// a page showing capsules' statuses (Files' switcher) reads again.
+	CapsulesSeen string `json:"capsulesSeen,omitempty"`
 	// Conversations are the workspace's conversations with an agent,
 	// newest first.
 	Conversations []Talk `json:"conversations"`
@@ -52,11 +56,24 @@ type Workspace struct {
 	// one), as config says them: a document in one is read in Documents.
 	// Counts and folders aren't said here (GET /api/documents).
 	Spaces []SpaceRef `json:"spaces"`
+	// SpacesSeen moves when ws, reading a space again behind a read that
+	// didn't wait on it, found it other than the read was given: a page
+	// showing a space (Documents, a space, a document's citations and
+	// what's in flight) reads it again.
+	SpacesSeen string `json:"spacesSeen,omitempty"`
 	// Version is the ws that serves it, as ws --version says it: the
 	// daemon's, which a newer ws on the path isn't until it's restarted.
 	// The web UI says which it's talking to, and tells a plugin's app as
 	// it connects: the same its plugin was told when it started.
 	Version string `json:"version,omitempty"`
+	// GroundsSeen moves when the repos' default branches do, or the files
+	// read of one (refs are checked against them) are found other than
+	// they were: a page that's checked what it names checks again.
+	GroundsSeen string `json:"groundsSeen,omitempty"`
+	// ReadsSeen moves when a capsule's tree or summary, answered as it
+	// was kept while it was read again, is found other than it was told:
+	// a page showing one reads it again.
+	ReadsSeen string `json:"readsSeen,omitempty"`
 	// Later is a release of ws that's out and later than Version, as the
 	// daemon last found (it looks once a day): none for none, or for one
 	// that's installed and waiting for the daemon to restart onto it.
@@ -215,8 +232,9 @@ type Crew struct {
 }
 
 // MissionDetail is GET /api/missions/{slug}: everything a mission's page
-// view shows. Capsules' PRs are only there with ?github=1 (GitHub is slow,
-// so the page asks after it has drawn).
+// view shows. Capsules' PRs are as GitHub last said: it's slow, so it's
+// asked behind the read, and the mission's event moves when it answers
+// with something different.
 type MissionDetail struct {
 	Slug    string        `json:"slug"`
 	Title   string        `json:"title"`
@@ -259,6 +277,10 @@ type MissionDetail struct {
 	// Headlines is where it stands, most pressing first: the first is the
 	// mission's.
 	Headlines []Headline `json:"headlines"`
+	// Cards is the headlines as the page draws them, the lead first: each
+	// with its title, its sentence, the one action meant to move it and
+	// what comes after (mission.Cards).
+	Cards []mission.Card `json:"cards"`
 	// Runs are the orchestrator's latest runs on it, newest first.
 	Runs      []OrchestratorRun `json:"runs"`
 	Stages    []Stage           `json:"stages"`
@@ -271,7 +293,9 @@ type MissionDetail struct {
 	// that stand, then those superseded or withdrawn.
 	Decisions []Decision `json:"decisions"`
 	Events    []Event    `json:"events"` // the log, oldest first
-	GitHub    bool       `json:"github"` // PRs were looked up
+	// GitHub: GitHub has answered for its capsules' repos, so a capsule
+	// with no PR has none (as last asked).
+	GitHub bool `json:"github"`
 	// CrewPicks are what Launch crew may start crew on.
 	CrewPicks CrewPicks `json:"crewPicks"`
 }
@@ -593,6 +617,28 @@ type RunDetail struct {
 	Conversation string `json:"conversation,omitempty"`
 	OwnerPID     int    `json:"ownerPid,omitempty"`
 	OwnerCommand string `json:"ownerCommand,omitempty"`
+	// Also is how many others it's for besides Owner: those who asked
+	// for it while it ran. Ends says when the last of them goes.
+	Also int `json:"also,omitempty"`
+	// Needs are what it was started needing, and NeededBy the running
+	// runs that need it, by their refs: it isn't ended while there are any.
+	Needs    []RunNeed `json:"needs,omitempty"`
+	NeededBy []string  `json:"neededBy,omitempty"`
+}
+
+// RunNeed is one of a run's needs: another run, or an address outside ws.
+type RunNeed struct {
+	// Name is what the run calls it (api).
+	Name string `json:"name"`
+	// Run is the run that meets it, by its ref: none for an address
+	// outside ws.
+	Run string `json:"run,omitempty"`
+	// Address is what the run was started with for it.
+	Address string `json:"address"`
+	// Env is the variable Address was handed over in, and Mount the path
+	// of the run's own name the need answers at.
+	Env   string `json:"env,omitempty"`
+	Mount string `json:"mount,omitempty"`
 }
 
 // RunDetailOf is a run of the workspace at root as a page shows it.
@@ -601,7 +647,10 @@ func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
 		Owner: string(r.Owner.Kind), By: r.By, Command: r.Command, Started: r.Created,
 		Repo: r.Repo, Worktree: runs.Label(r.Worktree), Dir: r.Dir,
 		Mission: r.Owner.Mission, Step: r.Owner.Step, Crew: r.Owner.Crew, Conversation: r.Owner.Conversation,
-		OwnerPID: r.Owner.PID, OwnerCommand: r.Owner.Command}
+		OwnerPID: r.Owner.PID, OwnerCommand: r.Owner.Command, Also: len(r.Also), NeededBy: r.NeededBy}
+	for _, n := range r.Needs {
+		d.Needs = append(d.Needs, RunNeed{Name: n.Name, Run: n.Run, Address: n.Addr, Env: n.Env, Mount: n.Mount})
+	}
 	switch r.State {
 	case runs.Running:
 		d.Up, d.Ends, d.PID = r.Listening(), runs.Ends(r, now), r.PID
@@ -987,6 +1036,9 @@ type Worktree struct {
 	Dirty  bool   `json:"dirty,omitempty"`
 	Ahead  int    `json:"ahead,omitempty"`
 	Behind int    `json:"behind,omitempty"`
+	// Unread: whether it's dirty, or where it stands, hasn't been read
+	// yet and is being: the workspace's capsulesSeen moves when it has.
+	Unread bool `json:"unread,omitempty"`
 }
 
 // DocSave is an edited document to save (POST .../artifact/save): its

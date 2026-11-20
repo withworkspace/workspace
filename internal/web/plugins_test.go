@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -339,6 +340,49 @@ func TestNoPlugins(t *testing.T) {
 	}
 	if res := do(t, s, "GET", "/plugin-frame/fake/", true, nil); res.StatusCode != http.StatusNotFound {
 		t.Errorf("a shell with no plugins: %d", res.StatusCode)
+	}
+}
+
+// A step that ran a command reads as what it's doing: ws's own labels,
+// then each plugin's, with the flags that take a value.
+func TestCommandLabels(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "ws.toml"), []byte("[workspace]\norg = \"acme\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := plugin.Add(root, kitplugin.Install(t, "kit"), false); err != nil {
+		t.Fatal(err)
+	}
+	storetest.Own(t, root)
+	host := &plugin.Host{Root: root, Version: "test"}
+	t.Cleanup(host.Shutdown)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	own := CommandLabel{Words: []string{"show"}, Label: "Looking up {1}", Options: []string{"--format", "-f"}}
+	s := &Server{Root: root, Poll: 20 * time.Millisecond, Assets: testApp, listener: ln, Plugins: host, Labels: []CommandLabel{own}}
+	s.App = testOps(s, ops.Options{})
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	// What it registers is kept once it's started, and served from then
+	// on, running or not.
+	if _, err := host.Refresh("kit"); err != nil {
+		t.Fatal(err)
+	}
+	host.Stop("kit")
+	var got []CommandLabel
+	if err := json.NewDecoder(do(t, s, "GET", "/api/commands", true, nil).Body).Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+	want := []CommandLabel{own, {Words: []string{"kit", "hi"}, Label: "Greeting {1}", Options: []string{"--format", "-f", "--as"}}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("labels:\n got %+v\nwant %+v", got, want)
+	}
+	if res := do(t, s, "GET", "/api/commands", false, nil); res.StatusCode != http.StatusUnauthorized {
+		t.Errorf("signed out: %d", res.StatusCode)
 	}
 }
 

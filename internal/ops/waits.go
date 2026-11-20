@@ -168,7 +168,16 @@ func (w *Workspace) waitAt(slug string) (*mission.Mission, mission.StageState, b
 // passWatched passes a watched step whose checks are all met, for ws, and
 // says what it did.
 func (w *Workspace) passWatched(slug string, st mission.StageState) string {
-	return w.passStep(slug, st.N, "ws", "what it waits for has happened: "+waitCommands(st)+" "+metWord(st), mission.StepWait)
+	m, err := w.Missions.Load(slug)
+	if err != nil {
+		return ""
+	}
+	began := w.stepBegan(m, st.N)
+	said := w.passStep(slug, st.N, "ws", "what it waits for has happened: "+waitCommands(st)+" "+metWord(st), mission.StepWait)
+	if said != "" {
+		w.settleAsked(m, st.N, began, "what it waited for having happened")
+	}
+	return said
 }
 
 func metWord(st mission.StageState) string {
@@ -293,12 +302,39 @@ func (w *Workspace) answerWait(m *mission.Mission, t mission.Task, by Actor, tex
 		why += ": " + oneLine(note)
 		w.waitNote(m.Slug, cur, by, note)
 	}
+	began := w.stepBegan(m, cur.N)
 	acc, err := w.acceptStage(m.Slug, by, why)
 	if err != nil {
 		return out, true, err
 	}
+	w.settleAsked(m, cur.N, began, "marked done")
 	out.Next = acc.Next
 	return out, true, nil
+}
+
+// SayWaiting records that a mission waits on something outside it that ws
+// can't see happen, for whoever says so (ws mission wait); "" takes it
+// back.
+//
+// Not the orchestrator's to say at a Wait step. The step says what it
+// waits on and how it's passed, with marking it done on the page; the
+// same wait said again as the mission's, with nothing for the user to do,
+// is what they'd read in its place.
+func (w *Workspace) SayWaiting(slug, text string, by Actor) error {
+	text = strings.TrimSpace(text)
+	if text != "" && by.Kind == Orchestrator {
+		if _, st, ok := w.waitAt(slug); ok {
+			how := "the user marks it done once it's happened, or you accept it once you're shown it has"
+			switch {
+			case st.Step.Watched():
+				how = "ws watches its checks, and passes it"
+			case st.Step.WaitOnYou():
+				how = "it's the user's to do and mark done"
+			}
+			return refused("wait-step", "step %d is a Wait, and says what the mission waits on already: %s. The user is shown that, so there's nothing to add: note why it waits, and leave it there", st.N, how)
+		}
+	}
+	return wrap(w.Missions.SetWaiting(slug, text, by.By()))
 }
 
 // waitNote keeps what you said of a Wait you've done, or that's happened

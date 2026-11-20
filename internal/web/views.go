@@ -24,7 +24,7 @@ type Missions interface {
 	Overview() (*ops.Overview, error)
 	// StartAbout makes a mission about something ws names, to brief.
 	StartAbout(name string) (*mission.Mission, error)
-	Mission(slug string, withGitHub bool) (*ops.MissionDetail, error)
+	Mission(slug string) (*ops.MissionDetail, error)
 	Orchestrator() ops.OrchestratorView
 	OrchestratorRun(slug, id string) (*ops.Run, error)
 	// Stamp names what the workspace's view is built from, cheaply: it
@@ -32,6 +32,10 @@ type Missions interface {
 	// for its records, which say themselves when they change.
 	Stamp() string
 	MissionStamp(slug string) string
+	// Seen says when what was read behind a page's read, which didn't
+	// wait on it, has found something the page wasn't given: the
+	// workspace's view is looked at then, not at the next poll.
+	Seen() <-chan struct{}
 	// BundleFile is a file of one of a mission's bundles: where it is, and
 	// its content type.
 	BundleFile(slug, id, name string) (path, media string, err error)
@@ -50,6 +54,7 @@ func (s *Server) workspaceView() (Workspace, error) {
 	v.Version = s.Version
 	// A release later than it, as the daemon last found: the menu says so.
 	v.Later = s.App.LaterWS()
+	v.GroundsSeen, v.ReadsSeen = s.groundsSeen(), seenOf(s.reads.Seen())
 	return v, err
 }
 
@@ -65,6 +70,8 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 	}
 	out := Workspace{Name: v.Name, Root: root, Org: v.Org, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: Talks(root), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Spaces: []SpaceRef{}}
 	out.Focus = focusOf(v.Focus)
+	out.SpacesSeen = v.SpacesSeen
+	out.CapsulesSeen = v.CapsulesSeen
 	if v.Sidebar != nil || v.Menu != nil {
 		out.Places = &Places{Sidebar: append([]string{}, v.Sidebar...), Menu: append([]string{}, v.Menu...)}
 	}
@@ -169,21 +176,22 @@ func conclusionOf(c mission.Conclusion) *Conclusion {
 }
 
 // missionDetail is GET /api/missions/{slug}.
-func (s *Server) missionDetail(slug string, withGitHub bool) (*MissionDetail, error) {
-	return MissionOf(s.App, s.Root, slug, withGitHub)
+func (s *Server) missionDetail(slug string) (*MissionDetail, error) {
+	return MissionOf(s.App, s.Root, slug)
 }
 
 // MissionOf is a mission as GET /api/missions/{slug} serves it: with what
-// GitHub says of its pull requests, when withGitHub.
-func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, error) {
-	v, err := a.Mission(slug, withGitHub)
+// GitHub last said of its pull requests, never waiting on it (its event
+// moves when GitHub, asked behind the read, says something different).
+func MissionOf(a Missions, root, slug string) (*MissionDetail, error) {
+	v, err := a.Mission(slug)
 	if err != nil {
 		return nil, err
 	}
 	m, now := v.M, time.Now()
 	d := &MissionDetail{
 		Slug: m.Slug, Title: m.Title, State: v.State, Created: m.Created, Request: m.Request, From: m.From, About: m.About,
-		Brief: v.Brief, Plan: v.Plan, Conversation: m.Conversation, ConversationTitle: v.ConversationTitle, GitHub: withGitHub,
+		Brief: v.Brief, Plan: v.Plan, Conversation: m.Conversation, ConversationTitle: v.ConversationTitle, GitHub: v.GitHub,
 		Stages: []Stage{}, Capsules: []CapsuleDetail{}, Crew: []CrewDetail{}, Artifacts: []Artifact{}, Events: []Event{},
 		Runs: []OrchestratorRun{}, Decisions: []Decision{}, Bundles: []Bundle{},
 	}
@@ -228,6 +236,10 @@ func MissionOf(a Missions, root, slug string, withGitHub bool) (*MissionDetail, 
 	}
 	for _, h := range v.Headlines {
 		d.Headlines = append(d.Headlines, headline(h))
+	}
+	d.Cards = v.Cards
+	if d.Cards == nil {
+		d.Cards = []mission.Card{}
 	}
 	if m.PlanErr != nil {
 		d.PlanProblem = m.PlanErr.Error()

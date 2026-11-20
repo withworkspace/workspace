@@ -398,7 +398,7 @@ func TestWebOrchestrator(t *testing.T) {
 	if _, err := testutil.WebOrchestratorRun(w.Root)("cache", "nope"); !errors.Is(err, web.ErrNotFound) {
 		t.Errorf("no such run: %v", err)
 	}
-	if md, _ := testutil.WebMission(w.Root)("cache", false); len(md.Runs) != 2 {
+	if md, _ := testutil.WebMission(w.Root)("cache"); len(md.Runs) != 2 {
 		t.Errorf("mission runs = %+v", md.Runs)
 	}
 }

@@ -7,11 +7,13 @@ import (
 	"github.com/withworkspace/workspace/internal/store/storetest"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -756,5 +758,69 @@ func TestReviewsAutoPasses(t *testing.T) {
 	store.Say(c.ID, conversation.Turn{By: conversation.Agent, At: time.Now(), Body: "x", Around: w.head})
 	if said := app.AutoPasses(); said != "" {
 		t.Errorf("a bot's: %q", said)
+	}
+}
+
+// A pull request's page follows its own topic: what's shown is kept, and
+// read again behind, and the page is told when that finds it changed.
+func TestPREvents(t *testing.T) {
+	w := newReviewsWorld(t)
+	var said atomic.Value
+	said.Store("nitpick: three?")
+	w.gh.ReviewThreadsFn = func(org, repo string, number int) ([]github.ReviewThread, error) {
+		return []github.ReviewThread{{ID: "T1", Path: "a.go", Line: 3, Side: "RIGHT", Comments: []github.ThreadComment{
+			{Author: "carol", Body: said.Load().(string), At: "2026-11-10T09:00:00Z", Commit: w.head, OriginalCommit: w.head}}}}, nil
+	}
+	var threads review.Review
+	if code := getInto(t, w.s, "/api/prs/api/5/threads", &threads); code != 200 || len(threads.Comments) != 1 {
+		t.Fatalf("threads: %d %+v", code, threads)
+	}
+	req, _ := http.NewRequest("GET", w.s.Info().Origin()+"/api/events?topic="+url.QueryEscape("pr:api#5"), nil)
+	req.AddCookie(&http.Cookie{Name: w.s.cookieName(), Value: w.s.Info().Token})
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		t.Fatalf("stream: %d", res.StatusCode)
+	}
+	lines := make(chan string, 32)
+	go func() {
+		sc := bufio.NewScanner(res.Body)
+		for sc.Scan() {
+			lines <- sc.Text()
+		}
+	}()
+	wait := func(want string, within time.Duration) bool {
+		deadline := time.After(within)
+		for {
+			select {
+			case l := <-lines:
+				if l == want {
+					return true
+				}
+			case <-deadline:
+				return false
+			}
+		}
+	}
+	if !wait("event: hello", 3*time.Second) {
+		t.Fatal("no hello")
+	}
+	if wait("event: pr:api#5", 300*time.Millisecond) {
+		t.Error("told of a change when nothing had changed")
+	}
+	said.Store("nitpick: three, surely?")
+	if !wait("event: pr:api#5", 3*time.Second) {
+		t.Fatal("the page wasn't told its threads changed")
+	}
+	if code := getInto(t, w.s, "/api/prs/api/5/threads", &threads); code != 200 || threads.Comments[0].Body != "three, surely?" {
+		t.Errorf("threads after: %d %+v", code, threads.Comments)
+	}
+	for _, topic := range []string{"pr:api", "pr:api#x", "pr:../x#1"} {
+		if code := do(t, w.s, "GET", "/api/events?topic="+url.QueryEscape(topic), true, nil).StatusCode; code != http.StatusNotFound {
+			t.Errorf("topic %s: %d, want 404", topic, code)
+		}
 	}
 }

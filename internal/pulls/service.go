@@ -45,6 +45,15 @@ type Service struct {
 	loading *loadCall
 	bodies  map[string]body
 	repoMu  map[string]*sync.Mutex
+
+	// The pages of PRs as they're kept (page.go), by Key: how many times
+	// each has changed, which are being read, when each was last, and
+	// which are due to be read again whenever they were (Stale).
+	pages     map[string]*page
+	pageSeen  map[string]int64
+	reading   map[string]*pageRead
+	pageTried map[string]time.Time
+	pageDue   map[string]bool
 }
 
 type loadCall struct {
@@ -66,6 +75,15 @@ func (s *Service) now() time.Time {
 		return s.Now()
 	}
 	return time.Now()
+}
+
+// fresh is how long a list, or a PR's page, answers before GitHub is
+// asked again.
+func (s *Service) fresh() time.Duration {
+	if s.Fresh == 0 {
+		return time.Minute
+	}
+	return s.Fresh
 }
 
 // Peek is the list as GitHub last said it, without asking: nil if it's
@@ -93,10 +111,7 @@ const forcedFresh = 5 * time.Second
 // it hasn't been lately (or, with force, in the last few seconds); when it
 // can't be, the list as last known comes back with the error.
 func (s *Service) List(force bool) (*List, error) {
-	fresh := s.Fresh
-	if fresh == 0 {
-		fresh = time.Minute
-	}
+	fresh := s.fresh()
 	if force {
 		fresh = forcedFresh
 	}
@@ -127,16 +142,26 @@ func (s *Service) List(force bool) (*List, error) {
 	}
 	c.list, c.err = s.list, err
 	s.mu.Unlock()
+	if err == nil {
+		s.forgetGone(l)
+	}
 	close(c.done)
 	return c.list, c.err
 }
 
 // Stale marks the list as needing GitHub asked again: after a review is
-// posted, what a PR asks of you has changed.
+// posted, what a PR asks of you has changed. The pages kept are read again
+// too, when they're next looked at.
 func (s *Service) Stale() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.stale = true
+	if s.pageDue == nil {
+		s.pageDue = map[string]bool{}
+	}
+	for key := range s.pages {
+		s.pageDue[key] = true
+	}
 }
 
 // askAtOnce is how many repos GitHub is asked about at a time.
@@ -207,12 +232,17 @@ func (s *Service) load() (*List, error) {
 	return l, nil
 }
 
-// Known finds an open PR in the list as it's kept, without asking
-// GitHub: for saving a comment or marking a file viewed, which shouldn't
-// wait on it. One that isn't there is looked for as Open does.
+// Known finds an open PR in the list as it's kept, or its page as it's
+// kept, without asking GitHub: for saving a comment or marking a file
+// viewed, which shouldn't wait on it. One that isn't there is looked for
+// as Open does.
 func (s *Service) Known(repo string, number int) (*PR, *Stack, error) {
 	if pr, st := s.Peek().Find(repo, number); pr != nil {
 		return pr, st, nil
+	}
+	if pg := s.keptPage(repo, number); pg != nil {
+		pr := pg.PR
+		return &pr, pg.Stack, nil
 	}
 	return s.Open(repo, number)
 }
@@ -283,6 +313,24 @@ type layer struct {
 	below   *PR
 	// needsRebase: the layer below has moved on, and this hasn't followed.
 	needsRebase bool
+}
+
+// keptLayer is a layer as it's kept, between reads: what it is, without
+// where it's read from.
+type keptLayer struct {
+	BaseRef     string `json:"baseRef"`
+	Base        string `json:"base"`
+	Head        string `json:"head"`
+	NeedsRebase bool   `json:"needsRebase,omitempty"`
+}
+
+func (l *layer) kept() keptLayer {
+	return keptLayer{BaseRef: l.baseRef, Base: l.base, Head: l.head, NeedsRebase: l.needsRebase}
+}
+
+// in is a kept layer as it's read again, from a repo's clone at dir.
+func (k keptLayer) in(dir string) *layer {
+	return &layer{dir: dir, baseRef: k.BaseRef, base: k.Base, head: k.Head, needsRebase: k.NeedsRebase}
 }
 
 func (s *Service) layer(pr *PR, st *Stack) (*layer, error) {
@@ -361,42 +409,68 @@ func (s *Service) Detail(repo string, number int) (*Detail, error) {
 	if err != nil {
 		return nil, err
 	}
-	d := &Detail{PR: *pr, Stack: st, BaseRef: l.baseRef, Base: l.base, Head: l.head, NeedsRebase: l.needsRebase, Body: Readable(<-bodyCh)}
-	d.BodyID = BodyID(d.Body)
-	if st != nil {
-		for i := range st.Layers {
-			if st.Layers[i].Number == number {
-				d.Layer = i + 1
-			}
-		}
+	body := Readable(<-bodyCh)
+	rec := s.seen(pr, l, body)
+	d := newDetail(pr, st, l.kept(), body)
+	if rv := s.reviewed(pr, rec, l); rv != nil {
+		withReview(d, rv, sinceMode(l, rv))
 	}
-	rec, _ := Update(s.Root, repo, number, func(r *Record) {
+	s.withDocked(d, pr, st, rec)
+	return d, nil
+}
+
+// seen writes what's kept of a PR as it's just been read: its title,
+// branch and head, and what it says it does. It's what's kept after.
+func (s *Service) seen(pr *PR, l *layer, body string) *Record {
+	rec, _ := Update(s.Root, pr.Repo, pr.Number, func(r *Record) {
 		r.Title, r.Branch, r.Head = pr.Title, pr.Branch, l.head
-		if d.Body != "" { // one that couldn't be read leaves what was
-			r.Body = d.Body
+		if body != "" { // one that couldn't be read leaves what was
+			r.Body = body
 		}
 	})
 	if rec == nil {
 		rec = &Record{}
 	}
-	if rv := s.reviewed(pr, rec, l); rv != nil {
-		d.Since = sinceMode(l, rv)
-		shown := *rv
-		shown.Prints = nil
-		d.Reviewed = &shown
+	return rec
+}
+
+// newDetail is a PR's detail from what GitHub says of it and its layer,
+// before your review of it and where it's docked.
+func newDetail(pr *PR, st *Stack, l keptLayer, body string) *Detail {
+	d := &Detail{PR: *pr, Stack: st, BaseRef: l.BaseRef, Base: l.Base, Head: l.Head, NeedsRebase: l.NeedsRebase, Body: body}
+	d.BodyID = BodyID(d.Body)
+	if st != nil {
+		for i := range st.Layers {
+			if st.Layers[i].Number == pr.Number {
+				d.Layer = i + 1
+			}
+		}
 	}
+	return d
+}
+
+// withReview says your last review in a detail, and what looking again
+// shows.
+func withReview(d *Detail, rv *Reviewed, since string) {
+	d.Since = since
+	shown := *rv
+	shown.Prints = nil
+	d.Reviewed = &shown
+}
+
+// withDocked says where a PR is docked in its detail.
+func (s *Service) withDocked(d *Detail, pr *PR, st *Stack, rec *Record) {
 	d.Docked = s.docked(pr, rec)
 	if d.Docked == nil && st != nil {
 		// A stack is docked at its top layer: one capsule holds every
 		// layer, since each layer's branch contains those below.
 		top := &st.Layers[len(st.Layers)-1]
 		if top.Number != pr.Number {
-			if trec, err := Load(s.Root, repo, top.Number); err == nil {
+			if trec, err := Load(s.Root, pr.Repo, top.Number); err == nil {
 				d.Docked = s.docked(top, trec)
 			}
 		}
 	}
-	return d, nil
 }
 
 // docked is the capsule a PR is checked out in: the one ws knows it (or
@@ -448,13 +522,25 @@ func (s *Service) reviewed(pr *PR, rec *Record, l *layer) *Reviewed {
 	if rv != nil && !at.After(rv.At.Add(time.Minute)) {
 		return rv // the one made here is the latest
 	}
+	return latest(rv, s.githubReviewed(pr, l))
+}
+
+// githubReviewed is your latest review of a PR on GitHub, its commit
+// fetched into the clone: nil for none, or for one whose commit can't be
+// had.
+func (s *Service) githubReviewed(pr *PR, l *layer) *Reviewed {
+	gh := pr.Reviewed
+	if gh == nil || gh.Commit == "" {
+		return nil
+	}
+	at, _ := time.Parse(time.RFC3339, gh.At)
 	ref := ReviewedRef(pr.Number, "github")
 	if review.CommitOf(l.dir, ref) != gh.Commit {
 		release := s.lockRepo(pr.Repo)
 		err := FetchCommit(l.dir, gh.Commit, ref)
 		release()
 		if err != nil {
-			return rv
+			return nil
 		}
 	}
 	base := l.base
@@ -466,6 +552,16 @@ func (s *Service) reviewed(pr *PR, rec *Record, l *layer) *Reviewed {
 	}
 	return &Reviewed{ID: "github", Verdict: map[string]string{"approved": review.Approve, "changes_requested": review.Changes, "commented": review.Comment}[gh.State],
 		Head: gh.Commit, Base: base, At: at}
+}
+
+// latest is the later of your last review made here and your last on
+// GitHub: the one here, unless GitHub's is of another commit and more
+// than a minute after it.
+func latest(here, gh *Reviewed) *Reviewed {
+	if gh == nil || (here != nil && (here.Head == gh.Head || !gh.At.After(here.At.Add(time.Minute)))) {
+		return here
+	}
+	return gh
 }
 
 // sinceMode is what looking again at a layer shows, given your last
@@ -516,11 +612,7 @@ func (s *Service) Diff(repo string, number int, scope string) (*Diffed, error) {
 		return nil, err
 	}
 	if scope != ScopeSince {
-		d, err := review.CompareCommits(l.dir, l.baseRef, l.base, l.head)
-		if err != nil {
-			return nil, err
-		}
-		return &Diffed{Diff: d, Scope: ScopeLayer}, nil
+		return layerDiff(l)
 	}
 	rec, err := Load(s.Root, repo, number)
 	if err != nil {
@@ -530,7 +622,22 @@ func (s *Service) Diff(repo string, number int, scope string) (*Diffed, error) {
 	if rv == nil {
 		return nil, fmt.Errorf("you haven't reviewed %s yet", pr.Ref())
 	}
-	switch sinceMode(l, rv) {
+	return sinceDiff(pr, l, rv, sinceMode(l, rv))
+}
+
+// layerDiff is a layer's own changes.
+func layerDiff(l *layer) (*Diffed, error) {
+	d, err := review.CompareCommits(l.dir, l.baseRef, l.base, l.head)
+	if err != nil {
+		return nil, err
+	}
+	return &Diffed{Diff: d, Scope: ScopeLayer}, nil
+}
+
+// sinceDiff is what's changed in a layer since your review of it, as
+// looking again (since) shows it.
+func sinceDiff(pr *PR, l *layer, rv *Reviewed, since string) (*Diffed, error) {
+	switch since {
 	case SinceCommits:
 		d, err := review.CompareCommits(l.dir, l.baseRef, rv.Head, l.head)
 		if err != nil {

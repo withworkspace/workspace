@@ -1,4 +1,5 @@
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Button as AriaButton, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { capsuleAPI, docRef, type FileTree, type FileView, getFile, getTree, pageOpenTo, rawURL, type TreeFile, type Workspace } from "../api";
 import { useKeys, useOwnCodeSearch } from "../keys";
@@ -7,6 +8,7 @@ import { linesAsked, rendersAt } from "./lines";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../review/highlight";
 import { fuzzy, marked } from "../ui/fuzzy";
+import { FileIcon } from "../ui/FileIcon";
 import { Icon, type IconName } from "../ui/Icon";
 import { Callout, Copyable, Empty, ErrorCard, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
 import { useLoaded } from "../load";
@@ -32,6 +34,7 @@ export const explorerKeys: [string, string][] = [
   ["m", "Markdown: rendered, or as text"],
   ["v", "Review the capsule's changes"],
   ["y", "Copy the file's path"],
+  ["p", "Panes: the tree and the file, or the file alone"],
   ["r", "Reload"],
   ["esc", "Back to the mission"],
 ];
@@ -119,6 +122,90 @@ const isMarkdown = (path: string) => /\.(md|markdown|mdx)$/i.test(path);
 
 const sizeWords = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
+// Panes: how many of the explorer's are shown while a file's open. 3 is
+// the repos (the Files page's), the tree and the file; 2 drops the repos;
+// 1 is the file alone. Yours, in this browser, for every explorer: one
+// without the repos shows 2 for 3.
+export type Panes = 1 | 2 | 3;
+const panesKey = "ws-file-panes";
+const panesListeners = new Set<() => void>();
+function readPanes(): Panes {
+  try {
+    const n = Number(localStorage.getItem(panesKey));
+    return n === 1 || n === 2 ? n : 3;
+  } catch {
+    return 3;
+  }
+}
+let panesNow = readPanes();
+function setPanes(n: Panes) {
+  panesNow = n;
+  try {
+    if (n === 3) localStorage.removeItem(panesKey);
+    else localStorage.setItem(panesKey, String(n));
+  } catch {
+    // storage off: the choice lasts as long as the page
+  }
+  panesListeners.forEach((l) => l());
+}
+function usePanes(): Panes {
+  return useSyncExternalStore(
+    (l) => {
+      panesListeners.add(l);
+      return () => panesListeners.delete(l);
+    },
+    () => panesNow,
+  );
+}
+
+const paneWords: Record<Panes, { label: string; sub: string }> = {
+  3: { label: "3 panes", sub: "Repos, tree and file" },
+  2: { label: "2 panes", sub: "Tree and file" },
+  1: { label: "1 pane", sub: "The file alone" },
+};
+
+// PanesMenu picks how many panes show, from the file's header: beside its
+// path, on the left.
+function PanesMenu({ shown, most }: { shown: Panes; most: Panes }) {
+  const choices = ([3, 2, 1] as Panes[]).filter((n) => n <= most);
+  return (
+    <MenuTrigger>
+      <AriaButton className="ghost icon-button panes-button" aria-label={`Panes: ${paneWords[shown].label}`}>
+        <PanesGlyph n={shown} />
+      </AriaButton>
+      <Popover className="select-popover panes-popover" placement="bottom start" offset={4}>
+        <Menu className="select-list" aria-label="Panes" onAction={(k) => setPanes(Number(k) as Panes)}>
+          {choices.map((n) => (
+            <MenuItem key={n} id={String(n)} textValue={paneWords[n].label} className="select-option panes-option">
+              <PanesGlyph n={n} />
+              <span className="panes-option-words">
+                <span>{paneWords[n].label}</span>
+                <span className="dim">{paneWords[n].sub}</span>
+              </span>
+              {n === shown && <Icon name="check" size={13} className="panes-check" />}
+            </MenuItem>
+          ))}
+        </Menu>
+        <div className="panes-keys dim">
+          Switch with <Keys k="p" />
+        </div>
+      </Popover>
+    </MenuTrigger>
+  );
+}
+
+// PanesGlyph draws n panes as a window split in n, the last (the file)
+// widest.
+function PanesGlyph({ n }: { n: Panes }) {
+  return (
+    <svg className="icon panes-glyph" width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x={3} y={4} width={18} height={16} rx={2} />
+      {n >= 2 && <path d="M9 4v16" />}
+      {n === 3 && <path d="M6 4v16" />}
+    </svg>
+  );
+}
+
 // Explorer is a mission's capsule's files.
 export function Explorer({ workspace }: { workspace: Workspace }) {
   const { slug = "", repo = "", name = "" } = useParams();
@@ -130,7 +217,7 @@ export function Explorer({ workspace }: { workspace: Workspace }) {
       key={api}
       api={api}
       label={`${repo}/${name}`}
-      updated={mission?.updated}
+      updated={`${mission?.updated ?? ""}:${workspace.readsSeen ?? ""}`}
       reviewTo={`/missions/${slug}/review/${repo}/${name}`}
       docOf={(path) => docRef(repo, name, path)}
       search={{ repo, worktree: name }}
@@ -182,14 +269,19 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
   const changedOnly = params.get("only") === "changed";
   const narrow = useMedia("(max-width: 860px)");
   useTitle(path ? `${baseName(path)} · ${label}` : `Files · ${label}`);
+  const most: Panes = before ? 3 : 2;
+  const shown = Math.min(usePanes(), most) as Panes;
 
-  // The tree, again whenever what it's in moves (crew at work in it).
+  // The tree, again whenever what it's in moves (crew at work in it), or
+  // the daemon's read it again and found it changed. One that's never been
+  // read and is being is still to come: updated moves when it has.
   const [tree, setTree] = useState<FileTree>();
   const [error, setError] = useState<string>();
   const loadTree = useCallback(
     () =>
       getTree(api).then(
         (t) => {
+          if (t.unread) return;
           setTree(t);
           setError(undefined);
         },
@@ -316,6 +408,12 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
     m: () => setPreview((p) => !p),
     v: () => reviewTo && navigate(reviewTo),
     y: () => path && navigator.clipboard?.writeText(path).then(() => toast(`Copied ${path}`)),
+    p: () => {
+      if (narrow) return;
+      const next = (shown === 1 ? most : shown - 1) as Panes;
+      setPanes(next);
+      toast(paneWords[next].label, { ms: 1200 });
+    },
     r: () => {
       loadTree();
       setReload((n) => n + 1);
@@ -353,11 +451,16 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
       </div>
     );
   }
-  const showTree = !narrow || !path;
+  // With a file open, the panes are as you've picked (narrow, one at a
+  // time); with none, the tree's always there, to pick one from.
+  const fileOpen = !!path && !folder;
+  const alone = !narrow && fileOpen && shown === 1;
+  const withBefore = !!before && !narrow && (shown === 3 || !fileOpen);
+  const showTree = narrow ? !path : !alone;
   const showFile = !narrow || !!path;
   return (
-    <div className={`explorer${narrow ? " narrow" : ""}${before ? " with-before" : ""}`}>
-      {before}
+    <div className={`explorer${narrow ? " narrow" : ""}${withBefore ? " with-before" : ""}${alone ? " alone" : ""}`}>
+      {withBefore && before}
       {showTree && (
         <aside className="explorer-tree" aria-label="Files">
           <div className="explorer-tree-head">
@@ -437,6 +540,7 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
               reviewTo={reviewTo}
               docTo={docFor(path)}
               onBack={narrow ? () => setParams(changedOnly ? { only: "changed" } : {}) : undefined}
+              panes={narrow ? undefined : <PanesMenu shown={shown} most={most} />}
               onReveal={(p) => {
                 setOpen((o) => new Set([...o, ...ancestors(p + "/x")]));
                 setCursor(p);
@@ -504,6 +608,7 @@ function TreeRow({ row, open, cursor, current, changedOnly, onClick }: { row: Ro
       ) : (
         <>
           <StatusMark f={n.file!} />
+          <FileIcon path={n.path} />
           <span className="tree-name">{n.name}</span>
           {n.file?.uncommitted && <span className="dirty-dot" title="Not committed" />}
         </>
@@ -539,6 +644,7 @@ function Overview({ tree, changed, onOpen, onFind }: { tree?: FileTree; changed:
               <li key={f.path}>
                 <button className="link" onClick={() => onOpen(f.path)}>
                   <StatusMark f={f} />
+                  <FileIcon path={f.path} />
                   <span className="mono">{f.path}</span>
                   {f.uncommitted && <span className="chip tone-attention">Not committed</span>}
                 </button>
@@ -567,6 +673,7 @@ function FilePane({
   docTo,
   onBack,
   onReveal,
+  panes,
 }: {
   api: string;
   path: string;
@@ -580,6 +687,7 @@ function FilePane({
   docTo?: string; // where it opens as a document, for markdown
   onBack?: () => void;
   onReveal: (folder: string) => void;
+  panes?: ReactNode; // how many panes show: left of the path
 }) {
   // What's read is shown only while it's the file that's open: its text
   // mustn't be drawn as another's (its images read from the wrong folder)
@@ -616,6 +724,7 @@ function FilePane({
             <Icon name="arrow-left" size={15} />
           </button>
         )}
+        {panes}
         <div className="file-crumbs" title={path}>
           {parts.map((p, i) =>
             i < parts.length - 1 ? (
@@ -626,7 +735,10 @@ function FilePane({
                 <span className="sep">/</span>
               </span>
             ) : (
-              <strong key={i}>{p}</strong>
+              <strong key={i} className="file-crumb-name">
+                <FileIcon path={path} />
+                {p}
+              </strong>
             ),
           )}
           <Copyable text={path} className="file-copy" title="Copy its path (y)">
@@ -703,7 +815,7 @@ function FilePane({
       {file &&
         (image && !file.deleted ? (
           <div className="file-image">
-            <img src={rawURL(api, path)} alt={path} />
+            <img src={rawURL(api, path)} alt={path} data-viewable={path} title="Open it larger" />
           </div>
         ) : file.binary ? (
           <Empty icon="file" title="A binary file">
@@ -841,6 +953,7 @@ function FileFinder({ files, onPick, onClose }: { files: TreeFile[]; onPick: (pa
             return (
               <li key={m.f.path} role="option" aria-selected={i === at} className={i === at ? "on" : ""} onMouseMove={() => i !== at && setSel(i)} onClick={() => onPick(m.f.path)}>
                 <StatusMark f={m.f} />
+                <FileIcon path={m.f.path} />
                 <span className="finder-path">
                   {runs.map((r, j) => {
                     const start = pos;

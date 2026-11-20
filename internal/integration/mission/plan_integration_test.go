@@ -107,7 +107,7 @@ func TestTalk_BriefingWithAPlan(t *testing.T) {
 		"Steps (the plan's",
 		"1. [current] Find why it fails, as a failing test. (Work, crew, in `backend/flaky-test`; makes: the failing test, and the cause)",
 		"2. [to do] Is that the cause? (Review, you)",
-		"4. [to do] Merged. (Wait, on a teammate's review: nobody's watching, so accept it once you're shown it's happened)",
+		"4. [to do] Merged. (Wait, on a teammate's review: nobody's watching, so the user marks it done once it's happened, or you accept it once you're shown it has)",
 	} {
 		if !strings.Contains(show, want) {
 			t.Errorf("show lacks %q:\n%s", want, show)
@@ -186,7 +186,7 @@ func TestWeb_ThePlan(t *testing.T) {
 	if said, err := say(plan); err != nil || said != "Wrote the plan: 2 steps." {
 		t.Fatalf("edit-plan: %q, %v", said, err)
 	}
-	d, err := testutil.WebMission(w.Root)("cache", false)
+	d, err := testutil.WebMission(w.Root)("cache")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +202,7 @@ func TestWeb_ThePlan(t *testing.T) {
 	// A plan changed by hand that doesn't read is said, and the mission
 	// works from its brief.
 	os.WriteFile(mission.Store{Root: w.Root}.PlanPath("cache"), []byte("## Steps\n- oops\n"), 0o644)
-	d, _ = testutil.WebMission(w.Root)("cache", false)
+	d, _ = testutil.WebMission(w.Root)("cache")
 	if !strings.Contains(d.PlanProblem, "isn't numbered") || len(d.Stages) != 0 {
 		t.Errorf("a plan that doesn't read: %q, stages %+v", d.PlanProblem, d.Stages)
 	}

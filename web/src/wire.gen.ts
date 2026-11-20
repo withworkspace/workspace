@@ -732,6 +732,21 @@ export interface Citation {
 // From web/enums.go
 export type CitationHow = "link" | "ref";
 
+// From web/commands.go
+/**
+ * CommandLabel is what one of ws's commands is doing, as a conversation
+ * shows an agent's step that ran it: "Looking up sketch-5" for ws show
+ * sketch-5 -f llm. Words are the command's after ws (none for ws on its
+ * own); in Label, {1} is its first argument, {2} its second. Options are
+ * the flags it takes that have a value, as they're typed (--format, -f):
+ * how the web UI tells an option's value from an argument.
+ */
+export interface CommandLabel {
+    words: string[];
+    label: string;
+    options?: string[];
+}
+
 // From web/api.go
 /**
  * Conclusion is how a mission ends, suggested or made (mission.Conclusion):
@@ -2065,6 +2080,116 @@ export interface Mission {
     about?: string[];
 }
 
+// From mission/card.go
+/**
+ * Act is one thing a card offers.
+ */
+export interface MissionAct {
+    do: string;
+    label: string;
+    icon?: string;
+    /**
+     * Target is what it's done to: crew, a capsule, a bundle, a document,
+     * a conversation.
+     */
+    target?: string;
+    url?: string;
+    /**
+     * Task is the task an answer is to; Text what it answers with.
+     */
+    task?: number;
+    text?: string;
+    /**
+     * Field is the placeholder of a field for words that go with it: the
+     * card's Primary has it beside it; any other opens it when pressed.
+     * What's written goes after Prefix, in place of Text.
+     */
+    field?: string;
+    prefix?: string;
+    /**
+     * Quiet is one that overrides the Primary, or puts the card aside.
+     */
+    quiet?: boolean;
+    /**
+     * Key is the key that does it on the mission's page.
+     */
+    key?: string;
+}
+
+// From mission/card.go
+/**
+ * Card is one headline as it's drawn.
+ */
+export interface MissionCard {
+    kind: MissionKind;
+    court: MissionCourt;
+    tone: MissionTone;
+    /**
+     * Title says what's happening; Detail is a sentence more, or "".
+     */
+    title: string;
+    detail?: string;
+    /**
+     * Nothing is true where there's nothing for you to do.
+     */
+    nothing?: boolean;
+    /**
+     * Primary is the one action meant to move it, or nil.
+     */
+    primary?: MissionAct;
+    /**
+     * More is what comes after it, in order: choices, then the quiet ones.
+     */
+    more?: MissionAct[];
+    /**
+     * Folded is the kind of the step's own headline this card carries the
+     * control of, where the plan waits at a step and something else leads.
+     */
+    folded?: MissionKind;
+    by?: string;
+    since?: string;
+    /**
+     * Checking is what's running, while ws checks a step.
+     */
+    checking?: MissionChecking;
+}
+
+// From mission/checking.go
+/**
+ * Checking is what ws is running while it checks step Step: a check that's
+ * a command (N, from 1, of the step's Of), or the judge (N 0), reading the
+ * checks at Judged.
+ */
+export interface MissionChecking {
+    step: number;
+    crew: string; // whose done it checks
+    of: number; // how many checks the step has
+    /**
+     * N is the check running, from 1; 0 while the judge is reading.
+     */
+    n?: number;
+    command?: string;
+    /**
+     * Line is the last line the command has printed so far.
+     */
+    line?: string;
+    /**
+     * Judged are the checks the judge judges (from 1): after the
+     * commands, or now, with N 0.
+     */
+    judged?: number[];
+    /**
+     * Judge is who's reading them, once the judge has started.
+     */
+    judge?: string;
+    /**
+     * Since is when the check, or the judge, started; Until when it's
+     * stopped if it hasn't finished (its timeout).
+     */
+    since: string;
+    until: string;
+}
+
 // From mission/court.go
 /**
  * Court is who a mission waits on.
@@ -2074,8 +2199,9 @@ export type MissionCourt = "" | "agent" | "outside" | "you";
 // From web/api.go
 /**
  * MissionDetail is GET /api/missions/{slug}: everything a mission's page
- * view shows. Capsules' PRs are only there with ?github=1 (GitHub is slow,
- * so the page asks after it has drawn).
+ * view shows. Capsules' PRs are as GitHub last said: it's slow, so it's
+ * asked behind the read, and the mission's event moves when it answers
+ * with something different.
  */
 export interface MissionDetail {
     slug: string;
@@ -2136,6 +2262,12 @@ export interface MissionDetail {
      */
     headlines: Headline[];
     /**
+     * Cards is the headlines as the page draws them, the lead first: each
+     * with its title, its sentence, the one action meant to move it and
+     * what comes after (mission.Cards).
+     */
+    cards: MissionCard[];
+    /**
      * Runs are the orchestrator's latest runs on it, newest first.
      */
     runs: OrchestratorRun[];
@@ -2153,7 +2285,11 @@ export interface MissionDetail {
      */
     decisions: Decision[];
     events: Event[]; // the log, oldest first
-    github: boolean; // PRs were looked up
+    /**
+     * GitHub: GitHub has answered for its capsules' repos, so a capsule
+     * with no PR has none (as last asked).
+     */
+    github: boolean;
     /**
      * CrewPicks are what Launch crew may start crew on.
      */
@@ -2166,6 +2302,12 @@ export interface MissionDetail {
  */
 export type MissionEnding = "answered" | "dropped" | "handed-on" | "landed";
 
+// From mission/court.go
+/**
+ * Kind is the situation a headline describes.
+ */
+export type MissionKind = "accept" | "answering" | "approve" | "archived" | "awaiting-review" | "brief-talk" | "briefing" | "changes-requested" | "checking" | "checks-failing" | "checks-running" | "crew-asks" | "deciding" | "ended" | "flag" | "land" | "landed" | "launching" | "merge" | "moving-on" | "own-work" | "parked" | "permission" | "proposed" | "queued" | "re-review" | "ready" | "replied" | "replies" | "resume" | "stalled" | "step-review" | "to-brief" | "to-do" | "waiting-on" | "working" | "wrap-up" | "writing-pr";
+
 // From mission/mission.go
 /**
  * State is a mission's lifecycle state. Parked and Archived are stored,
@@ -2174,6 +2316,13 @@ export type MissionEnding = "answered" | "dropped" | "handed-on" | "landed";
  * from capsule and PR facts (see DeriveState).
  */
 export type MissionState = "active" | "answered" | "archived" | "briefing" | "draft" | "dropped" | "handed-on" | "landed" | "parked" | "review";
+
+// From mission/card.go
+/**
+ * Tone is whose a card is, as its colour says: yours, failing (and yours),
+ * an agent's, outside's, done, or nobody's in particular.
+ */
+export type MissionTone = "agent" | "done" | "failing" | "outside" | "quiet" | "you";
 
 // From web/runs.go
 /**
@@ -2354,6 +2503,25 @@ export interface PRQuestion {
     line: number;
     endLine: number;
     commit: string;
+}
+
+// From web/runs.go
+/**
+ * PRWrite is POST /api/missions/{slug}/pr-write: a capsule whose pull
+ * request the PR writer writes, for you to read and change before you
+ * open it. It answers once it's written (PRWritten), which takes a while.
+ */
+export interface PRWrite {
+    capsule: string; // repo/name
+}
+
+// From web/runs.go
+/**
+ * PRWritten is what the PR writer wrote.
+ */
+export interface PRWritten {
+    title: string;
+    body: string;
 }
 
 // From web/pages.go
@@ -3312,6 +3480,24 @@ export interface ReReview {
  */
 export type RefKind = "artifact" | "dir" | "file" | "mission" | "page" | "pr" | "repo" | "talk" | "thing";
 
+// From web/refpaths.go
+/**
+ * RefPaths is what a page asks of the repos' default branches: paths in
+ * each, by repo.
+ */
+export interface RefPaths {
+    repos: Record<string, string[]>;
+}
+
+// From web/refpaths.go
+/**
+ * RefPathsFound is what's there of what was asked, by repo: those whose
+ * files are kept.
+ */
+export interface RefPathsFound {
+    repos: Record<string, RepoPaths>;
+}
+
 // From ref/ref.go
 /**
  * Pinned is a name as it was when it was said or written: what it named
@@ -3391,6 +3577,17 @@ export interface Repo {
      * default branch).
      */
     landing?: OpsRepoLanding;
+}
+
+// From web/refpaths.go
+/**
+ * RepoPaths is what's there on a repo's default branch, of what was asked:
+ * the files and the folders, as read at Head.
+ */
+export interface RepoPaths {
+    head: string;
+    files: string[];
+    dirs: string[];
 }
 
 // From review/diff.go
@@ -3674,6 +3871,17 @@ export interface RunDetail {
     conversation?: string;
     ownerPid?: number;
     ownerCommand?: string;
+    /**
+     * Also is how many others it's for besides Owner: those who asked
+     * for it while it ran. Ends says when the last of them goes.
+     */
+    also?: number;
+    /**
+     * Needs are what it was started needing, and NeededBy the running
+     * runs that need it, by their refs: it isn't ended while there are any.
+     */
+    needs?: RunNeed[];
+    neededBy?: string[];
 }
 
 // From web/runs.go
@@ -3683,6 +3891,32 @@ export interface RunDetail {
 export interface RunLog {
     ref: string;
     log: string;
+}
+
+// From web/api.go
+/**
+ * RunNeed is one of a run's needs: another run, or an address outside ws.
+ */
+export interface RunNeed {
+    /**
+     * Name is what the run calls it (api).
+     */
+    name: string;
+    /**
+     * Run is the run that meets it, by its ref: none for an address
+     * outside ws.
+     */
+    run?: string;
+    /**
+     * Address is what the run was started with for it.
+     */
+    address: string;
+    /**
+     * Env is the variable Address was handed over in, and Mount the path
+     * of the run's own name the need answers at.
+     */
+    env?: string;
+    mount?: string;
 }
 
 // From web/runs.go
@@ -3948,6 +4182,11 @@ export interface SpaceActivity {
     lately: SpaceCommit[];
     inFlight: SpaceFlight[];
     fresh: SpaceFresh;
+    /**
+     * Unread: it's not been read yet, and is being: the workspace's
+     * spacesSeen moves when it has.
+     */
+    unread?: boolean;
 }
 
 // From web/documents.go
@@ -4838,6 +5077,63 @@ export interface WantedPlugin {
     version?: string;
 }
 
+// From web/whatsnew.go
+/**
+ * WhatsNewEntry is one thing that's new.
+ */
+export interface WhatsNewEntry {
+    slug: string;
+    /**
+     * Version is the release it's in: "" for one in no release yet.
+     */
+    version?: string;
+    title: string;
+    /**
+     * Body is a sentence or two, in markdown.
+     */
+    body: string;
+    /**
+     * Link is a path in the web UI to see it at.
+     */
+    link?: string;
+    /**
+     * Picture is where its picture is served from: none where there's no
+     * picture, or it can't be fetched.
+     */
+    picture?: string;
+}
+
+// From web/whatsnew.go
+/**
+ * WhatsNewInfo is GET /api/whats-new.
+ */
+export interface WhatsNewInfo {
+    /**
+     * Version is the ws that's running, and Release whether it's a
+     * release's build. A build of a clone has nothing unseen, and its
+     * entries are all its build found, unreleased ones too.
+     */
+    version: string;
+    release: boolean;
+    /**
+     * Unseen is what's new since the release last seen in this workspace,
+     * and Entries everything this ws says is new up to itself: newest
+     * first, each.
+     */
+    unseen: WhatsNewEntry[];
+    entries: WhatsNewEntry[];
+    /**
+     * Seen is the release whose news was last seen in this workspace.
+     */
+    seen?: string;
+    /**
+     * Missing is whether some of what's unseen is from too many releases
+     * ago for this ws to hold: it's on Releases.
+     */
+    missing: boolean;
+    releases?: string;
+}
+
 // From words/words.go
 /**
  * Part is a run of a snippet: marked when it's a word that was searched for.
@@ -4866,6 +5162,12 @@ export interface Workspace {
      * sidebar's Focus.
      */
     focus: FocusPin[];
+    /**
+     * CapsulesSeen moves when git, asked behind a read that didn't wait
+     * on it, said something of a capsule other than the read was given:
+     * a page showing capsules' statuses (Files' switcher) reads again.
+     */
+    capsulesSeen?: string;
     /**
      * Conversations are the workspace's conversations with an agent,
      * newest first.
@@ -4909,12 +5211,31 @@ export interface Workspace {
      */
     spaces: SpaceRef[];
     /**
+     * SpacesSeen moves when ws, reading a space again behind a read that
+     * didn't wait on it, found it other than the read was given: a page
+     * showing a space (Documents, a space, a document's citations and
+     * what's in flight) reads it again.
+     */
+    spacesSeen?: string;
+    /**
      * Version is the ws that serves it, as ws --version says it: the
      * daemon's, which a newer ws on the path isn't until it's restarted.
      * The web UI says which it's talking to, and tells a plugin's app as
      * it connects: the same its plugin was told when it started.
      */
     version?: string;
+    /**
+     * GroundsSeen moves when the repos' default branches do, or the files
+     * read of one (refs are checked against them) are found other than
+     * they were: a page that's checked what it names checks again.
+     */
+    groundsSeen?: string;
+    /**
+     * ReadsSeen moves when a capsule's tree or summary, answered as it
+     * was kept while it was read again, is found other than it was told:
+     * a page showing one reads it again.
+     */
+    readsSeen?: string;
     /**
      * Later is a release of ws that's out and later than Version, as the
      * daemon last found (it looks once a day): none for none, or for one
@@ -4941,6 +5262,11 @@ export interface Worktree {
     dirty?: boolean;
     ahead?: number;
     behind?: number;
+    /**
+     * Unread: whether it's dirty, or where it stands, hasn't been read
+     * yet and is being: the workspace's capsulesSeen moves when it has.
+     */
+    unread?: boolean;
 }
 
 // From web/api.go
