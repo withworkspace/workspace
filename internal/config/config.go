@@ -633,6 +633,43 @@ type RunRecipe struct {
 	// Where is where it runs: "" for the worktree you stand in, "silo" for
 	// the repo's silo (.silo), whichever capsule it's pointed at.
 	Where string `toml:"where,omitempty"`
+	// Needs are the runs this one needs up before it starts, each by the
+	// name this recipe calls it ([run.web.needs.api]). ws finds each, or
+	// starts it, and hands its address over.
+	Needs map[string]RunNeed `toml:"needs,omitempty"`
+}
+
+// RunNeed is one of a recipe's needs: another recipe's run, and how this
+// one is given its address.
+type RunNeed struct {
+	// Run is the recipe that's needed: "server" for one of this repo's,
+	// "backend/server" for another repo's, as the workspace names it. ""
+	// is this repo's recipe of the need's own name.
+	Run string `toml:"run,omitempty"`
+	// Env is the variable its address is handed over in (API_URL). The
+	// command can say it too: {api} for the address, {api.port} for the
+	// port.
+	Env string `toml:"env,omitempty"`
+	// Mount is a path of this run's own name the need answers at (/api),
+	// through ws's router: the same origin, as behind an ingress. Strip
+	// takes the path off before the need is asked (/api/users is asked
+	// for as /users).
+	Mount string `toml:"mount,omitempty"`
+	Strip bool   `toml:"strip,omitempty"`
+}
+
+// Recipe is the repo and recipe a need names: n.Run, or with none said,
+// the recipe of the need's own name. repo is "" for the repo the need is
+// said in.
+func (n RunNeed) Recipe(name string) (repo, recipe string) {
+	said := strings.TrimSpace(n.Run)
+	if said == "" {
+		return "", name
+	}
+	if r, rc, ok := strings.Cut(said, "/"); ok {
+		return strings.TrimSpace(r), strings.TrimSpace(rc)
+	}
+	return "", said
 }
 
 type CapsuleConfig struct {

@@ -31,8 +31,9 @@ import (
 )
 
 // Version is the route files' and the router's: a router reads files up
-// to its own version, and steps down for a newer one.
-const Version = 1
+// to its own version, and steps down for a newer one. 2 is a run's
+// mounts, which a router that doesn't know them would pass to the run.
+const Version = 2
 
 // Suffix is what every name ends with.
 const Suffix = ".localhost"
@@ -66,6 +67,48 @@ type Route struct {
 	Port int `json:"port,omitempty"`
 	// Ended says how it ended, for one that isn't running.
 	Ended string `json:"ended,omitempty"`
+	// Mounts are the paths of its name that go elsewhere: what it needs,
+	// answering below its own name (a run's needs with a mount).
+	Mounts []Mount `json:"mounts,omitempty"`
+}
+
+// Mount is a path of a run's name, and everything below it, that another
+// run answers, or an address outside ws.
+type Mount struct {
+	// Path is where it's mounted: /api.
+	Path string `json:"path"`
+	// Need is what the run calls what's mounted there, and Run the run
+	// that is, by its key, to say when it isn't up.
+	Need string `json:"need,omitempty"`
+	Run  string `json:"run,omitempty"`
+	// Port is the run's that answers there (0: it isn't running); URL is
+	// an address that does instead.
+	Port int    `json:"port,omitempty"`
+	URL  string `json:"url,omitempty"`
+	// Strip takes Path off what's asked for before it's passed on.
+	Strip bool `json:"strip,omitempty"`
+}
+
+// MountPath is a mount's path as it's kept: one leading slash, and none
+// trailing. "" is no mount at all (the run's whole name isn't another's
+// to answer).
+func MountPath(said string) string {
+	p := "/" + strings.Trim(strings.TrimSpace(said), "/")
+	if p == "/" {
+		return ""
+	}
+	return p
+}
+
+// mount is the mount of rte that path falls under, the longest first.
+func (rte Route) mount(path string) (Mount, bool) {
+	var best Mount
+	for _, m := range rte.Mounts {
+		if (path == m.Path || strings.HasPrefix(path, m.Path+"/")) && len(m.Path) > len(best.Path) {
+			best = m
+		}
+	}
+	return best, best.Path != ""
 }
 
 // Silo is a repo's silo: the worktree it's pointed at, and the recipes

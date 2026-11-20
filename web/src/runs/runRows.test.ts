@@ -33,6 +33,20 @@ describe("forWhom", () => {
   it("says a mission the workspace no longer lists by its slug", () => {
     expect(forWhom(run({ owner: "mission", mission: "gone" }), missions)).toEqual({ text: "gone", to: "/missions/gone" });
   });
+  it("says a run started for another's need by what needs it", () => {
+    expect(forWhom(run({ owner: "run", neededBy: ["web.cache.frontend"] }), missions).text).toBe("web.cache.frontend, which needs it");
+    expect(forWhom(run({ owner: "run", neededBy: ["web.cache.frontend", "admin.cache.frontend", "docs.cache.frontend"] }), missions).text).toBe(
+      "web.cache.frontend, admin.cache.frontend and docs.cache.frontend, which need it",
+    );
+    expect(forWhom(run({ owner: "run" }), missions).text).toBe("what needed it, which has ended");
+  });
+  it("says how many others asked for a run since it started", () => {
+    expect(forWhom(run({ owner: "pid", ownerPid: 812, ownerCommand: "zsh", also: 1 }), missions).text).toBe("zsh (pid 812), and one other who asked for it since");
+    expect(forWhom(run({ owner: "step", mission: "cache-it", step: 2, also: 2 }), missions)).toEqual({
+      text: "step 2 of Cache it, and 2 others who asked for it since",
+      to: "/missions/cache-it",
+    });
+  });
   it("says a process by its command and pid", () => {
     expect(forWhom(run({ owner: "pid", ownerPid: 812, ownerCommand: "zsh" }), missions).text).toBe("zsh (pid 812)");
     expect(forWhom(run({ owner: "pid", ownerPid: 812 }), missions).text).toBe("pid 812");

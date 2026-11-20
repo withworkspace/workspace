@@ -88,6 +88,21 @@ function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => v
           )}
           {live && !r.up && <span className="chip tone-quiet">not up</span>}
         </span>
+        {live && (r.needs?.length ?? 0) > 0 && (
+          <span className="work-run-ends">
+            Needs{" "}
+            {r.needs?.map((n, i) => (
+              <span key={n.name}>
+                {i > 0 && ", "}
+                {n.name} (
+                <a href={n.address} target="_blank" rel="noopener noreferrer" className="mono" title={n.address}>
+                  {n.run ?? n.address.replace(/^https?:\/\//, "")}
+                </a>
+                {n.mount && r.link !== r.local ? `, at ${n.mount}` : ""})
+              </span>
+            ))}
+          </span>
+        )}
         {live && r.ends && <span className="work-run-ends">Ends {r.ends}</span>}
       </span>
       {live && (

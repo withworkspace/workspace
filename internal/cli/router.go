@@ -79,11 +79,32 @@ func routeFile(root string, web int, name, dir string) router.File {
 	}
 	f.Given = router.Give(dir, f, procs)
 	list, _ := runs.Store{Root: root}.List()
+	up := map[string]runs.Run{}
+	for _, r := range list {
+		if r.State == runs.Running {
+			up[r.Ref()] = r
+		}
+	}
 	for _, r := range list {
 		key := router.RunKey(r.Name, r.Worktree, r.Repo)
 		switch r.State {
 		case runs.Running:
-			f.Routes[key] = router.Route{Port: r.Port}
+			rte := router.Route{Port: r.Port}
+			// What it needs, where it's mounted below the run's own name.
+			for _, n := range r.Needs {
+				path := router.MountPath(n.Mount)
+				if path == "" {
+					continue
+				}
+				m := router.Mount{Path: path, Need: n.Name, Run: n.Run, Strip: n.Strip}
+				if n.Run == "" {
+					m.URL = n.Addr
+				} else {
+					m.Port = up[n.Run].Port
+				}
+				rte.Mounts = append(rte.Mounts, m)
+			}
+			f.Routes[key] = rte
 		case runs.Exited:
 			f.Routes[key] = router.Route{Ended: fmt.Sprintf("exited (%d) at %s", r.Status, r.Ended.Local().Format("15:04"))}
 		default:

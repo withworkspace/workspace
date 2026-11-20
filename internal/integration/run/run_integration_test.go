@@ -269,3 +269,123 @@ func TestRun_TheRouteFileHasTheRunsAndSilos(t *testing.T) {
 	}
 	_ = dir
 }
+
+// needsWorkspace is two repos: web, with a capsule (feat) whose web recipe
+// needs api's server, and api, with its ground alone. You stand in web's
+// capsule.
+func needsWorkspace(t *testing.T) (*testutil.Workspace, string) {
+	t.Helper()
+	if _, err := runs.ReadProcs(); err != nil {
+		t.Skipf("processes can't be read here: %v", err)
+	}
+	t.Setenv(mission.EnvMission, "")
+	t.Setenv(mission.EnvCrew, "")
+	t.Setenv(mission.EnvRole, "")
+	cli.NoRunsWatcher(t)
+	w := testutil.SetupWorkspace(t, testutil.WorkspaceOpts{Org: "test-org", DefaultBranch: "main", Repos: []testutil.RepoOpts{{Name: "api"}, {Name: "web"}}})
+	testutil.Run(t, w, nil, "lift", "web", "feat")
+	dir := testutil.CapsuleDir(w, "web", "feat")
+	os.WriteFile(filepath.Join(dir, "ws.repo.toml"), []byte(`
+[run.web]
+command = "sleep 300"
+
+[run.web.needs.api]
+run = "api/server"
+env = "API_URL"
+mount = "/api"
+
+[run.docs]
+command = "sleep 300"
+`), 0o644)
+	os.WriteFile(filepath.Join(w.Root, "repos", "api", ".ground", "ws.repo.toml"), []byte("[run.server]\ncommand = \"sleep 300\"\n"), 0o644)
+	t.Setenv(cli.ShellPWD, dir)
+	t.Cleanup(func() { testutil.RunCommand(t, w.Root, nil, "run", "stop", "--all") })
+	return w, dir
+}
+
+func TestRun_ARecipeStartsWhatItNeeds(t *testing.T) {
+	w, _ := needsWorkspace(t)
+	res := testutil.RunCommand(t, w.Root, nil, "run")
+	if res.Err != nil || !strings.Contains(res.Stdout, "NEEDS") || !strings.Contains(res.Stdout, "api (api/server)") {
+		t.Fatalf("ws run alone: %v\n%s", res.Err, res.Stdout)
+	}
+	res = testutil.RunCommand(t, w.Root, nil, "run", "--wait", "0", "--for", "capsule", "web")
+	if res.Err != nil {
+		t.Fatalf("ws run web: %v\n%s", res.Err, res.Stderr)
+	}
+	if !strings.Contains(res.Stderr, "Started server.ground.api for api (api's ground: --with api=<capsule> runs another).") {
+		t.Errorf("ws run web said:\n%s", res.Stderr)
+	}
+	if !strings.Contains(res.Stdout, "name   web.feat.web") || !strings.Contains(res.Stdout, "needs  api  server.ground.api  http://127.0.0.1:48") ||
+		!strings.Contains(res.Stdout, "$API_URL  at /api\n") {
+		t.Errorf("ws run web printed:\n%s", res.Stdout)
+	}
+	// The workspace has no names here, and a mount is the router's.
+	if !strings.Contains(res.Stderr, "api answers at /api of web's own name only where the workspace has names") {
+		t.Errorf("ws run web said nothing of the mount needing names:\n%s", res.Stderr)
+	}
+	list := lsJSON(t, w)
+	if len(list) != 2 || list[0]["ref"] != "server.ground.api" || list[1]["ref"] != "web.feat.web" {
+		t.Fatalf("ls: %v", list)
+	}
+	if by, _ := list[0]["needed_by"].([]any); len(by) != 1 || by[0] != "web.feat.web" || list[0]["ends"] != "when web.feat.web has ended" {
+		t.Errorf("the server: needed by %v, ends %v", list[0]["needed_by"], list[0]["ends"])
+	}
+	// Its mount is the router's to serve, from the workspace's route file.
+	f := cli.RouteFile(w.Root, 47001, "shop", t.TempDir())
+	m := f.Routes["web.feat.web"].Mounts
+	if len(m) != 1 || m[0].Path != "/api" || m[0].Need != "api" || m[0].Run != "server.ground.api" || m[0].Port != f.Routes["server.ground.api"].Port || m[0].Port == 0 {
+		t.Errorf("mounts %+v", m)
+	}
+
+	// Asked for again, it's the same run.
+	res = testutil.RunCommand(t, w.Root, nil, "run", "--wait", "0", "--for", "none", "web")
+	if res.Err != nil || !strings.Contains(res.Stderr, "web is running here already") || !strings.Contains(res.Stderr, "it's yours as well now") {
+		t.Fatalf("ws run web again: %v\n%s", res.Err, res.Stderr)
+	}
+	if list := lsJSON(t, w); len(list) != 2 {
+		t.Fatalf("ls after the second: %v", list)
+	}
+	// Stopping what something needs says so, and it's started again by
+	// asking for what needs it.
+	res = testutil.RunCommand(t, w.Root, nil, "run", "stop", "server.ground.api")
+	if res.Err != nil || !strings.Contains(res.Stderr, "web.feat.web needed it") {
+		t.Fatalf("stop the server: %v\n%s", res.Err, res.Stderr)
+	}
+	res = testutil.RunCommand(t, w.Root, nil, "run", "--wait", "0", "web")
+	if res.Err != nil || !strings.Contains(res.Stderr, "Started server.ground.api for api") {
+		t.Fatalf("ws run web, its server gone: %v\n%s", res.Err, res.Stderr)
+	}
+	// Stopped, what was started for it goes too.
+	res = testutil.RunCommand(t, w.Root, nil, "run", "stop", "web")
+	if res.Err != nil || !strings.Contains(res.Stderr, "Stopped web.feat.web.") || !strings.Contains(res.Stderr, "Ended server.ground.api: nothing needs it now.") {
+		t.Fatalf("stop web: %v\n%s", res.Err, res.Stderr)
+	}
+	if list := lsJSON(t, w); len(list) != 0 {
+		t.Fatalf("ls after stop: %v", list)
+	}
+}
+
+func TestRun_WithSaysWhatMeetsANeed(t *testing.T) {
+	w, _ := needsWorkspace(t)
+	res := testutil.RunCommand(t, w.Root, nil, "run", "--wait", "0", "--for", "none", "--with", "api=https://staging.example", "web")
+	if res.Err != nil || !strings.Contains(res.Stdout, "needs  api  outside ws  https://staging.example  $API_URL") {
+		t.Fatalf("with an address: %v\n%s%s", res.Err, res.Stdout, res.Stderr)
+	}
+	if list := lsJSON(t, w); len(list) != 1 {
+		t.Fatalf("ls: %v", list)
+	}
+	f := cli.RouteFile(w.Root, 47001, "shop", t.TempDir())
+	if m := f.Routes["web.feat.web"].Mounts; len(m) != 1 || m[0].URL != "https://staging.example" || m[0].Port != 0 {
+		t.Errorf("mounts %+v", m)
+	}
+	for _, c := range []struct{ with, recipe, want string }{
+		{"api", "docs", "--with is <need>=<capsule>, ground, silo or an address"},
+		{"api=ground", "docs", "docs has no need called api: it needs nothing"},
+	} {
+		res := testutil.RunCommand(t, w.Root, nil, "run", "--wait", "0", "--with", c.with, c.recipe)
+		if res.Err == nil || !strings.Contains(res.Err.Error(), c.want) {
+			t.Errorf("--with %s %s: %v", c.with, c.recipe, res.Err)
+		}
+	}
+}

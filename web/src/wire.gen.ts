@@ -3595,6 +3595,17 @@ export interface RunDetail {
     conversation?: string;
     ownerPid?: number;
     ownerCommand?: string;
+    /**
+     * Also is how many others it's for besides Owner: those who asked
+     * for it while it ran. Ends says when the last of them goes.
+     */
+    also?: number;
+    /**
+     * Needs are what it was started needing, and NeededBy the running
+     * runs that need it, by their refs: it isn't ended while there are any.
+     */
+    needs?: RunNeed[];
+    neededBy?: string[];
 }
 
 // From web/runs.go
@@ -3604,6 +3615,32 @@ export interface RunDetail {
 export interface RunLog {
     ref: string;
     log: string;
+}
+
+// From web/api.go
+/**
+ * RunNeed is one of a run's needs: another run, or an address outside ws.
+ */
+export interface RunNeed {
+    /**
+     * Name is what the run calls it (api).
+     */
+    name: string;
+    /**
+     * Run is the run that meets it, by its ref: none for an address
+     * outside ws.
+     */
+    run?: string;
+    /**
+     * Address is what the run was started with for it.
+     */
+    address: string;
+    /**
+     * Env is the variable Address was handed over in, and Mount the path
+     * of the run's own name the need answers at.
+     */
+    env?: string;
+    mount?: string;
 }
 
 // From web/runs.go

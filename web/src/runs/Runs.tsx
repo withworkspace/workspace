@@ -5,7 +5,7 @@ import { type Reload, useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Callout, Copyable, Empty, ErrorCard, humanError, Skeleton, toast, useTitle } from "../ui/kit";
 import { Time } from "../ui/time";
-import { bare, forWhom, placeOf, plain, type Said, split } from "./runRows";
+import { bare, forWhom, listed, placeOf, plain, type Said, split } from "./runRows";
 
 // The Runs page: everything ws is running for someone in this workspace
 // (ws run): dev servers, previews, compose stacks, whether you, crew or a
@@ -27,6 +27,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
     return () => clearInterval(t);
   }, [reload]);
   const { running, ended } = split(info?.runs ?? []);
+  const up = new Set(running.map((r) => r.ref));
   return (
     <div className="page runs-page">
       <header className="page-head">
@@ -54,7 +55,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
             ) : (
               <ul className="rows run-rows">
                 {running.map((r) => (
-                  <RunRow key={r.ref} r={r} workspace={workspace} reload={reload} />
+                  <RunRow key={r.ref} r={r} up={up} workspace={workspace} reload={reload} />
                 ))}
               </ul>
             )}
@@ -67,7 +68,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
               <p className="quiet-line">Runs that ended by themselves, kept an hour with their output.</p>
               <ul className="rows run-rows">
                 {ended.map((r) => (
-                  <RunRow key={r.ref} r={r} workspace={workspace} reload={reload} />
+                  <RunRow key={r.ref} r={r} up={up} workspace={workspace} reload={reload} />
                 ))}
               </ul>
             </section>
@@ -144,7 +145,36 @@ function To({ s }: { s: Said }) {
   return s.to ? <Link to={s.to}>{s.text}</Link> : <>{s.text}</>;
 }
 
-function RunRow({ r, workspace, reload }: { r: RunDetail; workspace: Workspace; reload: Reload }) {
+// NeedsLine is what a run needs: each need's name, the run that meets it
+// (or the address outside ws that does), and the path of the run's own
+// name it answers at, if it's mounted. up is the refs of what's running:
+// a need whose run has ended says so.
+function NeedsLine({ r, up }: { r: RunDetail; up: Set<string> }) {
+  if (!r.needs?.length) return null;
+  return (
+    <span className="row-sub run-row-sub run-needs">
+      {r.needs.map((n) => (
+        <span key={n.name}>
+          Needs {n.name}:{" "}
+          <a href={n.address} target="_blank" rel="noopener noreferrer" className="mono" title={n.env ? `Handed to it as $${n.env}: ${n.address}` : n.address}>
+            {n.run ?? bare(n.address)}
+          </a>
+          {n.mount && r.link !== r.local && (
+            <>
+              , at{" "}
+              <a href={r.link.replace(/\/$/, "") + n.mount} target="_blank" rel="noopener noreferrer" className="mono" title={`${n.name} answers below this run's own name`}>
+                {n.mount}
+              </a>
+            </>
+          )}
+          {n.run && !up.has(n.run) && <span className="chip tone-waiting">not running</span>}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; workspace: Workspace; reload: Reload }) {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const live = r.state === "running";
@@ -200,8 +230,10 @@ function RunRow({ r, workspace, reload }: { r: RunDetail; workspace: Workspace; 
             <span>
               For <To s={forWhom(r, workspace.missions, workspace.conversations)} />
             </span>
+            {live && r.owner !== "run" && (r.neededBy?.length ?? 0) > 0 && <span>Needed by {listed(r.neededBy ?? [])}</span>}
             {live && r.link !== r.local && <span className="mono">{bare(r.local)}</span>}
           </span>
+          {live && <NeedsLine r={r} up={up} />}
           {live && r.ends && <span className="work-run-ends">Ends {r.ends}</span>}
         </span>
         <span className="run-row-when">
