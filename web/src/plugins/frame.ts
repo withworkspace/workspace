@@ -3,6 +3,7 @@ import type { ConversationHost, Status } from "../conversation/host";
 import type { FoundRef } from "../refs/found";
 import { watchBackdrop } from "./backdrop";
 import type { Theme } from "./theme";
+import type { Asked } from "./ui";
 import { v1 } from "./frame/v1";
 
 // ws's side of the frame protocol's handshake (PROTOCOL.md in
@@ -45,6 +46,21 @@ export interface Host {
   // in its own pages (refs/found.ts): the app draws what it's told, since
   // only ws knows what there is to name.
   refs(texts: string[]): FoundRef[][];
+  // The UIs of ws's own the app asks for (ui.ts): a ref's card, by its
+  // words. ws defines each and draws it over the frame, by where in the
+  // app's page it was asked from.
+  ui: {
+    // The ones there are, by name: the app is told as it connects, so
+    // what it awaits of one ws hasn't fails at once.
+    readonly names: readonly string[];
+    // The app asks for one. What comes back is why it can't be shown, if
+    // it can't, and the app is told.
+    open(asked: Asked): string | undefined;
+    // The app takes one back.
+    close(id: number): void;
+    // The page was hung up on: all it asked for goes with it.
+    forget(): void;
+  };
   // The app has a backdrop up, or has taken its last one down: ws dims
   // what's beside the frame for as long as it has one. No version says
   // it: ws sees the backdrop in the page that's connected (backdrop.ts).
@@ -78,6 +94,9 @@ export interface Session {
   refsChanged(): void;
   // A press landed in ws, outside the frame: the app never sees one.
   outside(): void;
+  // ws closed one of its UIs the app had asked for: dismissed, or done,
+  // with what came of it.
+  uiClosed(id: number, result?: unknown): void;
   // Where the conversation about the page is now.
   conversation(status: Status): void;
   // Stops listening, and closes the port.
@@ -126,6 +145,7 @@ export interface Frame {
   changed(): void;
   refsChanged(): void;
   outside(): void;
+  uiClosed(id: number, result?: unknown): void;
   conversation(status: Status): void;
   // The frame loaded a page. If it isn't the one that's connected, that
   // one is gone, and is hung up on: a page that went with a backdrop up,
@@ -164,6 +184,7 @@ export function listen(
     unwatch();
     unwatch = () => {};
     host.dim(false);
+    host.ui.forget();
     host.here(undefined);
     host.chromeLayout("standard");
     host.conversation.forget();
@@ -194,6 +215,7 @@ export function listen(
     changed: () => session?.changed(),
     refsChanged: () => session?.refsChanged(),
     outside: () => session?.outside(),
+    uiClosed: (id, result) => session?.uiClosed(id, result),
     conversation: (status) => session?.conversation(status),
     loaded() {
       const now = frame();

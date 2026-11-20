@@ -3,9 +3,11 @@
 // shell); this connects to ws, renders into #root, shows one of two
 // screens for the path ws says it's at, says its title for each, and counts
 // the ws:changed it's had. It keeps no history: ws does. The names in its
-// own words (THING-2, a mission) are ws's to find: it marks them. And it
-// has a menu and two dialogs, for what the frame's edge would get in the
-// way of: a press in ws closes the menu, and ws dims beside a backdrop.
+// own words (THING-2, a mission) are ws's to find: it marks them, and
+// each has its card, which ws draws over the frame with nothing asked of
+// the app. And it has a menu and two dialogs, for what the frame's edge
+// would get in the way of: a press in ws closes the menu, and ws dims
+// beside a backdrop.
 
 import { type Client, connect, type ConnectOptions, NoHostError, ProtocolError } from "@withworkspace/ui-lib";
 

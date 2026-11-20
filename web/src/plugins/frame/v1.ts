@@ -32,6 +32,15 @@ export function v1(port: MessagePort, host: Host): Session {
         asked = true;
         send({ type: "ws:refs-found", id: m.id, found: host.refs(m.texts) } satisfies V1.RefsFound);
         break;
+      // One of ws's own UIs, asked for: shown, or the page told why not.
+      case "ws:ui-open": {
+        const error = host.ui.open({ id: m.id, ui: m.ui, ...(m.box ? { box: m.box } : {}), with: m.with ?? {} });
+        if (error !== undefined) send({ type: "ws:ui-closed", id: m.id, error } satisfies V1.UiClosed);
+        break;
+      }
+      case "ws:ui-close":
+        host.ui.close(m.id);
+        break;
       case "ws:here":
         host.here(m.name);
         break;
@@ -69,6 +78,8 @@ export function v1(port: MessagePort, host: Host): Session {
     keys: frameKeys,
     // ws finds its names in the app's words, when it's asked (ws:refs).
     refs: true,
+    // The UIs of its own ws has for the app to ask for (ws:ui-open).
+    uis: [...host.ui.names],
     // ws holds conversations about the page (ws:conversation).
     conversations: true,
   } satisfies V1.Welcome);
@@ -84,6 +95,7 @@ export function v1(port: MessagePort, host: Host): Session {
     // Said to every page, asked for or not: one with nothing open does
     // nothing with it.
     outside: () => send({ type: "ws:outside" } satisfies V1.Outside),
+    uiClosed: (id, result) => send((result === undefined ? { type: "ws:ui-closed", id } : { type: "ws:ui-closed", id, result }) satisfies V1.UiClosed),
     conversation: (s) => send({ type: "ws:conversation-state", open: s.open, ...(s.as ? { as: s.as } : {}), working: s.working } satisfies V1.ConversationState),
     close() {
       port.onmessage = null;

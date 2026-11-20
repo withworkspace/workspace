@@ -6,6 +6,7 @@ import { createHost } from "../conversation/host";
 import type { FoundRef } from "../refs/found";
 import { answer, type Host, type KeyPress, listen, refusal, type Session, type Speak, versions } from "./frame";
 import { v1 } from "./frame/v1";
+import type { Asked } from "./ui";
 import { tokenVar } from "./tokens";
 
 // ws's side of the frame protocol, against the page's side as it's
@@ -17,7 +18,7 @@ const vars = (value: string) => Object.fromEntries(TOKENS.map((t) => [tokenVar(t
 
 // A host that keeps what the page said, with a theme a test can change.
 function fakeWs(path = "/things/2?tab=links") {
-  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[], heres: [] as (string | undefined)[], layouts: [] as string[] };
+  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[], uis: [] as Asked[], uiCloses: [] as number[], uiForgets: 0, heres: [] as (string | undefined)[], layouts: [] as string[] };
   let theme: V1.Theme = { scheme: "dark", vars: vars("dark") };
   // What ws finds: THING-<n>, wherever it's written, until a test says
   // otherwise.
@@ -36,6 +37,17 @@ function fakeWs(path = "/things/2?tab=links") {
       return texts.map(find);
     },
     dim: (on) => void said.dims.push(on),
+    // ws has one UI of its own here, the ref's card: any other, it says so.
+    ui: {
+      names: ["ref-card"],
+      open(asked) {
+        if (asked.ui !== "ref-card") return `This ws has no UI called ${asked.ui}. Update ws.`;
+        said.uis.push(asked);
+        return undefined;
+      },
+      close: (id) => void said.uiCloses.push(id),
+      forget: () => void said.uiForgets++,
+    },
     here: (name) => void said.heres.push(name),
     chromeLayout: (mode) => void said.layouts.push(mode),
     conversation: createHost("jira"),
@@ -111,7 +123,7 @@ describe("the handshake", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const ws = fakeWs();
     // A ws that has gone on to 2 and dropped 1.
-    const later: Record<number, Speak> = { 2: () => ({ version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, conversation() {}, close() {} }) };
+    const later: Record<number, Speak> = { 2: () => ({ version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, uiClosed() {}, conversation() {}, close() {} }) };
     const failed = connect({ host: { postMessage: (m, _o, [port]) => void answer(m as V1.Connect, port as MessagePort, ws.host, later) } });
     await expect(failed).rejects.toBeInstanceOf(ProtocolError);
     await expect(failed).rejects.toMatchObject({ page: [1], host: [2], message: "jira speaks frame protocol 1, and this ws speaks 2. Update the plugin." });
@@ -124,7 +136,7 @@ describe("the handshake", () => {
     const two: Speak = (port) => {
       spoke.push(2);
       port.postMessage({ type: "ws:welcome", version: 2 });
-      return { version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, conversation() {}, close: () => port.close() };
+      return { version: 2, navigate() {}, theme() {}, changed() {}, refsChanged() {}, outside() {}, uiClosed() {}, conversation() {}, close: () => port.close() };
     };
     const both: Record<number, Speak> = { 1: v1, 2: two };
 
@@ -246,6 +258,65 @@ describe("protocol 1's host", () => {
     await twice;
     expect(presses).toBe(2);
     client.close();
+    session.close();
+  });
+
+  it("hears the UI of ws's own the app asks for, with what it's given and where it's asked from, and that it took it back", async () => {
+    const { client, session, said } = await connected();
+    const box = { x: 212, y: 96.5, width: 54, height: 18 };
+    const ref = JSON.stringify({ kind: "thing", id: "THING-2" });
+
+    const close = client.ui.refCard(box, ref);
+    await tick();
+    expect(said.uis).toEqual([{ id: 1, ui: "ref-card", box, with: { ref } }]);
+
+    close();
+    await tick();
+    expect(said.uiCloses).toEqual([1]);
+    client.close();
+    session.close();
+  });
+
+  it("tells the app what came of a UI ws closed, and nothing of one the app closed", async () => {
+    const { client, session } = await connected();
+    // What comes of a UI is its own to say: read here as whatever it is.
+    const saved: Promise<unknown> = client.ui.open("ref-card", { with: { ref: "a" } });
+    const dismissed = client.ui.open("ref-card", { with: { ref: "b" } });
+    await tick();
+
+    session.uiClosed(1, { saved: "records:sketches/release-flow.excalidraw" });
+    session.uiClosed(2);
+
+    expect(await saved).toEqual({ saved: "records:sketches/release-flow.excalidraw" });
+    expect(await dismissed).toBeUndefined();
+    client.close();
+    session.close();
+  });
+
+  it("says in the welcome which UIs it has, so the app knows before it asks", async () => {
+    const { client, session } = await connected();
+    expect(client.ui.has("ref-card")).toBe(true);
+    expect(client.ui.has("thing-remote-save")).toBe(false);
+    const { message } = await answered({ type: "ws:connect", versions: [1] }, fakeWs().host);
+    expect((message as V1.Welcome).uis).toEqual(["ref-card"]);
+    client.close();
+    session.close();
+  });
+
+  it("tells an app that asks for a UI ws hasn't that it has none, and why", async () => {
+    const { session, said } = await connected();
+    const { port1, port2 } = new MessageChannel();
+    const got: unknown[] = [];
+    port1.onmessage = (e) => got.push(e.data);
+    // A page built on a later release of the package asks for a UI this ws is from before.
+    const late = v1(port2, fakeWs().host);
+    port1.postMessage({ type: "ws:ui-open", id: 7, ui: "thing-remote-save", with: { thing: "sketch-12" } } satisfies V1.UiOpen);
+    await tick();
+    expect(got.at(-1)).toEqual({ type: "ws:ui-closed", id: 7, error: "This ws has no UI called thing-remote-save. Update ws." });
+    expect(V1.isHostMessage(got.at(-1))).toBe(true);
+    expect(said.uis).toEqual([]);
+    late.close();
+    port1.close();
     session.close();
   });
 
@@ -438,6 +509,21 @@ describe("listening for the frame", () => {
     expect(watched.map((w) => w.stopped)).toEqual([true, true]);
     first.close();
     second.close();
+  });
+
+  it("forgets what the page asked ws to show when the page goes", async () => {
+    const { frame, ws, post } = setup();
+    const page = post(hello);
+    await tick();
+    page.port.postMessage({ type: "ws:ui-open", id: 1, ui: "ref-card", box: { x: 212, y: 96.5, width: 54, height: 18 }, with: { ref: "…" } } satisfies V1.UiOpen);
+    await tick();
+    expect(ws.said.uis).toHaveLength(1);
+    expect(ws.said.uiForgets).toBe(0);
+
+    // The page went with a card up: it isn't left there.
+    frame.stop();
+    expect(ws.said.uiForgets).toBe(1);
+    page.close();
   });
 
   it("hangs up on a page the frame has loaded past, and leaves the one it's showing", async () => {
