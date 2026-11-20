@@ -49,7 +49,7 @@ type Plugin struct {
 	Description string `json:"description,omitempty"`
 	// State is ready, setup (something it requires isn't set), failed, or
 	// stopped (it's started when its view is opened).
-	State   string       `json:"state"`
+	State   plugin.State `json:"state"`
 	Error   string       `json:"error,omitempty"`
 	Missing []string     `json:"missing,omitempty"`
 	Views   []PluginView `json:"views"`
@@ -132,7 +132,7 @@ func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		for _, st := range statuses {
-			p := Plugin{Refs: refs[st.Name], Actions: st.Registration.Actions, Name: st.Name, Description: st.Registration.Description, State: string(st.State), Error: st.Error, Missing: st.Missing, Views: []PluginView{}, Changed: st.Changed, Starts: st.Starts}
+			p := Plugin{Refs: refs[st.Name], Actions: st.Registration.Actions, Name: st.Name, Description: st.Registration.Description, State: st.State, Error: st.Error, Missing: st.Missing, Views: []PluginView{}, Changed: st.Changed, Starts: st.Starts}
 			for _, v := range st.Registration.Views {
 				path := v.Path
 				if path == "" {

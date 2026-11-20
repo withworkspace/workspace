@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/artifact"
+	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/review"
 
 	"github.com/withworkspace/workspace/internal/router"
@@ -89,13 +91,13 @@ type SpaceRef struct {
 
 // Mission is one mission, as the missions list knows it.
 type Mission struct {
-	Slug     string    `json:"slug"`
-	Title    string    `json:"title"`
-	State    string    `json:"state"`
-	Created  time.Time `json:"created"`
-	Updated  time.Time `json:"updated"`            // when its record, brief or log last changed
-	Flag     string    `json:"flag,omitempty"`     // the question it's flagged with
-	ReReview []string  `json:"reReview,omitempty"` // capsules waiting for you to re-review
+	Slug     string        `json:"slug"`
+	Title    string        `json:"title"`
+	State    mission.State `json:"state"`
+	Created  time.Time     `json:"created"`
+	Updated  time.Time     `json:"updated"`            // when its record, brief or log last changed
+	Flag     string        `json:"flag,omitempty"`     // the question it's flagged with
+	ReReview []string      `json:"reReview,omitempty"` // capsules waiting for you to re-review
 	// Headline is where it stands: whose court it's in, and what moves it
 	// on. ws mission show says the same.
 	Headline Headline  `json:"headline"`
@@ -111,14 +113,14 @@ type Mission struct {
 // Headline is where a mission stands (mission.Headline): whose court it's
 // in, in a sentence, and the one action that moves it on.
 type Headline struct {
-	Court  string     `json:"court"` // agent, you, outside; "" when archived
-	Kind   string     `json:"kind"`  // crew-asks, flag, merge, awaiting-review…
-	Group  string     `json:"group"` // needs-you, in-progress, waiting, up-next, past
-	Label  string     `json:"label"` // a few words, with a glyph: "? asks"
-	Text   string     `json:"text"`
-	Action Action     `json:"action"`
-	By     string     `json:"by,omitempty"`
-	Since  *time.Time `json:"since,omitempty"`
+	Court  mission.Court `json:"court"` // agent, you, outside; "" when archived
+	Kind   string        `json:"kind"`  // crew-asks, flag, merge, awaiting-review…
+	Group  HeadlineGroup `json:"group"` // needs-you, in-progress, waiting, up-next, past
+	Label  string        `json:"label"` // a few words, with a glyph: "? asks"
+	Text   string        `json:"text"`
+	Action Action        `json:"action"`
+	By     string        `json:"by,omitempty"`
+	Since  *time.Time    `json:"since,omitempty"`
 	// Checking is what's running while ws checks a step (kind checking),
 	// so the page can say how long it's been going as it goes.
 	Checking *Checking `json:"checking,omitempty"`
@@ -182,17 +184,17 @@ type Capsule struct {
 
 // Crew is one agent session run on a mission.
 type Crew struct {
-	ID        string    `json:"id"`
-	Harness   string    `json:"harness"`
-	Model     string    `json:"model,omitempty"` // the one it was launched on, when picked
-	Role      string    `json:"role,omitempty"`
-	Capsule   string    `json:"capsule,omitempty"`
-	Started   time.Time `json:"started"`
-	Ended     bool      `json:"ended"`
-	Starting  bool      `json:"starting,omitempty"` // ws is starting its session: the mark the mission's headline reads (mission.Crew.Starting)
-	Activity  string    `json:"activity,omitempty"` // working, waiting, permission, question
-	Status    string    `json:"status,omitempty"`   // done, …
-	LastReply string    `json:"lastReply,omitempty"`
+	ID        string       `json:"id"`
+	Harness   string       `json:"harness"`
+	Model     string       `json:"model,omitempty"` // the one it was launched on, when picked
+	Role      string       `json:"role,omitempty"`
+	Capsule   string       `json:"capsule,omitempty"`
+	Started   time.Time    `json:"started"`
+	Ended     bool         `json:"ended"`
+	Starting  bool         `json:"starting,omitempty"` // ws is starting its session: the mark the mission's headline reads (mission.Crew.Starting)
+	Activity  CrewActivity `json:"activity,omitempty"` // working, waiting, permission, question
+	Status    string       `json:"status,omitempty"`   // done, …
+	LastReply string       `json:"lastReply,omitempty"`
 	// Notice is what its harness last told you ("Claude needs your
 	// permission to use Bash"), or the question it asked; Options, that
 	// question's answers.
@@ -212,13 +214,13 @@ type Crew struct {
 // view shows. Capsules' PRs are only there with ?github=1 (GitHub is slow,
 // so the page asks after it has drawn).
 type MissionDetail struct {
-	Slug    string    `json:"slug"`
-	Title   string    `json:"title"`
-	State   string    `json:"state"`
-	Created time.Time `json:"created"`
-	Request string    `json:"request,omitempty"` // what was asked for, when a briefing agent made it
-	From    string    `json:"from,omitempty"`    // the mission/crew that raised it
-	About   []string  `json:"about,omitempty"`   // what it's about, by name
+	Slug    string        `json:"slug"`
+	Title   string        `json:"title"`
+	State   mission.State `json:"state"`
+	Created time.Time     `json:"created"`
+	Request string        `json:"request,omitempty"` // what was asked for, when a briefing agent made it
+	From    string        `json:"from,omitempty"`    // the mission/crew that raised it
+	About   []string      `json:"about,omitempty"`   // what it's about, by name
 	// Conversation is the conversation it came out of (w3), and its title.
 	Conversation      string `json:"conversation,omitempty"`
 	ConversationTitle string `json:"conversationTitle,omitempty"`
@@ -297,10 +299,10 @@ type Bundle struct {
 	// Verdict is yours of it: approved, or sent back with Notes, what you
 	// said wasn't right ("" until you say), and VerdictAt when. Looked are
 	// its checks you've marked as looked at, by their keys in its list.
-	Verdict   string       `json:"verdict,omitempty"`
-	VerdictAt *time.Time   `json:"verdictAt,omitempty"`
-	Notes     []BundleNote `json:"notes,omitempty"`
-	Looked    []string     `json:"looked,omitempty"`
+	Verdict   BundleVerdict `json:"verdict,omitempty"`
+	VerdictAt *time.Time    `json:"verdictAt,omitempty"`
+	Notes     []BundleNote  `json:"notes,omitempty"`
+	Looked    []string      `json:"looked,omitempty"`
 	// Asked: the mission is at a step of yours (AskedAt) that looks at
 	// it, so approving it passes that step: a Review step, or its own
 	// step with its checks yours to say.
@@ -337,7 +339,7 @@ type BundleTry struct {
 type BundleCheck struct {
 	N       int              `json:"n"`
 	Check   string           `json:"check,omitempty"` // the step's, "" for one of the bundle's own
-	Verdict string           `json:"verdict"`         // met, unmet, can't tell
+	Verdict CheckVerdict     `json:"verdict"`         // met, unmet, can't tell
 	Said    string           `json:"said"`
 	Points  []string         `json:"points,omitempty"` // facts of the same kind, listed under what it said
 	Shows   []BundleEvidence `json:"shows,omitempty"`
@@ -354,7 +356,7 @@ type BundleCheck struct {
 type BundleEvidence struct {
 	Name    string          `json:"name"`
 	URL     string          `json:"url"`
-	Kind    string          `json:"kind"` // image, video or text
+	Kind    EvidenceKind    `json:"kind"` // image, video or text
 	Size    int64           `json:"size,omitempty"`
 	Caption string          `json:"caption,omitempty"`
 	Before  *BundleEvidence `json:"before,omitempty"`
@@ -364,11 +366,11 @@ type BundleEvidence struct {
 // BundleRan is what a check of the bundle's step came to when ws ran it
 // (a command) or had it judged.
 type BundleRan struct {
-	N        int    `json:"n,omitempty"` // its number in the step
-	Check    string `json:"check"`
-	Result   string `json:"result"`
-	Evidence string `json:"evidence,omitempty"`
-	By       string `json:"by"`
+	N        int          `json:"n,omitempty"` // its number in the step
+	Check    string       `json:"check"`
+	Result   CheckVerdict `json:"result"`
+	Evidence string       `json:"evidence,omitempty"`
+	By       string       `json:"by"`
 }
 
 // CrewPicks are the harnesses and models new crew may be launched on from
@@ -387,16 +389,16 @@ type Pick struct {
 
 // Decision is what was decided on a mission, and why.
 type Decision struct {
-	ID           string    `json:"id"`
-	What         string    `json:"what"`
-	Why          string    `json:"why,omitempty"`
-	By           string    `json:"by"`
-	From         string    `json:"from,omitempty"`
-	About        []string  `json:"about,omitempty"`
-	At           time.Time `json:"at"`
-	State        string    `json:"state"` // current, superseded, withdrawn
-	SupersededBy string    `json:"supersededBy,omitempty"`
-	WithdrawnWhy string    `json:"withdrawnWhy,omitempty"`
+	ID           string        `json:"id"`
+	What         string        `json:"what"`
+	Why          string        `json:"why,omitempty"`
+	By           string        `json:"by"`
+	From         string        `json:"from,omitempty"`
+	About        []string      `json:"about,omitempty"`
+	At           time.Time     `json:"at"`
+	State        DecisionState `json:"state"` // current, superseded, withdrawn
+	SupersededBy string        `json:"supersededBy,omitempty"`
+	WithdrawnWhy string        `json:"withdrawnWhy,omitempty"`
 }
 
 // ReReview is a capsule back with you: crew have addressed a review that
@@ -421,12 +423,12 @@ type Proposal struct {
 // looks finished), what it came to, Z as checked, and where it was handed
 // on to.
 type Conclusion struct {
-	Ending string   `json:"ending,omitempty"`
-	Text   string   `json:"text"`
-	Z      []ZCheck `json:"z,omitempty"`
-	To     []string `json:"to,omitempty"`
-	By     string   `json:"by,omitempty"`
-	At     string   `json:"at,omitempty"`
+	Ending mission.Ending `json:"ending,omitempty"`
+	Text   string         `json:"text"`
+	Z      []ZCheck       `json:"z,omitempty"`
+	To     []string       `json:"to,omitempty"`
+	By     string         `json:"by,omitempty"`
+	At     string         `json:"at,omitempty"`
 }
 
 // ZCheck is a part of Z, met or not, and how.
@@ -439,32 +441,32 @@ type ZCheck struct {
 // EndedCapsule is a capsule that ended alone: handed on (to a mission), or
 // dropped.
 type EndedCapsule struct {
-	Repo   string `json:"repo"`
-	Name   string `json:"name"`
-	Ending string `json:"ending"`
-	To     string `json:"to,omitempty"`
-	Why    string `json:"why,omitempty"`
-	By     string `json:"by,omitempty"`
-	At     string `json:"at"`
+	Repo   string        `json:"repo"`
+	Name   string        `json:"name"`
+	Ending CapsuleEnding `json:"ending"`
+	To     string        `json:"to,omitempty"`
+	Why    string        `json:"why,omitempty"`
+	By     string        `json:"by,omitempty"`
+	At     string        `json:"at"`
 }
 
 // Stage is one of the brief's stages, or its plan's steps, and where it's
 // got to.
 type Stage struct {
-	N       int      `json:"n"`
-	Title   string   `json:"title"` // a few words
-	Text    string   `json:"text"`  // the whole stage, on one line
-	State   string   `json:"state"` // accepted, current, todo
-	Crew    []string `json:"crew,omitempty"`
-	CheckIn bool     `json:"checkIn,omitempty"`
-	Why     string   `json:"why,omitempty"` // why it was accepted
+	N       int           `json:"n"`
+	Title   string        `json:"title"` // a few words
+	Text    string        `json:"text"`  // the whole stage, on one line
+	State   ops.StepState `json:"state"` // accepted, current, todo
+	Crew    []string      `json:"crew,omitempty"`
+	CheckIn bool          `json:"checkIn,omitempty"`
+	Why     string        `json:"why,omitempty"` // why it was accepted
 	// Who is who's on a step of the plan (crew, you, CI, outside, the
 	// planner), and WhoSays that as the plan says it; Makes what it makes.
 	// None for a brief's stage.
 	// Type is its kind of step (Work, Review, Open Pull Request…).
-	Type    string `json:"type,omitempty"`
-	Who     string `json:"who,omitempty"`
-	WhoSays string `json:"whoSays,omitempty"`
+	Type    StepType `json:"type,omitempty"`
+	Who     StepWho  `json:"who,omitempty"`
+	WhoSays string   `json:"whoSays,omitempty"`
 	// In is where it works, as the plan says: a repo, or one of the
 	// mission's capsules (repo/name). The Work tab lists a capsule's steps
 	// by it.
@@ -498,7 +500,7 @@ type Stage struct {
 	// said, anyone saying it's happened). Watch is since when it's waited,
 	// and ws's last look at its checks, whose results are on Checks.
 	On     string      `json:"on,omitempty"`
-	Passes string      `json:"passes,omitempty"`
+	Passes WaitPasses  `json:"passes,omitempty"`
 	Watch  *StageWatch `json:"watch,omitempty"`
 }
 
@@ -525,9 +527,9 @@ type StageCheck struct {
 	Run  bool   `json:"run,omitempty"` // a command ws runs, not words the judge judges
 	// Result is met, unmet or can't tell in the latest round ("" before
 	// one), Evidence what showed it, and By who said.
-	Result   string `json:"result,omitempty"`
-	Evidence string `json:"evidence,omitempty"`
-	By       string `json:"by,omitempty"`
+	Result   CheckVerdict `json:"result,omitempty"`
+	Evidence string       `json:"evidence,omitempty"`
+	By       string       `json:"by,omitempty"`
 }
 
 // CapsuleDetail is a capsule with its git status and PR.
@@ -560,8 +562,8 @@ type RunDetail struct {
 	Local string `json:"local"`
 	Port  int    `json:"port"`
 	// State is running, exited (Status its exit status) or gone.
-	State  string `json:"state"`
-	Status int    `json:"status,omitempty"`
+	State  runs.State `json:"state"`
+	Status int        `json:"status,omitempty"`
 	// Up: something listens on its port.
 	Up bool `json:"up,omitempty"`
 	// Ends says when it's ended without being asked, in words, while it
@@ -591,7 +593,7 @@ type RunDetail struct {
 
 // RunDetailOf is a run of the workspace at root as a page shows it.
 func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
-	d := RunDetail{Ref: r.Ref(), Name: r.Name, Recipe: r.Recipe, Link: router.RunAddress(root, r), Local: r.Link(), Port: r.Port, State: string(r.State),
+	d := RunDetail{Ref: r.Ref(), Name: r.Name, Recipe: r.Recipe, Link: router.RunAddress(root, r), Local: r.Link(), Port: r.Port, State: r.State,
 		Owner: string(r.Owner.Kind), By: r.By, Command: r.Command, Started: r.Created,
 		Repo: r.Repo, Worktree: runs.Label(r.Worktree), Dir: r.Dir,
 		Mission: r.Owner.Mission, Step: r.Owner.Step, Crew: r.Owner.Crew, Conversation: r.Owner.Conversation,
@@ -626,10 +628,10 @@ type CrewDetail struct {
 	// How it ended, beyond its exit: "interrupted" (a daemon restart
 	// stopped it), "handed-back" (ws closed its session once it had
 	// handed its work back), "stopped" (you stopped it), or "".
-	How      string `json:"how,omitempty"`
-	Note     string `json:"note,omitempty"`     // with Status: what it said
-	Dispatch string `json:"dispatch,omitempty"` // what it was dispatched for
-	Handoff  string `json:"handoff,omitempty"`  // its handoff's artifact reference
+	How      CrewEnded `json:"how,omitempty"`
+	Note     string    `json:"note,omitempty"`     // with Status: what it said
+	Dispatch string    `json:"dispatch,omitempty"` // what it was dispatched for
+	Handoff  string    `json:"handoff,omitempty"`  // its handoff's artifact reference
 }
 
 // Artifact is something the mission made or relies on, and where it is now.
@@ -656,9 +658,9 @@ type Artifact struct {
 // its refs and the sidebar show it: what it is, where it stands, its
 // latest version, and where its versions came from.
 type ArtifactInfo struct {
-	ID     string `json:"id"` // a3
-	Title  string `json:"title"`
-	Status string `json:"status"` // live, promoted, discarded
+	ID     string          `json:"id"` // a3
+	Title  string          `json:"title"`
+	Status artifact.Status `json:"status"` // live, promoted, discarded
 	// Gone: its folder isn't where it was, and it wasn't discarded.
 	Gone bool `json:"gone,omitempty"`
 	// Folder is its folder's name in .ws/artifacts, on this machine, and
@@ -875,9 +877,9 @@ type DocKind struct {
 //	lift     on the default branch of a repo that takes pull requests: a
 //	         capsule is lifted for it, with your commit, and left to you
 type DocSaves struct {
-	How    string `json:"how"`
-	Branch string `json:"branch"`           // the default branch
-	Verify string `json:"verify,omitempty"` // what must pass before it lands
+	How    ops.SaveHow `json:"how"`
+	Branch string      `json:"branch"`           // the default branch
+	Verify string      `json:"verify,omitempty"` // what must pass before it lands
 	// Subject is the commit's first line, unless you give one.
 	Subject string `json:"subject"`
 }
@@ -916,7 +918,7 @@ type Repo struct {
 	Branches  map[string]string `json:"branches,omitempty"` // each capsule's branch
 	// Landing is how work lands in it: "pr", or "direct" (straight to its
 	// default branch).
-	Landing string `json:"landing,omitempty"`
+	Landing ops.RepoLanding `json:"landing,omitempty"`
 }
 
 // Worktree is a repo's ground (Name ".ground": its default branch,
@@ -966,16 +968,16 @@ type DocConflict struct {
 // DocStage is the stage a document was made for: approving it offers to
 // accept the stage, while it's the current one.
 type DocStage struct {
-	N     int    `json:"n"`
-	Title string `json:"title"`
-	State string `json:"state"` // todo, current, accepted
+	N     int           `json:"n"`
+	Title string        `json:"title"`
+	State ops.StepState `json:"state"` // todo, current, accepted
 }
 
 // Task is something a mission waits on you for: a question, or a step of
 // its route that's yours (to review, answer, land, or go on from).
 type Task struct {
 	N       int       `json:"n"`
-	Verb    string    `json:"verb"`
+	Verb    TaskVerb  `json:"verb"`
 	Text    string    `json:"text"`
 	Step    int       `json:"step,omitempty"`
 	Options []string  `json:"options,omitempty"`

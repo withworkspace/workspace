@@ -75,8 +75,8 @@ type PagePass struct {
 // is why (wrong, already, minor), where you said.
 type PassFinding struct {
 	conversation.Finding
-	State string `json:"state"`
-	Why   string `json:"why,omitempty"`
+	State FindingState `json:"state"`
+	Why   DismissWhy   `json:"why,omitempty"`
 	// Blocks: a review's finding of a kind that makes its pass no go
 	// while it's open.
 	Blocks bool `json:"blocks,omitempty"`
@@ -108,7 +108,7 @@ func pagePass(store conversation.Store, def pages.PassDef, c *conversation.Conve
 		p.At, p.Summary = &at, w.Body
 		p.Moved = w.Around != "" && doc.Version(text) != w.Around
 		for _, f := range w.Findings {
-			p.Findings = append(p.Findings, PassFinding{Finding: f, State: c.FindingState(f.Key), Why: c.DismissedAs(f.Key)})
+			p.Findings = append(p.Findings, PassFinding{Finding: f, State: FindingState(c.FindingState(f.Key)), Why: DismissWhy(c.DismissedAs(f.Key))})
 		}
 	}
 	if last := c.Last(); last.By == conversation.WS && !c.Answering {
@@ -223,11 +223,11 @@ type PageCell struct {
 // repos, it's Repo, Worktree (".ground", or a capsule) and File there, for
 // the Files page; State is "" (as it was), "changed" or "gone".
 type CellSource struct {
-	Path     string `json:"path"`
-	Repo     string `json:"repo,omitempty"`
-	Worktree string `json:"worktree,omitempty"`
-	File     string `json:"file,omitempty"`
-	State    string `json:"state,omitempty"`
+	Path     string      `json:"path"`
+	Repo     string      `json:"repo,omitempty"`
+	Worktree string      `json:"worktree,omitempty"`
+	File     string      `json:"file,omitempty"`
+	State    SourceState `json:"state,omitempty"`
 }
 
 // cellSources are the files a cell was written from, with where each
@@ -239,7 +239,7 @@ func cellSources(root string, c *conversation.Conversation) []CellSource {
 	}
 	var out []CellSource
 	for _, src := range w.Sources {
-		cs := CellSource{Path: src.Path, State: src.State(root)}
+		cs := CellSource{Path: src.Path, State: SourceState(src.State(root))}
 		if parts := strings.SplitN(src.Path, "/", 4); len(parts) == 4 && parts[0] == "repos" {
 			cs.Repo, cs.Worktree, cs.File = parts[1], parts[2], parts[3]
 		}
@@ -437,16 +437,16 @@ type PageFile struct {
 // the ground has it. Done, Commit is the commit, and Message says what
 // happened.
 type PageFiling struct {
-	Kind    string `json:"kind"`
-	Title   string `json:"title"`
-	Ref     string `json:"ref"`
-	Subject string `json:"subject"`
-	How     string `json:"how"`
-	Branch  string `json:"branch"`
-	Verify  string `json:"verify,omitempty"`
-	Taken   bool   `json:"taken,omitempty"`
-	Commit  string `json:"commit,omitempty"`
-	Message string `json:"message,omitempty"`
+	Kind    string      `json:"kind"`
+	Title   string      `json:"title"`
+	Ref     string      `json:"ref"`
+	Subject string      `json:"subject"`
+	How     ops.SaveHow `json:"how"`
+	Branch  string      `json:"branch"`
+	Verify  string      `json:"verify,omitempty"`
+	Taken   bool        `json:"taken,omitempty"`
+	Commit  string      `json:"commit,omitempty"`
+	Message string      `json:"message,omitempty"`
 }
 
 // openFile opens a file in a repo as a page: the one tied to it, or a new

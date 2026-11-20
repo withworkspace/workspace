@@ -21,7 +21,7 @@ const known: Known = {
     { plugin: "notes", what: "note", prefixes: ["NOTE-"], address: "https://notes.example/{ref}" },
   ],
 };
-const repo = (name: string, label: string, color: string): Repo => ({ name, label, color, cloned: true, capsules: [] });
+const repo = (name: string, label: string, color: string): Repo => ({ name, label, color, cloned: true, capsules: [], aliases: [] });
 const env: FoundEnv = {
   known,
   repos: new Map([["demo", repo("demo", "Demo", "#2f7d5b")]]),

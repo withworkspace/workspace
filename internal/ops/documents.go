@@ -64,11 +64,21 @@ var mediaTypes = map[string]string{
 // video's, by its extension: "" for anything else, which is read as text.
 func MediaType(path string) string { return mediaTypes[strings.ToLower(filepath.Ext(path))] }
 
-// DocStage is the stage a document was made for (todo, current, accepted).
+// DocStage is the stage a document was made for, and where it stands.
 type DocStage struct {
-	N            int
-	Title, State string
+	N     int
+	Title string
+	State StepState
 }
+
+// StepState is where a step of a mission's plan stands.
+type StepState string
+
+const (
+	StepTodo     StepState = "todo"
+	StepCurrent  StepState = "current"
+	StepAccepted StepState = "accepted"
+)
 
 // DocIn is where a document in a repo is: .ground, or a capsule.
 type DocIn struct{ Repo, Worktree, Path string }
@@ -78,7 +88,10 @@ type DocMission struct{ Slug, Title, Ref string }
 
 // DocSaves is how an edit to a document outside a mission is saved: How is
 // savesInCapsule, savesByLanding or savesByLifting.
-type DocSaves struct{ How, Branch, Verify, Subject string }
+type DocSaves struct {
+	How                     SaveHow
+	Branch, Verify, Subject string
+}
 
 // DocSaved is what saving a document did: Conflict, an edit that clashes
 // with what changed meanwhile (nothing's written); Ref, where it's saved,
@@ -125,9 +138,11 @@ type PageFile struct {
 
 // PageFiling is what filing a page would do, or did.
 type PageFiling struct {
-	Kind, Title, Ref, Subject, How, Branch, Verify string
-	Taken                                          bool
-	Commit, Message                                string
+	Kind, Title, Ref, Subject string
+	How                       SaveHow
+	Branch, Verify            string
+	Taken                     bool
+	Commit, Message           string
 }
 
 // DocAdd asks for a new document of one of the workspace's kinds (Kind,
@@ -145,9 +160,11 @@ type DocAdd struct {
 // checked by Verify), whether the path is Taken already, and, once it's
 // added, its commit and what was done. (PageFiling's twin.)
 type DocAdding struct {
-	Kind, Title, Ref, Subject, How, Branch, Verify string
-	Taken                                          bool
-	Commit, Message                                string
+	Kind, Title, Ref, Subject string
+	How                       SaveHow
+	Branch, Verify            string
+	Taken                     bool
+	Commit, Message           string
 }
 
 // ErrChangedSince is a page's save refused because its file has changed

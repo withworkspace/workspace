@@ -16,7 +16,7 @@ func TestReposSayHowWorkLands(t *testing.T) {
 		if len(repos) != 1 {
 			t.Fatalf("repos = %+v", repos)
 		}
-		return repos[0].Landing
+		return string(repos[0].Landing)
 	}
 	if got := landing(); got != workspace.LandPR {
 		t.Errorf("landing, nothing said = %q, want %q", got, workspace.LandPR)
