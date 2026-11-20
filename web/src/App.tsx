@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Button as AriaButton, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
-import { Link, Navigate, NavLink, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType } from "react-router";
+import { Link, Navigate, NavLink, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType, useParams } from "react-router";
 import { type Connection, NotSignedIn, type Plugin, setSettings, usePlugins, useWorkspace, type Workspace } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
 import { ComparePage, compareKeys } from "./artifacts/Compare";
@@ -10,7 +10,7 @@ import { FilesPage, filesKeys } from "./files/Files";
 import { DocumentsPage, documentsKeys, SpacePage, spaceKeys } from "./documents/Documents";
 import { codeSearchKey, isCodeSearchKey, leaderWithin, pageBinds, useKeys } from "./keys";
 import { ArtifactPage, artifactKeys } from "./mission/ArtifactPage";
-import { BriefView, briefKeys } from "./mission/BriefView";
+import { briefHref } from "./mission/BriefTab";
 import { CrewPage, crewKeys } from "./mission/CrewPage";
 import { listKeys, MissionList } from "./mission/List";
 import { MissionPage, missionKeys } from "./mission/Mission";
@@ -201,7 +201,7 @@ export function App() {
                 <Route path="/" element={<MissionList missions={workspace.missions} />} />
                 <Route path="/missions/:slug" element={<MissionPage workspace={workspace} />} />
                 <Route path="/missions/:slug/artifact" element={<ArtifactPage workspace={workspace} />} />
-                <Route path="/missions/:slug/brief" element={<BriefView workspace={workspace} />} />
+                <Route path="/missions/:slug/brief" element={<ToBrief />} />
                 <Route path="/missions/:slug/crew/:id" element={<CrewPage workspace={workspace} />} />
                 <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
                 <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
@@ -675,7 +675,6 @@ function helpKeys(path: string): [string, string][] {
   if (path.includes("/review/")) return [...reviewKeys.filter(([k]) => k !== "esc"), ["L", "Land it on the default branch (a repo with no pull requests)"], ...reviewKeys.filter(([k]) => k === "esc")];
   if (path.includes("/files/")) return explorerKeys;
   if (path.endsWith("/artifact")) return artifactKeys;
-  if (/^\/missions\/[^/]+\/brief$/.test(path)) return briefKeys;
   if (path.includes("/crew/")) return crewKeys;
   if (path.includes("/conversations/")) return talkKeys;
   if (path === "/conversations") return talksKeys;
@@ -754,6 +753,13 @@ function Help({ keys, onClose }: { keys: [string, string][]; onClose: () => void
       </div>
     </Dialog>
   );
+}
+
+// ToBrief is where the brief's own page was: its mission's Brief tab,
+// which is where ws still sends you to brief one.
+function ToBrief() {
+  const { slug = "" } = useParams();
+  return <Navigate to={briefHref(slug)} replace />;
 }
 
 function NotFound() {

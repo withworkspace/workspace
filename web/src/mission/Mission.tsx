@@ -20,7 +20,7 @@ import {
   useEvents,
   type Workspace,
 } from "../api";
-import { useKeys } from "../keys";
+import { type KeyMap, useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { TalkList, talkHref } from "../talk/Talk";
 import { Icon, type IconName } from "../ui/Icon";
@@ -37,7 +37,7 @@ import { RefTag } from "../refs/RefTag";
 import { PromptCard, pendingCall } from "./AgentView";
 import { archiveMission } from "./archive";
 import { briefGoal } from "./brief";
-import { briefHref } from "./BriefView";
+import { BriefTab, briefHref, briefKeys } from "./BriefTab";
 import { shownHeadlines, splitHeadline } from "./headlines";
 import { mediaKind } from "./media";
 import { missionRefs } from "./refs";
@@ -54,13 +54,14 @@ import { PagePin } from "../shell/focus";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
-// tab under it. Summary leads with what needs you; Brief is the brief
-// (editable); Work is its capsules and documents; Verify is its
+// tab under it. Summary leads with what needs you; Brief is the brief and
+// the plan, edited as they read, with its planner's conversation beside
+// them (BriefTab.tsx); Work is its capsules and documents; Verify is its
 // verification bundles, what crew handed over to show their work; Log is
 // everything that's happened, and its crew; Talk is conversations about it.
 // The details (state, stages, documents, capsules and crew) are beside
 // Summary; on the other tabs, which want the room, s slides them in over
-// the page. Summary, Brief, Log and Talk are read, in a column; Verify and
+// the page. Summary, Log and Talk are read, in a column; Brief, Verify and
 // Work take the page's width.
 
 const tabs = ["summary", "brief", "work", "verify", "log", "talk"] as const;
@@ -76,12 +77,13 @@ export const missionKeys: [string, string][] = [
   ["v", "Review the capsule, or read the replies on a document"],
   ["o", "Open its link (a PR, a document on GitHub)"],
   ["f", "Browse the capsule's files (or the mission's only one)"],
-  ["e", "Edit the brief and plan, on their own page"],
+  ["e", "Go to the brief and plan, to edit them"],
   ["s", "Show or hide the details: beside Summary, over the other tabs"],
   ["r", "Reload"],
   ["y / n", "On Verify: approve the check (or mark it looked at) / say it's not right"],
   ["mod+⏎", "On Verify: approve the bundle, or send it back with what you said"],
   ["esc", "Close the details or a bundle you opened, or back to the missions"],
+  ...briefKeys,
 ];
 
 const sideKey = "ws:mission-side";
@@ -221,6 +223,25 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
       return !v;
     });
   const back = () => navigate("/");
+  // esc closes what's open over the tab, or goes back to the missions.
+  const escape = () => {
+    if (over && tab !== "summary") return setOver(false);
+    // A bundle opened when none is yours to approve closes, to Verify saying so.
+    if (tab === "verify" && picked && d && !toApprove(d.bundles).length) return pickBundle();
+    back();
+  };
+  // Brief has its own j, k and esc (its changes to read, its editors):
+  // there, the list's aren't bound, and its esc comes here last.
+  const listKeys: KeyMap =
+    tab === "brief"
+      ? {}
+      : {
+          j: () => move(at + 1),
+          ArrowDown: () => move(at + 1),
+          k: () => move(at < 0 ? 0 : at - 1),
+          ArrowUp: () => move(at < 0 ? 0 : at - 1),
+          Escape: escape,
+        };
   useKeys({
     "1": () => setTab("summary"),
     "2": () => setTab("brief"),
@@ -228,10 +249,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
     "4": () => setTab("verify"),
     "5": () => setTab("log"),
     "6": () => setTab("talk"),
-    j: () => move(at + 1),
-    ArrowDown: () => move(at + 1),
-    k: () => move(at < 0 ? 0 : at - 1),
-    ArrowUp: () => move(at < 0 ? 0 : at - 1),
+    ...listKeys,
     Enter: () => item?.open(),
     o: () => (item?.url ? window.open(item.url, "_blank", "noopener") : item?.open()),
     v: () => {
@@ -253,7 +271,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
       const c = item?.capsule ?? waiting ?? (only?.length === 1 ? only[0] : undefined);
       if (c) review(c);
     },
-    e: () => navigate(briefHref(slug)),
+    e: () => setTab("brief"),
     f: () => {
       const only = d?.capsules.filter((c) => c.exists);
       const c = item?.capsule ?? (only?.length === 1 ? only[0] : undefined);
@@ -262,12 +280,6 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
     },
     s: () => (tab === "summary" ? toggleSide() : setOver((v) => !v)),
     r: load,
-    Escape: () => {
-      if (over && tab !== "summary") return setOver(false);
-      // A bundle opened when none is yours to approve closes, to Verify saying so.
-      if (tab === "verify" && picked && d && !toApprove(d.bundles).length) return pickBundle();
-      back();
-    },
     h: back,
   });
 
@@ -350,8 +362,14 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
     );
   }
   const selected = (key: string) => (item?.key === key ? " selected" : "");
-  // Your turn in them, or something they proposed to confirm.
-  const waitingTalks = d.talks.filter((x) => x.waiting || !!x.proposed).length;
+  // Your turn in them, or something they proposed to confirm. Its
+  // planner's is Brief's, where it's beside the brief and plan.
+  const waitingTalks = d.talks.filter((x) => x.id !== d.planner && (x.waiting || !!x.proposed)).length;
+
+  // What its planner has for you on Brief: what it proposed (a draft of
+  // the brief and plan, a change to them, anything else), or your turn.
+  const planning = d.talks.find((x) => x.id === d.planner);
+  const briefWaiting = planning?.proposed || (planning?.waiting ? 1 : 0);
 
   // Bundles waiting for you, and those nothing has taken the place of:
   // what Verify has to show.
@@ -362,7 +380,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
   return (
     <MissionData.Provider value={d}>
     <RefContext.Provider value={refs}>
-    <div className={`mission-page${tab === "verify" || tab === "work" ? " fills" : ""}`}>
+    <div className={`mission-page${tab === "verify" || tab === "work" || tab === "brief" ? " fills" : ""}`}>
       <Timeline d={d} />
       <div className="mission-bar">
         <div className="mission-bar-in">
@@ -374,6 +392,11 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
           </header>
           {tabRow((t) => (
             <>
+              {t === "brief" && briefWaiting > 0 && (
+                <span className="count tone-attention" title={planning?.proposed ? "Its planner proposed something, for you to confirm" : "Its planner's waiting on you"}>
+                  {briefWaiting}
+                </span>
+              )}
               {t === "verify" && waitingBundles > 0 && (
                 <span className="count tone-attention" title="Verification bundles waiting for you to approve">
                   {waitingBundles}
@@ -394,12 +417,19 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
         </div>
         {tab !== "summary" && <DetailSide {...parts} updated={updated} about={about} over open={over} />}
       </div>
+      {tab === "brief" ? (
+        // The brief has the page under the bar to itself: its panes reach
+        // the page's edges, each scrolling by itself.
+        <div role="tabpanel" id="mission-panel" aria-labelledby="tab-brief" className="tab-panel brief-panel" key="brief">
+          {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
+          <BriefTab d={d} root={workspace.root} updated={updated} reload={load} onEscape={escape} />
+        </div>
+      ) : (
       <div className={`page mission${docked ? " with-side" : ""}${wideTabs.includes(tab) ? " wide" : ""}`}>
         <div className="mission-main">
           {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
           <div role="tabpanel" id="mission-panel" aria-labelledby={`tab-${tab}`} className="tab-panel" key={tab}>
             {tab === "summary" && <Summary {...parts} full={!side} />}
-            {tab === "brief" && <Brief d={d} reload={load} />}
             {tab === "work" && w && (
               <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} />
             )}
@@ -410,6 +440,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
         </div>
         {docked && <DetailSide {...parts} updated={updated} about={about} />}
       </div>
+      )}
     </div>
     </RefContext.Provider>
     </MissionData.Provider>
@@ -1595,126 +1626,6 @@ function ApprovedLook({ slug, look, keys }: { slug: string; look: Look; keys: bo
 }
 
 const bundleLink = (slug: string, id: string) => `/missions/${slug}?${new URLSearchParams({ tab: "verify", b: id })}`;
-
-// Brief is the brief, rendered, with its plan under it. They're changed on
-// their own page (e, or Edit), where what the planner proposes for them is
-// read as tracked changes and its ask bar talks to it.
-function Brief({ d, reload }: { d: MissionDetail; reload: Reload }) {
-  return (
-    <div className="brief">
-      {d.request && (
-        <Callout tone="quiet" icon="message" title="Requested">
-          <Inline text={d.request} />
-        </Callout>
-      )}
-      <div className="brief-tools">
-        <Link to={briefHref(d.slug)} className="button-link small-link" title="Edit the brief and plan on their own page, and ask its planner about them (e)">
-          <Icon name="pencil" size={12} /> Edit <Keys k="e" />
-        </Link>
-      </div>
-      {d.brief.trim() ? (
-        <div className="prose">
-          <Markdown text={d.brief} />
-        </div>
-      ) : (
-        <Empty
-          icon="file"
-          title="No brief yet"
-          action={
-            <Link to={briefHref(d.slug)} className="button-link">
-              Write one
-            </Link>
-          }
-        >
-          The brief is what crew work from: the goal, the context, what's in and out, and how you'll know it's done.
-        </Empty>
-      )}
-      <Plan d={d} reload={reload} />
-    </div>
-  );
-}
-
-// Plan is the mission's plan, under its brief: its route from A to Z (what
-// Z is, where it may stop early, its steps and who's on each), which ws
-// moves it along in place of the brief's stages. It's edited on the brief's
-// own page; Ask the planner asks it for a revision.
-function Plan({ d, reload }: { d: MissionDetail; reload: Reload }) {
-  const [busy, setBusy] = useState(false);
-  // Asking the planner for a change: it revises the plan in its
-  // conversation, applying it, or proposing it to you there when it
-  // touches a checkpoint or Z.
-  const [asking, setAsking] = useState(false);
-  const [ask, setAsk] = useState("");
-  const plan = d.plan ?? "";
-  const canAsk = d.state !== "briefing" && !d.ending && d.state !== "archived";
-  const askPlanner = () => {
-    if (!ask.trim()) return;
-    setBusy(true);
-    act(d.slug, "replan", { text: ask.trim() })
-      .then(
-        (r) => {
-          toast(r.message, { tone: "done" });
-          setAsking(false);
-          setAsk("");
-          return reload();
-        },
-        (e: Error) => toast(humanError(e.message), { tone: "danger" }),
-      )
-      .finally(() => setBusy(false));
-  };
-  if (!plan.trim()) {
-    return null; // no plan: it works from its brief's stages, as the details show
-  }
-  return (
-    <section className="plan">
-      <h2 className="group">
-        The plan
-        <Link to={briefHref(d.slug)} className="button-link small-link" title="Edit the plan on the brief's page">
-          <Icon name="pencil" size={12} /> Edit
-        </Link>
-        {canAsk && !asking && (
-          <button className="small" onClick={() => setAsking(true)} title="Ask the planner to revise the plan">
-            <Icon name="sparkle" /> Ask the planner
-          </button>
-        )}
-      </h2>
-      {asking && (
-        <div className="plan-ask">
-          <textarea
-            autoFocus
-            rows={3}
-            value={ask}
-            onChange={(e) => setAsk(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) askPlanner();
-              if (e.key === "Escape") setAsking(false);
-            }}
-            placeholder="What should change, and why"
-            aria-label="What to ask the planner"
-          />
-          <div className="editor-bar">
-            <span className="dim">The steps behind the mission stay as they are. A change to a checkpoint or Z comes back to you to accept; anything else applies.</span>
-            <span className="spacer" />
-            <button className="ghost" onClick={() => setAsking(false)} disabled={busy}>
-              Cancel <Keys k="esc" />
-            </button>
-            <button className="primary" onClick={askPlanner} disabled={busy || !ask.trim()}>
-              Ask <Keys k="mod+⏎" />
-            </button>
-          </div>
-        </div>
-      )}
-      {d.planProblem && (
-        <Callout tone="attention" icon="alert" title="The plan doesn't read, so the mission works from its brief">
-          {d.planProblem}
-        </Callout>
-      )}
-      <div className="prose">
-        <Markdown text={plan} />
-      </div>
-    </section>
-  );
-}
 
 const logFilters = [
   { id: "all", label: "Everything" },

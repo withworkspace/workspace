@@ -7,6 +7,7 @@ import { history } from "prosemirror-history";
 import { type Command, EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { forwardRef, type ReactNode, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon, type IconName } from "../ui/Icon";
 import { useAutosize } from "../ui/kit";
 import { type CellHost, cellPlugins, cellView } from "./cells";
@@ -76,6 +77,20 @@ export interface EditorProps {
   // A page's: what its words name (a file, a mission) is drawn as what it
   // is, with a card on hover (refs.ts).
   refs?: RefHost;
+  // A page with one toolbar for several documents (a mission's brief and
+  // its plan): where this one's toolbar is drawn (toolbarIn, an element of
+  // the page's) while it's the one being edited (toolbarOn), and onFocus
+  // says when it's gone to. Without toolbarIn, its toolbar is over it.
+  toolbarIn?: HTMLElement | null;
+  toolbarOn?: boolean;
+  onFocus?: () => void;
+}
+
+// placed is an editor's toolbar where it goes: over it, or in the page's
+// one bar while it's the document being edited.
+function placed(bar: ReactNode, props: Pick<EditorProps, "toolbarIn" | "toolbarOn">): ReactNode {
+  if (props.toolbarIn === undefined) return bar;
+  return props.toolbarIn && props.toolbarOn ? createPortal(bar, props.toolbarIn) : null;
 }
 
 const { nodes: N, marks: M } = schema;
@@ -163,6 +178,12 @@ const Rich = forwardRef<RichHandle, RichProps>(function Rich(props, ref) {
       }),
       nodeViews: props.cells ? { ...nodeViews, cell: cellView(() => p.current.cells) } : nodeViews,
       attributes: { class: "markdown pm", role: "textbox", "aria-multiline": "true", "aria-label": props.label, spellcheck: "true" },
+      handleDOMEvents: {
+        focus: () => {
+          p.current.onFocus?.();
+          return false;
+        },
+      },
       clipboardTextParser: (text, $context) => pasteMarkdown(text, $context),
       clipboardTextSerializer: (slice) => copyMarkdown(slice),
       handlePaste: (v, event) => {
@@ -199,7 +220,7 @@ const Rich = forwardRef<RichHandle, RichProps>(function Rich(props, ref) {
 
   return (
     <>
-      <Toolbar view={view} onLink={() => view && openLinkFor(view, setLinkEdit)} onSource={props.onSource} />
+      {placed(<Toolbar view={view} onLink={() => view && openLinkFor(view, setLinkEdit)} onSource={props.onSource} />, props)}
       {/* Drawn as the reader draws a document (.prose), so nothing moves
           when you start editing. */}
       <div className="doc-body prose">
@@ -324,7 +345,7 @@ function Toolbar({ view, onLink, onSource }: { view?: EditorView; onLink: () => 
 type SourceProps = EditorProps & { text: string; setText: (t: string) => void; onRich: () => void };
 
 // Source is the document's markdown, to edit as text.
-function Source({ text, setText, onRich, initial, label, placeholder, onChange, onSubmit, onCancel }: SourceProps) {
+function Source({ text, setText, onRich, initial, label, placeholder, onChange, onSubmit, onCancel, toolbarIn, toolbarOn, onFocus }: SourceProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useAutosize(ref, text, 4000);
   const change = useRef(onChange);
@@ -335,19 +356,23 @@ function Source({ text, setText, onRich, initial, label, placeholder, onChange, 
   useEffect(() => ref.current?.focus(), []);
   return (
     <>
-      <div className="doc-toolbar" role="toolbar" aria-label="Formatting">
-        <span className="dim">Markdown, as it's saved</span>
-        <span className="spacer" />
-        <button type="button" className="ghost small" aria-pressed onClick={onRich} title="Back to the document as it reads">
-          <Icon name="hash" size={12} /> Markdown
-        </button>
-      </div>
+      {placed(
+        <div className="doc-toolbar" role="toolbar" aria-label="Formatting">
+          <span className="dim">Markdown, as it's saved</span>
+          <span className="spacer" />
+          <button type="button" className="ghost small" aria-pressed onClick={onRich} title="Back to the document as it reads">
+            <Icon name="hash" size={12} /> Markdown
+          </button>
+        </div>,
+        { toolbarIn, toolbarOn },
+      )}
       <textarea
         ref={ref}
         className="doc-source"
         value={text}
         placeholder={placeholder}
         aria-label={`${label}, in markdown`}
+        onFocus={onFocus}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && onSubmit) {
