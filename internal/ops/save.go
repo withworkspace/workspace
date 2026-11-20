@@ -150,11 +150,15 @@ func saveInPlace(d docSave, base, text, message string) (*DocSaved, error) {
 	return saved, nil
 }
 
-// How a document outside a mission is saved (DocSaves.How).
+// SaveHow is how a document outside a mission is saved (DocSaves.How):
+// committed in the capsule it's in, landed straight away, or committed in
+// a capsule lifted for it.
+type SaveHow string
+
 const (
-	savesInCapsule = "capsule"
-	savesByLanding = "land"
-	savesByLifting = "lift"
+	savesInCapsule SaveHow = "capsule"
+	savesByLanding SaveHow = "land"
+	savesByLifting SaveHow = "lift"
 )
 
 // docSaves is how an edit to a document outside a mission is saved: where

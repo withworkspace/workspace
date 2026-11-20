@@ -1,1 +1,2 @@
 *.golden -text
+web/src/wire.gen.ts linguist-generated

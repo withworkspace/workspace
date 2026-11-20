@@ -124,9 +124,9 @@ type SpaceCommit struct {
 
 // SpaceDocChange is a document changed: added, changed or removed.
 type SpaceDocChange struct {
-	Path  string `json:"path"`
-	Title string `json:"title,omitempty"`
-	How   string `json:"how"`
+	Path  string        `json:"path"`
+	Title string        `json:"title,omitempty"`
+	How   ops.DocChange `json:"how"`
 }
 
 // SpaceFlight is a capsule with changes to a space's documents.
@@ -270,17 +270,17 @@ func (s *Server) searchDocuments(w http.ResponseWriter, r *http.Request) {
 // Citation is a document citing another, where, and how (a link, or a
 // ref).
 type Citation struct {
-	Repo  string `json:"repo"`
-	Path  string `json:"path"`
-	Title string `json:"title,omitempty"`
-	Line  int    `json:"line"`
-	How   string `json:"how"`
+	Repo  string      `json:"repo"`
+	Path  string      `json:"path"`
+	Title string      `json:"title,omitempty"`
+	Line  int         `json:"line"`
+	How   CitationHow `json:"how"`
 }
 
 func citationsOf(cs []space.Citation) []Citation {
 	out := make([]Citation, 0, len(cs))
 	for _, c := range cs {
-		out = append(out, Citation{Repo: c.Repo, Path: c.Path, Title: c.Title, Line: c.Line, How: c.How})
+		out = append(out, Citation{Repo: c.Repo, Path: c.Path, Title: c.Title, Line: c.Line, How: CitationHow(c.How)})
 	}
 	return out
 }

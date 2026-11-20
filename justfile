@@ -19,6 +19,11 @@ check:
     gofmt -l . | grep . && exit 1 || true
     go vet ./...
     go build ./...
+    go run ./scripts/wiretypes -check
+
+# Write web/src/wire.gen.ts, the web UI's types of the API, from internal/web's Go types (scripts/wiretypes says how).
+wire:
+    go run ./scripts/wiretypes
 
 # Go's tests, then the web UI's (web/src/**/*.test.ts), if pnpm is here.
 test:
