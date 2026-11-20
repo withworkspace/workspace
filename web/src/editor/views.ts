@@ -4,6 +4,7 @@ import { Decoration, DecorationSet, type EditorView, type NodeView } from "prose
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Mermaid } from "../markdown/Mermaid";
+import { view as openViewer } from "../ui/Viewer";
 import { highlightCode, loadHighlighter } from "../review/highlight";
 import { drawsDiagrams, isDiagram, showSource, showsSource } from "./diagrams";
 import { schema } from "./schema";
@@ -162,6 +163,12 @@ class Diagram implements NodeView {
       this.view.dispatch(this.view.state.tr.setSelection(NodeSelection.create(this.view.state.doc, pos)));
       this.view.focus();
     });
+    // A double click opens it in the viewer, to move around in.
+    this.drawing.title = "Double-click to open it larger";
+    this.drawing.addEventListener("dblclick", () => {
+      const svg = this.drawing.querySelector("svg");
+      if (svg) openViewer({ kind: "svg", svg: svg.outerHTML, title: "Diagram" });
+    });
     this.root = createRoot(this.drawing);
 
     this.code = document.createElement("pre");
@@ -200,7 +207,7 @@ class Diagram implements NodeView {
     const code = this.node.textContent;
     if (code === this.drawn) return;
     this.drawn = code;
-    this.root.render(createElement(Mermaid, { code }));
+    this.root.render(createElement(Mermaid, { code, viewable: false }));
   }
 
   update(node: PMNode, decorations: readonly Decoration[]): boolean {

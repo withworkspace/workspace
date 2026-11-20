@@ -769,9 +769,7 @@ function Shot({ e, label }: { e: BundleEvidence; label?: string }) {
       {e.kind === "video" ? (
         <video src={e.url} controls preload="metadata" aria-label={what} />
       ) : e.kind === "image" ? (
-        <a href={e.url} target="_blank" rel="noopener noreferrer" title="Open it on its own, full size">
-          <img src={e.url} alt={label ? `${label}: ${what}` : what} />
-        </a>
+        <img src={e.url} alt={label ? `${label}: ${what}` : what} data-viewable={label ? `${label}: ${what}` : what} title="Open it larger" />
       ) : (
         <Transcript url={e.url} />
       )}

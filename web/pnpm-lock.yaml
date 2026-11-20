@@ -96,6 +96,9 @@ importers:
         specifier: 11.0.5
         version: 11.0.5
     devDependencies:
+      '@iconify-json/material-icon-theme':
+        specifier: 1.2.77
+        version: 1.2.77
       '@types/hast':
         specifier: 3.0.5
         version: 3.0.5
@@ -152,6 +155,9 @@ packages:
 
   '@chevrotain/utils@13.2.0':
     resolution: {integrity: sha512-SzKYY68rseOrb9KILVzPsl6SjkQtdWw01SRGB5aCVI5kFcHltQsOYV3JB0Ffst72DgkvHCyDQ0NLwxtmCCf97Q==}
+
+  '@iconify-json/material-icon-theme@1.2.77':
+    resolution: {integrity: sha512-g3oBbR7JRB3bHKIH3hWK5WlMah63QjejRTuNdFVWUpY8uXhw4QDREkveG27iepLPDWba4qp3jGzEDX6e3m3zsA==}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -1567,6 +1573,10 @@ snapshots:
   '@chevrotain/types@13.2.0': {}
 
   '@chevrotain/utils@13.2.0': {}
+
+  '@iconify-json/material-icon-theme@1.2.77':
+    dependencies:
+      '@iconify/types': 2.0.0
 
   '@iconify/types@2.0.0': {}
 
