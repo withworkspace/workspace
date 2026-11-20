@@ -727,3 +727,81 @@ func TestKitActionsAreRunFromWS(t *testing.T) {
 		}
 	}
 }
+
+// A kind's things can live in a repo: ws finds one there, asks the
+// plugin what its file is found by, and keeps it as the plugin's, by its
+// folder. It's ws's: the plugin's own telling doesn't reach it.
+func TestKitReadsAThingWSFound(t *testing.T) {
+	root, h := keeping(t)
+	db := storetest.Own(t, root)
+	h.Answer = func(_ context.Context, who, method string, params json.RawMessage) (any, error) {
+		if answer, ok, err := plugin.AnswerThings(root, who, method, params); ok {
+			return answer, err
+		}
+		return nil, plugin.NoMethod(method)
+	}
+	addKit(t, root)
+	st, err := h.Refresh("kit")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := st.Registration.Refs[0].Remote; r == nil || *r != (protocol.Remote{Path: "things/{slug}/", Main: "{slug}.txt", Reads: true}) {
+		t.Fatalf("its remote, as registered: %+v", r)
+	}
+	waitFor(t, func() bool { return len(thingsIn(t, db, "kit")) == 1 }) // its own, told as it starts
+	ctx := context.Background()
+	const name = "records/things/hearth/"
+
+	fields, err := h.ReadRemote(ctx, "kit", protocol.RemoteReadParams{Kind: "thing", Name: name, Title: "The hearth", File: "hearth.txt", Content: []byte("It burns with a slow ember.")})
+	if err != nil || fields["body"] != "It burns with a slow ember." || fields["owner"] != "whoever wrote hearth.txt" {
+		t.Fatalf("read: %v, %v", fields, err)
+	}
+	// A file it can't read, and a kind it doesn't read: each is said.
+	if _, err := h.ReadRemote(ctx, "kit", protocol.RemoteReadParams{Kind: "thing", Name: name, File: "hearth.txt", Content: []byte("torn")}); !errors.Is(err, plugin.ErrCantRead) || !strings.Contains(err.Error(), "the page is torn") {
+		t.Errorf("a file it can't read: %v", err)
+	}
+	if _, err := h.ReadRemote(ctx, "kit", protocol.RemoteReadParams{Kind: "sprint", Name: name, File: "a.txt"}); !errors.Is(err, plugin.ErrNoRead) {
+		t.Errorf("a kind it doesn't read: %v", err)
+	}
+
+	// Kept as the plugin's, called what its manifest says.
+	fields["title"] = "The hearth"
+	if err := plugin.KeepFound(root, "kit", []plugin.Found{{Kind: "thing", Name: name, Version: "v1", Fields: fields}, {Kind: "sprint", Name: "records/sprints/a/", Version: "v1", Fields: map[string]string{"title": "Not a kind of its"}}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	found, _, err := db.Find(ctx, store.Said{Words: "ember"})
+	if err != nil || len(found) != 1 || found[0].Thing.Key.Name != name || found[0].Thing.Title != "The hearth" {
+		t.Fatalf("found by what its file says: %+v, %v", found, err)
+	}
+	if got, err := plugin.Findings(root); err != nil || len(got) != 1 || got[0] != (plugin.Finding{Plugin: "kit", Kind: "thing", Name: name, Version: "v1"}) {
+		t.Fatalf("what ws found: %+v, %v", got, err)
+	}
+	if f, ok, _ := plugin.FoundNamed(root, name); !ok || f.Plugin != "kit" || f.Kind != "thing" {
+		t.Errorf("found by its name: %+v, %v", f, ok)
+	}
+	// The plugin's own telling doesn't reach it: its sync tells ws of all
+	// it has, and what ws found is still there after.
+	if names, _ := plugin.ListThings(root, "kit", "thing"); len(names) != 1 || names[0] != "KIT-1" {
+		t.Errorf("what the plugin told ws of: %q", names)
+	}
+	if exit, err := h.Run(ctx, "kit", []string{"sync"}, root, plugin.Terminal{}, nil, func(string, string) {}); err != nil || exit != 0 {
+		t.Fatalf("ws kit sync: exit %d, %v", exit, err)
+	}
+	if rec, ok, _ := plugin.ThingOf(root, "kit", "thing", name); !ok || rec.Found != "v1" || rec.Fields["body"] != "It burns with a slow ember." {
+		t.Errorf("after the plugin's sync: %+v, %v", rec, ok)
+	}
+	// Registered again as it was: it stays. Gone from where it was found:
+	// forgotten.
+	if _, err := h.Refresh("kit"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, _ := plugin.ThingOf(root, "kit", "thing", name); !ok {
+		t.Error("forgotten when the plugin started again")
+	}
+	if err := plugin.KeepFound(root, "kit", nil, []plugin.Finding{{Plugin: "kit", Kind: "thing", Name: name}}); err != nil {
+		t.Fatal(err)
+	}
+	if found, _, _ := db.Find(ctx, store.Said{Words: "ember"}); len(found) != 0 {
+		t.Errorf("found after it went: %+v", found)
+	}
+}

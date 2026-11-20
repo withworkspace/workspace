@@ -115,9 +115,11 @@ func (w *Workspace) thingsNamed() []ref.Named {
 }
 
 // ThingNamed is the plugin's thing that s is, whole: a name its plugin
-// registered (RAM-123), ws: and that, or where its plugin said one is.
+// registered (RAM-123), ws: and that, where its plugin said one is, or
+// the folder of one ws found in a space (records:sketches/release-flow/).
 // With it is how its kind is named, as ws keeps it. It reads nothing but
-// how plugins' things are named: a workspace with no plugins has none.
+// how plugins' things are named and which ws found: a workspace with no
+// plugins has none.
 func (w *Workspace) ThingNamed(s string) (ref.Ref, plugin.KeptRef, bool) {
 	root := w.WS().Root
 	if strings.TrimSpace(s) == "" || len(plugin.Installed(root)) == 0 {
@@ -135,7 +137,17 @@ func (w *Workspace) ThingNamed(s string) (ref.Ref, plugin.KeptRef, bool) {
 	}
 	r, ok := k.At(s)
 	if !ok || r.Kind != ref.Thing {
-		return ref.Ref{}, plugin.KeptRef{}, false
+		// A folder ws found a thing in (its package) is that thing, of the
+		// kind it was kept as: named by the folder, not as the kind names.
+		dir, isDir := ref.Parse(strings.TrimPrefix(strings.TrimSpace(s), "ws:"))
+		if !isDir || dir.Kind != ref.Dir || dir.InCapsule() {
+			return ref.Ref{}, plugin.KeptRef{}, false
+		}
+		f, found, _ := plugin.FoundNamed(root, dir.Name())
+		if !found || !plugin.IsInstalled(root, f.Plugin) {
+			return ref.Ref{}, plugin.KeptRef{}, false
+		}
+		r = ref.Ref{Kind: ref.Thing, Plugin: f.Plugin, What: f.Kind, ID: dir.Name()}
 	}
 	for _, kr := range kept {
 		if kr.Plugin == r.Plugin && kr.Kind == r.What {

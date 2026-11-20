@@ -18,7 +18,7 @@ import (
 
 // AnswerPlugin answers what a plugin asks ws (plugin.Host's Answer): the
 // workspace's missions and repos, a conversation started for the person,
-// and what it tells ws of its own things,
+// its things that live in a repo, and what it tells ws of its own things,
 // in the protocol's types, which are what ws promises a plugin, not its
 // own. who is the plugin that asked.
 func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params json.RawMessage) (any, error) {
@@ -43,6 +43,18 @@ func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params
 			return nil, err
 		}
 		return w.pluginStartsTalk(who, in.Message)
+	case protocol.MethodRemoteList:
+		var in protocol.RemoteListParams
+		if err := decodeParams(params, &in); err != nil {
+			return nil, err
+		}
+		return w.pluginRemotes(ctx, who, in.Kind)
+	case protocol.MethodRemoteOpen:
+		var in protocol.RemoteOpenParams
+		if err := decodeParams(params, &in); err != nil {
+			return nil, err
+		}
+		return w.pluginRemote(ctx, who, in.Kind, in.Name)
 	}
 	// What a plugin tells ws of its things: kept in the workspace's
 	// records under the plugin that told it, so ws finds and names them

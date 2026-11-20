@@ -378,8 +378,10 @@ func (s *Server) pluginThing(w http.ResponseWriter, r *http.Request) {
 	// As ws keeps how the plugin names things: the name has to be one.
 	kept, _ := plugin.RefsOf(s.Plugins.Root, name)
 	i := slices.IndexFunc(kept, func(k plugin.KeptRef) bool { return k.Kind == kind })
-	if i >= 0 && kept[i].Named().Names(ref) {
-		if rec, ok, err := plugin.ThingOf(s.Plugins.Root, name, kind, ref); err == nil && ok {
+	if i >= 0 {
+		// One the plugin told ws of, by a name its kind names; or one ws
+		// found in a space, by its folder.
+		if rec, ok, err := plugin.ThingOf(s.Plugins.Root, name, kind, ref); err == nil && ok && (rec.Found != "" || kept[i].Named().Names(ref)) {
 			out := PluginThing{Key: ref, Fields: rec.Fields, Told: true}
 			if !rec.Changed.IsZero() {
 				out.Changed = &rec.Changed

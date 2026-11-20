@@ -72,9 +72,12 @@ export interface ActOn {
 export const wsActs: ActOn[] = [{ id: "mission", title: "Start a mission about it", hint: "new brief work", icon: "flag", ws: "mission" }];
 
 // actsOn is what can be done to a thing of a kind: its kind's actions, as
-// its plugin registered them, then ws's own.
-export function actsOn(named: Named | undefined): ActOn[] {
-  return [...(named?.actions ?? []).map((a) => ({ id: a.id, title: a.title, hint: a.hint, icon: a.icon })), ...wsActs];
+// its plugin registered them, then ws's own. One ws found in a space,
+// which is named by its folder (id ends in /), has ws's alone: its kind's
+// actions are its plugin's, for the things the plugin has.
+export function actsOn(named: Named | undefined, id?: string): ActOn[] {
+  const its = id?.endsWith("/") ? [] : (named?.actions ?? []);
+  return [...its.map((a) => ({ id: a.id, title: a.title, hint: a.hint, icon: a.icon })), ...wsActs];
 }
 
 // actIcon is an action's icon: the one it asked for, if ws has it.
@@ -397,8 +400,8 @@ export function pluginActionItems(plugins: Plugin[]): Item[] {
 // actingOn is what Find lists while it's acting on a plugin's thing: what
 // can be done to it (actsOn), those that match what's typed, the best
 // first, and all of them, in their order, with nothing typed.
-export function actingOn(named: Named | undefined, q: string): Item[] {
-  const items = actsOn(named).map((a) => ({
+export function actingOn(named: Named | undefined, q: string, id?: string): Item[] {
+  const items = actsOn(named, id).map((a) => ({
     id: `act:${a.ws ? "ws" : "its"}:${a.id}`,
     group: "do" as const,
     kind: a.ws ? "ws" : "Do",

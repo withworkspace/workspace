@@ -40,6 +40,11 @@ func init() {
 			fields TEXT NOT NULL,       -- its values by field, as JSON
 			PRIMARY KEY (plugin, kind, ref)
 		) WITHOUT ROWID;
+	`), store.SQL(`
+		-- A thing ws found in a space, of a kind the plugin says can live
+		-- in a repo (found.go): named by its folder, and kept with what
+		-- it was read at. '' is one the plugin told ws of.
+		ALTER TABLE plugin_things ADD COLUMN found TEXT NOT NULL DEFAULT '';
 	`))
 }
 
@@ -158,7 +163,15 @@ func KeepRefs(root, name string, refs []protocol.Ref) (refused []string, err err
 			defs[r.Kind] = r
 		}
 		for _, t := range things {
-			if r, ok := defs[t.Kind]; ok && names[t.Kind].Names(t.Ref) {
+			// One it told ws of is kept while its kind names it; one ws
+			// found in a space, while its kind's things can live in one.
+			r, ok := defs[t.Kind]
+			if t.Found == "" {
+				ok = ok && names[t.Kind].Names(t.Ref)
+			} else {
+				ok = ok && r.Remote != nil
+			}
+			if ok {
 				if kept, err := indexThing(tx, name, r, t, all); err != nil {
 					return err
 				} else if kept {

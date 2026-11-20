@@ -68,6 +68,20 @@ func init() {
 		-- A document is a thing in the graph, what its words name linked
 		-- from it: read again.
 		DELETE FROM doc_words; DELETE FROM doc_sections; DELETE FROM doc_links; DELETE FROM docs; DELETE FROM space_heads;
+	`), store.SQL(`
+		-- A thing in a space that isn't a document: a folder with a
+		-- thing.toml in it, which says what it is (things.go). Each space
+		-- is looked through again, to find them: a document that's as it
+		-- was isn't read again.
+		CREATE TABLE space_things (
+			repo TEXT NOT NULL, path TEXT NOT NULL,     -- its folder, ending in /
+			kind TEXT NOT NULL, title TEXT NOT NULL,
+			main TEXT NOT NULL, picture TEXT NOT NULL,  -- files in it, by name
+			manifest TEXT NOT NULL, blob TEXT NOT NULL, -- its thing.toml's content, and its main file's
+			changed TEXT NOT NULL, changed_by TEXT NOT NULL,
+			PRIMARY KEY (repo, path)
+		) WITHOUT ROWID;
+		DELETE FROM space_heads;
 	`))
 }
 
@@ -104,6 +118,7 @@ type Stats struct {
 	Moved   int // of them, those whose ground had moved since they were read
 	Read    int // documents read, new or changed
 	Removed int // documents gone from a space
+	Things  int // things that aren't documents read, new, changed or gone
 	Took    time.Duration
 }
 
@@ -164,9 +179,10 @@ func Refresh(ctx context.Context, db *store.DB, ws *workspace.Workspace, known f
 		if known != nil {
 			k = known()
 		}
-		read, removed, err := refreshSpace(ctx, db, ws, s, head, k)
+		read, removed, things, err := refreshSpace(ctx, db, ws, s, head, k)
 		st.Read += read
 		st.Removed += removed
+		st.Things += things
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", s.Repo, err))
 		}
@@ -178,7 +194,7 @@ func Refresh(ctx context.Context, db *store.DB, ws *workspace.Workspace, known f
 // entry is a document on a ground: its path, and its content's id.
 type entry struct{ path, blob string }
 
-func refreshSpace(ctx context.Context, db *store.DB, ws *workspace.Workspace, s workspace.Space, head string, known *ref.Known) (nread, nremoved int, err error) {
+func refreshSpace(ctx context.Context, db *store.DB, ws *workspace.Workspace, s workspace.Space, head string, known *ref.Known) (nread, nremoved, nthings int, err error) {
 	ground := ws.MainWorktree(s.Repo)
 	args := []string{"ls-tree", "-r", "-z", "--full-tree", head}
 	if s.Folder != "" {
@@ -186,17 +202,28 @@ func refreshSpace(ctx context.Context, db *store.DB, ws *workspace.Workspace, s 
 	}
 	out, err := git.Cmd{Ctx: ctx, Dir: ground, Args: args, ReadOnly: true}.Output()
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 	var now []entry
+	tree := map[string]string{} // every file under the space's folder, by path: what its things are made of
 	for _, rec := range strings.Split(string(out), "\x00") {
 		meta, p, ok := strings.Cut(rec, "\t")
 		f := strings.Fields(meta)
-		if !ok || len(f) != 3 || f[1] != "blob" || !s.Has(p) {
+		if !ok || len(f) != 3 || f[1] != "blob" {
 			continue
 		}
-		now = append(now, entry{path: p, blob: f[2]})
+		tree[p] = f[2]
+		if s.Has(p) {
+			now = append(now, entry{path: p, blob: f[2]})
+		}
 	}
+	// Its things are read before its head is kept: a space whose things
+	// couldn't be read is read again.
+	thingsRead, thingsGone, err := refreshThings(ctx, db, ws, s, head, tree)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	nthings = thingsRead + thingsGone
 	had := map[string]string{}
 	if err := db.Read(ctx, func(tx *store.Tx) error {
 		rows, err := tx.Query(`SELECT path, blob FROM docs WHERE repo = ?`, s.Repo)
@@ -213,7 +240,7 @@ func refreshSpace(ctx context.Context, db *store.DB, ws *workspace.Workspace, s 
 		}
 		return rows.Err()
 	}); err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 
 	var changed []entry
@@ -234,7 +261,7 @@ func refreshSpace(ctx context.Context, db *store.DB, ws *workspace.Workspace, s 
 	// happens in a transaction.
 	texts, err := blobs(ctx, ground, changed)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 	reads := make([]read, len(changed))
 	for i, e := range changed {
@@ -242,7 +269,7 @@ func refreshSpace(ctx context.Context, db *store.DB, ws *workspace.Workspace, s 
 	}
 	last, err := lastChanged(ctx, ground, head, s.Folder, changed)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
 	err = db.Write(ctx, func(tx *store.Tx) error {
 		for _, p := range gone {
@@ -267,9 +294,9 @@ func refreshSpace(ctx context.Context, db *store.DB, ws *workspace.Workspace, s 
 		return err
 	})
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, 0, err
 	}
-	return len(changed), len(gone), nil
+	return len(changed), len(gone), nthings, nil
 }
 
 // keepDoc writes what a document is: its row, its sections and their
@@ -358,6 +385,7 @@ func forgetRepo(tx *store.Tx, repo string) error {
 		`DELETE FROM doc_sections WHERE repo = ?`,
 		`DELETE FROM doc_links WHERE repo = ?`,
 		`DELETE FROM docs WHERE repo = ?`,
+		`DELETE FROM space_things WHERE repo = ?`,
 		`DELETE FROM space_heads WHERE repo = ?`,
 	} {
 		if _, err := tx.Exec(q, repo); err != nil {

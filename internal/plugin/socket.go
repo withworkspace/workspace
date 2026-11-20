@@ -104,6 +104,9 @@ func (h *Host) serve(nc net.Conn) {
 		if out, ok, err := h.serveProposals(ctx, method, params); ok {
 			return out, err
 		}
+		if out, ok, err := h.serveRemotes(ctx, method, params); ok {
+			return out, err
+		}
 		switch method {
 		case "run":
 			var p runParams

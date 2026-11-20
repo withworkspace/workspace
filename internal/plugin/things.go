@@ -44,6 +44,9 @@ type Record struct {
 	Kind, Ref string
 	Changed   time.Time
 	Fields    map[string]string
+	// Found is what ws read it at, for one ws found in a space (found.go):
+	// "" for one the plugin told ws of.
+	Found string
 }
 
 // How much of a field ws keeps, by its type: a title and a state are a
@@ -203,7 +206,7 @@ func forgetThing(tx *store.Tx, name, kind, ref string) error {
 // thingsOf are the records ws keeps of name's things: of one kind, or of
 // every kind (""), in order.
 func thingsOf(tx *store.Tx, name, kind string) ([]Record, error) {
-	q, args := `SELECT kind, ref, changed, fields FROM plugin_things WHERE plugin = ?`, []any{name}
+	q, args := `SELECT kind, ref, changed, fields, found FROM plugin_things WHERE plugin = ?`, []any{name}
 	if kind != "" {
 		q, args = q+` AND kind = ?`, append(args, kind)
 	}
@@ -216,7 +219,7 @@ func thingsOf(tx *store.Tx, name, kind string) ([]Record, error) {
 	for rows.Next() {
 		var r Record
 		var changed, fields string
-		if err := rows.Scan(&r.Kind, &r.Ref, &changed, &fields); err != nil {
+		if err := rows.Scan(&r.Kind, &r.Ref, &changed, &fields, &r.Found); err != nil {
 			return nil, err
 		}
 		r.Changed, _ = time.Parse(store.Stamp, changed)
@@ -316,7 +319,8 @@ func PutThings(root, name string, things []protocol.Thing) (refused []protocol.T
 }
 
 // RemoveThings forgets things of a kind a plugin told ws of (thing/remove),
-// by name. One ws doesn't have is nothing to forget.
+// by name. One ws doesn't have is nothing to forget, and neither is one
+// ws found in a space.
 func RemoveThings(root, name, kind string, refs []string) error {
 	db, err := store.Open(root)
 	if err != nil {
@@ -324,6 +328,11 @@ func RemoveThings(root, name, kind string, refs []string) error {
 	}
 	return db.Write(context.Background(), func(tx *store.Tx) error {
 		for _, r := range refs {
+			// One ws found in a space isn't the plugin's to have forgotten.
+			var found string
+			if err := tx.QueryRow(`SELECT found FROM plugin_things WHERE plugin = ? AND kind = ? AND ref = ?`, name, kind, r).Scan(&found); err != nil || found != "" {
+				continue
+			}
 			if err := forgetThing(tx, name, kind, r); err != nil {
 				return err
 			}
@@ -332,7 +341,7 @@ func RemoveThings(root, name, kind string, refs []string) error {
 	})
 }
 
-// ListThings are the things of a kind ws keeps for a plugin (thing/list),
+// ListThings are the things of a kind a plugin told ws of (thing/list),
 // by name, in order.
 func ListThings(root, name, kind string) ([]string, error) {
 	db, err := store.Open(root)
@@ -343,7 +352,9 @@ func ListThings(root, name, kind string) ([]string, error) {
 	err = db.Read(context.Background(), func(tx *store.Tx) error {
 		things, err := thingsOf(tx, name, kind)
 		for _, t := range things {
-			out = append(out, t.Ref)
+			if t.Found == "" { // what ws found in a space isn't the plugin's to list
+				out = append(out, t.Ref)
+			}
 		}
 		return err
 	})
@@ -351,7 +362,8 @@ func ListThings(root, name, kind string) ([]string, error) {
 }
 
 // ThingOf is one of a plugin's things as ws keeps it, if the plugin's
-// told ws of it: what ws draws it from without asking.
+// told ws of it or ws found it in a space: what ws draws it from without
+// asking.
 func ThingOf(root, name, kind, ref string) (Record, bool, error) {
 	db, err := store.Open(root)
 	if err != nil {
@@ -361,7 +373,7 @@ func ThingOf(root, name, kind, ref string) (Record, bool, error) {
 	found := false
 	err = db.Read(context.Background(), func(tx *store.Tx) error {
 		var changed, fields string
-		switch err := tx.QueryRow(`SELECT changed, fields FROM plugin_things WHERE plugin = ? AND kind = ? AND ref = ?`, name, kind, ref).Scan(&changed, &fields); {
+		switch err := tx.QueryRow(`SELECT changed, fields, found FROM plugin_things WHERE plugin = ? AND kind = ? AND ref = ?`, name, kind, ref).Scan(&changed, &fields, &rec.Found); {
 		case errors.Is(err, sql.ErrNoRows):
 			return nil
 		case err != nil:

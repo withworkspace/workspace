@@ -441,6 +441,10 @@ describe("what plugins do", () => {
     ]);
     // A kind with none of its own still has ws's.
     expect(actsOn(undefined).map((a) => a.title)).toEqual(["Start a mission about it"]);
+    // One ws found in a space is named by its folder: its kind's actions
+    // are its plugin's, for the plugin's own, so only ws's are offered.
+    expect(actsOn(issue, "records/issues/flaky-refresh/").map((a) => a.title)).toEqual(["Start a mission about it"]);
+    expect(actingOn(issue, "", "records/issues/flaky-refresh/").map((it) => it.id)).toEqual(["act:ws:mission"]);
     const all = actingOn(issue, "");
     expect(all.map((it) => [it.id, it.title, it.icon])).toEqual([
       ["act:its:move", "Move to…", "play"],

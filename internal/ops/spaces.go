@@ -3,6 +3,7 @@ package ops
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -19,7 +20,7 @@ func (w *Workspace) Records() (*store.DB, error) { return store.Open(w.Root()) }
 
 // Spaces is the workspace's records with what's new on each space's
 // ground read in: a space whose ground's head has moved is read again,
-// only its documents a commit changed.
+// only its documents and things a commit changed.
 func (w *Workspace) Spaces(ctx context.Context) (*store.DB, space.Stats, error) {
 	db, err := w.Records()
 	if err != nil {
@@ -31,7 +32,10 @@ func (w *Workspace) Spaces(ctx context.Context) (*store.DB, space.Stats, error) 
 		once.Do(func() { known = w.RefsKnown(ctx, true) })
 		return known
 	})
-	return db, st, err
+	// What the spaces hold that's a plugin's kind of thing is kept as the
+	// plugin's, read by it: whatever's new there, or of a kind a plugin
+	// has since registered.
+	return db, st, errors.Join(err, w.syncRemotes(ctx, db))
 }
 
 // SpaceView is a space of documents as a list of them says it: its repo

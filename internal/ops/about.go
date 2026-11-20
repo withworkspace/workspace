@@ -29,6 +29,11 @@ func (w *Workspace) AboutNames(names []string) ([]string, error) {
 		n = strings.TrimSpace(n)
 		r, ok := k.At(n)
 		if !ok {
+			// One of a plugin's things that ws found in a space is named by
+			// its folder (records/sketches/release-flow/).
+			r, _, ok = w.ThingNamed(n)
+		}
+		if !ok {
 			return nil, &Invalid{Reason: "ws names nothing " + n + ": a mission is about something ws names (one of a plugin's things, as ws plugin list has them; a pull request, demo#12)"}
 		}
 		// A file's lines aren't what a mission's about: the file is.

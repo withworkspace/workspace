@@ -310,7 +310,7 @@ export function Palette({
   const rows = asking
     ? askOptions(asking.ask, asking.typed)
     : acting?.thing
-      ? actingOn(namedOf(acting.thing, known), acting.typed)
+      ? actingOn(namedOf(acting.thing, known), acting.typed, acting.thing.id)
       : acting?.subject
         ? ordered(actsFor(acting.subject, workspace), acting.typed)
         : built.rows;
@@ -784,7 +784,7 @@ export function Palette({
                 </div>
                 <div className="find-acts" aria-label="Do to it">
                   {!mode && <PinButton r={onThing} />}
-                  {actsOn(namedOf(onThing, known)).map((a) => (
+                  {actsOn(namedOf(onThing, known), onThing.id).map((a) => (
                     <button key={`${a.ws ?? "its"}:${a.id}`} type="button" className="ghost small" disabled={working} onMouseDown={(e) => e.preventDefault()} onClick={() => doTo(onThing, a)}>
                       <Icon name={actIcon(a.icon)} size={12} /> {a.title}
                     </button>

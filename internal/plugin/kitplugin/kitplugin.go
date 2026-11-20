@@ -78,6 +78,14 @@ func run() {
 			Search(plugin.All("owner"), plugin.Upto("body", 200)).
 			Card(ui.Title("title"), ui.Subtitle(ui.Key), ui.Badge("status")).
 			Pane(ui.Title("title"), ui.Subtitle(ui.Key), ui.Badge("status"), ui.Field("owner"), ui.Markdown("body")).
+			// One can live in a repo, a text file in a folder of its own:
+			// what's in the file is what it says, unless the page is torn.
+			Remote(plugin.Remote{Path: "things/{slug}/", Main: "{slug}.txt", Read: func(_ context.Context, f plugin.RemoteFile) (map[string]string, error) {
+				if strings.Contains(string(f.Content), "torn") {
+					return nil, errors.New("the page is torn")
+				}
+				return map[string]string{"body": string(f.Content), "owner": "whoever wrote " + f.File}, nil
+			}}).
 			// Something to do to one: it asks where to, moves it, and
 			// tells ws of it as it now is.
 			Action("move", "Move to…", func(a *plugin.Act) error {
