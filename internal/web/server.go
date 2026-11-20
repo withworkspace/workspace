@@ -120,9 +120,12 @@ type Server struct {
 	topics map[string]*hub
 	// missions tells a mission's open page when it changes (mission:<slug>).
 	missions *missionHub
-	findMu   sync.Mutex // guards giving Find its pull requests
-	ctx      context.Context
-	cancel   context.CancelFunc
+	// prs tells a pull request's open page when it changes
+	// (pr:<repo>#<number>): nil without Reviews.
+	prs    *prHub
+	findMu sync.Mutex // guards giving Find its pull requests
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // Start binds, writes .ws/web.json and serves in the background.
@@ -178,6 +181,13 @@ func (s *Server) Start() error {
 			return listFingerprint(l, s.App.PassMarks(listHeads(l)))
 		}
 		s.topics[topicReviews] = h
+		// A pull request's page: its page as kept is looked at as often as
+		// any page's, and read again behind when it's stale.
+		s.prs = newPRHub(s.Poll, func(r prRef) string {
+			s.Reviews.Freshen(r.repo, r.number)
+			return strconv.FormatInt(s.Reviews.PageSeen(r.repo, r.number), 10)
+		})
+		go s.prs.run(s.ctx)
 	}
 	if s.Team != nil {
 		if s.TeamPoll == 0 {
@@ -623,7 +633,7 @@ func (s *Server) fingerprint() string {
 }
 
 // stream is a page's event stream on a topic (?topic=workspace, the
-// default; reviews; team; plugins; mission:<slug>): it says when something
+// default; reviews; team; plugins; mission:<slug>; pr:<repo>#<number>): it says when something
 // the page shows has changed, so the page never polls. An open stream holds
 // the daemon up. The plugins topic takes ?app=<name> from a page showing
 // that plugin's app.
@@ -637,9 +647,12 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 	if slug, ok := strings.CutPrefix(topic, missionTopic); ok && slug != "" && !strings.ContainsAny(slug, "/ ") {
 		subscribe = func() (<-chan string, func()) { return s.missions.subscribe(slug) }
 	}
+	if ref, ok := prTopicRef(topic); ok && s.prs != nil {
+		subscribe = func() (<-chan string, func()) { return s.followPR(ref) }
+	}
 	switch {
 	case subscribe != nil:
-	case topic == topicReviews:
+	case topic == topicReviews, strings.HasPrefix(topic, prTopic):
 		jsonError(w, http.StatusNotFound, "there's no GitHub to ask here")
 		return
 	case topic == topicTeam:

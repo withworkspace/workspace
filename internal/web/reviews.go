@@ -202,7 +202,7 @@ func (s *Server) prDetail(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	d, err := s.Reviews.Detail(repo, number)
+	d, err := s.Reviews.KeptDetail(repo, number)
 	if err != nil {
 		prError(w, err)
 		return
@@ -238,7 +238,7 @@ func (s *Server) prDiff(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "scope is layer, since or whole")
 		return
 	}
-	d, err := s.Reviews.Diff(repo, number, scope)
+	d, err := s.Reviews.KeptDiff(repo, number, scope)
 	if err != nil {
 		prError(w, err)
 		return
@@ -298,13 +298,13 @@ func (s *Server) prSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 // prThreads is everyone's comments on the PR's lines, from GitHub, as a
-// review's comments.
+// review's comments: as kept, and read again behind when they're stale.
 func (s *Server) prThreads(w http.ResponseWriter, r *http.Request) {
 	repo, number, ok := s.prOf(w, r)
 	if !ok {
 		return
 	}
-	t, err := s.Reviews.Threads(repo, number)
+	t, err := s.Reviews.KeptThreads(repo, number)
 	if err != nil {
 		prError(w, err)
 		return
@@ -332,17 +332,23 @@ func (s *Server) prRespond(w http.ResponseWriter, r *http.Request) {
 		prError(w, err)
 		return
 	}
-	s.prThreads(w, r)
+	t, err := s.Reviews.ThreadsNow(repo, number)
+	if err != nil {
+		prError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, t)
 }
 
 // prDiscussion is what's been said on the PR itself, on GitHub: reviews
-// and comments, and where each reviewer stands.
+// and comments, and where each reviewer stands. As kept, and read again
+// behind when it's stale.
 func (s *Server) prDiscussion(w http.ResponseWriter, r *http.Request) {
 	repo, number, ok := s.prOf(w, r)
 	if !ok {
 		return
 	}
-	d, err := s.Reviews.Discussion(repo, number)
+	d, err := s.Reviews.KeptDiscussion(repo, number)
 	if err != nil {
 		prError(w, err)
 		return
@@ -363,7 +369,12 @@ func (s *Server) prComment(w http.ResponseWriter, r *http.Request) {
 		prError(w, err)
 		return
 	}
-	s.prDiscussion(w, r)
+	d, err := s.Reviews.DiscussionNow(repo, number)
+	if err != nil {
+		prError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, d)
 }
 
 // prAsk starts an ask about the PR (and lines of it, if given), docking

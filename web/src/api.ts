@@ -243,7 +243,7 @@ export function useVisible(): boolean {
 
 // A topic of the server's events: what a page follows to know when what it
 // shows has changed (internal/web/events.go).
-export type Topic = "workspace" | "reviews" | "team" | "plugins" | `mission:${string}`;
+export type Topic = "workspace" | "reviews" | "team" | "plugins" | `mission:${string}` | `pr:${string}`;
 
 // EventHandlers are what a page does as it follows a topic: when the
 // stream's open (hello: fetch what it shows, so nothing's missed), on each
@@ -267,7 +267,7 @@ export function useEvents(topic: Topic, on: EventHandlers, says = "") {
   handlers.current = on;
   useEffect(() => {
     if (!visible) return;
-    const events = new EventSource(`/api/events?topic=${topic}${says}`);
+    const events = new EventSource(`/api/events?topic=${encodeURIComponent(topic)}${says}`);
     const changes = bursts(() => handlers.current.changed());
     events.addEventListener("hello", () => handlers.current.hello?.());
     events.addEventListener(topic, changes.changed);
