@@ -1,6 +1,9 @@
 package github
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 // Stub is a test double for Client: each call answers from its function,
 // or with nothing.
@@ -32,6 +35,10 @@ type Stub struct {
 	CreatePRFn func(org, repo string, n NewPR) (*PR, error)
 	// MarkReadyFn marks a draft ready; without it, there's no GitHub.
 	MarkReadyFn func(org, repo string, number int) error
+
+	// HeadsFn says where repos' branches are; without it, GitHub can't
+	// say, and each repo's fetched instead.
+	HeadsFn func(org string, repos []string, branch string) (map[string]string, error)
 }
 
 func (s *Stub) PRsForRepo(org, repo string) ([]PR, error) {
@@ -144,4 +151,11 @@ func (s *Stub) ChangedPRs(org, repo string, since time.Time) ([]PRActivity, erro
 		return s.ChangedPRsFn(org, repo, since)
 	}
 	return nil, nil
+}
+
+func (s *Stub) Heads(org string, repos []string, branch string) (map[string]string, error) {
+	if s.HeadsFn != nil {
+		return s.HeadsFn(org, repos, branch)
+	}
+	return nil, errors.New("the stub has no heads")
 }

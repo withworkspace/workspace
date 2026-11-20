@@ -2,13 +2,11 @@ package ops
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -246,22 +244,7 @@ func (w *Workspace) flightsNow(s workspace.Space, kept []SpaceFlight) []SpaceFli
 // spaceFresh is how the space's ground stands with its remote, as last
 // fetched.
 func (w *Workspace) spaceFresh(ctx context.Context, s workspace.Space) SpaceFresh {
-	ws := w.WS()
-	f := SpaceFresh{Branch: firstNonEmpty(ws.DefaultBranch, "main")}
-	if info, err := os.Stat(filepath.Join(ws.BareDir(s.Repo), "FETCH_HEAD")); err == nil {
-		f.Fetched = info.ModTime()
-	}
-	ground := ws.MainWorktree(s.Repo)
-	if counts, err := git.ReadLine(ctx, ground, "rev-list", "--left-right", "--count", "HEAD...refs/remotes/origin/"+f.Branch); err == nil {
-		if a, b, ok := strings.Cut(counts, "\t"); ok {
-			f.Ahead, _ = strconv.Atoi(a)
-			f.Behind, _ = strconv.Atoi(b)
-		}
-	}
-	if st, err := (git.Cmd{Ctx: ctx, Dir: ground, Args: []string{"status", "--porcelain", "--untracked-files=no"}, ReadOnly: true}).Output(); err == nil {
-		f.Dirty = strings.TrimSpace(string(st)) != ""
-	}
-	return f
+	return w.groundFresh(ctx, s.Repo)
 }
 
 // FetchSpace brings a space's default branch up to date in its repo's
@@ -272,9 +255,8 @@ func (w *Workspace) FetchSpace(ctx context.Context, repo string) (SpaceFresh, er
 	if err != nil {
 		return SpaceFresh{}, err
 	}
-	branch := firstNonEmpty(w.WS().DefaultBranch, "main")
-	if _, err := (git.Cmd{Ctx: ctx, Dir: w.WS().BareDir(s.Repo), Args: []string{"fetch", "--quiet", "--no-tags", "origin", fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", branch, branch)}}).Output(); err != nil {
-		return w.spaceFresh(ctx, s), &Upstream{Err: err}
+	if err := w.fetchGround(ctx, s.Repo); err != nil {
+		return w.spaceFresh(ctx, s), err
 	}
 	f := w.spaceFresh(ctx, s)
 	w.keepFresh(s.Repo, f)
@@ -282,28 +264,14 @@ func (w *Workspace) FetchSpace(ctx context.Context, repo string) (SpaceFresh, er
 }
 
 // PullSpace moves a space's ground forward to its remote's default branch,
-// as last fetched: a fast-forward of a ground with nothing in it, which
-// can't lose anything. A ground with changes of its own, or that's moved
-// apart from the remote's, is refused.
+// as last fetched (pullGround).
 func (w *Workspace) PullSpace(ctx context.Context, repo string) (SpaceFresh, error) {
 	s, err := w.spaceNamed(repo)
 	if err != nil {
 		return SpaceFresh{}, err
 	}
-	f := w.spaceFresh(ctx, s)
-	switch {
-	case f.Dirty:
-		return f, refused("ground-dirty", "%s's ground has changes of its own: it's read-only by rule, so look at what's there before anything moves it", s.Repo)
-	case f.Ahead > 0:
-		return f, refused("ground-ahead", "%s's ground has %d commits the remote hasn't: it can't be moved forward without losing them", s.Repo, f.Ahead)
-	case f.Behind == 0:
-		return f, nil
-	}
-	if err := workspace.GitFFMerge(w.WS().MainWorktree(s.Repo), "refs/remotes/origin/"+f.Branch); err != nil {
-		var ge *git.Error
-		if errors.As(err, &ge) {
-			return f, refused("ground-pull", "moving %s's ground forward: %s", s.Repo, ge.Stderr)
-		}
+	f, moved, err := w.pullGround(ctx, s.Repo)
+	if err != nil || !moved {
 		return f, err
 	}
 	// The ground's documents are read in now, as a command would: the page
