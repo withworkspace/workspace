@@ -25,6 +25,11 @@ check:
 wire:
     go run ./scripts/wiretypes
 
+# Write web/src/ui/fileIcons.gen.ts, the trees' icons for a file's language or kind, from Material Icon Theme (web/scripts/fileicons.mjs names them).
+icons:
+    cd web && [ -d node_modules ] || pnpm install --frozen-lockfile
+    cd web && node scripts/fileicons.mjs
+
 # Storybook, at localhost:6006: parts of the web UI drawn alone, from missions ws gave (web/src/mission/fixtures), to look at every state one has side by side.
 stories:
     cd web && [ -d node_modules ] || pnpm install --frozen-lockfile

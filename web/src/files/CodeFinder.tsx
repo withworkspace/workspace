@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useKeys } from "../keys";
 import { type CodeEnd, type CodeHit, codeNote, codeRematch, codeStream } from "../shell/find";
 import { CodeText, CodeWhere } from "../shell/CodeHitParts";
+import { FileIcon } from "../ui/FileIcon";
 import { Icon } from "../ui/Icon";
 import { humanError } from "../ui/kit";
 
@@ -107,7 +108,7 @@ export function CodeFinder({ repo, worktree, onPick, onClose }: { repo: string; 
               onMouseMove={() => i !== at && setSel(i)}
               onClick={() => onPick(h.path, h.line)}
             >
-              <Icon name="file" />
+              <FileIcon path={h.path} />
               <CodeWhere h={h} />
               <CodeText h={h} />
             </li>

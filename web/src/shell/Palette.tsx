@@ -9,6 +9,7 @@ import { isOutside, type Known, namedOf, type PageRef, refAt, refKey, type Thing
 import { RefTag } from "../refs/RefTag";
 import { forgetThing } from "../refs/ThingView";
 import { marked } from "../ui/fuzzy";
+import { FileIcon } from "../ui/FileIcon";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/status";
 import { confirm, humanError, Keys, toast } from "../ui/kit";
@@ -842,6 +843,16 @@ function kindOf(it?: Item): GroupKey | undefined {
   )[k];
 }
 
+// fileOf is the file a row is, if it's one (a file, a line of one): it
+// has its language's icon, as in the trees.
+function fileOf(it: Item): string | undefined {
+  if (it.icon !== "file") return undefined;
+  if (it.code) return it.code.path;
+  if (it.card?.kind === "file") return it.card.path;
+  if (it.path) return it.title.replace(/:\d+(-\d+)?$/, "");
+  return undefined;
+}
+
 function Row({ it, on, section, onOver, onPick }: { it: Item; on: boolean; section: GroupKey; onOver: () => void; onPick: (tab: boolean) => void }) {
   const runs = marked(it.title, it.at ?? []);
   const cut = it.path ? Math.max(it.title.lastIndexOf("/"), it.title.lastIndexOf(":")) + 1 : 0;
@@ -850,7 +861,7 @@ function Row({ it, on, section, onOver, onPick }: { it: Item; on: boolean; secti
   const says = section === "best" || section === "needs" || section === "linked" || section === "recent";
   return (
     <div id={`pal-${it.id}`} role="option" aria-selected={on} className={`find-row${on ? " on" : ""}`} onMouseMove={onOver} onClick={(e) => onPick(e.metaKey || e.ctrlKey)}>
-      {it.status ? <Status s={it.status} iconOnly /> : <Icon name={it.icon ?? "chevron-right"} />}
+      {it.status ? <Status s={it.status} iconOnly /> : fileOf(it) ? <FileIcon path={fileOf(it)!} /> : <Icon name={it.icon ?? "chevron-right"} />}
       <span className={`find-title${it.path ? " is-path" : ""}`}>
         <bdi>
           {runs.map((r, i) => {
@@ -890,7 +901,7 @@ function Row({ it, on, section, onOver, onPick }: { it: Item; on: boolean; secti
 function CodeRow({ it, h, on, onOver, onPick }: { it: Item; h: CodeHit; on: boolean; onOver: () => void; onPick: (tab: boolean) => void }) {
   return (
     <div id={`pal-${it.id}`} role="option" aria-selected={on} className={`find-row find-code${on ? " on" : ""}`} onMouseMove={onOver} onClick={(e) => onPick(e.metaKey || e.ctrlKey)}>
-      <Icon name="file" />
+      <FileIcon path={h.path} />
       <CodeWhere h={h} repo capsule />
       <CodeText h={h} />
     </div>

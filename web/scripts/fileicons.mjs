@@ -1,0 +1,217 @@
+// Writes src/ui/fileIcons.gen.ts: the icons a file's name gets in the
+// trees (its language, or what kind of file it is), from Material Icon
+// Theme (MIT, the icons VS Code's users know), as Iconify packs it
+// (@iconify-json/material-icon-theme, a dev dependency). Only the icons
+// named below are copied over, so the page carries ~70 of the set's 1,100.
+//
+// To give another kind of file an icon, add it to byName or byExt (an
+// icon's name is what the set calls it: icon-sets.iconify.design lists
+// them) and run `just icons`.
+
+import { readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const set = JSON.parse(readFileSync(require.resolve("@iconify-json/material-icon-theme/icons.json"), "utf8"));
+
+// A file's whole name, lower-cased: these win over its extension.
+const byName = {
+  "go.mod": "go-mod",
+  "go.sum": "go-mod",
+  "go.work": "go-mod",
+  "package.json": "nodejs",
+  "package-lock.json": "nodejs",
+  "pnpm-lock.yaml": "pnpm",
+  "pnpm-workspace.yaml": "pnpm",
+  "yarn.lock": "yarn",
+  "bun.lock": "bun",
+  justfile: "just",
+  makefile: "makefile",
+  dockerfile: "docker",
+  "docker-compose.yml": "docker",
+  "docker-compose.yaml": "docker",
+  ".dockerignore": "docker",
+  ".gitignore": "git",
+  ".gitattributes": "git",
+  ".gitmodules": "git",
+  "tsconfig.json": "tsconfig",
+  "jsconfig.json": "jsconfig",
+  "vite.config.ts": "vite",
+  "vite.config.js": "vite",
+  "vitest.config.ts": "vitest",
+  "readme.md": "readme",
+  readme: "readme",
+  license: "license",
+  "license.md": "license",
+  "license.txt": "license",
+  "changelog.md": "changelog",
+  "claude.md": "claude",
+  "agents.md": "agent",
+  ".editorconfig": "editorconfig",
+  ".prettierrc": "prettier",
+  "eslint.config.js": "eslint",
+  ".env": "tune",
+  ".env.local": "tune",
+  "cargo.toml": "rust",
+  "cargo.lock": "lock",
+  "gemfile": "gemfile",
+  codeowners: "codeowners",
+};
+
+// A file's extension, lower-cased, longest first ("d.ts" before "ts").
+const byExt = {
+  go: "go",
+  ts: "typescript",
+  mts: "typescript",
+  cts: "typescript",
+  "d.ts": "typescript-def",
+  "test.ts": "test-ts",
+  "spec.ts": "test-ts",
+  "test.tsx": "test-jsx",
+  tsx: "react-ts",
+  js: "javascript",
+  mjs: "javascript",
+  cjs: "javascript",
+  "test.js": "test-js",
+  jsx: "react",
+  py: "python",
+  pyi: "python",
+  ipynb: "jupyter",
+  cs: "csharp",
+  csproj: "visualstudio",
+  sln: "visualstudio",
+  rs: "rust",
+  java: "java",
+  kt: "kotlin",
+  kts: "kotlin",
+  swift: "swift",
+  rb: "ruby",
+  php: "php",
+  c: "c",
+  h: "h",
+  cc: "cpp",
+  cpp: "cpp",
+  cxx: "cpp",
+  hpp: "hpp",
+  m: "objective-c",
+  lua: "lua",
+  zig: "zig",
+  ex: "elixir",
+  exs: "elixir",
+  hs: "haskell",
+  dart: "dart",
+  scala: "scala",
+  clj: "clojure",
+  ml: "ocaml",
+  nix: "nix",
+  tf: "terraform",
+  sh: "console",
+  bash: "console",
+  zsh: "console",
+  fish: "console",
+  ps1: "powershell",
+  json: "json",
+  jsonc: "json",
+  json5: "json",
+  yaml: "yaml",
+  yml: "yaml",
+  toml: "toml",
+  xml: "xml",
+  html: "html",
+  htm: "html",
+  css: "css",
+  scss: "sass",
+  sass: "sass",
+  less: "less",
+  svelte: "svelte",
+  vue: "vue",
+  astro: "astro",
+  md: "markdown",
+  markdown: "markdown",
+  mdx: "mdx",
+  txt: "document",
+  rst: "document",
+  csv: "table",
+  tsv: "table",
+  sql: "database",
+  db: "database",
+  sqlite: "database",
+  proto: "proto",
+  graphql: "graphql",
+  gql: "graphql",
+  mmd: "mermaid",
+  mermaid: "mermaid",
+  excalidraw: "excalidraw",
+  scm: "tree",
+  wasm: "webassembly",
+  http: "http",
+  diff: "diff",
+  patch: "diff",
+  log: "log",
+  lock: "lock",
+  pdf: "pdf",
+  svg: "svg",
+  png: "image",
+  jpg: "image",
+  jpeg: "image",
+  gif: "image",
+  webp: "image",
+  avif: "image",
+  ico: "image",
+  bmp: "image",
+  mp4: "video",
+  mov: "video",
+  webm: "video",
+  mp3: "audio",
+  wav: "audio",
+  ttf: "font",
+  otf: "font",
+  woff: "font",
+  woff2: "font",
+  zip: "zip",
+  tar: "zip",
+  gz: "zip",
+  tgz: "zip",
+  pem: "certificate",
+  crt: "certificate",
+  key: "key",
+  typ: "typst",
+};
+
+const icon = (name) => {
+  const i = set.icons[name] ?? (set.aliases?.[name] && set.icons[set.aliases[name].parent]);
+  if (!i) throw new Error(`material-icon-theme has no icon "${name}"`);
+  // Drawn inline in the page, an icon's ids (a gradient's) are the page's:
+  // each is named for its icon, so two icons' can't collide (two copies of
+  // one icon have the same, and draw alike either way).
+  const body = i.body.replace(/\bid="([^"]+)"/g, `id="fi-${name}-$1"`).replace(/url\(#([^)]+)\)/g, `url(#fi-${name}-$1)`);
+  return { body, size: i.width ?? set.width ?? 16 };
+};
+
+const names = [...new Set([...Object.values(byName), ...Object.values(byExt)])].sort();
+const icons = {};
+for (const n of names) {
+  icons[n] = icon(n);
+  // The set's own icons are drawn for dark editors; a few have a -light
+  // twin, darker, for light ones.
+  if (set.icons[`${n}-light`]) icons[n].light = icon(`${n}-light`).body;
+}
+
+const out = `// Code generated by scripts/fileicons.mjs (just icons); DO NOT EDIT.
+// Icons from Material Icon Theme, MIT licensed:
+// https://github.com/material-extensions/vscode-material-icon-theme
+
+export interface FileIconData {
+  body: string; // the SVG's insides
+  size: number; // its viewBox's width and height
+  light?: string; // its insides on a light theme, where they differ
+}
+
+export const fileIcons: Record<string, FileIconData> = ${JSON.stringify(icons, null, 2)};
+
+export const iconByName: Record<string, string> = ${JSON.stringify(byName, null, 2)};
+
+export const iconByExt: Record<string, string> = ${JSON.stringify(byExt, null, 2)};
+`;
+writeFileSync(new URL("../src/ui/fileIcons.gen.ts", import.meta.url), out);
+console.log(`wrote src/ui/fileIcons.gen.ts: ${names.length} icons`);

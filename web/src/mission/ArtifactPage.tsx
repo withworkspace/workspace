@@ -193,8 +193,8 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
 }
 
 // MediaView is a mission's image or video (crew's proof, say), shown as it
-// is, under its label (the page's title): an image opens on its own, full
-// size; a video plays here.
+// is, under its label (the page's title): an image opens in the viewer,
+// to look around in; a video plays here.
 function MediaView({ a }: { a: ArtifactContent }) {
   const what = a.label || a.ref;
   return (
@@ -202,9 +202,7 @@ function MediaView({ a }: { a: ArtifactContent }) {
       {a.media?.startsWith("video/") ? (
         <video src={a.raw} controls preload="metadata" aria-label={what} />
       ) : (
-        <a href={a.raw} target="_blank" rel="noopener noreferrer" title="Open it on its own, full size">
-          <img src={a.raw} alt={what} />
-        </a>
+        <img src={a.raw} alt={what} data-viewable={what} title="Open it larger" />
       )}
     </figure>
   );

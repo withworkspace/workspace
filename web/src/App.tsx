@@ -42,6 +42,7 @@ import { TeamPage, teamKeys } from "./team/Team";
 import { Icon, type IconName } from "./ui/Icon";
 import { Logotype } from "./ui/Logotype";
 import { plain } from "./ui/inline";
+import { Viewer } from "./ui/Viewer";
 import { Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useTitle } from "./ui/kit";
 import { headlineStatus, Status } from "./ui/status";
 import { duration } from "./ui/time";
@@ -259,6 +260,7 @@ export function App() {
             onShutDown={() => void askShutDown(() => setClosed(true))}
           />
         )}
+        <Viewer />
         <Toasts />
         <Confirmer />
         <FocusKeys workspace={workspace} plugins={plugins} />

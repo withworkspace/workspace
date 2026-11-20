@@ -270,9 +270,9 @@ function DocImage({ src, alt, title }: { src?: string; alt?: string; title?: str
   const at = useContext(PlaceContext);
   if (!src) return null;
   const t = resolveLink(at?.path ?? "", src);
-  if (t.kind === "external") return <img src={src} alt={alt ?? ""} title={title} loading="lazy" />;
+  if (t.kind === "external") return <img src={src} alt={alt ?? ""} title={title} loading="lazy" data-viewable={title || alt || ""} />;
   if (!at || t.kind !== "file" || !t.path) return <span className="dead-link" title="An image this can't find">{alt || src}</span>;
-  return <img src={rawURL(at.api, t.path)} alt={alt ?? ""} title={title} loading="lazy" />;
+  return <img src={rawURL(at.api, t.path)} alt={alt ?? ""} title={title} loading="lazy" data-viewable={title || alt || t.path} />;
 }
 
 // Block is a fenced code block: a diagram for mermaid, maths for math

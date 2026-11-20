@@ -25,6 +25,7 @@ export const filesKeys: [string, string][] = [
   ["m", "Markdown: rendered, or as text"],
   ["v", "Review the capsule's changes (a mission's)"],
   ["y", "Copy the file's path"],
+  ["p", "Panes: the repos, the tree and the file; the tree and the file; or the file alone"],
   ["r", "Reload"],
   ["esc", "Close the file"],
 ];
