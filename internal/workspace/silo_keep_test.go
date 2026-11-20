@@ -51,6 +51,23 @@ func TestFullSync_LeavesWhatsTheSame(t *testing.T) {
 	}
 }
 
+// Two writes of a size in one tick of the filesystem's clock share a
+// time (Linux keeps it to a few ms): a recent time isn't trusted.
+func TestSyncFile_SameSizeAndTimeButNew(t *testing.T) {
+	src, dst := t.TempDir(), t.TempDir()
+	os.WriteFile(filepath.Join(src, "f"), []byte("new"), 0644)
+	os.WriteFile(filepath.Join(dst, "f"), []byte("old"), 0644)
+	now := time.Now()
+	os.Chtimes(filepath.Join(src, "f"), now, now)
+	os.Chtimes(filepath.Join(dst, "f"), now, now)
+	if err := SyncFile(src, dst, "f"); err != nil {
+		t.Fatal(err)
+	}
+	if got := readString(filepath.Join(dst, "f")); got != "new" {
+		t.Errorf("f = %q, want new: a recent time the same was taken as the same file", got)
+	}
+}
+
 // siloFixture is a workspace with a repo r whose silo is kept: capsules
 // one and two, .ground holding ws.repo.toml's hooks, and .silo.
 type siloFixture struct {

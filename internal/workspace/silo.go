@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/git"
 )
@@ -144,9 +145,14 @@ func SyncFile(srcDir, dstDir, relPath string) error {
 	return err
 }
 
+// mtimeSettled is how old a file's time must be before the same size
+// and time are taken to mean the same file.
+const mtimeSettled = 2 * time.Second
+
 // syncFile is SyncFile, saying whether it wrote. The copy is given the
-// source's modification time, so a file that's the same size and time is
-// taken as unchanged without reading it; one that differs in time only is
+// source's modification time, so a file that's the same size and time
+// (one not written in the last mtimeSettled) is taken as unchanged
+// without reading it; one that differs in time only is
 // compared, and given the time if it's the same.
 func syncFile(srcDir, dstDir, relPath string) (bool, error) {
 	src := filepath.Join(srcDir, relPath)
@@ -156,7 +162,10 @@ func syncFile(srcDir, dstDir, relPath string) (bool, error) {
 		return false, err
 	}
 	if have, err := os.Stat(dst); err == nil && have.Mode().IsRegular() && have.Size() == info.Size() && have.Mode().Perm() == info.Mode().Perm() {
-		if have.ModTime().Equal(info.ModTime()) {
+		// Trusted only once it's settled: a filesystem keeps times to a
+		// tick (a few ms on Linux), so two writes of a size within one
+		// share a time, as git's "racily clean" files do.
+		if have.ModTime().Equal(info.ModTime()) && time.Since(info.ModTime()) > mtimeSettled {
 			return false, nil
 		}
 		a, errA := os.ReadFile(src)
