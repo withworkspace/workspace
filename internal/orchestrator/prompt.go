@@ -190,7 +190,7 @@ func Prompt(in Input) string {
 			b.WriteString("\n")
 		}
 	case "checks":
-		fmt.Fprintf(&b, "Crew %s reported its step done, and ws ran and had judged the step's checks: not all are met (round %d; after round %d it's the user's, whatever the process says). Decide what follows by the process: send the step back to %s with what's unmet and what showed it (ws mission resume-with), or, where the process says it's the user's, flag them with what's unmet and the choices. Don't accept the step: ws passes it once its checks are all met, running them again when crew report done.\n", in.CrewID, in.Round, in.MaxRounds, in.CrewID)
+		fmt.Fprintf(&b, "Crew %s reported its step done, and ws ran and had judged the step's checks: not all are met (round %d; after round %d it's the user's, whatever the process says). Decide what follows by the process: send the step back to %s with what's unmet and what showed it (ws mission resume-with), or, where the process says it's the user's, flag them with what's unmet and the choices. Where a check is unmet only because the user has decided otherwise since the plan was written (a decision of theirs, below), or it can't be met as it's written, don't send the work back to go against them, and don't ask the planner, which revises what's ahead and can't change a step that's begun: flag the user, saying which check and which decision. Your question at this step is the step's own: ws adds passing it as it is, and sending it back, to its answers, so one question is enough. Don't accept the step: ws passes it once its checks are all met, running them again when crew report done, and the user passes it as it is.\n", in.CrewID, in.Round, in.MaxRounds, in.CrewID)
 		if len(in.Checks) > 0 {
 			b.WriteString("\nWhat the checks came to:\n\n")
 			for _, c := range in.Checks {
@@ -210,6 +210,10 @@ func Prompt(in Input) string {
 			}
 			if a.Step > 0 && a.Verb == mission.TaskReview {
 				fmt.Fprintf(&b, "Step %d is the user's, to review, and they've said what's to change in what the steps before it made (it stays theirs, to review again).\n\nws asked them: %s\nThey said: %s\n\nAct on it now, as on a review asking for changes: send it back to the crew who made it (resume them with ws mission resume-with <crew> \"…\", or dispatch fresh crew into that capsule), saying what's to change.\n", a.Step, a.Question, a.Text)
+				break
+			}
+			if a.Step > 0 && a.Verb == mission.TaskChecks {
+				fmt.Fprintf(&b, "Step %d's checks weren't all met, and the user was asked what's to happen. They've answered in their own words, and what they say stands over the checks as they're written. The question stays open to them, with passing the step as it is among its answers.\n\nThey were asked: %s\n%s: %s\n\nAct on it now. Where it says to pass the step, go on, or that a check no longer applies, accept the step (ws mission accept, with what they said as the reason): ws lets you, on their answer. Where it says what's to be put right, send the step back to its crew with that (ws mission resume-with <crew> \"…\"). Don't ask the planner to change the step: it revises what's ahead, never a step that's begun. If you can't tell which they mean, ask them once more, plainly.\n", a.Step, a.Question, who, a.Text)
 				break
 			}
 			fmt.Fprintf(&b, "You flagged the user, and they've answered.\n\nYou asked: %s\n%s: %s\n\nAct on the answer now: it's the decision you were waiting for.\n", a.Question, who, a.Text)
@@ -407,7 +411,7 @@ const planCommands = `
 - ws mission skip "<why>"   (that step, its only if not holding)
 - ws mission repeat [--in <repo>] [--on <harness:model>] "<why>"   (the Work step again, fresh crew, when resuming won't do; max_rounds caps it. --on: one [crew] allowed lists)
 - ws mission dispatch "<what to do>" [--capsule <repo>/<name>] [--on <harness:model>] [--read <artifact>]...   (fresh crew on the current Work step, nobody on it: ws couldn't start it. Say what to do and where earlier work is; name what to read first with --read (handoffs are mission:handoffs/<crew>.md))
-- ws mission replan "<what doesn't fit, and what happened>"   (the plan no longer fits what's happened: the planner revises what's ahead, and ws runs you again once it has. Once at a step)
+- ws mission replan "<what doesn't fit, and what happened>"   (the plan no longer fits what's happened: the planner revises what's ahead, never a step that's begun, and ws runs you again once it has. Once at a step)
 - ws mission flag "<question for the user>" --option "<answer>" --option "<answer>"   (one question at a time: asking again takes the place of your open one. What only the user can settle, and the plan still not fitting once the planner's had it: one clear question with what they need to decide in it, and the two or three answers you'd act on, each a short instruction)
 - ws mission wait "<what it waits on>"   (the step waits on something ws can't see happen: a deploy, a teammate elsewhere)
 - ws mission conclude "<what it came to>" --as <landed|answered|handed-on|dropped> --met "<n>: <how>" --unmet "<n>: <why not>" [--to <mission>]   (at Z, or stopped early where the plan says it may: suggest how it ends, every part of Z checked by its number below. landed: its code merged or landed; answered: a finding and no code; handed-on: its work raised as other missions; dropped: given up. The user ends it)

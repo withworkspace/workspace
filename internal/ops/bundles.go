@@ -357,7 +357,9 @@ func (w *Workspace) yourBundle(slug, id string, by Actor) (*mission.Mission, mis
 // waitsOn is the step of yours the mission is at, when it looks at bundle
 // id: the step approving the bundle passes, with everything it looks at.
 // That's a Review step, or the bundle's own step when its checks are
-// yours to say (checks: the task ws asked you with).
+// yours to say: ws has asked you (checks: the task it asked with), or they
+// came round not all met and its crew have left it there, which is yours
+// to pass whether or not anyone's asked yet.
 func (w *Workspace) waitsOn(m *mission.Mission, id string) (cur mission.StageState, looks []mission.Look, checks *mission.Task, ok bool) {
 	cur, ok = currentStep(w.Missions, m)
 	if !ok {
@@ -369,6 +371,12 @@ func (w *Workspace) waitsOn(m *mission.Mission, id string) (cur mission.StageSta
 		looks = m.Looks(states, cur.N)
 	} else if t, open := m.StepTask(cur.N); open && t.Verb == mission.TaskChecks {
 		looks, checks = m.ChecksLooks(states, cur.N), &t
+	} else if _, _, left := m.ChecksUnmet(brief); left {
+		// One you've sent back isn't there to approve: its crew are to
+		// hand over another.
+		if b, ok := m.Bundle(id); ok && b.Verdict != mission.BundleSentBack {
+			looks = m.ChecksLooks(states, cur.N)
+		}
 	}
 	if slices.ContainsFunc(looks, func(l mission.Look) bool { return l.Bundle == id }) {
 		return cur, looks, checks, true
@@ -415,10 +423,12 @@ func (w *Workspace) ApproveBundle(slug, id string, by Actor) (BundleDone, error)
 		return out, nil
 	}
 	why := "you approved " + b.ID
+	if cur.Step.Type != mission.StepReview {
+		why += ", its checks as they were"
+	}
 	if checks != nil {
 		// What ws asked of its checks is answered: kept for the
 		// orchestrator, the task closing as the step passes.
-		why += ", its checks as they were"
 		w.Missions.AnswerTask(m.Slug, checks.N, fmt.Sprintf("%s: approved %s", mission.ChecksPass, b.ID), by.By(), true)
 	}
 	acc, err := w.AcceptStage(m.Slug, AsYou, why)

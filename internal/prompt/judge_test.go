@@ -36,6 +36,11 @@ func TestReadVerdicts(t *testing.T) {
 	if v := ReadVerdicts("1. Can't tell — it needs the staging data", 1); v[0].Result != "can't tell" || v[0].Why != "it needs the staging data" {
 		t.Errorf("can't tell: %+v", v[0])
 	}
+	// One that corrects itself gives its answer last.
+	said := "1. unmet: there's no VERSION file. But d1 drops it, so it's met as d1 leaves it.\n\nCorrected answer, a single line as asked:\n\n1. met: main.go:5 has greeting(), and the VERSION file isn't asked, as d1 has it."
+	if v := ReadVerdicts(said, 1); v[0].Result != "met" || v[0].Why != "main.go:5 has greeting(), and the VERSION file isn't asked, as d1 has it." {
+		t.Errorf("corrected: %+v", v[0])
+	}
 }
 
 // A verifier is told its step and its checks (which are its own, which ws

@@ -98,12 +98,12 @@ func orchestratorMayAccept(store mission.Store, m *mission.Mission) error {
 	if left := cur.InstancesLeft(); len(left) > 0 {
 		return refused("runs-on", "step %d runs in each of %s, and isn't done yet in %s: it's passed when it's done in every one", cur.N, strings.Join(instanceRepos(cur), ", "), strings.Join(left, ", "))
 	}
-	if cur.Step.Type == mission.StepWork && len(cur.Step.Checks) > 0 && len(cur.Instances()) == 0 && !cur.ChecksMet() {
+	if cur.Step.Type == mission.StepWork && len(cur.Step.Checks) > 0 && len(cur.Instances()) == 0 && !cur.ChecksMet() && !userSaidOfChecks(m, cur) {
 		why := "they haven't been run: ws runs them when its crew report done"
 		if r, ok := cur.Record.LatestChecks(); ok {
 			why = fmt.Sprintf("round %d came to %s", r.N, r.Summary())
 		}
-		return refused("checks", "step %d has checks, and ws passes it once they're all met (%s). Send it back to its crew with what's unmet (ws mission resume-with), or flag the user, as the process says; the user can pass it as it is", cur.N, why)
+		return refused("checks", "step %d has checks, and ws passes it once they're all met (%s). Send it back to its crew with what's unmet (ws mission resume-with). Where a check no longer fits what the user's decided since, or can't be met as it's written, flag the user (ws mission flag), saying which: at this step your question is the step's own, so they can pass it as it is from it, and once they've answered that it's to pass, you can accept it. The planner can't help here: it revises what's ahead, never a step that's begun", cur.N, why)
 	}
 	if cur.Step.Type == mission.StepVerify {
 		return refused("verify", "step %d is a Verify step: ws passes it on its verifier's bundle, once nothing in it is unmet, and sends the work back to its crew when something is. There's nothing for you to accept: note what it waits on, or flag the user", cur.N)
@@ -121,6 +121,20 @@ func orchestratorMayAccept(store mission.Store, m *mission.Mission) error {
 		return refused("planner-step", "step %d is the planner's: it writes the steps after it, and ws passes the step once it has (or the user goes on). Note that it waits for the planner", cur.N)
 	}
 	return nil
+}
+
+// userSaidOfChecks reports whether the user has answered what they were
+// asked of step cur's checks, not all met, since its latest round: their
+// say stands over the checks, so the orchestrator, acting on their answer,
+// may pass the step where that's what they said. An answer from before
+// the round is about work that's been checked again since.
+func userSaidOfChecks(m *mission.Mission, cur mission.StageState) bool {
+	a := m.Answer
+	if a == nil || a.By != "you" || a.Step != cur.N || a.Verb != mission.TaskChecks || strings.EqualFold(a.Text, mission.ChecksSendBack) {
+		return false
+	}
+	r, ok := cur.Record.LatestChecks()
+	return ok && !a.At.Before(r.At)
 }
 
 // acceptAllowed refuses accepting the current stage while the latest

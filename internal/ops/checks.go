@@ -249,6 +249,7 @@ func (w *Workspace) judge(m *mission.Mission, st mission.StageState, crewID, cap
 	if data, err := os.ReadFile(w.Missions.HandoffPath(m.Slug, crewID)); err == nil {
 		j.Handoff = string(data)
 	}
+	j.Decided = w.decidedSince(m, st)
 	if dir != "" {
 		j.Diff = capsuleDiff(dir, "origin/"+w.WS().DefaultBranch)
 	}
@@ -273,6 +274,42 @@ func (w *Workspace) judge(m *mission.Mission, st mission.StageState, crewID, cap
 		return nil, "", err
 	}
 	return verdicts, "the judge (" + pick.String() + ")", nil
+}
+
+// decidedSince is what the user has decided on the mission, and still
+// stands, since step st's words could last have changed: since its crew
+// started on it (a step that's begun stays as it's written), or since the
+// plan was last written if that was before. A line each for the judge,
+// oldest first. Only the user's stand over a step's words, so only theirs
+// are given: crew's own record of what the user chose reads as the user's
+// to a judge that's shown it.
+func (w *Workspace) decidedSince(m *mission.Mission, st mission.StageState) []string {
+	var since time.Time
+	if st.Record != nil && st.Record.Started != nil {
+		since = *st.Record.Started
+	}
+	if info, err := os.Stat(w.Missions.PlanPath(m.Slug)); err == nil && (since.IsZero() || info.ModTime().Before(since)) {
+		since = info.ModTime()
+	}
+	if since.IsZero() {
+		return nil
+	}
+	all, err := w.Missions.Decisions(m.Slug)
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, d := range all {
+		if d.State != mission.DecisionCurrent || d.By != AsYou.By() || d.At.Before(since) {
+			continue
+		}
+		line := fmt.Sprintf("%s: %s", d.ID, sentence(oneLine(d.What)))
+		if why := oneLine(d.Why); why != "" {
+			line += " Why: " + sentence(clipString(why, 600))
+		}
+		out = append(out, line)
+	}
+	return out
 }
 
 // askJudge is the judge's one run: what j says, put to pick's agent in
