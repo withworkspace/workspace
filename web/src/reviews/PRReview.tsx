@@ -7,6 +7,8 @@ import {
   getPR,
   getPRDiff,
   getPRDiscussion,
+  getPRGuide,
+  getPRPasses,
   getPRThreads,
   getReview,
   noteKinds,
@@ -17,6 +19,7 @@ import {
   previewPRReview,
   respondPRThread,
   type Review as ReviewData,
+  type ReviewGuide,
   type ReviewPass,
   type ReviewState,
   submitPRReview,
@@ -62,11 +65,32 @@ export const prReviewKeys: [string, string][] = [
 
 const verdictEvents: Record<Verdict, string> = { approve: "Approve", changes: "Request changes", comment: "Comment" };
 
+// Shown is the pull request on screen (a layer, or its whole stack), and
+// what it opened with, read before it was shown.
+interface Shown {
+  repo: string;
+  number: string;
+  whole: boolean;
+  opened?: ReviewSource["opened"];
+  passes?: ReviewPass[];
+  guide?: ReviewGuide;
+}
+
 export function PRReviewPage({ workspace }: { workspace: Workspace }) {
-  const { repo = "", number = "" } = useParams();
+  // The address says what's asked for; what's shown follows it once it's
+  // been read. Moving to another layer, or to the whole stack and back,
+  // keeps this one on screen until the next can be shown whole, then
+  // shows it at once: the page never empties between them.
+  const { repo: askedRepo = "", number: askedNumber = "" } = useParams();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
-  const whole = params.get("whole") === "1";
+  const askedWhole = params.get("whole") === "1";
+  const [shown, setShown] = useState<Shown>();
+  const shownNow = useRef(shown);
+  shownNow.current = shown;
+  const repo = shown?.repo ?? askedRepo;
+  const number = shown?.number ?? askedNumber;
+  const whole = shown?.whole ?? askedWhole;
   const api = prAPI(repo, number);
   const ref = `${repo}#${number}`;
   const [d, setD] = useState<PRDetail>();
@@ -77,53 +101,108 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
   const [discussionError, setDiscussionError] = useState<string>();
   const asker = useRef<AskBarHandle<PRHeld>>(null);
   // Its passes and its guide, as a capsule's review has them too.
-  const { passes, guide, guided, hidden, took, order, notes, findings, followups, loadPasses, loadGuide, putPass, setGuide, setGuidedKept, hide, onFinding, bumpTook } = useReviewPasses(api);
+  const { passes, guide, guided, hidden, took, order, notes, findings, followups, loadPasses, loadGuide, putPass, setGuide, setGuidedKept, hide, onFinding, bumpTook } = useReviewPasses(api, shown);
   const [docking, setDocking] = useState(false);
   useTitle(d ? `${d.pr.title} · ${ref}` : ref);
 
-  const beginPR = useLatest();
-  const load = useCallback(() => {
-    const fresh = beginPR();
-    return getPR(repo, number).then(
-      (x) => {
+  // Opening what's asked for: everything it's drawn from is read, and
+  // shown together. What's been said on GitHub, which can be slow, is
+  // shown with it if it's in by then, or once it is.
+  const beginOpen = useLatest();
+  useEffect(() => {
+    const fresh = beginOpen();
+    const a = prAPI(askedRepo, askedNumber);
+    const reviewsRead = getReview(a);
+    const threadsRead = getPRThreads(a).then(
+      (t) => ({ t }),
+      (e: Error) => ({ e: e.message }),
+    );
+    const passesRead = getPRPasses(a).catch(() => [] as ReviewPass[]);
+    const guideRead = getPRGuide(a).catch(() => ({}) as ReviewGuide);
+    let said: { x?: Discussion; e?: string } | undefined;
+    let open = false;
+    const say = (s: { x?: Discussion; e?: string }) => {
+      if (!fresh()) return;
+      setDiscussion(s.x);
+      setDiscussionError(s.e);
+    };
+    getPRDiscussion(a)
+      .then(
+        (x) => ({ x }),
+        (e: Error) => ({ e: e.message }),
+      )
+      .then((s) => {
+        said = s;
+        if (open) say(s);
+      });
+    getPR(askedRepo, askedNumber).then(
+      async (x) => {
+        // What the review opens on. If it can't be read, the review
+        // reads it itself, and says why.
+        const opened = await Promise.all([reviewsRead, getPRDiff(a, askedWhole ? "whole" : x.since ? "since" : "layer")]).then(
+          ([rs, diff]) => ({ rs, diff: diff as ReviewDiff }),
+          () => undefined,
+        );
+        const [t, p, g] = await Promise.all([threadsRead, passesRead, guideRead]);
         if (!fresh()) return;
+        open = true;
         setD(x);
         setError(undefined);
+        setThreads("t" in t ? t.t : undefined);
+        setThreadsError("e" in t ? t.e : undefined);
+        say(said ?? {});
+        setShown({ repo: askedRepo, number: askedNumber, whole: askedWhole, opened, passes: p, guide: g });
       },
       (e: Error) => fresh() && setError(e.message),
     );
-  }, [repo, number, beginPR]);
+  }, [askedRepo, askedNumber, askedWhole, beginOpen]);
+
+  // Reading what's shown again (a push, a review, a reply): kept only
+  // if it's still what's shown when it comes.
+  const still = (s?: Shown) => !!s && shownNow.current?.repo === s.repo && shownNow.current?.number === s.number;
+  const beginPR = useLatest();
+  const load = useCallback(() => {
+    const s = shownNow.current;
+    if (!s) return Promise.resolve();
+    const fresh = beginPR();
+    return getPR(s.repo, s.number).then(
+      (x) => {
+        if (!fresh() || !still(s)) return;
+        setD(x);
+        setError(undefined);
+      },
+      (e: Error) => fresh() && still(s) && setError(e.message),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- still reads a ref
+  }, [beginPR]);
   const beginThreads = useLatest();
   const loadThreads = useCallback(() => {
+    const s = shownNow.current;
+    if (!s) return Promise.resolve();
     const fresh = beginThreads();
-    return getPRThreads(api).then(
+    return getPRThreads(prAPI(s.repo, s.number)).then(
       (t) => {
-        if (!fresh()) return;
+        if (!fresh() || !still(s)) return;
         setThreads(t);
         setThreadsError(undefined);
       },
-      (e: Error) => fresh() && setThreadsError(e.message),
+      (e: Error) => fresh() && still(s) && setThreadsError(e.message),
     );
-  }, [api, beginThreads]);
-  const loadDiscussion = useCallback(
-    () =>
-      getPRDiscussion(api).then(
-        (x) => {
-          setDiscussion(x);
-          setDiscussionError(undefined);
-        },
-        (e: Error) => setDiscussionError(e.message),
-      ),
-    [api],
-  );
-  useEffect(() => {
-    setD(undefined);
-    setThreads(undefined);
-    setDiscussion(undefined);
-    load();
-    loadThreads();
-    loadDiscussion();
-  }, [load, loadThreads, loadDiscussion]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- still reads a ref
+  }, [beginThreads]);
+  const loadDiscussion = useCallback(() => {
+    const s = shownNow.current;
+    if (!s) return Promise.resolve();
+    return getPRDiscussion(prAPI(s.repo, s.number)).then(
+      (x) => {
+        if (!still(s)) return;
+        setDiscussion(x);
+        setDiscussionError(undefined);
+      },
+      (e: Error) => still(s) && setDiscussionError(e.message),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- still reads a ref
+  }, []);
   // When the list changes (a push, a review, a reply), so may this.
   useReviewsEvents(() => {
     load();
@@ -134,17 +213,21 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
   });
 
   const layers = d?.stack?.layers ?? [];
-  const at = layers.findIndex((l) => l.number === Number(number));
+  // [ and ] move from the layer asked for, so pressing ] twice goes two
+  // up, even before the first has been shown.
+  const at = layers.findIndex((l) => l.number === Number(askedNumber));
   // Moving between layers, or to the whole stack and back, keeps the view
   // you're on (the changes, say), where the other has it.
   const viewQ = params.get("view") ? `?${new URLSearchParams({ view: params.get("view")! })}` : "";
   const go = (l?: PR) => l && navigate(prHref(l.repo, l.number) + viewQ, { replace: true });
+  // What's asked for and not yet shown, for the list of layers to say.
+  const going = shown && (shown.repo !== askedRepo || shown.number !== askedNumber || shown.whole !== askedWhole) ? { number: Number(askedNumber), whole: askedWhole } : undefined;
   const toggleWhole = () =>
     d?.stack &&
     setParams(
       (p) => {
         const next = new URLSearchParams(p);
-        if (whole) next.delete("whole");
+        if (next.get("whole") === "1") next.delete("whole");
         else next.set("whole", "1");
         return next;
       },
@@ -211,7 +294,7 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
       </div>
     );
   }
-  if (!d) {
+  if (!d || !shown) {
     return (
       <div className="page narrow">
         <Loading what={`Fetching ${ref}…`} delay={150} />
@@ -258,8 +341,9 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
     sinceName: () => sinceName,
     movedWords: "It has new commits since this loaded",
     empty: "It changes nothing.",
+    opened: shown.opened,
     readOnly: whole ? "The whole stack is for reading: comment on a layer ([ and ] move between them)." : undefined,
-    side: d.stack ? <LayerList d={d} whole={whole} search={viewQ} onWhole={toggleWhole} /> : undefined,
+    side: d.stack ? <LayerList d={d} whole={whole} going={going} search={viewQ} onWhole={toggleWhole} /> : undefined,
     actions: (
       <>
         <PagePin r={{ kind: "pr", repo: pr.repo, number: pr.number }} />
@@ -483,7 +567,9 @@ const withFinding = (q: string, f: AskedFinding) => `${q}\n\nIt's about what the
 
 // LayerList is a stack's layers down the side, bottom first: the order to
 // read them in.
-function LayerList({ d, whole, search, onWhole }: { d: PRDetail; whole: boolean; search: string; onWhole: () => void }) {
+// going is the layer (or the whole stack) asked for and being read, to
+// show it's coming.
+function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: boolean; going?: { number: number; whole: boolean }; search: string; onWhole: () => void }) {
   const st = d.stack!;
   return (
     <div className="layer-list">
@@ -499,11 +585,12 @@ function LayerList({ d, whole, search, onWhole }: { d: PRDetail; whole: boolean;
         {st.merged ? <li className="merged dim">{st.merged} merged below</li> : null}
         {st.layers.map((l, i) => {
           const s = prStatus(l);
+          const coming = going && !going.whole && going.number === l.number;
           return (
-            <li key={l.number} className={!whole && l.number === d.pr.number ? "here" : ""}>
+            <li key={l.number} className={`${!whole && l.number === d.pr.number ? "here" : ""}${coming ? " going" : ""}`} aria-busy={coming || undefined}>
               <Link to={prHref(l.repo, l.number) + search} replace title={`${l.title} (#${l.number}): ${l.words}`}>
                 <span className="layer-n">{i + 1}</span>
-                <Status s={s} iconOnly size={13} />
+                {coming ? <Icon name="spinner" size={13} className="spin" /> : <Status s={s} iconOnly size={13} />}
                 <span className="layer-title">{l.title}</span>
                 <span className="mono dim">#{l.number}</span>
               </Link>
@@ -511,8 +598,8 @@ function LayerList({ d, whole, search, onWhole }: { d: PRDetail; whole: boolean;
           );
         })}
       </ol>
-      <button className={`ghost small whole-stack${whole ? " on" : ""}`} aria-pressed={whole} onClick={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
-        <Icon name="layers" size={12} /> Whole stack <Keys k="w" />
+      <button className={`ghost small whole-stack${whole ? " on" : ""}`} aria-pressed={whole} aria-busy={going?.whole || undefined} onClick={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
+        <Icon name={going?.whole && !whole ? "spinner" : "layers"} size={12} className={going?.whole && !whole ? "spin" : undefined} /> Whole stack <Keys k="w" />
       </button>
     </div>
   );

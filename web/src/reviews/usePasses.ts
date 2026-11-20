@@ -23,9 +23,20 @@ function loadHidden(): Record<string, boolean> {
   }
 }
 
-export function useReviewPasses(api: string) {
-  const [passes, setPasses] = useState<ReviewPass[]>();
-  const [guide, setGuide] = useState<ReviewGuide>();
+// seed is what's been read of them already, for api: a pull request's
+// page reads the next layer's before it shows it, so they're there as it
+// opens.
+export function useReviewPasses(api: string, seed?: { passes?: ReviewPass[]; guide?: ReviewGuide }) {
+  const [passes, setPasses] = useState<ReviewPass[] | undefined>(seed?.passes);
+  const [guide, setGuide] = useState<ReviewGuide | undefined>(seed?.guide);
+  // Another review's are another's: set as it's drawn, not after, so
+  // they're never drawn with the last one's.
+  const [of, setOf] = useState(api);
+  if (of !== api) {
+    setOf(api);
+    setPasses(seed?.passes);
+    setGuide(seed?.guide);
+  }
   // Whether the files follow the guide's order, where there's a guide,
   // and the passes whose findings aren't drawn in the diff: both kept in
   // the browser.
@@ -48,8 +59,6 @@ export function useReviewPasses(api: string) {
   );
   const putPass = useCallback((p: ReviewPass) => setPasses((ps) => ps?.map((x) => (x.name === p.name ? p : x))), []);
   useEffect(() => {
-    setPasses(undefined);
-    setGuide(undefined);
     loadPasses();
     loadGuide();
   }, [loadPasses, loadGuide]);
