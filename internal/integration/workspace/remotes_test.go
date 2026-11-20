@@ -631,6 +631,12 @@ func TestAKindsThingsAreGroupedInFolders(t *testing.T) {
 	if err != nil || done.Thing.Name != "docs/architecture/plans/q4/roadmap/" {
 		t.Fatalf("grouped in the second place: %+v, %v", done.Thing, err)
 	}
+	// The plugin's told where each is among its kind's things, to list
+	// them as they're organised: the folder it's grouped in, and what ws
+	// calls its repo.
+	if done.Thing.Group != "plans/q4" || done.Thing.RepoLabel == "" {
+		t.Errorf("where the second is, as the plugin's told: group %q, in %q", done.Thing.Group, done.Thing.RepoLabel)
+	}
 	// ws finds each where it is, as it finds any.
 	for _, name := range []string{"records/sketches/cross-stack/architecture/", "docs/architecture/plans/q4/roadmap/"} {
 		if rec, ok, err := plugin.ThingOf(w.Root, "sketch", "sketch", name); err != nil || !ok || rec.Found == "" {
@@ -666,5 +672,37 @@ func TestAKindsThingsAreGroupedInFolders(t *testing.T) {
 	}
 	if got := strings.Join(offers()[0].Groups, " "); got != "cross-stack cross-stack/deeper" {
 		t.Errorf("the first place's folders, with one put deeper by hand: %q", got)
+	}
+
+	// One straight in its place, and one in none of the kind's places: the
+	// plugin's list says each one's group, the last by the folders it's in.
+	pack(t, w, "flat", "Flat", "one box")
+	ground := testutil.CapsuleDir(w, "records", ".ground")
+	if err := os.MkdirAll(filepath.Join(ground, "notes", "drawn", "aside"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(ground, "notes", "drawn", "aside", "thing.toml"), []byte("kind = \"sketch\"\ntitle = \"Aside\"\nmain = \"aside.excalidraw\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	testutil.CommitIn(t, ground, "notes/drawn/aside/aside.excalidraw", "a doodle", "A sketch beside a note")
+	listed, err := cli.AnswerPlugin(w.Root)(ctx, "sketch", protocol.MethodRemoteList, []byte(`{"kind":"sketch"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	groups := map[string]string{}
+	for _, thing := range listed.(protocol.RemoteListResult).Things {
+		groups[thing.Name] = thing.Group + " in " + thing.RepoLabel
+	}
+	label := cli.OpenOps(w.Root, nil).WS().DisplayNameFor
+	for name, want := range map[string]string{
+		"records/sketches/flat/":                     " in " + label("records"),
+		"records/sketches/cross-stack/architecture/": "cross-stack in " + label("records"),
+		"records/sketches/cross-stack/deeper/arch/":  "cross-stack/deeper in " + label("records"),
+		"docs/architecture/plans/q4/roadmap/":        "plans/q4 in " + label("docs"),
+		"records/notes/drawn/aside/":                 "notes/drawn in " + label("records"),
+	} {
+		if groups[name] != want {
+			t.Errorf("%s is listed as %q, want %q", name, groups[name], want)
+		}
 	}
 }

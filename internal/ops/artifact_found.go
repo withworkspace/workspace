@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
@@ -104,15 +105,23 @@ func (w *Workspace) foundArtifact(ctx context.Context, t space.Thing) artifact.F
 	return f
 }
 
-// FoundArtifact is an artifact ws found in a repo, with what ws calls the
-// repo.
+// FoundArtifact is an artifact ws found in a repo, with where it is among
+// the artifacts there, to list them as they're organised: what ws calls
+// the repo, and the folders it's grouped in under where [artifacts] says
+// promoted ones live (kept, 2026/q4: "" for one straight in it). One
+// that's nowhere under that is grouped by the folders it's in from the
+// repo's top.
 type FoundArtifact struct {
 	artifact.Found
-	Label string
+	Label, Group string
 }
 
 func (w *Workspace) labelled(f artifact.Found) FoundArtifact {
-	return FoundArtifact{Found: f, Label: w.WS().DisplayNameFor(f.Repo)}
+	var places []thingPlace
+	if cfg := w.ArtifactsConfig(); cfg.Repo != "" {
+		places = []thingPlace{{repo: cfg.Repo, folder: path.Join(cfg.Dir, cfg.Name)}}
+	}
+	return FoundArtifact{Found: f, Label: w.WS().DisplayNameFor(f.Repo), Group: thingGroupIn(places, f.Repo, f.Folder+"/")}
 }
 
 // FoundArtifacts are the artifacts in the workspace's repos that no

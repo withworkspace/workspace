@@ -286,9 +286,12 @@ export interface ArtifactFound {
     where: string;
     repo: string;
     /**
-     * Label is what ws calls the repo.
+     * Label is what ws calls the repo, and Group the folders it's grouped
+     * in there, under where promoted artifacts live (kept, 2026/q4): none
+     * for one straight in it. They're what the list is laid out by.
      */
     label: string;
+    group?: string;
     title: string;
     /**
      * Version is what its folder holds, as git names it, and Frame where

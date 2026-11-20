@@ -241,7 +241,8 @@ var errAsItWas = errors.New("it's as it was")
 // thingPut is what's come of putting a thing's folder in its repo: the
 // thing as it is there, and what to say of it.
 func (w *Workspace) thingPut(ctx context.Context, remotes RemoteReader, k plugin.KeptRef, name, repo, folder string, written protocol.RemoteThing, saved *DocSaved, changed, merged bool) (protocol.RemoteSaved, error) {
-	out := protocol.RemoteSaved{Thing: written, Changed: changed, Merged: merged}
+	placed := w.placer(k)
+	out := protocol.RemoteSaved{Thing: placed(written), Changed: changed, Merged: merged}
 	if saved != nil {
 		out.Said = saved.Message
 		if !w.WS().Direct(repo) {
@@ -251,7 +252,7 @@ func (w *Workspace) thingPut(ctx context.Context, remotes RemoteReader, k plugin
 	// As ws finds it there, once it's on the default branch.
 	if db, _, _ := w.Spaces(ctx); db != nil && out.Capsule == "" {
 		if t, ok, _ := space.ThingAt(ctx, db, repo, folder); ok {
-			out.Thing = remoteThing(t)
+			out.Thing = placed(remoteThing(t))
 		}
 	}
 	// The plugin's told first: it's in the repo whatever comes next, and
@@ -446,7 +447,7 @@ func (w *Workspace) SaveThing(ctx context.Context, who, kind, name string) (prot
 		if now := space.FolderTree(ctx, capsule, "HEAD", folder); now != given.Base {
 			// It's changed there since the plugin last had it: the plugin
 			// brings what's there into what it has.
-			current := remoteThing(space.Thing{Repo: repo, Path: folder + "/", Kind: kind, Title: title, Main: main, Picture: picture, Blob: space.BlobID(there), Tree: now})
+			current := w.placer(k)(remoteThing(space.Thing{Repo: repo, Path: folder + "/", Kind: kind, Title: title, Main: main, Picture: picture, Blob: space.BlobID(there), Tree: now}))
 			if given, err = ask(&protocol.RemoteOpened{RemoteThing: current, Content: there}); err != nil {
 				return "", "", "", false, err
 			}

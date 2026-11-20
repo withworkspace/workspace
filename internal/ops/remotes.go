@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -206,6 +208,51 @@ func remoteThing(t space.Thing) protocol.RemoteThing {
 	return out
 }
 
+// placer says where a thing is among its kind's things, for its plugin to
+// list them as they're organised: what ws calls its repo, and the folders
+// between the place its kind's things go and its own (thingGroupIn). The
+// places are read once, for however many things.
+func (w *Workspace) placer(k plugin.KeptRef) func(protocol.RemoteThing) protocol.RemoteThing {
+	places, _ := w.thingPlaces(k)
+	return func(t protocol.RemoteThing) protocol.RemoteThing {
+		t.RepoLabel = w.WS().DisplayNameFor(t.Repo)
+		t.Group = thingGroupIn(places, t.Repo, t.Path)
+		return t
+	}
+}
+
+// thingGroupIn is the folders a thing is grouped in: those between the
+// place it's in (of places, the one that's nearest above it in its repo)
+// and its own folder, as cross-stack or plans/q4, and "" for one straight
+// in its place. One in none of the places is grouped by the folders it's
+// in from its repo's top.
+func thingGroupIn(places []thingPlace, repo, thingPath string) string {
+	own := strings.TrimSuffix(thingPath, "/")
+	above := func(rel string) string {
+		if dir := path.Dir(rel); dir != "." {
+			return dir
+		}
+		return ""
+	}
+	nearest, group := -1, above(own)
+	for _, p := range places {
+		if p.repo != repo {
+			continue
+		}
+		base, rel := p.base(), own
+		if base != "" {
+			var in bool
+			if rel, in = strings.CutPrefix(own, base+"/"); !in {
+				continue
+			}
+		}
+		if len(base) > nearest {
+			nearest, group = len(base), above(rel)
+		}
+	}
+	return group
+}
+
 // pluginHasRemote is whether the plugin who has the kind, with things
 // that can live in a repo: it's asked of nothing else.
 func (w *Workspace) pluginHasRemote(who, kind string) bool {
@@ -232,8 +279,10 @@ func (w *Workspace) pluginRemotes(ctx context.Context, who, kind string) (protoc
 	if err != nil {
 		return out, err
 	}
+	kinds, _ := remoteKinds(w.WS().Root)
+	placed := w.placer(kinds[kind])
 	for _, t := range things {
-		out.Things = append(out.Things, remoteThing(t))
+		out.Things = append(out.Things, placed(remoteThing(t)))
 	}
 	return out, nil
 }
@@ -265,5 +314,6 @@ func (w *Workspace) pluginRemote(ctx context.Context, who, kind, name string) (p
 	if err != nil {
 		return out, err
 	}
-	return protocol.RemoteOpened{RemoteThing: remoteThing(t), Content: content}, nil
+	kinds, _ := remoteKinds(w.WS().Root)
+	return protocol.RemoteOpened{RemoteThing: w.placer(kinds[kind])(remoteThing(t)), Content: content}, nil
 }

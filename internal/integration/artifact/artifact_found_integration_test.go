@@ -90,6 +90,10 @@ note = "Swimlanes for each person."
 	if board.Name != name || board.Where() != "records:"+folder+"/" || board.Title != "Team board" || board.Version == "" || board.Changed.IsZero() {
 		t.Fatalf("the board, as found: %+v", board)
 	}
+	// Straight in where promoted ones live, it's in no folder of it.
+	if board.Group != "" || board.Label == "" {
+		t.Errorf("where the board is among the repo's artifacts: group %q, in %q", board.Group, board.Label)
+	}
 	if board.Record == nil || board.Record.Promoted == nil || board.Record.Promoted.By != "Sam" || board.Record.Promoted.Version != 2 || len(board.Record.Versions) != 2 {
 		t.Fatalf("what its record says: %+v", board.Record)
 	}

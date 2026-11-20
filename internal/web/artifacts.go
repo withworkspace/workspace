@@ -408,7 +408,7 @@ func versionOf(v artifact.Version) ArtifactVersion {
 
 // foundArtifact is an artifact ws found in a repo, as the web UI has it.
 func foundArtifact(f ops.FoundArtifact) ArtifactFound {
-	out := ArtifactFound{Name: f.Name, Where: f.Where(), Repo: f.Repo, Label: f.Label, Title: f.Title,
+	out := ArtifactFound{Name: f.Name, Where: f.Where(), Repo: f.Repo, Label: f.Label, Group: f.Group, Title: f.Title,
 		Version: f.Version, Frame: "/frame/in/" + f.Repo + "/tree/" + f.Version, Changed: f.Changed, ChangedBy: f.ChangedBy}
 	if f.Record != nil {
 		out.Promoted = f.Record.Promoted

@@ -776,8 +776,11 @@ type ArtifactFound struct {
 	Name  string `json:"name"`
 	Where string `json:"where"`
 	Repo  string `json:"repo"`
-	// Label is what ws calls the repo.
+	// Label is what ws calls the repo, and Group the folders it's grouped
+	// in there, under where promoted artifacts live (kept, 2026/q4): none
+	// for one straight in it. They're what the list is laid out by.
 	Label string `json:"label"`
+	Group string `json:"group,omitempty"`
 	Title string `json:"title"`
 	// Version is what its folder holds, as git names it, and Frame where
 	// that runs: another of each when any of its files changes.

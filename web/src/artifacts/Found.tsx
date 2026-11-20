@@ -36,8 +36,35 @@ function byWords(a: ArtifactFound): string {
   return a.changedBy ? `changed by ${a.changedBy}` : "";
 }
 
-// FoundArtifacts lists them, under the Artifacts page's own. Nothing's
-// drawn while there are none.
+// A folder of them, as the list lays them out: the repo, as ws calls it,
+// the folders under where promoted artifacts live there ("" for none), and
+// the artifacts in it.
+interface Folder {
+  repo: string;
+  label: string;
+  group: string;
+  found: ArtifactFound[];
+}
+
+// inFolders lays them out as they're organised in their repos: by repo,
+// in order of what ws calls each, and in a repo by the folders they're
+// grouped in, those in none first. Each folder's keep the order they came
+// in.
+export function inFolders(found: ArtifactFound[]): Folder[] {
+  const by = new Map<string, Folder>();
+  for (const a of found) {
+    const group = a.group ?? "";
+    const key = `${a.repo}\n${group}`;
+    const folder = by.get(key) ?? { repo: a.repo, label: a.label || a.repo, group, found: [] };
+    folder.found.push(a);
+    by.set(key, folder);
+  }
+  return [...by.values()].sort((a, b) => a.label.localeCompare(b.label) || a.repo.localeCompare(b.repo) || a.group.localeCompare(b.group));
+}
+
+// FoundArtifacts lists them, under the Artifacts page's own, by repo and
+// by the folders they're grouped in there. Nothing's drawn while there are
+// none.
 export function FoundArtifacts({ workspace }: { workspace: Workspace }) {
   // Read again when the artifacts here change: one promoted here is this
   // machine's, and leaves the list.
@@ -45,38 +72,59 @@ export function FoundArtifacts({ workspace }: { workspace: Workspace }) {
   const { value } = useLoaded(() => getArtifactsFound(), [key], { keep: true });
   const found = value?.found ?? [];
   if (found.length === 0) return null;
+  const folders = inFolders(found);
   return (
     <section className="artifacts-found" aria-labelledby="artifacts-found-title">
       <h2 id="artifacts-found-title" className="artifacts-found-title">
         In the workspace's repos
       </h2>
       <p className="dim artifacts-found-about">Promoted by someone else, or by you on another machine: each runs from its repo's files.</p>
-      <ul className="rows artifacts">
-        {found.map((a) => (
-          <li key={a.name} className="row artifact-list-row">
-            <TLink to={foundHref(a.name)} className="row-link">
-              <Icon name="artifact" size={16} className="row-status" />
-              <span className="row-main">
-                <span className="row-line">
-                  <span className="title">{a.title}</span>
-                  <span className="chip tone-done">Promoted</span>
-                </span>
-                <span className="row-sub artifact-row-meta">
-                  <span title={`It lives in ${a.where}`}>
-                    <Icon name="branch" size={11} /> {a.label}
+      {folders.map((f) => (
+        <div key={`${f.repo} ${f.group}`} className="artifacts-folder">
+          {/* One folder alone, with nothing grouped in it, needs no saying. */}
+          {(folders.length > 1 || f.group) && (
+            <h3 className="artifacts-folder-name" title={`${f.repo}${f.group ? `: ${f.group}/` : ""}`}>
+              <span>{f.label}</span>
+              {f.group
+                .split("/")
+                .filter(Boolean)
+                .map((part, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: a folder's parts are in their order, and a name can come twice
+                  <span key={i} className="artifacts-folder-part">
+                    {part}
                   </span>
-                  <span className="mono">{a.where}</span>
-                </span>
-              </span>
-              <span className="age artifact-row-when" title={byWords(a)}>
-                {byWords(a)}
-                {byWords(a) && " · "}
-                <Time iso={a.changed} as="age" />
-              </span>
-            </TLink>
-          </li>
-        ))}
-      </ul>
+                ))}
+              <span className="artifacts-folder-count">{f.found.length}</span>
+            </h3>
+          )}
+          <ul className="rows artifacts">
+            {f.found.map((a) => (
+              <li key={a.name} className="row artifact-list-row">
+                <TLink to={foundHref(a.name)} className="row-link">
+                  <Icon name="artifact" size={16} className="row-status" />
+                  <span className="row-main">
+                    <span className="row-line">
+                      <span className="title">{a.title}</span>
+                      <span className="chip tone-done">Promoted</span>
+                    </span>
+                    <span className="row-sub artifact-row-meta">
+                      <span title={`It lives in ${a.where}`}>
+                        <Icon name="branch" size={11} /> {a.label}
+                      </span>
+                      <span className="mono">{a.where}</span>
+                    </span>
+                  </span>
+                  <span className="age artifact-row-when" title={byWords(a)}>
+                    {byWords(a)}
+                    {byWords(a) && " · "}
+                    <Time iso={a.changed} as="age" />
+                  </span>
+                </TLink>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </section>
   );
 }
