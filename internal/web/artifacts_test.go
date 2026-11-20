@@ -81,6 +81,14 @@ func TestFrame(t *testing.T) {
 	if got := body(res); res.StatusCode != 200 || got != string(withTweaks([]byte(spy))) || !strings.HasPrefix(got, "<!doctype html><script>") || !strings.HasSuffix(got, strings.TrimPrefix(spy, "<!doctype html>")) {
 		t.Fatalf("v1: %d %q", res.StatusCode, got)
 	}
+	// The frame is sandboxed, an origin of no one's, so to the browser its
+	// requests are another site's: the key is what they're read by.
+	if res := do(t, s, "GET", at, false, func(r *http.Request) {
+		r.Header.Set("Sec-Fetch-Site", "cross-site")
+		r.Header.Set("Sec-Fetch-Mode", "cors")
+	}); res.StatusCode != 200 {
+		t.Errorf("from the sandboxed frame: %d", res.StatusCode)
+	}
 	h := res.Header
 	own := s.Info().Origin() + "/framed/" + key + "/a1/v1/"
 	want := map[string]string{

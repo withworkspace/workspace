@@ -252,6 +252,11 @@ model = "sonnet"
 harness = "claude"
 model = "haiku"
 
+# No agent writes its pull requests: the stand-in can't, and the seed
+# reads each one as soon as its step opens it.
+[pr_writer]
+enabled = false
+
 [github]
 fixture = ".remotes/github.json"
 EOF

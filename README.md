@@ -132,7 +132,7 @@ ws rg formatMoney             # ripgrep across repos, one worktree each
 ws debrief                    # remove what's landed
 ```
 
-`ws` alone shows every repo and capsule, and `ws --help` lists the rest.
+`ws` alone opens the web UI, `ws status` shows every repo and capsule, and `ws --help` lists the rest.
 
 ## Get started
 
