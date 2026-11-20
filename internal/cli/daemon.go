@@ -202,6 +202,7 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 	go routerLoop(root, s.WebPort, s.Log.Printf, stop)                       // names under .localhost, with [router] enabled
 	go checkUpdatesLoop(openOps(root, prs, daemonWS(s)), s.Log.Printf, stop) // later releases of ws and plugins, once a day
 	go followGroundsLoop(openOps(root, prs), s.Log.Printf, stop)             // each repo's ground kept up with its remote
+	go noteRunning(openOps(root, prs, daemonWS(s)), s.Exe)                   // which ws this is, for what's new
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	go func() {

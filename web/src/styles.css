@@ -19250,3 +19250,204 @@ a [data-viewable] {
     background: none;
   }
 }
+
+/* What's new: once after an upgrade, and from Settings' About. Wide,
+   with the horizon behind its head, the first entry large and the rest
+   as cards. */
+.overlay:has(> .dialog.whats-new) {
+  place-items: center;
+  padding-top: 16px;
+}
+
+.dialog.whats-new {
+  position: relative;
+  width: min(820px, 100%);
+  max-height: min(86vh, 900px);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dialog-close-corner {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+}
+
+.whats-new-head {
+  padding: 28px 32px 20px;
+  background:
+    radial-gradient(
+      ellipse 90% 190px at 50% 0,
+      color-mix(in srgb, var(--horizon-1) 30%, transparent),
+      color-mix(in srgb, var(--horizon-2) 16%, transparent) 40%,
+      color-mix(in srgb, var(--horizon-3) 6%, transparent) 72%,
+      transparent
+    ),
+    var(--raised);
+  border-bottom: 1px solid var(--line);
+}
+
+.whats-new-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.whats-new-version,
+.whats-new-release {
+  font-size: var(--text-xs);
+  color: var(--dim);
+  background: var(--well);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+.whats-new-head h2 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+}
+
+.whats-new-head p {
+  margin: 0;
+}
+
+.whats-new-body {
+  overflow-y: auto;
+  padding: 24px 32px;
+  display: grid;
+  gap: 24px;
+}
+
+.whats-new-words {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.whats-new-words .markdown {
+  color: var(--dim);
+  justify-self: stretch;
+}
+
+.whats-new-words .markdown > :first-child {
+  margin-top: 0;
+}
+
+.whats-new-words .markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.whats-new-words h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.whats-new-lead {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 24px;
+}
+
+.whats-new-lead:not(:has(.whats-new-picture)) {
+  grid-template-columns: 1fr;
+}
+
+.whats-new-lead h3 {
+  font-size: 18px;
+}
+
+.whats-new-lead .markdown {
+  font-size: var(--text-lg);
+}
+
+.whats-new-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.whats-new-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  background: var(--bg);
+}
+
+.whats-new-card h3 {
+  font-size: var(--text-md);
+}
+
+.whats-new-picture {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.whats-new-lead .whats-new-picture {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  object-position: top left;
+  border-radius: var(--radius-lg);
+}
+
+/* A card's picture keeps its own shape, up to a height: a picture is
+   cropped to what it shows, which is seldom 16:9. */
+.whats-new-card .whats-new-picture {
+  max-height: 240px;
+  object-fit: cover;
+  object-position: top left;
+}
+
+.whats-new-link {
+  margin-left: -8px;
+}
+
+.whats-new-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 32px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 560px) {
+  .whats-new-head {
+    padding: 24px 20px 16px;
+  }
+
+  .whats-new-eyebrow .logotype {
+    height: 18px;
+    width: auto;
+  }
+
+  .whats-new-head h2 {
+    font-size: 22px;
+  }
+
+  .whats-new-body {
+    padding: 20px;
+  }
+
+  .whats-new-foot {
+    padding: 12px 20px;
+  }
+
+  .whats-new-grid,
+  .whats-new-lead {
+    grid-template-columns: 1fr;
+  }
+}
