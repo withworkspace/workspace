@@ -19,6 +19,20 @@ describe("arrange", () => {
     expect(ids(a.menu)).toEqual(["team"]);
   });
 
+  it("puts a place whose home is the menu there, until it's arranged", () => {
+    const withRuns = [...places, { ...place("runs"), home: "menu" as const }];
+    expect(ids(arrange(withRuns).menu)).toEqual(["runs"]);
+    expect(ids(arrange(withRuns).sidebar)).not.toContain("runs");
+    // Named in neither list of an arrangement: after the menu's own.
+    expect(ids(arrange(withRuns, { sidebar: ["missions"], menu: ["team"] }).menu)).toEqual(["team", "runs"]);
+    // Named in the sidebar: there.
+    const moved = arrange(withRuns, { sidebar: ["runs", "missions"], menu: [] });
+    expect(ids(moved.sidebar).slice(0, 2)).toEqual(["runs", "missions"]);
+    expect(moved.menu).toEqual([]);
+    // And saved where it is, so it stays.
+    expect(saving(moved, withRuns).sidebar).toContain("runs");
+  });
+
   it("takes a place named in both lists once, in the menu", () => {
     const a = arrange(places, { sidebar: ["team", "missions"], menu: ["team"] });
     expect(ids(a.menu)).toEqual(["team"]);

@@ -34,12 +34,17 @@ type App interface {
 	Running
 }
 
-// Running is runs on a mission's page (internal/runs): a capsule's recipe
-// started, a run stopped, and which missions someone has open, for the
-// runs started from them.
+// Running is runs (internal/runs): on a mission's page, a capsule's
+// recipe started, a run stopped, and which missions someone has open, for
+// the runs started from them; on the Runs page, every run, any one ended,
+// and a run's output.
 type Running interface {
 	RunRecipe(slug, repo, capsule, recipe string, by ops.Actor) (runs.Run, error)
 	StopRun(slug, ref string) error
+	Runs() ([]runs.Run, error)
+	EndRun(ref string) error
+	RunLog(ref string, n int) (string, error)
+	Names() (on bool, want string, err error)
 	LookedAt(slugs map[string]bool) error
 	PointSilo(repo, capsule string, out io.Writer) error
 }

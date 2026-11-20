@@ -843,7 +843,50 @@ export interface RunDetail {
   by?: string;
   command: string;
   started: string;
+  // Where it runs: its repo, its worktree as a name says it (a capsule's
+  // name, ground or silo), and the folder.
+  repo: string;
+  worktree: string;
+  dir?: string;
+  pid?: number; // leads its process group, while it runs
+  // Who it's for, beyond owner's kind.
+  mission?: string;
+  step?: number;
+  crew?: string;
+  conversation?: string;
+  ownerPid?: number;
+  ownerCommand?: string;
 }
+
+// Names is where the workspace's names under .localhost stand (ws
+// router): whether ws.local.toml's [router] turns them on, the name it
+// asks for and the one it has ("" until its daemon's written its routes;
+// another, given a clash), the machine's router's port (absent: none
+// serving; fallback: 80 couldn't be had) and the daemon holding it, and
+// the web UI by its name. Mirrors internal/web/runs.go.
+export interface Names {
+  on: boolean;
+  want: string;
+  name?: string;
+  port?: number;
+  fallback?: boolean;
+  heldBy?: number;
+  web?: string;
+}
+
+// RunsInfo is the Runs page's: every run in the workspace, and its names.
+export interface RunsInfo {
+  names: Names;
+  runs: RunDetail[];
+}
+
+export const getRuns = () => getJSON<RunsInfo>("/api/runs");
+
+// endRun ends any run now, or clears away one that's ended, its log with it.
+export const endRun = (ref: string) => send<{ stopped: string }>("POST", "/api/runs/stop", { ref });
+
+// getRunLog is the end of a run's output.
+export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(`/api/runs/log?ref=${encodeURIComponent(ref)}`);
 
 // runRecipe starts a capsule's recipe, for as long as someone has the
 // mission open (and 15 minutes after).

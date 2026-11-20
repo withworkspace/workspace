@@ -63,3 +63,48 @@ func TestRunRecipe(t *testing.T) {
 		t.Errorf("after Stop: %v", list)
 	}
 }
+
+// The Runs page: every run listed, its output read, and any one ended by
+// its full ref (a name alone isn't guessed at).
+func TestRunsPage(t *testing.T) {
+	if _, err := runs.ReadProcs(); err != nil {
+		t.Skipf("processes can't be read here: %v", err)
+	}
+	w, _ := fixture(t, "## Goal\nCache it.\n", "cache")
+	dir := filepath.Join(w.WS().RepoDir("frontend"), "cache")
+	r, err := w.runStore().Start(runs.Start{
+		Name: "web", Repo: "frontend", Worktree: "cache", Dir: dir,
+		Command: "echo hello from web; sleep 300", Owner: runs.Owner{Kind: runs.ByNone}, TTL: time.Hour,
+	}, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { w.runStore().End(r) })
+
+	list, err := w.Runs()
+	if err != nil || len(list) != 1 || list[0].Ref() != "web.cache.frontend" {
+		t.Fatalf("Runs = %v, %v", list, err)
+	}
+	var log string
+	for range 50 {
+		if log, _ = w.RunLog(r.Ref(), 10); log != "" {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !strings.Contains(log, "hello from web") {
+		t.Errorf("RunLog = %q", log)
+	}
+	if err := w.EndRun("web"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("a name alone: %v", err)
+	}
+	if err := w.EndRun(r.Ref()); err != nil {
+		t.Fatal(err)
+	}
+	if list, _ := w.Runs(); len(list) != 0 {
+		t.Errorf("after EndRun: %v", list)
+	}
+	if _, err := w.RunLog(r.Ref(), 10); !errors.Is(err, ErrNotFound) {
+		t.Errorf("an ended run's log: %v", err)
+	}
+}

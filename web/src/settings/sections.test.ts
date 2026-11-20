@@ -49,6 +49,7 @@ const info = (extra: SettingsGroup[] = []): SettingsInfo => ({
       settings: [setting("missions", "review_before_pr", "bool", { label: "Your review before a pull request", about: "ws opens a pull request only once you approve." })],
     },
     { id: "workspace", title: "Repos", settings: [setting("", "git", "choice", { label: "Git protocol" })] },
+    { id: "router", title: "Local names", settings: [setting("router", "enabled", "bool", { label: "Names" }), setting("router", "name", "text", { label: "Name", default: "w" })] },
     {
       id: "ui",
       title: "Appearance",
@@ -63,7 +64,7 @@ const settingsIn = (rows: Row[]) => rows.flatMap((r) => (r.kind === "setting" ? 
 
 describe("sectionsOf", () => {
   it("lists the sections before anything's loaded", () => {
-    expect(sectionsOf().map((s) => s.id)).toEqual(["appearance", "notifications", "agents", "missions", "team", "repos", "process", "yours", "about"]);
+    expect(sectionsOf().map((s) => s.id)).toEqual(["appearance", "notifications", "agents", "missions", "team", "repos", "runs", "process", "yours", "about"]);
     expect(sectionsOf().filter((s) => s.heading).map((s) => [s.heading, s.id])).toEqual([
       ["Interface", "appearance"],
       ["How work goes", "agents"],
@@ -90,9 +91,10 @@ describe("sectionsOf", () => {
     expect(missions.blocks[1].about).toBe("The orchestrator.");
   });
 
-  it("gives the Team page its own, the repos theirs, and appearance the theme first and the sidebar's two keys as one row", () => {
+  it("gives the Team page its own, the repos theirs, Runs the local names, and appearance the theme first and the sidebar's two keys as one row", () => {
     expect(rowsOf("team")).toEqual([["team", ["[team] narrative"]]]);
     expect(rowsOf("repos")).toEqual([["workspace", ["git"]]]);
+    expect(rowsOf("runs")).toEqual([["router", ["[router] enabled", "[router] name"]]]);
     expect(rowsOf("appearance")).toEqual([["ui", ["theme", "[ui] accent", "places"]]]);
   });
 
@@ -105,7 +107,7 @@ describe("sectionsOf", () => {
 
   it("makes a group it doesn't know a section of its own, before the process", () => {
     const sections = sectionsOf(info([{ id: "github", title: "GitHub", about: "How ws asks GitHub.", settings: [setting("github", "host", "text")] }]));
-    expect(sections.map((s) => s.id)).toEqual(["appearance", "notifications", "agents", "missions", "team", "repos", "github", "process", "yours", "about"]);
+    expect(sections.map((s) => s.id)).toEqual(["appearance", "notifications", "agents", "missions", "team", "repos", "runs", "github", "process", "yours", "about"]);
     expect(rowsOf("github", sections)).toEqual([["github", ["[github] host"]]]);
   });
 
