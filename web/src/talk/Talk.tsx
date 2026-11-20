@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Doing } from "../ui/Doing";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   ApiError,
@@ -634,18 +635,10 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
                     <Markdown text={d.run.said} />
                   </div>
                 )}
-                <Calls calls={(d.run?.calls ?? []).map((c, i, all) => (i === all.length - 1 && !c.result ? { ...c, pending: true } : c))} root={workspace.root} open live tail={5} />
                 {pending.map((p) => (
                   <ProposalCard key={p.n} p={p} revisedFrom={revisedFrom(p)} kinds={workspace.kinds} artifacts={workspace.artifacts} frameOf={frameOf} slug={slug} onSettle={settle} replying anchor={`proposal-${p.n}`} />
                 ))}
-                <div className="typing">
-                  <span className="typing-dots" aria-hidden>
-                    <span />
-                    <span />
-                    <span />
-                  </span>
-                  {d.run?.calls.length ? "Working it out" : "Thinking"}
-                </div>
+                <Doing calls={d.run?.calls ?? []} root={workspace.root} />
               </div>
             </div>
           )}

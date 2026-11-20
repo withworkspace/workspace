@@ -94,6 +94,10 @@ type Server struct {
 	// its app, which ws serves a page for, and its own HTTP, which is
 	// passed to it. nil for none.
 	Plugins *plugin.Host
+	// Labels are what ws's own commands are doing, as a conversation
+	// shows an agent's step that ran one (GET /api/commands, with the
+	// plugins' after them). nil for none: steps show their commands.
+	Labels []CommandLabel
 	// Hold keeps the daemon up while a page is open (each holds an
 	// event stream); nil for nothing to hold.
 	Hold func() (release func())
@@ -473,6 +477,7 @@ func (s *Server) Handler() http.Handler {
 	// Plugins: what they add, the page ws serves for one's app (the
 	// shell), and each one's own HTTP (asked of the plugin).
 	mux.HandleFunc("GET /api/plugins", s.pluginsList)
+	mux.HandleFunc("GET /api/commands", s.commandLabels)
 	mux.HandleFunc("GET /api/plugins/installed", s.pluginsInstalled)
 	mux.HandleFunc("POST /api/plugins", s.addPlugin)
 	mux.HandleFunc("POST /api/plugins/{name}/update", s.updatePlugin)

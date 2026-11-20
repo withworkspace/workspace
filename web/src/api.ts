@@ -15,6 +15,7 @@ import type {
   BundleNote,
   CellSource,
   Citation,
+  CommandLabel,
   ConversationApproval,
   ConversationCapsule,
   ConversationGuideGroup,
@@ -369,11 +370,44 @@ export function usePlugins(showing?: string): Plugin[] | undefined {
   const [plugins, setPlugins] = useState<Plugin[]>();
   const load = () =>
     getJSON<Plugin[]>("/api/plugins").then(
-      (p) => setPlugins(p),
+      (p) => {
+        loadCommandLabels(); // a plugin's commands are as it last started
+        setPlugins(p);
+      },
       () => setPlugins((was) => was ?? []), // none it can show is none
     );
   useEvents("plugins", { hello: load, changed: load }, showing ? `&app=${encodeURIComponent(showing)}` : "");
   return plugins;
+}
+
+// What ws's commands are doing, as an agent's steps show them ("Looking
+// up sketch-5"): ws's own and its plugins'. Read once for the page, and
+// again as the plugins change (usePlugins); [] until it's read, when
+// steps show their commands.
+let commandLabels: CommandLabel[] = [];
+let commandLabelsAsked = false;
+const commandLabelsHeard = new Set<(l: CommandLabel[]) => void>();
+
+function loadCommandLabels() {
+  commandLabelsAsked = true;
+  getJSON<CommandLabel[]>("/api/commands").then(
+    (l) => {
+      commandLabels = l;
+      commandLabelsHeard.forEach((f) => f(l));
+    },
+    () => {}, // steps show their commands
+  );
+}
+
+export function useCommandLabels(): CommandLabel[] {
+  const [labels, setLabels] = useState(commandLabels);
+  useEffect(() => {
+    if (!commandLabelsAsked) loadCommandLabels();
+    commandLabelsHeard.add(setLabels);
+    setLabels(commandLabels);
+    return () => void commandLabelsHeard.delete(setLabels);
+  }, []);
+  return labels;
 }
 
 // Review: mirrors internal/review/diff.go.
