@@ -3944,6 +3944,10 @@ export interface RunStop {
 export interface RunsInfo {
     names: NamesInfo;
     runs: RunDetail[];
+    /**
+     * Silos are the repos' silos, as the daemon keeping them has them.
+     */
+    silos: WorkspaceSiloState[];
 }
 
 // From runs/runs.go
@@ -5247,6 +5251,54 @@ export interface Workspace {
      * say: absent for as they come.
      */
     places?: Places;
+}
+
+// From workspace/watcher.go
+/**
+ * SiloHook is a hook a silo ran.
+ */
+export interface WorkspaceSiloHook {
+    name: string; // after_create, after_switch or after_change
+    at: string;
+    error?: string;
+    output?: string; // the end of what it said
+}
+
+// From workspace/watcher.go
+/**
+ * SiloState is where a silo stands, as the daemon keeping it has it.
+ */
+export interface WorkspaceSiloState {
+    repo: string;
+    target: string; // the capsule it's pointed at, or .ground
+    /**
+     * Watching is true while its target's changes reach it as they're
+     * made; Error says why not, when it isn't.
+     */
+    watching: boolean;
+    error?: string;
+    dirs: number; // folders of the target watched
+    /**
+     * Syncs are the last few, the latest last.
+     */
+    syncs?: WorkspaceSiloSync[];
+    hook?: WorkspaceSiloHook; // the last hook run
+}
+
+// From workspace/watcher.go
+/**
+ * SiloSync is one sync into a silo.
+ */
+export interface WorkspaceSiloSync {
+    at: string;
+    files: number; // files changed: written or removed
+    full?: boolean;
+    /**
+     * Why a full one was made: "start" (the daemon's), "pointed",
+     * "HEAD change" or "resync" (asked for).
+     */
+    why?: string;
+    error?: string;
 }
 
 // From web/api.go

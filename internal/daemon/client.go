@@ -331,6 +331,21 @@ func (c *Client) AtWork() ([]string, error) {
 	return reply.AtWork, err
 }
 
+// Silos is where each silo the daemon keeps stands, as JSON
+// (workspace.SiloState). A server from a ws before it kept silos says it
+// doesn't know how (IsUnknownOp).
+func (c *Client) Silos() (json.RawMessage, error) {
+	reply, err := c.call(request{Op: "silos"})
+	return reply.Silos, err
+}
+
+// ResyncSilo has the daemon give repo's silo its target's files in full,
+// or every silo's for "".
+func (c *Client) ResyncSilo(repo string) error {
+	_, err := c.call(request{Op: "silo-resync", Text: repo})
+	return err
+}
+
 // Restart has the server start again on the ws now at its path: at once
 // (hanging up what's at work, which the next resumes), or, when now is
 // false, once nothing's at work, which it says. A server from a ws before

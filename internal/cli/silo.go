@@ -2,16 +2,15 @@ package cli
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
 	"github.com/withworkspace/workspace/internal/config"
+	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/ui"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -97,14 +96,15 @@ func newSiloStopCmd() *cobra.Command {
 			if _, err := os.Stat(siloDir); os.IsNotExist(err) {
 				return fmt.Errorf("no silo exists for %s", repo)
 			}
+			// Let go of first, so the daemon stops keeping it before it's gone.
+			delete(ctx.WS().Silo, repo)
+			if err := config.SaveSilo(ctx.WS().Root, ctx.WS().Silo); err != nil {
+				return fmt.Errorf("saving silo state: %w", err)
+			}
 			bareDir := ctx.WS().BareDir(repo)
 			// Force remove since .silo/ may have build artifacts that make it "dirty"
 			if err := workspace.GitWorktreeRemoveForce(bareDir, siloDir); err != nil {
 				return fmt.Errorf("removing silo worktree: %w", err)
-			}
-			delete(ctx.WS().Silo, repo)
-			if err := config.SaveSilo(ctx.WS().Root, ctx.WS().Silo); err != nil {
-				return fmt.Errorf("saving silo state: %w", err)
 			}
 			fmt.Fprintf(ui.Stderr, "  %s Removed silo for %s\n",
 				ui.Green.Render("✓"), ctx.WS().FormatRepoName(repo))
@@ -116,7 +116,7 @@ func newSiloStopCmd() *cobra.Command {
 func newSiloStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
-		Short: "Show silo state for all repos",
+		Short: "Show where each silo points, and how the daemon keeping it stands",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := loadOps()
@@ -127,41 +127,79 @@ func newSiloStatusCmd() *cobra.Command {
 				fmt.Fprintf(ui.Stderr, "No active silos.\n")
 				return nil
 			}
-			lockPath := filepath.Join(ctx.WS().Root, ".silo.lock")
-			watching := isWatcherRunning(lockPath)
+			states, err := askSilos(ctx.WS().Root)
+			if err != nil {
+				fmt.Fprintf(ui.Stderr, "  %s can't ask the daemon how they stand: %v\n", ui.Orange.Render("⚠"), err)
+			}
+			byRepo := map[string]workspace.SiloState{}
+			for _, st := range states {
+				byRepo[st.Repo] = st
+			}
+			now := time.Now()
 			for _, repo := range ctx.WS().RepoNames {
 				target, ok := ctx.WS().Silo[repo]
 				if !ok {
 					continue
 				}
-				status := "synced"
-				if watching {
-					status = "watching"
+				st, kept := byRepo[repo]
+				if err == nil && !kept {
+					st.Error = "not kept yet"
 				}
-				targetDir := filepath.Join(ctx.WS().RepoDir(repo), target)
-				if _, err := os.Stat(targetDir); os.IsNotExist(err) {
-					status = "target missing"
+				fmt.Fprintf(ui.Stderr, "  %-20s %-20s %s\n", ctx.WS().FormatRepoName(repo), target, siloStanding(st, err == nil, now))
+				if h := st.Hook; h != nil && h.Error != "" {
+					fmt.Fprintf(ui.Stderr, "  %-20s %s\n", "", ui.Orange.Render(fmt.Sprintf("%s hook failed %s ago: %s", h.Name, ago(now, h.At), h.Error)))
 				}
-				fmt.Fprintf(ui.Stderr, "  %-20s %-20s (%s)\n",
-					ctx.WS().FormatRepoName(repo), target, status)
 			}
 			return nil
 		},
 	}
 }
 
-func isWatcherRunning(lockPath string) bool {
-	return workspace.IsLockHeld(lockPath)
+// siloStanding is a silo's state in a few words: whether it's kept, and
+// when it was last synced.
+func siloStanding(st workspace.SiloState, asked bool, now time.Time) string {
+	switch {
+	case !asked:
+		return ui.Dim.Render("(unknown)")
+	case st.Error != "":
+		return ui.Orange.Render("(" + st.Error + ")")
+	}
+	said := fmt.Sprintf("watching %d folder(s)", st.Dirs)
+	if !st.Watching {
+		said = "not watching"
+	}
+	if n := len(st.Syncs); n > 0 {
+		last := st.Syncs[n-1]
+		said += fmt.Sprintf(", synced %s ago", ago(now, last.At))
+		if last.Error != "" {
+			return ui.Orange.Render("(" + said + ": " + last.Error + ")")
+		}
+	}
+	return ui.Green.Render("(" + said + ")")
+}
+
+// ago is how long before now t was, rounded for reading.
+func ago(now, t time.Time) string {
+	d := now.Sub(t)
+	switch {
+	case d < time.Minute:
+		return d.Round(time.Second).String()
+	case d < time.Hour:
+		return d.Round(time.Minute).String()
+	}
+	return d.Round(time.Hour).String()
 }
 
 func newSiloWatchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "watch",
-		Short: "Watch and sync all active silos",
-		Args:  cobra.NoArgs,
+		Short: "Show the daemon's syncs into each silo as they're made",
+		Long: `The daemon keeps every silo: it mirrors the capsule each is pointed at as
+files change, with or without this. ws silo watch shows its syncs as they're
+made, and r asks it for a full resync of every silo.`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			verbose, _ := cmd.Flags().GetBool("verbose")
-
+			lines, _ := cmd.Flags().GetBool("verbose")
 			ctx, err := loadOps()
 			if err != nil {
 				return err
@@ -169,72 +207,24 @@ func newSiloWatchCmd() *cobra.Command {
 			if len(ctx.WS().Silo) == 0 {
 				return fmt.Errorf("no active silos — use 'ws silo point' first")
 			}
-			lockPath := filepath.Join(ctx.WS().Root, ".silo.lock")
-			if err := workspace.AcquireLockFile(lockPath); err != nil {
-				return err
-			}
-			defer workspace.ReleaseLockFile(lockPath)
-
-			stop := make(chan struct{})
-
-			if ui.IsInteractive() && !verbose {
-				// Silence the logger in interactive mode — TUI handles display
-				silentLogger := log.New(io.Discard, "", 0)
-				watcher, err := workspace.NewSiloWatcher(ctx.WS(), silentLogger)
-				if err != nil {
-					return err
-				}
-
-				syncCh := make(chan workspace.SyncEvent, 64)
-				watcher.OnSync = func(ev workspace.SyncEvent) {
-					select {
-					case syncCh <- ev:
-					default: // drop if UI is behind
-					}
-				}
-
-				targetsCh := make(chan map[string]string, 8)
-				watcher.OnTargetsChanged = func(targets map[string]string) {
-					select {
-					case targetsCh <- targets:
-					default:
-					}
-				}
-
-				go func() {
-					watcher.Watch(stop, ctx.WS().Silo)
-					close(syncCh)
-					close(targetsCh)
-				}()
-
-				m := newSiloWatchModel(ctx.WS(), syncCh, targetsCh, watcher.FullResyncAll)
-				p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
-				if _, err := p.Run(); err != nil {
-					close(stop)
-					return err
-				}
-				close(stop)
-				return nil
-			}
-
-			// Non-interactive (or verbose): plain log output
-			logger := log.New(os.Stderr, "", log.LstdFlags)
-			watcher, err := workspace.NewSiloWatcher(ctx.WS(), logger)
+			c, err := daemon.Connect(ctx.WS().Root)
 			if err != nil {
 				return err
 			}
-			watcher.Verbose = verbose
-			sigCh := make(chan os.Signal, 1)
-			signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-			go func() {
-				<-sigCh
-				logger.Println("Shutting down...")
-				close(stop)
-			}()
-
-			return watcher.Watch(stop, ctx.WS().Silo)
+			defer c.Close()
+			if _, err := silosOf(c); err != nil {
+				return err
+			}
+			if ui.IsInteractive() && !lines {
+				m := newSiloWatchModel(ctx.WS().FormatRepoName, func() ([]workspace.SiloState, error) { return silosOf(c) }, func() error { return c.ResyncSilo("") })
+				_, err := tea.NewProgram(m, tea.WithOutput(os.Stderr)).Run()
+				return err
+			}
+			stop := make(chan os.Signal, 1)
+			signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+			return printSiloSyncs(os.Stderr, func() ([]workspace.SiloState, error) { return silosOf(c) }, stop)
 		},
 	}
-	cmd.Flags().BoolP("verbose", "v", false, "Enable verbose logging of watcher events")
+	cmd.Flags().BoolP("verbose", "v", false, "Print a line per sync and hook, rather than a screen")
 	return cmd
 }

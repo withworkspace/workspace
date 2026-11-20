@@ -12,6 +12,7 @@ package daemon
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"time"
@@ -75,6 +76,8 @@ type message struct {
 	Next   string `json:"next,omitempty"`
 	// atwork, restart: what a restart would stop mid-flight.
 	AtWork []string `json:"at_work,omitempty"`
+	// silos: where each silo the daemon keeps stands.
+	Silos json.RawMessage `json:"silos,omitempty"`
 
 	Ev    string `json:"ev,omitempty"`
 	Crew  string `json:"crew,omitempty"`

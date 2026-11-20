@@ -40,6 +40,21 @@ func (s *Server) pointSilo(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"said": said.String()})
 }
 
+// resyncSilo is POST /api/silos/{repo}/resync: a silo given its target's
+// files in full, by the daemon that keeps it.
+func (s *Server) resyncSilo(w http.ResponseWriter, r *http.Request) {
+	if s.ResyncSilo == nil {
+		jsonError(w, http.StatusNotFound, "nothing keeps the silos here: they're kept by the daemon")
+		return
+	}
+	repo := r.PathValue("repo")
+	if err := s.ResyncSilo(repo); err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"resynced": repo})
+}
+
 // RunStop is POST /api/missions/{slug}/runs/stop: a run to end.
 type RunStop struct {
 	Ref string `json:"ref"`
@@ -106,6 +121,8 @@ func (s *Server) markLooked() {
 type RunsInfo struct {
 	Names NamesInfo   `json:"names"`
 	Runs  []RunDetail `json:"runs"`
+	// Silos are the repos' silos, as the daemon keeping them has them.
+	Silos []ops.SiloState `json:"silos"`
 }
 
 // NamesInfo is where the workspace's names stand: whether ws.local.toml
@@ -151,7 +168,10 @@ func (s *Server) allRuns(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now()
-	out := RunsInfo{Names: namesOf(s.App, s.Root), Runs: []RunDetail{}}
+	out := RunsInfo{Names: namesOf(s.App, s.Root), Runs: []RunDetail{}, Silos: []ops.SiloState{}}
+	if s.Silos != nil {
+		out.Silos = append(out.Silos, s.Silos()...)
+	}
 	for _, run := range list {
 		out.Runs = append(out.Runs, RunDetailOf(run, s.Root, now))
 	}

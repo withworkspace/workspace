@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os/exec"
@@ -171,6 +172,13 @@ func newWeb(s *daemon.Server, prs *ops.PRCache) *web.Server {
 		Plugins: pluginHost,
 		Labels:  commandLabels(newBuiltinRootCmd("")),
 		Names:   func() []string { return webNames(s.Root) },
+		Silos:   daemonSilos,
+		ResyncSilo: func(repo string) error {
+			if siloKeeper == nil {
+				return errors.New("this daemon isn't keeping the silos: its log says why")
+			}
+			return siloKeeper.Resync(repo)
+		},
 	}
 }
 

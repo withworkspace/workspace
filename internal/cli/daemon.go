@@ -159,6 +159,10 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 	// A turn of crew over ACP that ended without the crew saying
 	// where it is, as a terminal crew's stop hook hands on.
 	s.OnACPTurnEnded = func(slug, crewID string) { orchestrateQuietTurn(root, slug, crewID) }
+	// The silos are kept from here: answered for before the socket is.
+	silosStop := make(chan struct{})
+	defer close(silosStop)
+	keepSilos(s, s.Log, silosStop)
 	if err := s.Listen(); err != nil {
 		return false, err
 	}
