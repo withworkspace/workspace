@@ -264,7 +264,7 @@ func newDaemonStatusCmd() *cobra.Command {
 				fmt.Fprintf(ui.Stderr, "    %s it runs the ws at %s, not this one (%s, at %s)\n", ui.Dim.Render("·"), c.Exe(), cmd.Root().Version, exe)
 			}
 			if info, err := web.ReadInfo(ctx.WS().Root); err == nil && info.Pid == c.ServerPid() && info.Port != 0 {
-				fmt.Fprintf(ui.Stderr, "    %s web UI on %s (ws web opens it)\n", ui.Dim.Render("·"), info.Origin())
+				fmt.Fprintf(ui.Stderr, "    %s web UI on %s (ws web opens it)\n", ui.Dim.Render("·"), webOrigin(ctx.WS().Root, info))
 			}
 			if db, err := store.Dial(ctx.WS().Root); err != nil {
 				fmt.Fprintf(ui.Stderr, "    %s records: %v\n", ui.Orange.Render("⚠"), err)

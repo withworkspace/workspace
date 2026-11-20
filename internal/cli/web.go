@@ -26,7 +26,8 @@ func newWebCmd() *cobra.Command {
 		Long: `Open the workspace's web UI: missions, crew, reviews, conversations and
 pages. It runs in the workspace's daemon (started if it isn't running), on
 127.0.0.1 at a port of its own ([web] port in ws.toml or ws.local.toml
-picks another).
+picks another). With ws's router on (ws router), it opens at the
+workspace's name instead, such as http://<workspace>.localhost.
 
 The link signs your browser in, so open it with this command rather than
 typing the address. A path opens that page, such as /missions/<slug>.`,
@@ -55,19 +56,18 @@ func openWeb(path string, printOnly bool) error {
 	if err != nil {
 		return err
 	}
-	url, err := webURL(ctx.WS().Root, path)
+	link, err := webURL(ctx.WS().Root, path)
 	if err != nil {
 		return err
 	}
 	if printOnly {
-		fmt.Println(url)
+		fmt.Println(link)
 		return nil
 	}
-	if err := openBrowser(url); err != nil {
+	if err := openBrowser(link); err != nil {
 		return fmt.Errorf("opening your browser: %w (ws --print prints the link)", err)
 	}
-	info, _ := web.ReadInfo(ctx.WS().Root)
-	fmt.Fprintf(ui.Stderr, "  %s opened %s%s\n", ui.Green.Render("✓"), info.Origin(), path)
+	fmt.Fprintf(ui.Stderr, "  %s opened %s%s\n", ui.Green.Render("✓"), linkOrigin(link), path)
 	return nil
 }
 
@@ -91,13 +91,28 @@ func webURL(root, path string) (string, error) {
 	if info.Pid != c.ServerPid() || info.Port != c.WebPort() {
 		return "", fmt.Errorf("%s doesn't match the running daemon (pid %d, web UI on port %d); `ws daemon restart --now` and try again", web.InfoPath(root), c.ServerPid(), c.WebPort())
 	}
-	link := info.SignInURL(path)
 	// With names on, it's the web UI's name: a browser signs in by name,
 	// its cookie being the name's.
+	return webOrigin(root, info) + strings.TrimPrefix(info.SignInURL(path), info.Origin()), nil
+}
+
+// webOrigin is where the web UI is reached: its name on ws's router when
+// names are on and a router is serving them, else 127.0.0.1 and its port.
+func webOrigin(root string, info web.Info) string {
 	if a, ok := router.Address(root, ""); ok {
-		link = strings.TrimSuffix(a, "/") + strings.TrimPrefix(link, info.Origin())
+		return strings.TrimSuffix(a, "/")
 	}
-	return link, nil
+	return info.Origin()
+}
+
+// linkOrigin is link's scheme and host, for saying where it opened
+// without its sign-in token.
+func linkOrigin(link string) string {
+	u, err := url.Parse(link)
+	if err != nil {
+		return link
+	}
+	return u.Scheme + "://" + u.Host
 }
 
 // noWebError says why a running daemon has no web UI, and what
