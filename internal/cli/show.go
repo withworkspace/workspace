@@ -173,6 +173,11 @@ func showView(ctx *ops.Workspace, slug, ref string, full bool, asked showAsked) 
 		}
 		return thingView(ctx, thing, kept, fields, asOf, full), nil, nil
 	}
+	// An artifact ws found in a repo, by its folder there: it has no ref of
+	// this machine's.
+	if v, ok := foundArtifactView(ctx, ref); ok {
+		return v, nil, nil
+	}
 	if page.IsRef(ref) || conversation.IsWorkspaceRef(ref) || artifact.IsRef(ref) { // the workspace's, not a mission's
 		var v *view
 		var err error

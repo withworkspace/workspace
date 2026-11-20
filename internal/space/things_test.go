@@ -1,6 +1,7 @@
 package space
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -87,14 +88,34 @@ records/sketches/release-flow/ sketch "Release flow" main=release-flow.excalidra
 	}
 
 	// A commit that changes one's main file reads that one, and its
-	// version is another; a picture's change isn't the thing's.
+	// version is another; so does a change to any other file in a thing's
+	// folder, which is as much the thing as its main file is.
+	arch, _, _ := ThingAt(bg, db, "records", "deep/down/arch/")
 	write(t, rec, "sketches/release-flow/release-flow.excalidraw", `{"elements":[2]}`)
 	write(t, rec, "deep/down/arch/arch.svg", "<svg/>")
 	gitIn(t, rec, "-c", "user.name=Sam", "commit", "-q", "-am", "second", "--date=2026-11-20T11:00:00Z")
 	gitIn(t, rec, "add", ".")
-	gitIn(t, rec, "commit", "-q", "-m", "a picture", "--date=2026-11-20T12:00:00Z")
-	if st, err := Refresh(bg, db, ws, nil); err != nil || st.Things != 1 {
+	gitIn(t, rec, "-c", "user.name=Kit", "commit", "-q", "-m", "a picture", "--date=2026-11-20T12:00:00Z")
+	if st, err := Refresh(bg, db, ws, nil); err != nil || st.Things != 2 {
 		t.Fatalf("after a change: %+v, %v", st, err)
+	}
+	drawn, _, _ := ThingAt(bg, db, "records", "deep/down/arch/")
+	if drawn.Version() == arch.Version() || drawn.Blob != arch.Blob || drawn.ChangedBy != "Kit" {
+		t.Fatalf("arch, with a picture beside it: %+v (was %+v)", drawn, arch)
+	}
+	// Its files are every file in its folder, as they were when it was read.
+	files, err := Files(bg, ws, drawn)
+	if err != nil || len(files) != 3 {
+		t.Fatalf("arch's files: %+v, %v", files, err)
+	}
+	if text, blob, err := FileOf(bg, ws, drawn, "arch.svg"); err != nil || string(text) != "<svg/>" || blob != BlobID(text) {
+		t.Fatalf("its picture: %q, %s, %v", text, blob, err)
+	}
+	if _, _, err := FileOf(bg, ws, arch, "arch.svg"); !errors.Is(err, ErrNoFile) {
+		t.Fatalf("its picture, before it had one: %v", err)
+	}
+	if same, _ := ThingsAt(bg, db, "records", drawn.Tree); len(same) != 1 || same[0].Path != "deep/down/arch/" {
+		t.Fatalf("the things made of arch's files: %+v", same)
 	}
 	moved, _, _ := ThingAt(bg, db, "records", "sketches/release-flow/")
 	if moved.Version() == flow.Version() || moved.Manifest != flow.Manifest || moved.ChangedBy != "Sam" {

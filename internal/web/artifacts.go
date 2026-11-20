@@ -105,6 +105,8 @@ func (s *Server) framed(path string) (frame, file string, ok bool) {
 	segs := strings.Split(rest, "/")
 	n := 2 // a3/v2
 	switch {
+	case segs[0] == "in":
+		n = 4 // in/records/tree/3f9c…: an artifact ws found in a repo, as its folder was
 	case segs[0] == "missions":
 		n = 5 // missions/glow/t3/proposals/2
 	case len(segs) > 1 && segs[1] == "proposals":
@@ -122,7 +124,7 @@ func (s *Server) framed(path string) (frame, file string, ok bool) {
 	return frame, file, subtle.ConstantTimeCompare([]byte(key), []byte(s.frameKey("/frame/"+frame))) == 1
 }
 
-var frameShape = regexp.MustCompile(`^(a[1-9][0-9]*/v[1-9][0-9]*|(missions/[A-Za-z0-9._-]+/)?[a-z][0-9]+/proposals/[1-9][0-9]*)$`)
+var frameShape = regexp.MustCompile(`^(a[1-9][0-9]*/v[1-9][0-9]*|in/[A-Za-z0-9._-]+/tree/[0-9a-f]{40,64}|(missions/[A-Za-z0-9._-]+/)?[a-z][0-9]+/proposals/[1-9][0-9]*)$`)
 
 // framedURL is where the frame at address (/frame/a3/v2) has its files.
 func (s *Server) framedURL(frame string) string {
@@ -162,6 +164,26 @@ func (s *Server) frame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.toFramed(w, r, "/frame/"+id+"/v"+strconv.Itoa(n))
+}
+
+// foundFrame is GET /frame/in/{repo}/tree/{tree}: an artifact ws found in
+// a repo, as its folder there was at a version (the folder, as git names
+// it), to run as a version of one on this machine does. Its files are the
+// repo's: nothing's copied here. A version no artifact there is at now
+// isn't run.
+func (s *Server) foundFrame(w http.ResponseWriter, r *http.Request) {
+	frameHeaders(w, "")
+	repo, tree := r.PathValue("repo"), r.PathValue("tree")
+	address := "in/" + repo + "/tree/" + tree
+	if !frameShape.MatchString(address) {
+		framePage(w, http.StatusNotFound, "There's no such artifact", "An artifact in a repo runs at /frame/in/records/tree/…: its repo, then its folder as git names it.")
+		return
+	}
+	if _, _, err := s.App.FoundArtifactAt(r.Context(), repo, tree, artifact.IndexFile); err != nil {
+		framePage(w, http.StatusNotFound, "It can't be shown", html.EscapeString(err.Error()))
+		return
+	}
+	s.toFramed(w, r, "/frame/"+address)
 }
 
 // proposalFrame is GET /frame/w9/proposals/2 (a mission's conversation:
@@ -239,7 +261,12 @@ func (s *Server) framedFile(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var blob, salt string
 	var err error
-	if segs[len(segs)-2] == "proposals" {
+	if segs[0] == "in" {
+		// An artifact ws found in a repo: its files as the repo has them,
+		// at the version the frame names.
+		data, blob, err = s.App.FoundArtifactAt(r.Context(), segs[1], segs[3], file)
+		salt = frame
+	} else if segs[len(segs)-2] == "proposals" {
 		slug := ""
 		if segs[0] == "missions" {
 			slug = segs[1]
@@ -377,6 +404,52 @@ func artifactInfo(e artifact.Entry, cfg artifact.Config, now time.Time) Artifact
 
 func versionOf(v artifact.Version) ArtifactVersion {
 	return ArtifactVersion{N: v.N, BasedOn: v.BasedOn, At: v.At, By: v.By, From: v.From, Proposal: v.Proposal, FromTitle: v.FromTitle, Note: v.Note}
+}
+
+// foundArtifact is an artifact ws found in a repo, as the web UI has it.
+func foundArtifact(f ops.FoundArtifact) ArtifactFound {
+	out := ArtifactFound{Name: f.Name, Where: f.Where(), Repo: f.Repo, Label: f.Label, Title: f.Title,
+		Version: f.Version, Frame: "/frame/in/" + f.Repo + "/tree/" + f.Version, Changed: f.Changed, ChangedBy: f.ChangedBy}
+	if f.Record != nil {
+		out.Promoted = f.Record.Promoted
+	}
+	return out
+}
+
+// artifactsFound is GET /api/artifacts/found: the artifacts in the
+// workspace's repos that aren't this machine's, as the repos have them.
+func (s *Server) artifactsFound(w http.ResponseWriter, r *http.Request) {
+	found, err := s.App.FoundArtifacts(r.Context())
+	if err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	out := ArtifactsFound{Found: []ArtifactFound{}}
+	for _, f := range found {
+		out.Found = append(out.Found, foundArtifact(f))
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// artifactFoundDetail is GET /api/artifacts/found/detail?name=…: one of
+// them, by its folder's name, with its versions as its record there has
+// them and its files.
+func (s *Server) artifactFoundDetail(w http.ResponseWriter, r *http.Request) {
+	d, err := s.App.FoundArtifact(r.Context(), r.URL.Query().Get("name"))
+	if err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	out := ArtifactFoundDetail{ArtifactFound: foundArtifact(d.FoundArtifact), All: []ArtifactVersion{}, Files: []ArtifactFoundFile{}, Size: d.Size}
+	if d.Record != nil {
+		for _, v := range d.Record.Versions {
+			out.All = append(out.All, versionOf(v))
+		}
+	}
+	for _, f := range d.Files {
+		out.Files = append(out.Files, ArtifactFoundFile{Path: f.Path, Size: f.Size})
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // artifactDetail is GET /api/artifacts/{id}: an artifact with every

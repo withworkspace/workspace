@@ -5,14 +5,17 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"path"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/withworkspace/plugin/protocol"
+	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/store"
 	"github.com/withworkspace/workspace/internal/workspace"
@@ -24,7 +27,7 @@ import (
 // folder is the thing (its main file); the kind is a plugin's, and what
 // the main file says is the plugin's to read. What's kept here is what
 // the repo says, read from the space's default branch with its documents:
-// a cache, keyed by the two files' contents, that can be thrown away.
+// a cache, keyed by what's in each folder, that can be thrown away.
 // What a plugin makes of a main file (what it's found by) is kept with the
 // plugin's other things, by ops.
 
@@ -41,7 +44,11 @@ type Thing struct {
 	// Manifest and Blob are the manifest's content and the main file's,
 	// as git names them: the same for the same content.
 	Manifest, Blob string
-	// Changed is when either last changed (RFC 3339), and ChangedBy who by.
+	// Tree is its folder, as git names it: the same while every file in it
+	// is, whichever of them is the thing.
+	Tree string
+	// Changed is when anything in it last changed (RFC 3339), and
+	// ChangedBy who by.
 	Changed, ChangedBy string
 }
 
@@ -51,9 +58,11 @@ func (t Thing) Name() string {
 	return ref.Ref{Kind: ref.Dir, Repo: t.Repo, Worktree: ref.Ground, Path: strings.TrimSuffix(t.Path, "/")}.Name()
 }
 
-// Version is what the thing is made of: another when its manifest or its
-// main file changes.
-func (t Thing) Version() string { return t.Manifest + ":" + t.Blob }
+// Version is what the thing is made of: its folder, as git names it, so
+// another when any file in it changes. A kind whose thing is one file
+// with what's made from it beside it, and one whose thing is every file
+// there, are versioned the same.
+func (t Thing) Version() string { return t.Tree }
 
 // manifest is a thing.toml, as written.
 type manifest struct {
@@ -126,8 +135,8 @@ func BlobID(content []byte) string {
 
 // refreshThings reads the things on a space's ground into the records:
 // tree is every file under the space's folder at head, by path, with its
-// content's id. A thing whose manifest and main file are as they were
-// isn't read again. It reports how many were read, and how many are gone.
+// content's id. A thing whose folder is as it was isn't read again. It
+// reports how many were read, and how many are gone.
 func refreshThings(ctx context.Context, db *store.DB, ws *workspace.Workspace, s workspace.Space, head string, tree map[string]string) (nread, nremoved int, err error) {
 	had := map[string]Thing{}
 	if err := db.Read(ctx, func(tx *store.Tx) error {
@@ -167,12 +176,29 @@ func refreshThings(ctx context.Context, db *store.DB, ws *workspace.Workspace, s
 			said[e.path] = m
 		}
 	}
+	folders := make([]string, len(manifests))
+	for i, p := range manifests {
+		folders[i] = path.Dir(p)
+	}
+	trees, err := folderTrees(ctx, ground, head, folders)
+	if err != nil {
+		return 0, 0, err
+	}
+	// Each folder's files, to say when it last changed.
+	within := map[string][]string{}
+	for p := range tree {
+		for dir := path.Dir(p); dir != "."; dir = path.Dir(dir) {
+			if _, ok := trees[dir]; ok {
+				within[dir+"/"] = append(within[dir+"/"], p)
+			}
+		}
+	}
 	var now, changed []Thing
 	var dated []entry
 	for _, p := range manifests {
 		folder := path.Dir(p) + "/"
 		was, ok := had[folder]
-		t := Thing{Repo: s.Repo, Path: folder, Manifest: tree[p]}
+		t := Thing{Repo: s.Repo, Path: folder, Manifest: tree[p], Tree: trees[path.Dir(p)]}
 		switch m, read := said[p]; {
 		case read:
 			t.Kind, t.Title, t.Main, t.Picture = m.Kind, m.Title, m.Main, m.Picture
@@ -194,7 +220,9 @@ func refreshThings(ctx context.Context, db *store.DB, ws *workspace.Workspace, s
 		}
 		now = append(now, t)
 		changed = append(changed, t)
-		dated = append(dated, entry{path: p}, entry{path: folder + t.Main})
+		for _, f := range within[folder] {
+			dated = append(dated, entry{path: f})
+		}
 	}
 	keep := map[string]bool{}
 	for _, t := range now {
@@ -215,9 +243,8 @@ func refreshThings(ctx context.Context, db *store.DB, ws *workspace.Workspace, s
 	}
 	for i := range changed {
 		t := &changed[i]
-		// The later of its two files' last changes: its main file's, of
-		// two at once.
-		for _, p := range []string{t.Path + t.Main, t.Path + protocol.ManifestName} {
+		// The latest of its files' last changes.
+		for _, p := range within[t.Path] {
 			if c := last[p]; c.at > t.Changed {
 				t.Changed, t.ChangedBy = c.at, c.by
 			}
@@ -230,10 +257,10 @@ func refreshThings(ctx context.Context, db *store.DB, ws *workspace.Workspace, s
 			}
 		}
 		for _, t := range changed {
-			if _, err := tx.Exec(`INSERT INTO space_things (repo, path, kind, title, main, picture, manifest, blob, changed, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			if _, err := tx.Exec(`INSERT INTO space_things (repo, path, kind, title, main, picture, manifest, blob, tree, changed, changed_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				ON CONFLICT (repo, path) DO UPDATE SET kind = excluded.kind, title = excluded.title, main = excluded.main, picture = excluded.picture,
-					manifest = excluded.manifest, blob = excluded.blob, changed = excluded.changed, changed_by = excluded.changed_by`,
-				t.Repo, t.Path, t.Kind, t.Title, t.Main, t.Picture, t.Manifest, t.Blob, t.Changed, t.ChangedBy); err != nil {
+					manifest = excluded.manifest, blob = excluded.blob, tree = excluded.tree, changed = excluded.changed, changed_by = excluded.changed_by`,
+				t.Repo, t.Path, t.Kind, t.Title, t.Main, t.Picture, t.Manifest, t.Blob, t.Tree, t.Changed, t.ChangedBy); err != nil {
 				return err
 			}
 		}
@@ -247,7 +274,7 @@ func refreshThings(ctx context.Context, db *store.DB, ws *workspace.Workspace, s
 }
 
 func thingsIn(tx *store.Tx, where string, args ...any) ([]Thing, error) {
-	rows, err := tx.Query(`SELECT repo, path, kind, title, main, picture, manifest, blob, changed, changed_by FROM space_things `+where+` ORDER BY repo, path`, args...)
+	rows, err := tx.Query(`SELECT repo, path, kind, title, main, picture, manifest, blob, tree, changed, changed_by FROM space_things `+where+` ORDER BY repo, path`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +282,7 @@ func thingsIn(tx *store.Tx, where string, args ...any) ([]Thing, error) {
 	var out []Thing
 	for rows.Next() {
 		var t Thing
-		if err := rows.Scan(&t.Repo, &t.Path, &t.Kind, &t.Title, &t.Main, &t.Picture, &t.Manifest, &t.Blob, &t.Changed, &t.ChangedBy); err != nil {
+		if err := rows.Scan(&t.Repo, &t.Path, &t.Kind, &t.Title, &t.Main, &t.Picture, &t.Manifest, &t.Blob, &t.Tree, &t.Changed, &t.ChangedBy); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
@@ -301,4 +328,100 @@ func MainFile(ctx context.Context, ws *workspace.Workspace, t Thing) ([]byte, er
 		return nil, err
 	}
 	return out[0], nil
+}
+
+// folderTrees is git's id for each of folders at head, by folder: one
+// that isn't there has none.
+func folderTrees(ctx context.Context, ground, head string, folders []string) (map[string]string, error) {
+	out := map[string]string{}
+	if len(folders) == 0 {
+		return out, nil
+	}
+	args := []string{"rev-parse"}
+	for _, f := range folders {
+		args = append(args, head+":"+f)
+	}
+	ids, err := git.Cmd{Ctx: ctx, Dir: ground, Args: args, ReadOnly: true}.Output()
+	if err != nil {
+		return nil, err
+	}
+	lines := strings.Split(strings.TrimSpace(string(ids)), "\n")
+	if len(lines) != len(folders) {
+		return nil, fmt.Errorf("git named %d of %d folders", len(lines), len(folders))
+	}
+	for i, f := range folders {
+		out[f] = strings.TrimSpace(lines[i])
+	}
+	return out, nil
+}
+
+// FolderTree is git's id for a folder as a commit has it, in the worktree
+// dir: what a thing's Version is, for its folder. "" for one that isn't
+// there.
+func FolderTree(ctx context.Context, dir, commit, folder string) string {
+	out, err := git.Cmd{Ctx: ctx, Dir: dir, Args: []string{"rev-parse", "--verify", "--quiet", commit + ":" + strings.TrimSuffix(folder, "/")}, ReadOnly: true}.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// File is one of a thing's files: its path in the thing's folder, its
+// content as git names it, and its size.
+type File struct {
+	Path, Blob string
+	Size       int
+}
+
+// Files are a thing's files, as they were when it was read: every file in
+// its folder at its Version, whatever the ground has moved to since.
+func Files(ctx context.Context, ws *workspace.Workspace, t Thing) ([]File, error) {
+	out, err := git.Cmd{Ctx: ctx, Dir: ws.MainWorktree(t.Repo), Args: []string{"ls-tree", "-r", "-l", "-z", t.Tree}, ReadOnly: true}.Output()
+	if err != nil {
+		return nil, err
+	}
+	var files []File
+	for _, rec := range strings.Split(string(out), "\x00") {
+		meta, p, ok := strings.Cut(rec, "\t")
+		f := strings.Fields(meta)
+		if !ok || len(f) != 4 || f[1] != "blob" {
+			continue
+		}
+		size, _ := strconv.Atoi(f[3])
+		files = append(files, File{Path: p, Blob: f[2], Size: size})
+	}
+	return files, nil
+}
+
+// ErrNoFile is a thing having no file by a name.
+var ErrNoFile = errors.New("it has no such file")
+
+// FileOf is one of a thing's files, by its path in the thing's folder, as
+// it was when the thing was read, with git's id for its content.
+func FileOf(ctx context.Context, ws *workspace.Workspace, t Thing, name string) ([]byte, string, error) {
+	files, err := Files(ctx, ws, t)
+	if err != nil {
+		return nil, "", err
+	}
+	for _, f := range files {
+		if f.Path == name {
+			out, err := blobs(ctx, ws.MainWorktree(t.Repo), []entry{{path: t.Path + name, blob: f.Blob}})
+			if err != nil {
+				return nil, "", err
+			}
+			return out[0], f.Blob, nil
+		}
+	}
+	return nil, "", ErrNoFile
+}
+
+// ThingsAt are the things in a repo's space whose folder is tree, as git
+// names it: the things that are made of the same files.
+func ThingsAt(ctx context.Context, db *store.DB, repo, tree string) ([]Thing, error) {
+	var out []Thing
+	err := db.Read(ctx, func(tx *store.Tx) (err error) {
+		out, err = thingsIn(tx, `WHERE repo = ? AND tree = ?`, repo, tree)
+		return err
+	})
+	return out, err
 }

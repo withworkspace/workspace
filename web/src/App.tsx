@@ -4,6 +4,7 @@ import { Link, Navigate, NavLink, Route, Routes, useLocation, useMatch, useNavig
 import { type Connection, NotSignedIn, setSettings, usePlugins, useWorkspace, type Workspace } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
 import { ComparePage, compareKeys } from "./artifacts/Compare";
+import { FoundArtifactPage, foundArtifactKeys } from "./artifacts/Found";
 import { Explorer, explorerKeys } from "./files/Explorer";
 import { docKeys } from "./files/DocPage";
 import { FilesPage, filesKeys } from "./files/Files";
@@ -226,6 +227,7 @@ export function App() {
                 <Route path="/pages/:id" element={<PageAddress workspace={workspace} />} />
                 <Route path="/artifacts" element={<ArtifactsPage workspace={workspace} />} />
                 <Route path="/artifacts/compare" element={<ComparePage workspace={workspace} />} />
+                <Route path="/artifacts/in/*" element={<FoundArtifactPage />} />
                 <Route path="/artifacts/:id" element={<ArtifactView workspace={workspace} />} />
                 <Route path="/artifacts/:id/compare" element={<ComparePage workspace={workspace} />} />
                 <Route path="/artifacts/:id/:version" element={<ArtifactView workspace={workspace} />} />
@@ -628,6 +630,7 @@ function helpKeys(path: string): [string, string][] {
   if (path === "/documents") return documentsKeys;
   if (path === "/artifacts") return artifactsKeys;
   if (path === "/artifacts/compare" || /^\/artifacts\/[^/]+\/compare$/.test(path)) return compareKeys;
+  if (path.startsWith("/artifacts/in/")) return foundArtifactKeys;
   if (path.startsWith("/artifacts/")) return artifactViewKeys;
   if (path.startsWith("/documents/local/")) return pageKeys;
   if (/^\/documents\/[^/]+\/.+/.test(path)) return new URLSearchParams(window.location.search).has("edit") ? pageKeys : docKeys;

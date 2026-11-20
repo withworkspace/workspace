@@ -267,7 +267,9 @@ func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name, to string
 		if err := writeThing(filepath.Join(capsule, filepath.FromSlash(folder)), kind, main, named, given.RemotePackage); err != nil {
 			return "", "", "", false, err
 		}
-		written = writtenThing(kind, repo, folder, main, named, given.RemotePackage)
+		if written, err = writtenThing(capsule, kind, repo, folder, main, named, given.RemotePackage); err != nil {
+			return "", "", "", false, err
+		}
 		return folder, fmt.Sprintf("Add %s: %s", kind, given.Title), fmt.Sprintf("Promoted from the %s plugin: its folder holds the %s (%s), what's made from it, and a %s that says what it is.", who, kind, main, protocol.ManifestName), true, nil
 	})
 	if err != nil {
@@ -276,16 +278,25 @@ func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name, to string
 	return w.thingPut(ctx, remotes, k, name, repo, folder, written, saved, true, false)
 }
 
-// writtenThing is a thing as its folder was just written, before ws has
-// found it there.
-func writtenThing(kind, repo, folder, main, slugName string, pkg protocol.RemotePackage) protocol.RemoteThing {
+// writtenThing is a thing as its folder was just written in a capsule,
+// before it's committed and before ws has found it there: its version is
+// its folder's as the commit will have it, which staging it says.
+func writtenThing(capsule, kind, repo, folder, main, slugName string, pkg protocol.RemotePackage) (protocol.RemoteThing, error) {
 	t := space.Thing{Repo: repo, Path: folder + "/", Kind: kind, Title: pkg.Title, Main: main, Blob: space.BlobID(pkg.Main)}
 	for _, f := range pkg.Files {
 		if f.Picture {
 			t.Picture = strings.ReplaceAll(f.Name, protocol.RemoteSlug, slugName)
 		}
 	}
-	return remoteThing(t)
+	if out, err := git.Combined(capsule, "add", "-A", "--", filepath.FromSlash(folder)); err != nil {
+		return protocol.RemoteThing{}, fmt.Errorf("staging %s: %s: %w", folder, strings.TrimSpace(out), err)
+	}
+	tree, err := git.Combined(capsule, "write-tree", "--prefix="+folder+"/")
+	if err != nil {
+		return protocol.RemoteThing{}, fmt.Errorf("naming %s as it's written: %s: %w", folder, strings.TrimSpace(tree), err)
+	}
+	t.Tree = strings.TrimSpace(tree)
+	return remoteThing(t), nil
 }
 
 // SaveThing saves one of the plugin who's own things that's in a repo, as
@@ -342,10 +353,10 @@ func (w *Workspace) SaveThing(ctx context.Context, who, kind, name string) (prot
 		if err != nil {
 			return "", "", "", false, noThingAt(fmt.Sprintf("ws has no %s at %s: its %s isn't there", kind, given.Name, main))
 		}
-		if now := space.BlobID(there); now != given.Base {
+		if now := space.FolderTree(ctx, capsule, "HEAD", folder); now != given.Base {
 			// It's changed there since the plugin last had it: the plugin
 			// brings what's there into what it has.
-			current := remoteThing(space.Thing{Repo: repo, Path: folder + "/", Kind: kind, Title: title, Main: main, Picture: picture, Blob: now})
+			current := remoteThing(space.Thing{Repo: repo, Path: folder + "/", Kind: kind, Title: title, Main: main, Picture: picture, Blob: space.BlobID(there), Tree: now})
 			if given, err = ask(&protocol.RemoteOpened{RemoteThing: current, Content: there}); err != nil {
 				return "", "", "", false, err
 			}
@@ -358,7 +369,9 @@ func (w *Workspace) SaveThing(ctx context.Context, who, kind, name string) (prot
 		if err := writeThing(dir, kind, main, named, given.RemotePackage); err != nil {
 			return "", "", "", false, err
 		}
-		written = writtenThing(kind, repo, folder, main, named, given.RemotePackage)
+		if written, err = writtenThing(capsule, kind, repo, folder, main, named, given.RemotePackage); err != nil {
+			return "", "", "", false, err
+		}
 		if out, err := git.Combined(capsule, "status", "--porcelain", "--", filepath.FromSlash(folder)); err == nil && strings.TrimSpace(out) == "" {
 			return "", "", "", false, errAsItWas
 		}

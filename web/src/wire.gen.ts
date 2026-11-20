@@ -271,6 +271,67 @@ export interface ArtifactFile {
 
 // From web/api.go
 /**
+ * ArtifactFound is an artifact in one of the workspace's repos that no
+ * artifact on this machine lives at: someone else's, or another
+ * machine's, as ws found it there. It's named by its folder, which is its
+ * name on every machine.
+ */
+export interface ArtifactFound {
+    /**
+     * Name is its folder as ws names one
+     * (records/artifacts/2026-11-20-horizon-glow/), and Where the same as
+     * it's said to people (records:artifacts/2026-11-20-horizon-glow/).
+     */
+    name: string;
+    where: string;
+    repo: string;
+    /**
+     * Label is what ws calls the repo.
+     */
+    label: string;
+    title: string;
+    /**
+     * Version is what its folder holds, as git names it, and Frame where
+     * that runs: another of each when any of its files changes.
+     */
+    version: string;
+    frame: string;
+    /**
+     * Changed is when it last changed in its repo, and ChangedBy who by.
+     */
+    changed: string;
+    changedBy?: string;
+    /**
+     * Promoted says who promoted the version that's there, when, and
+     * which of its versions it is, where its record there says.
+     */
+    promoted?: ArtifactPromotion;
+}
+
+// From web/api.go
+/**
+ * ArtifactFoundDetail is GET /api/artifacts/found/detail?name=…: one of
+ * them, with what its record says each version up to the one there
+ * changed (oldest first), and its files.
+ */
+export interface ArtifactFoundDetail extends ArtifactFound {
+    all: ArtifactVersion[];
+    files: ArtifactFoundFile[];
+    size: number;
+}
+
+// From web/api.go
+/**
+ * ArtifactFoundFile is one of a found artifact's files: its path in the
+ * artifact's folder, and its size.
+ */
+export interface ArtifactFoundFile {
+    path: string;
+    size: number;
+}
+
+// From web/api.go
+/**
  * ArtifactFrom is where versions of an artifact came from.
  */
 export interface ArtifactFrom {
@@ -421,6 +482,15 @@ export interface ArtifactVersion {
  */
 export interface ArtifactsCleared {
     local: string[];
+}
+
+// From web/api.go
+/**
+ * ArtifactsFound is GET /api/artifacts/found: every one of them, the
+ * latest changed first.
+ */
+export interface ArtifactsFound {
+    found: ArtifactFound[];
 }
 
 // From web/api.go

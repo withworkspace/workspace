@@ -43,6 +43,7 @@ import { hasTweaks, TweaksToggle, TweaksTray, useTweaks } from "./Tray";
 import { changed, followed, frameSearch, readTweakParams, TWEAK, tweakParams } from "./tweaks";
 import { ClearExpired, DiscardDialog, PromoteDialog, restore } from "./Lifetime";
 import { PagePin } from "../shell/focus";
+import { FoundArtifacts } from "./Found";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
 // sandboxed frame. A version is its page and the files it loads beside
@@ -173,6 +174,7 @@ export function ArtifactsPage({ workspace }: { workspace: Workspace }) {
           ))}
         </ul>
       )}
+      <FoundArtifacts workspace={workspace} />
       {promoting && <PromoteDialog a={promoting} workspace={workspace} onClose={() => setPromoting(undefined)} />}
     </div>
   );

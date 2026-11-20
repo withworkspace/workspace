@@ -16740,6 +16740,20 @@ button.accent-button:hover:not(:disabled) {
   resize: vertical;
 }
 
+/* The artifacts ws found in the workspace's repos, under the page's own. */
+.artifacts-found {
+  margin-top: 28px;
+}
+.artifacts-found-title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+}
+.artifacts-found-about {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+}
 .artifact-row-meta {
   display: flex;
   flex-wrap: wrap;

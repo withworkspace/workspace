@@ -82,6 +82,12 @@ func init() {
 			PRIMARY KEY (repo, path)
 		) WITHOUT ROWID;
 		DELETE FROM space_heads;
+	`), store.SQL(`
+		-- A thing's version is its folder's, as git names it: a kind's
+		-- thing can be every file there. Each space is looked through
+		-- again, to say it.
+		ALTER TABLE space_things ADD COLUMN tree TEXT NOT NULL DEFAULT '';
+		DELETE FROM space_heads;
 	`))
 }
 

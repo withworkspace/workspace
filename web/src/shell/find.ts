@@ -730,6 +730,9 @@ function saidTo(f: Found): string {
       return repo && name ? `/missions/${slug}/review/${encodeURIComponent(repo)}/${encodeURIComponent(name)}` : `/missions/${slug}?tab=work`;
     }
   }
+  // An artifact ws found in a repo is named by its folder, and has a page
+  // of its own (artifacts/Found.tsx's foundHref).
+  if (f.thing === "artifact" && f.ref.endsWith("/")) return `/artifacts/in/${f.ref.split("/").map(encodeURIComponent).join("/")}`;
   // An artifact, at the version whose note says it.
   if (f.thing === "artifact") return `/artifacts/${encodeURIComponent(f.ref)}${f.anchor && /^v\d+$/.test(f.anchor) ? `/${f.anchor}` : ""}`;
   if (f.of && /^p\d+$/.test(f.of)) return `/pages/${encodeURIComponent(f.of)}`;

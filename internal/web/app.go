@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"io"
 	"time"
 
@@ -66,6 +67,12 @@ type Focusing interface {
 type Artifacting interface {
 	PromoteArtifact(p ops.ArtifactPromote, by ops.Actor) (ops.ArtifactDone, error)
 	ArtifactHomeOffered(e artifact.Entry) string
+	// The artifacts ws found in the workspace's repos that aren't this
+	// machine's: which there are, one with its files, and one of its
+	// files as its folder was at a version.
+	FoundArtifacts(ctx context.Context) ([]ops.FoundArtifact, error)
+	FoundArtifact(ctx context.Context, name string) (ops.FoundArtifactDetail, error)
+	FoundArtifactAt(ctx context.Context, repo, version, file string) ([]byte, string, error)
 	DiscardArtifact(ref, reason string, by ops.Actor) (ops.ArtifactDone, error)
 	RestoreArtifact(ref string, by ops.Actor) (ops.ArtifactDone, error)
 	ClearExpiredArtifacts(by ops.Actor) (ops.ArtifactsCleared, error)

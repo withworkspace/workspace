@@ -10,9 +10,11 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/space"
 )
 
 // An artifact's lifetime: you promote one worth keeping, choosing a
@@ -379,8 +381,18 @@ func (w *Workspace) putHome(store artifact.Store, cfg artifact.Config, e artifac
 				return "", "", "", false, invalid("there's something at %s:%s/ already: name another folder for %s to live in", h.repo, folder, e.ID)
 			}
 		}
-		if err := artifact.WriteHome(filepath.Join(capsule, filepath.FromSlash(folder)), &e.Artifact, p, files); err != nil {
+		dir := filepath.Join(capsule, filepath.FromSlash(folder))
+		if err := artifact.WriteHome(dir, &e.Artifact, p, files); err != nil {
 			return "", "", "", false, fmt.Errorf("writing %s into %s: %w", artifact.VersionRef(e.ID, p.Version), h.repo, err)
+		}
+		// What says the folder is an artifact, to every ws that has the
+		// repo: it's found there, as a plugin's thing in a repo is.
+		manifest, err := space.Manifest(artifact.ThingKind, e.Title, artifact.MainFile, "")
+		if err != nil {
+			return "", "", "", false, err
+		}
+		if err := os.WriteFile(filepath.Join(dir, protocol.ManifestName), manifest, 0o644); err != nil {
+			return "", "", "", false, err
 		}
 		body := promoteBody(p, &e.Artifact, h.first)
 		if what == "Restored" {

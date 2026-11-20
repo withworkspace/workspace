@@ -201,7 +201,7 @@ func (w *Workspace) readRemote(ctx context.Context, reader RemoteReader, k plugi
 
 // remoteThing is a thing in a space as a plugin's told of it.
 func remoteThing(t space.Thing) protocol.RemoteThing {
-	out := protocol.RemoteThing{Kind: t.Kind, Name: t.Name(), Repo: t.Repo, Path: t.Path, Title: t.Title, Main: t.Main, Picture: t.Picture, Version: t.Blob, ChangedBy: t.ChangedBy}
+	out := protocol.RemoteThing{Kind: t.Kind, Name: t.Name(), Repo: t.Repo, Path: t.Path, Title: t.Title, Main: t.Main, Picture: t.Picture, Version: t.Version(), ChangedBy: t.ChangedBy}
 	out.Changed, _ = time.Parse(time.RFC3339, t.Changed)
 	return out
 }

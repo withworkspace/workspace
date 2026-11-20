@@ -10,6 +10,8 @@ import type {
   ArtifactContent,
   ArtifactDetail,
   ArtifactDone,
+  ArtifactFoundDetail,
+  ArtifactsFound,
   ArtifactFile,
   ArtifactSource,
   BundleNote,
@@ -72,6 +74,8 @@ export type {
   ArtifactContent,
   ArtifactDetail,
   ArtifactDone,
+  ArtifactFound,
+  ArtifactFoundDetail,
   ArtifactFile,
   ArtifactInfo,
   ArtifactSource,
@@ -654,6 +658,11 @@ export const restoreArtifact = (id: string) => send<ArtifactDone>("POST", artifa
 export const clearExpiredArtifacts = () => send<{ local: string[] }>("POST", "/api/artifacts/clear", {});
 
 export const getArtifactDetail = (id: string) => getJSON<ArtifactDetail>(`/api/artifacts/${encodeURIComponent(id)}`);
+// The artifacts in the workspace's repos that aren't this machine's, as
+// ws found them there; and one of them, by its folder's name
+// (records/artifacts/2026-11-20-horizon-glow/), with its files.
+export const getArtifactsFound = () => getJSON<ArtifactsFound>("/api/artifacts/found");
+export const getArtifactFound = (name: string) => getJSON<ArtifactFoundDetail>(`/api/artifacts/found/detail?${new URLSearchParams({ name })}`);
 // A version's source is one of its files, as text to read (its page,
 // index.html, unless another's asked for), with the version's files, to
 // choose another.

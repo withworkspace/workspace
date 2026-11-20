@@ -34,8 +34,9 @@ func (w *Workspace) Spaces(ctx context.Context) (*store.DB, space.Stats, error) 
 	})
 	// What the spaces hold that's a plugin's kind of thing is kept as the
 	// plugin's, read by it: whatever's new there, or of a kind a plugin
-	// has since registered.
-	return db, st, errors.Join(err, w.syncRemotes(ctx, db))
+	// has since registered. An artifact there is ws's own kind, kept as
+	// one found.
+	return db, st, errors.Join(err, w.syncRemotes(ctx, db), w.syncFoundArtifacts(ctx, db))
 }
 
 // SpaceView is a space of documents as a list of them says it: its repo
