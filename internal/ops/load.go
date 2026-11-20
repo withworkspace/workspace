@@ -103,6 +103,7 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 		AgentsGuide:      cfg.Agents.Guide,
 		AgentsSkills:     cfg.Agents.Skills,
 		AgentsProcess:    cfg.Agents.Process,
+		AgentsPR:         cfg.Agents.PR,
 		Kinds:            kinds,
 		Harnesses:        harnessesInUse(cfg),
 		Boarded:          cfg.Boarded,

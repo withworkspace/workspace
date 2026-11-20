@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"fmt"
+	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/store/storetest"
 	"os"
 	"os/exec"
@@ -67,6 +68,7 @@ func SetupWorkspace(t *testing.T, opts WorkspaceOpts) *Workspace {
 
 	// Write ws.toml
 	writeWSToml(t, root, opts)
+	harness.Register(FakeConverser{})
 
 	// Create repos dir
 	reposDir := filepath.Join(root, "repos")
@@ -114,6 +116,10 @@ func writeWSToml(t *testing.T, root string, opts WorkspaceOpts) {
 	for _, group := range opts.HiddenGroups {
 		fmt.Fprintf(&b, "[groups.%s]\nhidden = true\n\n", group)
 	}
+
+	// The PR writer is FakeConverser: a test never has a real agent
+	// write a pull request.
+	b.WriteString("[pr_writer]\nharness = \"fake-converse\"\n\n")
 
 	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(b.String()), 0644)
 }

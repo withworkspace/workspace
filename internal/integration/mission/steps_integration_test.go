@@ -96,7 +96,8 @@ func TestSteps_OpenPullRequestAndDecide(t *testing.T) {
 	}
 	t.Setenv("WS_ROLE", "")
 
-	// The user's review approves it: ws opens it, as ws.
+	// The user's review approves it: the PR writer writes it, for step 1
+	// (the work it carries), and ws opens it, as ws.
 	ctx, err := cli.LoadOps(w.Root)
 	if err != nil {
 		t.Fatal(err)
@@ -109,13 +110,16 @@ func TestSteps_OpenPullRequestAndDecide(t *testing.T) {
 		t.Fatal(err)
 	}
 	open, _ := gh.PRsForRepo("test-org", "backend")
-	if len(open) != 1 || open[0].Title != "Cache" || open[0].IsDraft {
+	if len(open) != 1 || open[0].Title != "Steps 1 written" || open[0].IsDraft {
 		t.Fatalf("GitHub has %+v", open)
+	}
+	if !logged(t, store, "the PR writer (fake-converse:fake-small) wrote backend/cache-lookup's pull request: Steps 1 written") {
+		t.Error("its writing isn't logged")
 	}
 	if m = testutil.LoadMission(t, w, "cache"); m.Asking() != nil {
 		t.Errorf("still asking: %+v", m.Asking())
 	}
-	if !logged(t, store, "backend#1 opened, at step 2: Cache") {
+	if !logged(t, store, "backend#1 opened, at step 2: Steps 1 written") {
 		t.Error("the opening isn't logged")
 	}
 
@@ -521,7 +525,7 @@ func TestSteps_OpenPullRequestWaitsForAMergeWithItsBase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if said := ctx.CrewDone("cache", "c1"); !strings.Contains(said, "it opened backend#1 from backend/cache-lookup") {
+	if said := ctx.CrewDone("cache", "c1"); !strings.Contains(said, "the PR writer is writing backend/cache-lookup's pull request, which ws opens once it's written") {
 		t.Errorf("c1 done again: %q", said)
 	}
 	if open, _ := gh.PRsForRepo("test-org", "backend"); len(open) != 1 {

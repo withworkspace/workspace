@@ -18,13 +18,14 @@ const (
 	Thread      = "thread"      // a thread's agent, answering it
 	Draft       = "draft"       // a resolved thread's agent, drafting what was decided
 	Check       = "check"       // a Work step's checks, run and judged once its crew reported done
+	PR          = "pr"          // a pull request the PR writer writes, then ws opens
 )
 
 // Job is one piece of work.
 type Job struct {
 	Kind    string `json:"kind"`
 	Mission string `json:"mission,omitempty"` // "" for the workspace's
-	ID      string `json:"id,omitempty"`      // the conversation; the orchestrator's crew; the crew whose done is checked
+	ID      string `json:"id,omitempty"`      // the conversation; the orchestrator's crew; the crew whose done is checked; the capsule whose pull request is written
 	Why     string `json:"why,omitempty"`     // the orchestrator's trigger: done, ended, answer…
 	// Since is when an orchestrator's run was marked underway on its
 	// mission, so the run can end that mark and no other.
