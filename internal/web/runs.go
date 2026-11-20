@@ -159,6 +159,9 @@ func (f *filesOpen) open(now time.Time) map[string]bool {
 type WorktreeRunsInfo struct {
 	Runs    []RunDetail `json:"runs"`
 	Recipes []string    `json:"recipes"`
+	// Tasks are those of Recipes that are tasks: run to their end, and
+	// kept for what they came to.
+	Tasks []string `json:"tasks"`
 	// Apps are its recipes with a page: each a tab of the worktree's.
 	Apps []AppInfo `json:"apps"`
 }
@@ -178,7 +181,7 @@ func (s *Server) worktreeRuns(w http.ResponseWriter, r *http.Request) {
 	}
 	now := time.Now()
 	s.files.saw(repo, name, now)
-	out := WorktreeRunsInfo{Runs: []RunDetail{}, Recipes: in.Recipes, Apps: []AppInfo{}}
+	out := WorktreeRunsInfo{Runs: []RunDetail{}, Recipes: in.Recipes, Tasks: in.Tasks, Apps: []AppInfo{}}
 	for _, a := range s.App.AppsAt(ops.AppPlace{Repo: repo, Worktree: name}) {
 		out.Apps = append(out.Apps, AppInfo{Name: a.Name, Title: a.Title, Icon: a.Icon})
 	}
@@ -287,6 +290,32 @@ func (s *Server) endRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"stopped": b.Ref})
+}
+
+// RunPast is GET /api/runs/past?ref=…: a task's run, and the earlier runs
+// of it kept behind it, the latest first.
+type RunPast struct {
+	Run  RunDetail   `json:"run"`
+	Past []RunDetail `json:"past"`
+}
+
+func (s *Server) runPast(w http.ResponseWriter, r *http.Request) {
+	ref := r.URL.Query().Get("ref")
+	if ref == "" {
+		jsonError(w, http.StatusBadRequest, "need the run's ref")
+		return
+	}
+	run, past, err := s.App.Run(ref)
+	if err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	now := time.Now()
+	out := RunPast{Run: RunDetailOf(run, s.Root, now), Past: []RunDetail{}}
+	for _, p := range past {
+		out.Past = append(out.Past, RunDetailOf(p, s.Root, now))
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // runLogLines is how much of a run's output the page is shown.

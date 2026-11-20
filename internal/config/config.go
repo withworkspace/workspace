@@ -57,14 +57,14 @@ type Config struct {
 	// ([plugin.jira]): the team's in ws.toml, yours over it in
 	// ws.local.toml. What the keys are is the plugin's to say.
 	Plugin map[string]map[string]any `toml:"plugin"`
-	// Run is how the workspace itself is run, by name ([run.docs]): what
+	// Run is how the workspace itself is run, by name ([run.service.docs]): what
 	// belongs to no one repo, started once for the whole workspace, at its
 	// root, by ws run <name> there. The team's: ws.toml only.
-	Run     map[string]RunRecipe `toml:"run"`
-	GitHub  GitHubConfig         `toml:"-"` // from ws.local.toml only
-	Boarded map[string][]string  `toml:"-"` // from ws.local.toml [boarded] section
-	Git     string               `toml:"-"` // from ws.local.toml only
-	Silo    map[string]string    `toml:"-"` // from ws.local.toml [silo] section
+	Run     Runs                `toml:"run"`
+	GitHub  GitHubConfig        `toml:"-"` // from ws.local.toml only
+	Boarded map[string][]string `toml:"-"` // from ws.local.toml [boarded] section
+	Git     string              `toml:"-"` // from ws.local.toml only
+	Silo    map[string]string   `toml:"-"` // from ws.local.toml [silo] section
 	// Unknown is what ws.toml and ws.local.toml say that ws doesn't read: a
 	// key that's misspelt (alias for aliases), or in the wrong file. Each is
 	// "ws.toml: repos.api.alias". ws doctor lists them.
@@ -644,9 +644,10 @@ type SiloRepoConfig struct {
 type RepoFileConfig struct {
 	Capsule CapsuleConfig  `toml:"capsule"`
 	Silo    SiloRepoConfig `toml:"silo"`
-	// Run is how the repo is run, by name ([run.web]): what `ws run web`
-	// starts in the worktree you stand in.
-	Run map[string]RunRecipe `toml:"run,omitempty"`
+	// Run is how the repo is run, by name ([run.service.web],
+	// [run.task.test]): what `ws run web` starts in the worktree you stand
+	// in.
+	Run Runs `toml:"run,omitempty"`
 	// Landing and Verify are the repo's own account of how work lands in
 	// it (see RepoConfig): a workspace's ws.toml or ws.local.toml says
 	// otherwise for itself.
@@ -679,9 +680,22 @@ type UpdatesConfig struct {
 // Checks is whether the daemon looks for later releases by itself.
 func (u UpdatesConfig) Checks() bool { return u.Check == nil || *u.Check }
 
-// RunRecipe is one of a repo's [run.<name>]: something ws run starts
-// (internal/runs).
-type RunRecipe struct {
+// Runs is a file's [run]: what ws run starts (internal/runs), each by its
+// name, in the table of the sort of run it is. A service
+// ([run.service.web]) is kept up until it's ended: a dev server. A task
+// ([run.task.test]) ends by itself (tests, lint, a build), has no port, and
+// is kept for what it came to.
+//
+// The two share their names: ws run <name>, a run's ref and where it's
+// kept all say a recipe by its name alone. One written as both is the
+// service (Twice).
+type Runs struct {
+	Service map[string]ServiceRecipe `toml:"service,omitempty"`
+	Task    map[string]TaskRecipe    `toml:"task,omitempty"`
+}
+
+// ServiceRecipe is one of a file's [run.service.<name>].
+type ServiceRecipe struct {
 	// Command is what's run, in a shell: {port} is the run's port, which
 	// $PORT holds too.
 	Command string `toml:"command"`
@@ -695,21 +709,130 @@ type RunRecipe struct {
 	// the repo's silo (.silo), whichever capsule it's pointed at.
 	Where string `toml:"where,omitempty"`
 	// Needs are the runs this one needs up before it starts, each by the
-	// name this recipe calls it ([run.web.needs.api]). ws finds each, or
-	// starts it, and hands its address over.
+	// name this recipe calls it (needs.api = { run = "api/server" }, or
+	// [run.service.web.needs.api]). ws finds each, or starts it, and hands
+	// its address over.
 	Needs map[string]RunNeed `toml:"needs,omitempty"`
-	// Page makes one of the workspace's own recipes an app: a place in the
-	// web UI's sidebar, showing the run in a frame, started when it's
-	// opened and ended once nobody has it open. Only ws.toml's recipes
-	// have one.
+	// Page makes it an app: its run shown in a frame in the web UI,
+	// started when it's opened and ended once nobody has it open. The
+	// workspace's own is a place in the sidebar, and a repo's a tab of
+	// each of its worktrees.
 	Page *RunPage `toml:"page,omitempty"`
 }
 
-// RunPage is a workspace recipe as an app in the web UI: what its place
-// is called, and its icon (one of the web UI's, by name: "book").
+// TaskRecipe is one of a file's [run.task.<name>].
+type TaskRecipe struct {
+	// Command is what's run, in a shell, to its end.
+	Command string `toml:"command"`
+	// Stop is run in the same place once the command has ended or been
+	// stopped: "" for nothing.
+	Stop string `toml:"stop,omitempty"`
+	// Where is where it runs, as a service's is.
+	Where string `toml:"where,omitempty"`
+	// Needs are the runs it needs up before it starts, as a service's are:
+	// each is ended once the task has.
+	Needs map[string]RunNeed `toml:"needs,omitempty"`
+	// Timeout is how long it may take (10m, 1h30m): one still running then
+	// is stopped, and kept as stopped. "" is an hour (runs.TaskTimeout).
+	Timeout string `toml:"timeout,omitempty"`
+	// Reports are the files its command writes that ws keeps with its
+	// result, each by the name this recipe calls it
+	// (reports.coverage = { path = "cover.out", format = "gocover" }, or
+	// [run.task.test.reports.coverage]).
+	Reports map[string]RunReport `toml:"reports,omitempty"`
+}
+
+// The sorts of run a recipe is, as RunRecipe.Type has them, and as the
+// tables of [run] are called.
+const (
+	RunService = "service"
+	RunTask    = "task"
+)
+
+// RunRecipe is a recipe of either sort, as what starts one reads it: its
+// table's keys, and which table it was in (Type). What only the other
+// sort has is empty.
+type RunRecipe struct {
+	// Type is RunService or RunTask.
+	Type    string
+	Command string
+	Stop    string
+	Where   string
+	Needs   map[string]RunNeed
+	// Ready and Page are a service's.
+	Ready string
+	Page  *RunPage
+	// Reports and Timeout are a task's.
+	Reports map[string]RunReport
+	Timeout string
+}
+
+// IsTask is whether the recipe is a task.
+func (r RunRecipe) IsTask() bool { return r.Type == RunTask }
+
+// Table is the recipe name's table as its file has it: [run.task.test].
+func (r RunRecipe) Table(name string) string {
+	t := r.Type
+	if t == "" {
+		t = RunService
+	}
+	return "[run." + t + "." + name + "]"
+}
+
+// Recipes is every recipe, by name. A name that's both a service and a
+// task is the service.
+func (r Runs) Recipes() map[string]RunRecipe {
+	if len(r.Service) == 0 && len(r.Task) == 0 {
+		return nil
+	}
+	out := make(map[string]RunRecipe, len(r.Service)+len(r.Task))
+	for name, t := range r.Task {
+		out[name] = RunRecipe{Type: RunTask, Command: t.Command, Stop: t.Stop, Where: t.Where, Needs: t.Needs, Reports: t.Reports, Timeout: t.Timeout}
+	}
+	for name, s := range r.Service {
+		out[name] = RunRecipe{Type: RunService, Command: s.Command, Stop: s.Stop, Where: s.Where, Needs: s.Needs, Ready: s.Ready, Page: s.Page}
+	}
+	return out
+}
+
+// Twice is the names written as both a service and a task, in order: each
+// is the service, and its task isn't read.
+func (r Runs) Twice() []string {
+	var out []string
+	for name := range r.Task {
+		if _, ok := r.Service[name]; ok {
+			out = append(out, name)
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
+// twiceSaid is the tasks of r that aren't read, as unknownKeys would say
+// them, with why.
+func twiceSaid(file string, r Runs) []string {
+	var out []string
+	for _, name := range r.Twice() {
+		out = append(out, fmt.Sprintf("%s: run.task.%s (a service is called %s too, and a recipe's name is one run's)", file, name, name))
+	}
+	return out
+}
+
+// RunPage is a service as an app in the web UI: what its place or tab is
+// called, and its icon (one of the web UI's, by name: "book").
 type RunPage struct {
 	Title string `toml:"title"`
 	Icon  string `toml:"icon,omitempty"`
+}
+
+// RunReport is one of a task's reports: a file its command writes.
+type RunReport struct {
+	// Path is where the command writes it, from where it runs: a file, or
+	// a pattern (junit/*.xml) for every file it matches.
+	Path string `toml:"path"`
+	// Format is what it's written in (lcov, gocover, cobertura, junit…):
+	// a plugin that reads the format shows it.
+	Format string `toml:"format,omitempty"`
 }
 
 // RunNeed is one of a recipe's needs: another recipe's run, and how this
@@ -782,7 +905,7 @@ func ParseRepoConfig(path string) (*RepoFileConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing %s: %w", path, err)
 	}
-	cfg.Unknown = unknownKeys("ws.repo.toml", md)
+	cfg.Unknown = append(unknownKeys("ws.repo.toml", md), twiceSaid("ws.repo.toml", cfg.Run)...)
 	repoFilesMu.Lock()
 	repoFiles[path] = keptRepoFile{mod: info.ModTime(), size: info.Size(), cfg: &cfg}
 	repoFilesMu.Unlock()
@@ -918,7 +1041,7 @@ func Parse(path string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing %s: %w", path, err)
 	}
-	cfg.Unknown = unknownKeys(filepath.Base(path), md)
+	cfg.Unknown = append(unknownKeys(filepath.Base(path), md), twiceSaid(filepath.Base(path), cfg.Run)...)
 	cfg.PluginOrder = pluginOrder(md)
 	return &cfg, nil
 }

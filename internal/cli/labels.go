@@ -100,6 +100,7 @@ var labels = map[string]string{
 	"run logs":                 "Reading {1}'s output",
 	"run ls":                   "Listing runs",
 	"run point":                "Pointing {1}",
+	"run show":                 "Looking at what {1} came to",
 	"run stop":                 "Stopping runs",
 	"plugin":                   "Looking at plugins",
 	"plugin add":               "Adding a plugin",

@@ -81,7 +81,7 @@ type Workspace struct {
 	// Places is where the web UI's places go, as [ui] sidebar and menu
 	// say: absent for as they come.
 	Places *Places `json:"places,omitempty"`
-	// Apps are the workspace's own recipes with a page ([run.<name>] page
+	// Apps are the workspace's own services with a page ([run.service.<name>] page
 	// in ws.toml): each a place, showing its run in a frame.
 	Apps []AppInfo `json:"apps"`
 }
@@ -410,6 +410,9 @@ type BundleRan struct {
 	Result   CheckVerdict `json:"result"`
 	Evidence string       `json:"evidence,omitempty"`
 	By       string       `json:"by"`
+	// Kept is the run ws kept of a command it ran, by its ref: all it
+	// printed and its reports are on the Runs page (/runs?show=).
+	Kept string `json:"kept,omitempty"`
 }
 
 // CrewPicks are the harnesses and models new crew may be launched on from
@@ -569,6 +572,8 @@ type StageCheck struct {
 	Result   CheckVerdict `json:"result,omitempty"`
 	Evidence string       `json:"evidence,omitempty"`
 	By       string       `json:"by,omitempty"`
+	// Kept is the run ws kept of a command it ran, by its ref.
+	Kept string `json:"kept,omitempty"`
 }
 
 // CapsuleDetail is a capsule with its git status and PR.
@@ -585,9 +590,11 @@ type CapsuleDetail struct {
 	ToLand int        `json:"toLand,omitempty"`
 	Landed *time.Time `json:"landed,omitempty"`
 	// Runs are what's running in it (ws run), and Recipes the names of
-	// what its ws.repo.toml says it can run.
+	// what its ws.repo.toml says it can run; Tasks are those of them that
+	// end by themselves (tests, lint), whose result is kept.
 	Runs    []RunDetail `json:"runs,omitempty"`
 	Recipes []string    `json:"recipes,omitempty"`
+	Tasks   []string    `json:"tasks,omitempty"`
 }
 
 // RunDetail is a run (ws run) as a capsule's page shows it.
@@ -595,6 +602,25 @@ type RunDetail struct {
 	Ref    string `json:"ref"`
 	Name   string `json:"name"`
 	Recipe string `json:"recipe,omitempty"`
+	// Type is service, for one kept up until it's ended, or task, for one
+	// that ends by itself and is kept for what it came to. A task has no
+	// link or port. N is which run of the task it is, and NRef names that
+	// run alone (Ref with #n: Ref is always the task's latest). Result is
+	// what it came to; Took how long it ran, in milliseconds; Commit where
+	// its worktree stood, Dirty with changes not committed; Why, why ws
+	// stopped it; Past how many earlier runs are kept behind it; Reports
+	// the files kept with it; and Check the step's check it was run for.
+	Type    runs.Type   `json:"type"`
+	N       int         `json:"n,omitempty"`
+	NRef    string      `json:"nref,omitempty"`
+	Result  RunResult   `json:"result,omitempty"`
+	Took    int64       `json:"took,omitempty"`
+	Commit  string      `json:"commit,omitempty"`
+	Dirty   bool        `json:"dirty,omitempty"`
+	Why     string      `json:"why,omitempty"`
+	Past    int         `json:"past,omitempty"`
+	Reports []RunReport `json:"reports,omitempty"`
+	Check   *RunCheck   `json:"check,omitempty"`
 	// Link is where it's reached: by its name, when the workspace has
 	// names (ws router), else Local, at 127.0.0.1 and its port.
 	Link  string `json:"link"`
@@ -639,6 +665,35 @@ type RunDetail struct {
 	NeededBy []string  `json:"neededBy,omitempty"`
 }
 
+// RunResult is what a task came to.
+type RunResult string
+
+const (
+	RunRunning RunResult = "running"
+	RunPassed  RunResult = "passed"
+	RunFailed  RunResult = "failed"
+	// RunStopped is one that didn't end by itself: ws stopped it, or it
+	// was killed.
+	RunStopped RunResult = "stopped"
+)
+
+// RunReport is a report kept with a task: what its recipe calls it, the
+// format it's in, the path its command wrote it at, and how many files
+// were kept (0: it wasn't written).
+type RunReport struct {
+	Name   string `json:"name"`
+	Format string `json:"format,omitempty"`
+	Path   string `json:"path"`
+	Files  int    `json:"files"`
+}
+
+// RunCheck is the check of a mission's step a task was run for.
+type RunCheck struct {
+	Mission string `json:"mission"`
+	Step    int    `json:"step"`
+	N       int    `json:"n"`
+}
+
 // RunNeed is one of a run's needs: another run, or an address outside ws.
 type RunNeed struct {
 	// Name is what the run calls it (api).
@@ -662,7 +717,7 @@ type RunNeed struct {
 
 // RunDetailOf is a run of the workspace at root as a page shows it.
 func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
-	d := RunDetail{Ref: r.Ref(), Name: r.Name, Recipe: r.Recipe, Link: router.RunAddress(root, r), Local: r.Link(), Port: r.Port, State: r.State,
+	d := RunDetail{Ref: r.Ref(), Name: r.Name, Recipe: r.Recipe, Type: runs.Service, Link: router.RunAddress(root, r), Local: r.Link(), Port: r.Port, State: r.State,
 		Owner: string(r.Owner.Kind), By: r.By, Command: r.Command, Started: r.Created,
 		Repo: r.Repo, Worktree: runs.Label(r.Worktree), Dir: r.Dir,
 		Mission: r.Owner.Mission, Step: r.Owner.Step, Crew: r.Owner.Crew, Conversation: r.Owner.Conversation, App: r.Owner.App,
@@ -674,9 +729,31 @@ func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
 		}
 		d.Needs = append(d.Needs, rn)
 	}
+	if r.IsTask() {
+		d.Type, d.Link, d.Local = runs.Task, "", ""
+		d.N, d.NRef, d.Commit, d.Dirty, d.Why, d.Past = r.N, r.NRef(), r.Commit, r.Dirty, r.Why, r.Past
+		d.Took = r.Took().Milliseconds()
+		switch {
+		case r.State == runs.Running:
+			d.Result = RunRunning
+		case r.Passed() && r.Why == "":
+			d.Result = RunPassed
+		case r.State == runs.Exited && r.Why == "":
+			d.Result = RunFailed
+		default:
+			d.Result = RunStopped
+		}
+		for _, rp := range r.Reports {
+			d.Reports = append(d.Reports, RunReport{Name: rp.Name, Format: rp.Format, Path: rp.Path, Files: len(r.ReportFiles(rp.Name))})
+		}
+		if c := r.Check; c != nil {
+			d.Check = &RunCheck{Mission: c.Mission, Step: c.Step, N: c.N}
+		}
+	}
 	switch r.State {
 	case runs.Running:
-		d.Up, d.Ends, d.PID = r.Listening(), runs.Ends(r, now), r.PID
+		d.Ends, d.PID = runs.Ends(r, now), r.PID
+		d.Up = !r.IsTask() && r.Listening()
 	case runs.Exited:
 		d.Status = r.Status
 		fallthrough

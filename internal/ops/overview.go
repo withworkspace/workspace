@@ -223,6 +223,8 @@ type MissionDetail struct {
 	// names of the recipes each can run, by repo/name.
 	CapsuleRuns map[string][]runs.Run
 	Recipes     map[string][]string
+	// Tasks are those recipes that end by themselves, by the same key.
+	Tasks map[string][]string
 	// CrewPicks are what new crew may be launched on from its page: the
 	// default first, then what [crew] allowed lists.
 	CrewPicks []harness.Pick
@@ -258,7 +260,7 @@ func (w *Workspace) Mission(slug string) (*MissionDetail, error) {
 	}
 	v := buildMissionViews(&w.git, ws, idx, []*mission.Mission{m})[0]
 	d := &MissionDetail{MissionView: v, GitHub: answered, Status: map[string]CapsuleStatus{}, Runs: w.runsOf(m, missionRuns)}
-	d.CapsuleRuns, d.Recipes = w.capsuleRuns(v)
+	d.CapsuleRuns, d.Recipes, d.Tasks = w.capsuleRuns(v)
 	d.Brief, _ = w.Missions.ReadBrief(slug)
 	d.Plan, _ = w.Missions.ReadPlan(slug)
 	d.Events, _ = w.Missions.ReadLog(slug, 0)

@@ -211,10 +211,10 @@ func TestRunCheck_FollowingKeepsTheSameEvidence(t *testing.T) {
 	fastLines(t)
 	dir := t.TempDir()
 	c := mission.Check{Command: "printf 'one\\n\\033[31mtwo\\033[0m\\n'; sleep 0.05; printf 'three'; sleep 0.05; exit 1", Expect: mission.CheckPasses}
-	plain := runCheck(dir, c, os.Environ(), checkHooks{})
+	plain := runCheckWithin(dir, c, os.Environ(), checkHooks{}, checkTimeout)
 	var lines []string
 	pid := 0
-	followed := runCheck(dir, c, os.Environ(), checkHooks{Started: func(p int) { pid = p }, Line: func(l string) { lines = append(lines, l) }})
+	followed := runCheckWithin(dir, c, os.Environ(), checkHooks{Started: func(p int) { pid = p }, Line: func(l string) { lines = append(lines, l) }}, checkTimeout)
 	if plain != followed || !strings.HasSuffix(plain.Evidence, "one\n\x1b[31mtwo\x1b[0m\nthree") {
 		t.Errorf("without following: %+v\nfollowing: %+v", plain, followed)
 	}

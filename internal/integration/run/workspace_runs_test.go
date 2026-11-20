@@ -22,14 +22,14 @@ func workspaceRunsWorkspace(t *testing.T) *testutil.Workspace {
 		t.Fatal(err)
 	}
 	f.WriteString(`
-[run.docs]
+[run.service.docs]
 command = "sleep 300 # {web}"
 
-[run.docs.needs.web]
+[run.service.docs.needs.web]
 repo = "web"
 env = "WEB_DIR"
 
-[run.docs.needs.api]
+[run.service.docs.needs.api]
 run = "api/server"
 `)
 	f.Close()
@@ -134,5 +134,37 @@ func TestRun_PointingANeedStartsTheRecipeAgainOnIt(t *testing.T) {
 	res = testutil.RunCommand(t, w.Root, nil, "run", "--wait", "0", "--for", "none", "docs")
 	if res.Err != nil || !strings.Contains(res.Stderr, "web was pointed at feat, which web no longer has: it's on the nearest now.") {
 		t.Fatalf("docs again: %v\n%s", res.Err, res.Stderr)
+	}
+}
+
+// A recipe of the workspace's own can be a task: run at its root, said by
+// its name alone, with each run of it kept behind the next.
+func TestRun_TheWorkspacesOwnTask(t *testing.T) {
+	w := workspaceRunsWorkspace(t)
+	f, err := os.OpenFile(filepath.Join(w.Root, "ws.toml"), os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.WriteString(`
+[run.task.check]
+command = "echo checked"
+`)
+	f.Close()
+	for i := 0; i < 2; i++ {
+		res := testutil.RunCommand(t, w.Root, nil, "run", "--for", "none", "check")
+		if res.Err != nil || !strings.Contains(res.Stdout, "checked") {
+			t.Fatalf("ws run check: %v\n%s%s", res.Err, res.Stdout, res.Stderr)
+		}
+	}
+	list := lsJSON(t, w)
+	if len(list) != 1 || list[0]["ref"] != "check#2" || list[0]["type"] != "task" || list[0]["dir"] != w.Root {
+		t.Fatalf("ls: %v", list)
+	}
+	if _, err := os.Stat(filepath.Join(w.Root, ".ws", "runs", ".past", "@workspace", "@", "check", "1", "run.json")); err != nil {
+		t.Errorf("its first run isn't kept behind its second: %v", err)
+	}
+	res := testutil.RunCommand(t, w.Root, nil, "run", "show", "check#1")
+	if res.Err != nil || !strings.Contains(res.Stdout, "check#1") {
+		t.Errorf("ws run show check#1: %v\n%s%s", res.Err, res.Stdout, res.Stderr)
 	}
 }

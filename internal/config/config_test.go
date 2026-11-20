@@ -1605,3 +1605,85 @@ func TestMerge_KeepsWhereThingsGo(t *testing.T) {
 		t.Errorf("where a sketch goes, merged with a local config: %q", got)
 	}
 }
+
+// A file's recipes are in the table of the sort of run each is, and what
+// only the other sort has isn't read. A need or a report can be said in
+// the recipe's own table, or in one of its own.
+func TestParseRepoConfig_RunsAreServicesAndTasks(t *testing.T) {
+	path := filepath.Join(t.TempDir(), RepoFileName)
+	os.WriteFile(path, []byte(`
+[run.service.web]
+command = "pnpm dev --port {port}"
+ready = "/"
+page = { title = "Web", icon = "globe" }
+needs.api = { run = "backend/server", env = "API_URL" }
+needs.db.run = "db"
+
+[run.service.web.needs.docs]
+repo = "docs"
+
+[run.task.test]
+command = "go test ./..."
+timeout = "10m"
+reports.coverage = { path = "cover.out", format = "gocover" }
+
+[run.task.test.reports.junit]
+path = "junit/*.xml"
+
+[run.old]
+command = "sleep 300"
+
+[run.task.lint]
+command = "golangci-lint run"
+needs = { api = { run = "api" } }
+ready = "/"
+page = { title = "Lint" }
+
+[run.service.api]
+command = "go run ./cmd/api"
+reports.x = { path = "x" }
+
+[run.service.test]
+command = "sleep 300"
+`), 0o644)
+	cfg, err := ParseRepoConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := cfg.Run.Recipes()
+	web, test, lint := all["web"], all["test"], all["lint"]
+	if web.IsTask() || web.Ready != "/" || web.Page == nil || web.Page.Icon != "globe" || web.Table("web") != "[run.service.web]" {
+		t.Errorf("web = %+v", web)
+	}
+	if len(web.Needs) != 3 || web.Needs["api"].Env != "API_URL" || web.Needs["db"].Run != "db" || !web.Needs["docs"].IsFolder() {
+		t.Errorf("web's needs = %+v", web.Needs)
+	}
+	if !lint.IsTask() || lint.Table("lint") != "[run.task.lint]" || lint.Ready != "" || lint.Page != nil || lint.Needs["api"].Run != "api" {
+		t.Errorf("lint = %+v", lint)
+	}
+	// test is written as both: it's the service, and its task isn't read.
+	if test.IsTask() || strings.Join(cfg.Run.Twice(), ",") != "test" {
+		t.Errorf("test = %+v, twice %v", test, cfg.Run.Twice())
+	}
+	if cfg.Run.Task["test"].Timeout != "10m" || lint.Timeout != "" {
+		t.Errorf("timeouts: test %q, lint %q", cfg.Run.Task["test"].Timeout, lint.Timeout)
+	}
+	if rs := cfg.Run.Task["test"].Reports; len(rs) != 2 || rs["coverage"].Format != "gocover" || rs["junit"].Path != "junit/*.xml" {
+		t.Errorf("the task test's reports = %+v", rs)
+	}
+	if _, ok := all["old"]; ok || len(all) != 4 {
+		t.Errorf("recipes = %v: [run.old] is no recipe now", all)
+	}
+	want := []string{
+		"ws.repo.toml: run.old",
+		"ws.repo.toml: run.service.api.reports.x",
+		"ws.repo.toml: run.task.lint.page",
+		"ws.repo.toml: run.task.lint.ready",
+		"ws.repo.toml: run.task.test (a service is called test too, and a recipe's name is one run's)",
+	}
+	got := slices.Clone(cfg.Unknown)
+	slices.Sort(got)
+	if !slices.Equal(got, want) {
+		t.Errorf("unread:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}

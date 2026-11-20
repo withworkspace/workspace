@@ -682,6 +682,11 @@ export interface BundleRan {
     result: CheckVerdict;
     evidence?: string;
     by: string;
+    /**
+     * Kept is the run ws kept of a command it ran, by its ref: all it
+     * printed and its reports are on the Runs page (/runs?show=).
+     */
+    kept?: string;
 }
 
 // From web/api.go
@@ -734,10 +739,12 @@ export interface CapsuleDetail extends Capsule {
     landed?: string;
     /**
      * Runs are what's running in it (ws run), and Recipes the names of
-     * what its ws.repo.toml says it can run.
+     * what its ws.repo.toml says it can run; Tasks are those of them that
+     * end by themselves (tests, lint), whose result is kept.
      */
     runs?: RunDetail[];
     recipes?: string[];
+    tasks?: string[];
 }
 
 // From web/enums.go
@@ -3880,12 +3887,43 @@ export interface RoleRun {
 
 // From web/api.go
 /**
+ * RunCheck is the check of a mission's step a task was run for.
+ */
+export interface RunCheck {
+    mission: string;
+    step: number;
+    n: number;
+}
+
+// From web/api.go
+/**
  * RunDetail is a run (ws run) as a capsule's page shows it.
  */
 export interface RunDetail {
     ref: string;
     name: string;
     recipe?: string;
+    /**
+     * Type is service, for one kept up until it's ended, or task, for one
+     * that ends by itself and is kept for what it came to. A task has no
+     * link or port. N is which run of the task it is, and NRef names that
+     * run alone (Ref with #n: Ref is always the task's latest). Result is
+     * what it came to; Took how long it ran, in milliseconds; Commit where
+     * its worktree stood, Dirty with changes not committed; Why, why ws
+     * stopped it; Past how many earlier runs are kept behind it; Reports
+     * the files kept with it; and Check the step's check it was run for.
+     */
+    type: RunsType;
+    n?: number;
+    nref?: string;
+    result?: RunResult;
+    took?: number;
+    commit?: string;
+    dirty?: boolean;
+    why?: string;
+    past?: number;
+    reports?: RunReport[];
+    check?: RunCheck;
     /**
      * Link is where it's reached: by its name, when the workspace has
      * names (ws router), else Local, at 127.0.0.1 and its port.
@@ -4004,6 +4042,32 @@ export interface RunNeed {
 
 // From web/runs.go
 /**
+ * RunPast is GET /api/runs/past?ref=…: a task's run, and the earlier runs
+ * of it kept behind it, the latest first.
+ */
+export interface RunPast {
+    run: RunDetail;
+    past: RunDetail[];
+}
+
+// From web/api.go
+/**
+ * RunReport is a report kept with a task: what its recipe calls it, the
+ * format it's in, the path its command wrote it at, and how many files
+ * were kept (0: it wasn't written).
+ */
+export interface RunReport {
+    name: string;
+    format?: string;
+    path: string;
+    files: number;
+}
+
+// From web/api.go
+export type RunResult = "failed" | "passed" | "running" | "stopped";
+
+// From web/runs.go
+/**
  * RunStart is POST /api/missions/{slug}/runs: a capsule's recipe to run.
  */
 export interface RunStart {
@@ -4038,6 +4102,12 @@ export interface RunsInfo {
  * State is where a run is.
  */
 export type RunsState = "exited" | "gone" | "running";
+
+// From runs/runs.go
+/**
+ * Type is which sort of run one is.
+ */
+export type RunsType = "service" | "task";
 
 // From web/find.go
 /**
@@ -4462,6 +4532,10 @@ export interface StageCheck {
     result?: CheckVerdict;
     evidence?: string;
     by?: string;
+    /**
+     * Kept is the run ws kept of a command it ran, by its ref.
+     */
+    kept?: string;
 }
 
 // From web/api.go
@@ -5335,7 +5409,7 @@ export interface Workspace {
      */
     places?: Places;
     /**
-     * Apps are the workspace's own recipes with a page ([run.<name>] page
+     * Apps are the workspace's own services with a page ([run.service.<name>] page
      * in ws.toml): each a place, showing its run in a frame.
      */
     apps: AppInfo[];
@@ -5418,6 +5492,11 @@ export interface Worktree {
 export interface WorktreeRunsInfo {
     runs: RunDetail[];
     recipes: string[];
+    /**
+     * Tasks are those of Recipes that are tasks: run to their end, and
+     * kept for what they came to.
+     */
+    tasks: string[];
     /**
      * Apps are its recipes with a page: each a tab of the worktree's.
      */

@@ -11,6 +11,7 @@ import (
 	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/prompt"
+	"github.com/withworkspace/workspace/internal/runs"
 )
 
 // What's running while ws checks a step: each check that's a command, and
@@ -47,7 +48,7 @@ func (r *checkRound) log(format string, a ...any) {
 // command runs check i (from 0), a command, in dir: what's running is
 // kept on the mission, with the last line it prints as it goes, and its
 // start and end logged.
-func (r *checkRound) command(i int, c mission.Check, dir string, env []string) mission.CheckResult {
+func (r *checkRound) command(i int, c mission.Check, capsule, dir string, env []string) mission.CheckResult {
 	n, of := i+1, len(r.st.Step.Checks)
 	since := time.Now()
 	r.w.Missions.SetChecking(r.slug, mission.Checking{Step: r.st.N, Crew: r.crew, Of: of, N: n, Command: c.Command,
@@ -55,7 +56,7 @@ func (r *checkRound) command(i int, c mission.Check, dir string, env []string) m
 	r.log("step %d, check %d of %d started: `%s`", r.st.N, n, of, c.Command)
 	who := fmt.Sprintf("check %s step %d, %d of %d", r.slug, r.st.N, n, of)
 	pid := 0
-	res := runCheck(dir, c, env, checkHooks{
+	res := r.w.runCheckTask(capsule, dir, c, env, runs.CheckOf{Mission: r.slug, Step: r.st.N, N: n}, checkTimeout, checkHooks{
 		Started: func(p int) {
 			pid = p
 			execlog.Start(r.w.Root(), who, []string{"sh", "-c", c.Command}, dir, env, p)

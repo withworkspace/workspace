@@ -510,7 +510,7 @@ Every run leaves the mission in someone's court: crew carrying on, a question fo
   - **Replies:** crew draft one with `ws mission reply api#12 --thread <id> "<text>"` (a review thread), or `--to <login>` (the pull request's own conversation). ws posts it on GitHub as you. A reply to a person waits for you first (`replies_need_me`, on unless set off): a task, *Post it* or *Don't post*, with the reply in it. A reply to a bot is posted at once.
   - **Closed without merging:** the orchestrator's call; with it off, yours.
   - **Merged:** the step passes, and what ws or the orchestrator asked you at the step (whether to merge it, what to do about a check) is closed with it, the log saying why. A question from before the step, or crew's, stays yours.
-- **Checks.** A Work step's `check:` lines (as many as it needs) are what has to be true for it to be done. When its crew report done, ws checks the work, before the orchestrator or you look at it (the headline says *ws is checking step 1*): a check that's a command in backticks followed by `passes` or `fails` (`` `go test ./...` passes ``) ws runs in the step's capsule (in the daemon, up to 15 minutes, as you would from a shell), met when it exits as the check says, can't tell when it can't run at all; anything else, in words, the judge judges (below). Each is *met*, *unmet* or *can't tell*, with what shows it (the end of the command's output, or the judge's words), and every round is kept on the step (`ws show s1`, the step on the mission's page, the log). **All met:** ws passes the step, and reaches the next, without waking the orchestrator. **Unmet:** the orchestrator is run with what's unmet (trigger `checks`), and decides by the process: back to the crew (`ws mission resume-with`), or yours. It can't pass the step itself, and the planner can't change a step that's begun, so where a check is unmet only because you've decided otherwise since, it asks you rather than sending the work back to go against you. Its question at such a step (`ws mission flag`) is the step's own: *Pass it* and *Send it back* come before its own answers, so you pass the step from the question. After `[missions] max_rounds` rounds unmet (3 unless set: see *Guarantees*), or with the orchestrator off, ws asks you itself: a task, *Pass it* (as it is) or *Send it back* (to the crew whose done it checked, with what's unmet), or your own words for the orchestrator. Answered in your own words, what you say stands over the checks: the orchestrator is run with it, and may then pass the step where that's what you said. **Can't tell:** yours, the same. Where crew handed over a bundle for the step, the task goes to it (*Verify b1*: see *Verification bundles*), and approving that bundle passes the step, asked or not. **Left:** a step whose checks came round unmet, with nobody on it and nothing asked (the orchestrator only noted, or you dismissed its question), is yours on the mission's page, which says what the round came to and offers *Pass step 1 as it is*. You can always pass the step yourself (`ws mission accept`). A plan revision that adds a command ws hasn't been given to run before is yours to confirm, as a checkpoint removed is.
+- **Checks.** A Work step's `check:` lines (as many as it needs) are what has to be true for it to be done. When its crew report done, ws checks the work, before the orchestrator or you look at it (the headline says *ws is checking step 1*): a check that's a command in backticks followed by `passes` or `fails` (`` `go test ./...` passes ``) ws runs in the step's capsule (in the daemon, up to 15 minutes, as you would from a shell), met when it exits as the check says, can't tell when it can't run at all; anything else, in words, the judge judges (below). A command is run as a task (see [Runs](#runs)), so it's kept: the check goes to its run, with all it printed, how long it took and the commit it ran at, where the check itself shows the end. A check that's `` `ws run <recipe>` passes ``, for a task the capsule's repo has a recipe for, is that recipe's own run, with its reports. Each is *met*, *unmet* or *can't tell*, with what shows it (the end of the command's output, or the judge's words), and every round is kept on the step (`ws show s1`, the step on the mission's page, the log). **All met:** ws passes the step, and reaches the next, without waking the orchestrator. **Unmet:** the orchestrator is run with what's unmet (trigger `checks`), and decides by the process: back to the crew (`ws mission resume-with`), or yours. It can't pass the step itself, and the planner can't change a step that's begun, so where a check is unmet only because you've decided otherwise since, it asks you rather than sending the work back to go against you. Its question at such a step (`ws mission flag`) is the step's own: *Pass it* and *Send it back* come before its own answers, so you pass the step from the question. After `[missions] max_rounds` rounds unmet (3 unless set: see *Guarantees*), or with the orchestrator off, ws asks you itself: a task, *Pass it* (as it is) or *Send it back* (to the crew whose done it checked, with what's unmet), or your own words for the orchestrator. Answered in your own words, what you say stands over the checks: the orchestrator is run with it, and may then pass the step where that's what you said. **Can't tell:** yours, the same. Where crew handed over a bundle for the step, the task goes to it (*Verify b1*: see *Verification bundles*), and approving that bundle passes the step, asked or not. **Left:** a step whose checks came round unmet, with nobody on it and nothing asked (the orchestrator only noted, or you dismissed its question), is yours on the mission's page, which says what the round came to and offers *Pass step 1 as it is*. You can always pass the step yourself (`ws mission accept`). A plan revision that adds a command ws hasn't been given to run before is yours to confirm, as a checkpoint removed is.
 - **The judge** judges the checks in words: an agent that didn't do the work, run once, headless and read-only (it may read the capsule, and `ws show`, but change nothing), told the step, its checks, the crew's handoff, what ws ran, the mission's documents and the capsule's diff, and what you've decided since the step's words could last change (since its crew started on it, or since the plan was last written if that was before). A decision of yours stands over the step's words: where it drops or changes what a check asks, the judge judges the check as your decision leaves it, and names the decision. Only yours are given: what you answer crew who asked you something (`ws mission ask`) is kept as a decision of yours, with their question as its why, and crew's own record of what you chose doesn't change a check. A check it speaks of twice is read by what it said last. It runs on `[judge]`'s harness and model (in `ws.toml`, `ws.local.toml` or Settings), else the planner's: briefing's agent and model. One that can't be asked makes its checks *can't tell*. Its latest run is kept beside the mission (`judge.log`).
 - **The limit.** A Work step's `limit:` (`45m`, `1h`, `1h30m`, with words after it if they help) is how long its crew have: ws holds the clock from when they start on it. Crew may give themselves less (`ws mission limit 45m`), never more; the orchestrator and you may give it more (`ws mission limit [--step n] 1h`; with no duration, the step's limit again). When it runs out while crew are still at it, the daemon says so, once (it looks every minute): the orchestrator is run (trigger `limit`) and decides by the process (more time, have them wrap up, or yours); with it off, it's yours, a task: *More time* or *Wrap up* (ws tells them to commit what they have and report done with what they found).
 - **Before kinds of step,** a plan said who's on each step (``- who: crew, in `api/x` ``, `you`, `CI`, `outside`, `the planner`) and what it makes; one written so still reads, each step the kind its who: is (crew Work, you Review, CI and outside Wait, the planner Plan), and a crew step that makes a pull request has its crew open it, through ws, as before.
@@ -1372,6 +1372,8 @@ This opens the workspace-level project file, which includes all your boarded cap
 
 `ws run` starts a dev server, a compose stack or anything long-lived where you stand (a capsule, `.ground` or `.silo`), on a free port, and ends it for you. Every run has an **owner** and a **time**. It's ended once either has gone, so nothing is left running after the work it was for.
 
+That's a **service**, one of two types of run. The other is a **task**: tests, lint, a build, which ends by itself and is kept for what it came to (see *Tasks*, below).
+
 ```bash
 ws run -- pnpm dev --port {port}
 ws run --name api --for mission --ttl 8 -- go run ./cmd/api
@@ -1379,34 +1381,66 @@ ws run --name api --for mission --ttl 8 -- go run ./cmd/api
 
 Several words after `--` are each run as a word (`ws run -- sh -c 'echo hi; exec serve'`); one is a command line of its own (`ws run -- 'pnpm build && pnpm preview'`). `{port}` in the command is replaced with the run's port, and `$PORT` is set as well. Ports come from 48000–48999, and a run started again gets the port it had if that's still free. `ws run` waits for the run to be up (`--wait`, a minute unless you say), then prints the run's name, its link and when it ends. Up means something listens on the port, or for a recipe with `ready`, that path answers below 500. If the command ends first, it prints the end of the command's output instead.
 
-**Recipes.** A repo says how it's run in its `ws.repo.toml`, and `ws run <name>` runs that recipe in the worktree you stand in. `ws run` alone lists them.
+**Recipes.** A repo says how it's run in its `ws.repo.toml`, and `ws run <name>` runs that recipe in the worktree you stand in. `ws run` alone lists them. A recipe is written in the table of the type of run it is: a service under `[run.service]`, a task under `[run.task]`.
 
 ```toml
-[run.web]
+[run.service.web]
 command = "pnpm dev --port {port} --strictPort"
 ready = "/"                    # up once this answers below 500
 
-[run.stack]
+[run.service.stack]
 command = "docker compose up"
 stop = "docker compose down"   # run where it ran, once the run is ended
 ```
 
+The two types share their names, as `ws run <name>` says a recipe by its name alone: one written as both a service and a task isn't run until one of them has another. A key that's the other type's (`ready` or `page` on a task, `reports` on a service) isn't read, and `ws doctor` and Settings say so, as they do of any key ws doesn't know. `[run.<name>]`, with no type, is how recipes were written before tasks: it isn't read now, and is said the same way.
+
 **A recipe runs once in a worktree.** Asked for where it's running already (by you, crew, a conversation or the web UI), `ws run web` starts nothing: it gives you the run that's there, and that run is then yours as well as whoever started it. It's ended for its owners' going only once all of them have gone, and has the longest of the times they asked for. A command after `--` is no recipe's, and is started each time it's asked for.
+
+**Tasks.** A recipe under `[run.task]` is one that ends by itself, and `--task` says the same of a command:
+
+```toml
+[run.task.test]
+command = "go test -coverprofile=coverage.out ./..."
+reports.coverage = { path = "coverage.out", format = "gocover" }   # a file its command writes, kept with its result
+```
+
+```bash
+ws run test                    # prints what it prints, and exits as it did
+ws run --task -- pnpm lint     # a command as a task
+ws run show test               # what it came to, its reports, the runs before it
+ws run show test#3             # an earlier run of it
+```
+
+- **No port.** A task listens on nothing: it has no port, link or name under `.localhost`, and `ready` isn't its to have.
+- **Waited for.** `ws run` prints the task's output as it comes, waits for it to end, says what it came to, and exits with the task's own status, so `ws run test && …` reads as the command would. `--wait 0` starts it and returns; `--wait 5m` waits that long. Ctrl-C stops it.
+- **Kept.** Once it has ended, a task is a result: whether it passed (exit 0) or failed and how it exited, how long it took, all it printed, the commit its worktree was at (and whether it had changes that weren't committed), and its reports. The last 10 runs of the same task are kept behind the latest, each by its number (`test.my-capsule.api#3`). A result is kept while the worktree it ran in is there, for 30 days at most; `ws run stop <name>`, or Clear on the Runs page, clears it and the runs behind it.
+- **Reports.** `reports.<report>` in a task's table (or a table of its own, `[run.task.<name>.reports.<report>]`) names a file the command writes: `path`, from where it runs (a pattern, `junit/*.xml`, is every file it matches), and `format`, what it's written in (`gocover`, `lcov`, `cobertura`, `junit`…). As the command ends, ws copies what's there into the run's folder, under `reports/<report>/`. A file older than the run isn't copied: it's another run's. A plugin that reads the format shows it (see [Plugins](#plugins)).
+- **Once in a worktree,** as a service is: asked for while it's running, `ws run test` waits for the run that's there. Asked for once it has ended, it runs again, and the last result goes behind the new one.
+- **Timeout.** A task ends by itself, so one that hasn't after its timeout is stopped, at the daemon's next look (every 15 seconds): an hour, unless its recipe says another (`timeout = "10m"`, or `"1h30m"`), or `ws run --timeout 10m` does for this run. It's what catches something written as a task that was meant to be kept up, which is a service. The time runs from when the task started, and asking for it again while it runs gives it no more. `--ttl 0` is no limit.
+- **Stopped.** A task still has an owner while it runs. One that's stopped before it ends (its owner went, its timeout passed, `ws run stop`) is kept as *stopped*, with why, and no result.
+- **What it needs** is seen to as a service's is: a task that needs the api has it started first, and it's ended once the task has. A task can't be what a run needs.
+- **The workspace's own.** A recipe in `ws.toml` can be a task as a repo's can: run at the workspace's root, said by its name alone (`docs-check`, and `docs-check#3` for one run of it), and the commit it's kept with is the root's. A task can't be an app: it ends by itself, with nothing to frame, so `page` isn't a task's to have.
 
 **Needs.** A recipe says what it needs running first, and how it's told where that is:
 
 ```toml
-[run.web]
+[run.service.web]
 command = "ng serve --port {port}"
 ready = "/"
-
-[run.web.needs.api]
-run = "backend/server"   # a recipe of another repo, as the workspace names it; "server" alone is this repo's
-env = "API_URL"          # its address, in web's environment
-mount = "/api"           # and below web's own name (see Names, below)
+needs.api = { run = "backend/server", env = "API_URL", mount = "/api" }
 ```
 
-`ws run web` then sees to each need before it starts web: it finds the need's run, starts it if it isn't running, waits for it to be up (`--wait`, for each), and starts web with its address. With no `run`, a need is this repo's recipe of the need's own name (`[run.web.needs.db]` is `[run.db]`). What a need's run needs is seen to the same way, first.
+`run` is a service of another repo, as the workspace names it (`"server"` alone is this repo's); `env`, the variable its address is handed over in, in web's environment; `mount`, a path below web's own name that it answers at (see *Names*, below). A need with a lot to say can be a table of its own instead:
+
+```toml
+[run.service.web.needs.api]
+run = "backend/server"
+env = "API_URL"
+mount = "/api"
+```
+
+`ws run web` then sees to each need before it starts web: it finds the need's run, starts it if it isn't running, waits for it to be up (`--wait`, for each), and starts web with its address. With no `run`, a need is this repo's service of the need's own name (`needs.db = {}` is `[run.service.db]`). What a need's run needs is seen to the same way, first.
 
 - **Where the address goes.** In the variable `env` names; and in the command, where `{api}` is the address and `{api.port}` the port on `127.0.0.1` (for something in a container, which can't use a `.localhost` name). The address is the run's name where the workspace has names, which stays the same when the run is started again, and `http://127.0.0.1:<port>` where it hasn't. It has no trailing slash.
 - **Which run.** The nearest. For a recipe of the same repo, the one in the same worktree. For another repo's, the mission's capsule in that repo, if the mission has one, else that repo's `.ground`. ws says which it chose when it starts one. `--with api=<capsule>` (or `ground`, or `silo`) says another, and `--with api=https://staging.example.com` an address, behind which ws starts nothing. `--with` is for the recipe you ask for, when it's started.
@@ -1419,23 +1453,19 @@ mount = "/api"           # and below web's own name (see Names, below)
 
 ```toml
 # ws.toml
-[run.docs]
+[run.service.docs]
 command = "uv run tsp-serve.py --port {port} --spec BFF={bff}/spec/main.tsp --spec API={api}/packages/api-http"
 ready = "/"
-
-[run.docs.needs.bff]
-repo = "bff"            # bff's folder: its ground until it's pointed elsewhere
-
-[run.docs.needs.api]
-repo = "api"
+needs.bff = { repo = "bff" }   # bff's folder: its ground until it's pointed elsewhere
+needs.api = { repo = "api" }
 ```
 
 A workspace recipe is asked for from nowhere in particular, so its needs aren't the nearest to where it was asked: each is **pointed** at one of its repo's worktrees, and is met by the repo's ground until it is. `ws run point docs` says what each need is pointed at and could be (the ground, the silo, and every capsule of the repo, or for a run, those with its recipe); `ws run point docs bff=my-capsule` points one (`ground`, `silo`, or `nearest` to go back). A pointer is kept, and outlasts the run. Pointing a need of a recipe that's running starts it again on what it's pointed at now, for whoever it was for and with the time it had left. A need pointed at a capsule that's gone since is met by the nearest, which `ws run` says. Pointing is yours: crew and agents are refused, as it changes what's shown to whoever has it open. A need that's another of the workspace's recipes (`run = "mailpit"`) can't be pointed: there's only the one.
 
-**Apps.** A recipe with a `page` is an app, which shows its run in a frame. A repo's (in its `ws.repo.toml`) is a tab of each of its worktrees, in Repos and on a mission's capsule's files: run in that worktree, with what it needs the nearest to it (another repo's folder from the mission's capsule there, else its ground), so a capsule's API docs are of that capsule, and of the mission's other capsules beside it. The workspace's own (in `ws.toml`) is a place of its own in the web UI's sidebar (and in Find), for what isn't any worktree's: a mail catcher, a database's UI, docs drawn from what its needs are pointed at. It's a way of adding a tool to ws that's any web server at all, with nothing of ws's to learn: API docs, Storybook, a mail catcher, a database's UI. (A plugin is the step on, for what has to know ws's things.)
+**Apps.** A service with a `page` is an app, which shows its run in a frame. A repo's (in its `ws.repo.toml`) is a tab of each of its worktrees, in Repos and on a mission's capsule's files: run in that worktree, with what it needs the nearest to it (another repo's folder from the mission's capsule there, else its ground), so a capsule's API docs are of that capsule, and of the mission's other capsules beside it. The workspace's own (in `ws.toml`) is a place of its own in the web UI's sidebar (and in Find), for what isn't any worktree's: a mail catcher, a database's UI, docs drawn from what its needs are pointed at. It's a way of adding a tool to ws that's any web server at all, with nothing of ws's to learn: API docs, Storybook, a mail catcher, a database's UI. (A plugin is the step on, for what has to know ws's things.)
 
 ```toml
-[run.docs]
+[run.service.docs]
 command = "uv run tsp-serve.py --port {port} …"
 ready = "/"
 page = { title = "API docs", icon = "book" }   # icon: one of the web UI's, by name; a box unsaid
@@ -1443,11 +1473,11 @@ page = { title = "API docs", icon = "book" }   # icon: one of the web UI's, by n
 
 Nothing runs until it's opened. Opening it starts the run, with what it needs, or joins the one that's running; the page says it's still open every minute while it's in view, and the run is ended 15 minutes after nobody has it open (it's owned by whoever's looking, as a run started from a mission's page is). It's laid out as a sketch is: a bar, and the app under it as a card, with the sidebar folded to a rail. The bar has, for a workspace app, a dropdown for each of its needs that can be pointed (choosing one starts it again on that, as `ws run point` does), and for a worktree's, what met each need; how it stands (starting, up, or how it ended, with the end of its output while there's nothing to show), and Start again, Stop and a link to open it in a tab of its own. Stopped there, it isn't started again until you say. It's shown once it answers where the page frames it: at its name, once the router has its route, where the workspace has names, or at `127.0.0.1` and its port. Most apps draw themselves light: one in a dark theme is framed as it draws itself.
 
-In the web UI, a capsule on a mission's Work tab lists its runs (each with its link, what it needs, when it ends, and Stop) and a **Run** button for each recipe that isn't running. A run started there lasts while someone has the mission open, and 15 minutes after, or 4 hours at most; what it needs is started with it.
+In the web UI, a capsule on a mission's Work tab lists its runs (each with its link, what it needs, when it ends, and Stop) and a **Run** button for each recipe that isn't running. A run started there lasts while someone has the mission open, and 15 minutes after, or 4 hours at most; what it needs is started with it. A task there shows what it came to and the commit it ran at, and goes to its run on the Runs page; one started there is the mission's, and runs to its end, or its timeout, whether or not the page stays open.
 
-The **Repos** page does the same for any repo's ground or capsule, mission or not: its *Runs* tab has the runs in it, whoever started them, and a **Run** button for each of its recipes that isn't running (not a silo's). A run started there lasts while someone has that ground or capsule open on the page, and 15 minutes after, or 4 hours at most.
+The **Repos** page does the same for any repo's ground or capsule, mission or not: its *Runs* tab has the runs in it, whoever started them, and a **Run** button for each of its recipes that isn't running (not a silo's). A run started there lasts while someone has that ground or capsule open on the page, and 15 minutes after, or 4 hours at most. A task there shows what it came to and goes to its run on the Runs page; one started there runs to its end, or its timeout, whether or not the page stays open.
 
-The web UI's **Runs** page (`/runs`, in the workspace's menu until you arrange it into the sidebar, and in Find) is every run in the workspace, whoever started it: each with its link, where it runs and who it's for (going to the mission, crew or conversation; or the runs that need it), what it needs, when it ends, its output (opened under it, and read again every 2 seconds while it runs), and Stop. Runs that ended by themselves are below, each with Clear. Above them it says where the workspace's names stand: its web UI's name, the port the router's on and which daemon holds it, or, with names off, how to turn them on.
+The web UI's **Runs** page (`/runs`, in the workspace's menu until you arrange it into the sidebar, and in Find) is every run in the workspace, whoever started it: each with its link, where it runs and who it's for (going to the mission, crew or conversation; or the runs that need it), what it needs, when it ends, its output (opened under it, and read again every 2 seconds while it runs), and Stop. Tasks that have ended are its **Results**: each with what it came to, the commit it ran at, the check of a mission's step it was run for, and its reports; opened, the runs of it that are kept, each with all it printed. `/runs?show=<name>` opens one. Services that ended by themselves are below, each with Clear. Above them it says where the workspace's names stand: its web UI's name, the port the router's on and which daemon holds it, or, with names off, how to turn them on.
 
 `stop` is given a minute, with `$PORT` set. If the place it ran has gone (the capsule was burned), it can't be run, and the daemon's log says so.
 
@@ -1469,14 +1499,15 @@ The web UI's **Runs** page (`/runs`, in the workspace's menu until you arrange i
 
 ```bash
 ws run ls [--json]          # every run in the workspace, ending any that are due first
+ws run show <name> [--json] # where a run stands: for a task, what it came to, its reports and the runs before it
 ws run logs <name> [-f]     # its output; -f follows it until it ends
-ws run stop [name...]       # end runs now: those named, or every run where you stand (--all: every one), and what was started for them that nothing needs now
+ws run stop [name...]       # end runs now: those named, or every run where you stand (--all: every one), and what was started for them that nothing needs now. A task that has ended is cleared
 ws run keep <name> [hours]  # more time
 ```
 
 **What ends them.** The workspace's daemon looks every 15 seconds, as it starts, and at once when crew end. What fell due while it was down is ended when it's back. `ws run` starts the daemon if it isn't up. A run isn't the daemon's child: it leads a session of its own, so restarting or upgrading ws leaves it running. Ending a run asks its process group to stop (`SIGTERM`), gives it 5 seconds, then makes it (`SIGKILL`). ws only ends runs it started. A run that a running run needs isn't ended by the daemon, only by `ws run stop` or Stop, which say what needed it; and a run whose capsule has gone is ended, needed or not.
 
-A run whose command exits by itself is kept for an hour, with its status and output (`ws run ls` shows `exited 1, 14:05`), then removed.
+A service whose command exits by itself is kept for an hour, with its status and output (`ws run ls` shows `exited 1, 14:05`), then removed. A task is kept for what it came to (see *Tasks*).
 
 **Names.** With `[router] enabled = true` in `ws.local.toml` (Settings › Runs › Local names, which also sets `[router] name`), the workspace and its runs have names under `.localhost`, which browsers send to this machine by themselves:
 
@@ -1497,7 +1528,7 @@ A need with a `mount` answers below the run's own name, at that path and everyth
 
 A recipe with `where = "silo"` runs in the repo's silo, whichever capsule it's pointed at, as `<run>.silo.<repo>.<workspace>.localhost`. Asking for it by a capsule's name (`stack.my-capsule.api.shop.localhost`) goes straight through when the silo is on that capsule. When it's on another, a page offers to point the silo there, which you confirm in the web UI; a request alone never moves it.
 
-**Where it's kept.** Each run is a folder, `.ws/runs/<repo>/<worktree>/<name>/` (the workspace's own, `.ws/runs/@workspace/@/<name>/`), holding `run.json` (its command, port, process, who it's for, what it needs and its time) and `out.log`. Nothing about a run is kept anywhere else, but what the workspace's recipes' needs are pointed at, in `.ws/runs/@workspace/points.json`.
+**Where it's kept.** Each run is a folder, `.ws/runs/<repo>/<worktree>/<name>/` (the workspace's own, `.ws/runs/@workspace/@/<name>/`), holding `run.json` (its command, port, process, who it's for, what it needs and its time) and `out.log`; a task's also holds `exit` (its status) and `reports/`. The earlier runs of a task are in `.ws/runs/.past/<repo>/<worktree>/<name>/<n>/`, each a folder of the same. Nothing about a run is kept anywhere else, but what the workspace's recipes' needs are pointed at, in `.ws/runs/@workspace/points.json`.
 
 ## Silos
 

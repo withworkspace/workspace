@@ -107,6 +107,57 @@
   line-height: 1.55;
 }
 
+/* A task's reports are chips, and the runs of it that are kept are a row
+   of small tabs above the one that's open. */
+.reports {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.report {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.past {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pastRun {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--dim);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.pastRun:hover {
+  color: var(--fg);
+}
+
+.pastRun.on {
+  color: var(--fg);
+  background: var(--bg);
+  border-color: var(--dim);
+}
+
+.pastRun.passed svg {
+  color: var(--green);
+}
+
+.pastRun.failed svg {
+  color: var(--red);
+}
+
 @media (max-width: 640px) {
   .line {
     grid-template-columns: 12px minmax(0, 1fr) auto;

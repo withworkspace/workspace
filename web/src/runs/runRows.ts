@@ -80,13 +80,52 @@ export function placeOf(r: RunDetail, missions: Mission[]): Said {
   return { text, to: m ? `/missions/${m.slug}` : `/files/${r.repo}/${r.worktree}` };
 }
 
-// running and ended split runs, each newest first.
-export function split(runs: RunDetail[]): { running: RunDetail[]; ended: RunDetail[] } {
+// split is runs as the page groups them, each newest first: what's
+// running, services and tasks alike; the tasks that have ended, kept for
+// what they came to; and the services that ended by themselves.
+export function split(runs: RunDetail[]): { running: RunDetail[]; results: RunDetail[]; ended: RunDetail[] } {
   const newest = (a: RunDetail, b: RunDetail) => b.started.localeCompare(a.started);
+  const lastEnded = (a: RunDetail, b: RunDetail) => (b.ended ?? b.started).localeCompare(a.ended ?? a.started);
+  const over = runs.filter((r) => r.state !== "running");
   return {
     running: runs.filter((r) => r.state === "running").sort(newest),
-    ended: runs.filter((r) => r.state !== "running").sort((a, b) => (b.ended ?? b.started).localeCompare(a.ended ?? a.started)),
+    results: over.filter((r) => r.type === "task").sort(lastEnded),
+    ended: over.filter((r) => r.type !== "task").sort(lastEnded),
   };
+}
+
+// took is how long a run ran, as it's said: 0.4s, 42s, 3m 05s, 1h 02m.
+export function took(ms: number | undefined): string {
+  if (!ms || ms < 0) return "";
+  if (ms < 100) return "under 0.1s";
+  if (ms < 10_000) return `${(ms / 1000).toFixed(1)}s`;
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const two = (n: number) => String(n).padStart(2, "0");
+  if (s < 3600) return `${Math.floor(s / 60)}m ${two(s % 60)}s`;
+  return `${Math.floor(s / 3600)}h ${two(Math.floor((s % 3600) / 60))}m`;
+}
+
+// came is what a task came to, in words: "passed in 42s", "failed (exit
+// 2) in 3m 05s", "stopped: its time was up".
+export function came(r: RunDetail): string {
+  const t = took(r.took);
+  switch (r.result) {
+    case "running":
+      return "running";
+    case "passed":
+      return t ? `passed in ${t}` : "passed";
+    case "failed":
+      return `failed (exit ${r.status ?? 1})${t ? ` in ${t}` : ""}`;
+  }
+  return r.why ? `stopped: ${r.why}` : "stopped before it ended";
+}
+
+// commitSaid is the commit a task ran at, short, and whether the
+// worktree had changes that weren't committed.
+export function commitSaid(r: RunDetail): string {
+  if (!r.commit) return "";
+  return r.commit.slice(0, 9) + (r.dirty ? ", with changes not committed" : "");
 }
 
 // bare is a link as it's read: no scheme, no trailing slash.

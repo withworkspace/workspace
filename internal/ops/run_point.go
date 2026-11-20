@@ -44,7 +44,7 @@ type Pointer struct {
 func (w *Workspace) Pointers(recipe string) ([]Pointer, error) {
 	rc, ok := w.recipes("", "")[recipe]
 	if !ok {
-		return nil, fmt.Errorf("%w: the workspace has no recipe %s ([run.%s] in %s)", ErrNotFound, recipe, recipe, config.FileName)
+		return nil, fmt.Errorf("%w: the workspace has no recipe %s (%s in %s)", ErrNotFound, recipe, tablesOf(recipe), config.FileName)
 	}
 	points := w.runStore().Points(recipe)
 	var out []Pointer
@@ -161,7 +161,7 @@ func (w *Workspace) PointRun(recipe, need, worktree string, by Actor, wait time.
 		if !dirExists(filepath.Join(w.WS().RepoDir(p.Repo), worktree)) {
 			return Pointed{}, invalid("%s has no %s", p.Repo, runs.Label(worktree))
 		}
-		return Pointed{}, invalid("%s/%s has no recipe %s ([run.%s] in its %s)", p.Repo, runs.Label(worktree), p.Recipe, p.Recipe, config.RepoFileName)
+		return Pointed{}, invalid("%s/%s has no recipe %s (%s in its %s)", p.Repo, runs.Label(worktree), p.Recipe, tablesOf(p.Recipe), config.RepoFileName)
 	}
 	if err := w.runStore().Point(recipe, need, worktree); err != nil {
 		return Pointed{}, err
@@ -207,10 +207,13 @@ func (w *Workspace) restartRun(old runs.Run, wait time.Duration) (RunUp, error) 
 	if !old.Looked.IsZero() {
 		store.LookedRun(r, old.Looked)
 	}
+	up.Run = r
+	if r.IsTask() {
+		return up, nil // done when it ends, which nothing here waits for
+	}
 	var ended *runs.EndedError
 	if _, err := store.Wait(r, wait); errors.As(err, &ended) {
 		return up, err
 	}
-	up.Run = r
 	return up, nil
 }

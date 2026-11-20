@@ -135,7 +135,7 @@ func siloRecipes(root, repo string) map[string]config.RunRecipe {
 	for _, wt := range []string{workspace.SiloDir, workspace.GroundDir} {
 		cfg, err := config.ParseRepoConfig(filepath.Join(root, "repos", repo, wt, config.RepoFileName))
 		if err == nil && cfg != nil {
-			return cfg.Run
+			return cfg.Run.Recipes()
 		}
 	}
 	return nil

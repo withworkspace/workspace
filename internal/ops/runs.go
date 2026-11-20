@@ -6,6 +6,8 @@ import (
 	"maps"
 	"path/filepath"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/config"
@@ -24,23 +26,35 @@ var RunUpWait = 15 * time.Second
 
 func (w *Workspace) runStore() runs.Store { return runs.Store{Root: w.Root()} }
 
-// recipes is the [run.*] of a repo's worktree, by name; with no repo,
-// the workspace's own, in ws.toml.
+// recipes is the services and tasks ([run.service.*], [run.task.*]) of a
+// repo's worktree, by name; with no repo, the workspace's own, in ws.toml.
 func (w *Workspace) recipes(repo, worktree string) map[string]config.RunRecipe {
+	return w.runTables(repo, worktree).Recipes()
+}
+
+// runTables is the [run] of a repo's worktree as its ws.repo.toml has it,
+// or with no repo, of the workspace's ws.toml.
+func (w *Workspace) runTables(repo, worktree string) config.Runs {
 	if repo == "" {
 		return w.Config().Run
 	}
 	cfg, err := config.ParseRepoConfig(filepath.Join(w.WS().RepoDir(repo), worktree, config.RepoFileName))
 	if err != nil || cfg == nil {
-		return nil
+		return config.Runs{}
 	}
 	return cfg.Run
 }
 
-// capsuleRuns is the runs in each of v's capsules, and the recipes each
-// can run, by repo/name.
-func (w *Workspace) capsuleRuns(v MissionView) (map[string][]runs.Run, map[string][]string) {
-	byCapsule, recipes := map[string][]runs.Run{}, map[string][]string{}
+// tablesOf is where a recipe called name would be written, for an error
+// that there's none: [run.service.web] or [run.task.web].
+func tablesOf(name string) string {
+	return "[run.service." + name + "] or [run.task." + name + "]"
+}
+
+// capsuleRuns is the runs in each of v's capsules, the recipes each can
+// run, and those of them that are tasks, by repo/name.
+func (w *Workspace) capsuleRuns(v MissionView) (map[string][]runs.Run, map[string][]string, map[string][]string) {
+	byCapsule, recipes, tasks := map[string][]runs.Run{}, map[string][]string{}, map[string][]string{}
 	all, _ := w.runStore().List()
 	for _, c := range v.Capsules {
 		key := c.Repo + "/" + c.Name
@@ -50,14 +64,18 @@ func (w *Workspace) capsuleRuns(v MissionView) (map[string][]runs.Run, map[strin
 			}
 		}
 		if c.Exists {
-			for _, n := range slices.Sorted(maps.Keys(w.recipes(c.Repo, c.Name))) {
-				if w.recipes(c.Repo, c.Name)[n].Where != "silo" { // the silo's, not the capsule's
+			all := w.recipes(c.Repo, c.Name)
+			for _, n := range slices.Sorted(maps.Keys(all)) {
+				if all[n].Where != "silo" { // the silo's, not the capsule's
 					recipes[key] = append(recipes[key], n)
+					if all[n].IsTask() {
+						tasks[key] = append(tasks[key], n)
+					}
 				}
 			}
 		}
 	}
-	return byCapsule, recipes
+	return byCapsule, recipes, tasks
 }
 
 // runCapsule is the mission's capsule repo/name, if it's the mission's and
@@ -85,14 +103,21 @@ func (w *Workspace) runCapsule(slug, repo, capsule string) (string, error) {
 // one that's running already is the lookers' as well. It waits up to
 // RunUpWait for it to be up; one that isn't by then is still running, and
 // returned.
+//
+// A task isn't waited for, and isn't the lookers': it's the mission's,
+// and runs to its end whether or not anyone stays to watch.
 func (w *Workspace) RunRecipe(slug, repo, capsule, recipe string, by Actor) (runs.Run, error) {
 	dir, err := w.runCapsule(slug, repo, capsule)
 	if err != nil {
 		return runs.Run{}, err
 	}
+	owner := runs.Owner{Kind: runs.ByLooking, Mission: slug}
+	if w.recipes(repo, capsule)[recipe].IsTask() {
+		owner = runs.Owner{Kind: runs.ByMission, Mission: slug}
+	}
 	return w.runUp(RunAsk{
 		Repo: repo, Worktree: capsule, Dir: dir, Recipe: recipe,
-		Owner: runs.Owner{Kind: runs.ByLooking, Mission: slug},
+		Owner: owner,
 		TTL:   runs.DefaultTTL, By: by.By(), Mission: slug, Wait: RunUpWait,
 	})
 }
@@ -110,6 +135,9 @@ func (w *Workspace) runUp(a RunAsk) (runs.Run, error) {
 		return runs.Run{}, err
 	}
 	r := up.Run
+	if r.IsTask() {
+		return r, nil
+	}
 	if _, err := w.runStore().Wait(r, RunUpWait); err != nil {
 		if errors.As(err, &ended) {
 			return ended.Run, refused("run-ended", "%s. Its last words: %s", err, ended.Run.Tail(3))
@@ -155,11 +183,13 @@ func (w *Workspace) LookedAt(l runs.Looking) error {
 // started there lasts while someone has that worktree open on the page,
 // and runs.LookLinger after.
 
-// WorktreeRuns are the runs in a repo's ground or capsule, and the names
-// of its recipes that run there (a silo's run in the silo, not here).
+// WorktreeRuns are the runs in a repo's ground or capsule, the names of
+// its recipes that run there (a silo's run in the silo, not here), and
+// those of them that are tasks.
 type WorktreeRuns struct {
 	Runs    []runs.Run
 	Recipes []string
+	Tasks   []string
 }
 
 // worktreeOf is the folder of repo's ground (workspace.GroundDir) or
@@ -188,7 +218,7 @@ func (w *Workspace) RunsIn(repo, name string) (WorktreeRuns, error) {
 	if _, err := w.worktreeOf(repo, name); err != nil {
 		return WorktreeRuns{}, err
 	}
-	out := WorktreeRuns{Runs: []runs.Run{}, Recipes: []string{}}
+	out := WorktreeRuns{Runs: []runs.Run{}, Recipes: []string{}, Tasks: []string{}}
 	all, _ := w.runStore().List()
 	for _, r := range all {
 		if r.Repo == repo && r.Worktree == name {
@@ -199,6 +229,9 @@ func (w *Workspace) RunsIn(repo, name string) (WorktreeRuns, error) {
 	for _, n := range slices.Sorted(maps.Keys(recipes)) {
 		if recipes[n].Where != "silo" {
 			out.Recipes = append(out.Recipes, n)
+			if recipes[n].IsTask() {
+				out.Tasks = append(out.Tasks, n)
+			}
 		}
 	}
 	return out, nil
@@ -209,14 +242,22 @@ func (w *Workspace) RunsIn(repo, name string) (WorktreeRuns, error) {
 // runs.LookLinger after (or runs.DefaultTTL at most). Otherwise it's as
 // RunRecipe: what it needs is started first, one running already is the
 // lookers' as well, and it waits up to RunUpWait for it to be up.
+//
+// A task isn't the lookers': it runs to its end whether or not the page
+// stays open (or is stopped at its timeout), as one run from a mission's
+// page does.
 func (w *Workspace) RunIn(repo, name, recipe string, by Actor) (runs.Run, error) {
 	dir, err := w.worktreeOf(repo, name)
 	if err != nil {
 		return runs.Run{}, err
 	}
+	owner := runs.Owner{Kind: runs.ByLooking}
+	if w.recipes(repo, name)[recipe].IsTask() {
+		owner = runs.Owner{Kind: runs.ByNone}
+	}
 	return w.runUp(RunAsk{
 		Repo: repo, Worktree: name, Dir: dir, Recipe: recipe,
-		Owner: runs.Owner{Kind: runs.ByLooking},
+		Owner: owner,
 		TTL:   runs.DefaultTTL, By: by.By(), Wait: RunUpWait,
 	})
 }
@@ -226,19 +267,41 @@ func (w *Workspace) RunIn(repo, name, recipe string, by Actor) (runs.Run, error)
 func (w *Workspace) Runs() ([]runs.Run, error) { return w.runStore().List() }
 
 // runByRef is the run whose ref is ref, said in full
-// (<name>.<worktree>.<repo>): a page names a run it's shown, so a name
-// alone isn't guessed at.
+// (<name>.<worktree>.<repo>, with #n after it for an earlier run of a
+// task): a page names a run it's shown, so a name alone isn't guessed at.
 func (w *Workspace) runByRef(ref string) (runs.Run, error) {
 	all, err := w.runStore().List()
 	if err != nil {
 		return runs.Run{}, err
 	}
+	at, n, numbered := strings.Cut(ref, "#")
 	for _, r := range all {
-		if r.Ref() == ref {
+		if r.Ref() != at {
+			continue
+		}
+		if !numbered || strconv.Itoa(r.N) == n {
 			return r, nil
+		}
+		for _, p := range w.runStore().Past(r) {
+			if strconv.Itoa(p.N) == n {
+				return p, nil
+			}
 		}
 	}
 	return runs.Run{}, fmt.Errorf("%w: no run %s: it may have ended already", ErrNotFound, ref)
+}
+
+// Run is one run by its ref, and, for a task, the earlier runs kept
+// behind it, the latest first.
+func (w *Workspace) Run(ref string) (runs.Run, []runs.Run, error) {
+	r, err := w.runByRef(ref)
+	if err != nil {
+		return runs.Run{}, nil, err
+	}
+	if !r.IsTask() || strings.Contains(ref, "#") {
+		return r, nil, nil
+	}
+	return r, w.runStore().Past(r), nil
 }
 
 // EndRun ends any run, by its ref, as ws run stop does: the Runs page's

@@ -43,7 +43,7 @@ func TestApps(t *testing.T) {
 	os.MkdirAll(filepath.Join(s.Root, "repos", "spec", "feat"), 0o755)
 	os.WriteFile(filepath.Join(s.Root, "repos", "spec", "feat", ".git"), []byte("gitdir: x\n"), 0o644)
 	setOps(s, testOps(s, ops.Options{}, func(c *config.Config, _ *workspace.Workspace) {
-		c.Run = map[string]config.RunRecipe{
+		c.Run.Service = map[string]config.ServiceRecipe{
 			"docs":  {Command: "sleep 300 # {spec}", Page: &config.RunPage{Title: "API docs", Icon: "book"}, Needs: map[string]config.RunNeed{"spec": {Repo: "spec"}}},
 			"plain": {Command: "sleep 300"},
 		}
@@ -115,14 +115,14 @@ func TestWorktreeApps(t *testing.T) {
 	feat := filepath.Join(s.Root, "repos", "bff", ".ground")
 	os.MkdirAll(feat, 0o755)
 	os.WriteFile(filepath.Join(feat, "ws.repo.toml"), []byte(`
-[run.docs]
+[run.service.docs]
 command = "sleep 300"
 page = { title = "API docs", icon = "book" }
 
-[run.web]
+[run.service.web]
 command = "sleep 300"
 
-[run.stack]
+[run.service.stack]
 command = "sleep 300"
 where = "silo"
 `), 0o644)

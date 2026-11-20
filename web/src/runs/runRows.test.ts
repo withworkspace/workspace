@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Mission, RunDetail } from "../api";
-import { bare, forWhom, placeOf, plain, split } from "./runRows";
+import { bare, came, commitSaid, forWhom, placeOf, plain, split, took } from "./runRows";
 
 const run = (more: Partial<RunDetail> = {}): RunDetail => ({
   ref: "web.cache.frontend",
   name: "web",
+  type: "service",
   link: "http://127.0.0.1:41000",
   local: "http://127.0.0.1:41000",
   port: 41000,
@@ -74,6 +75,37 @@ describe("split", () => {
     ]);
     expect(running.map((r) => r.ref)).toEqual(["b", "a"]);
     expect(ended.map((r) => r.ref)).toEqual(["d", "c"]);
+  });
+  it("keeps tasks that have ended apart, as results, and those running with what's running", () => {
+    const { running, results, ended } = split([
+      run({ ref: "web" }),
+      run({ ref: "test", type: "task", result: "running" }),
+      run({ ref: "lint", type: "task", state: "exited", result: "passed", ended: "2026-11-19T10:00:00Z" }),
+      run({ ref: "build", type: "task", state: "gone", result: "stopped", ended: "2026-11-19T12:00:00Z" }),
+      run({ ref: "old", state: "exited", ended: "2026-11-19T10:00:00Z" }),
+    ]);
+    expect(running.map((r) => r.ref).sort()).toEqual(["test", "web"]);
+    expect(results.map((r) => r.ref)).toEqual(["build", "lint"]);
+    expect(ended.map((r) => r.ref)).toEqual(["old"]);
+  });
+});
+
+describe("a task's result", () => {
+  it("says how long it took", () => {
+    expect([took(undefined), took(40), took(420), took(42_400), took(185_000), took(3_725_000)]).toEqual(["", "under 0.1s", "0.4s", "42s", "3m 05s", "1h 02m"]);
+  });
+  it("says what it came to", () => {
+    const task = (more: Partial<RunDetail>) => run({ type: "task", state: "exited", ...more });
+    expect(came(task({ result: "passed", took: 42_000 }))).toBe("passed in 42s");
+    expect(came(task({ result: "failed", status: 2, took: 185_000 }))).toBe("failed (exit 2) in 3m 05s");
+    expect(came(task({ result: "stopped", why: "its time was up" }))).toBe("stopped: its time was up");
+    expect(came(task({ result: "stopped" }))).toBe("stopped before it ended");
+    expect(came(task({ state: "running", result: "running" }))).toBe("running");
+  });
+  it("says the commit it ran at", () => {
+    expect(commitSaid(run({ commit: "0123456789abcdef" }))).toBe("012345678");
+    expect(commitSaid(run({ commit: "0123456789abcdef", dirty: true }))).toBe("012345678, with changes not committed");
+    expect(commitSaid(run())).toBe("");
   });
 });
 

@@ -19,7 +19,7 @@ func TestRunRecipe(t *testing.T) {
 	}
 	w, _ := fixture(t, "## Goal\nCache it.\n", "cache")
 	dir := filepath.Join(w.WS().RepoDir("frontend"), "cache")
-	os.WriteFile(filepath.Join(dir, "ws.repo.toml"), []byte("[run.web]\ncommand = \"sleep 300\"\n\n[run.api]\ncommand = \"sleep 300\"\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "ws.repo.toml"), []byte("[run.service.web]\ncommand = \"sleep 300\"\n\n[run.service.api]\ncommand = \"sleep 300\"\n"), 0o644)
 	t.Cleanup(func() {
 		list, _ := w.runStore().List()
 		for _, r := range list {
@@ -73,7 +73,7 @@ func TestRunIn(t *testing.T) {
 	w, _ := fixture(t, "## Goal\nCache it.\n", "cache")
 	ground := w.WS().MainWorktree("frontend")
 	os.MkdirAll(ground, 0o755)
-	os.WriteFile(filepath.Join(ground, "ws.repo.toml"), []byte("[run.web]\ncommand = \"sleep 300\"\n\n[run.stack]\ncommand = \"sleep 300\"\nwhere = \"silo\"\n"), 0o644)
+	os.WriteFile(filepath.Join(ground, "ws.repo.toml"), []byte("[run.service.web]\ncommand = \"sleep 300\"\n\n[run.service.stack]\ncommand = \"sleep 300\"\nwhere = \"silo\"\n\n[run.task.lint]\ncommand = \"true\"\n"), 0o644)
 	t.Cleanup(func() {
 		list, _ := w.runStore().List()
 		for _, r := range list {
@@ -104,14 +104,22 @@ func TestRunIn(t *testing.T) {
 	if len(in.Runs) != 1 || in.Runs[0].Name != "web" {
 		t.Errorf("the page's runs: %v", in.Runs)
 	}
-	if strings.Join(in.Recipes, ",") != "web" {
-		t.Errorf("the page's recipes, the silo's left out: %v", in.Recipes)
+	if strings.Join(in.Recipes, ",") != "lint,web" || strings.Join(in.Tasks, ",") != "lint" {
+		t.Errorf("the page's recipes, the silo's left out, and its tasks: %v, %v", in.Recipes, in.Tasks)
 	}
 	if err := w.LookedAt(runs.Looking{Worktrees: map[string]bool{"frontend/.ground": true}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := w.EndRun(r.Ref()); err != nil {
 		t.Fatal(err)
+	}
+	// A task isn't the lookers': it runs to its end, the page open or not.
+	task, err := w.RunIn("frontend", ".ground", "lint", AsYou)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !task.IsTask() || task.Owner.Kind != runs.ByNone || task.NRef() != "lint.ground.frontend#1" {
+		t.Errorf("task %+v", task.Record)
 	}
 }
 

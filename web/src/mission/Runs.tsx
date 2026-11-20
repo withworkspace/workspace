@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { type CapsuleDetail, type RunDetail, runRecipe, stopRun } from "../api";
 import type { Reload } from "../load";
+import { came, commitSaid } from "../runs/runRows";
 import { Icon } from "../ui/Icon";
 import { humanError, toast } from "../ui/kit";
 import { Time } from "../ui/time";
@@ -13,18 +15,33 @@ import { Button } from "../ui/Button";
 // from here lasts while someone has the mission open, and 15 minutes
 // after; crew's last until their step passes. Nothing shows for a capsule
 // with neither.
+//
+// A task (tests, lint) has no link: it shows what it came to, at which
+// commit, and goes to its run on the Runs page, where all it printed and
+// its reports are. One run from here is the mission's, and runs to its end.
 
 export function RunsHere({ slug, c, open, reload }: { slug: string; c: CapsuleDetail; open: boolean; reload: Reload }) {
   const [busy, setBusy] = useState("");
   const runs = c.runs ?? [];
   const running = new Set(runs.filter((r) => r.state === "running").map((r) => r.recipe ?? r.name));
   const recipes = open && c.exists ? (c.recipes ?? []).filter((n) => !running.has(n)) : [];
+  const tasks = new Set(c.tasks ?? []);
+  // A task that's running is asked after until it ends: nothing else
+  // tells the page it has.
+  const tasking = runs.some((r) => r.type === "task" && r.state === "running");
+  useEffect(() => {
+    if (!tasking) return;
+    const t = setInterval(() => {
+      if (document.visibilityState === "visible") reload();
+    }, 2000);
+    return () => clearInterval(t);
+  }, [tasking, reload]);
   if (!runs.length && !recipes.length) return null;
   const start = (recipe: string) => {
     setBusy(recipe);
     runRecipe(slug, c.repo, c.name, recipe)
       .then((r) => {
-        toast(r.up ? `${r.name} is up on ${r.port}` : `${r.name} is running on ${r.port}, not up yet`, { tone: "done" });
+        if (r.type !== "task") toast(r.up ? `${r.name} is up on ${r.port}` : `${r.name} is running on ${r.port}, not up yet`, { tone: "done" });
         return reload();
       })
       .catch((e: Error) => toast(humanError(e.message), { tone: "danger" }))
@@ -52,7 +69,13 @@ export function RunsHere({ slug, c, open, reload }: { slug: string; c: CapsuleDe
       {recipes.length > 0 && (
         <div className="work-run-recipes">
           {recipes.map((n) => (
-            <Button size="small" key={n} disabled={!!busy} onClick={() => start(n)} title={`Run its ${n} recipe, from its ws.repo.toml, while you have this mission open`}>
+            <Button
+              size="small"
+              key={n}
+              disabled={!!busy}
+              onClick={() => start(n)}
+              title={tasks.has(n) ? `Run its ${n} task, from its ws.repo.toml: what it comes to is kept` : `Run its ${n} recipe, from its ws.repo.toml, while you have this mission open`}
+            >
               <Icon name={busy === n ? "spinner" : "play"} size={11} /> {busy === n ? `Starting ${n}…` : `Run ${n}`}
             </Button>
           ))}
@@ -62,8 +85,60 @@ export function RunsHere({ slug, c, open, reload }: { slug: string; c: CapsuleDe
   );
 }
 
+// TaskLine is a task in a capsule: what it came to, at which commit, going
+// to its run on the Runs page.
+function TaskLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => void }) {
+  const live = r.state === "running";
+  const icon = r.result === "passed" ? "check-circle" : r.result === "failed" ? "x-circle" : "circle-dashed";
+  return (
+    <li className="work-run">
+      {live ? (
+        <span className="work-run-mark up" aria-hidden>
+          <span className="work-live-dot" />
+        </span>
+      ) : (
+        <span className={`work-run-mark task-mark ${r.result}`} role="img" aria-label={r.result}>
+          <Icon name={icon} size={13} />
+        </span>
+      )}
+      <span className="work-run-main">
+        <span className="work-run-top">
+          <Link to={`/runs?show=${encodeURIComponent(r.nref ?? r.ref)}`} className="mono work-run-name" title={`${r.command}: its output and reports`}>
+            {r.name}
+          </Link>
+          <span className={`task-came ${r.result}`}>
+            {came(r)}
+            {!live && r.ended && (
+              <span className="dim">
+                , <Time iso={r.ended} as="relative" />
+              </span>
+            )}
+          </span>
+        </span>
+        {(r.commit || r.check) && (
+          <span className="work-run-ends">
+            {r.commit && <span title={r.commit}>At {commitSaid(r)}</span>}
+            {r.commit && r.check && " · "}
+            {r.check && (
+              <>
+                check {r.check.n} of step {r.check.step}
+              </>
+            )}
+          </span>
+        )}
+      </span>
+      {live && (
+        <Button variant="ghost" size="small" disabled={busy} onClick={stop} title="Stop it now: it's kept as stopped">
+          <Icon name={busy ? "spinner" : "stop"} size={11} /> Stop
+        </Button>
+      )}
+    </li>
+  );
+}
+
 export function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => void }) {
   const live = r.state === "running";
+  if (r.type === "task") return <TaskLine r={r} busy={busy} stop={stop} />;
   return (
     <li className={`work-run${live ? "" : " ended"}`}>
       <span className={`work-run-mark${live && r.up ? " up" : ""}`} aria-hidden>

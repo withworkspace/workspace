@@ -8,7 +8,7 @@
 #
 #   scripts/try.sh up apps
 #
-# It writes [run.docs] into ws.toml (a python3 page standing in for
+# It writes [run.service.docs] into ws.toml (a python3 page standing in for
 # Scalar, which reads openapi.json from demo's and records' folders), puts
 # an openapi.json in each repo's ground, and lifts a capsule in each with
 # one that's moved on: demo/orders-v2 and records/billing. Nothing's
@@ -83,12 +83,12 @@ spec "$dir/repos/records/billing/openapi.json" "Records" "2.1" \
 for wt in .ground orders-v2; do
 	cat >>"$dir/repos/demo/$wt/ws.repo.toml" <<'TOML'
 
-[run.docs]
+[run.service.docs]
 command = "DEMO_DIR=$PWD python3 ../../../apps/docs.py {port}"
 ready = "/"
 page = { title = "API docs", icon = "book" }
 
-[run.docs.needs.records]
+[run.service.docs.needs.records]
 repo = "records"
 env = "RECORDS_DIR"
 TOML
@@ -97,16 +97,16 @@ done
 cat >>ws.toml <<'TOML'
 
 # API docs: the workspace's own, drawn from demo's and records' specs.
-[run.docs]
+[run.service.docs]
 command = "python3 apps/docs.py {port}"
 ready = "/"
 page = { title = "API docs", icon = "book" }
 
-[run.docs.needs.demo]
+[run.service.docs.needs.demo]
 repo = "demo"
 env = "DEMO_DIR"
 
-[run.docs.needs.records]
+[run.service.docs.needs.records]
 repo = "records"
 env = "RECORDS_DIR"
 TOML

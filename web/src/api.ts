@@ -52,6 +52,7 @@ import type {
   PRWritten,
   AppDetail,
   RunDetail,
+  RunPast,
   RunsInfo,
   WorktreeRunsInfo,
   SettingChange,
@@ -151,6 +152,8 @@ export type {
   AppInfo,
   AppPointer,
   RunDetail,
+  RunPast,
+  RunReport,
   RunsInfo,
   WorktreeRunsInfo,
   WorkspaceSiloHook as SiloHook,
@@ -684,6 +687,10 @@ export const stopApp = (name: string, at?: AppAt) => send<AppDetail>("POST", app
 // capsule's name, ground or silo; "" for the nearest), starting the app
 // again on it where it's running.
 export const pointApp = (name: string, need: string, at: string) => send<AppDetail>("POST", appPath(name, "/point"), { need, at });
+
+// getRunPast is a task's run, and the earlier runs of it kept behind it,
+// the latest first.
+export const getRunPast = (ref: string) => getJSON<RunPast>(`/api/runs/past?ref=${encodeURIComponent(ref)}`);
 
 // getRunLog is the end of a run's output.
 export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(`/api/runs/log?ref=${encodeURIComponent(ref)}`);

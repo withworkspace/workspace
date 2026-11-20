@@ -21,7 +21,7 @@ import (
 )
 
 // Starting a run with what it needs. A recipe says the runs it needs up
-// before it ([run.web.needs.api]): ws finds each where it's nearest,
+// before it ([run.service.web.needs.api]): ws finds each where it's nearest,
 // starts the ones that aren't running, waits for them, and hands their
 // addresses to the run. A recipe runs once in a worktree, so two runs
 // that need the same thing share one run of it, which is kept while
@@ -36,13 +36,23 @@ type RunAsk struct {
 	// Recipe names one of the worktree's recipes; Command is run as it's
 	// said, when there's no recipe.
 	Recipe, Command string
+	// Type is which sort of run a command's is: runs.Task for one that
+	// ends by itself and is kept for what it came to. A recipe says its
+	// own.
+	Type runs.Type
+	// Check is the check of a mission's step it's run for, if it is.
+	Check *runs.CheckOf
 	// Name is what the run is called: "" is its recipe's name, or its
 	// command's first word.
 	Name  string
 	Owner runs.Owner
-	// TTL is how long it may last: 0 for no limit.
+	// TTL is how long it may last: 0 for no limit. A task's time is its
+	// Timeout instead.
 	TTL time.Duration
-	By  string
+	// Timeout is how long a task may take before it's stopped: 0 is its
+	// recipe's timeout, or runs.TaskTimeout; below 0, it has no limit.
+	Timeout time.Duration
+	By      string
 	// With says what meets one of the recipe's needs, by the need's name,
 	// in place of the nearest: a capsule's name, ground, silo, or an
 	// address (https://…), behind which ws starts nothing.
@@ -113,10 +123,15 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 	store := w.runStore()
 	now := time.Now()
 	if a.Recipe == "" {
-		r, err := store.Start(runs.Start{
-			Name: a.Name, Repo: a.Repo, Worktree: a.Worktree, Dir: a.Dir, Command: a.Command,
-			Owner: a.Owner, TTL: a.TTL, By: a.By, Env: a.Env,
-		}, now)
+		st := runs.Start{
+			Name: a.Name, Type: a.Type, Repo: a.Repo, Worktree: a.Worktree, Dir: a.Dir, Command: a.Command,
+			Owner: a.Owner, TTL: a.TTL, By: a.By, Env: a.Env, Check: a.Check,
+		}
+		if a.Type == runs.Task {
+			st.Commit, st.Dirty = standsAt(a.Dir)
+			st.TTL, _ = taskTime(a, "")
+		}
+		r, err := store.Start(st, now)
 		return RunUp{Run: r, Started: err == nil}, err
 	}
 	if a.Repo == "" {
@@ -125,15 +140,29 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 	rc, ok := w.recipes(a.Repo, a.Worktree)[a.Recipe]
 	if !ok {
 		if a.Repo == "" {
-			return RunUp{}, invalid("the workspace has no recipe %s ([run.%s] in %s)", a.Recipe, a.Recipe, config.FileName)
+			return RunUp{}, invalid("the workspace has no recipe %s (%s in %s)", a.Recipe, tablesOf(a.Recipe), config.FileName)
 		}
-		return RunUp{}, invalid("%s/%s has no recipe %s ([run.%s] in its %s)", a.Repo, runs.Label(a.Worktree), a.Recipe, a.Recipe, config.RepoFileName)
+		return RunUp{}, invalid("%s/%s has no recipe %s (%s in its %s)", a.Repo, runs.Label(a.Worktree), a.Recipe, tablesOf(a.Recipe), config.RepoFileName)
+	}
+	if slices.Contains(w.runTables(a.Repo, a.Worktree).Twice(), a.Recipe) {
+		return RunUp{}, invalid("%s is both a service and a task in %s ([run.service.%s] and [run.task.%s]): a recipe's name is one run's, so one of them wants another", a.Recipe, recipeFile(a.Repo), a.Recipe, a.Recipe)
 	}
 	if strings.TrimSpace(rc.Command) == "" {
-		return RunUp{}, invalid("[run.%s] in %s has no command", a.Recipe, recipeFile(a.Repo))
+		return RunUp{}, invalid("%s in %s has no command", rc.Table(a.Recipe), recipeFile(a.Repo))
 	}
 	if rc.Where == "silo" && a.Repo == "" {
-		return RunUp{}, invalid("[run.%s] in %s: where = \"silo\" is for a repo's recipe, and the workspace's run at its root", a.Recipe, config.FileName)
+		return RunUp{}, invalid("%s in %s: where = \"silo\" is for a repo's recipe, and the workspace's run at its root", rc.Table(a.Recipe), config.FileName)
+	}
+	typ := runs.Service
+	if rc.IsTask() {
+		typ = runs.Task
+		if len(above) > 0 {
+			return RunUp{}, invalid("%s is a task, which ends by itself: what a run needs is a service, kept up for it", a.Recipe)
+		}
+		var err error
+		if a.TTL, err = taskTime(a, rc.Timeout); err != nil {
+			return RunUp{}, invalid("%s in %s: %v", rc.Table(a.Recipe), recipeFile(a.Repo), err)
+		}
 	}
 	if rc.Where == "silo" && a.Worktree != workspace.SiloDir {
 		a.Worktree, a.Dir = workspace.SiloDir, w.WS().SiloWorktree(a.Repo)
@@ -169,7 +198,7 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 	for _, name := range slices.Sorted(maps.Keys(rc.Needs)) {
 		n := rc.Needs[name]
 		if !needName.MatchString(name) || name == "port" {
-			return RunUp{}, invalid("[run.%s.needs.%s]: a need's name is lower case letters, numbers, - and _, and not port, which is the run's own", a.Recipe, name)
+			return RunUp{}, invalid("%s: a need's name is lower case letters, numbers, - and _, and not port, which is the run's own", needTable(rc, a.Recipe, name))
 		}
 		t, err := w.needTarget(a, name, n)
 		if err != nil {
@@ -238,11 +267,19 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 	if name == "" {
 		name = a.Recipe
 	}
-	r, started, err := store.Ensure(runs.Start{
+	st := runs.Start{
 		Name: name, Repo: a.Repo, Worktree: a.Worktree, Dir: a.Dir,
 		Command: command, Recipe: a.Recipe, Ready: rc.Ready, Stop: rc.Stop,
-		Owner: a.Owner, TTL: a.TTL, By: a.By, Env: env, Needs: needs, Hold: a.hold,
-	}, now)
+		Owner: a.Owner, TTL: a.TTL, By: a.By, Env: env, Needs: needs, Hold: a.hold, Check: a.Check,
+	}
+	if typ == runs.Task {
+		st.Type = runs.Task
+		st.Commit, st.Dirty = standsAt(a.Dir)
+		for _, n := range slices.Sorted(maps.Keys(rc.Reports)) {
+			st.Reports = append(st.Reports, runs.Report{Name: n, Path: strings.TrimSpace(rc.Reports[n].Path), Format: strings.TrimSpace(rc.Reports[n].Format)})
+		}
+	}
+	r, started, err := store.Ensure(st, now)
 	if err != nil {
 		return RunUp{}, err
 	}
@@ -266,6 +303,32 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 		}
 	}
 	return RunUp{Run: r, Started: started, Needs: ups, Notes: notes}, nil
+}
+
+// taskTime is how long a task asked for may take: what the asker says
+// (a.Timeout), else its recipe's timeout as written, else
+// runs.TaskTimeout. 0 is no limit.
+func taskTime(a RunAsk, written string) (time.Duration, error) {
+	switch {
+	case a.Timeout < 0:
+		return 0, nil
+	case a.Timeout > 0:
+		return a.Timeout, nil
+	}
+	if written = strings.TrimSpace(written); written == "" {
+		return runs.TaskTimeout, nil
+	}
+	d, err := time.ParseDuration(written)
+	if err != nil || d <= 0 {
+		return 0, fmt.Errorf("timeout is how long it may take (10m, 1h30m), not %q", written)
+	}
+	return d, nil
+}
+
+// standsAt is the commit the worktree at dir is at, and whether it has
+// changes that aren't committed: what a task's result is a result of.
+func standsAt(dir string) (commit string, dirty bool) {
+	return gitOut(dir, "rev-parse", "HEAD"), gitOut(dir, "status", "--porcelain") != ""
 }
 
 // runAgain is a recipe asked for where it's running already: the run is
@@ -364,7 +427,7 @@ func (w *Workspace) needTarget(a RunAsk, name string, n config.RunNeed) (needTar
 		what = recipe
 	}
 	if recipe == "" && !n.IsFolder() {
-		return needTarget{}, invalid("[run.%s.needs.%s]: run names no recipe (%q)", a.Recipe, name, n.Run)
+		return needTarget{}, invalid("%s needs %s, and its run names no recipe (%q)", a.Recipe, name, n.Run)
 	}
 	with := strings.TrimSpace(a.With[name])
 	var notes []string
@@ -390,7 +453,7 @@ func (w *Workspace) needTarget(a RunAsk, name string, n config.RunNeed) (needTar
 			return needTarget{}, invalid("%s is the workspace's own %s: only an address (https://…) can meet it in its place", name, recipe)
 		}
 		if _, ok := w.recipes("", "")[recipe]; !ok {
-			return needTarget{}, invalid("%s needs %s, and the workspace has no recipe %s ([run.%s] in %s)", a.Recipe, recipe, recipe, recipe, config.FileName)
+			return needTarget{}, invalid("%s needs %s, and the workspace has no recipe %s ([run.service.%s] in %s)", a.Recipe, recipe, recipe, recipe, config.FileName)
 		}
 		return needTarget{recipe: recipe, dir: w.Root(), notes: notes}, nil
 	}
@@ -421,7 +484,7 @@ func (w *Workspace) needTarget(a RunAsk, name string, n config.RunNeed) (needTar
 		return t, nil
 	}
 	if _, ok := w.recipes(repo, t.worktree)[recipe]; !ok {
-		return needTarget{}, invalid("%s needs %s, and %s/%s has no recipe %s ([run.%s] in its %s)", a.Recipe, what, repo, runs.Label(t.worktree), recipe, recipe, config.RepoFileName)
+		return needTarget{}, invalid("%s needs %s, and %s/%s has no recipe %s ([run.service.%s] in its %s)", a.Recipe, what, repo, runs.Label(t.worktree), recipe, recipe, config.RepoFileName)
 	}
 	return t, nil
 }
@@ -435,9 +498,9 @@ func needSaidRight(a RunAsk, name string, n config.RunNeed) error {
 	file := recipeFile(a.Repo)
 	switch {
 	case strings.TrimSpace(n.Run) != "":
-		return invalid("[run.%s.needs.%s] in %s says both repo, a folder, and run, a run: it's one or the other", a.Recipe, name, file)
+		return invalid("%s needs %s, which in %s says both repo, a folder, and run, a run: it's one or the other", a.Recipe, name, file)
 	case strings.TrimSpace(n.Mount) != "" || n.Strip:
-		return invalid("[run.%s.needs.%s] in %s is a folder: there's nothing to mount", a.Recipe, name, file)
+		return invalid("%s needs %s, which in %s is a folder: there's nothing to mount", a.Recipe, name, file)
 	}
 	return nil
 }
@@ -497,6 +560,12 @@ func (w *Workspace) needPort(n runs.Need) string {
 		return u.Port()
 	}
 	return ""
+}
+
+// needTable is the table of one of a recipe's needs, as its file has it:
+// [run.service.web.needs.api].
+func needTable(rc config.RunRecipe, recipe, need string) string {
+	return strings.TrimSuffix(rc.Table(recipe), "]") + ".needs." + need + "]"
 }
 
 // needsSaid is a recipe's needs, to follow an error about one it hasn't.

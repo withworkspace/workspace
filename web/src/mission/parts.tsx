@@ -258,6 +258,11 @@ function CheckResults({ s }: { s: Stage }) {
             <Inline text={c.text} />
           </span>
           {c.result && c.result !== "met" && c.evidence && <span className="step-check-why">{c.evidence.split("\n")[0]}</span>}
+          {c.kept && (
+            <Link to={`/runs?show=${encodeURIComponent(c.kept)}`} className="step-check-kept" title="All it printed, and what it wrote">
+              <Icon name="terminal" size={11} />
+            </Link>
+          )}
         </li>
       ))}
     </ul>

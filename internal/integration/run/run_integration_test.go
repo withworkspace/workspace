@@ -119,10 +119,24 @@ func TestRun_OutsideAWorktreeSaysWhere(t *testing.T) {
 	}
 }
 
+// A recipe written with no type, as they were before tasks, isn't read:
+// ws run says so by its name, in place of running a command called that.
+func TestRun_ARecipeWithNoTypeIsntRead(t *testing.T) {
+	w, dir := runsWorkspace(t)
+	os.WriteFile(filepath.Join(dir, "ws.repo.toml"), []byte("[run.web]\ncommand = \"sleep 300\"\n"), 0o644)
+	res := testutil.RunCommand(t, w.Root, nil, "run", "--wait", "0", "web")
+	if res.Err == nil || !strings.Contains(res.Err.Error(), "[run.web] in ws.repo.toml isn't read") || !strings.Contains(res.Err.Error(), "[run.service.web] or [run.task.web]") {
+		t.Fatalf("err = %v", res.Err)
+	}
+	if list := lsJSON(t, w); len(list) != 0 {
+		t.Errorf("it started something: %v", list)
+	}
+}
+
 func TestRun_ARecipe(t *testing.T) {
 	w, dir := runsWorkspace(t)
 	os.WriteFile(filepath.Join(dir, "ws.repo.toml"), []byte(`
-[run.web]
+[run.service.web]
 command = "sleep 300"
 stop = "echo stopped $PORT > stopped.txt"
 `), 0o644)
@@ -244,7 +258,7 @@ func TestRun_AConversationsRunEndsWhenItsResolved(t *testing.T) {
 func TestRun_TheRouteFileHasTheRunsAndSilos(t *testing.T) {
 	w, dir := runsWorkspace(t)
 	ground := filepath.Join(w.Root, "repos", "api", ".ground")
-	os.WriteFile(filepath.Join(ground, "ws.repo.toml"), []byte("[run.stack]\ncommand = \"sleep 300\"\nwhere = \"silo\"\n\n[run.web]\ncommand = \"sleep 300\"\n"), 0o644)
+	os.WriteFile(filepath.Join(ground, "ws.repo.toml"), []byte("[run.service.stack]\ncommand = \"sleep 300\"\nwhere = \"silo\"\n\n[run.service.web]\ncommand = \"sleep 300\"\n"), 0o644)
 	testutil.StubConfirm(t, true)
 	if res := testutil.RunCommand(t, w.Root, nil, "silo", "point", "api", "feat"); res.Err != nil {
 		t.Fatalf("silo point: %v\n%s", res.Err, res.Stderr)
@@ -286,18 +300,18 @@ func needsWorkspace(t *testing.T) (*testutil.Workspace, string) {
 	testutil.Run(t, w, nil, "lift", "web", "feat")
 	dir := testutil.CapsuleDir(w, "web", "feat")
 	os.WriteFile(filepath.Join(dir, "ws.repo.toml"), []byte(`
-[run.web]
+[run.service.web]
 command = "sleep 300"
 
-[run.web.needs.api]
+[run.service.web.needs.api]
 run = "api/server"
 env = "API_URL"
 mount = "/api"
 
-[run.docs]
+[run.service.docs]
 command = "sleep 300"
 `), 0o644)
-	os.WriteFile(filepath.Join(w.Root, "repos", "api", ".ground", "ws.repo.toml"), []byte("[run.server]\ncommand = \"sleep 300\"\n"), 0o644)
+	os.WriteFile(filepath.Join(w.Root, "repos", "api", ".ground", "ws.repo.toml"), []byte("[run.service.server]\ncommand = \"sleep 300\"\n"), 0o644)
 	t.Setenv(cli.ShellPWD, dir)
 	t.Cleanup(func() { testutil.RunCommand(t, w.Root, nil, "run", "stop", "--all") })
 	return w, dir
