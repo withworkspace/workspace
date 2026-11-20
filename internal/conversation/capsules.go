@@ -44,7 +44,7 @@ func (c *Conversation) CanLift() string {
 	switch {
 	case c.Ephemeral:
 		return "this is an ask nobody's kept, which is swept once it's sat a while: say in your reply what you'd try in a capsule, and that keeping it as a conversation lets you"
-	case c.What != WhatTalk && c.What != WhatPR && c.What != WhatDoc && c.What != WhatBriefing:
+	case c.What != WhatTalk && c.What != WhatPR && c.What != WhatDoc && c.What != WhatThing && c.What != WhatBriefing:
 		return "this conversation is about a document or a page as it stands, and holds no capsules: say in your reply what you'd try, and the user can ask it in a conversation of its own"
 	}
 	return ""

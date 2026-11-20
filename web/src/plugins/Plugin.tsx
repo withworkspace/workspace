@@ -1,12 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { type Plugin } from "../api";
+import { createHost } from "../conversation/host";
+import { PageConversation } from "../conversation/PageConversation";
+import { refAt, thingOpenAt } from "../refs/refs";
 import { type IconName, icons } from "../ui/Icon";
 import { refsFound } from "../refs/found";
 import { useRefs, useRefsWorkspace } from "../refs/known";
 import { Empty, useTitle } from "../ui/kit";
 import { setFrameDim } from "./dim";
-import { setFrameHere } from "./here";
+import { setFrameHere, useFrameHere } from "./here";
 import { setFrameLayout } from "./layout";
 import { type Frame, listen } from "./frame";
 import { frameBase, viewBase } from "./paths";
@@ -29,7 +32,10 @@ import { onThemeChange, theme } from "./theme";
 // what there is to name has changed. And the frame's edge is no edge to
 // whoever's looking: a press in ws is said to the app, which never sees
 // one, so its menus close as they would for a press in the app; and
-// while the app has a backdrop up, ws dims what's beside the frame.
+// while the app has a backdrop up, ws dims what's beside the frame. The
+// conversation about the page's thing is ws's, drawn round the frame
+// (conversation/PageConversation.tsx): the app says how it may be had
+// (ws:conversation), as ws's own pages do.
 
 // pluginIcon is the icon a plugin asked for, if ws has it.
 export function pluginIcon(name?: string): IconName {
@@ -64,6 +70,10 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
   // itself: the frame's src doesn't say where it's gone to since.
   const [start] = useState(`${frameBase(name)}${wanted}`);
   const frame = useRef<Frame>(undefined);
+  // The conversation about what the page is of: ws's own, which the app
+  // drives over the frame, remembering the person's choice of form for
+  // the plugin.
+  const [conversation] = useState(() => createHost(name));
 
   // What there is to name, and the workspace: what the refs in the app's
   // words are found by, and drawn from.
@@ -118,6 +128,7 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
         // How the app wants the chrome: expanded, the shell folds its
         // sidebar (App.tsx).
         chromeLayout: (mode) => setFrameLayout(name, mode),
+        conversation,
       },
       setRefused,
     );
@@ -130,8 +141,11 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
     // heard on the way down, before whatever is pressed can stop it.
     const pressed = () => f.outside();
     window.addEventListener("pointerdown", pressed, true);
+    // Where the conversation is, the app hears.
+    const unheard = conversation.onChange((s) => f.conversation(s));
     return () => {
       unwatch();
+      unheard();
       window.removeEventListener("pointerdown", pressed, true);
       // Hanging up ends the dim, if the app had a backdrop up.
       f.stop();
@@ -185,6 +199,13 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
     iframe.current?.contentWindow?.location.replace(`${frameBase(name)}${shown.current}`);
   }, [name, state, starts]);
 
+  // What the page is of, to ask about: what the app said it shows, or
+  // else what its address is, as the thing's kind said its pages are.
+  const frameHere = useFrameHere();
+  const said = frameHere?.plugin === name && known ? refAt(frameHere.name, known) : undefined;
+  const open = said?.kind === "thing" ? said : known ? thingOpenAt(name, location.pathname.slice(viewBase(name).length) || "/", known) : undefined;
+  const about = open ? { thing: open.id, plugin: name, from: plugin?.views[0]?.title ?? name } : undefined;
+
   if (plugins && !plugin) {
     return (
       <Empty icon="box" title={`There's no plugin called ${name}`}>
@@ -199,7 +220,9 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
           {refused}
         </div>
       )}
-      <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} onLoad={() => frame.current?.loaded()} />
+      <PageConversation host={conversation} about={about} root={workspace?.root}>
+        <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} onLoad={() => frame.current?.loaded()} />
+      </PageConversation>
     </div>
   );
 }

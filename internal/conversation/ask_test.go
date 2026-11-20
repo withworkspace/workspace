@@ -232,3 +232,45 @@ func TestKeep(t *testing.T) {
 		t.Errorf("logged: %+v", log)
 	}
 }
+
+// An ask about a plugin's thing, from its page: what the page gives the
+// agent is kept on the turn, and its standing context is given again only
+// when it's changed since the agent last had it.
+func TestAsk_Thing(t *testing.T) {
+	root := owned(t)
+	s := ForWorkspace(root)
+	page := Given{From: "Sketch", Page: "Brief → Plan", Holding: "1 selected", HoldingText: "`plan` Plan"}
+	c, err := s.OpenAskTurn(Anchor{Thing: "sketch-13", Plugin: "sketch"}, Turn{By: You, At: at, Body: "Add a bubble off plan", Given: (*Conversation)(nil).Give(page)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.What != WhatThing || !c.Ephemeral || c.Turns[0].Given == nil || c.Turns[0].Given.Page != "Brief → Plan" {
+		t.Fatalf("w1 = %+v", c)
+	}
+	c, _ = s.Say(c.ID, Turn{By: Agent, At: at.Add(time.Minute), Body: "Added it."})
+
+	// The same page again: only what's new is given.
+	same := c.Give(Given{From: "Sketch", Page: "Brief → Plan"})
+	if same != nil {
+		t.Errorf("unchanged page given again: %+v", same)
+	}
+	held := c.Give(Given{From: "Sketch", Page: "Brief → Plan", Holding: "2 selected"})
+	if held == nil || held.Page != "" || held.Holding != "2 selected" {
+		t.Errorf("held = %+v", held)
+	}
+	moved := c.Give(Given{Page: "Brief → Plan → JSON RPC"})
+	if moved == nil || moved.Page != "Brief → Plan → JSON RPC" {
+		t.Fatalf("changed page not given: %+v", moved)
+	}
+	c, _ = s.Say(c.ID, Turn{By: You, At: at.Add(2 * time.Minute), Body: "Make it blue", Given: moved})
+	if got := c.StandingGiven(); got != "Brief → Plan → JSON RPC" {
+		t.Errorf("standing given = %q", got)
+	}
+	// Back as it first was: that's a change from what it was last given.
+	if back := c.Give(Given{Page: "Brief → Plan"}); back == nil || back.Page != "Brief → Plan" {
+		t.Errorf("back = %+v", back)
+	}
+	if _, err := s.OpenAsk(Anchor{}, You, "Why?", at); err == nil {
+		t.Error("an ask about nothing: no error")
+	}
+}

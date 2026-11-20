@@ -14,15 +14,18 @@ import (
 // you read it, answered by an agent as a conversation is, and kept only
 // if you keep it (conversation/ask.go). What it's about is a document
 // outside any mission, as the reader has it, and a passage of it you've
-// picked out; a pull request, a mission or a space can come later.
+// picked out; or a plugin's thing, from its page as it's open.
 
 // Asked is what's asked, and what about: a document's ref (repo:path, or
 // repo/capsule:path), and the passage picked out of it as it reads, with
-// the heading of the section it's in.
+// the heading of the section it's in. Or a plugin's thing (Thing:
+// sketch-13), and Given, what its page gave the agent with it.
 type Asked struct {
 	Doc     string
 	Quote   *conversation.Quote
 	Section string
+	Thing   string
+	Given   conversation.Given
 	Body    string
 }
 
@@ -35,8 +38,11 @@ func (w *Workspace) Ask(a Asked, by Actor) (*conversation.Conversation, error) {
 	if strings.TrimSpace(a.Body) == "" {
 		return nil, &Invalid{Reason: "say something"}
 	}
+	if strings.TrimSpace(a.Thing) != "" {
+		return w.askThing(a, by)
+	}
 	if strings.TrimSpace(a.Doc) == "" {
-		return nil, &Invalid{Reason: "say what it's about: a document's ref"}
+		return nil, &Invalid{Reason: "say what it's about: a document's ref, or a plugin's thing"}
 	}
 	d, err := w.FindDoc(a.Doc)
 	if err != nil {
@@ -60,6 +66,29 @@ func (w *Workspace) Ask(a Asked, by Actor) (*conversation.Conversation, error) {
 		}
 	}
 	c, err := conversation.ForWorkspace(w.Root()).OpenAsk(anchor, by.By(), a.Body, w.now())
+	if err != nil {
+		return nil, &Invalid{Reason: err.Error()}
+	}
+	w.answer(job.Answer, doc.Scope{}, c.ID)
+	return c, nil
+}
+
+// askThing starts an ask about a plugin's thing, from its page.
+func (w *Workspace) askThing(a Asked, by Actor) (*conversation.Conversation, error) {
+	name := strings.TrimSpace(a.Thing)
+	r, _, ok := w.ThingNamed(name)
+	if !ok {
+		return nil, &Invalid{Reason: name + " isn't one of a plugin's things"}
+	}
+	if _, _, err := Roles(w.Config()).ForConversation(); err != nil {
+		return nil, &Invalid{Reason: "no agent can answer here: " + err.Error()}
+	}
+	if a.Given.From == "" {
+		a.Given.From = w.pluginTitle(r.Plugin)
+	}
+	first := conversation.Turn{By: by.By(), At: w.now(), Body: a.Body, Given: (*conversation.Conversation)(nil).Give(a.Given)}
+	w.pinTurn(&first)
+	c, err := conversation.ForWorkspace(w.Root()).OpenAskTurn(conversation.Anchor{Thing: r.ID, Plugin: r.Plugin}, first)
 	if err != nil {
 		return nil, &Invalid{Reason: err.Error()}
 	}

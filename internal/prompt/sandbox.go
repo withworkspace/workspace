@@ -35,7 +35,7 @@ type SandboxCapsule struct {
 // document, which read.
 func Sandboxed(c *conversation.Conversation) bool {
 	switch c.What {
-	case conversation.WhatTalk, conversation.WhatPR, conversation.WhatDoc, conversation.WhatBriefing:
+	case conversation.WhatTalk, conversation.WhatPR, conversation.WhatDoc, conversation.WhatThing, conversation.WhatBriefing:
 		return true
 	}
 	return false

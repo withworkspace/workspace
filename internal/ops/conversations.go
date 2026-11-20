@@ -227,11 +227,30 @@ func (w *Workspace) StartTalkVia(plugin, body string) (*conversation.Conversatio
 // SayInTalk is you saying something in a conversation, taking it up again
 // if it was put away. Its agent answers.
 func (w *Workspace) SayInTalk(sc doc.Scope, id, body string, by Actor) (*conversation.Conversation, error) {
+	return w.SayInTalkGiven(sc, id, body, nil, by)
+}
+
+// SayInTalkGiven is SayInTalk from a plugin's page, with what the page
+// gave the agent with it: its standing context only if that's changed
+// since the agent was last given it.
+func (w *Workspace) SayInTalkGiven(sc doc.Scope, id, body string, given *conversation.Given, by Actor) (*conversation.Conversation, error) {
 	store, err := w.Conversations(sc)
 	if err != nil {
 		return nil, err
 	}
-	c, err := store.TakeUp(id, conversation.Turn{By: by.By(), At: w.now(), Body: body})
+	t := conversation.Turn{By: by.By(), At: w.now(), Body: body}
+	if given != nil {
+		was, err := store.Load(id)
+		if err != nil {
+			return nil, err
+		}
+		g := *given
+		if g.From == "" && was.Anchor.Plugin != "" {
+			g.From = w.pluginTitle(was.Anchor.Plugin)
+		}
+		t.Given = was.Give(g)
+	}
+	c, err := store.TakeUp(id, t)
 	if err != nil {
 		return nil, err
 	}
