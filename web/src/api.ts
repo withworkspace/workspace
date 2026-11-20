@@ -140,6 +140,9 @@ export type {
   RoleRun,
   RunDetail,
   RunsInfo,
+  WorkspaceSiloHook as SiloHook,
+  WorkspaceSiloState as SiloState,
+  WorkspaceSiloSync as SiloSync,
   Setting,
   SettingChange,
   SettingChoice,
@@ -650,6 +653,9 @@ export const writePR = (slug: string, capsule: string) =>
 // pointSilo points a repo's silo at a capsule (ws silo point), and says
 // what it did.
 export const pointSilo = (repo: string, to: string) => send<{ said: string }>("POST", `/api/silos/${encodeURIComponent(repo)}/point`, { to });
+
+// resyncSilo has the daemon give a repo's silo its target's files in full.
+export const resyncSilo = (repo: string) => send<{ resynced: string }>("POST", `/api/silos/${encodeURIComponent(repo)}/resync`, {});
 
 // stopRun ends a run now.
 export const stopRun = (slug: string, ref: string) => send<{ stopped: string }>("POST", `/api/missions/${encodeURIComponent(slug)}/runs/stop`, { ref });

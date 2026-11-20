@@ -5,7 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/withworkspace/workspace/internal/git"
 )
@@ -200,15 +202,23 @@ func (w *Workspace) checkSilos() CheckCategory {
 		}
 	}
 
-	// Check for stale lock file
+	// The lock an older ws's silo watch took: the daemon keeps the silos
+	// now, so one still running syncs them as well, and one gone left it.
 	lockPath := filepath.Join(w.Root, ".silo.lock")
 	if _, err := os.Stat(lockPath); err == nil {
-		if !IsLockHeld(lockPath) {
+		if pid, ok := lockHolder(lockPath); ok {
+			checks = append(checks, CheckResult{
+				Name:    ".silo.lock",
+				Status:  CheckWarn,
+				Detail:  fmt.Sprintf("a ws silo watch from an older ws is still running (pid %d), syncing the silos as the daemon does", pid),
+				FixHint: fmt.Sprintf("stop it (kill %d): the daemon keeps them", pid),
+			})
+		} else {
 			lp := lockPath
 			checks = append(checks, CheckResult{
 				Name:   ".silo.lock",
 				Status: CheckWarn,
-				Detail: "stale lock file (no running watcher)",
+				Detail: "left by an older ws's silo watch: the daemon keeps the silos now",
 				Fix: func() error {
 					return os.Remove(lp)
 				},
@@ -233,4 +243,18 @@ func gitWorktreeListBranches(mainWT string) map[string]bool {
 		}
 	}
 	return result
+}
+
+// lockHolder is the process an older ws's .silo.lock names, if it's alive.
+func lockHolder(path string) (int, bool) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0, false
+	}
+	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil || pid <= 0 {
+		return 0, false
+	}
+	proc, err := os.FindProcess(pid)
+	return pid, err == nil && proc.Signal(syscall.Signal(0)) == nil
 }

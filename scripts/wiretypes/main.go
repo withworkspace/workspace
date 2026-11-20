@@ -45,6 +45,7 @@ var referenced = []string{
 	"github.com/withworkspace/workspace/internal/runs",
 	"github.com/withworkspace/workspace/internal/team",
 	"github.com/withworkspace/workspace/internal/words",
+	"github.com/withworkspace/workspace/internal/workspace",
 }
 
 // notWire are internal/web's exported names that aren't sent or taken: the
