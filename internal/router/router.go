@@ -192,11 +192,15 @@ type table struct {
 	byName map[string]File
 }
 
-// look is the route files as they are now, read again at most each second.
+// readEvery is how often, at most, the router reads the route files again.
+const readEvery = time.Second
+
+// look is the route files as they are now, read again at most each
+// readEvery.
 func (rt *Router) look() *table {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()
-	if rt.table != nil && time.Since(rt.read) < time.Second {
+	if rt.table != nil && time.Since(rt.read) < readEvery {
 		return rt.table
 	}
 	read := rt.Procs

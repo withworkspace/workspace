@@ -16,6 +16,7 @@ import { CrewPage, crewKeys } from "./mission/CrewPage";
 import { listKeys, MissionList } from "./mission/List";
 import { MissionPage, missionKeys } from "./mission/Mission";
 import { OrchestratorPage, OrchestratorRunPage } from "./orchestrator/Orchestrator";
+import { AppPage } from "./apps/AppPage";
 import { RunsPage } from "./runs/Runs";
 import { useFrameDim } from "./plugins/dim";
 import { useFrameHere } from "./plugins/here";
@@ -209,6 +210,7 @@ export function App() {
                 <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
                 <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
                 <Route path="/runs" element={<RunsPage workspace={workspace} />} />
+                <Route path="/apps/:name" element={<AppPage workspace={workspace} />} />
                 <Route path="/plugins" element={<Navigate to="/settings/plugins" replace />} />
                 <Route path="/settings" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
                 <Route path="/settings/:section" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />

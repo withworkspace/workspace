@@ -50,6 +50,7 @@ import type {
   Repo,
   ReviewGuide,
   PRWritten,
+  AppDetail,
   RunDetail,
   RunsInfo,
   SettingChange,
@@ -145,6 +146,9 @@ export type {
   Repo,
   ReviewGuide,
   RoleRun,
+  AppDetail,
+  AppInfo,
+  AppPointer,
   RunDetail,
   RunsInfo,
   WorkspaceSiloHook as SiloHook,
@@ -655,6 +659,20 @@ export const getRuns = () => getJSON<RunsInfo>("/api/runs");
 
 // endRun ends any run now, or clears away one that's ended, its log with it.
 export const endRun = (ref: string) => send<{ stopped: string }>("POST", "/api/runs/stop", { ref });
+
+// Apps: the workspace's own recipes with a page. Opening one starts its
+// run, or joins the one that's running, and the page opens it again every
+// minute while it's open, which keeps it; once nobody has it open, ws
+// ends it. Mirrors internal/web/apps.go.
+const appPath = (name: string, rest = "") => `/api/apps/${encodeURIComponent(name)}${rest}`;
+export const getApp = (name: string) => getJSON<AppDetail>(appPath(name));
+export const openApp = (name: string) => send<AppDetail>("POST", appPath(name, "/open"), {});
+export const restartApp = (name: string) => send<AppDetail>("POST", appPath(name, "/restart"), {});
+export const stopApp = (name: string) => send<AppDetail>("POST", appPath(name, "/stop"), {});
+// pointApp points one of the app's needs at a worktree of its repo (a
+// capsule's name, ground or silo; "" for the nearest), starting the app
+// again on it where it's running.
+export const pointApp = (name: string, need: string, at: string) => send<AppDetail>("POST", appPath(name, "/point"), { need, at });
 
 // getRunLog is the end of a run's output.
 export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(`/api/runs/log?ref=${encodeURIComponent(ref)}`);

@@ -698,6 +698,18 @@ type RunRecipe struct {
 	// name this recipe calls it ([run.web.needs.api]). ws finds each, or
 	// starts it, and hands its address over.
 	Needs map[string]RunNeed `toml:"needs,omitempty"`
+	// Page makes one of the workspace's own recipes an app: a place in the
+	// web UI's sidebar, showing the run in a frame, started when it's
+	// opened and ended once nobody has it open. Only ws.toml's recipes
+	// have one.
+	Page *RunPage `toml:"page,omitempty"`
+}
+
+// RunPage is a workspace recipe as an app in the web UI: what its place
+// is called, and its icon (one of the web UI's, by name: "book").
+type RunPage struct {
+	Title string `toml:"title"`
+	Icon  string `toml:"icon,omitempty"`
 }
 
 // RunNeed is one of a recipe's needs: another recipe's run, and how this

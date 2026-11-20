@@ -42,6 +42,8 @@ type Overview struct {
 	// Sidebar and Menu are where the web UI's places go, as config says
 	// (config.UIConfig): nil for as they come.
 	Sidebar, Menu []string
+	// Apps are the workspace's recipes with a page: places of their own.
+	Apps []AppEntry
 	// Focus is what you've pinned that stands, in your order (focus.go).
 	Focus []FocusItem
 	// SpacesSeen moves when a look behind a read finds a space of
@@ -99,6 +101,7 @@ func (w *Workspace) Overview() (*Overview, error) {
 	}
 	out := &Overview{Name: ws.Name, Missions: []MissionItem{}, Kinds: w.Kinds(), Org: ws.Org, DefaultBranch: firstNonEmpty(ws.DefaultBranch, "main"), Spaces: []SpaceView{}}
 	out.Sidebar, out.Menu = w.Config().UI.Sidebar, w.Config().UI.Menu
+	out.Apps = w.Apps()
 	out.SpacesSeen = w.SpacesSeen()
 	if moved := w.git.dirtyMoved(); moved != "" {
 		h := fnv.New64a()

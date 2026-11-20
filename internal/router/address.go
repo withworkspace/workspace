@@ -1,6 +1,7 @@
 package router
 
 import (
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -43,6 +44,24 @@ func Address(root, key string) (string, bool) {
 		return "", false
 	}
 	return Link(Host(key, name), port), true
+}
+
+// Published is whether the router answers for a run of root's by its name
+// now: its route (key, at port) is in root's route file, and has been for
+// long enough that the router has read it. A run is up on its port before
+// its daemon has written its route (every couple of seconds), and a page
+// that sends you to its name before then finds nothing there.
+func Published(root, key string, port int) bool {
+	path := filepath.Join(Dir(), fileName(filepath.Clean(root)))
+	fi, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	f, err := read(path)
+	if err != nil {
+		return false
+	}
+	return f.Routes[key].Port == port && time.Since(fi.ModTime()) > readEvery
 }
 
 // RunAddress is where a run is reached: by its name, when it has one, or

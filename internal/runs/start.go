@@ -124,7 +124,7 @@ func sameOwner(a, b Owner) bool {
 	case ByConversation:
 		return a.Mission == b.Mission && a.Conversation == b.Conversation
 	}
-	return a.Mission == b.Mission
+	return a.Mission == b.Mission && a.App == b.App
 }
 
 // HoldUntil keeps a running run from being ended for nothing needing it

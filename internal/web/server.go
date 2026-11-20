@@ -374,6 +374,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/runs", s.allRuns)
 	mux.HandleFunc("POST /api/runs/stop", s.endRun)
 	mux.HandleFunc("GET /api/runs/log", s.runLog)
+	mux.HandleFunc("GET /api/apps/{name}", s.getApp)
+	mux.HandleFunc("POST /api/apps/{name}/open", s.openApp)
+	mux.HandleFunc("POST /api/apps/{name}/restart", s.restartApp)
+	mux.HandleFunc("POST /api/apps/{name}/stop", s.stopApp)
+	mux.HandleFunc("POST /api/apps/{name}/point", s.pointApp)
 	mux.HandleFunc("POST /api/silos/{repo}/point", s.pointSilo)
 	mux.HandleFunc("POST /api/silos/{repo}/resync", s.resyncSilo)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/screen", s.crewScreen)
@@ -608,7 +613,9 @@ func (s *Server) guard(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "no-referrer") // /auth's URL carries the token
-		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'")
+		// An app's page frames its run, which is on this machine: at its
+		// name under .localhost, or at 127.0.0.1 and its port.
+		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-src 'self' http://*.localhost:* http://127.0.0.1:*; frame-ancestors 'none'")
 		if !s.hostAllowed(r.Host) {
 			http.Error(w, "this server answers only to 127.0.0.1 and localhost", http.StatusMisdirectedRequest)
 			return

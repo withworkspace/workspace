@@ -100,6 +100,9 @@ type Owner struct {
 	// (ByConversation).
 	Crew         string `json:"crew,omitempty"`
 	Conversation string `json:"conversation,omitempty"`
+	// App is the workspace recipe whose app page is looked at, for a run
+	// started by opening it (ByLooking with no Mission).
+	App string `json:"app,omitempty"`
 }
 
 // Owners says whether owners ws keeps records of (missions, their steps
@@ -430,7 +433,7 @@ func (s Store) Looked(slugs map[string]bool, now time.Time) error {
 	}
 	var errs []error
 	for _, r := range runs {
-		looking := slices.ContainsFunc(r.Owners(), func(o Owner) bool { return o.Kind == ByLooking && slugs[o.Mission] })
+		looking := slices.ContainsFunc(r.Owners(), func(o Owner) bool { return o.Kind == ByLooking && o.App == "" && slugs[o.Mission] })
 		if r.State == Running && looking {
 			r.Looked = now.UTC().Truncate(time.Second)
 			if err := save(r.Record, r.Path); err != nil {
@@ -446,6 +449,26 @@ func (s Store) Looked(slugs map[string]bool, now time.Time) error {
 func (s Store) LookedRun(r Run, when time.Time) error {
 	r.Looked = when.UTC().Truncate(time.Second)
 	return save(r.Record, r.Path)
+}
+
+// LookedApps marks the runs owned by looking at the apps in names (the
+// workspace's recipes with a page) as looked at now.
+func (s Store) LookedApps(names map[string]bool, now time.Time) error {
+	runs, err := s.List()
+	if err != nil {
+		return err
+	}
+	var errs []error
+	for _, r := range runs {
+		looking := slices.ContainsFunc(r.Owners(), func(o Owner) bool { return o.Kind == ByLooking && o.App != "" && names[o.App] })
+		if r.State == Running && looking {
+			r.Looked = now.UTC().Truncate(time.Second)
+			if err := save(r.Record, r.Path); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // Keep sets how long a run has left from now: d of 0 is no limit.

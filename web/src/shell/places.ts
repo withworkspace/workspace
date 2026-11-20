@@ -119,6 +119,14 @@ export function placesOf(workspace: Workspace | undefined, waiting: (Waiting & {
     { id: "orchestrator", to: "/orchestrator", icon: "sparkle", label: "Orchestrator", match: (p) => p.startsWith("/orchestrator") },
     { id: "runs", to: "/runs", icon: "play", label: "Runs", match: (p) => p === "/runs", home: "menu" },
   ];
+  // The workspace's apps: its own recipes with a page, each its run framed.
+  const apps: Place[] = (workspace?.apps ?? []).map((a) => ({
+    id: `apps/${a.name}`,
+    to: `/apps/${a.name}`,
+    icon: a.icon && a.icon in icons ? (a.icon as IconName) : "box",
+    label: a.title,
+    match: (p: string) => p === `/apps/${a.name}`,
+  }));
   const views: Place[] = (plugins ?? []).flatMap((plugin) =>
     plugin.views.map((view) => {
       const to = `/x/${plugin.name}${view.path === "/" ? "" : view.path}`;
@@ -137,5 +145,5 @@ export function placesOf(workspace: Workspace | undefined, waiting: (Waiting & {
   // Those in no group first, then the groups by name; within each, as they came.
   const group = (p: Place) => p.under ?? "";
   views.sort((a, b) => (group(a) === group(b) ? 0 : group(a) === "" ? -1 : group(b) === "" ? 1 : group(a).localeCompare(group(b))));
-  return [...own, ...views];
+  return [...own, ...apps, ...views];
 }

@@ -47,6 +47,7 @@ function firstFor(r: RunDetail, missions: Mission[], talks: Talk[]): Said {
       return { text, to: r.mission ? `/missions/${r.mission}/conversations/${r.conversation}` : `/conversations/${r.conversation}` };
     }
     case "looking":
+      if (r.app) return { text: "whoever has its page open", to: `/apps/${r.app}` };
       return mission ? { text: `whoever has ${mission.text} open`, to: mission.to } : { text: "whoever has its page open" };
     case "none":
       return { text: "nobody: it lasts until it's stopped, or its time's up" };
@@ -63,6 +64,8 @@ export function listed(names: string[]): string {
 // placeOf is where a run runs: its repo and worktree, going to the
 // mission whose capsule it is, or else to the worktree's files.
 export function placeOf(r: RunDetail, missions: Mission[]): Said {
+  // The workspace's own runs run at its root, and belong to no repo.
+  if (!r.repo) return { text: "the workspace" };
   const text = `${r.repo} / ${r.worktree}`;
   if (r.worktree === "ground") return { text, to: `/files/${r.repo}` };
   if (r.worktree === "silo") return { text };

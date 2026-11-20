@@ -81,6 +81,17 @@ type Workspace struct {
 	// Places is where the web UI's places go, as [ui] sidebar and menu
 	// say: absent for as they come.
 	Places *Places `json:"places,omitempty"`
+	// Apps are the workspace's own recipes with a page ([run.<name>] page
+	// in ws.toml): each a place, showing its run in a frame.
+	Apps []AppInfo `json:"apps"`
+}
+
+// AppInfo is an app as a place has it: its recipe's name, what it's
+// called and its icon's name ("" for the default).
+type AppInfo struct {
+	Name  string `json:"name"`
+	Title string `json:"title"`
+	Icon  string `json:"icon,omitempty"`
 }
 
 // Places is where the web UI's places go: the sidebar's, in order, and
@@ -616,6 +627,8 @@ type RunDetail struct {
 	Crew         string `json:"crew,omitempty"`
 	Conversation string `json:"conversation,omitempty"`
 	OwnerPID     int    `json:"ownerPid,omitempty"`
+	// App is the app whose page it's for, for one owned by looking at it.
+	App          string `json:"app,omitempty"`
 	OwnerCommand string `json:"ownerCommand,omitempty"`
 	// Also is how many others it's for besides Owner: those who asked
 	// for it while it ran. Ends says when the last of them goes.
@@ -639,6 +652,12 @@ type RunNeed struct {
 	// of the run's own name the need answers at.
 	Env   string `json:"env,omitempty"`
 	Mount string `json:"mount,omitempty"`
+	// Folder is a need of a repo's folder, not a run: Repo's Worktree
+	// (said as a name has it), at Dir. Address is then "".
+	Folder   bool   `json:"folder,omitempty"`
+	Repo     string `json:"repo,omitempty"`
+	Worktree string `json:"worktree,omitempty"`
+	Dir      string `json:"dir,omitempty"`
 }
 
 // RunDetailOf is a run of the workspace at root as a page shows it.
@@ -646,10 +665,14 @@ func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
 	d := RunDetail{Ref: r.Ref(), Name: r.Name, Recipe: r.Recipe, Link: router.RunAddress(root, r), Local: r.Link(), Port: r.Port, State: r.State,
 		Owner: string(r.Owner.Kind), By: r.By, Command: r.Command, Started: r.Created,
 		Repo: r.Repo, Worktree: runs.Label(r.Worktree), Dir: r.Dir,
-		Mission: r.Owner.Mission, Step: r.Owner.Step, Crew: r.Owner.Crew, Conversation: r.Owner.Conversation,
+		Mission: r.Owner.Mission, Step: r.Owner.Step, Crew: r.Owner.Crew, Conversation: r.Owner.Conversation, App: r.Owner.App,
 		OwnerPID: r.Owner.PID, OwnerCommand: r.Owner.Command, Also: len(r.Also), NeededBy: r.NeededBy}
 	for _, n := range r.Needs {
-		d.Needs = append(d.Needs, RunNeed{Name: n.Name, Run: n.Run, Address: n.Addr, Env: n.Env, Mount: n.Mount})
+		rn := RunNeed{Name: n.Name, Run: n.Run, Address: n.Addr, Env: n.Env, Mount: n.Mount}
+		if n.IsFolder() {
+			rn.Folder, rn.Repo, rn.Worktree, rn.Dir = true, n.Repo, runs.Label(n.Worktree), n.Dir
+		}
+		d.Needs = append(d.Needs, rn)
 	}
 	switch r.State {
 	case runs.Running:

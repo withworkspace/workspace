@@ -194,7 +194,7 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
   // sidebar has them; then Settings, and each of its sections.
   const out: Item[] = [
     ...placesOf(w, [], plugins).map((p) => ({
-      ...place(p.to, p.label, p.icon, placeWords[p.id] ?? [p.under, p.id.split("/")[1], "view"].filter(Boolean).join(" ")),
+      ...place(p.to, p.label, p.icon, placeWords[p.id] ?? [p.under, p.id.split("/")[1], p.id.startsWith("apps/") ? "app run" : "view"].filter(Boolean).join(" ")),
       ...(p.id.startsWith("x/") ? { notes: [p.id.split("/")[1]] } : {}),
     })),
     place("/settings", "Settings", "sliders", "preferences options config configuration"),

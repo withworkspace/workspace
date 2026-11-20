@@ -1428,6 +1428,17 @@ repo = "api"
 
 A workspace recipe is asked for from nowhere in particular, so its needs aren't the nearest to where it was asked: each is **pointed** at one of its repo's worktrees, and is met by the repo's ground until it is. `ws run point docs` says what each need is pointed at and could be (the ground, the silo, and every capsule of the repo, or for a run, those with its recipe); `ws run point docs bff=my-capsule` points one (`ground`, `silo`, or `nearest` to go back). A pointer is kept, and outlasts the run. Pointing a need of a recipe that's running starts it again on what it's pointed at now, for whoever it was for and with the time it had left. A need pointed at a capsule that's gone since is met by the nearest, which `ws run` says. Pointing is yours: crew and agents are refused, as it changes what's shown to whoever has it open. A need that's another of the workspace's recipes (`run = "mailpit"`) can't be pointed: there's only the one.
 
+**Apps.** A workspace recipe with a `page` is an app: a place of its own in the web UI's sidebar (and in Find), which shows its run in a frame. It's a way of adding a tool to ws that's any web server at all, with nothing of ws's to learn: API docs, Storybook, a mail catcher, a database's UI. (A plugin is the step on, for what has to know ws's things.)
+
+```toml
+[run.docs]
+command = "uv run tsp-serve.py --port {port} …"
+ready = "/"
+page = { title = "API docs", icon = "book" }   # icon: one of the web UI's, by name; a box unsaid
+```
+
+Nothing runs until its page is opened. Opening it starts the run, with what it needs, or joins the one that's running; the page says it's still open every minute while it's in view, and the run is ended 15 minutes after nobody has it open (it's owned by whoever's looking, as a run started from a mission's page is). Its page is laid out as a sketch's is: a bar, and the app under it as a card, with the sidebar folded to a rail. The bar has a dropdown for each of its needs that can be pointed (choosing one starts it again on that, as `ws run point` does), how it stands (starting, up, or how it ended, with the end of its output while there's nothing to show), and Start again, Stop and a link to open it in a tab of its own. Stopped there, it isn't started again until you say. It's shown once it answers where the page frames it: at its name, once the router has its route, where the workspace has names, or at `127.0.0.1` and its port. Most apps draw themselves light: one in a dark theme is framed as it draws itself.
+
 In the web UI, a capsule on a mission's Work tab lists its runs (each with its link, what it needs, when it ends, and Stop) and a **Run** button for each recipe that isn't running. A run started there lasts while someone has the mission open, and 15 minutes after, or 4 hours at most; what it needs is started with it.
 
 The web UI's **Runs** page (`/runs`, in the workspace's menu until you arrange it into the sidebar, and in Find) is every run in the workspace, whoever started it: each with its link, where it runs and who it's for (going to the mission, crew or conversation; or the runs that need it), what it needs, when it ends, its output (opened under it, and read again every 2 seconds while it runs), and Stop. Runs that ended by themselves are below, each with Clear. Above them it says where the workspace's names stand: its web UI's name, the port the router's on and which daemon holds it, or, with names off, how to turn them on.

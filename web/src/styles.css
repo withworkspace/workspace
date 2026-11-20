@@ -17742,6 +17742,125 @@ input[type="text"].tweak-text {
   margin: var(--space-3) var(--space-4);
 }
 
+/* An app's page (apps/AppPage.tsx): a recipe of the workspace's, its run
+   in a frame. Laid out as the Sketch canvas is: a slim bar, and the app as
+   a card under it, inset as far as the sidebar is, edged, lifted and
+   round-cornered as the sidebar is. */
+.app-view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.app-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+}
+.app-icon {
+  flex: none;
+  color: var(--dim);
+}
+.app-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.app-point {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: var(--space-2);
+}
+.app-point-need {
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+}
+.app-point .select-button {
+  min-height: 26px;
+  padding-block: 2px;
+  font-size: var(--text-sm);
+}
+.app-spacer {
+  flex: 1;
+}
+.app-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tone, var(--dim));
+  white-space: nowrap;
+}
+.app-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+.app-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+}
+.app-link:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+.app-card {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  margin: 0 12px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.app-card iframe {
+  display: block;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  /* The app is drawn as it draws itself: most are light only. */
+  background: #fff;
+}
+.app-waiting {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: var(--space-6);
+  color: var(--dim);
+}
+.app-waiting p {
+  margin: 0 0 var(--space-3);
+}
+.app-log {
+  margin: 0;
+  padding: var(--space-3);
+  max-width: 100%;
+  overflow: auto;
+  background: var(--well);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--fg);
+}
+
 /* A page's conversation (conversation/PageConversation.tsx), round the
    page: the ask bar over its foot and the card over the bar, a popover
    over its corner (or the launcher where the bar's off), and a pane

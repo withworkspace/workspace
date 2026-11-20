@@ -105,6 +105,68 @@ export interface AnswerRequest {
     interrupt?: boolean;
 }
 
+// From web/apps.go
+/**
+ * AppDetail is GET /api/apps/{name}: an app, what its needs are pointed
+ * at, and its run as it stands.
+ */
+export interface AppDetail extends AppInfo {
+    pointers: AppPointer[];
+    /**
+     * Run is its run: the one that's running, or the one that ended last.
+     */
+    run?: RunDetail;
+    /**
+     * Ready is whether the run's up: its recipe's ready path answers, or
+     * something listens on its port.
+     */
+    ready: boolean;
+    /**
+     * Log is the end of its output, while it isn't ready.
+     */
+    log?: string;
+    /**
+     * Said is what a change to it did, in a sentence.
+     */
+    said?: string;
+}
+
+// From web/api.go
+/**
+ * AppInfo is an app as a place has it: its recipe's name, what it's
+ * called and its icon's name ("" for the default).
+ */
+export interface AppInfo {
+    name: string;
+    title: string;
+    icon?: string;
+}
+
+// From web/apps.go
+/**
+ * AppPoint is POST /api/apps/{name}/point: a need pointed at a worktree,
+ * as AppPointer says it ("" for the nearest).
+ */
+export interface AppPoint {
+    need: string;
+    at: string;
+}
+
+// From web/apps.go
+/**
+ * AppPointer is one of an app's needs and what it's pointed at: a
+ * worktree of Repo, said as a name has it (a capsule's name, ground or
+ * silo), "" for the nearest (its ground). Choices are what it can be.
+ */
+export interface AppPointer {
+    need: string;
+    repo: string;
+    folder?: boolean;
+    recipe?: string;
+    at: string;
+    choices: string[];
+}
+
 // From web/api.go
 /**
  * Artifact is something the mission made or relies on, and where it is now.
@@ -3870,6 +3932,10 @@ export interface RunDetail {
     crew?: string;
     conversation?: string;
     ownerPid?: number;
+    /**
+     * App is the app whose page it's for, for one owned by looking at it.
+     */
+    app?: string;
     ownerCommand?: string;
     /**
      * Also is how many others it's for besides Owner: those who asked
@@ -3917,6 +3983,14 @@ export interface RunNeed {
      */
     env?: string;
     mount?: string;
+    /**
+     * Folder is a need of a repo's folder, not a run: Repo's Worktree
+     * (said as a name has it), at Dir. Address is then "".
+     */
+    folder?: boolean;
+    repo?: string;
+    worktree?: string;
+    dir?: string;
 }
 
 // From web/runs.go
@@ -5251,6 +5325,11 @@ export interface Workspace {
      * say: absent for as they come.
      */
     places?: Places;
+    /**
+     * Apps are the workspace's own recipes with a page ([run.<name>] page
+     * in ws.toml): each a place, showing its run in a frame.
+     */
+    apps: AppInfo[];
 }
 
 // From workspace/watcher.go
