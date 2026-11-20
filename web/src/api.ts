@@ -18,7 +18,7 @@ export interface Workspace {
   conversations: Talk[]; // the workspace's conversations, newest first
   pages: PageInfo[]; // the workspace's pages, the latest changed first
   artifacts?: ArtifactInfo[]; // its artifacts, the latest version's newest first, discarded ones too
-  artifactsRepo?: string; // the repo it keeps artifacts in: where one on this machine moves, promoted
+  artifactsRepo?: string; // the repo a promoted artifact lives in, offered the first time one's promoted
   kinds?: DocKind[]; // its kinds of document: a page can be started as one, and filed as one
   docs?: string; // when the threads on documents outside a mission last changed
   // reviews: how many pull requests need you, as GitHub last said; absent
@@ -975,10 +975,6 @@ export interface ArtifactVersion {
   fromTitle?: string;
   note?: string;
   size?: number; // its file's, on an artifact's page; absent while there's none
-  // capsule is where it waits to land (records/glow): crew's, in flight;
-  // was its number there, where it lands as another (n).
-  capsule?: string;
-  was?: number;
 }
 
 export type ArtifactStatus = "live" | "promoted" | "discarded";
@@ -989,33 +985,42 @@ export interface ArtifactInfo {
   title: string;
   status: ArtifactStatus;
   gone?: boolean; // its folder isn't where it was, and it wasn't discarded
-  place: string; // where it's kept: ".ws", this machine, or a repo's name (records)
-  folder: string; // its name in .ws/artifacts, or its path in the repo
-  where: string; // .ws/artifacts/<folder>/, records:artifacts/<folder>/
-  inFlight?: string; // the capsule it's in (records/glow) while none of it has landed
-  flying?: number; // how many of its versions wait in a capsule
+  folder: string; // its name in .ws/artifacts, on this machine
+  where: string; // .ws/artifacts/<folder>/
+  home?: ArtifactHome; // where it lives in a repo, promoted there: none for one on this machine only
+  here?: boolean; // promoted to stay on this machine, whatever the workspace says of where promoted ones live
   made: string;
   versions: number;
   latest?: ArtifactVersion;
   from?: { from: string; title?: string }[]; // where its versions came from, the latest first
   promoted?: { at: string; by: string; version: number; into: string };
-  // discarded: commit is, in a repo, the last commit its folder was in,
-  // where history keeps it.
-  discarded?: { at: string; by: string; reason?: string; commit?: string };
-  // expires is when a live one expires, if it does; expired, by now (on
-  // this machine until the daemon discards it, in a repo until it's
-  // cleared).
+  discarded?: { at: string; by: string; reason?: string };
+  // expires is when a live one expires, if it does; expired, by now,
+  // until the daemon discards it (or Clear expired does).
   expires?: string;
   expired?: boolean;
-  erased?: boolean; // discarded here, and its files deleted for good
+  erased?: boolean; // discarded, and its files deleted for good
   restorable?: boolean; // discarded, and it can be put back
+}
+
+// ArtifactHome is where a promoted artifact lives in a repo, for everyone
+// with it: its folder there as it's said to people
+// (records:artifacts/2026-11-12-horizon-glow/), the version that's there,
+// and the commit that put it there.
+export interface ArtifactHome {
+  where: string;
+  repo: string;
+  version: number;
+  commit?: string;
+  at: string;
 }
 
 // ArtifactDone is what promoting, discarding or restoring one did.
 export interface ArtifactDone {
   artifact: ArtifactInfo;
-  landed?: string; // kept in a repo: what landing its commit did
-  moved?: boolean; // promoted, it moved from this machine into the repo
+  home?: string; // the folder in a repo it was put in, taken out of or put back in
+  landed?: string; // what landing that commit did
+  first?: boolean; // it's the first time it was put there
   into?: string; // what it went into: a mission's slug, or a document's ref
   started?: string; // a mission started from it
   recorded?: string; // the mission it was recorded on
@@ -1023,22 +1028,30 @@ export interface ArtifactDone {
 
 // ArtifactPromotion is promoting one: the version chosen (0: its latest),
 // and what it went into (a mission's slug, or a document's ref), or a
-// mission to start from it; move takes one on this machine into the repo.
+// mission to start from it. For one that lives in no repo yet, home is
+// the folder it's to live in (repo:folder/), and here keeps it on this
+// machine only; neither is where the workspace says promoted ones live.
+// One that lives in a repo goes there, with nothing said.
 export interface ArtifactPromotion {
   version?: number;
   into?: string;
   start?: string;
-  move?: boolean;
+  home?: string;
+  here?: boolean;
 }
 
 const artifactPath = (id: string, what: string) => `/api/artifacts/${encodeURIComponent(id)}/${what}`;
 export const promoteArtifact = (id: string, p: ArtifactPromotion) => send<ArtifactDone>("POST", artifactPath(id, "promote"), p);
 export const discardArtifact = (id: string, reason: string) => send<ArtifactDone>("POST", artifactPath(id, "discard"), { reason });
 export const restoreArtifact = (id: string) => send<ArtifactDone>("POST", artifactPath(id, "restore"), {});
-export const clearExpiredArtifacts = () => send<{ local: string[]; repo: string[]; landed?: string }>("POST", "/api/artifacts/clear", {});
+export const clearExpiredArtifacts = () => send<{ local: string[] }>("POST", "/api/artifacts/clear", {});
 
 export interface ArtifactDetail extends ArtifactInfo {
   all: ArtifactVersion[]; // oldest first
+  // homeOffered is the folder in a repo it has, or is offered, to live in:
+  // where it lives, or the folder the workspace names for it; none where
+  // there's none to offer.
+  homeOffered?: string;
 }
 
 export const getArtifactDetail = (id: string) => getJSON<ArtifactDetail>(`/api/artifacts/${encodeURIComponent(id)}`);
@@ -1059,7 +1072,9 @@ export const getArtifactCompare = (a: string, b: string) => getJSON<ArtifactComp
 
 // frameURL is where a version runs: a route of its own, outside the app
 // and its API, sandboxed by its own policy (internal/web/artifacts.go).
-export const frameURL = (id: string, version: number) => `/frame/${encodeURIComponent(id)}/v${version}`;
+// tweaks is the state it opens in, as its address says it ("?t.density=compact",
+// artifacts/tweaks.ts): none, for the state its page opens as.
+export const frameURL = (id: string, version: number, tweaks = "") => `/frame/${encodeURIComponent(id)}/v${version}${tweaks}`;
 
 // proposalFrameURL is where an artifact a conversation proposed runs, as a
 // version does: the workspace's conversation (w9), or a mission's (slug).

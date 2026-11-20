@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Plan list</title>
+<script>
+// What can be changed about it. ws draws a control for each, beside the
+// frame, and writes each value on <html> (data-density, --radius) for the
+// styles below. The first preset is what it opens as.
+ws.tweaks({
+  tweaks: {
+    density: {
+      label: "Density",
+      description: "How tall a step's row is.",
+      options: [{ value: "cozy", label: "Cozy" }, { value: "compact", label: "Compact", description: "28px rows, the step's note dropped." }],
+    },
+    shown: {
+      label: "Steps shown",
+      description: "How much of a long plan is on the page.",
+      options: ["All of them", "2 done + 3 next", "The current step only", "None, folded"],
+    },
+    pips: { label: "Progress pips", description: "A dot for each step, under the heading." },
+    kind: { label: "Kind at the row's end", description: "Work, Review, Wait: said after the step, not before it." },
+    radius: { label: "Corner radius", min: 0, max: 16, unit: "px" },
+    accent: { label: "Accent", type: "color" },
+    heading: { label: "Heading" },
+  },
+  presets: [
+    {
+      label: "As it is today",
+      description: "What a mission's page shows now.",
+      state: { density: "cozy", shown: "All of them", pips: false, kind: false, radius: 6, accent: "#6e509c", heading: "Plan" },
+    },
+    { label: "Suggested", description: "A window on a long plan, with pips to say where it's at.", state: { density: "compact", shown: "2 done + 3 next", pips: true, kind: true } },
+    { label: "Quietest", description: "Only where it's at.", state: { shown: "The current step only", pips: false } },
+  ],
+});
+</script>
+<style>
+  :root { color-scheme: light dark; --bg: #fbfbfc; --fg: #1d1d21; --dim: #66666f; --line: #e6e6ea; --card: #fff; --row: 40px; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #17171a; --fg: #ececf0; --dim: #9a9aa6; --line: #2c2c33; --card: #1f1f24; } }
+  :root[data-density="compact"] { --row: 28px; }
+  body { margin: 0; padding: 32px; background: var(--bg); color: var(--fg); font: 13px/1.4 -apple-system, system-ui, sans-serif; }
+  .card { max-width: 440px; margin: 0 auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); overflow: hidden; }
+  header { display: flex; align-items: baseline; gap: 8px; padding: 12px 14px 8px; }
+  h1 { margin: 0; font-size: 14px; }
+  header span { color: var(--dim); font-size: 12px; }
+  .pips { display: none; gap: 4px; padding: 0 14px 10px; }
+  :root[data-pips] .pips { display: flex; }
+  .pips i { width: 14px; height: 4px; border-radius: 2px; background: var(--line); }
+  .pips i.done { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+  .pips i.now { background: var(--accent); }
+  ol { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; align-items: center; gap: 10px; min-height: var(--row); padding: 0 14px; border-top: 1px solid var(--line); }
+  li .mark { flex: none; width: 14px; height: 14px; border: 1.5px solid var(--dim); border-radius: 50%; box-sizing: border-box; }
+  li.done .mark { border-color: var(--accent); background: var(--accent); }
+  li.now { background: color-mix(in srgb, var(--accent) 9%, transparent); font-weight: 600; }
+  li.now .mark { border-color: var(--accent); }
+  li.done .what { color: var(--dim); }
+  li .kind { color: var(--dim); font-size: 11px; font-weight: 400; }
+  :root[data-kind] li .kind { order: 3; margin-left: auto; }
+  li .note { display: block; color: var(--dim); font-size: 11px; font-weight: 400; }
+  :root[data-density="compact"] li .note { display: none; }
+  li.more { color: var(--dim); font-size: 12px; }
+</style>
+<div class="card">
+  <header><h1 id="heading"></h1><span id="where"></span></header>
+  <div class="pips" id="pips"></div>
+  <ol id="steps"></ol>
+</div>
+<script>
+const steps = [
+  ["Work", "Read totals in pence", "No float reaches the sum."],
+  ["Review", "The rounding change", "Before anyone builds on it."],
+  ["Work", "Round once, at the end", "Half away from zero."],
+  ["Verify", "A penny doesn't go missing", "The three invoices from the report."],
+  ["Work", "Say the rule in the README", "Where the next person looks."],
+  ["Review", "The whole change", "Before its pull request."],
+  ["Land", "Open the pull request", "On api."],
+  ["Wait", "CI, and a teammate's review", "Watched: ws looks each minute."],
+  ["Work", "Tell the two studios", "A line each, with the fix."],
+];
+const at = 4; // the step it's on
+
+function draw(state) {
+  document.getElementById("heading").textContent = state.heading;
+  document.getElementById("where").textContent = `step ${at + 1} of ${steps.length}`;
+  document.getElementById("pips").innerHTML = steps.map((_, i) => `<i class="${i < at ? "done" : i === at ? "now" : ""}"></i>`).join("");
+  const from = { "All of them": 0, "2 done + 3 next": at - 2, "The current step only": at, "None, folded": steps.length }[state.shown];
+  const to = { "All of them": steps.length, "2 done + 3 next": at + 4, "The current step only": at + 1, "None, folded": steps.length }[state.shown];
+  const rows = steps.map(([kind, what, note], i) => (i < from || i >= to ? "" : `<li class="${i < at ? "done" : i === at ? "now" : ""}"><span class="mark"></span><span class="kind">${kind}</span><span class="what">${what}<span class="note">${note}</span></span></li>`));
+  const before = Math.min(from, steps.length);
+  const after = steps.length - Math.max(to, 0);
+  document.getElementById("steps").innerHTML =
+    (before && from < steps.length ? `<li class="more">${before} earlier</li>` : "") + rows.join("") + (after > 0 ? `<li class="more">${after} more</li>` : "");
+}
+
+// Drawn from the state now, and again whenever a tweak changes.
+draw(ws.tweaks.state);
+window.addEventListener("ws:tweaks", (e) => draw(e.detail));
+</script>

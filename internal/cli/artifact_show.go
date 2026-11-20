@@ -3,13 +3,11 @@ package cli
 import (
 	"context"
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/artifact"
-	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/store"
 )
@@ -36,7 +34,7 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 	cfg, now := ctx.ArtifactsConfig(), time.Now()
 	expires, expirable := cfg.Expires(e)
 	switch {
-	case e.Gone:
+	case e.Gone || e.Away():
 		state += ", its folder gone"
 	case e.Erased:
 		state += ", its files deleted for good"
@@ -45,16 +43,7 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 	case cfg.Expiring(e, now):
 		state += ", " + artifact.ExpiresWords(expires, now)
 	}
-	kept := "on this machine"
-	switch {
-	case e.InRepo() && e.Status == artifact.Discarded:
-		kept = "in " + e.Place + "'s history"
-	case e.InFlight() != "":
-		state += ", in flight"
-		kept = "in " + e.InFlight() + ", not landed"
-	case e.InRepo():
-		kept = "in " + e.Place
-	}
+	kept := "on " + e.Kept()
 	head := fmt.Sprintf("Artifact %s — %q (%s, %s; %d %s, the latest v%d)", e.ID, e.Title, state, kept, n, plural(n, "version"), latest.N)
 	if asked != 0 {
 		head = fmt.Sprintf("Artifact %s, v%d of %d — %q (%s, %s)", e.ID, asked, n, e.Title, state, kept)
@@ -62,30 +51,26 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 	v := &view{head: head}
 	v.body = append(v.body, "An artifact is one HTML file, with its CSS and JS inline, that shows an idea, to look at and use. Each version is a whole file, never changed once written.")
 	dir := st.Path(e)
-	history := e.InRepo() && e.Status == artifact.Discarded
 	switch {
-	case history:
-		v.body = append(v.body, fmt.Sprintf("It was kept in %s, the repo the workspace keeps artifacts in, at %s, until a commit on its default branch took it away. History keeps it, at %s (git show %s:%s/v<n>.html is a version). Made %s.", e.Place, e.Place+":"+e.Folder+"/", keptAt(e), shortCommit(e), e.Folder, when(e.Made)))
+	case e.Away():
+		v.body = append(v.body, fmt.Sprintf("It was kept in %s (%s), from when artifacts were kept in a repo whole, and hasn't been brought onto this machine: ws doctor does it. What's below is what the records kept.", e.Place, e.Place+":"+e.Folder+"/"))
 	case e.Erased:
 		v.body = append(v.body, fmt.Sprintf("It was kept on this machine (.ws/artifacts/%s/), and its files have been deleted for good: what's below is what the records kept, and there are no files to read.", e.Folder))
-	case e.Gone && e.InRepo():
-		v.body = append(v.body, fmt.Sprintf("Its folder has gone from %s (it was %s), on its default branch and in the mission capsules of it: what's below is what the records kept, and there are no files to read.", e.Place, e.Where()))
 	case e.Gone:
 		v.body = append(v.body, fmt.Sprintf("Its folder has gone from .ws/artifacts (it was %s): what's below is what the records kept, and there are no files to read.", dir))
-	case e.InFlight() != "":
-		c, _ := st.Repo.CapsuleOf(e.InFlight())
-		v.body = append(v.body, fmt.Sprintf("Kept in %s, the repo the workspace keeps artifacts in, but not landed: it's in %s (%s), mission %s's capsule, and lands with it. %s is its record, and v<n>.html each version. Made %s. Name it for other people by its folder, %s, once it's landed: a3 is this machine's.", e.Place, e.InFlight(), dir, c.Mission, artifact.RecordFile, when(e.Made), e.Place+":"+e.Folder+"/"))
-	case e.InRepo():
-		v.body = append(v.body, fmt.Sprintf("Kept in %s, the repo the workspace keeps artifacts in, at %s: on its default branch, as last fetched (%s). %s is its record, and v<n>.html each version. Made %s. Name it for other people by its folder, %s: its ref (%s) is this machine's.", e.Place, e.Where(), dir, artifact.RecordFile, when(e.Made), e.Where(), e.ID))
 	default:
-		v.body = append(v.body, fmt.Sprintf("Kept in %s (this machine only): %s is its record, and v<n>.html each version. Made %s.", dir, artifact.RecordFile, when(e.Made)))
+		v.body = append(v.body, fmt.Sprintf("Kept in %s, on this machine: %s is its record, and v<n>.html each version. Made %s.", dir, artifact.RecordFile, when(e.Made)))
 	}
-	if fly := e.Flying(); len(fly) > 0 && e.InFlight() == "" {
-		var vs []string
-		for _, f := range fly {
-			vs = append(vs, fmt.Sprintf("v%d", f.N))
+	if h := e.Home; h != nil && e.Lives() != "" {
+		there := fmt.Sprintf("It lives in %s too, for everyone with %s: v%d is there (%s, and a record of it), put there %s", h.Where(), h.Repo, h.Version, artifact.HomeFile, when(h.At))
+		if h.Commit != "" {
+			there += " in " + shortSHA(h.Commit)
 		}
-		v.body = append(v.body, fmt.Sprintf("In flight: %s, crew's, in a capsule and not landed (each says which below).", strings.Join(vs, ", ")))
+		there += ". Name it for other people by that folder: its ref (" + e.ID + ") is this machine's."
+		if latest.N > h.Version {
+			there += fmt.Sprintf(" v%d is newer: promoting it puts the version chosen there, in one commit (the user only).", latest.N)
+		}
+		v.body = append(v.body, there)
 	}
 	if d := e.Discarded; e.Status == artifact.Discarded && d != nil {
 		why := "."
@@ -96,20 +81,17 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 			}
 		}
 		v.body = append(v.body, fmt.Sprintf("Discarded %s by %s%s It's listed no more, and takes no new versions.", when(d.At), d.By, why))
-		switch {
-		case e.Restorable() && !e.InRepo():
-			v.body = append(v.body, fmt.Sprintf("Its folder is in %s until %s, when it's deleted for good: ws artifact restore %s puts it back (the user only).", e.Where(), d.At.Add(artifact.KeepDiscarded).Local().Format("2006-01-02"), e.ID))
-		case e.Restorable():
-			v.body = append(v.body, fmt.Sprintf("ws artifact restore %s puts it back, from %s, in a new commit (the user only).", e.ID, keptAt(e)))
+		if e.Restorable() {
+			back := ""
+			if e.Home != nil {
+				back = ", and in " + e.Home.Where() + ", where it lived"
+			}
+			v.body = append(v.body, fmt.Sprintf("Its folder is in %s until %s, when it's deleted for good: ws artifact restore %s puts it back%s (the user only).", e.Where(), d.At.Add(artifact.KeepDiscarded).Local().Format("2006-01-02"), e.ID, back))
 		}
 	}
 	if expirable && e.Status == artifact.Live {
 		if !now.Before(expires) {
-			how := "the daemon discards it"
-			if e.InRepo() {
-				how = "it waits for the user to clear it (ws artifact clear)"
-			}
-			v.body = append(v.body, fmt.Sprintf("Expired %s: it's had no new version for %s, and %s, unless they promote it.", when(expires), cfg.ExpiryWords(), how))
+			v.body = append(v.body, fmt.Sprintf("Expired %s: it's had no new version for %s, and the daemon discards it, unless the user promotes it.", when(expires), cfg.ExpiryWords()))
 		} else {
 			v.body = append(v.body, fmt.Sprintf("Live: it expires %s, %s after its last version, unless it's given a new version or promoted.", expires.Local().Format("2006-01-02"), cfg.ExpiryWords()))
 		}
@@ -131,16 +113,13 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 			line += fmt.Sprintf(" · based on v%d", ver.BasedOn)
 		}
 		line += " · " + when(ver.At) + " · " + provenance(ver)
-		if ver.Capsule != "" {
-			line += " · in flight, in " + ver.Capsule
-			if ver.Was != 0 {
-				line += fmt.Sprintf(" (as v%d there: v%d landed first, so it lands as v%d)", ver.Was, ver.Was, ver.N)
-			}
-		}
 		if size, ok := st.VersionSize(e, ver.N); ok {
 			line += " · " + artifact.Size(size)
-		} else if !e.Gone && !e.Erased {
+		} else if !e.Gone && !e.Erased && !e.Away() {
 			line += " · its file is missing"
+		}
+		if e.Home != nil && e.Lives() != "" && e.Home.Version == ver.N {
+			line += " · in " + e.Home.Repo
 		}
 		if ver.N == asked {
 			line += "  ← asked for"
@@ -171,7 +150,7 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 			v.add("ws:"+f, "the mission "+vs+" came from")
 		}
 	}
-	if !e.Gone && !e.Erased {
+	if !e.Gone && !e.Erased && !e.Away() {
 		show := asked
 		if show == 0 {
 			show = latest.N
@@ -185,9 +164,7 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 			}
 		}
 		v.more = append(v.more, fmt.Sprintf("ws artifact show %s   prints v%d's HTML (and so for each: %s)", refs[0], show, strings.Join(refs, ", ")))
-		if !history {
-			v.more = append(v.more, fmt.Sprintf("%s   is its file (v<n>.html beside it, each version's)", st.VersionPath(e, show)))
-		}
+		v.more = append(v.more, fmt.Sprintf("%s   is its file (v<n>.html beside it, each version's)", st.VersionPath(e, show)))
 	}
 	switch {
 	case e.Status == artifact.Discarded:
@@ -195,17 +172,7 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 		// A conversation's agent proposes: the user adds it.
 		v.more = append(v.more, fmt.Sprintf("ws artifact add --propose --to %s --on v%d --note \"…\" - <<'EOF'   proposes a version, the whole file, based on v%d (ws artifact add --propose says how one's written)", e.ID, latest.N, latest.N))
 	default:
-		// Yours goes on the default branch: based on what's landed there.
-		on := latest.N
-		if latest.Capsule != "" && os.Getenv(mission.EnvCrew) == "" {
-			on = 0
-			for _, ver := range e.Versions {
-				if ver.Capsule == "" && ver.N > on {
-					on = ver.N
-				}
-			}
-		}
-		v.more = append(v.more, fmt.Sprintf("ws artifact add <file> --to %s --note \"…\"   adds a version, based on v%d (--on for another)", e.ID, on))
+		v.more = append(v.more, fmt.Sprintf("ws artifact add <file> --to %s --note \"…\"   adds a version, based on v%d (--on for another)", e.ID, latest.N))
 	}
 	if said, err := ctx.SaidOf(store.Key{Name: e.ID}); err == nil {
 		v.addSaid(saidSection{title: "Said of it", said: said})
@@ -219,19 +186,6 @@ var (
 	// names it: glow/t3.
 	missionTalkRef = regexp.MustCompile(`^[^/\s]+/t[1-9][0-9]*$`)
 )
-
-// shortCommit is the commit history keeps an artifact discarded in a repo
-// in, short.
-func shortCommit(e artifact.Entry) string {
-	if e.Discarded == nil {
-		return ""
-	}
-	c := e.Discarded.Commit
-	if len(c) > 7 {
-		c = c[:7]
-	}
-	return c
-}
 
 // provenance says who added a version, and where: by c1, crew on mission
 // glow ("The glow"); by you, accepting proposal 2 in conversation w9

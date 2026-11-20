@@ -1,5 +1,6 @@
 import type { ArtifactVersion } from "../api";
 import { stepVersion, versionOf } from "./shown";
+import { type Params, withTweakParams } from "./tweaks";
 
 // Comparing two versions, apart from how it's drawn: of one artifact,
 // /artifacts/a3/compare?v=1,3, or of two,
@@ -81,12 +82,24 @@ export function compareFrom(id: string, n: number, versions: Versions, other?: S
 // sideRef is a side as a ref: a3.v2 (a3, while its version isn't known).
 export const sideRef = (s: Side) => (s.n ? `${s.id}.v${s.n}` : s.id);
 
+// sideTweaks are what the state of each side's tweaks is under, in the
+// address: a.density=compact for the left's, b. for the right's
+// (tweaks.ts).
+export const sideTweaks: [string, string] = ["a.", "b."];
+
 // compareHref is a comparison's address: an artifact's, when both sides
-// are of it, else two's.
-export function compareHref([a, b]: Pair): string {
-  if (a.id === b.id && a.n && b.n) return `/artifacts/${a.id}/compare?v=${a.n},${b.n}`;
-  if (a.id === b.id && !a.n) return `/artifacts/${a.id}/compare${b.n ? `?v=${b.n}` : ""}`;
-  return `/artifacts/compare?a=${sideRef(a)}&b=${sideRef(b)}`;
+// are of it, else two's; with the state of each side's tweaks, where
+// there's any.
+export function compareHref([a, b]: Pair, tweaks?: [Params, Params]): string {
+  const href =
+    a.id === b.id && a.n && b.n
+      ? `/artifacts/${a.id}/compare?v=${a.n},${b.n}`
+      : a.id === b.id && !a.n
+        ? `/artifacts/${a.id}/compare${b.n ? `?v=${b.n}` : ""}`
+        : `/artifacts/compare?a=${sideRef(a)}&b=${sideRef(b)}`;
+  if (!tweaks) return href;
+  const state = withTweakParams(withTweakParams(new URLSearchParams(), tweaks[0], sideTweaks[0]), tweaks[1], sideTweaks[1]).toString();
+  return state ? `${href}${href.includes("?") ? "&" : "?"}${state}` : href;
 }
 
 // swapped is the pair the other way about: the right on the left.

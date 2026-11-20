@@ -4,28 +4,28 @@ import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Callout, confirm, Dialog, humanError, Keys, toast } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
-import { clearable, type IntoKind, promoteBlocked, promoteVersions, promotion } from "./shown";
+import { clearable, type IntoKind, type Lives, livesAt, promoteBlocked, promoteVersions, promotion } from "./shown";
 
-// An artifact's lifetime, in the web UI: Promote, with the version chosen
-// and what it went into, and Promote and move to the repo for one on this
-// machine; Discard, asking why; Restore; and Clear expired on the list.
-// Each in a repo is a commit landed on its default branch, so each says
-// so before it's done.
-
-const isLocal = (a: Pick<ArtifactInfo, "place">) => a.place === ".ws" || !a.place;
+// An artifact's lifetime, in the web UI: Promote, with the version chosen,
+// what it went into, and, the first time, where it's to live (a folder in
+// a repo, for everyone with it, or this machine only); Discard, asking
+// why; Restore; and Clear expired on the list. For one that lives in a
+// repo, promoting, discarding and restoring it are each a commit landed on
+// that repo's default branch, so each says so before it's done.
 
 // doneWords says what promoting, discarding or restoring did, for a toast.
 function doneWords(what: string, d: ArtifactDone): string {
   let s = `${what} ${d.artifact.id}`;
   if (d.into) s += `, into ${d.into}`;
-  if (d.moved) s += `, and moved to ${d.artifact.place}`;
+  if (d.home) s += what === "Discarded" ? `, and took it out of ${d.home}` : what === "Restored" ? `, and put it back in ${d.home}` : `, and put v${d.artifact.promoted?.version} in ${d.home}`;
   if (d.landed) s += `: ${d.landed}`;
   if (d.started) s += `. Mission ${d.started} waits to be briefed.`;
   return s;
 }
 
-// PromoteDialog promotes an artifact: the version chosen (its latest that's
-// landed, at first), and what it went into, if anything.
+// PromoteDialog promotes an artifact: the version chosen (its latest, at
+// first), what it went into, if anything, and where it's to live. That
+// last is asked once: one that lives in a repo goes there.
 export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: ArtifactInfo; version?: number; workspace: Workspace; onClose: () => void; onDone?: (d: ArtifactDone) => void }) {
   const { value: d, error: loadError } = useLoaded(() => getArtifactDetail(a.id), [a.id]);
   const versions = useMemo(() => (d ? promoteVersions(d.all) : []), [d]);
@@ -33,38 +33,44 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
   const n = chosen ?? (version && versions.includes(version) ? version : versions[0]) ?? 0;
   const [kind, setKind] = useState<IntoKind>(a.promoted?.into ? (workspace.missions.some((m) => m.slug === a.promoted?.into) ? "mission" : "document") : "nothing");
   const [text, setText] = useState(a.promoted?.into ?? "");
-  const [busy, setBusy] = useState<"" | "here" | "move">("");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const local = isLocal(a);
-  const repo = workspace.artifactsRepo;
+  // Where it's to live: what the workspace offers, once that's read,
+  // unless another's picked.
+  const home = d?.home ?? a.home;
+  const offered = home ? undefined : d?.homeOffered;
+  const [picked, setPicked] = useState<Lives>();
+  const lives = picked ?? livesAt({ home, here: a.here }, offered);
+  const [other, setOther] = useState(workspace.artifactsRepo ? `${workspace.artifactsRepo}:` : "");
+  const folder = lives === "offered" ? (offered ?? "") : lives === "other" ? other : "";
+  const lands = lives !== "here";
   // Missions still going: an ended one has nothing left to build it.
   const missions = workspace.missions.filter((m) => !["landed", "answered", "handed-on", "dropped", "archived"].includes(m.state));
 
-  const blockedHere = promoteBlocked(kind, text, local, false, repo);
-  const blockedMove = promoteBlocked(kind, text, local, true, repo);
-  const go = async (move: boolean) => {
-    if (busy || !n || (move ? blockedMove : blockedHere)) return;
-    setBusy(move ? "move" : "here");
+  const blocked = promoteBlocked(kind, text, lives, folder);
+  const go = async () => {
+    if (busy || !n || !d || blocked) return;
+    setBusy(true);
     setError(undefined);
     try {
-      const done = await promoteArtifact(a.id, promotion(n, kind, text, move));
+      const done = await promoteArtifact(a.id, promotion(n, kind, text, lives, folder));
       toast(doneWords("Promoted", done), { tone: "done", ms: 6000 });
       onDone?.(done);
       onClose();
     } catch (e) {
       setError(humanError((e as Error).message));
     } finally {
-      setBusy("");
+      setBusy(false);
     }
   };
-  // ⌘⏎ promotes as the first button would: moving, where only that can.
   const keys = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey || (e.target as HTMLElement).tagName === "INPUT")) {
       e.preventDefault();
-      go(local && !!repo && !!blockedHere && !blockedMove);
+      go();
     }
   };
   const latest = versions[0];
+  const branch = workspace.defaultBranch ?? "default branch";
 
   return (
     <Dialog title={`Promote “${a.title}”`} onClose={onClose} className="artifact-promote" wide>
@@ -77,7 +83,7 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
               const note = d?.all.find((x) => x.n === v)?.note;
               return (
                 <Option key={v} value={String(v)} title={note}>
-                  {`v${v}${v === latest ? " (the latest)" : ""}${note ? `: ${note}` : ""}`}
+                  {`v${v}${v === latest ? " (the latest)" : ""}${home?.version === v ? ` (in ${home.repo})` : ""}${note ? `: ${note}` : ""}`}
                 </Option>
               );
             })}
@@ -117,38 +123,54 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
             <input autoFocus className="mono" value={text} placeholder="repo:path/to/plan.md" onChange={(e) => setText(e.target.value)} aria-label="The document, as repo:path" />
           </label>
         )}
+        {!home && d && (
+          <label>
+            <span>Lives</span>
+            <Select value={lives} onChange={(l) => setPicked(l as Lives)} aria-label="Where it's to live">
+              {offered ? (
+                <Option value="offered" note="for everyone with it">
+                  {offered}
+                </Option>
+              ) : null}
+              <Option value="here">This machine only</Option>
+              <Option value="other">Another folder in a repo…</Option>
+            </Select>
+          </label>
+        )}
+        {!home && lives === "other" && (
+          <label>
+            <span>Folder</span>
+            <input autoFocus className="mono" value={other} placeholder="repo:folder/" onChange={(e) => setOther(e.target.value)} aria-label="The folder it's to live in, as repo:folder/" />
+          </label>
+        )}
       </div>
       {kind === "mission" || kind === "start" ? (
         <p className="dim file-as-what">It's recorded on the mission, among its artifacts, so whoever briefs it and its crew read it.</p>
       ) : null}
-      {local ? (
-        repo ? (
-          <Callout tone="info" icon="monitor" title="It's on this machine only">
-            <em>Promote and move to {repo}</em> moves it into {repo}, with all its versions and where each came from, in one commit landed on its {workspace.defaultBranch ?? "default branch"}, and takes it
-            from <span className="mono">.ws/artifacts</span>. Its ref stays {a.id}.
-          </Callout>
-        ) : null
-      ) : (
-        <Callout tone="attention" icon="branch" title={`Promoting lands on ${a.place}`}>
-          It's one commit, marking it promoted in its <span className="mono">artifact.toml</span>, straight to {a.place}'s {workspace.defaultBranch ?? "default branch"}.
+      {home ? (
+        <Callout tone="attention" icon="branch" title={`It lives in ${home.where}`}>
+          {home.version === n ? `v${n} is there already: its record there is brought up to what's said here` : `v${home.version} is there now, and v${n} takes its place`}, in one commit straight to {home.repo}'s {branch}.
+          Every version stays on this machine.
         </Callout>
-      )}
-      {blockedHere && <p className="dim file-as-what">{blockedHere}</p>}
+      ) : lives === "here" ? (
+        <Callout tone="info" icon="monitor" title="It stays on this machine">
+          Nobody else has it. Promote it again to give it a folder in a repo, for everyone with the repo.
+        </Callout>
+      ) : d ? (
+        <Callout tone="attention" icon="branch" title="Where it lives is chosen once">
+          v{n} is put in {folder.trim() || "that folder"}, with a record of it, in one commit straight to its repo's {branch}. Promote it again, versions later, and the one chosen then goes to the same folder, with
+          nothing asked. Every version stays on this machine.
+        </Callout>
+      ) : null}
+      {blocked && <p className="dim file-as-what">{blocked}</p>}
       {(error || loadError) && <div className="banner">{error ?? loadError}</div>}
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose} disabled={!!busy}>
+        <button className="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </button>
-        <button className={local && repo && blockedHere && !blockedMove ? "" : "primary"} onClick={() => go(false)} disabled={!!busy || !n || !!blockedHere}>
-          {busy === "here" ? (local ? "Promoting…" : "Landing…") : "Promote"}
-          {!(local && repo && blockedHere && !blockedMove) && <Keys k="mod+⏎" />}
+        <button className="primary" onClick={go} disabled={busy || !n || !d || !!blocked}>
+          {busy ? (lands ? "Landing…" : "Promoting…") : lands ? `Promote, and land on ${branch}` : "Promote"} <Keys k="mod+⏎" />
         </button>
-        {local && repo && (
-          <button className={blockedHere && !blockedMove ? "primary" : ""} onClick={() => go(true)} disabled={!!busy || !n || !!blockedMove}>
-            {busy === "move" ? "Landing…" : `Promote and move to ${repo}`}
-            {blockedHere && !blockedMove && <Keys k="mod+⏎" />}
-          </button>
-        )}
       </div>
     </Dialog>
   );
@@ -160,7 +182,7 @@ export function DiscardDialog({ a, workspace, onClose, onDone }: { a: ArtifactIn
   const [why, setWhy] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const local = isLocal(a);
+  const home = a.home;
   const go = async () => {
     if (busy) return;
     setBusy(true);
@@ -179,15 +201,12 @@ export function DiscardDialog({ a, workspace, onClose, onDone }: { a: ArtifactIn
   return (
     <Dialog title={`Discard “${a.title}”`} onClose={onClose}>
       <p className="dialog-text">
-        {local ? (
+        It's taken off the list, with its versions. Its folder moves to <span className="mono">.ws/artifacts/.discarded</span>, and is deleted for good in 30 days: until then, <em>Restore</em> puts it back.{" "}
+        {home && (
           <>
-            It's taken off the list, with its versions. Its folder moves to <span className="mono">.ws/artifacts/.discarded</span>, and is deleted for good in 30 days: until then, <em>Restore</em> puts it back.
+            Its folder in {home.repo} (<span className="mono">{home.where}</span>) is taken away too, in one commit straight to {home.repo}'s {workspace.defaultBranch ?? "default branch"}.{" "}
           </>
-        ) : (
-          <>
-            It's taken off the list, with its versions, in one commit taking its folder from {a.place}'s {workspace.defaultBranch ?? "default branch"}, landed. History keeps it, and <em>Restore</em> puts it back.
-          </>
-        )}{" "}
+        )}
         {a.id} still says what it was.
       </p>
       <textarea
@@ -211,7 +230,7 @@ export function DiscardDialog({ a, workspace, onClose, onDone }: { a: ArtifactIn
           Cancel
         </button>
         <button className="danger" onClick={go} disabled={busy}>
-          {busy ? (local ? "Discarding…" : "Landing…") : local ? "Discard" : `Discard, and land on ${workspace.defaultBranch ?? "it"}`} <Keys k="mod+⏎" />
+          {busy ? (home ? "Landing…" : "Discarding…") : home ? `Discard, and land on ${workspace.defaultBranch ?? "it"}` : "Discard"} <Keys k="mod+⏎" />
         </button>
       </div>
     </Dialog>
@@ -226,19 +245,14 @@ async function restoreFromToast(id: string) {
   }
 }
 
-// restore puts a discarded artifact back, once you've said so.
-export async function restore(a: ArtifactInfo, workspace: Workspace): Promise<ArtifactDone | undefined> {
-  const local = isLocal(a);
+// restore puts a discarded artifact back, once you've said so. (Where it
+// lived in a repo, it's put back there too: the server says so in what
+// it did, as a discarded one's home isn't sent.)
+export async function restore(a: ArtifactInfo, _workspace: Workspace): Promise<ArtifactDone | undefined> {
   const yes = await confirm({
     title: `Restore “${a.title}”?`,
-    body: local ? (
-      <>Its folder comes back from .ws/artifacts/.discarded, as it was. Its expiry counts from now.</>
-    ) : (
-      <>
-        Its folder comes back from history ({a.place}@{a.discarded?.commit?.slice(0, 7)}), in a new commit landed on {a.place}'s {workspace.defaultBranch ?? "default branch"}. Its expiry counts from now.
-      </>
-    ),
-    confirm: local ? "Restore it" : "Restore, and land it",
+    body: <>Its folder comes back from .ws/artifacts/.discarded, as it was, and where it lived in a repo, the version that was there is put back, in one commit. Its expiry counts from now.</>,
+    confirm: "Restore it",
   });
   if (!yes) return undefined;
   try {
@@ -251,38 +265,28 @@ export async function restore(a: ArtifactInfo, workspace: Workspace): Promise<Ar
   }
 }
 
-// ClearExpired is the list's Clear expired: every expired artifact, those
-// in the repo taken away in one commit, those here discarded.
-export function ClearExpired({ all, workspace }: { all: ArtifactInfo[]; workspace: Workspace }) {
+// ClearExpired is the list's Clear expired: every expired artifact,
+// discarded now, as the daemon would within the day.
+export function ClearExpired({ all }: { all: ArtifactInfo[]; workspace: Workspace }) {
   const [busy, setBusy] = useState(false);
   const expired = clearable(all);
   if (!expired.length) return null;
-  const inRepo = expired.filter((a) => !isLocal(a));
-  const here = expired.length - inRepo.length;
   const clear = async () => {
     const yes = await confirm({
       title: `Clear ${expired.length} expired ${expired.length === 1 ? "artifact" : "artifacts"}?`,
       body: (
         <>
-          {inRepo.length > 0 && (
-            <>
-              {inRepo.map((a) => a.id).join(", ")} {inRepo.length === 1 ? "is" : "are"} taken from {inRepo[0].place} in one commit, landed on its {workspace.defaultBranch ?? "default branch"}: history keeps{" "}
-              {inRepo.length === 1 ? "it" : "them"}.{" "}
-            </>
-          )}
-          {here > 0 && <>{here === 1 ? "The one" : `The ${here}`} on this machine {here === 1 ? "is" : "are"} discarded, as the daemon would. </>}
-          Each can be restored.
+          {expired.map((a) => a.id).join(", ")} {expired.length === 1 ? "is" : "are"} discarded, as the daemon would within the day. Each can be restored.
         </>
       ),
-      confirm: inRepo.length ? "Clear, and land it" : "Clear them",
+      confirm: "Clear them",
       danger: true,
     });
     if (!yes) return;
     setBusy(true);
     try {
       const c = await clearExpiredArtifacts();
-      const ids = [...c.repo, ...c.local];
-      toast(ids.length ? `Cleared ${ids.join(", ")}${c.landed ? `: ${c.landed}` : ""}` : "Nothing's expired now", { tone: "done", ms: 6000 });
+      toast(c.local.length ? `Cleared ${c.local.join(", ")}` : "Nothing's expired now", { tone: "done", ms: 6000 });
     } catch (e) {
       toast(humanError((e as Error).message), { tone: "danger", ms: 8000 });
     } finally {
@@ -290,7 +294,7 @@ export function ClearExpired({ all, workspace }: { all: ArtifactInfo[]; workspac
     }
   };
   return (
-    <button className="ghost small" onClick={clear} disabled={busy} title="Take every expired artifact away: those in the repo in one commit">
+    <button className="ghost small" onClick={clear} disabled={busy} title="Discard every expired artifact now">
       <Icon name="clock" size={13} /> {busy ? "Clearing…" : `Clear expired ${expired.length}`}
     </button>
   );

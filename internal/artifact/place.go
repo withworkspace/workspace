@@ -10,48 +10,47 @@ import (
 	"time"
 )
 
-// Where a workspace keeps its artifacts: [artifacts] in ws.toml (and its
-// path in ws.local.toml), read. Without a path, or with path = ".ws",
-// they're on this machine, in .ws/artifacts/{date}-{slug}/. With a repo's
-// folder ("records:artifacts/{date}-{slug}/"), they're kept in git: each
-// one you add is a commit landed on its default branch, crew's wait in
-// their capsule and land with it, and ws reads them from the repo's
-// ground and those capsules. Wherever new ones go, ws reads both places.
+// Where a workspace's artifacts live once they're promoted: [artifacts]
+// in ws.toml (and its path in ws.local.toml), read. An artifact is on
+// this machine, in .ws/artifacts/{date}-{slug}/, whatever it says. With a
+// repo's folder ("records:artifacts/{date}-{slug}/"), that's the home
+// offered the first time one is promoted: the version chosen is put
+// there, in a commit landed on its default branch, for everyone with the
+// repo. Without a path, or with path = ".ws", a promoted one stays on
+// this machine unless you name a home for it.
 
-// Messages are the first lines of the commits that keep artifacts in a
-// repo, with {title}, {slug}, {date}, {number} and {version} filled in.
+// Messages are the first lines of the commits that put a promoted
+// artifact in the repo it lives in, take it out and put it back, with
+// {title}, {slug}, {date}, {number} and {version} filled in.
 type Messages struct {
-	Add, Revise, Promote, Discard, Restore, Clear string
+	Promote, Discard, Restore string
 }
 
 // DefaultMessages are ws's own, for a workspace whose [artifacts] says
 // none.
 var DefaultMessages = Messages{
-	Add:     "Add artifact: {title}",
-	Revise:  "Revise artifact {slug}: v{version}",
-	Promote: "Promote artifact {slug}",
+	Promote: "Promote artifact {slug}: v{version}",
 	Discard: "Discard artifact {slug}",
 	Restore: "Restore artifact {slug}",
-	Clear:   "Clear expired artifacts",
 }
 
 // DefaultExpiry is how long a live artifact lasts after its last version,
 // where [artifacts] doesn't say.
 const DefaultExpiry = 30 * 24 * time.Hour
 
-// Config is [artifacts], read: the repo they're kept in, if any, and
-// where in it; where new ones go; the commits' messages; how long a live
-// one lasts; and the guide a conversation's agent is shown.
+// Config is [artifacts], read: the repo promoted ones live in, if any,
+// and where in it; the commits' messages; how long a live one lasts; and
+// the guide a conversation's agent is shown.
 type Config struct {
-	// Repo is the repo the workspace keeps them in, by its canonical name:
-	// "" for none, and they're all on this machine.
+	// Repo is the repo promoted ones live in, by its canonical name: ""
+	// for none, and a promoted one stays on this machine.
 	Repo string
 	// Dir is the folder they're in, in Repo ("artifacts"), and Name a
 	// folder's name in it ("{date}-{slug}").
 	Dir, Name string
 	// Path is [artifacts] path as it's written: "records:artifacts/{date}-{slug}/".
 	Path string
-	// Local is new ones going on this machine though there's a repo for
+	// Local is yours staying on this machine though there's a repo for
 	// them: ws.local.toml says path = ".ws".
 	Local    bool
 	Messages Messages
@@ -60,40 +59,32 @@ type Config struct {
 	ExpireAfter time.Duration
 	Guide       string
 	// Problems are what's wrong with what [artifacts] says, which ws
-	// doctor says. Where its path can't be used, there's no Repo, and new
-	// ones go on this machine.
+	// doctor says. Where its path can't be used, there's no Repo.
 	Problems []string
 }
 
-// InRepo reports whether new artifacts go in a repo.
-func (c Config) InRepo() bool { return c.Repo != "" && !c.Local }
-
-// Place is where new artifacts go: the repo's name, or Local.
-func (c Config) Place() string {
-	if c.InRepo() {
-		return c.Repo
-	}
-	return Local
-}
+// Homes reports whether a promoted artifact is offered a home in a repo:
+// the workspace names one, and you haven't said yours stay here.
+func (c Config) Homes() bool { return c.Repo != "" && !c.Local }
 
 // Said is [artifacts] as ws.toml and ws.local.toml say it, before it's
 // read: what ReadConfig reads.
 type Said struct {
-	Path, Local                                   string
-	Add, Revise, Promote, Discard, Restore, Clear string
-	ExpireAfter, Guide                            string
+	Path, Local               string
+	Promote, Discard, Restore string
+	ExpireAfter, Guide        string
 }
 
 // ReadConfig reads what [artifacts] says, given how to name a repo
 // (canonical: its canonical name, or false for none the workspace has).
-// What it can't use is in its Problems, and is left out: a path that
-// can't be used keeps them on this machine.
+// What it can't use is in its Problems, and is left out: with a path
+// that can't be used, there's no repo for them.
 func ReadConfig(s Said, canonical func(string) (string, bool)) Config {
 	c := Config{Messages: DefaultMessages, ExpireAfter: DefaultExpiry, Guide: strings.TrimSpace(s.Guide)}
 	for _, m := range []struct {
 		to   *string
 		said string
-	}{{&c.Messages.Add, s.Add}, {&c.Messages.Revise, s.Revise}, {&c.Messages.Promote, s.Promote}, {&c.Messages.Discard, s.Discard}, {&c.Messages.Restore, s.Restore}, {&c.Messages.Clear, s.Clear}} {
+	}{{&c.Messages.Promote, s.Promote}, {&c.Messages.Discard, s.Discard}, {&c.Messages.Restore, s.Restore}} {
 		if t := strings.Join(strings.Fields(m.said), " "); t != "" {
 			*m.to = t
 		}

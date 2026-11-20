@@ -39,7 +39,7 @@ func TestArtifact_ProposedInATalkAndAccepted(t *testing.T) {
 
 	// How one's written, with nothing proposed.
 	guide := testutil.Run(t, w, nil, "artifact", "add", "--propose")
-	for _, want := range []string{"One HTML file, starting <!doctype html>, with its CSS and JS inline", "No network", "At most 1 MB", "prefers-color-scheme", "Don't depend on localStorage", "ws artifact add --propose --title", "ws artifact add --propose --to a3 --on v2"} {
+	for _, want := range []string{"One HTML file, starting <!doctype html>, with its CSS and JS inline", "No network", "At most 1 MB", "prefers-color-scheme", "Don't depend on localStorage", "ws.tweaks({", "The first preset is what the page opens as", `data-density="compact"`, "ws artifact add --propose --title", "ws artifact add --propose --to a3 --on v2"} {
 		if !strings.Contains(guide.Stdout, want) {
 			t.Errorf("the guide lacks %q:\n%s", want, guide.Stdout)
 		}
@@ -58,7 +58,7 @@ func TestArtifact_ProposedInATalkAndAccepted(t *testing.T) {
 
 	testutil.WithStdin(t, glowV1+`<link rel="stylesheet" href="https://fonts.example.com/inter.css">`)
 	r := testutil.Run(t, w, nil, "artifact", "add", "--propose", "--title", "Horizon glow on the web UI background", "--note", "Accent at 8% in dark and 3% in light, fading out by 55% of the height.", "-")
-	if !strings.Contains(r.Stderr, "proposed in w1 (proposal 1)") || !strings.Contains(r.Stderr, "loads https://fonts.example.com/inter.css") || !strings.Contains(r.Stderr, "-horizon-glow-on-the-web-ui-background/v1.html (on this machine)") {
+	if !strings.Contains(r.Stderr, "proposed in w1 (proposal 1)") || !strings.Contains(r.Stderr, "loads https://fonts.example.com/inter.css") || !strings.Contains(r.Stderr, "-horizon-glow-on-the-web-ui-background/v1.html (on this machine;") {
 		t.Errorf("proposing:\n%s", r.Stderr)
 	}
 	if entries, _ := os.ReadDir(stored); len(entries) != 0 {
