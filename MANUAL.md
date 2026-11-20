@@ -713,6 +713,7 @@ The planner and the orchestrator are told which are on. They're on the Settings 
 - *Agents*: each role's agent and model (crew, briefing, the orchestrator, conversations, the judge, the Team page) in one table, with why a role can't run if it can't, and what it follows where it isn't set itself (the Team page's agent follows conversations', and the judge briefing's); under it, what else crew may be launched on.
 - *Missions*: where a mission's briefed, the orchestrator's switches, and the *Guarantees*.
 - *Team page*, and *Repos*: the git protocol, and the team's repos as `ws.toml` has them (what each is called, its aliases and group, and how work lands in it), shown, not changed.
+- *Runs*: *Local names*, whether the workspace and its runs have names under `.localhost` (`[router] enabled`) and the name they end in (`[router] name`, the folder's unless you say). Yours alone, as the router listens on your machine; the daemon reads it again within a few seconds.
 - *Process*: the workspace's process, as it's written.
 - *Set by you*: everything your `ws.local.toml` sets, each with what it would be without yours and *Reset*; the keys either file has that ws doesn't read (the section's name has a dot while there are any); and what this browser keeps.
 - *About*: which ws this is, where the workspace and its files are, and *Shut down the daemon…*.
@@ -1328,7 +1329,7 @@ ws run -- pnpm dev --port {port}
 ws run --name api --for mission --ttl 8 -- go run ./cmd/api
 ```
 
-`{port}` in the command is replaced with the run's port, and `$PORT` is set as well. Ports come from 48000–48999, and a run started again gets the port it had if that's still free. `ws run` waits for the run to be up (`--wait`, a minute unless you say), then prints the run's name, its link and when it ends. Up means something listens on the port, or for a recipe with `ready`, that path answers below 500. If the command ends first, it prints the end of the command's output instead.
+Several words after `--` are each run as a word (`ws run -- sh -c 'echo hi; exec serve'`); one is a command line of its own (`ws run -- 'pnpm build && pnpm preview'`). `{port}` in the command is replaced with the run's port, and `$PORT` is set as well. Ports come from 48000–48999, and a run started again gets the port it had if that's still free. `ws run` waits for the run to be up (`--wait`, a minute unless you say), then prints the run's name, its link and when it ends. Up means something listens on the port, or for a recipe with `ready`, that path answers below 500. If the command ends first, it prints the end of the command's output instead.
 
 **Recipes.** A repo says how it's run in its `ws.repo.toml`, and `ws run <name>` runs that recipe in the worktree you stand in. `ws run` alone lists them.
 
@@ -1343,6 +1344,8 @@ stop = "docker compose down"   # run where it ran, once the run is ended
 ```
 
 In the web UI, a capsule on a mission's Work tab lists its runs (each with its link, when it ends, and Stop) and a **Run** button for each recipe that isn't running. A run started there lasts while someone has the mission open, and 15 minutes after, or 4 hours at most.
+
+The web UI's **Runs** page (`/runs`, in the sidebar) is every run in the workspace, whoever started it: each with its link, where it runs and who it's for (going to the mission, crew or conversation), when it ends, its output (opened under it, and read again every 2 seconds while it runs), and Stop. Runs that ended by themselves are below, each with Clear. Above them it says where the workspace's names stand: its web UI's name, the port the router's on and which daemon holds it, or, with names off, how to turn them on.
 
 `stop` is given a minute, with `$PORT` set. If the place it ran has gone (the capsule was burned), it can't be run, and the daemon's log says so.
 
@@ -1373,7 +1376,7 @@ ws run keep <name> [hours]  # more time
 
 A run whose command exits by itself is kept for an hour, with its status and output (`ws run ls` shows `exited 1, 14:05`), then removed.
 
-**Names.** With `[router] enabled = true` in `ws.local.toml`, the workspace and its runs have names under `.localhost`, which browsers send to this machine by themselves:
+**Names.** With `[router] enabled = true` in `ws.local.toml` (Settings › Runs › Local names, which also sets `[router] name`), the workspace and its runs have names under `.localhost`, which browsers send to this machine by themselves:
 
 | Name | Goes to |
 |---|---|

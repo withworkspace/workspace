@@ -15,6 +15,7 @@ import { CrewPage, crewKeys } from "./mission/CrewPage";
 import { listKeys, MissionList } from "./mission/List";
 import { MissionPage, missionKeys } from "./mission/Mission";
 import { OrchestratorPage, OrchestratorRunPage } from "./orchestrator/Orchestrator";
+import { RunsPage } from "./runs/Runs";
 import { useFrameDim } from "./plugins/dim";
 import { useFrameHere } from "./plugins/here";
 import { useFrameExpanded } from "./plugins/layout";
@@ -204,6 +205,7 @@ export function App() {
                 <Route path="/missions/:slug/crew/:id" element={<CrewPage workspace={workspace} />} />
                 <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
                 <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
+                <Route path="/runs" element={<RunsPage workspace={workspace} />} />
                 <Route path="/settings" element={<SettingsPage workspace={workspace} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
                 <Route path="/settings/:section" element={<SettingsPage workspace={workspace} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
                 <Route path="/docs" element={<DocsAddress />} />
@@ -369,6 +371,7 @@ function placesOf(workspace: Workspace | undefined, waiting: ReturnType<typeof w
     { id: "team", to: "/team", icon: "user", label: "Team", match: (p) => p === "/team" },
     { id: "files", to: "/files", icon: "layers", label: "Files", match: (p) => p === "/files" || p.startsWith("/files/") },
     { id: "orchestrator", to: "/orchestrator", icon: "sparkle", label: "Orchestrator", match: (p) => p.startsWith("/orchestrator") },
+    { id: "runs", to: "/runs", icon: "play", label: "Runs", match: (p) => p === "/runs" },
   ];
   const views: Place[] = (plugins ?? []).flatMap((plugin) =>
     plugin.views.map((view) => {

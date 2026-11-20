@@ -166,6 +166,7 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
     place("/team", "Team", "user", "people timeline who landed merged what's happening"),
     place("/files", "Files", "layers", "repos capsules ground browse"),
     place("/orchestrator", "Orchestrator", "sparkle"),
+    place("/runs", "Runs", "play", "processes dev servers ports http localhost names router running"),
     {
       id: "do:new-talk",
       group: "do",

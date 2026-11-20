@@ -89,6 +89,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   const missions = section("missions", "Missions", "flag", "How a mission is briefed and moved on, and what ws holds on every one.");
   const team = section("team", "Team page", "user", "What the Team page says of each change, and how far back it looks.");
   const repos = section("repos", "Repos", "branch", "How repos are cloned and fetched, and the repos the team has here.");
+  const runs = section("runs", "Runs", "play", "Where what ws runs for you and your agents is reached.");
   const process = section("process", "Process", "book", "How work goes here, in prose.");
   const yours = section("yours", "Set by you", "pencil", "What's yours alone: your file's settings, each with what it would be without yours, and what this browser keeps.", "This workspace");
   const about = section("about", "About", "info", "Which ws this is, and where the workspace keeps its files.");
@@ -122,6 +123,9 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
       case "workspace":
         repos.blocks.push({ id: g.id, rows: rows(g.settings) });
         break;
+      case "router":
+        runs.blocks.push({ id: g.id, title: g.title, about: g.about, rows: rows(g.settings, g.title) });
+        break;
       default:
         others.push({ ...section(g.id, g.title, "sliders", g.about ?? ""), blocks: [{ id: g.id, rows: rows(g.settings) }] });
     }
@@ -129,7 +133,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   appearance.blocks.push({ id: "ui", rows: ui });
   notifications.blocks.push({ id: "notify", rows: [{ kind: "notify" }] });
   about.blocks.push({ id: "daemon", title: "Daemon", rows: [{ kind: "daemon" }] });
-  return [appearance, notifications, agents, missions, team, repos, ...others, process, yours, about];
+  return [appearance, notifications, agents, missions, team, repos, runs, ...others, process, yours, about];
 }
 
 // sectionAt is the section an old address's hash named (/settings#process,
