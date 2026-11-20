@@ -453,3 +453,101 @@ func TestAThingIsPromotedAndSaved(t *testing.T) {
 		t.Errorf("its picture after: %q", got)
 	}
 }
+
+// Where a kind's things go: the places ws.toml names for it, the first
+// where one goes unless you say, and all of them offered; with none
+// named, the folder the kind's plugin names, in the records repo and then
+// in each other space.
+func TestWhereAKindsThingsGo(t *testing.T) {
+	w := testutil.SetupWorkspace(t, testutil.WorkspaceOpts{Org: "test-org", DefaultBranch: "main", Repos: []testutil.RepoOpts{
+		{Name: "records", Landing: "direct"}, {Name: "docs", Landing: "direct"}, {Name: "api"},
+	}})
+	said := func(text string) {
+		t.Helper()
+		f, err := os.OpenFile(filepath.Join(w.Root, "ws.toml"), os.O_APPEND|os.O_WRONLY, 0o644)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		if _, err := f.WriteString(text); err != nil {
+			t.Fatal(err)
+		}
+	}
+	said("\n[missions]\nrecords = \"records\"\n")
+	registerPlugin(t, w.Root, "sketch", plugin.Registration{Commands: &plugin.Commands{}, Refs: []protocol.Ref{sketchKind}})
+	if refused, err := plugin.KeepRefs(w.Root, "sketch", []protocol.Ref{sketchKind}); err != nil || len(refused) != 0 {
+		t.Fatalf("keeping sketch's refs: %v, %v", refused, err)
+	}
+	r := &reader{own: map[string]*ownSketch{"sketch-1": {title: "Release flow", scene: "boxes"}, "sketch-2": {title: "Architecture", scene: "layers"}}}
+	was := ops.RemoteReaders
+	ops.RemoteReaders = func(string) (ops.RemoteReader, error) { return r, nil }
+	t.Cleanup(func() { ops.RemoteReaders = was })
+	offered := func() string {
+		t.Helper()
+		offers, err := cli.OpenOps(w.Root, nil).ThingOffered("sketch", "sketch", "Release flow")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, o := range offers {
+			out = append(out, o.Where)
+		}
+		return strings.Join(out, " ")
+	}
+	promote := func(params string) protocol.RemoteSaved {
+		t.Helper()
+		out, err := cli.AnswerPlugin(w.Root)(context.Background(), "sketch", protocol.MethodRemotePromote, []byte(params))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out.(protocol.RemoteSaved)
+	}
+
+	// With nothing said: the kind's own folder, in the one space there is.
+	if got := offered(); got != "records:sketches/release-flow/" {
+		t.Fatalf("offered, with nothing said: %s", got)
+	}
+	// Another repo that's a space is another place, after records.
+	toml, err := os.ReadFile(filepath.Join(w.Root, "ws.toml"))
+	if err != nil || !strings.Contains(string(toml), "[repos.docs]\n") {
+		t.Fatalf("the workspace's ws.toml has no [repos.docs]: %v\n%s", err, toml)
+	}
+	if err := os.WriteFile(filepath.Join(w.Root, "ws.toml"), []byte(strings.Replace(string(toml), "[repos.docs]\n", "[repos.docs]\ndocuments = true\n", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := offered(); got != "records:sketches/release-flow/ docs:sketches/release-flow/" {
+		t.Fatalf("offered, with two spaces: %s", got)
+	}
+
+	// Named in ws.toml: those, in their order, and no others. One ws
+	// can't use isn't offered, and is said.
+	said("\n[things.sketch]\npaths = [\"records:plans/sketches/{slug}/\", \"docs:architecture/{slug}/\", \"api:sketches/{slug}/\", \"docs:flat/\"]\n\n[things.note]\npaths = [\"records:notes/{slug}/\"]\n")
+	if got := offered(); got != "records:plans/sketches/release-flow/ docs:architecture/release-flow/" {
+		t.Fatalf("offered, as ws.toml names them: %s", got)
+	}
+	// A workspace with settings of yours laid over the team's has them still.
+	if err := os.WriteFile(filepath.Join(w.Root, "ws.local.toml"), []byte("[web]\nport = 0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := offered(); got != "records:plans/sketches/release-flow/ docs:architecture/release-flow/" {
+		t.Fatalf("offered, with a ws.local.toml beside ws.toml: %s", got)
+	}
+	problems := strings.Join(cli.OpenOps(w.Root, nil).ThingPlaceProblems(), "\n")
+	for _, want := range []string{`[things.note]: no plugin here has a kind "note"`, `[things.sketch] "api:sketches/{slug}/": api isn't a space of documents`, `[things.sketch] "docs:flat/" is a folder for each one`} {
+		if !strings.Contains(problems, want) {
+			t.Errorf("what's wrong with the places lacks %q:\n%s", want, problems)
+		}
+	}
+
+	// Promoted with nowhere said, it goes to the first; where you say,
+	// there. What's taken there is offered under another name.
+	if done := promote(`{"kind":"sketch","ref":"sketch-1"}`); done.Thing.Name != "records/plans/sketches/release-flow/" {
+		t.Errorf("promoted with nowhere said: %+v", done.Thing)
+	}
+	if done := promote(`{"kind":"sketch","ref":"sketch-2","to":"docs:architecture/architecture/"}`); done.Thing.Name != "docs/architecture/architecture/" || done.Thing.Main != "architecture.excalidraw" {
+		t.Errorf("promoted to the second place: %+v", done.Thing)
+	}
+	if got := offered(); got != "records:plans/sketches/release-flow-2/ docs:architecture/release-flow/" {
+		t.Fatalf("offered, once one's there: %s", got)
+	}
+}

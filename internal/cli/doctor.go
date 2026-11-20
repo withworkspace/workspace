@@ -58,6 +58,9 @@ names things is added, so that what was written before it names them too.`,
 			if cat := checkArtifacts(ctx); len(cat.Checks) > 0 {
 				categories = append(categories, cat)
 			}
+			if cat := checkThings(ctx); len(cat.Checks) > 0 {
+				categories = append(categories, cat)
+			}
 			hasFail := printDoctorResults(categories, fix)
 
 			if hasFail {

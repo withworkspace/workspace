@@ -160,6 +160,7 @@ export type {
   TeamTopic,
   TermKey,
   ThingOffered,
+  ThingPlace,
   ThingRequest,
   ThingSaved,
   UpdatesInfo,
@@ -356,7 +357,8 @@ export const startMissionAbout = (about: string) => send<{ slug: string; path: s
 
 // One of a plugin's own things put in a repo, and saved there, as you:
 // what ws's own UI over the plugin's page asks (plugins/ThingUis.tsx).
-// thingOffered is where one of that kind, called that, would go.
+// thingOffered is where one of that kind, called that, could go: the
+// places its kind's things go, the first where it goes unless you say.
 export const promoteThing = (plugin: string, thing: ThingRequest) => send<ThingSaved>("POST", `/api/plugins/${encodeURIComponent(plugin)}/things/promote`, thing);
 export const saveThing = (plugin: string, thing: ThingRequest) => send<ThingSaved>("POST", `/api/plugins/${encodeURIComponent(plugin)}/things/save`, thing);
 export const thingOffered = (plugin: string, kind: string, title: string) =>

@@ -87,82 +87,109 @@ function OverFrame({ anchor, label, busy, dismiss, children }: { anchor?: Anchor
 }
 
 // ThingPromoteUi puts one of a plugin's own things in a repo: it says
-// where it would live, takes somewhere else if you say, and does it when
-// you say. What comes of it is where the thing is now.
+// where it would live, or, where its kind's things go in more places than
+// one, has you pick among them; takes somewhere else if you say; and does
+// it when you say. What comes of it is where the thing is now.
 export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps) {
   const thing = asked(asking.with);
-  const [offer, setOffer] = useState<api.ThingOffered>();
+  const [places, setPlaces] = useState<api.ThingPlace[]>();
   const [failed, setFailed] = useState("");
-  const [elsewhere, setElsewhere] = useState<string>();
+  // Which of the places, or somewhere else, said in words.
+  const [pick, setPick] = useState<number | "else">(0);
+  const [elsewhere, setElsewhere] = useState("");
   const [busy, setBusy] = useState(false);
   const go = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     let live = true;
     api.thingOffered(plugin, thing.kind, thing.title ?? "").then(
-      (o) => live && setOffer(o),
-      (err) => live && setFailed(said(err)),
+      (o) => {
+        if (!live) return;
+        setPlaces(o.places);
+        // Nowhere to offer: it's said in words.
+        if (o.places.length === 0) setPick("else");
+      },
+      (err) => {
+        if (!live) return;
+        setFailed(said(err));
+        setPlaces([]);
+        setPick("else");
+      },
     );
     return () => {
       live = false;
     };
   }, [plugin, thing.kind, thing.title]);
-  useEffect(() => go.current?.focus(), [offer]);
+  useEffect(() => go.current?.focus(), [places]);
 
-  const to = elsewhere?.trim();
+  const place = pick === "else" ? undefined : places?.[pick];
+  const to = pick === "else" ? elsewhere.trim() : place?.where;
   const promote = async () => {
+    if (!to) return;
     setBusy(true);
     setFailed("");
     try {
-      done(await api.promoteThing(plugin, { kind: thing.kind, ref: thing.ref, ...(to ? { to } : {}) }));
+      // The first place is where one goes with nowhere said: ws names its folder afresh, as the repo is on its remote then.
+      done(await api.promoteThing(plugin, { kind: thing.kind, ref: thing.ref, ...(pick === 0 ? {} : { to }) }));
     } catch (err) {
       setFailed(said(err));
       setBusy(false);
     }
   };
   const what = thing.title || thing.ref;
+  const several = (places?.length ?? 0) > 1;
   return (
     <OverFrame anchor={anchor} label={`Put ${what} in a repo`} busy={busy} dismiss={() => done()}>
       <form
         className="thing-ui"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!busy && (offer || to)) void promote();
+          if (!busy) void promote();
         }}
       >
         <strong className="thing-ui-title">Put {what} in a repo</strong>
         <p>Everyone with the repo has it then. What you change after is on this machine until you save it there.</p>
-        {elsewhere === undefined ? (
+        {!places && <p className="thing-ui-where">Working out where it would live…</p>}
+        {places && !several && pick !== "else" && place && (
           <p className="thing-ui-where">
-            {offer ? (
-              <>
-                It'll live at <code>{offer.where}</code>
-              </>
-            ) : failed ? (
-              "ws couldn't say where it would live."
-            ) : (
-              "Working out where it would live…"
-            )}
-            {(offer || failed) && (
-              <button type="button" className="link" disabled={busy} onClick={() => setElsewhere(offer?.where ?? "")}>
-                Somewhere else…
-              </button>
-            )}
+            It'll live at <code>{place.where}</code>
+            <button type="button" className="link" disabled={busy} onClick={() => setPick("else")}>
+              Somewhere else…
+            </button>
           </p>
-        ) : (
+        )}
+        {places && several && (
+          <fieldset className="thing-ui-places" disabled={busy}>
+            <legend>Where it'll live</legend>
+            {places.map((p, i) => (
+              <label key={p.where} className="thing-ui-place">
+                <input type="radio" name="thing-place" checked={pick === i} onChange={() => setPick(i)} />
+                <span>
+                  <span className="thing-ui-repo">{p.label}</span>
+                  <code>{p.where}</code>
+                </span>
+              </label>
+            ))}
+            <label className="thing-ui-place">
+              <input type="radio" name="thing-place" checked={pick === "else"} onChange={() => setPick("else")} />
+              <span>Somewhere else…</span>
+            </label>
+          </fieldset>
+        )}
+        {places && pick === "else" && (
           <label className="thing-ui-where">
-            <span className="dim">It'll live at</span>
+            {!several && <span className="dim">It'll live at</span>}
             {/* biome-ignore lint/a11y/noAutofocus: the field is what was asked for */}
-            <input type="text" className="mono" value={elsewhere} placeholder="repo:folder/" autoFocus disabled={busy} onChange={(e) => setElsewhere(e.currentTarget.value)} />
+            <input type="text" className="mono" value={elsewhere} placeholder="repo:folder/" aria-label="Where it'll live, as repo:folder/" autoFocus disabled={busy} onChange={(e) => setElsewhere(e.currentTarget.value)} />
           </label>
         )}
-        {offer && !offer.direct && elsewhere === undefined && <p className="dim">{offer.label} takes pull requests: it'll be left in a capsule, for you to open one from.</p>}
+        {place && !place.direct && <p className="dim">{place.label} takes pull requests: it'll be left in a capsule, for you to open one from.</p>}
         {failed && (
           <p className="thing-ui-failed" role="alert">
             {failed}
           </p>
         )}
         <div className="thing-ui-buttons">
-          <button type="submit" ref={go} className="primary small" disabled={busy || !(elsewhere === undefined ? offer : to)}>
+          <button type="submit" ref={go} className="primary small" disabled={busy || !to}>
             {busy ? "Promoting…" : "Promote"}
           </button>
           <button type="button" className="ghost small" disabled={busy} onClick={() => done()}>

@@ -1,12 +1,14 @@
 package ops
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/withworkspace/plugin/protocol"
@@ -15,6 +17,7 @@ import (
 	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/slug"
 	"github.com/withworkspace/workspace/internal/space"
+	"github.com/withworkspace/workspace/internal/workspace"
 )
 
 // Putting a plugin's thing in a repo (promoting it), and saving one
@@ -47,16 +50,59 @@ func (w *Workspace) thingKind(who, kind string) (plugin.KeptRef, error) {
 	return k, nil
 }
 
-// thingRepo is the repo a kind's things go in, where you didn't say: the
-// workspace's records repo, or its one space of documents.
-func (w *Workspace) thingRepo() (string, error) {
-	if r := w.WS().Records; r != "" {
-		return r, nil
+// thingPlace is somewhere a kind's things go: a repo, and the folder one
+// is put in there, with protocol.RemoteSlug where its slug goes.
+type thingPlace struct{ repo, folder string }
+
+// named is the place's folder for a thing of that slug.
+func (p thingPlace) named(slugName string) string {
+	return strings.TrimSuffix(strings.ReplaceAll(p.folder, protocol.RemoteSlug, slugName), "/")
+}
+
+// thingPlaces are the places one of a kind's things may be put, the first
+// where it goes unless you say: those [things.<kind>] names in ws.toml,
+// or, with none, the folder the kind's plugin names for it, in the
+// records repo and then in each of the workspace's other spaces. Problems
+// are the places ws.toml names that ws can't use, and why.
+func (w *Workspace) thingPlaces(k plugin.KeptRef) (places []thingPlace, problems []string) {
+	if said := w.Config().Things[k.Kind].Paths; len(said) > 0 {
+		for _, path := range said {
+			repo, folder, err := w.homeNamed(strings.ReplaceAll(path, protocol.RemoteSlug, "slug"))
+			if err != nil {
+				problems = append(problems, fmt.Sprintf("%q: %v", path, err))
+				continue
+			}
+			_, tail, _ := strings.Cut(path, ":")
+			last := path[strings.LastIndex(strings.TrimSuffix(path, "/"), "/")+1:]
+			switch {
+			case !strings.HasSuffix(path, "/") || !strings.Contains(last, protocol.RemoteSlug) || strings.Count(tail, protocol.RemoteSlug) != 1:
+				problems = append(problems, fmt.Sprintf("%q is a folder for each one: it ends in /, with %s once, in its last part (records:sketches/%s/)", path, protocol.RemoteSlug, protocol.RemoteSlug))
+				continue
+			}
+			if err := w.inSpace(repo, folder); err != nil {
+				problems = append(problems, fmt.Sprintf("%q: %v", path, err))
+				continue
+			}
+			places = append(places, thingPlace{repo: repo, folder: strings.Trim(tail, "/")})
+		}
+		return places, problems
 	}
-	if spaces := w.WS().Spaces(); len(spaces) == 1 {
-		return spaces[0].Repo, nil
+	spaces := w.WS().Spaces()
+	// The records repo first: where what's written of the work goes.
+	slices.SortStableFunc(spaces, func(a, b workspace.Space) int {
+		return cmp.Compare(btoi(a.Repo != w.WS().Records), btoi(b.Repo != w.WS().Records))
+	})
+	for _, s := range spaces {
+		places = append(places, thingPlace{repo: s.Repo, folder: strings.Trim(s.Folder+k.Remote.Path, "/")})
 	}
-	return "", &Invalid{Reason: "the workspace has no records repo to put it in: say where it's to live, as repo:folder/"}
+	return places, nil
+}
+
+func btoi(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // inSpace is a folder of a repo as ws would find a thing in it: the repo
@@ -189,9 +235,11 @@ func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name, to string
 	if given.Name != "" {
 		return none, &Invalid{Reason: fmt.Sprintf("%s lives at %s already: save it there", name, given.Name)}
 	}
-	// Where: as you said, its files named after the folder; or named for
-	// its title, once the repo's default branch is in hand.
+	// Where: as you said, its files named after the folder; or the first
+	// of the places the kind's things go, named for its title once the
+	// repo's default branch is in hand.
 	repo, folder, named := "", "", ""
+	var place thingPlace
 	if to = strings.TrimSpace(to); to != "" {
 		if repo, folder, err = w.homeNamed(to); err != nil {
 			return none, err
@@ -200,26 +248,18 @@ func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name, to string
 		if err := w.inSpace(repo, folder); err != nil {
 			return none, err
 		}
-	} else if repo, err = w.thingRepo(); err != nil {
-		return none, err
-	} else if _, ok := w.WS().SpaceOf(repo); !ok {
-		return none, w.inSpace(repo, "")
+	} else {
+		places, _ := w.thingPlaces(k)
+		if len(places) == 0 {
+			return none, &Invalid{Reason: fmt.Sprintf("the workspace has no space of documents to put a %s in: say where it's to live, as repo:folder/", kind)}
+		}
+		place = places[0]
+		repo = place.repo
 	}
 	var written protocol.RemoteThing
 	saved, err := w.inLift(repo, "promote-"+slug.Make(given.Title, 40, kind), "Promoted", func(capsule string) (string, string, string, bool, error) {
 		if folder == "" {
-			s, _ := w.WS().SpaceOf(repo)
-			base := slug.Make(given.Title, 60, kind)
-			for n := 1; ; n++ {
-				named = base
-				if n > 1 {
-					named = fmt.Sprintf("%s-%d", base, n)
-				}
-				folder = strings.TrimSuffix(s.Folder+strings.ReplaceAll(k.Remote.Path, protocol.RemoteSlug, named), "/")
-				if _, err := os.Lstat(filepath.Join(capsule, filepath.FromSlash(folder))); err != nil {
-					break
-				}
-			}
+			named, folder = place.free(capsule, given.Title, kind)
 		} else if _, err := os.Lstat(filepath.Join(capsule, filepath.FromSlash(folder))); err == nil {
 			return "", "", "", false, &Invalid{Reason: fmt.Sprintf("there's something at %s:%s/ already: name another folder for it to live in", repo, folder)}
 		}
@@ -333,8 +373,25 @@ func (w *Workspace) SaveThing(ctx context.Context, who, kind, name string) (prot
 	return w.thingPut(ctx, remotes, k, name, repo, folder, written, saved, true, merged)
 }
 
-// ThingOffer is where a plugin's thing would go if it were promoted now,
-// with nowhere said: for whatever asks you before it's done.
+// free is the first folder of the place that nothing's in, for a thing
+// called title, as the repo stands in worktree: named for the title's
+// slug, with -2 and so on where that's taken.
+func (p thingPlace) free(worktree, title, kind string) (slugName, folder string) {
+	base := slug.Make(strings.Join(strings.Fields(title), " "), 60, kind)
+	for n := 1; ; n++ {
+		slugName = base
+		if n > 1 {
+			slugName = fmt.Sprintf("%s-%d", base, n)
+		}
+		folder = p.named(slugName)
+		if _, err := os.Lstat(filepath.Join(worktree, filepath.FromSlash(folder))); err != nil {
+			return slugName, folder
+		}
+	}
+}
+
+// ThingOffer is somewhere a plugin's thing could go if it were promoted
+// now: for whatever asks you before it's done.
 type ThingOffer struct {
 	// Where is the folder, as it's said to people and as PromoteThing
 	// takes it: records:sketches/release-flow/.
@@ -347,35 +404,44 @@ type ThingOffer struct {
 }
 
 // ThingOffered is where one of the plugin who's things of a kind, called
-// title, would go: the workspace's records repo, in the folder the kind
-// names for the title's slug, the first of them that's free as the repo's
-// ground stands. It's what's offered: the folder's named for good only
-// when it's promoted, against the repo as it is on its remote then.
-func (w *Workspace) ThingOffered(who, kind, title string) (ThingOffer, error) {
+// title, could go: each of the places the kind's things go (thingPlaces),
+// the first where it goes unless you say, with the folder it would have
+// there, the first that's free as the repo's ground stands. It's what's
+// offered: the folder's named for good only when it's promoted, against
+// the repo as it is on its remote then.
+func (w *Workspace) ThingOffered(who, kind, title string) ([]ThingOffer, error) {
 	k, err := w.thingKind(who, kind)
 	if err != nil {
-		return ThingOffer{}, err
+		return nil, err
 	}
-	repo, err := w.thingRepo()
+	places, _ := w.thingPlaces(k)
+	out := make([]ThingOffer, 0, len(places))
+	for _, p := range places {
+		_, folder := p.free(w.WS().MainWorktree(p.repo), title, kind)
+		out = append(out, ThingOffer{Where: p.repo + ":" + folder + "/", Repo: p.repo, Label: w.WS().DisplayNameFor(p.repo), Direct: w.WS().Direct(p.repo)})
+	}
+	return out, nil
+}
+
+// ThingPlaceProblems are the places ws.toml names for the plugins' kinds
+// of thing that ws can't put one in, each with why: for ws doctor.
+func (w *Workspace) ThingPlaceProblems() []string {
+	kinds, err := remoteKinds(w.WS().Root)
 	if err != nil {
-		return ThingOffer{}, err
+		return nil
 	}
-	s, ok := w.WS().SpaceOf(repo)
-	if !ok {
-		return ThingOffer{}, w.inSpace(repo, "")
-	}
-	ground := w.WS().MainWorktree(repo)
-	base := slug.Make(strings.Join(strings.Fields(title), " "), 60, kind)
-	folder := ""
-	for n := 1; ; n++ {
-		named := base
-		if n > 1 {
-			named = fmt.Sprintf("%s-%d", base, n)
+	var out []string
+	for name := range w.Config().Things {
+		k, ok := kinds[name]
+		if !ok {
+			out = append(out, fmt.Sprintf("[things.%s]: no plugin here has a kind %q whose things live in a repo", name, name))
+			continue
 		}
-		folder = strings.TrimSuffix(s.Folder+strings.ReplaceAll(k.Remote.Path, protocol.RemoteSlug, named), "/")
-		if _, err := os.Lstat(filepath.Join(ground, filepath.FromSlash(folder))); err != nil {
-			break
+		_, problems := w.thingPlaces(k)
+		for _, p := range problems {
+			out = append(out, fmt.Sprintf("[things.%s] %s", name, p))
 		}
 	}
-	return ThingOffer{Where: repo + ":" + folder + "/", Repo: repo, Label: w.WS().DisplayNameFor(repo), Direct: w.WS().Direct(repo)}, nil
+	slices.Sort(out)
+	return out
 }

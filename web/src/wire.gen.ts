@@ -4575,11 +4575,19 @@ export interface ThingAt {
 
 // From web/plugins.go
 /**
- * ThingOffered is where a thing would go if it were promoted with
- * nowhere said: the folder (records:sketches/release-flow/), its repo as
- * ws calls it, and whether a commit lands there straight away.
+ * ThingOffered is where a thing could go if it were promoted now: the
+ * places its kind's things go, the first where it goes unless you say.
  */
 export interface ThingOffered {
+    places: ThingPlace[];
+}
+
+// From web/plugins.go
+/**
+ * ThingPlace is one of them: the folder (records:sketches/release-flow/),
+ * its repo as ws calls it, and whether a commit lands there straight away.
+ */
+export interface ThingPlace {
     where: string;
     repo: string;
     label: string;

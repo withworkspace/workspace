@@ -125,7 +125,7 @@ type Plugging interface {
 	// asks (thing-promote, thing-save).
 	PromoteThing(ctx context.Context, who, kind, name, to string) (protocol.RemoteSaved, error)
 	SaveThing(ctx context.Context, who, kind, name string) (protocol.RemoteSaved, error)
-	ThingOffered(who, kind, title string) (ops.ThingOffer, error)
+	ThingOffered(who, kind, title string) ([]ops.ThingOffer, error)
 }
 
 // ThingRequest is one of a plugin's own things to put in a repo, or to
@@ -162,10 +162,15 @@ type ThingSaved struct {
 	Said    string `json:"said,omitempty"`
 }
 
-// ThingOffered is where a thing would go if it were promoted with
-// nowhere said: the folder (records:sketches/release-flow/), its repo as
-// ws calls it, and whether a commit lands there straight away.
+// ThingOffered is where a thing could go if it were promoted now: the
+// places its kind's things go, the first where it goes unless you say.
 type ThingOffered struct {
+	Places []ThingPlace `json:"places"`
+}
+
+// ThingPlace is one of them: the folder (records:sketches/release-flow/),
+// its repo as ws calls it, and whether a commit lands there straight away.
+type ThingPlace struct {
 	Where  string `json:"where"`
 	Repo   string `json:"repo"`
 	Label  string `json:"label"`
@@ -226,19 +231,23 @@ func (s *Server) saveThing(w http.ResponseWriter, r *http.Request) {
 }
 
 // thingOffered is GET /api/plugins/{name}/things/offer?kind=&title=:
-// where one of the plugin's things of that kind, called that, would go.
+// where one of the plugin's things of that kind, called that, could go.
 func (s *Server) thingOffered(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
 		jsonError(w, http.StatusNotFound, "there's no plugin called "+name)
 		return
 	}
-	at, err := s.App.ThingOffered(name, r.URL.Query().Get("kind"), r.URL.Query().Get("title"))
+	offers, err := s.App.ThingOffered(name, r.URL.Query().Get("kind"), r.URL.Query().Get("title"))
 	if err != nil {
 		writeError(w, err, http.StatusBadGateway)
 		return
 	}
-	writeJSON(w, http.StatusOK, ThingOffered{Where: at.Where, Repo: at.Repo, Label: at.Label, Direct: at.Direct})
+	out := ThingOffered{Places: []ThingPlace{}}
+	for _, at := range offers {
+		out.Places = append(out.Places, ThingPlace{Where: at.Where, Repo: at.Repo, Label: at.Label, Direct: at.Direct})
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // PluginsInstalled is GET /api/plugins/installed: the workspace's plugins
