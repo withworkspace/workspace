@@ -71,10 +71,11 @@ type SpaceFolder struct {
 	Count int
 }
 
-// SpaceList is the workspace's spaces, read fresh. A space that couldn't
-// be read is listed as it was last read; why is the error.
+// SpaceList is the workspace's spaces, as last read in from their grounds
+// (read again behind it where one's moved: spacesKept). A space that
+// couldn't be read is listed as it was last read; why is the error.
 func (w *Workspace) SpaceList(ctx context.Context) ([]SpaceView, error) {
-	db, _, err := w.Spaces(ctx)
+	db, err := w.spacesKept()
 	if db == nil {
 		return nil, err
 	}
@@ -110,8 +111,8 @@ func (w *Workspace) SpaceList(ctx context.Context) ([]SpaceView, error) {
 	return out, err
 }
 
-// SpaceDocs is a space and its documents, read fresh. ErrNotFound for a
-// repo that isn't one.
+// SpaceDocs is a space and its documents, as SpaceList reads them.
+// ErrNotFound for a repo that isn't one.
 func (w *Workspace) SpaceDocs(ctx context.Context, repo string) (*SpaceView, []SpaceDoc, error) {
 	name, ok := w.WS().ResolveAlias(repo)
 	if !ok {
@@ -213,13 +214,13 @@ func (w *Workspace) SearchDocuments(ctx context.Context, q DocQuery) ([]DocHit, 
 }
 
 // DocCitations is what cites a space's document, and what it cites, as
-// the records have them.
+// the records have them (read again behind it where a ground's moved).
 func (w *Workspace) DocCitations(ctx context.Context, repo, path string) (citedBy, cites []space.Citation, err error) {
 	s, err := w.spaceNamed(repo)
 	if err != nil {
 		return nil, nil, err
 	}
-	db, _, err := w.Spaces(ctx)
+	db, err := w.spacesKept()
 	if db == nil {
 		return nil, nil, err
 	}

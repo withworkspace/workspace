@@ -16,7 +16,8 @@ import (
 // about, whatever names it. Asked as the records stand, it answers at
 // once, for a window that's opening; asked fresh, it first reads again
 // what's edited outside ws, as SaidOf does (a brief just written isn't in
-// the graph until it's read), and the window shows that when it comes.
+// the graph until it's read), and the window shows that when it comes. A
+// space's ground that's moved is read again behind it, not waited on.
 
 // Near is a thing one link from the one asked about: how it's linked (How:
 // about, from, in, mentions, lands…) and which way (Out: the thing asked
@@ -67,7 +68,7 @@ func (w *Workspace) Around(ctx context.Context, keys []store.Key, limit int, fre
 	if fresh {
 		w.Missions.Reread(ctx)
 		w.pages().Reread(ctx)
-		w.Spaces(ctx)
+		w.spacesKept() // read again behind it: a ground's documents take a while
 	}
 	asked := map[store.Key]bool{}
 	for _, k := range keys {

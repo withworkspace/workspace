@@ -4035,6 +4035,11 @@ export interface SpaceActivity {
     lately: SpaceCommit[];
     inFlight: SpaceFlight[];
     fresh: SpaceFresh;
+    /**
+     * Unread: it's not been read yet, and is being: the workspace's
+     * spacesSeen moves when it has.
+     */
+    unread?: boolean;
 }
 
 // From web/documents.go
@@ -4909,6 +4914,13 @@ export interface Workspace {
      * Counts and folders aren't said here (GET /api/documents).
      */
     spaces: SpaceRef[];
+    /**
+     * SpacesSeen moves when ws, reading a space again behind a read that
+     * didn't wait on it, found it other than the read was given: a page
+     * showing a space (Documents, a space, a document's citations and
+     * what's in flight) reads it again.
+     */
+    spacesSeen?: string;
     /**
      * Version is the ws that serves it, as ws --version says it: the
      * daemon's, which a newer ws on the path isn't until it's restarted.

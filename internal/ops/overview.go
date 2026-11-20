@@ -42,6 +42,10 @@ type Overview struct {
 	Sidebar, Menu []string
 	// Focus is what you've pinned that stands, in your order (focus.go).
 	Focus []FocusItem
+	// SpacesSeen moves when a look behind a read finds a space of
+	// documents other than the pages were given (keptSpaces): a page
+	// showing one reads it again.
+	SpacesSeen string
 }
 
 // MissionItem is a mission in a list: its view, when anything of it last
@@ -89,6 +93,7 @@ func (w *Workspace) Overview() (*Overview, error) {
 	}
 	out := &Overview{Name: ws.Name, Missions: []MissionItem{}, Kinds: w.Kinds(), Org: ws.Org, DefaultBranch: firstNonEmpty(ws.DefaultBranch, "main"), Spaces: []SpaceView{}}
 	out.Sidebar, out.Menu = w.Config().UI.Sidebar, w.Config().UI.Menu
+	out.SpacesSeen = w.SpacesSeen()
 	if out.Focus, err = w.Focus(); err != nil {
 		return nil, err
 	}

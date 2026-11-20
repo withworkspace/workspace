@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/git"
-	"github.com/withworkspace/workspace/internal/space"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
 
@@ -28,6 +27,9 @@ type SpaceActivity struct {
 	Lately   []SpaceCommit
 	InFlight []SpaceFlight
 	Fresh    SpaceFresh
+	// Unread: it's not been read yet, and is being; the workspace's
+	// spacesSeen moves when it has.
+	Unread bool
 }
 
 // SpaceCommit is a commit on a space's default branch that changed its
@@ -83,32 +85,25 @@ type SpaceFresh struct {
 // latelyKept is how many of a space's latest commits are said.
 const latelyKept = 8
 
-// SpaceActivity is what's happening in a space: ErrNotFound for a repo
-// that isn't one.
+// SpaceActivity is what's happening in a space, as last read: at once,
+// without asking git (keptSpaces). ErrNotFound for a repo that isn't one.
 func (w *Workspace) SpaceActivity(ctx context.Context, repo string) (*SpaceActivity, error) {
 	s, err := w.spaceNamed(repo)
 	if err != nil {
 		return nil, err
 	}
-	ws := w.WS()
-	ground := ws.MainWorktree(s.Repo)
 	out := &SpaceActivity{Lately: []SpaceCommit{}, InFlight: []SpaceFlight{}}
-	if _, err := os.Stat(ground); err != nil {
+	if _, err := os.Stat(w.WS().MainWorktree(s.Repo)); err != nil {
 		return out, nil // not cloned here
 	}
-	titles := map[string]string{}
-	if db, _, _ := w.Spaces(ctx); db != nil { // read fresh, for its titles
-		if docs, err := space.Docs(ctx, db, s.Repo); err == nil {
-			for _, d := range docs {
-				titles[d.Path] = d.Title
-			}
-		}
+	k, read := w.activityKept(s)
+	if !read {
+		out.Unread = true
+		out.Fresh = SpaceFresh{Branch: firstNonEmpty(w.WS().DefaultBranch, "main")}
+		return out, nil
 	}
-	if out.Lately, err = spaceLately(ctx, ground, s, titles); err != nil {
-		return nil, err
-	}
-	out.InFlight = w.spaceInFlight(ctx, s, titles)
-	out.Fresh = w.spaceFresh(ctx, s)
+	out.Lately, out.Fresh = k.lately, k.fresh
+	out.InFlight = w.flightsNow(s, k.flights)
 	return out, nil
 }
 
@@ -172,14 +167,11 @@ func how(status string) DocChange {
 
 // spaceInFlight is the capsules of the space's repo that change its
 // documents (against where they branched from the default branch, what's
-// uncommitted and untracked too), each with the pull request open from it.
+// uncommitted and untracked too). Which mission each is in, and the pull
+// request open from it, are said at each read (flightsNow).
 func (w *Workspace) spaceInFlight(ctx context.Context, s workspace.Space, titles map[string]string) []SpaceFlight {
 	ws := w.WS()
 	capsules, _ := workspace.ListWorktrees(ws.RepoDir(s.Repo))
-	var prs PRIndex
-	if gh := w.GitHub(); w.opts.PRs != nil && gh != nil {
-		prs = w.opts.PRs.Peek(ws, gh, []string{s.Repo})
-	}
 	branch := firstNonEmpty(ws.DefaultBranch, "main")
 	out := []SpaceFlight{}
 	for _, name := range capsules {
@@ -208,12 +200,6 @@ func (w *Workspace) spaceInFlight(ctx context.Context, s workspace.Space, titles
 		}
 		_, b := workspace.GitHeadBranch(dir)
 		f := SpaceFlight{Capsule: name, Branch: b, Docs: []SpaceDocChange{}}
-		if m, ok := w.Missions.FindByCapsule(s.Repo, name); ok {
-			f.Mission = m.Title
-		}
-		if pr := LookupPR(prs[s.Repo].open, b, name); pr != nil {
-			f.PR = &SpacePR{Number: pr.Number, Title: pr.Title, URL: pr.URL}
-		}
 		for _, p := range slices.Sorted(maps.Keys(changed)) {
 			title := titles[p]
 			if changed[p] != "removed" {
@@ -222,6 +208,35 @@ func (w *Workspace) spaceInFlight(ctx context.Context, s workspace.Space, titles
 				}
 			}
 			f.Docs = append(f.Docs, SpaceDocChange{Path: p, Title: title, How: changed[p]})
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// flightsNow is a space's flights as kept, each with the mission it's in
+// and the pull request open from it as they are now: the missions, and
+// what GitHub said lately.
+func (w *Workspace) flightsNow(s workspace.Space, kept []SpaceFlight) []SpaceFlight {
+	out := make([]SpaceFlight, 0, len(kept))
+	if len(kept) == 0 {
+		return out
+	}
+	ws := w.WS()
+	var prs PRIndex
+	if gh := w.GitHub(); w.opts.PRs != nil && gh != nil {
+		prs = w.opts.PRs.Peek(ws, gh, []string{s.Repo})
+	}
+	missions, _ := w.Missions.List()
+	for _, f := range kept {
+		for _, m := range missions {
+			if m.HasCapsule(s.Repo, f.Capsule) {
+				f.Mission = m.Title
+				break
+			}
+		}
+		if pr := LookupPR(prs[s.Repo].open, f.Branch, f.Capsule); pr != nil {
+			f.PR = &SpacePR{Number: pr.Number, Title: pr.Title, URL: pr.URL}
 		}
 		out = append(out, f)
 	}
@@ -261,7 +276,9 @@ func (w *Workspace) FetchSpace(ctx context.Context, repo string) (SpaceFresh, er
 	if _, err := (git.Cmd{Ctx: ctx, Dir: w.WS().BareDir(s.Repo), Args: []string{"fetch", "--quiet", "--no-tags", "origin", fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", branch, branch)}}).Output(); err != nil {
 		return w.spaceFresh(ctx, s), &Upstream{Err: err}
 	}
-	return w.spaceFresh(ctx, s), nil
+	f := w.spaceFresh(ctx, s)
+	w.keepFresh(s.Repo, f)
+	return f, nil
 }
 
 // PullSpace moves a space's ground forward to its remote's default branch,
@@ -289,5 +306,10 @@ func (w *Workspace) PullSpace(ctx context.Context, repo string) (SpaceFresh, err
 		}
 		return f, err
 	}
-	return w.spaceFresh(ctx, s), nil
+	// The ground's documents are read in now, as a command would: the page
+	// that pulled reads them straight after.
+	w.Spaces(ctx)
+	f = w.spaceFresh(ctx, s)
+	w.keepFresh(s.Repo, f)
+	return f, nil
 }
