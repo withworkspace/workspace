@@ -26,6 +26,10 @@ type Workspace struct {
 	// Focus is what you've pinned that stands, in your order: the
 	// sidebar's Focus.
 	Focus []FocusPin `json:"focus"`
+	// CapsulesSeen moves when git, asked behind a read that didn't wait
+	// on it, said something of a capsule other than the read was given:
+	// a page showing capsules' statuses (Files' switcher) reads again.
+	CapsulesSeen string `json:"capsulesSeen,omitempty"`
 	// Conversations are the workspace's conversations with an agent,
 	// newest first.
 	Conversations []Talk `json:"conversations"`
@@ -964,6 +968,9 @@ type Worktree struct {
 	Dirty  bool   `json:"dirty,omitempty"`
 	Ahead  int    `json:"ahead,omitempty"`
 	Behind int    `json:"behind,omitempty"`
+	// Unread: whether it's dirty, or where it stands, hasn't been read
+	// yet and is being: the workspace's capsulesSeen moves when it has.
+	Unread bool `json:"unread,omitempty"`
 }
 
 // DocSave is an edited document to save (POST .../artifact/save): its

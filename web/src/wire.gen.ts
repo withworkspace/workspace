@@ -4887,6 +4887,12 @@ export interface Workspace {
      */
     focus: FocusPin[];
     /**
+     * CapsulesSeen moves when git, asked behind a read that didn't wait
+     * on it, said something of a capsule other than the read was given:
+     * a page showing capsules' statuses (Files' switcher) reads again.
+     */
+    capsulesSeen?: string;
+    /**
      * Conversations are the workspace's conversations with an agent,
      * newest first.
      */
@@ -4961,6 +4967,11 @@ export interface Worktree {
     dirty?: boolean;
     ahead?: number;
     behind?: number;
+    /**
+     * Unread: whether it's dirty, or where it stands, hasn't been read
+     * yet and is being: the workspace's capsulesSeen moves when it has.
+     */
+    unread?: boolean;
 }
 
 // From web/api.go

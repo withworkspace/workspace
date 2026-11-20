@@ -3,6 +3,7 @@ package ops
 import (
 	"fmt"
 	"hash/fnv"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -119,7 +120,13 @@ var dirtyFloor = 10 * time.Second
 type keptGit struct {
 	mu sync.Mutex
 	of map[string]*keptCapsule // by its folder
+	// slots bounds the looks behind reads (soon): a page listing every
+	// capsule of a repo mustn't start a process for each at once.
+	slots chan struct{}
 }
+
+// lookSlots is how many looks behind reads run at once.
+const lookSlots = 4
 
 // keptCapsule is what git said of one capsule, as of stamp.
 type keptCapsule struct {
@@ -135,6 +142,13 @@ type keptCapsule struct {
 	dirtyAt time.Time
 	looking bool
 	moved   atomic.Int64 // see dirtyMoved
+	// was is what was kept before it last moved, and wasDirty its
+	// dirtiness then: what a read that mustn't wait answers with (soon)
+	// until it's asked again. asking is which facts a look is out for,
+	// as since+1 when it began.
+	was      map[string]any
+	wasDirty *bool
+	asking   map[string]int
 }
 
 func (g *keptGit) capsule(dir string) *keptCapsule {
@@ -142,21 +156,114 @@ func (g *keptGit) capsule(dir string) *keptCapsule {
 	defer g.mu.Unlock()
 	if g.of == nil {
 		g.of = map[string]*keptCapsule{}
+		g.slots = make(chan struct{}, lookSlots)
 	}
 	c := g.of[dir]
 	if c == nil {
-		c = &keptCapsule{}
+		c = &keptCapsule{was: map[string]any{}, asking: map[string]int{}}
 		g.of[dir] = c
 	}
 	return c
 }
 
-// current drops what's kept if the capsule has moved since. c.mu is held.
+// current drops what's kept if the capsule has moved since, keeping it as
+// what was. c.mu is held.
 func (c *keptCapsule) current(dir string) {
 	if stamp := capsuleStamp(dir); stamp != c.stamp || c.facts == nil {
+		maps.Copy(c.was, c.facts)
+		if c.dirty != nil {
+			c.wasDirty = c.dirty
+		}
 		c.stamp, c.facts, c.dirty = stamp, map[string]any{}, nil
 		c.since++
 	}
+}
+
+// behind runs a look behind a read, in one of g's slots.
+func (g *keptGit) behind(look func()) {
+	go func() {
+		g.slots <- struct{}{}
+		defer func() { <-g.slots }()
+		look()
+	}()
+}
+
+// soon is a fact of the capsule without waiting on git: as kept, or, when
+// the capsule has moved since or it's never been asked, as it was before
+// (ok false when it's never been known) while git's asked behind the read.
+// A look that finds it other than the read was told counts as found moved
+// (dirtyMoved), so the page that was shown it reads again.
+func soon[T comparable](g *keptGit, dir, what string, ask func() answer[T]) (v T, ok bool) {
+	c := g.capsule(dir)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.current(dir)
+	if v, ok := c.facts[what].(T); ok {
+		return v, true
+	}
+	v, ok = c.was[what].(T)
+	if c.asking[what] == c.since+1 {
+		return v, ok
+	}
+	since := c.since
+	c.asking[what] = since + 1
+	g.behind(func() {
+		a := ask()
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		if c.asking[what] == since+1 {
+			delete(c.asking, what)
+		}
+		if !a.keep || since != c.since {
+			return // not said, or said of the capsule as it was: the next read asks again
+		}
+		c.facts[what] = a.is
+		if !ok || a.is != v {
+			c.moved.Add(1)
+		}
+	})
+	return v, ok
+}
+
+// dirtySoon is whether the capsule has changes not committed, as soon
+// says a fact: what's kept (looked at again past dirtyFloor, as dirty
+// does), or what was, while git's asked behind the read.
+func (g *keptGit) dirtySoon(dir string) (is, ok bool) {
+	c := g.capsule(dir)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.current(dir)
+	if c.dirty != nil {
+		if time.Since(c.dirtyAt) > dirtyFloor && !c.looking {
+			c.looking = true
+			go c.look(dir, c.since)
+		}
+		return *c.dirty, true
+	}
+	if c.wasDirty != nil {
+		is, ok = *c.wasDirty, true
+	}
+	if c.asking["dirty"] == c.since+1 {
+		return is, ok
+	}
+	since := c.since
+	c.asking["dirty"] = since + 1
+	g.behind(func() {
+		a := askDirty(dir)
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		if c.asking["dirty"] == since+1 {
+			delete(c.asking, "dirty")
+		}
+		if !a.keep || since != c.since || c.dirty != nil {
+			return
+		}
+		c.dirty, c.dirtyAt = &a.is, time.Now()
+		if !ok || a.is != is {
+			c.moved.Add(1)
+		}
+	})
+	return is, ok
 }
 
 // kept is a fact of the capsule: as kept, or asked for and kept.
@@ -229,7 +336,8 @@ func (c *keptCapsule) look(dir string, since int) {
 }
 
 // dirtyMoved counts, for each capsule, the times a look found its
-// dirtiness changed from what a read had been given: the stamps pages are
+// dirtiness (or, behind a read that didn't wait, any fact) changed from
+// what a read had been given: the stamps pages are
 // told by carry it, so the page that was shown the old answer reads again.
 // Of the capsules named, or of all it keeps. It starts no process, and
 // forgets capsules that have gone.
@@ -255,6 +363,28 @@ func (g *keptGit) dirtyMoved(dirs ...string) string {
 		}
 	}
 	return b.String()
+}
+
+// branchOf is the branch dir's HEAD is on, read from git's own files:
+// "HEAD" when it's detached, "" when dir isn't a worktree. No process, and
+// never stale: it's what git itself would read.
+func branchOf(dir string) string {
+	gitDir, _ := gitDirs(dir)
+	if gitDir == "" {
+		return ""
+	}
+	head, err := os.ReadFile(filepath.Join(gitDir, "HEAD"))
+	if err != nil {
+		return ""
+	}
+	ref, ok := strings.CutPrefix(strings.TrimSpace(string(head)), "ref: ")
+	if !ok {
+		return "HEAD"
+	}
+	if branch, ok := strings.CutPrefix(ref, "refs/heads/"); ok {
+		return branch
+	}
+	return ref
 }
 
 // capsuleStamp names what git's answers about a capsule are built from,
