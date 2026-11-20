@@ -1822,6 +1822,53 @@ export interface Info {
     token: string;
 }
 
+// From web/plugins.go
+/**
+ * InstalledPlugin is a plugin that's installed: which it is, where it's
+ * from, where it stands, what it adds, and what's out for it.
+ */
+export interface InstalledPlugin {
+    name: string;
+    description?: string;
+    version?: string;
+    /**
+     * State is ready, setup, failed or stopped, as Plugin's is.
+     */
+    state: PluginState;
+    error?: string;
+    missing?: string[];
+    /**
+     * From is where it's from: a repo (with the release it is, or built
+     * here from its source), or a folder on this machine.
+     */
+    from: PluginFrom;
+    /**
+     * What it adds: its views, by title; the word after ws its commands
+     * are under; whether it has a guide for agents; and how its things
+     * are named (RAM-…).
+     */
+    views?: string[];
+    commands?: string;
+    guide?: boolean;
+    names?: string[];
+    /**
+     * Refused is what it registered that ws left out, and why.
+     */
+    refused?: string[];
+    /**
+     * Path is where its first view opens in ws: "" for one with none.
+     */
+    path?: string;
+    /**
+     * Latest is its repo's latest release, as last found; Newer, whether
+     * that's later than the one installed; and UpdateError why the last
+     * look didn't find it.
+     */
+    latest?: string;
+    newer: boolean;
+    updateError?: string;
+}
+
 // From web/landing.go
 /**
  * LandResult is what landing did: Landed, or Stopped, with nothing
@@ -2610,6 +2657,50 @@ export interface PluginActed {
 
 // From web/plugins.go
 /**
+ * PluginAddRequest is POST /api/plugins: a plugin to install. From is the
+ * repo it's published at (owner/repo, with @tag for a release that isn't
+ * the latest), or a folder on this machine, by its whole path or from ~.
+ */
+export interface PluginAddRequest {
+    from: string;
+}
+
+// From web/plugins.go
+/**
+ * PluginChanged is what adding or updating a plugin did: which plugin,
+ * the version it is now, what it was (an update's) and whether it was the
+ * latest already, where it stands, and what was done on the way, in
+ * lines (a download, a build from source).
+ */
+export interface PluginChanged {
+    name: string;
+    version?: string;
+    was?: string;
+    now?: string;
+    current?: boolean;
+    state?: PluginState;
+    missing?: string[];
+    said?: string[];
+}
+
+// From web/plugins.go
+/**
+ * PluginFrom is where an installed plugin came from. Repo is the repo
+ * it's published at, Tag the release (or the tag its source was built
+ * at), Built whether it was built here from its source, and At when it
+ * was fetched. Linked is the folder it's run from (ws plugin add --link).
+ * None of them: it was copied from a folder.
+ */
+export interface PluginFrom {
+    repo?: string;
+    tag?: string;
+    built?: boolean;
+    at?: string;
+    linked?: string;
+}
+
+// From web/plugins.go
+/**
  * PluginPolicy is the Content-Security-Policy of what a plugin's own HTTP
  * answers: its own scripts and styles, inline too, and images from
  * anywhere. It's a program the workspace's owner installed.
@@ -2639,6 +2730,15 @@ export interface PluginRef {
      * Actions are what can be done to one of its things, from Find.
      */
     actions?: ProtocolAction[];
+}
+
+// From web/plugins.go
+/**
+ * PluginRemoveRequest is POST /api/plugins/{name}/remove. Data says what
+ * the plugin kept for itself (its data folder) and its secrets go too.
+ */
+export interface PluginRemoveRequest {
+    data: boolean;
 }
 
 // From plugin/host.go
@@ -2674,6 +2774,26 @@ export interface PluginView {
      */
     path: string;
     badge?: number;
+}
+
+// From web/plugins.go
+/**
+ * PluginsInstalled is GET /api/plugins/installed: the workspace's plugins
+ * as the Plugins page lists them, with the team's that aren't here.
+ */
+export interface PluginsInstalled {
+    plugins: InstalledPlugin[];
+    /**
+     * Wanted are the team's (ws.toml's [plugins]) that aren't installed
+     * here.
+     */
+    wanted: WantedPlugin[];
+    /**
+     * Checks is whether the daemon looks for later releases by itself,
+     * and Checked when a look last answered.
+     */
+    checks: boolean;
+    checked?: string;
 }
 
 // From web/process.go
@@ -4478,8 +4598,80 @@ export interface Transcript {
  */
 export const TranscriptShown = 400;
 
+// From web/updates.go
+/**
+ * UpdatesInfo is GET /api/updates, and what POST /api/updates/check
+ * answers once it's looked.
+ */
+export interface UpdatesInfo {
+    /**
+     * Checks is whether the daemon looks by itself, once a day.
+     */
+    checks: boolean;
+    /**
+     * Checked is when a look last answered, and Tried when one was last
+     * made: neither, for never.
+     */
+    checked?: string;
+    tried?: string;
+    /**
+     * Version is the ws that's running, and Release whether it's a
+     * release's build: the kind Upgrade replaces.
+     */
+    version: string;
+    release: boolean;
+    /**
+     * Latest is the latest release, as last found, and Newer whether it's
+     * later than Version. Error is why the last look didn't find it.
+     */
+    latest?: string;
+    newer: boolean;
+    error?: string;
+    /**
+     * Page is where the latest release is described, to read what's in it.
+     */
+    page?: string;
+    /**
+     * Installed is a ws put in the daemon's place that it isn't running
+     * yet: it restarts onto it once nothing's at work, and Waits is what
+     * is.
+     */
+    installed?: string;
+    waits?: string[];
+    /**
+     * Plugins counts the plugins a later release is out for.
+     */
+    plugins: number;
+}
+
+// From web/updates.go
+/**
+ * Upgraded is what POST /api/upgrade did: the ws that was running, the
+ * release looked at, and whether it was installed (and the old one kept,
+ * to put back with ws upgrade --rollback). Not installed, To is what's
+ * running already (Current), or older than it (Older).
+ */
+export interface Upgraded {
+    from: string;
+    to: string;
+    installed: boolean;
+    kept: boolean;
+    current: boolean;
+    older: boolean;
+}
+
 // From web/enums.go
 export type WaitPasses = "done" | "said" | "watched";
+
+// From web/plugins.go
+/**
+ * WantedPlugin is a plugin the team uses that isn't installed here.
+ */
+export interface WantedPlugin {
+    name: string;
+    source: string;
+    version?: string;
+}
 
 // From words/words.go
 /**
@@ -4558,6 +4750,12 @@ export interface Workspace {
      * it connects: the same its plugin was told when it started.
      */
     version?: string;
+    /**
+     * Later is a release of ws that's out and later than Version, as the
+     * daemon last found (it looks once a day): none for none, or for one
+     * that's installed and waiting for the daemon to restart onto it.
+     */
+    later?: string;
     /**
      * Places is where the web UI's places go, as [ui] sidebar and menu
      * say: absent for as they come.

@@ -57,6 +57,10 @@ type Workspace struct {
 	// The web UI says which it's talking to, and tells a plugin's app as
 	// it connects: the same its plugin was told when it started.
 	Version string `json:"version,omitempty"`
+	// Later is a release of ws that's out and later than Version, as the
+	// daemon last found (it looks once a day): none for none, or for one
+	// that's installed and waiting for the daemon to restart onto it.
+	Later string `json:"later,omitempty"`
 	// Places is where the web UI's places go, as [ui] sidebar and menu
 	// say: absent for as they come.
 	Places *Places `json:"places,omitempty"`

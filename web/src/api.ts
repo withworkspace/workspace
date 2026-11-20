@@ -39,7 +39,9 @@ import type {
   PageTied,
   Pick,
   Plugin,
+  PluginChanged,
   PluginThing,
+  PluginsInstalled,
   ProcessInfo,
   Repo,
   ReviewGuide,
@@ -57,6 +59,8 @@ import type {
   TeamPerson,
   TeamTopic,
   TermKey,
+  UpdatesInfo,
+  Upgraded,
   Workspace,
   Worktree,
 } from "./wire.gen";
@@ -99,6 +103,7 @@ export type {
   FocusPin,
   Headline,
   HeadlineGroup,
+  InstalledPlugin,
   LandStopped,
   Landed,
   Landing,
@@ -116,9 +121,12 @@ export type {
   PageSource,
   PageTied,
   Plugin,
+  PluginChanged,
+  PluginFrom,
   PluginRef,
   PluginThing,
   PluginView,
+  PluginsInstalled,
   ProcessInfo,
   Proposal,
   Repo,
@@ -148,6 +156,9 @@ export type {
   TeamPerson,
   TeamTopic,
   TermKey,
+  UpdatesInfo,
+  Upgraded,
+  WantedPlugin,
   Workspace,
   Worktree,
 } from "./wire.gen";
@@ -176,6 +187,9 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string | undefined,
     message: string,
+    // output is what was printed on the way to it failing, where the
+    // server says: a plugin's build.
+    readonly output?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -194,7 +208,7 @@ async function request<T>(method: string, path: string, opts: { body?: unknown; 
   });
   if (res.status === 401) throw new NotSignedIn();
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data.code, data.error ?? `${res.status} ${res.statusText}`);
+  if (!res.ok) throw new ApiError(res.status, data.code, data.error ?? `${res.status} ${res.statusText}`, typeof data.output === "string" ? data.output : undefined);
   return data as T;
 }
 
@@ -1709,6 +1723,21 @@ export const summariseTeam = (since: string) => send<{ started: boolean }>("POST
 
 // seenTeam says you've looked at the page.
 export const seenTeam = () => send<{ ok: boolean }>("POST", "/api/team/seen", {});
+
+// Updates: what the daemon last found of later releases (it looks once a
+// day), looking now, and installing ws's latest in place of the one
+// that's running, as ws upgrade does.
+export const getUpdates = () => getJSON<UpdatesInfo>("/api/updates");
+export const checkUpdates = () => send<UpdatesInfo>("POST", "/api/updates/check", {});
+export const upgradeWS = () => send<Upgraded>("POST", "/api/upgrade", {});
+
+// The Plugins page: the workspace's plugins as it lists them, and adding
+// one (from the repo it's published at, or a folder on this machine),
+// updating one to its repo's latest release, and removing one.
+export const getInstalledPlugins = () => getJSON<PluginsInstalled>("/api/plugins/installed");
+export const addPlugin = (from: string) => send<PluginChanged>("POST", "/api/plugins", { from });
+export const updatePlugin = (name: string) => send<PluginChanged>("POST", `/api/plugins/${encodeURIComponent(name)}/update`, {});
+export const removePlugin = (name: string, data: boolean) => send<{ removed: string }>("POST", `/api/plugins/${encodeURIComponent(name)}/remove`, { data });
 
 // shutDownDaemon closes the workspace's daemon (and so this web UI), as
 // ws daemon stop does.

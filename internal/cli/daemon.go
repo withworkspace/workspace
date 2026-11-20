@@ -192,14 +192,15 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 	stop := make(chan struct{})
 	defer close(stop)
 	go watchPRsLoop(root, prs, stop)
-	go watchHeldLoop(root, s.ACPCallDone, stop)          // turns held on crew's own work
-	go closeDoneLoop(root, s.Log.Printf, stop)           // crew that reported done, their turn over
-	go sweepAsksLoop(root, s.Log.Printf, stop)           // asks nobody kept
-	go watchLimitsLoop(root, s.Log.Printf, stop)         // steps out of time
-	go watchWaitsLoop(root, s.Log.Printf, stop)          // Wait steps ws watches
-	go sweepArtifactsLoop(root, s.Log.Printf, stop)      // artifacts on this machine that expired
-	go sweepRunsLoop(root, s.Log.Printf, runsPoke, stop) // runs whose owner has gone, or whose time is up
-	go routerLoop(root, s.WebPort, s.Log.Printf, stop)   // names under .localhost, with [router] enabled
+	go watchHeldLoop(root, s.ACPCallDone, stop)                              // turns held on crew's own work
+	go closeDoneLoop(root, s.Log.Printf, stop)                               // crew that reported done, their turn over
+	go sweepAsksLoop(root, s.Log.Printf, stop)                               // asks nobody kept
+	go watchLimitsLoop(root, s.Log.Printf, stop)                             // steps out of time
+	go watchWaitsLoop(root, s.Log.Printf, stop)                              // Wait steps ws watches
+	go sweepArtifactsLoop(root, s.Log.Printf, stop)                          // artifacts on this machine that expired
+	go sweepRunsLoop(root, s.Log.Printf, runsPoke, stop)                     // runs whose owner has gone, or whose time is up
+	go routerLoop(root, s.WebPort, s.Log.Printf, stop)                       // names under .localhost, with [router] enabled
+	go checkUpdatesLoop(openOps(root, prs, daemonWS(s)), s.Log.Printf, stop) // later releases of ws and plugins, once a day
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 	go func() {

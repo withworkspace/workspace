@@ -13,16 +13,16 @@ import (
 
 // installedWS is a release's build of ws at version, somewhere it can be
 // replaced, with r as where its releases are.
-func installedWS(t *testing.T, r *releasetest.Releases, version string) upgrader {
+func installedWS(t *testing.T, r *releasetest.Releases, version string) release.Upgrader {
 	t.Helper()
 	exe := filepath.Join(t.TempDir(), "workspace")
 	if err := os.WriteFile(exe, releasetest.Script(version), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	return upgrader{Exe: exe, Version: version, Release: true, Source: release.Source{Base: r.URL}, OS: "linux", Arch: "amd64"}
+	return release.Upgrader{Exe: exe, Version: version, Release: true, Source: release.Source{Base: r.URL}, OS: "linux", Arch: "amd64"}
 }
 
-func versionRun(t *testing.T, u upgrader) string {
+func versionRun(t *testing.T, u release.Upgrader) string {
 	t.Helper()
 	v, err := release.VersionOf(u.Exe)
 	if err != nil {
@@ -37,7 +37,7 @@ func TestUpgrade_InstallsTheLatest(t *testing.T) {
 	r := releasetest.New(t)
 	r.Release("v1.4.0")
 	u := installedWS(t, r, "v1.3.0")
-	got, err := u.upgrade(context.Background(), "", false)
+	got, err := u.Upgrade(context.Background(), "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,15 +57,15 @@ func TestUpgrade_LeavesTheWSAsItIs(t *testing.T) {
 	for _, tc := range []struct {
 		name, running, version string
 		check                  bool
-		want                   upgraded
+		want                   release.Upgraded
 	}{
-		{"it's the latest", "v1.4.0", "", false, upgraded{From: "v1.4.0", To: "v1.4.0", Current: true}},
-		{"it's the one named", "v1.4.0", "v1.4.0", false, upgraded{From: "v1.4.0", To: "v1.4.0", Current: true}},
-		{"a prerelease ahead of the latest", "v1.5.0-rc.1", "", false, upgraded{From: "v1.5.0-rc.1", To: "v1.4.0", Older: true}},
-		{"only looking", "v1.3.0", "", true, upgraded{From: "v1.3.0", To: "v1.4.0"}},
+		{"it's the latest", "v1.4.0", "", false, release.Upgraded{From: "v1.4.0", To: "v1.4.0", Current: true}},
+		{"it's the one named", "v1.4.0", "v1.4.0", false, release.Upgraded{From: "v1.4.0", To: "v1.4.0", Current: true}},
+		{"a prerelease ahead of the latest", "v1.5.0-rc.1", "", false, release.Upgraded{From: "v1.5.0-rc.1", To: "v1.4.0", Older: true}},
+		{"only looking", "v1.3.0", "", true, release.Upgraded{From: "v1.3.0", To: "v1.4.0"}},
 	} {
 		u := installedWS(t, r, tc.running)
-		got, err := u.upgrade(context.Background(), tc.version, tc.check)
+		got, err := u.Upgrade(context.Background(), tc.version, tc.check)
 		if err != nil || got != tc.want {
 			t.Errorf("%s: upgrade() = %+v, %v: want %+v", tc.name, got, err, tc.want)
 		}
@@ -84,7 +84,7 @@ func TestUpgrade_ToAReleaseThatsNamed(t *testing.T) {
 	r.Release("v1.5.0-rc.1")
 	for _, version := range []string{"v1.2.0", "v1.5.0-rc.1"} {
 		u := installedWS(t, r, "v1.4.0")
-		got, err := u.upgrade(context.Background(), version, false)
+		got, err := u.Upgrade(context.Background(), version, false)
 		if err != nil || !got.Installed || got.To != version {
 			t.Errorf("upgrade(%s) = %+v, %v", version, got, err)
 		}
@@ -100,15 +100,15 @@ func TestUpgrade_Refuses(t *testing.T) {
 	r.Release("v1.4.0")
 	for _, tc := range []struct {
 		name    string
-		change  func(*testing.T, *upgrader)
+		change  func(*testing.T, *release.Upgrader)
 		version string
 		want    string
 	}{
-		{"a ws built from a clone", func(_ *testing.T, u *upgrader) { u.Release = false }, "", "isn't a release's build"},
-		{"what isn't a tag", func(*testing.T, *upgrader) {}, "latest", "isn't a release's tag"},
-		{"a release that isn't there", func(*testing.T, *upgrader) {}, "v9.9.9", "is there such a release?"},
-		{"a machine with no builds", func(_ *testing.T, u *upgrader) { u.OS, u.Arch = "darwin", "amd64" }, "", "no release of ws for Intel Macs"},
-		{"a folder it can't write to", func(t *testing.T, u *upgrader) {
+		{"a ws built from a clone", func(_ *testing.T, u *release.Upgrader) { u.Release = false }, "", "isn't a release's build"},
+		{"what isn't a tag", func(*testing.T, *release.Upgrader) {}, "latest", "isn't a release's tag"},
+		{"a release that isn't there", func(*testing.T, *release.Upgrader) {}, "v9.9.9", "is there such a release?"},
+		{"a machine with no builds", func(_ *testing.T, u *release.Upgrader) { u.OS, u.Arch = "darwin", "amd64" }, "", "no release of ws for Intel Macs"},
+		{"a folder it can't write to", func(t *testing.T, u *release.Upgrader) {
 			if os.Getuid() == 0 {
 				t.Skip("root writes anywhere")
 			}
@@ -120,7 +120,7 @@ func TestUpgrade_Refuses(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			u := installedWS(t, r, "v1.3.0")
 			tc.change(t, &u)
-			got, err := u.upgrade(context.Background(), tc.version, false)
+			got, err := u.Upgrade(context.Background(), tc.version, false)
 			if err == nil || !strings.Contains(err.Error(), tc.want) || got.Installed {
 				t.Errorf("upgrade() = %+v, %v: want an error with %q", got, err, tc.want)
 			}

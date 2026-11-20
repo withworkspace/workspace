@@ -78,6 +78,17 @@ func (s *Server) Restarting() bool {
 	return s.restarting
 }
 
+// Pending is the ws found in place of the server's own, which it's to
+// restart onto once nothing's at work: its version, "" for none.
+func (s *Server) Pending() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.restartWanted {
+		return ""
+	}
+	return s.next
+}
+
 // watchExe restarts the server once its binary has been replaced, or a
 // restart's been asked for, and nothing's at work. was is its binary as
 // the server started.
