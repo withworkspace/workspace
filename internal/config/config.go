@@ -160,6 +160,11 @@ type ThingKind struct {
 	// None: the folder its plugin names for the kind, in the records repo,
 	// and then in each of the workspace's other spaces.
 	Paths []string `toml:"paths,omitempty"`
+	// Subfolders lets one be grouped where it goes: put in a folder of
+	// the place (records:sketches/cross-stack/release-flow/), named as
+	// it's promoted, among those already there or new. Without it, one
+	// goes straight in the place.
+	Subfolders bool `toml:"subfolders,omitempty"`
 }
 
 // ArtifactsConfig is [artifacts] in ws.toml: where artifacts (versioned

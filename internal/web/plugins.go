@@ -123,18 +123,24 @@ type Plugging interface {
 	// One of a plugin's own things put in a repo, and saved there, for
 	// you, and where one would go: what ws's own UI over a plugin's page
 	// asks (thing-promote, thing-save).
-	PromoteThing(ctx context.Context, who, kind, name, to string) (protocol.RemoteSaved, error)
+	PromoteThing(ctx context.Context, who, kind, name string, where ops.ThingWhere) (protocol.RemoteSaved, error)
 	SaveThing(ctx context.Context, who, kind, name string) (protocol.RemoteSaved, error)
 	ThingOffered(who, kind, title string) ([]ops.ThingOffer, error)
 }
 
 // ThingRequest is one of a plugin's own things to put in a repo, or to
 // save there: its kind, the plugin's name for it, and, to promote it,
-// where you said it's to live (repo:folder/), if you did.
+// where it's to live, if you said: a folder of its own (To, as
+// repo:folder/), or one of the places its kind's things go (Place, as
+// ThingPlace.Place has it) and a folder of that to group it in (Under:
+// cross-stack), where the kind's things may be grouped. With none of
+// them, it's the first of the places.
 type ThingRequest struct {
-	Kind string `json:"kind"`
-	Ref  string `json:"ref"`
-	To   string `json:"to,omitempty"`
+	Kind  string `json:"kind"`
+	Ref   string `json:"ref"`
+	To    string `json:"to,omitempty"`
+	Place string `json:"place,omitempty"`
+	Under string `json:"under,omitempty"`
 }
 
 // ThingAt is a plugin's thing as it is in its repo: its name in ws (its
@@ -175,6 +181,14 @@ type ThingPlace struct {
 	Repo   string `json:"repo"`
 	Label  string `json:"label"`
 	Direct bool   `json:"direct"`
+	// Place is the place as ws.toml says one (records:sketches/{slug}/):
+	// what a request names to put the thing there.
+	Place string `json:"place"`
+	// Subfolders is whether the thing may be grouped there, in a folder
+	// of the place, and Groups the folders its kind's things are grouped
+	// in there now (cross-stack, plans, plans/q4).
+	Subfolders bool     `json:"subfolders,omitempty"`
+	Groups     []string `json:"groups,omitempty"`
 }
 
 func thingSaved(done protocol.RemoteSaved) ThingSaved {
@@ -207,7 +221,7 @@ func (s *Server) promoteThing(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	done, err := s.App.PromoteThing(r.Context(), name, req.Kind, req.Ref, req.To)
+	done, err := s.App.PromoteThing(r.Context(), name, req.Kind, req.Ref, ops.ThingWhere{To: req.To, Place: req.Place, Under: req.Under})
 	if err != nil {
 		writeError(w, err, http.StatusBadGateway)
 		return
@@ -245,7 +259,7 @@ func (s *Server) thingOffered(w http.ResponseWriter, r *http.Request) {
 	}
 	out := ThingOffered{Places: []ThingPlace{}}
 	for _, at := range offers {
-		out.Places = append(out.Places, ThingPlace{Where: at.Where, Repo: at.Repo, Label: at.Label, Direct: at.Direct})
+		out.Places = append(out.Places, ThingPlace{Where: at.Where, Repo: at.Repo, Label: at.Label, Direct: at.Direct, Place: at.Place, Subfolders: at.Subfolders, Groups: at.Groups})
 	}
 	writeJSON(w, http.StatusOK, out)
 }

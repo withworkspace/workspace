@@ -18976,6 +18976,49 @@ a.plugin-row-out {
   font-weight: 500;
 }
 
+/* A folder of the place picked, to group the thing in: a field, and the
+   folders in use there to pick from. */
+.thing-ui-group {
+  display: grid;
+  gap: 6px;
+}
+
+.thing-ui-group label {
+  display: grid;
+  gap: 4px;
+}
+
+.thing-ui-group input {
+  width: 100%;
+}
+
+.thing-ui-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.thing-ui-groups button.chip {
+  height: auto;
+  min-height: 0;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--well);
+  color: var(--dim);
+  font: 500 var(--text-xs) / 18px var(--mono);
+  cursor: pointer;
+}
+
+.thing-ui-groups button.chip:hover {
+  color: var(--fg);
+}
+
+.thing-ui-groups button.chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .thing-ui-line {
   display: flex;
   align-items: center;

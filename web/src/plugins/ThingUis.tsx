@@ -86,10 +86,26 @@ function OverFrame({ anchor, label, busy, dismiss, children }: { anchor?: Anchor
   );
 }
 
+// grouped is where a thing would live in a place, in a folder of it:
+// records:sketches/release-flow/ in cross-stack is
+// records:sketches/cross-stack/release-flow/.
+function grouped(where: string, under: string): string {
+  const group = under
+    .split("/")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join("/");
+  const at = where.replace(/\/$/, "").lastIndexOf("/");
+  const cut = at < 0 ? where.indexOf(":") : at;
+  return group && cut >= 0 ? `${where.slice(0, cut + 1)}${group}/${where.slice(cut + 1)}` : where;
+}
+
 // ThingPromoteUi puts one of a plugin's own things in a repo: it says
 // where it would live, or, where its kind's things go in more places than
-// one, has you pick among them; takes somewhere else if you say; and does
-// it when you say. What comes of it is where the thing is now.
+// one, has you pick among them; takes a folder of the place to group it
+// in, where its kind's things may be grouped, with those in use to pick
+// from; takes somewhere else if you say; and does it when you say. What
+// comes of it is where the thing is now.
 export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps) {
   const thing = asked(asking.with);
   const [places, setPlaces] = useState<api.ThingPlace[]>();
@@ -97,6 +113,8 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
   // Which of the places, or somewhere else, said in words.
   const [pick, setPick] = useState<number | "else">(0);
   const [elsewhere, setElsewhere] = useState("");
+  // A folder of the place picked, to group it in: for a place that takes one.
+  const [under, setUnder] = useState("");
   const [busy, setBusy] = useState(false);
   const go = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -121,15 +139,22 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
   }, [plugin, thing.kind, thing.title]);
   useEffect(() => go.current?.focus(), [places]);
 
+  // Another place has folders of its own: the one said for the last isn't carried to it.
+  const choose = (next: number | "else") => {
+    if (next !== pick) setUnder("");
+    setPick(next);
+  };
   const place = pick === "else" ? undefined : places?.[pick];
+  const group = place?.subfolders ? under.trim().replace(/^\/+|\/+$/g, "") : "";
   const to = pick === "else" ? elsewhere.trim() : place?.where;
   const promote = async () => {
     if (!to) return;
     setBusy(true);
     setFailed("");
     try {
-      // The first place is where one goes with nowhere said: ws names its folder afresh, as the repo is on its remote then.
-      done(await api.promoteThing(plugin, { kind: thing.kind, ref: thing.ref, ...(pick === 0 ? {} : { to }) }));
+      // A place is named, not its folder: ws names the thing's own afresh, as the repo is on its remote then. The first is where one goes with nothing said.
+      const where = pick === "else" ? { to } : { ...(pick === 0 ? {} : { place: place?.place }), ...(group ? { under: group } : {}) };
+      done(await api.promoteThing(plugin, { kind: thing.kind, ref: thing.ref, ...where }));
     } catch (err) {
       setFailed(said(err));
       setBusy(false);
@@ -151,7 +176,7 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
         {!places && <p className="thing-ui-where">Working out where it would live…</p>}
         {places && !several && pick !== "else" && place && (
           <p className="thing-ui-where">
-            It'll live at <code>{place.where}</code>
+            It'll live at <code>{grouped(place.where, group)}</code>
             <button type="button" className="link" disabled={busy} onClick={() => setPick("else")}>
               Somewhere else…
             </button>
@@ -162,18 +187,40 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
             <legend>Where it'll live</legend>
             {places.map((p, i) => (
               <label key={p.where} className="thing-ui-place">
-                <input type="radio" name="thing-place" checked={pick === i} onChange={() => setPick(i)} />
+                <input type="radio" name="thing-place" checked={pick === i} onChange={() => choose(i)} />
                 <span>
                   <span className="thing-ui-repo">{p.label}</span>
-                  <code>{p.where}</code>
+                  <code>{pick === i ? grouped(p.where, group) : p.where}</code>
                 </span>
               </label>
             ))}
             <label className="thing-ui-place">
-              <input type="radio" name="thing-place" checked={pick === "else"} onChange={() => setPick("else")} />
+              <input type="radio" name="thing-place" checked={pick === "else"} onChange={() => choose("else")} />
               <span>Somewhere else…</span>
             </label>
           </fieldset>
+        )}
+        {place?.subfolders && (
+          <div className="thing-ui-group">
+            <label>
+              <span className="dim">In a folder there, if you like</span>
+              <input type="text" className="mono" value={under} placeholder="cross-stack" aria-label={`A folder of ${place.label} to group it in`} list="thing-ui-groups" disabled={busy} onChange={(e) => setUnder(e.currentTarget.value)} />
+            </label>
+            <datalist id="thing-ui-groups">
+              {(place.groups ?? []).map((g) => (
+                <option key={g} value={g} />
+              ))}
+            </datalist>
+            {!!place.groups?.length && (
+              <div className="thing-ui-groups" role="group" aria-label="The folders in use there">
+                {place.groups.slice(0, 8).map((g) => (
+                  <button key={g} type="button" className="chip" aria-pressed={group === g} disabled={busy} onClick={() => setUnder(group === g ? "" : g)}>
+                    {g}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
         {places && pick === "else" && (
           <label className="thing-ui-where">

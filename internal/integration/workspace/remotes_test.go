@@ -551,3 +551,120 @@ func TestWhereAKindsThingsGo(t *testing.T) {
 		t.Fatalf("offered, once one's there: %s", got)
 	}
 }
+
+// A kind whose things may be grouped ([things.<kind>] subfolders) has one
+// put in a folder of the place it goes, named as it's promoted: its own
+// folder is named for its title there. ws finds it as it finds any, the
+// folders in use are offered the next time, and nothing's put inside
+// another thing's folder.
+func TestAKindsThingsAreGroupedInFolders(t *testing.T) {
+	w := testutil.SetupWorkspace(t, testutil.WorkspaceOpts{Org: "test-org", DefaultBranch: "main", Repos: []testutil.RepoOpts{
+		{Name: "records", Landing: "direct"}, {Name: "docs", Landing: "direct"},
+	}})
+	toml, err := os.ReadFile(filepath.Join(w.Root, "ws.toml"))
+	if err != nil || !strings.Contains(string(toml), "[repos.docs]\n") {
+		t.Fatalf("the workspace's ws.toml has no [repos.docs]: %v\n%s", err, toml)
+	}
+	base := strings.Replace(string(toml), "[repos.docs]\n", "[repos.docs]\ndocuments = true\n", 1) + "\n[missions]\nrecords = \"records\"\n\n[things.sketch]\npaths = [\"records:sketches/{slug}/\", \"docs:architecture/{slug}/\"]\n"
+	configure := func(more string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(w.Root, "ws.toml"), []byte(base+more), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	configure("")
+	registerPlugin(t, w.Root, "sketch", plugin.Registration{Commands: &plugin.Commands{}, Refs: []protocol.Ref{sketchKind}})
+	if refused, err := plugin.KeepRefs(w.Root, "sketch", []protocol.Ref{sketchKind}); err != nil || len(refused) != 0 {
+		t.Fatalf("keeping sketch's refs: %v, %v", refused, err)
+	}
+	r := &reader{own: map[string]*ownSketch{}}
+	for _, name := range []string{"sketch-1", "sketch-2", "sketch-3", "sketch-4", "sketch-5"} {
+		r.own[name] = &ownSketch{title: "Architecture", scene: "layers of " + name}
+	}
+	r.own["sketch-2"].title = "Roadmap"
+	was := ops.RemoteReaders
+	ops.RemoteReaders = func(string) (ops.RemoteReader, error) { return r, nil }
+	t.Cleanup(func() { ops.RemoteReaders = was })
+	ctx := context.Background()
+	promote := func(name string, where ops.ThingWhere) (protocol.RemoteSaved, error) {
+		return cli.OpenOps(w.Root, nil).PromoteThing(ctx, "sketch", "sketch", name, where)
+	}
+	offers := func() []ops.ThingOffer {
+		t.Helper()
+		out, err := cli.OpenOps(w.Root, nil).ThingOffered("sketch", "sketch", "Architecture")
+		if err != nil || len(out) != 2 {
+			t.Fatalf("offered: %+v, %v", out, err)
+		}
+		return out
+	}
+
+	// Not said in ws.toml: one goes straight in its place, and a folder
+	// to group it in is refused, saying what would let it.
+	if o := offers(); o[0].Subfolders || o[0].Place != "records:sketches/{slug}/" || o[1].Place != "docs:architecture/{slug}/" {
+		t.Fatalf("offered, ungrouped: %+v", o)
+	}
+	var invalid *ops.Invalid
+	if _, err := promote("sketch-1", ops.ThingWhere{Under: "cross-stack"}); !errors.As(err, &invalid) || !strings.Contains(err.Error(), "[things.sketch] subfolders = true") {
+		t.Fatalf("grouped where things aren't: %v", err)
+	}
+
+	configure("subfolders = true\n")
+	if o := offers(); !o[0].Subfolders || len(o[0].Groups) != 0 {
+		t.Fatalf("offered, with nothing grouped yet: %+v", o)
+	}
+	// What isn't a folder's name, or leads out of the place, isn't taken.
+	for _, bad := range []string{"../elsewhere", "a//b", ".hidden", "two words", "a/b/c/d/e/f/g"} {
+		if _, err := promote("sketch-1", ops.ThingWhere{Under: bad}); !errors.As(err, &invalid) {
+			t.Errorf("grouped in %q: %v", bad, err)
+		}
+	}
+	if _, err := promote("sketch-1", ops.ThingWhere{Place: "records:elsewhere/{slug}/"}); !errors.As(err, &invalid) || !strings.Contains(err.Error(), "isn't one of the places") {
+		t.Errorf("a place that isn't one of the kind's: %v", err)
+	}
+
+	// In a folder of the first place, and of the second, some folders deep.
+	done, err := promote("sketch-1", ops.ThingWhere{Under: "/cross-stack/"})
+	if err != nil || done.Thing.Name != "records/sketches/cross-stack/architecture/" || done.Thing.Main != "architecture.excalidraw" {
+		t.Fatalf("grouped in the first place: %+v, %v", done.Thing, err)
+	}
+	done, err = promote("sketch-2", ops.ThingWhere{Place: "docs:architecture/{slug}/", Under: "plans/q4"})
+	if err != nil || done.Thing.Name != "docs/architecture/plans/q4/roadmap/" {
+		t.Fatalf("grouped in the second place: %+v, %v", done.Thing, err)
+	}
+	// ws finds each where it is, as it finds any.
+	for _, name := range []string{"records/sketches/cross-stack/architecture/", "docs/architecture/plans/q4/roadmap/"} {
+		if rec, ok, err := plugin.ThingOf(w.Root, "sketch", "sketch", name); err != nil || !ok || rec.Found == "" {
+			t.Errorf("%s, as ws keeps it: %+v, %v, %v", name, rec, ok, err)
+		}
+	}
+	// The folders in use are offered, each place its own, with those they're in.
+	o := offers()
+	if got := strings.Join(o[0].Groups, " "); got != "cross-stack" {
+		t.Errorf("the first place's folders: %q", got)
+	}
+	if got := strings.Join(o[1].Groups, " "); got != "plans plans/q4" {
+		t.Errorf("the second place's folders: %q", got)
+	}
+	// Straight in the place, the name's free still; in the folder, it's taken.
+	if o[0].Where != "records:sketches/architecture/" {
+		t.Errorf("offered straight in the place: %s", o[0].Where)
+	}
+	if done, err := promote("sketch-3", ops.ThingWhere{Under: "cross-stack"}); err != nil || done.Thing.Name != "records/sketches/cross-stack/architecture-2/" {
+		t.Errorf("a second of that title in the folder: %+v, %v", done.Thing, err)
+	}
+
+	// A thing's folder is the thing's: nothing's put in it, grouped there or named there.
+	if _, err := promote("sketch-4", ops.ThingWhere{Under: "cross-stack/architecture"}); !errors.As(err, &invalid) || !strings.Contains(err.Error(), "is a thing itself") {
+		t.Errorf("grouped in a thing's own folder: %v", err)
+	}
+	if _, err := promote("sketch-4", ops.ThingWhere{To: "records:sketches/cross-stack/architecture/inside/"}); !errors.As(err, &invalid) || !strings.Contains(err.Error(), "is a thing itself") {
+		t.Errorf("put in a thing's own folder: %v", err)
+	}
+	// Where you say is still anywhere in a space, however deep.
+	if done, err := promote("sketch-5", ops.ThingWhere{To: "records:sketches/cross-stack/deeper/arch/"}); err != nil || done.Thing.Name != "records/sketches/cross-stack/deeper/arch/" {
+		t.Errorf("put where you said: %+v, %v", done.Thing, err)
+	}
+	if got := strings.Join(offers()[0].Groups, " "); got != "cross-stack cross-stack/deeper" {
+		t.Errorf("the first place's folders, with one put deeper by hand: %q", got)
+	}
+}

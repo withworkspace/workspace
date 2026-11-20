@@ -60,7 +60,7 @@ func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params
 		if err := decodeParams(params, &in); err != nil {
 			return nil, err
 		}
-		return pluginSaved(w.PromoteThing(ctx, who, in.Kind, in.Ref, in.To))
+		return pluginSaved(w.PromoteThing(ctx, who, in.Kind, in.Ref, ThingWhere{To: in.To}))
 	case protocol.MethodRemoteSave:
 		var in protocol.RemoteSaveParams
 		if err := decodeParams(params, &in); err != nil {

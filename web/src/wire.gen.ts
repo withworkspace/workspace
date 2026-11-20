@@ -4662,18 +4662,36 @@ export interface ThingPlace {
     repo: string;
     label: string;
     direct: boolean;
+    /**
+     * Place is the place as ws.toml says one (records:sketches/{slug}/):
+     * what a request names to put the thing there.
+     */
+    place: string;
+    /**
+     * Subfolders is whether the thing may be grouped there, in a folder
+     * of the place, and Groups the folders its kind's things are grouped
+     * in there now (cross-stack, plans, plans/q4).
+     */
+    subfolders?: boolean;
+    groups?: string[];
 }
 
 // From web/plugins.go
 /**
  * ThingRequest is one of a plugin's own things to put in a repo, or to
  * save there: its kind, the plugin's name for it, and, to promote it,
- * where you said it's to live (repo:folder/), if you did.
+ * where it's to live, if you said: a folder of its own (To, as
+ * repo:folder/), or one of the places its kind's things go (Place, as
+ * ThingPlace.Place has it) and a folder of that to group it in (Under:
+ * cross-stack), where the kind's things may be grouped. With none of
+ * them, it's the first of the places.
  */
 export interface ThingRequest {
     kind: string;
     ref: string;
     to?: string;
+    place?: string;
+    under?: string;
 }
 
 // From web/plugins.go

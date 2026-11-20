@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -57,6 +58,59 @@ type thingPlace struct{ repo, folder string }
 // named is the place's folder for a thing of that slug.
 func (p thingPlace) named(slugName string) string {
 	return strings.TrimSuffix(strings.ReplaceAll(p.folder, protocol.RemoteSlug, slugName), "/")
+}
+
+// said is the place as ws.toml says one: records:sketches/{slug}/.
+func (p thingPlace) said() string { return p.repo + ":" + p.folder + "/" }
+
+// base is the folder the place's things are in, each in a folder of its
+// own there: sketches, or "" for the repo's top.
+func (p thingPlace) base() string {
+	if dir := path.Dir(p.folder); dir != "." {
+		return dir
+	}
+	return ""
+}
+
+// under is the place with a folder between it and each thing's own, to
+// group them: records:sketches/cross-stack/{slug}/.
+func (p thingPlace) under(group string) thingPlace {
+	return thingPlace{repo: p.repo, folder: path.Join(p.base(), group, path.Base(p.folder))}
+}
+
+// groupPart is a folder's name, as one a thing's grouped in may be
+// called: plain, and nothing that leads out of where it is.
+var groupPart = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
+
+// thingGroup is a folder to group a thing in, as it was said, checked:
+// plain names with / between them (cross-stack, plans/q4), "" for none.
+func thingGroup(said string) (string, error) {
+	said = strings.Trim(strings.TrimSpace(said), "/")
+	if said == "" {
+		return "", nil
+	}
+	parts := strings.Split(said, "/")
+	for _, part := range parts {
+		if !groupPart.MatchString(part) {
+			return "", &Invalid{Reason: fmt.Sprintf("a folder to group it in is plain names with / between them (cross-stack, plans/q4): %q isn't", said)}
+		}
+	}
+	if len(parts) > 6 {
+		return "", &Invalid{Reason: fmt.Sprintf("%q is %d folders deep: 6 at most", said, len(parts))}
+	}
+	return strings.Join(parts, "/"), nil
+}
+
+// insideThing is the thing a folder would be inside, as the repo stands in
+// worktree: the nearest folder above it with a thing.toml. A thing's
+// folder is written whole when it's saved, so nothing else can be in it.
+func insideThing(worktree, folder string) (string, bool) {
+	for dir := path.Dir(folder); dir != "." && dir != "/"; dir = path.Dir(dir) {
+		if _, err := os.Stat(filepath.Join(worktree, filepath.FromSlash(dir), protocol.ManifestName)); err == nil {
+			return dir, true
+		}
+	}
+	return "", false
 }
 
 // thingPlaces are the places one of a kind's things may be put, the first
@@ -211,13 +265,29 @@ func (w *Workspace) thingPut(ctx context.Context, remotes RemoteReader, k plugin
 	return out, nil
 }
 
+// ThingWhere is where a thing's to live when it's promoted.
+type ThingWhere struct {
+	// To is exactly where, as repo:folder/: the folder's the thing's own.
+	// "" for one of the places its kind's things go.
+	To string
+	// Place is which of those places, as ThingOffer.Place says it
+	// (records:sketches/{slug}/): "" for the first. Under is a folder of
+	// the place to group it in (cross-stack, plans/q4), where the kind's
+	// things may be grouped ([things.<kind>] subfolders): "" for straight
+	// in the place. Its own folder is named for its title there, as the
+	// repo stands when it's promoted.
+	Place, Under string
+}
+
 // PromoteThing puts one of the plugin who's own things in a repo, for
-// you: name is the plugin's name for it, and to where you said it's to
-// live (repo:folder/), or "" for where the kind's things go: the
-// workspace's records repo, in the folder the kind names for the title's
-// slug. It's one commit, landed on the repo's default branch, or left in
-// a capsule where the repo takes pull requests.
-func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name, to string) (protocol.RemoteSaved, error) {
+// you: name is the plugin's name for it, and where says where it's to
+// live: a folder you named, or one of the places the kind's things go
+// (the first, with nothing said: the workspace's records repo, in the
+// folder the kind names for the title's slug, unless ws.toml says
+// otherwise), in a folder of it where you said one. It's one commit,
+// landed on the repo's default branch, or left in a capsule where the
+// repo takes pull requests.
+func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name string, where ThingWhere) (protocol.RemoteSaved, error) {
 	var none protocol.RemoteSaved
 	k, err := w.thingKind(who, kind)
 	if err != nil {
@@ -240,7 +310,7 @@ func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name, to string
 	// repo's default branch is in hand.
 	repo, folder, named := "", "", ""
 	var place thingPlace
-	if to = strings.TrimSpace(to); to != "" {
+	if to := strings.TrimSpace(where.To); to != "" {
 		if repo, folder, err = w.homeNamed(to); err != nil {
 			return none, err
 		}
@@ -254,6 +324,23 @@ func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name, to string
 			return none, &Invalid{Reason: fmt.Sprintf("the workspace has no space of documents to put a %s in: say where it's to live, as repo:folder/", kind)}
 		}
 		place = places[0]
+		if said := strings.TrimSpace(where.Place); said != "" {
+			i := slices.IndexFunc(places, func(p thingPlace) bool { return p.said() == said })
+			if i < 0 {
+				return none, &Invalid{Reason: fmt.Sprintf("%s isn't one of the places a %s goes: ws doctor says which there are", said, kind)}
+			}
+			place = places[i]
+		}
+		group, err := thingGroup(where.Under)
+		if err != nil {
+			return none, err
+		}
+		if group != "" {
+			if !w.Config().Things[kind].Subfolders {
+				return none, &Invalid{Reason: fmt.Sprintf("a %s goes straight in %s: [things.%s] subfolders = true in ws.toml lets one be grouped in a folder there", kind, place.repo+":"+place.base()+"/", kind)}
+			}
+			place = place.under(group)
+		}
 		repo = place.repo
 	}
 	var written protocol.RemoteThing
@@ -262,6 +349,9 @@ func (w *Workspace) PromoteThing(ctx context.Context, who, kind, name, to string
 			named, folder = place.free(capsule, given.Title, kind)
 		} else if _, err := os.Lstat(filepath.Join(capsule, filepath.FromSlash(folder))); err == nil {
 			return "", "", "", false, &Invalid{Reason: fmt.Sprintf("there's something at %s:%s/ already: name another folder for it to live in", repo, folder)}
+		}
+		if outer, inside := insideThing(capsule, folder); inside {
+			return "", "", "", false, &Invalid{Reason: fmt.Sprintf("%s:%s/ is a thing itself, and one isn't put inside another: name a folder beside it", repo, outer)}
 		}
 		main := strings.ReplaceAll(k.Remote.Main, protocol.RemoteSlug, named)
 		if err := writeThing(filepath.Join(capsule, filepath.FromSlash(folder)), kind, main, named, given.RemotePackage); err != nil {
@@ -414,6 +504,14 @@ type ThingOffer struct {
 	// thing is left in a capsule to open a pull request from.
 	Repo, Label string
 	Direct      bool
+	// Place is the place it's one of, as ws.toml says one
+	// (records:sketches/{slug}/): what PromoteThing takes to put it there.
+	Place string
+	// Subfolders is whether the kind's things may be grouped there, in a
+	// folder of the place, and Groups the folders its things are grouped
+	// in now, by name (cross-stack, plans, plans/q4).
+	Subfolders bool
+	Groups     []string
 }
 
 // ThingOffered is where one of the plugin who's things of a kind, called
@@ -428,12 +526,50 @@ func (w *Workspace) ThingOffered(who, kind, title string) ([]ThingOffer, error) 
 		return nil, err
 	}
 	places, _ := w.thingPlaces(k)
+	grouped := w.Config().Things[kind].Subfolders
+	var things []space.Thing
+	if grouped {
+		// As the spaces were last read: it's what's offered, not what's done.
+		if db, err := w.Records(); err == nil {
+			things, _ = space.Things(context.Background(), db, kind)
+		}
+	}
 	out := make([]ThingOffer, 0, len(places))
 	for _, p := range places {
 		_, folder := p.free(w.WS().MainWorktree(p.repo), title, kind)
-		out = append(out, ThingOffer{Where: p.repo + ":" + folder + "/", Repo: p.repo, Label: w.WS().DisplayNameFor(p.repo), Direct: w.WS().Direct(p.repo)})
+		offer := ThingOffer{Where: p.repo + ":" + folder + "/", Repo: p.repo, Label: w.WS().DisplayNameFor(p.repo), Direct: w.WS().Direct(p.repo), Place: p.said(), Subfolders: grouped}
+		if grouped {
+			offer.Groups = p.groups(things)
+		}
+		out = append(out, offer)
 	}
 	return out, nil
+}
+
+// groups are the folders of the place that things are grouped in, by
+// name, and the folders those are in: for things of the place's repo.
+func (p thingPlace) groups(things []space.Thing) []string {
+	base := p.base()
+	if base != "" {
+		base += "/"
+	}
+	seen := map[string]bool{}
+	for _, t := range things {
+		rel, ok := strings.CutPrefix(t.Path, base)
+		if t.Repo != p.repo || !ok {
+			continue
+		}
+		// What's above the thing's own folder, and each folder above that.
+		for dir := path.Dir(strings.TrimSuffix(rel, "/")); dir != "." && dir != "/"; dir = path.Dir(dir) {
+			seen[dir] = true
+		}
+	}
+	out := make([]string, 0, len(seen))
+	for g := range seen {
+		out = append(out, g)
+	}
+	slices.Sort(out)
+	return out
 }
 
 // ThingPlaceProblems are the places ws.toml names for the plugins' kinds
