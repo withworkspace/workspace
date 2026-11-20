@@ -86,6 +86,10 @@ type PluginRef struct {
 	Views    map[string][]protocol.Block `json:"views,omitempty"`
 	// Actions are what can be done to one of its things, from Find.
 	Actions []protocol.Action `json:"actions,omitempty"`
+	// Remote: its things can live in a repo. One that does is named by
+	// its folder there (records/sketches/release-flow/), not as the kind
+	// names things, and its page is where the kind's are, by that name.
+	Remote bool `json:"remote,omitempty"`
 }
 
 // PluginThing is one of a plugin's things: its name, and a value for each
@@ -454,7 +458,7 @@ func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
 		if len(statuses) > 0 {
 			kept, _ := plugin.Refs(s.Plugins.Root)
 			for _, k := range kept {
-				r := PluginRef{Kind: k.Kind, Title: k.Title, Icon: k.Icon, Prefixes: k.Prefixes, Tail: k.Tail, Address: k.Address, Path: k.Path, Fields: k.Fields, Actions: k.Actions}
+				r := PluginRef{Kind: k.Kind, Title: k.Title, Icon: k.Icon, Prefixes: k.Prefixes, Tail: k.Tail, Address: k.Address, Path: k.Path, Fields: k.Fields, Actions: k.Actions, Remote: k.Remote != nil}
 				// A view with nothing in it is no view: ws draws its own.
 				for where, blocks := range k.Views {
 					if len(blocks) > 0 {

@@ -2730,6 +2730,12 @@ export interface PluginRef {
      * Actions are what can be done to one of its things, from Find.
      */
     actions?: ProtocolAction[];
+    /**
+     * Remote: its things can live in a repo. One that does is named by
+     * its folder there (records/sketches/release-flow/), not as the kind
+     * names things, and its page is where the kind's are, by that name.
+     */
+    remote?: boolean;
 }
 
 // From web/plugins.go
