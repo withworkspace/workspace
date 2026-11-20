@@ -17,17 +17,21 @@ import (
 // a repo whole, before they all lived here (BringHome).
 
 // WriteHome writes an artifact as its home in a repo has it, in dir (its
-// folder there, in a worktree): the version chosen (HomeFile), and a
-// record of it (a.AtHome). Whatever was in the folder goes: it holds one
-// version, the one chosen now.
-func WriteHome(dir string, a *Artifact, p Promotion, html []byte) error {
+// folder there, in a worktree): the version chosen, its page (HomeFile)
+// and the files beside it, each at its path, and a record of it
+// (a.AtHome). Whatever was in the folder goes: it holds one version, the
+// one chosen now.
+func WriteHome(dir string, a *Artifact, p Promotion, files Files) error {
+	if _, ok := files.Index(); !ok {
+		return fmt.Errorf("v%d has no %s", p.Version, IndexFile)
+	}
 	if err := os.RemoveAll(dir); err != nil {
 		return err
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(dir, HomeFile), html, 0o644); err != nil {
+	if err := files.WriteFolder(dir); err != nil {
 		return err
 	}
 	data, err := Encode(a.AtHome(p))

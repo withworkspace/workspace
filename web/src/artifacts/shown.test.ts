@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArtifactInfo } from "../api";
-import { ANYWHERE, artifactStatus, behind, BY_HAND, keptIcon, keptTitle, keptWords, fromRef, listed, missionTalk, sizeWords, sources, stepVersion, versionOf } from "./shown";
+import { ANYWHERE, artifactStatus, behind, BY_HAND, filesWords, keptIcon, keptTitle, keptWords, fromRef, listed, missionTalk, sizeWords, sources, stepVersion, versionOf } from "./shown";
 
 const art = (id: string, status: ArtifactInfo["status"], from: string[] = []): ArtifactInfo => ({
   id,
@@ -96,3 +96,12 @@ describe("where it's kept", () => {
     expect(behind({ home: { ...home, version: 4 }, latest: v(4) })).toBe(0);
   });
 });
+describe("how much a version is", () => {
+  it("says its size alone for one that's its page only, and how many files for one with more", () => {
+    expect(filesWords(undefined, 2048)).toBe("2 KB");
+    expect(filesWords(1, 2048)).toBe("2 KB");
+    expect(filesWords(9, 5 * 1024)).toBe("9 files, 5 KB");
+    expect(filesWords(3, 3 << 20)).toBe("3 files, 3 MB");
+  });
+});
+

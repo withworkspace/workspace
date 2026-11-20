@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -169,7 +170,16 @@ func (w *Workspace) acceptArtifact(store conversation.Store, c *conversation.Con
 	if title == "" && len(c.Turns) > 0 {
 		title = clipLine(c.Turns[0].Body, 80)
 	}
-	added, err := w.AddArtifact(ArtifactAdd{HTML: []byte(p.HTML), Title: p.Title, Note: p.Note, To: p.To, On: p.On, From: from, FromTitle: title, Proposal: p.N}, AsYou)
+	add := ArtifactAdd{HTML: []byte(p.HTML), Title: p.Title, Note: p.Note, To: p.To, On: p.On, From: from, FromTitle: title, Proposal: p.N}
+	if p.Tree != "" {
+		// More than its page: its files, as they were kept when it was
+		// proposed.
+		var err error
+		if add.Files, err = w.Artifacts().ProposedFiles(context.Background(), p.Tree); err != nil {
+			return "", invalid("not added: %v", err)
+		}
+	}
+	added, err := w.AddArtifact(add, AsYou)
 	if err != nil {
 		return "", err
 	}

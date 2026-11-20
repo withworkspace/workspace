@@ -49,7 +49,7 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 		head = fmt.Sprintf("Artifact %s, v%d of %d — %q (%s, %s)", e.ID, asked, n, e.Title, state, kept)
 	}
 	v := &view{head: head}
-	v.body = append(v.body, "An artifact is one HTML file, with its CSS and JS inline, that shows an idea, to look at and use. Each version is a whole file, never changed once written.")
+	v.body = append(v.body, "An artifact is a page that shows an idea, to look at and use: index.html, alone or with the files it loads beside it. Each version is whole, never changed once written.")
 	dir := st.Path(e)
 	switch {
 	case e.Away():
@@ -59,10 +59,10 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 	case e.Gone:
 		v.body = append(v.body, fmt.Sprintf("Its folder has gone from .ws/artifacts (it was %s): what's below is what the records kept, and there are no files to read.", dir))
 	default:
-		v.body = append(v.body, fmt.Sprintf("Kept in %s, on this machine: %s is its record, and v<n>.html each version. Made %s.", dir, artifact.RecordFile, when(e.Made)))
+		v.body = append(v.body, fmt.Sprintf("Kept in %s, on this machine: %s is its record, and %s the repo its versions' files are in, each a commit (v<n>). Made %s.", dir, artifact.RecordFile, artifact.RepoDir, when(e.Made)))
 	}
 	if h := e.Home; h != nil && e.Lives() != "" {
-		there := fmt.Sprintf("It lives in %s too, for everyone with %s: v%d is there (%s, and a record of it), put there %s", h.Where(), h.Repo, h.Version, artifact.HomeFile, when(h.At))
+		there := fmt.Sprintf("It lives in %s too, for everyone with %s: v%d is there (%s with its files, and a record of it), put there %s", h.Where(), h.Repo, h.Version, artifact.HomeFile, when(h.At))
 		if h.Commit != "" {
 			there += " in " + shortSHA(h.Commit)
 		}
@@ -113,10 +113,10 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 			line += fmt.Sprintf(" · based on v%d", ver.BasedOn)
 		}
 		line += " · " + when(ver.At) + " · " + provenance(ver)
-		if size, ok := st.VersionSize(e, ver.N); ok {
-			line += " · " + artifact.Size(size)
+		if files, size, ok := st.VersionSize(e, ver.N); ok {
+			line += " · " + artifact.FilesWords(files, size)
 		} else if !e.Gone && !e.Erased && !e.Away() {
-			line += " · its file is missing"
+			line += " · its files are missing"
 		}
 		if e.Home != nil && e.Lives() != "" && e.Home.Version == ver.N {
 			line += " · in " + e.Home.Repo
@@ -163,16 +163,30 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 				refs = append(refs, artifact.VersionRef(e.ID, n))
 			}
 		}
-		v.more = append(v.more, fmt.Sprintf("ws artifact show %s   prints v%d's HTML (and so for each: %s)", refs[0], show, strings.Join(refs, ", ")))
-		v.more = append(v.more, fmt.Sprintf("%s   is its file (v<n>.html beside it, each version's)", st.VersionPath(e, show)))
-	}
-	switch {
-	case e.Status == artifact.Discarded:
-	case agentConversation() != "":
-		// A conversation's agent proposes: the user adds it.
-		v.more = append(v.more, fmt.Sprintf("ws artifact add --propose --to %s --on v%d --note \"…\" - <<'EOF'   proposes a version, the whole file, based on v%d (ws artifact add --propose says how one's written)", e.ID, latest.N, latest.N))
-	default:
-		v.more = append(v.more, fmt.Sprintf("ws artifact add <file> --to %s --note \"…\"   adds a version, based on v%d (--on for another)", e.ID, latest.N))
+		// The files of the version shown, where it's more than its page.
+		list, _, _, _ := st.VersionFiles(context.Background(), e.ID, show)
+		many := len(list) > 1
+		if many {
+			v.body = append(v.body, "", fmt.Sprintf("v%d's files (%s is its page):", show, artifact.IndexFile))
+			for _, f := range list {
+				v.body = append(v.body, fmt.Sprintf("  %s · %s", f.Path, artifact.Size(f.Size)))
+			}
+		}
+		v.more = append(v.more, fmt.Sprintf("ws artifact show %s   prints v%d's page (and so for each: %s)", refs[0], show, strings.Join(refs, ", ")))
+		if many {
+			v.more = append(v.more, fmt.Sprintf("ws artifact show %s <file>   prints another of its files, by its path above", refs[0]))
+		}
+		v.more = append(v.more, fmt.Sprintf("ws artifact checkout %s   puts v%d's files in a folder, to work on", refs[0], show))
+		switch {
+		case e.Status == artifact.Discarded:
+		case agentConversation() != "" && many:
+			// A conversation's agent proposes: the user adds it.
+			v.more = append(v.more, fmt.Sprintf("ws artifact add --propose --to %s --on v%d --note \"…\" <folder>   proposes a version from the folder you checked out and changed, based on v%d (ws artifact add --propose says how one's written)", e.ID, show, show))
+		case agentConversation() != "":
+			v.more = append(v.more, fmt.Sprintf("ws artifact add --propose --to %s --on v%d --note \"…\" - <<'EOF'   proposes a version, the whole page, based on v%d; or give a folder, for one with files (ws artifact add --propose says how one's written)", e.ID, show, show))
+		default:
+			v.more = append(v.more, fmt.Sprintf("ws artifact add <file|folder> --to %s --note \"…\"   adds a version, based on v%d (--on for another)", e.ID, latest.N))
+		}
 	}
 	if said, err := ctx.SaidOf(store.Key{Name: e.ID}); err == nil {
 		v.addSaid(saidSection{title: "Said of it", said: said})

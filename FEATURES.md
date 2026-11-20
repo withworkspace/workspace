@@ -148,7 +148,7 @@ For thinking something through before, or beside, the work: `ws talk`. Its agent
 
 ### Artifacts
 
-Something to look at and use, for when that's better than a description: a mock-up, two takes on a layout, a diagram to click through. An artifact is one HTML file, kept in versions.
+Something to look at and use, for when that's better than a description: a mock-up, two takes on a layout, a diagram to click through. An artifact is a page, alone or with the files it loads beside it, kept in versions.
 
 <p align="center">
   <picture>
@@ -159,7 +159,8 @@ Something to look at and use, for when that's better than a description: a mock-
 </p>
 
 - Each version says who made it, what it's based on and what changed. *Compare* (`c`) puts two side by side.
-- It runs in a frame that fetches nothing and keeps nothing, at the width you pick.
+- It runs in a frame that loads its own files and nothing else, and keeps nothing, at the width you pick.
+- One with files is a folder: `ws artifact checkout a3` puts a version's files in a folder to work on, and the folder is added as the next version. *Source* (`s`) reads each file, and *Compare*'s source diff shows the files that differ.
 - Where there's something to choose between, the page says what can be changed and ws draws the controls beside it: its **tweaks**, with the agent's presets as buttons. The state is in the address, and *Compare* puts a version beside itself in two.
 - They're sketches, on your machine, and expire. *Promote* (`p`) keeps one, and puts the version you chose in a repo, for everyone with it. Where it lives is asked once: promote it again, versions later, and the one chosen then goes to the same folder.
 

@@ -131,6 +131,12 @@ export const widths: Width[] = [
   { key: "390", px: 390, label: "390", title: "A phone's width, 390px" },
 ];
 
+// filesWords says how much a version is: "3 files, 240 KB", or its size
+// alone for one that's its page only (artifact.FilesWords).
+export function filesWords(files: number | undefined, size: number): string {
+  return files && files > 1 ? `${files} files, ${sizeWords(size)}` : sizeWords(size);
+}
+
 // sizeWords says a file's size as a person would (artifact.Size).
 export function sizeWords(n: number): string {
   if (n >= 1 << 20) return `${(n / (1 << 20)).toFixed(1).replace(/\.0$/, "")} MB`;

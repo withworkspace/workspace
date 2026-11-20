@@ -974,7 +974,10 @@ export interface ArtifactVersion {
   proposal?: number;
   fromTitle?: string;
   note?: string;
-  size?: number; // its file's, on an artifact's page; absent while there's none
+  // How many files it has and what they come to, on an artifact's page;
+  // absent while there are none to read.
+  files?: number;
+  size?: number;
 }
 
 export type ArtifactStatus = "live" | "promoted" | "discarded";
@@ -1055,17 +1058,37 @@ export interface ArtifactDetail extends ArtifactInfo {
 }
 
 export const getArtifactDetail = (id: string) => getJSON<ArtifactDetail>(`/api/artifacts/${encodeURIComponent(id)}`);
-export const getArtifactSource = (id: string, version: number) =>
-  getJSON<{ version: number; text: string }>(`/api/artifacts/${encodeURIComponent(id)}/source?${new URLSearchParams({ v: String(version) })}`);
+// ArtifactFile is one of a version's files: its path in the version
+// (css/app.css), and its size.
+export interface ArtifactFile {
+  path: string;
+  size: number;
+}
 
-// ArtifactCompare is two versions' HTML, a's against b's, diffed as a
-// review's file is (internal/web/artifacts.go): each named as it was read
-// (a3.v2), and b's lines, to show the unchanged ones between the changes.
+// ArtifactSource is one of a version's files, as text to read (its page,
+// index.html, unless another's asked for), and the version's files, to
+// choose another. binary: it isn't text, and there's none.
+export interface ArtifactSource {
+  version: number;
+  file: string;
+  text: string;
+  binary?: boolean;
+  size: number;
+  files: ArtifactFile[];
+}
+
+export const getArtifactSource = (id: string, version: number, file = "") =>
+  getJSON<ArtifactSource>(`/api/artifacts/${encodeURIComponent(id)}/source?${new URLSearchParams(file ? { v: String(version), file } : { v: String(version) })}`);
+
+// ArtifactCompare is two versions' files, a's against b's: each file that
+// differs, diffed as a review's file is (internal/web/artifacts.go), with
+// its lines in b, to show the unchanged ones between the changes. Each
+// version is named as it was read (a3.v2). No files: the two are the
+// same. A file that isn't text is binary, with no hunks.
 export interface ArtifactCompare {
   a: string;
   b: string;
-  file: DiffFile;
-  lines: string[];
+  files: { file: DiffFile; lines: string[] }[];
 }
 
 export const getArtifactCompare = (a: string, b: string) => getJSON<ArtifactCompare>(`/api/artifacts/compare?${new URLSearchParams({ a, b })}`);
@@ -1832,8 +1855,10 @@ export interface TalkProposal {
   // it's a version of (to, a3), the version it's based on (on) and the
   // artifact's latest version as it was proposed (latest); as proposed,
   // where it would go (path), its size, and what in it won't load in the
-  // frame. Its HTML isn't sent: it runs from proposalFrameURL.
+  // frame. Its HTML isn't sent: it runs from proposalFrameURL. files:
+  // what it's made of, for one that's more than its page.
   note?: string;
+  files?: ArtifactFile[];
   to?: string;
   on?: number;
   latest?: number;

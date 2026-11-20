@@ -326,7 +326,7 @@ func promoteBody(p artifact.Promotion, a *artifact.Artifact, first bool) string 
 		s += "\n\n" + artifact.Body(v)
 	}
 	if first {
-		s += fmt.Sprintf("\n\nThis folder holds the version chosen (%s) and a record of it (%s). Its other versions are on the machine it was promoted on.", artifact.HomeFile, artifact.RecordFile)
+		s += fmt.Sprintf("\n\nThis folder holds the version chosen (%s, and the files beside it) and a record of it (%s). Its other versions are on the machine it was promoted on.", artifact.HomeFile, artifact.RecordFile)
 	}
 	return s
 }
@@ -355,13 +355,13 @@ func (w *Workspace) inLift(repo, branch, what string, change func(capsule string
 func settleNothing(string, []string) ([]string, bool) { return nil, false }
 
 // putHome puts a version of an artifact where it lives in a repo: its
-// file and a record of it, in the folder (named now, for one [artifacts]
+// files and a record of it, in the folder (named now, for one [artifacts]
 // names), in place of whatever was there, in one commit landed on the
 // repo's default branch. msg is the commit's first line, as [artifacts]
 // has it, and what how what it did is said ("Promoted", "Restored"). It's
 // where it lives now, as its record is to say.
 func (w *Workspace) putHome(store artifact.Store, cfg artifact.Config, e artifact.Entry, p artifact.Promotion, h *homeFor, msg, what string) (ArtifactDone, *artifact.Home, error) {
-	html, _, _, err := store.ReadVersion(context.Background(), e.ID, p.Version)
+	files, _, _, err := store.AllFiles(context.Background(), e.ID, p.Version)
 	if err != nil {
 		return ArtifactDone{}, nil, err
 	}
@@ -379,7 +379,7 @@ func (w *Workspace) putHome(store artifact.Store, cfg artifact.Config, e artifac
 				return "", "", "", false, invalid("there's something at %s:%s/ already: name another folder for %s to live in", h.repo, folder, e.ID)
 			}
 		}
-		if err := artifact.WriteHome(filepath.Join(capsule, filepath.FromSlash(folder)), &e.Artifact, p, html); err != nil {
+		if err := artifact.WriteHome(filepath.Join(capsule, filepath.FromSlash(folder)), &e.Artifact, p, files); err != nil {
 			return "", "", "", false, fmt.Errorf("writing %s into %s: %w", artifact.VersionRef(e.ID, p.Version), h.repo, err)
 		}
 		body := promoteBody(p, &e.Artifact, h.first)
@@ -552,10 +552,11 @@ func (w *Workspace) BringArtifactsHome() ([]artifact.Entry, error) {
 
 // ExpiredArtifacts is what the daemon's sweep did: the artifacts it
 // discarded, expired, those it deleted for good, discarded 30 days
-// before, and those it brought onto this machine from a repo they were
-// kept in whole.
+// before, those it brought onto this machine from a repo they were kept
+// in whole, and those whose versions it put in a repo of their own, from
+// when each was a file.
 type ExpiredArtifacts struct {
-	Discarded, Erased, Brought []artifact.Entry
+	Discarded, Erased, Brought, Converted []artifact.Entry
 }
 
 // ExpireArtifacts is the daemon's sweep of the artifacts: each expired
@@ -565,6 +566,9 @@ func (w *Workspace) ExpireArtifacts() (ExpiredArtifacts, error) {
 	var out ExpiredArtifacts
 	var err error
 	if out.Brought, err = w.BringArtifactsHome(); err != nil {
+		return out, err
+	}
+	if out.Converted, err = w.Artifacts().Convert(context.Background()); err != nil {
 		return out, err
 	}
 	if out.Discarded, err = w.discardExpired(AsWS); err != nil {

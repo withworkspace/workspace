@@ -720,9 +720,10 @@ type ArtifactVersion struct {
 	Proposal  int       `json:"proposal,omitempty"`
 	FromTitle string    `json:"fromTitle,omitempty"`
 	Note      string    `json:"note,omitempty"`
-	// Size is its file's, in bytes; 0 while there's no file to read (only
-	// on an artifact's page).
-	Size int `json:"size,omitempty"`
+	// Files is how many files it has, and Size what they come to, in
+	// bytes; 0 while there are none to read (only on an artifact's page).
+	Files int `json:"files,omitempty"`
+	Size  int `json:"size,omitempty"`
 }
 
 // ArtifactDone is what promoting, discarding or restoring an artifact
@@ -758,18 +759,39 @@ type ArtifactDetail struct {
 	HomeOffered string            `json:"homeOffered,omitempty"`
 }
 
-// ArtifactSource is GET /api/artifacts/{id}/source: a version's HTML.
+// ArtifactSource is GET /api/artifacts/{id}/source: one of a version's
+// files (its page, unless another's asked for), as text, and the
+// version's files. Binary: it isn't text, and Text is empty.
 type ArtifactSource struct {
-	Version int    `json:"version"`
-	Text    string `json:"text"`
+	Version int            `json:"version"`
+	File    string         `json:"file"`
+	Text    string         `json:"text"`
+	Binary  bool           `json:"binary,omitempty"`
+	Size    int            `json:"size"`
+	Files   []ArtifactFile `json:"files"`
 }
 
-// ArtifactCompare is GET /api/artifacts/compare: two versions' HTML, a's
-// against b's, as a review's file is diffed, and b's lines (to show the
-// unchanged ones between the changes).
+// ArtifactFile is one of a version's files: its path in the version, and
+// its size.
+type ArtifactFile struct {
+	Path string `json:"path"`
+	Size int    `json:"size"`
+}
+
+// ArtifactCompare is GET /api/artifacts/compare: two versions' files, a's
+// against b's: each file that differs, as a review's file is diffed, by
+// path. None: the two are the same.
 type ArtifactCompare struct {
-	A     string      `json:"a"` // a3.v1
-	B     string      `json:"b"`
+	A     string                `json:"a"` // a3.v1
+	B     string                `json:"b"`
+	Files []ArtifactCompareFile `json:"files"`
+}
+
+// ArtifactCompareFile is one file that differs between two versions: its
+// diff (added, deleted or modified; Binary for one that isn't text, which
+// has no hunks), and its lines in b, to show the unchanged ones between
+// the changes.
+type ArtifactCompareFile struct {
 	File  review.File `json:"file"`
 	Lines []string    `json:"lines"`
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
-import { type ArtifactDetail, frameURL, getArtifactCompare, getArtifactDetail, type Workspace } from "../api";
+import { type ArtifactDetail, type DiffFile, frameURL, getArtifactCompare, getArtifactDetail, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { useHighlighter } from "../review/highlight";
@@ -20,8 +20,8 @@ import { followed, frameSearch, type Params, readTweakParams } from "./tweaks";
 // (/artifacts/a3/compare?v=1,3) or of two
 // (/artifacts/compare?a=a3.v2&b=a5.v1), each in its own sandboxed frame,
 // at the same width, with its own versions; Swap puts each where the
-// other was. Or their source diff, in the diff view reviews use, the left
-// the old side. A narrow window shows one at a time. The frames scroll
+// other was. Or their source diff, each file that differs in the diff
+// view reviews use, the left the old side. A narrow window shows one at a time. The frames scroll
 // apart (the plan's lean on its open question 8).
 //
 // Each side has its own tweaks (Tray.tsx), behind a button in its head,
@@ -191,7 +191,7 @@ export function ComparePage({ workspace }: { workspace: Workspace }) {
             <button aria-pressed={!diff} onClick={() => setDiff(false)} title="Each running in its frame (d)">
               <Icon name="monitor" size={13} /> Frames
             </button>
-            <button aria-pressed={diff} onClick={() => setDiff(true)} title="Their HTML, the left's against the right's (d)">
+            <button aria-pressed={diff} onClick={() => setDiff(true)} title="Their files, the left's against the right's (d)">
               <Icon name="code" size={13} /> Source diff
             </button>
           </div>
@@ -370,7 +370,7 @@ function SideFrame({
   if (d.gone || !v.size) {
     return (
       <Empty icon="alert" title="There's no file to run">
-        {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}.` : `v${v.n}'s file isn't in ${d.where}.`}
+        {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}.` : `v${v.n}'s files aren't in ${d.where}.`}
       </Empty>
     );
   }
@@ -399,32 +399,51 @@ function SideFrame({
 
 const noop = () => undefined;
 
-// SourceDiff is the left's HTML against the right's, as a review shows a
-// file's diff: unified or side by side, coloured, with the unchanged lines
-// between the changes there to open.
+// SourceDiff is the left's files against the right's: each file that
+// differs, as a review shows a file's diff, under its path. One that's
+// its page alone has the one.
 function SourceDiff({ pair, split }: { pair: Pair; split: boolean }) {
   const a = sideRef(pair[0]);
   const b = sideRef(pair[1]);
   const { value, error, reload } = useLoaded(() => getArtifactCompare(a, b), [a, b]);
-  const [expanded, setExpanded] = useState<FileState["expanded"]>({});
-  useEffect(() => setExpanded({}), [a, b]);
-  const ready = useHighlighter();
-  const state: FileState = useMemo(() => ({ viewed: false, blob: value?.lines, expanded }), [value, expanded]);
-  const rows: Row[] = useMemo(() => (value ? fileRows(0, value.file, state, split) : []), [value, state, split]);
-  // ready is a dependency: once the highlighter loads, colour.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const hl = useMemo(() => value && highlight(value.file, value.lines), [value, ready]);
-
   if (error) return <ErrorCard error={error} retry={reload} title={`Couldn't diff ${a} and ${b}`} />;
-  if (!value || !hl) return <Loading what="Diffing their sources…" />;
-  const f = value.file;
-  if (!f.hunks.length) {
+  if (!value) return <Loading what="Diffing their sources…" />;
+  if (!value.files.length) {
     return (
       <Empty icon="check" title="The same">
         {value.a} and {value.b} are the same, byte for byte.
       </Empty>
     );
   }
+  // Named by its path where there's more than the page to tell apart.
+  const named = value.files.length > 1 || value.files[0].file.path !== "index.html";
+  return (
+    <>
+      {named && (
+        <div className="artifact-diff-files dim">
+          {value.files.length} {value.files.length === 1 ? "file differs" : "files differ"} between {value.a} and {value.b}
+        </div>
+      )}
+      {value.files.map((f) => (
+        <FileDiff key={`${a}:${b}:${f.file.path}`} file={f.file} lines={f.lines} a={value.a} b={value.b} split={split} named={named} />
+      ))}
+    </>
+  );
+}
+
+const statusWords: Record<string, string> = { added: "added", deleted: "removed", modified: "changed" };
+
+// FileDiff is one file's diff between two versions: unified or side by
+// side, coloured, with the unchanged lines between the changes there to
+// open. A file that isn't text says only that it differs.
+function FileDiff({ file: f, lines, a, b, split, named }: { file: DiffFile; lines: string[]; a: string; b: string; split: boolean; named: boolean }) {
+  const [expanded, setExpanded] = useState<FileState["expanded"]>({});
+  const ready = useHighlighter();
+  const state: FileState = useMemo(() => ({ viewed: false, blob: lines, expanded }), [lines, expanded]);
+  const rows: Row[] = useMemo(() => fileRows(0, f, state, split), [f, state, split]);
+  // ready is a dependency: once the highlighter loads, colour.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const hl = useMemo(() => highlight(f, lines), [f, lines, ready]);
   // expand opens up to n more of a gap's lines on each side (all of it if
   // n is 0), as a review does.
   const expand = (gap: number, n: number) =>
@@ -438,29 +457,43 @@ function SourceDiff({ pair, split }: { pair: Pair; split: boolean }) {
   return (
     <div className="artifact-diff">
       <div className="artifact-diff-head">
-        <span>
-          <span className="minus">−{f.deletions}</span> in {value.a}
-        </span>
-        <span>
-          <span className="plus">+{f.additions}</span> in {value.b}
-        </span>
+        {named && (
+          <span className="artifact-diff-path">
+            <Icon name="file" size={12} /> {f.path}
+            {f.status !== "modified" && <span className={`chip tone-${f.status === "added" ? "done" : "quiet"}`}>{statusWords[f.status] ?? f.status}</span>}
+          </span>
+        )}
+        {f.binary ? (
+          <span className="dim">It isn't text: it {f.status === "modified" ? "differs" : `was ${statusWords[f.status] ?? f.status}`}.</span>
+        ) : (
+          <>
+            <span>
+              <span className="minus">−{f.deletions}</span> in {a}
+            </span>
+            <span>
+              <span className="plus">+{f.additions}</span> in {b}
+            </span>
+          </>
+        )}
       </div>
-      <div className={`lines ${split ? "split" : "unified"} plain`}>
-        {rows.slice(1).map((r) => (
-          <RowView
-            key={r.key}
-            row={r}
-            split={split}
-            cursor={false}
-            selected={false}
-            html={html}
-            onRowClick={noop}
-            onGutterDown={noop}
-            onDragOver={noop}
-            onActivate={(r) => r.type === "gap" && expand(r.gap, r.count !== undefined && r.count <= 40 ? 0 : 20)}
-          />
-        ))}
-      </div>
+      {!f.binary && (
+        <div className={`lines ${split ? "split" : "unified"} plain`}>
+          {rows.slice(1).map((r) => (
+            <RowView
+              key={r.key}
+              row={r}
+              split={split}
+              cursor={false}
+              selected={false}
+              html={html}
+              onRowClick={noop}
+              onGutterDown={noop}
+              onDragOver={noop}
+              onActivate={(r) => r.type === "gap" && expand(r.gap, r.count !== undefined && r.count <= 40 ? 0 : 20)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release notes page</title>
+<link rel="stylesheet" href="css/site.css">
+<script>
+ws.tweaks({
+  tweaks: {
+    density: { label: "Density", description: "How much room each release gets.", options: ["Roomy", { value: "compact", label: "Compact" }] },
+    marks: { label: "Kind marks", description: "A mark beside each change saying what kind it is." },
+  },
+  presets: [
+    { label: "As drawn", state: { density: "Roomy", marks: true } },
+    { label: "Compact", description: "Tighter, without marks.", state: { density: "compact", marks: false } },
+  ],
+});
+</script>
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<header>
+  <img src="img/mark.svg" alt="" width="28" height="28">
+  <h1>Release notes</h1>
+  <nav><a href="index.html" aria-current="page">Releases</a> <a href="about.html">About</a></nav>
+</header>
+<main id="releases"><p class="quiet">Loading the releases…</p></main>
+<footer><img src="img/dot.png" alt="" width="8" height="8"> <span id="count"></span></footer>
+</body>
+</html>

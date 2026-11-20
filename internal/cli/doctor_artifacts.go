@@ -19,7 +19,8 @@ import (
 // and, where there's a records repo but no [artifacts], that promoted
 // ones stay on this machine, and what to add. It brings onto this
 // machine any that were kept in a repo whole, from before they all lived
-// here, and names what's left of those there.
+// here, and names what's left of those there; and puts in a repo of its
+// own the versions of any from when a version was a file in its folder.
 func checkArtifacts(ctx *ops.Workspace) workspace.CheckCategory {
 	cat := workspace.CheckCategory{Name: "Artifacts"}
 	said := ctx.Config().Artifacts
@@ -72,6 +73,17 @@ func checkArtifacts(ctx *ops.Workspace) workspace.CheckCategory {
 		}
 		add("from a repo", workspace.CheckOK, fmt.Sprintf("brought %s onto this machine: artifacts live here now, and a promoted one in a repo too", ids), "")
 	}
+	// And those from when a version was a file in its folder, put in a
+	// repo of their own.
+	if converted, err := ctx.Artifacts().Convert(context.Background()); err != nil {
+		add("their files", workspace.CheckWarn, fmt.Sprintf("couldn't put in a repo of its own the versions of an artifact from when each was a file: %v", err), "")
+	} else if len(converted) > 0 {
+		var ids []string
+		for _, e := range converted {
+			ids = append(ids, e.ID)
+		}
+		add("their files", workspace.CheckOK, fmt.Sprintf("put the versions of %s in a repo of their own (files.git, in each one's folder): each version is a commit there now", joinSome(ids, 6)), "")
+	}
 	if c.Repo != "" {
 		if left := oldArtifactFolders(ctx, c); len(left) > 0 {
 			add("left in "+c.Repo, workspace.CheckWarn,
@@ -109,7 +121,8 @@ func checkArtifacts(ctx *ops.Workspace) workspace.CheckCategory {
 // oldArtifactFolders are the folders in the repo [artifacts] names, on
 // its ground, that hold an artifact whole, as they did before artifacts
 // lived on this machine: a record beside numbered versions (v1.html). A
-// promoted one's home has one file, index.html, and isn't one of them.
+// promoted one's home has its page, index.html, and its files, and isn't
+// one of them.
 func oldArtifactFolders(ctx *ops.Workspace, c artifact.Config) []string {
 	parent := filepath.Join(ctx.WS().MainWorktree(c.Repo), filepath.FromSlash(c.Dir))
 	entries, err := os.ReadDir(parent)

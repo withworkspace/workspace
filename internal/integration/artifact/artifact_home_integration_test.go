@@ -102,7 +102,7 @@ func TestArtifactHome_PromotedLivesInRecordsAndAgainIsOneCommit(t *testing.T) {
 	local := filepath.Join(w.Root, ".ws", "artifacts", glowName())
 
 	r := testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, dir, "glow.html", glowV1), "--note", "Accent at 8% in dark.")
-	if strings.TrimSpace(r.Stdout) != "a1.v1" || !strings.Contains(r.Stderr, "as .ws/artifacts/"+glowName()+"/v1.html (on this machine: promote it to keep it)") {
+	if strings.TrimSpace(r.Stdout) != "a1.v1" || !strings.Contains(r.Stderr, "in .ws/artifacts/"+glowName()+"/ (on this machine: promote it to keep it)") {
 		t.Errorf("add said:\n%s%s", r.Stdout, r.Stderr)
 	}
 	testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, dir, "glow2.html", glowV2), "--to", "a1", "--note", "No glow in light.")
@@ -138,15 +138,15 @@ func TestArtifactHome_PromotedLivesInRecordsAndAgainIsOneCommit(t *testing.T) {
 		}
 	}
 	body := testutil.GitOut(t, src, "log", "-1", "--format=%b", "main")
-	for _, want := range []string{"Promoted by you: v2 of 3 chosen.", "Added by hand, by you.", "No glow in light.", "This folder holds the version chosen (index.html)"} {
+	for _, want := range []string{"Promoted by you: v2 of 3 chosen.", "Added by hand, by you.", "No glow in light.", "This folder holds the version chosen (index.html, and the files beside it)"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the commit's body doesn't say %q:\n%s", want, body)
 		}
 	}
 	// Every version is still here, and its record says where it lives.
-	for _, f := range []string{"v1.html", "v2.html", "v3.html"} {
-		if _, err := os.Stat(filepath.Join(local, f)); err != nil {
-			t.Errorf("%s isn't on this machine: %v", f, err)
+	for _, v := range []string{"a1.v1", "a1.v2", "a1.v3"} {
+		if out := testutil.Run(t, w, nil, "artifact", "show", v).Stdout; !strings.Contains(out, "<title>Horizon glow</title>") {
+			t.Errorf("%s isn't on this machine: %q", v, out)
 		}
 	}
 	mine, _ := os.ReadFile(filepath.Join(local, "artifact.toml"))
@@ -312,7 +312,7 @@ func TestArtifactHome_DiscardTakesItOutAndRestorePutsItBack(t *testing.T) {
 	if out := testutil.GitOut(t, src, "ls-tree", "-r", "--name-only", "main", "artifacts/"); strings.TrimSpace(out) != "" {
 		t.Errorf("main still has %s", out)
 	}
-	if _, err := os.Stat(filepath.Join(w.Root, ".ws", "artifacts", ".discarded", glowName(), "v2.html")); err != nil {
+	if _, err := os.Stat(filepath.Join(w.Root, ".ws", "artifacts", ".discarded", glowName(), "files.git", "HEAD")); err != nil {
 		t.Errorf("its versions aren't in .discarded: %v", err)
 	}
 	show := testutil.Run(t, w, nil, "show", "a1").Stdout
@@ -366,7 +366,7 @@ func TestArtifactHome_CrewsAreOnThisMachine(t *testing.T) {
 	t.Setenv(mission.EnvMission, "glow")
 	t.Setenv(mission.EnvCrew, "c1")
 	r := testutil.Run(t, w, nil, "artifact", "add", writeHTML(t, t.TempDir(), "glow.html", glowV1), "--note", "Accent at 8% in dark.")
-	if strings.TrimSpace(r.Stdout) != "a1.v1" || !strings.Contains(r.Stderr, "as .ws/artifacts/"+glowName()+"/v1.html") || !strings.Contains(r.Stderr, "recorded it on glow") {
+	if strings.TrimSpace(r.Stdout) != "a1.v1" || !strings.Contains(r.Stderr, "in .ws/artifacts/"+glowName()+"/") || !strings.Contains(r.Stderr, "recorded it on glow") {
 		t.Errorf("crew's add said:\n%s%s", r.Stdout, r.Stderr)
 	}
 	if got := testutil.Subjects(t, w.Sources["records"], "main"); got != "initial" {
