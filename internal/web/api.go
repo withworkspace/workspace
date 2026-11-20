@@ -597,6 +597,28 @@ type RunDetail struct {
 	Conversation string `json:"conversation,omitempty"`
 	OwnerPID     int    `json:"ownerPid,omitempty"`
 	OwnerCommand string `json:"ownerCommand,omitempty"`
+	// Also is how many others it's for besides Owner: those who asked
+	// for it while it ran. Ends says when the last of them goes.
+	Also int `json:"also,omitempty"`
+	// Needs are what it was started needing, and NeededBy the running
+	// runs that need it, by their refs: it isn't ended while there are any.
+	Needs    []RunNeed `json:"needs,omitempty"`
+	NeededBy []string  `json:"neededBy,omitempty"`
+}
+
+// RunNeed is one of a run's needs: another run, or an address outside ws.
+type RunNeed struct {
+	// Name is what the run calls it (api).
+	Name string `json:"name"`
+	// Run is the run that meets it, by its ref: none for an address
+	// outside ws.
+	Run string `json:"run,omitempty"`
+	// Address is what the run was started with for it.
+	Address string `json:"address"`
+	// Env is the variable Address was handed over in, and Mount the path
+	// of the run's own name the need answers at.
+	Env   string `json:"env,omitempty"`
+	Mount string `json:"mount,omitempty"`
 }
 
 // RunDetailOf is a run of the workspace at root as a page shows it.
@@ -605,7 +627,10 @@ func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
 		Owner: string(r.Owner.Kind), By: r.By, Command: r.Command, Started: r.Created,
 		Repo: r.Repo, Worktree: runs.Label(r.Worktree), Dir: r.Dir,
 		Mission: r.Owner.Mission, Step: r.Owner.Step, Crew: r.Owner.Crew, Conversation: r.Owner.Conversation,
-		OwnerPID: r.Owner.PID, OwnerCommand: r.Owner.Command}
+		OwnerPID: r.Owner.PID, OwnerCommand: r.Owner.Command, Also: len(r.Also), NeededBy: r.NeededBy}
+	for _, n := range r.Needs {
+		d.Needs = append(d.Needs, RunNeed{Name: n.Name, Run: n.Run, Address: n.Addr, Env: n.Env, Mount: n.Mount})
+	}
 	switch r.State {
 	case runs.Running:
 		d.Up, d.Ends, d.PID = r.Listening(), runs.Ends(r, now), r.PID

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>web, which needs an api</title>
+    <style>
+      :root { --bg: #f7f7f8; --card: #fff; --fg: #1d1d22; --dim: #6b6b76; --line: #e3e3e8; --ok: #1f7a4d; --bad: #b3261e; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #121216; --card: #1b1b21; --fg: #ececf1; --dim: #9a9aa6; --line: #2c2c35; --ok: #5fd39a; --bad: #ff8a80; } }
+      body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, -apple-system, sans-serif; display: flex; justify-content: center; padding: 10vh 16px; }
+      main { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px 28px; max-width: 640px; width: 100%; box-sizing: border-box; }
+      h1 { font-size: 18px; margin: 0 0 4px; }
+      p { color: var(--dim); margin: 0 0 16px; }
+      dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+      dt { color: var(--dim); }
+      dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; overflow-wrap: anywhere; }
+      .ok { color: var(--ok); } .bad { color: var(--bad); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>web, which needs an api</h1>
+      <p>This page asks <code>/api/hello</code> of its own origin. What answers is another run, in another repo.</p>
+      <dl>
+        <dt>This page</dt><dd id="here"></dd>
+        <dt>Started with</dt><dd id="env">…</dd>
+        <dt>/api/hello</dt><dd id="api">…</dd>
+        <dt>The api runs in</dt><dd id="where">…</dd>
+        <dt>Reached by way of</dt><dd id="via">…</dd>
+      </dl>
+    </main>
+    <script>
+      const set = (id, text, cls) => { const el = document.getElementById(id); el.textContent = text; if (cls) el.className = cls; };
+      set("here", location.origin);
+      fetch("/env.json").then((r) => r.json()).then((e) => set("env", "API_URL=" + (e.API_URL || "(not set)"))).catch(() => set("env", "?", "bad"));
+      fetch("/api/hello")
+        .then((r) => r.json().then((j) => ({ r, j })))
+        .then(({ r, j }) => {
+          if (!r.ok) throw new Error(j.error || r.status);
+          set("api", j.hello + " (port " + j.port + ")", "ok");
+          set("where", j.runs_in);
+          set("via", j.by_way_of);
+        })
+        .catch((e) => { set("api", "no answer: " + e.message, "bad"); set("where", "-"); set("via", "-"); });
+    </script>
+  </body>
+</html>

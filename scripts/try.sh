@@ -398,7 +398,13 @@ start() { # <name>
 	origin="${link%%/auth\?*}"
 	put "$name" link "$link"
 	put "$name" origin "$origin"
-	put "$name" port "${origin##*:}"
+	# With names on ([router] in ws.local.toml) the link is by name, and
+	# says no port: the daemon's own record of its web UI does.
+	local port="${origin##*:}"
+	case "$port" in
+	"" | *[!0-9]*) port="$(sed -n 's/.*"port": *\([0-9][0-9]*\).*/\1/p' "$root/$name/.ws/web.json" 2>/dev/null | head -1)" ;;
+	esac
+	put "$name" port "$port"
 	put "$name" token "$(printf '%s' "$link" | sed -n 's/.*[?&]t=\([^&]*\).*/\1/p')"
 }
 

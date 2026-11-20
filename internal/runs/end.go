@@ -7,23 +7,59 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 )
 
-// Stale is why a running run's time is up, or "" if it isn't: its owner
-// has gone, the place it runs in has, or its time has run out. owners
-// says after owners in ws's records: nil, and none of those has ended.
+// placeGone is why a run whose folder has gone is ended: nothing that
+// needs it keeps it then.
+const placeGone = "where it ran has gone"
+
+// Stale is why a running run's time is up, or "" if it isn't: everyone
+// it's for has gone, the place it runs in has, or its time has run out.
+// owners says after owners in ws's records: nil, and none of those has
+// ended. A run that a running run needs (r.NeededBy, as List finds it)
+// isn't stale while its place is there.
 func Stale(r Run, procs Procs, owners Owners, now time.Time) string {
-	if _, err := os.Stat(r.Dir); errors.Is(err, os.ErrNotExist) {
-		return "where it ran has gone"
+	why := staleAlone(r, procs, owners, now)
+	if why != placeGone && len(r.NeededBy) > 0 {
+		return ""
 	}
-	switch r.Owner.Kind {
+	return why
+}
+
+// staleAlone is why r would be ended were nothing to need it.
+func staleAlone(r Run, procs Procs, owners Owners, now time.Time) string {
+	if _, err := os.Stat(r.Dir); errors.Is(err, os.ErrNotExist) {
+		return placeGone
+	}
+	var gone []string
+	for _, o := range r.Owners() {
+		why := ownerGone(r, o, procs, owners, now)
+		if why == "" {
+			gone = nil
+			break
+		}
+		gone = append(gone, why)
+	}
+	if len(gone) > 0 {
+		return strings.Join(gone, ", and ")
+	}
+	if !r.Expires.IsZero() && !now.Before(r.Expires) {
+		return "its time was up"
+	}
+	return ""
+}
+
+// ownerGone is why o, one of r's owners, has gone, or "" while it hasn't.
+func ownerGone(r Run, o Owner, procs Procs, owners Owners, now time.Time) string {
+	switch o.Kind {
 	case ByPID:
-		if procs.gone(r.Owner.PID, r.Owner.Began) {
-			return fmt.Sprintf("its owner (pid %d%s) has gone", r.Owner.PID, said(r.Owner.Command))
+		if procs.gone(o.PID, o.Began) {
+			return fmt.Sprintf("its owner (pid %d%s) has gone", o.PID, said(o.Command))
 		}
 	case ByLooking:
 		if now.Sub(r.Looked) >= LookLinger {
@@ -31,13 +67,14 @@ func Stale(r Run, procs Procs, owners Owners, now time.Time) string {
 		}
 	case ByMission, ByStep, ByCrew, ByConversation:
 		if owners != nil {
-			if why := owners.Ended(r.Owner); why != "" {
-				return why
-			}
+			return owners.Ended(o)
 		}
-	}
-	if !r.Expires.IsZero() && !now.Before(r.Expires) {
-		return "its time was up"
+	case ByRun:
+		// What needs it is the sweep's to say (Sweep): alone, it's needed
+		// only while the run it was started for is still being started.
+		if !now.Before(r.Hold) {
+			return "nothing needs it now"
+		}
 	}
 	return ""
 }
@@ -132,23 +169,50 @@ type Swept struct {
 }
 
 // Sweep ends every running run whose time is up, and removes those that
-// ended by themselves more than KeepEnded ago.
+// ended by themselves more than KeepEnded ago. A run isn't ended while a
+// run that's staying needs it, whoever it's for and whatever its time:
+// the runs that need it are counted afresh each sweep, from their
+// records, so nothing's kept that could be left wrong by a ws that
+// stopped half way.
 func (s Store) Sweep(owners Owners, now time.Time) ([]Swept, error) {
 	runs, err := s.List()
 	if err != nil || len(runs) == 0 {
 		return nil, err
 	}
 	procs := s.snapshot()
+	why := map[string]string{}
+	byRef := map[string]Run{}
+	var stay []string
+	for _, r := range runs {
+		if r.State != Running {
+			continue
+		}
+		byRef[r.Ref()] = r
+		if why[r.Ref()] = staleAlone(r, procs, owners, now); why[r.Ref()] == "" {
+			stay = append(stay, r.Ref())
+		}
+	}
+	// What's staying keeps what it needs, and that keeps what it needs.
+	for len(stay) > 0 {
+		ref := stay[0]
+		stay = stay[1:]
+		for _, n := range byRef[ref].Needs {
+			if w, ok := why[n.Run]; ok && w != "" && w != placeGone {
+				why[n.Run] = ""
+				stay = append(stay, n.Run)
+			}
+		}
+	}
 	var out []Swept
 	var errs []error
 	for _, r := range runs {
-		why := ""
+		w := ""
 		if r.State == Running {
-			why = Stale(r, procs, owners, now)
+			w = why[r.Ref()]
 		} else if now.Sub(r.Ended) >= KeepEnded {
-			why = "it ended " + r.Ended.Local().Format("15:04")
+			w = "it ended " + r.Ended.Local().Format("15:04")
 		}
-		if why == "" {
+		if w == "" {
 			continue
 		}
 		err := s.End(r)
@@ -156,36 +220,24 @@ func (s Store) Sweep(owners Owners, now time.Time) ([]Swept, error) {
 			errs = append(errs, fmt.Errorf("%s: %w", r.Ref(), err))
 		}
 		if _, serr := os.Stat(r.Path); errors.Is(serr, os.ErrNotExist) {
-			out = append(out, Swept{Run: r, Why: why})
+			out = append(out, Swept{Run: r, Why: w})
 		}
 	}
 	return out, errors.Join(errs...)
 }
 
-// Ends says when a run will be ended without being asked, as in "Ended
-// when pid 4242 (zsh) exits, or in 3h58".
+// Ends says when a run will be ended without being asked, as in "when
+// pid 4242 (zsh) exits, or in 3h58". With several owners, it's when the
+// last of them has gone; and one a running run needs isn't ended while
+// that needs it.
 func Ends(r Run, now time.Time) string {
-	var what string
-	switch r.Owner.Kind {
-	case ByPID:
-		if r.Owner.Command != "" {
-			what = fmt.Sprintf("when pid %d (%s) exits", r.Owner.PID, r.Owner.Command)
-		} else {
-			what = fmt.Sprintf("when pid %d exits", r.Owner.PID)
+	var whens []string
+	for _, o := range r.Owners() {
+		if w := endsWith(r, o); w != "" && !slices.Contains(whens, w) {
+			whens = append(whens, w)
 		}
-	case ByCapsule:
-		what = fmt.Sprintf("when capsule %s is burned or landed", r.Worktree)
-	case ByMission:
-		what = fmt.Sprintf("when mission %s ends", r.Owner.Mission)
-	case ByStep:
-		what = fmt.Sprintf("when step %d of mission %s passes", r.Owner.Step, r.Owner.Mission)
-	case ByCrew:
-		what = fmt.Sprintf("when crew %s of mission %s close", r.Owner.Crew, r.Owner.Mission)
-	case ByConversation:
-		what = fmt.Sprintf("when conversation %s is resolved", r.Owner.Conversation)
-	case ByLooking:
-		what = fmt.Sprintf("%d minutes after nobody has mission %s open", int(LookLinger/time.Minute), r.Owner.Mission)
 	}
+	what := strings.Join(whens, ", and ")
 	if !r.Expires.IsZero() {
 		left := r.Expires.Sub(now)
 		if left < 0 {
@@ -198,10 +250,62 @@ func Ends(r Run, now time.Time) string {
 			what += ", or " + in
 		}
 	}
-	if what == "" {
+	needed := ""
+	if len(r.NeededBy) > 0 {
+		needed = strings.Join(r.NeededBy, " and ")
+	}
+	byRun := slices.ContainsFunc(r.Owners(), func(o Owner) bool { return o.Kind == ByRun })
+	switch {
+	case needed != "" && what == "":
+		return "when " + needed + " " + has(len(r.NeededBy)) + " ended"
+	case needed != "":
+		return what + ", and not while " + needed + " " + need(len(r.NeededBy)) + " it"
+	case what == "" && byRun:
+		return "within seconds, as nothing needs it now"
+	case what == "":
 		return "only when it's stopped"
 	}
 	return what
+}
+
+func has(n int) string {
+	if n == 1 {
+		return "has"
+	}
+	return "have"
+}
+
+func need(n int) string {
+	if n == 1 {
+		return "needs"
+	}
+	return "need"
+}
+
+// endsWith is when o, one of r's owners, goes, in words that follow
+// "ends": "" for an owner that says nothing of when (none, or the runs
+// that need it, which Ends names).
+func endsWith(r Run, o Owner) string {
+	switch o.Kind {
+	case ByPID:
+		if o.Command != "" {
+			return fmt.Sprintf("when pid %d (%s) exits", o.PID, o.Command)
+		}
+		return fmt.Sprintf("when pid %d exits", o.PID)
+	case ByCapsule:
+		return fmt.Sprintf("when capsule %s is burned or landed", r.Worktree)
+	case ByMission:
+		return fmt.Sprintf("when mission %s ends", o.Mission)
+	case ByStep:
+		return fmt.Sprintf("when step %d of mission %s passes", o.Step, o.Mission)
+	case ByCrew:
+		return fmt.Sprintf("when crew %s of mission %s close", o.Crew, o.Mission)
+	case ByConversation:
+		return fmt.Sprintf("when conversation %s is resolved", o.Conversation)
+	case ByLooking:
+		return fmt.Sprintf("%d minutes after nobody has mission %s open", int(LookLinger/time.Minute), o.Mission)
+	}
+	return ""
 }
 
 // Hours is d as 3h58: hours and minutes, rounded up to the minute.

@@ -17,10 +17,20 @@ function missionNamed(missions: Mission[], slug: string): Said {
 }
 
 // forWhom is who a run is for: what it ends with. Its words read after
-// "For".
+// "For". A run asked for again while it ran is the later askers' too
+// (r.also of them): it ends once the last has gone.
 export function forWhom(r: RunDetail, missions: Mission[], talks: Talk[] = []): Said {
+  const first = firstFor(r, missions, talks);
+  if (!r.also) return first;
+  return { ...first, text: `${first.text}, and ${r.also === 1 ? "one other who" : `${r.also} others who`} asked for it since` };
+}
+
+function firstFor(r: RunDetail, missions: Mission[], talks: Talk[]): Said {
   const mission = r.mission ? missionNamed(missions, r.mission) : undefined;
   switch (r.owner) {
+    case "run":
+      // Started because another run needed it: it lasts as long as one does.
+      return { text: r.neededBy?.length ? `${listed(r.neededBy)}, which ${r.neededBy.length === 1 ? "needs" : "need"} it` : "what needed it, which has ended" };
     case "pid":
       return { text: r.ownerCommand ? `${r.ownerCommand} (pid ${r.ownerPid})` : `pid ${r.ownerPid}` };
     case "capsule":
@@ -42,6 +52,12 @@ export function forWhom(r: RunDetail, missions: Mission[], talks: Talk[] = []): 
       return { text: "nobody: it lasts until it's stopped, or its time's up" };
   }
   return { text: r.owner };
+}
+
+// listed is names as a sentence has them: a, b and c.
+export function listed(names: string[]): string {
+  if (names.length < 2) return names.join("");
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
 // placeOf is where a run runs: its repo and worktree, going to the

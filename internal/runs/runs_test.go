@@ -452,3 +452,239 @@ func TestALookingRunEndsWhenNobodyHasLooked(t *testing.T) {
 		t.Fatalf("Sweep = %v", swept)
 	}
 }
+
+// A recipe's run, as tests ask for one.
+func recipe(name string, o Owner, ttl time.Duration, needs ...Need) Start {
+	return Start{Name: name, Repo: "demo", Worktree: "feat", Command: "sleep 300", Recipe: name, Owner: o, TTL: ttl, By: "you", Needs: needs}
+}
+
+func ensure(t *testing.T, s Store, dir string, o Start, now time.Time) (Run, bool) {
+	t.Helper()
+	o.Dir = dir
+	r, started, err := s.Ensure(o, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r, started
+}
+
+func names(swept []Swept) string {
+	var out []string
+	for _, s := range swept {
+		out = append(out, s.Run.Name)
+	}
+	return strings.Join(out, ",")
+}
+
+// Asked for twice, a recipe is one run: the second asker is one more of
+// who it's for, and it has the longer of their times.
+func TestARecipeRunsOnceInAWorktree(t *testing.T) {
+	s, dir := setup(t)
+	now := time.Now()
+	a, _ := owner(t)
+	b, _ := owner(t)
+	first, started := ensure(t, s, dir, recipe("web", a, time.Hour), now)
+	if !started {
+		t.Fatal("the first wasn't started")
+	}
+	second, started := ensure(t, s, dir, recipe("web", b, 3*time.Hour), now)
+	if started || second.PID != first.PID || second.Name != "web" {
+		t.Fatalf("the second is %s (pid %d, started %v), want the first (pid %d)", second.Name, second.PID, started, first.PID)
+	}
+	if len(second.Also) != 1 || second.Also[0].PID != b.PID {
+		t.Errorf("who else it's for: %+v", second.Also)
+	}
+	if want := now.Add(3 * time.Hour).UTC().Truncate(time.Second); !second.Expires.Equal(want) {
+		t.Errorf("expires %s, want the later, %s", second.Expires, want)
+	}
+	// The same asker again adds nothing, and a shorter time takes none away.
+	third, _ := ensure(t, s, dir, recipe("web", b, time.Hour), now)
+	if len(third.Also) != 1 || !third.Expires.Equal(second.Expires) {
+		t.Errorf("asked again: also %+v, expires %s", third.Also, third.Expires)
+	}
+	// A command that's no recipe's still gets the next free name.
+	other := start(t, s, dir, "web", "sleep 300", Owner{Kind: ByNone}, time.Hour)
+	if other.Name != "web-2" {
+		t.Errorf("a command named web is %s", other.Name)
+	}
+	if list, _ := s.List(); len(list) != 2 {
+		t.Errorf("%d runs, want the recipe's one and the command's", len(list))
+	}
+}
+
+// Two ws starting a recipe at one moment start it once: the one that
+// finds the name being claimed waits for what the other records.
+func TestARecipeAskedForTwiceAtOnceIsStartedOnce(t *testing.T) {
+	s, dir := setup(t)
+	type got struct {
+		r       Run
+		started bool
+		err     error
+	}
+	out := make(chan got, 2)
+	for range 2 {
+		go func() {
+			o := recipe("web", Owner{Kind: ByNone}, time.Hour)
+			o.Dir = dir
+			r, started, err := s.Ensure(o, time.Now())
+			out <- got{r, started, err}
+		}()
+	}
+	a, b := <-out, <-out
+	if a.err != nil || b.err != nil {
+		t.Fatal(a.err, b.err)
+	}
+	if a.started == b.started || a.r.PID != b.r.PID {
+		t.Errorf("started %v and %v, pids %d and %d: want one start, and both the same run", a.started, b.started, a.r.PID, b.r.PID)
+	}
+	if list, _ := s.List(); len(list) != 1 || list[0].Name != "web" {
+		t.Errorf("runs: %v", list)
+	}
+}
+
+func TestARunIsEndedOnceEveryoneItsForHasGone(t *testing.T) {
+	s, dir := setup(t)
+	now := time.Now()
+	a, endA := owner(t)
+	b, endB := owner(t)
+	ensure(t, s, dir, recipe("web", a, time.Hour), now)
+	r, _ := ensure(t, s, dir, recipe("web", b, time.Hour), now)
+	if got := Ends(r, now); !strings.Contains(got, fmt.Sprintf("when pid %d", a.PID)) || !strings.Contains(got, fmt.Sprintf(", and when pid %d", b.PID)) {
+		t.Errorf("Ends = %q", got)
+	}
+	endA()
+	if swept, _ := s.Sweep(nil, now); len(swept) != 0 {
+		t.Fatalf("swept %s with one it's for still there", names(swept))
+	}
+	endB()
+	swept, _ := s.Sweep(nil, now)
+	if names(swept) != "web" || strings.Count(swept[0].Why, "has gone") != 2 {
+		t.Fatalf("Sweep = %v", swept)
+	}
+}
+
+// What a run needs is kept while it runs, and counted afresh each sweep:
+// two runs needing one thing keep it until the last of them has gone.
+func TestWhatARunNeedsIsKeptUntilTheLastThatNeedsItGoes(t *testing.T) {
+	s, dir := setup(t)
+	now := time.Now()
+	api, _ := ensure(t, s, dir, recipe("api", Owner{Kind: ByRun}, 0), now)
+	need := Need{Name: "api", Run: api.Ref(), Repo: "demo", Worktree: "feat", Recipe: "api", Addr: api.Link()}
+	a, endA := owner(t)
+	b, endB := owner(t)
+	ensure(t, s, dir, recipe("web", a, time.Hour, need), now)
+	ensure(t, s, dir, recipe("admin", b, time.Hour, need), now)
+
+	list, _ := s.List()
+	var kept Run
+	for _, r := range list {
+		if r.Name == "api" {
+			kept = r
+		}
+	}
+	if strings.Join(kept.NeededBy, ",") != "admin.feat.demo,web.feat.demo" {
+		t.Fatalf("api is needed by %v", kept.NeededBy)
+	}
+	if got := Ends(kept, now); got != "when admin.feat.demo and web.feat.demo have ended" {
+		t.Errorf("Ends = %q", got)
+	}
+	if swept, _ := s.Sweep(nil, now); len(swept) != 0 {
+		t.Fatalf("swept %s while both ran", names(swept))
+	}
+	endA()
+	if swept, _ := s.Sweep(nil, now); names(swept) != "web" {
+		t.Fatalf("swept %q, want web alone: admin still needs api", names(swept))
+	}
+	endB()
+	// The run that needed it and the run it needed go in one sweep.
+	swept, _ := s.Sweep(nil, now)
+	if names(swept) != "admin,api" {
+		t.Fatalf("swept %q, want admin and api", names(swept))
+	}
+	for _, sw := range swept {
+		if sw.Run.Name == "api" && sw.Why != "nothing needs it now" {
+			t.Errorf("api: %s", sw.Why)
+		}
+	}
+}
+
+// A run that was someone's before another needed it outlasts them, and
+// its time, while it's needed; a run whose place has gone doesn't.
+func TestARunSomethingNeedsOutlastsItsOwnerAndItsTime(t *testing.T) {
+	s, dir := setup(t)
+	now := time.Now()
+	o, end := owner(t)
+	api, _ := ensure(t, s, dir, recipe("api", o, time.Hour), now)
+	need := Need{Name: "api", Run: api.Ref(), Addr: api.Link()}
+	web, _ := ensure(t, s, dir, recipe("web", Owner{Kind: ByNone}, 4*time.Hour, need), now)
+	end()
+	later := now.Add(2 * time.Hour)
+	if swept, _ := s.Sweep(nil, later); len(swept) != 0 {
+		t.Fatalf("swept %s, though web needs api", names(swept))
+	}
+	list, _ := s.List()
+	if got := Ends(list[0], later); !strings.HasSuffix(got, ", and not while web.feat.demo needs it") {
+		t.Errorf("Ends = %q", got)
+	}
+	if why := Stale(list[0], s.snapshot(), nil, later); why != "" {
+		t.Errorf("Stale = %q for a run that's needed", why)
+	}
+	if err := s.End(web); err != nil {
+		t.Fatal(err)
+	}
+	if swept, _ := s.Sweep(nil, later); names(swept) != "api" {
+		t.Fatalf("swept %q once nothing needed it", names(swept))
+	}
+
+	// Needed or not, a run goes with the place it ran in.
+	gone := filepath.Join(filepath.Dir(dir), "gone")
+	os.MkdirAll(gone, 0o755)
+	o2 := recipe("db", Owner{Kind: ByRun}, 0)
+	o2.Worktree = "gone"
+	db, _ := ensure(t, s, gone, o2, now)
+	ensure(t, s, dir, recipe("web", Owner{Kind: ByNone}, time.Hour, Need{Name: "db", Run: db.Ref(), Addr: db.Link()}), now)
+	os.RemoveAll(gone)
+	if swept, _ := s.Sweep(nil, now); names(swept) != "db" || swept[0].Why != "where it ran has gone" {
+		t.Fatalf("Sweep = %v", swept)
+	}
+}
+
+// A run started for another's need is up before the run it's for is
+// recorded: it's held until then, and no longer.
+func TestARunStartedForANeedIsHeldWhileWhatNeedsItStarts(t *testing.T) {
+	s, dir := setup(t)
+	now := time.Now()
+	o := recipe("api", Owner{Kind: ByRun}, 0)
+	o.Hold = now.Add(time.Minute)
+	api, _ := ensure(t, s, dir, o, now)
+	if swept, _ := s.Sweep(nil, now.Add(30*time.Second)); len(swept) != 0 {
+		t.Fatalf("swept %s while it was held", names(swept))
+	}
+	if got := Ends(api, now); got != "within seconds, as nothing needs it now" {
+		t.Errorf("Ends = %q", got)
+	}
+	api, err := s.HoldUntil(api, time.Time{})
+	if err != nil || !api.Hold.IsZero() {
+		t.Fatalf("HoldUntil: %v, %s", err, api.Hold)
+	}
+	if swept, _ := s.Sweep(nil, now); names(swept) != "api" || swept[0].Why != "nothing needs it now" {
+		t.Fatalf("Sweep = %v", swept)
+	}
+}
+
+// A start killed before it recorded anything leaves a folder with no
+// record: the name isn't lost to it.
+func TestAStartThatDiedGivesUpItsName(t *testing.T) {
+	s, dir := setup(t)
+	old := claimWait
+	claimWait = 50 * time.Millisecond
+	t.Cleanup(func() { claimWait = old })
+	dead := filepath.Join(s.Dir(), "demo", "feat", "web")
+	os.MkdirAll(dead, 0o755)
+	past := time.Now().Add(-time.Minute)
+	os.Chtimes(dead, past, past)
+	r, started := ensure(t, s, dir, recipe("web", Owner{Kind: ByNone}, time.Hour), time.Now())
+	if !started || r.Name != "web" {
+		t.Errorf("started %v as %s, want web", started, r.Name)
+	}
+}

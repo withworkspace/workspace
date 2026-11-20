@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -72,6 +73,9 @@ const (
 	ByLooking Kind = "looking"
 	// ByNone ends only when its time is up, or when it's stopped.
 	ByNone Kind = "none"
+	// ByRun is the runs that need it: one ws started because another
+	// needed it, which ends once nothing that needs it is running.
+	ByRun Kind = "run"
 )
 
 // Kinds are the owners `ws run --for` takes.
@@ -132,9 +136,20 @@ type Record struct {
 	Port   int    `json:"port"`
 	// PID leads the run's session and process group; Began is its start,
 	// as the kernel has it.
-	PID     int       `json:"pid"`
-	Began   time.Time `json:"began"`
-	Owner   Owner     `json:"owner"`
+	PID   int       `json:"pid"`
+	Began time.Time `json:"began"`
+	Owner Owner     `json:"owner"`
+	// Also are who else it's for: those who asked for it while it was
+	// running already, as a recipe runs once in a worktree. It's ended
+	// for its owner's going only once every one of them has gone.
+	Also []Owner `json:"also,omitempty"`
+	// Needs are what it was started needing, each met by another run or
+	// by an address outside ws. While it runs, the runs that meet them
+	// aren't ended.
+	Needs []Need `json:"needs,omitempty"`
+	// Hold is until when a run owned by what needs it (ByRun) isn't ended
+	// for nothing needing it: it's up before the run it's for is started.
+	Hold    time.Time `json:"hold,omitzero"`
 	Created time.Time `json:"created"`
 	// Expires is when its time is up: zero for never.
 	Expires time.Time `json:"expires,omitzero"`
@@ -143,6 +158,35 @@ type Record struct {
 	// Looked is when someone last had open the page it was started
 	// from, for a run owned by looking.
 	Looked time.Time `json:"looked,omitzero"`
+}
+
+// Need is something a run was started needing: another run, found or
+// started for it, or an address outside ws.
+type Need struct {
+	// Name is what the run calls it (api).
+	Name string `json:"name"`
+	// Run is the run that meets it, by its ref (server.ground.backend),
+	// which is Recipe in Repo's Worktree. With no run, an address outside
+	// ws meets it, and nothing of ws's is behind it.
+	Run      string `json:"run,omitempty"`
+	Repo     string `json:"repo,omitempty"`
+	Worktree string `json:"worktree,omitempty"`
+	Recipe   string `json:"recipe,omitempty"`
+	// Addr is the address the run was started with: the need's run's, or
+	// the one outside ws.
+	Addr string `json:"addr"`
+	// Env is the variable Addr was handed over in.
+	Env string `json:"env,omitempty"`
+	// Mount is the path of the run's own name it answers at, through the
+	// router (internal/router); Strip takes that path off what it's asked.
+	Mount string `json:"mount,omitempty"`
+	Strip bool   `json:"strip,omitempty"`
+}
+
+// Owners is everyone the run is for: its owner, then those who asked for
+// it since.
+func (r Record) Owners() []Owner {
+	return append([]Owner{r.Owner}, r.Also...)
 }
 
 // State is where a run is.
@@ -167,6 +211,9 @@ type Run struct {
 	// an Exited run (Ended is when it was found gone, for a Gone one).
 	Status int
 	Ended  time.Time
+	// NeededBy are the running runs that need it, by their refs, as List
+	// finds them: while there are any, it isn't ended.
+	NeededBy []string
 }
 
 // Label is how a worktree is said in a run's name: ground, silo, or the
@@ -246,6 +293,22 @@ func (s Store) List() ([]Run, error) {
 		}
 		return a.Name < b.Name
 	})
+	needed := map[string][]string{}
+	for _, r := range out {
+		if r.State != Running {
+			continue
+		}
+		for _, n := range r.Needs {
+			if n.Run != "" {
+				needed[n.Run] = append(needed[n.Run], r.Ref())
+			}
+		}
+	}
+	for i, r := range out {
+		if r.State == Running {
+			out[i].NeededBy = needed[r.Ref()]
+		}
+	}
 	return out, nil
 }
 
@@ -336,7 +399,8 @@ func (s Store) Looked(slugs map[string]bool, now time.Time) error {
 	}
 	var errs []error
 	for _, r := range runs {
-		if r.State == Running && r.Owner.Kind == ByLooking && slugs[r.Owner.Mission] {
+		looking := slices.ContainsFunc(r.Owners(), func(o Owner) bool { return o.Kind == ByLooking && slugs[o.Mission] })
+		if r.State == Running && looking {
 			r.Looked = now.UTC().Truncate(time.Second)
 			if err := save(r.Record, r.Path); err != nil {
 				errs = append(errs, err)
@@ -383,10 +447,15 @@ func NameFor(command string) string {
 // claim takes a name for a run in repo's worktree: want, or the first of
 // want-2, want-3… not taken by a run that's running. A run of that name
 // that has ended gives up its name (and its folder) to the new one.
-func (s Store) claim(repo, worktree, want string) (name, dir string, err error) {
+//
+// With recipe said, the run is that recipe's, which runs once in a
+// worktree: where a run of it holds the name already, or is being started
+// under it this moment by another ws, that run is returned (running) and
+// nothing is claimed.
+func (s Store) claim(repo, worktree, want, recipe string) (name, dir string, running *Run, err error) {
 	parent := filepath.Join(s.Dir(), repo, worktree)
 	if err := os.MkdirAll(parent, 0o755); err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 	procs := s.snapshot()
 	for i := 1; i < 1000; i++ {
@@ -397,22 +466,58 @@ func (s Store) claim(repo, worktree, want string) (name, dir string, err error) 
 		dir = filepath.Join(parent, name)
 		err := os.Mkdir(dir, 0o755)
 		if err == nil {
-			return name, dir, nil
+			return name, dir, nil, nil
 		}
 		if !errors.Is(err, os.ErrExist) {
-			return "", "", err
+			return "", "", nil, err
 		}
 		old, lerr := load(dir, procs)
 		if lerr != nil {
 			if _, serr := os.Stat(filepath.Join(dir, recordFile)); errors.Is(serr, os.ErrNotExist) {
-				continue // another ws claiming it this moment, or not ours
+				// A folder with no record long after it was made is a start
+				// that was killed before it recorded anything: the name's free.
+				if fi, ferr := os.Stat(dir); ferr == nil && time.Since(fi.ModTime()) > 2*claimWait {
+					if os.RemoveAll(dir) == nil && os.Mkdir(dir, 0o755) == nil {
+						return name, dir, nil, nil
+					}
+				}
+				if recipe == "" {
+					continue // another ws claiming it this moment, or not ours
+				}
+				// Another ws is starting something under the name now: if
+				// it's this recipe, it's the one run of it.
+				if old, lerr = s.claimed(dir); lerr != nil {
+					continue
+				}
 			}
+		}
+		if lerr == nil && old.State == Running && recipe != "" && old.Recipe == recipe {
+			return "", "", &old, nil
 		}
 		if lerr == nil && old.State != Running {
 			if os.RemoveAll(dir) == nil && os.Mkdir(dir, 0o755) == nil {
-				return name, dir, nil
+				return name, dir, nil, nil
 			}
 		}
 	}
-	return "", "", fmt.Errorf("no free name for %s in %s/%s", want, repo, worktree)
+	return "", "", nil, fmt.Errorf("no free name for %s in %s/%s", want, repo, worktree)
+}
+
+// claimWait is how long a recipe's start waits for another ws, claiming
+// the recipe's name at the same moment, to record what it started.
+var claimWait = 5 * time.Second
+
+// claimed is the run another ws is recording in dir, once it has.
+func (s Store) claimed(dir string) (Run, error) {
+	var err error
+	for deadline := time.Now().Add(claimWait); time.Now().Before(deadline); time.Sleep(50 * time.Millisecond) {
+		var r Run
+		if r, err = load(dir, s.snapshot()); err == nil {
+			return r, nil
+		}
+		if _, serr := os.Stat(dir); errors.Is(serr, os.ErrNotExist) {
+			return Run{}, serr // its start failed, and its claim went with it
+		}
+	}
+	return Run{}, err
 }

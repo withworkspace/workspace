@@ -276,7 +276,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if rte, ok := f.Routes[key]; ok {
 		if rte.Port > 0 {
-			proxy(w, r, rte.Port)
+			through(w, r, rte)
 			return
 		}
 		notice(w, http.StatusGone, key+" has ended", fmt.Sprintf("<p><b>%s</b> %s.</p><p>Start it again with <code>ws run</code>, or from its mission's Work tab.</p>%s", esc(key), esc(rte.Ended), listRuns(f, wsName, port)))
@@ -301,7 +301,7 @@ func (rt *Router) silo(w http.ResponseWriter, r *http.Request, f File, wsName, p
 	siloKey := run + ".silo." + repo
 	if Label(runs.Label(s.Target)) == capsule {
 		if rte, ok := f.Routes[siloKey]; ok && rte.Port > 0 {
-			proxy(w, r, rte.Port)
+			through(w, r, rte)
 			return
 		}
 	}
@@ -377,19 +377,70 @@ func contains(list []string, s string) bool {
 	return false
 }
 
+// through passes the request to a run: to the run itself, or, for a path
+// one of its mounts has, to what's mounted there.
+func through(w http.ResponseWriter, r *http.Request, rte Route) {
+	m, ok := rte.mount(r.URL.Path)
+	if !ok {
+		proxy(w, r, rte.Port)
+		return
+	}
+	if m.Strip {
+		// The copy the proxy sends is made from these: what was asked
+		// for, less the mount.
+		r.URL.Path = "/" + strings.TrimPrefix(strings.TrimPrefix(r.URL.Path, m.Path), "/")
+		if r.URL.RawPath != "" {
+			r.URL.RawPath = "/" + strings.TrimPrefix(strings.TrimPrefix(r.URL.RawPath, m.Path), "/")
+		}
+	}
+	what := m.Need
+	if what == "" {
+		what = "What's"
+	}
+	switch {
+	case m.URL != "":
+		target, err := url.Parse(m.URL)
+		if err != nil || target.Host == "" {
+			notice(w, http.StatusBadGateway, what+" has no address", fmt.Sprintf("<p><b>%s</b> is mounted at <b>%s</b>, at an address that can't be read: <code>%s</code>.</p>", esc(what), esc(m.Path), esc(m.URL)))
+			return
+		}
+		proxyTo(w, r, target, true)
+	case m.Port > 0:
+		proxy(w, r, m.Port)
+	default:
+		run := ""
+		if m.Run != "" {
+			run = " (" + m.Run + ")"
+		}
+		notice(w, http.StatusBadGateway, what+" isn't running", fmt.Sprintf("<p><b>%s</b>%s is mounted here at <b>%s</b>, and isn't running.</p><p>Starting this run again with <code>ws run</code> starts it too.</p>", esc(what), esc(run), esc(m.Path)))
+	}
+}
+
 // proxy passes the request to what listens on port, its name kept as its
 // Host: a dev server sees the name it was asked for.
 func proxy(w http.ResponseWriter, r *http.Request, port int) {
-	target := &url.URL{Scheme: "http", Host: "127.0.0.1:" + strconv.Itoa(port)}
+	proxyTo(w, r, &url.URL{Scheme: "http", Host: "127.0.0.1:" + strconv.Itoa(port)}, false)
+}
+
+// proxyTo passes the request to target. A run of ws's is asked by the name
+// the request came for; an address outside ws (itsHost) by its own, as it
+// knows no other, and with its own path before what's asked for.
+func proxyTo(w http.ResponseWriter, r *http.Request, target *url.URL, itsHost bool) {
 	p := &httputil.ReverseProxy{
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.SetURL(target)
-			pr.Out.Host = pr.In.Host
+			if !itsHost {
+				pr.Out.Host = pr.In.Host
+			}
 			pr.SetXForwarded()
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			if errors.Is(err, syscall.ECONNREFUSED) || strings.Contains(err.Error(), "connection refused") {
-				notice(w, http.StatusBadGateway, "Not up yet", fmt.Sprintf("<p>Nothing's listening on its port (%d) yet. If it's just started, reload in a moment; <code>ws run logs</code> says what it's doing.</p>", port))
+				at := "its port (" + target.Port() + ")"
+				if itsHost {
+					at = target.Host
+				}
+				notice(w, http.StatusBadGateway, "Not up yet", fmt.Sprintf("<p>Nothing's listening on %s yet. If it's just started, reload in a moment; <code>ws run logs</code> says what it's doing.</p>", esc(at)))
 				return
 			}
 			notice(w, http.StatusBadGateway, "Couldn't reach it", "<p>"+esc(err.Error())+"</p>")

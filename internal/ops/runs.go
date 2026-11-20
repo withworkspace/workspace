@@ -11,7 +11,6 @@ import (
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/router"
 	"github.com/withworkspace/workspace/internal/runs"
-	"github.com/withworkspace/workspace/internal/workspace"
 )
 
 // Runs on a mission's page (internal/runs): what's running in each of its
@@ -77,36 +76,29 @@ func (w *Workspace) runCapsule(slug, repo, capsule string) (string, error) {
 
 // RunRecipe starts recipe in one of a mission's capsules, for whoever's
 // looking at the mission: it lasts while the mission's page is open, and
-// runs.LookLinger after. It waits up to RunUpWait for it to be up; one
-// that isn't by then is still running, and returned.
+// runs.LookLinger after. What it needs is started first (StartRun), and
+// one that's running already is the lookers' as well. It waits up to
+// RunUpWait for it to be up; one that isn't by then is still running, and
+// returned.
 func (w *Workspace) RunRecipe(slug, repo, capsule, recipe string, by Actor) (runs.Run, error) {
 	dir, err := w.runCapsule(slug, repo, capsule)
 	if err != nil {
 		return runs.Run{}, err
 	}
-	rc, ok := w.recipes(repo, capsule)[recipe]
-	if !ok {
-		return runs.Run{}, invalid("%s/%s has no recipe %s ([run.%s] in its %s)", repo, capsule, recipe, recipe, config.RepoFileName)
-	}
-	worktree := capsule
-	if rc.Where == "silo" {
-		worktree, dir = workspace.SiloDir, w.WS().SiloWorktree(repo)
-		if !dirExists(dir) {
-			return runs.Run{}, refused("no-silo", "%s runs in %s's silo, and it has none: point one at a capsule first", recipe, repo)
-		}
-	}
-	store := w.runStore()
-	r, err := store.Start(runs.Start{
-		Name: recipe, Repo: repo, Worktree: worktree, Dir: dir,
-		Command: rc.Command, Recipe: recipe, Ready: rc.Ready, Stop: rc.Stop,
+	up, err := w.StartRun(RunAsk{
+		Repo: repo, Worktree: capsule, Dir: dir, Recipe: recipe,
 		Owner: runs.Owner{Kind: runs.ByLooking, Mission: slug},
-		TTL:   runs.DefaultTTL, By: by.By(),
-	}, time.Now())
+		TTL:   runs.DefaultTTL, By: by.By(), Mission: slug, Wait: RunUpWait,
+	})
+	var ended *runs.EndedError
+	if errors.As(err, &ended) {
+		return ended.Run, refused("run-ended", "%s. Its last words: %s", err, ended.Run.Tail(3))
+	}
 	if err != nil {
 		return runs.Run{}, err
 	}
-	if _, err := store.Wait(r, RunUpWait); err != nil {
-		var ended *runs.EndedError
+	r := up.Run
+	if _, err := w.runStore().Wait(r, RunUpWait); err != nil {
 		if errors.As(err, &ended) {
 			return ended.Run, refused("run-ended", "%s. Its last words: %s", err, ended.Run.Tail(3))
 		}
@@ -124,7 +116,17 @@ func (w *Workspace) StopRun(slug, ref string) error {
 	if _, err := w.runCapsule(slug, r.Repo, r.Worktree); err != nil && errors.Is(err, ErrNotFound) {
 		return err
 	}
-	return w.runStore().End(r)
+	return w.endRun(r)
+}
+
+// endRun ends r, and then whatever ws had started for it that nothing
+// needs now, without waiting for the daemon's next look.
+func (w *Workspace) endRun(r runs.Run) error {
+	err := w.runStore().End(r)
+	if len(r.Needs) > 0 {
+		w.runStore().Sweep(nil, time.Now())
+	}
+	return err
 }
 
 // LookedAt marks the runs started from these missions' pages as looked at
@@ -163,7 +165,7 @@ func (w *Workspace) EndRun(ref string) error {
 	if err != nil {
 		return err
 	}
-	return w.runStore().End(r)
+	return w.endRun(r)
 }
 
 // RunLog is the last n lines of a run's output.
