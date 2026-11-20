@@ -689,16 +689,21 @@ func Resolve(s Snapshot) []Headline {
 		}
 	}
 
+	// The plan's step waits on CI or someone outside ws.
+	stepWaits := false
+	if st := s.waitingStep(); st != nil && !onIt && s.State != Parked && !s.orchestrating() {
+		stepWaits = true
+		add(s.stepWaitHeadline(*st))
+	}
+
 	// Placed outside by the orchestrator: waiting on something ws can't see.
-	if w := m.Waiting; w != nil {
+	// Not at a step that waits: the step says what it waits on, and how
+	// it's passed, and "nothing for you to do" said of the same wait would
+	// stand in front of marking it done.
+	if w := m.Waiting; w != nil && !stepWaits {
 		add(Headline{Court: CourtOutside, Kind: KindWaitingOn, Label: "⧗ waiting", By: firstNonEmpty(w.By, "orchestrator"), Since: w.At,
 			Text:   "Waiting on " + w.Text + " · nothing for you to do",
 			Action: Action{Label: "nothing to do"}})
-	}
-
-	// The plan's step waits on CI or someone outside ws.
-	if st := s.waitingStep(); st != nil && !onIt && s.State != Parked && !s.orchestrating() {
-		add(s.stepWaitHeadline(*st))
 	}
 
 	// PRs: crew at work in a capsule have its PR in hand. One that's

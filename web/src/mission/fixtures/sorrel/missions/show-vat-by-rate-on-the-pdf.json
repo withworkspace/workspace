@@ -1,0 +1,128 @@
+{
+  "slug": "show-vat-by-rate-on-the-pdf",
+  "title": "Show VAT by rate on the PDF",
+  "state": "active",
+  "created": "2026-11-20T15:14:14Z",
+  "talks": [],
+  "brief": "## Goal\nAn invoice's PDF shows a row of VAT for each rate, as the note in records says it should.\n\n## Acceptance\n- An invoice with lines at 20% and 5% shows two rows, each with its net and its VAT.\n",
+  "plan": "## Z\n- The PDF shows a row of VAT for each rate, merged.\n## Stops early\n- None.\n## Steps\n1. Work: **The rows.** One for each rate, with its net and its VAT.\n   - in: `api/pdf-vat-rows`\n   - check: `go test ./...` passes\n2. Review: **Read it.** Before its pull request. \"I review every change before its pull request is opened\"\n3. Open Pull Request: **Open it.**\n   - in: `api`\n",
+  "at": "Step 1 of 3: The rows",
+  "z": [
+    "The PDF shows a row of VAT for each rate, merged."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "ready",
+      "group": "up-next",
+      "label": "ready",
+      "text": "Ready: nobody has started it",
+      "action": {
+        "verb": "launch",
+        "label": "launch crew"
+      }
+    }
+  ],
+  "cards": [
+    {
+      "kind": "ready",
+      "court": "you",
+      "tone": "quiet",
+      "title": "Ready",
+      "detail": "Nobody has started it",
+      "primary": {
+        "do": "launch",
+        "label": "Launch crew",
+        "icon": "play"
+      }
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "The rows",
+      "text": "The rows. One for each rate, with its net and its VAT.",
+      "state": "current",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `api/pdf-vat-rows`",
+      "in": "api/pdf-vat-rows",
+      "checks": [
+        {
+          "text": "`go test ./...` passes",
+          "run": true
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "title": "Read it",
+      "text": "Read it. Before its pull request.",
+      "state": "todo",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 3,
+      "title": "Open it",
+      "text": "Open it.",
+      "state": "todo",
+      "type": "Open Pull Request",
+      "who": "ws",
+      "whoSays": "ws",
+      "in": "api",
+      "opensPR": true
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "api",
+      "name": "pdf-vat-rows",
+      "branch": "pdf-vat-rows",
+      "path": "/try/sorrel/repos/api/pdf-vat-rows",
+      "exists": true,
+      "head": "9f9b8ef83fccf355982a1fb60da20bd876d5b5fb"
+    }
+  ],
+  "crew": [],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:14Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:14Z",
+      "kind": "capsule_added",
+      "text": "capsule api/pdf-vat-rows added"
+    },
+    {
+      "time": "2026-11-20T15:14:14Z",
+      "kind": "note",
+      "text": "note: plan written: 3 steps",
+      "by": "you"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "claude",
+      "model": "sonnet"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "opus"
+      },
+      {
+        "harness": "claude",
+        "model": "haiku"
+      }
+    ]
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "slug": "dark-mode-for-the-dashboard",
+  "title": "Dark mode for the dashboard",
+  "state": "active",
+  "created": "2026-11-20T15:14:16Z",
+  "talks": [],
+  "brief": "## Goal\nThe dashboard follows the system's theme, light or dark.\n\n## Context\n- Every colour is a variable in `web/src/theme.css` already.\n\n## Acceptance\n- With the system dark, nothing on the invoices page is unreadable or still light.\n",
+  "plan": "## Z\n- The dashboard follows the system's theme, shown in a browser, merged.\n## Stops early\n- None.\n## Steps\n1. Work: **The dark theme.** The variables in `theme.css`, under `prefers-color-scheme: dark`.\n   - in: `web/dark-mode`\n   - makes: the theme, and a decision saying how the dashboard is run\n2. Verify: **Browser check.** The invoices page, light and dark. \"A change to the dashboard is shown working in a browser, by someone who didn't build it.\"\n   - in: `web/dark-mode`\n   - check: with the system dark, the page's background is dark and its text is light\n   - yours: the dark theme looks like Sorrel\n3. Review: **Approve the browser check.** The bundle from step 2, and the change. \"I review every change before its pull request is opened\"\n4. Open Pull Request: **Open it.**\n   - in: `web`\n",
+  "at": "Step 1 of 4: The dark theme (c1)",
+  "z": [
+    "The dashboard follows the system's theme, shown in a browser, merged."
+  ],
+  "headlines": [
+    {
+      "court": "agent",
+      "kind": "working",
+      "group": "in-progress",
+      "label": "● working",
+      "text": "c1 is working: Write the dark theme: the variables in theme.css, under prefers-color-scheme: dark.",
+      "action": {
+        "verb": "watch",
+        "label": "watch c1",
+        "target": "c1"
+      },
+      "by": "c1",
+      "since": "2026-11-20T15:14:16Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "working",
+      "court": "agent",
+      "tone": "agent",
+      "title": "c1 is working",
+      "detail": "Write the dark theme: the variables in theme.css, under prefers-color-scheme: dark.",
+      "primary": {
+        "do": "crew",
+        "label": "Watch c1",
+        "icon": "message",
+        "target": "c1"
+      },
+      "by": "c1",
+      "since": "2026-11-20T15:14:16Z"
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "The dark theme",
+      "text": "The dark theme. The variables in theme.css, under prefers-color-scheme: dark.",
+      "state": "current",
+      "crew": [
+        "c1"
+      ],
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `web/dark-mode`",
+      "in": "web/dark-mode",
+      "makes": "the theme, and a decision saying how the dashboard is run"
+    },
+    {
+      "n": 2,
+      "title": "Browser check",
+      "text": "Browser check. The invoices page, light and dark.",
+      "state": "todo",
+      "type": "Verify",
+      "who": "crew",
+      "whoSays": "crew, in `web/dark-mode`",
+      "in": "web/dark-mode",
+      "checks": [
+        {
+          "text": "with the system dark, the page's background is dark and its text is light"
+        },
+        {
+          "text": "the dark theme looks like Sorrel"
+        }
+      ]
+    },
+    {
+      "n": 3,
+      "title": "Approve the browser check",
+      "text": "Approve the browser check. The bundle from step 2, and the change.",
+      "state": "todo",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 4,
+      "title": "Open it",
+      "text": "Open it.",
+      "state": "todo",
+      "type": "Open Pull Request",
+      "who": "ws",
+      "whoSays": "ws",
+      "in": "web",
+      "opensPR": true
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "web",
+      "name": "dark-mode",
+      "branch": "dark-mode",
+      "path": "/try/sorrel/repos/web/dark-mode",
+      "exists": true,
+      "head": "e0228ebabc0b5c2a8124464291f2a108b1459450"
+    }
+  ],
+  "crew": [
+    {
+      "id": "c1",
+      "harness": "claude",
+      "model": "opus",
+      "capsule": "web/dark-mode",
+      "started": "2026-11-20T15:14:16Z",
+      "ended": false,
+      "activity": "working",
+      "dispatch": "Write the dark theme: the variables in theme.css, under prefers-color-scheme: dark."
+    }
+  ],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "capsule_added",
+      "text": "capsule web/dark-mode added"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "note",
+      "text": "note: plan written: 4 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "crew_started",
+      "text": "c1 started",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "dispatch",
+      "text": "c1 dispatched you: Write the dark theme: the variables in theme.css, under prefers-color-scheme: dark.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:16Z",
+      "kind": "stage",
+      "text": "on step 1: **The dark theme.** The variables in `theme.css`, under `prefers-color-scheme: dark`.",
+      "by": "c1"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "claude",
+      "model": "sonnet"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "opus"
+      },
+      {
+        "harness": "claude",
+        "model": "haiku"
+      }
+    ]
+  }
+}

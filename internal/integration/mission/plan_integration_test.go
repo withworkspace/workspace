@@ -107,7 +107,7 @@ func TestTalk_BriefingWithAPlan(t *testing.T) {
 		"Steps (the plan's",
 		"1. [current] Find why it fails, as a failing test. (Work, crew, in `backend/flaky-test`; makes: the failing test, and the cause)",
 		"2. [to do] Is that the cause? (Review, you)",
-		"4. [to do] Merged. (Wait, on a teammate's review: nobody's watching, so accept it once you're shown it's happened)",
+		"4. [to do] Merged. (Wait, on a teammate's review: nobody's watching, so the user marks it done once it's happened, or you accept it once you're shown it has)",
 	} {
 		if !strings.Contains(show, want) {
 			t.Errorf("show lacks %q:\n%s", want, show)

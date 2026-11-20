@@ -19,9 +19,11 @@ import (
 // where ws holds review_before_ready; otherwise as the process says); what
 // someone says on it (a review, a comment) is the orchestrator's to act on,
 // by the process, crew drafting replies that wait for you where they're to
-// a person (prreplies.go); closing it without merging is the orchestrator's
-// call. Elsewhere, as before: red checks, changes asked and a merge wake
-// the orchestrator.
+// a person (prreplies.go), though a bot's comment on the pull request
+// itself is only logged (newSaid); closing it without merging is the
+// orchestrator's call. Elsewhere, as before: red checks, changes asked and
+// a merge wake the orchestrator, but not the merge of one whose step has
+// been passed already.
 
 // Watched is whether a mission's PRs are watched: not once it's archived,
 // nor while it's parked.
@@ -76,6 +78,11 @@ func (w *Workspace) WatchPRs(views []MissionView) {
 			if now.Merged && w.PassOnMerge(slug, capsule) {
 				continue // ws passed the step it was waiting for
 			}
+			if now.Merged && w.prStepPassed(slug, capsule) {
+				// Its step was passed before ws saw the merge (the
+				// orchestrator accepted it, told of the merge): no news.
+				continue
+			}
 			for _, e := range events {
 				act = act || e.Act && !v.M.CrewAt(capsule)
 			}
@@ -107,6 +114,20 @@ func (w *Workspace) atZ(slug string) bool {
 	states, _ := m.StageProgress(brief)
 	_, stepToGo := mission.CurrentStage(states)
 	return !stepToGo
+}
+
+// prStepPassed reports whether the plan's Open Pull Request step for a
+// capsule has been passed already.
+func (w *Workspace) prStepPassed(slug, capsule string) bool {
+	m, err := w.Missions.Load(slug)
+	if err != nil || m.Plan == nil {
+		return false
+	}
+	brief, _ := w.Missions.ReadBrief(slug)
+	states, _ := m.StageProgress(brief)
+	return slices.ContainsFunc(states, func(st mission.StageState) bool {
+		return st.Step != nil && st.Step.Type == mission.StepOpenPR && st.Accepted() && slices.Contains(w.stepCapsules(m, st), capsule)
+	})
 }
 
 // seenOf is what was last seen of a capsule's PR, if anything.
@@ -163,6 +184,12 @@ const saidNothing = "0"
 // threads' comments), oldest first, as events, and when the latest was.
 // With no after, nothing's news: what's been said so far is where reading
 // starts.
+//
+// Each is someone's to act on, but a bot's comment on the pull request
+// itself: a coverage summary, a deploy preview's link. It's logged, and
+// the orchestrator reads it when it next runs; a bot with something to
+// have fixed fails a check, reviews, or comments on a line, which do
+// bring it round.
 func (w *Workspace) newSaid(repo string, number int, after string) ([]mission.PREvent, string) {
 	gh := w.GitHub()
 	if gh == nil {
@@ -170,10 +197,13 @@ func (w *Workspace) newSaid(repo string, number int, after string) ([]mission.PR
 	}
 	me, _ := gh.Viewer()
 	ref := fmt.Sprintf("%s#%d", repo, number)
-	type item struct{ at, text string }
+	type item struct {
+		at, text string
+		act      bool
+	}
 	var items []item
 	latest := after
-	see := func(author, at, text string) {
+	see := func(author, at, text string, act bool) {
 		if author == me || at == "" {
 			return
 		}
@@ -181,7 +211,7 @@ func (w *Workspace) newSaid(repo string, number int, after string) ([]mission.PR
 			latest = at
 		}
 		if after != "" && at > after {
-			items = append(items, item{at, text})
+			items = append(items, item{at, text, act})
 		}
 	}
 	if said, err := gh.Discussion(w.WS().Org, repo, number); err == nil {
@@ -191,9 +221,9 @@ func (w *Workspace) newSaid(repo string, number int, after string) ([]mission.PR
 			case s.State != "" && body == "":
 				continue // a review with nothing to say: its verdict is the review decision
 			case s.State != "":
-				see(s.Author, s.At, fmt.Sprintf("%s reviewed %s (%s): %s", s.Author, ref, strings.ToLower(strings.ReplaceAll(s.State, "_", " ")), body))
+				see(s.Author, s.At, fmt.Sprintf("%s reviewed %s (%s): %s", s.Author, ref, strings.ToLower(strings.ReplaceAll(s.State, "_", " ")), body), true)
 			default:
-				see(s.Author, s.At, fmt.Sprintf("%s commented on %s: %s", s.Author, ref, body))
+				see(s.Author, s.At, fmt.Sprintf("%s commented on %s: %s", s.Author, ref, body), !s.Bot)
 			}
 		}
 	}
@@ -204,7 +234,7 @@ func (w *Workspace) newSaid(repo string, number int, after string) ([]mission.PR
 				where = fmt.Sprintf("%s:%d", t.Path, t.Line)
 			}
 			for _, c := range t.Comments {
-				see(c.Author, c.At, fmt.Sprintf("%s on %s, `%s` (thread %s): %s", c.Author, ref, where, t.ID, clipString(oneLine(c.Body), 400)))
+				see(c.Author, c.At, fmt.Sprintf("%s on %s, `%s` (thread %s): %s", c.Author, ref, where, t.ID, clipString(oneLine(c.Body), 400)), true)
 			}
 		}
 	}
@@ -214,7 +244,7 @@ func (w *Workspace) newSaid(repo string, number int, after string) ([]mission.PR
 	sort.SliceStable(items, func(i, j int) bool { return items[i].at < items[j].at })
 	var out []mission.PREvent
 	for _, it := range items {
-		out = append(out, mission.PREvent{What: mission.PREventSaid, Text: it.text, Act: true})
+		out = append(out, mission.PREvent{What: mission.PREventSaid, Text: it.text, Act: it.act})
 	}
 	return out, latest
 }
@@ -263,7 +293,8 @@ func (w *Workspace) atPRStep(slug string, st mission.StageState, capsule string,
 	if has(mission.PREventChecksPassed) && pr.Draft {
 		said = append(said, w.readyWhenGreen(slug, st, capsule, ref, &wake))
 	}
-	if (has(mission.PREventSaid) || has(mission.PREventChangesAsked)) && !crewAt {
+	saidToActOn := slices.ContainsFunc(events, func(e mission.PREvent) bool { return e.What == mission.PREventSaid && e.Act })
+	if (saidToActOn || has(mission.PREventChangesAsked)) && !crewAt {
 		wake = true
 	}
 	if wake {

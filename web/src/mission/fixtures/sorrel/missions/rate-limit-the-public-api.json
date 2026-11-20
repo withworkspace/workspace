@@ -1,0 +1,262 @@
+{
+  "slug": "rate-limit-the-public-api",
+  "title": "Rate-limit the public API",
+  "state": "active",
+  "created": "2026-11-20T15:14:22Z",
+  "talks": [],
+  "brief": "## Goal\nOne customer's script can't slow the api for everyone else.\n\n## Acceptance\n- A key that makes more than its limit of requests in a minute is answered 429, with `Retry-After`.\n",
+  "plan": "## Z\n- A key over its limit is answered 429 with Retry-After, merged.\n## Stops early\n- None.\n## Steps\n1. Work: **Limit each key.** So many requests a minute, then 429 with `Retry-After`.\n   - in: `api/rate-limit`\n   - check: `go test ./...` passes\n2. Review: **Read it.** Before its pull request. \"I review every change before its pull request is opened\"\n3. Open Pull Request: **Open it.**\n   - in: `api`\n",
+  "at": "Step 3 of 3, ws's: Open it",
+  "z": [
+    "A key over its limit is answered 429 with Retry-After, merged."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "merge",
+      "group": "needs-you",
+      "label": "✓ merge",
+      "text": "api#46 is ready to merge: it's approved and its checks pass",
+      "action": {
+        "verb": "merge",
+        "label": "merge api#46",
+        "target": "api#46",
+        "url": "https://github.com/example-org/api/pull/46"
+      },
+      "by": "api#46"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "merge",
+      "court": "you",
+      "tone": "you",
+      "title": "api#46 is ready to merge",
+      "detail": "It's approved and its checks pass",
+      "primary": {
+        "do": "url",
+        "label": "Open api#46 to merge it",
+        "icon": "pr",
+        "url": "https://github.com/example-org/api/pull/46"
+      },
+      "by": "api#46"
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Limit each key",
+      "text": "Limit each key. So many requests a minute, then 429 with Retry-After.",
+      "state": "accepted",
+      "crew": [
+        "c1"
+      ],
+      "why": "its checks are met (round 1)",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `api/rate-limit`",
+      "in": "api/rate-limit",
+      "checks": [
+        {
+          "text": "`go test ./...` passes",
+          "run": true,
+          "result": "met",
+          "evidence": "passed in 0s:\n?   \texample.com/api/cmd/api\t[no test files]\nok  \texample.com/api/internal/httpapi\t(cached)\nok  \texample.com/api/internal/invoice\t(cached)\nok  \texample.com/api/internal/webhook\t(cached)",
+          "by": "ws"
+        }
+      ],
+      "round": 1
+    },
+    {
+      "n": 2,
+      "title": "Read it",
+      "text": "Read it. Before its pull request.",
+      "state": "accepted",
+      "why": "your review approved api/rate-limit",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 3,
+      "title": "Open it",
+      "text": "Open it.",
+      "state": "current",
+      "type": "Open Pull Request",
+      "who": "ws",
+      "whoSays": "ws",
+      "in": "api",
+      "opensPR": true
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "api",
+      "name": "rate-limit",
+      "branch": "rate-limit",
+      "path": "/try/sorrel/repos/api/rate-limit",
+      "exists": true,
+      "head": "f7ea2fa5c42f98b93179336fbabcfc25d08f1678",
+      "pr": {
+        "number": 46,
+        "title": "Rate-limit the public API",
+        "url": "https://github.com/example-org/api/pull/46",
+        "checks": "success"
+      }
+    }
+  ],
+  "crew": [
+    {
+      "id": "c1",
+      "harness": "claude",
+      "capsule": "api/rate-limit",
+      "started": "2026-11-20T15:14:22Z",
+      "ended": false,
+      "activity": "waiting",
+      "status": "done",
+      "note": "Each key has so many requests a minute, then 429 with Retry-After.",
+      "dispatch": "Limit each API key to so many requests a minute.",
+      "handoff": "mission:handoffs/c1.md"
+    }
+  ],
+  "artifacts": [
+    {
+      "ref": "mission:handoffs/c1.md",
+      "kind": "handoff",
+      "label": "Each key has so many requests a minute, then 429 with Retry-After.",
+      "state": "private",
+      "path": "/try/sorrel/.ws/missions/rate-limit-the-public-api/files/handoffs/c1.md",
+      "by": "c1",
+      "added": "2026-11-20T15:14:22Z",
+      "readable": true
+    },
+    {
+      "ref": "mission:reviews/r1.md",
+      "kind": "review",
+      "label": "Review r1 of api/rate-limit: approved",
+      "state": "private",
+      "path": "/try/sorrel/.ws/missions/rate-limit-the-public-api/files/reviews/r1.md",
+      "added": "2026-11-20T15:14:23.189481Z",
+      "readable": true
+    }
+  ],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "capsule_added",
+      "text": "capsule api/rate-limit added"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "note",
+      "text": "note: plan written: 3 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "crew_started",
+      "text": "c1 started",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "dispatch",
+      "text": "c1 dispatched you: Limit each API key to so many requests a minute.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "stage",
+      "text": "on step 1: **Limit each key.** So many requests a minute, then 429 with `Retry-After`.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "crew_done",
+      "text": "c1 done: Each key has so many requests a minute, then 429 with Retry-After. · left: Wiring it into `cmd/api`, with the limit from config.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "checks",
+      "text": "step 1, check 1 of 1 started: `go test ./...`",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "checks",
+      "text": "step 1, check 1 of 1: `go test ./...` passed in 0s: met",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "checks",
+      "text": "step 1's checks, round 1 (c1's done): 1 of 1 met",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "stage",
+      "text": "step 1 accepted: **Limit each key.** So many requests a minute, then 429 with `Retry-After`. · its checks are met (round 1)",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:22Z",
+      "kind": "flag",
+      "text": "asks you: Step 1 is done (c1: Each key has so many requests a minute, then 429 with Retry-After). Step 2 is yours, to review: Read it. Before its pull request. Step 3 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review api/rate-limit: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c1.md.",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:23.189481Z",
+      "kind": "review",
+      "text": "you reviewed api/rate-limit: approved (r1)"
+    },
+    {
+      "time": "2026-11-20T15:14:23Z",
+      "kind": "stage",
+      "text": "step 2 accepted: **Read it.** Before its pull request. · your review approved api/rate-limit",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:23Z",
+      "kind": "pr",
+      "text": "api#46 opened, at step 3: Rate-limit the public API",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:25Z",
+      "kind": "pr",
+      "text": "api#46's checks pass"
+    },
+    {
+      "time": "2026-11-20T15:14:25Z",
+      "kind": "pr",
+      "text": "api#46 was approved"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "claude",
+      "model": "sonnet"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "opus"
+      },
+      {
+        "harness": "claude",
+        "model": "haiku"
+      }
+    ]
+  }
+}
