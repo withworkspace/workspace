@@ -2,6 +2,7 @@ import { chooseVersion, type Connect, isConnect, type Refuse, type V1 } from "@w
 import type { ConversationHost, Status } from "../conversation/host";
 import type { FoundRef } from "../refs/found";
 import { watchBackdrop } from "./backdrop";
+import type { Over } from "./hover";
 import type { Theme } from "./theme";
 import { v1 } from "./frame/v1";
 
@@ -45,6 +46,10 @@ export interface Host {
   // in its own pages (refs/found.ts): the app draws what it's told, since
   // only ws knows what there is to name.
   refs(texts: string[]): FoundRef[][];
+  // The ref the pointer's on in the app, and where its words are in the
+  // app's page, or none: ws draws the ref's card by them, over the frame
+  // (hover.ts). It's none, too, once the page is hung up on.
+  hover(over: Over | undefined): void;
   // The app has a backdrop up, or has taken its last one down: ws dims
   // what's beside the frame for as long as it has one. No version says
   // it: ws sees the backdrop in the page that's connected (backdrop.ts).
@@ -164,6 +169,7 @@ export function listen(
     unwatch();
     unwatch = () => {};
     host.dim(false);
+    host.hover(undefined);
     host.here(undefined);
     host.chromeLayout("standard");
     host.conversation.forget();

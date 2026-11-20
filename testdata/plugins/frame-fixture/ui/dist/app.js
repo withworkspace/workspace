@@ -4,7 +4,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.5.0/node_modules/@withworkspace/ui-lib/dist/mark.js
+// ../../../../../../ui-lib/over-the-frame/dist/mark.js
 var skipped = "a, pre, h1, h2, h3, h4, h5, h6, script, style, textarea, select, button, svg, [contenteditable]";
 var isElement = (n) => n.nodeType === 1;
 var isText = (n) => n.nodeType === 3;
@@ -136,7 +136,7 @@ function mark(el, finder) {
   return stop;
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.5.0/node_modules/@withworkspace/ui-lib/dist/shape.js
+// ../../../../../../ui-lib/over-the-frame/dist/shape.js
 function isRecord(v) {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -150,14 +150,18 @@ function isVersions(v) {
   return Array.isArray(v) && v.every((n) => Number.isInteger(n) && n >= 1);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.5.0/node_modules/@withworkspace/ui-lib/dist/v1.js
+// ../../../../../../ui-lib/over-the-frame/dist/v1.js
 var v1_exports = {};
 __export(v1_exports, {
+  CONVERSATION_FORMS: () => CONVERSATION_FORMS,
+  isBox: () => isBox,
+  isConversationForm: () => isConversationForm,
   isFoundRef: () => isFoundRef,
   isHostMessage: () => isHostMessage,
   isPageMessage: () => isPageMessage,
   isWelcome: () => isWelcome
 });
+var CONVERSATION_FORMS = ["card", "docked", "popover"];
 function isTheme(m) {
   return isRecord(m) && (m.scheme === "light" || m.scheme === "dark") && isRecord(m.vars) && Object.values(m.vars).every(isString);
 }
@@ -168,11 +172,20 @@ function isPlugin(m) {
   return isRecord(m) && isString(m.name) && isString(m.at) && isString(m.base) && isString(m.api);
 }
 function isWelcome(m) {
-  return isRecord(m) && m.type === "ws:welcome" && m.version === 1 && isString(m.ws) && isPlugin(m.plugin) && isString(m.path) && isTheme(m.theme) && isKeys(m.keys) && (m.refs === void 0 || typeof m.refs === "boolean");
+  return isRecord(m) && m.type === "ws:welcome" && m.version === 1 && isString(m.ws) && isPlugin(m.plugin) && isString(m.path) && isTheme(m.theme) && isKeys(m.keys) && (m.refs === void 0 || typeof m.refs === "boolean") && (m.conversations === void 0 || typeof m.conversations === "boolean");
 }
 var isIndex = (v) => Number.isInteger(v) && v >= 0;
+var isSize = (v) => Number.isFinite(v) && v >= 0;
+function isBox(m) {
+  return isRecord(m) && Number.isFinite(m.x) && Number.isFinite(m.y) && isSize(m.width) && isSize(m.height);
+}
 function isFoundRef(m) {
   return isRecord(m) && isIndex(m.from) && isIndex(m.to) && m.to > m.from && isString(m.ref) && isString(m.kind) && isString(m.href) && (m.shape === void 0 || isString(m.shape)) && (m.accent === void 0 || isString(m.accent));
+}
+var isConversationForm = (v) => CONVERSATION_FORMS.includes(v);
+var optional = (v, is) => v === void 0 || is(v);
+function isHolding(m) {
+  return isRecord(m) && isString(m.label) && optional(m.names, isStrings) && optional(m.text, isString);
 }
 function isPageMessage(m) {
   if (!isRecord(m))
@@ -186,8 +199,18 @@ function isPageMessage(m) {
       return isString(m.key) && [m.meta, m.ctrl, m.shift, m.alt].every((v) => typeof v === "boolean");
     case "ws:refs":
       return isIndex(m.id) && isStrings(m.texts);
+    case "ws:hover":
+      return m.ref === void 0 ? m.box === void 0 : isString(m.ref) && m.ref !== "" && isBox(m.box);
     case "ws:here":
       return m.name === void 0 || isString(m.name) && m.name !== "";
+    case "ws:chrome-layout":
+      return m.mode === "expanded" || m.mode === "standard";
+    case "ws:conversation":
+      return typeof m.ask === "boolean" && Array.isArray(m.allow) && m.allow.every(isConversationForm) && optional(m.placeholder, isString) && optional(m.holding, isHolding) && optional(m.context, isString) && optional(m.suggestions, isStrings);
+    case "ws:conversation-open":
+      return optional(m.message, isString) && optional(m.context, isString) && optional(m.as, isConversationForm);
+    case "ws:conversation-close":
+      return true;
     default:
       return false;
   }
@@ -212,21 +235,23 @@ function isHostMessage(m) {
       return true;
     case "ws:outside":
       return true;
+    case "ws:conversation-state":
+      return typeof m.open === "boolean" && optional(m.as, isConversationForm) && typeof m.working === "boolean";
     default:
       return false;
   }
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.5.0/node_modules/@withworkspace/ui-lib/dist/protocol.js
+// ../../../../../../ui-lib/over-the-frame/dist/protocol.js
 var PROTOCOL_VERSIONS = [1];
 function isRefuse(m) {
   return isRecord(m) && m.type === "ws:refuse" && isVersions(m.versions) && isString(m.message);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.5.0/node_modules/@withworkspace/ui-lib/dist/version.js
-var VERSION = "0.5.0";
+// ../../../../../../ui-lib/over-the-frame/dist/version.js
+var VERSION = "0.0.0";
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.5.0/node_modules/@withworkspace/ui-lib/dist/client.js
+// ../../../../../../ui-lib/over-the-frame/dist/client.js
 var ProtocolError = class extends Error {
   /** The versions the page speaks. */
   page;
@@ -302,6 +327,7 @@ function client(port, welcome, doc) {
   const themed = /* @__PURE__ */ new Set();
   const refsChanged = /* @__PURE__ */ new Set();
   const outside = /* @__PURE__ */ new Set();
+  const conversed = /* @__PURE__ */ new Set();
   const marks = /* @__PURE__ */ new Set();
   const dismissals = /* @__PURE__ */ new Set();
   const asked = /* @__PURE__ */ new Map();
@@ -317,6 +343,19 @@ function client(port, welcome, doc) {
       return;
     told = name;
     send(name === void 0 ? { type: "ws:here" } : { type: "ws:here", name });
+  };
+  let layout = "standard";
+  const talks = !!welcome.conversations;
+  let settings = { ask: false, allow: [...v1_exports.CONVERSATION_FORMS] };
+  let toldTalk = "";
+  let status = { open: false, working: false };
+  const tellTalk = () => {
+    const m = { type: "ws:conversation", ...settings };
+    const said = JSON.stringify(m);
+    if (said === toldTalk || closed || !talks)
+      return;
+    toldTalk = said;
+    send(m);
   };
   const on = (fns, fn) => {
     fns.add(fn);
@@ -350,8 +389,7 @@ function client(port, welcome, doc) {
   });
   if (doc)
     applyTheme(doc, theme);
-  const unwire = doc ? wire(doc, welcome, send, open) : () => {
-  };
+  const wired = doc ? wire(doc, welcome, send, open) : void 0;
   port.onmessage = (e) => {
     const m = e.data;
     if (!v1_exports.isHostMessage(m))
@@ -363,6 +401,7 @@ function client(port, welcome, doc) {
           doc?.defaultView?.history.replaceState(doc.defaultView.history.state, "", base + m.path);
         } catch {
         }
+        wired?.left();
         for (const fn of [...navigated])
           fn(m.path);
         break;
@@ -390,6 +429,11 @@ function client(port, welcome, doc) {
       case "ws:outside":
         for (const fn of [...outside])
           fn();
+        break;
+      case "ws:conversation-state":
+        status = m.as === void 0 ? { open: m.open, working: m.working } : { open: m.open, as: m.as, working: m.working };
+        for (const fn of [...conversed])
+          fn(status);
         break;
     }
   };
@@ -462,6 +506,64 @@ function client(port, welcome, doc) {
         tellHere();
       };
     },
+    setChromeLayout(mode) {
+      if (mode !== "expanded" && mode !== "standard")
+        throw new TypeError(`setChromeLayout("${String(mode)}"): the layout is "expanded" or "standard".`);
+      if (mode === layout || closed)
+        return;
+      layout = mode;
+      send({ type: "ws:chrome-layout", mode });
+    },
+    conversation: {
+      available: talks,
+      get status() {
+        return status;
+      },
+      set(say) {
+        const next = { ...settings };
+        for (const [key, value] of Object.entries(say)) {
+          if (!["ask", "allow", "placeholder", "holding", "context", "suggestions"].includes(key))
+            continue;
+          if (value === void 0)
+            delete next[key];
+          else
+            next[key] = Array.isArray(value) ? [...value] : value;
+        }
+        if (next.ask === void 0)
+          next.ask = false;
+        if (next.allow === void 0)
+          next.allow = [...v1_exports.CONVERSATION_FORMS];
+        const allow = next.allow;
+        const bad = allow.find((f) => !v1_exports.isConversationForm(f));
+        if (bad !== void 0)
+          throw new TypeError(`conversation.set({ allow }): "${String(bad)}" isn't a form: they're ${v1_exports.CONVERSATION_FORMS.join(", ")}.`);
+        const holding = next.holding;
+        if (holding && !holding.label)
+          throw new TypeError("conversation.set({ holding }): a holding has a label, for its chip.");
+        settings = next;
+        tellTalk();
+      },
+      open(options2 = {}) {
+        if (options2.as !== void 0 && !v1_exports.isConversationForm(options2.as))
+          throw new TypeError(`conversation.open({ as: "${String(options2.as)}" }): the forms are ${v1_exports.CONVERSATION_FORMS.join(", ")}.`);
+        if (!talks || closed)
+          return;
+        tellTalk();
+        const m = { type: "ws:conversation-open" };
+        if (options2.message?.trim())
+          m.message = options2.message;
+        if (options2.context?.trim())
+          m.context = options2.context;
+        if (options2.as)
+          m.as = options2.as;
+        send(m);
+      },
+      close() {
+        if (talks && !closed)
+          send({ type: "ws:conversation-close" });
+      },
+      onChange: (fn) => on(conversed, fn)
+    },
     setTitle(title) {
       if (doc)
         doc.title = title;
@@ -469,7 +571,7 @@ function client(port, welcome, doc) {
     },
     open: (to) => open(to),
     close() {
-      unwire();
+      wired?.stop();
       for (const stop of [...marks])
         stop();
       marks.clear();
@@ -497,6 +599,40 @@ function applyTheme(doc, theme) {
 function wire(doc, welcome, send, open) {
   const { keys } = welcome;
   let leaderAt = 0;
+  let over;
+  const tell = (el) => {
+    over = el;
+    const ref = el?.getAttribute("data-ws-ref");
+    if (!el || !ref)
+      return send({ type: "ws:hover" });
+    const { x, y, width, height } = el.getBoundingClientRect();
+    send({ type: "ws:hover", ref, box: { x, y, width, height } });
+  };
+  const hover = (el) => {
+    if (el !== over)
+      tell(el);
+  };
+  const onOver = (e) => hover(refOn(e.target));
+  const onOut = (e) => {
+    if (!e.relatedTarget)
+      hover(void 0);
+  };
+  const onFocus = (e) => {
+    const el = refOn(e.target);
+    if (el && focusShown(el))
+      hover(el);
+  };
+  const onBlur = (e) => {
+    if (over && refOn(e.target) === over)
+      hover(void 0);
+  };
+  const left = () => hover(void 0);
+  const onScroll = () => {
+    if (over && doc.activeElement === over)
+      tell(over);
+    else
+      left();
+  };
   const onKey = (e) => {
     const typing = isTypedIn(e.target);
     const chord = (e.metaKey || e.ctrlKey) && keys.chords.includes(e.key);
@@ -547,10 +683,36 @@ function wire(doc, welcome, send, open) {
   };
   doc.addEventListener("keydown", onKey);
   doc.addEventListener("click", onClick);
-  return () => {
-    doc.removeEventListener("keydown", onKey);
-    doc.removeEventListener("click", onClick);
+  doc.addEventListener("mouseover", onOver);
+  doc.addEventListener("mouseout", onOut);
+  doc.addEventListener("focusin", onFocus);
+  doc.addEventListener("focusout", onBlur);
+  doc.addEventListener("scroll", onScroll, true);
+  doc.addEventListener("pointerdown", left, true);
+  return {
+    stop() {
+      doc.removeEventListener("keydown", onKey);
+      doc.removeEventListener("click", onClick);
+      doc.removeEventListener("mouseover", onOver);
+      doc.removeEventListener("mouseout", onOut);
+      doc.removeEventListener("focusin", onFocus);
+      doc.removeEventListener("focusout", onBlur);
+      doc.removeEventListener("scroll", onScroll, true);
+      doc.removeEventListener("pointerdown", left, true);
+    },
+    left
   };
+}
+function refOn(target) {
+  const el = target?.closest?.(".ws-ref[data-ws-ref]");
+  return el && el.getAttribute("data-ws-ref") ? el : void 0;
+}
+function focusShown(el) {
+  try {
+    return el.matches(":focus-visible");
+  } catch {
+    return true;
+  }
 }
 function address(url, plugin) {
   const { pathname, search, hash } = url;

@@ -12,7 +12,7 @@ import { goneCapsule, GROUND, isOutside, type Known, namedOf, type PageRef, refH
 import { type Surface, thingBlocks } from "./thing";
 import { type Pointer, ThingView, useThing } from "./ThingView";
 import { thingIcon } from "./views";
-import { FloatingCard } from "../ui/hover";
+import { type Anchor, FloatingCard } from "../ui/hover";
 import { PinButton } from "../shell/focus";
 import { prOf } from "./prs";
 
@@ -447,9 +447,11 @@ export function RefCardBody({ r, workspace, known }: { r: PageRef; workspace: Wo
 }
 
 // RefCard is the card for a ref, under the words that name it (el), or
-// over them where there's no room below. hint says ⌘-click goes there:
+// over them where there's no room below. The words are an element of the
+// page's, or, for a ref in a plugin's page, where the page said they are
+// (plugins/hover.ts). hint says ⌘-click goes there:
 // where words are written, a click is for the cursor.
-export function RefCard({ r, el, workspace, onEnter, onLeave, hint = true }: { r: PageRef; el: HTMLElement; workspace: Workspace; onEnter: () => void; onLeave: () => void; hint?: boolean }) {
+export function RefCard({ r, el, workspace, onEnter, onLeave, hint = true }: { r: PageRef; el: Anchor; workspace: Workspace; onEnter: () => void; onLeave: () => void; hint?: boolean }) {
   // Read here, outside the card: inside it, names are only words.
   const refs = useRefs();
   return (

@@ -32,6 +32,9 @@ export function v1(port: MessagePort, host: Host): Session {
         asked = true;
         send({ type: "ws:refs-found", id: m.id, found: host.refs(m.texts) } satisfies V1.RefsFound);
         break;
+      case "ws:hover":
+        host.hover(m.ref !== undefined && m.box ? { ref: m.ref, box: m.box } : undefined);
+        break;
       case "ws:here":
         host.here(m.name);
         break;

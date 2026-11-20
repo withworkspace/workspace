@@ -61,6 +61,14 @@ export function useHoverDelay<T>(hideAfter = 120) {
   return { shown, ...act };
 }
 
+// Anchor is what a card is placed by: an element, or anything else that
+// says where it is in the window and whether it's still there, as an
+// element does (words in a plugin's frame: plugins/hover.ts).
+export interface Anchor {
+  readonly isConnected: boolean;
+  getBoundingClientRect(): { top: number; left: number; bottom: number; right: number };
+}
+
 // FloatingCard is a hover card's panel: under what it's about (anchor), or
 // over it where there's no room below, kept on screen, and placed again as
 // it grows (what it shows arrives). Given beside (a list the anchor is in,
@@ -76,7 +84,7 @@ export function FloatingCard({
   onLeave,
   children,
 }: {
-  anchor: HTMLElement;
+  anchor: Anchor;
   beside?: HTMLElement | null;
   className?: string;
   onEnter: () => void;

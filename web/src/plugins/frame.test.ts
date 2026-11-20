@@ -6,6 +6,7 @@ import { createHost } from "../conversation/host";
 import type { FoundRef } from "../refs/found";
 import { answer, type Host, type KeyPress, listen, refusal, type Session, type Speak, versions } from "./frame";
 import { v1 } from "./frame/v1";
+import type { Over } from "./hover";
 import { tokenVar } from "./tokens";
 
 // ws's side of the frame protocol, against the page's side as it's
@@ -17,7 +18,7 @@ const vars = (value: string) => Object.fromEntries(TOKENS.map((t) => [tokenVar(t
 
 // A host that keeps what the page said, with a theme a test can change.
 function fakeWs(path = "/things/2?tab=links") {
-  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[], heres: [] as (string | undefined)[], layouts: [] as string[] };
+  const said = { went: [] as string[], titled: [] as string[], keys: [] as KeyPress[], asked: [] as string[][], dims: [] as boolean[], hovers: [] as (Over | undefined)[], heres: [] as (string | undefined)[], layouts: [] as string[] };
   let theme: V1.Theme = { scheme: "dark", vars: vars("dark") };
   // What ws finds: THING-<n>, wherever it's written, until a test says
   // otherwise.
@@ -36,6 +37,7 @@ function fakeWs(path = "/things/2?tab=links") {
       return texts.map(find);
     },
     dim: (on) => void said.dims.push(on),
+    hover: (over) => void said.hovers.push(over),
     here: (name) => void said.heres.push(name),
     chromeLayout: (mode) => void said.layouts.push(mode),
     conversation: createHost("jira"),
@@ -438,6 +440,28 @@ describe("listening for the frame", () => {
     expect(watched.map((w) => w.stopped)).toEqual([true, true]);
     first.close();
     second.close();
+  });
+
+  it("hears the ref the pointer's on in the page and where its words are, none once it's left, and none when the page goes", async () => {
+    const { frame, ws, post } = setup();
+    const page = post(hello);
+    await tick();
+    const ref = JSON.stringify({ kind: "thing", id: "THING-2" });
+    const box = { x: 212, y: 96.5, width: 54, height: 18 };
+
+    page.port.postMessage({ type: "ws:hover", ref, box } satisfies V1.Hover);
+    page.port.postMessage({ type: "ws:hover" } satisfies V1.Hover);
+    // Not as the protocol has it: a ref with nowhere, and somewhere with no ref.
+    page.port.postMessage({ type: "ws:hover", ref });
+    page.port.postMessage({ type: "ws:hover", box });
+    page.port.postMessage({ type: "ws:hover", ref, box } satisfies V1.Hover);
+    await tick();
+    expect(ws.said.hovers).toEqual([{ ref, box }, undefined, { ref, box }]);
+
+    // The page went with the pointer on a ref: its card isn't left up.
+    frame.stop();
+    expect(ws.said.hovers).toEqual([{ ref, box }, undefined, { ref, box }, undefined]);
+    page.close();
   });
 
   it("hangs up on a page the frame has loaded past, and leaves the one it's showing", async () => {
