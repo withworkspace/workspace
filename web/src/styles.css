@@ -19402,8 +19402,10 @@ a [data-viewable] {
   border-radius: var(--radius-lg);
 }
 
+/* A card's picture keeps its own shape, up to a height: a picture is
+   cropped to what it shows, which is seldom 16:9. */
 .whats-new-card .whats-new-picture {
-  aspect-ratio: 16 / 9;
+  max-height: 240px;
   object-fit: cover;
   object-position: top left;
 }

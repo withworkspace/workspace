@@ -25,7 +25,14 @@ terminal.
 - `title` (required): at most 60 characters. Say what's new, not the feature's name.
 - The lines under the head (required): a sentence or two, at most 320 characters, in markdown.
 - `link`: where in the web UI to see it, as a path. The dialog has a button to it.
-- `picture`: a `.png`, `.jpg` or `.webp` file beside the entry. It isn't put in the binary: it's published with the release, and fetched when it's shown. Keep it small (a cropped `just shots` picture, 2× at most).
+- `picture`: a `.png`, `.jpg` or `.webp` file beside the entry. It isn't put in the binary: it's published with the release, and fetched when it's shown.
+
+Crop a picture to what's new, not the page it's on: a whole page shrinks to
+nothing in the dialog. Take it at 2× and keep it under 100 KB (`.webp`). The
+first entry's picture is shown 4:3, beside its words, so crop that one near
+4:3; the others' keep their own shape, up to 240px tall. Entries are shown
+newest release first and by file name within one, so the first entry is the
+release's first by name.
 
 Don't say which release it's in. A build works that out from the tags
 (`scripts/whatsnew`): an entry is in the first release that has the commit
