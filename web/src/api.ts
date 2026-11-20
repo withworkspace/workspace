@@ -52,6 +52,7 @@ import type {
   PRWritten,
   RunDetail,
   RunsInfo,
+  WorktreeRunsInfo,
   SettingChange,
   SettingsInfo,
   Space,
@@ -147,6 +148,7 @@ export type {
   RoleRun,
   RunDetail,
   RunsInfo,
+  WorktreeRunsInfo,
   WorkspaceSiloHook as SiloHook,
   WorkspaceSiloState as SiloState,
   WorkspaceSiloSync as SiloSync,
@@ -663,6 +665,15 @@ export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(
 // mission open (and 15 minutes after).
 export const runRecipe = (slug: string, repo: string, capsule: string, recipe: string) =>
   send<RunDetail>("POST", `/api/missions/${encodeURIComponent(slug)}/runs`, { repo, capsule, recipe });
+
+// getWorktreeRuns is what's running in a repo's ground or capsule, and
+// its recipes, for the Files page: each ask says the page has it open, so
+// what's started from there lasts.
+export const getWorktreeRuns = (repo: string, name: string) => getJSON<WorktreeRunsInfo>(`${worktreeAPI(repo, name)}/runs`);
+
+// runInWorktree starts a ground's or capsule's recipe, for as long as
+// someone has it open on the Files page (and 15 minutes after).
+export const runInWorktree = (repo: string, name: string, recipe: string) => send<RunDetail>("POST", `${worktreeAPI(repo, name)}/runs`, { recipe });
 
 // writePR has the PR writer write a capsule's pull request, for you to
 // read and change before you open it. It answers once it's written: a

@@ -47,7 +47,9 @@ function firstFor(r: RunDetail, missions: Mission[], talks: Talk[]): Said {
       return { text, to: r.mission ? `/missions/${r.mission}/conversations/${r.conversation}` : `/conversations/${r.conversation}` };
     }
     case "looking":
-      return mission ? { text: `whoever has ${mission.text} open`, to: mission.to } : { text: "whoever has its page open" };
+      // Started from a mission's page, or with none, from the Files page.
+      if (mission) return { text: `whoever has ${mission.text} open`, to: mission.to };
+      return { text: "whoever has its files open", to: r.worktree === "ground" ? `/files/${r.repo}` : `/files/${r.repo}/${r.worktree}` };
     case "none":
       return { text: "nobody: it lasts until it's stopped, or its time's up" };
   }

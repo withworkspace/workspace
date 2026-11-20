@@ -751,6 +751,7 @@ Most settings are the ones in `ws.local.toml`. Each row says what the setting is
 - **The title** (*Demo / ground*) switches to any of the repo's capsules (`w`), each with its branch and mission. A file you have open stays open if it's there.
 - **A capsule's files** read as in its mission's explorer: everything, or only what's changed since it left `origin/<default branch>` (`c`), with changed lines marked. `t` finds a file, and `v` reviews a mission's capsule's changes.
 - **A markdown file reads rendered,** as documents are (see *Artifacts*, below): a link to another file opens that file here, in the same tree, at the heading it names; a link to a folder opens its README, or the folder; an image is read from beside the file. `m` switches to its text.
+- **Runs** of the ground or capsule open, and its `ws.repo.toml`'s recipes to run, are under the title (see [Runs](#runs)).
 - **Edit as a page** (`⏎` on a markdown file that's open) opens it as a page tied to the file, with the page's tools, saved back to the repo when you say (see *A file as a page* under Pages).
 - **Only the workspace's repos and their worktrees** can be read this way.
 
@@ -1411,6 +1412,8 @@ mount = "/api"           # and below web's own name (see Names, below)
 - A run started for a need isn't the asker's: it's started without the mission, crew or conversation the asker is.
 
 In the web UI, a capsule on a mission's Work tab lists its runs (each with its link, what it needs, when it ends, and Stop) and a **Run** button for each recipe that isn't running. A run started there lasts while someone has the mission open, and 15 minutes after, or 4 hours at most; what it needs is started with it.
+
+The **Files** page does the same for any repo's ground or capsule, mission or not: under its title are the runs in it, whoever started them, and a **Run** button for each of its recipes that isn't running (not a silo's). A run started there lasts while someone has that ground or capsule open on the page, and 15 minutes after, or 4 hours at most.
 
 The web UI's **Runs** page (`/runs`, in the workspace's menu until you arrange it into the sidebar, and in Find) is every run in the workspace, whoever started it: each with its link, where it runs and who it's for (going to the mission, crew or conversation; or the runs that need it), what it needs, when it ends, its output (opened under it, and read again every 2 seconds while it runs), and Stop. Runs that ended by themselves are below, each with Clear. Above them it says where the workspace's names stand: its web UI's name, the port the router's on and which daemon holds it, or, with names off, how to turn them on.
 

@@ -59,7 +59,7 @@ export function RunsHere({ slug, c, open, reload }: { slug: string; c: CapsuleDe
   );
 }
 
-function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => void }) {
+export function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => void }) {
   const live = r.state === "running";
   return (
     <li className={`work-run${live ? "" : " ended"}`}>

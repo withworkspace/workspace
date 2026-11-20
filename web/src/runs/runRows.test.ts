@@ -24,6 +24,8 @@ describe("forWhom", () => {
     expect(forWhom(run({ owner: "step", mission: "cache-it", step: 2 }), missions)).toEqual({ text: "step 2 of Cache it", to: "/missions/cache-it" });
     expect(forWhom(run({ owner: "crew", mission: "cache-it", crew: "c3" }), missions)).toEqual({ text: "crew c3 of Cache it", to: "/missions/cache-it/crew/c3" });
     expect(forWhom(run({ owner: "looking", mission: "cache-it" }), missions).text).toBe("whoever has Cache it open");
+    expect(forWhom(run({ owner: "looking" }), missions)).toEqual({ text: "whoever has its files open", to: "/files/frontend/cache" });
+    expect(forWhom(run({ owner: "looking", worktree: "ground" }), missions).to).toBe("/files/frontend");
     expect(forWhom(run({ owner: "conversation", conversation: "t1" }), missions, [{ id: "t1", title: "Try the cache" } as never])).toEqual({
       text: "the conversation “Try the cache”",
       to: "/conversations/t1",
