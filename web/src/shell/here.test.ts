@@ -90,10 +90,12 @@ describe("where you are", () => {
 });
 
 describe("what can be done here", () => {
-  it("is a mission's headline, by what's done, and nothing for one that asks nothing", () => {
+  it("is a mission's headline first, by what's done, then what changes it and its brief", () => {
     const mission = hereAt("/missions/fix-token-refresh", "", workspace, known);
-    expect(hereItems(mission, workspace, known)).toMatchObject([{ id: "do:accept:fix-token-refresh", group: "here", title: "Accept it", doing: { act: "accept", slug: "fix-token-refresh" } }]);
-    expect(hereItems(hereAt("/missions/cache", "", workspace, known), workspace, known)).toEqual([]);
+    const items = hereItems(mission, workspace, known);
+    expect(items[0]).toMatchObject({ group: "here", title: "Accept it", doing: { act: "accept", slug: "fix-token-refresh" } });
+    expect(items.map((it) => it.title).slice(1)).toEqual(expect.arrayContaining(["Park it", "Archive it", "Its brief"]));
+    expect(items.every((it) => it.group === "here")).toBe(true);
   });
 
   it("is a plugin's thing's actions, then ws's own", () => {

@@ -2,6 +2,9 @@ import type { ActionAsk, ActVerb, Plugin, Workspace } from "../api";
 import { docAddress, docRef, pageAddress, spaceAt, type SpaceRef } from "../api";
 import { GROUND, type Known, type Named, namedOf, type PageRef, refAt, refHref, type ThingAction } from "../refs/refs";
 import { thingIcon } from "../refs/views";
+import { sectionsOf } from "../settings/sections";
+import type { WsDoing } from "./acts";
+import { placesOf } from "./places";
 import { fuzzy } from "../ui/fuzzy";
 import { type IconName, icons } from "../ui/Icon";
 import { crewStatus, headlineStatus, type StatusInfo } from "../ui/status";
@@ -49,7 +52,9 @@ export type Doing =
   | { help: true }
   | { page: true }
   | { plugin: string; action: ThingAction }
-  | { thing: Extract<PageRef, { kind: "thing" }>; does: ActOn };
+  | { thing: Extract<PageRef, { kind: "thing" }>; does: ActOn }
+  | { ws: WsDoing }
+  | { shutDown: true };
 
 // ActOn is something to do to a plugin's thing: one of its kind's actions,
 // which its plugin does, or one of ws's own.
@@ -145,6 +150,31 @@ export function missionDo(m: Workspace["missions"][number]): Item | undefined {
   };
 }
 
+// placeWords are the words ws's own places are looked for by, beyond
+// their names.
+const placeWords: Record<string, string> = {
+  documents: "pages spaces records adrs write cells",
+  artifacts: "prototypes sketches html mock-ups frames versions",
+  reviews: "pull requests prs stacks github",
+  team: "people timeline who landed merged what's happening",
+  files: "repos capsules ground browse",
+  orchestrator: "agent decides what's next runs",
+  runs: "processes dev servers ports http localhost names router running",
+};
+
+// settingWords are the words a section of Settings is looked for by.
+const settingWords: Record<string, string> = {
+  appearance: "theme light dark accent sidebar",
+  notifications: "desktop alerts",
+  agents: "harness model claude codex roles",
+  missions: "orchestrator briefing checks",
+  repos: "clone fetch",
+  runs: "router ports localhost",
+  plugins: "add install remove update extensions views commands releases",
+  yours: "local ws.local.toml mine",
+  about: "version updates upgrade release",
+};
+
 // localItems is everything the page already holds that can be found.
 export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
   const place = (to: string, title: string, icon: IconName, hint?: string): Item => ({
@@ -157,17 +187,18 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
     score: 0,
     to,
   });
+  // The sidebar's places, ws's own and each plugin's views, as the
+  // sidebar has them; then Settings, and each of its sections.
   const out: Item[] = [
-    place("/", "Missions", "flag"),
-    place("/conversations", "Conversations", "message"),
-    place("/documents", "Documents", "file", "pages spaces records adrs write cells"),
-    place("/artifacts", "Artifacts", "artifact", "prototypes sketches html mock-ups frames versions"),
-    place("/reviews", "Reviews", "pr", "pull requests prs stacks github"),
-    place("/team", "Team", "user", "people timeline who landed merged what's happening"),
-    place("/files", "Files", "layers", "repos capsules ground browse"),
-    place("/orchestrator", "Orchestrator", "sparkle"),
-    place("/runs", "Runs", "play", "processes dev servers ports http localhost names router running"),
-    place("/settings/plugins", "Plugins", "box", "add install remove update extensions views commands releases"),
+    ...placesOf(w, [], plugins).map((p) => ({
+      ...place(p.to, p.label, p.icon, placeWords[p.id] ?? [p.under, p.id.split("/")[1], "view"].filter(Boolean).join(" ")),
+      ...(p.id.startsWith("x/") ? { notes: [p.id.split("/")[1]] } : {}),
+    })),
+    place("/settings", "Settings", "sliders", "preferences options config configuration"),
+    ...sectionsOf().map((s) => ({
+      ...place(`/settings/${s.id}`, s.title, s.icon, `settings ${settingWords[s.id] ?? ""}`),
+      notes: ["Settings"],
+    })),
     {
       id: "do:new-talk",
       group: "do",
@@ -306,6 +337,30 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
       score: 0,
       doing: { theme: "system" },
     },
+    ...(w.later
+      ? [
+          {
+            id: "do:upgrade",
+            group: "do" as const,
+            kind: "Do",
+            title: `Upgrade to ws ${w.later}`,
+            hint: "update release version later",
+            icon: "arrow-up" as const,
+            score: 0,
+            to: "/settings/about#updates",
+          },
+        ]
+      : []),
+    {
+      id: "do:shut-down",
+      group: "do",
+      kind: "Do",
+      title: "Shut down the daemon…",
+      hint: "stop quit exit",
+      icon: "power",
+      score: 0,
+      doing: { shutDown: true },
+    },
     {
       id: "do:keys",
       group: "do",
@@ -377,7 +432,7 @@ export function askOptions(ask: ActionAsk, q: string): Item[] {
 
 // ordered is items as a short list of its own shows them: as they came,
 // with nothing typed, and by how well they match what is.
-function ordered(items: Item[], q: string): Item[] {
+export function ordered(items: Item[], q: string): Item[] {
   if (!q.trim()) return items;
   return rank(items, q.trim())
     .map((it, i) => ({ it, i }))
@@ -1050,7 +1105,7 @@ export function build(a: Assembly): Built {
   // where you've been, and (somewhere that isn't of one thing) the
   // places. Each thing once, where it's first.
   if (!a.q && !group) {
-    const here = (a.here ?? []).slice(0, 4);
+    const here = (a.here ?? []).slice(0, 5);
     const needs = (a.needs ?? []).slice(0, few);
     const seen = new Set([a.at, ...needs.map((n) => n.id)]);
     const linked = (a.linked ?? []).filter((it) => !seen.has(it.id)).slice(0, linkedRoom);
@@ -1063,7 +1118,8 @@ export function build(a: Assembly): Built {
     if (!around)
       add(
         "places",
-        a.local.filter((it) => it.group === "places"),
+        // The sections of Settings are found by name, not offered.
+        a.local.filter((it) => it.group === "places" && !it.id.startsWith("place:/settings/")),
       );
     return { sections, rows: sections.flatMap((s) => s.items) };
   }

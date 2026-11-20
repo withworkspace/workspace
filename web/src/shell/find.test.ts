@@ -133,6 +133,7 @@ describe("what the page holds", () => {
       "Light theme",
       "Dark theme",
       "Theme from the system",
+      "Shut down the daemon…",
       "Show the keys",
     ]);
   });
