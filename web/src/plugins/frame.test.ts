@@ -39,6 +39,7 @@ function fakeWs(path = "/things/2?tab=links") {
     dim: (on) => void said.dims.push(on),
     // ws has one UI of its own here, the ref's card: any other, it says so.
     ui: {
+      names: ["ref-card"],
       open(asked) {
         if (asked.ui !== "ref-card") return `This ws has no UI called ${asked.ui}. Update ws.`;
         said.uis.push(asked);
@@ -279,15 +280,25 @@ describe("protocol 1's host", () => {
   it("tells the app what came of a UI ws closed, and nothing of one the app closed", async () => {
     const { client, session } = await connected();
     // What comes of a UI is its own to say: read here as whatever it is.
-    const saved = client.ui.open("ref-card", { with: { ref: "a" } }) as { result: Promise<unknown> };
+    const saved: Promise<unknown> = client.ui.open("ref-card", { with: { ref: "a" } });
     const dismissed = client.ui.open("ref-card", { with: { ref: "b" } });
     await tick();
 
     session.uiClosed(1, { saved: "records:sketches/release-flow.excalidraw" });
     session.uiClosed(2);
 
-    expect(await saved.result).toEqual({ saved: "records:sketches/release-flow.excalidraw" });
-    expect(await dismissed.result).toBeUndefined();
+    expect(await saved).toEqual({ saved: "records:sketches/release-flow.excalidraw" });
+    expect(await dismissed).toBeUndefined();
+    client.close();
+    session.close();
+  });
+
+  it("says in the welcome which UIs it has, so the app knows before it asks", async () => {
+    const { client, session } = await connected();
+    expect(client.ui.has("ref-card")).toBe(true);
+    expect(client.ui.has("thing-remote-save")).toBe(false);
+    const { message } = await answered({ type: "ws:connect", versions: [1] }, fakeWs().host);
+    expect((message as V1.Welcome).uis).toEqual(["ref-card"]);
     client.close();
     session.close();
   });

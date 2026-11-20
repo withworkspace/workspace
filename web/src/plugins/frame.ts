@@ -50,6 +50,9 @@ export interface Host {
   // words. ws defines each and draws it over the frame, by where in the
   // app's page it was asked from.
   ui: {
+    // The ones there are, by name: the app is told as it connects, so
+    // what it awaits of one ws hasn't fails at once.
+    readonly names: readonly string[];
     // The app asks for one. What comes back is why it can't be shown, if
     // it can't, and the app is told.
     open(asked: Asked): string | undefined;

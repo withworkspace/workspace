@@ -78,6 +78,8 @@ export function v1(port: MessagePort, host: Host): Session {
     keys: frameKeys,
     // ws finds its names in the app's words, when it's asked (ws:refs).
     refs: true,
+    // The UIs of its own ws has for the app to ask for (ws:ui-open).
+    uis: [...host.ui.names],
     // ws holds conversations about the page (ws:conversation).
     conversations: true,
   } satisfies V1.Welcome);

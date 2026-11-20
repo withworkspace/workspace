@@ -49,8 +49,10 @@ describe("what a plugin's page has asked ws to show", () => {
     expect(uis.hovered()).toBeUndefined();
   });
 
-  it("ws's own UIs are all it has, unless it's told otherwise", () => {
+  it("ws's own UIs are all it has, unless it's told otherwise, and it names them", () => {
     const uis = frameUis(() => {});
+    expect(uis.names).toEqual([...V1.UI_NAMES]);
+    expect(frame().uis.names).toEqual(["ref-card", "thing-remote-save"]);
     expect(uis.open(card(1))).toBeUndefined();
     expect(uis.open({ id: 2, ui: "thing-remote-save", with: { thing: "sketch-12" } })).toMatch(/no UI called thing-remote-save/);
     uis.forget();

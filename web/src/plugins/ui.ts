@@ -52,6 +52,9 @@ export const kinds: Readonly<Record<V1.UiName, UiKind>> = {
 // FrameUis is the UIs one frame's page has asked for: what the page says
 // of them, and what ws draws and says back.
 export interface FrameUis {
+  // The UIs there are, by name: what the page is told ws has as it
+  // connects, so it asks for nothing else.
+  readonly names: readonly string[];
   // The page asks for one. What comes back is why it can't be shown, if
   // it can't: ws has none of that name, or it wasn't given what it takes.
   open(asked: Asked): string | undefined;
@@ -100,6 +103,7 @@ export function frameUis(closed: (id: number, result: unknown) => void, has: Rea
   };
 
   return {
+    names: Object.keys(has),
     open(asked) {
       const kind = Object.hasOwn(has, asked.ui) ? has[asked.ui] : undefined;
       if (!kind) return `This ws has no UI called ${asked.ui}. Update ws.`;

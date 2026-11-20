@@ -174,7 +174,7 @@ function isPlugin(m) {
   return isRecord(m) && isString(m.name) && isString(m.at) && isString(m.base) && isString(m.api);
 }
 function isWelcome(m) {
-  return isRecord(m) && m.type === "ws:welcome" && m.version === 1 && isString(m.ws) && isPlugin(m.plugin) && isString(m.path) && isTheme(m.theme) && isKeys(m.keys) && (m.refs === void 0 || typeof m.refs === "boolean") && (m.conversations === void 0 || typeof m.conversations === "boolean");
+  return isRecord(m) && m.type === "ws:welcome" && m.version === 1 && isString(m.ws) && isPlugin(m.plugin) && isString(m.path) && isTheme(m.theme) && isKeys(m.keys) && (m.refs === void 0 || typeof m.refs === "boolean") && (m.uis === void 0 || isStrings(m.uis)) && (m.conversations === void 0 || typeof m.conversations === "boolean");
 }
 var isIndex = (v) => Number.isInteger(v) && v >= 0;
 var isSize = (v) => Number.isFinite(v) && v >= 0;
@@ -404,16 +404,19 @@ function client(port, welcome, doc) {
   });
   const uis = /* @__PURE__ */ new Map();
   let uiAskings = 0;
+  const hasUi = new Set(welcome.uis ?? []);
   const openUi = (name, options2) => {
     if (closed)
-      return { result: Promise.resolve(void 0), close() {
-      } };
+      return Object.assign(Promise.resolve(void 0), { close() {
+      } });
+    if (!hasUi.has(name))
+      return Object.assign(Promise.reject(new UiError(`This ws has no UI called ${name}. Update ws.`, name)), { close() {
+      } });
     const id = ++uiAskings;
     const result = new Promise((resolve, reject) => uis.set(id, { ui: name, done: (r) => resolve(r), failed: reject }));
     const box = boxOf(options2.target);
     send({ type: "ws:ui-open", id, ui: name, ...box ? { box } : {}, with: { ...options2.with } });
-    return {
-      result,
+    return Object.assign(result, {
       close() {
         const asked2 = uis.get(id);
         if (!asked2)
@@ -422,13 +425,13 @@ function client(port, welcome, doc) {
         send({ type: "ws:ui-close", id });
         asked2.done(void 0);
       }
-    };
+    });
   };
   const refCard = (target, ref) => {
     if (!ref)
       throw new TypeError(`ui.refCard(target, ""): a ref is ws's word for it, as findRefs gave it.`);
     const card = openUi("ref-card", { target, with: { ref } });
-    card.result.catch(() => {
+    card.catch(() => {
     });
     return () => card.close();
   };
@@ -560,7 +563,7 @@ function client(port, welcome, doc) {
         tellHere();
       };
     },
-    ui: { open: openUi, refCard },
+    ui: { has: (name) => hasUi.has(name), open: openUi, refCard },
     setChromeLayout(mode) {
       if (mode !== "expanded" && mode !== "standard")
         throw new TypeError(`setChromeLayout("${String(mode)}"): the layout is "expanded" or "standard".`);
