@@ -35,31 +35,40 @@ typing the address. A path opens that page, such as /missions/<slug>.`,
 		// Usage is for wrong arguments, not for what went wrong after.
 		PreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, err := loadOps()
-			if err != nil {
-				return err
-			}
 			path := "/"
 			if len(args) == 1 {
 				path = "/" + strings.TrimPrefix(args[0], "/")
 			}
-			link, err := webURL(ctx.WS().Root, path)
-			if err != nil {
-				return err
-			}
-			if printOnly {
-				fmt.Println(link)
-				return nil
-			}
-			if err := openBrowser(link); err != nil {
-				return fmt.Errorf("opening your browser: %w (ws web --print prints the link)", err)
-			}
-			fmt.Fprintf(ui.Stderr, "  %s opened %s%s\n", ui.Green.Render("✓"), linkOrigin(link), path)
-			return nil
+			return openWeb(path, printOnly)
 		},
 	}
-	cmd.Flags().BoolVar(&printOnly, "print", false, "print the sign-in link instead of opening it")
+	addPrintFlag(cmd, &printOnly)
 	return cmd
+}
+
+func addPrintFlag(cmd *cobra.Command, printOnly *bool) {
+	cmd.Flags().BoolVar(printOnly, "print", false, "print the sign-in link instead of opening it")
+}
+
+// openWeb opens path in the workspace's web UI, or prints its link.
+func openWeb(path string, printOnly bool) error {
+	ctx, err := loadOps()
+	if err != nil {
+		return err
+	}
+	link, err := webURL(ctx.WS().Root, path)
+	if err != nil {
+		return err
+	}
+	if printOnly {
+		fmt.Println(link)
+		return nil
+	}
+	if err := openBrowser(link); err != nil {
+		return fmt.Errorf("opening your browser: %w (ws --print prints the link)", err)
+	}
+	fmt.Fprintf(ui.Stderr, "  %s opened %s%s\n", ui.Green.Render("✓"), linkOrigin(link), path)
+	return nil
 }
 
 // webURL is a link that signs the browser in to the workspace's web UI and

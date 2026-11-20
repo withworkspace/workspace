@@ -21,16 +21,20 @@ func newBuiltinRootCmd(version string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "workspace",
 		Short: "Multi-repo workspace manager",
-		Long:  "Manage multi-repo workspaces with git worktrees and symlinks.",
+		Long: `Manage multi-repo workspaces with git worktrees and symlinks.
+
+ws alone opens the web UI, as ws web does; ws status lists every repo and capsule.`,
 	}
 
 	cmd.Version = version
 
-	// Default command: show status when no subcommand given
+	// ws alone opens the web UI, as ws web does.
+	var printOnly bool
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return newStatusCmd().RunE(cmd, args)
+		cmd.SilenceUsage = true
+		return openWeb("/", printOnly)
 	}
-	addGroupFlag(cmd)
+	addPrintFlag(cmd, &printOnly)
 	addStdinFlag(cmd)
 
 	cmd.AddCommand(newInitCmd())
