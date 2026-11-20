@@ -38,6 +38,21 @@ export function v1(port: MessagePort, host: Host): Session {
       case "ws:chrome-layout":
         host.chromeLayout(m.mode);
         break;
+      // The conversation about the page: said to ws's own host, as ws's
+      // own pages say it.
+      case "ws:conversation": {
+        const { type: _, ...settings } = m;
+        host.conversation.set(settings);
+        break;
+      }
+      case "ws:conversation-open": {
+        const { type: _, ...opening } = m;
+        host.conversation.open(opening);
+        break;
+      }
+      case "ws:conversation-close":
+        host.conversation.close();
+        break;
     }
   };
 
@@ -54,6 +69,8 @@ export function v1(port: MessagePort, host: Host): Session {
     keys: frameKeys,
     // ws finds its names in the app's words, when it's asked (ws:refs).
     refs: true,
+    // ws holds conversations about the page (ws:conversation).
+    conversations: true,
   } satisfies V1.Welcome);
 
   return {
@@ -67,6 +84,7 @@ export function v1(port: MessagePort, host: Host): Session {
     // Said to every page, asked for or not: one with nothing open does
     // nothing with it.
     outside: () => send({ type: "ws:outside" } satisfies V1.Outside),
+    conversation: (s) => send({ type: "ws:conversation-state", open: s.open, ...(s.as ? { as: s.as } : {}), working: s.working } satisfies V1.ConversationState),
     close() {
       port.onmessage = null;
       port.close();

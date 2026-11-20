@@ -14,6 +14,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/router"
 	"github.com/withworkspace/workspace/internal/team"
 )
 
@@ -375,7 +376,7 @@ func boolSetting(section, key, label, about string, def bool,
 }
 
 // settingDefs are the page's settings, by group.
-func settingDefs() []struct {
+func settingDefs(root string) []struct {
 	group    roleDef
 	settings []settingDef
 } {
@@ -448,12 +449,79 @@ func settingDefs() []struct {
 	out = append(out, struct {
 		group    roleDef
 		settings []settingDef
+	}{roleDef{id: "router", title: "Local names", about: "Names under .localhost for the web UI and what ws runs, served by one router for every workspace on this machine (ws router). Yours alone: it listens on your machine."}, []settingDef{
+		routerEnabledSetting(), routerNameSetting(root),
+	}})
+	out = append(out, struct {
+		group    roleDef
+		settings []settingDef
 	}{roleDef{id: "ui", title: "Appearance", about: "How the web UI looks."}, []settingDef{
 		accentSetting(),
-		placesSetting("sidebar", "Sidebar", "The places in the sidebar, in order. A place in neither list goes at the sidebar's end. Arrange them from Settings, under Appearance (Arrange the sidebar…). Yours, setting either list, replaces the team's arrangement."),
+		placesSetting("sidebar", "Sidebar", "The places in the sidebar, in order. A place in neither list goes at the sidebar's end, or the menu's for one whose home is the menu (Runs). Arrange them from Settings, under Appearance (Arrange the sidebar…). Yours, setting either list, replaces the team's arrangement."),
 		placesSetting("menu", "In the menu", "The places moved out of the sidebar into the workspace's menu, in order. Arrange them from Settings, under Appearance (Arrange the sidebar…)."),
 	}})
 	return out
+}
+
+// routerEnabledSetting is [router] enabled: whether the daemon gives the
+// workspace and its runs names. It's yours alone (ws.toml has no
+// [router]), and the daemon reads it again every few seconds, so it needs
+// no restart.
+func routerEnabledSetting() settingDef {
+	return settingDef{
+		section: "router", key: "enabled", label: "Names for the web UI and runs", kind: "bool",
+		about: "The web UI at http://<name>.localhost, and each run at <run>.<capsule>.<repo>.<name>.localhost, as well as at 127.0.0.1 and its port. Browsers send any .localhost to this machine by themselves.",
+		team:  func(*config.Config) any { return nil },
+		yours: func(l *config.LocalConfig) any {
+			if l.Router.Enabled {
+				return true
+			}
+			return nil
+		},
+		def: func(config.Config) any { return false },
+		set: func(l *config.LocalConfig, v any) error {
+			if v == nil {
+				l.Router.Enabled = false
+				return nil
+			}
+			b, ok := v.(bool)
+			if !ok {
+				return errors.New("it's on or off")
+			}
+			l.Router.Enabled = b
+			return nil
+		},
+	}
+}
+
+// routerNameSetting is [router] name: the workspace's name under
+// .localhost; unset, its folder's.
+func routerNameSetting(root string) settingDef {
+	return settingDef{
+		section: "router", key: "name", label: "Name", kind: "text",
+		about: "What the workspace's names end in: <name>.localhost. Where another workspace already has it, this one's gets four letters of its own after it while that one's daemon runs.",
+		team:  func(*config.Config) any { return nil },
+		yours: func(l *config.LocalConfig) any { return strOrNil(l.Router.Name) },
+		def:   func(config.Config) any { return router.NameFor(root, "") },
+		set: func(l *config.LocalConfig, v any) error {
+			if v == nil {
+				l.Router.Name = ""
+				return nil
+			}
+			s, err := settingText(v, 63)
+			if err != nil {
+				return err
+			}
+			switch l := router.Label(s); {
+			case l == "":
+				return errors.New("lower case letters, numbers and dashes")
+			case l != s:
+				return fmt.Errorf("lower case letters, numbers and dashes only (%s would do)", l)
+			}
+			l.Router.Name = s
+			return nil
+		},
+	}
 }
 
 // accentSetting is [ui] accent: the colour the web UI is drawn in. Its
@@ -703,7 +771,7 @@ func (w *Workspace) Settings() (SettingsInfo, error) {
 			File: filepath.Join(root, config.LocalFileName), Team: filepath.Join(root, config.FileName),
 			Unknown: cfg.Unknown,
 		}
-		for _, g := range settingDefs() {
+		for _, g := range settingDefs(root) {
 			group := SettingsGroup{ID: g.group.id, Title: g.group.title, About: g.group.about}
 			for _, d := range g.settings {
 				s := Setting{Section: d.section, Key: d.key, Label: d.label, About: d.about, Kind: d.kind,
@@ -758,7 +826,7 @@ func (w *Workspace) SetSettings(changes []SettingChange) (SettingsInfo, error) {
 	root := w.Root()
 	{
 		defs := map[string]settingDef{}
-		for _, g := range settingDefs() {
+		for _, g := range settingDefs(root) {
 			for _, d := range g.settings {
 				defs[d.section+"."+d.key] = d
 			}

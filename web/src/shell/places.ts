@@ -4,9 +4,10 @@ import type { IconName } from "../ui/Icon";
 // and each view a plugin adds. You arrange them: their order in the
 // sidebar, and which are moved out of it into the workspace's menu (from
 // its name), kept as [ui] sidebar and [ui] menu in ws.local.toml, each a
-// list of ids. A place in neither list goes at the sidebar's end, in the
-// order it comes; an id that isn't a place now (a plugin's view that's
-// gone) is passed by, and kept where it was when you arrange again.
+// list of ids. A place in neither list goes at the end of its home (the
+// sidebar, unless it says the menu), in the order it comes; an id that
+// isn't a place now (a plugin's view that's gone) is passed by, and kept
+// where it was when you arrange again.
 
 export interface Place {
   // id is what [ui] sidebar and menu name it by: ws's own by its name
@@ -21,6 +22,9 @@ export interface Place {
   // under is the group a plugin's view names: its title shows above it
   // in the sidebar.
   under?: string;
+  // home is where it goes until you arrange it: the menu, for a place
+  // most needn't see every day (Runs). The sidebar, unsaid.
+  home?: "menu";
 }
 
 // Arrangement is where the places go, by id.
@@ -36,7 +40,7 @@ export interface Arranged {
 }
 
 export function arrange(places: Place[], saved?: Arrangement): Arranged {
-  if (!saved) return { sidebar: places, menu: [] };
+  saved ??= { sidebar: [], menu: [] };
   const byId = new Map(places.map((p) => [p.id, p]));
   const taken = new Set<string>();
   const pick = (ids: string[]) =>
@@ -48,7 +52,8 @@ export function arrange(places: Place[], saved?: Arrangement): Arranged {
     });
   const menu = pick(saved.menu);
   const sidebar = pick(saved.sidebar);
-  return { sidebar: [...sidebar, ...places.filter((p) => !taken.has(p.id))], menu };
+  const rest = places.filter((p) => !taken.has(p.id));
+  return { sidebar: [...sidebar, ...rest.filter((p) => p.home !== "menu")], menu: [...menu, ...rest.filter((p) => p.home === "menu")] };
 }
 
 // saving is what's written for an arrangement: its ids, and after each

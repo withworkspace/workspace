@@ -182,6 +182,9 @@ export interface ReviewSource {
   sinceOf: (latest?: ReviewData) => string | undefined;
   getDiff: (since?: string) => Promise<ReviewDiff>;
   diffKey?: string;
+  // opened is its reviews and its diff (as getDiff gives it, of what
+  // sinceOf says), read already: it opens on them, not on nothing.
+  opened?: { rs: ReviewState; diff: ReviewDiff };
   sinceName?: (latest?: ReviewData) => string; // "r2", "your last review"
   movedWords: string; // it has new commits since the diff loaded
   empty: string; // there's nothing in the diff
@@ -337,8 +340,8 @@ export function ReviewView({ source }: { source: ReviewSource }) {
   const api = source.api;
   useTitle(source.title);
 
-  const [diff, setDiff] = useState<ReviewDiff>();
-  const [rs, setRS] = useState<ReviewState>({ draft: null, reviews: [], viewed: {} });
+  const [diff, setDiff] = useState<ReviewDiff | undefined>(source.opened?.diff);
+  const [rs, setRS] = useState<ReviewState>(source.opened?.rs ?? { draft: null, reviews: [], viewed: {} });
   const [error, setError] = useState<string>();
   const [blobs, setBlobs] = useState<Record<string, string[]>>({});
   const [expanded, setExpanded] = useState<Record<string, FileState["expanded"]>>({});
@@ -363,7 +366,9 @@ export function ReviewView({ source }: { source: ReviewSource }) {
   // since ("auto"), or all the changes.
   const [scope, setScope] = useState<"auto" | "all">("auto");
   const [scopeNote, setScopeNote] = useState<string>();
-  const [reviewsLoaded, setReviewsLoaded] = useState(false);
+  const [reviewsLoaded, setReviewsLoaded] = useState(!!source.opened);
+  // Opened on what's been read, it isn't read again as it opens.
+  const primed = useRef({ review: !!source.opened, diff: !!source.opened });
 
   // The view showing: the first unless the address names another. The
   // rest stay as they were left (scrolled, typed into), hidden.
@@ -421,10 +426,13 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     );
   }, [api, since, source.diffKey, beginDiff]);
   useEffect(() => {
-    loadReview();
+    if (primed.current.review) primed.current.review = false;
+    else loadReview();
   }, [loadReview, source.updated]);
   useEffect(() => {
-    if (reviewsLoaded) loadDiff();
+    if (!reviewsLoaded) return;
+    if (primed.current.diff) primed.current.diff = false;
+    else loadDiff();
   }, [loadDiff, reviewsLoaded]);
   const load = () => {
     loadReview();

@@ -140,7 +140,7 @@ var responders = func() map[string]responder {
 	}
 	return map[string]responder{
 		conversation.WhatThreadAsk: thread, conversation.WhatThreadChange: thread, conversation.WhatThreadNote: thread,
-		conversation.WhatTalk: talk, conversation.WhatPR: talk, conversation.WhatDoc: talk, conversation.WhatBriefing: briefing,
+		conversation.WhatTalk: talk, conversation.WhatPR: talk, conversation.WhatDoc: talk, conversation.WhatThing: talk, conversation.WhatBriefing: briefing,
 		conversation.WhatCell: cell, conversation.WhatAsk: cell, conversation.WhatOutline: cell,
 		conversation.WhatPass: pass, conversation.WhatReviewPass: rpass,
 	}
@@ -655,6 +655,8 @@ func (w *Workspace) here(sc doc.Scope, c *conversation.Conversation) prompt.Here
 	switch {
 	case conversation.IsThread(c.What):
 		h.Kind = KindPara(w.WS(), c.Anchor.Doc)
+	case c.What == conversation.WhatThing:
+		h.Plugin = w.pluginTitle(c.Anchor.Plugin)
 	case c.What == conversation.WhatDoc:
 		h.Kind = KindPara(w.WS(), c.Anchor.Doc)
 		if d, err := w.FindDoc(c.Anchor.Doc); err == nil {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/config"
+	"github.com/withworkspace/workspace/internal/router"
 	"github.com/withworkspace/workspace/internal/runs"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -133,4 +134,55 @@ func (w *Workspace) LookedAt(slugs map[string]bool) error {
 		return nil
 	}
 	return w.runStore().Looked(slugs, time.Now())
+}
+
+// Runs is every run in the workspace, wherever it runs and whoever it's
+// for: the Runs page's.
+func (w *Workspace) Runs() ([]runs.Run, error) { return w.runStore().List() }
+
+// runByRef is the run whose ref is ref, said in full
+// (<name>.<worktree>.<repo>): a page names a run it's shown, so a name
+// alone isn't guessed at.
+func (w *Workspace) runByRef(ref string) (runs.Run, error) {
+	all, err := w.runStore().List()
+	if err != nil {
+		return runs.Run{}, err
+	}
+	for _, r := range all {
+		if r.Ref() == ref {
+			return r, nil
+		}
+	}
+	return runs.Run{}, fmt.Errorf("%w: no run %s: it may have ended already", ErrNotFound, ref)
+}
+
+// EndRun ends any run, by its ref, as ws run stop does: the Runs page's
+// Stop.
+func (w *Workspace) EndRun(ref string) error {
+	r, err := w.runByRef(ref)
+	if err != nil {
+		return err
+	}
+	return w.runStore().End(r)
+}
+
+// RunLog is the last n lines of a run's output.
+func (w *Workspace) RunLog(ref string, n int) (string, error) {
+	r, err := w.runByRef(ref)
+	if err != nil {
+		return "", err
+	}
+	return r.Tail(n), nil
+}
+
+// Names is whether ws.local.toml's [router] gives the workspace names
+// under .localhost, and the name it asks for (its folder's, unset), as the
+// file says now: the daemon reads it again every few seconds, so a change
+// on the Settings page is soon what's served.
+func (w *Workspace) Names() (on bool, want string, err error) {
+	local, err := config.ReadLocal(w.Root())
+	if err != nil {
+		return false, "", err
+	}
+	return local.Router.Enabled, router.NameFor(w.Root(), local.Router.Name), nil
 }

@@ -353,3 +353,54 @@ func TestWebSettingsPlaces(t *testing.T) {
 		t.Errorf("ws.local.toml cleared:\n%s", data)
 	}
 }
+
+// The local names, [router] enabled and name: yours alone (ws.toml has no
+// [router]), the name defaulting to the folder's and refused unless it's
+// one label of a name.
+func TestWebSettingsRouter(t *testing.T) {
+	root := settingsWorkspace(t, settingsLocal)
+	info, err := testutil.WebSettings(root)()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "router", "enabled"); s.Kind != "bool" || s.Value != false || s.Source != "default" {
+		t.Errorf("enabled, unset: %+v", s)
+	}
+	if s := setting(t, info, "router", "name"); s.Kind != "text" || s.Source != "default" || s.Default == nil || s.Default == "" {
+		t.Errorf("name, unset: %+v", s)
+	}
+
+	info, err = testutil.WebSetSettings(root)([]web.SettingChange{
+		{Section: "router", Key: "enabled", Value: true},
+		{Section: "router", Key: "name", Value: " shop "},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := setting(t, info, "router", "enabled"); s.Value != true || s.Source != "yours" {
+		t.Errorf("enabled: %+v", s)
+	}
+	if s := setting(t, info, "router", "name"); s.Value != "shop" || s.Source != "yours" {
+		t.Errorf("name: %+v", s)
+	}
+	if data, _ := os.ReadFile(filepath.Join(root, "ws.local.toml")); string(data) != settingsLocal+"\n[router]\nenabled = true\nname = \"shop\"\n" {
+		t.Errorf("ws.local.toml:\n%s", data)
+	}
+
+	for _, bad := range []any{"My Shop", "--", 3} {
+		if _, err := testutil.WebSetSettings(root)([]web.SettingChange{{Section: "router", Key: "name", Value: bad}}); !errors.Is(err, web.ErrSettingRefused) {
+			t.Errorf("%v: err = %v, want it refused", bad, err)
+		}
+	}
+
+	// Off and cleared: the file as it was.
+	if _, err = testutil.WebSetSettings(root)([]web.SettingChange{
+		{Section: "router", Key: "enabled", Value: false},
+		{Section: "router", Key: "name", Clear: true},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if data, _ := os.ReadFile(filepath.Join(root, "ws.local.toml")); string(data) != settingsLocal {
+		t.Errorf("ws.local.toml cleared:\n%s", data)
+	}
+}

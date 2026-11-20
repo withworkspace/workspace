@@ -1307,6 +1307,10 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 		v.body = append(v.body, about+" (ws show "+a.PR+").")
 		v.add(a.PR, "the pull request it's about")
 	}
+	if a := c.Anchor; c.What == conversation.WhatThing {
+		v.body = append(v.body, "It's asked about "+a.Thing+" from the "+a.Plugin+" plugin's page, as the user had it open (ws show "+a.Thing+").")
+		v.add(a.Thing, "what it's about")
+	}
 	if a := c.Anchor; c.What == conversation.WhatDoc {
 		about := "It's asked about " + a.Path
 		if a.Quote != nil && a.Quote.Exact != "" {
@@ -1440,8 +1444,42 @@ func talkView(c *conversation.Conversation, full bool, whose string) *view {
 			body = clipString(body, 1200)
 		}
 		v.body = append(v.body, fmt.Sprintf("- %s, %s: %s", turnBy(t), when(t.At), body))
+		if g := t.Given; !g.Empty() {
+			v.body = append(v.body, "  "+givenLine(g, full))
+		}
 	}
 	return v
+}
+
+// givenLine says what a page gave the agent with a turn: in full with
+// --full, else what parts it gave.
+func givenLine(g *conversation.Given, full bool) string {
+	from := g.From
+	if from == "" {
+		from = "plugin's"
+	}
+	var parts []string
+	if g.HoldingText != "" || g.Holding != "" {
+		parts = append(parts, "what was selected ("+g.Holding+")")
+	}
+	if g.Context != "" {
+		parts = append(parts, "context for the message")
+	}
+	if g.Page != "" {
+		parts = append(parts, "the page's state")
+	}
+	line := fmt.Sprintf("(with it, the %s page gave %s", from, strings.Join(parts, ", "))
+	if !full {
+		return line + ": --full shows it)"
+	}
+	var b strings.Builder
+	b.WriteString(line + ":)")
+	for _, part := range []string{g.HoldingText, g.Context, g.Page} {
+		if part != "" {
+			b.WriteString("\n    " + strings.ReplaceAll(part, "\n", "\n    "))
+		}
+	}
+	return b.String()
 }
 
 // turnBy is who said a turn, as a transcript has it: one ws wrote for you

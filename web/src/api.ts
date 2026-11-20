@@ -843,7 +843,50 @@ export interface RunDetail {
   by?: string;
   command: string;
   started: string;
+  // Where it runs: its repo, its worktree as a name says it (a capsule's
+  // name, ground or silo), and the folder.
+  repo: string;
+  worktree: string;
+  dir?: string;
+  pid?: number; // leads its process group, while it runs
+  // Who it's for, beyond owner's kind.
+  mission?: string;
+  step?: number;
+  crew?: string;
+  conversation?: string;
+  ownerPid?: number;
+  ownerCommand?: string;
 }
+
+// Names is where the workspace's names under .localhost stand (ws
+// router): whether ws.local.toml's [router] turns them on, the name it
+// asks for and the one it has ("" until its daemon's written its routes;
+// another, given a clash), the machine's router's port (absent: none
+// serving; fallback: 80 couldn't be had) and the daemon holding it, and
+// the web UI by its name. Mirrors internal/web/runs.go.
+export interface Names {
+  on: boolean;
+  want: string;
+  name?: string;
+  port?: number;
+  fallback?: boolean;
+  heldBy?: number;
+  web?: string;
+}
+
+// RunsInfo is the Runs page's: every run in the workspace, and its names.
+export interface RunsInfo {
+  names: Names;
+  runs: RunDetail[];
+}
+
+export const getRuns = () => getJSON<RunsInfo>("/api/runs");
+
+// endRun ends any run now, or clears away one that's ended, its log with it.
+export const endRun = (ref: string) => send<{ stopped: string }>("POST", "/api/runs/stop", { ref });
+
+// getRunLog is the end of a run's output.
+export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(`/api/runs/log?ref=${encodeURIComponent(ref)}`);
 
 // runRecipe starts a capsule's recipe, for as long as someone has the
 // mission open (and 15 minutes after).
@@ -1853,6 +1896,21 @@ export interface TalkTurn {
   // agent wasn't woken for, which doesn't change whose turn it is.
   origin?: string;
   quiet?: boolean;
+  // given: on a turn of yours said on a plugin's page, what the page gave
+  // the agent with it. Not your words: folded under them.
+  given?: TalkGiven;
+}
+
+// TalkGiven is what a plugin's page gave a conversation's agent with
+// something said there (conversation.Given): its state as words (page,
+// only when it's changed since the agent last had it), what was held,
+// and context for the message alone.
+export interface TalkGiven {
+  from?: string;
+  page?: string;
+  holding?: string;
+  holdingText?: string;
+  context?: string;
 }
 
 export interface TalkDetail {
@@ -1874,6 +1932,8 @@ export interface TalkDetail {
     excerpt?: string[];
     quote?: DocQuote;
     section?: string;
+    thing?: string; // a plugin's thing, asked about from its page
+    plugin?: string;
   };
   via?: string; // the plugin a talk was started from, which worded its first message
   ephemeral?: boolean; // an ask nobody's kept: not listed, and swept an hour after its last turn
@@ -1901,7 +1961,8 @@ const talkPath = (slug: string, id = "", rest = "") =>
 
 export const getTalk = (slug: string, id: string) => getJSON<TalkDetail>(talkPath(slug, id));
 export const startTalk = (slug: string, body: string) => send<TalkDetail>("POST", talkPath(slug), { body });
-export const sayInTalk = (slug: string, id: string, body: string) => send<TalkDetail>("POST", talkPath(slug, id, "/say"), { body });
+export const sayInTalk = (slug: string, id: string, body: string, given?: TalkGiven) =>
+  send<TalkDetail>("POST", talkPath(slug, id, "/say"), given ? { body, given } : { body });
 export const setTalkStatus = (slug: string, id: string, status: "open" | "resolved") => send<TalkDetail>("POST", talkPath(slug, id, "/status"), { status });
 
 // Asking from an ask bar (ask/AskBar.tsx): mirrors internal/web/asks.go. An
@@ -1910,6 +1971,9 @@ export const setTalkStatus = (slug: string, id: string, status: "open" | "resolv
 // the section it's in); followed with getTalk and said to again with
 // sayInTalk, and kept only if you keep it.
 export const startAsk = (q: { doc: string; quote?: DocQuote; section?: string; body: string }) => send<TalkDetail>("POST", "/api/asks", q);
+// askThing asks about a plugin's thing (sketch-13) from its page, with
+// what the page gives the agent.
+export const askThing = (q: { thing: string; body: string; given?: TalkGiven }) => send<TalkDetail>("POST", "/api/asks", q);
 // keepAsk keeps one (Keep as a conversation): it's listed in Conversations
 // from then on, about its document, and isn't swept.
 export const keepAsk = (slug: string, id: string) => send<TalkDetail>("POST", talkPath(slug, id, "/keep"));

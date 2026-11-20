@@ -572,15 +572,33 @@ type RunDetail struct {
 	By      string     `json:"by,omitempty"`
 	Command string     `json:"command"`
 	Started time.Time  `json:"started"`
+	// Where it runs: its repo, and its worktree said as a name has it (a
+	// capsule's name, ground or silo); Dir is the folder.
+	Repo     string `json:"repo"`
+	Worktree string `json:"worktree"`
+	Dir      string `json:"dir,omitempty"`
+	// PID leads its process group, while it runs.
+	PID int `json:"pid,omitempty"`
+	// Who it's for, beyond Owner's kind: a mission's slug (and its step's
+	// number, or its crew's id), a conversation's id, or a process.
+	Mission      string `json:"mission,omitempty"`
+	Step         int    `json:"step,omitempty"`
+	Crew         string `json:"crew,omitempty"`
+	Conversation string `json:"conversation,omitempty"`
+	OwnerPID     int    `json:"ownerPid,omitempty"`
+	OwnerCommand string `json:"ownerCommand,omitempty"`
 }
 
 // RunDetailOf is a run of the workspace at root as a page shows it.
 func RunDetailOf(r runs.Run, root string, now time.Time) RunDetail {
 	d := RunDetail{Ref: r.Ref(), Name: r.Name, Recipe: r.Recipe, Link: router.RunAddress(root, r), Local: r.Link(), Port: r.Port, State: string(r.State),
-		Owner: string(r.Owner.Kind), By: r.By, Command: r.Command, Started: r.Created}
+		Owner: string(r.Owner.Kind), By: r.By, Command: r.Command, Started: r.Created,
+		Repo: r.Repo, Worktree: runs.Label(r.Worktree), Dir: r.Dir,
+		Mission: r.Owner.Mission, Step: r.Owner.Step, Crew: r.Owner.Crew, Conversation: r.Owner.Conversation,
+		OwnerPID: r.Owner.PID, OwnerCommand: r.Owner.Command}
 	switch r.State {
 	case runs.Running:
-		d.Up, d.Ends = r.Listening(), runs.Ends(r, now)
+		d.Up, d.Ends, d.PID = r.Listening(), runs.Ends(r, now), r.PID
 	case runs.Exited:
 		d.Status = r.Status
 		fallthrough
