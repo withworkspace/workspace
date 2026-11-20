@@ -715,8 +715,9 @@ The planner and the orchestrator are told which are on. They're on the Settings 
 - *Team page*, and *Repos*: the git protocol, and the team's repos as `ws.toml` has them (what each is called, its aliases and group, and how work lands in it), shown, not changed.
 - *Runs*: *Local names*, whether the workspace and its runs have names under `.localhost` (`[router] enabled`) and the name they end in (`[router] name`, the folder's unless you say). Yours alone, as the router listens on your machine; the daemon reads it again within a few seconds.
 - *Process*: the workspace's process, as it's written.
+- *Plugins*: the workspace's plugins, and adding, updating and removing one (see [Plugins](#plugins)).
 - *Set by you*: everything your `ws.local.toml` sets, each with what it would be without yours and *Reset*; the keys either file has that ws doesn't read (the section's name has a dot while there are any); and what this browser keeps.
-- *About*: which ws this is, where the workspace and its files are, and *Shut down the daemon…*.
+- *About*: which ws this is; *Updates*, the latest release as the daemon last found it, when it last looked, *Check now*, and whether it looks by itself (`[updates] check`); where the workspace and its files are; and *Shut down the daemon…*.
 
 Most settings are the ones in `ws.local.toml`. Each row says what the setting is and its key in the file, then its control: a switch, a few choices side by side, a list, a number stepped or typed, a list of picks each taken off with its `×`. Under the control is where the value comes from when that isn't ws's default: *the team's* (`ws.toml`), or *yours*, with what yours is over and *Reset*. The theme and desktop notifications are kept in the browser, and say so. A role's agent is picked from the harnesses that can play it, with those that aren't installed marked. Its model is picked from the models that harness lists (`cursor-agent --list-models`, `pi --list-models`, Codex's catalog, Claude Code's aliases), or *Another, by name…* for one typed (a harness that lists none has the field alone); changing the agent takes your model for the old one away. A change is written at once, with *Undo*; *Reset* takes yours away, and the team's or the default applies again. A value the key can't take is refused, with why, and nothing is written. The team's `ws.toml` is shown, not changed, and repo commands (`after_create`, `verify`) and paths stay file only. *Find a setting…* at the top of the list (`/`) reads every section: what's found is shown by section, each row working as it does in its own. Commands, the web UI and runs read the settings each time.
 
@@ -1176,6 +1177,8 @@ backend = [".ground"]
 
 **Agent overrides:** `[agents] guide` and `skills`, and each `[crew]`, `[briefing]`, `[orchestrator]`, `[conversation]` and `[judge]` setting, replaces the shared value (see [Agents](#missions) under Missions), so you can run Claude Code while the team default is Cursor.
 
+**Updates:** `[updates] check = false` stops this workspace's daemon looking, once a day, for a later release of ws and of each plugin installed from a repo (see [`ws upgrade`](#other-commands)). It's here only: it's your machine that asks.
+
 **Artifacts:** `[artifacts] path` says where the artifacts you promote live, whatever `ws.toml` says: `".ws"` keeps them on this machine, unless you name a folder for one as you promote it. One that lives in a repo already still goes there.
 
 **Repo overrides:**
@@ -1630,6 +1633,17 @@ ws plugin remove hello            # --data removes what it kept for itself, too
 
 A plugin that hasn't been built is built when it's added, as its `plugin.toml` says (`build`), so one can be added straight from its source.
 
+**Plugins, in Settings** (`/settings/plugins`, and in Find) is the workspace's plugins in the web UI, and does what `ws plugin add`, `update` and `remove` do.
+
+- **Each plugin is a row:** its name and version, where it stands (running, not running until it's next needed, needs setting up, failed), what it says it is, where it's from (the repo and the release, built here from its source, a folder it was copied from, or the folder it's linked to), and what it adds: its views, its commands, a guide for agents, the names of its things. One that needs setting up says which keys, with the command that asks for them (`ws plugin config <name> --ask`); one that failed says why, with the command for its log.
+- **Add a plugin** takes what `ws plugin add` does: `owner/repo` (`owner/repo@v1.2.0` for a release that isn't the latest), or a folder on this machine, by its whole path or from `~`. It's installed and started, and the row says where it stands. Running one from its folder as you write it (`--link`) stays the terminal's, and the plugin-dev plugin's.
+- **Update** is on a plugin installed from a repo. Where a later release is known to be out the row says so, with a link to it, and the button names it (*Update to v0.4.0*). Otherwise it asks the repo now, and fetches a later release if there is one. One built here from its source is fetched and built again. Its config and data stay.
+- **Remove** asks first, and whether what the plugin kept for itself (its data and its secrets) goes too: left alone, adding it again picks up where it was.
+- **The team's that aren't here** (`[plugins]` in `ws.toml`) are listed under the installed ones, each with *Add*.
+- **What's out** is what the daemon last found: it asks each plugin's repo for its latest release once a day, with ws's own (see [`ws upgrade`](#other-commands)). *Check for updates* asks now. Nothing's updated by looking.
+
+What didn't work is said above the list, with what a build printed where it got that far.
+
 **Writing one.** The [plugin-dev](https://github.com/withworkspace/plugin-plugin-dev) plugin does it (`ws plugin add withworkspace/plugin-plugin-dev`): `ws plugin-dev new notes` writes a plugin that works as it's written, with the workflow that publishes its releases, and `ws plugin-dev watch`, run in its folder, builds it and runs it in the workspace on every save. It's a plugin itself, and uses what's above: `ws plugin add --link --build` to run what it built, and `ws plugin check` to say what's wrong with one. `ws plugin check` starts the plugin against a workspace of its own with nothing in it, so nothing of yours is touched. It asks the plugin for its app's script and stylesheet as a browser would, and fails one whose app isn't there, isn't served as what it is, or that serves a page of its own where its view is.
 
 A plugin is a program that runs as you. Install one as you would any other.
@@ -1650,6 +1664,7 @@ A few commands that don't fit neatly into the concepts above:
 - **The ws it replaces is kept** beside it, and `ws upgrade --rollback` puts it back. A workspace's records are moved on by the first newer ws that opens them, and an older ws won't open them after: `.ws/backup` has the day's copy.
 - **The daemon follows.** A workspace's daemon keeps the ws it started from, finds the new one in its place and starts again on it once nothing's at work (see *The daemon* under [Missions](#missions)). `ws upgrade` says what this workspace's daemon is waiting for.
 - **It's yours to run.** Crew and the orchestrator are refused: it changes the ws every crew and the daemon run.
+- **The daemon looks for you.** Once a day a workspace's daemon asks GitHub for ws's latest release (and for the latest of each plugin installed from a repo: see [Plugins](#plugins)). It only looks: nothing's installed. A later release is said in the web UI: a line in the workspace's menu (*ws v1.4.0 is out*), and on Settings, under *About*, where *Upgrade* installs it as `ws upgrade` does, and the page says what the daemon's waiting for before it restarts onto it. A ws built from a clone is told what's out, and to build it again where it was built. *Check now* looks at once. `[updates] check = false` in `ws.local.toml` (the switch beside it) stops the daemon looking by itself: it's yours alone, as it's your machine that asks. A look that got no answer (no network) is tried again within the hour, and what was found is kept in `.ws/cache/updates.json`, so a daemon that's started again doesn't look again that day.
 
 **`ws status`** — shows all repos and their worktrees with git status. Use `--format json` for machine-readable output.
 

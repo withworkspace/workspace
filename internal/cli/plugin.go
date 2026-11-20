@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -22,8 +21,8 @@ import (
 	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/daemon"
-	"github.com/withworkspace/workspace/internal/github"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/ui"
 	"golang.org/x/term"
@@ -62,6 +61,32 @@ func reservedWord(word string) bool {
 		}
 	}
 	return false
+}
+
+// hostRunner is the daemon's own plugins, asked directly.
+type hostRunner struct{ h *plugin.Host }
+
+func (r hostRunner) Statuses(context.Context) ([]plugin.Status, error) { return r.h.Statuses(), nil }
+func (r hostRunner) Refresh(_ context.Context, name string) (plugin.Status, error) {
+	return r.h.Refresh(name)
+}
+func (r hostRunner) Stop(_ context.Context, name string) error { r.h.Stop(name); return nil }
+func (hostRunner) Close()                                      {}
+
+func init() {
+	// What adds, updates and removes a plugin (ops) starts and stops it
+	// where it runs: in this process, when it's the daemon; otherwise in
+	// the workspace's daemon, which is started, for a plugin that's to
+	// run, if it isn't running.
+	ops.PluginRunners = func(root string, start bool) (ops.PluginRunner, error) {
+		switch {
+		case pluginHost != nil && pluginHost.Root == root:
+			return hostRunner{pluginHost}, nil
+		case start:
+			return connectPlugins(root)
+		}
+		return plugin.Dial(root)
+	}
 }
 
 // connectPlugins is a connection to the workspace's plugins in its daemon,
@@ -193,30 +218,6 @@ starts.`,
 	return cmd
 }
 
-// added is ws plugin add -f json: how adding a plugin went, for a program
-// that adds one (plugin-dev, on every save). It's printed however it
-// went.
-type added struct {
-	Name    string `json:"name"`
-	Version string `json:"version,omitempty"`
-	// Folder is the plugin's own, and Executable what its command starts
-	// there ("" for a program found on PATH).
-	Folder     string `json:"folder"`
-	Executable string `json:"executable,omitempty"`
-	// Built says whether it was built here, and BuildOutput what building
-	// it printed. Error is why it didn't build, or didn't start.
-	Built       bool   `json:"built"`
-	BuildOutput string `json:"build_output,omitempty"`
-	Error       string `json:"error,omitempty"`
-	// State and Missing are where it stands once it's started.
-	State   plugin.State `json:"state,omitempty"`
-	Missing []string     `json:"missing,omitempty"`
-	// From is the repo it was fetched from, and Release which release of
-	// it ("" for its source, built here).
-	From    string `json:"from,omitempty"`
-	Release string `json:"release,omitempty"`
-}
-
 func newPluginAddCmd() *cobra.Command {
 	var link, build bool
 	var format string
@@ -261,28 +262,16 @@ build printed, and where the plugin stands.`,
 			if format == "json" {
 				say = func(line string) { fmt.Fprintln(os.Stderr, line) }
 			}
-			src := args[0]
-			if !filepath.IsAbs(src) {
-				src = filepath.Join(userDirOr(), src)
-			}
-			var res added
-			var st plugin.Status
-			if _, statErr := os.Stat(src); statErr != nil {
-				repo, tag, ok := plugin.ParseRepo(args[0])
-				switch {
-				case !ok:
-					return fmt.Errorf("%s isn't a folder here, or a plugin's repo (owner/repo)", args[0])
-				case link:
-					return errors.New("--link runs a plugin from a folder on this machine: give the folder")
-				}
-				res, st, err = installPlugin(root, repo, tag, build, say)
-			} else {
-				res, st, err = addPlugin(root, src, link, build)
-				if err == nil {
-					// From a folder now, wherever it was from before.
-					plugin.WriteSource(root, res.Name, plugin.Source{}) //nolint:errcheck // it only says where from
+			// A folder is found from where the command's run; anything else
+			// is where a plugin's published.
+			from := args[0]
+			if folder := from; !filepath.IsAbs(folder) {
+				folder = filepath.Join(userDirOr(), folder)
+				if _, err := os.Stat(folder); err == nil {
+					from = folder
 				}
 			}
+			res, st, err := ctx.AddPlugin(cmd.Context(), from, ops.PluginAdd{Link: link, Build: build, Say: say})
 			if format == "json" {
 				enc := json.NewEncoder(os.Stdout)
 				enc.SetIndent("", "  ")
@@ -319,75 +308,6 @@ build printed, and where the plugin stands.`,
 	cmd.Flags().BoolVar(&build, "build", false, "build it first, whether or not it's been built")
 	cmd.Flags().StringVarP(&format, "format", "f", "", "output format: text or json")
 	return cmd
-}
-
-// installPlugin fetches the plugin published at repo (its release tagged
-// tag, or with "" its latest), installs it into the workspace at root and
-// starts it, and records where it's from.
-func installPlugin(root, repo, tag string, build bool, say func(string)) (added, plugin.Status, error) {
-	tmp, err := os.MkdirTemp("", "ws-plugin-")
-	if err != nil {
-		return added{}, plugin.Status{}, err
-	}
-	defer os.RemoveAll(tmp)
-	from, err := plugin.Fetch(github.Releases{}, repo, tag, runtime.GOOS, runtime.GOARCH, tmp, say)
-	if err != nil {
-		return added{From: repo, Error: err.Error()}, plugin.Status{}, err
-	}
-	res, st, err := addPlugin(root, tmp, false, build)
-	res.From, res.Release, res.Folder, res.Executable = from.Repo, from.Tag, "", ""
-	if err != nil {
-		return res, st, err
-	}
-	if err := plugin.WriteSource(root, res.Name, from); err != nil {
-		return res, st, err
-	}
-	return res, st, nil
-}
-
-// addPlugin builds the plugin in src if it needs it (or build says to),
-// installs it into the workspace at root, and starts it. What it returns
-// says how far it got, whatever the error.
-func addPlugin(root, src string, link, build bool) (added, plugin.Status, error) {
-	res := added{Folder: src}
-	m, err := plugin.ReadManifest(src)
-	if err != nil {
-		res.Error = err.Error()
-		return res, plugin.Status{}, err
-	}
-	res.Name, res.Version, res.Executable = m.Name, m.Version, m.Executable(src)
-
-	var out strings.Builder
-	if build {
-		err = plugin.Build(src, &out)
-		res.Built = err == nil && len(m.Build) > 0
-	} else {
-		_, missing := os.Stat(res.Executable)
-		err = plugin.BuildIfMissing(src, &out)
-		res.Built = err == nil && res.Executable != "" && missing != nil
-	}
-	res.BuildOutput = out.String()
-	if err != nil {
-		res.Error = err.Error()
-		return res, plugin.Status{}, err
-	}
-	if _, err := plugin.Add(root, src, link); err != nil {
-		res.Error = err.Error()
-		return res, plugin.Status{}, err
-	}
-	c, err := connectPlugins(root)
-	if err != nil {
-		res.Error = err.Error()
-		return res, plugin.Status{}, err
-	}
-	defer c.Close()
-	st, err := c.Refresh(context.Background(), m.Name)
-	if err != nil {
-		res.State, res.Error = plugin.Failed, err.Error()
-		return res, st, fmt.Errorf("%s is installed, but didn't start: %w", m.Name, err)
-	}
-	res.State, res.Missing = st.State, st.Missing
-	return res, st, nil
 }
 
 // describePlugin says what a plugin adds.
@@ -534,18 +454,8 @@ again, wherever they're written.`,
 			if err != nil {
 				return err
 			}
-			root := ctx.WS().Root
-			if c, err := plugin.Dial(root); err == nil {
-				c.Stop(context.Background(), args[0]) //nolint:errcheck // not running is as good
-				c.Close()
-			}
-			if err := plugin.Remove(root, args[0], data); err != nil {
+			if err := ctx.RemovePlugin(cmd.Context(), args[0], data); err != nil {
 				return err
-			}
-			// What ws kept of it in its records goes with it: how its
-			// things are named, and anything of its in the graph.
-			if err := plugin.Forget(root, args[0]); err != nil {
-				return fmt.Errorf("%s is removed, but what ws kept of it in its records isn't forgotten: %w", args[0], err)
 			}
 			fmt.Fprintf(ui.Stdout, "Removed %s\n", args[0])
 			return nil
@@ -589,28 +499,19 @@ A plugin added from a folder isn't updated: it's the folder's.`,
 				if st.Source == nil || (len(args) > 0 && !slices.Contains(args, st.Name)) {
 					continue
 				}
-				src := *st.Source
-				latest, _, ok, err := github.Releases{}.Release(src.Repo, "")
-				if err != nil {
-					fmt.Fprintf(ui.Stdout, "%s: %v\n", st.Name, err)
-					failed++
-					continue
-				}
-				if ok && src.File != "" && latest == src.Tag {
-					fmt.Fprintf(ui.Stdout, "%s %s is the latest\n", st.Name, src.Tag)
-					continue
-				}
-				fmt.Fprintf(ui.Stdout, "%s: updating from %s\n", st.Name, src.Repo)
-				res, _, err := installPlugin(root, src.Repo, "", false, say)
-				if err != nil {
-					io.WriteString(ui.Stdout, res.BuildOutput) //nolint:errcheck // nowhere to say so
+				fmt.Fprintf(ui.Stdout, "%s: looking at %s\n", st.Name, st.Source.Repo)
+				got, err := ctx.UpdatePlugin(cmd.Context(), st.Name, say)
+				switch {
+				case err != nil:
+					io.WriteString(ui.Stdout, got.Added.BuildOutput) //nolint:errcheck // nowhere to say so
 					fmt.Fprintf(ui.Stdout, "  %v\n", err)
 					failed++
-					continue
+				case got.Current:
+					fmt.Fprintf(ui.Stdout, "  %s %s is the latest\n", st.Name, got.Now)
+				default:
+					fmt.Fprintf(ui.Stdout, "  %s: %s → %s\n", st.Name, got.Was, got.Now)
+					updated++
 				}
-				was, now := cmp.Or(src.Tag, "its source"), cmp.Or(res.Release, "its source, built here")
-				fmt.Fprintf(ui.Stdout, "  %s: %s → %s\n", st.Name, was, now)
-				updated++
 			}
 			if updated == 0 && failed == 0 && len(args) == 0 {
 				fmt.Fprintln(ui.Stdout, "Nothing to update: no plugin here was installed from a repo, or all are the latest.")

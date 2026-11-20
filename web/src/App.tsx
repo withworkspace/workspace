@@ -206,8 +206,9 @@ export function App() {
                 <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
                 <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
                 <Route path="/runs" element={<RunsPage workspace={workspace} />} />
-                <Route path="/settings" element={<SettingsPage workspace={workspace} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
-                <Route path="/settings/:section" element={<SettingsPage workspace={workspace} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
+                <Route path="/plugins" element={<Navigate to="/settings/plugins" replace />} />
+                <Route path="/settings" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
+                <Route path="/settings/:section" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
                 <Route path="/docs" element={<DocsAddress />} />
                 <Route path="/files" element={<FilesPage workspace={workspace} />} />
                 <Route path="/files/:repo" element={<FilesPage workspace={workspace} />} />
@@ -329,6 +330,13 @@ function WorkspaceMenu({
             <span className="select-option-text">Keys</span>
             <Keys k="?" />
           </MenuItem>
+          {/* A later release, as the daemon last found: to where it's installed from. */}
+          {workspace?.later && (
+            <MenuItem id="later" textValue={`ws ${workspace.later} is out`} className="select-option later" onAction={() => navigate("/settings/about#updates")}>
+              <Icon name="arrow-up" />
+              <span className="select-option-text">ws {workspace.later} is out</span>
+            </MenuItem>
+          )}
           <Separator className="menu-separator" />
           <MenuItem id="shutdown" textValue="Shut down the daemon" className="select-option danger" onAction={shutDown}>
             <Icon name="power" />

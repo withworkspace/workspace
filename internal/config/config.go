@@ -87,6 +87,9 @@ type LocalConfig struct {
 	// Router is the local names (internal/router): yours alone, as it
 	// listens on your machine.
 	Router RouterConfig `toml:"router,omitempty"`
+	// Updates is whether this workspace's daemon looks for later releases:
+	// yours alone, as it's your machine that asks.
+	Updates UpdatesConfig `toml:"updates,omitempty"`
 	// Plugin is your config for each plugin, over the team's.
 	Plugin map[string]map[string]any `toml:"plugin,omitempty"`
 }
@@ -603,6 +606,17 @@ type RouterConfig struct {
 	// Name is the workspace's name there: "" is its folder's.
 	Name string `toml:"name,omitempty"`
 }
+
+// UpdatesConfig is ws.local.toml's [updates]: whether this workspace's
+// daemon looks, once a day, for a release of ws later than the one it
+// runs, and of each plugin installed from a repo.
+type UpdatesConfig struct {
+	// Check is whether it looks: unset, it does.
+	Check *bool `toml:"check,omitempty"`
+}
+
+// Checks is whether the daemon looks for later releases by itself.
+func (u UpdatesConfig) Checks() bool { return u.Check == nil || *u.Check }
 
 // RunRecipe is one of a repo's [run.<name>]: something ws run starts
 // (internal/runs).

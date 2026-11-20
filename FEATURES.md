@@ -317,6 +317,7 @@ What's yours in this workspace, kept in `ws.local.toml` beside the team's `ws.to
 - A role is who does a kind of work: crew, briefing, the orchestrator, conversations, the judge.
 - Each setting says whether it's yours or the team's, and *Reset* goes back to the team's.
 - *Set by you* lists everything your file sets, and *Find a setting…* (`/`) reads every section.
+- *About* says which ws this is. The daemon looks once a day for a later release, and *Upgrade* installs one from there.
 - The team's process is a section of its own, as the planner and the orchestrator read it.
 
 ### Plugins
@@ -326,5 +327,7 @@ A plugin is a program that adds to the workspace: a view in the sidebar, command
 ```sh
 ws plugin add withworkspace/plugin-plugin-dev
 ```
+
+Settings, under *Plugins*, lists what's installed and what each adds, and adds, updates and removes them; it says when a plugin has a later release out.
 
 They're written with [the plugin framework](https://github.com/withworkspace/plugin). [The manual](MANUAL.md#plugins) says what one can do.

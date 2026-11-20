@@ -167,6 +167,7 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
     place("/files", "Files", "layers", "repos capsules ground browse"),
     place("/orchestrator", "Orchestrator", "sparkle"),
     place("/runs", "Runs", "play", "processes dev servers ports http localhost names router running"),
+    place("/settings/plugins", "Plugins", "box", "add install remove update extensions views commands releases"),
     {
       id: "do:new-talk",
       group: "do",

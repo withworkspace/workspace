@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/config"
@@ -21,6 +22,7 @@ import (
 	"github.com/withworkspace/workspace/internal/github"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/pulls"
+	"github.com/withworkspace/workspace/internal/release"
 	"github.com/withworkspace/workspace/internal/store"
 	"github.com/withworkspace/workspace/internal/team"
 	"github.com/withworkspace/workspace/internal/workspace"
@@ -47,6 +49,15 @@ type Workspace struct {
 	// git is what git said of each capsule, kept for the views pages read
 	// until the capsule moves.
 	git keptGit
+
+	// updates is one look for later releases, or one upgrade, at a time;
+	// plugins is one plugin added, updated or removed at a time.
+	updates sync.Mutex
+	plugins sync.Mutex
+	// upgraded is the ws an upgrade from here last put in the daemon's
+	// place (a string): said to be waiting from the moment it's installed,
+	// before the daemon's found it there.
+	upgraded atomic.Value
 }
 
 // loaded is the workspace's config, and what follows from it, as last
@@ -88,6 +99,15 @@ type Options struct {
 	// GitHub is the client in place of the one the config makes: a test's
 	// stub. nil for the config's.
 	GitHub github.Client
+	// WS is the ws this process is, and where its releases are: what a
+	// look for updates measures against, and an upgrade replaces (the
+	// daemon's). Its zero value is a ws nothing's looked for.
+	WS release.Upgrader
+	// Pending is a ws that's been installed in the daemon's place which it
+	// isn't running yet ("" for none): it restarts onto it once nothing's
+	// at work, and AtWork is what is. nil for nothing to ask.
+	Pending func() string
+	AtWork  func() []string
 }
 
 // New is the operations of a workspace whose config and repos are loaded

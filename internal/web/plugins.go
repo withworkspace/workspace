@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/plugin/protocol"
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/plugin"
 )
 
@@ -106,6 +107,222 @@ type PluginView struct {
 	// Path is where in the plugin's app it opens.
 	Path  string `json:"path"`
 	Badge int    `json:"badge,omitempty"`
+}
+
+// Plugging is which plugins the workspace has: the list the Plugins page
+// shows, and adding, updating and removing one.
+type Plugging interface {
+	Plugins(ctx context.Context) ops.PluginsView
+	AddPlugin(ctx context.Context, from string, o ops.PluginAdd) (ops.PluginAdded, plugin.Status, error)
+	UpdatePlugin(ctx context.Context, name string, say func(line string)) (ops.PluginUpdated, error)
+	RemovePlugin(ctx context.Context, name string, data bool) error
+}
+
+// PluginsInstalled is GET /api/plugins/installed: the workspace's plugins
+// as the Plugins page lists them, with the team's that aren't here.
+type PluginsInstalled struct {
+	Plugins []InstalledPlugin `json:"plugins"`
+	// Wanted are the team's (ws.toml's [plugins]) that aren't installed
+	// here.
+	Wanted []WantedPlugin `json:"wanted"`
+	// Checks is whether the daemon looks for later releases by itself,
+	// and Checked when a look last answered.
+	Checks  bool       `json:"checks"`
+	Checked *time.Time `json:"checked,omitempty"`
+}
+
+// InstalledPlugin is a plugin that's installed: which it is, where it's
+// from, where it stands, what it adds, and what's out for it.
+type InstalledPlugin struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Version     string `json:"version,omitempty"`
+	// State is ready, setup, failed or stopped, as Plugin's is.
+	State   plugin.State `json:"state"`
+	Error   string       `json:"error,omitempty"`
+	Missing []string     `json:"missing,omitempty"`
+	// From is where it's from: a repo (with the release it is, or built
+	// here from its source), or a folder on this machine.
+	From PluginFrom `json:"from"`
+	// What it adds: its views, by title; the word after ws its commands
+	// are under; whether it has a guide for agents; and how its things
+	// are named (RAM-…).
+	Views    []string `json:"views,omitempty"`
+	Commands string   `json:"commands,omitempty"`
+	Guide    bool     `json:"guide,omitempty"`
+	Names    []string `json:"names,omitempty"`
+	// Refused is what it registered that ws left out, and why.
+	Refused []string `json:"refused,omitempty"`
+	// Path is where its first view opens in ws: "" for one with none.
+	Path string `json:"path,omitempty"`
+	// Latest is its repo's latest release, as last found; Newer, whether
+	// that's later than the one installed; and UpdateError why the last
+	// look didn't find it.
+	Latest      string `json:"latest,omitempty"`
+	Newer       bool   `json:"newer"`
+	UpdateError string `json:"updateError,omitempty"`
+}
+
+// PluginFrom is where an installed plugin came from. Repo is the repo
+// it's published at, Tag the release (or the tag its source was built
+// at), Built whether it was built here from its source, and At when it
+// was fetched. Linked is the folder it's run from (ws plugin add --link).
+// None of them: it was copied from a folder.
+type PluginFrom struct {
+	Repo   string     `json:"repo,omitempty"`
+	Tag    string     `json:"tag,omitempty"`
+	Built  bool       `json:"built,omitempty"`
+	At     *time.Time `json:"at,omitempty"`
+	Linked string     `json:"linked,omitempty"`
+}
+
+// WantedPlugin is a plugin the team uses that isn't installed here.
+type WantedPlugin struct {
+	Name    string `json:"name"`
+	Source  string `json:"source"`
+	Version string `json:"version,omitempty"`
+}
+
+// InstalledPluginOf is an installed plugin as the API serves it.
+func InstalledPluginOf(row ops.PluginRow) InstalledPlugin {
+	st, reg := row.Status, row.Status.Registration
+	p := InstalledPlugin{
+		Name: st.Name, Description: reg.Description, Version: st.Version, State: st.State, Error: st.Error, Missing: st.Missing,
+		Commands: reg.CommandName(st.Name), Guide: reg.Agent != nil && reg.Agent.Guide != "", Refused: st.Refused,
+		Latest: row.Update.Latest, Newer: row.Update.Newer, UpdateError: row.Update.Error,
+		From: PluginFrom{Linked: st.Linked},
+	}
+	if st.Source != nil {
+		p.From.Repo, p.From.Tag, p.From.Built = st.Source.Repo, st.Source.Tag, st.Source.File == ""
+		p.From.At = timeOrNil(st.Source.At)
+	}
+	for i, v := range reg.Views {
+		p.Views = append(p.Views, v.Title)
+		if i == 0 {
+			p.Path = "/x/" + st.Name
+			if v.Path != "" && v.Path != "/" && plugin.ValidUIPath(v.Path) {
+				p.Path += v.Path
+			}
+		}
+	}
+	for _, r := range reg.Refs {
+		for _, prefix := range r.Prefixes {
+			p.Names = append(p.Names, prefix+"…")
+		}
+	}
+	return p
+}
+
+// pluginsInstalled is GET /api/plugins/installed.
+func (s *Server) pluginsInstalled(w http.ResponseWriter, r *http.Request) {
+	view := s.App.Plugins(r.Context())
+	out := PluginsInstalled{Plugins: []InstalledPlugin{}, Wanted: []WantedPlugin{}, Checks: view.Checks, Checked: timeOrNil(view.Checked)}
+	for _, row := range view.Plugins {
+		out.Plugins = append(out.Plugins, InstalledPluginOf(row))
+	}
+	for _, p := range view.Wanted {
+		out.Wanted = append(out.Wanted, WantedPlugin{Name: p.Name, Source: p.Source, Version: p.Version})
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// PluginAddRequest is POST /api/plugins: a plugin to install. From is the
+// repo it's published at (owner/repo, with @tag for a release that isn't
+// the latest), or a folder on this machine, by its whole path or from ~.
+type PluginAddRequest struct {
+	From string `json:"from"`
+}
+
+// PluginChanged is what adding or updating a plugin did: which plugin,
+// the version it is now, what it was (an update's) and whether it was the
+// latest already, where it stands, and what was done on the way, in
+// lines (a download, a build from source).
+type PluginChanged struct {
+	Name    string       `json:"name"`
+	Version string       `json:"version,omitempty"`
+	Was     string       `json:"was,omitempty"`
+	Now     string       `json:"now,omitempty"`
+	Current bool         `json:"current,omitempty"`
+	State   plugin.State `json:"state,omitempty"`
+	Missing []string     `json:"missing,omitempty"`
+	Said    []string     `json:"said,omitempty"`
+}
+
+// pluginFailed answers for a plugin that couldn't be added or updated:
+// why, and what building it printed, where it got that far.
+func pluginFailed(w http.ResponseWriter, err error, added ops.PluginAdded, said []string) {
+	body := map[string]any{"error": err.Error()}
+	status := http.StatusInternalServerError
+	var refused *ops.Refused
+	var inv *ops.Invalid
+	var up *ops.Upstream
+	switch {
+	case errors.Is(err, ops.ErrNotFound):
+		status = http.StatusNotFound
+	case errors.As(err, &inv):
+		status = http.StatusUnprocessableEntity
+	case errors.As(err, &refused):
+		status, body["code"] = http.StatusConflict, refused.Code
+	case errors.As(err, &up):
+		status = http.StatusBadGateway
+	}
+	if out := strings.TrimSpace(added.BuildOutput); out != "" {
+		body["output"] = out
+	}
+	if len(said) > 0 {
+		body["said"] = said
+	}
+	writeJSON(w, status, body)
+}
+
+// addPlugin is POST /api/plugins: install a plugin, and start it. It
+// answers once the plugin's started (or hasn't): a download, or a build
+// from source, takes as long as it takes.
+func (s *Server) addPlugin(w http.ResponseWriter, r *http.Request) {
+	var req PluginAddRequest
+	if !readBody(w, r, &req) {
+		return
+	}
+	var said []string
+	added, _, err := s.App.AddPlugin(r.Context(), req.From, ops.PluginAdd{Say: func(line string) { said = append(said, line) }})
+	if err != nil {
+		pluginFailed(w, err, added, said)
+		return
+	}
+	writeJSON(w, http.StatusOK, PluginChanged{Name: added.Name, Version: added.Version, Now: added.Release, State: added.State, Missing: added.Missing, Said: said})
+}
+
+// updatePlugin is POST /api/plugins/{name}/update: fetch its repo's
+// latest release, if that's not what's here, and start it afresh.
+func (s *Server) updatePlugin(w http.ResponseWriter, r *http.Request) {
+	var said []string
+	got, err := s.App.UpdatePlugin(r.Context(), r.PathValue("name"), func(line string) { said = append(said, line) })
+	if err != nil {
+		pluginFailed(w, err, got.Added, said)
+		return
+	}
+	writeJSON(w, http.StatusOK, PluginChanged{Name: got.Name, Version: got.Added.Version, Was: got.Was, Now: got.Now, Current: got.Current, State: got.Added.State, Missing: got.Added.Missing, Said: said})
+}
+
+// PluginRemoveRequest is POST /api/plugins/{name}/remove. Data says what
+// the plugin kept for itself (its data folder) and its secrets go too.
+type PluginRemoveRequest struct {
+	Data bool `json:"data"`
+}
+
+// removePlugin is POST /api/plugins/{name}/remove: stop a plugin and take
+// it out of the workspace.
+func (s *Server) removePlugin(w http.ResponseWriter, r *http.Request) {
+	var req PluginRemoveRequest
+	if !readBody(w, r, &req) {
+		return
+	}
+	name := r.PathValue("name")
+	if err := s.App.RemovePlugin(r.Context(), name, req.Data); err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"removed": name})
 }
 
 func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
