@@ -1,6 +1,9 @@
 package mission
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -68,6 +71,14 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Crew: []string{"c1"}, Accepted: ago(time.Minute)}}
 			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
+		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbWait, text: "Step 2 waits on a teammate's merge: Merged. Nobody's watching for it: mark it done when it's happened"},
+		// The orchestrator said the mission waits, at a step that waits
+		// already: the step's is the headline, with marking it done.
+		{name: "at an outside step, and the orchestrator said it waits", state: Active, edit: func(s *Snapshot) {
+			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
+			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Crew: []string{"c1"}, Accepted: ago(time.Minute)}}
+			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
+			s.M.Waiting = &Proposal{Text: "a teammate's merge; the user says when it has happened", By: "orchestrator", At: now}
 		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbWait, text: "Step 2 waits on a teammate's merge: Merged. Nobody's watching for it: mark it done when it's happened"},
 		{name: "at an outside step, every PR merged", state: Active, edit: func(s *Snapshot) {
 			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
@@ -372,6 +383,7 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 			c.edit(&s)
 		}
 		hs := Resolve(s)
+		cardsKeepTheRule(t, c.name, s, hs)
 		if len(hs) == 0 {
 			t.Errorf("%s: no headline", c.name)
 			continue
@@ -406,6 +418,9 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 	}
 }
 
+// (the loop above hands each case's cards to card_test.go, which takes
+// them for the web UI's stories when asked: TestCourtCardsForStories.)
+
 // atOpenPR is a mission whose crew fixed it in api/fix, with ws having
 // last seen its pull request as seen: at step 2, Open Pull Request, once
 // step 1 was accepted (when), or still at step 1.
@@ -422,6 +437,28 @@ func atOpenPR(s *Snapshot, seen *SeenPR, accepted *time.Time) {
 
 // planWithOutside is a plan whose second step waits on someone outside ws.
 const planWithOutside = "## Z\n- Merged.\n## Stops early\n- None.\n## Steps\n1. Fix it.\n   - who: crew\n2. Merged.\n   - who: outside: a teammate's merge\n"
+
+// A step that waits says so once: what the orchestrator said of the same
+// wait (ws mission wait) isn't a second headline, with nothing to do, in
+// front of the one that can be marked done.
+func TestResolve_AWaitingStepSaysItOnce(t *testing.T) {
+	now := time.Date(2026, 11, 9, 12, 0, 0, 0, time.UTC)
+	done := now.Add(-time.Minute)
+	plan, _ := ParsePlan(planWithOutside, nil)
+	s := Snapshot{Now: now, State: Active, M: &Mission{Slug: "s", Plan: plan,
+		Stages:  []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: &done}},
+		Waiting: &Proposal{Text: "a teammate's merge", By: "orchestrator", At: now},
+	}}
+	hs := Resolve(s)
+	if len(hs) != 1 || hs[0].Action.Verb != VerbWait {
+		t.Fatalf("headlines %+v; want the step's alone, to mark done", hs)
+	}
+	// Anywhere else, what the orchestrator said is where it stands.
+	s.M.Plan, s.M.Stages = nil, nil
+	if hs := Resolve(s); len(hs) != 1 || !strings.Contains(hs[0].Text, "Waiting on a teammate's merge") {
+		t.Errorf("headlines %+v; want what the orchestrator said it waits on", hs)
+	}
+}
 
 func TestResolve_HeadlinesComeMostPressingFirst(t *testing.T) {
 	s := Snapshot{M: &Mission{Slug: "s",
@@ -665,4 +702,25 @@ func TestResolve_OneAgentHeadlineAtATime(t *testing.T) {
 // parameters as given.
 func planWithWait(params string) string {
 	return "## Z\n- Deployed.\n## Stops early\n- None.\n## Steps\n1. Work: Fix it.\n2. Wait: **Deploy.** The token service is deployed.\n" + params
+}
+
+// TestCourtCardsForStories (after the table's test, in this file, so it has
+// its cards) writes the court's cases as cards where the web
+// UI's stories read them, when asked (scripts/story-fixtures.mjs asks):
+//
+//	WS_STORY_FIXTURES=1 go test ./internal/mission -run 'TestResolve_EveryMissionIsInOneCourt|TestCourtCardsForStories'
+func TestCourtCardsForStories(t *testing.T) {
+	if os.Getenv("WS_STORY_FIXTURES") == "" {
+		t.Skip("WS_STORY_FIXTURES isn't set")
+	}
+	if len(courtCards) == 0 {
+		t.Fatal("no cards: run it with TestResolve_EveryMissionIsInOneCourt, which makes them")
+	}
+	data, err := json.MarshalIndent(courtCards, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join("..", "..", "web", "src", "mission", "fixtures", "court.json"), append(data, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }

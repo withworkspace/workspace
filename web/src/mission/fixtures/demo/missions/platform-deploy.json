@@ -1,0 +1,131 @@
+{
+  "slug": "platform-deploy",
+  "title": "Platform deploy",
+  "state": "active",
+  "created": "2026-11-20T15:14:32Z",
+  "talks": [],
+  "brief": "## Goal\nPlatform deploy, then carry on from what was released.\n\n## Context\n- Seeded by the workspace repo's scripts/seeds/waits.sh.\n",
+  "plan": "## Z\n- It's released, and demo is moved on to it.\n## Stops early\n- None.\n## Steps\n1. Review: **Ready to release.** The change, before it's released.\n2. Wait: **Platform deploy.** The platform team deploys the token service to prd.\n   - on: the platform team\n3. Work: **Move on to it.** demo requires the released version.\n   - in: `demo/platform-deploy`\n",
+  "at": "Step 2 of 3, waiting on the platform team: Platform deploy",
+  "z": [
+    "It's released, and demo is moved on to it."
+  ],
+  "headlines": [
+    {
+      "court": "outside",
+      "kind": "waiting-on",
+      "group": "waiting",
+      "label": "⧗ waiting",
+      "text": "Step 2 waits on the platform team: Platform deploy. The platform team deploys the token service to prd. Nobody's watching for it: mark it done when it's happened",
+      "action": {
+        "verb": "wait",
+        "label": "mark step 2 done"
+      },
+      "by": "step 2",
+      "since": "2026-11-20T15:14:32Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "waiting-on",
+      "court": "outside",
+      "tone": "outside",
+      "title": "Step 2 waits on the platform team",
+      "detail": "Platform deploy. The platform team deploys the token service to prd. Nobody's watching for it: mark it done when it's happened",
+      "primary": {
+        "do": "accept",
+        "label": "Mark done",
+        "icon": "check",
+        "field": "What happened, if the crew after should know"
+      },
+      "by": "step 2",
+      "since": "2026-11-20T15:14:32Z"
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Ready to release",
+      "text": "Ready to release. The change, before it's released.",
+      "state": "accepted",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 2,
+      "title": "Platform deploy",
+      "text": "Platform deploy. The platform team deploys the token service to prd.",
+      "state": "current",
+      "type": "Wait",
+      "who": "outside",
+      "whoSays": "outside: the platform team",
+      "on": "the platform team",
+      "passes": "said",
+      "watch": {
+        "since": "2026-11-20T15:14:32Z"
+      }
+    },
+    {
+      "n": 3,
+      "title": "Move on to it",
+      "text": "Move on to it. demo requires the released version.",
+      "state": "todo",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `demo/platform-deploy`",
+      "in": "demo/platform-deploy"
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "demo",
+      "name": "platform-deploy",
+      "branch": "platform-deploy",
+      "path": "/try/demo/repos/demo/platform-deploy",
+      "exists": true,
+      "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+    }
+  ],
+  "crew": [],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "capsule_added",
+      "text": "capsule demo/platform-deploy added"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "note",
+      "text": "note: plan written: 3 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:32Z",
+      "kind": "stage",
+      "text": "step 1 accepted: **Ready to release.** The change, before it's released.",
+      "by": "you"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "shell"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "sonnet"
+      }
+    ]
+  }
+}

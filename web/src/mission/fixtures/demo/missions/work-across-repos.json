@@ -1,0 +1,465 @@
+{
+  "slug": "work-across-repos",
+  "title": "Work across repos",
+  "state": "active",
+  "created": "2026-11-20T15:14:28Z",
+  "talks": [
+    {
+      "id": "t1",
+      "opening": "The orchestrator says the plan doesn't fit what's happened, at step 4: Step 3 (Greet by name) was accepted, but the change doesn't reach Z i",
+      "status": "open",
+      "waiting": true,
+      "at": "2026-11-20T15:14:57.278529Z",
+      "updated": "2026-11-20T15:14:57.564649Z"
+    }
+  ],
+  "planner": "t1",
+  "brief": "## Goal\ndemo greets whoever it's told to, and the records say why.\n\n## Context\n- Seeded by the workspace repo's scripts/seeds/work.sh, for looking at the Work tab. Crew are shells: the seed does their work.\n",
+  "plan": "## Z\n- `go run . Ada` prints hello, Ada, its pull request is open, and the records say why.\n## Stops early\n- None.\n## Steps\n1. Work: **Write the note.** Why demo greets by name, as a note in the records.\n   - in: `records/work-across-repos`\n2. Review: **Read the note.** Before it lands.\n3. Work: **Greet by name.** greeting takes a name, and falls back to world.\n   - in: `demo/work-across-repos`\n4. Review: **Read the change.** Before its pull request.\n5. Open Pull Request: **Open it.** From `demo/work-across-repos`.\n6. Work: **Say so in the README.** How to greet someone.\n   - in: `demo/later`\n",
+  "flag": {
+    "text": "Step 3 is done (c2: greet.To greets by name and falls back to world, with a test; the README and docs say how). Step 4 is yours, to review: Read the change. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review demo/work-across-repos: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c2.md.",
+    "by": "ws",
+    "options": [
+      "Go on",
+      "Not yet"
+    ]
+  },
+  "tasks": [
+    {
+      "n": 2,
+      "verb": "review",
+      "text": "Step 3 is done (c2: greet.To greets by name and falls back to world, with a test; the README and docs say how). Step 4 is yours, to review: Read the change. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review demo/work-across-repos: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c2.md.",
+      "step": 4,
+      "options": [
+        "Go on",
+        "Not yet"
+      ],
+      "by": "ws",
+      "at": "2026-11-20T15:14:31Z"
+    }
+  ],
+  "at": "Step 4 of 6, yours: Read the change",
+  "z": [
+    "`go run . Ada` prints hello, Ada, its pull request is open, and the records say why."
+  ],
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "step-review",
+      "group": "needs-you",
+      "label": "✓ review",
+      "text": "Step 3 is done (c2: greet.To greets by name and falls back to world, with a test; the README and docs say how). Step 4 is yours, to review: Read the change. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review demo/work-across-repos: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c2.md.",
+      "action": {
+        "verb": "review-step",
+        "label": "review demo/work-across-repos",
+        "target": "2",
+        "look": [
+          {
+            "capsule": "demo/work-across-repos",
+            "name": "demo/work-across-repos"
+          },
+          {
+            "doc": "mission:handoffs/c2.md",
+            "name": "handoffs/c2.md",
+            "read": true
+          }
+        ]
+      },
+      "by": "ws",
+      "since": "2026-11-20T15:14:31Z"
+    },
+    {
+      "court": "agent",
+      "kind": "deciding",
+      "group": "in-progress",
+      "label": "◆ deciding",
+      "text": "The orchestrator is looking at c2 (done)",
+      "action": {
+        "verb": "log",
+        "label": "read the log"
+      },
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:31Z"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "step-review",
+      "court": "you",
+      "tone": "you",
+      "title": "Step 4 is yours to review: Read the change",
+      "detail": "c2: greet.To greets by name and falls back to world, with a test; the README and docs say how",
+      "primary": {
+        "do": "review",
+        "label": "Review demo/work-across-repos",
+        "icon": "eye",
+        "target": "demo/work-across-repos",
+        "key": "v"
+      },
+      "more": [
+        {
+          "do": "read",
+          "label": "Read handoffs/c2.md",
+          "icon": "file",
+          "target": "mission:handoffs/c2.md"
+        },
+        {
+          "do": "answer",
+          "label": "Go on",
+          "task": 2,
+          "text": "Go on"
+        },
+        {
+          "do": "answer",
+          "label": "Send back…",
+          "task": 2,
+          "field": "Say what's to change, and it goes back to its crew",
+          "quiet": true
+        }
+      ],
+      "by": "ws",
+      "since": "2026-11-20T15:14:31Z"
+    },
+    {
+      "kind": "deciding",
+      "court": "agent",
+      "tone": "agent",
+      "title": "The orchestrator is looking at c2 (done)",
+      "more": [
+        {
+          "do": "log",
+          "label": "Read the log",
+          "quiet": true
+        }
+      ],
+      "by": "orchestrator",
+      "since": "2026-11-20T15:14:31Z"
+    }
+  ],
+  "runs": [],
+  "stages": [
+    {
+      "n": 1,
+      "title": "Write the note",
+      "text": "Write the note. Why demo greets by name, as a note in the records.",
+      "state": "accepted",
+      "crew": [
+        "c1"
+      ],
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `records/work-across-repos`",
+      "in": "records/work-across-repos"
+    },
+    {
+      "n": 2,
+      "title": "Read the note",
+      "text": "Read the note. Before it lands.",
+      "state": "accepted",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 3,
+      "title": "Greet by name",
+      "text": "Greet by name. greeting takes a name, and falls back to world.",
+      "state": "accepted",
+      "crew": [
+        "c2"
+      ],
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `demo/work-across-repos`",
+      "in": "demo/work-across-repos"
+    },
+    {
+      "n": 4,
+      "title": "Read the change",
+      "text": "Read the change. Before its pull request.",
+      "state": "current",
+      "type": "Review",
+      "who": "you",
+      "whoSays": "you"
+    },
+    {
+      "n": 5,
+      "title": "Open it",
+      "text": "Open it. From demo/work-across-repos.",
+      "state": "todo",
+      "type": "Open Pull Request",
+      "who": "ws",
+      "whoSays": "ws",
+      "opensPR": true
+    },
+    {
+      "n": 6,
+      "title": "Say so in the README",
+      "text": "Say so in the README. How to greet someone.",
+      "state": "todo",
+      "type": "Work",
+      "who": "crew",
+      "whoSays": "crew, in `demo/later`",
+      "in": "demo/later"
+    }
+  ],
+  "capsules": [
+    {
+      "repo": "records",
+      "name": "work-across-repos",
+      "branch": "work-across-repos",
+      "path": "/try/demo/repos/records/work-across-repos",
+      "exists": false,
+      "direct": true,
+      "landed": "2026-11-20T15:14:30.024543Z"
+    },
+    {
+      "repo": "demo",
+      "name": "work-across-repos",
+      "branch": "work-across-repos",
+      "path": "/try/demo/repos/demo/work-across-repos",
+      "exists": true,
+      "head": "70aa355555306204e588f501d7d7b72b5e8c3c27",
+      "dirty": true,
+      "ahead": 2
+    },
+    {
+      "repo": "demo",
+      "name": "later",
+      "branch": "later",
+      "path": "/try/demo/repos/demo/later",
+      "exists": true,
+      "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+    }
+  ],
+  "crew": [
+    {
+      "id": "c1",
+      "harness": "shell",
+      "capsule": "records/work-across-repos",
+      "started": "2026-11-20T15:14:29Z",
+      "ended": false,
+      "status": "done",
+      "note": "The note is written: why demo greets by name, and what changes",
+      "dispatch": "You're a shell: the seed writes the note as you.",
+      "handoff": "mission:handoffs/c1.md"
+    },
+    {
+      "id": "c2",
+      "harness": "shell",
+      "capsule": "demo/work-across-repos",
+      "started": "2026-11-20T15:14:29Z",
+      "ended": false,
+      "status": "done",
+      "note": "greet.To greets by name and falls back to world, with a test; the README and docs say how",
+      "dispatch": "**Greet by name.** greeting takes a name, and falls back to world.",
+      "handoff": "mission:handoffs/c2.md"
+    }
+  ],
+  "artifacts": [
+    {
+      "ref": "records/work-across-repos:notes/greet-by-name.md",
+      "kind": "note",
+      "label": "Why demo greets by name",
+      "state": "landed",
+      "url": "https://github.com/example-org/records/blob/main/notes/greet-by-name.md",
+      "path": "/try/demo/repos/records/.ground/notes/greet-by-name.md",
+      "by": "c1",
+      "added": "2026-11-20T15:14:29Z",
+      "readable": true
+    },
+    {
+      "ref": "mission:handoffs/c1.md",
+      "kind": "handoff",
+      "label": "The note is written: why demo greets by name, and what changes",
+      "state": "private",
+      "path": "/try/demo/.ws/missions/work-across-repos/files/handoffs/c1.md",
+      "by": "c1",
+      "added": "2026-11-20T15:14:29Z",
+      "readable": true
+    },
+    {
+      "ref": "mission:handoffs/c2.md",
+      "kind": "handoff",
+      "label": "greet.To greets by name and falls back to world, with a test; the README and docs say how",
+      "state": "private",
+      "path": "/try/demo/.ws/missions/work-across-repos/files/handoffs/c2.md",
+      "by": "c2",
+      "added": "2026-11-20T15:14:31Z",
+      "readable": true
+    },
+    {
+      "ref": "mission:open-questions.md",
+      "kind": "note",
+      "label": "Open questions",
+      "state": "private",
+      "path": "/try/demo/.ws/missions/work-across-repos/files/open-questions.md",
+      "added": "2026-11-20T15:14:31Z",
+      "readable": true
+    }
+  ],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:28Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:28Z",
+      "kind": "capsule_added",
+      "text": "capsule records/work-across-repos added"
+    },
+    {
+      "time": "2026-11-20T15:14:28Z",
+      "kind": "capsule_added",
+      "text": "capsule demo/work-across-repos added"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "capsule_added",
+      "text": "capsule demo/later added"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "note",
+      "text": "note: plan written: 6 steps",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "crew_started",
+      "text": "c1 started",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "dispatch",
+      "text": "c1 dispatched you: You're a shell: the seed writes the note as you.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "stage",
+      "text": "on step 1: **Write the note.** Why demo greets by name, as a note in the records.",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "artifact",
+      "text": "c1 added note Why demo greets by name · records/work-across-repos:notes/greet-by-name.md",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "crew_done",
+      "text": "c1 done: The note is written: why demo greets by name, and what changes",
+      "by": "c1"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "stage",
+      "text": "step 1 accepted: **Write the note.** Why demo greets by name, as a note in the records.",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "flag",
+      "text": "asks you: Step 1 is done (c1: The note is written: why demo greets by name, and what changes). Step 2 is yours, to review: Read the note. Before it lands. Review records/work-across-repos: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: notes/greet-by-name.md, handoffs/c1.md.",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "stage",
+      "text": "step 2 accepted: **Read the note.** Before it lands.",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "crew_started",
+      "text": "c2 started",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "dispatch",
+      "text": "c2 dispatched ws: **Greet by name.** greeting takes a name, and falls back to world.",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:29Z",
+      "kind": "stage",
+      "text": "on step 3: **Greet by name.** greeting takes a name, and falls back to world.",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:30Z",
+      "kind": "landed",
+      "text": "you landed records/work-across-repos: 1 commit on main (8d2b770)",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:30Z",
+      "kind": "capsule_burned",
+      "text": "capsule records/work-across-repos burned"
+    },
+    {
+      "time": "2026-11-20T15:14:31Z",
+      "kind": "crew_done",
+      "text": "c2 done: greet.To greets by name and falls back to world, with a test; the README and docs say how",
+      "by": "c2"
+    },
+    {
+      "time": "2026-11-20T15:14:31Z",
+      "kind": "stage",
+      "text": "step 3 accepted: **Greet by name.** greeting takes a name, and falls back to world.",
+      "by": "you"
+    },
+    {
+      "time": "2026-11-20T15:14:31Z",
+      "kind": "flag",
+      "text": "asks you: Step 3 is done (c2: greet.To greets by name and falls back to world, with a test; the README and docs say how). Step 4 is yours, to review: Read the change. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review demo/work-across-repos: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c2.md.",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:31Z",
+      "kind": "artifact",
+      "text": "someone added note Open questions · mission:open-questions.md"
+    },
+    {
+      "time": "2026-11-20T15:14:54Z",
+      "kind": "note",
+      "text": "orchestrator: Step 4 (Read the change) is the user's review, so I haven't passed it. Reading demo/work-across-repos shows Z item 1 isn't met yet: main.go is unchanged except an uncommitted TODO comment, so go run . Ada still prints hello, and the README now documents a command that doesn't work. c2's handoff says Left: Nothing and calls the wiring half done, and an untracked scratch.txt is in the capsule. The plan has no step that wires main.go to greet.To, so I've asked the planner to replan before the review."
+    },
+    {
+      "time": "2026-11-20T15:14:57.278529Z",
+      "kind": "thread",
+      "text": "ws on t1: The orchestrator says the plan doesn't fit what's happened, at step 4: Step 3 (Greet by name) was accepted, but the change doesn't reach Z …",
+      "by": "ws"
+    },
+    {
+      "time": "2026-11-20T15:14:57Z",
+      "kind": "note",
+      "text": "note: asked the planner at step 4, in t1: Step 3 (Greet by name) was accepted, but the change doesn't reach Z item 1: go run . Ada prints hello, not hello, Ada. main.go is unchanged except for an uncommitted TODO comment (// TODO: print greet.To(os.Args[1:]...)), which also doesn't match greet.To's single-name signature. c2's handoff says the wiring is half done under Left: Nothing, and scratch.txt is untracked in demo/work-across-repos. The plan has no step that wires main.go to greet.To, and step 6's README already documents go run . Ada. Please add a step before the review (step 4) that wires main.go to greet.To with the name from the command line, commits it, and removes scratch.txt, and revise the rest to fit.",
+      "by": "orchestrator"
+    },
+    {
+      "time": "2026-11-20T15:14:57.467898Z",
+      "kind": "thread",
+      "text": "agent on t1: No agent runs in this try: scripts/seeds/marketing.sh stands in for Claude Code, and has nothing written for this."
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "shell"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "sonnet"
+      }
+    ]
+  }
+}

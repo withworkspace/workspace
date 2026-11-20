@@ -3,6 +3,7 @@ package ops
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/github"
 	"github.com/withworkspace/workspace/internal/mission"
@@ -254,6 +255,100 @@ func TestPRStep_MergedTakesBackItsQuestion(t *testing.T) {
 	m, _ = w.Missions.Load("cache")
 	if st := stepRecord(t, w, 1); !st.Accepted() || len(m.Tasks) != 1 || m.Tasks[0].Step != 2 {
 		t.Errorf("after the merge: step 1 %+v, tasks %+v", st.Record, m.Tasks)
+	}
+}
+
+// So is what the orchestrator asked at the step (whether to merge it):
+// left open, it would be what the mission waits on you for, and hold an
+// ending that's otherwise ws's to make. What it asked before the mission
+// reached the step, and what crew asked, stay yours to answer.
+func TestPRStep_MergedSettlesWhatTheOrchestratorAskedAtIt(t *testing.T) {
+	// merged is the mission's open questions once frontend#5 has merged
+	// at step 2, the orchestrator having asked what it asked when.
+	merged := func(t *testing.T, asked string, when time.Time) (left, notes []string) {
+		t.Helper()
+		w, _, _ := prFixture(t)
+		if err := w.Missions.WritePlan("cache", "## Z\n- Merged.\n## Stops early\n- None.\n## Steps\n1. Work: Build it.\n   - in: `frontend/one`\n2. Open Pull Request\n   - in: `frontend/one`\n3. Review: what merged.\n"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := w.Flag("cache", "The brief names two caches: both, or the token cache alone?", AsCrew("c1"), "Both", "The token cache"); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err := w.Missions.AcceptStage("cache", "you", "built"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := w.Missions.OpenTask("cache", mission.Task{Verb: mission.TaskAnswer, Text: asked, By: AsOrchestrator.By(), At: when}); err != nil {
+			t.Fatal(err)
+		}
+		m, _ := w.Missions.Load("cache")
+		pr := github.PR{Number: 5}
+		w.WatchPRs([]MissionView{{M: m, State: mission.Review, Capsules: []CapsuleView{{Capsule: m.Capsules[0], Exists: true, PR: &pr, PRS: mission.PRMerged}}}})
+		if st := stepRecord(t, w, 2); !st.Accepted() {
+			t.Fatalf("step 2 = %+v", st.Record)
+		}
+		m, _ = w.Missions.Load("cache")
+		for _, task := range m.Tasks {
+			if task.Step == 0 {
+				left = append(left, task.By+": "+task.Text)
+			}
+		}
+		events, _ := w.Missions.ReadLog("cache", 0)
+		for _, e := range events {
+			if e.Kind == mission.EventNote {
+				notes = append(notes, e.Text)
+			}
+		}
+		return left, notes
+	}
+
+	left, notes := merged(t, "frontend#5 is green and mergeable: do you want to merge it?", time.Now().UTC().Add(time.Minute))
+	if len(left) != 1 || !strings.HasPrefix(left[0], "c1: The brief names two caches") {
+		t.Errorf("asked at the step: still asked %q", left)
+	}
+	if got := strings.Join(notes, "|"); !strings.Contains(got, "closed: step 2 passed, its pull request merged: what the orchestrator asked at it is settled") {
+		t.Errorf("the log doesn't say why it closed: %s", got)
+	}
+
+	left, _ = merged(t, "The cache's size isn't in the brief: 1,000 entries, or unbounded?", time.Now().UTC().Add(-time.Hour))
+	if len(left) != 2 || !strings.HasPrefix(left[1], "orchestrator: The cache's size isn't in the brief") {
+		t.Errorf("asked before the step: still asked %q", left)
+	}
+}
+
+// A bot's comment on the pull request itself (a coverage summary) is
+// logged, and brings nobody round: its review, or its comment on a line,
+// does, as a person's would.
+func TestPRStep_ABotsSummaryWakesNobody(t *testing.T) {
+	w, runs, gh := prFixture(t)
+	watchPR(t, w, github.PR{IsDraft: true, StatusRollup: "pending"})
+	gh.said = []github.Said{{ID: "C1", Author: "github-actions", Bot: true, Body: "# Summary: line coverage 64.5%", At: "2026-11-15T09:00:00Z"}}
+	watchPR(t, w, github.PR{IsDraft: true, StatusRollup: "pending"})
+	if got := strings.Join(prLog(t, w), "|"); got != "said: github-actions commented on frontend#5: # Summary: line coverage 64.5%" || len(*runs) != 0 {
+		t.Fatalf("a bot's summary: log %q, runs %v", got, *runs)
+	}
+	watchPR(t, w, github.PR{IsDraft: true, StatusRollup: "pending"})
+	if len(prLog(t, w)) != 1 {
+		t.Errorf("logged twice: %v", prLog(t, w))
+	}
+	gh.said = append(gh.said, github.Said{ID: "R1", Author: "review-bot", Bot: true, State: "COMMENTED", Body: "Two things to look at.", At: "2026-11-15T09:05:00Z"})
+	watchPR(t, w, github.PR{IsDraft: true, StatusRollup: "pending"})
+	if len(*runs) != 1 || (*runs)[0] != "cache/pr" {
+		t.Errorf("a bot's review: runs %v, log %v", *runs, prLog(t, w))
+	}
+}
+
+// A merge ws sees after the pull request's step was passed (the
+// orchestrator accepted it, told of the merge) is no news to anyone.
+func TestPRStep_AMergeAfterItsStepPassedWakesNobody(t *testing.T) {
+	w, runs, _ := prFixture(t)
+	if _, _, err := w.Missions.AcceptStage("cache", "orchestrator", "frontend#5 merged, as the user said"); err != nil {
+		t.Fatal(err)
+	}
+	m, _ := w.Missions.Load("cache")
+	pr := github.PR{Number: 5}
+	w.WatchPRs([]MissionView{{M: m, State: mission.Review, Capsules: []CapsuleView{{Capsule: m.Capsules[0], Exists: true, PR: &pr, PRS: mission.PRMerged}}}})
+	if got := strings.Join(prLog(t, w), "|"); got != "merged: frontend#5 merged" || len(*runs) != 0 {
+		t.Errorf("a merge after its step: log %q, orchestrator ran %v", got, *runs)
 	}
 }
 

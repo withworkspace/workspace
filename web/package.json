@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "typecheck": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "stories": "storybook dev --port 6006 --no-open --no-version-updates --disable-telemetry"
   },
   "dependencies": {
     "@withworkspace/ui-lib": "0.7.0",
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@iconify-json/material-icon-theme": "1.2.77",
+    "@storybook/react-vite": "10.6.7",
     "@types/hast": "3.0.5",
     "@types/mdast": "4.0.4",
     "@types/node": "26.6.6",
@@ -50,6 +52,7 @@
     "@vitejs/plugin-react": "6.3.0",
     "mdast-util-to-hast": "13.2.1",
     "micromark-util-types": "2.0.3",
+    "storybook": "10.6.7",
     "typescript": "7.0.2",
     "vite": "8.3.6",
     "vitest": "5.0.5"

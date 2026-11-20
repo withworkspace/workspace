@@ -210,6 +210,80 @@ func TestWaitNobodyWatches(t *testing.T) {
 	}
 }
 
+// At a Wait, the step says what the mission waits on: the orchestrator
+// saying it too (ws mission wait) is refused, and where a mission says
+// both anyway, the step's is the headline, with marking it done. Anywhere
+// else it's the orchestrator's to say.
+func TestWaitIsntSaidTwice(t *testing.T) {
+	w, _, _ := atWait(t, "   - on: the platform team\n")
+	err := w.SayWaiting("cache", "the platform team's deploy; the user says when it has happened", AsOrchestrator)
+	refusedWith(t, err, "wait-step")
+	if m, _ := w.Missions.Load("cache"); m.Waiting != nil {
+		t.Errorf("waiting = %+v", m.Waiting)
+	}
+	// Said by hand, or kept from before ws refused it.
+	if err := w.SayWaiting("cache", "the platform team's deploy", AsYou); err != nil {
+		t.Fatal(err)
+	}
+	v, err := w.Mission("cache", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hs := v.Headlines; len(hs) != 1 || hs[0].Action.Verb != mission.VerbWait {
+		t.Errorf("headlines = %+v; want the step's alone, to mark done", hs)
+	}
+
+	if _, err := w.AcceptStage("cache", AsYou, "deployed"); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.SayWaiting("cache", "a teammate elsewhere", AsOrchestrator); err != nil {
+		t.Errorf("at a Work step: %v", err)
+	}
+}
+
+// What the orchestrator asked at a Wait (the run failed: again, or wait?)
+// is settled when the step passes, marked done or seen by ws's look: it
+// isn't left to lead the next step's page.
+func TestWaitPassedSettlesWhatTheOrchestratorAskedAtIt(t *testing.T) {
+	asked := func(t *testing.T, w *Workspace) {
+		t.Helper()
+		if _, err := w.Flag("cache", "The release's last run failed on a flaky upload. Run it again, or wait for the nightly?", AsOrchestrator, "Run it again", "Wait"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	questions := func(w *Workspace) (left []string) {
+		m, _ := w.Missions.Load("cache")
+		for _, task := range m.Tasks {
+			if task.Question() {
+				left = append(left, task.Text)
+			}
+		}
+		return left
+	}
+
+	w, _, _ := atWait(t, "   - on: the platform team\n")
+	asked(t, w)
+	if _, err := w.AcceptStage("cache", AsYou, "deployed"); err != nil {
+		t.Fatal(err)
+	}
+	if left := questions(w); len(left) != 0 || !stepOf(t, w, 2).Accepted() {
+		t.Errorf("marked done: still asked %q", left)
+	}
+
+	w, _, _ = atWait(t, "   - on: CI\n   - in: `frontend`\n   - check: `test -f here` passes\n")
+	asked(t, w)
+	if said, err := w.CheckWait("cache", AsYou); err != nil || !strings.HasPrefix(said, "Not yet") || len(questions(w)) != 1 {
+		t.Fatalf("a look that finds nothing: %q, %v, asked %q", said, err, questions(w))
+	}
+	os.WriteFile(filepath.Join(w.WS().RepoDir("frontend"), "one", "here"), nil, 0o644)
+	if _, err := w.CheckWait("cache", AsYou); err != nil {
+		t.Fatal(err)
+	}
+	if left := questions(w); len(left) != 0 || !stepOf(t, w, 2).Accepted() {
+		t.Errorf("seen to have happened: still asked %q", left)
+	}
+}
+
 // A Wait's checks run in the repo it names: the mission's capsule there,
 // or the repo's ground.
 func TestWaitChecksRunInItsRepo(t *testing.T) {

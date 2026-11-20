@@ -30,6 +30,15 @@ icons:
     cd web && [ -d node_modules ] || pnpm install --frozen-lockfile
     cd web && node scripts/fileicons.mjs
 
+# Storybook, at localhost:6006: parts of the web UI drawn alone, from missions ws gave (web/src/mission/fixtures), to look at every state one has side by side.
+stories:
+    cd web && [ -d node_modules ] || pnpm install --frozen-lockfile
+    cd web && pnpm stories
+
+# Take the stories' missions again, from tries seeded for it (scripts/story-fixtures.mjs says the rest).
+story-fixtures:
+    @node scripts/story-fixtures.mjs
+
 # Go's tests, then the web UI's (web/src/**/*.test.ts), if pnpm is here.
 test:
     go test ./...

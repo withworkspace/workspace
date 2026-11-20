@@ -1,0 +1,46 @@
+{
+  "repos": [
+    {
+      "name": "demo",
+      "label": "Demo",
+      "color": "#5f5fff",
+      "cloned": true,
+      "capsules": [
+        "checks-unmet",
+        "cut-the-tag",
+        "greet-by-name",
+        "later",
+        "on-the-registry",
+        "platform-deploy",
+        "tag-and-publish",
+        "work-across-repos"
+      ],
+      "aliases": [
+        "dm"
+      ],
+      "branches": {
+        "checks-unmet": "checks-unmet",
+        "cut-the-tag": "cut-the-tag",
+        "greet-by-name": "greet-by-name",
+        "later": "later",
+        "on-the-registry": "on-the-registry",
+        "platform-deploy": "platform-deploy",
+        "tag-and-publish": "tag-and-publish",
+        "work-across-repos": "work-across-repos"
+      },
+      "landing": "pr"
+    },
+    {
+      "name": "records",
+      "label": "Records",
+      "color": "#00d7af",
+      "cloned": true,
+      "documents": true,
+      "capsules": [],
+      "aliases": [
+        "rec"
+      ],
+      "landing": "direct"
+    }
+  ]
+}

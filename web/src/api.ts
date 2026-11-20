@@ -109,6 +109,8 @@ export type {
   Landing,
   Look,
   Mission,
+  MissionAct,
+  MissionCard,
   MissionDetail,
   MissionState,
   OrchestratorCall,

@@ -211,6 +211,11 @@ func printWarnings(warnings []string) {
 	}
 }
 
+// waitUnwatched is who passes a Wait that nobody's watching, as the
+// orchestrator's told: the user, from the page, or the orchestrator once
+// it's shown.
+const waitUnwatched = "nobody's watching, so the user marks it done once it's happened, or you accept it once you're shown it has"
+
 // waitFact is a Wait step's kind and who's on it, with who passes it: the
 // user, ws watching its checks, or whoever can say it's happened.
 func waitFact(s mission.Step) string {
@@ -222,7 +227,7 @@ func waitFact(s mission.Step) string {
 	case s.Watched():
 		return "Wait, on " + firstNonEmpty(s.Whom, s.WhoSays()) + ": ws watches its checks, and passes it"
 	case s.Whom != "":
-		return "Wait, on " + s.Whom + ": nobody's watching, so accept it once you're shown it's happened"
+		return "Wait, on " + s.Whom + ": " + waitUnwatched
 	}
-	return "Wait, " + s.WhoSays() + ": nobody's watching, so accept it once you're shown it's happened"
+	return "Wait, " + s.WhoSays() + ": " + waitUnwatched
 }

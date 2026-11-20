@@ -1,0 +1,446 @@
+{
+  "name": "ws test",
+  "root": "/try/demo",
+  "org": "example-org",
+  "defaultBranch": "main",
+  "missions": [
+    {
+      "slug": "greet-by-name",
+      "title": "Greet by name",
+      "state": "active",
+      "created": "2026-11-20T15:14:28Z",
+      "updated": "2026-11-20T15:14:28.444125Z",
+      "headline": {
+        "court": "you",
+        "kind": "ready",
+        "group": "up-next",
+        "label": "ready",
+        "text": "Ready: nobody has started it",
+        "action": {
+          "verb": "launch",
+          "label": "launch crew"
+        }
+      },
+      "capsules": [
+        {
+          "repo": "demo",
+          "name": "greet-by-name",
+          "branch": "greet-by-name",
+          "path": "/try/demo/repos/demo/greet-by-name",
+          "exists": true,
+          "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+        }
+      ],
+      "crew": [],
+      "at": "Step 1 of 3: Greet by name"
+    },
+    {
+      "slug": "work-across-repos",
+      "title": "Work across repos",
+      "state": "active",
+      "created": "2026-11-20T15:14:28Z",
+      "updated": "2026-11-20T15:14:57.564649Z",
+      "flag": "Step 3 is done (c2: greet.To greets by name and falls back to world, with a test; the README and docs say how). Step 4 is yours, to review: Read the change. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review demo/work-across-repos: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c2.md.",
+      "headline": {
+        "court": "you",
+        "kind": "step-review",
+        "group": "needs-you",
+        "label": "✓ review",
+        "text": "Step 3 is done (c2: greet.To greets by name and falls back to world, with a test; the README and docs say how). Step 4 is yours, to review: Read the change. Before its pull request. Step 5 opens a pull request, and ws holds missions.review_before_pr: review the work here, approving it, or it won't open. Review demo/work-across-repos: approving it passes the step, and asking for changes sends it back to the crew who made it. Or go on. The crew's notes on it, to read: handoffs/c2.md.",
+        "action": {
+          "verb": "review-step",
+          "label": "review demo/work-across-repos",
+          "target": "2",
+          "look": [
+            {
+              "capsule": "demo/work-across-repos",
+              "name": "demo/work-across-repos"
+            },
+            {
+              "doc": "mission:handoffs/c2.md",
+              "name": "handoffs/c2.md",
+              "read": true
+            }
+          ]
+        },
+        "by": "ws",
+        "since": "2026-11-20T15:14:31Z"
+      },
+      "capsules": [
+        {
+          "repo": "records",
+          "name": "work-across-repos",
+          "branch": "work-across-repos",
+          "path": "/try/demo/repos/records/work-across-repos",
+          "exists": false
+        },
+        {
+          "repo": "demo",
+          "name": "work-across-repos",
+          "branch": "work-across-repos",
+          "path": "/try/demo/repos/demo/work-across-repos",
+          "exists": true,
+          "head": "70aa355555306204e588f501d7d7b72b5e8c3c27"
+        },
+        {
+          "repo": "demo",
+          "name": "later",
+          "branch": "later",
+          "path": "/try/demo/repos/demo/later",
+          "exists": true,
+          "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+        }
+      ],
+      "crew": [
+        {
+          "id": "c1",
+          "harness": "shell",
+          "capsule": "records/work-across-repos",
+          "started": "2026-11-20T15:14:29Z",
+          "ended": false,
+          "status": "done"
+        },
+        {
+          "id": "c2",
+          "harness": "shell",
+          "capsule": "demo/work-across-repos",
+          "started": "2026-11-20T15:14:29Z",
+          "ended": false,
+          "status": "done"
+        }
+      ],
+      "at": "Step 4 of 6, yours: Read the change"
+    },
+    {
+      "slug": "cut-the-tag",
+      "title": "Cut the tag",
+      "state": "active",
+      "created": "2026-11-20T15:14:31Z",
+      "updated": "2026-11-20T15:14:31.616581Z",
+      "flag": "Step 1 is done. Step 2 is yours, to do: Cut the tag. The user tags a release of demo, and it's published. ws can't see it happen, so nothing moves until you mark it done. Say what you did after it, if the crew after should know (Done: tagged v1.4.0).",
+      "headline": {
+        "court": "you",
+        "kind": "to-do",
+        "group": "needs-you",
+        "label": "→ to do",
+        "text": "Step 1 is done. Step 2 is yours, to do: Cut the tag. The user tags a release of demo, and it's published. ws can't see it happen, so nothing moves until you mark it done. Say what you did after it, if the crew after should know (Done: tagged v1.4.0).",
+        "action": {
+          "verb": "answer",
+          "label": "mark it done",
+          "target": "1",
+          "options": [
+            "Done"
+          ]
+        },
+        "by": "ws",
+        "since": "2026-11-20T15:14:31Z"
+      },
+      "capsules": [
+        {
+          "repo": "demo",
+          "name": "cut-the-tag",
+          "branch": "cut-the-tag",
+          "path": "/try/demo/repos/demo/cut-the-tag",
+          "exists": true,
+          "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+        }
+      ],
+      "crew": [],
+      "at": "Step 2 of 3, yours: Cut the tag"
+    },
+    {
+      "slug": "on-the-registry",
+      "title": "On the registry",
+      "state": "active",
+      "created": "2026-11-20T15:14:31Z",
+      "updated": "2026-11-20T15:14:58.710884Z",
+      "flag": "The release workflow's last run failed on a flaky upload. Re-run it, or wait for the nightly?",
+      "headline": {
+        "court": "you",
+        "kind": "flag",
+        "group": "needs-you",
+        "label": "! asks you",
+        "text": "The orchestrator asks: The release workflow's last run failed on a flaky upload. Re-run it, or wait for the nightly?",
+        "action": {
+          "verb": "answer",
+          "label": "answer",
+          "target": "1",
+          "options": [
+            "Re-run it",
+            "Wait for the nightly"
+          ]
+        },
+        "by": "orchestrator",
+        "since": "2026-11-20T15:14:58Z"
+      },
+      "capsules": [
+        {
+          "repo": "demo",
+          "name": "on-the-registry",
+          "branch": "on-the-registry",
+          "path": "/try/demo/repos/demo/on-the-registry",
+          "exists": true,
+          "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+        }
+      ],
+      "crew": [],
+      "at": "Step 2 of 3, waiting on the release workflow: On the registry"
+    },
+    {
+      "slug": "tag-and-publish",
+      "title": "Tag and publish",
+      "state": "active",
+      "created": "2026-11-20T15:14:31Z",
+      "updated": "2026-11-20T15:14:31.870646Z",
+      "flag": "Step 1 is done. Step 2 is yours, to do: Tag and publish. The user tags a release of demo, and it's published. ws watches for it (`test -f tagged`), and passes the step once it's happened; or mark it done, and ws looks then.",
+      "headline": {
+        "court": "you",
+        "kind": "to-do",
+        "group": "needs-you",
+        "label": "→ to do",
+        "text": "Step 1 is done. Step 2 is yours, to do: Tag and publish. The user tags a release of demo, and it's published. ws watches for it (`test -f tagged`), and passes the step once it's happened; or mark it done, and ws looks then.",
+        "action": {
+          "verb": "answer",
+          "label": "mark it done",
+          "target": "1",
+          "options": [
+            "Done"
+          ]
+        },
+        "by": "ws",
+        "since": "2026-11-20T15:14:31Z"
+      },
+      "capsules": [
+        {
+          "repo": "demo",
+          "name": "tag-and-publish",
+          "branch": "tag-and-publish",
+          "path": "/try/demo/repos/demo/tag-and-publish",
+          "exists": true,
+          "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+        }
+      ],
+      "crew": [],
+      "at": "Step 2 of 3, yours: Tag and publish"
+    },
+    {
+      "slug": "checks-unmet",
+      "title": "Checks unmet",
+      "state": "active",
+      "created": "2026-11-20T15:14:32Z",
+      "updated": "2026-11-20T15:14:34.314414Z",
+      "flag": "Step 1's check 2 still asks for a VERSION file, but you decided against one (d1): the release's version is its tag. The judge marks it unmet on that half alone. Which should it be? Step 1's checks, round 1, came to 1 of 2 met. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to c1. Or pass it as it is, send it back to c1 with what's unmet, or say what to do.",
+      "headline": {
+        "court": "you",
+        "kind": "flag",
+        "group": "needs-you",
+        "label": "! asks you",
+        "text": "The orchestrator asks: Step 1's check 2 still asks for a VERSION file, but you decided against one (d1): the release's version is its tag. The judge marks it unmet on that half alone. Which should it be? Step 1's checks, round 1, came to 1 of 2 met. Look at b1, on the mission's Verify tab: approving it passes the step, and saying what's not right sends it back to c1. Or pass it as it is, send it back to c1 with what's unmet, or say what to do.",
+        "action": {
+          "verb": "answer",
+          "label": "verify b1",
+          "target": "1",
+          "options": [
+            "Pass it",
+            "Send it back",
+            "Go by d1: no VERSION file, and accept step 1",
+            "Reverse d1: c1 adds a VERSION file"
+          ],
+          "look": [
+            {
+              "bundle": "b1",
+              "name": "b1"
+            }
+          ]
+        },
+        "by": "orchestrator",
+        "since": "2026-11-20T15:14:34Z"
+      },
+      "capsules": [
+        {
+          "repo": "demo",
+          "name": "checks-unmet",
+          "branch": "checks-unmet",
+          "path": "/try/demo/repos/demo/checks-unmet",
+          "exists": true,
+          "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+        }
+      ],
+      "crew": [
+        {
+          "id": "c1",
+          "harness": "shell",
+          "capsule": "demo/checks-unmet",
+          "started": "2026-11-20T15:14:32Z",
+          "ended": false,
+          "status": "done"
+        }
+      ],
+      "at": "Step 1 of 2: Version the greeting (c1)"
+    },
+    {
+      "slug": "platform-deploy",
+      "title": "Platform deploy",
+      "state": "active",
+      "created": "2026-11-20T15:14:32Z",
+      "updated": "2026-11-20T15:14:58.726436Z",
+      "flag": "The platform team's change window moved to Thursday. Wait for it, or ask them to deploy today?",
+      "headline": {
+        "court": "you",
+        "kind": "flag",
+        "group": "needs-you",
+        "label": "! asks you",
+        "text": "The orchestrator asks: The platform team's change window moved to Thursday. Wait for it, or ask them to deploy today?",
+        "action": {
+          "verb": "answer",
+          "label": "answer",
+          "target": "1",
+          "options": [
+            "Wait for Thursday",
+            "Ask them today"
+          ]
+        },
+        "by": "orchestrator",
+        "since": "2026-11-20T15:14:58Z"
+      },
+      "capsules": [
+        {
+          "repo": "demo",
+          "name": "platform-deploy",
+          "branch": "platform-deploy",
+          "path": "/try/demo/repos/demo/platform-deploy",
+          "exists": true,
+          "head": "e002a14e81194155f63121fd29676f7acb9f7438"
+        }
+      ],
+      "crew": [],
+      "at": "Step 2 of 3, waiting on the platform team: Platform deploy"
+    },
+    {
+      "slug": "which-cache-is-slow",
+      "title": "Which cache is slow",
+      "state": "active",
+      "created": "2026-11-20T15:14:58Z",
+      "updated": "2026-11-20T15:14:58.827771Z",
+      "flag": "The token cache and the tenant cache are both slow under load. Name both, or only the slowest?",
+      "headline": {
+        "court": "you",
+        "kind": "flag",
+        "group": "needs-you",
+        "label": "! asks you",
+        "text": "The orchestrator asks: The token cache and the tenant cache are both slow under load. Name both, or only the slowest?",
+        "action": {
+          "verb": "answer",
+          "label": "answer",
+          "target": "1",
+          "options": [
+            "Both",
+            "Only the slowest"
+          ]
+        },
+        "by": "orchestrator",
+        "since": "2026-11-20T15:14:58Z"
+      },
+      "capsules": [],
+      "crew": [],
+      "at": "Every step done: ending it, answered, is suggested"
+    },
+    {
+      "slug": "which-index-is-missing",
+      "title": "Which index is missing",
+      "state": "answered",
+      "created": "2026-11-20T15:14:58Z",
+      "updated": "2026-11-20T15:14:59.03164Z",
+      "headline": {
+        "court": "you",
+        "kind": "ended",
+        "group": "past",
+        "label": "answered",
+        "text": "Ended, answered (at Z: 1 of 1 met): invoices has no index on customer_id, which the list filters by.",
+        "action": {
+          "verb": "archive",
+          "label": "archive it"
+        },
+        "by": "you",
+        "since": "2026-11-20T15:14:59.027729Z"
+      },
+      "capsules": [],
+      "crew": [],
+      "at": "Ended, answered (at Z: 1 of 1 met)"
+    },
+    {
+      "slug": "which-query-is-slow",
+      "title": "Which query is slow",
+      "state": "active",
+      "created": "2026-11-20T15:14:58Z",
+      "updated": "2026-11-20T15:14:58.917794Z",
+      "headline": {
+        "court": "you",
+        "kind": "wrap-up",
+        "group": "needs-you",
+        "label": "✓ wrap up",
+        "text": "Ready to end, answered (at Z: 1 of 1 met): The invoices list is the slow one: it reads every line item to total each invoice.",
+        "action": {
+          "verb": "end",
+          "label": "end it, answered"
+        },
+        "by": "orchestrator",
+        "since": "2026-11-20T15:14:58.914866Z"
+      },
+      "capsules": [],
+      "crew": [],
+      "at": "Every step done: ending it, answered, is suggested"
+    },
+    {
+      "slug": "which-job-is-stuck",
+      "title": "Which job is stuck",
+      "state": "archived",
+      "created": "2026-11-20T15:14:59Z",
+      "updated": "2026-11-20T15:14:59.149618Z",
+      "headline": {
+        "court": "",
+        "kind": "archived",
+        "group": "past",
+        "label": "archived",
+        "text": "Archived",
+        "action": {
+          "label": ""
+        }
+      },
+      "capsules": [],
+      "crew": []
+    }
+  ],
+  "focus": [],
+  "conversations": [],
+  "pages": [],
+  "artifacts": [],
+  "artifactsRepo": "records",
+  "kinds": [
+    {
+      "name": "adr",
+      "title": "ADR",
+      "where": "records:adr/{number}-{slug}.md",
+      "guide": "/try/demo/repos/records/.ground/README.md"
+    },
+    {
+      "name": "note",
+      "title": "Note",
+      "where": "records:notes/{slug}.md"
+    },
+    {
+      "name": "proposal",
+      "title": "Proposal",
+      "where": "records:proposals/{slug}.md",
+      "guide": "/try/demo/repos/records/.ground/README.md"
+    }
+  ],
+  "spaces": [
+    {
+      "repo": "records",
+      "label": "Records",
+      "color": "#00d7af"
+    }
+  ],
+  "version": "stories"
+}
