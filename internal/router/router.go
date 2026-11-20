@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"mime"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -224,6 +225,31 @@ func loopback(remote string) bool {
 	return ip != nil && ip.IsLoopback()
 }
 
+// ownName is whether host (with its port, or not) is this machine's by
+// address or as localhost: what WhoIs and askYield ask by.
+func ownName(host string) bool {
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+// fromAPage is whether a request was made by a page in a browser: one on
+// this machine comes from loopback, as a router does, but a browser says
+// where its page is (Origin, Sec-Fetch-Site), and a page with no help
+// from us can only send a form's types, never JSON.
+func fromAPage(r *http.Request) bool {
+	if r.Header.Get("Origin") != "" || r.Header.Get("Sec-Fetch-Site") != "" {
+		return true
+	}
+	mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	return mt != "application/json"
+}
+
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// It listens on every interface (macOS lets a user have 80 no other
 	// way), so it answers this machine alone.
@@ -231,11 +257,20 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ws's router answers this machine alone", http.StatusForbidden)
 		return
 	}
+	if (r.URL.Path == path || r.URL.Path == path+"/yield") && !ownName(r.Host) {
+		// Another site's name pointed here (DNS rebinding) gets nothing.
+		http.Error(w, "ws's router says what it is to 127.0.0.1 and localhost alone", http.StatusMisdirectedRequest)
+		return
+	}
 	if r.URL.Path == path {
 		writeJSON(w, Hello{Router: Version, PID: syscallPID()})
 		return
 	}
 	if r.URL.Path == path+"/yield" && r.Method == http.MethodPost {
+		if fromAPage(r) {
+			http.Error(w, "a router asks this, not a page", http.StatusForbidden)
+			return
+		}
 		var h Hello
 		json.NewDecoder(io.LimitReader(r.Body, 1<<10)).Decode(&h)
 		if h.Router > Version {
