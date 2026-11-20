@@ -209,6 +209,36 @@ func TestOpenPR_WithoutAPlan(t *testing.T) {
 	}
 }
 
+// With no PR writer ([pr_writer] enabled = false), a pull request opened
+// with no title is ws's own words, opened at once: no agent, no job.
+func TestOpenPR_WithThePRWriterOff(t *testing.T) {
+	w, store := testutil.OrchestrateFixture(t)
+	gh := fixtureGitHub(t)
+	useFixtureGitHub(t, w.Root, gh)
+	local := filepath.Join(w.Root, "ws.local.toml")
+	conf, _ := os.ReadFile(local)
+	os.WriteFile(local, append(conf, []byte("\n[pr_writer]\nenabled = false\n")...), 0o644)
+	capsule := filepath.Join(w.Root, "repos", "backend", "cache-lookup")
+	t.Setenv(mission.EnvMission, "cache")
+	t.Setenv(mission.EnvCrew, "c1")
+	os.WriteFile(filepath.Join(capsule, "cache.go"), []byte("package cache\n"), 0o644)
+	testutil.GitCmd(t, capsule, "add", "-A")
+	testutil.GitCmd(t, capsule, "commit", "-q", "-m", "cache")
+	r := testutil.Run(t, w, gh, "mission", "open-pr")
+	if strings.Contains(r.Stderr, "The PR writer is writing") {
+		t.Errorf("handed to the PR writer with it off:\n%s", r.Stderr)
+	}
+	open, _ := gh.PRsForRepo("test-org", "backend")
+	m := testutil.LoadMission(t, w, "cache")
+	if len(open) != 1 || open[0].Title != m.Title {
+		events, _ := store.ReadLog("cache", 0)
+		t.Fatalf("GitHub has %+v, want one titled %q\nlog %+v", open, m.Title, events)
+	}
+	if len(m.WritingPRs) != 0 {
+		t.Errorf("marked writing: %+v", m.WritingPRs)
+	}
+}
+
 // ws holds the user's review before landing, as a guarantee.
 func TestLand_HoldsTheReviewGuarantee(t *testing.T) {
 	w := testutil.LandWorkspace(t, "")

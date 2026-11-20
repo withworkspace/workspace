@@ -135,6 +135,14 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 	if err := w.holdReview(GuaranteeReviewBeforePR, m.Slug, c.Repo, c.Name, "opening a pull request", reviewThen(by, "open it")); err != nil {
 		return PROpened{}, err
 	}
+	if o.Title == "" && !w.Config().PRWriterEnabled() {
+		// No PR writer ([pr_writer] enabled = false): ws's own words, at once.
+		title, body := w.prDraft(m, out.Capsule, out.Step)
+		o.Title = title
+		if strings.TrimSpace(o.Body) == "" {
+			o.Body = body
+		}
+	}
 	if o.Title == "" {
 		// It can be opened: the PR writer writes it first. That takes a
 		// while, so it's the daemon's, where there's one to hand it to.
