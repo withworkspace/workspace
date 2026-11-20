@@ -57,6 +57,14 @@ type Workspace struct {
 	// The web UI says which it's talking to, and tells a plugin's app as
 	// it connects: the same its plugin was told when it started.
 	Version string `json:"version,omitempty"`
+	// GroundsSeen moves when the repos' default branches do, or the files
+	// read of one (refs are checked against them) are found other than
+	// they were: a page that's checked what it names checks again.
+	GroundsSeen string `json:"groundsSeen,omitempty"`
+	// ReadsSeen moves when a capsule's tree or summary, answered as it
+	// was kept while it was read again, is found other than it was told:
+	// a page showing one reads it again.
+	ReadsSeen string `json:"readsSeen,omitempty"`
 	// Later is a release of ws that's out and later than Version, as the
 	// daemon last found (it looks once a day): none for none, or for one
 	// that's installed and waiting for the daemon to restart onto it.

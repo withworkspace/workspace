@@ -81,7 +81,7 @@ export function FilesPage({ workspace }: { workspace: Workspace }) {
         api={api}
         label={`${r.label}/${capsule ?? "ground"}`}
         before={narrow ? undefined : column}
-        updated={mission?.updated}
+        updated={`${mission?.updated ?? ""}:${workspace.readsSeen ?? ""}`}
         reviewTo={mission ? `/missions/${mission.slug}/review/${repo}/${capsule}` : undefined}
         docOf={(path) => docRef(repo, name, path)}
         search={capsule ? { repo, worktree: capsule } : undefined}

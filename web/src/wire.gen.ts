@@ -3362,6 +3362,24 @@ export interface ReReview {
  */
 export type RefKind = "artifact" | "dir" | "file" | "mission" | "page" | "pr" | "repo" | "talk" | "thing";
 
+// From web/refpaths.go
+/**
+ * RefPaths is what a page asks of the repos' default branches: paths in
+ * each, by repo.
+ */
+export interface RefPaths {
+    repos: Record<string, string[]>;
+}
+
+// From web/refpaths.go
+/**
+ * RefPathsFound is what's there of what was asked, by repo: those whose
+ * files are kept.
+ */
+export interface RefPathsFound {
+    repos: Record<string, RepoPaths>;
+}
+
 // From ref/ref.go
 /**
  * Pinned is a name as it was when it was said or written: what it named
@@ -3441,6 +3459,17 @@ export interface Repo {
      * default branch).
      */
     landing?: OpsRepoLanding;
+}
+
+// From web/refpaths.go
+/**
+ * RepoPaths is what's there on a repo's default branch, of what was asked:
+ * the files and the folders, as read at Head.
+ */
+export interface RepoPaths {
+    head: string;
+    files: string[];
+    dirs: string[];
 }
 
 // From review/diff.go
@@ -4916,6 +4945,18 @@ export interface Workspace {
      * it connects: the same its plugin was told when it started.
      */
     version?: string;
+    /**
+     * GroundsSeen moves when the repos' default branches do, or the files
+     * read of one (refs are checked against them) are found other than
+     * they were: a page that's checked what it names checks again.
+     */
+    groundsSeen?: string;
+    /**
+     * ReadsSeen moves when a capsule's tree or summary, answered as it
+     * was kept while it was read again, is found other than it was told:
+     * a page showing one reads it again.
+     */
+    readsSeen?: string;
     /**
      * Later is a release of ws that's out and later than Version, as the
      * daemon last found (it looks once a day): none for none, or for one

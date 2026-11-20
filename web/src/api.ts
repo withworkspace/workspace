@@ -43,6 +43,7 @@ import type {
   PluginThing,
   PluginsInstalled,
   ProcessInfo,
+  RefPathsFound,
   Repo,
   ReviewGuide,
   RunDetail,
@@ -1448,7 +1449,9 @@ export interface CapsuleSummary {
   changedMore?: number; // how many more there are than it lists
 }
 
-export const getSummary = (api: string) => getJSON<CapsuleSummary>(`${api}/summary`);
+// unread: it's never been read, and is being (or, asked as kept, nobody's
+// shown it yet): the workspace's readsSeen moves when it has been.
+export const getSummary = (api: string, kept?: boolean) => getJSON<CapsuleSummary & { unread?: boolean }>(`${api}/summary${kept ? "?kept=1" : ""}`);
 
 // A capsule's files, for the file explorer: mirrors review.Tree and
 // review.FileView.
@@ -1466,6 +1469,9 @@ export interface FileTree {
   branch?: string;
   files: TreeFile[];
   truncated?: boolean;
+  // unread: it's never been read, and is being: the workspace's readsSeen
+  // moves when it has been.
+  unread?: boolean;
 }
 
 export interface LineChange {
@@ -1485,6 +1491,12 @@ export interface FileView {
 }
 
 export const getTree = (api: string) => getJSON<FileTree>(`${api}/tree`);
+
+// checkRefPaths is which of the paths a page's words name are files or
+// folders on each repo's default branch, as the daemon keeps them: a repo
+// that's not been read yet isn't in the answer (the workspace's
+// groundsSeen moves when it has been).
+export const checkRefPaths = (repos: Record<string, string[]>) => send<RefPathsFound>("POST", "/api/refs/paths", { repos });
 export const getFile = (api: string, path: string) => getJSON<FileView>(`${api}/file?${new URLSearchParams({ path })}`);
 export const rawURL = (api: string, path: string) => `${api}/raw?${new URLSearchParams({ path })}`;
 
