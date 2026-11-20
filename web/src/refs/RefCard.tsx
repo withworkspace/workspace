@@ -449,7 +449,7 @@ export function RefCardBody({ r, workspace, known }: { r: PageRef; workspace: Wo
 // RefCard is the card for a ref, under the words that name it (el), or
 // over them where there's no room below. The words are an element of the
 // page's, or, for a ref in a plugin's page, where the page said they are
-// (plugins/hover.ts). hint says ⌘-click goes there:
+// (plugins/ui.ts). hint says ⌘-click goes there:
 // where words are written, a click is for the cursor.
 export function RefCard({ r, el, workspace, onEnter, onLeave, hint = true }: { r: PageRef; el: Anchor; workspace: Workspace; onEnter: () => void; onLeave: () => void; hint?: boolean }) {
   // Read here, outside the card: inside it, names are only words.

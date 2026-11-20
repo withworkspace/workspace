@@ -154,6 +154,7 @@ function isVersions(v) {
 var v1_exports = {};
 __export(v1_exports, {
   CONVERSATION_FORMS: () => CONVERSATION_FORMS,
+  UI_NAMES: () => UI_NAMES,
   isBox: () => isBox,
   isConversationForm: () => isConversationForm,
   isFoundRef: () => isFoundRef,
@@ -161,6 +162,7 @@ __export(v1_exports, {
   isPageMessage: () => isPageMessage,
   isWelcome: () => isWelcome
 });
+var UI_NAMES = ["ref-card"];
 var CONVERSATION_FORMS = ["card", "docked", "popover"];
 function isTheme(m) {
   return isRecord(m) && (m.scheme === "light" || m.scheme === "dark") && isRecord(m.vars) && Object.values(m.vars).every(isString);
@@ -199,8 +201,10 @@ function isPageMessage(m) {
       return isString(m.key) && [m.meta, m.ctrl, m.shift, m.alt].every((v) => typeof v === "boolean");
     case "ws:refs":
       return isIndex(m.id) && isStrings(m.texts);
-    case "ws:hover":
-      return m.ref === void 0 ? m.box === void 0 : isString(m.ref) && m.ref !== "" && isBox(m.box);
+    case "ws:ui-open":
+      return isIndex(m.id) && isString(m.ui) && m.ui !== "" && optional(m.box, isBox) && optional(m.with, isRecord);
+    case "ws:ui-close":
+      return isIndex(m.id);
     case "ws:here":
       return m.name === void 0 || isString(m.name) && m.name !== "";
     case "ws:chrome-layout":
@@ -235,6 +239,8 @@ function isHostMessage(m) {
       return true;
     case "ws:outside":
       return true;
+    case "ws:ui-closed":
+      return isIndex(m.id) && optional(m.error, isString);
     case "ws:conversation-state":
       return typeof m.open === "boolean" && optional(m.as, isConversationForm) && typeof m.working === "boolean";
     default:
@@ -268,6 +274,15 @@ var NoHostError = class extends Error {
   constructor(message, options2) {
     super(message, options2);
     this.name = "NoHostError";
+  }
+};
+var UiError = class extends Error {
+  /** The UI that was asked for. */
+  ui;
+  constructor(message, ui) {
+    super(message);
+    this.name = "UiError";
+    this.ui = ui;
   }
 };
 function connect(options2 = {}) {
@@ -387,9 +402,39 @@ function client(port, welcome, doc) {
       queueMicrotask(ask);
     asking.push({ texts: [...texts], found: resolve });
   });
+  const uis = /* @__PURE__ */ new Map();
+  let uiAskings = 0;
+  const openUi = (name, options2) => {
+    if (closed)
+      return { result: Promise.resolve(void 0), close() {
+      } };
+    const id = ++uiAskings;
+    const result = new Promise((resolve, reject) => uis.set(id, { ui: name, done: (r) => resolve(r), failed: reject }));
+    const box = boxOf(options2.target);
+    send({ type: "ws:ui-open", id, ui: name, ...box ? { box } : {}, with: { ...options2.with } });
+    return {
+      result,
+      close() {
+        const asked2 = uis.get(id);
+        if (!asked2)
+          return;
+        uis.delete(id);
+        send({ type: "ws:ui-close", id });
+        asked2.done(void 0);
+      }
+    };
+  };
+  const refCard = (target, ref) => {
+    if (!ref)
+      throw new TypeError(`ui.refCard(target, ""): a ref is ws's word for it, as findRefs gave it.`);
+    const card = openUi("ref-card", { target, with: { ref } });
+    card.result.catch(() => {
+    });
+    return () => card.close();
+  };
   if (doc)
     applyTheme(doc, theme);
-  const wired = doc ? wire(doc, welcome, send, open) : void 0;
+  const wired = doc ? wire(doc, welcome, send, open, refCard) : void 0;
   port.onmessage = (e) => {
     const m = e.data;
     if (!v1_exports.isHostMessage(m))
@@ -430,6 +475,15 @@ function client(port, welcome, doc) {
         for (const fn of [...outside])
           fn();
         break;
+      case "ws:ui-closed": {
+        const asked2 = uis.get(m.id);
+        uis.delete(m.id);
+        if (m.error !== void 0)
+          asked2?.failed(new UiError(m.error, asked2.ui));
+        else
+          asked2?.done(m.result);
+        break;
+      }
       case "ws:conversation-state":
         status = m.as === void 0 ? { open: m.open, working: m.working } : { open: m.open, as: m.as, working: m.working };
         for (const fn of [...conversed])
@@ -506,6 +560,7 @@ function client(port, welcome, doc) {
         tellHere();
       };
     },
+    ui: { open: openUi, refCard },
     setChromeLayout(mode) {
       if (mode !== "expanded" && mode !== "standard")
         throw new TypeError(`setChromeLayout("${String(mode)}"): the layout is "expanded" or "standard".`);
@@ -584,6 +639,9 @@ function client(port, welcome, doc) {
       for (const found of [...asked.values()])
         found([]);
       asked.clear();
+      for (const ui of [...uis.values()])
+        ui.done(void 0);
+      uis.clear();
       port.onmessage = null;
       port.close();
     }
@@ -596,17 +654,20 @@ function applyTheme(doc, theme) {
   for (const [name, value] of Object.entries(theme.vars))
     root.style.setProperty(name, value);
 }
-function wire(doc, welcome, send, open) {
+function wire(doc, welcome, send, open, refCard) {
   const { keys } = welcome;
   let leaderAt = 0;
   let over;
+  let closeCard = () => {
+  };
   const tell = (el) => {
+    closeCard();
+    closeCard = () => {
+    };
     over = el;
     const ref = el?.getAttribute("data-ws-ref");
-    if (!el || !ref)
-      return send({ type: "ws:hover" });
-    const { x, y, width, height } = el.getBoundingClientRect();
-    send({ type: "ws:hover", ref, box: { x, y, width, height } });
+    if (el && ref)
+      closeCard = refCard(el, ref);
   };
   const hover = (el) => {
     if (el !== over)
@@ -706,6 +767,12 @@ function wire(doc, welcome, send, open) {
 function refOn(target) {
   const el = target?.closest?.(".ws-ref[data-ws-ref]");
   return el && el.getAttribute("data-ws-ref") ? el : void 0;
+}
+function boxOf(target) {
+  if (!target)
+    return void 0;
+  const { x, y, width, height } = "getBoundingClientRect" in target ? target.getBoundingClientRect() : target;
+  return { x, y, width, height };
 }
 function focusShown(el) {
   try {

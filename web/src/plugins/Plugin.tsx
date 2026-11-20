@@ -1,21 +1,21 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { type Plugin } from "../api";
 import { createHost } from "../conversation/host";
 import { PageConversation } from "../conversation/PageConversation";
-import { RefCard } from "../refs/RefCard";
-import { refAt, refOf, thingOpenAt } from "../refs/refs";
+import { refAt, thingOpenAt } from "../refs/refs";
 import { type IconName, icons } from "../ui/Icon";
 import { refsFound } from "../refs/found";
 import { useRefs, useRefsWorkspace } from "../refs/known";
 import { Empty, useTitle } from "../ui/kit";
 import { setFrameDim } from "./dim";
 import { setFrameHere, useFrameHere } from "./here";
-import { anchorIn, frameCard } from "./hover";
 import { setFrameLayout } from "./layout";
 import { type Frame, listen } from "./frame";
 import { frameBase, viewBase } from "./paths";
 import { onThemeChange, theme } from "./theme";
+import { frameUis } from "./ui";
+import { FrameUiLayer } from "./Uis";
 
 // A plugin's view: the plugin's app, in a frame, at /x/<name>/…. The frame
 // is a page ws serves (the shell, /plugin-frame/<name>/…: ws's tokens, an
@@ -31,9 +31,10 @@ import { onThemeChange, theme } from "./theme";
 // plugin said what the app shows is stale. The names in the app's words
 // (a file, a mission, a plugin's thing) are ws's to find: the app sends
 // the words it shows and draws the refs ws finds in them, and ws says when
-// what there is to name has changed. A ref's card is ws's to draw too:
-// the app says which ref the pointer's on and where its words are, and ws
-// draws the card by them, over the frame. And the frame's edge is no edge to
+// what there is to name has changed. ws has UIs of its own the app can
+// ask for, which ws defines and draws over the frame, by where in the
+// app's page each was asked from: a ref's card, by its words (ui.ts).
+// And the frame's edge is no edge to
 // whoever's looking: a press in ws is said to the app, which never sees
 // one, so its menus close as they would for a press in the app; and
 // while the app has a backdrop up, ws dims what's beside the frame. The
@@ -78,15 +79,10 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
   // drives over the frame, remembering the person's choice of form for
   // the plugin.
   const [conversation] = useState(() => createHost(name));
-  // The card of the ref the pointer's on in the app: the app says the ref
-  // and where its words are in its page, and ws draws the card there, as
-  // for a ref in its own pages.
-  const [card] = useState(frameCard);
-  const over = useSyncExternalStore(card.hear, card.shown);
-  const overRef = over ? refOf(over.ref) : undefined;
-  // Where the ref's words are in ws's window: the frame's corner, and
-  // where the app said they are in its page.
-  const overAt = useMemo(() => over && anchorIn(() => iframe.current, over.box), [over]);
+  // The UIs of ws's own the app has asked for (a ref's card, by its
+  // words), drawn over the frame; what comes of one ws closes, the app
+  // is told.
+  const [uis] = useState(() => frameUis((id, result) => frame.current?.uiClosed(id, result)));
 
   // What there is to name, and the workspace: what the refs in the app's
   // words are found by, and drawn from.
@@ -136,8 +132,8 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
         // The app has a backdrop up, as ws sees in its page: the shell
         // dims what's beside the frame (App.tsx) for as long as it has.
         dim: setFrameDim,
-        // The ref the pointer's on in the app, and where: its card.
-        hover: card.over,
+        // What the app asks ws to show of its own, over the frame.
+        ui: uis,
         // What the app shows beyond its address: Find starts from it.
         here: (n) => setFrameHere(name, n),
         // How the app wants the chrome: expanded, the shell folds its
@@ -165,15 +161,14 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
       // Hanging up ends the dim, if the app had a backdrop up.
       f.stop();
       frame.current = undefined;
-      card.clear();
     };
   }, [name]);
 
   useEffect(() => {
     if (shown.current === wanted) return;
     shown.current = wanted;
-    // A card is of the page as it was.
-    card.clear();
+    // What's shown on hover is of the page as it was.
+    uis.unhover();
     frame.current?.navigate(wanted);
   }, [wanted]);
 
@@ -241,7 +236,7 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
       <PageConversation host={conversation} about={about} root={workspace?.root}>
         <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} onLoad={() => frame.current?.loaded()} />
       </PageConversation>
-      {overRef && overAt && workspace && <RefCard r={overRef} el={overAt} workspace={workspace} onEnter={card.stay} onLeave={card.leave} hint={false} />}
+      <FrameUiLayer uis={uis} frame={iframe} />
     </div>
   );
 }

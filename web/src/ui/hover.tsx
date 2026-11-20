@@ -63,7 +63,7 @@ export function useHoverDelay<T>(hideAfter = 120) {
 
 // Anchor is what a card is placed by: an element, or anything else that
 // says where it is in the window and whether it's still there, as an
-// element does (words in a plugin's frame: plugins/hover.ts).
+// element does (words in a plugin's frame: plugins/ui.ts).
 export interface Anchor {
   readonly isConnected: boolean;
   getBoundingClientRect(): { top: number; left: number; bottom: number; right: number };
