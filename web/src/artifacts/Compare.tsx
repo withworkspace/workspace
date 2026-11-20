@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { type ArtifactDetail, frameURL, getArtifactCompare, getArtifactDetail, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
@@ -11,8 +11,10 @@ import { Inline } from "../ui/inline";
 import { Empty, ErrorCard, Keys, Loading, useMedia, useTitle } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import { artifactHref, VersionLine, VersionStrip } from "./Artifacts";
-import { compareHref, type Pair, readPair, samePair, settle, type Side, sideRef, stepSide, swapped, withSide } from "./pair";
+import { compareHref, type Pair, readPair, settle, type Side, sideRef, sideTweaks, stepSide, swapped, withSide } from "./pair";
 import { widths } from "./shown";
+import { type FrameTweaks, TweaksButton, useTweaks } from "./Tray";
+import { followed, frameSearch, type Params, readTweakParams } from "./tweaks";
 
 // Comparing: two versions side by side, of one artifact
 // (/artifacts/a3/compare?v=1,3) or of two
@@ -21,6 +23,11 @@ import { widths } from "./shown";
 // other was. Or their source diff, in the diff view reviews use, the left
 // the old side. A narrow window shows one at a time. The frames scroll
 // apart (the plan's lean on its open question 8).
+//
+// Each side has its own tweaks (Tray.tsx), behind a button in its head,
+// and its own state in the address (a. for the left, b. for the right):
+// so one version can be beside itself, as it opens and as it's set
+// (/artifacts/a3/compare?v=2,2&b.density=compact).
 
 export const compareKeys: [string, string][] = [
   ["[ / ]", "The right one's version before, or after (on a narrow window, the one shown)"],
@@ -42,6 +49,7 @@ const NARROW = "(max-width: 860px)";
 export function ComparePage({ workspace }: { workspace: Workspace }) {
   const { id } = useParams();
   const [search] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const asked = useMemo(() => readPair(id, search), [id, search]);
   const ids = asked ? [...new Set(asked.map((s) => s.id))] : [];
@@ -76,12 +84,45 @@ export function ComparePage({ workspace }: { workspace: Workspace }) {
   const backLabel = same && right ? `Back to ${right.title}` : "Back to Artifacts";
   useTitle(!pair ? "Compare" : same ? `${right?.title ?? pair[0].id} · v${pair[0].n} and v${pair[1].n}` : `${sideRef(pair[0])} and ${sideRef(pair[1])}`);
 
-  const go = (p: Pair) => pair && !samePair(p, pair) && navigate(compareHref(p), { replace: true });
+  // Each side's tweaks, and the state the address gives it. A side keeps
+  // its state while it's the same version: another version, or another
+  // artifact, opens as its page says.
+  const leftTweaks = useTweaks(pair ? `${sideRef(pair[0])}#${run}` : "");
+  const rightTweaks = useTweaks(pair ? `${sideRef(pair[1])}#${run}` : "");
+  const tweaks: [FrameTweaks, FrameTweaks] = [leftTweaks, rightTweaks];
+  const states: [Params, Params] = [readTweakParams(search, sideTweaks[0]), readTweakParams(search, sideTweaks[1])];
+  useEffect(() => {
+    const next = followed(search, [
+      [sideTweaks[0], leftTweaks.told],
+      [sideTweaks[1], rightTweaks.told],
+    ]);
+    if (next !== undefined) navigate({ search: next }, { replace: true });
+  }, [leftTweaks.told, rightTweaks.told, search, navigate]);
+
+  const go = (p: Pair, kept?: [Params, Params]) => {
+    if (!pair) return;
+    const same = (i: 0 | 1) => p[i].id === pair[i].id && p[i].n === pair[i].n;
+    const to = compareHref(p, kept ?? [same(0) ? states[0] : [], same(1) ? states[1] : []]);
+    if (to !== location.pathname + location.search) navigate(to, { replace: true });
+  };
   const step = (i: 0 | 1, by: -1 | 1) => {
     const d = pair && detail(pair[i].id);
     if (pair && d) go(stepSide(pair, i, by, d.all));
   };
-  const swap = () => pair && go(swapped(pair));
+  const swap = () => {
+    if (!pair) return;
+    // One version beside itself: the frames stay where they are, and what
+    // changes sides is the state each is in.
+    const [l, r] = [leftTweaks.told, rightTweaks.told];
+    if (sideRef(pair[0]) === sideRef(pair[1])) {
+      if (l && r) {
+        leftTweaks.set(r.state);
+        rightTweaks.set(l.state);
+      }
+      return;
+    }
+    go(swapped(pair), [states[1], states[0]]);
+  };
   const again = () => {
     setStopped(false);
     setRun((x) => x + 1);
@@ -212,6 +253,9 @@ export function ComparePage({ workspace }: { workspace: Workspace }) {
             onPick={(to) => pick(i, to)}
             go={go}
             keys={narrow || i ? ["[", "]"] : ["{", "}"]}
+            tweaks={tweaks[i]}
+            opensAs={frameSearch(states[i])}
+            framed={!diff && !stopped}
           />
         ))}
         {diff ? (
@@ -221,7 +265,7 @@ export function ComparePage({ workspace }: { workspace: Workspace }) {
         ) : (
           sides.map((i) => (
             <div key={`frame${i}`} className="artifact-stage compare-stage">
-              <SideFrame side={pair[i]} d={i ? right : left} px={px} run={run} stopped={stopped} onRun={() => setStopped(false)} />
+              <SideFrame side={pair[i]} d={i ? right : left} px={px} run={run} stopped={stopped} onRun={() => setStopped(false)} tweaks={tweaks[i]} opensAs={frameSearch(states[i])} />
             </div>
           ))
         )}
@@ -241,6 +285,9 @@ function SideHead({
   onPick,
   go,
   keys,
+  tweaks,
+  opensAs,
+  framed,
 }: {
   i: 0 | 1;
   pair: Pair;
@@ -250,6 +297,9 @@ function SideHead({
   onPick: (id: string) => void;
   go: (p: Pair) => void;
   keys: [string, string]; // that step its versions
+  tweaks: FrameTweaks;
+  opensAs: string; // the state it's in, as a frame's address says it
+  framed: boolean; // its frame's on the page: not the diff, not stopped
 }) {
   const side = pair[i];
   const v = d.all.find((x) => x.n === side.n);
@@ -265,11 +315,14 @@ function SideHead({
           ))}
         </Select>
         <VersionStrip d={d} n={side.n} go={(n) => go(withSide(pair, i, { id: side.id, n }))} keys={keys} />
-        {runnable && (
-          <a className="button-link ghost small compare-alone" href={frameURL(d.id, side.n)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed">
-            <Icon name="external" size={13} /> Open alone
-          </a>
-        )}
+        <span className="compare-side-end">
+          {framed && <TweaksButton told={tweaks.told} set={tweaks.set} label={i ? "The right one's tweaks" : "The left one's tweaks"} />}
+          {runnable && (
+            <a className="button-link ghost small compare-alone" href={frameURL(d.id, side.n, opensAs)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed, as it's set here">
+              <Icon name="external" size={13} /> Open alone
+            </a>
+          )}
+        </span>
       </div>
       {v && <VersionLine d={d} v={v} workspace={workspace} />}
       {v?.note && (
@@ -282,8 +335,30 @@ function SideHead({
 }
 
 // SideFrame is one side's version, running: in its frame, at the width
-// both are drawn at.
-function SideFrame({ side, d, px, run, stopped, onRun }: { side: Side; d: ArtifactDetail; px: number; run: number; stopped: boolean; onRun: () => void }) {
+// both are drawn at. It opens in the state the address gives its side
+// when it's made, and is told of changes after (as an artifact's page
+// does).
+function SideFrame({
+  side,
+  d,
+  px,
+  run,
+  stopped,
+  onRun,
+  tweaks,
+  opensAs,
+}: {
+  side: Side;
+  d: ArtifactDetail;
+  px: number;
+  run: number;
+  stopped: boolean;
+  onRun: () => void;
+  tweaks: FrameTweaks;
+  opensAs: string;
+}) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const src = useMemo(() => frameURL(d.id, side.n, opensAs), [d.id, side.n, run, stopped]);
   const v = d.all.find((x) => x.n === side.n);
   if (!v) {
     return (
@@ -310,8 +385,9 @@ function SideFrame({ side, d, px, run, stopped, onRun }: { side: Side; d: Artifa
     <div className={`artifact-frame-box${px ? " sized" : ""}`}>
       <iframe
         key={`${d.id}.v${v.n}#${run}`}
+        ref={tweaks.frame}
         className="artifact-frame"
-        src={frameURL(d.id, v.n)}
+        src={src}
         sandbox="allow-scripts"
         referrerPolicy="no-referrer"
         title={`${d.title}, v${v.n}`}

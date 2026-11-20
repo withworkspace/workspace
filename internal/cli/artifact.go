@@ -56,7 +56,7 @@ which ends its expiry, and discard one that isn't (ws artifact discard),
 which ws artifact restore undoes.`,
 		Args: cobra.NoArgs,
 	}
-	cmd.AddCommand(newArtifactAddCmd(), newArtifactListCmd(), newArtifactShowCmd(), newArtifactPromoteCmd(), newArtifactDiscardCmd(), newArtifactRestoreCmd(), newArtifactClearCmd())
+	cmd.AddCommand(newArtifactAddCmd(), newArtifactListCmd(), newArtifactShowCmd(), newArtifactPromoteCmd(), newArtifactDiscardCmd(), newArtifactRestoreCmd(), newArtifactClearCmd(), newArtifactTweaksCmd())
 	return cmd
 }
 
@@ -78,6 +78,11 @@ A version is at most 1 MB, and runs in the web UI in a sandboxed frame that
 fetches nothing and keeps nothing: ws warns of a script, font or image it
 loads from elsewhere, a call to the network, and storage, so they can be
 put in the file instead (images as data: URLs).
+
+Where there's something to choose between (a density, a colour, two takes
+on a layout), its page says what can be changed (ws.tweaks) and the web UI
+draws the controls beside its frame, with the page's presets as buttons:
+ws artifact tweaks says how.
 
 Run by crew, it's recorded on their mission, and says it came from it;
 kept in a repo, it's written in their capsule of it (the one they're in),

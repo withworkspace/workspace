@@ -39,7 +39,7 @@ func TestArtifact_ProposedInATalkAndAccepted(t *testing.T) {
 
 	// How one's written, with nothing proposed.
 	guide := testutil.Run(t, w, nil, "artifact", "add", "--propose")
-	for _, want := range []string{"One HTML file, starting <!doctype html>, with its CSS and JS inline", "No network", "At most 1 MB", "prefers-color-scheme", "Don't depend on localStorage", "ws artifact add --propose --title", "ws artifact add --propose --to a3 --on v2"} {
+	for _, want := range []string{"One HTML file, starting <!doctype html>, with its CSS and JS inline", "No network", "At most 1 MB", "prefers-color-scheme", "Don't depend on localStorage", "ws.tweaks({", "The first preset is what the page opens as", `data-density="compact"`, "ws artifact add --propose --title", "ws artifact add --propose --to a3 --on v2"} {
 		if !strings.Contains(guide.Stdout, want) {
 			t.Errorf("the guide lacks %q:\n%s", want, guide.Stdout)
 		}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { type ArtifactDetail, type ArtifactInfo, type ArtifactVersion, frameURL, getArtifactDetail, getArtifactSource, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
@@ -38,6 +38,8 @@ import {
   widths,
 } from "./shown";
 import { compareFrom, compareHref } from "./pair";
+import { hasTweaks, TweaksToggle, TweaksTray, useTweaks } from "./Tray";
+import { changed, followed, frameSearch, readTweakParams, TWEAK, tweakParams } from "./tweaks";
 import { ClearExpired, DiscardDialog, PromoteDialog, restore } from "./Lifetime";
 import { PagePin } from "../shell/focus";
 
@@ -45,7 +47,9 @@ import { PagePin } from "../shell/focus";
 // sandboxed frame. A version runs from a route of its own (/frame/a3/v2),
 // in <iframe sandbox="allow-scripts">: its scripts run, in an origin of
 // their own, so they can't read ws's cookie, its storage or this page,
-// and its policy lets nothing leave.
+// and its policy lets nothing leave. What its page says can be changed
+// about it (its tweaks) is drawn beside the frame (Tray.tsx), and the
+// state they're in is in the address.
 
 export const artifactsKeys: [string, string][] = [
   ["j / k", "Move down and up the list"],
@@ -58,6 +62,7 @@ export const artifactKeys: [string, string][] = [
   ["r", "Reload: run it again"],
   ["x", "Stop it, or run it again"],
   ["s", "Its source, or the frame again"],
+  ["t", "Its tweaks, shown or hidden: what its page says can be changed"],
   ["c", "Compare it, side by side: beside the version it's based on"],
   ["p", "Promote it: keep it for good, choosing this version"],
   ["O", "Open it alone, in a tab of its own"],
@@ -256,6 +261,24 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
   // A version asked for runs: stepping to another starts it again.
   useEffect(() => setStopped(false), [id, n]);
 
+  // Its tweaks: what the frame's page declares, drawn in a tray beside it.
+  // The address says the state where it isn't the one the page opens as,
+  // and follows it as it changes. A frame opens in the state the address
+  // gives when it's made (a version stepped to, a reload), and is told of
+  // changes after that: its own address stays as it was, or every change
+  // would load it again.
+  const [search] = useSearchParams();
+  const tweaks = useTweaks(`${id}.v${n}#${run}`);
+  const [tray, setTray] = useState(true);
+  const told = tweaks.told;
+  useEffect(() => {
+    const next = followed(search, [[TWEAK, told]]);
+    if (next !== undefined) navigate({ search: next }, { replace: true });
+  }, [told, search, navigate]);
+  const opensAs = frameSearch(readTweakParams(search));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const frameSrc = useMemo(() => frameURL(id, n, opensAs), [id, n, run, stopped, source]);
+
   const go = (to: number) => d && to !== n && navigate(artifactHref(id, to), { replace: true });
   // What Compare opens on: this version beside another, or beside another
   // artifact (the newest), when it has only the one.
@@ -271,9 +294,10 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
     },
     x: () => setStopped((s) => !s),
     s: () => setSource((s) => !s),
+    t: () => hasTweaks(told) && setTray((x) => !x),
     c: () => comparing && navigate(compareHref(comparing)),
     p: () => d && d.status !== "discarded" && !d.gone && !d.inFlight && setDialog("promote"),
-    O: () => n && window.open(frameURL(id, n), "_blank", "noopener,noreferrer"),
+    O: () => n && window.open(frameURL(id, n, opensAs), "_blank", "noopener,noreferrer"),
     Escape: () => navigate("/artifacts"),
   });
 
@@ -294,6 +318,8 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
   const runnable = !d.gone && !!v?.size;
   const expiry = d.status === "live" ? expiryOf(d, Date.now()) : undefined;
   const keepable = d.status !== "discarded" && !d.gone && !d.inFlight;
+  // The frame's on the page: there's a version, running, not its source.
+  const framed = !missing && runnable && !source && !stopped;
 
   return (
     <div className="artifact-view">
@@ -384,6 +410,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             <button className="ghost small" aria-pressed={source} onClick={() => setSource((s) => !s)} disabled={!runnable} title="Its HTML">
               <Icon name="code" size={13} /> Source <Keys k="s" />
             </button>
+            {framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} />}
             {comparing ? (
               <Link
                 className="button-link ghost small"
@@ -398,7 +425,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
               </button>
             ) : null}
             {runnable ? (
-              <a className="button-link ghost small" href={frameURL(d.id, n)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed">
+              <a className="button-link ghost small" href={frameURL(d.id, n, opensAs)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed, as it's set here">
                 <Icon name="external" size={13} /> Open alone
               </a>
             ) : null}
@@ -420,33 +447,45 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           </span>
         </div>
       </header>
-      <div className="artifact-stage">
-        {missing ? (
-          <Empty icon="search" title={`${d.id} has no v${asked}`} action={<Link to={artifactHref(d.id)}>Its latest, v{d.latest?.n}</Link>}>
-            Its versions are {d.all.map((x) => `v${x.n}`).join(", ")}.
-          </Empty>
-        ) : !runnable ? (
-          <Empty icon="alert" title="There's no file to run">
-            {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}: what's here is what the records kept.` : `v${n}'s file isn't in ${d.where}.`}
-          </Empty>
-        ) : source ? (
-          <Source id={d.id} n={n} />
-        ) : stopped ? (
-          <Empty icon="stop" title="Stopped" action={<button onClick={() => setStopped(false)}>Run it</button>}>
-            The frame's unloaded, and its scripts with it.
-          </Empty>
-        ) : (
-          <div className={`artifact-frame-box${px ? " sized" : ""}`}>
-            <iframe
-              key={`${d.id}.v${n}#${run}`}
-              className="artifact-frame"
-              src={frameURL(d.id, n)}
-              sandbox="allow-scripts"
-              referrerPolicy="no-referrer"
-              title={`${d.title}, v${n}`}
-              style={px ? { width: px } : undefined}
-            />
-          </div>
+      <div className="artifact-body">
+        <div className="artifact-stage">
+          {missing ? (
+            <Empty icon="search" title={`${d.id} has no v${asked}`} action={<Link to={artifactHref(d.id)}>Its latest, v{d.latest?.n}</Link>}>
+              Its versions are {d.all.map((x) => `v${x.n}`).join(", ")}.
+            </Empty>
+          ) : !runnable ? (
+            <Empty icon="alert" title="There's no file to run">
+              {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}: what's here is what the records kept.` : `v${n}'s file isn't in ${d.where}.`}
+            </Empty>
+          ) : source ? (
+            <Source id={d.id} n={n} />
+          ) : stopped ? (
+            <Empty icon="stop" title="Stopped" action={<button onClick={() => setStopped(false)}>Run it</button>}>
+              The frame's unloaded, and its scripts with it.
+            </Empty>
+          ) : (
+            <div className={`artifact-frame-box${px ? " sized" : ""}`}>
+              <iframe
+                key={`${d.id}.v${n}#${run}`}
+                ref={tweaks.frame}
+                className="artifact-frame"
+                src={frameSrc}
+                sandbox="allow-scripts"
+                referrerPolicy="no-referrer"
+                title={`${d.title}, v${n}`}
+                style={px ? { width: px } : undefined}
+              />
+            </div>
+          )}
+        </div>
+        {framed && tray && hasTweaks(told) && (
+          <TweaksTray told={told} set={tweaks.set} onClose={() => setTray(false)}>
+            {changed(told).length > 0 && (
+              <Link className="link" to={compareHref([{ id: d.id, n }, { id: d.id, n }], [[], tweakParams(told)])} title="The same version twice, side by side: as it opens, and as it's set here">
+                <Icon name="split" size={12} /> Compare with how it opens
+              </Link>
+            )}
+          </TweaksTray>
         )}
       </div>
       {dialog === "promote" && <PromoteDialog a={d} version={v?.n} workspace={workspace} onClose={() => setDialog("")} onDone={() => reload()} />}

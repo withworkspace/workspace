@@ -16146,6 +16146,285 @@ button.accent-button:hover:not(:disabled) {
   background: var(--bg);
 }
 
+/* A version's frame, and beside it the tray of its tweaks
+   (artifacts/Tray.tsx): what its page says can be changed about it. */
+.artifact-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.artifact-body > .artifact-stage {
+  min-width: 0;
+}
+
+.tweaks-tray {
+  flex: none;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.tweaks-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 var(--space-2) 0 var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.tweaks-head h2 {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.tweaks-head-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.tweaks-copy {
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.tweaks-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-4);
+}
+
+.tweaks-foot {
+  flex: none;
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm);
+}
+
+.tweaks-foot a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* A preset: a button that sets several at once, on while they're all as
+   it gives them. */
+.tweak-presets {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+/* A button's words are centred, on one line: these are a label over a
+   line or two about it, from the left. */
+button.tweak-preset {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+  justify-items: start;
+  gap: 1px;
+  width: 100%;
+  min-height: 0;
+  white-space: normal;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  box-shadow: none;
+  color: var(--fg);
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: 400;
+}
+
+button.tweak-preset:hover {
+  background: var(--hover);
+}
+
+button.tweak-preset[aria-pressed="true"] {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.tweak-preset-label {
+  font-weight: 550;
+}
+
+.tweak-preset-description,
+.tweak-description {
+  margin: 0;
+  color: var(--dim);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.tweak-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.tweak {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+}
+
+.tweak-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+}
+
+.tweak-label {
+  font-size: var(--text-sm);
+  font-weight: 550;
+}
+
+/* One that isn't as the page opens it. */
+.tweak-moved {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.tweak-inline {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.tweak-inline .switch {
+  margin: 0;
+}
+
+.tweak-choice {
+  justify-self: start;
+  max-width: 100%;
+}
+
+.tweak-select .select {
+  width: 100%;
+}
+
+.tweak-select .select-button {
+  padding: 4px 6px 4px 8px;
+  font-size: var(--text-sm);
+}
+
+.tweak-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tweak-range input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.tweak-range output {
+  flex: none;
+  min-width: 5ch;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.tweak-number {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tweak-number input[type="text"] {
+  width: 9ch;
+  padding: 4px 8px;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.tweak-number input[aria-invalid="true"] {
+  border-color: var(--red-fill);
+}
+
+input[type="text"].tweak-text {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: var(--text-sm);
+}
+
+.tweak-colour {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-xs);
+}
+
+.tweak-colour input[type="color"] {
+  width: 28px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+}
+
+.tweak-problems {
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.tweak-problems summary {
+  cursor: pointer;
+  color: var(--attention);
+}
+
+.tweak-problems ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+}
+
+/* The same, behind a button: a side of a comparison. */
+.tweaks-popover {
+  width: 300px;
+}
+
+.tweaks-dialog {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: min(70vh, 560px);
+  outline: none;
+}
+
+.tweaks-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 /* Comparing (artifacts/Compare.tsx): two sides, each a head over its
    frame, in two columns; the source diff spans both, under the heads,
    which name its old side and its new. A narrow window has one column. */
@@ -16194,11 +16473,17 @@ button.accent-button:hover:not(:disabled) {
   max-width: 28ch;
 }
 
+.compare-side-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
 .compare-alone {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-left: auto;
   padding: 2px 8px;
   border-radius: var(--radius);
   color: var(--dim);
@@ -16256,6 +16541,18 @@ button.accent-button:hover:not(:disabled) {
 
   .compare-side-head {
     padding: var(--space-2) var(--space-3);
+  }
+
+  /* The tray goes under the frame, and scrolls there. */
+  .artifact-body {
+    flex-direction: column;
+  }
+
+  .tweaks-tray {
+    width: auto;
+    max-height: 45%;
+    border-left: 0;
+    border-top: 1px solid var(--line);
   }
 }
 

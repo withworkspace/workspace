@@ -1059,7 +1059,9 @@ export const getArtifactCompare = (a: string, b: string) => getJSON<ArtifactComp
 
 // frameURL is where a version runs: a route of its own, outside the app
 // and its API, sandboxed by its own policy (internal/web/artifacts.go).
-export const frameURL = (id: string, version: number) => `/frame/${encodeURIComponent(id)}/v${version}`;
+// tweaks is the state it opens in, as its address says it ("?t.density=compact",
+// artifacts/tweaks.ts): none, for the state its page opens as.
+export const frameURL = (id: string, version: number, tweaks = "") => `/frame/${encodeURIComponent(id)}/v${version}${tweaks}`;
 
 // proposalFrameURL is where an artifact a conversation proposed runs, as a
 // version does: the workspace's conversation (w9), or a mission's (slug).

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/ops"
@@ -25,7 +26,7 @@ import (
 // (nothing leaves it, and it keeps nothing), so it's told, not checked.
 const artifactGuide = `An artifact is one HTML file that shows an idea, to look at and use rather than read: a mock-up of a page, two takes on a colour, a diagram you can click through, a chart of what you found. The user sees it running under your reply, in a small sandboxed frame, and adds it with a click, or not. Each version is a whole file, never changed once added.
 
-` + artifactRules + artifactHowTo
+` + artifactRules + artifactTweaks + artifactHowTo
 
 // artifactRules is how one's written, as ws has it: the workspace's own
 // guide ([artifacts] guide) is shown in its place.
@@ -37,6 +38,61 @@ const artifactRules = `How one's written:
 - Don't depend on localStorage, sessionStorage or cookies: the frame gives it none (they throw). Keep state in variables.
 
 `
+
+// artifactTweaks is how a page says what can be changed about it, for ws
+// to draw the controls: said to a conversation's agent with the rest
+// (whichever guide says how one's written: this is what ws gives a page,
+// not how a workspace likes them), and to crew by ws artifact add --help.
+// It has no verbs for Printf: it's printed as it is.
+const artifactTweaks = `Tweaks: where there's something to choose between (a density, a colour, two takes on a layout), don't draw controls for it in the page. Say what can be changed, and ws draws a tray of controls beside the frame, with your presets as buttons:
+
+  <script>
+  ws.tweaks({
+    tweaks: {
+      density: { label: "Density", description: "How tall a row is.",
+                 options: ["Cozy", { value: "compact", label: "Compact", description: "28px rows" }] },
+      pips:    { label: "Progress pips" },
+      radius:  { label: "Corner radius", min: 0, max: 16, unit: "px" },
+      accent:  { label: "Accent", type: "color" },
+      heading: { label: "Heading" },
+    },
+    presets: [
+      { label: "As it is today", description: "What ships now.",
+        state: { density: "Cozy", pips: true, radius: 8, accent: "#5b8def", heading: "Plan" } },
+      { label: "Suggested", description: "Compact rows, softer corners.",
+        state: { density: "compact", radius: 12 } },
+    ],
+  });
+  </script>
+
+- ws is there already (ws writes it into the page). Call it from a <script> in <head>, and the page is drawn as it's set from the first paint.
+- The first preset is what the page opens as, and gives every tweak a value. A tweak is what its options or that value make it: true or false, a switch; a number, a box, or a slider with min and max; a string, a text box; type: "color", a colour. The other presets set the tweaks they list and leave the rest: use them for how it is today, what you'd suggest, and each treatment worth a look.
+- An option is a string, which is its own label, or { value, label, description }. A tweak's name is letters, digits, - and _, as your CSS and JS read it. A label and a description are for the user: say what the tweak is for.
+- Each value is on <html> for your styles: data-density="compact" (data-pips there or not, for a switch), and --radius: 12px and --accent: #5b8def for a number and a colour. So most of it is CSS: :root[data-density="compact"] .row { … }, border-radius: var(--radius).
+- For what CSS can't do: ws.tweaks.state is the state now, and window hears "ws:tweaks" on every change, its detail the state. Or give ws.tweaks a function as a second argument, called with the state now and on every change.
+- A version's tweaks are its own. When the user says what they'd keep (the tray copies what each is set to), make the next version open as that, with tweaks for what's still open.
+
+`
+
+// newArtifactTweaksCmd is ws artifact tweaks: how a page declares its
+// tweaks, for whoever's writing one (crew, who aren't shown the
+// conversation's guide, and you).
+func newArtifactTweaksCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "tweaks",
+		Short: "Print how an artifact's page says what can be changed about it (ws.tweaks)",
+		Long: `Print how an artifact's page declares its tweaks: what can be changed
+about it, such as a density, a colour or two takes on a layout. The web UI
+draws a control for each beside the page's frame, and the page's presets as
+buttons, so the page draws none itself. The state they're in is in the
+page's address (/artifacts/a3/v2?t.density=compact), and comparing puts a
+version beside itself in two states.`,
+		Args: cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Print(strings.TrimRight(artifactTweaks, "\n") + "\n")
+		},
+	}
+}
 
 // artifactHowTo is how one's proposed and revised, whichever guide says
 // how it's written.
@@ -68,6 +124,7 @@ func showArtifactGuide(ctx *ops.Workspace) {
 		}
 		if name, text, ok := ctx.ArtifactGuide(); ok {
 			fmt.Printf("An artifact is one HTML file that shows an idea, to look at and use rather than read. The user sees it running under your reply, in a small sandboxed frame, and adds it with a click, or not. Each version is a whole file, never changed once added. Its frame fetches nothing (no network: images as data: URLs) and keeps nothing (no storage), and a version is at most %s.\n\nHow one's written, from the workspace's guide, %s:\n\n-----\n%s\n-----\n\n", artifact.Size(artifact.MaxSize), name, strings.TrimRight(text, "\n"))
+			fmt.Print(artifactTweaks)
 			fmt.Printf(artifactHowTo+"\n", where)
 			return
 		}
