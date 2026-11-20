@@ -195,7 +195,9 @@ function WorktreeSwitch({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { value: wts } = useLoaded<Worktree[]>(() => getWorktrees(repo.name).catch(() => []), [repo.name]);
+  // Answered at once, with what git hasn't said yet unread: read again when
+  // it has (the workspace's capsulesSeen moves).
+  const { value: wts } = useLoaded<Worktree[]>(() => getWorktrees(repo.name).catch(() => []), [repo.name, workspace.capsulesSeen], { keep: true });
   // Until their branches are read, what the repo's listing says.
   const list: Worktree[] = wts ?? [{ name: GROUND, ground: true, branch: "" }, ...repo.capsules.map((c) => ({ name: c, branch: "" }))];
   const [sel, setSel] = useState(0);
