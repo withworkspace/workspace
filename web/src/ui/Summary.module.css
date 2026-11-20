@@ -1,0 +1,37 @@
+/* A summary (Summary.tsx): a label, then what it is, a row each. */
+
+@layer ui {
+  .summary {
+    margin: 0;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 16px;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .row:first-child {
+    border-top: 0;
+  }
+
+  .row dt {
+    color: var(--dim);
+    font-size: var(--text-sm);
+    padding-top: 1px;
+  }
+
+  .row dd {
+    margin: 0;
+    min-width: 0;
+  }
+
+  @media (max-width: 720px) {
+    .row {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+    }
+  }
+}

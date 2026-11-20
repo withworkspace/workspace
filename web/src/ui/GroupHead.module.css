@@ -1,0 +1,20 @@
+/* A group's heading (GroupHead.tsx): a quiet label, its count beside it,
+   sticky as the page scrolls. */
+
+@layer ui {
+  .head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--dim);
+    padding: 8px 8px 6px;
+    margin-bottom: 4px;
+    background: var(--backdrop);
+    border-bottom: 1px solid var(--line);
+  }
+}
