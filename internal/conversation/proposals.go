@@ -72,6 +72,13 @@ func (p Proposal) supersedes(q Proposal) bool {
 	return false
 }
 
+// ProposedFile is one file of an artifact proposed with files: its path
+// and its size.
+type ProposedFile struct {
+	Path string `json:"path"`
+	Size int    `json:"size"`
+}
+
 // Proposal is something the agent proposed in a conversation.
 type Proposal struct {
 	N    int       `json:"n"`
@@ -141,22 +148,26 @@ type Proposal struct {
 	DocKind string `json:"docKind,omitempty"`
 	Guide   string `json:"guide,omitempty"`
 	Subject string `json:"subject,omitempty"`
-	// An artifact: its HTML, one file with its CSS and JS inline, and its
-	// note (what it tries out, or what changed and why). A new one has its
-	// title (Title); a version of one names the artifact (To, a3), the
-	// version it's based on (On), and the artifact's latest version as it
-	// was proposed (Latest): one added since makes it out of date, though
-	// it's still added, based on On. As worked out when it was proposed:
-	// where it would go (Path), its size (Size), and what in it won't load
-	// in the frame (Warnings). Accepting adds it as you, from this
+	// An artifact: its page (HTML), or, for one that's more than its page,
+	// the commit that keeps its files until it's added (Tree, in the repo
+	// beside the artifacts) and what they are (Files); and its note (what
+	// it tries out, or what changed and why). A new one has its title
+	// (Title); a version of one names the artifact (To, a3), the version
+	// it's based on (On), and the artifact's latest version as it was
+	// proposed (Latest): one added since makes it out of date, though it's
+	// still added, based on On. As worked out when it was proposed: where
+	// it would go (Path), its size (Size), and what in it won't load in
+	// the frame (Warnings). Accepting adds it as you, from this
 	// conversation, and Result is the version it made (a3.v1).
-	HTML     string   `json:"html,omitempty"`
-	Note     string   `json:"note,omitempty"`
-	To       string   `json:"to,omitempty"`
-	On       int      `json:"on,omitempty"`
-	Latest   int      `json:"latest,omitempty"`
-	Size     int      `json:"size,omitempty"`
-	Warnings []string `json:"warnings,omitempty"`
+	HTML     string         `json:"html,omitempty"`
+	Tree     string         `json:"tree,omitempty"`
+	Files    []ProposedFile `json:"files,omitempty"`
+	Note     string         `json:"note,omitempty"`
+	To       string         `json:"to,omitempty"`
+	On       int            `json:"on,omitempty"`
+	Latest   int            `json:"latest,omitempty"`
+	Size     int            `json:"size,omitempty"`
+	Warnings []string       `json:"warnings,omitempty"`
 
 	// A plugin's: the plugin (Plugin), which of what it proposes (Proposes,
 	// its id), what the card calls that (Label), what the agent wrote
@@ -406,8 +417,8 @@ func (s Store) Propose(id string, p Proposal) (*Conversation, error) {
 		return nil, errors.New("a document is of one of the workspace's kinds, and has something in it")
 	case p.Kind == ProposeDocument && p.To != "" && p.Text == strings.TrimSpace(p.Was):
 		return nil, errors.New("the document proposed is the document as it is: change something in it")
-	case p.Kind == ProposeArtifact && strings.TrimSpace(p.HTML) == "":
-		return nil, errors.New("an artifact is an HTML file, and this one has nothing in it")
+	case p.Kind == ProposeArtifact && strings.TrimSpace(p.HTML) == "" && p.Tree == "":
+		return nil, errors.New("an artifact is an HTML page, and this one has nothing in it")
 	case p.Kind == ProposeArtifact && p.To == "" && p.Title == "":
 		return nil, errors.New("a new artifact has a title")
 	case p.Kind == ProposeArtifact && p.Note == "":

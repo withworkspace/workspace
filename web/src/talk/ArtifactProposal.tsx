@@ -1,12 +1,12 @@
 import { type ArtifactInfo, frameURL, type TalkProposal } from "../api";
-import { sizeWords } from "../artifacts/shown";
+import { filesWords } from "../artifacts/shown";
 import { Icon } from "../ui/Icon";
 import { addedVersion, artifactWhere, staleWords } from "./proposals";
 
 // An artifact a conversation's agent proposed, or a version of one, in its
-// card under the reply: its note, then the HTML running in a small
-// sandboxed frame, served as a version is (/frame/w9/proposals/2), with
-// Open larger. A version is shown beside the one it's based on, and the
+// card under the reply: its note, then its page running in a small
+// sandboxed frame, served as a version is (/frame/w9/proposals/2, its
+// files with it where it has them), with Open larger. A version is shown beside the one it's based on, and the
 // card says when versions were added since. Added, the frame is the
 // version it made (a3.v1); declined, it's still the proposal's, which
 // stays in the conversation.
@@ -62,7 +62,7 @@ function ArtifactMeta({ p, artifact }: { p: TalkProposal; artifact?: ArtifactInf
     const where = artifactWhere(p, artifact);
     if (where) chips.push(where);
   }
-  if (p.size) chips.push(sizeWords(p.size));
+  if (p.size) chips.push(filesWords(p.files?.length, p.size));
   return (
     <>
       {chips.length > 0 && (

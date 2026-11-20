@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/ide"
@@ -346,17 +345,6 @@ func (w *Workspace) Land(repo, name string, by Actor, o workspace.LandOptions) (
 				return fmt.Errorf("couldn't record the landing before pushing: %w", err)
 			}
 			return nil
-		}
-	}
-	if c := w.ArtifactsConfig(); c.Repo == repo {
-		// Two people can add v3 to the same artifact, or make folders by
-		// one name: the second to land takes the next.
-		settler := artifact.Settler{Dir: c.Dir, Name: c.Name}
-		if o.Settle == nil {
-			o.Settle = settler.Settle
-		}
-		if o.Check == nil {
-			o.Check = settler.Check
 		}
 	}
 	landed, err := ws.Land(repo, name, o)

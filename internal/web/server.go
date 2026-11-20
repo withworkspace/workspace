@@ -4,7 +4,9 @@
 // with review.
 //
 // Every request needs the workspace's token (a cookie set by /auth, or a
-// bearer header), a Host naming this server (against DNS rebinding), and,
+// bearer header; an artifact's files, the key in their address, which is
+// made from it: artifacts.go), a Host naming this server (against DNS
+// rebinding), and,
 // for anything but a read, a matching Origin and a JSON body (against
 // cross-site requests, including from other ports on 127.0.0.1).
 package web
@@ -452,6 +454,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /frame/{id}/{version}", s.frame)
 	mux.HandleFunc("GET /frame/{id}/proposals/{n}", s.proposalFrame)
 	mux.HandleFunc("GET /frame/missions/{slug}/{id}/proposals/{n}", s.proposalFrame)
+	mux.HandleFunc("GET "+framedRoot+"{rest...}", s.framedFile)
 	// Plugins: what they add, the page ws serves for one's app (the
 	// shell), and each one's own HTTP (asked of the plugin).
 	mux.HandleFunc("GET /api/plugins", s.pluginsList)
@@ -523,6 +526,12 @@ func (s *Server) guard(next http.Handler) http.Handler {
 			return
 		}
 		if !s.signedIn(r) {
+			// A frame's files are read by the key in their address: the
+			// frame has an origin of its own, and sends no cookie.
+			if _, _, keyed := s.framed(r.URL.Path); keyed && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
+				next.ServeHTTP(w, r)
+				return
+			}
 			if strings.HasPrefix(r.URL.Path, "/api/") {
 				jsonError(w, http.StatusUnauthorized, "not signed in: open the web UI with `ws web`")
 				return

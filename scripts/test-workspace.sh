@@ -10,8 +10,8 @@
 #
 #   demo      a tiny Go program, for crew to change
 #   records   proposals, ADRs and notes ([missions] records = "records"), each a kind
-#             of document ([documents.adr], .proposal, .note), and artifacts
-#             ([artifacts], in records:artifacts/).
+#             of document ([documents.adr], .proposal, .note), and where a
+#             promoted artifact lives ([artifacts], in records:artifacts/).
 #             It has no pull requests (landing = "direct"): a capsule's
 #             commits go straight to main with ws land, or from its review
 #             in the web UI.
@@ -620,9 +620,9 @@ records = "records"
 # orchestrator.
 review_before_pr = true
 
-# Artifacts (versioned HTML prototypes) are kept in records too: each one
-# you add, or confirm from a conversation, is a commit landed on its main;
-# crew's wait in their capsule of records and land with it.
+# Artifacts (versioned HTML prototypes) are on this machine. One you
+# promote lives in records too, for everyone with it: the version chosen,
+# in a folder there, a commit landed on its main each time it's promoted.
 [artifacts]
 path = "records:artifacts/{date}-{slug}/"
 

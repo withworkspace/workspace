@@ -34,8 +34,8 @@ type Workspace struct {
 	// Artifacts are its artifacts, the latest version's newest first,
 	// discarded ones too.
 	Artifacts []ArtifactInfo `json:"artifacts"`
-	// ArtifactsRepo is the repo it keeps artifacts in ([artifacts] path),
-	// where one on this machine moves, promoted; "" for none.
+	// ArtifactsRepo is the repo a promoted artifact lives in ([artifacts]
+	// path), offered the first time one's promoted; "" for none.
 	ArtifactsRepo string `json:"artifactsRepo,omitempty"`
 	// Kinds are the kinds of document the workspace has
 	// ([documents.<name>]): a page can be started as one, and filed as one.
@@ -663,20 +663,18 @@ type ArtifactInfo struct {
 	Status artifact.Status `json:"status"` // live, promoted, discarded
 	// Gone: its folder isn't where it was, and it wasn't discarded.
 	Gone bool `json:"gone,omitempty"`
-	// Place is where it's kept (.ws: this machine; or the repo's name),
-	// Folder its folder (its name in .ws/artifacts, its path in the repo),
-	// and Where the folder as it's said to people
-	// (records:artifacts/2026-11-12-horizon-glow/).
-	Place  string `json:"place"`
+	// Folder is its folder's name in .ws/artifacts, on this machine, and
+	// Where the folder as it's said to people
+	// (.ws/artifacts/2026-11-12-horizon-glow/).
 	Folder string `json:"folder"`
 	Where  string `json:"where"`
-	// InFlight is the capsule it's in (records/glow) while none of it has
-	// landed: crew's, landing with it. Flying is how many of its versions
-	// wait in a capsule.
-	InFlight string    `json:"inFlight,omitempty"`
-	Flying   int       `json:"flying,omitempty"`
-	Made     time.Time `json:"made"`
-	Versions int       `json:"versions"` // how many
+	// Home is where it lives in a repo, for everyone with it, promoted
+	// there: none for one on this machine only. Here: promoted to stay on
+	// this machine, whatever [artifacts] says.
+	Home     *ArtifactHome `json:"home,omitempty"`
+	Here     bool          `json:"here,omitempty"`
+	Made     time.Time     `json:"made"`
+	Versions int           `json:"versions"` // how many
 	// Latest is its latest version; nil for one with none.
 	Latest *ArtifactVersion `json:"latest,omitempty"`
 	// From is where its versions came from, the latest first, each once: a
@@ -686,14 +684,25 @@ type ArtifactInfo struct {
 	Discarded *artifact.Discard   `json:"discarded,omitempty"`
 	// Expires is when a live one expires ([artifacts] expire_after after
 	// its last version, or its restoring); none for one that doesn't.
-	// Expired: by now (on this machine, until the daemon discards it; in a
-	// repo, until Clear expired).
+	// Expired: by now, until the daemon discards it, or Clear expired
+	// does.
 	Expires *time.Time `json:"expires,omitempty"`
 	Expired bool       `json:"expired,omitempty"`
-	// Erased: discarded on this machine, and its files deleted for good.
-	// Restorable: discarded, and it can be put back.
+	// Erased: discarded, and its files deleted for good. Restorable:
+	// discarded, and it can be put back.
 	Erased     bool `json:"erased,omitempty"`
 	Restorable bool `json:"restorable,omitempty"`
+}
+
+// ArtifactHome is where a promoted artifact lives in a repo: its folder
+// there as it's said to people (records:artifacts/2026-11-12-horizon-glow/),
+// the version that's there, and the commit that put it there.
+type ArtifactHome struct {
+	Where   string    `json:"where"`
+	Repo    string    `json:"repo"`
+	Version int       `json:"version"`
+	Commit  string    `json:"commit,omitempty"`
+	At      time.Time `json:"at"`
 }
 
 // ArtifactFrom is where versions of an artifact came from.
@@ -713,56 +722,78 @@ type ArtifactVersion struct {
 	Proposal  int       `json:"proposal,omitempty"`
 	FromTitle string    `json:"fromTitle,omitempty"`
 	Note      string    `json:"note,omitempty"`
-	// Capsule is where it waits to land (records/glow), crew's, in flight;
-	// Was its number there, where it lands as another (N).
-	Capsule string `json:"capsule,omitempty"`
-	Was     int    `json:"was,omitempty"`
-	// Size is its file's, in bytes; 0 while there's no file to read (only
-	// on an artifact's page).
-	Size int `json:"size,omitempty"`
+	// Files is how many files it has, and Size what they come to, in
+	// bytes; 0 while there are none to read (only on an artifact's page).
+	Files int `json:"files,omitempty"`
+	Size  int `json:"size,omitempty"`
 }
 
 // ArtifactDone is what promoting, discarding or restoring an artifact
-// did: the artifact as it is now, what landing it did (kept in a repo),
-// and what it was promoted into (a mission started from it, or one it was
-// recorded on).
+// did: the artifact as it is now; the folder in a repo it was put in,
+// taken out of or put back in, where it lives in one (Home), what landing
+// that did, and whether it's the first time it was put there; and what it
+// was promoted into (a mission started from it, or one it was recorded
+// on).
 type ArtifactDone struct {
 	Artifact ArtifactInfo `json:"artifact"`
+	Home     string       `json:"home,omitempty"`
 	Landed   string       `json:"landed,omitempty"`
-	Moved    bool         `json:"moved,omitempty"`
+	First    bool         `json:"first,omitempty"`
 	Into     string       `json:"into,omitempty"`
 	Started  string       `json:"started,omitempty"`
 	Recorded string       `json:"recorded,omitempty"`
 }
 
-// ArtifactsCleared is what Clear expired did: the refs of those discarded
-// on this machine, and of those taken from the repo, and what landing that
-// did.
+// ArtifactsCleared is what Clear expired did: the refs of those it
+// discarded.
 type ArtifactsCleared struct {
-	Local  []string `json:"local"`
-	Repo   []string `json:"repo"`
-	Landed string   `json:"landed,omitempty"`
+	Local []string `json:"local"`
 }
 
 // ArtifactDetail is GET /api/artifacts/{id}: an artifact, with All its
-// versions, oldest first.
+// versions, oldest first, and the folder in a repo it has, or is offered,
+// to live in (HomeOffered: where it lives, or, for one that lives in
+// none, the folder [artifacts] names for it; none where there's none to
+// offer).
 type ArtifactDetail struct {
 	ArtifactInfo
-	All []ArtifactVersion `json:"all"`
+	All         []ArtifactVersion `json:"all"`
+	HomeOffered string            `json:"homeOffered,omitempty"`
 }
 
-// ArtifactSource is GET /api/artifacts/{id}/source: a version's HTML.
+// ArtifactSource is GET /api/artifacts/{id}/source: one of a version's
+// files (its page, unless another's asked for), as text, and the
+// version's files. Binary: it isn't text, and Text is empty.
 type ArtifactSource struct {
-	Version int    `json:"version"`
-	Text    string `json:"text"`
+	Version int            `json:"version"`
+	File    string         `json:"file"`
+	Text    string         `json:"text"`
+	Binary  bool           `json:"binary,omitempty"`
+	Size    int            `json:"size"`
+	Files   []ArtifactFile `json:"files"`
 }
 
-// ArtifactCompare is GET /api/artifacts/compare: two versions' HTML, a's
-// against b's, as a review's file is diffed, and b's lines (to show the
-// unchanged ones between the changes).
+// ArtifactFile is one of a version's files: its path in the version, and
+// its size.
+type ArtifactFile struct {
+	Path string `json:"path"`
+	Size int    `json:"size"`
+}
+
+// ArtifactCompare is GET /api/artifacts/compare: two versions' files, a's
+// against b's: each file that differs, as a review's file is diffed, by
+// path. None: the two are the same.
 type ArtifactCompare struct {
-	A     string      `json:"a"` // a3.v1
-	B     string      `json:"b"`
+	A     string                `json:"a"` // a3.v1
+	B     string                `json:"b"`
+	Files []ArtifactCompareFile `json:"files"`
+}
+
+// ArtifactCompareFile is one file that differs between two versions: its
+// diff (added, deleted or modified; Binary for one that isn't text, which
+// has no hunks), and its lines in b, to show the unchanged ones between
+// the changes.
+type ArtifactCompareFile struct {
 	File  review.File `json:"file"`
 	Lines []string    `json:"lines"`
 }

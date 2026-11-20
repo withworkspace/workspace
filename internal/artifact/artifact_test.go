@@ -45,8 +45,11 @@ func TestAddAndRevise(t *testing.T) {
 	if e.ID != "a1" || e.Folder != "2026-11-12-horizon-glow-on-the-web-ui-background" || e.Title != "Horizon glow on the web UI background" {
 		t.Fatalf("added %+v", e)
 	}
-	if got, _ := os.ReadFile(s.VersionPath(e, 1)); string(got) != page {
-		t.Errorf("v1.html is %q", got)
+	if got, _, _, err := s.ReadVersion(ctx, "a1", 1); err != nil || string(got) != page {
+		t.Errorf("v1's page is %q (%v)", got, err)
+	}
+	if e.Versions[0].Files != 1 || e.Versions[0].Size != len(page) {
+		t.Errorf("v1 says it's %d files, %d bytes", e.Versions[0].Files, e.Versions[0].Size)
 	}
 	e, n, err := s.AddVersion(ctx, "a1", Revision{HTML: []byte(page + "<p>2</p>"), At: day.Add(time.Hour), Version: Version{By: "you", Note: "No glow in light."}})
 	if err != nil || n != 2 {
@@ -172,7 +175,13 @@ func TestLitter(t *testing.T) {
 	s := newStore(t)
 	e := add(t, s, "Glow", "")
 	dir := s.Path(e)
-	stray := filepath.Join(dir, VersionFile(2))
+	// A version committed that the record never named, and, from when a
+	// version was a file, a file it doesn't name.
+	if _, err := s.Repo(e).CommitVersion(context.Background(), 2, 1, Page([]byte(page)), "v2", day); err != nil {
+		t.Fatal(err)
+	}
+	unnamed := string(s.Repo(e)) + " (v2, which artifact.toml doesn't name)"
+	stray := filepath.Join(dir, VersionFile(4))
 	os.WriteFile(stray, []byte(page), 0o644)
 	os.WriteFile(filepath.Join(dir, "notes.md"), []byte("mine"), 0o644) // belongs to it
 	noRecord := filepath.Join(s.Dir(), "2026-11-11-half")
@@ -184,14 +193,14 @@ func TestLitter(t *testing.T) {
 		t.Errorf("young files are litter: %v", young)
 	}
 	past := time.Now().Add(-2 * time.Minute)
-	for _, p := range []string{stray, noRecord, beside, filepath.Join(dir, "notes.md"), s.VersionPath(e, 1)} {
+	for _, p := range []string{stray, noRecord, beside, filepath.Join(dir, "notes.md"), filepath.Join(dir, RecordFile)} {
 		os.Chtimes(p, past, past)
 	}
 	got, err := s.Litter(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]bool{stray: true, noRecord: true, beside: true}
+	want := map[string]bool{stray: true, unnamed: true, noRecord: true, beside: true}
 	if len(got) != len(want) {
 		t.Errorf("litter %v", got)
 	}
@@ -200,8 +209,8 @@ func TestLitter(t *testing.T) {
 			t.Errorf("%s isn't litter", p)
 		}
 	}
-	// A version past the stray is numbered past it: a number is never
-	// used for two files.
+	// A version past the unnamed one is numbered past it: a number is
+	// never used for two.
 	if _, n, err := s.AddVersion(context.Background(), e.ID, Revision{HTML: []byte(page), At: day}); err != nil || n != 3 {
 		t.Errorf("past the stray: v%d %v", n, err)
 	}
@@ -209,7 +218,7 @@ func TestLitter(t *testing.T) {
 
 func TestCheck(t *testing.T) {
 	for _, ok := range []string{page, "<!-- made by c1,\n for the glow -->\n" + page, "\xef\xbb\xbf  " + page} {
-		c, err := Check([]byte(ok))
+		c, err := Check(Page([]byte(ok)))
 		if err != nil || c.Title != "Glow" || len(c.Warnings) != 0 {
 			t.Errorf("a plain page (%.30q): %+v %v", ok, c, err)
 		}
@@ -218,24 +227,24 @@ func TestCheck(t *testing.T) {
 		{"   \n", "nothing in it"},
 		{"# Glow\n\nIt's markdown.", "isn't HTML"},
 		{"<!doctype html>\x00\x01", "isn't text"},
-		{"<!doctype html>" + strings.Repeat("x", MaxSize), "at most 1 MB"},
+		{"<!doctype html>" + strings.Repeat("x", MaxSize), "at most 10 MB"},
 	} {
-		if _, err := Check([]byte(tc.in)); err == nil || !strings.Contains(err.Error(), tc.want) {
+		if _, err := Check(Page([]byte(tc.in))); err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Errorf("Check(%.20q): %v, want %q", tc.in, err, tc.want)
 		}
 	}
-	c, err := Check([]byte(`<div>no doctype</div>
+	c, err := Check(Page([]byte(`<div>no doctype</div>
 <script src="https://cdn.example.com/react.js"></script>
 <link rel="stylesheet" href="//fonts.example.com/inter.css">
 <style>@import url("https://example.com/a.css"); body { background: url(https://example.com/bg.png) }</style>
 <a href="https://example.com">a link loads nothing</a>
 <img src="data:image/png;base64,AAAA">
-<script>fetch('/api/workspace'); localStorage.setItem('x', 1)</script>`))
+<script>fetch('/api/workspace'); fetch("data.json"); localStorage.setItem('x', 1)</script>`)))
 	if err != nil {
 		t.Fatal(err)
 	}
 	said := strings.Join(c.Warnings, "\n")
-	for _, want := range []string{"<!doctype html>", "<script> loads https://cdn.example.com/react.js", "<link> loads //fonts.example.com/inter.css", "CSS loads https://example.com/a.css", "CSS loads https://example.com/bg.png", "calls fetch", "uses localStorage"} {
+	for _, want := range []string{"<!doctype html>", "<script> loads https://cdn.example.com/react.js", "<link> loads //fonts.example.com/inter.css", "CSS loads https://example.com/a.css", "CSS loads https://example.com/bg.png", "fetches /api/workspace", "uses localStorage"} {
 		if !strings.Contains(said, want) {
 			t.Errorf("warnings don't say %q:\n%s", want, said)
 		}

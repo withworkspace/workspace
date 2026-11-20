@@ -1,0 +1,21 @@
+{
+  "releases": [
+    {
+      "version": "0.8.0",
+      "date": "19 November",
+      "changes": [
+        { "kind": "new", "text": "An artifact can have files beside its page." },
+        { "kind": "new", "text": "A version's files are checked out to a folder, to work on." },
+        { "kind": "fixed", "text": "A promoted artifact's folder holds every file of the version chosen." }
+      ]
+    },
+    {
+      "version": "0.7.0",
+      "date": "18 November",
+      "changes": [
+        { "kind": "new", "text": "A page says what can be changed about it, and ws draws the controls." },
+        { "kind": "changed", "text": "Artifacts live on this machine, and a promoted one in a repo too." }
+      ]
+    }
+  ]
+}

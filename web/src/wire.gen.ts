@@ -136,13 +136,24 @@ export interface Artifact {
 
 // From web/api.go
 /**
- * ArtifactCompare is GET /api/artifacts/compare: two versions' HTML, a's
- * against b's, as a review's file is diffed, and b's lines (to show the
- * unchanged ones between the changes).
+ * ArtifactCompare is GET /api/artifacts/compare: two versions' files, a's
+ * against b's: each file that differs, as a review's file is diffed, by
+ * path. None: the two are the same.
  */
 export interface ArtifactCompare {
     a: string; // a3.v1
     b: string;
+    files: ArtifactCompareFile[];
+}
+
+// From web/api.go
+/**
+ * ArtifactCompareFile is one file that differs between two versions: its
+ * diff (added, deleted or modified; Binary for one that isn't text, which
+ * has no hunks), and its lines in b, to show the unchanged ones between
+ * the changes.
+ */
+export interface ArtifactCompareFile {
     file: ReviewFile;
     lines: string[];
 }
@@ -208,10 +219,14 @@ export interface ArtifactContent extends Artifact {
 // From web/api.go
 /**
  * ArtifactDetail is GET /api/artifacts/{id}: an artifact, with All its
- * versions, oldest first.
+ * versions, oldest first, and the folder in a repo it has, or is offered,
+ * to live in (HomeOffered: where it lives, or, for one that lives in
+ * none, the folder [artifacts] names for it; none where there's none to
+ * offer).
  */
 export interface ArtifactDetail extends ArtifactInfo {
     all: ArtifactVersion[];
+    homeOffered?: string;
 }
 
 // From artifact/artifact.go
@@ -223,29 +238,35 @@ export interface ArtifactDiscard {
     at: string;
     by: string;
     reason?: string;
-    /**
-     * Commit is, in a repo, the last commit its folder was in, before the
-     * one that took it away: where history keeps it, and where restoring
-     * it takes it from. Only the index has it: the record went with the
-     * folder.
-     */
-    commit?: string;
 }
 
 // From web/api.go
 /**
  * ArtifactDone is what promoting, discarding or restoring an artifact
- * did: the artifact as it is now, what landing it did (kept in a repo),
- * and what it was promoted into (a mission started from it, or one it was
- * recorded on).
+ * did: the artifact as it is now; the folder in a repo it was put in,
+ * taken out of or put back in, where it lives in one (Home), what landing
+ * that did, and whether it's the first time it was put there; and what it
+ * was promoted into (a mission started from it, or one it was recorded
+ * on).
  */
 export interface ArtifactDone {
     artifact: ArtifactInfo;
+    home?: string;
     landed?: string;
-    moved?: boolean;
+    first?: boolean;
     into?: string;
     started?: string;
     recorded?: string;
+}
+
+// From web/api.go
+/**
+ * ArtifactFile is one of a version's files: its path in the version, and
+ * its size.
+ */
+export interface ArtifactFile {
+    path: string;
+    size: number;
 }
 
 // From web/api.go
@@ -255,6 +276,20 @@ export interface ArtifactDone {
 export interface ArtifactFrom {
     from: string;
     title?: string;
+}
+
+// From web/api.go
+/**
+ * ArtifactHome is where a promoted artifact lives in a repo: its folder
+ * there as it's said to people (records:artifacts/2026-11-12-horizon-glow/),
+ * the version that's there, and the commit that put it there.
+ */
+export interface ArtifactHome {
+    where: string;
+    repo: string;
+    version: number;
+    commit?: string;
+    at: string;
 }
 
 // From web/api.go
@@ -272,21 +307,19 @@ export interface ArtifactInfo {
      */
     gone?: boolean;
     /**
-     * Place is where it's kept (.ws: this machine; or the repo's name),
-     * Folder its folder (its name in .ws/artifacts, its path in the repo),
-     * and Where the folder as it's said to people
-     * (records:artifacts/2026-11-12-horizon-glow/).
+     * Folder is its folder's name in .ws/artifacts, on this machine, and
+     * Where the folder as it's said to people
+     * (.ws/artifacts/2026-11-12-horizon-glow/).
      */
-    place: string;
     folder: string;
     where: string;
     /**
-     * InFlight is the capsule it's in (records/glow) while none of it has
-     * landed: crew's, landing with it. Flying is how many of its versions
-     * wait in a capsule.
+     * Home is where it lives in a repo, for everyone with it, promoted
+     * there: none for one on this machine only. Here: promoted to stay on
+     * this machine, whatever [artifacts] says.
      */
-    inFlight?: string;
-    flying?: number;
+    home?: ArtifactHome;
+    here?: boolean;
     made: string;
     versions: number; // how many
     /**
@@ -303,14 +336,14 @@ export interface ArtifactInfo {
     /**
      * Expires is when a live one expires ([artifacts] expire_after after
      * its last version, or its restoring); none for one that doesn't.
-     * Expired: by now (on this machine, until the daemon discards it; in a
-     * repo, until Clear expired).
+     * Expired: by now, until the daemon discards it, or Clear expired
+     * does.
      */
     expires?: string;
     expired?: boolean;
     /**
-     * Erased: discarded on this machine, and its files deleted for good.
-     * Restorable: discarded, and it can be put back.
+     * Erased: discarded, and its files deleted for good. Restorable:
+     * discarded, and it can be put back.
      */
     erased?: boolean;
     restorable?: boolean;
@@ -331,11 +364,17 @@ export interface ArtifactPromotion {
 
 // From web/api.go
 /**
- * ArtifactSource is GET /api/artifacts/{id}/source: a version's HTML.
+ * ArtifactSource is GET /api/artifacts/{id}/source: one of a version's
+ * files (its page, unless another's asked for), as text, and the
+ * version's files. Binary: it isn't text, and Text is empty.
  */
 export interface ArtifactSource {
     version: number;
+    file: string;
     text: string;
+    binary?: boolean;
+    size: number;
+    files: ArtifactFile[];
 }
 
 // From artifact/artifact.go
@@ -368,28 +407,20 @@ export interface ArtifactVersion {
     fromTitle?: string;
     note?: string;
     /**
-     * Capsule is where it waits to land (records/glow), crew's, in flight;
-     * Was its number there, where it lands as another (N).
+     * Files is how many files it has, and Size what they come to, in
+     * bytes; 0 while there are none to read (only on an artifact's page).
      */
-    capsule?: string;
-    was?: number;
-    /**
-     * Size is its file's, in bytes; 0 while there's no file to read (only
-     * on an artifact's page).
-     */
+    files?: number;
     size?: number;
 }
 
 // From web/api.go
 /**
- * ArtifactsCleared is what Clear expired did: the refs of those discarded
- * on this machine, and of those taken from the repo, and what landing that
- * did.
+ * ArtifactsCleared is what Clear expired did: the refs of those it
+ * discarded.
  */
 export interface ArtifactsCleared {
     local: string[];
-    repo: string[];
-    landed?: string;
 }
 
 // From web/api.go
@@ -1088,17 +1119,21 @@ export interface ConversationProposal {
     guide?: string;
     subject?: string;
     /**
-     * An artifact: its HTML, one file with its CSS and JS inline, and its
-     * note (what it tries out, or what changed and why). A new one has its
-     * title (Title); a version of one names the artifact (To, a3), the
-     * version it's based on (On), and the artifact's latest version as it
-     * was proposed (Latest): one added since makes it out of date, though
-     * it's still added, based on On. As worked out when it was proposed:
-     * where it would go (Path), its size (Size), and what in it won't load
-     * in the frame (Warnings). Accepting adds it as you, from this
+     * An artifact: its page (HTML), or, for one that's more than its page,
+     * the commit that keeps its files until it's added (Tree, in the repo
+     * beside the artifacts) and what they are (Files); and its note (what
+     * it tries out, or what changed and why). A new one has its title
+     * (Title); a version of one names the artifact (To, a3), the version
+     * it's based on (On), and the artifact's latest version as it was
+     * proposed (Latest): one added since makes it out of date, though it's
+     * still added, based on On. As worked out when it was proposed: where
+     * it would go (Path), its size (Size), and what in it won't load in
+     * the frame (Warnings). Accepting adds it as you, from this
      * conversation, and Result is the version it made (a3.v1).
      */
     html?: string;
+    tree?: string;
+    files?: ConversationProposedFile[];
     note?: string;
     to?: string;
     on?: number;
@@ -1140,6 +1175,16 @@ export interface ConversationProposal {
     result?: string;
     settledBy?: string;
     settledAt?: string;
+}
+
+// From conversation/proposals.go
+/**
+ * ProposedFile is one file of an artifact proposed with files: its path
+ * and its size.
+ */
+export interface ConversationProposedFile {
+    path: string;
+    size: number;
 }
 
 // From conversation/conversation.go
@@ -1664,14 +1709,6 @@ export interface FocusPin {
     title?: string;
     state?: string;
 }
-
-// From web/artifacts.go
-/**
- * FramePolicy is a version's Content-Security-Policy: sandboxed, with its
- * scripts and styles inline, its images, fonts and media in it, and
- * framed only by the web UI.
- */
-export const FramePolicy = "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; frame-ancestors 'self'";
 
 // From harness/stream.go
 /**
@@ -4487,8 +4524,8 @@ export interface Workspace {
      */
     artifacts: ArtifactInfo[];
     /**
-     * ArtifactsRepo is the repo it keeps artifacts in ([artifacts] path),
-     * where one on this machine moves, promoted; "" for none.
+     * ArtifactsRepo is the repo a promoted artifact lives in ([artifacts]
+     * path), offered the first time one's promoted; "" for none.
      */
     artifactsRepo?: string;
     /**

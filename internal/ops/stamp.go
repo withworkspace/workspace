@@ -80,23 +80,6 @@ func (w *Workspace) Stamp() string {
 			note(repo, info) // a capsule's folder made, or burned
 		}
 	}
-	// Artifacts kept in a repo: each one's record in its ground and in
-	// the mission capsules of it, where crew's are written (not yet
-	// committed, nor staged, so no HEAD or index has moved).
-	if r := w.Artifacts().Repo; r != nil {
-		dirs := []string{r.Ground}
-		for _, c := range r.Capsules {
-			dirs = append(dirs, c.Path)
-		}
-		for _, d := range dirs {
-			records, _ := filepath.Glob(filepath.Join(d, filepath.FromSlash(r.Dir), "*", artifact.RecordFile))
-			for _, p := range records {
-				if info, err := os.Stat(p); err == nil {
-					note(p, info)
-				}
-			}
-		}
-	}
 	fmt.Fprintf(h, "prs %d\n", w.opts.PRs.Fetched())
 	// A capsule found dirty, or clean, since a view last said: nothing git
 	// keeps moves when a file's edited (keptGit).
