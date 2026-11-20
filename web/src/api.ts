@@ -64,6 +64,7 @@ import type {
   TermKey,
   UpdatesInfo,
   Upgraded,
+  WhatsNewInfo,
   Workspace,
   Worktree,
 } from "./wire.gen";
@@ -163,6 +164,8 @@ export type {
   TermKey,
   UpdatesInfo,
   Upgraded,
+  WhatsNewEntry,
+  WhatsNewInfo,
   WantedPlugin,
   Workspace,
   Worktree,
@@ -1787,6 +1790,11 @@ export const seenTeam = () => send<{ ok: boolean }>("POST", "/api/team/seen", {}
 export const getUpdates = () => getJSON<UpdatesInfo>("/api/updates");
 export const checkUpdates = () => send<UpdatesInfo>("POST", "/api/updates/check", {});
 export const upgradeWS = () => send<Upgraded>("POST", "/api/upgrade", {});
+
+// What's new: what this ws says is new, and what of it is unseen in this
+// workspace; and saying it's been seen.
+export const getWhatsNew = () => getJSON<WhatsNewInfo>("/api/whats-new");
+export const seenWhatsNew = () => send<{ ok: boolean }>("POST", "/api/whats-new/seen", {});
 
 // The Plugins page: the workspace's plugins as it lists them, and adding
 // one (from the repo it's published at, or a folder on this machine),

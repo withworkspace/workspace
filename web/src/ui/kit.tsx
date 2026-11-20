@@ -203,7 +203,9 @@ export function Toasts() {
 
 // Dialog is a modal: over a dimmed page, keys its own, focus kept inside
 // it and given back when it closes.
-export function Dialog({ title, onClose, children, className, wide }: { title: ReactNode; onClose: () => void; children: ReactNode; className?: string; wide?: boolean }) {
+// A bare one draws its own head: title is only its name, and the close
+// button sits over its corner.
+export function Dialog({ title, onClose, children, className, wide, bare }: { title: ReactNode; onClose: () => void; children: ReactNode; className?: string; wide?: boolean; bare?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useKeys({ Escape: onClose }, { modal: true });
   useLayoutEffect(() => {
@@ -240,12 +242,18 @@ export function Dialog({ title, onClose, children, className, wide }: { title: R
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={trap}
       >
-        <header className="dialog-head">
-          <h2>{title}</h2>
-          <button className="ghost icon-button dialog-close" onClick={onClose} title="Close (esc)" aria-label="Close">
+        {bare ? (
+          <button className="ghost icon-button dialog-close dialog-close-corner" onClick={onClose} title="Close (esc)" aria-label="Close">
             <Icon name="x" size={14} />
           </button>
-        </header>
+        ) : (
+          <header className="dialog-head">
+            <h2>{title}</h2>
+            <button className="ghost icon-button dialog-close" onClick={onClose} title="Close (esc)" aria-label="Close">
+              <Icon name="x" size={14} />
+            </button>
+          </header>
+        )}
         {children}
       </div>
     </div>

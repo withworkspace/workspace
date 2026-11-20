@@ -1,5 +1,9 @@
-build: web
+build: web whatsnew
     go build -trimpath -ldflags="-s -w" -o bin/workspace ./cmd/workspace
+
+# Work out which release each what's-new entry is in, into internal/whatsnew/gen (gitignored), which the binary holds (internal/whatsnew/entries/README.md says how to write one).
+whatsnew:
+    @go run ./scripts/whatsnew
 
 # Build the web UI (web/) into internal/web/dist (gitignored), which the binary embeds.
 web:
@@ -20,6 +24,7 @@ check:
     go vet ./...
     go build ./...
     go run ./scripts/wiretypes -check
+    go run ./scripts/whatsnew -check
 
 # Write web/src/wire.gen.ts, the web UI's types of the API, from internal/web's Go types (scripts/wiretypes says how).
 wire:

@@ -4912,6 +4912,63 @@ export interface WantedPlugin {
     version?: string;
 }
 
+// From web/whatsnew.go
+/**
+ * WhatsNewEntry is one thing that's new.
+ */
+export interface WhatsNewEntry {
+    slug: string;
+    /**
+     * Version is the release it's in: "" for one in no release yet.
+     */
+    version?: string;
+    title: string;
+    /**
+     * Body is a sentence or two, in markdown.
+     */
+    body: string;
+    /**
+     * Link is a path in the web UI to see it at.
+     */
+    link?: string;
+    /**
+     * Picture is where its picture is served from: none where there's no
+     * picture, or it can't be fetched.
+     */
+    picture?: string;
+}
+
+// From web/whatsnew.go
+/**
+ * WhatsNewInfo is GET /api/whats-new.
+ */
+export interface WhatsNewInfo {
+    /**
+     * Version is the ws that's running, and Release whether it's a
+     * release's build. A build of a clone has nothing unseen, and its
+     * entries are all its build found, unreleased ones too.
+     */
+    version: string;
+    release: boolean;
+    /**
+     * Unseen is what's new since the release last seen in this workspace,
+     * and Entries everything this ws says is new up to itself: newest
+     * first, each.
+     */
+    unseen: WhatsNewEntry[];
+    entries: WhatsNewEntry[];
+    /**
+     * Seen is the release whose news was last seen in this workspace.
+     */
+    seen?: string;
+    /**
+     * Missing is whether some of what's unseen is from too many releases
+     * ago for this ws to hold: it's on Releases.
+     */
+    missing: boolean;
+    releases?: string;
+}
+
 // From words/words.go
 /**
  * Part is a run of a snippet: marked when it's a word that was searched for.

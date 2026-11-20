@@ -11,6 +11,7 @@ import { forgetModels, valueSaid } from "./controls";
 import { PluginsSection } from "../plugins/Plugins";
 import { ProcessAbout, ProcessFile } from "./Process";
 import { Updates } from "./Updates";
+import { openWhatsNew } from "../shell/WhatsNew";
 import { type Page, PageContext, RowOf, SettingCell, usePage, useSetting, without } from "./Row";
 import { type Block, find, type Found, keyOf, type Mine, minesOf, name, sectionAt, type Section, sectionsOf, wordsOf } from "./sections";
 
@@ -433,6 +434,13 @@ function About({ info, workspace, section }: { info?: SettingsInfo; workspace: W
               {workspace.version ? shortVersion(workspace.version) : "—"}
             </span>
             <div className="dim">The daemon's, which serves this page.</div>
+          </dd>
+          <dt id="whats-new">What's new</dt>
+          <dd>
+            <button className="small" onClick={openWhatsNew}>
+              Show what's new
+            </button>
+            <div className="dim">Said once after an upgrade, and kept here.</div>
           </dd>
         </dl>
       </section>

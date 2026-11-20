@@ -8,6 +8,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/release"
 )
 
 // The daemon looks for later releases once a day: ws's own, and each
@@ -34,6 +35,19 @@ func daemonWS(s *daemon.Server) func(*ops.Options) {
 		o.WS.Exe = s.Exe // as it was when the daemon started: an install since has moved it
 		o.Pending, o.AtWork = s.Pending, s.AtWork
 	}
+}
+
+// noteRunning says which ws the daemon's started as, for what's new
+// (ops.NoteRunning): from the ws an upgrade replaced, where one is kept
+// beside it, when the workspace has seen no release's news yet.
+func noteRunning(w *ops.Workspace, exe string) {
+	w.NoteRunning(func() string {
+		if exe == "" {
+			return ""
+		}
+		v, _ := release.VersionOf(release.PrevPath(exe)) // none kept is none
+		return v
+	})
 }
 
 // checkUpdatesLoop looks for updates when it's a day since a look last

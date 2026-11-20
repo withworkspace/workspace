@@ -37,6 +37,7 @@ import { FocusKeys, FocusProvider, FocusSection } from "./shell/focus";
 import { noteVisit, visitAt } from "./shell/recent";
 import { wantsRoom } from "./shell/room";
 import { shortVersion } from "./shell/version";
+import { WhatsNew } from "./shell/WhatsNew";
 import { TalkPage, TalksPage, talkKeys, talksKeys } from "./talk/Talk";
 import { TeamPage, teamKeys } from "./team/Team";
 import { Icon, type IconName } from "./ui/Icon";
@@ -263,6 +264,7 @@ export function App() {
         <Viewer />
         <Toasts />
         <Confirmer />
+        <WhatsNew version={workspace?.version} />
         <FocusKeys workspace={workspace} plugins={plugins} />
       </div>
     </FocusProvider>

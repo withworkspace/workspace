@@ -52,7 +52,7 @@ var referenced = []string{
 var notWire = []string{
 	"Server", "App",
 	"Acting", "Artifacting", "CodeSearching", "Conversing", "Crewing", "Documents", "Files",
-	"Focusing", "Missions", "Paging", "Posting", "Processing", "Reviewing", "Running", "Settings",
+	"Focusing", "WhatsNewing", "Missions", "Paging", "Posting", "Processing", "Reviewing", "Running", "Settings",
 	"FramePolicy", "PluginPolicy", "ShellPolicy",
 }
 

@@ -39,6 +39,8 @@ The orchestrator's run is in a workspace made for it and removed after, which ws
 
 Pushing a `v*` tag (`v1.4.0`; one with a `-`, `v1.4.0-rc.1`, is a prerelease) runs `.github/workflows/release.yml`: it builds ws with its web UI for darwin/arm64, linux/amd64 and linux/arm64, cgo on for code navigation, and publishes them as a GitHub release with checksums. A pull request that changes the workflow runs the builds without releasing. `ws upgrade` installs a release over the ws that's running (`internal/release`, which reads the same assets and `checksums.txt` as `scripts/install.sh`: change what a release publishes, and change both); a daemon restarts onto it once nothing's at work (`internal/daemon/restart.go`). The daemon looks once a day for ws's latest release, and for each plugin's that was installed from a repo (`ops.CheckUpdates`, from `internal/cli/updates_watch.go`): the web UI says what's out, and Settings' About upgrades (`ops.UpgradeWS`, the same `release.Upgrader` as `ws upgrade`).
 
+What's new after an upgrade is written by hand, one file an entry in `internal/whatsnew/entries/` (its README says how), and only where someone asked for one: don't add an entry to a change unasked. Which release an entry is in is its tag's to say: `scripts/whatsnew` works it out from the commit that added it, for `just build` and for a release's build, which also puts a release's entries at the top of its notes and its pictures among its files. The daemon keeps the release last seen (`ops.WhatsNew`), and the web UI says what's new since, once (`web/src/shell/WhatsNew.tsx`).
+
 ## Where things are
 
 ```
