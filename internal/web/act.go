@@ -34,6 +34,7 @@ type Acting interface {
 	HandOnCapsule(slug, capsule, what, to string, by ops.Actor) (ops.CapsuleEnded, error)
 	DropCapsule(slug, capsule, why string, by ops.Actor) (ops.CapsuleEnded, error)
 	OpenPR(slug, capsule string, o ops.NewPullRequest, by ops.Actor) (ops.PROpened, error)
+	WritePR(slug, capsule string, by ops.Actor) (ops.NewPullRequest, error)
 	ApproveBundle(slug, id string, by ops.Actor) (ops.BundleDone, error)
 	SendBackBundle(slug, id string, notes []mission.BundleNote, by ops.Actor) (ops.BundleDone, error)
 	MarkBundleLooked(slug, id, key string, looked bool, by ops.Actor) error

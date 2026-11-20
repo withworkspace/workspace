@@ -67,6 +67,7 @@ func opsOptions(root string) ops.Options {
 		Host:        hostFor(root),
 		Orchestrate: func(slug, crewID, trigger string) { orchestrateSpawner(root, slug, crewID, trigger) },
 		Check:       func(slug, crewID string) { checkSpawner(root, slug, crewID) },
+		WritePR:     func(slug, capsule string) { prWriterSpawner(root, slug, capsule) },
 		Answer: func(kind, slug, id string) {
 			switch kind {
 			case job.Thread:
