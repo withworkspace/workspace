@@ -4,6 +4,7 @@ import { useRefsWorkspace } from "../refs/known";
 import { RefCard } from "../refs/RefCard";
 import { refOf } from "../refs/refs";
 import type { Anchor } from "../ui/hover";
+import { ThingPromoteUi, ThingSaveUi } from "./ThingUis";
 import { anchorIn, type Asked, type FrameUis } from "./ui";
 
 // What ws draws for each of its own UIs a plugin's page asked for
@@ -16,6 +17,8 @@ import { anchorIn, type Asked, type FrameUis } from "./ui";
 export interface UiProps {
   // What the page asked for: what it's given is as its kind takes it.
   asked: Asked;
+  // The plugin whose page asked.
+  plugin: string;
   // Where it was asked from, in ws's window, if the page said.
   anchor?: Anchor;
   // ws is done with it: it goes, and the page is told what came of it.
@@ -38,25 +41,27 @@ function RefCardUi({ asked, anchor, stay, leave }: UiProps) {
 // What draws each, by its name in the protocol.
 const draws: Readonly<Record<V1.UiName, (props: UiProps) => ReactNode>> = {
   "ref-card": RefCardUi,
+  "thing-promote": ThingPromoteUi,
+  "thing-save": ThingSaveUi,
 };
 
-function Drawn({ asked, uis, frame }: { asked: Asked; uis: FrameUis; frame: RefObject<Element | null> }) {
+function Drawn({ asked, uis, frame, plugin }: { asked: Asked; uis: FrameUis; frame: RefObject<Element | null>; plugin: string }) {
   const anchor = useMemo(() => asked.box && anchorIn(() => frame.current, asked.box), [asked, frame]);
   const Draw = Object.hasOwn(draws, asked.ui) ? draws[asked.ui as V1.UiName] : undefined;
   if (!Draw) return null;
-  return <Draw asked={asked} anchor={anchor} done={(result) => uis.done(asked.id, result)} stay={uis.stay} leave={uis.leave} />;
+  return <Draw asked={asked} plugin={plugin} anchor={anchor} done={(result) => uis.done(asked.id, result)} stay={uis.stay} leave={uis.leave} />;
 }
 
 // FrameUiLayer is what a plugin's page has asked ws to show, drawn over
 // its frame: what's shown on hover, and whatever's open.
-export function FrameUiLayer({ uis, frame }: { uis: FrameUis; frame: RefObject<Element | null> }) {
+export function FrameUiLayer({ uis, frame, plugin }: { uis: FrameUis; frame: RefObject<Element | null>; plugin: string }) {
   const hovered = useSyncExternalStore(uis.hear, uis.hovered);
   const opened = useSyncExternalStore(uis.hear, uis.opened);
   return (
     <>
-      {hovered && <Drawn key={`hover-${hovered.id}`} asked={hovered} uis={uis} frame={frame} />}
+      {hovered && <Drawn key={`hover-${hovered.id}`} asked={hovered} uis={uis} frame={frame} plugin={plugin} />}
       {opened.map((asked) => (
-        <Drawn key={asked.id} asked={asked} uis={uis} frame={frame} />
+        <Drawn key={asked.id} asked={asked} uis={uis} frame={frame} plugin={plugin} />
       ))}
     </>
   );

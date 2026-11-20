@@ -255,3 +255,184 @@ func (c *Client) ReadRemote(ctx context.Context, name string, in protocol.Remote
 	}
 	return out.Fields, nil
 }
+
+// ErrNoExport is a plugin that doesn't give that kind's things as a
+// folder is to hold them: a kind it didn't register, one whose things
+// don't live in a repo, or one it doesn't export. ws puts none of them in
+// a repo.
+var ErrNoExport = errors.New("the plugin doesn't give that kind's things for a repo")
+
+type noExport struct{ why string }
+
+func (e *noExport) Error() string        { return e.why }
+func (e *noExport) Is(target error) bool { return target == ErrNoExport }
+
+// ExportRemote asks a plugin for one of its own things as its folder in a
+// repo is to hold it (remote/export): to promote it, or to save it. With
+// in.Current, the thing has changed in its repo since the plugin last had
+// it, and what comes back is the two brought together. ErrNoExport is a
+// kind the plugin doesn't export, and ErrNoThing a name it has nothing by.
+func (h *Host) ExportRemote(ctx context.Context, name string, in protocol.RemoteExportParams) (protocol.RemoteExported, error) {
+	var out protocol.RemoteExported
+	p, err := h.ready(name)
+	if err != nil {
+		return out, err
+	}
+	p.mu.Lock()
+	i := slices.IndexFunc(p.reg.Refs, func(r protocol.Ref) bool { return r.Kind == in.Kind })
+	exports := i >= 0 && p.reg.Refs[i].Remote != nil && p.reg.Refs[i].Remote.Exports
+	p.mu.Unlock()
+	if !exports {
+		return out, &noExport{fmt.Sprintf("%s doesn't give a %s for a repo", name, in.Kind)}
+	}
+	if h.Hold != nil {
+		defer h.Hold()()
+	}
+	ctx, cancel := context.WithTimeout(ctx, actTimeout)
+	defer cancel()
+	err = p.conn.Call(ctx, protocol.MethodRemoteExport, in, &out)
+	var re *acp.RPCError
+	switch {
+	case errors.As(err, &re) && re.Code == protocol.CodeMethodNotFound:
+		return out, &noExport{fmt.Sprintf("%s doesn't give a %s for a repo", name, in.Kind)}
+	case errors.As(err, &re) && re.Code == protocol.CodeNotFound:
+		return out, &noThing{fmt.Sprintf("%s has no %s called %s", name, in.Kind, in.Ref)}
+	}
+	return out, h.said(name, "giving "+in.Ref+" for its repo", err)
+}
+
+// SavedRemote tells a plugin that one of its things is in a repo, as it
+// was last exported (remote/saved): where, and at what version.
+func (h *Host) SavedRemote(ctx context.Context, name string, in protocol.RemoteSavedParams) error {
+	p, err := h.ready(name)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(ctx, showTimeout)
+	defer cancel()
+	err = p.conn.Call(ctx, protocol.MethodRemoteSaved, in, nil)
+	var re *acp.RPCError
+	if errors.As(err, &re) && re.Code == protocol.CodeMethodNotFound {
+		return nil // it keeps nothing of it
+	}
+	return h.said(name, "hearing "+in.Ref+" is in its repo", err)
+}
+
+// said is what went wrong asking a plugin something, as a person would
+// want it said: nil for nothing.
+func (h *Host) said(name, doing string, err error) error {
+	var re *acp.RPCError
+	switch {
+	case err == nil:
+		return nil
+	case errors.As(err, &re):
+		return fmt.Errorf("%s: %s", name, re.Message)
+	case errors.Is(err, acp.ErrClosed):
+		return fmt.Errorf("%s stopped while it was %s: see %s", name, doing, LogPath(h.Root, name))
+	case errors.Is(err, context.DeadlineExceeded):
+		return fmt.Errorf("%s wasn't done %s in time", name, doing)
+	}
+	return err
+}
+
+type remoteExportParams struct {
+	Name string                      `json:"name"`
+	In   protocol.RemoteExportParams `json:"in"`
+}
+
+type remoteSavedParams struct {
+	Name string                     `json:"name"`
+	In   protocol.RemoteSavedParams `json:"in"`
+}
+
+// ErrNoExport, across the socket.
+const codeNoExport = protocol.CodeNotFound - 5
+
+// serveExports answers the socket's remote-export and remote-saved, or ok
+// false for another method.
+func (h *Host) serveExports(ctx context.Context, method string, params json.RawMessage) (any, bool, error) {
+	switch method {
+	case "remote-export":
+		var p remoteExportParams
+		if err := json.Unmarshal(params, &p); err != nil || !ValidName(p.Name) {
+			return nil, true, &acp.RPCError{Code: acp.CodeInvalidParams, Message: "which plugin's?"}
+		}
+		out, err := h.ExportRemote(ctx, p.Name, p.In)
+		switch {
+		case errors.Is(err, ErrNoExport):
+			return nil, true, &acp.RPCError{Code: codeNoExport, Message: err.Error()}
+		case errors.Is(err, ErrNoThing):
+			return nil, true, &acp.RPCError{Code: codeNoThing, Message: err.Error()}
+		case err != nil:
+			return nil, true, err
+		}
+		return out, true, nil
+	case "remote-saved":
+		var p remoteSavedParams
+		if err := json.Unmarshal(params, &p); err != nil || !ValidName(p.Name) {
+			return nil, true, &acp.RPCError{Code: acp.CodeInvalidParams, Message: "which plugin's?"}
+		}
+		return struct{}{}, true, h.SavedRemote(ctx, p.Name, p.In)
+	}
+	return nil, false, nil
+}
+
+// ExportRemote asks a plugin for one of its things as its folder in a repo
+// is to hold it, in the daemon (Host.ExportRemote).
+func (c *Client) ExportRemote(ctx context.Context, name string, in protocol.RemoteExportParams) (protocol.RemoteExported, error) {
+	var out protocol.RemoteExported
+	err := c.conn.Call(ctx, "remote-export", remoteExportParams{Name: name, In: in}, &out)
+	var re *acp.RPCError
+	switch {
+	case errors.As(err, &re) && re.Code == codeNoExport:
+		return out, &noExport{re.Message}
+	case errors.As(err, &re) && re.Code == codeNoThing:
+		return out, &noThing{re.Message}
+	case errors.As(err, &re):
+		return out, errors.New(re.Message)
+	case errors.Is(err, acp.ErrClosed):
+		return out, errors.New("the workspace's daemon went away")
+	}
+	return out, err
+}
+
+// SavedRemote tells a plugin one of its things is in a repo, in the
+// daemon (Host.SavedRemote).
+func (c *Client) SavedRemote(ctx context.Context, name string, in protocol.RemoteSavedParams) error {
+	return c.call(ctx, "remote-saved", remoteSavedParams{Name: name, In: in}, nil)
+}
+
+// KeepAlias keeps that a plugin's own name for one of its things (ref,
+// sketch-12) is the name of a thing in a repo now (name, its folder): ws
+// put it there for the plugin.
+func KeepAlias(root, plugin, kind, ref, name string) error {
+	db, err := store.Open(root)
+	if err != nil {
+		return err
+	}
+	return db.Write(context.Background(), func(tx *store.Tx) error {
+		_, err := tx.Exec(`INSERT INTO plugin_aliases (plugin, kind, ref, name) VALUES (?, ?, ?, ?)
+			ON CONFLICT (plugin, kind, ref) DO UPDATE SET name = excluded.name`, plugin, kind, ref, name)
+		return err
+	})
+}
+
+// AliasOf is the thing in a repo that a plugin's own name for one of its
+// things names now, if ws put it there: its folder.
+func AliasOf(root, plugin, kind, ref string) (name string, ok bool, err error) {
+	db, err := store.Open(root)
+	if err != nil {
+		return "", false, err
+	}
+	err = db.Read(context.Background(), func(tx *store.Tx) error {
+		switch err := tx.QueryRow(`SELECT name FROM plugin_aliases WHERE plugin = ? AND kind = ? AND ref = ?`, plugin, kind, ref).Scan(&name); {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil
+		case err != nil:
+			return err
+		}
+		ok = true
+		return nil
+	})
+	return name, ok, err
+}

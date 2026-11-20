@@ -1,7 +1,11 @@
 package space
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
+	"fmt"
 	"path"
 	"regexp"
 	"slices"
@@ -81,6 +85,43 @@ func readManifest(text []byte) (m manifest, ok bool) {
 		m.Picture = ""
 	}
 	return m, true
+}
+
+// Manifest is a thing.toml as ws writes one: the thing's kind, what it's
+// called, its main file's name and its picture's ("" for none).
+func Manifest(kind, title, main, picture string) ([]byte, error) {
+	var b bytes.Buffer
+	enc := toml.NewEncoder(&b)
+	enc.Indent = ""
+	m := struct {
+		Kind    string `toml:"kind"`
+		Title   string `toml:"title"`
+		Main    string `toml:"main"`
+		Picture string `toml:"picture,omitempty"`
+	}{kind, strings.Join(strings.Fields(title), " "), main, picture}
+	if err := enc.Encode(m); err != nil {
+		return nil, err
+	}
+	if _, ok := readManifest(b.Bytes()); !ok {
+		return nil, fmt.Errorf("a thing.toml of kind %q whose main file is %q isn't one ws would read", kind, main)
+	}
+	return b.Bytes(), nil
+}
+
+// ReadManifest is what a thing.toml says, as ws reads one: ok is false
+// for one that names no kind or no main file in its folder.
+func ReadManifest(text []byte) (kind, title, main, picture string, ok bool) {
+	m, ok := readManifest(text)
+	return m.Kind, m.Title, m.Main, m.Picture, ok
+}
+
+// BlobID is git's id for a file's content: what a thing's Blob is, for
+// its main file.
+func BlobID(content []byte) string {
+	h := sha1.New()
+	fmt.Fprintf(h, "blob %d\x00", len(content))
+	h.Write(content)
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // refreshThings reads the things on a space's ground into the records:

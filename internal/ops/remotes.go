@@ -22,15 +22,19 @@ import (
 // for each version of it, and what answers a plugin asking which there
 // are and for one's file.
 
-// RemoteReader is what asks a plugin what a thing's main file is found
-// by: the workspace's daemon (plugin.Client), or a test's.
+// RemoteReader is what asks a plugin about its things in a repo: what one's
+// main file is found by, one of its own as its folder is to hold it, and
+// telling it where one is now. It's the workspace's daemon
+// (plugin.Client), or a test's.
 type RemoteReader interface {
 	ReadRemote(ctx context.Context, name string, in protocol.RemoteReadParams) (map[string]string, error)
+	ExportRemote(ctx context.Context, name string, in protocol.RemoteExportParams) (protocol.RemoteExported, error)
+	SavedRemote(ctx context.Context, name string, in protocol.RemoteSavedParams) error
 	Close()
 }
 
-// RemoteReaders is how ops reaches the plugins to have a file read:
-// through the daemon's socket. A test replaces it.
+// RemoteReaders is how ops reaches the plugins about their things in a
+// repo: through the daemon's socket. A test replaces it.
 var RemoteReaders = func(root string) (RemoteReader, error) {
 	c, err := plugin.Dial(root)
 	if err != nil {

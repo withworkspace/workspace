@@ -4554,6 +4554,66 @@ export interface TermKey {
     shift?: boolean;
 }
 
+// From web/plugins.go
+/**
+ * ThingAt is a plugin's thing as it is in its repo: its name in ws (its
+ * folder), where that is, what it's called, and its main file's version.
+ */
+export interface ThingAt {
+    name: string;
+    repo: string;
+    path: string;
+    title: string;
+    version: string;
+}
+
+// From web/plugins.go
+/**
+ * ThingOffered is where a thing would go if it were promoted with
+ * nowhere said: the folder (records:sketches/release-flow/), its repo as
+ * ws calls it, and whether a commit lands there straight away.
+ */
+export interface ThingOffered {
+    where: string;
+    repo: string;
+    label: string;
+    direct: boolean;
+}
+
+// From web/plugins.go
+/**
+ * ThingRequest is one of a plugin's own things to put in a repo, or to
+ * save there: its kind, the plugin's name for it, and, to promote it,
+ * where you said it's to live (repo:folder/), if you did.
+ */
+export interface ThingRequest {
+    kind: string;
+    ref: string;
+    to?: string;
+}
+
+// From web/plugins.go
+/**
+ * ThingSaved is what putting a plugin's thing in a repo, or saving it
+ * there, did: the frame protocol's ThingSaved, which a plugin's page is
+ * given as what came of asking.
+ */
+export interface ThingSaved {
+    thing: ThingAt;
+    /**
+     * Changed is whether it changed anything there, and Merged whether
+     * what was there had changed since, and was brought into it.
+     */
+    changed: boolean;
+    merged?: boolean;
+    /**
+     * Capsule is the capsule it was left in, where its repo takes pull
+     * requests: it's on no default branch yet.
+     */
+    capsule?: string;
+    said?: string;
+}
+
 // From web/threads.go
 /**
  * ThreadState is GET .../threads: the document's version now, and its

@@ -745,7 +745,7 @@ func TestKitReadsAThingWSFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r := st.Registration.Refs[0].Remote; r == nil || *r != (protocol.Remote{Path: "things/{slug}/", Main: "{slug}.txt", Reads: true}) {
+	if r := st.Registration.Refs[0].Remote; r == nil || *r != (protocol.Remote{Path: "things/{slug}/", Main: "{slug}.txt", Reads: true, Exports: true}) {
 		t.Fatalf("its remote, as registered: %+v", r)
 	}
 	waitFor(t, func() bool { return len(thingsIn(t, db, "kit")) == 1 }) // its own, told as it starts
@@ -803,5 +803,50 @@ func TestKitReadsAThingWSFound(t *testing.T) {
 	}
 	if found, _, _ := db.Find(ctx, store.Said{Words: "ember"}); len(found) != 0 {
 		t.Errorf("found after it went: %+v", found)
+	}
+}
+
+// ws asks a plugin for one of its own things as its folder in a repo is
+// to hold it, and tells it where it is: what it gives after is made from
+// what it was told, and from what's there now where that's changed.
+func TestKitGivesAThingForARepo(t *testing.T) {
+	root, h := keeping(t)
+	addKit(t, root)
+	st, err := h.Refresh("kit")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := st.Registration.Refs[0].Remote; r == nil || !r.Exports {
+		t.Fatalf("its remote, as registered: %+v", r)
+	}
+	ctx := context.Background()
+
+	given, err := h.ExportRemote(ctx, "kit", protocol.RemoteExportParams{Kind: "thing", Ref: "KIT-1"})
+	if err != nil || given.Name != "" || given.Base != "" || given.Title != "The first thing" || string(given.Main) != "It says hello." ||
+		len(given.Files) != 1 || given.Files[0].Name != "{slug}.svg" || !given.Files[0].Picture || given.RemotePackage.Problem() != "" {
+		t.Fatalf("given: %+v, %v", given, err)
+	}
+	// One it hasn't, and a kind it doesn't give: each is said.
+	if _, err := h.ExportRemote(ctx, "kit", protocol.RemoteExportParams{Kind: "thing", Ref: "KIT-2"}); !errors.Is(err, plugin.ErrNoThing) {
+		t.Errorf("one it hasn't: %v", err)
+	}
+	if _, err := h.ExportRemote(ctx, "kit", protocol.RemoteExportParams{Kind: "sprint", Ref: "SPRINT-1"}); !errors.Is(err, plugin.ErrNoExport) {
+		t.Errorf("a kind it doesn't give: %v", err)
+	}
+
+	// Told where it is: what it gives next is from there.
+	at := protocol.RemoteThing{Kind: "thing", Name: "records/things/the-first-thing/", Repo: "records", Path: "things/the-first-thing/", Title: "The first thing", Main: "the-first-thing.txt", Version: "3f9c2a"}
+	if err := h.SavedRemote(ctx, "kit", protocol.RemoteSavedParams{Kind: "thing", Ref: "KIT-1", Thing: at}); err != nil {
+		t.Fatal(err)
+	}
+	if given, err := h.ExportRemote(ctx, "kit", protocol.RemoteExportParams{Kind: "thing", Ref: "KIT-1"}); err != nil || given.Name != at.Name || given.Base != "3f9c2a" {
+		t.Errorf("given once it's told where it is: %+v, %v", given, err)
+	}
+	// Changed there since: it's given what's there, and gives the two together.
+	now := at
+	now.Version = "9e8d7c"
+	given, err = h.ExportRemote(ctx, "kit", protocol.RemoteExportParams{Kind: "thing", Ref: "KIT-1", Current: &protocol.RemoteOpened{RemoteThing: now, Content: []byte("it waves.")}})
+	if err != nil || given.Base != "9e8d7c" || string(given.Main) != "It says hello. And: it waves." {
+		t.Errorf("given with what's there now: %+v, %v", given, err)
 	}
 }

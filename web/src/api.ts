@@ -59,6 +59,9 @@ import type {
   TeamPerson,
   TeamTopic,
   TermKey,
+  ThingOffered,
+  ThingRequest,
+  ThingSaved,
   UpdatesInfo,
   Upgraded,
   Workspace,
@@ -156,6 +159,9 @@ export type {
   TeamPerson,
   TeamTopic,
   TermKey,
+  ThingOffered,
+  ThingRequest,
+  ThingSaved,
   UpdatesInfo,
   Upgraded,
   WantedPlugin,
@@ -347,6 +353,14 @@ export const runPluginAction = (plugin: string, id: string, on: { kind?: string;
 // thing, RAM-123): it waits to be briefed, on its page.
 export const startMissionAbout = (about: string) => send<{ slug: string; path: string }>("POST", "/api/missions", { about });
 
+
+// One of a plugin's own things put in a repo, and saved there, as you:
+// what ws's own UI over the plugin's page asks (plugins/ThingUis.tsx).
+// thingOffered is where one of that kind, called that, would go.
+export const promoteThing = (plugin: string, thing: ThingRequest) => send<ThingSaved>("POST", `/api/plugins/${encodeURIComponent(plugin)}/things/promote`, thing);
+export const saveThing = (plugin: string, thing: ThingRequest) => send<ThingSaved>("POST", `/api/plugins/${encodeURIComponent(plugin)}/things/save`, thing);
+export const thingOffered = (plugin: string, kind: string, title: string) =>
+  getJSON<ThingOffered>(`/api/plugins/${encodeURIComponent(plugin)}/things/offer?kind=${encodeURIComponent(kind)}&title=${encodeURIComponent(title)}`);
 
 // getPluginThing is one of a plugin's things, by its kind and name: as ws
 // has it, or as its plugin says when asked. One the plugin has none of is

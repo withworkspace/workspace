@@ -18869,3 +18869,77 @@ a.plugin-row-out {
 .workspace-menu .select-option.later .icon {
   color: var(--accent);
 }
+
+/* ws's own UI over a plugin's page: a panel by the button that asked for
+   it (plugins/ThingUis.tsx). */
+
+.over-frame-catch {
+  position: fixed;
+  inset: 0;
+  z-index: 299;
+}
+
+.over-frame {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  position: fixed;
+  z-index: 300;
+  width: 320px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  animation: pop var(--fast) var(--ease);
+}
+
+.thing-ui {
+  display: grid;
+  gap: 8px;
+}
+
+.thing-ui p {
+  margin: 0;
+}
+
+.thing-ui-title {
+  font-weight: 600;
+}
+
+.thing-ui-where {
+  display: grid;
+  gap: 4px;
+}
+
+.thing-ui code {
+  overflow-wrap: anywhere;
+  font-size: var(--text-xs);
+}
+
+.thing-ui-where button.link {
+  justify-self: start;
+}
+
+.thing-ui-where input {
+  width: 100%;
+}
+
+.thing-ui-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.thing-ui-failed {
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+.thing-ui-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}

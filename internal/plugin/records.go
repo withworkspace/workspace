@@ -45,6 +45,16 @@ func init() {
 		-- in a repo (found.go): named by its folder, and kept with what
 		-- it was read at. '' is one the plugin told ws of.
 		ALTER TABLE plugin_things ADD COLUMN found TEXT NOT NULL DEFAULT '';
+	`), store.SQL(`
+		-- A plugin's own name (sketch-12) for a thing ws put in a repo for
+		-- it: the thing's name there. So the plugin's name still leads to
+		-- the thing, and is written as the thing's where it goes into a
+		-- repo itself.
+		CREATE TABLE plugin_aliases (
+			plugin TEXT NOT NULL, kind TEXT NOT NULL, ref TEXT NOT NULL,
+			name TEXT NOT NULL,         -- the thing's, in its repo: its folder
+			PRIMARY KEY (plugin, kind, ref)
+		) WITHOUT ROWID;
 	`))
 }
 
@@ -241,7 +251,7 @@ func Forget(root, name string) error {
 		return err
 	}
 	return db.Write(context.Background(), func(tx *store.Tx) error {
-		for _, q := range []string{`DELETE FROM plugin_refs WHERE plugin = ?`, `DELETE FROM plugin_things WHERE plugin = ?`} {
+		for _, q := range []string{`DELETE FROM plugin_refs WHERE plugin = ?`, `DELETE FROM plugin_things WHERE plugin = ?`, `DELETE FROM plugin_aliases WHERE plugin = ?`} {
 			if _, err := tx.Exec(q, name); err != nil {
 				return err
 			}

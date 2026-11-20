@@ -52,10 +52,33 @@ describe("what a plugin's page has asked ws to show", () => {
   it("ws's own UIs are all it has, unless it's told otherwise, and it names them", () => {
     const uis = frameUis(() => {});
     expect(uis.names).toEqual([...V1.UI_NAMES]);
-    expect(frame().uis.names).toEqual(["ref-card", "thing-remote-save"]);
+    expect(frame().uis.names).toEqual([...V1.UI_NAMES, "thing-remote-save"]);
     expect(uis.open(card(1))).toBeUndefined();
     expect(uis.open({ id: 2, ui: "thing-remote-save", with: { thing: "sketch-12" } })).toMatch(/no UI called thing-remote-save/);
     uis.forget();
+  });
+
+  it("a thing is put in a repo, and saved there, from a UI that's open until ws is done with it", () => {
+    const closed = vi.fn();
+    const uis = frameUis(closed);
+    const about = { kind: "sketch", ref: "sketch-12", title: "Release flow" };
+    expect(uis.open({ id: 1, ui: "thing-promote", box: { x: 10, y: 20, width: 80, height: 24 }, with: about })).toBeUndefined();
+    // No box is somewhere: ws puts it where it sees fit.
+    expect(uis.open({ id: 2, ui: "thing-save", with: about })).toBeUndefined();
+    expect(uis.opened().map((o) => o.ui)).toEqual(["thing-promote", "thing-save"]);
+    expect(uis.hovered()).toBeUndefined();
+    // A thing is its kind and the plugin's name for it: without them, why not is said.
+    expect(uis.open({ id: 3, ui: "thing-save", with: { kind: "sketch" } })).toMatch(/thing-save is asked for with the thing's kind and the plugin's name for it/);
+    expect(uis.open({ id: 4, ui: "thing-promote", with: { ref: "sketch-12", kind: " " } })).toMatch(/thing-promote is asked for with/);
+    // ws is done with one: the page is told what came of it, and nothing for one dismissed.
+    const there = { thing: { name: "records/sketches/release-flow/", repo: "records", path: "sketches/release-flow/", title: "Release flow", version: "3f9c2a" }, changed: true };
+    uis.done(1, there);
+    uis.done(2);
+    expect(closed.mock.calls).toEqual([
+      [1, there],
+      [2, undefined],
+    ]);
+    expect(uis.opened()).toEqual([]);
   });
 
   it("one had on hover comes a moment after it's asked for, and goes a moment after it's closed", () => {

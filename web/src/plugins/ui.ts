@@ -47,7 +47,18 @@ export const kinds: Readonly<Record<V1.UiName, UiKind>> = {
     as: "hover",
     refuses: (asked) => (typeof asked.with.ref === "string" && asked.with.ref && asked.box ? undefined : "ref-card is asked for with a ref, and the box of its words."),
   },
+  // One of the plugin's own things put in a repo, and saved there, by
+  // the button that asked (ThingUis.tsx).
+  "thing-promote": { as: "open", refuses: (asked) => aboutThing("thing-promote", asked) },
+  "thing-save": { as: "open", refuses: (asked) => aboutThing("thing-save", asked) },
 };
+
+// aboutThing is why a UI about one of a plugin's things wasn't given one,
+// if it wasn't: a thing is its kind, and the plugin's name for it.
+function aboutThing(ui: string, asked: Asked): string | undefined {
+  const given = (v: unknown) => typeof v === "string" && v.trim() !== "";
+  return given(asked.with.kind) && given(asked.with.ref) ? undefined : `${ui} is asked for with the thing's kind and the plugin's name for it: { kind: "sketch", ref: "sketch-12" }.`;
+}
 
 // FrameUis is the UIs one frame's page has asked for: what the page says
 // of them, and what ws draws and says back.

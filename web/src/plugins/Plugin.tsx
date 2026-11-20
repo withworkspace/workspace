@@ -236,7 +236,7 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
       <PageConversation host={conversation} about={about} root={workspace?.root}>
         <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} onLoad={() => frame.current?.loaded()} />
       </PageConversation>
-      <FrameUiLayer uis={uis} frame={iframe} />
+      <FrameUiLayer uis={uis} frame={iframe} plugin={name} />
     </div>
   );
 }

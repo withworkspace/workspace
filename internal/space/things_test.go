@@ -128,3 +128,27 @@ records/sketches/release-flow/ sketch "Release flow" main=release-flow.excalidra
 		t.Fatalf("things of a repo that isn't a space: %s", got)
 	}
 }
+
+// A thing.toml as ws writes one is one ws reads, whatever's in its title,
+// and a file's id is git's.
+func TestManifest_WrittenAsItsRead(t *testing.T) {
+	text, err := Manifest("sketch", "  The \"release\"\tflow: é → ü  ", "release-flow.excalidraw", "release-flow.svg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	kind, title, main, picture, ok := ReadManifest(text)
+	if !ok || kind != "sketch" || title != `The "release" flow: é → ü` || main != "release-flow.excalidraw" || picture != "release-flow.svg" {
+		t.Fatalf("read back: %q %q %q %q %v\n%s", kind, title, main, picture, ok, text)
+	}
+	if text, _ := Manifest("sketch", "Untitled", "a.excalidraw", ""); strings.Contains(string(text), "picture") {
+		t.Errorf("one with no picture says one:\n%s", text)
+	}
+	for _, bad := range [][2]string{{"Sketch", "a.txt"}, {"sketch", "../a.txt"}, {"sketch", "thing.toml"}, {"", "a.txt"}} {
+		if _, err := Manifest(bad[0], "A", bad[1], ""); err == nil {
+			t.Errorf("a manifest of kind %q and main %q was written", bad[0], bad[1])
+		}
+	}
+	if got := BlobID([]byte("hello\n")); got != "ce013625030ba8dba906f756967f9e9ca394464a" {
+		t.Errorf("git's id for hello: %s", got)
+	}
+}

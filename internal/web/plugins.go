@@ -116,6 +116,125 @@ type Plugging interface {
 	AddPlugin(ctx context.Context, from string, o ops.PluginAdd) (ops.PluginAdded, plugin.Status, error)
 	UpdatePlugin(ctx context.Context, name string, say func(line string)) (ops.PluginUpdated, error)
 	RemovePlugin(ctx context.Context, name string, data bool) error
+	// One of a plugin's own things put in a repo, and saved there, for
+	// you, and where one would go: what ws's own UI over a plugin's page
+	// asks (thing-promote, thing-save).
+	PromoteThing(ctx context.Context, who, kind, name, to string) (protocol.RemoteSaved, error)
+	SaveThing(ctx context.Context, who, kind, name string) (protocol.RemoteSaved, error)
+	ThingOffered(who, kind, title string) (ops.ThingOffer, error)
+}
+
+// ThingRequest is one of a plugin's own things to put in a repo, or to
+// save there: its kind, the plugin's name for it, and, to promote it,
+// where you said it's to live (repo:folder/), if you did.
+type ThingRequest struct {
+	Kind string `json:"kind"`
+	Ref  string `json:"ref"`
+	To   string `json:"to,omitempty"`
+}
+
+// ThingAt is a plugin's thing as it is in its repo: its name in ws (its
+// folder), where that is, what it's called, and its main file's version.
+type ThingAt struct {
+	Name    string `json:"name"`
+	Repo    string `json:"repo"`
+	Path    string `json:"path"`
+	Title   string `json:"title"`
+	Version string `json:"version"`
+}
+
+// ThingSaved is what putting a plugin's thing in a repo, or saving it
+// there, did: the frame protocol's ThingSaved, which a plugin's page is
+// given as what came of asking.
+type ThingSaved struct {
+	Thing ThingAt `json:"thing"`
+	// Changed is whether it changed anything there, and Merged whether
+	// what was there had changed since, and was brought into it.
+	Changed bool `json:"changed"`
+	Merged  bool `json:"merged,omitempty"`
+	// Capsule is the capsule it was left in, where its repo takes pull
+	// requests: it's on no default branch yet.
+	Capsule string `json:"capsule,omitempty"`
+	Said    string `json:"said,omitempty"`
+}
+
+// ThingOffered is where a thing would go if it were promoted with
+// nowhere said: the folder (records:sketches/release-flow/), its repo as
+// ws calls it, and whether a commit lands there straight away.
+type ThingOffered struct {
+	Where  string `json:"where"`
+	Repo   string `json:"repo"`
+	Label  string `json:"label"`
+	Direct bool   `json:"direct"`
+}
+
+func thingSaved(done protocol.RemoteSaved) ThingSaved {
+	t := done.Thing
+	return ThingSaved{Thing: ThingAt{Name: t.Name, Repo: t.Repo, Path: t.Path, Title: t.Title, Version: t.Version}, Changed: done.Changed, Merged: done.Merged, Capsule: done.Capsule, Said: done.Said}
+}
+
+// thingAsked reads which of a plugin's things a request is about.
+func (s *Server) thingAsked(w http.ResponseWriter, r *http.Request) (name string, req ThingRequest, ok bool) {
+	name = r.PathValue("name")
+	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
+		jsonError(w, http.StatusNotFound, "there's no plugin called "+name)
+		return name, req, false
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, http.StatusBadRequest, "which thing isn't JSON: "+err.Error())
+		return name, req, false
+	}
+	if strings.TrimSpace(req.Kind) == "" || strings.TrimSpace(req.Ref) == "" {
+		jsonError(w, http.StatusBadRequest, "which thing? Its kind, and the plugin's name for it")
+		return name, req, false
+	}
+	return name, req, true
+}
+
+// promoteThing is POST /api/plugins/{name}/things/promote: one of the
+// plugin's own things put in a repo, as you.
+func (s *Server) promoteThing(w http.ResponseWriter, r *http.Request) {
+	name, req, ok := s.thingAsked(w, r)
+	if !ok {
+		return
+	}
+	done, err := s.App.PromoteThing(r.Context(), name, req.Kind, req.Ref, req.To)
+	if err != nil {
+		writeError(w, err, http.StatusBadGateway)
+		return
+	}
+	writeJSON(w, http.StatusOK, thingSaved(done))
+}
+
+// saveThing is POST /api/plugins/{name}/things/save: one of the plugin's
+// own things that's in a repo saved there, as you.
+func (s *Server) saveThing(w http.ResponseWriter, r *http.Request) {
+	name, req, ok := s.thingAsked(w, r)
+	if !ok {
+		return
+	}
+	done, err := s.App.SaveThing(r.Context(), name, req.Kind, req.Ref)
+	if err != nil {
+		writeError(w, err, http.StatusBadGateway)
+		return
+	}
+	writeJSON(w, http.StatusOK, thingSaved(done))
+}
+
+// thingOffered is GET /api/plugins/{name}/things/offer?kind=&title=:
+// where one of the plugin's things of that kind, called that, would go.
+func (s *Server) thingOffered(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
+		jsonError(w, http.StatusNotFound, "there's no plugin called "+name)
+		return
+	}
+	at, err := s.App.ThingOffered(name, r.URL.Query().Get("kind"), r.URL.Query().Get("title"))
+	if err != nil {
+		writeError(w, err, http.StatusBadGateway)
+		return
+	}
+	writeJSON(w, http.StatusOK, ThingOffered{Where: at.Where, Repo: at.Repo, Label: at.Label, Direct: at.Direct})
 }
 
 // PluginsInstalled is GET /api/plugins/installed: the workspace's plugins
