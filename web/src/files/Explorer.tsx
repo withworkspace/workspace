@@ -217,7 +217,7 @@ export function Explorer({ workspace }: { workspace: Workspace }) {
       key={api}
       api={api}
       label={`${repo}/${name}`}
-      updated={mission?.updated}
+      updated={`${mission?.updated ?? ""}:${workspace.readsSeen ?? ""}`}
       reviewTo={`/missions/${slug}/review/${repo}/${name}`}
       docOf={(path) => docRef(repo, name, path)}
       search={{ repo, worktree: name }}
@@ -272,13 +272,16 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
   const most: Panes = before ? 3 : 2;
   const shown = Math.min(usePanes(), most) as Panes;
 
-  // The tree, again whenever what it's in moves (crew at work in it).
+  // The tree, again whenever what it's in moves (crew at work in it), or
+  // the daemon's read it again and found it changed. One that's never been
+  // read and is being is still to come: updated moves when it has.
   const [tree, setTree] = useState<FileTree>();
   const [error, setError] = useState<string>();
   const loadTree = useCallback(
     () =>
       getTree(api).then(
         (t) => {
+          if (t.unread) return;
           setTree(t);
           setError(undefined);
         },
