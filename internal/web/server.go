@@ -238,6 +238,19 @@ func (s *Server) Start() error {
 		}
 	}
 	go s.missions.run(s.ctx)
+	// What's read behind a read that didn't wait (a space of documents)
+	// and found something new is looked at now.
+	seen := s.App.Seen() // the App the server starts with: read here, not in the goroutine
+	go func() {
+		for {
+			select {
+			case <-s.ctx.Done():
+				return
+			case <-seen:
+				ws.nudge()
+			}
+		}
+	}()
 	s.srv = &http.Server{
 		Handler:           s.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,

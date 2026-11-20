@@ -87,6 +87,9 @@ func (w *Workspace) Stamp() string {
 	// A capsule found dirty, or clean, since a view last said: nothing git
 	// keeps moves when a file's edited (keptGit).
 	fmt.Fprint(h, w.git.dirtyMoved())
+	// A space found other than the pages were given, behind a read of it
+	// (keptSpaces).
+	fmt.Fprintf(h, "spaces %s\n", w.SpacesSeen())
 	// The records say themselves when they've changed: a write that names
 	// a topic moves their latest change's number.
 	if db, err := store.Dial(w.Root()); err == nil {

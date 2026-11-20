@@ -44,6 +44,10 @@ type Overview struct {
 	Sidebar, Menu []string
 	// Focus is what you've pinned that stands, in your order (focus.go).
 	Focus []FocusItem
+	// SpacesSeen moves when a look behind a read finds a space of
+	// documents other than the pages were given (keptSpaces): a page
+	// showing one reads it again.
+	SpacesSeen string
 	// CapsulesSeen moves when a look behind a read finds a capsule other
 	// than the read said (keptGit.dirtyMoved): a page showing capsules'
 	// statuses that weren't in this view reads them again.
@@ -95,6 +99,7 @@ func (w *Workspace) Overview() (*Overview, error) {
 	}
 	out := &Overview{Name: ws.Name, Missions: []MissionItem{}, Kinds: w.Kinds(), Org: ws.Org, DefaultBranch: firstNonEmpty(ws.DefaultBranch, "main"), Spaces: []SpaceView{}}
 	out.Sidebar, out.Menu = w.Config().UI.Sidebar, w.Config().UI.Menu
+	out.SpacesSeen = w.SpacesSeen()
 	if moved := w.git.dirtyMoved(); moved != "" {
 		h := fnv.New64a()
 		h.Write([]byte(moved))

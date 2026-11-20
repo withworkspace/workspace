@@ -32,6 +32,10 @@ type Missions interface {
 	// for its records, which say themselves when they change.
 	Stamp() string
 	MissionStamp(slug string) string
+	// Seen says when what was read behind a page's read, which didn't
+	// wait on it, has found something the page wasn't given: the
+	// workspace's view is looked at then, not at the next poll.
+	Seen() <-chan struct{}
 	// BundleFile is a file of one of a mission's bundles: where it is, and
 	// its content type.
 	BundleFile(slug, id, name string) (path, media string, err error)
@@ -66,6 +70,7 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 	}
 	out := Workspace{Name: v.Name, Root: root, Org: v.Org, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: Talks(root), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Spaces: []SpaceRef{}}
 	out.Focus = focusOf(v.Focus)
+	out.SpacesSeen = v.SpacesSeen
 	out.CapsulesSeen = v.CapsulesSeen
 	if v.Sidebar != nil || v.Menu != nil {
 		out.Places = &Places{Sidebar: append([]string{}, v.Sidebar...), Menu: append([]string{}, v.Menu...)}

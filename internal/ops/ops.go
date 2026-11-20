@@ -49,6 +49,9 @@ type Workspace struct {
 	// git is what git said of each capsule, kept for the views pages read
 	// until the capsule moves.
 	git keptGit
+	// spaces is what's kept of the spaces of documents, for the pages that
+	// read them (spaces_kept.go).
+	spaces keptSpaces
 
 	// updates is one look for later releases, or one upgrade, at a time;
 	// plugins is one plugin added, updated or removed at a time.

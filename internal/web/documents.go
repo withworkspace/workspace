@@ -11,7 +11,9 @@ import (
 )
 
 // Documents: the workspace's spaces of documents (a repo of them, or a
-// folder of one), each read fresh from its ground when it's asked for.
+// folder of one), as ws keeps them: answered at once, each read again
+// from its ground behind the read when it's moved, the workspace's
+// spacesSeen moving when that finds something new.
 
 // Space is a space of documents, as a list of them shows it.
 type Space struct {
@@ -111,6 +113,9 @@ type SpaceActivity struct {
 	Lately   []SpaceCommit `json:"lately"`
 	InFlight []SpaceFlight `json:"inFlight"`
 	Fresh    SpaceFresh    `json:"fresh"`
+	// Unread: it's not been read yet, and is being: the workspace's
+	// spacesSeen moves when it has.
+	Unread bool `json:"unread,omitempty"`
 }
 
 // SpaceCommit is a commit that changed a space's documents.
@@ -181,7 +186,7 @@ func (s *Server) spaceActivity(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	out := SpaceActivity{Lately: []SpaceCommit{}, InFlight: []SpaceFlight{}, Fresh: freshOf(a.Fresh)}
+	out := SpaceActivity{Lately: []SpaceCommit{}, InFlight: []SpaceFlight{}, Fresh: freshOf(a.Fresh), Unread: a.Unread}
 	for _, c := range a.Lately {
 		out.Lately = append(out.Lately, SpaceCommit{SHA: c.SHA, At: c.At, By: c.By, Subject: c.Subject, Docs: changesOf(c.Docs)})
 	}

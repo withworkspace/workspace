@@ -56,6 +56,11 @@ type Workspace struct {
 	// one), as config says them: a document in one is read in Documents.
 	// Counts and folders aren't said here (GET /api/documents).
 	Spaces []SpaceRef `json:"spaces"`
+	// SpacesSeen moves when ws, reading a space again behind a read that
+	// didn't wait on it, found it other than the read was given: a page
+	// showing a space (Documents, a space, a document's citations and
+	// what's in flight) reads it again.
+	SpacesSeen string `json:"spacesSeen,omitempty"`
 	// Version is the ws that serves it, as ws --version says it: the
 	// daemon's, which a newer ws on the path isn't until it's restarted.
 	// The web UI says which it's talking to, and tells a plugin's app as
