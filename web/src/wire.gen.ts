@@ -659,6 +659,21 @@ export interface Citation {
 // From web/enums.go
 export type CitationHow = "link" | "ref";
 
+// From web/commands.go
+/**
+ * CommandLabel is what one of ws's commands is doing, as a conversation
+ * shows an agent's step that ran it: "Looking up sketch-5" for ws show
+ * sketch-5 -f llm. Words are the command's after ws (none for ws on its
+ * own); in Label, {1} is its first argument, {2} its second. Options are
+ * the flags it takes that have a value, as they're typed (--format, -f):
+ * how the web UI tells an option's value from an argument.
+ */
+export interface CommandLabel {
+    words: string[];
+    label: string;
+    options?: string[];
+}
+
 // From web/api.go
 /**
  * Conclusion is how a mission ends, suggested or made (mission.Conclusion):

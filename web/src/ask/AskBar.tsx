@@ -1,4 +1,5 @@
 import { type KeyboardEvent, type MouseEvent, type Ref, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { Doing } from "../ui/Doing";
 import { Link } from "react-router";
 import { ApiError, getTalk, keepAsk, sayInTalk, settleTalkProposal, type TalkDetail, type TalkProposal, type TalkTurn } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
@@ -309,15 +310,7 @@ export function AskBar<H>({
                     <Markdown text={talk.run.said} />
                   </div>
                 )}
-                <Calls calls={(talk.run?.calls ?? []).map((c, i, all) => (i === all.length - 1 && !c.result ? { ...c, pending: true } : c))} root={root} open live />
-                <div className="typing">
-                  <span className="typing-dots" aria-hidden>
-                    <span />
-                    <span />
-                    <span />
-                  </span>
-                  {talk.run?.calls.length ? "Reading" : "Thinking"}
-                </div>
+                <Doing calls={talk.run?.calls ?? []} root={root} />
               </div>
             )}
             {proposals(shown?.after)}

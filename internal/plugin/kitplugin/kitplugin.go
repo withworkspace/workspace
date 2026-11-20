@@ -208,7 +208,7 @@ func run() {
 	p.Command("hi", "Says the greeting", func(c *plugin.Call) error {
 		fmt.Fprintln(c.Stderr(), "to stderr")
 		return c.Say(greeting.Get() + ", ws")
-	})
+	}).Label("Greeting {1}").Option("as", "Who it's from")
 	p.Command("stale", "Says its view is stale, with a badge", func(c *plugin.Call) error {
 		p.Changed()
 		p.Badge("/board", 3)
