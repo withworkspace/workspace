@@ -52,10 +52,10 @@ type Setting struct {
 	About   string `json:"about,omitempty"`
 	// Kind is harness, model, choice, bool, number, text, picks (a list
 	// of harness:model) or color (a hex colour, #rrggbb).
-	Kind    string          `json:"kind"`
+	Kind    SettingKind     `json:"kind"`
 	Choices []SettingChoice `json:"choices,omitempty"`
 	Value   any             `json:"value"`
-	Source  string          `json:"source"`
+	Source  SettingSource   `json:"source"`
 	Team    any             `json:"team,omitempty"`
 	Yours   any             `json:"yours,omitempty"`
 	Default any             `json:"default,omitempty"`
@@ -160,8 +160,8 @@ func SettingsOf(in ops.SettingsInfo) SettingsInfo {
 			group.Runs = &run
 		}
 		for _, st := range g.Settings {
-			set := Setting{Section: st.Section, Key: st.Key, Label: st.Label, About: st.About, Kind: st.Kind,
-				Value: st.Value, Source: st.Source, Team: st.Team, Yours: st.Yours, Default: st.Default, Harness: st.Harness}
+			set := Setting{Section: st.Section, Key: st.Key, Label: st.Label, About: st.About, Kind: SettingKind(st.Kind),
+				Value: st.Value, Source: SettingSource(st.Source), Team: st.Team, Yours: st.Yours, Default: st.Default, Harness: st.Harness}
 			for _, c := range st.Choices {
 				set.Choices = append(set.Choices, SettingChoice(c))
 			}

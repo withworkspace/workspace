@@ -741,7 +741,7 @@ func TestTalk_Briefing(t *testing.T) {
 	headline := func() string {
 		md, _ := testutil.WebMission(w.Root)(m.Slug, false)
 		h := md.Headlines[0]
-		return h.Court + "|" + h.Kind + "|" + h.Text + "|" + h.Action.Verb + "|" + h.Action.Target
+		return string(h.Court) + "|" + h.Kind + "|" + h.Text + "|" + h.Action.Verb + "|" + h.Action.Target
 	}
 	if h := headline(); h != "you|brief-talk|The briefing agent is waiting for you, in t1|talk|t1" {
 		t.Errorf("waiting on you: %s", h)

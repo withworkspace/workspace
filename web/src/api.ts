@@ -1,167 +1,166 @@
-import type { Pinned, ThingAction, ThingField, ThingViews } from "./refs/refs";
+import type { Pinned, ThingAction } from "./refs/refs";
 import { useEffect, useRef, useState } from "react";
 import type { Place } from "./markdown/links";
 import { bursts } from "./load";
+// What the API sends and takes, generated from internal/web's Go types
+// (scripts/wiretypes, `just wire`). The types below are the ones not yet
+// moved there: move one by making the Go say what this file does.
+import type {
+  Action,
+  ArtifactContent,
+  ArtifactDetail,
+  ArtifactDone,
+  BundleNote,
+  CellSource,
+  Citation,
+  ConversationApproval,
+  ConversationCapsule,
+  ConversationGuideGroup,
+  DismissWhy,
+  DocHit,
+  DocIn,
+  DocKind,
+  DocSaved,
+  DocStage,
+  Event,
+  FocusDone,
+  HarnessToolCall,
+  LandStopped,
+  Landed,
+  Landing,
+  MissionDetail,
+  NamesInfo,
+  OrchestratorInfo,
+  OrchestratorRunDetail,
+  PageFiling,
+  PageInfo,
+  PageTied,
+  Pick,
+  Plugin,
+  PluginThing,
+  ProcessInfo,
+  Repo,
+  ReviewGuide,
+  RunDetail,
+  RunsInfo,
+  SettingChange,
+  SettingsInfo,
+  Space,
+  SpaceActivity,
+  SpaceDoc,
+  SpaceFresh,
+  SpaceRef,
+  Talk,
+  Task,
+  TeamPerson,
+  TeamTopic,
+  TermKey,
+  Workspace,
+  Worktree,
+} from "./wire.gen";
+export type {
+  Artifact,
+  ArtifactContent,
+  ArtifactDetail,
+  ArtifactDone,
+  ArtifactInfo,
+  ArtifactStatus,
+  ArtifactVersion,
+  Bundle,
+  BundleCheck,
+  BundleEvidence,
+  BundleNote,
+  BundleRan,
+  BundleTry,
+  Capsule,
+  CapsuleDetail,
+  CellSource,
+  CheckVerdict,
+  Checking,
+  Citation,
+  Conclusion,
+  Crew,
+  CrewDetail,
+  CrewPicks,
+  Decision,
+  DismissWhy,
+  DocHit,
+  DocIn,
+  DocKind,
+  DocSaved,
+  DocSaves,
+  DocStage,
+  EndedCapsule,
+  FocusDone,
+  FocusPin,
+  Headline,
+  HeadlineGroup,
+  LandStopped,
+  Landed,
+  Landing,
+  Look,
+  Mission,
+  MissionDetail,
+  MissionState,
+  OrchestratorCall,
+  OrchestratorInfo,
+  OrchestratorRun,
+  OrchestratorRunDetail,
+  PageFiled,
+  PageFiling,
+  PageInfo,
+  PageSource,
+  PageTied,
+  Plugin,
+  PluginRef,
+  PluginThing,
+  PluginView,
+  ProcessInfo,
+  Proposal,
+  Repo,
+  ReviewGuide,
+  RoleRun,
+  RunDetail,
+  RunsInfo,
+  Setting,
+  SettingChange,
+  SettingChoice,
+  SettingsGroup,
+  SettingsInfo,
+  Space,
+  SpaceActivity,
+  SpaceCommit,
+  SpaceDoc,
+  SpaceDocChange,
+  SpaceFlight,
+  SpaceFresh,
+  SpaceKind,
+  SpaceRef,
+  Stage,
+  StageCheck,
+  StageRun,
+  StageWatch,
+  Talk,
+  TeamPerson,
+  TeamTopic,
+  TermKey,
+  Workspace,
+  Worktree,
+} from "./wire.gen";
 
 // Mirrors internal/web/api.go.
 
-export interface Workspace {
-  name: string;
-  root: string;
-  org?: string; // where its repos are on GitHub, for a ref's address
-  defaultBranch?: string;
-  missions: Mission[];
-  // focus: what you've pinned that stands, in your order: the sidebar's
-  // Focus (shell/focus.tsx). Absent from a daemon from before it.
-  focus?: FocusPin[];
-  spaces?: SpaceRef[]; // its spaces of documents, as config says them
-  conversations: Talk[]; // the workspace's conversations, newest first
-  pages: PageInfo[]; // the workspace's pages, the latest changed first
-  artifacts?: ArtifactInfo[]; // its artifacts, the latest version's newest first, discarded ones too
-  artifactsRepo?: string; // the repo it keeps artifacts in: where one on this machine moves, promoted
-  kinds?: DocKind[]; // its kinds of document: a page can be started as one, and filed as one
-  docs?: string; // when the threads on documents outside a mission last changed
-  // reviews: how many pull requests need you, as GitHub last said; absent
-  // until the Reviews page has been opened, or where there's no GitHub.
-  reviews?: { count: number; at: string };
-  // The ws that serves it (its daemon's), as ws --version says it: what
-  // the menu says, and what a plugin's app is told when it connects.
-  version?: string;
-  // places: where the sidebar's places go, as [ui] sidebar and menu say
-  // (shell/places.ts); absent for as they come.
-  places?: { sidebar: string[]; menu: string[] };
-}
-
-export interface Mission {
-  slug: string;
-  title: string;
-  state: MissionState;
-  created: string;
-  updated: string;
-  flag?: string;
-  reReview?: string[]; // capsules waiting for you to re-review
-  headline: Headline; // where it stands: ws mission show says the same
-  capsules: Capsule[];
-  crew: Crew[];
-  at?: string; // where it is on its route, in words: "Step 2 of 7, yours: …"
-  // about is what it's about, by name: a plugin's thing (RAM-123), a pull
-  // request, anything ws names.
-  about?: string[];
-}
-
-// Headline is where a mission stands: whose court it's in (an agent's,
-// yours, or outside: GitHub), in a sentence, and what moves it on.
-export interface Headline {
-  court: "agent" | "you" | "outside" | "";
-  kind: string;
-  group: HeadlineGroup;
-  label: string; // a few words, with a glyph: "? asks"
-  text: string;
-  action: HeadlineAction;
-  by?: string;
-  since?: string;
-  checking?: Checking; // kind checking: what's running, so the page can tick
-}
-
-// Checking is what ws is running while it checks a step: a check that's a
-// command (n of of), or the judge (n absent), reading the checks judged.
-export interface Checking {
-  step: number;
-  n?: number;
-  of: number;
-  command?: string;
-  line?: string; // the last line it's printed
-  judged?: number[];
-  judge?: string; // who's reading, on the judge's turn
-  since: string;
-  until: string; // when it's stopped, if it hasn't finished
-}
-
-export type HeadlineGroup = "needs-you" | "in-progress" | "waiting" | "up-next" | "past";
 
 // HeadlineAction is what moves a headline on; verb "" (absent) is nothing
 // to do.
-export interface HeadlineAction {
-  verb?: string; // reply, permission, watch, answer, review, review-doc, review-step, launch, launch-queued, resume, accept, wait, open, merge, archive, brief, confirm, unpark, log
-  label: string;
-  target?: string; // crew id, capsule, a document's ref (review-doc: its threads), PR, or a task (answer, review-step)
-  url?: string;
-  options?: string[];
-  look?: Look[]; // review-step: what the Review step looks at; answer: the bundles that show a step's checks, when they're yours to say
-}
+export type HeadlineAction = Action;
 
-// Look is one thing a step of yours looks at: a bundle to approve, a
-// capsule's work to review (repo/name), or a document to read (an
-// artifact's ref). A look that's read is beside the review (crew's notes,
-// their handoffs): the plan doesn't name it, so approving needn't cover it.
-export interface Look {
-  bundle?: string; // a verification bundle (b3), on the mission's Verify tab
-  capsule?: string;
-  doc?: string;
-  name: string;
-  read?: boolean;
-  approved?: boolean; // a bundle you've approved already: there to look at again, not what the step waits on
-}
-
-export type MissionState = "briefing" | "draft" | "active" | "review" | "landed" | "answered" | "handed-on" | "dropped" | "parked" | "archived";
 
 // Ending is how a mission ends: landed (at Z, its code merged or landed),
 // answered (a finding, no code), handed on (its work raised as other
 // missions) or dropped.
 export type Ending = "landed" | "answered" | "handed-on" | "dropped";
 
-// Conclusion is how a mission ends, suggested or made: its ending (none
-// for one from before endings, which only says it looks finished), what
-// it came to, each part of Z met or not and how, and where it was handed
-// on to. Mirrors internal/web/api.go.
-export interface Conclusion {
-  ending?: Ending;
-  text: string;
-  z?: { z: string; met: boolean; how?: string }[];
-  to?: string[];
-  by?: string;
-  at?: string;
-}
-
-// EndedCapsule is a capsule that ended alone, before its mission: handed
-// on to another mission, which took it, or dropped.
-export interface EndedCapsule {
-  repo: string;
-  name: string;
-  ending: "handed-on" | "dropped";
-  to?: string;
-  why?: string;
-  by?: string;
-  at: string;
-}
-
-export interface Capsule {
-  repo: string;
-  name: string;
-  branch?: string;
-  path: string;
-  exists: boolean;
-  head?: string;
-}
-
-export interface Crew {
-  id: string;
-  harness: string;
-  model?: string; // the one it was launched on, when it was picked
-  role?: string;
-  capsule?: string;
-  started: string;
-  ended: boolean;
-  starting?: boolean; // ws is starting its session, which has reported nothing yet: the mark the mission's headline reads
-  activity?: "working" | "waiting" | "permission" | "question";
-  status?: string;
-  lastReply?: string;
-  notice?: string; // what its harness last told you, or the question it asked
-  options?: string[]; // that question's answers
-  structured?: boolean; // crew over ACP: no terminal, just its conversation
-  waitingOn?: string; // the work it ended its turn to wait on, while ws holds that turn
-  again?: boolean; // it reported done, and it's been at work since (sent back to it): its done isn't its latest word
-}
 
 export class NotSignedIn extends Error {}
 
@@ -298,44 +297,6 @@ export function useWorkspace(): WorkspaceState {
   return state;
 }
 
-// Plugin is one of the workspace's plugins: what it adds to the sidebar,
-// and where it stands. Mirrors internal/web/plugins.go.
-export interface Plugin {
-  name: string;
-  description?: string;
-  state: "ready" | "setup" | "failed" | "stopped";
-  error?: string;
-  missing?: string[];
-  views: PluginView[];
-  // refs are the kinds of thing it has that words name, as ws took them.
-  refs?: PluginRef[];
-  // actions are what it does of its own when asked: Find's Do has them.
-  actions?: PluginAction[];
-  // changed counts the times it's said what its view shows is stale.
-  changed: number;
-  // starts counts the times it's been started.
-  starts: number;
-}
-
-// PluginRef is a kind of thing a plugin has that words name (a Jira
-// issue), and how one is named: one of prefixes, then its tail (a number,
-// when it doesn't say). address is where one is outside ws and path where
-// one opens in the plugin's app, {ref} its name in each. fields are what
-// one holds, and views how the plugin has one drawn from them: under its
-// name (card), and beside the list in Find (pane).
-export interface PluginRef {
-  kind: string; // the plugin's word for it: issue
-  title?: string; // what ws calls one: Jira issue
-  icon?: string;
-  prefixes: string[];
-  tail?: string;
-  address?: string;
-  path?: string;
-  fields?: ThingField[];
-  views?: ThingViews;
-  actions?: PluginAction[]; // what can be done to one of them
-}
-
 // PluginAction is something a plugin does when asked: of its own, or to
 // one of its things.
 export type PluginAction = ThingAction;
@@ -368,16 +329,6 @@ export const runPluginAction = (plugin: string, id: string, on: { kind?: string;
 // thing, RAM-123): it waits to be briefed, on its page.
 export const startMissionAbout = (about: string) => send<{ slug: string; path: string }>("POST", "/api/missions", { about });
 
-// PluginThing is one of a plugin's things: its name (key), and its fields
-// by name, as its kind declared them (a time as RFC 3339). told is whether
-// ws had it from what the plugin's told it, and answered from its own
-// records; otherwise the plugin was asked just now.
-export interface PluginThing {
-  key: string;
-  fields: Record<string, string>;
-  changed?: string;
-  told: boolean;
-}
 
 // getPluginThing is one of a plugin's things, by its kind and name: as ws
 // has it, or as its plugin says when asked. One the plugin has none of is
@@ -386,13 +337,6 @@ export interface PluginThing {
 export const getPluginThing = (plugin: string, kind: string, ref: string) =>
   getJSON<PluginThing>(`/api/plugins/${encodeURIComponent(plugin)}/refs/${encodeURIComponent(kind)}/${encodeURIComponent(ref)}`);
 
-export interface PluginView {
-  title: string;
-  icon?: string;
-  under?: string;
-  path: string; // where in the plugin's pages it opens
-  badge?: number;
-}
 
 // usePlugins are the workspace's plugins, kept up to date while the page
 // is showing. undefined until they're first read. showing is the plugin
@@ -462,125 +406,16 @@ export interface DiffLine {
   noeol?: boolean;
 }
 
-// Repo is one of the workspace's repos, as ws labels it: its display name
-// and colour, its group (hidden or not), and its capsules.
-export interface Repo {
-  name: string;
-  label: string;
-  color: string;
-  group?: string;
-  hidden?: boolean;
-  cloned: boolean;
-  documents?: boolean; // a space of documents, whole: its home is Documents, and Files folds it away
-  capsules: string[];
-  aliases?: string[]; // what else it's called, which names it in what's written
-  branches?: Record<string, string>; // each capsule's branch
-  landing?: "pr" | "direct"; // how work lands in it: through a pull request, or straight to its default branch
-}
-
-// Worktree is a repo's ground (GROUND: its default branch, checked out) or
-// one of its capsules, with its branch and where it stands.
-export interface Worktree {
-  name: string;
-  ground?: boolean;
-  branch: string;
-  dirty?: boolean;
-  ahead?: number;
-  behind?: number;
-}
 
 export const GROUND = ".ground";
 
-// Space is a space of documents: a repo of them, or a folder of one.
-// count is how many documents it has, as read from its default branch.
-export interface Space {
-  repo: string;
-  label: string;
-  color: string;
-  folder?: string; // "" for the whole repo
-  count: number;
-  cloned: boolean;
-  folders: { name: string; count: number }[]; // the folders at its top, by name
-  kinds: SpaceKind[]; // the workspace's kinds whose path is in it: its library's lists
-}
 
-// SpaceKind is a kind of document a space has, and where one can stand
-// (none, for a kind with no moves).
-export interface SpaceKind {
-  name: string;
-  title: string;
-  states?: string[];
-}
 
-// SpaceDoc is a document in a space: its path there, its title, its kind
-// and where it stands, what its path says (a date, a number), and who
-// changed it last and when.
-export interface SpaceDoc {
-  path: string;
-  title: string;
-  kind?: string;
-  state?: string;
-  date?: string;
-  number?: string;
-  changed?: string;
-  changedBy?: string;
-}
 
-// SpaceActivity is a space's top: the commits on its default branch lately
-// and the documents each changed, the capsules with changes to its
-// documents and the pull requests open from them, and how its ground
-// stands.
-export interface SpaceActivity {
-  lately: SpaceCommit[];
-  inFlight: SpaceFlight[];
-  fresh: SpaceFresh;
-}
-export interface SpaceCommit {
-  sha: string;
-  at: string;
-  by: string;
-  subject: string;
-  docs: SpaceDocChange[];
-}
-export interface SpaceDocChange {
-  path: string;
-  title?: string;
-  how: "added" | "changed" | "removed";
-}
-export interface SpaceFlight {
-  capsule: string;
-  branch?: string;
-  mission?: string;
-  pr?: { number: number; title: string; url?: string };
-  docs: SpaceDocChange[];
-}
-export interface SpaceFresh {
-  fetched?: string; // when its repo was last fetched; never, here: absent
-  behind: number; // commits its ground is behind the remote's default branch
-  ahead?: number;
-  branch: string;
-  dirty?: boolean; // the ground has changes of its own
-}
 export const getSpaceActivity = (repo: string) => getJSON<SpaceActivity>(`/api/documents/${encodeURIComponent(repo)}/activity`);
 export const fetchSpace = (repo: string) => send<{ fresh: SpaceFresh }>("POST", `/api/documents/${encodeURIComponent(repo)}/fetch`, {});
 export const pullSpace = (repo: string) => send<{ fresh: SpaceFresh }>("POST", `/api/documents/${encodeURIComponent(repo)}/pull`, {});
 
-// DocHit is a document a search found, led to the section that says it
-// best (anchor: its heading, none for the top), its snippet's words found
-// marked, and of which kind and where it stands.
-export interface DocHit {
-  repo: string;
-  label: string; // its space's
-  path: string;
-  title: string;
-  anchor?: string;
-  heading?: string;
-  snippet: { text: string; mark?: boolean }[];
-  score: number;
-  every?: boolean; // every word was found in it
-  kind?: string;
-  state?: string;
-}
 
 // searchDocuments finds documents in the workspace's spaces by what they
 // say, best first: in the spaces asked, of a kind and where it stands.
@@ -593,15 +428,6 @@ export function searchDocuments(q: string, o: { repos?: string[]; kind?: string;
   return getJSON<{ hits: DocHit[]; more: number }>(`/api/documents/search?${p}`);
 }
 
-// Citation is a document citing another: where, and how (a link, or a
-// ref naming it).
-export interface Citation {
-  repo: string;
-  path: string;
-  title?: string;
-  line: number;
-  how: "link" | "ref";
-}
 export const getCites = (repo: string, path: string) => getJSON<{ citedBy: Citation[]; cites: Citation[] }>(`/api/documents/${encodeURIComponent(repo)}/cites?${new URLSearchParams({ path })}`);
 
 // getSpaces is the workspace's spaces, read fresh; problem says why one
@@ -732,131 +558,8 @@ export const respond = (api: string, id: string, what: "reply" | "resolve" | "re
 
 // Missions in full: mirrors MissionDetail in internal/web/api.go.
 
-export interface Proposal {
-  text: string;
-  by?: string;
-  capsule?: string;
-  options?: string[];
-}
 
-export interface Stage {
-  n: number;
-  title: string; // a few words
-  text: string; // the whole stage
-  state: "accepted" | "current" | "todo";
-  crew?: string[];
-  checkIn?: boolean;
-  why?: string;
-  // A step of the mission's plan: its kind, who's on it (you: a
-  // checkpoint, yours alone; ws: an Open Pull Request, ws's own), that as
-  // the plan says it, and what it makes. None for a brief's stage.
-  type?: "Work" | "Verify" | "Review" | "Decide" | "Open Pull Request" | "Land" | "Wait" | "Plan";
-  who?: "crew" | "you" | "ws" | "CI" | "outside" | "the planner";
-  whoSays?: string;
-  in?: string; // where it works, as the plan says: a repo, or one of the mission's capsules (repo/name)
-  makes?: string;
-  opensPR?: boolean; // it makes a pull request, opened through ws
-  // A Work step's expansion: the step whose crew it carries on from, its
-  // limit as written and when its time runs out (or that it has), and its
-  // checks with what the latest round (round) came to.
-  carryOn?: number;
-  limit?: string;
-  deadline?: string;
-  outOfTime?: boolean;
-  checks?: StageCheck[];
-  round?: number;
-  // The orchestrator's decisions on it: when it applies and where it runs,
-  // as the plan says; whether it waits for a call, was skipped, or was
-  // started again; and its runs, one per repo.
-  onlyIf?: string;
-  inEach?: string;
-  held?: boolean;
-  skipped?: boolean;
-  attempts?: number;
-  runs?: StageRun[];
-  // A Wait step's expansion: who it waits on (you, or who or what, in the
-  // plan's words; absent when it doesn't say), and how it's passed:
-  // watched (ws runs its checks, and passes it), done (you mark it done)
-  // or said (anyone says it's happened). watch is since when it's waited,
-  // and ws's last look at its checks, whose results are on checks.
-  on?: string;
-  passes?: "watched" | "done" | "said";
-  watch?: StageWatch;
-}
 
-// StageWatch is a Wait step being waited for.
-export interface StageWatch {
-  since: string;
-  looked?: string; // when ws last ran its checks
-  looks?: number;
-  came?: string; // what that look came to: met, not yet, ws couldn't tell
-}
-
-// StageRun is one of a step's runs, in one repo.
-export interface StageRun {
-  repo: string;
-  capsule?: string;
-  done?: boolean;
-}
-
-// StageCheck is one of a Work step's checks: a command ws runs (run), or
-// words the judge judges; and what it last came to, if it's been checked.
-export interface StageCheck {
-  text: string;
-  run?: boolean;
-  result?: "met" | "unmet" | "can't tell" | "yours";
-  evidence?: string;
-  by?: string;
-}
-
-export interface CapsuleDetail extends Capsule {
-  dirty?: boolean;
-  ahead?: number;
-  behind?: number;
-  pr?: { number: number; title: string; url: string; merged?: boolean; checks?: string };
-  // Its repo has no pull requests: its commits land straight on the
-  // default branch when you say. toLand is how many it has to land, and
-  // landed when they did.
-  direct?: boolean;
-  toLand?: number;
-  landed?: string;
-  // runs are what's running in it (ws run), and recipes the names of what
-  // its ws.repo.toml says it can run.
-  runs?: RunDetail[];
-  recipes?: string[];
-}
-
-// RunDetail is a run (ws run) in a capsule. Mirrors internal/web/api.go.
-export interface RunDetail {
-  ref: string;
-  name: string;
-  recipe?: string;
-  link: string; // by its name, when the workspace has names; else local
-  local: string; // at 127.0.0.1 and its port
-  port: number;
-  state: "running" | "exited" | "gone";
-  status?: number; // its exit status, once exited
-  up?: boolean; // something listens on its port
-  ends?: string; // when it's ended without being asked, in words, while it runs
-  ended?: string;
-  owner: string;
-  by?: string;
-  command: string;
-  started: string;
-  // Where it runs: its repo, its worktree as a name says it (a capsule's
-  // name, ground or silo), and the folder.
-  repo: string;
-  worktree: string;
-  dir?: string;
-  pid?: number; // leads its process group, while it runs
-  // Who it's for, beyond owner's kind.
-  mission?: string;
-  step?: number;
-  crew?: string;
-  conversation?: string;
-  ownerPid?: number;
-  ownerCommand?: string;
-}
 
 // Names is where the workspace's names under .localhost stand (ws
 // router): whether ws.local.toml's [router] turns them on, the name it
@@ -864,21 +567,7 @@ export interface RunDetail {
 // another, given a clash), the machine's router's port (absent: none
 // serving; fallback: 80 couldn't be had) and the daemon holding it, and
 // the web UI by its name. Mirrors internal/web/runs.go.
-export interface Names {
-  on: boolean;
-  want: string;
-  name?: string;
-  port?: number;
-  fallback?: boolean;
-  heldBy?: number;
-  web?: string;
-}
-
-// RunsInfo is the Runs page's: every run in the workspace, and its names.
-export interface RunsInfo {
-  names: Names;
-  runs: RunDetail[];
-}
+export type Names = NamesInfo;
 
 export const getRuns = () => getJSON<RunsInfo>("/api/runs");
 
@@ -900,126 +589,15 @@ export const pointSilo = (repo: string, to: string) => send<{ said: string }>("P
 // stopRun ends a run now.
 export const stopRun = (slug: string, ref: string) => send<{ stopped: string }>("POST", `/api/missions/${encodeURIComponent(slug)}/runs/stop`, { ref });
 
-// Landing is where a capsule stands for landing, in a repo that takes
-// commits straight to its default branch (direct): what would land, and
-// whether your latest review approves it as it is. Mirrors
-// internal/web/landing.go.
-export interface Landing {
-  direct: boolean;
-  branch: string;
-  commits: string[];
-  dirty: boolean;
-  verify?: string;
-  mission?: string;
-  approved: boolean;
-  pending?: boolean;
-  landed?: Landed;
-}
 
-export interface Landed {
-  branch: string;
-  head: string;
-  commits: string[];
-  mission?: string;
-  warnings?: string[];
-}
 
-// LandStopped is a landing that stopped, with nothing pushed: at which
-// step, why, and what git or the repo's check said.
-export interface LandStopped {
-  step: string;
-  message: string;
-  output?: string;
-}
 
 export const getLanding = (repo: string, name: string) => getJSON<Landing>(`${worktreeAPI(repo, name)}/landing`);
 export const landCapsule = (repo: string, name: string) => send<{ landed?: Landed; stopped?: LandStopped }>("POST", `${worktreeAPI(repo, name)}/land`);
 
-export interface CrewDetail extends Crew {
-  endedAt?: string;
-  exit?: string;
-  how?: "interrupted" | "handed-back" | "stopped"; // how it ended, beyond its exit
-  note?: string;
-  dispatch?: string;
-  handoff?: string;
-}
-
-export interface Artifact {
-  ref: string;
-  kind: string;
-  label?: string;
-  state: string;
-  url?: string;
-  path?: string;
-  by?: string;
-  added: string;
-  readable: boolean;
-  // Where the threads on it stand, for a document with open ones.
-  threads?: { open: number; waiting: number };
-  // How many versions it has, for an artifact (a3): opened at /artifacts/a3.
-  versions?: number;
-}
 
 // --- Artifacts: versioned HTML prototypes
 
-// ArtifactVersion is one version: what it's based on, who added it (you,
-// or crew: c1), where it was made (a conversation, w9, or a mission's
-// slug, with its title then), and its note.
-export interface ArtifactVersion {
-  n: number;
-  basedOn?: number;
-  at: string;
-  by: string;
-  from?: string;
-  proposal?: number;
-  fromTitle?: string;
-  note?: string;
-  size?: number; // its file's, on an artifact's page; absent while there's none
-  // capsule is where it waits to land (records/glow): crew's, in flight;
-  // was its number there, where it lands as another (n).
-  capsule?: string;
-  was?: number;
-}
-
-export type ArtifactStatus = "live" | "promoted" | "discarded";
-
-// ArtifactInfo is an artifact as the list, its refs and Find show it.
-export interface ArtifactInfo {
-  id: string; // a3
-  title: string;
-  status: ArtifactStatus;
-  gone?: boolean; // its folder isn't where it was, and it wasn't discarded
-  place: string; // where it's kept: ".ws", this machine, or a repo's name (records)
-  folder: string; // its name in .ws/artifacts, or its path in the repo
-  where: string; // .ws/artifacts/<folder>/, records:artifacts/<folder>/
-  inFlight?: string; // the capsule it's in (records/glow) while none of it has landed
-  flying?: number; // how many of its versions wait in a capsule
-  made: string;
-  versions: number;
-  latest?: ArtifactVersion;
-  from?: { from: string; title?: string }[]; // where its versions came from, the latest first
-  promoted?: { at: string; by: string; version: number; into: string };
-  // discarded: commit is, in a repo, the last commit its folder was in,
-  // where history keeps it.
-  discarded?: { at: string; by: string; reason?: string; commit?: string };
-  // expires is when a live one expires, if it does; expired, by now (on
-  // this machine until the daemon discards it, in a repo until it's
-  // cleared).
-  expires?: string;
-  expired?: boolean;
-  erased?: boolean; // discarded here, and its files deleted for good
-  restorable?: boolean; // discarded, and it can be put back
-}
-
-// ArtifactDone is what promoting, discarding or restoring one did.
-export interface ArtifactDone {
-  artifact: ArtifactInfo;
-  landed?: string; // kept in a repo: what landing its commit did
-  moved?: boolean; // promoted, it moved from this machine into the repo
-  into?: string; // what it went into: a mission's slug, or a document's ref
-  started?: string; // a mission started from it
-  recorded?: string; // the mission it was recorded on
-}
 
 // ArtifactPromotion is promoting one: the version chosen (0: its latest),
 // and what it went into (a mission's slug, or a document's ref), or a
@@ -1036,10 +614,6 @@ export const promoteArtifact = (id: string, p: ArtifactPromotion) => send<Artifa
 export const discardArtifact = (id: string, reason: string) => send<ArtifactDone>("POST", artifactPath(id, "discard"), { reason });
 export const restoreArtifact = (id: string) => send<ArtifactDone>("POST", artifactPath(id, "restore"), {});
 export const clearExpiredArtifacts = () => send<{ local: string[]; repo: string[]; landed?: string }>("POST", "/api/artifacts/clear", {});
-
-export interface ArtifactDetail extends ArtifactInfo {
-  all: ArtifactVersion[]; // oldest first
-}
 
 export const getArtifactDetail = (id: string) => getJSON<ArtifactDetail>(`/api/artifacts/${encodeURIComponent(id)}`);
 export const getArtifactSource = (id: string, version: number) =>
@@ -1068,216 +642,19 @@ export const frameURL = (id: string, version: number, tweaks = "") => `/frame/${
 export const proposalFrameURL = (slug: string, id: string, n: number) =>
   `/frame/${slug ? `missions/${encodeURIComponent(slug)}/` : ""}${encodeURIComponent(id)}/proposals/${n}`;
 
-export interface MissionEvent {
-  time: string;
-  kind: string;
-  text: string;
-  by?: string; // a crew id, "orchestrator", or absent (you, or ws)
-  to?: string; // whom a message to crew is for (resume_with, told): by is then who said it ("you", "orchestrator", "ws"), none for one logged before ws said
-}
+export type MissionEvent = Event;
 
-// Bundle is a verification bundle: what was handed over to show a step's
-// work is as its checks say. It's never edited: a later one of its step
-// takes its place.
-export interface Bundle {
-  id: string; // b3
-  step?: number; // its step's number as the plan has it now
-  stepName?: string;
-  crew: string; // who made it
-  by?: string; // what they ran on: claude on sonnet
-  own?: boolean; // they did the work it shows; else they're a verifier, who didn't
-  capsule?: string; // repo/name
-  commit?: string; // the commit it's a bundle of
-  stale?: boolean; // its capsule has moved on since, to head
-  head?: string;
-  at: string;
-  replaces?: string;
-  replacedBy?: string;
-  verdict?: "approved" | "sent back"; // yours of it, as a review has one
-  verdictAt?: string;
-  notes?: BundleNote[]; // what you said wasn't right, when you sent it back
-  looked?: string[]; // its checks you've marked as looked at, by their keys in its list
-  asked?: boolean; // the mission is at a step of yours (askedAt) that looks at it: a Review step, or its own with its checks yours to say
-  askedAt?: number;
-  summary: string;
-  try?: BundleTry[];
-  checks: BundleCheck[];
-  notVerified?: string[];
-  noticed?: string[]; // what its crew came across that isn't one of its checks
-  ran?: BundleRan[]; // its step's checks that are commands, as ws ran them at its commit
-}
 
-// BundleNote is what you said isn't right of a bundle: of a check, by its
-// number, or (0) of it as a whole.
-export interface BundleNote {
-  check: number;
-  text: string;
-}
-
-// BundleTry is something to do to see it yourself: command where it starts
-// with one, look for what to look for.
-export interface BundleTry {
-  text: string;
-  command?: string;
-  look?: boolean;
-}
-
-// CheckVerdict is what a check came to: yours is one a verifier left for
-// you, as the plan keeps it yours to settle.
-export type CheckVerdict = "met" | "unmet" | "can't tell" | "yours";
-
-export interface BundleCheck {
-  n: number;
-  check?: string; // the step's check; none for one of the bundle's own
-  verdict: CheckVerdict;
-  said: string;
-  points?: string[]; // facts of the same kind, listed under what it said
-  shows?: BundleEvidence[];
-  lines?: string[];
-  try?: BundleTry[];
-  asks?: string[];
-  judged?: BundleRan; // what the judge last said of it
-}
-
-// BundleEvidence is a file that shows a check, served from url.
-export interface BundleEvidence {
-  name: string;
-  url: string;
-  kind: "image" | "video" | "text";
-  size?: number;
-  caption?: string;
-  before?: BundleEvidence; // the same on ground
-  madeBy?: string; // the command that made it
-}
-
-// BundleRan is what a check of the bundle's step came to when ws ran it,
-// or had it judged.
-export interface BundleRan {
-  n?: number;
-  check: string;
-  result: CheckVerdict;
-  evidence?: string;
-  by: string;
-}
-
-export interface MissionDetail {
-  slug: string;
-  title: string;
-  state: MissionState;
-  created: string;
-  request?: string;
-  from?: string;
-  conversation?: string; // the conversation it came out of: w3, or another mission's (cache/t4)
-  conversationTitle?: string;
-  talks: Talk[]; // the conversations about it (its Talk tab), newest first
-  planner?: string; // the conversation its planner is in (t1), which its brief's page talks in
-  brief: string;
-  briefUnwritten?: boolean; // the brief's empty, or the template it was made with
-  plan?: string; // plan.md: its route, in place of the brief's stages
-  planProblem?: string; // why plan.md doesn't read, when it was changed by hand
-  flag?: Proposal; // the oldest of tasks
-  tasks?: MissionTask[]; // what it waits on you for, oldest first
-  dispatch?: Proposal;
-  conclude?: Conclusion; // how it ends, suggested
-  ending?: Conclusion; // how it ended, once you said
-  endedCapsules?: EndedCapsule[];
-  at?: string; // where it is on its route, in words: "Step 2 of 7, yours: …"
-  z?: string[]; // what has to be true for it to end at Z: each part checked when it ends
-  reReview?: { capsule: string; review: string; answered: number; total: number }[];
-  headlines: Headline[]; // most pressing first: the first is the mission's
-  runs: OrchestratorRun[]; // the orchestrator's latest runs on it, newest first
-  stages: Stage[];
-  capsules: CapsuleDetail[];
-  crew: CrewDetail[];
-  artifacts: Artifact[];
-  bundles: Bundle[]; // its verification bundles, oldest first (its Verify tab)
-  decisions: Decision[]; // those that stand first, newest first
-  events: MissionEvent[];
-  github: boolean;
-  crewPicks: CrewPicks; // what Launch crew may start crew on
-}
 
 // CrewPick is a harness, and the model to run on it (none: the agent's own).
-export interface CrewPick {
-  harness: string;
-  model?: string;
-}
+export type CrewPick = Pick;
 
-// CrewPicks are what new crew may be launched on from a mission's page: the
-// default (what Launch crew starts them on), and the others [crew] allowed
-// lists (none: just the default).
-export interface CrewPicks {
-  default: CrewPick;
-  allowed: CrewPick[];
-}
 
-// Decision is what was decided on a mission, and why.
-export interface Decision {
-  id: string;
-  what: string;
-  why?: string;
-  by: string; // "you", a crew id, or "orchestrator"
-  from?: string; // where it was decided: a ref
-  about?: string[];
-  at: string;
-  state: "current" | "superseded" | "withdrawn";
-  supersededBy?: string;
-  withdrawnWhy?: string;
-}
-
-export interface ArtifactContent extends Artifact {
-  text: string;
-  markdown: boolean;
-  version: string; // names text: comments say the version they were made on
-  annotatable: boolean; // a document to comment on
-  stage?: DocStage; // the stage of the brief's plan it was made for
-  editable: boolean; // it can be edited here (in a capsule, or the mission's own)
-  uneditable?: string; // why it can't, if it can't
-  media?: string; // its content type, for an image or a video: shown as it is, from raw, with no text
-  raw?: string; // where an image or a video is served from, as it is
-  in?: DocIn; // the worktree it was read from, for a file in a repo
-  // The mission that records it, for one opened as a file: its threads are there.
-  mission?: { slug: string; title: string; ref: string };
-  saves?: DocSaves; // how an edit to it is saved, for a document outside a mission
-  docKind?: DocKind; // which of the workspace's kinds of document it is, if one
-  page?: string; // the page it was written in, for a document filed from one
-}
-
-// DocKind is a kind of document the workspace has ([documents.<name>]), as
-// one of its documents is of it: what one's called, where they go
-// (repo:path, with {date}, {slug} and {number}), the file that says how
-// one's written, and the first line of a commit that changes this one
-// (from the kind's message; none if it has none).
-export interface DocKind {
-  name: string;
-  title: string;
-  where: string;
-  guide?: string;
-  subject?: string;
-}
 
 // kindHint says what a document's kind is, for its label's title.
 export const kindHint = (k: DocKind) =>
   `${k.title}: one of the workspace's kinds of document (${k.name}, at ${k.where})${k.guide ? `. How one's written: ${k.guide}` : ""}`;
 
-// DocSaves is how saving a document outside a mission goes: in its
-// capsule (committed as you); landed, a commit straight to the default
-// branch of a repo with no pull requests (once verify passes); or lifted,
-// into a capsule made for it in a repo that takes them, and left to you.
-export interface DocSaves {
-  how: "capsule" | "land" | "lift";
-  branch: string;
-  verify?: string;
-  subject: string; // the commit's first line, unless you give one
-}
-
-// DocIn is where a document is: a repo, one of its worktrees (GROUND, or
-// a capsule's name) and its path there.
-export interface DocIn {
-  repo: string;
-  worktree: string;
-  path: string;
-}
 
 // DocDraft is an edit to a document not saved yet, kept with the mission:
 // what's written, and the version it's from.
@@ -1288,17 +665,6 @@ export interface DocDraft {
   at: string;
 }
 
-// DocSaved is what saving an edited document did; conflict, instead, is
-// an edit that clashes with changes made meanwhile (nothing's written):
-// the two merged, each clash marked, to settle and save from version.
-export interface DocSaved {
-  message?: string;
-  version: string;
-  commit?: string;
-  merged?: boolean;
-  conflict?: { text: string; clashes: number };
-  ref?: string; // where the document is now, when saving moved it (into a capsule lifted for it)
-}
 
 // A document's draft and save are its mission's, or (no slug) the
 // workspace's, for a file in a repo that's in no mission.
@@ -1317,21 +683,8 @@ export const dropDraft = (slug: string, ref: string) => send<{ draft: null }>("D
 export const saveDoc = (slug: string, d: { ref: string; base: string; text: string; message?: string }) =>
   send<DocSaved>("POST", slug ? `/api/missions/${encodeURIComponent(slug)}/artifact/save` : "/api/docs/save", d);
 
-// DocStage is the stage a document was made for: approving it offers to
-// accept the stage, while it's the current one.
-export interface DocStage {
-  n: number;
-  title: string;
-  state: "todo" | "current" | "accepted";
-}
-
 // Approval is a document approved, at the version it was then.
-export interface Approval {
-  doc: string;
-  version: string;
-  by: string;
-  at: string;
-}
+export type Approval = ConversationApproval;
 
 // ActVerb is what the web UI can do about a mission: answer or dismiss its
 // question, accept a stage, archive, unpark, and start crew (new, the
@@ -1367,15 +720,7 @@ export type ActVerb =
 
 // MissionTask is something a mission waits on you for: a question, or a
 // step of its route that's yours (to review, answer, land, or go on from).
-export interface MissionTask {
-  n: number;
-  verb: "answer" | "review" | "approve" | "land" | "do" | "checks" | "time" | "reply";
-  text: string;
-  step?: number;
-  options?: string[];
-  by?: string;
-  at: string;
-}
+export type MissionTask = Task;
 
 // ActOpts is what an act says beyond its verb: text; the crew it's to;
 // for end, how it ends (none: as suggested), each part of Z met or not
@@ -1419,14 +764,6 @@ export interface TermScreen {
   title?: string;
 }
 
-// TermKey is a key as the browser names it (KeyboardEvent.key), which the
-// server types into the crew for the modes it has on.
-export interface TermKey {
-  key: string;
-  ctrl?: boolean;
-  alt?: boolean;
-  shift?: boolean;
-}
 
 const crewPath = (slug: string, id: string) => `/api/missions/${encodeURIComponent(slug)}/crew/${encodeURIComponent(id)}`;
 
@@ -1437,102 +774,13 @@ export const crewScreenURL = (slug: string, id: string) => `${crewPath(slug, id)
 export const typeIntoCrew = (slug: string, id: string, input: { key: TermKey } | { paste: string }) =>
   send<object>("POST", `${crewPath(slug, id)}/input`, input);
 
-// The orchestrator: how it's set up, and its runs.
-export interface OrchestratorInfo {
-  enabled: boolean;
-  harness: string;
-  model?: string;
-  problem?: string; // why it can't run as set up
-  dispatch: "auto" | "ask";
-  maxDispatches: number;
-  runs: OrchestratorRun[]; // newest first, across missions
-}
 
-export interface OrchestratorRun {
-  mission: string;
-  missionTitle: string;
-  id: string;
-  started: string;
-  ended: string;
-  for: string; // what it looked at: "c2 (done)"
-  trigger: string;
-  harness: string;
-  model?: string;
-  retry?: boolean; // run again after a run that did nothing
-  acted: boolean; // it ran a ws mission command
-  error?: string;
-  said?: string;
-  calls: number;
-  refused: number;
-}
 
-export interface OrchestratorCall {
-  tool: string;
-  input: string;
-  result?: string;
-  error?: boolean;
-  refused?: boolean;
-}
-
-export interface OrchestratorRunDetail extends OrchestratorRun {
-  prompt: string;
-  output: string;
-  log: OrchestratorCall[];
-}
 
 export const getOrchestrator = () => getJSON<OrchestratorInfo>("/api/orchestrator");
 
-// Settings: yours, in ws.local.toml, each with where its value comes from
-// (ws's default, the team's ws.toml, or yours), and what each role runs.
-export interface SettingChoice {
-  value: string;
-  label?: string;
-  note?: string; // why it may not work here: a harness that isn't installed
-}
 
-export interface Setting {
-  section: string; // "" for a key at the top
-  key: string;
-  label: string;
-  about?: string;
-  kind: "harness" | "model" | "choice" | "bool" | "number" | "text" | "picks" | "color" | "places"; // picks: a list of harness:model; color: a hex colour, #rrggbb; places: the sidebar's, by id (shell/places.ts)
-  choices?: SettingChoice[];
-  value: unknown;
-  source: "default" | "team" | "yours";
-  team?: unknown;
-  yours?: unknown;
-  default?: unknown;
-  harness?: string; // a model's: the harness whose models to offer
-}
 
-export interface RoleRun {
-  harness: string;
-  model?: string;
-  problem?: string;
-  note?: string;
-}
-
-export interface SettingsGroup {
-  id: string;
-  title: string;
-  about?: string;
-  settings: Setting[];
-  runs?: RoleRun;
-}
-
-export interface SettingsInfo {
-  file: string;
-  team: string;
-  groups: SettingsGroup[];
-  unknown?: string[];
-}
-
-export interface SettingChange {
-  section: string;
-  key: string;
-  value?: unknown;
-  clear?: boolean;
-}
 
 export interface ModelInfo {
   id: string;
@@ -1544,32 +792,8 @@ export interface ModelInfo {
 export const getSettings = () => getJSON<SettingsInfo>("/api/settings");
 export const setSettings = (changes: SettingChange[]) => send<SettingsInfo>("POST", "/api/settings", { changes });
 
-// FocusPin is a pin: its name, as ws writes it (a ref is read back from
-// it), and what the graph says of it, where it says: what it is (mission,
-// talk, pull-request, thing…), what it's called, how it stands. Mirrors
-// internal/web/api.go.
-export interface FocusPin {
-  name: string;
-  kind?: string;
-  title?: string;
-  state?: string;
-}
-export interface FocusDone {
-  said: string;
-  focus: FocusPin[];
-}
 // Pin, unpin or put your pins in order: one at a time.
 export const changeFocus = (change: { pin: string } | { unpin: string } | { order: string[] }) => send<FocusDone>("POST", "/api/focus", change);
-// The workspace's process (PROCESS.md: how work goes here, in prose), as
-// it's written. The planner and the orchestrator read it as it is.
-export interface ProcessInfo {
-  file: string;
-  name: string; // as it reads from the workspace's root
-  exists: boolean;
-  text: string;
-  commit?: string; // the config repo's last commit of it
-  uncommitted?: boolean; // the file isn't as committed
-}
 
 export const getProcess = () => getJSON<ProcessInfo>("/api/process");
 export const getModels = (harness: string) => getJSON<ModelInfo[]>(`/api/settings/models?harness=${encodeURIComponent(harness)}`);
@@ -1611,14 +835,6 @@ export function docAddress(ref: string, edit: boolean | string = false): string 
 // else Local's.
 export const pageAddress = (p: { id: string; source?: { ref: string } }) => (p.source ? docAddress(p.source.ref, p.id) : `/documents/local/${encodeURIComponent(p.id)}`);
 
-// SpaceRef is a space of documents as the workspace says it: what a link
-// to one of its documents needs to know.
-export interface SpaceRef {
-  repo: string;
-  folder?: string;
-  label: string;
-  color: string;
-}
 
 // spaceAt is the space a file is in, if it's one of a space's documents.
 export const spaceAt = (spaces: SpaceRef[] | undefined, repo: string, path: string) =>
@@ -1748,24 +964,6 @@ export const getThreadVersion = (slug: string, ref: string, v: string) =>
 // Conversations with an agent about the workspace (w1, w2, …): mirrors
 // internal/web/talk.go.
 
-export interface Talk {
-  id: string;
-  title?: string;
-  opening: string; // its first message, clipped
-  summary?: string;
-  status: "open" | "resolved";
-  answering?: boolean;
-  waiting?: boolean; // the agent replied: your turn
-  became?: string; // the mission it became
-  proposed?: number; // proposals waiting for you
-  pr?: string; // the pull request it's about (api#89)
-  doc?: string; // the document it's about, an ask kept (records:notes/x.md)
-  section?: string; // the section it was asked of, if a passage was
-  quote?: string; // the passage, clipped
-  at: string;
-  updated: string;
-}
-
 // TalkProposal is something the agent proposed: a decision, a mission
 // (with a brief, ready; without, an idea to brief later), an edit to the
 // brief, crew, a replan by the mission's planner, a review comment, a
@@ -1858,13 +1056,7 @@ export interface PluginProposalItem {
 }
 
 // TalkCall is a tool call the agent made on the way to a reply.
-export interface TalkCall {
-  tool: string;
-  input: string;
-  result?: string;
-  error?: boolean;
-  refused?: boolean;
-}
+export type TalkCall = HarnessToolCall;
 
 export interface TalkTurn {
   n: number;
@@ -1968,81 +1160,8 @@ export const keepAsk = (slug: string, id: string) => send<TalkDetail>("POST", ta
 // Pages: documents you write here, with cells an agent fills in. Mirrors
 // internal/web/pages.go.
 
-export interface PageInfo {
-  id: string;
-  title: string;
-  updated: string; // when it, or one of its cells, last changed
-  cells?: number;
-  filling?: number; // cells an agent's filling now
-  stale?: number; // cells written from a file that's changed since
-  findings?: number; // its passes' findings still open
-  passing?: number; // passes running now
-  kind?: string; // the kind of document it's written as, if it was started as one
-  filed?: PageFiled; // where it was filed as a document, once it was
-  source?: PageSource; // the file in a repo it's tied to, if it is: saving writes there
-  to?: string; // where it's to be filed, of no kind: repo:folder/
-  unsaved?: boolean; // tied to a file, with something to save there
-}
 
-// PageSource is the file a page is tied to: its ref, and the version of
-// it the page last agreed with.
-export interface PageSource {
-  ref: string;
-  version: string;
-  at: string;
-}
 
-// PageTied is where a page tied to a file stands with it: the file, whether
-// it's changed since the page last agreed with it (bring that in before
-// saving), or isn't there any more (gone says why), and how saving writes.
-export interface PageTied {
-  ref: string;
-  in?: DocIn;
-  changed?: boolean;
-  gone?: string;
-  saves?: DocSaves;
-}
-
-// PageFiled is where a page was filed: its document's ref (repo:path, or
-// repo/capsule:path where it was left in a capsule), of what kind, the
-// commit that added it, whether that landed, when, and the version of the
-// page it was filed from.
-export interface PageFiled {
-  ref: string;
-  kind: string;
-  commit?: string;
-  landed?: boolean;
-  at: string;
-  version: string;
-}
-
-// PageFiling is what filing a page would do, or did: where it goes, the
-// commit's first line, how it's saved (land: straight to branch, once
-// verify passes; lift: in a capsule lifted for it, left to you), whether
-// there's a file there already, and, done, the commit and what happened.
-export interface PageFiling {
-  kind: string;
-  title: string;
-  ref: string;
-  subject: string;
-  how: "land" | "lift";
-  branch: string;
-  verify?: string;
-  taken?: boolean;
-  commit?: string;
-  message?: string;
-}
-
-// CellSource is a file a cell was written from: in one of the workspace's
-// repos, its repo, worktree (".ground", or a capsule) and file there.
-// state says whether it's changed since ("" for as it was).
-export interface CellSource {
-  path: string;
-  repo?: string;
-  worktree?: string;
-  file?: string;
-  state?: "changed" | "gone";
-}
 
 // PageCell is a cell of a page: its conversation (what you asked for, each
 // version the agent wrote, what you asked to change), and while the agent's
@@ -2179,9 +1298,6 @@ export interface PassFinding {
   thread?: string;
 }
 
-// Why a finding was dismissed: how often each is how well a pass does
-// (ws show passes).
-export type DismissWhy = "wrong" | "already" | "minor";
 export const dismissWhys: [DismissWhy, string, string][] = [
   ["wrong", "Wrong", "It isn't so"],
   ["already", "Already said", "The page says it already"],
@@ -2483,13 +1599,6 @@ export interface TeamEvent {
   paths?: string[];
 }
 
-export interface TeamPerson {
-  key: string;
-  name: string;
-  short: string; // what they're called in a sentence
-  login?: string;
-  bot?: boolean;
-}
 
 // TeamItem is a pull request, or one person's commits to one repo, on one
 // day: what happened to it then.
@@ -2580,14 +1689,6 @@ export interface TeamView {
 // everything in a period that has none.
 export const narrateTeam = (what: { strand?: string; since?: string }) => send<{ started: number }>("POST", "/api/team/narrate", what);
 
-// TeamTopic is one thing the team's been working on: what it's called,
-// what it comes to, the changes that are part of it and who's on them.
-export interface TeamTopic {
-  name: string;
-  text: string;
-  strands: string[];
-  people: string[];
-}
 
 // summariseTeam asks for a period's account to be written.
 export const summariseTeam = (since: string) => send<{ started: boolean }>("POST", "/api/team/summarise", { since });
@@ -2687,12 +1788,7 @@ export const settlePRFinding = (api: string, pass: string, key: string, state: "
 // A review's guide: what the change does, where that differs from what
 // it says it does, and its files in the order to read them, in groups.
 // Mirrors ReviewGuide in internal/web/reviewpasses.go.
-export interface GuideGroup {
-  name: string;
-  why?: string;
-  skim?: boolean; // mechanical: they needn't be read closely
-  files: { path: string; note?: string }[];
-}
+export type GuideGroup = ConversationGuideGroup;
 
 export interface GuideText {
   does: string;
@@ -2700,23 +1796,6 @@ export interface GuideText {
   groups: GuideGroup[];
 }
 
-export interface ReviewGuide {
-  id?: string;
-  running?: boolean;
-  failed?: string;
-  at?: string;
-  ran?: string; // the commit it read the change at
-  moved?: boolean; // it's been pushed to since
-  guide?: GuideText;
-  // While it's being written: since when (none while it waits to start),
-  // what its agent was given (the files it may place, and those it wasn't
-  // shown, and why), whether it's thinking before it writes, and what it's
-  // written so far, read as the guide is.
-  since?: string;
-  given?: { files: string[]; left?: { path: string; why: string }[] };
-  thinking?: boolean;
-  draft?: GuideText;
-}
 
 export const getPRGuide = (api: string) => getJSON<ReviewGuide>(`${api}/guide`);
 export const runPRGuide = (api: string) => send<ReviewGuide>("POST", `${api}/guide/run`);
@@ -2757,11 +1836,4 @@ export const askPR = (api: string, q: { body: string; path?: string; side?: "new
 export const dockPR = (api: string) => send<{ message: string }>("POST", `${api}/dock`);
 
 // A capsule a conversation's agent lifted.
-export interface TalkCapsule {
-  repo: string;
-  name: string;
-  branch: string;
-  at: string;
-  away?: string;
-  kept?: boolean;
-}
+export type TalkCapsule = ConversationCapsule;

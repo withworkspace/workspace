@@ -98,7 +98,7 @@ func TestWebSettings(t *testing.T) {
 		{"", "git", "https", "default"},
 	} {
 		s := setting(t, info, c.section, c.key)
-		if s.Value != c.value || s.Source != c.source {
+		if s.Value != c.value || string(s.Source) != c.source {
 			t.Errorf("[%s] %s = %v (%s), want %v (%s)", c.section, c.key, s.Value, s.Source, c.value, c.source)
 		}
 	}

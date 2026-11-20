@@ -27,10 +27,19 @@ type Repo struct {
 	Capsules  []string
 	Aliases   []string          // what else it's called (ws.toml's aliases), sorted
 	Branches  map[string]string // each capsule's branch
-	// Landing is how work lands in it: "pr", or "direct" (straight to its
-	// default branch), as the workspace or the repo itself says.
-	Landing string
+	// Landing is how work lands in it, as the workspace or the repo itself
+	// says.
+	Landing RepoLanding
 }
+
+// RepoLanding is how work lands in a repo: through a pull request, or
+// straight to its default branch (config's landing).
+type RepoLanding string
+
+const (
+	LandsByPR     RepoLanding = "pr"
+	LandsDirectly RepoLanding = "direct"
+)
 
 // Worktree is a repo's ground or one of its capsules, and where it stands.
 type Worktree struct {
@@ -50,7 +59,7 @@ func (w *Workspace) Repos() []Repo {
 		out := []Repo{}
 		colors := w.repoColors()
 		for _, name := range ws.RepoNames {
-			r := Repo{Name: name, Label: ws.DisplayNameFor(name), Color: colors[name], Group: ws.GroupOf(name), Hidden: ws.IsHidden(name), Capsules: []string{}, Aliases: []string{}, Landing: ws.Landing(name)}
+			r := Repo{Name: name, Label: ws.DisplayNameFor(name), Color: colors[name], Group: ws.GroupOf(name), Hidden: ws.IsHidden(name), Capsules: []string{}, Aliases: []string{}, Landing: RepoLanding(ws.Landing(name))}
 			if s, ok := ws.SpaceOf(name); ok && s.Folder == "" {
 				r.Documents = true
 			}

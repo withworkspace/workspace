@@ -22,22 +22,22 @@ import (
 
 // Talk is a conversation in a list: GET /api/workspace has them all.
 type Talk struct {
-	ID        string    `json:"id"`
-	Title     string    `json:"title,omitempty"`
-	Opening   string    `json:"opening"` // its first message, clipped
-	Summary   string    `json:"summary,omitempty"`
-	Status    string    `json:"status"`
-	Answering bool      `json:"answering,omitempty"`
-	Waiting   bool      `json:"waiting,omitempty"`  // the agent replied: your turn
-	Became    string    `json:"became,omitempty"`   // the mission it became
-	Proposed  int       `json:"proposed,omitempty"` // proposals waiting for you
-	PR        string    `json:"pr,omitempty"`       // the pull request it's about (api#89)
-	Doc       string    `json:"doc,omitempty"`      // the document it's about, an ask kept (records:notes/x.md)
-	Section   string    `json:"section,omitempty"`  // the section it was asked of, if a passage was
-	Quote     string    `json:"quote,omitempty"`    // the passage, clipped
-	Thing     string    `json:"thing,omitempty"`    // the plugin's thing it's about, asked from its page (sketch-13)
-	At        time.Time `json:"at"`
-	Updated   time.Time `json:"updated"`
+	ID        string       `json:"id"`
+	Title     string       `json:"title,omitempty"`
+	Opening   string       `json:"opening"` // its first message, clipped
+	Summary   string       `json:"summary,omitempty"`
+	Status    ThreadStatus `json:"status"`
+	Answering bool         `json:"answering,omitempty"`
+	Waiting   bool         `json:"waiting,omitempty"`  // the agent replied: your turn
+	Became    string       `json:"became,omitempty"`   // the mission it became
+	Proposed  int          `json:"proposed,omitempty"` // proposals waiting for you
+	PR        string       `json:"pr,omitempty"`       // the pull request it's about (api#89)
+	Doc       string       `json:"doc,omitempty"`      // the document it's about, an ask kept (records:notes/x.md)
+	Section   string       `json:"section,omitempty"`  // the section it was asked of, if a passage was
+	Quote     string       `json:"quote,omitempty"`    // the passage, clipped
+	Thing     string       `json:"thing,omitempty"`    // the plugin's thing it's about, asked from its page (sketch-13)
+	At        time.Time    `json:"at"`
+	Updated   time.Time    `json:"updated"`
 }
 
 // TalkDetail is GET /api/conversations/{id}: the conversation, and while
@@ -87,7 +87,7 @@ func talksOf(store conversation.Store, list []*conversation.Conversation) []Talk
 		if c.Kind != conversation.Talk {
 			continue
 		}
-		t := Talk{ID: c.ID, Title: c.Title, Summary: c.Summary, Status: c.Status, Answering: c.Answering && c.Status == conversation.Open,
+		t := Talk{ID: c.ID, Title: c.Title, Summary: c.Summary, Status: ThreadStatus(c.Status), Answering: c.Answering && c.Status == conversation.Open,
 			Waiting: c.WaitingOnYou(), At: c.At, Updated: store.Updated(c.ID), Became: c.Became(), PR: c.Anchor.PR}
 		for _, p := range c.Proposals {
 			// Put away, what's left open in it isn't asked of you.
