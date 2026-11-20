@@ -203,22 +203,68 @@ func TestANewerRouterIsYieldedTo(t *testing.T) {
 	t.Cleanup(func() { yieldRest = oldRest })
 	rt, _, _ := routed(t)
 	rt.yield = make(chan struct{})
-	r := httptest.NewRequest("POST", "http://x/.ws-router/yield", strings.NewReader(`{"router":1}`))
-	r.RemoteAddr = "127.0.0.1:1"
-	w := httptest.NewRecorder()
-	rt.ServeHTTP(w, r)
-	if w.Code != http.StatusConflict {
-		t.Errorf("one of the same version: %d", w.Code)
+	ask := func(version int, edit func(*http.Request)) int {
+		r := httptest.NewRequest("POST", "http://127.0.0.1/.ws-router/yield", strings.NewReader(fmt.Sprintf(`{"router":%d}`, version)))
+		r.RemoteAddr = "127.0.0.1:1"
+		r.Header.Set("Content-Type", "application/json")
+		if edit != nil {
+			edit(r)
+		}
+		w := httptest.NewRecorder()
+		rt.ServeHTTP(w, r)
+		return w.Code
 	}
+	if code := ask(1, nil); code != http.StatusConflict {
+		t.Errorf("one of the same version: %d", code)
+	}
+
+	// A page in a browser here comes from this machine too: whatever it
+	// says, it isn't a router.
+	for name, edit := range map[string]func(*http.Request){
+		"another site's page": func(r *http.Request) { r.Header.Set("Origin", "https://evil.example") },
+		"a sandboxed page":    func(r *http.Request) { r.Header.Set("Origin", "null") },
+		"a page's fetch":      func(r *http.Request) { r.Header.Set("Sec-Fetch-Site", "cross-site") },
+		"a form":              func(r *http.Request) { r.Header.Set("Content-Type", "text/plain") },
+		"a rebound name":      func(r *http.Request) { r.Host = "evil.example" },
+	} {
+		if code := ask(Version+1, edit); code == http.StatusOK {
+			t.Errorf("%s was yielded to", name)
+		}
+	}
+	select {
+	case <-rt.yield:
+		t.Fatal("yielded to a page")
+	default:
+	}
+
 	yield := rt.yield
-	r = httptest.NewRequest("POST", "http://x/.ws-router/yield", strings.NewReader(fmt.Sprintf(`{"router":%d}`, Version+1)))
-	r.RemoteAddr = "127.0.0.1:1"
-	w = httptest.NewRecorder()
-	rt.ServeHTTP(w, r)
+	if code := ask(Version+1, nil); code != http.StatusOK {
+		t.Errorf("a newer router: %d", code)
+	}
 	select {
 	case <-yield:
 	default:
 		t.Error("a newer router wasn't yielded to")
+	}
+}
+
+// What a router says it is, to a name pointed here by another site, is
+// nothing.
+func TestTheRouterAnswersItsOwnNames(t *testing.T) {
+	rt, _, _ := routed(t)
+	for host, want := range map[string]int{
+		"127.0.0.1:7080": http.StatusOK,
+		"localhost":      http.StatusOK,
+		"[::1]:80":       http.StatusOK,
+		"evil.example":   http.StatusMisdirectedRequest,
+	} {
+		r := httptest.NewRequest("GET", "http://"+host+"/.ws-router", nil)
+		r.RemoteAddr = "127.0.0.1:1"
+		w := httptest.NewRecorder()
+		rt.ServeHTTP(w, r)
+		if w.Code != want {
+			t.Errorf("%s: %d, want %d", host, w.Code, want)
+		}
 	}
 }
 

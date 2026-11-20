@@ -463,6 +463,48 @@ func TestGuard(t *testing.T) {
 	}
 }
 
+// Another site's page has our cookie along when it sends the browser to
+// a link (Lax), and when it's a page on another port of this machine, or
+// a run under the workspace's name (the same site): what that reaches is
+// the app's pages, followed as a link, and nothing that does anything.
+func TestCrossSite(t *testing.T) {
+	s := startTest(t, t.TempDir(), &fakeWorkspace{title: "Cache tokens"}, nil)
+	from := func(site, mode string) func(*http.Request) {
+		return func(r *http.Request) {
+			r.Header.Set("Sec-Fetch-Site", site)
+			r.Header.Set("Sec-Fetch-Mode", mode)
+		}
+	}
+	for _, c := range []struct {
+		method, path, site, mode string
+		code                     int
+	}{
+		{"GET", "/api/workspace", "cross-site", "navigate", http.StatusForbidden},
+		{"GET", "/api/workspace", "same-site", "no-cors", http.StatusForbidden},
+		{"GET", "/api/workspace", "same-site", "navigate", http.StatusForbidden},
+		{"GET", "/plugins/jira/do-something", "cross-site", "navigate", http.StatusForbidden},
+		{"GET", "/plugins/jira/do-something", "same-site", "no-cors", http.StatusForbidden},
+		{"GET", "/missions/m", "cross-site", "no-cors", http.StatusForbidden},
+		{"POST", "/missions/m", "cross-site", "navigate", http.StatusForbidden},
+		// A link to the app from elsewhere still opens it.
+		{"GET", "/missions/m", "cross-site", "navigate", http.StatusOK},
+		{"GET", "/missions/m", "same-site", "navigate", http.StatusOK},
+		// The app's own, the browser's own (a typed address, a bookmark),
+		// and a client that isn't a browser.
+		{"GET", "/api/workspace", "same-origin", "cors", http.StatusOK},
+		{"GET", "/api/workspace", "none", "navigate", http.StatusOK},
+		{"GET", "/api/workspace", "", "", http.StatusOK},
+	} {
+		if res := do(t, s, c.method, c.path, true, from(c.site, c.mode)); res.StatusCode != c.code {
+			t.Errorf("%s %s, %s %s: %d, want %d", c.method, c.path, c.site, c.mode, res.StatusCode, c.code)
+		}
+	}
+	res := do(t, s, "GET", "/api/workspace", true, from("cross-site", "no-cors"))
+	if !strings.Contains(body(res), "another site") {
+		t.Errorf("says why: %d", res.StatusCode)
+	}
+}
+
 // The app's files are served as they are, hashed assets for good; any
 // other path is the app (it routes), but not under /api.
 func TestApp(t *testing.T) {

@@ -6,7 +6,9 @@
 // Every request needs the workspace's token (a cookie set by /auth, or a
 // bearer header; an artifact's files, the key in their address, which is
 // made from it: artifacts.go), a Host naming this server (against DNS
-// rebinding), and,
+// rebinding), no other site's page asking but by a link to the app (the
+// cookie is Lax, and same-site from other ports: server.go's
+// fromAnotherSite), and,
 // for anything but a read, a matching Origin and a JSON body (against
 // cross-site requests, including from other ports on 127.0.0.1).
 package web
@@ -567,6 +569,33 @@ func (s *Server) signedIn(r *http.Request) bool {
 	return given != "" && subtle.ConstantTimeCompare([]byte(given), []byte(s.info.Token)) == 1
 }
 
+// fromAnotherSite is whether a request another site's page made is to be
+// refused, by what the browser says of it (Sec-Fetch-Site). Our cookie is
+// Lax, so it goes with a link followed from anywhere, and with anything
+// at all from a page on another port of this machine or a run under the
+// workspace's name, which are the same site. Such a page can't read what
+// it's answered, and a write needs our Origin, but a read that does
+// something (a plugin's, which may answer a GET as it likes) would be
+// done. So another site gets the app's pages, followed as a link, and a
+// frame's files by their key (the frame is sandboxed: to the browser it's
+// no one's); nothing else. A request that says nothing is a client that
+// isn't a browser, or one too old to say.
+func (s *Server) fromAnotherSite(r *http.Request) bool {
+	switch r.Header.Get("Sec-Fetch-Site") {
+	case "cross-site", "same-site":
+	default:
+		return false
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return true
+	}
+	if _, _, keyed := s.framed(r.URL.Path); keyed {
+		return false
+	}
+	link := r.Header.Get("Sec-Fetch-Mode") == "navigate"
+	return !link || strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/plugins/")
+}
+
 func (s *Server) guard(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
@@ -580,6 +609,14 @@ func (s *Server) guard(next http.Handler) http.Handler {
 		}
 		if r.URL.Path == "/auth" {
 			next.ServeHTTP(w, r)
+			return
+		}
+		if s.fromAnotherSite(r) {
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				jsonError(w, http.StatusForbidden, "refused: another site's page asked for this")
+				return
+			}
+			page(w, http.StatusForbidden, "Refused", "Another site's page asked for this. Open the web UI with <code>ws web</code>.")
 			return
 		}
 		if !s.signedIn(r) {
