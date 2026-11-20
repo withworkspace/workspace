@@ -44,9 +44,12 @@ type Config struct {
 	// them ([artifacts]). The team's, but for its path, which ws.local.toml
 	// can say too (Artifacts.Local).
 	Artifacts ArtifactsConfig `toml:"artifacts"`
-	Web       WebConfig       `toml:"web"`
-	UI        UIConfig        `toml:"ui"`
-	Team      TeamConfig      `toml:"team"`
+	// Things are where the plugins' kinds of thing go when one's put in a
+	// repo, by the kind's name: [things.sketch]. The team's: ws.toml only.
+	Things map[string]ThingKind `toml:"things"`
+	Web    WebConfig            `toml:"web"`
+	UI     UIConfig             `toml:"ui"`
+	Team   TeamConfig           `toml:"team"`
 	// Plugins are the plugins the team uses, by name ([plugins]): where
 	// each comes from. ws doctor says which aren't installed here.
 	Plugins map[string]PluginSource `toml:"plugins"`
@@ -153,6 +156,23 @@ type DocumentKind struct {
 	// it goes to another folder, in a commit of its own. Where one is,
 	// its path's folder or a move's, is where it stands.
 	Moves map[string]DocumentMove `toml:"moves,omitempty"`
+}
+
+// ThingKind is where one of a plugin's kinds of thing goes when it's put
+// in a repo ([things.<kind>], the kind as its plugin names it).
+type ThingKind struct {
+	// Paths are the places one may go, each a folder of a repo that's a
+	// space of documents, as repo:folder/, with {slug} in its last part
+	// and ending in /: "records:sketches/{slug}/". The first is where one
+	// goes unless you say, and all of them are offered as you promote it.
+	// None: the folder its plugin names for the kind, in the records repo,
+	// and then in each of the workspace's other spaces.
+	Paths []string `toml:"paths,omitempty"`
+	// Subfolders lets one be grouped where it goes: put in a folder of
+	// the place (records:sketches/cross-stack/release-flow/), named as
+	// it's promoted, among those already there or new. Without it, one
+	// goes straight in the place.
+	Subfolders bool `toml:"subfolders,omitempty"`
 }
 
 // ArtifactsConfig is [artifacts] in ws.toml: where artifacts (versioned
@@ -928,6 +948,7 @@ func Merge(base, local *Config) *Config {
 		Reviews:      mergeReviews(base.Reviews, local.Reviews),
 		Documents:    base.Documents,
 		Artifacts:    base.Artifacts,
+		Things:       base.Things,
 		Web:          base.Web,
 		UI:           base.UI,
 		Team:         base.Team,

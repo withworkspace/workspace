@@ -99,6 +99,10 @@ export interface Named {
   fields?: ThingField[];
   views?: ThingViews;
   actions?: ThingAction[];
+  // Its things can live in a repo: one that does is named by its folder
+  // there (records/sketches/release-flow/), and opens where the kind's
+  // do, by that name.
+  remote?: boolean;
 }
 
 // Files is a repo's files on its default branch, as far as they're known:
@@ -171,6 +175,14 @@ function thingNamed(name: string, known: Known): PageRef | undefined {
   return undefined;
 }
 
+// A folder in a repo, as ws names one: records/sketches/release-flow/.
+const folderName = /^[\w.-]+\/(?:[^/]+\/)+$/;
+
+// names is whether a kind's page is of the thing called name: one of the
+// kind's names, or, for a kind whose things can live in a repo, the
+// folder one lives in.
+const names = (t: { of: Named; whole: RegExp }, name: string) => t.whole.test(name) || (!!t.of.remote && folderName.test(name));
+
 // thingAtPath is the plugin's thing whose page in ws is at path (as its
 // plugin registered where one is, /x/jira/issue/RAM-123), if it's one.
 export function thingAtPath(path: string, known: Known): PageRef | undefined {
@@ -182,7 +194,7 @@ export function thingAtPath(path: string, known: Known): PageRef | undefined {
     const after = where.slice(hole + "{ref}".length);
     if (path.length <= before.length + after.length || !path.startsWith(before) || !path.endsWith(after)) continue;
     const name = decodeURIComponent(path.slice(before.length, path.length - after.length));
-    if (t.whole.test(name)) return thingRef(t.of, name);
+    if (names(t, name)) return thingRef(t.of, name);
   }
   return undefined;
 }
@@ -670,7 +682,7 @@ export function thingOpenAt(plugin: string, path: string, known: Known): Extract
     const after = where.slice(hole + "{ref}".length);
     if (path.length <= before.length + after.length || !path.startsWith(before) || !path.endsWith(after)) continue;
     const name = decodeURIComponent(path.slice(before.length, path.length - after.length));
-    if (t.whole.test(name)) return thingRef(t.of, name) as Extract<PageRef, { kind: "thing" }>;
+    if (names(t, name)) return thingRef(t.of, name) as Extract<PageRef, { kind: "thing" }>;
   }
   return undefined;
 }

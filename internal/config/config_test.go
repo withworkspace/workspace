@@ -1595,3 +1595,13 @@ menu = ["team"]
 		})
 	}
 }
+
+// What's the team's alone is still there once yours is laid over it:
+// where a plugin's kind of thing goes is ws.toml's to say.
+func TestMerge_KeepsWhereThingsGo(t *testing.T) {
+	base := &Config{Things: map[string]ThingKind{"sketch": {Paths: []string{"records:sketches/{slug}/", "docs:architecture/{slug}/"}}}}
+	merged := Merge(base, &Config{})
+	if got := merged.Things["sketch"].Paths; len(got) != 2 || got[1] != "docs:architecture/{slug}/" {
+		t.Errorf("where a sketch goes, merged with a local config: %q", got)
+	}
+}

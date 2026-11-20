@@ -814,6 +814,58 @@ type ArtifactDetail struct {
 	HomeOffered string            `json:"homeOffered,omitempty"`
 }
 
+// ArtifactFound is an artifact in one of the workspace's repos that no
+// artifact on this machine lives at: someone else's, or another
+// machine's, as ws found it there. It's named by its folder, which is its
+// name on every machine.
+type ArtifactFound struct {
+	// Name is its folder as ws names one
+	// (records/artifacts/2026-11-20-horizon-glow/), and Where the same as
+	// it's said to people (records:artifacts/2026-11-20-horizon-glow/).
+	Name  string `json:"name"`
+	Where string `json:"where"`
+	Repo  string `json:"repo"`
+	// Label is what ws calls the repo, and Group the folders it's grouped
+	// in there, under where promoted artifacts live (kept, 2026/q4): none
+	// for one straight in it. They're what the list is laid out by.
+	Label string `json:"label"`
+	Group string `json:"group,omitempty"`
+	Title string `json:"title"`
+	// Version is what its folder holds, as git names it, and Frame where
+	// that runs: another of each when any of its files changes.
+	Version string `json:"version"`
+	Frame   string `json:"frame"`
+	// Changed is when it last changed in its repo, and ChangedBy who by.
+	Changed   time.Time `json:"changed"`
+	ChangedBy string    `json:"changedBy,omitempty"`
+	// Promoted says who promoted the version that's there, when, and
+	// which of its versions it is, where its record there says.
+	Promoted *artifact.Promotion `json:"promoted,omitempty"`
+}
+
+// ArtifactFoundDetail is GET /api/artifacts/found/detail?name=…: one of
+// them, with what its record says each version up to the one there
+// changed (oldest first), and its files.
+type ArtifactFoundDetail struct {
+	ArtifactFound
+	All   []ArtifactVersion   `json:"all"`
+	Files []ArtifactFoundFile `json:"files"`
+	Size  int                 `json:"size"`
+}
+
+// ArtifactFoundFile is one of a found artifact's files: its path in the
+// artifact's folder, and its size.
+type ArtifactFoundFile struct {
+	Path string `json:"path"`
+	Size int    `json:"size"`
+}
+
+// ArtifactsFound is GET /api/artifacts/found: every one of them, the
+// latest changed first.
+type ArtifactsFound struct {
+	Found []ArtifactFound `json:"found"`
+}
+
 // ArtifactSource is GET /api/artifacts/{id}/source: one of a version's
 // files (its page, unless another's asked for), as text, and the
 // version's files. Binary: it isn't text, and Text is empty.

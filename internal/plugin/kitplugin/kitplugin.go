@@ -70,6 +70,7 @@ func run() {
 		}}
 	}
 	var thing *plugin.Ref
+	var home atomic.Value // where the first thing lives in a repo, as ws last said: a plugin.RemoteThing
 	p.Setup(func() {
 		thing = p.Ref("thing", "Kit thing").
 			Prefix(prefixes.Get()...).Address("https://kit.example/things/{ref}").Opens("/thing/{ref}").Icon("box").
@@ -78,6 +79,35 @@ func run() {
 			Search(plugin.All("owner"), plugin.Upto("body", 200)).
 			Card(ui.Title("title"), ui.Subtitle(ui.Key), ui.Badge("status")).
 			Pane(ui.Title("title"), ui.Subtitle(ui.Key), ui.Badge("status"), ui.Field("owner"), ui.Markdown("body")).
+			// One can live in a repo, a text file in a folder of its own:
+			// what's in the file is what it says, unless the page is torn.
+			Remote(plugin.Remote{Path: "things/{slug}/", Main: "{slug}.txt", Read: func(_ context.Context, f plugin.RemoteFile) (map[string]string, error) {
+				if strings.Contains(string(f.Content), "torn") {
+					return nil, errors.New("the page is torn")
+				}
+				return map[string]string{"body": string(f.Content), "owner": "whoever wrote " + f.File}, nil
+			},
+				// The first thing can be put in a repo: what it says, and
+				// a picture. It lives where ws last said it does, and what's
+				// changed there since is said after its own.
+				Export: func(_ context.Context, e plugin.Exporting) (plugin.Exported, error) {
+					if _, n, _ := strings.Cut(e.Name, "-"); n != "1" {
+						return plugin.Exported{}, plugin.ErrNotFound
+					}
+					out := plugin.Exported{Package: plugin.Package{Title: "The first thing", Main: []byte("It says hello."),
+						Files: []plugin.PackageFile{{Name: "{slug}.svg", Content: []byte("<svg/>"), Picture: true}}}}
+					if at, ok := home.Load().(plugin.RemoteThing); ok {
+						out.Remote, out.Base = at.Name, at.Version
+					}
+					if e.Current != nil {
+						out.Main, out.Base = append(out.Main, []byte(" And: "+string(e.Content))...), e.Current.Version
+					}
+					return out, nil
+				},
+				Saved: func(_ context.Context, _ string, thing plugin.RemoteThing) error {
+					home.Store(thing)
+					return nil
+				}}).
 			// Something to do to one: it asks where to, moves it, and
 			// tells ws of it as it now is.
 			Action("move", "Move to…", func(a *plugin.Act) error {

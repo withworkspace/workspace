@@ -52,6 +52,17 @@ func init() {
 			UNIQUE (place, folder)
 		) WITHOUT ROWID;
 		CREATE INDEX artifacts_listed ON artifacts (status, last);
+	`), store.SQL(`
+		-- The artifacts ws found in the workspace's repos (found.go), each
+		-- as it was last read there: what's in the graph of them.
+		CREATE TABLE artifacts_found (
+			name TEXT NOT NULL PRIMARY KEY,   -- records/artifacts/2026-11-20-horizon-glow/
+			repo TEXT NOT NULL, folder TEXT NOT NULL,
+			title TEXT NOT NULL,
+			version TEXT NOT NULL,            -- its folder, as git names it
+			changed TEXT NOT NULL, changed_by TEXT NOT NULL,
+			record TEXT NOT NULL              -- its artifact.toml there (Artifact), as JSON: '' for none
+		) WITHOUT ROWID;
 	`))
 }
 

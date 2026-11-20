@@ -119,11 +119,12 @@ func TestArtifactFiles_AFolderIsAVersionCheckedOutAndPromoted(t *testing.T) {
 	}
 
 	// Promoted, the version chosen is in records with its files, at their
-	// paths, and its record beside them; promoted again, the folder holds
+	// paths, its record beside them, and what says the folder's an
+	// artifact (thing.toml); promoted again, the folder holds
 	// the version chosen then, and nothing of the one before.
 	run("artifact", "promote", "a2.v2")
 	folder := "artifacts/" + time.Now().Format("2006-01-02") + "-site"
-	if got := strings.Fields(testutil.GitOut(t, w.Sources["records"], "ls-tree", "-r", "--name-only", "main", folder+"/")); strings.Join(got, " ") != folder+"/artifact.toml "+folder+"/css/site.css "+folder+"/data.json "+folder+"/img/dot.png "+folder+"/index.html" {
+	if got := strings.Fields(testutil.GitOut(t, w.Sources["records"], "ls-tree", "-r", "--name-only", "main", folder+"/")); strings.Join(got, " ") != folder+"/artifact.toml "+folder+"/css/site.css "+folder+"/data.json "+folder+"/img/dot.png "+folder+"/index.html "+folder+"/thing.toml" {
 		t.Errorf("records holds %v", got)
 	}
 	if got := remoteFile(t, w, folder+"/css/site.css"); got != "h1 { color: teal }\n" {

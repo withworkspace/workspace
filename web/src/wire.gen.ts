@@ -271,6 +271,70 @@ export interface ArtifactFile {
 
 // From web/api.go
 /**
+ * ArtifactFound is an artifact in one of the workspace's repos that no
+ * artifact on this machine lives at: someone else's, or another
+ * machine's, as ws found it there. It's named by its folder, which is its
+ * name on every machine.
+ */
+export interface ArtifactFound {
+    /**
+     * Name is its folder as ws names one
+     * (records/artifacts/2026-11-20-horizon-glow/), and Where the same as
+     * it's said to people (records:artifacts/2026-11-20-horizon-glow/).
+     */
+    name: string;
+    where: string;
+    repo: string;
+    /**
+     * Label is what ws calls the repo, and Group the folders it's grouped
+     * in there, under where promoted artifacts live (kept, 2026/q4): none
+     * for one straight in it. They're what the list is laid out by.
+     */
+    label: string;
+    group?: string;
+    title: string;
+    /**
+     * Version is what its folder holds, as git names it, and Frame where
+     * that runs: another of each when any of its files changes.
+     */
+    version: string;
+    frame: string;
+    /**
+     * Changed is when it last changed in its repo, and ChangedBy who by.
+     */
+    changed: string;
+    changedBy?: string;
+    /**
+     * Promoted says who promoted the version that's there, when, and
+     * which of its versions it is, where its record there says.
+     */
+    promoted?: ArtifactPromotion;
+}
+
+// From web/api.go
+/**
+ * ArtifactFoundDetail is GET /api/artifacts/found/detail?name=…: one of
+ * them, with what its record says each version up to the one there
+ * changed (oldest first), and its files.
+ */
+export interface ArtifactFoundDetail extends ArtifactFound {
+    all: ArtifactVersion[];
+    files: ArtifactFoundFile[];
+    size: number;
+}
+
+// From web/api.go
+/**
+ * ArtifactFoundFile is one of a found artifact's files: its path in the
+ * artifact's folder, and its size.
+ */
+export interface ArtifactFoundFile {
+    path: string;
+    size: number;
+}
+
+// From web/api.go
+/**
  * ArtifactFrom is where versions of an artifact came from.
  */
 export interface ArtifactFrom {
@@ -421,6 +485,15 @@ export interface ArtifactVersion {
  */
 export interface ArtifactsCleared {
     local: string[];
+}
+
+// From web/api.go
+/**
+ * ArtifactsFound is GET /api/artifacts/found: every one of them, the
+ * latest changed first.
+ */
+export interface ArtifactsFound {
+    found: ArtifactFound[];
 }
 
 // From web/api.go
@@ -2898,6 +2971,12 @@ export interface PluginRef {
      * Actions are what can be done to one of its things, from Find.
      */
     actions?: ProtocolAction[];
+    /**
+     * Remote: its things can live in a repo. One that does is named by
+     * its folder there (records/sketches/release-flow/), not as the kind
+     * names things, and its page is where the kind's are, by that name.
+     */
+    remote?: boolean;
 }
 
 // From web/plugins.go
@@ -4791,6 +4870,92 @@ export interface TermKey {
     ctrl?: boolean;
     alt?: boolean;
     shift?: boolean;
+}
+
+// From web/plugins.go
+/**
+ * ThingAt is a plugin's thing as it is in its repo: its name in ws (its
+ * folder), where that is, what it's called, and its main file's version.
+ */
+export interface ThingAt {
+    name: string;
+    repo: string;
+    path: string;
+    title: string;
+    version: string;
+}
+
+// From web/plugins.go
+/**
+ * ThingOffered is where a thing could go if it were promoted now: the
+ * places its kind's things go, the first where it goes unless you say.
+ */
+export interface ThingOffered {
+    places: ThingPlace[];
+}
+
+// From web/plugins.go
+/**
+ * ThingPlace is one of them: the folder (records:sketches/release-flow/),
+ * its repo as ws calls it, and whether a commit lands there straight away.
+ */
+export interface ThingPlace {
+    where: string;
+    repo: string;
+    label: string;
+    direct: boolean;
+    /**
+     * Place is the place as ws.toml says one (records:sketches/{slug}/):
+     * what a request names to put the thing there.
+     */
+    place: string;
+    /**
+     * Subfolders is whether the thing may be grouped there, in a folder
+     * of the place, and Groups the folders its kind's things are grouped
+     * in there now (cross-stack, plans, plans/q4).
+     */
+    subfolders?: boolean;
+    groups?: string[];
+}
+
+// From web/plugins.go
+/**
+ * ThingRequest is one of a plugin's own things to put in a repo, or to
+ * save there: its kind, the plugin's name for it, and, to promote it,
+ * where it's to live, if you said: a folder of its own (To, as
+ * repo:folder/), or one of the places its kind's things go (Place, as
+ * ThingPlace.Place has it) and a folder of that to group it in (Under:
+ * cross-stack), where the kind's things may be grouped. With none of
+ * them, it's the first of the places.
+ */
+export interface ThingRequest {
+    kind: string;
+    ref: string;
+    to?: string;
+    place?: string;
+    under?: string;
+}
+
+// From web/plugins.go
+/**
+ * ThingSaved is what putting a plugin's thing in a repo, or saving it
+ * there, did: the frame protocol's ThingSaved, which a plugin's page is
+ * given as what came of asking.
+ */
+export interface ThingSaved {
+    thing: ThingAt;
+    /**
+     * Changed is whether it changed anything there, and Merged whether
+     * what was there had changed since, and was brought into it.
+     */
+    changed: boolean;
+    merged?: boolean;
+    /**
+     * Capsule is the capsule it was left in, where its repo takes pull
+     * requests: it's on no default branch yet.
+     */
+    capsule?: string;
+    said?: string;
 }
 
 // From web/threads.go

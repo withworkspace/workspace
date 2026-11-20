@@ -121,7 +121,7 @@ export async function around(h: Here, fresh: boolean, signal?: AbortSignal): Pro
 export function hereItems(h: Here | undefined, w: Workspace, known: Known): Item[] {
   if (h?.thing) {
     const thing = h.thing;
-    return actsOn(namedOf(thing, known)).map((a) => ({
+    return actsOn(namedOf(thing, known), thing.id).map((a) => ({
       id: `here:${a.ws ? "ws" : "its"}:${a.id}`,
       group: "here" as const,
       kind: "Do",

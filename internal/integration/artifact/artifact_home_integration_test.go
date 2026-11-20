@@ -120,7 +120,7 @@ func TestArtifactHome_PromotedLivesInRecordsAndAgainIsOneCommit(t *testing.T) {
 	if got := testutil.Subjects(t, src, "main"); got != "Promote artifact horizon-glow: v2 | initial" {
 		t.Errorf("records' main: %s", got)
 	}
-	if files := strings.TrimSpace(testutil.GitOut(t, src, "show", "--name-status", "--format=", "main")); files != "A\t"+folder+"/artifact.toml\nA\t"+folder+"/index.html" {
+	if files := strings.TrimSpace(testutil.GitOut(t, src, "show", "--name-status", "--format=", "main")); files != "A\t"+folder+"/artifact.toml\nA\t"+folder+"/index.html\nA\t"+folder+"/thing.toml" {
 		t.Errorf("the commit has:\n%s", files)
 	}
 	if got := remoteFile(t, w, folder+"/index.html"); got != glowV2 {

@@ -16864,6 +16864,68 @@ button.accent-button:hover:not(:disabled) {
   resize: vertical;
 }
 
+/* The artifacts ws found in the workspace's repos, under the page's own. */
+.artifacts-found {
+  margin-top: 28px;
+}
+.artifacts-found-title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+}
+.artifacts-found-about {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+}
+/* As a tree: a repo, the folders its artifacts are grouped in, and
+   theirs. Each folds, and stays as it was left. */
+.artifacts-tree .tree-node + .tree-node,
+.artifacts-tree .tree-body > .rows + .tree-node {
+  margin-top: 4px;
+}
+.artifacts-tree .tree-node > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  width: fit-content;
+  padding: 3px 8px 3px 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+.artifacts-tree .tree-node > summary::-webkit-details-marker {
+  display: none;
+}
+.artifacts-tree .tree-node > summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin: 0 4px 0 2px;
+  border-right: 1.5px solid var(--dim);
+  border-bottom: 1.5px solid var(--dim);
+  transform: rotate(-45deg);
+  transition: transform var(--fast) var(--ease);
+}
+.artifacts-tree .tree-node[open] > summary::before {
+  transform: rotate(45deg);
+}
+.artifacts-tree .tree-node .tree-node > summary {
+  font-weight: 500;
+}
+.artifacts-tree .tree-count {
+  color: var(--dim);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+/* What's in a folder is in from it, down a line. */
+.artifacts-tree .tree-body {
+  margin: 2px 0 8px 5px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
 .artifact-row-meta {
   display: flex;
   flex-wrap: wrap;
@@ -18992,6 +19054,159 @@ a.plugin-row-out {
 .workspace-menu .select-option.later,
 .workspace-menu .select-option.later .icon {
   color: var(--accent);
+}
+
+/* ws's own UI over a plugin's page: a panel by the button that asked for
+   it (plugins/ThingUis.tsx). */
+
+.over-frame-catch {
+  position: fixed;
+  inset: 0;
+  z-index: 299;
+}
+
+.over-frame {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  position: fixed;
+  z-index: 300;
+  width: 320px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  animation: pop var(--fast) var(--ease);
+}
+
+.thing-ui {
+  display: grid;
+  gap: 8px;
+}
+
+.thing-ui p {
+  margin: 0;
+}
+
+.thing-ui-title {
+  font-weight: 600;
+}
+
+.thing-ui-where {
+  display: grid;
+  gap: 4px;
+}
+
+.thing-ui code {
+  overflow-wrap: anywhere;
+  font-size: var(--text-xs);
+}
+
+.thing-ui-where button.link {
+  justify-self: start;
+}
+
+.thing-ui-where input {
+  width: 100%;
+}
+
+.thing-ui-places {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.thing-ui-places legend {
+  padding: 0;
+  margin-bottom: 4px;
+  color: var(--dim);
+}
+
+.thing-ui-place {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.thing-ui-place input {
+  margin-top: 3px;
+}
+
+.thing-ui-place > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.thing-ui-repo {
+  font-weight: 500;
+}
+
+/* A folder of the place picked, to group the thing in: a field, and the
+   folders in use there to pick from. */
+.thing-ui-group {
+  display: grid;
+  gap: 6px;
+}
+
+.thing-ui-group label {
+  display: grid;
+  gap: 4px;
+}
+
+.thing-ui-group input {
+  width: 100%;
+}
+
+.thing-ui-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.thing-ui-groups button.chip {
+  height: auto;
+  min-height: 0;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--well);
+  color: var(--dim);
+  font: 500 var(--text-xs) / 18px var(--mono);
+  cursor: pointer;
+}
+
+.thing-ui-groups button.chip:hover {
+  color: var(--fg);
+}
+
+.thing-ui-groups button.chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.thing-ui-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.thing-ui-failed {
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+.thing-ui-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 /* The viewer (ui/Viewer.tsx): a picture over the whole page, to move

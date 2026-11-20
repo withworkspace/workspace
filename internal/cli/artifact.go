@@ -198,7 +198,12 @@ latest version, where and when. --all lists discarded ones too.
 A live one in its last week says when it expires (expires in 4 days), and
 one that has says so (expired) until the daemon discards it, or
 ws artifact clear does: ws artifact promote keeps one. A promoted one that
-lives in a repo says where, and which version is there.`,
+lives in a repo says where, and which version is there.
+
+After them are the artifacts in the workspace's repos that aren't on this
+machine: someone else promoted them, or you did on another machine. Each
+is named by where it lives (records:artifacts/2026-11-20-horizon-glow/),
+and ws show takes that.`,
 		Args:   cobra.NoArgs,
 		PreRun: func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -222,7 +227,17 @@ lives in a repo says where, and which version is there.`,
 				}
 				fmt.Println(artifactListLine(e, cfg, now))
 			}
+			// Those in the workspace's repos that aren't this machine's, by
+			// where they live.
+			found, _ := ctx.FoundArtifacts(context.Background())
+			for _, f := range found {
+				fmt.Println(foundArtifactLine(f))
+			}
+			if len(found) > 0 {
+				fmt.Fprintf(ui.Stderr, "  %s %d in the workspace's repos, not on this machine: ws show <where it lives> shows one\n", ui.Dim.Render("·"), len(found))
+			}
 			switch {
+			case len(list) == 0 && len(found) > 0:
 			case len(list) == 0:
 				fmt.Fprintf(ui.Stderr, "  %s no artifacts: ws artifact add <file> adds one\n", ui.Dim.Render("·"))
 			case hidden > 0:

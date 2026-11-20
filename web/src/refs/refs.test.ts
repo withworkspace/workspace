@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { type Files, findAll, findRefs, GROUND, groundPaths, isOutside, type Known, type Named, type PageRef, parseAddress, parseName, refAddress, refAt, refHref, refName, reposNamed, type Where } from "./refs";
+import { type Files, findAll, findRefs, GROUND, groundPaths, isOutside, type Known, type Named, type PageRef, parseAddress, parseName, refAddress, refAt, refHref, refName, reposNamed, thingAtPath, thingOpenAt, type Where } from "./refs";
 
 // The cases internal/ref is tested against: one grammar, in Go and here.
 interface KnownJSON {
@@ -136,6 +136,20 @@ describe("a plugin's thing", () => {
     { plugin: "jira", what: "epic", prefixes: ["RAM-"], path: "/epic/{ref}" },
   ];
   const known: Known = { repos: new Map(), missions: [], pages: [], talks: [], things };
+
+  it("a kind's page by a folder's name is the thing that lives there, for a kind whose things can live in a repo", () => {
+    const sketches: Known = { ...known, things: [...things, { plugin: "sketch", what: "sketch", prefixes: ["sketch-"], path: "/s/{ref}", remote: true }] };
+    const inRepo = { kind: "thing", plugin: "sketch", what: "sketch", id: "records/sketches/release-flow/" };
+    // As ws writes the address: the name as one part of the path.
+    expect(thingAtPath("/x/sketch/s/records%2Fsketches%2Frelease-flow%2F", sketches)).toEqual(inRepo);
+    expect(thingOpenAt("sketch", "/s/records%2Fsketches%2Frelease-flow%2F", sketches)).toEqual(inRepo);
+    // One of the kind's own names is as ever.
+    expect(thingOpenAt("sketch", "/s/sketch-12", sketches)).toEqual({ kind: "thing", plugin: "sketch", what: "sketch", id: "sketch-12" });
+    // Not a folder in a repo; and a kind whose things don't live in one.
+    expect(thingOpenAt("sketch", "/s/records", sketches)).toBeUndefined();
+    expect(thingOpenAt("sketch", "/s/records%2Fsketches%2Frelease-flow", sketches)).toBeUndefined();
+    expect(thingAtPath("/x/jira/issue/records%2Fissues%2Fa%2F", sketches)).toBeUndefined();
+  });
 
   it("goes where its kind opens one in the plugin's app", () => {
     expect(refHref(issue, known)).toBe("/x/jira/issue/RAM-123");

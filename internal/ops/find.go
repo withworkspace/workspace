@@ -81,6 +81,9 @@ func (w *Workspace) Find(ctx context.Context, q FindQuery) ([]Found, int, error)
 	if _, err := w.Artifacts().Reread(ctx); err != nil {
 		return nil, 0, fmt.Errorf("reading the artifacts: %w", err)
 	}
+	// A plugin's things that live in a repo are found in the spaces: what's
+	// new there is read. A space that can't be read is as it was last read.
+	w.Spaces(ctx) //nolint:errcheck // its documents' search says so
 	found, more, err := db.Find(ctx, store.Said{Words: q.Words, Mission: q.Mission, Gone: q.Gone, Limit: cmp.Or(q.Limit, 20)})
 	if err != nil {
 		return nil, 0, err
@@ -104,8 +107,9 @@ func (w *Workspace) Find(ctx context.Context, q FindQuery) ([]Found, int, error)
 }
 
 // nameThings says, of each plugin's thing found, whose it is and where it
-// goes, from how ws keeps the plugin's things named: one whose plugin has
-// gone since is left as its name.
+// goes, from how ws keeps the plugin's things named, or, for one ws found
+// in a space, from whose kind it was kept as: one whose plugin has gone
+// since is left as its name.
 func (w *Workspace) nameThings(found []Found) {
 	var kept []plugin.KeptRef
 	read := false
@@ -125,6 +129,26 @@ func (w *Workspace) nameThings(found []Found) {
 			}
 			r, _ := (&ref.Known{Things: []ref.Named{n}}).At(f.Ref)
 			f.Named, f.Called = &r, cmp.Or(k.Title, k.Plugin+" "+strings.ReplaceAll(k.Kind, "-", " "))
+			if k.Path != "" {
+				f.Opens = "/x/" + k.Plugin + strings.Replace(k.Path, ref.Placeholder, url.PathEscape(f.Ref), 1)
+			}
+			break
+		}
+		if f.Named != nil {
+			continue
+		}
+		// One ws found in a space is named by its folder, not as its kind
+		// names things: it's the kind's it was kept for.
+		fd, ok, _ := plugin.FoundNamed(w.WS().Root, f.Ref)
+		if !ok || !plugin.IsInstalled(w.WS().Root, fd.Plugin) {
+			continue
+		}
+		for _, k := range kept {
+			if k.Plugin != fd.Plugin || k.Kind != fd.Kind {
+				continue
+			}
+			f.Named = &ref.Ref{Kind: ref.Thing, Plugin: k.Plugin, What: k.Kind, ID: f.Ref}
+			f.Called = cmp.Or(k.Title, k.Plugin+" "+strings.ReplaceAll(k.Kind, "-", " "))
 			if k.Path != "" {
 				f.Opens = "/x/" + k.Plugin + strings.Replace(k.Path, ref.Placeholder, url.PathEscape(f.Ref), 1)
 			}

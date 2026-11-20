@@ -40,6 +40,11 @@ var askPlugin = func(root string, r wsref.Ref, full bool) (plugin.Shown, error) 
 // last told, with asOf saying so. One the plugin says it hasn't is an
 // error, and so is one nobody can say anything of.
 func thingNow(root string, r wsref.Ref, kept plugin.KeptRef, full bool) (fields map[string]string, asOf string, err error) {
+	// One ws found in a space is what its repo says, as ws read it: its
+	// plugin has no more of it to ask for.
+	if rec, told, _ := plugin.ThingOf(root, r.Plugin, r.What, r.ID); told && rec.Found != "" {
+		return rec.Fields, "As it is in its repo, on the default branch, when ws last read it.", nil
+	}
 	shown, err := askPlugin(root, r, full)
 	if err == nil {
 		fields = map[string]string{}

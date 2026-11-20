@@ -18,7 +18,7 @@ import (
 
 // AnswerPlugin answers what a plugin asks ws (plugin.Host's Answer): the
 // workspace's missions and repos, a conversation started for the person,
-// and what it tells ws of its own things,
+// its things that live in a repo, and what it tells ws of its own things,
 // in the protocol's types, which are what ws promises a plugin, not its
 // own. who is the plugin that asked.
 func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params json.RawMessage) (any, error) {
@@ -43,6 +43,30 @@ func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params
 			return nil, err
 		}
 		return w.pluginStartsTalk(who, in.Message)
+	case protocol.MethodRemoteList:
+		var in protocol.RemoteListParams
+		if err := decodeParams(params, &in); err != nil {
+			return nil, err
+		}
+		return w.pluginRemotes(ctx, who, in.Kind)
+	case protocol.MethodRemoteOpen:
+		var in protocol.RemoteOpenParams
+		if err := decodeParams(params, &in); err != nil {
+			return nil, err
+		}
+		return w.pluginRemote(ctx, who, in.Kind, in.Name)
+	case protocol.MethodRemotePromote:
+		var in protocol.RemotePromoteParams
+		if err := decodeParams(params, &in); err != nil {
+			return nil, err
+		}
+		return pluginSaved(w.PromoteThing(ctx, who, in.Kind, in.Ref, ThingWhere{To: in.To}))
+	case protocol.MethodRemoteSave:
+		var in protocol.RemoteSaveParams
+		if err := decodeParams(params, &in); err != nil {
+			return nil, err
+		}
+		return pluginSaved(w.SaveThing(ctx, who, in.Kind, in.Ref))
 	}
 	// What a plugin tells ws of its things: kept in the workspace's
 	// records under the plugin that told it, so ws finds and names them
@@ -51,6 +75,22 @@ func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params
 		return answer, err
 	}
 	return nil, plugin.NoMethod(method)
+}
+
+// pluginSaved is what promoting or saving one of a plugin's things did,
+// as the plugin's answered: what ws wouldn't do, or didn't find, is said
+// as the protocol says them.
+func pluginSaved(out protocol.RemoteSaved, err error) (any, error) {
+	var bad *Invalid
+	switch {
+	case err == nil:
+		return out, nil
+	case errors.Is(err, ErrNotFound):
+		return nil, plugin.NotFound(strings.TrimSuffix(err.Error(), ": "+ErrNotFound.Error()))
+	case errors.As(err, &bad):
+		return nil, plugin.InvalidParams(err)
+	}
+	return nil, err
 }
 
 // pluginStartsTalk starts one of the workspace's conversations for the

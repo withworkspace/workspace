@@ -86,6 +86,10 @@ type PluginRef struct {
 	Views    map[string][]protocol.Block `json:"views,omitempty"`
 	// Actions are what can be done to one of its things, from Find.
 	Actions []protocol.Action `json:"actions,omitempty"`
+	// Remote: its things can live in a repo. One that does is named by
+	// its folder there (records/sketches/release-flow/), not as the kind
+	// names things, and its page is where the kind's are, by that name.
+	Remote bool `json:"remote,omitempty"`
 }
 
 // PluginThing is one of a plugin's things: its name, and a value for each
@@ -116,6 +120,148 @@ type Plugging interface {
 	AddPlugin(ctx context.Context, from string, o ops.PluginAdd) (ops.PluginAdded, plugin.Status, error)
 	UpdatePlugin(ctx context.Context, name string, say func(line string)) (ops.PluginUpdated, error)
 	RemovePlugin(ctx context.Context, name string, data bool) error
+	// One of a plugin's own things put in a repo, and saved there, for
+	// you, and where one would go: what ws's own UI over a plugin's page
+	// asks (thing-promote, thing-save).
+	PromoteThing(ctx context.Context, who, kind, name string, where ops.ThingWhere) (protocol.RemoteSaved, error)
+	SaveThing(ctx context.Context, who, kind, name string) (protocol.RemoteSaved, error)
+	ThingOffered(who, kind, title string) ([]ops.ThingOffer, error)
+}
+
+// ThingRequest is one of a plugin's own things to put in a repo, or to
+// save there: its kind, the plugin's name for it, and, to promote it,
+// where it's to live, if you said: a folder of its own (To, as
+// repo:folder/), or one of the places its kind's things go (Place, as
+// ThingPlace.Place has it) and a folder of that to group it in (Under:
+// cross-stack), where the kind's things may be grouped. With none of
+// them, it's the first of the places.
+type ThingRequest struct {
+	Kind  string `json:"kind"`
+	Ref   string `json:"ref"`
+	To    string `json:"to,omitempty"`
+	Place string `json:"place,omitempty"`
+	Under string `json:"under,omitempty"`
+}
+
+// ThingAt is a plugin's thing as it is in its repo: its name in ws (its
+// folder), where that is, what it's called, and its main file's version.
+type ThingAt struct {
+	Name    string `json:"name"`
+	Repo    string `json:"repo"`
+	Path    string `json:"path"`
+	Title   string `json:"title"`
+	Version string `json:"version"`
+}
+
+// ThingSaved is what putting a plugin's thing in a repo, or saving it
+// there, did: the frame protocol's ThingSaved, which a plugin's page is
+// given as what came of asking.
+type ThingSaved struct {
+	Thing ThingAt `json:"thing"`
+	// Changed is whether it changed anything there, and Merged whether
+	// what was there had changed since, and was brought into it.
+	Changed bool `json:"changed"`
+	Merged  bool `json:"merged,omitempty"`
+	// Capsule is the capsule it was left in, where its repo takes pull
+	// requests: it's on no default branch yet.
+	Capsule string `json:"capsule,omitempty"`
+	Said    string `json:"said,omitempty"`
+}
+
+// ThingOffered is where a thing could go if it were promoted now: the
+// places its kind's things go, the first where it goes unless you say.
+type ThingOffered struct {
+	Places []ThingPlace `json:"places"`
+}
+
+// ThingPlace is one of them: the folder (records:sketches/release-flow/),
+// its repo as ws calls it, and whether a commit lands there straight away.
+type ThingPlace struct {
+	Where  string `json:"where"`
+	Repo   string `json:"repo"`
+	Label  string `json:"label"`
+	Direct bool   `json:"direct"`
+	// Place is the place as ws.toml says one (records:sketches/{slug}/):
+	// what a request names to put the thing there.
+	Place string `json:"place"`
+	// Subfolders is whether the thing may be grouped there, in a folder
+	// of the place, and Groups the folders its kind's things are grouped
+	// in there now (cross-stack, plans, plans/q4).
+	Subfolders bool     `json:"subfolders,omitempty"`
+	Groups     []string `json:"groups,omitempty"`
+}
+
+func thingSaved(done protocol.RemoteSaved) ThingSaved {
+	t := done.Thing
+	return ThingSaved{Thing: ThingAt{Name: t.Name, Repo: t.Repo, Path: t.Path, Title: t.Title, Version: t.Version}, Changed: done.Changed, Merged: done.Merged, Capsule: done.Capsule, Said: done.Said}
+}
+
+// thingAsked reads which of a plugin's things a request is about.
+func (s *Server) thingAsked(w http.ResponseWriter, r *http.Request) (name string, req ThingRequest, ok bool) {
+	name = r.PathValue("name")
+	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
+		jsonError(w, http.StatusNotFound, "there's no plugin called "+name)
+		return name, req, false
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, http.StatusBadRequest, "which thing isn't JSON: "+err.Error())
+		return name, req, false
+	}
+	if strings.TrimSpace(req.Kind) == "" || strings.TrimSpace(req.Ref) == "" {
+		jsonError(w, http.StatusBadRequest, "which thing? Its kind, and the plugin's name for it")
+		return name, req, false
+	}
+	return name, req, true
+}
+
+// promoteThing is POST /api/plugins/{name}/things/promote: one of the
+// plugin's own things put in a repo, as you.
+func (s *Server) promoteThing(w http.ResponseWriter, r *http.Request) {
+	name, req, ok := s.thingAsked(w, r)
+	if !ok {
+		return
+	}
+	done, err := s.App.PromoteThing(r.Context(), name, req.Kind, req.Ref, ops.ThingWhere{To: req.To, Place: req.Place, Under: req.Under})
+	if err != nil {
+		writeError(w, err, http.StatusBadGateway)
+		return
+	}
+	writeJSON(w, http.StatusOK, thingSaved(done))
+}
+
+// saveThing is POST /api/plugins/{name}/things/save: one of the plugin's
+// own things that's in a repo saved there, as you.
+func (s *Server) saveThing(w http.ResponseWriter, r *http.Request) {
+	name, req, ok := s.thingAsked(w, r)
+	if !ok {
+		return
+	}
+	done, err := s.App.SaveThing(r.Context(), name, req.Kind, req.Ref)
+	if err != nil {
+		writeError(w, err, http.StatusBadGateway)
+		return
+	}
+	writeJSON(w, http.StatusOK, thingSaved(done))
+}
+
+// thingOffered is GET /api/plugins/{name}/things/offer?kind=&title=:
+// where one of the plugin's things of that kind, called that, could go.
+func (s *Server) thingOffered(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	if s.Plugins == nil || !plugin.IsInstalled(s.Plugins.Root, name) {
+		jsonError(w, http.StatusNotFound, "there's no plugin called "+name)
+		return
+	}
+	offers, err := s.App.ThingOffered(name, r.URL.Query().Get("kind"), r.URL.Query().Get("title"))
+	if err != nil {
+		writeError(w, err, http.StatusBadGateway)
+		return
+	}
+	out := ThingOffered{Places: []ThingPlace{}}
+	for _, at := range offers {
+		out.Places = append(out.Places, ThingPlace{Where: at.Where, Repo: at.Repo, Label: at.Label, Direct: at.Direct, Place: at.Place, Subfolders: at.Subfolders, Groups: at.Groups})
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // PluginsInstalled is GET /api/plugins/installed: the workspace's plugins
@@ -335,7 +481,7 @@ func (s *Server) pluginsList(w http.ResponseWriter, r *http.Request) {
 		if len(statuses) > 0 {
 			kept, _ := plugin.Refs(s.Plugins.Root)
 			for _, k := range kept {
-				r := PluginRef{Kind: k.Kind, Title: k.Title, Icon: k.Icon, Prefixes: k.Prefixes, Tail: k.Tail, Address: k.Address, Path: k.Path, Fields: k.Fields, Actions: k.Actions}
+				r := PluginRef{Kind: k.Kind, Title: k.Title, Icon: k.Icon, Prefixes: k.Prefixes, Tail: k.Tail, Address: k.Address, Path: k.Path, Fields: k.Fields, Actions: k.Actions, Remote: k.Remote != nil}
 				// A view with nothing in it is no view: ws draws its own.
 				for where, blocks := range k.Views {
 					if len(blocks) > 0 {
@@ -378,8 +524,10 @@ func (s *Server) pluginThing(w http.ResponseWriter, r *http.Request) {
 	// As ws keeps how the plugin names things: the name has to be one.
 	kept, _ := plugin.RefsOf(s.Plugins.Root, name)
 	i := slices.IndexFunc(kept, func(k plugin.KeptRef) bool { return k.Kind == kind })
-	if i >= 0 && kept[i].Named().Names(ref) {
-		if rec, ok, err := plugin.ThingOf(s.Plugins.Root, name, kind, ref); err == nil && ok {
+	if i >= 0 {
+		// One the plugin told ws of, by a name its kind names; or one ws
+		// found in a space, by its folder.
+		if rec, ok, err := plugin.ThingOf(s.Plugins.Root, name, kind, ref); err == nil && ok && (rec.Found != "" || kept[i].Named().Names(ref)) {
 			out := PluginThing{Key: ref, Fields: rec.Fields, Told: true}
 			if !rec.Changed.IsZero() {
 				out.Changed = &rec.Changed

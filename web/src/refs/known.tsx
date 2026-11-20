@@ -58,6 +58,7 @@ export const thingsNamed = (plugins: Plugin[]): Named[] =>
       plugin: p.name,
       what: r.kind,
       prefixes: r.prefixes ?? [],
+      remote: r.remote,
       tail: r.tail,
       address: r.address,
       path: r.path,

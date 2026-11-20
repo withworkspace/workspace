@@ -10,6 +10,8 @@ import type {
   ArtifactContent,
   ArtifactDetail,
   ArtifactDone,
+  ArtifactFoundDetail,
+  ArtifactsFound,
   ArtifactFile,
   ArtifactSource,
   BundleNote,
@@ -62,6 +64,9 @@ import type {
   TeamPerson,
   TeamTopic,
   TermKey,
+  ThingOffered,
+  ThingRequest,
+  ThingSaved,
   UpdatesInfo,
   Upgraded,
   WhatsNewInfo,
@@ -73,6 +78,8 @@ export type {
   ArtifactContent,
   ArtifactDetail,
   ArtifactDone,
+  ArtifactFound,
+  ArtifactFoundDetail,
   ArtifactFile,
   ArtifactInfo,
   ArtifactSource,
@@ -162,6 +169,10 @@ export type {
   TeamPerson,
   TeamTopic,
   TermKey,
+  ThingOffered,
+  ThingPlace,
+  ThingRequest,
+  ThingSaved,
   UpdatesInfo,
   Upgraded,
   WhatsNewEntry,
@@ -355,6 +366,15 @@ export const runPluginAction = (plugin: string, id: string, on: { kind?: string;
 // thing, RAM-123): it waits to be briefed, on its page.
 export const startMissionAbout = (about: string) => send<{ slug: string; path: string }>("POST", "/api/missions", { about });
 
+
+// One of a plugin's own things put in a repo, and saved there, as you:
+// what ws's own UI over the plugin's page asks (plugins/ThingUis.tsx).
+// thingOffered is where one of that kind, called that, could go: the
+// places its kind's things go, the first where it goes unless you say.
+export const promoteThing = (plugin: string, thing: ThingRequest) => send<ThingSaved>("POST", `/api/plugins/${encodeURIComponent(plugin)}/things/promote`, thing);
+export const saveThing = (plugin: string, thing: ThingRequest) => send<ThingSaved>("POST", `/api/plugins/${encodeURIComponent(plugin)}/things/save`, thing);
+export const thingOffered = (plugin: string, kind: string, title: string) =>
+  getJSON<ThingOffered>(`/api/plugins/${encodeURIComponent(plugin)}/things/offer?kind=${encodeURIComponent(kind)}&title=${encodeURIComponent(title)}`);
 
 // getPluginThing is one of a plugin's things, by its kind and name: as ws
 // has it, or as its plugin says when asked. One the plugin has none of is
@@ -685,6 +705,11 @@ export const restoreArtifact = (id: string) => send<ArtifactDone>("POST", artifa
 export const clearExpiredArtifacts = () => send<{ local: string[] }>("POST", "/api/artifacts/clear", {});
 
 export const getArtifactDetail = (id: string) => getJSON<ArtifactDetail>(`/api/artifacts/${encodeURIComponent(id)}`);
+// The artifacts in the workspace's repos that aren't this machine's, as
+// ws found them there; and one of them, by its folder's name
+// (records/artifacts/2026-11-20-horizon-glow/), with its files.
+export const getArtifactsFound = () => getJSON<ArtifactsFound>("/api/artifacts/found");
+export const getArtifactFound = (name: string) => getJSON<ArtifactFoundDetail>(`/api/artifacts/found/detail?${new URLSearchParams({ name })}`);
 // A version's source is one of its files, as text to read (its page,
 // index.html, unless another's asked for), with the version's files, to
 // choose another.
