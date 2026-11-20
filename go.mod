@@ -21,12 +21,13 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/spf13/cobra v1.10.2
+	github.com/spf13/pflag v1.0.10
 	github.com/tree-sitter/go-tree-sitter v0.25.0
 	github.com/tree-sitter/tree-sitter-c-sharp v0.23.5
 	github.com/tree-sitter/tree-sitter-go v0.25.0
 	github.com/tree-sitter/tree-sitter-python v0.25.0
 	github.com/tree-sitter/tree-sitter-typescript v0.23.2
-	github.com/withworkspace/plugin v0.8.0
+	github.com/withworkspace/plugin v0.11.0
 	golang.org/x/sys v0.49.0
 	golang.org/x/term v0.47.0
 	modernc.org/sqlite v1.62.0
@@ -61,7 +62,6 @@ require (
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/xo/terminfo v1.3.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
