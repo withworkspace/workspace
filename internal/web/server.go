@@ -358,6 +358,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/around", s.around)
 	mux.HandleFunc("GET /api/search", s.codeSearch)
 	mux.HandleFunc("GET /api/repos", s.repos)
+	mux.HandleFunc("POST /api/repos/{repo}/share", s.shareRepo)
 	mux.HandleFunc("POST /api/refs/paths", s.refPaths)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees", s.worktrees)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees/{name}/tree", s.tree)

@@ -294,6 +294,24 @@ ws group reset platform   # go back to the team default
 
 To hide a single repo for yourself, put it in a group locally (`[repos.mobile] group = "mine"`) and hide that group.
 
+### Repos of your own
+
+A repo in `ws.local.toml` that `ws.toml` hasn't is **yours**: cloned by `setup` and `sync`, lifted, docked, searched and worked in by missions as any is, and not in a teammate's workspace. Say where it is on GitHub with `github` when it isn't the org's by that name:
+
+```toml
+# ws.local.toml
+[repos.notes]
+github = "someone/notes"
+```
+
+Its table is what makes it one, so `[repos.notes]` with nothing under it is a repo too (the org's `notes`). The web UI marks it as yours. What's written about it reads for teammates as its address on GitHub, as they haven't the repo to link to.
+
+```bash
+ws repo share notes   # give it to the team: into ws.toml, committed on the config repo and pushed
+```
+
+`ws repo share` writes the repo into `ws.toml` as `ws.local.toml` says it, commits that on the workspace's config repo with *Add repo notes*, pushes it, and then takes it out of `ws.local.toml`. `ws sync` resets the config repo to its remote, so the commit is pushed or taken back: one the remote refuses (a protected branch) leaves `ws.toml` as it was and the repo yours. The config repo has to be at its remote, or behind it with nothing of its own (it's brought up first), and `ws.toml` mustn't have changes of yours that aren't committed.
+
 ### Searching
 
 `ws rg` runs [ripgrep](https://github.com/BurntSushi/ripgrep) over the right worktree of each repo. Plain `rg` from the workspace root searches `.bare/`, `.silo/`, `.ground/` and every capsule, so every match comes back once per capsule. `ws rg` returns each match once, which matters most for agents whose context fills with duplicates.
@@ -1219,7 +1237,7 @@ backend = [".ground"]
 
 **Repo overrides:**
 
-You can override `display_name`, `color`, `after_create`, `group`, `landing`, `verify`, `github` and `aliases` per repo. Aliases are appended to the shared list; other fields replace the shared value.
+You can override `display_name`, `color`, `after_create`, `group`, `landing`, `verify`, `github` and `aliases` per repo. Aliases are appended to the shared list; other fields replace the shared value. A repo `ws.toml` hasn't is [yours](#repos-of-your-own), whole as you say it.
 
 **Group overrides:**
 

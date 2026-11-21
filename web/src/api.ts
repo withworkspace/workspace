@@ -527,6 +527,9 @@ export const getSpaces = () => getJSON<{ spaces: Space[]; problem?: string }>("/
 export const getSpace = (repo: string) => getJSON<{ space: Space; docs: SpaceDoc[]; problem?: string }>(`/api/documents/${encodeURIComponent(repo)}`);
 
 export const getRepos = () => getJSON<{ repos: Repo[] }>("/api/repos").then((r) => r.repos);
+// shareRepo gives a repo of yours to the team (ws repo share): into
+// ws.toml, committed on the workspace's config repo and pushed.
+export const shareRepo = (repo: string) => send<{ message: string; commit: string }>("POST", `/api/repos/${encodeURIComponent(repo)}/share`);
 export const getWorktrees = (repo: string) => getJSON<{ worktrees: Worktree[] }>(`/api/repos/${encodeURIComponent(repo)}/worktrees`).then((r) => r.worktrees);
 
 // worktreeAPI is where a repo's ground or capsule's files are read, as

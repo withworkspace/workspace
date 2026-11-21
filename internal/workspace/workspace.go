@@ -26,6 +26,7 @@ type Workspace struct {
 	AliasMap         map[string]string            // alias → canonical name
 	DisplayNames     map[string]string            // canonical name → display name
 	Remotes          map[string]ref.Remote        // canonical name → where it is on GitHub, where it says (see RemoteOf)
+	Yours            map[string]bool              // canonical name → in ws.local.toml alone: not the team's
 	RepoColors       map[string]string            // canonical name → custom color (256-color or hex)
 	AfterCreateHooks map[string]string            // canonical name → shell command
 	Landings         map[string]string            // canonical name → "direct" or "pr", where the workspace says (see Landing)

@@ -89,6 +89,8 @@ var labels = map[string]string{
 	"group hide":               "Hiding {1}",
 	"group reset":              "Resetting {1}",
 	"group show":               "Showing {1}",
+	"repo":                     "Looking at the repos",
+	"repo share":               "Giving {1} to the team",
 	"router":                   "Looking at the router",
 	"silo":                     "Looking at silos",
 	"silo point":               "Pointing {1} at {2}",

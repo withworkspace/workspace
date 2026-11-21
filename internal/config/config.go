@@ -989,6 +989,10 @@ type RepoConfig struct {
 	// ([repos.cr-api] github = "cr-team/api"). The key stays its name in
 	// the workspace and its folder under repos/.
 	GitHub string `toml:"github,omitempty"`
+	// Yours: the repo is in ws.local.toml alone, not the team's ws.toml.
+	// It's cloned and worked in here as any is, and isn't in a teammate's
+	// workspace. Merge says it; neither file does.
+	Yours bool `toml:"-"`
 }
 
 // Documents is a repo's documents setting: whether it's a space of
@@ -1122,6 +1126,9 @@ func Merge(base, local *Config) *Config {
 	for name, localRepo := range local.Repos {
 		baseRepo, ok := merged.Repos[name]
 		if !ok {
+			// One the team hasn't: yours, whole as ws.local.toml says it.
+			localRepo.Yours = true
+			merged.Repos[name] = localRepo
 			continue
 		}
 		if localRepo.AfterCreate != "" {

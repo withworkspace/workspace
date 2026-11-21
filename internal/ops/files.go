@@ -30,6 +30,10 @@ type Repo struct {
 	// Landing is how work lands in it, as the workspace or the repo itself
 	// says.
 	Landing RepoLanding
+	// Yours: it's in ws.local.toml alone, not the team's ws.toml.
+	Yours bool
+	// GitHub is where it is on GitHub, as owner/name: "" for nowhere.
+	GitHub string
 }
 
 // RepoLanding is how work lands in a repo: through a pull request, or
@@ -72,6 +76,10 @@ func (w *Workspace) Repos() []Repo {
 				}
 			}
 			slices.Sort(r.Aliases)
+			r.Yours = ws.Yours[name]
+			if ws.OnGitHub(name) {
+				r.GitHub = ws.RemoteOf(name).String()
+			}
 			if info, err := os.Stat(ws.MainWorktree(name)); err == nil && info.IsDir() {
 				r.Cloned = true
 			}

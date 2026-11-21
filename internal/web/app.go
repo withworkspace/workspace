@@ -155,6 +155,9 @@ type Files interface {
 	CapsuleDir(slug, repo, name string) (dir, baseRef string, err error)
 	Landing(repo, name string) (*ops.Landing, error)
 	LandCapsule(repo, name string) (*ops.LandOutcome, error)
+	// ShareRepo gives a repo of yours to the team: into ws.toml, committed
+	// on the config repo and pushed.
+	ShareRepo(ctx context.Context, who ops.Actor, name string) (*ops.RepoShared, error)
 	CodeSearching
 }
 

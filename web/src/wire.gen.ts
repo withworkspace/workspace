@@ -3646,6 +3646,14 @@ export interface Repo {
      * default branch).
      */
     landing?: OpsRepoLanding;
+    /**
+     * Yours: it's in ws.local.toml alone, not the team's ws.toml.
+     */
+    yours?: boolean;
+    /**
+     * GitHub is where it is on GitHub, as owner/name: "" for nowhere.
+     */
+    github?: string;
 }
 
 // From web/refpaths.go

@@ -39,6 +39,7 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 	documents := make(map[string]*config.Documents)
 	repoGroups := make(map[string]string)
 	remotes := make(map[string]ref.Remote)
+	yours := make(map[string]bool)
 	hiddenGroups := make(map[string]bool)
 
 	for name := range cfg.Groups {
@@ -68,6 +69,9 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 		}
 		if rc.Documents != nil {
 			documents[name] = rc.Documents
+		}
+		if rc.Yours {
+			yours[name] = true
 		}
 		if rc.GitHub != "" {
 			r, ok := ref.ParseRemote(rc.GitHub)
@@ -104,6 +108,7 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 		AliasMap:         aliasMap,
 		DisplayNames:     displayNames,
 		Remotes:          remotes,
+		Yours:            yours,
 		RepoColors:       repoColors,
 		AfterCreateHooks: afterCreateHooks,
 		Landings:         landings,

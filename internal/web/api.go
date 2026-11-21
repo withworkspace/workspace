@@ -1126,6 +1126,10 @@ type Repo struct {
 	// Landing is how work lands in it: "pr", or "direct" (straight to its
 	// default branch).
 	Landing ops.RepoLanding `json:"landing,omitempty"`
+	// Yours: it's in ws.local.toml alone, not the team's ws.toml.
+	Yours bool `json:"yours,omitempty"`
+	// GitHub is where it is on GitHub, as owner/name: "" for nowhere.
+	GitHub string `json:"github,omitempty"`
 }
 
 // Worktree is a repo's ground (Name ".ground": its default branch,
