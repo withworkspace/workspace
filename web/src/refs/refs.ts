@@ -128,9 +128,11 @@ export interface Known {
   pages: string[];
   talks: string[];
   artifacts?: string[];
-  // For reading addresses: the workspace's GitHub org, its default branch,
-  // and each repo's capsules by the branch they're on.
+  // For reading addresses: the workspace's GitHub org (and the repos
+  // that are elsewhere on GitHub, repo to owner/name), its default
+  // branch, and each repo's capsules by the branch they're on.
   org?: string;
+  remotes?: Record<string, string>;
   defaultBranch?: string;
   branches?: Map<string, Map<string, string>>;
   // The workspace's spaces of documents: a file that's one of their
@@ -483,18 +485,45 @@ export function refName(r: PageRef): string {
 
 // Where is what an address needs that a ref doesn't say.
 export interface Where {
-  org: string;
+  org?: string;
+  remotes?: Record<string, string>; // the repos that aren't org's by their names, each owner/name
   defaultBranch: string;
   branch?: string; // a capsule's, once it's pushed
 }
 
 const escapePath = (p: string) => p.split("/").map(encodeURIComponent).join("/");
 
+// remoteOf is where a repo is on GitHub, as owner/name: where the
+// workspace says it is, or else under its org by its name.
+export function remoteOf(w: { org?: string; remotes?: Record<string, string> }, repo: string): string {
+  return w.remotes?.[repo] ?? `${w.org ?? ""}/${repo}`;
+}
+
+// onGitHub is whether a repo has somewhere on GitHub: an owner, said or
+// the org's.
+export function onGitHub(w: { org?: string; remotes?: Record<string, string> }, repo: string): boolean {
+  return !!(w.remotes?.[repo] || w.org);
+}
+
+// repoAt is the repo, by its name here, that's owner/name on GitHub. With
+// no org, a repo that isn't said to be elsewhere is matched by its name
+// alone, whoever's it is.
+function repoAt(known: Known, owner: string, name: string): string | undefined {
+  const is = (repo: string) => {
+    const said = known.remotes?.[repo];
+    if (!said && !known.org) return repo.toLowerCase() === name.toLowerCase();
+    return remoteOf(known, repo).toLowerCase() === `${owner}/${name}`.toLowerCase();
+  };
+  if (known.repos.has(name) && is(name)) return name;
+  for (const repo of known.repos.keys()) if (is(repo)) return repo;
+  return undefined;
+}
+
 // refAddress is where a ref is outside ws: on GitHub, where a plugin said
 // its thing is, or ws:<name> for what only ws has.
 export function refAddress(r: PageRef, w: Where): string {
   if (r.kind === "thing") return r.url ?? `ws:${r.id}`;
-  const gh = `https://github.com/${w.org}/${"repo" in r ? r.repo : ""}`;
+  const gh = `https://github.com/${remoteOf(w, "repo" in r ? r.repo : "")}`;
   switch (r.kind) {
     case "repo":
       return gh;
@@ -609,8 +638,8 @@ export function parseAddress(addr: string, known: Known): PageRef | undefined {
   const m = githubURL.exec(addr);
   if (!m) return undefined;
   const [, org, repoRaw, restRaw, frag] = m;
-  const repo = repoRaw.replace(/\.git$/, "");
-  if ((known.org && org.toLowerCase() !== known.org.toLowerCase()) || !known.repos.has(repo)) return undefined;
+  const repo = repoAt(known, org, repoRaw.replace(/\.git$/, ""));
+  if (!repo) return undefined;
   const segs = (restRaw ?? "")
     .replace(/^\/+|\/+$/g, "")
     .split("/")

@@ -207,6 +207,13 @@ func (c FixtureClient) ReviewRequested(org string) ([]PRRef, error) {
 			}
 		}
 	}
+	// The fixture's repos are by name alone: each is the owner's asked
+	// after, as a search of one owner's would say.
+	for i := range out {
+		if out[i].Owner == "" {
+			out[i].Owner = org
+		}
+	}
 	return out, nil
 }
 

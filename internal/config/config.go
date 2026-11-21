@@ -983,6 +983,12 @@ type RepoConfig struct {
 	// ("docs/"), or it isn't (false: for the records repo, which is one
 	// without saying). Unset, the repo's own ws.repo.toml says.
 	Documents *Documents `toml:"documents,omitempty"`
+	// GitHub is where the repo is on GitHub, as owner/name, when that
+	// isn't the workspace's org and the repo's key: a repo of another
+	// org, or one whose name there is taken here by another's
+	// ([repos.cr-api] github = "cr-team/api"). The key stays its name in
+	// the workspace and its folder under repos/.
+	GitHub string `toml:"github,omitempty"`
 }
 
 // Documents is a repo's documents setting: whether it's a space of
@@ -1138,6 +1144,9 @@ func Merge(base, local *Config) *Config {
 		}
 		if localRepo.Documents != nil {
 			baseRepo.Documents = localRepo.Documents
+		}
+		if localRepo.GitHub != "" {
+			baseRepo.GitHub = localRepo.GitHub
 		}
 		if len(localRepo.Aliases) > 0 {
 			baseRepo.Aliases = append(baseRepo.Aliases, localRepo.Aliases...)

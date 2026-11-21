@@ -145,7 +145,7 @@ func ResolveArtifact(ws *workspace.Workspace, store mission.Store, v MissionView
 	if av.Kind == "" {
 		av.Kind = DefaultKind(r)
 	}
-	repoURL := "https://github.com/" + ws.Org + "/" + r.Repo
+	repoURL := ws.RemoteOf(r.Repo).URL()
 	onGround := func() (string, bool) {
 		p := filepath.Join(ws.MainWorktree(r.Repo), filepath.FromSlash(r.Path))
 		return p, fileExists(p)
@@ -238,8 +238,8 @@ func (w *Workspace) NormalizeArtifact(m *mission.Mission, input, dir string) (Ar
 	case s == "":
 		return ArtifactRef{}, errors.New("say what to record: a file, a reference like records:adr/0001.md or api#88, or a URL")
 	case strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://"):
-		if g, ok := ref.ParseGitHub(s); ok && (g.What == "pull" || g.What == "issues") && len(g.Segs) > 0 && strings.EqualFold(g.Org, w.WS().Org) {
-			if repo, ok := w.WS().ResolveAlias(g.Repo); ok {
+		if g, ok := ref.ParseGitHub(s); ok && (g.What == "pull" || g.What == "issues") && len(g.Segs) > 0 {
+			if repo, ok := w.WS().RepoAt(g.Org, g.Repo); ok {
 				if n, err := strconv.Atoi(g.Segs[0]); err == nil && n > 0 {
 					return ArtifactRef{Loc: LocPR, Repo: repo, Number: n}, nil
 				}

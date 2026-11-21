@@ -44,7 +44,7 @@ func collectStatusData(ws *workspace.Workspace, gh github.Client, outlines []wor
 		wg.Add(1)
 		go func(repoName string) {
 			defer wg.Done()
-			prs, err := gh.PRsForRepo(ws.Org, repoName)
+			prs, err := gh.PRsForRepo(ws.RemoteOf(repoName).Owner, ws.RemoteOf(repoName).Name)
 			if err != nil {
 				return
 			}

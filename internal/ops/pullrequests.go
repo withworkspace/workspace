@@ -119,7 +119,7 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 		return PROpened{}, refused("no-github", "ws can't reach GitHub here, so it can't open a pull request")
 	}
 	branch := workspace.GitCurrentBranch(dir)
-	if open, err := gh.PRsForRepo(ws.Org, c.Repo); err == nil {
+	if open, err := gh.PRsForRepo(ws.RemoteOf(c.Repo).Owner, ws.RemoteOf(c.Repo).Name); err == nil {
 		for _, pr := range open {
 			if pr.HeadRefName == branch && branch != "" {
 				return PROpened{}, refused("pr-open", "%s#%d is open from %s already (%s): push to the branch to change it", c.Repo, pr.Number, out.Capsule, pr.URL)
@@ -166,7 +166,7 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 		}
 		return PROpened{}, err
 	}
-	pr, err := gh.CreatePR(ws.Org, c.Repo, github.NewPR{Head: branch, Base: ws.DefaultBranch, Title: o.Title, Body: o.Body, Draft: o.Draft})
+	pr, err := gh.CreatePR(ws.RemoteOf(c.Repo).Owner, ws.RemoteOf(c.Repo).Name, github.NewPR{Head: branch, Base: ws.DefaultBranch, Title: o.Title, Body: o.Body, Draft: o.Draft})
 	if err != nil {
 		return PROpened{}, fmt.Errorf("%s is pushed, but the pull request wasn't opened: %w", branch, err)
 	}

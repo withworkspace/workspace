@@ -479,7 +479,7 @@ func fetchPRsByBranch(ctx *ops.Workspace, capsules []workspace.CapsuleInfo) (map
 				defer innerWg.Done()
 				sem <- struct{}{}
 				defer func() { <-sem }()
-				if prs, err := ctx.GitHub().PRsForRepo(ctx.WS().Org, repo); err == nil {
+				if prs, err := ctx.GitHub().PRsForRepo(ctx.WS().RemoteOf(repo).Owner, ctx.WS().RemoteOf(repo).Name); err == nil {
 					r.open = prs
 				}
 			}()
@@ -487,7 +487,7 @@ func fetchPRsByBranch(ctx *ops.Workspace, capsules []workspace.CapsuleInfo) (map
 				defer innerWg.Done()
 				sem <- struct{}{}
 				defer func() { <-sem }()
-				if prs, err := ctx.GitHub().MergedPRsForRepo(ctx.WS().Org, repo); err == nil {
+				if prs, err := ctx.GitHub().MergedPRsForRepo(ctx.WS().RemoteOf(repo).Owner, ctx.WS().RemoteOf(repo).Name); err == nil {
 					r.merged = prs
 				}
 			}()

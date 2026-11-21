@@ -62,6 +62,9 @@ type Brief struct {
 	// full, and where the others are (mission.LeftOff).
 	LeftOff string
 	Org     string // GitHub org the workspace's repos live in
+	// Elsewhere are the repos that aren't Org's by their name here: repo
+	// to owner/name on GitHub.
+	Elsewhere map[string]string
 }
 
 // Launch is a ready-to-run agent command.

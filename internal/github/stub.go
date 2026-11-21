@@ -3,6 +3,8 @@ package github
 import (
 	"errors"
 	"time"
+
+	"github.com/withworkspace/workspace/internal/ref"
 )
 
 // Stub is a test double for Client: each call answers from its function,
@@ -38,7 +40,7 @@ type Stub struct {
 
 	// HeadsFn says where repos' branches are; without it, GitHub can't
 	// say, and each repo's fetched instead.
-	HeadsFn func(org string, repos []string, branch string) (map[string]string, error)
+	HeadsFn func(repos []ref.Remote, branch string) (map[ref.Remote]string, error)
 }
 
 func (s *Stub) PRsForRepo(org, repo string) ([]PR, error) {
@@ -153,9 +155,9 @@ func (s *Stub) ChangedPRs(org, repo string, since time.Time) ([]PRActivity, erro
 	return nil, nil
 }
 
-func (s *Stub) Heads(org string, repos []string, branch string) (map[string]string, error) {
+func (s *Stub) Heads(repos []ref.Remote, branch string) (map[ref.Remote]string, error) {
 	if s.HeadsFn != nil {
-		return s.HeadsFn(org, repos, branch)
+		return s.HeadsFn(repos, branch)
 	}
 	return nil, errors.New("the stub has no heads")
 }

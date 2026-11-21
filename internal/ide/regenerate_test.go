@@ -12,7 +12,7 @@ func TestRegenerate_BothIDEs(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, ".idea"), 0755)
 
 	boarded := map[string][]string{"repo-a": {"main"}}
-	if err := Regenerate(root, boarded, nil, "test-org"); err != nil {
+	if err := Regenerate(root, boarded, nil, testOrg); err != nil {
 		t.Fatalf("Regenerate() error: %v", err)
 	}
 
@@ -30,7 +30,7 @@ func TestRegenerate_NeitherIDE(t *testing.T) {
 	root := t.TempDir()
 	boarded := map[string][]string{"repo-a": {"main"}}
 	// No IDE files — should be a clean no-op
-	if err := Regenerate(root, boarded, nil, "test-org"); err != nil {
+	if err := Regenerate(root, boarded, nil, testOrg); err != nil {
 		t.Fatalf("Regenerate() error: %v", err)
 	}
 }

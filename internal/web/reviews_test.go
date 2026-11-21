@@ -23,6 +23,7 @@ import (
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/pulls"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/review"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -90,7 +91,7 @@ func newReviewsWorld(t *testing.T) *reviewsWorld {
 				{Author: "carol", Body: "nitpick: three?", At: "2026-11-10T09:00:00Z", Commit: w.head, OriginalCommit: w.head}}}}, nil
 		},
 	}
-	svc := &pulls.Service{Root: root, Org: "acme", GitHub: w.gh, Fresh: time.Millisecond,
+	svc := &pulls.Service{Root: root, Remote: func(repo string) ref.Remote { return ref.Remote{Owner: "acme", Name: repo} }, GitHub: w.gh, Fresh: time.Millisecond,
 		Repos:   func() []string { return []string{"api"} },
 		BareDir: func(repo string) string { return filepath.Join(root, "repos", repo, ".bare") },
 	}

@@ -68,8 +68,12 @@ func exactPull(repo string, number int, snap *snapshot, pulls []Pull) *Result {
 // exactURL reads an address on GitHub: a pull request's, or a file's or a
 // folder's at some branch or commit.
 func (ix *Index) exactURL(g ref.GitHub, snap *snapshot, pulls []Pull) *Result {
-	if ix.Org != "" && !strings.EqualFold(g.Org, ix.Org) {
-		return nil
+	if ix.RepoAt != nil {
+		repo, ok := ix.RepoAt(g.Org, g.Repo)
+		if !ok {
+			return nil
+		}
+		g.Repo = repo // as the workspace names it, from here
 	}
 	if !knows(g.Repo, snap, pulls) || len(g.Segs) == 0 {
 		return nil

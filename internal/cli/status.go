@@ -153,9 +153,9 @@ func (m statusModel) queryWorktree(repo, wt string) tea.Cmd {
 }
 
 func (m statusModel) queryRepoPRs(repoName string) tea.Cmd {
-	org := m.ws.Org
+	at := m.ws.RemoteOf(repoName)
 	return func() tea.Msg {
-		prs, err := m.gh.PRsForRepo(org, repoName)
+		prs, err := m.gh.PRsForRepo(at.Owner, at.Name)
 		return repoPRsMsg{repo: repoName, prs: prs, err: err}
 	}
 }

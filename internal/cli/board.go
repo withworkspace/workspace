@@ -55,7 +55,7 @@ func newBoardToggleCmd(use, short, verb string, op func(*ops.Workspace, string, 
 				return fmt.Errorf("saving board state: %w", err)
 			}
 
-			if err := ide.Regenerate(ctx.WS().Root, ctx.WS().Boarded, ctx.WS().DisplayNames, ctx.WS().Org); err != nil {
+			if err := ide.Regenerate(ctx.WS().Root, ctx.WS().Boarded, ctx.WS().DisplayNames, ctx.WS().RemoteOf); err != nil {
 				fmt.Fprintf(ui.Stderr, "  %s workspace files: %v\n", ui.Orange.Render("⚠"), err)
 			}
 

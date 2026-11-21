@@ -235,8 +235,11 @@ func (s *Service) read(repo string, number int) (*page, error) {
 	var threadsErr, saidErr error
 	var body string
 	wg.Add(3)
-	go func() { defer wg.Done(); threads, threadsErr = s.GitHub.ReviewThreads(s.Org, repo, number) }()
-	go func() { defer wg.Done(); said, saidErr = s.GitHub.Discussion(s.Org, repo, number) }()
+	go func() {
+		defer wg.Done()
+		threads, threadsErr = s.GitHub.ReviewThreads(s.owner(repo), s.name(repo), number)
+	}()
+	go func() { defer wg.Done(); said, saidErr = s.GitHub.Discussion(s.owner(repo), s.name(repo), number) }()
 	go func() { defer wg.Done(); body = s.body(pr) }()
 	l, err := s.layer(pr, st)
 	wg.Wait()
@@ -527,7 +530,7 @@ func (s *Service) ThreadsNow(repo string, number int) (*review.Review, error) {
 	if err != nil {
 		return nil, err
 	}
-	threads, err := s.GitHub.ReviewThreads(s.Org, repo, number)
+	threads, err := s.GitHub.ReviewThreads(s.owner(repo), s.name(repo), number)
 	if err != nil {
 		return nil, err
 	}
@@ -543,7 +546,7 @@ func (s *Service) DiscussionNow(repo string, number int) (*Discussion, error) {
 	if err != nil {
 		return nil, err
 	}
-	said, err := s.GitHub.Discussion(s.Org, repo, number)
+	said, err := s.GitHub.Discussion(s.owner(repo), s.name(repo), number)
 	if err != nil {
 		return nil, err
 	}

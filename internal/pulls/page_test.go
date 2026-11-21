@@ -150,7 +150,7 @@ func TestPageIsKeptAndAnsweredAtOnce(t *testing.T) {
 	}
 
 	// Kept in the records: a daemon started again answers as kept too.
-	again := &Service{Root: w.root, Org: "acme", GitHub: w.gh, Repos: w.svc.Repos, BareDir: w.svc.BareDir, Now: w.clockNow}
+	again := &Service{Root: w.root, Remote: acme, GitHub: w.gh, Repos: w.svc.Repos, BareDir: w.svc.BareDir, Now: w.clockNow}
 	gits = git.Started()
 	if d, err := again.KeptDetail("api", 89); err != nil || d.Head != w.pr(89).HeadRefOid || d.Body != "Keys the cache by tenant." {
 		t.Fatalf("after a restart: %+v, %v", d, err)

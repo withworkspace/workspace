@@ -206,6 +206,7 @@ export function RefsProvider({ workspace, plugins = noPlugins, children }: { wor
   const names = [
     workspace.root,
     workspace.org,
+    JSON.stringify(workspace.remotes ?? {}),
     workspace.missions.map((m) => m.slug).join(","),
     (workspace.pages ?? []).map((p) => p.id).join(","),
     workspace.conversations.map((t) => t.id).join(","),
@@ -223,6 +224,7 @@ export function RefsProvider({ workspace, plugins = noPlugins, children }: { wor
       talks: workspace.conversations.map((t) => t.id),
       artifacts: (workspace.artifacts ?? []).map((a) => a.id),
       org: workspace.org,
+      remotes: workspace.remotes,
       defaultBranch: workspace.defaultBranch,
       branches: new Map(repos.map((r) => [r.name, new Map(Object.entries(r.branches ?? {}).map(([capsule, branch]) => [branch, capsule]))])),
       spaces: (workspace.spaces ?? []).map((s) => ({ repo: s.repo, folder: s.folder })),

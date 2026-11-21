@@ -1,5 +1,6 @@
 import { type ActVerb, prAPI, type Workspace } from "../api";
 import type { IconName } from "../ui/Icon";
+import { onGitHub, remoteOf } from "../refs/refs";
 import { crewStatus } from "../ui/status";
 import { type Item, missionDo } from "./find";
 
@@ -84,7 +85,7 @@ export function actsFor(s: Subject, w: Workspace): Item[] {
     }
     case "pr": {
       const out: Item[] = [row(`dock:${s.repo}#${s.number}`, "Dock it here", "branch", { hint: "check out a capsule, as ws dock does", doing: { ws: { dock: prAPI(s.repo, s.number) } } })];
-      if (w.org) out.push(row(`github:${s.repo}#${s.number}`, "Open it on GitHub", "external", { to: `https://github.com/${w.org}/${s.repo}/pull/${s.number}` }));
+      if (onGitHub(w, s.repo)) out.push(row(`github:${s.repo}#${s.number}`, "Open it on GitHub", "external", { to: `https://github.com/${remoteOf(w, s.repo)}/pull/${s.number}` }));
       return out;
     }
   }

@@ -26,9 +26,14 @@ func teamService(ctx *ops.Workspace) *team.Service {
 	root := ctx.WS().Root
 	window, _ := team.ParseWindow(ctx.Config().Team.Window)
 	// Where there's a file answering for GitHub, there's no GitHub to link to.
-	site := ""
-	if ctx.Config().GitHub.Fixture == "" && ctx.WS().Org != "" {
-		site = "https://github.com/" + ctx.WS().Org
+	var web func(repo string) string
+	if ctx.Config().GitHub.Fixture == "" {
+		web = func(repo string) string {
+			if !ctx.WS().OnGitHub(repo) {
+				return ""
+			}
+			return ctx.WS().RemoteOf(repo).URL()
+		}
 	}
 	// An agent writes gists unless [team] narrative says not to, or no
 	// harness here can.
@@ -46,7 +51,7 @@ func teamService(ctx *ops.Workspace) *team.Service {
 		summariser = teamSummariser(root)
 	}
 	return &team.Service{
-		Root: root, Org: ctx.WS().Org, GitHub: ctx.GitHub(), Window: window, Web: site, Writer: writer, NoWriter: noWriter, Summariser: summariser,
+		Root: root, GitHub: ctx.GitHub(), Window: window, Web: web, Writer: writer, NoWriter: noWriter, Summariser: summariser,
 		Repos: func() []team.Repo {
 			c, err := LoadOps(root)
 			if err != nil {
@@ -55,7 +60,7 @@ func teamService(ctx *ops.Workspace) *team.Service {
 			var out []team.Repo
 			for _, name := range c.WS().ListedRepoNames() {
 				if info, err := os.Stat(c.WS().BareDir(name)); err == nil && info.IsDir() {
-					out = append(out, team.Repo{Name: name, Bare: c.WS().BareDir(name), Branch: c.WS().DefaultBranch})
+					out = append(out, team.Repo{Name: name, Bare: c.WS().BareDir(name), Branch: c.WS().DefaultBranch, GitHub: c.WS().RemoteOf(name)})
 				}
 			}
 			return out

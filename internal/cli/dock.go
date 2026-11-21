@@ -78,7 +78,7 @@ Examples:
 				}
 
 				if prNum, ok := isPRNumber(args[1]); ok {
-					branch, err = resolveFromPR(ctx.GitHub(), ctx.WS().Org, repo, prNum)
+					branch, err = resolveFromPR(ctx.GitHub(), ctx.WS().RemoteOf(repo).Owner, ctx.WS().RemoteOf(repo).Name, prNum)
 					if err != nil {
 						return err
 					}
@@ -89,12 +89,9 @@ Examples:
 				arg := args[0]
 
 				if urlOrg, urlRepo, prNum, ok := parsePRURL(arg); ok {
-					if urlOrg != ctx.WS().Org {
-						return fmt.Errorf("PR URL org %q does not match workspace org %q", urlOrg, ctx.WS().Org)
-					}
-					canonical, found := ctx.WS().ResolveAlias(urlRepo)
+					canonical, found := ctx.WS().RepoAt(urlOrg, urlRepo)
 					if !found {
-						return fmt.Errorf("repo %q (from PR URL) is not in this workspace", urlRepo)
+						return fmt.Errorf("%s/%s (from the PR URL) is no repo of this workspace's", urlOrg, urlRepo)
 					}
 					repo = canonical
 					branch, err = resolveFromPR(ctx.GitHub(), urlOrg, urlRepo, prNum)

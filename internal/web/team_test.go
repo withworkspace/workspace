@@ -14,6 +14,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/github"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/team"
 )
 
@@ -54,8 +55,10 @@ func newTeamServer(t *testing.T) (*Server, *int) {
 			Reviews: []github.PRReview{{Author: "ben-acme", State: "APPROVED", SubmittedAt: "2026-11-08T15:00:00Z"}},
 		}}, nil
 	}}
-	svc := &team.Service{Root: root, Org: "acme", GitHub: gh, Now: func() time.Time { return now },
-		Repos: func() []team.Repo { return []team.Repo{{Name: "api", Bare: bare, Branch: "main"}} }}
+	svc := &team.Service{Root: root, GitHub: gh, Now: func() time.Time { return now },
+		Repos: func() []team.Repo {
+			return []team.Repo{{Name: "api", Bare: bare, Branch: "main", GitHub: ref.Remote{Owner: "acme", Name: "api"}}}
+		}}
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)

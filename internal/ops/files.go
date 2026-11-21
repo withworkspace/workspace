@@ -201,7 +201,7 @@ func (w *Workspace) FindIndex() *find.Index {
 }
 
 func (w *Workspace) newFindIndex() *find.Index {
-	ix := &find.Index{Org: w.WS().Org}
+	ix := &find.Index{RepoAt: func(owner, name string) (string, bool) { return w.WS().RepoAt(owner, name) }}
 	ix.Worktrees = func() ([]find.Worktree, error) {
 		ws := w.WS()
 		branch := ws.DefaultBranch

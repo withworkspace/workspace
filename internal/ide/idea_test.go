@@ -5,7 +5,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/withworkspace/workspace/internal/ref"
 )
+
+// testOrg has every repo under test-org, by its name.
+func testOrg(repo string) ref.Remote { return ref.Remote{Owner: "test-org", Name: repo} }
 
 func TestGenerateIDEA_Basic(t *testing.T) {
 	root := t.TempDir()
@@ -15,7 +20,7 @@ func TestGenerateIDEA_Basic(t *testing.T) {
 		"repo-a": {"main", "feature-x"},
 	}
 
-	if err := GenerateIDEA(root, boarded, "test-org"); err != nil {
+	if err := GenerateIDEA(root, boarded, testOrg); err != nil {
 		t.Fatalf("GenerateIDEA() error: %v", err)
 	}
 
@@ -68,7 +73,7 @@ func TestGenerateIDEA_NoIdeaDir(t *testing.T) {
 	root := t.TempDir()
 	// No .idea/ directory — should be a no-op
 	boarded := map[string][]string{"repo-a": {"main"}}
-	if err := GenerateIDEA(root, boarded, "test-org"); err != nil {
+	if err := GenerateIDEA(root, boarded, testOrg); err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".idea")); !os.IsNotExist(err) {
@@ -83,7 +88,7 @@ func TestGenerateIDEA_CleansStaleIML(t *testing.T) {
 	os.WriteFile(filepath.Join(root, ".idea", "modules", "old-repo-stale.iml"), []byte("<module/>"), 0644)
 
 	boarded := map[string][]string{"repo-a": {"main"}}
-	GenerateIDEA(root, boarded, "test-org")
+	GenerateIDEA(root, boarded, testOrg)
 
 	// Stale file should be gone
 	if _, err := os.Stat(filepath.Join(root, ".idea", "modules", "old-repo-stale.iml")); !os.IsNotExist(err) {
@@ -121,7 +126,7 @@ func TestGenerateIDEA_IMLTemplateFromExisting(t *testing.T) {
 
 	// Board a new capsule for the same repo
 	boarded := map[string][]string{"my-repo": {"main", "feature-y"}}
-	if err := GenerateIDEA(root, boarded, "test-org"); err != nil {
+	if err := GenerateIDEA(root, boarded, testOrg); err != nil {
 		t.Fatalf("GenerateIDEA() error: %v", err)
 	}
 
@@ -152,7 +157,7 @@ func TestGenerateIDEA_DoesNotTouchWorkspaceXML(t *testing.T) {
 	os.WriteFile(filepath.Join(root, ".idea", "workspace.xml"), []byte("<user-state/>"), 0644)
 
 	boarded := map[string][]string{"repo-a": {"main"}}
-	GenerateIDEA(root, boarded, "test-org")
+	GenerateIDEA(root, boarded, testOrg)
 
 	content, _ := os.ReadFile(filepath.Join(root, ".idea", "workspace.xml"))
 	if string(content) != "<user-state/>" {

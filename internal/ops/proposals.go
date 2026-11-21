@@ -53,7 +53,7 @@ var DockForMission = func(w *Workspace, slug, repo, ref string) error {
 	}
 	branch := ref
 	if n, ok := isPRNumber(ref); ok {
-		pr, err := w.GitHub().PRFromNumber(w.WS().Org, repo, n)
+		pr, err := w.GitHub().PRFromNumber(w.WS().RemoteOf(repo).Owner, w.WS().RemoteOf(repo).Name, n)
 		if err != nil {
 			return err
 		}

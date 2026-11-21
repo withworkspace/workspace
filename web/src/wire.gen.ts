@@ -5313,9 +5313,11 @@ export interface Workspace {
     root: string;
     /**
      * Org and DefaultBranch are where its repos are on GitHub, for a
-     * ref's address.
+     * ref's address: each under Org by its name, but for those Remotes
+     * says are elsewhere (repo to owner/name).
      */
     org?: string;
+    remotes?: Record<string, string>;
     defaultBranch?: string;
     missions: Mission[];
     /**

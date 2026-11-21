@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/review"
 )
 
@@ -18,7 +21,9 @@ import (
 // clone, reads its diffs from there, and posts your reviews.
 type Service struct {
 	Root string
-	Org  string
+	// Remote is where a repo is on GitHub, by its name here: the
+	// workspace's repos needn't share an owner, nor their names there.
+	Remote func(repo string) ref.Remote
 	// GitHub is asked for PRs, stacks and threads, and posts reviews.
 	GitHub github.Client
 	// Repos are the repos whose PRs are listed: those cloned here.
@@ -187,7 +192,7 @@ func (s *Service) load() (*List, error) {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 			data[i].repo = repo
-			prs, err := s.GitHub.OpenPRs(s.Org, repo)
+			prs, err := s.GitHub.OpenPRs(s.owner(repo), s.name(repo))
 			if err != nil {
 				problems[i] = repo + ": " + err.Error()
 				return
@@ -195,7 +200,7 @@ func (s *Service) load() (*List, error) {
 			data[i].prs = prs
 			// Stacks are new on GitHub: without them, the chains ws works
 			// out still show.
-			if stacks, err := s.GitHub.StacksForRepo(s.Org, repo); err == nil {
+			if stacks, err := s.GitHub.StacksForRepo(s.owner(repo), s.name(repo)); err == nil {
 				data[i].stacks = stacks
 			}
 		}()
@@ -205,7 +210,7 @@ func (s *Service) load() (*List, error) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		asked, askedErr = s.GitHub.ReviewRequested(s.Org)
+		asked, askedErr = s.reviewRequested(repos)
 	}()
 	wg.Wait()
 
@@ -230,6 +235,59 @@ func (s *Service) load() (*List, error) {
 	}
 	sort.Strings(l.Problems)
 	return l, nil
+}
+
+// owner and name are where a repo is on GitHub.
+func (s *Service) owner(repo string) string { return s.remote(repo).Owner }
+func (s *Service) name(repo string) string  { return s.remote(repo).Name }
+
+func (s *Service) remote(repo string) ref.Remote {
+	if s.Remote == nil {
+		return ref.Remote{Name: repo}
+	}
+	return s.Remote(repo)
+}
+
+// reviewRequested is the open PRs asking for your review, of each owner
+// the repos are under, each by the repo's name here: GitHub's search is
+// of one owner at a time, and a PR of a repo the workspace hasn't is left
+// out. The first owner that couldn't be asked is the error, beside what
+// the others said.
+func (s *Service) reviewRequested(repos []string) ([]github.PRRef, error) {
+	here := map[ref.Remote]string{}
+	var owners []string
+	for _, repo := range repos {
+		r := s.remote(repo)
+		if r.Owner == "" {
+			continue
+		}
+		key := ref.Remote{Owner: strings.ToLower(r.Owner), Name: strings.ToLower(r.Name)}
+		here[key] = repo
+		if !slices.ContainsFunc(owners, func(o string) bool { return strings.EqualFold(o, r.Owner) }) {
+			owners = append(owners, r.Owner)
+		}
+	}
+	var out []github.PRRef
+	var first error
+	for _, owner := range owners {
+		got, err := s.GitHub.ReviewRequested(owner)
+		if err != nil {
+			if first == nil {
+				first = fmt.Errorf("%s: %w", owner, err)
+			}
+			continue
+		}
+		for _, a := range got {
+			o := a.Owner
+			if o == "" {
+				o = owner
+			}
+			if repo, ok := here[ref.Remote{Owner: strings.ToLower(o), Name: strings.ToLower(a.Repo)}]; ok {
+				out = append(out, github.PRRef{Owner: o, Repo: repo, Number: a.Number})
+			}
+		}
+	}
+	return out, first
 }
 
 // Known finds an open PR in the list as it's kept, or its page as it's
@@ -496,7 +554,7 @@ func (s *Service) body(pr *PR) string {
 	if ok && b.updated == pr.Updated {
 		return b.text
 	}
-	d, err := s.GitHub.PRDetail(s.Org, pr.Repo, pr.Number)
+	d, err := s.GitHub.PRDetail(s.owner(pr.Repo), s.name(pr.Repo), pr.Number)
 	if err != nil {
 		return b.text
 	}

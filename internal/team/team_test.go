@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/store/storetest"
 	"github.com/withworkspace/workspace/internal/testgit"
 )
@@ -393,8 +394,10 @@ func newWorld(t *testing.T) *world {
 
 func (w *world) service() *Service {
 	return &Service{
-		Root: w.root, Org: "acme", GitHub: w.gh, Now: func() time.Time { return w.now },
-		Repos: func() []Repo { return []Repo{{Name: "api", Bare: w.bare, Branch: "main"}} },
+		Root: w.root, GitHub: w.gh, Now: func() time.Time { return w.now },
+		Repos: func() []Repo {
+			return []Repo{{Name: "api", Bare: w.bare, Branch: "main", GitHub: ref.Remote{Owner: "acme", Name: "api"}}}
+		},
 	}
 }
 

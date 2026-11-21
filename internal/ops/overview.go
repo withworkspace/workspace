@@ -34,8 +34,10 @@ type Overview struct {
 	Missions []MissionItem
 	Kinds    []Kind
 	// Org and DefaultBranch are where its repos are on GitHub: what a
-	// ref's address says.
+	// ref's address says. Elsewhere are the repos that aren't Org's by
+	// their names here, each as owner/name.
 	Org, DefaultBranch string
+	Elsewhere          map[string]string
 	// Spaces are its spaces of documents, as config says them: where a
 	// document's address is in Documents rather than Files.
 	Spaces []SpaceView
@@ -99,7 +101,7 @@ func (w *Workspace) Overview() (*Overview, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := &Overview{Name: ws.Name, Missions: []MissionItem{}, Kinds: w.Kinds(), Org: ws.Org, DefaultBranch: firstNonEmpty(ws.DefaultBranch, "main"), Spaces: []SpaceView{}}
+	out := &Overview{Name: ws.Name, Missions: []MissionItem{}, Kinds: w.Kinds(), Org: ws.Org, Elsewhere: elsewhere(ws), DefaultBranch: firstNonEmpty(ws.DefaultBranch, "main"), Spaces: []SpaceView{}}
 	out.Sidebar, out.Menu = w.Config().UI.Sidebar, w.Config().UI.Menu
 	out.Apps = w.Apps()
 	out.SpacesSeen = w.SpacesSeen()

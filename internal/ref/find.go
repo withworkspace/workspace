@@ -22,7 +22,8 @@ type Tree interface {
 // repo is called (alias to repo), each repo's capsules, the workspace's
 // folder (a path on disk under it is read as the file it is), the
 // missions' slugs, the pages, conversations and artifacts by id, and how
-// each plugin's things are named. Org, the default branch and each repo's
+// each plugin's things are named. Where each repo is on GitHub (Remotes,
+// or else under Org by its name), the default branch and each repo's
 // capsules by branch (repo to branch to capsule) are for reading
 // addresses.
 type Known struct {
@@ -36,6 +37,7 @@ type Known struct {
 	Artifacts     []string
 	Things        []Named
 	Org           string
+	Remotes       map[string]Remote
 	DefaultBranch string
 	Branches      map[string]map[string]string
 

@@ -11,6 +11,7 @@ import (
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/plugin/fakeplugin"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/testgit"
 	"github.com/withworkspace/workspace/internal/ui"
 	"github.com/withworkspace/workspace/internal/workspace"
@@ -46,6 +47,7 @@ func Main(m *testing.M) {
 	workspace.CheckGitHubAuthFunc = func() workspace.CheckResult {
 		return workspace.CheckResult{Name: "gh auth", Status: workspace.CheckOK}
 	}
+	workspace.CheckGitHubReachFunc = func(ref.Remote) error { return nil }
 	// Crew are typed their prompt as soon as their screen has been still a
 	// moment: a test's stand-in draws at once.
 	crew.PromptSettle = 50 * time.Millisecond

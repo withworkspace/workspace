@@ -9,13 +9,14 @@ import (
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/config"
+	"github.com/withworkspace/workspace/internal/ref"
 )
 
 // Workspace represents a resolved workspace with config-derived state.
 // This is the core type — all business logic operates on this.
 type Workspace struct {
 	Root             string
-	Org              string
+	Org              string // the GitHub owner a repo is under when it doesn't say (see RemoteOf)
 	DefaultBranch    string
 	GitProtocol      string                       // "ssh" or "" (defaults to https)
 	Name             string                       // optional display name for the workspace
@@ -24,6 +25,7 @@ type Workspace struct {
 	HiddenGroups     map[string]bool              // groups left out of commands that cover every repo
 	AliasMap         map[string]string            // alias → canonical name
 	DisplayNames     map[string]string            // canonical name → display name
+	Remotes          map[string]ref.Remote        // canonical name → where it is on GitHub, where it says (see RemoteOf)
 	RepoColors       map[string]string            // canonical name → custom color (256-color or hex)
 	AfterCreateHooks map[string]string            // canonical name → shell command
 	Landings         map[string]string            // canonical name → "direct" or "pr", where the workspace says (see Landing)
@@ -244,6 +246,47 @@ func (w *Workspace) fuzzyMatchRepos(input string, hidden bool) []string {
 	}
 	return matches
 }
+
+// RemoteOf is where a repo is on GitHub: where ws.toml's github says, or
+// else under the workspace's org by its name here.
+func (w *Workspace) RemoteOf(name string) ref.Remote {
+	if r, ok := w.Remotes[name]; ok {
+		return r
+	}
+	return ref.Remote{Owner: w.Org, Name: name}
+}
+
+// RepoAt is the repo that's owner/name on GitHub, by its name here. A
+// repo with no owner (no org, and no github said) is matched by its name
+// alone, whoever's it is.
+func (w *Workspace) RepoAt(owner, name string) (string, bool) {
+	for _, repo := range w.RepoNames {
+		if r := w.RemoteOf(repo); r.Is(owner, name) || (r.Owner == "" && strings.EqualFold(r.Name, name)) {
+			return repo, true
+		}
+	}
+	return "", false
+}
+
+// Owners are the GitHub owners the workspace's repos are under, each once,
+// sorted: what a question asked of an owner (the pull requests asking for
+// your review) is asked of.
+func (w *Workspace) Owners() []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, repo := range w.RepoNames {
+		if o := w.RemoteOf(repo).Owner; o != "" && !seen[strings.ToLower(o)] {
+			seen[strings.ToLower(o)] = true
+			out = append(out, o)
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
+// OnGitHub is whether the repo has somewhere on GitHub: an owner, from its
+// github or the workspace's org.
+func (w *Workspace) OnGitHub(name string) bool { return w.RemoteOf(name).Owner != "" }
 
 // Title returns the workspace display name if set, otherwise the org.
 func (w *Workspace) Title() string {

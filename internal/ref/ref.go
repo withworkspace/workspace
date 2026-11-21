@@ -232,20 +232,31 @@ func parse(s string) (Ref, bool) {
 
 // --- Addresses
 
-// Where is what an address needs that a ref doesn't say: the GitHub org,
-// the default branch, and (for a capsule's file) the branch it's pushed
-// to, "" while it isn't.
+// Where is what an address needs that a ref doesn't say: where its repo
+// is on GitHub (Remotes, or else under Org by its name), the default
+// branch, and (for a capsule's file) the branch it's pushed to, "" while
+// it isn't.
 type Where struct {
 	Org           string
+	Remotes       map[string]Remote
 	DefaultBranch string
 	Branch        string
+}
+
+// remoteOf is where a repo is on GitHub: as remotes say, or else under
+// org by its name.
+func remoteOf(remotes map[string]Remote, org, repo string) Remote {
+	if r, ok := remotes[repo]; ok {
+		return r
+	}
+	return Remote{Owner: org, Name: repo}
 }
 
 // Address is where it is outside ws: on GitHub, or ws:<name> for what only
 // ws has (a mission, a page, a capsule that isn't pushed). Lines are of
 // the commit they're pinned to, where there is one.
 func (r Ref) Address(w Where) string {
-	gh := "https://github.com/" + w.Org + "/" + r.Repo
+	gh := remoteOf(w.Remotes, w.Org, r.Repo).URL()
 	switch r.Kind {
 	case Thing:
 		if r.URL != "" {
@@ -359,7 +370,7 @@ func (g GitHub) Splits() [][2]string {
 func IsCommit(rev string) bool { return shaShape.MatchString(rev) }
 
 // ParseAddress reads an address back into what it names: one of the
-// workspace's on GitHub (its org, a repo it has), a plugin's thing where
+// workspace's on GitHub (a repo it has, where it is there), a plugin's thing where
 // its plugin said one is, or a ws: one. What an
 // address names needn't be there now (a capsule burned since): it was
 // named on purpose, so it's read as written.
@@ -374,12 +385,15 @@ func ParseAddress(addr string, k *Known) (Ref, bool) {
 		return r, true
 	}
 	g, ok := ParseGitHub(addr)
-	if !ok || (k.Org != "" && !strings.EqualFold(g.Org, k.Org)) {
+	if !ok {
 		return Ref{}, false
 	}
-	if _, known := k.Repos[g.Repo]; !known {
+	repo, known := k.RepoAt(g.Org, g.Repo)
+	if !known {
 		return Ref{}, false
 	}
+	// From here, the repo is named as the workspace names it.
+	g.Repo = repo
 	switch g.What {
 	case "":
 		if len(g.Segs) == 0 {
@@ -429,6 +443,27 @@ func ParseAddress(addr string, k *Known) (Ref, bool) {
 		}
 	}
 	return Ref{}, false
+}
+
+// RemoteOf is where a repo is on GitHub.
+func (k *Known) RemoteOf(repo string) Remote { return remoteOf(k.Remotes, k.Org, repo) }
+
+// RepoAt is the repo, by its name here, that's owner/name on GitHub. A
+// repo with no owner (no org, and no github said) is matched by its name
+// alone, whoever's it is.
+func (k *Known) RepoAt(owner, name string) (string, bool) {
+	if _, ok := k.Repos[name]; ok {
+		if r := k.RemoteOf(name); r.Is(owner, name) || (r.Owner == "" && r.Name == name) {
+			return name, true
+		}
+	}
+	for repo := range k.Repos {
+		r := k.RemoteOf(repo)
+		if r.Is(owner, name) || (r.Owner == "" && strings.EqualFold(r.Name, name)) {
+			return repo, true
+		}
+	}
+	return "", false
 }
 
 // Pinned is a name as it was when it was said or written: what it named

@@ -19,10 +19,12 @@ type Workspace struct {
 	Name string `json:"name"`
 	Root string `json:"root"`
 	// Org and DefaultBranch are where its repos are on GitHub, for a
-	// ref's address.
-	Org           string    `json:"org,omitempty"`
-	DefaultBranch string    `json:"defaultBranch,omitempty"`
-	Missions      []Mission `json:"missions"`
+	// ref's address: each under Org by its name, but for those Remotes
+	// says are elsewhere (repo to owner/name).
+	Org           string            `json:"org,omitempty"`
+	Remotes       map[string]string `json:"remotes,omitempty"`
+	DefaultBranch string            `json:"defaultBranch,omitempty"`
+	Missions      []Mission         `json:"missions"`
 	// Focus is what you've pinned that stands, in your order: the
 	// sidebar's Focus.
 	Focus []FocusPin `json:"focus"`

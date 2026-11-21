@@ -52,7 +52,7 @@ func TestFindAPI(t *testing.T) {
 		t.Errorf("with no index: %d", res.StatusCode)
 	}
 	// The workspace's repo, api, with its ground: the remote's checkout.
-	w.s.Find = &find.Index{Org: "acme", Worktrees: func() ([]find.Worktree, error) {
+	w.s.Find = &find.Index{RepoAt: acmeRepo, Worktrees: func() ([]find.Worktree, error) {
 		return []find.Worktree{{Repo: "api", Name: find.Ground, Dir: w.remote}}, nil
 	}}
 	if res := do(t, w.s, "GET", "/api/find?q=a", false, nil); res.StatusCode != http.StatusUnauthorized {
@@ -104,7 +104,7 @@ func TestFindAPI(t *testing.T) {
 	os.WriteFile(filepath.Join(w.remote, "b.go"), []byte("package a\n"), 0o644)
 	gitT(t, w.remote, "add", "-A")
 	gitT(t, w.remote, "commit", "-q", "-m", "b")
-	w.s.Find = &find.Index{Org: "acme", Worktrees: w.s.Find.Worktrees}
+	w.s.Find = &find.Index{RepoAt: acmeRepo, Worktrees: w.s.Find.Worktrees}
 	groups, order, _ = findLines(t, w.s, url.Values{"q": {"go"}, "kinds": {"files"}, "limit": {"1"}})
 	if len(order) != 1 || len(groups[find.KindFiles].Results) != 1 || groups[find.KindFiles].More != 1 {
 		t.Errorf("one file of two: %v %+v", order, groups[find.KindFiles])
@@ -121,7 +121,7 @@ func findLines0(t *testing.T, s *Server, q string) map[string]find.Group {
 // it says, led to where in it says it, and sent only when something is.
 func TestFindAPI_Said(t *testing.T) {
 	w := newReviewsWorld(t)
-	w.s.Find = &find.Index{Org: "acme", Worktrees: func() ([]find.Worktree, error) { return nil, nil }}
+	w.s.Find = &find.Index{RepoAt: acmeRepo, Worktrees: func() ([]find.Worktree, error) { return nil, nil }}
 	missions := mission.Store{Root: w.s.Root}
 	m, err := missions.Create("Cache tokens")
 	if err != nil {
@@ -155,3 +155,6 @@ func TestFindAPI_Said(t *testing.T) {
 		t.Error("a group with nothing in it was sent")
 	}
 }
+
+// acmeRepo is the tests' GitHub: every repo is acme's, by its name here.
+func acmeRepo(owner, name string) (string, bool) { return name, strings.EqualFold(owner, "acme") }

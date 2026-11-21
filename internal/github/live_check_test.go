@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/withworkspace/workspace/internal/ref"
 )
 
 // TestChangedPRsLive asks GitHub itself, when WS_LIVE_GITHUB names a
@@ -42,11 +44,11 @@ func TestHeadsLive(t *testing.T) {
 		t.Skip("WS_LIVE_GITHUB isn't set")
 	}
 	owner, repo, _ := strings.Cut(slug, "/")
-	heads, err := Heads(owner, []string{repo, repo + "-not-a-repo-of-theirs"}, "main")
+	heads, err := Heads([]ref.Remote{{Owner: owner, Name: repo}, {Owner: owner, Name: repo + "-not-a-repo-of-theirs"}}, "main")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(heads) != 1 || len(heads[repo]) != 40 {
+	if len(heads) != 1 || len(heads[ref.Remote{Owner: owner, Name: repo}]) != 40 {
 		t.Errorf("heads = %v, want %s's main alone", heads, repo)
 	}
 }

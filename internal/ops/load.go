@@ -11,6 +11,7 @@ import (
 	"github.com/withworkspace/workspace/internal/github"
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/page"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
 
@@ -37,6 +38,7 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 	verifies := make(map[string]string)
 	documents := make(map[string]*config.Documents)
 	repoGroups := make(map[string]string)
+	remotes := make(map[string]ref.Remote)
 	hiddenGroups := make(map[string]bool)
 
 	for name := range cfg.Groups {
@@ -67,6 +69,13 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 		if rc.Documents != nil {
 			documents[name] = rc.Documents
 		}
+		if rc.GitHub != "" {
+			r, ok := ref.ParseRemote(rc.GitHub)
+			if !ok {
+				return nil, nil, nil, fmt.Errorf("[repos.%s] github = %q: it's owner/name, as on GitHub", name, rc.GitHub)
+			}
+			remotes[name] = r
+		}
 		for _, alias := range rc.Aliases {
 			if _, isCanonical := cfg.Repos[alias]; isCanonical {
 				return nil, nil, nil, fmt.Errorf("alias %q for repo %q collides with a canonical repo name", alias, name)
@@ -94,6 +103,7 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 		HiddenGroups:     hiddenGroups,
 		AliasMap:         aliasMap,
 		DisplayNames:     displayNames,
+		Remotes:          remotes,
 		RepoColors:       repoColors,
 		AfterCreateHooks: afterCreateHooks,
 		Landings:         landings,
@@ -108,6 +118,20 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 		Harnesses:        harnessesInUse(cfg),
 		Boarded:          cfg.Boarded,
 		Silo:             cfg.Silo,
+	}
+
+	// Two repos at one place on GitHub would have an address there read as
+	// either, and a pull request's repo found as whichever came first.
+	at := map[string]string{}
+	for _, name := range names {
+		r := ws.RemoteOf(name)
+		if r.Owner == "" {
+			continue
+		}
+		if other, ok := at[strings.ToLower(r.String())]; ok {
+			return nil, nil, nil, fmt.Errorf("repos %q and %q are both %s on GitHub: give one its github (owner/name)", other, name, r)
+		}
+		at[strings.ToLower(r.String())] = name
 	}
 
 	var gh github.Client = github.LiveClient{}

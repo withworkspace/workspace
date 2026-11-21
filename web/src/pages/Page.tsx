@@ -357,9 +357,10 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
   // wherever it goes (GitHub, a pull request's description). Lines are
   // pinned to the commit the repo's files were read at; what only ws has
   // is addressed ws:. One step: undo takes it back.
+  const onAnyGitHub = !!workspace.org || Object.keys(workspace.remotes ?? {}).length > 0;
   const linkWhatsNamed = () => {
-    if (!view || !workspace.org) return;
-    const where = { org: workspace.org, defaultBranch: workspace.defaultBranch ?? "main" };
+    if (!view || !onAnyGitHub) return;
+    const where = { org: workspace.org, remotes: workspace.remotes, defaultBranch: workspace.defaultBranch ?? "main" };
     const n = linkNamed(view, (text, code) =>
       findRefs(text, knownRef.current)
         .filter((f) => !code || (f.from === 0 && f.to === text.length))
@@ -717,9 +718,9 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
         </Button>
         <Button
           variant="ghost" size="small"
-          disabled={!view || tab !== "page" || !workspace.org}
+          disabled={!view || tab !== "page" || !onAnyGitHub}
           onClick={linkWhatsNamed}
-          title={workspace.org ? "Make what the page names links (files at their lines, pull requests, repos), so it links on GitHub and wherever else it's read" : "The workspace has no GitHub org to link to (ws.toml's org)"}
+          title={onAnyGitHub ? "Make what the page names links (files at their lines, pull requests, repos), so it links on GitHub and wherever else it's read" : "The workspace's repos aren't on GitHub to link to (ws.toml's org, or a repo's github)"}
         >
           <Icon name="link" size={12} /> Link names
         </Button>

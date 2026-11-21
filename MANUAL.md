@@ -1087,13 +1087,16 @@ after_create = "make setup"
 
 [repos.infrastructure]
 aliases = ["infra"]
+
+[repos.cr-api]                 # another org's repo, whose name there is taken here
+github = "cr-team/api"
 ```
 
 **Workspace fields:**
 
 | Field | Required | Description |
 |---|---|---|
-| `org` | yes | GitHub organisation. Used for cloning repos and API calls. |
+| `org` | yes, unless every repo says its `github` | GitHub organisation: where a repo is on GitHub (cloned from, its pull requests asked for) when it doesn't say. |
 | `default_branch` | yes | The branch name used for ground (e.g. `main`, `develop`). |
 | `display_name` | no | Human-friendly workspace name. Falls back to `org`. |
 
@@ -1108,6 +1111,7 @@ aliases = ["infra"]
 | `group` | The repo's [group](#groups). Ungrouped repos are always visible. |
 | `landing` | How work lands: `"pr"` (the default), or `"direct"` for commits straight to the default branch with [`ws land`](#landing). |
 | `verify` | A shell command that must pass in a capsule before `ws land` pushes it. |
+| `github` | Where the repo is on GitHub, as `owner/name`, when that isn't `org`'s repo of its name: a repo of another org, or a person's, or one whose name there is taken here by another repo (`[repos.cr-api] github = "cr-team/api"`). The key stays its name in the workspace, in commands and refs, and its folder under `repos/`. Two repos can't be at one place. Its pull requests, review requests, links and addresses are all of where it says; an address on GitHub (`https://github.com/cr-team/api/pull/7`) is read as `cr-api#7`. `ws doctor` says of each owner whether `gh` can reach its repos (an org with SAML single sign-on needs `gh`'s token authorised for it, and until then its repos answer as though they weren't there), and of a clone that still fetches from somewhere else (the repo given its `github` after it was cloned) that it does: `--fix` points it where `github` says. |
 | `documents` | The repo is a [space of documents](#spaces-of-documents) (`true`), or a folder of it is (`"docs/"`), or it isn't (`false`: the records repo is one without saying). A repo can say it of itself in its `ws.repo.toml`; `ws.local.toml` can turn one off. |
 
 **Agents** (`[agents]`): the workspace's own way of working, for every agent `ws` starts.
@@ -1215,7 +1219,7 @@ backend = [".ground"]
 
 **Repo overrides:**
 
-You can override `display_name`, `color`, `after_create`, `group`, `landing`, `verify` and `aliases` per repo. Aliases are appended to the shared list; other fields replace the shared value.
+You can override `display_name`, `color`, `after_create`, `group`, `landing`, `verify`, `github` and `aliases` per repo. Aliases are appended to the shared list; other fields replace the shared value.
 
 **Group overrides:**
 

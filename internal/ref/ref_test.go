@@ -29,6 +29,7 @@ type knownJSON struct {
 		Address  string   `json:"address"`
 	} `json:"things"`
 	Org           string                       `json:"org"`
+	Remotes       map[string]Remote            `json:"remotes"`
 	DefaultBranch string                       `json:"defaultBranch"`
 	Branches      map[string]map[string]string `json:"branches"`
 }
@@ -83,7 +84,7 @@ func (p Paths) HasDir(path string) bool {
 }
 
 func (j knownJSON) known() *Known {
-	k := &Known{Repos: map[string]Tree{}, Aliases: j.Aliases, Capsules: j.Capsules, Root: j.Root, Missions: j.Missions, Pages: j.Pages, Talks: j.Talks, Artifacts: j.Artifacts, Org: j.Org, DefaultBranch: j.DefaultBranch, Branches: j.Branches}
+	k := &Known{Repos: map[string]Tree{}, Aliases: j.Aliases, Capsules: j.Capsules, Root: j.Root, Missions: j.Missions, Pages: j.Pages, Talks: j.Talks, Artifacts: j.Artifacts, Org: j.Org, Remotes: j.Remotes, DefaultBranch: j.DefaultBranch, Branches: j.Branches}
 	for _, n := range j.Things {
 		k.Things = append(k.Things, Named{Plugin: n.Plugin, What: n.What, Prefixes: n.Prefixes, Tail: n.Tail, Address: n.Address})
 	}

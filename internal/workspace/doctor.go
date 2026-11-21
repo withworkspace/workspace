@@ -1,15 +1,20 @@
 package workspace
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/withworkspace/workspace/internal/git"
+	"github.com/withworkspace/workspace/internal/ref"
 )
 
 type CheckStatus int
@@ -158,6 +163,134 @@ func checkGitHubAuth() CheckResult {
 		}
 	}
 	return result
+}
+
+// CheckGitHubReachFunc asks GitHub whether a repo is there for the gh
+// that's signed in: nil for yes, else what GitHub said. Tests replace it.
+var CheckGitHubReachFunc = reachRepo
+
+func reachRepo(r ref.Remote) error {
+	out, err := exec.Command("gh", "api", "repos/"+r.String(), "--jq", ".full_name").CombinedOutput()
+	if err != nil {
+		return errors.New(strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
+// CheckGitHub is whether each owner's repos can be reached on GitHub by
+// the gh that's signed in, and whether each clone's origin is where the
+// workspace says the repo is. An org that enforces SAML SSO needs gh's
+// token authorised for it, which is per org: until then its repos answer
+// as though they weren't there. The caller leaves it out where GitHub
+// isn't asked (a fixture answers for it).
+func (w *Workspace) CheckGitHub() CheckCategory {
+	byOwner := map[string][]string{}
+	var owners []string
+	for _, name := range w.RepoNames {
+		r := w.RemoteOf(name)
+		if r.Owner == "" {
+			continue
+		}
+		key := strings.ToLower(r.Owner)
+		if _, ok := byOwner[key]; !ok {
+			owners = append(owners, r.Owner)
+		}
+		byOwner[key] = append(byOwner[key], name)
+	}
+	if len(owners) == 0 {
+		return CheckCategory{Name: "GitHub"}
+	}
+	errs := make(map[string]error, len(w.RepoNames))
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	for _, names := range byOwner {
+		for _, name := range names {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err := CheckGitHubReachFunc(w.RemoteOf(name))
+				mu.Lock()
+				errs[name] = err
+				mu.Unlock()
+			}()
+		}
+	}
+	wg.Wait()
+
+	var checks []CheckResult
+	for _, owner := range owners {
+		names := byOwner[strings.ToLower(owner)]
+		var missing []string
+		var said error
+		for _, name := range names {
+			if errs[name] != nil {
+				missing = append(missing, w.RemoteOf(name).String())
+				said = errs[name]
+			}
+		}
+		c := CheckResult{Name: owner, Status: CheckOK, Detail: fmt.Sprintf("%d %s reached", len(names), plural(len(names), "repo"))}
+		if len(missing) > 0 {
+			c.Status = CheckFail
+			c.Detail = fmt.Sprintf("can't reach %s: %s", strings.Join(missing, ", "), firstLine(said.Error()))
+			switch {
+			case strings.Contains(said.Error(), "SAML"):
+				c.FixHint = fmt.Sprintf("authorise gh's token for %s's single sign-on (https://github.com/orgs/%s/sso), then: gh auth refresh", owner, owner)
+			case len(missing) == len(names):
+				c.FixHint = fmt.Sprintf("check gh can see %s (gh auth status), and that ws.toml's org or github says where these repos are", owner)
+			default:
+				c.FixHint = "check ws.toml says where these repos are on GitHub: [repos.<name>] github = \"owner/name\""
+			}
+		}
+		checks = append(checks, c)
+	}
+	return CheckCategory{Name: "GitHub", Checks: append(checks, w.checkOrigins()...)}
+}
+
+var githubOrigin = regexp.MustCompile(`^(?:https://github\.com/|git@github\.com:|ssh://git@github\.com/)([^/]+)/([^/]+?)(?:\.git)?/?$`)
+
+// checkOrigins is each clone whose origin is on GitHub somewhere other
+// than where the workspace says the repo is: a repo given its github after
+// it was cloned, still fetching from where it was.
+func (w *Workspace) checkOrigins() []CheckResult {
+	var out []CheckResult
+	for _, name := range w.RepoNames {
+		want := w.RemoteOf(name)
+		bare := w.BareDir(name)
+		if want.Owner == "" || !dirExists(bare) {
+			continue
+		}
+		origin, err := git.ReadLine(context.Background(), bare, "config", "--get", "remote.origin.url")
+		if err != nil {
+			continue
+		}
+		m := githubOrigin.FindStringSubmatch(origin)
+		if m == nil || want.Is(m[1], m[2]) {
+			continue // not GitHub's (a test's, a mirror), or where it should be
+		}
+		url := RepoCloneURL(want.Owner, want.Name, w.GitProtocol)
+		out = append(out, CheckResult{
+			Name:   name + " origin",
+			Status: CheckWarn,
+			Detail: fmt.Sprintf("fetches from %s/%s, but the workspace says it's %s", m[1], m[2], want),
+			Fix: func() error {
+				_, err := git.ReadLine(context.Background(), bare, "remote", "set-url", "origin", url)
+				return err
+			},
+		})
+	}
+	return out
+}
+
+func firstLine(s string) string {
+	line, _, _ := strings.Cut(strings.TrimSpace(s), "\n")
+	return line
+}
+
+func plural(n int, word string) string {
+	if n == 1 {
+		return word
+	}
+	return word + "s"
 }
 
 func (w *Workspace) checkSilos() CheckCategory {

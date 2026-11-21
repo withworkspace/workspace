@@ -95,7 +95,7 @@ func newSyncCmd() *cobra.Command {
 			// Resync IDE workspace files in case config changed
 			refreshCtx, err := LoadOps(root)
 			if err == nil {
-				if err := ide.Regenerate(refreshCtx.WS().Root, refreshCtx.WS().Boarded, refreshCtx.WS().DisplayNames, refreshCtx.WS().Org); err != nil {
+				if err := ide.Regenerate(refreshCtx.WS().Root, refreshCtx.WS().Boarded, refreshCtx.WS().DisplayNames, refreshCtx.WS().RemoteOf); err != nil {
 					fmt.Fprintf(ui.Stderr, "  %s workspace files: %v\n", ui.Orange.Render("⚠"), err)
 				}
 			}
