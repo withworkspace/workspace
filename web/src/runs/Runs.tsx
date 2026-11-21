@@ -9,8 +9,10 @@ import { Time } from "../ui/time";
 import css from "./Runs.module.css";
 import { bare, forWhom, listed, placeOf, plain, type Said, split } from "./runRows";
 import { Chip } from "../ui/Chip";
-import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
+import { Summary, SummaryRow } from "../ui/Summary";
 
 // The Runs page: everything ws is running for someone in this workspace
 // (ws run): dev servers, previews, compose stacks, whether you, crew or a
@@ -35,10 +37,9 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
   const up = new Set(running.map((r) => r.ref));
   return (
     <div className="page">
-      <header className="page-head">
-        <h1>Runs</h1>
+      <PageHead title="Runs">
         {running.length > 0 && <Chip tone="done">{running.length} running</Chip>}
-      </header>
+      </PageHead>
       <p className="lede">
         What ws runs for you and your agents: dev servers, previews, compose stacks. Each is given a free port, and ends by itself once whoever it's for goes, or its time's
         up.
@@ -49,9 +50,9 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
         <>
           <NamesPart names={info.names} />
           <section>
-            <h2 className="group">
-              Running <Count>{running.length}</Count>
-            </h2>
+            <GroupHead count={running.length}>
+              Running
+            </GroupHead>
             {running.length === 0 ? (
               <Empty icon="play" title="Nothing's running">
                 Crew and conversations start dev servers with <code>ws run</code>, and so can you: from a terminal, or with Run on a capsule in a mission's Work tab. Each shows
@@ -68,9 +69,9 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
           {info.silos.length > 0 && <SilosPart silos={info.silos} reload={reload} />}
           {ended.length > 0 && (
             <section>
-              <h2 className="group">
-                Ended <Count>{ended.length}</Count>
-              </h2>
+              <GroupHead count={ended.length}>
+                Ended
+              </GroupHead>
               <p className="quiet-line">Runs that ended by themselves, kept an hour with their output.</p>
               <ul className={cx("rows", css.list)}>
                 {ended.map((r) => (
@@ -110,40 +111,31 @@ function NamesPart({ names: n }: { names: Names }) {
       </>
     );
   return (
-    <dl className={cx("summary settings", css.names)}>
-      <div className="summary-row">
-        <dt>Names</dt>
-        <dd>
-          {state}
-          {n.name && n.name !== n.want && (
-            <div className={cx("dim", css.namesNote)}>
-              {n.want} was another workspace's first: this one is {n.name} while that one's daemon runs.
-            </div>
-          )}
-        </dd>
-      </div>
-      <div className="summary-row">
-        <dt>Router</dt>
-        <dd>
-          {n.port ? (
-            <>
-              On :{n.port}
-              {n.fallback && <span className="dim">, as 80 is another program's or kept by the system</span>}
-              {n.heldBy ? <span className="dim">, held by the daemon at pid {n.heldBy}</span> : null}
-              <span className="dim">. One serves every workspace on this machine.</span>
-            </>
-          ) : (
-            <span className="dim">None running</span>
-          )}
-        </dd>
-      </div>
-      <div className="summary-row">
-        <dt>Settings</dt>
-        <dd>
-          <Link to="/settings/runs">Local names, in Settings</Link>
-        </dd>
-      </div>
-    </dl>
+    <Summary className={css.names}>
+      <SummaryRow label="Names">
+        {state}
+        {n.name && n.name !== n.want && (
+          <div className={cx("dim", css.namesNote)}>
+            {n.want} was another workspace's first: this one is {n.name} while that one's daemon runs.
+          </div>
+        )}
+      </SummaryRow>
+      <SummaryRow label="Router">
+        {n.port ? (
+          <>
+            On :{n.port}
+            {n.fallback && <span className="dim">, as 80 is another program's or kept by the system</span>}
+            {n.heldBy ? <span className="dim">, held by the daemon at pid {n.heldBy}</span> : null}
+            <span className="dim">. One serves every workspace on this machine.</span>
+          </>
+        ) : (
+          <span className="dim">None running</span>
+        )}
+      </SummaryRow>
+      <SummaryRow label="Settings">
+        <Link to="/settings/runs">Local names, in Settings</Link>
+      </SummaryRow>
+    </Summary>
   );
 }
 

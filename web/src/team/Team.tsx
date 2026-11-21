@@ -12,6 +12,8 @@ import { useLatest } from "../load";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
 
 // Team: what the people working in the workspace's repos have been doing,
 // by day, newest first. Each pull request, and each run of one person's
@@ -344,62 +346,64 @@ export function TeamPage() {
   );
 
   const head = (
-    <header className="page-head">
-      <h1>Team</h1>
-      <div className="page-actions">
-        {view && (
-          <span className="dim reviews-asked" title="When git and GitHub were last looked at. While this page is open they're looked at every couple of minutes.">
-            {loading ? (
-              <>
-                <Icon name="spinner" className="spin" size={12} /> Looking…
-              </>
-            ) : (
-              <>
-                As of <Time iso={view.at} as="relative" />
-              </>
-            )}
-          </span>
-        )}
-        <div className="segmented" role="group" aria-label="Arranged">
-          <Button aria-pressed={!byPeople} onClick={() => arrange(false)} title="By day, newest first (p)">
-            Days
-          </Button>
-          <Button aria-pressed={byPeople} onClick={() => arrange(true)} title="By person: what each has open, has landed, and has been reviewing (p)">
-            People
-          </Button>
-        </div>
-        <div className="segmented" role="group" aria-label="Period">
-          {periods.map((p) => (
-            <Button key={p.since} aria-pressed={period === p.since} onClick={() => pick(p.since)} title={p.title}>
-              {p.label}
+    <PageHead
+      title="Team"
+      actions={
+        <>
+          {view && (
+            <span className="dim reviews-asked" title="When git and GitHub were last looked at. While this page is open they're looked at every couple of minutes.">
+              {loading ? (
+                <>
+                  <Icon name="spinner" className="spin" size={12} /> Looking…
+                </>
+              ) : (
+                <>
+                  As of <Time iso={view.at} as="relative" />
+                </>
+              )}
+            </span>
+          )}
+          <div className="segmented" role="group" aria-label="Arranged">
+            <Button aria-pressed={!byPeople} onClick={() => arrange(false)} title="By day, newest first (p)">
+              Days
             </Button>
-          ))}
-        </div>
-        {narrative?.on && (
-          <Button variant="ghost" size="small" className={`team-only-know ${onlyKnow ? " on" : ""}`} aria-pressed={onlyKnow} onClick={know} title="Only the changes with something worth knowing (n)">
-            <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
+            <Button aria-pressed={byPeople} onClick={() => arrange(true)} title="By person: what each has open, has landed, and has been reviewing (p)">
+              People
+            </Button>
+          </div>
+          <div className="segmented" role="group" aria-label="Period">
+            {periods.map((p) => (
+              <Button key={p.since} aria-pressed={period === p.since} onClick={() => pick(p.since)} title={p.title}>
+                {p.label}
+              </Button>
+            ))}
+          </div>
+          {narrative?.on && (
+            <Button variant="ghost" size="small" className={`team-only-know ${onlyKnow ? " on" : ""}`} aria-pressed={onlyKnow} onClick={know} title="Only the changes with something worth knowing (n)">
+              <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
+            </Button>
+          )}
+          <input
+            ref={filter}
+            className="reviews-filter"
+            value={q}
+            placeholder="Filter: text, repo, person"
+            aria-label="Filter what happened"
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" || e.key === "Enter") {
+                e.preventDefault();
+                if (e.key === "Escape") setQ("");
+                e.currentTarget.blur();
+              }
+            }}
+          />
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Look at git and GitHub again (r)">
+            <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
           </Button>
-        )}
-        <input
-          ref={filter}
-          className="reviews-filter"
-          value={q}
-          placeholder="Filter: text, repo, person"
-          aria-label="Filter what happened"
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape" || e.key === "Enter") {
-              e.preventDefault();
-              if (e.key === "Escape") setQ("");
-              e.currentTarget.blur();
-            }
-          }}
-        />
-        <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Look at git and GitHub again (r)">
-          <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
-        </Button>
-      </div>
-    </header>
+        </>
+      }
+    />
   );
 
   if (!view) {
@@ -474,7 +478,7 @@ export function TeamPage() {
       )}
       {total > 0 && summary && (summary.topics?.length || summary.writing || summary.failed) && (
         <section className="team-summary" aria-label="What the team's been working on">
-          <h2 className="group">
+          <GroupHead>
             <Button
               variant="link"
               className="group-fold"
@@ -504,7 +508,7 @@ export function TeamPage() {
                 </Button>
               </span>
             )}
-          </h2>
+          </GroupHead>
           {!foldSummary && summary.failed && <p className="team-gist-error team-summary-failed">It couldn't be written: {humanError(summary.failed)}</p>}
           {!foldSummary && (
             <ul className="team-topics">
@@ -542,9 +546,9 @@ export function TeamPage() {
       {!byPeople &&
         days.map((d) => (
           <section key={d.date} aria-label={d.date}>
-            <h2 className="group">
-              {dayLabel(`${d.date}T12:00:00`)} <Count>{d.items.length}</Count>
-            </h2>
+            <GroupHead count={d.items.length}>
+              {dayLabel(`${d.date}T12:00:00`)}
+            </GroupHead>
             <ul className="rows team-rows" role="listbox" aria-label={d.date}>
               {d.items.map((it) => (
                 <Fragment key={it.key}>
@@ -569,9 +573,9 @@ export function TeamPage() {
       {byPeople &&
         groups.map((g) => (
           <section key={g.key} aria-label={people.get(g.key)?.name ?? g.key}>
-            <h2 className="group" title={people.get(g.key)?.login}>
+            <GroupHead title={people.get(g.key)?.login}>
               {people.get(g.key)?.name ?? g.key}
-            </h2>
+            </GroupHead>
             {g.theirs.length > 0 && (
               <ul className="rows team-rows" role="listbox" aria-label="Theirs">
                 {g.theirs.map((it) => row(`${g.key}/${it.key}`, it))}

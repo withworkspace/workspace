@@ -18,8 +18,9 @@ import { FolderMenu, Pager, PathCrumbs, useShelves } from "./Path";
 import { type Here, type Shelf, siblings, trail } from "./shelves";
 import { PagePin } from "../shell/focus";
 import { Chip, chipClass } from "../ui/Chip";
-import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
 
 export const docKeys: [string, string][] = [
   ["e", "Edit it, here: as the page tied to it"],
@@ -264,9 +265,7 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
         )}
         {/* A document that starts with its own title is its own heading. */}
         {a && !/^(---\n[^]*?\n---\n\s*)?#\s/.test(a.text.trimStart()) && (
-          <header className="page-head">
-            <h1>{name}</h1>
-          </header>
+          <PageHead title={name} />
         )}
         {a && where && !mission && (
           <div className="doc-meta">
@@ -412,9 +411,9 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
 function DocTalks({ list }: { list: Talk[] }) {
   return (
     <section>
-      <h2 className="group">
-        Conversations about it <Count>{list.length}</Count>
-      </h2>
+      <GroupHead count={list.length}>
+        Conversations about it
+      </GroupHead>
       <ul className="rows">
         {list.map((t) => (
           <li key={t.id} className="row">
@@ -445,9 +444,9 @@ function DocTalks({ list }: { list: Talk[] }) {
 function CiteList({ title, list }: { title: string; list: Citation[] }) {
   return (
     <section>
-      <h2 className="group">
-        {title} <Count>{list.length}</Count>
-      </h2>
+      <GroupHead count={list.length}>
+        {title}
+      </GroupHead>
       <ul className="rows">
         {list.map((c) => (
           <li key={`${c.repo}:${c.path}`} className="row">

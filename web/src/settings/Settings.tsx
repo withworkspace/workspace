@@ -16,6 +16,8 @@ import { type Page, PageContext, RowOf, SettingCell, usePage, useSetting, withou
 import { type Block, find, type Found, keyOf, type Mine, minesOf, name, sectionAt, type Section, sectionsOf, wordsOf } from "./sections";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
 
 // The Settings page: your settings for this workspace, in sections, the
 // list of them beside the sidebar and the one you're in beside that, to a
@@ -175,20 +177,19 @@ function Results({ found, query, clear }: { found: Found[]; query: string; clear
   const n = found.reduce((sum, f) => sum + f.rows.length, 0);
   return (
     <>
-      <header className="page-head">
-        <h1>“{query.trim()}”</h1>
+      <PageHead title={<>“{query.trim()}”</>}>
         <span className="dim">
           {n} {n === 1 ? "setting" : "settings"}
         </span>
-      </header>
+      </PageHead>
       {found.length === 0 && <div className="quiet-line">No setting says that. What only a file sets (a repo's commands, paths) isn't here.</div>}
       {found.map(({ section, rows }) => (
         <section key={section.id} className="settings-block">
-          <h2 className="group">
+          <GroupHead className="settings-group">
             <Link to={`/settings/${section.id}`} onClick={clear}>
               {section.title}
             </Link>
-          </h2>
+          </GroupHead>
           <div className="setting-rows">
             {rows.map((row) => (
               <RowOf key={keyOf(row)} row={row} found />
@@ -205,9 +206,7 @@ function SectionView({ section, sections, info, loading, workspace, plugins }: {
   const waits = section.id !== "notifications" && section.id !== "process" && section.id !== "about" && section.id !== "plugins";
   return (
     <>
-      <header className="page-head">
-        <h1>{section.title}</h1>
-      </header>
+      <PageHead title={section.title} />
       <p className="lede">{section.id === "process" ? <ProcessAbout /> : section.about}</p>
       {section.id === "yours" && info && <Yours info={info} sections={sections} />}
       {section.id === "about" ? <About info={info} workspace={workspace} section={section} /> : section.blocks.map((b) => <BlockView key={b.id} block={b} />)}
@@ -233,7 +232,7 @@ function BlockView({ block }: { block: Block }) {
   if (block.rows.length === 0) return null;
   return (
     <section id={block.id} className="settings-block">
-      {block.title && <h2 className="group">{block.title}</h2>}
+      {block.title && <GroupHead className="settings-group">{block.title}</GroupHead>}
       {block.about && <p className="settings-about">{block.about}</p>}
       <div className="setting-rows">
         {block.rows.map((row) => (
@@ -287,10 +286,10 @@ function Repos({ branch }: { branch?: string }) {
   const { value: repos, error, reload } = useLoaded<Repo[]>(getRepos, [], { keep: true });
   return (
     <section id="repos" className="settings-block">
-      <h2 className="group">
+      <GroupHead className="settings-group">
         The team's repos
         {repos && <Count>{repos.length}</Count>}
-      </h2>
+      </GroupHead>
       <p className="settings-about">
         In <code>ws.toml</code>: shown here, changed there.
       </p>
@@ -357,9 +356,9 @@ function Yours({ info, sections }: { info: SettingsInfo; sections: Section[] }) 
     <>
       <Unread info={info} />
       <section className="settings-block">
-        <h2 className="group">
-          What {fileName(info.file)} sets <Count>{mines.length}</Count>
-        </h2>
+        <GroupHead className="settings-group" count={mines.length}>
+          What {fileName(info.file)} sets
+        </GroupHead>
         {mines.length === 0 && <div className="quiet-line">Nothing: every setting is the team's, or ws's default.</div>}
         <div className="settings-mine">
           {mines.map((m) => (
@@ -368,7 +367,7 @@ function Yours({ info, sections }: { info: SettingsInfo; sections: Section[] }) 
         </div>
       </section>
       <section className="settings-block">
-        <h2 className="group">In this browser</h2>
+        <GroupHead className="settings-group">In this browser</GroupHead>
         <div className="settings-mine">
           <div className="settings-mine-row">
             <span>
@@ -428,7 +427,7 @@ function About({ info, workspace, section }: { info?: SettingsInfo; workspace: W
   return (
     <>
       <section className="settings-block">
-        <h2 className="group">ws</h2>
+        <GroupHead className="settings-group">ws</GroupHead>
         <dl className="settings-facts">
           <dt>Version</dt>
           <dd>
@@ -447,7 +446,7 @@ function About({ info, workspace, section }: { info?: SettingsInfo; workspace: W
         </dl>
       </section>
       <section id="updates" className="settings-block">
-        <h2 className="group">Updates</h2>
+        <GroupHead className="settings-group">Updates</GroupHead>
         <Updates running={workspace.version} />
         {updates && (
           <div className="setting-rows">
@@ -458,7 +457,7 @@ function About({ info, workspace, section }: { info?: SettingsInfo; workspace: W
         )}
       </section>
       <section className="settings-block">
-        <h2 className="group">This workspace</h2>
+        <GroupHead className="settings-group">This workspace</GroupHead>
         <dl className="settings-facts">
           <dt>Name</dt>
           <dd>{workspace.name}</dd>

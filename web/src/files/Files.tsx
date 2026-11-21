@@ -7,6 +7,7 @@ import { Empty, ErrorCard, Keys, Loading, useMedia, useTitle } from "../ui/kit";
 import { TabbedBrowser } from "./WorktreeTabs";
 import { useLoaded } from "../load";
 import { Count } from "../ui/Count";
+import { GroupHead, groupHeadClass } from "../ui/GroupHead";
 
 // Files: every repo in the workspace, as ws labels them (its display name
 // and colour, by group), and the files of its ground (its default branch,
@@ -145,7 +146,7 @@ function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
         {groups.map(([g, rs]) =>
           rs[0].hidden ? (
             <details key={g} className="repo-group" open={rs.some((r) => r.name === current)}>
-              <summary className="group">
+              <summary className={groupHeadClass("repo-group-head")}>
                 {g} <span className="dim">· hidden</span> <Count>{rs.length}</Count>
               </summary>
               {rs.map(row)}
@@ -153,9 +154,9 @@ function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
           ) : (
             <section key={g || "-"} className="repo-group">
               {g && (
-                <h2 className="group">
-                  {g} <Count>{rs.length}</Count>
-                </h2>
+                <GroupHead className="repo-group-head" count={rs.length}>
+                  {g}
+                </GroupHead>
               )}
               {rs.map(row)}
             </section>
@@ -163,7 +164,7 @@ function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
         )}
         {spaces.length > 0 && (
           <details className="repo-group in-documents" open={spaces.some((r) => r.name === current)}>
-            <summary className="group" title="Repos of documents: read in Documents, by their titles. Their files are here too.">
+            <summary className={groupHeadClass("repo-group-head")} title="Repos of documents: read in Documents, by their titles. Their files are here too.">
               In Documents <Count>{spaces.length}</Count>
               <Link to="/documents" className="group-link" onClick={(e) => e.stopPropagation()}>
                 Open Documents

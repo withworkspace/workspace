@@ -41,6 +41,7 @@ import { addedVersion, artifactNext, kindName, type Made, made, revisedText, typ
 import { PagePin } from "../shell/focus";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -76,16 +77,18 @@ export function TalksPage({ workspace }: { workspace: Workspace }) {
   const resolved = workspace.conversations.filter((t) => t.status !== "open").length;
   return (
     <div className="page narrow talks-page">
-      <header className="page-head">
-        <h1>Conversations</h1>
-        {resolved > 0 && (
-          <div className="page-actions">
-            <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)} aria-pressed={showResolved}>
-              {showResolved ? "Hide resolved" : `Show resolved (${resolved})`} <Keys k="⇧A" />
-            </Button>
-          </div>
-        )}
-      </header>
+      <PageHead
+        title="Conversations"
+        actions={
+          resolved > 0 && (
+            <>
+              <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)} aria-pressed={showResolved}>
+                {showResolved ? "Hide resolved" : `Show resolved (${resolved})`} <Keys k="⇧A" />
+              </Button>
+            </>
+          )
+        }
+      />
       <TalkList slug="" talks={workspace.conversations} showResolved={showResolved} onToggleResolved={() => setShowResolved((v) => !v)} keys docs={!!workspace.kinds?.length} />
     </div>
   );

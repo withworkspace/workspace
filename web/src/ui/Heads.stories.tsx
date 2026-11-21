@@ -20,6 +20,16 @@ export const Heads: StoryObj = {
         <Chip tone="done">2 running</Chip>
       </PageHead>
       <PageHead
+        lead={
+          <span className="dim">
+            Documents <span aria-hidden>/</span>
+          </span>
+        }
+        title="records"
+      >
+        <span className="dim">12 documents</span>
+      </PageHead>
+      <PageHead
         title="Missions"
         actions={
           <>

@@ -8,8 +8,8 @@ import { Time } from "../ui/time";
 import { addsOf, changedSaid, fromOf, outCount, repoLink, stateOf, updateOf, wantedFrom } from "./installed";
 import { pluginIcon } from "./Plugin";
 import { Chip, chipClass } from "../ui/Chip";
-import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { GroupHead } from "../ui/GroupHead";
 
 // Plugins, a section of Settings: the workspace's plugins, each with where it's from,
 // where it stands and what it adds; adding one, from the repo it's
@@ -94,9 +94,9 @@ export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
       {info && (
         <>
           <section>
-            <h2 className="group">
-              Installed <Count>{installed.length}</Count>
-            </h2>
+            <GroupHead count={installed.length}>
+              Installed
+            </GroupHead>
             {installed.length === 0 ? (
               <Empty icon="box" title="No plugins yet">
                 Add one above: <code>withworkspace/plugin-plugin-dev</code> writes a plugin of your own, and runs it here as you change it.
@@ -111,9 +111,9 @@ export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
           </section>
           {info.wanted.length > 0 && (
             <section>
-              <h2 className="group">
-                The team's, not installed here <Count>{info.wanted.length}</Count>
-              </h2>
+              <GroupHead count={info.wanted.length}>
+                The team's, not installed here
+              </GroupHead>
               <p className="quiet-line">
                 In <code>ws.toml</code>, under <code>[plugins]</code>.
               </p>

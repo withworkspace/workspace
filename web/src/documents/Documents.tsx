@@ -17,6 +17,8 @@ import { hitTo, Results, SearchBox, useDocSearch } from "./Search";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
 
 // Documents: where the workspace's writing is read. Local is the pages
 // that aren't in a space (written here, on this machine); each space is a
@@ -130,23 +132,25 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
 
   return (
     <div className="page documents-page">
-      <header className="page-head">
-        <h1>Documents</h1>
-        <div className="page-actions">
-          {kinds.length > 0 && (
-            <Button
-              onClick={() => setAsKind(true)}
-              disabled={starting}
-              title="Start a page as one of the workspace's kinds of document: it's written as its guide says, and filed where the kind says"
-            >
-              New as… <Keys k="N" />
+      <PageHead
+        title="Documents"
+        actions={
+          <>
+            {kinds.length > 0 && (
+              <Button
+                onClick={() => setAsKind(true)}
+                disabled={starting}
+                title="Start a page as one of the workspace's kinds of document: it's written as its guide says, and filed where the kind says"
+              >
+                New as… <Keys k="N" />
+              </Button>
+            )}
+            <Button variant="primary" onClick={() => start()} disabled={starting}>
+              <Icon name="plus" /> New page <Keys k="n" />
             </Button>
-          )}
-          <Button variant="primary" onClick={() => start()} disabled={starting}>
-            <Icon name="plus" /> New page <Keys k="n" />
-          </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
       {asKind && <NewAsKind kinds={kinds} busy={starting} onStart={(title, kind) => start(title, kind)} onClose={() => setAsKind(false)} />}
       {spaces.length > 0 && (
         <SearchBox q={q} setQ={setQ} inputRef={search} spaces={spaces} kind={kind} setKind={setKind} state={stand} setState={setStand} onKey={searchKeys} />
@@ -171,9 +175,9 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
           )}
           <div className="documents-grid">
             <section aria-label="Spaces">
-              <h2 className="group">
-                Spaces <Count>{spaces.length}</Count>
-              </h2>
+              <GroupHead count={spaces.length}>
+                Spaces
+              </GroupHead>
               {error && !value && <ErrorCard title="Couldn't read the spaces" error={error} retry={reload} />}
               {value?.problem && <div className="banner tone-attention">Some of it may be behind: {value.problem}</div>}
               {!value && !error && <Loading what="Reading the spaces…" />}
@@ -200,10 +204,10 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
               )}
             </section>
             <section aria-label="Local">
-              <h2 className="group" title="Pages written here, on this machine, that aren't in a space: no one else sees them. File as… is the way out.">
+              <GroupHead title="Pages written here, on this machine, that aren't in a space: no one else sees them. File as… is the way out.">
                 Local <Count>{local.length}</Count>
                 {filling > 0 && <span className="dim documents-sub">· {filling} filling</span>}
-              </h2>
+              </GroupHead>
               {local.length === 0 ? (
                 <p className="dim documents-empty">
                   No pages here. A page is somewhere to write a problem down and work it out:{" "}
@@ -454,17 +458,35 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
   const searched = !!hits;
   return (
     <div className="page documents-page space-page">
-      <header className="page-head space-head">
-        <Link to="/documents" className="space-back" title="Back to Documents (esc)">
-          <Icon name="arrow-left" size={13} /> Documents
-        </Link>
-        <span className="space-slash" aria-hidden>
-          /
-        </span>
-        <h1>
-          <span className="repo-dot" style={{ background: space.color }} /> {space.label}
-          {space.folder && <span className="mono dim"> {space.folder}</span>}
-        </h1>
+      <PageHead
+        className="space-head"
+        lead={
+          <>
+            <Link to="/documents" className="space-back" title="Back to Documents (esc)">
+              <Icon name="arrow-left" size={13} /> Documents
+            </Link>
+            <span className="space-slash" aria-hidden>
+              /
+            </span>
+          </>
+        }
+        title={
+          <>
+            <span className="repo-dot" style={{ background: space.color }} /> {space.label}
+            {space.folder && <span className="mono dim"> {space.folder}</span>}
+          </>
+        }
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => setAsKind(true)}
+            disabled={starting || !space.cloned}
+            title={library.length ? `Start a page as one of ${space.label}'s kinds of document: written as its guide says, and filed here` : `Start a page to file in one of ${space.label}'s folders`}
+          >
+            <Icon name="plus" /> New <Keys k="n" />
+          </Button>
+        }
+      >
         <span className="space-count" title="As on its default branch">
           {space.count} {space.count === 1 ? "document" : "documents"}
         </span>
@@ -478,17 +500,7 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
             }}
           />
         )}
-        <div className="page-actions">
-          <Button
-            variant="primary"
-            onClick={() => setAsKind(true)}
-            disabled={starting || !space.cloned}
-            title={library.length ? `Start a page as one of ${space.label}'s kinds of document: written as its guide says, and filed here` : `Start a page to file in one of ${space.label}'s folders`}
-          >
-            <Icon name="plus" /> New <Keys k="n" />
-          </Button>
-        </div>
-      </header>
+      </PageHead>
       {asKind && library.length > 0 && (
         <NewAsKind kinds={kinds.filter((k) => library.some((x) => x.name === k.name))} busy={starting} onStart={(title, kind) => start(title, kind)} onClose={() => setAsKind(false)} />
       )}
@@ -532,9 +544,9 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
             <div className="space-list-scroll" ref={list} onScroll={spy}>
               {drafts.length > 0 && (
                 <section aria-label="Your drafts">
-                  <h2 className="group" title="Pages of yours that will live here: only you see them until they're saved or filed">
-                    Your drafts <Count>{drafts.length}</Count>
-                  </h2>
+                  <GroupHead title="Pages of yours that will live here: only you see them until they're saved or filed" count={drafts.length}>
+                    Your drafts
+                  </GroupHead>
                   <ul className="rows pages" role="listbox" aria-label="Your drafts">
                     {drafts.map((p, i) => (
                       <PageRow key={p.page.id} page={p.page} kinds={kinds} selected={i === index} onHover={() => {}} note={<DraftNote p={p} />} />
@@ -566,9 +578,9 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
               {library.length > 0 && kindsShown.length === 0 && folders.length > 0 && <span id="list-other" />}
               {folders.map(([folder, docs]) => (
                 <section key={folder} id={listID("folder", folder)} aria-label={folder || "Top"}>
-                  <h2 className="group">
-                    <span className="mono">{folder || "(top)"}</span> <Count>{docs.length}</Count>
-                  </h2>
+                  <GroupHead count={docs.length}>
+                    <span className="mono">{folder || "(top)"}</span>
+                  </GroupHead>
                   <ul className="rows space-docs" role="listbox" aria-label={folder || "Top"}>
                     {docs.map((d) => {
                       const i = at++;

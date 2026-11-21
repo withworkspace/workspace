@@ -12,6 +12,7 @@ import { DocEdit } from "./DocEdit";
 import { ArtifactState, artifactTitle } from "./parts";
 import { useLatest } from "../load";
 import { Button, buttonClass } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
 
 export const artifactKeys: [string, string][] = [
   ...annotateKeys.map(([k, what]): [string, string] => (k === "j / k" ? [k, `${what} (in code: scroll)`] : [k, what])),
@@ -98,9 +99,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
       </nav>
       {/* A document that starts with its own title is its own heading. */}
       {!(a?.markdown && /^#\s/.test(a.text.trimStart())) && (
-        <header className="page-head">
-          <h1>{named?.title ?? (a ? a.ref : "")}</h1>
-        </header>
+        <PageHead title={named?.title ?? (a ? a.ref : "")} />
       )}
       {a && (
         <div className="doc-meta">

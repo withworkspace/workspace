@@ -16,6 +16,7 @@ import { type Home, type Work as WorkModel, type WorkCapsule, type WorkState, fi
 import { Chip, chipClass } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
+import { GroupHead } from "../ui/GroupHead";
 
 // The mission's Work tab: what's been made, a row each, and the one that's
 // open beside it. Capsules come first, in the order they need you (in
@@ -138,9 +139,9 @@ export function Work({
   return (
     <div className="work">
       <div className="work-list">
-        <h2 className="group">
-          Capsules <Count>{w.capsules.length}</Count>
-        </h2>
+        <GroupHead className="work-group" count={w.capsules.length}>
+          Capsules
+        </GroupHead>
         {w.hand.length > 0 && <div className="work-sub">In hand</div>}
         {rows(w.hand)}
         {w.next.length > 0 && <div className="work-sub">Up next</div>}
@@ -160,9 +161,9 @@ export function Work({
             <EndedCapsules list={d.endedCapsules} />
           </div>
         ) : null}
-        <h2 className="group">
-          Outputs <Count>{w.outputs.length}</Count>
-        </h2>
+        <GroupHead className="work-group" count={w.outputs.length}>
+          Outputs
+        </GroupHead>
         {w.outputs.map((a) => (
           <OutputRow key={a.ref} a={a} selected={outputKey(a) === shown} select={select} open={openArtifact} />
         ))}

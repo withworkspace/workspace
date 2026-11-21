@@ -6,8 +6,8 @@ import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import { changedSince, type InSpace, saysNoMore } from "./happening";
 import { Chip, chipClass } from "../ui/Chip";
-import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { GroupHead } from "../ui/GroupHead";
 
 // What's happening in a space, so it reads as somewhere people are
 // working: how fresh it is, what's in flight in capsules, and what changed
@@ -90,9 +90,9 @@ export function InFlight({ flights, spaceOf }: { flights: InSpace<SpaceFlight>[]
   if (!flights.length) return null;
   return (
     <section aria-label="In flight">
-      <h2 className="group" title="Capsules with changes to the documents: yours and others', and the pull requests open from them">
-        In flight <Count>{flights.length}</Count>
-      </h2>
+      <GroupHead className="activity-head" title="Capsules with changes to the documents: yours and others', and the pull requests open from them" count={flights.length}>
+        In flight
+      </GroupHead>
       <ul className="rows space-flights">
         {flights.map((f) => {
           const space = spaceOf?.(f.repo);
@@ -133,9 +133,9 @@ export function Lately({ lately, limit = 5, spaceOf, label = "Changed lately" }:
   const shown = lately.slice(0, limit);
   return (
     <section aria-label="Changed lately">
-      <h2 className="group">
-        {label} <Count>{lately.length}</Count>
-      </h2>
+      <GroupHead className="activity-head" count={lately.length}>
+        {label}
+      </GroupHead>
       <ul className="doc-changes">
         {shown.map((c) => (
           <ChangeLine key={`${c.repo}:${c.sha}`} c={c} space={spaceOf?.(c.repo)} />

@@ -7,6 +7,7 @@ import { TLink } from "../ui/TLink";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { GroupHead } from "../ui/GroupHead";
 
 // A space's library: a list for each of the workspace's kinds of document
 // whose path is in it, each with its number or date, its title, where it
@@ -143,7 +144,7 @@ export function KindHead({
   }, [docs]);
   const states = kind.states ?? [];
   return (
-    <h2 className="group library-head">
+    <GroupHead className="library-head">
       {kind.title} <Count>{found === undefined ? docs.length : `${found} of ${docs.length}`}</Count>
       {states.length > 0 && (
         <span className="segmented lib-stands" aria-label={`Where each ${kind.title} stands`}>
@@ -167,7 +168,7 @@ export function KindHead({
           <Option value="changed">Changed lately</Option>
         </Select>
       </label>
-    </h2>
+    </GroupHead>
   );
 }
 

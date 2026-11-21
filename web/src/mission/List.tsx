@@ -10,8 +10,9 @@ import { Empty, Keys, useTitle } from "../ui/kit";
 import { crewStatus, headlineStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { Chip } from "../ui/Chip";
-import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
 
 // The missions, grouped by whose court they're
 // in (their headline's group): what needs you first. Each says where it
@@ -86,19 +87,21 @@ export function MissionList({ missions }: { missions: Mission[] }) {
   const flashing = useFlash(missions);
 
   const head = (
-    <header className="page-head">
-      <h1>Missions</h1>
-      <div className="page-actions">
-        {pastCount > 0 && (
-          <Button variant="ghost" size="small" onClick={() => setShowPast((p) => !p)} aria-pressed={showPast}>
-            {showPast ? "Hide past" : `Show past (${pastCount})`} <Keys k="⇧A" />
-          </Button>
-        )}
-        <Link to="/conversations?new=1" className={buttonClass()}>
-          <Icon name="plus" size={14} /> New mission
-        </Link>
-      </div>
-    </header>
+    <PageHead
+      title="Missions"
+      actions={
+        <>
+          {pastCount > 0 && (
+            <Button variant="ghost" size="small" onClick={() => setShowPast((p) => !p)} aria-pressed={showPast}>
+              {showPast ? "Hide past" : `Show past (${pastCount})`} <Keys k="⇧A" />
+            </Button>
+          )}
+          <Link to="/conversations?new=1" className={buttonClass()}>
+            <Icon name="plus" size={14} /> New mission
+          </Link>
+        </>
+      }
+    />
   );
 
   if (!order.length) {
@@ -125,9 +128,9 @@ export function MissionList({ missions }: { missions: Mission[] }) {
       {head}
       {sections.map((s) => (
         <section key={s.title} aria-label={s.title}>
-          <h2 className="group">
-            {s.title} <Count>{s.missions.length}</Count>
-          </h2>
+          <GroupHead count={s.missions.length}>
+            {s.title}
+          </GroupHead>
           <ul className="rows missions" role="listbox" aria-label={s.title}>
             {s.missions.map((m) => {
               const st = headlineStatus(m.headline);

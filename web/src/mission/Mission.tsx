@@ -53,6 +53,8 @@ import { PagePin } from "../shell/focus";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
+import { GroupHead } from "../ui/GroupHead";
+import { Summary as SummaryList, SummaryRow } from "../ui/Summary";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -778,29 +780,29 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
     <>
       <SummaryLead d={d} reload={reload} />
       <Notices d={d} />
-      <dl className="summary">
+      <SummaryList>
         {goal && (
-          <Row label="Goal">
+          <SummaryRow label="Goal">
             <Inline text={goal} />{" "}
             <Button variant="link" className="more-link" onClick={() => go("brief")}>
               Brief
             </Button>
-          </Row>
+          </SummaryRow>
         )}
-        {!led && !full && step && <Row label="Now">{step}</Row>}
+        {!led && !full && step && <SummaryRow label="Now">{step}</SummaryRow>}
         {!led &&
           said.map((c) => (
-            <Row key={c.id} label={`From ${c.id}`}>
+            <SummaryRow key={c.id} label={`From ${c.id}`}>
               <Said text={c.lastReply!} />
-            </Row>
+            </SummaryRow>
           ))}
         {full && d.stages.length > 0 && (
-          <Row label={d.plan ? "Plan" : "Stages"}>
+          <SummaryRow label={d.plan ? "Plan" : "Stages"}>
             <Stepper stages={d.stages} />
-          </Row>
+          </SummaryRow>
         )}
         {full && (
-          <Row label="Work">
+          <SummaryRow label="Work">
             {w.hand.map((x) => (
               <CapsuleCard key={x.key} c={x.c} selected={selected} review={review} />
             ))}
@@ -812,36 +814,36 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
                 </Button>
               )}
             </span>
-          </Row>
+          </SummaryRow>
         )}
         {full && live.length > 0 && (
-          <Row label="Crew">
+          <SummaryRow label="Crew">
             {live.map((c) => (
               <CrewRow key={c.id} c={c} slug={d.slug} />
             ))}
-          </Row>
+          </SummaryRow>
         )}
         {d.decisions.some((x) => x.state === "current") && (
-          <Row label="Decided">
+          <SummaryRow label="Decided">
             <Decisions list={d.decisions} limit={summaryDecisions} />
-          </Row>
+          </SummaryRow>
         )}
         {events.length > 0 && (
-          <Row label="Recently">
+          <SummaryRow label="Recently">
             <Events events={events.slice(-recent)} lines={2} />
             {events.length > recent && (
               <Button variant="link" className="more-link" onClick={() => go("log")}>
                 The whole log ({events.length})
               </Button>
             )}
-          </Row>
+          </SummaryRow>
         )}
         {d.from && (
-          <Row label="Raised from">
+          <SummaryRow label="Raised from">
             <span className="dim">{d.from}</span>
-          </Row>
+          </SummaryRow>
         )}
-      </dl>
+      </SummaryList>
     </>
   );
 }
@@ -1377,14 +1379,6 @@ function QuickReply({ slug, id, reload }: { slug: string; id: string; reload: Re
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="summary-row">
-      <dt>{label}</dt>
-      <dd>{children}</dd>
-    </div>
-  );
-}
 
 // CapsuleCard is a capsule in a line on Summary: its name and branch, where
 // it stands, and a way to review it. The Work tab has the rest.
@@ -1484,9 +1478,9 @@ function Log({ d, selected, openArtifact, go }: Parts) {
       )}
       {elsewhere.length > 0 && (
         <section>
-          <h2 className="group">
-            Crew <Count>{elsewhere.length}</Count>
-          </h2>
+          <GroupHead count={elsewhere.length}>
+            Crew
+          </GroupHead>
           {[...elsewhere].reverse().map((c) => (
             <div key={c.id} className="crew-detail">
               <CrewRow c={c} slug={d.slug} detail />

@@ -6,6 +6,7 @@ import courtCases from "./fixtures/court.json";
 import allKinds from "./fixtures/kinds.json";
 import { SummaryLead } from "./Mission";
 import { MissionData } from "./parts";
+import { GroupHead } from "../ui/GroupHead";
 
 // A mission's banners: where it stands, as its Summary leads with it.
 //
@@ -139,7 +140,7 @@ function Groups({ of }: { of: Taken[] }) {
     <>
       {kinds.map((k) => (
         <section key={k}>
-          <h2 className="group">{k}</h2>
+          <GroupHead>{k}</GroupHead>
           {sorted
             .filter((t) => (lead(t)?.kind ?? "") === k)
             .map((t) => (
@@ -191,7 +192,7 @@ export const Waits: StoryObj = {
         const t = named(name);
         return (
           <section key={name}>
-            <h2 className="group">{what}</h2>
+            <GroupHead>{what}</GroupHead>
             {t ? <Shown t={t} /> : <p className="dim">No mission {name} among the fixtures.</p>}
           </section>
         );

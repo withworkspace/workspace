@@ -1737,48 +1737,8 @@ main.stale > :not(.connection-banner) {
   max-width: 820px;
 }
 
-.page-head {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: var(--space-5);
-  min-height: 28px;
-}
-
-.page-head h1 {
-  font-size: var(--text-xl);
-  letter-spacing: -0.01em;
-  line-height: 1.25;
-}
-
-.page-head > .page-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 section {
   margin-bottom: var(--space-6);
-}
-
-/* A group's heading: a quiet label, its count beside it, sticky as the
-   page scrolls. */
-.group {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--dim);
-  padding: 8px 8px 6px;
-  margin-bottom: 4px;
-  background: var(--backdrop);
-  border-bottom: 1px solid var(--line);
 }
 
 .rows {
@@ -3910,34 +3870,6 @@ button.on {
 
 .tab-panel {
   animation: enter var(--slow) var(--ease);
-}
-
-/* Summary: a label, then what it is. */
-.summary {
-  margin: 0;
-}
-
-.summary-row {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  gap: 16px;
-  padding: 12px 0;
-  border-top: 1px solid var(--line);
-}
-
-.summary-row:first-child {
-  border-top: 0;
-}
-
-.summary-row dt {
-  color: var(--dim);
-  font-size: var(--text-sm);
-  padding-top: 1px;
-}
-
-.summary-row dd {
-  margin: 0;
-  min-width: 0;
 }
 
 .more-link {
@@ -6717,11 +6649,6 @@ dd > .more-link,
 }
 
 @media (max-width: 720px) {
-  .summary-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
-  }
-
   .log-tools .search {
     margin-left: 0;
     flex: 1;
@@ -7541,7 +7468,7 @@ button.verify-big {
   min-width: 0;
 }
 
-.work-list .group:not(:first-child) {
+.work-list .work-group:not(:first-child) {
   margin-top: var(--space-5);
 }
 
@@ -8891,7 +8818,7 @@ a.work-file:hover {
   color: var(--dim);
 }
 
-.summary.settings {
+.orchestrator-facts {
   margin-bottom: var(--space-6);
 }
 
@@ -9034,7 +8961,7 @@ a.work-file:hover {
   scroll-margin-top: var(--space-5);
 }
 
-.settings-block > .group a:hover {
+.settings-block > .settings-group a:hover {
   color: var(--fg);
 }
 
@@ -11623,7 +11550,6 @@ div.tc-bar {
   .brief-outline,
   .brief-planner,
   .brief-ask-foot,
-  .page-actions,
   .timeline,
   button {
     display: none !important;
@@ -11855,7 +11781,7 @@ div.tc-bar {
   margin-top: 10px;
 }
 
-.repo-group .group {
+.repo-group .repo-group-head {
   position: static;
   padding: 6px 6px 4px;
   margin: 0 0 2px;
@@ -12928,7 +12854,7 @@ details.repo-group > summary::-webkit-details-marker {
   font-weight: 600;
 }
 
-.group .group-fold {
+.group-fold {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -12936,7 +12862,7 @@ details.repo-group > summary::-webkit-details-marker {
   font: inherit;
 }
 
-.group .group-fold:hover {
+.group-fold:hover {
   color: var(--fg);
 }
 
@@ -15553,13 +15479,13 @@ body.nav-pointing .lines code[data-rev] {
   padding: 6px 8px;
 }
 
-.space-page .page-head h1 {
+.space-head h1 {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.space-page .page-head h1 .repo-dot {
+.space-head h1 .repo-dot {
   width: 12px;
   height: 12px;
 }
@@ -16842,7 +16768,7 @@ button.accent-button:hover:not(:disabled) {
 /* Artifacts: the list, and an artifact's page, where a version runs in a
    sandboxed frame that fills what's under its head. */
 
-.artifacts-page .page-actions .segmented button {
+.artifacts-page .artifacts-shown button {
   white-space: nowrap;
 }
 
@@ -18603,7 +18529,7 @@ input[type="text"].tweak-text {
   padding: 4px 6px 6px;
 }
 
-.activity-fold-body .group {
+.activity-fold-body .activity-head {
   position: static;
   background: none;
 }

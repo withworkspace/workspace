@@ -6,7 +6,7 @@ import { ErrorCard, humanError, Keys } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import { TLink } from "../ui/TLink";
 import { Chip } from "../ui/Chip";
-import { Count } from "../ui/Count";
+import { GroupHead } from "../ui/GroupHead";
 
 // Search over the spaces' documents: ranked, each led to the section
 // that says it best; kept to a kind, and where one stands, once a kind's
@@ -99,9 +99,9 @@ export function Results({ hits, more, error, index, setIndex }: { hits?: DocHit[
   if (!hits.length) return <p className="dim documents-empty">No documents say that.</p>;
   return (
     <section aria-label="Found">
-      <h2 className="group">
-        Found <Count>{hits.length + more}</Count>
-      </h2>
+      <GroupHead count={hits.length + more}>
+        Found
+      </GroupHead>
       <ul className="rows doc-hits" role="listbox" aria-label="Documents found">
         {hits.map((h, i) => (
           <li key={`${h.repo}:${h.path}`} id={`hit-${i}`} role="option" aria-selected={i === index} className={`row${i === index ? " selected" : ""}`} onMouseMove={() => i !== index && setIndex(i)}>

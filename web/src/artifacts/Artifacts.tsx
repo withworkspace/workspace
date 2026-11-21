@@ -46,6 +46,7 @@ import { PagePin } from "../shell/focus";
 import { FoundArtifacts } from "./Found";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
 // sandboxed frame. A version is its page and the files it loads beside
@@ -133,33 +134,35 @@ export function ArtifactsPage({ workspace }: { workspace: Workspace }) {
 
   return (
     <div className="page narrow artifacts-page">
-      <header className="page-head">
-        <h1>Artifacts</h1>
-        {all.length > 0 && (
-          <div className="page-actions">
-            <div className="segmented" role="group" aria-label="Where they stand">
-              {(Object.keys(shownLabels) as Shown[]).map((s) => (
-                <Button key={s} aria-pressed={shown === s} onClick={() => setShown(s)}>
-                  {shownLabels[s]}
-                  {s === "discarded" && discarded > 0 ? ` ${discarded}` : ""}
-                </Button>
-              ))}
-            </div>
-            {froms.length > 0 && (
-              <Select value={from} onChange={setFrom} aria-label="Where they came from">
-                <Option value={ANYWHERE}>From anywhere</Option>
-                <Option value={BY_HAND}>Added by hand</Option>
-                {froms.map((f) => (
-                  <Option key={f.from} value={f.from} title={f.title}>
-                    {f.title ? `${f.from}: ${f.title}` : f.from}
-                  </Option>
+      <PageHead
+        title="Artifacts"
+        actions={
+          all.length > 0 && (
+            <>
+              <div className="segmented artifacts-shown" role="group" aria-label="Where they stand">
+                {(Object.keys(shownLabels) as Shown[]).map((s) => (
+                  <Button key={s} aria-pressed={shown === s} onClick={() => setShown(s)}>
+                    {shownLabels[s]}
+                    {s === "discarded" && discarded > 0 ? ` ${discarded}` : ""}
+                  </Button>
                 ))}
-              </Select>
-            )}
-            <ClearExpired all={all} workspace={workspace} />
-          </div>
-        )}
-      </header>
+              </div>
+              {froms.length > 0 && (
+                <Select value={from} onChange={setFrom} aria-label="Where they came from">
+                  <Option value={ANYWHERE}>From anywhere</Option>
+                  <Option value={BY_HAND}>Added by hand</Option>
+                  {froms.map((f) => (
+                    <Option key={f.from} value={f.from} title={f.title}>
+                      {f.title ? `${f.from}: ${f.title}` : f.from}
+                    </Option>
+                  ))}
+                </Select>
+              )}
+              <ClearExpired all={all} workspace={workspace} />
+            </>
+          )
+        }
+      />
       {all.length === 0 ? (
         <Empty icon="artifact" title="No artifacts yet">
           An artifact is a sketch to look at and use: a page, alone or with the files it loads beside it, in versions you can step through. Crew add them with{" "}

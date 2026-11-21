@@ -16,6 +16,7 @@ import { TabbedBrowser } from "./WorktreeTabs";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
+import { GroupHead } from "../ui/GroupHead";
 
 // The file explorer: a capsule's files as they are now, without an editor
 // open. A tree on the left (everything, or only what's changed since the
@@ -689,9 +690,9 @@ function Overview({ tree, changed, onOpen, onFind }: { tree?: FileTree; changed:
       </Empty>
       {changed.length > 0 && (
         <section>
-          <h2 className="group">
-            Changed <Count>{changed.length}</Count>
-          </h2>
+          <GroupHead count={changed.length}>
+            Changed
+          </GroupHead>
           <ul className="overview-changed">
             {changed.slice(0, 40).map((f) => (
               <li key={f.path}>

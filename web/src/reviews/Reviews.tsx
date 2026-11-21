@@ -11,6 +11,8 @@ import { RowPasses } from "./Passes";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
 
 // Reviews: the open pull requests across every repo in the workspace.
 // Your teammates' come first, grouped by what each asks of you; yours sit
@@ -156,42 +158,44 @@ export function ReviewsPage() {
   });
 
   const head = (
-    <header className="page-head">
-      <h1>Reviews</h1>
-      <div className="page-actions">
-        {list && (
-          <span className="dim reviews-asked" title="When GitHub was last asked. While this page is open it's asked every couple of minutes.">
-            {loading ? (
-              <>
-                <Icon name="spinner" className="spin" size={12} /> Asking GitHub…
-              </>
-            ) : (
-              <>
-                As of <Time iso={list.at} as="relative" />
-              </>
-            )}
-          </span>
-        )}
-        <input
-          ref={filter}
-          className="reviews-filter"
-          value={q}
-          placeholder="Filter: text, repo, author"
-          aria-label="Filter pull requests"
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape" || e.key === "Enter") {
-              e.preventDefault();
-              if (e.key === "Escape") setQ("");
-              e.currentTarget.blur();
-            }
-          }}
-        />
-        <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Ask GitHub again (r)">
-          <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
-        </Button>
-      </div>
-    </header>
+    <PageHead
+      title="Reviews"
+      actions={
+        <>
+          {list && (
+            <span className="dim reviews-asked" title="When GitHub was last asked. While this page is open it's asked every couple of minutes.">
+              {loading ? (
+                <>
+                  <Icon name="spinner" className="spin" size={12} /> Asking GitHub…
+                </>
+              ) : (
+                <>
+                  As of <Time iso={list.at} as="relative" />
+                </>
+              )}
+            </span>
+          )}
+          <input
+            ref={filter}
+            className="reviews-filter"
+            value={q}
+            placeholder="Filter: text, repo, author"
+            aria-label="Filter pull requests"
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" || e.key === "Enter") {
+                e.preventDefault();
+                if (e.key === "Escape") setQ("");
+                e.currentTarget.blur();
+              }
+            }}
+          />
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Ask GitHub again (r)">
+            <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
+          </Button>
+        </>
+      }
+    />
   );
 
   if (!list) {
@@ -238,7 +242,7 @@ export function ReviewsPage() {
         return (
           <section key={s.key} aria-label={s.title} className={s.yours ? "yours" : undefined}>
             {firstYours && <div className="reviews-divide">Yours</div>}
-            <h2 className="group">
+            <GroupHead>
               {s.folded ? (
                 <Button
                   variant="link"
@@ -255,7 +259,7 @@ export function ReviewsPage() {
                 s.title
               )}{" "}
               <Count>{s.rows.length}</Count>
-            </h2>
+            </GroupHead>
             {isOpen && (
               <ul className="rows prs" role="listbox" aria-label={s.title}>
                 {s.rows.map((r) => (

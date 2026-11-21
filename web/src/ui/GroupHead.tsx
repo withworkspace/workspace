@@ -12,7 +12,7 @@ type GroupHeadProps = {
 // how many there are beside it, sticky as the page scrolls.
 export function GroupHead({ count, className, children, ...rest }: GroupHeadProps) {
   return (
-    <h2 className={cx(css.head, className)} {...rest}>
+    <h2 className={groupHeadClass(className)} {...rest}>
       {children}
       {count !== undefined && (
         <>
@@ -22,4 +22,10 @@ export function GroupHead({ count, className, children, ...rest }: GroupHeadProp
       )}
     </h2>
   );
+}
+
+// groupHeadClass is a group heading's look for something that isn't an h2:
+// a <summary> that folds the group.
+export function groupHeadClass(className?: string): string {
+  return cx(css.head, className);
 }
