@@ -12,7 +12,8 @@ import { Button, buttonClass } from "../ui/Button";
 // Following names in a review: hold ⌘ and a name under the pointer is a
 // link; rest on it for its card, click it to go to its definition (in the
 // diff if it's there, in a panel beside it if not). d does it from the
-// keyboard, b goes back.
+// keyboard, b goes back. The explorer follows names too, in a file that's
+// not a diff: a definition opens there (NavProps.open).
 
 // A code cell says where its line is: data-rev, data-path, data-line and
 // data-side, read here.
@@ -71,7 +72,18 @@ export interface NavProps {
   expand: (file: number, gap: number, n: number) => Promise<void>;
   goToRow: (key: string) => void;
   browse?: (path: string, line: number) => string | undefined;
+  // In a file that's not a diff (the explorer, whose diff is one commit
+  // both sides): open goes to a file at a line there, back goes back from
+  // it (false when there's nowhere), line is the line d asks about, and
+  // sideWords says what the commit is.
+  open?: (path: string, line: number) => void;
+  back?: () => boolean;
+  line?: { path: string; line: number; text: string };
+  sideWords?: (side: Side) => string;
 }
+
+// reviewSides is what a review's commits are.
+const reviewSides = (side: Side) => (side === "old" ? "before the change" : "with the change");
 
 // The most lines a gap is opened by to show a definition in it; past that
 // it's shown in the panel.
@@ -123,8 +135,13 @@ export function useCodeNav(p: NavProps) {
 
   // go is to a definition, in the commit the name was read at.
   const go = useCallback(async (t: NavTarget, side: Side, how: string | undefined, inPanel: boolean) => {
-    const { files, rows, states, expand, goToRow } = props.current;
+    const { files, rows, states, expand, goToRow, open } = props.current;
     setCard(undefined);
+    if (open) {
+      setPanel(undefined);
+      open(t.path, t.line);
+      return;
+    }
     remember();
     if (!inPanel) {
       const i = files.findIndex((f) => (side === "old" ? (f.oldPath ?? f.path) : f.path) === t.path);
@@ -307,17 +324,36 @@ export function useCodeNav(p: NavProps) {
     };
   }, []);
 
-  // d: the names on the cursor's line, to pick one of.
-  const pickOnRow = async () => {
-    const { cursorRow, files, diff } = props.current;
-    if (!diff || cursorRow?.type !== "line") return;
+  // The cursor's line, for d: a diff's row, or the line picked in a file.
+  const cursorLine = (): { side: Side; rev: string; path: string; num: number; text: string; el: HTMLElement | null } | undefined => {
+    const { cursorRow, files, diff, line } = props.current;
+    if (!diff) return undefined;
+    if (line) return { side: "new", rev: diff.head, path: line.path, num: line.line, text: line.text, el: document.querySelector<HTMLElement>(`[data-line="${line.line}"]`) };
+    if (cursorRow?.type !== "line") return undefined;
     const f = files[cursorRow.file];
     const useOld = !cursorRow.right; // a removed line
     const cell = useOld ? cursorRow.left : cursorRow.right;
-    if (!cell) return;
+    if (!cell) return undefined;
     const side: Side = useOld ? "old" : "new";
-    const rev = side === "new" ? diff.head : diff.base;
-    const path = side === "old" ? (f.oldPath ?? f.path) : f.path;
+    return {
+      side,
+      rev: side === "new" ? diff.head : diff.base,
+      path: side === "old" ? (f.oldPath ?? f.path) : f.path,
+      num: cell.num,
+      text: cell.text,
+      el: document.getElementById(`row-${cursorRow.key}`),
+    };
+  };
+
+  // d: the names on the cursor's line, to pick one of.
+  const pickOnRow = async () => {
+    const at = cursorLine();
+    if (!at) {
+      if (props.current.line === undefined && props.current.open) toast("Pick a line first: click its number");
+      return;
+    }
+    const { side, rev, path } = at;
+    const cell = { num: at.num, text: at.text };
     let names;
     try {
       names = await getNames(props.current.api, rev, path);
@@ -328,8 +364,7 @@ export function useCodeNav(p: NavProps) {
     if (names.why) return toast(names.why);
     const on = names.lines[String(cell.num)] ?? [];
     if (!on.length) return toast("There are no names on this line");
-    const row = document.getElementById(`row-${cursorRow.key}`);
-    const rect = row?.getBoundingClientRect() ?? new DOMRect(0, 0, 0, 0);
+    const rect = at.el?.getBoundingClientRect() ?? new DOMRect(0, 0, 0, 0);
     const list = on.map(([from, to, part]) => ({ from, to, part, text: cell.text.slice(from, to) }));
     if (list.length === 1) {
       const place: At = { rev, path, line: cell.num, col: list[0].from, side, inPanel: false, part: list[0].part };
@@ -342,7 +377,12 @@ export function useCodeNav(p: NavProps) {
     d: pickOnRow,
     b: () => {
       const w = back.current.pop();
-      if (!w) return toast("Nowhere to go back to");
+      if (!w) {
+        // In a file: the panel closes first, then back to where it was.
+        if (panelNow.current) return setPanel(undefined);
+        if (props.current.back?.()) return;
+        return toast("Nowhere to go back to");
+      }
       const now = where();
       if (now) forward.current.push(now);
       restore(w);
@@ -391,6 +431,7 @@ export function useCodeNav(p: NavProps) {
         inChange={(path) => fileOf(path, panel.side) >= 0}
         changed={(path, line) => changed(path, panel.side, line)}
         onGo={(u) => go({ path: u.path, line: u.line, col: u.col, endLine: u.line, kind: "use" }, panel.side, undefined, false)}
+        sideWords={p.sideWords ?? reviewSides}
         onClose={() => setPanel(undefined)}
         onBack={keys.b}
       />
@@ -400,6 +441,7 @@ export function useCodeNav(p: NavProps) {
         api={p.api}
         at={panel}
         browse={p.browse?.(panel.path, panel.line)}
+        sideWords={p.sideWords ?? reviewSides}
         onClose={() => setPanel(undefined)}
         onBack={keys.b}
       />
@@ -514,7 +556,7 @@ function NamePicker({ picking, onClose, onPick }: { picking: Picking; onClose: (
 
 // NavPanel is a file at a commit, beside the diff, at a definition. Names
 // in it are links too, and following one stays in the panel.
-function NavPanel({ api, at, browse, onClose, onBack }: { api: string; at: PanelAt; browse?: string; onClose: () => void; onBack: () => void }) {
+function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api: string; at: PanelAt; browse?: string; sideWords: (side: Side) => string; onClose: () => void; onBack: () => void }) {
   const navigate = useNavigate();
   const [lines, setLines] = useState<string[]>();
   const [error, setError] = useState<string>();
@@ -553,7 +595,7 @@ function NavPanel({ api, at, browse, onClose, onBack }: { api: string; at: Panel
           {at.path}:{at.line}
         </span>
         <span className="dim">
-          {at.side === "old" ? "before the change" : "with the change"} · {at.rev.slice(0, 7)}
+          {sideWords(at.side)} · {at.rev.slice(0, 7)}
         </span>
         {at.how && <span className="dim nav-panel-how">{at.how}</span>}
         <span className="spacer-left" />
@@ -591,10 +633,11 @@ function UsesPanel(props: {
   inChange: (path: string) => boolean;
   changed: (path: string, line: number) => boolean;
   onGo: (u: NavRef) => void;
+  sideWords: (side: Side) => string;
   onClose: () => void;
   onBack: () => void;
 }) {
-  const { at, uses, inChange, changed, onGo, onClose, onBack } = props;
+  const { at, uses, inChange, changed, onGo, sideWords, onClose, onBack } = props;
   const groups = groupUses(uses.uses, inChange, changed);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   // The list as it's moved through: maybes only when opened.
@@ -636,7 +679,7 @@ function UsesPanel(props: {
         </span>
         <span className="dim">
           {count} {count === 1 ? "use" : "uses"}
-          {uses.partial ? ", maybe more" : ""} · {at.side === "old" ? "before the change" : "with the change"}
+          {uses.partial ? ", maybe more" : ""} · {sideWords(at.side)}
         </span>
         <span className="spacer-left" />
         <Button variant="ghost" size="small" onClick={onBack} title="Back (b)">
@@ -658,7 +701,7 @@ function UsesPanel(props: {
         {!groups.length && <div className="dim nav-panel-loading">Nothing else uses it.</div>}
         {groups.map((g) => (
           <section key={g.title}>
-            <h3 className="nav-uses-title">{g.title}</h3>
+            {(groups.length > 1 || g.title !== "Elsewhere") && <h3 className="nav-uses-title">{g.title}</h3>}
             <ul className="nav-list">{g.uses.map(row)}</ul>
             {g.maybes.length > 0 && (
               <>
