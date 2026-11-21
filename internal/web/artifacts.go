@@ -86,8 +86,10 @@ const framedRoot = "/framed/"
 // frameKey is the key a frame's files are under: made from the
 // workspace's token and the frame's own address (/frame/a3/v2), so it
 // can't be guessed, and reads that frame's files only.
-func (s *Server) frameKey(frame string) string {
-	mac := hmac.New(sha256.New, []byte(s.info.Token))
+func (s *Server) frameKey(frame string) string { return frameKey(s.info.Token, frame) }
+
+func frameKey(token, frame string) string {
+	mac := hmac.New(sha256.New, []byte(token))
 	mac.Write([]byte("frame\x00" + frame))
 	return hex.EncodeToString(mac.Sum(nil))[:32]
 }
@@ -127,8 +129,13 @@ func (s *Server) framed(path string) (frame, file string, ok bool) {
 var frameShape = regexp.MustCompile(`^(a[1-9][0-9]*/v[1-9][0-9]*|in/[A-Za-z0-9._-]+/tree/[0-9a-f]{40,64}|(missions/[A-Za-z0-9._-]+/)?[a-z][0-9]+/proposals/[1-9][0-9]*)$`)
 
 // framedURL is where the frame at address (/frame/a3/v2) has its files.
-func (s *Server) framedURL(frame string) string {
-	return framedRoot + s.frameKey(frame) + strings.TrimPrefix(frame, "/frame") + "/"
+func (s *Server) framedURL(frame string) string { return FramedPath(s.info.Token, frame) }
+
+// FramedPath is where the frame at address (/frame/a3/v2) has its files,
+// in the workspace whose token is token: /framed/<key>/a3/v2/. It opens
+// with no sign-in, as the web UI's frame does (ws artifact url).
+func FramedPath(token, frame string) string {
+	return framedRoot + frameKey(token, frame) + strings.TrimPrefix(frame, "/frame") + "/"
 }
 
 // toFramed sends a frame, signed in, to where its files are, with what
