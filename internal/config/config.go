@@ -632,6 +632,11 @@ func (c *Config) OrchestratorMaxDispatches() int {
 // ws.local.toml can tell "not set" apart from an explicit false.
 type GroupConfig struct {
 	Hidden *bool `toml:"hidden,omitempty"`
+	// Yours: Hidden is your choice, from ws.local.toml, and Team what
+	// ws.toml says (nil for nothing: shown). Merge says them; neither file
+	// does.
+	Yours bool  `toml:"-"`
+	Team  *bool `toml:"-"`
 }
 
 const RepoFileName = "ws.repo.toml"
@@ -993,6 +998,12 @@ type RepoConfig struct {
 	// It's cloned and worked in here as any is, and isn't in a teammate's
 	// workspace. Merge says it; neither file does.
 	Yours bool `toml:"-"`
+	// TeamGroup is ws.toml's group for a repo of the team's whose group
+	// ws.local.toml replaces, for you ("" where it doesn't, or ws.toml
+	// gives none). Merge says it.
+	TeamGroup string `toml:"-"`
+	// GroupYours: Group is yours, over the team's.
+	GroupYours bool `toml:"-"`
 }
 
 // Documents is a repo's documents setting: whether it's a space of
@@ -1120,6 +1131,7 @@ func Merge(base, local *Config) *Config {
 	maps.Copy(merged.Groups, base.Groups)
 	for name, localGroup := range local.Groups {
 		if localGroup.Hidden != nil {
+			localGroup.Yours, localGroup.Team = true, base.Groups[name].Hidden
 			merged.Groups[name] = localGroup
 		}
 	}
@@ -1140,7 +1152,8 @@ func Merge(base, local *Config) *Config {
 		if localRepo.DisplayName != "" {
 			baseRepo.DisplayName = localRepo.DisplayName
 		}
-		if localRepo.Group != "" {
+		if localRepo.Group != "" && localRepo.Group != baseRepo.Group {
+			baseRepo.TeamGroup, baseRepo.GroupYours = baseRepo.Group, true
 			baseRepo.Group = localRepo.Group
 		}
 		if localRepo.Landing != "" {

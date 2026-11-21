@@ -1134,6 +1134,10 @@ type Repo struct {
 	// couldn't be, if it couldn't.
 	Cloning bool   `json:"cloning,omitempty"`
 	Problem string `json:"problem,omitempty"`
+	// TeamGroup is the team's group for it, where yours (Group) is over
+	// it; GroupYours: Group is yours (ws.local.toml), not the team's.
+	TeamGroup  string `json:"teamGroup,omitempty"`
+	GroupYours bool   `json:"groupYours,omitempty"`
 }
 
 // Worktree is a repo's ground (Name ".ground": its default branch,

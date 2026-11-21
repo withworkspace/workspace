@@ -38,6 +38,10 @@ type Repo struct {
 	// couldn't be, if it couldn't.
 	Cloning bool
 	Problem string
+	// TeamGroup is the team's group for it, where yours (Group) is over
+	// it: "" where it isn't.
+	TeamGroup  string
+	GroupYours bool
 }
 
 // RepoLanding is how work lands in a repo: through a pull request, or
@@ -82,6 +86,10 @@ func (w *Workspace) Repos() []Repo {
 			slices.Sort(r.Aliases)
 			r.Yours = ws.Yours[name]
 			r.Cloning, r.Problem = w.cloningOf(name)
+			r.TeamGroup, r.GroupYours = ws.TeamGroups[name]
+			if !r.GroupYours && r.Yours {
+				r.GroupYours = r.Group != "" // a repo of yours: its group's yours too
+			}
 			if ws.OnGitHub(name) {
 				r.GitHub = ws.RemoteOf(name).String()
 			}

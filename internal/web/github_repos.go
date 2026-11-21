@@ -58,6 +58,7 @@ type RepoAdd struct {
 	Owner string `json:"owner"`
 	Name  string `json:"name"`
 	As    string `json:"as,omitempty"`
+	Group string `json:"group,omitempty"`
 	Team  bool   `json:"team,omitempty"`
 }
 
@@ -98,7 +99,7 @@ func (s *Server) addRepo(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "say which repo: owner and name")
 		return
 	}
-	done, err := s.App.AddRepo(r.Context(), ops.AsYou, ops.RepoAdd{Owner: req.Owner, Name: req.Name, As: req.As, Team: req.Team})
+	done, err := s.App.AddRepo(r.Context(), ops.AsYou, ops.RepoAdd{Owner: req.Owner, Name: req.Name, As: req.As, Group: req.Group, Team: req.Team})
 	if err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return

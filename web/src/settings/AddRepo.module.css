@@ -122,7 +122,8 @@
 }
 
 .field label,
-.field legend {
+.field legend,
+.label {
   font-size: var(--text-sm);
   font-weight: 600;
 }

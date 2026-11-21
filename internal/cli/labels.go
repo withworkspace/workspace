@@ -92,6 +92,7 @@ var labels = map[string]string{
 	"repo":                     "Looking at the repos",
 	"repo share":               "Giving {1} to the team",
 	"repo add":                 "Adding {1}",
+	"repo group":               "Grouping {1}",
 	"router":                   "Looking at the router",
 	"silo":                     "Looking at silos",
 	"silo point":               "Pointing {1} at {2}",

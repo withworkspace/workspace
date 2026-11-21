@@ -1,6 +1,6 @@
 import { useMemo, useReducer, useState } from "react";
 import { useSearchParams } from "react-router";
-import { getRepos, type Repo, shareRepo, useEvents } from "../api";
+import { getGroups, getRepos, type Repo, type RepoGroup, shareRepo, useEvents } from "../api";
 import { useLoaded } from "../load";
 import { Button } from "../ui/Button";
 import { Chip } from "../ui/Chip";
@@ -8,6 +8,7 @@ import { Count } from "../ui/Count";
 import { GroupHead } from "../ui/GroupHead";
 import { ErrorCard, Skeleton, toast } from "../ui/kit";
 import { AddRepo } from "./AddRepo";
+import { Groups, RepoGroupCell } from "./Groups";
 import css from "./Repos.module.css";
 
 // Repos is the workspace's repos: the team's, as ws.toml has them, shown
@@ -15,7 +16,10 @@ import css from "./Repos.module.css";
 // can be given to the team. A repo is added from GitHub (?add=1 opens it,
 // as Find's Add a repo does).
 export function Repos({ branch, org }: { branch?: string; org?: string }) {
-  const { value: repos, error, reload } = useLoaded<Repo[]>(getRepos, [], { keep: true });
+  const { value: repos, error, reload: reloadRepos } = useLoaded<Repo[]>(getRepos, [], { keep: true });
+  const { value: groups, reload: reloadGroups } = useLoaded<RepoGroup[]>(getGroups, [], { keep: true });
+  const reload = () => Promise.all([reloadRepos(), reloadGroups()]).then(() => undefined);
+  const groupNames = useMemo(() => (groups ?? []).map((g) => g.name), [groups]);
   // A repo added is cloned behind, and GitHub's asked behind what the
   // picker shows: the github topic says when either's done (one stream,
   // for the table and the picker both).
@@ -53,6 +57,7 @@ export function Repos({ branch, org }: { branch?: string; org?: string }) {
       {adding && (
         <AddRepo
           seen={seen}
+          groups={groupNames}
           org={org}
           taken={taken}
           onClose={() => setAdding(false)}
@@ -117,7 +122,9 @@ export function Repos({ branch, org }: { branch?: string; org?: string }) {
                   )}
                 </td>
                 <td className="mono dim">{r.aliases?.join(", ") || "—"}</td>
-                <td className="dim">{r.group || "—"}</td>
+                <td>
+                  <RepoGroupCell repo={r} groups={groupNames} done={reload} />
+                </td>
                 <td className="dim">{r.landing === "direct" ? `straight to ${branch || "its default branch"}` : r.landing ? "pull request" : "—"}</td>
                 {yours > 0 && <td className={css.acts}>{r.yours && <Share repo={r.name} done={reload} />}</td>}
               </tr>
@@ -125,6 +132,7 @@ export function Repos({ branch, org }: { branch?: string; org?: string }) {
           </tbody>
         </table>
       )}
+      {repos && groups && <Groups groups={groups} repos={repos} done={reload} />}
     </section>
   );
 }

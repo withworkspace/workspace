@@ -8,6 +8,7 @@ import { Callout, Dialog, Skeleton, toast } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import { relative } from "../ui/time";
 import css from "./AddRepo.module.css";
+import { GroupPick } from "./Groups";
 
 const ANOTHER = "\u0000another";
 
@@ -17,7 +18,7 @@ const ANOTHER = "\u0000another";
 // name here, and whether it's yours alone or the team's. What GitHub said
 // is shown at once, however old, and again once it's been asked: seen
 // moves when it has (the github topic, followed by the page).
-export function AddRepo({ seen, org, taken, onClose, onAdded }: { seen: number; org?: string; taken: Set<string>; onClose: () => void; onAdded: () => void }) {
+export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: number; org?: string; groups: string[]; taken: Set<string>; onClose: () => void; onAdded: () => void }) {
   const owners = useLoaded(() => getGitHubOwners(), []);
   const [picked, setPicked] = useState<string>();
   const [typed, setTyped] = useState("");
@@ -161,15 +162,16 @@ export function AddRepo({ seen, org, taken, onClose, onAdded }: { seen: number; 
         </label>
       )}
 
-      {chosen && <Adding key={`${owner}/${chosen.name}`} owner={owner} repo={chosen} taken={taken} onCancel={() => setChosen(undefined)} onAdded={onAdded} />}
+      {chosen && <Adding key={`${owner}/${chosen.name}`} owner={owner} repo={chosen} taken={taken} groups={groups} onCancel={() => setChosen(undefined)} onAdded={onAdded} />}
     </Dialog>
   );
 }
 
 // Adding is the repo chosen, about to be added: its name here (its name
 // on GitHub, unless that's taken here), and whose it is.
-function Adding({ owner, repo, taken, onCancel, onAdded }: { owner: string; repo: AddableRepo; taken: Set<string>; onCancel: () => void; onAdded: () => void }) {
+function Adding({ owner, repo, taken, groups, onCancel, onAdded }: { owner: string; repo: AddableRepo; taken: Set<string>; groups: string[]; onCancel: () => void; onAdded: () => void }) {
   const [as, setAs] = useState(() => (taken.has(repo.name) ? `${owner}-${repo.name}` : repo.name));
+  const [group, setGroup] = useState("");
   const [team, setTeam] = useState(false);
   const [busy, setBusy] = useState(false);
   const name = as.trim();
@@ -177,7 +179,7 @@ function Adding({ owner, repo, taken, onCancel, onAdded }: { owner: string; repo
   const bad = !/^[A-Za-z0-9_-][A-Za-z0-9._-]*$/.test(name);
   const add = () => {
     setBusy(true);
-    addRepo({ owner, name: repo.name, as: name !== repo.name ? name : undefined, team })
+    addRepo({ owner, name: repo.name, as: name !== repo.name ? name : undefined, group: group || undefined, team })
       .then((r) => {
         toast(r.message);
         onAdded();
@@ -200,6 +202,12 @@ function Adding({ owner, repo, taken, onCancel, onAdded }: { owner: string; repo
         <input id="add-repo-as" className="mono" value={as} onChange={(e) => setAs(e.target.value)} aria-invalid={clash || bad} />
         <span className={cx("dim", css.hint)}>
           {clash ? `There's a ${name} here already.` : bad ? "Letters, digits, '.', '_' and '-'." : name !== repo.name ? `It stays ${owner}/${repo.name} on GitHub.` : "Its folder under repos/, and what commands call it."}
+        </span>
+      </div>
+      <div className={css.field}>
+        <span className={css.label}>Its group</span>
+        <span>
+          <GroupPick value={group} groups={groups} none label="Its group" onPick={setGroup} />
         </span>
       </div>
       <fieldset className={css.field}>

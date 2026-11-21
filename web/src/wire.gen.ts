@@ -1918,6 +1918,15 @@ export interface GitHubRepos {
     problem?: string;
 }
 
+// From web/groups.go
+/**
+ * GroupShownSet is a group shown or hidden for you (POST
+ * /api/groups/{group}/shown): hidden, or null to go back to the team's.
+ */
+export interface GroupShownSet {
+    hidden: boolean | null;
+}
+
 // From harness/stream.go
 /**
  * ToolCall is one tool call a run made, and how it went.
@@ -3711,6 +3720,12 @@ export interface Repo {
      */
     cloning?: boolean;
     problem?: string;
+    /**
+     * TeamGroup is the team's group for it, where yours (Group) is over
+     * it; GroupYours: Group is yours (ws.local.toml), not the team's.
+     */
+    teamGroup?: string;
+    groupYours?: boolean;
 }
 
 // From web/github_repos.go
@@ -3722,6 +3737,7 @@ export interface RepoAdd {
     owner: string;
     name: string;
     as?: string;
+    group?: string;
     team?: boolean;
 }
 
@@ -3732,6 +3748,31 @@ export interface RepoAdd {
 export interface RepoAdded {
     repo: string;
     message: string;
+}
+
+// From web/groups.go
+/**
+ * RepoGroup is a repo's group in the workspace, as the API serves it.
+ */
+export interface RepoGroup {
+    name: string;
+    repos: string[];
+    /**
+     * Hidden is as it is for you, TeamHidden as ws.toml says, and Chosen
+     * whether Hidden is your choice rather than the team's.
+     */
+    hidden?: boolean;
+    teamHidden?: boolean;
+    chosen?: boolean;
+}
+
+// From web/groups.go
+/**
+ * RepoGroupSet is a repo put in a group (POST /api/repos/{repo}/group):
+ * "" for none, where it can be.
+ */
+export interface RepoGroupSet {
+    group: string;
 }
 
 // From web/refpaths.go

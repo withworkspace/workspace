@@ -165,6 +165,12 @@ type Files interface {
 	GitHubRepos(owner string, again bool) ops.GitHubRepos
 	AddRepo(ctx context.Context, who ops.Actor, a ops.RepoAdd) (*ops.RepoAdded, error)
 	GitHubSeen() string
+	// Groups: each with its repos and whether it's hidden, for you and
+	// for the team; showing or hiding one for you (nil: the team's); and
+	// putting a repo in a group for you.
+	Groups() []ops.Group
+	ShowGroup(ctx context.Context, who ops.Actor, group string, hidden *bool, wait bool) (*ops.GroupShown, error)
+	GroupRepo(ctx context.Context, who ops.Actor, repo, group string) (*ops.RepoGrouped, error)
 	CodeSearching
 }
 

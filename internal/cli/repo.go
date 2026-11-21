@@ -21,6 +21,7 @@ not in a teammate's workspace. share gives one of yours to the team.`,
 		ValidArgsFunction: cobra.NoFileCompletions,
 	}
 	cmd.AddCommand(newRepoAddCmd())
+	cmd.AddCommand(newRepoGroupCmd())
 	cmd.AddCommand(newRepoShareCmd())
 	return cmd
 }
@@ -78,6 +79,39 @@ taken back: if the remote refuses it, the repo stays yours.`,
 				return err
 			}
 			done, err := ctx.ShareRepo(cmd.Context(), ops.ActorFromEnv(), args[0])
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(ui.Stderr, "%s %s\n", ui.Green.Render("✓"), done)
+			return nil
+		},
+	}
+}
+
+func newRepoGroupCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "group <repo> [group]",
+		Short: "Put a repo in a group for you (ws.local.toml), or back in the team's",
+		Long: `Puts the repo in the group named, for you: in ws.local.toml, over the group
+ws.toml gives it. Without a group, a repo of yours is in none, and one of the
+team's goes back to the team's group. ws group shows and hides groups.`,
+		Args:              cobra.RangeArgs(1, 2),
+		ValidArgsFunction: completeRepoNames,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, err := loadOps()
+			if err != nil {
+				return err
+			}
+			group := ""
+			if len(args) == 2 {
+				group = args[1]
+			} else if !ctx.WS().Yours[args[0]] {
+				group = ctx.WS().TeamGroups[args[0]] // back to the team's
+				if group == "" {
+					group = ctx.WS().GroupOf(args[0])
+				}
+			}
+			done, err := ctx.GroupRepo(cmd.Context(), ops.ActorFromEnv(), args[0], group)
 			if err != nil {
 				return err
 			}

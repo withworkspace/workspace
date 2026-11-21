@@ -184,8 +184,10 @@ var (
 type RepoAdd struct {
 	Owner, Name string
 	As          string
-	Team        bool
-	Wait        bool
+	// Group is the group it's in, if any: one the workspace has, or new.
+	Group string
+	Team  bool
+	Wait  bool
 }
 
 // RepoAdded is a repo added: its name here, where it is on GitHub, whose
@@ -237,7 +239,11 @@ func (w *Workspace) AddRepo(ctx context.Context, who Actor, a RepoAdd) (*RepoAdd
 	if _, taken := ws.ResolveAlias(key); taken {
 		return nil, invalid("there's a repo called %s here already: give this one another name", key)
 	}
-	rc := config.RepoConfig{}
+	group := strings.TrimSpace(a.Group)
+	if strings.ContainsAny(group, ", \t") {
+		return nil, invalid("%q can't be a group's name: no spaces or commas", group)
+	}
+	rc := config.RepoConfig{Group: group}
 	if !strings.EqualFold(owner, ws.Org) || name != key {
 		rc.GitHub = owner + "/" + name
 	}
@@ -258,24 +264,38 @@ func (w *Workspace) AddRepo(ctx context.Context, who Actor, a RepoAdd) (*RepoAdd
 		return out, nil
 	}
 	out.Cloning = true
+	w.cloneBehind(key)
+	return out, nil
+}
+
+// cloneBehind clones repos one after another, behind the answer: each is
+// said as cloning until it is, or why it couldn't be, and GitHubSeen
+// moves as each ends.
+func (w *Workspace) cloneBehind(repos ...string) {
+	if len(repos) == 0 {
+		return
+	}
 	w.gh.mu.Lock()
 	if w.gh.cloning == nil {
 		w.gh.cloning = map[string]string{}
 	}
-	w.gh.cloning[key] = ""
+	for _, r := range repos {
+		w.gh.cloning[r] = ""
+	}
 	w.gh.mu.Unlock()
 	go func() {
-		err := w.cloneRepo(key)
-		w.gh.mu.Lock()
-		defer w.gh.mu.Unlock()
-		w.gh.seen++
-		if err != nil {
-			w.gh.cloning[key] = err.Error()
-			return
+		for _, r := range repos {
+			err := w.cloneRepo(r)
+			w.gh.mu.Lock()
+			w.gh.seen++
+			if err != nil {
+				w.gh.cloning[r] = err.Error()
+			} else {
+				delete(w.gh.cloning, r)
+			}
+			w.gh.mu.Unlock()
 		}
-		delete(w.gh.cloning, key)
 	}()
-	return out, nil
 }
 
 // cloneRepo clones a repo just added, with the workspace's config read

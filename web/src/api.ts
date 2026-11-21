@@ -77,6 +77,7 @@ import type {
   Worktree,
   GitHubOwners,
   GitHubRepos,
+  RepoGroup,
 } from "./wire.gen";
 export type {
   Artifact,
@@ -197,6 +198,7 @@ export type {
   GitHubOwners,
   GitHubRepos,
   AddableRepo,
+  RepoGroup,
 } from "./wire.gen";
 
 // Mirrors internal/web/api.go.
@@ -541,7 +543,12 @@ export const shareRepo = (repo: string) => send<{ message: string; commit: strin
 const again = (yes?: boolean) => (yes ? "again=1" : "");
 export const getGitHubOwners = (look?: boolean) => getJSON<GitHubOwners>(`/api/github/owners?${again(look)}`);
 export const getGitHubRepos = (owner: string, look?: boolean) => getJSON<GitHubRepos>(`/api/github/repos?owner=${encodeURIComponent(owner)}&${again(look)}`);
-export const addRepo = (add: { owner: string; name: string; as?: string; team?: boolean }) => send<{ repo: string; message: string }>("POST", "/api/repos", add);
+// The workspace's groups, showing or hiding one for you (null: the team's
+// again), and putting a repo in a group for you ("" for none).
+export const getGroups = () => getJSON<{ groups: RepoGroup[] }>("/api/groups").then((r) => r.groups);
+export const showGroup = (group: string, hidden: boolean | null) => send<{ message: string }>("POST", `/api/groups/${encodeURIComponent(group)}/shown`, { hidden });
+export const groupRepo = (repo: string, group: string) => send<{ message: string }>("POST", `/api/repos/${encodeURIComponent(repo)}/group`, { group });
+export const addRepo = (add: { owner: string; name: string; as?: string; group?: string; team?: boolean }) => send<{ repo: string; message: string }>("POST", "/api/repos", add);
 export const getWorktrees = (repo: string) => getJSON<{ worktrees: Worktree[] }>(`/api/repos/${encodeURIComponent(repo)}/worktrees`).then((r) => r.worktrees);
 
 // worktreeAPI is where a repo's ground or capsule's files are read, as

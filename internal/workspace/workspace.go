@@ -23,6 +23,9 @@ type Workspace struct {
 	RepoNames        []string                     // sorted canonical names, every repo including hidden ones
 	RepoGroups       map[string]string            // canonical name → group (ungrouped repos are absent)
 	HiddenGroups     map[string]bool              // groups left out of commands that cover every repo
+	GroupChoices     map[string]bool              // group → hidden, where it's your choice (ws.local.toml)
+	TeamHidden       map[string]bool              // groups ws.toml hides
+	TeamGroups       map[string]string            // canonical name → ws.toml's group, where yours replaces it
 	AliasMap         map[string]string            // alias → canonical name
 	DisplayNames     map[string]string            // canonical name → display name
 	Remotes          map[string]ref.Remote        // canonical name → where it is on GitHub, where it says (see RemoteOf)

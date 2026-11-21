@@ -294,6 +294,13 @@ ws group reset platform   # go back to the team default
 
 To hide a single repo for yourself, put it in a group locally (`[repos.mobile] group = "mine"`) and hide that group.
 
+```bash
+ws repo group mobile mine   # put it in a group, for you (ws.local.toml)
+ws repo group mobile        # back in the team's group (a repo of yours: in none)
+```
+
+*Settings › Repos* does the same: each repo's group is picked in its row (one the workspace has, or *New group…*), marked *yours* where it's over the team's, and under the table each group is **Shown** or **Hidden** for you, with what the team says beside it and *Reset* to go back to it. Showing a group clones its repos that aren't, behind. A repo of the team's that the team has in a group can be put in another for you, or back in the team's, but not in none: `ws.local.toml` can't say "no group" over `ws.toml`'s.
+
 ### Repos of your own
 
 A repo in `ws.local.toml` that `ws.toml` hasn't is **yours**: cloned by `setup` and `sync`, lifted, docked, searched and worked in by missions as any is, and not in a teammate's workspace. Say where it is on GitHub with `github` when it isn't the org's by that name:
@@ -316,7 +323,7 @@ ws repo share notes   # give it to the team: into ws.toml, committed on the conf
 
 *Settings › Repos* lists the workspace's repos, the team's and yours, with where each is on GitHub. **Add repo…** (or *Add a repo from GitHub* in Find, there) picks one from GitHub: whose (you, or an org you're in, as `gh` sees them, or another you name), then which of theirs, newest pushed first, with forks and archived repos behind a box and those the workspace has already marked as here. What GitHub said is shown at once, however old, with when it said it, and asked again behind it when that's more than ten minutes ago (or on *Look again*); the list moves when it answers. An org that enforces SAML single sign-on lists nothing until `gh`'s token is authorised for it, and says so.
 
-Chosen, it's given its name here (its name on GitHub, or, where that's taken here, `<owner>-<name>`, changed as you like) and whose it is: **just you**, written into `ws.local.toml`, or **the team**, written into `ws.toml`, committed on the workspace's config repo and pushed as `ws repo share` does (a push that's refused adds nothing). It's written with `github = "owner/name"` unless it's the org's repo of its name here, and cloned behind: the table says *cloning…*, then nothing, or *not cloned* with why (`ws setup` tries again).
+Chosen, it's given its name here (its name on GitHub, or, where that's taken here, `<owner>-<name>`, changed as you like), a [group](#groups) if you like, and whose it is: **just you**, written into `ws.local.toml`, or **the team**, written into `ws.toml`, committed on the workspace's config repo and pushed as `ws repo share` does (a push that's refused adds nothing). It's written with `github = "owner/name"` unless it's the org's repo of its name here, and cloned behind: the table says *cloning…*, then nothing, or *not cloned* with why (`ws setup` tries again).
 
 ```bash
 ws repo add partner-co/api --as partner-api   # yours, as partner-api, cloned before it answers

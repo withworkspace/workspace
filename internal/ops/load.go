@@ -42,11 +42,22 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 	yours := make(map[string]bool)
 	hiddenGroups := make(map[string]bool)
 
-	for name := range cfg.Groups {
+	groupChoices := make(map[string]bool)
+	teamHidden := make(map[string]bool)
+	for name, g := range cfg.Groups {
 		if cfg.IsHidden(name) {
 			hiddenGroups[name] = true
 		}
+		team := g.Hidden
+		if g.Yours {
+			groupChoices[name] = *g.Hidden
+			team = g.Team
+		}
+		if team != nil && *team {
+			teamHidden[name] = true
+		}
 	}
+	teamGroups := make(map[string]string)
 
 	for name, rc := range cfg.Repos {
 		if rc.Group != "" {
@@ -72,6 +83,9 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 		}
 		if rc.Yours {
 			yours[name] = true
+		}
+		if rc.GroupYours {
+			teamGroups[name] = rc.TeamGroup
 		}
 		if rc.GitHub != "" {
 			r, ok := ref.ParseRemote(rc.GitHub)
@@ -105,6 +119,9 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 		RepoNames:        names,
 		RepoGroups:       repoGroups,
 		HiddenGroups:     hiddenGroups,
+		GroupChoices:     groupChoices,
+		TeamHidden:       teamHidden,
+		TeamGroups:       teamGroups,
 		AliasMap:         aliasMap,
 		DisplayNames:     displayNames,
 		Remotes:          remotes,
