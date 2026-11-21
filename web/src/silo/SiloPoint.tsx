@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router";
 import { pointSilo } from "../api";
 import { Icon } from "../ui/Icon";
 import { Empty, humanError } from "../ui/kit";
+import { Button } from "../ui/Button";
 
 // /silo/<repo>?to=<capsule>&then=<address>: point a repo's silo at a
 // capsule, then go on to where you were going. ws's router sends you here
@@ -49,12 +50,12 @@ export function SiloPoint() {
         action={
           to && (
             <>
-              <button className="primary" disabled={busy} onClick={point} autoFocus>
+              <Button variant="primary" disabled={busy} onClick={point} autoFocus>
                 <Icon name={busy ? "spinner" : "arrow-right"} size={12} /> {busy ? "Pointing…" : `Point it at ${to}`}
-              </button>
-              <button className="ghost" disabled={busy} onClick={() => navigate("/")}>
+              </Button>
+              <Button variant="ghost" disabled={busy} onClick={() => navigate("/")}>
                 Not now
-              </button>
+              </Button>
             </>
           )
         }

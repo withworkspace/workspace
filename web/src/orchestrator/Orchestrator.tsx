@@ -9,6 +9,11 @@ import { Callout, Copyable, Empty, ErrorCard, Skeleton, useTitle } from "../ui/k
 import { headlineStatus, Status, type StatusInfo } from "../ui/status";
 import { duration, Time } from "../ui/time";
 import { useLoaded } from "../load";
+import { Chip } from "../ui/Chip";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
+import { Summary, SummaryRow } from "../ui/Summary";
+import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // The orchestrator's page: whether it's on and how it's set up, the
 // missions it's on now, and its latest runs; each run's own page has what
@@ -32,10 +37,9 @@ export function OrchestratorPage({ workspace }: { workspace: Workspace }) {
   const on: StatusInfo | undefined = info && (info.problem ? { icon: "x-circle", tone: "danger", words: "Can't run" } : info.enabled ? { icon: "check-circle", tone: "done", words: "On" } : { icon: "pause", tone: "quiet", words: "Off" });
   return (
     <div className="page">
-      <header className="page-head">
-        <h1>Orchestrator</h1>
+      <PageHead title="Orchestrator">
         {on && <Status s={on} className="mission-state" />}
-      </header>
+      </PageHead>
       <p className="lede">
         An agent that decides what happens between crew: when crew report done or go quiet, when you answer it or review, when a PR changes. It reads the mission, then
         accepts a stage, dispatches the next crew, or asks you.
@@ -58,46 +62,46 @@ export function OrchestratorPage({ workspace }: { workspace: Workspace }) {
               </div>
             </Callout>
           )}
-          <dl className="summary settings">
-            <Row label="Agent">
+          <Summary className="orchestrator-facts">
+            <SummaryRow label="Agent">
               <span className="mono">
                 {info.harness}
                 {info.model ? ` · ${info.model}` : ""}
               </span>
-            </Row>
-            <Row label="Crew it starts">
+            </SummaryRow>
+            <SummaryRow label="Crew it starts">
               {info.dispatch === "auto" ? "Start at once" : "Wait for you to launch them"}; up to {info.maxDispatches} in a row, then it asks you
-            </Row>
-            <Row label="Settings">
+            </SummaryRow>
+            <SummaryRow label="Settings">
               <Link to="/settings/missions#orchestrator">Yours, in Settings</Link>; the team's are <code>[orchestrator]</code> in <code>ws.toml</code>
-            </Row>
-          </dl>
+            </SummaryRow>
+          </Summary>
           <section>
-            <h2 className="group">
-              On it now <span className="count">{deciding.length}</span>
-            </h2>
+            <GroupHead count={deciding.length}>
+              On it now
+            </GroupHead>
             {deciding.length === 0 ? (
               <div className="quiet-line">Nothing right now.</div>
             ) : (
-              <ul className="rows">
+              <Rows>
                 {deciding.map((m) => (
-                  <li key={m.slug} className="row">
-                    <Link to={`/missions/${m.slug}`} className="row-link">
+                  <Row key={m.slug}>
+                    <Link to={`/missions/${m.slug}`} className={rowLinkClass()}>
                       <Status s={headlineStatus(m.headline)} iconOnly />
-                      <span className="title">{m.title}</span>
+                      <RowTitle>{m.title}</RowTitle>
                       <span className="dim">
                         <Inline text={m.headline.text} lines={1} />
                       </span>
                     </Link>
-                  </li>
+                  </Row>
                 ))}
-              </ul>
+              </Rows>
             )}
           </section>
           <section>
-            <h2 className="group">
-              Recent runs <span className="count">{info.runs.length}</span>
-            </h2>
+            <GroupHead count={info.runs.length}>
+              Recent runs
+            </GroupHead>
             {info.runs.length === 0 ? (
               <Empty icon="sparkle" title="No runs yet">
                 Each time it looks at a mission shows here: what it was told, what it said, and every command it ran.
@@ -115,28 +119,28 @@ export function OrchestratorPage({ workspace }: { workspace: Workspace }) {
 // RunList is runs in brief, each a link to its page.
 export function RunList({ runs, withMission }: { runs: OrchestratorRun[]; withMission?: boolean }) {
   return (
-    <ul className="rows runs">
+    <Rows className="runs">
       {runs.map((r) => (
-        <li key={`${r.mission}/${r.id}`} className="row">
-          <Link to={`/missions/${r.mission}/orchestrator/${r.id}`} className="row-link">
-            <Status s={outcome(r)} iconOnly size={16} className="row-status" />
-            <span className="row-main">
-              <span className="row-line">
-                {withMission && <span className="title">{r.missionTitle}</span>}
+        <Row key={`${r.mission}/${r.id}`}>
+          <Link to={`/missions/${r.mission}/orchestrator/${r.id}`} className={rowLinkClass("orch-run-link")}>
+            <Status s={outcome(r)} iconOnly size={16} className={rowStatusClass()} />
+            <RowMain>
+              <RowLine>
+                {withMission && <RowTitle>{r.missionTitle}</RowTitle>}
                 <span className="dim">on {lookedAt(r)}</span>
-                <span className={`chip tone-${outcome(r).tone}`}>{outcome(r).words}</span>
-              </span>
+                <Chip tone={outcome(r).tone}>{outcome(r).words}</Chip>
+              </RowLine>
               {r.said && (
-                <span className="row-sub">
+                <RowSub>
                   <Inline text={r.said} lines={1} />
-                </span>
+                </RowSub>
               )}
-            </span>
+            </RowMain>
             <Time iso={r.started} className="age run-time" />
           </Link>
-        </li>
+        </Row>
       ))}
-    </ul>
+    </Rows>
   );
 }
 
@@ -162,10 +166,9 @@ export function OrchestratorRunPage({ workspace }: { workspace: Workspace }) {
         <span className="sep">·</span>
         <Link to="/orchestrator">All runs</Link>
       </nav>
-      <header className="page-head">
-        <h1>Orchestrator run</h1>
+      <PageHead title="Orchestrator run">
         {d && <Status s={outcome(d)} className="mission-state" />}
-      </header>
+      </PageHead>
       {error && <ErrorCard error={error} retry={load} />}
       {!d && !error && <Skeleton rows={6} />}
       {d && (
@@ -193,7 +196,7 @@ export function OrchestratorRunPage({ workspace }: { workspace: Workspace }) {
             </Callout>
           )}
           <section>
-            <h2 className="group">What it said</h2>
+            <GroupHead>What it said</GroupHead>
             {d.output ? (
               <div className="prose">
                 <Markdown text={d.output} />
@@ -203,9 +206,9 @@ export function OrchestratorRunPage({ workspace }: { workspace: Workspace }) {
             )}
           </section>
           <section>
-            <h2 className="group">
-              What it ran <span className="count">{d.log.length}</span>
-            </h2>
+            <GroupHead count={d.log.length}>
+              What it ran
+            </GroupHead>
             {d.log.length === 0 ? <div className="quiet-line">No calls recorded: only Claude Code reports them.</div> : <Calls calls={d.log} root={workspace.root} open />}
           </section>
           <section>
@@ -222,11 +225,3 @@ export function OrchestratorRunPage({ workspace }: { workspace: Workspace }) {
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="summary-row">
-      <dt>{label}</dt>
-      <dd>{children}</dd>
-    </div>
-  );
-}

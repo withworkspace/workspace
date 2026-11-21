@@ -39,6 +39,11 @@ import { ArtifactProposalBody } from "./ArtifactProposal";
 import { PluginProposalCard } from "./PluginProposal";
 import { addedVersion, artifactNext, kindName, type Made, made, revisedText, type Settled, settled } from "./proposals";
 import { PagePin } from "../shell/focus";
+import { Chip } from "../ui/Chip";
+import { Button, buttonClass } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { pageScroller } from "../ui/scroller";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -74,16 +79,18 @@ export function TalksPage({ workspace }: { workspace: Workspace }) {
   const resolved = workspace.conversations.filter((t) => t.status !== "open").length;
   return (
     <div className="page narrow talks-page">
-      <header className="page-head">
-        <h1>Conversations</h1>
-        {resolved > 0 && (
-          <div className="page-actions">
-            <button className="ghost small" onClick={() => setShowResolved((v) => !v)} aria-pressed={showResolved}>
-              {showResolved ? "Hide resolved" : `Show resolved (${resolved})`} <Keys k="⇧A" />
-            </button>
-          </div>
-        )}
-      </header>
+      <PageHead
+        title="Conversations"
+        actions={
+          resolved > 0 && (
+            <>
+              <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)} aria-pressed={showResolved}>
+                {showResolved ? "Hide resolved" : `Show resolved (${resolved})`} <Keys k="⇧A" />
+              </Button>
+            </>
+          )
+        }
+      />
       <TalkList slug="" talks={workspace.conversations} showResolved={showResolved} onToggleResolved={() => setShowResolved((v) => !v)} keys docs={!!workspace.kinds?.length} />
     </div>
   );
@@ -200,9 +207,9 @@ export function TalkList({
               : `The agent reads the repos, the missions and GitHub, and changes nothing. It can propose a mission${docs ? ", a decision or a document" : " or a decision"}.`}
           </span>
           <Keys k="mod+⏎" className="composer-keys" />
-          <button className="primary" disabled={!text.trim() || starting} onClick={start}>
+          <Button variant="primary" disabled={!text.trim() || starting} onClick={start}>
             {starting ? "Starting…" : "Start"}
-          </button>
+          </Button>
         </div>
       </div>
       {talks.length === 0 ? (
@@ -210,9 +217,9 @@ export function TalkList({
           <Empty icon="check-circle" title="Nothing open">
             Every conversation's resolved.{" "}
             {onToggleResolved && (
-              <button className="link more-link" onClick={onToggleResolved}>
+              <Button variant="link" className="more-link" onClick={onToggleResolved}>
                 Show them
-              </button>
+              </Button>
             )}
           </Empty>
         ) : (
@@ -223,62 +230,63 @@ export function TalkList({
           </Empty>
         )
       ) : (
-        <ul className="rows talks" role="listbox" aria-label="Conversations">
+        <Rows className="talks" role="listbox" aria-label="Conversations">
           {talks.map((t, i) => {
             const st = talkStatus(t);
             const on = keys && i === index;
             return (
-              <li
+              <Row
+                selected={on}
                 key={t.id}
                 id={`talk-${t.id}`}
                 role="option"
                 aria-selected={!!on}
-                className={`row talk-row${on ? " selected" : ""}`}
+                className="talk-row"
                 onMouseMove={() => i !== index && setIndex(i)}
               >
-                <TLink to={hrefOf(t.id)} className="row-link">
-                  <Status s={st} iconOnly size={16} className="row-status" />
-                  <span className="row-main">
-                    <span className="row-line">
-                      <span className="title">{name(t)}</span>
-                      {t.waiting && t.status === "open" && <span className="chip tone-attention">Your turn</span>}
-                      {!!t.proposed && <span className="chip tone-attention">{t.proposed} to confirm</span>}
+                <TLink to={hrefOf(t.id)} className={rowLinkClass("talk-link")}>
+                  <Status s={st} iconOnly size={16} className={rowStatusClass()} />
+                  <RowMain>
+                    <RowLine>
+                      <RowTitle>{name(t)}</RowTitle>
+                      {t.waiting && t.status === "open" && <Chip tone="attention">Your turn</Chip>}
+                      {!!t.proposed && <Chip tone="attention">{t.proposed} to confirm</Chip>}
                       {t.pr && (
-                        <span className="chip tone-quiet" title="The pull request it's about">
+                        <Chip tone="quiet" title="The pull request it's about">
                           <Icon name="pr" size={11} />
                           {t.pr}
-                        </span>
+                        </Chip>
                       )}
                       {t.doc && (
-                        <span className="chip tone-quiet" title={`The document it's about: ${t.doc}${t.section ? `, § ${t.section}` : ""}`}>
+                        <Chip tone="quiet" title={`The document it's about: ${t.doc}${t.section ? `, § ${t.section}` : ""}`}>
                           <Icon name="book" size={11} />
                           {docName(t.doc)}
-                        </span>
+                        </Chip>
                       )}
                       {t.became && (
-                        <span className="chip tone-quiet" title="The mission it became">
+                        <Chip tone="quiet" title="The mission it became">
                           <Icon name="flag" size={11} />
                           {t.became}
-                        </span>
+                        </Chip>
                       )}
-                    </span>
+                    </RowLine>
                     {t.summary && (
-                      <span className="row-sub">
+                      <RowSub>
                         <Inline text={t.summary} lines={1} />
-                      </span>
+                      </RowSub>
                     )}
-                  </span>
+                  </RowMain>
                   <Time iso={t.updated || t.at} as="age" className="age" />
                 </TLink>
-              </li>
+              </Row>
             );
           })}
-        </ul>
+        </Rows>
       )}
       {!keys && all.some((t) => t.status !== "open") && onToggleResolved && talks.length > 0 && (
-        <button className="link more-link" onClick={onToggleResolved}>
+        <Button variant="link" className="more-link" onClick={onToggleResolved}>
           {showResolved ? "Hide" : "Show"} resolved
-        </button>
+        </Button>
       )}
     </>
   );
@@ -289,7 +297,6 @@ export function TalkList({
 // just come (a long one lands whole, to be read from its top). head is
 // the height of the bar stuck to the top; reply is the latest reply's
 // words, if the latest turn isn't yours.
-const scroller = () => document.getElementById("main");
 const restAt = (m: HTMLElement, reply: HTMLElement | null, head: number) => {
   const end = m.scrollHeight - m.clientHeight;
   if (!reply) return end;
@@ -350,7 +357,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
   const opened = useRef(0); // when it was first drawn; 0 before
   const replyTop = useRef<number>(undefined); // where the reply's words were, a run going, as last seen
   const rest = () => {
-    const m = scroller();
+    const m = pageScroller();
     return m ? restAt(m, Date.now() - opened.current < 1500 ? null : reply.current, head.current?.offsetHeight ?? 0) : 0;
   };
   const seen = () => {
@@ -362,7 +369,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
     setUnseen(false);
   }, [slug, id]);
   useEffect(() => {
-    const m = scroller();
+    const m = pageScroller();
     if (!m) return;
     const onScroll = () => {
       follow.current = m.scrollTop >= rest() - 120;
@@ -377,7 +384,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
   // the box you're writing in growing) is followed the same way.
   const loaded = !!d;
   useEffect(() => {
-    const m = scroller();
+    const m = pageScroller();
     if (!m || !page.current || !loaded) return;
     const settle = () => {
       if (follow.current) {
@@ -407,7 +414,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
   const was = useRef({ answering, turns });
   const landed = useRef({ of: "", turns: new Set<number>() });
   useLayoutEffect(() => {
-    const m = scroller();
+    const m = pageScroller();
     const before = was.current;
     was.current = { answering, turns };
     if (!m || !opened.current) return;
@@ -494,7 +501,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
   });
   // To a proposal's card, from beside the conversation: clear of the bar.
   const goTo = (n: number) => {
-    const m = scroller();
+    const m = pageScroller();
     const card = document.getElementById(`proposal-${n}`);
     if (!m || !card) return;
     m.scrollTo({ top: card.getBoundingClientRect().top - m.getBoundingClientRect().top + m.scrollTop - (head.current?.offsetHeight ?? 0) - 12, behavior: "smooth" });
@@ -551,25 +558,25 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
         <div className="talk-actions">
           {!slug && <PagePin r={{ kind: "talk", id }} />}
           {slug && d?.goal === "brief" && (
-            <Link to={`/missions/${slug}/brief`} className="button-link small-link" title="The brief and plan it's about, on their own page: what it proposes for them is read and confirmed there">
+            <Link to={`/missions/${slug}/brief`} className={buttonClass({ size: "small" })} title="The brief and plan it's about, on their own page: what it proposes for them is read and confirmed there">
               <Icon name="file" size={13} /> The brief
             </Link>
           )}
           {became && (
-            <Link to={`/missions/${became}`} className="button-link small-link">
+            <Link to={`/missions/${became}`} className={buttonClass({ size: "small" })}>
               <Icon name="flag" size={13} /> Its mission
             </Link>
           )}
           {wide && (
-            <button className="ghost small" aria-pressed={sideOn} onClick={toggleSide} title="Beside the conversation: what's to confirm, what it's made, what it names, and its summary so far">
+            <Button variant="ghost" size="small" aria-pressed={sideOn} onClick={toggleSide} title="Beside the conversation: what's to confirm, what it's made, what it names, and its summary so far">
               <Icon name="panel" size={12} /> Details
-            </button>
+            </Button>
           )}
           {d && (
-            <button onClick={toggle} title={`${d.status === "resolved" ? "Reopen" : "Resolve"} (x)`}>
+            <Button onClick={toggle} title={`${d.status === "resolved" ? "Reopen" : "Resolve"} (x)`}>
               <Icon name={d.status === "resolved" ? "rotate" : "check"} size={13} />
               {d.status === "resolved" ? "Reopen" : "Resolve"}
-            </button>
+            </Button>
           )}
         </div>
       </header>
@@ -595,9 +602,9 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
             icon="sparkle"
             title="An ask nobody's kept"
             actions={
-              <button className="small" onClick={keep}>
+              <Button size="small" onClick={keep}>
                 <Icon name="message" size={12} /> Keep as a conversation
-              </button>
+              </Button>
             }
           >
             It isn't listed with the rest, and it goes an hour after its last turn unless you keep it.
@@ -648,7 +655,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
             <button
               className="new-pill"
               onClick={() => {
-                scroller()?.scrollTo({ top: rest(), behavior: "smooth" });
+                pageScroller()?.scrollTo({ top: rest(), behavior: "smooth" });
                 setUnseen(false);
               }}
             >
@@ -676,9 +683,9 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
             <div className="composer-bar">
               <span className="spacer" />
               <Keys k="mod+⏎" className="composer-keys" />
-              <button className="primary" disabled={!text.trim() || sending} onClick={send}>
+              <Button variant="primary" disabled={!text.trim() || sending} onClick={send}>
                 {sending ? "Sending…" : "Send"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -751,10 +758,10 @@ function TalkSide({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug: stri
                   </button>
                 )}
                 {m.to && (
-                  <button className="ghost icon-button side-where" onClick={() => goTo(m.n)} title="Where it was proposed, in the conversation">
+                  <Button variant="ghost" square className="side-where" onClick={() => goTo(m.n)} title="Where it was proposed, in the conversation">
                     <Icon name="arrow-up" size={12} />
                     <span className="sr-only">Where it was proposed</span>
-                  </button>
+                  </Button>
                 )}
               </li>
             ))}
@@ -787,9 +794,9 @@ function TalkSide({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug: stri
             ))}
           </ul>
           {named.length > shown.length && (
-            <button className="link more-link" onClick={() => setAllNamed(true)}>
+            <Button variant="link" className="more-link" onClick={() => setAllNamed(true)}>
               {named.length - shown.length} more
-            </button>
+            </Button>
           )}
         </section>
       )}
@@ -864,9 +871,9 @@ export function SettledMarker({ m, t, compact }: { m: Settled; t: TalkTurn; comp
           {m.accepted ? "Accepted" : "Declined"}: {m.to ? <Link to={m.to}>{m.what}</Link> : m.what}
         </span>
         {m.edits && (
-          <button type="button" className="link settled-marker-more" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <Button variant="link" type="button" className="settled-marker-more" aria-expanded={open} onClick={() => setOpen(!open)}>
             edited <Icon name={open ? "chevron-down" : "chevron-right"} size={11} />
-          </button>
+          </Button>
         )}
         {!compact && <Time iso={t.at} className="turn-time" />}
       </div>
@@ -1067,7 +1074,7 @@ function WsProposalCard({
         return p.result ? (
           <>
             {done("Mission created")}
-            <Link to={`/missions/${p.result}`} className="button-link">
+            <Link to={`/missions/${p.result}`} className={buttonClass()}>
               Open it <Icon name="arrow-right" size={13} />
             </Link>
           </>
@@ -1085,7 +1092,7 @@ function WsProposalCard({
           <>
             {done(`Asked the planner, in ${p.result}: it revises the plan, or says why not`)}
             {slug && p.result && (
-              <Link to={talkHref(slug, p.result)} className="button-link">
+              <Link to={talkHref(slug, p.result)} className={buttonClass()}>
                 Open it <Icon name="arrow-right" size={13} />
               </Link>
             )}
@@ -1096,7 +1103,7 @@ function WsProposalCard({
           <>
             {done("In your draft review: it's posted when you submit")}
             {!inReview && (
-              <Link to={prHref} className="button-link">
+              <Link to={prHref} className={buttonClass()}>
                 Open the review <Icon name="arrow-right" size={13} />
               </Link>
             )}
@@ -1112,7 +1119,7 @@ function WsProposalCard({
           <>
             {done(p.to ? (leftIn ? `Saved ${leftIn}` : "Saved") : leftIn ? `Added ${leftIn}` : "Added")}
             {p.result && (
-              <Link to={docAddress(p.result)} className="button-link">
+              <Link to={docAddress(p.result)} className={buttonClass()}>
                 Open it <Icon name="arrow-right" size={13} />
               </Link>
             )}
@@ -1132,7 +1139,7 @@ function WsProposalCard({
                 </RefTag>
               </span>,
             )}
-            <Link to={`/artifacts/${v.id}/v${v.n}`} className="button-link">
+            <Link to={`/artifacts/${v.id}/v${v.n}`} className={buttonClass()}>
               Open it <Icon name="arrow-right" size={13} />
             </Link>
           </>
@@ -1161,9 +1168,9 @@ function WsProposalCard({
     return list.length ? (
       <div className="proposal-meta">
         {list.map((m) => (
-          <span key={m} className="chip tone-quiet">
+          <Chip tone="quiet" key={m}>
             {m}
-          </span>
+          </Chip>
         ))}
       </div>
     ) : null;
@@ -1386,9 +1393,9 @@ function WsProposalCard({
           </a>
         )}
         {p.state === "open" && !editing && (
-          <button className="ghost small" onClick={() => setEditing(true)}>
+          <Button variant="ghost" size="small" onClick={() => setEditing(true)}>
             <Icon name="pencil" size={12} /> Edit
-          </button>
+          </Button>
         )}
       </div>
       {revisedFrom && p.state === "open" && <RevisionChanges was={revisedFrom} now={p} />}
@@ -1402,12 +1409,12 @@ function WsProposalCard({
             </span>
           )}
           <span className="spacer" />
-          <button className="ghost" disabled={busy} onClick={() => run("decline")}>
+          <Button variant="ghost" disabled={busy} onClick={() => run("decline")}>
             Decline
-          </button>
-          <button className="primary" disabled={busy || !ready || replying} onClick={() => run("accept")} title={replying ? "Read its reply first: the agent's still writing it" : undefined}>
+          </Button>
+          <Button variant="primary" disabled={busy || !ready || replying} onClick={() => run("accept")} title={replying ? "Read its reply first: the agent's still writing it" : undefined}>
             {accept}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="proposal-actions settled">{outcome()}</div>

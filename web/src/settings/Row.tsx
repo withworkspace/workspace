@@ -7,6 +7,7 @@ import { Switch } from "../ui/Switch";
 import { setTheme, type ThemeChoice, useTheme } from "../ui/theme";
 import { Control, valueSaid } from "./controls";
 import { name, type Row, words } from "./sections";
+import { Button } from "../ui/Button";
 
 // A row of the Settings page: what a setting is and says, then its
 // control, and under that where its value comes from, when it isn't ws's
@@ -138,9 +139,9 @@ export function Source({ s, brief }: { s: Setting; brief?: boolean }) {
     <div className="setting-source" title={`From your ws.local.toml${brief && over ? `: ${over}` : ""}`}>
       <span className="setting-dot yours" />
       yours{!brief && over ? ` · ${over}` : ""}
-      <button className="link" onClick={reset} title={`Back to ${without(s)}`}>
+      <Button variant="link" className="setting-source-action" onClick={reset} title={`Back to ${without(s)}`}>
         Reset
-      </button>
+      </Button>
     </div>
   );
 }
@@ -186,10 +187,10 @@ function ThemeRow() {
     <RowShell label={words.theme.label} about={<Marked text={words.theme.about} />} source={here}>
       <div className="segmented" role="group" aria-label="Theme">
         {themes.map(([c, icon, label]) => (
-          <button key={c} type="button" aria-pressed={choice === c} onClick={() => setTheme(c)}>
+          <Button key={c} type="button" aria-pressed={choice === c} onClick={() => setTheme(c)}>
             <Icon name={icon} size={13} />
             {label}
-          </button>
+          </Button>
         ))}
       </div>
     </RowShell>
@@ -203,10 +204,10 @@ function PlacesRow({ settings }: { settings: Setting[] }) {
   const mine = settings.find((s) => s.source === "yours") ?? settings.find((s) => s.source === "team");
   return (
     <RowShell label={words.places.label} tomlKey={settings.map((s) => (s === settings[0] ? name(s) : s.key)).join(" · ")} about={<Marked text={words.places.about} />} source={mine && <Source s={mine} brief />}>
-      <button type="button" onClick={arrange}>
+      <Button type="button" onClick={arrange}>
         <Icon name="grip" size={13} />
         Arrange the sidebar…
-      </button>
+      </Button>
     </RowShell>
   );
 }
@@ -239,10 +240,10 @@ function DaemonRow() {
   const { closed } = usePage();
   return (
     <RowShell label={words.daemon.label} about={<Marked text={words.daemon.about} />}>
-      <button type="button" className="danger" onClick={() => void askShutDown(closed)}>
+      <Button variant="danger" type="button" onClick={() => void askShutDown(closed)}>
         <Icon name="power" size={13} />
         Shut down…
-      </button>
+      </Button>
     </RowShell>
   );
 }

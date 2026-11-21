@@ -49,6 +49,9 @@ import { around, hereAt, hereItems, keptAround, type Near, nearIds, nearItems } 
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
 import { PinButton, pinNameOf, useFocus } from "./focus";
 import { actsFor, type Subject, subjectOf, type WsDoing } from "./acts";
+import { Chip } from "../ui/Chip";
+import { Button } from "../ui/Button";
+import { capital } from "../ui/text";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
 // has, by what you remember of it. What the page holds (missions, pages,
@@ -786,9 +789,9 @@ export function Palette({
                 <div className="find-acts" aria-label="Do to it">
                   {!mode && <PinButton r={onThing} />}
                   {actsOn(namedOf(onThing, known), onThing.id).map((a) => (
-                    <button key={`${a.ws ?? "its"}:${a.id}`} type="button" className="ghost small" disabled={working} onMouseDown={(e) => e.preventDefault()} onClick={() => doTo(onThing, a)}>
+                    <Button variant="ghost" size="small" key={`${a.ws ?? "its"}:${a.id}`} type="button" disabled={working} onMouseDown={(e) => e.preventDefault()} onClick={() => doTo(onThing, a)}>
                       <Icon name={actIcon(a.icon)} size={12} /> {a.title}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </RefsScope>
@@ -887,9 +890,9 @@ function Row({ it, on, section, onOver, onPick }: { it: Item; on: boolean; secti
       </span>
       {it.hint && <span className="palette-hint">{it.hint}</span>}
       {it.notes?.map((n) => (
-        <span key={n} className={`chip${it.tone && it.tone !== "quiet" ? ` tone-${it.tone}` : ""}`}>
+        <Chip tone={it.tone && it.tone !== "quiet" ? it.tone : undefined} className="find-chip" key={n}>
           {n}
-        </span>
+        </Chip>
       ))}
       {says && <span className="palette-kind">{it.kind}</span>}
     </div>
@@ -911,7 +914,7 @@ function CodeRow({ it, h, on, onOver, onPick }: { it: Item; h: CodeHit; on: bool
 // SaidCard says of what ws records, found by what it says, where it is
 // and what it says there, the words found marked.
 function SaidCard({ it, f }: { it: Item; f: Found }) {
-  const what = f.what ? f.what[0].toUpperCase() + f.what.slice(1) : it.kind;
+  const what = f.what ? capital(f.what) : it.kind;
   const about = [what, f.where, f.on ? `on ${f.on}` : "", f.state && f.place !== "brief" ? f.state : "", f.ended ? "archived" : ""].filter(Boolean);
   return (
     <div className="find-said-card">
@@ -952,9 +955,9 @@ function PullCard({ it }: { it: Item }) {
             <span className="hovercard-line">
               {p.words}
               {p.checks && (
-                <span className={`chip ${p.checks === "success" ? "tone-done" : p.checks === "failure" ? "tone-danger" : "tone-quiet"}`}>
+                <Chip tone={p.checks === "success" ? "done" : p.checks === "failure" ? "danger" : "quiet"}>
                   checks {p.checks === "success" ? "pass" : p.checks === "failure" ? "fail" : "running"}
-                </span>
+                </Chip>
               )}
             </span>
           )}

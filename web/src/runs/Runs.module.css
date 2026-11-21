@@ -1,0 +1,120 @@
+/* The Runs page (Runs.tsx): every run, a line each, its output opened
+   under it. */
+
+.names {
+  margin-bottom: var(--space-6);
+}
+
+.names a {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.namesNote {
+  margin-top: 4px;
+  font-size: var(--text-sm);
+}
+
+.list {
+  display: grid;
+  gap: 2px;
+}
+
+.row {
+  padding: 8px;
+}
+
+.open {
+  background: var(--hover);
+}
+
+/* work-run-name is the Work tab's, which a run's name is drawn with here
+   too. */
+.ended :global(.work-run-name) {
+  color: var(--dim);
+}
+
+.line {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto auto;
+  align-items: start;
+  gap: 10px;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
+.sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+}
+
+.sub a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 2px;
+}
+
+.sub a:hover {
+  color: var(--fg);
+  text-decoration-color: currentColor;
+}
+
+.when {
+  padding-top: 2px;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+}
+
+.more {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 2px 22px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 14px;
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.facts dt {
+  color: var(--dim);
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.log {
+  max-height: 420px;
+  font-size: var(--text-xs);
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .line {
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+  }
+  .when {
+    display: none;
+  }
+  .more {
+    margin-left: 0;
+  }
+}

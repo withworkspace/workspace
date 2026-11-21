@@ -5,6 +5,10 @@ import { humanError, toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import { changedSince, type InSpace, saysNoMore } from "./happening";
+import { Chip, chipClass } from "../ui/Chip";
+import { Button } from "../ui/Button";
+import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowTitle, Rows, rowStatusClass } from "../ui/Rows";
 
 // What's happening in a space, so it reads as somewhere people are
 // working: how fresh it is, what's in flight in capsules, and what changed
@@ -60,9 +64,9 @@ export function Fresh({ repo, fresh, onMoved }: { repo: string; fresh: SpaceFres
           {now.dirty ? (
             <span> · its ground has changes of its own, so it isn't moved</span>
           ) : (
-            <button className="small" onClick={pull} disabled={pulling}>
+            <Button size="small" onClick={pull} disabled={pulling}>
               {pulling ? "Pulling…" : "Pull"}
-            </button>
+            </Button>
           )}
         </>
       ) : (
@@ -87,36 +91,36 @@ export function InFlight({ flights, spaceOf }: { flights: InSpace<SpaceFlight>[]
   if (!flights.length) return null;
   return (
     <section aria-label="In flight">
-      <h2 className="group" title="Capsules with changes to the documents: yours and others', and the pull requests open from them">
-        In flight <span className="count">{flights.length}</span>
-      </h2>
-      <ul className="rows space-flights">
+      <GroupHead className="activity-head" title="Capsules with changes to the documents: yours and others', and the pull requests open from them" count={flights.length}>
+        In flight
+      </GroupHead>
+      <Rows className="space-flights">
         {flights.map((f) => {
           const space = spaceOf?.(f.repo);
           return (
-            <li key={`${f.repo}:${f.capsule}`} className="row static">
-              <Icon name="box" size={16} className="row-status dim" />
-              <span className="row-main">
-                <span className="row-line">
-                  <span className="title mono">{f.capsule}</span>
-                  {f.mission && <span className="chip tone-quiet">{f.mission}</span>}
+            <Row still className="flight-row" key={`${f.repo}:${f.capsule}`}>
+              <Icon name="box" size={16} className={rowStatusClass("dim")} />
+              <RowMain className="flight-main">
+                <RowLine>
+                  <RowTitle className="mono">{f.capsule}</RowTitle>
+                  {f.mission && <Chip tone="quiet">{f.mission}</Chip>}
                   {f.pr && (
-                    <TLink to={`/reviews/${encodeURIComponent(f.repo)}/${f.pr.number}`} className="chip tone-progress" title={f.pr.title}>
+                    <TLink to={`/reviews/${encodeURIComponent(f.repo)}/${f.pr.number}`} className={chipClass("progress")} title={f.pr.title}>
                       #{f.pr.number}
                     </TLink>
                   )}
                   {space && <SpaceTag space={space} />}
-                </span>
-                <span className="row-line space-changes">
+                </RowLine>
+                <RowLine className="space-changes">
                   {f.docs.map((d) => (
                     <Change key={d.path} d={d} to={d.how === "removed" ? undefined : docAddress(`${f.repo}/${f.capsule}:${d.path}`)} />
                   ))}
-                </span>
-              </span>
-            </li>
+                </RowLine>
+              </RowMain>
+            </Row>
           );
         })}
-      </ul>
+      </Rows>
     </section>
   );
 }
@@ -130,9 +134,9 @@ export function Lately({ lately, limit = 5, spaceOf, label = "Changed lately" }:
   const shown = lately.slice(0, limit);
   return (
     <section aria-label="Changed lately">
-      <h2 className="group">
-        {label} <span className="count">{lately.length}</span>
-      </h2>
+      <GroupHead className="activity-head" count={lately.length}>
+        {label}
+      </GroupHead>
       <ul className="doc-changes">
         {shown.map((c) => (
           <ChangeLine key={`${c.repo}:${c.sha}`} c={c} space={spaceOf?.(c.repo)} />

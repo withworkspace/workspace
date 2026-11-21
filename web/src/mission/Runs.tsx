@@ -4,6 +4,9 @@ import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
 import { humanError, toast } from "../ui/kit";
 import { Time } from "../ui/time";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // A capsule's runs (ws run): what's running in it, each with its link and
 // when it ends, and its repo's recipes not running, each to run. One run
@@ -37,7 +40,7 @@ export function RunsHere({ slug, c, open, reload }: { slug: string; c: CapsuleDe
   return (
     <>
       <h3>
-        Runs {runs.length > 0 && <span className="count">{runs.length}</span>}
+        Runs {runs.length > 0 && <Count>{runs.length}</Count>}
       </h3>
       {runs.length > 0 && (
         <ul className="work-runs">
@@ -49,9 +52,9 @@ export function RunsHere({ slug, c, open, reload }: { slug: string; c: CapsuleDe
       {recipes.length > 0 && (
         <div className="work-run-recipes">
           {recipes.map((n) => (
-            <button key={n} className="small" disabled={!!busy} onClick={() => start(n)} title={`Run its ${n} recipe, from its ws.repo.toml, while you have this mission open`}>
+            <Button size="small" key={n} disabled={!!busy} onClick={() => start(n)} title={`Run its ${n} recipe, from its ws.repo.toml, while you have this mission open`}>
               <Icon name={busy === n ? "spinner" : "play"} size={11} /> {busy === n ? `Starting ${n}…` : `Run ${n}`}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -86,7 +89,7 @@ export function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: 
               )}
             </span>
           )}
-          {live && !r.up && <span className="chip tone-quiet">not up</span>}
+          {live && !r.up && <Chip tone="quiet">not up</Chip>}
         </span>
         {live && (r.needs?.length ?? 0) > 0 && (
           <span className="work-run-ends">
@@ -113,9 +116,9 @@ export function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: 
         {live && r.ends && <span className="work-run-ends">Ends {r.ends}</span>}
       </span>
       {live && (
-        <button className="ghost small" disabled={busy} onClick={stop} title="End it now">
+        <Button variant="ghost" size="small" disabled={busy} onClick={stop} title="End it now">
           <Icon name={busy ? "spinner" : "stop"} size={11} /> Stop
-        </button>
+        </Button>
       )}
     </li>
   );

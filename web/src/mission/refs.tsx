@@ -7,6 +7,7 @@ import { Inline } from "../ui/inline";
 import { Status, type StatusInfo } from "../ui/status";
 import { Time } from "../ui/time";
 import { ArtifactState, artifactTitle, CapsuleBadges, CrewBadge, isArtifact } from "./parts";
+import { Chip } from "../ui/Chip";
 
 // missionRefs are the names a mission's page knows, for text that
 // mentions them to show each with its hover card: crew (c1), decisions
@@ -41,7 +42,7 @@ export function missionRefs(d: MissionDetail): Refs | undefined {
           <span className="hovercard-head">
             <Icon name="gavel" size={13} className="dim" />
             <span className="hovercard-title">Decision {x.id}</span>
-            {x.state !== "current" && <span className="chip tone-quiet">{x.state === "superseded" ? "Replaced" : "Withdrawn"}</span>}
+            {x.state !== "current" && <Chip tone="quiet">{x.state === "superseded" ? "Replaced" : "Withdrawn"}</Chip>}
           </span>
           <span className="hovercard-strong">
             <Inline text={x.what} />

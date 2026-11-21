@@ -5,6 +5,10 @@ import { Inline } from "../ui/inline";
 import { Keys } from "../ui/kit";
 import { type Edit, editsBySection } from "./briefpage";
 import { PlanList } from "./PlanList";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
+import { pageScroller } from "../ui/scroller";
 
 // The outline beside a mission's brief and plan (BriefTab.tsx): what
 // they're made of, each leading to its place in them.
@@ -102,7 +106,7 @@ export function BriefOutline({
   useEffect(() => {
     const el = docs.current;
     if (!el) return;
-    const main = document.querySelector<HTMLElement>("main");
+    const main = pageScroller();
     const scrolls = (x: HTMLElement) => x.scrollHeight > x.clientHeight + 1 && getComputedStyle(x).overflowY !== "visible";
     const look = () => {
       const panes = [...el.querySelectorAll<HTMLElement>(".brief-doc")].filter(scrolls);
@@ -138,9 +142,9 @@ export function BriefOutline({
         <button type="button" className={`map-item brief-item${here.has(h.el) ? " here" : ""}`} aria-current={here.has(h.el) || undefined} onClick={() => (list.length ? focus(h.doc, list[0].id) : goTo(h.el))}>
           <span>{h.text}</span>
           {list.length > 0 && (
-            <span className="count tone-attention" title={`${list.length} to read here`}>
+            <Count tone="attention" className="outline-tag" title={`${list.length} to read here`}>
               {list.length}
-            </span>
+            </Count>
           )}
         </button>
       </li>
@@ -163,7 +167,7 @@ export function BriefOutline({
         <section className="brief-changes">
           <h3>
             To read
-            <span className="count tone-attention">{toRead}</span>
+            <Count tone="attention" className="outline-tag">{toRead}</Count>
             <span className="spacer" />
             {at >= 0 && (
               <span className="brief-changes-at">
@@ -175,16 +179,16 @@ export function BriefOutline({
             {toRead === 1 ? "A change" : `${toRead} changes`} {briefing ? "since the draft before" : "to what's written"}
           </p>
           <div className="brief-changes-nav">
-            <button type="button" className="small" onClick={() => move(-1)} title="The change before (k)" aria-label="The change before">
+            <Button size="small" className="changes-nav-button" type="button" onClick={() => move(-1)} title="The change before (k)" aria-label="The change before">
               <Icon name="chevron-up" size={12} /> <Keys k="k" />
-            </button>
-            <button type="button" className="small" onClick={() => move(1)} title="The next change (j)" aria-label="The next change">
+            </Button>
+            <Button size="small" className="changes-nav-button" type="button" onClick={() => move(1)} title="The next change (j)" aria-label="The next change">
               <Icon name="chevron-down" size={12} /> <Keys k="j" />
-            </button>
+            </Button>
             <span className="spacer" />
-            <button type="button" className="small" onClick={acceptAll} title="Take each as it's proposed">
+            <Button size="small" className="changes-nav-button" type="button" onClick={acceptAll} title="Take each as it's proposed">
               Accept all
-            </button>
+            </Button>
           </div>
         </section>
       )}
@@ -203,7 +207,7 @@ export function BriefOutline({
       <section>
         <h3>
           The plan
-          {fresh && <span className="chip tone-quiet">new</span>}
+          {fresh && <Chip tone="quiet" className="outline-tag">new</Chip>}
         </h3>
         {planned ? (
           <>

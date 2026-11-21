@@ -7,6 +7,10 @@ import { FloatingCard, HoverCard, RefContext, useHoverDelay } from "../ui/hover"
 import { Copyable } from "../ui/kit";
 import { crewStatus, exitWords, Status } from "../ui/status";
 import { dayKey, dayLabel, duration, stamp, Time, useNow } from "../ui/time";
+import { Chip, chipClass } from "../ui/Chip";
+import { type Tone } from "../ui/tone";
+import { Button } from "../ui/Button";
+import { capital } from "../ui/text";
 
 // The pieces a mission's page draws with: who did what (events), stages,
 // decisions, documents and capsules.
@@ -368,9 +372,9 @@ export function Decisions({ list, limit }: { list: Decision[]; limit?: number })
       {(more > 0 || (old.length > 0 && (all || !limit))) && (
         <div className="decisions-more">
           {more > 0 && (
-            <button className="ghost small" onClick={() => setAll(true)}>
+            <Button variant="ghost" size="small" onClick={() => setAll(true)}>
               Show {more} more
-            </button>
+            </Button>
           )}
           {old.length > 0 && (all || !limit) && (
             <details className="old-decisions">
@@ -420,7 +424,7 @@ const kindPlural: Record<string, string> = {
   plan: "Plans",
 };
 
-export const kindTitle = (kind: string) => kindPlural[kind] ?? kind[0].toUpperCase() + kind.slice(1) + "s";
+export const kindTitle = (kind: string) => kindPlural[kind] ?? capital(kind) + "s";
 
 // artifactTitle is a document's name, short: its label when it's a name,
 // else made from its kind and who made it, with the label to describe it.
@@ -434,7 +438,7 @@ export function artifactTitle(a: Pick<Artifact, "kind" | "label" | "ref" | "by">
   return { title: label ? `${kindTitle(a.kind).replace(/s$/, "")}${a.by ? ` by ${a.by}` : ""}` : base, desc: label || undefined };
 }
 
-const stateTone: Record<string, string> = {
+const stateTone: Record<string, Tone> = {
   draft: "quiet",
   private: "quiet",
   open: "waiting",
@@ -455,20 +459,20 @@ export const isArtifact = (a: Pick<Artifact, "kind" | "ref">) => a.kind === "art
 
 export function ArtifactState({ state }: { state: string }) {
   return (
-    <span className={`chip tone-${stateTone[state] ?? "quiet"}`}>
+    <Chip tone={stateTone[state] ?? "quiet"}>
       {state === "private" && <Icon name="lock" size={11} />}
-      {state[0]?.toUpperCase() + state.slice(1)}
-    </span>
+      {capital(state)}
+    </Chip>
   );
 }
 
 export function ArtifactThreads({ t }: { t: NonNullable<Artifact["threads"]> }) {
   return (
-    <span className={`chip ${t.waiting ? "tone-attention" : "tone-quiet"}`} title={`${t.open} open threads${t.waiting ? `, ${t.waiting} waiting on you` : ""}`}>
+    <Chip tone={t.waiting ? "attention" : "quiet"} title={`${t.open} open threads${t.waiting ? `, ${t.waiting} waiting on you` : ""}`}>
       <Icon name="message" size={11} />
       {t.open}
       {t.waiting > 0 && ` · ${t.waiting} your turn`}
-    </span>
+    </Chip>
   );
 }
 
@@ -490,9 +494,9 @@ export function ArtifactRow({ a, selected, open, compact, id }: { a: Artifact; s
         <div className="artifact-line">
           <span className="artifact-title">{title}</span>
           {isArtifact(a) && !!a.versions && (
-            <span className="chip tone-quiet" title={`${a.versions} ${a.versions === 1 ? "version" : "versions"}`}>
+            <Chip tone="quiet" title={`${a.versions} ${a.versions === 1 ? "version" : "versions"}`}>
               v{a.versions}
-            </span>
+            </Chip>
           )}
           {(!compact || isArtifact(a)) && <ArtifactState state={a.state} />}
           {a.threads && <ArtifactThreads t={a.threads} />}
@@ -528,41 +532,34 @@ export function CapsuleBadges({ c }: { c: CapsuleDetail }) {
   return (
     <span className="badges">
       {c.landed ? (
-        <span className="chip tone-done" title="Its commits were pushed straight to the default branch: its repo has no pull requests">
+        <Chip tone="done" title="Its commits were pushed straight to the default branch: its repo has no pull requests">
           Landed
-        </span>
+        </Chip>
       ) : (
-        !c.exists && <span className="chip tone-quiet">Burned</span>
+        !c.exists && <Chip tone="quiet">Burned</Chip>
       )}
       {c.direct && c.exists && !c.landed && (
-        <span className={`chip ${c.toLand ? "tone-waiting" : "tone-quiet"}`} title="Its repo has no pull requests: what's committed here lands straight on the default branch, when you say (from its review, or ws land)">
+        <Chip tone={c.toLand ? "waiting" : "quiet"} title="Its repo has no pull requests: what's committed here lands straight on the default branch, when you say (from its review, or ws land)">
           {c.toLand ? `${c.toLand} to land` : "No pull request"}
-        </span>
+        </Chip>
       )}
       {c.dirty && (
-        <span className="chip tone-attention" title="Files changed in the capsule and not committed: reviews and crew after don't see them">
+        <Chip tone="attention" title="Files changed in the capsule and not committed: reviews and crew after don't see them">
           Uncommitted changes
-        </span>
+        </Chip>
       )}
-      {!!c.ahead && <span className="chip tone-quiet" title={`${c.ahead} commits not on the default branch`}>{c.ahead} ahead</span>}
-      {!!c.behind && <span className="chip tone-quiet" title={`${c.behind} commits behind the default branch`}>{c.behind} behind</span>}
+      {!!c.ahead && <Chip tone="quiet" title={`${c.ahead} commits not on the default branch`}>{c.ahead} ahead</Chip>}
+      {!!c.behind && <Chip tone="quiet" title={`${c.behind} commits behind the default branch`}>{c.behind} behind</Chip>}
       {c.pr && (
-        <a
-          href={c.pr.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`chip ${c.pr.merged ? "tone-done" : "tone-waiting"}`}
-          onClick={(e) => e.stopPropagation()}
-          title={c.pr.title}
-        >
+        <a href={c.pr.url} target="_blank" rel="noopener noreferrer" className={chipClass(c.pr.merged ? "done" : "waiting")} onClick={(e) => e.stopPropagation()} title={c.pr.title}>
           <Icon name="pr" size={11} />#{c.pr.number}
           {c.pr.merged ? " merged" : ""}
         </a>
       )}
       {c.pr?.checks && (
-        <span className={`chip ${/fail/i.test(c.pr.checks) ? "tone-danger" : /pass|success/i.test(c.pr.checks) ? "tone-done" : "tone-waiting"}`}>
+        <Chip tone={/fail/i.test(c.pr.checks) ? "danger" : /pass|success/i.test(c.pr.checks) ? "done" : "waiting"}>
           checks {c.pr.checks.toLowerCase()}
-        </span>
+        </Chip>
       )}
     </span>
   );

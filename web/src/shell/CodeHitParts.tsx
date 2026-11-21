@@ -1,5 +1,6 @@
 import { useMedia } from "../ui/kit";
 import { type CodeHit, codeLead, codeLeadNarrow, codeRuns } from "./find";
+import { Chip } from "../ui/Chip";
 
 // How a code search hit's row says it, in Find and in the explorer's own
 // search: where (the path cut from its start, so its name and :line stay),
@@ -17,7 +18,7 @@ export function CodeWhere({ h, repo, capsule }: { h: CodeHit; repo?: boolean; ca
         </span>
         <span className="find-code-line dim">:{h.line}</span>
       </span>
-      {capsule && h.worktree !== ".ground" && <span className="chip">in {h.worktree}</span>}
+      {capsule && h.worktree !== ".ground" && <Chip className="find-chip where-chip">in {h.worktree}</Chip>}
     </span>
   );
 }

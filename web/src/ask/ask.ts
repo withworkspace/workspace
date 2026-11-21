@@ -2,6 +2,7 @@ import { startAsk, type TalkDetail, type TalkProposal } from "../api";
 import { slugger } from "../markdown/links";
 import { spoken } from "../talk/proposals";
 import type { IconName } from "../ui/Icon";
+import { clip } from "../ui/text";
 
 // What the ask bar (AskBar.tsx) works out, apart from drawing it: what a
 // passage picked out is, how what's asked about shows as a chip, whether
@@ -29,9 +30,6 @@ export interface Passage {
 
 // readsAs is text as it reads, on one line.
 export const readsAs = (s: string) => s.replace(/\s+/g, " ").trim();
-
-// clip is text to n characters at most, … where it's cut.
-export const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
 // A passage is picked out once it's a few characters long: a stray click
 // or a double-clicked letter isn't one. It's kept to what's sent.

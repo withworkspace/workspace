@@ -7,6 +7,10 @@ import { Callout, Copyable, Dialog, Empty, ErrorCard, humanError, Skeleton, toas
 import { Time } from "../ui/time";
 import { addsOf, changedSaid, fromOf, outCount, repoLink, stateOf, updateOf, wantedFrom } from "./installed";
 import { pluginIcon } from "./Plugin";
+import { Chip, chipClass } from "../ui/Chip";
+import { Button } from "../ui/Button";
+import { GroupHead } from "../ui/GroupHead";
+import { Row, RowMain, RowSub, Rows } from "../ui/Rows";
 
 // Plugins, a section of Settings: the workspace's plugins, each with where it's from,
 // where it stands and what it adds; adding one, from the repo it's
@@ -62,9 +66,9 @@ export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
       {info && fromRepo && (
         <div className="plugins-updates">
           {out > 0 && (
-            <span className="chip tone-attention">
+            <Chip tone="attention">
               {out} {out === 1 ? "update" : "updates"}
-            </span>
+            </Chip>
           )}
             <span className="dim plugins-looked">
               {info.checked ? (
@@ -75,13 +79,13 @@ export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
                 "Not looked for updates yet"
               )}
             </span>
-            <button className="small" onClick={look} disabled={looking} title="Ask each plugin's repo for its latest release now">
+            <Button size="small" onClick={look} disabled={looking} title="Ask each plugin's repo for its latest release now">
               <Icon name={looking ? "spinner" : "rotate"} size={12} /> {looking ? "Looking…" : "Check for updates"}
-            </button>
+            </Button>
         </div>
       )}
       {problem && (
-        <Callout tone="danger" title={problem.what} actions={<button onClick={() => setProblem(undefined)}>Dismiss</button>}>
+        <Callout tone="danger" title={problem.what} actions={<Button onClick={() => setProblem(undefined)}>Dismiss</Button>}>
           {problem.error}
           {problem.output && <pre className="plugins-output">{problem.output}</pre>}
         </Callout>
@@ -91,34 +95,34 @@ export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
       {info && (
         <>
           <section>
-            <h2 className="group">
-              Installed <span className="count">{installed.length}</span>
-            </h2>
+            <GroupHead count={installed.length}>
+              Installed
+            </GroupHead>
             {installed.length === 0 ? (
               <Empty icon="box" title="No plugins yet">
                 Add one above: <code>withworkspace/plugin-plugin-dev</code> writes a plugin of your own, and runs it here as you change it.
               </Empty>
             ) : (
-              <ul className="rows plugin-rows">
+              <Rows className="plugin-rows">
                 {installed.map((p) => (
                   <PluginRow key={p.name} p={p} icon={live?.find((l) => l.name === p.name)?.views[0]?.icon} reload={reload} onFailed={setProblem} />
                 ))}
-              </ul>
+              </Rows>
             )}
           </section>
           {info.wanted.length > 0 && (
             <section>
-              <h2 className="group">
-                The team's, not installed here <span className="count">{info.wanted.length}</span>
-              </h2>
+              <GroupHead count={info.wanted.length}>
+                The team's, not installed here
+              </GroupHead>
               <p className="quiet-line">
                 In <code>ws.toml</code>, under <code>[plugins]</code>.
               </p>
-              <ul className="rows plugin-rows">
+              <Rows className="plugin-rows">
                 {info.wanted.map((w) => (
                   <WantedRow key={w.name} w={w} reload={reload} onFailed={setProblem} />
                 ))}
-              </ul>
+              </Rows>
             </section>
           )}
           {info.checks === false && fromRepo && (
@@ -177,9 +181,9 @@ function AddPlugin({ reload, onFailed }: { reload: Reload; onFailed: (f?: Failed
           aria-describedby="plugins-add-about"
         />
       </label>
-      <button type="submit" className="primary" disabled={!typed || busy}>
+      <Button variant="primary" type="submit" disabled={!typed || busy}>
         <Icon name={busy ? "spinner" : "plus"} size={12} /> {busy ? "Adding…" : "Add"}
-      </button>
+      </Button>
       <p id="plugins-add-about" className="plugins-add-about">
         A repo on GitHub is installed from its latest release (<code>owner/repo@v1.2.0</code> for another), checked against the release's checksums; one with no build for
         this machine is built here from its source. A folder is copied in, by its whole path or from <code>~</code>. A plugin is a program that runs as you: add one as
@@ -230,11 +234,11 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
     }
   };
   return (
-    <li className={`row plugin-row state-${p.state}`}>
+    <Row className={`plugin-row state-${p.state}`}>
       <span className="plugin-row-icon" aria-hidden>
         <Icon name={p.state === "failed" ? "alert" : pluginIcon(icon)} size={16} />
       </span>
-      <div className="row-main plugin-row-main">
+      <RowMain as="div" className="plugin-row-main">
         <div className="plugin-row-top">
           {p.path && p.state !== "failed" ? (
             <Link to={p.path} className="plugin-row-title" title={`Open ${title}`}>
@@ -244,18 +248,18 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
             <span className="plugin-row-title">{title}</span>
           )}
           {p.version && <span className="mono dim">{p.version}</span>}
-          <span className={`chip tone-${state.tone}`} title={state.title}>
+          <Chip tone={state.tone} title={state.title}>
             {state.label}
-          </span>
+          </Chip>
           {update.out && (
-            <a className="chip tone-attention plugin-row-out" href={repoLink(p.from.repo ?? "", p.latest)} target="_blank" rel="noopener noreferrer" title="What's in it, on GitHub">
+            <a className={chipClass("attention", "plugin-row-out")} href={repoLink(p.from.repo ?? "", p.latest)} target="_blank" rel="noopener noreferrer" title="What's in it, on GitHub">
               {p.latest} is out
               <Icon name="arrow-up-right" size={10} />
             </a>
           )}
         </div>
         {p.description && <div className="plugin-row-about">{p.description}</div>}
-        <div className="row-sub plugin-row-sub">
+        <RowSub as="div" className="plugin-row-sub">
           <span>
             {p.from.repo ? (
               <>
@@ -274,7 +278,7 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
             )}
           </span>
           {adds.length > 0 && <span>Adds {adds.join(" · ")}</span>}
-        </div>
+        </RowSub>
         {p.state === "setup" && (
           <div className="plugin-row-note tone-attention">
             It can't be used until {p.missing?.length === 1 ? "this is" : "these are"} set: <span className="mono">{(p.missing ?? []).join(", ")}</span>. In a terminal:{" "}
@@ -298,19 +302,19 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
           </div>
         ))}
         {p.updateError && <div className="plugin-row-note">Couldn't look for a later release: {p.updateError}</div>}
-      </div>
+      </RowMain>
       <span className="plugin-row-actions">
         {update.can && (
-          <button className={update.out ? "small primary" : "ghost small"} onClick={doUpdate} disabled={!!busy} title={update.title}>
+          <Button variant={update.out ? "primary" : "ghost"} size="small" onClick={doUpdate} disabled={!!busy} title={update.title}>
             <Icon name={busy === "update" ? "spinner" : update.out ? "arrow-up" : "rotate"} size={11} /> {busy === "update" ? "Updating…" : update.label}
-          </button>
+          </Button>
         )}
-        <button className="ghost small" onClick={() => setRemoving(true)} disabled={!!busy} title="Stop it, and take it out of the workspace">
+        <Button variant="ghost" size="small" onClick={() => setRemoving(true)} disabled={!!busy} title="Stop it, and take it out of the workspace">
           <Icon name={busy === "remove" ? "spinner" : "x"} size={11} /> {busy === "remove" ? "Removing…" : "Remove"}
-        </button>
+        </Button>
       </span>
       {removing && <RemoveDialog p={p} onClose={() => setRemoving(false)} onRemove={doRemove} />}
-    </li>
+    </Row>
   );
 }
 
@@ -333,12 +337,12 @@ function RemoveDialog({ p, onClose, onRemove }: { p: InstalledPlugin; onClose: (
         </span>
       </label>
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose}>
           Cancel
-        </button>
-        <button className="danger" onClick={() => onRemove(data)} autoFocus>
+        </Button>
+        <Button variant="danger" onClick={() => onRemove(data)} autoFocus>
           {data ? "Remove, and what it kept" : "Remove"}
-        </button>
+        </Button>
       </div>
     </Dialog>
   );
@@ -363,24 +367,24 @@ function WantedRow({ w, reload, onFailed }: { w: WantedPlugin; reload: Reload; o
       .finally(() => setBusy(false));
   };
   return (
-    <li className="row plugin-row wanted">
+    <Row className="plugin-row wanted">
       <span className="plugin-row-icon" aria-hidden>
         <Icon name="circle-dashed" size={16} />
       </span>
-      <div className="row-main plugin-row-main">
+      <RowMain as="div" className="plugin-row-main">
         <div className="plugin-row-top">
           <span className="plugin-row-title">{w.name}</span>
           {w.version && <span className="mono dim">{w.version}</span>}
         </div>
-        <div className="row-sub plugin-row-sub">
+        <RowSub as="div" className="plugin-row-sub">
           <span className="mono">{w.source}</span>
-        </div>
-      </div>
+        </RowSub>
+      </RowMain>
       <span className="plugin-row-actions">
-        <button className="small" onClick={add} disabled={busy || !w.source} title={`Install it from ${w.source}`}>
+        <Button size="small" onClick={add} disabled={busy || !w.source} title={`Install it from ${w.source}`}>
           <Icon name={busy ? "spinner" : "plus"} size={11} /> {busy ? "Adding…" : "Add"}
-        </button>
+        </Button>
       </span>
-    </li>
+    </Row>
   );
 }

@@ -4,6 +4,8 @@ import { useCommandLabels } from "../api";
 import type { CommandLabel } from "../wire.gen";
 import { stepLabel } from "./commandLabel";
 import { Icon, type IconName } from "./Icon";
+import { Chip } from "./Chip";
+import { Button } from "./Button";
 
 // Calls are the steps an agent took on the way to a reply: each tool it
 // used, what it gave it, and (opened) what came back. Folded under "n
@@ -69,9 +71,9 @@ export function Calls({ calls, open, tail, ...opts }: { calls: Call[]; open?: bo
     return (
       <div className="calls-open">
         {from > 0 && (
-          <button type="button" className="link calls-earlier" onClick={() => setAll(true)}>
+          <Button variant="link" type="button" className="calls-earlier" onClick={() => setAll(true)}>
             <Icon name="chevron-right" size={12} /> {from} earlier steps
-          </button>
+          </Button>
         )}
         {list}
       </div>
@@ -81,9 +83,9 @@ export function Calls({ calls, open, tail, ...opts }: { calls: Call[]; open?: bo
       <summary>
         <Icon name="chevron-right" size={12} className="fold-chevron" />
         {calls.length} {calls.length === 1 ? "step" : "steps"}
-        {edits > 0 && <span className="chip tone-quiet">{edits === 1 ? "1 edit" : `${edits} edits`}</span>}
-        {refused > 0 && <span className="chip tone-danger">{refused} refused</span>}
-        {failed > 0 && <span className="chip tone-quiet">{failed} failed</span>}
+        {edits > 0 && <Chip tone="quiet">{edits === 1 ? "1 edit" : `${edits} edits`}</Chip>}
+        {refused > 0 && <Chip tone="danger">{refused} refused</Chip>}
+        {failed > 0 && <Chip tone="quiet">{failed} failed</Chip>}
       </summary>
       {list}
     </details>
@@ -117,9 +119,9 @@ function CallLine({ c, root, running, fileLink, labels }: { c: Call; running?: b
           {label}
         </span>
         {!doing && <span className="call-input">{what}</span>}
-        {running && <span className="chip tone-progress">Running</span>}
-        {c.refused && <span className="chip tone-danger">Refused</span>}
-        {c.error && !c.refused && <span className="chip tone-quiet">Failed</span>}
+        {running && <Chip tone="progress">Running</Chip>}
+        {c.refused && <Chip tone="danger">Refused</Chip>}
+        {c.error && !c.refused && <Chip tone="quiet">Failed</Chip>}
       </button>
       {open && c.edit && (
         <div className="call-edit">
@@ -179,9 +181,9 @@ export function EditDiff({ edit, max = 14 }: { edit: NonNullable<Call["edit"]>; 
         </div>
       ))}
       {!all && total > oldShown.length + newShown.length && (
-        <button className="link edit-more" onClick={() => setAll(true)}>
+        <Button variant="link" className="edit-more" onClick={() => setAll(true)}>
           {total - oldShown.length - newShown.length} more lines
-        </button>
+        </Button>
       )}
     </div>
   );

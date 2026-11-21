@@ -2,6 +2,7 @@ import type { Repo, Workspace } from "../api";
 import { type IconName, icons } from "../ui/Icon";
 import { stripGlyph } from "../ui/status";
 import type { Named, PageRef } from "./refs";
+import { clip } from "../ui/text";
 
 // How each kind of ref is drawn, said once, here: the tag in what's read
 // (RefTag: a conversation, a thread, a log line) and the mark in a page's
@@ -31,8 +32,6 @@ export interface Look {
   after?: { label: string; tone?: string };
 }
 
-const short = (s: string) => (s.length > 44 ? s.slice(0, 43) + "…" : s);
-
 // thingIcon is the icon of a kind of plugin's thing: the one its plugin
 // asked for, if ws has it.
 export function thingIcon(named?: Named): IconName {
@@ -58,15 +57,15 @@ const views: Views = {
   },
   page: (r, env) => {
     const p = env.workspace.pages?.find((x) => x.id === r.id);
-    return { shape: "words", icon: "file", after: p ? { label: short(p.title), tone: "quiet" } : undefined };
+    return { shape: "words", icon: "file", after: p ? { label: clip(p.title, 44), tone: "quiet" } : undefined };
   },
   talk: (r, env) => {
     const t = env.workspace.conversations.find((x) => x.id === r.id);
-    return { shape: "words", icon: "message", after: t ? { label: short(t.title || t.opening), tone: "quiet" } : undefined };
+    return { shape: "words", icon: "message", after: t ? { label: clip(t.title || t.opening, 44), tone: "quiet" } : undefined };
   },
   artifact: (r, env) => {
     const a = env.workspace.artifacts?.find((x) => x.id === r.id);
-    return { shape: "words", icon: "artifact", after: a ? { label: short(a.title), tone: "quiet" } : undefined };
+    return { shape: "words", icon: "artifact", after: a ? { label: clip(a.title, 44), tone: "quiet" } : undefined };
   },
   // A plugin's thing: its name, as words. Where it stands is its plugin's
   // to say, which its card asks; the tag asks nothing.

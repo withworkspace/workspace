@@ -6,6 +6,7 @@ import { shortVersion } from "../shell/version";
 import { Icon } from "../ui/Icon";
 import { Callout, confirm, Copyable, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
 import { Time } from "../ui/time";
+import { Button } from "../ui/Button";
 
 // Updates, on Settings' About: the latest release of ws as the daemon
 // last found it (it looks once a day, and when Check now is pressed),
@@ -108,9 +109,9 @@ export function Updates({ running }: { running?: string }) {
           icon="arrow-up"
           title={`ws ${up.latest} is out`}
           actions={
-            <button className="primary" onClick={() => void upgrade()} disabled={!!busy}>
+            <Button variant="primary" onClick={() => void upgrade()} disabled={!!busy}>
               <Icon name={busy === "upgrade" ? "spinner" : "arrow-up"} size={12} /> {busy === "upgrade" ? "Upgrading…" : `Upgrade to ${up.latest}`}
-            </button>
+            </Button>
           }
         >
           This is {shortVersion(up.version)}. {notes}
@@ -155,9 +156,9 @@ export function Updates({ running }: { running?: string }) {
             )}
             <span className="dim"> · {up.checks ? "the daemon looks once a day" : "the daemon doesn't look by itself"}</span>
           </span>
-          <button className="small" onClick={look} disabled={!!busy} title="Ask now for the latest release of ws, and of each plugin installed from a repo">
+          <Button size="small" onClick={look} disabled={!!busy} title="Ask now for the latest release of ws, and of each plugin installed from a repo">
             <Icon name={busy === "look" ? "spinner" : "rotate"} size={12} /> {busy === "look" ? "Looking…" : "Check now"}
-          </button>
+          </Button>
         </dd>
         {up.plugins > 0 && (
           <>

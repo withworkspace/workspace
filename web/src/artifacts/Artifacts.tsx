@@ -44,6 +44,10 @@ import { changed, followed, frameSearch, readTweakParams, TWEAK, tweakParams } f
 import { ClearExpired, DiscardDialog, PromoteDialog, restore } from "./Lifetime";
 import { PagePin } from "../shell/focus";
 import { FoundArtifacts } from "./Found";
+import { Chip } from "../ui/Chip";
+import { Button, buttonClass } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
 // sandboxed frame. A version is its page and the files it loads beside
@@ -131,33 +135,35 @@ export function ArtifactsPage({ workspace }: { workspace: Workspace }) {
 
   return (
     <div className="page narrow artifacts-page">
-      <header className="page-head">
-        <h1>Artifacts</h1>
-        {all.length > 0 && (
-          <div className="page-actions">
-            <div className="segmented" role="group" aria-label="Where they stand">
-              {(Object.keys(shownLabels) as Shown[]).map((s) => (
-                <button key={s} aria-pressed={shown === s} onClick={() => setShown(s)}>
-                  {shownLabels[s]}
-                  {s === "discarded" && discarded > 0 ? ` ${discarded}` : ""}
-                </button>
-              ))}
-            </div>
-            {froms.length > 0 && (
-              <Select value={from} onChange={setFrom} aria-label="Where they came from">
-                <Option value={ANYWHERE}>From anywhere</Option>
-                <Option value={BY_HAND}>Added by hand</Option>
-                {froms.map((f) => (
-                  <Option key={f.from} value={f.from} title={f.title}>
-                    {f.title ? `${f.from}: ${f.title}` : f.from}
-                  </Option>
+      <PageHead
+        title="Artifacts"
+        actions={
+          all.length > 0 && (
+            <>
+              <div className="segmented artifacts-shown" role="group" aria-label="Where they stand">
+                {(Object.keys(shownLabels) as Shown[]).map((s) => (
+                  <Button key={s} aria-pressed={shown === s} onClick={() => setShown(s)}>
+                    {shownLabels[s]}
+                    {s === "discarded" && discarded > 0 ? ` ${discarded}` : ""}
+                  </Button>
                 ))}
-              </Select>
-            )}
-            <ClearExpired all={all} workspace={workspace} />
-          </div>
-        )}
-      </header>
+              </div>
+              {froms.length > 0 && (
+                <Select value={from} onChange={setFrom} aria-label="Where they came from">
+                  <Option value={ANYWHERE}>From anywhere</Option>
+                  <Option value={BY_HAND}>Added by hand</Option>
+                  {froms.map((f) => (
+                    <Option key={f.from} value={f.from} title={f.title}>
+                      {f.title ? `${f.from}: ${f.title}` : f.from}
+                    </Option>
+                  ))}
+                </Select>
+              )}
+              <ClearExpired all={all} workspace={workspace} />
+            </>
+          )
+        }
+      />
       {all.length === 0 ? (
         <Empty icon="artifact" title="No artifacts yet">
           An artifact is a sketch to look at and use: a page, alone or with the files it loads beside it, in versions you can step through. Crew add them with{" "}
@@ -168,11 +174,11 @@ export function ArtifactsPage({ workspace }: { workspace: Workspace }) {
           No artifact {shown === "all" ? "" : `that's ${shownLabels[shown].toLowerCase()} `}came from there.
         </Empty>
       ) : (
-        <ul className="rows artifacts" role="listbox" aria-label="Artifacts">
+        <Rows className="artifacts" role="listbox" aria-label="Artifacts">
           {list.map((a, i) => (
             <ArtifactListRow key={a.id} a={a} selected={i === index} onHover={() => i !== index && setIndex(i)} workspace={workspace} onPromote={() => setPromoting(a)} />
           ))}
-        </ul>
+        </Rows>
       )}
       <FoundArtifacts workspace={workspace} />
       {promoting && <PromoteDialog a={promoting} workspace={workspace} onClose={() => setPromoting(undefined)} />}
@@ -187,28 +193,28 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
   const expiry = a.status === "live" ? expiryOf(a, Date.now()) : undefined;
   const dimmed = a.status === "discarded" || !!expiry?.expired;
   return (
-    <li id={`artifact-${a.id}`} role="option" aria-selected={selected} className={`row artifact-list-row${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}`} onMouseMove={onHover}>
-      <TLink to={artifactHref(a.id)} className="row-link">
-        <Status s={artifactStatus(a)} iconOnly size={16} className="row-status" />
-        <span className="row-main">
-          <span className="row-line">
-            <span className="title">{a.title}</span>
-            <span className="chip tone-quiet" title={`${a.versions} ${a.versions === 1 ? "version" : "versions"}`}>
+    <Row selected={selected} id={`artifact-${a.id}`} role="option" aria-selected={selected} className={`artifact-list-row${dimmed ? " dimmed" : ""}`} onMouseMove={onHover}>
+      <TLink to={artifactHref(a.id)} className={rowLinkClass("artifact-list-link")}>
+        <Status s={artifactStatus(a)} iconOnly size={16} className={rowStatusClass()} />
+        <RowMain>
+          <RowLine>
+            <RowTitle className="artifact-list-title">{a.title}</RowTitle>
+            <Chip tone="quiet" title={`${a.versions} ${a.versions === 1 ? "version" : "versions"}`}>
               v{v?.n ?? a.versions}
-            </span>
-            {a.status !== "live" || a.gone || a.expired ? <span className={`chip tone-${artifactStatus(a).tone}`}>{artifactStatus(a).words}</span> : null}
+            </Chip>
+            {a.status !== "live" || a.gone || a.expired ? <Chip tone={artifactStatus(a).tone}>{artifactStatus(a).words}</Chip> : null}
             {expiry?.soon && (
-              <span className="chip tone-attention" title={`No new version since ${new Date(v?.at ?? a.made).toLocaleDateString()}: promote it to keep it`}>
+              <Chip tone="attention" title={`No new version since ${new Date(v?.at ?? a.made).toLocaleDateString()}: promote it to keep it`}>
                 <Icon name="clock" size={11} /> {expiry.words}
-              </span>
+              </Chip>
             )}
-          </span>
+          </RowLine>
           {v?.note && (
-            <span className="row-sub">
+            <RowSub>
               <Inline text={v.note} lines={1} />
-            </span>
+            </RowSub>
           )}
-          <span className="row-sub artifact-row-meta">
+          <RowSub className="artifact-row-meta">
             {!!a.from?.length && (
               <span>
                 from{" "}
@@ -225,8 +231,8 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
               {behind(a) > 0 && <span className="dim">, v{a.latest?.n} here</span>}
             </span>
             <span className="mono">{a.id}</span>
-          </span>
-        </span>
+          </RowSub>
+        </RowMain>
         {v && (
           <span className="age artifact-row-when" title={`v${v.n} ${byWords(v)}`}>
             {byWords(v)} · <Time iso={v.at} as="age" />
@@ -234,11 +240,11 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
         )}
       </TLink>
       {(expiry?.soon || expiry?.expired) && (
-        <button className="ghost small artifact-row-promote" onClick={onPromote} title="Keep it for good: it expires no more">
+        <Button variant="ghost" size="small" className="artifact-row-promote" onClick={onPromote} title="Keep it for good: it expires no more">
           <Icon name="check-circle" size={13} /> Promote
-        </button>
+        </Button>
       )}
-    </li>
+    </Row>
   );
 }
 
@@ -335,10 +341,10 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             <Icon name="arrow-left" size={14} />
           </Link>
           <h1>{d.title}</h1>
-          <span className={`chip tone-${st.tone}`}>
+          <Chip tone={st.tone}>
             <Icon name={st.icon} size={11} />
             {st.words}
-          </span>
+          </Chip>
           <Copyable text={v ? `${d.id}.v${v.n}` : d.id} className="ref" title="Copy its ref" />
           <PagePin r={{ kind: "artifact", id: d.id }} />
         </div>
@@ -384,14 +390,14 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           <VersionStrip d={d} n={n} go={go} />
           <div className="segmented" role="group" aria-label="Width">
             {widths.map((w) => (
-              <button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={w.title} disabled={source}>
+              <Button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={w.title} disabled={source}>
                 {w.label}
-              </button>
+              </Button>
             ))}
           </div>
           <span className="artifact-tools-end">
-            <button
-              className="ghost small"
+            <Button
+              variant="ghost" size="small"
               onClick={() => {
                 setStopped(false);
                 setRun((x) => x + 1);
@@ -400,46 +406,46 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
               title="Run it again"
             >
               <Icon name="rotate" size={13} /> Reload <Keys k="r" />
-            </button>
-            <button className="ghost small" onClick={() => setStopped((s) => !s)} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"}>
+            </Button>
+            <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"}>
               <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
-            </button>
-            <button className="ghost small" aria-pressed={source} onClick={() => setSource((s) => !s)} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"}>
+            </Button>
+            <Button variant="ghost" size="small" aria-pressed={source} onClick={() => setSource((s) => !s)} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"}>
               <Icon name="code" size={13} /> Source <Keys k="s" />
-            </button>
+            </Button>
             {framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} />}
             {comparing ? (
               <Link
-                className="button-link ghost small"
+                className={buttonClass({ variant: "ghost" }, "small")}
                 to={compareHref(comparing)}
                 title={comparing[0].id === d.id ? `v${comparing[0].n} and v${comparing[1].n}, side by side: two frames, or their source diff` : `Beside ${comparing[0].id}, side by side: two frames, or their source diff`}
               >
                 <Icon name="split" size={13} /> Compare <Keys k="c" />
               </Link>
             ) : runnable ? (
-              <button className="ghost small" disabled title="It has one version, and there's no other artifact to compare it with">
+              <Button variant="ghost" size="small" disabled title="It has one version, and there's no other artifact to compare it with">
                 <Icon name="split" size={13} /> Compare
-              </button>
+              </Button>
             ) : null}
             {runnable ? (
-              <a className="button-link ghost small" href={frameURL(d.id, n, opensAs)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed, as it's set here">
+              <a className={buttonClass({ variant: "ghost" }, "small")} href={frameURL(d.id, n, opensAs)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed, as it's set here">
                 <Icon name="external" size={13} /> Open alone
               </a>
             ) : null}
             {keepable && (
-              <button className="ghost small" onClick={() => setDialog("promote")} title={d.status === "promoted" ? "Choose another version, or say what it went into now" : "Keep it for good: it expires no more"}>
+              <Button variant="ghost" size="small" onClick={() => setDialog("promote")} title={d.status === "promoted" ? "Choose another version, or say what it went into now" : "Keep it for good: it expires no more"}>
                 <Icon name="check-circle" size={13} /> {d.status === "promoted" ? "Promoted" : "Promote"} <Keys k="p" />
-              </button>
+              </Button>
             )}
             {keepable && (
-              <button className="ghost small" onClick={() => setDialog("discard")} title="Take it off the list, saying why: it can be restored">
+              <Button variant="ghost" size="small" onClick={() => setDialog("discard")} title="Take it off the list, saying why: it can be restored">
                 <Icon name="ban" size={13} /> Discard
-              </button>
+              </Button>
             )}
             {d.status === "discarded" && d.restorable && (
-              <button className="ghost small" onClick={() => restore(d, workspace).then((done) => done && reload())} title="Put it back, as it was">
+              <Button variant="ghost" size="small" onClick={() => restore(d, workspace).then((done) => done && reload())} title="Put it back, as it was">
                 <Icon name="rotate" size={13} /> Restore
-              </button>
+              </Button>
             )}
           </span>
         </div>
@@ -457,7 +463,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           ) : source ? (
             <Source id={d.id} n={n} />
           ) : stopped ? (
-            <Empty icon="stop" title="Stopped" action={<button onClick={() => setStopped(false)}>Run it</button>}>
+            <Empty icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)}>Run it</Button>}>
               The frame's unloaded, and its scripts with it.
             </Empty>
           ) : (
@@ -517,9 +523,9 @@ function HomeLine({ d, n, onDone }: { d: ArtifactDetail; n: number; onDone: () =
       <Icon name="branch" size={12} /> It lives in <Copyable text={home.where} className="mono" title="Copy its folder: how it's named for other people" /> too, for everyone with {home.repo}: v{home.version} is there
       {home.commit ? ` (${home.commit.slice(0, 7)})` : ""}.
       {n && n !== home.version && d.all.some((x) => x.n === n) ? (
-        <button className="ghost small" onClick={put} disabled={busy} title={`Promote v${n}: it takes v${home.version}'s place there, in one commit`}>
+        <Button variant="ghost" size="small" className="artifact-home-action" onClick={put} disabled={busy} title={`Promote v${n}: it takes v${home.version}'s place there, in one commit`}>
           <Icon name="check-circle" size={12} /> {busy ? "Landing…" : `Put v${n} there`}
-        </button>
+        </Button>
       ) : null}
     </div>
   );

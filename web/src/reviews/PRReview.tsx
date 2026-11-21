@@ -27,7 +27,7 @@ import {
   type Verdict,
   type Workspace,
 } from "../api";
-import { type AskAbout, clip, linesChip } from "../ask/ask";
+import { type AskAbout, linesChip } from "../ask/ask";
 import { AskBar, type AskBarHandle } from "../ask/AskBar";
 import { useKeys } from "../keys";
 import { type AskedFinding, type ReviewDiff, type ReviewSource, ReviewView, type Selection } from "../review/Review";
@@ -42,6 +42,9 @@ import { useReviewPasses } from "./usePasses";
 import { Checks, prHref, prStatus } from "./Reviews";
 import { useLatest } from "../load";
 import { PagePin } from "../shell/focus";
+import { Chip, chipClass } from "../ui/Chip";
+import { Button, buttonClass } from "../ui/Button";
+import { clip } from "../ui/text";
 
 // A pull request's review: the page a capsule's review is, on commits
 // fetched into the repo's clone. A stack opens as one review, its layers
@@ -289,7 +292,7 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
           icon="pr"
           title={`${ref} can't be shown`}
           action={
-            <Link to="/reviews" className="button-link">
+            <Link to="/reviews" className={buttonClass()}>
               Back to Reviews
             </Link>
           }
@@ -320,17 +323,17 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
         {whole && d.stack ? (
           <>
             {d.stack.title}
-            <span className="chip tone-quiet" title="Every layer's changes together: where the stack ends up">
+            <Chip tone="quiet" className="pr-name-chip" title="Every layer's changes together: where the stack ends up">
               <Icon name="layers" size={11} /> the whole stack · {layers.length} layers
-            </span>
+            </Chip>
           </>
         ) : (
           <>
             {pr.title} <span className="mono dim">{ref}</span>
             {d.stack && d.layer ? (
-              <span className="chip tone-quiet" title="Where this layer sits in its stack: 1 is the bottom">
+              <Chip tone="quiet" className="pr-name-chip" title="Where this layer sits in its stack: 1 is the bottom">
                 <Icon name="layers" size={11} /> {d.layer} of {layers.length}
-              </span>
+              </Chip>
             ) : null}
           </>
         )}
@@ -352,15 +355,16 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
     actions: (
       <>
         <PagePin r={{ kind: "pr", repo: pr.repo, number: pr.number }} />
-        <button
-          className="ghost small desktop-only"
+        <Button
+          variant="ghost" size="small"
+          className="desktop-only"
           onClick={dock}
           disabled={docking || pr.fork}
           title={pr.fork ? "It's from a fork: ws dock looks for its branch on origin" : d.docked?.by === "you" ? `It's here: ${pr.repo}/${d.docked.capsule}` : "Dock it here, as ws dock does, to run it yourself (⇧O)"}
         >
           <Icon name="box" size={13} /> {docking ? "Docking…" : d.docked?.by === "you" ? d.docked.capsule : "Open here"}
-        </button>
-        <a className="button-link small-link" href={pr.url} target="_blank" rel="noreferrer" title="Open it on GitHub (o)">
+        </Button>
+        <a className={buttonClass({ size: "small" })} href={pr.url} target="_blank" rel="noreferrer" title="Open it on GitHub (o)">
           <Icon name="external" size={12} /> GitHub
         </a>
       </>
@@ -390,17 +394,17 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
             ))}
           {pr.updated && <Time iso={pr.updated} as="relative" className="dim" />}
           {pr.mission && (
-            <Link to={`/missions/${pr.mission.slug}`} className="chip tone-quiet">
+            <Link to={`/missions/${pr.mission.slug}`} className={chipClass("quiet", "pr-meta-chip")}>
               <Icon name="flag" size={11} /> {pr.mission.title}
             </Link>
           )}
           {d.docked && (
-            <Link to={`/files/${pr.repo}/${d.docked.capsule}`} className="chip tone-quiet" title={d.docked.by === "ws" ? "ws docked it for a question: it's removed once this merges or closes, unless you change something in it" : "It's checked out here: browse its files"}>
+            <Link to={`/files/${pr.repo}/${d.docked.capsule}`} className={chipClass("quiet", "pr-meta-chip")} title={d.docked.by === "ws" ? "ws docked it for a question: it's removed once this merges or closes, unless you change something in it" : "It's checked out here: browse its files"}>
               <Icon name="box" size={11} /> {pr.repo}/{d.docked.capsule}
             </Link>
           )}
           {talks.map((t) => (
-            <Link key={t.id} to={`/conversations/${t.id}`} className={`chip ${t.waiting && t.status === "open" ? "tone-attention" : "tone-quiet"}`} title={t.title || t.opening}>
+            <Link key={t.id} to={`/conversations/${t.id}`} className={chipClass(t.waiting && t.status === "open" ? "attention" : "quiet", "pr-meta-chip")} title={t.title || t.opening}>
               <Icon name={t.answering ? "spinner" : "message"} size={11} className={t.answering ? "spin" : undefined} />
               {t.answering ? "Answering" : t.waiting && t.status === "open" ? "Answered" : t.status === "resolved" ? "Resolved" : "Asked"}: {clip(t.title || t.opening, 48)}
             </Link>
@@ -513,7 +517,7 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
         title={`Posted to GitHub: ${verdictEvents[r.verdict!].toLowerCase()}`}
         actions={
           state.url ? (
-            <a className="button-link" href={state.url} target="_blank" rel="noreferrer">
+            <a className={buttonClass()} href={state.url} target="_blank" rel="noreferrer">
               See it on GitHub <Icon name="external" size={12} />
             </a>
           ) : undefined
@@ -603,9 +607,9 @@ function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: b
           );
         })}
       </ol>
-      <button className={`ghost small whole-stack${whole ? " on" : ""}`} aria-pressed={whole} aria-busy={going?.whole || undefined} onClick={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
+      <Button variant="ghost" size="small" className={`whole-stack ${whole ? " on" : ""}`} aria-pressed={whole} aria-busy={going?.whole || undefined} onClick={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
         <Icon name={going?.whole && !whole ? "spinner" : "layers"} size={12} className={going?.whole && !whole ? "spin" : undefined} /> Whole stack <Keys k="w" />
-      </button>
+      </Button>
     </div>
   );
 }
@@ -751,9 +755,9 @@ function PRSubmitDialog({
       </p>
       {stack && (
         <div className="pr-submit-all">
-          <button onClick={approveAll} disabled={busy} title="Give every layer that isn't a draft or yours an approval (⇧A). Nothing's posted until you submit.">
+          <Button onClick={approveAll} disabled={busy} title="Give every layer that isn't a draft or yours an approval (⇧A). Nothing's posted until you submit.">
             <Icon name="check-circle" size={13} /> Approve every layer <Keys k="A" />
-          </button>
+          </Button>
           <span className="dim">
             <Keys k="[" /> <Keys k="]" /> pick a layer; <Keys k="a" /> <Keys k="c" /> <Keys k="m" /> its verdict
           </span>
@@ -838,17 +842,17 @@ function PRSubmitDialog({
       </div>
       <div className="note-actions">
         {here?.draft && !busy && (
-          <button className="ghost" onClick={onDiscard} title={`Throw away your draft comments on #${d.pr.number}`}>
+          <Button variant="ghost" onClick={onDiscard} title={`Throw away your draft comments on #${d.pr.number}`}>
             Discard the draft
-          </button>
+          </Button>
         )}
         <span className="spacer-left" />
-        <button className="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose}>
           {layers.some((l) => l.state === "posted") ? "Close" : "Cancel"}
-        </button>
-        <button className="primary" onClick={submit} disabled={!ready || busy} title={ready ? "Post to GitHub (⌘⏎)" : "Pick a verdict first"}>
+        </Button>
+        <Button variant="primary" onClick={submit} disabled={!ready || busy} title={ready ? "Post to GitHub (⌘⏎)" : "Pick a verdict first"}>
           {busy ? "Posting…" : chosen.length > 1 ? `Post ${chosen.length} reviews to GitHub` : "Post to GitHub"} <Keys k="mod+⏎" />
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

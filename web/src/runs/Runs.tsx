@@ -2,10 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { endRun, getRunLog, getRuns, type Names, type RunDetail, type RunsInfo, resyncSilo, type SiloState, type Workspace } from "../api";
 import { type Reload, useLoaded } from "../load";
+import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Callout, Copyable, Empty, ErrorCard, humanError, Skeleton, toast, useTitle } from "../ui/kit";
 import { Time } from "../ui/time";
+import css from "./Runs.module.css";
 import { bare, forWhom, listed, placeOf, plain, type Said, split } from "./runRows";
+import { Chip } from "../ui/Chip";
+import { Button } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
+import { Summary, SummaryRow } from "../ui/Summary";
+import { Row, RowMain, Rows, RowSub } from "../ui/Rows";
 
 // The Runs page: everything ws is running for someone in this workspace
 // (ws run): dev servers, previews, compose stacks, whether you, crew or a
@@ -29,11 +37,10 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
   const { running, ended } = split(info?.runs ?? []);
   const up = new Set(running.map((r) => r.ref));
   return (
-    <div className="page runs-page">
-      <header className="page-head">
-        <h1>Runs</h1>
-        {running.length > 0 && <span className="chip tone-done">{running.length} running</span>}
-      </header>
+    <div className="page">
+      <PageHead title="Runs">
+        {running.length > 0 && <Chip tone="done">{running.length} running</Chip>}
+      </PageHead>
       <p className="lede">
         What ws runs for you and your agents: dev servers, previews, compose stacks. Each is given a free port, and ends by itself once whoever it's for goes, or its time's
         up.
@@ -44,34 +51,34 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
         <>
           <NamesPart names={info.names} />
           <section>
-            <h2 className="group">
-              Running <span className="count">{running.length}</span>
-            </h2>
+            <GroupHead count={running.length}>
+              Running
+            </GroupHead>
             {running.length === 0 ? (
               <Empty icon="play" title="Nothing's running">
                 Crew and conversations start dev servers with <code>ws run</code>, and so can you: from a terminal, or with Run on a capsule in a mission's Work tab. Each shows
                 here, with its link.
               </Empty>
             ) : (
-              <ul className="rows run-rows">
+              <Rows className={css.list}>
                 {running.map((r) => (
                   <RunRow key={r.ref} r={r} up={up} workspace={workspace} reload={reload} />
                 ))}
-              </ul>
+              </Rows>
             )}
           </section>
           {info.silos.length > 0 && <SilosPart silos={info.silos} reload={reload} />}
           {ended.length > 0 && (
             <section>
-              <h2 className="group">
-                Ended <span className="count">{ended.length}</span>
-              </h2>
+              <GroupHead count={ended.length}>
+                Ended
+              </GroupHead>
               <p className="quiet-line">Runs that ended by themselves, kept an hour with their output.</p>
-              <ul className="rows run-rows">
+              <Rows className={css.list}>
                 {ended.map((r) => (
                   <RunRow key={r.ref} r={r} up={up} workspace={workspace} reload={reload} />
                 ))}
-              </ul>
+              </Rows>
             </section>
           )}
         </>
@@ -105,40 +112,31 @@ function NamesPart({ names: n }: { names: Names }) {
       </>
     );
   return (
-    <dl className="summary settings runs-names">
-      <div className="summary-row">
-        <dt>Names</dt>
-        <dd>
-          {state}
-          {n.name && n.name !== n.want && (
-            <div className="dim runs-names-note">
-              {n.want} was another workspace's first: this one is {n.name} while that one's daemon runs.
-            </div>
-          )}
-        </dd>
-      </div>
-      <div className="summary-row">
-        <dt>Router</dt>
-        <dd>
-          {n.port ? (
-            <>
-              On :{n.port}
-              {n.fallback && <span className="dim">, as 80 is another program's or kept by the system</span>}
-              {n.heldBy ? <span className="dim">, held by the daemon at pid {n.heldBy}</span> : null}
-              <span className="dim">. One serves every workspace on this machine.</span>
-            </>
-          ) : (
-            <span className="dim">None running</span>
-          )}
-        </dd>
-      </div>
-      <div className="summary-row">
-        <dt>Settings</dt>
-        <dd>
-          <Link to="/settings/runs">Local names, in Settings</Link>
-        </dd>
-      </div>
-    </dl>
+    <Summary className={css.names}>
+      <SummaryRow label="Names">
+        {state}
+        {n.name && n.name !== n.want && (
+          <div className={cx("dim", css.namesNote)}>
+            {n.want} was another workspace's first: this one is {n.name} while that one's daemon runs.
+          </div>
+        )}
+      </SummaryRow>
+      <SummaryRow label="Router">
+        {n.port ? (
+          <>
+            On :{n.port}
+            {n.fallback && <span className="dim">, as 80 is another program's or kept by the system</span>}
+            {n.heldBy ? <span className="dim">, held by the daemon at pid {n.heldBy}</span> : null}
+            <span className="dim">. One serves every workspace on this machine.</span>
+          </>
+        ) : (
+          <span className="dim">None running</span>
+        )}
+      </SummaryRow>
+      <SummaryRow label="Settings">
+        <Link to="/settings/runs">Local names, in Settings</Link>
+      </SummaryRow>
+    </Summary>
   );
 }
 
@@ -153,7 +151,7 @@ function To({ s }: { s: Said }) {
 function NeedsLine({ r, up }: { r: RunDetail; up: Set<string> }) {
   if (!r.needs?.length) return null;
   return (
-    <span className="row-sub run-row-sub run-needs">
+    <RowSub className={cx(css.sub, "run-needs")}>
       {r.needs.map((n) =>
         n.folder ? (
           <span key={n.name}>
@@ -176,11 +174,11 @@ function NeedsLine({ r, up }: { r: RunDetail; up: Set<string> }) {
                 </a>
               </>
             )}
-            {n.run && !up.has(n.run) && <span className="chip tone-waiting">not running</span>}
+            {n.run && !up.has(n.run) && <Chip tone="waiting">not running</Chip>}
           </span>
         ),
       )}
-    </span>
+    </RowSub>
   );
 }
 
@@ -200,13 +198,13 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
   };
   const by = r.by && r.by !== "you" ? `crew ${r.by}` : r.by;
   return (
-    <li className={`row run-row${live ? "" : " ended"}${open ? " open" : ""}`}>
-      <div className="run-row-line">
+    <Row className={cx(css.row, !live && css.ended, open && css.open)}>
+      <div className={css.line}>
         <span className={`work-run-mark${live && r.up ? " up" : ""}`} aria-hidden title={live ? (r.up ? "Up" : "Not up yet") : undefined}>
           {live ? <span className="work-live-dot" /> : <Icon name="circle" size={8} />}
         </span>
-        <span className="row-main">
-          <span className="run-row-top">
+        <RowMain>
+          <span className={css.top}>
             <span className="mono work-run-name" title={r.ref}>
               {r.name}
             </span>
@@ -231,9 +229,9 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
                 )}
               </span>
             )}
-            {live && !r.up && <span className="chip tone-quiet">not up</span>}
+            {live && !r.up && <Chip tone="quiet">not up</Chip>}
           </span>
-          <span className="row-sub run-row-sub">
+          <RowSub className={css.sub}>
             <span>
               In <To s={placeOf(r, workspace.missions)} />
             </span>
@@ -242,24 +240,24 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
             </span>
             {live && r.owner !== "run" && (r.neededBy?.length ?? 0) > 0 && <span>Needed by {listed(r.neededBy ?? [])}</span>}
             {live && r.link !== r.local && <span className="mono">{bare(r.local)}</span>}
-          </span>
+          </RowSub>
           {live && <NeedsLine r={r} up={up} />}
           {live && r.ends && <span className="work-run-ends">Ends {r.ends}</span>}
-        </span>
-        <span className="run-row-when">
+        </RowMain>
+        <span className={css.when}>
           <Time iso={r.started} as="age" className="age" />
         </span>
-        <span className="run-row-actions">
-          <button className="ghost small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide its output" : "Its output, and how it was started"}>
+        <span className={css.actions}>
+          <Button variant="ghost" size="small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide its output" : "Its output, and how it was started"}>
             <Icon name={open ? "chevron-up" : "terminal"} size={11} /> {open ? "Hide" : "Output"}
-          </button>
-          <button className="ghost small" disabled={busy} onClick={end} title={live ? "End it now, and run its recipe's stop" : "Clear it away, its output with it"}>
+          </Button>
+          <Button variant="ghost" size="small" disabled={busy} onClick={end} title={live ? "End it now, and run its recipe's stop" : "Clear it away, its output with it"}>
             <Icon name={busy ? "spinner" : live ? "stop" : "x"} size={11} /> {live ? "Stop" : "Clear"}
-          </button>
+          </Button>
         </span>
       </div>
       {open && <RunMore r={r} by={by} />}
-    </li>
+    </Row>
   );
 }
 
@@ -283,8 +281,8 @@ function RunMore({ r, by }: { r: RunDetail; by?: string }) {
     if (el && stuck.current) el.scrollTop = el.scrollHeight;
   }, [text]);
   return (
-    <div className="run-more">
-      <dl className="run-facts">
+    <div className={css.more}>
+      <dl className={css.facts}>
         <dt>Command</dt>
         <dd className="mono">
           <Copyable text={r.command}>{r.command}</Copyable>
@@ -328,7 +326,7 @@ function RunMore({ r, by }: { r: RunDetail; by?: string }) {
       ) : (
         <pre
           ref={pre}
-          className="verify-output run-log"
+          className={cx("verify-output", css.log)}
           onScroll={(e) => {
             const el = e.currentTarget;
             stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
@@ -346,17 +344,17 @@ function RunMore({ r, by }: { r: RunDetail; by?: string }) {
 function SilosPart({ silos, reload }: { silos: SiloState[]; reload: Reload }) {
   return (
     <section>
-      <h2 className="group">
-        Silos <span className="count">{silos.length}</span>
-      </h2>
+      <GroupHead count={silos.length}>
+        Silos
+      </GroupHead>
       <p className="quiet-line">
         Each mirrors the capsule it's pointed at, kept by the daemon as files change. <code>ws silo point</code> points one elsewhere.
       </p>
-      <ul className="rows run-rows">
+      <Rows className={css.list}>
         {silos.map((st) => (
           <SiloRow key={st.repo} st={st} reload={reload} />
         ))}
-      </ul>
+      </Rows>
     </section>
   );
 }
@@ -378,19 +376,19 @@ function SiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
       .finally(() => setBusy(false));
   };
   return (
-    <li className={`row run-row${open ? " open" : ""}`}>
-      <div className="run-row-line">
+    <Row className={cx(css.row, open && css.open)}>
+      <div className={css.line}>
         <span className={`work-run-mark${st.watching ? " up" : ""}`} aria-hidden title={st.watching ? "Kept as files change" : "Not kept"}>
           {st.watching ? <span className="work-live-dot" /> : <Icon name="circle" size={8} />}
         </span>
-        <span className="row-main">
-          <span className="run-row-top">
+        <RowMain>
+          <span className={css.top}>
             <span className="mono work-run-name">{st.repo}</span>
             <span className="dim">on</span>
             <span className="mono">{st.target}</span>
-            {trouble && <span className="chip tone-waiting">{st.error ? "not kept" : last?.error ? "sync failed" : `${hook?.name} failed`}</span>}
+            {trouble && <Chip tone="waiting">{st.error ? "not kept" : last?.error ? "sync failed" : `${hook?.name} failed`}</Chip>}
           </span>
-          <span className="row-sub run-row-sub">
+          <RowSub className={css.sub}>
             {st.error ? (
               <span>{st.error}</span>
             ) : (
@@ -409,33 +407,33 @@ function SiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
                 {hook.name} {hook.error ? "failed" : "ran"} <Time iso={hook.at} as="relative" />
               </span>
             )}
-          </span>
-        </span>
-        <span className="run-row-when" />
-        <span className="run-row-actions">
+          </RowSub>
+        </RowMain>
+        <span className={css.when} />
+        <span className={css.actions}>
           {(hook || last?.error) && (
-            <button className="ghost small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide" : "What its last hook said, and why a sync failed"}>
+            <Button variant="ghost" size="small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide" : "What its last hook said, and why a sync failed"}>
               <Icon name={open ? "chevron-up" : "terminal"} size={11} /> {open ? "Hide" : "Output"}
-            </button>
+            </Button>
           )}
-          <button className="ghost small" disabled={busy || !!st.error} onClick={resync} title="Give it its capsule's files in full again">
+          <Button variant="ghost" size="small" disabled={busy || !!st.error} onClick={resync} title="Give it its capsule's files in full again">
             <Icon name={busy ? "spinner" : "rotate"} size={11} /> Resync
-          </button>
+          </Button>
         </span>
       </div>
       {open && (
-        <div className="run-more">
+        <div className={css.more}>
           {last?.error && <p className="tone-danger">{last.error}</p>}
           {hook && (
             <>
               <p className="dim">
                 Its {hook.name} hook{hook.error ? `: ${hook.error}` : ""}
               </p>
-              <pre className="verify-output run-log">{hook.output || "It said nothing."}</pre>
+              <pre className={cx("verify-output", css.log)}>{hook.output || "It said nothing."}</pre>
             </>
           )}
         </div>
       )}
-    </li>
+    </Row>
   );
 }

@@ -1,0 +1,151 @@
+/* A button (Button.tsx), or a link that looks like one (buttonClass).
+
+   The order matters: a variant after the base, a size after the shape
+   (a square small button is small's padding at square's width), and the
+   link's differences last. */
+
+@layer ui {
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 18px;
+    white-space: nowrap;
+    color: var(--fg);
+    background: var(--raised);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 4px 10px;
+    min-height: 28px;
+    cursor: pointer;
+    box-shadow: var(--shadow-xs);
+    transition:
+      background var(--fast) var(--ease),
+      border-color var(--fast) var(--ease),
+      color var(--fast) var(--ease),
+      box-shadow var(--fast) var(--ease);
+  }
+
+  .button:hover {
+    background: var(--hover);
+  }
+
+  .button:active:not(:disabled) {
+    transform: translateY(0.5px);
+  }
+
+  .button:disabled {
+    cursor: default;
+    color: var(--dim);
+    background: var(--well);
+    border-color: var(--line);
+    box-shadow: none;
+  }
+
+  .button kbd {
+    color: inherit;
+    opacity: 0.65;
+    background: transparent;
+    border-color: currentColor;
+    border-bottom-width: 1px;
+    line-height: 14px;
+    min-width: 16px;
+  }
+
+  .primary {
+    color: var(--on-primary);
+    background: var(--primary);
+    border-color: transparent;
+  }
+
+  .primary:hover:not(:disabled) {
+    color: var(--on-primary-hover);
+    background: var(--primary-hover);
+  }
+
+  .primary:disabled {
+    color: var(--dim);
+    background: var(--well);
+    border-color: var(--line);
+  }
+
+  .danger {
+    color: #fff;
+    background: var(--red-fill);
+    border-color: transparent;
+  }
+
+  .danger:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+
+  .ghost {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: var(--dim);
+  }
+
+  .ghost:hover:not(:disabled) {
+    background: var(--hover);
+    color: var(--fg);
+  }
+
+  /* A button that's words in the text: none of a button's box (it has
+     no .button), nor the element's (all: unset). */
+  .link {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+  }
+
+  .link:hover {
+    color: var(--fg);
+  }
+
+  .link:active:not(:disabled) {
+    transform: translateY(0.5px);
+  }
+
+  .link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .square {
+    padding: 4px;
+    min-width: 28px;
+  }
+
+  .small {
+    min-height: 24px;
+    padding: 2px 8px;
+    font-size: var(--text-xs);
+  }
+
+  /* A link that looks like a button keeps the colour of the words it's in,
+     ghost too, and its contents start at its left. Whether these should
+     be a button's is still to be decided; until then they're as they were. */
+  .anchor {
+    justify-content: normal;
+    color: inherit;
+    transition: background var(--fast) var(--ease);
+  }
+
+  .anchor.ghost,
+  .anchor.ghost:hover {
+    color: inherit;
+    background: transparent;
+  }
+
+  .anchor.primary {
+    color: var(--on-primary);
+  }
+}

@@ -11,6 +11,7 @@ import { Calls } from "../ui/Calls";
 import { Icon, type IconName } from "../ui/Icon";
 import { humanError, Keys, toast } from "../ui/kit";
 import { type ConversationHost, type Form, fit, givenWith, useHost } from "./host";
+import { Button, buttonClass } from "../ui/Button";
 
 // PageConversation draws a page's conversation (host.ts) round the page:
 // the ask bar over its foot, the card the answer opens in over the bar, a
@@ -216,20 +217,20 @@ export function PageConversation({ host, about, root, children }: { host: Conver
         {talk?.title || (talk ? talk.turns[0]?.body : `Ask about ${about.thing}`)}
       </span>
       {talk && (
-        <button type="button" className="ghost icon-button" onClick={() => setTalk(undefined)} title="Start again" aria-label="Start again">
+        <Button variant="ghost" square type="button" onClick={() => setTalk(undefined)} title="Start again" aria-label="Start again">
           <Icon name="plus" size={13} />
-        </button>
+        </Button>
       )}
       {moves[form]
         .filter((m) => settings.allow.includes(m.to) && !(m.to === "docked" && narrow))
         .map((m) => (
-          <button key={m.to} type="button" className="ghost icon-button" onClick={() => host.move(m.to)} title={m.label} aria-label={m.label}>
+          <Button variant="ghost" square key={m.to} type="button" onClick={() => host.move(m.to)} title={m.label} aria-label={m.label}>
             <Icon name={m.icon} size={13} />
-          </button>
+          </Button>
         ))}
-      <button type="button" className="ghost icon-button" onClick={() => host.move(undefined)} title="Close (esc)" aria-label="Close">
+      <Button variant="ghost" square type="button" onClick={() => host.move(undefined)} title="Close (esc)" aria-label="Close">
         <Icon name="x" size={13} />
-      </button>
+      </Button>
     </div>
   );
   const thread = (
@@ -271,11 +272,11 @@ export function PageConversation({ host, about, root, children }: { host: Conver
       <span>{talk.ephemeral ? "Gone an hour after its last turn, unless you keep it." : "Kept: it's in Conversations."}</span>
       <span className="spacer" />
       {talk.ephemeral ? (
-        <button type="button" className="small" onClick={keep} disabled={keeping} aria-busy={keeping} title={`Keep it as a conversation, in Conversations, about ${about.thing}`}>
+        <Button size="small" type="button" onClick={keep} disabled={keeping} aria-busy={keeping} title={`Keep it as a conversation, in Conversations, about ${about.thing}`}>
           <Icon name="message" size={12} /> Keep
-        </button>
+        </Button>
       ) : (
-        <Link to={`/conversations/${encodeURIComponent(talk.id)}`} className="button-link small-link" title="Open it in Conversations">
+        <Link to={`/conversations/${encodeURIComponent(talk.id)}`} className={buttonClass({ size: "small" }, "askcard-link")} title="Open it in Conversations">
           <Icon name="message" size={12} /> Open it
         </Link>
       )}
@@ -285,9 +286,9 @@ export function PageConversation({ host, about, root, children }: { host: Conver
     <div className={`convo-composer${sending ? " sending" : ""}`}>
       {holding}
       <textarea ref={composer} rows={1} value={text} placeholder={placeholder} aria-label={placeholder} onChange={(e) => setText(e.target.value)} onKeyDown={typed} />
-      <button type="button" className="primary small" onClick={() => send(text)} disabled={!text.trim() || sending} aria-busy={sending}>
+      <Button variant="primary" size="small" type="button" onClick={() => send(text)} disabled={!text.trim() || sending} aria-busy={sending}>
         {sending ? <Icon name="spinner" size={12} className="spin" /> : "Send"}
-      </button>
+      </Button>
     </div>
   );
   const panel = (form: "docked" | "popover") => (

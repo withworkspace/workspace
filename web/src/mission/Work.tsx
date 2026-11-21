@@ -13,6 +13,10 @@ import { canOpenPR, OpenPR } from "./OpenPR";
 import { RunsHere } from "./Runs";
 import { ArtifactState, ArtifactThreads, artifactTitle, CrewBadge, endedWords, isArtifact, kindTitle, shortPath } from "./parts";
 import { type Home, type Work as WorkModel, type WorkCapsule, type WorkState, fileGroups, outputHome, outputKey } from "./workRows";
+import { Chip, chipClass } from "../ui/Chip";
+import { Count } from "../ui/Count";
+import { Button, buttonClass } from "../ui/Button";
+import { GroupHead } from "../ui/GroupHead";
 
 // The mission's Work tab: what's been made, a row each, and the one that's
 // open beside it. Capsules come first, in the order they need you (in
@@ -76,7 +80,7 @@ function StateChip({ s }: { s: WorkState }) {
       {s.text}
     </>
   );
-  const cls = `chip tone-${s.tone ?? "quiet"}`;
+  const cls = chipClass(s.tone ?? "quiet");
   return s.url ? (
     <a href={s.url} target="_blank" rel="noopener noreferrer" className={cls} onClick={(e) => e.stopPropagation()}>
       {body}
@@ -135,9 +139,9 @@ export function Work({
   return (
     <div className="work">
       <div className="work-list">
-        <h2 className="group">
-          Capsules <span className="count">{w.capsules.length}</span>
-        </h2>
+        <GroupHead className="work-group" count={w.capsules.length}>
+          Capsules
+        </GroupHead>
         {w.hand.length > 0 && <div className="work-sub">In hand</div>}
         {rows(w.hand)}
         {w.next.length > 0 && <div className="work-sub">Up next</div>}
@@ -157,9 +161,9 @@ export function Work({
             <EndedCapsules list={d.endedCapsules} />
           </div>
         ) : null}
-        <h2 className="group">
-          Outputs <span className="count">{w.outputs.length}</span>
-        </h2>
+        <GroupHead className="work-group" count={w.outputs.length}>
+          Outputs
+        </GroupHead>
         {w.outputs.map((a) => (
           <OutputRow key={a.ref} a={a} selected={outputKey(a) === shown} select={select} open={openArtifact} />
         ))}
@@ -290,23 +294,23 @@ function CapsulePane({ d, x, label, select, review, reload, seen }: { d: Mission
           <h2>{label(c.repo)}</h2>
           <Copyable text={x.id} className="mono work-head-slug" title="Copy the capsule" />
           {c.branch && c.branch !== c.name && (
-            <span className="chip tone-quiet" title="Its branch">
+            <Chip tone="quiet" title="Its branch">
               <Icon name="branch" size={11} />
               {c.branch}
-            </span>
+            </Chip>
           )}
           <StateChip s={x.state} />
           <div className="work-head-actions">
             {open && canOpenPR(d, c) && <OpenPR d={d} c={c} reload={reload} />}
             {c.exists && (
-              <Link to={`/missions/${d.slug}/files/${c.repo}/${c.name}`} className="button-link small-link" title="Browse its files (f)">
+              <Link to={`/missions/${d.slug}/files/${c.repo}/${c.name}`} className={buttonClass({ size: "small" })} title="Browse its files (f)">
                 <Icon name="file" size={12} /> Files <Keys k="f" />
               </Link>
             )}
             {c.exists && (!sum || sum.commitCount > 0) && (
-              <button className="small" onClick={() => review(c)} title="Review its changes (v)">
+              <Button size="small" onClick={() => review(c)} title="Review its changes (v)">
                 <Icon name="eye" /> Review <Keys k="v" />
-              </button>
+              </Button>
             )}
             {open && !settled && <CapsuleEnds slug={d.slug} c={c} reload={reload} />}
           </div>
@@ -350,7 +354,7 @@ function CapsulePane({ d, x, label, select, review, reload, seen }: { d: Mission
           {x.crew.length > 0 && (
             <>
               <h3>
-                Crew here <span className="count">{x.crew.length}</span>
+                Crew here <Count>{x.crew.length}</Count>
               </h3>
               <div className="work-crew">
                 {x.crew.map((k) => (
@@ -363,7 +367,7 @@ function CapsulePane({ d, x, label, select, review, reload, seen }: { d: Mission
           {x.steps.length > 0 && (
             <>
               <h3>
-                Steps here <span className="count">{x.steps.length}</span>
+                Steps here <Count>{x.steps.length}</Count>
               </h3>
               <ol className="work-steps">
                 {x.steps.map((s) => (
@@ -375,7 +379,7 @@ function CapsulePane({ d, x, label, select, review, reload, seen }: { d: Mission
           {sum && sum.commits.length > 0 && (
             <>
               <h3>
-                Commits <span className="count">{sum.commitCount}</span>
+                Commits <Count>{sum.commitCount}</Count>
               </h3>
               <ul className="work-commits">
                 {sum.commits.map((m) => (
@@ -394,7 +398,7 @@ function CapsulePane({ d, x, label, select, review, reload, seen }: { d: Mission
           {made.length > 0 && (
             <>
               <h3>
-                Made here <span className="count">{made.length}</span>
+                Made here <Count>{made.length}</Count>
               </h3>
               <div className="work-made">
                 {made.map((a) => (
@@ -434,17 +438,17 @@ function Now({ d, x, review }: { d: MissionDetail; x: WorkCapsule; review: (c: C
         {s.who === "you" ? "is yours." : live ? <>has {live.id} on it, since <Time iso={live.started} as="clock" />.</> : s.who === "ws" ? "is ws's." : s.who === "crew" ? "waits for crew." : `is ${s.whoSays ?? s.who ?? "next"}.`}
       </p>
       {s.who === "you" && s.type === "Review" && x.c.exists && (
-        <button className="primary small" onClick={() => review(x.c)}>
+        <Button variant="primary" size="small" onClick={() => review(x.c)}>
           <Icon name="eye" /> Review the change
-        </button>
+        </Button>
       )}
       {bundle && (
-        <Link to={bundleLink(d.slug, bundle.id)} className="button-link small-link">
+        <Link to={bundleLink(d.slug, bundle.id)} className={buttonClass({ size: "small" })}>
           <Icon name="list-checks" size={12} /> {bundle.id} in Verify
         </Link>
       )}
       {live && (
-        <Link to={`/missions/${d.slug}/crew/${live.id}`} className="button-link small-link">
+        <Link to={`/missions/${d.slug}/crew/${live.id}`} className={buttonClass({ size: "small" })}>
           <Icon name="terminal" size={12} /> Watch {live.id}
         </Link>
       )}
@@ -490,7 +494,7 @@ function CrewLine({ d, k, steps, handoff, select }: { d: MissionDetail; k: CrewD
             )}
           </span>
         </span>
-        <Link to={`/missions/${d.slug}/crew/${k.id}`} className="button-link small-link" title={k.ended ? `Read ${k.id}'s transcript` : `Open ${k.id}'s terminal`}>
+        <Link to={`/missions/${d.slug}/crew/${k.id}`} className={buttonClass({ size: "small" }, "crew-line-link")} title={k.ended ? `Read ${k.id}'s transcript` : `Open ${k.id}'s terminal`}>
           {k.ended ? (
             "Transcript"
           ) : (
@@ -532,9 +536,9 @@ function StepLine({ d, x, s }: { d: MissionDetail; x: WorkCapsule; s: Stage }) {
       <span className="work-step-n">{s.n}</span>
       <span className="work-step-line">
         <span className="work-step-title">{s.title}</span>
-        {s.crew?.length ? s.crew.map((id) => <CrewBadge key={id} id={id} live={d.crew.some((k) => k.id === id && !k.ended)} />) : s.who && s.who !== "crew" && <span className="chip tone-quiet">{s.who}</span>}
+        {s.crew?.length ? s.crew.map((id) => <CrewBadge key={id} id={id} live={d.crew.some((k) => k.id === id && !k.ended)} />) : s.who && s.who !== "crew" && <Chip tone="quiet">{s.who}</Chip>}
         {s.type && s.type !== s.title && <span className="dim">{s.type}</span>}
-        {s.state === "current" && <span className="chip tone-info">now</span>}
+        {s.state === "current" && <Chip tone="info">now</Chip>}
         {bundles.map((b) => (
           <Link key={b.id} to={bundleLink(d.slug, b.id)} className="work-step-bundle" title={`${b.id}${b.verdict ? `: ${b.verdict}` : ""}${b.stale ? ", of a commit the capsule has moved on from" : ""}`}>
             <Icon name="list-checks" size={12} />
@@ -566,7 +570,7 @@ function FilesCol({ d, c, files, more, committed }: { d: MissionDetail; c: Capsu
   return (
     <div className="work-col work-files">
       <h3>
-        {committed ? "Changed files" : "Not committed"} <span className="count">{files.length + (more ?? 0)}</span>
+        {committed ? "Changed files" : "Not committed"} <Count>{files.length + (more ?? 0)}</Count>
         <span className="spacer" />
         {files.length > 8 && <input type="text" className="work-filter" placeholder="Filter" aria-label="Filter the changed files" value={filter} onChange={(e) => setFilter(e.target.value)} />}
       </h3>
@@ -639,9 +643,9 @@ function OutputPane({ d, a, home, label, select, open }: { d: MissionDetail; a: 
             {home.step && ` · step ${home.step.n}, ${home.step.title}`} · <Time iso={a.added} />
           </span>
           <div className="work-head-actions">
-            <button className="small" onClick={() => open(a)} title={reads ? "Open its page, to comment on it or edit it (⏎)" : "Open it (⏎)"}>
+            <Button size="small" onClick={() => open(a)} title={reads ? "Open its page, to comment on it or edit it (⏎)" : "Open it (⏎)"}>
               <Icon name={reads || isArtifact(a) ? "arrow-up-right" : "external"} /> {reads ? "Open its page" : "Open it"} <Keys k="⏎" />
-            </button>
+            </Button>
           </div>
         </div>
         <h2 className="work-title">{handoff ? (desc ?? title) : title}</h2>
@@ -652,10 +656,10 @@ function OutputPane({ d, a, home, label, select, open }: { d: MissionDetail; a: 
             </span>
           )}
           {home.capsule && (
-            <button className="link" onClick={() => select(home.capsule!.key)} title={home.capsule.id}>
+            <Button variant="link" onClick={() => select(home.capsule!.key)} title={home.capsule.id}>
               <Icon name="box" size={12} /> {label(home.capsule.c.repo)}
               {home.capsule.c.name !== d.slug && <span className="mono"> {home.capsule.c.name}</span>}
-            </button>
+            </Button>
           )}
           <ArtifactState state={a.state} />
           {a.threads && <ArtifactThreads t={a.threads} />}

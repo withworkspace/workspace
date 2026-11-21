@@ -50,6 +50,11 @@ import { crewElsewhere, work } from "./workRows";
 import { checkRows, rowKey, shownBundle, toApprove, waiting as bundleWaiting } from "./verifyRows";
 import { type Reload, useLoaded } from "../load";
 import { PagePin } from "../shell/focus";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
+import { Button, buttonClass } from "../ui/Button";
+import { GroupHead } from "../ui/GroupHead";
+import { Summary as SummaryList, SummaryRow } from "../ui/Summary";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -309,7 +314,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
           error={/not found|no mission/i.test(error) ? `No mission is called ${slug}: it may have been renamed or deleted.` : error}
           retry={load}
         />
-        <Link to="/" className="button-link">
+        <Link to="/" className={buttonClass()}>
           <Icon name="arrow-left" /> All missions
         </Link>
       </div>
@@ -383,24 +388,24 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
           {tabRow((t) => (
             <>
               {t === "brief" && briefWaiting > 0 && (
-                <span className="count tone-attention" title={planning?.proposed ? "Its planner proposed something, for you to confirm" : "Its planner's waiting on you"}>
+                <Count tone="attention" title={planning?.proposed ? "Its planner proposed something, for you to confirm" : "Its planner's waiting on you"}>
                   {briefWaiting}
-                </span>
+                </Count>
               )}
               {t === "verify" && waitingBundles > 0 && (
-                <span className="count tone-attention" title="Verification bundles waiting for you to approve">
+                <Count tone="attention" title="Verification bundles waiting for you to approve">
                   {waitingBundles}
-                </span>
+                </Count>
               )}
               {t === "verify" && !waitingBundles && standing > 0 && (
-                <span className="count" title="Verification bundles, handed over to show the work">
+                <Count title="Verification bundles, handed over to show the work">
                   {standing}
-                </span>
+                </Count>
               )}
               {t === "talk" && waitingTalks > 0 && (
-                <span className="count tone-attention" title="Your turn, or something to confirm">
+                <Count tone="attention" title="Your turn, or something to confirm">
                   {waitingTalks}
-                </span>
+                </Count>
               )}
             </>
           ))}
@@ -489,8 +494,9 @@ function Title({ d, reload }: { d: MissionDetail; reload: Reload }) {
       <span className="mission-title-text" title={d.title}>
         {d.title}
       </span>
-      <button
-        className="ghost icon-button small rename"
+      <Button
+        variant="ghost" size="small" square
+        className="rename"
         onClick={() => {
           setValue(d.title);
           setEditing(true);
@@ -499,7 +505,7 @@ function Title({ d, reload }: { d: MissionDetail; reload: Reload }) {
         aria-label="Rename the mission"
       >
         <Icon name="pencil" size={12} />
-      </button>
+      </Button>
     </h1>
   );
 }
@@ -523,9 +529,9 @@ function ParkButton({ d, reload }: { d: MissionDetail; reload: Reload }) {
       .finally(() => setBusy(false));
   };
   return (
-    <button className="ghost small" disabled={busy} onClick={run} title={parked ? "Take it off parked" : "Put it aside until you unpark it"}>
+    <Button variant="ghost" size="small" disabled={busy} onClick={run} title={parked ? "Take it off parked" : "Put it aside until you unpark it"}>
       <Icon name={parked ? "play" : "pause"} size={12} /> {parked ? "Unpark" : "Park"}
-    </button>
+    </Button>
   );
 }
 
@@ -611,9 +617,9 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
             return <ArtifactRow key={key} id={`side-${key}`} a={a} compact selected={!!selected(key)} open={openArtifact} />;
           })}
           {d.artifacts.length > sideArtifacts && (
-            <button className="link more-link" onClick={() => go("work")}>
+            <Button variant="link" className="more-link" onClick={() => go("work")}>
               {d.artifacts.length - sideArtifacts} more in Work
-            </button>
+            </Button>
           )}
         </SideSection>
       )}
@@ -659,9 +665,9 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
           <CrewRow key={c.id} c={c} slug={d.slug} />
         ))}
         {d.crew.length > live.length && (
-          <button className="link more-link" onClick={() => go("work")}>
+          <Button variant="link" className="more-link" onClick={() => go("work")}>
             {live.length ? `${d.crew.length - live.length} earlier, in Work` : `${d.crew.length} so far, none on it now: in Work`}
-          </button>
+          </Button>
         )}
         {!d.crew.length && <div className="side-none">Nobody yet.</div>}
       </SideSection>
@@ -740,9 +746,9 @@ function Notices({ d }: { d: MissionDetail }) {
             icon="alert"
             title={signIn ? "The agents' sign-in ends soon" : "The orchestrator's agent warned"}
             actions={
-              <button className="small" onClick={() => dismiss(t)}>
+              <Button size="small" onClick={() => dismiss(t)}>
                 Dismiss
-              </button>
+              </Button>
             }
           >
             <Inline text={t.replace(/^(warning|notice): (\w)/i, (_, _w: string, c: string) => c.toUpperCase())} />
@@ -774,70 +780,70 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
     <>
       <SummaryLead d={d} reload={reload} />
       <Notices d={d} />
-      <dl className="summary">
+      <SummaryList>
         {goal && (
-          <Row label="Goal">
+          <SummaryRow label="Goal">
             <Inline text={goal} />{" "}
-            <button className="link more-link" onClick={() => go("brief")}>
+            <Button variant="link" className="more-link" onClick={() => go("brief")}>
               Brief
-            </button>
-          </Row>
+            </Button>
+          </SummaryRow>
         )}
-        {!led && !full && step && <Row label="Now">{step}</Row>}
+        {!led && !full && step && <SummaryRow label="Now">{step}</SummaryRow>}
         {!led &&
           said.map((c) => (
-            <Row key={c.id} label={`From ${c.id}`}>
+            <SummaryRow key={c.id} label={`From ${c.id}`}>
               <Said text={c.lastReply!} />
-            </Row>
+            </SummaryRow>
           ))}
         {full && d.stages.length > 0 && (
-          <Row label={d.plan ? "Plan" : "Stages"}>
+          <SummaryRow label={d.plan ? "Plan" : "Stages"}>
             <Stepper stages={d.stages} />
-          </Row>
+          </SummaryRow>
         )}
         {full && (
-          <Row label="Work">
+          <SummaryRow label="Work">
             {w.hand.map((x) => (
               <CapsuleCard key={x.key} c={x.c} selected={selected} review={review} />
             ))}
             <span className="dim summary-work">
               {workWords(w, label, d.slug) || "Nothing yet: crew lift a capsule when they start."}{" "}
               {(w.capsules.length > 0 || w.outputs.length > 0) && (
-                <button className="link more-link" onClick={() => go("work")}>
+                <Button variant="link" className="more-link" onClick={() => go("work")}>
                   All of it in Work
-                </button>
+                </Button>
               )}
             </span>
-          </Row>
+          </SummaryRow>
         )}
         {full && live.length > 0 && (
-          <Row label="Crew">
+          <SummaryRow label="Crew">
             {live.map((c) => (
               <CrewRow key={c.id} c={c} slug={d.slug} />
             ))}
-          </Row>
+          </SummaryRow>
         )}
         {d.decisions.some((x) => x.state === "current") && (
-          <Row label="Decided">
+          <SummaryRow label="Decided">
             <Decisions list={d.decisions} limit={summaryDecisions} />
-          </Row>
+          </SummaryRow>
         )}
         {events.length > 0 && (
-          <Row label="Recently">
+          <SummaryRow label="Recently">
             <Events events={events.slice(-recent)} lines={2} />
             {events.length > recent && (
-              <button className="link more-link" onClick={() => go("log")}>
+              <Button variant="link" className="more-link" onClick={() => go("log")}>
                 The whole log ({events.length})
-              </button>
+              </Button>
             )}
-          </Row>
+          </SummaryRow>
         )}
         {d.from && (
-          <Row label="Raised from">
+          <SummaryRow label="Raised from">
             <span className="dim">{d.from}</span>
-          </Row>
+          </SummaryRow>
         )}
-      </dl>
+      </SummaryList>
     </>
   );
 }
@@ -857,7 +863,7 @@ function stepLine(d: MissionDetail): React.ReactNode {
         {waitHow(now) && (
           <span className="lead-wait">
             {" "}
-            · <span className={`chip ${waitHow(now)!.auto ? "tone-progress" : "tone-attention"}`}>{waitHow(now)!.word}</span> <span className="dim">{waitHow(now)!.says}</span>
+            · <Chip tone={waitHow(now)!.auto ? "progress" : "attention"}>{waitHow(now)!.word}</Chip> <span className="dim">{waitHow(now)!.says}</span>
           </span>
         )}
       </>
@@ -914,9 +920,9 @@ function Said({ text }: { text: string }) {
         <Markdown text={text} />
       </div>
       {(long || open) && (
-        <button className="link more-link" onClick={() => setOpen((o) => !o)}>
+        <Button variant="link" className="more-link" onClick={() => setOpen((o) => !o)}>
           {open ? "Show less" : "Show all"}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -1041,9 +1047,9 @@ function More({ text, lines }: { text: string; lines: number }) {
   return (
     <>
       <Inline text={text} lines={open ? undefined : lines} />{" "}
-      <button className="link more-link" onClick={() => setOpen((o) => !o)}>
+      <Button variant="link" className="more-link" onClick={() => setOpen((o) => !o)}>
         {open ? "Less" : "More"}
-      </button>
+      </Button>
     </>
   );
 }
@@ -1069,9 +1075,9 @@ function LaunchCrew({
 }) {
   const others = picks?.allowed ?? [];
   const main = (
-    <button className={primary ? "primary" : ""} disabled={busy} onClick={() => launch()} title={picks && others.length ? `On ${pickName(picks.default)}` : undefined}>
+    <Button variant={primary ? "primary" : undefined} disabled={busy} onClick={() => launch()} title={picks && others.length ? `On ${pickName(picks.default)}` : undefined}>
       <Icon name="play" /> Launch {again ? "new " : ""}crew
-    </button>
+    </Button>
   );
   if (!picks || !others.length) return main;
   const all = [picks.default, ...others];
@@ -1092,7 +1098,7 @@ function LaunchCrew({
                   {p.model ? ` · ${p.model}` : ""}
                 </span>
                 {!p.model && <span className="dim">its own model</span>}
-                {i === 0 && <span className="chip">default</span>}
+                {i === 0 && <Chip>default</Chip>}
               </MenuItem>
             ))}
           </Menu>
@@ -1208,13 +1214,15 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
   }
   const one = (a: MissionAct, i: number) => {
     const accent = a === first;
-    const cls = accent ? "primary" : a.quiet ? "ghost" : undefined;
+    // The first act is the one accented, where the card leads the page: a
+    // notice's first reads as an ordinary button.
+    const variant = accent ? (lead ? "primary" : undefined) : a.quiet ? "ghost" : undefined;
     const inside = (
       <>
         {a.icon && <Icon name={a.icon as IconName} />} {a.label} {lead && a.key && <Keys k={a.key} />}
       </>
     );
-    if (a.do === "launch") return <LaunchCrew key={i} picks={d.crewPicks} primary={accent} again={!accent} busy={busy} launch={(p) => send("launch", { harness: p?.harness, model: p?.model })} />;
+    if (a.do === "launch") return <LaunchCrew key={i} picks={d.crewPicks} primary={accent && lead} again={!accent} busy={busy} launch={(p) => send("launch", { harness: p?.harness, model: p?.model })} />;
     if (a.do === "url") {
       // GitHub hasn't said where it is yet: its words, with nothing to open.
       if (!a.url) {
@@ -1225,7 +1233,7 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
         );
       }
       return (
-        <a key={i} href={a.url} target="_blank" rel="noopener" className={`button-link${accent ? " primary" : ""}`}>
+        <a key={i} href={a.url} target="_blank" rel="noopener" className={buttonClass({ variant: accent && lead ? "primary" : undefined })}>
           {inside} <Icon name="external" size={12} />
         </a>
       );
@@ -1233,7 +1241,7 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
     const href = actHref(d, c, a);
     if (href) {
       return (
-        <Link key={i} to={href} className={`button-link${accent ? " primary" : ""}${a.quiet ? " ghost" : ""}`}>
+        <Link key={i} to={href} className={buttonClass({ variant })}>
           {inside}
         </Link>
       );
@@ -1242,9 +1250,9 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
     // field is beside it.
     if (a.field && !accent) {
       return opened === a ? null : (
-        <button
+        <Button
           key={i}
-          className={cls}
+          variant={variant}
           disabled={busy}
           onClick={() => {
             setWords("");
@@ -1252,13 +1260,13 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
           }}
         >
           {inside}
-        </button>
+        </Button>
       );
     }
     return (
-      <button key={i} type={accent && a.field ? "submit" : "button"} className={cls} disabled={busy || (accent && !!a.field && !a.text && a.do === "answer" && !words.trim() && !opened)} onClick={accent && a.field ? undefined : () => run(a)}>
+      <Button key={i} variant={variant} type={accent && a.field ? "submit" : "button"} disabled={busy || (accent && !!a.field && !a.text && a.do === "answer" && !words.trim() && !opened)} onClick={accent && a.field ? undefined : () => run(a)}>
         {inside}
-      </button>
+      </Button>
     );
   };
   // Words are all the first asks for: the field, then its button.
@@ -1284,7 +1292,7 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
           {acts.length > 1 && <div className="button-row">{acts.slice(1).map((a, i) => one(a, i + 1))}</div>}
         </>
       ) : (
-        <div className="button-row">{acts.map((a, i) => (a === first && a.field ? <button key={i} className="primary" disabled={busy} onClick={() => setOpened(undefined)}>{a.label}…</button> : one(a, i)))}</div>
+        <div className="button-row">{acts.map((a, i) => (a === first && a.field ? <Button variant="primary" key={i} disabled={busy} onClick={() => setOpened(undefined)}>{a.label}…</Button> : one(a, i)))}</div>
       )}
       {opened && (
         <form
@@ -1295,9 +1303,9 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
           }}
         >
           {field(opened, true)}
-          <button type="submit" disabled={busy || (opened.do === "answer" && !opened.text && !words.trim())}>
+          <Button type="submit" disabled={busy || (opened.do === "answer" && !opened.text && !words.trim())}>
             {opened.label.replace(/…$/, "")}
-          </button>
+          </Button>
         </form>
       )}
       {how && <EndDialog d={d} onClose={() => setHow(false)} reload={reload} />}
@@ -1326,7 +1334,7 @@ function HeadlinePrompt({ slug, crew }: { slug: string; crew: CrewDetail }) {
 
 function CrewLink({ slug, id, verb }: { slug: string; id: string; verb: string }) {
   return (
-    <Link to={`/missions/${slug}/crew/${id}`} className="button-link primary">
+    <Link to={`/missions/${slug}/crew/${id}`} className={buttonClass({ variant: "primary" })}>
       <Icon name="message" /> {verb === "watch" ? "Watch" : "Open"} {id}
     </Link>
   );
@@ -1360,9 +1368,9 @@ function QuickReply({ slug, id, reload }: { slug: string; id: string; reload: Re
         }}
       >
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Reply to ${id}…`} aria-label={`Reply to ${id}`} disabled={busy} />
-        <button type="submit" className="primary" disabled={busy || !text.trim()}>
+        <Button variant="primary" type="submit" disabled={busy || !text.trim()}>
           Send
-        </button>
+        </Button>
       </form>
       <Link to={`/missions/${slug}/crew/${id}`} className="more-link">
         Open {id}'s conversation
@@ -1371,14 +1379,6 @@ function QuickReply({ slug, id, reload }: { slug: string; id: string; reload: Re
   );
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="summary-row">
-      <dt>{label}</dt>
-      <dd>{children}</dd>
-    </div>
-  );
-}
 
 // CapsuleCard is a capsule in a line on Summary: its name and branch, where
 // it stands, and a way to review it. The Work tab has the rest.
@@ -1392,17 +1392,17 @@ function CapsuleCard({ c, selected, review }: { c: CapsuleDetail; selected: (k: 
           {c.repo}/{c.name}
         </span>
         {c.branch && c.branch !== c.name && (
-          <span className="chip tone-quiet" title="Its branch">
+          <Chip tone="quiet" title="Its branch">
             <Icon name="branch" size={11} />
             {c.branch}
-          </span>
+          </Chip>
         )}
         <CapsuleBadges c={c} />
         <span className="spacer" />
         {c.exists && (
-          <button className="small" onClick={() => review(c)} title="Review its changes (v)">
+          <Button size="small" onClick={() => review(c)} title="Review its changes (v)">
             <Icon name="eye" /> Review
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -1447,9 +1447,9 @@ function Log({ d, selected, openArtifact, go }: Parts) {
         <div className="log-tools">
           <div className="segmented" role="group" aria-label="Show">
             {logFilters.map((f) => (
-              <button key={f.id} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+              <Button key={f.id} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
                 {f.label}
-              </button>
+              </Button>
             ))}
           </div>
           <input type="text" className="search" placeholder="Search the log" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search the log" />
@@ -1467,9 +1467,9 @@ function Log({ d, selected, openArtifact, go }: Parts) {
           {elsewhere.length < d.crew.length && (
             <>
               Crew are on{" "}
-              <button className="link more-link" onClick={() => go("work")}>
+              <Button variant="link" className="more-link" onClick={() => go("work")}>
                 Work
-              </button>
+              </Button>
               , with the capsule each worked in.{" "}
             </>
           )}
@@ -1478,9 +1478,9 @@ function Log({ d, selected, openArtifact, go }: Parts) {
       )}
       {elsewhere.length > 0 && (
         <section>
-          <h2 className="group">
-            Crew <span className="count">{elsewhere.length}</span>
-          </h2>
+          <GroupHead count={elsewhere.length}>
+            Crew
+          </GroupHead>
           {[...elsewhere].reverse().map((c) => (
             <div key={c.id} className="crew-detail">
               <CrewRow c={c} slug={d.slug} detail />

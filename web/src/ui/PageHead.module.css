@@ -1,0 +1,32 @@
+/* A page's head (PageHead.tsx): its title, what's beside it, and its
+   actions at the right. */
+
+@layer ui {
+  .head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: var(--space-5);
+    min-height: 28px;
+  }
+
+  .head h1 {
+    font-size: var(--text-xl);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+
+  .actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  @media print {
+    .actions {
+      display: none !important;
+    }
+  }
+}

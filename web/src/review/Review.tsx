@@ -44,6 +44,9 @@ import { useReviewPasses } from "../reviews/usePasses";
 import { type FileGroup, groupByOrder, type Order, orderFiles, skimWords } from "./files";
 import { type Cell, cellHTML, type Editing, type FileState, type Found, fileRows, type Highlighted, isChange, isHead, navigable, type Placed, type Row, sameLine, type Target } from "./model";
 import { useLatest } from "../load";
+import { Chip } from "../ui/Chip";
+import { Button, buttonClass } from "../ui/Button";
+import { capital } from "../ui/text";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -1047,9 +1050,9 @@ export function ReviewView({ source }: { source: ReviewSource }) {
           {diff && (
             <span className="review-scope">
               {sinceShown ? (
-                <span className="chip tone-attention" title={diff.since ? `What's changed since ${sinceName}, at ${diff.since.slice(0, 7)}` : `Each file's change, compared with what you reviewed (${sinceName})`}>
+                <Chip tone="attention" title={diff.since ? `What's changed since ${sinceName}, at ${diff.since.slice(0, 7)}` : `Each file's change, compared with what you reviewed (${sinceName})`}>
                   <Icon name="rotate" size={11} /> Since {sinceName}
-                </span>
+                </Chip>
               ) : null}
               <span className="dim">
                 {diff.commits.length} {diff.commits.length === 1 ? "commit" : "commits"}
@@ -1062,41 +1065,41 @@ export function ReviewView({ source }: { source: ReviewSource }) {
           )}
           <span className="review-actions">
             {changes && diff && sinceable !== undefined && (
-              <button className="ghost small" onClick={toggleSince} title="Switch between what's changed since your last review and all of it (i)">
+              <Button variant="ghost" size="small" onClick={toggleSince} title="Switch between what's changed since your last review and all of it (i)">
                 {sinceShown ? "Show all changes" : `Only since ${sinceName}`} <Keys k="i" />
-              </button>
+              </Button>
             )}
             {source.actions}
             {source.browse && (
-              <Link to={source.browse} className="button-link small-link desktop-only" title="Browse its files, as they are now">
+              <Link to={source.browse} className={buttonClass({ size: "small" }, "desktop-only")} title="Browse its files, as they are now">
                 <Icon name="file" size={12} /> Browse files
               </Link>
             )}
-            <button className="ghost small mobile-only" onClick={() => setFinder(true)} title="Jump to a file (t)">
+            <Button variant="ghost" size="small" className="mobile-only" onClick={() => setFinder(true)} title="Jump to a file (t)">
               <Icon name="file" size={13} /> Files
-            </button>
+            </Button>
             {changes && (
               <div className="segmented desktop-only" role="group" aria-label="Diff layout">
-                <button aria-pressed={!split} onClick={() => split && toggleSplit()} title="Unified (u)">
+                <Button aria-pressed={!split} onClick={() => split && toggleSplit()} title="Unified (u)">
                   <Icon name="unified" size={13} /> Unified
-                </button>
-                <button aria-pressed={split} onClick={() => !split && toggleSplit()} title="Side by side (u)">
+                </Button>
+                <Button aria-pressed={split} onClick={() => !split && toggleSplit()} title="Side by side (u)">
                   <Icon name="split" size={13} /> Split
-                </button>
+                </Button>
               </div>
             )}
-            <button className="primary submit-button" onClick={submit} disabled={!!source.readOnly} title={source.readOnly ?? "Submit the review (s)"}>
+            <Button variant="primary" className="submit-button" onClick={submit} disabled={!!source.readOnly} title={source.readOnly ?? "Submit the review (s)"}>
               {draft ? `Submit review · ${draft.comments.length}` : "Submit review"} <Keys k="s" />
-            </button>
+            </Button>
           </span>
         </header>
         {entries.length > 0 && (
           <nav className="review-tabs mobile-only" aria-label="Views">
             {[...entries, { key: "changes", ...viewNames.changes, n: viewKeys.length, news: undefined }].map((v) => (
-              <button key={v.key} className={`ghost small${view === v.key ? " on" : ""}`} aria-pressed={view === v.key} onClick={() => show(v.key as ViewKey)}>
+              <Button variant="ghost" size="small" key={v.key} className={view === v.key ? "on" : undefined} aria-pressed={view === v.key} onClick={() => show(v.key as ViewKey)}>
                 <Icon name={v.icon} size={12} /> {v.label}
                 {v.news && <span className="fnews" aria-label={v.news} />}
-              </button>
+              </Button>
             ))}
           </nav>
         )}
@@ -1134,7 +1137,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
             </span>
           </div>
         )}
-        {moved && <Callout tone="attention" title={source.movedWords} actions={<button onClick={reload}>Reload <Keys k="r" /></button>} />}
+        {moved && <Callout tone="attention" title={source.movedWords} actions={<Button onClick={reload}>Reload <Keys k="r" /></Button>} />}
         {error && <div className="banner">{humanError(error)}</div>}
         {parts.map((p) => (
           <section key={p.key} className={`review-view view-body view-${p.key}`} hidden={view !== p.key} aria-label={viewNames[p.key].label}>
@@ -1386,7 +1389,7 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
   return (
     <section id={`file-${index}`} className={`file${state.viewed ? " viewed" : ""}${state.folded && !state.viewed ? " folded" : ""}`}>
       <div id={`row-${index}`} className={`file-head ${cursor === `${index}` ? "cursor" : ""}`} onClick={() => onRow(`${index}`)}>
-        <span className={`fstatus s-${file.status}`}>{file.status[0].toUpperCase() + file.status.slice(1)}</span>
+        <span className={`fstatus s-${file.status}`}>{capital(file.status)}</span>
         <span className="mono">
           {file.oldPath && <span className="dim">{file.oldPath} → </span>}
           {file.path}
@@ -1396,18 +1399,19 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
           {file.deletions > 0 && <span className="minus">−{file.deletions}</span>}
         </span>
         {state.unchanged && (
-          <button
-            className="ghost small unchanged-mark"
+          <Button
+            variant="ghost" size="small"
+            className="unchanged-mark"
             onClick={(e) => (e.stopPropagation(), onFold(index))}
             title="Its change is the same as when you reviewed it: a rebase moved it, and nothing else"
           >
             <Icon name="check" size={11} /> Unchanged since you reviewed · {state.folded ? "show" : "hide"}
-          </button>
+          </Button>
         )}
         {file.skim && !state.unchanged && (
-          <button className="ghost small skim-mark" onClick={(e) => (e.stopPropagation(), onFold(index))} title="It's one to skim, so it's folded: it still counts until you mark it viewed">
+          <Button variant="ghost" size="small" className="skim-mark" onClick={(e) => (e.stopPropagation(), onFold(index))} title="It's one to skim, so it's folded: it still counts until you mark it viewed">
             {skimWords[file.skim]} · {state.folded ? "show" : "hide"}
-          </button>
+          </Button>
         )}
         <label className="viewed-box" onClick={(e) => e.stopPropagation()}>
           <input type="checkbox" checked={state.viewed} onChange={() => onActivate({ type: "file", key: `${index}`, file: index })} />
@@ -1460,14 +1464,14 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
                     <div className="select-bar" onClick={(e) => e.stopPropagation()}>
                       <span>{selectionLabel}</span>
                       {onComment && (
-                        <button className="primary" onMouseDown={(e) => e.preventDefault()} onClick={onComment}>
+                        <Button variant="primary" onMouseDown={(e) => e.preventDefault()} onClick={onComment}>
                           Comment <kbd>c</kbd>
-                        </button>
+                        </Button>
                       )}
                       {onAsk && (
-                        <button onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask an agent about these lines, with the code checked out here">
+                        <Button onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask an agent about these lines, with the code checked out here">
                           Ask <kbd>a</kbd>
-                        </button>
+                        </Button>
                       )}
                       <span className="dim">
                         <kbd>esc</kbd> clears
@@ -1618,7 +1622,7 @@ function NoteCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, follo
       onClick={() => onRow(row.key)}
     >
       <div className="note-head">
-        {note.kind ? <span className={`kind k-${note.kind}`}>{note.kind[0].toUpperCase() + note.kind.slice(1)}</span> : <span className="kind k-none">Comment</span>}
+        {note.kind ? <span className={`kind k-${note.kind}`}>{capital(note.kind)}</span> : <span className="kind k-none">Comment</span>}
         {note.by && (
           <span className="note-by" title={note.by === "agent" ? "An agent proposed it, and you added it to your review: it's yours to edit" : `${note.by} on GitHub`}>
             <Icon name={note.by === "agent" ? "sparkle" : "user"} size={11} /> {note.by === "agent" ? "Agent's" : note.by}
@@ -1645,13 +1649,14 @@ function NoteCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, follo
           </span>
         )}
         {!draft && (
-          <button
-            className="ghost small note-toggle"
+          <Button
+            variant="ghost" size="small"
+            className="note-toggle"
             onClick={(e) => (e.stopPropagation(), onRow(row.key), onAnswer(note.id, resolved ? "reopen" : "resolve"))}
             title={`${resolved ? "Reopen" : "Resolve"} (x)`}
           >
             {resolved ? "Reopen" : "Resolve"}
-          </button>
+          </Button>
         )}
       </div>
       {row.unplaced && note.excerpt?.length > 0 && !(resolved && !cursor) && (
@@ -1749,7 +1754,7 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
       <div className="note-head">
         {noteKinds.map((k) => (
           <button key={k} className={`kind k-${k}${k === kind ? " on" : ""}`} onClick={() => setKind(k)} aria-pressed={k === kind}>
-            {k[0].toUpperCase() + k.slice(1)}
+            {capital(k)}
           </button>
         ))}
         <span className="dim">
@@ -1778,16 +1783,16 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
         }}
       />
       <div className="note-actions">
-        <button onClick={suggest} disabled={suggestionBlock.test(text)}>
+        <Button onClick={suggest} disabled={suggestionBlock.test(text)}>
           Suggest a change
-        </button>
+        </Button>
         <span className="spacer-left" />
-        <button onClick={onCancel}>
+        <Button onClick={onCancel}>
           Cancel <kbd>esc</kbd>
-        </button>
-        <button className="primary" onClick={save}>
+        </Button>
+        <Button variant="primary" onClick={save}>
           {note ? "Save" : "Comment"} <kbd>⌘⏎</kbd>
-        </button>
+        </Button>
       </div>
     </div>
   );

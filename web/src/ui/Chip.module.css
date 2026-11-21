@@ -1,0 +1,30 @@
+/* A chip (Chip.tsx): a word or two in a pill, beside what it's about. */
+
+@layer ui {
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font: 500 var(--text-xs) / 18px var(--font);
+    padding: 0 7px;
+    border-radius: 999px;
+    color: var(--dim);
+    background: var(--well);
+    white-space: nowrap;
+    /* It's a few words that don't wrap: in a row of things, it doesn't
+       give way either. */
+    flex: none;
+  }
+
+  /* In a tone: the tone-<tone> class beside this one sets the colours. */
+  .toned {
+    color: var(--tone);
+    background: var(--tone-soft);
+  }
+
+  .chip :global(.icon) {
+    width: 12px;
+    height: 12px;
+    vertical-align: 0;
+  }
+}

@@ -13,6 +13,10 @@ import { Icon, type IconName } from "../ui/Icon";
 import { Callout, Copyable, Empty, ErrorCard, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
 import { useLoaded } from "../load";
 import { TabbedBrowser } from "./WorktreeTabs";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
+import { Button, buttonClass } from "../ui/Button";
+import { GroupHead } from "../ui/GroupHead";
 
 // The file explorer: a capsule's files as they are now, without an editor
 // open. A tree on the left (everything, or only what's changed since the
@@ -527,21 +531,21 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
                       </span>
                     ) : (
                       <div className="segmented" role="group" aria-label="Show">
-                        <button aria-pressed={changedOnly} onClick={() => setChangedOnly(true)} title="Only what's changed since the branch point (c)" disabled={!tree?.base}>
-                          Changed <span className="count">{changed.length}</span>
-                        </button>
-                        <button aria-pressed={!changedOnly} onClick={() => setChangedOnly(false)} title="Every file (c)">
-                          All <span className="count">{files.length}</span>
-                        </button>
+                        <Button aria-pressed={changedOnly} onClick={() => setChangedOnly(true)} title="Only what's changed since the branch point (c)" disabled={!tree?.base}>
+                          Changed <Count>{changed.length}</Count>
+                        </Button>
+                        <Button aria-pressed={!changedOnly} onClick={() => setChangedOnly(false)} title="Every file (c)">
+                          All <Count>{files.length}</Count>
+                        </Button>
                       </div>
                     )}
-                    <button className="ghost icon-button small" onClick={() => setFinder(true)} title="Find a file (t)" aria-label="Find a file">
+                    <Button variant="ghost" size="small" square onClick={() => setFinder(true)} title="Find a file (t)" aria-label="Find a file">
                       <Icon name="search" size={14} />
-                    </button>
+                    </Button>
                     {search && (
-                      <button className="ghost icon-button small" onClick={() => setSearching(true)} title="Search what the files say (⌘⇧F)" aria-label="Search what the files say">
+                      <Button variant="ghost" size="small" square onClick={() => setSearching(true)} title="Search what the files say (⌘⇧F)" aria-label="Search what the files say">
                         <Icon name="code" size={14} />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -571,7 +575,7 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
               <section className="explorer-file" aria-label="File">
                 {missing ? (
                   <div className="explorer-overview">
-                    <Empty icon="file" title="Not here" action={<button onClick={() => setParams(changedOnly ? { only: "changed" } : {})}>Pick another file</button>}>
+                    <Empty icon="file" title="Not here" action={<Button onClick={() => setParams(changedOnly ? { only: "changed" } : {})}>Pick another file</Button>}>
                       There's no <span className="mono">{path}</span> in {label}.
                     </Empty>
                   </div>
@@ -677,27 +681,27 @@ function Overview({ tree, changed, onOpen, onFind }: { tree?: FileTree; changed:
         icon="file"
         title="Pick a file"
         action={
-          <button onClick={onFind}>
+          <Button onClick={onFind}>
             <Icon name="search" /> Find a file <Keys k="t" />
-          </button>
+          </Button>
         }
       >
         {tree.files.length} files{tree.base ? `; ${changed.length} changed since the capsule left ${tree.baseRef.replace(/^origin\//, "")}` : ""}.
       </Empty>
       {changed.length > 0 && (
         <section>
-          <h2 className="group">
-            Changed <span className="count">{changed.length}</span>
-          </h2>
+          <GroupHead count={changed.length}>
+            Changed
+          </GroupHead>
           <ul className="overview-changed">
             {changed.slice(0, 40).map((f) => (
               <li key={f.path}>
-                <button className="link" onClick={() => onOpen(f.path)}>
+                <Button variant="link" className="overview-file" onClick={() => onOpen(f.path)}>
                   <StatusMark f={f} />
                   <FileIcon path={f.path} />
                   <span className="mono">{f.path}</span>
-                  {f.uncommitted && <span className="chip tone-attention">Not committed</span>}
-                </button>
+                  {f.uncommitted && <Chip tone="attention">Not committed</Chip>}
+                </Button>
               </li>
             ))}
           </ul>
@@ -768,17 +772,17 @@ function FilePane({
     <div className="file-pane">
       <header className="file-pane-head">
         {onBack && (
-          <button className="ghost icon-button" onClick={onBack} aria-label="Back to the files">
+          <Button variant="ghost" square onClick={onBack} aria-label="Back to the files">
             <Icon name="arrow-left" size={15} />
-          </button>
+          </Button>
         )}
         <div className="file-crumbs" title={path}>
           {parts.map((p, i) =>
             i < parts.length - 1 ? (
               <span key={i}>
-                <button className="link" onClick={() => onReveal(parts.slice(0, i + 1).join("/"))}>
+                <Button variant="link" className="crumb" onClick={() => onReveal(parts.slice(0, i + 1).join("/"))}>
                   {p}
-                </button>
+                </Button>
                 <span className="sep">/</span>
               </span>
             ) : (
@@ -795,21 +799,21 @@ function FilePane({
         <div className="file-pane-tools">
           {md && file && !file.binary && !file.tooLarge && (
             <div className="segmented" role="group" aria-label="Markdown">
-              <button aria-pressed={preview} onClick={() => setPreview(() => true)} title="Rendered (m)">
+              <Button aria-pressed={preview} onClick={() => setPreview(() => true)} title="Rendered (m)">
                 Rendered
-              </button>
-              <button aria-pressed={!preview} onClick={() => setPreview(() => false)} title="As text (m)">
+              </Button>
+              <Button aria-pressed={!preview} onClick={() => setPreview(() => false)} title="As text (m)">
                 Text
-              </button>
+              </Button>
             </div>
           )}
           {docTo && file && !file.binary && !file.tooLarge && !file.deleted && (
-            <Link to={docTo} className="button-link small-link" title="Edit it as a page: cells, questions and passes, and saved back to the repo when you say (⏎)">
+            <Link to={docTo} className={buttonClass({ size: "small" })} title="Edit it as a page: cells, questions and passes, and saved back to the repo when you say (⏎)">
               <Icon name="pencil" size={12} /> Edit as a page <Keys k="⏎" />
             </Link>
           )}
           {reviewTo && entry?.status && entry.status !== "added" && (
-            <Link to={reviewTo} className="button-link small-link" title="Review the capsule's changes (v)">
+            <Link to={reviewTo} className={buttonClass({ size: "small" })} title="Review the capsule's changes (v)">
               <Icon name="eye" size={12} /> Changes
             </Link>
           )}
@@ -817,14 +821,14 @@ function FilePane({
       </header>
       <div className="file-meta">
         {entry?.status ? (
-          <span className={`chip tone-${entry.status === "deleted" ? "danger" : entry.status === "added" ? "done" : "attention"}`}>
+          <Chip tone={entry.status === "deleted" ? "danger" : entry.status === "added" ? "done" : "attention"}>
             {statusWords[entry.status]} since {base}
-          </span>
+          </Chip>
         ) : (
-          base && <span className="chip tone-quiet">Unchanged since {base}</span>
+          base && <Chip tone="quiet">Unchanged since {base}</Chip>
         )}
         {entry?.oldPath && <span className="dim">from {entry.oldPath}</span>}
-        {entry?.uncommitted && <span className="chip tone-attention">Not committed</span>}
+        {entry?.uncommitted && <Chip tone="attention">Not committed</Chip>}
         {file && image && !file.deleted && <span className="dim num">{sizeWords(file.size)}</span>}
         {file && !image && !file.binary && !file.tooLarge && (
           <span className="dim num">

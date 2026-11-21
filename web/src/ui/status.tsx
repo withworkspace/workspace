@@ -1,5 +1,6 @@
 import type { Crew, Headline, MissionState } from "../api";
 import { Icon, type IconName } from "./Icon";
+import { capital } from "./text";
 
 // Status is one look for where something stands, used wherever a status
 // shows: an icon and a word, coloured by what it asks of you, not by hue.
@@ -22,8 +23,6 @@ export interface StatusInfo {
 // stripGlyph drops the glyph a headline's label starts with
 // ("? asks", "↻ re-review"): the web shows an icon instead.
 export const stripGlyph = (label: string) => label.replace(/^[^\p{L}\p{N}]+\s+/u, "");
-
-const capital = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 const byKind: Record<string, Omit<StatusInfo, "words"> & { words?: string }> = {
   // your court

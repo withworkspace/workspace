@@ -33,6 +33,10 @@ import { exact, stamp } from "../ui/time";
 import { BLOCK, blockLike, blockLines, blockSpan, blockWithLines, buildIndex, find, offsetOf, rangeOf, type Target, type TextIndex, targetOf, targetOfRange } from "./anchor";
 import { changes } from "./diff";
 import { useLatest, useLoaded } from "../load";
+import { Chip } from "../ui/Chip";
+import { Button } from "../ui/Button";
+import { clip } from "../ui/text";
+import { pageScroller } from "../ui/scroller";
 
 // Commenting on a document, as in a shared doc: you read it rendered,
 // highlight text and comment on it, and the comment is a thread, live at
@@ -132,8 +136,6 @@ function stack(want: { id: string; top: number }[], height: (id: string) => numb
   return Object.fromEntries(want.map((w, i) => [w.id, Math.round(pos[i] + lift)]));
 }
 
-const scroller = () => document.querySelector("main");
-
 function caretAt(x: number, y: number): { node: Node; offset: number } | undefined {
   const p = document.caretPositionFromPoint?.(x, y);
   if (p) return { node: p.offsetNode, offset: p.offset };
@@ -141,7 +143,6 @@ function caretAt(x: number, y: number): { node: Node; offset: number } | undefin
   return r ? { node: r.startContainer, offset: r.startOffset } : undefined;
 }
 
-const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n).trimEnd() + "…" : s);
 const linesWord = (n: { line: number; endLine: number }) => (n.endLine > n.line ? `lines ${n.line}–${n.endLine}` : `line ${n.line}`);
 const num = (id: string) => Number(id.slice(1));
 
@@ -442,7 +443,7 @@ export function AnnotatedDoc({
   const stale = !!st && st.version !== artifact.version;
 
   const reveal = (p: Placed) => {
-    const main = scroller();
+    const main = pageScroller();
     const r = p.spot ? spotRect(p.spot) : document.getElementById(`thread-${p.thread.id}`)?.getBoundingClientRect();
     if (!main || !r) return;
     const m = main.getBoundingClientRect();
@@ -462,7 +463,7 @@ export function AnnotatedDoc({
   };
   // The first thread below the top of the page, for n with none in focus.
   const firstInView = () => {
-    const top = scroller()?.getBoundingClientRect().top ?? 0;
+    const top = pageScroller()?.getBoundingClientRect().top ?? 0;
     const i = nav.findIndex((p) => !p.spot || (spotRect(p.spot)?.top ?? 0) >= top);
     return i >= 0 ? i : 0;
   };
@@ -470,13 +471,13 @@ export function AnnotatedDoc({
     if (!blocks.length) return;
     let to: number;
     if (!cursor) {
-      const top = scroller()?.getBoundingClientRect().top ?? 0;
+      const top = pageScroller()?.getBoundingClientRect().top ?? 0;
       to = Math.max(0, blocks.findIndex((b) => b.getBoundingClientRect().bottom > top + 8));
     } else to = Math.min(Math.max(cursor.to + step, 0), blocks.length - 1);
     setCursor({ from: extend && cursor ? cursor.from : to, to });
     setActive(undefined);
     const r = blocks[to].getBoundingClientRect();
-    const main = scroller();
+    const main = pageScroller();
     const m = main?.getBoundingClientRect();
     if (main && m && (r.top < m.top + 40 || r.bottom > m.bottom - 40)) main.scrollBy({ top: step > 0 ? r.bottom - m.bottom + 80 : r.top - m.top - 80 });
   };
@@ -760,51 +761,51 @@ export function AnnotatedDoc({
       <div className="annotate-bar">
         <span className="annotate-counts">
           {open.length > 0 && (
-            <span className="chip tone-quiet">
+            <Chip tone="quiet">
               <Icon name="message" size={11} /> {open.length} open
-            </span>
+            </Chip>
           )}
           {waiting.length > 0 && (
-            <span className="chip tone-attention">
+            <Chip tone="attention">
               <Icon name="reply" size={11} /> {waiting.length} your turn
-            </span>
+            </Chip>
           )}
           {answering.length > 0 && (
-            <span className="chip tone-progress">
+            <Chip tone="progress">
               <Icon name="spinner" size={11} className="spin" /> {answering.length} answering
-            </span>
+            </Chip>
           )}
           {drafts.length > 0 && (
-            <span className="chip tone-attention">
+            <Chip tone="attention">
               <Icon name="gavel" size={11} /> {drafts.length} {drafts.length === 1 ? "decision" : "decisions"} to record
-            </span>
+            </Chip>
           )}
         </span>
         <span className="spacer-left" />
         {!own && toSend.length > 1 && (
-          <button
+          <Button
             disabled={sending || stale}
             onClick={() => sendToCrew(toSend.map((t) => t.id))}
             title={`Hand ${toSend.map((t) => t.id).join(", ")} to crew: the crew that wrote it, or fresh crew in its capsule`}
           >
             Send {toSend.length} changes to crew
-          </button>
+          </Button>
         )}
         {since && diff.length > 0 && (
-          <button className="ghost small" onClick={() => setShowChanges((v) => !v)} aria-pressed={showChanges} title="Show or hide what's changed since you commented (i)">
+          <Button variant="ghost" size="small" onClick={() => setShowChanges((v) => !v)} aria-pressed={showChanges} title="Show or hide what's changed since you commented (i)">
             <Icon name="eye" size={13} /> {showChanges ? "Hide changes" : "Show changes"} <Keys k="i" />
-          </button>
+          </Button>
         )}
         {own ? null : approvedNow ? (
-          <span className="chip tone-done approved" title={`You approved this version ${exact(approved.at)}`}>
+          <Chip tone="done" className="approved" title={`You approved this version ${exact(approved.at)}`}>
             <Icon name="check-circle" size={12} /> Approved
-          </span>
+          </Chip>
         ) : (
           <>
             {approved && <span className="dim approved-before">You approved an earlier version</span>}
-            <button className={open.some((t) => t.kind === "change") ? "" : "primary"} disabled={approving || stale} onClick={approve} title="Approve the document as it is (⇧A)">
+            <Button variant={open.some((t) => t.kind === "change") ? undefined : "primary"} disabled={approving || stale} onClick={approve} title="Approve the document as it is (⇧A)">
               <Icon name="check" size={13} /> {approved ? "Approve again" : "Approve"} <Keys k="⇧A" />
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -814,12 +815,12 @@ export function AnnotatedDoc({
           title="Approved"
           actions={
             <>
-              <button className="primary" onClick={acceptStage}>
+              <Button variant="primary" onClick={acceptStage}>
                 Accept stage {stage.n}
-              </button>
-              <button className="ghost" onClick={() => setOfferDismissed(true)}>
+              </Button>
+              <Button variant="ghost" onClick={() => setOfferDismissed(true)}>
                 Not now
-              </button>
+              </Button>
             </>
           }
         >
@@ -831,9 +832,9 @@ export function AnnotatedDoc({
           tone="attention"
           title="This document has changed since it loaded"
           actions={
-            <button onClick={onChanged}>
+            <Button onClick={onChanged}>
               Reload <Keys k="r" />
-            </button>
+            </Button>
           }
         >
           New threads wait until you've seen the latest.
@@ -997,8 +998,8 @@ export function AnnotatedDoc({
           <div className="sheet" role="dialog" aria-modal="true" aria-label={composing ? "New comment" : "Thread"}>
             <div className="sheet-head">
               <span className="sheet-grip" aria-hidden />
-              <button
-                className="ghost icon-button small"
+              <Button
+                variant="ghost" size="small" square
                 onClick={() => {
                   setSheet(undefined);
                   setComposing(undefined);
@@ -1006,7 +1007,7 @@ export function AnnotatedDoc({
                 aria-label="Close"
               >
                 <Icon name="x" size={14} />
-              </button>
+              </Button>
             </div>
             {composing ? (
               <Composer pick={composing} onPost={post} onCancel={() => setComposing(undefined)} />
@@ -1063,24 +1064,24 @@ function ThreadCard({ thread, active, hovered, replying, unplaced, onFocus, onHo
       onMouseLeave={() => onHover(false)}
     >
       <div className="note-head">
-        <span className={`chip kind-chip k-${thread.kind}`}>
+        <Chip className={`kind-chip k-${thread.kind}`}>
           <Icon name={kindIcon[thread.kind]} size={11} />
           {kindWords[thread.kind]}
-        </span>
+        </Chip>
         {resolved ? (
-          <span className="chip tone-done">
+          <Chip tone="done">
             <Icon name="check" size={11} /> Resolved
-          </span>
+          </Chip>
         ) : crew ? (
-          <span className="chip tone-progress">{crew} is on it</span>
+          <Chip tone="progress">{crew} is on it</Chip>
         ) : yours ? (
-          <span className="chip tone-attention">Your turn</span>
+          <Chip tone="attention">Your turn</Chip>
         ) : null}
         <span className="spacer-left" />
         <span className="note-id">{thread.id}</span>
-        <button className="ghost small note-toggle" onClick={(e) => (e.stopPropagation(), onFocus(), onToggle())} title={`${resolved ? "Reopen" : "Resolve"} (x)`}>
+        <Button variant="ghost" size="small" className="note-toggle" onClick={(e) => (e.stopPropagation(), onFocus(), onToggle())} title={`${resolved ? "Reopen" : "Resolve"} (x)`}>
           {resolved ? "Reopen" : "Resolve"}
-        </button>
+        </Button>
       </div>
       {folded ? (
         <div className="note-body dim one-line">{first?.body}</div>
@@ -1127,26 +1128,26 @@ function ThreadCard({ thread, active, hovered, replying, unplaced, onFocus, onHo
           {thread.draft?.state === "recorded" && thread.draft.decision && <div className="dim settled">Recorded as {thread.draft.decision}</div>}
           {!own && resolved && !thread.draft && !thread.answering && active && !deciding && (
             <div className="dim reply-hint">
-              <button className="link" onClick={(e) => (e.stopPropagation(), setDeciding(true))}>
+              <Button variant="link" className="reply-hint-action" onClick={(e) => (e.stopPropagation(), setDeciding(true))}>
                 Record what was decided
-              </button>
+              </Button>
             </div>
           )}
           {deciding && !thread.draft && <DecisionCard onDecide={(d) => onDecide(d).then(() => setDeciding(false))} onCancel={() => setDeciding(false)} />}
           {!replying && active && (
             <div className="dim reply-hint">
-              <button className="link" onClick={(e) => (e.stopPropagation(), onReply())}>
+              <Button variant="link" className="reply-hint-action" onClick={(e) => (e.stopPropagation(), onReply())}>
                 <Icon name="reply" size={12} /> Reply <Keys k="⏎" />
-              </button>
+              </Button>
               {sendable && (
-                <button
-                  className="link"
+                <Button
+                  variant="link"
                   disabled={sending}
                   title="Too big for an edit: hand it to crew (the crew that wrote it, or fresh crew in its capsule)"
                   onClick={(e) => (e.stopPropagation(), onSend())}
                 >
                   Send to crew
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -1187,9 +1188,9 @@ function EditCard({
         </div>
       )}
       <div className="note-actions">
-        <button className="link see-applied" onClick={onPreview} title="See it in the document, as a tracked change (v)">
+        <Button variant="link" className="see-applied" onClick={onPreview} title="See it in the document, as a tracked change (v)">
           <Icon name="eye" size={12} /> See it in place
-        </button>
+        </Button>
         <span className="spacer-left" />
         {settling ? (
           <span className="dim busy">
@@ -1197,12 +1198,12 @@ function EditCard({
           </span>
         ) : (
           <>
-            <button className="ghost small" disabled={settling} onClick={() => onSettle("decline")} title="Decline it (d)">
+            <Button variant="ghost" size="small" disabled={settling} onClick={() => onSettle("decline")} title="Decline it (d)">
               Decline {active && <Keys k="d" />}
-            </button>
-            <button className="primary small" disabled={settling} onClick={() => onSettle("accept")} title={landing ? `Accept it, and land it on ${landing} (a)` : "Accept it (a)"}>
+            </Button>
+            <Button variant="primary" size="small" disabled={settling} onClick={() => onSettle("accept")} title={landing ? `Accept it, and land it on ${landing} (a)` : "Accept it (a)"}>
               {landing ? `Land it on ${landing}` : "Accept"} {active && <Keys k="a" />}
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -1245,17 +1246,17 @@ function DecisionCard({
       <div className="note-actions">
         <span className="spacer-left" />
         {draft ? (
-          <button className="ghost small" disabled={busy} onClick={() => run({ action: "skip" })}>
+          <Button variant="ghost" size="small" disabled={busy} onClick={() => run({ action: "skip" })}>
             Skip
-          </button>
+          </Button>
         ) : (
-          <button className="ghost small" onClick={onCancel}>
+          <Button variant="ghost" size="small" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
         )}
-        <button className="primary small" disabled={busy || !what.trim()} onClick={() => run({ action: "record", what, why })} title="Record it (⌘⏎)">
+        <Button variant="primary" size="small" disabled={busy || !what.trim()} onClick={() => run({ action: "record", what, why })} title="Record it (⌘⏎)">
           Record
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -1344,21 +1345,21 @@ function Composer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: Threa
       )}
       {error && <div className="banner">{humanError(error)}</div>}
       {pick.quote.exact && edit === undefined && (
-        <button className="link suggest-link" onClick={suggest}>
+        <Button variant="link" className="suggest-link" onClick={suggest}>
           <Icon name="pencil" size={12} /> Suggest an edit instead
-        </button>
+        </Button>
       )}
       <div className="note-actions">
         <span className="dim composer-tip">
           <Keys k="tab" /> kind
         </span>
         <span className="spacer-left" />
-        <button className="ghost small" onClick={onCancel} title="Cancel (esc)">
+        <Button variant="ghost" size="small" onClick={onCancel} title="Cancel (esc)">
           Cancel
-        </button>
-        <button className="primary small" onClick={post} disabled={edit !== undefined ? edit === pick.quote.exact : !text.trim()} title="Post it (⌘⏎)">
+        </Button>
+        <Button variant="primary" size="small" onClick={post} disabled={edit !== undefined ? edit === pick.quote.exact : !text.trim()} title="Post it (⌘⏎)">
           {edit !== undefined ? "Suggest" : "Comment"}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -1372,9 +1373,9 @@ function ChangePop({ top, old, added, onClose }: { top: number; old: string[]; a
       <div className="note-head">
         <span className="dim">{text ? "When you last commented, this read:" : "Added since you last commented."}</span>
         <span className="spacer-left" />
-        <button className="ghost icon-button small" onClick={onClose} title="Close (esc)" aria-label="Close">
+        <Button variant="ghost" size="small" square onClick={onClose} title="Close (esc)" aria-label="Close">
           <Icon name="x" size={12} />
-        </button>
+        </Button>
       </div>
       {text && <pre className="was">{text}</pre>}
       {!added && <div className="dim">Removed since.</div>}

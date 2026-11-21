@@ -1,0 +1,21 @@
+/* A count (Count.tsx): how many, in a small pill beside what it counts. */
+
+@layer ui {
+  .count {
+    display: inline-block;
+    min-width: 18px;
+    padding: 0 5px;
+    font: 600 var(--text-xs) / 16px var(--font);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    border-radius: 999px;
+    color: var(--dim);
+    background: var(--well);
+  }
+
+  /* Of things that need you: filled, so it's seen from across the page. */
+  .attention {
+    color: #fff;
+    background: var(--attention-fill);
+  }
+}

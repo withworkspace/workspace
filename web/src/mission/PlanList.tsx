@@ -7,6 +7,8 @@ import { crewStatus } from "../ui/status";
 import { duration, stamp } from "../ui/time";
 import { CrewBadge, crewHue, MissionData, StepChecks, StepLimit, StepRuns } from "./parts";
 import { checksUnmet, foldNote, passedUnmet, planWindow, stepBundle, stepKind, stepText, stepTimes, stepYours, type StepTime, waitHow, type WaitHow, watchWords, worthOpening } from "./planRows";
+import { Chip } from "../ui/Chip";
+import { capital } from "../ui/text";
 
 // PlanList is the mission's plan (or its brief's stages) in its details: a
 // row a step, with how it stands, its number and name, and its kind at
@@ -232,13 +234,13 @@ function StepNow({ s, d }: { s: Stage; d?: MissionDetail }) {
   );
 }
 
-const upperFirst = (t: string) => (t.startsWith("ws ") ? t : t[0].toUpperCase() + t.slice(1));
+const upperFirst = (t: string) => (t.startsWith("ws ") ? t : capital(t));
 
 // WaitLine says how a Wait is passed: watched by ws, or not at all.
 function WaitLine({ how }: { how: WaitHow }) {
   return (
     <div className="plan-line plan-wait-how">
-      <span className={`chip ${how.auto ? "tone-progress" : "tone-attention"}`}>{how.word}</span>
+      <Chip tone={how.auto ? "progress" : "attention"}>{how.word}</Chip>
       <span>{how.says}</span>
     </div>
   );
@@ -316,7 +318,7 @@ function StepCard({ s, of, d, time }: { s: Stage; of: number; d?: MissionDetail;
     "Passed by",
     how && s.state !== "accepted" && (
       <>
-        <span className={`chip ${how.auto ? "tone-progress" : "tone-attention"}`}>{how.word}</span> {how.says}
+        <Chip tone={how.auto ? "progress" : "attention"}>{how.word}</Chip> {how.says}
       </>
     ),
   );

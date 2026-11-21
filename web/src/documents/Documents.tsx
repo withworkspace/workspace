@@ -14,6 +14,12 @@ import { HitLine, InFlightChip, KindHead, KindList, libraryID, type Picking, pic
 import { type Placed, placePages } from "./place";
 import { Preview } from "./Preview";
 import { hitTo, Results, SearchBox, useDocSearch } from "./Search";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Documents: where the workspace's writing is read. Local is the pages
 // that aren't in a space (written here, on this machine); each space is a
@@ -127,23 +133,25 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
 
   return (
     <div className="page documents-page">
-      <header className="page-head">
-        <h1>Documents</h1>
-        <div className="page-actions">
-          {kinds.length > 0 && (
-            <button
-              onClick={() => setAsKind(true)}
-              disabled={starting}
-              title="Start a page as one of the workspace's kinds of document: it's written as its guide says, and filed where the kind says"
-            >
-              New as… <Keys k="N" />
-            </button>
-          )}
-          <button className="primary" onClick={() => start()} disabled={starting}>
-            <Icon name="plus" /> New page <Keys k="n" />
-          </button>
-        </div>
-      </header>
+      <PageHead
+        title="Documents"
+        actions={
+          <>
+            {kinds.length > 0 && (
+              <Button
+                onClick={() => setAsKind(true)}
+                disabled={starting}
+                title="Start a page as one of the workspace's kinds of document: it's written as its guide says, and filed where the kind says"
+              >
+                New as… <Keys k="N" />
+              </Button>
+            )}
+            <Button variant="primary" onClick={() => start()} disabled={starting}>
+              <Icon name="plus" /> New page <Keys k="n" />
+            </Button>
+          </>
+        }
+      />
       {asKind && <NewAsKind kinds={kinds} busy={starting} onStart={(title, kind) => start(title, kind)} onClose={() => setAsKind(false)} />}
       {spaces.length > 0 && (
         <SearchBox q={q} setQ={setQ} inputRef={search} spaces={spaces} kind={kind} setKind={setKind} state={stand} setState={setStand} onKey={searchKeys} />
@@ -168,9 +176,9 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
           )}
           <div className="documents-grid">
             <section aria-label="Spaces">
-              <h2 className="group">
-                Spaces <span className="count">{spaces.length}</span>
-              </h2>
+              <GroupHead count={spaces.length}>
+                Spaces
+              </GroupHead>
               {error && !value && <ErrorCard title="Couldn't read the spaces" error={error} retry={reload} />}
               {value?.problem && <div className="banner tone-attention">Some of it may be behind: {value.problem}</div>}
               {!value && !error && <Loading what="Reading the spaces…" />}
@@ -197,20 +205,20 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
               )}
             </section>
             <section aria-label="Local">
-              <h2 className="group" title="Pages written here, on this machine, that aren't in a space: no one else sees them. File as… is the way out.">
-                Local <span className="count">{local.length}</span>
+              <GroupHead title="Pages written here, on this machine, that aren't in a space: no one else sees them. File as… is the way out.">
+                Local <Count>{local.length}</Count>
                 {filling > 0 && <span className="dim documents-sub">· {filling} filling</span>}
-              </h2>
+              </GroupHead>
               {local.length === 0 ? (
                 <p className="dim documents-empty">
                   No pages here. A page is somewhere to write a problem down and work it out:{" "}
-                  <button className="link" onClick={() => start()}>
+                  <Button variant="link" onClick={() => start()}>
                     start one
-                  </button>
+                  </Button>
                   .
                 </p>
               ) : (
-                <ul className="rows pages" role="listbox" aria-label="Local pages">
+                <Rows className="pages" role="listbox" aria-label="Local pages">
                   {local.map((p, j) => {
                     const i = spaces.length + j;
                     return (
@@ -222,15 +230,15 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
                         onHover={() => i !== index && setIndex(i)}
                         note={
                           p.page.source && (
-                            <span className="chip tone-quiet" title="Its file isn't in a space of documents">
+                            <Chip tone="quiet" title="Its file isn't in a space of documents">
                               {p.page.source.ref.split(":")[0]}
-                            </span>
+                            </Chip>
                           )
                         }
                       />
                     );
                   })}
-                </ul>
+                </Rows>
               )}
             </section>
           </div>
@@ -451,17 +459,35 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
   const searched = !!hits;
   return (
     <div className="page documents-page space-page">
-      <header className="page-head space-head">
-        <Link to="/documents" className="space-back" title="Back to Documents (esc)">
-          <Icon name="arrow-left" size={13} /> Documents
-        </Link>
-        <span className="space-slash" aria-hidden>
-          /
-        </span>
-        <h1>
-          <span className="repo-dot" style={{ background: space.color }} /> {space.label}
-          {space.folder && <span className="mono dim"> {space.folder}</span>}
-        </h1>
+      <PageHead
+        className="space-head"
+        lead={
+          <>
+            <Link to="/documents" className="space-back" title="Back to Documents (esc)">
+              <Icon name="arrow-left" size={13} /> Documents
+            </Link>
+            <span className="space-slash" aria-hidden>
+              /
+            </span>
+          </>
+        }
+        title={
+          <>
+            <span className="repo-dot" style={{ background: space.color }} /> {space.label}
+            {space.folder && <span className="mono dim"> {space.folder}</span>}
+          </>
+        }
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => setAsKind(true)}
+            disabled={starting || !space.cloned}
+            title={library.length ? `Start a page as one of ${space.label}'s kinds of document: written as its guide says, and filed here` : `Start a page to file in one of ${space.label}'s folders`}
+          >
+            <Icon name="plus" /> New <Keys k="n" />
+          </Button>
+        }
+      >
         <span className="space-count" title="As on its default branch">
           {space.count} {space.count === 1 ? "document" : "documents"}
         </span>
@@ -475,17 +501,7 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
             }}
           />
         )}
-        <div className="page-actions">
-          <button
-            className="primary"
-            onClick={() => setAsKind(true)}
-            disabled={starting || !space.cloned}
-            title={library.length ? `Start a page as one of ${space.label}'s kinds of document: written as its guide says, and filed here` : `Start a page to file in one of ${space.label}'s folders`}
-          >
-            <Icon name="plus" /> New <Keys k="n" />
-          </button>
-        </div>
-      </header>
+      </PageHead>
       {asKind && library.length > 0 && (
         <NewAsKind kinds={kinds.filter((k) => library.some((x) => x.name === k.name))} busy={starting} onStart={(title, kind) => start(title, kind)} onClose={() => setAsKind(false)} />
       )}
@@ -519,9 +535,9 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
               {tabs.length > 1 && (
                 <nav className="segmented space-tabs" aria-label={library.length ? "Jump to a kind" : "Jump to a folder"}>
                   {tabs.map((t, i) => (
-                    <button key={t.id} aria-pressed={i === tab} disabled={t.n === 0} onClick={() => jump(t.id)}>
-                      {t.label} <span className="count">{searched && t.n !== t.total ? `${t.n}/${t.total}` : t.total}</span>
-                    </button>
+                    <Button key={t.id} aria-pressed={i === tab} disabled={t.n === 0} onClick={() => jump(t.id)}>
+                      {t.label} <Count className="space-tab-count">{searched && t.n !== t.total ? `${t.n}/${t.total}` : t.total}</Count>
+                    </Button>
                   ))}
                 </nav>
               )}
@@ -529,14 +545,14 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
             <div className="space-list-scroll" ref={list} onScroll={spy}>
               {drafts.length > 0 && (
                 <section aria-label="Your drafts">
-                  <h2 className="group" title="Pages of yours that will live here: only you see them until they're saved or filed">
-                    Your drafts <span className="count">{drafts.length}</span>
-                  </h2>
-                  <ul className="rows pages" role="listbox" aria-label="Your drafts">
+                  <GroupHead title="Pages of yours that will live here: only you see them until they're saved or filed" count={drafts.length}>
+                    Your drafts
+                  </GroupHead>
+                  <Rows className="pages" role="listbox" aria-label="Your drafts">
                     {drafts.map((p, i) => (
                       <PageRow key={p.page.id} page={p.page} kinds={kinds} selected={i === index} onHover={() => {}} note={<DraftNote p={p} />} />
                     ))}
-                  </ul>
+                  </Rows>
                 </section>
               )}
               {searched && !docsShown.length && <p className="dim documents-empty">Nothing in {space.label} says that.</p>}
@@ -563,37 +579,37 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
               {library.length > 0 && kindsShown.length === 0 && folders.length > 0 && <span id="list-other" />}
               {folders.map(([folder, docs]) => (
                 <section key={folder} id={listID("folder", folder)} aria-label={folder || "Top"}>
-                  <h2 className="group">
-                    <span className="mono">{folder || "(top)"}</span> <span className="count">{docs.length}</span>
-                  </h2>
-                  <ul className="rows space-docs" role="listbox" aria-label={folder || "Top"}>
+                  <GroupHead count={docs.length}>
+                    <span className="mono">{folder || "(top)"}</span>
+                  </GroupHead>
+                  <Rows className="space-docs" role="listbox" aria-label={folder || "Top"}>
                     {docs.map((d) => {
                       const i = at++;
                       const hit = hits?.get(d.path);
                       return (
-                        <li
+                        <Row
+                          selected={i === index} picked={picking?.picked === d.path}
                           key={d.path}
                           id={docID(d.path)}
                           role="option"
                           aria-selected={i === index}
-                          className={`row${i === index ? " selected" : ""}${picking?.picked === d.path ? " picked" : ""}`}
                           onMouseMove={wide ? undefined : () => i !== index && setIndex(i)}
                         >
-                          <TLink to={docTo(`${repo}:${d.path}`)} className="row-link" onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
-                            <Icon name="file" size={16} className="row-status" />
-                            <span className="row-main">
-                              <span className="row-line">
-                                <span className="title">{d.title}</span>
+                          <TLink to={docTo(`${repo}:${d.path}`)} className={rowLinkClass()} onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
+                            <Icon name="file" size={16} className={rowStatusClass()} />
+                            <RowMain>
+                              <RowLine>
+                                <RowTitle>{d.title}</RowTitle>
                                 {flights.has(d.path) && <InFlightChip capsules={flights.get(d.path)!} />}
-                              </span>
+                              </RowLine>
                               {hit && <HitLine hit={hit} />}
-                            </span>
+                            </RowMain>
                             <span className="dim mono doc-file">{d.path.split("/").pop()}</span>
                           </TLink>
-                        </li>
+                        </Row>
                       );
                     })}
-                  </ul>
+                  </Rows>
                 </section>
               ))}
             </div>
@@ -736,39 +752,27 @@ function DraftNote({ p }: { p: Placed }) {
   switch (p.why) {
     case "to":
       return (
-        <span
-          className="chip tone-quiet"
-          title={`To be filed in ${p.path || "its top"}, not filed yet`}
-        >
+        <Chip tone="quiet" title={`To be filed in ${p.path || "its top"}, not filed yet`}>
           Not filed · {p.path || "top"}
-        </span>
+        </Chip>
       );
     case "unsaved":
       return (
-        <span
-          className="chip tone-attention"
-          title={`Your edits to ${p.path}, not saved to the repo yet`}
-        >
+        <Chip tone="attention" title={`Your edits to ${p.path}, not saved to the repo yet`}>
           Unsaved
-        </span>
+        </Chip>
       );
     case "filed":
       return (
-        <span
-          className="chip tone-progress"
-          title={`Filed as ${p.path}, in a capsule: it's here once it lands`}
-        >
+        <Chip tone="progress" title={`Filed as ${p.path}, in a capsule: it's here once it lands`}>
           Filed, not landed
-        </span>
+        </Chip>
       );
     default:
       return (
-        <span
-          className="chip tone-quiet"
-          title="Started as one of this space's kinds, not filed yet"
-        >
+        <Chip tone="quiet" title="Started as one of this space's kinds, not filed yet">
           Not filed
-        </span>
+        </Chip>
       );
   }
 }
@@ -855,16 +859,16 @@ function NewInFolder({
         as {label} lands its changes.
       </p>
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose}>
           Cancel
-        </button>
-        <button
-          className="primary"
+        </Button>
+        <Button
+          variant="primary"
           onClick={go}
           disabled={busy || !title.trim()}
         >
           Start it <Keys k="⏎" />
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

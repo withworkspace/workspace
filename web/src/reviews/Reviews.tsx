@@ -8,6 +8,13 @@ import { Status, type StatusInfo, type Tone } from "../ui/status";
 import { Time } from "../ui/time";
 import { useLatest } from "../load";
 import { RowPasses } from "./Passes";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { capital } from "../ui/text";
 
 // Reviews: the open pull requests across every repo in the workspace.
 // Your teammates' come first, grouped by what each asks of you; yours sit
@@ -36,8 +43,6 @@ const stateInfo: Record<PRState, { icon: IconName; tone: Tone }> = {
   ready: { icon: "check-circle", tone: "attention" },
   "waiting-review": { icon: "clock", tone: "waiting" },
 };
-
-const capital = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 // prStatus is where a pull request stands with you.
 export function prStatus(p: { state: PRState; words: string }): StatusInfo {
@@ -153,42 +158,44 @@ export function ReviewsPage() {
   });
 
   const head = (
-    <header className="page-head">
-      <h1>Reviews</h1>
-      <div className="page-actions">
-        {list && (
-          <span className="dim reviews-asked" title="When GitHub was last asked. While this page is open it's asked every couple of minutes.">
-            {loading ? (
-              <>
-                <Icon name="spinner" className="spin" size={12} /> Asking GitHub…
-              </>
-            ) : (
-              <>
-                As of <Time iso={list.at} as="relative" />
-              </>
-            )}
-          </span>
-        )}
-        <input
-          ref={filter}
-          className="reviews-filter"
-          value={q}
-          placeholder="Filter: text, repo, author"
-          aria-label="Filter pull requests"
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape" || e.key === "Enter") {
-              e.preventDefault();
-              if (e.key === "Escape") setQ("");
-              e.currentTarget.blur();
-            }
-          }}
-        />
-        <button className="ghost small" onClick={refresh} disabled={loading} title="Ask GitHub again (r)">
-          <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
-        </button>
-      </div>
-    </header>
+    <PageHead
+      title="Reviews"
+      actions={
+        <>
+          {list && (
+            <span className="dim reviews-asked" title="When GitHub was last asked. While this page is open it's asked every couple of minutes.">
+              {loading ? (
+                <>
+                  <Icon name="spinner" className="spin" size={12} /> Asking GitHub…
+                </>
+              ) : (
+                <>
+                  As of <Time iso={list.at} as="relative" />
+                </>
+              )}
+            </span>
+          )}
+          <input
+            ref={filter}
+            className="reviews-filter"
+            value={q}
+            placeholder="Filter: text, repo, author"
+            aria-label="Filter pull requests"
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" || e.key === "Enter") {
+                e.preventDefault();
+                if (e.key === "Escape") setQ("");
+                e.currentTarget.blur();
+              }
+            }}
+          />
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Ask GitHub again (r)">
+            <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
+          </Button>
+        </>
+      }
+    />
   );
 
   if (!list) {
@@ -211,7 +218,7 @@ export function ReviewsPage() {
     <div className="page reviews-page">
       {head}
       {(error || list.error) && (
-        <Callout tone="attention" title="GitHub couldn't be asked just now" actions={<button onClick={refresh}>Try again</button>}>
+        <Callout tone="attention" title="GitHub couldn't be asked just now" actions={<Button onClick={refresh}>Try again</Button>}>
           {humanError(error ?? list.error ?? "")} What's here is as of <Time iso={list.at} as="relative" />.
         </Callout>
       )}
@@ -235,10 +242,11 @@ export function ReviewsPage() {
         return (
           <section key={s.key} aria-label={s.title} className={s.yours ? "yours" : undefined}>
             {firstYours && <div className="reviews-divide">Yours</div>}
-            <h2 className="group">
+            <GroupHead>
               {s.folded ? (
-                <button
-                  className="link group-fold"
+                <Button
+                  variant="link"
+                  className="group-fold"
                   aria-expanded={isOpen}
                   onClick={() => {
                     if (!openSections.delete(s.key)) openSections.add(s.key);
@@ -246,14 +254,14 @@ export function ReviewsPage() {
                   }}
                 >
                   <Icon name={isOpen ? "chevron-down" : "chevron-right"} size={12} /> {s.title}
-                </button>
+                </Button>
               ) : (
                 s.title
               )}{" "}
-              <span className="count">{s.rows.length}</span>
-            </h2>
+              <Count>{s.rows.length}</Count>
+            </GroupHead>
             {isOpen && (
-              <ul className="rows prs" role="listbox" aria-label={s.title}>
+              <Rows className="prs" role="listbox" aria-label={s.title}>
                 {s.rows.map((r) => (
                   <RowView
                     key={r.key}
@@ -269,7 +277,7 @@ export function ReviewsPage() {
                     passes={list?.passes}
                   />
                 ))}
-              </ul>
+              </Rows>
             )}
           </section>
         );
@@ -292,14 +300,14 @@ function rowTarget(r: ReviewRow): { to?: string; href?: string } {
 
 function Size({ additions, deletions, files }: { additions: number; deletions: number; files?: number }) {
   return (
-    <span className="row-meta pr-size" title={files !== undefined ? `${files} ${files === 1 ? "file" : "files"} changed` : undefined}>
+    <RowMeta className="pr-size" title={files !== undefined ? `${files} ${files === 1 ? "file" : "files"} changed` : undefined}>
       <span className="plus">+{additions}</span> <span className="minus">−{deletions}</span>
       {files !== undefined && (
         <span className="dim">
           {files} {files === 1 ? "file" : "files"}
         </span>
       )}
-    </span>
+    </RowMeta>
   );
 }
 
@@ -341,53 +349,53 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
   const onTopOf = of((p) => p.onTopOf, (s) => s.onTopOf);
   const body = (
     <>
-      <Status s={status} iconOnly size={16} className="row-status" />
-      <span className="row-main">
-        <span className="row-line">
-          <span className="title">{of((p) => p.title, (s) => s.title)}</span>
+      <Status s={status} iconOnly size={16} className={rowStatusClass()} />
+      <RowMain>
+        <RowLine>
+          <RowTitle>{of((p) => p.title, (s) => s.title)}</RowTitle>
           {st && (
-            <span className="chip tone-quiet" title={st.workedOut ? "A stack ws worked out: each of these pull requests is based on the last one's branch" : `Stack ${st.number} on GitHub`}>
+            <Chip tone="quiet" title={st.workedOut ? "A stack ws worked out: each of these pull requests is based on the last one's branch" : `Stack ${st.number} on GitHub`}>
               <Icon name="layers" size={11} /> stack of {st.layers.length}
-            </span>
+            </Chip>
           )}
-          {pr?.draft && <span className="chip tone-quiet">Draft</span>}
+          {pr?.draft && <Chip tone="quiet">Draft</Chip>}
           {pr?.asked === "team" && (
-            <span className="chip tone-quiet" title="Asked of a team you're in">
+            <Chip tone="quiet" title="Asked of a team you're in">
               Your team
-            </span>
+            </Chip>
           )}
           {!!onTopOf && (
-            <span className="chip tone-quiet" title="Its base is that pull request's branch">
+            <Chip tone="quiet" title="Its base is that pull request's branch">
               on top of #{onTopOf}
-            </span>
+            </Chip>
           )}
           {mission && (
-            <span className="chip tone-quiet" title={`From the mission ${mission.title}`}>
+            <Chip tone="quiet" title={`From the mission ${mission.title}`}>
               <Icon name="flag" size={11} /> {mission.title}
-            </span>
+            </Chip>
           )}
           {pr?.capsule && (
-            <span className="chip tone-quiet" title={`Checked out here in ${pr.repo}/${pr.capsule}`}>
+            <Chip tone="quiet" title={`Checked out here in ${pr.repo}/${pr.capsule}`}>
               <Icon name="box" size={11} /> {pr.capsule}
-            </span>
+            </Chip>
           )}
           {pr && <RowPasses marks={passes?.[`${pr.repo}#${pr.number}`]} />}
-        </span>
-        <span className="row-sub">
+        </RowLine>
+        <RowSub>
           {mine ? "You" : author} · {repo}
           {pr && <> · #{pr.number}</>} · {of((p) => p.words, (s) => s.words)}
           {st?.merged ? ` · ${st.merged} merged below` : ""}
-        </span>
-      </span>
+        </RowSub>
+      </RowMain>
       <Size additions={of((p) => p.additions, (s) => s.additions)} deletions={of((p) => p.deletions, (s) => s.deletions)} files={pr?.files} />
       <Checks checks={pr?.checks} />
       {updated ? <Time iso={updated} as="age" className="age" /> : <span className="age" />}
     </>
   );
   return (
-    <li id={`pr-row-${row.key}`} role="option" aria-selected={selected} className={`row pr-row${selected ? " selected" : ""}${st ? " stack-row" : ""}`} onMouseMove={onHover}>
+    <Row selected={selected} id={`pr-row-${row.key}`} role="option" aria-selected={selected} className={`pr-row${st ? " stack-row" : ""}`} onMouseMove={onHover}>
       {target.to ? (
-        <Link to={target.to} className="row-link" onClick={() => (lastSelected = row.key)}>
+        <Link to={target.to} className={rowLinkClass("pr-link")} onClick={() => (lastSelected = row.key)}>
           {body}
         </Link>
       ) : (
@@ -395,7 +403,7 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
           href={target.href}
           target="_blank"
           rel="noreferrer"
-          className="row-link"
+          className={rowLinkClass("pr-link")}
           title="Opens on GitHub: it's merged there"
           onClick={(e) => {
             e.preventDefault();
@@ -406,12 +414,12 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
         </a>
       )}
       {st && (
-        <button className="ghost icon-button small stack-fold" onClick={onFold} title={`${folded ? "Show" : "Hide"} its layers (l)`} aria-expanded={!folded} aria-label="Its layers">
+        <Button variant="ghost" size="small" square className="stack-fold" onClick={onFold} title={`${folded ? "Show" : "Hide"} its layers (l)`} aria-expanded={!folded} aria-label="Its layers">
           <Icon name={folded ? "chevron-right" : "chevron-down"} size={13} />
-        </button>
+        </Button>
       )}
       {st && !folded && <Layers stack={st} passes={passes} />}
-    </li>
+    </Row>
   );
 }
 

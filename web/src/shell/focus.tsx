@@ -10,6 +10,8 @@ import { thingIcon } from "../refs/views";
 import { Icon, type IconName } from "../ui/Icon";
 import { humanError, toast } from "../ui/kit";
 import { headlineStatus, Status } from "../ui/status";
+import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // Focus: what you've pinned, of anything ws names, kept in the sidebar
 // below its places (ops/focus.go). Each is drawn as it stands, and what
@@ -175,8 +177,9 @@ export function PinButton({ r, keyHint, compact }: { r: PageRef; keyHint?: boole
   if (!focus?.supported || !name) return null;
   const on = focus.pinned(name);
   return (
-    <button
-      className={`ghost small pin-button${on ? " on" : ""}${compact ? " icon-button" : ""}`}
+    <Button
+      variant="ghost" size="small"
+      className={`pin-button ${on ? " on" : ""}${compact ? " icon-button" : ""}`}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -189,7 +192,7 @@ export function PinButton({ r, keyHint, compact }: { r: PageRef; keyHint?: boole
     >
       <Icon name="pin" size={12} />
       {!compact && (on ? "Pinned" : "Pin")}
-    </button>
+    </Button>
   );
 }
 
@@ -268,7 +271,7 @@ export function FocusSection({ workspace, plugins, path }: { workspace: Workspac
   return (
     <section className={`inbox focus${bringing ? " bringing" : ""}`} aria-label="Focus" onDragOver={dragOver} onDrop={drop}>
       <h2>
-        Focus {rows.length > 0 && <span className="count">{rows.length}</span>}
+        Focus {rows.length > 0 && <Count>{rows.length}</Count>}
       </h2>
       {rows.map(({ pin, r }) => (
         <FocusRow

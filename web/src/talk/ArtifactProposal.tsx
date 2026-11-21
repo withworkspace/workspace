@@ -2,6 +2,8 @@ import { type ArtifactInfo, frameURL, type TalkProposal } from "../api";
 import { filesWords } from "../artifacts/shown";
 import { Icon } from "../ui/Icon";
 import { addedVersion, artifactWhere, staleWords } from "./proposals";
+import { Chip } from "../ui/Chip";
+import { buttonClass } from "../ui/Button";
 
 // An artifact a conversation's agent proposed, or a version of one, in its
 // card under the reply: its note, then its page running in a small
@@ -47,7 +49,7 @@ function SmallFrame({ src, caption, title }: { src: string; caption?: string; ti
     <figure className="proposal-frame">
       {caption && <figcaption className="dim">{caption}</figcaption>}
       <iframe src={src} sandbox="allow-scripts" referrerPolicy="no-referrer" loading="lazy" title={title} />
-      <a href={src} target="_blank" rel="noopener noreferrer" className="button-link" title="Open it alone, in a tab of its own (still sandboxed)">
+      <a href={src} target="_blank" rel="noopener noreferrer" className={buttonClass({}, "proposal-open")} title="Open it alone, in a tab of its own (still sandboxed)">
         <Icon name="external" size={12} /> Open larger
       </a>
     </figure>
@@ -68,9 +70,9 @@ function ArtifactMeta({ p, artifact }: { p: TalkProposal; artifact?: ArtifactInf
       {chips.length > 0 && (
         <div className="proposal-meta">
           {chips.map((c) => (
-            <span key={c} className="chip tone-quiet">
+            <Chip tone="quiet" key={c}>
               {c}
-            </span>
+            </Chip>
           ))}
         </div>
       )}

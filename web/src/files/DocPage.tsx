@@ -10,13 +10,20 @@ import { Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { talkHref, talkStatus } from "../talk/Talk";
 import { useLatest } from "../load";
-import { aboutDoc, citedSection, clip, type Passage } from "../ask/ask";
+import { aboutDoc, citedSection, type Passage } from "../ask/ask";
 import { AskBar, type AskBarHandle } from "../ask/AskBar";
 import { passageIn, SelectionTools, type SelectionToolsHandle } from "../ask/Selection";
 import { ContentsMenu, ContentsPill, ContentsRail, goToSection, useRailFits, useRailHidden, useReading, useSections } from "./Contents";
 import { FolderMenu, Pager, PathCrumbs, useShelves } from "./Path";
 import { type Here, type Shelf, siblings, trail } from "./shelves";
 import { PagePin } from "../shell/focus";
+import { Chip, chipClass } from "../ui/Chip";
+import { Button, buttonClass } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { clip } from "../ui/text";
+import { pageScroller } from "../ui/scroller";
 
 export const docKeys: [string, string][] = [
   ["e", "Edit it, here: as the page tied to it"],
@@ -221,14 +228,13 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
     asker.current?.ask(p);
   };
   const back = () => (location.key !== "default" ? navigate(-1) : navigate(home));
-  const scroller = () => document.querySelector("main");
-  const scroll = (by: number) => scroller()?.scrollBy({ top: by });
+  const scroll = (by: number) => pageScroller()?.scrollBy({ top: by });
   useKeys({
     ...(canEdit ? { e: edit } : {}),
     "mod+d": () => scroll(window.innerHeight / 2),
     "mod+u": () => scroll(-window.innerHeight / 2),
-    g: () => scroller()?.scrollTo({ top: 0 }),
-    G: () => scroller()?.scrollTo({ top: scroller()!.scrollHeight }),
+    g: () => pageScroller()?.scrollTo({ top: 0 }),
+    G: () => pageScroller()?.scrollTo({ top: pageScroller()!.scrollHeight }),
     o: () => navigate(files),
     r: load,
     t: () => (rail ? toggleRail() : folded && toggleMenu()),
@@ -261,9 +267,7 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
         )}
         {/* A document that starts with its own title is its own heading. */}
         {a && !/^(---\n[^]*?\n---\n\s*)?#\s/.test(a.text.trimStart()) && (
-          <header className="page-head">
-            <h1>{name}</h1>
-          </header>
+          <PageHead title={name} />
         )}
         {a && where && !mission && (
           <div className="doc-meta">
@@ -274,16 +278,16 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
             ) : (
               <span className="doc-kind">Document</span>
             )}
-            <span className={`chip ${where.worktree === GROUND ? "tone-done" : "tone-quiet"}`} title={where.worktree === GROUND ? "As it is on the repo's default branch (its ground)" : `As it is in the capsule ${where.repo}/${where.worktree}`}>
+            <Chip tone={where.worktree === GROUND ? "done" : "quiet"} title={where.worktree === GROUND ? "As it is on the repo's default branch (its ground)" : `As it is in the capsule ${where.repo}/${where.worktree}`}>
               <Icon name={where.worktree === GROUND ? "layers" : "box"} size={11} /> {where.worktree === GROUND ? "On the default branch" : `In ${where.worktree}`}
-            </span>
+            </Chip>
             {a.page && (
               <Link to={docAddress(a.ref, a.page)} className="dim" title="It's edited in this page, which keeps its cells and passes">
                 Edited in {a.page}
               </Link>
             )}
             {flights.map((f) => (
-              <Link key={f.capsule} to={docAddress(`${where.repo}/${f.capsule}:${where.path}`)} className="chip tone-progress" title={`It's changed in the capsule ${f.capsule}${f.pr ? `, in pull request #${f.pr.number}` : ""}: read it as it is there`}>
+              <Link key={f.capsule} to={docAddress(`${where.repo}/${f.capsule}:${where.path}`)} className={chipClass("progress")} title={`It's changed in the capsule ${f.capsule}${f.pr ? `, in pull request #${f.pr.number}` : ""}: read it as it is there`}>
                 <Icon name="box" size={11} /> In flight in {f.capsule}
                 {f.pr ? ` · #${f.pr.number}` : ""}
               </Link>
@@ -294,17 +298,17 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
             <span className="doc-actions">
               {where.worktree === GROUND && <PagePin r={{ kind: "file", repo: where.repo, worktree: GROUND, path: where.path }} compact />}
               {folded && sections.length > 1 && (
-                <button ref={contentsButton} className="small" data-contents-toggle aria-expanded={menu} onClick={toggleMenu} title="Its contents (t)">
+                <Button size="small" ref={contentsButton} data-contents-toggle aria-expanded={menu} onClick={toggleMenu} title="Its contents (t)">
                   <Icon name="list" size={12} /> Contents <Keys k="t" />
-                </button>
+                </Button>
               )}
-              <button className="small accent-button" onMouseDown={(e) => e.preventDefault()} onClick={askAbout} title="Ask about it, or about what's selected (a)">
+              <Button size="small" className="accent-button" onMouseDown={(e) => e.preventDefault()} onClick={askAbout} title="Ask about it, or about what's selected (a)">
                 <Icon name="sparkle" size={12} /> Ask <Keys k="a" />
-              </button>
-              <button className="small" onClick={edit} disabled={!canEdit} title={canEdit ? "Edit it as a page: cells, questions and passes, saved back to the repo when you say (e)" : `Can't be edited here: ${a.uneditable}`}>
+              </Button>
+              <Button size="small" onClick={edit} disabled={!canEdit} title={canEdit ? "Edit it as a page: cells, questions and passes, saved back to the repo when you say (e)" : `Can't be edited here: ${a.uneditable}`}>
                 <Icon name="pencil" size={12} /> Edit <Keys k="e" />
-              </button>
-              <Link to={files} className="button-link small-link" title="Open it in Files (o)">
+              </Button>
+              <Link to={files} className={buttonClass({ size: "small" })} title="Open it in Files (o)">
                 <Icon name="file" size={12} /> Files <Keys k="o" />
               </Link>
             </span>
@@ -318,9 +322,9 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
             icon="pencil"
             title="You've an unsaved edit of this, from before it was edited as a page"
             actions={
-              <button className="small ghost" onClick={() => dropDraft("", a.ref).then(() => setDraft(null))}>
+              <Button variant="ghost" size="small" onClick={() => dropDraft("", a.ref).then(() => setDraft(null))}>
                 Discard it
-              </button>
+              </Button>
             }
           >
             Kept <Time iso={draft.at} as="relative" />. It's in <span className="mono">.ws/docs/drafts</span>: copy what you need into its page.
@@ -409,30 +413,30 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
 function DocTalks({ list }: { list: Talk[] }) {
   return (
     <section>
-      <h2 className="group">
-        Conversations about it <span className="count">{list.length}</span>
-      </h2>
-      <ul className="rows">
+      <GroupHead count={list.length}>
+        Conversations about it
+      </GroupHead>
+      <Rows>
         {list.map((t) => (
-          <li key={t.id} className="row">
-            <Link to={talkHref("", t.id)} className="row-link" title={t.summary}>
-              <Status s={talkStatus(t)} iconOnly size={14} className="row-status" />
-              <span className="row-main">
-                <span className="row-line">
-                  <span className="title">{t.title || t.opening}</span>
-                </span>
+          <Row key={t.id}>
+            <Link to={talkHref("", t.id)} className={rowLinkClass()} title={t.summary}>
+              <Status s={talkStatus(t)} iconOnly size={14} className={rowStatusClass()} />
+              <RowMain>
+                <RowLine>
+                  <RowTitle>{t.title || t.opening}</RowTitle>
+                </RowLine>
                 {(t.quote || t.section) && (
-                  <span className="row-sub dim">
+                  <RowSub className="dim">
                     {t.quote ? `“${clip(t.quote, 90)}”` : ""}
                     {t.section ? `${t.quote ? " in " : ""}§ ${t.section}` : ""}
-                  </span>
+                  </RowSub>
                 )}
-              </span>
+              </RowMain>
               <Time iso={t.updated || t.at} as="age" className="age" />
             </Link>
-          </li>
+          </Row>
         ))}
-      </ul>
+      </Rows>
     </section>
   );
 }
@@ -442,24 +446,24 @@ function DocTalks({ list }: { list: Talk[] }) {
 function CiteList({ title, list }: { title: string; list: Citation[] }) {
   return (
     <section>
-      <h2 className="group">
-        {title} <span className="count">{list.length}</span>
-      </h2>
-      <ul className="rows">
+      <GroupHead count={list.length}>
+        {title}
+      </GroupHead>
+      <Rows>
         {list.map((c) => (
-          <li key={`${c.repo}:${c.path}`} className="row">
-            <Link to={docTo(`${c.repo}:${c.path}`)} className="row-link">
-              <Icon name="book" size={14} className="row-status dim" />
-              <span className="row-main">
-                <span className="title">{c.title || c.path.split("/").pop()}</span>
-              </span>
+          <Row key={`${c.repo}:${c.path}`}>
+            <Link to={docTo(`${c.repo}:${c.path}`)} className={rowLinkClass()}>
+              <Icon name="book" size={14} className={rowStatusClass("dim")} />
+              <RowMain>
+                <RowTitle>{c.title || c.path.split("/").pop()}</RowTitle>
+              </RowMain>
               <span className="dim mono doc-cite-at" title={c.how === "link" ? "A link in it" : "It names it"}>
                 {c.path.split("/").pop()}:{c.line}
               </span>
             </Link>
-          </li>
+          </Row>
         ))}
-      </ul>
+      </Rows>
     </section>
   );
 }

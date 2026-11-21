@@ -4,6 +4,7 @@ import type { Reload } from "../load";
 import { RunLine } from "../mission/Runs";
 import { Icon } from "../ui/Icon";
 import { Empty, humanError, toast } from "../ui/kit";
+import { Button } from "../ui/Button";
 
 // A ground's or capsule's Runs tab on the Files page (ws run): what's
 // running in it, whoever started it, and its ws.repo.toml's recipes not
@@ -53,9 +54,9 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
       {recipes.length > 0 && (
         <div className="work-run-recipes">
           {recipes.map((n) => (
-            <button key={n} className="small" disabled={!!busy} onClick={() => start(n)} title={`Run its ${n} recipe, from its ws.repo.toml, while you have it open here`}>
+            <Button size="small" key={n} disabled={!!busy} onClick={() => start(n)} title={`Run its ${n} recipe, from its ws.repo.toml, while you have it open here`}>
               <Icon name={busy === n ? "spinner" : "play"} size={11} /> {busy === n ? `Starting ${n}…` : `Run ${n}`}
-            </button>
+            </Button>
           ))}
         </div>
       )}

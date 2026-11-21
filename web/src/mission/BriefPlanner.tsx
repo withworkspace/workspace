@@ -10,6 +10,8 @@ import { Calls } from "../ui/Calls";
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/kit";
 import { docLines, type DocLine } from "./briefpage";
+import { Button } from "../ui/Button";
+import { pageScroller } from "../ui/scroller";
 
 // The planner, beside a mission's brief and plan (BriefTab.tsx): its
 // conversation as it's been said, where the brief's page used to keep it
@@ -82,9 +84,9 @@ export function BriefPlanner({
         <span className="spacer" />
         {action}
         {fold && (
-          <button type="button" className="ghost icon-button" onClick={fold} title="Fold the planner away (p)" aria-label="Fold the planner away">
+          <Button variant="ghost" square type="button" onClick={fold} title="Fold the planner away (p)" aria-label="Fold the planner away">
             <Icon name="panel" size={14} />
-          </button>
+          </Button>
         )}
       </div>
       <div
@@ -208,9 +210,9 @@ export function PlannerField({
           <span className={`ask-ctx ${held.kind}`} title={held.title}>
             <Icon name={held.icon} size={11} />
             <span className="q">{held.text}</span>
-            <button type="button" onClick={dropHeld} title={held.drop} aria-label={held.drop}>
+            <Button type="button" onClick={dropHeld} title={held.drop} aria-label={held.drop}>
               <Icon name="x" size={11} />
-            </button>
+            </Button>
           </span>
         )}
         <input
@@ -281,21 +283,21 @@ export function PassageTool({ within, ask }: { within: RefObject<HTMLElement | n
     document.addEventListener("mousedown", away);
     // Whatever scrolls them: the documents together, or each by itself.
     el.addEventListener("scroll", gone, { passive: true, capture: true });
-    document.querySelector("main")?.addEventListener("scroll", gone, { passive: true });
+    pageScroller()?.addEventListener("scroll", gone, { passive: true });
     window.addEventListener("resize", gone);
     return () => {
       document.removeEventListener("mouseup", up);
       document.removeEventListener("keyup", keyed);
       document.removeEventListener("mousedown", away);
       el.removeEventListener("scroll", gone, { capture: true });
-      document.querySelector("main")?.removeEventListener("scroll", gone);
+      pageScroller()?.removeEventListener("scroll", gone);
       window.removeEventListener("resize", gone);
     };
   }, [within]);
   if (!at) return null;
   return (
     <div className="seltool" role="toolbar" aria-label="The passage picked out" style={{ left: at.left, top: at.top }} onMouseDown={(e) => e.preventDefault()}>
-      <button
+      <Button
         type="button"
         onClick={() => {
           setAt(undefined);
@@ -305,7 +307,7 @@ export function PassageTool({ within, ask }: { within: RefObject<HTMLElement | n
         title="Ask the planner about this passage (a)"
       >
         <Icon name="sparkle" size={12} /> Ask about this <Keys k="a" />
-      </button>
+      </Button>
     </div>
   );
 }

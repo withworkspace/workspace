@@ -5,6 +5,7 @@ import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
 import { humanError, Keys, useAutosize } from "../ui/kit";
 import { Time } from "../ui/time";
+import { Button } from "../ui/Button";
 
 // A review's overview and its discussion, views beside its changes. A pull
 // request's overview is its description, as its author wrote it; a
@@ -220,9 +221,9 @@ function SayBox({ api, onSaid }: { api: string; onSaid: (d: Discussion) => void 
       <div className="note-actions">
         <span className="dim">Posts to GitHub at once, as you: it isn't part of your draft.</span>
         <span className="spacer-left" />
-        <button className="primary small" disabled={!text.trim() || busy} onClick={send} title="Post it to GitHub (⌘⏎)">
+        <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={send} title="Post it to GitHub (⌘⏎)">
           {busy ? "Posting…" : "Comment on GitHub"} <Keys k="mod+⏎" />
-        </button>
+        </Button>
       </div>
     </div>
   );

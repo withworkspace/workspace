@@ -5,6 +5,9 @@ import { Icon } from "../ui/Icon";
 import { ErrorCard, humanError, Keys } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import { TLink } from "../ui/TLink";
+import { Chip } from "../ui/Chip";
+import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Search over the spaces' documents: ranked, each led to the section
 // that says it best; kept to a kind, and where one stands, once a kind's
@@ -97,40 +100,40 @@ export function Results({ hits, more, error, index, setIndex }: { hits?: DocHit[
   if (!hits.length) return <p className="dim documents-empty">No documents say that.</p>;
   return (
     <section aria-label="Found">
-      <h2 className="group">
-        Found <span className="count">{hits.length + more}</span>
-      </h2>
-      <ul className="rows doc-hits" role="listbox" aria-label="Documents found">
+      <GroupHead count={hits.length + more}>
+        Found
+      </GroupHead>
+      <Rows className="doc-hits" role="listbox" aria-label="Documents found">
         {hits.map((h, i) => (
-          <li key={`${h.repo}:${h.path}`} id={`hit-${i}`} role="option" aria-selected={i === index} className={`row${i === index ? " selected" : ""}`} onMouseMove={() => i !== index && setIndex(i)}>
-            <TLink to={hitTo(h)} className="row-link" onClick={(e) => (e.preventDefault(), navigate(hitTo(h)))}>
-              <Icon name="book" size={16} className="row-status" />
-              <span className="row-main">
-                <span className="row-line">
-                  <span className="title">
+          <Row selected={i === index} key={`${h.repo}:${h.path}`} id={`hit-${i}`} role="option" aria-selected={i === index} onMouseMove={() => i !== index && setIndex(i)}>
+            <TLink to={hitTo(h)} className={rowLinkClass("hit-link")} onClick={(e) => (e.preventDefault(), navigate(hitTo(h)))}>
+              <Icon name="book" size={16} className={rowStatusClass()} />
+              <RowMain>
+                <RowLine>
+                  <RowTitle>
                     {h.title}
                     {h.heading && <span className="dim"> › {h.heading}</span>}
-                  </span>
-                  {h.state && <span className="chip tone-quiet">{h.state}</span>}
+                  </RowTitle>
+                  {h.state && <Chip tone="quiet">{h.state}</Chip>}
                   {!h.every && (
-                    <span className="chip tone-quiet" title="Not every word was found in it">
+                    <Chip tone="quiet" title="Not every word was found in it">
                       some of the words
-                    </span>
+                    </Chip>
                   )}
-                </span>
+                </RowLine>
                 {h.snippet.length > 0 && (
-                  <span className="row-line doc-snippet">
+                  <RowLine className="doc-snippet">
                     <span>
                       {h.snippet.map((p, j) => (p.mark ? <mark key={j}>{p.text}</mark> : <span key={j}>{p.text}</span>))}
                     </span>
-                  </span>
+                  </RowLine>
                 )}
-              </span>
+              </RowMain>
               <span className="dim doc-hit-where">{h.label}</span>
             </TLink>
-          </li>
+          </Row>
         ))}
-      </ul>
+      </Rows>
       {more > 0 && <p className="dim documents-empty">{more} more: say more of what you're after.</p>}
     </section>
   );

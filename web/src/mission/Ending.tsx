@@ -5,6 +5,7 @@ import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { Dialog, humanError, toast } from "../ui/kit";
+import { Button } from "../ui/Button";
 
 // How a mission ends: landed (at Z, its code merged or landed), answered
 // (a finding, no code), handed on (its work raised as other missions) or
@@ -149,12 +150,12 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
                 <span className="dim">{i + 1}.</span> <Inline text={part} />
               </div>
               <div className="z-say">
-                <button className={`small${checks[i].met === true ? " on-met" : ""}`} aria-pressed={checks[i].met === true} onClick={() => set(i, { met: checks[i].met === true ? undefined : true })}>
+                <Button size="small" className={checks[i].met === true ? "on-met" : undefined} aria-pressed={checks[i].met === true} onClick={() => set(i, { met: checks[i].met === true ? undefined : true })}>
                   <Icon name="check" size={12} /> Met
-                </button>
-                <button className={`small${checks[i].met === false ? " on-unmet" : ""}`} aria-pressed={checks[i].met === false} onClick={() => set(i, { met: checks[i].met === false ? undefined : false })}>
+                </Button>
+                <Button size="small" className={checks[i].met === false ? "on-unmet" : undefined} aria-pressed={checks[i].met === false} onClick={() => set(i, { met: checks[i].met === false ? undefined : false })}>
                   <Icon name="x" size={12} /> Not met
-                </button>
+                </Button>
                 <input value={checks[i].how} onChange={(e) => set(i, { how: e.target.value })} placeholder={checks[i].met === false ? "Why not" : "How: what shows it"} aria-label={`How part ${i + 1} of Z is met, or why not`} />
               </div>
             </div>
@@ -163,12 +164,12 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
       )}
       {error && <div className="banner">{humanError(error)}</div>}
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose}>
           Cancel
-        </button>
-        <button className={ending === "dropped" ? "danger" : "primary"} onClick={submit} disabled={!ending || !text.trim() || busy}>
+        </Button>
+        <Button variant={ending === "dropped" ? "danger" : "primary"} onClick={submit} disabled={!ending || !text.trim() || busy}>
           {ending ? `End it, ${endingWords[ending]}` : "End it"}
-        </button>
+        </Button>
       </div>
     </Dialog>
   );
@@ -181,9 +182,9 @@ export function EndButton({ d, reload }: { d: MissionDetail; reload: Reload }) {
   if (d.ending || d.state === "archived") return null;
   return (
     <>
-      <button className="ghost small" onClick={() => setOpen(true)} title="Say how it ends, with Z checked">
+      <Button variant="ghost" size="small" onClick={() => setOpen(true)} title="Say how it ends, with Z checked">
         <Icon name="check-circle" size={12} /> End
-      </button>
+      </Button>
       {open && <EndDialog d={d} onClose={() => setOpen(false)} reload={reload} />}
     </>
   );
@@ -216,12 +217,12 @@ export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetai
   };
   return (
     <>
-      <button className="ghost small" onClick={() => setOpen("hand-on")} title="Hand it on to a mission of its own, which takes it">
+      <Button variant="ghost" size="small" onClick={() => setOpen("hand-on")} title="Hand it on to a mission of its own, which takes it">
         <Icon name="arrow-right" size={12} /> Hand on
-      </button>
-      <button className="ghost small" onClick={() => setOpen("drop")} title="Drop it: its work won't be part of the mission">
+      </Button>
+      <Button variant="ghost" size="small" onClick={() => setOpen("drop")} title="Drop it: its work won't be part of the mission">
         <Icon name="x" size={12} /> Drop
-      </button>
+      </Button>
       {open && (
         <Dialog title={open === "drop" ? `Drop ${name}` : `Hand ${name} on`} onClose={close} className="end-mission" wide>
           <p>
@@ -245,12 +246,12 @@ export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetai
           )}
           {error && <div className="banner">{humanError(error)}</div>}
           <div className="dialog-actions">
-            <button className="ghost" onClick={close}>
+            <Button variant="ghost" onClick={close}>
               Cancel
-            </button>
-            <button className={open === "drop" ? "danger" : "primary"} onClick={submit} disabled={busy || (!text.trim() && !(open === "hand-on" && to.trim()))}>
+            </Button>
+            <Button variant={open === "drop" ? "danger" : "primary"} onClick={submit} disabled={busy || (!text.trim() && !(open === "hand-on" && to.trim()))}>
               {open === "drop" ? "Drop it" : "Hand it on"}
-            </button>
+            </Button>
           </div>
         </Dialog>
       )}

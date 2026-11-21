@@ -1,6 +1,8 @@
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useKeys } from "../keys";
 import { Icon, type IconName } from "./Icon";
+import { Button } from "./Button";
+import { capital } from "./text";
 
 // The small shared pieces every page draws with.
 
@@ -130,7 +132,7 @@ export function Skeleton({ rows = 4, className }: { rows?: number; className?: s
 // ErrorCard is something that didn't load, in words, with a retry.
 export function ErrorCard({ error, retry, title = "Couldn't load this" }: { error: string; retry?: () => void; title?: string }) {
   return (
-    <Callout tone="danger" title={title} actions={retry && <button onClick={retry}>Try again</button>}>
+    <Callout tone="danger" title={title} actions={retry && <Button onClick={retry}>Try again</Button>}>
       {humanError(error)}
     </Callout>
   );
@@ -141,7 +143,7 @@ export function ErrorCard({ error, retry, title = "Couldn't load this" }: { erro
 export function humanError(e: string): string {
   const s = e.trim().replace(/^error:\s*/i, "");
   if (!s) return "Something went wrong.";
-  const t = s[0].toUpperCase() + s.slice(1);
+  const t = capital(s);
   return /[.!?)]$/.test(t) ? t : t + ".";
 }
 
@@ -185,15 +187,16 @@ export function Toasts() {
           <Icon name={t.tone === "danger" ? "x-circle" : t.tone === "done" ? "check-circle" : "info"} size={14} />
           <span>{t.text}</span>
           {t.action && (
-            <button
-              className="link"
+            <Button
+              variant="link"
+              className="toast-action"
               onClick={() => {
                 t.action!.run();
                 setToasts(toasts.filter((x) => x.id !== t.id));
               }}
             >
               {t.action.label}
-            </button>
+            </Button>
           )}
         </div>
       ))}
@@ -243,15 +246,15 @@ export function Dialog({ title, onClose, children, className, wide, bare }: { ti
         onKeyDown={trap}
       >
         {bare ? (
-          <button className="ghost icon-button dialog-close dialog-close-corner" onClick={onClose} title="Close (esc)" aria-label="Close">
+          <Button variant="ghost" square className="dialog-close dialog-close-corner" onClick={onClose} title="Close (esc)" aria-label="Close">
             <Icon name="x" size={14} />
-          </button>
+          </Button>
         ) : (
           <header className="dialog-head">
             <h2>{title}</h2>
-            <button className="ghost icon-button dialog-close" onClick={onClose} title="Close (esc)" aria-label="Close">
+            <Button variant="ghost" square className="dialog-close" onClick={onClose} title="Close (esc)" aria-label="Close">
               <Icon name="x" size={14} />
-            </button>
+            </Button>
           </header>
         )}
         {children}
@@ -298,10 +301,10 @@ export function Confirmer() {
     <Dialog title={ask.title} onClose={() => done(false)}>
       {ask.body && <div className="dialog-text">{ask.body}</div>}
       <div className="dialog-actions">
-        <button onClick={() => done(false)}>Cancel</button>
-        <button className={ask.danger ? "danger" : "primary"} onClick={() => done(true)} autoFocus>
+        <Button onClick={() => done(false)}>Cancel</Button>
+        <Button variant={ask.danger ? "danger" : "primary"} onClick={() => done(true)} autoFocus>
           {ask.confirm}
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

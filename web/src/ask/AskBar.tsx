@@ -9,6 +9,7 @@ import { Calls } from "../ui/Calls";
 import { Icon } from "../ui/Icon";
 import { humanError, Keys, toast } from "../ui/kit";
 import { type AskAbout, anchorChip, type Chip, inCard, placed, waiting } from "./ask";
+import { Button, buttonClass } from "../ui/Button";
 
 // The ask bar (#123): always there at the foot of what you're reading,
 // with / to go to it. Ask about the whole of it, or pick something out of
@@ -284,9 +285,9 @@ export function AskBar<H>({
               {talk.turns[from]?.body}
             </span>
             {asked && <ChipView c={asked} />}
-            <button type="button" className="ghost icon-button askcard-x" onClick={close} title="Drop it (esc)" aria-label="Drop it">
+            <Button variant="ghost" square type="button" className="askcard-x" onClick={close} title="Drop it (esc)" aria-label="Drop it">
               <Icon name="x" size={13} />
-            </button>
+            </Button>
           </div>
           <div
             className="askcard-body"
@@ -318,19 +319,19 @@ export function AskBar<H>({
           <div className="askcard-foot">
             <span>{conv ? conv.label : talk.ephemeral ? "Gone when you close it, unless you keep it." : proposed ? "Kept: what it proposed is in Conversations, to confirm." : "Kept: it's in Conversations."}</span>
             <span className="spacer" />
-            <button type="button" className="small" onClick={() => input.current?.focus()} title="Ask again, in this conversation">
+            <Button size="small" type="button" onClick={() => input.current?.focus()} title="Ask again, in this conversation">
               Ask a follow-up
-            </button>
+            </Button>
             {conv ? (
-              <Link to={conv.href} className="button-link small-link" title="Read the whole conversation">
+              <Link to={conv.href} className={buttonClass({ size: "small" }, "askcard-link")} title="Read the whole conversation">
                 <Icon name="message" size={12} /> The whole conversation
               </Link>
             ) : talk.ephemeral ? (
-              <button type="button" className="small" onClick={keep} disabled={keeping} aria-busy={keeping} title={`Keep it as a conversation, in Conversations, about ${about.title}`}>
+              <Button size="small" type="button" onClick={keep} disabled={keeping} aria-busy={keeping} title={`Keep it as a conversation, in Conversations, about ${about.title}`}>
                 <Icon name="message" size={12} /> Keep as a conversation
-              </button>
+              </Button>
             ) : (
-              <Link to={`/conversations/${encodeURIComponent(talk.id)}`} className="button-link small-link" title="Open it in Conversations">
+              <Link to={`/conversations/${encodeURIComponent(talk.id)}`} className={buttonClass({ size: "small" })} title="Open it in Conversations">
                 <Icon name="message" size={12} /> Open it
               </Link>
             )}
@@ -360,9 +361,9 @@ export function AskBar<H>({
         <Icon name={sending ? "spinner" : "sparkle"} size={14} className={`askbar-icon${sending ? " spin" : ""}`} />
         {hand && (
           <ChipView c={hand}>
-            <button type="button" onClick={() => setHeld(undefined)} title={hand.drop} aria-label={hand.drop}>
+            <Button type="button" onClick={() => setHeld(undefined)} title={hand.drop} aria-label={hand.drop}>
               <Icon name="x" size={11} />
-            </button>
+            </Button>
           </ChipView>
         )}
         <input

@@ -7,6 +7,7 @@ import { Keys, toast } from "../ui/kit";
 import { escapeHTML, highlightLines, languageOf } from "./highlight";
 import type { FileState, Row } from "./model";
 import { answerWords, caretAt, gapOf, getDefinition, getNames, getReferences, groupUses, nameAt, rangeOf, rowOf, textOffset, type NavAnswer, type NavRef, type NavReferences, type NavTarget, type Place, type Side } from "./nav";
+import { Button, buttonClass } from "../ui/Button";
 
 // Following names in a review: hold ⌘ and a name under the pointer is a
 // link; rest on it for its card, click it to go to its definition (in the
@@ -557,16 +558,16 @@ function NavPanel({ api, at, browse, onClose, onBack }: { api: string; at: Panel
         {at.how && <span className="dim nav-panel-how">{at.how}</span>}
         <span className="spacer-left" />
         {browse && (
-          <Link to={browse} className="button-link small-link" title="Open it in Files, as it is now (o)">
+          <Link to={browse} className={buttonClass({ size: "small" })} title="Open it in Files, as it is now (o)">
             Open <Keys k="o" />
           </Link>
         )}
-        <button className="ghost small" onClick={onBack} title="Back (b)">
+        <Button variant="ghost" size="small" onClick={onBack} title="Back (b)">
           <Icon name="arrow-left" size={12} /> <Keys k="b" />
-        </button>
-        <button className="ghost small" onClick={onClose} title="Close (esc)">
+        </Button>
+        <Button variant="ghost" size="small" onClick={onClose} title="Close (esc)">
           <Icon name="x" size={13} />
-        </button>
+        </Button>
       </header>
       <div className="nav-panel-body lines" ref={body}>
         {error && <div className="banner">{error}</div>}
@@ -638,12 +639,12 @@ function UsesPanel(props: {
           {uses.partial ? ", maybe more" : ""} · {at.side === "old" ? "before the change" : "with the change"}
         </span>
         <span className="spacer-left" />
-        <button className="ghost small" onClick={onBack} title="Back (b)">
+        <Button variant="ghost" size="small" onClick={onBack} title="Back (b)">
           <Icon name="arrow-left" size={12} /> <Keys k="b" />
-        </button>
-        <button className="ghost small" onClick={onClose} title="Close (esc)">
+        </Button>
+        <Button variant="ghost" size="small" onClick={onClose} title="Close (esc)">
           <Icon name="x" size={13} />
-        </button>
+        </Button>
       </header>
       <div className="nav-panel-body nav-uses">
         {uses.def && (
@@ -661,9 +662,9 @@ function UsesPanel(props: {
             <ul className="nav-list">{g.uses.map(row)}</ul>
             {g.maybes.length > 0 && (
               <>
-                <button className="ghost small nav-maybes" onClick={() => setOpen((o) => ({ ...o, [g.title]: !o[g.title] }))} title="Uses that weren't followed to it, but could be it: one of several by that name, or an interface's method it may satisfy">
+                <Button variant="ghost" size="small" className="nav-maybes" onClick={() => setOpen((o) => ({ ...o, [g.title]: !o[g.title] }))} title="Uses that weren't followed to it, but could be it: one of several by that name, or an interface's method it may satisfy">
                   {open[g.title] ? "Hide" : "Show"} {g.maybes.length} that may be
-                </button>
+                </Button>
                 {open[g.title] && <ul className="nav-list maybes">{g.maybes.map(row)}</ul>}
               </>
             )}

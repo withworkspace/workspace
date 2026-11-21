@@ -6,6 +6,7 @@ import { Icon } from "../ui/Icon";
 import { Dialog } from "../ui/kit";
 import { Logotype } from "../ui/Logotype";
 import { shortVersion } from "./version";
+import { Button } from "../ui/Button";
 
 // What's new: after ws is upgraded, a dialog over whatever page is open
 // says what's new in the releases since the one last seen in this
@@ -145,9 +146,9 @@ export function WhatsNewDialog({ title, entries, info, onClose }: { title: strin
             </>
           )}
         </span>
-        <button className="primary" onClick={onClose} autoFocus>
+        <Button variant="primary" onClick={onClose} autoFocus>
           Got it
-        </button>
+        </Button>
       </footer>
     </Dialog>
   );
@@ -159,9 +160,9 @@ function Release({ entry }: { entry: WhatsNewEntry }) {
 
 function ShowMe({ onClick }: { onClick: () => void }) {
   return (
-    <button className="ghost whats-new-link" onClick={onClick}>
+    <Button variant="ghost" className="whats-new-link" onClick={onClick}>
       Show me <Icon name="arrow-right" size={12} />
-    </button>
+    </Button>
   );
 }
 

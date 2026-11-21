@@ -6,6 +6,9 @@ import { Icon } from "../ui/Icon";
 import { Dialog, humanError, Keys, Loading, toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
+import { Chip } from "../ui/Chip";
+import { Button } from "../ui/Button";
+import { Row, RowLine, RowMain, RowTitle, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Pages: documents you write here, before or beside any mission. A line
 // that starts with >> asks for something (a table of the routes, what
@@ -52,44 +55,44 @@ export function useStartPage() {
 // chips (where it's filed, say).
 export function PageRow({ page: p, kinds, selected, onHover, note }: { page: PageInfo; kinds: DocKind[]; selected: boolean; onHover: () => void; note?: ReactNode }) {
   return (
-    <li id={`page-${p.id}`} role="option" aria-selected={selected} className={`row${selected ? " selected" : ""}`} onMouseMove={onHover}>
-      <TLink to={pageAddress(p)} className="row-link">
-        <Icon name="file" size={16} className="row-status" />
-        <span className="row-main">
-          <span className="row-line">
-            <span className="title">{p.title}</span>
+    <Row selected={selected} id={`page-${p.id}`} role="option" aria-selected={selected} onMouseMove={onHover}>
+      <TLink to={pageAddress(p)} className={rowLinkClass("page-link")}>
+        <Icon name="file" size={16} className={rowStatusClass("page-status")} />
+        <RowMain>
+          <RowLine>
+            <RowTitle>{p.title}</RowTitle>
             {p.kind && <KindChip kind={kinds.find((k) => k.name === p.kind)} name={p.kind} />}
             {p.source && (
-              <span className="chip tone-quiet mono" title={`Tied to ${p.source.ref}: saving it writes there`}>
+              <Chip tone="quiet" className="mono" title={`Tied to ${p.source.ref}: saving it writes there`}>
                 <Icon name="file" size={11} /> {p.source.ref.replace(/^[^:]*:/, "").split("/").pop()}
-              </span>
+              </Chip>
             )}
             {!!p.filling && (
-              <span className="chip tone-progress">
+              <Chip tone="progress">
                 <Icon name="spinner" size={11} className="spin" /> Filling {p.filling === 1 ? "a cell" : `${p.filling} cells`}
-              </span>
+              </Chip>
             )}
-            {!!p.cells && !p.filling && <span className="chip tone-quiet">{p.cells === 1 ? "1 cell" : `${p.cells} cells`}</span>}
+            {!!p.cells && !p.filling && <Chip tone="quiet">{p.cells === 1 ? "1 cell" : `${p.cells} cells`}</Chip>}
             {!!p.stale && !p.filling && (
-              <span className="chip tone-attention" title="Written from files that have changed since">
+              <Chip tone="attention" title="Written from files that have changed since">
                 {p.stale === 1 ? "1 out of date" : `${p.stale} out of date`}
-              </span>
+              </Chip>
             )}
             {note}
-          </span>
-        </span>
+          </RowLine>
+        </RowMain>
         <span className="dim page-ref">{p.id}</span>
         <Time iso={p.updated} as="age" className="age" />
       </TLink>
-    </li>
+    </Row>
   );
 }
 
 function KindChip({ kind, name }: { kind?: DocKind; name: string }) {
   return (
-    <span className="chip tone-quiet" title={kind ? kindHint(kind) : `A kind the workspace no longer has (${name})`}>
+    <Chip tone="quiet" title={kind ? kindHint(kind) : `A kind the workspace no longer has (${name})`}>
       {kind?.title ?? name}
-    </span>
+    </Chip>
   );
 }
 
@@ -155,12 +158,12 @@ export function NewAsKind({ kinds, busy, onStart, onClose }: { kinds: DocKind[];
         </p>
       )}
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose}>
           Cancel
-        </button>
-        <button className="primary" onClick={go} disabled={busy || !k || !title.trim()}>
+        </Button>
+        <Button variant="primary" onClick={go} disabled={busy || !k || !title.trim()}>
           Start it <Keys k="⏎" />
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

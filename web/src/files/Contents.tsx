@@ -2,14 +2,13 @@ import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useSta
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/kit";
 import { progress, railRoom, type Section, sectionAt } from "./reading";
+import { Button } from "../ui/Button";
+import { pageScroller } from "../ui/scroller";
 
 // The reader's contents (#123): a rail beside the text where there's room
 // for one, else a pill that sticks to the top once you've scrolled past the
 // title, which opens them as a menu. Both say which section you're in and
 // how far through you are. reading.ts works that out; this draws it.
-
-// The reader scrolls in the app's main column.
-const scroller = () => document.querySelector("main");
 
 const headingAt = (article: HTMLElement | null, anchor: string) => article?.querySelector<HTMLElement>(`[data-anchor="${CSS.escape(anchor)}"]`) ?? null;
 
@@ -53,7 +52,7 @@ export interface Reading {
 export function useReading(article: RefObject<HTMLElement | null>, sections: Section[], text: string | undefined): Reading {
   const [reading, setReading] = useState<Reading>({ at: -1, pct: 0, past: false });
   useEffect(() => {
-    const main = scroller();
+    const main = pageScroller();
     const el = article.current;
     if (!main || !el) return;
     let frame = 0;
@@ -199,7 +198,7 @@ export function usePlaceUnder(box: RefObject<HTMLElement | null>, anchor: () => 
     const el = box.current;
     if (!a || !el) return;
     const r = a.getBoundingClientRect();
-    const floor = (scroller()?.getBoundingClientRect().top ?? 0) + 8;
+    const floor = (pageScroller()?.getBoundingClientRect().top ?? 0) + 8;
     const top = Math.max(floor, r.bottom + 6);
     const from = r.bottom < floor ? (column?.()?.getBoundingClientRect().left ?? r.left) : r.left;
     const left = Math.max(8, Math.min(from, window.innerWidth - el.offsetWidth - 8));
@@ -234,9 +233,9 @@ export function ContentsMenu({ title, sections, at, anchor, go, copy, close }: {
       <div className="contents-menu-head">
         <Icon name="list" size={12} />
         <b>{title}</b>
-        <button type="button" className="link" onClick={copy} title="Copy a link to it">
+        <Button variant="link" className="contents-menu-action" type="button" onClick={copy} title="Copy a link to it">
           Copy its link <Icon name="link" size={12} />
-        </button>
+        </Button>
       </div>
       <nav className="contents-menu-list">
         {sections.length > 0 ? (

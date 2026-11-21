@@ -9,6 +9,12 @@ import { Callout, Empty, humanError, Keys, Loading, toast, useTitle } from "../u
 import { Status, type StatusInfo } from "../ui/status";
 import { dayLabel, Time } from "../ui/time";
 import { useLatest } from "../load";
+import { Chip } from "../ui/Chip";
+import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Team: what the people working in the workspace's repos have been doing,
 // by day, newest first. Each pull request, and each run of one person's
@@ -317,7 +323,7 @@ export function TeamPage() {
 
   // A row, under the id it has where it's shown.
   const row = (id: string, it: TeamItem) => (
-    <Row
+    <TeamRow
       key={id}
       id={id}
       item={it}
@@ -341,62 +347,64 @@ export function TeamPage() {
   );
 
   const head = (
-    <header className="page-head">
-      <h1>Team</h1>
-      <div className="page-actions">
-        {view && (
-          <span className="dim reviews-asked" title="When git and GitHub were last looked at. While this page is open they're looked at every couple of minutes.">
-            {loading ? (
-              <>
-                <Icon name="spinner" className="spin" size={12} /> Looking…
-              </>
-            ) : (
-              <>
-                As of <Time iso={view.at} as="relative" />
-              </>
-            )}
-          </span>
-        )}
-        <div className="segmented" role="group" aria-label="Arranged">
-          <button aria-pressed={!byPeople} onClick={() => arrange(false)} title="By day, newest first (p)">
-            Days
-          </button>
-          <button aria-pressed={byPeople} onClick={() => arrange(true)} title="By person: what each has open, has landed, and has been reviewing (p)">
-            People
-          </button>
-        </div>
-        <div className="segmented" role="group" aria-label="Period">
-          {periods.map((p) => (
-            <button key={p.since} aria-pressed={period === p.since} onClick={() => pick(p.since)} title={p.title}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-        {narrative?.on && (
-          <button className={`ghost small team-only-know${onlyKnow ? " on" : ""}`} aria-pressed={onlyKnow} onClick={know} title="Only the changes with something worth knowing (n)">
-            <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <span className="count tone-attention">{worth}</span>}
-          </button>
-        )}
-        <input
-          ref={filter}
-          className="reviews-filter"
-          value={q}
-          placeholder="Filter: text, repo, person"
-          aria-label="Filter what happened"
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape" || e.key === "Enter") {
-              e.preventDefault();
-              if (e.key === "Escape") setQ("");
-              e.currentTarget.blur();
-            }
-          }}
-        />
-        <button className="ghost small" onClick={refresh} disabled={loading} title="Look at git and GitHub again (r)">
-          <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
-        </button>
-      </div>
-    </header>
+    <PageHead
+      title="Team"
+      actions={
+        <>
+          {view && (
+            <span className="dim reviews-asked" title="When git and GitHub were last looked at. While this page is open they're looked at every couple of minutes.">
+              {loading ? (
+                <>
+                  <Icon name="spinner" className="spin" size={12} /> Looking…
+                </>
+              ) : (
+                <>
+                  As of <Time iso={view.at} as="relative" />
+                </>
+              )}
+            </span>
+          )}
+          <div className="segmented" role="group" aria-label="Arranged">
+            <Button aria-pressed={!byPeople} onClick={() => arrange(false)} title="By day, newest first (p)">
+              Days
+            </Button>
+            <Button aria-pressed={byPeople} onClick={() => arrange(true)} title="By person: what each has open, has landed, and has been reviewing (p)">
+              People
+            </Button>
+          </div>
+          <div className="segmented" role="group" aria-label="Period">
+            {periods.map((p) => (
+              <Button key={p.since} aria-pressed={period === p.since} onClick={() => pick(p.since)} title={p.title}>
+                {p.label}
+              </Button>
+            ))}
+          </div>
+          {narrative?.on && (
+            <Button variant="ghost" size="small" className={`team-only-know ${onlyKnow ? " on" : ""}`} aria-pressed={onlyKnow} onClick={know} title="Only the changes with something worth knowing (n)">
+              <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
+            </Button>
+          )}
+          <input
+            ref={filter}
+            className="reviews-filter"
+            value={q}
+            placeholder="Filter: text, repo, person"
+            aria-label="Filter what happened"
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" || e.key === "Enter") {
+                e.preventDefault();
+                if (e.key === "Escape") setQ("");
+                e.currentTarget.blur();
+              }
+            }}
+          />
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Look at git and GitHub again (r)">
+            <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
+          </Button>
+        </>
+      }
+    />
   );
 
   if (!view) {
@@ -418,7 +426,7 @@ export function TeamPage() {
     <div className="page team-page">
       {head}
       {(error || view.error) && (
-        <Callout tone="attention" title="The repos couldn't be looked at just now" actions={<button onClick={refresh}>Try again</button>}>
+        <Callout tone="attention" title="The repos couldn't be looked at just now" actions={<Button onClick={refresh}>Try again</Button>}>
           {humanError(error ?? view.error ?? "")} What's here is as of <Time iso={view.at} as="relative" />.
         </Callout>
       )}
@@ -455,25 +463,26 @@ export function TeamPage() {
             </span>
           )}
           {summary && !summary.at && !summary.writing && summary.can > 0 && (
-            <button className="link" onClick={catchUp} title="An agent writes what the team's been working on in this period, from the changes that have been read (c)">
+            <Button variant="link" onClick={catchUp} title="An agent writes what the team's been working on in this period, from the changes that have been read (c)">
               Catch me up
-            </button>
+            </Button>
           )}
           {narrative?.on && narrative.unwritten > 0 && (
             <span>
               {narrative.unwritten} {narrative.unwritten === 1 ? "change hasn't" : "changes haven't"} been read: those from before yesterday wait until you ask.{" "}
-              <button className="link" onClick={writeAll} title="Have an agent read them (⇧W)">
+              <Button variant="link" onClick={writeAll} title="Have an agent read them (⇧W)">
                 Read them
-              </button>
+              </Button>
             </span>
           )}
         </p>
       )}
       {total > 0 && summary && (summary.topics?.length || summary.writing || summary.failed) && (
         <section className="team-summary" aria-label="What the team's been working on">
-          <h2 className="group">
-            <button
-              className="link group-fold"
+          <GroupHead>
+            <Button
+              variant="link"
+              className="group-fold"
               aria-expanded={!foldSummary}
               onClick={() => {
                 foldSummary = !foldSummary;
@@ -481,7 +490,7 @@ export function TeamPage() {
               }}
             >
               <Icon name={foldSummary ? "chevron-right" : "chevron-down"} size={12} /> Being worked on
-            </button>
+            </Button>
             <span className="spacer" />
             {summary.writing ? (
               <span className="team-writing">
@@ -495,12 +504,12 @@ export function TeamPage() {
                     {summary.stale ? ", and things have changed since" : ""}
                   </>
                 )}{" "}
-                <button className="link" onClick={catchUp} title="Have it written again, from the changes as they are now (c)">
+                <Button variant="link" onClick={catchUp} title="Have it written again, from the changes as they are now (c)">
                   Write it again
-                </button>
+                </Button>
               </span>
             )}
-          </h2>
+          </GroupHead>
           {!foldSummary && summary.failed && <p className="team-gist-error team-summary-failed">It couldn't be written: {humanError(summary.failed)}</p>}
           {!foldSummary && (
             <ul className="team-topics">
@@ -525,9 +534,9 @@ export function TeamPage() {
           <span>
             Only <strong>{topic.name}</strong>: {topic.strands.length} {topic.strands.length === 1 ? "change" : "changes"}.
           </span>
-          <button className="link" onClick={() => setTopic(undefined)}>
+          <Button variant="link" onClick={() => setTopic(undefined)}>
             Show everything <Keys k="esc" />
-          </button>
+          </Button>
         </p>
       )}
       {total > 0 && onlyKnow && !days.length && !q && (
@@ -538,10 +547,10 @@ export function TeamPage() {
       {!byPeople &&
         days.map((d) => (
           <section key={d.date} aria-label={d.date}>
-            <h2 className="group">
-              {dayLabel(`${d.date}T12:00:00`)} <span className="count">{d.items.length}</span>
-            </h2>
-            <ul className="rows team-rows" role="listbox" aria-label={d.date}>
+            <GroupHead count={d.items.length}>
+              {dayLabel(`${d.date}T12:00:00`)}
+            </GroupHead>
+            <Rows className="team-rows" role="listbox" aria-label={d.date}>
               {d.items.map((it) => (
                 <Fragment key={it.key}>
                   {it.key === seenFrom && marker && (
@@ -554,31 +563,31 @@ export function TeamPage() {
                   {row(it.key, it)}
                 </Fragment>
               ))}
-            </ul>
+            </Rows>
             {d.bots > 0 && !q && (
-              <button className="link team-bots" onClick={bots} aria-expanded={showBots}>
+              <Button variant="link" className="team-bots" onClick={bots} aria-expanded={showBots}>
                 <Icon name={showBots ? "chevron-down" : "chevron-right"} size={12} /> {d.bots} automated
-              </button>
+              </Button>
             )}
           </section>
         ))}
       {byPeople &&
         groups.map((g) => (
           <section key={g.key} aria-label={people.get(g.key)?.name ?? g.key}>
-            <h2 className="group" title={people.get(g.key)?.login}>
+            <GroupHead title={people.get(g.key)?.login}>
               {people.get(g.key)?.name ?? g.key}
-            </h2>
+            </GroupHead>
             {g.theirs.length > 0 && (
-              <ul className="rows team-rows" role="listbox" aria-label="Theirs">
+              <Rows className="team-rows" role="listbox" aria-label="Theirs">
                 {g.theirs.map((it) => row(`${g.key}/${it.key}`, it))}
-              </ul>
+              </Rows>
             )}
             {g.reviewing.length > 0 && (
               <>
                 <h3 className="team-sub">Reviewing</h3>
-                <ul className="rows team-rows" role="listbox" aria-label="Reviewing">
+                <Rows className="team-rows" role="listbox" aria-label="Reviewing">
                   {g.reviewing.map((it) => row(`${g.key}/${it.key}`, it))}
-                </ul>
+                </Rows>
               </>
             )}
           </section>
@@ -590,13 +599,13 @@ export function TeamPage() {
 function KnowChip({ kind }: { kind: KnowKind }) {
   const info = knowInfo[kind] ?? knowInfo.behaviour;
   return (
-    <span className={`chip tone-attention team-know-kind`} title={info.title}>
+    <Chip tone="attention" className="team-know-kind" title={info.title}>
       <Icon name={info.icon} size={11} /> {info.label}
-    </span>
+    </Chip>
   );
 }
 
-interface RowProps {
+interface TeamRowProps {
   id: string;
   item: TeamItem;
   names: string[];
@@ -616,7 +625,7 @@ interface RowProps {
   onWrite: () => void;
 }
 
-function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, who, onHover, onToggle, onOpen, onWrite }: RowProps) {
+function TeamRow({ id, item: it, names, repoOf, selected, open, fresh, dated, know, who, onHover, onToggle, onOpen, onWrite }: TeamRowProps) {
   const status: StatusInfo = it.kind === "commits" ? { icon: "commit", tone: "done", words: "Landed" } : stateInfo[it.state];
   const here = it.kind === "pr" && (it.state === "in-review" || it.state === "in-progress");
   const repo = repoOf(it.repo);
@@ -624,37 +633,37 @@ function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, 
   const several = it.prs && it.prs.length > 1 ? it.prs : undefined;
   const landed = several?.filter((p) => p.state === "landed").length ?? 0;
   return (
-    <li id={`team-row-${id}`} role="option" aria-selected={selected} className={`row team-row${selected ? " selected" : ""}${open ? " open" : ""}${fresh ? " fresh" : ""}`} onMouseMove={onHover}>
-      <div className="row-link" role="button" tabIndex={-1} aria-expanded={open} onClick={onToggle}>
-        <Status s={status} iconOnly size={16} className="row-status" />
-        <span className="row-main">
-          <span className="row-line">
+    <Row selected={selected} id={`team-row-${id}`} role="option" aria-selected={selected} className={`team-row${open ? " open" : ""}${fresh ? " fresh" : ""}`} onMouseMove={onHover}>
+      <div className={rowLinkClass("team-row-link")} role="button" tabIndex={-1} aria-expanded={open} onClick={onToggle}>
+        <Status s={status} iconOnly size={16} className={rowStatusClass()} />
+        <RowMain className="team-row-main">
+          <RowLine>
             {fresh && <span className="team-new" title="Something's happened to it since you last looked" />}
-            <span className="title">{it.name}</span>
+            <RowTitle>{it.name}</RowTitle>
             {several ? (
-              <span className="chip tone-quiet team-repo" title={(it.repos ?? []).map((r) => repoOf(r).label).join(", ")}>
+              <Chip tone="quiet" className="team-repo" title={(it.repos ?? []).map((r) => repoOf(r).label).join(", ")}>
                 {(it.repos ?? []).slice(0, 4).map((r) => (
                   <span key={r} className="repo-dot" style={{ background: repoOf(r).color }} />
                 ))}
                 {it.repos?.length} repos
-              </span>
+              </Chip>
             ) : (
-              <span className="chip tone-quiet team-repo" title={it.repo}>
+              <Chip tone="quiet" className="team-repo" title={it.repo}>
                 <span className="repo-dot" style={{ background: repo.color }} />
                 {repo.label}
                 {it.pr ? <span className="mono"> #{it.pr}</span> : null}
-              </span>
+              </Chip>
             )}
             {it.touches?.map((t) => (
-              <span key={t.name} className="chip tone-progress team-touch" title={`It changes how things are done:\n${t.files.join("\n")}`}>
+              <Chip tone="progress" key={t.name} className="team-touch" title={`It changes how things are done:\n${t.files.join("\n")}`}>
                 {t.title}
-              </span>
+              </Chip>
             ))}
             <span className={`team-state tone-${status.tone}`}>
               {status.words}
               {several && landed > 0 && landed < several.length ? `, ${landed} of ${several.length} landed` : ""}
             </span>
-          </span>
+          </RowLine>
           {it.gist && <Inline text={it.gist} className="team-gist" />}
           {it.narrative === "writing" && !it.gist && (
             <span className="team-gist dim">
@@ -664,26 +673,26 @@ function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, 
           {know && it.know?.map((k) => <KnowLine key={`${k.kind}:${k.file}:${k.text}`} know={k} repo={it.repo} />)}
           {it.near?.map((n) => (
             <span key={n.capsule} className="team-know-line team-near" title={n.files.join("\n")}>
-              <span className="chip tone-progress team-know-kind" title="A capsule of yours has changed some of the same files">
+              <Chip tone="progress" className="team-know-kind" title="A capsule of yours has changed some of the same files">
                 <Icon name="box" size={11} /> Near you
-              </span>
+              </Chip>
               <span>
                 Also changed in your <span className="mono">{n.capsule}</span>: {n.files.slice(0, 2).map((f) => f.split("/").pop()).join(", ")}
                 {n.files.length > 2 ? `, and ${n.files.length - 2} more` : ""}
               </span>
             </span>
           ))}
-          <span className="row-sub">{it.words}</span>
-        </span>
-        <span className="row-meta team-people" title={names.join(", ")}>
+          <RowSub className="team-row-sub">{it.words}</RowSub>
+        </RowMain>
+        <RowMeta className="team-people" title={names.join(", ")}>
           {names.join(", ")}
-        </span>
+        </RowMeta>
         {it.additions || it.deletions ? (
-          <span className="row-meta pr-size">
+          <RowMeta className="pr-size">
             <span className="plus">+{it.additions ?? 0}</span> <span className="minus">−{it.deletions ?? 0}</span>
-          </span>
+          </RowMeta>
         ) : (
-          <span className="row-meta pr-size" />
+          <RowMeta className="pr-size"  />
         )}
         <Time iso={it.at} as={dated ? "relative" : "clock"} className="age" />
       </div>
@@ -745,19 +754,19 @@ function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, 
           {it.narrative === "failed" && <p className="team-gist-error">What it does couldn't be written: {humanError(it.gistError ?? "")}</p>}
           <div className="team-actions">
             {!several && (
-              <button className="ghost small" onClick={onOpen} title="Open it (o)">
+              <Button variant="ghost" size="small" onClick={onOpen} title="Open it (o)">
                 <Icon name={here ? "pr" : "external"} size={13} /> {here ? "Review it here" : "Open on GitHub"} <Keys k="o" />
-              </button>
+              </Button>
             )}
             {(it.narrative === "unwritten" || it.narrative === "failed") && (
-              <button className="ghost small" onClick={onWrite} title="An agent reads the change and writes what it does, and what's worth knowing of it (w)">
+              <Button variant="ghost" size="small" onClick={onWrite} title="An agent reads the change and writes what it does, and what's worth knowing of it (w)">
                 <Icon name="sparkle" size={13} /> {it.narrative === "failed" ? "Try again" : it.gist ? "Read it again" : "Read the change"} <Keys k="w" />
-              </button>
+              </Button>
             )}
           </div>
         </div>
       )}
-    </li>
+    </Row>
   );
 }
 

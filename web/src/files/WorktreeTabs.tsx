@@ -7,6 +7,7 @@ import { Icon, type IconName, icons } from "../ui/Icon";
 import { Empty, ErrorCard } from "../ui/kit";
 import { type BrowserProps, FileBrowser } from "./Explorer";
 import { WorktreeRuns } from "./Runs";
+import { Count } from "../ui/Count";
 
 // A worktree's tabs, on its repo's page: its Files, its Runs, and each of
 // its apps (a recipe of its ws.repo.toml with a page), its run framed. The
@@ -54,7 +55,7 @@ export function useWorktreeTabs(at: AppAt): WorktreeTabs {
     <Link key={v} to={to(v)} className="worktree-tab" aria-current={view === v ? "page" : undefined} replace>
       <Icon name={icon} size={14} />
       {label}
-      {!!count && <span className="count">{count}</span>}
+      {!!count && <Count className="worktree-tab-count">{count}</Count>}
     </Link>
   );
   const tabs = (

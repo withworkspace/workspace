@@ -15,6 +15,8 @@ import { compareHref, type Pair, readPair, settle, type Side, sideRef, sideTweak
 import { widths } from "./shown";
 import { type FrameTweaks, TweaksButton, useTweaks } from "./Tray";
 import { followed, frameSearch, type Params, readTweakParams } from "./tweaks";
+import { Chip } from "../ui/Chip";
+import { Button, buttonClass } from "../ui/Button";
 
 // Comparing: two versions side by side, of one artifact
 // (/artifacts/a3/compare?v=1,3) or of two
@@ -181,61 +183,61 @@ export function ComparePage({ workspace }: { workspace: Workspace }) {
             <Icon name="arrow-left" size={14} />
           </Link>
           <h1>{same ? right.title : `${left.title} and ${right.title}`}</h1>
-          <span className="chip tone-quiet">
+          <Chip tone="quiet">
             <Icon name="split" size={11} />
             {same ? `v${pair[0].n} and v${pair[1].n}` : "Two artifacts"}
-          </span>
+          </Chip>
         </div>
         <div className="artifact-tools">
           <div className="segmented" role="group" aria-label="What's compared">
-            <button aria-pressed={!diff} onClick={() => setDiff(false)} title="Each running in its frame (d)">
+            <Button aria-pressed={!diff} onClick={() => setDiff(false)} title="Each running in its frame (d)">
               <Icon name="monitor" size={13} /> Frames
-            </button>
-            <button aria-pressed={diff} onClick={() => setDiff(true)} title="Their files, the left's against the right's (d)">
+            </Button>
+            <Button aria-pressed={diff} onClick={() => setDiff(true)} title="Their files, the left's against the right's (d)">
               <Icon name="code" size={13} /> Source diff
-            </button>
+            </Button>
           </div>
           {diff ? (
             !narrow && (
               <div className="segmented" role="group" aria-label="The diff">
-                <button aria-pressed={!split} onClick={() => setSplit(false)} title="Unified (u)">
+                <Button aria-pressed={!split} onClick={() => setSplit(false)} title="Unified (u)">
                   <Icon name="unified" size={13} /> Unified
-                </button>
-                <button aria-pressed={split} onClick={() => setSplit(true)} title="Side by side (u)">
+                </Button>
+                <Button aria-pressed={split} onClick={() => setSplit(true)} title="Side by side (u)">
                   <Icon name="split" size={13} /> Split
-                </button>
+                </Button>
               </div>
             )
           ) : (
             <div className="segmented" role="group" aria-label="Width">
               {widths.map((w) => (
-                <button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={`${w.title}, both`}>
+                <Button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={`${w.title}, both`}>
                   {w.label}
-                </button>
+                </Button>
               ))}
             </div>
           )}
           {narrow && (
             <div className="segmented compare-which" role="group" aria-label="Which one's shown">
               {([0, 1] as const).map((i) => (
-                <button key={i} aria-pressed={shown === i} onClick={() => setShown(i)} title={`${i ? "The right" : "The left"} one (t)`}>
+                <Button key={i} aria-pressed={shown === i} onClick={() => setShown(i)} title={`${i ? "The right" : "The left"} one (t)`}>
                   {sideRef(pair[i])}
-                </button>
+                </Button>
               ))}
             </div>
           )}
           <span className="artifact-tools-end">
-            <button className="ghost small" onClick={swap} title="Each where the other was: the diff the other way about">
+            <Button variant="ghost" size="small" onClick={swap} title="Each where the other was: the diff the other way about">
               <Icon name="swap" size={13} /> Swap <Keys k="S" />
-            </button>
+            </Button>
             {!diff && (
               <>
-                <button className="ghost small" onClick={again} title="Run them again">
+                <Button variant="ghost" size="small" onClick={again} title="Run them again">
                   <Icon name="rotate" size={13} /> Reload <Keys k="r" />
-                </button>
-                <button className="ghost small" onClick={() => setStopped((s) => !s)} title={stopped ? "Run them again" : "Unload them: a script that loops stops"}>
+                </Button>
+                <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} title={stopped ? "Run them again" : "Unload them: a script that loops stops"}>
                   <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
-                </button>
+                </Button>
               </>
             )}
           </span>
@@ -318,7 +320,7 @@ function SideHead({
         <span className="compare-side-end">
           {framed && <TweaksButton told={tweaks.told} set={tweaks.set} label={i ? "The right one's tweaks" : "The left one's tweaks"} />}
           {runnable && (
-            <a className="button-link ghost small compare-alone" href={frameURL(d.id, side.n, opensAs)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed, as it's set here">
+            <a className={buttonClass({ variant: "ghost" }, "small compare-alone")} href={frameURL(d.id, side.n, opensAs)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed, as it's set here">
               <Icon name="external" size={13} /> Open alone
             </a>
           )}
@@ -376,7 +378,7 @@ function SideFrame({
   }
   if (stopped) {
     return (
-      <Empty icon="stop" title="Stopped" action={<button onClick={onRun}>Run them</button>}>
+      <Empty icon="stop" title="Stopped" action={<Button onClick={onRun}>Run them</Button>}>
         The frames are unloaded, and their scripts with them.
       </Empty>
     );
@@ -460,7 +462,7 @@ function FileDiff({ file: f, lines, a, b, split, named }: { file: DiffFile; line
         {named && (
           <span className="artifact-diff-path">
             <Icon name="file" size={12} /> {f.path}
-            {f.status !== "modified" && <span className={`chip tone-${f.status === "added" ? "done" : "quiet"}`}>{statusWords[f.status] ?? f.status}</span>}
+            {f.status !== "modified" && <Chip tone={f.status === "added" ? "done" : "quiet"}>{statusWords[f.status] ?? f.status}</Chip>}
           </span>
         )}
         {f.binary ? (

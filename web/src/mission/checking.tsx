@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Checking } from "../api";
 import { Icon } from "../ui/Icon";
+import { capital } from "../ui/text";
 
 // What ws is running while it checks a step: a check that's a command,
 // how long it's been going (ticking each second), the last line it's
@@ -39,8 +40,6 @@ export function checkNumbers(ns: number[] | undefined): string {
   if (ns.length === 1) return `check ${ns[0]}`;
   return `checks ${ns.slice(0, -1).join(", ")} and ${ns[ns.length - 1]}`;
 }
-
-const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // checkingTitle is what's running, in a few words.
 export function checkingTitle(c: Checking): string {

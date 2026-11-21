@@ -11,6 +11,10 @@ import { Time } from "../ui/time";
 import { DocEdit } from "./DocEdit";
 import { ArtifactState, artifactTitle } from "./parts";
 import { useLatest } from "../load";
+import { Button, buttonClass } from "../ui/Button";
+import { PageHead } from "../ui/PageHead";
+import { pageScroller } from "../ui/scroller";
+import { capital } from "../ui/text";
 
 export const artifactKeys: [string, string][] = [
   ...annotateKeys.map(([k, what]): [string, string] => (k === "j / k" ? [k, `${what} (in code: scroll)`] : [k, what])),
@@ -60,8 +64,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
   const startEdit = () => canEdit && setEditing(true);
   useEffect(load, [load]);
 
-  const scroller = () => document.querySelector("main");
-  const scroll = (by: number) => scroller()?.scrollBy({ top: by });
+  const scroll = (by: number) => pageScroller()?.scrollBy({ top: by });
   // Back where you came from, or to the mission's work if this was opened
   // directly.
   const back = () => (location.key !== "default" ? navigate(-1) : navigate(`/missions/${slug}?tab=work`));
@@ -80,8 +83,8 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
         }),
     "mod+d": () => scroll(window.innerHeight / 2),
     "mod+u": () => scroll(-window.innerHeight / 2),
-    g: () => scroller()?.scrollTo({ top: 0 }),
-    G: () => scroller()?.scrollTo({ top: scroller()!.scrollHeight }),
+    g: () => pageScroller()?.scrollTo({ top: 0 }),
+    G: () => pageScroller()?.scrollTo({ top: pageScroller()!.scrollHeight }),
     o: () => a?.url && window.open(a.url, "_blank", "noopener"),
     r: load,
     // A document's Esc clears what's picked out in it first: it goes back.
@@ -97,9 +100,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
       </nav>
       {/* A document that starts with its own title is its own heading. */}
       {!(a?.markdown && /^#\s/.test(a.text.trimStart())) && (
-        <header className="page-head">
-          <h1>{named?.title ?? (a ? a.ref : "")}</h1>
-        </header>
+        <PageHead title={named?.title ?? (a ? a.ref : "")} />
       )}
       {a && (
         <div className="doc-meta">
@@ -108,7 +109,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
               {a.docKind.title}
             </span>
           ) : (
-            <span className="doc-kind">{a.kind[0].toUpperCase() + a.kind.slice(1)}</span>
+            <span className="doc-kind">{capital(a.kind)}</span>
           )}
           <ArtifactState state={a.state} />
           {a.by && <span>by {a.by}</span>}
@@ -118,12 +119,12 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           </Copyable>
           <span className="spacer" />
           {a.markdown && !editing && (
-            <button className="small" onClick={startEdit} disabled={!a.editable} title={a.editable ? "Edit it here (e)" : `Can't be edited here: ${a.uneditable}`}>
+            <Button size="small" onClick={startEdit} disabled={!a.editable} title={a.editable ? "Edit it here (e)" : `Can't be edited here: ${a.uneditable}`}>
               <Icon name="pencil" size={12} /> Edit <Keys k="e" />
-            </button>
+            </Button>
           )}
           {a.url && (
-            <a href={a.url} target="_blank" rel="noopener noreferrer" className="button-link small-link" title="Open it where it lives (o)">
+            <a href={a.url} target="_blank" rel="noopener noreferrer" className={buttonClass({ size: "small" })} title="Open it where it lives (o)">
               <Icon name="external" size={12} /> Open <Keys k="o" />
             </a>
           )}
@@ -138,12 +139,12 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           title="You've an unsaved edit of this"
           actions={
             <>
-              <button className="small primary" onClick={startEdit}>
+              <Button variant="primary" size="small" onClick={startEdit}>
                 Go on editing <Keys k="e" />
-              </button>
-              <button className="small ghost" onClick={() => dropDraft(slug, ref).then(() => setDraft(null))}>
+              </Button>
+              <Button variant="ghost" size="small" onClick={() => dropDraft(slug, ref).then(() => setDraft(null))}>
                 Discard it
-              </button>
+              </Button>
             </>
           }
         >

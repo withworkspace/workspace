@@ -3,6 +3,7 @@ import { type ArtifactContent, type DocDraft, type DocSaved, dropDraft, getThrea
 import { type Draft, MarkdownEditor, type Quote } from "../editor/LazyEditor";
 import { Callout, humanError, Keys, Skeleton, toast } from "../ui/kit";
 import { Time } from "../ui/time";
+import { Button } from "../ui/Button";
 
 // DocEdit edits one of a mission's documents in place, as it reads, or
 // (no slug) a document outside any mission: a file in one of the
@@ -250,12 +251,12 @@ export function DocEdit({
       <div className="editor-bar">
         {a.annotatable && (
           <span className="segmented" role="group" aria-label="Edit or suggest">
-            <button aria-pressed={!suggesting} onClick={() => setMode("edit")} title="Your changes are made: saving writes them in">
+            <Button aria-pressed={!suggesting} onClick={() => setMode("edit")} title="Your changes are made: saving writes them in">
               Edit
-            </button>
-            <button aria-pressed={suggesting} onClick={() => setMode("suggest")} title="Your changes are offered: each becomes a suggestion on a thread, to accept or decline one by one">
+            </Button>
+            <Button aria-pressed={suggesting} onClick={() => setMode("suggest")} title="Your changes are offered: each becomes a suggestion on a thread, to accept or decline one by one">
               Suggest
-            </button>
+            </Button>
           </span>
         )}
         {commits && (
@@ -286,16 +287,16 @@ export function DocEdit({
         </span>
         <span className="spacer" />
         {unsaved && (
-          <button className="ghost" onClick={discard} disabled={busy} title="Throw this edit away">
+          <Button variant="ghost" onClick={discard} disabled={busy} title="Throw this edit away">
             Discard
-          </button>
+          </Button>
         )}
-        <button className="ghost" onClick={close} disabled={busy} title="Leave, keeping your edit as a draft">
+        <Button variant="ghost" onClick={close} disabled={busy} title="Leave, keeping your edit as a draft">
           Close <Keys k="esc" />
-        </button>
-        <button className="primary" onClick={save} disabled={busy || !unsaved}>
+        </Button>
+        <Button variant="primary" onClick={save} disabled={busy || !unsaved}>
           {busy ? (suggesting ? "Suggesting…" : lands ? "Landing…" : "Saving…") : suggesting ? "Suggest" : lands ? `Save, and land on ${a.saves?.branch}` : "Save"} <Keys k="mod+⏎" />
-        </button>
+        </Button>
       </div>
     </div>
   );
