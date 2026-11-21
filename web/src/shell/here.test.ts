@@ -98,6 +98,12 @@ describe("what can be done here", () => {
     expect(items.every((it) => it.group === "here")).toBe(true);
   });
 
+  it("is adding a repo, in Settings' repos, and nothing in Settings' other places", () => {
+    const items = hereItems(hereAt("/settings/repos", "", workspace, known), workspace, known);
+    expect(items).toEqual([expect.objectContaining({ group: "here", title: "Add a repo from GitHub", to: "/settings/repos?add=1" })]);
+    expect(hereAt("/settings/appearance", "", workspace, known)).toBeUndefined();
+  });
+
   it("is a plugin's thing's actions, then ws's own", () => {
     const items = hereItems(hereAt("/x/jira/issue/RAM-12", "", workspace, known), workspace, known);
     expect(titles(items)).toEqual(["Move it", "Start a mission about it"]);

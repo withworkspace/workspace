@@ -1,25 +1,67 @@
-import { useState } from "react";
-import { getRepos, type Repo, shareRepo } from "../api";
+import { useMemo, useReducer, useState } from "react";
+import { useSearchParams } from "react-router";
+import { getRepos, type Repo, shareRepo, useEvents } from "../api";
 import { useLoaded } from "../load";
 import { Button } from "../ui/Button";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { GroupHead } from "../ui/GroupHead";
 import { ErrorCard, Skeleton, toast } from "../ui/kit";
+import { AddRepo } from "./AddRepo";
 import css from "./Repos.module.css";
 
 // Repos is the workspace's repos: the team's, as ws.toml has them, shown
 // and not changed here; and yours, in ws.local.toml alone, each of which
-// can be given to the team.
-export function Repos({ branch }: { branch?: string }) {
+// can be given to the team. A repo is added from GitHub (?add=1 opens it,
+// as Find's Add a repo does).
+export function Repos({ branch, org }: { branch?: string; org?: string }) {
   const { value: repos, error, reload } = useLoaded<Repo[]>(getRepos, [], { keep: true });
+  // A repo added is cloned behind, and GitHub's asked behind what the
+  // picker shows: the github topic says when either's done (one stream,
+  // for the table and the picker both).
+  const [seen, bump] = useReducer((n: number) => n + 1, 0);
+  const again = () => {
+    reload();
+    bump();
+  };
+  // On hello too: a look that ended before the stream opened is caught up
+  // with then.
+  useEvents("github", { hello: again, changed: again });
+  const [params, setParams] = useSearchParams();
+  const adding = params.has("add");
+  const setAdding = (on: boolean) =>
+    setParams(
+      (p) => {
+        const next = new URLSearchParams(p);
+        if (on) next.set("add", "1");
+        else next.delete("add");
+        return next;
+      },
+      { replace: true },
+    );
+  const taken = useMemo(() => new Set((repos ?? []).flatMap((r) => [r.name, ...(r.aliases ?? [])])), [repos]);
   const yours = repos?.filter((r) => r.yours).length ?? 0;
   return (
     <section id="repos" className="settings-block">
       <GroupHead className="settings-group">
         Repos
         {repos && <Count>{repos.length}</Count>}
+        <Button size="small" className={css.add} onClick={() => setAdding(true)}>
+          Add repo…
+        </Button>
       </GroupHead>
+      {adding && (
+        <AddRepo
+          seen={seen}
+          org={org}
+          taken={taken}
+          onClose={() => setAdding(false)}
+          onAdded={() => {
+            setAdding(false);
+            reload();
+          }}
+        />
+      )}
       <p className="settings-about">
         The team's are in <code>ws.toml</code>: shown here, changed there.
         {yours > 0 && (
@@ -49,8 +91,14 @@ export function Repos({ branch }: { branch?: string }) {
               <tr key={r.name}>
                 <td className="mono">
                   <span className={css.name}>
-                    {r.name}
+                    <span className={css.key}>{r.name}</span>
                     {r.yours && <Chip title="In ws.local.toml alone">yours</Chip>}
+                    {r.cloning && <Chip tone="progress">cloning…</Chip>}
+                    {!r.cloned && !r.cloning && !r.hidden && (
+                      <Chip tone={r.problem ? "danger" : "quiet"} title={r.problem ? `${r.problem} (ws setup tries again)` : "ws setup clones it"}>
+                        not cloned
+                      </Chip>
+                    )}
                   </span>
                 </td>
                 <td>

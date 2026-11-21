@@ -213,7 +213,7 @@ function SectionView({ section, sections, info, loading, workspace, plugins }: {
       {section.id === "about" ? <About info={info} workspace={workspace} section={section} /> : section.blocks.map((b) => <BlockView key={b.id} block={b} />)}
       {loading && waits && <Skeleton rows={4} />}
       {section.id === "plugins" && <PluginsSection plugins={plugins} />}
-      {section.id === "repos" && <Repos branch={workspace.defaultBranch} />}
+      {section.id === "repos" && <Repos branch={workspace.defaultBranch} org={workspace.org} />}
       {section.id === "process" && <ProcessFile />}
     </>
   );

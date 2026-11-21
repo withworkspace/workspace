@@ -57,6 +57,9 @@ type Workspace struct {
 	// plugins is one plugin added, updated or removed at a time.
 	updates sync.Mutex
 	plugins sync.Mutex
+	// gh is what GitHub last said of whose repos can be added and what
+	// each has, and the repos added being cloned (addrepo.go).
+	gh ghListings
 	// upgraded is the ws an upgrade from here last put in the daemon's
 	// place (a string): said to be waiting from the moment it's installed,
 	// before the daemon's found it there.

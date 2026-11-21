@@ -34,6 +34,10 @@ type Repo struct {
 	Yours bool
 	// GitHub is where it is on GitHub, as owner/name: "" for nowhere.
 	GitHub string
+	// Cloning: it was just added, and is being cloned; Problem is why it
+	// couldn't be, if it couldn't.
+	Cloning bool
+	Problem string
 }
 
 // RepoLanding is how work lands in a repo: through a pull request, or
@@ -77,6 +81,7 @@ func (w *Workspace) Repos() []Repo {
 			}
 			slices.Sort(r.Aliases)
 			r.Yours = ws.Yours[name]
+			r.Cloning, r.Problem = w.cloningOf(name)
 			if ws.OnGitHub(name) {
 				r.GitHub = ws.RemoteOf(name).String()
 			}

@@ -92,6 +92,21 @@ export interface Action {
     look?: Look[];
 }
 
+// From web/github_repos.go
+/**
+ * AddableRepo is one of an owner's repos, and its name here when the
+ * workspace has it already.
+ */
+export interface AddableRepo {
+    name: string;
+    description?: string;
+    pushedAt?: string;
+    archived?: boolean;
+    fork?: boolean;
+    private?: boolean;
+    here?: string;
+}
+
 // From web/agent.go
 /**
  * AnswerRequest answers what crew are asking: Permission (allow, always or
@@ -1865,6 +1880,42 @@ export interface FocusPin {
     kind?: string;
     title?: string;
     state?: string;
+}
+
+// From web/github_repos.go
+/**
+ * GitHubOwner is someone repos can be added from: you, or an org.
+ */
+export interface GitHubOwner {
+    login: string;
+    you?: boolean;
+}
+
+// From web/github_repos.go
+/**
+ * GitHubOwners is whose repos can be added: you, then your orgs.
+ */
+export interface GitHubOwners {
+    owners: GitHubOwner[];
+    /**
+     * At is when GitHub said ("" for never), Looking whether it's being
+     * asked again, and Problem why it couldn't say, last it was asked.
+     */
+    at?: string;
+    looking?: boolean;
+    problem?: string;
+}
+
+// From web/github_repos.go
+/**
+ * GitHubRepos is an owner's repos, newest pushed first.
+ */
+export interface GitHubRepos {
+    owner: string;
+    repos: AddableRepo[];
+    at?: string;
+    looking?: boolean;
+    problem?: string;
 }
 
 // From harness/stream.go
@@ -3654,6 +3705,33 @@ export interface Repo {
      * GitHub is where it is on GitHub, as owner/name: "" for nowhere.
      */
     github?: string;
+    /**
+     * Cloning: it was just added, and is being cloned; Problem is why it
+     * couldn't be, if it couldn't.
+     */
+    cloning?: boolean;
+    problem?: string;
+}
+
+// From web/github_repos.go
+/**
+ * RepoAdd is a repo to add (POST /api/repos): where it is on GitHub, its
+ * name here if not its name there, and whether it's the team's.
+ */
+export interface RepoAdd {
+    owner: string;
+    name: string;
+    as?: string;
+    team?: boolean;
+}
+
+// From web/github_repos.go
+/**
+ * RepoAdded is what adding one did, said.
+ */
+export interface RepoAdded {
+    repo: string;
+    message: string;
 }
 
 // From web/refpaths.go

@@ -270,7 +270,8 @@ export function Palette({
   const [near, setNear] = useState<Near[]>(() => (here ? keptAround(here) : []));
   const hereKey = here && `${here.scope ?? ""}\n${here.ref}`;
   useEffect(() => {
-    if (!here) return;
+    // A place in Settings has things to do there, and nothing linked.
+    if (!here || here.id.startsWith("settings:")) return;
     const drop = new AbortController();
     // At once as the records stand, then as they are once read again.
     // What can't be asked is said by saying nothing.

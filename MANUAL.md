@@ -304,13 +304,24 @@ A repo in `ws.local.toml` that `ws.toml` hasn't is **yours**: cloned by `setup` 
 github = "someone/notes"
 ```
 
-Its table is what makes it one, so `[repos.notes]` with nothing under it is a repo too (the org's `notes`). The web UI marks it as yours. What's written about it reads for teammates as its address on GitHub, as they haven't the repo to link to.
+Its table is what makes it one, so `[repos.notes]` with nothing under it is a repo too (the org's `notes`). Settings' repos table marks it as yours, and *Share with the team* there does what `ws repo share` does. What's written about it reads for teammates as its address on GitHub, as they haven't the repo to link to.
 
 ```bash
 ws repo share notes   # give it to the team: into ws.toml, committed on the config repo and pushed
 ```
 
 `ws repo share` writes the repo into `ws.toml` as `ws.local.toml` says it, commits that on the workspace's config repo with *Add repo notes*, pushes it, and then takes it out of `ws.local.toml`. `ws sync` resets the config repo to its remote, so the commit is pushed or taken back: one the remote refuses (a protected branch) leaves `ws.toml` as it was and the repo yours. The config repo has to be at its remote, or behind it with nothing of its own (it's brought up first), and `ws.toml` mustn't have changes of yours that aren't committed.
+
+### Adding a repo from GitHub
+
+*Settings › Repos* lists the workspace's repos, the team's and yours, with where each is on GitHub. **Add repo…** (or *Add a repo from GitHub* in Find, there) picks one from GitHub: whose (you, or an org you're in, as `gh` sees them, or another you name), then which of theirs, newest pushed first, with forks and archived repos behind a box and those the workspace has already marked as here. What GitHub said is shown at once, however old, with when it said it, and asked again behind it when that's more than ten minutes ago (or on *Look again*); the list moves when it answers. An org that enforces SAML single sign-on lists nothing until `gh`'s token is authorised for it, and says so.
+
+Chosen, it's given its name here (its name on GitHub, or, where that's taken here, `<owner>-<name>`, changed as you like) and whose it is: **just you**, written into `ws.local.toml`, or **the team**, written into `ws.toml`, committed on the workspace's config repo and pushed as `ws repo share` does (a push that's refused adds nothing). It's written with `github = "owner/name"` unless it's the org's repo of its name here, and cloned behind: the table says *cloning…*, then nothing, or *not cloned* with why (`ws setup` tries again).
+
+```bash
+ws repo add partner-co/api --as partner-api   # yours, as partner-api, cloned before it answers
+ws repo add acme/billing --team               # the team's: into ws.toml, committed and pushed
+```
 
 ### Searching
 

@@ -50,10 +50,30 @@ func (w *Workspace) ShareRepo(ctx context.Context, who Actor, name string) (*Rep
 	}
 	rc := local.Repos[repo]
 
+	commit, branch, err := w.teamRepo(ctx, repo, rc, fmt.Sprintf("Given to the team from %s's ws.local.toml.", gitUser(ctx, w.root)), "so it stays yours")
+	if err != nil {
+		return nil, err
+	}
+	// ws.toml has it now: what ws.local.toml said of it is the team's
+	// whole, so it goes.
+	if err := config.DropLocalRepo(w.root, repo); err != nil {
+		return nil, fmt.Errorf("%s is in ws.toml (pushed, %s), but couldn't be taken out of ws.local.toml: %w", repo, commit, err)
+	}
+	return &RepoShared{Repo: repo, Commit: commit, Branch: branch}, nil
+}
+
+// teamRepo writes a repo into ws.toml, as rc says it, and commits that on
+// the workspace's config repo (Add repo <name>, with why in its body) and
+// pushes it: the commit and the branch it went to. ws sync resets the
+// config repo to its remote, so a commit that isn't pushed would be lost:
+// one the remote refuses is taken back, and the error says what that
+// leaves (unpushed). The config repo has to be where its remote is, or
+// behind it with nothing of its own, to be committed to.
+func (w *Workspace) teamRepo(ctx context.Context, repo string, rc config.RepoConfig, why, unpushed string) (commit, branch string, err error) {
 	root := w.root
 	hidden := dirThere(filepath.Join(root, ".git-disabled"))
 	if !hidden && !dirThere(filepath.Join(root, ".git")) {
-		return nil, refused("no-config-repo", "the workspace's config isn't a git repo, so there's nowhere to give it to the team: add [repos.%s] to ws.toml by hand", repo)
+		return "", "", refused("no-config-repo", "the workspace's config isn't a git repo, so there's nowhere to give it to the team: add [repos.%s] to ws.toml by hand", repo)
 	}
 	if hidden {
 		// Its git is put away between syncs, so nothing in the workspace
@@ -62,54 +82,49 @@ func (w *Workspace) ShareRepo(ctx context.Context, who Actor, name string) (*Rep
 		defer workspace.DisableWorkspaceGit(root)
 	}
 
-	branch, err := git.ReadLine(ctx, root, "symbolic-ref", "--quiet", "--short", "HEAD")
+	branch, err = git.ReadLine(ctx, root, "symbolic-ref", "--quiet", "--short", "HEAD")
 	if err != nil {
-		return nil, refused("config-detached", "the workspace's config repo isn't on a branch: run ws sync, then try again")
+		return "", "", refused("config-detached", "the workspace's config repo isn't on a branch: run ws sync, then try again")
 	}
 	if dirty, _ := git.ReadLine(ctx, root, "status", "--porcelain", "--", config.FileName); dirty != "" {
-		return nil, refused("config-dirty", "ws.toml has changes that aren't committed: commit or undo them first")
+		return "", "", refused("config-dirty", "ws.toml has changes that aren't committed: commit or undo them first")
 	}
 	if _, err := (git.Cmd{Ctx: ctx, Dir: root, Args: []string{"fetch", "--quiet", "origin", branch}}).Output(); err != nil {
-		return nil, &Upstream{Err: fmt.Errorf("fetching the workspace's config: %w", err)}
+		return "", "", &Upstream{Err: fmt.Errorf("fetching the workspace's config: %w", err)}
 	}
 	upstream := "origin/" + branch
 	ahead, _ := git.ReadLine(ctx, root, "rev-list", "--count", upstream+"..HEAD")
 	if ahead != "0" {
-		return nil, refused("config-ahead", "the workspace's config repo has commits that aren't on %s: push or drop them first (ws sync resets it to its remote)", upstream)
+		return "", "", refused("config-ahead", "the workspace's config repo has commits that aren't on %s: push or drop them first (ws sync resets it to its remote)", upstream)
 	}
 	// Behind with nothing of its own: brought up to its remote first, as
 	// ws sync would.
 	if _, err := (git.Cmd{Ctx: ctx, Dir: root, Args: []string{"merge", "--quiet", "--ff-only", upstream}}).Output(); err != nil {
-		return nil, refused("config-behind", "the workspace's config repo can't be brought up to %s: run ws sync, then try again", upstream)
+		return "", "", refused("config-behind", "the workspace's config repo can't be brought up to %s: run ws sync, then try again", upstream)
 	}
 	before, err := git.ReadLine(ctx, root, "rev-parse", "HEAD")
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
 	if err := config.AddTeamRepo(root, repo, rc); err != nil {
-		return nil, err
+		return "", "", err
 	}
 	undo := func() {
 		(git.Cmd{Ctx: ctx, Dir: root, Args: []string{"reset", "--quiet", before}}).Output()                   //nolint:errcheck // taking it back as far as it goes
 		(git.Cmd{Ctx: ctx, Dir: root, Args: []string{"checkout", "--quiet", "--", config.FileName}}).Output() //nolint:errcheck
 	}
-	msg := fmt.Sprintf("Add repo %s\n\nGiven to the team from %s's ws.local.toml.", repo, gitUser(ctx, root))
+	msg := fmt.Sprintf("Add repo %s\n\n%s", repo, why)
 	if _, err := (git.Cmd{Ctx: ctx, Dir: root, Args: []string{"commit", "--quiet", "-m", msg, "--", config.FileName}}).Output(); err != nil {
 		undo()
-		return nil, fmt.Errorf("committing ws.toml: %w", err)
+		return "", "", fmt.Errorf("committing ws.toml: %w", err)
 	}
 	if _, err := (git.Cmd{Ctx: ctx, Dir: root, Args: []string{"push", "--quiet", "origin", "HEAD:" + branch}}).Output(); err != nil {
 		undo()
-		return nil, &Upstream{Err: fmt.Errorf("pushing ws.toml to %s, so it stays yours: %w", upstream, err)}
+		return "", "", &Upstream{Err: fmt.Errorf("pushing ws.toml to %s, %s: %w", upstream, unpushed, err)}
 	}
-	commit, _ := git.ReadLine(ctx, root, "rev-parse", "--short", "HEAD")
-	// ws.toml has it now: what ws.local.toml said of it is the team's
-	// whole, so it goes.
-	if err := config.DropLocalRepo(root, repo); err != nil {
-		return nil, fmt.Errorf("%s is in ws.toml (pushed, %s), but couldn't be taken out of ws.local.toml: %w", repo, commit, err)
-	}
-	return &RepoShared{Repo: repo, Commit: commit, Branch: branch}, nil
+	commit, _ = git.ReadLine(ctx, root, "rev-parse", "--short", "HEAD")
+	return commit, branch, nil
 }
 
 // gitUser is who commits in dir, by name: "you" where git doesn't say.

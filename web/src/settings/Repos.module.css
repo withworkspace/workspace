@@ -3,8 +3,13 @@
    shared with the lists of what your file sets. */
 .name {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 4px 6px;
+}
+
+.key {
+  white-space: nowrap;
 }
 
 .github {
@@ -20,4 +25,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.add {
+  margin-left: auto;
 }

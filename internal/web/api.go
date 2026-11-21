@@ -1130,6 +1130,10 @@ type Repo struct {
 	Yours bool `json:"yours,omitempty"`
 	// GitHub is where it is on GitHub, as owner/name: "" for nowhere.
 	GitHub string `json:"github,omitempty"`
+	// Cloning: it was just added, and is being cloned; Problem is why it
+	// couldn't be, if it couldn't.
+	Cloning bool   `json:"cloning,omitempty"`
+	Problem string `json:"problem,omitempty"`
 }
 
 // Worktree is a repo's ground (Name ".ground": its default branch,
