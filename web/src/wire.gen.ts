@@ -2411,6 +2411,15 @@ export interface NamesInfo {
     web?: string;
 }
 
+// From web/nav.go
+/**
+ * NavNow is GET …/nav/now: the commit a worktree's files are as they are
+ * now, for the explorer to ask its names at (nav.Service.Now).
+ */
+export interface NavNow {
+    rev: string;
+}
+
 // From web/around.go
 /**
  * NearFound is a thing around another, as the find window draws one: how

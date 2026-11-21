@@ -1,7 +1,8 @@
-// Package nav is code navigation for reviews: which words in a file are
-// names, where a name is defined, and where a definition is used. Files
-// are read from git at a commit, parsed with tree-sitter when first
-// asked about, and what a parse finds is kept by the file's blob.
+// Package nav is code navigation for reviews and the explorer: which
+// words in a file are names, where a name is defined, and where a
+// definition is used. Files are read from git at a commit (a worktree's
+// files as they are now are made one: Now), parsed with tree-sitter when
+// first asked about, and what a parse finds is kept by the file's blob.
 package nav
 
 import (
@@ -26,6 +27,7 @@ type Service struct {
 	repos   map[string]*repo
 	parsing group[*Facts]
 	listing group[*gitTree]
+	now     nowCache
 	reposMu chan struct{}
 }
 

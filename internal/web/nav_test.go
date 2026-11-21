@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/withworkspace/workspace/internal/nav"
@@ -102,5 +104,46 @@ func TestNavReferences(t *testing.T) {
 	}
 	if refs.Name != "x" || refs.Def == nil || refs.Def.Line != 3 || len(refs.Uses) != 0 {
 		t.Errorf("references = %+v", refs)
+	}
+}
+
+// The explorer navigates a worktree's files as they are: …/nav/now is the
+// commit they are, HEAD or one made of what's not committed, and names are
+// asked at it under the worktree as under a capsule.
+func TestNavNow_AWorktreesFilesAsTheyAre(t *testing.T) {
+	s, dir := reviewServer(t)
+	fake(s).worktree = func(repo, name string) (string, string, error) {
+		if repo == "api" && name == "fix" {
+			return dir, "origin/main", nil
+		}
+		return "", "", ErrNotFound
+	}
+	if res := do(t, s, "GET", "/api/repos/api/worktrees/fix/nav/now", true, nil); res.StatusCode != http.StatusNotFound {
+		t.Errorf("no navigation here: %d", res.StatusCode)
+	}
+	s.Nav = nav.New("")
+	head := gitT(t, dir, "rev-parse", "HEAD")
+	var now NavNow
+	if code := getInto(t, s, "/api/repos/api/worktrees/fix/nav/now", &now); code != 200 || now.Rev != head {
+		t.Errorf("clean: %d %q, want %s", code, now.Rev, head)
+	}
+	if code := getInto(t, s, "/api/missions/m/capsules/api/fix/nav/now", &now); code != 200 || now.Rev != head {
+		t.Errorf("as a capsule: %d %q", code, now.Rev)
+	}
+	if res := do(t, s, "GET", "/api/repos/api/worktrees/other/nav/now", true, nil); res.StatusCode != http.StatusNotFound {
+		t.Errorf("another worktree: %d", res.StatusCode)
+	}
+
+	os.WriteFile(filepath.Join(dir, "a.go"), []byte("package a\n\nvar x = 2\n\nvar y = x\n"), 0o644)
+	if code := getInto(t, s, "/api/repos/api/worktrees/fix/nav/now", &now); code != 200 || now.Rev == head || !fullSHA.MatchString(now.Rev) {
+		t.Fatalf("changed: %d %q", code, now.Rev)
+	}
+	var n nav.Names
+	if code := getInto(t, s, "/api/repos/api/worktrees/fix/nav/names?rev="+now.Rev+"&path=a.go", &n); code != 200 || len(n.Lines[5]) != 2 {
+		t.Errorf("names: %d %+v", code, n)
+	}
+	var a nav.Answer
+	if code := getInto(t, s, "/api/repos/api/worktrees/fix/nav/definition?rev="+now.Rev+"&path=a.go&line=5&col=8", &a); code != 200 || len(a.Targets) != 1 || a.Targets[0].Line != 3 {
+		t.Errorf("definition: %d %+v", code, a)
 	}
 }

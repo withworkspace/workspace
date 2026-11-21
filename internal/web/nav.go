@@ -8,10 +8,11 @@ import (
 	"github.com/withworkspace/workspace/internal/nav"
 )
 
-// Code navigation in a review: GET …/nav/names, …/nav/definition and
-// …/nav/references, under a capsule and under a pull request. A file is
-// read at a commit the diff gave the client, from the capsule's or the
-// clone's git directory (internal/nav).
+// Code navigation in a review and in the explorer: GET …/nav/names,
+// …/nav/definition and …/nav/references, under a capsule, a pull request
+// and any of the workspace's worktrees. A file is read at a commit the
+// client was given (by the diff, or by …/nav/now for the files as they
+// are), from the capsule's or the clone's git directory (internal/nav).
 
 // navAt reads what every nav question has: the git directory, the commit
 // and the path, or answers for them.
@@ -31,6 +32,29 @@ func (s *Server) navAt(w http.ResponseWriter, r *http.Request) (dir, rev, path s
 		return "", "", "", false
 	}
 	return dir, rev, path, true
+}
+
+// NavNow is GET …/nav/now: the commit a worktree's files are as they are
+// now, for the explorer to ask its names at (nav.Service.Now).
+type NavNow struct {
+	Rev string `json:"rev"`
+}
+
+func (s *Server) navNow(w http.ResponseWriter, r *http.Request) {
+	if s.Nav == nil {
+		jsonError(w, http.StatusNotFound, "no code navigation here")
+		return
+	}
+	dir, _, ok := s.capsuleDir(w, r)
+	if !ok {
+		return
+	}
+	rev, err := s.Nav.Now(dir)
+	if err != nil {
+		jsonError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, NavNow{Rev: rev})
 }
 
 func (s *Server) navNames(w http.ResponseWriter, r *http.Request) {
