@@ -151,7 +151,7 @@ function To({ s }: { s: Said }) {
 function NeedsLine({ r, up }: { r: RunDetail; up: Set<string> }) {
   if (!r.needs?.length) return null;
   return (
-    <span className={cx("row-sub", css.sub, "run-needs")}>
+    <RowSub className={cx(css.sub, "run-needs")}>
       {r.needs.map((n) =>
         n.folder ? (
           <span key={n.name}>
@@ -174,11 +174,11 @@ function NeedsLine({ r, up }: { r: RunDetail; up: Set<string> }) {
                 </a>
               </>
             )}
-            {n.run && !up.has(n.run) && <span className="chip tone-waiting">not running</span>}
+            {n.run && !up.has(n.run) && <Chip tone="waiting">not running</Chip>}
           </span>
         ),
       )}
-    </span>
+    </RowSub>
   );
 }
 
@@ -344,17 +344,17 @@ function RunMore({ r, by }: { r: RunDetail; by?: string }) {
 function SilosPart({ silos, reload }: { silos: SiloState[]; reload: Reload }) {
   return (
     <section>
-      <h2 className="group">
-        Silos <span className="count">{silos.length}</span>
-      </h2>
+      <GroupHead count={silos.length}>
+        Silos
+      </GroupHead>
       <p className="quiet-line">
         Each mirrors the capsule it's pointed at, kept by the daemon as files change. <code>ws silo point</code> points one elsewhere.
       </p>
-      <ul className="rows run-rows">
+      <Rows className={css.list}>
         {silos.map((st) => (
           <SiloRow key={st.repo} st={st} reload={reload} />
         ))}
-      </ul>
+      </Rows>
     </section>
   );
 }
@@ -376,19 +376,19 @@ function SiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
       .finally(() => setBusy(false));
   };
   return (
-    <li className={`row run-row${open ? " open" : ""}`}>
-      <div className="run-row-line">
+    <Row className={cx(css.row, open && css.open)}>
+      <div className={css.line}>
         <span className={`work-run-mark${st.watching ? " up" : ""}`} aria-hidden title={st.watching ? "Kept as files change" : "Not kept"}>
           {st.watching ? <span className="work-live-dot" /> : <Icon name="circle" size={8} />}
         </span>
-        <span className="row-main">
-          <span className="run-row-top">
+        <RowMain>
+          <span className={css.top}>
             <span className="mono work-run-name">{st.repo}</span>
             <span className="dim">on</span>
             <span className="mono">{st.target}</span>
-            {trouble && <span className="chip tone-waiting">{st.error ? "not kept" : last?.error ? "sync failed" : `${hook?.name} failed`}</span>}
+            {trouble && <Chip tone="waiting">{st.error ? "not kept" : last?.error ? "sync failed" : `${hook?.name} failed`}</Chip>}
           </span>
-          <span className="row-sub run-row-sub">
+          <RowSub className={css.sub}>
             {st.error ? (
               <span>{st.error}</span>
             ) : (
@@ -407,33 +407,33 @@ function SiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
                 {hook.name} {hook.error ? "failed" : "ran"} <Time iso={hook.at} as="relative" />
               </span>
             )}
-          </span>
-        </span>
-        <span className="run-row-when" />
-        <span className="run-row-actions">
+          </RowSub>
+        </RowMain>
+        <span className={css.when} />
+        <span className={css.actions}>
           {(hook || last?.error) && (
-            <button className="ghost small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide" : "What its last hook said, and why a sync failed"}>
+            <Button variant="ghost" size="small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide" : "What its last hook said, and why a sync failed"}>
               <Icon name={open ? "chevron-up" : "terminal"} size={11} /> {open ? "Hide" : "Output"}
-            </button>
+            </Button>
           )}
-          <button className="ghost small" disabled={busy || !!st.error} onClick={resync} title="Give it its capsule's files in full again">
+          <Button variant="ghost" size="small" disabled={busy || !!st.error} onClick={resync} title="Give it its capsule's files in full again">
             <Icon name={busy ? "spinner" : "rotate"} size={11} /> Resync
-          </button>
+          </Button>
         </span>
       </div>
       {open && (
-        <div className="run-more">
+        <div className={css.more}>
           {last?.error && <p className="tone-danger">{last.error}</p>}
           {hook && (
             <>
               <p className="dim">
                 Its {hook.name} hook{hook.error ? `: ${hook.error}` : ""}
               </p>
-              <pre className="verify-output run-log">{hook.output || "It said nothing."}</pre>
+              <pre className={cx("verify-output", css.log)}>{hook.output || "It said nothing."}</pre>
             </>
           )}
         </div>
       )}
-    </li>
+    </Row>
   );
 }

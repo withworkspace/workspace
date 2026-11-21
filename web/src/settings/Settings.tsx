@@ -438,9 +438,9 @@ function About({ info, workspace, section }: { info?: SettingsInfo; workspace: W
           </dd>
           <dt id="whats-new">What's new</dt>
           <dd>
-            <button className="small" onClick={openWhatsNew}>
+            <Button size="small" onClick={openWhatsNew}>
               Show what's new
-            </button>
+            </Button>
             <div className="dim">Said once after an upgrade, and kept here.</div>
           </dd>
         </dl>

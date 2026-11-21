@@ -531,21 +531,21 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
                       </span>
                     ) : (
                       <div className="segmented" role="group" aria-label="Show">
-                        <button aria-pressed={changedOnly} onClick={() => setChangedOnly(true)} title="Only what's changed since the branch point (c)" disabled={!tree?.base}>
-                          Changed <span className="count">{changed.length}</span>
-                        </button>
-                        <button aria-pressed={!changedOnly} onClick={() => setChangedOnly(false)} title="Every file (c)">
-                          All <span className="count">{files.length}</span>
-                        </button>
+                        <Button aria-pressed={changedOnly} onClick={() => setChangedOnly(true)} title="Only what's changed since the branch point (c)" disabled={!tree?.base}>
+                          Changed <Count>{changed.length}</Count>
+                        </Button>
+                        <Button aria-pressed={!changedOnly} onClick={() => setChangedOnly(false)} title="Every file (c)">
+                          All <Count>{files.length}</Count>
+                        </Button>
                       </div>
                     )}
-                    <button className="ghost icon-button small" onClick={() => setFinder(true)} title="Find a file (t)" aria-label="Find a file">
+                    <Button variant="ghost" size="small" square onClick={() => setFinder(true)} title="Find a file (t)" aria-label="Find a file">
                       <Icon name="search" size={14} />
-                    </button>
+                    </Button>
                     {search && (
-                      <button className="ghost icon-button small" onClick={() => setSearching(true)} title="Search what the files say (⌘⇧F)" aria-label="Search what the files say">
+                      <Button variant="ghost" size="small" square onClick={() => setSearching(true)} title="Search what the files say (⌘⇧F)" aria-label="Search what the files say">
                         <Icon name="code" size={14} />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -575,7 +575,7 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
               <section className="explorer-file" aria-label="File">
                 {missing ? (
                   <div className="explorer-overview">
-                    <Empty icon="file" title="Not here" action={<button onClick={() => setParams(changedOnly ? { only: "changed" } : {})}>Pick another file</button>}>
+                    <Empty icon="file" title="Not here" action={<Button onClick={() => setParams(changedOnly ? { only: "changed" } : {})}>Pick another file</Button>}>
                       There's no <span className="mono">{path}</span> in {label}.
                     </Empty>
                   </div>

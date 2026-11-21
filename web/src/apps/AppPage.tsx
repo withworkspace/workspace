@@ -5,6 +5,7 @@ import { useLatest } from "../load";
 import { Icon, type IconName, icons } from "../ui/Icon";
 import { ErrorCard, humanError, toast, useTitle } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
+import { Button } from "../ui/Button";
 
 // An app: a recipe with a page, its run shown in a frame. As the Sketch
 // canvas is laid out: a slim bar, and the app as a card under it, inset as
@@ -165,12 +166,12 @@ export function AppFrame({ name, title, icon: iconName, at }: { name: string; ti
         <AppState app={app} stopped={stopped} />
         {running ? (
           <>
-            <button type="button" className="ghost icon-button" title="Start it again" aria-label="Start it again" disabled={busy !== undefined} onClick={() => void act("restart", () => restartApp(name, at))}>
+            <Button variant="ghost" square type="button" title="Start it again" aria-label="Start it again" disabled={busy !== undefined} onClick={() => void act("restart", () => restartApp(name, at))}>
               <Icon name="rotate" size={15} />
-            </button>
-            <button type="button" className="ghost icon-button" title="Stop it" aria-label="Stop it" disabled={busy !== undefined} onClick={() => void stop()}>
+            </Button>
+            <Button variant="ghost" square type="button" title="Stop it" aria-label="Stop it" disabled={busy !== undefined} onClick={() => void stop()}>
               <Icon name="stop" size={15} />
-            </button>
+            </Button>
             {ready && (
               <a className="app-link" href={run.link} target="_blank" rel="noreferrer" title={`Open ${run.link} in a tab of its own`} aria-label="Open in a tab of its own">
                 <Icon name="external" size={15} />

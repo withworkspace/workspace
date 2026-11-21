@@ -11630,7 +11630,7 @@ div.tc-bar {
   font-weight: 500;
 }
 
-.worktree-tab .count {
+.worktree-tab-count {
   margin-left: 2px;
 }
 
@@ -16737,7 +16737,7 @@ button.accent-button:hover:not(:disabled) {
 /* As a tree: a repo, the folders its artifacts are grouped in, and
    theirs. Each folds, and stays as it was left. */
 .artifacts-tree .tree-node + .tree-node,
-.artifacts-tree .tree-body > .rows + .tree-node {
+.artifacts-tree .tree-body > .artifacts + .tree-node {
   margin-top: 4px;
 }
 .artifacts-tree .tree-node > summary {
@@ -18954,7 +18954,7 @@ a.plugin-row-out {
   font-size: var(--text-xs);
 }
 
-.thing-ui-where button.link {
+.thing-ui-else {
   justify-self: start;
 }
 
@@ -19020,7 +19020,7 @@ a.plugin-row-out {
   gap: 4px;
 }
 
-.thing-ui-groups button.chip {
+.thing-ui-groups button.thing-ui-group {
   height: auto;
   min-height: 0;
   padding: 0 7px;
@@ -19032,11 +19032,11 @@ a.plugin-row-out {
   cursor: pointer;
 }
 
-.thing-ui-groups button.chip:hover {
+.thing-ui-groups button.thing-ui-group:hover {
   color: var(--fg);
 }
 
-.thing-ui-groups button.chip[aria-pressed="true"] {
+.thing-ui-groups button.thing-ui-group[aria-pressed="true"] {
   background: var(--accent-soft);
   color: var(--accent);
 }

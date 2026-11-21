@@ -1,4 +1,5 @@
 import type { CommandLabel } from "../wire.gen";
+import { clip } from "./text";
 
 // A step that ran one of ws's commands reads as what it's doing: "Looking
 // up sketch-5" for `ws show sketch-5 -f llm`. ws says each command's
@@ -162,7 +163,7 @@ function fill(label: string, args: string[]): string | undefined {
       return "";
     }
     const one = a.replace(/\s+/g, " ").trim();
-    return one.length > 48 ? one.slice(0, 47) + "…" : one;
+    return clip(one, 48);
   });
   return missing ? undefined : out;
 }

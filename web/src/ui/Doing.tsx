@@ -3,6 +3,7 @@ import { useCommandLabels } from "../api";
 import { type Call, Calls } from "./Calls";
 import { stepDoing } from "./commandLabel";
 import { Icon } from "./Icon";
+import { Button } from "./Button";
 
 // Doing is a run going now as one line: what the agent's doing this
 // moment, the newest step taking the place of the one before, as Claude
@@ -27,10 +28,10 @@ export function Doing({ calls, root, idle = "Thinking" }: { calls: Call[]; root?
           {now}…
         </span>
         {n > 0 && (
-          <button type="button" className="link doing-steps" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+          <Button variant="link" type="button" className="doing-steps" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
             {n} {n === 1 ? "step" : "steps"}
             <Icon name="chevron-right" size={11} className={open ? "doing-chevron open" : "doing-chevron"} />
-          </button>
+          </Button>
         )}
       </div>
       {open && <Calls calls={calls.map((c, i) => (i === n - 1 && !c.result ? { ...c, pending: true } : c))} root={root} open live />}

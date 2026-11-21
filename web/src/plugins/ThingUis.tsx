@@ -5,6 +5,8 @@ import * as api from "../api";
 import { Icon } from "../ui/Icon";
 import type { Anchor } from "../ui/hover";
 import type { UiProps } from "./Uis";
+import { Button } from "../ui/Button";
+import { chipClass } from "../ui/Chip";
 
 // ws's UIs for a plugin's thing that lives in a repo, asked for by the
 // plugin's page from a button of its own (ui.ts): putting one there
@@ -177,9 +179,9 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
         {places && !several && pick !== "else" && place && (
           <p className="thing-ui-where">
             It'll live at <code>{grouped(place.where, group)}</code>
-            <button type="button" className="link" disabled={busy} onClick={() => setPick("else")}>
+            <Button variant="link" type="button" className="thing-ui-else" disabled={busy} onClick={() => setPick("else")}>
               Somewhere else…
-            </button>
+            </Button>
           </p>
         )}
         {places && several && (
@@ -214,7 +216,7 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
             {!!place.groups?.length && (
               <div className="thing-ui-groups" role="group" aria-label="The folders in use there">
                 {place.groups.slice(0, 8).map((g) => (
-                  <button key={g} type="button" className="chip" aria-pressed={group === g} disabled={busy} onClick={() => setUnder(group === g ? "" : g)}>
+                  <button key={g} type="button" className={chipClass(undefined, "thing-ui-group")} aria-pressed={group === g} disabled={busy} onClick={() => setUnder(group === g ? "" : g)}>
                     {g}
                   </button>
                 ))}
@@ -236,12 +238,12 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
           </p>
         )}
         <div className="thing-ui-buttons">
-          <button type="submit" ref={go} className="primary small" disabled={busy || !to}>
+          <Button variant="primary" size="small" type="submit" ref={go} disabled={busy || !to}>
             {busy ? "Promoting…" : "Promote"}
-          </button>
-          <button type="button" className="ghost small" disabled={busy} onClick={() => done()}>
+          </Button>
+          <Button variant="ghost" size="small" type="button" disabled={busy} onClick={() => done()}>
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </OverFrame>
@@ -309,12 +311,12 @@ export function ThingSaveUi({ asked: asking, plugin, anchor, done }: UiProps) {
               {state.why}
             </p>
             <div className="thing-ui-buttons">
-              <button type="button" className="primary small" onClick={() => setAgain((n) => n + 1)}>
+              <Button variant="primary" size="small" type="button" onClick={() => setAgain((n) => n + 1)}>
                 Try again
-              </button>
-              <button type="button" className="ghost small" onClick={() => done()}>
+              </Button>
+              <Button variant="ghost" size="small" type="button" onClick={() => done()}>
                 Close
-              </button>
+              </Button>
             </div>
           </>
         )}

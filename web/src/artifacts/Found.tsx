@@ -9,6 +9,9 @@ import { Copyable, Empty, ErrorCard, Keys, Loading, useTitle } from "../ui/kit";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import { filesWords, type FoundFolder as Folder, foundTree, widths } from "./shown";
+import { Chip } from "../ui/Chip";
+import { Button, buttonClass } from "../ui/Button";
+import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Artifacts that live in the workspace's repos and aren't this machine's:
 // someone else promoted them, or you did on another machine. ws finds each
@@ -51,28 +54,28 @@ function folded(): Set<string> {
 // FoundRow is one of them, in the list.
 function FoundRow({ a }: { a: ArtifactFound }) {
   return (
-    <li className="row artifact-list-row">
-      <TLink to={foundHref(a.name)} className="row-link">
-        <Icon name="artifact" size={16} className="row-status" />
-        <span className="row-main">
-          <span className="row-line">
-            <span className="title">{a.title}</span>
-            <span className="chip tone-done">Promoted</span>
-          </span>
-          <span className="row-sub artifact-row-meta">
+    <Row className="artifact-list-row">
+      <TLink to={foundHref(a.name)} className={rowLinkClass()}>
+        <Icon name="artifact" size={16} className={rowStatusClass()}  />
+        <RowMain>
+          <RowLine>
+            <RowTitle>{a.title}</RowTitle>
+            <Chip tone="done">Promoted</Chip>
+          </RowLine>
+          <RowSub className="artifact-row-meta">
             <span title={`It lives in ${a.where}`}>
               <Icon name="branch" size={11} /> {a.label}
             </span>
             <span className="mono">{a.where}</span>
-          </span>
-        </span>
+          </RowSub>
+        </RowMain>
         <span className="age artifact-row-when" title={byWords(a)}>
           {byWords(a)}
           {byWords(a) && " · "}
           <Time iso={a.changed} as="age" />
         </span>
       </TLink>
-    </li>
+    </Row>
   );
 }
 
@@ -102,11 +105,11 @@ function FoundFolder({ folder }: { folder: Folder }) {
       </summary>
       <div className="tree-body">
         {folder.found.length > 0 && (
-          <ul className="rows artifacts">
+          <Rows className="artifacts">
             {folder.found.map((a) => (
               <FoundRow key={a.name} a={a} />
             ))}
-          </ul>
+          </Rows>
         )}
         {folder.folders.map((f) => (
           <FoundFolder key={f.path} folder={f} />
@@ -135,11 +138,11 @@ export function FoundArtifacts({ workspace }: { workspace: Workspace }) {
       <p className="dim artifacts-found-about">Promoted by someone else, or by you on another machine: each runs from its repo's files.</p>
       {/* One repo with nothing grouped in it is a plain list: there's no tree to draw. */}
       {tree.length === 1 && tree[0]?.folders.length === 0 ? (
-        <ul className="rows artifacts">
+        <Rows className="artifacts">
           {found.map((a) => (
             <FoundRow key={a.name} a={a} />
           ))}
-        </ul>
+        </Rows>
       ) : (
         <div className="artifacts-tree">
           {tree.map((repo) => (
@@ -193,10 +196,10 @@ export function FoundArtifactPage() {
             <Icon name="arrow-left" size={14} />
           </Link>
           <h1>{d.title}</h1>
-          <span className="chip tone-done">
+          <Chip tone="done">
             <Icon name="check-circle" size={11} />
             Promoted
-          </span>
+          </Chip>
           <Copyable text={d.where} className="ref" title="Copy where it lives" />
         </div>
         <div className="artifact-note dim">
@@ -220,14 +223,14 @@ export function FoundArtifactPage() {
         <div className="artifact-tools">
           <div className="segmented" role="group" aria-label="Width">
             {widths.map((w) => (
-              <button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={w.title}>
+              <Button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={w.title}>
                 {w.label}
-              </button>
+              </Button>
             ))}
           </div>
           <span className="artifact-tools-end">
-            <button
-              className="ghost small"
+            <Button
+              variant="ghost" size="small"
               onClick={() => {
                 reload();
                 setRun((x) => x + 1);
@@ -236,9 +239,9 @@ export function FoundArtifactPage() {
               title="Run it again, as the repo has it now"
             >
               <Icon name="rotate" size={13} /> Reload <Keys k="r" />
-            </button>
+            </Button>
             {page && (
-              <a className="button-link ghost small" href={d.frame} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed">
+              <a className={buttonClass({ variant: "ghost" }, "small")} href={d.frame} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed">
                 <Icon name="external" size={13} /> Open alone
               </a>
             )}
