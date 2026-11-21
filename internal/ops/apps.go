@@ -166,20 +166,6 @@ func (w *Workspace) OpenAppAt(p AppPlace, name string, by Actor) (AppView, error
 	return w.AppAt(p, name)
 }
 
-// LookedAtApps marks the runs of the apps open in a page as looked at now.
-func (w *Workspace) LookedAtApps(names map[string]bool) error {
-	if len(names) == 0 {
-		return nil
-	}
-	return w.runStore().LookedApps(names, time.Now())
-}
-
-// LookedAtPlace marks the runs started from p's page (owned by looking at one
-// of its apps or recipes) as looked at now: someone has it open.
-func (w *Workspace) LookedAtPlace(p AppPlace) error {
-	return w.runStore().LookedAt(p.Repo, p.Worktree, time.Now())
-}
-
 // RestartApp starts the workspace's app name again (RestartAppAt).
 func (w *Workspace) RestartApp(name string, by Actor) (AppView, error) {
 	return w.RestartAppAt(AtWorkspace, name, by)
@@ -215,51 +201,4 @@ func (w *Workspace) StopAppAt(p AppPlace, name string) error {
 		return nil
 	}
 	return w.endRun(old)
-}
-
-// RecipeAt is one of a worktree's recipes, as its repo's page lists them.
-type RecipeAt struct {
-	Name, Command string
-	// App is its page's, for a recipe that has one.
-	App *AppEntry
-}
-
-// PlaceRuns is a worktree's recipes and runs, as its repo's page has them:
-// its apps (the recipes with a page) as tabs, and in Runs, every recipe it
-// has and every run in it.
-type PlaceRuns struct {
-	Apps    []AppEntry
-	Recipes []RecipeAt
-	Runs    []runs.Run
-}
-
-// RunsAt is p's recipes and runs.
-func (w *Workspace) RunsAt(p AppPlace) (PlaceRuns, error) {
-	if p.Repo != "" && !dirExists(filepath.Join(w.WS().RepoDir(p.Repo), p.Worktree)) {
-		return PlaceRuns{}, fmt.Errorf("%w: %s has no %s", ErrNotFound, p.Repo, runs.Label(p.Worktree))
-	}
-	out := PlaceRuns{Apps: w.AppsAt(p), Recipes: []RecipeAt{}, Runs: []runs.Run{}}
-	recipes := w.recipes(p.Repo, p.Worktree)
-	for _, name := range slices.Sorted(maps.Keys(recipes)) {
-		rc := recipes[name]
-		if p.Repo != "" && rc.Where == "silo" {
-			continue // the silo's, not this worktree's
-		}
-		r := RecipeAt{Name: name, Command: rc.Command}
-		if rc.Page != nil {
-			e := entryOf(name, rc.Page)
-			r.App = &e
-		}
-		out.Recipes = append(out.Recipes, r)
-	}
-	all, err := w.runStore().List()
-	if err != nil {
-		return out, err
-	}
-	for _, r := range all {
-		if r.Repo == p.Repo && r.Worktree == p.Worktree {
-			out.Runs = append(out.Runs, r)
-		}
-	}
-	return out, nil
 }

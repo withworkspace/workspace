@@ -59,7 +59,7 @@ export function RunsHere({ slug, c, open, reload }: { slug: string; c: CapsuleDe
   );
 }
 
-function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => void }) {
+export function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => void }) {
   const live = r.state === "running";
   return (
     <li className={`work-run${live ? "" : " ended"}`}>
@@ -95,9 +95,16 @@ function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => v
               <span key={n.name}>
                 {i > 0 && ", "}
                 {n.name} (
-                <a href={n.address} target="_blank" rel="noopener noreferrer" className="mono" title={n.address}>
-                  {n.run ?? n.address.replace(/^https?:\/\//, "")}
-                </a>
+                {n.folder ? (
+                  // A repo's folder: the worktree that meets it.
+                  <span className="mono" title={n.dir}>
+                    {n.repo} / {n.worktree}
+                  </span>
+                ) : (
+                  <a href={n.address} target="_blank" rel="noopener noreferrer" className="mono" title={n.address}>
+                    {n.run ?? n.address.replace(/^https?:\/\//, "")}
+                  </a>
+                )}
                 {n.mount && r.link !== r.local ? `, at ${n.mount}` : ""})
               </span>
             ))}

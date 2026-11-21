@@ -61,7 +61,7 @@ later, and the one chosen then goes to the same folder, in one commit
 landed on the repo's default branch.`,
 		Args: cobra.NoArgs,
 	}
-	cmd.AddCommand(newArtifactAddCmd(), newArtifactListCmd(), newArtifactShowCmd(), newArtifactCheckoutCmd(), newArtifactPromoteCmd(), newArtifactDiscardCmd(), newArtifactRestoreCmd(), newArtifactClearCmd(), newArtifactTweaksCmd())
+	cmd.AddCommand(newArtifactAddCmd(), newArtifactListCmd(), newArtifactShowCmd(), newArtifactCheckoutCmd(), newArtifactURLCmd(), newArtifactPromoteCmd(), newArtifactDiscardCmd(), newArtifactRestoreCmd(), newArtifactClearCmd(), newArtifactTweaksCmd())
 	return cmd
 }
 

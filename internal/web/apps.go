@@ -8,8 +8,9 @@ import (
 	"github.com/withworkspace/workspace/internal/runs"
 )
 
-// Apps: the workspace's own recipes with a page (ops.Apps), each shown in
-// a frame on a page of its own. Opening the page starts its run, or joins
+// Apps: recipes with a page (ops.Apps), each shown in a frame: the
+// workspace's own on a page of their own, a repo's as a tab of each of its
+// worktrees, on the Files page (whose runs, GET …/runs, list its apps). Opening the page starts its run, or joins
 // the one that's running, and the page says so again every minute while
 // it's open (POST …/open), which is what keeps the run: once nobody has
 // it open, it's ended. The page points its needs, and starts it again or
@@ -23,8 +24,7 @@ type Apping interface {
 	RestartAppAt(p ops.AppPlace, name string, by ops.Actor) (ops.AppView, error)
 	StopAppAt(p ops.AppPlace, name string) error
 	PointRun(recipe, need, worktree string, by ops.Actor, wait time.Duration) (ops.Pointed, error)
-	RunsAt(p ops.AppPlace) (ops.PlaceRuns, error)
-	LookedAtPlace(p ops.AppPlace) error
+	AppsAt(p ops.AppPlace) []ops.AppEntry
 }
 
 // appPlace is where the request's app is: a repo's worktree, for one
@@ -155,55 +155,4 @@ func (s *Server) pointApp(w http.ResponseWriter, r *http.Request) {
 	d := s.appDetail(v)
 	d.Said = done.String()
 	writeJSON(w, http.StatusOK, d)
-}
-
-// PlaceRunsInfo is GET /api/repos/{repo}/worktrees/{worktree}/runs: a
-// worktree's apps (its tabs), recipes and runs, for its repo's page.
-type PlaceRunsInfo struct {
-	Apps    []AppInfo    `json:"apps"`
-	Recipes []RecipeInfo `json:"recipes"`
-	Runs    []RunDetail  `json:"runs"`
-}
-
-// RecipeInfo is one of a worktree's recipes: its name, its command, and
-// its app's, for one with a page.
-type RecipeInfo struct {
-	Name    string   `json:"name"`
-	Command string   `json:"command"`
-	App     *AppInfo `json:"app,omitempty"`
-}
-
-func (s *Server) placeRuns(w http.ResponseWriter, r *http.Request) {
-	p := appPlace(r)
-	v, err := s.App.RunsAt(p)
-	if err != nil {
-		writeError(w, err, http.StatusInternalServerError)
-		return
-	}
-	out := PlaceRunsInfo{Apps: []AppInfo{}, Recipes: []RecipeInfo{}, Runs: []RunDetail{}}
-	for _, a := range v.Apps {
-		out.Apps = append(out.Apps, AppInfo{Name: a.Name, Title: a.Title, Icon: a.Icon})
-	}
-	for _, rc := range v.Recipes {
-		ri := RecipeInfo{Name: rc.Name, Command: rc.Command}
-		if rc.App != nil {
-			ri.App = &AppInfo{Name: rc.App.Name, Title: rc.App.Title, Icon: rc.App.Icon}
-		}
-		out.Recipes = append(out.Recipes, ri)
-	}
-	now := time.Now()
-	for _, run := range v.Runs {
-		out.Runs = append(out.Runs, RunDetailOf(run, s.Root, now))
-	}
-	writeJSON(w, http.StatusOK, out)
-}
-
-// lookedAtPlace is POST …/looked: a worktree's page is open, which keeps
-// what was started from it.
-func (s *Server) lookedAtPlace(w http.ResponseWriter, r *http.Request) {
-	if err := s.App.LookedAtPlace(appPlace(r)); err != nil {
-		writeError(w, err, http.StatusInternalServerError)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]bool{"looked": true})
 }

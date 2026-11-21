@@ -225,7 +225,6 @@ export function Explorer({ workspace }: { workspace: Workspace }) {
   return (
     <TabbedBrowser
       at={{ repo, worktree: name }}
-      workspace={workspace}
       key={api}
       api={api}
       label={`${repo}/${name}`}

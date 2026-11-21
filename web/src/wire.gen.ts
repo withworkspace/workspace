@@ -2886,17 +2886,6 @@ export interface Pick {
     model?: string;
 }
 
-// From web/apps.go
-/**
- * PlaceRunsInfo is GET /api/repos/{repo}/worktrees/{worktree}/runs: a
- * worktree's apps (its tabs), recipes and runs, for its repo's page.
- */
-export interface PlaceRunsInfo {
-    apps: AppInfo[];
-    recipes: RecipeInfo[];
-    runs: RunDetail[];
-}
-
 // From web/api.go
 /**
  * Places is where the web UI's places go: the sidebar's, in order, and
@@ -3547,17 +3536,6 @@ export interface ReReview {
     total: number;
 }
 
-// From web/apps.go
-/**
- * RecipeInfo is one of a worktree's recipes: its name, its command, and
- * its app's, for one with a page.
- */
-export interface RecipeInfo {
-    name: string;
-    command: string;
-    app?: AppInfo;
-}
-
 // From ref/ref.go
 /**
  * Kind is what a ref names.
@@ -3970,6 +3948,15 @@ export interface RunDetail {
      */
     needs?: RunNeed[];
     neededBy?: string[];
+}
+
+// From web/runs.go
+/**
+ * RunInWorktree is POST /api/repos/{repo}/worktrees/{name}/runs: a recipe
+ * to run there.
+ */
+export interface RunInWorktree {
+    recipe: string;
 }
 
 // From web/runs.go
@@ -5420,6 +5407,21 @@ export interface Worktree {
      * yet and is being: the workspace's capsulesSeen moves when it has.
      */
     unread?: boolean;
+}
+
+// From web/runs.go
+/**
+ * WorktreeRunsInfo is GET /api/repos/{repo}/worktrees/{name}/runs: what's
+ * running in a ground or capsule, and the names of its ws.repo.toml's
+ * recipes that run there.
+ */
+export interface WorktreeRunsInfo {
+    runs: RunDetail[];
+    recipes: string[];
+    /**
+     * Apps are its recipes with a page: each a tab of the worktree's.
+     */
+    apps: AppInfo[];
 }
 
 // From web/api.go

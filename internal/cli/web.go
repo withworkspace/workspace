@@ -75,26 +75,36 @@ func openWeb(path string, printOnly bool) error {
 // webURL is a link that signs the browser in to the workspace's web UI and
 // opens path, starting the daemon if it isn't running.
 func webURL(root, path string) (string, error) {
-	c, err := daemon.Connect(root)
+	info, origin, err := webInfo(root)
 	if err != nil {
 		return "", err
 	}
+	// With names on, it's the web UI's name: a browser signs in by name,
+	// its cookie being the name's.
+	return origin + strings.TrimPrefix(info.SignInURL(path), info.Origin()), nil
+}
+
+// webInfo is the running web UI's Info, and where it's reached
+// (webOrigin), starting the daemon if it isn't running.
+func webInfo(root string) (web.Info, string, error) {
+	c, err := daemon.Connect(root)
+	if err != nil {
+		return web.Info{}, "", err
+	}
 	defer c.Close()
 	if c.WebPort() == 0 {
-		return "", noWebError(root, c)
+		return web.Info{}, "", noWebError(root, c)
 	}
 	// The server wrote web.json before it answered: it starts its web UI
 	// first.
 	info, err := web.ReadInfo(root)
 	if err != nil {
-		return "", err
+		return web.Info{}, "", err
 	}
 	if info.Pid != c.ServerPid() || info.Port != c.WebPort() {
-		return "", fmt.Errorf("%s doesn't match the running daemon (pid %d, web UI on port %d); `ws daemon restart --now` and try again", web.InfoPath(root), c.ServerPid(), c.WebPort())
+		return web.Info{}, "", fmt.Errorf("%s doesn't match the running daemon (pid %d, web UI on port %d); `ws daemon restart --now` and try again", web.InfoPath(root), c.ServerPid(), c.WebPort())
 	}
-	// With names on, it's the web UI's name: a browser signs in by name,
-	// its cookie being the name's.
-	return webOrigin(root, info) + strings.TrimPrefix(info.SignInURL(path), info.Origin()), nil
+	return info, webOrigin(root, info), nil
 }
 
 // webOrigin is where the web UI is reached: its name on ws's router when

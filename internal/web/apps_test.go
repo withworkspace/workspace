@@ -104,14 +104,15 @@ func TestApps(t *testing.T) {
 }
 
 // A repo's recipe with a page is a tab of each of its worktrees: listed
-// with the worktree's recipes and runs, and opened there, by whoever has
-// the repo's page open.
+// with the worktree's runs and recipes (Files' GET …/runs), and opened
+// there, by whoever has its tab open.
 func TestWorktreeApps(t *testing.T) {
 	if _, err := runs.ReadProcs(); err != nil {
 		t.Skipf("processes can't be read here: %v", err)
 	}
 	s := startTest(t, t.TempDir(), &fakeWorkspace{}, nil)
-	feat := filepath.Join(s.Root, "repos", "bff", "feat")
+	s.App = testOps(s, ops.Options{}, func(_ *config.Config, ws *workspace.Workspace) { ws.RepoNames = []string{"bff"} })
+	feat := filepath.Join(s.Root, "repos", "bff", ".ground")
 	os.MkdirAll(feat, 0o755)
 	os.WriteFile(filepath.Join(feat, "ws.repo.toml"), []byte(`
 [run.docs]
@@ -125,32 +126,32 @@ command = "sleep 300"
 command = "sleep 300"
 where = "silo"
 `), 0o644)
-	t.Cleanup(func() { s.App.StopAppAt(ops.AppPlace{Repo: "bff", Worktree: "feat"}, "docs") })
-	base := "/api/repos/bff/worktrees/feat"
+	t.Cleanup(func() { s.App.StopAppAt(ops.AppPlace{Repo: "bff", Worktree: ".ground"}, "docs") })
+	base := "/api/repos/bff/worktrees/.ground"
 
 	res := do(t, s, "GET", base+"/runs", true, nil)
-	var info PlaceRunsInfo
+	var info WorktreeRunsInfo
 	json.NewDecoder(res.Body).Decode(&info)
-	if res.StatusCode != 200 || len(info.Apps) != 1 || info.Apps[0].Title != "API docs" || len(info.Recipes) != 2 || info.Recipes[0].App == nil || info.Recipes[1].App != nil || len(info.Runs) != 0 {
+	if res.StatusCode != 200 || len(info.Apps) != 1 || info.Apps[0].Title != "API docs" || strings.Join(info.Recipes, ",") != "docs,web" || len(info.Runs) != 0 {
 		t.Fatalf("runs: %d %+v", res.StatusCode, info)
 	}
 	res, d := appCall(t, s, base+"/apps/docs/open", nil)
-	if res.StatusCode != 200 || d.Run == nil || d.Run.Ref != "docs.feat.bff" || d.Run.Owner != "looking" || d.Run.App != "docs" || len(d.Pointers) != 0 {
+	if res.StatusCode != 200 || d.Run == nil || d.Run.Ref != "docs.ground.bff" || d.Run.Owner != "looking" || d.Run.App != "docs" || len(d.Pointers) != 0 {
 		t.Fatalf("opened: %d %+v", res.StatusCode, d.Run)
 	}
-	if res, _ := appCall(t, s, base+"/looked", nil); res.StatusCode != 200 {
-		t.Errorf("looked: %d", res.StatusCode)
+	if !strings.Contains(d.Run.Ends, "15 minutes after nobody has docs open") {
+		t.Errorf("ends %q", d.Run.Ends)
 	}
 	res = do(t, s, "GET", base+"/runs", true, nil)
 	json.NewDecoder(res.Body).Decode(&info)
-	if len(info.Runs) != 1 || info.Runs[0].Ref != "docs.feat.bff" {
+	if len(info.Runs) != 1 || info.Runs[0].Ref != "docs.ground.bff" {
 		t.Errorf("runs after opening: %+v", info.Runs)
 	}
 	// Any of its recipes starts from its page; the silo's isn't its.
 	if res, d := appCall(t, s, base+"/apps/web/open", nil); res.StatusCode != 200 || d.Run == nil || d.Title != "web" {
 		t.Errorf("a recipe with no page: %d %+v", res.StatusCode, d)
 	}
-	t.Cleanup(func() { s.App.StopAppAt(ops.AppPlace{Repo: "bff", Worktree: "feat"}, "web") })
+	t.Cleanup(func() { s.App.StopAppAt(ops.AppPlace{Repo: "bff", Worktree: ".ground"}, "web") })
 	if res := do(t, s, "GET", "/api/repos/bff/worktrees/nope/runs", true, nil); res.StatusCode != http.StatusNotFound {
 		t.Errorf("a worktree that isn't there: %d", res.StatusCode)
 	}

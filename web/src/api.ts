@@ -51,9 +51,9 @@ import type {
   ReviewGuide,
   PRWritten,
   AppDetail,
-  PlaceRunsInfo,
   RunDetail,
   RunsInfo,
+  WorktreeRunsInfo,
   SettingChange,
   SettingsInfo,
   Space,
@@ -150,10 +150,9 @@ export type {
   AppDetail,
   AppInfo,
   AppPointer,
-  PlaceRunsInfo,
-  RecipeInfo,
   RunDetail,
   RunsInfo,
+  WorktreeRunsInfo,
   WorkspaceSiloHook as SiloHook,
   WorkspaceSiloState as SiloState,
   WorkspaceSiloSync as SiloSync,
@@ -680,11 +679,7 @@ export const getApp = (name: string, at?: AppAt) => getJSON<AppDetail>(appPath(n
 export const openApp = (name: string, at?: AppAt) => send<AppDetail>("POST", appPath(name, "/open", at), {});
 export const restartApp = (name: string, at?: AppAt) => send<AppDetail>("POST", appPath(name, "/restart", at), {});
 export const stopApp = (name: string, at?: AppAt) => send<AppDetail>("POST", appPath(name, "/stop", at), {});
-// getPlaceRuns is a worktree's apps (its tabs), recipes and runs.
-export const getPlaceRuns = (at: AppAt) => getJSON<PlaceRunsInfo>(`${placePath(at)}/runs`);
-// lookedAtPlace says a worktree's page is open: what was started from it
-// (its apps, and recipes run from its Runs) is kept while it is.
-export const lookedAtPlace = (at: AppAt) => send<{ looked: boolean }>("POST", `${placePath(at)}/looked`, {});
+
 // pointApp points one of the app's needs at a worktree of its repo (a
 // capsule's name, ground or silo; "" for the nearest), starting the app
 // again on it where it's running.
@@ -697,6 +692,15 @@ export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(
 // mission open (and 15 minutes after).
 export const runRecipe = (slug: string, repo: string, capsule: string, recipe: string) =>
   send<RunDetail>("POST", `/api/missions/${encodeURIComponent(slug)}/runs`, { repo, capsule, recipe });
+
+// getWorktreeRuns is what's running in a repo's ground or capsule, and
+// its recipes, for the Files page: each ask says the page has it open, so
+// what's started from there lasts.
+export const getWorktreeRuns = (repo: string, name: string) => getJSON<WorktreeRunsInfo>(`${worktreeAPI(repo, name)}/runs`);
+
+// runInWorktree starts a ground's or capsule's recipe, for as long as
+// someone has it open on the Files page (and 15 minutes after).
+export const runInWorktree = (repo: string, name: string, recipe: string) => send<RunDetail>("POST", `${worktreeAPI(repo, name)}/runs`, { recipe });
 
 // writePR has the PR writer write a capsule's pull request, for you to
 // read and change before you open it. It answers once it's written: a

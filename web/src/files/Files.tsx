@@ -79,7 +79,6 @@ export function FilesPage({ workspace }: { workspace: Workspace }) {
       <TabbedBrowser
         key={api}
         at={{ repo, worktree: name }}
-        workspace={workspace}
         api={api}
         label={`${r.label}/${capsule ?? "ground"}`}
         before={narrow ? undefined : column}

@@ -30,6 +30,7 @@ var labels = map[string]string{
 	"artifact restore":  "Restoring {1}",
 	"artifact show":     "Opening {1}",
 	"artifact tweaks":   "Reading how tweaks work",
+	"artifact url":      "Getting {1}'s address",
 
 	"board":   "Adding {2} to the editor",
 	"unboard": "Taking {2} out of the editor",

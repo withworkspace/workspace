@@ -47,13 +47,20 @@ function firstFor(r: RunDetail, missions: Mission[], talks: Talk[]): Said {
       return { text, to: r.mission ? `/missions/${r.mission}/conversations/${r.conversation}` : `/conversations/${r.conversation}` };
     }
     case "looking":
-      if (r.app) return { text: "whoever has its page open", to: `/apps/${r.app}` };
-      return mission ? { text: `whoever has ${mission.text} open`, to: mission.to } : { text: "whoever has its page open" };
+      // An app: the workspace's page for it, or its tab on a worktree's.
+      if (r.app && !r.repo) return { text: "whoever has its page open", to: `/apps/${r.app}` };
+      if (r.app) return { text: "whoever has its tab open", to: `${filesOf(r)}?view=${encodeURIComponent(r.app)}` };
+      // Started from a mission's page, or with none, from the Files page.
+      if (mission) return { text: `whoever has ${mission.text} open`, to: mission.to };
+      return { text: "whoever has its files open", to: filesOf(r) };
     case "none":
       return { text: "nobody: it lasts until it's stopped, or its time's up" };
   }
   return { text: r.owner };
 }
+
+// filesOf is the Repos page of the worktree a run runs in.
+const filesOf = (r: RunDetail) => (r.worktree === "ground" ? `/files/${r.repo}` : `/files/${r.repo}/${r.worktree}`);
 
 // listed is names as a sentence has them: a, b and c.
 export function listed(names: string[]): string {

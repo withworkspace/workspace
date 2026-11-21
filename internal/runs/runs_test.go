@@ -441,7 +441,7 @@ func TestALookingRunEndsWhenNobodyHasLooked(t *testing.T) {
 		t.Fatal("swept while it had been looked at")
 	}
 	// Someone has m1 open 10 minutes on: it lasts 15 from then.
-	if err := s.Looked(map[string]bool{"m1": true}, now.Add(10*time.Minute)); err != nil {
+	if err := s.Looked(Looking{Missions: map[string]bool{"m1": true}}, now.Add(10*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if swept, _ := s.Sweep(nil, now.Add(20*time.Minute)); len(swept) != 0 {
@@ -465,15 +465,15 @@ func TestAnAppsRunEndsWhenNobodyHasItsPageOpen(t *testing.T) {
 		t.Fatalf("ref %s, kept at %s", r.Ref(), r.Path)
 	}
 	now := time.Now()
-	// A mission's page open, and another app's, keep nothing of this.
-	s.Looked(map[string]bool{"": true, "m1": true}, now.Add(10*time.Minute))
-	s.LookedApps(map[string]bool{"other": true}, now.Add(10*time.Minute))
+	// A mission's page open, and a worktree's files, keep nothing of this.
+	s.Looked(Looking{Missions: map[string]bool{"": true, "m1": true}, Worktrees: map[string]bool{"/": true, "demo/feat": true}}, now.Add(10*time.Minute))
 	if swept, _ := s.Sweep(nil, now.Add(20*time.Minute)); len(swept) != 1 || !strings.Contains(swept[0].Why, "nobody has looked") {
 		t.Fatalf("Sweep = %v", swept)
 	}
 
 	r, _ = s.Start(Start{Name: "docs", Dir: s.Root, Command: "sleep 300", Recipe: "docs", Owner: Owner{Kind: ByLooking, App: "docs"}, By: "you"}, now)
-	if err := s.LookedApps(map[string]bool{"docs": true}, now.Add(10*time.Minute)); err != nil {
+	// Its page opens it again every minute while it's open.
+	if err := s.LookedRun(r, now.Add(10*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if swept, _ := s.Sweep(nil, now.Add(20*time.Minute)); len(swept) != 0 {
@@ -481,6 +481,25 @@ func TestAnAppsRunEndsWhenNobodyHasItsPageOpen(t *testing.T) {
 	}
 	if got := Ends(r, now); got != "15 minutes after nobody has docs open" {
 		t.Errorf("Ends = %q", got)
+	}
+}
+
+// One started from the Files page is looked at while its own worktree is
+// open there, not any mission, nor another worktree.
+func TestALookingRunFromFilesIsLookedAtByItsWorktree(t *testing.T) {
+	s, dir := setup(t)
+	start(t, s, dir, "web", "sleep 300", Owner{Kind: ByLooking}, time.Hour)
+	now := time.Now()
+	s.Looked(Looking{Missions: map[string]bool{"m1": true}, Worktrees: map[string]bool{"demo/other": true}}, now.Add(10*time.Minute))
+	if swept, _ := s.Sweep(nil, now.Add(16*time.Minute)); len(swept) != 1 {
+		t.Fatalf("a mission open, or another worktree, kept it: swept %v", swept)
+	}
+
+	start(t, s, dir, "web", "sleep 300", Owner{Kind: ByLooking}, time.Hour)
+	now = time.Now()
+	s.Looked(Looking{Worktrees: map[string]bool{"demo/feat": true}}, now.Add(10*time.Minute))
+	if swept, _ := s.Sweep(nil, now.Add(20*time.Minute)); len(swept) != 0 {
+		t.Fatal("swept though its files were looked at since")
 	}
 }
 

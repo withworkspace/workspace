@@ -11,6 +11,7 @@ import (
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/router"
 	"github.com/withworkspace/workspace/internal/runs"
+	"github.com/withworkspace/workspace/internal/workspace"
 )
 
 // Runs on a mission's page (internal/runs): what's running in each of its
@@ -89,11 +90,18 @@ func (w *Workspace) RunRecipe(slug, repo, capsule, recipe string, by Actor) (run
 	if err != nil {
 		return runs.Run{}, err
 	}
-	up, err := w.StartRun(RunAsk{
+	return w.runUp(RunAsk{
 		Repo: repo, Worktree: capsule, Dir: dir, Recipe: recipe,
 		Owner: runs.Owner{Kind: runs.ByLooking, Mission: slug},
 		TTL:   runs.DefaultTTL, By: by.By(), Mission: slug, Wait: RunUpWait,
 	})
+}
+
+// runUp starts what a page asks for, and waits up to RunUpWait for it to
+// be up: one that isn't by then is still running, and returned. One that
+// ended as it started is refused, with its last words.
+func (w *Workspace) runUp(a RunAsk) (runs.Run, error) {
+	up, err := w.StartRun(a)
 	var ended *runs.EndedError
 	if errors.As(err, &ended) {
 		return ended.Run, refused("run-ended", "%s. Its last words: %s", err, ended.Run.Tail(3))
@@ -133,13 +141,84 @@ func (w *Workspace) endRun(r runs.Run) error {
 	return err
 }
 
-// LookedAt marks the runs started from these missions' pages as looked at
-// now: someone has each open.
-func (w *Workspace) LookedAt(slugs map[string]bool) error {
-	if len(slugs) == 0 {
+// LookedAt marks the runs started from the pages open in l (missions'
+// pages, and grounds and capsules on the Files page) as looked at now.
+func (w *Workspace) LookedAt(l runs.Looking) error {
+	if len(l.Missions) == 0 && len(l.Worktrees) == 0 {
 		return nil
 	}
-	return w.runStore().Looked(slugs, time.Now())
+	return w.runStore().Looked(l, time.Now())
+}
+
+// Runs on the Files page: what's running in a repo's ground or capsule,
+// and its recipes, which "Run" starts there for whoever has it open. A run
+// started there lasts while someone has that worktree open on the page,
+// and runs.LookLinger after.
+
+// WorktreeRuns are the runs in a repo's ground or capsule, and the names
+// of its recipes that run there (a silo's run in the silo, not here).
+type WorktreeRuns struct {
+	Runs    []runs.Run
+	Recipes []string
+}
+
+// worktreeOf is the folder of repo's ground (workspace.GroundDir) or
+// capsule name, if the workspace has it.
+func (w *Workspace) worktreeOf(repo, name string) (string, error) {
+	ws := w.WS()
+	if !slices.Contains(ws.RepoNames, repo) {
+		return "", fmt.Errorf("%w: the workspace has no repo %s", ErrNotFound, repo)
+	}
+	if name != workspace.GroundDir {
+		capsules, _ := workspace.ListWorktrees(ws.RepoDir(repo))
+		if !slices.Contains(capsules, name) {
+			return "", fmt.Errorf("%w: %s has no capsule %s", ErrNotFound, repo, name)
+		}
+	}
+	dir := filepath.Join(ws.RepoDir(repo), name)
+	if !dirExists(dir) {
+		return "", fmt.Errorf("%w: %s/%s isn't there", ErrNotFound, repo, runs.Label(name))
+	}
+	return dir, nil
+}
+
+// RunsIn is what's running in repo's ground or capsule name, and the
+// recipes it can run.
+func (w *Workspace) RunsIn(repo, name string) (WorktreeRuns, error) {
+	if _, err := w.worktreeOf(repo, name); err != nil {
+		return WorktreeRuns{}, err
+	}
+	out := WorktreeRuns{Runs: []runs.Run{}, Recipes: []string{}}
+	all, _ := w.runStore().List()
+	for _, r := range all {
+		if r.Repo == repo && r.Worktree == name {
+			out.Runs = append(out.Runs, r)
+		}
+	}
+	recipes := w.recipes(repo, name)
+	for _, n := range slices.Sorted(maps.Keys(recipes)) {
+		if recipes[n].Where != "silo" {
+			out.Recipes = append(out.Recipes, n)
+		}
+	}
+	return out, nil
+}
+
+// RunIn starts recipe in repo's ground or capsule name, for whoever has
+// it open on the Files page: it lasts while someone does, and
+// runs.LookLinger after (or runs.DefaultTTL at most). Otherwise it's as
+// RunRecipe: what it needs is started first, one running already is the
+// lookers' as well, and it waits up to RunUpWait for it to be up.
+func (w *Workspace) RunIn(repo, name, recipe string, by Actor) (runs.Run, error) {
+	dir, err := w.worktreeOf(repo, name)
+	if err != nil {
+		return runs.Run{}, err
+	}
+	return w.runUp(RunAsk{
+		Repo: repo, Worktree: name, Dir: dir, Recipe: recipe,
+		Owner: runs.Owner{Kind: runs.ByLooking},
+		TTL:   runs.DefaultTTL, By: by.By(), Wait: RunUpWait,
+	})
 }
 
 // Runs is every run in the workspace, wherever it runs and whoever it's

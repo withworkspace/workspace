@@ -311,6 +311,9 @@ func endsWith(r Run, o Owner) string {
 		if o.App != "" {
 			return fmt.Sprintf("%d minutes after nobody has %s open", int(LookLinger/time.Minute), o.App)
 		}
+		if o.Mission == "" {
+			return fmt.Sprintf("%d minutes after nobody has its files open", int(LookLinger/time.Minute))
+		}
 		return fmt.Sprintf("%d minutes after nobody has mission %s open", int(LookLinger/time.Minute), o.Mission)
 	}
 	return ""

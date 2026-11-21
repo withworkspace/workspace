@@ -74,6 +74,10 @@ func TestFrame(t *testing.T) {
 	if at != "/framed/"+key+"/a1/v1/?t.density=compact" || len(key) != 32 {
 		t.Fatalf("sent to %q", at)
 	}
+	// It's the address ws artifact url prints, made from the token alone.
+	if got := FramedPath(s.Info().Token, "/frame/a1/v1"); got != "/framed/"+key+"/a1/v1/" {
+		t.Errorf("FramedPath: %q", got)
+	}
 	// There, it's the file as it was written, with ws.tweaks written in
 	// after its doctype. The frame that asks sends no cookie: the key in
 	// the address is what lets it be read.

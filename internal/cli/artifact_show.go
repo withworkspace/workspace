@@ -177,6 +177,7 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 			v.more = append(v.more, fmt.Sprintf("ws artifact show %s <file>   prints another of its files, by its path above", refs[0]))
 		}
 		v.more = append(v.more, fmt.Sprintf("ws artifact checkout %s   puts v%d's files in a folder, to work on", refs[0], show))
+		v.more = append(v.more, fmt.Sprintf("ws artifact url %s   prints the address v%d runs at, to open in a browser", refs[0], show))
 		switch {
 		case e.Status == artifact.Discarded:
 		case agentConversation() != "" && many:

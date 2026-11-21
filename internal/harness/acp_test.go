@@ -142,6 +142,7 @@ func TestCommandPolicy_TalkDocument(t *testing.T) {
 		"ws artifact show a3.v2":             "allow_once",
 		"ws artifact show a3.v2 css/app.css": "allow_once",
 		"ws artifact checkout a3.v2":         "allow_once", // its files, in a folder of its own, to work on
+		"ws artifact url a3.v2":              "allow_once", // where it runs, to look at it
 		"ws artifact add --propose --to a3 --note \"Teal\" /tmp/ws-1/workspace/w9/a3-v2": "allow_once",
 		"ws artifact add glow.html --note x":                                             "cancel",
 		"ws artifact add - <<'EOF'\n<p>x</p>\nEOF":                                       "cancel",

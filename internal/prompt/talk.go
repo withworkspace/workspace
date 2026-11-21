@@ -77,7 +77,7 @@ func talkProposing(h Here) string {
 	if h.Sandbox != nil {
 		b.WriteString(" One with more to it than a page is a folder: write its files in your own folder, `index.html` at the top, and give the folder in place of `- <<'EOF'`. To revise one of those, `ws artifact checkout a3.v2` puts its files in a folder of yours: change what you're changing there, and propose the folder.")
 	}
-	b.WriteString(" Confirming adds it, running, under your reply: you don't add it to the workspace yourself.\n")
+	b.WriteString(" Confirming adds it, running, under your reply: you don't add it to the workspace yourself. Once it's added, `ws artifact url a3.v2` prints the address it runs at, to look at it in a browser if you have one.\n")
 	if len(h.Proposes) > 0 {
 		b.WriteString("- Something of one of the workspace's plugins, which it does once the user accepts it: ")
 		for i, p := range h.Proposes {

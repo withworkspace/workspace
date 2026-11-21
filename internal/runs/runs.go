@@ -69,7 +69,8 @@ const (
 	// ByConversation ends when a conversation is resolved.
 	ByConversation Kind = "conversation"
 	// ByLooking ends once nobody has had the page it was started from
-	// open for LookLinger: "Run it" in the web UI.
+	// open for LookLinger: "Run" in the web UI, on a mission's page (its
+	// Mission) or on the Files page (no Mission: its own worktree).
 	ByLooking Kind = "looking"
 	// ByNone ends only when its time is up, or when it's stopped.
 	ByNone Kind = "none"
@@ -90,7 +91,9 @@ type Owner struct {
 	Began   time.Time `json:"began,omitzero"`
 	Command string    `json:"command,omitempty"`
 	// Mission is the mission's slug, for ByMission, ByStep, ByCrew, and
-	// ByConversation for one of a mission's conversations.
+	// ByConversation for one of a mission's conversations. For ByLooking
+	// it's the mission whose page it was started from, or "" for the Files
+	// page, where it's looked at while its own ground or capsule is open.
 	Mission string `json:"mission,omitempty"`
 	// Step is the step's number when the run started, and StepText its
 	// words, which find it again after the plan's renumbered (ByStep).
@@ -424,16 +427,38 @@ func (s Store) Find(ref, repo, worktree string) (Run, error) {
 	return Run{}, fmt.Errorf("there are runs named %s in several places: say which (%s)", ref, strings.Join(refs, ", "))
 }
 
-// Looked marks the runs owned by looking at the missions in slugs as
-// looked at now.
-func (s Store) Looked(slugs map[string]bool, now time.Time) error {
+// Looking is the pages someone has open that runs owned by looking are
+// started from: missions' pages, by slug, and grounds and capsules on the
+// Files page, by repo/worktree (.ground for a ground).
+type Looking struct {
+	Missions  map[string]bool
+	Worktrees map[string]bool
+}
+
+// at is whether o, one of r's owners, is someone looking at a page open
+// in l.
+func (l Looking) at(r Run, o Owner) bool {
+	if o.Kind != ByLooking {
+		return false
+	}
+	if o.Mission != "" {
+		return l.Missions[o.Mission]
+	}
+	// A run of the workspace's own is in no worktree: its app's page keeps
+	// it (LookedRun).
+	return r.Repo != "" && l.Worktrees[r.Repo+"/"+r.Worktree]
+}
+
+// Looked marks the runs owned by looking at the pages open in l as looked
+// at now.
+func (s Store) Looked(l Looking, now time.Time) error {
 	runs, err := s.List()
 	if err != nil {
 		return err
 	}
 	var errs []error
 	for _, r := range runs {
-		looking := slices.ContainsFunc(r.Owners(), func(o Owner) bool { return o.Kind == ByLooking && o.App == "" && slugs[o.Mission] })
+		looking := slices.ContainsFunc(r.Owners(), func(o Owner) bool { return l.at(r, o) })
 		if r.State == Running && looking {
 			r.Looked = now.UTC().Truncate(time.Second)
 			if err := save(r.Record, r.Path); err != nil {
@@ -449,49 +474,6 @@ func (s Store) Looked(slugs map[string]bool, now time.Time) error {
 func (s Store) LookedRun(r Run, when time.Time) error {
 	r.Looked = when.UTC().Truncate(time.Second)
 	return save(r.Record, r.Path)
-}
-
-// LookedApps marks the runs owned by looking at the apps in names (the
-// workspace's recipes with a page) as looked at now.
-func (s Store) LookedApps(names map[string]bool, now time.Time) error {
-	runs, err := s.List()
-	if err != nil {
-		return err
-	}
-	var errs []error
-	for _, r := range runs {
-		looking := slices.ContainsFunc(r.Owners(), func(o Owner) bool { return o.Kind == ByLooking && o.App != "" && names[o.App] })
-		if r.State == Running && looking {
-			r.Looked = now.UTC().Truncate(time.Second)
-			if err := save(r.Record, r.Path); err != nil {
-				errs = append(errs, err)
-			}
-		}
-	}
-	return errors.Join(errs...)
-}
-
-// LookedAt marks the runs of repo's worktree (the workspace's own, with no
-// repo) that are owned by looking at an app or a recipe from its page as
-// looked at now: someone has the page open.
-func (s Store) LookedAt(repo, worktree string, now time.Time) error {
-	runs, err := s.List()
-	if err != nil {
-		return err
-	}
-	var errs []error
-	for _, r := range runs {
-		if r.State != Running || r.Repo != repo || r.Worktree != worktree {
-			continue
-		}
-		if slices.ContainsFunc(r.Owners(), func(o Owner) bool { return o.Kind == ByLooking && o.App != "" }) {
-			r.Looked = now.UTC().Truncate(time.Second)
-			if err := save(r.Record, r.Path); err != nil {
-				errs = append(errs, err)
-			}
-		}
-	}
-	return errors.Join(errs...)
 }
 
 // Keep sets how long a run has left from now: d of 0 is no limit.
