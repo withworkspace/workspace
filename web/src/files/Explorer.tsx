@@ -165,25 +165,34 @@ const paneWords: Record<Panes, { label: string; sub: string }> = {
   1: { label: "1 pane", sub: "The file alone" },
 };
 
-// PanesMenu picks how many panes show, from the file's header: beside its
-// path, on the left.
-function PanesMenu({ shown, most }: { shown: Panes; most: Panes }) {
-  const choices = ([3, 2, 1] as Panes[]).filter((n) => n <= most);
+// On a tab other than Files, the panes are the repos beside it, or not.
+const otherWords: Partial<Record<Panes, { label: string; sub: string }>> = {
+  3: { label: "With the repos", sub: "The repos, beside this tab" },
+  2: { label: "This tab alone", sub: "The repos folded away" },
+};
+
+// PanesMenu picks how many panes show, from the worktree's row: at its
+// start, before where it is. On a tab other than Files (other), what it
+// picks is whether the repos are beside it.
+function PanesMenu({ shown, most, other }: { shown: Panes; most: Panes; other?: boolean }) {
+  const words = (n: Panes) => (other ? (otherWords[n] ?? paneWords[n]) : paneWords[n]);
+  const choices = ([3, 2, 1] as Panes[]).filter((n) => n <= most && (!other || n > 1));
+  const now: Panes = other && shown === 1 ? 2 : shown;
   return (
     <MenuTrigger>
-      <AriaButton className="ghost icon-button panes-button" aria-label={`Panes: ${paneWords[shown].label}`}>
-        <PanesGlyph n={shown} />
+      <AriaButton className="ghost icon-button panes-button" aria-label={`Panes: ${words(now).label}`}>
+        <PanesGlyph n={now} />
       </AriaButton>
       <Popover className="select-popover panes-popover" placement="bottom start" offset={4}>
         <Menu className="select-list" aria-label="Panes" onAction={(k) => setPanes(Number(k) as Panes)}>
           {choices.map((n) => (
-            <MenuItem key={n} id={String(n)} textValue={paneWords[n].label} className="select-option panes-option">
+            <MenuItem key={n} id={String(n)} textValue={words(n).label} className="select-option panes-option">
               <PanesGlyph n={n} />
               <span className="panes-option-words">
-                <span>{paneWords[n].label}</span>
-                <span className="dim">{paneWords[n].sub}</span>
+                <span>{words(n).label}</span>
+                <span className="dim">{words(n).sub}</span>
               </span>
-              {n === shown && <Icon name="check" size={13} className="panes-check" />}
+              {n === now && <Icon name="check" size={13} className="panes-check" />}
             </MenuItem>
           ))}
         </Menu>
@@ -430,7 +439,17 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
     },
     Escape: onEscape,
   };
-  useKeys(other ? { Escape: onEscape } : treeKeys);
+  // On another tab, p shows or folds away the repos beside it.
+  const otherKeys = {
+    Escape: onEscape,
+    p: () => {
+      if (narrow || !before) return;
+      const next: Panes = shown === 3 ? 2 : 3;
+      setPanes(next);
+      toast(otherWords[next]!.label, { ms: 1200 });
+    },
+  };
+  useKeys(other ? otherKeys : treeKeys);
 
   // A folder asked for (a document's link to one): its README, as GitHub
   // shows a folder, or the folder itself, open in the tree.
@@ -451,8 +470,12 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
   // A file asked for that isn't in this tree (one open in another
   // capsule, before switching to this one).
   const missing = !!tree && !!path && !byPath.has(path) && !folder;
+  // The panes are picked from the row's start, on any tab where it
+  // changes something: another tab has only the repos to show or not.
+  const panesMenu = !narrow && (!other || !!before) ? <PanesMenu shown={shown} most={most} other={!!other} /> : undefined;
   const top = (
     <div className="explorer-top">
+      {panesMenu}
       <div className="explorer-where">{head}</div>
       {tabs}
     </div>
@@ -566,7 +589,6 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
                     reviewTo={reviewTo}
                     docTo={docFor(path)}
                     onBack={narrow ? () => setParams(changedOnly ? { only: "changed" } : {}) : undefined}
-                    panes={narrow ? undefined : <PanesMenu shown={shown} most={most} />}
                     onReveal={(p) => {
                       setOpen((o) => new Set([...o, ...ancestors(p + "/x")]));
                       setCursor(p);
@@ -702,7 +724,6 @@ function FilePane({
   docTo,
   onBack,
   onReveal,
-  panes,
 }: {
   api: string;
   path: string;
@@ -716,7 +737,6 @@ function FilePane({
   docTo?: string; // where it opens as a document, for markdown
   onBack?: () => void;
   onReveal: (folder: string) => void;
-  panes?: ReactNode; // how many panes show: left of the path
 }) {
   // What's read is shown only while it's the file that's open: its text
   // mustn't be drawn as another's (its images read from the wrong folder)
@@ -753,7 +773,6 @@ function FilePane({
             <Icon name="arrow-left" size={15} />
           </button>
         )}
-        {panes}
         <div className="file-crumbs" title={path}>
           {parts.map((p, i) =>
             i < parts.length - 1 ? (

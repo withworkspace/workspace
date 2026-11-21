@@ -12425,7 +12425,7 @@ details.repo-group > summary::-webkit-details-marker {
   margin-right: -1px;
 }
 
-/* How many panes show (Panes): left of the file's path. */
+/* How many panes show (Panes): at the start of the worktree's row. */
 .panes-button {
   flex: none;
   margin-left: -6px;
