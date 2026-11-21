@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -32,7 +33,10 @@ const PortWord = "{port}"
 type Start struct {
 	// Name is what it's called; "" is NameFor(Command). It's taken as
 	// the next free one if a running run has it already.
-	Name     string
+	Name string
+	// Type is Task for one that ends by itself: it's given no port, and
+	// kept once it has ended. "" is a service.
+	Type     Type
 	Repo     string
 	Worktree string
 	Dir      string
@@ -51,6 +55,13 @@ type Start struct {
 	// Hold is until when it isn't ended for nothing needing it, for one
 	// owned by what needs it (Record.Hold).
 	Hold time.Time
+	// Commit and Dirty are where its worktree stands, Reports the files a
+	// task's command writes that are kept with it, and Check the check it's
+	// run for (Record's).
+	Commit  string
+	Dirty   bool
+	Reports []Report
+	Check   *CheckOf
 }
 
 // Start starts a run: claims its name, picks its port, starts its command
@@ -84,6 +95,8 @@ func (s Store) Ensure(o Start, now time.Time) (r Run, started bool, err error) {
 // later of what it had and ttl from now (0: no limit). It's then ended
 // for its owners' going only once all of them have. An owner it has
 // already isn't added again; nor is ByRun, which is whatever needs it.
+// A task's time is its timeout, from when it started: asking for it
+// again gives it no more.
 func (s Store) Join(r Run, o Owner, ttl time.Duration, now time.Time) (Run, error) {
 	if o.Kind == "" || o.Kind == ByRun {
 		return r, nil
@@ -94,7 +107,7 @@ func (s Store) Join(r Run, o Owner, ttl time.Duration, now time.Time) (Run, erro
 		r.Also = append(r.Also, o)
 		changed = true
 	}
-	if !r.Expires.IsZero() {
+	if !r.Expires.IsZero() && !r.IsTask() {
 		switch until := now.Add(ttl).UTC().Truncate(time.Second); {
 		case ttl <= 0:
 			r.Expires, changed = time.Time{}, true
@@ -168,7 +181,13 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 	if single {
 		recipe = o.Recipe
 	}
-	name, dir, running, err := s.claim(o.Repo, o.Worktree, want, recipe)
+	task := o.Type == Task
+	for _, rp := range o.Reports {
+		if err := rp.valid(); err != nil {
+			return Run{}, false, err
+		}
+	}
+	name, dir, n, running, err := s.claim(o.Repo, o.Worktree, want, recipe, task)
 	if err != nil {
 		return Run{}, false, err
 	}
@@ -182,19 +201,22 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 			os.RemoveAll(dir)
 		}
 	}()
-	taken := map[int]bool{}
-	if runs, err := s.List(); err == nil {
-		for _, r := range runs {
-			if r.State == Running {
-				taken[r.Port] = true
+	// A task listens on nothing: it has no port.
+	port, command := 0, o.Command
+	if !task {
+		taken := map[int]bool{}
+		if runs, err := s.List(); err == nil {
+			for _, r := range runs {
+				if r.State == Running {
+					taken[r.Port] = true
+				}
 			}
 		}
+		if port, err = pickPort(o.Repo+"/"+o.Worktree+"/"+name, taken); err != nil {
+			return Run{}, false, err
+		}
+		command = strings.ReplaceAll(o.Command, PortWord, strconv.Itoa(port))
 	}
-	port, err := pickPort(o.Repo+"/"+o.Worktree+"/"+name, taken)
-	if err != nil {
-		return Run{}, false, err
-	}
-	command := strings.ReplaceAll(o.Command, PortWord, strconv.Itoa(port))
 
 	log, err := os.OpenFile(filepath.Join(dir, logFile), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
@@ -207,15 +229,22 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 	}
 	defer null.Close()
 	// The command runs under a shell that writes its status when it ends,
-	// so a run that ended by itself says how.
-	cmd := exec.Command("/bin/sh", "-c", `/bin/sh -c "$1"; s=$?; echo "$s" > "$2.new" && mv -f "$2.new" "$2"`,
-		"ws-run", command, filepath.Join(dir, exitFile))
+	// so a run that ended by itself says how. A task's reports are kept
+	// first, by the same shell: nothing of ws's is waiting for it to end.
+	args := []string{"-c", wrapper, "ws-run", command, dir}
+	for _, rp := range o.Reports {
+		args = append(args, rp.Name, rp.Path)
+	}
+	cmd := exec.Command("/bin/sh", args...)
 	cmd.Dir = o.Dir
 	env := o.Env
 	if env == nil {
 		env = os.Environ()
 	}
-	cmd.Env = append(withoutKey(env, "PORT"), "PORT="+strconv.Itoa(port))
+	cmd.Env = withoutKey(env, "PORT")
+	if !task {
+		cmd.Env = append(cmd.Env, "PORT="+strconv.Itoa(port))
+	}
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = null, log, log
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	if err := cmd.Start(); err != nil {
@@ -231,6 +260,10 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 		Command: command, Recipe: o.Recipe, Ready: o.Ready, Stop: o.Stop,
 		Port: port, PID: pid, Began: began, Owner: o.Owner, Needs: o.Needs,
 		Created: now.UTC().Truncate(time.Second), By: o.By,
+		Commit: o.Commit, Dirty: o.Dirty, Check: o.Check,
+	}
+	if task {
+		rec.Type, rec.N, rec.Reports = Task, n, o.Reports
 	}
 	if !o.Hold.IsZero() {
 		rec.Hold = o.Hold.UTC().Truncate(time.Second)
@@ -250,6 +283,45 @@ func (s Store) start(o Start, now time.Time, single bool) (Run, bool, error) {
 	// It's nobody's child to wait for: the sweep sees it end.
 	go cmd.Wait()
 	return Run{Record: rec, Path: dir, State: Running}, true, nil
+}
+
+// wrapper is the shell a run's command runs under: $1 the command, $2 the
+// run's folder, then a name and a path for each report it's to keep. A
+// report is kept only if it isn't older than the command's start (it's
+// this run's), under reports/<name>/. Its path is left unquoted, so a
+// pattern is every file it matches.
+const wrapper = `d="$2"; : > "$d/` + beganFile + `"
+/bin/sh -c "$1"; s=$?
+shift 2
+while [ $# -ge 2 ]; do
+	for f in $2; do
+		if [ -e "$f" ] && ! [ "$d/` + beganFile + `" -nt "$f" ]; then
+			mkdir -p "$d/` + reportsDir + `/$1" && cp -R "$f" "$d/` + reportsDir + `/$1/"
+		fi
+	done
+	shift 2
+done
+echo "$s" > "$d/` + exitFile + `.new" && mv -f "$d/` + exitFile + `.new" "$d/` + exitFile + `"`
+
+var reportName = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
+
+// valid is whether the report can be kept: a name that's a folder's, and
+// a path below where the command runs, with nothing the shell would read
+// as more than a pattern.
+func (r Report) valid() error {
+	if !reportName.MatchString(r.Name) {
+		return fmt.Errorf("a report's name is lower case letters, numbers, - and _, not %q", r.Name)
+	}
+	p := strings.TrimSpace(r.Path)
+	switch {
+	case p == "":
+		return fmt.Errorf("report %s has no path: the file the command writes", r.Name)
+	case filepath.IsAbs(p) || slices.Contains(strings.Split(filepath.ToSlash(p), "/"), ".."):
+		return fmt.Errorf("report %s: %s isn't below where the command runs", r.Name, p)
+	case strings.ContainsAny(p, " \t\n;&|<>$`\"'(){}!~\\"):
+		return fmt.Errorf("report %s: %s: a report's path is a file's, or a pattern of * and ?, with no spaces", r.Name, p)
+	}
+	return nil
 }
 
 func withoutKey(env []string, key string) []string {
@@ -344,6 +416,48 @@ func (s Store) Wait(r Run, d time.Duration) (bool, error) {
 		}
 		if time.Now().After(deadline) {
 			return false, nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+// WaitEnd waits up to d (0: without limit) for the run to end, and
+// returns it as it then stands: ended is false when the time passed with
+// it still running. line, if it isn't nil, is called now and then with
+// what it has printed since.
+func (s Store) WaitEnd(r Run, d time.Duration, more func(string)) (now Run, ended bool, err error) {
+	deadline := time.Now().Add(d)
+	var read int64
+	say := func() {
+		if more == nil {
+			return
+		}
+		f, err := os.Open(r.LogPath())
+		if err != nil {
+			return
+		}
+		defer f.Close()
+		if _, err := f.Seek(read, io.SeekStart); err != nil {
+			return
+		}
+		b, _ := io.ReadAll(f)
+		read += int64(len(b))
+		if len(b) > 0 {
+			more(string(b))
+		}
+	}
+	for {
+		now, err = load(r.Path, s.snapshot())
+		if err != nil {
+			return r, false, err
+		}
+		say()
+		if now.State != Running {
+			say() // what it printed as it went
+			return now, true, nil
+		}
+		if d > 0 && time.Now().After(deadline) {
+			return now, false, nil
 		}
 		time.Sleep(100 * time.Millisecond)
 	}

@@ -7,10 +7,12 @@ import (
 	"io"
 	"maps"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"text/tabwriter"
 	"time"
 
@@ -33,9 +35,11 @@ func newRunCmd() *cobra.Command {
 	var ttl float64
 	var wait time.Duration
 	var withs []string
+	var task bool
+	var timeout time.Duration
 	cmd := &cobra.Command{
 		Use:   "run [flags] [<recipe> | -- <command>]",
-		Short: "Run a dev server or the like on a free port, ended for you when its owner goes",
+		Short: "Run a dev server on a free port, ended for you when its owner goes, or a task (tests, lint) kept for what it came to",
 		Long: `ws run starts a command where you stand (a capsule, .ground or .silo) on a
 free port, and ends it for you: when its owner goes, or when its time is
 up, whichever is first. Nobody has to remember to stop it.
@@ -49,11 +53,11 @@ A repo can say how it's run, in its ws.repo.toml, and ws run <name> runs
 that recipe ({port} as above; ready, a path it's up once it answers;
 stop, run where it ran once it's ended). ws run alone lists them:
 
-  [run.web]
+  [run.service.web]
   command = "pnpm dev --port {port} --strictPort"
   ready = "/"
 
-  [run.stack]
+  [run.service.stack]
   command = "docker compose up"
   stop = "docker compose down"
 
@@ -63,10 +67,14 @@ started it, ended only once all of you have gone.
 
 A recipe can say what it needs running first, and how it's told where:
 
-  [run.web.needs.api]
-  run = "backend/server"   # a recipe of another repo; "server" is this repo's
-  env = "API_URL"          # its address, in the run's environment
-  mount = "/api"           # and below the run's own name (ws router)
+  [run.service.web]
+  command = "pnpm dev --port {port} --strictPort"
+  needs.api = { run = "backend/server", env = "API_URL", mount = "/api" }
+
+run is a service of another repo ("server" is this repo's own), env the
+variable its address is handed over in, and mount a path below the run's
+own name that it answers at (ws router). A need with a lot to say can be
+a table of its own, [run.service.web.needs.api].
 
 ws run web then finds the server where it's nearest (the same worktree
 for this repo's; for another repo's, the mission's capsule there, or its
@@ -79,6 +87,28 @@ what meets a need in place of the nearest.
 It waits until the run is up (something listens on the port, or its
 recipe's ready path answers), then prints the link and when the run will
 be ended. Its output is kept: ws run logs.
+
+That's a service. A task is the other type of run: tests, lint, a build,
+which ends by itself. A recipe under [run.task] is one, and --task says
+it of a command:
+
+  [run.task.test]
+  command = "go test -coverprofile=coverage.out ./..."
+  reports.coverage = { path = "coverage.out", format = "gocover" }   # a file it writes, kept with its result
+
+  ws run test
+  ws run --task -- pnpm lint
+
+A task has no port. ws run prints what it prints, waits for it to end
+(--wait 0 doesn't), and exits as it did. What it came to is kept: how it
+exited, how long it took, all it printed, the commit it ran at, and its
+reports, with the last 10 runs of the same task behind it. ws run show
+<name> says it, and ws run show <name>#3 an earlier one. A task that's
+running where it's asked for again is waited for, not started twice.
+
+A task that hasn't ended after its timeout is stopped, and kept as
+stopped: an hour, unless its recipe says (timeout = "10m") or --timeout
+does. What's meant to be kept up is a service.
 
 Its owner (--for):
   pid       the process that started it: your terminal's shell, or the
@@ -120,13 +150,22 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 			if len(args) == 0 {
 				return listRecipes(here, recipes)
 			}
+			if _, ok := recipes[args[0]]; !ok && len(args) == 1 && cmd.ArgsLenAtDash() < 0 && typelessRecipe(w, here, args[0]) {
+				return fmt.Errorf("[run.%s] in %s isn't read: a recipe is a service or a task, and is written as one, [run.service.%s] or [run.task.%s]", args[0], recipeFileOf(here), args[0], args[0])
+			}
 			ask := ops.RunAsk{Command: commandOf(args)}
+			if task {
+				ask.Type = runs.Task
+			}
 			// forHere is where its owner is asked after: where it runs,
 			// which for a silo's recipe is the silo.
 			forHere := here
 			if recipe, ok := recipes[args[0]]; ok && len(args) == 1 && cmd.ArgsLenAtDash() < 0 {
 				if strings.TrimSpace(recipe.Command) == "" {
-					return fmt.Errorf("[run.%s] in %s has no command", args[0], recipeFileOf(here))
+					return fmt.Errorf("%s in %s has no command", recipe.Table(args[0]), recipeFileOf(here))
+				}
+				if task {
+					return fmt.Errorf("--task is for a command: %s is a recipe, which is a %s by where it's written (%s)", args[0], recipe.Type, recipe.Table(args[0]))
 				}
 				ask = ops.RunAsk{Recipe: args[0]}
 				if recipe.Where == "silo" {
@@ -165,6 +204,23 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 			ask.Name, ask.Repo, ask.Worktree, ask.Dir = name, here.repo, here.worktree, here.dir
 			ask.Owner, ask.TTL, ask.By = owner, time.Duration(ttl*float64(time.Hour)), ops.ActorFromEnv().By()
 			ask.With, ask.Wait, ask.Mission = with, wait, os.Getenv(mission.EnvMission)
+			// A task's time is its timeout: --timeout, or --ttl where that
+			// was said, over its recipe's.
+			isTask := task || recipes[ask.Recipe].IsTask()
+			switch {
+			case cmd.Flags().Changed("timeout") && !isTask:
+				return errors.New("--timeout is a task's, which is stopped if it hasn't ended by then: a service has --ttl")
+			case cmd.Flags().Changed("timeout") && cmd.Flags().Changed("ttl"):
+				return errors.New("--timeout and --ttl both say how long a task may take: say one")
+			case cmd.Flags().Changed("timeout") && timeout <= 0:
+				return errors.New("--timeout is how long the task may take (10m, 1h30m), more than 0")
+			case cmd.Flags().Changed("timeout"):
+				ask.Timeout = timeout
+			case isTask && cmd.Flags().Changed("ttl") && ttl == 0:
+				ask.Timeout = -1 // no limit, as --ttl 0 says of any run
+			case isTask && cmd.Flags().Changed("ttl"):
+				ask.Timeout = ask.TTL
+			}
 			up, err := w.StartRun(ask)
 			var ended *runs.EndedError
 			if errors.As(err, &ended) {
@@ -192,6 +248,20 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 			}
 			for _, note := range up.Notes {
 				fmt.Fprintln(os.Stderr, note)
+			}
+			if run.IsTask() {
+				if watchErr != nil {
+					fmt.Fprintf(os.Stderr, "%v\n\n", watchErr)
+				}
+				limit := time.Duration(0) // until it ends
+				if cmd.Flags().Changed("wait") {
+					if limit = wait; wait == 0 {
+						fmt.Fprintf(os.Stdout, "name   %s\nlog    %s\n\nws run show %s says what it came to.\n", run.NRef(), run.LogPath(), run.Ref())
+						return nil
+					}
+				}
+				cmd.SilenceErrors = true // it exits as the task did, with what the task said
+				return followTask(store, run, limit)
 			}
 			if wait > 0 {
 				ready, err := store.Wait(run, wait)
@@ -234,10 +304,97 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 	cmd.Flags().StringVar(&forKind, "for", "", "who it's for: pid, capsule, mission, step, crew, conversation or none (default: crew's step, a conversation, else pid)")
 	cmd.Flags().IntVar(&ownerPID, "owner", 0, "the process it lasts as long as (with --for pid)")
 	cmd.Flags().Float64Var(&ttl, "ttl", runs.DefaultTTL.Hours(), "how long it may last, in hours (0: no limit)")
-	cmd.Flags().DurationVar(&wait, "wait", time.Minute, "how long to wait for it, and each run it needs, to be up (0: don't)")
+	cmd.Flags().DurationVar(&wait, "wait", time.Minute, "how long to wait for it, and each run it needs, to be up (0: don't); for a task, how long to wait for it to end (unsaid: until it does)")
+	cmd.Flags().DurationVar(&timeout, "timeout", runs.TaskTimeout, "for a task: how long it may take before it's stopped (10m, 1h30m), over its recipe's timeout")
+	cmd.Flags().BoolVar(&task, "task", false, "the command ends by itself (tests, lint, a build): no port, and what it came to is kept")
 	cmd.Flags().StringArrayVar(&withs, "with", nil, "what meets one of the recipe's needs, in place of the nearest: <need>=<capsule>, ground, silo, or an address (https://…)")
-	cmd.AddCommand(newRunLsCmd(), newRunStopCmd(), newRunLogsCmd(), newRunKeepCmd(), newRunPointCmd())
+	cmd.AddCommand(newRunLsCmd(), newRunShowCmd(), newRunStopCmd(), newRunLogsCmd(), newRunKeepCmd(), newRunPointCmd())
 	return cmd
+}
+
+// followTask prints what a task prints until it ends, or limit has passed
+// (0: no limit), then says what it came to and exits as it did. Asked to
+// stop (ctrl-c), it stops the task, which is kept as stopped.
+func followTask(store runs.Store, run runs.Run, limit time.Duration) error {
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(stop)
+	type end struct {
+		run   runs.Run
+		ended bool
+		err   error
+	}
+	done := make(chan end, 1)
+	go func() {
+		now, ended, err := store.WaitEnd(run, limit, func(s string) { io.WriteString(os.Stdout, s) })
+		done <- end{now, ended, err}
+	}()
+	var e end
+	select {
+	case e = <-done:
+	case <-stop:
+		if now, err := store.Find(run.Ref(), run.Repo, run.Worktree); err == nil && now.State == runs.Running {
+			store.End(now)
+		}
+		fmt.Fprintf(os.Stderr, "\nStopped %s.\n", run.NRef())
+		return &ExitCodeError{Code: 130}
+	}
+	if e.err != nil {
+		return e.err
+	}
+	if !e.ended {
+		fmt.Fprintf(os.Stderr, "\n%s is still running after %s: ws run logs -f %s follows it, and ws run show %s says what it came to.\n", run.NRef(), limit, run.Ref(), run.Ref())
+		return nil
+	}
+	if e.run.Result() == "stopped" && e.run.Why != "" {
+		fmt.Fprintf(os.Stderr, "\n%s stopped%s: %s.\n", e.run.NRef(), tookSaid(e.run), e.run.Why)
+	} else {
+		fmt.Fprintf(os.Stderr, "\n%s %s%s.\n", e.run.NRef(), e.run.Result(), tookSaid(e.run))
+	}
+	if files := reportsKept(e.run); len(files) > 0 {
+		fmt.Fprintf(os.Stderr, "Kept with it: %s.\n", strings.Join(files, ", "))
+	}
+	for _, rp := range e.run.Reports {
+		if len(e.run.ReportFiles(rp.Name)) == 0 {
+			fmt.Fprintf(os.Stderr, "It wrote no %s report (%s).\n", rp.Name, rp.Path)
+		}
+	}
+	switch {
+	case e.run.Passed():
+		return nil
+	case e.run.State == runs.Exited && e.run.Status != 0:
+		return &ExitCodeError{Code: e.run.Status}
+	}
+	return &ExitCodeError{Code: 1}
+}
+
+// tookSaid is how long an ended run took, to follow what it came to: " in
+// 42s".
+func tookSaid(r runs.Run) string {
+	t := r.Took()
+	switch {
+	case t <= 0:
+		return ""
+	case t < 10*time.Second:
+		return " in " + t.Round(100*time.Millisecond).String()
+	}
+	return " in " + t.Round(time.Second).String()
+}
+
+// reportsKept is a task's reports that were kept, each as name (n files)
+// or its one file's name.
+func reportsKept(r runs.Run) []string {
+	var out []string
+	for _, rp := range r.Reports {
+		switch files := r.ReportFiles(rp.Name); len(files) {
+		case 0:
+		case 1:
+			out = append(out, rp.Name+" ("+filepath.Base(files[0])+")")
+		default:
+			out = append(out, fmt.Sprintf("%s (%d files)", rp.Name, len(files)))
+		}
+	}
+	return out
 }
 
 // withOf is --with's pairs, by need: api=ground, api=https://staging….
@@ -540,44 +697,76 @@ func (o *runOwners) Ended(ow runs.Owner) string {
 	return ""
 }
 
-// runRecipes is the [run.*] of the ws.repo.toml where you stand, or at
-// the workspace's root, of its ws.toml.
+// runRecipes is the services and tasks of the ws.repo.toml where you
+// stand, or at the workspace's root, of its ws.toml.
 func runRecipes(w *ops.Workspace, here runHere) (map[string]config.RunRecipe, error) {
 	if here.repo == "" {
-		return w.Config().Run, nil
+		return w.Config().Run.Recipes(), nil
 	}
 	top := filepath.Join(w.WS().RepoDir(here.repo), here.worktree)
 	cfg, err := config.ParseRepoConfig(filepath.Join(top, config.RepoFileName))
 	if err != nil || cfg == nil {
 		return nil, err
 	}
-	return cfg.Run, nil
+	return cfg.Run.Recipes(), nil
+}
+
+// typelessRecipe is whether name is written where you stand as
+// [run.<name>], in neither [run.service] nor [run.task]: a table ws doesn't
+// read, which would otherwise be run as a command of that name.
+func typelessRecipe(w *ops.Workspace, here runHere, name string) bool {
+	unread := w.Config().Unknown
+	if here.repo != "" {
+		cfg, err := config.ParseRepoConfig(filepath.Join(w.WS().RepoDir(here.repo), here.worktree, config.RepoFileName))
+		if err != nil || cfg == nil {
+			return false
+		}
+		unread = cfg.Unknown
+	}
+	return slices.ContainsFunc(unread, func(entry string) bool {
+		return entry == recipeFileOf(here)+": run."+name
+	})
 }
 
 // listRecipes says what ws run <name> can run where you stand.
 func listRecipes(here runHere, recipes map[string]config.RunRecipe) error {
 	if len(recipes) == 0 {
 		if here.repo == "" {
-			fmt.Fprintf(os.Stderr, "The workspace has no recipes of its own ([run.<name>] in %s): ws run -- <command> runs one by hand.\n", config.FileName)
+			fmt.Fprintf(os.Stderr, "The workspace has no recipes of its own ([run.service.<name>] or [run.task.<name>] in %s): ws run -- <command> runs one by hand.\n", config.FileName)
 			return nil
 		}
-		fmt.Fprintf(os.Stderr, "%s has no recipes ([run.<name>] in its %s): ws run -- <command> runs one by hand.\n", here.repo, config.RepoFileName)
+		fmt.Fprintf(os.Stderr, "%s has no recipes ([run.service.<name>] or [run.task.<name>] in its %s): ws run -- <command> runs one by hand.\n", here.repo, config.RepoFileName)
 		return nil
 	}
-	needy := false
+	needy, tasks := false, false
 	for _, rc := range recipes {
 		needy = needy || len(rc.Needs) > 0
+		tasks = tasks || rc.IsTask()
+	}
+	// typeOf is a recipe's type in its own column, where any is a task.
+	typeOf := func(rc config.RunRecipe) string {
+		if !tasks {
+			return ""
+		}
+		if rc.IsTask() {
+			return "task\t"
+		}
+		return "service\t"
+	}
+	head := "RECIPE\t"
+	if tasks {
+		head += "TYPE\t"
 	}
 	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	if needy {
-		fmt.Fprintln(tw, "RECIPE\tCOMMAND\tNEEDS")
+		fmt.Fprintln(tw, head+"COMMAND\tNEEDS")
 	} else {
-		fmt.Fprintln(tw, "RECIPE\tCOMMAND")
+		fmt.Fprintln(tw, head+"COMMAND")
 	}
 	for _, n := range slices.Sorted(maps.Keys(recipes)) {
 		rc := recipes[n]
 		if !needy {
-			fmt.Fprintf(tw, "%s\t%s\n", n, rc.Command)
+			fmt.Fprintf(tw, "%s\t%s%s\n", n, typeOf(rc), rc.Command)
 			continue
 		}
 		var needs []string
@@ -596,7 +785,7 @@ func listRecipes(here runHere, recipes map[string]config.RunRecipe) error {
 				needs = append(needs, name+" ("+recipe+")")
 			}
 		}
-		fmt.Fprintf(tw, "%s\t%s\t%s\n", n, rc.Command, strings.Join(needs, ", "))
+		fmt.Fprintf(tw, "%s\t%s%s\t%s\n", n, typeOf(rc), rc.Command, strings.Join(needs, ", "))
 	}
 	return tw.Flush()
 }
@@ -645,6 +834,14 @@ func newRunLsCmd() *cobra.Command {
 				if r.State != runs.Running {
 					ends = "-"
 				}
+				if r.IsTask() {
+					// A task: what it came to, where a service has a port and a link.
+					if r.State != runs.Running {
+						state = fmt.Sprintf("%s%s, %s", r.Result(), tookSaid(r), r.Ended.Local().Format("15:04"))
+					}
+					fmt.Fprintf(tw, "%s\t-\t%s\t%s\t-\n", r.NRef(), state, ends)
+					continue
+				}
 				fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\n", r.Ref(), r.Port, state, ends, router.RunAddress(root, r))
 			}
 			return tw.Flush()
@@ -656,18 +853,30 @@ func newRunLsCmd() *cobra.Command {
 
 // runJSON is a run as ws run ls --json says it.
 type runJSON struct {
-	Ref     string     `json:"ref"`
-	Name    string     `json:"name"`
-	Repo    string     `json:"repo"`
-	Where   string     `json:"where"`
-	Dir     string     `json:"dir"`
-	Command string     `json:"command"`
-	Port    int        `json:"port"`
-	Link    string     `json:"link"`
-	Local   string     `json:"local"`
-	State   string     `json:"state"`
-	Status  *int       `json:"status,omitempty"`
-	Owner   runs.Owner `json:"owner"`
+	Ref  string `json:"ref"`
+	Name string `json:"name"`
+	// Type is service or task. A task has no port or link; it says which
+	// run of it this is (N), what it came to (Result: running, passed,
+	// failed (exit n) or stopped), how long it took in seconds, the commit
+	// it ran at, and the reports kept with it.
+	Type    string       `json:"type"`
+	N       int          `json:"n,omitempty"`
+	Result  string       `json:"result,omitempty"`
+	Took    float64      `json:"took,omitempty"`
+	Commit  string       `json:"commit,omitempty"`
+	Dirty   bool         `json:"dirty,omitempty"`
+	Why     string       `json:"why,omitempty"`
+	Reports []reportJSON `json:"reports,omitempty"`
+	Repo    string       `json:"repo"`
+	Where   string       `json:"where"`
+	Dir     string       `json:"dir"`
+	Command string       `json:"command"`
+	Port    int          `json:"port"`
+	Link    string       `json:"link"`
+	Local   string       `json:"local"`
+	State   string       `json:"state"`
+	Status  *int         `json:"status,omitempty"`
+	Owner   runs.Owner   `json:"owner"`
 	// Also are who else it's for; Needs what it was started needing; and
 	// NeededBy the running runs that need it, which keep it.
 	Also     []runs.Owner `json:"also,omitempty"`
@@ -679,31 +888,152 @@ type runJSON struct {
 	Log      string       `json:"log"`
 }
 
+// reportJSON is one of a task's reports: what its recipe calls it, its
+// format, and the files kept for it.
+type reportJSON struct {
+	Name   string   `json:"name"`
+	Format string   `json:"format,omitempty"`
+	Path   string   `json:"path"`
+	Files  []string `json:"files"`
+}
+
+func runJSONOf(root string, r runs.Run, now time.Time) runJSON {
+	j := runJSON{
+		Ref: r.Ref(), Name: r.Name, Type: string(runs.Service), Repo: r.Repo, Where: runs.Label(r.Worktree), Dir: r.Dir,
+		Command: r.Command, Port: r.Port, Link: router.RunAddress(root, r), Local: r.Link(), State: string(r.State),
+		Owner: r.Owner, Also: r.Also, Needs: r.Needs, NeededBy: r.NeededBy, By: r.By, Log: r.LogPath(),
+	}
+	if r.IsTask() {
+		j.Type, j.Ref, j.N, j.Link, j.Local = string(runs.Task), r.NRef(), r.N, "", ""
+		j.Result, j.Took, j.Commit, j.Dirty, j.Why = r.Result(), r.Took().Round(time.Millisecond).Seconds(), r.Commit, r.Dirty, r.Why
+		for _, rp := range r.Reports {
+			files := r.ReportFiles(rp.Name)
+			if files == nil {
+				files = []string{}
+			}
+			j.Reports = append(j.Reports, reportJSON{Name: rp.Name, Format: rp.Format, Path: rp.Path, Files: files})
+		}
+	}
+	if r.State == runs.Exited {
+		s := r.Status
+		j.Status = &s
+	}
+	if !r.Expires.IsZero() {
+		e := r.Expires
+		j.Expires = &e
+	}
+	if r.State == runs.Running {
+		j.Ends = runs.Ends(r, now)
+	}
+	return j
+}
+
 func writeRunsJSON(out io.Writer, root string, list []runs.Run) error {
 	now := time.Now()
 	rows := make([]runJSON, 0, len(list))
 	for _, r := range list {
-		j := runJSON{
-			Ref: r.Ref(), Name: r.Name, Repo: r.Repo, Where: runs.Label(r.Worktree), Dir: r.Dir,
-			Command: r.Command, Port: r.Port, Link: router.RunAddress(root, r), Local: r.Link(), State: string(r.State),
-			Owner: r.Owner, Also: r.Also, Needs: r.Needs, NeededBy: r.NeededBy, By: r.By, Log: r.LogPath(),
-		}
-		if r.State == runs.Exited {
-			s := r.Status
-			j.Status = &s
-		}
-		if !r.Expires.IsZero() {
-			e := r.Expires
-			j.Expires = &e
-		}
-		if r.State == runs.Running {
-			j.Ends = runs.Ends(r, now)
-		}
-		rows = append(rows, j)
+		rows = append(rows, runJSONOf(root, r, now))
 	}
 	enc := json.NewEncoder(out)
 	enc.SetIndent("", "  ")
 	return enc.Encode(rows)
+}
+
+func newRunShowCmd() *cobra.Command {
+	var asJSON bool
+	cmd := &cobra.Command{
+		Use:   "show <name>",
+		Short: "Say what a run came to: a task's result, the commit it ran at, its reports, and the runs before it",
+		Long: `ws run show says where a run stands. For a task, that's what it came to:
+passed or failed and how it exited, how long it took, the commit it ran
+at, where all it printed is kept, the reports kept with it, and the
+earlier runs of the same task behind it. <name>#3 is the third run of a
+task, while it's kept.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			w, err := loadOps()
+			if err != nil {
+				return err
+			}
+			store, r, err := findRun(w, args[0])
+			if err != nil {
+				return err
+			}
+			root, now := w.WS().Root, time.Now()
+			var past []runs.Run
+			if r.IsTask() && !strings.Contains(args[0], "#") {
+				past = store.Past(r)
+			}
+			if asJSON {
+				out := struct {
+					runJSON
+					Past []runJSON `json:"past,omitempty"`
+				}{runJSON: runJSONOf(root, r, now)}
+				for _, p := range past {
+					out.Past = append(out.Past, runJSONOf(root, p, now))
+				}
+				enc := json.NewEncoder(os.Stdout)
+				enc.SetIndent("", "  ")
+				return enc.Encode(out)
+			}
+			out := os.Stdout
+			if !r.IsTask() {
+				fmt.Fprintf(out, "name     %s\ntype     service\nstate    %s\nlink     %s\nport     %d\ncommand  %s\nlog      %s\n", r.Ref(), r.State, router.RunAddress(root, r), r.Port, r.Command, r.LogPath())
+				if r.State == runs.Running {
+					fmt.Fprintf(out, "\nIt ends %s.\n", runs.Ends(r, now))
+				}
+				return nil
+			}
+			fmt.Fprintf(out, "name     %s\ntype     task\nresult   %s%s\n", r.NRef(), r.Result(), tookSaid(r))
+			if r.Why != "" {
+				fmt.Fprintf(out, "why      %s\n", r.Why)
+			}
+			if r.State != runs.Running {
+				fmt.Fprintf(out, "ended    %s\n", r.Ended.Local().Format("2 Jan 15:04"))
+			}
+			if r.Commit != "" {
+				at := r.Commit
+				if len(at) > 12 {
+					at = at[:12]
+				}
+				if r.Dirty {
+					at += ", with changes not committed"
+				}
+				fmt.Fprintf(out, "commit   %s\n", at)
+			}
+			fmt.Fprintf(out, "command  %s\nlog      %s\n", r.Command, r.LogPath())
+			for _, rp := range r.Reports {
+				files := r.ReportFiles(rp.Name)
+				what := strings.Join(files, " ")
+				if len(files) == 0 {
+					what = "not written (" + rp.Path + ")"
+					if r.State == runs.Running {
+						what = "kept once it ends (" + rp.Path + ")"
+					}
+				}
+				format := ""
+				if rp.Format != "" {
+					format = "  " + rp.Format
+				}
+				fmt.Fprintf(out, "report   %s%s  %s\n", rp.Name, format, what)
+			}
+			if len(past) > 0 {
+				fmt.Fprintln(out, "\nBefore it:")
+				tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+				for _, p := range past {
+					at := p.Commit
+					if len(at) > 12 {
+						at = at[:12]
+					}
+					fmt.Fprintf(tw, "  #%d\t%s%s\t%s\t%s\n", p.N, p.Result(), tookSaid(p), p.Ended.Local().Format("2 Jan 15:04"), at)
+				}
+				tw.Flush()
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&asJSON, "json", false, "as JSON")
+	return cmd
 }
 
 // findRun is the run ref names, from where you stand.
@@ -770,7 +1100,14 @@ stand in; with --all, every run in the workspace.`,
 					errs = append(errs, fmt.Errorf("%s: %w", r.Ref(), err))
 					continue
 				}
-				fmt.Fprintf(os.Stderr, "Stopped %s.\n", r.Ref())
+				switch {
+				case r.IsTask() && r.State != runs.Running:
+					fmt.Fprintf(os.Stderr, "Cleared %s, and the runs kept behind it.\n", r.Ref())
+				case r.IsTask():
+					fmt.Fprintf(os.Stderr, "Stopped %s: it's kept, as stopped (ws run stop %s again clears it).\n", r.NRef(), r.Ref())
+				default:
+					fmt.Fprintf(os.Stderr, "Stopped %s.\n", r.Ref())
+				}
 				needs = needs || len(r.Needs) > 0
 				// What still runs and needed it is left without it.
 				left := slices.DeleteFunc(slices.Clone(r.NeededBy), func(ref string) bool { return stopped[ref] })
@@ -876,6 +1213,9 @@ func newRunKeepCmd() *cobra.Command {
 			}
 			if r.State != runs.Running {
 				return fmt.Errorf("%s has ended: ws run starts it again", r.Ref())
+			}
+			if strings.Contains(args[0], "#") {
+				return fmt.Errorf("%s is a run that's kept, not one that's running", args[0])
 			}
 			r, err = store.Keep(r, time.Duration(hours*float64(time.Hour)), time.Now())
 			if err != nil {

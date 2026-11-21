@@ -40,7 +40,7 @@ export function AppPage({ workspace }: { workspace: Workspace }) {
   if (!entry) {
     return (
       <div className="page">
-        <ErrorCard title="No such app" error={`The workspace has no app called ${name}: an app is a recipe in ws.toml with a page ([run.${name}] page = { title = "…" }).`} />
+        <ErrorCard title="No such app" error={`The workspace has no app called ${name}: an app is a service in ws.toml with a page ([run.service.${name}] page = { title = "…" }).`} />
       </div>
     );
   }

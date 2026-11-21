@@ -3,6 +3,12 @@
 // kept with who it's for (its owner) and how long it may last. Once
 // either has gone, ws ends it, so nobody has to remember to.
 //
+// That's a service, one type of run. The other is a task: tests, lint, a
+// build, which ends by itself, and whose worth is what it came to. A task
+// has no port. Once it has ended it's kept: how it exited, how long it
+// took, all it printed, the commit it ran at and the reports it wrote,
+// with the last KeepPast runs of the same task behind it (.past).
+//
 // It's `just try`'s teardown (scripts/try.sh) for everyone's runs. The
 // record is kept in the run's own folder, .ws/runs/<repo>/<worktree>/<name>/,
 // and nowhere else: removing the folder removes the run's record. The
@@ -36,11 +42,20 @@ const Version = 1
 const (
 	// DefaultTTL is how long a run lasts when it's not told.
 	DefaultTTL = 4 * time.Hour
+	// TaskTimeout is how long a task may take when neither its recipe nor
+	// whoever asks says: a task ends by itself, and one still running then
+	// is stopped, as something that was meant to be kept up is a service.
+	TaskTimeout = time.Hour
 	// SweepEvery is how often the daemon looks for runs to end.
 	SweepEvery = 15 * time.Second
-	// KeepEnded is how long a run that ended by itself is kept, its log
-	// with it, before a sweep removes it.
+	// KeepEnded is how long a service that ended by itself is kept, its
+	// log with it, before a sweep removes it.
 	KeepEnded = time.Hour
+	// KeepResults is how long a task's result is kept after it ended,
+	// while where it ran is there; and KeepPast how many earlier runs of
+	// the task are kept behind its latest.
+	KeepResults = 30 * 24 * time.Hour
+	KeepPast    = 10
 	// LookLinger is how long a run owned by looking lasts with nobody
 	// looking.
 	LookLinger = 15 * time.Minute
@@ -48,6 +63,18 @@ const (
 	// run's owner when none is named: the shells, just and ws between it
 	// and the run were started for this command, and end with it.
 	OwnerAge = time.Minute
+)
+
+// Type is which sort of run one is.
+type Type string
+
+const (
+	// Service is a run that's kept up until it's ended: a dev server. It
+	// has a port, and it's ended when its owner goes or its time is up.
+	Service Type = "service"
+	// Task is a run that ends by itself: tests, lint, a build. It has no
+	// port, and what it came to is kept once it has ended.
+	Task Type = "task"
 )
 
 // Kind is what a run's owner is.
@@ -127,14 +154,17 @@ func (f OwnersFunc) Ended(o Owner) string { return f(o) }
 type Record struct {
 	Version int    `json:"version"`
 	Name    string `json:"name"`
-	Repo    string `json:"repo"`
+	// Type is Task for one that ends by itself; "" is a service.
+	Type Type   `json:"type,omitempty"`
+	Repo string `json:"repo"`
 	// Worktree is the folder in the repo it runs in: a capsule's name,
 	// .ground or .silo.
 	Worktree string `json:"worktree"`
 	// Dir is where its command runs.
 	Dir     string `json:"dir"`
 	Command string `json:"command"`
-	// Recipe is the repo's [run.<name>] it was started from, if it was.
+	// Recipe is the recipe ([run.service.<name>], [run.task.<name>]) it was
+	// started from, if it was.
 	// Ready and Stop are that recipe's (config.RunRecipe).
 	Recipe string `json:"recipe,omitempty"`
 	Ready  string `json:"ready,omitempty"`
@@ -164,7 +194,44 @@ type Record struct {
 	// Looked is when someone last had open the page it was started
 	// from, for a run owned by looking.
 	Looked time.Time `json:"looked,omitzero"`
+	// N is which run of the task this is, from 1, and Commit the commit
+	// its worktree was at when it started, Dirty with changes not
+	// committed: what a task's result is a result of.
+	N      int    `json:"n,omitempty"`
+	Commit string `json:"commit,omitempty"`
+	Dirty  bool   `json:"dirty,omitempty"`
+	// Reports are the files a task's command writes that are kept with
+	// its result, as its recipe names them.
+	Reports []Report `json:"reports,omitempty"`
+	// Check is the check of a mission's step it was run for, if it was:
+	// the mission's slug, the step's number and the check's, from 1.
+	Check *CheckOf `json:"check,omitempty"`
 }
+
+// Report is a file, or the files a pattern matches, that a task's command
+// writes: kept with the run once it has ended, for whatever reads its
+// format to show.
+type Report struct {
+	// Name is what the recipe calls it (coverage).
+	Name string `json:"name"`
+	// Path is where the command writes it, from where it runs: a file, or
+	// a pattern (junit/*.xml).
+	Path string `json:"path"`
+	// Format is what it's written in (lcov, gocover, junit…): a plugin
+	// that reads the format shows it.
+	Format string `json:"format,omitempty"`
+}
+
+// CheckOf is the check a task was run for.
+type CheckOf struct {
+	Mission string `json:"mission"`
+	Step    int    `json:"step"`
+	N       int    `json:"n"`
+}
+
+// IsTask is whether the run is a task: one that ends by itself, and is
+// kept for what it came to.
+func (r Record) IsTask() bool { return r.Type == Task }
 
 // Need is something a run was started needing: another run, found or
 // started for it, an address outside ws, or a repo's folder.
@@ -227,6 +294,36 @@ type Run struct {
 	// NeededBy are the running runs that need it, by their refs, as List
 	// finds them: while there are any, it isn't ended.
 	NeededBy []string
+	// Why is why a task was stopped before it ended by itself, when ws
+	// stopped it.
+	Why string
+	// Past is how many earlier runs of the task are kept behind it.
+	Past int
+}
+
+// Passed is whether a task ended by itself with status 0.
+func (r Run) Passed() bool { return r.State == Exited && r.Status == 0 }
+
+// Took is how long the run ran, once it has ended.
+func (r Run) Took() time.Duration {
+	if r.State == Running || r.Ended.IsZero() || r.Began.IsZero() || r.Ended.Before(r.Began) {
+		return 0
+	}
+	return r.Ended.Sub(r.Began)
+}
+
+// Result is what a task came to, in a word or two: running, passed,
+// failed (exit 2), or stopped, for one that didn't end by itself.
+func (r Run) Result() string {
+	switch {
+	case r.State == Running:
+		return "running"
+	case r.State == Exited && r.Why == "" && r.Status == 0:
+		return "passed"
+	case r.State == Exited && r.Why == "":
+		return fmt.Sprintf("failed (exit %d)", r.Status)
+	}
+	return "stopped"
 }
 
 // Label is how a worktree is said in a run's name: ground, silo, or the
@@ -243,7 +340,7 @@ func Label(worktree string) string {
 
 // Ref is how a run is named everywhere: <name>.<worktree>.<repo>, as its
 // local address will have it. A workspace's own run (Repo "") is its name
-// alone.
+// alone. A task's ref is its latest run's.
 func (r Run) Ref() string {
 	if r.Repo == "" {
 		return r.Name
@@ -269,6 +366,32 @@ func (s Store) place(repo, worktree string) string {
 	return filepath.Join(s.Dir(), repo, worktree)
 }
 
+// NRef is one run of a task, by its number: test.my-capsule.workspace#3.
+func (r Run) NRef() string {
+	if r.N == 0 {
+		return r.Ref()
+	}
+	return r.Ref() + "#" + strconv.Itoa(r.N)
+}
+
+// ReportsDir is where a task's reports are kept, each in a folder of its
+// name.
+func (r Run) ReportsDir() string { return filepath.Join(r.Path, reportsDir) }
+
+// ReportFiles is the files kept for the report name, by path.
+func (r Run) ReportFiles(name string) []string {
+	var out []string
+	root := filepath.Join(r.ReportsDir(), name)
+	filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
+		if err == nil && !d.IsDir() {
+			out = append(out, p)
+		}
+		return nil
+	})
+	sort.Strings(out)
+	return out
+}
+
 // Link is where the run is reached.
 func (r Run) Link() string { return fmt.Sprintf("http://127.0.0.1:%d", r.Port) }
 
@@ -281,6 +404,15 @@ const (
 	// exitFile is written by the run's wrapper as its command ends: the
 	// command's status.
 	exitFile = "exit"
+	// stoppedFile says why ws stopped a task before it ended by itself.
+	stoppedFile = "stopped"
+	// beganFile is made as a task's command starts: a report older than
+	// it is another run's, and isn't kept.
+	beganFile = "began"
+	// reportsDir holds a task's reports, and pastDir, in the store's
+	// folder, the earlier runs of each task.
+	reportsDir = "reports"
+	pastDir    = ".past"
 )
 
 // Store is a workspace's runs.
@@ -292,6 +424,60 @@ type Store struct {
 
 // Dir is where runs are kept.
 func (s Store) Dir() string { return filepath.Join(s.Root, ".ws", "runs") }
+
+// pastOf is where the earlier runs of the task kept in dir are, each in a
+// folder of its number.
+func (s Store) pastOf(dir string) string {
+	rel, err := filepath.Rel(s.Dir(), dir)
+	if err != nil {
+		rel = filepath.Base(dir)
+	}
+	return filepath.Join(s.Dir(), pastDir, rel)
+}
+
+// Past is the earlier runs of a task, the latest first.
+func (s Store) Past(r Run) []Run {
+	entries, err := os.ReadDir(s.pastOf(r.Path))
+	if err != nil {
+		return nil
+	}
+	var out []Run
+	for _, e := range entries {
+		if p, err := load(filepath.Join(s.pastOf(r.Path), e.Name()), Procs{}); err == nil {
+			out = append(out, p)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].N > out[j].N })
+	return out
+}
+
+// archive puts the ended task kept in dir behind the next run of it, as
+// its run number n, and drops the oldest past KeepPast. The folder's then
+// gone: whoever moved it has the name to claim.
+func (s Store) archive(dir string, n int) error {
+	past := s.pastOf(dir)
+	if err := os.MkdirAll(past, 0o755); err != nil {
+		return err
+	}
+	to := filepath.Join(past, strconv.Itoa(n))
+	os.RemoveAll(to)
+	if err := os.Rename(dir, to); err != nil {
+		return err
+	}
+	entries, _ := os.ReadDir(past)
+	var ns []int
+	for _, e := range entries {
+		if k, err := strconv.Atoi(e.Name()); err == nil {
+			ns = append(ns, k)
+		}
+	}
+	sort.Ints(ns)
+	for len(ns) > KeepPast {
+		os.RemoveAll(filepath.Join(past, strconv.Itoa(ns[0])))
+		ns = ns[1:]
+	}
+	return nil
+}
 
 func (s Store) snapshot() Procs {
 	read := s.Procs
@@ -345,6 +531,11 @@ func (s Store) List() ([]Run, error) {
 		if r.State == Running {
 			out[i].NeededBy = needed[r.Ref()]
 		}
+		if r.IsTask() {
+			if past, err := os.ReadDir(s.pastOf(r.Path)); err == nil {
+				out[i].Past = len(past)
+			}
+		}
 	}
 	return out, nil
 }
@@ -377,6 +568,16 @@ func load(dir string, procs Procs) (Run, error) {
 			r.Ended = fi.ModTime() // its last words, the nearest to when it went
 		}
 	}
+	if r.State != Running {
+		if b, err := os.ReadFile(filepath.Join(dir, stoppedFile)); err == nil {
+			r.Why = strings.TrimSpace(string(b))
+			// It went when ws stopped it, which is when that was written:
+			// nearer than its last words, which may be its first.
+			if fi, err := os.Stat(filepath.Join(dir, stoppedFile)); err == nil && r.State == Gone {
+				r.Ended = fi.ModTime()
+			}
+		}
+	}
 	return r, nil
 }
 
@@ -397,6 +598,26 @@ func save(r Record, dir string) error {
 // a run in here (repo and worktree, where the caller stands). A worktree
 // may be said as ground or silo.
 func (s Store) Find(ref, repo, worktree string) (Run, error) {
+	if at, n, ok := strings.Cut(ref, "#"); ok {
+		// One run of a task, by its number: the latest, or one behind it.
+		k, err := strconv.Atoi(n)
+		if err != nil || k < 1 {
+			return Run{}, fmt.Errorf("%s: after # is which run of a task, a number from 1", ref)
+		}
+		r, err := s.Find(at, repo, worktree)
+		if err != nil {
+			return Run{}, err
+		}
+		if r.N == k {
+			return r, nil
+		}
+		for _, p := range s.Past(r) {
+			if p.N == k {
+				return p, nil
+			}
+		}
+		return Run{}, fmt.Errorf("no run %d of %s is kept (its latest is %d, with %d behind it)", k, r.Ref(), r.N, r.Past)
+	}
 	runs, err := s.List()
 	if err != nil {
 		return Run{}, err
@@ -518,10 +739,13 @@ func NameFor(command string) string {
 // worktree: where a run of it holds the name already, or is being started
 // under it this moment by another ws, that run is returned (running) and
 // nothing is claimed.
-func (s Store) claim(repo, worktree, want, recipe string) (name, dir string, running *Run, err error) {
+//
+// With task said, a task of the name that has ended isn't lost to the new
+// one: it's put behind it (archive), and n is the new one's number.
+func (s Store) claim(repo, worktree, want, recipe string, task bool) (name, dir string, n int, running *Run, err error) {
 	parent := s.place(repo, worktree)
 	if err := os.MkdirAll(parent, 0o755); err != nil {
-		return "", "", nil, err
+		return "", "", 0, nil, err
 	}
 	procs := s.snapshot()
 	for i := 1; i < 1000; i++ {
@@ -532,10 +756,10 @@ func (s Store) claim(repo, worktree, want, recipe string) (name, dir string, run
 		dir = filepath.Join(parent, name)
 		err := os.Mkdir(dir, 0o755)
 		if err == nil {
-			return name, dir, nil, nil
+			return name, dir, s.nextN(dir, task), nil, nil
 		}
 		if !errors.Is(err, os.ErrExist) {
-			return "", "", nil, err
+			return "", "", 0, nil, err
 		}
 		old, lerr := load(dir, procs)
 		if lerr != nil {
@@ -544,7 +768,7 @@ func (s Store) claim(repo, worktree, want, recipe string) (name, dir string, run
 				// that was killed before it recorded anything: the name's free.
 				if fi, ferr := os.Stat(dir); ferr == nil && time.Since(fi.ModTime()) > 2*claimWait {
 					if os.RemoveAll(dir) == nil && os.Mkdir(dir, 0o755) == nil {
-						return name, dir, nil, nil
+						return name, dir, s.nextN(dir, task), nil, nil
 					}
 				}
 				if recipe == "" {
@@ -558,18 +782,41 @@ func (s Store) claim(repo, worktree, want, recipe string) (name, dir string, run
 			}
 		}
 		if lerr == nil && old.State == Running && recipe != "" && old.Recipe == recipe {
-			return "", "", &old, nil
+			return "", "", 0, &old, nil
 		}
 		if lerr == nil && old.State != Running {
+			if task && old.IsTask() {
+				if s.archive(dir, max(old.N, 1)) == nil && os.Mkdir(dir, 0o755) == nil {
+					return name, dir, s.nextN(dir, task), nil, nil
+				}
+				continue
+			}
 			if os.RemoveAll(dir) == nil && os.Mkdir(dir, 0o755) == nil {
-				return name, dir, nil, nil
+				os.RemoveAll(s.pastOf(dir)) // a service has the name now
+				return name, dir, s.nextN(dir, task), nil, nil
 			}
 		}
 	}
 	if repo == "" {
-		return "", "", nil, fmt.Errorf("no free name for %s in the workspace", want)
+		return "", "", 0, nil, fmt.Errorf("no free name for %s in the workspace", want)
 	}
-	return "", "", nil, fmt.Errorf("no free name for %s in %s/%s", want, repo, worktree)
+	return "", "", 0, nil, fmt.Errorf("no free name for %s in %s/%s", want, repo, worktree)
+}
+
+// nextN is the number of the task being started in dir: one more than the
+// latest behind it. A service has none.
+func (s Store) nextN(dir string, task bool) int {
+	if !task {
+		return 0
+	}
+	n := 0
+	entries, _ := os.ReadDir(s.pastOf(dir))
+	for _, e := range entries {
+		if k, err := strconv.Atoi(e.Name()); err == nil && k > n {
+			n = k
+		}
+	}
+	return n + 1
 }
 
 // claimWait is how long a recipe's start waits for another ws, claiming

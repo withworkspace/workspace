@@ -125,7 +125,7 @@ func (w *Workspace) settleVerify(m *mission.Mission, st mission.StageState, crew
 		case c.Run() && dir == "":
 			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "the step has no capsule to run it in"}
 		case c.Run():
-			results[i] = run.command(i, c, dir, crew.Env(w.Root(), m.Slug, ""))
+			results[i] = run.command(i, c, capsule, dir, crew.Env(w.Root(), m.Slug, ""))
 		case bundle == nil:
 			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "its verifier reported done without handing over a bundle"}
 		default:

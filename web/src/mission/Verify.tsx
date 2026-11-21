@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button as AriaButton, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
+import { Link } from "react-router";
 import { act, type ActOpts, type ActVerb, type Bundle, type BundleEvidence, type BundleTry, type MissionDetail } from "../api";
 import type { Reload } from "../load";
 import { useKeys } from "../keys";
@@ -642,6 +643,13 @@ function CheckDetail({
         </p>
       )}
       {r.ran?.evidence && <pre className="verify-output">{r.ran.evidence}</pre>}
+      {r.ran?.kept && (
+        <p className="verify-kept">
+          <Link to={`/runs?show=${encodeURIComponent(r.ran.kept)}`}>
+            <Icon name="terminal" size={11} /> All it printed, and what it wrote
+          </Link>
+        </p>
+      )}
       {c?.shows?.map((e) => (
         <Evidence key={e.name} e={e} />
       ))}

@@ -54,6 +54,9 @@ func staleAlone(r Run, procs Procs, owners Owners, now time.Time) string {
 		return strings.Join(gone, ", and ")
 	}
 	if !r.Expires.IsZero() && !now.Before(r.Expires) {
+		if r.IsTask() {
+			return fmt.Sprintf("it hadn't ended after %s, its timeout (a task ends by itself: what's kept up is a service)", Span(r.Expires.Sub(r.Created)))
+		}
 		return "its time was up"
 	}
 	return ""
@@ -97,14 +100,36 @@ func said(command string) string {
 // StopLimit. Only a folder holding a run's record, under the store's, is
 // removed. The run is removed even when its stop command fails: the
 // error says so.
-func (s Store) End(r Run) error {
+//
+// A task that's running is stopped and kept, as one that came to nothing:
+// it's removed, the earlier runs behind it too, by ending it once it has
+// ended.
+func (s Store) End(r Run) error { return s.end(r, "it was stopped") }
+
+// end is End, with why a running task is stopped kept with it.
+func (s Store) end(r Run, why string) error {
 	if !s.owns(r.Path) {
 		return fmt.Errorf("%s isn't a run's folder", r.Path)
+	}
+	if r.IsTask() && r.State == Running {
+		os.WriteFile(filepath.Join(r.Path, stoppedFile), []byte(why+"\n"), 0o644)
+		s.stop(r)
+		return s.runStop(r)
 	}
 	s.stop(r)
 	stopErr := s.runStop(r)
 	if err := os.RemoveAll(r.Path); err != nil {
 		return err
+	}
+	if r.IsTask() {
+		past := s.pastOf(r.Path)
+		os.RemoveAll(past)
+		// The folders above its past go with the last of them.
+		for up := filepath.Dir(past); up != s.Dir() && len(up) > len(s.Dir()); up = filepath.Dir(up) {
+			if os.Remove(up) != nil {
+				break
+			}
+		}
 	}
 	// The worktree's and repo's folders go with their last run.
 	parent := filepath.Dir(r.Path)
@@ -129,7 +154,10 @@ func (s Store) runStop(r Run) error {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", r.Stop)
 	cmd.Dir = r.Dir
-	cmd.Env = append(withoutKey(os.Environ(), "PORT"), "PORT="+strconv.Itoa(r.Port))
+	cmd.Env = withoutKey(os.Environ(), "PORT")
+	if r.Port > 0 {
+		cmd.Env = append(cmd.Env, "PORT="+strconv.Itoa(r.Port))
+	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -174,7 +202,9 @@ type Swept struct {
 }
 
 // Sweep ends every running run whose time is up, and removes those that
-// ended by themselves more than KeepEnded ago. A run isn't ended while a
+// ended by themselves more than KeepEnded ago. A task that has ended is
+// kept longer, for what it came to: until where it ran has gone, or
+// KeepResults have passed. A run isn't ended while a
 // run that's staying needs it, whoever it's for and whatever its time:
 // the runs that need it are counted afresh each sweep, from their
 // records, so nothing's kept that could be left wrong by a ws that
@@ -212,19 +242,27 @@ func (s Store) Sweep(owners Owners, now time.Time) ([]Swept, error) {
 	var errs []error
 	for _, r := range runs {
 		w := ""
-		if r.State == Running {
+		switch {
+		case r.State == Running:
 			w = why[r.Ref()]
-		} else if now.Sub(r.Ended) >= KeepEnded {
+		case r.IsTask():
+			if _, err := os.Stat(r.Dir); errors.Is(err, os.ErrNotExist) {
+				w = placeGone
+			} else if now.Sub(r.Ended) >= KeepResults {
+				w = "it ended " + r.Ended.Local().Format("2 Jan")
+			}
+		case now.Sub(r.Ended) >= KeepEnded:
 			w = "it ended " + r.Ended.Local().Format("15:04")
 		}
 		if w == "" {
 			continue
 		}
-		err := s.End(r)
+		err := s.end(r, w)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", r.Ref(), err))
 		}
-		if _, serr := os.Stat(r.Path); errors.Is(serr, os.ErrNotExist) {
+		_, serr := os.Stat(r.Path)
+		if errors.Is(serr, os.ErrNotExist) || (r.IsTask() && r.State == Running) {
 			out = append(out, Swept{Run: r, Why: w})
 		}
 	}
@@ -317,6 +355,22 @@ func endsWith(r Run, o Owner) string {
 		return fmt.Sprintf("%d minutes after nobody has mission %s open", int(LookLinger/time.Minute), o.Mission)
 	}
 	return ""
+}
+
+// Span is d as it would be written for a timeout: 45s, 10m, 1h30m.
+func Span(d time.Duration) string {
+	d = d.Round(time.Second)
+	if d < time.Second {
+		return "0s"
+	}
+	s := d.String() // 1h30m0s
+	if strings.HasSuffix(s, "m0s") {
+		s = strings.TrimSuffix(s, "0s")
+	}
+	if strings.HasSuffix(s, "h0m") {
+		s = strings.TrimSuffix(s, "0m")
+	}
+	return s
 }
 
 // Hours is d as 3h58: hours and minutes, rounded up to the minute.

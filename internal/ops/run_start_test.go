@@ -23,26 +23,26 @@ func needsFixture(t *testing.T) (*Workspace, string) {
 	w, _ := fixture(t, "## Goal\nCache it.\n", "cache")
 	front := filepath.Join(w.WS().RepoDir("frontend"), "cache")
 	write(t, filepath.Join(front, "ws.repo.toml"), `
-[run.web]
+[run.service.web]
 command = "echo api=$API_URL arg={api} port={api.port} mine={port} > web.txt; sleep 300"
 
-[run.web.needs.api]
+[run.service.web.needs.api]
 run = "backend/server"
 env = "API_URL"
 mount = "api/"
 
-[run.web.needs.db]
+[run.service.web.needs.db]
 
-[run.admin]
+[run.service.admin]
 command = "sleep 300"
 
-[run.admin.needs.api]
+[run.service.admin.needs.api]
 run = "backend/server"
 
-[run.db]
+[run.service.db]
 command = "sleep 300"
 `)
-	write(t, filepath.Join(w.WS().RepoDir("backend"), ".ground", "ws.repo.toml"), "[run.server]\ncommand = \"sleep 300\"\n")
+	write(t, filepath.Join(w.WS().RepoDir("backend"), ".ground", "ws.repo.toml"), "[run.service.server]\ncommand = \"sleep 300\"\n")
 	t.Cleanup(func() {
 		list, _ := w.runStore().List()
 		for _, r := range list {
@@ -154,7 +154,7 @@ func TestStartRunStartsWhatItNeeds(t *testing.T) {
 func TestStartRunFindsTheNearest(t *testing.T) {
 	w, front := needsFixture(t)
 	mine := filepath.Join(w.WS().RepoDir("backend"), "cache-api")
-	write(t, filepath.Join(mine, "ws.repo.toml"), "[run.server]\ncommand = \"sleep 300\"\n")
+	write(t, filepath.Join(mine, "ws.repo.toml"), "[run.service.server]\ncommand = \"sleep 300\"\n")
 	if _, err := w.Attach("cache", "backend", "cache-api", false, AsYou); err != nil {
 		t.Fatal(err)
 	}
@@ -206,41 +206,41 @@ func TestStartRunFindsTheNearest(t *testing.T) {
 func TestStartRunSaysWhatsWrongWithANeed(t *testing.T) {
 	w, front := needsFixture(t)
 	write(t, filepath.Join(front, "ws.repo.toml"), `
-[run.a]
+[run.service.a]
 command = "sleep 300"
-[run.a.needs.b]
+[run.service.a.needs.b]
 
-[run.b]
+[run.service.b]
 command = "sleep 300"
-[run.b.needs.again]
+[run.service.b.needs.again]
 run = "a"
 
-[run.lost]
+[run.service.lost]
 command = "sleep 300"
-[run.lost.needs.api]
+[run.service.lost.needs.api]
 run = "nowhere/server"
 
-[run.norecipe]
+[run.service.norecipe]
 command = "sleep 300"
-[run.norecipe.needs.api]
+[run.service.norecipe.needs.api]
 run = "backend/worker"
 
-[run.dies]
+[run.service.dies]
 command = "sleep 300"
-[run.dies.needs.flaky]
+[run.service.dies.needs.flaky]
 
-[run.flaky]
+[run.service.flaky]
 command = "echo no database; exit 3"
 
-[run.port]
+[run.service.port]
 command = "sleep 300"
-[run.port.needs.port]
+[run.service.port.needs.port]
 run = "b"
 `)
 	for recipe, want := range map[string]string{
 		"a":        "frontend/cache/a needs itself: frontend/cache/a, which needs frontend/cache/b, which needs frontend/cache/a",
 		"lost":     "the workspace has no repo nowhere",
-		"norecipe": "backend/ground has no recipe worker ([run.worker] in its ws.repo.toml)",
+		"norecipe": "backend/ground has no recipe worker ([run.service.worker] in its ws.repo.toml)",
 		"port":     "a need's name is lower case letters, numbers, - and _, and not port",
 		"nope":     "frontend/cache has no recipe nope",
 	} {

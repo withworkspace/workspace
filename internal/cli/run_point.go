@@ -19,7 +19,7 @@ func newRunPointCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "point <recipe> [<need>=<capsule|ground|silo|nearest>...]",
 		Short: "Point a workspace recipe's needs at a capsule, the ground or the silo",
-		Long: `A recipe of the workspace's own (ws.toml's [run.<name>]) runs once for the
+		Long: `A recipe of the workspace's own (ws.toml's [run.service.<name>] or [run.task.<name>]) runs once for the
 whole workspace, so what meets its needs is pointed, not found where it's
 asked from: each need of a repo (a run of one of its recipes, or its
 folder) is met by the worktree it's pointed at, or by the repo's ground

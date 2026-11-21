@@ -293,7 +293,7 @@ func MissionOf(a Missions, root, slug string) (*MissionDetail, error) {
 				sc := StageCheck{Text: c.Text, Run: c.Run()}
 				if i < len(round.Results) && round.Results[i].Check == c.Text {
 					r := round.Results[i]
-					sc.Result, sc.Evidence, sc.By = CheckVerdict(r.Result), r.Evidence, r.By
+					sc.Result, sc.Evidence, sc.By, sc.Kept = CheckVerdict(r.Result), r.Evidence, r.By, r.Run
 				}
 				sg.Checks = append(sg.Checks, sc)
 			}
@@ -321,7 +321,7 @@ func MissionOf(a Missions, root, slug string) (*MissionDetail, error) {
 		for _, r := range v.CapsuleRuns[c.Repo+"/"+c.Name] {
 			cd.Runs = append(cd.Runs, RunDetailOf(r, root, now))
 		}
-		cd.Recipes = v.Recipes[c.Repo+"/"+c.Name]
+		cd.Recipes, cd.Tasks = v.Recipes[c.Repo+"/"+c.Name], v.Tasks[c.Repo+"/"+c.Name]
 		d.Capsules = append(d.Capsules, cd)
 	}
 	for _, c := range m.Crew {
@@ -503,7 +503,7 @@ func bundleOf(slug string, b ops.BundleView, head string) Bundle {
 				continue // its verifier's own word, which the bundle has already
 			}
 			if command {
-				out.Ran = append(out.Ran, BundleRan{N: n, Check: r.Check, Result: CheckVerdict(r.Result), Evidence: r.Evidence, By: r.By})
+				out.Ran = append(out.Ran, BundleRan{N: n, Check: r.Check, Result: CheckVerdict(r.Result), Evidence: r.Evidence, By: r.By, Kept: r.Run})
 				continue
 			}
 			judged[r.Check] = r

@@ -51,6 +51,7 @@ type Running interface {
 	RunsIn(repo, name string) (ops.WorktreeRuns, error)
 	RunIn(repo, name, recipe string, by ops.Actor) (runs.Run, error)
 	Runs() ([]runs.Run, error)
+	Run(ref string) (runs.Run, []runs.Run, error)
 	EndRun(ref string) error
 	RunLog(ref string, n int) (string, error)
 	Names() (on bool, want string, err error)

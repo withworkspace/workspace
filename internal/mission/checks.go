@@ -79,6 +79,10 @@ type CheckResult struct {
 	// By is who said: ws (a command it ran), or the judge (its harness and
 	// model).
 	By string `toml:"by" json:"by"`
+	// Run is the run ws kept of a command it ran (internal/runs), by its
+	// ref: all it printed, how long it took, and the reports it wrote, for
+	// as long as the run's kept.
+	Run string `toml:"run,omitempty" json:"run,omitempty"`
 }
 
 // CheckRound is a Work step's checks, run and judged once its crew

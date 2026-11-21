@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/prompt"
+	"github.com/withworkspace/workspace/internal/runs"
 )
 
 // Work's expansion, its checks: once crew report done at a Work step that
@@ -136,7 +138,7 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 		if !hasCapsule {
 			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "the step has no capsule to run it in"}
 		} else {
-			results[i] = run.command(i, c, dir, crew.Env(w.Root(), slug, ""))
+			results[i] = run.command(i, c, capsule, dir, crew.Env(w.Root(), slug, ""))
 		}
 		ran = append(ran, fmt.Sprintf("%s: %s (%s)", c.Text, results[i].Result, firstLine(results[i].Evidence)))
 	}
@@ -163,16 +165,124 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 	return w.afterChecks(slug, st.N, round), nil
 }
 
-// runCheck runs a check's command in dir: met when it passes or fails as
-// the check says; can't tell when it couldn't be run, or ran out of time.
-// hooks follow it as it runs; what it keeps as evidence is the same
-// without them.
-func runCheck(dir string, c mission.Check, env []string, hooks checkHooks) mission.CheckResult {
-	return runCheckWithin(dir, c, env, hooks, checkTimeout)
+// checkRecipe is a check's command that asks for one of the repo's own
+// recipes: ws run test.
+var checkRecipe = regexp.MustCompile(`^ws\s+run\s+([a-z0-9][a-z0-9_-]*)$`)
+
+// runCheckTask runs a step's check that's a command as a task (a run that
+// ends by itself, internal/runs) in the capsule at dir, and waits for it:
+// met when it passes or fails as the check says; can't tell when it
+// couldn't be run, was stopped, or ran past timeout. The run is kept, and
+// the result names it: all it printed, how long it took, the commit it
+// ran at and the reports it wrote, where the evidence is its last words. A
+// command that's `ws run <recipe>`, for a task the capsule's repo has a
+// recipe for, is that recipe's run, with its reports. hooks follow it as
+// it runs.
+func (w *Workspace) runCheckTask(capsule, dir string, c mission.Check, env []string, of runs.CheckOf, timeout time.Duration, hooks checkHooks) mission.CheckResult {
+	res := mission.CheckResult{Check: c.Text, By: "ws"}
+	repo, name, _ := strings.Cut(capsule, "/")
+	ask := RunAsk{
+		Repo: repo, Worktree: name, Dir: dir, Command: c.Command, Type: runs.Task,
+		Name:  fmt.Sprintf("check-%d-%d", of.Step, of.N),
+		Owner: runs.Owner{Kind: runs.ByMission, Mission: of.Mission},
+		// Its time outlasts the wait for it, so it's this that stops it.
+		Timeout: timeout + 5*time.Minute, By: "ws", Mission: of.Mission, Env: env, Check: &of, Wait: RunUpWait,
+	}
+	if m := checkRecipe.FindStringSubmatch(strings.TrimSpace(c.Command)); m != nil {
+		if w.recipes(repo, name)[m[1]].IsTask() {
+			ask.Recipe, ask.Command, ask.Name = m[1], "", ""
+		}
+	}
+	up, err := w.StartRun(ask)
+	if err != nil {
+		res.Result, res.Evidence = mission.CheckCantTell, "couldn't run it: "+err.Error()
+		return res
+	}
+	run, store := up.Run, w.runStore()
+	res.Run = run.NRef()
+	if hooks.Started != nil {
+		hooks.Started(run.PID)
+	}
+	stop := followRun(run, hooks.Line)
+	now, ended, err := store.WaitEnd(run, timeout, nil)
+	stop()
+	tail := clipTail(strings.TrimSpace(now.Tail(200)), checkOutputMax)
+	switch {
+	case err != nil:
+		res.Result, res.Evidence = mission.CheckCantTell, "couldn't follow it: "+err.Error()
+		return res
+	case !ended:
+		store.End(now) //nolint:errcheck // it's stopped, and kept as stopped
+		res.Result, res.Evidence = mission.CheckCantTell, fmt.Sprintf("it ran past %s, and was stopped", timeout)
+		return res
+	case now.State != runs.Exited:
+		why := "it was stopped before it ended"
+		if now.Why != "" {
+			why += ": " + now.Why
+		}
+		res.Result, res.Evidence = mission.CheckCantTell, why
+		return res
+	case now.Status == 126 || now.Status == 127:
+		res.Result, res.Evidence = mission.CheckCantTell, fmt.Sprintf("couldn't run it (exit %d): %s", now.Status, tail)
+		return res
+	}
+	took := now.Took().Round(time.Second)
+	how := fmt.Sprintf("passed in %s", took)
+	if !now.Passed() {
+		how = fmt.Sprintf("failed (exit %d) in %s", now.Status, took)
+	}
+	if now.Passed() == (c.Expect == mission.CheckPasses) {
+		res.Result = mission.CheckMet
+	} else {
+		res.Result = mission.CheckUnmet
+	}
+	res.Evidence = how
+	if tail != "" {
+		res.Evidence += ":\n" + tail
+	}
+	return res
 }
 
-// runCheckWithin is runCheck, the command stopped once it's run for
-// timeout.
+// followRun calls line with the last line a run has printed, every
+// checkLineEvery while it changes, until the returned stop is called.
+func followRun(r runs.Run, line func(string)) (stop func()) {
+	if line == nil {
+		return func() {}
+	}
+	done, finished := make(chan struct{}), make(chan struct{})
+	go func() {
+		defer close(finished)
+		t := time.NewTicker(checkLineEvery)
+		defer t.Stop()
+		said := ""
+		for {
+			select {
+			case <-done:
+				return
+			case <-t.C:
+				now := ""
+				lines := strings.Split(r.Tail(5), "\n")
+				for i := len(lines) - 1; i >= 0 && now == ""; i-- {
+					now = cleanLine([]byte(lines[i]))
+				}
+				if now != said {
+					said = now
+					line(now)
+				}
+			}
+		}
+	}()
+	return func() {
+		close(done)
+		<-finished
+	}
+}
+
+// runCheckWithin runs a check's command in dir, as ws's own child, with
+// nothing of it kept but its last words: what a watched Wait step looks
+// with, every few minutes. It's met when it passes or fails as the check
+// says; can't tell when it couldn't be run, or ran past timeout, when
+// it's stopped. hooks follow it as it runs.
 func runCheckWithin(dir string, c mission.Check, env []string, hooks checkHooks, timeout time.Duration) mission.CheckResult {
 	r := mission.CheckResult{Check: c.Text, By: "ws"}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)

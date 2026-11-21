@@ -52,7 +52,8 @@ func entryOf(name string, p *config.RunPage) AppEntry {
 func (w *Workspace) Apps() []AppEntry { return w.AppsAt(AtWorkspace) }
 
 // AppsAt are the apps at p, by name. A repo's recipe that runs in its silo
-// (where = "silo") isn't a worktree's.
+// (where = "silo") isn't a worktree's. Only a service has a page: a task
+// ends by itself, with nothing to frame.
 func (w *Workspace) AppsAt(p AppPlace) []AppEntry {
 	recipes := w.recipes(p.Repo, p.Worktree)
 	var out []AppEntry
@@ -98,9 +99,9 @@ func (w *Workspace) AppAt(p AppPlace, name string) (AppView, error) {
 	rc, ok := w.recipes(p.Repo, p.Worktree)[name]
 	switch {
 	case p.Repo == "" && (!ok || rc.Page == nil):
-		return AppView{}, fmt.Errorf("%w: the workspace has no app %s ([run.%s] with a page, in %s)", ErrNotFound, name, name, config.FileName)
+		return AppView{}, fmt.Errorf("%w: the workspace has no app %s ([run.service.%s] with a page, in %s)", ErrNotFound, name, name, config.FileName)
 	case !ok:
-		return AppView{}, fmt.Errorf("%w: %s has no recipe %s ([run.%s] in its %s)", ErrNotFound, p, name, name, config.RepoFileName)
+		return AppView{}, fmt.Errorf("%w: %s has no recipe %s (%s in its %s)", ErrNotFound, p, name, tablesOf(name), config.RepoFileName)
 	}
 	v := AppView{AppEntry: AppEntry{Name: name, Title: name}, Place: p}
 	if rc.Page != nil {

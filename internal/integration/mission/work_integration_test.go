@@ -127,8 +127,10 @@ func TestWork_ChecksWhenCrewReportDone(t *testing.T) {
 	// step's Lately list.
 	_, lately, _ := strings.Cut(testutil.Run(t, w, nil, "show", "-m", "cache", "-f", "llm", "--full", "s1").Stdout, "\nLately:\n")
 	for _, want := range []string{
-		"step 1, check 1 of 2 started: `test -f cache.go`", "step 1, check 1 of 2: `test -f cache.go` failed (exit 1) in 0s: unmet",
-		"step 1, check 1 of 2: `test -f cache.go` passed in 0s: met",
+		// How long each took isn't said here: it's a run now, and a slow
+		// machine's is a second.
+		"step 1, check 1 of 2 started: `test -f cache.go`", "step 1, check 1 of 2: `test -f cache.go` failed (exit 1) in ", "s: unmet",
+		"step 1, check 1 of 2: `test -f cache.go` passed in ", "s: met",
 		"step 1: the judge (fake-judge:judge-model) started reading check 2", "step 1: the judge (fake-judge:judge-model) finished in ", ": check 2 met",
 	} {
 		if !strings.Contains(lately, want) {

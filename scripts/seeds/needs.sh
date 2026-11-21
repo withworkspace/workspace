@@ -51,20 +51,20 @@ capsule="$dir/repos/demo/$slug"
 cp "$from/serve.py" "$from/index.html" "$capsule/"
 cat >>"$capsule/ws.repo.toml" <<'TOML'
 
-[run.web]
+[run.service.web]
 command = "python3 serve.py {port}"
 ready = "/"
 
-[run.web.needs.api]
+[run.service.web.needs.api]
 run = "records/api"   # records' api recipe: its ground's, as the mission has no capsule there
 env = "API_URL"       # its address, in web's environment
 mount = "/api"        # and below web's own name, through ws's router
 
-[run.admin]
+[run.service.admin]
 command = "python3 serve.py {port}"
 ready = "/"
 
-[run.admin.needs.api]
+[run.service.admin.needs.api]
 run = "records/api"
 env = "API_URL"
 TOML
@@ -73,7 +73,7 @@ ground="$dir/repos/records/.ground"
 cp "$from/api.py" "$ground/"
 cat >>"$ground/ws.repo.toml" <<'TOML'
 
-[run.api]
+[run.service.api]
 command = "python3 api.py {port}"
 ready = "/api/hello"
 TOML

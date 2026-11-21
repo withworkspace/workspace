@@ -379,6 +379,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/runs", s.allRuns)
 	mux.HandleFunc("POST /api/runs/stop", s.endRun)
 	mux.HandleFunc("GET /api/runs/log", s.runLog)
+	mux.HandleFunc("GET /api/runs/past", s.runPast)
 	mux.HandleFunc("GET /api/apps/{name}", s.getApp)
 	mux.HandleFunc("POST /api/apps/{name}/open", s.openApp)
 	mux.HandleFunc("POST /api/apps/{name}/restart", s.restartApp)

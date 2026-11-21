@@ -20,7 +20,7 @@ func TestWorktreeRunsSaysTheFilesPageIsOpen(t *testing.T) {
 	s.App = testOps(s, ops.Options{}, func(_ *config.Config, ws *workspace.Workspace) { ws.RepoNames = []string{"api"} })
 	ground := filepath.Join(s.Root, "repos", "api", ".ground")
 	os.MkdirAll(ground, 0o755)
-	os.WriteFile(filepath.Join(ground, "ws.repo.toml"), []byte("[run.web]\ncommand = \"sleep 300\"\n\n[run.stack]\ncommand = \"sleep 300\"\nwhere = \"silo\"\n"), 0o644)
+	os.WriteFile(filepath.Join(ground, "ws.repo.toml"), []byte("[run.service.web]\ncommand = \"sleep 300\"\n\n[run.service.stack]\ncommand = \"sleep 300\"\nwhere = \"silo\"\n"), 0o644)
 
 	var got WorktreeRunsInfo
 	if st, _ := getJSON(t, s, "/api/repos/api/worktrees/.ground/runs", &got); st != 200 {
