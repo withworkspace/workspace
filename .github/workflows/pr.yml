@@ -53,6 +53,9 @@ jobs:
 
       - run: pnpm --dir web test
 
+      - name: The pictures' flows are ones shotta can run
+        run: pnpm --dir web exec shotta check
+
       - run: go build ./...
 
       - run: go test ./...

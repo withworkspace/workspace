@@ -1,2 +1,4 @@
 node_modules/
 storybook-static/
+# What shotta writes: pictures to look at, not to keep (shotta.config.ts).
+.shotta/
