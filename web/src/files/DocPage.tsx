@@ -21,6 +21,7 @@ import { Chip, chipClass } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 export const docKeys: [string, string][] = [
   ["e", "Edit it, here: as the page tied to it"],
@@ -414,27 +415,27 @@ function DocTalks({ list }: { list: Talk[] }) {
       <GroupHead count={list.length}>
         Conversations about it
       </GroupHead>
-      <ul className="rows">
+      <Rows>
         {list.map((t) => (
-          <li key={t.id} className="row">
-            <Link to={talkHref("", t.id)} className="row-link" title={t.summary}>
-              <Status s={talkStatus(t)} iconOnly size={14} className="row-status" />
-              <span className="row-main">
-                <span className="row-line">
-                  <span className="title">{t.title || t.opening}</span>
-                </span>
+          <Row key={t.id}>
+            <Link to={talkHref("", t.id)} className={rowLinkClass()} title={t.summary}>
+              <Status s={talkStatus(t)} iconOnly size={14} className={rowStatusClass()} />
+              <RowMain>
+                <RowLine>
+                  <RowTitle>{t.title || t.opening}</RowTitle>
+                </RowLine>
                 {(t.quote || t.section) && (
-                  <span className="row-sub dim">
+                  <RowSub className="dim">
                     {t.quote ? `“${clip(t.quote, 90)}”` : ""}
                     {t.section ? `${t.quote ? " in " : ""}§ ${t.section}` : ""}
-                  </span>
+                  </RowSub>
                 )}
-              </span>
+              </RowMain>
               <Time iso={t.updated || t.at} as="age" className="age" />
             </Link>
-          </li>
+          </Row>
         ))}
-      </ul>
+      </Rows>
     </section>
   );
 }
@@ -447,21 +448,21 @@ function CiteList({ title, list }: { title: string; list: Citation[] }) {
       <GroupHead count={list.length}>
         {title}
       </GroupHead>
-      <ul className="rows">
+      <Rows>
         {list.map((c) => (
-          <li key={`${c.repo}:${c.path}`} className="row">
-            <Link to={docTo(`${c.repo}:${c.path}`)} className="row-link">
-              <Icon name="book" size={14} className="row-status dim" />
-              <span className="row-main">
-                <span className="title">{c.title || c.path.split("/").pop()}</span>
-              </span>
+          <Row key={`${c.repo}:${c.path}`}>
+            <Link to={docTo(`${c.repo}:${c.path}`)} className={rowLinkClass()}>
+              <Icon name="book" size={14} className={rowStatusClass("dim")} />
+              <RowMain>
+                <RowTitle>{c.title || c.path.split("/").pop()}</RowTitle>
+              </RowMain>
               <span className="dim mono doc-cite-at" title={c.how === "link" ? "A link in it" : "It names it"}>
                 {c.path.split("/").pop()}:{c.line}
               </span>
             </Link>
-          </li>
+          </Row>
         ))}
-      </ul>
+      </Rows>
     </section>
   );
 }

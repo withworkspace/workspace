@@ -47,6 +47,7 @@ import { FoundArtifacts } from "./Found";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
+import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
 // sandboxed frame. A version is its page and the files it loads beside
@@ -173,11 +174,11 @@ export function ArtifactsPage({ workspace }: { workspace: Workspace }) {
           No artifact {shown === "all" ? "" : `that's ${shownLabels[shown].toLowerCase()} `}came from there.
         </Empty>
       ) : (
-        <ul className="rows artifacts" role="listbox" aria-label="Artifacts">
+        <Rows className="artifacts" role="listbox" aria-label="Artifacts">
           {list.map((a, i) => (
             <ArtifactListRow key={a.id} a={a} selected={i === index} onHover={() => i !== index && setIndex(i)} workspace={workspace} onPromote={() => setPromoting(a)} />
           ))}
-        </ul>
+        </Rows>
       )}
       <FoundArtifacts workspace={workspace} />
       {promoting && <PromoteDialog a={promoting} workspace={workspace} onClose={() => setPromoting(undefined)} />}
@@ -192,12 +193,12 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
   const expiry = a.status === "live" ? expiryOf(a, Date.now()) : undefined;
   const dimmed = a.status === "discarded" || !!expiry?.expired;
   return (
-    <li id={`artifact-${a.id}`} role="option" aria-selected={selected} className={`row artifact-list-row${selected ? " selected" : ""}${dimmed ? " dimmed" : ""}`} onMouseMove={onHover}>
-      <TLink to={artifactHref(a.id)} className="row-link">
-        <Status s={artifactStatus(a)} iconOnly size={16} className="row-status" />
-        <span className="row-main">
-          <span className="row-line">
-            <span className="title">{a.title}</span>
+    <Row selected={selected} id={`artifact-${a.id}`} role="option" aria-selected={selected} className={`artifact-list-row${dimmed ? " dimmed" : ""}`} onMouseMove={onHover}>
+      <TLink to={artifactHref(a.id)} className={rowLinkClass("artifact-list-link")}>
+        <Status s={artifactStatus(a)} iconOnly size={16} className={rowStatusClass()} />
+        <RowMain>
+          <RowLine>
+            <RowTitle className="artifact-list-title">{a.title}</RowTitle>
             <Chip tone="quiet" title={`${a.versions} ${a.versions === 1 ? "version" : "versions"}`}>
               v{v?.n ?? a.versions}
             </Chip>
@@ -207,13 +208,13 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
                 <Icon name="clock" size={11} /> {expiry.words}
               </Chip>
             )}
-          </span>
+          </RowLine>
           {v?.note && (
-            <span className="row-sub">
+            <RowSub>
               <Inline text={v.note} lines={1} />
-            </span>
+            </RowSub>
           )}
-          <span className="row-sub artifact-row-meta">
+          <RowSub className="artifact-row-meta">
             {!!a.from?.length && (
               <span>
                 from{" "}
@@ -230,8 +231,8 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
               {behind(a) > 0 && <span className="dim">, v{a.latest?.n} here</span>}
             </span>
             <span className="mono">{a.id}</span>
-          </span>
-        </span>
+          </RowSub>
+        </RowMain>
         {v && (
           <span className="age artifact-row-when" title={`v${v.n} ${byWords(v)}`}>
             {byWords(v)} · <Time iso={v.at} as="age" />
@@ -243,7 +244,7 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
           <Icon name="check-circle" size={13} /> Promote
         </Button>
       )}
-    </li>
+    </Row>
   );
 }
 

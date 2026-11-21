@@ -8,6 +8,7 @@ import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass } from "../ui/Rows";
 
 // A space's library: a list for each of the workspace's kinds of document
 // whose path is in it, each with its number or date, its title, where it
@@ -63,39 +64,39 @@ export function KindList({
   // The column of numbers or dates, if any of them has one.
   const made = docs.some((d) => d.number || d.date);
   return (
-    <ul className="rows library" role="listbox" aria-label={kind.title}>
+    <Rows className="library" role="listbox" aria-label={kind.title}>
       {docs.map((d, j) => {
         const i = at + j;
         const hit = picking?.hits?.get(d.path);
         return (
-          <li
+          <Row
+            selected={i === index} picked={picking?.picked === d.path}
             key={d.path}
             id={libraryID(d.path)}
             role="option"
             aria-selected={i === index}
-            className={`row${i === index ? " selected" : ""}${picking?.picked === d.path ? " picked" : ""}`}
             onMouseMove={setIndex && (() => i !== index && setIndex(i))}
           >
-            <TLink to={docTo(`${repo}:${d.path}`)} className="row-link" onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
+            <TLink to={docTo(`${repo}:${d.path}`)} className={rowLinkClass()} onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
               {made && <span className="lib-made mono dim">{d.number ?? d.date ?? ""}</span>}
-              <span className="row-main">
-                <span className="row-line">
-                  <span className="title">{d.title}</span>
+              <RowMain>
+                <RowLine>
+                  <RowTitle>{d.title}</RowTitle>
                   {d.state && kind.states && <Chip tone={d.state === kind.states[0] ? "quiet" : "done"}>{d.state}</Chip>}
                   {flights?.has(d.path) && <InFlightChip capsules={flights.get(d.path)!} />}
-                </span>
+                </RowLine>
                 {hit && <HitLine hit={hit} />}
-              </span>
+              </RowMain>
               {d.changed && (
                 <span className="lib-changed dim" title={`Last changed by ${d.changedBy ?? "someone"}`}>
                   {d.changedBy?.split(" ")[0]} · <Time iso={d.changed} as="age" />
                 </span>
               )}
             </TLink>
-          </li>
+          </Row>
         );
       })}
-    </ul>
+    </Rows>
   );
 }
 
@@ -111,10 +112,10 @@ export const pickOn = (picking: Picking, d: SpaceDoc) => (e: React.MouseEvent) =
 // with those found marked.
 export function HitLine({ hit }: { hit: DocHit }) {
   return (
-    <span className="row-line doc-hit-line">
+    <RowLine className="doc-hit-line">
       {hit.heading && <span className="doc-hit-heading">{hit.heading} ›</span>}
       <span className="doc-hit-snippet">{hit.snippet.map((p, j) => (p.mark ? <mark key={j}>{p.text}</mark> : <span key={j}>{p.text}</span>))}</span>
-    </span>
+    </RowLine>
   );
 }
 

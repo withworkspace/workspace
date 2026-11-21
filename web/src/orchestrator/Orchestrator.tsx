@@ -13,6 +13,7 @@ import { Chip } from "../ui/Chip";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary, SummaryRow } from "../ui/Summary";
+import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // The orchestrator's page: whether it's on and how it's set up, the
 // missions it's on now, and its latest runs; each run's own page has what
@@ -82,19 +83,19 @@ export function OrchestratorPage({ workspace }: { workspace: Workspace }) {
             {deciding.length === 0 ? (
               <div className="quiet-line">Nothing right now.</div>
             ) : (
-              <ul className="rows">
+              <Rows>
                 {deciding.map((m) => (
-                  <li key={m.slug} className="row">
-                    <Link to={`/missions/${m.slug}`} className="row-link">
+                  <Row key={m.slug}>
+                    <Link to={`/missions/${m.slug}`} className={rowLinkClass()}>
                       <Status s={headlineStatus(m.headline)} iconOnly />
-                      <span className="title">{m.title}</span>
+                      <RowTitle>{m.title}</RowTitle>
                       <span className="dim">
                         <Inline text={m.headline.text} lines={1} />
                       </span>
                     </Link>
-                  </li>
+                  </Row>
                 ))}
-              </ul>
+              </Rows>
             )}
           </section>
           <section>
@@ -118,28 +119,28 @@ export function OrchestratorPage({ workspace }: { workspace: Workspace }) {
 // RunList is runs in brief, each a link to its page.
 export function RunList({ runs, withMission }: { runs: OrchestratorRun[]; withMission?: boolean }) {
   return (
-    <ul className="rows runs">
+    <Rows className="runs">
       {runs.map((r) => (
-        <li key={`${r.mission}/${r.id}`} className="row">
-          <Link to={`/missions/${r.mission}/orchestrator/${r.id}`} className="row-link">
-            <Status s={outcome(r)} iconOnly size={16} className="row-status" />
-            <span className="row-main">
-              <span className="row-line">
-                {withMission && <span className="title">{r.missionTitle}</span>}
+        <Row key={`${r.mission}/${r.id}`}>
+          <Link to={`/missions/${r.mission}/orchestrator/${r.id}`} className={rowLinkClass("orch-run-link")}>
+            <Status s={outcome(r)} iconOnly size={16} className={rowStatusClass()} />
+            <RowMain>
+              <RowLine>
+                {withMission && <RowTitle>{r.missionTitle}</RowTitle>}
                 <span className="dim">on {lookedAt(r)}</span>
                 <Chip tone={outcome(r).tone}>{outcome(r).words}</Chip>
-              </span>
+              </RowLine>
               {r.said && (
-                <span className="row-sub">
+                <RowSub>
                   <Inline text={r.said} lines={1} />
-                </span>
+                </RowSub>
               )}
-            </span>
+            </RowMain>
             <Time iso={r.started} className="age run-time" />
           </Link>
-        </li>
+        </Row>
       ))}
-    </ul>
+    </Rows>
   );
 }
 

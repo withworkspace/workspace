@@ -42,6 +42,7 @@ import { PagePin } from "../shell/focus";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
+import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -228,24 +229,25 @@ export function TalkList({
           </Empty>
         )
       ) : (
-        <ul className="rows talks" role="listbox" aria-label="Conversations">
+        <Rows className="talks" role="listbox" aria-label="Conversations">
           {talks.map((t, i) => {
             const st = talkStatus(t);
             const on = keys && i === index;
             return (
-              <li
+              <Row
+                selected={on}
                 key={t.id}
                 id={`talk-${t.id}`}
                 role="option"
                 aria-selected={!!on}
-                className={`row talk-row${on ? " selected" : ""}`}
+                className="talk-row"
                 onMouseMove={() => i !== index && setIndex(i)}
               >
-                <TLink to={hrefOf(t.id)} className="row-link">
-                  <Status s={st} iconOnly size={16} className="row-status" />
-                  <span className="row-main">
-                    <span className="row-line">
-                      <span className="title">{name(t)}</span>
+                <TLink to={hrefOf(t.id)} className={rowLinkClass("talk-link")}>
+                  <Status s={st} iconOnly size={16} className={rowStatusClass()} />
+                  <RowMain>
+                    <RowLine>
+                      <RowTitle>{name(t)}</RowTitle>
                       {t.waiting && t.status === "open" && <Chip tone="attention">Your turn</Chip>}
                       {!!t.proposed && <Chip tone="attention">{t.proposed} to confirm</Chip>}
                       {t.pr && (
@@ -266,19 +268,19 @@ export function TalkList({
                           {t.became}
                         </Chip>
                       )}
-                    </span>
+                    </RowLine>
                     {t.summary && (
-                      <span className="row-sub">
+                      <RowSub>
                         <Inline text={t.summary} lines={1} />
-                      </span>
+                      </RowSub>
                     )}
-                  </span>
+                  </RowMain>
                   <Time iso={t.updated || t.at} as="age" className="age" />
                 </TLink>
-              </li>
+              </Row>
             );
           })}
-        </ul>
+        </Rows>
       )}
       {!keys && all.some((t) => t.status !== "open") && onToggleResolved && talks.length > 0 && (
         <Button variant="link" className="more-link" onClick={onToggleResolved}>

@@ -10,6 +10,7 @@ import { pluginIcon } from "./Plugin";
 import { Chip, chipClass } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
+import { Row, RowMain, RowSub, Rows } from "../ui/Rows";
 
 // Plugins, a section of Settings: the workspace's plugins, each with where it's from,
 // where it stands and what it adds; adding one, from the repo it's
@@ -102,11 +103,11 @@ export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
                 Add one above: <code>withworkspace/plugin-plugin-dev</code> writes a plugin of your own, and runs it here as you change it.
               </Empty>
             ) : (
-              <ul className="rows plugin-rows">
+              <Rows className="plugin-rows">
                 {installed.map((p) => (
                   <PluginRow key={p.name} p={p} icon={live?.find((l) => l.name === p.name)?.views[0]?.icon} reload={reload} onFailed={setProblem} />
                 ))}
-              </ul>
+              </Rows>
             )}
           </section>
           {info.wanted.length > 0 && (
@@ -117,11 +118,11 @@ export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
               <p className="quiet-line">
                 In <code>ws.toml</code>, under <code>[plugins]</code>.
               </p>
-              <ul className="rows plugin-rows">
+              <Rows className="plugin-rows">
                 {info.wanted.map((w) => (
                   <WantedRow key={w.name} w={w} reload={reload} onFailed={setProblem} />
                 ))}
-              </ul>
+              </Rows>
             </section>
           )}
           {info.checks === false && fromRepo && (
@@ -233,11 +234,11 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
     }
   };
   return (
-    <li className={`row plugin-row state-${p.state}`}>
+    <Row className={`plugin-row state-${p.state}`}>
       <span className="plugin-row-icon" aria-hidden>
         <Icon name={p.state === "failed" ? "alert" : pluginIcon(icon)} size={16} />
       </span>
-      <div className="row-main plugin-row-main">
+      <RowMain as="div" className="plugin-row-main">
         <div className="plugin-row-top">
           {p.path && p.state !== "failed" ? (
             <Link to={p.path} className="plugin-row-title" title={`Open ${title}`}>
@@ -258,7 +259,7 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
           )}
         </div>
         {p.description && <div className="plugin-row-about">{p.description}</div>}
-        <div className="row-sub plugin-row-sub">
+        <RowSub as="div" className="plugin-row-sub">
           <span>
             {p.from.repo ? (
               <>
@@ -277,7 +278,7 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
             )}
           </span>
           {adds.length > 0 && <span>Adds {adds.join(" · ")}</span>}
-        </div>
+        </RowSub>
         {p.state === "setup" && (
           <div className="plugin-row-note tone-attention">
             It can't be used until {p.missing?.length === 1 ? "this is" : "these are"} set: <span className="mono">{(p.missing ?? []).join(", ")}</span>. In a terminal:{" "}
@@ -301,7 +302,7 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
           </div>
         ))}
         {p.updateError && <div className="plugin-row-note">Couldn't look for a later release: {p.updateError}</div>}
-      </div>
+      </RowMain>
       <span className="plugin-row-actions">
         {update.can && (
           <Button variant={update.out ? "primary" : "ghost"} size="small" onClick={doUpdate} disabled={!!busy} title={update.title}>
@@ -313,7 +314,7 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
         </Button>
       </span>
       {removing && <RemoveDialog p={p} onClose={() => setRemoving(false)} onRemove={doRemove} />}
-    </li>
+    </Row>
   );
 }
 
@@ -366,24 +367,24 @@ function WantedRow({ w, reload, onFailed }: { w: WantedPlugin; reload: Reload; o
       .finally(() => setBusy(false));
   };
   return (
-    <li className="row plugin-row wanted">
+    <Row className="plugin-row wanted">
       <span className="plugin-row-icon" aria-hidden>
         <Icon name="circle-dashed" size={16} />
       </span>
-      <div className="row-main plugin-row-main">
+      <RowMain as="div" className="plugin-row-main">
         <div className="plugin-row-top">
           <span className="plugin-row-title">{w.name}</span>
           {w.version && <span className="mono dim">{w.version}</span>}
         </div>
-        <div className="row-sub plugin-row-sub">
+        <RowSub as="div" className="plugin-row-sub">
           <span className="mono">{w.source}</span>
-        </div>
-      </div>
+        </RowSub>
+      </RowMain>
       <span className="plugin-row-actions">
         <Button size="small" onClick={add} disabled={busy || !w.source} title={`Install it from ${w.source}`}>
           <Icon name={busy ? "spinner" : "plus"} size={11} /> {busy ? "Adding…" : "Add"}
         </Button>
       </span>
-    </li>
+    </Row>
   );
 }

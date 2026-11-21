@@ -13,6 +13,7 @@ import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary, SummaryRow } from "../ui/Summary";
+import { Row, RowMain, Rows, RowSub } from "../ui/Rows";
 
 // The Runs page: everything ws is running for someone in this workspace
 // (ws run): dev servers, previews, compose stacks, whether you, crew or a
@@ -59,11 +60,11 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
                 here, with its link.
               </Empty>
             ) : (
-              <ul className={cx("rows", css.list)}>
+              <Rows className={css.list}>
                 {running.map((r) => (
                   <RunRow key={r.ref} r={r} up={up} workspace={workspace} reload={reload} />
                 ))}
-              </ul>
+              </Rows>
             )}
           </section>
           {info.silos.length > 0 && <SilosPart silos={info.silos} reload={reload} />}
@@ -73,11 +74,11 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
                 Ended
               </GroupHead>
               <p className="quiet-line">Runs that ended by themselves, kept an hour with their output.</p>
-              <ul className={cx("rows", css.list)}>
+              <Rows className={css.list}>
                 {ended.map((r) => (
                   <RunRow key={r.ref} r={r} up={up} workspace={workspace} reload={reload} />
                 ))}
-              </ul>
+              </Rows>
             </section>
           )}
         </>
@@ -197,12 +198,12 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
   };
   const by = r.by && r.by !== "you" ? `crew ${r.by}` : r.by;
   return (
-    <li className={cx("row", css.row, !live && css.ended, open && css.open)}>
+    <Row className={cx(css.row, !live && css.ended, open && css.open)}>
       <div className={css.line}>
         <span className={`work-run-mark${live && r.up ? " up" : ""}`} aria-hidden title={live ? (r.up ? "Up" : "Not up yet") : undefined}>
           {live ? <span className="work-live-dot" /> : <Icon name="circle" size={8} />}
         </span>
-        <span className="row-main">
+        <RowMain>
           <span className={css.top}>
             <span className="mono work-run-name" title={r.ref}>
               {r.name}
@@ -230,7 +231,7 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
             )}
             {live && !r.up && <Chip tone="quiet">not up</Chip>}
           </span>
-          <span className={cx("row-sub", css.sub)}>
+          <RowSub className={css.sub}>
             <span>
               In <To s={placeOf(r, workspace.missions)} />
             </span>
@@ -239,10 +240,10 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
             </span>
             {live && r.owner !== "run" && (r.neededBy?.length ?? 0) > 0 && <span>Needed by {listed(r.neededBy ?? [])}</span>}
             {live && r.link !== r.local && <span className="mono">{bare(r.local)}</span>}
-          </span>
+          </RowSub>
           {live && <NeedsLine r={r} up={up} />}
           {live && r.ends && <span className="work-run-ends">Ends {r.ends}</span>}
-        </span>
+        </RowMain>
         <span className={css.when}>
           <Time iso={r.started} as="age" className="age" />
         </span>
@@ -256,7 +257,7 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
         </span>
       </div>
       {open && <RunMore r={r} by={by} />}
-    </li>
+    </Row>
   );
 }
 

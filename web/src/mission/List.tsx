@@ -13,6 +13,7 @@ import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // The missions, grouped by whose court they're
 // in (their headline's group): what needs you first. Each says where it
@@ -131,53 +132,54 @@ export function MissionList({ missions }: { missions: Mission[] }) {
           <GroupHead count={s.missions.length}>
             {s.title}
           </GroupHead>
-          <ul className="rows missions" role="listbox" aria-label={s.title}>
+          <Rows className="missions" role="listbox" aria-label={s.title}>
             {s.missions.map((m) => {
               const st = headlineStatus(m.headline);
               const live = m.crew.filter((c) => !c.ended);
               const on = order[index]?.slug === m.slug;
               return (
-                <li
+                <Row
+                  selected={on} flash={flashing.has(m.slug)}
                   key={m.slug}
                   id={`mission-${m.slug}`}
                   role="option"
                   aria-selected={on}
-                  className={`row mission-row${on ? " selected" : ""}${flashing.has(m.slug) ? " flash" : ""}`}
+                  className="mission-row"
                   onMouseMove={() => !on && setSelected(m.slug)}
                 >
-                  <TLink to={`/missions/${m.slug}`} className="row-link" onClick={() => (lastSelected = m.slug)}>
-                    <Status s={st} iconOnly size={16} className="row-status" />
-                    <span className="row-main">
-                      <span className="row-line">
-                        <span className="title">{m.title}</span>
+                  <TLink to={`/missions/${m.slug}`} className={rowLinkClass("mission-link")} onClick={() => (lastSelected = m.slug)}>
+                    <Status s={st} iconOnly size={16} className={rowStatusClass()} />
+                    <RowMain>
+                      <RowLine>
+                        <RowTitle>{m.title}</RowTitle>
                         {live.map((c) => (
                           <CrewChip key={c.id} crew={c} />
                         ))}
-                      </span>
+                      </RowLine>
                       {m.headline.text && (
-                        <span className="row-sub" title={plain(m.headline.text)}>
+                        <RowSub className="mission-sub" title={plain(m.headline.text)}>
                           {m.headline.checking ? <CheckingLine c={m.headline.checking} /> : <Inline text={m.headline.text} lines={1} />}
-                        </span>
+                        </RowSub>
                       )}
-                    </span>
-                    <Chip tone={st.tone} className="row-chip">{st.words}</Chip>
+                    </RowMain>
+                    <Chip tone={st.tone} className="mission-chip">{st.words}</Chip>
                     {m.at && onRoute(m.at) && (
-                      <span className="row-meta" title={m.at}>
+                      <RowMeta title={m.at}>
                         {onRoute(m.at)}
-                      </span>
+                      </RowMeta>
                     )}
                     {m.capsules.length > 0 && (
-                      <span className="row-meta" title={m.capsules.map((c) => `${c.repo}/${c.name}`).join("\n")}>
+                      <RowMeta title={m.capsules.map((c) => `${c.repo}/${c.name}`).join("\n")}>
                         <Icon name="box" size={13} />
                         {m.capsules.length === 1 ? `${m.capsules[0].repo}/${m.capsules[0].name}` : `${m.capsules.length} capsules`}
-                      </span>
+                      </RowMeta>
                     )}
                     <Time iso={m.updated || m.created} as={s.past ? "stamp" : "age"} className="age" />
                   </TLink>
-                </li>
+                </Row>
               );
             })}
-          </ul>
+          </Rows>
         </section>
       ))}
     </div>

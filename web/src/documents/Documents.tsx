@@ -19,6 +19,7 @@ import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Documents: where the workspace's writing is read. Local is the pages
 // that aren't in a space (written here, on this machine); each space is a
@@ -217,7 +218,7 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
                   .
                 </p>
               ) : (
-                <ul className="rows pages" role="listbox" aria-label="Local pages">
+                <Rows className="pages" role="listbox" aria-label="Local pages">
                   {local.map((p, j) => {
                     const i = spaces.length + j;
                     return (
@@ -237,7 +238,7 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
                       />
                     );
                   })}
-                </ul>
+                </Rows>
               )}
             </section>
           </div>
@@ -547,11 +548,11 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
                   <GroupHead title="Pages of yours that will live here: only you see them until they're saved or filed" count={drafts.length}>
                     Your drafts
                   </GroupHead>
-                  <ul className="rows pages" role="listbox" aria-label="Your drafts">
+                  <Rows className="pages" role="listbox" aria-label="Your drafts">
                     {drafts.map((p, i) => (
                       <PageRow key={p.page.id} page={p.page} kinds={kinds} selected={i === index} onHover={() => {}} note={<DraftNote p={p} />} />
                     ))}
-                  </ul>
+                  </Rows>
                 </section>
               )}
               {searched && !docsShown.length && <p className="dim documents-empty">Nothing in {space.label} says that.</p>}
@@ -581,34 +582,34 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
                   <GroupHead count={docs.length}>
                     <span className="mono">{folder || "(top)"}</span>
                   </GroupHead>
-                  <ul className="rows space-docs" role="listbox" aria-label={folder || "Top"}>
+                  <Rows className="space-docs" role="listbox" aria-label={folder || "Top"}>
                     {docs.map((d) => {
                       const i = at++;
                       const hit = hits?.get(d.path);
                       return (
-                        <li
+                        <Row
+                          selected={i === index} picked={picking?.picked === d.path}
                           key={d.path}
                           id={docID(d.path)}
                           role="option"
                           aria-selected={i === index}
-                          className={`row${i === index ? " selected" : ""}${picking?.picked === d.path ? " picked" : ""}`}
                           onMouseMove={wide ? undefined : () => i !== index && setIndex(i)}
                         >
-                          <TLink to={docTo(`${repo}:${d.path}`)} className="row-link" onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
-                            <Icon name="file" size={16} className="row-status" />
-                            <span className="row-main">
-                              <span className="row-line">
-                                <span className="title">{d.title}</span>
+                          <TLink to={docTo(`${repo}:${d.path}`)} className={rowLinkClass()} onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
+                            <Icon name="file" size={16} className={rowStatusClass()} />
+                            <RowMain>
+                              <RowLine>
+                                <RowTitle>{d.title}</RowTitle>
                                 {flights.has(d.path) && <InFlightChip capsules={flights.get(d.path)!} />}
-                              </span>
+                              </RowLine>
                               {hit && <HitLine hit={hit} />}
-                            </span>
+                            </RowMain>
                             <span className="dim mono doc-file">{d.path.split("/").pop()}</span>
                           </TLink>
-                        </li>
+                        </Row>
                       );
                     })}
-                  </ul>
+                  </Rows>
                 </section>
               ))}
             </div>

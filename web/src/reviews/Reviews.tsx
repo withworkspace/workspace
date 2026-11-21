@@ -13,6 +13,7 @@ import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Reviews: the open pull requests across every repo in the workspace.
 // Your teammates' come first, grouped by what each asks of you; yours sit
@@ -261,7 +262,7 @@ export function ReviewsPage() {
               <Count>{s.rows.length}</Count>
             </GroupHead>
             {isOpen && (
-              <ul className="rows prs" role="listbox" aria-label={s.title}>
+              <Rows className="prs" role="listbox" aria-label={s.title}>
                 {s.rows.map((r) => (
                   <RowView
                     key={r.key}
@@ -277,7 +278,7 @@ export function ReviewsPage() {
                     passes={list?.passes}
                   />
                 ))}
-              </ul>
+              </Rows>
             )}
           </section>
         );
@@ -300,14 +301,14 @@ function rowTarget(r: ReviewRow): { to?: string; href?: string } {
 
 function Size({ additions, deletions, files }: { additions: number; deletions: number; files?: number }) {
   return (
-    <span className="row-meta pr-size" title={files !== undefined ? `${files} ${files === 1 ? "file" : "files"} changed` : undefined}>
+    <RowMeta className="pr-size" title={files !== undefined ? `${files} ${files === 1 ? "file" : "files"} changed` : undefined}>
       <span className="plus">+{additions}</span> <span className="minus">−{deletions}</span>
       {files !== undefined && (
         <span className="dim">
           {files} {files === 1 ? "file" : "files"}
         </span>
       )}
-    </span>
+    </RowMeta>
   );
 }
 
@@ -349,10 +350,10 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
   const onTopOf = of((p) => p.onTopOf, (s) => s.onTopOf);
   const body = (
     <>
-      <Status s={status} iconOnly size={16} className="row-status" />
-      <span className="row-main">
-        <span className="row-line">
-          <span className="title">{of((p) => p.title, (s) => s.title)}</span>
+      <Status s={status} iconOnly size={16} className={rowStatusClass()} />
+      <RowMain>
+        <RowLine>
+          <RowTitle>{of((p) => p.title, (s) => s.title)}</RowTitle>
           {st && (
             <Chip tone="quiet" title={st.workedOut ? "A stack ws worked out: each of these pull requests is based on the last one's branch" : `Stack ${st.number} on GitHub`}>
               <Icon name="layers" size={11} /> stack of {st.layers.length}
@@ -380,22 +381,22 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
             </Chip>
           )}
           {pr && <RowPasses marks={passes?.[`${pr.repo}#${pr.number}`]} />}
-        </span>
-        <span className="row-sub">
+        </RowLine>
+        <RowSub>
           {mine ? "You" : author} · {repo}
           {pr && <> · #{pr.number}</>} · {of((p) => p.words, (s) => s.words)}
           {st?.merged ? ` · ${st.merged} merged below` : ""}
-        </span>
-      </span>
+        </RowSub>
+      </RowMain>
       <Size additions={of((p) => p.additions, (s) => s.additions)} deletions={of((p) => p.deletions, (s) => s.deletions)} files={pr?.files} />
       <Checks checks={pr?.checks} />
       {updated ? <Time iso={updated} as="age" className="age" /> : <span className="age" />}
     </>
   );
   return (
-    <li id={`pr-row-${row.key}`} role="option" aria-selected={selected} className={`row pr-row${selected ? " selected" : ""}${st ? " stack-row" : ""}`} onMouseMove={onHover}>
+    <Row selected={selected} id={`pr-row-${row.key}`} role="option" aria-selected={selected} className={`pr-row${st ? " stack-row" : ""}`} onMouseMove={onHover}>
       {target.to ? (
-        <Link to={target.to} className="row-link" onClick={() => (lastSelected = row.key)}>
+        <Link to={target.to} className={rowLinkClass("pr-link")} onClick={() => (lastSelected = row.key)}>
           {body}
         </Link>
       ) : (
@@ -403,7 +404,7 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
           href={target.href}
           target="_blank"
           rel="noreferrer"
-          className="row-link"
+          className={rowLinkClass("pr-link")}
           title="Opens on GitHub: it's merged there"
           onClick={(e) => {
             e.preventDefault();
@@ -419,7 +420,7 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
         </Button>
       )}
       {st && !folded && <Layers stack={st} passes={passes} />}
-    </li>
+    </Row>
   );
 }
 

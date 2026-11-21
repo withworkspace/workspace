@@ -14,6 +14,7 @@ import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Team: what the people working in the workspace's repos have been doing,
 // by day, newest first. Each pull request, and each run of one person's
@@ -322,7 +323,7 @@ export function TeamPage() {
 
   // A row, under the id it has where it's shown.
   const row = (id: string, it: TeamItem) => (
-    <Row
+    <TeamRow
       key={id}
       id={id}
       item={it}
@@ -549,7 +550,7 @@ export function TeamPage() {
             <GroupHead count={d.items.length}>
               {dayLabel(`${d.date}T12:00:00`)}
             </GroupHead>
-            <ul className="rows team-rows" role="listbox" aria-label={d.date}>
+            <Rows className="team-rows" role="listbox" aria-label={d.date}>
               {d.items.map((it) => (
                 <Fragment key={it.key}>
                   {it.key === seenFrom && marker && (
@@ -562,7 +563,7 @@ export function TeamPage() {
                   {row(it.key, it)}
                 </Fragment>
               ))}
-            </ul>
+            </Rows>
             {d.bots > 0 && !q && (
               <Button variant="link" className="team-bots" onClick={bots} aria-expanded={showBots}>
                 <Icon name={showBots ? "chevron-down" : "chevron-right"} size={12} /> {d.bots} automated
@@ -577,16 +578,16 @@ export function TeamPage() {
               {people.get(g.key)?.name ?? g.key}
             </GroupHead>
             {g.theirs.length > 0 && (
-              <ul className="rows team-rows" role="listbox" aria-label="Theirs">
+              <Rows className="team-rows" role="listbox" aria-label="Theirs">
                 {g.theirs.map((it) => row(`${g.key}/${it.key}`, it))}
-              </ul>
+              </Rows>
             )}
             {g.reviewing.length > 0 && (
               <>
                 <h3 className="team-sub">Reviewing</h3>
-                <ul className="rows team-rows" role="listbox" aria-label="Reviewing">
+                <Rows className="team-rows" role="listbox" aria-label="Reviewing">
                   {g.reviewing.map((it) => row(`${g.key}/${it.key}`, it))}
-                </ul>
+                </Rows>
               </>
             )}
           </section>
@@ -604,7 +605,7 @@ function KnowChip({ kind }: { kind: KnowKind }) {
   );
 }
 
-interface RowProps {
+interface TeamRowProps {
   id: string;
   item: TeamItem;
   names: string[];
@@ -624,7 +625,7 @@ interface RowProps {
   onWrite: () => void;
 }
 
-function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, who, onHover, onToggle, onOpen, onWrite }: RowProps) {
+function TeamRow({ id, item: it, names, repoOf, selected, open, fresh, dated, know, who, onHover, onToggle, onOpen, onWrite }: TeamRowProps) {
   const status: StatusInfo = it.kind === "commits" ? { icon: "commit", tone: "done", words: "Landed" } : stateInfo[it.state];
   const here = it.kind === "pr" && (it.state === "in-review" || it.state === "in-progress");
   const repo = repoOf(it.repo);
@@ -632,13 +633,13 @@ function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, 
   const several = it.prs && it.prs.length > 1 ? it.prs : undefined;
   const landed = several?.filter((p) => p.state === "landed").length ?? 0;
   return (
-    <li id={`team-row-${id}`} role="option" aria-selected={selected} className={`row team-row${selected ? " selected" : ""}${open ? " open" : ""}${fresh ? " fresh" : ""}`} onMouseMove={onHover}>
-      <div className="row-link" role="button" tabIndex={-1} aria-expanded={open} onClick={onToggle}>
-        <Status s={status} iconOnly size={16} className="row-status" />
-        <span className="row-main">
-          <span className="row-line">
+    <Row selected={selected} id={`team-row-${id}`} role="option" aria-selected={selected} className={`team-row${open ? " open" : ""}${fresh ? " fresh" : ""}`} onMouseMove={onHover}>
+      <div className={rowLinkClass("team-row-link")} role="button" tabIndex={-1} aria-expanded={open} onClick={onToggle}>
+        <Status s={status} iconOnly size={16} className={rowStatusClass()} />
+        <RowMain className="team-row-main">
+          <RowLine>
             {fresh && <span className="team-new" title="Something's happened to it since you last looked" />}
-            <span className="title">{it.name}</span>
+            <RowTitle>{it.name}</RowTitle>
             {several ? (
               <Chip tone="quiet" className="team-repo" title={(it.repos ?? []).map((r) => repoOf(r).label).join(", ")}>
                 {(it.repos ?? []).slice(0, 4).map((r) => (
@@ -662,7 +663,7 @@ function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, 
               {status.words}
               {several && landed > 0 && landed < several.length ? `, ${landed} of ${several.length} landed` : ""}
             </span>
-          </span>
+          </RowLine>
           {it.gist && <Inline text={it.gist} className="team-gist" />}
           {it.narrative === "writing" && !it.gist && (
             <span className="team-gist dim">
@@ -681,17 +682,17 @@ function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, 
               </span>
             </span>
           ))}
-          <span className="row-sub">{it.words}</span>
-        </span>
-        <span className="row-meta team-people" title={names.join(", ")}>
+          <RowSub className="team-row-sub">{it.words}</RowSub>
+        </RowMain>
+        <RowMeta className="team-people" title={names.join(", ")}>
           {names.join(", ")}
-        </span>
+        </RowMeta>
         {it.additions || it.deletions ? (
-          <span className="row-meta pr-size">
+          <RowMeta className="pr-size">
             <span className="plus">+{it.additions ?? 0}</span> <span className="minus">−{it.deletions ?? 0}</span>
-          </span>
+          </RowMeta>
         ) : (
-          <span className="row-meta pr-size" />
+          <RowMeta className="pr-size"  />
         )}
         <Time iso={it.at} as={dated ? "relative" : "clock"} className="age" />
       </div>
@@ -765,7 +766,7 @@ function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, 
           </div>
         </div>
       )}
-    </li>
+    </Row>
   );
 }
 

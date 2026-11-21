@@ -8,6 +8,7 @@ import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
+import { Row, RowLine, RowMain, RowTitle, rowLinkClass, rowStatusClass } from "../ui/Rows";
 
 // Pages: documents you write here, before or beside any mission. A line
 // that starts with >> asks for something (a table of the routes, what
@@ -54,12 +55,12 @@ export function useStartPage() {
 // chips (where it's filed, say).
 export function PageRow({ page: p, kinds, selected, onHover, note }: { page: PageInfo; kinds: DocKind[]; selected: boolean; onHover: () => void; note?: ReactNode }) {
   return (
-    <li id={`page-${p.id}`} role="option" aria-selected={selected} className={`row${selected ? " selected" : ""}`} onMouseMove={onHover}>
-      <TLink to={pageAddress(p)} className="row-link">
-        <Icon name="file" size={16} className="row-status" />
-        <span className="row-main">
-          <span className="row-line">
-            <span className="title">{p.title}</span>
+    <Row selected={selected} id={`page-${p.id}`} role="option" aria-selected={selected} onMouseMove={onHover}>
+      <TLink to={pageAddress(p)} className={rowLinkClass("page-link")}>
+        <Icon name="file" size={16} className={rowStatusClass("page-status")} />
+        <RowMain>
+          <RowLine>
+            <RowTitle>{p.title}</RowTitle>
             {p.kind && <KindChip kind={kinds.find((k) => k.name === p.kind)} name={p.kind} />}
             {p.source && (
               <Chip tone="quiet" className="mono" title={`Tied to ${p.source.ref}: saving it writes there`}>
@@ -78,12 +79,12 @@ export function PageRow({ page: p, kinds, selected, onHover, note }: { page: Pag
               </Chip>
             )}
             {note}
-          </span>
-        </span>
+          </RowLine>
+        </RowMain>
         <span className="dim page-ref">{p.id}</span>
         <Time iso={p.updated} as="age" className="age" />
       </TLink>
-    </li>
+    </Row>
   );
 }
 

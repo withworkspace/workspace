@@ -1741,46 +1741,6 @@ section {
   margin-bottom: var(--space-6);
 }
 
-.rows {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.row {
-  border-radius: var(--radius);
-  transition: background var(--fast) var(--ease);
-}
-
-.row:hover {
-  background: var(--hover);
-}
-
-.keyboarding .row.selected {
-  background: var(--selected);
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-
-.row.flash {
-  animation: flash 1.6s var(--ease);
-}
-
-.row-link,
-.row.static {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 8px;
-  min-height: 36px;
-}
-
-.row .title {
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .spacer {
   flex: 1;
 }
@@ -2365,52 +2325,10 @@ main {
 
 /* The missions list: a status, the title with where it stands under it,
    then a chip, its capsules and how long since it moved. */
-.mission-row .row-link {
+.mission-link {
   align-items: center;
   gap: 12px;
   padding: 8px 10px;
-}
-
-.row-status {
-  align-self: flex-start;
-  margin-top: 2px;
-}
-
-.row-main {
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-  flex: 1;
-}
-
-.row-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.row-sub {
-  color: var(--dim);
-  font-size: var(--text-sm);
-  min-width: 0;
-}
-
-.row-chip {
-  flex: none;
-}
-
-.row-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex: none;
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--text-sm);
-  color: var(--dim);
 }
 
 .crew-chip {
@@ -2423,16 +2341,12 @@ main {
     padding: var(--space-4) var(--space-4) 48px;
   }
 
-  .mission-row .row-link {
+  .mission-link {
     flex-wrap: wrap;
     row-gap: 4px;
   }
 
-  .row-meta {
-    display: none;
-  }
-
-  .mission-row .row-chip {
+  .mission-chip {
     order: 3;
     margin-left: 28px;
   }
@@ -2442,11 +2356,11 @@ main {
     margin-left: auto;
   }
 
-  .row-line .crew-chip {
+  .mission-row .crew-chip {
     display: none;
   }
 
-  .mission-row .row-sub .clamp {
+  .mission-sub .clamp {
     -webkit-line-clamp: 2;
   }
 }
@@ -9581,7 +9495,7 @@ button.accent-swatch:hover {
   padding: 6px 8px;
 }
 
-.runs .row-link {
+.orch-run-link {
   gap: 12px;
 }
 
@@ -10359,7 +10273,7 @@ blockquote.editor-on {
   animation: flash 1.6s var(--ease);
 }
 
-.talks .row-link {
+.talk-link {
   gap: 12px;
   padding: 8px 10px;
 }
@@ -12870,14 +12784,14 @@ details.repo-group > summary::-webkit-details-marker {
   position: relative;
 }
 
-.pr-row .row-link {
+.pr-link {
   gap: 12px;
   padding: 8px 10px;
   color: inherit;
 }
 
 /* Every row leaves room for a stack's fold, so the columns line up. */
-.pr-row .row-link {
+.pr-link {
   padding-right: 40px;
 }
 
@@ -13787,12 +13701,12 @@ a.note-id:hover {
 /* Pages (pages/Pages.tsx, pages/Page.tsx): documents you write, with cells
    an agent fills in. */
 
-.pages .row-link {
+.page-link {
   gap: 12px;
   padding: 8px 10px;
 }
 
-.pages .row-status {
+.page-status {
   color: var(--faint);
 }
 
@@ -14929,7 +14843,7 @@ button.finding-quote:hover {
   margin-bottom: var(--space-4);
 }
 
-.team-row .row-link {
+.team-row-link {
   gap: 12px;
   padding: 8px 10px;
   color: inherit;
@@ -14952,7 +14866,7 @@ button.finding-quote:hover {
   background: none;
 }
 
-.team-row .row-sub {
+.team-row-sub {
   overflow-wrap: anywhere;
 }
 
@@ -15042,7 +14956,7 @@ button.finding-quote:hover {
   font-size: var(--text-sm);
 }
 
-.team-row .row-main {
+.team-row-main {
   gap: 3px;
 }
 
@@ -15598,11 +15512,11 @@ body.nav-pointing .lines code[data-rev] {
   color: var(--red);
 }
 
-.space-flights .row-main {
+.flight-main {
   gap: 3px;
 }
 
-.space-flights .row.static {
+.flight-row {
   align-items: flex-start;
 }
 
@@ -15651,7 +15565,7 @@ body.nav-pointing .lines code[data-rev] {
   border-radius: 2px;
 }
 
-.doc-hits .row-link {
+.hit-link {
   align-items: flex-start;
 }
 
@@ -16772,7 +16686,7 @@ button.accent-button:hover:not(:disabled) {
   white-space: nowrap;
 }
 
-.artifact-list-row.dimmed .title {
+.artifact-list-row.dimmed .artifact-list-title {
   color: var(--dim);
 }
 
@@ -16782,7 +16696,7 @@ button.accent-button:hover:not(:disabled) {
   align-items: center;
 }
 
-.artifact-list-row > .row-link {
+.artifact-list-link {
   flex: 1;
   min-width: 0;
 }
@@ -18436,11 +18350,6 @@ input[type="text"].tweak-text {
 
 .space-tabs button:disabled {
   opacity: 0.4;
-}
-
-.row.picked {
-  background: var(--selected);
-  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 /* Where a search found it, under its title. */

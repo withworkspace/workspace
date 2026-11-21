@@ -8,6 +8,7 @@ import { changedSince, type InSpace, saysNoMore } from "./happening";
 import { Chip, chipClass } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
+import { Row, RowLine, RowMain, RowTitle, Rows, rowStatusClass } from "../ui/Rows";
 
 // What's happening in a space, so it reads as somewhere people are
 // working: how fresh it is, what's in flight in capsules, and what changed
@@ -93,15 +94,15 @@ export function InFlight({ flights, spaceOf }: { flights: InSpace<SpaceFlight>[]
       <GroupHead className="activity-head" title="Capsules with changes to the documents: yours and others', and the pull requests open from them" count={flights.length}>
         In flight
       </GroupHead>
-      <ul className="rows space-flights">
+      <Rows className="space-flights">
         {flights.map((f) => {
           const space = spaceOf?.(f.repo);
           return (
-            <li key={`${f.repo}:${f.capsule}`} className="row static">
-              <Icon name="box" size={16} className="row-status dim" />
-              <span className="row-main">
-                <span className="row-line">
-                  <span className="title mono">{f.capsule}</span>
+            <Row still className="flight-row" key={`${f.repo}:${f.capsule}`}>
+              <Icon name="box" size={16} className={rowStatusClass("dim")} />
+              <RowMain className="flight-main">
+                <RowLine>
+                  <RowTitle className="mono">{f.capsule}</RowTitle>
                   {f.mission && <Chip tone="quiet">{f.mission}</Chip>}
                   {f.pr && (
                     <TLink to={`/reviews/${encodeURIComponent(f.repo)}/${f.pr.number}`} className={chipClass("progress")} title={f.pr.title}>
@@ -109,17 +110,17 @@ export function InFlight({ flights, spaceOf }: { flights: InSpace<SpaceFlight>[]
                     </TLink>
                   )}
                   {space && <SpaceTag space={space} />}
-                </span>
-                <span className="row-line space-changes">
+                </RowLine>
+                <RowLine className="space-changes">
                   {f.docs.map((d) => (
                     <Change key={d.path} d={d} to={d.how === "removed" ? undefined : docAddress(`${f.repo}/${f.capsule}:${d.path}`)} />
                   ))}
-                </span>
-              </span>
-            </li>
+                </RowLine>
+              </RowMain>
+            </Row>
           );
         })}
-      </ul>
+      </Rows>
     </section>
   );
 }
