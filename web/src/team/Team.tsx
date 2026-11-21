@@ -11,6 +11,7 @@ import { dayLabel, Time } from "../ui/time";
 import { useLatest } from "../load";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // Team: what the people working in the workspace's repos have been doing,
 // by day, newest first. Each pull request, and each run of one person's
@@ -360,24 +361,24 @@ export function TeamPage() {
           </span>
         )}
         <div className="segmented" role="group" aria-label="Arranged">
-          <button aria-pressed={!byPeople} onClick={() => arrange(false)} title="By day, newest first (p)">
+          <Button aria-pressed={!byPeople} onClick={() => arrange(false)} title="By day, newest first (p)">
             Days
-          </button>
-          <button aria-pressed={byPeople} onClick={() => arrange(true)} title="By person: what each has open, has landed, and has been reviewing (p)">
+          </Button>
+          <Button aria-pressed={byPeople} onClick={() => arrange(true)} title="By person: what each has open, has landed, and has been reviewing (p)">
             People
-          </button>
+          </Button>
         </div>
         <div className="segmented" role="group" aria-label="Period">
           {periods.map((p) => (
-            <button key={p.since} aria-pressed={period === p.since} onClick={() => pick(p.since)} title={p.title}>
+            <Button key={p.since} aria-pressed={period === p.since} onClick={() => pick(p.since)} title={p.title}>
               {p.label}
-            </button>
+            </Button>
           ))}
         </div>
         {narrative?.on && (
-          <button className={`ghost small team-only-know${onlyKnow ? " on" : ""}`} aria-pressed={onlyKnow} onClick={know} title="Only the changes with something worth knowing (n)">
+          <Button variant="ghost" size="small" className={`team-only-know ${onlyKnow ? " on" : ""}`} aria-pressed={onlyKnow} onClick={know} title="Only the changes with something worth knowing (n)">
             <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
-          </button>
+          </Button>
         )}
         <input
           ref={filter}
@@ -394,9 +395,9 @@ export function TeamPage() {
             }
           }}
         />
-        <button className="ghost small" onClick={refresh} disabled={loading} title="Look at git and GitHub again (r)">
+        <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Look at git and GitHub again (r)">
           <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
-        </button>
+        </Button>
       </div>
     </header>
   );
@@ -420,7 +421,7 @@ export function TeamPage() {
     <div className="page team-page">
       {head}
       {(error || view.error) && (
-        <Callout tone="attention" title="The repos couldn't be looked at just now" actions={<button onClick={refresh}>Try again</button>}>
+        <Callout tone="attention" title="The repos couldn't be looked at just now" actions={<Button onClick={refresh}>Try again</Button>}>
           {humanError(error ?? view.error ?? "")} What's here is as of <Time iso={view.at} as="relative" />.
         </Callout>
       )}
@@ -457,16 +458,16 @@ export function TeamPage() {
             </span>
           )}
           {summary && !summary.at && !summary.writing && summary.can > 0 && (
-            <button className="link" onClick={catchUp} title="An agent writes what the team's been working on in this period, from the changes that have been read (c)">
+            <Button variant="link" onClick={catchUp} title="An agent writes what the team's been working on in this period, from the changes that have been read (c)">
               Catch me up
-            </button>
+            </Button>
           )}
           {narrative?.on && narrative.unwritten > 0 && (
             <span>
               {narrative.unwritten} {narrative.unwritten === 1 ? "change hasn't" : "changes haven't"} been read: those from before yesterday wait until you ask.{" "}
-              <button className="link" onClick={writeAll} title="Have an agent read them (⇧W)">
+              <Button variant="link" onClick={writeAll} title="Have an agent read them (⇧W)">
                 Read them
-              </button>
+              </Button>
             </span>
           )}
         </p>
@@ -474,8 +475,9 @@ export function TeamPage() {
       {total > 0 && summary && (summary.topics?.length || summary.writing || summary.failed) && (
         <section className="team-summary" aria-label="What the team's been working on">
           <h2 className="group">
-            <button
-              className="link group-fold"
+            <Button
+              variant="link"
+              className="group-fold"
               aria-expanded={!foldSummary}
               onClick={() => {
                 foldSummary = !foldSummary;
@@ -483,7 +485,7 @@ export function TeamPage() {
               }}
             >
               <Icon name={foldSummary ? "chevron-right" : "chevron-down"} size={12} /> Being worked on
-            </button>
+            </Button>
             <span className="spacer" />
             {summary.writing ? (
               <span className="team-writing">
@@ -497,9 +499,9 @@ export function TeamPage() {
                     {summary.stale ? ", and things have changed since" : ""}
                   </>
                 )}{" "}
-                <button className="link" onClick={catchUp} title="Have it written again, from the changes as they are now (c)">
+                <Button variant="link" onClick={catchUp} title="Have it written again, from the changes as they are now (c)">
                   Write it again
-                </button>
+                </Button>
               </span>
             )}
           </h2>
@@ -527,9 +529,9 @@ export function TeamPage() {
           <span>
             Only <strong>{topic.name}</strong>: {topic.strands.length} {topic.strands.length === 1 ? "change" : "changes"}.
           </span>
-          <button className="link" onClick={() => setTopic(undefined)}>
+          <Button variant="link" onClick={() => setTopic(undefined)}>
             Show everything <Keys k="esc" />
-          </button>
+          </Button>
         </p>
       )}
       {total > 0 && onlyKnow && !days.length && !q && (
@@ -558,9 +560,9 @@ export function TeamPage() {
               ))}
             </ul>
             {d.bots > 0 && !q && (
-              <button className="link team-bots" onClick={bots} aria-expanded={showBots}>
+              <Button variant="link" className="team-bots" onClick={bots} aria-expanded={showBots}>
                 <Icon name={showBots ? "chevron-down" : "chevron-right"} size={12} /> {d.bots} automated
-              </button>
+              </Button>
             )}
           </section>
         ))}
@@ -747,14 +749,14 @@ function Row({ id, item: it, names, repoOf, selected, open, fresh, dated, know, 
           {it.narrative === "failed" && <p className="team-gist-error">What it does couldn't be written: {humanError(it.gistError ?? "")}</p>}
           <div className="team-actions">
             {!several && (
-              <button className="ghost small" onClick={onOpen} title="Open it (o)">
+              <Button variant="ghost" size="small" onClick={onOpen} title="Open it (o)">
                 <Icon name={here ? "pr" : "external"} size={13} /> {here ? "Review it here" : "Open on GitHub"} <Keys k="o" />
-              </button>
+              </Button>
             )}
             {(it.narrative === "unwritten" || it.narrative === "failed") && (
-              <button className="ghost small" onClick={onWrite} title="An agent reads the change and writes what it does, and what's worth knowing of it (w)">
+              <Button variant="ghost" size="small" onClick={onWrite} title="An agent reads the change and writes what it does, and what's worth knowing of it (w)">
                 <Icon name="sparkle" size={13} /> {it.narrative === "failed" ? "Try again" : it.gist ? "Read it again" : "Read the change"} <Keys k="w" />
-              </button>
+              </Button>
             )}
           </div>
         </div>

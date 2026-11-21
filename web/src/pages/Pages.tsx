@@ -7,6 +7,7 @@ import { Dialog, humanError, Keys, Loading, toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import { Chip } from "../ui/Chip";
+import { Button } from "../ui/Button";
 
 // Pages: documents you write here, before or beside any mission. A line
 // that starts with >> asks for something (a table of the routes, what
@@ -156,12 +157,12 @@ export function NewAsKind({ kinds, busy, onStart, onClose }: { kinds: DocKind[];
         </p>
       )}
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose}>
           Cancel
-        </button>
-        <button className="primary" onClick={go} disabled={busy || !k || !title.trim()}>
+        </Button>
+        <Button variant="primary" onClick={go} disabled={busy || !k || !title.trim()}>
           Start it <Keys k="⏎" />
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

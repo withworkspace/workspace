@@ -3,6 +3,7 @@ import { act, writePR, type CapsuleDetail, type MissionDetail } from "../api";
 import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
 import { Dialog, humanError, toast } from "../ui/kit";
+import { Button } from "../ui/Button";
 
 // A pull request is opened through ws, so the process's rules about it are
 // held where ws is the one acting: it pushes the capsule's branch and opens
@@ -58,9 +59,9 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
   };
   return (
     <>
-      <button className="ghost small" onClick={() => setOpen(true)} title="Push its branch and open a pull request, through ws">
+      <Button variant="ghost" size="small" onClick={() => setOpen(true)} title="Push its branch and open a pull request, through ws">
         <Icon name="pr" size={12} /> Open pull request
-      </button>
+      </Button>
       {open && (
         <Dialog title={`Open a pull request from ${name}`} onClose={close} className="end-mission" wide>
           <p>
@@ -78,9 +79,9 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
                 disabled={writing}
                 onChange={(e) => setTitle(e.target.value)}
               />
-              <button className="ghost small" onClick={write} disabled={writing || busy} title="Have the PR writer write its title and description, from the step it's for and PR.md">
+              <Button variant="ghost" size="small" onClick={write} disabled={writing || busy} title="Have the PR writer write its title and description, from the step it's for and PR.md">
                 <Icon name={writing ? "spinner" : "pencil"} size={12} /> {writing ? "Writing…" : "Write it"}
-              </button>
+              </Button>
             </div>
             <textarea
               value={body}
@@ -97,17 +98,17 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
           </label>
           {error && <div className="banner">{humanError(error)}</div>}
           <div className="dialog-actions">
-            <button className="ghost" onClick={close}>
+            <Button variant="ghost" onClick={close}>
               Cancel
-            </button>
-            <button
-              className="primary"
+            </Button>
+            <Button
+              variant="primary"
               onClick={submit}
               disabled={busy || writing}
               title={title.trim() ? undefined : "The PR writer writes its title and description, and ws opens it once they're written"}
             >
               {title.trim() ? "Open it" : "Write and open it"}
-            </button>
+            </Button>
           </div>
         </Dialog>
       )}

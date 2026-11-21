@@ -33,6 +33,7 @@ import {
 import { type Markdown, parseMarkdown, saveMarkdown } from "./markdown";
 import { schema } from "./schema";
 import { highlighting, nodeViews, placeholder, type Quote, quoteMarks } from "./views";
+import { Button } from "../ui/Button";
 
 // MarkdownEditor edits a markdown document as it reads: headings as
 // headings, lists as lists, a task's box to tick. Markdown typed is
@@ -277,13 +278,13 @@ function LinkBox({ view, edit, close }: { view: EditorView; edit: LinkEdit; clos
         }}
         onBlur={() => close()}
       />
-      <button className="small primary" onMouseDown={(e) => e.preventDefault()} onClick={() => done(href)}>
+      <Button variant="primary" size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => done(href)}>
         {edit.href ? "Change" : "Link"}
-      </button>
+      </Button>
       {edit.href && (
-        <button className="small ghost" onMouseDown={(e) => e.preventDefault()} onClick={() => done("")}>
+        <Button variant="ghost" size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => done("")}>
           Remove
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -299,10 +300,11 @@ function Toolbar({ view, onLink, onSource }: { view?: EditorView; onLink: () => 
     view.focus();
   };
   const b = (key: string, icon: IconName | string, title: string, on: boolean, cmd: () => void) => (
-    <button
+    <Button
+      variant="ghost" square
+      className="doc-tool"
       key={key}
       type="button"
-      className="ghost icon-button"
       aria-pressed={on}
       title={title}
       aria-label={title}
@@ -312,7 +314,7 @@ function Toolbar({ view, onLink, onSource }: { view?: EditorView; onLink: () => 
       onClick={cmd}
     >
       {icon.length <= 2 ? <span className="h">{icon}</span> : <Icon name={icon as IconName} />}
-    </button>
+    </Button>
   );
   const level = state ? headingLevel(state) : 0;
   const parts: ReactNode[] = [
@@ -335,9 +337,9 @@ function Toolbar({ view, onLink, onSource }: { view?: EditorView; onLink: () => 
     <div className="doc-toolbar" role="toolbar" aria-label="Formatting">
       {parts}
       <span className="spacer" />
-      <button type="button" className="ghost small" aria-pressed={false} onClick={onSource} title="Edit the markdown itself">
+      <Button variant="ghost" size="small" type="button" aria-pressed={false} onClick={onSource} title="Edit the markdown itself">
         <Icon name="hash" size={12} /> Markdown
-      </button>
+      </Button>
     </div>
   );
 }
@@ -360,9 +362,9 @@ function Source({ text, setText, onRich, initial, label, placeholder, onChange, 
         <div className="doc-toolbar" role="toolbar" aria-label="Formatting">
           <span className="dim">Markdown, as it's saved</span>
           <span className="spacer" />
-          <button type="button" className="ghost small" aria-pressed onClick={onRich} title="Back to the document as it reads">
+          <Button variant="ghost" size="small" type="button" aria-pressed onClick={onRich} title="Back to the document as it reads">
             <Icon name="hash" size={12} /> Markdown
-          </button>
+          </Button>
         </div>,
         { toolbarIn, toolbarOn },
       )}

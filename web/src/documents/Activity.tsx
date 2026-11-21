@@ -7,6 +7,7 @@ import { TLink } from "../ui/TLink";
 import { changedSince, type InSpace, saysNoMore } from "./happening";
 import { Chip, chipClass } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // What's happening in a space, so it reads as somewhere people are
 // working: how fresh it is, what's in flight in capsules, and what changed
@@ -62,9 +63,9 @@ export function Fresh({ repo, fresh, onMoved }: { repo: string; fresh: SpaceFres
           {now.dirty ? (
             <span> · its ground has changes of its own, so it isn't moved</span>
           ) : (
-            <button className="small" onClick={pull} disabled={pulling}>
+            <Button size="small" onClick={pull} disabled={pulling}>
               {pulling ? "Pulling…" : "Pull"}
-            </button>
+            </Button>
           )}
         </>
       ) : (

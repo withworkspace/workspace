@@ -15,6 +15,7 @@ import { openWhatsNew } from "../shell/WhatsNew";
 import { type Page, PageContext, RowOf, SettingCell, usePage, useSetting, without } from "./Row";
 import { type Block, find, type Found, keyOf, type Mine, minesOf, name, sectionAt, type Section, sectionsOf, wordsOf } from "./sections";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // The Settings page: your settings for this workspace, in sections, the
 // list of them beside the sidebar and the one you're in beside that, to a
@@ -411,9 +412,9 @@ function MineRow({ m }: { m: Mine }) {
         <span className={plain ? undefined : "mono"}>{valueSaid(m.s)}</span>
         <span className="dim">otherwise {without(m.s)}</span>
       </div>
-      <button className="ghost small" onClick={reset}>
+      <Button variant="ghost" size="small" onClick={reset}>
         Reset
-      </button>
+      </Button>
     </div>
   );
 }

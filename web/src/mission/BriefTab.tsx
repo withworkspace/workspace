@@ -14,6 +14,7 @@ import { BriefOutline, type DocId } from "./BriefOutline";
 import { BriefPlanner, PassageTool, pickedIn, PlannerField, quoted } from "./BriefPlanner";
 import { type Doc, type Edit, edits, planAsk, planSteps, reading, type Settled, shown } from "./briefpage";
 import { Chip } from "../ui/Chip";
+import { Button } from "../ui/Button";
 
 // A mission's Brief tab: its brief and its plan as documents, in the
 // mission's own page. The brief is edited as it reads. The plan is read:
@@ -481,9 +482,9 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
         // planner stays beside it, to write the plan from it.
         action={
           centre && !ended ? (
-            <button type="button" className="ghost small" onClick={() => setOwn(true)} title="Write the brief yourself: its planner stays beside it, and can write the plan from it">
+            <Button variant="ghost" size="small" type="button" onClick={() => setOwn(true)} title="Write the brief yourself: its planner stays beside it, and can write the plan from it">
               <Icon name="pencil" size={12} /> Write it yourself
-            </button>
+            </Button>
           ) : undefined
         }
         onSettle={settleOther}
@@ -524,12 +525,12 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
                 {d.request && <blockquote className="brief-request">{d.request}</blockquote>}
                 <p className="dim">Its planner reads round what you asked for, asks what it needs to, and writes the brief and a plan with you. They're here to read, change and confirm.</p>
                 <div className="brief-start-act">
-                  <button type="button" className="primary" onClick={briefIt} disabled={busy} aria-busy={busy}>
+                  <Button variant="primary" type="button" onClick={briefIt} disabled={busy} aria-busy={busy}>
                     <Icon name={busy ? "spinner" : "pencil"} className={busy ? "spin" : undefined} /> Brief it
-                  </button>
-                  <button type="button" className="ghost" onClick={() => setOwn(true)}>
+                  </Button>
+                  <Button variant="ghost" type="button" onClick={() => setOwn(true)}>
                     Write it yourself
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -564,12 +565,12 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
   const nav = toRead > 0 && (
     <span className="brief-nav">
       <Chip tone="attention" className="brief-nav-chip">{at >= 0 ? `${at + 1} of ${toRead}` : `${toRead} ${toRead === 1 ? "change" : "changes"}`}</Chip>
-      <button type="button" className="ghost icon-button" onClick={() => move(-1)} title="The change before (k)" aria-label="The change before">
+      <Button variant="ghost" square type="button" onClick={() => move(-1)} title="The change before (k)" aria-label="The change before">
         <Icon name="chevron-up" size={13} />
-      </button>
-      <button type="button" className="ghost icon-button" onClick={() => move(1)} title="The next change (j)" aria-label="The next change">
+      </Button>
+      <Button variant="ghost" square type="button" onClick={() => move(1)} title="The next change (j)" aria-label="The next change">
         <Icon name="chevron-down" size={13} />
-      </button>
+      </Button>
     </span>
   );
   // What the planner has for you while it's folded away: its turn to be
@@ -596,31 +597,31 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
           {busy && <Icon name="spinner" className="spin" />}
           {nav}
           {changed && (
-            <button type="button" className="ghost" disabled={busy} onClick={() => setAgain((n) => n + 1)} title={p ? "Start over from what's proposed" : "Start over from what's written"}>
+            <Button variant="ghost" type="button" disabled={busy} onClick={() => setAgain((n) => n + 1)} title={p ? "Start over from what's proposed" : "Start over from what's written"}>
               Discard my edits
-            </button>
+            </Button>
           )}
           {p && (
-            <button type="button" className="ghost" disabled={busy} onClick={() => settle(false)} title={briefing ? "Decline this draft: nothing's written" : "Decline it: it stays as it's written"}>
+            <Button variant="ghost" type="button" disabled={busy} onClick={() => settle(false)} title={briefing ? "Decline this draft: nothing's written" : "Decline it: it stays as it's written"}>
               Decline
-            </button>
+            </Button>
           )}
           {primary && (
-            <button
+            <Button
+              variant="primary"
               type="button"
-              className="primary"
               disabled={busy || primary.disabled}
               onClick={primary.run}
               title={briefing && p ? "Nothing's written until you confirm it: your edits, and the changes you decline, go with it. The planner doesn't see them until then" : undefined}
             >
               {primary.label} <Keys k="mod+⏎" />
-            </button>
+            </Button>
           )}
           {wide && !open && hasPlanner && (
-            <button type="button" className="ghost icon-button brief-unfold" onClick={() => fold(true)} title="Show the planner's conversation (p)" aria-label="Show the planner's conversation">
+            <Button variant="ghost" square type="button" className="brief-unfold" onClick={() => fold(true)} title="Show the planner's conversation (p)" aria-label="Show the planner's conversation">
               <Icon name="panel" size={14} />
               {plannerWaits && <span className="brief-unfold-dot" aria-label="It has something for you" />}
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -690,9 +691,9 @@ function NoPlanner({ briefing, busy, briefIt, field, fold }: { briefing: boolean
         <span className="brief-planner-name">Planner</span>
         <span className="spacer" />
         {fold && (
-          <button type="button" className="ghost icon-button" onClick={fold} title="Fold the planner away (p)" aria-label="Fold the planner away">
+          <Button variant="ghost" square type="button" onClick={fold} title="Fold the planner away (p)" aria-label="Fold the planner away">
             <Icon name="panel" size={14} />
-          </button>
+          </Button>
         )}
       </div>
       <div className="brief-planner-body">
@@ -700,9 +701,9 @@ function NoPlanner({ briefing, busy, briefIt, field, fold }: { briefing: boolean
           <>
             <p className="dim">It's been written without a planner. Have it briefed, and a planner reads round it, asks what it needs to, and proposes its brief and a plan here.</p>
             <div>
-              <button type="button" onClick={briefIt} disabled={busy} aria-busy={busy}>
+              <Button type="button" onClick={briefIt} disabled={busy} aria-busy={busy}>
                 <Icon name="pencil" /> Brief it
-              </button>
+              </Button>
             </div>
           </>
         ) : (
@@ -796,35 +797,35 @@ function DocPanel({
         <span className="spacer" />
         {toSettle && (
           <>
-            <button type="button" className="small ghost" onClick={() => all("decline")} title="Leave each as the draft before had it">
+            <Button variant="ghost" size="small" type="button" onClick={() => all("decline")} title="Leave each as the draft before had it">
               Decline the rest
-            </button>
-            <button type="button" className="small" onClick={() => all("accept")} title="Take each as it's proposed">
+            </Button>
+            <Button size="small" type="button" onClick={() => all("accept")} title="Take each as it's proposed">
               Accept the rest
-            </button>
+            </Button>
           </>
         )}
         {guard && !toSettle && !readOnly && !byHand && (
           <>
-            <button
+            <Button
+              variant="ghost" size="small"
               type="button"
-              className="small ghost"
               onClick={() => setByHand(true)}
               title="Change the plan yourself. ws holds a plan to a strict form: one it can't read is refused when you save it, saying every problem"
             >
               <Icon name="pencil" size={12} /> Edit by hand
-            </button>
+            </Button>
             {guard.rewrite && (
-              <button
+              <Button
+                size="small"
                 type="button"
-                className="small"
                 disabled={guard.busy}
                 aria-busy={guard.busy}
                 onClick={guard.rewrite}
                 title={guard.planned ? "Have its planner write the plan again, to fit the brief as it reads now (your edits to the brief go with it)" : "Have its planner write the plan, from the brief as it reads now"}
               >
                 <Icon name={guard.busy ? "spinner" : "sparkle"} size={12} className={guard.busy ? "spin" : undefined} /> {guard.planned ? "Rewrite from the brief" : "Write it from the brief"}
-              </button>
+              </Button>
             )}
           </>
         )}

@@ -2,6 +2,7 @@ import { type Ref, type RefObject, useEffect, useImperativeHandle, useState } fr
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/kit";
 import { type Passage, passageOf } from "./ask";
+import { Button } from "../ui/Button";
 
 // The toolbar over a passage picked out of what's asked about (#123): Ask
 // about this (a), Explain, and Link. A page gives it where text is picked
@@ -112,16 +113,16 @@ export function SelectionTools({
   };
   return (
     <div className="seltool" role="toolbar" aria-label="The passage picked out" style={{ left: at.left, top: at.top }} onMouseDown={(e) => e.preventDefault()}>
-      <button type="button" onClick={done(ask)} title="Ask about this passage (a)">
+      <Button type="button" onClick={done(ask)} title="Ask about this passage (a)">
         <Icon name="sparkle" size={12} /> Ask about this <Keys k="a" />
-      </button>
-      <button type="button" onClick={done(explain)} title="Ask for this passage to be explained">
+      </Button>
+      <Button type="button" onClick={done(explain)} title="Ask for this passage to be explained">
         <Icon name="quote" size={12} /> Explain
-      </button>
+      </Button>
       {link && (
-        <button type="button" onClick={done(link)} title="Copy a link to where it is: its section">
+        <Button type="button" onClick={done(link)} title="Copy a link to where it is: its section">
           <Icon name="link" size={12} /> Link
-        </button>
+        </Button>
       )}
     </div>
   );

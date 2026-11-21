@@ -15,6 +15,7 @@ import { ArtifactState, ArtifactThreads, artifactTitle, CrewBadge, endedWords, i
 import { type Home, type Work as WorkModel, type WorkCapsule, type WorkState, fileGroups, outputHome, outputKey } from "./workRows";
 import { Chip, chipClass } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button, buttonClass } from "../ui/Button";
 
 // The mission's Work tab: what's been made, a row each, and the one that's
 // open beside it. Capsules come first, in the order they need you (in
@@ -301,14 +302,14 @@ function CapsulePane({ d, x, label, select, review, reload, seen }: { d: Mission
           <div className="work-head-actions">
             {open && canOpenPR(d, c) && <OpenPR d={d} c={c} reload={reload} />}
             {c.exists && (
-              <Link to={`/missions/${d.slug}/files/${c.repo}/${c.name}`} className="button-link small-link" title="Browse its files (f)">
+              <Link to={`/missions/${d.slug}/files/${c.repo}/${c.name}`} className={buttonClass({ size: "small" })} title="Browse its files (f)">
                 <Icon name="file" size={12} /> Files <Keys k="f" />
               </Link>
             )}
             {c.exists && (!sum || sum.commitCount > 0) && (
-              <button className="small" onClick={() => review(c)} title="Review its changes (v)">
+              <Button size="small" onClick={() => review(c)} title="Review its changes (v)">
                 <Icon name="eye" /> Review <Keys k="v" />
-              </button>
+              </Button>
             )}
             {open && !settled && <CapsuleEnds slug={d.slug} c={c} reload={reload} />}
           </div>
@@ -436,17 +437,17 @@ function Now({ d, x, review }: { d: MissionDetail; x: WorkCapsule; review: (c: C
         {s.who === "you" ? "is yours." : live ? <>has {live.id} on it, since <Time iso={live.started} as="clock" />.</> : s.who === "ws" ? "is ws's." : s.who === "crew" ? "waits for crew." : `is ${s.whoSays ?? s.who ?? "next"}.`}
       </p>
       {s.who === "you" && s.type === "Review" && x.c.exists && (
-        <button className="primary small" onClick={() => review(x.c)}>
+        <Button variant="primary" size="small" onClick={() => review(x.c)}>
           <Icon name="eye" /> Review the change
-        </button>
+        </Button>
       )}
       {bundle && (
-        <Link to={bundleLink(d.slug, bundle.id)} className="button-link small-link">
+        <Link to={bundleLink(d.slug, bundle.id)} className={buttonClass({ size: "small" })}>
           <Icon name="list-checks" size={12} /> {bundle.id} in Verify
         </Link>
       )}
       {live && (
-        <Link to={`/missions/${d.slug}/crew/${live.id}`} className="button-link small-link">
+        <Link to={`/missions/${d.slug}/crew/${live.id}`} className={buttonClass({ size: "small" })}>
           <Icon name="terminal" size={12} /> Watch {live.id}
         </Link>
       )}
@@ -492,7 +493,7 @@ function CrewLine({ d, k, steps, handoff, select }: { d: MissionDetail; k: CrewD
             )}
           </span>
         </span>
-        <Link to={`/missions/${d.slug}/crew/${k.id}`} className="button-link small-link" title={k.ended ? `Read ${k.id}'s transcript` : `Open ${k.id}'s terminal`}>
+        <Link to={`/missions/${d.slug}/crew/${k.id}`} className={buttonClass({ size: "small" }, "crew-line-link")} title={k.ended ? `Read ${k.id}'s transcript` : `Open ${k.id}'s terminal`}>
           {k.ended ? (
             "Transcript"
           ) : (
@@ -641,9 +642,9 @@ function OutputPane({ d, a, home, label, select, open }: { d: MissionDetail; a: 
             {home.step && ` · step ${home.step.n}, ${home.step.title}`} · <Time iso={a.added} />
           </span>
           <div className="work-head-actions">
-            <button className="small" onClick={() => open(a)} title={reads ? "Open its page, to comment on it or edit it (⏎)" : "Open it (⏎)"}>
+            <Button size="small" onClick={() => open(a)} title={reads ? "Open its page, to comment on it or edit it (⏎)" : "Open it (⏎)"}>
               <Icon name={reads || isArtifact(a) ? "arrow-up-right" : "external"} /> {reads ? "Open its page" : "Open it"} <Keys k="⏎" />
-            </button>
+            </Button>
           </div>
         </div>
         <h2 className="work-title">{handoff ? (desc ?? title) : title}</h2>
@@ -654,10 +655,10 @@ function OutputPane({ d, a, home, label, select, open }: { d: MissionDetail; a: 
             </span>
           )}
           {home.capsule && (
-            <button className="link" onClick={() => select(home.capsule!.key)} title={home.capsule.id}>
+            <Button variant="link" onClick={() => select(home.capsule!.key)} title={home.capsule.id}>
               <Icon name="box" size={12} /> {label(home.capsule.c.repo)}
               {home.capsule.c.name !== d.slug && <span className="mono"> {home.capsule.c.name}</span>}
-            </button>
+            </Button>
           )}
           <ArtifactState state={a.state} />
           {a.threads && <ArtifactThreads t={a.threads} />}

@@ -71,6 +71,7 @@ import { useHoverDelay } from "../ui/hover";
 import { Chip, chipClass } from "../ui/Chip";
 import { type Tone } from "../ui/tone";
 import { Count } from "../ui/Count";
+import { Button, buttonClass } from "../ui/Button";
 
 // A page: a document you write, saved as you go, with cells an agent fills
 // in. A line that starts with >> asks for something; ⏎ makes it a cell and
@@ -693,56 +694,56 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
         <span className="spacer" />
         {planning &&
           (planning.turns.at(-1)?.by === "ws" ? (
-            <button className="link save-state failed" title={planning.turns.at(-1)?.body} onClick={() => startFilling(id, planning.id).then(put, failed)}>
+            <Button variant="link" className="save-state failed" title={planning.turns.at(-1)?.body} onClick={() => startFilling(id, planning.id).then(put, failed)}>
               <Icon name="alert" size={12} /> Couldn't plan it: try again
-            </button>
+            </Button>
           ) : (
             <Chip tone="progress" title={planning.turns[0]?.body}>
               <Icon name="spinner" size={11} className="spin" /> Planning{planning.run?.calls.length ? `: ${doing(planning.run.calls.at(-1)!, workspace.root).toLowerCase()}` : "…"}
             </Chip>
           ))}
-        <button
-          className="ghost small"
+        <Button
+          variant="ghost" size="small"
           disabled={!view || tab !== "page"}
           aria-pressed={adding}
           title="Ask for something to be added to the page, anywhere in it: a section after Constraints on X, and one after Release on roll out. What's coming is put in at once, and written as you go on"
           onClick={() => setAdding((v) => !v)}
         >
           <Icon name="plus" size={12} /> Add
-        </button>
-        <button className="ghost small" disabled={!view || tab !== "page"} title={draftAs.title} onClick={() => plan(draftAs.prompt)}>
+        </Button>
+        <Button variant="ghost" size="small" disabled={!view || tab !== "page"} title={draftAs.title} onClick={() => plan(draftAs.prompt)}>
           <Icon name="pencil" size={12} /> Draft it
-        </button>
-        <button
-          className="ghost small"
+        </Button>
+        <Button
+          variant="ghost" size="small"
           disabled={!view || tab !== "page" || !workspace.org}
           onClick={linkWhatsNamed}
           title={workspace.org ? "Make what the page names links (files at their lines, pull requests, repos), so it links on GitHub and wherever else it's read" : "The workspace has no GitHub org to link to (ws.toml's org)"}
         >
           <Icon name="link" size={12} /> Link names
-        </button>
-        <button className="ghost small" disabled={!view || tab !== "page"} onClick={change} title="Ask for the words the cursor's in (or those selected) to be changed">
+        </Button>
+        <Button variant="ghost" size="small" disabled={!view || tab !== "page"} onClick={change} title="Ask for the words the cursor's in (or those selected) to be changed">
           <Icon name="sparkle" size={12} /> Change <Keys k="mod+⏎" />
-        </button>
+        </Button>
         {wide && (
-          <button className="ghost small" aria-pressed={mapOn} onClick={toggleMap} title="The page's map: its outline, cells, what's open, and the files it rests on">
+          <Button variant="ghost" size="small" aria-pressed={mapOn} onClick={toggleMap} title="The page's map: its outline, cells, what's open, and the files it rests on">
             <Icon name="panel" size={12} /> Map
-          </button>
+          </Button>
         )}
         {tied && !tied.gone && (
-          <button className="ghost small" onClick={() => setSavingToFile(true)} disabled={tied.changed} title={tied.changed ? "The file's changed since: bring in what changed first" : `Save it to ${tied.ref}, as it reads: its cells as text, its questions left out`}>
+          <Button variant="ghost" size="small" onClick={() => setSavingToFile(true)} disabled={tied.changed} title={tied.changed ? "The file's changed since: bring in what changed first" : `Save it to ${tied.ref}, as it reads: its cells as text, its questions left out`}>
             <Icon name="check" size={12} /> Save to repo
-          </button>
+          </Button>
         )}
         {!filed && !tied && (
-          <button className="ghost small" onClick={() => setFiling(true)} title="File it as a document: of one of the workspace's kinds, where the kind says, or in a folder of a repo; landed, or in a capsule lifted for it">
+          <Button variant="ghost" size="small" onClick={() => setFiling(true)} title="File it as a document: of one of the workspace's kinds, where the kind says, or in a folder of a repo; landed, or in a capsule lifted for it">
             <Icon name="file" size={12} /> File as…
-          </button>
+          </Button>
         )}
         <SaveState s={saving} retry={() => save().catch(() => {})} />
-        <button className="ghost small" onClick={remove} title="Remove this page">
+        <Button variant="ghost" size="small" onClick={remove} title="Remove this page">
           Remove
-        </button>
+        </Button>
       </header>
       {filing && (
         <FileAs
@@ -787,9 +788,9 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
           <span>
             <span className="mono">{tied.in?.path ?? tied.ref}</span> has changed since this page took it in. Bring in what changed before saving: it's merged with what you've written here.
           </span>
-          <button className="small" onClick={bringItIn} disabled={bringing}>
+          <Button size="small" onClick={bringItIn} disabled={bringing}>
             {bringing ? "Bringing it in…" : "Bring in what changed"}
-          </button>
+          </Button>
         </div>
       )}
       {tied?.gone && (
@@ -804,7 +805,7 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
             Filed as <Link to={docTo(filed.ref)} className="mono">{filed.ref.replace(":", " · ")}</Link>
             {filed.landed ? ", landed" : ", in a capsule lifted for it"} <Time iso={filed.at} as="relative" />. It's edited there now: what you change here stays in the page.
           </span>
-          <Link to={docTo(filed.ref)} className="button-link small-link">
+          <Link to={docTo(filed.ref)} className={buttonClass({ size: "small" })}>
             Open the document
           </Link>
         </div>
@@ -812,12 +813,12 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
       {saving === "changed" && (
         <div className="banner page-changed" role="alert">
           <span>This page was changed somewhere else (another tab, perhaps) since you opened it here. Nothing more is saved from here until you choose.</span>
-          <button className="small" onClick={reread}>
+          <Button size="small" onClick={reread}>
             Read it again
-          </button>
-          <button className="small" onClick={keepMine}>
+          </Button>
+          <Button size="small" onClick={keepMine}>
             Keep what's here
-          </button>
+          </Button>
         </div>
       )}
       <nav className="tabs page-tabs" role="tablist" aria-label="The page, and passes over it">
@@ -921,11 +922,11 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
         )}
         {view && picked && !changing && !askingAbout && !adding && (
           <div className="select-pop" style={{ top: picked.top, left: picked.left }} role="toolbar" aria-label="The words selected" onMouseDown={(e) => e.preventDefault()}>
-            <button className="small ghost" onClick={askOfSelection} title="Ask about these words: answered beside the page, and nothing's put in it">
+            <Button variant="ghost" size="small" onClick={askOfSelection} title="Ask about these words: answered beside the page, and nothing's put in it">
               <Icon name="question" size={12} /> Ask
-            </button>
-            <button
-              className="small ghost"
+            </Button>
+            <Button
+              variant="ghost" size="small"
               onClick={() => {
                 setPicked(undefined);
                 change();
@@ -933,7 +934,7 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
               title="Ask for these words to be changed: an agent writes them again, and yours are kept to put back"
             >
               <Icon name="sparkle" size={12} /> Change <Keys k="mod+⏎" />
-            </button>
+            </Button>
           </div>
         )}
         {view && askingAbout && (
@@ -1043,9 +1044,9 @@ function ChangeBox({
             }
           }}
         />
-        <button className="primary small" disabled={!text.trim()} onClick={ask}>
+        <Button variant="primary" size="small" disabled={!text.trim()} onClick={ask}>
           Ask <Keys k="⏎" />
-        </button>
+        </Button>
       </div>
       <div className="cell-panel-foot">
         <span className="dim change-hint">{hint}</span>
@@ -1160,7 +1161,7 @@ function PassTab({
           </p>
           {pass.unavailable && <p className="pass-unavailable">It can't be run: {pass.unavailable}.</p>}
         </div>
-        <button className={pass.runs ? "" : "primary"} disabled={busy || !!pass.unavailable} onClick={start}>
+        <Button variant={pass.runs ? undefined : "primary"} disabled={busy || !!pass.unavailable} onClick={start}>
           {busy ? (
             <>
               <Icon name="spinner" size={12} className="spin" /> Running…
@@ -1174,7 +1175,7 @@ function PassTab({
               <Icon name="play" size={12} /> Run
             </>
           )}
-        </button>
+        </Button>
       </header>
       {pass.failed && !pass.running && (
         <div className="banner pass-failed" role="alert">
@@ -1184,9 +1185,9 @@ function PassTab({
       {pass.moved && !pass.running && !!pass.runs && (
         <div className="banner page-changed">
           <span>The page has changed since this ran: what's below is of the page as it was.</span>
-          <button className="small" disabled={busy} onClick={start}>
+          <Button size="small" disabled={busy} onClick={start}>
             Run again
-          </button>
+          </Button>
         </div>
       )}
       {pass.running && (
@@ -1224,17 +1225,17 @@ function PassTab({
                 <FindingBody f={f} lost={lost.has(f.key)} onWords={() => onWords(f)} />
                 <div className="finding-acts">
                   {f.suggest && f.quote && !lost.has(f.key) && (
-                    <button className="small primary" onClick={() => onTake(f)} title="Put these words on the page in place of those quoted">
+                    <Button variant="primary" size="small" onClick={() => onTake(f)} title="Put these words on the page in place of those quoted">
                       Use these words
-                    </button>
+                    </Button>
                   )}
-                  <button className="small" onClick={() => onSettle(f, "done")} title="It's answered, or dealt with">
+                  <Button size="small" onClick={() => onSettle(f, "done")} title="It's answered, or dealt with">
                     <Icon name="check" size={12} /> Done
-                  </button>
+                  </Button>
                   {!asked(f) && (
-                    <button className="small ghost" onClick={() => onFindOut(f)} title="Ask an agent to find this out: it answers here, under the finding, and nothing's put in the page">
+                    <Button variant="ghost" size="small" onClick={() => onFindOut(f)} title="Ask an agent to find this out: it answers here, under the finding, and nothing's put in the page">
                       Find out
-                    </button>
+                    </Button>
                   )}
                   <DismissAs onDismiss={(why) => onSettle(f, "dismissed", why)} />
                   {lost.has(f.key) && <span className="dim">Its words aren't on the page any more.</span>}
@@ -1245,9 +1246,9 @@ function PassTab({
           </ol>
           {put.length > 0 && (
             <>
-              <button className="link more-link" onClick={() => setSettled((v) => !v)} aria-expanded={settled}>
+              <Button variant="link" className="more-link" onClick={() => setSettled((v) => !v)} aria-expanded={settled}>
                 {settled ? "Hide" : "Show"} {put.length} settled
-              </button>
+              </Button>
               {settled && (
                 <ol className="findings settled">
                   {put.map((f) => (
@@ -1255,9 +1256,9 @@ function PassTab({
                       <FindingBody f={f} />
                       <div className="finding-acts">
                         <span className="dim">{f.state === "done" ? "Done" : `Dismissed${f.why ? `: ${dismissWhys.find(([w]) => w === f.why)?.[1].toLowerCase()}` : ""}`}</span>
-                        <button className="small ghost" onClick={() => onSettle(f, "open")}>
+                        <Button variant="ghost" size="small" onClick={() => onSettle(f, "open")}>
                           Open it again
-                        </button>
+                        </Button>
                       </div>
                     </li>
                   ))}
@@ -1313,9 +1314,9 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
               <div className="cell-version">
                 <Icon name="sparkle" size={12} />
                 <span>Written into the page</span>
-                <button className="link" onClick={onCell}>
+                <Button variant="link" onClick={onCell}>
                   Go to it
-                </button>
+                </Button>
               </div>
             </li>
           ),
@@ -1352,13 +1353,13 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
             }}
           />
           {!written && (
-            <button className="small" disabled={busy} onClick={() => onPut(text.trim())} title="Have it written into the page, under the words this is about: what it's answered, or what you say">
+            <Button size="small" disabled={busy} onClick={() => onPut(text.trim())} title="Have it written into the page, under the words this is about: what it's answered, or what you say">
               Put it in the page
-            </button>
+            </Button>
           )}
-          <button className="primary small" disabled={!text.trim() || busy} onClick={ask} title="Ask: it's answered here, and the page stays as it is">
+          <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={ask} title="Ask: it's answered here, and the page stays as it is">
             Ask <Keys k="⏎" />
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -1374,21 +1375,21 @@ function DismissAs({ onDismiss }: { onDismiss: (why: DismissWhy) => void }) {
   const [asking, setAsking] = useState(false);
   if (!asking)
     return (
-      <button className="small ghost" onClick={() => setAsking(true)} title="It isn't one: don't raise it again. You'll say why">
+      <Button variant="ghost" size="small" onClick={() => setAsking(true)} title="It isn't one: don't raise it again. You'll say why">
         Dismiss
-      </button>
+      </Button>
     );
   return (
     <span className="dismiss-as" role="group" aria-label="Dismiss it as">
       <span className="dim">Dismiss as</span>
       {dismissWhys.map(([why, label, title]) => (
-        <button key={why} className="small ghost" title={title} onClick={() => onDismiss(why)}>
+        <Button variant="ghost" size="small" key={why} title={title} onClick={() => onDismiss(why)}>
           {label}
-        </button>
+        </Button>
       ))}
-      <button className="small ghost icon-button" onClick={() => setAsking(false)} aria-label="Don't dismiss it" title="Don't dismiss it">
+      <Button variant="ghost" size="small" square onClick={() => setAsking(false)} aria-label="Don't dismiss it" title="Don't dismiss it">
         <Icon name="x" size={11} />
-      </button>
+      </Button>
     </span>
   );
 }
@@ -1443,28 +1444,28 @@ function NoteCard({
   return (
     <div className="cell-panel note-card" ref={panel} style={at ? { top: at.top, left: at.left } : { visibility: "hidden" }} role="dialog" aria-label={`From ${pass.title}`}>
       <div className="note-from">
-        <button className="link" onClick={onPass} title="Open the pass it's from">
+        <Button variant="link" onClick={onPass} title="Open the pass it's from">
           {pass.title}
-        </button>
+        </Button>
         <span className="spacer" />
-        <button className="ghost icon-button small" onClick={onClose} aria-label="Close" title="Close (esc)">
+        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close (esc)">
           <Icon name="x" size={13} />
-        </button>
+        </Button>
       </div>
       <div className="finding">
         <FindingBody f={finding} />
         <div className="finding-acts">
           {finding.suggest && (
-            <button className="small primary" onClick={onTake}>
+            <Button variant="primary" size="small" onClick={onTake}>
               Use these words
-            </button>
+            </Button>
           )}
-          <button className="small" onClick={() => onSettle("done")}>
+          <Button size="small" onClick={() => onSettle("done")}>
             <Icon name="check" size={12} /> Done
-          </button>
-          <button className="small ghost" onClick={onFindOut}>
+          </Button>
+          <Button variant="ghost" size="small" onClick={onFindOut}>
             Find out
-          </button>
+          </Button>
           <DismissAs onDismiss={(why) => onSettle("dismissed", why)} />
         </div>
       </div>
@@ -1658,9 +1659,9 @@ function PageMap({
 function SaveState({ s, retry }: { s: Saving; retry: () => void }) {
   if (s === "failed") {
     return (
-      <button className="link save-state failed" onClick={retry}>
+      <Button variant="link" className="save-state failed" onClick={retry}>
         <Icon name="alert" size={12} /> Not saved: try again
-      </button>
+      </Button>
     );
   }
   const words = { saved: "Saved", unsaved: "Saving…", saving: "Saving…", changed: "Not saving" }[s];
@@ -1865,9 +1866,9 @@ function CellPanel({
           »
         </span>
         <span className="cell-panel-prompt">{cell.turns[0]?.body}</span>
-        <button className="ghost icon-button small" onClick={onClose} aria-label="Close" title="Close (esc)">
+        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close (esc)">
           <Icon name="x" size={13} />
-        </button>
+        </Button>
       </div>
       {cell.turns.length > 1 || cell.answering || cell.turns[0]?.edited ? (
         <ol className="cell-turns">
@@ -1876,9 +1877,9 @@ function CellPanel({
               <div className="cell-version">
                 <Icon name="pencil" size={11} />
                 <span>Your words, as they were</span>
-                <button className="link" onClick={() => fillCell(view, cell.id, 0, cell.turns[0].edited!)} title="Put your own words back in the cell">
+                <Button variant="link" onClick={() => fillCell(view, cell.id, 0, cell.turns[0].edited!)} title="Put your own words back in the cell">
                   Use this
-                </button>
+                </Button>
               </div>
             </li>
           )}
@@ -1891,9 +1892,9 @@ function CellPanel({
                     <div className="cell-version">
                       <Icon name="pencil" size={11} />
                       <span>With your edits to it</span>
-                      <button className="link" onClick={() => fillCell(view, cell.id, 0, t.edited!)} title="Put the cell back as you'd edited it">
+                      <Button variant="link" onClick={() => fillCell(view, cell.id, 0, t.edited!)} title="Put the cell back as you'd edited it">
                         Use this
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </li>
@@ -1922,9 +1923,9 @@ function CellPanel({
                   <span>{all.length > 1 ? `Version ${k}` : "Written"}</span>
                   <Time iso={t.at} as="clock" className="dim" />
                   {t !== latest && (
-                    <button className="link" onClick={() => fillCell(view, cell.id, k, t.body)} title="Put this version back in the cell">
+                    <Button variant="link" onClick={() => fillCell(view, cell.id, k, t.body)} title="Put this version back in the cell">
                       Use this
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <Calls calls={t.calls ?? []} root={root} />
@@ -1976,17 +1977,17 @@ function CellPanel({
       {stale && !cell.answering && !unstarted && (
         <div className="cell-stale">
           <span>{stale} since this was written.</span>
-          <button className="small" disabled={busy} onClick={again}>
+          <Button size="small" disabled={busy} onClick={again}>
             Write it again
-          </button>
+          </Button>
         </div>
       )}
       {unstarted && (
         <div className="cell-unstarted">
           <span className="dim">{last?.by === "ws" ? (askingNow(cell) ? "It couldn't be answered." : "It couldn't be filled.") : "Its agent hasn't started."}</span>
-          <button className="small" disabled={busy} onClick={() => run(onRetry)}>
+          <Button size="small" disabled={busy} onClick={() => run(onRetry)}>
             Try again
-          </button>
+          </Button>
         </div>
       )}
       <div className="composer cell-composer">
@@ -2013,28 +2014,28 @@ function CellPanel({
         />
         {question ? (
           <>
-            <button className="small" disabled={busy} onClick={() => send(false)} title="Have it written into the page, here: what it's answered, or what you say (⌘⏎)">
+            <Button size="small" disabled={busy} onClick={() => send(false)} title="Have it written into the page, here: what it's answered, or what you say (⌘⏎)">
               Put it in the page
-            </button>
-            <button className="primary small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask: it's answered here, and the page stays as it is">
+            </Button>
+            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask: it's answered here, and the page stays as it is">
               Ask <Keys k="⏎" />
-            </button>
+            </Button>
           </>
         ) : (
           <>
-            <button className="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask about it: it's answered here, and the cell stays as it is (⌘⏎)">
+            <Button size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask about it: it's answered here, and the cell stays as it is (⌘⏎)">
               Just ask
-            </button>
-            <button className="primary small" disabled={!text.trim() || busy} onClick={() => send(false)} title="Have the cell written again, this way">
+            </Button>
+            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(false)} title="Have the cell written again, this way">
               Change <Keys k="⏎" />
-            </button>
+            </Button>
           </>
         )}
       </div>
       <div className="cell-panel-foot">
         {!question && (
-          <button
-            className="link"
+          <Button
+            variant="link"
             title="Leave what it holds in the page as your own words: no longer a cell"
             onClick={() => {
               keepCell(view, cell.id);
@@ -2042,10 +2043,10 @@ function CellPanel({
             }}
           >
             Keep as text
-          </button>
+          </Button>
         )}
-        <button
-          className="link"
+        <Button
+          variant="link"
           title={question ? "Take the question out of the page" : "Take the cell out of the page, with what it holds"}
           onClick={() => {
             dropCell(view, cell.id);
@@ -2053,7 +2054,7 @@ function CellPanel({
           }}
         >
           Remove
-        </button>
+        </Button>
         <span className="spacer" />
         <span className="dim">{cell.id}</span>
       </div>

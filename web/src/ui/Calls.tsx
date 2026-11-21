@@ -5,6 +5,7 @@ import type { CommandLabel } from "../wire.gen";
 import { stepLabel } from "./commandLabel";
 import { Icon, type IconName } from "./Icon";
 import { Chip } from "./Chip";
+import { Button } from "./Button";
 
 // Calls are the steps an agent took on the way to a reply: each tool it
 // used, what it gave it, and (opened) what came back. Folded under "n
@@ -70,9 +71,9 @@ export function Calls({ calls, open, tail, ...opts }: { calls: Call[]; open?: bo
     return (
       <div className="calls-open">
         {from > 0 && (
-          <button type="button" className="link calls-earlier" onClick={() => setAll(true)}>
+          <Button variant="link" type="button" className="calls-earlier" onClick={() => setAll(true)}>
             <Icon name="chevron-right" size={12} /> {from} earlier steps
-          </button>
+          </Button>
         )}
         {list}
       </div>
@@ -180,9 +181,9 @@ export function EditDiff({ edit, max = 14 }: { edit: NonNullable<Call["edit"]>; 
         </div>
       ))}
       {!all && total > oldShown.length + newShown.length && (
-        <button className="link edit-more" onClick={() => setAll(true)}>
+        <Button variant="link" className="edit-more" onClick={() => setAll(true)}>
           {total - oldShown.length - newShown.length} more lines
-        </button>
+        </Button>
       )}
     </div>
   );

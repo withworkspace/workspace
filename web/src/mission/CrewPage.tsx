@@ -10,6 +10,7 @@ import type { TermState } from "./CrewTerminal";
 import { AgentView } from "./AgentView";
 import { CrewBadge } from "./parts";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 const CrewTerminal = lazy(() => import("./CrewTerminal"));
 
@@ -96,9 +97,9 @@ export function CrewPage({ workspace }: { workspace: Workspace }) {
           </div>
         </div>
         {state === "live" && (
-          <button onClick={stop}>
+          <Button onClick={stop}>
             <Icon name="stop" size={12} /> Stop
-          </button>
+          </Button>
         )}
       </header>
       {!structured && <div className="tabs" role="tablist" aria-label="Crew">
@@ -119,9 +120,9 @@ export function CrewPage({ workspace }: { workspace: Workspace }) {
             icon="terminal"
             title={`${id} isn't running`}
             action={
-              <button onClick={() => setView("conversation")}>
+              <Button onClick={() => setView("conversation")}>
                 <Icon name="message" /> Read its conversation
-              </button>
+              </Button>
             }
           >
             There's no terminal to show: crew run in the workspace's daemon, and {id} isn't running there now.

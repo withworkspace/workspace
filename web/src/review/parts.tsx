@@ -3,6 +3,7 @@ import { noteKinds, type Review, type Verdict } from "../api";
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
 import { Dialog, humanError, Keys, useAutosize } from "../ui/kit";
+import { Button } from "../ui/Button";
 
 // What a capsule's review and a document's share: how verdicts and comment
 // states read, suggestions as written in a comment, replying, and
@@ -56,12 +57,12 @@ export function ReplyBox({ onSend, onCancel }: { onSend: (body: string) => void;
       />
       <div className="note-actions">
         <span className="spacer-left" />
-        <button className="ghost small" onClick={onCancel} title="Cancel (esc)">
+        <Button variant="ghost" size="small" onClick={onCancel} title="Cancel (esc)">
           Cancel
-        </button>
-        <button className="primary small" disabled={!text.trim()} onClick={() => onSend(text)} title="Send it (⌘⏎)">
+        </Button>
+        <Button variant="primary" size="small" disabled={!text.trim()} onClick={() => onSend(text)} title="Send it (⌘⏎)">
           Reply
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -137,17 +138,17 @@ export function SubmitDialog({
         {error && <div className="banner">{humanError(error)}</div>}
         <div className="note-actions">
           {draft && (
-            <button className="ghost" onClick={onDiscard}>
+            <Button variant="ghost" onClick={onDiscard}>
               Discard the draft
-            </button>
+            </Button>
           )}
           <span className="spacer-left" />
-          <button className="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose}>
             Cancel
-          </button>
-          <button className="primary" onClick={submit} disabled={!verdict} title={verdict ? "Submit (⌘⏎)" : "Pick a verdict first"}>
+          </Button>
+          <Button variant="primary" onClick={submit} disabled={!verdict} title={verdict ? "Submit (⌘⏎)" : "Pick a verdict first"}>
             Submit <Keys k="mod+⏎" />
-          </button>
+          </Button>
         </div>
     </Dialog>
   );

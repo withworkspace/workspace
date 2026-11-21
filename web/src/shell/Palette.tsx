@@ -50,6 +50,7 @@ import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recen
 import { PinButton, pinNameOf, useFocus } from "./focus";
 import { actsFor, type Subject, subjectOf, type WsDoing } from "./acts";
 import { Chip } from "../ui/Chip";
+import { Button } from "../ui/Button";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
 // has, by what you remember of it. What the page holds (missions, pages,
@@ -787,9 +788,9 @@ export function Palette({
                 <div className="find-acts" aria-label="Do to it">
                   {!mode && <PinButton r={onThing} />}
                   {actsOn(namedOf(onThing, known), onThing.id).map((a) => (
-                    <button key={`${a.ws ?? "its"}:${a.id}`} type="button" className="ghost small" disabled={working} onMouseDown={(e) => e.preventDefault()} onClick={() => doTo(onThing, a)}>
+                    <Button variant="ghost" size="small" key={`${a.ws ?? "its"}:${a.id}`} type="button" disabled={working} onMouseDown={(e) => e.preventDefault()} onClick={() => doTo(onThing, a)}>
                       <Icon name={actIcon(a.icon)} size={12} /> {a.title}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </RefsScope>

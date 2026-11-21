@@ -9,6 +9,7 @@ import { crewStatus, exitWords, Status } from "../ui/status";
 import { dayKey, dayLabel, duration, stamp, Time, useNow } from "../ui/time";
 import { Chip, chipClass } from "../ui/Chip";
 import { type Tone } from "../ui/tone";
+import { Button } from "../ui/Button";
 
 // The pieces a mission's page draws with: who did what (events), stages,
 // decisions, documents and capsules.
@@ -370,9 +371,9 @@ export function Decisions({ list, limit }: { list: Decision[]; limit?: number })
       {(more > 0 || (old.length > 0 && (all || !limit))) && (
         <div className="decisions-more">
           {more > 0 && (
-            <button className="ghost small" onClick={() => setAll(true)}>
+            <Button variant="ghost" size="small" onClick={() => setAll(true)}>
               Show {more} more
-            </button>
+            </Button>
           )}
           {old.length > 0 && (all || !limit) && (
             <details className="old-decisions">

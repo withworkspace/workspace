@@ -10,6 +10,7 @@ import { useLatest } from "../load";
 import { RowPasses } from "./Passes";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // Reviews: the open pull requests across every repo in the workspace.
 // Your teammates' come first, grouped by what each asks of you; yours sit
@@ -186,9 +187,9 @@ export function ReviewsPage() {
             }
           }}
         />
-        <button className="ghost small" onClick={refresh} disabled={loading} title="Ask GitHub again (r)">
+        <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Ask GitHub again (r)">
           <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
-        </button>
+        </Button>
       </div>
     </header>
   );
@@ -213,7 +214,7 @@ export function ReviewsPage() {
     <div className="page reviews-page">
       {head}
       {(error || list.error) && (
-        <Callout tone="attention" title="GitHub couldn't be asked just now" actions={<button onClick={refresh}>Try again</button>}>
+        <Callout tone="attention" title="GitHub couldn't be asked just now" actions={<Button onClick={refresh}>Try again</Button>}>
           {humanError(error ?? list.error ?? "")} What's here is as of <Time iso={list.at} as="relative" />.
         </Callout>
       )}
@@ -239,8 +240,9 @@ export function ReviewsPage() {
             {firstYours && <div className="reviews-divide">Yours</div>}
             <h2 className="group">
               {s.folded ? (
-                <button
-                  className="link group-fold"
+                <Button
+                  variant="link"
+                  className="group-fold"
                   aria-expanded={isOpen}
                   onClick={() => {
                     if (!openSections.delete(s.key)) openSections.add(s.key);
@@ -248,7 +250,7 @@ export function ReviewsPage() {
                   }}
                 >
                   <Icon name={isOpen ? "chevron-down" : "chevron-right"} size={12} /> {s.title}
-                </button>
+                </Button>
               ) : (
                 s.title
               )}{" "}
@@ -408,9 +410,9 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
         </a>
       )}
       {st && (
-        <button className="ghost icon-button small stack-fold" onClick={onFold} title={`${folded ? "Show" : "Hide"} its layers (l)`} aria-expanded={!folded} aria-label="Its layers">
+        <Button variant="ghost" size="small" square className="stack-fold" onClick={onFold} title={`${folded ? "Show" : "Hide"} its layers (l)`} aria-expanded={!folded} aria-label="Its layers">
           <Icon name={folded ? "chevron-right" : "chevron-down"} size={13} />
-        </button>
+        </Button>
       )}
       {st && !folded && <Layers stack={st} passes={passes} />}
     </li>

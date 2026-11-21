@@ -3,6 +3,7 @@ import { type DocKind, type DocSaved, FileChanged, filePage, type PageFiling, ty
 import { Icon } from "../ui/Icon";
 import { Callout, Dialog, humanError, Keys } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
+import { Button } from "../ui/Button";
 
 // FileAs files a page as a document of one of the workspace's kinds: a new file where the kind
 // says, named from its title, in a commit of yours on its repo's default branch: landed, in a repo
@@ -153,12 +154,12 @@ export function FileAs({
       <p className="dim file-as-what">What's filed is the page as it reads: what its cells hold is kept as text, its questions are left out. The page stays, and says where it was filed.</p>
       {error && <div className="banner">{error}</div>}
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose} disabled={busy}>
+        <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
-        </button>
-        <button className="primary" onClick={file} disabled={!ready}>
+        </Button>
+        <Button variant="primary" onClick={file} disabled={!ready}>
           {busy ? (lands ? "Landing…" : "Filing…") : lands ? `File, and land on ${plan?.branch}` : "File it"} <Keys k="mod+⏎" />
-        </button>
+        </Button>
       </div>
     </Dialog>
   );
@@ -243,12 +244,12 @@ export function SaveToFile({
       <p className="dim file-as-what">What's saved is the page as it reads: what its cells hold is kept as text, its questions are left out. The page keeps them.</p>
       {error && <div className="banner">{error}</div>}
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose} disabled={busy}>
+        <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
-        </button>
-        <button className="primary" onClick={save} disabled={busy || !message.trim()}>
+        </Button>
+        <Button variant="primary" onClick={save} disabled={busy || !message.trim()}>
           {busy ? (lands ? "Landing…" : "Saving…") : lands ? `Save, and land on ${saves?.branch}` : "Save"} <Keys k="mod+⏎" />
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

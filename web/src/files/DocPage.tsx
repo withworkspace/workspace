@@ -19,6 +19,7 @@ import { type Here, type Shelf, siblings, trail } from "./shelves";
 import { PagePin } from "../shell/focus";
 import { Chip, chipClass } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button, buttonClass } from "../ui/Button";
 
 export const docKeys: [string, string][] = [
   ["e", "Edit it, here: as the page tied to it"],
@@ -296,17 +297,17 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
             <span className="doc-actions">
               {where.worktree === GROUND && <PagePin r={{ kind: "file", repo: where.repo, worktree: GROUND, path: where.path }} compact />}
               {folded && sections.length > 1 && (
-                <button ref={contentsButton} className="small" data-contents-toggle aria-expanded={menu} onClick={toggleMenu} title="Its contents (t)">
+                <Button size="small" ref={contentsButton} data-contents-toggle aria-expanded={menu} onClick={toggleMenu} title="Its contents (t)">
                   <Icon name="list" size={12} /> Contents <Keys k="t" />
-                </button>
+                </Button>
               )}
-              <button className="small accent-button" onMouseDown={(e) => e.preventDefault()} onClick={askAbout} title="Ask about it, or about what's selected (a)">
+              <Button size="small" className="accent-button" onMouseDown={(e) => e.preventDefault()} onClick={askAbout} title="Ask about it, or about what's selected (a)">
                 <Icon name="sparkle" size={12} /> Ask <Keys k="a" />
-              </button>
-              <button className="small" onClick={edit} disabled={!canEdit} title={canEdit ? "Edit it as a page: cells, questions and passes, saved back to the repo when you say (e)" : `Can't be edited here: ${a.uneditable}`}>
+              </Button>
+              <Button size="small" onClick={edit} disabled={!canEdit} title={canEdit ? "Edit it as a page: cells, questions and passes, saved back to the repo when you say (e)" : `Can't be edited here: ${a.uneditable}`}>
                 <Icon name="pencil" size={12} /> Edit <Keys k="e" />
-              </button>
-              <Link to={files} className="button-link small-link" title="Open it in Files (o)">
+              </Button>
+              <Link to={files} className={buttonClass({ size: "small" })} title="Open it in Files (o)">
                 <Icon name="file" size={12} /> Files <Keys k="o" />
               </Link>
             </span>
@@ -320,9 +321,9 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
             icon="pencil"
             title="You've an unsaved edit of this, from before it was edited as a page"
             actions={
-              <button className="small ghost" onClick={() => dropDraft("", a.ref).then(() => setDraft(null))}>
+              <Button variant="ghost" size="small" onClick={() => dropDraft("", a.ref).then(() => setDraft(null))}>
                 Discard it
-              </button>
+              </Button>
             }
           >
             Kept <Time iso={draft.at} as="relative" />. It's in <span className="mono">.ws/docs/drafts</span>: copy what you need into its page.

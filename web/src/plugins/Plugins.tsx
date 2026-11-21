@@ -9,6 +9,7 @@ import { addsOf, changedSaid, fromOf, outCount, repoLink, stateOf, updateOf, wan
 import { pluginIcon } from "./Plugin";
 import { Chip, chipClass } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // Plugins, a section of Settings: the workspace's plugins, each with where it's from,
 // where it stands and what it adds; adding one, from the repo it's
@@ -77,13 +78,13 @@ export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
                 "Not looked for updates yet"
               )}
             </span>
-            <button className="small" onClick={look} disabled={looking} title="Ask each plugin's repo for its latest release now">
+            <Button size="small" onClick={look} disabled={looking} title="Ask each plugin's repo for its latest release now">
               <Icon name={looking ? "spinner" : "rotate"} size={12} /> {looking ? "Looking…" : "Check for updates"}
-            </button>
+            </Button>
         </div>
       )}
       {problem && (
-        <Callout tone="danger" title={problem.what} actions={<button onClick={() => setProblem(undefined)}>Dismiss</button>}>
+        <Callout tone="danger" title={problem.what} actions={<Button onClick={() => setProblem(undefined)}>Dismiss</Button>}>
           {problem.error}
           {problem.output && <pre className="plugins-output">{problem.output}</pre>}
         </Callout>
@@ -179,9 +180,9 @@ function AddPlugin({ reload, onFailed }: { reload: Reload; onFailed: (f?: Failed
           aria-describedby="plugins-add-about"
         />
       </label>
-      <button type="submit" className="primary" disabled={!typed || busy}>
+      <Button variant="primary" type="submit" disabled={!typed || busy}>
         <Icon name={busy ? "spinner" : "plus"} size={12} /> {busy ? "Adding…" : "Add"}
-      </button>
+      </Button>
       <p id="plugins-add-about" className="plugins-add-about">
         A repo on GitHub is installed from its latest release (<code>owner/repo@v1.2.0</code> for another), checked against the release's checksums; one with no build for
         this machine is built here from its source. A folder is copied in, by its whole path or from <code>~</code>. A plugin is a program that runs as you: add one as
@@ -303,13 +304,13 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
       </div>
       <span className="plugin-row-actions">
         {update.can && (
-          <button className={update.out ? "small primary" : "ghost small"} onClick={doUpdate} disabled={!!busy} title={update.title}>
+          <Button variant={update.out ? "primary" : "ghost"} size="small" onClick={doUpdate} disabled={!!busy} title={update.title}>
             <Icon name={busy === "update" ? "spinner" : update.out ? "arrow-up" : "rotate"} size={11} /> {busy === "update" ? "Updating…" : update.label}
-          </button>
+          </Button>
         )}
-        <button className="ghost small" onClick={() => setRemoving(true)} disabled={!!busy} title="Stop it, and take it out of the workspace">
+        <Button variant="ghost" size="small" onClick={() => setRemoving(true)} disabled={!!busy} title="Stop it, and take it out of the workspace">
           <Icon name={busy === "remove" ? "spinner" : "x"} size={11} /> {busy === "remove" ? "Removing…" : "Remove"}
-        </button>
+        </Button>
       </span>
       {removing && <RemoveDialog p={p} onClose={() => setRemoving(false)} onRemove={doRemove} />}
     </li>
@@ -335,12 +336,12 @@ function RemoveDialog({ p, onClose, onRemove }: { p: InstalledPlugin; onClose: (
         </span>
       </label>
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose}>
           Cancel
-        </button>
-        <button className="danger" onClick={() => onRemove(data)} autoFocus>
+        </Button>
+        <Button variant="danger" onClick={() => onRemove(data)} autoFocus>
           {data ? "Remove, and what it kept" : "Remove"}
-        </button>
+        </Button>
       </div>
     </Dialog>
   );
@@ -379,9 +380,9 @@ function WantedRow({ w, reload, onFailed }: { w: WantedPlugin; reload: Reload; o
         </div>
       </div>
       <span className="plugin-row-actions">
-        <button className="small" onClick={add} disabled={busy || !w.source} title={`Install it from ${w.source}`}>
+        <Button size="small" onClick={add} disabled={busy || !w.source} title={`Install it from ${w.source}`}>
           <Icon name={busy ? "spinner" : "plus"} size={11} /> {busy ? "Adding…" : "Add"}
-        </button>
+        </Button>
       </span>
     </li>
   );

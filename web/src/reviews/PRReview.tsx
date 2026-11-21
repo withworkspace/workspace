@@ -43,6 +43,7 @@ import { Checks, prHref, prStatus } from "./Reviews";
 import { useLatest } from "../load";
 import { PagePin } from "../shell/focus";
 import { Chip, chipClass } from "../ui/Chip";
+import { Button, buttonClass } from "../ui/Button";
 
 // A pull request's review: the page a capsule's review is, on commits
 // fetched into the repo's clone. A stack opens as one review, its layers
@@ -290,7 +291,7 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
           icon="pr"
           title={`${ref} can't be shown`}
           action={
-            <Link to="/reviews" className="button-link">
+            <Link to="/reviews" className={buttonClass()}>
               Back to Reviews
             </Link>
           }
@@ -353,15 +354,16 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
     actions: (
       <>
         <PagePin r={{ kind: "pr", repo: pr.repo, number: pr.number }} />
-        <button
-          className="ghost small desktop-only"
+        <Button
+          variant="ghost" size="small"
+          className="desktop-only"
           onClick={dock}
           disabled={docking || pr.fork}
           title={pr.fork ? "It's from a fork: ws dock looks for its branch on origin" : d.docked?.by === "you" ? `It's here: ${pr.repo}/${d.docked.capsule}` : "Dock it here, as ws dock does, to run it yourself (⇧O)"}
         >
           <Icon name="box" size={13} /> {docking ? "Docking…" : d.docked?.by === "you" ? d.docked.capsule : "Open here"}
-        </button>
-        <a className="button-link small-link" href={pr.url} target="_blank" rel="noreferrer" title="Open it on GitHub (o)">
+        </Button>
+        <a className={buttonClass({ size: "small" })} href={pr.url} target="_blank" rel="noreferrer" title="Open it on GitHub (o)">
           <Icon name="external" size={12} /> GitHub
         </a>
       </>
@@ -514,7 +516,7 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
         title={`Posted to GitHub: ${verdictEvents[r.verdict!].toLowerCase()}`}
         actions={
           state.url ? (
-            <a className="button-link" href={state.url} target="_blank" rel="noreferrer">
+            <a className={buttonClass()} href={state.url} target="_blank" rel="noreferrer">
               See it on GitHub <Icon name="external" size={12} />
             </a>
           ) : undefined
@@ -604,9 +606,9 @@ function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: b
           );
         })}
       </ol>
-      <button className={`ghost small whole-stack${whole ? " on" : ""}`} aria-pressed={whole} aria-busy={going?.whole || undefined} onClick={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
+      <Button variant="ghost" size="small" className={`whole-stack ${whole ? " on" : ""}`} aria-pressed={whole} aria-busy={going?.whole || undefined} onClick={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
         <Icon name={going?.whole && !whole ? "spinner" : "layers"} size={12} className={going?.whole && !whole ? "spin" : undefined} /> Whole stack <Keys k="w" />
-      </button>
+      </Button>
     </div>
   );
 }
@@ -752,9 +754,9 @@ function PRSubmitDialog({
       </p>
       {stack && (
         <div className="pr-submit-all">
-          <button onClick={approveAll} disabled={busy} title="Give every layer that isn't a draft or yours an approval (⇧A). Nothing's posted until you submit.">
+          <Button onClick={approveAll} disabled={busy} title="Give every layer that isn't a draft or yours an approval (⇧A). Nothing's posted until you submit.">
             <Icon name="check-circle" size={13} /> Approve every layer <Keys k="A" />
-          </button>
+          </Button>
           <span className="dim">
             <Keys k="[" /> <Keys k="]" /> pick a layer; <Keys k="a" /> <Keys k="c" /> <Keys k="m" /> its verdict
           </span>
@@ -839,17 +841,17 @@ function PRSubmitDialog({
       </div>
       <div className="note-actions">
         {here?.draft && !busy && (
-          <button className="ghost" onClick={onDiscard} title={`Throw away your draft comments on #${d.pr.number}`}>
+          <Button variant="ghost" onClick={onDiscard} title={`Throw away your draft comments on #${d.pr.number}`}>
             Discard the draft
-          </button>
+          </Button>
         )}
         <span className="spacer-left" />
-        <button className="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose}>
           {layers.some((l) => l.state === "posted") ? "Close" : "Cancel"}
-        </button>
-        <button className="primary" onClick={submit} disabled={!ready || busy} title={ready ? "Post to GitHub (⌘⏎)" : "Pick a verdict first"}>
+        </Button>
+        <Button variant="primary" onClick={submit} disabled={!ready || busy} title={ready ? "Post to GitHub (⌘⏎)" : "Pick a verdict first"}>
           {busy ? "Posting…" : chosen.length > 1 ? `Post ${chosen.length} reviews to GitHub` : "Post to GitHub"} <Keys k="mod+⏎" />
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

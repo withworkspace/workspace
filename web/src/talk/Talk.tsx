@@ -40,6 +40,7 @@ import { PluginProposalCard } from "./PluginProposal";
 import { addedVersion, artifactNext, kindName, type Made, made, revisedText, type Settled, settled } from "./proposals";
 import { PagePin } from "../shell/focus";
 import { Chip } from "../ui/Chip";
+import { Button, buttonClass } from "../ui/Button";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -79,9 +80,9 @@ export function TalksPage({ workspace }: { workspace: Workspace }) {
         <h1>Conversations</h1>
         {resolved > 0 && (
           <div className="page-actions">
-            <button className="ghost small" onClick={() => setShowResolved((v) => !v)} aria-pressed={showResolved}>
+            <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)} aria-pressed={showResolved}>
               {showResolved ? "Hide resolved" : `Show resolved (${resolved})`} <Keys k="⇧A" />
-            </button>
+            </Button>
           </div>
         )}
       </header>
@@ -201,9 +202,9 @@ export function TalkList({
               : `The agent reads the repos, the missions and GitHub, and changes nothing. It can propose a mission${docs ? ", a decision or a document" : " or a decision"}.`}
           </span>
           <Keys k="mod+⏎" className="composer-keys" />
-          <button className="primary" disabled={!text.trim() || starting} onClick={start}>
+          <Button variant="primary" disabled={!text.trim() || starting} onClick={start}>
             {starting ? "Starting…" : "Start"}
-          </button>
+          </Button>
         </div>
       </div>
       {talks.length === 0 ? (
@@ -211,9 +212,9 @@ export function TalkList({
           <Empty icon="check-circle" title="Nothing open">
             Every conversation's resolved.{" "}
             {onToggleResolved && (
-              <button className="link more-link" onClick={onToggleResolved}>
+              <Button variant="link" className="more-link" onClick={onToggleResolved}>
                 Show them
-              </button>
+              </Button>
             )}
           </Empty>
         ) : (
@@ -277,9 +278,9 @@ export function TalkList({
         </ul>
       )}
       {!keys && all.some((t) => t.status !== "open") && onToggleResolved && talks.length > 0 && (
-        <button className="link more-link" onClick={onToggleResolved}>
+        <Button variant="link" className="more-link" onClick={onToggleResolved}>
           {showResolved ? "Hide" : "Show"} resolved
-        </button>
+        </Button>
       )}
     </>
   );
@@ -552,25 +553,25 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
         <div className="talk-actions">
           {!slug && <PagePin r={{ kind: "talk", id }} />}
           {slug && d?.goal === "brief" && (
-            <Link to={`/missions/${slug}/brief`} className="button-link small-link" title="The brief and plan it's about, on their own page: what it proposes for them is read and confirmed there">
+            <Link to={`/missions/${slug}/brief`} className={buttonClass({ size: "small" })} title="The brief and plan it's about, on their own page: what it proposes for them is read and confirmed there">
               <Icon name="file" size={13} /> The brief
             </Link>
           )}
           {became && (
-            <Link to={`/missions/${became}`} className="button-link small-link">
+            <Link to={`/missions/${became}`} className={buttonClass({ size: "small" })}>
               <Icon name="flag" size={13} /> Its mission
             </Link>
           )}
           {wide && (
-            <button className="ghost small" aria-pressed={sideOn} onClick={toggleSide} title="Beside the conversation: what's to confirm, what it's made, what it names, and its summary so far">
+            <Button variant="ghost" size="small" aria-pressed={sideOn} onClick={toggleSide} title="Beside the conversation: what's to confirm, what it's made, what it names, and its summary so far">
               <Icon name="panel" size={12} /> Details
-            </button>
+            </Button>
           )}
           {d && (
-            <button onClick={toggle} title={`${d.status === "resolved" ? "Reopen" : "Resolve"} (x)`}>
+            <Button onClick={toggle} title={`${d.status === "resolved" ? "Reopen" : "Resolve"} (x)`}>
               <Icon name={d.status === "resolved" ? "rotate" : "check"} size={13} />
               {d.status === "resolved" ? "Reopen" : "Resolve"}
-            </button>
+            </Button>
           )}
         </div>
       </header>
@@ -596,9 +597,9 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
             icon="sparkle"
             title="An ask nobody's kept"
             actions={
-              <button className="small" onClick={keep}>
+              <Button size="small" onClick={keep}>
                 <Icon name="message" size={12} /> Keep as a conversation
-              </button>
+              </Button>
             }
           >
             It isn't listed with the rest, and it goes an hour after its last turn unless you keep it.
@@ -677,9 +678,9 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
             <div className="composer-bar">
               <span className="spacer" />
               <Keys k="mod+⏎" className="composer-keys" />
-              <button className="primary" disabled={!text.trim() || sending} onClick={send}>
+              <Button variant="primary" disabled={!text.trim() || sending} onClick={send}>
                 {sending ? "Sending…" : "Send"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -752,10 +753,10 @@ function TalkSide({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug: stri
                   </button>
                 )}
                 {m.to && (
-                  <button className="ghost icon-button side-where" onClick={() => goTo(m.n)} title="Where it was proposed, in the conversation">
+                  <Button variant="ghost" square className="side-where" onClick={() => goTo(m.n)} title="Where it was proposed, in the conversation">
                     <Icon name="arrow-up" size={12} />
                     <span className="sr-only">Where it was proposed</span>
-                  </button>
+                  </Button>
                 )}
               </li>
             ))}
@@ -788,9 +789,9 @@ function TalkSide({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug: stri
             ))}
           </ul>
           {named.length > shown.length && (
-            <button className="link more-link" onClick={() => setAllNamed(true)}>
+            <Button variant="link" className="more-link" onClick={() => setAllNamed(true)}>
               {named.length - shown.length} more
-            </button>
+            </Button>
           )}
         </section>
       )}
@@ -865,9 +866,9 @@ export function SettledMarker({ m, t, compact }: { m: Settled; t: TalkTurn; comp
           {m.accepted ? "Accepted" : "Declined"}: {m.to ? <Link to={m.to}>{m.what}</Link> : m.what}
         </span>
         {m.edits && (
-          <button type="button" className="link settled-marker-more" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <Button variant="link" type="button" className="settled-marker-more" aria-expanded={open} onClick={() => setOpen(!open)}>
             edited <Icon name={open ? "chevron-down" : "chevron-right"} size={11} />
-          </button>
+          </Button>
         )}
         {!compact && <Time iso={t.at} className="turn-time" />}
       </div>
@@ -1068,7 +1069,7 @@ function WsProposalCard({
         return p.result ? (
           <>
             {done("Mission created")}
-            <Link to={`/missions/${p.result}`} className="button-link">
+            <Link to={`/missions/${p.result}`} className={buttonClass()}>
               Open it <Icon name="arrow-right" size={13} />
             </Link>
           </>
@@ -1086,7 +1087,7 @@ function WsProposalCard({
           <>
             {done(`Asked the planner, in ${p.result}: it revises the plan, or says why not`)}
             {slug && p.result && (
-              <Link to={talkHref(slug, p.result)} className="button-link">
+              <Link to={talkHref(slug, p.result)} className={buttonClass()}>
                 Open it <Icon name="arrow-right" size={13} />
               </Link>
             )}
@@ -1097,7 +1098,7 @@ function WsProposalCard({
           <>
             {done("In your draft review: it's posted when you submit")}
             {!inReview && (
-              <Link to={prHref} className="button-link">
+              <Link to={prHref} className={buttonClass()}>
                 Open the review <Icon name="arrow-right" size={13} />
               </Link>
             )}
@@ -1113,7 +1114,7 @@ function WsProposalCard({
           <>
             {done(p.to ? (leftIn ? `Saved ${leftIn}` : "Saved") : leftIn ? `Added ${leftIn}` : "Added")}
             {p.result && (
-              <Link to={docAddress(p.result)} className="button-link">
+              <Link to={docAddress(p.result)} className={buttonClass()}>
                 Open it <Icon name="arrow-right" size={13} />
               </Link>
             )}
@@ -1133,7 +1134,7 @@ function WsProposalCard({
                 </RefTag>
               </span>,
             )}
-            <Link to={`/artifacts/${v.id}/v${v.n}`} className="button-link">
+            <Link to={`/artifacts/${v.id}/v${v.n}`} className={buttonClass()}>
               Open it <Icon name="arrow-right" size={13} />
             </Link>
           </>
@@ -1387,9 +1388,9 @@ function WsProposalCard({
           </a>
         )}
         {p.state === "open" && !editing && (
-          <button className="ghost small" onClick={() => setEditing(true)}>
+          <Button variant="ghost" size="small" onClick={() => setEditing(true)}>
             <Icon name="pencil" size={12} /> Edit
-          </button>
+          </Button>
         )}
       </div>
       {revisedFrom && p.state === "open" && <RevisionChanges was={revisedFrom} now={p} />}
@@ -1403,12 +1404,12 @@ function WsProposalCard({
             </span>
           )}
           <span className="spacer" />
-          <button className="ghost" disabled={busy} onClick={() => run("decline")}>
+          <Button variant="ghost" disabled={busy} onClick={() => run("decline")}>
             Decline
-          </button>
-          <button className="primary" disabled={busy || !ready || replying} onClick={() => run("accept")} title={replying ? "Read its reply first: the agent's still writing it" : undefined}>
+          </Button>
+          <Button variant="primary" disabled={busy || !ready || replying} onClick={() => run("accept")} title={replying ? "Read its reply first: the agent's still writing it" : undefined}>
             {accept}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="proposal-actions settled">{outcome()}</div>

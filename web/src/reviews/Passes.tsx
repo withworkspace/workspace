@@ -5,6 +5,7 @@ import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { humanError, toast } from "../ui/kit";
 import { Time } from "../ui/time";
+import { Button } from "../ui/Button";
 
 // A review's passes, a view of its own: each pass, go or no go, what it said
 // of the change, and what it found, to take into your review or dismiss. Go
@@ -148,14 +149,14 @@ function PassView({
             <input type="checkbox" checked={!hidden} onChange={(e) => onHide(p.name, !e.target.checked)} /> In the diff
           </label>
         )}
-        <button
-          className="small"
+        <Button
+          size="small"
           onClick={run}
           disabled={busy || running || !!p.unavailable}
           title={p.unavailable ?? (p.cold ? "Its agent is given the change and the description, and nothing else" : "Its agent reads the change with the code checked out here (ws docks it first). It reads, and that's all")}
         >
           {running ? "Running…" : p.runs ? "Run again" : "Run"}
-        </button>
+        </Button>
       </header>
       {p.unavailable && <p className="dim rpass-note">It can't be run: {p.unavailable}.</p>}
       {p.failed && !running && <div className="banner">{humanError(p.failed)}</div>}
@@ -183,13 +184,14 @@ function PassView({
                   {f.thread ? (followWords[f.kind] ?? f.kind) : f.kind}
                 </span>
                 {f.path ? (
-                  <button
-                    className="link mono"
+                  <Button
+                    variant="link"
+                    className="finding-link"
                     onClick={() => (f.thread ? toComment(f.thread) : toFinding(p.name, f.key)) || setLines((l) => ({ ...l, [f.key]: !l[f.key] }))}
                     title="Go to it in the diff, or, where its lines aren't in the diff, show them here"
                   >
                     {where(f)}
-                  </button>
+                  </Button>
                 ) : (
                   <span className="dim">The change as a whole</span>
                 )}
@@ -198,12 +200,12 @@ function PassView({
                 {f.thread ? (
                   // It's about a comment you've made: there's nothing to take.
                   <span className="finding-actions">
-                    <button className="small" onClick={() => onResolve(f.thread!).catch(failed)} title="Resolve the comment's thread on GitHub: it's dealt with. It posts at once">
+                    <Button size="small" onClick={() => onResolve(f.thread!).catch(failed)} title="Resolve the comment's thread on GitHub: it's dealt with. It posts at once">
                       Resolve the comment
-                    </button>
-                    <button className="small ghost" onClick={() => settle(f, "dismissed", "wrong")} title="The follow-up has it wrong: don't count it">
+                    </Button>
+                    <Button variant="ghost" size="small" onClick={() => settle(f, "dismissed", "wrong")} title="The follow-up has it wrong: don't count it">
                       Dismiss
-                    </button>
+                    </Button>
                   </span>
                 ) : (
                   <FindingActions
@@ -248,9 +250,9 @@ function PassView({
                     {f.state === "done" ? (f.thread ? "Its comment's resolved" : "Taken into your review") : `Dismissed${f.why ? `: ${reviewDismissWhys.find(([w]) => w === f.why)?.[1].toLowerCase()}` : ""}`}
                   </span>
                   <span className="spacer-left" />
-                  <button className="small ghost" onClick={() => settle(f, "open")} title="It's open again: it counts toward go or no go">
+                  <Button variant="ghost" size="small" onClick={() => settle(f, "open")} title="It's open again: it counts toward go or no go">
                     Open again
-                  </button>
+                  </Button>
                 </div>
                 <div className="rpass-finding-text dim">
                   <Inline text={f.text} />

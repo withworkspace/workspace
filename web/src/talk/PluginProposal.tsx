@@ -4,6 +4,7 @@ import { Markdown } from "../markdown/LazyMarkdown";
 import { pluginIcon } from "../plugins/Plugin";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
+import { Button } from "../ui/Button";
 
 // Something of a plugin's a conversation's agent proposed (issues to
 // create), under its reply: what the plugin says it'll do, item by item,
@@ -111,8 +112,8 @@ export function PluginProposalCard({
             </span>
           )}
           <span className="spacer" />
-          <button
-            className="ghost"
+          <Button
+            variant="ghost"
             disabled={busy}
             onClick={() => run("decline")}
             title={
@@ -122,9 +123,9 @@ export function PluginProposalCard({
             }
           >
             {made.length ? "Decline the rest" : "Decline"}
-          </button>
-          <button
-            className="primary"
+          </Button>
+          <Button
+            variant="primary"
             disabled={busy || !chosen.length || replying}
             onClick={() => run("accept")}
             title={
@@ -134,7 +135,7 @@ export function PluginProposalCard({
             }
           >
             {accept}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="proposal-actions settled">

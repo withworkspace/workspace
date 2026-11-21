@@ -10,6 +10,7 @@ import { Time } from "../ui/time";
 import { ChangeLine } from "./Activity";
 import { withoutTitle, wordsIn } from "./happening";
 import { Chip } from "../ui/Chip";
+import { Button, buttonClass } from "../ui/Button";
 
 // Preview is a space's document beside its list, as the reader shows it:
 // what it is and where, who changed it last, how long it is, its sections
@@ -69,15 +70,15 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
           {words > 0 && `${words.toLocaleString()} words · ${Math.max(1, Math.round(words / 230))} min read`}
         </p>
         <div className="doc-preview-actions">
-          <Link to={docTo(ref)} className="button-link primary" title="Read it in the reader, where it's asked about (⏎)">
+          <Link to={docTo(ref)} className={buttonClass({ variant: "primary" })} title="Read it in the reader, where it's asked about (⏎)">
             <Icon name="book" size={13} /> Read it <Keys k="⏎" />
           </Link>
           {canEdit && (
-            <Link to={docAddress(ref, shown?.page ?? true)} className="button-link" title="Edit it as a page: cells, questions and passes, saved back to the repo when you say">
+            <Link to={docAddress(ref, shown?.page ?? true)} className={buttonClass()} title="Edit it as a page: cells, questions and passes, saved back to the repo when you say">
               <Icon name="pencil" size={13} /> Edit as a page
             </Link>
           )}
-          <Link to={filesTo(repo, GROUND, doc.path)} className="button-link ghost" title="Open it in Files">
+          <Link to={filesTo(repo, GROUND, doc.path)} className={buttonClass({ variant: "ghost" })} title="Open it in Files">
             <Icon name="layers" size={13} /> In Files
           </Link>
         </div>
@@ -99,9 +100,9 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
           {sections
             .filter((s) => s.level === 2)
             .map((s) => (
-              <button key={s.anchor} className="link" onClick={() => goToSection(body.current, s.anchor)}>
+              <Button variant="link" key={s.anchor} onClick={() => goToSection(body.current, s.anchor)}>
                 {s.text}
-              </button>
+              </Button>
             ))}
         </nav>
       )}

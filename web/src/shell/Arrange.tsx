@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button as AriaButton, DropIndicator, GridList, GridListItem, isTextDropItem, useDragAndDrop, type DropItem, type ItemDropTarget } from "react-aria-components";
 import { Icon } from "../ui/Icon";
 import { headed, move, type Arranged, type Place } from "./places";
+import { Button } from "../ui/Button";
 
 // Arrange is the sidebar while you arrange it: its places in their order,
 // and under them those in the workspace's menu, each dragged by its grip
@@ -38,17 +39,17 @@ export function Arrange({
       <PlaceList list="menu" places={arranged.menu} put={put} label="In the workspace's menu" empty="Drag a place here to keep it in the menu, out of the sidebar." />
       <div className="arrange-actions">
         {canReset && (
-          <button className="ghost small" onClick={onReset} title="Take your arrangement away: the team's, or as ws has it">
+          <Button variant="ghost" size="small" onClick={onReset} title="Take your arrangement away: the team's, or as ws has it">
             Reset
-          </button>
+          </Button>
         )}
         <span className="arrange-spacer" />
-        <button className="ghost small" onClick={onCancel}>
+        <Button variant="ghost" size="small" onClick={onCancel}>
           Cancel
-        </button>
-        <button className="primary small" onClick={() => onDone(arranged)}>
+        </Button>
+        <Button variant="primary" size="small" onClick={() => onDone(arranged)}>
           Done
-        </button>
+        </Button>
       </div>
     </div>
   );

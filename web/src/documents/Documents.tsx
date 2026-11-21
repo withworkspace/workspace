@@ -16,6 +16,7 @@ import { Preview } from "./Preview";
 import { hitTo, Results, SearchBox, useDocSearch } from "./Search";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // Documents: where the workspace's writing is read. Local is the pages
 // that aren't in a space (written here, on this machine); each space is a
@@ -133,17 +134,17 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
         <h1>Documents</h1>
         <div className="page-actions">
           {kinds.length > 0 && (
-            <button
+            <Button
               onClick={() => setAsKind(true)}
               disabled={starting}
               title="Start a page as one of the workspace's kinds of document: it's written as its guide says, and filed where the kind says"
             >
               New as… <Keys k="N" />
-            </button>
+            </Button>
           )}
-          <button className="primary" onClick={() => start()} disabled={starting}>
+          <Button variant="primary" onClick={() => start()} disabled={starting}>
             <Icon name="plus" /> New page <Keys k="n" />
-          </button>
+          </Button>
         </div>
       </header>
       {asKind && <NewAsKind kinds={kinds} busy={starting} onStart={(title, kind) => start(title, kind)} onClose={() => setAsKind(false)} />}
@@ -206,9 +207,9 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
               {local.length === 0 ? (
                 <p className="dim documents-empty">
                   No pages here. A page is somewhere to write a problem down and work it out:{" "}
-                  <button className="link" onClick={() => start()}>
+                  <Button variant="link" onClick={() => start()}>
                     start one
-                  </button>
+                  </Button>
                   .
                 </p>
               ) : (
@@ -478,14 +479,14 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
           />
         )}
         <div className="page-actions">
-          <button
-            className="primary"
+          <Button
+            variant="primary"
             onClick={() => setAsKind(true)}
             disabled={starting || !space.cloned}
             title={library.length ? `Start a page as one of ${space.label}'s kinds of document: written as its guide says, and filed here` : `Start a page to file in one of ${space.label}'s folders`}
           >
             <Icon name="plus" /> New <Keys k="n" />
-          </button>
+          </Button>
         </div>
       </header>
       {asKind && library.length > 0 && (
@@ -521,9 +522,9 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
               {tabs.length > 1 && (
                 <nav className="segmented space-tabs" aria-label={library.length ? "Jump to a kind" : "Jump to a folder"}>
                   {tabs.map((t, i) => (
-                    <button key={t.id} aria-pressed={i === tab} disabled={t.n === 0} onClick={() => jump(t.id)}>
+                    <Button key={t.id} aria-pressed={i === tab} disabled={t.n === 0} onClick={() => jump(t.id)}>
                       {t.label} <Count className="space-tab-count">{searched && t.n !== t.total ? `${t.n}/${t.total}` : t.total}</Count>
-                    </button>
+                    </Button>
                   ))}
                 </nav>
               )}
@@ -845,16 +846,16 @@ function NewInFolder({
         as {label} lands its changes.
       </p>
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose}>
           Cancel
-        </button>
-        <button
-          className="primary"
+        </Button>
+        <Button
+          variant="primary"
           onClick={go}
           disabled={busy || !title.trim()}
         >
           Start it <Keys k="⏎" />
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

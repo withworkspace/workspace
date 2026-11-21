@@ -5,6 +5,7 @@ import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { humanError, toast } from "../ui/kit";
 import { duration, Time } from "../ui/time";
+import { Button } from "../ui/Button";
 
 // A review's guide, a view of its own: what the change does, where that
 // differs from what it says it does, and the order to read its files in.
@@ -61,9 +62,9 @@ export function GuideSection({ api, guide, guided, onGuide, onGuided }: { api: s
         {!g && !running && (
           <p className="dim">
             What the change does, where that differs from what it says it does, and the order to read its files in. An agent writes it from the change and the description alone.{" "}
-            <button className="small" onClick={run}>
+            <Button size="small" onClick={run}>
               Write the guide
-            </button>
+            </Button>
           </p>
         )}
         {running && <GuideWriting guide={guide} again={!!g} />}
@@ -90,9 +91,9 @@ export function GuideSection({ api, guide, guided, onGuide, onGuided }: { api: s
               </label>
               <span className="spacer-left" />
               {guide.at && <Time iso={guide.at} as="relative" className="dim" />}
-              <button className="small ghost" onClick={run} disabled={running}>
+              <Button variant="ghost" size="small" onClick={run} disabled={running}>
                 Write it again
-              </button>
+              </Button>
             </div>
           </>
         )}

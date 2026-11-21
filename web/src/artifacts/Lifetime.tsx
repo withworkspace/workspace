@@ -5,6 +5,7 @@ import { Icon } from "../ui/Icon";
 import { Callout, confirm, Dialog, humanError, Keys, toast } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import { clearable, type IntoKind, type Lives, livesAt, promoteBlocked, promoteVersions, promotion } from "./shown";
+import { Button } from "../ui/Button";
 
 // An artifact's lifetime, in the web UI: Promote, with the version chosen,
 // what it went into, and, the first time, where it's to live (a folder in
@@ -165,12 +166,12 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
       {blocked && <p className="dim file-as-what">{blocked}</p>}
       {(error || loadError) && <div className="banner">{error ?? loadError}</div>}
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose} disabled={busy}>
+        <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
-        </button>
-        <button className="primary" onClick={go} disabled={busy || !n || !d || !!blocked}>
+        </Button>
+        <Button variant="primary" onClick={go} disabled={busy || !n || !d || !!blocked}>
           {busy ? (lands ? "Landing…" : "Promoting…") : lands ? `Promote, and land on ${branch}` : "Promote"} <Keys k="mod+⏎" />
-        </button>
+        </Button>
       </div>
     </Dialog>
   );
@@ -226,12 +227,12 @@ export function DiscardDialog({ a, workspace, onClose, onDone }: { a: ArtifactIn
       />
       {error && <div className="banner">{error}</div>}
       <div className="dialog-actions">
-        <button className="ghost" onClick={onClose} disabled={busy}>
+        <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
-        </button>
-        <button className="danger" onClick={go} disabled={busy}>
+        </Button>
+        <Button variant="danger" onClick={go} disabled={busy}>
           {busy ? (home ? "Landing…" : "Discarding…") : home ? `Discard, and land on ${workspace.defaultBranch ?? "it"}` : "Discard"} <Keys k="mod+⏎" />
-        </button>
+        </Button>
       </div>
     </Dialog>
   );
@@ -294,8 +295,8 @@ export function ClearExpired({ all }: { all: ArtifactInfo[]; workspace: Workspac
     }
   };
   return (
-    <button className="ghost small" onClick={clear} disabled={busy} title="Discard every expired artifact now">
+    <Button variant="ghost" size="small" onClick={clear} disabled={busy} title="Discard every expired artifact now">
       <Icon name="clock" size={13} /> {busy ? "Clearing…" : `Clear expired ${expired.length}`}
-    </button>
+    </Button>
   );
 }

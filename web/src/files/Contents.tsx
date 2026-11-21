@@ -2,6 +2,7 @@ import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useSta
 import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/kit";
 import { progress, railRoom, type Section, sectionAt } from "./reading";
+import { Button } from "../ui/Button";
 
 // The reader's contents (#123): a rail beside the text where there's room
 // for one, else a pill that sticks to the top once you've scrolled past the
@@ -234,9 +235,9 @@ export function ContentsMenu({ title, sections, at, anchor, go, copy, close }: {
       <div className="contents-menu-head">
         <Icon name="list" size={12} />
         <b>{title}</b>
-        <button type="button" className="link" onClick={copy} title="Copy a link to it">
+        <Button variant="link" className="contents-menu-action" type="button" onClick={copy} title="Copy a link to it">
           Copy its link <Icon name="link" size={12} />
-        </button>
+        </Button>
       </div>
       <nav className="contents-menu-list">
         {sections.length > 0 ? (

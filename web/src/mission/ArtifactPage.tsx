@@ -11,6 +11,7 @@ import { Time } from "../ui/time";
 import { DocEdit } from "./DocEdit";
 import { ArtifactState, artifactTitle } from "./parts";
 import { useLatest } from "../load";
+import { Button, buttonClass } from "../ui/Button";
 
 export const artifactKeys: [string, string][] = [
   ...annotateKeys.map(([k, what]): [string, string] => (k === "j / k" ? [k, `${what} (in code: scroll)`] : [k, what])),
@@ -118,12 +119,12 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           </Copyable>
           <span className="spacer" />
           {a.markdown && !editing && (
-            <button className="small" onClick={startEdit} disabled={!a.editable} title={a.editable ? "Edit it here (e)" : `Can't be edited here: ${a.uneditable}`}>
+            <Button size="small" onClick={startEdit} disabled={!a.editable} title={a.editable ? "Edit it here (e)" : `Can't be edited here: ${a.uneditable}`}>
               <Icon name="pencil" size={12} /> Edit <Keys k="e" />
-            </button>
+            </Button>
           )}
           {a.url && (
-            <a href={a.url} target="_blank" rel="noopener noreferrer" className="button-link small-link" title="Open it where it lives (o)">
+            <a href={a.url} target="_blank" rel="noopener noreferrer" className={buttonClass({ size: "small" })} title="Open it where it lives (o)">
               <Icon name="external" size={12} /> Open <Keys k="o" />
             </a>
           )}
@@ -138,12 +139,12 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           title="You've an unsaved edit of this"
           actions={
             <>
-              <button className="small primary" onClick={startEdit}>
+              <Button variant="primary" size="small" onClick={startEdit}>
                 Go on editing <Keys k="e" />
-              </button>
-              <button className="small ghost" onClick={() => dropDraft(slug, ref).then(() => setDraft(null))}>
+              </Button>
+              <Button variant="ghost" size="small" onClick={() => dropDraft(slug, ref).then(() => setDraft(null))}>
                 Discard it
-              </button>
+              </Button>
             </>
           }
         >

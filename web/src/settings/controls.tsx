@@ -8,6 +8,7 @@ import { Option, Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
 import { useTheme } from "../ui/theme";
 import { said, shown } from "./sections";
+import { Button } from "../ui/Button";
 
 // A setting's control, by its kind: what it's set to, and the way to set
 // it. Each writes as soon as it's changed (a switch flipped, a field
@@ -67,9 +68,9 @@ function Segmented({ s, set }: Props) {
   return (
     <div className="segmented" role="group" aria-label={s.label}>
       {s.choices?.map((c) => (
-        <button key={c.value} type="button" aria-pressed={c.value === s.value} title={c.note} onClick={() => c.value !== s.value && void set(c.value)}>
+        <Button key={c.value} type="button" aria-pressed={c.value === s.value} title={c.note} onClick={() => c.value !== s.value && void set(c.value)}>
           {c.label ?? c.value}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -142,9 +143,9 @@ function Stepper({ s, set }: Props) {
   };
   return (
     <span className="setting-stepper">
-      <button type="button" disabled={n <= 1} title="One fewer" aria-label={`${s.label}: one fewer`} onClick={() => void set(n - 1)}>
+      <Button type="button" disabled={n <= 1} title="One fewer" aria-label={`${s.label}: one fewer`} onClick={() => void set(n - 1)}>
         <Icon name="minus" size={12} />
-      </button>
+      </Button>
       <input
         type="text"
         inputMode="numeric"
@@ -160,9 +161,9 @@ function Stepper({ s, set }: Props) {
           }
         }}
       />
-      <button type="button" title="One more" aria-label={`${s.label}: one more`} onClick={() => void set(n + 1)}>
+      <Button type="button" title="One more" aria-label={`${s.label}: one more`} onClick={() => void set(n + 1)}>
         <Icon name="plus" size={12} />
-      </button>
+      </Button>
     </span>
   );
 }
@@ -201,9 +202,9 @@ function Picks({ s, set, reset }: Props) {
       {picks.map((p, i) => (
         <span key={p} className="setting-pick">
           {p}
-          <button type="button" title={`Take ${p} off`} aria-label={`Take ${p} off`} onClick={() => drop(i)}>
+          <Button type="button" title={`Take ${p} off`} aria-label={`Take ${p} off`} onClick={() => drop(i)}>
             <Icon name="x" size={10} />
-          </button>
+          </Button>
         </span>
       ))}
       <input

@@ -29,6 +29,7 @@ import {
 } from "./verifyRows";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // The mission's Verify tab: its verification bundles, what crew handed
 // over to show their work is as its checks say. Those yours to approve are
@@ -188,9 +189,9 @@ export function Verify({
             {open && (
               <div className="verify-approve">
                 {/* The one to press once nothing's left for you; before that it still approves, as it is. */}
-                <button className={going.length || !left.length ? "primary" : "verify-plain"} disabled={busy} onClick={settle} title={settleTitle}>
+                <Button variant={going.length || !left.length ? "primary" : undefined} className={going.length || !left.length ? undefined : "verify-plain"} disabled={busy} onClick={settle} title={settleTitle}>
                   {going.length ? `Send back to ${bundle.crew} (${going.length})` : `Approve ${bundle.id}`} <Keys k="mod+⏎" />
-                </button>
+                </Button>
                 <span role="status" className="verify-approve-text">
                   {going.length
                     ? `${going.length} ${going.length === 1 ? "check goes" : "checks go"} back to ${bundle.crew}, with what the bundle showed and what you said. The one they hand over next takes its place.`
@@ -291,9 +292,9 @@ function BundleRow({ bundles, open, pick }: { bundles: Bundle[]; open: Bundle; p
       {todo.map((b) => chip(b))}
       {!todo.includes(open) && chip(open, true)}
       {!todo.length && (
-        <button type="button" className="ghost icon-button small" onClick={() => pick()} title={`Close ${open.id} (esc)`} aria-label={`Close ${open.id}`}>
+        <Button variant="ghost" size="small" square type="button" onClick={() => pick()} title={`Close ${open.id} (esc)`} aria-label={`Close ${open.id}`}>
           <Icon name="x" size={13} />
-        </button>
+        </Button>
       )}
       {others > 0 && <BundleMenu groups={rest} label={`${others} ${todo.length ? "other " : ""}${others === 1 ? "bundle" : "bundles"}`} pick={pick} end />}
     </div>
@@ -362,14 +363,14 @@ function AllClear({ b, rows, busy, settle, again }: { b: Bundle; rows: CheckRow[
         <div className="empty-title">You're all clear</div>
         <div className="empty-text">{allClearWords(b, rows)}</div>
         <div className="empty-action">
-          <button className="primary verify-big" disabled={busy} onClick={settle} title="Approve it, with the checks as you've approved them">
+          <Button variant="primary" className="verify-big" disabled={busy} onClick={settle} title="Approve it, with the checks as you've approved them">
             Approve {b.id} <Keys k="mod+⏎" />
-          </button>
+          </Button>
         </div>
         <div className="verify-clear-after">{settles(b)}</div>
-        <button type="button" className="link more-link" onClick={again}>
+        <Button variant="link" type="button" className="more-link" onClick={again}>
           Look again
-        </button>
+        </Button>
       </div>
     </article>
   );
@@ -409,7 +410,7 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id?: string) => void }) {
         {b.capsule && b.commit && !b.stale && !b.replacedBy && <span className="verify-current">Current: its capsule hasn't moved since</span>}
       </div>
       {b.replacedBy && (
-        <Callout tone="quiet" icon="info" actions={<button onClick={() => pick(b.replacedBy!)}>Open {b.replacedBy}</button>}>
+        <Callout tone="quiet" icon="info" actions={<Button onClick={() => pick(b.replacedBy!)}>Open {b.replacedBy}</Button>}>
           {b.replacedBy} has taken its place.
         </Callout>
       )}
@@ -467,9 +468,9 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id?: string) => void }) {
         {b.replaces && (
           <span className="verify-replaces">
             It took the place of{" "}
-            <button type="button" className="link" onClick={() => pick(b.replaces!)}>
+            <Button variant="link" type="button" onClick={() => pick(b.replaces!)}>
               {b.replaces}
-            </button>
+            </Button>
             .
           </span>
         )}
@@ -541,9 +542,9 @@ function Summary({ text }: { text: string }) {
         ))}
       </div>
       {(long || open) && (
-        <button type="button" className="link more-link" onClick={() => setOpen((o) => !o)}>
+        <Button variant="link" type="button" className="more-link" onClick={() => setOpen((o) => !o)}>
           {open ? "Less" : "More"}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -672,9 +673,9 @@ function CheckDetail({
             <h4>{b.crew} suggests, to send back</h4>
             <div className="verify-ask-chips">
               {c.asks.map((a, i) => (
-                <button key={i} type="button" onClick={() => setNote(a)} title="Send this back with the bundle, as what's to do">
+                <Button key={i} type="button" onClick={() => setNote(a)} title="Send this back with the bundle, as what's to do">
                   {a}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -713,15 +714,16 @@ function CheckDetail({
               <Icon name="check" size={14} /> {r.left ? "Approve check" : "Looked at"} <Keys k="y" />
             </button>
             {c && (
-              <button
+              <Button
+                variant={note !== undefined ? "danger" : undefined}
                 type="button"
-                className={note !== undefined ? "on danger" : ""}
+                className={note !== undefined ? "on on-danger" : undefined}
                 aria-pressed={note !== undefined}
                 onClick={() => setNote(note === undefined ? "" : undefined)}
                 title="Say what's not right of it: it goes back to its crew when you send the bundle back"
               >
                 <Icon name="x" size={14} /> Not right <Keys k="n" />
-              </button>
+              </Button>
             )}
           </div>
         </div>

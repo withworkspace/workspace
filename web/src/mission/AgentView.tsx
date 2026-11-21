@@ -9,6 +9,7 @@ import { Time } from "../ui/time";
 import { CrewBadge } from "./parts";
 import { useLoaded } from "../load";
 import { useLatest } from "../load";
+import { Button } from "../ui/Button";
 
 // The agent view: a crew as a conversation, the way in to it. What it was
 // sent, what it said and the steps between, as it happens (the session
@@ -165,7 +166,7 @@ export function AgentView({ workspace, slug, id, crew, live, onTerminal }: { wor
     <div className="agent-view">
       {plan && <PinnedPlan todos={plan} live={live} />}
       {!t.available && (
-        <Empty icon="terminal" title="No transcript to show" action={onTerminal && <button onClick={onTerminal}>Watch its terminal</button>}>
+        <Empty icon="terminal" title="No transcript to show" action={onTerminal && <Button onClick={onTerminal}>Watch its terminal</Button>}>
           {t.why} You can still send it a message below.
         </Empty>
       )}
@@ -334,9 +335,9 @@ export function PromptCard({
   };
   // Crew over ACP have no terminal: the card is the only way to answer.
   const terminal = crew.structured ? null : onTerminal ? (
-    <button className="link more-link" onClick={onTerminal}>
+    <Button variant="link" className="more-link" onClick={onTerminal}>
       Answer in the terminal
-    </button>
+    </Button>
   ) : (
     <Link to={`/missions/${slug}/crew/${crew.id}?view=terminal`} className="more-link">
       Answer in the terminal
@@ -364,10 +365,10 @@ export function PromptCard({
         {!pending && !!about?.length && <pre className="prompt-input">{about.join("\n")}</pre>}
         {!pending && !about?.length && crew.notice && <div className="dim">{crew.notice}</div>}
         <div className="prompt-actions">
-          <button className="primary" disabled={busy} onClick={() => answer({ permission: "allow" })}>
+          <Button variant="primary" disabled={busy} onClick={() => answer({ permission: "allow" })}>
             <Icon name="check" size={13} /> Allow once
-          </button>
-          <button
+          </Button>
+          <Button
             disabled={busy}
             onClick={() =>
               answer(
@@ -381,10 +382,10 @@ export function PromptCard({
             }
           >
             Always allow…
-          </button>
-          <button className="ghost" disabled={busy} onClick={() => answer({ permission: "deny" })}>
+          </Button>
+          <Button variant="ghost" disabled={busy} onClick={() => answer({ permission: "deny" })}>
             Deny
-          </button>
+          </Button>
           <span className="spacer" />
           {terminal}
         </div>
@@ -405,9 +406,9 @@ export function PromptCard({
       {options.length > 0 && (
         <div className="prompt-options">
           {options.map((o) => (
-            <button key={o} disabled={busy} onClick={() => answer({ option: o })}>
+            <Button key={o} disabled={busy} onClick={() => answer({ option: o })}>
               {o}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -419,9 +420,9 @@ export function PromptCard({
         }}
       >
         <input value={own} onChange={(e) => setOwn(e.target.value)} placeholder="Or in your own words" aria-label="Your answer" disabled={busy} />
-        <button type="submit" className="primary" disabled={busy || !own.trim()}>
+        <Button variant="primary" type="submit" disabled={busy || !own.trim()}>
           Answer
-        </button>
+        </Button>
       </form>
       <div className="prompt-actions">
         <span className="spacer" />
@@ -495,14 +496,14 @@ function Composer({ slug, id, crew, live, working }: { slug: string; id: string;
           )}
         </span>
         {working && (
-          <button className="ghost" onClick={interrupt} title="Stop what it's doing now (its turn), not the crew">
+          <Button variant="ghost" onClick={interrupt} title="Stop what it's doing now (its turn), not the crew">
             <Icon name="stop" size={12} /> Interrupt
-          </button>
+          </Button>
         )}
         <Keys k="mod+⏎" className="composer-keys" />
-        <button className="primary" disabled={!text.trim() || busy} onClick={send}>
+        <Button variant="primary" disabled={!text.trim() || busy} onClick={send}>
           {busy ? "Sending…" : live ? "Send" : "Resume"}
-        </button>
+        </Button>
       </div>
     </div>
   );

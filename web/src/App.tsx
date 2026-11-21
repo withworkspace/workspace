@@ -51,6 +51,7 @@ import { headlineStatus, Status } from "./ui/status";
 import { duration } from "./ui/time";
 import { SiloPoint } from "./silo/SiloPoint";
 import { Count } from "./ui/Count";
+import { Button, buttonClass } from "./ui/Button";
 
 export function App() {
   const { workspace, error, connection } = useWorkspace();
@@ -159,9 +160,9 @@ export function App() {
     <FocusProvider workspace={workspace}>
       <div className={`shell${reviewing ? " reviewing" : ""}${drawer ? " drawer" : ""}`}>
         <div className="topbar" inert={dim}>
-          <button className="ghost icon-button" onClick={() => setDrawer(true)} aria-label="Open the menu">
+          <Button variant="ghost" square onClick={() => setDrawer(true)} aria-label="Open the menu">
             <Icon name="menu" size={18} />
-          </button>
+          </Button>
           <WorkspaceMenu workspace={workspace} places={menu} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
           {waiting.length > 0 && <Count tone="attention" className="topbar-count" title="Needs you">{waiting.length}</Count>}
         </div>
@@ -446,14 +447,15 @@ function Inbox({ workspace, path, notify }: { workspace: Workspace; path: string
       <h2>
         Needs you
         {notify.supported && (
-          <button
-            className={`ghost icon-button small notify-toggle${notify.on ? " on" : ""}`}
+          <Button
+            variant="ghost" size="small" square
+            className={`notify-toggle ${notify.on ? " on" : ""}`}
             onClick={notify.toggle}
             title={notify.on ? "Desktop notifications are on: turn them off" : "Notify me on the desktop when something needs me"}
             aria-pressed={notify.on}
           >
             <Icon name="bell" size={12} />
-          </button>
+          </Button>
         )}
       </h2>
       {missions.slice(0, 8).map((m) => {
@@ -740,7 +742,7 @@ function NotFound() {
   useTitle("Not found");
   return (
     <div className="page narrow">
-      <Empty icon="search" title="There's nothing here" action={<Link to="/" className="button-link">Back to missions</Link>}>
+      <Empty icon="search" title="There's nothing here" action={<Link to="/" className={buttonClass()}>Back to missions</Link>}>
         This page doesn't exist, or what it showed has gone.
       </Empty>
     </div>

@@ -10,6 +10,7 @@ import css from "./Runs.module.css";
 import { bare, forWhom, listed, placeOf, plain, type Said, split } from "./runRows";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // The Runs page: everything ws is running for someone in this workspace
 // (ws run): dev servers, previews, compose stacks, whether you, crew or a
@@ -254,12 +255,12 @@ function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; w
           <Time iso={r.started} as="age" className="age" />
         </span>
         <span className={css.actions}>
-          <button className="ghost small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide its output" : "Its output, and how it was started"}>
+          <Button variant="ghost" size="small" onClick={() => setOpen(!open)} aria-expanded={open} title={open ? "Hide its output" : "Its output, and how it was started"}>
             <Icon name={open ? "chevron-up" : "terminal"} size={11} /> {open ? "Hide" : "Output"}
-          </button>
-          <button className="ghost small" disabled={busy} onClick={end} title={live ? "End it now, and run its recipe's stop" : "Clear it away, its output with it"}>
+          </Button>
+          <Button variant="ghost" size="small" disabled={busy} onClick={end} title={live ? "End it now, and run its recipe's stop" : "Clear it away, its output with it"}>
             <Icon name={busy ? "spinner" : live ? "stop" : "x"} size={11} /> {live ? "Stop" : "Clear"}
-          </button>
+          </Button>
         </span>
       </div>
       {open && <RunMore r={r} by={by} />}

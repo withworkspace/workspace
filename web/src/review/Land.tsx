@@ -5,6 +5,7 @@ import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
 import { Callout, Keys, toast } from "../ui/kit";
 import { useLoaded } from "../load";
+import { Button } from "../ui/Button";
 
 // LandBar is how a capsule lands when its repo has no pull requests: its
 // commits go straight to the default branch, when you say. It sits on the
@@ -70,7 +71,7 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
   return (
     <>
       {stopped && (
-        <Callout tone="danger" title="Landing stopped" actions={<button onClick={() => setStopped(undefined)}>Dismiss</button>}>
+        <Callout tone="danger" title="Landing stopped" actions={<Button onClick={() => setStopped(undefined)}>Dismiss</Button>}>
           {stopped.message}
           {stopped.output && <pre className="land-output">{stopped.output}</pre>}
         </Callout>
@@ -81,9 +82,9 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
           tone="attention"
           title="Landing needs to be checked"
           actions={
-            <button className="primary" onClick={land} disabled={busy}>
+            <Button variant="primary" onClick={land} disabled={busy}>
               {busy ? "Checking…" : "Retry landing"}
-            </button>
+            </Button>
           }
         >
           Check whether the earlier push landed and finish recording it.
@@ -103,12 +104,12 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
           title={`Land ${commits} on ${l.branch}?`}
           actions={
             <>
-              <button className="primary" onClick={land} disabled={busy}>
+              <Button variant="primary" onClick={land} disabled={busy}>
                 {busy ? "Landing…" : `Land on ${l.branch}`} <Keys k="⏎" />
-              </button>
-              <button className="ghost" onClick={() => setAsking(false)} disabled={busy}>
+              </Button>
+              <Button variant="ghost" onClick={() => setAsking(false)} disabled={busy}>
                 Cancel <Keys k="esc" />
-              </button>
+              </Button>
             </>
           }
         >
@@ -126,9 +127,9 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
           icon={l.approved ? "check-circle" : "info"}
           title={l.approved ? `Approved: land its ${commits} on ${l.branch}` : `${commits} to land on ${l.branch}, when you say`}
           actions={
-            <button className={l.approved ? "primary" : ""} onClick={() => setAsking(true)}>
+            <Button variant={l.approved ? "primary" : undefined} onClick={() => setAsking(true)}>
               <Icon name="arrow-right" size={13} /> Land on {l.branch} <Keys k="L" />
-            </button>
+            </Button>
           }
         >
           {how}

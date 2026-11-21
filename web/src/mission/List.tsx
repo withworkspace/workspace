@@ -11,6 +11,7 @@ import { crewStatus, headlineStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button, buttonClass } from "../ui/Button";
 
 // The missions, grouped by whose court they're
 // in (their headline's group): what needs you first. Each says where it
@@ -89,11 +90,11 @@ export function MissionList({ missions }: { missions: Mission[] }) {
       <h1>Missions</h1>
       <div className="page-actions">
         {pastCount > 0 && (
-          <button className="ghost small" onClick={() => setShowPast((p) => !p)} aria-pressed={showPast}>
+          <Button variant="ghost" size="small" onClick={() => setShowPast((p) => !p)} aria-pressed={showPast}>
             {showPast ? "Hide past" : `Show past (${pastCount})`} <Keys k="⇧A" />
-          </button>
+          </Button>
         )}
-        <Link to="/conversations?new=1" className="button-link">
+        <Link to="/conversations?new=1" className={buttonClass()}>
           <Icon name="plus" size={14} /> New mission
         </Link>
       </div>
@@ -108,7 +109,7 @@ export function MissionList({ missions }: { missions: Mission[] }) {
           icon="flag"
           title={missions.length ? "Nothing on right now" : "No missions yet"}
           action={
-            <Link to="/conversations?new=1" className="button-link primary">
+            <Link to="/conversations?new=1" className={buttonClass({ variant: "primary" })}>
               Start with a conversation
             </Link>
           }

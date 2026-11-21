@@ -7,6 +7,7 @@ import { type Edit, editsBySection } from "./briefpage";
 import { PlanList } from "./PlanList";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // The outline beside a mission's brief and plan (BriefTab.tsx): what
 // they're made of, each leading to its place in them.
@@ -177,16 +178,16 @@ export function BriefOutline({
             {toRead === 1 ? "A change" : `${toRead} changes`} {briefing ? "since the draft before" : "to what's written"}
           </p>
           <div className="brief-changes-nav">
-            <button type="button" className="small" onClick={() => move(-1)} title="The change before (k)" aria-label="The change before">
+            <Button size="small" className="changes-nav-button" type="button" onClick={() => move(-1)} title="The change before (k)" aria-label="The change before">
               <Icon name="chevron-up" size={12} /> <Keys k="k" />
-            </button>
-            <button type="button" className="small" onClick={() => move(1)} title="The next change (j)" aria-label="The next change">
+            </Button>
+            <Button size="small" className="changes-nav-button" type="button" onClick={() => move(1)} title="The next change (j)" aria-label="The next change">
               <Icon name="chevron-down" size={12} /> <Keys k="j" />
-            </button>
+            </Button>
             <span className="spacer" />
-            <button type="button" className="small" onClick={acceptAll} title="Take each as it's proposed">
+            <Button size="small" className="changes-nav-button" type="button" onClick={acceptAll} title="Take each as it's proposed">
               Accept all
-            </button>
+            </Button>
           </div>
         </section>
       )}

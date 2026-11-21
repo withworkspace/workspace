@@ -4,6 +4,7 @@ import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { Keys } from "../ui/kit";
 import type { Found, Row } from "./model";
+import { Button } from "../ui/Button";
 
 // What a pass found, in the diff: a card under the lines it's about, like
 // a comment's, but nobody's said it yet. Taking it puts it in your draft
@@ -41,13 +42,13 @@ export function DismissAs({ onDismiss, onCancel }: { onDismiss: (why: DismissWhy
     <span className="dismiss-as" role="group" aria-label="Dismiss it as" onClick={(e) => e.stopPropagation()}>
       <span className="dim">Dismiss as</span>
       {reviewDismissWhys.map(([why, label, title], i) => (
-        <button key={why} className="small ghost" title={title} onClick={() => onDismiss(why)}>
+        <Button variant="ghost" size="small" key={why} title={title} onClick={() => onDismiss(why)}>
           {label} <Keys k={`${i + 1}`} />
-        </button>
+        </Button>
       ))}
-      <button className="small ghost icon-button" onClick={onCancel} aria-label="Don't dismiss it" title="Don't dismiss it (esc)">
+      <Button variant="ghost" size="small" square onClick={onCancel} aria-label="Don't dismiss it" title="Don't dismiss it (esc)">
         <Icon name="x" size={11} />
-      </button>
+      </Button>
     </span>
   );
 }
@@ -73,16 +74,16 @@ export function FindingActions({
   if (dismissing) return <DismissAs onDismiss={onDismiss} onCancel={() => onDismissing(false)} />;
   return (
     <span className="finding-actions" onClick={(e) => e.stopPropagation()}>
-      <button className="small primary" onClick={onTake} title="Put it in your draft review as a comment, marked as the agent's: yours to edit, and posted only when you submit (⏎)">
+      <Button variant="primary" size="small" onClick={onTake} title="Put it in your draft review as a comment, marked as the agent's: yours to edit, and posted only when you submit (⏎)">
         Take {cursor && <Keys k="⏎" />}
-      </button>
-      <button className="small ghost" onClick={() => onDismissing(true)} title="It isn't one: don't raise it again. You'll say why (D)">
+      </Button>
+      <Button variant="ghost" size="small" onClick={() => onDismissing(true)} title="It isn't one: don't raise it again. You'll say why (D)">
         Dismiss {cursor && <Keys k="D" />}
-      </button>
+      </Button>
       {canAsk && onAsk && (
-        <button className="small ghost" onClick={onAsk} title="Ask an agent about it, with the code checked out here (a)">
+        <Button variant="ghost" size="small" onClick={onAsk} title="Ask an agent about it, with the code checked out here (a)">
           Ask {cursor && <Keys k="a" />}
-        </button>
+        </Button>
       )}
     </span>
   );

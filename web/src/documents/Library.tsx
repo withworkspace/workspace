@@ -6,6 +6,7 @@ import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // A space's library: a list for each of the workspace's kinds of document
 // whose path is in it, each with its number or date, its title, where it
@@ -146,13 +147,13 @@ export function KindHead({
       {kind.title} <Count>{found === undefined ? docs.length : `${found} of ${docs.length}`}</Count>
       {states.length > 0 && (
         <span className="segmented lib-stands" aria-label={`Where each ${kind.title} stands`}>
-          <button aria-pressed={stand === ""} onClick={() => setStand("")}>
+          <Button aria-pressed={stand === ""} onClick={() => setStand("")}>
             All
-          </button>
+          </Button>
           {states.map((s) => (
-            <button key={s} aria-pressed={stand === s} onClick={() => setStand(stand === s ? "" : s)}>
+            <Button key={s} aria-pressed={stand === s} onClick={() => setStand(stand === s ? "" : s)}>
               {s} {counts.get(s) ?? 0}
-            </button>
+            </Button>
           ))}
         </span>
       )}

@@ -45,6 +45,7 @@ import { ClearExpired, DiscardDialog, PromoteDialog, restore } from "./Lifetime"
 import { PagePin } from "../shell/focus";
 import { FoundArtifacts } from "./Found";
 import { Chip } from "../ui/Chip";
+import { Button, buttonClass } from "../ui/Button";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
 // sandboxed frame. A version is its page and the files it loads beside
@@ -138,10 +139,10 @@ export function ArtifactsPage({ workspace }: { workspace: Workspace }) {
           <div className="page-actions">
             <div className="segmented" role="group" aria-label="Where they stand">
               {(Object.keys(shownLabels) as Shown[]).map((s) => (
-                <button key={s} aria-pressed={shown === s} onClick={() => setShown(s)}>
+                <Button key={s} aria-pressed={shown === s} onClick={() => setShown(s)}>
                   {shownLabels[s]}
                   {s === "discarded" && discarded > 0 ? ` ${discarded}` : ""}
-                </button>
+                </Button>
               ))}
             </div>
             {froms.length > 0 && (
@@ -235,9 +236,9 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
         )}
       </TLink>
       {(expiry?.soon || expiry?.expired) && (
-        <button className="ghost small artifact-row-promote" onClick={onPromote} title="Keep it for good: it expires no more">
+        <Button variant="ghost" size="small" className="artifact-row-promote" onClick={onPromote} title="Keep it for good: it expires no more">
           <Icon name="check-circle" size={13} /> Promote
-        </button>
+        </Button>
       )}
     </li>
   );
@@ -385,14 +386,14 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           <VersionStrip d={d} n={n} go={go} />
           <div className="segmented" role="group" aria-label="Width">
             {widths.map((w) => (
-              <button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={w.title} disabled={source}>
+              <Button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={w.title} disabled={source}>
                 {w.label}
-              </button>
+              </Button>
             ))}
           </div>
           <span className="artifact-tools-end">
-            <button
-              className="ghost small"
+            <Button
+              variant="ghost" size="small"
               onClick={() => {
                 setStopped(false);
                 setRun((x) => x + 1);
@@ -401,46 +402,46 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
               title="Run it again"
             >
               <Icon name="rotate" size={13} /> Reload <Keys k="r" />
-            </button>
-            <button className="ghost small" onClick={() => setStopped((s) => !s)} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"}>
+            </Button>
+            <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"}>
               <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
-            </button>
-            <button className="ghost small" aria-pressed={source} onClick={() => setSource((s) => !s)} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"}>
+            </Button>
+            <Button variant="ghost" size="small" aria-pressed={source} onClick={() => setSource((s) => !s)} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"}>
               <Icon name="code" size={13} /> Source <Keys k="s" />
-            </button>
+            </Button>
             {framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} />}
             {comparing ? (
               <Link
-                className="button-link ghost small"
+                className={buttonClass({ variant: "ghost" }, "small")}
                 to={compareHref(comparing)}
                 title={comparing[0].id === d.id ? `v${comparing[0].n} and v${comparing[1].n}, side by side: two frames, or their source diff` : `Beside ${comparing[0].id}, side by side: two frames, or their source diff`}
               >
                 <Icon name="split" size={13} /> Compare <Keys k="c" />
               </Link>
             ) : runnable ? (
-              <button className="ghost small" disabled title="It has one version, and there's no other artifact to compare it with">
+              <Button variant="ghost" size="small" disabled title="It has one version, and there's no other artifact to compare it with">
                 <Icon name="split" size={13} /> Compare
-              </button>
+              </Button>
             ) : null}
             {runnable ? (
-              <a className="button-link ghost small" href={frameURL(d.id, n, opensAs)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed, as it's set here">
+              <a className={buttonClass({ variant: "ghost" }, "small")} href={frameURL(d.id, n, opensAs)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed, as it's set here">
                 <Icon name="external" size={13} /> Open alone
               </a>
             ) : null}
             {keepable && (
-              <button className="ghost small" onClick={() => setDialog("promote")} title={d.status === "promoted" ? "Choose another version, or say what it went into now" : "Keep it for good: it expires no more"}>
+              <Button variant="ghost" size="small" onClick={() => setDialog("promote")} title={d.status === "promoted" ? "Choose another version, or say what it went into now" : "Keep it for good: it expires no more"}>
                 <Icon name="check-circle" size={13} /> {d.status === "promoted" ? "Promoted" : "Promote"} <Keys k="p" />
-              </button>
+              </Button>
             )}
             {keepable && (
-              <button className="ghost small" onClick={() => setDialog("discard")} title="Take it off the list, saying why: it can be restored">
+              <Button variant="ghost" size="small" onClick={() => setDialog("discard")} title="Take it off the list, saying why: it can be restored">
                 <Icon name="ban" size={13} /> Discard
-              </button>
+              </Button>
             )}
             {d.status === "discarded" && d.restorable && (
-              <button className="ghost small" onClick={() => restore(d, workspace).then((done) => done && reload())} title="Put it back, as it was">
+              <Button variant="ghost" size="small" onClick={() => restore(d, workspace).then((done) => done && reload())} title="Put it back, as it was">
                 <Icon name="rotate" size={13} /> Restore
-              </button>
+              </Button>
             )}
           </span>
         </div>
@@ -458,7 +459,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           ) : source ? (
             <Source id={d.id} n={n} />
           ) : stopped ? (
-            <Empty icon="stop" title="Stopped" action={<button onClick={() => setStopped(false)}>Run it</button>}>
+            <Empty icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)}>Run it</Button>}>
               The frame's unloaded, and its scripts with it.
             </Empty>
           ) : (
@@ -518,9 +519,9 @@ function HomeLine({ d, n, onDone }: { d: ArtifactDetail; n: number; onDone: () =
       <Icon name="branch" size={12} /> It lives in <Copyable text={home.where} className="mono" title="Copy its folder: how it's named for other people" /> too, for everyone with {home.repo}: v{home.version} is there
       {home.commit ? ` (${home.commit.slice(0, 7)})` : ""}.
       {n && n !== home.version && d.all.some((x) => x.n === n) ? (
-        <button className="ghost small" onClick={put} disabled={busy} title={`Promote v${n}: it takes v${home.version}'s place there, in one commit`}>
+        <Button variant="ghost" size="small" className="artifact-home-action" onClick={put} disabled={busy} title={`Promote v${n}: it takes v${home.version}'s place there, in one commit`}>
           <Icon name="check-circle" size={12} /> {busy ? "Landing…" : `Put v${n} there`}
-        </button>
+        </Button>
       ) : null}
     </div>
   );

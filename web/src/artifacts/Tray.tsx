@@ -7,6 +7,7 @@ import { Switch } from "../ui/Switch";
 import { changed, presetOn, readChange, readTold, said, type State, stateWords, takes, type Told, type Tweak, type Value } from "./tweaks";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // Tweaks: what a version's page says can be changed about it, drawn
 // here, beside its frame, and not by the page: a tray of its presets and
@@ -69,9 +70,9 @@ export function TweaksTray({ told, set, onClose, children }: { told: Told; set: 
   return (
     <aside className="tweaks-tray" aria-label="Tweaks">
       <TweaksHead told={told}>
-        <button className="ghost icon-button small" onClick={onClose} aria-label="Hide the tweaks" title="Hide them (t)">
+        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Hide the tweaks" title="Hide them (t)">
           <Icon name="x" size={13} />
-        </button>
+        </Button>
       </TweaksHead>
       <TweaksBody told={told} set={set} />
       {children && <div className="tweaks-foot">{children}</div>}
@@ -232,9 +233,9 @@ function Choose({ id, t, value, set }: { id: string; t: Tweak; value: string; se
     return (
       <div id={id} className="segmented tweak-choice" role="group" aria-label={t.label}>
         {options.map((o) => (
-          <button key={o.value} type="button" aria-pressed={o.value === value} onClick={() => set(o.value)} title={o.description || undefined}>
+          <Button key={o.value} type="button" aria-pressed={o.value === value} onClick={() => set(o.value)} title={o.description || undefined}>
             {o.label}
-          </button>
+          </Button>
         ))}
       </div>
     );
@@ -325,9 +326,9 @@ export function TweaksToggle({ told, shown, onToggle }: { told: Told | undefined
   if (!hasTweaks(told)) return null;
   const n = changed(told).length;
   return (
-    <button className="ghost small" aria-pressed={shown} onClick={onToggle} title="What its page says can be changed about it">
+    <Button variant="ghost" size="small" aria-pressed={shown} onClick={onToggle} title="What its page says can be changed about it">
       <Icon name="sliders" size={13} /> Tweaks
       {n ? <Count>{n}</Count> : null} <Keys k="t" />
-    </button>
+    </Button>
   );
 }

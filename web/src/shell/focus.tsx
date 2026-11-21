@@ -11,6 +11,7 @@ import { Icon, type IconName } from "../ui/Icon";
 import { humanError, toast } from "../ui/kit";
 import { headlineStatus, Status } from "../ui/status";
 import { Count } from "../ui/Count";
+import { Button } from "../ui/Button";
 
 // Focus: what you've pinned, of anything ws names, kept in the sidebar
 // below its places (ops/focus.go). Each is drawn as it stands, and what
@@ -176,8 +177,9 @@ export function PinButton({ r, keyHint, compact }: { r: PageRef; keyHint?: boole
   if (!focus?.supported || !name) return null;
   const on = focus.pinned(name);
   return (
-    <button
-      className={`ghost small pin-button${on ? " on" : ""}${compact ? " icon-button" : ""}`}
+    <Button
+      variant="ghost" size="small"
+      className={`pin-button ${on ? " on" : ""}${compact ? " icon-button" : ""}`}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -190,7 +192,7 @@ export function PinButton({ r, keyHint, compact }: { r: PageRef; keyHint?: boole
     >
       <Icon name="pin" size={12} />
       {!compact && (on ? "Pinned" : "Pin")}
-    </button>
+    </Button>
   );
 }
 

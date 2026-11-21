@@ -859,7 +859,7 @@ main > .banner {
 /* The toast is the text colour, so it's dark in the light theme: its link
    is the accent as it reads on a dark surface, whatever the pick (the
    light page's accent can be as dark as the toast). */
-.toast button.link {
+.toast .toast-action {
   font-weight: 600;
   color: var(--accent-lifted);
   margin-left: 4px;
@@ -867,7 +867,7 @@ main > .banner {
 
 /* In the dark theme the toast is light, so its link is the light page's
    button, hovered. */
-:root[data-theme="dark"] .toast button.link {
+:root[data-theme="dark"] .toast .toast-action {
   color: oklch(from var(--brand-1) calc(l - 0.041) c h);
 }
 
@@ -1967,49 +1967,6 @@ main {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-/* Links that look like buttons */
-.button-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  line-height: 18px;
-  min-height: 28px;
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line-strong);
-  background: var(--raised);
-  box-shadow: var(--shadow-xs);
-  white-space: nowrap;
-  transition: background var(--fast) var(--ease);
-}
-
-.button-link:hover {
-  background: var(--hover);
-}
-
-.button-link kbd {
-  color: inherit;
-  opacity: 0.65;
-  background: transparent;
-  border-color: currentColor;
-  border-bottom-width: 1px;
-  line-height: 14px;
-  min-width: 16px;
-}
-
-.button-link.primary {
-  color: var(--on-primary);
-  background: var(--primary);
-  border-color: transparent;
-}
-
-.button-link.primary:hover {
-  color: var(--on-primary-hover);
-  background: var(--primary-hover);
 }
 
 .pulse {
@@ -4143,19 +4100,6 @@ dd > .more-link,
   margin-top: -4px;
 }
 
-/* A notice's control is there to use, not to lead the page: the lead's is
-   the one primary, so a notice's reads as an ordinary button. */
-.headline.also :is(button, .button-link).primary:not(:disabled) {
-  color: var(--fg);
-  background: var(--raised);
-  border-color: var(--line-strong);
-}
-
-.headline.also :is(button, .button-link).primary:hover:not(:disabled) {
-  color: var(--fg);
-  background: var(--hover);
-}
-
 .headline .request {
   margin-top: 6px;
 }
@@ -5581,7 +5525,7 @@ dd > .more-link,
   margin-top: 8px;
 }
 
-.brief-changes-nav .small {
+.brief-changes-nav .changes-nav-button {
   gap: 3px;
   padding-inline: 6px;
 }
@@ -6264,7 +6208,7 @@ dd > .more-link,
   background: none;
 }
 
-.doc-toolbar .icon-button {
+.doc-toolbar .doc-tool {
   min-width: 28px;
   padding: 4px 5px;
 }
@@ -7459,7 +7403,7 @@ button.verify-big {
   background: var(--done-soft);
 }
 
-.verify-yours-buttons button.on.danger {
+.verify-yours-buttons button.on.on-danger {
   color: var(--danger);
   border-color: var(--danger);
   background: var(--danger-soft);
@@ -7922,7 +7866,7 @@ h2.work-title {
 }
 
 .work-crew-line .crew-badge,
-.work-crew-line .button-link {
+.work-crew-line .crew-line-link {
   flex: none;
   align-self: center;
 }
@@ -8671,15 +8615,6 @@ a.work-file:hover {
   opacity: 0.75;
 }
 
-.note-actions-inline button.link {
-  font-size: var(--text-sm);
-  color: var(--dim);
-}
-
-.note-actions-inline button.link:hover {
-  color: var(--fg);
-}
-
 .thread {
   list-style: none;
   margin: 10px 0 0;
@@ -8714,7 +8649,7 @@ a.work-file:hover {
   font-size: var(--text-sm);
 }
 
-.reply-hint button.link {
+.reply-hint .reply-hint-action {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -9211,7 +9146,7 @@ a.work-file:hover {
   white-space: nowrap;
 }
 
-.setting-source button.link {
+.setting-source .setting-source-action {
   margin-left: 4px;
 }
 
@@ -9801,12 +9736,6 @@ button.accent-swatch:hover {
   margin-left: auto;
 }
 
-.small-link {
-  min-height: 24px;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-}
-
 .doc-path {
   margin: var(--space-6) 0 0;
   font-size: var(--text-xs);
@@ -10015,11 +9944,6 @@ button.accent-swatch:hover {
   flex-wrap: wrap;
 }
 
-.note-toggle {
-  min-height: 22px;
-  padding: 0 8px;
-}
-
 .doc-note .one-line {
   overflow: hidden;
   white-space: nowrap;
@@ -10055,11 +9979,7 @@ blockquote.editor-on {
 
 .suggest-link {
   display: inline-flex !important;
-  align-items: center;
-  gap: 5px;
   color: var(--accent) !important;
-  font-size: var(--text-sm);
-  margin-bottom: 8px;
 }
 
 .composer-tip {
@@ -10398,9 +10318,6 @@ blockquote.editor-on {
 
 .see-applied {
   display: inline-flex !important;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-sm);
   color: var(--accent) !important;
 }
 
@@ -10940,6 +10857,10 @@ button.settled-marker-more {
   font-size: var(--text-xs);
 }
 
+button.settled-marker-more:hover {
+  color: var(--fg);
+}
+
 .settled-marker .turn-time {
   flex: none;
   font-size: var(--text-xs);
@@ -11013,12 +10934,6 @@ button.settled-marker-more {
 }
 
 /* The steps before the last few of a run going now. */
-.calls-earlier {
-  margin-bottom: 4px;
-  color: var(--dim);
-  font-size: var(--text-sm);
-}
-
 .calls {
   list-style: none;
   margin: 0;
@@ -11457,7 +11372,7 @@ button.settled-marker-more {
   background: var(--bg);
 }
 
-.proposal-frame .button-link {
+.proposal-frame .proposal-open {
   justify-self: end;
 }
 
@@ -12366,7 +12281,7 @@ details.repo-group > summary::-webkit-details-marker {
   gap: 2px;
 }
 
-.overview-changed button.link {
+.overview-changed .overview-file {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -12376,7 +12291,7 @@ details.repo-group > summary::-webkit-details-marker {
   font-size: var(--text-sm);
 }
 
-.overview-changed button.link:hover {
+.overview-changed .overview-file:hover {
   background: var(--hover);
 }
 
@@ -12405,11 +12320,11 @@ details.repo-group > summary::-webkit-details-marker {
   font: var(--text-sm) var(--mono);
 }
 
-.file-crumbs button.link {
+.file-crumbs .crumb {
   color: var(--dim);
 }
 
-.file-crumbs button.link:hover {
+.file-crumbs .crumb:hover {
   color: var(--fg);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -12951,8 +12866,6 @@ details.repo-group > summary::-webkit-details-marker {
 }
 
 .edit-more {
-  padding: 4px 10px;
-  font-size: var(--text-xs);
   color: var(--accent) !important;
 }
 
@@ -13021,6 +12934,10 @@ details.repo-group > summary::-webkit-details-marker {
   gap: 4px;
   color: inherit;
   font: inherit;
+}
+
+.group .group-fold:hover {
+  color: var(--fg);
 }
 
 .pr-row {
@@ -13521,7 +13438,7 @@ details.repo-group > summary::-webkit-details-marker {
   min-height: 24px;
 }
 
-.rpass-finding-head button.link {
+.rpass-finding-head .finding-link {
   font-size: var(--text-xs);
 }
 
@@ -13778,7 +13695,6 @@ details.repo-group > summary::-webkit-details-marker {
 
 /* A file whose change is as you reviewed it: folded, and says so. */
 .unchanged-mark {
-  color: var(--green);
   font-weight: 500;
 }
 
@@ -13983,7 +13899,7 @@ a.note-id:hover {
   color: var(--fg);
 }
 
-.save-state {
+span.save-state {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -15177,15 +15093,6 @@ button.finding-quote:hover {
   font: var(--text-xs) var(--mono);
 }
 
-.team-bots {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin: 2px 8px 0;
-  color: var(--dim);
-  font-size: var(--text-sm);
-}
-
 @media (max-width: 760px) {
   .team-people,
   .team-row .pr-size {
@@ -16068,7 +15975,7 @@ body.nav-pointing .lines code[data-rev] {
   font-weight: 600;
 }
 
-.contents-menu-head button.link {
+.contents-menu-head .contents-menu-action {
   margin-left: auto;
   flex: none;
   color: var(--accent);
@@ -16777,7 +16684,7 @@ body.nav-pointing .lines code[data-rev] {
 }
 
 /* Open it, once it's kept: a button, as Ask a follow-up is. */
-.askcard-foot .button-link {
+.askcard-foot .askcard-link {
   color: var(--fg);
 }
 
@@ -17208,7 +17115,7 @@ button.accent-button:hover:not(:disabled) {
   font-size: var(--text-sm);
 }
 
-.artifact-home button.ghost {
+.artifact-home .artifact-home-action {
   margin-left: 8px;
   vertical-align: baseline;
 }
@@ -18799,12 +18706,6 @@ input[type="text"].tweak-text {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
-}
-
-.button-link.ghost {
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
 }
 
 .doc-preview-flight {

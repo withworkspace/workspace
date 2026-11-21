@@ -95,7 +95,8 @@
     color: var(--fg);
   }
 
-  /* A button that's words in the text: none of a button's box. */
+  /* A button that's words in the text: none of a button's box (it has
+     no .button), nor the element's (all: unset). */
   .link {
     all: unset;
     display: inline-flex;
@@ -107,6 +108,10 @@
 
   .link:hover {
     color: var(--fg);
+  }
+
+  .link:active:not(:disabled) {
+    transform: translateY(0.5px);
   }
 
   .link:focus-visible {
@@ -137,6 +142,7 @@
   .anchor.ghost,
   .anchor.ghost:hover {
     color: inherit;
+    background: transparent;
   }
 
   .anchor.primary {

@@ -3,6 +3,7 @@ import type { DiffFile } from "../api";
 import { Icon, type IconName } from "../ui/Icon";
 import { baseOf, dirOf, groupByOrder, groupFiles, type Order } from "./files";
 import type { FileState } from "./model";
+import { Button } from "../ui/Button";
 
 // ViewEntry is one of a review's views in the list down the side: what's
 // read beside the changes (the overview, the guide, what's been said, the
@@ -87,18 +88,19 @@ export function FileList({
           </span>
           <span className="files-tools" onClick={(e) => e.stopPropagation()}>
             {onOrder && (
-              <button
-                className={`ghost small files-order${order ? " on" : ""}`}
+              <Button
+                variant="ghost" size="small"
+                className={`files-order ${order ? " on" : ""}`}
                 aria-pressed={!!order}
                 onClick={() => onOrder(!order)}
                 title={order ? "The files are in the guide's order: switch to their folders'" : "Read the files in the guide's order"}
               >
                 <Icon name="sparkle" size={12} /> Guide
-              </button>
+              </Button>
             )}
-            <button className="ghost icon-button small" onClick={onFind} title="Jump to a file (t)" aria-label="Jump to a file">
+            <Button variant="ghost" size="small" square onClick={onFind} title="Jump to a file (t)" aria-label="Jump to a file">
               <Icon name="search" size={13} />
-            </button>
+            </Button>
           </span>
         </li>
       </ul>

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 import { useKeys } from "../keys";
 import { Icon } from "./Icon";
 import { Keys } from "./kit";
+import { Button, buttonClass } from "./Button";
 
 // The viewer: a picture (an image, an SVG, a Mermaid diagram) over the
 // whole page, to look around in. Drag to move it, the wheel (or a pinch)
@@ -326,27 +327,27 @@ function Stage({ viewing }: { viewing: Viewing }) {
       {failed && <div className="viewer-failed">This picture couldn't be loaded.</div>}
       {viewing.title && <div className="viewer-title">{viewing.title}</div>}
       <div className="viewer-tools" onPointerDown={(e) => e.stopPropagation()}>
-        <button className="ghost icon-button" onClick={() => zoomAt(to.current.s / step, ...middle())} title="Zoom out (-)" aria-label="Zoom out">
+        <Button variant="ghost" square onClick={() => zoomAt(to.current.s / step, ...middle())} title="Zoom out (-)" aria-label="Zoom out">
           <Icon name="minus" size={15} />
-        </button>
-        <button className="ghost viewer-zoom num" onClick={toActual} title="Its own size (1)">
+        </Button>
+        <Button variant="ghost" className="viewer-zoom num" onClick={toActual} title="Its own size (1)">
           {Math.round(zoom * 100)}%
-        </button>
-        <button className="ghost icon-button" onClick={() => zoomAt(to.current.s * step, ...middle())} title="Zoom in (+)" aria-label="Zoom in">
+        </Button>
+        <Button variant="ghost" square onClick={() => zoomAt(to.current.s * step, ...middle())} title="Zoom in (+)" aria-label="Zoom in">
           <Icon name="plus" size={15} />
-        </button>
-        <button className="ghost viewer-fit" onClick={toFit} title="Fit it to the window (0)">
+        </Button>
+        <Button variant="ghost" className="viewer-fit" onClick={toFit} title="Fit it to the window (0)">
           Fit
-        </button>
+        </Button>
         {viewing.kind === "image" && (
-          <a className="button-link ghost icon-button" href={viewing.src} target="_blank" rel="noopener noreferrer" title="Open it on its own" aria-label="Open it on its own">
+          <a className={buttonClass({ variant: "ghost" }, "icon-button")} href={viewing.src} target="_blank" rel="noopener noreferrer" title="Open it on its own" aria-label="Open it on its own">
             <Icon name="external" size={14} />
           </a>
         )}
         <span className="viewer-sep" />
-        <button className="ghost icon-button" onClick={close} title="Close (esc)" aria-label="Close">
+        <Button variant="ghost" square onClick={close} title="Close (esc)" aria-label="Close">
           <Icon name="x" size={15} />
-        </button>
+        </Button>
       </div>
       <div className="viewer-hint" aria-hidden>
         Drag to move · scroll to zoom · <Keys k="0" /> fit · <Keys k="esc" /> close
