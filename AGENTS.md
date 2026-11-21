@@ -19,6 +19,7 @@ just try down               # stop its daemon and remove it (it's also torn down
 just test-workspace [dir]   # the same workspace, to keep: no daemon started, nothing torn down
 just stories                # Storybook at localhost:6006: parts of the web UI drawn alone, every state side by side
 just story-fixtures         # take the stories' missions again, from tries seeded for it
+just shots [all]            # take the README's pictures again (all: FEATURES.md's too), of a try seeded with marketing
 ```
 
 `ws eval` puts a role's prompt to fixtures, cases whose right answer is known, on a harness and model you name, and scores what comes back: for telling whether a change to a prompt, or another model in a role, does as well. It's off unless `WS_EVAL` is set, not listed and refused, and no agent ws starts is given the variable: it starts agents of its own, so it isn't for one to come on. It knows two roles (each one's `--help` says what a fixture is):
@@ -34,6 +35,23 @@ WS_EVAL=1 ws eval orchestrator --pick claude:haiku \
 The orchestrator's run is in a workspace made for it and removed after, which ws doesn't make: `--before` and `--after` are yours, and `scripts/try.sh` is what makes one here (`just build` first: `--no-build` uses `bin/workspace` as it is). A fixture's seed is a script as a try's is (`scripts/seeds`).
 
 `internal/web/dist` is built, not committed: it's gitignored but for its `.gitkeep`, which `go:embed` needs. A binary built without it (`go build` alone, or `go install`) has no web UI, and `ws web` says so.
+
+## Looking at the web UI
+
+A change to the web UI is looked at before it's done, light and dark. [shotta](https://github.com/brudil/shotta) takes the pictures, of a try's web UI, for you to read: it's run from `web/`, where `shotta.config.ts` finds this checkout's try and signs in to it (`WS_LINK` names another's link).
+
+```sh
+just try up marketing                # something to look at: Sorrel's workspace (or the seed that has what you changed)
+cd web
+pnpm shotta snap /team --agent       # a page, light and dark: the report on stdout names each picture, in pieces small enough to read
+pnpm shotta snap /team --of 'role=heading[name="Team"]' --pad 24 --agent    # one part you changed, with a little of the page around it
+pnpm shotta snap /team --profiles phone --agent                             # at a phone's width
+pnpm shotta find --agent             # a flow: Find, opened and asked something (shotta list names them)
+```
+
+Read `passes[].shots[].tiles`, and `passes[].storyboard` for a flow: one picture of the whole way through it. What takes a click or a key to come to is steps, as JSON on stdin (`pnpm shotta snap --steps - --agent`, with `{ "goto": … }`, `{ "click": … }`, `{ "press": … }`, `{ "shot": … }`), or a flow of its own where it's worth looking at again: `<name>.shots.ts`, in `web/shots/` or beside the part it shows. When `ok` is false, `failure.message` and `failure.aria` (the page as roles and names, which is what a selector is written in) say why. After writing or changing a flow, `pnpm shotta check` says what's wrong with it, with no browser: don't run `tsc` on one. The browser is fetched once a machine: `pnpm exec playwright install chromium-headless-shell`.
+
+`just shots` is the same tool taking the README's pictures (`scripts/shots.mjs`).
 
 ## Releases
 

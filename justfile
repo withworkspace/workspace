@@ -63,6 +63,6 @@ test-workspace dir=(env_var('HOME') + "/Projects/ws-test"):
 try *args:
     @./scripts/try.sh {{args}}
 
-# Take the README's pictures again: a try seeded with marketing, in a headless Chrome, light and dark, into docs/assets/shots (scripts/shots.mjs says the rest).
+# Take the README's pictures again: a try seeded with marketing, pictured by shotta, light and dark, into docs/assets/shots (scripts/shots.mjs says the rest).
 shots *args:
     @node scripts/shots.mjs {{args}}
