@@ -1069,17 +1069,50 @@
     "defaultBranch": "main"
    },
    "address": "ws:SPRINT-4"
+  },
+  {
+   "ref": {
+    "kind": "pr",
+    "repo": "cr-demo",
+    "number": 4
+   },
+   "where": {
+    "org": "acme",
+    "remotes": {
+     "cr-demo": "cr-team/demo"
+    },
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/cr-team/demo/pull/4"
+  },
+  {
+   "ref": {
+    "kind": "repo",
+    "repo": "demo"
+   },
+   "where": {
+    "org": "acme",
+    "remotes": {
+     "cr-demo": "cr-team/demo"
+    },
+    "defaultBranch": "main"
+   },
+   "address": "https://github.com/acme/demo"
   }
  ],
  "read": {
   "known": {
    "repos": {
-    "demo": null
+    "demo": null,
+    "cr-demo": null
    },
    "missions": [],
    "pages": [],
    "talks": [],
    "org": "acme",
+   "remotes": {
+    "cr-demo": "cr-team/demo"
+   },
    "defaultBranch": "main",
    "branches": {
     "demo": {
@@ -1354,6 +1387,31 @@
    },
    {
     "address": "ws:EV-12",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/cr-team/demo/pull/4",
+    "ref": {
+     "kind": "pr",
+     "repo": "cr-demo",
+     "number": 4
+    }
+   },
+   {
+    "address": "https://github.com/CR-Team/demo/blob/main/a.go",
+    "ref": {
+     "kind": "file",
+     "repo": "cr-demo",
+     "worktree": ".ground",
+     "path": "a.go"
+    }
+   },
+   {
+    "address": "https://github.com/acme/cr-demo/pull/4",
+    "ref": null
+   },
+   {
+    "address": "https://github.com/other/demo/pull/4",
     "ref": null
    }
   ]

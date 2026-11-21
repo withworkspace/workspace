@@ -68,7 +68,7 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 	if err != nil {
 		return Workspace{}, err
 	}
-	out := Workspace{Name: v.Name, Root: root, Org: v.Org, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: Talks(root), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Spaces: []SpaceRef{}}
+	out := Workspace{Name: v.Name, Root: root, Org: v.Org, Remotes: v.Elsewhere, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: Talks(root), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Spaces: []SpaceRef{}}
 	out.Focus = focusOf(v.Focus)
 	out.Apps = []AppInfo{}
 	for _, a := range v.Apps {

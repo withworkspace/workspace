@@ -10,6 +10,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/cli"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/testutil"
 )
 
@@ -30,12 +31,16 @@ func TestFollowGrounds_FetchesOnlyWhatMovedOnGitHub(t *testing.T) {
 	w := testutil.LandWorkspace(t, "")
 	asked := 0
 	heads := map[string]string{}
-	gh := &testutil.StubClient{HeadsFn: func(org string, repos []string, branch string) (map[string]string, error) {
+	gh := &testutil.StubClient{HeadsFn: func(repos []ref.Remote, branch string) (map[ref.Remote]string, error) {
 		asked++
-		if org != "test-org" || branch != "main" || len(repos) != 2 {
-			t.Errorf("asked after %s %v %s", org, repos, branch)
+		if branch != "main" || len(repos) != 2 || repos[0].Owner != "test-org" {
+			t.Errorf("asked after %v %s", repos, branch)
 		}
-		return heads, nil
+		out := map[ref.Remote]string{}
+		for repo, oid := range heads {
+			out[ref.Remote{Owner: "test-org", Name: repo}] = oid
+		}
+		return out, nil
 	}}
 	o := cli.OpenOps(w.Root, nil, func(o *ops.Options) { o.GitHub = gh })
 	at := func(repo string) string {
@@ -65,7 +70,7 @@ func TestFollowGrounds_FetchesOnlyWhatMovedOnGitHub(t *testing.T) {
 // own, or on another branch, is held where it is.
 func TestFollowGrounds_FetchesEachWithoutGitHubAndHoldsAGroundInUse(t *testing.T) {
 	w := testutil.LandWorkspace(t, "")
-	gh := &testutil.StubClient{HeadsFn: func(string, []string, string) (map[string]string, error) {
+	gh := &testutil.StubClient{HeadsFn: func([]ref.Remote, string) (map[ref.Remote]string, error) {
 		return nil, errors.New("gh isn't signed in")
 	}}
 	o := cli.OpenOps(w.Root, nil, func(o *ops.Options) { o.GitHub = gh })

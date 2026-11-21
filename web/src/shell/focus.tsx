@@ -320,6 +320,7 @@ function useSidebarKnown(workspace: Workspace | undefined, plugins?: Plugin[]): 
       talks: (workspace?.conversations ?? []).map((t) => t.id),
       artifacts: (workspace?.artifacts ?? []).map((a) => a.id),
       org: workspace?.org,
+      remotes: workspace?.remotes,
       defaultBranch: workspace?.defaultBranch,
       spaces: (workspace?.spaces ?? []).map((s) => ({ repo: s.repo, folder: s.folder })),
       things,

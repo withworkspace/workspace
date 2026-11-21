@@ -55,6 +55,7 @@ func (w *Workspace) refsKnown(ctx context.Context, trees, writing bool) *ref.Kno
 		Branches:      map[string]map[string]string{},
 		Root:          ws.Root,
 		Org:           ws.Org,
+		Remotes:       ws.Remotes,
 		DefaultBranch: firstNonEmpty(ws.DefaultBranch, "main"),
 	}
 	var grounds map[string]find.GroundTree
@@ -222,18 +223,18 @@ func (w *Workspace) pinTurn(t *conversation.Turn) {
 // LinkNames is markdown going into a document with the names in it made
 // links (ref.Link): each to where it is on GitHub, a file's lines at the
 // commit they were read at, a capsule's file at its branch once pushed,
-// and what only ws has as ws:. With no org to address GitHub by, it's
-// left as it is.
+// and what only ws has as ws:. Where no repo has an owner to address
+// GitHub by, it's left as it is.
 func (w *Workspace) LinkNames(md string) string {
 	ws := w.WS()
-	if ws.Org == "" || strings.TrimSpace(md) == "" {
+	if len(ws.Owners()) == 0 || strings.TrimSpace(md) == "" {
 		return md
 	}
 	ctx := context.Background()
 	k := w.RefsKnown(ctx, true)
 	return k.Link(md, func(f ref.Found, said string) (string, bool) {
 		p := w.pin(ctx, k, said, f.Ref)
-		where := ref.Where{Org: k.Org, DefaultBranch: k.DefaultBranch}
+		where := ref.Where{Org: k.Org, Remotes: k.Remotes, DefaultBranch: k.DefaultBranch}
 		if p.Pushed {
 			where.Branch = p.Branch
 		}

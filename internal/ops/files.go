@@ -30,6 +30,18 @@ type Repo struct {
 	// Landing is how work lands in it, as the workspace or the repo itself
 	// says.
 	Landing RepoLanding
+	// Yours: it's in ws.local.toml alone, not the team's ws.toml.
+	Yours bool
+	// GitHub is where it is on GitHub, as owner/name: "" for nowhere.
+	GitHub string
+	// Cloning: it was just added, and is being cloned; Problem is why it
+	// couldn't be, if it couldn't.
+	Cloning bool
+	Problem string
+	// TeamGroup is the team's group for it, where yours (Group) is over
+	// it: "" where it isn't.
+	TeamGroup  string
+	GroupYours bool
 }
 
 // RepoLanding is how work lands in a repo: through a pull request, or
@@ -72,6 +84,15 @@ func (w *Workspace) Repos() []Repo {
 				}
 			}
 			slices.Sort(r.Aliases)
+			r.Yours = ws.Yours[name]
+			r.Cloning, r.Problem = w.cloningOf(name)
+			r.TeamGroup, r.GroupYours = ws.TeamGroups[name]
+			if !r.GroupYours && r.Yours {
+				r.GroupYours = r.Group != "" // a repo of yours: its group's yours too
+			}
+			if ws.OnGitHub(name) {
+				r.GitHub = ws.RemoteOf(name).String()
+			}
 			if info, err := os.Stat(ws.MainWorktree(name)); err == nil && info.IsDir() {
 				r.Cloned = true
 			}
@@ -201,7 +222,7 @@ func (w *Workspace) FindIndex() *find.Index {
 }
 
 func (w *Workspace) newFindIndex() *find.Index {
-	ix := &find.Index{Org: w.WS().Org}
+	ix := &find.Index{RepoAt: func(owner, name string) (string, bool) { return w.WS().RepoAt(owner, name) }}
 	ix.Worktrees = func() ([]find.Worktree, error) {
 		ws := w.WS()
 		branch := ws.DefaultBranch

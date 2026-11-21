@@ -25,7 +25,7 @@ import (
 func (w *Workspace) ReviewsService() *pulls.Service {
 	root := w.Root()
 	return &pulls.Service{
-		Root: root, Org: w.WS().Org, GitHub: w.GitHub(),
+		Root: root, Remote: func(repo string) ref.Remote { return w.WS().RemoteOf(repo) }, GitHub: w.GitHub(),
 		// While a Reviews page is open, GitHub is asked as often as the
 		// missions' PRs are watched.
 		Fresh: WatchPRsEvery,
@@ -241,7 +241,7 @@ func (w *Workspace) TidyDocked() {
 			continue
 		}
 		if _, asked := open[k.Repo]; !asked {
-			prs, err := w.GitHub().OpenPRs(w.WS().Org, k.Repo)
+			prs, err := w.GitHub().OpenPRs(w.WS().RemoteOf(k.Repo).Owner, w.WS().RemoteOf(k.Repo).Name)
 			if err != nil {
 				continue // can't tell: leave it
 			}

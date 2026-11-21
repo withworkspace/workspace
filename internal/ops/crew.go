@@ -13,6 +13,7 @@ import (
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/prompt"
+	"github.com/withworkspace/workspace/internal/workspace"
 )
 
 // Roles is which harness and model each role uses, as the config says.
@@ -346,7 +347,7 @@ func (w *Workspace) prepare(m *mission.Mission, h harness.Harness, d Dispatch, p
 		}, nil
 	case d.Role == mission.RoleBriefing:
 		b := harness.Brief{Slug: m.Slug, Title: m.Title, Brief: brief, Dir: place.Dir, Role: mission.RoleBriefing,
-			Request: m.Request, Conversation: m.Conversation, Org: w.WS().Org, Model: firstNonEmpty(d.Model, roles.ForBriefing().ModelFor(h.Name())), Guide: guide}
+			Request: m.Request, Conversation: m.Conversation, Org: w.WS().Org, Elsewhere: elsewhere(w.WS()), Model: firstNonEmpty(d.Model, roles.ForBriefing().ModelFor(h.Name())), Guide: guide}
 		cb := crewBrief(b)
 		cb.Planning = w.planning()
 		b.Prompt = prompt.Crew(cb)
@@ -357,7 +358,7 @@ func (w *Workspace) prepare(m *mission.Mission, h harness.Harness, d Dispatch, p
 		// answer, which runs the orchestrator as your answer would.
 		q, _ := m.Question()
 		b := harness.Brief{Slug: m.Slug, Title: m.Title, Dir: place.Dir, Role: mission.RoleAnswer,
-			Question: q.Text, Options: q.Options, Org: w.WS().Org, Model: firstNonEmpty(d.Model, roles.ForCrew().ModelFor(h.Name())), Guide: guide}
+			Question: q.Text, Options: q.Options, Org: w.WS().Org, Elsewhere: elsewhere(w.WS()), Model: firstNonEmpty(d.Model, roles.ForCrew().ModelFor(h.Name())), Guide: guide}
 		b.Prompt = prompt.Crew(crewBrief(b))
 		return func() (harness.Launch, error) { return h.Start(b) }, nil
 	}
@@ -386,7 +387,22 @@ func (w *Workspace) prepare(m *mission.Mission, h harness.Harness, d Dispatch, p
 func crewBrief(b harness.Brief) prompt.CrewBrief {
 	return prompt.CrewBrief{Slug: b.Slug, Title: b.Title, Brief: b.Brief, Role: b.Role, Request: b.Request, Conversation: b.Conversation,
 		Question: b.Question, Options: b.Options, Guide: b.Guide, Dispatch: b.Dispatch, Stage: b.Stage, StageN: b.StageN, StageOf: b.StageOf, Steps: b.Steps,
-		OpensPR: b.OpensPR, LeftOff: b.LeftOff, Org: b.Org}
+		OpensPR: b.OpensPR, LeftOff: b.LeftOff, Org: b.Org, Elsewhere: b.Elsewhere}
+}
+
+// elsewhere is the repos that aren't the org's by their names here, each
+// as owner/name on GitHub: what crew are told besides the org.
+func elsewhere(ws *workspace.Workspace) map[string]string {
+	var out map[string]string
+	for _, repo := range ws.RepoNames {
+		if r := ws.RemoteOf(repo); r.Owner != "" && !r.Is(ws.Org, repo) {
+			if out == nil {
+				out = map[string]string{}
+			}
+			out[repo] = r.String()
+		}
+	}
+	return out
 }
 
 // endHandedBack ends the sessions of crew that handed their work back in

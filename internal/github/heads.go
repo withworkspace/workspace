@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	gh "github.com/cli/go-gh/v2"
+
+	"github.com/withworkspace/workspace/internal/ref"
 )
 
 // HeadsClient is a Client that can say where many repos' branches are on
@@ -13,7 +15,7 @@ import (
 // looks, and fetches only the repos whose branch has moved; a Client
 // without it (the fixture, a stub) has each repo fetched instead.
 type HeadsClient interface {
-	Heads(org string, repos []string, branch string) (map[string]string, error)
+	Heads(repos []ref.Remote, branch string) (map[ref.Remote]string, error)
 }
 
 // headsPerQuery is how many repos one query asks after. GitHub charges a
@@ -22,11 +24,12 @@ type HeadsClient interface {
 // keeps a query to a size GitHub's happy to parse.
 const headsPerQuery = 100
 
-func (LiveClient) Heads(org string, repos []string, branch string) (map[string]string, error) {
-	return Heads(org, repos, branch)
+func (LiveClient) Heads(repos []ref.Remote, branch string) (map[ref.Remote]string, error) {
+	return Heads(repos, branch)
 }
 
-// Heads is where each repo's branch is on GitHub: repo → commit. A repo
+// Heads is where each repo's branch is on GitHub: repo → commit. The
+// repos needn't share an owner: each is asked after by its own. A repo
 // GitHub doesn't have, or that hasn't the branch, isn't in it; a query
 // that answered for some repos and not others answers with those it did.
 //
@@ -35,15 +38,15 @@ func (LiveClient) Heads(org string, repos []string, branch string) (map[string]s
 // ls-remote` took 7.4s for the same eight one after another. A repo that
 // doesn't resolve comes back null with an error beside the others' data,
 // and gh exits 1.
-func Heads(org string, repos []string, branch string) (map[string]string, error) {
-	out := map[string]string{}
+func Heads(repos []ref.Remote, branch string) (map[ref.Remote]string, error) {
+	out := map[ref.Remote]string{}
 	for start := 0; start < len(repos); start += headsPerQuery {
 		chunk := repos[start:min(start+headsPerQuery, len(repos))]
-		stdOut, stdErr, err := gh.Exec("api", "graphql", "-f", "query="+headsQuery(org, chunk, branch))
+		stdOut, stdErr, err := gh.Exec("api", "graphql", "-f", "query="+headsQuery(chunk, branch))
 		heads, perr := parseHeads(stdOut.Bytes(), chunk)
 		if perr != nil {
 			if err != nil {
-				return out, fmt.Errorf("heads of %s's repos: %s", org, ghError(stdOut.Bytes(), stdErr.String(), err))
+				return out, fmt.Errorf("heads of the repos: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 			}
 			return out, perr
 		}
@@ -56,12 +59,12 @@ func Heads(org string, repos []string, branch string) (map[string]string, error)
 
 // headsQuery asks after each repo's branch under an alias of its place in
 // repos (r0, r1, …): a repo's name can't be an alias, but its place can.
-func headsQuery(org string, repos []string, branch string) string {
+func headsQuery(repos []ref.Remote, branch string) string {
 	var b strings.Builder
 	b.WriteString("query {")
 	for i, repo := range repos {
 		fmt.Fprintf(&b, " r%d: repository(owner: %s, name: %s) { ref(qualifiedName: %s) { target { oid } } }",
-			i, graphQLString(org), graphQLString(repo), graphQLString("refs/heads/"+branch))
+			i, graphQLString(repo.Owner), graphQLString(repo.Name), graphQLString("refs/heads/"+branch))
 	}
 	b.WriteString(" }")
 	return b.String()
@@ -76,7 +79,7 @@ func graphQLString(s string) string {
 
 // parseHeads reads headsQuery's answer for repos: an error only when
 // there's no data in it at all.
-func parseHeads(data []byte, repos []string) (map[string]string, error) {
+func parseHeads(data []byte, repos []ref.Remote) (map[ref.Remote]string, error) {
 	var res struct {
 		Data map[string]*struct {
 			Ref *struct {
@@ -92,7 +95,7 @@ func parseHeads(data []byte, repos []string) (map[string]string, error) {
 	if res.Data == nil {
 		return nil, fmt.Errorf("reading heads: no data")
 	}
-	out := map[string]string{}
+	out := map[ref.Remote]string{}
 	for i, repo := range repos {
 		if r := res.Data[fmt.Sprintf("r%d", i)]; r != nil && r.Ref != nil && r.Ref.Target.OID != "" {
 			out[repo] = r.Ref.Target.OID

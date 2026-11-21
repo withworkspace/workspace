@@ -48,8 +48,10 @@ type Index struct {
 	// Pulls is the open pull requests as GitHub last said, and when; nil
 	// where there's no GitHub. It never asks GitHub.
 	Pulls func() ([]Pull, time.Time)
-	// Org is the workspace's on GitHub, for reading a pasted address.
-	Org string
+	// RepoAt is the repo, by its name here, that's owner/name on GitHub,
+	// for reading a pasted address. nil: an address is read by its repo's
+	// name, whoever's it is.
+	RepoAt func(owner, name string) (string, bool)
 	// Now is the time (tests set it).
 	Now func() time.Time
 

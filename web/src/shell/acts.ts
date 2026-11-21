@@ -1,5 +1,6 @@
 import { type ActVerb, prAPI, type Workspace } from "../api";
 import type { IconName } from "../ui/Icon";
+import { onGitHub, remoteOf } from "../refs/refs";
 import { crewStatus } from "../ui/status";
 import { type Item, missionDo } from "./find";
 
@@ -10,7 +11,12 @@ import { type Item, missionDo } from "./find";
 
 // Subject is a thing of ws's own that has things to do to it, by the id
 // its row has in Find (mission:slug, talk:id, artifact:id, pr:repo#n).
-export type Subject = { kind: "mission"; slug: string } | { kind: "talk"; id: string } | { kind: "artifact"; id: string } | { kind: "pr"; repo: string; number: number };
+export type Subject =
+  | { kind: "mission"; slug: string }
+  | { kind: "talk"; id: string }
+  | { kind: "artifact"; id: string }
+  | { kind: "pr"; repo: string; number: number }
+  | { kind: "settings"; section: string };
 
 // subjectOf is the thing a row of Find is, if it has things to do to it.
 export function subjectOf(id: string | undefined): Subject | undefined {
@@ -26,6 +32,8 @@ export function subjectOf(id: string | undefined): Subject | undefined {
       return { kind: "talk", id: rest };
     case "artifact":
       return { kind: "artifact", id: rest };
+    case "settings":
+      return { kind: "settings", section: rest };
     case "pr": {
       const m = /^([\w.-]+)#(\d+)$/.exec(rest);
       return m ? { kind: "pr", repo: m[1], number: Number(m[2]) } : undefined;
@@ -46,6 +54,10 @@ const row = (id: string, title: string, icon: IconName, more: Partial<Item>): It
 // where else it's read. Nothing, for a thing the workspace doesn't hold.
 export function actsFor(s: Subject, w: Workspace): Item[] {
   switch (s.kind) {
+    case "settings":
+      // A section of Settings is a place: what's done there, from Find,
+      // is what the section itself offers.
+      return s.section === "repos" ? [row("add-repo", "Add a repo from GitHub", "plus", { hint: "yours, or the team's", to: "/settings/repos?add=1" })] : [];
     case "mission": {
       const m = w.missions.find((x) => x.slug === s.slug);
       if (!m) return [];
@@ -84,7 +96,7 @@ export function actsFor(s: Subject, w: Workspace): Item[] {
     }
     case "pr": {
       const out: Item[] = [row(`dock:${s.repo}#${s.number}`, "Dock it here", "branch", { hint: "check out a capsule, as ws dock does", doing: { ws: { dock: prAPI(s.repo, s.number) } } })];
-      if (w.org) out.push(row(`github:${s.repo}#${s.number}`, "Open it on GitHub", "external", { to: `https://github.com/${w.org}/${s.repo}/pull/${s.number}` }));
+      if (onGitHub(w, s.repo)) out.push(row(`github:${s.repo}#${s.number}`, "Open it on GitHub", "external", { to: `https://github.com/${remoteOf(w, s.repo)}/pull/${s.number}` }));
       return out;
     }
   }

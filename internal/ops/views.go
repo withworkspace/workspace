@@ -71,8 +71,8 @@ func FetchPRs(ws *workspace.Workspace, gh github.Client, repos []string) PRIndex
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			r := repoPRs{open: indexPRs(gh.PRsForRepo(ws.Org, repo))}
-			r.merged = indexPRs(gh.MergedPRsForRepo(ws.Org, repo))
+			r := repoPRs{open: indexPRs(gh.PRsForRepo(ws.RemoteOf(repo).Owner, ws.RemoteOf(repo).Name))}
+			r.merged = indexPRs(gh.MergedPRsForRepo(ws.RemoteOf(repo).Owner, ws.RemoteOf(repo).Name))
 			mu.Lock()
 			prs[repo] = r
 			mu.Unlock()

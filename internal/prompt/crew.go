@@ -7,6 +7,8 @@ package prompt
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/mission"
@@ -47,6 +49,9 @@ type CrewBrief struct {
 	// Planning is the process the planner works from (briefing).
 	Planning Planning
 	Org      string // the GitHub org the workspace's repos live in
+	// Elsewhere are the repos that aren't Org's by their name here: repo
+	// to owner/name on GitHub.
+	Elsewhere map[string]string
 }
 
 // Crew is the first message given to new crew. It points the agent at
@@ -176,9 +181,7 @@ func briefingPrompt(b CrewBrief) string {
 	s.WriteString(Naming)
 	s.WriteString("Steps:\n\n")
 	s.WriteString("1. Understand the request. Run `ws status -f llm` to see the repos, their aliases and their worktrees. ")
-	if b.Org != "" {
-		fmt.Fprintf(&s, "Repos live on GitHub as %s/<repo>. ", b.Org)
-	}
+	s.WriteString(onGitHub(b.Org, b.Elsewhere))
 	s.WriteString("If the request names an issue or PR (\"fe issue 45\", \"api#12\", a URL), read it with `gh issue view` / `gh pr view` (use `--repo <org>/<repo>` and `--comments`). ")
 	s.WriteString("Read code in a repo's `.ground` worktree (read-only) or with `ws rg`. Don't change any code.\n")
 	s.WriteString("2. Ask the user about anything ambiguous: which repos, scope, what done looks like.\n")
@@ -192,5 +195,32 @@ func briefingPrompt(b CrewBrief) string {
 	s.WriteString("8. When they agree, run `ws mission ready` (add `--slug <short-slug>` if the current slug is poor). That confirms the brief and the plan, the go-ahead: the mission starts (ws reaches its plan's first step), and this session ends.\n\n")
 	s.WriteString(processFor(b.Planning))
 	s.WriteString(planWriting("`repo/name`, one you dock in step 6"))
+	return s.String()
+}
+
+// onGitHub says where the repos are on GitHub: under the org by their
+// names, but for those somewhere else, each said.
+func onGitHub(org string, elsewhere map[string]string) string {
+	var s strings.Builder
+	if org != "" {
+		fmt.Fprintf(&s, "Repos live on GitHub as %s/<repo>", org)
+	}
+	if len(elsewhere) > 0 {
+		if org != "" {
+			s.WriteString(", but for ")
+		} else {
+			s.WriteString("Repos on GitHub: ")
+		}
+		names := slices.Sorted(maps.Keys(elsewhere))
+		for i, repo := range names {
+			if i > 0 {
+				s.WriteString(", ")
+			}
+			fmt.Fprintf(&s, "%s, which is %s", repo, elsewhere[repo])
+		}
+	}
+	if s.Len() > 0 {
+		s.WriteString(". ")
+	}
 	return s.String()
 }

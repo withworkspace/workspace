@@ -191,7 +191,7 @@ func (w *Workspace) board(repo, name string) error {
 		return nil // not there to board
 	}
 	config.SaveBoarded(w.Root(), w.WS().Boarded)
-	return ide.Regenerate(w.Root(), w.WS().Boarded, w.WS().DisplayNames, w.WS().Org)
+	return ide.Regenerate(w.Root(), w.WS().Boarded, w.WS().DisplayNames, w.WS().RemoteOf)
 }
 
 // What becomes of a silo pointed at a capsule that's burned.
@@ -225,7 +225,7 @@ func (w *Workspace) Burn(repo, name string, o BurnOptions) (Burned, error) {
 	if w.WS().IsBoarded(repo, name) {
 		w.WS().Unboard(repo, name)
 		config.SaveBoarded(w.Root(), w.WS().Boarded)
-		out.IDEErr = ide.Regenerate(w.Root(), w.WS().Boarded, w.WS().DisplayNames, w.WS().Org)
+		out.IDEErr = ide.Regenerate(w.Root(), w.WS().Boarded, w.WS().DisplayNames, w.WS().RemoteOf)
 	}
 	branch := workspace.GitCurrentBranch(filepath.Join(w.WS().RepoDir(repo), name))
 	owner, owned := w.Missions.FindByCapsule(repo, name)

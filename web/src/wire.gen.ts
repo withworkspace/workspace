@@ -92,6 +92,21 @@ export interface Action {
     look?: Look[];
 }
 
+// From web/github_repos.go
+/**
+ * AddableRepo is one of an owner's repos, and its name here when the
+ * workspace has it already.
+ */
+export interface AddableRepo {
+    name: string;
+    description?: string;
+    pushedAt?: string;
+    archived?: boolean;
+    fork?: boolean;
+    private?: boolean;
+    here?: string;
+}
+
 // From web/agent.go
 /**
  * AnswerRequest answers what crew are asking: Permission (allow, always or
@@ -1865,6 +1880,51 @@ export interface FocusPin {
     kind?: string;
     title?: string;
     state?: string;
+}
+
+// From web/github_repos.go
+/**
+ * GitHubOwner is someone repos can be added from: you, or an org.
+ */
+export interface GitHubOwner {
+    login: string;
+    you?: boolean;
+}
+
+// From web/github_repos.go
+/**
+ * GitHubOwners is whose repos can be added: you, then your orgs.
+ */
+export interface GitHubOwners {
+    owners: GitHubOwner[];
+    /**
+     * At is when GitHub said ("" for never), Looking whether it's being
+     * asked again, and Problem why it couldn't say, last it was asked.
+     */
+    at?: string;
+    looking?: boolean;
+    problem?: string;
+}
+
+// From web/github_repos.go
+/**
+ * GitHubRepos is an owner's repos, newest pushed first.
+ */
+export interface GitHubRepos {
+    owner: string;
+    repos: AddableRepo[];
+    at?: string;
+    looking?: boolean;
+    problem?: string;
+}
+
+// From web/groups.go
+/**
+ * GroupShownSet is a group shown or hidden for you (POST
+ * /api/groups/{group}/shown): hidden, or null to go back to the team's.
+ */
+export interface GroupShownSet {
+    hidden: boolean | null;
 }
 
 // From harness/stream.go
@@ -3646,6 +3706,73 @@ export interface Repo {
      * default branch).
      */
     landing?: OpsRepoLanding;
+    /**
+     * Yours: it's in ws.local.toml alone, not the team's ws.toml.
+     */
+    yours?: boolean;
+    /**
+     * GitHub is where it is on GitHub, as owner/name: "" for nowhere.
+     */
+    github?: string;
+    /**
+     * Cloning: it was just added, and is being cloned; Problem is why it
+     * couldn't be, if it couldn't.
+     */
+    cloning?: boolean;
+    problem?: string;
+    /**
+     * TeamGroup is the team's group for it, where yours (Group) is over
+     * it; GroupYours: Group is yours (ws.local.toml), not the team's.
+     */
+    teamGroup?: string;
+    groupYours?: boolean;
+}
+
+// From web/github_repos.go
+/**
+ * RepoAdd is a repo to add (POST /api/repos): where it is on GitHub, its
+ * name here if not its name there, and whether it's the team's.
+ */
+export interface RepoAdd {
+    owner: string;
+    name: string;
+    as?: string;
+    group?: string;
+    team?: boolean;
+}
+
+// From web/github_repos.go
+/**
+ * RepoAdded is what adding one did, said.
+ */
+export interface RepoAdded {
+    repo: string;
+    message: string;
+}
+
+// From web/groups.go
+/**
+ * RepoGroup is a repo's group in the workspace, as the API serves it.
+ */
+export interface RepoGroup {
+    name: string;
+    repos: string[];
+    /**
+     * Hidden is as it is for you, TeamHidden as ws.toml says, and Chosen
+     * whether Hidden is your choice rather than the team's.
+     */
+    hidden?: boolean;
+    teamHidden?: boolean;
+    chosen?: boolean;
+}
+
+// From web/groups.go
+/**
+ * RepoGroupSet is a repo put in a group (POST /api/repos/{repo}/group):
+ * "" for none, where it can be.
+ */
+export interface RepoGroupSet {
+    group: string;
 }
 
 // From web/refpaths.go
@@ -5313,9 +5440,11 @@ export interface Workspace {
     root: string;
     /**
      * Org and DefaultBranch are where its repos are on GitHub, for a
-     * ref's address.
+     * ref's address: each under Org by its name, but for those Remotes
+     * says are elsewhere (repo to owner/name).
      */
     org?: string;
+    remotes?: Record<string, string>;
     defaultBranch?: string;
     missions: Mission[];
     /**

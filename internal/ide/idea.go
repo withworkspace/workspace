@@ -7,12 +7,15 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/withworkspace/workspace/internal/ref"
 )
 
 // GenerateIDEA updates .idea/modules.xml, .idea/modules/*.iml, .idea/vcs.xml,
-// and .idea/jb-workspace.xml.
+// and .idea/jb-workspace.xml, each repo's remote where remote says it is
+// on GitHub.
 // No-op if .idea/ directory doesn't exist.
-func GenerateIDEA(root string, boarded map[string][]string, org string) error {
+func GenerateIDEA(root string, boarded map[string][]string, remote func(repo string) ref.Remote) error {
 	ideaDir := filepath.Join(root, ".idea")
 	if _, err := os.Stat(ideaDir); os.IsNotExist(err) {
 		return nil
@@ -96,7 +99,7 @@ func GenerateIDEA(root string, boarded map[string][]string, org string) error {
 	// Write jb-workspace.xml (JetBrains linked-projects workspace file)
 	projectEntries := make([]string, 0, totalEntries)
 	for _, repo := range repos {
-		remoteURL := fmt.Sprintf("https://github.com/%s/%s.git", org, repo)
+		remoteURL := remote(repo).URL() + ".git"
 		for _, capsule := range boarded[repo] {
 			projectEntries = append(projectEntries, fmt.Sprintf(
 				"    <project name=%q path=\"$PROJECT_DIR$/repos/%s/%s\">\n      <vcs id=\"Git\" remoteUrl=%q />\n    </project>",

@@ -49,6 +49,12 @@ names things is added, so that what was written before it names them too.`,
 			}
 
 			categories := ctx.WS().Doctor(checkMissions)
+			// Where a file answers for GitHub, there's no GitHub to reach.
+			if ctx.Config().GitHub.Fixture == "" {
+				if cat := ctx.WS().CheckGitHub(); len(cat.Checks) > 0 {
+					categories = append(categories, cat)
+				}
+			}
 			if cat := checkConfig(ctx); len(cat.Checks) > 0 {
 				categories = append(categories, cat)
 			}

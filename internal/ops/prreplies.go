@@ -61,7 +61,7 @@ func (w *Workspace) DraftReply(slug, prRef, thread, to, text string, by Actor) (
 	me, _ := gh.Viewer()
 	var people []string
 	if thread != "" {
-		threads, err := gh.ReviewThreads(w.WS().Org, repo, number)
+		threads, err := gh.ReviewThreads(w.WS().RemoteOf(repo).Owner, w.WS().RemoteOf(repo).Name, number)
 		if err != nil {
 			return Replied{}, err
 		}
@@ -123,13 +123,13 @@ func (w *Workspace) postReply(slug string, r mission.Reply, by Actor) error {
 		return refused("no-github", "ws can't reach GitHub here, so it can't post the reply")
 	}
 	if r.Thread != "" {
-		err = gh.ReplyToThread(w.WS().Org, repo, number, r.Thread, r.Text)
+		err = gh.ReplyToThread(w.WS().RemoteOf(repo).Owner, w.WS().RemoteOf(repo).Name, number, r.Thread, r.Text)
 	} else {
 		body := r.Text
 		if r.To != "" && !strings.Contains(r.To, ",") && !strings.Contains(body, "@"+r.To) {
 			body = "@" + r.To + " " + body
 		}
-		err = gh.Comment(w.WS().Org, repo, number, body)
+		err = gh.Comment(w.WS().RemoteOf(repo).Owner, w.WS().RemoteOf(repo).Name, number, body)
 	}
 	if err != nil {
 		return fmt.Errorf("posting the reply on %s: %w", r.Where(), err)
@@ -176,7 +176,7 @@ func (w *Workspace) isBot(repo string, number int, who string) bool {
 		return true
 	}
 	if gh := w.GitHub(); gh != nil {
-		if said, err := gh.Discussion(w.WS().Org, repo, number); err == nil {
+		if said, err := gh.Discussion(w.WS().RemoteOf(repo).Owner, w.WS().RemoteOf(repo).Name, number); err == nil {
 			for _, s := range said {
 				if strings.EqualFold(s.Author, who) && s.Bot {
 					return true

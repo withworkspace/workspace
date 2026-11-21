@@ -215,8 +215,8 @@ func prView(ctx *ops.Workspace, repo string, number int, full bool) (*view, erro
 		v.body = append(v.body, "", "It's changed since the user last reviewed it.")
 	}
 	v.more = append(v.more,
-		fmt.Sprintf("gh pr view %d --repo %s/%s --comments   (the conversation on GitHub)", number, ctx.WS().Org, repo),
-		fmt.Sprintf("gh pr checks %d --repo %s/%s", number, ctx.WS().Org, repo))
+		fmt.Sprintf("gh pr view %d --repo %s --comments   (the conversation on GitHub)", number, ctx.WS().RemoteOf(repo)),
+		fmt.Sprintf("gh pr checks %d --repo %s", number, ctx.WS().RemoteOf(repo)))
 	return v, nil
 }
 

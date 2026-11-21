@@ -1,0 +1,32 @@
+/* The repos table's own: a repo's name with its "yours", and what can be
+   done to one of yours. The table itself is styles.css's .settings-table,
+   shared with the lists of what your file sets. */
+.name {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.key {
+  white-space: nowrap;
+}
+
+.github {
+  white-space: nowrap;
+}
+
+.acts {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ask {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.add {
+  margin-left: auto;
+}

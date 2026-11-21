@@ -19,10 +19,12 @@ type Workspace struct {
 	Name string `json:"name"`
 	Root string `json:"root"`
 	// Org and DefaultBranch are where its repos are on GitHub, for a
-	// ref's address.
-	Org           string    `json:"org,omitempty"`
-	DefaultBranch string    `json:"defaultBranch,omitempty"`
-	Missions      []Mission `json:"missions"`
+	// ref's address: each under Org by its name, but for those Remotes
+	// says are elsewhere (repo to owner/name).
+	Org           string            `json:"org,omitempty"`
+	Remotes       map[string]string `json:"remotes,omitempty"`
+	DefaultBranch string            `json:"defaultBranch,omitempty"`
+	Missions      []Mission         `json:"missions"`
 	// Focus is what you've pinned that stands, in your order: the
 	// sidebar's Focus.
 	Focus []FocusPin `json:"focus"`
@@ -1124,6 +1126,18 @@ type Repo struct {
 	// Landing is how work lands in it: "pr", or "direct" (straight to its
 	// default branch).
 	Landing ops.RepoLanding `json:"landing,omitempty"`
+	// Yours: it's in ws.local.toml alone, not the team's ws.toml.
+	Yours bool `json:"yours,omitempty"`
+	// GitHub is where it is on GitHub, as owner/name: "" for nowhere.
+	GitHub string `json:"github,omitempty"`
+	// Cloning: it was just added, and is being cloned; Problem is why it
+	// couldn't be, if it couldn't.
+	Cloning bool   `json:"cloning,omitempty"`
+	Problem string `json:"problem,omitempty"`
+	// TeamGroup is the team's group for it, where yours (Group) is over
+	// it; GroupYours: Group is yours (ws.local.toml), not the team's.
+	TeamGroup  string `json:"teamGroup,omitempty"`
+	GroupYours bool   `json:"groupYours,omitempty"`
 }
 
 // Worktree is a repo's ground (Name ".ground": its default branch,

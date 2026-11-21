@@ -1,9 +1,14 @@
 package workspace
 
 import (
+	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/withworkspace/workspace/internal/ref"
 )
 
 func TestDoctor_AllHealthy(t *testing.T) {
@@ -140,4 +145,59 @@ func findCategory(cats []CheckCategory, name string) *CheckCategory {
 		}
 	}
 	return nil
+}
+
+// Doctor says, of each owner the repos are under, whether gh can reach
+// them: an org that enforces SAML SSO is said with what to do. A clone
+// that fetches from somewhere other than where ws.toml says is said too,
+// and fixed by pointing it there.
+func TestCheckGitHub_EachOwnerAndEachOrigin(t *testing.T) {
+	root := t.TempDir()
+	ws := &Workspace{
+		Root: root, Org: "acme", DefaultBranch: "main",
+		RepoNames: []string{"api", "cr-api", "web"},
+		Remotes:   map[string]ref.Remote{"cr-api": {Owner: "cr-team", Name: "api"}},
+	}
+	orig := CheckGitHubReachFunc
+	CheckGitHubReachFunc = func(r ref.Remote) error {
+		if r.Owner == "cr-team" {
+			return errors.New("gh: Resource protected by organization SAML enforcement. (HTTP 403)")
+		}
+		return nil
+	}
+	t.Cleanup(func() { CheckGitHubReachFunc = orig })
+	// cr-api was cloned from acme's, before ws.toml said where it is.
+	bare := ws.BareDir("cr-api")
+	if out, err := exec.Command("git", "init", "-q", "--bare", bare).CombinedOutput(); err != nil {
+		t.Fatalf("%v: %s", err, out)
+	}
+	exec.Command("git", "-C", bare, "remote", "add", "origin", "https://github.com/acme/cr-api.git").Run()
+
+	cat := ws.CheckGitHub()
+	got := map[string]CheckResult{}
+	for _, c := range cat.Checks {
+		got[c.Name] = c
+	}
+	if c := got["acme"]; c.Status != CheckOK || c.Detail != "2 repos reached" {
+		t.Errorf("acme: %+v", c)
+	}
+	if c := got["cr-team"]; c.Status != CheckFail || !strings.Contains(c.FixHint, "orgs/cr-team/sso") {
+		t.Errorf("cr-team: %+v", c)
+	}
+	c, ok := got["cr-api origin"]
+	if !ok || c.Status != CheckWarn || c.Fix == nil {
+		t.Fatalf("cr-api's origin: %+v", cat.Checks)
+	}
+	if err := c.Fix(); err != nil {
+		t.Fatal(err)
+	}
+	out, _ := exec.Command("git", "-C", bare, "config", "--get", "remote.origin.url").Output()
+	if strings.TrimSpace(string(out)) != "https://github.com/cr-team/api.git" {
+		t.Errorf("origin after the fix: %s", out)
+	}
+	for _, c := range ws.CheckGitHub().Checks {
+		if c.Name == "cr-api origin" {
+			t.Errorf("still said after the fix: %+v", c)
+		}
+	}
 }

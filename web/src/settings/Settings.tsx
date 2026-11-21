@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, NavLink, useLocation, useParams } from "react-router";
-import { getProcess, getRepos, getSettings, type Plugin, setSettings, type Repo, type SettingChange, type SettingsGroup, type SettingsInfo, type Workspace } from "../api";
+import { getProcess, getSettings, type Plugin, setSettings, type SettingChange, type SettingsGroup, type SettingsInfo, type Workspace } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { shortVersion } from "../shell/version";
@@ -10,6 +10,7 @@ import { useTheme } from "../ui/theme";
 import { forgetModels, valueSaid } from "./controls";
 import { PluginsSection } from "../plugins/Plugins";
 import { ProcessAbout, ProcessFile } from "./Process";
+import { Repos } from "./Repos";
 import { Updates } from "./Updates";
 import { openWhatsNew } from "../shell/WhatsNew";
 import { type Page, PageContext, RowOf, SettingCell, usePage, useSetting, without } from "./Row";
@@ -212,7 +213,7 @@ function SectionView({ section, sections, info, loading, workspace, plugins }: {
       {section.id === "about" ? <About info={info} workspace={workspace} section={section} /> : section.blocks.map((b) => <BlockView key={b.id} block={b} />)}
       {loading && waits && <Skeleton rows={4} />}
       {section.id === "plugins" && <PluginsSection plugins={plugins} />}
-      {section.id === "repos" && <Repos branch={workspace.defaultBranch} />}
+      {section.id === "repos" && <Repos branch={workspace.defaultBranch} org={workspace.org} />}
       {section.id === "process" && <ProcessFile />}
     </>
   );
@@ -278,53 +279,6 @@ function Roles({ roles }: { roles: SettingsGroup[] }) {
         );
       })}
     </div>
-  );
-}
-
-// Repos is the team's repos, as ws.toml has them: shown, not changed.
-function Repos({ branch }: { branch?: string }) {
-  const { value: repos, error, reload } = useLoaded<Repo[]>(getRepos, [], { keep: true });
-  return (
-    <section id="repos" className="settings-block">
-      <GroupHead className="settings-group">
-        The team's repos
-        {repos && <Count>{repos.length}</Count>}
-      </GroupHead>
-      <p className="settings-about">
-        In <code>ws.toml</code>: shown here, changed there.
-      </p>
-      {error && <ErrorCard error={error} retry={reload} />}
-      {!repos && !error && <Skeleton rows={3} />}
-      {repos && (
-        <table className="settings-table">
-          <thead>
-            <tr>
-              <th>Repo</th>
-              <th>Called</th>
-              <th>Aliases</th>
-              <th>Group</th>
-              <th>Lands by</th>
-            </tr>
-          </thead>
-          <tbody>
-            {repos.map((r) => (
-              <tr key={r.name}>
-                <td className="mono">{r.name}</td>
-                <td>
-                  <span className="settings-repo">
-                    <span className="repo-dot" style={{ background: r.color }} />
-                    {r.label}
-                  </span>
-                </td>
-                <td className="mono dim">{r.aliases?.join(", ") || "—"}</td>
-                <td className="dim">{r.group || "—"}</td>
-                <td className="dim">{r.landing === "direct" ? `straight to ${branch || "its default branch"}` : r.landing ? "pull request" : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </section>
   );
 }
 

@@ -153,7 +153,7 @@ func (w *Workspace) sighting(c CapsuleView, prev *mission.SeenPR) (mission.SeenP
 	if prev == nil || prev.Merged || prev.Closed || gh == nil {
 		return mission.SeenPR{}, false
 	}
-	pr, err := gh.PRFromNumber(w.WS().Org, c.Repo, prev.Number)
+	pr, err := gh.PRFromNumber(w.WS().RemoteOf(c.Repo).Owner, w.WS().RemoteOf(c.Repo).Name, prev.Number)
 	if err != nil || pr == nil || pr.State != "CLOSED" {
 		return mission.SeenPR{}, false
 	}
@@ -214,7 +214,7 @@ func (w *Workspace) newSaid(repo string, number int, after string) ([]mission.PR
 			items = append(items, item{at, text, act})
 		}
 	}
-	if said, err := gh.Discussion(w.WS().Org, repo, number); err == nil {
+	if said, err := gh.Discussion(w.WS().RemoteOf(repo).Owner, w.WS().RemoteOf(repo).Name, number); err == nil {
 		for _, s := range said {
 			body := clipString(oneLine(s.Body), 400)
 			switch {
@@ -227,7 +227,7 @@ func (w *Workspace) newSaid(repo string, number int, after string) ([]mission.PR
 			}
 		}
 	}
-	if threads, err := gh.ReviewThreads(w.WS().Org, repo, number); err == nil {
+	if threads, err := gh.ReviewThreads(w.WS().RemoteOf(repo).Owner, w.WS().RemoteOf(repo).Name, number); err == nil {
 		for _, t := range threads {
 			where := t.Path
 			if t.Line > 0 {
@@ -399,7 +399,7 @@ func (w *Workspace) MarkReady(slug, capsule string, by Actor) (string, error) {
 	if gh == nil {
 		return "", refused("no-github", "ws can't reach GitHub here, so it can't mark the pull request ready")
 	}
-	if err := gh.MarkReady(w.WS().Org, repo, seen.Number); err != nil {
+	if err := gh.MarkReady(w.WS().RemoteOf(repo).Owner, w.WS().RemoteOf(repo).Name, seen.Number); err != nil {
 		return "", err
 	}
 	ready := *seen

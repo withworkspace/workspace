@@ -229,6 +229,10 @@ func (s *Server) Start() error {
 			return s.Plugins.Stamp() + " " + strings.Join(plugin.Installed(s.Plugins.Root), ",")
 		})
 	}
+	// Adding a repo from GitHub: what GitHub said of owners and their
+	// repos, and the repos added being cloned, moved when a look behind
+	// a read finishes.
+	s.topics[topicGitHub] = newHub(topicGitHub, s.Poll, s.App.GitHubSeen)
 	for _, h := range s.topics {
 		go h.run(s.ctx)
 	}
@@ -358,6 +362,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/around", s.around)
 	mux.HandleFunc("GET /api/search", s.codeSearch)
 	mux.HandleFunc("GET /api/repos", s.repos)
+	mux.HandleFunc("POST /api/repos/{repo}/share", s.shareRepo)
+	mux.HandleFunc("POST /api/repos", s.addRepo)
+	mux.HandleFunc("POST /api/repos/{repo}/group", s.groupRepo)
+	mux.HandleFunc("GET /api/groups", s.groups)
+	mux.HandleFunc("POST /api/groups/{group}/shown", s.showGroup)
+	mux.HandleFunc("GET /api/github/owners", s.githubOwners)
+	mux.HandleFunc("GET /api/github/repos", s.githubRepos)
 	mux.HandleFunc("POST /api/refs/paths", s.refPaths)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees", s.worktrees)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees/{name}/tree", s.tree)

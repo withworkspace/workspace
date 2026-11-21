@@ -16,7 +16,7 @@ import (
 // in its own mission), with how it's linked; and a ref is needed.
 func TestAroundAPI(t *testing.T) {
 	w := newReviewsWorld(t)
-	w.s.Find = &find.Index{Org: "acme", Worktrees: func() ([]find.Worktree, error) { return nil, nil }}
+	w.s.Find = &find.Index{RepoAt: acmeRepo, Worktrees: func() ([]find.Worktree, error) { return nil, nil }}
 	missions := mission.Store{Root: w.s.Root}
 	a, err := missions.Create("Cache tokens")
 	if err != nil {

@@ -1,0 +1,33 @@
+/* Groups, in Settings' repos: each shown or hidden for you, and a repo's
+   group picked in its row. */
+.groups {
+  margin-top: 24px;
+}
+
+.head {
+  margin: 0 0 4px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.over {
+  font-size: var(--text-xs);
+}
+
+.naming {
+  width: 9em;
+}
+
+.team {
+  white-space: nowrap;
+}
+
+.reset {
+  margin-left: 8px;
+}

@@ -79,7 +79,7 @@ func (s *Service) Discussion(repo string, number int) (*Discussion, error) {
 	if err != nil {
 		return nil, err
 	}
-	said, err := s.GitHub.Discussion(s.Org, repo, number)
+	said, err := s.GitHub.Discussion(s.owner(repo), s.name(repo), number)
 	if err != nil {
 		return nil, err
 	}
@@ -128,5 +128,5 @@ func (s *Service) Comment(repo string, number int, body string) error {
 	if body == "" {
 		return fmt.Errorf("say something")
 	}
-	return s.GitHub.Comment(s.Org, repo, number, body)
+	return s.GitHub.Comment(s.owner(repo), s.name(repo), number, body)
 }

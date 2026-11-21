@@ -32,7 +32,7 @@ func (s *Service) Threads(repo string, number int) (*review.Review, error) {
 	if err != nil {
 		return nil, err
 	}
-	threads, err := s.GitHub.ReviewThreads(s.Org, repo, number)
+	threads, err := s.GitHub.ReviewThreads(s.owner(repo), s.name(repo), number)
 	if err != nil {
 		return nil, err
 	}
@@ -164,9 +164,9 @@ func (s *Service) Respond(repo string, number int, threadID string, what review.
 		if strings.TrimSpace(body) == "" {
 			return fmt.Errorf("say something")
 		}
-		return s.GitHub.ReplyToThread(s.Org, repo, number, threadID, strings.TrimSpace(body))
+		return s.GitHub.ReplyToThread(s.owner(repo), s.name(repo), number, threadID, strings.TrimSpace(body))
 	case review.Resolve, review.Reopen:
-		return s.GitHub.ResolveThread(s.Org, repo, number, threadID, what == review.Resolve)
+		return s.GitHub.ResolveThread(s.owner(repo), s.name(repo), number, threadID, what == review.Resolve)
 	}
 	return fmt.Errorf("can't %q a thread", what)
 }

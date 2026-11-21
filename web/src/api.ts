@@ -75,6 +75,9 @@ import type {
   WhatsNewInfo,
   Workspace,
   Worktree,
+  GitHubOwners,
+  GitHubRepos,
+  RepoGroup,
 } from "./wire.gen";
 export type {
   Artifact,
@@ -192,6 +195,10 @@ export type {
   WantedPlugin,
   Workspace,
   Worktree,
+  GitHubOwners,
+  GitHubRepos,
+  AddableRepo,
+  RepoGroup,
 } from "./wire.gen";
 
 // Mirrors internal/web/api.go.
@@ -272,7 +279,7 @@ export function useVisible(): boolean {
 
 // A topic of the server's events: what a page follows to know when what it
 // shows has changed (internal/web/events.go).
-export type Topic = "workspace" | "reviews" | "team" | "plugins" | `mission:${string}` | `pr:${string}`;
+export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | `mission:${string}` | `pr:${string}`;
 
 // EventHandlers are what a page does as it follows a topic: when the
 // stream's open (hello: fetch what it shows, so nothing's missed), on each
@@ -527,6 +534,21 @@ export const getSpaces = () => getJSON<{ spaces: Space[]; problem?: string }>("/
 export const getSpace = (repo: string) => getJSON<{ space: Space; docs: SpaceDoc[]; problem?: string }>(`/api/documents/${encodeURIComponent(repo)}`);
 
 export const getRepos = () => getJSON<{ repos: Repo[] }>("/api/repos").then((r) => r.repos);
+// shareRepo gives a repo of yours to the team (ws repo share): into
+// ws.toml, committed on the workspace's config repo and pushed.
+export const shareRepo = (repo: string) => send<{ message: string; commit: string }>("POST", `/api/repos/${encodeURIComponent(repo)}/share`);
+// Adding a repo from GitHub: whose repos you can add, an owner's repos
+// (each as GitHub last said, asked again behind: the github topic says
+// when), and adding one, for you or the team.
+const again = (yes?: boolean) => (yes ? "again=1" : "");
+export const getGitHubOwners = (look?: boolean) => getJSON<GitHubOwners>(`/api/github/owners?${again(look)}`);
+export const getGitHubRepos = (owner: string, look?: boolean) => getJSON<GitHubRepos>(`/api/github/repos?owner=${encodeURIComponent(owner)}&${again(look)}`);
+// The workspace's groups, showing or hiding one for you (null: the team's
+// again), and putting a repo in a group for you ("" for none).
+export const getGroups = () => getJSON<{ groups: RepoGroup[] }>("/api/groups").then((r) => r.groups);
+export const showGroup = (group: string, hidden: boolean | null) => send<{ message: string }>("POST", `/api/groups/${encodeURIComponent(group)}/shown`, { hidden });
+export const groupRepo = (repo: string, group: string) => send<{ message: string }>("POST", `/api/repos/${encodeURIComponent(repo)}/group`, { group });
+export const addRepo = (add: { owner: string; name: string; as?: string; group?: string; team?: boolean }) => send<{ repo: string; message: string }>("POST", "/api/repos", add);
 export const getWorktrees = (repo: string) => getJSON<{ worktrees: Worktree[] }>(`/api/repos/${encodeURIComponent(repo)}/worktrees`).then((r) => r.worktrees);
 
 // worktreeAPI is where a repo's ground or capsule's files are read, as

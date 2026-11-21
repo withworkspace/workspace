@@ -155,6 +155,22 @@ type Files interface {
 	CapsuleDir(slug, repo, name string) (dir, baseRef string, err error)
 	Landing(repo, name string) (*ops.Landing, error)
 	LandCapsule(repo, name string) (*ops.LandOutcome, error)
+	// ShareRepo gives a repo of yours to the team: into ws.toml, committed
+	// on the config repo and pushed.
+	ShareRepo(ctx context.Context, who ops.Actor, name string) (*ops.RepoShared, error)
+	// Adding a repo from GitHub: whose repos you can add, an owner's
+	// repos (each answered at once, as GitHub last said, and asked again
+	// behind), adding one, and what moves when a look or a clone ends.
+	GitHubOwners(again bool) ops.GitHubOwners
+	GitHubRepos(owner string, again bool) ops.GitHubRepos
+	AddRepo(ctx context.Context, who ops.Actor, a ops.RepoAdd) (*ops.RepoAdded, error)
+	GitHubSeen() string
+	// Groups: each with its repos and whether it's hidden, for you and
+	// for the team; showing or hiding one for you (nil: the team's); and
+	// putting a repo in a group for you.
+	Groups() []ops.Group
+	ShowGroup(ctx context.Context, who ops.Actor, group string, hidden *bool, wait bool) (*ops.GroupShown, error)
+	GroupRepo(ctx context.Context, who ops.Actor, repo, group string) (*ops.RepoGrouped, error)
 	CodeSearching
 }
 

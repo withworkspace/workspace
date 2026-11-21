@@ -632,6 +632,11 @@ func (c *Config) OrchestratorMaxDispatches() int {
 // ws.local.toml can tell "not set" apart from an explicit false.
 type GroupConfig struct {
 	Hidden *bool `toml:"hidden,omitempty"`
+	// Yours: Hidden is your choice, from ws.local.toml, and Team what
+	// ws.toml says (nil for nothing: shown). Merge says them; neither file
+	// does.
+	Yours bool  `toml:"-"`
+	Team  *bool `toml:"-"`
 }
 
 const RepoFileName = "ws.repo.toml"
@@ -983,6 +988,22 @@ type RepoConfig struct {
 	// ("docs/"), or it isn't (false: for the records repo, which is one
 	// without saying). Unset, the repo's own ws.repo.toml says.
 	Documents *Documents `toml:"documents,omitempty"`
+	// GitHub is where the repo is on GitHub, as owner/name, when that
+	// isn't the workspace's org and the repo's key: a repo of another
+	// org, or one whose name there is taken here by another's
+	// ([repos.cr-api] github = "cr-team/api"). The key stays its name in
+	// the workspace and its folder under repos/.
+	GitHub string `toml:"github,omitempty"`
+	// Yours: the repo is in ws.local.toml alone, not the team's ws.toml.
+	// It's cloned and worked in here as any is, and isn't in a teammate's
+	// workspace. Merge says it; neither file does.
+	Yours bool `toml:"-"`
+	// TeamGroup is ws.toml's group for a repo of the team's whose group
+	// ws.local.toml replaces, for you ("" where it doesn't, or ws.toml
+	// gives none). Merge says it.
+	TeamGroup string `toml:"-"`
+	// GroupYours: Group is yours, over the team's.
+	GroupYours bool `toml:"-"`
 }
 
 // Documents is a repo's documents setting: whether it's a space of
@@ -1110,12 +1131,16 @@ func Merge(base, local *Config) *Config {
 	maps.Copy(merged.Groups, base.Groups)
 	for name, localGroup := range local.Groups {
 		if localGroup.Hidden != nil {
+			localGroup.Yours, localGroup.Team = true, base.Groups[name].Hidden
 			merged.Groups[name] = localGroup
 		}
 	}
 	for name, localRepo := range local.Repos {
 		baseRepo, ok := merged.Repos[name]
 		if !ok {
+			// One the team hasn't: yours, whole as ws.local.toml says it.
+			localRepo.Yours = true
+			merged.Repos[name] = localRepo
 			continue
 		}
 		if localRepo.AfterCreate != "" {
@@ -1127,7 +1152,8 @@ func Merge(base, local *Config) *Config {
 		if localRepo.DisplayName != "" {
 			baseRepo.DisplayName = localRepo.DisplayName
 		}
-		if localRepo.Group != "" {
+		if localRepo.Group != "" && localRepo.Group != baseRepo.Group {
+			baseRepo.TeamGroup, baseRepo.GroupYours = baseRepo.Group, true
 			baseRepo.Group = localRepo.Group
 		}
 		if localRepo.Landing != "" {
@@ -1138,6 +1164,9 @@ func Merge(base, local *Config) *Config {
 		}
 		if localRepo.Documents != nil {
 			baseRepo.Documents = localRepo.Documents
+		}
+		if localRepo.GitHub != "" {
+			baseRepo.GitHub = localRepo.GitHub
 		}
 		if len(localRepo.Aliases) > 0 {
 			baseRepo.Aliases = append(baseRepo.Aliases, localRepo.Aliases...)

@@ -294,6 +294,42 @@ ws group reset platform   # go back to the team default
 
 To hide a single repo for yourself, put it in a group locally (`[repos.mobile] group = "mine"`) and hide that group.
 
+```bash
+ws repo group mobile mine   # put it in a group, for you (ws.local.toml)
+ws repo group mobile        # back in the team's group (a repo of yours: in none)
+```
+
+*Settings › Repos* does the same: each repo's group is picked in its row (one the workspace has, or *New group…*), marked *yours* where it's over the team's, and under the table each group is **Shown** or **Hidden** for you, with what the team says beside it and *Reset* to go back to it. Showing a group clones its repos that aren't, behind. A repo of the team's that the team has in a group can be put in another for you, or back in the team's, but not in none: `ws.local.toml` can't say "no group" over `ws.toml`'s.
+
+### Repos of your own
+
+A repo in `ws.local.toml` that `ws.toml` hasn't is **yours**: cloned by `setup` and `sync`, lifted, docked, searched and worked in by missions as any is, and not in a teammate's workspace. Say where it is on GitHub with `github` when it isn't the org's by that name:
+
+```toml
+# ws.local.toml
+[repos.notes]
+github = "someone/notes"
+```
+
+Its table is what makes it one, so `[repos.notes]` with nothing under it is a repo too (the org's `notes`). Settings' repos table marks it as yours, and *Share with the team* there does what `ws repo share` does. What's written about it reads for teammates as its address on GitHub, as they haven't the repo to link to.
+
+```bash
+ws repo share notes   # give it to the team: into ws.toml, committed on the config repo and pushed
+```
+
+`ws repo share` writes the repo into `ws.toml` as `ws.local.toml` says it, commits that on the workspace's config repo with *Add repo notes*, pushes it, and then takes it out of `ws.local.toml`. `ws sync` resets the config repo to its remote, so the commit is pushed or taken back: one the remote refuses (a protected branch) leaves `ws.toml` as it was and the repo yours. The config repo has to be at its remote, or behind it with nothing of its own (it's brought up first), and `ws.toml` mustn't have changes of yours that aren't committed.
+
+### Adding a repo from GitHub
+
+*Settings › Repos* lists the workspace's repos, the team's and yours, with where each is on GitHub. **Add repo…** (or *Add a repo from GitHub* in Find, there) picks one from GitHub: whose (you, or an org you're in, as `gh` sees them, or another you name), then which of theirs, newest pushed first, with forks and archived repos behind a box and those the workspace has already marked as here. What GitHub said is shown at once, however old, with when it said it, and asked again behind it when that's more than ten minutes ago (or on *Look again*); the list moves when it answers. An org that enforces SAML single sign-on lists nothing until `gh`'s token is authorised for it, and says so.
+
+Chosen, it's given its name here (its name on GitHub, or, where that's taken here, `<owner>-<name>`, changed as you like), a [group](#groups) if you like, and whose it is: **just you**, written into `ws.local.toml`, or **the team**, written into `ws.toml`, committed on the workspace's config repo and pushed as `ws repo share` does (a push that's refused adds nothing). It's written with `github = "owner/name"` unless it's the org's repo of its name here, and cloned behind: the table says *cloning…*, then nothing, or *not cloned* with why (`ws setup` tries again).
+
+```bash
+ws repo add partner-co/api --as partner-api   # yours, as partner-api, cloned before it answers
+ws repo add acme/billing --team               # the team's: into ws.toml, committed and pushed
+```
+
 ### Searching
 
 `ws rg` runs [ripgrep](https://github.com/BurntSushi/ripgrep) over the right worktree of each repo. Plain `rg` from the workspace root searches `.bare/`, `.silo/`, `.ground/` and every capsule, so every match comes back once per capsule. `ws rg` returns each match once, which matters most for agents whose context fills with duplicates.
@@ -1087,13 +1123,16 @@ after_create = "make setup"
 
 [repos.infrastructure]
 aliases = ["infra"]
+
+[repos.cr-api]                 # another org's repo, whose name there is taken here
+github = "cr-team/api"
 ```
 
 **Workspace fields:**
 
 | Field | Required | Description |
 |---|---|---|
-| `org` | yes | GitHub organisation. Used for cloning repos and API calls. |
+| `org` | yes, unless every repo says its `github` | GitHub organisation: where a repo is on GitHub (cloned from, its pull requests asked for) when it doesn't say. |
 | `default_branch` | yes | The branch name used for ground (e.g. `main`, `develop`). |
 | `display_name` | no | Human-friendly workspace name. Falls back to `org`. |
 
@@ -1108,6 +1147,7 @@ aliases = ["infra"]
 | `group` | The repo's [group](#groups). Ungrouped repos are always visible. |
 | `landing` | How work lands: `"pr"` (the default), or `"direct"` for commits straight to the default branch with [`ws land`](#landing). |
 | `verify` | A shell command that must pass in a capsule before `ws land` pushes it. |
+| `github` | Where the repo is on GitHub, as `owner/name`, when that isn't `org`'s repo of its name: a repo of another org, or a person's, or one whose name there is taken here by another repo (`[repos.cr-api] github = "cr-team/api"`). The key stays its name in the workspace, in commands and refs, and its folder under `repos/`. Two repos can't be at one place. Its pull requests, review requests, links and addresses are all of where it says; an address on GitHub (`https://github.com/cr-team/api/pull/7`) is read as `cr-api#7`. `ws doctor` says of each owner whether `gh` can reach its repos (an org with SAML single sign-on needs `gh`'s token authorised for it, and until then its repos answer as though they weren't there), and of a clone that still fetches from somewhere else (the repo given its `github` after it was cloned) that it does: `--fix` points it where `github` says. |
 | `documents` | The repo is a [space of documents](#spaces-of-documents) (`true`), or a folder of it is (`"docs/"`), or it isn't (`false`: the records repo is one without saying). A repo can say it of itself in its `ws.repo.toml`; `ws.local.toml` can turn one off. |
 
 **Agents** (`[agents]`): the workspace's own way of working, for every agent `ws` starts.
@@ -1215,7 +1255,7 @@ backend = [".ground"]
 
 **Repo overrides:**
 
-You can override `display_name`, `color`, `after_create`, `group`, `landing`, `verify` and `aliases` per repo. Aliases are appended to the shared list; other fields replace the shared value.
+You can override `display_name`, `color`, `after_create`, `group`, `landing`, `verify`, `github` and `aliases` per repo. Aliases are appended to the shared list; other fields replace the shared value. A repo `ws.toml` hasn't is [yours](#repos-of-your-own), whole as you say it.
 
 **Group overrides:**
 

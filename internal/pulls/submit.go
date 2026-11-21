@@ -269,7 +269,7 @@ func (s *Service) Submit(repo string, number int, head, verdict, summary string)
 			base = b
 		}
 	}
-	url, err := s.GitHub.SubmitReview(s.Org, repo, number, p.submission())
+	url, err := s.GitHub.SubmitReview(s.owner(repo), s.name(repo), number, p.submission())
 	if err != nil {
 		return nil, err
 	}

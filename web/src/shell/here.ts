@@ -27,7 +27,8 @@ export interface Here {
 // hereAt is the thing the page at pathname is of, if it's of one: a
 // mission (any page of it), a conversation, a page, an artifact, a pull
 // request, a file, a space's document, or a plugin's thing open in its
-// app. A list is of nothing. On a plugin's pages, what the page said it
+// app, or Settings' repos (where a repo's added). A list is of nothing.
+// On a plugin's pages, what the page said it
 // shows beyond its address (frame: an issue in a panel) comes first, if
 // ws can read it; the address after.
 export function hereAt(pathname: string, search: string, w: Workspace, known: Known, frame?: FrameHere): Here | undefined {
@@ -45,6 +46,7 @@ export function hereAt(pathname: string, search: string, w: Workspace, known: Kn
     const ref = `${b}:${parts.slice(2).join("/")}`;
     return { ref, id: `document:${ref}`, title: parts[parts.length - 1] };
   }
+  if (a === "settings" && b === "repos") return { ref: "settings:repos", id: "settings:repos", title: "Repos, in Settings" };
   if (a === "x" && b) {
     const said = frame?.plugin === b ? refAt(frame.name, known) : undefined;
     const of = said && hereOf(said, w);

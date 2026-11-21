@@ -58,6 +58,7 @@ ws alone opens the web UI, as ws web does; ws status lists every repo and capsul
 	cmd.AddCommand(newRunCmd(), newRouterCmd())
 	cmd.AddCommand(newRgCmd())
 	cmd.AddCommand(newGroupCmd())
+	cmd.AddCommand(newRepoCmd())
 	cmd.AddCommand(newMissionCmd())
 	cmd.AddCommand(newDeckCmd(), newDaemonCmd())
 	cmd.AddCommand(newWebCmd())

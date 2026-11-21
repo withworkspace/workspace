@@ -13,6 +13,7 @@ interface KnownJSON {
   talks: string[];
   artifacts?: string[];
   org?: string;
+  remotes?: Record<string, string>;
   defaultBranch?: string;
   branches?: Record<string, Record<string, string>>;
   things?: Named[];
@@ -35,6 +36,7 @@ const knownOf = (j: KnownJSON): Known => ({
   talks: j.talks,
   artifacts: j.artifacts,
   org: j.org,
+  remotes: j.remotes,
   defaultBranch: j.defaultBranch,
   branches: j.branches && new Map(Object.entries(j.branches).map(([r, b]) => [r, new Map(Object.entries(b))])),
   things: j.things,

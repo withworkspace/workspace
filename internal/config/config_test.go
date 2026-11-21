@@ -293,7 +293,10 @@ func TestMerge_ReplacesDisplayName(t *testing.T) {
 	}
 }
 
-func TestMerge_IgnoresUnknownRepos(t *testing.T) {
+// A repo ws.local.toml has and ws.toml hasn't is yours: in the workspace
+// whole as you said it, and marked as yours. One both have is the team's,
+// with your changes over it.
+func TestMerge_ARepoOnlyYoursHaveIsYours(t *testing.T) {
 	base := &Config{
 		Repos: map[string]RepoConfig{
 			"repo-a": {Color: "#ff0000"},
@@ -302,15 +305,19 @@ func TestMerge_IgnoresUnknownRepos(t *testing.T) {
 	local := &Config{
 		Repos: map[string]RepoConfig{
 			"repo-a":   {Color: "#00ff00"},
-			"repo-new": {Color: "#0000ff", AfterCreate: "make"},
+			"repo-new": {Color: "#0000ff", AfterCreate: "make", GitHub: "someone/new"},
+			"bare":     {},
 		},
 	}
 	merged := Merge(base, local)
-	if _, ok := merged.Repos["repo-new"]; ok {
-		t.Error("unknown repo 'repo-new' should not appear in merged config")
+	if got := merged.Repos["repo-new"]; !got.Yours || got.AfterCreate != "make" || got.GitHub != "someone/new" {
+		t.Errorf("repo-new = %+v, want yours as said", got)
 	}
-	if len(merged.Repos) != 1 {
-		t.Errorf("repos count = %d, want 1", len(merged.Repos))
+	if got, ok := merged.Repos["bare"]; !ok || !got.Yours {
+		t.Errorf("bare = %+v, %v: a table with no keys is a repo too", got, ok)
+	}
+	if got := merged.Repos["repo-a"]; got.Yours || got.Color != "#00ff00" {
+		t.Errorf("repo-a = %+v, want the team's, your colour", got)
 	}
 }
 

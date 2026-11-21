@@ -11,6 +11,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
 
@@ -53,8 +54,22 @@ func (w *Workspace) FollowGrounds(ctx context.Context) []GroundFollowed {
 		return nil
 	}
 	var heads map[string]string // nil: GitHub can't say
-	if hc, ok := w.GitHub().(github.HeadsClient); ok && ws.Org != "" {
-		heads, _ = hc.Heads(ws.Org, repos, branch) // what answered, even beside an error
+	if hc, ok := w.GitHub().(github.HeadsClient); ok {
+		var remotes []ref.Remote
+		for _, repo := range repos {
+			if ws.OnGitHub(repo) {
+				remotes = append(remotes, ws.RemoteOf(repo))
+			}
+		}
+		if len(remotes) > 0 {
+			at, _ := hc.Heads(remotes, branch) // what answered, even beside an error
+			heads = map[string]string{}
+			for _, repo := range repos {
+				if oid, ok := at[ws.RemoteOf(repo)]; ok {
+					heads[repo] = oid
+				}
+			}
+		}
 	}
 	out := make([]GroundFollowed, 0, len(repos))
 	for _, repo := range repos {

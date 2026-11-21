@@ -108,8 +108,8 @@ func newSpace(t *testing.T) *space {
 		{Repo: "demo", Name: "feature", Dir: s.capsule, BaseRef: "origin/main"},
 	}
 	s.ix = &Index{
-		Org: "acme",
-		Now: s.clock,
+		RepoAt: func(owner, name string) (string, bool) { return name, strings.EqualFold(owner, "acme") },
+		Now:    s.clock,
 		Worktrees: func() ([]Worktree, error) {
 			s.mu.Lock()
 			defer s.mu.Unlock()

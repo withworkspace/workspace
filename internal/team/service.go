@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/store"
 )
 
@@ -28,6 +29,8 @@ type Repo struct {
 	Name   string
 	Bare   string
 	Branch string
+	// GitHub is where it is on GitHub, as asked for its pull requests.
+	GitHub ref.Remote
 }
 
 // Snapshot is the events as last worked out.
@@ -55,7 +58,6 @@ const keptForm = 2
 // have changed, and keeps what it found between looks.
 type Service struct {
 	Root string
-	Org  string
 	// GitHub is asked for pull requests. nil for none: the events are then
 	// what git knows.
 	GitHub github.Client
@@ -63,9 +65,10 @@ type Service struct {
 	Repos func() []Repo
 	// People is [team.people]: who someone is, said outright.
 	People func() map[string]PersonConfig
-	// Web is where the repos are on the web (https://github.com/acme), for
-	// a link to what has no page here: a commit. "" for nowhere.
-	Web string
+	// Web is where a repo is on the web (https://github.com/acme/api), by
+	// its name here, for a link to what has no page here: a commit. nil,
+	// or "" for a repo, for nowhere.
+	Web func(repo string) string
 	// Window is how far back a look goes, and so what's kept (default 14
 	// days): a look asked to go further keeps that until the day's out.
 	Window time.Duration
@@ -254,7 +257,7 @@ func (s *Service) look(prev *Snapshot, since time.Time) (*Snapshot, error) {
 			if s.GitHub == nil {
 				return
 			}
-			acts, err := s.GitHub.ChangedPRs(s.Org, repo.Name, askFrom)
+			acts, err := s.GitHub.ChangedPRs(repo.GitHub.Owner, repo.GitHub.Name, askFrom)
 			if err != nil {
 				problems[i] = append(problems[i], repo.Name+": "+err.Error())
 				return
@@ -368,24 +371,27 @@ func (s *Service) Timeline(snap *Snapshot, since time.Time) *Timeline {
 	}
 	s.touches(t)
 	s.narrate(t, snap, cfg)
-	if s.Web != "" {
+	if s.Web != nil {
 		for _, d := range t.Days {
 			for i := range d.Items {
 				it := &d.Items[i]
 				last := it.Events[len(it.Events)-1]
 				for n := range it.PRs {
 					if pr := &it.PRs[n]; pr.URL == "" {
-						pr.URL = fmt.Sprintf("%s/%s/pull/%d", s.Web, pr.Repo, pr.Number)
+						if web := s.Web(pr.Repo); web != "" {
+							pr.URL = fmt.Sprintf("%s/pull/%d", web, pr.Number)
+						}
 					}
 				}
+				web := s.Web(it.Repo)
 				switch {
-				case it.URL != "" || len(it.PRs) > 0:
+				case web == "" || it.URL != "" || len(it.PRs) > 0:
 				case it.PR != 0:
-					it.URL = fmt.Sprintf("%s/%s/pull/%d", s.Web, it.Repo, it.PR)
+					it.URL = fmt.Sprintf("%s/pull/%d", web, it.PR)
 				case len(it.Events) == 1 || last.Branch == "":
-					it.URL = fmt.Sprintf("%s/%s/commit/%s", s.Web, it.Repo, last.Commit)
+					it.URL = fmt.Sprintf("%s/commit/%s", web, last.Commit)
 				default:
-					it.URL = fmt.Sprintf("%s/%s/commits/%s", s.Web, it.Repo, last.Branch)
+					it.URL = fmt.Sprintf("%s/commits/%s", web, last.Branch)
 				}
 			}
 		}

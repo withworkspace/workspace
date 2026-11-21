@@ -185,6 +185,8 @@ func Viewer() (string, error) {
 
 // PRRef names a PR in one of the org's repos.
 type PRRef struct {
+	// Owner is whose the repo is on GitHub, and Repo its name there.
+	Owner  string `json:"owner,omitempty"`
 	Repo   string `json:"repo"`
 	Number int    `json:"number"`
 }
@@ -212,7 +214,8 @@ func ReviewRequested(org string) ([]PRRef, error) {
 	var found []struct {
 		Number     int `json:"number"`
 		Repository struct {
-			Name string `json:"name"`
+			Name          string `json:"name"`
+			NameWithOwner string `json:"nameWithOwner"`
 		} `json:"repository"`
 	}
 	if err := json.Unmarshal(stdOut.Bytes(), &found); err != nil {
@@ -220,7 +223,8 @@ func ReviewRequested(org string) ([]PRRef, error) {
 	}
 	out := make([]PRRef, 0, len(found))
 	for _, f := range found {
-		out = append(out, PRRef{Repo: f.Repository.Name, Number: f.Number})
+		owner, _, _ := strings.Cut(f.Repository.NameWithOwner, "/")
+		out = append(out, PRRef{Owner: owner, Repo: f.Repository.Name, Number: f.Number})
 	}
 	return out, nil
 }

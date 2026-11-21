@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/review"
 	"github.com/withworkspace/workspace/internal/testgit"
 )
@@ -52,6 +53,9 @@ type world struct {
 	svc    *Service
 	now    time.Time
 }
+
+// acme is the test's GitHub: every repo is acme's, by its name here.
+func acme(repo string) ref.Remote { return ref.Remote{Owner: "acme", Name: repo} }
 
 func newWorld(t *testing.T) *world {
 	t.Helper()
@@ -100,7 +104,7 @@ func newWorld(t *testing.T) *world {
 		PRsForRepoFn:    func(org, repo string) ([]github.PR, error) { return w.prs, nil },
 		StacksForRepoFn: func(org, repo string) ([]github.Stack, error) { return w.stacks, nil },
 	}
-	w.svc = &Service{Root: w.root, Org: "acme", GitHub: w.gh,
+	w.svc = &Service{Root: w.root, Remote: acme, GitHub: w.gh,
 		Repos:   func() []string { return []string{"api"} },
 		BareDir: func(repo string) string { return filepath.Join(w.root, "repos", repo, ".bare") },
 		Now:     func() time.Time { return w.now },

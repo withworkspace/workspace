@@ -3,6 +3,8 @@ package web
 import (
 	"errors"
 	"net/http"
+
+	"github.com/withworkspace/workspace/internal/ops"
 )
 
 // The Files page's repos: every one in the workspace, and a repo's ground
@@ -11,6 +13,17 @@ import (
 
 func (s *Server) repos(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"repos": s.repoList()})
+}
+
+// shareRepo gives a repo of yours to the team (ws repo share): what
+// happened, as a sentence, or why it couldn't be.
+func (s *Server) shareRepo(w http.ResponseWriter, r *http.Request) {
+	done, err := s.App.ShareRepo(r.Context(), ops.AsYou, r.PathValue("repo"))
+	if err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"message": done.String(), "commit": done.Commit})
 }
 
 func (s *Server) worktrees(w http.ResponseWriter, r *http.Request) {

@@ -32,6 +32,9 @@ type Fixture struct {
 	Requested []PRRef `json:"requested,omitempty"`
 	// Submitted are the reviews posted, newest last.
 	Submitted []FixtureReview `json:"submitted,omitempty"`
+	// Owners are the repos that can be added from GitHub, by whose they
+	// are: the viewer's own, and each org's.
+	Owners map[string][]OwnedRepo `json:"owners,omitempty"`
 }
 
 // FixtureRepo is one repo on the fixture's GitHub.
@@ -205,6 +208,13 @@ func (c FixtureClient) ReviewRequested(org string) ([]PRRef, error) {
 					out = append(out, PRRef{Repo: name, Number: pr.Number})
 				}
 			}
+		}
+	}
+	// The fixture's repos are by name alone: each is the owner's asked
+	// after, as a search of one owner's would say.
+	for i := range out {
+		if out[i].Owner == "" {
+			out[i].Owner = org
 		}
 	}
 	return out, nil
