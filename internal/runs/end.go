@@ -303,6 +303,9 @@ func endsWith(r Run, o Owner) string {
 	case ByConversation:
 		return fmt.Sprintf("when conversation %s is resolved", o.Conversation)
 	case ByLooking:
+		if o.Mission == "" {
+			return fmt.Sprintf("%d minutes after nobody has its files open", int(LookLinger/time.Minute))
+		}
 		return fmt.Sprintf("%d minutes after nobody has mission %s open", int(LookLinger/time.Minute), o.Mission)
 	}
 	return ""

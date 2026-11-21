@@ -3886,6 +3886,15 @@ export interface RunDetail {
 
 // From web/runs.go
 /**
+ * RunInWorktree is POST /api/repos/{repo}/worktrees/{name}/runs: a recipe
+ * to run there.
+ */
+export interface RunInWorktree {
+    recipe: string;
+}
+
+// From web/runs.go
+/**
  * RunLog is GET /api/runs/log?ref=…: the end of a run's output.
  */
 export interface RunLog {
@@ -5319,6 +5328,17 @@ export interface Worktree {
      * yet and is being: the workspace's capsulesSeen moves when it has.
      */
     unread?: boolean;
+}
+
+// From web/runs.go
+/**
+ * WorktreeRunsInfo is GET /api/repos/{repo}/worktrees/{name}/runs: what's
+ * running in a ground or capsule, and the names of its ws.repo.toml's
+ * recipes that run there.
+ */
+export interface WorktreeRunsInfo {
+    runs: RunDetail[];
+    recipes: string[];
 }
 
 // From web/api.go

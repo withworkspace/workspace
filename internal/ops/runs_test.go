@@ -53,7 +53,7 @@ func TestRunRecipe(t *testing.T) {
 	if got := d.Recipes["frontend/cache"]; strings.Join(got, ",") != "api,web" {
 		t.Errorf("the page's recipes: %v", got)
 	}
-	if err := w.LookedAt(map[string]bool{"cache": true}); err != nil {
+	if err := w.LookedAt(runs.Looking{Missions: map[string]bool{"cache": true}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := w.StopRun("cache", r.Ref()); err != nil {
@@ -61,6 +61,57 @@ func TestRunRecipe(t *testing.T) {
 	}
 	if list, _ := w.runStore().List(); len(list) != 0 {
 		t.Errorf("after Stop: %v", list)
+	}
+}
+
+// A ground's or capsule's recipe, run from the Files page, lasts while
+// someone has it open there: no mission's needed, and the page sees it.
+func TestRunIn(t *testing.T) {
+	if _, err := runs.ReadProcs(); err != nil {
+		t.Skipf("processes can't be read here: %v", err)
+	}
+	w, _ := fixture(t, "## Goal\nCache it.\n", "cache")
+	ground := w.WS().MainWorktree("frontend")
+	os.MkdirAll(ground, 0o755)
+	os.WriteFile(filepath.Join(ground, "ws.repo.toml"), []byte("[run.web]\ncommand = \"sleep 300\"\n\n[run.stack]\ncommand = \"sleep 300\"\nwhere = \"silo\"\n"), 0o644)
+	t.Cleanup(func() {
+		list, _ := w.runStore().List()
+		for _, r := range list {
+			w.runStore().End(r)
+		}
+	})
+	old := RunUpWait
+	RunUpWait = 100 * time.Millisecond // sleep never listens
+	t.Cleanup(func() { RunUpWait = old })
+
+	if _, err := w.RunIn("frontend", "nope", "web", AsYou); !errors.Is(err, ErrNotFound) {
+		t.Errorf("a capsule the repo hasn't: %v", err)
+	}
+	if _, err := w.RunIn("nope", ".ground", "web", AsYou); !errors.Is(err, ErrNotFound) {
+		t.Errorf("a repo the workspace hasn't: %v", err)
+	}
+	r, err := w.RunIn("frontend", ".ground", "web", AsYou)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Owner.Kind != runs.ByLooking || r.Owner.Mission != "" || r.Ref() != "web.ground.frontend" {
+		t.Fatalf("run %+v", r)
+	}
+	in, err := w.RunsIn("frontend", ".ground")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(in.Runs) != 1 || in.Runs[0].Name != "web" {
+		t.Errorf("the page's runs: %v", in.Runs)
+	}
+	if strings.Join(in.Recipes, ",") != "web" {
+		t.Errorf("the page's recipes, the silo's left out: %v", in.Recipes)
+	}
+	if err := w.LookedAt(runs.Looking{Worktrees: map[string]bool{"frontend/.ground": true}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.EndRun(r.Ref()); err != nil {
+		t.Fatal(err)
 	}
 }
 

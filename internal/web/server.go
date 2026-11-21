@@ -132,6 +132,9 @@ type Server struct {
 	topics map[string]*hub
 	// missions tells a mission's open page when it changes (mission:<slug>).
 	missions *missionHub
+	// files are the grounds and capsules open on the Files page, for the
+	// runs started there.
+	files filesOpen
 	// prs tells a pull request's open page when it changes
 	// (pr:<repo>#<number>): nil without Reviews.
 	prs    *prHub
@@ -235,7 +238,7 @@ func (s *Server) Start() error {
 		}
 		return nil
 	})
-	go s.markLooked() // runs started from a mission's page last while it's open
+	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
 	// A write to the records that names the workspace (a conversation's
 	// turn, a page, a mission's record) is looked at now: its pages
 	// needn't wait for the next poll, which is for what only files and
@@ -362,6 +365,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees/{name}/raw", s.raw)
 	mux.HandleFunc("GET /api/repos/{repo}/worktrees/{name}/landing", s.landing)
 	mux.HandleFunc("POST /api/repos/{repo}/worktrees/{name}/land", s.land)
+	mux.HandleFunc("GET /api/repos/{repo}/worktrees/{name}/runs", s.worktreeRuns)
+	mux.HandleFunc("POST /api/repos/{repo}/worktrees/{name}/runs", s.runInWorktree)
 	mux.HandleFunc("POST /api/missions/{slug}/artifact/save", s.saveDoc)
 	mux.HandleFunc("GET /api/missions/{slug}/draft", s.getDraft)
 	mux.HandleFunc("PUT /api/missions/{slug}/draft", s.putDraft)

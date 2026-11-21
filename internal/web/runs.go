@@ -3,10 +3,12 @@ package web
 import (
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/router"
+	"github.com/withworkspace/workspace/internal/runs"
 )
 
 // Runs on a mission's page: "Run it" starts one of a capsule's recipes,
@@ -98,7 +100,8 @@ func (s *Server) stopRun(w http.ResponseWriter, r *http.Request) {
 const lookedEvery = time.Minute
 
 // markLooked marks, until the server's done, the runs started from the
-// missions someone has open.
+// missions someone has open, and from the grounds and capsules open on
+// the Files page.
 func (s *Server) markLooked() {
 	t := time.NewTicker(lookedEvery)
 	defer t.Stop()
@@ -106,12 +109,97 @@ func (s *Server) markLooked() {
 		select {
 		case <-s.ctx.Done():
 			return
-		case <-t.C:
-			if open := s.missions.open(); len(open) > 0 {
-				s.App.LookedAt(open)
-			}
+		case now := <-t.C:
+			s.App.LookedAt(runs.Looking{Missions: s.missions.open(), Worktrees: s.files.open(now)})
 		}
 	}
+}
+
+// Runs on the Files page: a ground's or capsule's runs and recipes, which
+// the page asks for again every few seconds while it's open (each ask
+// says it's open), and "Run" starting one there, lasting while someone
+// has it open (ops.RunIn). Stop is the Runs page's (POST /api/runs/stop).
+
+// filesOpen is the grounds and capsules open on the Files page, by
+// repo/worktree: when each was last asked for its runs.
+type filesOpen struct {
+	mu   sync.Mutex
+	seen map[string]time.Time
+}
+
+// saw records that repo/name is open now.
+func (f *filesOpen) saw(repo, name string, now time.Time) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.seen == nil {
+		f.seen = map[string]time.Time{}
+	}
+	f.seen[repo+"/"+name] = now
+}
+
+// open is those asked for since the last look but one, forgetting the
+// rest: a page shut, or gone to another worktree, stops asking.
+func (f *filesOpen) open(now time.Time) map[string]bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := map[string]bool{}
+	for k, at := range f.seen {
+		if now.Sub(at) > 2*lookedEvery {
+			delete(f.seen, k)
+			continue
+		}
+		out[k] = true
+	}
+	return out
+}
+
+// WorktreeRunsInfo is GET /api/repos/{repo}/worktrees/{name}/runs: what's
+// running in a ground or capsule, and the names of its ws.repo.toml's
+// recipes that run there.
+type WorktreeRunsInfo struct {
+	Runs    []RunDetail `json:"runs"`
+	Recipes []string    `json:"recipes"`
+}
+
+// RunInWorktree is POST /api/repos/{repo}/worktrees/{name}/runs: a recipe
+// to run there.
+type RunInWorktree struct {
+	Recipe string `json:"recipe"`
+}
+
+func (s *Server) worktreeRuns(w http.ResponseWriter, r *http.Request) {
+	repo, name := r.PathValue("repo"), r.PathValue("name")
+	in, err := s.App.RunsIn(repo, name)
+	if err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	now := time.Now()
+	s.files.saw(repo, name, now)
+	out := WorktreeRunsInfo{Runs: []RunDetail{}, Recipes: in.Recipes}
+	for _, run := range in.Runs {
+		out.Runs = append(out.Runs, RunDetailOf(run, s.Root, now))
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (s *Server) runInWorktree(w http.ResponseWriter, r *http.Request) {
+	var b RunInWorktree
+	if !readBody(w, r, &b) {
+		return
+	}
+	if b.Recipe == "" {
+		jsonError(w, http.StatusBadRequest, "need the recipe")
+		return
+	}
+	repo, name := r.PathValue("repo"), r.PathValue("name")
+	run, err := s.App.RunIn(repo, name, b.Recipe, ops.AsYou)
+	if err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	s.files.saw(repo, name, time.Now())
+	writeJSON(w, http.StatusOK, RunDetailOf(run, s.Root, time.Now()))
 }
 
 // The Runs page: every run in the workspace, wherever it runs and whoever

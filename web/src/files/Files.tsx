@@ -5,6 +5,7 @@ import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
 import { Empty, ErrorCard, Keys, Loading, useMedia, useTitle } from "../ui/kit";
 import { FileBrowser } from "./Explorer";
+import { WorktreeRuns } from "./Runs";
 import { useLoaded } from "../load";
 
 // Files: every repo in the workspace, as ws labels them (its display name
@@ -103,6 +104,7 @@ export function FilesPage({ workspace }: { workspace: Workspace }) {
               </nav>
             )}
             <WorktreeSwitch repo={r} current={name} mission={mission?.title} open={switching} setOpen={setSwitching} workspace={workspace} />
+            <WorktreeRuns repo={repo} name={name} />
           </>
         }
       />

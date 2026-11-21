@@ -12072,6 +12072,26 @@ details.repo-group > summary::-webkit-details-marker {
   border-bottom: 1px solid var(--line);
 }
 
+/* A ground's or capsule's runs, under its title on the Files page. */
+.files-runs {
+  display: grid;
+  gap: 6px;
+  padding: 4px 0 2px;
+}
+
+.files-runs .work-run-recipes {
+  margin-top: 0;
+}
+
+/* The column is narrow: a long name is cut short. */
+.files-runs .work-run-link {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .explorer-tree-head .crumbs {
   margin-bottom: 2px;
 }
