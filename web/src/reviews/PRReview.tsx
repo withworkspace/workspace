@@ -27,7 +27,7 @@ import {
   type Verdict,
   type Workspace,
 } from "../api";
-import { type AskAbout, clip, linesChip } from "../ask/ask";
+import { type AskAbout, linesChip } from "../ask/ask";
 import { AskBar, type AskBarHandle } from "../ask/AskBar";
 import { useKeys } from "../keys";
 import { type AskedFinding, type ReviewDiff, type ReviewSource, ReviewView, type Selection } from "../review/Review";
@@ -44,6 +44,7 @@ import { useLatest } from "../load";
 import { PagePin } from "../shell/focus";
 import { Chip, chipClass } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
+import { clip } from "../ui/text";
 
 // A pull request's review: the page a capsule's review is, on commits
 // fetched into the repo's clone. A stack opens as one review, its layers

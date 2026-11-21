@@ -3,6 +3,7 @@ import { type Command, type EditorState, Plugin, PluginKey, TextSelection } from
 import { Decoration, DecorationSet, type EditorView, type NodeView } from "prosemirror-view";
 import { parseMarkdown, saveMarkdown } from "./markdown";
 import { schema } from "./schema";
+import { clip } from "../ui/text";
 
 // Cells: places in a page where you asked for something and wrote on.
 //
@@ -282,7 +283,7 @@ export function wrapCell(view: EditorView, range: { from: number; to: number }, 
 // in it). It's >? asked of a selection.
 export function askAbout(view: EditorView, range: { from: number; to: number }, words: string, question: string, host: CellHost) {
   const quoted = words.replace(/\s+/g, " ").trim();
-  const clipped = quoted.length > 160 ? `${quoted.slice(0, 157)}…` : quoted;
+  const clipped = clip(quoted, 160);
   const prompt = clipped ? `About “${clipped}”: ${question}` : question;
   const key = Math.random().toString(36).slice(2, 10);
   view.dispatch(view.state.tr.insert(range.to, N.cell.create({ key, prompt, ask: true })).scrollIntoView());

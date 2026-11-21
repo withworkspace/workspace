@@ -30,6 +30,7 @@ import {
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { capital } from "../ui/text";
 
 // The mission's Verify tab: its verification bundles, what crew handed
 // over to show their work is as its checks say. Those yours to approve are
@@ -730,10 +731,6 @@ function CheckDetail({
       )}
     </article>
   );
-}
-
-function capital(s: string): string {
-  return s.slice(0, 1).toUpperCase() + s.slice(1);
 }
 
 // Evidence is a file that shows a check, as it is: an image (beside the

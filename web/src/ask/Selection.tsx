@@ -3,13 +3,11 @@ import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/kit";
 import { type Passage, passageOf } from "./ask";
 import { Button } from "../ui/Button";
+import { pageScroller } from "../ui/scroller";
 
 // The toolbar over a passage picked out of what's asked about (#123): Ask
 // about this (a), Explain, and Link. A page gives it where text is picked
 // out of, and what each does; the ask bar does the asking.
-
-// The pages scroll in the app's main column.
-const scroller = () => document.querySelector("main");
 
 // passageIn is what's selected in root, as a passage: its text, a little
 // either side, and the section it's in (the h2 or h3 before it). undefined
@@ -83,7 +81,7 @@ export function SelectionTools({
         const p = picked(el);
         if (!p) return setAt(undefined);
         const r = p.range.getBoundingClientRect();
-        const floor = (scroller()?.getBoundingClientRect().top ?? 0) + 44;
+        const floor = (pageScroller()?.getBoundingClientRect().top ?? 0) + 44;
         setAt({ left: Math.max(120, Math.min(r.left + r.width / 2, window.innerWidth - 120)), top: Math.max(floor, r.top - 8), passage: p.passage });
       });
     const mine = (e: Event) => !!(e.target as Element | null)?.closest?.(".seltool");
@@ -95,13 +93,13 @@ export function SelectionTools({
     document.addEventListener("mouseup", up);
     document.addEventListener("keyup", keyed);
     document.addEventListener("mousedown", away);
-    scroller()?.addEventListener("scroll", gone, { passive: true });
+    pageScroller()?.addEventListener("scroll", gone, { passive: true });
     window.addEventListener("resize", gone);
     return () => {
       document.removeEventListener("mouseup", up);
       document.removeEventListener("keyup", keyed);
       document.removeEventListener("mousedown", away);
-      scroller()?.removeEventListener("scroll", gone);
+      pageScroller()?.removeEventListener("scroll", gone);
       window.removeEventListener("resize", gone);
     };
   }, [within]);

@@ -10,6 +10,7 @@ import { CrewBadge } from "./parts";
 import { useLoaded } from "../load";
 import { useLatest } from "../load";
 import { Button } from "../ui/Button";
+import { pageScroller } from "../ui/scroller";
 
 // The agent view: a crew as a conversation, the way in to it. What it was
 // sent, what it said and the steps between, as it happens (the session
@@ -128,7 +129,7 @@ export function AgentView({ workspace, slug, id, crew, live, onTerminal }: { wor
   const root = workspace.root;
 
   useEffect(() => {
-    const m = document.getElementById("main");
+    const m = pageScroller();
     if (!m) return;
     const onScroll = () => {
       follow.current = m.scrollHeight - m.scrollTop - m.clientHeight < 160;
@@ -142,7 +143,7 @@ export function AgentView({ workspace, slug, id, crew, live, onTerminal }: { wor
   // Open on the latest; then follow it, unless you've scrolled up to read.
   useLayoutEffect(() => {
     if (!t) return;
-    const m = document.getElementById("main");
+    const m = pageScroller();
     if (!m) return;
     if (first.current || follow.current) {
       m.scrollTo({ top: m.scrollHeight, behavior: first.current ? "auto" : "smooth" });
@@ -251,7 +252,7 @@ export function AgentView({ workspace, slug, id, crew, live, onTerminal }: { wor
           <button
             className="new-pill"
             onClick={() => {
-              const m = document.getElementById("main");
+              const m = pageScroller();
               m?.scrollTo({ top: m.scrollHeight, behavior: "smooth" });
               setUnseen(false);
             }}

@@ -51,6 +51,7 @@ import { PinButton, pinNameOf, useFocus } from "./focus";
 import { actsFor, type Subject, subjectOf, type WsDoing } from "./acts";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
+import { capital } from "../ui/text";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
 // has, by what you remember of it. What the page holds (missions, pages,
@@ -913,7 +914,7 @@ function CodeRow({ it, h, on, onOver, onPick }: { it: Item; h: CodeHit; on: bool
 // SaidCard says of what ws records, found by what it says, where it is
 // and what it says there, the words found marked.
 function SaidCard({ it, f }: { it: Item; f: Found }) {
-  const what = f.what ? f.what[0].toUpperCase() + f.what.slice(1) : it.kind;
+  const what = f.what ? capital(f.what) : it.kind;
   const about = [what, f.where, f.on ? `on ${f.on}` : "", f.state && f.place !== "brief" ? f.state : "", f.ended ? "archived" : ""].filter(Boolean);
   return (
     <div className="find-said-card">

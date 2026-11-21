@@ -9,6 +9,7 @@ import { fuzzy } from "../ui/fuzzy";
 import { type IconName, icons } from "../ui/Icon";
 import { crewStatus, headlineStatus, type StatusInfo } from "../ui/status";
 import { type Tone } from "../ui/tone";
+import { capital } from "../ui/text";
 
 // Find, apart from how it's drawn: what there is to find in what the page
 // holds of the workspace, what the server's asked for the rest (files,
@@ -146,7 +147,7 @@ export function missionDo(m: Workspace["missions"][number]): Item | undefined {
     id: `do:${verb}:${m.slug}`,
     group: "do",
     kind: "Do",
-    title: m.headline.action.label[0].toUpperCase() + m.headline.action.label.slice(1),
+    title: capital(m.headline.action.label),
     hint: m.headline.text,
     icon: "play",
     score: 0,

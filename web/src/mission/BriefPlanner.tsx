@@ -11,6 +11,7 @@ import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/kit";
 import { docLines, type DocLine } from "./briefpage";
 import { Button } from "../ui/Button";
+import { pageScroller } from "../ui/scroller";
 
 // The planner, beside a mission's brief and plan (BriefTab.tsx): its
 // conversation as it's been said, where the brief's page used to keep it
@@ -282,14 +283,14 @@ export function PassageTool({ within, ask }: { within: RefObject<HTMLElement | n
     document.addEventListener("mousedown", away);
     // Whatever scrolls them: the documents together, or each by itself.
     el.addEventListener("scroll", gone, { passive: true, capture: true });
-    document.querySelector("main")?.addEventListener("scroll", gone, { passive: true });
+    pageScroller()?.addEventListener("scroll", gone, { passive: true });
     window.addEventListener("resize", gone);
     return () => {
       document.removeEventListener("mouseup", up);
       document.removeEventListener("keyup", keyed);
       document.removeEventListener("mousedown", away);
       el.removeEventListener("scroll", gone, { capture: true });
-      document.querySelector("main")?.removeEventListener("scroll", gone);
+      pageScroller()?.removeEventListener("scroll", gone);
       window.removeEventListener("resize", gone);
     };
   }, [within]);

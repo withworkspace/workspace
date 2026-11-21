@@ -14,6 +14,7 @@ import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { capital } from "../ui/text";
 
 // Reviews: the open pull requests across every repo in the workspace.
 // Your teammates' come first, grouped by what each asks of you; yours sit
@@ -42,8 +43,6 @@ const stateInfo: Record<PRState, { icon: IconName; tone: Tone }> = {
   ready: { icon: "check-circle", tone: "attention" },
   "waiting-review": { icon: "clock", tone: "waiting" },
 };
-
-const capital = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 // prStatus is where a pull request stands with you.
 export function prStatus(p: { state: PRState; words: string }): StatusInfo {

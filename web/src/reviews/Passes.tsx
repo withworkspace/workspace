@@ -6,6 +6,7 @@ import { Inline } from "../ui/inline";
 import { humanError, toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
+import { clip } from "../ui/text";
 
 // A review's passes, a view of its own: each pass, go or no go, what it said
 // of the change, and what it found, to take into your review or dismiss. Go
@@ -265,8 +266,6 @@ function PassView({
     </article>
   );
 }
-
-const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 // PassMarks are how each pass that's been run stands, a mark each: beside
 // Passes in the list down the side, so go or no go shows from any view.

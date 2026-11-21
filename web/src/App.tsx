@@ -52,6 +52,7 @@ import { duration } from "./ui/time";
 import { SiloPoint } from "./silo/SiloPoint";
 import { Count } from "./ui/Count";
 import { Button, buttonClass } from "./ui/Button";
+import { pageScroller } from "./ui/scroller";
 
 export function App() {
   const { workspace, error, connection } = useWorkspace();
@@ -611,7 +612,7 @@ function useScrollMemory() {
   const location = useLocation();
   const how = useNavigationType();
   useLayoutEffect(() => {
-    const main = document.getElementById("main");
+    const main = pageScroller();
     if (!main) return;
     const key = location.key;
     const want = how === "POP" ? scrolls.get(key) : undefined;

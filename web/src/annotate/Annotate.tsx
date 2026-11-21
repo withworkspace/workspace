@@ -35,6 +35,8 @@ import { changes } from "./diff";
 import { useLatest, useLoaded } from "../load";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
+import { clip } from "../ui/text";
+import { pageScroller } from "../ui/scroller";
 
 // Commenting on a document, as in a shared doc: you read it rendered,
 // highlight text and comment on it, and the comment is a thread, live at
@@ -134,8 +136,6 @@ function stack(want: { id: string; top: number }[], height: (id: string) => numb
   return Object.fromEntries(want.map((w, i) => [w.id, Math.round(pos[i] + lift)]));
 }
 
-const scroller = () => document.querySelector("main");
-
 function caretAt(x: number, y: number): { node: Node; offset: number } | undefined {
   const p = document.caretPositionFromPoint?.(x, y);
   if (p) return { node: p.offsetNode, offset: p.offset };
@@ -143,7 +143,6 @@ function caretAt(x: number, y: number): { node: Node; offset: number } | undefin
   return r ? { node: r.startContainer, offset: r.startOffset } : undefined;
 }
 
-const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n).trimEnd() + "…" : s);
 const linesWord = (n: { line: number; endLine: number }) => (n.endLine > n.line ? `lines ${n.line}–${n.endLine}` : `line ${n.line}`);
 const num = (id: string) => Number(id.slice(1));
 
@@ -444,7 +443,7 @@ export function AnnotatedDoc({
   const stale = !!st && st.version !== artifact.version;
 
   const reveal = (p: Placed) => {
-    const main = scroller();
+    const main = pageScroller();
     const r = p.spot ? spotRect(p.spot) : document.getElementById(`thread-${p.thread.id}`)?.getBoundingClientRect();
     if (!main || !r) return;
     const m = main.getBoundingClientRect();
@@ -464,7 +463,7 @@ export function AnnotatedDoc({
   };
   // The first thread below the top of the page, for n with none in focus.
   const firstInView = () => {
-    const top = scroller()?.getBoundingClientRect().top ?? 0;
+    const top = pageScroller()?.getBoundingClientRect().top ?? 0;
     const i = nav.findIndex((p) => !p.spot || (spotRect(p.spot)?.top ?? 0) >= top);
     return i >= 0 ? i : 0;
   };
@@ -472,13 +471,13 @@ export function AnnotatedDoc({
     if (!blocks.length) return;
     let to: number;
     if (!cursor) {
-      const top = scroller()?.getBoundingClientRect().top ?? 0;
+      const top = pageScroller()?.getBoundingClientRect().top ?? 0;
       to = Math.max(0, blocks.findIndex((b) => b.getBoundingClientRect().bottom > top + 8));
     } else to = Math.min(Math.max(cursor.to + step, 0), blocks.length - 1);
     setCursor({ from: extend && cursor ? cursor.from : to, to });
     setActive(undefined);
     const r = blocks[to].getBoundingClientRect();
-    const main = scroller();
+    const main = pageScroller();
     const m = main?.getBoundingClientRect();
     if (main && m && (r.top < m.top + 40 || r.bottom > m.bottom - 40)) main.scrollBy({ top: step > 0 ? r.bottom - m.bottom + 80 : r.top - m.top - 80 });
   };

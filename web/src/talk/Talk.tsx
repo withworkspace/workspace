@@ -43,6 +43,7 @@ import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { pageScroller } from "../ui/scroller";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -296,7 +297,6 @@ export function TalkList({
 // just come (a long one lands whole, to be read from its top). head is
 // the height of the bar stuck to the top; reply is the latest reply's
 // words, if the latest turn isn't yours.
-const scroller = () => document.getElementById("main");
 const restAt = (m: HTMLElement, reply: HTMLElement | null, head: number) => {
   const end = m.scrollHeight - m.clientHeight;
   if (!reply) return end;
@@ -357,7 +357,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
   const opened = useRef(0); // when it was first drawn; 0 before
   const replyTop = useRef<number>(undefined); // where the reply's words were, a run going, as last seen
   const rest = () => {
-    const m = scroller();
+    const m = pageScroller();
     return m ? restAt(m, Date.now() - opened.current < 1500 ? null : reply.current, head.current?.offsetHeight ?? 0) : 0;
   };
   const seen = () => {
@@ -369,7 +369,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
     setUnseen(false);
   }, [slug, id]);
   useEffect(() => {
-    const m = scroller();
+    const m = pageScroller();
     if (!m) return;
     const onScroll = () => {
       follow.current = m.scrollTop >= rest() - 120;
@@ -384,7 +384,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
   // the box you're writing in growing) is followed the same way.
   const loaded = !!d;
   useEffect(() => {
-    const m = scroller();
+    const m = pageScroller();
     if (!m || !page.current || !loaded) return;
     const settle = () => {
       if (follow.current) {
@@ -414,7 +414,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
   const was = useRef({ answering, turns });
   const landed = useRef({ of: "", turns: new Set<number>() });
   useLayoutEffect(() => {
-    const m = scroller();
+    const m = pageScroller();
     const before = was.current;
     was.current = { answering, turns };
     if (!m || !opened.current) return;
@@ -501,7 +501,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
   });
   // To a proposal's card, from beside the conversation: clear of the bar.
   const goTo = (n: number) => {
-    const m = scroller();
+    const m = pageScroller();
     const card = document.getElementById(`proposal-${n}`);
     if (!m || !card) return;
     m.scrollTo({ top: card.getBoundingClientRect().top - m.getBoundingClientRect().top + m.scrollTop - (head.current?.offsetHeight ?? 0) - 12, behavior: "smooth" });
@@ -655,7 +655,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
             <button
               className="new-pill"
               onClick={() => {
-                scroller()?.scrollTo({ top: rest(), behavior: "smooth" });
+                pageScroller()?.scrollTo({ top: rest(), behavior: "smooth" });
                 setUnseen(false);
               }}
             >

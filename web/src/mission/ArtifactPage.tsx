@@ -13,6 +13,8 @@ import { ArtifactState, artifactTitle } from "./parts";
 import { useLatest } from "../load";
 import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
+import { pageScroller } from "../ui/scroller";
+import { capital } from "../ui/text";
 
 export const artifactKeys: [string, string][] = [
   ...annotateKeys.map(([k, what]): [string, string] => (k === "j / k" ? [k, `${what} (in code: scroll)`] : [k, what])),
@@ -62,8 +64,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
   const startEdit = () => canEdit && setEditing(true);
   useEffect(load, [load]);
 
-  const scroller = () => document.querySelector("main");
-  const scroll = (by: number) => scroller()?.scrollBy({ top: by });
+  const scroll = (by: number) => pageScroller()?.scrollBy({ top: by });
   // Back where you came from, or to the mission's work if this was opened
   // directly.
   const back = () => (location.key !== "default" ? navigate(-1) : navigate(`/missions/${slug}?tab=work`));
@@ -82,8 +83,8 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
         }),
     "mod+d": () => scroll(window.innerHeight / 2),
     "mod+u": () => scroll(-window.innerHeight / 2),
-    g: () => scroller()?.scrollTo({ top: 0 }),
-    G: () => scroller()?.scrollTo({ top: scroller()!.scrollHeight }),
+    g: () => pageScroller()?.scrollTo({ top: 0 }),
+    G: () => pageScroller()?.scrollTo({ top: pageScroller()!.scrollHeight }),
     o: () => a?.url && window.open(a.url, "_blank", "noopener"),
     r: load,
     // A document's Esc clears what's picked out in it first: it goes back.
@@ -108,7 +109,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
               {a.docKind.title}
             </span>
           ) : (
-            <span className="doc-kind">{a.kind[0].toUpperCase() + a.kind.slice(1)}</span>
+            <span className="doc-kind">{capital(a.kind)}</span>
           )}
           <ArtifactState state={a.state} />
           {a.by && <span>by {a.by}</span>}

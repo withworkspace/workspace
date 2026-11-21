@@ -1,4 +1,5 @@
 import { docAddress, type TalkProposal, type TalkTurn } from "../api";
+import { clip } from "../ui/text";
 
 // What a proposal under a conversation's reply says of itself, worked out
 // from what the agent proposed; and what a card you settled says of
@@ -15,7 +16,7 @@ export function docLead(text: string): string {
   const first = paras.map((p) => p.trim()).find((p) => p && !p.startsWith("#") && !p.startsWith("---"));
   if (!first) return "";
   const line = first.split("\n").join(" ");
-  return line.length > 280 ? `${line.slice(0, 279)}…` : line;
+  return clip(line, 280);
 }
 
 // Settled is a turn ws wrote for you settling a card, as its marker says
@@ -41,7 +42,6 @@ export function settled(t: TalkTurn, proposals: TalkProposal[] = []): Settled | 
   const accepted = p ? p.state === "accepted" : !first.startsWith("Declined");
   if (!p) return { accepted, what: first.replace(/^(Accepted|Declined) /, "").replace(/\.$/, ""), edits };
   const quoted = (s?: string) => (s ? `“${s}”` : "");
-  const clip = (s: string | undefined, n: number) => (s && s.length > n ? `${s.slice(0, n - 1)}…` : s);
   const made = accepted ? p.result : undefined;
   switch (p.kind) {
     case "mission":
@@ -59,7 +59,7 @@ export function settled(t: TalkTurn, proposals: TalkProposal[] = []): Settled | 
       return { accepted, what: made && made !== "queued" ? `crew ${made}` : "crew", edits };
     case "replan":
       // The planner's conversation is the mission's: the card above leads there.
-      return made ? { accepted, what: `replan, asked of the planner in ${made}`, edits } : { accepted, what: `replan ${quoted(clip(p.text?.replace(/\.$/, ""), 80))}`.trim(), edits };
+      return made ? { accepted, what: `replan, asked of the planner in ${made}`, edits } : { accepted, what: `replan ${quoted(clip(p.text?.replace(/\.$/, "") ?? "", 80))}`.trim(), edits };
     case "comment":
       return { accepted, what: `review comment on ${p.path}:${p.line}`, edits };
     case "plugin":
@@ -160,7 +160,6 @@ export interface Made {
 // conversation's about, if it's a mission's; titleOf is an artifact's
 // title, by its id.
 export function made(proposals: TalkProposal[], slug = "", titleOf: (id: string) => string | undefined = () => undefined): Made[] {
-  const clip = (s: string | undefined, n: number) => ((s ?? "").length > n ? `${s!.slice(0, n - 1)}…` : (s ?? ""));
   const first = (s: string | undefined) => (s ?? "").trim().split("\n")[0].replace(/\.$/, "");
   const file = (ref: string | undefined) => (ref ?? "").slice((ref ?? "").lastIndexOf("/") + 1).replace(/^.*:/, "");
   const mission = slug ? `/missions/${encodeURIComponent(slug)}` : undefined;

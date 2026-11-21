@@ -10,7 +10,7 @@ import { Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { talkHref, talkStatus } from "../talk/Talk";
 import { useLatest } from "../load";
-import { aboutDoc, citedSection, clip, type Passage } from "../ask/ask";
+import { aboutDoc, citedSection, type Passage } from "../ask/ask";
 import { AskBar, type AskBarHandle } from "../ask/AskBar";
 import { passageIn, SelectionTools, type SelectionToolsHandle } from "../ask/Selection";
 import { ContentsMenu, ContentsPill, ContentsRail, goToSection, useRailFits, useRailHidden, useReading, useSections } from "./Contents";
@@ -22,6 +22,8 @@ import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { clip } from "../ui/text";
+import { pageScroller } from "../ui/scroller";
 
 export const docKeys: [string, string][] = [
   ["e", "Edit it, here: as the page tied to it"],
@@ -226,14 +228,13 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
     asker.current?.ask(p);
   };
   const back = () => (location.key !== "default" ? navigate(-1) : navigate(home));
-  const scroller = () => document.querySelector("main");
-  const scroll = (by: number) => scroller()?.scrollBy({ top: by });
+  const scroll = (by: number) => pageScroller()?.scrollBy({ top: by });
   useKeys({
     ...(canEdit ? { e: edit } : {}),
     "mod+d": () => scroll(window.innerHeight / 2),
     "mod+u": () => scroll(-window.innerHeight / 2),
-    g: () => scroller()?.scrollTo({ top: 0 }),
-    G: () => scroller()?.scrollTo({ top: scroller()!.scrollHeight }),
+    g: () => pageScroller()?.scrollTo({ top: 0 }),
+    G: () => pageScroller()?.scrollTo({ top: pageScroller()!.scrollHeight }),
     o: () => navigate(files),
     r: load,
     t: () => (rail ? toggleRail() : folded && toggleMenu()),

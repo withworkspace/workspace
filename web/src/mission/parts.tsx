@@ -10,6 +10,7 @@ import { dayKey, dayLabel, duration, stamp, Time, useNow } from "../ui/time";
 import { Chip, chipClass } from "../ui/Chip";
 import { type Tone } from "../ui/tone";
 import { Button } from "../ui/Button";
+import { capital } from "../ui/text";
 
 // The pieces a mission's page draws with: who did what (events), stages,
 // decisions, documents and capsules.
@@ -423,7 +424,7 @@ const kindPlural: Record<string, string> = {
   plan: "Plans",
 };
 
-export const kindTitle = (kind: string) => kindPlural[kind] ?? kind[0].toUpperCase() + kind.slice(1) + "s";
+export const kindTitle = (kind: string) => kindPlural[kind] ?? capital(kind) + "s";
 
 // artifactTitle is a document's name, short: its label when it's a name,
 // else made from its kind and who made it, with the label to describe it.
@@ -460,7 +461,7 @@ export function ArtifactState({ state }: { state: string }) {
   return (
     <Chip tone={stateTone[state] ?? "quiet"}>
       {state === "private" && <Icon name="lock" size={11} />}
-      {state[0]?.toUpperCase() + state.slice(1)}
+      {capital(state)}
     </Chip>
   );
 }

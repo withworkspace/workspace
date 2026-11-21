@@ -46,6 +46,7 @@ import { type Cell, cellHTML, type Editing, type FileState, type Found, fileRows
 import { useLatest } from "../load";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
+import { capital } from "../ui/text";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -1388,7 +1389,7 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
   return (
     <section id={`file-${index}`} className={`file${state.viewed ? " viewed" : ""}${state.folded && !state.viewed ? " folded" : ""}`}>
       <div id={`row-${index}`} className={`file-head ${cursor === `${index}` ? "cursor" : ""}`} onClick={() => onRow(`${index}`)}>
-        <span className={`fstatus s-${file.status}`}>{file.status[0].toUpperCase() + file.status.slice(1)}</span>
+        <span className={`fstatus s-${file.status}`}>{capital(file.status)}</span>
         <span className="mono">
           {file.oldPath && <span className="dim">{file.oldPath} → </span>}
           {file.path}
@@ -1621,7 +1622,7 @@ function NoteCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, follo
       onClick={() => onRow(row.key)}
     >
       <div className="note-head">
-        {note.kind ? <span className={`kind k-${note.kind}`}>{note.kind[0].toUpperCase() + note.kind.slice(1)}</span> : <span className="kind k-none">Comment</span>}
+        {note.kind ? <span className={`kind k-${note.kind}`}>{capital(note.kind)}</span> : <span className="kind k-none">Comment</span>}
         {note.by && (
           <span className="note-by" title={note.by === "agent" ? "An agent proposed it, and you added it to your review: it's yours to edit" : `${note.by} on GitHub`}>
             <Icon name={note.by === "agent" ? "sparkle" : "user"} size={11} /> {note.by === "agent" ? "Agent's" : note.by}
@@ -1753,7 +1754,7 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
       <div className="note-head">
         {noteKinds.map((k) => (
           <button key={k} className={`kind k-${k}${k === kind ? " on" : ""}`} onClick={() => setKind(k)} aria-pressed={k === kind}>
-            {k[0].toUpperCase() + k.slice(1)}
+            {capital(k)}
           </button>
         ))}
         <span className="dim">

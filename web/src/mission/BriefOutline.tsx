@@ -8,6 +8,7 @@ import { PlanList } from "./PlanList";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { pageScroller } from "../ui/scroller";
 
 // The outline beside a mission's brief and plan (BriefTab.tsx): what
 // they're made of, each leading to its place in them.
@@ -105,7 +106,7 @@ export function BriefOutline({
   useEffect(() => {
     const el = docs.current;
     if (!el) return;
-    const main = document.querySelector<HTMLElement>("main");
+    const main = pageScroller();
     const scrolls = (x: HTMLElement) => x.scrollHeight > x.clientHeight + 1 && getComputedStyle(x).overflowY !== "visible";
     const look = () => {
       const panes = [...el.querySelectorAll<HTMLElement>(".brief-doc")].filter(scrolls);

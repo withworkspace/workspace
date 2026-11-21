@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncEx
 import { useKeys } from "../keys";
 import { Icon, type IconName } from "./Icon";
 import { Button } from "./Button";
+import { capital } from "./text";
 
 // The small shared pieces every page draws with.
 
@@ -142,7 +143,7 @@ export function ErrorCard({ error, retry, title = "Couldn't load this" }: { erro
 export function humanError(e: string): string {
   const s = e.trim().replace(/^error:\s*/i, "");
   if (!s) return "Something went wrong.";
-  const t = s[0].toUpperCase() + s.slice(1);
+  const t = capital(s);
   return /[.!?)]$/.test(t) ? t : t + ".";
 }
 

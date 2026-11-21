@@ -72,6 +72,7 @@ import { Chip, chipClass } from "../ui/Chip";
 import { type Tone } from "../ui/tone";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
+import { clip } from "../ui/text";
 
 // A page: a document you write, saved as you go, with cells an agent fills
 // in. A line that starts with >> asks for something; ⏎ makes it a cell and
@@ -633,7 +634,7 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
     setTab(pass.name);
     const words = `${f.quote ? `"${f.quote}": ` : ""}${f.text}`;
     await save().catch(() => {});
-    await openCell(id, words.length > 500 ? words.slice(0, 499) + "…" : words, { finding: noteKey(pass.name, f.key) })
+    await openCell(id, clip(words, 500), { finding: noteKey(pass.name, f.key) })
       .then((cell) => {
         put(cell);
         return startFilling(id, cell.id).then(put);
@@ -1509,8 +1510,6 @@ function mapOf(doc: PMNode, cells: PageCell[], root: string): MapData {
   return map;
 }
 
-const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
-
 const stateIcon: Record<CellState["status"], IconName> = { starting: "spinner", filling: "spinner", filled: "check", stale: "alert", failed: "alert" };
 
 // PageMap is the page's map, beside it: its outline, its cells and where
@@ -1692,7 +1691,7 @@ function doing(c: TalkCall, root: string): string {
   const tail = input.length > 48 ? "…" + input.slice(-47) : input;
   if (/^(read|view|cat)/i.test(c.tool)) return `Reading ${tail}`;
   if (/^(grep|glob|search|find|ls)/i.test(c.tool)) return `Searching for ${tail}`;
-  return `Running ${input.length > 48 ? input.slice(0, 47) + "…" : input}`;
+  return `Running ${clip(input, 48)}`;
 }
 
 function cellState(cell: PageCell, root: string): CellState {
