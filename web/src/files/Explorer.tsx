@@ -12,6 +12,7 @@ import { FileIcon } from "../ui/FileIcon";
 import { Icon, type IconName } from "../ui/Icon";
 import { Callout, Copyable, Empty, ErrorCard, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
 import { useLoaded } from "../load";
+import { TabbedBrowser } from "./WorktreeTabs";
 
 // The file explorer: a capsule's files as they are now, without an editor
 // open. A tree on the left (everything, or only what's changed since the
@@ -213,7 +214,9 @@ export function Explorer({ workspace }: { workspace: Workspace }) {
   const mission = workspace.missions.find((m) => m.slug === slug);
   const api = capsuleAPI(slug, repo, name);
   return (
-    <FileBrowser
+    <TabbedBrowser
+      at={{ repo, worktree: name }}
+      workspace={workspace}
       key={api}
       api={api}
       label={`${repo}/${name}`}
@@ -243,8 +246,14 @@ export interface BrowserProps {
   // it, for the tab's title ("demo/greet").
   api: string;
   label: string;
-  // head is above the tree: where you are, and how to go elsewhere.
+  // head is above the tree and the file, beside tabs: where you are, and
+  // how to go elsewhere.
   head: ReactNode;
+  // tabs are what else there is of the worktree beside its files (its
+  // runs, its apps), across the top of the tree and the file. other is
+  // what's shown in place of both, when one of those is picked.
+  tabs?: ReactNode;
+  other?: ReactNode;
   // before is a column before the tree (the Files page's repos).
   before?: ReactNode;
   // The files are read again when updated changes (crew at work).
@@ -262,7 +271,7 @@ export interface BrowserProps {
   empty: string;
 }
 
-export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf, search, onEscape, empty }: BrowserProps) {
+export function FileBrowser({ api, label, head, tabs, other, before, updated, reviewTo, docOf, search, onEscape, empty }: BrowserProps) {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const path = params.get("path") ?? "";
@@ -389,7 +398,8 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
     const up = rows.slice(0, at).findLast((x) => x.depth < r.depth);
     if (up) setCursor(up.node.path);
   };
-  useKeys({
+  // Another tab picked: the tree's keys aren't the page's.
+  const treeKeys = {
     t: () => setFinder(true),
     "mod+p": () => setFinder(true),
     j: () => setCursor(rows[Math.min(at + 1, rows.length - 1)]?.node.path ?? cursor),
@@ -419,7 +429,8 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
       setReload((n) => n + 1);
     },
     Escape: onEscape,
-  });
+  };
+  useKeys(other ? { Escape: onEscape } : treeKeys);
 
   // A folder asked for (a document's link to one): its README, as GitHub
   // shows a folder, or the folder itself, open in the tree.
@@ -440,13 +451,21 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
   // A file asked for that isn't in this tree (one open in another
   // capsule, before switching to this one).
   const missing = !!tree && !!path && !byPath.has(path) && !folder;
-  if (error && !tree) {
+  const top = (
+    <div className="explorer-top">
+      <div className="explorer-where">{head}</div>
+      {tabs}
+    </div>
+  );
+  if (error && !tree && !other) {
     return (
       <div className={`explorer${narrow ? " narrow" : ""}${before ? " with-before" : ""}`}>
         {before}
-        <div className="page narrow">
-          {head}
-          <ErrorCard title="Couldn't read the files" error={error} retry={loadTree} />
+        <div className="explorer-main">
+          {top}
+          <div className="page narrow">
+            <ErrorCard title="Couldn't read the files" error={error} retry={loadTree} />
+          </div>
         </div>
       </div>
     );
@@ -455,102 +474,112 @@ export function FileBrowser({ api, label, head, before, updated, reviewTo, docOf
   // time); with none, the tree's always there, to pick one from.
   const fileOpen = !!path && !folder;
   const alone = !narrow && fileOpen && shown === 1;
-  const withBefore = !!before && !narrow && (shown === 3 || !fileOpen);
+  // Another tab has the room of the tree and the file both; the repos
+  // beside it are as you've picked the panes.
+  const withBefore = !!before && !narrow && (shown === 3 || (!fileOpen && !other));
   const showTree = narrow ? !path : !alone;
   const showFile = !narrow || !!path;
   return (
-    <div className={`explorer${narrow ? " narrow" : ""}${withBefore ? " with-before" : ""}${alone ? " alone" : ""}`}>
+    <div className={`explorer${narrow ? " narrow" : ""}${withBefore ? " with-before" : ""}`}>
       {withBefore && before}
-      {showTree && (
-        <aside className="explorer-tree" aria-label="Files">
-          <div className="explorer-tree-head">
-            {head}
-            {tree?.branch && (
-              <div className="explorer-branch dim">
-                <Icon name="branch" size={12} /> {tree.branch}
-                {tree.base && <> · left {tree.baseRef.replace(/^origin\//, "")} at <span className="mono">{tree.base.slice(0, 7)}</span></>}
-              </div>
-            )}
-            <div className="explorer-tools">
-              {tree && !tree.baseRef ? (
-                // Nothing to compare with (a repo's ground): just its files.
-                <span className="dim explorer-count">
-                  {files.length} {files.length === 1 ? "file" : "files"}
-                </span>
-              ) : (
-                <div className="segmented" role="group" aria-label="Show">
-                  <button aria-pressed={changedOnly} onClick={() => setChangedOnly(true)} title="Only what's changed since the branch point (c)" disabled={!tree?.base}>
-                    Changed <span className="count">{changed.length}</span>
-                  </button>
-                  <button aria-pressed={!changedOnly} onClick={() => setChangedOnly(false)} title="Every file (c)">
-                    All <span className="count">{files.length}</span>
-                  </button>
+      <div className="explorer-main">
+        {top}
+        {other ? (
+          <div className="explorer-other">{other}</div>
+        ) : (
+          <div className={`explorer-body${alone ? " alone" : ""}`}>
+            {showTree && (
+              <aside className="explorer-tree" aria-label="Files">
+                <div className="explorer-tree-head">
+                  {tree?.branch && (
+                    <div className="explorer-branch dim">
+                      <Icon name="branch" size={12} /> {tree.branch}
+                      {tree.base && <> · left {tree.baseRef.replace(/^origin\//, "")} at <span className="mono">{tree.base.slice(0, 7)}</span></>}
+                    </div>
+                  )}
+                  <div className="explorer-tools">
+                    {tree && !tree.baseRef ? (
+                      // Nothing to compare with (a repo's ground): just its files.
+                      <span className="dim explorer-count">
+                        {files.length} {files.length === 1 ? "file" : "files"}
+                      </span>
+                    ) : (
+                      <div className="segmented" role="group" aria-label="Show">
+                        <button aria-pressed={changedOnly} onClick={() => setChangedOnly(true)} title="Only what's changed since the branch point (c)" disabled={!tree?.base}>
+                          Changed <span className="count">{changed.length}</span>
+                        </button>
+                        <button aria-pressed={!changedOnly} onClick={() => setChangedOnly(false)} title="Every file (c)">
+                          All <span className="count">{files.length}</span>
+                        </button>
+                      </div>
+                    )}
+                    <button className="ghost icon-button small" onClick={() => setFinder(true)} title="Find a file (t)" aria-label="Find a file">
+                      <Icon name="search" size={14} />
+                    </button>
+                    {search && (
+                      <button className="ghost icon-button small" onClick={() => setSearching(true)} title="Search what the files say (⌘⇧F)" aria-label="Search what the files say">
+                        <Icon name="code" size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              )}
-              <button className="ghost icon-button small" onClick={() => setFinder(true)} title="Find a file (t)" aria-label="Find a file">
-                <Icon name="search" size={14} />
-              </button>
-              {search && (
-                <button className="ghost icon-button small" onClick={() => setSearching(true)} title="Search what the files say (⌘⇧F)" aria-label="Search what the files say">
-                  <Icon name="code" size={14} />
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="explorer-rows" ref={treeRef} role="tree" aria-label={label}>
-            {!tree && <Loading what="Reading the files…" />}
-            {tree && !rows.length && (
-              <Empty icon={changedOnly ? "check-circle" : "file"} title={changedOnly ? "Nothing's changed yet" : "No files"}>
-                {changedOnly ? `Nothing here differs from ${tree.baseRef.replace(/^origin\//, "")}, committed or not.` : empty}
-              </Empty>
+                <div className="explorer-rows" ref={treeRef} role="tree" aria-label={label}>
+                  {!tree && <Loading what="Reading the files…" />}
+                  {tree && !rows.length && (
+                    <Empty icon={changedOnly ? "check-circle" : "file"} title={changedOnly ? "Nothing's changed yet" : "No files"}>
+                      {changedOnly ? `Nothing here differs from ${tree.baseRef.replace(/^origin\//, "")}, committed or not.` : empty}
+                    </Empty>
+                  )}
+                  {rows.map((r) => (
+                    <TreeRow
+                      key={r.node.path + (r.node.dir ? "/" : "")}
+                      row={r}
+                      open={r.node.dir && isOpen(r.node)}
+                      cursor={r.node.path === cursor}
+                      current={r.node.path === path}
+                      changedOnly={changedOnly}
+                      onClick={() => activate(r)}
+                    />
+                  ))}
+                  {tree?.truncated && <div className="explorer-note">Only the first {files.length} files are listed.</div>}
+                </div>
+              </aside>
             )}
-            {rows.map((r) => (
-              <TreeRow
-                key={r.node.path + (r.node.dir ? "/" : "")}
-                row={r}
-                open={r.node.dir && isOpen(r.node)}
-                cursor={r.node.path === cursor}
-                current={r.node.path === path}
-                changedOnly={changedOnly}
-                onClick={() => activate(r)}
-              />
-            ))}
-            {tree?.truncated && <div className="explorer-note">Only the first {files.length} files are listed.</div>}
+            {showFile && (
+              <section className="explorer-file" aria-label="File">
+                {missing ? (
+                  <div className="explorer-overview">
+                    <Empty icon="file" title="Not here" action={<button onClick={() => setParams(changedOnly ? { only: "changed" } : {})}>Pick another file</button>}>
+                      There's no <span className="mono">{path}</span> in {label}.
+                    </Empty>
+                  </div>
+                ) : path && !folder ? (
+                  <FilePane
+                    api={api}
+                    path={path}
+                    entry={byPath.get(path)}
+                    baseRef={tree?.baseRef ?? ""}
+                    updated={`${String(updated)}:${reload}`}
+                    preview={preview}
+                    setPreview={setPreview}
+                    ready={ready}
+                    reviewTo={reviewTo}
+                    docTo={docFor(path)}
+                    onBack={narrow ? () => setParams(changedOnly ? { only: "changed" } : {}) : undefined}
+                    panes={narrow ? undefined : <PanesMenu shown={shown} most={most} />}
+                    onReveal={(p) => {
+                      setOpen((o) => new Set([...o, ...ancestors(p + "/x")]));
+                      setCursor(p);
+                    }}
+                  />
+                ) : (
+                  <Overview tree={tree} changed={changed} onOpen={select} onFind={() => setFinder(true)} />
+                )}
+              </section>
+            )}
           </div>
-        </aside>
-      )}
-      {showFile && (
-        <section className="explorer-file" aria-label="File">
-          {missing ? (
-            <div className="explorer-overview">
-              <Empty icon="file" title="Not here" action={<button onClick={() => setParams(changedOnly ? { only: "changed" } : {})}>Pick another file</button>}>
-                There's no <span className="mono">{path}</span> in {label}.
-              </Empty>
-            </div>
-          ) : path && !folder ? (
-            <FilePane
-              api={api}
-              path={path}
-              entry={byPath.get(path)}
-              baseRef={tree?.baseRef ?? ""}
-              updated={`${String(updated)}:${reload}`}
-              preview={preview}
-              setPreview={setPreview}
-              ready={ready}
-              reviewTo={reviewTo}
-              docTo={docFor(path)}
-              onBack={narrow ? () => setParams(changedOnly ? { only: "changed" } : {}) : undefined}
-              panes={narrow ? undefined : <PanesMenu shown={shown} most={most} />}
-              onReveal={(p) => {
-                setOpen((o) => new Set([...o, ...ancestors(p + "/x")]));
-                setCursor(p);
-              }}
-            />
-          ) : (
-            <Overview tree={tree} changed={changed} onOpen={select} onFind={() => setFinder(true)} />
-          )}
-        </section>
-      )}
+        )}
+      </div>
       {searching && search && (
         <CodeFinder
           repo={search.repo}

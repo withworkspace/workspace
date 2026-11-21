@@ -4,7 +4,7 @@ import { docRef, GROUND, getRepos, getWorktrees, type Repo, type Workspace, type
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
 import { Empty, ErrorCard, Keys, Loading, useMedia, useTitle } from "../ui/kit";
-import { FileBrowser } from "./Explorer";
+import { TabbedBrowser } from "./WorktreeTabs";
 import { useLoaded } from "../load";
 
 // Files: every repo in the workspace, as ws labels them (its display name
@@ -37,7 +37,7 @@ export function FilesPage({ workspace }: { workspace: Workspace }) {
   const narrow = useMedia("(max-width: 860px)");
   const { value: repos, error, reload: load } = useLoaded<Repo[]>(getRepos, [], { keep: true });
   const [switching, setSwitching] = useState(false);
-  useTitle(repo ? undefined : "Files");
+  useTitle(repo ? undefined : "Repos");
 
   const r = repos?.find((x) => x.name === repo);
   // A capsule a mission has: it's reviewed there, and read again as it moves.
@@ -76,8 +76,10 @@ export function FilesPage({ workspace }: { workspace: Workspace }) {
   const api = worktreeAPI(repo, name);
   return (
     <>
-      <FileBrowser
+      <TabbedBrowser
         key={api}
+        at={{ repo, worktree: name }}
+        workspace={workspace}
         api={api}
         label={`${r.label}/${capsule ?? "ground"}`}
         before={narrow ? undefined : column}
@@ -136,8 +138,8 @@ function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
   return (
     <nav className="files-repos" aria-label="Repos">
       <div className="files-repos-head">
-        <h1>Files</h1>
-        <span className="dim">{repos.length} repos</span>
+        <h1>Repos</h1>
+        <span className="dim">{repos.length}</span>
       </div>
       <div className="files-repos-list">
         {groups.map(([g, rs]) =>

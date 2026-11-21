@@ -51,6 +51,7 @@ import type {
   ReviewGuide,
   PRWritten,
   AppDetail,
+  PlaceRunsInfo,
   RunDetail,
   RunsInfo,
   SettingChange,
@@ -149,6 +150,8 @@ export type {
   AppDetail,
   AppInfo,
   AppPointer,
+  PlaceRunsInfo,
+  RecipeInfo,
   RunDetail,
   RunsInfo,
   WorkspaceSiloHook as SiloHook,
@@ -664,11 +667,24 @@ export const endRun = (ref: string) => send<{ stopped: string }>("POST", "/api/r
 // run, or joins the one that's running, and the page opens it again every
 // minute while it's open, which keeps it; once nobody has it open, ws
 // ends it. Mirrors internal/web/apps.go.
-const appPath = (name: string, rest = "") => `/api/apps/${encodeURIComponent(name)}${rest}`;
-export const getApp = (name: string) => getJSON<AppDetail>(appPath(name));
-export const openApp = (name: string) => send<AppDetail>("POST", appPath(name, "/open"), {});
-export const restartApp = (name: string) => send<AppDetail>("POST", appPath(name, "/restart"), {});
-export const stopApp = (name: string) => send<AppDetail>("POST", appPath(name, "/stop"), {});
+//
+// A repo's recipe with a page is an app of each of its worktrees (at),
+// a tab of its repo's page; with no at, it's the workspace's own.
+export interface AppAt {
+  repo: string;
+  worktree: string;
+}
+const placePath = (at: AppAt) => `/api/repos/${encodeURIComponent(at.repo)}/worktrees/${encodeURIComponent(at.worktree)}`;
+const appPath = (name: string, rest = "", at?: AppAt) => `${at ? `${placePath(at)}/apps` : "/api/apps"}/${encodeURIComponent(name)}${rest}`;
+export const getApp = (name: string, at?: AppAt) => getJSON<AppDetail>(appPath(name, "", at));
+export const openApp = (name: string, at?: AppAt) => send<AppDetail>("POST", appPath(name, "/open", at), {});
+export const restartApp = (name: string, at?: AppAt) => send<AppDetail>("POST", appPath(name, "/restart", at), {});
+export const stopApp = (name: string, at?: AppAt) => send<AppDetail>("POST", appPath(name, "/stop", at), {});
+// getPlaceRuns is a worktree's apps (its tabs), recipes and runs.
+export const getPlaceRuns = (at: AppAt) => getJSON<PlaceRunsInfo>(`${placePath(at)}/runs`);
+// lookedAtPlace says a worktree's page is open: what was started from it
+// (its apps, and recipes run from its Runs) is kept while it is.
+export const lookedAtPlace = (at: AppAt) => send<{ looked: boolean }>("POST", `${placePath(at)}/looked`, {});
 // pointApp points one of the app's needs at a worktree of its repo (a
 // capsule's name, ground or silo; "" for the nearest), starting the app
 // again on it where it's running.

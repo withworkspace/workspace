@@ -2886,6 +2886,17 @@ export interface Pick {
     model?: string;
 }
 
+// From web/apps.go
+/**
+ * PlaceRunsInfo is GET /api/repos/{repo}/worktrees/{worktree}/runs: a
+ * worktree's apps (its tabs), recipes and runs, for its repo's page.
+ */
+export interface PlaceRunsInfo {
+    apps: AppInfo[];
+    recipes: RecipeInfo[];
+    runs: RunDetail[];
+}
+
 // From web/api.go
 /**
  * Places is where the web UI's places go: the sidebar's, in order, and
@@ -3534,6 +3545,17 @@ export interface ReReview {
     review: string;
     answered: number;
     total: number;
+}
+
+// From web/apps.go
+/**
+ * RecipeInfo is one of a worktree's recipes: its name, its command, and
+ * its app's, for one with a page.
+ */
+export interface RecipeInfo {
+    name: string;
+    command: string;
+    app?: AppInfo;
 }
 
 // From ref/ref.go

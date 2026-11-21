@@ -184,7 +184,7 @@ function NeedsLine({ r, up }: { r: RunDetail; up: Set<string> }) {
   );
 }
 
-function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; workspace: Workspace; reload: Reload }) {
+export function RunRow({ r, up, workspace, reload }: { r: RunDetail; up: Set<string>; workspace: Workspace; reload: Reload }) {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const live = r.state === "running";

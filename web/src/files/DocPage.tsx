@@ -251,11 +251,11 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
       <div className="reader-col" ref={column}>
         {folded && <ContentsPill title={title ?? name} sections={sections} reading={reading} open={menu} toggle={toggleMenu} pill={pill} />}
         {read && where ? (
-          <PathCrumbs from={space ? { to: "/documents", label: "Documents" } : { to: "/files", label: "Files" }} on={on} title={title ?? name} open={folder} toggle={(id) => openFolder(folder === id ? undefined : id)} nav={crumbs} />
+          <PathCrumbs from={space ? { to: "/documents", label: "Documents" } : { to: "/files", label: "Repos" }} on={on} title={title ?? name} open={folder} toggle={(id) => openFolder(folder === id ? undefined : id)} nav={crumbs} />
         ) : (
           <nav className="crumbs" aria-label="Breadcrumb">
             <Link to={home}>
-              <Icon name="arrow-left" size={13} /> {space ? space.label : "Files"}
+              <Icon name="arrow-left" size={13} /> {space ? space.label : "Repos"}
             </Link>
           </nav>
         )}

@@ -471,6 +471,29 @@ func (s Store) LookedApps(names map[string]bool, now time.Time) error {
 	return errors.Join(errs...)
 }
 
+// LookedAt marks the runs of repo's worktree (the workspace's own, with no
+// repo) that are owned by looking at an app or a recipe from its page as
+// looked at now: someone has the page open.
+func (s Store) LookedAt(repo, worktree string, now time.Time) error {
+	runs, err := s.List()
+	if err != nil {
+		return err
+	}
+	var errs []error
+	for _, r := range runs {
+		if r.State != Running || r.Repo != repo || r.Worktree != worktree {
+			continue
+		}
+		if slices.ContainsFunc(r.Owners(), func(o Owner) bool { return o.Kind == ByLooking && o.App != "" }) {
+			r.Looked = now.UTC().Truncate(time.Second)
+			if err := save(r.Record, r.Path); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+	return errors.Join(errs...)
+}
+
 // Keep sets how long a run has left from now: d of 0 is no limit.
 func (s Store) Keep(r Run, d time.Duration, now time.Time) (Run, error) {
 	r.Expires = time.Time{}

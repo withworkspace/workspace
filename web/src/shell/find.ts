@@ -160,7 +160,7 @@ const placeWords: Record<string, string> = {
   artifacts: "prototypes sketches html mock-ups frames versions",
   reviews: "pull requests prs stacks github",
   team: "people timeline who landed merged what's happening",
-  files: "repos capsules ground browse",
+  files: "files capsules ground browse runs apps",
   orchestrator: "agent decides what's next runs",
   runs: "processes dev servers ports http localhost names router running",
 };

@@ -15,13 +15,22 @@ import (
 // it open, it's ended. The page points its needs, and starts it again or
 // stops it.
 
-// Apping is what an app's page asks of the workspace.
+// Apping is what an app's page asks of the workspace: the workspace's
+// apps, and a repo's worktree's (its tabs on the repo's page).
 type Apping interface {
-	App(name string) (ops.AppView, error)
-	OpenApp(name string, by ops.Actor) (ops.AppView, error)
-	RestartApp(name string, by ops.Actor) (ops.AppView, error)
-	StopApp(name string) error
+	AppAt(p ops.AppPlace, name string) (ops.AppView, error)
+	OpenAppAt(p ops.AppPlace, name string, by ops.Actor) (ops.AppView, error)
+	RestartAppAt(p ops.AppPlace, name string, by ops.Actor) (ops.AppView, error)
+	StopAppAt(p ops.AppPlace, name string) error
 	PointRun(recipe, need, worktree string, by ops.Actor, wait time.Duration) (ops.Pointed, error)
+	RunsAt(p ops.AppPlace) (ops.PlaceRuns, error)
+	LookedAtPlace(p ops.AppPlace) error
+}
+
+// appPlace is where the request's app is: a repo's worktree, for one
+// under /api/repos/{repo}/worktrees/{name}, else the workspace.
+func appPlace(r *http.Request) ops.AppPlace {
+	return ops.AppPlace{Repo: r.PathValue("repo"), Worktree: r.PathValue("worktree")}
 }
 
 // AppDetail is GET /api/apps/{name}: an app, what its needs are pointed
@@ -79,7 +88,7 @@ func (s *Server) appDetail(v ops.AppView) AppDetail {
 }
 
 func (s *Server) getApp(w http.ResponseWriter, r *http.Request) {
-	v, err := s.App.App(r.PathValue("name"))
+	v, err := s.App.AppAt(appPlace(r), r.PathValue("name"))
 	if err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return
@@ -88,7 +97,7 @@ func (s *Server) getApp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) openApp(w http.ResponseWriter, r *http.Request) {
-	v, err := s.App.OpenApp(r.PathValue("name"), ops.AsYou)
+	v, err := s.App.OpenAppAt(appPlace(r), r.PathValue("name"), ops.AsYou)
 	if err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return
@@ -97,7 +106,7 @@ func (s *Server) openApp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) restartApp(w http.ResponseWriter, r *http.Request) {
-	v, err := s.App.RestartApp(r.PathValue("name"), ops.AsYou)
+	v, err := s.App.RestartAppAt(appPlace(r), r.PathValue("name"), ops.AsYou)
 	if err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return
@@ -107,11 +116,11 @@ func (s *Server) restartApp(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) stopApp(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
-	if err := s.App.StopApp(name); err != nil {
+	if err := s.App.StopAppAt(appPlace(r), name); err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-	v, err := s.App.App(name)
+	v, err := s.App.AppAt(appPlace(r), name)
 	if err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return
@@ -129,7 +138,7 @@ func (s *Server) pointApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := r.PathValue("name")
-	if _, err := s.App.App(name); err != nil {
+	if _, err := s.App.AppAt(ops.AtWorkspace, name); err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
@@ -138,7 +147,7 @@ func (s *Server) pointApp(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-	v, err := s.App.App(name)
+	v, err := s.App.AppAt(appPlace(r), name)
 	if err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return
@@ -146,4 +155,55 @@ func (s *Server) pointApp(w http.ResponseWriter, r *http.Request) {
 	d := s.appDetail(v)
 	d.Said = done.String()
 	writeJSON(w, http.StatusOK, d)
+}
+
+// PlaceRunsInfo is GET /api/repos/{repo}/worktrees/{worktree}/runs: a
+// worktree's apps (its tabs), recipes and runs, for its repo's page.
+type PlaceRunsInfo struct {
+	Apps    []AppInfo    `json:"apps"`
+	Recipes []RecipeInfo `json:"recipes"`
+	Runs    []RunDetail  `json:"runs"`
+}
+
+// RecipeInfo is one of a worktree's recipes: its name, its command, and
+// its app's, for one with a page.
+type RecipeInfo struct {
+	Name    string   `json:"name"`
+	Command string   `json:"command"`
+	App     *AppInfo `json:"app,omitempty"`
+}
+
+func (s *Server) placeRuns(w http.ResponseWriter, r *http.Request) {
+	p := appPlace(r)
+	v, err := s.App.RunsAt(p)
+	if err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	out := PlaceRunsInfo{Apps: []AppInfo{}, Recipes: []RecipeInfo{}, Runs: []RunDetail{}}
+	for _, a := range v.Apps {
+		out.Apps = append(out.Apps, AppInfo{Name: a.Name, Title: a.Title, Icon: a.Icon})
+	}
+	for _, rc := range v.Recipes {
+		ri := RecipeInfo{Name: rc.Name, Command: rc.Command}
+		if rc.App != nil {
+			ri.App = &AppInfo{Name: rc.App.Name, Title: rc.App.Title, Icon: rc.App.Icon}
+		}
+		out.Recipes = append(out.Recipes, ri)
+	}
+	now := time.Now()
+	for _, run := range v.Runs {
+		out.Runs = append(out.Runs, RunDetailOf(run, s.Root, now))
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// lookedAtPlace is POST …/looked: a worktree's page is open, which keeps
+// what was started from it.
+func (s *Server) lookedAtPlace(w http.ResponseWriter, r *http.Request) {
+	if err := s.App.LookedAtPlace(appPlace(r)); err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"looked": true})
 }

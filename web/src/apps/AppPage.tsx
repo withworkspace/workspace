@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
-import { type AppDetail, type AppPointer, getApp, openApp, pointApp, restartApp, stopApp, type Workspace } from "../api";
+import { type AppAt, type AppDetail, type AppPointer, getApp, openApp, pointApp, restartApp, stopApp, type Workspace } from "../api";
 import { useLatest } from "../load";
 import { Icon, type IconName, icons } from "../ui/Icon";
 import { ErrorCard, humanError, toast, useTitle } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 
-// An app's page: one of the workspace's own recipes with a page ([run.docs]
-// page = … in ws.toml), its run shown in a frame. As the Sketch canvas is
-// laid out: a slim bar, and the app as a card under it, inset as the
-// sidebar is, with the sidebar folded to a rail beside it (room.ts).
+// An app: a recipe with a page, its run shown in a frame. As the Sketch
+// canvas is laid out: a slim bar, and the app as a card under it, inset as
+// the sidebar is. One of the workspace's own (ws.toml) has a page of its
+// own, with the sidebar folded to a rail beside it (room.ts); a repo's
+// (ws.repo.toml) is a tab of each of its worktrees, on the repo's page
+// (AppFrame, with at).
 //
 // Nothing runs until the page is opened. Opening it starts the run, or
 // joins the one that's running, and the page opens it again every
@@ -17,8 +19,10 @@ import { Option, Select } from "../ui/Select";
 // in view, ws ends it, 15 minutes on (runs.LookLinger). Stopped from here,
 // it isn't started again until you say.
 //
-// The bar points each of its needs at a worktree of the need's repo (the
-// ground, the silo, a capsule), which starts the run again on it.
+// A workspace app's bar points each of its needs at a worktree of the
+// need's repo (the ground, the silo, a capsule), which starts the run
+// again on it. A worktree's app's needs are the nearest to it, as any
+// run's are: its bar says what met each.
 
 // openEvery is how often an open page says it's still open: well inside
 // the 15 minutes a run outlasts nobody looking.
@@ -32,6 +36,23 @@ export function AppPage({ workspace }: { workspace: Workspace }) {
   const { name = "" } = useParams();
   const entry = workspace.apps?.find((a) => a.name === name);
   useTitle(entry?.title ?? name);
+  if (!entry) {
+    return (
+      <div className="page">
+        <ErrorCard title="No such app" error={`The workspace has no app called ${name}: an app is a recipe in ws.toml with a page ([run.${name}] page = { title = "…" }).`} />
+      </div>
+    );
+  }
+  return (
+    <div className="app-view">
+      <AppFrame name={name} title={entry.title} icon={entry.icon} />
+    </div>
+  );
+}
+
+// AppFrame is an app's bar and card: the workspace's (no at), or one of a
+// worktree's (at), whose tab already names it, so its bar doesn't.
+export function AppFrame({ name, title, icon: iconName, at }: { name: string; title: string; icon?: string; at?: AppAt }) {
   const [app, setApp] = useState<AppDetail>();
   const [error, setError] = useState<string>();
   // stopped: you stopped it here, so the page doesn't start it again.
@@ -65,9 +86,9 @@ export function AppPage({ workspace }: { workspace: Workspace }) {
     setError(undefined);
     setStopped(false);
     stoppedRef.current = false;
-    void take(() => openApp(name));
+    void take(() => openApp(name, at));
     const again = () => {
-      if (document.visibilityState === "visible" && !stoppedRef.current) void take(() => openApp(name), true);
+      if (document.visibilityState === "visible" && !stoppedRef.current) void take(() => openApp(name, at), true);
     };
     const t = setInterval(again, openEvery);
     document.addEventListener("visibilitychange", again);
@@ -75,19 +96,22 @@ export function AppPage({ workspace }: { workspace: Workspace }) {
       clearInterval(t);
       document.removeEventListener("visibilitychange", again);
     };
-  }, [name, take]);
+    // at is a new object each render: its repo and worktree are what matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, at?.repo, at?.worktree, take]);
 
   // How the run's doing: asked again while it's in view.
   const ready = !!app?.ready;
   useEffect(() => {
     const t = setInterval(
       () => {
-        if (document.visibilityState === "visible") void take(() => getApp(name), true);
+        if (document.visibilityState === "visible") void take(() => getApp(name, at), true);
       },
       ready ? lookUp : lookStarting,
     );
     return () => clearInterval(t);
-  }, [name, ready, take]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, at?.repo, at?.worktree, ready, take]);
 
   const act = async (what: string, load: () => Promise<AppDetail>) => {
     setBusy(what);
@@ -101,28 +125,30 @@ export function AppPage({ workspace }: { workspace: Workspace }) {
   };
   const stop = async () => {
     setStopped(true);
-    await act("stop", () => stopApp(name));
+    await act("stop", () => stopApp(name, at));
   };
   const start = async () => {
     setStopped(false);
-    await act("start", () => openApp(name));
+    await act("start", () => openApp(name, at));
   };
 
-  if (!entry) {
-    return (
-      <div className="page">
-        <ErrorCard title="No such app" error={`The workspace has no app called ${name}: an app is a recipe in ws.toml with a page ([run.${name}] page = { title = "…" }).`} />
-      </div>
-    );
-  }
   const run = app?.run;
   const running = run?.state === "running";
-  const icon: IconName = entry.icon && entry.icon in icons ? (entry.icon as IconName) : "box";
+  const icon: IconName = iconName && iconName in icons ? (iconName as IconName) : "box";
   return (
-    <div className="app-view">
+    <>
       <header className="app-bar">
-        <Icon name={icon} className="app-icon" />
-        <h1 className="app-title">{entry.title}</h1>
+        {!at && (
+          <>
+            <Icon name={icon} className="app-icon" />
+            <h1 className="app-title">{title}</h1>
+          </>
+        )}
+        {at && run?.needs?.map((n) => (
+          <span key={n.name} className="app-need" title={n.folder ? `${n.name}: ${n.dir}` : `${n.name}: ${n.address}`}>
+            <span className="app-point-need">{n.name}</span> <span className="dim">from</span> {n.folder ? (n.repo === n.name ? n.worktree : `${n.repo} / ${n.worktree}`) : (n.run ?? n.address)}
+          </span>
+        ))}
         {app?.pointers.map((p) => (
           <span key={p.need} className="app-point" title={pointTitle(p)}>
             <span className="app-point-need">{p.need}</span>
@@ -139,7 +165,7 @@ export function AppPage({ workspace }: { workspace: Workspace }) {
         <AppState app={app} stopped={stopped} />
         {running ? (
           <>
-            <button type="button" className="ghost icon-button" title="Start it again" aria-label="Start it again" disabled={busy !== undefined} onClick={() => void act("restart", () => restartApp(name))}>
+            <button type="button" className="ghost icon-button" title="Start it again" aria-label="Start it again" disabled={busy !== undefined} onClick={() => void act("restart", () => restartApp(name, at))}>
               <Icon name="rotate" size={15} />
             </button>
             <button type="button" className="ghost icon-button" title="Stop it" aria-label="Stop it" disabled={busy !== undefined} onClick={() => void stop()}>
@@ -162,16 +188,16 @@ export function AppPage({ workspace }: { workspace: Workspace }) {
       <div className="app-card">
         {error && !app ? (
           <div className="app-waiting">
-            <ErrorCard title={`Couldn't start ${entry.title}`} error={error} retry={() => void start()} />
+            <ErrorCard title={`Couldn't start ${title}`} error={error} retry={() => void start()} />
           </div>
         ) : ready && run ? (
           // Started again, it's another run: the frame loads afresh.
-          <iframe key={`${run.pid}`} src={run.link} title={entry.title} />
+          <iframe key={`${run.pid}`} src={run.link} title={title} />
         ) : (
-          <Waiting app={app} title={entry.title} stopped={stopped} />
+          <Waiting app={app} title={title} stopped={stopped} />
         )}
       </div>
-    </div>
+    </>
   );
 }
 

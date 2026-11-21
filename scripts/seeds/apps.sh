@@ -56,17 +56,43 @@ spec "$dir/repos/records/.ground/openapi.json" "Records" "2.0" \
 	/records get "List records" \
 	/records post "Add a record"
 
-"$ws" lift demo orders-v2 >/dev/null
+# A mission with a capsule in each: demo's docs, in its capsule, are
+# drawn from records' capsule, the mission's, as the nearest.
+slug="refunds"
+"$ws" mission new "Refunds" --brief "## Goal
+Orders can be refunded, and the refund invoiced.
+
+## Context
+- Seeded by the workspace repo's scripts/seeds/apps.sh, for looking at apps.
+" >/dev/null
+"$ws" WS_MISSION="$slug" lift demo orders-v2 >/dev/null
 spec "$dir/repos/demo/orders-v2/openapi.json" "Orders BFF" "1.5" \
 	/orders get "List orders" \
 	/orders/{id} get "One order" \
 	/orders/{id}/refund post "Refund an order" \
 	/orders/{id} delete "Cancel an order"
-"$ws" lift records billing >/dev/null
+"$ws" WS_MISSION="$slug" lift records billing >/dev/null
 spec "$dir/repos/records/billing/openapi.json" "Records" "2.1" \
 	/records get "List records" \
 	/records post "Add a record" \
 	/invoices get "List invoices"
+
+# demo's own docs: a tab of each of its worktrees, drawn from that
+# worktree's spec and the nearest records (the mission's capsule there,
+# else records' ground).
+for wt in .ground orders-v2; do
+	cat >>"$dir/repos/demo/$wt/ws.repo.toml" <<'TOML'
+
+[run.docs]
+command = "DEMO_DIR=$PWD python3 ../../../apps/docs.py {port}"
+ready = "/"
+page = { title = "API docs", icon = "book" }
+
+[run.docs.needs.records]
+repo = "records"
+env = "RECORDS_DIR"
+TOML
+done
 
 cat >>ws.toml <<'TOML'
 
@@ -86,8 +112,10 @@ env = "RECORDS_DIR"
 TOML
 
 cat <<EOF2
-apps: an app of the workspace's own.
+apps: API docs as an app of the workspace's own, and as a tab of each of demo's worktrees.
 
+  /files/demo?view=docs            demo's ground's docs, a tab on its repo's page (records' ground)
+  /files/demo/orders-v2?view=docs  its capsule's, with records' from the mission's capsule there
   /apps/docs                       API docs, in the sidebar: opening it starts it; the bar points demo and records
   /runs                            its run, and who it's for
   cd $dir

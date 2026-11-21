@@ -115,7 +115,7 @@ export function placesOf(workspace: Workspace | undefined, waiting: (Waiting & {
       match: (p) => p === "/reviews" || p.startsWith("/reviews/"),
     },
     { id: "team", to: "/team", icon: "user", label: "Team", match: (p) => p === "/team" },
-    { id: "files", to: "/files", icon: "layers", label: "Files", match: (p) => p === "/files" || p.startsWith("/files/") },
+    { id: "files", to: "/files", icon: "layers", label: "Repos", match: (p) => p === "/files" || p.startsWith("/files/") },
     { id: "orchestrator", to: "/orchestrator", icon: "sparkle", label: "Orchestrator", match: (p) => p.startsWith("/orchestrator") },
     { id: "runs", to: "/runs", icon: "play", label: "Runs", match: (p) => p === "/runs", home: "menu" },
   ];
