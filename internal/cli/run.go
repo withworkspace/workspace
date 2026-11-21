@@ -126,7 +126,7 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 			forHere := here
 			if recipe, ok := recipes[args[0]]; ok && len(args) == 1 && cmd.ArgsLenAtDash() < 0 {
 				if strings.TrimSpace(recipe.Command) == "" {
-					return fmt.Errorf("[run.%s] in %s has no command", args[0], config.RepoFileName)
+					return fmt.Errorf("[run.%s] in %s has no command", args[0], recipeFileOf(here))
 				}
 				ask = ops.RunAsk{Recipe: args[0]}
 				if recipe.Where == "silo" {
@@ -236,7 +236,7 @@ isn't the daemon's child, so restarting ws leaves it running.`,
 	cmd.Flags().Float64Var(&ttl, "ttl", runs.DefaultTTL.Hours(), "how long it may last, in hours (0: no limit)")
 	cmd.Flags().DurationVar(&wait, "wait", time.Minute, "how long to wait for it, and each run it needs, to be up (0: don't)")
 	cmd.Flags().StringArrayVar(&withs, "with", nil, "what meets one of the recipe's needs, in place of the nearest: <need>=<capsule>, ground, silo, or an address (https://…)")
-	cmd.AddCommand(newRunLsCmd(), newRunStopCmd(), newRunLogsCmd(), newRunKeepCmd())
+	cmd.AddCommand(newRunLsCmd(), newRunStopCmd(), newRunLogsCmd(), newRunKeepCmd(), newRunPointCmd())
 	return cmd
 }
 
@@ -271,6 +271,13 @@ func whereSaid(n ops.NeedUp) string {
 // run's own, by name when named is true: a mount is only there then, and
 // is said as its path alone otherwise.
 func needSaid(n runs.Need, link string, named bool) string {
+	if n.IsFolder() {
+		line := fmt.Sprintf("%s  %s/%s  %s", n.Name, n.Repo, runs.Label(n.Worktree), n.Dir)
+		if n.Env != "" {
+			line += "  $" + n.Env
+		}
+		return line
+	}
 	what := n.Run
 	if what == "" {
 		what = "outside ws"
@@ -321,10 +328,25 @@ func whereRun(w *ops.Workspace) (runHere, error) {
 		cwd = c
 	}
 	repo, worktree, ok := workspace.DetectRepo(root, cwd)
-	if !ok || worktree == ".bare" {
-		return runHere{}, errors.New("a run starts in a capsule, .ground or .silo: stand in one")
+	if ok && worktree != ".bare" {
+		return runHere{repo: repo, worktree: worktree, dir: cwd}, nil
 	}
-	return runHere{repo: repo, worktree: worktree, dir: cwd}, nil
+	// Anywhere in the workspace but its repos is the workspace's own place:
+	// its recipes are ws.toml's, and they run at its root.
+	if rel, err := filepath.Rel(root, cwd); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		if rel != "repos" && !strings.HasPrefix(rel, "repos"+string(filepath.Separator)) {
+			return runHere{dir: root}, nil
+		}
+	}
+	return runHere{}, errors.New("a run starts in a capsule, .ground or .silo, or for the whole workspace at its root: stand in one")
+}
+
+// recipeFileOf is the file where you stand's recipes are said in.
+func recipeFileOf(here runHere) string {
+	if here.repo == "" {
+		return config.FileName
+	}
+	return config.RepoFileName
 }
 
 // runOwner is who a run is for: kind, or the default for whoever's asking:
@@ -351,6 +373,9 @@ func runOwner(w *ops.Workspace, here runHere, kind runs.Kind, pid int) (runs.Own
 	case runs.ByNone:
 		return runs.Owner{Kind: runs.ByNone}, nil
 	case runs.ByCapsule:
+		if here.repo == "" {
+			return runs.Owner{}, errors.New("the workspace's own runs aren't in a capsule: say --for pid, mission or none")
+		}
 		if strings.HasPrefix(here.worktree, ".") {
 			return runs.Owner{}, fmt.Errorf("%s isn't a capsule, and is never burned: say --for pid, mission or none", here.worktree)
 		}
@@ -515,8 +540,12 @@ func (o *runOwners) Ended(ow runs.Owner) string {
 	return ""
 }
 
-// runRecipes is the [run.*] of the ws.repo.toml where you stand.
+// runRecipes is the [run.*] of the ws.repo.toml where you stand, or at
+// the workspace's root, of its ws.toml.
 func runRecipes(w *ops.Workspace, here runHere) (map[string]config.RunRecipe, error) {
+	if here.repo == "" {
+		return w.Config().Run, nil
+	}
 	top := filepath.Join(w.WS().RepoDir(here.repo), here.worktree)
 	cfg, err := config.ParseRepoConfig(filepath.Join(top, config.RepoFileName))
 	if err != nil || cfg == nil {
@@ -528,6 +557,10 @@ func runRecipes(w *ops.Workspace, here runHere) (map[string]config.RunRecipe, er
 // listRecipes says what ws run <name> can run where you stand.
 func listRecipes(here runHere, recipes map[string]config.RunRecipe) error {
 	if len(recipes) == 0 {
+		if here.repo == "" {
+			fmt.Fprintf(os.Stderr, "The workspace has no recipes of its own ([run.<name>] in %s): ws run -- <command> runs one by hand.\n", config.FileName)
+			return nil
+		}
 		fmt.Fprintf(os.Stderr, "%s has no recipes ([run.<name>] in its %s): ws run -- <command> runs one by hand.\n", here.repo, config.RepoFileName)
 		return nil
 	}
@@ -549,6 +582,10 @@ func listRecipes(here runHere, recipes map[string]config.RunRecipe) error {
 		}
 		var needs []string
 		for _, name := range slices.Sorted(maps.Keys(rc.Needs)) {
+			if n := rc.Needs[name]; n.IsFolder() {
+				needs = append(needs, name+" ("+strings.TrimSpace(n.Repo)+"'s folder)")
+				continue
+			}
 			repo, recipe := rc.Needs[name].Recipe(name)
 			if repo != "" {
 				recipe = repo + "/" + recipe

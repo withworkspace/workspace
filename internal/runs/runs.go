@@ -103,6 +103,9 @@ type Owner struct {
 	// (ByConversation).
 	Crew         string `json:"crew,omitempty"`
 	Conversation string `json:"conversation,omitempty"`
+	// App is the workspace recipe whose app page is looked at, for a run
+	// started by opening it (ByLooking with no Mission).
+	App string `json:"app,omitempty"`
 }
 
 // Owners says whether owners ws keeps records of (missions, their steps
@@ -164,7 +167,7 @@ type Record struct {
 }
 
 // Need is something a run was started needing: another run, found or
-// started for it, or an address outside ws.
+// started for it, an address outside ws, or a repo's folder.
 type Need struct {
 	// Name is what the run calls it (api).
 	Name string `json:"name"`
@@ -184,7 +187,14 @@ type Need struct {
 	// router (internal/router); Strip takes that path off what it's asked.
 	Mount string `json:"mount,omitempty"`
 	Strip bool   `json:"strip,omitempty"`
+	// Dir is the folder that meets it, for a need of a repo's folder (one
+	// of Repo's worktrees, Worktree) rather than a run: Run and Addr are
+	// then "". Once it's gone, so is what the run was started on.
+	Dir string `json:"dir,omitempty"`
 }
+
+// IsFolder is whether a folder meets the need, not a run or an address.
+func (n Need) IsFolder() bool { return n.Dir != "" }
 
 // Owners is everyone the run is for: its owner, then those who asked for
 // it since.
@@ -232,8 +242,32 @@ func Label(worktree string) string {
 }
 
 // Ref is how a run is named everywhere: <name>.<worktree>.<repo>, as its
-// local address will have it.
-func (r Run) Ref() string { return r.Name + "." + Label(r.Worktree) + "." + r.Repo }
+// local address will have it. A workspace's own run (Repo "") is its name
+// alone.
+func (r Run) Ref() string {
+	if r.Repo == "" {
+		return r.Name
+	}
+	return r.Name + "." + Label(r.Worktree) + "." + r.Repo
+}
+
+// OfWorkspace is whether the run is the workspace's own (a recipe of
+// ws.toml's, run at its root), rather than a repo's.
+func (r Run) OfWorkspace() bool { return r.Repo == "" }
+
+// workspacePlace is the folders a workspace's own runs are kept in, below
+// the store's, in place of a repo's and a worktree's: no repo can be
+// called @workspace, as GitHub has no @ in a name.
+var workspacePlace = [2]string{"@workspace", "@"}
+
+// place is the folder below the store's that runs of repo's worktree are
+// kept in.
+func (s Store) place(repo, worktree string) string {
+	if repo == "" {
+		return filepath.Join(s.Dir(), workspacePlace[0], workspacePlace[1])
+	}
+	return filepath.Join(s.Dir(), repo, worktree)
+}
 
 // Link is where the run is reached.
 func (r Run) Link() string { return fmt.Sprintf("http://127.0.0.1:%d", r.Port) }
@@ -410,7 +444,9 @@ func (l Looking) at(r Run, o Owner) bool {
 	if o.Mission != "" {
 		return l.Missions[o.Mission]
 	}
-	return l.Worktrees[r.Repo+"/"+r.Worktree]
+	// A run of the workspace's own is in no worktree: its app's page keeps
+	// it (LookedRun).
+	return r.Repo != "" && l.Worktrees[r.Repo+"/"+r.Worktree]
 }
 
 // Looked marks the runs owned by looking at the pages open in l as looked
@@ -431,6 +467,13 @@ func (s Store) Looked(l Looking, now time.Time) error {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+// LookedRun marks r as looked at when: a run started again keeps when it
+// was last looked at.
+func (s Store) LookedRun(r Run, when time.Time) error {
+	r.Looked = when.UTC().Truncate(time.Second)
+	return save(r.Record, r.Path)
 }
 
 // Keep sets how long a run has left from now: d of 0 is no limit.
@@ -476,7 +519,7 @@ func NameFor(command string) string {
 // under it this moment by another ws, that run is returned (running) and
 // nothing is claimed.
 func (s Store) claim(repo, worktree, want, recipe string) (name, dir string, running *Run, err error) {
-	parent := filepath.Join(s.Dir(), repo, worktree)
+	parent := s.place(repo, worktree)
 	if err := os.MkdirAll(parent, 0o755); err != nil {
 		return "", "", nil, err
 	}
@@ -522,6 +565,9 @@ func (s Store) claim(repo, worktree, want, recipe string) (name, dir string, run
 				return name, dir, nil, nil
 			}
 		}
+	}
+	if repo == "" {
+		return "", "", nil, fmt.Errorf("no free name for %s in the workspace", want)
 	}
 	return "", "", nil, fmt.Errorf("no free name for %s in %s/%s", want, repo, worktree)
 }

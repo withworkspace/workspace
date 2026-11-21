@@ -34,6 +34,7 @@ type App interface {
 	Artifacting
 	Focusing
 	Running
+	Apping
 	Updating
 	WhatsNewing
 	Plugging

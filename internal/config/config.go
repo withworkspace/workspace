@@ -56,11 +56,15 @@ type Config struct {
 	// Plugin is each plugin's config, by its name then the key
 	// ([plugin.jira]): the team's in ws.toml, yours over it in
 	// ws.local.toml. What the keys are is the plugin's to say.
-	Plugin  map[string]map[string]any `toml:"plugin"`
-	GitHub  GitHubConfig              `toml:"-"` // from ws.local.toml only
-	Boarded map[string][]string       `toml:"-"` // from ws.local.toml [boarded] section
-	Git     string                    `toml:"-"` // from ws.local.toml only
-	Silo    map[string]string         `toml:"-"` // from ws.local.toml [silo] section
+	Plugin map[string]map[string]any `toml:"plugin"`
+	// Run is how the workspace itself is run, by name ([run.docs]): what
+	// belongs to no one repo, started once for the whole workspace, at its
+	// root, by ws run <name> there. The team's: ws.toml only.
+	Run     map[string]RunRecipe `toml:"run"`
+	GitHub  GitHubConfig         `toml:"-"` // from ws.local.toml only
+	Boarded map[string][]string  `toml:"-"` // from ws.local.toml [boarded] section
+	Git     string               `toml:"-"` // from ws.local.toml only
+	Silo    map[string]string    `toml:"-"` // from ws.local.toml [silo] section
 	// Unknown is what ws.toml and ws.local.toml say that ws doesn't read: a
 	// key that's misspelt (alias for aliases), or in the wrong file. Each is
 	// "ws.toml: repos.api.alias". ws doctor lists them.
@@ -694,11 +698,29 @@ type RunRecipe struct {
 	// name this recipe calls it ([run.web.needs.api]). ws finds each, or
 	// starts it, and hands its address over.
 	Needs map[string]RunNeed `toml:"needs,omitempty"`
+	// Page makes one of the workspace's own recipes an app: a place in the
+	// web UI's sidebar, showing the run in a frame, started when it's
+	// opened and ended once nobody has it open. Only ws.toml's recipes
+	// have one.
+	Page *RunPage `toml:"page,omitempty"`
+}
+
+// RunPage is a workspace recipe as an app in the web UI: what its place
+// is called, and its icon (one of the web UI's, by name: "book").
+type RunPage struct {
+	Title string `toml:"title"`
+	Icon  string `toml:"icon,omitempty"`
 }
 
 // RunNeed is one of a recipe's needs: another recipe's run, and how this
-// one is given its address.
+// one is given its address; or a repo's folder (Repo), and how it's given
+// that.
 type RunNeed struct {
+	// Repo, said in place of Run, is a folder the run needs, not a run: one
+	// of the repo's worktrees (its ground, its silo or a capsule), chosen as
+	// a run's would be, and handed over in Env and as {name}. Nothing's
+	// started for it.
+	Repo string `toml:"repo,omitempty"`
 	// Run is the recipe that's needed: "server" for one of this repo's,
 	// "backend/server" for another repo's, as the workspace names it. ""
 	// is this repo's recipe of the need's own name.
@@ -714,6 +736,9 @@ type RunNeed struct {
 	Mount string `toml:"mount,omitempty"`
 	Strip bool   `toml:"strip,omitempty"`
 }
+
+// IsFolder is whether the need is a repo's folder rather than a run.
+func (n RunNeed) IsFolder() bool { return strings.TrimSpace(n.Repo) != "" }
 
 // Recipe is the repo and recipe a need names: n.Run, or with none said,
 // the recipe of the need's own name. repo is "" for the repo the need is
@@ -953,6 +978,7 @@ func Merge(base, local *Config) *Config {
 		UI:           base.UI,
 		Team:         base.Team,
 		Plugins:      base.Plugins,
+		Run:          base.Run,
 		Plugin:       mergePlugin(base.Plugin, local.Plugin),
 		Repos:        make(map[string]RepoConfig, len(base.Repos)),
 		Groups:       make(map[string]GroupConfig, len(base.Groups)),

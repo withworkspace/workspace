@@ -112,7 +112,7 @@ func TestRun_ForAMissionNeedsOne(t *testing.T) {
 
 func TestRun_OutsideAWorktreeSaysWhere(t *testing.T) {
 	w, _ := runsWorkspace(t)
-	t.Setenv(cli.ShellPWD, filepath.Join(w.Root))
+	t.Setenv(cli.ShellPWD, filepath.Join(w.Root, "repos", "api"))
 	res := testutil.RunCommand(t, w.Root, nil, "run", "--", "sleep", "300")
 	if res.Err == nil || !strings.Contains(res.Err.Error(), "stand in one") {
 		t.Fatalf("err = %v", res.Err)

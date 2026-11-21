@@ -453,6 +453,37 @@ func TestALookingRunEndsWhenNobodyHasLooked(t *testing.T) {
 	}
 }
 
+// An app's run (one of the workspace's own, opened from its page) is kept
+// by its page being open, as a mission's is, and by no other page's.
+func TestAnAppsRunEndsWhenNobodyHasItsPageOpen(t *testing.T) {
+	s, _ := setup(t)
+	r, err := s.Start(Start{Name: "docs", Dir: s.Root, Command: "sleep 300", Recipe: "docs", Owner: Owner{Kind: ByLooking, App: "docs"}, By: "you"}, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Ref() != "docs" || !r.OfWorkspace() || !strings.HasSuffix(r.Path, filepath.Join("@workspace", "@", "docs")) {
+		t.Fatalf("ref %s, kept at %s", r.Ref(), r.Path)
+	}
+	now := time.Now()
+	// A mission's page open, and a worktree's files, keep nothing of this.
+	s.Looked(Looking{Missions: map[string]bool{"": true, "m1": true}, Worktrees: map[string]bool{"/": true, "demo/feat": true}}, now.Add(10*time.Minute))
+	if swept, _ := s.Sweep(nil, now.Add(20*time.Minute)); len(swept) != 1 || !strings.Contains(swept[0].Why, "nobody has looked") {
+		t.Fatalf("Sweep = %v", swept)
+	}
+
+	r, _ = s.Start(Start{Name: "docs", Dir: s.Root, Command: "sleep 300", Recipe: "docs", Owner: Owner{Kind: ByLooking, App: "docs"}, By: "you"}, now)
+	// Its page opens it again every minute while it's open.
+	if err := s.LookedRun(r, now.Add(10*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if swept, _ := s.Sweep(nil, now.Add(20*time.Minute)); len(swept) != 0 {
+		t.Fatal("swept though its page was open since")
+	}
+	if got := Ends(r, now); got != "15 minutes after nobody has docs open" {
+		t.Errorf("Ends = %q", got)
+	}
+}
+
 // One started from the Files page is looked at while its own worktree is
 // open there, not any mission, nor another worktree.
 func TestALookingRunFromFilesIsLookedAtByItsWorktree(t *testing.T) {

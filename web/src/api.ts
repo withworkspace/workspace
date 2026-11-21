@@ -50,6 +50,7 @@ import type {
   Repo,
   ReviewGuide,
   PRWritten,
+  AppDetail,
   RunDetail,
   RunsInfo,
   WorktreeRunsInfo,
@@ -146,6 +147,9 @@ export type {
   Repo,
   ReviewGuide,
   RoleRun,
+  AppDetail,
+  AppInfo,
+  AppPointer,
   RunDetail,
   RunsInfo,
   WorktreeRunsInfo,
@@ -657,6 +661,29 @@ export const getRuns = () => getJSON<RunsInfo>("/api/runs");
 
 // endRun ends any run now, or clears away one that's ended, its log with it.
 export const endRun = (ref: string) => send<{ stopped: string }>("POST", "/api/runs/stop", { ref });
+
+// Apps: the workspace's own recipes with a page. Opening one starts its
+// run, or joins the one that's running, and the page opens it again every
+// minute while it's open, which keeps it; once nobody has it open, ws
+// ends it. Mirrors internal/web/apps.go.
+//
+// A repo's recipe with a page is an app of each of its worktrees (at),
+// a tab of its repo's page; with no at, it's the workspace's own.
+export interface AppAt {
+  repo: string;
+  worktree: string;
+}
+const placePath = (at: AppAt) => `/api/repos/${encodeURIComponent(at.repo)}/worktrees/${encodeURIComponent(at.worktree)}`;
+const appPath = (name: string, rest = "", at?: AppAt) => `${at ? `${placePath(at)}/apps` : "/api/apps"}/${encodeURIComponent(name)}${rest}`;
+export const getApp = (name: string, at?: AppAt) => getJSON<AppDetail>(appPath(name, "", at));
+export const openApp = (name: string, at?: AppAt) => send<AppDetail>("POST", appPath(name, "/open", at), {});
+export const restartApp = (name: string, at?: AppAt) => send<AppDetail>("POST", appPath(name, "/restart", at), {});
+export const stopApp = (name: string, at?: AppAt) => send<AppDetail>("POST", appPath(name, "/stop", at), {});
+
+// pointApp points one of the app's needs at a worktree of its repo (a
+// capsule's name, ground or silo; "" for the nearest), starting the app
+// again on it where it's running.
+export const pointApp = (name: string, need: string, at: string) => send<AppDetail>("POST", appPath(name, "/point"), { need, at });
 
 // getRunLog is the end of a run's output.
 export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(`/api/runs/log?ref=${encodeURIComponent(ref)}`);

@@ -159,6 +159,8 @@ func (f *filesOpen) open(now time.Time) map[string]bool {
 type WorktreeRunsInfo struct {
 	Runs    []RunDetail `json:"runs"`
 	Recipes []string    `json:"recipes"`
+	// Apps are its recipes with a page: each a tab of the worktree's.
+	Apps []AppInfo `json:"apps"`
 }
 
 // RunInWorktree is POST /api/repos/{repo}/worktrees/{name}/runs: a recipe
@@ -176,7 +178,10 @@ func (s *Server) worktreeRuns(w http.ResponseWriter, r *http.Request) {
 	}
 	now := time.Now()
 	s.files.saw(repo, name, now)
-	out := WorktreeRunsInfo{Runs: []RunDetail{}, Recipes: in.Recipes}
+	out := WorktreeRunsInfo{Runs: []RunDetail{}, Recipes: in.Recipes, Apps: []AppInfo{}}
+	for _, a := range s.App.AppsAt(ops.AppPlace{Repo: repo, Worktree: name}) {
+		out.Apps = append(out.Apps, AppInfo{Name: a.Name, Title: a.Title, Icon: a.Icon})
+	}
 	for _, run := range in.Runs {
 		out.Runs = append(out.Runs, RunDetailOf(run, s.Root, now))
 	}

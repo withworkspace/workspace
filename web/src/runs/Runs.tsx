@@ -154,23 +154,32 @@ function NeedsLine({ r, up }: { r: RunDetail; up: Set<string> }) {
   if (!r.needs?.length) return null;
   return (
     <span className="row-sub run-row-sub run-needs">
-      {r.needs.map((n) => (
-        <span key={n.name}>
-          Needs {n.name}:{" "}
-          <a href={n.address} target="_blank" rel="noopener noreferrer" className="mono" title={n.env ? `Handed to it as $${n.env}: ${n.address}` : n.address}>
-            {n.run ?? bare(n.address)}
-          </a>
-          {n.mount && r.link !== r.local && (
-            <>
-              , at{" "}
-              <a href={r.link.replace(/\/$/, "") + n.mount} target="_blank" rel="noopener noreferrer" className="mono" title={`${n.name} answers below this run's own name`}>
-                {n.mount}
-              </a>
-            </>
-          )}
-          {n.run && !up.has(n.run) && <span className="chip tone-waiting">not running</span>}
-        </span>
-      ))}
+      {r.needs.map((n) =>
+        n.folder ? (
+          <span key={n.name}>
+            Needs {n.name}:{" "}
+            <Link to={n.worktree === "ground" ? `/files/${n.repo}` : `/files/${n.repo}/${n.worktree}`} className="mono" title={n.env ? `Handed to it as $${n.env}: ${n.dir}` : n.dir}>
+              {n.repo} / {n.worktree}
+            </Link>
+          </span>
+        ) : (
+          <span key={n.name}>
+            Needs {n.name}:{" "}
+            <a href={n.address} target="_blank" rel="noopener noreferrer" className="mono" title={n.env ? `Handed to it as $${n.env}: ${n.address}` : n.address}>
+              {n.run ?? bare(n.address)}
+            </a>
+            {n.mount && r.link !== r.local && (
+              <>
+                , at{" "}
+                <a href={r.link.replace(/\/$/, "") + n.mount} target="_blank" rel="noopener noreferrer" className="mono" title={`${n.name} answers below this run's own name`}>
+                  {n.mount}
+                </a>
+              </>
+            )}
+            {n.run && !up.has(n.run) && <span className="chip tone-waiting">not running</span>}
+          </span>
+        ),
+      )}
     </span>
   );
 }

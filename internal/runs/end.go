@@ -36,6 +36,11 @@ func staleAlone(r Run, procs Procs, owners Owners, now time.Time) string {
 	if _, err := os.Stat(r.Dir); errors.Is(err, os.ErrNotExist) {
 		return placeGone
 	}
+	for _, n := range r.Needs {
+		if _, err := os.Stat(n.Dir); n.IsFolder() && errors.Is(err, os.ErrNotExist) {
+			return fmt.Sprintf("%s, the folder it was started on for %s, has gone", Label(n.Worktree), n.Name)
+		}
+	}
 	var gone []string
 	for _, o := range r.Owners() {
 		why := ownerGone(r, o, procs, owners, now)
@@ -303,6 +308,9 @@ func endsWith(r Run, o Owner) string {
 	case ByConversation:
 		return fmt.Sprintf("when conversation %s is resolved", o.Conversation)
 	case ByLooking:
+		if o.App != "" {
+			return fmt.Sprintf("%d minutes after nobody has %s open", int(LookLinger/time.Minute), o.App)
+		}
 		if o.Mission == "" {
 			return fmt.Sprintf("%d minutes after nobody has its files open", int(LookLinger/time.Minute))
 		}

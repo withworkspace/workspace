@@ -316,6 +316,11 @@ func TestKitAsksWS(t *testing.T) {
 		if !answering.Load() {
 			return nil, plugin.NoMethod(method)
 		}
+		// The kit's sync tells ws of the plugin's things (Ref.Mirror) on its
+		// own clock, which may come at any moment: it isn't what's asked here.
+		if strings.HasPrefix(method, "thing/") {
+			return nil, plugin.NoMethod(method)
+		}
 		mu.Lock()
 		asked = append(asked, who+" "+method+" "+string(params))
 		mu.Unlock()

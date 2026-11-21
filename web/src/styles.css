@@ -11753,24 +11753,127 @@ div.tc-bar {
 }
 
 /* The file explorer: a capsule's tree on the left, a file on the right. */
+/* A worktree's page: the repos (on Repos), then the worktree: a row of
+   where it is and its tabs, across the top of what the tab shows (its
+   tree and a file, or another tab's, the room of both). */
 .explorer {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
 
-.explorer.narrow {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-/* Files (files/Files.tsx): the repos, then the explorer. */
+/* Repos (files/Files.tsx): the repos, then the worktree. */
 .explorer.with-before {
-  grid-template-columns: 232px 300px minmax(0, 1fr);
+  grid-template-columns: 232px minmax(0, 1fr);
 }
 
-/* The file alone (Panes: 1). */
-.explorer.alone {
+.explorer-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.explorer-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.explorer-where {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.explorer-where .crumbs {
+  margin: 0;
+}
+
+.explorer-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.explorer.narrow .explorer-body,
+.explorer-body.alone {
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* Another tab: the room of the tree and the file, both. */
+.explorer-other {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+/* A worktree's Runs tab: its runs, and its recipes, each with Run. */
+.worktree-runs {
+  width: 100%;
+}
+
+.recipe-row {
+  display: grid;
+  grid-template-columns: minmax(80px, max-content) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+}
+
+.recipe-name {
+  font-weight: 500;
+}
+
+.recipe-command {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+}
+
+/* A worktree's tabs: Files, Runs, and each of its apps. */
+.worktree-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.worktree-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.worktree-tab:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.worktree-tab[aria-current="page"] {
+  background: var(--selected);
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.worktree-tab .count {
+  margin-left: 2px;
 }
 
 /* Panes (as a review's): the first beside the app's rail is clear, so the
@@ -11783,7 +11886,7 @@ div.tc-bar {
   background: var(--panel);
 }
 
-.explorer:not(.narrow, .alone) .explorer-file,
+.explorer:not(.narrow) .explorer-body:not(.alone) .explorer-file,
 .files-page:not(.narrow) .files-pick {
   --backdrop: var(--bg);
   background: var(--bg);
@@ -12068,7 +12171,7 @@ details.repo-group > summary::-webkit-details-marker {
 .explorer-tree-head {
   display: grid;
   gap: 6px;
-  padding: 16px 12px 10px 14px;
+  padding: 10px 12px 10px 14px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -12083,7 +12186,7 @@ details.repo-group > summary::-webkit-details-marker {
   margin-top: 0;
 }
 
-/* The column is narrow: a long name is cut short. */
+/* A long name is cut short. */
 .files-runs .work-run-link {
   display: inline-block;
   max-width: 100%;
@@ -12342,7 +12445,7 @@ details.repo-group > summary::-webkit-details-marker {
   margin-right: -1px;
 }
 
-/* How many panes show (Panes): left of the file's path. */
+/* How many panes show (Panes): at the start of the worktree's row. */
 .panes-button {
   flex: none;
   margin-left: -6px;
@@ -17760,6 +17863,129 @@ input[type="text"].tweak-text {
 .plugin-view .plugin-refused {
   flex: none;
   margin: var(--space-3) var(--space-4);
+}
+
+/* An app's page (apps/AppPage.tsx): a recipe of the workspace's, its run
+   in a frame. Laid out as the Sketch canvas is: a slim bar, and the app as
+   a card under it, inset as far as the sidebar is, edged, lifted and
+   round-cornered as the sidebar is. */
+.app-view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.app-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+}
+.app-icon {
+  flex: none;
+  color: var(--dim);
+}
+.app-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.app-point {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: var(--space-2);
+}
+.app-point-need {
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+}
+.app-point .select-button {
+  min-height: 26px;
+  padding-block: 2px;
+  font-size: var(--text-sm);
+}
+.app-need {
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+.app-spacer {
+  flex: 1;
+}
+.app-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tone, var(--dim));
+  white-space: nowrap;
+}
+.app-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+.app-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+}
+.app-link:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+.app-card {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  margin: 0 12px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.app-card iframe {
+  display: block;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  /* The app is drawn as it draws itself: most are light only. */
+  background: #fff;
+}
+.app-waiting {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: var(--space-6);
+  color: var(--dim);
+}
+.app-waiting p {
+  margin: 0 0 var(--space-3);
+}
+.app-log {
+  margin: 0;
+  padding: var(--space-3);
+  max-width: 100%;
+  overflow: auto;
+  background: var(--well);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--fg);
 }
 
 /* A page's conversation (conversation/PageConversation.tsx), round the

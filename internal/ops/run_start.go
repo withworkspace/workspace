@@ -119,12 +119,21 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 		}, now)
 		return RunUp{Run: r, Started: err == nil}, err
 	}
+	if a.Repo == "" {
+		a.Worktree, a.Dir = "", w.Root() // the workspace's own runs run at its root
+	}
 	rc, ok := w.recipes(a.Repo, a.Worktree)[a.Recipe]
 	if !ok {
+		if a.Repo == "" {
+			return RunUp{}, invalid("the workspace has no recipe %s ([run.%s] in %s)", a.Recipe, a.Recipe, config.FileName)
+		}
 		return RunUp{}, invalid("%s/%s has no recipe %s ([run.%s] in its %s)", a.Repo, runs.Label(a.Worktree), a.Recipe, a.Recipe, config.RepoFileName)
 	}
 	if strings.TrimSpace(rc.Command) == "" {
-		return RunUp{}, invalid("[run.%s] in %s has no command", a.Recipe, config.RepoFileName)
+		return RunUp{}, invalid("[run.%s] in %s has no command", a.Recipe, recipeFile(a.Repo))
+	}
+	if rc.Where == "silo" && a.Repo == "" {
+		return RunUp{}, invalid("[run.%s] in %s: where = \"silo\" is for a repo's recipe, and the workspace's run at its root", a.Recipe, config.FileName)
 	}
 	if rc.Where == "silo" && a.Worktree != workspace.SiloDir {
 		a.Worktree, a.Dir = workspace.SiloDir, w.WS().SiloWorktree(a.Repo)
@@ -133,6 +142,9 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 		}
 	}
 	key := a.Repo + "/" + runs.Label(a.Worktree) + "/" + a.Recipe
+	if a.Repo == "" {
+		key = "workspace/" + a.Recipe
+	}
 	if slices.Contains(above, key) {
 		return RunUp{}, invalid("%s needs itself: %s", key, strings.Join(append(above, key), ", which needs "))
 	}
@@ -163,11 +175,16 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 		if err != nil {
 			return RunUp{}, err
 		}
+		notes = append(notes, t.notes...)
 		need := runs.Need{Name: name, Env: strings.TrimSpace(n.Env), Mount: router.MountPath(n.Mount), Strip: n.Strip}
 		up := NeedUp{Where: t.how}
-		if t.url != "" {
+		switch {
+		case t.recipe == "" && t.url == "":
+			// A folder: nothing's started for it.
+			need.Repo, need.Worktree, need.Dir = t.repo, t.worktree, t.dir
+		case t.url != "":
 			need.Addr = t.url
-		} else {
+		default:
 			for i, h := range held {
 				held[i], _ = store.HoldUntil(h, hold())
 			}
@@ -205,10 +222,15 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 		}
 		env = slices.Clone(env)
 		for _, n := range needs {
-			command = strings.ReplaceAll(command, "{"+n.Name+".port}", w.needPort(n))
-			command = strings.ReplaceAll(command, "{"+n.Name+"}", n.Addr)
+			said := n.Addr
+			if n.IsFolder() {
+				said = n.Dir
+			} else {
+				command = strings.ReplaceAll(command, "{"+n.Name+".port}", w.needPort(n))
+			}
+			command = strings.ReplaceAll(command, "{"+n.Name+"}", said)
 			if n.Env != "" {
-				env = append(withoutEnv(env, n.Env), n.Env+"="+n.Addr)
+				env = append(withoutEnv(env, n.Env), n.Env+"="+said)
 			}
 		}
 	}
@@ -310,28 +332,72 @@ type needTarget struct {
 	url                         string
 	// how says how the worktree was chosen, when it's another repo's.
 	how string
+	// notes are what's worth saying of how it was chosen: a pointer to a
+	// capsule that's gone.
+	notes []string
 }
 
 // needTarget is what meets the need name of a's recipe. What a.With says
 // for it; else the nearest: the same worktree for a recipe of the same
 // repo, and for another repo's, the mission's capsule there, or with
 // none, that repo's ground.
+//
+// A need of a repo's folder (repo = "…") is met the same way, by one of
+// that repo's worktrees, with no recipe and nothing started. A workspace
+// recipe's needs are met by what they're pointed at (PointRun), where
+// nothing's said for them by a.With; one pointed at a capsule that's gone
+// is met by the nearest, and a note says so.
 func (w *Workspace) needTarget(a RunAsk, name string, n config.RunNeed) (needTarget, error) {
-	repo, recipe := n.Recipe(name)
-	if repo == "" {
-		repo = a.Repo
+	if err := needSaidRight(a, name, n); err != nil {
+		return needTarget{}, err
 	}
-	if recipe == "" {
+	repo, recipe := n.Recipe(name)
+	what := recipe + " of " + repo
+	if n.IsFolder() {
+		repo, recipe = strings.TrimSpace(n.Repo), ""
+		if r, ok := w.WS().ResolveAlias(repo); ok {
+			repo = r
+		}
+		what = repo + "'s folder"
+	} else if repo == "" {
+		repo = a.Repo
+		what = recipe
+	}
+	if recipe == "" && !n.IsFolder() {
 		return needTarget{}, invalid("[run.%s.needs.%s]: run names no recipe (%q)", a.Recipe, name, n.Run)
 	}
 	with := strings.TrimSpace(a.With[name])
+	var notes []string
+	if with == "" && a.Repo == "" {
+		if p := w.runStore().Points(a.Recipe)[name]; p != "" {
+			if dirExists(filepath.Join(w.WS().RepoDir(repo), p)) {
+				with = p
+			} else {
+				notes = append(notes, fmt.Sprintf("%s was pointed at %s, which %s no longer has: it's on the nearest now.", name, runs.Label(p), repo))
+			}
+		}
+	}
 	if u, err := url.Parse(with); err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" {
+		if n.IsFolder() {
+			return needTarget{}, invalid("%s is %s: an address can't meet it", name, what)
+		}
 		return needTarget{url: strings.TrimRight(with, "/"), how: "as you said"}, nil
 	}
-	if !dirExists(w.WS().RepoDir(repo)) {
-		return needTarget{}, invalid("%s needs %s of %s, and the workspace has no repo %s", a.Recipe, recipe, repo, repo)
+	if repo == "" {
+		// One of the workspace's own recipes: it runs at the root, and
+		// nothing else can meet it.
+		if with != "" {
+			return needTarget{}, invalid("%s is the workspace's own %s: only an address (https://…) can meet it in its place", name, recipe)
+		}
+		if _, ok := w.recipes("", "")[recipe]; !ok {
+			return needTarget{}, invalid("%s needs %s, and the workspace has no recipe %s ([run.%s] in %s)", a.Recipe, recipe, recipe, recipe, config.FileName)
+		}
+		return needTarget{recipe: recipe, dir: w.Root(), notes: notes}, nil
 	}
-	t := needTarget{repo: repo, recipe: recipe}
+	if !dirExists(w.WS().RepoDir(repo)) {
+		return needTarget{}, invalid("%s needs %s, and the workspace has no repo %s", a.Recipe, what, repo)
+	}
+	t := needTarget{repo: repo, recipe: recipe, notes: notes}
 	switch {
 	case with == "ground" || with == workspace.GroundDir:
 		t.worktree, t.how = workspace.GroundDir, "as you said"
@@ -346,12 +412,43 @@ func (w *Workspace) needTarget(a RunAsk, name string, n config.RunNeed) (needTar
 	}
 	t.dir = filepath.Join(w.WS().RepoDir(repo), t.worktree)
 	if !dirExists(t.dir) {
-		return needTarget{}, invalid("%s needs %s of %s, and %s has no %s to run it in", a.Recipe, recipe, repo, repo, runs.Label(t.worktree))
+		if n.IsFolder() {
+			return needTarget{}, invalid("%s needs %s, and %s has no %s", a.Recipe, what, repo, runs.Label(t.worktree))
+		}
+		return needTarget{}, invalid("%s needs %s, and %s has no %s to run it in", a.Recipe, what, repo, runs.Label(t.worktree))
+	}
+	if n.IsFolder() {
+		return t, nil
 	}
 	if _, ok := w.recipes(repo, t.worktree)[recipe]; !ok {
-		return needTarget{}, invalid("%s needs %s of %s, and %s/%s has no recipe %s ([run.%s] in its %s)", a.Recipe, recipe, repo, repo, runs.Label(t.worktree), recipe, recipe, config.RepoFileName)
+		return needTarget{}, invalid("%s needs %s, and %s/%s has no recipe %s ([run.%s] in its %s)", a.Recipe, what, repo, runs.Label(t.worktree), recipe, recipe, config.RepoFileName)
 	}
 	return t, nil
+}
+
+// needSaidRight is an error where a need is said in a way ws can't meet:
+// a folder is a folder, and not a run too, nor mounted.
+func needSaidRight(a RunAsk, name string, n config.RunNeed) error {
+	if !n.IsFolder() {
+		return nil
+	}
+	file := recipeFile(a.Repo)
+	switch {
+	case strings.TrimSpace(n.Run) != "":
+		return invalid("[run.%s.needs.%s] in %s says both repo, a folder, and run, a run: it's one or the other", a.Recipe, name, file)
+	case strings.TrimSpace(n.Mount) != "" || n.Strip:
+		return invalid("[run.%s.needs.%s] in %s is a folder: there's nothing to mount", a.Recipe, name, file)
+	}
+	return nil
+}
+
+// recipeFile is the file a recipe is said in: the repo's ws.repo.toml,
+// or with no repo, the workspace's ws.toml.
+func recipeFile(repo string) string {
+	if repo == "" {
+		return config.FileName
+	}
+	return config.RepoFileName
 }
 
 // nearest is the worktree of repo nearest to a mission's work: the
