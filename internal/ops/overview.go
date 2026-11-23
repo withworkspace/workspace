@@ -69,6 +69,10 @@ type MissionItem struct {
 	Heads    map[string]string
 	// At is where it is on its route, in words (Snapshot.Position).
 	At string
+	// YourTurn are the conversations about it whose agent has replied,
+	// with nothing proposed: the mission goes on without them, so they're
+	// no headline of its, but each is your turn (Needs).
+	YourTurn []*conversation.Conversation
 }
 
 // Kind is a kind of document the workspace has: where one is filed, its
@@ -133,8 +137,13 @@ func (w *Workspace) Overview() (*Overview, error) {
 		}
 		brief, _ := w.Missions.ReadBrief(v.M.Slug)
 		events, _ := w.Missions.ReadLog(v.M.Slug, logTail)
-		snap := MissionSnapshot(v, brief, events, rrs, DocThreadCourt(ws, v, brief), off)
+		// Its conversations, read once: for where its documents' threads
+		// stand, and for those of its conversations that are your turn.
+		talks := conversation.For(ws.Root, v.M.Slug)
+		threads, _ := talks.List()
+		snap := MissionSnapshot(v, brief, events, rrs, docThreadCourt(ws, v, brief, talks, threads), off)
 		it.Headline, it.At = mission.Resolve(snap)[0], snap.Position()
+		it.YourTurn = yourTurns(threads)
 		for _, c := range v.Capsules {
 			if c.Exists {
 				it.Heads[c.Repo+"/"+c.Name] = c.Head

@@ -68,7 +68,12 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 	if err != nil {
 		return Workspace{}, err
 	}
-	out := Workspace{Name: v.Name, Root: root, Org: v.Org, Remotes: v.Elsewhere, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: Talks(root), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Spaces: []SpaceRef{}}
+	// The workspace's conversations, read once for the list and for what
+	// of them needs you.
+	talks := conversation.ForWorkspace(root)
+	list, _ := talks.Talks()
+	out := Workspace{Name: v.Name, Root: root, Org: v.Org, Remotes: v.Elsewhere, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: talksOf(talks, list), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Spaces: []SpaceRef{}}
+	out.Needs = needsOf(ops.Needs(v.Missions, list))
 	out.Focus = focusOf(v.Focus)
 	out.Apps = []AppInfo{}
 	for _, a := range v.Apps {
@@ -97,6 +102,29 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 		out.Missions = append(out.Missions, m)
 	}
 	return out, nil
+}
+
+// needsOf is what needs you as the web UI is given it: each with where
+// it's dealt with there.
+func needsOf(needs []ops.Need) []Need {
+	out := []Need{}
+	for _, n := range needs {
+		w := Need{Key: n.Key, Of: NeedOf(n.Of), Ref: n.Ref, In: n.In, Kind: n.Kind, Label: n.Label, Title: n.Title, Text: n.Text}
+		if !n.Since.IsZero() {
+			since := n.Since
+			w.Since = &since
+		}
+		switch {
+		case n.Of == ops.NeedMission:
+			w.To = "/missions/" + n.Ref
+		case n.In != "":
+			w.To = "/missions/" + n.In + "/conversations/" + n.Ref
+		default:
+			w.To = "/conversations/" + n.Ref
+		}
+		out = append(out, w)
+	}
+	return out
 }
 
 func focusOf(items []ops.FocusItem) []FocusPin {

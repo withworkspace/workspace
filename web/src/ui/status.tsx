@@ -37,6 +37,8 @@ const byKind: Record<string, Omit<StatusInfo, "words"> & { words?: string }> = {
   queued: { icon: "play", tone: "attention", words: "Next crew" },
   resume: { icon: "rotate", tone: "attention", words: "Resume" },
   replied: { icon: "reply", tone: "attention", words: "Replied" },
+  // a conversation whose agent has replied (a need's kind, not a headline's)
+  "your-turn": { icon: "reply", tone: "attention", words: "Your turn" },
   "checks-failing": { icon: "x-circle", tone: "danger", words: "Checks failing" },
   "changes-requested": { icon: "alert", tone: "attention", words: "Changes requested" },
   approve: { icon: "check-circle", tone: "attention", words: "Approve" },

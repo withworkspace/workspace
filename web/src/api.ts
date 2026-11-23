@@ -34,6 +34,7 @@ import type {
   Landed,
   Landing,
   MissionDetail,
+  NeedsAnnounced,
   NamesInfo,
   OrchestratorInfo,
   OrchestratorRunDetail,
@@ -127,6 +128,9 @@ export type {
   Look,
   Mission,
   MissionAct,
+  Need,
+  NeedOf,
+  NeedsAnnounced,
   MissionCard,
   MissionDetail,
   MissionState,
@@ -1888,6 +1892,11 @@ export const seenTeam = () => send<{ ok: boolean }>("POST", "/api/team/seen", {}
 export const getUpdates = () => getJSON<UpdatesInfo>("/api/updates");
 export const checkUpdates = () => send<UpdatesInfo>("POST", "/api/updates/check", {});
 export const upgradeWS = () => send<Upgraded>("POST", "/api/upgrade", {});
+
+// Which of these needs, new to this page, the desktop hasn't been told of
+// by any page: the daemon answers once for each, so they're told once
+// however many pages are open. holding is every need the page has now.
+export const announceNeeds = (keys: string[], holding: string[]) => send<NeedsAnnounced>("POST", "/api/needs/announce", { keys, holding }).then((a) => a.fresh);
 
 // What's new: what this ws says is new, and what of it is unseen in this
 // workspace; and saying it's been seen.

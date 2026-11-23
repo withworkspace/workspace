@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { announceNeeds } from "../api";
 import { shownAs, useAccent } from "../ui/accent";
 
 // What needs you, told outside the page: a dot on the tab's icon whenever
@@ -82,7 +83,8 @@ const supported = typeof Notification !== "undefined";
 
 // useNotifications notifies of what's newly waiting while the page is
 // hidden, once you've turned them on; it returns whether they're on and a
-// switch.
+// switch. What's been told of is the daemon's to remember, by each need's
+// key: this page only knows what's new to it.
 export function useNotifications(waiting: Waiting[], open: (path: string) => void): { supported: boolean; on: boolean; toggle: () => void } {
   const [on, setOn] = useState(() => supported && stored() && Notification.permission === "granted");
   const seen = useRef<Set<string> | null>(null);
@@ -90,14 +92,29 @@ export function useNotifications(waiting: Waiting[], open: (path: string) => voi
   useEffect(() => {
     const keys = new Set(waiting.map((w) => w.key));
     if (seen.current && on && document.visibilityState === "hidden") {
-      for (const w of waiting) {
-        if (seen.current.has(w.key)) continue;
-        const n = new Notification(w.title, { body: w.body, tag: w.key, icon: markIcon(false) });
-        n.onclick = () => {
-          window.focus();
-          open(w.path);
-          n.close();
-        };
+      const fresh = waiting.filter((w) => !seen.current!.has(w.key));
+      const tell = (which: Waiting[]) => {
+        for (const w of which) {
+          const n = new Notification(w.title, { body: w.body, tag: w.key, icon: markIcon(false) });
+          n.onclick = () => {
+            window.focus();
+            open(w.path);
+            n.close();
+          };
+        }
+      };
+      // The daemon says which of them no page has told of yet, so another
+      // page open on the workspace, or this one reloaded, doesn't tell of
+      // them again. If it can't be asked, they're told: once too often is
+      // better than not at all.
+      if (fresh.length) {
+        announceNeeds(
+          fresh.map((w) => w.key),
+          [...keys],
+        ).then(
+          (told) => tell(fresh.filter((w) => told.includes(w.key))),
+          () => tell(fresh),
+        );
       }
     }
     seen.current = keys;

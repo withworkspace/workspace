@@ -352,6 +352,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/upgrade", s.upgrade)
 	mux.HandleFunc("GET /api/whats-new", s.whatsNew)
 	mux.HandleFunc("POST /api/whats-new/seen", s.seenWhatsNew)
+	mux.HandleFunc("POST /api/needs/announce", s.announceNeeds)
 	mux.HandleFunc("GET /api/whats-new/pictures/{name}", s.whatsNewPicture)
 	mux.HandleFunc("GET /api/events", s.stream)
 	mux.HandleFunc("GET /api/missions/{slug}", s.mission)
