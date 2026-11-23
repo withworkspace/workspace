@@ -5,7 +5,8 @@ import type { Reload } from "../load";
 import { useKeys } from "../keys";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Empty, toast } from "../ui/kit";
+import { toast } from "../ui/kit";
+import { Empty } from "../ui/Empty";
 import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
@@ -360,16 +361,15 @@ function BundleMenu({ groups, label, pick, end }: { groups: { group: BundleGroup
 function NothingLeft({ bundles, pick }: { bundles: Bundle[]; pick: (id?: string) => void }) {
   return (
     <div className="verify verify-done">
-      <div className="empty">
-        <span className="verify-clear-mark">
-          <Icon name="check" size={22} />
-        </span>
-        <div className="empty-title">Nothing left to approve</div>
-        <div className="empty-text">{nothingLeftWords(bundles)} A bundle that needs you will show here, and on the tab.</div>
-        <div className="empty-action">
-          <BundleMenu groups={queued(bundles)} label={bundles.length === 1 ? "Look at the bundle" : `Look at the ${bundles.length} bundles`} pick={pick} />
-        </div>
-      </div>
+      <Empty
+        big
+        done
+        icon="check"
+        title="Nothing left to approve"
+        action={<BundleMenu groups={queued(bundles)} label={bundles.length === 1 ? "Look at the bundle" : `Look at the ${bundles.length} bundles`} pick={pick} />}
+      >
+        {nothingLeftWords(bundles)} A bundle that needs you will show here, and on the tab.
+      </Empty>
     </div>
   );
 }
@@ -380,22 +380,25 @@ function NothingLeft({ bundles, pick }: { bundles: Bundle[]; pick: (id?: string)
 function AllClear({ b, rows, busy, settle, again }: { b: Bundle; rows: CheckRow[]; busy: boolean; settle: () => void; again: () => void }) {
   return (
     <article className="verify-check verify-clear" aria-label="Nothing's left for you">
-      <div className="empty">
-        <span className="verify-clear-mark">
-          <Icon name="check" size={22} />
-        </span>
-        <div className="empty-title">You're all clear</div>
-        <div className="empty-text">{allClearWords(b, rows)}</div>
-        <div className="empty-action">
+      <Empty
+        big
+        done
+        icon="check"
+        title="You're all clear"
+        action={
           <Button variant="primary" className="verify-big" disabled={busy} onClick={settle} title="Approve it, with the checks as you've approved them">
             Approve {b.id} <Keys k="mod+⏎" />
           </Button>
-        </div>
-        <div className="verify-clear-after">{settles(b)}</div>
-        <MoreLink onClick={again}>
-          Look again
-        </MoreLink>
-      </div>
+        }
+        foot={
+          <>
+            <div className="verify-clear-after">{settles(b)}</div>
+            <MoreLink onClick={again}>Look again</MoreLink>
+          </>
+        }
+      >
+        {allClearWords(b, rows)}
+      </Empty>
     </article>
   );
 }

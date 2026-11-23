@@ -1,5 +1,5 @@
-import { type ReactNode, useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
-import { Icon, type IconName } from "./Icon";
+import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
+import { Icon } from "./Icon";
 import { Spinner } from "./Spinner";
 import { Button } from "./Button";
 import { getToasts, onToasts, setToasts, toast } from "./toast";
@@ -7,18 +7,6 @@ import { getToasts, onToasts, setToasts, toast } from "./toast";
 export { toast };
 
 // The small shared pieces every page draws with.
-
-// Empty is a place with nothing in it yet: what it's for, and what to do.
-export function Empty({ icon = "inbox", title, children, action }: { icon?: IconName; title: ReactNode; children?: ReactNode; action?: ReactNode }) {
-  return (
-    <div className="empty">
-      <Icon name={icon} size={20} className="empty-icon" />
-      <div className="empty-title">{title}</div>
-      {children && <div className="empty-text">{children}</div>}
-      {action && <div className="empty-action">{action}</div>}
-    </div>
-  );
-}
 
 // Loading shows nothing for a moment (most loads are quicker), then a
 // spinner and what's loading.

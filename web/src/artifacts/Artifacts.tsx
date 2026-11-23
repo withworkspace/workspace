@@ -9,7 +9,8 @@ import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../revie
 import { HoverCard, HoverCardHead, HoverCardLine, HoverCardTitle } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Empty, Loading, toast, useTitle } from "../ui/kit";
+import { Loading, toast, useTitle } from "../ui/kit";
+import { Empty } from "../ui/Empty";
 import { humanError } from "../ui/text";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
@@ -465,17 +466,17 @@ export function ArtifactPage() {
       <div className="artifact-body">
         <div className="artifact-stage">
           {missing ? (
-            <Empty icon="search" title={`${d.id} has no v${asked}`} action={<Link to={artifactHref(d.id)}>Its latest, v{d.latest?.n}</Link>}>
+            <Empty className="artifact-empty" icon="search" title={`${d.id} has no v${asked}`} action={<Link to={artifactHref(d.id)}>Its latest, v{d.latest?.n}</Link>}>
               Its versions are {d.all.map((x) => `v${x.n}`).join(", ")}.
             </Empty>
           ) : !runnable ? (
-            <Empty icon="alert" title="There's no file to run">
+            <Empty className="artifact-empty" icon="alert" title="There's no file to run">
               {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}: what's here is what the records kept.` : `v${n}'s files aren't in ${d.where}.`}
             </Empty>
           ) : source ? (
             <Source id={d.id} n={n} />
           ) : stopped ? (
-            <Empty icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)}>Run it</Button>}>
+            <Empty className="artifact-empty" icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)}>Run it</Button>}>
               The frame's unloaded, and its scripts with it.
             </Empty>
           ) : (
@@ -650,7 +651,7 @@ function Source({ id, n }: { id: string; n: number }) {
       {error ? (
         <ErrorCard error={error} />
       ) : value.binary ? (
-        <Empty icon="file" title={`${value.file} isn't text`}>
+        <Empty className="artifact-empty" icon="file" title={`${value.file} isn't text`}>
           It's {sizeWords(value.size)}, and the page shows it where it uses it.
         </Empty>
       ) : (

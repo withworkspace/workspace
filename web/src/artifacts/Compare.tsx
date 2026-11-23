@@ -8,7 +8,8 @@ import { type Cell, cellHTML, type FileState, fileRows, type Row } from "../revi
 import { highlight, RowView } from "../review/Review";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Empty, Loading, useMedia, useTitle } from "../ui/kit";
+import { Loading, useMedia, useTitle } from "../ui/kit";
+import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Keys } from "../ui/Keys";
 import { Option, Select } from "../ui/Select";
@@ -366,21 +367,21 @@ function SideFrame({
   const v = d.all.find((x) => x.n === side.n);
   if (!v) {
     return (
-      <Empty icon="search" title={`${d.id} has no v${side.n}`}>
+      <Empty className="artifact-empty" icon="search" title={`${d.id} has no v${side.n}`}>
         Its versions are {d.all.map((x) => `v${x.n}`).join(", ")}.
       </Empty>
     );
   }
   if (d.gone || !v.size) {
     return (
-      <Empty icon="alert" title="There's no file to run">
+      <Empty className="artifact-empty" icon="alert" title="There's no file to run">
         {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}.` : `v${v.n}'s files aren't in ${d.where}.`}
       </Empty>
     );
   }
   if (stopped) {
     return (
-      <Empty icon="stop" title="Stopped" action={<Button onClick={onRun}>Run them</Button>}>
+      <Empty className="artifact-empty" icon="stop" title="Stopped" action={<Button onClick={onRun}>Run them</Button>}>
         The frames are unloaded, and their scripts with them.
       </Empty>
     );
@@ -414,7 +415,7 @@ function SourceDiff({ pair, split }: { pair: Pair; split: boolean }) {
   if (!value) return <Loading what="Diffing their sources…" />;
   if (!value.files.length) {
     return (
-      <Empty icon="check" title="The same">
+      <Empty className="artifact-empty" icon="check" title="The same">
         {value.a} and {value.b} are the same, byte for byte.
       </Empty>
     );

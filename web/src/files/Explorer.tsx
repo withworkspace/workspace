@@ -12,7 +12,8 @@ import { fuzzy, marked } from "../ui/fuzzy";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon, type IconName } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
-import { Empty, Loading, toast, useMedia, useTitle } from "../ui/kit";
+import { Loading, toast, useMedia, useTitle } from "../ui/kit";
+import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
@@ -894,15 +895,15 @@ function FilePane({
             <img src={rawURL(api, path)} alt={path} data-viewable={path} title="Open it larger" />
           </div>
         ) : file.binary ? (
-          <Empty icon="file" title="A binary file">
+          <Empty className="file-pane-note" icon="file" title="A binary file">
             {sizeWords(file.size)}: there's no text to show.
           </Empty>
         ) : file.tooLarge ? (
-          <Empty icon="file" title="Too large to show">
+          <Empty className="file-pane-note" icon="file" title="Too large to show">
             It's {sizeWords(file.size)}. Open it in an editor: <Copyable text={path} />
           </Empty>
         ) : !file.lines.length ? (
-          <Empty icon="file" title="An empty file" />
+          <Empty className="file-pane-note" icon="file" title="An empty file" />
         ) : md && preview ? (
           <article className="artifact-body prose file-markdown">
             <Markdown text={file.lines.join("\n")} at={place} />

@@ -4,7 +4,7 @@ import { type AppAt, getWorktreeRuns, type WorktreeRunsInfo } from "../api";
 import { AppFrame } from "../apps/AppPage";
 import { useLoaded } from "../load";
 import { Icon, type IconName, icons } from "../ui/Icon";
-import { Empty } from "../ui/kit";
+import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { type BrowserProps, FileBrowser } from "./Explorer";
 import { WorktreeRuns } from "./Runs";

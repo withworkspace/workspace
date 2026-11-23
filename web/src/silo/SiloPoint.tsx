@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router";
 import { pointSilo } from "../api";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Empty } from "../ui/kit";
+import { Empty } from "../ui/Empty";
 import { humanError } from "../ui/text";
 import { Button } from "../ui/Button";
 
@@ -51,14 +51,14 @@ export function SiloPoint() {
         title={to ? `Point ${repo}'s silo at ${to}?` : "Which capsule?"}
         action={
           to && (
-            <>
+            <div className="silo-point-acts">
               <Button variant="primary" disabled={busy} onClick={point} autoFocus>
                 {busy ? <Spinner size={12} /> : <Icon name="arrow-right" size={12} />} {busy ? "Pointing…" : `Point it at ${to}`}
               </Button>
               <Button variant="ghost" disabled={busy} onClick={() => navigate("/")}>
                 Not now
               </Button>
-            </>
+            </div>
           )
         }
       >

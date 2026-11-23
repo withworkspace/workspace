@@ -5,7 +5,8 @@ import { type Reload, useLoaded } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Empty, Skeleton } from "../ui/kit";
+import { Skeleton } from "../ui/kit";
+import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
@@ -398,7 +399,7 @@ function CapsulePane({ d, x, label, select, review, reload, seen }: { d: Mission
             </>
           )}
           {quiet && c.exists && (
-            <Empty icon="box" title="Nothing's changed here yet">
+            <Empty className="work-col-empty" icon="box" title="Nothing's changed here yet">
               {sum?.base ? `It's level with ${sum.baseRef.replace(/^origin\//, "")}` : "It's as it was lifted"}
               {c.head ? ` at ${c.head.slice(0, 7)}` : ""}.{x.steps[0] ? ` Step ${x.steps[0].n}, ${x.steps[0].title}, is the first in it.` : ""}
             </Empty>
@@ -662,7 +663,7 @@ function OutputPane({ d, a, home, label, select, open }: { d: MissionDetail; a: 
           {reads && !doc && !error && <Skeleton rows={6} />}
           {doc &&
             (doc.media ? (
-              <Empty icon="file" title="It's an image or a video">
+              <Empty className="work-col-empty" icon="file" title="It's an image or a video">
                 Its page shows it as it is.
               </Empty>
             ) : doc.markdown ? (
@@ -673,7 +674,7 @@ function OutputPane({ d, a, home, label, select, open }: { d: MissionDetail; a: 
               <pre className="artifact-code work-prose">{doc.text}</pre>
             ))}
           {!reads && (
-            <Empty icon={isArtifact(a) ? "artifact" : "external"} title={isArtifact(a) ? "An artifact: it runs on its own page" : a.url ? "It's kept elsewhere" : "There's nothing of it to read here"}>
+            <Empty className="work-col-empty" icon={isArtifact(a) ? "artifact" : "external"} title={isArtifact(a) ? "An artifact: it runs on its own page" : a.url ? "It's kept elsewhere" : "There's nothing of it to read here"}>
               {desc}
             </Empty>
           )}

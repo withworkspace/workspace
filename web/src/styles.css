@@ -459,33 +459,6 @@ main > .banner {
 
 /* Empty places, loading and skeletons */
 
-.empty {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--dim);
-}
-
-.empty-icon {
-  color: var(--faint);
-  margin-bottom: 4px;
-}
-
-.empty-title {
-  color: var(--fg);
-  font-weight: 600;
-}
-
-.empty-text {
-  max-width: 34em;
-}
-
-.empty-action {
-  margin-top: 8px;
-}
-
 .loading {
   display: flex;
   align-items: center;
@@ -5023,41 +4996,6 @@ button.verify-plain:hover {
   min-height: 460px;
 }
 
-.verify-clear .empty,
-.verify-done .empty {
-  gap: 8px;
-}
-
-.verify-clear-mark {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 6px;
-  border-radius: 50%;
-  background: var(--done-soft);
-  color: var(--green);
-  animation: pop var(--slow) var(--ease);
-}
-
-.verify-clear .empty-title,
-.verify-done .empty-title {
-  font-size: var(--text-xl);
-  letter-spacing: -0.01em;
-}
-
-.verify-clear .empty-text,
-.verify-done .empty-text {
-  max-width: 44em;
-  font-size: var(--text-md);
-  line-height: 1.55;
-}
-
-.verify-clear .empty-action,
-.verify-done .empty-action {
-  margin-top: 14px;
-}
-
 button.verify-big {
   gap: 10px;
   min-height: 44px;
@@ -5662,7 +5600,7 @@ h2.work-title {
   background: var(--raised);
 }
 
-.work-col .empty {
+.work-col-empty {
   padding-block: var(--space-8);
 }
 
@@ -5867,7 +5805,7 @@ button.work-left:hover {
   padding: 0 16px;
 }
 
-.silo-point .empty-action {
+.silo-point-acts {
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -9826,7 +9764,6 @@ details.repo-group > summary::-webkit-details-marker {
 }
 
 .file-pane-note,
-.file-pane > .empty,
 .file-pane > .loading {
   margin: 8px 20px 16px;
 }
@@ -14291,7 +14228,8 @@ button.accent-button:hover:not(:disabled) {
   background: var(--panel);
 }
 
-.artifact-stage > .empty {
+/* Nothing to show where an artifact would be: a way down its room. */
+.artifact-empty {
   margin-top: 12vh;
 }
 
@@ -14340,10 +14278,6 @@ button.accent-button:hover:not(:disabled) {
   display: grid;
   grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
   align-items: start;
-}
-
-.artifact-source-view > .empty {
-  margin-top: 12vh;
 }
 
 .artifact-source-view .artifact-source {
@@ -14756,10 +14690,6 @@ input[type="text"].tweak-text {
   min-height: 0;
   overflow: auto;
   background: var(--bg);
-}
-
-.compare-diff > .empty {
-  margin-top: 12vh;
 }
 
 .artifact-diff-head {

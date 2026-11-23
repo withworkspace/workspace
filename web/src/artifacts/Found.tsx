@@ -5,7 +5,8 @@ import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Empty, Loading, useTitle } from "../ui/kit";
+import { Loading, useTitle } from "../ui/kit";
+import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
@@ -245,7 +246,7 @@ export function FoundArtifactPage() {
               <iframe key={`${d.version}#${run}`} className="artifact-frame" src={d.frame} sandbox="allow-scripts" referrerPolicy="no-referrer" title={d.title} style={px ? { width: px } : undefined} />
             </div>
           ) : (
-            <Empty icon="alert" title="There's no file to run">
+            <Empty className="artifact-empty" icon="alert" title="There's no file to run">
               {d.where} has no index.html.
             </Empty>
           )}
