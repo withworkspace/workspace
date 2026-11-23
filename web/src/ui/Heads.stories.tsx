@@ -9,7 +9,7 @@ import { Summary, SummaryRow } from "./Summary";
 // A page's parts: its head, with what's beside the title and its actions;
 // a group's heading with its count; counts alone; a summary.
 
-const meta: Meta = { title: "Library/Page parts" };
+const meta: Meta = { title: "Components/Page parts" };
 export default meta;
 
 export const Heads: StoryObj = {

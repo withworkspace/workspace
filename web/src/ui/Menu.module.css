@@ -1,0 +1,56 @@
+/* A menu's list (Menu.tsx), in a popover: items, in sections, with rules
+   between. */
+
+@layer ui {
+  .list {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px;
+    outline: none;
+  }
+
+  /* The words line up with a button's: 1px border, 4px, 6px. */
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    outline: none;
+  }
+
+  .item[data-focused] {
+    background: var(--selected);
+  }
+
+  .danger {
+    color: var(--red);
+  }
+
+  .text {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* A menu's sections are its own groups, not the page's, which have a
+     gap after them. */
+  .section {
+    margin: 0;
+  }
+
+  .header {
+    padding: 4px 6px 2px;
+    font-size: var(--text-sm);
+    color: var(--dim);
+  }
+
+  .separator {
+    height: 1px;
+    margin: 4px 2px;
+    background: var(--line);
+  }
+}

@@ -1,6 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { Button as AriaButton, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import {
   act,
   type ActVerb,
@@ -54,6 +53,11 @@ import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary as SummaryList, SummaryRow } from "../ui/Summary";
+import { Segment, Segmented } from "../ui/Segmented";
+import { cx } from "../ui/cx";
+import { Menu, MenuItem } from "../ui/Menu";
+import { Tab, Tabs } from "../ui/Tabs";
+import { Input } from "../ui/Input";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
 
@@ -275,23 +279,14 @@ export function MissionPage() {
     </TLink>
   );
   const tabRow = (count?: (t: Tab) => ReactNode) => (
-    <div className="tabs" role="tablist" aria-label="Mission">
+    <Tabs className="mission-tabs" value={tab} onChange={setTab} controls="mission-panel" aria-label="Mission">
       {tabs.map((t) => (
-        <button
-          key={t}
-          role="tab"
-          id={`tab-${t}`}
-          aria-selected={t === tab}
-          aria-controls="mission-panel"
-          className={t === tab ? "on" : ""}
-          onClick={() => setTab(t)}
-          title={`${tabNames[t]} (${tabs.indexOf(t) + 1})`}
-        >
+        <Tab key={t} value={t} title={`${tabNames[t]} (${tabs.indexOf(t) + 1})`}>
           {tabNames[t]}
           {count?.(t)}
-        </button>
+        </Tab>
       ))}
-    </div>
+    </Tabs>
   );
 
   if (error && !d) {
@@ -404,7 +399,7 @@ export function MissionPage() {
       {tab === "brief" ? (
         // The brief has the page under the bar to itself: its panes reach
         // the page's edges, each scrolling by itself.
-        <div role="tabpanel" id="mission-panel" aria-labelledby="tab-brief" className="tab-panel brief-panel" key="brief">
+        <div role="tabpanel" id="mission-panel" aria-label={tabNames.brief} className="tab-panel brief-panel" key="brief">
           {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
           <BriefTab d={d} root={root} updated={updated} reload={load} onEscape={escape} />
         </div>
@@ -412,7 +407,7 @@ export function MissionPage() {
       <div className={`page mission${docked ? " with-side" : ""}${wideTabs.includes(tab) ? " wide" : ""}`}>
         <div className="mission-main" data-page-scroller="">
           {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
-          <div role="tabpanel" id="mission-panel" aria-labelledby={`tab-${tab}`} className="tab-panel" key={tab}>
+          <div role="tabpanel" id="mission-panel" aria-label={tabNames[tab]} className="tab-panel" key={tab}>
             {tab === "summary" && <Summary {...parts} full={!side} />}
             {tab === "work" && w && (
               <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} seen={readsSeen} />
@@ -459,7 +454,7 @@ function Title({ d, reload }: { d: MissionDetail; reload: Reload }) {
   };
   if (editing) {
     return (
-      <input
+      <Input
         className="title-input"
         autoFocus
         value={value}
@@ -1060,25 +1055,27 @@ function LaunchCrew({
   return (
     <div className="split-button">
       {main}
-      <MenuTrigger>
-        <AriaButton className={`split-toggle${primary ? " primary" : ""}`} isDisabled={busy} aria-label="Launch crew on another agent or model" data-field>
-          <Icon name="chevron-down" size={13} />
-        </AriaButton>
-        <Popover className="select-popover" placement="bottom end" offset={4} data-field>
-          <Menu className="select-list" aria-label="Launch crew on" onAction={(k) => launch(k === "0" ? undefined : all[Number(k)])}>
-            {all.map((p, i) => (
-              <MenuItem key={pickName(p)} id={String(i)} textValue={pickName(p)} className="select-option split-pick">
-                <span className="split-pick-name mono">
-                  {p.harness}
-                  {p.model ? ` · ${p.model}` : ""}
-                </span>
-                {!p.model && <span className="dim">its own model</span>}
-                {i === 0 && <Chip>default</Chip>}
-              </MenuItem>
-            ))}
-          </Menu>
-        </Popover>
-      </MenuTrigger>
+      <Menu
+        placement="bottom end"
+        aria-label="Launch crew on"
+        onAction={(k) => launch(k === "0" ? undefined : all[Number(k)])}
+        trigger={
+          <Button variant={primary ? "primary" : undefined} className={cx("split-toggle", primary && "split-toggle-primary")} disabled={busy} aria-label="Launch crew on another agent or model" data-field>
+            <Icon name="chevron-down" size={13} />
+          </Button>
+        }
+      >
+        {all.map((p, i) => (
+          <MenuItem key={pickName(p)} id={String(i)} textValue={pickName(p)}>
+            <span className="split-pick-name mono">
+              {p.harness}
+              {p.model ? ` · ${p.model}` : ""}
+            </span>
+            {!p.model && <span className="dim">its own model</span>}
+            {i === 0 && <Chip>default</Chip>}
+          </MenuItem>
+        ))}
+      </Menu>
     </div>
   );
 }
@@ -1250,7 +1247,7 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
   // Words are all the first asks for: the field, then its button.
   const wordsOnly = !!first?.field && first.do === "answer" && !first.text;
   const field = (a: MissionAct, focus: boolean) => (
-    <input value={words} onChange={(e) => setWords(e.target.value)} placeholder={a.field} disabled={busy} aria-label={a.field} autoFocus={focus} />
+    <Input value={words} onChange={(e) => setWords(e.target.value)} placeholder={a.field} disabled={busy} aria-label={a.field} autoFocus={focus} />
   );
   return (
     <div className="answer">
@@ -1345,7 +1342,7 @@ function QuickReply({ slug, id, reload }: { slug: string; id: string; reload: Re
           send();
         }}
       >
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Reply to ${id}…`} aria-label={`Reply to ${id}`} disabled={busy} />
+        <Input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Reply to ${id}…`} aria-label={`Reply to ${id}`} disabled={busy} />
         <Button variant="primary" type="submit" disabled={busy || !text.trim()}>
           Send
         </Button>
@@ -1423,14 +1420,14 @@ function Log({ d, selected, openArtifact, go }: Parts) {
     <>
       <section>
         <div className="log-tools">
-          <div className="segmented" role="group" aria-label="Show">
+          <Segmented value={filter} onChange={setFilter} aria-label="Show">
             {logFilters.map((f) => (
-              <Button key={f.id} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+              <Segment key={f.id} value={f.id}>
                 {f.label}
-              </Button>
+              </Segment>
             ))}
-          </div>
-          <input type="text" className="search" placeholder="Search the log" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search the log" />
+          </Segmented>
+          <Input type="text" className="search" placeholder="Search the log" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search the log" />
         </div>
         {events.length ? (
           <Events events={[...events].reverse()} />

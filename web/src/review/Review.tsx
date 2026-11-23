@@ -46,6 +46,10 @@ import { useLatest } from "../load";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { capital } from "../ui/text";
+import { Segment, Segmented } from "../ui/Segmented";
+import { Checkbox } from "../ui/Checkbox";
+import { TextArea } from "../ui/TextArea";
+import { Finder, FinderNone, FinderRow } from "../ui/Finder";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
 
@@ -1054,16 +1058,16 @@ export function ReviewView({ source }: { source: ReviewSource }) {
               <Icon name="file" size={13} /> Files
             </Button>
             {changes && (
-              <div className="segmented desktop-only" role="group" aria-label="Diff layout">
-                <Button aria-pressed={!split} onClick={() => split && toggleSplit()} title="Unified (u)">
+              <Segmented className="desktop-only" value={split ? "split" : "unified"} onChange={toggleSplit} aria-label="Diff layout">
+                <Segment value="unified" title="Unified (u)">
                   <Icon name="unified" size={13} /> Unified
-                </Button>
-                <Button aria-pressed={split} onClick={() => !split && toggleSplit()} title="Side by side (u)">
+                </Segment>
+                <Segment value="split" title="Side by side (u)">
                   <Icon name="split" size={13} /> Split
-                </Button>
-              </div>
+                </Segment>
+              </Segmented>
             )}
-            <Button variant="primary" className="submit-button" onClick={submit} disabled={!!source.readOnly} title={source.readOnly ?? "Submit the review (s)"}>
+            <Button variant="primary" className="submit-button" onClick={submit} unavailable={source.readOnly} title="Submit the review (s)">
               {draft ? `Submit review · ${draft.comments.length}` : "Submit review"} <Keys k="s" />
             </Button>
           </span>
@@ -1210,7 +1214,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
       {codeNav.picker}
       {codeNav.panel}
       {finder && (
-        <Finder
+        <FileJump
           files={files}
           onPick={(i) => {
             setFinder(false);
@@ -1388,10 +1392,9 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
             {skimWords[file.skim]} · {state.folded ? "show" : "hide"}
           </Button>
         )}
-        <label className="viewed-box" onClick={(e) => e.stopPropagation()}>
-          <input type="checkbox" checked={state.viewed} onChange={() => onActivate({ type: "file", key: `${index}`, file: index })} />
+        <Checkbox className="viewed-box" checked={!!state.viewed} onChange={() => onActivate({ type: "file", key: `${index}`, file: index })} onClick={(e) => e.stopPropagation()}>
           Viewed
-        </label>
+        </Checkbox>
       </div>
       {note && !state.viewed && (
         <p className="file-guide" title="What the guide says the change does to it">
@@ -1737,7 +1740,7 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
           {linesWord(editing.target)} · <Keys k="tab" /> kind
         </span>
       </div>
-      <textarea
+      <TextArea
         ref={area}
         value={text}
         rows={Math.min(12, Math.max(3, text.split("\n").length + 1))}
@@ -1773,11 +1776,9 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
   );
 }
 
-// Finder jumps to a file by a few letters of its path.
-function Finder({ files, onPick, onClose }: { files: DiffFile[]; onPick: (i: number) => void; onClose: () => void }) {
+// FileJump jumps to a file by a few letters of its path.
+function FileJump({ files, onPick, onClose }: { files: DiffFile[]; onPick: (i: number) => void; onClose: () => void }) {
   const [q, setQ] = useState("");
-  const [sel, setSel] = useState(0);
-  useKeys({ Escape: onClose }, { modal: true });
   const matches = useMemo(() => {
     return files
       .flatMap((f, i) => {
@@ -1787,39 +1788,14 @@ function Finder({ files, onPick, onClose }: { files: DiffFile[]; onPick: (i: num
       .sort((a, b) => b.score - a.score || a.i - b.i)
       .slice(0, 50);
   }, [files, q]);
-  const pick = matches[Math.min(sel, matches.length - 1)];
   return (
-    <div className="overlay" onClick={onClose}>
-      <div className="dialog finder" onClick={(e) => e.stopPropagation()}>
-        <input
-          autoFocus
-          value={q}
-          placeholder="Jump to a file"
-          onChange={(e) => {
-            setQ(e.target.value);
-            setSel(0);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
-              e.preventDefault();
-              setSel((s) => Math.min(s + 1, matches.length - 1));
-            } else if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
-              e.preventDefault();
-              setSel((s) => Math.max(s - 1, 0));
-            } else if (e.key === "Enter" && pick) {
-              e.preventDefault();
-              onPick(pick.i);
-            }
-          }}
-        />
-        <ul>
-          {matches.map((m) => (
-            <li key={m.f.path} className={m === pick ? "selected" : ""} onClick={() => onPick(m.i)}>
-              <span className="mono">{m.f.path}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+    <Finder aria-label="Jump to a file" placeholder="Jump to a file" value={q} onChange={setQ} count={matches.length} onPick={(i) => onPick(matches[i].i)} onClose={onClose}>
+      {matches.map((m, i) => (
+        <FinderRow key={m.f.path} index={i}>
+          <span className="mono">{m.f.path}</span>
+        </FinderRow>
+      ))}
+      {!matches.length && <FinderNone>No file matches “{q}”.</FinderNone>}
+    </Finder>
   );
 }

@@ -4,8 +4,12 @@ import { act, type CapsuleDetail, type Conclusion, type EndedCapsule, type Endin
 import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Dialog, humanError, toast } from "../ui/kit";
+import { humanError, toast } from "../ui/kit";
+import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";
+import { ToggleButton } from "../ui/ToggleButton";
+import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 
 // How a mission ends: landed (at Z, its code merged or landed), answered
 // (a finding, no code), handed on (its work raised as other missions) or
@@ -134,11 +138,11 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
         ))}
       </div>
       {ending && <div className="dim end-help">{endingHelp[ending]}.</div>}
-      <textarea value={text} rows={3} placeholder="What it came to: the finding, what landed, why it stops" aria-label="What it came to" onChange={(e) => setText(e.target.value)} />
+      <TextArea value={text} rows={3} placeholder="What it came to: the finding, what landed, why it stops" aria-label="What it came to" onChange={(e) => setText(e.target.value)} />
       {ending === "handed-on" && (
         <label className="end-to">
           <span>Handed on to</span>
-          <input value={to} onChange={(e) => setTo(e.target.value)} placeholder={handedOn.length ? `and ${handedOn.join(", ")}, its capsules'` : "mission slugs"} />
+          <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder={handedOn.length ? `and ${handedOn.join(", ")}, its capsules'` : "mission slugs"} />
         </label>
       )}
       {z.length > 0 && (
@@ -150,27 +154,27 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
                 <span className="dim">{i + 1}.</span> <Inline text={part} />
               </div>
               <div className="z-say">
-                <Button size="small" className={checks[i].met === true ? "on-met" : undefined} aria-pressed={checks[i].met === true} onClick={() => set(i, { met: checks[i].met === true ? undefined : true })}>
+                <ToggleButton size="small" className={checks[i].met === true ? "on-met" : undefined} pressed={checks[i].met === true} onChange={(on) => set(i, { met: on ? true : undefined })}>
                   <Icon name="check" size={12} /> Met
-                </Button>
-                <Button size="small" className={checks[i].met === false ? "on-unmet" : undefined} aria-pressed={checks[i].met === false} onClick={() => set(i, { met: checks[i].met === false ? undefined : false })}>
+                </ToggleButton>
+                <ToggleButton size="small" className={checks[i].met === false ? "on-unmet" : undefined} pressed={checks[i].met === false} onChange={(on) => set(i, { met: on ? false : undefined })}>
                   <Icon name="x" size={12} /> Not met
-                </Button>
-                <input value={checks[i].how} onChange={(e) => set(i, { how: e.target.value })} placeholder={checks[i].met === false ? "Why not" : "How: what shows it"} aria-label={`How part ${i + 1} of Z is met, or why not`} />
+                </ToggleButton>
+                <Input value={checks[i].how} onChange={(e) => set(i, { how: e.target.value })} placeholder={checks[i].met === false ? "Why not" : "How: what shows it"} aria-label={`How part ${i + 1} of Z is met, or why not`} />
               </div>
             </div>
           ))}
         </fieldset>
       )}
       {error && <div className="banner">{humanError(error)}</div>}
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
         <Button variant={ending === "dropped" ? "danger" : "primary"} onClick={submit} disabled={!ending || !text.trim() || busy}>
           {ending ? `End it, ${endingWords[ending]}` : "End it"}
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }
@@ -230,7 +234,7 @@ export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetai
               ? "Its work won't be part of the mission, and it no longer holds it open. Its worktree is kept, in no mission."
               : "A mission is raised for it from what you say, to be briefed, or name one there is: it takes the capsule, which no longer holds this one open."}
           </p>
-          <textarea
+          <TextArea
             value={text}
             rows={3}
             autoFocus
@@ -241,18 +245,18 @@ export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetai
           {open === "hand-on" && (
             <label className="end-to">
               <span>Or to a mission there is</span>
-              <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="its slug" />
+              <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="its slug" />
             </label>
           )}
           {error && <div className="banner">{humanError(error)}</div>}
-          <div className="dialog-actions">
+          <DialogActions>
             <Button variant="ghost" onClick={close}>
               Cancel
             </Button>
             <Button variant={open === "drop" ? "danger" : "primary"} onClick={submit} disabled={busy || (!text.trim() && !(open === "hand-on" && to.trim()))}>
               {open === "drop" ? "Drop it" : "Hand it on"}
             </Button>
-          </div>
+          </DialogActions>
         </Dialog>
       )}
     </>

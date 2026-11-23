@@ -1,0 +1,24 @@
+/* A text box of more than a line (TextArea.tsx). Its words are the
+   element's (styles.css's textarea, in the base layer: the page's font,
+   and its size). */
+
+@layer ui {
+  .textarea {
+    background: var(--raised);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    resize: none;
+    line-height: 1.5;
+    transition:
+      border-color var(--fast) var(--ease),
+      box-shadow var(--fast) var(--ease);
+  }
+
+  /* Its focus is its border, in the accent, with a soft ring. */
+  .textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}

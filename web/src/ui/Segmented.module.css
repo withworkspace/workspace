@@ -1,0 +1,71 @@
+/* A segmented control (Segmented.tsx): a track, and a segment for each
+   choice, the chosen one raised from it. */
+
+@layer ui {
+  .segmented {
+    display: inline-flex;
+    padding: 2px;
+    gap: 2px;
+    border-radius: var(--radius);
+    background: var(--well);
+    border: 1px solid var(--line);
+  }
+
+  .segment {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 18px;
+    white-space: nowrap;
+    color: var(--dim);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius);
+    padding: 2px 10px;
+    min-height: 24px;
+    cursor: pointer;
+    box-shadow: none;
+    transition:
+      background var(--fast) var(--ease),
+      color var(--fast) var(--ease),
+      box-shadow var(--fast) var(--ease);
+  }
+
+  .segment:hover:not(:disabled) {
+    color: var(--fg);
+  }
+
+  .segment:active:not(:disabled) {
+    transform: translateY(0.5px);
+  }
+
+  .segment:disabled {
+    cursor: default;
+  }
+
+  .segment[data-selected] {
+    color: var(--fg);
+    background: var(--well-pressed);
+    box-shadow:
+      var(--shadow-xs),
+      0 0 0 1px var(--line);
+  }
+
+  .small .segment {
+    min-height: 20px;
+    padding: 0 8px;
+    font-size: var(--text-xs);
+  }
+
+  .fill {
+    display: flex;
+  }
+
+  .fill .segment {
+    flex: 1;
+  }
+}

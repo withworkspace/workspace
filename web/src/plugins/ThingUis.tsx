@@ -7,6 +7,8 @@ import type { Anchor } from "../ui/hover";
 import type { UiProps } from "./Uis";
 import { Button } from "../ui/Button";
 import { chipClass } from "../ui/Chip";
+import { Radio, RadioGroup } from "../ui/RadioGroup";
+import { Input } from "../ui/Input";
 
 // ws's UIs for a plugin's thing that lives in a repo, asked for by the
 // plugin's page from a button of its own (ui.ts): putting one there
@@ -187,26 +189,24 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
         {places && several && (
           <fieldset className="thing-ui-places" disabled={busy}>
             <legend>Where it'll live</legend>
-            {places.map((p, i) => (
-              <label key={p.where} className="thing-ui-place">
-                <input type="radio" name="thing-place" checked={pick === i} onChange={() => choose(i)} />
-                <span>
-                  <span className="thing-ui-repo">{p.label}</span>
-                  <code>{pick === i ? grouped(p.where, group) : p.where}</code>
-                </span>
-              </label>
-            ))}
-            <label className="thing-ui-place">
-              <input type="radio" name="thing-place" checked={pick === "else"} onChange={() => choose("else")} />
-              <span>Somewhere else…</span>
-            </label>
+            <RadioGroup className="thing-ui-place-list" value={String(pick)} onChange={(v) => choose(v === "else" ? "else" : Number(v))} disabled={busy} aria-label="Where it'll live">
+              {places.map((p, i) => (
+                <Radio key={p.where} value={String(i)}>
+                  <span className="thing-ui-place">
+                    <span className="thing-ui-repo">{p.label}</span>
+                    <code>{pick === i ? grouped(p.where, group) : p.where}</code>
+                  </span>
+                </Radio>
+              ))}
+              <Radio value="else">Somewhere else…</Radio>
+            </RadioGroup>
           </fieldset>
         )}
         {place?.subfolders && (
           <div className="thing-ui-group">
             <label>
               <span className="dim">In a folder there, if you like</span>
-              <input type="text" className="mono" value={under} placeholder="cross-stack" aria-label={`A folder of ${place.label} to group it in`} list="thing-ui-groups" disabled={busy} onChange={(e) => setUnder(e.currentTarget.value)} />
+              <Input type="text" className="mono" value={under} placeholder="cross-stack" aria-label={`A folder of ${place.label} to group it in`} list="thing-ui-groups" disabled={busy} onChange={(e) => setUnder(e.currentTarget.value)} />
             </label>
             <datalist id="thing-ui-groups">
               {(place.groups ?? []).map((g) => (
@@ -228,7 +228,7 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
           <label className="thing-ui-where">
             {!several && <span className="dim">It'll live at</span>}
             {/* biome-ignore lint/a11y/noAutofocus: the field is what was asked for */}
-            <input type="text" className="mono" value={elsewhere} placeholder="repo:folder/" aria-label="Where it'll live, as repo:folder/" autoFocus disabled={busy} onChange={(e) => setElsewhere(e.currentTarget.value)} />
+            <Input type="text" className="mono" value={elsewhere} placeholder="repo:folder/" aria-label="Where it'll live, as repo:folder/" autoFocus disabled={busy} onChange={(e) => setElsewhere(e.currentTarget.value)} />
           </label>
         )}
         {place && !place.direct && <p className="dim">{place.label} takes pull requests: it'll be left in a capsule, for you to open one from.</p>}

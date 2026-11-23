@@ -121,6 +121,8 @@ export function FloatingCard({
       ref={card}
       className={`hovercard${className ? ` ${className}` : ""}`}
       role="tooltip"
+      // A dialog makes the rest of the page inert: not a card over it.
+      data-react-aria-top-layer=""
       style={pos ? { top: pos.top, left: pos.left } : { top: -9999, left: -9999 }}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}

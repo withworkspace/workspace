@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { noteKinds, type Review, type Verdict } from "../api";
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
-import { Dialog, humanError, Keys, useAutosize } from "../ui/kit";
+import { humanError, Keys, useAutosize } from "../ui/kit";
+import { Dialog } from "../ui/Dialog";
 import { Button } from "../ui/Button";
+import { TextArea } from "../ui/TextArea";
 
 // What a capsule's review and a document's share: how verdicts and comment
 // states read, suggestions as written in a comment, replying, and
@@ -38,7 +40,7 @@ export function ReplyBox({ onSend, onCancel }: { onSend: (body: string) => void;
   }, []);
   return (
     <div className="reply-box" onClick={(e) => e.stopPropagation()}>
-      <textarea
+      <TextArea
         ref={area}
         value={text}
         rows={2}
@@ -104,7 +106,7 @@ export function SubmitDialog({
     ["comment", "m", "Comment", "message"],
   ];
   return (
-    <Dialog title="Submit the review" onClose={onClose} className="submit" wide>
+    <Dialog title="Submit the review" onClose={onClose} className="submit-dialog" wide>
         <p>
           {draft
             ? `${draft.comments.length} new ${draft.comments.length === 1 ? "comment" : "comments"}${counts.length ? ` (${counts.join(", ")})` : ""}.`
@@ -118,7 +120,7 @@ export function SubmitDialog({
             </button>
           ))}
         </div>
-        <textarea
+        <TextArea
           ref={area}
           value={summary}
           rows={4}
@@ -146,7 +148,7 @@ export function SubmitDialog({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={submit} disabled={!verdict} title={verdict ? "Submit (⌘⏎)" : "Pick a verdict first"}>
+          <Button variant="primary" onClick={submit} unavailable={verdict ? undefined : "Pick a verdict first"} title="Submit (⌘⏎)">
             Submit <Keys k="mod+⏎" />
           </Button>
         </div>

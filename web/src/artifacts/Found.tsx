@@ -12,6 +12,7 @@ import { filesWords, type FoundFolder as Folder, foundTree, widths } from "./sho
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { Segment, Segmented } from "../ui/Segmented";
 import { useWorkspace } from "../workspace/store";
 import { setPref, usePrefs } from "../prefs";
 
@@ -205,13 +206,13 @@ export function FoundArtifactPage() {
           </div>
         )}
         <div className="artifact-tools">
-          <div className="segmented" role="group" aria-label="Width">
+          <Segmented value={width} onChange={setWidth} aria-label="Width">
             {widths.map((w) => (
-              <Button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={w.title}>
+              <Segment key={w.key} value={w.key} title={w.title}>
                 {w.label}
-              </Button>
+              </Segment>
             ))}
-          </div>
+          </Segmented>
           <span className="artifact-tools-end">
             <Button
               variant="ghost" size="small"

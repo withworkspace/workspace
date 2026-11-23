@@ -3,6 +3,7 @@ import { Button } from "../ui/Button";
 import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
 import { Keys } from "../ui/kit";
+import { Input } from "../ui/Input";
 
 // What's in hand, as the field shows it before its words: a passage
 // picked out of a document, lines of a diff, what a plugin's page says
@@ -109,7 +110,7 @@ export function AskField({ placeholder, onAsk, busy, holding, suggestions = [], 
             )}
           </span>
         )}
-        <input
+        <Input
           ref={field}
           value={text}
           placeholder={placeholder}

@@ -5,6 +5,8 @@ import { cx } from "../ui/cx";
 import { toast } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import css from "./Groups.module.css";
+import { Segment, Segmented } from "../ui/Segmented";
+import { Input } from "../ui/Input";
 
 const NONE = "\u0000none";
 const NEW = "\u0000new";
@@ -33,7 +35,7 @@ export function GroupPick({ value, groups, team, none, label, onPick, disabled }
     };
     const bad = /[\s,]/.test(name.trim());
     return (
-      <input
+      <Input
         ref={field}
         className={cx("mono", css.naming)}
         aria-label={`${label}: a new group`}
@@ -148,13 +150,10 @@ export function Groups({ groups, repos, done }: { groups: RepoGroup[]; repos: Re
                   <td className="mono">{g.name}</td>
                   <td className="dim">{g.repos.length ? g.repos.map((r) => label.get(r) ?? r).join(", ") : "—"}</td>
                   <td>
-                    <div className="segmented" role="group" aria-label={`${g.name}: shown or hidden`}>
-                      {[false, true].map((hidden) => (
-                        <Button key={String(hidden)} type="button" size="small" aria-pressed={!!g.hidden === hidden} disabled={busy === g.name} onClick={() => !!g.hidden !== hidden && set(g.name, hidden)}>
-                          {hidden ? "Hidden" : "Shown"}
-                        </Button>
-                      ))}
-                    </div>
+                    <Segmented value={g.hidden ? "hidden" : "shown"} onChange={(v) => set(g.name, v === "hidden")} disabled={busy === g.name} aria-label={`${g.name}: shown or hidden`}>
+                      <Segment value="shown">Shown</Segment>
+                      <Segment value="hidden">Hidden</Segment>
+                    </Segmented>
                   </td>
                   <td className={cx("dim", css.team)}>
                     {g.chosen ? (

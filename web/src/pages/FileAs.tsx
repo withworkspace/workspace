@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { type DocKind, type DocSaved, FileChanged, filePage, type PageFiling, type PageTied, savePageToFile, type SpaceRef } from "../api";
 import { Icon } from "../ui/Icon";
-import { Callout, Dialog, humanError, Keys } from "../ui/kit";
+import { Callout, humanError, Keys } from "../ui/kit";
+import { Dialog, DialogActions } from "../ui/Dialog";
 import { Option, Select } from "../ui/Select";
 import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
 
 // FileAs files a page as a document of one of the workspace's kinds: a new file where the kind
 // says, named from its title, in a commit of yours on its repo's default branch: landed, in a repo
@@ -97,7 +99,7 @@ export function FileAs({
       <div className="file-as-fields" onKeyDown={keys}>
         <label>
           <span>Kind</span>
-          <Select value={k} onChange={setK} aria-label="Kind of document">
+          <Select fill value={k} onChange={setK} aria-label="Kind of document">
             {kinds.map((x) => (
               <Option key={x.name} value={x.name}>
                 {x.title}
@@ -109,7 +111,7 @@ export function FileAs({
         {!k && (
           <label>
             <span>Folder</span>
-            <input className="mono" list="file-as-places" value={where} placeholder="repo:folder/" onChange={(e) => setWhere(e.target.value)} aria-label="The folder it's filed in, as repo:folder/" />
+            <Input className="mono" list="file-as-places" value={where} placeholder="repo:folder/" onChange={(e) => setWhere(e.target.value)} aria-label="The folder it's filed in, as repo:folder/" />
             <datalist id="file-as-places">
               {(spaces ?? []).map((s) => (
                 <option key={s.repo} value={`${s.repo}:${s.folder ?? ""}`}>
@@ -121,11 +123,11 @@ export function FileAs({
         )}
         <label>
           <span>Title</span>
-          <input autoFocus value={name} placeholder="What it's named from" onChange={(e) => setName(e.target.value)} aria-label="Title" />
+          <Input autoFocus value={name} placeholder="What it's named from" onChange={(e) => setName(e.target.value)} aria-label="Title" />
         </label>
         <label>
           <span>Commit</span>
-          <input className="mono" value={subject} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
+          <Input className="mono" value={subject} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
         </label>
       </div>
       {plan && (
@@ -153,14 +155,14 @@ export function FileAs({
       )}
       <p className="dim file-as-what">What's filed is the page as it reads: what its cells hold is kept as text, its questions are left out. The page stays, and says where it was filed.</p>
       {error && <div className="banner">{error}</div>}
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
         <Button variant="primary" onClick={file} disabled={!ready}>
           {busy ? (lands ? "Landing…" : "Filing…") : lands ? `File, and land on ${plan?.branch}` : "File it"} <Keys k="mod+⏎" />
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }
@@ -221,7 +223,7 @@ export function SaveToFile({
       >
         <label>
           <span>Commit</span>
-          <input autoFocus className="mono" value={message} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
+          <Input autoFocus className="mono" value={message} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
         </label>
       </div>
       {saves && saves.how !== "capsule" && (
@@ -243,14 +245,14 @@ export function SaveToFile({
       )}
       <p className="dim file-as-what">What's saved is the page as it reads: what its cells hold is kept as text, its questions are left out. The page keeps them.</p>
       {error && <div className="banner">{error}</div>}
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
         <Button variant="primary" onClick={save} disabled={busy || !message.trim()}>
           {busy ? (lands ? "Landing…" : "Saving…") : lands ? `Save, and land on ${saves?.branch}` : "Save"} <Keys k="mod+⏎" />
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }

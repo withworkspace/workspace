@@ -59,7 +59,8 @@ import { linkNamed, type RefHost, type RefMark, refreshRefs } from "../editor/re
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Calls } from "../ui/Calls";
 import { Icon, type IconName } from "../ui/Icon";
-import { confirm, ErrorCard, humanError, Keys, Loading, toast, useAutosize, useMedia, useTitle } from "../ui/kit";
+import { ErrorCard, humanError, Keys, Loading, toast, useAutosize, useMedia, useTitle } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
 import { RefCard } from "../refs/RefCard";
 import { useRefs } from "../refs/known";
@@ -72,6 +73,10 @@ import { type Tone } from "../ui/tone";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { clip } from "../ui/text";
+import { ToggleButton } from "../ui/ToggleButton";
+import { Tab, Tabs } from "../ui/Tabs";
+import { Checkbox } from "../ui/Checkbox";
+import { TextArea } from "../ui/TextArea";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
 
@@ -677,23 +682,24 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
               <Icon name="spinner" size={11} className="spin" /> Planning{planning.run?.calls.length ? `: ${doing(planning.run.calls.at(-1)!, workspace.root).toLowerCase()}` : "…"}
             </Chip>
           ))}
-        <Button
+        <ToggleButton
           variant="ghost" size="small"
           disabled={!view || tab !== "page"}
-          aria-pressed={adding}
+          pressed={adding}
           title="Ask for something to be added to the page, anywhere in it: a section after Constraints on X, and one after Release on roll out. What's coming is put in at once, and written as you go on"
-          onClick={() => setAdding((v) => !v)}
+          onChange={setAdding}
         >
           <Icon name="plus" size={12} /> Add
-        </Button>
+        </ToggleButton>
         <Button variant="ghost" size="small" disabled={!view || tab !== "page"} title={draftAs.title} onClick={() => plan(draftAs.prompt)}>
           <Icon name="pencil" size={12} /> Draft it
         </Button>
         <Button
           variant="ghost" size="small"
-          disabled={!view || tab !== "page" || !onAnyGitHub}
+          disabled={!view || tab !== "page"}
+          unavailable={onAnyGitHub ? undefined : "The workspace's repos aren't on GitHub to link to (ws.toml's org, or a repo's github)"}
           onClick={linkWhatsNamed}
-          title={onAnyGitHub ? "Make what the page names links (files at their lines, pull requests, repos), so it links on GitHub and wherever else it's read" : "The workspace's repos aren't on GitHub to link to (ws.toml's org, or a repo's github)"}
+          title="Make what the page names links (files at their lines, pull requests, repos), so it links on GitHub and wherever else it's read"
         >
           <Icon name="link" size={12} /> Link names
         </Button>
@@ -701,12 +707,12 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           <Icon name="sparkle" size={12} /> Change <Keys k="mod+⏎" />
         </Button>
         {wide && (
-          <Button variant="ghost" size="small" aria-pressed={mapOn} onClick={toggleMap} title="The page's map: its outline, cells, what's open, and the files it rests on">
+          <ToggleButton variant="ghost" size="small" pressed={mapOn} onChange={toggleMap} title="The page's map: its outline, cells, what's open, and the files it rests on">
             <Icon name="panel" size={12} /> Map
-          </Button>
+          </ToggleButton>
         )}
         {tied && !tied.gone && (
-          <Button variant="ghost" size="small" onClick={() => setSavingToFile(true)} disabled={tied.changed} title={tied.changed ? "The file's changed since: bring in what changed first" : `Save it to ${tied.ref}, as it reads: its cells as text, its questions left out`}>
+          <Button variant="ghost" size="small" onClick={() => setSavingToFile(true)} unavailable={tied.changed ? "The file's changed since: bring in what changed first" : undefined} title={`Save it to ${tied.ref}, as it reads: its cells as text, its questions left out`}>
             <Icon name="check" size={12} /> Save to repo
           </Button>
         )}
@@ -796,14 +802,12 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           </Button>
         </div>
       )}
-      <nav className="tabs page-tabs" role="tablist" aria-label="The page, and passes over it">
-        <button role="tab" className={tab === "page" ? "on" : ""} aria-selected={tab === "page"} onClick={() => setTab("page")}>
-          Page
-        </button>
+      <Tabs className="page-tabs" value={tab} onChange={setTab} aria-label="The page, and passes over it">
+        <Tab value="page">Page</Tab>
         {passes.map((p) => {
           const open = p.findings.filter((f) => f.state === "open").length;
           return (
-            <button key={p.name} role="tab" className={tab === p.name ? "on" : ""} aria-selected={tab === p.name} onClick={() => setTab(p.name)} title={p.about}>
+            <Tab key={p.name} value={p.name} title={p.about}>
               {p.title}
               {p.running ? (
                 <Icon name="spinner" size={11} className="spin" />
@@ -814,10 +818,10 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
               ) : p.failed ? (
                 <Icon name="alert" size={11} className="tab-failed" />
               ) : null}
-            </button>
+            </Tab>
           );
         })}
-      </nav>
+      </Tabs>
       {current && (
         <PassTab
           pass={current}
@@ -1000,7 +1004,7 @@ function ChangeBox({
   return (
     <div className="cell-panel change-box" ref={panel} style={{ top, left: 0 }} role="dialog" aria-label={label}>
       <div className="composer cell-composer">
-        <textarea
+        <TextArea
           ref={box}
           rows={1}
           value={text}
@@ -1184,9 +1188,9 @@ function PassTab({
               </span>
             )}
             <span className="spacer" />
-            <label className="pass-shown" title="Mark what it found on the words it's about, on the page. They're drawn over the page, not written into it.">
-              <input type="checkbox" checked={shown} onChange={(e) => onShown(e.target.checked)} /> Show on the page
-            </label>
+            <Checkbox className="pass-shown" checked={shown} onChange={onShown} title="Mark what it found on the words it's about, on the page. They're drawn over the page, not written into it.">
+              Show on the page
+            </Checkbox>
           </div>
           {pass.summary && (
             <div className="pass-summary prose">
@@ -1313,7 +1317,7 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
       </ol>
       {!cell.answering && last?.by !== "you" && (
         <div className="composer cell-composer">
-          <textarea
+          <TextArea
             ref={box}
             rows={1}
             value={text}
@@ -1964,7 +1968,7 @@ function CellPanel({
         </div>
       )}
       <div className="composer cell-composer">
-        <textarea
+        <TextArea
           ref={box}
           rows={1}
           value={text}

@@ -1,5 +1,4 @@
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
-import { Button as AriaButton, Dialog as AriaDialog, DialogTrigger, Popover } from "react-aria-components";
 import { Icon } from "../ui/Icon";
 import { Copyable, Keys } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
@@ -8,6 +7,10 @@ import { changed, presetOn, readChange, readTold, said, type State, stateWords, 
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { Segment, Segmented } from "../ui/Segmented";
+import { Popover } from "../ui/Popover";
+import { ToggleButton } from "../ui/ToggleButton";
+import { Input } from "../ui/Input";
 
 // Tweaks: what a version's page says can be changed about it, drawn
 // here, beside its frame, and not by the page: a tray of its presets and
@@ -89,18 +92,22 @@ export function TweaksButton({ told, set, label }: { told: Told | undefined; set
   // page's (keys.ts). Not on the button, which has the focus again once
   // it's shut, when the page's keys should work.
   return (
-    <DialogTrigger>
-      <AriaButton className="ghost small tweaks-button" aria-label={label}>
-        <Icon name="sliders" size={13} /> Tweaks
-        {n ? <Count>{n}</Count> : null}
-      </AriaButton>
-      <Popover className="select-popover tweaks-popover" placement="bottom end" offset={4} data-field>
-        <AriaDialog className="tweaks-dialog" aria-label={label}>
-          <TweaksHead told={told} />
-          <TweaksBody told={told} set={set} />
-        </AriaDialog>
-      </Popover>
-    </DialogTrigger>
+    <Popover
+      className="tweaks-popover"
+      placement="bottom end"
+      aria-label={label}
+      trigger={
+        <Button variant="ghost" size="small" className="tweaks-button" aria-label={label}>
+          <Icon name="sliders" size={13} /> Tweaks
+          {n ? <Count>{n}</Count> : null}
+        </Button>
+      }
+    >
+      <div className="tweaks-dialog">
+        <TweaksHead told={told} />
+        <TweaksBody told={told} set={set} />
+      </div>
+    </Popover>
   );
 }
 
@@ -216,6 +223,7 @@ function Toggle({ id, t, value, set }: { id: string; t: Tweak; value: boolean; s
   return (
     <span id={id} className="tweak-switch">
       <Switch
+        className="tweak-toggle"
         on={on}
         aria-label={t.label}
         onChange={(v) => {
@@ -231,18 +239,18 @@ function Choose({ id, t, value, set }: { id: string; t: Tweak; value: string; se
   const options = t.options ?? [];
   if (short(t)) {
     return (
-      <div id={id} className="segmented tweak-choice" role="group" aria-label={t.label}>
+      <Segmented id={id} className="tweak-choice" value={value} onChange={set} aria-label={t.label}>
         {options.map((o) => (
-          <Button key={o.value} type="button" aria-pressed={o.value === value} onClick={() => set(o.value)} title={o.description || undefined}>
+          <Segment key={o.value} value={o.value} title={o.description || undefined}>
             {o.label}
-          </Button>
+          </Segment>
         ))}
-      </div>
+      </Segmented>
     );
   }
   return (
     <div id={id} className="tweak-select">
-      <Select value={value} onChange={set} aria-label={t.label}>
+      <Select fill size="small" value={value} onChange={set} aria-label={t.label}>
         {options.map((o) => (
           <Option key={o.value} value={o.value} title={o.description || undefined}>
             {o.label}
@@ -276,7 +284,7 @@ function NumberControl({ id, t, value, set }: { id: string; t: Tweak; value: num
   }
   return (
     <div className="tweak-number">
-      <input id={id} type="text" inputMode="decimal" value={text} onChange={(e) => put(e.target.value)} aria-invalid={!takes(t, Number(text)) || text.trim() === ""} />
+      <Input id={id} type="text" inputMode="decimal" value={text} onChange={(e) => put(e.target.value)} aria-invalid={!takes(t, Number(text)) || text.trim() === ""} />
       {t.unit && <span className="dim">{t.unit}</span>}
     </div>
   );
@@ -307,7 +315,7 @@ function Colour({ id, t, value, set }: { id: string; t: Tweak; value: string; se
 function Words({ id, t, value, set }: { id: string; t: Tweak; value: string; set: (v: Value) => void }) {
   const [text, setText] = useShown(value);
   return (
-    <input
+    <Input
       id={id}
       type="text"
       className="tweak-text"
@@ -326,9 +334,9 @@ export function TweaksToggle({ told, shown, onToggle }: { told: Told | undefined
   if (!hasTweaks(told)) return null;
   const n = changed(told).length;
   return (
-    <Button variant="ghost" size="small" aria-pressed={shown} onClick={onToggle} title="What its page says can be changed about it">
+    <ToggleButton variant="ghost" size="small" pressed={shown} onChange={onToggle} title="What its page says can be changed about it">
       <Icon name="sliders" size={13} /> Tweaks
       {n ? <Count>{n}</Count> : null} <Keys k="t" />
-    </Button>
+    </ToggleButton>
   );
 }

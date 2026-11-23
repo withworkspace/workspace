@@ -9,6 +9,8 @@ import { Switch } from "../ui/Switch";
 import { useTheme } from "../ui/theme";
 import { said, shown } from "./sections";
 import { Button } from "../ui/Button";
+import { Segment, Segmented } from "../ui/Segmented";
+import { Input } from "../ui/Input";
 
 // A setting's control, by its kind: what it's set to, and the way to set
 // it. Each writes as soon as it's changed (a switch flipped, a field
@@ -31,7 +33,7 @@ export function Control(p: Props) {
     case "harness":
       return <Choice {...p} />;
     case "choice":
-      return few(s) ? <Segmented {...p} /> : <Choice {...p} />;
+      return few(s) ? <Few {...p} /> : <Choice {...p} />;
     case "bool":
       return <Switch on={s.value === true} onChange={(on) => void set(on)} aria-label={s.label} />;
     case "model":
@@ -53,7 +55,7 @@ const few = (s: Setting) => !!s.choices && s.choices.length > 1 && s.choices.len
 
 function Choice({ s, set }: Props) {
   return (
-    <Select value={shown(s.value)} onChange={set} aria-label={s.label}>
+    <Select className="setting-select" value={shown(s.value)} onChange={set} aria-label={s.label}>
       {!s.choices?.some((c) => c.value === shown(s.value)) && <Option value={shown(s.value)}>{shown(s.value) || "—"}</Option>}
       {s.choices?.map((c) => (
         <Option key={c.value} value={c.value} title={c.note}>
@@ -64,15 +66,15 @@ function Choice({ s, set }: Props) {
   );
 }
 
-function Segmented({ s, set }: Props) {
+function Few({ s, set }: Props) {
   return (
-    <div className="segmented" role="group" aria-label={s.label}>
+    <Segmented value={String(s.value)} onChange={(v) => void set(v)} aria-label={s.label}>
       {s.choices?.map((c) => (
-        <Button key={c.value} type="button" aria-pressed={c.value === s.value} title={c.note} onClick={() => c.value !== s.value && void set(c.value)}>
+        <Segment key={c.value} value={c.value} title={c.note}>
           {c.label ?? c.value}
-        </Button>
+        </Segment>
       ))}
-    </div>
+    </Segmented>
   );
 }
 
@@ -101,7 +103,7 @@ function TextInput({ s, set, short, placeholder, blank, done }: Props & { short?
     done?.();
   };
   return (
-    <input
+    <Input
       ref={field}
       type="text"
       className={`setting-input${s.kind === "model" ? " mono" : ""}${short ? " short" : ""}`}
@@ -146,7 +148,7 @@ function Stepper({ s, set }: Props) {
       <Button type="button" disabled={n <= 1} title="One fewer" aria-label={`${s.label}: one fewer`} onClick={() => void set(n - 1)}>
         <Icon name="minus" size={12} />
       </Button>
-      <input
+      <Input
         type="text"
         inputMode="numeric"
         value={text}
@@ -207,7 +209,7 @@ function Picks({ s, set, reset }: Props) {
           </Button>
         </span>
       ))}
-      <input
+      <Input
         ref={field}
         type="text"
         className="mono"
@@ -278,6 +280,7 @@ function ModelInput(p: Props) {
   }
   return (
     <Select
+      className="setting-select"
       value={cur || own}
       aria-label={s.label}
       onChange={(v) => {
@@ -414,7 +417,7 @@ function AccentInput({ s, set, reset }: Props) {
           <span className="accent-shown-tint">Selected</span>
           <span className="accent-shown-button">Button</span>
         </span>
-        <input
+        <Input
           type="text"
           className="mono setting-input"
           value={editing ?? picked}

@@ -2,10 +2,14 @@ import { useMemo, useState } from "react";
 import { type ArtifactDone, type ArtifactInfo, clearExpiredArtifacts, discardArtifact, getArtifactDetail, promoteArtifact, restoreArtifact } from "../api";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
-import { Callout, confirm, Dialog, humanError, Keys, toast } from "../ui/kit";
+import { Callout, humanError, Keys, toast } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
+import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
 import { Option, Select } from "../ui/Select";
 import { clearable, type IntoKind, type Lives, livesAt, promoteBlocked, promoteVersions, promotion } from "./shown";
 import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 import { useWorkspace } from "../workspace/store";
 
 // An artifact's lifetime, in the web UI: Promote, with the version chosen,
@@ -77,11 +81,11 @@ export function PromoteDialog({ a, version, onClose, onDone }: { a: ArtifactInfo
 
   return (
     <Dialog title={`Promote “${a.title}”`} onClose={onClose} className="artifact-promote" wide>
-      <p className="dialog-text">Promoting keeps it for good: it expires no more, and says which version was chosen and what it went into. It still takes new versions.</p>
+      <DialogText>Promoting keeps it for good: it expires no more, and says which version was chosen and what it went into. It still takes new versions.</DialogText>
       <div className="file-as-fields" onKeyDown={keys}>
         <label>
           <span>Version</span>
-          <Select value={String(n)} onChange={(v) => setChosen(Number(v))} aria-label="The version chosen">
+          <Select fill value={String(n)} onChange={(v) => setChosen(Number(v))} aria-label="The version chosen">
             {versions.map((v) => {
               const note = d?.all.find((x) => x.n === v)?.note;
               return (
@@ -94,7 +98,7 @@ export function PromoteDialog({ a, version, onClose, onDone }: { a: ArtifactInfo
         </label>
         <label>
           <span>Into</span>
-          <Select value={kind} onChange={(k) => setKind(k as IntoKind)} aria-label="What it went into">
+          <Select fill value={kind} onChange={(k) => setKind(k as IntoKind)} aria-label="What it went into">
             <Option value="nothing">Nothing: it's kept</Option>
             <Option value="mission">A mission</Option>
             <Option value="start">A new mission, started from it</Option>
@@ -104,7 +108,7 @@ export function PromoteDialog({ a, version, onClose, onDone }: { a: ArtifactInfo
         {kind === "mission" && (
           <label>
             <span>Mission</span>
-            <Select value={text} onChange={setText} aria-label="The mission">
+            <Select fill value={text} onChange={setText} aria-label="The mission">
               <Option value="">Choose one…</Option>
               {missions.map((m) => (
                 <Option key={m.slug} value={m.slug} title={m.title}>
@@ -117,19 +121,19 @@ export function PromoteDialog({ a, version, onClose, onDone }: { a: ArtifactInfo
         {kind === "start" && (
           <label>
             <span>Mission</span>
-            <input autoFocus value={text} placeholder="What the mission is: build the glow" onChange={(e) => setText(e.target.value)} aria-label="What the mission is" />
+            <Input autoFocus value={text} placeholder="What the mission is: build the glow" onChange={(e) => setText(e.target.value)} aria-label="What the mission is" />
           </label>
         )}
         {kind === "document" && (
           <label>
             <span>Document</span>
-            <input autoFocus className="mono" value={text} placeholder="repo:path/to/plan.md" onChange={(e) => setText(e.target.value)} aria-label="The document, as repo:path" />
+            <Input autoFocus className="mono" value={text} placeholder="repo:path/to/plan.md" onChange={(e) => setText(e.target.value)} aria-label="The document, as repo:path" />
           </label>
         )}
         {!home && d && (
           <label>
             <span>Lives</span>
-            <Select value={lives} onChange={(l) => setPicked(l as Lives)} aria-label="Where it's to live">
+            <Select fill value={lives} onChange={(l) => setPicked(l as Lives)} aria-label="Where it's to live">
               {offered ? (
                 <Option value="offered" note="for everyone with it">
                   {offered}
@@ -143,7 +147,7 @@ export function PromoteDialog({ a, version, onClose, onDone }: { a: ArtifactInfo
         {!home && lives === "other" && (
           <label>
             <span>Folder</span>
-            <input autoFocus className="mono" value={other} placeholder="repo:folder/" onChange={(e) => setOther(e.target.value)} aria-label="The folder it's to live in, as repo:folder/" />
+            <Input autoFocus className="mono" value={other} placeholder="repo:folder/" onChange={(e) => setOther(e.target.value)} aria-label="The folder it's to live in, as repo:folder/" />
           </label>
         )}
       </div>
@@ -167,14 +171,14 @@ export function PromoteDialog({ a, version, onClose, onDone }: { a: ArtifactInfo
       ) : null}
       {blocked && <p className="dim file-as-what">{blocked}</p>}
       {(error || loadError) && <div className="banner">{error ?? loadError}</div>}
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
         <Button variant="primary" onClick={go} disabled={busy || !n || !d || !!blocked}>
           {busy ? (lands ? "Landing…" : "Promoting…") : lands ? `Promote, and land on ${branch}` : "Promote"} <Keys k="mod+⏎" />
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }
@@ -204,7 +208,7 @@ export function DiscardDialog({ a, onClose, onDone }: { a: ArtifactInfo; onClose
   };
   return (
     <Dialog title={`Discard “${a.title}”`} onClose={onClose}>
-      <p className="dialog-text">
+      <DialogText>
         It's taken off the list, with its versions. Its folder moves to <span className="mono">.ws/artifacts/.discarded</span>, and is deleted for good in 30 days: until then, <em>Restore</em> puts it back.{" "}
         {home && (
           <>
@@ -212,8 +216,8 @@ export function DiscardDialog({ a, onClose, onDone }: { a: ArtifactInfo; onClose
           </>
         )}
         {a.id} still says what it was.
-      </p>
-      <textarea
+      </DialogText>
+      <TextArea
         className="artifact-discard-why"
         autoFocus
         rows={3}
@@ -229,14 +233,14 @@ export function DiscardDialog({ a, onClose, onDone }: { a: ArtifactInfo; onClose
         aria-label="Why it's discarded"
       />
       {error && <div className="banner">{error}</div>}
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
         <Button variant="danger" onClick={go} disabled={busy}>
           {busy ? (home ? "Landing…" : "Discarding…") : home ? `Discard, and land on ${defaultBranch ?? "it"}` : "Discard"} <Keys k="mod+⏎" />
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }

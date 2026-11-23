@@ -1,6 +1,7 @@
 import { shutDownDaemon } from "../api";
+import { humanError, toast } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
 import { useChromeStore } from "../chrome/store";
-import { confirm, humanError, toast } from "../ui/kit";
 
 // askShutDown shuts the workspace's daemon down, once you've said yes:
 // every crew it holds is hung up, and this page goes with it (the window

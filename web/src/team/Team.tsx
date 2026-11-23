@@ -15,6 +15,9 @@ import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { Segment, Segmented } from "../ui/Segmented";
+import { ToggleButton } from "../ui/ToggleButton";
+import { Input } from "../ui/Input";
 import { useTeamMemory } from "./memory";
 
 // Team: what the people working in the workspace's repos have been doing,
@@ -348,27 +351,27 @@ export function TeamPage() {
               )}
             </span>
           )}
-          <div className="segmented" role="group" aria-label="Arranged">
-            <Button aria-pressed={!byPeople} onClick={() => arrange(false)} title="By day, newest first (p)">
+          <Segmented value={byPeople ? "people" : "days"} onChange={(v) => arrange(v === "people")} aria-label="Arranged">
+            <Segment value="days" title="By day, newest first (p)">
               Days
-            </Button>
-            <Button aria-pressed={byPeople} onClick={() => arrange(true)} title="By person: what each has open, has landed, and has been reviewing (p)">
+            </Segment>
+            <Segment value="people" title="By person: what each has open, has landed, and has been reviewing (p)">
               People
-            </Button>
-          </div>
-          <div className="segmented" role="group" aria-label="Period">
+            </Segment>
+          </Segmented>
+          <Segmented value={period} onChange={pick} aria-label="Period">
             {periods.map((p) => (
-              <Button key={p.since} aria-pressed={period === p.since} onClick={() => pick(p.since)} title={p.title}>
+              <Segment key={p.since} value={p.since} title={p.title}>
                 {p.label}
-              </Button>
+              </Segment>
             ))}
-          </div>
+          </Segmented>
           {narrative?.on && (
-            <Button variant="ghost" size="small" className={`team-only-know ${onlyKnow ? " on" : ""}`} aria-pressed={onlyKnow} onClick={know} title="Only the changes with something worth knowing (n)">
+            <ToggleButton variant="ghost" size="small" pressed={onlyKnow} onChange={know} title="Only the changes with something worth knowing (n)">
               <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
-            </Button>
+            </ToggleButton>
           )}
-          <input
+          <Input
             ref={filter}
             className="reviews-filter"
             value={q}

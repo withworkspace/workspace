@@ -37,6 +37,8 @@ import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { clip } from "../ui/text";
 import { pageScroller } from "../ui/scroller";
+import { Segment, Segmented } from "../ui/Segmented";
+import { TextArea } from "../ui/TextArea";
 
 // Commenting on a document, as in a shared doc: you read it rendered,
 // highlight text and comment on it, and the comment is a thread, live at
@@ -792,7 +794,7 @@ export function AnnotatedDoc({
           </Button>
         )}
         {since && diff.length > 0 && (
-          <Button variant="ghost" size="small" onClick={() => setShowChanges((v) => !v)} aria-pressed={showChanges} title="Show or hide what's changed since you commented (i)">
+          <Button variant="ghost" size="small" onClick={() => setShowChanges((v) => !v)} title="Show or hide what's changed since you commented (i)">
             <Icon name="eye" size={13} /> {showChanges ? "Hide changes" : "Show changes"} <Keys k="i" />
           </Button>
         )}
@@ -1241,8 +1243,8 @@ function DecisionCard({
       <div className="suggestion-head">
         <Icon name="gavel" size={12} /> {draft ? "Record what was decided?" : "What was decided"} {draft && <span className="dim">drafted by {draft.by === "agent" ? "the agent" : draft.by}</span>}
       </div>
-      <textarea value={what} rows={Math.min(5, Math.max(2, Math.ceil(what.length / 40)))} placeholder="The decision, in a sentence" onChange={(e) => setWhat(e.target.value)} onKeyDown={keys} />
-      <textarea value={why} rows={Math.min(5, Math.max(2, Math.ceil(why.length / 40)))} placeholder="Why" onChange={(e) => setWhy(e.target.value)} onKeyDown={keys} />
+      <TextArea value={what} rows={Math.min(5, Math.max(2, Math.ceil(what.length / 40)))} placeholder="The decision, in a sentence" onChange={(e) => setWhat(e.target.value)} onKeyDown={keys} />
+      <TextArea value={why} rows={Math.min(5, Math.max(2, Math.ceil(why.length / 40)))} placeholder="Why" onChange={(e) => setWhy(e.target.value)} onKeyDown={keys} />
       <div className="note-actions">
         <span className="spacer-left" />
         {draft ? (
@@ -1293,16 +1295,16 @@ function Composer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: Threa
   };
   return (
     <div className="note-editor doc-note" onClick={(e) => e.stopPropagation()}>
-      <div className="segmented kinds" role="radiogroup" aria-label="What kind of comment">
+      <Segmented fill value={kind} onChange={setKind} aria-label="What kind of comment">
         {threadKinds.map((k) => (
-          <button key={k} role="radio" aria-checked={k === kind} aria-pressed={k === kind} className={`k-${k}`} onClick={() => setKind(k)} title={`${kindWords[k]} (tab cycles)`}>
+          <Segment key={k} value={k} className={`note-kind k-${k}`} title={`${kindWords[k]} (tab cycles)`}>
             <Icon name={kindIcon[k]} size={12} />
             {kindWords[k]}
-          </button>
+          </Segment>
         ))}
-      </div>
+      </Segmented>
       <blockquote className="editor-on">{pick.quote.exact ? clip(pick.quote.exact.replace(/\s+/g, " "), 140) : "The whole diagram"}</blockquote>
-      <textarea
+      <TextArea
         ref={area}
         value={text}
         rows={2}
@@ -1326,7 +1328,7 @@ function Composer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: Threa
       {edit !== undefined && (
         <>
           <div className="dim editor-on">It should read:</div>
-          <textarea
+          <TextArea
             className="edit-to"
             value={edit}
             rows={Math.min(10, Math.max(2, edit.split("\n").length + 1))}

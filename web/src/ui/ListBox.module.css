@@ -1,0 +1,27 @@
+/* A list to pick one of (ListBox.tsx): rows, the one picked marked. How
+   a row is laid out is the page's. */
+
+@layer ui {
+  .list {
+    outline: none;
+  }
+
+  .option {
+    cursor: pointer;
+    outline: none;
+  }
+
+  .option[data-hovered],
+  .option[data-focus-visible] {
+    background: var(--hover);
+  }
+
+  .option[data-selected] {
+    background: var(--selected);
+  }
+
+  .option[data-disabled] {
+    cursor: default;
+    opacity: 0.6;
+  }
+}

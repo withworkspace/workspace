@@ -1,8 +1,10 @@
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useKeys } from "../keys";
+import { type ReactNode, useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
 import { Icon, type IconName } from "./Icon";
 import { Button } from "./Button";
 import { capital } from "./text";
+import { getToasts, onToasts, setToasts, toast } from "./toast";
+
+export { toast };
 
 // The small shared pieces every page draws with.
 
@@ -150,38 +152,10 @@ export function humanError(e: string): string {
 // Toasts: what an action did, for a few seconds, bottom centre, with an
 // action of its own (Undo, Open) when there's one.
 
-interface ToastItem {
-  id: number;
-  text: string;
-  tone: "info" | "danger" | "done";
-  action?: { label: string; run: () => void };
-}
-
-let toasts: ToastItem[] = [];
-const toastListeners = new Set<() => void>();
-let toastID = 0;
-
-function setToasts(next: ToastItem[]) {
-  toasts = next;
-  toastListeners.forEach((l) => l());
-}
-
-export function toast(text: string, opts: { tone?: ToastItem["tone"]; action?: ToastItem["action"]; ms?: number } = {}) {
-  const id = ++toastID;
-  setToasts([...toasts.slice(-2), { id, text, tone: opts.tone ?? "info", action: opts.action }]);
-  setTimeout(() => setToasts(toasts.filter((t) => t.id !== id)), opts.ms ?? (opts.action ? 6000 : 3500));
-}
-
 export function Toasts() {
-  const list = useSyncExternalStore(
-    (l) => {
-      toastListeners.add(l);
-      return () => toastListeners.delete(l);
-    },
-    () => toasts,
-  );
+  const list = useSyncExternalStore(onToasts, getToasts);
   return (
-    <div className="toasts" role="status" aria-live="polite">
+    <div className="toasts" role="status" aria-live="polite" data-react-aria-top-layer="">
       {list.map((t) => (
         <div key={t.id} className={`toast tone-${t.tone}`}>
           <Icon name={t.tone === "danger" ? "x-circle" : t.tone === "done" ? "check-circle" : "info"} size={14} />
@@ -192,7 +166,7 @@ export function Toasts() {
               className="toast-action"
               onClick={() => {
                 t.action!.run();
-                setToasts(toasts.filter((x) => x.id !== t.id));
+                setToasts(getToasts().filter((x) => x.id !== t.id));
               }}
             >
               {t.action.label}
@@ -201,112 +175,6 @@ export function Toasts() {
         </div>
       ))}
     </div>
-  );
-}
-
-// Dialog is a modal: over a dimmed page, keys its own, focus kept inside
-// it and given back when it closes.
-// A bare one draws its own head: title is only its name, and the close
-// button sits over its corner.
-export function Dialog({ title, onClose, children, className, wide, bare }: { title: ReactNode; onClose: () => void; children: ReactNode; className?: string; wide?: boolean; bare?: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useKeys({ Escape: onClose }, { modal: true });
-  useLayoutEffect(() => {
-    const before = document.activeElement as HTMLElement | null;
-    const el = ref.current;
-    // Focus starts on the first field to type in (not the close button, nor a Select).
-    const first = el?.querySelector<HTMLElement>(":is([autofocus], textarea, input, button, [tabindex]:not([tabindex='-1'])):not(.dialog-close, .select-button)");
-    (first ?? el)?.focus();
-    return () => before?.focus?.();
-  }, []);
-  const trap = (e: React.KeyboardEvent) => {
-    if (e.key !== "Tab" || !ref.current) return;
-    // (A Select keeps a hidden select of its own for forms, out of reach of Tab.)
-    const f = [...ref.current.querySelectorAll<HTMLElement>("a[href], button:not(:disabled), textarea, input, select:not([tabindex='-1']), [tabindex]:not([tabindex='-1'])")];
-    if (!f.length) return;
-    const [a, z] = [f[0], f[f.length - 1]];
-    if (e.shiftKey && document.activeElement === a) {
-      e.preventDefault();
-      z.focus();
-    } else if (!e.shiftKey && document.activeElement === z) {
-      e.preventDefault();
-      a.focus();
-    }
-  };
-  return (
-    <div className="overlay" onMouseDown={onClose}>
-      <div
-        ref={ref}
-        className={`dialog${wide ? " wide" : ""}${className ? ` ${className}` : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={typeof title === "string" ? title : undefined}
-        tabIndex={-1}
-        onMouseDown={(e) => e.stopPropagation()}
-        onKeyDown={trap}
-      >
-        {bare ? (
-          <Button variant="ghost" square className="dialog-close dialog-close-corner" onClick={onClose} title="Close (esc)" aria-label="Close">
-            <Icon name="x" size={14} />
-          </Button>
-        ) : (
-          <header className="dialog-head">
-            <h2>{title}</h2>
-            <Button variant="ghost" square className="dialog-close" onClick={onClose} title="Close (esc)" aria-label="Close">
-              <Icon name="x" size={14} />
-            </Button>
-          </header>
-        )}
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// confirm asks before something that can't be taken back, in a dialog of
-// the page's own (not the browser's).
-interface ConfirmAsk {
-  title: string;
-  body?: ReactNode;
-  confirm: string;
-  danger?: boolean;
-  resolve: (yes: boolean) => void;
-}
-
-let asking: ConfirmAsk | undefined;
-const askListeners = new Set<() => void>();
-
-export function confirm(ask: Omit<ConfirmAsk, "resolve">): Promise<boolean> {
-  return new Promise((resolve) => {
-    asking = { ...ask, resolve };
-    askListeners.forEach((l) => l());
-  });
-}
-
-export function Confirmer() {
-  const ask = useSyncExternalStore(
-    (l) => {
-      askListeners.add(l);
-      return () => askListeners.delete(l);
-    },
-    () => asking,
-  );
-  if (!ask) return null;
-  const done = (yes: boolean) => {
-    asking = undefined;
-    askListeners.forEach((l) => l());
-    ask.resolve(yes);
-  };
-  return (
-    <Dialog title={ask.title} onClose={() => done(false)}>
-      {ask.body && <div className="dialog-text">{ask.body}</div>}
-      <div className="dialog-actions">
-        <Button onClick={() => done(false)}>Cancel</Button>
-        <Button variant={ask.danger ? "danger" : "primary"} onClick={() => done(true)} autoFocus>
-          {ask.confirm}
-        </Button>
-      </div>
-    </Dialog>
   );
 }
 

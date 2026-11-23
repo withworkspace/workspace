@@ -2,8 +2,12 @@ import { useState } from "react";
 import { act, writePR, type CapsuleDetail, type MissionDetail } from "../api";
 import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
-import { Dialog, humanError, toast } from "../ui/kit";
+import { humanError, toast } from "../ui/kit";
+import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
+import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 
 // A pull request is opened through ws, so the process's rules about it are
 // held where ws is the one acting: it pushes the capsule's branch and opens
@@ -71,7 +75,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
           </p>
           <div className="open-pr-form">
             <div className="open-pr-title">
-              <input
+              <Input
                 value={title}
                 autoFocus
                 aria-label="Title"
@@ -83,7 +87,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
                 <Icon name={writing ? "spinner" : "pencil"} size={12} /> {writing ? "Writing…" : "Write it"}
               </Button>
             </div>
-            <textarea
+            <TextArea
               value={body}
               rows={8}
               aria-label="Description"
@@ -92,12 +96,11 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
               onChange={(e) => setBody(e.target.value)}
             />
           </div>
-          <label className="setting-toggle open-pr-draft">
-            <input type="checkbox" checked={draft} onChange={(e) => setDraft(e.target.checked)} />
+          <Checkbox className="setting-toggle open-pr-draft" checked={draft} onChange={setDraft}>
             Open it as a draft
-          </label>
+          </Checkbox>
           {error && <div className="banner">{humanError(error)}</div>}
-          <div className="dialog-actions">
+          <DialogActions>
             <Button variant="ghost" onClick={close}>
               Cancel
             </Button>
@@ -109,7 +112,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
             >
               {title.trim() ? "Open it" : "Write and open it"}
             </Button>
-          </div>
+          </DialogActions>
         </Dialog>
       )}
     </>

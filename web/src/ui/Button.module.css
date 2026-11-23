@@ -119,6 +119,28 @@
     outline-offset: 2px;
   }
 
+  /* Not to be used now, and says why (Button's unavailable): a disabled
+     button's look, on one that can still be pointed at and focused. Each
+     selector outweighs the variants' hovers. */
+  .button.unavailable,
+  .button.unavailable:hover:not(:disabled),
+  .button.unavailable:active:not(:disabled) {
+    cursor: default;
+    color: var(--dim);
+    background: var(--well);
+    border-color: var(--line);
+    box-shadow: none;
+    filter: none;
+    transform: none;
+  }
+
+  .link.unavailable,
+  .link.unavailable:hover {
+    cursor: default;
+    color: var(--dim);
+    transform: none;
+  }
+
   .square {
     padding: 4px;
     min-width: 28px;

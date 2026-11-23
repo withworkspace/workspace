@@ -1,0 +1,130 @@
+/* A select (Select.tsx): a button the size and look of a text box, with a
+   chevron, and the list it opens in a popover, the chosen one ticked. */
+
+@layer ui {
+  .select {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .fill {
+    width: 100%;
+  }
+
+  /* The button is the element's (styles.css's button, in the base layer),
+     and this. */
+  .button {
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    padding: 7px 8px 7px 10px;
+    font-size: var(--text-md);
+    font-weight: 400;
+    text-align: left;
+    box-shadow: none;
+  }
+
+  .button:hover {
+    background: var(--hover);
+  }
+
+  .button:active:not(:disabled) {
+    transform: translateY(0.5px);
+  }
+
+  .button:disabled {
+    cursor: default;
+    color: var(--dim);
+    background: var(--well);
+    border-color: var(--line);
+  }
+
+  /* Its focus is its border, in the accent, with a soft ring. */
+  .button:focus-visible {
+    outline: none;
+  }
+
+  .select[data-open] .button,
+  .button[data-focus-visible] {
+    border-color: var(--accent);
+  }
+
+  .button[data-focus-visible] {
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  /* A button's size, for a row of controls. */
+  .small .button {
+    padding: 4px 6px 4px 8px;
+    font-size: var(--text-sm);
+  }
+
+  /* In a line of words. */
+  .tiny .button {
+    gap: 4px;
+    padding: 1px 4px 1px 8px;
+    font-size: var(--text-xs);
+    line-height: 18px;
+  }
+
+  .value {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chevron {
+    flex: none;
+    color: var(--dim);
+  }
+
+  .list {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px;
+    outline: none;
+  }
+
+  /* The words line up with the button's: 1px border, 4px, 6px. */
+  .option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    outline: none;
+  }
+
+  .option[data-focused] {
+    background: var(--selected);
+  }
+
+  .option[data-selected] {
+    font-weight: 500;
+  }
+
+  .optionText {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* More about a choice, said quietly after its words. */
+  .note {
+    margin-left: 8px;
+    color: var(--dim);
+    font-weight: 400;
+  }
+
+  .check {
+    flex: none;
+    color: var(--accent);
+  }
+}

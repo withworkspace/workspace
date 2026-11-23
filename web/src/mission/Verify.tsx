@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Button as AriaButton, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { Link } from "react-router";
 import { act, type ActOpts, type ActVerb, type Bundle, type BundleEvidence, type BundleTry, type MissionDetail } from "../api";
 import type { Reload } from "../load";
@@ -32,6 +31,10 @@ import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
+import { ToggleButton } from "../ui/ToggleButton";
+import { cx } from "../ui/cx";
+import { Menu, MenuItem, MenuSection, MenuSeparator, MenuText } from "../ui/Menu";
+import { TextArea } from "../ui/TextArea";
 
 // The mission's Verify tab: its verification bundles, what crew handed
 // over to show their work is as its checks say. Those yours to approve are
@@ -320,28 +323,30 @@ function BundleRow({ bundles, open, pick }: { bundles: Bundle[]; open: Bundle; p
 function BundleMenu({ groups, label, pick, end }: { groups: { group: BundleGroup; bundles: Bundle[] }[]; label: string; pick: (id?: string) => void; end?: boolean }) {
   // data-field: keys typed in the menu are its own, not the page's (keys.ts).
   return (
-    <MenuTrigger>
-      <AriaButton className={`verify-more${end ? " verify-more-end" : ""}`} data-field>
-        {label} <Icon name="chevron-down" size={12} />
-      </AriaButton>
-      <Popover className="select-popover verify-menu" placement={end ? "bottom end" : "bottom"} offset={4} data-field>
-        <Menu className="select-list" aria-label="This mission's verification bundles" onAction={(k) => pick(String(k))}>
-          {groups.flatMap((g, i) => [
-            ...(i > 0 ? [<Separator key={`sep-${g.group}`} className="menu-separator" />] : []),
-            <MenuSection key={g.group}>
-              <Header className="menu-header">{groupTitles[g.group]}</Header>
-              {g.bundles.map((b) => (
-                <MenuItem key={b.id} id={b.id} textValue={`${b.id} ${stepTitle(b)}`} className={`select-option verify-menu-item${g.group === "stale" ? " verify-menu-stale" : ""}`}>
-                  <span className="ref">{b.id}</span>
-                  <span className="select-option-text">{stepTitle(b)}</span>
-                  <span className={`verify-bundle-state${standingTone(b)}`}>{standing(b)}</span>
-                </MenuItem>
-              ))}
-            </MenuSection>,
-          ])}
-        </Menu>
-      </Popover>
-    </MenuTrigger>
+    <Menu
+      className="verify-menu"
+      placement={end ? "bottom end" : "bottom"}
+      aria-label="This mission's verification bundles"
+      onAction={pick}
+      trigger={
+        <Button className={cx("verify-more", end && "verify-more-end")} data-field>
+          {label} <Icon name="chevron-down" size={12} />
+        </Button>
+      }
+    >
+      {groups.flatMap((g, i) => [
+        ...(i > 0 ? [<MenuSeparator key={`sep-${g.group}`} />] : []),
+        <MenuSection key={g.group} title={groupTitles[g.group]}>
+          {g.bundles.map((b) => (
+            <MenuItem key={b.id} id={b.id} textValue={`${b.id} ${stepTitle(b)}`} className={cx("verify-menu-item", g.group === "stale" && "verify-menu-stale")}>
+              <span className="ref">{b.id}</span>
+              <MenuText>{stepTitle(b)}</MenuText>
+              <span className={`verify-bundle-state${standingTone(b)}`}>{standing(b)}</span>
+            </MenuItem>
+          ))}
+        </MenuSection>,
+      ])}
+    </Menu>
   );
 }
 
@@ -720,31 +725,29 @@ function CheckDetail({
               <span>
                 What's not right? It goes back to {b.crew} with this check and what's shown here.
               </span>
-              <textarea autoFocus rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Say what you saw" />
+              <TextArea autoFocus rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Say what you saw" />
             </label>
           )}
           <div className="verify-yours-buttons">
-            <button
-              type="button"
-              className={r.looked ? "on" : ""}
-              aria-pressed={r.looked}
+            <ToggleButton
+              className={r.looked ? "on" : undefined}
+              pressed={!!r.looked}
               disabled={busy}
-              onClick={look}
+              onChange={look}
               title={r.left ? "Say it's fine as it is: it leaves what's left for you" : "Mark it as looked at, to keep your place: approving doesn't need it"}
             >
               <Icon name="check" size={14} /> {r.left ? "Approve check" : "Looked at"} <Keys k="y" />
-            </button>
+            </ToggleButton>
             {c && (
-              <Button
+              <ToggleButton
                 variant={note !== undefined ? "danger" : undefined}
-                type="button"
                 className={note !== undefined ? "on on-danger" : undefined}
-                aria-pressed={note !== undefined}
-                onClick={() => setNote(note === undefined ? "" : undefined)}
+                pressed={note !== undefined}
+                onChange={(on) => setNote(on ? "" : undefined)}
                 title="Say what's not right of it: it goes back to its crew when you send the bundle back"
               >
                 <Icon name="x" size={14} /> Not right <Keys k="n" />
-              </Button>
+              </ToggleButton>
             )}
           </div>
         </div>

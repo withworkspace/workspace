@@ -1,4 +1,4 @@
-import { Button as AriaButton } from "react-aria-components";
+import { Button } from "../ui/Button";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import css from "./WorkspaceName.module.css";
@@ -26,8 +26,8 @@ export function WorkspaceName({
 }: WorkspaceNameProps) {
   // data-field: keys typed in the menu are its own, not the page's (keys.ts).
   return (
-    <AriaButton
-      data-ui=""
+    <Button
+      variant="bare"
       data-field
       aria-label={`${name}: the workspace's menu`}
       className={cx(css.name, className)}
@@ -45,6 +45,6 @@ export function WorkspaceName({
           aria-label="In the menu, something wants you"
         />
       )}
-    </AriaButton>
+    </Button>
   );
 }

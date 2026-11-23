@@ -4,6 +4,8 @@ import { type Draft, MarkdownEditor, type Quote } from "../editor/LazyEditor";
 import { Callout, humanError, Keys, Skeleton, toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
+import { Segment, Segmented } from "../ui/Segmented";
+import { Input } from "../ui/Input";
 
 // DocEdit edits one of a mission's documents in place, as it reads, or
 // (no slug) a document outside any mission: a file in one of the
@@ -250,17 +252,17 @@ export function DocEdit({
       )}
       <div className="editor-bar">
         {a.annotatable && (
-          <span className="segmented" role="group" aria-label="Edit or suggest">
-            <Button aria-pressed={!suggesting} onClick={() => setMode("edit")} title="Your changes are made: saving writes them in">
+          <Segmented value={suggesting ? "suggest" : "edit"} onChange={setMode} aria-label="Edit or suggest">
+            <Segment value="edit" title="Your changes are made: saving writes them in">
               Edit
-            </Button>
-            <Button aria-pressed={suggesting} onClick={() => setMode("suggest")} title="Your changes are offered: each becomes a suggestion on a thread, to accept or decline one by one">
+            </Segment>
+            <Segment value="suggest" title="Your changes are offered: each becomes a suggestion on a thread, to accept or decline one by one">
               Suggest
-            </Button>
-          </span>
+            </Segment>
+          </Segmented>
         )}
         {commits && (
-          <input
+          <Input
             className="commit-line"
             value={message}
             placeholder={suggesting ? "Say why (each suggestion's thread opens with it)" : `Say what changed (the commit's message: "${a.saves?.subject ?? a.docKind?.subject ?? "Edit …"}" if not)`}

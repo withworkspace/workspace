@@ -5,7 +5,8 @@ import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { NewAsKind, PageRow, useStartPage } from "../pages/Pages";
 import { Icon } from "../ui/Icon";
-import { Dialog, Empty, ErrorCard, humanError, Keys, Loading, useMedia, useTitle } from "../ui/kit";
+import { Empty, ErrorCard, humanError, Keys, Loading, useMedia, useTitle } from "../ui/kit";
+import { Dialog, DialogActions } from "../ui/Dialog";
 import { TLink } from "../ui/TLink";
 import { ActivityFold, Fresh, InFlight, inFlightPaths, Lately } from "./Activity";
 import { acrossSpaces } from "./happening";
@@ -20,6 +21,8 @@ import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { Segment, Segmented } from "../ui/Segmented";
+import { Input } from "../ui/Input";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
 
@@ -527,7 +530,7 @@ export function SpacePage() {
             <div className="space-list-top">
               <label className="doc-search-box space-search">
                 <Icon name="search" size={14} className="dim" />
-                <input ref={search} value={q} placeholder={`Search ${space.label}: what its documents say`} aria-label={`Search ${space.label}`} onChange={(e) => setQ(e.target.value)} onKeyDown={searchKeys} />
+                <Input ref={search} value={q} placeholder={`Search ${space.label}: what its documents say`} aria-label={`Search ${space.label}`} onChange={(e) => setQ(e.target.value)} onKeyDown={searchKeys} />
                 {q.trim() ? (
                   <span className="dim space-search-count">{found.error ? "Couldn't search" : !found.hits ? "Searching…" : `${found.hits.size} of ${space.count}`}</span>
                 ) : (
@@ -537,13 +540,13 @@ export function SpacePage() {
               {activity && <ActivityFold repo={repo} activity={activity} open={foldOpen} setOpen={setFoldOpen} />}
               {activityError && !activity && <p className="dim documents-empty">Couldn't read what's happening in it.</p>}
               {tabs.length > 1 && (
-                <nav className="segmented space-tabs" aria-label={library.length ? "Jump to a kind" : "Jump to a folder"}>
-                  {tabs.map((t, i) => (
-                    <Button key={t.id} aria-pressed={i === tab} disabled={t.n === 0} onClick={() => jump(t.id)}>
+                <Segmented className="space-tabs" value={tabs[tab]?.id ?? ""} onChange={jump} aria-label={library.length ? "Jump to a kind" : "Jump to a folder"}>
+                  {tabs.map((t) => (
+                    <Segment key={t.id} value={t.id} className="space-tab" disabled={t.n === 0}>
                       {t.label} <Count className="space-tab-count">{searched && t.n !== t.total ? `${t.n}/${t.total}` : t.total}</Count>
-                    </Button>
+                    </Segment>
                   ))}
-                </nav>
+                </Segmented>
               )}
             </div>
             <div className="space-list-scroll" ref={list} onScroll={spy}>
@@ -811,7 +814,7 @@ function NewInFolder({
       <div className="file-as-fields">
         <label>
           <span>Folder</span>
-          <input
+          <Input
             list="space-folders"
             value={folder}
             placeholder="(its top)"
@@ -826,7 +829,7 @@ function NewInFolder({
         </label>
         <label>
           <span>Title</span>
-          <input
+          <Input
             autoFocus
             value={title}
             placeholder="What it's about"
@@ -846,7 +849,7 @@ function NewInFolder({
         <span className="mono">{`${repo} · ${root}${clean}${name}.md`}</span>,
         as {label} lands its changes.
       </p>
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
@@ -857,7 +860,7 @@ function NewInFolder({
         >
           Start it <Keys k="⏎" />
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }

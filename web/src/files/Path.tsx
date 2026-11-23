@@ -5,6 +5,7 @@ import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/kit";
 import { usePlaceUnder, useClickAway } from "./Contents";
 import { fileShelves, filterItems, type Here, holds, type Shelf, type ShelfItem, type Shelves, type Siblings, spaceShelves } from "./shelves";
+import { Input } from "../ui/Input";
 
 // Getting around the reader (#123): its crumbs are its path, each step of
 // it a menu of what's there (FolderMenu), and the documents beside it are
@@ -163,7 +164,7 @@ export function FolderMenu({
           {where.label} <Icon name="arrow-right" size={12} />
         </Link>
       </div>
-      <input
+      <Input
         ref={filter}
         className="folder-menu-filter"
         placeholder={`Filter ${shelf.label}…`}

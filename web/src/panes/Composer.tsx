@@ -4,6 +4,7 @@ import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Keys, useAutosize } from "../ui/kit";
 import css from "./Composer.module.css";
+import { TextArea } from "../ui/TextArea";
 
 type ComposerProps = {
   // What the box says while it's empty, and is called.
@@ -59,7 +60,7 @@ export function Composer({ placeholder, onSay, holding, field }: ComposerProps) 
             </span>
           </div>
         )}
-        <textarea
+        <TextArea
           ref={both}
           rows={1}
           value={text}

@@ -12,7 +12,8 @@ import { marked } from "../ui/fuzzy";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/status";
-import { confirm, humanError, Keys, toast } from "../ui/kit";
+import { humanError, Keys, toast } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
 import { askShutDown } from "./daemon";
 import { setTheme } from "../ui/theme";
 import { clock } from "../ui/time";
@@ -53,6 +54,10 @@ import { actsFor, type Subject, subjectOf, type WsDoing } from "./acts";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
+import { Input } from "../ui/Input";
+import { Modal } from "../ui/Modal";
+import { cx } from "../ui/cx";
+import { finderBox, finderInput, finderOverlay } from "../ui/Finder";
 import { usePlugins, useWorkspace } from "../workspace/store";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
@@ -560,10 +565,11 @@ export function Palette({
   };
 
   return (
-    <div className="overlay palette-overlay" onMouseDown={onClose}>
-      <div className={`palette find-window${wide ? " roomy" : ""}`} role="dialog" aria-modal="true" aria-label="Find" onMouseDown={(e) => e.stopPropagation()}>
+    // Escape is Find's own: a step back out of what it's in the middle of,
+    // before it closes.
+    <Modal onClose={onClose} escape={false} overlayClassName={cx(finderOverlay, "palette-overlay")} className={cx(finderBox, "find-window", wide && "roomy")} aria-label="Find">
         <div className="find-main">
-          <div className="palette-input">
+          <div className={finderInput}>
             <Icon name="search" size={16} />
             {doing && (
               <button className="find-only find-doing" onMouseDown={(e) => e.preventDefault()} onClick={back} title="Back (esc)">
@@ -580,7 +586,7 @@ export function Palette({
                 repo: {tag} <Icon name="x" size={10} />
               </button>
             )}
-            <input
+            <Input
               ref={input}
               autoFocus
               value={typed}
@@ -626,10 +632,17 @@ export function Palette({
                   e.preventDefault();
                   back();
                 } else if (mode) {
-                  // The rest are for finding: ⇥ narrows nothing here.
-                  if (e.key === "Tab") e.preventDefault();
+                  // The rest are for finding: ⇥ narrows nothing here. (It's
+                  // stopped, too: the modal would move the focus on.)
+                  if (e.key === "Tab") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
                 } else if (e.key === "Tab" && !e.shiftKey) {
+                  // ⇥ is Find's: stopped, or the modal moves the focus on
+                  // to the next thing in it.
                   e.preventDefault();
+                  e.stopPropagation();
                   narrow();
                 } else if (e.key === "Backspace" && !raw && only) {
                   e.preventDefault();
@@ -815,8 +828,7 @@ export function Palette({
             )}
           </aside>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }
 

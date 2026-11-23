@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { getWhatsNew, seenWhatsNew, type WhatsNewEntry, type WhatsNewInfo } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
-import { Dialog } from "../ui/kit";
+import { Dialog } from "../ui/Dialog";
 import { Logotype } from "../ui/Logotype";
 import { shortVersion } from "./version";
 import { Button } from "../ui/Button";

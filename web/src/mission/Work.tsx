@@ -17,6 +17,7 @@ import { Chip, chipClass } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
+import { Input } from "../ui/Input";
 import { usePref } from "../prefs";
 
 // The mission's Work tab: what's been made, a row each, and the one that's
@@ -558,7 +559,7 @@ function FilesCol({ d, c, files, more, committed }: { d: MissionDetail; c: Capsu
       <h3>
         {committed ? "Changed files" : "Not committed"} <Count>{files.length + (more ?? 0)}</Count>
         <span className="spacer" />
-        {files.length > 8 && <input type="text" className="work-filter" placeholder="Filter" aria-label="Filter the changed files" value={filter} onChange={(e) => setFilter(e.target.value)} />}
+        {files.length > 8 && <Input type="text" className="work-filter" placeholder="Filter" aria-label="Filter the changed files" value={filter} onChange={(e) => setFilter(e.target.value)} />}
       </h3>
       {groups.map((g) => {
         const open = !shut.has(g.dir) || !!filter.trim();

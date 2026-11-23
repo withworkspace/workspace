@@ -7,6 +7,7 @@ import { humanError, toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
 import { clip } from "../ui/text";
+import { Checkbox } from "../ui/Checkbox";
 
 // A review's passes, a view of its own: each pass, go or no go, what it said
 // of the change, and what it found, to take into your review or dismiss. Go
@@ -146,15 +147,16 @@ function PassView({
         <span className="dim rpass-about">{p.about}</span>
         <span className="spacer-left" />
         {onLines && (
-          <label className="rpass-show dim" title="Draw what it found on the lines it's about, in the diff">
-            <input type="checkbox" checked={!hidden} onChange={(e) => onHide(p.name, !e.target.checked)} /> In the diff
-          </label>
+          <Checkbox className="rpass-show dim" checked={!hidden} onChange={(on) => onHide(p.name, !on)} title="Draw what it found on the lines it's about, in the diff">
+            In the diff
+          </Checkbox>
         )}
         <Button
           size="small"
           onClick={run}
-          disabled={busy || running || !!p.unavailable}
-          title={p.unavailable ?? (p.cold ? "Its agent is given the change and the description, and nothing else" : "Its agent reads the change with the code checked out here (ws docks it first). It reads, and that's all")}
+          disabled={busy || running}
+          unavailable={p.unavailable}
+          title={p.cold ? "Its agent is given the change and the description, and nothing else" : "Its agent reads the change with the code checked out here (ws docks it first). It reads, and that's all"}
         >
           {running ? "Running…" : p.runs ? "Run again" : "Run"}
         </Button>

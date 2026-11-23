@@ -4,13 +4,16 @@ import { answerCrew, type Crew, type CrewAnswer, type CrewPrompt, getCrewPrompt,
 import { Markdown } from "../markdown/LazyMarkdown";
 import { type Call, Calls, EditDiff, Plan } from "../ui/Calls";
 import { Icon } from "../ui/Icon";
-import { confirm, Empty, ErrorCard, humanError, Keys, Loading, toast, useAutosize, useDraft } from "../ui/kit";
+import { Empty, ErrorCard, humanError, Keys, Loading, toast, useAutosize, useDraft } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
 import { CrewBadge } from "./parts";
 import { useLoaded } from "../load";
 import { useLatest } from "../load";
 import { Button } from "../ui/Button";
 import { pageScroller } from "../ui/scroller";
+import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 import { useWorkspace } from "../workspace/store";
 
 // The agent view: a crew as a conversation, the way in to it. What it was
@@ -422,7 +425,7 @@ export function PromptCard({
           if (own.trim()) answer({ text: own });
         }}
       >
-        <input value={own} onChange={(e) => setOwn(e.target.value)} placeholder="Or in your own words" aria-label="Your answer" disabled={busy} />
+        <Input value={own} onChange={(e) => setOwn(e.target.value)} placeholder="Or in your own words" aria-label="Your answer" disabled={busy} />
         <Button variant="primary" type="submit" disabled={busy || !own.trim()}>
           Answer
         </Button>
@@ -465,7 +468,7 @@ function Composer({ slug, id, crew, live, working }: { slug: string; id: string;
   if (!live && !canResume) return null;
   return (
     <div className="composer agent-composer">
-      <textarea
+      <TextArea
         ref={box}
         value={text}
         rows={1}

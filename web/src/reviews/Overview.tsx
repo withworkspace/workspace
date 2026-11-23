@@ -6,6 +6,7 @@ import { Icon } from "../ui/Icon";
 import { humanError, Keys, useAutosize } from "../ui/kit";
 import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
+import { TextArea } from "../ui/TextArea";
 
 // A review's overview and its discussion, views beside its changes. A pull
 // request's overview is its description, as its author wrote it; a
@@ -200,7 +201,7 @@ function SayBox({ api, onSaid }: { api: string; onSaid: (d: Discussion) => void 
   };
   return (
     <div className="said-reply" onClick={(e) => e.stopPropagation()}>
-      <textarea
+      <TextArea
         ref={area}
         value={text}
         rows={2}

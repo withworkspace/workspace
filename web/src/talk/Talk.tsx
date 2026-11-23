@@ -41,6 +41,9 @@ import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { pageScroller } from "../ui/scroller";
+import { ToggleButton } from "../ui/ToggleButton";
+import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
 
@@ -85,7 +88,7 @@ export function TalksPage() {
         actions={
           resolved > 0 && (
             <>
-              <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)} aria-pressed={showResolved}>
+              <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)}>
                 {showResolved ? "Hide resolved" : `Show resolved (${resolved})`} <Keys k="⇧A" />
               </Button>
             </>
@@ -182,7 +185,7 @@ export function TalkList({
   return (
     <>
       <div className={`composer new-talk${fresh ? " fresh" : ""}`}>
-        <textarea
+        <TextArea
           ref={box}
           value={text}
           rows={2}
@@ -570,9 +573,9 @@ export function TalkPage() {
             </Link>
           )}
           {wide && (
-            <Button variant="ghost" size="small" aria-pressed={sideOn} onClick={toggleSide} title="Beside the conversation: what's to confirm, what it's made, what it names, and its summary so far">
+            <ToggleButton variant="ghost" size="small" pressed={sideOn} onChange={toggleSide} title="Beside the conversation: what's to confirm, what it's made, what it names, and its summary so far">
               <Icon name="panel" size={12} /> Details
-            </Button>
+            </ToggleButton>
           )}
           {d && (
             <Button onClick={toggle} title={`${d.status === "resolved" ? "Reopen" : "Resolve"} (x)`}>
@@ -665,7 +668,7 @@ export function TalkPage() {
             </button>
           )}
           <div className="composer">
-            <textarea
+            <TextArea
               ref={box}
               value={text}
               rows={1}
@@ -1183,14 +1186,14 @@ function WsProposalCard({
         case "decision":
           return (
             <div className="proposal-edit">
-              <textarea value={what} rows={2} onChange={(e) => setWhat(e.target.value)} placeholder="The decision, in a sentence" aria-label="The decision" />
-              <textarea value={why} rows={2} onChange={(e) => setWhy(e.target.value)} placeholder="Why" aria-label="Why" />
+              <TextArea value={what} rows={2} onChange={(e) => setWhat(e.target.value)} placeholder="The decision, in a sentence" aria-label="The decision" />
+              <TextArea value={why} rows={2} onChange={(e) => setWhy(e.target.value)} placeholder="Why" aria-label="Why" />
             </div>
           );
         case "mission":
           return (
             <div className="proposal-edit">
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" aria-label="Title" />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" aria-label="Title" />
               <MarkdownEditor initial={p.brief ?? ""} label="The brief" placeholder="The brief (none: an idea, to brief later)" compact onChange={setBrief} onCancel={() => setEditing(false)} />
             </div>
           );
@@ -1209,19 +1212,19 @@ function WsProposalCard({
         case "dispatch":
           return (
             <div className="proposal-edit">
-              <textarea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What the crew's to do" aria-label="What the crew's to do" />
+              <TextArea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What the crew's to do" aria-label="What the crew's to do" />
             </div>
           );
         case "replan":
           return (
             <div className="proposal-edit">
-              <textarea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What to change in the plan" aria-label="What to change in the plan" />
+              <TextArea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What to change in the plan" aria-label="What to change in the plan" />
             </div>
           );
         case "comment":
           return (
             <div className="proposal-edit">
-              <textarea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What the comment says" aria-label="What the comment says" />
+              <TextArea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What the comment says" aria-label="What the comment says" />
             </div>
           );
         case "document":
@@ -1238,8 +1241,8 @@ function WsProposalCard({
         case "artifact":
           return (
             <div className="proposal-edit">
-              {!p.to && <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Its title" aria-label="Its title" />}
-              <textarea
+              {!p.to && <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Its title" aria-label="Its title" />}
+              <TextArea
                 value={note}
                 rows={Math.min(6, Math.max(2, note.split("\n").length + 1))}
                 onChange={(e) => setNote(e.target.value)}
@@ -1414,7 +1417,7 @@ function WsProposalCard({
           <Button variant="ghost" disabled={busy} onClick={() => run("decline")}>
             Decline
           </Button>
-          <Button variant="primary" disabled={busy || !ready || replying} onClick={() => run("accept")} title={replying ? "Read its reply first: the agent's still writing it" : undefined}>
+          <Button variant="primary" disabled={busy || !ready} unavailable={replying ? "Read its reply first: the agent's still writing it" : undefined} onClick={() => run("accept")}>
             {accept}
           </Button>
         </div>

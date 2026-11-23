@@ -17,6 +17,7 @@ import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { capital } from "../ui/text";
+import { Input } from "../ui/Input";
 
 // Reviews: the open pull requests across every repo in the workspace.
 // Your teammates' come first, grouped by what each asks of you; yours sit
@@ -183,7 +184,7 @@ export function ReviewsPage() {
               )}
             </span>
           )}
-          <input
+          <Input
             ref={filter}
             className="reviews-filter"
             value={q}

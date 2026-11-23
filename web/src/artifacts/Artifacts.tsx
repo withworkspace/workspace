@@ -48,6 +48,8 @@ import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { Segment, Segmented, segmentClass, segmentedClass } from "../ui/Segmented";
+import { ToggleButton } from "../ui/ToggleButton";
 import { useWorkspace } from "../workspace/store";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
@@ -142,14 +144,14 @@ export function ArtifactsPage() {
         actions={
           all.length > 0 && (
             <>
-              <div className="segmented artifacts-shown" role="group" aria-label="Where they stand">
+              <Segmented className="artifacts-shown" value={shown} onChange={setShown} aria-label="Where they stand">
                 {(Object.keys(shownLabels) as Shown[]).map((s) => (
-                  <Button key={s} aria-pressed={shown === s} onClick={() => setShown(s)}>
+                  <Segment key={s} value={s}>
                     {shownLabels[s]}
                     {s === "discarded" && discarded > 0 ? ` ${discarded}` : ""}
-                  </Button>
+                  </Segment>
                 ))}
-              </div>
+              </Segmented>
               {froms.length > 0 && (
                 <Select value={from} onChange={setFrom} aria-label="Where they came from">
                   <Option value={ANYWHERE}>From anywhere</Option>
@@ -392,13 +394,13 @@ export function ArtifactPage() {
         )}
         <div className="artifact-tools">
           <VersionStrip d={d} n={n} go={go} />
-          <div className="segmented" role="group" aria-label="Width">
+          <Segmented value={width} onChange={setWidth} disabled={source} aria-label="Width">
             {widths.map((w) => (
-              <Button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={w.title} disabled={source}>
+              <Segment key={w.key} value={w.key} title={w.title}>
                 {w.label}
-              </Button>
+              </Segment>
             ))}
-          </div>
+          </Segmented>
           <span className="artifact-tools-end">
             <Button
               variant="ghost" size="small"
@@ -414,9 +416,9 @@ export function ArtifactPage() {
             <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"}>
               <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
             </Button>
-            <Button variant="ghost" size="small" aria-pressed={source} onClick={() => setSource((s) => !s)} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"}>
+            <ToggleButton variant="ghost" size="small" pressed={source} onChange={setSource} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"}>
               <Icon name="code" size={13} /> Source <Keys k="s" />
-            </Button>
+            </ToggleButton>
             {framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} />}
             {comparing ? (
               <Link
@@ -427,7 +429,7 @@ export function ArtifactPage() {
                 <Icon name="split" size={13} /> Compare <Keys k="c" />
               </Link>
             ) : runnable ? (
-              <Button variant="ghost" size="small" disabled title="It has one version, and there's no other artifact to compare it with">
+              <Button variant="ghost" size="small" unavailable="It has one version, and there's no other artifact to compare it with">
                 <Icon name="split" size={13} /> Compare
               </Button>
             ) : null}
@@ -570,13 +572,13 @@ export function VersionLine({ d, v }: { d: ArtifactDetail; v: ArtifactVersion })
 // and the keys that step through them.
 export function VersionStrip({ d, n, go, keys = ["[", "]"] }: { d: ArtifactDetail; n: number; go: (n: number) => void; keys?: [string, string] }) {
   return (
-    <div className="segmented artifact-versions" role="group" aria-label="Versions">
+    <div className={segmentedClass({}, "artifact-versions")} role="group" aria-label="Versions">
       {d.all.map((x) => (
         <HoverCard
           key={x.n}
           className="artifact-version-host"
           trigger={
-            <button aria-pressed={x.n === n} onClick={() => go(x.n)} tabIndex={-1} className={d.home?.version === x.n ? "at-home" : undefined}>
+            <button data-ui="" aria-pressed={x.n === n} data-selected={x.n === n || undefined} onClick={() => go(x.n)} tabIndex={-1} className={segmentClass(d.home?.version === x.n ? "at-home" : undefined)}>
               v{x.n}
             </button>
           }

@@ -4,11 +4,16 @@ import { useLoaded } from "../load";
 import { Button } from "../ui/Button";
 import { Chip } from "../ui/Chip";
 import { cx } from "../ui/cx";
-import { Callout, Dialog, Skeleton, toast } from "../ui/kit";
+import { Callout, Skeleton, toast } from "../ui/kit";
+import { Dialog } from "../ui/Dialog";
 import { Option, Select } from "../ui/Select";
 import { relative } from "../ui/time";
 import css from "./AddRepo.module.css";
 import { GroupPick } from "./Groups";
+import { Checkbox } from "../ui/Checkbox";
+import { Radio, RadioGroup } from "../ui/RadioGroup";
+import { Input } from "../ui/Input";
+import { ListBox, ListBoxOption } from "../ui/ListBox";
 
 const ANOTHER = "\u0000another";
 
@@ -80,7 +85,7 @@ export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: 
           </Select>
         ) : null}
         {(another || (owners.value?.problem && list.length === 0)) && (
-          <input
+          <Input
             className={css.owner}
             placeholder="owner on GitHub"
             aria-label="Owner on GitHub"
@@ -93,7 +98,7 @@ export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: 
             autoFocus
           />
         )}
-        <input className={css.filter} placeholder="Filter…" aria-label="Filter the repos" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Input className={css.filter} placeholder="Filter…" aria-label="Filter the repos" value={q} onChange={(e) => setQ(e.target.value)} />
         <span className={cx("dim", css.when)}>
           {looking ? "asking GitHub…" : at ? `as of ${relative(at)}` : ""}
           {!looking && (
@@ -125,24 +130,17 @@ export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: 
         </Callout>
       )}
 
-      <div className={css.list} role="listbox" aria-label={`${owner}'s repos`}>
-        {!repos.value && (owner ? <Skeleton rows={5} /> : null)}
-        {repos.value && shown.length === 0 && !looking && <p className={cx("dim", css.none)}>{q ? "None of these match." : "Nothing to add here."}</p>}
-        {repos.value && shown.length === 0 && looking && <Skeleton rows={5} />}
+      <ListBox
+        className={css.list}
+        aria-label={`${owner}'s repos`}
+        value={chosen?.name}
+        onChange={(name) => setChosen(shown.find((r) => r.name === name))}
+        empty={!repos.value ? owner ? <Skeleton rows={5} /> : null : looking ? <Skeleton rows={5} /> : <p className={cx("dim", css.none)}>{q ? "None of these match." : "Nothing to add here."}</p>}
+      >
         {shown.map((r) => {
           const here = !!r.here;
-          const isChosen = chosen?.name === r.name;
           return (
-            <button
-              key={r.name}
-              type="button"
-              role="option"
-              aria-selected={isChosen}
-              disabled={here}
-              className={cx(css.repo, isChosen && css.chosen)}
-              onClick={() => setChosen(r)}
-              title={here ? `Here already, as ${r.here}` : undefined}
-            >
+            <ListBoxOption key={r.name} value={r.name} textValue={r.name} disabled={here} className={css.repo} title={here ? `Here already, as ${r.here}` : undefined}>
               <span className={css.repoLine}>
                 <span className="mono">{r.name}</span>
                 {r.private && <Chip>private</Chip>}
@@ -152,14 +150,14 @@ export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: 
                 {r.pushedAt && <span className={cx("dim", css.pushed)}>pushed {relative(r.pushedAt)}</span>}
               </span>
               {r.description && <span className={cx("dim", css.about)}>{r.description}</span>}
-            </button>
+            </ListBoxOption>
           );
         })}
-      </div>
+      </ListBox>
       {hidden > 0 && (
-        <label className={cx("dim", css.all)}>
-          <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> Show forks and archived repos ({hidden})
-        </label>
+        <Checkbox className={cx("dim", css.all)} checked={all} onChange={setAll}>
+          Show forks and archived repos ({hidden})
+        </Checkbox>
       )}
 
       {chosen && <Adding key={`${owner}/${chosen.name}`} owner={owner} repo={chosen} taken={taken} groups={groups} onCancel={() => setChosen(undefined)} onAdded={onAdded} />}
@@ -199,7 +197,7 @@ function Adding({ owner, repo, taken, groups, onCancel, onAdded }: { owner: stri
     >
       <div className={css.field}>
         <label htmlFor="add-repo-as">Its name here</label>
-        <input id="add-repo-as" className="mono" value={as} onChange={(e) => setAs(e.target.value)} aria-invalid={clash || bad} />
+        <Input id="add-repo-as" className="mono" value={as} onChange={(e) => setAs(e.target.value)} aria-invalid={clash || bad} />
         <span className={cx("dim", css.hint)}>
           {clash ? `There's a ${name} here already.` : bad ? "Letters, digits, '.', '_' and '-'." : name !== repo.name ? `It stays ${owner}/${repo.name} on GitHub.` : "Its folder under repos/, and what commands call it."}
         </span>
@@ -212,14 +210,18 @@ function Adding({ owner, repo, taken, groups, onCancel, onAdded }: { owner: stri
       </div>
       <fieldset className={css.field}>
         <legend>Whose</legend>
-        <span className={css.whose}>
-          <label>
-            <input type="radio" name="add-repo-whose" checked={!team} onChange={() => setTeam(false)} /> Just me <span className="dim">— in ws.local.toml</span>
-          </label>
-          <label>
-            <input type="radio" name="add-repo-whose" checked={team} onChange={() => setTeam(true)} /> The team <span className="dim">— in ws.toml, committed and pushed</span>
-          </label>
-        </span>
+        <RadioGroup className={css.whose} value={team ? "team" : "me"} onChange={(v) => setTeam(v === "team")} aria-label="Whose">
+          <Radio value="me">
+            <span>
+              Just me <span className="dim">— in ws.local.toml</span>
+            </span>
+          </Radio>
+          <Radio value="team">
+            <span>
+              The team <span className="dim">— in ws.toml, committed and pushed</span>
+            </span>
+          </Radio>
+        </RadioGroup>
       </fieldset>
       <div className={css.buttons}>
         <Button variant="ghost" type="button" onClick={onCancel} disabled={busy}>

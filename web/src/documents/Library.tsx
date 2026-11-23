@@ -6,9 +6,12 @@ import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
-import { Button } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass } from "../ui/Rows";
+import { Segment, Segmented } from "../ui/Segmented";
+
+// The segment for every state: no state is named this.
+const everyStand = "(all)";
 
 // A space's library: a list for each of the workspace's kinds of document
 // whose path is in it, each with its number or date, its title, where it
@@ -148,21 +151,19 @@ export function KindHead({
     <GroupHead className="library-head">
       {kind.title} <Count>{found === undefined ? docs.length : `${found} of ${docs.length}`}</Count>
       {states.length > 0 && (
-        <span className="segmented lib-stands" aria-label={`Where each ${kind.title} stands`}>
-          <Button aria-pressed={stand === ""} onClick={() => setStand("")}>
-            All
-          </Button>
+        <Segmented size="small" className="lib-stands" value={stand || everyStand} onChange={(v) => setStand(v === everyStand ? "" : v)} aria-label={`Where each ${kind.title} stands`}>
+          <Segment value={everyStand}>All</Segment>
           {states.map((s) => (
-            <Button key={s} aria-pressed={stand === s} onClick={() => setStand(stand === s ? "" : s)}>
+            <Segment key={s} value={s}>
               {s} {counts.get(s) ?? 0}
-            </Button>
+            </Segment>
           ))}
-        </span>
+        </Segmented>
       )}
       <span className="spacer" />
       <label className="lib-sort dim">
         <Icon name="list" size={12} />
-        <Select value={sort} onChange={(v) => setSort(v as Sort)} aria-label={`Sort the ${kind.title} list`}>
+        <Select size="tiny" value={sort} onChange={(v) => setSort(v as Sort)} aria-label={`Sort the ${kind.title} list`}>
           <Option value="made">{docs.some((d) => d.number) ? "By number" : "Newest first"}</Option>
           <Option value="title">By title</Option>
           {states.length > 0 && <Option value="stands">By where it stands</Option>}

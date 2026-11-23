@@ -32,7 +32,9 @@ import { AskBar, type AskBarHandle } from "../ask/AskBar";
 import { useKeys } from "../keys";
 import { type AskedFinding, type ReviewDiff, type ReviewSource, ReviewView, type Selection } from "../review/Review";
 import { Icon } from "../ui/Icon";
-import { Callout, confirm, Dialog, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
+import { Callout, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
+import { Dialog } from "../ui/Dialog";
+import { confirm } from "../ui/Confirm";
 import { Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { GuideMark, GuideSection } from "./Guide";
@@ -46,6 +48,8 @@ import { PagePin } from "../shell/focus";
 import { Chip, chipClass } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { clip } from "../ui/text";
+import { ToggleButton } from "../ui/ToggleButton";
+import { TextArea } from "../ui/TextArea";
 import { useWorkspace } from "../workspace/store";
 
 // A pull request's review: the page a capsule's review is, on commits
@@ -400,8 +404,9 @@ export function PRReviewPage() {
           variant="ghost" size="small"
           className="desktop-only"
           onClick={dock}
-          disabled={docking || pr.fork}
-          title={pr.fork ? "It's from a fork: ws dock looks for its branch on origin" : d.docked?.by === "you" ? `It's here: ${pr.repo}/${d.docked.capsule}` : "Dock it here, as ws dock does, to run it yourself (⇧O)"}
+          disabled={docking}
+          unavailable={pr.fork ? "It's from a fork: ws dock looks for its branch on origin, so it can't be opened here" : undefined}
+          title={d.docked?.by === "you" ? `It's here: ${pr.repo}/${d.docked.capsule}` : "Dock it here, as ws dock does, to run it yourself (⇧O)"}
         >
           <Icon name="box" size={13} /> {docking ? "Docking…" : d.docked?.by === "you" ? d.docked.capsule : "Open here"}
         </Button>
@@ -672,9 +677,9 @@ function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: b
           );
         })}
       </ol>
-      <Button variant="ghost" size="small" className={`whole-stack ${whole ? " on" : ""}`} aria-pressed={whole} aria-busy={going?.whole || undefined} onClick={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
+      <ToggleButton variant="ghost" size="small" className="whole-stack" pressed={whole} aria-busy={going?.whole || undefined} onChange={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
         <Icon name={going?.whole && !whole ? "spinner" : "layers"} size={12} className={going?.whole && !whole ? "spin" : undefined} /> Whole stack <Keys k="w" />
-      </Button>
+      </ToggleButton>
     </div>
   );
 }
@@ -822,7 +827,7 @@ function PRSubmitDialog({
   const stack = layers.length > 1;
   const here = layers[Math.max(0, prs.findIndex((p) => p.number === d.pr.number))];
   return (
-    <Dialog title={stack ? "Submit the review of the stack" : "Submit the review"} onClose={onClose} className="submit pr-submit" wide>
+    <Dialog title={stack ? "Submit the review of the stack" : "Submit the review"} onClose={onClose} className="submit-dialog pr-submit" wide>
       <p>
         Submitting posts to GitHub, as you. It's the one thing here that leaves your machine, and a review can't be unsent, only dismissed: what's below is exactly what goes.
         {stack && " GitHub reviews one pull request at a time, so each layer has its own verdict; a layer with none is left alone."}
@@ -887,7 +892,7 @@ function PRSubmitDialog({
                 </div>
               )}
               {l.verdict && !l.state && (
-                <textarea
+                <TextArea
                   ref={i === focus ? area : undefined}
                   value={l.summary}
                   rows={2}
@@ -924,7 +929,7 @@ function PRSubmitDialog({
         <Button variant="ghost" onClick={onClose}>
           {layers.some((l) => l.state === "posted") ? "Close" : "Cancel"}
         </Button>
-        <Button variant="primary" onClick={submit} disabled={!ready || busy} title={ready ? "Post to GitHub (⌘⏎)" : "Pick a verdict first"}>
+        <Button variant="primary" onClick={submit} disabled={busy} unavailable={ready ? undefined : "Pick a verdict first"} title="Post to GitHub (⌘⏎)">
           {busy ? "Posting…" : chosen.length > 1 ? `Post ${chosen.length} reviews to GitHub` : "Post to GitHub"} <Keys k="mod+⏎" />
         </Button>
       </div>

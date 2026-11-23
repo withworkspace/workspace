@@ -1,5 +1,4 @@
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Button as AriaButton, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { capsuleAPI, docRef, type FileTree, type FileView, getFile, getTree, pageOpenTo, rawURL, type TreeFile } from "../api";
 import { useKeys, useOwnCodeSearch } from "../keys";
@@ -19,6 +18,9 @@ import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
+import { Segment, Segmented } from "../ui/Segmented";
+import { Menu, MenuItem } from "../ui/Menu";
+import { Finder, FinderNone, FinderRow } from "../ui/Finder";
 import { useWorkspace } from "../workspace/store";
 import { setPref, usePrefs } from "../prefs";
 
@@ -162,28 +164,34 @@ function PanesMenu({ shown, most, other }: { shown: Panes; most: Panes; other?: 
   const choices = ([3, 2, 1] as Panes[]).filter((n) => n <= most && (!other || n > 1));
   const now: Panes = other && shown === 1 ? 2 : shown;
   return (
-    <MenuTrigger>
-      <AriaButton className="ghost icon-button panes-button" aria-label={`Panes: ${words(now).label}`}>
-        <PanesGlyph n={now} />
-      </AriaButton>
-      <Popover className="select-popover panes-popover" placement="bottom start" offset={4}>
-        <Menu className="select-list" aria-label="Panes" onAction={(k) => setPanes(Number(k) as Panes)}>
-          {choices.map((n) => (
-            <MenuItem key={n} id={String(n)} textValue={words(n).label} className="select-option panes-option">
-              <PanesGlyph n={n} />
-              <span className="panes-option-words">
-                <span>{words(n).label}</span>
-                <span className="dim">{words(n).sub}</span>
-              </span>
-              {n === now && <Icon name="check" size={13} className="panes-check" />}
-            </MenuItem>
-          ))}
-        </Menu>
+    <Menu
+      className="panes-popover"
+      aria-label="Panes"
+      onAction={(k) => setPanes(Number(k) as Panes)}
+      // p switches them, with the menu open too.
+      pageKeys
+      trigger={
+        <Button variant="ghost" square className="panes-button" aria-label={`Panes: ${words(now).label}`}>
+          <PanesGlyph n={now} />
+        </Button>
+      }
+      foot={
         <div className="panes-keys dim">
           Switch with <Keys k="p" />
         </div>
-      </Popover>
-    </MenuTrigger>
+      }
+    >
+      {choices.map((n) => (
+        <MenuItem key={n} id={String(n)} textValue={words(n).label} className="panes-option">
+          <PanesGlyph n={n} />
+          <span className="panes-option-words">
+            <span>{words(n).label}</span>
+            <span className="dim">{words(n).sub}</span>
+          </span>
+          {n === now && <Icon name="check" size={13} className="panes-check" />}
+        </MenuItem>
+      ))}
+    </Menu>
   );
 }
 
@@ -523,14 +531,14 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
                         {files.length} {files.length === 1 ? "file" : "files"}
                       </span>
                     ) : (
-                      <div className="segmented" role="group" aria-label="Show">
-                        <Button aria-pressed={changedOnly} onClick={() => setChangedOnly(true)} title="Only what's changed since the branch point (c)" disabled={!tree?.base}>
+                      <Segmented fill className="explorer-show" value={changedOnly ? "changed" : "all"} onChange={(v) => setChangedOnly(v === "changed")} aria-label="Show">
+                        <Segment value="changed" title="Only what's changed since the branch point (c)" disabled={!tree?.base}>
                           Changed <Count>{changed.length}</Count>
-                        </Button>
-                        <Button aria-pressed={!changedOnly} onClick={() => setChangedOnly(false)} title="Every file (c)">
+                        </Segment>
+                        <Segment value="all" title="Every file (c)">
                           All <Count>{files.length}</Count>
-                        </Button>
-                      </div>
+                        </Segment>
+                      </Segmented>
                     )}
                     <Button variant="ghost" size="small" square onClick={() => setFinder(true)} title="Find a file (t)" aria-label="Find a file">
                       <Icon name="search" size={14} />
@@ -814,14 +822,14 @@ function FilePane({
         </div>
         <div className="file-pane-tools">
           {md && file && !file.binary && !file.tooLarge && (
-            <div className="segmented" role="group" aria-label="Markdown">
-              <Button aria-pressed={preview} onClick={() => setPreview(() => true)} title="Rendered (m)">
+            <Segmented value={preview ? "rendered" : "text"} onChange={(v) => setPreview(() => v === "rendered")} aria-label="Markdown">
+              <Segment value="rendered" title="Rendered (m)">
                 Rendered
-              </Button>
-              <Button aria-pressed={!preview} onClick={() => setPreview(() => false)} title="As text (m)">
+              </Segment>
+              <Segment value="text" title="As text (m)">
                 Text
-              </Button>
-            </div>
+              </Segment>
+            </Segmented>
           )}
           {docTo && file && !file.binary && !file.tooLarge && !file.deleted && (
             <Link to={docTo} className={buttonClass({ size: "small" })} title="Edit it as a page: cells, questions and passes, and saved back to the repo when you say (⏎)">
@@ -995,9 +1003,6 @@ function Code({
 // FileFinder finds a file by a few of its letters: t or ⌘P.
 function FileFinder({ files, onPick, onClose }: { files: TreeFile[]; onPick: (path: string) => void; onClose: () => void }) {
   const [q, setQ] = useState("");
-  const [sel, setSel] = useState(0);
-  const list = useRef<HTMLUListElement>(null);
-  useKeys({ Escape: onClose }, { modal: true });
   const matches = useMemo(() => {
     if (!q.trim()) {
       // Before you type: what's changed first, then the rest.
@@ -1013,47 +1018,14 @@ function FileFinder({ files, onPick, onClose }: { files: TreeFile[]; onPick: (pa
     }
     return out.sort((a, b) => b.score - a.score).slice(0, 60);
   }, [files, q]);
-  const at = Math.min(sel, Math.max(0, matches.length - 1));
-  const move = (d: number) => {
-    const n = Math.max(0, Math.min(at + d, matches.length - 1));
-    setSel(n);
-    list.current?.children[n]?.scrollIntoView({ block: "nearest" });
-  };
   return (
-    <div className="overlay palette-overlay" onMouseDown={onClose}>
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Find a file" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="palette-input">
-          <Icon name="search" size={16} />
-          <input
-            autoFocus
-            value={q}
-            placeholder="Find a file by a few of its letters…"
-            aria-label="Find a file"
-            onChange={(e) => {
-              setQ(e.target.value);
-              setSel(0);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
-                e.preventDefault();
-                move(1);
-              } else if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
-                e.preventDefault();
-                move(-1);
-              } else if (e.key === "Enter" && matches[at]) {
-                e.preventDefault();
-                onPick(matches[at].f.path);
-              }
-            }}
-          />
-        </div>
-        <ul className="palette-list file-finder" ref={list} role="listbox">
-          {matches.map((m, i) => {
-            const cut = m.f.path.lastIndexOf("/") + 1;
-            const runs = marked(m.f.path, m.at);
-            let pos = 0;
-            return (
-              <li key={m.f.path} role="option" aria-selected={i === at} className={i === at ? "on" : ""} onMouseMove={() => i !== at && setSel(i)} onClick={() => onPick(m.f.path)}>
+    <Finder aria-label="Find a file" placeholder="Find a file by a few of its letters…" value={q} onChange={setQ} count={matches.length} onPick={(i) => onPick(matches[i].f.path)} onClose={onClose} listClassName="file-finder">
+      {matches.map((m, i) => {
+        const cut = m.f.path.lastIndexOf("/") + 1;
+        const runs = marked(m.f.path, m.at);
+        let pos = 0;
+        return (
+          <FinderRow key={m.f.path} index={i}>
                 <StatusMark f={m.f} />
                 <FileIcon path={m.f.path} />
                 <span className="finder-path">
@@ -1069,12 +1041,10 @@ function FileFinder({ files, onPick, onClose }: { files: TreeFile[]; onPick: (pa
                   })}
                 </span>
                 {m.f.uncommitted && <span className="dirty-dot" title="Not committed" />}
-              </li>
-            );
-          })}
-          {!matches.length && <li className="palette-none">No file matches “{q}”.</li>}
-        </ul>
-      </div>
-    </div>
+          </FinderRow>
+        );
+      })}
+      {!matches.length && <FinderNone>No file matches “{q}”.</FinderNone>}
+    </Finder>
   );
 }

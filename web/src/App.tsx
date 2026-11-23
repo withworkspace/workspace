@@ -1,5 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState, memo } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType, useParams } from "react-router";
 import { type Connection, NotSignedIn, setSettings } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
@@ -45,7 +44,9 @@ import { TeamPage, teamKeys } from "./team/Team";
 import { Icon } from "./ui/Icon";
 import { Logotype } from "./ui/Logotype";
 import { Viewer } from "./ui/Viewer";
-import { Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useMedia, useTitle } from "./ui/kit";
+import { Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useMedia, useTitle } from "./ui/kit";
+import { Confirmer } from "./ui/Confirm";
+import { Dialog } from "./ui/Dialog";
 import { duration } from "./ui/time";
 import { SiloPoint } from "./silo/SiloPoint";
 import { Count } from "./ui/Count";
@@ -67,6 +68,7 @@ import { Sidebar } from "./chrome/Sidebar";
 import { useBeside, useChromeStore, useFrameDim, useFrameExpanded, useFrameHere } from "./chrome/store";
 import { WorkspaceName } from "./chrome/WorkspaceName";
 import { pageScroller } from "./ui/scroller";
+import { Menu, MenuItem, MenuSection, MenuSeparator, MenuText } from "./ui/Menu";
 import { useFollowWorkspace, usePlugins, useWorkspace, useWorkspaceIfRead, useWorkspaceStore } from "./workspace/store";
 
 // Nothing needing you, before the workspace has said: the same list each
@@ -356,50 +358,12 @@ function WorkspaceMenu({ places }: { places: Place[] }) {
   const counted = places.filter((p) => p.count);
   const shutDown = () => void askShutDown();
   return (
-    <MenuTrigger>
-      <WorkspaceName name={name} root={root} wants={counted.length > 0 ? counted.map((p) => `${p.label}: ${p.count} ${p.countTitle ?? "need you"}`).join("\n") : undefined} />
-      {/* data-field: keys typed in the menu are its own, not the page's (keys.ts). */}
-      <Popover className="select-popover workspace-menu" placement="bottom start" offset={4} data-field>
-        <Menu className="select-list" aria-label="The workspace">
-          {places.length > 0 && (
-            <MenuSection aria-label="Places">
-              {places.map((p) => (
-                <MenuItem key={p.id} id={`place:${p.id}`} textValue={p.label} className={`select-option${p.match(pathname) ? " current" : ""}`} onAction={() => navigate(p.to)}>
-                  <Icon name={p.icon} />
-                  <span className="select-option-text">{p.label}</span>
-                  {!!p.count && (
-                    <Count tone="attention" className="menu-count" title={`${p.count} ${p.countTitle ?? "need you"}`}>
-                      {p.count}
-                    </Count>
-                  )}
-                </MenuItem>
-              ))}
-            </MenuSection>
-          )}
-          {places.length > 0 && <Separator className="menu-separator" />}
-          <MenuItem id="settings" textValue="Settings" className="select-option" onAction={() => navigate("/settings")}>
-            <Icon name="sliders" />
-            <span className="select-option-text">Settings</span>
-          </MenuItem>
-          <MenuItem id="keys" textValue="Keys" className="select-option" onAction={() => useChromeStore.getState().setHelp(true)}>
-            <Icon name="keyboard" />
-            <span className="select-option-text">Keys</span>
-            <Keys k="?" />
-          </MenuItem>
-          {/* A later release, as the daemon last found: to where it's installed from. */}
-          {later && (
-            <MenuItem id="later" textValue={`ws ${later} is out`} className="select-option later" onAction={() => navigate("/settings/about#updates")}>
-              <Icon name="arrow-up" />
-              <span className="select-option-text">ws {later} is out</span>
-            </MenuItem>
-          )}
-          <Separator className="menu-separator" />
-          <MenuItem id="shutdown" textValue="Shut down the daemon" className="select-option danger" onAction={shutDown}>
-            <Icon name="power" />
-            <span className="select-option-text">Shut down the daemon…</span>
-          </MenuItem>
-        </Menu>
-        {/* What this is, and which: not an item, so the keys pass it by. */}
+    <Menu
+      className="workspace-menu"
+      aria-label="The workspace"
+      trigger={<WorkspaceName name={name} root={root} wants={counted.length > 0 ? counted.map((p) => `${p.label}: ${p.count} ${p.countTitle ?? "need you"}`).join("\n") : undefined} />}
+      // What this is, and which: not an item, so the keys pass it by.
+      foot={
         <div className="workspace-menu-foot">
           <Logotype />
           {version && (
@@ -408,8 +372,46 @@ function WorkspaceMenu({ places }: { places: Place[] }) {
             </span>
           )}
         </div>
-      </Popover>
-    </MenuTrigger>
+      }
+    >
+      {places.length > 0 && (
+        <MenuSection aria-label="Places">
+          {places.map((p) => (
+            <MenuItem key={p.id} id={`place:${p.id}`} textValue={p.label} className={p.match(pathname) ? "menu-current" : undefined} onAction={() => navigate(p.to)}>
+              <Icon name={p.icon} />
+              <MenuText>{p.label}</MenuText>
+              {!!p.count && (
+                <Count tone="attention" className="menu-count" title={`${p.count} ${p.countTitle ?? "need you"}`}>
+                  {p.count}
+                </Count>
+              )}
+            </MenuItem>
+          ))}
+        </MenuSection>
+      )}
+      {places.length > 0 && <MenuSeparator />}
+      <MenuItem id="settings" textValue="Settings" onAction={() => navigate("/settings")}>
+        <Icon name="sliders" />
+        <MenuText>Settings</MenuText>
+      </MenuItem>
+      <MenuItem id="keys" textValue="Keys" onAction={() => useChromeStore.getState().setHelp(true)}>
+        <Icon name="keyboard" />
+        <MenuText>Keys</MenuText>
+        <Keys k="?" />
+      </MenuItem>
+      {/* A later release, as the daemon last found: to where it's installed from. */}
+      {later && (
+        <MenuItem id="later" textValue={`ws ${later} is out`} className="menu-later" onAction={() => navigate("/settings/about#updates")}>
+          <Icon name="arrow-up" />
+          <MenuText>ws {later} is out</MenuText>
+        </MenuItem>
+      )}
+      <MenuSeparator />
+      <MenuItem id="shutdown" textValue="Shut down the daemon" tone="danger" onAction={shutDown}>
+        <Icon name="power" />
+        <MenuText>Shut down the daemon…</MenuText>
+      </MenuItem>
+    </Menu>
   );
 }
 
@@ -466,7 +468,7 @@ function useGlobalKeys() {
         // ⌘⇧F is Find, for what the files say: except where a page has a
         // search box of its own (a capsule's files), which is nearer.
         e.preventDefault();
-        const does = codeSearchKey(!!document.querySelector(".overlay"));
+        const does = codeSearchKey(!!document.querySelector("[data-overlay]"));
         if (does.to === "nothing") return; // something's open: the key's its, or nobody's
         e.stopPropagation();
         if (does.to === "own") does.open();
@@ -478,12 +480,12 @@ function useGlobalKeys() {
         // its own (a capsule's files, a review's), which is nearer.
         if (ownsFileFinder(window.location.pathname)) return;
         e.preventDefault();
-        if (document.querySelector(".overlay")) return; // something's open: not the browser's print, either
+        if (document.querySelector("[data-overlay]")) return; // something's open: not the browser's print, either
         e.stopPropagation();
         openPalette("/");
         return;
       }
-      if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey || document.querySelector(".overlay")) return;
+      if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey || document.querySelector("[data-overlay]")) return;
       if (e.key === "?") {
         e.preventDefault();
         e.stopPropagation();

@@ -93,7 +93,7 @@ export function MissionList({ missions }: { missions: Mission[] }) {
       actions={
         <>
           {pastCount > 0 && (
-            <Button variant="ghost" size="small" onClick={() => setShowPast((p) => !p)} aria-pressed={showPast}>
+            <Button variant="ghost" size="small" onClick={() => setShowPast((p) => !p)}>
               {showPast ? "Hide past" : `Show past (${pastCount})`} <Keys k="⇧A" />
             </Button>
           )}

@@ -1,0 +1,79 @@
+import type { ReactElement, ReactNode } from "react";
+import { Header, Menu as AriaMenu, MenuItem as AriaMenuItem, MenuSection as AriaMenuSection, MenuTrigger, Separator } from "react-aria-components";
+import { cx } from "./cx";
+import css from "./Menu.module.css";
+import { type Placement, PopoverSurface } from "./Popover";
+
+// Menu is a button and the list of things to do it opens: places to go,
+// ways to do something, one of several to pick. Its trigger is a Button;
+// its children are MenuItems, in MenuSections with MenuSeparators between
+// where they're in groups. react-aria's menu does the rest: the arrows,
+// typing a name, Enter, Escape, and what a screen reader hears.
+//
+// onAction is called with the id of the item chosen, unless the item has
+// an onAction of its own. A foot is under the list, not an item: the keys
+// pass it by. Keys typed in the menu are its own unless it says pageKeys.
+export function Menu({
+  trigger,
+  "aria-label": label,
+  placement,
+  onAction,
+  pageKeys,
+  className,
+  foot,
+  children,
+}: {
+  trigger: ReactElement;
+  "aria-label": string;
+  placement?: Placement;
+  onAction?: (id: string) => void;
+  pageKeys?: boolean;
+  className?: string;
+  foot?: ReactNode;
+  children: ReactNode; // MenuItems, MenuSections, MenuSeparators
+}) {
+  return (
+    <MenuTrigger>
+      {trigger}
+      <PopoverSurface placement={placement} pageKeys={pageKeys} className={className}>
+        <AriaMenu className={css.list} aria-label={label} onAction={onAction && ((key) => onAction(String(key)))}>
+          {children}
+        </AriaMenu>
+        {foot}
+      </PopoverSurface>
+    </MenuTrigger>
+  );
+}
+
+// MenuItem is one thing to do: its id, the words typing finds it by
+// (textValue), and what it shows, which is a row: an icon, MenuText, a
+// count or a key at its end. A danger one is in red.
+export function MenuItem({ id, textValue, onAction, tone, className, children }: { id: string; textValue: string; onAction?: () => void; tone?: "danger"; className?: string; children: ReactNode }) {
+  return (
+    <AriaMenuItem id={id} textValue={textValue} onAction={onAction} className={cx(css.item, tone === "danger" && css.danger, className)}>
+      {children}
+    </AriaMenuItem>
+  );
+}
+
+// MenuText is an item's words: they take the room there is, and are cut
+// short with an ellipsis where there isn't enough.
+export function MenuText({ children }: { children: ReactNode }) {
+  return <span className={css.text}>{children}</span>;
+}
+
+// MenuSection is a group of items, with a title over it, or, with none,
+// an aria-label that says what the group is.
+export function MenuSection({ title, "aria-label": label, children }: { title?: string; "aria-label"?: string; children: ReactNode }) {
+  return (
+    <AriaMenuSection className={css.section} aria-label={label}>
+      {title && <Header className={css.header}>{title}</Header>}
+      {children}
+    </AriaMenuSection>
+  );
+}
+
+// MenuSeparator is a rule between groups.
+export function MenuSeparator() {
+  return <Separator className={css.separator} />;
+}
