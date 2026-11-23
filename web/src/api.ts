@@ -2050,5 +2050,9 @@ export const askPR = (api: string, q: { body: string; path?: string; side?: "new
 // dockPR checks a pull request out here, as ws dock does.
 export const dockPR = (api: string) => send<{ message: string }>("POST", `${api}/dock`);
 
+// declinePR takes your name off a pull request's reviewers on GitHub: it
+// isn't yours to review, and stops needing you.
+export const declinePR = (api: string) => send<Record<string, never>>("POST", `${api}/decline`);
+
 // A capsule a conversation's agent lifted.
 export type TalkCapsule = ConversationCapsule;

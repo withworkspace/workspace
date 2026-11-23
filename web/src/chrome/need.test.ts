@@ -5,8 +5,10 @@ import {
   type Need,
   needSays,
   needStatus,
+  toReview,
   waitingOf,
 } from "./need";
+import { placesOf } from "../shell/places";
 import { needs } from "./samples";
 
 const need = (n: Partial<Need>): Need => ({
@@ -33,6 +35,12 @@ describe("how a need stands", () => {
     expect(
       needStatus(need({ of: "conversation", kind: "your-turn" })),
     ).toMatchObject({ icon: "reply", tone: "attention", words: "Your turn" });
+  });
+
+  it("is your review, for a pull request that asks you by name", () => {
+    expect(
+      needStatus(need({ of: "pull", kind: "your-review", ref: "api#89" })),
+    ).toMatchObject({ icon: "pr", tone: "attention", words: "Your review" });
   });
 
   it("asks for you even of a kind it hasn't met", () => {
@@ -79,6 +87,39 @@ describe("the needs, for the places' counts and the desktop", () => {
       }),
     ]);
     expect(w.kind).toBe("mission");
+  });
+});
+
+describe("a pull request that asks for your review", () => {
+  const pull = need({
+    key: "pull|api#89|",
+    of: "pull",
+    ref: "api#89",
+    kind: "your-review",
+    to: "/reviews/api/89",
+    text: "api#89, from alice, needs your review.",
+  });
+
+  it("is told apart from what's yours", () => {
+    expect(toReview(pull)).toBe(true);
+    expect(toReview(need({}))).toBe(false);
+  });
+
+  it("counts at neither Missions nor Conversations, and is still told to the desktop", () => {
+    const [w] = waitingOf([pull]);
+    expect(w).toMatchObject({
+      kind: "review",
+      path: "/reviews/api/89",
+      body: "api#89, from alice, needs your review.",
+    });
+    const places = placesOf(undefined, waitingOf([need({}), pull]));
+    expect(places.find((p) => p.id === "missions")?.count).toBe(1);
+    expect(places.find((p) => p.id === "conversations")?.count).toBe(0);
+  });
+
+  it("is dealt with on its review", () => {
+    expect(dealtWithAt(pull, "/reviews/api/89")).toBe(true);
+    expect(dealtWithAt(pull, "/reviews")).toBe(false);
   });
 });
 

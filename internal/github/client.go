@@ -15,6 +15,10 @@ type Client interface {
 	Viewer() (string, error)
 	OpenPRs(org, repo string) ([]PR, error)
 	ReviewRequested(org string) ([]PRRef, error)
+	// Those of them that ask you by name, and taking someone's name off
+	// one's reviewers (asked.go).
+	AskedByName(org string) ([]PRRef, error)
+	DropReviewRequest(org, repo string, number int, login string) error
 	StacksForRepo(org, repo string) ([]Stack, error)
 	SubmitReview(org, repo string, number int, r ReviewSubmission) (string, error)
 	ReviewThreads(org, repo string, number int) ([]ReviewThread, error)

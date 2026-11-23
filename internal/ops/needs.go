@@ -7,27 +7,31 @@ import (
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/pulls"
 )
 
 // A need is something that can't move without you, and only you: crew
 // asked you something, a step is yours to review, a conversation's agent
-// has replied. It's worked out from where each thing stands now and never
-// kept, so it can't go stale: when the thing moves on, the need is gone.
-// Something you'd want to know and needn't act on isn't one.
+// has replied, someone asked you by name to review their pull request.
+// It's worked out from where each thing stands now and never kept, so it
+// can't go stale: when the thing moves on, the need is gone. Something
+// you'd want to know and needn't act on isn't one.
 type Need struct {
 	// Key is the same for as long as it's the same need, and changes when
 	// the thing needs you for something else: what's announced once goes
 	// by it.
 	Key string
-	// Of is the sort of thing it's on (NeedMission, NeedConversation),
-	// and Ref that thing as a ref names it (a mission's slug, w4).
+	// Of is the sort of thing it's on (NeedMission, NeedConversation,
+	// NeedPull), and Ref that thing as a ref names it (a mission's slug,
+	// w4, api#89).
 	Of  string
 	Ref string
 	// In is the mission a conversation is about, where it's about one.
 	In string
 	// Kind is what it needs of you: a mission's headline's kind
-	// (crew-asks, step-review, merge…), or NeedYourTurn. Label is the
-	// headline's own word for it ("✓ review"), where it has one.
+	// (crew-asks, step-review, merge…), NeedYourTurn, or NeedYourReview.
+	// Label is the headline's own word for it ("✓ review"), where it has
+	// one.
 	Kind  string
 	Label string
 	// Title is the thing's, and Text the sentence saying what it needs.
@@ -41,17 +45,24 @@ type Need struct {
 const (
 	NeedMission      = "mission"
 	NeedConversation = "conversation"
+	NeedPull         = "pull"
 )
 
 // NeedYourTurn is a conversation whose agent has replied: it's your turn.
-const NeedYourTurn = "your-turn"
+// NeedYourReview is a pull request that asks for your review by name.
+const (
+	NeedYourTurn   = "your-turn"
+	NeedYourReview = "your-review"
+)
 
-// Needs is what needs you, from the workspace's missions and its own
-// conversations: the missions in your court now, as the court orders
-// them, then the open conversations whose latest word isn't yours, the
-// newest first, the workspace's own and then each mission's. Its sources
-// are these, in this order; another is added here.
-func Needs(missions []MissionItem, talks []*conversation.Conversation) []Need {
+// Needs is what needs you, from the workspace's missions, its own
+// conversations and the pull requests outside a mission: the missions in
+// your court now, as the court orders them, then the open conversations
+// whose latest word isn't yours, the newest first, the workspace's own
+// and then each mission's; then the pull requests that ask for your
+// review by name, as Reviews lists them (asked: pulls.Service.AskedOfYou).
+// Its sources are these, in this order; another is added here.
+func Needs(missions []MissionItem, talks []*conversation.Conversation, asked []pulls.Asked) []Need {
 	out := []Need{}
 	for _, it := range missions {
 		if n, ok := missionNeed(it); ok {
@@ -70,7 +81,39 @@ func Needs(missions []MissionItem, talks []*conversation.Conversation) []Need {
 			}
 		}
 	}
+	for _, a := range asked {
+		out = append(out, pullNeed(a))
+	}
 	return out
+}
+
+// pullNeed is a pull request's need: it asks for your review by name. One
+// asked of a team of yours isn't one, since it can move without you; nor
+// is a draft. A stack is one need, at its lowest layer that asks you.
+//
+// It's the same need for as long as it asks the same of you: a stack
+// whose next layer asks once you've reviewed one doesn't arrive again,
+// and one that asks again after your review does.
+func pullNeed(a pulls.Asked) Need {
+	p := a.PR
+	again := ""
+	if p.Reviewed != nil {
+		again = p.Reviewed.Commit
+	}
+	n := Need{
+		Key: "pull|" + a.Key + "|" + again,
+		Of:  NeedPull, Ref: p.Ref(),
+		Kind:  NeedYourReview,
+		Title: p.Title,
+		Text:  fmt.Sprintf("%s, from %s, %s.", p.Ref(), p.Author, p.Words),
+	}
+	if a.Stack != nil {
+		n.Title = a.Stack.Title
+		if a.More > 0 {
+			n.Text = fmt.Sprintf("%s, from %s, %s, and %d more of its stack do.", p.Ref(), p.Author, p.Words, a.More)
+		}
+	}
+	return n
 }
 
 // yourTurns is which of a mission's conversations are your turn and
