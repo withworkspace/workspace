@@ -1305,7 +1305,7 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
                 <TurnSaid>
                   <Markdown text={t.body} pinned={t.refs} />
                 </TurnSaid>
-                <Calls calls={t.calls ?? []} root={root} />
+                <Calls calls={t.calls ?? []} root={root} className="cell-calls" />
               </Turn>
             </li>
           ) : (
@@ -1326,7 +1326,7 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
               <Spinner size={12} />
               <span>{askingNow(cell) ? "Finding out" : "Writing it into the page"}</span>
             </div>
-            <Calls calls={live} root={root} open live />
+            <Calls calls={live} root={root} open live className="cell-calls" />
           </li>
         )}
         {!cell.answering && last?.by === "you" && (
