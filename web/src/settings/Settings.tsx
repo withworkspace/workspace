@@ -45,12 +45,8 @@ const fileName = (path: string) => path.split("/").pop() ?? path;
 
 export function SettingsPage({
   notify,
-  onArrange,
-  onClosed,
 }: {
   notify: Page["notify"];
-  onArrange: () => void;
-  onClosed: () => void;
 }) {
   const { section: at } = useParams();
   const anchor = useLocation().hash.slice(1);
@@ -105,7 +101,7 @@ export function SettingsPage({
   const finding = query.trim() !== "";
   const found = finding ? find(sections, query) : [];
   const all = info?.groups.flatMap((g) => g.settings) ?? [];
-  const page: Page = { all, change, marked: finding ? wordsOf(query) : [], notify, arrange: onArrange, closed: onClosed };
+  const page: Page = { all, change, marked: finding ? wordsOf(query) : [], notify };
   const mine = minesOf(sections).length;
   const unread = info?.unknown?.length ?? 0;
 

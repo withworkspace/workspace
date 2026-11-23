@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { announceNeeds } from "../api";
 import { shownAs, useAccent } from "../ui/accent";
 
@@ -120,7 +120,7 @@ export function useNotifications(waiting: Waiting[], open: (path: string) => voi
     seen.current = keys;
   }, [waiting, on, open]);
 
-  const toggle = () => {
+  const toggle = useCallback(() => {
     if (!supported) return;
     if (on) {
       setOn(false);
@@ -140,6 +140,8 @@ export function useNotifications(waiting: Waiting[], open: (path: string) => voi
         // nothing kept
       }
     });
-  };
-  return { supported, on, toggle };
+  }, [on]);
+  // The same until it's turned on or off: what's given it isn't drawn
+  // again for nothing.
+  return useMemo(() => ({ supported, on, toggle }), [on, toggle]);
 }

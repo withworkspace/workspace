@@ -13,6 +13,7 @@ import { FileIcon } from "../ui/FileIcon";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/status";
 import { confirm, humanError, Keys, toast } from "../ui/kit";
+import { askShutDown } from "./daemon";
 import { setTheme } from "../ui/theme";
 import { clock } from "../ui/time";
 import {
@@ -44,7 +45,7 @@ import {
 } from "./find";
 import type { Waiting } from "./notify";
 import { CodeText, CodeWhere } from "./CodeHitParts";
-import type { FrameHere } from "../plugins/here";
+import { type FrameHere, useChromeStore } from "../chrome/store";
 import { around, hereAt, hereItems, keptAround, type Near, nearIds, nearItems } from "./here";
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
 import { PinButton, pinNameOf, useFocus } from "./focus";
@@ -106,8 +107,6 @@ export function Palette({
   search,
   frameHere,
   onClose,
-  onHelp,
-  onShutDown,
 }: {
   waiting: Waiting[];
   start?: string;
@@ -116,8 +115,6 @@ export function Palette({
   search: string;
   frameHere?: FrameHere; // what a plugin's page said it shows beyond its address
   onClose: () => void;
-  onHelp: () => void;
-  onShutDown: () => void;
 }) {
   const workspace = useWorkspace();
   const plugins = usePlugins();
@@ -460,8 +457,8 @@ export function Palette({
       onClose();
       const d = it.doing;
       if ("theme" in d) setTheme(d.theme);
-      else if ("help" in d) onHelp();
-      else if ("shutDown" in d) onShutDown();
+      else if ("help" in d) useChromeStore.getState().setHelp(true);
+      else if ("shutDown" in d) void askShutDown();
       else if ("ws" in d)
         doWs(d.ws).then(
           (said) => toast(said, { tone: "done" }),

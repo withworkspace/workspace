@@ -63,3 +63,62 @@ describe("what a page gives a tab", () => {
     expect(store().gives["/conversations/b"]?.placeholder).toBe("two");
   });
 });
+
+describe("what a plugin's page says it shows", () => {
+  it("is the latest said, and none once its page says none or goes", () => {
+    store().setFrameHere("jira", "RAM-12");
+    expect(store().frame.here).toEqual({ plugin: "jira", name: "RAM-12" });
+    store().setFrameHere("jira", undefined);
+    expect(store().frame.here).toBeUndefined();
+  });
+
+  it("isn't forgotten by another plugin's page going as this one comes", () => {
+    store().setFrameHere("jira", "RAM-12");
+    store().setFrameHere("relman", undefined);
+    expect(store().frame.here).toEqual({ plugin: "jira", name: "RAM-12" });
+    store().setFrameHere("jira", undefined);
+  });
+});
+
+describe("a plugin's page that asks for the chrome expanded", () => {
+  it("has it until its page says standard, or goes", () => {
+    store().setFrameLayout("sketch", "expanded");
+    expect(store().frame.expanded).toBe("sketch");
+    store().setFrameLayout("sketch", "standard");
+    expect(store().frame.expanded).toBeUndefined();
+  });
+
+  it("keeps it as another plugin's page goes", () => {
+    store().setFrameLayout("sketch", "expanded");
+    store().setFrameLayout("jira", "standard");
+    expect(store().frame.expanded).toBe("sketch");
+    store().setFrameLayout("sketch", "standard");
+  });
+});
+
+describe("what's open over the window", () => {
+  it("is Find, with what it starts with, until it's closed", () => {
+    expect(store().find).toBeUndefined();
+    store().openFind("/");
+    expect(store().find).toBe("/");
+    store().closeFind();
+    expect(store().find).toBeUndefined();
+  });
+
+  it("is the keys in Find's place, when they're asked for from it", () => {
+    store().openFind();
+    store().setHelp(true);
+    expect(store()).toMatchObject({ help: true, find: undefined });
+    store().setHelp(false);
+  });
+
+  it("arranging shows the sidebar where it's hidden, and opens the drawer", () => {
+    store().change((c) => ({ ...c, hidden: true }));
+    store().arrange();
+    expect(store()).toMatchObject({ arranging: true, drawer: true });
+    expect(store().chrome.hidden).toBe(false);
+    store().stopArranging();
+    store().setDrawer(false);
+    expect(store()).toMatchObject({ arranging: false, drawer: false });
+  });
+});

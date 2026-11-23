@@ -8,9 +8,7 @@ import { refsFound } from "../refs/found";
 import { useRefs } from "../refs/known";
 import { usePlugins, useWorkspaceIfRead } from "../workspace/store";
 import { Empty, useTitle } from "../ui/kit";
-import { setFrameDim } from "./dim";
-import { setFrameHere, useFrameHere } from "./here";
-import { setFrameLayout } from "./layout";
+import { useChromeStore, useFrameHere } from "../chrome/store";
 import { type Frame, listen } from "./frame";
 import { frameBase, viewBase } from "./paths";
 import { onThemeChange, theme } from "./theme";
@@ -133,14 +131,14 @@ function PluginFrame({ name }: { name: string }) {
         },
         // The app has a backdrop up, as ws sees in its page: the shell
         // dims what's beside the frame (App.tsx) for as long as it has.
-        dim: setFrameDim,
+        dim: (on) => useChromeStore.getState().setFrameDim(on),
         // What the app asks ws to show of its own, over the frame.
         ui: uis,
         // What the app shows beyond its address: Find starts from it.
-        here: (n) => setFrameHere(name, n),
+        here: (n) => useChromeStore.getState().setFrameHere(name, n),
         // How the app wants the chrome: expanded, the shell folds its
         // sidebar (App.tsx).
-        chromeLayout: (mode) => setFrameLayout(name, mode),
+        chromeLayout: (mode) => useChromeStore.getState().setFrameLayout(name, mode),
         conversation,
       },
       setRefused,

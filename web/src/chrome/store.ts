@@ -1,7 +1,8 @@
+import type { V1 } from "@withworkspace/ui-lib/protocol";
 import { useEffect, useMemo, useRef } from "react";
 import { create } from "zustand";
 import type { TalkDetail, TalkGiven, TalkProposal } from "../api";
-import { besideAbout, besideFront, besideTabs, type ChromeState, closeBesideTab, openBeside, read, write } from "./chromeState";
+import { besideAbout, besideFront, besideTabs, type ChromeState, closeBesideTab, hideSidebar, openBeside, read, write } from "./chromeState";
 import { paneAt } from "./panes";
 
 // The window's state, in one store: how it's arranged (chromeState.ts:
@@ -13,7 +14,19 @@ import { paneAt } from "./panes";
 // knowing.
 //
 // How it's arranged is kept in the browser for the workspace, and is what
-// the window opens with next time. The rest is this page load's.
+// the window opens with next time. The rest is this page load's: what's
+// open over the window (Find, the keys, the sidebar as a drawer, the
+// sidebar being arranged), whether the daemon's been shut down from it,
+// and what a plugin's page in the frame has said of itself.
+
+// FrameHere is what a plugin's page says it shows beyond its address
+// (ws:here): an issue open in a panel over the board, by one of ws's
+// names. Find starts from it on that plugin's pages, over what the
+// address says.
+export interface FrameHere {
+  plugin: string;
+  name: string;
+}
 
 // PageGives is what the open page gives a conversation beside it: what
 // only the page has. A conversation beside is a tab like any other;
@@ -68,6 +81,27 @@ interface ChromeStore {
   // How many times each tab's been asked to take the keys, until it has.
   keys: Record<string, number>;
 
+  // Find, open: with what it starts with typed ("/" for files, from ⌘P).
+  // Undefined is closed.
+  find?: string;
+  // The keys' list is open.
+  help: boolean;
+  // On a narrow window the sidebar's a drawer: open or not.
+  drawer: boolean;
+  // The sidebar's being arranged: its places, and which are in the menu.
+  arranging: boolean;
+  // The daemon was shut down from this window: the page went with it.
+  closed: boolean;
+  // What a plugin's page in the frame says (plugins/Plugin.tsx), for the
+  // shell, far from it in the tree. dim: its app has a backdrop up, which
+  // can only dim the frame, so the shell dims what's beside the frame in
+  // the same scrim, and the two read as one. here: what it shows beyond
+  // its address. expanded: the plugin whose page asked for ws's chrome
+  // expanded (ws:chrome-layout): the shell folds its sidebar to a rail
+  // while ws is on that plugin's pages. Each is forgotten when the page
+  // goes.
+  frame: { dim: boolean; here?: FrameHere; expanded?: string };
+
   setRoot: (root: string | undefined) => void;
   // A change to how it's arranged, as a function of it (chromeState.ts's).
   change: (by: (s: ChromeState) => ChromeState) => void;
@@ -84,6 +118,24 @@ interface ChromeStore {
   // takeKeys is a pane taking the keys it was asked to: true once for
   // each asking, whenever the pane comes to it.
   takeKeys: (to: string) => boolean;
+
+  // Find, opened (with what it starts with typed) and closed; the keys'
+  // list, which takes Find's place if that's open.
+  openFind: (start?: string) => void;
+  closeFind: () => void;
+  setHelp: (open: boolean) => void;
+  setDrawer: (open: boolean | ((was: boolean) => boolean)) => void;
+  // arrange starts arranging the sidebar, where it is: shown, and on a
+  // narrow window, the drawer open. stopArranging ends it, unsaved.
+  arrange: () => void;
+  stopArranging: () => void;
+  daemonClosed: () => void;
+  // What the frame's page says. None (here), or standard (layout), from
+  // a plugin whose page isn't the one that said the last leaves that
+  // one's: a page going as another comes doesn't undo the new one's.
+  setFrameDim: (on: boolean) => void;
+  setFrameHere: (plugin: string, name: string | undefined) => void;
+  setFrameLayout: (plugin: string, mode: V1.ChromeMode) => void;
 }
 
 export const useChromeStore = create<ChromeStore>()((set, get) => ({
@@ -92,6 +144,12 @@ export const useChromeStore = create<ChromeStore>()((set, get) => ({
   here: undefined,
   gives: {},
   keys: {},
+  find: undefined,
+  help: false,
+  drawer: false,
+  arranging: false,
+  closed: false,
+  frame: { dim: false },
 
   setRoot: (root) => {
     const of = root ?? "";
@@ -144,7 +202,48 @@ export const useChromeStore = create<ChromeStore>()((set, get) => ({
     });
     return true;
   },
+
+  openFind: (start = "") => set({ find: start }),
+  closeFind: () => {
+    if (get().find !== undefined) set({ find: undefined });
+  },
+  setHelp: (open) => set(open ? { help: true, find: undefined } : { help: false }),
+  setDrawer: (open) => {
+    const to = typeof open === "function" ? open(get().drawer) : open;
+    if (to !== get().drawer) set({ drawer: to });
+  },
+  arrange: () => {
+    get().change((c) => hideSidebar(c, false));
+    set({ arranging: true, drawer: true });
+  },
+  stopArranging: () => {
+    if (get().arranging) set({ arranging: false });
+  },
+  daemonClosed: () => set({ closed: true }),
+  setFrameDim: (on) => {
+    if (on !== get().frame.dim) set((s) => ({ frame: { ...s.frame, dim: on } }));
+  },
+  setFrameHere: (plugin, name) => {
+    const was = get().frame.here;
+    const next = name ? { plugin, name } : was?.plugin === plugin ? undefined : was;
+    if (next === was || (next && was && next.plugin === was.plugin && next.name === was.name)) return;
+    set((s) => ({ frame: { ...s.frame, here: next } }));
+  },
+  setFrameLayout: (plugin, mode) => {
+    const was = get().frame.expanded;
+    const next = mode === "expanded" ? plugin : was === plugin ? undefined : was;
+    if (next !== was) set((s) => ({ frame: { ...s.frame, expanded: next } }));
+  },
 }));
+
+// What the frame's page said, for the shell: whether to dim what's beside
+// the frame, what the page shows, and the plugin whose page asked for the
+// chrome expanded. (They're drawn in the turn they change, as anything
+// read from the store is: the dim comes and goes with the app's
+// backdrop.)
+export const useFrameDim = (): boolean => useChromeStore((s) => s.frame.dim);
+export const useFrameHere = (): FrameHere | undefined => useChromeStore((s) => s.frame.here);
+export const useFrameExpanded = (): string | undefined => useChromeStore((s) => s.frame.expanded);
 
 // drawable is whether a tab has a pane to draw: its address has one, and
 // for a conversation that hasn't begun, the page it's about is the one
