@@ -31,6 +31,13 @@ type CapsuleView struct {
 	Head   string // the commit it's at, for one that exists
 	PR     *github.PR
 	PRS    mission.PRState
+	// LastSeen is its pull request as ws last saw it, open, where
+	// GitHub's lists as ws has them don't have it: ws has only just
+	// opened it, or its daemon's only just started and hasn't asked yet.
+	// It's what a page says of it meanwhile, so a mission that's waiting
+	// on a pull request isn't one nobody's on. PR stays nil: nothing acts
+	// on what was seen, only on what GitHub says.
+	LastSeen *mission.PRFacts
 	// Direct: its repo takes commits straight to the default branch, with
 	// no pull request. Then Ahead is how many it has to land, Dirty whether
 	// it has changes not committed, and Approved whether your latest review
@@ -131,6 +138,16 @@ func buildMissionViews(g capsuleGit, ws *workspace.Workspace, prs PRIndex, missi
 				cv.PR, cv.PRS = pr, mission.PROpen
 			} else if pr := LookupPR(r.merged, cv.Branch, c.Name); pr != nil {
 				cv.PR, cv.PRS = pr, mission.PRMerged
+			} else if seen := c.SeenPR; seen != nil && seen.Number > 0 && !seen.Merged && !seen.Closed {
+				cv.LastSeen = &mission.PRFacts{
+					Capsule: c.Repo + "/" + c.Name, Ref: fmt.Sprintf("%s#%d", c.Repo, seen.Number),
+					Review: seen.Review, Checks: seen.Checks,
+					// Nothing seen of how it stands: it's only been opened.
+					Unasked: seen.Review == "" && seen.Checks == "",
+				}
+				if web := ws.RemoteOf(c.Repo).URL(); web != "" {
+					cv.LastSeen.URL = fmt.Sprintf("%s/pull/%d", web, seen.Number)
+				}
 			}
 			if cv.Direct = ws.Direct(c.Repo); cv.Direct && cv.Exists && c.Landed == nil {
 				cv.Ahead = g.commitsSince(cv.Path, "origin/"+ws.DefaultBranch)
@@ -341,6 +358,9 @@ func MissionSnapshot(v MissionView, brief string, events []mission.Event, rr []r
 			s.Direct = append(s.Direct, mission.DirectFacts{Capsule: c.Repo + "/" + c.Name, Branch: v.DefaultBranch, Ahead: c.Ahead, Dirty: c.Dirty, Approved: c.Approved})
 		}
 		if c.PR == nil {
+			if c.LastSeen != nil {
+				s.PRs = append(s.PRs, *c.LastSeen)
+			}
 			continue
 		}
 		s.PRs = append(s.PRs, mission.PRFacts{

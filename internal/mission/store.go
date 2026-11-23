@@ -1016,6 +1016,33 @@ func (s Store) EndLaunching(slug string, l Launching) error {
 	return err
 }
 
+// StartMoving marks ws moving the plan on from step n: from now until
+// EndMoving. One underway already stands, and is returned: a step passed
+// inside another's passing is one move.
+func (s Store) StartMoving(slug string, n int) (Moving, error) {
+	mv := Moving{Step: n, Since: now()}
+	_, err := s.Update(slug, func(m *Mission) error {
+		if m.Moving != nil {
+			mv = *m.Moving
+			return nil
+		}
+		m.Moving = &mv
+		return nil
+	})
+	return mv, err
+}
+
+// EndMoving ends the mark mv, if it still stands.
+func (s Store) EndMoving(slug string, mv Moving) error {
+	_, err := s.Update(slug, func(m *Mission) error {
+		if o := m.Moving; o != nil && o.Since.Equal(mv.Since) && o.Step == mv.Step {
+			m.Moving = nil
+		}
+		return nil
+	})
+	return err
+}
+
 // StartWritingPR marks the PR writer writing p.Capsule's pull request.
 // One underway already stands, and is returned with false: it's one pull
 // request, written once.

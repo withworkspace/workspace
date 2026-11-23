@@ -158,7 +158,14 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 	if c, ok := m.CrewByID(crewID); ok {
 		done = c.DoneKey()
 	}
-	round, err := w.Missions.RecordChecks(slug, st.N, mission.CheckRound{Crew: crewID, Done: done, Capsule: capsule, Commit: commit, Results: results})
+	all := mission.CheckRound{Crew: crewID, Done: done, Capsule: capsule, Commit: commit, Results: results}
+	if all.Met() {
+		// Recording the round ends ws's checking, and it's ws's until the
+		// step has passed and the next is reached: marked before, so
+		// there's no moment between with nobody on it.
+		defer w.moving(slug, st.N)()
+	}
+	round, err := w.Missions.RecordChecks(slug, st.N, all)
 	if err != nil {
 		return "", err
 	}

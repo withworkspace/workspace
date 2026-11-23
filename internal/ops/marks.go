@@ -17,8 +17,10 @@ import (
 // report (or, with no hooks of ws's in their session, until they've been
 // handed their prompt); the planner's turn (briefing the mission, or coming
 // back to its plan) from when it's asked for until the run that has it is
-// over, its reply recorded. No mark lapses with time, and none is read
-// from whether a process is alive.
+// over, its reply recorded; passing a step and reaching the next (moving)
+// from before it's passed until what the next begins with is marked or
+// asked. No mark lapses with time, and none is read from whether a process
+// is alive.
 
 // launching marks ws starting crew on a mission, for what (launchWhat),
 // and returns what ends the mark: a no-op once crew recorded under it
@@ -52,6 +54,19 @@ func (w *Workspace) launchingOnConfirm(slug string) func(slug string) {
 		return func(string) {}
 	}
 	return func(slug string) { w.Missions.EndLaunching(slug, l) } //nolint:errcheck // a mark
+}
+
+// moving marks ws moving the plan on from step n, and returns what ends
+// the mark: held from before the step is passed until what the next step
+// begins with has been marked or asked, so at no moment between is the
+// mission at a step with nobody on it. Deferred wherever a step is passed
+// and the next reached.
+func (w *Workspace) moving(slug string, n int) func() {
+	mv, err := w.Missions.StartMoving(slug, n)
+	if err != nil {
+		return func() {}
+	}
+	return func() { w.Missions.EndMoving(slug, mv) } //nolint:errcheck // a mark
 }
 
 // startsCrew reports whether reaching st starts crew at once, as reachStep

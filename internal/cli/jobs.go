@@ -180,6 +180,10 @@ func reconcileJobs(root string, q *job.Queue, logf func(string, ...any)) {
 			logf("the planner's turn in %s of %s was underway when the server before this one went: it's over", m.Planning.In, m.Slug)
 			mission.Store{Root: root}.EndPlanning(m.Slug, m.Planning.In)
 		}
+		if m.Moving != nil {
+			logf("ws was moving %s on from step %d when the server before this one went: it's where it got to", m.Slug, m.Moving.Step)
+			mission.Store{Root: root}.EndMoving(m.Slug, *m.Moving)
+		}
 		if m.Launching != nil {
 			logf("crew were being started on %s when the server before this one went: they weren't", m.Slug)
 			mission.Store{Root: root}.EndLaunching(m.Slug, *m.Launching)
