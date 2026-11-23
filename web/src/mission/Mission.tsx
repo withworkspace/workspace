@@ -1,6 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { Button as AriaButton, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import {
   act,
   type ActVerb,
@@ -56,6 +55,8 @@ import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary as SummaryList, SummaryRow } from "../ui/Summary";
 import { Segment, Segmented } from "../ui/Segmented";
+import { cx } from "../ui/cx";
+import { Menu, MenuItem } from "../ui/Menu";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -1086,25 +1087,27 @@ function LaunchCrew({
   return (
     <div className="split-button">
       {main}
-      <MenuTrigger>
-        <AriaButton className={`split-toggle${primary ? " primary" : ""}`} isDisabled={busy} aria-label="Launch crew on another agent or model" data-field>
-          <Icon name="chevron-down" size={13} />
-        </AriaButton>
-        <Popover className="select-popover" placement="bottom end" offset={4} data-field>
-          <Menu className="select-list" aria-label="Launch crew on" onAction={(k) => launch(k === "0" ? undefined : all[Number(k)])}>
-            {all.map((p, i) => (
-              <MenuItem key={pickName(p)} id={String(i)} textValue={pickName(p)} className="select-option split-pick">
-                <span className="split-pick-name mono">
-                  {p.harness}
-                  {p.model ? ` · ${p.model}` : ""}
-                </span>
-                {!p.model && <span className="dim">its own model</span>}
-                {i === 0 && <Chip>default</Chip>}
-              </MenuItem>
-            ))}
-          </Menu>
-        </Popover>
-      </MenuTrigger>
+      <Menu
+        placement="bottom end"
+        aria-label="Launch crew on"
+        onAction={(k) => launch(k === "0" ? undefined : all[Number(k)])}
+        trigger={
+          <Button variant={primary ? "primary" : undefined} className={cx("split-toggle", primary && "split-toggle-primary")} disabled={busy} aria-label="Launch crew on another agent or model" data-field>
+            <Icon name="chevron-down" size={13} />
+          </Button>
+        }
+      >
+        {all.map((p, i) => (
+          <MenuItem key={pickName(p)} id={String(i)} textValue={pickName(p)}>
+            <span className="split-pick-name mono">
+              {p.harness}
+              {p.model ? ` · ${p.model}` : ""}
+            </span>
+            {!p.model && <span className="dim">its own model</span>}
+            {i === 0 && <Chip>default</Chip>}
+          </MenuItem>
+        ))}
+      </Menu>
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Button as AriaButton, Header, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { Link } from "react-router";
 import { act, type ActOpts, type ActVerb, type Bundle, type BundleEvidence, type BundleTry, type MissionDetail } from "../api";
 import type { Reload } from "../load";
@@ -33,6 +32,8 @@ import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
+import { cx } from "../ui/cx";
+import { Menu, MenuItem, MenuSection, MenuSeparator, MenuText } from "../ui/Menu";
 
 // The mission's Verify tab: its verification bundles, what crew handed
 // over to show their work is as its checks say. Those yours to approve are
@@ -309,28 +310,30 @@ function BundleRow({ bundles, open, pick }: { bundles: Bundle[]; open: Bundle; p
 function BundleMenu({ groups, label, pick, end }: { groups: { group: BundleGroup; bundles: Bundle[] }[]; label: string; pick: (id?: string) => void; end?: boolean }) {
   // data-field: keys typed in the menu are its own, not the page's (keys.ts).
   return (
-    <MenuTrigger>
-      <AriaButton className={`verify-more${end ? " verify-more-end" : ""}`} data-field>
-        {label} <Icon name="chevron-down" size={12} />
-      </AriaButton>
-      <Popover className="select-popover verify-menu" placement={end ? "bottom end" : "bottom"} offset={4} data-field>
-        <Menu className="select-list" aria-label="This mission's verification bundles" onAction={(k) => pick(String(k))}>
-          {groups.flatMap((g, i) => [
-            ...(i > 0 ? [<Separator key={`sep-${g.group}`} className="menu-separator" />] : []),
-            <MenuSection key={g.group}>
-              <Header className="menu-header">{groupTitles[g.group]}</Header>
-              {g.bundles.map((b) => (
-                <MenuItem key={b.id} id={b.id} textValue={`${b.id} ${stepTitle(b)}`} className={`select-option verify-menu-item${g.group === "stale" ? " verify-menu-stale" : ""}`}>
-                  <span className="ref">{b.id}</span>
-                  <span className="select-option-text">{stepTitle(b)}</span>
-                  <span className={`verify-bundle-state${standingTone(b)}`}>{standing(b)}</span>
-                </MenuItem>
-              ))}
-            </MenuSection>,
-          ])}
-        </Menu>
-      </Popover>
-    </MenuTrigger>
+    <Menu
+      className="verify-menu"
+      placement={end ? "bottom end" : "bottom"}
+      aria-label="This mission's verification bundles"
+      onAction={pick}
+      trigger={
+        <Button className={cx("verify-more", end && "verify-more-end")} data-field>
+          {label} <Icon name="chevron-down" size={12} />
+        </Button>
+      }
+    >
+      {groups.flatMap((g, i) => [
+        ...(i > 0 ? [<MenuSeparator key={`sep-${g.group}`} />] : []),
+        <MenuSection key={g.group} title={groupTitles[g.group]}>
+          {g.bundles.map((b) => (
+            <MenuItem key={b.id} id={b.id} textValue={`${b.id} ${stepTitle(b)}`} className={cx("verify-menu-item", g.group === "stale" && "verify-menu-stale")}>
+              <span className="ref">{b.id}</span>
+              <MenuText>{stepTitle(b)}</MenuText>
+              <span className={`verify-bundle-state${standingTone(b)}`}>{standing(b)}</span>
+            </MenuItem>
+          ))}
+        </MenuSection>,
+      ])}
+    </Menu>
   );
 }
 

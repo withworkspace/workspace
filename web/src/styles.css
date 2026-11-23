@@ -430,22 +430,6 @@ button.switch:disabled {
   color: var(--dim);
 }
 
-.select-popover {
-  display: flex;
-  flex-direction: column;
-  min-width: var(--trigger-width);
-  max-width: min(480px, calc(100vw - 16px));
-  background: var(--raised);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
-  outline: none;
-}
-
-.select-popover[data-entering] {
-  animation: fade var(--fast) var(--ease);
-}
-
 .select-list {
   min-height: 0;
   overflow-y: auto;
@@ -510,7 +494,7 @@ button.switch:disabled {
   margin-left: -1px;
 }
 
-.split-toggle.primary {
+.split-toggle-primary {
   margin-left: 0;
   border-left: 1px solid color-mix(in srgb, var(--on-primary) 30%, transparent);
 }
@@ -520,7 +504,7 @@ button.switch:disabled {
   background: var(--hover);
 }
 
-.split-toggle.primary[aria-expanded="true"] {
+.split-toggle-primary[aria-expanded="true"] {
   color: var(--on-primary-hover);
   background: var(--primary-hover);
 }
@@ -1047,27 +1031,6 @@ main > .banner {
   display: inline;
 }
 
-.menu-separator {
-  height: 1px;
-  margin: 4px 2px;
-  background: var(--line);
-}
-
-/* A menu's sections are its own groups, not the page's: no gap after. */
-.select-list section {
-  margin: 0;
-}
-
-.menu-header {
-  padding: 4px 6px 2px;
-  font-size: var(--text-sm);
-  color: var(--dim);
-}
-
-.select-option.danger {
-  color: var(--red);
-}
-
 .mark {
   display: grid;
   place-items: center;
@@ -1138,11 +1101,11 @@ main > .banner {
   margin-left: auto;
 }
 
-.workspace-menu .select-option.current {
+.menu-current {
   font-weight: 500;
 }
 
-.workspace-menu .select-option.current .icon {
+.menu-current .icon {
   color: var(--accent);
 }
 
@@ -1385,7 +1348,6 @@ main.stale > :not(.connection-banner) {
   --backdrop: var(--bg);
 }
 
-.select-popover,
 .dialog,
 .palette,
 .file,
@@ -6256,7 +6218,7 @@ dd > .more-link,
   background: var(--hover);
 }
 
-.select-popover.verify-menu {
+.verify-menu {
   min-width: 340px;
 }
 
@@ -18409,8 +18371,8 @@ a.plugin-row-out {
 }
 
 /* In the workspace's menu: a later release is out. */
-.workspace-menu .select-option.later,
-.workspace-menu .select-option.later .icon {
+.menu-later,
+.menu-later .icon {
   color: var(--accent);
 }
 

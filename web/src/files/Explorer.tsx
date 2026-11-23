@@ -1,5 +1,4 @@
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button as AriaButton, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { capsuleAPI, docRef, type FileTree, type FileView, getFile, getTree, pageOpenTo, rawURL, type TreeFile, type Workspace } from "../api";
 import { useKeys, useOwnCodeSearch } from "../keys";
@@ -20,6 +19,7 @@ import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Segment, Segmented } from "../ui/Segmented";
+import { Menu, MenuItem } from "../ui/Menu";
 
 // The file explorer: a capsule's files as they are now, without an editor
 // open. A tree on the left (everything, or only what's changed since the
@@ -189,28 +189,34 @@ function PanesMenu({ shown, most, other }: { shown: Panes; most: Panes; other?: 
   const choices = ([3, 2, 1] as Panes[]).filter((n) => n <= most && (!other || n > 1));
   const now: Panes = other && shown === 1 ? 2 : shown;
   return (
-    <MenuTrigger>
-      <AriaButton className="ghost icon-button panes-button" aria-label={`Panes: ${words(now).label}`}>
-        <PanesGlyph n={now} />
-      </AriaButton>
-      <Popover className="select-popover panes-popover" placement="bottom start" offset={4}>
-        <Menu className="select-list" aria-label="Panes" onAction={(k) => setPanes(Number(k) as Panes)}>
-          {choices.map((n) => (
-            <MenuItem key={n} id={String(n)} textValue={words(n).label} className="select-option panes-option">
-              <PanesGlyph n={n} />
-              <span className="panes-option-words">
-                <span>{words(n).label}</span>
-                <span className="dim">{words(n).sub}</span>
-              </span>
-              {n === now && <Icon name="check" size={13} className="panes-check" />}
-            </MenuItem>
-          ))}
-        </Menu>
+    <Menu
+      className="panes-popover"
+      aria-label="Panes"
+      onAction={(k) => setPanes(Number(k) as Panes)}
+      // p switches them, with the menu open too.
+      pageKeys
+      trigger={
+        <Button variant="ghost" square className="panes-button" aria-label={`Panes: ${words(now).label}`}>
+          <PanesGlyph n={now} />
+        </Button>
+      }
+      foot={
         <div className="panes-keys dim">
           Switch with <Keys k="p" />
         </div>
-      </Popover>
-    </MenuTrigger>
+      }
+    >
+      {choices.map((n) => (
+        <MenuItem key={n} id={String(n)} textValue={words(n).label} className="panes-option">
+          <PanesGlyph n={n} />
+          <span className="panes-option-words">
+            <span>{words(n).label}</span>
+            <span className="dim">{words(n).sub}</span>
+          </span>
+          {n === now && <Icon name="check" size={13} className="panes-check" />}
+        </MenuItem>
+      ))}
+    </Menu>
   );
 }
 
