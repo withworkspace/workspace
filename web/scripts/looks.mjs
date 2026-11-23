@@ -154,7 +154,7 @@ const mark = (of) =>
       if (r.width < 2 || r.height < 2 || cs.visibility === "hidden" || el.closest("[aria-hidden='true'], [inert]")) continue;
       el.setAttribute("data-looks", String(n));
       const classes = [...el.classList].map((c) => c.replace(/_[A-Za-z0-9-]{5}$/, "")).join(" ");
-      seen.push({ n, what: el.tagName.toLowerCase() + (el.type && el.tagName === "INPUT" ? "[" + el.type + "]" : ""), says: (el.getAttribute("aria-label") || el.getAttribute("placeholder") || el.getAttribute("title") || el.id || (el.textContent || "").trim().slice(0, 40) || "").slice(0, 70), classes });
+      seen.push({ n, what: el.tagName.toLowerCase() + (el.type && el.tagName === "INPUT" ? "[" + el.type + "]" : ""), says: (el.getAttribute("aria-label") || el.getAttribute("placeholder") || el.getAttribute("title") || (el.textContent || "").trim().slice(0, 40) || el.id || "").slice(0, 70), classes });
       n++;
     }
     return seen;
