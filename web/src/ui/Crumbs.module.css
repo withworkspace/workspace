@@ -1,0 +1,28 @@
+/* Where a page is in, over its head (Crumbs.tsx): small and quiet. */
+
+@layer ui {
+  .crumbs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: var(--text-sm);
+    color: var(--dim);
+  }
+
+  .crumbs a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: var(--radius-sm);
+    transition: color var(--fast) var(--ease);
+  }
+
+  .crumbs a:hover {
+    color: var(--fg);
+  }
+
+  .sep {
+    color: var(--faint);
+  }
+}

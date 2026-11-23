@@ -46,6 +46,7 @@ import { ToggleButton } from "../ui/ToggleButton";
 import { Input } from "../ui/Input";
 import { TextArea } from "../ui/TextArea";
 import { Composer } from "../ui/Composer";
+import { PageBar } from "../ui/PageBar";
 import { Turn, TurnAvatar, TurnHead, TurnSaid, turnTimeClass } from "../ui/Turn";
 import { Change } from "../ui/Change";
 import { Excerpt } from "../ui/Excerpt";
@@ -351,7 +352,7 @@ export function TalkPage() {
   // is the page never still), unless you've scrolled up to read, when a
   // pill says there's more. It only ever moves down by itself.
   const page = useRef<HTMLDivElement>(null);
-  const head = useRef<HTMLElement>(null);
+  const head = useRef<HTMLDivElement>(null);
   const reply = useRef<HTMLDivElement>(null); // the latest reply's words
   const follow = useRef(true);
   const opened = useRef(0); // when it was first drawn; 0 before
@@ -524,14 +525,40 @@ export function TalkPage() {
   if (was.current.answering && !answering && latestReply !== undefined) landed.current.turns.add(latestReply);
   return (
     <div className={`page talk-page${side ? " with-side" : ""}`} ref={page}>
-      <header className="talk-bar" ref={head}>
-        <Link to={back} className="ghost-link back" title={slug ? `Back to ${mission?.title ?? slug}` : "Back to the conversations"}>
-          <Icon name="arrow-left" size={15} />
-          <span className="sr-only">Back</span>
-        </Link>
-        <h1 title={title}>{d ? title : <span className="skeleton-title" />}</h1>
+      <PageBar
+        ref={head}
+        className="talk-pagebar"
+        back={{ to: back, title: slug ? `Back to ${mission?.title ?? slug}` : "Back to the conversations" }}
+        status={st && <Status s={st} iconOnly size={16} />}
+        title={d ? title : undefined}
+        actions={
+          <>
+            {slug && d?.goal === "brief" && (
+              <Link to={`/missions/${slug}/brief`} className={buttonClass({ size: "small" })} title="The brief and plan it's about, on their own page: what it proposes for them is read and confirmed there">
+                <Icon name="file" size={13} /> The brief
+              </Link>
+            )}
+            {became && (
+              <Link to={`/missions/${became}`} className={buttonClass({ size: "small" })}>
+                <Icon name="flag" size={13} /> Its mission
+              </Link>
+            )}
+            {wide && (
+              <ToggleButton variant="ghost" size="small" pressed={sideOn} onChange={toggleSide} title="Beside the conversation: what's to confirm, what it's made, what it names, and its summary so far">
+                <Icon name="panel" size={12} /> Details
+              </ToggleButton>
+            )}
+            {d && (
+              <Button onClick={toggle} title={`${d.status === "resolved" ? "Reopen" : "Resolve"} (x)`}>
+                <Icon name={d.status === "resolved" ? "rotate" : "check"} size={13} />
+                {d.status === "resolved" ? "Reopen" : "Resolve"}
+              </Button>
+            )}
+          </>
+        }
+      >
+        {!slug && <PagePin r={{ kind: "talk", id }} />}
         <div className="talk-about">
-          {st && <Status s={st} />}
           {slug && (
             <Link to={`/missions/${slug}`} className="talk-mission" title="The mission it's about">
               <Icon name="flag" size={11} /> {mission?.title ?? slug}
@@ -557,31 +584,7 @@ export function TalkPage() {
           )}
           {d && <Time iso={d.at} as="relative" className="dim" />}
         </div>
-        <div className="talk-actions">
-          {!slug && <PagePin r={{ kind: "talk", id }} />}
-          {slug && d?.goal === "brief" && (
-            <Link to={`/missions/${slug}/brief`} className={buttonClass({ size: "small" })} title="The brief and plan it's about, on their own page: what it proposes for them is read and confirmed there">
-              <Icon name="file" size={13} /> The brief
-            </Link>
-          )}
-          {became && (
-            <Link to={`/missions/${became}`} className={buttonClass({ size: "small" })}>
-              <Icon name="flag" size={13} /> Its mission
-            </Link>
-          )}
-          {wide && (
-            <ToggleButton variant="ghost" size="small" pressed={sideOn} onChange={toggleSide} title="Beside the conversation: what's to confirm, what it's made, what it names, and its summary so far">
-              <Icon name="panel" size={12} /> Details
-            </ToggleButton>
-          )}
-          {d && (
-            <Button onClick={toggle} title={`${d.status === "resolved" ? "Reopen" : "Resolve"} (x)`}>
-              <Icon name={d.status === "resolved" ? "rotate" : "check"} size={13} />
-              {d.status === "resolved" ? "Reopen" : "Resolve"}
-            </Button>
-          )}
-        </div>
-      </header>
+      </PageBar>
       <div className="talk-main">
         {error && <ErrorCard error={error} retry={load} />}
         {d?.summary && !side && (

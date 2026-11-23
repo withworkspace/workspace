@@ -23,8 +23,8 @@ import { type KeyMap, useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { TalkList, talkHref } from "../talk/Talk";
 import { Icon, type IconName } from "../ui/Icon";
+import { Crumbs } from "../ui/Crumbs";
 import { CheckingNow, checkingTitle } from "./checking";
-import { TLink } from "../ui/TLink";
 import { Inline, plain } from "../ui/inline";
 import { Callout, type CalloutTone, Copyable, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useTitle } from "../ui/kit";
 import { headlineStatus, missionStateStatus, Status } from "../ui/status";
@@ -52,6 +52,7 @@ import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { Clamp } from "../ui/Clamp";
+import { PageBar, pageBarTabsClass } from "../ui/PageBar";
 import { MoreLink } from "../ui/MoreLink";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary as SummaryList, SummaryRow } from "../ui/Summary";
@@ -275,13 +276,9 @@ export function MissionPage() {
 
   // The bar's ends, the same while the mission loads as once it has: back
   // to the missions, and the tabs (with what's waiting in each, once known).
-  const backLink = (
-    <TLink to="/" className="mission-back" title="Missions (esc)" aria-label="Back to the missions">
-      <Icon name="arrow-left" size={15} />
-    </TLink>
-  );
+  const wayBack = { to: "/", title: "Missions (esc)", label: "Back to the missions" };
   const tabRow = (count?: (t: Tab) => ReactNode) => (
-    <Tabs className="mission-tabs" value={tab} onChange={setTab} controls="mission-panel" aria-label="Mission">
+    <Tabs className={pageBarTabsClass()} value={tab} onChange={setTab} controls="mission-panel" aria-label="Mission">
       {tabs.map((t) => (
         <Tab key={t} value={t} title={`${tabNames[t]} (${tabs.indexOf(t) + 1})`}>
           {tabNames[t]}
@@ -294,7 +291,7 @@ export function MissionPage() {
   if (error && !d) {
     return (
       <div className="page narrow">
-        <Crumbs />
+        <Crumbs steps={[{ to: "/", label: "Missions" }]} />
         <ErrorCard
           title={/not found|no mission/i.test(error) ? "There's no mission here" : "Couldn't load this mission"}
           error={/not found|no mission/i.test(error) ? `No mission is called ${slug}: it may have been renamed or deleted.` : error}
@@ -316,24 +313,7 @@ export function MissionPage() {
         <div className="timeline" aria-hidden>
           <div className="timeline-track" />
         </div>
-        <div className="mission-bar">
-          <div className="mission-bar-in">
-            <header className="mission-head">
-              {backLink}
-              {listed && <Status s={headlineStatus(listed.headline)} iconOnly size={16} className="mission-status" />}
-              {listed ? (
-                <h1 className="mission-title">
-                  <span className="mission-title-text" title={listed.title}>
-                    {listed.title}
-                  </span>
-                </h1>
-              ) : (
-                <h1 className="skeleton-title">&nbsp;</h1>
-              )}
-            </header>
-            {tabRow()}
-          </div>
-        </div>
+        <PageBar className="mission-bar" back={wayBack} status={listed && <Status s={headlineStatus(listed.headline)} iconOnly size={16} />} title={listed?.title} tabs={tabRow()} />
         <div className="page mission">
           <div className="mission-main" data-page-scroller="">
             <Skeleton rows={6} />
@@ -358,46 +338,54 @@ export function MissionPage() {
   const standing = d.bundles.filter((b) => !b.replacedBy).length;
 
   const parts = { d, selected, openArtifact, review, go: setTab, reload: load };
+  const rename = (to: string) =>
+    act(d.slug, "title", { text: to }).then(
+      (r) => {
+        toast(r.message, { tone: "done" });
+        load();
+      },
+      (e: Error) => toast(humanError(e.message), { tone: "danger" }),
+    );
   return (
     <MissionData.Provider value={d}>
     <RefContext.Provider value={refs}>
     <div className={`mission-page${tab === "verify" || tab === "work" || tab === "brief" ? " fills" : ""}`}>
       <Timeline d={d} />
-      <div className="mission-bar">
-        <div className="mission-bar-in">
-          <header className="mission-head">
-            {backLink}
-            {d.headlines[0] && <Status s={headlineStatus(d.headlines[0])} iconOnly size={16} className="mission-status" />}
-            <Title d={d} reload={load} />
-            <PagePin r={{ kind: "mission", slug: d.slug }} />
-          </header>
-          {tabRow((t) => (
-            <>
-              {t === "brief" && briefWaiting > 0 && (
-                <Count tone="attention" title={planning?.proposed ? "Its planner proposed something, for you to confirm" : "Its planner's waiting on you"}>
-                  {briefWaiting}
-                </Count>
-              )}
-              {t === "verify" && waitingBundles > 0 && (
-                <Count tone="attention" title="Verification bundles waiting for you to approve">
-                  {waitingBundles}
-                </Count>
-              )}
-              {t === "verify" && !waitingBundles && standing > 0 && (
-                <Count title="Verification bundles, handed over to show the work">
-                  {standing}
-                </Count>
-              )}
-              {t === "talk" && waitingTalks > 0 && (
-                <Count tone="attention" title="Your turn, or something to confirm">
-                  {waitingTalks}
-                </Count>
-              )}
-            </>
-          ))}
-        </div>
-        {tab !== "summary" && <DetailSide {...parts} updated={updated} about={about} over open={over} />}
-      </div>
+      <PageBar
+        className="mission-bar"
+        back={wayBack}
+        status={d.headlines[0] && <Status s={headlineStatus(d.headlines[0])} iconOnly size={16} />}
+        title={d.title}
+        onRename={rename}
+        renameLabel="Rename the mission"
+        tabs={tabRow((t) => (
+          <>
+            {t === "brief" && briefWaiting > 0 && (
+              <Count tone="attention" title={planning?.proposed ? "Its planner proposed something, for you to confirm" : "Its planner's waiting on you"}>
+                {briefWaiting}
+              </Count>
+            )}
+            {t === "verify" && waitingBundles > 0 && (
+              <Count tone="attention" title="Verification bundles waiting for you to approve">
+                {waitingBundles}
+              </Count>
+            )}
+            {t === "verify" && !waitingBundles && standing > 0 && (
+              <Count title="Verification bundles, handed over to show the work">
+                {standing}
+              </Count>
+            )}
+            {t === "talk" && waitingTalks > 0 && (
+              <Count tone="attention" title="Your turn, or something to confirm">
+                {waitingTalks}
+              </Count>
+            )}
+          </>
+        ))}
+        under={tab !== "summary" && <DetailSide {...parts} updated={updated} about={about} over open={over} />}
+      >
+        <PagePin r={{ kind: "mission", slug: d.slug }} />
+      </PageBar>
       {tab === "brief" ? (
         // The brief has the page under the bar to itself: its panes reach
         // the page's edges, each scrolling by itself.
@@ -425,74 +413,6 @@ export function MissionPage() {
     </div>
     </RefContext.Provider>
     </MissionData.Provider>
-  );
-}
-
-function Crumbs() {
-  return (
-    <nav className="crumbs" aria-label="Breadcrumb">
-      <TLink to="/">
-        <Icon name="arrow-left" size={13} /> Missions
-      </TLink>
-    </nav>
-  );
-}
-
-// Title is the mission's name, renamed in place (a pencil on hover).
-function Title({ d, reload }: { d: MissionDetail; reload: Reload }) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(d.title);
-  const save = () => {
-    const t = value.trim();
-    setEditing(false);
-    if (!t || t === d.title) return;
-    act(d.slug, "title", { text: t }).then(
-      (r) => {
-        toast(r.message, { tone: "done" });
-        reload();
-      },
-      (e: Error) => toast(humanError(e.message), { tone: "danger" }),
-    );
-  };
-  if (editing) {
-    return (
-      <Input
-        className="title-input"
-        autoFocus
-        value={value}
-        maxLength={50}
-        aria-label="Mission title"
-        onChange={(e) => setValue(e.target.value)}
-        onBlur={save}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") save();
-          if (e.key === "Escape") {
-            e.preventDefault();
-            setValue(d.title);
-            setEditing(false);
-          }
-        }}
-      />
-    );
-  }
-  return (
-    <h1 className="mission-title">
-      <span className="mission-title-text" title={d.title}>
-        {d.title}
-      </span>
-      <Button
-        variant="ghost" size="small" square
-        className="rename"
-        onClick={() => {
-          setValue(d.title);
-          setEditing(true);
-        }}
-        title="Rename"
-        aria-label="Rename the mission"
-      >
-        <Icon name="pencil" size={12} />
-      </Button>
-    </h1>
   );
 }
 

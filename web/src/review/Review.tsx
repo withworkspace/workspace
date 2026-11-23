@@ -26,6 +26,7 @@ import {
 } from "../api";
 import { type KeyMap, useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
+import { Crumbs } from "../ui/Crumbs";
 import { Excerpt } from "../ui/Excerpt";
 import { NoteBody, NoteCard, NoteHead, NoteHint, NoteId, NoteStatus, NoteThread, NoteTurn } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
@@ -1023,11 +1024,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
       </aside>
       <div className="files-resize" role="separator" aria-orientation="vertical" title="Drag to make the list of files wider or narrower; double-click to put it back" onPointerDown={resizeFiles} onDoubleClick={resetFilesWidth} />
       <div className="diff-pane" ref={pane} onScroll={onPaneScroll}>
-        <nav className="crumbs review-crumbs" aria-label="Breadcrumb">
-          <Link to={source.back.to}>
-            <Icon name="arrow-left" size={13} /> {source.back.label}
-          </Link>
-        </nav>
+        <Crumbs className="review-crumbs" steps={[source.back]} />
         <header className="review-head">
           <h1>{source.name}</h1>
           {diff && (

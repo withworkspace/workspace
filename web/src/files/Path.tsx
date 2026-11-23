@@ -1,4 +1,5 @@
 import { Fragment, type KeyboardEvent, type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { Crumbs, CrumbSep } from "../ui/Crumbs";
 import { Link } from "react-router";
 import { type DocIn, GROUND, getSpace, getTree, type Space, type SpaceDoc, type SpaceRef, worktreeAPI } from "../api";
 import { Icon } from "../ui/Icon";
@@ -56,11 +57,11 @@ export function useShelves(where: DocIn | undefined, space: SpaceRef | undefined
 // each shelf it's on as a menu of what's there, and its own title.
 export function PathCrumbs({ from, on, title, open, toggle, nav }: { from: { to: string; label: string }; on: Shelf[]; title: string; open?: string; toggle: (id: string) => void; nav: RefObject<HTMLElement | null> }) {
   return (
-    <nav className="crumbs path-crumbs" aria-label="Breadcrumb" ref={nav}>
+    <Crumbs className="path-crumbs" ref={nav}>
       <Link to={from.to} className="crumb">
         {from.label}
       </Link>
-      <span className="sep">/</span>
+      <CrumbSep className="path-sep">/</CrumbSep>
       {on.map((s) => (
         <Fragment key={s.id}>
           <button
@@ -75,13 +76,13 @@ export function PathCrumbs({ from, on, title, open, toggle, nav }: { from: { to:
             {s.label}
             <Icon name="chevron-down" size={11} />
           </button>
-          <span className="sep">/</span>
+          <CrumbSep className="path-sep">/</CrumbSep>
         </Fragment>
       ))}
       <span className="crumb here" aria-current="page">
         {title}
       </span>
-    </nav>
+    </Crumbs>
   );
 }
 

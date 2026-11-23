@@ -1,9 +1,9 @@
 import { useMemo } from "react";
+import { Crumbs } from "../ui/Crumbs";
 import { Link, useParams } from "react-router";
 import { getOrchestrator, getOrchestratorRun, type OrchestratorInfo, type OrchestratorRun, type OrchestratorRunDetail, type Workspace } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Calls } from "../ui/Calls";
-import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { Callout, Copyable, Empty, ErrorCard, Skeleton, useTitle } from "../ui/kit";
 import { headlineStatus, Status, type StatusInfo } from "../ui/status";
@@ -162,13 +162,12 @@ export function OrchestratorRunPage() {
   const { value: d, error, reload: load } = useLoaded<OrchestratorRunDetail>(() => getOrchestratorRun(slug, id), [slug, id]);
   return (
     <div className="page narrow run-page">
-      <nav className="crumbs" aria-label="Breadcrumb">
-        <Link to={`/missions/${slug}`}>
-          <Icon name="arrow-left" size={13} /> {m?.title ?? slug}
-        </Link>
-        <span className="sep">·</span>
-        <Link to="/orchestrator">All runs</Link>
-      </nav>
+      <Crumbs
+        steps={[
+          { to: `/missions/${slug}`, label: m?.title ?? slug },
+          { to: "/orchestrator", label: "All runs" },
+        ]}
+      />
       <PageHead title="Orchestrator run">
         {d && <Status s={outcome(d)} className="mission-state" />}
       </PageHead>

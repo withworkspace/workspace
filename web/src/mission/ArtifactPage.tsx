@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
+import { Crumbs } from "../ui/Crumbs";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { AnnotatedDoc, annotateKeys } from "../annotate/Annotate";
 import { type ArtifactContent, type DocDraft, dropDraft, getArtifact, getDraft, kindHint, placeOf } from "../api";
 import { useKeys } from "../keys";
@@ -94,11 +95,7 @@ export function ArtifactPage() {
 
   return (
     <div className={`page artifact-page${annotating ? " annotating" : ""}`}>
-      <nav className="crumbs" aria-label="Breadcrumb">
-        <Link to={`/missions/${slug}?tab=work`}>
-          <Icon name="arrow-left" size={13} /> {mission?.title ?? slug}
-        </Link>
-      </nav>
+      <Crumbs steps={[{ to: `/missions/${slug}?tab=work`, label: mission?.title ?? slug }]} />
       {/* A document that starts with its own title is its own heading. */}
       {!(a?.markdown && /^#\s/.test(a.text.trimStart())) && (
         <PageHead title={named?.title ?? (a ? a.ref : "")} />

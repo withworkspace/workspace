@@ -11,6 +11,7 @@ import { getNavNow } from "../review/nav";
 import { fuzzy, marked } from "../ui/fuzzy";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon, type IconName } from "../ui/Icon";
+import { Crumbs } from "../ui/Crumbs";
 import { Callout, Copyable, Empty, ErrorCard, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
 import { useLoaded } from "../load";
 import { TabbedBrowser } from "./WorktreeTabs";
@@ -635,11 +636,7 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
 
 function ExplorerCrumbs({ slug, title }: { slug: string; title?: string }) {
   return (
-    <nav className="crumbs" aria-label="Breadcrumb">
-      <Link to={`/missions/${slug}?tab=work`}>
-        <Icon name="arrow-left" size={13} /> {title ?? slug}
-      </Link>
-    </nav>
+    <Crumbs className="explorer-crumbs" steps={[{ to: `/missions/${slug}?tab=work`, label: title ?? slug }]} />
   );
 }
 
