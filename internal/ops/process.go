@@ -1,7 +1,9 @@
 package ops
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -48,13 +50,14 @@ func (w *Workspace) Process() (ProcessView, error) {
 }
 
 // ProcessText is the process as it's written, or "" when the workspace
-// has none.
+// has none. Only the file is read: what's written into a prompt doesn't
+// ask git where it's committed.
 func (w *Workspace) ProcessText() string {
-	v, err := w.Process()
+	data, err := os.ReadFile(w.WS().Process())
 	if err != nil {
 		return ""
 	}
-	return v.Text
+	return string(data)
 }
 
 // relToRoot is a path as it reads from the workspace's root, if it's in
@@ -67,14 +70,32 @@ func (w *Workspace) relToRoot(path string) string {
 }
 
 // processCommit is the config repo's last commit of the process, and
-// whether the file has changes it doesn't (or isn't in one at all).
+// whether the file has changes it doesn't (or isn't in one at all). It's
+// kept until the repo moves (a commit, something staged) or the file's
+// written: the page reads it each time it's opened.
 func (w *Workspace) processCommit(file string) (string, bool) {
-	dir := filepath.Dir(file)
-	name := filepath.Base(file)
-	commit, err := git.Line(dir, "log", "-1", "--format=%h", "--", name)
-	if err != nil || commit == "" {
-		return "", true
+	dir, name := filepath.Dir(file), filepath.Base(file)
+	ask := func() answer[processAt] {
+		commit, err := git.Line(dir, "log", "-1", "--format=%h", "--", name)
+		if err != nil || commit == "" {
+			return asked(processAt{uncommitted: true}, err)
+		}
+		// Read only: a status that refreshes the index moves the repo,
+		// and what's kept would be asked for again.
+		changed, err := git.ReadLine(context.Background(), dir, "status", "--porcelain", "--", name)
+		return asked(processAt{commit, err != nil || changed != ""}, err)
 	}
-	changed, err := git.Line(dir, "status", "--porcelain", "--", name)
-	return commit, err != nil || changed != ""
+	info, err := os.Stat(file)
+	if gitDir, _ := gitDirs(dir); gitDir == "" || err != nil {
+		p := ask().is // not at its repo's root: nothing says when it's moved
+		return p.commit, p.uncommitted
+	}
+	p := kept(&w.git, dir, fmt.Sprintf("process %s %d %d", name, info.Size(), info.ModTime().UnixNano()), ask)
+	return p.commit, p.uncommitted
+}
+
+// processAt is what git said of the process's file.
+type processAt struct {
+	commit      string
+	uncommitted bool
 }
