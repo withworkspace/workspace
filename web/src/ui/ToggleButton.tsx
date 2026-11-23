@@ -3,6 +3,7 @@ import { ToggleButton as AriaToggleButton, type ToggleButtonProps as AriaToggleB
 import { type ButtonLook, lookOf } from "./Button";
 import { cx } from "./cx";
 import css from "./ToggleButton.module.css";
+import { Tooltip } from "./Tooltip";
 
 // A toggle's look is a button's, but for a link's, or none.
 export type ToggleLook = Omit<ButtonLook, "variant"> & { variant?: Exclude<ButtonLook["variant"], "link" | "bare"> };
@@ -28,17 +29,20 @@ type ToggleButtonProps = ToggleLook &
 // Pressed, a plain one or a ghost is in the accent, on its soft fill. A
 // primary or a danger one is as it is: the page gives it that variant
 // while it's on, or a class of its own.
-export function ToggleButton({ pressed, onChange, variant, size, square, className, disabled, title, "aria-busy": busy, ...rest }: ToggleButtonProps) {
+export function ToggleButton({ pressed, onChange, variant, size, square, className, disabled, title, "aria-busy": busy, "aria-label": label, ...rest }: ToggleButtonProps) {
   const tinted = variant === undefined || variant === "ghost";
-  return (
+  const button = (
     <AriaToggleButton
       data-ui=""
       isSelected={pressed}
       onChange={onChange}
       isDisabled={disabled}
+      aria-label={label ?? (square ? title : undefined)}
       className={cx(lookOf({ variant, size, square }), pressed && tinted && css.pressed, className)}
-      render={(props) => <button {...props} title={title} aria-busy={busy} />}
+      render={(props) => <button {...props} title={disabled ? title : undefined} aria-busy={busy} />}
       {...rest}
     />
   );
+  // Its title is a Tooltip, as a Button's is; disabled, the browser's.
+  return title && !disabled ? <Tooltip text={title}>{button}</Tooltip> : button;
 }

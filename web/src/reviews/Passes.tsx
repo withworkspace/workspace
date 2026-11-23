@@ -154,8 +154,9 @@ function PassView({
         <Button
           size="small"
           onClick={run}
-          disabled={busy || running || !!p.unavailable}
-          title={p.unavailable ?? (p.cold ? "Its agent is given the change and the description, and nothing else" : "Its agent reads the change with the code checked out here (ws docks it first). It reads, and that's all")}
+          disabled={busy || running}
+          unavailable={p.unavailable}
+          title={p.cold ? "Its agent is given the change and the description, and nothing else" : "Its agent reads the change with the code checked out here (ws docks it first). It reads, and that's all"}
         >
           {running ? "Running…" : p.runs ? "Run again" : "Run"}
         </Button>

@@ -404,8 +404,9 @@ export function PRReviewPage() {
           variant="ghost" size="small"
           className="desktop-only"
           onClick={dock}
-          disabled={docking || pr.fork}
-          title={pr.fork ? "It's from a fork: ws dock looks for its branch on origin" : d.docked?.by === "you" ? `It's here: ${pr.repo}/${d.docked.capsule}` : "Dock it here, as ws dock does, to run it yourself (⇧O)"}
+          disabled={docking}
+          unavailable={pr.fork ? "It's from a fork: ws dock looks for its branch on origin, so it can't be opened here" : undefined}
+          title={d.docked?.by === "you" ? `It's here: ${pr.repo}/${d.docked.capsule}` : "Dock it here, as ws dock does, to run it yourself (⇧O)"}
         >
           <Icon name="box" size={13} /> {docking ? "Docking…" : d.docked?.by === "you" ? d.docked.capsule : "Open here"}
         </Button>
@@ -928,7 +929,7 @@ function PRSubmitDialog({
         <Button variant="ghost" onClick={onClose}>
           {layers.some((l) => l.state === "posted") ? "Close" : "Cancel"}
         </Button>
-        <Button variant="primary" onClick={submit} disabled={!ready || busy} title={ready ? "Post to GitHub (⌘⏎)" : "Pick a verdict first"}>
+        <Button variant="primary" onClick={submit} disabled={busy} unavailable={ready ? undefined : "Pick a verdict first"} title="Post to GitHub (⌘⏎)">
           {busy ? "Posting…" : chosen.length > 1 ? `Post ${chosen.length} reviews to GitHub` : "Post to GitHub"} <Keys k="mod+⏎" />
         </Button>
       </div>

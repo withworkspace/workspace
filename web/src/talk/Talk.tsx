@@ -1417,7 +1417,7 @@ function WsProposalCard({
           <Button variant="ghost" disabled={busy} onClick={() => run("decline")}>
             Decline
           </Button>
-          <Button variant="primary" disabled={busy || !ready || replying} onClick={() => run("accept")} title={replying ? "Read its reply first: the agent's still writing it" : undefined}>
+          <Button variant="primary" disabled={busy || !ready} unavailable={replying ? "Read its reply first: the agent's still writing it" : undefined} onClick={() => run("accept")}>
             {accept}
           </Button>
         </div>

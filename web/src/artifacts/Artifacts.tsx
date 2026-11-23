@@ -429,7 +429,7 @@ export function ArtifactPage() {
                 <Icon name="split" size={13} /> Compare <Keys k="c" />
               </Link>
             ) : runnable ? (
-              <Button variant="ghost" size="small" disabled title="It has one version, and there's no other artifact to compare it with">
+              <Button variant="ghost" size="small" unavailable="It has one version, and there's no other artifact to compare it with">
                 <Icon name="split" size={13} /> Compare
               </Button>
             ) : null}

@@ -1,0 +1,23 @@
+/* A tooltip (Tooltip.tsx): a few words, raised, by what they're about. */
+
+@layer ui {
+  .tooltip {
+    max-width: min(320px, calc(100vw - 16px));
+    padding: 5px 9px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--raised);
+    box-shadow: var(--shadow);
+    color: var(--fg);
+    font-size: var(--text-sm);
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: left;
+    white-space: normal;
+    outline: none;
+  }
+
+  .tooltip[data-entering] {
+    animation: global(fade) var(--fast) var(--ease);
+  }
+}

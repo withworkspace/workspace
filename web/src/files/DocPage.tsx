@@ -309,7 +309,7 @@ export function DocPage({ docRef }: { docRef: string }) {
               <Button size="small" className="accent-button" onMouseDown={(e) => e.preventDefault()} onClick={askAbout} title="Ask about it, or about what's selected (a)">
                 <Icon name="sparkle" size={12} /> Ask <Keys k="a" />
               </Button>
-              <Button size="small" onClick={edit} disabled={!canEdit} title={canEdit ? "Edit it as a page: cells, questions and passes, saved back to the repo when you say (e)" : `Can't be edited here: ${a.uneditable}`}>
+              <Button size="small" onClick={edit} unavailable={canEdit ? undefined : `Can't be edited here: ${a.uneditable}`} title="Edit it as a page: cells, questions and passes, saved back to the repo when you say (e)">
                 <Icon name="pencil" size={12} /> Edit <Keys k="e" />
               </Button>
               <Link to={files} className={buttonClass({ size: "small" })} title="Open it in Files (o)">

@@ -17,10 +17,14 @@ describe("Segmented", () => {
     expect(out).toMatch(/<button [^>]*aria-checked="false"[^>]*>390</);
   });
 
-  it("keeps a segment's title, which react-aria's drops, and says it's the library's", () => {
+  it("says it's the library's, and keeps no title of the browser's on a segment that can be pointed at: it's a tooltip", () => {
     const out = html("fit");
-    expect(out).toContain('title="As wide as the page"');
     expect(out.match(/data-ui=""/g)).toHaveLength(2);
+    expect(out).not.toContain("title=");
+  });
+
+  it("keeps the browser's title on a disabled segment, which a tooltip isn't shown on", () => {
+    expect(html("fit", { disabled: true })).toContain('title="As wide as the page"');
   });
 
   it("disables a segment, or all of them", () => {

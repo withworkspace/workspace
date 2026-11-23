@@ -1067,7 +1067,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
                 </Segment>
               </Segmented>
             )}
-            <Button variant="primary" className="submit-button" onClick={submit} disabled={!!source.readOnly} title={source.readOnly ?? "Submit the review (s)"}>
+            <Button variant="primary" className="submit-button" onClick={submit} unavailable={source.readOnly} title="Submit the review (s)">
               {draft ? `Submit review · ${draft.comments.length}` : "Submit review"} <Keys k="s" />
             </Button>
           </span>

@@ -1,7 +1,11 @@
-import type { ReactNode } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import { ToggleButton, ToggleButtonGroup } from "react-aria-components";
 import { cx } from "./cx";
 import css from "./Segmented.module.css";
+import { Tooltip } from "./Tooltip";
+
+// Whether the whole control is disabled, for each segment to know.
+const Disabled = createContext(false);
 
 // How a segmented control looks: small, in a head or a line of words, and
 // fill, where it's as wide as what it's in and its segments share that.
@@ -46,19 +50,23 @@ export function Segmented<T extends string>({
       isDisabled={disabled}
       aria-label={label}
     >
-      {children}
+      <Disabled.Provider value={!!disabled}>{children}</Disabled.Provider>
     </ToggleButtonGroup>
   );
 }
 
 // Segment is one of a Segmented's choices: its value, and what it shows.
-// A title says more about it on hover.
-export function Segment({ value, disabled, title, className, children }: { value: string; disabled?: boolean; title?: string; className?: string; children: ReactNode }) {
-  return (
-    <ToggleButton id={value} data-ui="" isDisabled={disabled} className={cx(css.segment, className)} render={(props) => <button {...props} title={title} />}>
+// A title says more about it, in a tooltip.
+export function Segment({ value, disabled: own, title, className, children }: { value: string; disabled?: boolean; title?: string; className?: string; children: ReactNode }) {
+  const all = useContext(Disabled);
+  const disabled = own || all;
+  const segment = (
+    <ToggleButton id={value} data-ui="" isDisabled={own} className={cx(css.segment, className)} render={(props) => <button {...props} title={disabled ? title : undefined} />}>
       {children}
     </ToggleButton>
   );
+  // Its title is a Tooltip, as a Button's is; disabled, the browser's.
+  return title && !disabled ? <Tooltip text={title}>{segment}</Tooltip> : segment;
 }
 
 // segmentedClass and segmentClass are a segmented control's look for

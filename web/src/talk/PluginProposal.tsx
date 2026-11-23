@@ -127,13 +127,9 @@ export function PluginProposalCard({
           </Button>
           <Button
             variant="primary"
-            disabled={busy || !chosen.length || replying}
+            disabled={busy || !chosen.length}
+            unavailable={replying ? "Read its reply first: the agent's still writing it" : undefined}
             onClick={() => run("accept")}
-            title={
-              replying
-                ? "Read its reply first: the agent's still writing it"
-                : undefined
-            }
           >
             {accept}
           </Button>

@@ -24,10 +24,15 @@ describe("ToggleButton", () => {
     expect(html({ pressed: true, variant: "primary" })).not.toMatch(/class="[^"]*pressed/);
   });
 
-  it("keeps a title and aria-busy, which react-aria's drops", () => {
+  it("keeps aria-busy, which react-aria's drops, and its title as a tooltip, not the browser's", () => {
     const out = html({ title: "Every layer's changes (w)", "aria-busy": true });
-    expect(out).toContain("title=\"Every layer&#x27;s changes (w)\"");
     expect(out).toContain('aria-busy="true"');
+    expect(out).not.toContain("title=");
+  });
+
+  it("keeps the browser's title while it's disabled, and names a square one by it", () => {
+    expect(html({ title: "Every layer's changes (w)", disabled: true })).toContain("title=\"Every layer&#x27;s changes (w)\"");
+    expect(html({ title: "Pin", square: true })).toContain('aria-label="Pin"');
   });
 
   it("is disabled as the browser's is, and has the page's class last", () => {

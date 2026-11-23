@@ -696,9 +696,10 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
         </Button>
         <Button
           variant="ghost" size="small"
-          disabled={!view || tab !== "page" || !onAnyGitHub}
+          disabled={!view || tab !== "page"}
+          unavailable={onAnyGitHub ? undefined : "The workspace's repos aren't on GitHub to link to (ws.toml's org, or a repo's github)"}
           onClick={linkWhatsNamed}
-          title={onAnyGitHub ? "Make what the page names links (files at their lines, pull requests, repos), so it links on GitHub and wherever else it's read" : "The workspace's repos aren't on GitHub to link to (ws.toml's org, or a repo's github)"}
+          title="Make what the page names links (files at their lines, pull requests, repos), so it links on GitHub and wherever else it's read"
         >
           <Icon name="link" size={12} /> Link names
         </Button>
@@ -711,7 +712,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           </ToggleButton>
         )}
         {tied && !tied.gone && (
-          <Button variant="ghost" size="small" onClick={() => setSavingToFile(true)} disabled={tied.changed} title={tied.changed ? "The file's changed since: bring in what changed first" : `Save it to ${tied.ref}, as it reads: its cells as text, its questions left out`}>
+          <Button variant="ghost" size="small" onClick={() => setSavingToFile(true)} unavailable={tied.changed ? "The file's changed since: bring in what changed first" : undefined} title={`Save it to ${tied.ref}, as it reads: its cells as text, its questions left out`}>
             <Icon name="check" size={12} /> Save to repo
           </Button>
         )}
