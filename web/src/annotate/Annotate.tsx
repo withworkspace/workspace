@@ -37,6 +37,7 @@ import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { clip } from "../ui/text";
 import { pageScroller } from "../ui/scroller";
+import { Segment, Segmented } from "../ui/Segmented";
 
 // Commenting on a document, as in a shared doc: you read it rendered,
 // highlight text and comment on it, and the comment is a thread, live at
@@ -1293,14 +1294,14 @@ function Composer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: Threa
   };
   return (
     <div className="note-editor doc-note" onClick={(e) => e.stopPropagation()}>
-      <div className="segmented kinds" role="radiogroup" aria-label="What kind of comment">
+      <Segmented fill value={kind} onChange={setKind} aria-label="What kind of comment">
         {threadKinds.map((k) => (
-          <button key={k} role="radio" aria-checked={k === kind} aria-pressed={k === kind} className={`k-${k}`} onClick={() => setKind(k)} title={`${kindWords[k]} (tab cycles)`}>
+          <Segment key={k} value={k} className={`note-kind k-${k}`} title={`${kindWords[k]} (tab cycles)`}>
             <Icon name={kindIcon[k]} size={12} />
             {kindWords[k]}
-          </button>
+          </Segment>
         ))}
-      </div>
+      </Segmented>
       <blockquote className="editor-on">{pick.quote.exact ? clip(pick.quote.exact.replace(/\s+/g, " "), 140) : "The whole diagram"}</blockquote>
       <textarea
         ref={area}

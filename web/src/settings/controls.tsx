@@ -9,6 +9,7 @@ import { Switch } from "../ui/Switch";
 import { useTheme } from "../ui/theme";
 import { said, shown } from "./sections";
 import { Button } from "../ui/Button";
+import { Segment, Segmented } from "../ui/Segmented";
 
 // A setting's control, by its kind: what it's set to, and the way to set
 // it. Each writes as soon as it's changed (a switch flipped, a field
@@ -31,7 +32,7 @@ export function Control(p: Props) {
     case "harness":
       return <Choice {...p} />;
     case "choice":
-      return few(s) ? <Segmented {...p} /> : <Choice {...p} />;
+      return few(s) ? <Few {...p} /> : <Choice {...p} />;
     case "bool":
       return <Switch on={s.value === true} onChange={(on) => void set(on)} aria-label={s.label} />;
     case "model":
@@ -64,15 +65,15 @@ function Choice({ s, set }: Props) {
   );
 }
 
-function Segmented({ s, set }: Props) {
+function Few({ s, set }: Props) {
   return (
-    <div className="segmented" role="group" aria-label={s.label}>
+    <Segmented value={String(s.value)} onChange={(v) => void set(v)} aria-label={s.label}>
       {s.choices?.map((c) => (
-        <Button key={c.value} type="button" aria-pressed={c.value === s.value} title={c.note} onClick={() => c.value !== s.value && void set(c.value)}>
+        <Segment key={c.value} value={c.value} title={c.note}>
           {c.label ?? c.value}
-        </Button>
+        </Segment>
       ))}
-    </div>
+    </Segmented>
   );
 }
 

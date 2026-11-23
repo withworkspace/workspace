@@ -47,6 +47,7 @@ import { useLatest } from "../load";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { capital } from "../ui/text";
+import { Segment, Segmented } from "../ui/Segmented";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -1079,14 +1080,14 @@ export function ReviewView({ source }: { source: ReviewSource }) {
               <Icon name="file" size={13} /> Files
             </Button>
             {changes && (
-              <div className="segmented desktop-only" role="group" aria-label="Diff layout">
-                <Button aria-pressed={!split} onClick={() => split && toggleSplit()} title="Unified (u)">
+              <Segmented className="desktop-only" value={split ? "split" : "unified"} onChange={toggleSplit} aria-label="Diff layout">
+                <Segment value="unified" title="Unified (u)">
                   <Icon name="unified" size={13} /> Unified
-                </Button>
-                <Button aria-pressed={split} onClick={() => !split && toggleSplit()} title="Side by side (u)">
+                </Segment>
+                <Segment value="split" title="Side by side (u)">
                   <Icon name="split" size={13} /> Split
-                </Button>
-              </div>
+                </Segment>
+              </Segmented>
             )}
             <Button variant="primary" className="submit-button" onClick={submit} disabled={!!source.readOnly} title={source.readOnly ?? "Submit the review (s)"}>
               {draft ? `Submit review · ${draft.comments.length}` : "Submit review"} <Keys k="s" />

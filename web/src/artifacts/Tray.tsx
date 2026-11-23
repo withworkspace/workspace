@@ -8,6 +8,7 @@ import { changed, presetOn, readChange, readTold, said, type State, stateWords, 
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { Segment, Segmented } from "../ui/Segmented";
 
 // Tweaks: what a version's page says can be changed about it, drawn
 // here, beside its frame, and not by the page: a tray of its presets and
@@ -231,13 +232,13 @@ function Choose({ id, t, value, set }: { id: string; t: Tweak; value: string; se
   const options = t.options ?? [];
   if (short(t)) {
     return (
-      <div id={id} className="segmented tweak-choice" role="group" aria-label={t.label}>
+      <Segmented id={id} className="tweak-choice" value={value} onChange={set} aria-label={t.label}>
         {options.map((o) => (
-          <Button key={o.value} type="button" aria-pressed={o.value === value} onClick={() => set(o.value)} title={o.description || undefined}>
+          <Segment key={o.value} value={o.value} title={o.description || undefined}>
             {o.label}
-          </Button>
+          </Segment>
         ))}
-      </div>
+      </Segmented>
     );
   }
   return (

@@ -20,6 +20,7 @@ import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { Segment, Segmented } from "../ui/Segmented";
 
 // Documents: where the workspace's writing is read. Local is the pages
 // that aren't in a space (written here, on this machine); each space is a
@@ -533,13 +534,13 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
               {activity && <ActivityFold repo={repo} activity={activity} open={foldOpen} setOpen={setFoldOpen} />}
               {activityError && !activity && <p className="dim documents-empty">Couldn't read what's happening in it.</p>}
               {tabs.length > 1 && (
-                <nav className="segmented space-tabs" aria-label={library.length ? "Jump to a kind" : "Jump to a folder"}>
-                  {tabs.map((t, i) => (
-                    <Button key={t.id} aria-pressed={i === tab} disabled={t.n === 0} onClick={() => jump(t.id)}>
+                <Segmented className="space-tabs" value={tabs[tab]?.id ?? ""} onChange={jump} aria-label={library.length ? "Jump to a kind" : "Jump to a folder"}>
+                  {tabs.map((t) => (
+                    <Segment key={t.id} value={t.id} className="space-tab" disabled={t.n === 0}>
                       {t.label} <Count className="space-tab-count">{searched && t.n !== t.total ? `${t.n}/${t.total}` : t.total}</Count>
-                    </Button>
+                    </Segment>
                   ))}
-                </nav>
+                </Segmented>
               )}
             </div>
             <div className="space-list-scroll" ref={list} onScroll={spy}>

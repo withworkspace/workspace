@@ -19,6 +19,7 @@ import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
+import { Segment, Segmented } from "../ui/Segmented";
 
 // The file explorer: a capsule's files as they are now, without an editor
 // open. A tree on the left (everything, or only what's changed since the
@@ -548,14 +549,14 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
                         {files.length} {files.length === 1 ? "file" : "files"}
                       </span>
                     ) : (
-                      <div className="segmented" role="group" aria-label="Show">
-                        <Button aria-pressed={changedOnly} onClick={() => setChangedOnly(true)} title="Only what's changed since the branch point (c)" disabled={!tree?.base}>
+                      <Segmented fill className="explorer-show" value={changedOnly ? "changed" : "all"} onChange={(v) => setChangedOnly(v === "changed")} aria-label="Show">
+                        <Segment value="changed" title="Only what's changed since the branch point (c)" disabled={!tree?.base}>
                           Changed <Count>{changed.length}</Count>
-                        </Button>
-                        <Button aria-pressed={!changedOnly} onClick={() => setChangedOnly(false)} title="Every file (c)">
+                        </Segment>
+                        <Segment value="all" title="Every file (c)">
                           All <Count>{files.length}</Count>
-                        </Button>
-                      </div>
+                        </Segment>
+                      </Segmented>
                     )}
                     <Button variant="ghost" size="small" square onClick={() => setFinder(true)} title="Find a file (t)" aria-label="Find a file">
                       <Icon name="search" size={14} />
@@ -839,14 +840,14 @@ function FilePane({
         </div>
         <div className="file-pane-tools">
           {md && file && !file.binary && !file.tooLarge && (
-            <div className="segmented" role="group" aria-label="Markdown">
-              <Button aria-pressed={preview} onClick={() => setPreview(() => true)} title="Rendered (m)">
+            <Segmented value={preview ? "rendered" : "text"} onChange={(v) => setPreview(() => v === "rendered")} aria-label="Markdown">
+              <Segment value="rendered" title="Rendered (m)">
                 Rendered
-              </Button>
-              <Button aria-pressed={!preview} onClick={() => setPreview(() => false)} title="As text (m)">
+              </Segment>
+              <Segment value="text" title="As text (m)">
                 Text
-              </Button>
-            </div>
+              </Segment>
+            </Segmented>
           )}
           {docTo && file && !file.binary && !file.tooLarge && !file.deleted && (
             <Link to={docTo} className={buttonClass({ size: "small" })} title="Edit it as a page: cells, questions and passes, and saved back to the repo when you say (⏎)">

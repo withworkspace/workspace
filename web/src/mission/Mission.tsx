@@ -55,6 +55,7 @@ import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary as SummaryList, SummaryRow } from "../ui/Summary";
+import { Segment, Segmented } from "../ui/Segmented";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -1445,13 +1446,13 @@ function Log({ d, selected, openArtifact, go }: Parts) {
     <>
       <section>
         <div className="log-tools">
-          <div className="segmented" role="group" aria-label="Show">
+          <Segmented value={filter} onChange={setFilter} aria-label="Show">
             {logFilters.map((f) => (
-              <Button key={f.id} aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+              <Segment key={f.id} value={f.id}>
                 {f.label}
-              </Button>
+              </Segment>
             ))}
-          </div>
+          </Segmented>
           <input type="text" className="search" placeholder="Search the log" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search the log" />
         </div>
         {events.length ? (

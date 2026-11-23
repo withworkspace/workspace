@@ -17,6 +17,7 @@ import { type FrameTweaks, TweaksButton, useTweaks } from "./Tray";
 import { followed, frameSearch, type Params, readTweakParams } from "./tweaks";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
+import { Segment, Segmented } from "../ui/Segmented";
 
 // Comparing: two versions side by side, of one artifact
 // (/artifacts/a3/compare?v=1,3) or of two
@@ -189,42 +190,42 @@ export function ComparePage({ workspace }: { workspace: Workspace }) {
           </Chip>
         </div>
         <div className="artifact-tools">
-          <div className="segmented" role="group" aria-label="What's compared">
-            <Button aria-pressed={!diff} onClick={() => setDiff(false)} title="Each running in its frame (d)">
+          <Segmented value={diff ? "diff" : "frames"} onChange={(v) => setDiff(v === "diff")} aria-label="What's compared">
+            <Segment value="frames" title="Each running in its frame (d)">
               <Icon name="monitor" size={13} /> Frames
-            </Button>
-            <Button aria-pressed={diff} onClick={() => setDiff(true)} title="Their files, the left's against the right's (d)">
+            </Segment>
+            <Segment value="diff" title="Their files, the left's against the right's (d)">
               <Icon name="code" size={13} /> Source diff
-            </Button>
-          </div>
+            </Segment>
+          </Segmented>
           {diff ? (
             !narrow && (
-              <div className="segmented" role="group" aria-label="The diff">
-                <Button aria-pressed={!split} onClick={() => setSplit(false)} title="Unified (u)">
+              <Segmented value={split ? "split" : "unified"} onChange={(v) => setSplit(v === "split")} aria-label="The diff">
+                <Segment value="unified" title="Unified (u)">
                   <Icon name="unified" size={13} /> Unified
-                </Button>
-                <Button aria-pressed={split} onClick={() => setSplit(true)} title="Side by side (u)">
+                </Segment>
+                <Segment value="split" title="Side by side (u)">
                   <Icon name="split" size={13} /> Split
-                </Button>
-              </div>
+                </Segment>
+              </Segmented>
             )
           ) : (
-            <div className="segmented" role="group" aria-label="Width">
+            <Segmented value={width} onChange={setWidth} aria-label="Width">
               {widths.map((w) => (
-                <Button key={w.key} aria-pressed={width === w.key} onClick={() => setWidth(w.key)} title={`${w.title}, both`}>
+                <Segment key={w.key} value={w.key} title={`${w.title}, both`}>
                   {w.label}
-                </Button>
+                </Segment>
               ))}
-            </div>
+            </Segmented>
           )}
           {narrow && (
-            <div className="segmented compare-which" role="group" aria-label="Which one's shown">
+            <Segmented className="compare-which" value={shown ? "right" : "left"} onChange={(v) => setShown(v === "right" ? 1 : 0)} aria-label="Which one's shown">
               {([0, 1] as const).map((i) => (
-                <Button key={i} aria-pressed={shown === i} onClick={() => setShown(i)} title={`${i ? "The right" : "The left"} one (t)`}>
+                <Segment key={i} value={i ? "right" : "left"} title={`${i ? "The right" : "The left"} one (t)`}>
                   {sideRef(pair[i])}
-                </Button>
+                </Segment>
               ))}
-            </div>
+            </Segmented>
           )}
           <span className="artifact-tools-end">
             <Button variant="ghost" size="small" onClick={swap} title="Each where the other was: the diff the other way about">

@@ -8,6 +8,7 @@ import { setTheme, type ThemeChoice, useTheme } from "../ui/theme";
 import { Control, valueSaid } from "./controls";
 import { name, type Row, words } from "./sections";
 import { Button } from "../ui/Button";
+import { Segment, Segmented } from "../ui/Segmented";
 
 // A row of the Settings page: what a setting is and says, then its
 // control, and under that where its value comes from, when it isn't ws's
@@ -185,14 +186,14 @@ function ThemeRow() {
   const { choice } = useTheme();
   return (
     <RowShell label={words.theme.label} about={<Marked text={words.theme.about} />} source={here}>
-      <div className="segmented" role="group" aria-label="Theme">
+      <Segmented value={choice} onChange={setTheme} aria-label="Theme">
         {themes.map(([c, icon, label]) => (
-          <Button key={c} type="button" aria-pressed={choice === c} onClick={() => setTheme(c)}>
+          <Segment key={c} value={c}>
             <Icon name={icon} size={13} />
             {label}
-          </Button>
+          </Segment>
         ))}
-      </div>
+      </Segmented>
     </RowShell>
   );
 }

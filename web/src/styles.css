@@ -4599,36 +4599,6 @@ dd > .more-link,
   font-size: var(--text-sm);
 }
 
-.segmented {
-  display: inline-flex;
-  padding: 2px;
-  gap: 2px;
-  border-radius: var(--radius);
-  background: var(--well);
-  border: 1px solid var(--line);
-}
-
-.segmented button {
-  min-height: 24px;
-  padding: 2px 10px;
-  border: 0;
-  box-shadow: none;
-  background: transparent;
-  color: var(--dim);
-  font-size: var(--text-sm);
-}
-
-.segmented button:hover {
-  color: var(--fg);
-  background: transparent;
-}
-
-.segmented button[aria-pressed="true"] {
-  color: var(--fg);
-  background: var(--well-pressed);
-  box-shadow: var(--shadow-xs), 0 0 0 1px var(--line);
-}
-
 /* A mission's Brief tab (mission/BriefTab.tsx): the brief and the plan as
    documents, edited as they read, with what they're made of down the left
    and the planner's conversation down the right. One bar over them holds
@@ -8589,10 +8559,6 @@ a.work-file:hover {
   box-shadow: inset 0 0 0 1.5px var(--faint);
 }
 
-.setting-control .segmented button {
-  gap: 5px;
-}
-
 /* A box and its word, where a setting is ticked (a pull request as a
    draft). */
 .setting-toggle {
@@ -9379,16 +9345,7 @@ button.accent-swatch:hover {
   box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
 }
 
-.segmented.kinds {
-  display: flex;
-}
-
-.segmented.kinds button {
-  flex: 1;
-  gap: 5px;
-}
-
-.segmented.kinds button[aria-pressed="true"] {
+.note-kind[data-selected] {
   color: var(--kc);
 }
 
@@ -11570,13 +11527,8 @@ details.repo-group > summary::-webkit-details-marker {
   font-size: var(--text-sm);
 }
 
-.explorer-tools .segmented {
+.explorer-show {
   flex: 1;
-}
-
-.explorer-tools .segmented button {
-  flex: 1;
-  gap: 6px;
 }
 
 .explorer-rows {
@@ -15009,15 +14961,8 @@ body.nav-pointing .code-view code[data-rev] {
   flex-wrap: wrap;
 }
 
-.library-head .segmented {
-  font-weight: 400;
+.lib-stands {
   margin-left: var(--space-2);
-}
-
-.library-head .segmented button {
-  min-height: 20px;
-  padding: 0 8px;
-  font-size: var(--text-xs);
 }
 
 .lib-sort {
@@ -16257,10 +16202,6 @@ button.accent-button:hover:not(:disabled) {
 /* Artifacts: the list, and an artifact's page, where a version runs in a
    sandboxed frame that fills what's under its head. */
 
-.artifacts-page .artifacts-shown button {
-  white-space: nowrap;
-}
-
 .artifact-list-row.dimmed .artifact-list-title {
   color: var(--dim);
 }
@@ -16496,7 +16437,7 @@ button.accent-button:hover:not(:disabled) {
   color: var(--fg);
 }
 
-.artifact-tools button[aria-pressed="true"]:not(.segmented button) {
+.artifact-tools button[aria-pressed="true"]:not([data-selected]) {
   background: var(--selected);
   color: var(--fg);
 }
@@ -17878,18 +17819,18 @@ input[type="text"].tweak-text {
   margin: 0 0 var(--space-2);
 }
 
-.space-tabs button {
+.space-tab {
   gap: 5px;
   min-height: 24px;
   padding: 0 10px;
   font-size: var(--text-xs);
 }
 
-.space-tabs button .space-tab-count {
+.space-tab .space-tab-count {
   font-size: 10px;
 }
 
-.space-tabs button:disabled {
+.space-tab:disabled {
   opacity: 0.4;
 }
 
