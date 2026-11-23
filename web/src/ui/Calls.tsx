@@ -7,6 +7,7 @@ import { Icon, type IconName } from "./Icon";
 import { Spinner } from "./Spinner";
 import { Chip } from "./Chip";
 import { Button } from "./Button";
+import { type Edit, EditDiff } from "./EditDiff";
 import { type Todo, Todos } from "./Todos";
 
 // Calls are the steps an agent took on the way to a reply: each tool it
@@ -24,7 +25,7 @@ export interface Call {
   error?: boolean;
   refused?: boolean;
   pending?: boolean;
-  edit?: { path: string; old?: string; new: string; all?: boolean };
+  edit?: Edit;
   todos?: Todo[];
   questions?: { question: string; options?: string[] }[];
 }
@@ -155,38 +156,5 @@ function CallLine({ c, root, running, fileLink, labels }: { c: Call; running?: b
         </pre>
       )}
     </li>
-  );
-}
-
-// EditDiff is an edit as a diff: what it replaced, and with what (a file
-// written whole is all new). Long ones show their start.
-export function EditDiff({ edit, max = 14 }: { edit: NonNullable<Call["edit"]>; max?: number }) {
-  const [all, setAll] = useState(false);
-  const old = edit.old ? edit.old.split("\n") : [];
-  const next = edit.new.split("\n");
-  const total = old.length + next.length;
-  const cut = (lines: string[], room: number) => (all ? lines : lines.slice(0, Math.max(room, 0)));
-  const oldShown = cut(old, Math.ceil(max / 2));
-  const newShown = cut(next, max - oldShown.length);
-  return (
-    <div className="edit-diff">
-      {oldShown.map((l, i) => (
-        <div key={`o${i}`} className="sl d">
-          <span className="sign">−</span>
-          {l || " "}
-        </div>
-      ))}
-      {newShown.map((l, i) => (
-        <div key={`n${i}`} className="sl a">
-          <span className="sign">+</span>
-          {l || " "}
-        </div>
-      ))}
-      {!all && total > oldShown.length + newShown.length && (
-        <Button variant="link" className="edit-more" onClick={() => setAll(true)}>
-          {total - oldShown.length - newShown.length} more lines
-        </Button>
-      )}
-    </div>
   );
 }

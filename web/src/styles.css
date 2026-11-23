@@ -853,7 +853,6 @@ main.stale > :not(.connection-banner) {
 .code-view,
 .pinned-plan,
 .prompt-card,
-.edit-diff,
 .rpass-findings > li,
 .pr-submit-layer,
 .select-pop,
@@ -2238,19 +2237,6 @@ button.kind.on {
 /* A suggested change (ui/Change.tsx), under what was said of it. */
 .suggested {
   margin-top: 8px;
-}
-
-.sl {
-  padding: 0 8px;
-  white-space: pre;
-}
-
-.sl.d {
-  background: var(--del-bg);
-}
-
-.sl.a {
-  background: var(--add-bg);
 }
 
 .note-editor textarea,
@@ -9915,30 +9901,6 @@ details.repo-group > summary::-webkit-details-marker {
   display: grid;
   gap: 6px;
   margin: 2px 0 8px 27px;
-}
-
-.edit-diff {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  font: var(--text-xs) / 1.6 var(--mono);
-  overflow-x: auto;
-  background: var(--raised);
-}
-
-.edit-diff .sl {
-  white-space: pre;
-  padding: 0 10px 0 4px;
-}
-
-.edit-diff .sign {
-  display: inline-block;
-  width: 16px;
-  color: var(--dim);
-  user-select: none;
-}
-
-.edit-more {
-  color: var(--accent) !important;
 }
 
 .call-file-link {
