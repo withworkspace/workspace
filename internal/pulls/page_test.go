@@ -10,6 +10,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/review"
 )
 
 // pageWorld is a world whose GitHub counts what it's asked, and can be
@@ -570,5 +571,41 @@ func (w *pageWorld) said(number int) {
 			w.t.Fatalf("what's been said on api#%d wasn't read", number)
 		}
 		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// Posting a review marks the list stale, and posting a stack's is one
+// review after another: each one finds its PR in the list as it's kept,
+// rather than asking GitHub about every repo before it posts.
+func TestPostingAStacksReviewsDoesntAskForTheList(t *testing.T) {
+	w := newPageWorld(t)
+	w.gh.SubmitReviewFn = func(org, repo string, number int, r github.ReviewSubmission) (string, error) {
+		return "https://github.com/acme/api/pull/1#pullrequestreview-1", nil
+	}
+	if _, err := w.svc.List(false); err != nil {
+		t.Fatal(err)
+	}
+	w.pass(3 * time.Minute) // you've been reading it a while
+	var lists atomic.Int64
+	answer := w.gh.PRsForRepoFn
+	w.gh.PRsForRepoFn = func(org, repo string) ([]github.PR, error) {
+		lists.Add(1)
+		return answer(org, repo)
+	}
+	for _, n := range []int{88, 89, 90} {
+		// As the dialog does: what it would post, then posting it.
+		if _, err := w.svc.Posting("api", n, "", review.Approve, ""); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := w.svc.Submit("api", n, "", review.Approve, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := lists.Load(); n != 0 {
+		t.Errorf("GitHub was asked for the list %d times while three reviews were posted", n)
+	}
+	// It's still stale, for whoever next looks at the list.
+	if _, stale := w.svc.peekStale(); !stale {
+		t.Error("the list isn't stale after a review was posted")
 	}
 }
