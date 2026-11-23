@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { act, type ActionAsk, dockPR, newPage, type Plugin, restoreArtifact, runPluginAction, setTalkStatus, startMissionAbout, type Workspace } from "../api";
+import { act, type ActionAsk, dockPR, newPage, restoreArtifact, runPluginAction, setTalkStatus, startMissionAbout } from "../api";
 import { useKeys } from "../keys";
 import { archiveMission } from "../mission/archive";
 import { RefsScope, thingsNamed } from "../refs/known";
@@ -52,6 +52,7 @@ import { actsFor, type Subject, subjectOf, type WsDoing } from "./acts";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
+import { usePlugins, useWorkspace } from "../workspace/store";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
 // has, by what you remember of it. What the page holds (missions, pages,
@@ -98,8 +99,6 @@ const stale = 10 * 60 * 1000;
 const codeWait = 150;
 
 export function Palette({
-  workspace,
-  plugins,
   waiting,
   start,
   pageRepo,
@@ -110,8 +109,6 @@ export function Palette({
   onHelp,
   onShutDown,
 }: {
-  workspace: Workspace;
-  plugins?: Plugin[];
   waiting: Waiting[];
   start?: string;
   pageRepo?: string;
@@ -122,6 +119,8 @@ export function Palette({
   onHelp: () => void;
   onShutDown: () => void;
 }) {
+  const workspace = useWorkspace();
+  const plugins = usePlugins();
   const navigate = useNavigate();
   // How the plugins' things are named: what's typed may be one's name
   // (RAM-123), or where one is. Find sits outside what the pages name
@@ -783,7 +782,7 @@ export function Palette({
               // hand, and if they can't be had. A name one of its fields
               // holds is what it names, to go to (which closes Find), and
               // under it is what can be done to it.
-              <RefsScope workspace={workspace} known={known}>
+              <RefsScope known={known}>
                 <div className="find-thing" onClickCapture={(e) => (e.target as HTMLElement).closest(".named-ref, .hovercard-link") && onClose()}>
                   <ThingCard r={onThing} known={known} surface="pane" pointer={pointer} before={!mode && on?.said ? <SaidCard it={on} f={on.said} /> : undefined} />
                 </div>
@@ -800,7 +799,7 @@ export function Palette({
               <SaidCard it={on} f={on.said} />
             ) : on?.card ? (
               <>
-                <RefCardBody r={on.card} workspace={workspace} known={known} />
+                <RefCardBody r={on.card} known={known} />
                 <span className="ref-foot">
                   <PinButton r={on.card} />
                 </span>

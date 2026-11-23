@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button as AriaButton, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
-import { capsuleAPI, docRef, type FileTree, type FileView, getFile, getTree, pageOpenTo, rawURL, type TreeFile, type Workspace } from "../api";
+import { capsuleAPI, docRef, type FileTree, type FileView, getFile, getTree, pageOpenTo, rawURL, type TreeFile } from "../api";
 import { useKeys, useOwnCodeSearch } from "../keys";
 import { CodeFinder } from "./CodeFinder";
 import { linesAsked, rendersAt } from "./lines";
@@ -19,6 +19,7 @@ import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
+import { useWorkspace } from "../workspace/store";
 
 // The file explorer: a capsule's files as they are now, without an editor
 // open. A tree on the left (everything, or only what's changed since the
@@ -226,10 +227,11 @@ function PanesGlyph({ n }: { n: Panes }) {
 }
 
 // Explorer is a mission's capsule's files.
-export function Explorer({ workspace }: { workspace: Workspace }) {
+export function Explorer() {
   const { slug = "", repo = "", name = "" } = useParams();
   const navigate = useNavigate();
-  const mission = workspace.missions.find((m) => m.slug === slug);
+  const mission = useWorkspace((w) => w.missions.find((m) => m.slug === slug));
+  const readsSeen = useWorkspace((w) => w.readsSeen);
   const api = capsuleAPI(slug, repo, name);
   return (
     <TabbedBrowser
@@ -237,7 +239,7 @@ export function Explorer({ workspace }: { workspace: Workspace }) {
       key={api}
       api={api}
       label={`${repo}/${name}`}
-      updated={`${mission?.updated ?? ""}:${workspace.readsSeen ?? ""}`}
+      updated={`${mission?.updated ?? ""}:${readsSeen ?? ""}`}
       reviewTo={`/missions/${slug}/review/${repo}/${name}`}
       docOf={(path) => docRef(repo, name, path)}
       search={{ repo, worktree: name }}

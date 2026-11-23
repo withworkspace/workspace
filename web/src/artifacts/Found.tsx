@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { type ArtifactFound, type ArtifactFoundDetail, getArtifactFound, getArtifactsFound, type Workspace } from "../api";
+import { type ArtifactFound, type ArtifactFoundDetail, getArtifactFound, getArtifactsFound } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
@@ -12,6 +12,7 @@ import { filesWords, type FoundFolder as Folder, foundTree, widths } from "./sho
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { useWorkspace } from "../workspace/store";
 
 // Artifacts that live in the workspace's repos and aren't this machine's:
 // someone else promoted them, or you did on another machine. ws finds each
@@ -122,7 +123,8 @@ function FoundFolder({ folder }: { folder: Folder }) {
 // FoundArtifacts lists them, under the Artifacts page's own, as a tree:
 // each repo, and the folders they're grouped in there. Nothing's drawn
 // while there are none.
-export function FoundArtifacts({ workspace }: { workspace: Workspace }) {
+export function FoundArtifacts() {
+  const workspace = useWorkspace();
   // Read again when the artifacts here change: one promoted here is this
   // machine's, and leaves the list.
   const key = (workspace.artifacts ?? []).map((a) => `${a.id}:${a.status}:${a.home?.where ?? ""}`).join(" ");

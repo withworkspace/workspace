@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
-import { type AppAt, type AppDetail, type AppPointer, getApp, openApp, pointApp, restartApp, stopApp, type Workspace } from "../api";
+import { type AppAt, type AppDetail, type AppPointer, getApp, openApp, pointApp, restartApp, stopApp } from "../api";
 import { useLatest } from "../load";
 import { Icon, type IconName, icons } from "../ui/Icon";
 import { ErrorCard, humanError, toast, useTitle } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import { Button } from "../ui/Button";
+import { useWorkspace } from "../workspace/store";
 
 // An app: a recipe with a page, its run shown in a frame. As the Sketch
 // canvas is laid out: a slim bar, and the app as a card under it, inset as
@@ -33,7 +34,8 @@ const openEvery = 60_000;
 const lookStarting = 1500;
 const lookUp = 10_000;
 
-export function AppPage({ workspace }: { workspace: Workspace }) {
+export function AppPage() {
+  const workspace = useWorkspace();
   const { name = "" } = useParams();
   const entry = workspace.apps?.find((a) => a.name === name);
   useTitle(entry?.title ?? name);

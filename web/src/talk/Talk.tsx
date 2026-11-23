@@ -17,7 +17,6 @@ import {
   type TalkDetail,
   type TalkProposal,
   type TalkTurn,
-  type Workspace,
 } from "../api";
 import { changes } from "../annotate/diff";
 import { type Draft, MarkdownEditor } from "../editor/LazyEditor";
@@ -44,6 +43,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { pageScroller } from "../ui/scroller";
+import { useWorkspace } from "../workspace/store";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -73,10 +73,12 @@ const docName = (ref: string) => ref.slice(ref.lastIndexOf("/") + 1).replace(/^.
 // the section it was asked of.
 const docAt = (ref: string, section?: string) => docAddress(ref) + (section ? `#${slugger()(section)}` : "");
 
-export function TalksPage({ workspace }: { workspace: Workspace }) {
+export function TalksPage() {
+  const conversations = useWorkspace((w) => w.conversations);
+  const kinds = useWorkspace((w) => w.kinds);
   useTitle("Conversations");
   const [showResolved, setShowResolved] = useState(false);
-  const resolved = workspace.conversations.filter((t) => t.status !== "open").length;
+  const resolved = conversations.filter((t) => t.status !== "open").length;
   return (
     <div className="page narrow talks-page">
       <PageHead
@@ -91,7 +93,7 @@ export function TalksPage({ workspace }: { workspace: Workspace }) {
           )
         }
       />
-      <TalkList slug="" talks={workspace.conversations} showResolved={showResolved} onToggleResolved={() => setShowResolved((v) => !v)} keys docs={!!workspace.kinds?.length} />
+      <TalkList slug="" talks={conversations} showResolved={showResolved} onToggleResolved={() => setShowResolved((v) => !v)} keys docs={!!kinds?.length} />
     </div>
   );
 }
@@ -307,7 +309,8 @@ const restAt = (m: HTMLElement, reply: HTMLElement | null, head: number) => {
 
 const proposalIcons: Record<string, IconName> = { decision: "gavel", mission: "flag", brief: "pencil", dispatch: "play", replan: "rotate", comment: "message", plan: "list-ordered", document: "file", artifact: "artifact" };
 
-export function TalkPage({ workspace }: { workspace: Workspace }) {
+export function TalkPage() {
+  const workspace = useWorkspace();
   const { id = "", slug = "" } = useParams();
   const navigate = useNavigate();
   const listed = slug ? undefined : workspace.conversations.find((t) => t.id === id);

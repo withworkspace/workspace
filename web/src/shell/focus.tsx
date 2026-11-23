@@ -1,4 +1,4 @@
-import { createContext, type DragEvent, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import { changeFocus, type FocusPin, type Plugin, type Workspace } from "../api";
 import { useLoaded } from "../load";
@@ -13,6 +13,7 @@ import { headlineStatus, Status } from "../ui/status";
 import { Button } from "../ui/Button";
 import { Focus } from "../chrome/Focus";
 import { FocusRow } from "../chrome/FocusRow";
+import { usePlugins, useWorkspace, useWorkspaceIfRead, useWorkspaceStore } from "../workspace/store";
 
 // Focus: what you've pinned, of anything ws names, kept in the sidebar
 // below its places (ops/focus.go). Each is drawn as it stands, and what
@@ -31,9 +32,6 @@ interface FocusState {
   arrange: (names: string[]) => void;
 }
 
-const FocusContext = createContext<FocusState | undefined>(undefined);
-
-export const useFocus = () => useContext(FocusContext);
 
 // pinNameOf is what a ref is pinned as, or undefined for what isn't
 // pinned: a file or folder on the default branch rather than its lines,
@@ -60,13 +58,16 @@ export function pinNameOf(r: PageRef): string | undefined {
   return refName(r);
 }
 
-export function FocusProvider({ workspace, children }: { workspace?: Workspace; children: ReactNode }) {
-  const told = workspace?.focus;
-  // What a write answered, until the workspace's next read has it too.
-  const [answered, setAnswered] = useState<FocusPin[]>();
-  useEffect(() => setAnswered(undefined), [told]);
+// useFocus is your pins, and how they're changed: from anywhere. The
+// pins are the workspace's (workspace/store.ts); a write of them is
+// answered with how they are then, which they are until the workspace is
+// next read.
+export function useFocus(): FocusState {
+  const told = useWorkspaceIfRead((w) => w.focus);
+  const answered = useWorkspaceStore((s) => s.focusAnswered);
   const pins = answered ?? told ?? none;
-  const value = useMemo<FocusState>(() => {
+  return useMemo<FocusState>(() => {
+    const setAnswered = (focusAnswered: FocusPin[]) => useWorkspaceStore.setState({ focusAnswered });
     const change = (c: Parameters<typeof changeFocus>[0]) =>
       changeFocus(c).then(
         (d) => setAnswered(d.focus),
@@ -103,7 +104,6 @@ export function FocusProvider({ workspace, children }: { workspace?: Workspace; 
       arrange: (names) => change({ order: names }),
     };
   }, [pins, told]);
-  return <FocusContext.Provider value={value}>{children}</FocusContext.Provider>;
 }
 
 const none: FocusPin[] = [];
@@ -144,7 +144,9 @@ export function pageRefAt(path: string, search: string, known?: Known): PageRef 
 }
 
 // FocusKeys is . anywhere: pin what the page is, or unpin it.
-export function FocusKeys({ workspace, plugins }: { workspace?: Workspace; plugins?: Plugin[] }) {
+export function FocusKeys() {
+  const workspace = useWorkspaceIfRead();
+  const plugins = usePlugins();
   const focus = useFocus();
   const { pathname, search } = useLocation();
   const known = useSidebarKnown(workspace, plugins);
@@ -201,7 +203,9 @@ export function PinButton({ r, keyHint, compact }: { r: PageRef; keyHint?: boole
 // all when there are none. A row's dragged to put them in order; a link
 // to something pinnable, dragged from the page, is pinned where it's
 // dropped (and while one's dragged, Focus is there to drop it on).
-export function FocusSection({ workspace, plugins, path }: { workspace: Workspace; plugins?: Plugin[]; path: string }) {
+export function FocusSection({ path }: { path: string }) {
+  const workspace = useWorkspace();
+  const plugins = usePlugins();
   const focus = useFocus();
   const known = useSidebarKnown(workspace, plugins);
   // A row of Focus being moved, or a link from the page being brought in:
@@ -276,7 +280,7 @@ export function FocusSection({ workspace, plugins, path }: { workspace: Workspac
           key={pin.name}
           pin={pin}
           r={r}
-          workspace={workspace}
+         
           known={known}
           path={path}
           dragging={moving === pin.name}
@@ -333,7 +337,6 @@ type Drag = Pick<React.HTMLAttributes<HTMLAnchorElement>, "onDragStart" | "onDra
 function PinRow({
   pin,
   r,
-  workspace,
   known,
   path,
   dragging,
@@ -343,7 +346,6 @@ function PinRow({
 }: {
   pin: FocusPin;
   r: PageRef;
-  workspace: Workspace;
   known?: Known;
   path: string;
   dragging: boolean;
@@ -352,6 +354,7 @@ function PinRow({
   drag: Drag;
 }) {
   const to = refHref(r, known);
+  const workspace = useWorkspace();
   const { icon, title } = useStands(pin, r, workspace, known);
   const here = r.kind === "mission" ? path === to || path.startsWith(`${to}/`) : path === to;
   return <FocusRow to={to} lead={icon} title={title} says={`${title}${pin.state && r.kind === "thing" ? ` · ${pin.state}` : ""}`} on={here} onUnpin={onUnpin} dragging={dragging} drop={drop} {...drag} />;

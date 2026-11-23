@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
-import { type Plugin } from "../api";
 import { createHost } from "../conversation/host";
 import { PageConversation } from "../conversation/PageConversation";
 import { refAt, thingOpenAt } from "../refs/refs";
 import { type IconName, icons } from "../ui/Icon";
 import { refsFound } from "../refs/found";
-import { useRefs, useRefsWorkspace } from "../refs/known";
+import { useRefs } from "../refs/known";
+import { usePlugins, useWorkspaceIfRead } from "../workspace/store";
 import { Empty, useTitle } from "../ui/kit";
 import { setFrameDim } from "./dim";
 import { setFrameHere, useFrameHere } from "./here";
@@ -49,12 +49,13 @@ export function pluginIcon(name?: string): IconName {
 
 // A plugin's page is its own frame and its own connection: another
 // plugin's is another of each.
-export function PluginPage({ plugins, ws }: { plugins?: Plugin[]; ws?: string }) {
+export function PluginPage() {
   const { name = "" } = useParams();
-  return <PluginFrame key={name} name={name} plugins={plugins} ws={ws} />;
+  return <PluginFrame key={name} name={name} />;
 }
 
-function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; ws?: string }) {
+function PluginFrame({ name }: { name: string }) {
+  const plugins = usePlugins();
   const location = useLocation();
   const navigate = useNavigate();
   const iframe = useRef<HTMLIFrameElement>(null);
@@ -86,7 +87,9 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
   // What there is to name, and the workspace: what the refs in the app's
   // words are found by, and drawn from.
   const refs = useRefs();
-  const workspace = useRefsWorkspace();
+  const workspace = useWorkspaceIfRead();
+  // The ws that serves the page: what the app's told it's in.
+  const ws = workspace?.version;
 
   // What the connection's given is read when it's asked for, so the
   // listening below is set up once, and never torn down for a new render.

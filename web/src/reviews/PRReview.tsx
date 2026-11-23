@@ -26,7 +26,6 @@ import {
   submitPRReview,
   useEvents,
   type Verdict,
-  type Workspace,
 } from "../api";
 import { type AskAbout, linesChip } from "../ask/ask";
 import { AskBar, type AskBarHandle } from "../ask/AskBar";
@@ -47,6 +46,7 @@ import { PagePin } from "../shell/focus";
 import { Chip, chipClass } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { clip } from "../ui/text";
+import { useWorkspace } from "../workspace/store";
 
 // A pull request's review: the page a capsule's review is, on commits
 // fetched into the repo's clone. A stack opens as one review, its layers
@@ -82,7 +82,8 @@ interface Shown {
   guide?: ReviewGuide;
 }
 
-export function PRReviewPage({ workspace }: { workspace: Workspace }) {
+export function PRReviewPage() {
+  const conversations = useWorkspace((w) => w.conversations);
   // The address says what's asked for; what's shown follows it once it's
   // been read. Moving to another layer, or to the whole stack and back,
   // keeps this one on screen until the next can be shown whole, then
@@ -323,7 +324,7 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
 
   // The conversations about it, as the workspace has them now: answering,
   // or your turn.
-  const talks = useMemo(() => workspace.conversations.filter((t) => t.pr === ref), [workspace.conversations, ref]);
+  const talks = useMemo(() => conversations.filter((t) => t.pr === ref), [conversations, ref]);
 
   if (error) {
     return (

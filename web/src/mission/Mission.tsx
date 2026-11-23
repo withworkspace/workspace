@@ -19,7 +19,6 @@ import {
   type MissionDetail,
   type Talk,
   useEvents,
-  type Workspace,
 } from "../api";
 import { type KeyMap, useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
@@ -55,6 +54,7 @@ import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary as SummaryList, SummaryRow } from "../ui/Summary";
+import { useWorkspace } from "../workspace/store";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -112,15 +112,20 @@ interface Item {
   capsule?: CapsuleDetail;
 }
 
-export function MissionPage({ workspace }: { workspace: Workspace }) {
+export function MissionPage() {
   const { slug = "" } = useParams();
+  // What the workspace's list says of the mission: the page is drawn
+  // again when that changes, not when another mission does.
+  const inList = useWorkspace((w) => w.missions.find((m) => m.slug === slug));
+  const root = useWorkspace((w) => w.root);
+  const readsSeen = useWorkspace((w) => w.readsSeen);
   const [params, setParams] = useSearchParams();
   const tab: Tab = tabs.includes(params.get("tab") as Tab) ? (params.get("tab") as Tab) : "summary";
   const navigate = useNavigate();
-  const updated = workspace.missions.find((m) => m.slug === slug)?.updated;
+  const updated = inList?.updated;
   // What it's about, by name (a plugin's thing, a pull request): as the
   // workspace says of it.
-  const about = workspace.missions.find((m) => m.slug === slug)?.about;
+  const about = inList?.about;
   // The details beside Summary (kept, as you left them), and over another
   // tab (until you leave it).
   const [side, setSide] = useState(loadSide);
@@ -324,7 +329,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
     // The page's own frame while it loads, so nothing moves when it has:
     // the bar where it will be, with what the list already says of the
     // mission (where it stands, its name) and the tabs.
-    const listed = workspace.missions.find((m) => m.slug === slug);
+    const listed = inList;
     return (
       <div className="mission-page">
         <div className="timeline" aria-hidden>
@@ -417,7 +422,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
         // the page's edges, each scrolling by itself.
         <div role="tabpanel" id="mission-panel" aria-labelledby="tab-brief" className="tab-panel brief-panel" key="brief">
           {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
-          <BriefTab d={d} root={workspace.root} updated={updated} reload={load} onEscape={escape} />
+          <BriefTab d={d} root={root} updated={updated} reload={load} onEscape={escape} />
         </div>
       ) : (
       <div className={`page mission${docked ? " with-side" : ""}${wideTabs.includes(tab) ? " wide" : ""}`}>
@@ -426,7 +431,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
           <div role="tabpanel" id="mission-panel" aria-labelledby={`tab-${tab}`} className="tab-panel" key={tab}>
             {tab === "summary" && <Summary {...parts} full={!side} />}
             {tab === "work" && w && (
-              <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} seen={workspace.readsSeen} />
+              <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} seen={readsSeen} />
             )}
             {tab === "verify" && <Verify d={d} bundle={bundle} pick={pickBundle} sel={item?.key} select={setSel} reload={load} />}
             {tab === "log" && <Log {...parts} />}

@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { useHoverDelay } from "../ui/hover";
 import { Icon } from "../ui/Icon";
-import { useRefs, useRefsWorkspace } from "./known";
+import { useWorkspaceIfRead } from "../workspace/store";
+import { useRefs } from "./known";
 import { RefCard } from "./RefCard";
 import { goneCapsule, GROUND, isOutside, type PageRef, refHref, refName, refOf } from "./refs";
 import { lookOf } from "./views";
@@ -19,7 +20,7 @@ import { lookOf } from "./views";
 // link already: the tag is words that go there when clicked, not a link in
 // a link, and says nothing after it.
 export function RefTag({ refKey, words, inline, children }: { refKey: string; words?: boolean; inline?: boolean; children?: ReactNode }) {
-  const workspace = useRefsWorkspace();
+  const workspace = useWorkspaceIfRead();
   const navigate = useNavigate();
   const hover = useHoverDelay<HTMLElement>(160);
   const refs = useRefs();
@@ -84,7 +85,7 @@ export function RefTag({ refKey, words, inline, children }: { refKey: string; wo
           {label}
         </span>
       )}
-      {hover.shown && <RefCard r={r} el={hover.shown} workspace={workspace} onEnter={hover.stay} onLeave={hover.out} hint={false} />}
+      {hover.shown && <RefCard r={r} el={hover.shown} onEnter={hover.stay} onLeave={hover.out} hint={false} />}
     </>
   );
 }

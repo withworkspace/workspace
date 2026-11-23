@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { type ArtifactDone, type ArtifactInfo, clearExpiredArtifacts, discardArtifact, getArtifactDetail, promoteArtifact, restoreArtifact, type Workspace } from "../api";
+import { type ArtifactDone, type ArtifactInfo, clearExpiredArtifacts, discardArtifact, getArtifactDetail, promoteArtifact, restoreArtifact } from "../api";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Callout, confirm, Dialog, humanError, Keys, toast } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import { clearable, type IntoKind, type Lives, livesAt, promoteBlocked, promoteVersions, promotion } from "./shown";
 import { Button } from "../ui/Button";
+import { useWorkspace } from "../workspace/store";
 
 // An artifact's lifetime, in the web UI: Promote, with the version chosen,
 // what it went into, and, the first time, where it's to live (a folder in
@@ -27,7 +28,8 @@ function doneWords(what: string, d: ArtifactDone): string {
 // PromoteDialog promotes an artifact: the version chosen (its latest, at
 // first), what it went into, if anything, and where it's to live. That
 // last is asked once: one that lives in a repo goes there.
-export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: ArtifactInfo; version?: number; workspace: Workspace; onClose: () => void; onDone?: (d: ArtifactDone) => void }) {
+export function PromoteDialog({ a, version, onClose, onDone }: { a: ArtifactInfo; version?: number; onClose: () => void; onDone?: (d: ArtifactDone) => void }) {
+  const workspace = useWorkspace();
   const { value: d, error: loadError } = useLoaded(() => getArtifactDetail(a.id), [a.id]);
   const versions = useMemo(() => (d ? promoteVersions(d.all) : []), [d]);
   const [chosen, setChosen] = useState<number>();
@@ -179,7 +181,8 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
 
 // DiscardDialog discards an artifact, asking why (which can be left
 // empty).
-export function DiscardDialog({ a, workspace, onClose, onDone }: { a: ArtifactInfo; workspace: Workspace; onClose: () => void; onDone?: (d: ArtifactDone) => void }) {
+export function DiscardDialog({ a, onClose, onDone }: { a: ArtifactInfo; onClose: () => void; onDone?: (d: ArtifactDone) => void }) {
+  const defaultBranch = useWorkspace((w) => w.defaultBranch);
   const [why, setWhy] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -205,7 +208,7 @@ export function DiscardDialog({ a, workspace, onClose, onDone }: { a: ArtifactIn
         It's taken off the list, with its versions. Its folder moves to <span className="mono">.ws/artifacts/.discarded</span>, and is deleted for good in 30 days: until then, <em>Restore</em> puts it back.{" "}
         {home && (
           <>
-            Its folder in {home.repo} (<span className="mono">{home.where}</span>) is taken away too, in one commit straight to {home.repo}'s {workspace.defaultBranch ?? "default branch"}.{" "}
+            Its folder in {home.repo} (<span className="mono">{home.where}</span>) is taken away too, in one commit straight to {home.repo}'s {defaultBranch ?? "default branch"}.{" "}
           </>
         )}
         {a.id} still says what it was.
@@ -231,7 +234,7 @@ export function DiscardDialog({ a, workspace, onClose, onDone }: { a: ArtifactIn
           Cancel
         </Button>
         <Button variant="danger" onClick={go} disabled={busy}>
-          {busy ? (home ? "Landing…" : "Discarding…") : home ? `Discard, and land on ${workspace.defaultBranch ?? "it"}` : "Discard"} <Keys k="mod+⏎" />
+          {busy ? (home ? "Landing…" : "Discarding…") : home ? `Discard, and land on ${defaultBranch ?? "it"}` : "Discard"} <Keys k="mod+⏎" />
         </Button>
       </div>
     </Dialog>
@@ -249,7 +252,7 @@ async function restoreFromToast(id: string) {
 // restore puts a discarded artifact back, once you've said so. (Where it
 // lived in a repo, it's put back there too: the server says so in what
 // it did, as a discarded one's home isn't sent.)
-export async function restore(a: ArtifactInfo, _workspace: Workspace): Promise<ArtifactDone | undefined> {
+export async function restore(a: ArtifactInfo): Promise<ArtifactDone | undefined> {
   const yes = await confirm({
     title: `Restore “${a.title}”?`,
     body: <>Its folder comes back from .ws/artifacts/.discarded, as it was, and where it lived in a repo, the version that was there is put back, in one commit. Its expiry counts from now.</>,
@@ -268,7 +271,7 @@ export async function restore(a: ArtifactInfo, _workspace: Workspace): Promise<A
 
 // ClearExpired is the list's Clear expired: every expired artifact,
 // discarded now, as the daemon would within the day.
-export function ClearExpired({ all }: { all: ArtifactInfo[]; workspace: Workspace }) {
+export function ClearExpired({ all }: { all: ArtifactInfo[] }) {
   const [busy, setBusy] = useState(false);
   const expired = clearable(all);
   if (!expired.length) return null;

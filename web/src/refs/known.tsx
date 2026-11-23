@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { checkRefPaths, getRepos, type Plugin, type Repo, type Workspace } from "../api";
+import { checkRefPaths, getRepos, type Plugin, type Repo } from "../api";
 import { useLoaded } from "../load";
+import { usePlugins, useWorkspace } from "../workspace/store";
 import { type Files, groundPaths, type Known, type Named } from "./refs";
 
 // What there is to name, held once for the whole web UI, so a name is
@@ -26,11 +27,11 @@ export interface Refs {
   want(text: string): void;
 }
 
-// Apart from the workspace, which changes with every event: what's drawn
-// as text is found again only when what there is to name changes, and a
-// ref's label (where a mission stands) follows the workspace by itself.
+// Apart from the workspace (workspace/store.ts), which changes far more
+// often: what's drawn as text is found again only when what there is to
+// name changes, and a ref's label (where a mission stands) follows the
+// workspace by itself.
 const RefsContext = createContext<Refs | undefined>(undefined);
-const WorkspaceContext = createContext<Workspace | undefined>(undefined);
 
 // useRefs is what there is to name; undefined outside RefsProvider, where
 // nothing's found.
@@ -41,9 +42,6 @@ export const useRefs = () => useContext(RefsContext);
 export function NoRefs({ children }: { children: ReactNode }) {
   return <RefsContext.Provider value={undefined}>{children}</RefsContext.Provider>;
 }
-
-// useRefsWorkspace is the workspace, for what a ref's tag and card say.
-export const useRefsWorkspace = () => useContext(WorkspaceContext);
 
 const noRepos: Repo[] = [];
 
@@ -88,7 +86,9 @@ const filesOf = (c?: Checked): Files => ({
 // checkMax is the most paths a check asks about at once.
 const checkMax = 2000;
 
-export function RefsProvider({ workspace, plugins = noPlugins, children }: { workspace: Workspace; plugins?: Plugin[]; children: ReactNode }) {
+export function RefsProvider({ children }: { children: ReactNode }) {
+  const workspace = useWorkspace();
+  const plugins = usePlugins() ?? noPlugins;
   // A capsule lifted or burned changes what a capsule's file can be.
   const capsules = workspace.missions.flatMap((m) => m.capsules.map((c) => `${c.repo}/${c.name}`)).join(",");
   const repos = useLoaded(() => getRepos().then((rs) => rs.filter((r) => r.cloned)), [capsules], { keep: true }).value ?? noRepos;
@@ -235,24 +235,16 @@ export function RefsProvider({ workspace, plugins = noPlugins, children }: { wor
   );
   const byName = useMemo(() => new Map(repos.map((r) => [r.name, r])), [repos]);
   const value = useMemo(() => ({ known, repos: byName, heads, want }), [known, byName, heads, want]);
-  return (
-    <WorkspaceContext.Provider value={workspace}>
-      <RefsContext.Provider value={value}>{children}</RefsContext.Provider>
-    </WorkspaceContext.Provider>
-  );
+  return <RefsContext.Provider value={value}>{children}</RefsContext.Provider>;
 }
 
 // RefsScope is what there is to name, as it's given: for somewhere
 // outside the pages that draws refs of its own (Find's pane, which names
 // what a plugin's thing points at). It checks no repo's files: what it's
 // given is what's found.
-export function RefsScope({ workspace, known, children }: { workspace: Workspace; known: Known; children: ReactNode }) {
+export function RefsScope({ known, children }: { known: Known; children: ReactNode }) {
   const value = useMemo<Refs>(() => ({ known, repos: new Map(), heads: new Map(), want: () => {} }), [known]);
-  return (
-    <WorkspaceContext.Provider value={workspace}>
-      <RefsContext.Provider value={value}>{children}</RefsContext.Provider>
-    </WorkspaceContext.Provider>
-  );
+  return <RefsContext.Provider value={value}>{children}</RefsContext.Provider>;
 }
 
 // useWanted checks the paths a text names on the repos' default branches,

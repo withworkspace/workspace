@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
-import { docAddress, docTo, filesTo, GROUND, openFilePage, pageAddress, type Workspace } from "../api";
+import { docAddress, docTo, filesTo, GROUND, openFilePage, pageAddress } from "../api";
 import { DocPage } from "../files/DocPage";
 import { PagePage } from "../pages/Pages";
 import { ErrorCard, humanError, Loading } from "../ui/kit";
+import { useWorkspace } from "../workspace/store";
 
 // A document's one address: /documents/<repo>/<path>, read first, edited
 // there (?edit) as the page tied to the file, made the first time, its
@@ -12,21 +13,21 @@ import { ErrorCard, humanError, Loading } from "../ui/kit";
 // /pages/<id>, /pages/open?ref=) lead here.
 
 // DocumentAt is /documents/<repo>/<path>: the document, read or edited.
-export function DocumentAt({ workspace }: { workspace: Workspace }) {
+export function DocumentAt() {
   const params = useParams();
   const [q] = useSearchParams();
   const repo = params.repo ?? "";
   const path = params["*"] ?? "";
   const capsule = q.get("in") ?? "";
   const ref = `${repo}${capsule ? `/${capsule}` : ""}:${path}`;
-  if (q.has("edit")) return <EditAt key={ref} docRef={ref} page={q.get("edit") || undefined} workspace={workspace} />;
-  return <DocPage key={ref} workspace={workspace} docRef={ref} />;
+  if (q.has("edit")) return <EditAt key={ref} docRef={ref} page={q.get("edit") || undefined} />;
+  return <DocPage key={ref} docRef={ref} />;
 }
 
 // EditAt is a document edited at its address: the page tied to it, given
 // (?edit=p8), else found or made for it. One a mission records is that
 // mission's document, edited there.
-function EditAt({ docRef, page, workspace }: { docRef: string; page?: string; workspace: Workspace }) {
+function EditAt({ docRef, page }: { docRef: string; page?: string }) {
   const navigate = useNavigate();
   const [id, setId] = useState(page);
   const [error, setError] = useState<string>();
@@ -61,13 +62,13 @@ function EditAt({ docRef, page, workspace }: { docRef: string; page?: string; wo
     );
   }
   if (!id) return <Loading what="Opening it to edit…" />;
-  return <PagePage key={id} workspace={workspace} id={id} back={{ to: docTo(docRef), label: "Read it" }} />;
+  return <PagePage key={id} id={id} back={{ to: docTo(docRef), label: "Read it" }} />;
 }
 
 // LocalPageAt is /documents/local/<id>: a page that isn't in a space.
-export function LocalPageAt({ workspace }: { workspace: Workspace }) {
+export function LocalPageAt() {
   const { id = "" } = useParams();
-  return <PagePage key={id} workspace={workspace} id={id} back={{ to: "/documents", label: "Documents" }} />;
+  return <PagePage key={id} id={id} back={{ to: "/documents", label: "Documents" }} />;
 }
 
 // DocsAddress is /docs?ref=, as it was: the document's address now.
@@ -87,9 +88,10 @@ export function OpenAddress() {
 
 // PageAddress is /pages/<id>, as it was: where the page is now, the
 // document it's tied to or Local.
-export function PageAddress({ workspace }: { workspace: Workspace }) {
+export function PageAddress() {
+  const pages = useWorkspace((w) => w.pages);
   const { id = "" } = useParams();
   const { hash } = useLocation();
-  const p = workspace.pages?.find((x) => x.id === id);
+  const p = pages?.find((x) => x.id === id);
   return <Navigate to={pageAddress(p ?? { id }) + hash} replace />;
 }

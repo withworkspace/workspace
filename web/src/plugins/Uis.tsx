@@ -1,6 +1,6 @@
 import type { V1 } from "@withworkspace/ui-lib/protocol";
 import { type ReactNode, type RefObject, useMemo, useSyncExternalStore } from "react";
-import { useRefsWorkspace } from "../refs/known";
+import { useWorkspaceIfRead } from "../workspace/store";
 import { RefCard } from "../refs/RefCard";
 import { refOf } from "../refs/refs";
 import type { Anchor } from "../ui/hover";
@@ -31,11 +31,11 @@ export interface UiProps {
 // A ref's card, by the ref's words in the app's page: the card ws shows
 // for a ref in its own pages.
 function RefCardUi({ asked, anchor, stay, leave }: UiProps) {
-  const workspace = useRefsWorkspace();
+  const workspace = useWorkspaceIfRead();
   const r = typeof asked.with.ref === "string" ? refOf(asked.with.ref) : undefined;
   // A ref ws can't read has no card.
   if (!r || !anchor || !workspace) return null;
-  return <RefCard r={r} el={anchor} workspace={workspace} onEnter={stay} onLeave={leave} hint={false} />;
+  return <RefCard r={r} el={anchor} onEnter={stay} onLeave={leave} hint={false} />;
 }
 
 // What draws each, by its name in the protocol.

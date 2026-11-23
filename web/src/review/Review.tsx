@@ -23,7 +23,6 @@ import {
   respond,
   setViewed,
   submitReview,
-  type Workspace,
 } from "../api";
 import { type KeyMap, useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
@@ -47,6 +46,7 @@ import { useLatest } from "../load";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { capital } from "../ui/text";
+import { useWorkspace } from "../workspace/store";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -250,12 +250,12 @@ export interface AskedFinding {
 }
 
 // Review is a mission capsule's review.
-export function Review({ workspace }: { workspace: Workspace }) {
+export function Review() {
   const { slug = "", repo = "", name = "" } = useParams();
   const api = capsuleAPI(slug, repo, name);
   // Its passes and its guide: as a pull request's review has.
   const rp = useReviewPasses(api);
-  const mission = workspace.missions.find((m) => m.slug === slug);
+  const mission = useWorkspace((w) => w.missions.find((m) => m.slug === slug));
   const current = mission?.capsules.find((c) => c.repo === repo && c.name === name);
   if (!mission || !current) {
     return (
