@@ -36,12 +36,38 @@ export function Menu({
     <MenuTrigger>
       {trigger}
       <PopoverSurface placement={placement} pageKeys={pageKeys} className={className}>
-        <AriaMenu className={css.list} aria-label={label} onAction={onAction && ((key) => onAction(String(key)))}>
+        <MenuList aria-label={label} onAction={onAction}>
           {children}
-        </AriaMenu>
+        </MenuList>
         {foot}
       </PopoverSurface>
     </MenuTrigger>
+  );
+}
+
+// MenuList is a menu's list by itself, for a part that opens one some
+// other way than from a button (ContextMenu, at the pointer): it's told
+// when to close, since no trigger's around it to say, and takes the focus
+// as it opens.
+export function MenuList({
+  "aria-label": label,
+  onAction,
+  onClose,
+  focused,
+  className,
+  children,
+}: {
+  "aria-label": string;
+  onAction?: (id: string) => void;
+  onClose?: () => void;
+  focused?: boolean;
+  className?: string;
+  children: ReactNode; // MenuItems, MenuSections, MenuSeparators
+}) {
+  return (
+    <AriaMenu className={cx(css.list, className)} aria-label={label} autoFocus={focused} onClose={onClose} onAction={onAction && ((key) => onAction(String(key)))}>
+      {children}
+    </AriaMenu>
   );
 }
 

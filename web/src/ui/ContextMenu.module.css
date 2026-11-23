@@ -1,0 +1,17 @@
+/* A context menu (ContextMenu.tsx): a menu's list, opened at the pointer. */
+
+@layer ui {
+  /* Where the pointer was: nothing to see, only somewhere for the menu to
+     open by. */
+  .point {
+    position: fixed;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  /* Nothing opened it that it could be as wide as. */
+  .list {
+    min-width: 180px;
+  }
+}
