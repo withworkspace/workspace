@@ -97,7 +97,7 @@ export function FileAs({
       <div className="file-as-fields" onKeyDown={keys}>
         <label>
           <span>Kind</span>
-          <Select value={k} onChange={setK} aria-label="Kind of document">
+          <Select fill value={k} onChange={setK} aria-label="Kind of document">
             {kinds.map((x) => (
               <Option key={x.name} value={x.name}>
                 {x.title}

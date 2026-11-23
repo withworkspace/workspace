@@ -163,7 +163,7 @@ export function KindHead({
       <span className="spacer" />
       <label className="lib-sort dim">
         <Icon name="list" size={12} />
-        <Select value={sort} onChange={(v) => setSort(v as Sort)} aria-label={`Sort the ${kind.title} list`}>
+        <Select size="tiny" value={sort} onChange={(v) => setSort(v as Sort)} aria-label={`Sort the ${kind.title} list`}>
           <Option value="made">{docs.some((d) => d.number) ? "By number" : "Newest first"}</Option>
           <Option value="title">By title</Option>
           {states.length > 0 && <Option value="stands">By where it stands</Option>}

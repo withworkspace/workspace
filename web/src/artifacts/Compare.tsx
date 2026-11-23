@@ -310,7 +310,7 @@ function SideHead({
   return (
     <div className={`compare-side-head side-${i ? "right" : "left"}`}>
       <div className="compare-side-tools">
-        <Select value={side.id} onChange={onPick} aria-label={i ? "The right one's artifact" : "The left one's artifact"}>
+        <Select className="compare-pick" value={side.id} onChange={onPick} aria-label={i ? "The right one's artifact" : "The left one's artifact"}>
           {(choices ?? []).map((a) => (
             <Option key={a.id} value={a.id} title={a.title}>
               {`${a.id} · ${a.title}`}

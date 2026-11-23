@@ -54,7 +54,7 @@ const few = (s: Setting) => !!s.choices && s.choices.length > 1 && s.choices.len
 
 function Choice({ s, set }: Props) {
   return (
-    <Select value={shown(s.value)} onChange={set} aria-label={s.label}>
+    <Select className="setting-select" value={shown(s.value)} onChange={set} aria-label={s.label}>
       {!s.choices?.some((c) => c.value === shown(s.value)) && <Option value={shown(s.value)}>{shown(s.value) || "—"}</Option>}
       {s.choices?.map((c) => (
         <Option key={c.value} value={c.value} title={c.note}>
@@ -279,6 +279,7 @@ function ModelInput(p: Props) {
   }
   return (
     <Select
+      className="setting-select"
       value={cur || own}
       aria-label={s.label}
       onChange={(v) => {

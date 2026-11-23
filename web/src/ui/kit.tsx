@@ -215,7 +215,7 @@ export function Dialog({ title, onClose, children, className, wide, bare }: { ti
     const before = document.activeElement as HTMLElement | null;
     const el = ref.current;
     // Focus starts on the first field to type in (not the close button, nor a Select).
-    const first = el?.querySelector<HTMLElement>(":is([autofocus], textarea, input, button, [tabindex]:not([tabindex='-1'])):not(.dialog-close, .select-button)");
+    const first = el?.querySelector<HTMLElement>(":is([autofocus], textarea, input, button, [tabindex]:not([tabindex='-1'])):not(.dialog-close, [data-select])");
     (first ?? el)?.focus();
     return () => before?.focus?.();
   }, []);

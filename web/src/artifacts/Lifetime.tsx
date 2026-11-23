@@ -79,7 +79,7 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
       <div className="file-as-fields" onKeyDown={keys}>
         <label>
           <span>Version</span>
-          <Select value={String(n)} onChange={(v) => setChosen(Number(v))} aria-label="The version chosen">
+          <Select fill value={String(n)} onChange={(v) => setChosen(Number(v))} aria-label="The version chosen">
             {versions.map((v) => {
               const note = d?.all.find((x) => x.n === v)?.note;
               return (
@@ -92,7 +92,7 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
         </label>
         <label>
           <span>Into</span>
-          <Select value={kind} onChange={(k) => setKind(k as IntoKind)} aria-label="What it went into">
+          <Select fill value={kind} onChange={(k) => setKind(k as IntoKind)} aria-label="What it went into">
             <Option value="nothing">Nothing: it's kept</Option>
             <Option value="mission">A mission</Option>
             <Option value="start">A new mission, started from it</Option>
@@ -102,7 +102,7 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
         {kind === "mission" && (
           <label>
             <span>Mission</span>
-            <Select value={text} onChange={setText} aria-label="The mission">
+            <Select fill value={text} onChange={setText} aria-label="The mission">
               <Option value="">Choose one…</Option>
               {missions.map((m) => (
                 <Option key={m.slug} value={m.slug} title={m.title}>
@@ -127,7 +127,7 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
         {!home && d && (
           <label>
             <span>Lives</span>
-            <Select value={lives} onChange={(l) => setPicked(l as Lives)} aria-label="Where it's to live">
+            <Select fill value={lives} onChange={(l) => setPicked(l as Lives)} aria-label="Where it's to live">
               {offered ? (
                 <Option value="offered" note="for everyone with it">
                   {offered}

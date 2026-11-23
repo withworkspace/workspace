@@ -248,7 +248,7 @@ function Choose({ id, t, value, set }: { id: string; t: Tweak; value: string; se
   }
   return (
     <div id={id} className="tweak-select">
-      <Select value={value} onChange={set} aria-label={t.label}>
+      <Select fill size="small" value={value} onChange={set} aria-label={t.label}>
         {options.map((o) => (
           <Option key={o.value} value={o.value} title={o.description || undefined}>
             {o.label}

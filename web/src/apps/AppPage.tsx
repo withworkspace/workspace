@@ -153,7 +153,7 @@ export function AppFrame({ name, title, icon: iconName, at }: { name: string; ti
         {app?.pointers.map((p) => (
           <span key={p.need} className="app-point" title={pointTitle(p)}>
             <span className="app-point-need">{p.need}</span>
-            <Select value={p.at || "ground"} onChange={(v) => void point(p, v)} disabled={busy !== undefined} aria-label={`What ${p.need} is pointed at`}>
+            <Select size="small" value={p.at || "ground"} onChange={(v) => void point(p, v)} disabled={busy !== undefined} aria-label={`What ${p.need} is pointed at`}>
               {p.choices.map((c) => (
                 <Option key={c} value={c} note={c === "ground" ? "nearest" : undefined}>
                   {c}
