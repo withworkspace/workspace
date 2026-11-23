@@ -1,0 +1,21 @@
+/* Answering what a card says, in the card (ReplyBox.tsx): a text box
+   the card's width, and under it, at its end, what's pressed. */
+
+@layer ui {
+  .box .field {
+    width: 100%;
+    margin: 8px 0;
+    font: var(--text-md) / 1.5 var(--font);
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .actions button {
+    white-space: nowrap;
+  }
+}

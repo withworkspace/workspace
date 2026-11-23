@@ -45,6 +45,7 @@ import { ToggleButton } from "../ui/ToggleButton";
 import { Input } from "../ui/Input";
 import { TextArea } from "../ui/TextArea";
 import { Composer } from "../ui/Composer";
+import { Excerpt } from "../ui/Excerpt";
 import { cx } from "../ui/cx";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
@@ -608,14 +609,7 @@ export function TalkPage() {
           </Callout>
         )}
         {!!d?.anchor?.excerpt?.length && (
-          <pre className="note-excerpt talk-anchor" title={`${d.anchor.path}, the lines the question is about`}>
-            {d.anchor.excerpt.map((l, i) => (
-              <div key={i}>
-                <span className="ln">{(d.anchor!.line ?? 1) + i}</span>
-                {l || " "}
-              </div>
-            ))}
-          </pre>
+          <Excerpt className="talk-anchor" lines={d.anchor.excerpt} from={d.anchor.line ?? 1} title={`${d.anchor.path}, the lines the question is about`} />
         )}
         {!d?.anchor?.excerpt?.length && d?.anchor?.quote?.exact && (
           <blockquote className="talk-anchor talk-quote" title="The passage it was asked of">
@@ -1307,14 +1301,7 @@ function WsProposalCard({
               </span>
             </div>
             {!!p.excerpt?.length && (
-              <pre className="note-excerpt">
-                {p.excerpt.map((l, i) => (
-                  <div key={i}>
-                    <span className="ln">{(p.line ?? 1) + i}</span>
-                    {l || " "}
-                  </div>
-                ))}
-              </pre>
+              <Excerpt lines={p.excerpt} from={p.line ?? 1} />
             )}
             {p.text && <div className="proposal-what said-text">{p.text}</div>}
             {p.suggestion != null && (

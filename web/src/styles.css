@@ -1123,7 +1123,7 @@ main.stale > :not(.connection-banner) {
 }
 
 .file,
-.note-card,
+.note-panel,
 .note-editor,
 .select-bar,
 .hovercard,
@@ -2306,12 +2306,12 @@ main {
 }
 
 /* Comments sit level with the code, not the line numbers. */
-.lines .note-card,
+.lines .diff-note,
 .lines .note-editor {
   margin: 6px 14px 10px 118px;
 }
 
-.lines.split .note-card,
+.lines.split .diff-note,
 .lines.split .note-editor {
   margin-left: 50px;
 }
@@ -2325,27 +2325,6 @@ main {
   align-items: center;
   gap: 4px;
   font-size: var(--text-xs);
-}
-
-/* A comment whose lines aren't showing: the lines it's on, above it. */
-.note-excerpt {
-  margin: 8px 0 0;
-  padding: 6px 0;
-  border-radius: var(--radius);
-  background: var(--panel);
-  font: var(--text-xs) / 18px var(--mono);
-  overflow-x: auto;
-}
-
-.note-excerpt > div {
-  white-space: pre;
-  padding-right: 10px;
-}
-
-.note-excerpt .ln {
-  display: inline-block;
-  min-width: 36px;
-  margin-right: 8px;
 }
 
 @media (max-width: 860px) {
@@ -2362,9 +2341,9 @@ main {
     padding: 0 12px 40vh;
   }
 
-  .lines .note-card,
+  .lines .diff-note,
   .lines .note-editor,
-  .lines.split .note-card {
+  .lines.split .diff-note {
     margin-left: 12px;
     margin-right: 12px;
   }
@@ -2521,7 +2500,6 @@ button.kind.on {
   background: color-mix(in srgb, var(--kc, var(--dim)) 12%, transparent);
 }
 
-.note-card,
 .note-editor {
   margin: 4px 10px 8px 60px;
   padding: 10px 12px;
@@ -2536,32 +2514,12 @@ button.kind.on {
     border-color var(--fast) var(--ease);
 }
 
-.note-card.draft {
-  border-style: dashed;
-}
-
-.note-card.cursor {
-  border-color: var(--accent-line);
-  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
-}
-
 .note-head {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: var(--text-sm);
   min-height: 22px;
-}
-
-.note-id {
-  font: var(--text-xs) var(--mono);
-  color: var(--faint);
-}
-
-.note-body {
-  margin-top: 6px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 
 .suggestion {
@@ -7536,95 +7494,6 @@ a.work-file:hover {
   color: var(--dim);
 }
 
-/* Review threads: what crew and you said on a comment, and its state */
-
-.note-status {
-  display: inline-flex;
-  align-items: center;
-  font: 600 var(--text-xs) / 18px var(--font);
-  padding: 0 7px;
-  border-radius: 999px;
-  background: var(--well);
-  color: var(--dim);
-}
-
-.note-status.s-open,
-.note-status.s-reopened {
-  color: var(--amber);
-  background: var(--amber-soft);
-}
-
-.note-status.s-addressed {
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.note-status.s-wontfix {
-  color: var(--violet);
-  background: var(--violet-soft);
-}
-
-.note-status.s-resolved {
-  color: var(--green);
-  background: var(--green-soft);
-}
-
-.note-status.s-crew {
-  color: var(--violet);
-  background: var(--violet-soft);
-}
-
-.note-card.resolved {
-  opacity: 0.75;
-}
-
-.thread {
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 8px 0 0;
-  border-top: 1px solid var(--line);
-  display: grid;
-  gap: 6px;
-}
-
-.thread li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.thread .who {
-  font-weight: 600;
-  font-size: var(--text-sm);
-}
-
-.thread .said {
-  flex-basis: 100%;
-  white-space: pre-wrap;
-}
-
-.reply-hint {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 8px;
-  font-size: var(--text-sm);
-}
-
-.reply-hint .reply-hint-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--accent);
-}
-
-.reply-box textarea {
-  width: 100%;
-  margin: 8px 0;
-  font: var(--text-md) / 1.5 var(--font);
-}
-
 .review-head .scope {
   color: var(--dim);
 }
@@ -8841,21 +8710,9 @@ button.accent-swatch:hover {
   color: var(--faint);
 }
 
-.margin .note-card,
 .margin .note-editor,
-.lost-notes .note-card,
 .lost-notes .note-editor {
   margin: 0;
-}
-
-.doc-note.note-card {
-  cursor: default;
-  font-size: var(--text-sm);
-}
-
-.doc-note.note-card.hovered {
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow);
 }
 
 /* An edit just accepted, landing in the document. */
@@ -8872,25 +8729,8 @@ button.accent-swatch:hover {
   }
 }
 
-.doc-note.note-card.folded {
-  padding: 6px 10px;
-  opacity: 0.65;
-  box-shadow: none;
-  background: transparent;
-}
-
-.doc-note.note-card.folded:hover {
-  opacity: 1;
-}
-
 .doc-note .note-head {
   flex-wrap: wrap;
-}
-
-.doc-note .one-line {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .note-editor.doc-note {
@@ -9069,7 +8909,6 @@ blockquote.editor-on {
   background: var(--line-strong);
 }
 
-.sheet .note-card,
 .sheet .note-editor {
   margin: 0;
 }
@@ -9175,11 +9014,6 @@ blockquote.editor-on {
 
 /* Threads on a document: ask, change or note */
 
-.doc-note.note-card.yours:not(.cursor) {
-  border-color: rgb(211 139 29 / 0.5);
-  box-shadow: inset 3px 0 0 var(--amber-fill), var(--shadow-xs);
-}
-
 ::highlight(ws-note-ask) {
   background-color: rgb(211 139 29 / 0.17);
 }
@@ -9200,38 +9034,6 @@ blockquote.editor-on {
 }
 :root[data-theme="dark"] ::highlight(ws-note-note) {
   background-color: rgb(160 160 170 / 0.2);
-}
-
-.thread li.by-ws .said {
-  color: var(--dim);
-}
-
-.thread .said .markdown {
-  font-size: var(--text-sm);
-  line-height: 1.55;
-  max-width: none;
-  white-space: normal;
-}
-
-.thread .said .markdown p,
-.thread .said .markdown ul,
-.thread .said .markdown ol,
-.thread .said .markdown pre,
-.thread .said .markdown blockquote {
-  margin: 0 0 0.5em;
-}
-
-.thread .said .markdown > :last-child {
-  margin-bottom: 0;
-}
-
-.thread .said .markdown .code-block {
-  padding: 6px 8px;
-  font-size: var(--text-xs);
-}
-
-.note-card .typing {
-  margin-top: 8px;
 }
 
 /* Suggested edits in threads */
@@ -12079,20 +11881,8 @@ details.repo-group > summary::-webkit-details-marker {
   color: var(--dim);
 }
 
-/* What a pass found, in the diff: a card under its lines, like a
-   comment's, but nobody's said it yet. */
-.note-card.finding-card {
-  border-style: dashed;
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
-  background: color-mix(in srgb, var(--accent) 4%, var(--raised));
-}
-
-.note-card.finding-card.blocks {
-  border-color: color-mix(in srgb, var(--k-blocking) 55%, var(--line));
-}
-
 /* Code named in what it says: as code is anywhere but a diff's lines. */
-.lines .note-card .inline-md code {
+.lines .diff-note .inline-md code {
   font: 0.9em var(--mono);
   background: var(--code-bg);
   border-radius: var(--radius-sm);
@@ -12549,16 +12339,6 @@ details.repo-group > summary::-webkit-details-marker {
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--dim);
-}
-
-a.note-id {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-a.note-id:hover {
-  color: var(--accent);
 }
 
 /* Submitting a pull request's review: what will be posted, and where. */
@@ -13433,7 +13213,15 @@ button.finding-quote:hover {
   background: var(--accent-soft);
 }
 
-.note-card .note-from {
+/* A finding opened from its words on the page: a cell's panel, set in
+   and padded as a comment's card was. */
+.note-panel {
+  margin: 4px 10px 8px 60px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+
+.note-panel .note-from {
   display: flex;
   align-items: center;
   padding: 6px 8px 0 12px;
@@ -13441,7 +13229,7 @@ button.finding-quote:hover {
   color: var(--dim);
 }
 
-.note-card .finding {
+.note-panel .finding {
   padding: 4px 12px 12px;
 }
 

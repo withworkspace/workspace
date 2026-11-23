@@ -1408,7 +1408,7 @@ function NoteCard({
     };
   }, [onClose]);
   return (
-    <div className="cell-panel note-card" ref={panel} style={at ? { top: at.top, left: at.left } : { visibility: "hidden" }} role="dialog" aria-label={`From ${pass.title}`}>
+    <div className="cell-panel note-panel" ref={panel} style={at ? { top: at.top, left: at.left } : { visibility: "hidden" }} role="dialog" aria-label={`From ${pass.title}`}>
       <div className="note-from">
         <Button variant="link" onClick={onPass} title="Open the pass it's from">
           {pass.title}

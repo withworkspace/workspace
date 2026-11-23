@@ -26,6 +26,9 @@ import {
 } from "../api";
 import { type KeyMap, useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
+import { Excerpt } from "../ui/Excerpt";
+import { NoteBody, NoteCard, NoteHead, NoteHint, NoteId, NoteStatus, NoteThread, NoteTurn } from "../ui/NoteCard";
+import { ReplyBox } from "../ui/ReplyBox";
 import { fuzzy } from "../ui/fuzzy";
 import { Inline } from "../ui/inline";
 import { Callout, humanError, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
@@ -33,7 +36,7 @@ import { exact, stamp } from "../ui/time";
 import { highlightLines, languageOf, useHighlighter } from "./highlight";
 import { useCodeNav } from "./CodeNav";
 import { LandBar } from "./Land";
-import { joinSuggestion, ReplyBox, SubmitDialog, splitSuggestion, statusWords, suggestionBlock, verdictWords } from "./parts";
+import { joinSuggestion, SubmitDialog, splitSuggestion, statusWords, suggestionBlock, verdictWords } from "./parts";
 import { FileList, type ViewEntry, ViewList } from "./FileList";
 import { type FindingAct, FindingCard, followWords } from "./Findings";
 import { GuideMark, GuideSection } from "../reviews/Guide";
@@ -1193,7 +1196,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
                     r.type === "comment" && (
                       <div key={r.key}>
                         <div className="mono dim orphan-path">{r.placed.note.path || "On the change as a whole: it goes in the review's body"}</div>
-                        <NoteCard
+                        <CommentCard
                           row={r}
                           cursor={cursor === r.key}
                           replying={replying === r.placed.note.id}
@@ -1410,7 +1413,7 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
             r.type === "editor" && editing ? (
               <NoteEditor key={r.key} editing={editing} lines={editorLines()} onSave={onSave} onCancel={onCancel} />
             ) : r.type === "comment" ? (
-              <NoteCard
+              <CommentCard
                 key={r.key}
                 row={r}
                 cursor={cursor === r.key}
@@ -1578,7 +1581,7 @@ export function RowView({ row, split, navAt, cursor, selected, html, onRowClick,
 const linesWord = (t: Target) => (t.endLine > t.line ? `lines ${t.line}–${t.endLine}` : `line ${t.line}`);
 
 
-interface NoteCardProps {
+interface CommentCardProps {
   row: Extract<Row, { type: "comment" }>;
   followup?: { kind: string; text: string; blocks?: boolean }; // what the follow-up said of it
   cursor: boolean;
@@ -1588,65 +1591,56 @@ interface NoteCardProps {
   onReplyCancel: () => void;
 }
 
-// NoteCard is a comment: a draft's (yours to edit), or a submitted one,
+// CommentCard is a comment: a draft's (yours to edit), or a submitted one,
 // with what crew and you have said since, and resolving it.
-function NoteCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, followup }: NoteCardProps) {
+function CommentCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, followup }: CommentCardProps) {
   const { note, draft } = row.placed;
   const resolved = note.status === "resolved";
   return (
-    <div
-      id={`row-${row.key}`}
-      className={`note-card${cursor ? " cursor" : ""}${draft ? " draft" : ""}${resolved ? " resolved" : ""}`}
-      onClick={() => onRow(row.key)}
-    >
-      <div className="note-head">
+    <NoteCard id={`row-${row.key}`} className="diff-note" cursor={cursor} draft={draft} resolved={resolved} onClick={() => onRow(row.key)}>
+      <NoteHead
+        end={
+          <>
+            {!draft &&
+              (note.url ? (
+                <NoteId href={note.url} title="Open it on GitHub">
+                  GitHub
+                </NoteId>
+              ) : (
+                <NoteId>{note.id}</NoteId>
+              ))}
+            {cursor && draft && (
+              <span className="dim note-keys">
+                <Keys k="⏎" /> edit <Keys k="D" /> delete
+              </span>
+            )}
+            {!draft && (
+              <Button
+                variant="ghost" size="small"
+                className="note-toggle"
+                onClick={(e) => (e.stopPropagation(), onRow(row.key), onAnswer(note.id, resolved ? "reopen" : "resolve"))}
+                title={`${resolved ? "Reopen" : "Resolve"} (x)`}
+              >
+                {resolved ? "Reopen" : "Resolve"}
+              </Button>
+            )}
+          </>
+        }
+      >
         {note.kind ? <span className={`kind k-${note.kind}`}>{capital(note.kind)}</span> : <span className="kind k-none">Comment</span>}
         {note.by && (
           <span className="note-by" title={note.by === "agent" ? "An agent proposed it, and you added it to your review: it's yours to edit" : `${note.by} on GitHub`}>
             <Icon name={note.by === "agent" ? "sparkle" : "user"} size={11} /> {note.by === "agent" ? "Agent's" : note.by}
           </span>
         )}
-        {draft ? <span className="note-status">Draft</span> : <span className={`note-status s-${note.status}`}>{statusWords[note.status] ?? note.status}</span>}
+        {draft ? <NoteStatus>Draft</NoteStatus> : <NoteStatus status={note.status}>{statusWords[note.status] ?? note.status}</NoteStatus>}
         <span className="dim note-where">
           {note.side === "old" ? "removed " : ""}
           {linesWord(note)}
           {!row.placed.at && ` · made on ${note.commit.slice(0, 7)}, not in this diff`}
         </span>
-        <span className="spacer-left" />
-        {!draft &&
-          (note.url ? (
-            <a className="note-id" href={note.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="Open it on GitHub">
-              GitHub <Icon name="external" size={10} />
-            </a>
-          ) : (
-            <span className="note-id">{note.id}</span>
-          ))}
-        {cursor && draft && (
-          <span className="dim note-keys">
-            <Keys k="⏎" /> edit <Keys k="D" /> delete
-          </span>
-        )}
-        {!draft && (
-          <Button
-            variant="ghost" size="small"
-            className="note-toggle"
-            onClick={(e) => (e.stopPropagation(), onRow(row.key), onAnswer(note.id, resolved ? "reopen" : "resolve"))}
-            title={`${resolved ? "Reopen" : "Resolve"} (x)`}
-          >
-            {resolved ? "Reopen" : "Resolve"}
-          </Button>
-        )}
-      </div>
-      {row.unplaced && note.excerpt?.length > 0 && !(resolved && !cursor) && (
-        <pre className="note-excerpt" title="The lines it's on, not showing above">
-          {note.excerpt.map((l, i) => (
-            <div key={i}>
-              <span className="ln">{note.line + i}</span>
-              {l || " "}
-            </div>
-          ))}
-        </pre>
-      )}
+      </NoteHead>
+      {row.unplaced && note.excerpt?.length > 0 && !(resolved && !cursor) && <Excerpt lines={note.excerpt} from={note.line} title="The lines it's on, not showing above" />}
       {followup && !resolved && (
         <div className={`note-followup k-${followup.kind}${followup.blocks ? " blocks" : ""}`} title="What the Follow-up pass said of this comment: whether what's been pushed since deals with it">
           <span className="finding-pass">
@@ -1658,29 +1652,27 @@ function NoteCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, follo
       )}
       {!(resolved && !cursor) && (
         <>
-          {note.body && <div className="note-body">{note.body}</div>}
+          {note.body && <NoteBody>{note.body}</NoteBody>}
           {note.suggestion != null && <Suggestion from={note.excerpt} to={note.suggestion} />}
           {note.thread.length > 0 && (
-            <ul className="thread">
+            <NoteThread>
               {note.thread.map((t, i) => (
-                <li key={i}>
-                  <span className="who">{t.by === "you" ? "You" : t.by}</span>
-                  {t.status && <span className={`note-status s-${t.status === "open" ? "reopened" : t.status}`}>{t.status === "open" ? "Reopened" : statusWords[t.status]}</span>}
+                <NoteTurn key={i} who={t.by === "you" ? "You" : t.by} said={t.body}>
+                  {t.status && <NoteStatus status={t.status === "open" ? "reopened" : t.status}>{t.status === "open" ? "Reopened" : statusWords[t.status]}</NoteStatus>}
                   {t.commit && <span className="mono dim">{t.commit.slice(0, 7)}</span>}
-                  {t.body && <span className="said">{t.body}</span>}
-                </li>
+                </NoteTurn>
               ))}
-            </ul>
+            </NoteThread>
           )}
           {!draft && !replying && cursor && (
-            <div className="dim reply-hint">
+            <NoteHint>
               <kbd>⏎</kbd> reply
-            </div>
+            </NoteHint>
           )}
           {replying && <ReplyBox onSend={(body) => onAnswer(note.id, "reply", body)} onCancel={onReplyCancel} />}
         </>
       )}
-    </div>
+    </NoteCard>
   );
 }
 

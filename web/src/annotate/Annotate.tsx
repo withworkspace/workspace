@@ -26,7 +26,8 @@ import {
 import { useKeys } from "../keys";
 import { type TrackedChange, TrackedDoc } from "../editor/LazyTracked";
 import { Markdown } from "../markdown/LazyMarkdown";
-import { ReplyBox } from "../review/parts";
+import { NoteBody, NoteCard, NoteHead, NoteHint, noteHintActionClass, NoteId, NoteThread, NoteTurn } from "../ui/NoteCard";
+import { ReplyBox } from "../ui/ReplyBox";
 import { Icon } from "../ui/Icon";
 import { Callout, humanError, Keys, toast, useAutosize, useMedia } from "../ui/kit";
 import { exact, stamp } from "../ui/time";
@@ -1059,13 +1060,28 @@ function ThreadCard({ thread, active, hovered, replying, unplaced, onFocus, onHo
   const sendable = !own && !resolved && thread.kind === "change" && !crew && !thread.answering && !pending;
   const [first, ...rest] = thread.turns;
   return (
-    <div
-      className={`note-card doc-note k-${thread.kind}${active ? " cursor" : ""}${hovered ? " hovered" : ""}${resolved ? " resolved" : ""}${folded ? " folded" : ""}${yours ? " yours" : ""}`}
+    <NoteCard
+      dense
+      className={`doc-note k-${thread.kind}`}
+      cursor={active}
+      hovered={hovered}
+      resolved={resolved}
+      folded={folded}
+      yours={yours}
       onClick={onFocus}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
     >
-      <div className="note-head">
+      <NoteHead
+        end={
+          <>
+            <NoteId>{thread.id}</NoteId>
+            <Button variant="ghost" size="small" className="note-toggle" onClick={(e) => (e.stopPropagation(), onFocus(), onToggle())} title={`${resolved ? "Reopen" : "Resolve"} (x)`}>
+              {resolved ? "Reopen" : "Resolve"}
+            </Button>
+          </>
+        }
+      >
         <Chip className={`kind-chip k-${thread.kind}`}>
           <Icon name={kindIcon[thread.kind]} size={11} />
           {kindWords[thread.kind]}
@@ -1079,14 +1095,11 @@ function ThreadCard({ thread, active, hovered, replying, unplaced, onFocus, onHo
         ) : yours ? (
           <Chip tone="attention">Your turn</Chip>
         ) : null}
-        <span className="spacer-left" />
-        <span className="note-id">{thread.id}</span>
-        <Button variant="ghost" size="small" className="note-toggle" onClick={(e) => (e.stopPropagation(), onFocus(), onToggle())} title={`${resolved ? "Reopen" : "Resolve"} (x)`}>
-          {resolved ? "Reopen" : "Resolve"}
-        </Button>
-      </div>
+      </NoteHead>
       {folded ? (
-        <div className="note-body dim one-line">{first?.body}</div>
+        <NoteBody oneLine className="dim">
+          {first?.body}
+        </NoteBody>
       ) : (
         <>
           {unplaced && (
@@ -1094,18 +1107,16 @@ function ThreadCard({ thread, active, hovered, replying, unplaced, onFocus, onHo
               {thread.anchor.quote?.exact ? clip(thread.anchor.quote.exact, 240) : `The whole of ${linesWord(thread.anchor)}`}
             </blockquote>
           )}
-          {first && <div className="note-body">{first.body}</div>}
+          {first && <NoteBody>{first.body}</NoteBody>}
           {rest.length > 0 && (
-            <ul className="thread">
+            <NoteThread>
               {rest.map((t) => (
-                <li key={t.n} className={`by-${t.by === "you" || t.by === "agent" || t.by === "ws" ? t.by : "crew"}`}>
-                  <span className="who">{t.by === "you" ? "You" : t.by === "agent" ? "Agent" : t.by}</span>
+                <NoteTurn key={t.n} who={t.by === "you" ? "You" : t.by === "agent" ? "Agent" : t.by} quiet={t.by === "ws"} said={t.by === "you" ? t.body : <Markdown text={t.body} pinned={t.refs} />}>
                   {t.changed && <span className="dim">changed it</span>}
                   {t.commit && <span className="mono dim">{t.commit.slice(0, 7)}</span>}
-                  <span className="said">{t.by === "you" ? t.body : <Markdown text={t.body} pinned={t.refs} />}</span>
-                </li>
+                </NoteTurn>
               ))}
-            </ul>
+            </NoteThread>
           )}
           {thread.answering && (
             <div className="typing">
@@ -1129,16 +1140,16 @@ function ThreadCard({ thread, active, hovered, replying, unplaced, onFocus, onHo
           {drafted && thread.draft && <DecisionCard key={thread.draft.at} draft={thread.draft} onDecide={onDecide} />}
           {thread.draft?.state === "recorded" && thread.draft.decision && <div className="dim settled">Recorded as {thread.draft.decision}</div>}
           {!own && resolved && !thread.draft && !thread.answering && active && !deciding && (
-            <div className="dim reply-hint">
-              <Button variant="link" className="reply-hint-action" onClick={(e) => (e.stopPropagation(), setDeciding(true))}>
+            <NoteHint>
+              <Button variant="link" className={noteHintActionClass()} onClick={(e) => (e.stopPropagation(), setDeciding(true))}>
                 Record what was decided
               </Button>
-            </div>
+            </NoteHint>
           )}
           {deciding && !thread.draft && <DecisionCard onDecide={(d) => onDecide(d).then(() => setDeciding(false))} onCancel={() => setDeciding(false)} />}
           {!replying && active && (
-            <div className="dim reply-hint">
-              <Button variant="link" className="reply-hint-action" onClick={(e) => (e.stopPropagation(), onReply())}>
+            <NoteHint>
+              <Button variant="link" className={noteHintActionClass()} onClick={(e) => (e.stopPropagation(), onReply())}>
                 <Icon name="reply" size={12} /> Reply <Keys k="⏎" />
               </Button>
               {sendable && (
@@ -1151,12 +1162,12 @@ function ThreadCard({ thread, active, hovered, replying, unplaced, onFocus, onHo
                   Send to crew
                 </Button>
               )}
-            </div>
+            </NoteHint>
           )}
           {replying && <ReplyBox onSend={onSay} onCancel={onReplyCancel} />}
         </>
       )}
-    </div>
+    </NoteCard>
   );
 }
 
