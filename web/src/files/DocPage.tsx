@@ -26,6 +26,7 @@ import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusC
 import { clip } from "../ui/text";
 import { pageScroller } from "../ui/scroller";
 import { useWorkspace } from "../workspace/store";
+import { useThingMenu } from "../shell/ThingMenu";
 
 export const docKeys: [string, string][] = [
   ["e", "Edit it, here: as the page tied to it"],
@@ -411,6 +412,7 @@ export function DocPage({ docRef }: { docRef: string }) {
 // each by its name, with the passage it was asked of, and when it last
 // changed.
 function DocTalks({ list }: { list: Talk[] }) {
+  const menu = useThingMenu();
   return (
     <section>
       <GroupHead count={list.length}>
@@ -419,7 +421,7 @@ function DocTalks({ list }: { list: Talk[] }) {
       <Rows>
         {list.map((t) => (
           <Row key={t.id}>
-            <Link to={talkHref("", t.id)} className={rowLinkClass()} title={t.summary}>
+            <Link to={talkHref("", t.id)} className={rowLinkClass()} title={t.summary} onContextMenu={menu(talkHref("", t.id))}>
               <Status s={talkStatus(t)} iconOnly size={14} className={rowStatusClass()} />
               <RowMain>
                 <RowLine>
@@ -444,6 +446,7 @@ function DocTalks({ list }: { list: Talk[] }) {
 // CiteList is documents citing this one, or cited by it: each by its
 // title, and where (by a link in it, or naming it).
 function CiteList({ title, list }: { title: string; list: Citation[] }) {
+  const menu = useThingMenu();
   return (
     <section>
       <GroupHead count={list.length}>
@@ -452,7 +455,7 @@ function CiteList({ title, list }: { title: string; list: Citation[] }) {
       <Rows>
         {list.map((c) => (
           <Row key={`${c.repo}:${c.path}`}>
-            <Link to={docTo(`${c.repo}:${c.path}`)} className={rowLinkClass()}>
+            <Link to={docTo(`${c.repo}:${c.path}`)} className={rowLinkClass()} onContextMenu={menu(docTo(`${c.repo}:${c.path}`))}>
               <Icon name="book" size={14} className={rowStatusClass("dim")} />
               <RowMain>
                 <RowTitle>{c.title || c.path.split("/").pop()}</RowTitle>

@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { act, type ActionAsk, dockPR, newPage, restoreArtifact, runPluginAction, setTalkStatus, startMissionAbout } from "../api";
+import { type ActionAsk, newPage, runPluginAction, startMissionAbout } from "../api";
 import { useKeys } from "../keys";
-import { archiveMission } from "../mission/archive";
 import { RefsScope, thingsNamed } from "../refs/known";
 import { RefCardBody, ThingCard } from "../refs/RefCard";
 import { isOutside, type Known, namedOf, type PageRef, refAt, refKey, type ThingAction } from "../refs/refs";
@@ -13,7 +12,6 @@ import { FileIcon } from "../ui/FileIcon";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/status";
 import { humanError, Keys, toast } from "../ui/kit";
-import { confirm } from "../ui/Confirm";
 import { askShutDown } from "./daemon";
 import { setTheme } from "../ui/theme";
 import { clock } from "../ui/time";
@@ -50,7 +48,8 @@ import { type FrameHere, useChromeStore } from "../chrome/store";
 import { around, hereAt, hereItems, keptAround, type Near, nearIds, nearItems } from "./here";
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
 import { PinButton, pinNameOf, useFocus } from "./focus";
-import { actsFor, type Subject, subjectOf, type WsDoing } from "./acts";
+import { actsFor, type Subject, subjectOf } from "./acts";
+import { doToThing } from "./perform";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
@@ -84,17 +83,6 @@ type Thing = Extract<PageRef, { kind: "thing" }>;
 function thingOf(it?: Item): Thing | undefined {
   if (it?.said?.thing === "thing" && it.said.card?.kind === "thing") return it.said.card;
   return it?.card?.kind === "thing" ? it.card : undefined;
-}
-
-// stopCrew stops a crew, once you've said so, as its own page asks.
-async function stopCrew(slug: string, crew: string) {
-  const yes = await confirm({
-    title: `Stop ${crew}?`,
-    body: "Its session can be resumed later if it recorded one: what it's in the middle of is lost.",
-    confirm: `Stop ${crew}`,
-    danger: true,
-  });
-  return yes ? act(slug, "stop", { crew }) : undefined;
 }
 
 // stale is how old the pull requests can be before Find says how old.
@@ -424,15 +412,6 @@ export function Palette({
     else if (acting?.subject && it) perform(it, false);
   };
 
-  // doWs does what ws does to one of its things that isn't a mission's
-  // act, and says what it did.
-  const doWs = (d: WsDoing): Promise<string> =>
-    "talk" in d
-      ? setTalkStatus("", d.talk, d.status).then((t) => (t.status === "resolved" ? "Resolved." : "Reopened."))
-      : "restore" in d
-        ? restoreArtifact(d.restore).then(() => "Restored.")
-        : dockPR(d.dock).then((r) => r.message);
-
   const go = (it: Item | undefined, tab: boolean) => {
     if (mode) {
       choose(it);
@@ -464,21 +443,12 @@ export function Palette({
       if ("theme" in d) setTheme(d.theme);
       else if ("help" in d) useChromeStore.getState().setHelp(true);
       else if ("shutDown" in d) void askShutDown();
-      else if ("ws" in d)
-        doWs(d.ws).then(
-          (said) => toast(said, { tone: "done" }),
-          (e: Error) => toast(humanError(e.message), { tone: "danger" }),
-        );
       else if ("page" in d)
         newPage().then(
           (p) => navigate(`/documents/local/${encodeURIComponent(p.id)}`),
           (e: Error) => toast(humanError(e.message), { tone: "danger" }),
         );
-      else
-        (d.act === "archive" ? archiveMission(d.slug) : d.act === "stop" ? stopCrew(d.slug, d.crew ?? "") : act(d.slug, d.act, { crew: d.crew })).then(
-          (r) => r && toast(r.message, { tone: "done" }),
-          (e: Error) => toast(humanError(e.message), { tone: "danger" }),
-        );
+      else doToThing(d);
       return;
     }
     if (!it.to) return;

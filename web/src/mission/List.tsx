@@ -14,6 +14,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { useThingMenu } from "../shell/ThingMenu";
 
 // The missions, grouped by whose court they're
 // in (their headline's group): what needs you first. Each says where it
@@ -41,6 +42,7 @@ export const listKeys: [string, string][] = [
 ];
 
 export function MissionList({ missions }: { missions: Mission[] }) {
+  const menu = useThingMenu();
   useTitle("Missions");
   const navigate = useNavigate();
   const [showPast, setShowPast] = useState(false);
@@ -147,7 +149,7 @@ export function MissionList({ missions }: { missions: Mission[] }) {
                   className="mission-row"
                   onMouseMove={() => !on && setSelected(m.slug)}
                 >
-                  <TLink to={`/missions/${m.slug}`} className={rowLinkClass("mission-link")} onClick={() => (lastSelected = m.slug)}>
+                  <TLink to={`/missions/${m.slug}`} className={rowLinkClass("mission-link")} onContextMenu={menu(`/missions/${m.slug}`, m.title)} onClick={() => (lastSelected = m.slug)}>
                     <Status s={st} iconOnly size={16} className={rowStatusClass()} />
                     <RowMain>
                       <RowLine>

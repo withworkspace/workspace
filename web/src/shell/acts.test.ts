@@ -90,3 +90,37 @@ describe("places", () => {
     expect(empty.rows.some((it) => it.to?.startsWith("/settings/"))).toBe(false);
   });
 });
+
+describe("pinning it", () => {
+  const pinned = (...names: string[]) => ({ ...workspace, focus: names.map((name) => ({ name })) }) as unknown as Workspace;
+  const last = (s: Parameters<typeof actsFor>[0], w: Workspace) => actsFor(s, w).at(-1);
+
+  it("is the last thing offered, by the name ws writes the thing with", () => {
+    const w = pinned();
+    expect(last({ kind: "mission", slug: "ready" }, w)).toMatchObject({ title: "Pin it", doing: { ws: { pin: "ready" } } });
+    expect(last({ kind: "talk", id: "w1" }, w)).toMatchObject({ title: "Pin it", doing: { ws: { pin: "w1" } } });
+    expect(last({ kind: "artifact", id: "a1" }, w)).toMatchObject({ title: "Pin it", doing: { ws: { pin: "a1" } } });
+    expect(last({ kind: "pr", repo: "demo", number: 12 }, w)).toMatchObject({ title: "Pin it", doing: { ws: { pin: "demo#12" } } });
+  });
+
+  it("is unpinning it, for what's pinned", () => {
+    const w = pinned("ready", "demo#12");
+    expect(last({ kind: "mission", slug: "ready" }, w)).toMatchObject({ title: "Unpin it", doing: { ws: { unpin: "ready" } } });
+    expect(last({ kind: "pr", repo: "demo", number: 12 }, w)).toMatchObject({ title: "Unpin it", doing: { ws: { unpin: "demo#12" } } });
+    expect(last({ kind: "talk", id: "w1" }, w)?.title).toBe("Pin it");
+  });
+
+  // A pin of one would leave your focus at once: it's not offered. One
+  // pinned before it ended can still be unpinned.
+  it("isn't offered for what's come to an end", () => {
+    const titles = (s: Parameters<typeof actsFor>[0], w: Workspace) => actsFor(s, w).map((it) => it.title);
+    expect(titles({ kind: "mission", slug: "gone" }, pinned())).not.toContain("Pin it");
+    expect(titles({ kind: "talk", id: "w2" }, pinned())).not.toContain("Pin it");
+    expect(titles({ kind: "artifact", id: "a2" }, pinned())).not.toContain("Pin it");
+    expect(titles({ kind: "mission", slug: "gone" }, pinned("gone"))).toContain("Unpin it");
+  });
+
+  it("isn't offered by a daemon that keeps no pins", () => {
+    expect(actsFor({ kind: "mission", slug: "ready" }, workspace).map((it) => it.title)).not.toContain("Pin it");
+  });
+});

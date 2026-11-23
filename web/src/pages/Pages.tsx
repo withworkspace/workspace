@@ -11,6 +11,7 @@ import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { Row, RowLine, RowMain, RowTitle, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { Input } from "../ui/Input";
+import { useThingMenu } from "../shell/ThingMenu";
 
 // Pages: documents you write here, before or beside any mission. A line
 // that starts with >> asks for something (a table of the routes, what
@@ -56,9 +57,10 @@ export function useStartPage() {
 // its cells, and when it last changed. note says more of it, after its
 // chips (where it's filed, say).
 export function PageRow({ page: p, kinds, selected, onHover, note }: { page: PageInfo; kinds: DocKind[]; selected: boolean; onHover: () => void; note?: ReactNode }) {
+  const menu = useThingMenu();
   return (
     <Row selected={selected} id={`page-${p.id}`} role="option" aria-selected={selected} onMouseMove={onHover}>
-      <TLink to={pageAddress(p)} className={rowLinkClass("page-link")}>
+      <TLink to={pageAddress(p)} className={rowLinkClass("page-link")} onContextMenu={menu(pageAddress(p), p.title)}>
         <Icon name="file" size={16} className={rowStatusClass("page-status")} />
         <RowMain>
           <RowLine>

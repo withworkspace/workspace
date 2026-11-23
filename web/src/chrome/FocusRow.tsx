@@ -6,7 +6,7 @@ import { SidebarRow } from "./SidebarRow";
 
 type FocusRowProps = Pick<
   React.HTMLAttributes<HTMLAnchorElement>,
-  "onDragStart" | "onDragOver" | "onDragEnd"
+  "onDragStart" | "onDragOver" | "onDragEnd" | "onContextMenu"
 > & {
   to: string;
   // How the pinned thing stands (a Status), or its kind's icon.
@@ -35,7 +35,7 @@ export function FocusRow({
   onUnpin,
   dragging,
   drop,
-  ...drag
+  ...its
 }: FocusRowProps) {
   return (
     <SidebarRow
@@ -67,7 +67,7 @@ export function FocusRow({
           <Icon name="x" size={12} />
         </button>
       }
-      {...drag}
+      {...its}
     />
   );
 }

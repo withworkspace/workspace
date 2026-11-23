@@ -9,6 +9,7 @@ import { Count } from "../ui/Count";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass } from "../ui/Rows";
 import { Segment, Segmented } from "../ui/Segmented";
+import { useThingMenu } from "../shell/ThingMenu";
 
 // The segment for every state: no state is named this.
 const everyStand = "(all)";
@@ -64,6 +65,7 @@ export function KindList({
   flights?: Map<string, string[]>; // the paths in flight, and in which capsules
   picking?: Picking;
 }) {
+  const menu = useThingMenu();
   // The column of numbers or dates, if any of them has one.
   const made = docs.some((d) => d.number || d.date);
   return (
@@ -80,7 +82,7 @@ export function KindList({
             aria-selected={i === index}
             onMouseMove={setIndex && (() => i !== index && setIndex(i))}
           >
-            <TLink to={docTo(`${repo}:${d.path}`)} className={rowLinkClass()} onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
+            <TLink to={docTo(`${repo}:${d.path}`)} className={rowLinkClass()} onContextMenu={picking ? undefined : menu(docTo(`${repo}:${d.path}`))} onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
               {made && <span className="lib-made mono dim">{d.number ?? d.date ?? ""}</span>}
               <RowMain>
                 <RowLine>

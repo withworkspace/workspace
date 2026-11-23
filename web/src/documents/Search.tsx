@@ -9,6 +9,7 @@ import { Chip } from "../ui/Chip";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { Input } from "../ui/Input";
+import { useThingMenu } from "../shell/ThingMenu";
 
 // Search over the spaces' documents: ranked, each led to the section
 // that says it best; kept to a kind, and where one stands, once a kind's
@@ -96,6 +97,7 @@ export function useDocSearch(q: string, kind: string, state: string) {
 
 export function Results({ hits, more, error, index, setIndex }: { hits?: DocHit[]; more: number; error?: string; index: number; setIndex: (i: number) => void }) {
   const navigate = useNavigate();
+  const menu = useThingMenu();
   if (error) return <ErrorCard title="Couldn't search" error={error} />;
   if (!hits) return <p className="dim documents-empty">Searching…</p>;
   if (!hits.length) return <p className="dim documents-empty">No documents say that.</p>;
@@ -107,7 +109,7 @@ export function Results({ hits, more, error, index, setIndex }: { hits?: DocHit[
       <Rows className="doc-hits" role="listbox" aria-label="Documents found">
         {hits.map((h, i) => (
           <Row selected={i === index} key={`${h.repo}:${h.path}`} id={`hit-${i}`} role="option" aria-selected={i === index} onMouseMove={() => i !== index && setIndex(i)}>
-            <TLink to={hitTo(h)} className={rowLinkClass("hit-link")} onClick={(e) => (e.preventDefault(), navigate(hitTo(h)))}>
+            <TLink to={hitTo(h)} className={rowLinkClass("hit-link")} onContextMenu={menu(hitTo(h))} onClick={(e) => (e.preventDefault(), navigate(hitTo(h)))}>
               <Icon name="book" size={16} className={rowStatusClass()} />
               <RowMain>
                 <RowLine>

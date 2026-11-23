@@ -15,6 +15,7 @@ import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusC
 import { Segment, Segmented } from "../ui/Segmented";
 import { useWorkspace } from "../workspace/store";
 import { setPref, usePrefs } from "../prefs";
+import { useThingMenu } from "../shell/ThingMenu";
 
 // Artifacts that live in the workspace's repos and aren't this machine's:
 // someone else promoted them, or you did on another machine. ws finds each
@@ -44,9 +45,10 @@ function byWords(a: ArtifactFound): string {
 
 // FoundRow is one of them, in the list.
 function FoundRow({ a }: { a: ArtifactFound }) {
+  const menu = useThingMenu();
   return (
     <Row className="artifact-list-row">
-      <TLink to={foundHref(a.name)} className={rowLinkClass()}>
+      <TLink to={foundHref(a.name)} className={rowLinkClass()} onContextMenu={menu(foundHref(a.name), a.name)}>
         <Icon name="artifact" size={16} className={rowStatusClass()}  />
         <RowMain>
           <RowLine>
