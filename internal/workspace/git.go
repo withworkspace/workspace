@@ -109,20 +109,6 @@ func GitCurrentBranch(dir string) string {
 	return strings.TrimSpace(out)
 }
 
-// GitHeadBranch is the commit dir's HEAD is at, and its branch ("HEAD"
-// when it's detached), from one run of git; both "" if it can't say.
-func GitHeadBranch(dir string) (head, branch string) {
-	out, err := git.Combined(dir, "rev-parse", "HEAD", "--abbrev-ref", "HEAD")
-	if err != nil {
-		return "", ""
-	}
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	if len(lines) != 2 {
-		return "", ""
-	}
-	return strings.TrimSpace(lines[0]), strings.TrimSpace(lines[1])
-}
-
 // GitHasUpstream reports whether HEAD's branch has an upstream that's
 // there: a capsule's branch tracks origin/<itself>, which isn't there
 // until it's first pushed.

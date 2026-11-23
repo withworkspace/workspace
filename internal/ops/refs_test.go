@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/doc"
+	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/ref"
 )
 
@@ -70,5 +72,46 @@ func TestTurnsKeepWhatTheyNamed(t *testing.T) {
 		if got[i] != want[i] {
 			t.Errorf("refs[%d] = %+v, want %+v", i, got[i], want[i])
 		}
+	}
+}
+
+// What there is to name is asked for on every pin and every address read,
+// so it starts no git: the branch each capsule is on is read from git's
+// own files, and is never behind them.
+func TestRefsKnown_ReadsCapsulesBranchesWithoutGit(t *testing.T) {
+	w, _ := fixture(t, "", "pager", "detached")
+	repo := w.WS().RepoDir("frontend")
+	run := func(capsule string, args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", filepath.Join(repo, capsule), "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v in %s: %v\n%s", args, capsule, err, out)
+		}
+	}
+	for _, c := range []string{"pager", "detached"} {
+		run(c, "init", "-q", "--initial-branch=feat/"+c)
+		run(c, "commit", "-q", "--allow-empty", "-m", "start")
+	}
+	run("detached", "checkout", "-q", "--detach")
+
+	before := git.Started()
+	k := w.RefsKnown(t.Context(), false)
+	if got, want := k.Branches["frontend"], map[string]string{"feat/pager": "pager"}; !maps.Equal(got, want) {
+		t.Errorf("branches = %v, want %v", got, want)
+	}
+	if _, err := w.Pin(AsYou, "cache"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Unpin(AsYou, "cache"); err != nil {
+		t.Fatal(err)
+	}
+	if n := git.Started() - before; n != 0 {
+		t.Errorf("naming what there is, a pin and an unpin started git %d times, want none", n)
+	}
+
+	// The capsule's put on another branch: that's the one it's known by.
+	run("pager", "checkout", "-q", "-b", "feat/cursor")
+	if got, want := w.RefsKnown(t.Context(), false).Branches["frontend"], map[string]string{"feat/cursor": "pager"}; !maps.Equal(got, want) {
+		t.Errorf("after a checkout, branches = %v, want %v", got, want)
 	}
 }

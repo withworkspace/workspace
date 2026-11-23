@@ -196,8 +196,7 @@ func (w *Workspace) spaceInFlight(ctx context.Context, s workspace.Space, titles
 		if len(changed) == 0 {
 			continue
 		}
-		_, b := workspace.GitHeadBranch(dir)
-		f := SpaceFlight{Capsule: name, Branch: b, Docs: []SpaceDocChange{}}
+		f := SpaceFlight{Capsule: name, Branch: branchOf(dir), Docs: []SpaceDocChange{}}
 		for _, p := range slices.Sorted(maps.Keys(changed)) {
 			title := titles[p]
 			if changed[p] != "removed" {
