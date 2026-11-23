@@ -1,0 +1,131 @@
+/* Where something's written and sent (Composer.tsx): one box around the
+   words and what's pressed, which grows as you write. */
+
+@layer ui {
+  .composer {
+    --backdrop: var(--raised);
+    --well: var(--panel);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-lg);
+    background: var(--raised);
+    box-shadow: var(--shadow-xs);
+    transition:
+      border-color var(--fast) var(--ease),
+      box-shadow var(--fast) var(--ease);
+  }
+
+  /* The ring is the box's, while its words have the keys. */
+  .composer:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  /* The words: a text box with no box of its own (said for its focus
+     too, which a TextArea draws). */
+  .composer .field,
+  .composer .field:focus {
+    display: block;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 12px 14px 4px;
+    box-shadow: none;
+    font-size: var(--text-md);
+  }
+
+  /* The bar under the words: what sending does, then what's pressed. */
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px 8px 14px;
+  }
+
+  .hint {
+    flex: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    color: var(--dim);
+    font-size: var(--text-sm);
+    min-width: 0;
+  }
+
+  .hint :global(.icon) {
+    flex: none;
+    align-self: center;
+  }
+
+  /* The keys that send it: there while the box has the keys. */
+  .keys {
+    opacity: 0;
+    transition: opacity var(--fast) var(--ease);
+  }
+
+  .composer:focus-within .keys {
+    opacity: 1;
+  }
+
+  /* What goes with the words: in the box, over them. */
+  .over {
+    display: flex;
+    min-width: 0;
+    padding: 8px 10px 0;
+  }
+
+  /* Beside: a small one, in a panel. What's pressed is at the end of
+     the words' last line, and the box's border is its only ring. */
+  .beside {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    padding: 0 6px 6px 0;
+    border-radius: var(--radius);
+    box-shadow: none;
+  }
+
+  .beside:focus-within {
+    box-shadow: none;
+  }
+
+  .composer.beside .field,
+  .composer.beside .field:focus {
+    flex: 1;
+    padding: 8px 10px 4px;
+  }
+
+  .beside > button {
+    flex: none;
+  }
+
+  /* Corner: no bar. The keys that send are in the box's lower corner,
+     and the words keep clear of them, with under them the room a bar
+     would have had. */
+  .corner {
+    position: relative;
+  }
+
+  .composer.corner .field,
+  .composer.corner .field:focus {
+    padding: 10px 58px 10px 12px;
+  }
+
+  .cornerKeys {
+    position: absolute;
+    right: 10px;
+    bottom: 9px;
+    pointer-events: none;
+  }
+
+  /* With nothing to say, what's pressed still keeps to the bar's end. */
+  .spacer {
+    flex: 1;
+  }
+
+  /* On a phone the bar is what's pressed: its words are left out. */
+  @media (max-width: 720px) {
+    .hint {
+      display: none;
+    }
+  }
+}

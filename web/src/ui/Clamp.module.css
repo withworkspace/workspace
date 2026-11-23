@@ -1,0 +1,31 @@
+/* Something long, cut short until the rest is asked for (Clamp.tsx). */
+
+@layer ui {
+  .body {
+    overflow: hidden;
+  }
+
+  /* To a height: where there's more under it, its foot fades out. */
+  .tall {
+    position: relative;
+    max-height: var(--clamp-tall);
+  }
+
+  .tall[data-long="true"] {
+    mask-image: linear-gradient(#000 calc(100% - 2.5em), transparent);
+  }
+
+  /* To a count of lines: the last ends in an ellipsis. */
+  .lines {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--clamp-lines);
+  }
+
+  .body.body[data-open="true"] {
+    display: block;
+    max-height: none;
+    mask-image: none;
+    -webkit-line-clamp: unset;
+  }
+}

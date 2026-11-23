@@ -1,0 +1,235 @@
+/* Something said about a place in what's read (NoteCard.tsx): a comment
+   on a diff's lines, a thread in a document's margin, what a pass found. */
+
+@layer ui {
+  .card {
+    --backdrop: var(--raised);
+    --well: var(--panel);
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--raised);
+    box-shadow: var(--shadow-xs);
+    font: var(--text-md) / 1.5 var(--font);
+    scroll-margin: 40px 0 80px;
+    transition:
+      box-shadow var(--fast) var(--ease),
+      border-color var(--fast) var(--ease);
+  }
+
+  /* Yours, not sent yet. */
+  .draft {
+    border-style: dashed;
+  }
+
+  /* The keys are on it. */
+  .cursor {
+    border-color: var(--accent-line);
+    box-shadow:
+      0 0 0 3px var(--accent-soft),
+      var(--shadow);
+  }
+
+  .resolved {
+    opacity: 0.75;
+  }
+
+  /* Found, and nobody's said it yet: like a comment's, in the accent
+     and dashed (its border keeps its colour under the cursor). */
+  .found {
+    border-style: dashed;
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    background: color-mix(in srgb, var(--accent) 4%, var(--raised));
+  }
+
+  .found.blocks {
+    border-color: color-mix(in srgb, var(--k-blocking) 55%, var(--line));
+  }
+
+  /* In a margin: smaller words, and nothing of it is pressed but what
+     says so. */
+  .dense {
+    cursor: default;
+    font-size: var(--text-sm);
+  }
+
+  /* The pointer's on the words it's about. */
+  .dense.hovered {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow);
+  }
+
+  /* Folded to a line, until it's in focus. */
+  .dense.folded {
+    padding: 6px 10px;
+    opacity: 0.65;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .dense.folded:hover {
+    opacity: 1;
+  }
+
+  /* Waiting on you. */
+  .dense.yours {
+    border-color: rgb(211 139 29 / 0.5);
+    box-shadow:
+      inset 3px 0 0 var(--amber-fill),
+      var(--shadow-xs);
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--text-sm);
+    min-height: 22px;
+  }
+
+  .dense .head {
+    flex-wrap: wrap;
+  }
+
+  /* What's after it keeps to the head's end. */
+  .spacer {
+    margin-left: auto;
+  }
+
+  .id {
+    font: var(--text-xs) var(--mono);
+    color: var(--faint);
+  }
+
+  .idLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .idLink:hover {
+    color: var(--accent);
+  }
+
+  /* Where it stands: a pill, in the colour of how. */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    font: 600 var(--text-xs) / 18px var(--font);
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--well);
+    color: var(--dim);
+  }
+
+  .open,
+  .reopened {
+    color: var(--amber);
+    background: var(--amber-soft);
+  }
+
+  .addressed {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .wontfix,
+  .crew {
+    color: var(--violet);
+    background: var(--violet-soft);
+  }
+
+  .settled {
+    color: var(--green);
+    background: var(--green-soft);
+  }
+
+  /* What was said, as it was written. */
+  .body {
+    margin-top: 6px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .body.oneLine {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* What's been said since, under a line. */
+  .thread {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 8px 0 0;
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 6px;
+  }
+
+  .turn {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .who {
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .said {
+    flex-basis: 100%;
+    white-space: pre-wrap;
+  }
+
+  .quiet .said {
+    color: var(--dim);
+  }
+
+  /* What can be done next, quietly. */
+  .hint {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 8px;
+    color: var(--dim);
+    font-size: var(--text-sm);
+  }
+
+  .hint .hintAction {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--accent);
+  }
+
+  /* An agent at work on it, under its words. */
+  .card :global(.typing) {
+    margin-top: 8px;
+  }
+}
+
+/* Words said as markdown: the card's size, not a page's, and close
+   together. (Not in the layer: these are over the markdown's own rules,
+   which aren't in one.) */
+.said :global(.markdown) {
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  max-width: none;
+  white-space: normal;
+}
+
+.said :global(.markdown) :is(p, ul, ol, pre, blockquote) {
+  margin: 0 0 0.5em;
+}
+
+.said :global(.markdown) > :last-child {
+  margin-bottom: 0;
+}
+
+.said :global(.markdown .code-block) {
+  padding: 6px 8px;
+  font-size: var(--text-xs);
+}

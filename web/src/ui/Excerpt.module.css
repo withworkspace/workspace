@@ -1,0 +1,30 @@
+/* A few lines of a file, numbered (Excerpt.tsx). */
+
+@layer ui {
+  .excerpt {
+    margin: 8px 0 0;
+    padding: 6px 0;
+    border-radius: var(--radius);
+    background: var(--panel);
+    font: var(--text-xs) / 18px var(--mono);
+    overflow-x: auto;
+  }
+
+  .excerpt > div {
+    white-space: pre;
+    padding-right: 10px;
+  }
+
+  /* A line's number: quiet, and not what's selected with the line. */
+  .ln {
+    display: inline-block;
+    min-width: 36px;
+    margin-right: 8px;
+    padding: 0 8px;
+    color: var(--faint);
+    text-align: right;
+    user-select: none;
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+  }
+}

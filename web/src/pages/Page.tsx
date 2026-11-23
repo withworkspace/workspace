@@ -59,7 +59,7 @@ import { linkNamed, type RefHost, type RefMark, refreshRefs } from "../editor/re
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Calls } from "../ui/Calls";
 import { Icon, type IconName } from "../ui/Icon";
-import { ErrorCard, humanError, Keys, Loading, toast, useAutosize, useMedia, useTitle } from "../ui/kit";
+import { ErrorCard, humanError, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
 import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
 import { RefCard } from "../refs/RefCard";
@@ -72,11 +72,13 @@ import { Chip, chipClass } from "../ui/Chip";
 import { type Tone } from "../ui/tone";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
+import { MoreLink } from "../ui/MoreLink";
 import { clip } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Tab, Tabs } from "../ui/Tabs";
 import { Checkbox } from "../ui/Checkbox";
-import { TextArea } from "../ui/TextArea";
+import { Composer } from "../ui/Composer";
+import { Turn, TurnSaid } from "../ui/Turn";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
 
@@ -993,7 +995,6 @@ function ChangeBox({
   const box = useRef<HTMLTextAreaElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const [text, setText] = useState("");
-  useAutosize(box, text, 160);
   useEffect(() => {
     box.current?.focus();
     const down = (e: MouseEvent) => !panel.current?.contains(e.target as Node) && onClose();
@@ -1003,30 +1004,23 @@ function ChangeBox({
   const ask = () => text.trim() && onAsk(text.trim());
   return (
     <div className="cell-panel change-box" ref={panel} style={{ top, left: 0 }} role="dialog" aria-label={label}>
-      <div className="composer cell-composer">
-        <TextArea
-          ref={box}
-          rows={1}
-          value={text}
-          placeholder={placeholder}
-          aria-label={label}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              ask();
-            }
-            if (e.key === "Escape") {
-              e.preventDefault();
-              e.stopPropagation();
-              onClose();
-            }
-          }}
-        />
+      <Composer
+        layout="beside"
+        className="cell-composer"
+        field={box}
+        value={text}
+        onChange={setText}
+        onSend={ask}
+        send="enter"
+        tallest={160}
+        placeholder={placeholder}
+        aria-label={label}
+        escape={onClose}
+      >
         <Button variant="primary" size="small" disabled={!text.trim()} onClick={ask}>
           Ask <Keys k="⏎" />
         </Button>
-      </div>
+      </Composer>
       <div className="cell-panel-foot">
         <span className="dim change-hint">{hint}</span>
       </div>
@@ -1225,9 +1219,9 @@ function PassTab({
           </ol>
           {put.length > 0 && (
             <>
-              <Button variant="link" className="more-link" onClick={() => setSettled((v) => !v)} aria-expanded={settled}>
+              <MoreLink onClick={() => setSettled((v) => !v)} aria-expanded={settled}>
                 {settled ? "Hide" : "Show"} {put.length} settled
-              </Button>
+              </MoreLink>
               {settled && (
                 <ol className="findings settled">
                   {put.map((f) => (
@@ -1256,10 +1250,8 @@ function PassTab({
 // to have it written into the page. Until then nothing of it is in the
 // page.
 function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: string; onAsk: (body: string) => Promise<void>; onPut: (body: string) => void; onCell: () => void }) {
-  const box = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  useAutosize(box, text, 120);
   const written = versions(cell).length > 0;
   const last = cell.turns.at(-1);
   const live = (cell.run?.calls ?? []).map((c, i, list) => (i === list.length - 1 && !c.result ? { ...c, pending: true } : c));
@@ -1276,8 +1268,10 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
       <ol className="cell-turns">
         {cell.turns.slice(1).map((t) =>
           t.by === "you" ? (
-            <li key={t.n} className="cell-turn you">
-              <div className="cell-said">{t.body}</div>
+            <li key={t.n} className="cell-turn">
+              <Turn by="you" dense landed>
+                <TurnSaid written>{t.body}</TurnSaid>
+              </Turn>
             </li>
           ) : t.by !== "agent" ? (
             <li key={t.n} className="cell-turn failed">
@@ -1285,8 +1279,12 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
             </li>
           ) : t.answer ? (
             <li key={t.n} className="cell-turn answer">
-              <Markdown text={t.body} pinned={t.refs} />
-              <Calls calls={t.calls ?? []} root={root} />
+              <Turn by="agent" dense landed>
+                <TurnSaid>
+                  <Markdown text={t.body} pinned={t.refs} />
+                </TurnSaid>
+                <Calls calls={t.calls ?? []} root={root} />
+              </Turn>
             </li>
           ) : (
             <li key={t.n} className="cell-turn version">
@@ -1316,21 +1314,18 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
         )}
       </ol>
       {!cell.answering && last?.by !== "you" && (
-        <div className="composer cell-composer">
-          <TextArea
-            ref={box}
-            rows={1}
-            value={text}
-            placeholder={written ? "Ask more…" : "Ask more, or say what to put in the page…"}
-            aria-label="Ask more about this finding"
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                ask();
-              }
-            }}
-          />
+        <Composer
+          layout="beside"
+          className="cell-composer"
+          value={text}
+          onChange={setText}
+          onSend={ask}
+          send="enter"
+          tallest={120}
+          placeholder={written ? "Ask more…" : "Ask more, or say what to put in the page…"}
+          aria-label="Ask more about this finding"
+          escape="leave"
+        >
           {!written && (
             <Button size="small" disabled={busy} onClick={() => onPut(text.trim())} title="Have it written into the page, under the words this is about: what it's answered, or what you say">
               Put it in the page
@@ -1339,7 +1334,7 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
           <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={ask} title="Ask: it's answered here, and the page stays as it is">
             Ask <Keys k="⏎" />
           </Button>
-        </div>
+        </Composer>
       )}
     </div>
   );
@@ -1421,7 +1416,7 @@ function NoteCard({
     };
   }, [onClose]);
   return (
-    <div className="cell-panel note-card" ref={panel} style={at ? { top: at.top, left: at.left } : { visibility: "hidden" }} role="dialog" aria-label={`From ${pass.title}`}>
+    <div className="cell-panel note-panel" ref={panel} style={at ? { top: at.top, left: at.left } : { visibility: "hidden" }} role="dialog" aria-label={`From ${pass.title}`}>
       <div className="note-from">
         <Button variant="link" onClick={onPass} title="Open the pass it's from">
           {pass.title}
@@ -1756,7 +1751,6 @@ function CellPanel({
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [at, setAt] = useState<{ top: number; left: number }>();
-  useAutosize(box, text, 160);
 
   // Under the cell, so what it holds shows while you ask for a change; a
   // cell too long for that has it under its head. Wherever that now is.
@@ -1863,10 +1857,12 @@ function CellPanel({
           {cell.turns.slice(1).map((t) => {
             if (t.by === "you") {
               return (
-                <li key={t.n} className={`cell-turn you${t.ask ? " asked" : ""}`}>
-                  <div className="cell-said">{t.body}</div>
+                <li key={t.n} className="cell-turn">
+                  <Turn by="you" dense landed>
+                    <TurnSaid written>{t.body}</TurnSaid>
+                  </Turn>
                   {t.edited && (
-                    <div className="cell-version">
+                    <div className="cell-version yours">
                       <Icon name="pencil" size={11} />
                       <span>With your edits to it</span>
                       <Button variant="link" onClick={() => fillCell(view, cell.id, 0, t.edited!)} title="Put the cell back as you'd edited it">
@@ -1887,8 +1883,12 @@ function CellPanel({
             if (t.answer) {
               return (
                 <li key={t.n} className="cell-turn answer">
-                  <Markdown text={t.body} pinned={t.refs} />
-                  <Calls calls={t.calls ?? []} root={root} />
+                  <Turn by="agent" dense landed>
+                    <TurnSaid>
+                      <Markdown text={t.body} pinned={t.refs} />
+                    </TurnSaid>
+                    <Calls calls={t.calls ?? []} root={root} />
+                  </Turn>
                 </li>
               );
             }
@@ -1967,28 +1967,26 @@ function CellPanel({
           </Button>
         </div>
       )}
-      <div className="composer cell-composer">
-        <TextArea
-          ref={box}
-          rows={1}
-          value={text}
-          placeholder={
-            question
-              ? "Ask more, or say what to put in the page…"
-              : latest
-                ? "Say what to change: group them by service, drop the last column… Or ask about it."
-                : "Add to what you asked for…"
-          }
-          aria-label={question ? "Ask more, or say what to put in the page" : "Change this cell, or ask about it"}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              // ⏎ is the first of the two; ⌘⏎ the other.
-              send(e.metaKey || e.ctrlKey ? !question : question);
-            }
-          }}
-        />
+      <Composer
+        layout="beside"
+        className="cell-composer"
+        field={box}
+        value={text}
+        onChange={setText}
+        // ⏎ is the first of the two; ⌘⏎ the other.
+        onSend={({ mod }) => send(mod ? !question : question)}
+        send="enter"
+        tallest={160}
+        placeholder={
+          question
+            ? "Ask more, or say what to put in the page…"
+            : latest
+              ? "Say what to change: group them by service, drop the last column… Or ask about it."
+              : "Add to what you asked for…"
+        }
+        aria-label={question ? "Ask more, or say what to put in the page" : "Change this cell, or ask about it"}
+        escape="leave"
+      >
         {question ? (
           <>
             <Button size="small" disabled={busy} onClick={() => send(false)} title="Have it written into the page, here: what it's answered, or what you say (⌘⏎)">
@@ -2008,7 +2006,7 @@ function CellPanel({
             </Button>
           </>
         )}
-      </div>
+      </Composer>
       <div className="cell-panel-foot">
         {!question && (
           <Button
