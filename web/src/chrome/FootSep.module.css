@@ -1,0 +1,11 @@
+/* A hair between the foot's groups (FootSep.tsx). */
+
+@layer ui {
+  .sep {
+    flex: none;
+    width: 1px;
+    height: 12px;
+    margin: 0 5px;
+    background: var(--line-strong);
+  }
+}

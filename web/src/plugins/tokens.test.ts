@@ -86,7 +86,7 @@ describe("the shell's own rules", () => {
     expect(shell).toMatch(/\.ws-backdrop \{[^}]*position: fixed;[^}]*inset: 0;[^}]*background: var\(--ws-scrim\);[^}]*animation: ws-fade var\(--fast\) var\(--ease\);/);
     // ws's half, beside the frame: the same scrim, and the same fade.
     const styles = read("../styles.css");
-    expect(styles).toMatch(/\.frame-dim \{[^}]*background: var\(--scrim\);[^}]*animation: fade var\(--fast\) var\(--ease\);/);
+    expect(read("../chrome/Shell.module.css")).toMatch(/\.dim \{[^}]*background: var\(--scrim\);[^}]*animation: global\(fade\) var\(--fast\) var\(--ease\);/);
     expect(styles).toMatch(/@keyframes fade \{\s*from \{\s*opacity: 0;\s*\}\s*\}/);
     expect(shell).toMatch(/@keyframes ws-fade \{\s*from \{\s*opacity: 0;\s*\}\s*\}/);
   });

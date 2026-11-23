@@ -1,0 +1,16 @@
+/* Your pins, in the sidebar (Focus.tsx). */
+
+@layer ui {
+  /* A link from the page dragged over the sidebar: Focus takes it. */
+  .bringing {
+    border-radius: var(--radius);
+    outline: 1.5px dashed var(--accent);
+    outline-offset: 2px;
+  }
+
+  .drop {
+    padding: 4px 8px;
+    color: var(--dim);
+    font-size: var(--text-xs);
+  }
+}

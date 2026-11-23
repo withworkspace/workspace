@@ -1,0 +1,75 @@
+/* A place in the sidebar (PlaceLink.tsx). */
+
+@layer ui {
+  .place {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    overflow: hidden;
+    border-radius: var(--radius);
+    color: var(--dim);
+    white-space: nowrap;
+    transition:
+      background var(--fast) var(--ease),
+      color var(--fast) var(--ease);
+  }
+
+  .icon {
+    flex: none;
+    color: var(--faint);
+  }
+
+  .place:hover {
+    background: var(--hover);
+    color: var(--fg);
+  }
+
+  .on {
+    background: var(--raised);
+    box-shadow:
+      var(--shadow-xs),
+      0 0 0 1px var(--line);
+    color: var(--fg);
+    font-weight: 500;
+  }
+
+  .on .icon {
+    color: var(--accent);
+  }
+
+  .words {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity var(--slow) ease-in 60ms;
+  }
+
+  [data-sidebar="rail"]:not(:hover, :has(:focus-visible)) .words {
+    opacity: 0;
+    transition: opacity var(--fast) var(--ease);
+  }
+
+  .count,
+  .news {
+    flex: none;
+  }
+
+  /* In the rail, a count is a dot on its icon, and so is a mark. */
+  [data-sidebar="rail"]:not(:hover, :has(:focus-visible)) :is(.count, .news) {
+    position: absolute;
+    top: 3px;
+    left: 19px;
+  }
+
+  [data-sidebar="rail"]:not(:hover, :has(:focus-visible)) .count {
+    width: 7px;
+    min-width: 0;
+    height: 7px;
+    padding: 0;
+    box-shadow: 0 0 0 2px var(--backdrop, var(--bg));
+    font-size: 0;
+  }
+}

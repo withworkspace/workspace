@@ -1,5 +1,5 @@
 import { createContext, type DragEvent, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "react-router";
+import { useLocation } from "react-router";
 import { changeFocus, type FocusPin, type Plugin, type Workspace } from "../api";
 import { useLoaded } from "../load";
 import { thingsNamed } from "../refs/known";
@@ -10,8 +10,9 @@ import { thingIcon } from "../refs/views";
 import { Icon, type IconName } from "../ui/Icon";
 import { humanError, toast } from "../ui/kit";
 import { headlineStatus, Status } from "../ui/status";
-import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { Focus } from "../chrome/Focus";
+import { FocusRow } from "../chrome/FocusRow";
 
 // Focus: what you've pinned, of anything ws names, kept in the sidebar
 // below its places (ops/focus.go). Each is drawn as it stands, and what
@@ -213,7 +214,7 @@ export function FocusSection({ workspace, plugins, path }: { workspace: Workspac
   useEffect(() => {
     const start = (e: globalThis.DragEvent) => {
       const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
-      if (!a || a.closest(".focus")) return;
+      if (!a || a.closest("[data-focus]")) return;
       const url = new URL(a.href, window.location.href);
       if (url.origin !== window.location.origin) return;
       const r = pageRefAt(url.pathname, url.search, knownNow.current);
@@ -269,22 +270,19 @@ export function FocusSection({ workspace, plugins, path }: { workspace: Workspac
   };
 
   return (
-    <section className={`inbox focus${bringing ? " bringing" : ""}`} aria-label="Focus" onDragOver={dragOver} onDrop={drop}>
-      <h2>
-        Focus {rows.length > 0 && <Count>{rows.length}</Count>}
-      </h2>
+    <Focus count={rows.length} bringing={!!bringing} onDragOver={dragOver} onDrop={drop}>
       {rows.map(({ pin, r }) => (
-        <FocusRow
+        <PinRow
           key={pin.name}
           pin={pin}
           r={r}
           workspace={workspace}
           known={known}
           path={path}
-          className={[moving === pin.name ? "dragging" : "", over?.name === pin.name && moving !== pin.name ? (over.after ? "drop-after" : "drop-before") : ""].join(" ")}
+          dragging={moving === pin.name}
+          drop={over?.name === pin.name && moving !== pin.name ? (over.after ? "after" : "before") : undefined}
           onUnpin={() => focus.unpin(pin.name)}
           drag={{
-            draggable: true,
             onDragStart: (e) => {
               e.dataTransfer.effectAllowed = "move";
               e.dataTransfer.setData("text/plain", pin.name);
@@ -299,8 +297,7 @@ export function FocusSection({ workspace, plugins, path }: { workspace: Workspac
           }}
         />
       ))}
-      {bringing && rows.length === 0 && <div className="focus-drop">Drop it here to pin it</div>}
-    </section>
+    </Focus>
   );
 }
 
@@ -329,16 +326,18 @@ function useSidebarKnown(workspace: Workspace | undefined, plugins?: Plugin[]): 
   );
 }
 
-type Drag = Pick<React.HTMLAttributes<HTMLAnchorElement>, "draggable" | "onDragStart" | "onDragOver" | "onDragEnd">;
+type Drag = Pick<React.HTMLAttributes<HTMLAnchorElement>, "onDragStart" | "onDragOver" | "onDragEnd">;
 
-// FocusRow is a pin: how it stands, as an icon, and what it's called.
-function FocusRow({
+// PinRow is a pin's row: how it stands, as an icon, and what it's called,
+// worked out here and drawn by the sidebar's part (chrome/FocusRow.tsx).
+function PinRow({
   pin,
   r,
   workspace,
   known,
   path,
-  className,
+  dragging,
+  drop,
   onUnpin,
   drag,
 }: {
@@ -347,31 +346,15 @@ function FocusRow({
   workspace: Workspace;
   known?: Known;
   path: string;
-  className: string;
+  dragging: boolean;
+  drop?: "before" | "after";
   onUnpin: () => void;
   drag: Drag;
 }) {
   const to = refHref(r, known);
   const { icon, title } = useStands(pin, r, workspace, known);
   const here = r.kind === "mission" ? path === to || path.startsWith(`${to}/`) : path === to;
-  return (
-    <Link to={to} className={`${here ? "active" : ""} ${className}`} title={`${title}${pin.state && r.kind === "thing" ? ` · ${pin.state}` : ""}`} {...drag}>
-      {icon}
-      <span>{title}</span>
-      <button
-        className="focus-unpin"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onUnpin();
-        }}
-        title="Unpin"
-        aria-label={`Unpin ${title}`}
-      >
-        <Icon name="x" size={12} />
-      </button>
-    </Link>
-  );
+  return <FocusRow to={to} lead={icon} title={title} says={`${title}${pin.state && r.kind === "thing" ? ` · ${pin.state}` : ""}`} on={here} onUnpin={onUnpin} dragging={dragging} drop={drop} {...drag} />;
 }
 
 const quiet = (name: IconName) => (

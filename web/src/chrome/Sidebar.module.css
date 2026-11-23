@@ -1,0 +1,47 @@
+/* The sidebar (Sidebar.tsx): a rounded card over the page's ground, open
+   or folded to a rail. */
+
+@layer ui {
+  .sidebar {
+    /* A solid surface, nearly the page's own colour: the card is there,
+       but quietly. What's on it is on its colour, not the horizon. */
+    --backdrop: color-mix(in srgb, var(--panel) 35%, var(--bg));
+    --well: var(--panel);
+    /* Its width as a rail. Its width open is --sidebar-width, which its
+       place may set (a drawer's is the window's, nearly). */
+    --rail-width: 52px;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    flex: none;
+    box-sizing: border-box;
+    width: var(--sidebar-width, 232px);
+    min-height: 0;
+    padding: 12px 10px;
+    overflow: hidden auto;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--backdrop);
+    box-shadow: var(--shadow);
+    transition:
+      width var(--slow) var(--ease),
+      box-shadow var(--slow) var(--ease);
+  }
+
+  .rail {
+    width: var(--rail-width);
+    overflow: hidden;
+  }
+
+  /* Open, over the page (and what sticks to the top of it). A moment's
+     wait, so the pointer passing over doesn't open it. */
+  .rail:is(:hover, :has(:focus-visible)) {
+    z-index: 40;
+    width: var(--sidebar-width, 232px);
+    overflow: hidden auto;
+    box-shadow: var(--shadow-lg);
+    transition-delay: 60ms;
+  }
+}
