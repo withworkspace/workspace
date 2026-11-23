@@ -1,13 +1,7 @@
-/* A dialog (Dialog.tsx): a raised card over the dimmed page. The dimming
-   is styles.css's .overlay, which centres it. */
+/* A dialog (Dialog.tsx): a raised card over the dimmed page, which is
+   the Modal's. */
 
 @layer ui {
-  /* react-aria's modal is between the overlay and the dialog: the dialog
-     is placed as the overlay's own. */
-  .modal {
-    display: contents;
-  }
-
   .dialog {
     --backdrop: var(--raised);
     background: var(--raised);
@@ -16,7 +10,6 @@
     padding: 16px 20px 18px;
     width: min(420px, 100%);
     box-shadow: var(--shadow-lg);
-    outline: none;
     animation: global(pop) var(--slow) var(--ease);
   }
 

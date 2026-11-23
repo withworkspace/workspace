@@ -1,0 +1,28 @@
+/* What's over a dimmed page (Modal.tsx): the dimming, which places what's
+   on it near its top, in the middle. */
+
+@layer ui {
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100; /* over the review's sticky headers and selection bar */
+    background: var(--scrim);
+    display: grid;
+    place-items: start center;
+    padding: 14vh 16px 16px;
+    animation: global(fade) var(--fast) var(--ease);
+  }
+
+  /* react-aria's modal is between the dimming and what's on it: that's
+     placed as the dimming's own. */
+  .modal {
+    display: contents;
+  }
+
+  /* It's a section to the browser, but not one of the page's, which have
+     a gap after them. */
+  .box {
+    margin: 0;
+    outline: none;
+  }
+}

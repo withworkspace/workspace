@@ -445,7 +445,7 @@ function useGlobalKeys({ openPalette, openHelp }: { openPalette: (start?: string
         // ⌘⇧F is Find, for what the files say: except where a page has a
         // search box of its own (a capsule's files), which is nearer.
         e.preventDefault();
-        const does = codeSearchKey(!!document.querySelector(".overlay"));
+        const does = codeSearchKey(!!document.querySelector("[data-overlay]"));
         if (does.to === "nothing") return; // something's open: the key's its, or nobody's
         e.stopPropagation();
         if (does.to === "own") does.open();
@@ -457,12 +457,12 @@ function useGlobalKeys({ openPalette, openHelp }: { openPalette: (start?: string
         // its own (a capsule's files, a review's), which is nearer.
         if (ownsFileFinder(window.location.pathname)) return;
         e.preventDefault();
-        if (document.querySelector(".overlay")) return; // something's open: not the browser's print, either
+        if (document.querySelector("[data-overlay]")) return; // something's open: not the browser's print, either
         e.stopPropagation();
         openPalette("/");
         return;
       }
-      if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey || document.querySelector(".overlay")) return;
+      if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey || document.querySelector("[data-overlay]")) return;
       if (e.key === "?") {
         e.preventDefault();
         e.stopPropagation();

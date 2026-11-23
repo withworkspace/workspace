@@ -689,19 +689,6 @@ main > .banner {
   color: oklch(from var(--brand-1) calc(l - 0.041) c h);
 }
 
-/* Dialogs */
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100; /* over the review's sticky headers and selection bar */
-  background: var(--scrim);
-  display: grid;
-  place-items: start center;
-  padding: 14vh 16px 16px;
-  animation: fade var(--fast) var(--ease);
-}
-
 /* The keys dialog */
 .keys-help {
   display: grid;
@@ -18482,7 +18469,7 @@ a [data-viewable] {
 /* What's new: once after an upgrade, and from Settings' About. Wide,
    with the horizon behind its head, the first entry large and the rest
    as cards. */
-.overlay:has(.whats-new) {
+[data-overlay]:has(.whats-new) {
   place-items: center;
   padding-top: 16px;
 }

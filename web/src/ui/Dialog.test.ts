@@ -16,7 +16,7 @@ describe("Dialog", () => {
   });
 
   it("is what says something's open, for the app's keys", () => {
-    expect(read("Dialog.tsx")).toContain('className="overlay"');
-    expect(read("../App.tsx")).toContain('document.querySelector(".overlay")');
+    expect(read("Modal.tsx")).toContain('data-overlay=""');
+    expect(read("../App.tsx")).toContain('document.querySelector("[data-overlay]")');
   });
 });

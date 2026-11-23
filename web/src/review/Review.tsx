@@ -51,6 +51,7 @@ import { Segment, Segmented } from "../ui/Segmented";
 import { Checkbox } from "../ui/Checkbox";
 import { Input } from "../ui/Input";
 import { TextArea } from "../ui/TextArea";
+import { Modal } from "../ui/Modal";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -1805,7 +1806,6 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
 function Finder({ files, onPick, onClose }: { files: DiffFile[]; onPick: (i: number) => void; onClose: () => void }) {
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
-  useKeys({ Escape: onClose }, { modal: true });
   const matches = useMemo(() => {
     return files
       .flatMap((f, i) => {
@@ -1817,8 +1817,7 @@ function Finder({ files, onPick, onClose }: { files: DiffFile[]; onPick: (i: num
   }, [files, q]);
   const pick = matches[Math.min(sel, matches.length - 1)];
   return (
-    <div className="overlay" onClick={onClose}>
-      <div className="finder" onClick={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} className="finder" aria-label="Jump to a file">
         <Input
           autoFocus
           value={q}
@@ -1847,7 +1846,6 @@ function Finder({ files, onPick, onClose }: { files: DiffFile[]; onPick: (i: num
             </li>
           ))}
         </ul>
-      </div>
-    </div>
+    </Modal>
   );
 }

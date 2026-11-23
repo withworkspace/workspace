@@ -21,6 +21,7 @@ import { GroupHead } from "../ui/GroupHead";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Menu, MenuItem } from "../ui/Menu";
 import { Input } from "../ui/Input";
+import { Modal } from "../ui/Modal";
 
 // The file explorer: a capsule's files as they are now, without an editor
 // open. A tree on the left (everything, or only what's changed since the
@@ -1030,7 +1031,6 @@ function FileFinder({ files, onPick, onClose }: { files: TreeFile[]; onPick: (pa
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
   const list = useRef<HTMLUListElement>(null);
-  useKeys({ Escape: onClose }, { modal: true });
   const matches = useMemo(() => {
     if (!q.trim()) {
       // Before you type: what's changed first, then the rest.
@@ -1053,8 +1053,7 @@ function FileFinder({ files, onPick, onClose }: { files: TreeFile[]; onPick: (pa
     list.current?.children[n]?.scrollIntoView({ block: "nearest" });
   };
   return (
-    <div className="overlay palette-overlay" onMouseDown={onClose}>
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Find a file" onMouseDown={(e) => e.stopPropagation()}>
+    <Modal onClose={onClose} overlayClassName="palette-overlay" className="palette" aria-label="Find a file">
         <div className="palette-input">
           <Icon name="search" size={16} />
           <Input
@@ -1107,7 +1106,6 @@ function FileFinder({ files, onPick, onClose }: { files: TreeFile[]; onPick: (pa
           })}
           {!matches.length && <li className="palette-none">No file matches “{q}”.</li>}
         </ul>
-      </div>
-    </div>
+    </Modal>
   );
 }
