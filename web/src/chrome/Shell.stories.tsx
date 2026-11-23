@@ -2,20 +2,23 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactNode, useState } from "react";
 import { useLocation } from "react-router";
 import { useMedia } from "../ui/kit";
-import { narrowQuery } from "./chromeState";
+import { narrowQuery, toggleBelow } from "./chromeState";
 import { billing, freezes, rounding, type SampleThing } from "./dockSamples";
 import { FindButton } from "./FindButton";
 import { Foot } from "./Foot";
+import { FootBelow } from "./FootBelow";
 import { FootBeside } from "./FootBeside";
 import { FootCrew } from "./FootCrew";
 import { FootSep } from "./FootSep";
 import { FootSidebar } from "./FootSidebar";
 import { Needs } from "./Needs";
 import { Places } from "./Places";
+import { SampleBelow, useBelowStarted } from "./SampleBelow";
 import { SampleBeside } from "./SampleBeside";
 import { needs, placesFor } from "./samples";
 import { Shell } from "./Shell";
 import { Sidebar } from "./Sidebar";
+import { useChromeStore } from "./store";
 import { WorkspaceName } from "./WorkspaceName";
 
 // The whole window, with Beside: a peek at a second thing next to the
@@ -25,6 +28,12 @@ import { WorkspaceName } from "./WorkspaceName";
 // docks next to it from its own head, and is dragged wider by its edge.
 // The sidebar hides from the foot's start, as in the app. Narrow the
 // window and Beside is a sheet over the page.
+//
+// And with Below: what's going on, under the page, from the foot's end
+// too. The page makes room for it, Beside stays next to the two of them,
+// and a floating Beside ends where it begins. It's dragged taller by its
+// edge, up to what the window's height lets it be. On a narrow window
+// it's a sheet over the page's lower part.
 //
 // The page and what's beside are words standing in (dockSamples.tsx): the
 // panes that draw real things come after these parts.
@@ -47,7 +56,9 @@ function Page({ thing }: { thing: SampleThing }) {
   );
 }
 
-function Window({ on, beside, floats = false, closed = false, children }: { on: SampleThing; beside: SampleThing[]; floats?: boolean; closed?: boolean; children?: ReactNode }) {
+// below: the window has a Below, open or closed to start with. Its state
+// is the window's store's, as in the app; what's beside is kept here.
+function Window({ on, beside, floats = false, closed = false, below, children }: { on: SampleThing; beside: SampleThing[]; floats?: boolean; closed?: boolean; below?: "open" | "closed"; children?: ReactNode }) {
   const { pathname } = useLocation();
   const narrow = useMedia(narrowQuery);
   const [hidden, setHidden] = useState(false);
@@ -56,6 +67,10 @@ function Window({ on, beside, floats = false, closed = false, children }: { on: 
   const [over, setOver] = useState(floats);
   const [size, setSize] = useState(420);
   const place = narrow ? "drawer" : hidden ? "hidden" : "open";
+  const started = useBelowStarted(below === "open");
+  const low = useChromeStore((s) => s.chrome.below);
+  const change = useChromeStore((s) => s.change);
+  if (!started) return null;
   return (
     <div style={{ height: "100vh" }}>
       <Shell
@@ -65,6 +80,8 @@ function Window({ on, beside, floats = false, closed = false, children }: { on: 
         beside={open && <SampleBeside things={beside} over={over} onOver={setOver} size={size} onSize={setSize} onClose={() => setOpen(false)} sheet={narrow} />}
         besideOver={over}
         besideSize={size}
+        below={below && low.open && <SampleBelow sheet={narrow} />}
+        belowSize={low.height}
         side={
           <Sidebar>
             <WorkspaceName name="Sorrel" root="/try/sorrel" />
@@ -82,7 +99,12 @@ function Window({ on, beside, floats = false, closed = false, children }: { on: 
                 <FootCrew id="c1" mission="Dark mode for the dashboard" to="/missions/dark-mode-for-the-dashboard/crew/c1" />
               </>
             }
-            end={<FootBeside open={open} waiting={beside.length} onPress={() => setOpen((o) => !o)} />}
+            end={
+              <>
+                {below && <FootBelow open={low.open} onPress={() => change(toggleBelow)} />}
+                {beside.length > 0 && <FootBeside open={open} waiting={beside.length} onPress={() => setOpen((o) => !o)} />}
+              </>
+            }
           />
         }
       >
@@ -106,3 +128,17 @@ export const Floating: StoryObj = { render: () => <Window on={billing} beside={[
 // Closed, with something there: the foot's toggle is marked, and opens
 // it.
 export const ClosedWithSomethingThere: StoryObj = { render: () => <Window on={billing} beside={[rounding]} closed /> };
+
+// Below the page: what's running and what it came to, under the page,
+// which makes room.
+export const BelowThePage: StoryObj = { render: () => <Window on={billing} beside={[]} below="open" /> };
+
+// Both at once: Below under the page, Beside next to the two of them.
+export const BesideAndBelow: StoryObj = { render: () => <Window on={billing} beside={[rounding]} below="open" /> };
+
+// Beside floating with Below open: it's over the page only, and ends
+// where Below begins.
+export const FloatingWithBelow: StoryObj = { render: () => <Window on={billing} beside={[rounding, freezes]} floats below="open" /> };
+
+// Below closed: its toggle in the foot opens it, and it slides up.
+export const BelowClosed: StoryObj = { render: () => <Window on={billing} beside={[rounding]} below="closed" /> };

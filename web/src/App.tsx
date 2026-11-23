@@ -51,10 +51,13 @@ import { duration } from "./ui/time";
 import { SiloPoint } from "./silo/SiloPoint";
 import { Count } from "./ui/Count";
 import { buttonClass } from "./ui/Button";
+import { Below } from "./chrome/Below";
+import { useBelowViews } from "./chrome/belowViews";
 import { Beside } from "./chrome/Beside";
-import { hideSidebar, narrowQuery, sidebarPlace, toggleBeside } from "./chrome/chromeState";
+import { hideSidebar, narrowQuery, sidebarPlace, toggleBelow, toggleBeside } from "./chrome/chromeState";
 import { FindButton } from "./chrome/FindButton";
 import { Foot } from "./chrome/Foot";
+import { FootBelow } from "./chrome/FootBelow";
 import { FootBeside } from "./chrome/FootBeside";
 import { FootCrew } from "./chrome/FootCrew";
 import { FootSidebar } from "./chrome/FootSidebar";
@@ -119,6 +122,10 @@ export function App() {
   // and closes it.
   const beside = useBeside();
   useKeys({ "\\": () => beside.all.length > 0 && changeChrome(toggleBeside) });
+  // Below, under the page: there while it has something to show, which
+  // it hasn't yet (belowViews.ts). It has no key yet either.
+  const belowViews = useBelowViews();
+  const belowShown = chrome.below.open && belowViews.length > 0;
 
   // The drawer (on a narrow window) closes on going somewhere.
   useEffect(() => setDrawer(false), [setDrawer, location.pathname]);
@@ -220,6 +227,8 @@ export function App() {
       beside={beside.shown && workspace && <Beside sheet={narrow} />}
       besideOver={beside.over}
       besideSize={beside.width}
+      below={belowShown && workspace && <Below views={belowViews} sheet={narrow} />}
+      belowSize={chrome.below.height}
       still={!workspace}
       pageClassName={connection === "lost" && workspace ? "stale" : undefined}
       side={
@@ -246,9 +255,17 @@ export function App() {
               ))}
             </>
           }
-          // Beside's toggle is there while there's something to peek at
-          // here; closed, it's marked.
-          end={beside.all.length > 0 && <FootBeside open={beside.shown} waiting={beside.all.length} onPress={() => changeChrome(toggleBeside)} />}
+          // The docks' toggles, in the order they're in the window. Below's
+          // is there while it has something to show. Beside's is there
+          // while there's something to peek at here; closed, it's marked.
+          end={
+            (belowViews.length > 0 || beside.all.length > 0) && (
+              <>
+                {belowViews.length > 0 && <FootBelow open={belowShown} onPress={() => changeChrome(toggleBelow)} />}
+                {beside.all.length > 0 && <FootBeside open={beside.shown} waiting={beside.all.length} onPress={() => changeChrome(toggleBeside)} />}
+              </>
+            )
+          }
         />
       }
       overlays={

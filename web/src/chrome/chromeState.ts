@@ -1,5 +1,5 @@
-// How one window is arranged: where the sidebar is, and what's beside the
-// page. It isn't the daemon's: it's kept in the browser for the
+// How one window is arranged: where the sidebar is, what's beside the
+// page and what's below it. It isn't the daemon's: it's kept in the browser for the
 // workspace, as the theme and the widths are, and two windows may differ.
 
 // Where the sidebar is: open, folded to a rail, or hidden. Hidden, none
@@ -37,14 +37,38 @@ export interface ChromeState {
     // nothing): coming back to a thing, what was in front there is again.
     fronts: Record<string, string>;
   };
+  // Below: what's going on while you're on the page, under it. Its tabs
+  // are views (what's running, what it came to), which whoever draws it
+  // has: this keeps only which was showing.
+  below: {
+    open: boolean;
+    height: number;
+    // The view that's showing, by its id. None, or one that's no longer
+    // there: the first.
+    tab?: string;
+    // Which of it: what's of the thing this page is of, or the
+    // workspace's.
+    where: BelowWhere;
+  };
 }
+
+// Which of what's below is shown: Find's words for the same question.
+export type BelowWhere = "here" | "everywhere";
 
 // How wide Beside may be, and what a double-click on its edge puts it
 // back to.
 export const besideWidths = { min: 300, max: 760, rest: 420 };
 
+// How tall Below may be, and what a double-click on its edge puts it back
+// to. On a short window the shell holds it to less (Shell's --dock-most).
+export const belowHeights = { min: 140, max: 620, rest: 240 };
+
 // A window nobody has arranged.
-export const resting: ChromeState = { hidden: false, beside: { open: false, over: false, width: besideWidths.rest, tabs: [], about: {}, fronts: {} } };
+export const resting: ChromeState = {
+  hidden: false,
+  beside: { open: false, over: false, width: besideWidths.rest, tabs: [], about: {}, fronts: {} },
+  below: { open: false, height: belowHeights.rest, where: "here" },
+};
 
 // sidebarPlace is where the sidebar is drawn. A drawer on a narrow
 // window, whatever else. Nowhere if you've hidden it; otherwise the page
@@ -150,6 +174,27 @@ const widthWithin = (w: unknown): number => (typeof w === "number" && Number.isF
 // widenBeside sets Beside's width, kept within what it may be.
 export const widenBeside = (s: ChromeState, width: number): ChromeState => ({ ...s, beside: { ...s.beside, width: widthWithin(width) } });
 
+export const toggleBelow = (s: ChromeState): ChromeState => ({ ...s, below: { ...s.below, open: !s.below.open } });
+
+// pickBelow shows one of Below's views, where Below is: open or not.
+export const pickBelow = (s: ChromeState, tab: string): ChromeState => (s.below.tab === tab ? s : { ...s, below: { ...s.below, tab } });
+
+// showBelow opens Below on one of its views, as something that points at
+// it does (a card's "Output below", a part of the foot). Pressed while
+// that view is the one showing, it closes Below: what opens it is its
+// toggle.
+export function showBelow(s: ChromeState, tab: string): ChromeState {
+  const showing = s.below.open && s.below.tab === tab;
+  return { ...s, below: { ...s.below, open: !showing, tab } };
+}
+
+export const belowWhere = (s: ChromeState, where: BelowWhere): ChromeState => (s.below.where === where ? s : { ...s, below: { ...s.below, where } });
+
+const heightWithin = (h: unknown): number => (typeof h === "number" && Number.isFinite(h) ? Math.round(Math.min(belowHeights.max, Math.max(belowHeights.min, h))) : belowHeights.rest);
+
+// heightenBelow sets Below's height, kept within what it may be.
+export const heightenBelow = (s: ChromeState, height: number): ChromeState => ({ ...s, below: { ...s.below, height: heightWithin(height) } });
+
 // strings is what's kept of a map of words to words: those of it that are.
 function strings(kept: unknown): Record<string, string> {
   if (!kept || typeof kept !== "object" || Array.isArray(kept)) return {};
@@ -159,7 +204,7 @@ function strings(kept: unknown): Record<string, string> {
 // read is the arrangement as it was kept, with anything that's missing or
 // isn't what it should be (kept by an earlier ws, or edited) as it rests.
 export function read(kept: string | null | undefined): ChromeState {
-  let got: { hidden?: unknown; beside?: Record<string, unknown> } = {};
+  let got: { hidden?: unknown; beside?: Record<string, unknown>; below?: Record<string, unknown> } = {};
   try {
     const parsed: unknown = JSON.parse(kept ?? "");
     if (parsed && typeof parsed === "object") got = parsed;
@@ -167,6 +212,7 @@ export function read(kept: string | null | undefined): ChromeState {
     // Nothing kept, or not what was kept: as it rests.
   }
   const beside = got.beside && typeof got.beside === "object" ? got.beside : {};
+  const below = got.below && typeof got.below === "object" ? got.below : {};
   // One that hadn't begun (/ask/…) was its page's, which isn't open yet.
   const tabs = Array.isArray(beside.tabs) ? [...new Set(beside.tabs.filter((t): t is string => typeof t === "string" && t !== "" && !t.startsWith("/ask/")))] : [];
   // What a tab's about is kept only for tabs there are.
@@ -174,6 +220,7 @@ export function read(kept: string | null | undefined): ChromeState {
   return {
     hidden: got.hidden === true,
     beside: { open: beside.open === true, over: beside.over === true, width: widthWithin(beside.width), tabs, about, front: typeof beside.front === "string" ? beside.front : undefined, fronts: strings(beside.fronts) },
+    below: { open: below.open === true, height: heightWithin(below.height), tab: typeof below.tab === "string" && below.tab !== "" ? below.tab : undefined, where: below.where === "everywhere" ? "everywhere" : "here" },
   };
 }
 

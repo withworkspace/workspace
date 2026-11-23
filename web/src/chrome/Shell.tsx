@@ -22,8 +22,18 @@ type ShellProps = {
   // How wide the dock beside is: how far it slides, opening and closing.
   // Without it, it's there at once.
   besideSize?: number;
-  // Nothing slides: the window is still opening, and what's beside is
-  // there as it was left, not arriving.
+  // Below the page: a Dock, when Below is open. It's under the page only:
+  // what's beside runs the window's height next to the two of them, and
+  // one floating over the page ends where this begins. On a narrow window
+  // it's a sheet over the page's lower part, and should be given as one.
+  below?: ReactNode;
+  // How tall the dock below is: how far it slides, opening and closing,
+  // and the room it takes from the page, which what's sized to the page's
+  // height (--page-height) is told. Without it, it's there at once, and
+  // the page isn't told.
+  belowSize?: number;
+  // Nothing slides: the window is still opening, and what's beside and
+  // below is there as it was left, not arriving.
   still?: boolean;
   // The foot (Foot), the whole width of the window, under the sidebar
   // too.
@@ -44,15 +54,24 @@ type ShellProps = {
 };
 
 // Shell is the window: the sidebar at its start, the page, what's beside
-// it, and the foot along the bottom. It places them and paints the ground
+// it and below it, and the foot along the bottom. It places them and paints the ground
 // they're on; what each is, is its own part's. The page scrolls within its
-// own room, so the sidebar, what's beside and the foot stay put.
-export function Shell({ sidebar, drawerOpen, onDrawerClose, side, beside, besideOver, besideSize, still, foot, dim, overlays, className, pageClassName, children }: ShellProps) {
+// own room, so the sidebar, what's beside, what's below and the foot stay
+// put.
+export function Shell({ sidebar, drawerOpen, onDrawerClose, side, beside, besideOver, besideSize, below, belowSize, still, foot, dim, overlays, className, pageClassName, children }: ShellProps) {
   const narrow = sidebar === "drawer";
   const drawn = narrow && !!drawerOpen;
   const at = useSliding(beside, !!besideOver, !!still || narrow || !besideSize);
+  const low = useSliding(below, false, !!still || narrow || !belowSize);
+  // The page has given Below its room from when it's asked for to when
+  // it's asked to go: as it slides either way, what's sized to the page
+  // is already as it will be.
+  const roomBelow = !!below && !narrow && !!belowSize;
   return (
-    <div className={cx(css.shell, sidebar === "rail" && css.railed, sidebar === "hidden" && css.hidden, narrow && css.narrow, drawn && css.drawn, foot ? css.footed : undefined, className)}>
+    <div
+      className={cx(css.shell, sidebar === "rail" && css.railed, sidebar === "hidden" && css.hidden, narrow && css.narrow, drawn && css.drawn, foot ? css.footed : undefined, roomBelow && css.belowed, className)}
+      style={belowSize ? ({ "--below-size": `${belowSize}px` } as CSSProperties) : undefined}
+    >
       {drawn && <div className={css.scrim} onClick={onDrawerClose} />}
       {/* Hidden, it's still here, slid out and taking nothing: so it slides
           both ways as the page's column does. */}
@@ -61,9 +80,16 @@ export function Shell({ sidebar, drawerOpen, onDrawerClose, side, beside, beside
       </div>
       {dim && sidebar !== "hidden" && !narrow && <div className={cx(css.dim, css.dimSide)} onMouseDown={(e) => e.preventDefault()} />}
       <div className={css.stage}>
-        <main id="main" className={cx(css.page, pageClassName)}>
-          {children}
-        </main>
+        <div className={cx(css.column, low.moving && css.sliding)}>
+          <main id="main" className={cx(css.page, pageClassName)}>
+            {children}
+          </main>
+          {low.node && (
+            <div className={cx(css.below, low.moving === "in" && css.arriving, low.moving === "out" && css.leaving)} inert={low.moving === "out"} onAnimationEnd={(e) => e.target === e.currentTarget && low.settle()}>
+              {low.node}
+            </div>
+          )}
+        </div>
         {at.node && (
           <div
             className={cx(at.over ? css.besideOver : css.beside, at.moving === "in" && css.arriving, at.moving === "out" && css.leaving)}
@@ -90,10 +116,11 @@ export function Shell({ sidebar, drawerOpen, onDrawerClose, side, beside, beside
 // the browser said it ended (it doesn't, of an animation that never ran).
 const slideAtMost = 600;
 
-// useSliding is what's beside as it's drawn: it slides in when it opens
-// and out when it closes, as the sidebar does, the page's column moving
-// with it. While it slides out it's still drawn, as it last was, though
-// it's no longer given. Nothing slides while the window is still.
+// useSliding is a dock as it's drawn, beside the page or below it: it
+// slides in when it opens and out when it closes, as the sidebar does,
+// the page's room moving with it. While it slides out it's still drawn,
+// as it last was, though it's no longer given. Nothing slides while the
+// window is still.
 function useSliding(beside: ReactNode, over: boolean, still: boolean): { node: ReactNode; over: boolean; moving?: "in" | "out"; settle: () => void } {
   const last = useRef<{ node: ReactNode; over: boolean }>(undefined);
   const [was, setWas] = useState({ had: !!beside, still });

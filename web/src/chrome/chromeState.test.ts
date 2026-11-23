@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { besideAbout, besideFront, besideShown, besideTabs, besideWidths, closeBesideTab, floatBeside, hideSidebar, openBeside, pickBeside, read, resting, sidebarPlace, toggleBeside, widenBeside, write } from "./chromeState";
+import { besideAbout, besideFront, besideShown, besideTabs, besideWidths, belowHeights, belowWhere, closeBesideTab, floatBeside, heightenBelow, hideSidebar, openBeside, pickBeside, pickBelow, read, resting, showBelow, sidebarPlace, toggleBeside, toggleBelow, widenBeside, write } from "./chromeState";
 
 describe("where the sidebar is", () => {
   it("is the page's to say between open and the rail", () => {
@@ -38,7 +38,7 @@ describe("the arrangement, kept in the browser", () => {
 
   it("takes what's sound of what's beside and rests the rest", () => {
     const got = read(JSON.stringify({ hidden: "yes", beside: { open: true, width: 99999, tabs: ["a", 3, "a", "", "b", "/ask/THING-2"], about: { a: "x", gone: "y", b: 3 }, front: 7, fronts: { x: "a", y: 2 } } }));
-    expect(got).toEqual({ hidden: false, beside: { open: true, over: false, width: besideWidths.max, tabs: ["a", "b"], about: { a: "x" }, front: undefined, fronts: { x: "a" } } });
+    expect(got).toEqual({ hidden: false, beside: { open: true, over: false, width: besideWidths.max, tabs: ["a", "b"], about: { a: "x" }, front: undefined, fronts: { x: "a" } }, below: resting.below });
   });
 });
 
@@ -110,5 +110,48 @@ describe("what's beside", () => {
   it("is kept as it was", () => {
     const s = widenBeside(floatBeside(openBeside(resting, ask, { about: doc, here: doc }), true), 500);
     expect(read(write(s))).toEqual(s);
+  });
+});
+
+describe("what's below", () => {
+  it("opens and closes, keeping the view that was showing", () => {
+    const s = toggleBelow(pickBelow(resting, "results"));
+    expect(s.below).toMatchObject({ open: true, tab: "results" });
+    expect(toggleBelow(s).below).toMatchObject({ open: false, tab: "results" });
+  });
+
+  it("is opened on a view by what points at it, and closed by the same if that's the one showing", () => {
+    const s = showBelow(resting, "results");
+    expect(s.below).toMatchObject({ open: true, tab: "results" });
+    expect(showBelow(s, "running").below).toMatchObject({ open: true, tab: "running" });
+    expect(showBelow(s, "results").below).toMatchObject({ open: false, tab: "results" });
+  });
+
+  it("shows here's or everywhere's, and is as tall as it may be", () => {
+    expect(belowWhere(resting, "everywhere").below.where).toBe("everywhere");
+    expect(heightenBelow(resting, 10).below.height).toBe(belowHeights.min);
+    expect(heightenBelow(resting, 5000).below.height).toBe(belowHeights.max);
+    expect(heightenBelow(resting, 301.4).below.height).toBe(301);
+  });
+
+  it("is the same arrangement when nothing of it changes", () => {
+    const s = pickBelow(resting, "results");
+    expect(pickBelow(s, "results")).toBe(s);
+    expect(belowWhere(s, "here")).toBe(s);
+  });
+
+  it("is kept as it was, with what isn't sound of it as it rests", () => {
+    const s = belowWhere(heightenBelow(showBelow(resting, "results"), 320), "everywhere");
+    expect(read(write(s))).toEqual(s);
+    const got = read(JSON.stringify({ below: { open: "yes", height: "tall", tab: 3, where: "nowhere" } }));
+    expect(got.below).toEqual({ open: false, height: belowHeights.rest, tab: undefined, where: "here" });
+    // Kept by a ws from before there was a Below.
+    expect(read(JSON.stringify({ hidden: true })).below).toEqual(resting.below);
+  });
+
+  it("leaves what's beside as it was", () => {
+    const s = openBeside(resting, "a");
+    expect(toggleBelow(s).beside).toBe(s.beside);
+    expect(openBeside(toggleBelow(resting), "a").below.open).toBe(true);
   });
 });
