@@ -51,6 +51,8 @@ import { PagePin } from "../shell/focus";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
+import { Clamp } from "../ui/Clamp";
+import { MoreLink } from "../ui/MoreLink";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary as SummaryList, SummaryRow } from "../ui/Summary";
 import { Segment, Segmented } from "../ui/Segmented";
@@ -601,9 +603,9 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
             return <ArtifactRow key={key} id={`side-${key}`} a={a} compact selected={!!selected(key)} open={openArtifact} />;
           })}
           {d.artifacts.length > sideArtifacts && (
-            <Button variant="link" className="more-link" onClick={() => go("work")}>
+            <MoreLink className="more-under" onClick={() => go("work")}>
               {d.artifacts.length - sideArtifacts} more in Work
-            </Button>
+            </MoreLink>
           )}
         </SideSection>
       )}
@@ -649,9 +651,9 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
           <CrewRow key={c.id} c={c} slug={d.slug} />
         ))}
         {d.crew.length > live.length && (
-          <Button variant="link" className="more-link" onClick={() => go("work")}>
+          <MoreLink className="more-under" onClick={() => go("work")}>
             {live.length ? `${d.crew.length - live.length} earlier, in Work` : `${d.crew.length} so far, none on it now: in Work`}
-          </Button>
+          </MoreLink>
         )}
         {!d.crew.length && <div className="side-none">Nobody yet.</div>}
       </SideSection>
@@ -754,9 +756,9 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
         {goal && (
           <SummaryRow label="Goal">
             <Inline text={goal} />{" "}
-            <Button variant="link" className="more-link" onClick={() => go("brief")}>
+            <MoreLink className="more-under" onClick={() => go("brief")}>
               Brief
-            </Button>
+            </MoreLink>
           </SummaryRow>
         )}
         {!led && !full && step && <SummaryRow label="Now">{step}</SummaryRow>}
@@ -779,9 +781,9 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
             <span className="dim summary-work">
               {workWords(w, label, d.slug) || "Nothing yet: crew lift a capsule when they start."}{" "}
               {(w.capsules.length > 0 || w.outputs.length > 0) && (
-                <Button variant="link" className="more-link" onClick={() => go("work")}>
+                <MoreLink onClick={() => go("work")}>
                   All of it in Work
-                </Button>
+                </MoreLink>
               )}
             </span>
           </SummaryRow>
@@ -802,9 +804,9 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
           <SummaryRow label="Recently">
             <Events events={events.slice(-recent)} lines={2} />
             {events.length > recent && (
-              <Button variant="link" className="more-link" onClick={() => go("log")}>
+              <MoreLink className="more-under" onClick={() => go("log")}>
                 The whole log ({events.length})
-              </Button>
+              </MoreLink>
             )}
           </SummaryRow>
         )}
@@ -877,24 +879,10 @@ export function SummaryLead({ d, reload }: { d: MissionDetail; reload: Reload })
 // Said is what crew last said, rendered, a few lines of it until you ask
 // for the rest.
 function Said({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const [long, setLong] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (el) setLong(el.scrollHeight > el.clientHeight + 4);
-  }, [text]);
   return (
-    <div className="said-block">
-      <div ref={ref} className={`said-body${open ? " open" : ""}`}>
-        <Markdown text={text} />
-      </div>
-      {(long || open) && (
-        <Button variant="link" className="more-link" onClick={() => setOpen((o) => !o)}>
-          {open ? "Show less" : "Show all"}
-        </Button>
-      )}
-    </div>
+    <Clamp className="said-block" of={text}>
+      <Markdown text={text} />
+    </Clamp>
   );
 }
 
@@ -979,7 +967,9 @@ function CardView({ d, c, lead, reload, step, latest }: { d: MissionDetail; c: M
             <Inline text={detail} />
           </details>
         ) : long ? (
-          <More text={detail} lines={3} />
+          <Clamp lines={3} more="More" less="Less" of={detail}>
+            <Inline text={detail} />
+          </Clamp>
         ) : (
           <Inline text={detail} />
         ))}
@@ -1008,19 +998,6 @@ function CardView({ d, c, lead, reload, step, latest }: { d: MissionDetail; c: M
     <Callout tone="quiet" icon={st.icon} title={title} className="headline also" actions={actions}>
       {body}
     </Callout>
-  );
-}
-
-// More is text clamped to a few lines, with the rest a click away.
-function More({ text, lines }: { text: string; lines: number }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Inline text={text} lines={open ? undefined : lines} />{" "}
-      <Button variant="link" className="more-link" onClick={() => setOpen((o) => !o)}>
-        {open ? "Less" : "More"}
-      </Button>
-    </>
   );
 }
 
@@ -1300,9 +1277,9 @@ function HeadlinePrompt({ slug, crew }: { slug: string; crew: CrewDetail }) {
   return (
     <div className="headline-prompt">
       <PromptCard slug={slug} crew={crew} pending={pending} compact />
-      <Link to={`/missions/${slug}/crew/${crew.id}`} className="more-link">
+      <MoreLink to={`/missions/${slug}/crew/${crew.id}`}>
         Open {crew.id}'s conversation
-      </Link>
+      </MoreLink>
     </div>
   );
 }
@@ -1347,9 +1324,9 @@ function QuickReply({ slug, id, reload }: { slug: string; id: string; reload: Re
           Send
         </Button>
       </form>
-      <Link to={`/missions/${slug}/crew/${id}`} className="more-link">
+      <MoreLink to={`/missions/${slug}/crew/${id}`}>
         Open {id}'s conversation
-      </Link>
+      </MoreLink>
     </div>
   );
 }
@@ -1442,9 +1419,9 @@ function Log({ d, selected, openArtifact, go }: Parts) {
           {elsewhere.length < d.crew.length && (
             <>
               Crew are on{" "}
-              <Button variant="link" className="more-link" onClick={() => go("work")}>
+              <MoreLink onClick={() => go("work")}>
                 Work
-              </Button>
+              </MoreLink>
               , with the capsule each worked in.{" "}
             </>
           )}

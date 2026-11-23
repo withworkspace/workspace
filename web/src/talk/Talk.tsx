@@ -38,6 +38,7 @@ import { addedVersion, afterSettling, artifactNext, kindName, type Made, made, r
 import { PagePin } from "../shell/focus";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
+import { MoreLink } from "../ui/MoreLink";
 import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { pageScroller } from "../ui/scroller";
@@ -217,9 +218,9 @@ export function TalkList({
           <Empty icon="check-circle" title="Nothing open">
             Every conversation's resolved.{" "}
             {onToggleResolved && (
-              <Button variant="link" className="more-link" onClick={onToggleResolved}>
+              <MoreLink onClick={onToggleResolved}>
                 Show them
-              </Button>
+              </MoreLink>
             )}
           </Empty>
         ) : (
@@ -284,9 +285,9 @@ export function TalkList({
         </Rows>
       )}
       {!keys && all.some((t) => t.status !== "open") && onToggleResolved && talks.length > 0 && (
-        <Button variant="link" className="more-link" onClick={onToggleResolved}>
+        <MoreLink onClick={onToggleResolved}>
           {showResolved ? "Hide" : "Show"} resolved
-        </Button>
+        </MoreLink>
       )}
     </>
   );
@@ -773,9 +774,9 @@ function TalkSide({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug: stri
             ))}
           </ul>
           {named.length > shown.length && (
-            <Button variant="link" className="more-link" onClick={() => setAllNamed(true)}>
+            <MoreLink onClick={() => setAllNamed(true)}>
               {named.length - shown.length} more
-            </Button>
+            </MoreLink>
           )}
         </section>
       )}

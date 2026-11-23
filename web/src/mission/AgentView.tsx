@@ -11,6 +11,7 @@ import { CrewBadge } from "./parts";
 import { useLoaded } from "../load";
 import { useLatest } from "../load";
 import { Button } from "../ui/Button";
+import { MoreLink } from "../ui/MoreLink";
 import { pageScroller } from "../ui/scroller";
 import { Input } from "../ui/Input";
 import { Composer } from "../ui/Composer";
@@ -341,13 +342,13 @@ export function PromptCard({
   };
   // Crew over ACP have no terminal: the card is the only way to answer.
   const terminal = crew.structured ? null : onTerminal ? (
-    <Button variant="link" className="more-link" onClick={onTerminal}>
+    <MoreLink onClick={onTerminal}>
       Answer in the terminal
-    </Button>
+    </MoreLink>
   ) : (
-    <Link to={`/missions/${slug}/crew/${crew.id}?view=terminal`} className="more-link">
+    <MoreLink to={`/missions/${slug}/crew/${crew.id}?view=terminal`}>
       Answer in the terminal
-    </Link>
+    </MoreLink>
   );
   if (crew.activity === "permission") {
     const link = pending?.edit && fileLink?.(pending.edit.path);

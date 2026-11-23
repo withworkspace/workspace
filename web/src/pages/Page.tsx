@@ -72,6 +72,7 @@ import { Chip, chipClass } from "../ui/Chip";
 import { type Tone } from "../ui/tone";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
+import { MoreLink } from "../ui/MoreLink";
 import { clip } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Tab, Tabs } from "../ui/Tabs";
@@ -1217,9 +1218,9 @@ function PassTab({
           </ol>
           {put.length > 0 && (
             <>
-              <Button variant="link" className="more-link" onClick={() => setSettled((v) => !v)} aria-expanded={settled}>
+              <MoreLink onClick={() => setSettled((v) => !v)} aria-expanded={settled}>
                 {settled ? "Hide" : "Show"} {put.length} settled
-              </Button>
+              </MoreLink>
               {settled && (
                 <ol className="findings settled">
                   {put.map((f) => (

@@ -2836,24 +2836,8 @@ button.on {
   animation: enter var(--slow) var(--ease);
 }
 
-.more-link {
-  color: var(--accent) !important;
-}
-
-/* Only a link's: a button's (button.link) has its own size, and wraps.
-   Whether they should match is still to be decided. */
-a.more-link {
-  font-size: var(--text-sm);
-  white-space: nowrap;
-}
-
-.more-link:hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-dd > .more-link,
-.side-section > .more-link {
+/* A way to the rest (ui/MoreLink.tsx), under what it's the rest of. */
+.more-under {
   display: inline-block;
   margin-top: 6px;
 }
@@ -3056,19 +3040,7 @@ dd > .more-link,
 }
 
 /* What crew last said: rendered, a few lines until you ask. */
-.said-block .said-body {
-  max-height: 9.5em;
-  overflow: hidden;
-  position: relative;
-  mask-image: linear-gradient(#000 calc(100% - 2.5em), transparent);
-}
-
-.said-block .said-body.open {
-  max-height: none;
-  mask-image: none;
-}
-
-.said-body .markdown > :first-child {
+.said-block .markdown > :first-child {
   margin-top: 0;
 }
 
@@ -5856,22 +5828,11 @@ p.verify-meta {
   margin-top: 8px;
 }
 
-/* A few lines of it, until you ask for the rest. */
-.verify-summary-block {
+/* A few lines of it, until you ask for the rest (ui/Clamp.tsx). */
+.verify-summary {
   display: grid;
   gap: 4px;
   justify-items: start;
-}
-
-.verify-summary {
-  max-height: 7.6em;
-  overflow: hidden;
-  mask-image: linear-gradient(#000 calc(100% - 2.2em), transparent);
-}
-
-.verify-summary.open {
-  max-height: none;
-  mask-image: none;
 }
 
 /* What it didn't verify, and how to try it: folded, a click each. */
