@@ -12,7 +12,7 @@ describe("Dialog", () => {
   // drawn over it from elsewhere on the page has to say it's to be left.
   it("leaves hover cards and toasts be", () => {
     expect(read("FloatingCard.tsx")).toContain('data-react-aria-top-layer=""');
-    expect(read("kit.tsx")).toContain('data-react-aria-top-layer=""');
+    expect(read("Toasts.tsx")).toContain('data-react-aria-top-layer=""');
   });
 
   it("is what says something's open, for the app's keys", () => {

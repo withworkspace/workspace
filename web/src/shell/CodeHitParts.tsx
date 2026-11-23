@@ -1,4 +1,4 @@
-import { useMedia } from "../ui/kit";
+import { useMedia } from "../ui/useMedia";
 import { type CodeHit, codeLead, codeLeadNarrow, codeRuns } from "./find";
 import { Chip } from "../ui/Chip";
 

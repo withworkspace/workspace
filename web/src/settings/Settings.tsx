@@ -5,7 +5,7 @@ import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { shortVersion } from "../shell/version";
 import { Icon } from "../ui/Icon";
-import { useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
 import { ErrorCard } from "../ui/ErrorCard";

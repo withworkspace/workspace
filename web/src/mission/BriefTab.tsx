@@ -12,7 +12,7 @@ import { afterSettling } from "../talk/proposals";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon, type IconName } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { useMedia } from "../ui/kit";
+import { useMedia } from "../ui/useMedia";
 import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
 import { Callout } from "../ui/Callout";

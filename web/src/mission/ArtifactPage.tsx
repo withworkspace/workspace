@@ -7,7 +7,7 @@ import { useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { highlightCode, languageOf, useHighlighter } from "../review/highlight";
 import { Icon } from "../ui/Icon";
-import { useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
 import { ErrorCard } from "../ui/ErrorCard";

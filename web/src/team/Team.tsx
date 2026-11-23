@@ -6,7 +6,7 @@ import { prHref } from "../reviews/Reviews";
 import { Icon, type IconName } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/inline";
-import { useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";

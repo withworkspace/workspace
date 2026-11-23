@@ -6,7 +6,7 @@ import { useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { type PageRef, wsAddress } from "../refs/refs";
 import { Icon } from "../ui/Icon";
-import { useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
 import { ErrorCard } from "../ui/ErrorCard";

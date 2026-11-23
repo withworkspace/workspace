@@ -7,7 +7,7 @@ import { Inline, plain } from "../ui/inline";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { CheckingLine } from "./checking";
-import { useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
 import { Empty } from "../ui/Empty";
 import { Keys } from "../ui/Keys";
 import { crewStatus, headlineStatus, Status } from "../ui/status";

@@ -8,7 +8,8 @@ import { type Cell, cellHTML, type FileState, fileRows, type Row } from "../revi
 import { highlight, RowView } from "../review/Review";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { useMedia, useTitle } from "../ui/kit";
+import { useMedia } from "../ui/useMedia";
+import { useTitle } from "../ui/useTitle";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";

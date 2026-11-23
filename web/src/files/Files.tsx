@@ -4,7 +4,8 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from "reac
 import { docRef, GROUND, getRepos, getWorktrees, type Repo, type Worktree, worktreeAPI } from "../api";
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
-import { useMedia, useTitle } from "../ui/kit";
+import { useMedia } from "../ui/useMedia";
+import { useTitle } from "../ui/useTitle";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";

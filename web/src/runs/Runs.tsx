@@ -5,7 +5,7 @@ import { type Reload, useLoaded } from "../load";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
 import { Empty } from "../ui/Empty";

@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { type Capsule, commentPR, type Discussion, getMission, getPR, type Mission, type PR, type Said } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
-import { useAutosize } from "../ui/kit";
+import { useAutosize } from "../ui/useAutosize";
 import { humanError } from "../ui/text";
 import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";

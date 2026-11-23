@@ -5,7 +5,7 @@ import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
 import { useKeys } from "../keys";
-import { useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";

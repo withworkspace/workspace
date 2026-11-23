@@ -13,7 +13,7 @@ export const Every: StoryObj = {
     <div className="page narrow">
       <ErrorCard error="error: mission not found" />
       <ErrorCard error="the daemon didn't answer" retry={() => {}} />
-      <ErrorCard title="Couldn't open this file" error="open web/src/ui/kit.tsx: no such file or directory" retry={() => {}} />
+      <ErrorCard title="Couldn't open this file" error="open web/src/ui/Callout.tsx: no such file or directory" retry={() => {}} />
       <ErrorCard error="" />
     </div>
   ),

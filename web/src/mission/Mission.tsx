@@ -26,7 +26,7 @@ import { Icon, type IconName } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
 import { CheckingNow, checkingTitle } from "./checking";
 import { Inline, plain } from "../ui/inline";
-import { useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
 import { Empty } from "../ui/Empty";

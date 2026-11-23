@@ -5,7 +5,7 @@ import { getOrchestrator, getOrchestratorRun, type OrchestratorInfo, type Orches
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Calls } from "../ui/Calls";
 import { Inline } from "../ui/inline";
-import { useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
 import { Skeleton } from "../ui/Skeleton";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";

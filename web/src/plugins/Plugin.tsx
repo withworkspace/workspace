@@ -7,7 +7,7 @@ import { type IconName, icons } from "../ui/Icon";
 import { refsFound } from "../refs/found";
 import { useRefs } from "../refs/known";
 import { usePlugins, useWorkspaceIfRead } from "../workspace/store";
-import { useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
 import { Empty } from "../ui/Empty";
 import { useChromeStore, useFrameHere } from "../chrome/store";
 import { type Frame, listen } from "./frame";
