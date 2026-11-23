@@ -594,6 +594,35 @@ func TestARecipeAskedForTwiceAtOnceIsStartedOnce(t *testing.T) {
 	}
 }
 
+// A ws that read the processes before another started the recipe doesn't
+// take the run for ended, and its name for its own: it looks again, finds
+// it running, and is one more it's for.
+func TestARecipeStartedSinceTheProcessesWereReadIsntStartedAgain(t *testing.T) {
+	s, dir := setup(t)
+	o := recipe("web", Owner{Kind: ByNone}, time.Hour)
+	o.Dir = dir
+	first, started, err := s.Ensure(o, time.Now())
+	if err != nil || !started {
+		t.Fatal(started, err)
+	}
+	// The other ws: what it reads of the processes is from before the run
+	// began, until it looks again.
+	late, reads := s, 0
+	late.Procs = func() (Procs, error) {
+		if reads++; reads <= 2 {
+			return Procs{Known: true}, nil // read, with the run not among them yet
+		}
+		return ReadProcs()
+	}
+	second, started, err := late.Ensure(o, time.Now())
+	if err != nil || started || second.PID != first.PID {
+		t.Errorf("started %v, pid %d (the first's is %d), %v: want the run that's there", started, second.PID, first.PID, err)
+	}
+	if list, _ := s.List(); len(list) != 1 || list[0].PID != first.PID || list[0].State != Running {
+		t.Errorf("runs: %+v", list)
+	}
+}
+
 func TestARunIsEndedOnceEveryoneItsForHasGone(t *testing.T) {
 	s, dir := setup(t)
 	now := time.Now()

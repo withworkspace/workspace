@@ -33,6 +33,12 @@ const (
 	// handoffPlanned is planWithPlanner with the step the planner wrote
 	// after its own.
 	handoffPlanned = planWithPlanner + "3. Fix it, the test passing.\n   - who: crew\n"
+	// handoffChecked is a Work step with a check, then another.
+	handoffChecked = "## Z\n- Fixed.\n## Stops early\n- None.\n## Steps\n1. Work: fix it.\n   - check: `true` passes\n2. Work: test it.\n3. Review: it.\n"
+	// handoffReviewed is your review, then Work.
+	handoffReviewed = "## Z\n- Fixed.\n## Stops early\n- None.\n## Steps\n1. Review: the cause.\n2. Work: fix it.\n"
+	// handoffToPR is a Work step with a check, then its pull request.
+	handoffToPR = "## Z\n- Merged.\n## Stops early\n- None.\n## Steps\n1. Work: fix it.\n   - in: `api/totals`\n   - check: `true` passes\n2. Open Pull Request\n   - in: `api/totals`\n"
 )
 
 func TestResolve_HandoffIsNeverIdle(t *testing.T) {
@@ -156,6 +162,111 @@ func TestResolve_HandoffIsNeverIdle(t *testing.T) {
 				}},
 			}
 		}},
+		// A Work step's checks all met: ws passes it, reaches the next,
+		// and starts its crew. From crew's done to the next crew's first
+		// activity it's ws's, each mark set before the one before it goes.
+		{name: "a step's checks met, the next step's crew started", moments: func(t *testing.T, s Store) (string, []handoffMoment) {
+			m, err := s.Create("Fix the totals")
+			must(t, err)
+			slug := m.Slug
+			must(t, s.WritePlan(slug, handoffChecked))
+			launch(t, s, slug, "c1", "Fix it, the test passing.", 1)
+			must(t, s.CrewHook(slug, "c1", Hook{Prompted: true}))
+			var moving Moving
+			return slug, []handoffMoment{
+				{name: "crew report done: ws is checking it", kind: KindChecking, ws: func() {
+					must(t, s.SetCrewStatus(slug, "c1", CrewDone, "fixed"))
+					must(t, s.CrewHook(slug, "c1", Hook{Activity: ActivityWaiting}))
+				}},
+				{name: "every check met: ws marks that it's moving on, before the round's kept", kind: KindChecking, ws: func() {
+					moving, err = s.StartMoving(slug, 1)
+					must(t, err)
+				}},
+				{name: "the round's kept, the step not passed yet", kind: KindMovingOn, ws: func() {
+					got, _ := s.Load(slug)
+					_, err := s.RecordChecks(slug, 1, CheckRound{Crew: "c1", Done: got.Crew[0].DoneKey(), Results: []CheckResult{{Check: "`true` passes", Result: CheckMet, By: "ws"}}})
+					must(t, err)
+				}},
+				{name: "the step's passed: the plan's at step 2, with nobody on it yet", kind: KindMovingOn, ws: func() {
+					_, _, err := s.AcceptStageAt(slug, 1, "ws", "its checks are met (round 1)")
+					must(t, err)
+				}},
+				{name: "ws is starting step 2's crew", kind: KindLaunching, ws: func() {
+					starting(t, s, slug, "step 2")
+				}},
+				{name: "the move's over: the launch has it", kind: KindLaunching, ws: func() {
+					must(t, s.EndMoving(slug, moving))
+				}},
+				{name: "the crew before are closed, step 2's recorded", kind: KindLaunching, ws: func() {
+					must(t, s.EndCrew(slug, "c1", "exit 0"))
+					launch(t, s, slug, "c2", "Test it.", 2)
+				}},
+				{name: "crew's first activity: crew are at work", kind: KindWorking, ws: func() {
+					must(t, s.CrewHook(slug, "c2", Hook{Prompted: true}))
+				}},
+			}
+		}},
+		// You go on at a step of yours: ws passes it, and starts the next
+		// step's crew.
+		{name: "you go on at a review, the next step's crew started", moments: func(t *testing.T, s Store) (string, []handoffMoment) {
+			m, err := s.Create("Fix the totals")
+			must(t, err)
+			slug := m.Slug
+			must(t, s.WritePlan(slug, handoffReviewed))
+			_, err = s.AskAtStep(slug, TaskReview, "Step 1 is yours, to review: is this the cause?", 1)
+			must(t, err)
+			moving, err := s.StartMoving(slug, 1)
+			must(t, err)
+			return slug, []handoffMoment{
+				{name: "the step's passed, and what ws asked of it closed", kind: KindMovingOn, ws: func() {
+					_, _, err := s.AcceptStage(slug, "you", "the user went on")
+					must(t, err)
+					must(t, s.CloseStepTasks(slug, 1))
+				}},
+				{name: "ws is starting step 2's crew", kind: KindLaunching, ws: func() {
+					starting(t, s, slug, "step 2")
+				}},
+				{name: "the move's over: the launch has it", kind: KindLaunching, ws: func() {
+					must(t, s.EndMoving(slug, moving))
+				}},
+				{name: "crew are recorded, their session starting", kind: KindLaunching, ws: func() {
+					launch(t, s, slug, "c1", "Fix it, the test passing.", 2)
+				}},
+				{name: "crew's first activity: crew are at work", kind: KindWorking, ws: func() {
+					must(t, s.CrewHook(slug, "c1", Hook{Prompted: true}))
+				}},
+			}
+		}},
+		// A step passed, and the next is an Open Pull Request: ws has it
+		// until the PR writer does.
+		{name: "a step's checks met, the pull request being written", moments: func(t *testing.T, s Store) (string, []handoffMoment) {
+			m, err := s.Create("Fix the totals")
+			must(t, err)
+			slug := m.Slug
+			must(t, s.WritePlan(slug, handoffToPR))
+			launch(t, s, slug, "c1", "Fix it, the test passing.", 1)
+			must(t, s.CrewHook(slug, "c1", Hook{Prompted: true}))
+			must(t, s.SetCrewStatus(slug, "c1", CrewDone, "fixed"))
+			must(t, s.CrewHook(slug, "c1", Hook{Activity: ActivityWaiting}))
+			moving, err := s.StartMoving(slug, 1)
+			must(t, err)
+			return slug, []handoffMoment{
+				{name: "the round's kept and the step passed: the plan's at its pull request", kind: KindMovingOn, ws: func() {
+					got, _ := s.Load(slug)
+					_, err := s.RecordChecks(slug, 1, CheckRound{Crew: "c1", Done: got.Crew[0].DoneKey(), Results: []CheckResult{{Check: "`true` passes", Result: CheckMet, By: "ws"}}})
+					must(t, err)
+					_, _, err = s.AcceptStageAt(slug, 1, "ws", "its checks are met (round 1)")
+					must(t, err)
+				}},
+				{name: "the PR writer's writing it", kind: KindWritingPR, ws: func() {
+					_, _, err := s.StartWritingPR(slug, WritingPR{Capsule: "api/totals", Step: 2, By: "ws"})
+					must(t, err)
+				}},
+				{name: "the move's over: the PR writer has it", kind: KindWritingPR, ws: func() {
+					must(t, s.EndMoving(slug, moving))
+				}},
+			}
+		}},
 	}
 	for _, w := range walks {
 		t.Run(w.name, func(t *testing.T) {
@@ -193,8 +304,8 @@ func TestResolve_HandoffIsNeverIdle(t *testing.T) {
 			// says where they stand from here.
 			m, err := s.Load(slug)
 			must(t, err)
-			if m.Launching != nil || m.Planning != nil {
-				t.Errorf("marks left after the handoff: launching %+v, planning %+v", m.Launching, m.Planning)
+			if m.Launching != nil || m.Planning != nil || m.Moving != nil {
+				t.Errorf("marks left after the handoff: launching %+v, planning %+v, moving %+v", m.Launching, m.Planning, m.Moving)
 			}
 			for _, c := range m.Crew {
 				if c.Starting != nil {

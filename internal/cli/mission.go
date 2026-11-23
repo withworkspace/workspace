@@ -841,6 +841,7 @@ func newMissionNoteCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "note <text>",
 		Short: "Append a note to a mission's log",
+		Long:  "Append a note to a mission's log." + fmt.Sprintf(onStdin, "note"),
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := loadOps()
@@ -851,7 +852,10 @@ func newMissionNoteCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			text := strings.TrimSpace(strings.Join(args, " "))
+			text, err := wordsOf(args)
+			if err != nil {
+				return err
+			}
 			if text == "" {
 				return errors.New("note text is empty")
 			}

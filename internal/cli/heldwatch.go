@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/crew"
+	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 )
@@ -101,4 +102,9 @@ func watchHeldAt(root string, now time.Time, alive func(pid int) bool, callDone 
 			ctx.Notify(slug, e)
 		}
 	})
+	// Crew nobody's looking at, their turn long over with nothing said:
+	// asked where they are (ops.NudgeIdle).
+	for _, said := range ctx.NudgeIdle(now) {
+		execlog.Note(root, "idle", "%s", said)
+	}
 }
