@@ -1,0 +1,20 @@
+/* A mark (Mark.tsx): a dot on what has news you haven't seen. */
+
+@layer ui {
+  .mark {
+    display: inline-block;
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .ringed {
+    box-shadow: 0 0 0 2px var(--backdrop, var(--bg));
+  }
+
+  .danger {
+    background: var(--danger-fill);
+  }
+}

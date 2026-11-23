@@ -1,0 +1,43 @@
+/* A part of the foot (FootItem.tsx): a few words or an icon, with room to
+   press. */
+
+@layer ui {
+  .item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+    min-height: 22px;
+    padding: 2px 7px;
+    border: 0;
+    border-radius: var(--radius);
+    box-shadow: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      color var(--fast) var(--ease),
+      background var(--fast) var(--ease);
+  }
+
+  .item:hover {
+    color: var(--fg);
+    background: var(--hover);
+  }
+
+  .on {
+    color: var(--fg);
+    background: var(--well);
+  }
+
+  /* It gives way: what's in it that can be cut short, is, down to what
+     it says it must keep (--foot-item-least: a crew's badge). */
+  .shrink {
+    flex: 0 1 auto;
+    min-width: var(--foot-item-least, 0);
+    overflow: hidden;
+  }
+}

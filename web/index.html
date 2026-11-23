@@ -7,6 +7,13 @@
     <!-- The tab's icon is the mark in the accent, drawn once the app runs
          (shell/notify.ts); till then, none (and no request for one). -->
     <link rel="icon" href="data:," />
+    <!-- The order of the cascade's layers, said before any stylesheet: the
+         build may split the styles into several files and load a part's
+         before the globals, and the first to name a layer sets its place
+         (src/styles.css says what the layers are). -->
+    <style>
+      @layer base, ui;
+    </style>
     <script src="/theme.js"></script>
     <title>ws</title>
   </head>

@@ -1,0 +1,24 @@
+/* Needs you, in the sidebar (Needs.tsx). */
+
+@layer ui {
+  /* What the list leaves out, past its few: a way to the rest. */
+  .more {
+    padding: 4px 8px 4px 30px;
+    overflow: hidden;
+    border-radius: var(--radius);
+    color: var(--dim);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    transition: opacity var(--slow) ease-in 60ms;
+  }
+
+  .more:hover {
+    background: var(--hover);
+    color: var(--fg);
+  }
+
+  [data-sidebar="rail"]:not(:hover, :has(:focus-visible)) .more {
+    opacity: 0;
+    transition: opacity var(--fast) var(--ease);
+  }
+}

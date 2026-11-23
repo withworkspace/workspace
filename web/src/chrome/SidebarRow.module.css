@@ -1,0 +1,51 @@
+/* A row of a list in the sidebar (SidebarRow.tsx). */
+
+@layer ui {
+  .row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 4px 8px;
+    overflow: hidden;
+    border-radius: var(--radius);
+    white-space: nowrap;
+  }
+
+  .row:hover {
+    background: var(--hover);
+  }
+
+  .on {
+    background: var(--selected);
+  }
+
+  .words {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity var(--slow) ease-in 60ms;
+  }
+
+  [data-sidebar="rail"]:not(:hover, :has(:focus-visible)) .words {
+    opacity: 0;
+    transition: opacity var(--fast) var(--ease);
+  }
+
+  /* Just arrived: it says so once, where it is, in what needs you's
+     colour. */
+  .fresh {
+    animation: arrived 1.6s var(--ease);
+  }
+
+  @keyframes arrived {
+    0%,
+    45% {
+      background: var(--attention-soft);
+      box-shadow: 0 0 0 1px
+        color-mix(in srgb, var(--attention-fill) 45%, transparent);
+    }
+  }
+}

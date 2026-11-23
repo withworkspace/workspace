@@ -1,0 +1,49 @@
+/* The foot (Foot.tsx): one quiet line along the bottom of the window. */
+
+@layer ui {
+  .foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+    min-width: 0;
+    height: 30px;
+    padding: 0 10px 0 8px;
+    border-top: 1px solid var(--line);
+    color: var(--dim);
+    font-size: var(--text-xs);
+  }
+
+  .start {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    /* What there isn't room for fades out at its end, not cut mid-word.
+       With room to spare its end is empty, and nothing's seen to fade. */
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 calc(100% - 28px),
+      transparent
+    );
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+
+  .end {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+    min-width: 0;
+    max-width: 60%;
+  }
+
+  /* On a narrow window it's pressed with a thumb: more room to. */
+  @media (max-width: 860px) {
+    .foot {
+      height: 40px;
+    }
+  }
+}

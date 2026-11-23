@@ -1,0 +1,238 @@
+/* The window (Shell.tsx): the sidebar, the page and the foot, placed, on
+   the ground they share. */
+
+@layer ui {
+  .shell {
+    /* How far a card is set in from the window's edges, and from the foot
+       when there is one. */
+    --shell-inset: 12px;
+    --shell-bottom: var(--shell-inset);
+    /* The sidebar's column: its card's width and the inset before it. */
+    --shell-side: calc(232px + var(--shell-inset));
+
+    /* The horizon: the wordmark's run as a glow from the top of the page's
+       column. It's --backdrop, what the page looks like at any point, so
+       whatever has to look like the page while covering it paints the
+       same. When the sidebar folds the glow moves at once, not with the
+       fold: everything inherits --backdrop, so animating it would restyle
+       the whole page every frame. In vw, not %: a fixed background's box
+       is the window. */
+    /* What's at the page's start that the glow stands clear of: the
+       sidebar's column, and a page's own list beside it where it has one
+       (--horizon-more). */
+    --horizon-side: calc(var(--shell-side) + var(--horizon-more, 0px));
+    --horizon-x: calc(50vw + var(--horizon-side) / 2);
+    --horizon-w: calc((100vw - var(--horizon-side)) * 0.85);
+    --horizon-d: 227px;
+    --backdrop:
+      var(--horizon-grain) calc(var(--horizon-x) - var(--horizon-w) * 1.1) 0 /
+        calc(var(--horizon-w) * 2.2) calc(var(--horizon-d) * 1.3) no-repeat
+        fixed,
+      radial-gradient(
+          ellipse var(--horizon-w) var(--horizon-d) at var(--horizon-x) 0,
+          color-mix(
+            in srgb,
+            var(--horizon-1) calc(32% * var(--horizon-strength)),
+            transparent
+          ),
+          color-mix(
+              in srgb,
+              var(--horizon-2) calc(20% * var(--horizon-strength)),
+              transparent
+            )
+            25%,
+          color-mix(
+              in srgb,
+              var(--horizon-2) calc(12% * var(--horizon-strength)),
+              transparent
+            )
+            45%,
+          color-mix(
+              in srgb,
+              var(--horizon-3) calc(8% * var(--horizon-strength)),
+              transparent
+            )
+            65%,
+          color-mix(
+              in srgb,
+              var(--horizon-3) calc(3% * var(--horizon-strength)),
+              transparent
+            )
+            82%,
+          transparent
+        )
+        no-repeat fixed,
+      var(--bg);
+
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--shell-side) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    height: 100%;
+    background: var(--backdrop);
+    transition: grid-template-columns var(--slow) var(--ease);
+  }
+
+  /* The settings' list of sections is beside the sidebar: the glow behind
+     a section is centred on the section's column, not on the two. */
+  @media (min-width: 1041px) {
+    .shell:has(:global(.settings-side)) {
+      --horizon-more: 224px;
+    }
+  }
+
+  /* The sidebar as a rail: its column is the rail's. */
+  .railed {
+    --shell-side: calc(52px + var(--shell-inset));
+  }
+
+  /* The sidebar hidden: its column is nothing wide, and the page has the
+     width. */
+  .hidden {
+    --shell-side: 0px;
+  }
+
+  /* A narrow window: the page has the width, and the sidebar is a drawer
+     over it. */
+  .narrow {
+    --shell-side: 0px;
+    --shell-inset: 8px;
+  }
+
+  .narrow .side {
+    --sidebar-width: min(280px, 85vw);
+    position: fixed;
+    inset: 12px auto 12px 12px;
+    z-index: 150;
+    padding: 0;
+    transform: translateX(calc(-100% - 14px));
+    transition: transform var(--slow) var(--ease);
+  }
+
+  .drawn .side {
+    transform: none;
+  }
+
+  /* What's behind the open drawer: dimmed, and a press on it closes the
+     drawer. */
+  .scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 140;
+    background: var(--scrim);
+    animation: global(fade) var(--fast) var(--ease);
+  }
+
+  /* With a foot, the sidebar's card comes nearly down to it. What's fixed
+     to the window's bottom (toasts) reads --foot-height to stand clear of
+     it, and what's sized to the window's height in a page (a side that
+     sticks, as tall as the page) reads --page-height in the window's
+     place: the room the page has, which the foot takes some of. */
+  .footed {
+    --shell-bottom: 4px;
+    --foot-height: 30px;
+    --page-height: calc(100dvh - var(--foot-height));
+  }
+
+  .footed.narrow {
+    --foot-height: 40px;
+  }
+
+  /* The sidebar's column. Its card's width is its own, so the rail can
+     open wider than its column, over the page. */
+  .side {
+    display: flex;
+    grid-area: 1 / 1;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--shell-inset) 0 var(--shell-bottom) var(--shell-inset);
+    transition:
+      transform var(--slow) var(--ease),
+      visibility 0s;
+  }
+
+  /* Hidden, the card slides out past the window's edge as its column
+     closes, and back as it opens: the same time and ease as the column,
+     so the two move as one. Once out it's not there to see or to tab
+     into. */
+  .hidden .side {
+    visibility: hidden;
+    transform: translateX(
+      calc(-1 * (var(--sidebar-width, 232px) + var(--shell-inset) + 4px))
+    );
+    transition:
+      transform var(--slow) var(--ease),
+      visibility 0s var(--slow);
+  }
+
+  /* The page's column. */
+  .stage {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    grid-row: 1;
+    grid-column: -2 / -1;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* The page that comes as the sidebar folds or opens fades in, in its
+     column as that moves. The two names are one animation: it's the
+     change of name, when the sidebar folds or opens, that runs it
+     again. */
+  .page {
+    flex: 1;
+    min-height: 0;
+    animation: global(page-in) 180ms var(--ease);
+  }
+
+  .railed .page {
+    animation-name: global(page-in-folded);
+  }
+
+  /* The foot: the whole width, under the sidebar too. */
+  .foot {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  /* A plugin's app has a backdrop up: the glow round the sidebar and the
+     foot goes the same way, up to a straight edge where the two meet. A
+     positioned child of a grid is laid out in the cell it names. */
+  .dim {
+    position: absolute;
+    inset: 0;
+    z-index: 2; /* over the sidebar, which is over the page */
+    background: var(--scrim);
+    animation: global(fade) var(--fast) var(--ease);
+  }
+
+  .dimSide {
+    grid-area: 1 / 1 / 2 / 2;
+  }
+
+  .dimFoot {
+    grid-area: 2 / 1 / 3 / -1;
+  }
+
+  /* On paper: the page alone, on paper's white, at its own height. */
+  @media print {
+    .shell {
+      --backdrop: var(--bg);
+      display: block;
+      height: auto;
+    }
+
+    .stage {
+      display: block;
+    }
+
+    .side,
+    .scrim,
+    .foot,
+    .dim {
+      display: none;
+    }
+  }
+}

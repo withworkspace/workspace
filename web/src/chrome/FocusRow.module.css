@@ -1,0 +1,57 @@
+/* A pin, in Focus (FocusRow.tsx). */
+
+@layer ui {
+  /* Put in order by dragging. */
+  .pin {
+    cursor: default;
+  }
+
+  .dragging {
+    opacity: 0.4;
+  }
+
+  /* Where what's dragged would go: a line. */
+  .before {
+    box-shadow: inset 0 2px 0 var(--accent);
+  }
+
+  .after {
+    box-shadow: inset 0 -2px 0 var(--accent);
+  }
+
+  /* Over the row's end, not in it: showing it moves nothing. */
+  .unpin {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    min-width: 0;
+    height: 18px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    box-shadow: none;
+    background: var(--well);
+    color: var(--faint);
+    line-height: 0;
+    cursor: pointer;
+    transform: translateY(-50%);
+  }
+
+  .unpin:hover {
+    color: var(--fg);
+  }
+
+  .pin:is(:hover, :focus-visible) .unpin,
+  .unpin:focus-visible {
+    display: inline-flex;
+  }
+
+  [data-sidebar="rail"]:not(:hover, :has(:focus-visible)) .unpin {
+    display: none;
+  }
+}

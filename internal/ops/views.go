@@ -362,6 +362,13 @@ func MissionSnapshot(v MissionView, brief string, events []mission.Event, rr []r
 func DocThreadCourt(ws *workspace.Workspace, v MissionView, brief string) mission.DocThreads {
 	store := conversation.For(ws.Root, v.M.Slug)
 	threads, _ := store.List()
+	return docThreadCourt(ws, v, brief, store, threads)
+}
+
+// docThreadCourt is DocThreadCourt over the mission's conversations as
+// they were just read (store.List), for a caller that reads them for
+// more than this.
+func docThreadCourt(ws *workspace.Workspace, v MissionView, brief string, store conversation.Store, threads []*conversation.Conversation) mission.DocThreads {
 	var out mission.DocThreads
 	add := func(list *[]mission.DocReplies, c *conversation.Conversation) {
 		for i := range *list {

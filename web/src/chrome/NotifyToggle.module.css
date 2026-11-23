@@ -1,0 +1,7 @@
+/* Whether the desktop is told when something needs you (NotifyToggle.tsx). */
+
+@layer ui {
+  .on {
+    color: var(--accent);
+  }
+}
