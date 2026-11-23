@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { pointSilo } from "../api";
 import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Empty, humanError } from "../ui/kit";
 import { Button } from "../ui/Button";
 
@@ -51,7 +52,7 @@ export function SiloPoint() {
           to && (
             <>
               <Button variant="primary" disabled={busy} onClick={point} autoFocus>
-                <Icon name={busy ? "spinner" : "arrow-right"} size={12} /> {busy ? "Pointing…" : `Point it at ${to}`}
+                {busy ? <Spinner size={12} /> : <Icon name="arrow-right" size={12} />} {busy ? "Pointing…" : `Point it at ${to}`}
               </Button>
               <Button variant="ghost" disabled={busy} onClick={() => navigate("/")}>
                 Not now

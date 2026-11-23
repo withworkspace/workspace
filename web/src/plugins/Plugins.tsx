@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { addPlugin, ApiError, checkUpdates, getInstalledPlugins, type InstalledPlugin, type PluginsInstalled, removePlugin, updatePlugin, type WantedPlugin } from "../api";
 import { type Reload, useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Callout, Copyable, Empty, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
 import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
 import { Time } from "../ui/time";
@@ -85,7 +86,7 @@ export function PluginsSection() {
               )}
             </span>
             <Button size="small" onClick={look} disabled={looking} title="Ask each plugin's repo for its latest release now">
-              <Icon name={looking ? "spinner" : "rotate"} size={12} /> {looking ? "Looking…" : "Check for updates"}
+              {looking ? <Spinner size={12} /> : <Icon name="rotate" size={12} />} {looking ? "Looking…" : "Check for updates"}
             </Button>
         </div>
       )}
@@ -187,7 +188,7 @@ function AddPlugin({ reload, onFailed }: { reload: Reload; onFailed: (f?: Failed
         />
       </label>
       <Button variant="primary" type="submit" disabled={!typed || busy}>
-        <Icon name={busy ? "spinner" : "plus"} size={12} /> {busy ? "Adding…" : "Add"}
+        {busy ? <Spinner size={12} /> : <Icon name="plus" size={12} />} {busy ? "Adding…" : "Add"}
       </Button>
       <p id="plugins-add-about" className="plugins-add-about">
         A repo on GitHub is installed from its latest release (<code>owner/repo@v1.2.0</code> for another), checked against the release's checksums; one with no build for
@@ -311,11 +312,11 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
       <span className="plugin-row-actions">
         {update.can && (
           <Button variant={update.out ? "primary" : "ghost"} size="small" onClick={doUpdate} disabled={!!busy} title={update.title}>
-            <Icon name={busy === "update" ? "spinner" : update.out ? "arrow-up" : "rotate"} size={11} /> {busy === "update" ? "Updating…" : update.label}
+            {busy === "update" ? <Spinner size={11} /> : <Icon name={update.out ? "arrow-up" : "rotate"} size={11} />} {busy === "update" ? "Updating…" : update.label}
           </Button>
         )}
         <Button variant="ghost" size="small" onClick={() => setRemoving(true)} disabled={!!busy} title="Stop it, and take it out of the workspace">
-          <Icon name={busy === "remove" ? "spinner" : "x"} size={11} /> {busy === "remove" ? "Removing…" : "Remove"}
+          {busy === "remove" ? <Spinner size={11} /> : <Icon name="x" size={11} />} {busy === "remove" ? "Removing…" : "Remove"}
         </Button>
       </span>
       {removing && <RemoveDialog p={p} onClose={() => setRemoving(false)} onRemove={doRemove} />}
@@ -386,7 +387,7 @@ function WantedRow({ w, reload, onFailed }: { w: WantedPlugin; reload: Reload; o
       </RowMain>
       <span className="plugin-row-actions">
         <Button size="small" onClick={add} disabled={busy || !w.source} title={`Install it from ${w.source}`}>
-          <Icon name={busy ? "spinner" : "plus"} size={11} /> {busy ? "Adding…" : "Add"}
+          {busy ? <Spinner size={11} /> : <Icon name="plus" size={11} />} {busy ? "Adding…" : "Add"}
         </Button>
       </span>
     </Row>

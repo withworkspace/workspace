@@ -43,6 +43,7 @@ import { useThingMenu } from "./shell/ThingMenu";
 import { TalkPage, TalksPage, talkKeys, talksKeys } from "./talk/Talk";
 import { TeamPage, teamKeys } from "./team/Team";
 import { Icon } from "./ui/Icon";
+import { Spinner } from "./ui/Spinner";
 import { Logotype } from "./ui/Logotype";
 import { Viewer } from "./ui/Viewer";
 import { Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useMedia, useTitle } from "./ui/kit";
@@ -451,7 +452,7 @@ function ConnectionBanner({ connection }: { connection: Connection }) {
   if (!lostAt) return null;
   return (
     <div className="connection-banner" role="status">
-      <Icon name="spinner" className="spin" />
+      <Spinner />
       <span>
         Lost the workspace's daemon {duration(lostAt)} ago. Reconnecting… What's here may be out of date; <code>ws web</code> starts it again.
       </span>

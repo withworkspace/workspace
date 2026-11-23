@@ -2,6 +2,7 @@ import { type KeyboardEvent, type Ref, useState } from "react";
 import { Button } from "../ui/Button";
 import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Keys } from "../ui/kit";
 import { Input } from "../ui/Input";
 
@@ -98,7 +99,7 @@ export function AskField({ placeholder, onAsk, busy, holding, suggestions = [], 
         </div>
       )}
       <div className={`askbar${working ? " sending" : ""}`}>
-        <Icon name={working ? "spinner" : "sparkle"} size={14} className={`askbar-icon${working ? " spin" : ""}`} />
+        {working ? <Spinner size={14} className="askbar-icon" /> : <Icon name="sparkle" size={14} className="askbar-icon" />}
         {holding && (
           <span className={`ask-ctx ${holding.kind ?? "holding"}`} title={holding.title ?? holding.text}>
             <Icon name={holding.icon} size={11} />

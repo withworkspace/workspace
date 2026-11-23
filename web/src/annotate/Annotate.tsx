@@ -30,6 +30,7 @@ import { NoteBody, NoteCard, NoteHead, NoteHint, noteHintActionClass, NoteId, No
 import { ReplyBox } from "../ui/ReplyBox";
 import { Change } from "../ui/Change";
 import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Callout, humanError, Keys, toast, useAutosize, useMedia } from "../ui/kit";
 import { exact, stamp } from "../ui/time";
 import { BLOCK, blockLike, blockLines, blockSpan, blockWithLines, buildIndex, find, offsetOf, rangeOf, type Target, type TextIndex, targetOf, targetOfRange } from "./anchor";
@@ -776,7 +777,7 @@ export function AnnotatedDoc({
           )}
           {answering.length > 0 && (
             <Chip tone="progress">
-              <Icon name="spinner" size={11} className="spin" /> {answering.length} answering
+              <Spinner size={11} /> {answering.length} answering
             </Chip>
           )}
           {drafts.length > 0 && (
@@ -1207,7 +1208,7 @@ function EditCard({
         <span className="spacer-left" />
         {settling ? (
           <span className="dim busy">
-            <Icon name="spinner" className="spin" /> Writing it in…
+            <Spinner /> Writing it in…
           </span>
         ) : (
           <>

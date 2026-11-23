@@ -4,6 +4,7 @@ import { checkUpdates, getUpdates, type UpdatesInfo, upgradeWS } from "../api";
 import { useLoaded } from "../load";
 import { shortVersion } from "../shell/version";
 import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Callout, Copyable, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
 import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
@@ -111,7 +112,7 @@ export function Updates({ running }: { running?: string }) {
           title={`ws ${up.latest} is out`}
           actions={
             <Button variant="primary" onClick={() => void upgrade()} disabled={!!busy}>
-              <Icon name={busy === "upgrade" ? "spinner" : "arrow-up"} size={12} /> {busy === "upgrade" ? "Upgrading…" : `Upgrade to ${up.latest}`}
+              {busy === "upgrade" ? <Spinner size={12} /> : <Icon name="arrow-up" size={12} />} {busy === "upgrade" ? "Upgrading…" : `Upgrade to ${up.latest}`}
             </Button>
           }
         >
@@ -158,7 +159,7 @@ export function Updates({ running }: { running?: string }) {
             <span className="dim"> · {up.checks ? "the daemon looks once a day" : "the daemon doesn't look by itself"}</span>
           </span>
           <Button size="small" onClick={look} disabled={!!busy} title="Ask now for the latest release of ws, and of each plugin installed from a repo">
-            <Icon name={busy === "look" ? "spinner" : "rotate"} size={12} /> {busy === "look" ? "Looking…" : "Check now"}
+            {busy === "look" ? <Spinner size={12} /> : <Icon name="rotate" size={12} />} {busy === "look" ? "Looking…" : "Check now"}
           </Button>
         </dd>
         {up.plugins > 0 && (

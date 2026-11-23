@@ -4,6 +4,7 @@ import { getReviews, type PassMark, type PR, type PRState, type ReviewRow, type 
 import { useKeys } from "../keys";
 import { useReviewsMemory } from "./memory";
 import { Icon, type IconName } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Callout, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
 import { Status, type StatusInfo, type Tone } from "../ui/status";
 import { Time } from "../ui/time";
@@ -176,7 +177,7 @@ export function ReviewsPage() {
             <span className="dim reviews-asked" title="When GitHub was last asked. While this page is open it's asked every couple of minutes.">
               {loading ? (
                 <>
-                  <Icon name="spinner" className="spin" size={12} /> Asking GitHub…
+                  <Spinner size={12} /> Asking GitHub…
                 </>
               ) : (
                 <>

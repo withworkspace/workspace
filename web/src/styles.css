@@ -362,10 +362,6 @@ input[type="checkbox"] {
   }
 }
 
-.spin {
-  animation: spin 0.9s linear infinite;
-}
-
 .status {
   display: inline-flex;
   align-items: center;
@@ -1361,11 +1357,6 @@ main {
   min-width: 0;
   display: flex;
   flex-direction: column;
-}
-
-.find-busy {
-  flex: none;
-  animation: spin 1s linear infinite;
 }
 
 .find-only {

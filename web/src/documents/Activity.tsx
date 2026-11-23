@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { docAddress, docTo, fetchSpace, pullSpace, type Space, type SpaceActivity, type SpaceCommit, type SpaceDocChange, type SpaceFlight, type SpaceFresh } from "../api";
 import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { humanError, toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
@@ -56,7 +57,7 @@ export function Fresh({ repo, fresh, onMoved }: { repo: string; fresh: SpaceFres
     <p className={`space-fresh dim${now.behind ? " behind" : ""}`}>
       {fetching ? (
         <>
-          <Icon name="spinner" size={12} className="spin" /> Fetching…
+          <Spinner size={12} /> Fetching…
         </>
       ) : now.behind ? (
         <>

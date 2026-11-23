@@ -4,6 +4,7 @@ import { type CapsuleDetail, type RunDetail, runRecipe, stopRun } from "../api";
 import type { Reload } from "../load";
 import { came, commitSaid } from "../runs/runRows";
 import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { humanError, toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { Chip } from "../ui/Chip";
@@ -76,7 +77,7 @@ export function RunsHere({ slug, c, open, reload }: { slug: string; c: CapsuleDe
               onClick={() => start(n)}
               title={tasks.has(n) ? `Run its ${n} task, from its ws.repo.toml: what it comes to is kept` : `Run its ${n} recipe, from its ws.repo.toml, while you have this mission open`}
             >
-              <Icon name={busy === n ? "spinner" : "play"} size={11} /> {busy === n ? `Starting ${n}…` : `Run ${n}`}
+              {busy === n ? <Spinner size={11} /> : <Icon name="play" size={11} />} {busy === n ? `Starting ${n}…` : `Run ${n}`}
             </Button>
           ))}
         </div>
@@ -129,7 +130,7 @@ function TaskLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: () => 
       </span>
       {live && (
         <Button variant="ghost" size="small" disabled={busy} onClick={stop} title="Stop it now: it's kept as stopped">
-          <Icon name={busy ? "spinner" : "stop"} size={11} /> Stop
+          {busy ? <Spinner size={11} /> : <Icon name="stop" size={11} />} Stop
         </Button>
       )}
     </li>
@@ -192,7 +193,7 @@ export function RunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; stop: 
       </span>
       {live && (
         <Button variant="ghost" size="small" disabled={busy} onClick={stop} title="End it now">
-          <Icon name={busy ? "spinner" : "stop"} size={11} /> Stop
+          {busy ? <Spinner size={11} /> : <Icon name="stop" size={11} />} Stop
         </Button>
       )}
     </li>

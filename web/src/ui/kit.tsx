@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
 import { Icon, type IconName } from "./Icon";
+import { Spinner } from "./Spinner";
 import { Button } from "./Button";
 import { capital } from "./text";
 import { getToasts, onToasts, setToasts, toast } from "./toast";
@@ -112,7 +113,7 @@ export function Loading({ what, delay = 300 }: { what?: string; delay?: number }
     <div className={`loading${shown ? " shown" : ""}`} role="status" aria-live="polite">
       {shown && (
         <>
-          <Icon name="spinner" size={16} className="spin" />
+          <Spinner size={16} />
           <span>{what ?? "Loading…"}</span>
         </>
       )}

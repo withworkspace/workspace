@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Checking } from "../api";
-import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { capital } from "../ui/text";
 
 // What ws is running while it checks a step: a check that's a command,
@@ -59,7 +59,7 @@ export function CheckingNow({ c }: { c: Checking }) {
         </div>
       ) : null}
       <div className="checking-time">
-        <Icon name="spinner" className="spin" size={12} />
+        <Spinner size={12} />
         <span className="checking-elapsed" title={`Since ${new Date(c.since).toLocaleTimeString()}`}>
           {clock(took)}
         </span>

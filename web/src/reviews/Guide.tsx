@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { type GuideText, type ReviewGuide, runPRGuide } from "../api";
 import type { Order } from "../review/files";
 import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/inline";
 import { humanError, toast } from "../ui/kit";
 import { duration, Time } from "../ui/time";
@@ -17,7 +18,7 @@ import { Checkbox } from "../ui/Checkbox";
 // GuideMark is how the guide stands, beside its name in the list down the
 // side: being written, or written before the last push.
 export function GuideMark({ guide }: { guide?: ReviewGuide }) {
-  if (guide?.running) return <Icon name="spinner" size={11} className="spin" title="Writing the guide…" />;
+  if (guide?.running) return <Spinner size={11} title="Writing the guide…" />;
   if (guide?.failed) return <Icon name="alert" size={11} className="mark-bad" title="The guide couldn't be written" />;
   if (guide?.guide && guide.moved) return <Icon name="rotate" size={11} className="dim" title="It's been pushed to since the guide was written" />;
   return null;
@@ -194,7 +195,7 @@ function GuideWriting({ guide, again }: { guide: ReviewGuide; again: boolean }) 
   return (
     <div className="guide-writing">
       <p className="dim">
-        <Icon name="spinner" className="spin" size={12} /> {!guide.since ? "Waiting to start…" : again ? "Writing it again" : "Writing the guide"}
+        <Spinner size={12} /> {!guide.since ? "Waiting to start…" : again ? "Writing it again" : "Writing the guide"}
         {guide.since && <span title="Since it started"> · {duration(guide.since, now)}</span>}
         {guide.thinking && <span title="Its agent thinks before it writes: what it thinks isn't shown"> · thinking it over</span>}
       </p>

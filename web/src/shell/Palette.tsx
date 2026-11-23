@@ -11,6 +11,7 @@ import { forgetThing } from "../refs/ThingView";
 import { marked } from "../ui/fuzzy";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Status } from "../ui/status";
 import { humanError, Keys, toast } from "../ui/kit";
 import { askShutDown } from "./daemon";
@@ -630,7 +631,7 @@ export function Palette({
                 }
               }}
             />
-            {busy && <Icon name="spinner" size={14} className="find-busy" />}
+            {busy && <Spinner size={14} />}
           </div>
           <div className="find-chips" role="tablist" aria-label="Look through" style={mode ? { display: "none" } : undefined}>
             {chips.map((c) => (

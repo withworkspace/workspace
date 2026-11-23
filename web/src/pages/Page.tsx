@@ -59,6 +59,7 @@ import { linkNamed, type RefHost, type RefMark, refreshRefs } from "../editor/re
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Calls } from "../ui/Calls";
 import { Icon, type IconName } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { ErrorCard, humanError, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
 import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
@@ -681,7 +682,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
             </Button>
           ) : (
             <Chip tone="progress" title={planning.turns[0]?.body}>
-              <Icon name="spinner" size={11} className="spin" /> Planning{planning.run?.calls.length ? `: ${doing(planning.run.calls.at(-1)!, workspace.root).toLowerCase()}` : "…"}
+              <Spinner size={11} /> Planning{planning.run?.calls.length ? `: ${doing(planning.run.calls.at(-1)!, workspace.root).toLowerCase()}` : "…"}
             </Chip>
           ))}
         <ToggleButton
@@ -812,7 +813,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
             <Tab key={p.name} value={p.name} title={p.about}>
               {p.title}
               {p.running ? (
-                <Icon name="spinner" size={11} className="spin" />
+                <Spinner size={11} />
               ) : open > 0 ? (
                 <Count tone={p.moved ? undefined : "attention"} title={`${open} open${p.moved ? ", from before the page changed" : ""}`}>
                   {open}
@@ -1137,7 +1138,7 @@ function PassTab({
         <Button variant={pass.runs ? undefined : "primary"} disabled={busy || !!pass.unavailable} onClick={start}>
           {busy ? (
             <>
-              <Icon name="spinner" size={12} className="spin" /> Running…
+              <Spinner size={12} /> Running…
             </>
           ) : pass.runs ? (
             <>
@@ -1166,7 +1167,7 @@ function PassTab({
       {pass.running && (
         <div className="pass-running">
           <div className="cell-version">
-            <Icon name="spinner" size={12} className="spin" />
+            <Spinner size={12} />
             <span>{pass.runs ? "Reading the page again" : "Reading the page"}</span>
           </div>
           <Calls calls={live} root={root} open live />
@@ -1301,7 +1302,7 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
         {cell.answering && (
           <li className="cell-turn filling">
             <div className="cell-version">
-              <Icon name="spinner" size={12} className="spin" />
+              <Spinner size={12} />
               <span>{askingNow(cell) ? "Finding out" : "Writing it into the page"}</span>
             </div>
             <Calls calls={live} root={root} open live />
@@ -1515,7 +1516,7 @@ function PageMap({
           {failed > 0 && <Chip tone="danger">{failed} not filled</Chip>}
           {filling > 0 && (
             <Chip tone="progress">
-              <Icon name="spinner" size={11} className="spin" /> {filling} filling
+              <Spinner size={11} /> {filling} filling
             </Chip>
           )}
         </div>
@@ -1549,7 +1550,7 @@ function PageMap({
                     if (c.state.status === "stale" || c.state.status === "failed") openCell(c.name);
                   }}
                 >
-                  <Icon name={stateIcon[c.state.status]} size={11} className={c.state.status === "filling" || c.state.status === "starting" ? "spin" : undefined} />
+                  {c.state.status === "filling" || c.state.status === "starting" ? <Spinner size={11} /> : <Icon name={stateIcon[c.state.status]} size={11} />}
                   <span>{clip(c.prompt, 70)}</span>
                 </button>
               </li>
@@ -1566,7 +1567,7 @@ function PageMap({
               return (
                 <li key={p.name}>
                   <button className={`map-item map-cell${p.running ? " s-filling" : p.moved ? " s-stale" : " s-filled"}`} title={p.about} onClick={() => toPass(p.name)}>
-                    <Icon name={p.running ? "spinner" : p.moved ? "alert" : "check"} size={11} className={p.running ? "spin" : undefined} />
+                    {p.running ? <Spinner size={11} /> : <Icon name={p.moved ? "alert" : "check"} size={11} />}
                     <span>
                       {p.title}
                       {p.running ? ": running" : `: ${open} open${p.moved ? ", the page has changed since" : ""}`}
@@ -1918,7 +1919,7 @@ function CellPanel({
           {cell.answering && (
             <li className="cell-turn filling">
               <div className="cell-version">
-                <Icon name="spinner" size={12} className="spin" />
+                <Spinner size={12} />
                 <span>{askingNow(cell) ? "Answering" : all.length ? "Writing it again" : "Filling it in"}</span>
               </div>
               <Calls calls={live} root={root} open live />
