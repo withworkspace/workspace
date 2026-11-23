@@ -30,6 +30,8 @@ import {
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { Clamp } from "../ui/Clamp";
+import { MoreLink } from "../ui/MoreLink";
 import { capital } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
 import { cx } from "../ui/cx";
@@ -387,9 +389,9 @@ function AllClear({ b, rows, busy, settle, again }: { b: Bundle; rows: CheckRow[
           </Button>
         </div>
         <div className="verify-clear-after">{settles(b)}</div>
-        <Button variant="link" type="button" className="more-link" onClick={again}>
+        <MoreLink onClick={again}>
           Look again
-        </Button>
+        </MoreLink>
       </div>
     </article>
   );
@@ -543,29 +545,14 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id?: string) => void }) {
 // Summary is what a bundle's crew say of it, a few lines of it until you
 // ask for the rest: its checks are what you came for.
 function Summary({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const [long, setLong] = useState(false);
-  useEffect(() => {
-    setOpen(false);
-    const el = ref.current;
-    if (el) setLong(el.scrollHeight > el.clientHeight + 4);
-  }, [text]);
   return (
-    <div className="verify-summary-block">
-      <div ref={ref} className={`verify-summary${open ? " open" : ""}`}>
-        {text.split(/\n\s*\n/).map((para, i) => (
-          <p key={i}>
-            <Inline text={para} />
-          </p>
-        ))}
-      </div>
-      {(long || open) && (
-        <Button variant="link" type="button" className="more-link" onClick={() => setOpen((o) => !o)}>
-          {open ? "Less" : "More"}
-        </Button>
-      )}
-    </div>
+    <Clamp className="verify-summary" tall={7.6} more="More" less="Less" of={text}>
+      {text.split(/\n\s*\n/).map((para, i) => (
+        <p key={i}>
+          <Inline text={para} />
+        </p>
+      ))}
+    </Clamp>
   );
 }
 

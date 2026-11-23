@@ -12,6 +12,7 @@ import { Icon } from "../ui/Icon";
 import { Keys } from "../ui/kit";
 import { docLines, type DocLine } from "./briefpage";
 import { Button } from "../ui/Button";
+import { Turn, TurnAvatar, TurnSaid } from "../ui/Turn";
 import { pageScroller } from "../ui/scroller";
 
 // The planner, beside a mission's brief and plan (BriefTab.tsx): its
@@ -75,9 +76,7 @@ export function BriefPlanner({
   return (
     <aside className={`brief-planner${centre ? " centre" : ""}`} aria-label="The planner's conversation">
       <div className="brief-planner-head">
-        <span className="avatar avatar-agent" aria-hidden>
-          <Icon name="sparkle" size={12} />
-        </span>
+        <TurnAvatar by="agent" />
         <span className="brief-planner-name">Planner</span>
         <Link to={`/missions/${slug}/conversations/${t.id}`} className="brief-planner-id" title="The whole conversation, on its own page">
           <Icon name="message" size={11} /> {t.id}
@@ -104,35 +103,33 @@ export function BriefPlanner({
           if (m) return <SettledMarker key={turn.n} m={m} t={turn} compact />;
           if (turn.by === "you") {
             return (
-              <div key={turn.n} className="turn by-you landed">
-                <div className="said">
-                  <div className="said-text">
-                    <YourWords body={turn.body} />
-                  </div>
-                </div>
-              </div>
+              <Turn key={turn.n} by="you" dense landed>
+                <TurnSaid written>
+                  <YourWords body={turn.body} />
+                </TurnSaid>
+              </Turn>
             );
           }
           return (
-            <div key={turn.n} className={`turn by-${turn.by === "agent" ? "agent" : "ws"} landed`}>
+            <Turn key={turn.n} by={turn.by === "agent" ? "agent" : "ws"} dense landed>
               {turn.calls && turn.calls.length > 0 && <Calls calls={turn.calls} root={root} />}
-              <div className="said">
+              <TurnSaid>
                 <Markdown text={turn.body} pinned={turn.refs} />
-              </div>
+              </TurnSaid>
               {lines.under.get(turn.n)?.map(line)}
               {cards.under.get(turn.n)?.map((p) => card(p))}
-            </div>
+            </Turn>
           );
         })}
         {following && (
-          <div className="turn by-agent running">
+          <Turn by="agent" dense running>
             {t.run?.said && (
-              <div className="said dim">
+              <TurnSaid className="dim">
                 <Markdown text={t.run.said} />
-              </div>
+              </TurnSaid>
             )}
             <Doing calls={t.run?.calls ?? []} root={root} />
-          </div>
+          </Turn>
         )}
         {lines.after.map(line)}
         {cards.after.map((p) => card(p, following))}

@@ -15,6 +15,7 @@ import { Icon } from "../ui/Icon";
 import { ErrorCard, humanError, Loading, toast } from "../ui/kit";
 import { useScroller } from "../ui/scroller";
 import { Composer } from "./Composer";
+import { Turn, TurnSaid } from "../ui/Turn";
 import css from "./TalkPane.module.css";
 
 type TalkPaneProps = {
@@ -205,14 +206,14 @@ function Turns({ talk, root, following, settle }: { talk: TalkDetail; root?: str
         </ConvoTurn>
       ))}
       {following && (
-        <div className={css.answering}>
+        <Turn by="agent" dense running className={css.answering}>
           {talk.run?.said && (
-            <div className="ask-said dim">
+            <TurnSaid className="dim">
               <Markdown text={talk.run.said} />
-            </div>
+            </TurnSaid>
           )}
           <Doing calls={talk.run?.calls ?? []} root={root} />
-        </div>
+        </Turn>
       )}
       {cards(shown.after)}
     </div>

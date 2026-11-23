@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { CrewBadge } from "../mission/parts";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/status";
+import { Turn, TurnSaid } from "../ui/Turn";
 
 // Things to peek at, for the docks' stories: Sorrel's, written by hand,
 // since the panes that will draw real ones aren't parts yet. What a pane
@@ -33,11 +34,11 @@ export const rounding: SampleThing = {
   says: "Ask a follow-up…",
   body: (
     <div style={{ display: "grid", gap: 14 }}>
-      <div className="convo-you">
-        <div className="convo-said">Where do we round money, and is it the same everywhere?</div>
-      </div>
-      <div className="ask-turn">
-        <div className="ask-answer">
+      <Turn by="you" dense landed>
+        <TurnSaid written>Where do we round money, and is it the same everywhere?</TurnSaid>
+      </Turn>
+      <Turn by="agent" dense landed>
+        <TurnSaid className="ask-answer">
           {doc(
             <>
               {p("In one place, by one rule.")}
@@ -46,8 +47,8 @@ export const rounding: SampleThing = {
               {p("ADR 0001 says a rounding is a decision, written down where it's made. It doesn't say which way we round, so that's worth a line there once the fix lands.")}
             </>,
           )}
-        </div>
-      </div>
+        </TurnSaid>
+      </Turn>
     </div>
   ),
 };

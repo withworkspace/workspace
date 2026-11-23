@@ -24,7 +24,7 @@ import { Calls } from "../ui/Calls";
 import { TLink } from "../ui/TLink";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Callout, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useAutosize, useDraft, useMedia, useTitle } from "../ui/kit";
+import { Callout, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useDraft, useMedia, useTitle } from "../ui/kit";
 import { Status, type StatusInfo } from "../ui/status";
 import { Time } from "../ui/time";
 import { useHere } from "../load";
@@ -38,12 +38,19 @@ import { addedVersion, afterSettling, artifactNext, kindName, type Made, made, r
 import { PagePin } from "../shell/focus";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
+import { MoreLink } from "../ui/MoreLink";
 import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { pageScroller } from "../ui/scroller";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Input } from "../ui/Input";
 import { TextArea } from "../ui/TextArea";
+import { Composer } from "../ui/Composer";
+import { Turn, TurnAvatar, TurnHead, TurnSaid, turnTimeClass } from "../ui/Turn";
+import { Change } from "../ui/Change";
+import { Excerpt } from "../ui/Excerpt";
+import { Suggestion } from "../review/Suggestion";
+import { cx } from "../ui/cx";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
 
@@ -141,7 +148,6 @@ export function TalkList({
   const [text, setText] = useDraft(`new:${slug}`);
   const [starting, setStarting] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
-  useAutosize(box, text, 280);
   // From "New mission": straight into words.
   useEffect(() => {
     if (fresh) box.current?.focus();
@@ -184,46 +190,38 @@ export function TalkList({
       : "What are you thinking about? An idea, a problem, a question about the code…";
   return (
     <>
-      <div className={`composer new-talk${fresh ? " fresh" : ""}`}>
-        <TextArea
-          ref={box}
-          value={text}
-          rows={2}
-          aria-label="Start a conversation"
-          placeholder={placeholder}
-          onChange={(e) => setText(e.target.value)}
-          onBlur={() => fresh && !text && setParams({}, { replace: true })}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              start();
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              e.currentTarget.blur();
-            }
-          }}
-        />
-        <div className="composer-bar">
-          <span className="composer-hint">
+      <Composer
+        className={cx("new-talk", fresh && "fresh")}
+        field={box}
+        value={text}
+        onChange={setText}
+        onSend={start}
+        rows={2}
+        tallest={280}
+        aria-label="Start a conversation"
+        placeholder={placeholder}
+        onBlur={() => fresh && !text && setParams({}, { replace: true })}
+        hint={
+          <>
             <Icon name="eye" size={12} />
             {slug
               ? "The agent reads the mission and everything around it and changes nothing. It can propose a decision, a brief, crew, a replan or a follow-up."
               : `The agent reads the repos, the missions and GitHub, and changes nothing. It can propose a mission${docs ? ", a decision or a document" : " or a decision"}.`}
-          </span>
-          <Keys k="mod+⏎" className="composer-keys" />
-          <Button variant="primary" disabled={!text.trim() || starting} onClick={start}>
-            {starting ? "Starting…" : "Start"}
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      >
+        <Button variant="primary" disabled={!text.trim() || starting} onClick={start}>
+          {starting ? "Starting…" : "Start"}
+        </Button>
+      </Composer>
       {talks.length === 0 ? (
         all.length ? (
           <Empty icon="check-circle" title="Nothing open">
             Every conversation's resolved.{" "}
             {onToggleResolved && (
-              <Button variant="link" className="more-link" onClick={onToggleResolved}>
+              <MoreLink onClick={onToggleResolved}>
                 Show them
-              </Button>
+              </MoreLink>
             )}
           </Empty>
         ) : (
@@ -288,9 +286,9 @@ export function TalkList({
         </Rows>
       )}
       {!keys && all.some((t) => t.status !== "open") && onToggleResolved && talks.length > 0 && (
-        <Button variant="link" className="more-link" onClick={onToggleResolved}>
+        <MoreLink onClick={onToggleResolved}>
           {showResolved ? "Hide" : "Show"} resolved
-        </Button>
+        </MoreLink>
       )}
     </>
   );
@@ -322,7 +320,6 @@ export function TalkPage() {
   const [sending, setSending] = useState(false);
   const [unseen, setUnseen] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
-  useAutosize(box, text, 320);
   // What's come of it, beside it: when there's room, unless it's put away.
   const wide = useMedia("(min-width: 1240px)");
   const [sideOn, setSideOn] = usePref("talkSide");
@@ -616,14 +613,7 @@ export function TalkPage() {
           </Callout>
         )}
         {!!d?.anchor?.excerpt?.length && (
-          <pre className="note-excerpt talk-anchor" title={`${d.anchor.path}, the lines the question is about`}>
-            {d.anchor.excerpt.map((l, i) => (
-              <div key={i}>
-                <span className="ln">{(d.anchor!.line ?? 1) + i}</span>
-                {l || " "}
-              </div>
-            ))}
-          </pre>
+          <Excerpt className="talk-anchor" lines={d.anchor.excerpt} from={d.anchor.line ?? 1} title={`${d.anchor.path}, the lines the question is about`} />
         )}
         {!d?.anchor?.excerpt?.length && d?.anchor?.quote?.exact && (
           <blockquote className="talk-anchor talk-quote" title="The passage it was asked of">
@@ -639,20 +629,17 @@ export function TalkPage() {
             </div>
           ))}
           {running && (
-            <div className="turn by-agent running" aria-live="polite">
-              <TurnHead by="agent" />
-              <div className="turn-body">
+            <Turn by="agent" running aria-live="polite" head={<Who by="agent" />}>
                 {d.run?.said && (
-                  <div className="said dim" ref={reply}>
+                  <TurnSaid className="dim" ref={reply}>
                     <Markdown text={d.run.said} />
-                  </div>
+                  </TurnSaid>
                 )}
                 {pending.map((p) => (
                   <ProposalCard key={p.n} p={p} revisedFrom={revisedFrom(p)} kinds={workspace.kinds} artifacts={workspace.artifacts} frameOf={frameOf} slug={slug} onSettle={settle} replying anchor={`proposal-${p.n}`} />
                 ))}
                 <Doing calls={d.run?.calls ?? []} root={workspace.root} />
-              </div>
-            </div>
+            </Turn>
           )}
         </div>
         <div className="talk-reply">
@@ -667,32 +654,18 @@ export function TalkPage() {
               <Icon name="arrow-down" size={12} /> New reply
             </button>
           )}
-          <div className="composer">
-            <TextArea
-              ref={box}
-              value={text}
-              rows={1}
-              aria-label="Reply"
-              placeholder={d?.answering ? "Say more: it's sent once the agent's done" : d?.status === "resolved" ? "Reply to reopen it…" : "Reply…"}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                  send();
-                } else if (e.key === "Escape") {
-                  e.preventDefault();
-                  e.currentTarget.blur();
-                }
-              }}
-            />
-            <div className="composer-bar">
-              <span className="spacer" />
-              <Keys k="mod+⏎" className="composer-keys" />
-              <Button variant="primary" disabled={!text.trim() || sending} onClick={send}>
-                {sending ? "Sending…" : "Send"}
-              </Button>
-            </div>
-          </div>
+          <Composer
+            field={box}
+            value={text}
+            onChange={setText}
+            onSend={send}
+            aria-label="Reply"
+            placeholder={d?.answering ? "Say more: it's sent once the agent's done" : d?.status === "resolved" ? "Reply to reopen it…" : "Reply…"}
+          >
+            <Button variant="primary" disabled={!text.trim() || sending} onClick={send}>
+              {sending ? "Sending…" : "Send"}
+            </Button>
+          </Composer>
         </div>
       </div>
       {side && <TalkSide d={d} slug={slug} id={id} artifacts={workspace.artifacts} goTo={goTo} />}
@@ -799,9 +772,9 @@ function TalkSide({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug: stri
             ))}
           </ul>
           {named.length > shown.length && (
-            <Button variant="link" className="more-link" onClick={() => setAllNamed(true)}>
+            <MoreLink onClick={() => setAllNamed(true)}>
               {named.length - shown.length} more
-            </Button>
+            </MoreLink>
           )}
         </section>
       )}
@@ -819,23 +792,12 @@ function TalkSide({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug: stri
 }
 
 const whoName = (by: string) => ({ you: "You", agent: "Agent", ws: "ws" })[by] ?? by;
-const whoIcon: Record<string, IconName> = { you: "user", agent: "sparkle", ws: "info" };
 
-function TurnHead({ by, at }: { by: string; at?: string }) {
-  const known = by in whoIcon;
-  return (
-    <div className="turn-head">
-      {known ? (
-        <span className={`avatar avatar-${by}`} aria-hidden>
-          <Icon name={whoIcon[by]} size={12} />
-        </span>
-      ) : (
-        <CrewBadge id={by} />
-      )}
-      <span className="turn-who">{whoName(by)}</span>
-      {at && <Time iso={at} className="turn-time" />}
-    </div>
-  );
+// Who is whoever said a turn, over it: you, the agent, ws, or crew by
+// their badge.
+function Who({ by, at }: { by: string; at?: string }) {
+  const known = by === "you" || by === "agent" || by === "ws";
+  return <TurnHead avatar={known ? <TurnAvatar by={by} /> : <CrewBadge id={by} />} who={whoName(by)} at={at} />;
 }
 
 // TurnView is a turn: yours as a bubble, the agent's (its steps folded
@@ -848,15 +810,12 @@ function TurnView({ t, root, proposals, said, landed }: { t: TalkTurn; root: str
   if (m) return <SettledMarker m={m} t={t} />;
   const who = t.by === "you" || t.by === "agent" || t.by === "ws" ? t.by : "crew";
   return (
-    <div className={`turn by-${who}${landed ? " landed" : ""}`}>
-      <TurnHead by={t.by} at={t.at} />
-      <div className="turn-body">
-        {t.calls && t.calls.length > 0 && <Calls calls={t.calls} root={root} />}
-        <div className="said" ref={said}>
-          {t.by === "you" ? <div className="said-text">{t.body}</div> : <Markdown text={t.body} pinned={t.refs} />}
-        </div>
-      </div>
-    </div>
+    <Turn by={who} landed={landed} head={<Who by={t.by} at={t.at} />}>
+      {t.calls && t.calls.length > 0 && <Calls calls={t.calls} root={root} />}
+      <TurnSaid ref={said} written={t.by === "you"}>
+        {t.by === "you" ? t.body : <Markdown text={t.body} pinned={t.refs} />}
+      </TurnSaid>
+    </Turn>
   );
 }
 
@@ -880,7 +839,7 @@ export function SettledMarker({ m, t, compact }: { m: Settled; t: TalkTurn; comp
             edited <Icon name={open ? "chevron-down" : "chevron-right"} size={11} />
           </Button>
         )}
-        {!compact && <Time iso={t.at} className="turn-time" />}
+        {!compact && <Time iso={t.at} className={turnTimeClass("settled-marker-time")} />}
       </div>
       {open && m.edits && (
         <div className="settled-marker-edits">
@@ -1329,35 +1288,10 @@ function WsProposalCard({
               </span>
             </div>
             {!!p.excerpt?.length && (
-              <pre className="note-excerpt">
-                {p.excerpt.map((l, i) => (
-                  <div key={i}>
-                    <span className="ln">{(p.line ?? 1) + i}</span>
-                    {l || " "}
-                  </div>
-                ))}
-              </pre>
+              <Excerpt lines={p.excerpt} from={p.line ?? 1} />
             )}
             {p.text && <div className="proposal-what said-text">{p.text}</div>}
-            {p.suggestion != null && (
-              <div className="suggestion">
-                <div className="dim">Suggested change</div>
-                {(p.excerpt ?? []).map((l, i) => (
-                  <div key={`d${i}`} className="sl d">
-                    − {l}
-                  </div>
-                ))}
-                {p.suggestion === "" ? (
-                  <div className="sl dim">(delete these lines)</div>
-                ) : (
-                  p.suggestion.split("\n").map((l, i) => (
-                    <div key={`a${i}`} className="sl a">
-                      + {l}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+            {p.suggestion != null && <Suggestion from={p.excerpt} to={p.suggestion} />}
           </>
         );
       case "document": {
@@ -1437,33 +1371,18 @@ function RevisionChanges({ was, now }: { was: TalkProposal; now: TalkProposal })
   return (
     <details className="proposal-changes">
       <summary className="dim">What changed since proposal {was.n}</summary>
-      {a === b ? <div className="dim">Its words are as they were.</div> : <BriefDiff was={a} now={b} />}
+      {a === b ? <div className="dim">Its words are as they were.</div> : <BriefDiff className="proposal-changed" was={a} now={b} />}
     </details>
   );
 }
 
 // BriefDiff is what an edit to the brief changes: each changed passage,
 // as it read and as it would.
-function BriefDiff({ was, now }: { was: string; now: string }) {
+function BriefDiff({ was, now, className }: { was: string; now: string; className?: string }) {
   const lines = now.replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
   const hunks = changes(was, now);
   if (!hunks.length) return <div className="dim">No change.</div>;
   return (
-    <div className="brief-diff">
-      {hunks.map((h, i) => (
-        <div key={i} className="hunk">
-          {h.old.map((l, j) => (
-            <div key={`o${j}`} className="sl d">
-              {l || " "}
-            </div>
-          ))}
-          {lines.slice(h.newStart - 1, h.newEnd).map((l, j) => (
-            <div key={`n${j}`} className="sl a">
-              {l || " "}
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
+    <Change className={className} wrap struck hunks={hunks.map((h) => ({ was: h.old, now: lines.slice(h.newStart - 1, h.newEnd) }))} />
   );
 }

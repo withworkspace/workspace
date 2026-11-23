@@ -8,6 +8,7 @@ import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
 import { clip } from "../ui/text";
 import { Checkbox } from "../ui/Checkbox";
+import { Excerpt } from "../ui/Excerpt";
 
 // A review's passes, a view of its own: each pass, go or no go, what it said
 // of the change, and what it found, to take into your review or dismiss. Go
@@ -222,14 +223,7 @@ function PassView({
                 )}
               </div>
               {lines[f.key] && (
-                <pre className="note-excerpt" title="The lines it's on: they aren't in this diff">
-                  {(f.excerpt ?? []).map((l, i) => (
-                    <div key={i}>
-                      <span className="ln">{(f.line ?? 0) + i}</span>
-                      {l || " "}
-                    </div>
-                  ))}
-                </pre>
+                <Excerpt lines={f.excerpt ?? []} from={f.line ?? 0} title="The lines it's on: they aren't in this diff" />
               )}
               <div className="rpass-finding-text">
                 <Inline text={f.text} />

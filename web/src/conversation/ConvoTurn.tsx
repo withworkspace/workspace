@@ -4,6 +4,7 @@ import { Markdown } from "../markdown/LazyMarkdown";
 import { SettledMarker } from "../talk/Talk";
 import { settled } from "../talk/proposals";
 import { Calls } from "../ui/Calls";
+import { Turn, TurnSaid } from "../ui/Turn";
 
 // ConvoTurn is a turn of a conversation beside the page: what you said
 // (with what the page gave the agent with it, folded), the agent's answer
@@ -24,21 +25,26 @@ export function ConvoTurn({
   if (m) return <SettledMarker m={m} t={t} compact />;
   if (t.by === "you") {
     return (
-      <div className="convo-you">
-        <div className="convo-said">{t.body}</div>
+      <Turn by="you" dense landed>
+        <TurnSaid written>{t.body}</TurnSaid>
         {t.given && <Given g={t.given} />}
-      </div>
+      </Turn>
     );
   }
-  if (t.by !== "agent") return <p className="ask-ws">{t.body}</p>;
+  if (t.by !== "agent")
+    return (
+      <Turn by="ws" dense landed>
+        <TurnSaid>{t.body}</TurnSaid>
+      </Turn>
+    );
   return (
-    <div className="ask-turn">
+    <Turn by="agent" dense landed>
       {t.calls && t.calls.length > 0 && <Calls calls={t.calls} root={root} />}
-      <div className="ask-answer">
+      <TurnSaid className="ask-answer">
         <Markdown text={t.body} pinned={t.refs} />
-      </div>
+      </TurnSaid>
       {children}
-    </div>
+    </Turn>
   );
 }
 
