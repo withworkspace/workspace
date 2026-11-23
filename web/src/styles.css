@@ -2674,56 +2674,16 @@ button.kind.on {
   max-width: 916px;
 }
 
-/* Back, what it's doing, its name, then the tabs: one row. Over what
-   scrolls under it, and under the timeline's ticks. */
+/* The mission's bar (ui/PageBar.tsx): over what scrolls under it, and
+   under the timeline's ticks. The details slide out past its right edge. */
 .mission-bar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  padding: 6px var(--space-8) 0;
-  background: var(--backdrop);
-  /* The details slide out past its right edge. */
   overflow-x: clip;
-}
-
-.mission-bar-in {
-  display: flex;
-  align-items: flex-end;
-  gap: 20px;
-  border-bottom: 1px solid var(--line);
-}
-
-.mission-bar .mission-head {
-  flex: 1 1 auto;
-  align-self: center;
-  margin: 0;
-}
-
-.mission-tabs {
-  flex: none;
-  margin: 0 0 -1px;
-  border-bottom: 0;
-  overflow: visible;
-  mask-image: none;
 }
 
 /* Too narrow for one row: the tabs take their own. */
 @media (max-width: 639.98px) {
   .mission-page {
     --mission-bar-h: 70px;
-  }
-
-  .mission-bar {
-    padding-inline: var(--space-4);
-  }
-
-  .mission-bar-in {
-    display: block;
-  }
-
-  .mission-tabs {
-    overflow-x: auto;
-    mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
   }
 }
 
@@ -2750,82 +2710,6 @@ button.kind.on {
 
 .crumbs .sep {
   color: var(--faint);
-}
-
-.mission-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  min-height: 30px;
-  margin-bottom: 14px;
-}
-
-.mission-back {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 26px;
-  height: 26px;
-  margin: 0 -4px 0 -6px;
-  border-radius: var(--radius);
-  color: var(--dim);
-  transition:
-    background var(--fast) var(--ease),
-    color var(--fast) var(--ease);
-}
-
-.mission-back:hover {
-  background: var(--hover);
-  color: var(--fg);
-}
-
-.mission-status {
-  flex: none;
-}
-
-/* Its name, cut short before it pushes the tabs off the row. */
-.mission-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  font-size: var(--text-lg);
-  letter-spacing: -0.01em;
-  line-height: 30px;
-}
-
-.mission-title-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mission-title .rename {
-  flex: none;
-  opacity: 0;
-  transition: opacity var(--fast) var(--ease);
-}
-
-.mission-title:hover .rename,
-.mission-title .rename:focus-visible {
-  opacity: 1;
-}
-
-.title-input {
-  font-size: var(--text-lg) !important;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  padding: 2px 8px !important;
-  min-width: min(420px, 100%);
-}
-
-.skeleton-title {
-  width: 280px;
-  height: 26px;
-  border-radius: var(--radius);
-  background: var(--well);
 }
 
 button.on {
@@ -9058,6 +8942,12 @@ blockquote.editor-on {
   column-gap: 32px;
 }
 
+/* The conversation's bar (ui/PageBar.tsx) spans the page. */
+.talk-pagebar {
+  grid-column: 1 / -1;
+  margin: 0 calc(-1 * var(--space-8)) var(--space-4);
+}
+
 .talk-main {
   flex: 1;
   min-width: 0;
@@ -9071,22 +8961,6 @@ blockquote.editor-on {
   align-items: flex-start;
   gap: 10px;
   margin-bottom: var(--space-5);
-}
-
-.ghost-link {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius);
-  color: var(--dim);
-  flex: none;
-  transition: background var(--fast) var(--ease);
-}
-
-.ghost-link:hover {
-  background: var(--hover);
-  color: var(--fg);
 }
 
 .talk-title {
@@ -9123,55 +8997,6 @@ blockquote.editor-on {
 
 /* The bar: one line, however long the name. It's the page's width and
    over its padding, so what scrolls under it is covered edge to edge. */
-.talk-bar {
-  position: sticky;
-  top: 0;
-  z-index: 6;
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  margin: 0 calc(-1 * var(--space-8)) var(--space-4);
-  padding: 8px var(--space-8);
-  /* (The page's own look, as a group's heading has: it covers what
-     scrolls under it without being a slab on the horizon. Not a blur,
-     which Firefox doesn't draw over the scrolling words.) */
-  background: var(--backdrop);
-}
-
-/* What scrolls under it fades out as it goes, as it does into the reply
-   box at the foot: no rule, no edge. */
-.talk-bar::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  height: var(--space-4);
-  background: var(--backdrop);
-  mask-image: linear-gradient(#000, transparent);
-  pointer-events: none;
-}
-
-.talk-bar h1 {
-  flex: 0 1 auto;
-  min-width: 0;
-  font-size: var(--text-lg);
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  line-height: 28px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.talk-bar .skeleton-title {
-  display: block;
-  width: 220px;
-  height: 18px;
-}
-
 /* What it's about, after its name: it gives way first. */
 .talk-about {
   flex: 1 1 0;
@@ -9194,18 +9019,11 @@ blockquote.editor-on {
   text-overflow: ellipsis;
 }
 
-.talk-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: none;
-}
-
 /* Beside it (Talk.tsx's TalkSide): the page's map's look, under the bar. */
 .page-map.talk-side {
-  top: 64px;
+  top: 56px;
   align-self: start;
-  max-height: calc(var(--page-height, 100dvh) - 84px);
+  max-height: calc(var(--page-height, 100dvh) - 76px);
   margin-bottom: var(--space-6);
 }
 
@@ -9936,19 +9754,16 @@ button.settled-marker-more:hover {
     flex-wrap: wrap;
   }
 
-  .talk-bar {
+  .talk-pagebar {
     margin-inline: calc(-1 * var(--space-4));
     padding-inline: var(--space-4);
   }
 
   /* Its name and Resolve are what the bar's for. */
-  .talk-about > :not(.status) {
+  .talk-about {
     display: none;
   }
 
-  .talk-about .status-words {
-    display: none;
-  }
 
   .proposal {
     padding-left: 0;
