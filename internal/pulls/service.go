@@ -99,6 +99,16 @@ func (s *Service) Peek() *List {
 	return s.kept()
 }
 
+// peekStale is the list as Peek has it, and whether GitHub would be asked
+// again for it (as List does): it's been a while, or something here has
+// changed what a PR asks of you since.
+func (s *Service) peekStale() (*List, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	l := s.kept()
+	return l, l == nil || s.stale || s.now().Sub(l.At) >= s.fresh()
+}
+
 // kept is the list in hand, or the records' when they hold a newer one
 // (another process asked GitHub since: a command, or the daemon). Called
 // with the lock held.

@@ -204,17 +204,28 @@ func (s *Service) readPage(repo string, number int) (*page, error) {
 	return c.pg, c.err
 }
 
-// read is a PR's page read now: GitHub asked what it says of it (the list,
-// if it's stale), its commits fetched if they've moved, and its threads,
-// discussion and diffs read. One that's kept is answered when it can't be.
+// read is a PR's page read now: what GitHub says of it found in the list
+// (as kept, the first time; asked for again if it's stale, after), its
+// commits fetched if they've moved, and its threads, discussion and diffs
+// read. One that's kept is answered when it can't be.
 func (s *Service) read(repo string, number int) (*page, error) {
 	was := s.keptPage(repo, number)
 	var pr *PR
 	var st *Stack
 	if was == nil {
-		var err error
-		if pr, st, err = s.Open(repo, number); err != nil {
-			return nil, err
+		// The first time it's shown, it's found in the list as it's kept:
+		// showing it doesn't wait on GitHub being asked about every repo.
+		// A stale list is asked for again behind, and the page read again
+		// if it says something else of the PR (pageStale). One the list
+		// hasn't is looked for.
+		l, stale := s.peekStale()
+		if pr, st = l.Find(repo, number); pr == nil {
+			var err error
+			if pr, st, err = s.Open(repo, number); err != nil {
+				return nil, err
+			}
+		} else if stale {
+			go s.List(false)
 		}
 	} else {
 		l, err := s.List(false)

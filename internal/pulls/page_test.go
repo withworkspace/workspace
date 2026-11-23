@@ -320,3 +320,93 @@ func TestPostingReadsWhatsSaidAgainAtOnce(t *testing.T) {
 		t.Error("the count didn't move")
 	}
 }
+
+// The first time a PR is shown, it's found in the list as it's kept:
+// showing it doesn't wait on GitHub being asked about every repo again,
+// which is what a stale list (one from a while ago, or from before a
+// review was posted) had it do.
+func TestFirstShowDoesntWaitOnTheList(t *testing.T) {
+	for name, stale := range map[string]func(*pageWorld){
+		"a while since it was asked": func(w *pageWorld) { w.pass(3 * time.Minute) },
+		"a review just posted":       func(w *pageWorld) { w.svc.Stale() },
+	} {
+		t.Run(name, func(t *testing.T) {
+			w := newPageWorld(t)
+			if _, err := w.svc.List(false); err != nil {
+				t.Fatal(err)
+			}
+			stale(w)
+
+			// From here, GitHub doesn't answer for the list until it's let go.
+			var lists atomic.Int64
+			held := make(chan struct{})
+			answer := w.gh.PRsForRepoFn
+			w.gh.PRsForRepoFn = func(org, repo string) ([]github.PR, error) {
+				lists.Add(1)
+				<-held
+				return answer(org, repo)
+			}
+			var d *Detail
+			done := make(chan error, 1)
+			go func() {
+				var err error
+				d, err = w.svc.KeptDetail("api", 92)
+				done <- err
+			}()
+			select {
+			case err := <-done:
+				if err != nil {
+					close(held)
+					t.Fatal(err)
+				}
+			case <-time.After(5 * time.Second):
+				close(held)
+				<-done
+				t.Fatal("the first show waited on the list being asked for again")
+			}
+			if d.Head != w.pr(92).HeadRefOid || d.Body != "Keys the cache by tenant." {
+				t.Errorf("detail = %+v", d)
+			}
+
+			// The list is still asked for, behind: what it says of the PR
+			// now is what its page is next compared with.
+			deadline := time.Now().Add(10 * time.Second)
+			for lists.Load() == 0 && time.Now().Before(deadline) {
+				time.Sleep(5 * time.Millisecond)
+			}
+			if lists.Load() == 0 {
+				t.Error("the stale list wasn't asked for again behind")
+			}
+			close(held)
+			for {
+				w.svc.mu.Lock()
+				busy := w.svc.loading != nil
+				w.svc.mu.Unlock()
+				if !busy {
+					break
+				}
+				time.Sleep(5 * time.Millisecond)
+			}
+		})
+	}
+}
+
+// A PR that isn't in the list as it's kept is still looked for: GitHub is
+// asked, as it may have been opened since.
+func TestFirstShowLooksForOneTheListHasnt(t *testing.T) {
+	w := newPageWorld(t)
+	w.prsMu.Lock()
+	all := w.prs
+	w.prs = all[:3] // 92 isn't open yet
+	w.prsMu.Unlock()
+	if _, err := w.svc.List(false); err != nil {
+		t.Fatal(err)
+	}
+	w.prsMu.Lock()
+	w.prs = all
+	w.prsMu.Unlock()
+	w.pass(10 * time.Second)
+	if d, err := w.svc.KeptDetail("api", 92); err != nil || d.Head != w.pr(92).HeadRefOid {
+		t.Fatalf("detail = %+v, %v", d, err)
+	}
+}
