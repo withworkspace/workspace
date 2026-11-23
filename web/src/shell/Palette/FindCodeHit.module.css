@@ -1,0 +1,78 @@
+/* A line a file says (FindCodeHit.tsx): where, then the line, the match
+   marked. Two lines beside the file's icon, the second in the code's own
+   font. */
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 1px;
+  align-items: center;
+  min-width: 0;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.row[aria-selected="true"] {
+  background: var(--selected);
+}
+
+/* The icon is beside both lines, level with the first. */
+.row > .icon {
+  grid-row: span 2;
+  align-self: start;
+  margin-top: 2px;
+  flex: none;
+  color: var(--dim);
+}
+
+.where {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The path gives way from its start, so its name and :line stay. */
+.path {
+  display: flex;
+  min-width: 0;
+  font: var(--text-xs) var(--mono);
+  white-space: nowrap;
+}
+
+.file {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
+
+.file > bdi {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.line {
+  flex: none;
+}
+
+.text {
+  min-width: 0;
+  font: var(--text-sm) var(--mono);
+  color: var(--dim);
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: none;
+  padding: 0;
+}
+
+.text mark {
+  color: var(--fg);
+  background: var(--accent-soft);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}

@@ -1,0 +1,7 @@
+/* What Find found (FindList.tsx): as tall whether it's a row or fifty. */
+
+.list {
+  padding: 4px 6px 6px;
+  height: min(440px, 58vh);
+  overflow-y: auto;
+}

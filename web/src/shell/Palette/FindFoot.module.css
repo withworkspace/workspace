@@ -1,0 +1,21 @@
+/* The line under Find's list (FindFoot.tsx): its keys. */
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 7px 14px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.aside {
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .foot {
+    display: none;
+  }
+}

@@ -1,0 +1,28 @@
+/* The pane beside Find's list (FindPane.tsx): the page's colour beside
+   the list's raised one, its width its own. */
+
+.pane {
+  --backdrop: var(--bg);
+  flex: none;
+  width: 380px;
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 14px;
+  border-left: 1px solid var(--line);
+  background: var(--bg);
+  font-size: var(--text-sm);
+  overflow: hidden;
+}
+
+.scrolls {
+  overflow-y: auto;
+}
+
+/* A few lines of a file, in a ref's card: raised from the pane, and
+   cut at its width. */
+.pane :global(.ref-excerpt) {
+  background: var(--raised);
+  overflow-x: hidden;
+}
