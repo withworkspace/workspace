@@ -1,0 +1,44 @@
+/* A dock (Dock.tsx): a card docked beside the page or below it. The
+   sidebar's card, on another side. */
+
+@layer ui {
+  .dock {
+    /* A solid surface: what's on it is on its colour, not the horizon. */
+    --backdrop: color-mix(in srgb, var(--panel) 35%, var(--bg));
+    --well: var(--panel);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    min-width: 0;
+    min-height: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--backdrop);
+    box-shadow: var(--shadow);
+  }
+
+  .beside {
+    width: var(--dock-size);
+  }
+
+  .below {
+    height: var(--dock-size);
+  }
+
+  /* A sheet: it fills its place. */
+  .sheet {
+    flex: 1;
+    width: auto;
+    height: auto;
+  }
+
+  /* Over the page: as a mission's Details is on its other tabs. Its
+     --backdrop stays the solid colour, for what's cut out of it. */
+  .over {
+    background: color-mix(in srgb, var(--backdrop) 80%, transparent);
+    -webkit-backdrop-filter: blur(12px) saturate(1.15);
+    backdrop-filter: blur(12px) saturate(1.15);
+    box-shadow: var(--shadow-lg);
+  }
+}

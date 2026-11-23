@@ -1,0 +1,16 @@
+/* Beside's toggle, in the foot (FootBeside.tsx). */
+
+@layer ui {
+  /* Its icon, and the mark on its corner while it's closed with something
+     there. */
+  .icon {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .mark {
+    position: absolute;
+    top: -3px;
+    right: -4px;
+  }
+}
