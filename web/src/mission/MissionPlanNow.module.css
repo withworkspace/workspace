@@ -1,0 +1,12 @@
+/* The step the plan is on, said in place (MissionPlanNow.tsx). */
+
+.now {
+  display: grid;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 7px 9px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  font-size: var(--text-sm);
+}

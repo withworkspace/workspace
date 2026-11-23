@@ -105,3 +105,65 @@
   color: var(--dim);
   font-size: var(--text-sm);
 }
+
+/* A row to point at, in a mission's details: its mark, its number and
+   name on one line (cut short: its card has the rest), and at the row's
+   end what kind of step it is. */
+.step.row {
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: start;
+  padding: 3px 8px 9px;
+  border-radius: var(--radius);
+  transition: background var(--fast) var(--ease);
+}
+
+.step.row::before {
+  left: 15px;
+  top: 21px;
+  bottom: -2px;
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.row .title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row.skipped .title {
+  text-decoration: line-through;
+  text-decoration-color: var(--faint);
+}
+
+.row.skipped .mark {
+  color: var(--faint);
+}
+
+/* What kind of step it is: in the accent when it's yours. */
+.kind {
+  display: grid;
+  margin-top: 3px;
+  color: var(--faint);
+}
+
+.yours .kind {
+  color: var(--accent);
+}
+
+/* Opened in place: what's under it says its kind, so it has no column
+   for one. */
+.step.row.opened {
+  grid-template-columns: 16px minmax(0, 1fr);
+}
+
+.pressable {
+  cursor: pointer;
+}

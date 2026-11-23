@@ -5,3 +5,9 @@
   margin: 0;
   padding: 0;
 }
+
+/* As rows to point at: they reach 8px past the list each side, for
+   their hover. */
+.rows {
+  margin: 0 -8px;
+}

@@ -1,0 +1,31 @@
+/* One thing said of the step the plan is on (MissionPlanLine.tsx). */
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  color: var(--dim);
+}
+
+.line :global(.icon) {
+  flex: none;
+}
+
+.line strong {
+  font-weight: 500;
+  color: var(--fg);
+}
+
+/* A sentence: it reads on as one. */
+.words {
+  display: block;
+}
+
+.warn {
+  color: var(--amber);
+}
+
+.yours {
+  color: var(--accent);
+}

@@ -1,0 +1,56 @@
+/* A step's checks, in a mission's details (MissionPlanCheckList.tsx). */
+
+.checks {
+  list-style: none;
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+}
+
+.check {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+  color: var(--dim);
+}
+
+.check :global(.icon) {
+  margin-top: 2px;
+}
+
+/* Two lines of it, at most. */
+.text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.met :global(.icon) {
+  color: var(--green);
+}
+
+.unmet :global(.icon) {
+  color: var(--red);
+}
+
+.cant :global(.icon) {
+  color: var(--amber);
+}
+
+.yours :global(.icon) {
+  color: var(--accent);
+}
+
+.none :global(.icon) {
+  color: var(--faint);
+}
+
+/* What isn't met reads in full colour. */
+.unmet .text,
+.cant .text,
+.yours .text {
+  color: var(--fg);
+}
