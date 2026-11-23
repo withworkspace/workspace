@@ -1277,7 +1277,9 @@ main {
   padding: 5px 10px;
 }
 
-.find-code > .icon {
+/* The file's icon is beside both: its language's (.file-icon), or the
+   page that stands for a kind with none (.icon). */
+.find-code > :is(.icon, .file-icon) {
   grid-row: span 2;
   align-self: start;
   margin-top: 2px;
