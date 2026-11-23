@@ -1,40 +1,38 @@
 /* Where you say something in a conversation beside the page
-   (Composer.tsx). */
+   (Composer.tsx). It's the app's composer (styles.css's .composer: the
+   box, its radius and shadow, the ring while it has the keys), so these
+   are over that composer's rules, which aren't in a layer: with no bar
+   under the box here, the keys that say it are in the box's corner. */
 
-@layer ui {
-  .composer {
-    display: grid;
-    gap: 6px;
-    min-width: 0;
-  }
+/* (Said with both names, so these come after the composer's own
+   whichever stylesheet is read first.) */
+:global(.composer).composer {
+  position: relative;
+}
 
-  /* What you're holding on the page: over the box, as wide as it says. */
-  .holding {
-    justify-self: start;
-    max-width: 100%;
-  }
+/* The words keep clear of the keys in the corner, and have under them
+   the room a bar would have had. */
+:global(.composer).composer textarea {
+  padding: 10px 58px 10px 12px;
+  resize: none;
+}
 
-  .line {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-  }
+/* What you're holding on the page: in the box, over the words. */
+.holding {
+  display: flex;
+  min-width: 0;
+  padding: 8px 10px 0;
+}
 
-  .line textarea {
-    flex: 1;
-    min-width: 0;
-    resize: none;
-  }
+.holding :global(.ask-ctx) {
+  max-width: 100%;
+}
 
-  /* The keys that say it, where a button would be: faint until there's
-     something to say. They keep their room, so the box doesn't move. */
-  .keys {
-    flex: none;
-    margin-bottom: 4px;
-    transition: opacity var(--fast) var(--ease);
-  }
-
-  .idle {
-    opacity: 0.35;
-  }
+/* The keys that say it: in the box's lower corner, there while the box
+   has the keys (as the composer's are). */
+.keys {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  pointer-events: none;
 }
