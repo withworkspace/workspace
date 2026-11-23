@@ -179,3 +179,37 @@ func TestCursorACPLaunches(t *testing.T) {
 		t.Errorf("cli = %v, %v", cur, err)
 	}
 }
+
+// A turn Cursor couldn't finish ends as one it did, and only its last
+// words say so: an error it names retriable. Anything else is a turn's
+// end.
+func TestCursorACPTurnDropped(t *testing.T) {
+	c := &CursorACP{}
+	for _, tt := range []struct {
+		name string
+		turn acp.Turn
+		why  string
+	}{
+		{"the error alone, after a call", acp.Turn{Stop: "end_turn", Reply: "\n\nError: RetriableError: the stream was closed"}, "RetriableError: the stream was closed"},
+		{"the error after what it was saying", acp.Turn{Stop: "end_turn", Reply: "Running the suite.\n\nError: RetriableError: [canceled] reset\n"}, "RetriableError: [canceled] reset"},
+		{"a reply that ends on its own words", acp.Turn{Stop: "end_turn", Reply: "The suite passes."}, ""},
+		{"the error quoted, then more", acp.Turn{Stop: "end_turn", Reply: "It printed:\nError: RetriableError: reset\nso I ran it again, and it passed."}, ""},
+		{"another error", acp.Turn{Stop: "end_turn", Reply: "Error: the file isn't there"}, ""},
+		{"a turn that was stopped", acp.Turn{Stop: "cancelled", Reply: "Error: RetriableError: reset"}, ""},
+		{"nothing said", acp.Turn{Stop: "end_turn"}, ""},
+	} {
+		why, dropped := c.TurnDropped(tt.turn)
+		if why != tt.why || dropped != (tt.why != "") {
+			t.Errorf("%s: TurnDropped = %q, %v", tt.name, why, dropped)
+		}
+	}
+	if _, dropped := TurnDropped("codex", acp.Turn{Stop: "end_turn", Reply: "Error: RetriableError: reset"}); dropped {
+		t.Error("a harness that can't tell said a turn was dropped")
+	}
+	// The call it was cut off in isn't work left running.
+	cut := acp.Turn{Stop: "end_turn", Reply: "Error: RetriableError: reset",
+		Unfinished: []acp.ToolCall{{ID: "d1", Kind: "execute", Title: "`just test`", Status: acp.StatusInProgress}}}
+	if p := AtTurnEnd("cursor-acp", cut, nil); p.Known || len(p.Work) != 0 {
+		t.Errorf("AtTurnEnd of a dropped turn = %+v", p)
+	}
+}

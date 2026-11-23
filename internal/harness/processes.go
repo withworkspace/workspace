@@ -260,8 +260,13 @@ func AtStop(name string, payload map[string]any, check func() *Found) Pending {
 // over ACP: ws's transcript (PendingAtTurnEnd), with what the process
 // check finds, as AtStop. A turn that ended other than with end_turn
 // answers unknown, processes or not: it was stopped rather than ended to
-// wait (decision d4).
+// wait (decision d4). So does one an error cut off (TurnDropped): the
+// call it left unfinished is the one it was cut off in, not work it's
+// waiting on.
 func AtTurnEnd(name string, t acp.Turn, check func() *Found) Pending {
+	if _, dropped := TurnDropped(name, t); dropped {
+		return Pending{}
+	}
 	own := PendingAtTurnEnd(name, t)
 	if t.Err != nil || t.Stop != "end_turn" {
 		return own
