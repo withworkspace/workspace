@@ -14,6 +14,8 @@ import { Button } from "../ui/Button";
 import { Focus } from "../chrome/Focus";
 import { FocusRow } from "../chrome/FocusRow";
 import { usePlugins, useWorkspace, useWorkspaceIfRead, useWorkspaceStore } from "../workspace/store";
+import { pinsAnswered, unpinNamed } from "./pins";
+import { useThingMenu } from "./ThingMenu";
 
 // Focus: what you've pinned, of anything ws names, kept in the sidebar
 // below its places (ops/focus.go). Each is drawn as it stands, and what
@@ -67,7 +69,7 @@ export function useFocus(): FocusState {
   const answered = useWorkspaceStore((s) => s.focusAnswered);
   const pins = answered ?? told ?? none;
   return useMemo<FocusState>(() => {
-    const setAnswered = (focusAnswered: FocusPin[]) => useWorkspaceStore.setState({ focusAnswered });
+    const setAnswered = pinsAnswered;
     const change = (c: Parameters<typeof changeFocus>[0]) =>
       changeFocus(c).then(
         (d) => setAnswered(d.focus),
@@ -90,17 +92,7 @@ export function useFocus(): FocusState {
           },
           (e: Error) => toast(humanError(e.message), { tone: "danger" }),
         ),
-      unpin: (name) => {
-        const order = pins.map((p) => p.name);
-        change({ unpin: name }).then(() =>
-          toast(`Unpinned ${name}`, {
-            action: {
-              label: "Undo",
-              run: () => changeFocus({ pin: name }).then(() => change({ order })),
-            },
-          }),
-        );
-      },
+      unpin: (name) => void unpinNamed(name).catch((e: Error) => toast(humanError(e.message), { tone: "danger" })),
       arrange: (names) => change({ order: names }),
     };
   }, [pins, told]);
@@ -355,9 +347,10 @@ function PinRow({
 }) {
   const to = refHref(r, known);
   const workspace = useWorkspace();
+  const menu = useThingMenu();
   const { icon, title } = useStands(pin, r, workspace, known);
   const here = r.kind === "mission" ? path === to || path.startsWith(`${to}/`) : path === to;
-  return <FocusRow to={to} lead={icon} title={title} says={`${title}${pin.state && r.kind === "thing" ? ` · ${pin.state}` : ""}`} on={here} onUnpin={onUnpin} dragging={dragging} drop={drop} {...drag} />;
+  return <FocusRow to={to} lead={icon} title={title} says={`${title}${pin.state && r.kind === "thing" ? ` · ${pin.state}` : ""}`} on={here} onUnpin={onUnpin} dragging={dragging} drop={drop} onContextMenu={menu(to, title)} {...drag} />;
 }
 
 const quiet = (name: IconName) => (

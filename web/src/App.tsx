@@ -39,6 +39,7 @@ import { noteVisit, visitAt } from "./shell/recent";
 import { wantsRoom } from "./shell/room";
 import { shortVersion } from "./shell/version";
 import { WhatsNew } from "./shell/WhatsNew";
+import { useThingMenu } from "./shell/ThingMenu";
 import { TalkPage, TalksPage, talkKeys, talksKeys } from "./talk/Talk";
 import { TeamPage, teamKeys } from "./team/Team";
 import { Icon } from "./ui/Icon";
@@ -153,6 +154,7 @@ export function App() {
   // What needs you: the sidebar's list, and what counts the places, tells
   // the desktop and marks the tab.
   const needs = workspace?.needs ?? noNeeds;
+  const rowMenu = useThingMenu();
   const waiting = useMemo(() => waitingOf(needs), [needs]);
   const arrived = useArrived(workspace ? needs : undefined);
   // Who's at work now, for the foot: a window on to the work.
@@ -241,7 +243,7 @@ export function App() {
             <Places places={sidebar} path={location.pathname} />
           )}
           {workspace && !arranging && <FocusSection path={location.pathname} />}
-          {!arranging && <Needs needs={needs} path={location.pathname} fresh={arrived} most={12} tool={notify.supported && <NotifyToggle on={notify.on} onToggle={notify.toggle} />} />}
+          {!arranging && <Needs needs={needs} path={location.pathname} fresh={arrived} most={12} menu={rowMenu} tool={notify.supported && <NotifyToggle on={notify.on} onToggle={notify.toggle} />} />}
         </Sidebar>
       }
       foot={

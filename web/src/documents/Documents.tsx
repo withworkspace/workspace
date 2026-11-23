@@ -25,6 +25,7 @@ import { Segment, Segmented } from "../ui/Segmented";
 import { Input } from "../ui/Input";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
+import { useThingMenu } from "../shell/ThingMenu";
 
 // Documents: where the workspace's writing is read. Local is the pages
 // that aren't in a space (written here, on this machine); each space is a
@@ -262,6 +263,7 @@ export function DocumentsPage() {
 // the preview do, each by itself, and the edge between them is dragged.
 // On a narrow window it's the list alone, each document opened to read.
 export function SpacePage() {
+  const menu = useThingMenu();
   const workspace = useWorkspace();
   const { repo = "" } = useParams();
   const navigate = useNavigate();
@@ -602,7 +604,7 @@ export function SpacePage() {
                           aria-selected={i === index}
                           onMouseMove={wide ? undefined : () => i !== index && setIndex(i)}
                         >
-                          <TLink to={docTo(`${repo}:${d.path}`)} className={rowLinkClass()} onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
+                          <TLink to={docTo(`${repo}:${d.path}`)} className={rowLinkClass()} onContextMenu={picking ? undefined : menu(docTo(`${repo}:${d.path}`))} onClick={picking && pickOn(picking, d)} onDoubleClick={picking && (() => picking.onOpen(d))}>
                             <Icon name="file" size={16} className={rowStatusClass()} />
                             <RowMain>
                               <RowLine>
