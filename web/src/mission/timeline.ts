@@ -1,6 +1,6 @@
 import type { MissionDetail } from "../api";
 import { useMemo } from "react";
-import { duration, stamp, useNow } from "../ui/time";
+import { duration, stamp, useNow } from "../ui/when";
 import { crewHue } from "./crewHue";
 import type { TimelineBar, TimelineMoment, TimelineTick } from "./MissionTimeline";
 

@@ -14,7 +14,7 @@ import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Status } from "../ui/Status";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { talkHref, talkStatus } from "../talk/Talk";
 import { useLatest } from "../load";
 import { aboutDoc, citedSection, type Passage } from "../ask/ask";

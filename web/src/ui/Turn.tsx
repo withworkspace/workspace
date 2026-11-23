@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode, Ref } from "react";
 import { cx } from "./cx";
 import { Icon, type IconName } from "./Icon";
-import { Time } from "./time";
+import { Time } from "./Time";
 import css from "./Turn.module.css";
 
 // Whose turn it is: yours, an agent's, ws's own word, or crew's.

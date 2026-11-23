@@ -12,7 +12,7 @@ import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Status } from "../ui/Status";
 import { crewStatus } from "../ui/statusOf";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { CapsuleEnds, EndedCapsules } from "./Ending";
 import { canOpenPR, OpenPR } from "./OpenPR";
 import { RunsHere } from "./Runs";

@@ -9,7 +9,7 @@ import { Skeleton } from "../ui/Skeleton";
 import { Callout } from "../ui/Callout";
 import { Dialog } from "../ui/Dialog";
 import { Option, Select } from "../ui/Select";
-import { relative } from "../ui/time";
+import { relative } from "../ui/when";
 import css from "./AddRepo.module.css";
 import { GroupPick } from "./Groups";
 import { Checkbox } from "../ui/Checkbox";

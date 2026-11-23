@@ -12,7 +12,7 @@ import { Empty } from "../ui/Empty";
 import { Keys } from "../ui/Keys";
 import { Status } from "../ui/Status";
 import { crewStatus, headlineStatus } from "../ui/statusOf";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";

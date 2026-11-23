@@ -40,7 +40,7 @@ import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
-import { exact, stamp } from "../ui/time";
+import { exact, stamp } from "../ui/when";
 import { highlightLines, languageOf, useHighlighter } from "./highlight";
 import { useCodeNav } from "./CodeNav";
 import { LandBar } from "./Land";

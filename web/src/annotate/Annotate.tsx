@@ -37,7 +37,7 @@ import { useAutosize } from "../ui/useAutosize";
 import { toast } from "../ui/toast";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
-import { exact, stamp } from "../ui/time";
+import { exact, stamp } from "../ui/when";
 import { BLOCK, blockLike, blockLines, blockSpan, blockWithLines, buildIndex, find, offsetOf, rangeOf, type Target, type TextIndex, targetOf, targetOfRange } from "./anchor";
 import { changes } from "./diff";
 import { useLatest, useLoaded } from "../load";

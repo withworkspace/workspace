@@ -37,7 +37,7 @@ import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Status } from "../ui/Status";
 import { headlineStatus, missionStateStatus } from "../ui/statusOf";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { RefContext } from "../refs/context";
 import { useRefs } from "../refs/known";
 import { refAt, refKey } from "../refs/refs";

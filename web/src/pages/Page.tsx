@@ -68,7 +68,7 @@ import { Loading } from "../ui/Loading";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Keys } from "../ui/Keys";
 import { confirm } from "../ui/Confirm";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { RefCard } from "../refs/RefCard";
 import { useRefs } from "../refs/known";
 import { lookOf } from "../refs/views";

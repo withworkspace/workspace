@@ -19,7 +19,7 @@ import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Option, Select } from "../ui/Select";
 import { Status } from "../ui/Status";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
 import {
   ANYWHERE,

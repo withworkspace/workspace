@@ -11,7 +11,7 @@ import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
 import { filesWords, type FoundFolder as Folder, foundTree, widths } from "./shown";
 import { Chip } from "../ui/Chip";

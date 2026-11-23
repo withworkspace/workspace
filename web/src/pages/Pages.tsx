@@ -9,7 +9,7 @@ import { Loading } from "../ui/Loading";
 import { humanError } from "../ui/text";
 import { Keys } from "../ui/Keys";
 import { Dialog, DialogActions } from "../ui/Dialog";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";

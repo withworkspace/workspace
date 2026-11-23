@@ -36,7 +36,7 @@ import { ErrorCard } from "../ui/ErrorCard";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { Status, type StatusInfo } from "../ui/Status";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { useHere } from "../load";
 import { talkAt } from "../chrome/panes";
 import { useTalk, useTalks } from "../conversation/talks";

@@ -11,7 +11,7 @@ import { Empty } from "../ui/Empty";
 import { humanError } from "../ui/text";
 import { ErrorCard } from "../ui/ErrorCard";
 import { confirm } from "../ui/Confirm";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { CrewBadge } from "./parts";
 import { useLoaded } from "../load";
 import { useLatest } from "../load";

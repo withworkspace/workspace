@@ -3,7 +3,7 @@ import type { Decision } from "../api";
 import { cx } from "../ui/cx";
 import { Inline } from "../ui/inline";
 import { Copyable } from "../ui/Copyable";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { Clamp } from "../ui/Clamp";
 import { type DecisionEffect, whoAsked, whoDecided } from "./decisions";
 import css from "./MissionDecision.module.css";

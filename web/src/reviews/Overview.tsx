@@ -7,7 +7,7 @@ import { Icon } from "../ui/Icon";
 import { useAutosize } from "../ui/useAutosize";
 import { humanError } from "../ui/text";
 import { Keys } from "../ui/Keys";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { Button } from "../ui/Button";
 import { TextArea } from "../ui/TextArea";
 

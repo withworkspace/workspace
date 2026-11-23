@@ -17,7 +17,7 @@ import { toast } from "../ui/toast";
 import { Keys } from "../ui/Keys";
 import { askShutDown } from "./daemon";
 import { setTheme } from "../ui/theme";
-import { clock } from "../ui/time";
+import { clock } from "../ui/when";
 import {
   actIcon,
   actingOn,

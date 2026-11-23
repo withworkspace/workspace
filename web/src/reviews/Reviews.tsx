@@ -13,7 +13,7 @@ import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { Status, type StatusInfo } from "../ui/Status";
 import type { Tone } from "../ui/tone";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { useLatest } from "../load";
 import { rowAfter } from "./after";
 import { RowPasses } from "./Passes";

@@ -43,7 +43,7 @@ import { Keys } from "../ui/Keys";
 import { Dialog } from "../ui/Dialog";
 import { confirm } from "../ui/Confirm";
 import { Status } from "../ui/Status";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { GuideMark, GuideSection } from "./Guide";
 import { PRDescription, PRDiscussion, StackDescriptions } from "./Overview";
 import { PassesSection, PassMarks, standingWords } from "./Passes";

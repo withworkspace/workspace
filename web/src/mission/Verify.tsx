@@ -10,7 +10,7 @@ import { Empty } from "../ui/Empty";
 import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import {
   allClearWords,
   type BundleGroup,

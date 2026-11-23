@@ -12,7 +12,7 @@ import { ErrorCard } from "../ui/ErrorCard";
 import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { confirm } from "../ui/Confirm";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { Button } from "../ui/Button";
 
 // Updates, on Settings' About: the latest release of ws as the daemon

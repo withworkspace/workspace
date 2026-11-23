@@ -17,7 +17,7 @@ import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { BriefOutline, type DocId } from "./BriefOutline";
 import { BriefPlanner, PassageTool, pickedIn, PlannerField, quoted } from "./BriefPlanner";
 import { type Doc, type Edit, edits, planAsk, planSteps, reading, type Settled, shown } from "./briefpage";

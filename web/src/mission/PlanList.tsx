@@ -16,7 +16,7 @@ import { RefContext } from "../refs/context";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { crewStatus } from "../ui/statusOf";
-import { duration, stamp } from "../ui/time";
+import { duration, stamp } from "../ui/when";
 import { CrewBadge, MissionData, StepChecks, StepLimit, StepRuns } from "./parts";
 import { checksUnmet, foldNote, passedUnmet, planWindow, stepBundle, stepKind, stepText, stepTimes, stepYours, type StepTime, waitHow, type WaitHow, watchWords, worthOpening } from "./planRows";
 import { Chip } from "../ui/Chip";
