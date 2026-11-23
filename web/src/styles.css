@@ -459,21 +459,6 @@ main > .banner {
 
 /* Empty places, loading and skeletons */
 
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 120px;
-  color: var(--dim);
-  opacity: 0;
-  transition: opacity var(--slow) var(--ease);
-}
-
-.loading.shown {
-  opacity: 1;
-}
-
 .skeleton {
   display: grid;
   gap: 12px;
@@ -9763,8 +9748,7 @@ details.repo-group > summary::-webkit-details-marker {
   font-size: var(--text-sm);
 }
 
-.file-pane-note,
-.file-pane > .loading {
+.file-pane-note {
   margin: 8px 20px 16px;
 }
 

@@ -1,32 +1,11 @@
 import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
 import { Icon } from "./Icon";
-import { Spinner } from "./Spinner";
 import { Button } from "./Button";
 import { getToasts, onToasts, setToasts, toast } from "./toast";
 
 export { toast };
 
 // The small shared pieces every page draws with.
-
-// Loading shows nothing for a moment (most loads are quicker), then a
-// spinner and what's loading.
-export function Loading({ what, delay = 300 }: { what?: string; delay?: number }) {
-  const [shown, setShown] = useState(delay === 0);
-  useEffect(() => {
-    const t = setTimeout(() => setShown(true), delay);
-    return () => clearTimeout(t);
-  }, [delay]);
-  return (
-    <div className={`loading${shown ? " shown" : ""}`} role="status" aria-live="polite">
-      {shown && (
-        <>
-          <Spinner size={16} />
-          <span>{what ?? "Loading…"}</span>
-        </>
-      )}
-    </div>
-  );
-}
 
 // Skeleton is the shape of what's coming: rows of grey bars.
 export function Skeleton({ rows = 4, className }: { rows?: number; className?: string }) {

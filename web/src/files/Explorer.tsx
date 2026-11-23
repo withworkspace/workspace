@@ -12,7 +12,8 @@ import { fuzzy, marked } from "../ui/fuzzy";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon, type IconName } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
-import { Loading, toast, useMedia, useTitle } from "../ui/kit";
+import { toast, useMedia, useTitle } from "../ui/kit";
+import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Callout } from "../ui/Callout";
@@ -883,7 +884,7 @@ function FilePane({
         )}
       </div>
       {error && <ErrorCard className="file-pane-note" title="Couldn't open this file" error={error} retry={() => setTries((n) => n + 1)} />}
-      {!file && !error && <Loading what="Opening it…" />}
+      {!file && !error && <Loading className="file-pane-note" what="Opening it…" />}
       {file && file.deleted && (
         <Callout className="file-pane-note" tone="danger" icon="minus" title={`Deleted since it left ${base}`}>
           This is how it was there.

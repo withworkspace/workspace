@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } 
 import { docAddress, docTo, filesTo, GROUND, openFilePage, pageAddress } from "../api";
 import { DocPage } from "../files/DocPage";
 import { PagePage } from "../pages/Pages";
-import { Loading } from "../ui/kit";
+import { Loading } from "../ui/Loading";
 import { humanError } from "../ui/text";
 import { ErrorCard } from "../ui/ErrorCard";
 import { useWorkspace } from "../workspace/store";
