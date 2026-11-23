@@ -62,6 +62,11 @@ export interface Place {
   col: number;
 }
 
+// getNavNow is the commit a worktree's files are as they are now: its
+// HEAD, or one made of what's not committed (GET …/nav/now), for the
+// explorer to ask names at.
+export const getNavNow = (api: string) => getJSON<{ rev: string }>(`${api}/nav/now`).then((n) => n.rev);
+
 const names = new Map<string, Promise<NavNames>>();
 
 // getNames is a file's names at a commit, asked once.

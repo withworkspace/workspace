@@ -7,6 +7,8 @@ import { CodeFinder } from "./CodeFinder";
 import { linesAsked, rendersAt } from "./lines";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../review/highlight";
+import { useCodeNav } from "../review/CodeNav";
+import { getNavNow } from "../review/nav";
 import { fuzzy, marked } from "../ui/fuzzy";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon, type IconName } from "../ui/Icon";
@@ -36,6 +38,9 @@ export const explorerKeys: [string, string][] = [
   ["h / l", "Close / open a folder"],
   ["c", "Only what's changed, or every file"],
   ["[ / ]", "Previous / next changed file"],
+  ["⌘-click", "Go to a name's definition, or who uses it"],
+  ["d", "Go to a definition on the picked line"],
+  ["b", "Back from a definition"],
   ["m", "Markdown: rendered, or as text"],
   ["v", "Review the capsule's changes"],
   ["y", "Copy the file's path"],
@@ -395,6 +400,19 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
     setCursor(p);
     navigate({ search: `?${next}`, hash: `#L${line}` });
   };
+  // Following a name opens its definition here; b comes back, as many
+  // times as names were followed (the browser's back does too).
+  const followed = useRef(0);
+  const openDefinition = (p: string, line: number) => {
+    followed.current++;
+    openAt(p, line);
+  };
+  const backFromDefinition = () => {
+    if (followed.current <= 0) return false;
+    followed.current--;
+    navigate(-1);
+    return true;
+  };
   // Markdown shows rendered, unless a line's asked for (a code search hit,
   // Find's :12, a line's link): only its text has lines, so it opens as
   // text there. m still switches.
@@ -591,6 +609,8 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
                     ready={ready}
                     reviewTo={reviewTo}
                     docTo={docFor(path)}
+                    onDefinition={openDefinition}
+                    onBackFromDefinition={backFromDefinition}
                     onBack={narrow ? () => setParams(changedOnly ? { only: "changed" } : {}) : undefined}
                     onReveal={(p) => {
                       setOpen((o) => new Set([...o, ...ancestors(p + "/x")]));
@@ -727,6 +747,8 @@ function FilePane({
   docTo,
   onBack,
   onReveal,
+  onDefinition,
+  onBackFromDefinition,
 }: {
   api: string;
   path: string;
@@ -740,6 +762,8 @@ function FilePane({
   docTo?: string; // where it opens as a document, for markdown
   onBack?: () => void;
   onReveal: (folder: string) => void;
+  onDefinition: (path: string, line: number) => void;
+  onBackFromDefinition: () => boolean;
 }) {
   // What's read is shown only while it's the file that's open: its text
   // mustn't be drawn as another's (its images read from the wrong folder)
@@ -747,6 +771,23 @@ function FilePane({
   const [tries, setTries] = useState(0);
   const { value: read, error } = useLoaded<FileView>(() => getFile(api, path), [api, path, updated, tries], { keep: true });
   const file = read?.path === path ? read : undefined;
+
+  // The commit its names are read at: the files as they are now. Asked
+  // again each time the file's read again (crew at work in it). A file
+  // deleted since its base shows as it was, so has none.
+  const [rev, setRev] = useState<string>();
+  const navigable = !!file && !file.deleted && !file.binary && !file.tooLarge && file.lines.length > 0;
+  useEffect(() => {
+    if (!navigable) return setRev(undefined);
+    let live = true;
+    getNavNow(api).then(
+      (r) => live && setRev(r),
+      () => live && setRev(undefined),
+    );
+    return () => {
+      live = false;
+    };
+  }, [api, read, navigable]);
 
   // Where the file is, for the reader: a link in it to another file opens
   // that one here, in the same tree.
@@ -883,7 +924,7 @@ function FilePane({
             <Markdown text={file.lines.join("\n")} at={place} />
           </article>
         ) : (
-          <Code file={file} path={path} ready={ready} />
+          <Code file={file} path={path} ready={ready} api={api} rev={rev} onDefinition={onDefinition} onBackFromDefinition={onBackFromDefinition} />
         ))}
     </div>
   );
@@ -891,8 +932,25 @@ function FilePane({
 
 // Code is a file's lines, highlighted, numbered, the changed ones marked
 // in the gutter. A line number links to the line (#L12; shift-click for a
-// range).
-function Code({ file, path, ready }: { file: FileView; path: string; ready: boolean }) {
+// range). With a commit to read them at (rev), its names are links, as in
+// a review: hold ⌘ over one, or d on the picked line.
+function Code({
+  file,
+  path,
+  ready,
+  api,
+  rev,
+  onDefinition,
+  onBackFromDefinition,
+}: {
+  file: FileView;
+  path: string;
+  ready: boolean;
+  api: string;
+  rev?: string;
+  onDefinition: (path: string, line: number) => void;
+  onBackFromDefinition: () => boolean;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const lang = languageOf(path);
@@ -922,8 +980,26 @@ function Code({ file, path, ready }: { file: FileView; path: string; ready: bool
     const hash = e.shiftKey && from ? `#L${Math.min(from, n)}-L${Math.max(from, n)}` : `#L${n}`;
     navigate({ search: location.search, hash }, { replace: true, state: { clicked: true } });
   };
+  const codeNav = useCodeNav({
+    api,
+    diff: rev ? { base: rev, head: rev } : undefined,
+    files: [],
+    rows: [],
+    states: [],
+    pane: body,
+    expand: async () => {},
+    goToRow: () => {},
+    open: onDefinition,
+    back: onBackFromDefinition,
+    line: from && file.lines[from - 1] !== undefined ? { path, line: from, text: file.lines[from - 1] } : undefined,
+    sideWords: () => "as the files are now",
+  });
+  useKeys(rev ? codeNav.keys : {});
   return (
     <div className="code-view" ref={body}>
+      {codeNav.card}
+      {codeNav.picker}
+      {codeNav.panel}
       {html.map((h, i) => {
         const n = i + 1;
         const mark = marks.get(n);
@@ -933,7 +1009,7 @@ function Code({ file, path, ready }: { file: FileView; path: string; ready: bool
               {n}
             </button>
             <span className="code-mark" aria-hidden />
-            <code dangerouslySetInnerHTML={{ __html: h || " " }} />
+            <code data-rev={rev} data-path={path} data-line={n} data-side="new" dangerouslySetInnerHTML={{ __html: h || " " }} />
           </div>
         );
       })}

@@ -15166,7 +15166,8 @@ button.finding-quote:hover {
   text-underline-offset: 2px;
 }
 
-body.nav-pointing .lines code[data-rev] {
+body.nav-pointing .lines code[data-rev],
+body.nav-pointing .code-view code[data-rev] {
   cursor: pointer;
 }
 
