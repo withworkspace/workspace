@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { type DocKind, type DocSaved, FileChanged, filePage, type PageFiling, type PageTied, savePageToFile, type SpaceRef } from "../api";
 import { Icon } from "../ui/Icon";
-import { humanError } from "../ui/kit";
+import { humanError } from "../ui/text";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { Dialog, DialogActions } from "../ui/Dialog";

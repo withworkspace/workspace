@@ -5,7 +5,7 @@ import { useKeys } from "../keys";
 import { useReviewsMemory } from "./memory";
 import { Icon, type IconName } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Empty, humanError, Loading, toast, useTitle } from "../ui/kit";
+import { Empty, Loading, toast, useTitle } from "../ui/kit";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { Status, type StatusInfo, type Tone } from "../ui/status";
@@ -19,7 +19,7 @@ import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
-import { capital } from "../ui/text";
+import { capital, humanError } from "../ui/text";
 import { Input } from "../ui/Input";
 import { useThingMenu } from "../shell/ThingMenu";
 

@@ -33,7 +33,7 @@ import { ReplyBox } from "../ui/ReplyBox";
 import { Suggestion } from "./Suggestion";
 import { fuzzy } from "../ui/fuzzy";
 import { Inline } from "../ui/inline";
-import { humanError, Loading, toast, useMedia, useTitle } from "../ui/kit";
+import { Loading, toast, useMedia, useTitle } from "../ui/kit";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { exact, stamp } from "../ui/time";
@@ -52,7 +52,7 @@ import { type Cell, cellHTML, type Editing, type FileState, type Found, fileRows
 import { useLatest } from "../load";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
-import { capital } from "../ui/text";
+import { capital, humanError } from "../ui/text";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Checkbox } from "../ui/Checkbox";
 import { TextArea } from "../ui/TextArea";

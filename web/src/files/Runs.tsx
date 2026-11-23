@@ -4,7 +4,8 @@ import type { Reload } from "../load";
 import { RunLine } from "../mission/Runs";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Empty, humanError, toast } from "../ui/kit";
+import { Empty, toast } from "../ui/kit";
+import { humanError } from "../ui/text";
 import { Button } from "../ui/Button";
 
 // A ground's or capsule's Runs tab on the Files page (ws run): what's

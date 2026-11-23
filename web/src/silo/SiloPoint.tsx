@@ -3,7 +3,8 @@ import { useNavigate, useParams, useSearchParams } from "react-router";
 import { pointSilo } from "../api";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Empty, humanError } from "../ui/kit";
+import { Empty } from "../ui/kit";
+import { humanError } from "../ui/text";
 import { Button } from "../ui/Button";
 
 // /silo/<repo>?to=<capsule>&then=<address>: point a repo's silo at a

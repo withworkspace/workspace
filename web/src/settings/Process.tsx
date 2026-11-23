@@ -1,7 +1,8 @@
 import { Link } from "react-router";
 import { getProcess, type ProcessInfo } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
-import { ErrorCard, Skeleton } from "../ui/kit";
+import { Skeleton } from "../ui/kit";
+import { ErrorCard } from "../ui/ErrorCard";
 import { useLoaded } from "../load";
 
 // The workspace's process, on the Settings page: PROCESS.md as it's

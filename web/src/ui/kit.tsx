@@ -1,9 +1,7 @@
 import { type ReactNode, useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
-import { Callout } from "./Callout";
 import { Icon, type IconName } from "./Icon";
 import { Spinner } from "./Spinner";
 import { Button } from "./Button";
-import { capital } from "./text";
 import { getToasts, onToasts, setToasts, toast } from "./toast";
 
 export { toast };
@@ -51,24 +49,6 @@ export function Skeleton({ rows = 4, className }: { rows?: number; className?: s
       ))}
     </div>
   );
-}
-
-// ErrorCard is something that didn't load, in words, with a retry.
-export function ErrorCard({ error, retry, title = "Couldn't load this", className }: { error: string; retry?: () => void; title?: string; className?: string }) {
-  return (
-    <Callout tone="danger" title={title} className={className} actions={retry && <Button onClick={retry}>Try again</Button>}>
-      {humanError(error)}
-    </Callout>
-  );
-}
-
-// humanError makes a server's error a sentence: capitalised, ending in a
-// full stop.
-export function humanError(e: string): string {
-  const s = e.trim().replace(/^error:\s*/i, "");
-  if (!s) return "Something went wrong.";
-  const t = capital(s);
-  return /[.!?)]$/.test(t) ? t : t + ".";
 }
 
 // Toasts: what an action did, for a few seconds, bottom centre, with an

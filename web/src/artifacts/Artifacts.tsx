@@ -9,7 +9,9 @@ import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../revie
 import { HoverCard, HoverCardHead, HoverCardLine, HoverCardTitle } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Empty, ErrorCard, humanError, Loading, toast, useTitle } from "../ui/kit";
+import { Empty, Loading, toast, useTitle } from "../ui/kit";
+import { humanError } from "../ui/text";
+import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Option, Select } from "../ui/Select";

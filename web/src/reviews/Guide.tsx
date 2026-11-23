@@ -4,10 +4,10 @@ import type { Order } from "../review/files";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/inline";
-import { humanError, toast } from "../ui/kit";
+import { toast } from "../ui/kit";
 import { duration, Time } from "../ui/time";
 import { Button } from "../ui/Button";
-import { capital } from "../ui/text";
+import { capital, humanError } from "../ui/text";
 import { Checkbox } from "../ui/Checkbox";
 
 // A review's guide, a view of its own: what the change does, where that

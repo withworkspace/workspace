@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { noteKinds, type Review, type Verdict } from "../api";
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
-import { humanError } from "../ui/kit";
+import { humanError } from "../ui/text";
 import { Keys } from "../ui/Keys";
 import { Dialog } from "../ui/Dialog";
 import { Button } from "../ui/Button";

@@ -15716,8 +15716,7 @@ input[type="text"].tweak-text {
   color: var(--fg);
 }
 
-.doc-preview > .skeleton,
-.doc-preview > .error-card {
+.doc-preview > .skeleton {
   margin: 16px 24px;
 }
 

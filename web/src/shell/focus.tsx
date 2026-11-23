@@ -8,7 +8,8 @@ import { GROUND, type Known, namedOf, type PageRef, refHref, refName, refNamed, 
 import { useKeys } from "../keys";
 import { thingIcon } from "../refs/views";
 import { Icon, type IconName } from "../ui/Icon";
-import { humanError, toast } from "../ui/kit";
+import { toast } from "../ui/kit";
+import { humanError } from "../ui/text";
 import { headlineStatus, Status } from "../ui/status";
 import { Button } from "../ui/Button";
 import { Focus } from "../chrome/Focus";

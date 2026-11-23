@@ -4,7 +4,9 @@ import { type AppAt, type AppDetail, type AppPointer, getApp, openApp, pointApp,
 import { useLatest } from "../load";
 import { Icon, type IconName, icons } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { ErrorCard, humanError, toast, useTitle } from "../ui/kit";
+import { toast, useTitle } from "../ui/kit";
+import { humanError } from "../ui/text";
+import { ErrorCard } from "../ui/ErrorCard";
 import { Option, Select } from "../ui/Select";
 import { Button } from "../ui/Button";
 import { useWorkspace } from "../workspace/store";

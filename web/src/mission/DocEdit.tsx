@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { type ArtifactContent, type DocDraft, type DocSaved, dropDraft, getThreads, openThread, putDraft, readDoc, saveDoc } from "../api";
 import { type Draft, MarkdownEditor, type Quote } from "../editor/LazyEditor";
-import { humanError, Skeleton, toast } from "../ui/kit";
+import { Skeleton, toast } from "../ui/kit";
+import { humanError } from "../ui/text";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";

@@ -4,10 +4,10 @@ import { FindingActions, followWords, reviewDismissWhys } from "../review/Findin
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/inline";
-import { humanError, toast } from "../ui/kit";
+import { toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
-import { clip } from "../ui/text";
+import { clip, humanError } from "../ui/text";
 import { Checkbox } from "../ui/Checkbox";
 import { Excerpt } from "../ui/Excerpt";
 
