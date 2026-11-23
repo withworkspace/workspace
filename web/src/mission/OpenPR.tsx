@@ -5,6 +5,7 @@ import { Icon } from "../ui/Icon";
 import { humanError, toast } from "../ui/kit";
 import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
 
 // A pull request is opened through ws, so the process's rules about it are
 // held where ws is the one acting: it pushes the capsule's branch and opens
@@ -93,10 +94,9 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
               onChange={(e) => setBody(e.target.value)}
             />
           </div>
-          <label className="setting-toggle open-pr-draft">
-            <input type="checkbox" checked={draft} onChange={(e) => setDraft(e.target.checked)} />
+          <Checkbox className="setting-toggle open-pr-draft" checked={draft} onChange={setDraft}>
             Open it as a draft
-          </label>
+          </Checkbox>
           {error && <div className="banner">{humanError(error)}</div>}
           <DialogActions>
             <Button variant="ghost" onClick={close}>

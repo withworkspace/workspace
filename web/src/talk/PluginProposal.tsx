@@ -5,6 +5,7 @@ import { pluginIcon } from "../plugins/Plugin";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
 
 // Something of a plugin's a conversation's agent proposed (issues to
 // create), under its reply: what the plugin says it'll do, item by item,
@@ -229,15 +230,9 @@ function PluginItem({
       {(titled || pickable || it.on || it.state === "made" || left) && (
         <div className="plugin-item-head">
           {pickable ? (
-            <label className="plugin-item-pick">
-              <input
-                type="checkbox"
-                checked={picked}
-                onChange={onPick}
-                aria-label={`Accept item ${n}`}
-              />
+            <Checkbox className="plugin-item-pick" checked={picked} onChange={onPick} aria-label={`Accept item ${n}`}>
               <span className="plugin-item-n dim">{n}</span>
-            </label>
+            </Checkbox>
           ) : (
             <span className="plugin-item-n dim">{n}</span>
           )}

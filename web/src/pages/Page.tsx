@@ -76,6 +76,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { clip } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Tab, Tabs } from "../ui/Tabs";
+import { Checkbox } from "../ui/Checkbox";
 
 // A page: a document you write, saved as you go, with cells an agent fills
 // in. A line that starts with >> asks for something; ⏎ makes it a cell and
@@ -1212,9 +1213,9 @@ function PassTab({
               </span>
             )}
             <span className="spacer" />
-            <label className="pass-shown" title="Mark what it found on the words it's about, on the page. They're drawn over the page, not written into it.">
-              <input type="checkbox" checked={shown} onChange={(e) => onShown(e.target.checked)} /> Show on the page
-            </label>
+            <Checkbox className="pass-shown" checked={shown} onChange={onShown} title="Mark what it found on the words it's about, on the page. They're drawn over the page, not written into it.">
+              Show on the page
+            </Checkbox>
           </div>
           {pass.summary && (
             <div className="pass-summary prose">

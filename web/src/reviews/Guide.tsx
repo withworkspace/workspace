@@ -7,6 +7,7 @@ import { humanError, toast } from "../ui/kit";
 import { duration, Time } from "../ui/time";
 import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
+import { Checkbox } from "../ui/Checkbox";
 
 // A review's guide, a view of its own: what the change does, where that
 // differs from what it says it does, and the order to read its files in.
@@ -87,9 +88,9 @@ export function GuideSection({ api, guide, guided, onGuide, onGuided }: { api: s
         {g && !(running && guide.draft) && (
           <>
             <div className="guide-foot">
-              <label className="rpass-show" title="The list of files, and the diff under it, follow the guide's order. Nothing's hidden: a file it doesn't place is still there">
-                <input type="checkbox" checked={guided} onChange={(e) => onGuided(e.target.checked)} /> Read the files in this order
-              </label>
+              <Checkbox className="rpass-show" checked={guided} onChange={onGuided} title="The list of files, and the diff under it, follow the guide's order. Nothing's hidden: a file it doesn't place is still there">
+                Read the files in this order
+              </Checkbox>
               <span className="spacer-left" />
               {guide.at && <Time iso={guide.at} as="relative" className="dim" />}
               <Button variant="ghost" size="small" onClick={run} disabled={running}>

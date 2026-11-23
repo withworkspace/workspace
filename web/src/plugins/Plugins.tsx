@@ -12,6 +12,7 @@ import { Chip, chipClass } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowMain, RowSub, Rows } from "../ui/Rows";
+import { Checkbox } from "../ui/Checkbox";
 
 // Plugins, a section of Settings: the workspace's plugins, each with where it's from,
 // where it stands and what it adds; adding one, from the repo it's
@@ -330,13 +331,12 @@ function RemoveDialog({ p, onClose, onRemove }: { p: InstalledPlugin; onClose: (
         {p.names?.length ? `, and its things' names (${p.names.join(", ")}) are words again wherever they're written` : ""}. Its config in <code>ws.toml</code> and{" "}
         <code>ws.local.toml</code> is yours to remove.
       </DialogText>
-      <label className="plugins-remove-data">
-        <input type="checkbox" checked={data} onChange={(e) => setData(e.target.checked)} />
+      <Checkbox className="plugins-remove-data" checked={data} onChange={setData}>
         <span>
           Remove what it kept for itself too: its data, and its secrets
           <span className="dim"> Left alone, adding it again picks up where it was.</span>
         </span>
-      </label>
+      </Checkbox>
       <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel

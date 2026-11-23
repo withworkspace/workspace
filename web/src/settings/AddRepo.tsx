@@ -10,6 +10,7 @@ import { Option, Select } from "../ui/Select";
 import { relative } from "../ui/time";
 import css from "./AddRepo.module.css";
 import { GroupPick } from "./Groups";
+import { Checkbox } from "../ui/Checkbox";
 
 const ANOTHER = "\u0000another";
 
@@ -158,9 +159,9 @@ export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: 
         })}
       </div>
       {hidden > 0 && (
-        <label className={cx("dim", css.all)}>
-          <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> Show forks and archived repos ({hidden})
-        </label>
+        <Checkbox className={cx("dim", css.all)} checked={all} onChange={setAll}>
+          Show forks and archived repos ({hidden})
+        </Checkbox>
       )}
 
       {chosen && <Adding key={`${owner}/${chosen.name}`} owner={owner} repo={chosen} taken={taken} groups={groups} onCancel={() => setChosen(undefined)} onAdded={onAdded} />}

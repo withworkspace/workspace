@@ -48,6 +48,7 @@ import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { capital } from "../ui/text";
 import { Segment, Segmented } from "../ui/Segmented";
+import { Checkbox } from "../ui/Checkbox";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -1414,10 +1415,9 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
             {skimWords[file.skim]} · {state.folded ? "show" : "hide"}
           </Button>
         )}
-        <label className="viewed-box" onClick={(e) => e.stopPropagation()}>
-          <input type="checkbox" checked={state.viewed} onChange={() => onActivate({ type: "file", key: `${index}`, file: index })} />
+        <Checkbox className="viewed-box" checked={!!state.viewed} onChange={() => onActivate({ type: "file", key: `${index}`, file: index })} onClick={(e) => e.stopPropagation()}>
           Viewed
-        </label>
+        </Checkbox>
       </div>
       {note && !state.viewed && (
         <p className="file-guide" title="What the guide says the change does to it">
