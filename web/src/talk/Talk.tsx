@@ -46,6 +46,7 @@ import { ToggleButton } from "../ui/ToggleButton";
 import { Input } from "../ui/Input";
 import { TextArea } from "../ui/TextArea";
 import { Composer } from "../ui/Composer";
+import { Turn, TurnAvatar, TurnHead, TurnSaid, turnTimeClass } from "../ui/Turn";
 import { Change } from "../ui/Change";
 import { Excerpt } from "../ui/Excerpt";
 import { Suggestion } from "../review/Suggestion";
@@ -628,20 +629,17 @@ export function TalkPage() {
             </div>
           ))}
           {running && (
-            <div className="turn by-agent running" aria-live="polite">
-              <TurnHead by="agent" />
-              <div className="turn-body">
+            <Turn by="agent" running aria-live="polite" head={<Who by="agent" />}>
                 {d.run?.said && (
-                  <div className="said dim" ref={reply}>
+                  <TurnSaid className="dim" ref={reply}>
                     <Markdown text={d.run.said} />
-                  </div>
+                  </TurnSaid>
                 )}
                 {pending.map((p) => (
                   <ProposalCard key={p.n} p={p} revisedFrom={revisedFrom(p)} kinds={workspace.kinds} artifacts={workspace.artifacts} frameOf={frameOf} slug={slug} onSettle={settle} replying anchor={`proposal-${p.n}`} />
                 ))}
                 <Doing calls={d.run?.calls ?? []} root={workspace.root} />
-              </div>
-            </div>
+            </Turn>
           )}
         </div>
         <div className="talk-reply">
@@ -794,23 +792,12 @@ function TalkSide({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug: stri
 }
 
 const whoName = (by: string) => ({ you: "You", agent: "Agent", ws: "ws" })[by] ?? by;
-const whoIcon: Record<string, IconName> = { you: "user", agent: "sparkle", ws: "info" };
 
-function TurnHead({ by, at }: { by: string; at?: string }) {
-  const known = by in whoIcon;
-  return (
-    <div className="turn-head">
-      {known ? (
-        <span className={`avatar avatar-${by}`} aria-hidden>
-          <Icon name={whoIcon[by]} size={12} />
-        </span>
-      ) : (
-        <CrewBadge id={by} />
-      )}
-      <span className="turn-who">{whoName(by)}</span>
-      {at && <Time iso={at} className="turn-time" />}
-    </div>
-  );
+// Who is whoever said a turn, over it: you, the agent, ws, or crew by
+// their badge.
+function Who({ by, at }: { by: string; at?: string }) {
+  const known = by === "you" || by === "agent" || by === "ws";
+  return <TurnHead avatar={known ? <TurnAvatar by={by} /> : <CrewBadge id={by} />} who={whoName(by)} at={at} />;
 }
 
 // TurnView is a turn: yours as a bubble, the agent's (its steps folded
@@ -823,15 +810,12 @@ function TurnView({ t, root, proposals, said, landed }: { t: TalkTurn; root: str
   if (m) return <SettledMarker m={m} t={t} />;
   const who = t.by === "you" || t.by === "agent" || t.by === "ws" ? t.by : "crew";
   return (
-    <div className={`turn by-${who}${landed ? " landed" : ""}`}>
-      <TurnHead by={t.by} at={t.at} />
-      <div className="turn-body">
-        {t.calls && t.calls.length > 0 && <Calls calls={t.calls} root={root} />}
-        <div className="said" ref={said}>
-          {t.by === "you" ? <div className="said-text">{t.body}</div> : <Markdown text={t.body} pinned={t.refs} />}
-        </div>
-      </div>
-    </div>
+    <Turn by={who} landed={landed} head={<Who by={t.by} at={t.at} />}>
+      {t.calls && t.calls.length > 0 && <Calls calls={t.calls} root={root} />}
+      <TurnSaid ref={said} written={t.by === "you"}>
+        {t.by === "you" ? t.body : <Markdown text={t.body} pinned={t.refs} />}
+      </TurnSaid>
+    </Turn>
   );
 }
 
@@ -855,7 +839,7 @@ export function SettledMarker({ m, t, compact }: { m: Settled; t: TalkTurn; comp
             edited <Icon name={open ? "chevron-down" : "chevron-right"} size={11} />
           </Button>
         )}
-        {!compact && <Time iso={t.at} className="turn-time" />}
+        {!compact && <Time iso={t.at} className={turnTimeClass("settled-marker-time")} />}
       </div>
       {open && m.edits && (
         <div className="settled-marker-edits">

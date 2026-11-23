@@ -1,0 +1,130 @@
+/* One turn of an exchange with an agent (Turn.tsx): what you said, what
+   it answered, a word of ws's own. */
+
+@layer ui {
+  .turn {
+    display: grid;
+    gap: 4px;
+    animation: global(enter) var(--slow) var(--ease);
+  }
+
+  /* One that was the run going until now: it's there already. */
+  .landed {
+    animation: none;
+  }
+
+  /* Who said it, and when. */
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-sm);
+  }
+
+  .who {
+    font-weight: 600;
+  }
+
+  .time {
+    color: var(--dim);
+  }
+
+  .avatar {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    color: var(--dim);
+    background: var(--well);
+    flex: none;
+  }
+
+  .avatarYou {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .avatarAgent {
+    color: #fff;
+    background: var(--brand-gradient);
+  }
+
+  /* Under a head, what's said is set in to clear the avatar. */
+  .body {
+    padding-left: 30px;
+    min-width: 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  /* As it was written: its line breaks are its own. */
+  .written {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  /* Your turns: a soft bubble, so the exchange reads as one. */
+  .you .said {
+    justify-self: start;
+    max-width: 100%;
+    padding: 8px 12px;
+    border-radius: 4px var(--radius-lg) var(--radius-lg) var(--radius-lg);
+    background: var(--accent-soft);
+  }
+
+  .ws .said {
+    color: var(--dim);
+  }
+
+  .running .said {
+    font-style: normal;
+  }
+
+  /* Dense: beside something else. No heads: yours is the bubble, to the
+     right; the rest is the text. */
+  .dense {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .dense .said {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .dense.you .said {
+    justify-self: end;
+    max-width: 88%;
+    padding: 6px 10px;
+    border-radius: var(--radius-lg) 4px var(--radius-lg) var(--radius-lg);
+  }
+
+  .dense.ws .said {
+    font-size: var(--text-sm);
+  }
+
+  /* On a phone there's no room to set it in. */
+  @media (max-width: 720px) {
+    .body {
+      padding-left: 0;
+    }
+  }
+}
+
+/* A dense turn's markdown: smaller than a page's, with nothing over its
+   first line or under its last. (Not in the layer: these are over the
+   markdown's own rules, which aren't in one.) */
+.dense .said :global(.markdown) {
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.dense .said :global(.markdown) > :first-child {
+  margin-top: 0;
+}
+
+.dense .said :global(.markdown) > :last-child {
+  margin-bottom: 0;
+}

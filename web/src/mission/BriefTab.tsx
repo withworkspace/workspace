@@ -18,6 +18,7 @@ import { BriefPlanner, PassageTool, pickedIn, PlannerField, quoted } from "./Bri
 import { type Doc, type Edit, edits, planAsk, planSteps, reading, type Settled, shown } from "./briefpage";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
+import { TurnAvatar } from "../ui/Turn";
 import { usePref } from "../prefs";
 
 // A mission's Brief tab: its brief and its plan as documents, in the
@@ -659,9 +660,7 @@ function NoPlanner({ briefing, busy, briefIt, field, fold }: { briefing: boolean
   return (
     <aside className="brief-planner" aria-label="The planner">
       <div className="brief-planner-head">
-        <span className="avatar avatar-agent" aria-hidden>
-          <Icon name="sparkle" size={12} />
-        </span>
+        <TurnAvatar by="agent" />
         <span className="brief-planner-name">Planner</span>
         <span className="spacer" />
         {fold && (

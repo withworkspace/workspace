@@ -78,6 +78,7 @@ import { ToggleButton } from "../ui/ToggleButton";
 import { Tab, Tabs } from "../ui/Tabs";
 import { Checkbox } from "../ui/Checkbox";
 import { Composer } from "../ui/Composer";
+import { Turn, TurnSaid } from "../ui/Turn";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
 
@@ -1267,8 +1268,10 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
       <ol className="cell-turns">
         {cell.turns.slice(1).map((t) =>
           t.by === "you" ? (
-            <li key={t.n} className="cell-turn you">
-              <div className="cell-said">{t.body}</div>
+            <li key={t.n} className="cell-turn">
+              <Turn by="you" dense landed>
+                <TurnSaid written>{t.body}</TurnSaid>
+              </Turn>
             </li>
           ) : t.by !== "agent" ? (
             <li key={t.n} className="cell-turn failed">
@@ -1276,8 +1279,12 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
             </li>
           ) : t.answer ? (
             <li key={t.n} className="cell-turn answer">
-              <Markdown text={t.body} pinned={t.refs} />
-              <Calls calls={t.calls ?? []} root={root} />
+              <Turn by="agent" dense landed>
+                <TurnSaid>
+                  <Markdown text={t.body} pinned={t.refs} />
+                </TurnSaid>
+                <Calls calls={t.calls ?? []} root={root} />
+              </Turn>
             </li>
           ) : (
             <li key={t.n} className="cell-turn version">
@@ -1850,10 +1857,12 @@ function CellPanel({
           {cell.turns.slice(1).map((t) => {
             if (t.by === "you") {
               return (
-                <li key={t.n} className={`cell-turn you${t.ask ? " asked" : ""}`}>
-                  <div className="cell-said">{t.body}</div>
+                <li key={t.n} className="cell-turn">
+                  <Turn by="you" dense landed>
+                    <TurnSaid written>{t.body}</TurnSaid>
+                  </Turn>
                   {t.edited && (
-                    <div className="cell-version">
+                    <div className="cell-version yours">
                       <Icon name="pencil" size={11} />
                       <span>With your edits to it</span>
                       <Button variant="link" onClick={() => fillCell(view, cell.id, 0, t.edited!)} title="Put the cell back as you'd edited it">
@@ -1874,8 +1883,12 @@ function CellPanel({
             if (t.answer) {
               return (
                 <li key={t.n} className="cell-turn answer">
-                  <Markdown text={t.body} pinned={t.refs} />
-                  <Calls calls={t.calls ?? []} root={root} />
+                  <Turn by="agent" dense landed>
+                    <TurnSaid>
+                      <Markdown text={t.body} pinned={t.refs} />
+                    </TurnSaid>
+                    <Calls calls={t.calls ?? []} root={root} />
+                  </Turn>
                 </li>
               );
             }

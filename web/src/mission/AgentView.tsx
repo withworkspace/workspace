@@ -15,6 +15,7 @@ import { MoreLink } from "../ui/MoreLink";
 import { pageScroller } from "../ui/scroller";
 import { Input } from "../ui/Input";
 import { Composer } from "../ui/Composer";
+import { Turn, TurnAvatar, TurnHead, TurnSaid } from "../ui/Turn";
 import { useWorkspace } from "../workspace/store";
 
 // The agent view: a crew as a conversation, the way in to it. What it was
@@ -187,9 +188,7 @@ export function AgentView({ slug, id, crew, live, onTerminal }: { slug: string; 
                 <details key={g.at} className="transcript-brief">
                   <summary>
                     <Icon name="chevron-right" size={12} className="fold-chevron" />
-                    <span className="avatar avatar-agent" aria-hidden>
-                      <Icon name="sparkle" size={11} />
-                    </span>
+                    <TurnAvatar by="agent" className="brief-avatar" />
                     ws briefed {id}: the mission, and how to report back
                     {g.time && <Time iso={g.time} className="dim" />}
                   </summary>
@@ -204,30 +203,21 @@ export function AgentView({ slug, id, crew, live, onTerminal }: { slug: string; 
               );
             case "calls":
               return (
-                <div key={g.at} className="turn-body transcript-calls">
+                <div key={g.at} className="transcript-calls">
                   <Calls calls={g.calls.map(toCall)} open={live && latest} live={working} root={root} fileLink={fileLink} />
                 </div>
               );
             default:
               return (
-                <div key={g.at} className={`turn by-${g.kind === "user" ? "you" : "agent"}`}>
-                  <div className="turn-head">
-                    {g.kind === "user" ? (
-                      <span className="avatar avatar-you" aria-hidden>
-                        <Icon name="user" size={12} />
-                      </span>
-                    ) : (
-                      <CrewBadge id={id} />
-                    )}
-                    {g.kind === "user" && <span className="turn-who">Sent</span>}
-                    {g.time && <Time iso={g.time} className="turn-time" />}
-                  </div>
-                  <div className="turn-body">
-                    <div className="said">
-                      <Markdown text={g.text} />
-                    </div>
-                  </div>
-                </div>
+                <Turn
+                  key={g.at}
+                  by={g.kind === "user" ? "you" : "agent"}
+                  head={<TurnHead avatar={g.kind === "user" ? <TurnAvatar by="you" /> : <CrewBadge id={id} />} who={g.kind === "user" ? "Sent" : undefined} at={g.time} />}
+                >
+                  <TurnSaid>
+                    <Markdown text={g.text} />
+                  </TurnSaid>
+                </Turn>
               );
           }
         })}

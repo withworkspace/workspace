@@ -4557,41 +4557,8 @@ button.on {
   line-height: 1.55;
 }
 
-.brief-planner-body .turn {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
-  min-width: 0;
-}
-
-.brief-planner-body .said {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
 .brief-planner-body .calls-fold {
   min-width: 0;
-}
-
-/* Beside the documents there's no room for who said it at each turn:
-   yours is the bubble, to the right; the planner's is the text. */
-.brief-planner-body .turn.by-you .said {
-  justify-self: end;
-  max-width: 88%;
-  border-radius: var(--radius-lg) 4px var(--radius-lg) var(--radius-lg);
-  font-size: var(--text-md);
-}
-
-.brief-planner-body .said .markdown {
-  font-size: 13.5px;
-  line-height: 1.55;
-}
-
-.brief-planner-body .said .markdown > :first-child {
-  margin-top: 0;
-}
-
-.brief-planner-body .said .markdown > :last-child {
-  margin-bottom: 0;
 }
 
 .brief-planner-body .settled-marker {
@@ -4727,7 +4694,7 @@ button.on {
   border: 0;
 }
 
-.brief-planner.centre .brief-planner-body .said .markdown {
+.brief-planner.centre .brief-planner-body [data-turn] .markdown {
   font-size: var(--text-lg);
   line-height: 1.6;
 }
@@ -7625,7 +7592,7 @@ a.work-file:hover {
   display: none;
 }
 
-.transcript-brief .avatar {
+.transcript-brief .brief-avatar {
   width: 18px;
   height: 18px;
 }
@@ -7647,8 +7614,20 @@ a.work-file:hover {
   color: var(--dim);
 }
 
+/* A run of crew's steps between its turns: set in under the avatar, as
+   a turn's words are. */
 .transcript-calls {
   margin-top: -10px;
+  padding-left: 30px;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .transcript-calls {
+    padding-left: 0;
+  }
 }
 
 .new-pill.floating {
@@ -9344,76 +9323,10 @@ details[open] > summary .fold-chevron {
   gap: 10px;
 }
 
-.turn {
-  display: grid;
-  gap: 4px;
-  animation: enter var(--slow) var(--ease);
-}
-
-/* One that was the run going until now: it's there already. */
-.turn.landed {
-  animation: none;
-}
-
-.turn-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--text-sm);
-}
-
-.turn-who {
-  font-weight: 600;
-}
-
-.turn-time {
-  color: var(--dim);
-}
-
-.avatar {
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  color: var(--dim);
-  background: var(--well);
-  flex: none;
-}
-
-.avatar-you {
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.avatar-agent {
-  color: #fff;
-  background: var(--brand-gradient);
-}
-
-.turn-body {
-  padding-left: 30px;
-  min-width: 0;
-  display: grid;
-  gap: 8px;
-}
-
+/* Words as they were written: their line breaks are their own. */
 .said-text {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-/* Your turns: a soft bubble, so the conversation reads as one. */
-.turn.by-you .said {
-  justify-self: start;
-  max-width: 100%;
-  padding: 8px 12px;
-  border-radius: 4px var(--radius-lg) var(--radius-lg) var(--radius-lg);
-  background: var(--accent-soft);
-}
-
-.turn.by-ws .said {
-  color: var(--dim);
 }
 
 /* A card you settled: a turn ws wrote for you, which the agent read as
@@ -9483,7 +9396,7 @@ button.settled-marker-more:hover {
   color: var(--fg);
 }
 
-.settled-marker .turn-time {
+.settled-marker-time {
   flex: none;
   font-size: var(--text-xs);
 }
@@ -9493,10 +9406,6 @@ button.settled-marker-more:hover {
   margin-left: 30px;
   border-left: 2px solid var(--line);
   font-size: var(--text-sm);
-}
-
-.turn.running .said {
-  font-style: normal;
 }
 
 .typing {
@@ -10041,7 +9950,6 @@ button.settled-marker-more:hover {
     display: none;
   }
 
-  .turn-body,
   .proposal {
     padding-left: 0;
     margin-left: 0;
@@ -12852,20 +12760,15 @@ span.save-state {
   min-height: 0;
 }
 
-.cell-turn.you {
-  justify-self: end;
-  max-width: 88%;
+/* A cell's turns are drawn as any exchange's (ui/Turn.tsx); what's under
+   one of yours keeps to its side. */
+.cell-turn {
   display: grid;
-  justify-items: end;
   gap: 3px;
 }
 
-.cell-said {
-  padding: 5px 10px;
-  border-radius: 12px 12px 3px 12px;
-  background: var(--accent-soft);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+.cell-version.yours {
+  justify-self: end;
 }
 
 .cell-turn.failed {
@@ -13486,14 +13389,6 @@ button.finding-quote:hover {
 .cell-turn.answer {
   padding: 2px 0 2px 10px;
   border-left: 2px solid var(--waiting-fill);
-}
-
-.cell-turn.answer .markdown > :first-child {
-  margin-top: 0;
-}
-
-.cell-turn.answer .markdown > :last-child {
-  margin-bottom: 0;
 }
 
 /* What was found out about a finding, under it on the pass's tab. */
@@ -15131,28 +15026,6 @@ body.nav-pointing .code-view code[data-rev] {
   background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--raised);
 }
 
-.ask-turn {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.ask-answer .markdown,
-.ask-said .markdown {
-  font-size: 13.5px;
-  line-height: 1.55;
-}
-
-.ask-answer .markdown > :first-child,
-.ask-said .markdown > :first-child {
-  margin-top: 0;
-}
-
-.ask-answer .markdown > :last-child,
-.ask-said .markdown > :last-child {
-  margin-bottom: 0;
-}
-
 /* A citation of one of the document's sections: it scrolls there. */
 .ask-answer a[href^="#"] {
   display: inline-flex;
@@ -15168,12 +15041,6 @@ body.nav-pointing .code-view code[data-rev] {
 
 .ask-answer a[href^="#"]:hover {
   background: var(--accent-line);
-}
-
-.ask-ws {
-  margin: 0;
-  color: var(--dim);
-  font-size: var(--text-sm);
 }
 
 /* The reader's Ask, by Edit and Files. */
@@ -16296,20 +16163,8 @@ input[type="text"].tweak-text {
   box-shadow: var(--shadow-lg);
 }
 
-.convo-you {
-  display: grid;
-  justify-items: end;
-  gap: 4px;
-}
-.convo-said {
-  max-width: 90%;
-  padding: 6px 10px;
-  border-radius: var(--radius-lg);
-  background: var(--accent-soft);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
 .convo-given {
+  justify-self: end;
   max-width: 90%;
   color: var(--faint);
   font-size: var(--text-xs);
