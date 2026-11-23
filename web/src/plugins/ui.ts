@@ -1,5 +1,5 @@
 import type { V1 } from "@withworkspace/ui-lib/protocol";
-import type { Anchor } from "../ui/hover";
+import type { Anchor } from "../ui/FloatingCard";
 import { type Hovering, hovering } from "./hover";
 
 // ws's own UI, for a plugin's page. Some of what a page wants shown is

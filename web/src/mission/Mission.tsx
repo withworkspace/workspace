@@ -29,7 +29,7 @@ import { Inline, plain } from "../ui/inline";
 import { Callout, type CalloutTone, Copyable, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useTitle } from "../ui/kit";
 import { headlineStatus, missionStateStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
-import { RefContext } from "../ui/hover";
+import { RefContext } from "../refs/context";
 import { useRefs } from "../refs/known";
 import { refAt, refKey } from "../refs/refs";
 import { RefTag } from "../refs/RefTag";

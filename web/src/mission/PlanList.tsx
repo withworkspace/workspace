@@ -1,6 +1,8 @@
 import { Fragment, useContext, useMemo, useRef, useState } from "react";
 import type { MissionDetail, Stage, StageCheck } from "../api";
-import { FloatingCard, RefContext, useHoverDelay } from "../ui/hover";
+import { FloatingCard } from "../ui/FloatingCard";
+import { useHoverDelay } from "../ui/useHoverDelay";
+import { RefContext } from "../refs/context";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { crewStatus } from "../ui/status";

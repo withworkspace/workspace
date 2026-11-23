@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import type { MissionDetail } from "../api";
-import { type Refs } from "../ui/hover";
-import { HoverCard } from "../ui/hover";
+import { type Refs } from "../refs/context";
+import { HoverCard } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { Status, type StatusInfo } from "../ui/status";

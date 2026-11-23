@@ -11,7 +11,7 @@ describe("Dialog", () => {
   // react-aria makes everything outside an open dialog inert. What's
   // drawn over it from elsewhere on the page has to say it's to be left.
   it("leaves hover cards and toasts be", () => {
-    expect(read("hover.tsx")).toContain('data-react-aria-top-layer=""');
+    expect(read("FloatingCard.tsx")).toContain('data-react-aria-top-layer=""');
     expect(read("kit.tsx")).toContain('data-react-aria-top-layer=""');
   });
 

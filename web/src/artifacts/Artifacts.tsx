@@ -6,7 +6,7 @@ import { useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
 import { refKey, refName } from "../refs/refs";
 import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../review/highlight";
-import { HoverCard } from "../ui/hover";
+import { HoverCard } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { Copyable, Empty, ErrorCard, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";

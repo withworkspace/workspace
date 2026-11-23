@@ -12,7 +12,7 @@ import { goneCapsule, GROUND, isOutside, type Known, namedOf, type PageRef, refH
 import { type Surface, thingBlocks } from "./thing";
 import { type Pointer, ThingView, useThing } from "./ThingView";
 import { thingIcon } from "./views";
-import { type Anchor, FloatingCard } from "../ui/hover";
+import { type Anchor, FloatingCard } from "../ui/FloatingCard";
 import { PinButton } from "../shell/focus";
 import { prOf } from "./prs";
 import { Chip } from "../ui/Chip";
