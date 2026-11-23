@@ -1,3 +1,4 @@
+import { AskField } from "../ask/AskField";
 import { type ReactNode, type Ref, type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Doing } from "../ui/Doing";
 import { Link } from "react-router";
@@ -160,10 +161,12 @@ function YourWords({ body }: { body: string }) {
   );
 }
 
-// PlannerField is where the planner's asked: the ask bar's field, with
-// what to ask offered over it as it's gone to, and a passage in hand as a
-// chip. placeholder is what it says while empty; busy, while what was
-// asked is being sent.
+// PlannerField is where the planner's asked: the ask field (AskField),
+// with what to ask offered over it as it's gone to, and a passage in hand
+// as a chip. placeholder is what it says while empty; busy, while what
+// was asked is being sent. What's asked is said in the planner's
+// conversation, which is drawn on this page: it's the conversation's own
+// view, so nothing opens beside.
 export function PlannerField({
   held,
   dropHeld,
@@ -181,79 +184,16 @@ export function PlannerField({
   busy: boolean;
   placeholder?: string;
 }) {
-  const [text, setText] = useState("");
-  const [focused, setFocused] = useState(false);
-  const [pick, setPick] = useState(-1);
-  const offered = focused && !text && !busy ? suggestions : [];
-  const send = (q: string) => {
-    if (!q.trim() || busy) return;
-    ask(q.trim());
-    setText("");
-    setPick(-1);
-  };
-  const says = held ? held.placeholder : placeholder;
   return (
-    <div className="askbar-wrap brief-ask">
-      {offered.length > 0 && (
-        <div className="ask-suggest" role="listbox" aria-label="Suggestions">
-          {offered.map((s, i) => (
-            <button type="button" key={s} role="option" aria-selected={i === pick} className={`ask-suggestion${i === pick ? " sel" : ""}`} onMouseDown={(e) => e.preventDefault()} onMouseMove={() => i !== pick && setPick(i)} onClick={() => send(s)}>
-              <Icon name="sparkle" size={11} />
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className={`askbar${busy ? " sending" : ""}`}>
-        <Icon name={busy ? "spinner" : "sparkle"} size={14} className={`askbar-icon${busy ? " spin" : ""}`} />
-        {held && (
-          <span className={`ask-ctx ${held.kind}`} title={held.title}>
-            <Icon name={held.icon} size={11} />
-            <span className="q">{held.text}</span>
-            <Button type="button" onClick={dropHeld} title={held.drop} aria-label={held.drop}>
-              <Icon name="x" size={11} />
-            </Button>
-          </span>
-        )}
-        <input
-          ref={input}
-          value={text}
-          placeholder={says}
-          aria-label={says}
-          aria-busy={busy}
-          onChange={(e) => {
-            setText(e.target.value);
-            setPick(-1);
-          }}
-          onKeyDown={(e) => {
-            if (e.nativeEvent.isComposing) return;
-            if (e.key === "Enter") {
-              e.preventDefault();
-              send(!text && offered[pick] ? offered[pick] : text);
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              if (pick >= 0) return setPick(-1);
-              e.currentTarget.blur();
-            } else if (e.key === "ArrowUp" && offered.length) {
-              // What's offered stands over the field, the first nearest it.
-              e.preventDefault();
-              setPick((x) => Math.min(offered.length - 1, x + 1));
-            } else if (e.key === "ArrowDown" && offered.length) {
-              e.preventDefault();
-              setPick((x) => Math.max(-1, x - 1));
-            } else if (e.key === "Backspace" && !text && held) {
-              dropHeld();
-            }
-          }}
-          onFocus={() => setFocused(true)}
-          onBlur={() => {
-            setFocused(false);
-            setPick(-1);
-          }}
-        />
-        <Keys k="/" className="askbar-key" />
-      </div>
-    </div>
+    <AskField
+      className="brief-ask"
+      field={input}
+      placeholder={held ? held.placeholder : placeholder}
+      busy={busy}
+      suggestions={suggestions}
+      holding={held && { icon: held.icon, text: held.text, title: held.title, kind: held.kind, drop: { label: held.drop, onDrop: dropHeld } }}
+      onAsk={ask}
+    />
   );
 }
 

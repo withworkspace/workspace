@@ -826,6 +826,8 @@ async function main() {
   let poked = 0;
   let failed = "";
   const counts = { changed: 0, themes: 0, navigated: 0, refs: 0, outside: 0 };
+  let talk = "not said";
+  let holding = false;
   let closeMenu = () => {
   };
   function menu(button) {
@@ -973,14 +975,52 @@ async function main() {
         " ",
         h("button", { type: "button", data: { fixture: "staying-dialog" }, onclick: () => dialog(false) }, "A dialog that stays")
       ),
+      h(
+        "p",
+        {},
+        h("button", { type: "button", data: { fixture: "talk-ask" }, onclick: () => ws.conversation.open({ message: "Where does it go?", context: "Asked from the fixture's button." }) }, "Ask ws something"),
+        " ",
+        h("button", { type: "button", data: { fixture: "talk-open" }, onclick: () => ws.conversation.open({ as: "docked" }) }, "Open the conversation"),
+        " ",
+        h("button", { type: "button", data: { fixture: "talk-close" }, onclick: () => ws.conversation.close() }, "Close it"),
+        " ",
+        h(
+          "button",
+          {
+            type: "button",
+            data: { fixture: "talk-hold" },
+            onclick: () => {
+              holding = !holding;
+              render();
+            }
+          },
+          holding ? "Let go of the note" : "Hold the note"
+        )
+      ),
+      h("p", { className: "dim" }, "The conversation, on a thing's page: ", h("span", { data: { fixture: "talk" } }, talk)),
       h("p", { id: "notes", className: "dim" }, "Notes: back after a filter skips it, as it replaced the entry it was on.")
     );
   }
   let unmark = () => {
   };
+  function converse() {
+    if (!ws.conversation.available) return;
+    const [path, query = ""] = ws.path.split("?");
+    const one = /^\/things\/(?:THING-)?(\d+)$/.exec(path);
+    if (!one) return ws.conversation.set({ ask: false, allow: [] });
+    ws.conversation.set({
+      ask: !new URLSearchParams(query).has("nobar"),
+      allow: ["card", "docked", "popover"],
+      placeholder: `Ask about THING-${one[1]}\u2026`,
+      suggestions: ["Where does it go?", "Put it back on the shelf"],
+      context: `The fixture is showing THING-${one[1]}.`,
+      ...holding ? { holding: { label: "its note", text: things?.find((t) => t.id === Number(one[1]))?.note ?? "" } } : {}
+    });
+  }
   function render() {
     const { title, body } = screen();
     ws.setTitle(title);
+    converse();
     closeMenu();
     unmark();
     const words = names();
@@ -1008,6 +1048,11 @@ async function main() {
     counts.outside++;
     const cell = ws.root.querySelector('[data-fixture="outside"]');
     if (cell) cell.textContent = String(counts.outside);
+  });
+  ws.conversation.onChange((state) => {
+    talk = `${state.open ? `open, ${state.as}` : "closed"}${state.working ? ", working" : ""}`;
+    const cell = ws.root.querySelector('[data-fixture="talk"]');
+    if (cell) cell.textContent = talk;
   });
   render();
   await load();

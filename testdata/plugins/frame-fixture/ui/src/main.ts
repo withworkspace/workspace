@@ -57,6 +57,10 @@ async function main() {
   let poked = 0;
   let failed = "";
   const counts = { changed: 0, themes: 0, navigated: 0, refs: 0, outside: 0 };
+  // The conversation about the thing that's open: where ws last said it
+  // is, and whether the app's holding something for it.
+  let talk = "not said";
+  let holding = false;
 
   // A menu under its button, which a press anywhere else closes: in the
   // app, or in ws outside the frame, which the app never sees and ws says
@@ -228,6 +232,29 @@ async function main() {
         " ",
         h("button", { type: "button", data: { fixture: "staying-dialog" }, onclick: () => dialog(false) }, "A dialog that stays"),
       ),
+      h(
+        "p",
+        {},
+        h("button", { type: "button", data: { fixture: "talk-ask" }, onclick: () => ws.conversation.open({ message: "Where does it go?", context: "Asked from the fixture's button." }) }, "Ask ws something"),
+        " ",
+        h("button", { type: "button", data: { fixture: "talk-open" }, onclick: () => ws.conversation.open({ as: "docked" }) }, "Open the conversation"),
+        " ",
+        h("button", { type: "button", data: { fixture: "talk-close" }, onclick: () => ws.conversation.close() }, "Close it"),
+        " ",
+        h(
+          "button",
+          {
+            type: "button",
+            data: { fixture: "talk-hold" },
+            onclick: () => {
+              holding = !holding;
+              render();
+            },
+          },
+          holding ? "Let go of the note" : "Hold the note",
+        ),
+      ),
+      h("p", { className: "dim" }, "The conversation, on a thing's page: ", h("span", { data: { fixture: "talk" } }, talk)),
       h("p", { id: "notes", className: "dim" }, "Notes: back after a filter skips it, as it replaced the entry it was on."),
     );
   }
@@ -235,9 +262,28 @@ async function main() {
   // The marks of the words last rendered: stopped when they're replaced.
   let unmark = () => {};
 
+  // The conversation about a thing, on its page: ws draws the bar at the
+  // page's foot and holds the conversation beside the page. ?nobar says
+  // no bar, so the only ways in are ⌘J and the app asking for it open.
+  function converse() {
+    if (!ws.conversation.available) return;
+    const [path, query = ""] = ws.path.split("?");
+    const one = /^\/things\/(?:THING-)?(\d+)$/.exec(path);
+    if (!one) return ws.conversation.set({ ask: false, allow: [] });
+    ws.conversation.set({
+      ask: !new URLSearchParams(query).has("nobar"),
+      allow: ["card", "docked", "popover"],
+      placeholder: `Ask about THING-${one[1]}…`,
+      suggestions: ["Where does it go?", "Put it back on the shelf"],
+      context: `The fixture is showing THING-${one[1]}.`,
+      ...(holding ? { holding: { label: "its note", text: things?.find((t) => t.id === Number(one[1]))?.note ?? "" } } : {}),
+    });
+  }
+
   function render() {
     const { title, body } = screen();
     ws.setTitle(title);
+    converse();
     // The menu hangs off a button that's about to be drawn again.
     closeMenu();
     unmark();
@@ -274,6 +320,14 @@ async function main() {
     counts.outside++;
     const cell = ws.root.querySelector('[data-fixture="outside"]');
     if (cell) cell.textContent = String(counts.outside);
+  });
+
+  // Where the conversation is, as ws says it: beside the page or not,
+  // next to it (docked) or over it (popover), and whether it's answering.
+  ws.conversation.onChange((state) => {
+    talk = `${state.open ? `open, ${state.as}` : "closed"}${state.working ? ", working" : ""}`;
+    const cell = ws.root.querySelector('[data-fixture="talk"]');
+    if (cell) cell.textContent = talk;
   });
 
   render();

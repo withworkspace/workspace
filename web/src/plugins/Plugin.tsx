@@ -76,9 +76,8 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
   const [start] = useState(`${frameBase(name)}${wanted}`);
   const frame = useRef<Frame>(undefined);
   // The conversation about what the page is of: ws's own, which the app
-  // drives over the frame, remembering the person's choice of form for
-  // the plugin.
-  const [conversation] = useState(() => createHost(name));
+  // drives over the frame. It's held beside the page (Beside).
+  const [conversation] = useState(() => createHost());
   // The UIs of ws's own the app has asked for (a ref's card, by its
   // words), drawn over the frame; what comes of one ws closes, the app
   // is told.
@@ -233,7 +232,7 @@ function PluginFrame({ name, plugins, ws }: { name: string; plugins?: Plugin[]; 
           {refused}
         </div>
       )}
-      <PageConversation host={conversation} about={about} root={workspace?.root}>
+      <PageConversation host={conversation} about={about}>
         <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} onLoad={() => frame.current?.loaded()} />
       </PageConversation>
       <FrameUiLayer uis={uis} frame={iframe} plugin={name} />

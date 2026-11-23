@@ -61,7 +61,7 @@ import { clip } from "../ui/text";
 export const prReviewKeys: [string, string][] = [
   ["[ / ]", "The layer below / above, in a stack"],
   ["w", "The whole stack together, or back to the layer"],
-  ["/", "Go to the ask bar"],
+  ["/", "Go to the ask bar: what you ask opens beside the page"],
   ["a", "Ask about the line (or the selected lines)"],
   ["A", "Ask about the pull request"],
   ["o", "Open it on GitHub"],
@@ -567,12 +567,10 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
         ref={asker}
         about={askAbout}
         suggestions={suggest}
-        root={workspace.root}
         // A comment added to the draft is on its lines, read again.
         onSettled={(p) => p.kind === "comment" && p.state === "accepted" && bumpTook()}
       />
     ),
-    dismiss: () => asker.current?.close() ?? false,
     keys: {
       "[": () => go(layers[at - 1]),
       "]": () => go(layers[at + 1]),

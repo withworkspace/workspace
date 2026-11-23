@@ -20,6 +20,9 @@ import { AppPage } from "./apps/AppPage";
 import { RunsPage } from "./runs/Runs";
 import { useFrameDim } from "./plugins/dim";
 import { useFrameHere } from "./plugins/here";
+import { useRefs } from "./refs/known";
+import type { Known } from "./refs/refs";
+import { hereAt } from "./shell/here";
 import { useFrameExpanded } from "./plugins/layout";
 import { PluginPage } from "./plugins/Plugin";
 import { RefsProvider } from "./refs/known";
@@ -50,9 +53,11 @@ import { duration } from "./ui/time";
 import { SiloPoint } from "./silo/SiloPoint";
 import { Count } from "./ui/Count";
 import { buttonClass } from "./ui/Button";
-import { hideSidebar, narrowQuery, sidebarPlace } from "./chrome/chromeState";
+import { Beside } from "./chrome/Beside";
+import { hideSidebar, narrowQuery, sidebarPlace, toggleBeside } from "./chrome/chromeState";
 import { FindButton } from "./chrome/FindButton";
 import { Foot } from "./chrome/Foot";
+import { FootBeside } from "./chrome/FootBeside";
 import { FootCrew } from "./chrome/FootCrew";
 import { FootSidebar } from "./chrome/FootSidebar";
 import { FootSep } from "./chrome/FootSep";
@@ -62,7 +67,7 @@ import { NotifyToggle } from "./chrome/NotifyToggle";
 import { Places } from "./chrome/Places";
 import { Shell } from "./chrome/Shell";
 import { Sidebar } from "./chrome/Sidebar";
-import { useChrome } from "./chrome/useChrome";
+import { useBeside, useChromeStore } from "./chrome/store";
 import { WorkspaceName } from "./chrome/WorkspaceName";
 import { pageScroller } from "./ui/scroller";
 
@@ -93,9 +98,20 @@ export function App() {
   const room = (wantsRoom(location.pathname) || (expandedFor !== undefined && expandedFor === onPlugin)) && !arranging;
   // How this window is arranged, kept in the browser: whether you've
   // hidden the sidebar. On a narrow window it's a drawer whatever else.
-  const [chrome, changeChrome] = useChrome(workspace?.root);
+  // It's the window's (chrome/store.ts), kept for the workspace: until the
+  // workspace is known it's the arrangement of the one last open here,
+  // which is nearly always the same one.
+  const chrome = useChromeStore((c) => c.chrome);
+  const changeChrome = useChromeStore((c) => c.change);
+  const setRoot = useChromeStore((c) => c.setRoot);
+  useLayoutEffect(() => setRoot(workspace?.root), [setRoot, workspace?.root]);
   const narrow = useMedia(narrowQuery);
   const place = sidebarPlace(chrome, room, narrow);
+  // Beside: a peek at a second thing, next to the page. What you ask
+  // about a page opens there (ask/AskBar.tsx), about that page; \ opens
+  // and closes it.
+  const beside = useBeside();
+  useKeys({ "\\": () => beside.all.length > 0 && changeChrome(toggleBeside) });
 
   // The drawer (on a narrow window) closes on going somewhere.
   useEffect(() => setDrawer(false), [location.pathname]);
@@ -200,6 +216,10 @@ export function App() {
           setArranging(false);
         }}
         dim={dim}
+        beside={beside.shown && workspace && <Beside workspace={workspace} sheet={narrow} />}
+        besideOver={beside.over}
+        besideSize={beside.width}
+        still={!workspace}
         pageClassName={connection === "lost" && workspace ? "stale" : undefined}
         side={
           <Sidebar rail={room && !narrow}>
@@ -225,6 +245,9 @@ export function App() {
                 ))}
               </>
             }
+            // Beside's toggle is there while there's something to peek at
+            // here; closed, it's marked.
+            end={beside.all.length > 0 && <FootBeside open={beside.shown} waiting={beside.all.length} onPress={() => changeChrome(toggleBeside)} />}
           />
         }
         overlays={
@@ -261,6 +284,7 @@ export function App() {
         {!workspace && !error && <Loading what="Opening the workspace…" />}
         {workspace && (
           <RefsProvider workspace={workspace} plugins={plugins}>
+            <SaysHere workspace={workspace} />
             <Routes>
               <Route path="/" element={<MissionList missions={workspace.missions} />} />
               <Route path="/missions/:slug" element={<MissionPage workspace={workspace} />} />
@@ -581,6 +605,7 @@ const globalKeys: [string, string][] = [
   ["g f", "Go to Files"],
   ["g o", "Go to the Orchestrator"],
   [".", "Pin what the page is to your Focus, or unpin it"],
+  ["\\", "Open or close what's beside the page: what you asked about it"],
   ["?", "These keys"],
   ["esc", "Close, or go back"],
 ];
@@ -641,6 +666,24 @@ function Help({ keys, onClose }: { keys: [string, string][]; onClose: () => void
 
 // ToBrief is where the brief's own page was: its mission's Brief tab,
 // which is where ws still sends you to brief one.
+// SaysHere says what the page that's open is of (Find's Here), once, for
+// what's beside it (chrome/store.ts): what was opened about a thing is
+// there only on that thing's page. A plugin's page is of what its app
+// says it shows, which needs what there is to name; any other page's
+// address is enough.
+const nothingKnown: Known = { repos: new Map(), missions: [], pages: [], talks: [] };
+
+function SaysHere({ workspace }: { workspace: Workspace }) {
+  const location = useLocation();
+  const known = useRefs()?.known;
+  const frame = useFrameHere();
+  const setHere = useChromeStore((c) => c.setHere);
+  const id = hereAt(location.pathname, location.search, workspace, known ?? nothingKnown, frame)?.id;
+  useLayoutEffect(() => setHere(id), [setHere, id]);
+  useEffect(() => () => setHere(undefined), [setHere]);
+  return null;
+}
+
 function ToBrief() {
   const { slug = "" } = useParams();
   return <Navigate to={briefHref(slug)} replace />;
