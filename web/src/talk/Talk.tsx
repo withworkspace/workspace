@@ -24,7 +24,7 @@ import { Calls } from "../ui/Calls";
 import { TLink } from "../ui/TLink";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Callout, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useAutosize, useDraft, useMedia, useTitle } from "../ui/kit";
+import { Callout, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useDraft, useMedia, useTitle } from "../ui/kit";
 import { Status, type StatusInfo } from "../ui/status";
 import { Time } from "../ui/time";
 import { useHere } from "../load";
@@ -44,6 +44,8 @@ import { pageScroller } from "../ui/scroller";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Input } from "../ui/Input";
 import { TextArea } from "../ui/TextArea";
+import { Composer } from "../ui/Composer";
+import { cx } from "../ui/cx";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
 
@@ -141,7 +143,6 @@ export function TalkList({
   const [text, setText] = useDraft(`new:${slug}`);
   const [starting, setStarting] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
-  useAutosize(box, text, 280);
   // From "New mission": straight into words.
   useEffect(() => {
     if (fresh) box.current?.focus();
@@ -184,38 +185,30 @@ export function TalkList({
       : "What are you thinking about? An idea, a problem, a question about the code…";
   return (
     <>
-      <div className={`composer new-talk${fresh ? " fresh" : ""}`}>
-        <TextArea
-          ref={box}
-          value={text}
-          rows={2}
-          aria-label="Start a conversation"
-          placeholder={placeholder}
-          onChange={(e) => setText(e.target.value)}
-          onBlur={() => fresh && !text && setParams({}, { replace: true })}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              start();
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              e.currentTarget.blur();
-            }
-          }}
-        />
-        <div className="composer-bar">
-          <span className="composer-hint">
+      <Composer
+        className={cx("new-talk", fresh && "fresh")}
+        field={box}
+        value={text}
+        onChange={setText}
+        onSend={start}
+        rows={2}
+        tallest={280}
+        aria-label="Start a conversation"
+        placeholder={placeholder}
+        onBlur={() => fresh && !text && setParams({}, { replace: true })}
+        hint={
+          <>
             <Icon name="eye" size={12} />
             {slug
               ? "The agent reads the mission and everything around it and changes nothing. It can propose a decision, a brief, crew, a replan or a follow-up."
               : `The agent reads the repos, the missions and GitHub, and changes nothing. It can propose a mission${docs ? ", a decision or a document" : " or a decision"}.`}
-          </span>
-          <Keys k="mod+⏎" className="composer-keys" />
-          <Button variant="primary" disabled={!text.trim() || starting} onClick={start}>
-            {starting ? "Starting…" : "Start"}
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      >
+        <Button variant="primary" disabled={!text.trim() || starting} onClick={start}>
+          {starting ? "Starting…" : "Start"}
+        </Button>
+      </Composer>
       {talks.length === 0 ? (
         all.length ? (
           <Empty icon="check-circle" title="Nothing open">
@@ -322,7 +315,6 @@ export function TalkPage() {
   const [sending, setSending] = useState(false);
   const [unseen, setUnseen] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
-  useAutosize(box, text, 320);
   // What's come of it, beside it: when there's room, unless it's put away.
   const wide = useMedia("(min-width: 1240px)");
   const [sideOn, setSideOn] = usePref("talkSide");
@@ -667,32 +659,18 @@ export function TalkPage() {
               <Icon name="arrow-down" size={12} /> New reply
             </button>
           )}
-          <div className="composer">
-            <TextArea
-              ref={box}
-              value={text}
-              rows={1}
-              aria-label="Reply"
-              placeholder={d?.answering ? "Say more: it's sent once the agent's done" : d?.status === "resolved" ? "Reply to reopen it…" : "Reply…"}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                  send();
-                } else if (e.key === "Escape") {
-                  e.preventDefault();
-                  e.currentTarget.blur();
-                }
-              }}
-            />
-            <div className="composer-bar">
-              <span className="spacer" />
-              <Keys k="mod+⏎" className="composer-keys" />
-              <Button variant="primary" disabled={!text.trim() || sending} onClick={send}>
-                {sending ? "Sending…" : "Send"}
-              </Button>
-            </div>
-          </div>
+          <Composer
+            field={box}
+            value={text}
+            onChange={setText}
+            onSend={send}
+            aria-label="Reply"
+            placeholder={d?.answering ? "Say more: it's sent once the agent's done" : d?.status === "resolved" ? "Reply to reopen it…" : "Reply…"}
+          >
+            <Button variant="primary" disabled={!text.trim() || sending} onClick={send}>
+              {sending ? "Sending…" : "Send"}
+            </Button>
+          </Composer>
         </div>
       </div>
       {side && <TalkSide d={d} slug={slug} id={id} artifacts={workspace.artifacts} goTo={goTo} />}

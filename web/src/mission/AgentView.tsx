@@ -4,7 +4,7 @@ import { answerCrew, type Crew, type CrewAnswer, type CrewPrompt, getCrewPrompt,
 import { Markdown } from "../markdown/LazyMarkdown";
 import { type Call, Calls, EditDiff, Plan } from "../ui/Calls";
 import { Icon } from "../ui/Icon";
-import { Empty, ErrorCard, humanError, Keys, Loading, toast, useAutosize, useDraft } from "../ui/kit";
+import { Empty, ErrorCard, humanError, Loading, toast, useDraft } from "../ui/kit";
 import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
 import { CrewBadge } from "./parts";
@@ -13,7 +13,7 @@ import { useLatest } from "../load";
 import { Button } from "../ui/Button";
 import { pageScroller } from "../ui/scroller";
 import { Input } from "../ui/Input";
-import { TextArea } from "../ui/TextArea";
+import { Composer } from "../ui/Composer";
 import { useWorkspace } from "../workspace/store";
 
 // The agent view: a crew as a conversation, the way in to it. What it was
@@ -266,7 +266,7 @@ export function AgentView({ slug, id, crew, live, onTerminal }: { slug: string; 
           </button>
         )}
         {asking && crew && <PromptCard slug={slug} crew={crew} pending={pending} fileLink={fileLink} onTerminal={onTerminal} />}
-        <Composer slug={slug} id={id} crew={crew} live={live} working={working} />
+        <TellCrew slug={slug} id={id} crew={crew} live={live} working={working} />
       </div>
     </div>
   );
@@ -438,14 +438,13 @@ export function PromptCard({
   );
 }
 
-// Composer tells crew what's next: typed in and sent if it's running, or
+// TellCrew tells crew what's next: typed in and sent if it's running, or
 // resuming it with it if it's ended. While it works, Interrupt stops its
 // turn (Escape), not the crew.
-function Composer({ slug, id, crew, live, working }: { slug: string; id: string; crew?: Crew; live: boolean; working: boolean }) {
+function TellCrew({ slug, id, crew, live, working }: { slug: string; id: string; crew?: Crew; live: boolean; working: boolean }) {
   const [text, setText] = useDraft(`crew:${slug}/${id}`);
   const [busy, setBusy] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
-  useAutosize(box, text, 280);
   const canResume = !live && !!crew && crew.ended;
   const send = () => {
     if (!text.trim() || busy) return;
@@ -467,50 +466,41 @@ function Composer({ slug, id, crew, live, working }: { slug: string; id: string;
     );
   if (!live && !canResume) return null;
   return (
-    <div className="composer agent-composer">
-      <TextArea
-        ref={box}
-        value={text}
-        rows={1}
-        aria-label={`Message ${id}`}
-        placeholder={live ? (working ? `Tell ${id} something: it reads it when this step's done` : `Tell ${id} what's next…`) : `Resume ${id} with a message…`}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-            e.preventDefault();
-            send();
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            e.currentTarget.blur();
-          }
-        }}
-      />
-      <div className="composer-bar">
-        <span className="composer-hint">
-          {live && crew?.structured ? (
-            <>
-              <Icon name="message" size={12} /> Sent to it as a message{working ? ", for when this turn ends" : ""}.
-            </>
-          ) : live ? (
-            <>
-              <Icon name="terminal" size={12} /> Typed into its terminal and sent, as if you'd typed it there.
-            </>
-          ) : (
-            <>
-              <Icon name="rotate" size={12} /> It's ended: this starts it again, in its capsule, with your message.
-            </>
-          )}
-        </span>
-        {working && (
+    <Composer
+      className="agent-composer"
+      field={box}
+      value={text}
+      onChange={setText}
+      onSend={send}
+      tallest={280}
+      aria-label={`Message ${id}`}
+      placeholder={live ? (working ? `Tell ${id} something: it reads it when this step's done` : `Tell ${id} what's next…`) : `Resume ${id} with a message…`}
+      hint={
+        live && crew?.structured ? (
+          <>
+            <Icon name="message" size={12} /> Sent to it as a message{working ? ", for when this turn ends" : ""}.
+          </>
+        ) : live ? (
+          <>
+            <Icon name="terminal" size={12} /> Typed into its terminal and sent, as if you'd typed it there.
+          </>
+        ) : (
+          <>
+            <Icon name="rotate" size={12} /> It's ended: this starts it again, in its capsule, with your message.
+          </>
+        )
+      }
+      also={
+        working && (
           <Button variant="ghost" onClick={interrupt} title="Stop what it's doing now (its turn), not the crew">
             <Icon name="stop" size={12} /> Interrupt
           </Button>
-        )}
-        <Keys k="mod+⏎" className="composer-keys" />
-        <Button variant="primary" disabled={!text.trim() || busy} onClick={send}>
-          {busy ? "Sending…" : live ? "Send" : "Resume"}
-        </Button>
-      </div>
-    </div>
+        )
+      }
+    >
+      <Button variant="primary" disabled={!text.trim() || busy} onClick={send}>
+        {busy ? "Sending…" : live ? "Send" : "Resume"}
+      </Button>
+    </Composer>
   );
 }

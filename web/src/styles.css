@@ -1129,13 +1129,11 @@ main.stale > :not(.connection-banner) {
 .hovercard,
 .work-pane,
 .change-pop,
-.composer,
 .proposal,
 .wt-menu,
 .code-view,
 .pinned-plan,
 .prompt-card,
-.agent-composer,
 .edit-diff,
 .rpass-findings > li,
 .pr-submit-layer,
@@ -9303,63 +9301,6 @@ blockquote.editor-on {
 
 /* Conversations: the list, and a conversation's chat view. */
 
-/* A composer: a box that grows as you write, a bar under it. */
-.composer {
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-lg);
-  background: var(--raised);
-  box-shadow: var(--shadow-xs);
-  transition:
-    border-color var(--fast) var(--ease),
-    box-shadow var(--fast) var(--ease);
-}
-
-.composer:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.composer textarea {
-  display: block;
-  width: 100%;
-  border: 0;
-  background: transparent;
-  padding: 12px 14px 4px;
-  box-shadow: none !important;
-  font-size: var(--text-md);
-}
-
-.composer-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 8px 8px 14px;
-}
-
-.composer-hint {
-  flex: 1;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  color: var(--dim);
-  font-size: var(--text-sm);
-  min-width: 0;
-}
-
-.composer-hint .icon {
-  flex: none;
-  align-self: center;
-}
-
-.composer-keys {
-  opacity: 0;
-  transition: opacity var(--fast) var(--ease);
-}
-
-.composer:focus-within .composer-keys {
-  opacity: 1;
-}
-
 .new-talk {
   margin-bottom: var(--space-6);
 }
@@ -10389,10 +10330,6 @@ button.settled-marker-more:hover {
 
   .proposal-frames.two {
     grid-template-columns: 1fr;
-  }
-
-  .composer-hint {
-    display: none;
   }
 
   .talk-reply {
@@ -11749,10 +11686,6 @@ details.repo-group > summary::-webkit-details-marker {
   display: grid;
   gap: 8px;
   width: 100%;
-}
-
-.agent-composer {
-  background: var(--raised);
 }
 
 /* Steps that read as themselves: an edit as a diff, a plan, a question. */
@@ -13304,20 +13237,9 @@ a.source-chip.tone-attention:hover {
   font-size: var(--text-sm);
 }
 
-.composer.cell-composer {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
+/* A cell's composer (ui/Composer.tsx, beside), placed in its panel. */
+.cell-composer {
   margin: 10px 10px 0;
-  padding: 0 6px 6px 0;
-  border-radius: var(--radius);
-  box-shadow: none;
-}
-
-.composer.cell-composer textarea {
-  flex: 1;
-  padding: 8px 10px 4px;
-  resize: none;
 }
 
 .cell-panel-foot {
@@ -13334,10 +13256,6 @@ a.source-chip.tone-attention:hover {
 
 .cell-panel-foot .change-hint {
   font: var(--text-xs) var(--font);
-}
-
-.change-box .composer.cell-composer {
-  margin-top: 10px;
 }
 
 @media (max-width: 860px) {
@@ -13873,10 +13791,6 @@ button.finding-quote:hover {
   margin-bottom: 0;
 }
 
-.cell-composer > button {
-  flex: none;
-}
-
 /* What was found out about a finding, under it on the pass's tab. */
 .found-out {
   margin-top: 10px;
@@ -13888,7 +13802,7 @@ button.finding-quote:hover {
   padding: 0;
 }
 
-.found-out .composer.cell-composer {
+.found-out .cell-composer {
   margin: 8px 0 0;
 }
 
