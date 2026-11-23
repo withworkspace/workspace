@@ -1,0 +1,57 @@
+/* A pane's head (PaneHead.tsx): a thing's title, the way to its page, and
+   a quieter line under them. */
+
+@layer ui {
+  .head {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .title {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .open {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+    color: var(--dim);
+    font-size: var(--text-sm);
+  }
+
+  .open:hover {
+    color: var(--accent);
+  }
+
+  .sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    color: var(--dim);
+    font-size: var(--text-sm);
+  }
+
+  /* With no title, how it stands is the line, and the ways on are at its
+     end. */
+  .only {
+    flex: 1;
+    min-width: 0;
+  }
+}

@@ -1,0 +1,48 @@
+/* A dock's edge (DockEdge.tsx): a strip along the side of the dock that
+   faces the page, wider than it looks, with a line that shows while it's
+   pointed at, dragged, or has the keys. */
+
+@layer ui {
+  .edge {
+    position: absolute;
+    z-index: 3;
+    touch-action: none;
+  }
+
+  .beside {
+    top: 12px;
+    bottom: 12px;
+    left: -7px;
+    width: 12px;
+    cursor: col-resize;
+  }
+
+  .below {
+    left: 12px;
+    right: 12px;
+    top: -7px;
+    height: 12px;
+    cursor: row-resize;
+  }
+
+  .edge::after {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: 2px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity var(--fast) var(--ease);
+  }
+
+  .edge:hover::after,
+  .edge:active::after,
+  .edge:focus-visible::after {
+    opacity: 0.55;
+  }
+
+  /* The line says where the keys are: no ring round a strip this thin. */
+  .edge:focus-visible {
+    outline: none;
+  }
+}

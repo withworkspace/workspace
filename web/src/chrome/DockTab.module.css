@@ -1,0 +1,116 @@
+/* A dock's tab (DockTab.tsx): a mission's tab, smaller, with a way to
+   close it. The one that's open is underlined in the accent. */
+
+@layer ui {
+  .tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    /* Short of room, it gives some up, down to a few letters of its
+       name (below), before the row has to scroll. */
+    flex: 0 1 auto;
+    min-width: min(112px, 100%);
+    /* Never wider than the row: the one in front is all in sight. */
+    max-width: min(200px, 100%);
+    border-radius: var(--radius) var(--radius) 0 0;
+    color: var(--dim);
+  }
+
+  .tab:hover {
+    color: var(--fg);
+    background: var(--hover);
+  }
+
+  .tab::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform var(--slow) var(--ease);
+  }
+
+  /* The dock's own (no way to close it: Details, Running) has a short
+     name, and keeps the room it takes. */
+  .own {
+    flex: none;
+    min-width: 0;
+  }
+
+  /* The one in front keeps its room: it's what you're looking at. */
+  .on {
+    flex-shrink: 0;
+    color: var(--fg);
+  }
+
+  .on::after {
+    transform: scaleX(1);
+  }
+
+  .pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 30px;
+    padding: 5px 9px;
+    border: 0;
+    border-radius: inherit;
+    box-shadow: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .count {
+    color: var(--dim);
+    font-size: var(--text-xs);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* There while the tab is open, pointed at, or has the keys: it keeps
+     its room either way, so nothing moves. */
+  .close {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    min-height: 0;
+    margin: 0 5px 0 -5px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    box-shadow: none;
+    background: none;
+    color: var(--faint);
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .tab:hover .close,
+  .on .close,
+  .close:focus-visible {
+    opacity: 1;
+  }
+
+  .close:hover {
+    color: var(--fg);
+    background: var(--line);
+  }
+}

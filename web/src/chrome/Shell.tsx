@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
 import { cx } from "../ui/cx";
 import type { SidebarPlace } from "./chromeState";
 import css from "./Shell.module.css";
@@ -13,6 +13,18 @@ type ShellProps = {
   onDrawerClose?: () => void;
   // The sidebar's card (Sidebar).
   side: ReactNode;
+  // Beside the page: a Dock, when there's something to peek at there.
+  // Docked, the page makes room for it; over, the page keeps its width
+  // and the dock floats over its end. On a narrow window it's a sheet over
+  // the page either way, and should be given as one (Dock's sheet).
+  beside?: ReactNode;
+  besideOver?: boolean;
+  // How wide the dock beside is: how far it slides, opening and closing.
+  // Without it, it's there at once.
+  besideSize?: number;
+  // Nothing slides: the window is still opening, and what's beside is
+  // there as it was left, not arriving.
+  still?: boolean;
   // The foot (Foot), the whole width of the window, under the sidebar
   // too.
   foot?: ReactNode;
@@ -31,13 +43,14 @@ type ShellProps = {
   children: ReactNode;
 };
 
-// Shell is the window: the sidebar at its start, the page, and the foot
-// along the bottom. It places them and paints the ground they're on; what
-// each is, is its own part's. The page scrolls within its own room, so
-// the sidebar and the foot stay put.
-export function Shell({ sidebar, drawerOpen, onDrawerClose, side, foot, dim, overlays, className, pageClassName, children }: ShellProps) {
+// Shell is the window: the sidebar at its start, the page, what's beside
+// it, and the foot along the bottom. It places them and paints the ground
+// they're on; what each is, is its own part's. The page scrolls within its
+// own room, so the sidebar, what's beside and the foot stay put.
+export function Shell({ sidebar, drawerOpen, onDrawerClose, side, beside, besideOver, besideSize, still, foot, dim, overlays, className, pageClassName, children }: ShellProps) {
   const narrow = sidebar === "drawer";
   const drawn = narrow && !!drawerOpen;
+  const at = useSliding(beside, !!besideOver, !!still || narrow || !besideSize);
   return (
     <div className={cx(css.shell, sidebar === "rail" && css.railed, sidebar === "hidden" && css.hidden, narrow && css.narrow, drawn && css.drawn, foot ? css.footed : undefined, className)}>
       {drawn && <div className={css.scrim} onClick={onDrawerClose} />}
@@ -51,6 +64,16 @@ export function Shell({ sidebar, drawerOpen, onDrawerClose, side, foot, dim, ove
         <main id="main" className={cx(css.page, pageClassName)}>
           {children}
         </main>
+        {at.node && (
+          <div
+            className={cx(at.over ? css.besideOver : css.beside, at.moving === "in" && css.arriving, at.moving === "out" && css.leaving)}
+            style={{ "--beside-size": `${besideSize ?? 0}px` } as CSSProperties}
+            inert={at.moving === "out"}
+            onAnimationEnd={(e) => e.target === e.currentTarget && at.settle()}
+          >
+            <div className={css.besideIn}>{at.node}</div>
+          </div>
+        )}
       </div>
       {foot && (
         <div className={css.foot} inert={dim}>
@@ -61,4 +84,32 @@ export function Shell({ sidebar, drawerOpen, onDrawerClose, side, foot, dim, ove
       {overlays}
     </div>
   );
+}
+
+// How long a slide may take before it's taken as over, whether or not
+// the browser said it ended (it doesn't, of an animation that never ran).
+const slideAtMost = 600;
+
+// useSliding is what's beside as it's drawn: it slides in when it opens
+// and out when it closes, as the sidebar does, the page's column moving
+// with it. While it slides out it's still drawn, as it last was, though
+// it's no longer given. Nothing slides while the window is still.
+function useSliding(beside: ReactNode, over: boolean, still: boolean): { node: ReactNode; over: boolean; moving?: "in" | "out"; settle: () => void } {
+  const last = useRef<{ node: ReactNode; over: boolean }>(undefined);
+  const [was, setWas] = useState({ had: !!beside, still });
+  const [moving, setMoving] = useState<"in" | "out">();
+  if (beside) last.current = { node: beside, over };
+  if (was.had !== !!beside || was.still !== still) {
+    setWas({ had: !!beside, still });
+    if (was.had !== !!beside) setMoving(was.still || still ? undefined : beside ? "in" : "out");
+  }
+  useEffect(() => {
+    if (!moving) return;
+    const t = setTimeout(() => setMoving(undefined), slideAtMost);
+    return () => clearTimeout(t);
+  }, [moving]);
+  const settle = () => setMoving(undefined);
+  if (beside) return { node: beside, over, moving: moving === "in" ? "in" : undefined, settle };
+  if (moving === "out" && last.current) return { ...last.current, moving, settle };
+  return { node: undefined, over, settle };
 }
