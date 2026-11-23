@@ -52,8 +52,9 @@ export function buttonClass(look: ButtonLook = {}, className?: string): string {
 const variants = { primary: css.primary, danger: css.danger, ghost: css.ghost };
 const sizes = { small: css.small };
 
-// A link's look is its own: none of a button's box to undo.
-function lookOf({ variant, size, square }: ButtonLook): string {
+// A link's look is its own: none of a button's box to undo. (The
+// library's other buttons, ToggleButton's too, are drawn with it.)
+export function lookOf({ variant, size, square }: ButtonLook): string {
   if (variant === "link") return css.link;
   return cx(css.button, variant && variants[variant], square && css.square, size && sizes[size]);
 }

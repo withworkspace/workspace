@@ -49,6 +49,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { Segment, Segmented, segmentClass, segmentedClass } from "../ui/Segmented";
+import { ToggleButton } from "../ui/ToggleButton";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
 // sandboxed frame. A version is its page and the files it loads beside
@@ -411,9 +412,9 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"}>
               <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
             </Button>
-            <Button variant="ghost" size="small" aria-pressed={source} onClick={() => setSource((s) => !s)} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"}>
+            <ToggleButton variant="ghost" size="small" pressed={source} onChange={setSource} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"}>
               <Icon name="code" size={13} /> Source <Keys k="s" />
-            </Button>
+            </ToggleButton>
             {framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} />}
             {comparing ? (
               <Link

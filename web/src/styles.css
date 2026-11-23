@@ -5564,11 +5564,6 @@ dd > .more-link,
   letter-spacing: 0.02em;
 }
 
-.doc-toolbar [aria-pressed="true"] {
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-
 .doc-toolbar .sep {
   width: 1px;
   height: 16px;
@@ -12505,11 +12500,6 @@ details.repo-group > summary::-webkit-details-marker {
   margin: 6px 12px 0;
 }
 
-.whole-stack.on {
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-
 /* The header's controls stay together: when there isn't room beside the
    name, they move to a line of their own as one. */
 .review-actions {
@@ -12918,11 +12908,6 @@ details.repo-group > summary::-webkit-details-marker {
 .files-order {
   color: var(--dim);
   font-weight: 500;
-}
-
-.files-order.on {
-  color: var(--accent);
-  background: var(--accent-soft);
 }
 
 /* What the guide says the change does to a file: under its name, whole,
@@ -14525,11 +14510,6 @@ button.finding-quote:hover {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-}
-
-.team-only-know.on {
-  color: var(--accent);
-  background: var(--selected);
 }
 
 .team-actions {
@@ -16434,11 +16414,6 @@ button.accent-button:hover:not(:disabled) {
 
 .artifact-tools-end a:hover {
   background: var(--hover);
-  color: var(--fg);
-}
-
-.artifact-tools button[aria-pressed="true"]:not([data-selected]) {
-  background: var(--selected);
   color: var(--fg);
 }
 

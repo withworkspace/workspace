@@ -34,6 +34,7 @@ import { type Markdown, parseMarkdown, saveMarkdown } from "./markdown";
 import { schema } from "./schema";
 import { highlighting, nodeViews, placeholder, type Quote, quoteMarks } from "./views";
 import { Button } from "../ui/Button";
+import { ToggleButton } from "../ui/ToggleButton";
 
 // MarkdownEditor edits a markdown document as it reads: headings as
 // headings, lists as lists, a task's box to tick. Markdown typed is
@@ -300,21 +301,20 @@ function Toolbar({ view, onLink, onSource }: { view?: EditorView; onLink: () => 
     view.focus();
   };
   const b = (key: string, icon: IconName | string, title: string, on: boolean, cmd: () => void) => (
-    <Button
+    <ToggleButton
       variant="ghost" square
       className="doc-tool"
       key={key}
-      type="button"
-      aria-pressed={on}
+      pressed={on}
       title={title}
       aria-label={title}
       disabled={!view}
       // Keep the editor's selection: the button acts on it.
       onMouseDown={(e) => e.preventDefault()}
-      onClick={cmd}
+      onChange={cmd}
     >
       {icon.length <= 2 ? <span className="h">{icon}</span> : <Icon name={icon as IconName} />}
-    </Button>
+    </ToggleButton>
   );
   const level = state ? headingLevel(state) : 0;
   const parts: ReactNode[] = [
@@ -337,9 +337,9 @@ function Toolbar({ view, onLink, onSource }: { view?: EditorView; onLink: () => 
     <div className="doc-toolbar" role="toolbar" aria-label="Formatting">
       {parts}
       <span className="spacer" />
-      <Button variant="ghost" size="small" type="button" aria-pressed={false} onClick={onSource} title="Edit the markdown itself">
+      <ToggleButton variant="ghost" size="small" pressed={false} onChange={onSource} title="Edit the markdown itself">
         <Icon name="hash" size={12} /> Markdown
-      </Button>
+      </ToggleButton>
     </div>
   );
 }
@@ -362,9 +362,9 @@ function Source({ text, setText, onRich, initial, label, placeholder, onChange, 
         <div className="doc-toolbar" role="toolbar" aria-label="Formatting">
           <span className="dim">Markdown, as it's saved</span>
           <span className="spacer" />
-          <Button variant="ghost" size="small" type="button" aria-pressed onClick={onRich} title="Back to the document as it reads">
+          <ToggleButton variant="ghost" size="small" pressed onChange={onRich} title="Back to the document as it reads">
             <Icon name="hash" size={12} /> Markdown
-          </Button>
+          </ToggleButton>
         </div>,
         { toolbarIn, toolbarOn },
       )}

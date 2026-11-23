@@ -9,6 +9,7 @@ import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { Segment, Segmented } from "../ui/Segmented";
+import { ToggleButton } from "../ui/ToggleButton";
 
 // Tweaks: what a version's page says can be changed about it, drawn
 // here, beside its frame, and not by the page: a tray of its presets and
@@ -327,9 +328,9 @@ export function TweaksToggle({ told, shown, onToggle }: { told: Told | undefined
   if (!hasTweaks(told)) return null;
   const n = changed(told).length;
   return (
-    <Button variant="ghost" size="small" aria-pressed={shown} onClick={onToggle} title="What its page says can be changed about it">
+    <ToggleButton variant="ghost" size="small" pressed={shown} onChange={onToggle} title="What its page says can be changed about it">
       <Icon name="sliders" size={13} /> Tweaks
       {n ? <Count>{n}</Count> : null} <Keys k="t" />
-    </Button>
+    </ToggleButton>
   );
 }

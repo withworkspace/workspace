@@ -45,6 +45,7 @@ import { PagePin } from "../shell/focus";
 import { Chip, chipClass } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { clip } from "../ui/text";
+import { ToggleButton } from "../ui/ToggleButton";
 
 // A pull request's review: the page a capsule's review is, on commits
 // fetched into the repo's clone. A stack opens as one review, its layers
@@ -607,9 +608,9 @@ function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: b
           );
         })}
       </ol>
-      <Button variant="ghost" size="small" className={`whole-stack ${whole ? " on" : ""}`} aria-pressed={whole} aria-busy={going?.whole || undefined} onClick={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
+      <ToggleButton variant="ghost" size="small" className="whole-stack" pressed={whole} aria-busy={going?.whole || undefined} onChange={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
         <Icon name={going?.whole && !whole ? "spinner" : "layers"} size={12} className={going?.whole && !whole ? "spin" : undefined} /> Whole stack <Keys k="w" />
-      </Button>
+      </ToggleButton>
     </div>
   );
 }

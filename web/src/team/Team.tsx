@@ -16,6 +16,7 @@ import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { Segment, Segmented } from "../ui/Segmented";
+import { ToggleButton } from "../ui/ToggleButton";
 
 // Team: what the people working in the workspace's repos have been doing,
 // by day, newest first. Each pull request, and each run of one person's
@@ -381,9 +382,9 @@ export function TeamPage() {
             ))}
           </Segmented>
           {narrative?.on && (
-            <Button variant="ghost" size="small" className={`team-only-know ${onlyKnow ? " on" : ""}`} aria-pressed={onlyKnow} onClick={know} title="Only the changes with something worth knowing (n)">
+            <ToggleButton variant="ghost" size="small" pressed={onlyKnow} onChange={know} title="Only the changes with something worth knowing (n)">
               <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
-            </Button>
+            </ToggleButton>
           )}
           <input
             ref={filter}

@@ -44,6 +44,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { pageScroller } from "../ui/scroller";
+import { ToggleButton } from "../ui/ToggleButton";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -84,7 +85,7 @@ export function TalksPage({ workspace }: { workspace: Workspace }) {
         actions={
           resolved > 0 && (
             <>
-              <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)} aria-pressed={showResolved}>
+              <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)}>
                 {showResolved ? "Hide resolved" : `Show resolved (${resolved})`} <Keys k="⇧A" />
               </Button>
             </>
@@ -568,9 +569,9 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
             </Link>
           )}
           {wide && (
-            <Button variant="ghost" size="small" aria-pressed={sideOn} onClick={toggleSide} title="Beside the conversation: what's to confirm, what it's made, what it names, and its summary so far">
+            <ToggleButton variant="ghost" size="small" pressed={sideOn} onChange={toggleSide} title="Beside the conversation: what's to confirm, what it's made, what it names, and its summary so far">
               <Icon name="panel" size={12} /> Details
-            </Button>
+            </ToggleButton>
           )}
           {d && (
             <Button onClick={toggle} title={`${d.status === "resolved" ? "Reopen" : "Resolve"} (x)`}>

@@ -32,6 +32,7 @@ import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
+import { ToggleButton } from "../ui/ToggleButton";
 
 // The mission's Verify tab: its verification bundles, what crew handed
 // over to show their work is as its checks say. Those yours to approve are
@@ -712,27 +713,25 @@ function CheckDetail({
             </label>
           )}
           <div className="verify-yours-buttons">
-            <button
-              type="button"
-              className={r.looked ? "on" : ""}
-              aria-pressed={r.looked}
+            <ToggleButton
+              className={r.looked ? "on" : undefined}
+              pressed={!!r.looked}
               disabled={busy}
-              onClick={look}
+              onChange={look}
               title={r.left ? "Say it's fine as it is: it leaves what's left for you" : "Mark it as looked at, to keep your place: approving doesn't need it"}
             >
               <Icon name="check" size={14} /> {r.left ? "Approve check" : "Looked at"} <Keys k="y" />
-            </button>
+            </ToggleButton>
             {c && (
-              <Button
+              <ToggleButton
                 variant={note !== undefined ? "danger" : undefined}
-                type="button"
                 className={note !== undefined ? "on on-danger" : undefined}
-                aria-pressed={note !== undefined}
-                onClick={() => setNote(note === undefined ? "" : undefined)}
+                pressed={note !== undefined}
+                onChange={(on) => setNote(on ? "" : undefined)}
                 title="Say what's not right of it: it goes back to its crew when you send the bundle back"
               >
                 <Icon name="x" size={14} /> Not right <Keys k="n" />
-              </Button>
+              </ToggleButton>
             )}
           </div>
         </div>

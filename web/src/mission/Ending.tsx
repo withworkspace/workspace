@@ -6,6 +6,7 @@ import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { Dialog, humanError, toast } from "../ui/kit";
 import { Button } from "../ui/Button";
+import { ToggleButton } from "../ui/ToggleButton";
 
 // How a mission ends: landed (at Z, its code merged or landed), answered
 // (a finding, no code), handed on (its work raised as other missions) or
@@ -150,12 +151,12 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
                 <span className="dim">{i + 1}.</span> <Inline text={part} />
               </div>
               <div className="z-say">
-                <Button size="small" className={checks[i].met === true ? "on-met" : undefined} aria-pressed={checks[i].met === true} onClick={() => set(i, { met: checks[i].met === true ? undefined : true })}>
+                <ToggleButton size="small" className={checks[i].met === true ? "on-met" : undefined} pressed={checks[i].met === true} onChange={(on) => set(i, { met: on ? true : undefined })}>
                   <Icon name="check" size={12} /> Met
-                </Button>
-                <Button size="small" className={checks[i].met === false ? "on-unmet" : undefined} aria-pressed={checks[i].met === false} onClick={() => set(i, { met: checks[i].met === false ? undefined : false })}>
+                </ToggleButton>
+                <ToggleButton size="small" className={checks[i].met === false ? "on-unmet" : undefined} pressed={checks[i].met === false} onChange={(on) => set(i, { met: on ? false : undefined })}>
                   <Icon name="x" size={12} /> Not met
-                </Button>
+                </ToggleButton>
                 <input value={checks[i].how} onChange={(e) => set(i, { how: e.target.value })} placeholder={checks[i].met === false ? "Why not" : "How: what shows it"} aria-label={`How part ${i + 1} of Z is met, or why not`} />
               </div>
             </div>

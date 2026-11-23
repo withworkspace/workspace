@@ -73,6 +73,7 @@ import { type Tone } from "../ui/tone";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { clip } from "../ui/text";
+import { ToggleButton } from "../ui/ToggleButton";
 
 // A page: a document you write, saved as you go, with cells an agent fills
 // in. A line that starts with >> asks for something; ⏎ makes it a cell and
@@ -704,15 +705,15 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
               <Icon name="spinner" size={11} className="spin" /> Planning{planning.run?.calls.length ? `: ${doing(planning.run.calls.at(-1)!, workspace.root).toLowerCase()}` : "…"}
             </Chip>
           ))}
-        <Button
+        <ToggleButton
           variant="ghost" size="small"
           disabled={!view || tab !== "page"}
-          aria-pressed={adding}
+          pressed={adding}
           title="Ask for something to be added to the page, anywhere in it: a section after Constraints on X, and one after Release on roll out. What's coming is put in at once, and written as you go on"
-          onClick={() => setAdding((v) => !v)}
+          onChange={setAdding}
         >
           <Icon name="plus" size={12} /> Add
-        </Button>
+        </ToggleButton>
         <Button variant="ghost" size="small" disabled={!view || tab !== "page"} title={draftAs.title} onClick={() => plan(draftAs.prompt)}>
           <Icon name="pencil" size={12} /> Draft it
         </Button>
@@ -728,9 +729,9 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
           <Icon name="sparkle" size={12} /> Change <Keys k="mod+⏎" />
         </Button>
         {wide && (
-          <Button variant="ghost" size="small" aria-pressed={mapOn} onClick={toggleMap} title="The page's map: its outline, cells, what's open, and the files it rests on">
+          <ToggleButton variant="ghost" size="small" pressed={mapOn} onChange={toggleMap} title="The page's map: its outline, cells, what's open, and the files it rests on">
             <Icon name="panel" size={12} /> Map
-          </Button>
+          </ToggleButton>
         )}
         {tied && !tied.gone && (
           <Button variant="ghost" size="small" onClick={() => setSavingToFile(true)} disabled={tied.changed} title={tied.changed ? "The file's changed since: bring in what changed first" : `Save it to ${tied.ref}, as it reads: its cells as text, its questions left out`}>

@@ -793,7 +793,7 @@ export function AnnotatedDoc({
           </Button>
         )}
         {since && diff.length > 0 && (
-          <Button variant="ghost" size="small" onClick={() => setShowChanges((v) => !v)} aria-pressed={showChanges} title="Show or hide what's changed since you commented (i)">
+          <Button variant="ghost" size="small" onClick={() => setShowChanges((v) => !v)} title="Show or hide what's changed since you commented (i)">
             <Icon name="eye" size={13} /> {showChanges ? "Hide changes" : "Show changes"} <Keys k="i" />
           </Button>
         )}

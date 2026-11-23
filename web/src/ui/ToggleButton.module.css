@@ -1,0 +1,11 @@
+/* A toggle button (ToggleButton.tsx) is a button (Button.module.css),
+   and this while it's pressed. Each names the element too, so it outweighs
+   a ghost's hover whichever module comes first. */
+
+@layer ui {
+  button.pressed,
+  button.pressed:hover:not(:disabled) {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
