@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType, useParams } from "react-router";
-import { type Connection, NotSignedIn, setSettings, usePlugins, useWorkspace, type Workspace } from "./api";
+import { type Connection, NotSignedIn, setSettings } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
 import { ComparePage, compareKeys } from "./artifacts/Compare";
 import { FoundArtifactPage, foundArtifactKeys } from "./artifacts/Found";
@@ -18,12 +18,9 @@ import { MissionPage, missionKeys } from "./mission/Mission";
 import { OrchestratorPage, OrchestratorRunPage } from "./orchestrator/Orchestrator";
 import { AppPage } from "./apps/AppPage";
 import { RunsPage } from "./runs/Runs";
-import { useFrameDim } from "./plugins/dim";
-import { useFrameHere } from "./plugins/here";
 import { useRefs } from "./refs/known";
 import type { Known } from "./refs/refs";
 import { hereAt } from "./shell/here";
-import { useFrameExpanded } from "./plugins/layout";
 import { PluginPage } from "./plugins/Plugin";
 import { RefsProvider } from "./refs/known";
 import { SettingsPage, settingsKeys } from "./settings/Settings";
@@ -38,7 +35,7 @@ import { useFaviconBadge, useNotifications } from "./shell/notify";
 import { Arrange } from "./shell/Arrange";
 import { askShutDown } from "./shell/daemon";
 import { arrange, type Arrangement, type Arranged, type Place, placesOf, sameArrangement, saving } from "./shell/places";
-import { FocusKeys, FocusProvider, FocusSection } from "./shell/focus";
+import { FocusKeys, FocusSection } from "./shell/focus";
 import { noteVisit, visitAt } from "./shell/recent";
 import { wantsRoom } from "./shell/room";
 import { shortVersion } from "./shell/version";
@@ -67,27 +64,35 @@ import { NotifyToggle } from "./chrome/NotifyToggle";
 import { Places } from "./chrome/Places";
 import { Shell } from "./chrome/Shell";
 import { Sidebar } from "./chrome/Sidebar";
-import { useBeside, useChromeStore } from "./chrome/store";
+import { useBeside, useChromeStore, useFrameDim, useFrameExpanded, useFrameHere } from "./chrome/store";
 import { WorkspaceName } from "./chrome/WorkspaceName";
 import { pageScroller } from "./ui/scroller";
+import { useFollowWorkspace, usePlugins, useWorkspace, useWorkspaceIfRead, useWorkspaceStore } from "./workspace/store";
 
 // Nothing needing you, before the workspace has said: the same list each
 // time, so what's worked out from it isn't worked out again.
 const noNeeds: Need[] = [];
 
 export function App() {
-  const { workspace, error, connection } = useWorkspace();
-  // On a plugin's page, ws is told whose app is on screen.
+  // The workspace is followed here, once, into its store
+  // (workspace/store.ts), which everything reads it from. On a plugin's
+  // page, ws is told whose app is on screen.
   const onPlugin = useMatch("/x/:name/*")?.params.name;
-  const plugins = usePlugins(onPlugin);
-  const [help, setHelp] = useState(false);
-  // Find, open: with what it starts with typed ("/" for files, from ⌘P).
-  const [palette, setPalette] = useState<string>();
-  const [drawer, setDrawer] = useState(false);
-  // Arranging the sidebar: its places, and which are in the menu instead.
-  const [arranging, setArranging] = useState(false);
-  // The daemon closed from the workspace's menu: this page went with it.
-  const [closed, setClosed] = useState(false);
+  useFollowWorkspace(onPlugin);
+  const workspace = useWorkspaceIfRead();
+  const error = useWorkspaceStore((s) => s.error);
+  const connection = useWorkspaceStore((s) => s.connection);
+  const plugins = usePlugins();
+  // What's open over the window is the window's (chrome/store.ts), so
+  // anything can open it: Find (with what it starts with typed), the
+  // keys, the sidebar as a drawer, the sidebar being arranged; and
+  // whether the daemon was shut down from here, and this page with it.
+  const help = useChromeStore((c) => c.help);
+  const palette = useChromeStore((c) => c.find);
+  const drawer = useChromeStore((c) => c.drawer);
+  const arranging = useChromeStore((c) => c.arranging);
+  const closed = useChromeStore((c) => c.closed);
+  const { openFind, closeFind, setHelp, setDrawer, stopArranging } = useChromeStore.getState();
   const location = useLocation();
   const navigate = useNavigate();
   // On a page that wants the room the sidebar folds to a rail, which opens
@@ -114,9 +119,9 @@ export function App() {
   useKeys({ "\\": () => beside.all.length > 0 && changeChrome(toggleBeside) });
 
   // The drawer (on a narrow window) closes on going somewhere.
-  useEffect(() => setDrawer(false), [location.pathname]);
+  useEffect(() => setDrawer(false), [setDrawer, location.pathname]);
   // Arranging ends, unsaved, on going somewhere or leaving the drawer.
-  useEffect(() => setArranging(false), [location.pathname]);
+  useEffect(() => stopArranging(), [stopArranging, location.pathname]);
 
   // Where you go is kept, for Find to offer before anything's typed.
   const root = workspace?.root;
@@ -132,7 +137,7 @@ export function App() {
   const dim = useFrameDim();
   const frameHere = useFrameHere();
 
-  useGlobalKeys({ openPalette: (start = "") => setPalette(start), openHelp: () => setHelp(true) });
+  useGlobalKeys();
   useKeyboarding();
   useScrollMemory();
 
@@ -156,7 +161,7 @@ export function App() {
   useEffect(() => setArranged(undefined), [savedKey]);
   const { sidebar, menu } = arrange(places, arranged ?? saved);
   const saveArrangement = async (a: Arranged) => {
-    setArranging(false);
+    stopArranging();
     const next = saving(a, places, saved);
     if (sameArrangement(next, saving(arrange(places, saved), places, saved))) return;
     setArranged(next);
@@ -171,7 +176,7 @@ export function App() {
     }
   };
   const resetArrangement = async () => {
-    setArranging(false);
+    stopArranging();
     try {
       await setSettings([
         { section: "ui", key: "sidebar", clear: true },
@@ -180,11 +185,6 @@ export function App() {
     } catch (e) {
       toast(`Couldn't reset the sidebar: ${humanError(String(e))}`, { tone: "danger" });
     }
-  };
-  const startArranging = () => {
-    changeChrome((c) => hideSidebar(c, false)); // it's arranged where it is
-    setArranging(true);
-    setDrawer(true); // on a narrow window, the sidebar is the drawer
   };
   // The sidebar's toggle, at the foot's start, which says how many need
   // you while the sidebar's out of sight: on a narrow window it opens the
@@ -207,132 +207,134 @@ export function App() {
     );
   }
   return (
-    <FocusProvider workspace={workspace}>
-      <Shell
-        sidebar={place}
-        drawerOpen={drawer}
-        onDrawerClose={() => {
-          setDrawer(false);
-          setArranging(false);
-        }}
-        dim={dim}
-        beside={beside.shown && workspace && <Beside workspace={workspace} sheet={narrow} />}
-        besideOver={beside.over}
-        besideSize={beside.width}
-        still={!workspace}
-        pageClassName={connection === "lost" && workspace ? "stale" : undefined}
-        side={
-          <Sidebar rail={room && !narrow}>
-            <WorkspaceMenu workspace={workspace} places={menu} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
-            <FindButton onPress={() => setPalette("")} />
-            {arranging ? (
-              <Arrange start={{ sidebar, menu }} canReset={!!saved} onDone={saveArrangement} onCancel={() => setArranging(false)} onReset={resetArrangement} />
-            ) : (
-              <Places places={sidebar} path={location.pathname} />
-            )}
-            {workspace && !arranging && <FocusSection workspace={workspace} plugins={plugins} path={location.pathname} />}
-            {!arranging && <Needs needs={needs} path={location.pathname} fresh={arrived} most={12} tool={notify.supported && <NotifyToggle on={notify.on} onToggle={notify.toggle} />} />}
-          </Sidebar>
-        }
-        foot={
-          <Foot
-            start={
-              <>
-                <FootSidebar shown={!out} count={needs.length} fresh={arrived.size > 0} onPress={toggleSidebar} />
-                {atWork.length > 0 && <FootSep />}
-                {atWork.map(({ m, c }) => (
-                  <FootCrew key={`${m.slug}:${c.id}`} id={c.id} mission={m.title} to={`/missions/${m.slug}/crew/${c.id}`} />
-                ))}
-              </>
-            }
-            // Beside's toggle is there while there's something to peek at
-            // here; closed, it's marked.
-            end={beside.all.length > 0 && <FootBeside open={beside.shown} waiting={beside.all.length} onPress={() => changeChrome(toggleBeside)} />}
-          />
-        }
-        overlays={
-          <>
-            {help && <Help keys={helpKeys(location.pathname)} onClose={() => setHelp(false)} />}
-            {palette !== undefined && workspace && (
-              <Palette
-                workspace={workspace}
-                plugins={plugins}
-                waiting={waiting}
-                start={palette}
-                pageRepo={repoOfPage(location.pathname, workspace.spaces)}
-                path={location.pathname}
-                search={location.search}
-                frameHere={frameHere}
-                onClose={() => setPalette(undefined)}
-                onHelp={() => {
-                  setPalette(undefined);
-                  setHelp(true);
-                }}
-                onShutDown={() => void askShutDown(() => setClosed(true))}
-              />
-            )}
-            <Viewer />
-            <Toasts />
-            <Confirmer />
-            <WhatsNew version={workspace?.version} />
-            <FocusKeys workspace={workspace} plugins={plugins} />
-          </>
-        }
-      >
-        <ConnectionBanner connection={connection} />
-        {error && <div className="banner">{error.message}</div>}
-        {!workspace && !error && <Loading what="Opening the workspace…" />}
-        {workspace && (
-          <RefsProvider workspace={workspace} plugins={plugins}>
-            <SaysHere workspace={workspace} />
-            <Routes>
-              <Route path="/" element={<MissionList missions={workspace.missions} />} />
-              <Route path="/missions/:slug" element={<MissionPage workspace={workspace} />} />
-              <Route path="/missions/:slug/artifact" element={<ArtifactPage workspace={workspace} />} />
-              <Route path="/missions/:slug/brief" element={<ToBrief />} />
-              <Route path="/missions/:slug/crew/:id" element={<CrewPage workspace={workspace} />} />
-              <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
-              <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
-              <Route path="/runs" element={<RunsPage workspace={workspace} />} />
-              <Route path="/apps/:name" element={<AppPage workspace={workspace} />} />
-              <Route path="/plugins" element={<Navigate to="/settings/plugins" replace />} />
-              <Route path="/settings" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
-              <Route path="/settings/:section" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
-              <Route path="/docs" element={<DocsAddress />} />
-              <Route path="/files" element={<FilesPage workspace={workspace} />} />
-              <Route path="/files/:repo" element={<FilesPage workspace={workspace} />} />
-              <Route path="/files/:repo/:capsule" element={<FilesPage workspace={workspace} />} />
-              <Route path="/reviews" element={<ReviewsPage />} />
-              <Route path="/reviews/:repo/:number" element={<PRReviewPage workspace={workspace} />} />
-              <Route path="/team" element={<TeamPage />} />
-              <Route path="/silo/:repo" element={<SiloPoint />} />
-              <Route path="/documents" element={<DocumentsPage workspace={workspace} />} />
-              <Route path="/documents/:repo" element={<SpacePage workspace={workspace} />} />
-              <Route path="/documents/local/:id" element={<LocalPageAt workspace={workspace} />} />
-              <Route path="/documents/:repo/*" element={<DocumentAt workspace={workspace} />} />
-              <Route path="/pages" element={<Navigate to="/documents" replace />} />
-              <Route path="/pages/open" element={<OpenAddress />} />
-              <Route path="/pages/:id" element={<PageAddress workspace={workspace} />} />
-              <Route path="/artifacts" element={<ArtifactsPage workspace={workspace} />} />
-              <Route path="/artifacts/compare" element={<ComparePage workspace={workspace} />} />
-              <Route path="/artifacts/in/*" element={<FoundArtifactPage />} />
-              <Route path="/artifacts/:id" element={<ArtifactView workspace={workspace} />} />
-              <Route path="/artifacts/:id/compare" element={<ComparePage workspace={workspace} />} />
-              <Route path="/artifacts/:id/:version" element={<ArtifactView workspace={workspace} />} />
-              <Route path="/conversations" element={<TalksPage workspace={workspace} />} />
-              <Route path="/conversations/:id" element={<TalkPage workspace={workspace} />} />
-              <Route path="/missions/:slug/conversations/:id" element={<TalkPage workspace={workspace} />} />
-              <Route path="/missions/:slug/review/:repo/:name" element={<Review workspace={workspace} />} />
-              <Route path="/missions/:slug/files/:repo/:name" element={<Explorer workspace={workspace} />} />
-              <Route path="/x/:name/*" element={<PluginPage plugins={plugins} ws={workspace?.version} />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </RefsProvider>
-        )}
-      </Shell>
-    </FocusProvider>
+    <Shell
+      sidebar={place}
+      drawerOpen={drawer}
+      onDrawerClose={() => {
+        setDrawer(false);
+        stopArranging();
+      }}
+      dim={dim}
+      beside={beside.shown && workspace && <Beside sheet={narrow} />}
+      besideOver={beside.over}
+      besideSize={beside.width}
+      still={!workspace}
+      pageClassName={connection === "lost" && workspace ? "stale" : undefined}
+      side={
+        <Sidebar rail={room && !narrow}>
+          <WorkspaceMenu places={menu} />
+          <FindButton onPress={() => openFind()} />
+          {arranging ? (
+            <Arrange start={{ sidebar, menu }} canReset={!!saved} onDone={saveArrangement} onCancel={stopArranging} onReset={resetArrangement} />
+          ) : (
+            <Places places={sidebar} path={location.pathname} />
+          )}
+          {workspace && !arranging && <FocusSection path={location.pathname} />}
+          {!arranging && <Needs needs={needs} path={location.pathname} fresh={arrived} most={12} tool={notify.supported && <NotifyToggle on={notify.on} onToggle={notify.toggle} />} />}
+        </Sidebar>
+      }
+      foot={
+        <Foot
+          start={
+            <>
+              <FootSidebar shown={!out} count={needs.length} fresh={arrived.size > 0} onPress={toggleSidebar} />
+              {atWork.length > 0 && <FootSep />}
+              {atWork.map(({ m, c }) => (
+                <FootCrew key={`${m.slug}:${c.id}`} id={c.id} mission={m.title} to={`/missions/${m.slug}/crew/${c.id}`} />
+              ))}
+            </>
+          }
+          // Beside's toggle is there while there's something to peek at
+          // here; closed, it's marked.
+          end={beside.all.length > 0 && <FootBeside open={beside.shown} waiting={beside.all.length} onPress={() => changeChrome(toggleBeside)} />}
+        />
+      }
+      overlays={
+        <>
+          {help && <Help keys={helpKeys(location.pathname)} onClose={() => setHelp(false)} />}
+          {palette !== undefined && workspace && (
+            <Palette
+             
+              waiting={waiting}
+              start={palette}
+              pageRepo={repoOfPage(location.pathname, workspace.spaces)}
+              path={location.pathname}
+              search={location.search}
+              frameHere={frameHere}
+              onClose={closeFind}
+            />
+          )}
+          <Viewer />
+          <Toasts />
+          <Confirmer />
+          <WhatsNew version={workspace?.version} />
+          <FocusKeys />
+        </>
+      }
+    >
+      <ConnectionBanner connection={connection} />
+      {error && <div className="banner">{error.message}</div>}
+      {!workspace && !error && <Loading what="Opening the workspace…" />}
+      {workspace && (
+        <RefsProvider>
+          <SaysHere />
+          <Pages notify={notify} />
+        </RefsProvider>
+      )}
+    </Shell>
   );
 }
+
+// Pages is the page at the address. It's given nothing of the workspace
+// (each page reads what it needs from the store), so it's drawn again on
+// going somewhere, and not each time the shell round it is.
+const Pages = memo(function Pages({ notify }: { notify: ReturnType<typeof useNotifications> }) {
+  const missions = useWorkspace((w) => w.missions);
+  return (
+    <Routes>
+      <Route path="/" element={<MissionList missions={missions} />} />
+      <Route path="/missions/:slug" element={<MissionPage />} />
+      <Route path="/missions/:slug/artifact" element={<ArtifactPage />} />
+      <Route path="/missions/:slug/brief" element={<ToBrief />} />
+      <Route path="/missions/:slug/crew/:id" element={<CrewPage />} />
+      <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage />} />
+      <Route path="/orchestrator" element={<OrchestratorPage />} />
+      <Route path="/runs" element={<RunsPage />} />
+      <Route path="/apps/:name" element={<AppPage />} />
+      <Route path="/plugins" element={<Navigate to="/settings/plugins" replace />} />
+      <Route path="/settings" element={<SettingsPage notify={notify} />} />
+      <Route path="/settings/:section" element={<SettingsPage notify={notify} />} />
+      <Route path="/docs" element={<DocsAddress />} />
+      <Route path="/files" element={<FilesPage />} />
+      <Route path="/files/:repo" element={<FilesPage />} />
+      <Route path="/files/:repo/:capsule" element={<FilesPage />} />
+      <Route path="/reviews" element={<ReviewsPage />} />
+      <Route path="/reviews/:repo/:number" element={<PRReviewPage />} />
+      <Route path="/team" element={<TeamPage />} />
+      <Route path="/silo/:repo" element={<SiloPoint />} />
+      <Route path="/documents" element={<DocumentsPage />} />
+      <Route path="/documents/:repo" element={<SpacePage />} />
+      <Route path="/documents/local/:id" element={<LocalPageAt />} />
+      <Route path="/documents/:repo/*" element={<DocumentAt />} />
+      <Route path="/pages" element={<Navigate to="/documents" replace />} />
+      <Route path="/pages/open" element={<OpenAddress />} />
+      <Route path="/pages/:id" element={<PageAddress />} />
+      <Route path="/artifacts" element={<ArtifactsPage />} />
+      <Route path="/artifacts/compare" element={<ComparePage />} />
+      <Route path="/artifacts/in/*" element={<FoundArtifactPage />} />
+      <Route path="/artifacts/:id" element={<ArtifactView />} />
+      <Route path="/artifacts/:id/compare" element={<ComparePage />} />
+      <Route path="/artifacts/:id/:version" element={<ArtifactView />} />
+      <Route path="/conversations" element={<TalksPage />} />
+      <Route path="/conversations/:id" element={<TalkPage />} />
+      <Route path="/missions/:slug/conversations/:id" element={<TalkPage />} />
+      <Route path="/missions/:slug/review/:repo/:name" element={<Review />} />
+      <Route path="/missions/:slug/files/:repo/:name" element={<Explorer />} />
+      <Route path="/x/:name/*" element={<PluginPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+});
 
 // WorkspaceMenu is the workspace's name, opening what's of the workspace
 // rather than a place in it: Settings (where the theme is, and the way to
@@ -340,27 +342,22 @@ export function App() {
 // otherwise stays open until it's closed. Places moved out of the sidebar
 // are at its top. At its foot is what this is and which: the logotype, and
 // the version of ws that serves the page.
-function WorkspaceMenu({
-  workspace,
-  places,
-  onKeys,
-  onClosed,
-}: {
-  workspace?: Workspace;
-  places: Place[];
-  onKeys: () => void;
-  onClosed: () => void;
-}) {
-  const name = workspace?.name ?? "ws";
+function WorkspaceMenu({ places }: { places: Place[] }) {
+  // What the menu says of the workspace, each read by itself: it isn't
+  // drawn again for anything else that changes.
+  const name = useWorkspaceIfRead((w) => w.name) ?? "ws";
+  const root = useWorkspaceIfRead((w) => w.root);
+  const version = useWorkspaceIfRead((w) => w.version);
+  const later = useWorkspaceIfRead((w) => w.later);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   // A place in the menu that wants you says so on the name, as the
   // sidebar's would.
   const counted = places.filter((p) => p.count);
-  const shutDown = () => void askShutDown(onClosed);
+  const shutDown = () => void askShutDown();
   return (
     <MenuTrigger>
-      <WorkspaceName name={name} root={workspace?.root} wants={counted.length > 0 ? counted.map((p) => `${p.label}: ${p.count} ${p.countTitle ?? "need you"}`).join("\n") : undefined} />
+      <WorkspaceName name={name} root={root} wants={counted.length > 0 ? counted.map((p) => `${p.label}: ${p.count} ${p.countTitle ?? "need you"}`).join("\n") : undefined} />
       {/* data-field: keys typed in the menu are its own, not the page's (keys.ts). */}
       <Popover className="select-popover workspace-menu" placement="bottom start" offset={4} data-field>
         <Menu className="select-list" aria-label="The workspace">
@@ -384,16 +381,16 @@ function WorkspaceMenu({
             <Icon name="sliders" />
             <span className="select-option-text">Settings</span>
           </MenuItem>
-          <MenuItem id="keys" textValue="Keys" className="select-option" onAction={onKeys}>
+          <MenuItem id="keys" textValue="Keys" className="select-option" onAction={() => useChromeStore.getState().setHelp(true)}>
             <Icon name="keyboard" />
             <span className="select-option-text">Keys</span>
             <Keys k="?" />
           </MenuItem>
           {/* A later release, as the daemon last found: to where it's installed from. */}
-          {workspace?.later && (
-            <MenuItem id="later" textValue={`ws ${workspace.later} is out`} className="select-option later" onAction={() => navigate("/settings/about#updates")}>
+          {later && (
+            <MenuItem id="later" textValue={`ws ${later} is out`} className="select-option later" onAction={() => navigate("/settings/about#updates")}>
               <Icon name="arrow-up" />
-              <span className="select-option-text">ws {workspace.later} is out</span>
+              <span className="select-option-text">ws {later} is out</span>
             </MenuItem>
           )}
           <Separator className="menu-separator" />
@@ -405,9 +402,9 @@ function WorkspaceMenu({
         {/* What this is, and which: not an item, so the keys pass it by. */}
         <div className="workspace-menu-foot">
           <Logotype />
-          {workspace?.version && (
-            <span className="workspace-menu-version" title={`ws ${workspace.version}: the daemon's, which serves this page`}>
-              {shortVersion(workspace.version)}
+          {version && (
+            <span className="workspace-menu-version" title={`ws ${version}: the daemon's, which serves this page`}>
+              {shortVersion(version)}
             </span>
           )}
         </div>
@@ -445,8 +442,10 @@ function ConnectionBanner({ connection }: { connection: Connection }) {
 // shows the keys, and g then m, c, p,
 // a, r, t, f or o goes to Missions, Conversations, Pages, Artifacts,
 // Reviews, Team, Files or the Orchestrator. They're read before a page's own keys.
-function useGlobalKeys({ openPalette, openHelp }: { openPalette: (start?: string) => void; openHelp: () => void }) {
+function useGlobalKeys() {
   const navigate = useNavigate();
+  const openPalette = useChromeStore((c) => c.openFind);
+  const openHelp = useCallback(() => useChromeStore.getState().setHelp(true), []);
   useEffect(() => {
     let g = 0;
     const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
@@ -673,7 +672,8 @@ function Help({ keys, onClose }: { keys: [string, string][]; onClose: () => void
 // address is enough.
 const nothingKnown: Known = { repos: new Map(), missions: [], pages: [], talks: [] };
 
-function SaysHere({ workspace }: { workspace: Workspace }) {
+function SaysHere() {
+  const workspace = useWorkspace();
   const location = useLocation();
   const known = useRefs()?.known;
   const frame = useFrameHere();

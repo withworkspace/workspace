@@ -1,10 +1,12 @@
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { act, getTalk, type MissionDetail, sayInTalk, settleTalkProposal, type Stage, type TalkDetail } from "../api";
+import { act, type MissionDetail, type Stage } from "../api";
 import { passageChip, waiting } from "../ask/ask";
 import { type Draft, MarkdownEditor } from "../editor/LazyEditor";
 import { TrackedDoc } from "../editor/LazyTracked";
 import { useKeys } from "../keys";
+import { talkAt } from "../chrome/panes";
+import { useTalk, useTalks } from "../conversation/talks";
 import { type Reload, useHere } from "../load";
 import { afterSettling } from "../talk/proposals";
 import { Markdown } from "../markdown/LazyMarkdown";
@@ -16,6 +18,7 @@ import { BriefPlanner, PassageTool, pickedIn, PlannerField, quoted } from "./Bri
 import { type Doc, type Edit, edits, planAsk, planSteps, reading, type Settled, shown } from "./briefpage";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
+import { usePref } from "../prefs";
 
 // A mission's Brief tab: its brief and its plan as documents, in the
 // mission's own page. The brief is edited as it reads. The plan is read:
@@ -44,16 +47,6 @@ export const briefKeys: [string, string][] = [
 
 // briefHref is a mission's brief: its page's Brief tab.
 export const briefHref = (slug: string) => `/missions/${slug}?tab=brief`;
-
-const plannerKey = "ws:brief-planner";
-
-function loadPlanner(): boolean {
-  try {
-    return localStorage.getItem(plannerKey) !== "0";
-  } catch {
-    return true;
-  }
-}
 
 // DocState is where a document stands in the tab: what it comes to as
 // you've left it, whether that's other than what it shows (you edited it,
@@ -85,37 +78,17 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
   const here = useHere();
 
   // Its planner's conversation, read again whenever the mission changes,
-  // and followed while it's answered.
+  // and followed while it's answered. It's the window's
+  // (conversation/talks.ts): the same one its own page shows.
   const planner = d.planner;
-  const [t, setT] = useState<TalkDetail>();
+  const to = planner ? talkAt(planner, slug) : undefined;
+  const t = useTalk(to)?.detail;
   useEffect(() => {
-    if (!planner) return setT(undefined);
-    let stale = false;
-    getTalk(slug, planner).then(
-      (x) => !stale && setT(x),
-      () => undefined, // the tab shows the mission without it
-    );
-    return () => {
-      stale = true;
-    };
-  }, [slug, planner, updated, d]);
+    if (to) void useTalks.getState().load(to); // unread, the tab shows the mission without it
+  }, [to, updated, d]);
+  useEffect(() => (to ? useTalks.getState().watch(to) : undefined), [to]);
+  const talks = useTalks.getState();
   const following = waiting(t);
-  useEffect(() => {
-    if (!planner || !following) return;
-    let stale = false;
-    const timer = setTimeout(
-      () =>
-        getTalk(slug, planner).then(
-          (x) => !stale && setT(x),
-          () => !stale && setT((was) => (was ? { ...was } : was)), // try again
-        ),
-      1000,
-    );
-    return () => {
-      stale = true;
-      clearTimeout(timer);
-    };
-  }, [slug, planner, following, t]);
 
   const s = useMemo(() => shown(d, t), [d, t]);
   // What each document comes to as you've left it, from its panel.
@@ -133,7 +106,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   // Writing it yourself, with nothing drafted.
   const [own, setOwn] = useState(false);
-  const [beside, setBeside] = useState(loadPlanner);
+  const [beside, setBeside] = usePref("briefPlanner");
   const [held, setHeld] = useState<string>();
   const [asking, setAsking] = useState(false);
   const field = useRef<HTMLInputElement>(null);
@@ -177,15 +150,14 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
         if (p.kind === "brief" && b !== s.brief.text) said.brief = b;
         if (p.plan && pl !== s.plan.text) said.plan = pl;
       }
-      const x = await settleTalkProposal(slug, planner, p.n, accept ? "accept" : "decline", said);
+      const x = await talks.settle(talkAt(planner, slug), p.n, accept ? "accept" : "decline", said);
       // Confirming may have renamed it: its conversation's where it went.
       const moved = x.path?.match(/^\/missions\/([^/]+)\//)?.[1];
       if (accept && briefing) {
         // The drafts it replaced are nothing to confirm now.
-        for (const o of s.others) await settleTalkProposal(moved ?? slug, planner, o.n, "decline").catch(() => undefined);
+        for (const o of s.others) await talks.settle(talkAt(planner, moved ?? slug), o.n, "decline").catch(() => undefined);
       }
       done(x.message ?? (accept ? "Done." : "Declined."));
-      setT(x);
       // On to the mission, or to where it's moved: if you're still here.
       if (!here()) return;
       if (accept && briefing) navigate(`/missions/${moved ?? slug}`);
@@ -263,7 +235,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
     if (asking) return;
     const body = held ? quoted(held, text) : text;
     setAsking(true);
-    const asked = planner ? sayInTalk(slug, planner, body).then(setT) : act(slug, "replan", { text: body }).then((r) => done(r.message));
+    const asked = to ? talks.say(to, body).then(() => undefined) : act(slug, "replan", { text: body }).then((r) => done(r.message));
     asked
       .then(() => {
         setHeld(undefined);
@@ -293,7 +265,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
       const draft = !!p && p.kind === "brief";
       if (brief?.changed && !draft) await act(slug, "edit-brief", { text: now });
       const body = planAsk({ planned, unseen: brief?.changed && draft ? now : undefined });
-      if (briefing) setT(await sayInTalk(slug, planner ?? "", body));
+      if (briefing) await talks.say(to ?? "", body);
       else await act(slug, "replan", { text: body });
       setBeside(true);
       done(planned ? "Asked the planner to rewrite the plan. What it changes shows here, to read." : "Asked the planner for the plan. It shows here once it's proposed.");
@@ -312,14 +284,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
       : briefing
         ? ["What's still open?", "Can Z be checked as it's written?", "What would you leave out?"]
         : ["Is the plan still right?", "What's changed since it started?"];
-  const fold = (to: boolean) => {
-    setBeside(to);
-    try {
-      localStorage.setItem(plannerKey, to ? "1" : "0");
-    } catch {
-      // kept for this page only
-    }
-  };
+  const fold = setBeside;
   const toField = () => {
     if (!canAsk) return;
     // (Folded away, the field's at the documents' foot: it's there already.)
@@ -337,8 +302,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
   // brief that starts the mission goes to its summary, as the bar's does.
   const settleOther = (n: number, action: "accept" | "decline", said?: object) => {
     const card = t?.proposals?.find((x) => x.n === n);
-    return settleTalkProposal(slug, planner ?? "", n, action, said).then((x) => {
-      setT(x);
+    return talks.settle(to ?? "", n, action, said).then((x) => {
       if (x.message) done(x.message);
       const to = afterSettling(card, action, slug, x.path);
       if (to && here()) return navigate(to, { replace: to === x.path });

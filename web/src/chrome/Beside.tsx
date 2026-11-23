@@ -17,9 +17,9 @@ import { DockTabList, type ListedTab } from "./DockTabList";
 import { DockTabs } from "./DockTabs";
 import { type PaneAt, paneAt } from "./panes";
 import { useBeside, useChromeStore } from "./store";
+import { useWorkspace } from "../workspace/store";
 
 type BesideProps = {
-  workspace: Workspace;
   // On a narrow window it's a sheet over the page.
   sheet?: boolean;
 };
@@ -35,7 +35,11 @@ type BesideProps = {
 //
 // What it shows is the window's (store.ts): this draws it, and changes
 // it.
-export function Beside({ workspace, sheet }: BesideProps) {
+export function Beside({ sheet }: BesideProps) {
+  // What the workspace lists of its conversations (what a tab calls one,
+  // and when one's changed), and where it is.
+  const conversations = useWorkspace((w) => w.conversations);
+  const root = useWorkspace((w) => w.root);
   const now = useBeside();
   const change = useChromeStore((s) => s.change);
   const close = useChromeStore((s) => s.close);
@@ -54,7 +58,7 @@ export function Beside({ workspace, sheet }: BesideProps) {
   const at = front ? paneAt(front) : undefined;
   if (!front || !at) return null;
   const over = now.over && !sheet;
-  const said = (t: string) => tabOf(workspace, paneAt(t)!, talkName(talks[t]?.detail));
+  const said = (t: string) => tabOf(conversations, paneAt(t)!, talkName(talks[t]?.detail));
   const pick = (t: string) => {
     change((s) => pickBeside(s, t, here));
     setPicks((n) => n + 1); // the one that's in front already is brought back into sight
@@ -94,7 +98,7 @@ export function Beside({ workspace, sheet }: BesideProps) {
           {now.anywhere.map(tab)}
         </DockTabs>
       </DockHead>
-      {at.kind === "conversation" && <TalkPane key={front} to={front} root={workspace.root} stamp={at.slug ? undefined : workspace.conversations.find((c) => c.id === at.id)?.updated} onGone={() => close(front)} />}
+      {at.kind === "conversation" && <TalkPane key={front} to={front} root={root} stamp={at.slug ? undefined : conversations.find((c) => c.id === at.id)?.updated} onGone={() => close(front)} />}
       {at.kind === "ask" && <AskPane key={front} to={front} thing={at.thing} />}
     </Dock>
   );
@@ -104,8 +108,8 @@ export function Beside({ workspace, sheet }: BesideProps) {
 // and how it stands. A conversation the workspace lists is said as its
 // list says it; one nobody's kept (an ask) isn't listed, and is called
 // what it was read as.
-function tabOf(workspace: Workspace, at: PaneAt, read?: string): { name: string; lead: ReactNode } {
+function tabOf(listed: Workspace["conversations"], at: PaneAt, read?: string): { name: string; lead: ReactNode } {
   if (at.kind === "ask") return { name: `Ask about ${at.thing}`, lead: <Icon name="sparkle" size={13} /> };
-  const t = at.slug ? undefined : workspace.conversations.find((c) => c.id === at.id);
+  const t = at.slug ? undefined : listed.find((c) => c.id === at.id);
   return { name: t?.title || t?.opening || read || "Conversation", lead: t ? <Status s={talkStatus(t)} iconOnly size={13} /> : <Icon name="sparkle" size={13} /> };
 }

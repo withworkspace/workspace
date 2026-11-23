@@ -19,7 +19,6 @@ import {
   type MissionDetail,
   type Talk,
   useEvents,
-  type Workspace,
 } from "../api";
 import { type KeyMap, useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
@@ -55,6 +54,8 @@ import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary as SummaryList, SummaryRow } from "../ui/Summary";
+import { useWorkspace } from "../workspace/store";
+import { usePref } from "../prefs";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -90,19 +91,10 @@ export const missionKeys: [string, string][] = [
   ...briefKeys,
 ];
 
-const sideKey = "ws:mission-side";
 
 // remembered is each mission's selection, kept while you open what's
 // selected and come back.
 const remembered = new Map<string, string>();
-
-function loadSide(): boolean {
-  try {
-    return localStorage.getItem(sideKey) !== "0";
-  } catch {
-    return true;
-  }
-}
 
 // Item is something on the page the cursor can be on.
 interface Item {
@@ -112,18 +104,23 @@ interface Item {
   capsule?: CapsuleDetail;
 }
 
-export function MissionPage({ workspace }: { workspace: Workspace }) {
+export function MissionPage() {
   const { slug = "" } = useParams();
+  // What the workspace's list says of the mission: the page is drawn
+  // again when that changes, not when another mission does.
+  const inList = useWorkspace((w) => w.missions.find((m) => m.slug === slug));
+  const root = useWorkspace((w) => w.root);
+  const readsSeen = useWorkspace((w) => w.readsSeen);
   const [params, setParams] = useSearchParams();
   const tab: Tab = tabs.includes(params.get("tab") as Tab) ? (params.get("tab") as Tab) : "summary";
   const navigate = useNavigate();
-  const updated = workspace.missions.find((m) => m.slug === slug)?.updated;
+  const updated = inList?.updated;
   // What it's about, by name (a plugin's thing, a pull request): as the
   // workspace says of it.
-  const about = workspace.missions.find((m) => m.slug === slug)?.about;
+  const about = inList?.about;
   // The details beside Summary (kept, as you left them), and over another
   // tab (until you leave it).
-  const [side, setSide] = useState(loadSide);
+  const [side, setSide] = usePref("missionSide");
   const [over, setOver] = useState(false);
   useEffect(() => setOver(false), [tab, slug]);
   const docked = tab === "summary" && side;
@@ -208,15 +205,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
 
   const move = (to: number) => items.length && setSel(items[Math.min(Math.max(to, 0), items.length - 1)].key);
   const setTab = (t: Tab) => setParams(t === "summary" ? {} : { tab: t }, { replace: true });
-  const toggleSide = () =>
-    setSide((v) => {
-      try {
-        localStorage.setItem(sideKey, v ? "0" : "1");
-      } catch {
-        // kept for this page only
-      }
-      return !v;
-    });
+  const toggleSide = () => setSide((v) => !v);
   const back = () => navigate("/");
   // esc closes what's open over the tab, or goes back to the missions.
   const escape = () => {
@@ -324,7 +313,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
     // The page's own frame while it loads, so nothing moves when it has:
     // the bar where it will be, with what the list already says of the
     // mission (where it stands, its name) and the tabs.
-    const listed = workspace.missions.find((m) => m.slug === slug);
+    const listed = inList;
     return (
       <div className="mission-page">
         <div className="timeline" aria-hidden>
@@ -417,7 +406,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
         // the page's edges, each scrolling by itself.
         <div role="tabpanel" id="mission-panel" aria-labelledby="tab-brief" className="tab-panel brief-panel" key="brief">
           {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
-          <BriefTab d={d} root={workspace.root} updated={updated} reload={load} onEscape={escape} />
+          <BriefTab d={d} root={root} updated={updated} reload={load} onEscape={escape} />
         </div>
       ) : (
       <div className={`page mission${docked ? " with-side" : ""}${wideTabs.includes(tab) ? " wide" : ""}`}>
@@ -426,7 +415,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
           <div role="tabpanel" id="mission-panel" aria-labelledby={`tab-${tab}`} className="tab-panel" key={tab}>
             {tab === "summary" && <Summary {...parts} full={!side} />}
             {tab === "work" && w && (
-              <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} seen={workspace.readsSeen} />
+              <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} seen={readsSeen} />
             )}
             {tab === "verify" && <Verify d={d} bundle={bundle} pick={pickBundle} sel={item?.key} select={setSel} reload={load} />}
             {tab === "log" && <Log {...parts} />}
@@ -717,24 +706,10 @@ const isNotice = (text: string) => /^orchestrator: (warning|notice): /i.test(tex
 
 function Notices({ d }: { d: MissionDetail }) {
   const texts = [...new Set(d.events.filter((e) => isNotice(e.text)).map((e) => e.text.replace(/^orchestrator: /, "")))].slice(-1);
-  const [dismissed, setDismissed] = useState(() => {
-    try {
-      return new Set<string>(JSON.parse(localStorage.getItem("ws-dismissed") ?? "[]"));
-    } catch {
-      return new Set<string>();
-    }
-  });
-  const shown = texts.filter((t) => !dismissed.has(t.slice(0, 80)));
+  const [dismissed, setDismissed] = usePref("dismissed");
+  const shown = texts.filter((t) => !dismissed.includes(t.slice(0, 80)));
   if (!shown.length) return null;
-  const dismiss = (t: string) => {
-    const next = new Set(dismissed).add(t.slice(0, 80));
-    setDismissed(next);
-    try {
-      localStorage.setItem("ws-dismissed", JSON.stringify([...next].slice(-50)));
-    } catch {
-      // dismissed for this page only
-    }
-  };
+  const dismiss = (t: string) => setDismissed((was) => [...was.filter((x) => x !== t.slice(0, 80)), t.slice(0, 80)].slice(-50));
   return (
     <>
       {shown.map((t) => {

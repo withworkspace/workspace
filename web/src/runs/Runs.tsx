@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { endRun, getRunLog, getRunPast, getRuns, type Names, type RunDetail, type RunsInfo, resyncSilo, type SiloState, type Workspace } from "../api";
+import { endRun, getRunLog, getRunPast, getRuns, type Names, type RunDetail, type RunsInfo, resyncSilo, type SiloState } from "../api";
 import { type Reload, useLoaded } from "../load";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
@@ -14,6 +14,7 @@ import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary, SummaryRow } from "../ui/Summary";
 import { Row, RowMain, Rows, RowSub } from "../ui/Rows";
+import { useWorkspace } from "../workspace/store";
 
 // The Runs page: everything ws is running for someone in this workspace
 // (ws run): dev servers, previews, compose stacks, whether you, crew or a
@@ -31,7 +32,7 @@ import { Row, RowMain, Rows, RowSub } from "../ui/Rows";
 // coming up, or ending, shows within it.
 const lookEvery = 3000;
 
-export function RunsPage({ workspace }: { workspace: Workspace }) {
+export function RunsPage() {
   useTitle("Runs");
   const { value: info, error, reload } = useLoaded<RunsInfo>(getRuns, [], { keep: true });
   useEffect(() => {
@@ -70,7 +71,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
             ) : (
               <Rows className={css.list}>
                 {running.map((r) => (
-                  <RunRow key={r.ref} r={r} up={up} workspace={workspace} reload={reload} show={show} />
+                  <RunRow key={r.ref} r={r} up={up} reload={reload} show={show} />
                 ))}
               </Rows>
             )}
@@ -81,7 +82,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
               <p className="quiet-line">What each task last came to, kept with all it printed, its reports, and the runs of it before, while where it ran is there.</p>
               <Rows className={css.list}>
                 {results.map((r) => (
-                  <RunRow key={r.ref} r={r} up={up} workspace={workspace} reload={reload} show={show} />
+                  <RunRow key={r.ref} r={r} up={up} reload={reload} show={show} />
                 ))}
               </Rows>
             </section>
@@ -95,7 +96,7 @@ export function RunsPage({ workspace }: { workspace: Workspace }) {
               <p className="quiet-line">Services that ended by themselves, kept an hour with their output.</p>
               <Rows className={css.list}>
                 {ended.map((r) => (
-                  <RunRow key={r.ref} r={r} up={up} workspace={workspace} reload={reload} show={show} />
+                  <RunRow key={r.ref} r={r} up={up} reload={reload} show={show} />
                 ))}
               </Rows>
             </section>
@@ -220,9 +221,9 @@ function TaskMark({ r }: { r: RunDetail }) {
 
 // CheckFor is the check of a mission's step a task was run for, going to
 // the mission.
-function CheckFor({ r, workspace }: { r: RunDetail; workspace: Workspace }) {
+function CheckFor({ r }: { r: RunDetail }) {
+  const m = useWorkspace((w) => w.missions.find((x) => x.slug === r.check?.mission));
   if (!r.check) return null;
-  const m = workspace.missions.find((x) => x.slug === r.check?.mission);
   return (
     <span>
       Check {r.check.n} of step {r.check.step} of <Link to={`/missions/${r.check.mission}`}>{m?.title || r.check.mission}</Link>
@@ -230,7 +231,9 @@ function CheckFor({ r, workspace }: { r: RunDetail; workspace: Workspace }) {
   );
 }
 
-function RunRow({ r, up, workspace, reload, show }: { r: RunDetail; up: Set<string>; workspace: Workspace; reload: Reload; show: string }) {
+function RunRow({ r, up, reload, show }: { r: RunDetail; up: Set<string>; reload: Reload; show: string }) {
+  const conversations = useWorkspace((w) => w.conversations);
+  const missions = useWorkspace((w) => w.missions);
   const [busy, setBusy] = useState(false);
   // Asked for by the page's address (?show=): open, and brought into view.
   const shown = show !== "" && (show === r.ref || show.split("#")[0] === r.ref);
@@ -309,15 +312,15 @@ function RunRow({ r, up, workspace, reload, show }: { r: RunDetail; up: Set<stri
           </span>
           <RowSub className={css.sub}>
             <span>
-              In <To s={placeOf(r, workspace.missions)} />
+              In <To s={placeOf(r, missions)} />
             </span>
             {(live || !task) && (
               <span>
-                For <To s={forWhom(r, workspace.missions, workspace.conversations)} />
+                For <To s={forWhom(r, missions, conversations)} />
               </span>
             )}
             {task && r.commit && <span title={r.commit}>At {commitSaid(r)}</span>}
-            <CheckFor r={r} workspace={workspace} />
+            <CheckFor r={r} />
             {task && <ReportsSaid r={r} />}
             {live && r.owner !== "run" && (r.neededBy?.length ?? 0) > 0 && <span>Needed by {listed(r.neededBy ?? [])}</span>}
             {live && r.link !== r.local && <span className="mono">{bare(r.local)}</span>}

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { getReviews, type PassMark, type PR, type PRState, type ReviewRow, type ReviewsList, type Stack, useEvents } from "../api";
+import { getReviews, type PassMark, type PR, type PRState, type ReviewRow, type Stack, useEvents } from "../api";
 import { useKeys } from "../keys";
+import { useReviewsMemory } from "./memory";
 import { Icon, type IconName } from "../ui/Icon";
 import { Callout, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
 import { Status, type StatusInfo, type Tone } from "../ui/status";
@@ -60,29 +61,28 @@ export function useReviewsEvents(changed: () => void) {
   useEvents("reviews", { changed });
 }
 
-// The list as last fetched, kept across visits so coming back shows it at
-// once; and what was selected and folded.
-let kept: ReviewsList | undefined;
-let lastSelected = "";
-const foldedRows = new Set<string>();
-const openSections = new Set<string>();
+// How the page was left (memory.ts): the list as last read, what was
+// selected and folded.
+const remember = useReviewsMemory.setState;
 
 // reviewed moves the list's selection on from a pull request whose review
 // has just been posted, so coming back to the list is at the next one.
 export function reviewed(repo: string, number: number) {
-  const rows = (kept?.sections ?? []).filter((s) => !s.folded || openSections.has(s.key)).flatMap((s) => s.rows);
+  const { list, openSections } = useReviewsMemory.getState();
+  const rows = (list?.sections ?? []).filter((s) => !s.folded || openSections[s.key]).flatMap((s) => s.rows);
   const next = rowAfter(rows, repo, number);
-  if (next) lastSelected = next;
+  if (next) remember({ selected: next });
 }
 
 export function ReviewsPage() {
   useTitle("Reviews");
   const navigate = useNavigate();
-  const [list, setList] = useState(kept);
+  const list = useReviewsMemory((m) => m.list);
+  const foldedRows = useReviewsMemory((m) => m.foldedRows);
+  const openSections = useReviewsMemory((m) => m.openSections);
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState("");
-  const [, redraw] = useState(0);
   const filter = useRef<HTMLInputElement>(null);
 
   const begin = useLatest();
@@ -94,8 +94,7 @@ export function ReviewsPage() {
         .then(
           (l) => {
             if (!fresh()) return;
-            kept = l;
-            setList(l);
+            remember({ list: l });
             setError(undefined);
           },
           (e: Error) => fresh() && setError(e.message),
@@ -121,16 +120,16 @@ export function ReviewsPage() {
     return (list?.sections ?? []).map((s) => ({ ...s, rows: s.rows.filter(keep) })).filter((s) => s.rows.length);
   }, [list, q]);
   // Folded sections (drafts, bots) open on a click, or when filtering.
-  const sectionOpen = (s: { key: string; folded?: boolean }) => !s.folded || openSections.has(s.key) || !!q;
+  const sectionOpen = (s: { key: string; folded?: boolean }) => !s.folded || !!openSections[s.key] || !!q;
   const order = sections.filter(sectionOpen).flatMap((s) => s.rows);
-  const [selected, setSelected] = useState(lastSelected);
+  const [selected, setSelected] = useState(() => useReviewsMemory.getState().selected);
   const index = Math.max(0, order.findIndex((r) => r.key === selected));
   const current = order[index];
   const select = (i: number) => {
     const r = order[Math.min(Math.max(i, 0), order.length - 1)];
     if (!r) return;
     setSelected(r.key);
-    lastSelected = r.key;
+    remember({ selected: r.key });
     document.getElementById(`pr-row-${r.key}`)?.scrollIntoView({ block: "nearest" });
   };
   const open = (r?: ReviewRow) => {
@@ -145,12 +144,12 @@ export function ReviewsPage() {
   };
   const fold = (r?: ReviewRow) => {
     if (!r?.stack) return;
-    if (!foldedRows.delete(r.key)) foldedRows.add(r.key);
-    redraw((n) => n + 1);
+    remember((m) => ({ foldedRows: { ...m.foldedRows, [r.key]: !m.foldedRows[r.key] } }));
   };
   const refresh = () =>
     load(true).then(() => {
-      if (kept?.error) toast(humanError(kept.error), { tone: "danger" });
+      const said = useReviewsMemory.getState().list?.error;
+      if (said) toast(humanError(said), { tone: "danger" });
     });
   useKeys({
     j: () => select(index + 1),
@@ -258,8 +257,7 @@ export function ReviewsPage() {
                   className="group-fold"
                   aria-expanded={isOpen}
                   onClick={() => {
-                    if (!openSections.delete(s.key)) openSections.add(s.key);
-                    redraw((n) => n + 1);
+                    remember((m) => ({ openSections: { ...m.openSections, [s.key]: !m.openSections[s.key] } }));
                   }}
                 >
                   <Icon name={isOpen ? "chevron-down" : "chevron-right"} size={12} /> {s.title}
@@ -276,10 +274,10 @@ export function ReviewsPage() {
                     key={r.key}
                     row={r}
                     selected={current?.key === r.key}
-                    folded={foldedRows.has(r.key)}
+                    folded={!!foldedRows[r.key]}
                     onHover={() => current?.key !== r.key && setSelected(r.key)}
                     onOpen={() => {
-                      lastSelected = r.key;
+                      remember({ selected: r.key });
                       open(r);
                     }}
                     onFold={() => fold(r)}
@@ -404,7 +402,7 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
   return (
     <Row selected={selected} id={`pr-row-${row.key}`} role="option" aria-selected={selected} className={`pr-row${st ? " stack-row" : ""}`} onMouseMove={onHover}>
       {target.to ? (
-        <Link to={target.to} className={rowLinkClass("pr-link")} onClick={() => (lastSelected = row.key)}>
+        <Link to={target.to} className={rowLinkClass("pr-link")} onClick={() => remember({ selected: row.key })}>
           {body}
         </Link>
       ) : (

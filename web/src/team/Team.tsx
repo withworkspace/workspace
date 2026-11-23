@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { getTeam, type Know, type KnowKind, narrateTeam, seenTeam, summariseTeam, type TeamTopic, type StrandState, type TeamEvent, type TeamItem, type TeamView, useEvents, useVisible } from "../api";
+import { getTeam, type Know, type KnowKind, narrateTeam, seenTeam, summariseTeam, type TeamTopic, type StrandState, type TeamEvent, type TeamItem, useEvents, useVisible } from "../api";
 import { useKeys } from "../keys";
 import { prHref } from "../reviews/Reviews";
 import { Icon, type IconName } from "../ui/Icon";
@@ -15,6 +15,7 @@ import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { useTeamMemory } from "./memory";
 
 // Team: what the people working in the workspace's repos have been doing,
 // by day, newest first. Each pull request, and each run of one person's
@@ -77,26 +78,18 @@ function useTeamEvents(changed: () => void) {
   useEvents("team", { changed });
 }
 
-// What was last fetched, by period, kept across visits so coming back
-// shows it at once; and what was picked, opened and shown.
-const kept = new Map<string, TeamView>();
-let lastPeriod = "7d";
-let lastSelected = "";
-let showBots = false;
-let onlyKnow = false;
-let byPeople = false;
-let foldSummary = false;
-const opened = new Set<string>();
+// How the page was left (memory.ts): what was last read of each period,
+// and what was picked, opened and shown.
+const remember = useTeamMemory.setState;
 
 export function TeamPage() {
   useTitle("Team");
   const navigate = useNavigate();
-  const [period, setPeriod] = useState(lastPeriod);
-  const [view, setView] = useState(kept.get(lastPeriod));
+  const { period, showBots, onlyKnow, byPeople, foldSummary, opened } = useTeamMemory();
+  const view = useTeamMemory((m) => m.views[m.period]);
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState("");
-  const [, redraw] = useState(0);
   const filter = useRef<HTMLInputElement>(null);
   // When you last looked, as it was when this visit began: null if you
   // never had. What's since is new, for as long as you stay.
@@ -119,9 +112,8 @@ export function TeamPage() {
       return getTeam(period, refresh)
         .then(
           (v) => {
-            kept.set(period, v);
+            remember((m) => ({ views: { ...m.views, [period]: v } }));
             if (!fresh()) return v;
-            setView(v);
             setError(undefined);
             setMarker((m) => (m === undefined ? (v.seen ?? null) : m));
             return v;
@@ -136,9 +128,8 @@ export function TeamPage() {
     [period, begin],
   );
   useEffect(() => {
-    setView(kept.get(period));
     load();
-  }, [load, period]);
+  }, [load]);
   useTeamEvents(load);
 
   const people = useMemo(() => new Map((view?.people ?? []).map((p) => [p.key, p])), [view]);
@@ -171,7 +162,6 @@ export function TeamPage() {
         return { date: d.date, bots, items: matching.filter((it) => !it.bot || showBots || words.length > 0) };
       })
       .filter((d) => d.items.length || d.bots);
-    // showBots and onlyKnow are the page's, redrawn when they change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, q, people, latest, topic, showBots, onlyKnow]);
   const order = days.flatMap((d) => d.items);
@@ -213,45 +203,40 @@ export function TeamPage() {
   const entries = byPeople
     ? groups.flatMap((g) => [...g.theirs, ...g.reviewing].map((it) => ({ id: `${g.key}/${it.key}`, it })))
     : order.map((it) => ({ id: it.key, it }));
-  const [selected, setSelected] = useState(lastSelected);
+  const [selected, setSelected] = useState(() => useTeamMemory.getState().selected);
   const index = Math.max(0, entries.findIndex((e) => e.id === selected));
   const current = entries[index]?.it;
   const select = (i: number) => {
     const e = entries[Math.min(Math.max(i, 0), entries.length - 1)];
     if (!e) return;
     setSelected(e.id);
-    lastSelected = e.id;
+    remember({ selected: e.id });
     document.getElementById(`team-row-${e.id}`)?.scrollIntoView({ block: "nearest" });
   };
   const toggle = (it?: TeamItem) => {
     if (!it) return;
-    if (!opened.delete(it.key)) opened.add(it.key);
-    redraw((n) => n + 1);
+    remember((m) => ({ opened: { ...m.opened, [it.key]: !m.opened[it.key] } }));
   };
   // An open pull request has a review here; anything else is on GitHub.
   const open = (it?: TeamItem) => {
     if (!it) return;
     if (it.prs?.length) {
       // One change in several repos: its pull requests are listed in it.
-      opened.add(it.key);
-      redraw((n) => n + 1);
+      remember((m) => ({ opened: { ...m.opened, [it.key]: true } }));
       toast(`It's ${it.prs.length} pull requests: each is listed under it.`);
     } else if (it.kind === "pr" && it.pr && (it.state === "in-review" || it.state === "in-progress")) navigate(prHref(it.repo, it.pr));
     else if (it.url) window.open(it.url, "_blank", "noopener");
     else toast("There's nowhere to open this yet: it has no address on GitHub.");
   };
   const pick = (since: string) => {
-    lastPeriod = since;
     setTopic(undefined);
-    setPeriod(since);
+    remember({ period: since });
   };
   const bots = () => {
-    showBots = !showBots;
-    redraw((n) => n + 1);
+    remember({ showBots: !showBots });
   };
   const know = () => {
-    onlyKnow = !onlyKnow;
-    redraw((n) => n + 1);
+    remember({ onlyKnow: !onlyKnow });
   };
   // The period's account: written when asked for, from what's been read.
   const summary = view?.summary;
@@ -264,7 +249,7 @@ export function TeamPage() {
       toast("None of these changes has been read yet: there's nothing to write it from.");
       return;
     }
-    foldSummary = false;
+    remember({ foldSummary: false });
     summariseTeam(period).then(
       (r) => {
         if (!r.started) toast("It's being written.");
@@ -274,8 +259,7 @@ export function TeamPage() {
     );
   };
   const arrange = (to: boolean) => {
-    byPeople = to;
-    redraw((n) => n + 1);
+    remember({ byPeople: to });
   };
   const refresh = () =>
     load(true).then((v) => {
@@ -330,14 +314,14 @@ export function TeamPage() {
       names={names(it.people)}
       repoOf={(r) => ({ label: repoLabel(r), color: view?.repos[r]?.color })}
       selected={entries[index]?.id === id}
-      open={opened.has(it.key)}
+      open={!!opened[it.key]}
       fresh={isNew(it)}
       dated={byPeople}
       know={byPeople || latest.has(it.key)}
       who={(e) => people.get(e.who ?? "")?.short}
       onHover={() => entries[index]?.id !== id && setSelected(id)}
       onToggle={() => {
-        lastSelected = id;
+        remember({ selected: id });
         setSelected(id);
         toggle(it);
       }}
@@ -485,8 +469,7 @@ export function TeamPage() {
               className="group-fold"
               aria-expanded={!foldSummary}
               onClick={() => {
-                foldSummary = !foldSummary;
-                redraw((n) => n + 1);
+                remember({ foldSummary: !foldSummary });
               }}
             >
               <Icon name={foldSummary ? "chevron-right" : "chevron-down"} size={12} /> Being worked on

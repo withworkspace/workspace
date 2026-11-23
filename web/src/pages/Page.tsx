@@ -32,7 +32,6 @@ import {
   type TalkCall,
   type TalkTurn,
   tweakCell,
-  type Workspace,
 } from "../api";
 import {
   askAbout,
@@ -73,6 +72,8 @@ import { type Tone } from "../ui/tone";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { clip } from "../ui/text";
+import { useWorkspace } from "../workspace/store";
+import { usePref } from "../prefs";
 
 // A page: a document you write, saved as you go, with cells an agent fills
 // in. A line that starts with >> asks for something; ⏎ makes it a cell and
@@ -92,7 +93,7 @@ export interface Back {
   label: string;
 }
 
-export default function PagePage({ workspace, id: given, back }: { workspace: Workspace; id?: string; back?: Back }) {
+export default function PagePage({ id: given, back }: { id?: string; back?: Back }) {
   const params = useParams();
   const id = given ?? params.id ?? "";
   // Reading it again (after it changed somewhere else) starts the editor
@@ -107,7 +108,7 @@ export default function PagePage({ workspace, id: given, back }: { workspace: Wo
     );
   }
   if (!d) return <Loading what="Opening the page…" />;
-  return <Doc key={`${d.id}:${reads}`} d={d} workspace={workspace} back={back ?? { to: "/documents", label: "Documents" }} reread={() => setReads((n) => n + 1)} />;
+  return <Doc key={`${d.id}:${reads}`} d={d} back={back ?? { to: "/documents", label: "Documents" }} reread={() => setReads((n) => n + 1)} />;
 }
 
 type Saving = "saved" | "unsaved" | "saving" | "changed" | "failed";
@@ -134,7 +135,8 @@ const noPasses: PagePass[] = [];
 // noKnown is what there is to name outside the web UI's (a test).
 const noKnown: Known = { repos: new Map(), missions: [], pages: [], talks: [] };
 
-function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspace; back: Back; reread: () => void }) {
+function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => void }) {
+  const workspace = useWorkspace();
   const id = d.id;
   const navigate = useNavigate();
   const [view, setView] = useState<EditorView>();
@@ -170,23 +172,9 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
   // The document, as far as what's drawn from it (the map) goes: counted
   // up as it changes.
   const [rev, setRev] = useState(0);
-  const [mapOn, setMapOn] = useState(() => {
-    try {
-      return localStorage.getItem("ws:page-map") !== "off";
-    } catch {
-      return true;
-    }
-  });
+  const [mapOn, setMapOn] = usePref("pageMap");
   const wide = useMedia("(min-width: 1100px)");
-  const toggleMap = () =>
-    setMapOn((on) => {
-      try {
-        localStorage.setItem("ws:page-map", on ? "off" : "on");
-      } catch {
-        // Not kept, then.
-      }
-      return !on;
-    });
+  const toggleMap = () => setMapOn((on) => !on);
   useTitle(title);
 
   // --- Saving: a moment after you stop, one save at a time.
@@ -269,24 +257,9 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
   const putPass = (pass: PagePass) => loadedPasses.set((all) => all?.map((p) => (p.name === pass.name ? pass : p)));
   // Which passes' findings are drawn on the page: yours to choose, pass by
   // pass, and kept in this browser.
-  const [onPageOf, setOnPageOf] = useState<Record<string, boolean>>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("ws:pass-notes") ?? "{}");
-    } catch {
-      return {};
-    }
-  });
+  const [onPageOf, setOnPageOf] = usePref("passNotes");
   const shows = (name: string) => onPageOf[name] ?? true;
-  const setShows = (name: string, on: boolean) =>
-    setOnPageOf((was) => {
-      const next = { ...was, [name]: on };
-      try {
-        localStorage.setItem("ws:pass-notes", JSON.stringify(next));
-      } catch {
-        // Not kept, then.
-      }
-      return next;
-    });
+  const setShows = (name: string, on: boolean) => setOnPageOf((was) => ({ ...was, [name]: on }));
   const noteKey = (pass: string, key: string) => `${pass}:${key}`;
   useEffect(() => {
     if (!view) return;
@@ -989,7 +962,7 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
       </div>
       {showMap && map && <PageMap map={map} passes={passes} toPass={setTab} goTo={goTo} openCell={(cell) => setOpen(cell)} />}
       {hover && hovered && hover.el.isConnected && (
-        <RefCard r={hovered} el={hover.el} workspace={workspace} onEnter={hovering.stay} onLeave={hovering.out} />
+        <RefCard r={hovered} el={hover.el} onEnter={hovering.stay} onLeave={hovering.out} />
       )}
       </div>
     </div>

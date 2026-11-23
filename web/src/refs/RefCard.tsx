@@ -16,6 +16,7 @@ import { type Anchor, FloatingCard } from "../ui/hover";
 import { PinButton } from "../shell/focus";
 import { prOf } from "./prs";
 import { Chip } from "../ui/Chip";
+import { useWorkspace } from "../workspace/store";
 
 // RefCard says more about what words name, under them while the
 // pointer's there: a file's lines, a pull request's title and where it
@@ -244,8 +245,9 @@ function PRCard({ r }: { r: Extract<PageRef, { kind: "pr" }> }) {
 // ArtifactCard is an artifact, or a version of one: its title, which
 // version of how many and where it stands, the version's note, and who
 // made it and when.
-function ArtifactCard({ r, workspace }: { r: Extract<PageRef, { kind: "artifact" }>; workspace: Workspace }) {
-  const brief = workspace.artifacts?.find((a) => a.id === r.id);
+function ArtifactCard({ r }: { r: Extract<PageRef, { kind: "artifact" }> }) {
+  const artifacts = useWorkspace((w) => w.artifacts);
+  const brief = artifacts?.find((a) => a.id === r.id);
   const { value: d, error } = useLoaded(() => (brief ? artifactOf(r.id, brief.versions) : Promise.reject(new Error("not here"))), [r.id, brief?.versions]);
   const n = r.version || brief?.latest?.n || 0;
   const v = d?.all.find((x) => x.n === n) ?? (n === brief?.latest?.n ? brief?.latest : undefined);
@@ -434,7 +436,7 @@ function body(r: PageRef, workspace: Workspace, known?: Known, repos?: Map<strin
       );
     }
     case "artifact":
-      return <ArtifactCard r={r} workspace={workspace} />;
+      return <ArtifactCard r={r} />;
     case "thing":
       return <ThingCard r={r} known={known} />;
   }
@@ -442,7 +444,8 @@ function body(r: PageRef, workspace: Workspace, known?: Known, repos?: Map<strin
 
 // RefCardBody is what a ref's card says, for wherever a card is shown: on
 // hover in a page, and beside the list in Find.
-export function RefCardBody({ r, workspace, known }: { r: PageRef; workspace: Workspace; known?: Known }) {
+export function RefCardBody({ r, known }: { r: PageRef; known?: Known }) {
+  const workspace = useWorkspace();
   // What there is to name says what a plugin's thing is called, and
   // where it opens: given, where the card's shown outside the pages (Find).
   const refs = useRefs();
@@ -454,7 +457,8 @@ export function RefCardBody({ r, workspace, known }: { r: PageRef; workspace: Wo
 // page's, or, for a ref in a plugin's page, where the page said they are
 // (plugins/ui.ts). hint says ⌘-click goes there:
 // where words are written, a click is for the cursor.
-export function RefCard({ r, el, workspace, onEnter, onLeave, hint = true }: { r: PageRef; el: Anchor; workspace: Workspace; onEnter: () => void; onLeave: () => void; hint?: boolean }) {
+export function RefCard({ r, el, onEnter, onLeave, hint = true }: { r: PageRef; el: Anchor; onEnter: () => void; onLeave: () => void; hint?: boolean }) {
+  const workspace = useWorkspace();
   // Read here, outside the card: inside it, names are only words.
   const refs = useRefs();
   return (

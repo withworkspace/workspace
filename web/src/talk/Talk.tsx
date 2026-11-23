@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Doing } from "../ui/Doing";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
@@ -6,18 +6,13 @@ import {
   type ArtifactInfo,
   type DocKind,
   docAddress,
-  getTalk,
-  keepAsk,
   proposalFrameURL,
-  sayInTalk,
   setTalkStatus,
-  settleTalkProposal,
   startTalk,
   type Talk,
   type TalkDetail,
   type TalkProposal,
   type TalkTurn,
-  type Workspace,
 } from "../api";
 import { changes } from "../annotate/diff";
 import { type Draft, MarkdownEditor } from "../editor/LazyEditor";
@@ -32,7 +27,9 @@ import { Inline } from "../ui/inline";
 import { Callout, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useAutosize, useDraft, useMedia, useTitle } from "../ui/kit";
 import { Status, type StatusInfo } from "../ui/status";
 import { Time } from "../ui/time";
-import { useHere, useLoaded } from "../load";
+import { useHere } from "../load";
+import { talkAt } from "../chrome/panes";
+import { useTalk, useTalks } from "../conversation/talks";
 import { RefTag } from "../refs/RefTag";
 import { refKey } from "../refs/refs";
 import { ArtifactProposalBody } from "./ArtifactProposal";
@@ -44,6 +41,8 @@ import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { pageScroller } from "../ui/scroller";
+import { useWorkspace } from "../workspace/store";
+import { usePref } from "../prefs";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -73,10 +72,12 @@ const docName = (ref: string) => ref.slice(ref.lastIndexOf("/") + 1).replace(/^.
 // the section it was asked of.
 const docAt = (ref: string, section?: string) => docAddress(ref) + (section ? `#${slugger()(section)}` : "");
 
-export function TalksPage({ workspace }: { workspace: Workspace }) {
+export function TalksPage() {
+  const conversations = useWorkspace((w) => w.conversations);
+  const kinds = useWorkspace((w) => w.kinds);
   useTitle("Conversations");
   const [showResolved, setShowResolved] = useState(false);
-  const resolved = workspace.conversations.filter((t) => t.status !== "open").length;
+  const resolved = conversations.filter((t) => t.status !== "open").length;
   return (
     <div className="page narrow talks-page">
       <PageHead
@@ -91,7 +92,7 @@ export function TalksPage({ workspace }: { workspace: Workspace }) {
           )
         }
       />
-      <TalkList slug="" talks={workspace.conversations} showResolved={showResolved} onToggleResolved={() => setShowResolved((v) => !v)} keys docs={!!workspace.kinds?.length} />
+      <TalkList slug="" talks={conversations} showResolved={showResolved} onToggleResolved={() => setShowResolved((v) => !v)} keys docs={!!kinds?.length} />
     </div>
   );
 }
@@ -307,7 +308,8 @@ const restAt = (m: HTMLElement, reply: HTMLElement | null, head: number) => {
 
 const proposalIcons: Record<string, IconName> = { decision: "gavel", mission: "flag", brief: "pencil", dispatch: "play", replan: "rotate", comment: "message", plan: "list-ordered", document: "file", artifact: "artifact" };
 
-export function TalkPage({ workspace }: { workspace: Workspace }) {
+export function TalkPage() {
+  const workspace = useWorkspace();
   const { id = "", slug = "" } = useParams();
   const navigate = useNavigate();
   const listed = slug ? undefined : workspace.conversations.find((t) => t.id === id);
@@ -320,27 +322,25 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
   useAutosize(box, text, 320);
   // What's come of it, beside it: when there's room, unless it's put away.
   const wide = useMedia("(min-width: 1240px)");
-  const [sideOn, setSideOn] = useState(() => {
-    try {
-      return localStorage.getItem("ws:talk-side") !== "off";
-    } catch {
-      return true;
-    }
-  });
-  const toggleSide = () =>
-    setSideOn((on) => {
-      try {
-        localStorage.setItem("ws:talk-side", on ? "off" : "on");
-      } catch {
-        // Not kept, then.
-      }
-      return !on;
-    });
+  const [sideOn, setSideOn] = usePref("talkSide");
+  const toggleSide = () => setSideOn((on) => !on);
   const side = wide && sideOn;
   // Load again whenever the workspace says it's changed: a turn, or the
   // run's output as it goes.
   const key = (slug ? mission?.updated : listed?.updated) ?? "";
-  const { value: d, error, set: setD, reload: load } = useLoaded<TalkDetail>(() => getTalk(slug, id), [slug, id, key], { keep: true });
+  // It's the window's (conversation/talks.ts), as the pane beside a page
+  // has it: what's said in one shows in the other. Shown here, it's
+  // followed while it's answered.
+  const to = talkAt(id, slug);
+  const held = useTalk(to);
+  const d = held?.detail;
+  const error = held?.gone || !d ? held?.error : undefined;
+  const setD = (x: TalkDetail) => useTalks.getState().told(to, x);
+  const load = useCallback(() => useTalks.getState().load(to), [to]);
+  useEffect(() => useTalks.getState().watch(to), [to]);
+  useEffect(() => {
+    void load();
+  }, [load, key]);
   const title = d ? name({ title: d.title, opening: d.turns[0]?.body }) : "";
   useTitle(title || "Conversation");
 
@@ -432,12 +432,11 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
     if (!text.trim() || sending) return;
     setSending(true);
     follow.current = true;
-    sayInTalk(slug, id, text)
+    useTalks
+      .getState()
+      .say(to, text)
       .then(
-        (x) => {
-          setD(x);
-          setText("");
-        },
+        () => setText(""),
         (e: Error) => toast(humanError(e.message), { tone: "danger" }),
       )
       .finally(() => setSending(false));
@@ -448,9 +447,8 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
   const here = useHere();
   const settle = (n: number, action: "accept" | "decline", edits = {}) => {
     const p = d?.proposals?.find((x) => x.n === n);
-    return settleTalkProposal(slug, id, n, action, edits).then(
+    return useTalks.getState().settle(to, n, action, edits).then(
       (x) => {
-        setD(x);
         if (x.message) toast(x.message, { tone: "done" });
         const to = afterSettling(p, action, slug, x.path);
         if (to && here()) navigate(to, { replace: to === x.path });
@@ -458,7 +456,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
       (e: Error) => {
         toast(humanError(e.message), { tone: "danger" });
         // A plugin's items done before one wasn't are kept: show them.
-        load();
+        void load();
       },
     );
   };
@@ -490,11 +488,8 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
       (e: Error) => toast(humanError(e.message), { tone: "danger" }),
     );
   const keep = () =>
-    keepAsk(slug, id).then(
-      (x) => {
-        setD(x);
-        toast("Kept: it's in Conversations.", { tone: "done" });
-      },
+    useTalks.getState().keep(to).then(
+      () => toast("Kept: it's in Conversations.", { tone: "done" }),
       (e: Error) => {
         if (!(e instanceof ApiError && e.status === 404)) return toast(humanError(e.message), { tone: "danger" });
         toast("That ask's gone: nobody kept it.");

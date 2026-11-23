@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { MissionCard, MissionDetail, Repo, Workspace } from "../api";
 import { RefsProvider } from "../refs/known";
+import { useWorkspaceStore } from "../workspace/store";
 import { serve } from "../stories/api";
 import courtCases from "./fixtures/court.json";
 import allKinds from "./fixtures/kinds.json";
@@ -28,10 +29,26 @@ const repos = import.meta.glob<{ repos: Repo[] }>("./fixtures/*/repos.json", { e
 // its repo whichever try the mission came from.
 serve("/api/repos", { repos: Object.values(repos).flatMap((r) => r.repos) });
 
+// The tries' workspaces together are the one the store holds
+// (workspace/store.ts): a name in a banner is drawn as its own try says
+// it stands, whichever try the mission came from. (Where it is, and what
+// it's called, are the first try's.)
+const tries = Object.values(workspaces);
+useWorkspaceStore.setState({
+  workspace: {
+    ...tries[0],
+    missions: tries.flatMap((w) => w.missions),
+    conversations: tries.flatMap((w) => w.conversations),
+    pages: tries.flatMap((w) => w.pages ?? []),
+    artifacts: tries.flatMap((w) => w.artifacts ?? []),
+    spaces: tries.flatMap((w) => w.spaces ?? []),
+  },
+});
+
 // A mission as it was taken: which try it's from, and the name it was
 // taken under (its slug, or <slug>.<as> for one taken again after
 // something was done to it).
-type Taken = { from: string; name: string; d: MissionDetail; workspace: Workspace };
+type Taken = { from: string; name: string; d: MissionDetail };
 
 const tryOf = (path: string) => path.split("/")[2];
 
@@ -39,7 +56,6 @@ const taken: Taken[] = Object.entries(missions).map(([path, d]) => ({
   from: tryOf(path),
   name: path.split("/").pop()!.replace(/\.json$/, ""),
   d,
-  workspace: Object.entries(workspaces).find(([p]) => tryOf(p) === tryOf(path))![1],
 }));
 
 // A case of the court's, as a mission with nothing but its cards.
@@ -47,7 +63,6 @@ const cased: Taken[] = (courtCases as unknown as { name: string; cards: MissionC
   from: "court",
   name: c.name,
   d: { slug: "s", title: c.name, cards: c.cards, headlines: [], stages: [], crew: [], tasks: [], events: [], decisions: [], capsules: [], artifacts: [] } as unknown as MissionDetail,
-  workspace: Object.values(workspaces)[0],
 }));
 
 const kindRank = (k: string) => {
@@ -62,7 +77,7 @@ const named = (name: string) => taken.find((t) => t.name === name);
 // page has around them: the mission, and the workspace's names.
 function Banner({ t }: { t: Taken }) {
   return (
-    <RefsProvider workspace={t.workspace}>
+    <RefsProvider>
       <MissionData.Provider value={t.d}>
         <SummaryLead d={t.d} reload={async () => {}} />
       </MissionData.Provider>

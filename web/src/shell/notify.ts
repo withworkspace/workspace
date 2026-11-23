@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { announceNeeds } from "../api";
 import { shownAs, useAccent } from "../ui/accent";
+import { setPref, usePrefs } from "../prefs";
 
 // What needs you, told outside the page: a dot on the tab's icon whenever
 // something does, and (if you turn them on) a desktop notification for
@@ -71,14 +72,6 @@ export function useFaviconBadge(on: boolean) {
   }, [on, accent]);
 }
 
-const stored = () => {
-  try {
-    return localStorage.getItem("ws-notify") === "on";
-  } catch {
-    return false;
-  }
-};
-
 const supported = typeof Notification !== "undefined";
 
 // useNotifications notifies of what's newly waiting while the page is
@@ -86,7 +79,10 @@ const supported = typeof Notification !== "undefined";
 // switch. What's been told of is the daemon's to remember, by each need's
 // key: this page only knows what's new to it.
 export function useNotifications(waiting: Waiting[], open: (path: string) => void): { supported: boolean; on: boolean; toggle: () => void } {
-  const [on, setOn] = useState(() => supported && stored() && Notification.permission === "granted");
+  // On is yours, kept (prefs.ts), while the browser still allows them.
+  const wanted = usePrefs((s) => s.notify);
+  const [allowed, setAllowed] = useState(() => supported && Notification.permission === "granted");
+  const on = wanted && allowed;
   const seen = useRef<Set<string> | null>(null);
 
   useEffect(() => {
@@ -120,26 +116,16 @@ export function useNotifications(waiting: Waiting[], open: (path: string) => voi
     seen.current = keys;
   }, [waiting, on, open]);
 
-  const toggle = () => {
+  const toggle = useCallback(() => {
     if (!supported) return;
-    if (on) {
-      setOn(false);
-      try {
-        localStorage.removeItem("ws-notify");
-      } catch {
-        // nothing kept
-      }
-      return;
-    }
-    Notification.requestPermission().then((p) => {
+    if (on) return setPref("notify", false);
+    void Notification.requestPermission().then((p) => {
       const yes = p === "granted";
-      setOn(yes);
-      try {
-        if (yes) localStorage.setItem("ws-notify", "on");
-      } catch {
-        // nothing kept
-      }
+      setAllowed(yes);
+      if (yes) setPref("notify", true);
     });
-  };
-  return { supported, on, toggle };
+  }, [on]);
+  // The same until it's turned on or off: what's given it isn't drawn
+  // again for nothing.
+  return useMemo(() => ({ supported, on, toggle }), [on, toggle]);
 }

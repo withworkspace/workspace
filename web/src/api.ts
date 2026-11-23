@@ -17,7 +17,6 @@ import type {
   BundleNote,
   CellSource,
   Citation,
-  CommandLabel,
   ConversationApproval,
   ConversationCapsule,
   ConversationGuideGroup,
@@ -42,7 +41,6 @@ import type {
   PageInfo,
   PageTied,
   Pick,
-  Plugin,
   PluginChanged,
   PluginThing,
   PluginsInstalled,
@@ -74,13 +72,13 @@ import type {
   UpdatesInfo,
   Upgraded,
   WhatsNewInfo,
-  Workspace,
   Worktree,
   GitHubOwners,
   GitHubRepos,
   RepoGroup,
 } from "./wire.gen";
 export type {
+  CommandLabel,
   Artifact,
   ArtifactContent,
   ArtifactDetail,
@@ -258,15 +256,6 @@ export const getJSON = <T>(path: string) => request<T>("GET", path);
 
 export type Connection = "connecting" | "live" | "lost";
 
-export interface WorkspaceState {
-  workspace?: Workspace;
-  error?: Error;
-  connection: Connection;
-}
-
-// useWorkspace keeps the workspace current: it fetches when the event stream
-// opens (so nothing that changed while it was closed is missed) and again
-// whenever the server says it changed. It never polls.
 // useVisible is whether the page is showing. Streams are held only while
 // it is: a browser allows six connections to one host, and streams held
 // open by every tab of the web UI used them up, leaving new requests (a
@@ -320,43 +309,6 @@ export function useEvents(topic: Topic, on: EventHandlers, says = "") {
   return visible;
 }
 
-// useWorkspace is the workspace, kept up to date by its event stream while
-// the page is showing; showing again catches up.
-export function useWorkspace(): WorkspaceState {
-  const [state, setState] = useState<WorkspaceState>({ connection: "connecting" });
-  const mounted = useRef(true);
-  // (Set on each mount: in development React mounts twice, and the first
-  // unmount would otherwise leave it false for good.)
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  const load = () =>
-    getJSON<Workspace>("/api/workspace").then(
-      (workspace) => mounted.current && setState((s) => ({ ...s, workspace, error: undefined })),
-      (error: Error) => mounted.current && setState((s) => ({ ...s, error })),
-    );
-  const visible = useEvents("workspace", {
-    hello: () => {
-      setState((s) => ({ ...s, connection: "live" }));
-      load();
-    },
-    changed: load,
-    lost: (closed) => {
-      setState((s) => ({ ...s, connection: "lost" }));
-      // A stream refused for being signed out never opens: find out why.
-      if (closed) load();
-    },
-  });
-  useEffect(() => {
-    if (visible) setState((s) => ({ ...s, connection: "connecting" }));
-  }, [visible]);
-
-  return state;
-}
-
 // PluginAction is something a plugin does when asked: of its own, or to
 // one of its things.
 export type PluginAction = ThingAction;
@@ -406,55 +358,6 @@ export const thingOffered = (plugin: string, kind: string, title: string) =>
 export const getPluginThing = (plugin: string, kind: string, ref: string) =>
   getJSON<PluginThing>(`/api/plugins/${encodeURIComponent(plugin)}/refs/${encodeURIComponent(kind)}/${encodeURIComponent(ref)}`);
 
-
-// usePlugins are the workspace's plugins, kept up to date while the page
-// is showing. undefined until they're first read. showing is the plugin
-// whose app the page shows, if it shows one. The stream that follows them
-// is how ws knows a page is showing, and with showing, which plugin's app
-// is on screen: it tells plugins who's looking, and they fetch to suit.
-export function usePlugins(showing?: string): Plugin[] | undefined {
-  const [plugins, setPlugins] = useState<Plugin[]>();
-  const load = () =>
-    getJSON<Plugin[]>("/api/plugins").then(
-      (p) => {
-        loadCommandLabels(); // a plugin's commands are as it last started
-        setPlugins(p);
-      },
-      () => setPlugins((was) => was ?? []), // none it can show is none
-    );
-  useEvents("plugins", { hello: load, changed: load }, showing ? `&app=${encodeURIComponent(showing)}` : "");
-  return plugins;
-}
-
-// What ws's commands are doing, as an agent's steps show them ("Looking
-// up sketch-5"): ws's own and its plugins'. Read once for the page, and
-// again as the plugins change (usePlugins); [] until it's read, when
-// steps show their commands.
-let commandLabels: CommandLabel[] = [];
-let commandLabelsAsked = false;
-const commandLabelsHeard = new Set<(l: CommandLabel[]) => void>();
-
-function loadCommandLabels() {
-  commandLabelsAsked = true;
-  getJSON<CommandLabel[]>("/api/commands").then(
-    (l) => {
-      commandLabels = l;
-      commandLabelsHeard.forEach((f) => f(l));
-    },
-    () => {}, // steps show their commands
-  );
-}
-
-export function useCommandLabels(): CommandLabel[] {
-  const [labels, setLabels] = useState(commandLabels);
-  useEffect(() => {
-    if (!commandLabelsAsked) loadCommandLabels();
-    commandLabelsHeard.add(setLabels);
-    setLabels(commandLabels);
-    return () => void commandLabelsHeard.delete(setLabels);
-  }, []);
-  return labels;
-}
 
 // Review: mirrors internal/review/diff.go.
 

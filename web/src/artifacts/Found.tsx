@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { type ArtifactFound, type ArtifactFoundDetail, getArtifactFound, getArtifactsFound, type Workspace } from "../api";
+import { type ArtifactFound, type ArtifactFoundDetail, getArtifactFound, getArtifactsFound } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
@@ -12,6 +12,8 @@ import { filesWords, type FoundFolder as Folder, foundTree, widths } from "./sho
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { useWorkspace } from "../workspace/store";
+import { setPref, usePrefs } from "../prefs";
 
 // Artifacts that live in the workspace's repos and aren't this machine's:
 // someone else promoted them, or you did on another machine. ws finds each
@@ -37,18 +39,6 @@ export const foundHref = (name: string) => `/artifacts/in/${name.split("/").map(
 function byWords(a: ArtifactFound): string {
   if (a.promoted?.by) return `v${a.promoted.version} promoted by ${a.promoted.by}`;
   return a.changedBy ? `changed by ${a.changedBy}` : "";
-}
-
-// Which folders of the tree are folded, kept for the next time the page's
-// opened: by repo and path.
-const FOLDED = "ws.artifacts.found.folded";
-function folded(): Set<string> {
-  try {
-    const kept: unknown = JSON.parse(localStorage.getItem(FOLDED) ?? "[]");
-    return new Set(Array.isArray(kept) ? kept.filter((k): k is string => typeof k === "string") : []);
-  } catch {
-    return new Set();
-  }
 }
 
 // FoundRow is one of them, in the list.
@@ -84,18 +74,11 @@ function FoundRow({ a }: { a: ArtifactFound }) {
 // in it and its folders.
 function FoundFolder({ folder }: { folder: Folder }) {
   const id = `${folder.repo}:${folder.path}`;
-  const [open, setOpen] = useState(() => !folded().has(id));
+  // Which folders are folded is kept for the next time the page's opened
+  // (prefs.ts): by repo and path.
+  const open = usePrefs((s) => !s.foundFolded.includes(id));
   const toggled = (now: boolean) => {
-    if (now === open) return;
-    setOpen(now);
-    try {
-      const kept = folded();
-      if (now) kept.delete(id);
-      else kept.add(id);
-      localStorage.setItem(FOLDED, JSON.stringify([...kept]));
-    } catch {
-      // Nowhere to keep it: it's folded for now.
-    }
+    if (now !== open) setPref("foundFolded", (was) => (now ? was.filter((x) => x !== id) : [...was, id]));
   };
   return (
     <details className="tree-node" open={open} onToggle={(e) => toggled(e.currentTarget.open)}>
@@ -122,7 +105,8 @@ function FoundFolder({ folder }: { folder: Folder }) {
 // FoundArtifacts lists them, under the Artifacts page's own, as a tree:
 // each repo, and the folders they're grouped in there. Nothing's drawn
 // while there are none.
-export function FoundArtifacts({ workspace }: { workspace: Workspace }) {
+export function FoundArtifacts() {
+  const workspace = useWorkspace();
   // Read again when the artifacts here change: one promoted here is this
   // machine's, and leaves the list.
   const key = (workspace.artifacts ?? []).map((a) => `${a.id}:${a.status}:${a.home?.where ?? ""}`).join(" ");

@@ -1,27 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getPRGuide, getPRPasses, type ReviewGuide, type ReviewPass, settlePRFinding, type DismissWhy } from "../api";
 import { guideOrder } from "./Guide";
+import { setPref, usePrefs } from "../prefs";
 
 // A review's passes and its guide, as its page holds them: read from the
 // review's API (a pull request's, or a mission's capsule's: the routes
 // are the same under each), read again while one's running, and shaped
 // for the diff.
-
-function loadGuided(): boolean {
-  try {
-    return localStorage.getItem("ws:guide-order") !== "0";
-  } catch {
-    return true;
-  }
-}
-
-function loadHidden(): Record<string, boolean> {
-  try {
-    return JSON.parse(localStorage.getItem("ws:pass-hide") ?? "{}") ?? {};
-  } catch {
-    return {};
-  }
-}
 
 // seed is what's been read of them already, for api: a pull request's
 // page reads the next layer's before it shows it, so they're there as it
@@ -40,8 +25,10 @@ export function useReviewPasses(api: string, seed?: { passes?: ReviewPass[]; gui
   // Whether the files follow the guide's order, where there's a guide,
   // and the passes whose findings aren't drawn in the diff: both kept in
   // the browser.
-  const [guided, setGuided] = useState(loadGuided);
-  const [hidden, setHidden] = useState<Record<string, boolean>>(loadHidden);
+  // Yours, kept in this browser (prefs.ts): the guide's order, and the
+  // passes whose findings are hidden.
+  const guided = usePrefs((s) => s.guideOrder);
+  const hidden = usePrefs((s) => s.passHide);
   // took counts findings taken from the overview: the draft is read again.
   const [took, setTook] = useState(0);
 
@@ -88,27 +75,8 @@ export function useReviewPasses(api: string, seed?: { passes?: ReviewPass[]; gui
     // eslint-disable-next-line react-hooks/exhaustive-deps -- what its notes are read from
     [guide?.guide],
   );
-  const setGuidedKept = useCallback((on: boolean) => {
-    setGuided(on);
-    try {
-      localStorage.setItem("ws:guide-order", on ? "1" : "0");
-    } catch {
-      // fine
-    }
-  }, []);
-  const hide = useCallback(
-    (pass: string, on: boolean) =>
-      setHidden((h) => {
-        const next = { ...h, [pass]: on };
-        try {
-          localStorage.setItem("ws:pass-hide", JSON.stringify(next));
-        } catch {
-          // fine
-        }
-        return next;
-      }),
-    [],
-  );
+  const setGuidedKept = useCallback((on: boolean) => setPref("guideOrder", on), []);
+  const hide = useCallback((pass: string, on: boolean) => setPref("passHide", (h) => ({ ...h, [pass]: on })), []);
   // What passes found that's still open, for the diff: kept the same
   // from one render to the next, so the diff isn't laid out again for it.
   const findings = useMemo(

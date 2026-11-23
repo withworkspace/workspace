@@ -5,17 +5,20 @@ import { paneAt } from "../chrome/panes";
 
 // The conversations the window is holding, in one store, by address (a
 // conversation's own page's: chrome/panes.ts's talkAt). What a bar asks
-// lands here; the pane beside the page draws it from here; the bar that
-// asked reads from here whether it's still being answered, or was kept.
-// So a conversation isn't any one component's: it outlives the page that
-// asked it, and two places showing one show the same.
+// lands here; the pane beside the page draws it from here, as its own
+// page does, and a mission's Brief tab its planner's; the bar that asked
+// reads from here whether it's still being answered, or was kept. So a
+// conversation isn't any one component's: it outlives the page that
+// asked it, and two places showing one show the same. Come back to one
+// and it's there as it was last read, while it's read again.
 //
 // One being answered is followed (read again every second) for as long
 // as something is showing it (watch).
 
 export interface Held {
   detail?: TalkDetail;
-  // It couldn't be read, and why.
+  // It couldn't be read, and why: said only while there's nothing of it
+  // to show, or it's gone.
   error?: string;
   // It's gone: an ask nobody kept, swept an hour after its last turn.
   gone?: boolean;
@@ -55,7 +58,7 @@ export const useTalks = create<TalksStore>()((set, get) => {
   // What comes of asking the daemon about one: it's held as answered, or
   // noted as gone, or as not read.
   const failed = (to: string, e: Error) => {
-    if (e instanceof ApiError && e.status === 404) put(to, { detail: get().talks[to]?.detail, gone: true });
+    if (e instanceof ApiError && e.status === 404) put(to, { detail: get().talks[to]?.detail, gone: true, error: e.message });
     else if (!get().talks[to]?.detail) put(to, { error: e.message });
   };
   // Following: while anything watched is being answered, read those
