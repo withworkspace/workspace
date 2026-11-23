@@ -147,6 +147,15 @@
     resize: none;
     line-height: 1.5;
   }
+
+  /* What has the keys' focus has a ring, until it says otherwise. It's in
+     this layer, though it isn't an element alone, so that a part of the
+     library can say otherwise (a menu's list, which shows its focus on an
+     item): out of a layer it would outweigh every part's own. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }
 
 /* The rest of what anything is before it says what it is, not in a layer:
@@ -192,11 +201,6 @@ a.link:hover {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-}
-
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 :focus:not(:focus-visible) {
