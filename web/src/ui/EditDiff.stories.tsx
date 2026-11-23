@@ -13,7 +13,7 @@ const long = Array.from({ length: 30 }, (_, i) => `line ${i + 1} of a file writt
 
 export const Edits: StoryObj = {
   render: () => (
-    <div className="page" style={{ display: "grid", gap: 20, maxWidth: 560 }}>
+    <div className="page" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 20, maxWidth: 560 }}>
       <div>
         <div className="dim">Lines replaced</div>
         <EditDiff edit={{ path: "api/dashboard.go", old, new: next }} />
