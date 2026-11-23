@@ -98,6 +98,9 @@ export const scenes = [
   at("files: find a file", "/files/api", { key: "t" }),
   at("files: search the files", "/files/api", { key: "Meta+Shift+f" }),
   at("files: a file", "/files/web?path=src%2Finvoices%2Fmoney.ts"),
+  at("capsule files", `${csv}/files/web/csv-export`),
+  at("capsule files: find a file", `${csv}/files/web/csv-export`, { key: "t" }, { type: "inv" }),
+  at("capsule files: search the files", `${csv}/files/web/csv-export`, { key: "Meta+Shift+f" }, { type: "export", then: 1500 }),
 
   // The rest of the sidebar.
   at("team", "/team"),

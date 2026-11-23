@@ -55,6 +55,8 @@ import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
 import { Input } from "../ui/Input";
 import { Modal } from "../ui/Modal";
+import { cx } from "../ui/cx";
+import { finderBox, finderInput, finderOverlay } from "../ui/Finder";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
 // has, by what you remember of it. What the page holds (missions, pages,
@@ -569,9 +571,9 @@ export function Palette({
   return (
     // Escape is Find's own: a step back out of what it's in the middle of,
     // before it closes.
-    <Modal onClose={onClose} escape={false} overlayClassName="palette-overlay" className={`palette find-window${wide ? " roomy" : ""}`} aria-label="Find">
+    <Modal onClose={onClose} escape={false} overlayClassName={cx(finderOverlay, "palette-overlay")} className={cx(finderBox, "find-window", wide && "roomy")} aria-label="Find">
         <div className="find-main">
-          <div className="palette-input">
+          <div className={finderInput}>
             <Icon name="search" size={16} />
             {doing && (
               <button className="find-only find-doing" onMouseDown={(e) => e.preventDefault()} onClick={back} title="Back (esc)">

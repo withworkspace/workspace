@@ -1122,8 +1122,6 @@ main.stale > :not(.connection-banner) {
   --backdrop: var(--bg);
 }
 
-.finder,
-.palette,
 .file,
 .note-card,
 .note-editor,
@@ -1329,70 +1327,6 @@ main {
 }
 
 /* ⌘K */
-.palette-overlay {
-  padding-top: 12vh;
-}
-
-.palette {
-  width: min(600px, 100%);
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-  animation: pop var(--slow) var(--ease);
-}
-
-.palette-input {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--line);
-  color: var(--dim);
-}
-
-.palette-input input {
-  flex: 1;
-  border: 0;
-  background: transparent;
-  padding: 14px 0;
-  font-size: var(--text-lg);
-  box-shadow: none !important;
-}
-
-.palette-list {
-  list-style: none;
-  margin: 0;
-  padding: 6px;
-  max-height: min(420px, 60vh);
-  overflow-y: auto;
-}
-
-.palette-list li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  min-width: 0;
-}
-
-.palette-list li.on {
-  background: var(--selected);
-}
-
-.palette-list li > .icon {
-  color: var(--dim);
-}
-
-.palette-title {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .palette-hint {
   color: var(--dim);
   font-size: var(--text-sm);
@@ -2372,55 +2306,6 @@ main {
 .noeol {
   color: var(--red);
   margin-left: 6px;
-}
-
-.finder {
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  animation: pop var(--slow) var(--ease);
-  width: min(560px, 90vw);
-  padding: 0;
-  overflow: hidden;
-  border-radius: 12px;
-}
-
-.finder input {
-  width: 100%;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  padding: 14px;
-  font: inherit;
-  font-size: var(--text-lg);
-  box-shadow: none !important;
-  background: transparent;
-  color: var(--fg);
-  outline: none;
-}
-
-/* Its focus is its rule, in the accent. */
-.finder input:focus {
-  border-bottom-color: var(--accent);
-}
-
-.finder ul {
-  list-style: none;
-  margin: 0;
-  padding: 4px;
-  max-height: 50vh;
-  overflow: auto;
-}
-
-.finder li {
-  padding: 6px 10px;
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-
-.finder li.selected {
-  background: var(--selected);
 }
 
 /* Comments sit level with the code, not the line numbers. */

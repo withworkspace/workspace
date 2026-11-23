@@ -1,0 +1,75 @@
+/* A finder (Finder.tsx): a raised box near the top of the dimmed page, a
+   text box across its top, and a list under it. */
+
+@layer ui {
+  /* Higher on the page than a dialog: its list is long. */
+  .overlay {
+    padding-top: 12vh;
+  }
+
+  .box {
+    --backdrop: var(--raised);
+    width: min(600px, 100%);
+    background: var(--raised);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    animation: global(pop) var(--slow) var(--ease);
+  }
+
+  .input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--line);
+    color: var(--dim);
+  }
+
+  /* The text box has no box of its own: the row is it. */
+  .input input {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    padding: 14px 0;
+    font-size: var(--text-lg);
+    box-shadow: none !important;
+  }
+
+  .busy {
+    flex: none;
+    animation: global(spin) 1s linear infinite;
+  }
+
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    max-height: min(420px, 60vh);
+    overflow-y: auto;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    min-width: 0;
+  }
+
+  .row[aria-selected="true"] {
+    background: var(--selected);
+  }
+
+  .row > :global(.icon) {
+    color: var(--dim);
+  }
+
+  .none {
+    padding: 7px 10px;
+    color: var(--dim);
+  }
+}

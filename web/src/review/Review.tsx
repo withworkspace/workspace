@@ -49,9 +49,8 @@ import { Button, buttonClass } from "../ui/Button";
 import { capital } from "../ui/text";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Checkbox } from "../ui/Checkbox";
-import { Input } from "../ui/Input";
 import { TextArea } from "../ui/TextArea";
-import { Modal } from "../ui/Modal";
+import { Finder, FinderNone, FinderRow } from "../ui/Finder";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -1240,7 +1239,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
       {codeNav.picker}
       {codeNav.panel}
       {finder && (
-        <Finder
+        <FileJump
           files={files}
           onPick={(i) => {
             setFinder(false);
@@ -1802,10 +1801,9 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
   );
 }
 
-// Finder jumps to a file by a few letters of its path.
-function Finder({ files, onPick, onClose }: { files: DiffFile[]; onPick: (i: number) => void; onClose: () => void }) {
+// FileJump jumps to a file by a few letters of its path.
+function FileJump({ files, onPick, onClose }: { files: DiffFile[]; onPick: (i: number) => void; onClose: () => void }) {
   const [q, setQ] = useState("");
-  const [sel, setSel] = useState(0);
   const matches = useMemo(() => {
     return files
       .flatMap((f, i) => {
@@ -1815,37 +1813,14 @@ function Finder({ files, onPick, onClose }: { files: DiffFile[]; onPick: (i: num
       .sort((a, b) => b.score - a.score || a.i - b.i)
       .slice(0, 50);
   }, [files, q]);
-  const pick = matches[Math.min(sel, matches.length - 1)];
   return (
-    <Modal onClose={onClose} className="finder" aria-label="Jump to a file">
-        <Input
-          autoFocus
-          value={q}
-          placeholder="Jump to a file"
-          onChange={(e) => {
-            setQ(e.target.value);
-            setSel(0);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "n")) {
-              e.preventDefault();
-              setSel((s) => Math.min(s + 1, matches.length - 1));
-            } else if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "p")) {
-              e.preventDefault();
-              setSel((s) => Math.max(s - 1, 0));
-            } else if (e.key === "Enter" && pick) {
-              e.preventDefault();
-              onPick(pick.i);
-            }
-          }}
-        />
-        <ul>
-          {matches.map((m) => (
-            <li key={m.f.path} className={m === pick ? "selected" : ""} onClick={() => onPick(m.i)}>
-              <span className="mono">{m.f.path}</span>
-            </li>
-          ))}
-        </ul>
-    </Modal>
+    <Finder aria-label="Jump to a file" placeholder="Jump to a file" value={q} onChange={setQ} count={matches.length} onPick={(i) => onPick(matches[i].i)} onClose={onClose}>
+      {matches.map((m, i) => (
+        <FinderRow key={m.f.path} index={i}>
+          <span className="mono">{m.f.path}</span>
+        </FinderRow>
+      ))}
+      {!matches.length && <FinderNone>No file matches “{q}”.</FinderNone>}
+    </Finder>
   );
 }
