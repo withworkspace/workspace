@@ -7,6 +7,7 @@ import type { Anchor } from "../ui/hover";
 import type { UiProps } from "./Uis";
 import { Button } from "../ui/Button";
 import { chipClass } from "../ui/Chip";
+import { Radio, RadioGroup } from "../ui/RadioGroup";
 
 // ws's UIs for a plugin's thing that lives in a repo, asked for by the
 // plugin's page from a button of its own (ui.ts): putting one there
@@ -187,19 +188,17 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
         {places && several && (
           <fieldset className="thing-ui-places" disabled={busy}>
             <legend>Where it'll live</legend>
-            {places.map((p, i) => (
-              <label key={p.where} className="thing-ui-place">
-                <input type="radio" name="thing-place" checked={pick === i} onChange={() => choose(i)} />
-                <span>
-                  <span className="thing-ui-repo">{p.label}</span>
-                  <code>{pick === i ? grouped(p.where, group) : p.where}</code>
-                </span>
-              </label>
-            ))}
-            <label className="thing-ui-place">
-              <input type="radio" name="thing-place" checked={pick === "else"} onChange={() => choose("else")} />
-              <span>Somewhere else…</span>
-            </label>
+            <RadioGroup className="thing-ui-place-list" value={String(pick)} onChange={(v) => choose(v === "else" ? "else" : Number(v))} disabled={busy} aria-label="Where it'll live">
+              {places.map((p, i) => (
+                <Radio key={p.where} value={String(i)}>
+                  <span className="thing-ui-place">
+                    <span className="thing-ui-repo">{p.label}</span>
+                    <code>{pick === i ? grouped(p.where, group) : p.where}</code>
+                  </span>
+                </Radio>
+              ))}
+              <Radio value="else">Somewhere else…</Radio>
+            </RadioGroup>
           </fieldset>
         )}
         {place?.subfolders && (

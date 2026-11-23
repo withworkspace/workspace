@@ -11,6 +11,7 @@ import { relative } from "../ui/time";
 import css from "./AddRepo.module.css";
 import { GroupPick } from "./Groups";
 import { Checkbox } from "../ui/Checkbox";
+import { Radio, RadioGroup } from "../ui/RadioGroup";
 
 const ANOTHER = "\u0000another";
 
@@ -214,14 +215,18 @@ function Adding({ owner, repo, taken, groups, onCancel, onAdded }: { owner: stri
       </div>
       <fieldset className={css.field}>
         <legend>Whose</legend>
-        <span className={css.whose}>
-          <label>
-            <input type="radio" name="add-repo-whose" checked={!team} onChange={() => setTeam(false)} /> Just me <span className="dim">— in ws.local.toml</span>
-          </label>
-          <label>
-            <input type="radio" name="add-repo-whose" checked={team} onChange={() => setTeam(true)} /> The team <span className="dim">— in ws.toml, committed and pushed</span>
-          </label>
-        </span>
+        <RadioGroup className={css.whose} value={team ? "team" : "me"} onChange={(v) => setTeam(v === "team")} aria-label="Whose">
+          <Radio value="me">
+            <span>
+              Just me <span className="dim">— in ws.local.toml</span>
+            </span>
+          </Radio>
+          <Radio value="team">
+            <span>
+              The team <span className="dim">— in ws.toml, committed and pushed</span>
+            </span>
+          </Radio>
+        </RadioGroup>
       </fieldset>
       <div className={css.buttons}>
         <Button variant="ghost" type="button" onClick={onCancel} disabled={busy}>

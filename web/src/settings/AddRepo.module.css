@@ -137,12 +137,6 @@
   font-size: var(--text-sm);
 }
 
-.whose {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .whose label {
   font-weight: 400;
 }
