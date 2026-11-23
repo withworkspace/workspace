@@ -3172,55 +3172,6 @@ button.on {
   font-size: var(--text-sm);
 }
 
-/* Who's on a step of the plan that isn't crew's: yours (a checkpoint),
-   CI's, outside's, the planner's. */
-.step-who {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  color: var(--dim);
-}
-
-.step-who.yours {
-  color: var(--accent);
-}
-
-.step-why {
-  color: var(--dim);
-  font-size: var(--text-sm);
-}
-
-/* A Work step's checks and clock: what's unmet, and time run out, stand
-   out. */
-.step-who.step-late {
-  color: var(--amber);
-}
-
-.step-checks {
-  list-style: none;
-  margin: 4px 0 0;
-  padding: 0;
-  font-size: var(--text-sm);
-}
-
-.step-check {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px;
-  color: var(--dim);
-}
-
-.step-check.not-met {
-  color: var(--fg);
-}
-
-.step-check-why {
-  flex-basis: 100%;
-  padding-left: 15px;
-  color: var(--dim);
-}
-
 /* The plan in a mission's details. A step is a row you can point at: its
    mark (how it stands), its number and name on one line (cut short: its
    card has the rest), and at the row's end what kind of step it is, in the
@@ -16583,16 +16534,6 @@ input[type="text"].tweak-text {
 }
 
 .verify-kept a:hover,
-.step-check-kept:hover {
-  color: var(--fg);
-}
-
-.step-check-kept {
-  margin-left: 6px;
-  color: var(--dim);
-  vertical-align: middle;
-}
-
 /* A task, on the Runs page and a mission's Work tab: what it came to is
    its mark and its words, in the tone of the result. */
 .task-mark {

@@ -1,0 +1,107 @@
+/* One stage of a mission's plan (MissionPlanStep.tsx): its mark on the
+   line, its number and name, what's to be known of it. */
+
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 10px;
+  padding: 2px 0 10px;
+}
+
+.step:last-child {
+  padding-bottom: 0;
+}
+
+/* The line, from its mark down to the next. */
+.step::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 18px;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--line);
+}
+
+.step:last-child::before {
+  display: none;
+}
+
+.accepted::before {
+  background: var(--green-fill);
+  opacity: 0.5;
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  background: var(--backdrop);
+  color: #fff;
+  transition:
+    background var(--slow) var(--ease),
+    border-color var(--slow) var(--ease),
+    box-shadow var(--slow) var(--ease);
+}
+
+.accepted .mark :global(.icon) {
+  animation: global(pop) var(--slow) var(--ease);
+}
+
+.accepted .mark {
+  border-color: var(--green-fill);
+  background: var(--green-fill);
+}
+
+.current .mark {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.current .mark::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 500;
+}
+
+.todo .title {
+  color: var(--dim);
+  font-weight: 400;
+}
+
+.n {
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  margin-right: 2px;
+}
+
+.notes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+}
+
+.why {
+  color: var(--dim);
+  font-size: var(--text-sm);
+}

@@ -1,6 +1,7 @@
 import { Fragment, useContext, useMemo, useRef, useState } from "react";
 import type { MissionDetail, Stage, StageCheck } from "../api";
 import { FloatingCard } from "../ui/FloatingCard";
+import { MissionPlanNote } from "./MissionPlanNote";
 import { useHoverDelay } from "../ui/useHoverDelay";
 import { RefContext } from "../refs/context";
 import { Icon, type IconName } from "../ui/Icon";
@@ -135,9 +136,9 @@ function StepRow({ s, d, card }: { s: Stage; d?: MissionDetail; card: CardProps 
         {!opened && (yours || late || unmet || (current && !!s.crew?.length)) && (
           <span className="step-meta">
             {yours && (
-              <span className="step-who yours" title="Yours: only you pass it">
-                <Icon name="user" size={11} /> yours
-              </span>
+              <MissionPlanNote icon="user" yours title="Yours: only you pass it">
+                yours
+              </MissionPlanNote>
             )}
             {late && <StepLimit s={s} />}
             {unmet && <StepChecks s={s} />}

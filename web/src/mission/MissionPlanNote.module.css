@@ -1,0 +1,17 @@
+/* One thing to be known of a step of the plan (MissionPlanNote.tsx). */
+
+.note {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--dim);
+}
+
+.yours {
+  color: var(--accent);
+}
+
+/* What's unmet, and time run out, stand out. */
+.late {
+  color: var(--amber);
+}

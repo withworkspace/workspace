@@ -1,0 +1,7 @@
+/* A mission's stages, down a line (MissionPlan.tsx). */
+
+.plan {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

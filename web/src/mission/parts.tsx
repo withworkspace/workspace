@@ -9,6 +9,10 @@ import { crewStatus, exitWords, Status } from "../ui/status";
 import { dayKey, dayLabel, duration, Time, useNow } from "../ui/time";
 import { Chip, chipClass } from "../ui/Chip";
 import { crewHue } from "./crewHue";
+import { MissionPlan } from "./MissionPlan";
+import { MissionPlanChecks, type PlanCheck } from "./MissionPlanChecks";
+import { MissionPlanNote } from "./MissionPlanNote";
+import { MissionPlanStep } from "./MissionPlanStep";
 import { type Tone } from "../ui/tone";
 import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
@@ -172,9 +176,9 @@ function StepWho({ s }: { s: Stage }) {
           ? ["sparkle", "planner", "The planner's: it writes the steps after it"]
           : ["clock", s.who === "CI" ? "CI" : "outside", `Waited for: ${s.whoSays ?? s.who}`];
   return (
-    <span className={`step-who ${s.who === "you" ? "yours" : ""}`} title={title}>
-      <Icon name={icon} size={11} /> {label}
-    </span>
+    <MissionPlanNote icon={icon} yours={s.who === "you"} title={title}>
+      {label}
+    </MissionPlanNote>
   );
 }
 
@@ -184,16 +188,16 @@ export function StepRuns({ s }: { s: Stage }) {
   const runs = s.runs ?? [];
   if (!runs.length) {
     return (
-      <span className="step-who" title={`In each ${s.inEach}: the orchestrator names the repos when it starts`}>
-        <Icon name="layers" size={11} /> in each {s.inEach}
-      </span>
+      <MissionPlanNote icon="layers" title={`In each ${s.inEach}: the orchestrator names the repos when it starts`}>
+        in each {s.inEach}
+      </MissionPlanNote>
     );
   }
   const done = runs.filter((r) => r.done).length;
   return (
-    <span className="step-who" title={runs.map((r) => `${r.repo}${r.done ? ": done" : ""}`).join("\n")}>
-      <Icon name="layers" size={11} /> {runs.length === done ? `in ${runs.length} repos` : `${done} of ${runs.length} repos done`}
-    </span>
+    <MissionPlanNote icon="layers" title={runs.map((r) => `${r.repo}${r.done ? ": done" : ""}`).join("\n")}>
+      {runs.length === done ? `in ${runs.length} repos` : `${done} of ${runs.length} repos done`}
+    </MissionPlanNote>
   );
 }
 
@@ -202,17 +206,16 @@ export function StepRuns({ s }: { s: Stage }) {
 export function StepLimit({ s }: { s: Stage }) {
   if (s.outOfTime) {
     return (
-      <span className="step-who step-late" title={`Its limit (${s.limit}) ran out while its crew were at it`}>
-        <Icon name="clock" size={11} /> out of time
-      </span>
+      <MissionPlanNote icon="clock" late title={`Its limit (${s.limit}) ran out while its crew were at it`}>
+        out of time
+      </MissionPlanNote>
     );
   }
   const at = s.deadline ? new Date(s.deadline) : null;
   return (
-    <span className="step-who" title={`Its limit: ${s.limit}. ws holds the clock from when crew start on it.`}>
-      <Icon name="clock" size={11} />{" "}
+    <MissionPlanNote icon="clock" title={`Its limit: ${s.limit}. ws holds the clock from when crew start on it.`}>
       {at ? `until ${at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : (s.limit ?? "").split(/[,;]/)[0]}
-    </span>
+    </MissionPlanNote>
   );
 }
 
@@ -227,117 +230,112 @@ export function StepChecks({ s }: { s: Stage }) {
   const title = checks.map((c) => `${c.result ? `${c.result}: ` : ""}${c.text}`).join("\n");
   if (!s.round) {
     return (
-      <span className="step-who" title={`Done when these are true:\n${title}`}>
-        <Icon name="list" size={11} /> {checks.length} {checks.length === 1 ? "check" : "checks"}
-      </span>
+      <MissionPlanNote icon="list" title={`Done when these are true:\n${title}`}>
+        {checks.length} {checks.length === 1 ? "check" : "checks"}
+      </MissionPlanNote>
     );
   }
   return (
-    <span className={`step-who${short ? " step-late" : ""}`} title={`Round ${s.round}:\n${title}`}>
-      <Icon name={short ? "alert" : "check"} size={11} /> {met} of {checks.length} met
-    </span>
+    <MissionPlanNote icon={short ? "alert" : "check"} late={short} title={`Round ${s.round}:\n${title}`}>
+      {met} of {checks.length} met
+    </MissionPlanNote>
   );
 }
 
-// CheckResults is what a Work step's checks came to in their latest
-// round, those not met first.
-function CheckResults({ s }: { s: Stage }) {
+// checksOf is what a Work step's checks came to in their latest round,
+// those not met first, as MissionPlanChecks draws them.
+function checksOf(s: Stage): PlanCheck[] {
   const order = { unmet: 0, "can't tell": 1, yours: 1, met: 2 } as const;
-  const checks = [...(s.checks ?? [])].sort((a, b) => order[a.result ?? "met"] - order[b.result ?? "met"]);
-  return (
-    <ul className="step-checks">
-      {checks.map((c) => (
-        <li key={c.text} className={`step-check ${c.result === "met" ? "met" : c.result ? "not-met" : ""}`}>
-          <Icon name={c.result === "met" ? "check" : c.result === "unmet" ? "x" : "question"} size={11} />{" "}
-          <span className="step-check-text">
-            <Inline text={c.text} />
-          </span>
-          {c.result && c.result !== "met" && c.evidence && <span className="step-check-why">{c.evidence.split("\n")[0]}</span>}
-          {c.kept && (
-            <Link to={`/runs?show=${encodeURIComponent(c.kept)}`} className="step-check-kept" title="All it printed, and what it wrote">
-              <Icon name="terminal" size={11} />
-            </Link>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
+  return [...(s.checks ?? [])]
+    .sort((a, b) => order[a.result ?? "met"] - order[b.result ?? "met"])
+    .map((c) => ({ text: c.text, result: c.result, why: c.evidence?.split("\n")[0], kept: c.kept }));
 }
 
+// Stepper is a mission's stages as its Summary has them: a MissionPlan,
+// with what's to be known of each step worked out here.
 export function Stepper({ stages }: { stages: Stage[] }) {
   return (
-    <ol className="stepper">
+    <MissionPlan>
       {stages.map((s) => (
-        <li key={s.n} className={`step ${s.state}`} title={s.type ? `${s.type}: ${s.text}` : s.text}>
-          <span className="step-mark" aria-hidden>
-            {s.state === "accepted" ? <Icon name="check" size={10} /> : null}
-          </span>
-          <span className="step-body">
-            <span className="step-title">
-              <span className="step-n">{s.n}</span> {s.title}
-              <span className="sr-only">{s.state === "accepted" ? " (done)" : s.state === "current" ? " (now)" : ""}</span>
-            </span>
-            {(s.crew?.length ||
-              (s.checkIn && s.state !== "accepted") ||
-              (s.who && s.who !== "crew") ||
-              s.opensPR ||
-              s.checks?.length ||
-              s.limit ||
-              s.carryOn ||
-              s.onlyIf ||
-              s.inEach ||
-              s.skipped ||
-              s.attempts) && (
-              <span className="step-meta">
-                {s.who && s.who !== "crew" && <StepWho s={s} />}
-                {s.type === "Verify" && (
-                  <span className="step-who" title="A verifier's: crew who didn't do the work show it by using it, and hand over a bundle">
-                    <Icon name="list-checks" size={11} /> verifier
-                  </span>
-                )}
-                {s.opensPR && s.who !== "ws" && (
-                  <span className="step-who" title="It makes a pull request: its crew open it through ws, which holds the guarantees about it">
-                    <Icon name="pr" size={11} /> opens a pull request
-                  </span>
-                )}
-                {s.skipped ? (
-                  <span className="step-who" title={s.why ? `Skipped: ${s.why}` : "Skipped"}>
-                    <Icon name="minus" size={11} /> skipped
-                  </span>
-                ) : s.onlyIf ? (
-                  <span className={`step-who${s.held ? " yours" : ""}`} title={`Only if ${s.onlyIf}: the orchestrator starts it or skips it`}>
-                    <Icon name="question" size={11} /> only if
-                  </span>
-                ) : null}
-                {s.inEach ? <StepRuns s={s} /> : null}
-                {s.attempts ? (
-                  <span className="step-who" title={`Started again ${s.attempts} ${s.attempts === 1 ? "time" : "times"}`}>
-                    <Icon name="rotate" size={11} /> attempt {s.attempts + 1}
-                  </span>
-                ) : null}
-                {s.carryOn ? (
-                  <span className="step-who" title={`The crew who did step ${s.carryOn} carry on with this one`}>
-                    <Icon name="reply" size={11} /> carries on from {s.carryOn}
-                  </span>
-                ) : null}
-                {s.limit && s.state !== "accepted" && <StepLimit s={s} />}
-                {s.checks?.length ? <StepChecks s={s} /> : null}
-                {s.crew?.map((c) => (
-                  <CrewBadge key={c} id={c} />
-                ))}
-                {s.checkIn && s.state !== "accepted" && (
-                  <span className="dim" title="The orchestrator stops for you after this stage">
-                    <Icon name="pause" size={11} /> check in after
-                  </span>
-                )}
-              </span>
-            )}
-            {s.why && <span className="step-why">{s.why}</span>}
-            {s.round && s.state !== "accepted" ? <CheckResults s={s} /> : null}
-          </span>
-        </li>
+        <MissionPlanStep
+          key={s.n}
+          n={s.n}
+          title={s.title}
+          state={s.state}
+          hint={s.type ? `${s.type}: ${s.text}` : s.text}
+          why={s.why}
+          under={s.round && s.state !== "accepted" ? <MissionPlanChecks checks={checksOf(s)} /> : null}
+        >
+          {stepNotes(s)}
+        </MissionPlanStep>
       ))}
-    </ol>
+    </MissionPlan>
+  );
+}
+
+// stepNotes is what's to be known of a step, under its name, or nothing
+// where there's nothing to say.
+function stepNotes(s: Stage): ReactNode {
+  if (
+    !(
+      s.crew?.length ||
+      (s.checkIn && s.state !== "accepted") ||
+      (s.who && s.who !== "crew") ||
+      s.opensPR ||
+      s.checks?.length ||
+      s.limit ||
+      s.carryOn ||
+      s.onlyIf ||
+      s.inEach ||
+      s.skipped ||
+      s.attempts
+    )
+  )
+    return null;
+  return (
+    <>
+      {s.who && s.who !== "crew" && <StepWho s={s} />}
+      {s.type === "Verify" && (
+        <MissionPlanNote icon="list-checks" title="A verifier's: crew who didn't do the work show it by using it, and hand over a bundle">
+          verifier
+        </MissionPlanNote>
+      )}
+      {s.opensPR && s.who !== "ws" && (
+        <MissionPlanNote icon="pr" title="It makes a pull request: its crew open it through ws, which holds the guarantees about it">
+          opens a pull request
+        </MissionPlanNote>
+      )}
+      {s.skipped ? (
+        <MissionPlanNote icon="minus" title={s.why ? `Skipped: ${s.why}` : "Skipped"}>
+          skipped
+        </MissionPlanNote>
+      ) : s.onlyIf ? (
+        <MissionPlanNote icon="question" yours={s.held} title={`Only if ${s.onlyIf}: the orchestrator starts it or skips it`}>
+          only if
+        </MissionPlanNote>
+      ) : null}
+      {s.inEach ? <StepRuns s={s} /> : null}
+      {s.attempts ? (
+        <MissionPlanNote icon="rotate" title={`Started again ${s.attempts} ${s.attempts === 1 ? "time" : "times"}`}>
+          attempt {s.attempts + 1}
+        </MissionPlanNote>
+      ) : null}
+      {s.carryOn ? (
+        <MissionPlanNote icon="reply" title={`The crew who did step ${s.carryOn} carry on with this one`}>
+          carries on from {s.carryOn}
+        </MissionPlanNote>
+      ) : null}
+      {s.limit && s.state !== "accepted" && <StepLimit s={s} />}
+      {s.checks?.length ? <StepChecks s={s} /> : null}
+      {s.crew?.map((c) => (
+        <CrewBadge key={c} id={c} />
+      ))}
+      {s.checkIn && s.state !== "accepted" && (
+        <span className="dim" title="The orchestrator stops for you after this stage">
+          <Icon name="pause" size={11} /> check in after
+        </span>
+      )}
+    </>
   );
 }
 
