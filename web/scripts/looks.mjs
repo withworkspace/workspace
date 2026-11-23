@@ -238,6 +238,15 @@ async function snap(o) {
   if (errors.length) console.log(`the page threw: ${[...new Set(errors)].slice(0, 5).join(" | ")}`);
 }
 
+// A style that draws nothing either way isn't a difference: the colour
+// of a border with no width, or of an outline that isn't there.
+function unseen(p, before, after) {
+  const side = /^border-(top|right|bottom|left)-color$/.exec(p)?.[1];
+  if (side) return before[`border-${side}-width`] === "0px" && after[`border-${side}-width`] === "0px";
+  if (/^outline-(color|width|offset)$/.test(p)) return before["outline-style"] === "none" && after["outline-style"] === "none";
+  return false;
+}
+
 function diff(o) {
   const [, beforeFile, afterFile] = o._;
   if (!beforeFile || !afterFile) throw new Error("diff <before.json> <after.json>");
@@ -263,7 +272,7 @@ function diff(o) {
         const [lb, la] = [tb.looks[state], ta.looks[state]];
         if (!lb || !la) continue;
         for (const p of Object.keys(lb)) {
-          if (lb[p] === la[p]) continue;
+          if (lb[p] === la[p] || unseen(p, lb, la)) continue;
           moved.push(`    ${state.padEnd(5)} ${p}: ${lb[p]} → ${la[p]}`);
           const k = `${state} ${p}: ${lb[p]} → ${la[p]}`;
           tally.set(k, (tally.get(k) ?? 0) + 1);
