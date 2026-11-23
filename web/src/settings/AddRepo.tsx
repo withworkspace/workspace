@@ -13,6 +13,7 @@ import { GroupPick } from "./Groups";
 import { Checkbox } from "../ui/Checkbox";
 import { Radio, RadioGroup } from "../ui/RadioGroup";
 import { Input } from "../ui/Input";
+import { ListBox, ListBoxOption } from "../ui/ListBox";
 
 const ANOTHER = "\u0000another";
 
@@ -129,24 +130,17 @@ export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: 
         </Callout>
       )}
 
-      <div className={css.list} role="listbox" aria-label={`${owner}'s repos`}>
-        {!repos.value && (owner ? <Skeleton rows={5} /> : null)}
-        {repos.value && shown.length === 0 && !looking && <p className={cx("dim", css.none)}>{q ? "None of these match." : "Nothing to add here."}</p>}
-        {repos.value && shown.length === 0 && looking && <Skeleton rows={5} />}
+      <ListBox
+        className={css.list}
+        aria-label={`${owner}'s repos`}
+        value={chosen?.name}
+        onChange={(name) => setChosen(shown.find((r) => r.name === name))}
+        empty={!repos.value ? owner ? <Skeleton rows={5} /> : null : looking ? <Skeleton rows={5} /> : <p className={cx("dim", css.none)}>{q ? "None of these match." : "Nothing to add here."}</p>}
+      >
         {shown.map((r) => {
           const here = !!r.here;
-          const isChosen = chosen?.name === r.name;
           return (
-            <button
-              key={r.name}
-              type="button"
-              role="option"
-              aria-selected={isChosen}
-              disabled={here}
-              className={cx(css.repo, isChosen && css.chosen)}
-              onClick={() => setChosen(r)}
-              title={here ? `Here already, as ${r.here}` : undefined}
-            >
+            <ListBoxOption key={r.name} value={r.name} textValue={r.name} disabled={here} className={css.repo} title={here ? `Here already, as ${r.here}` : undefined}>
               <span className={css.repoLine}>
                 <span className="mono">{r.name}</span>
                 {r.private && <Chip>private</Chip>}
@@ -156,10 +150,10 @@ export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: 
                 {r.pushedAt && <span className={cx("dim", css.pushed)}>pushed {relative(r.pushedAt)}</span>}
               </span>
               {r.description && <span className={cx("dim", css.about)}>{r.description}</span>}
-            </button>
+            </ListBoxOption>
           );
         })}
-      </div>
+      </ListBox>
       {hidden > 0 && (
         <Checkbox className={cx("dim", css.all)} checked={all} onChange={setAll}>
           Show forks and archived repos ({hidden})

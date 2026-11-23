@@ -41,39 +41,13 @@
 .repo {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
   gap: 2px;
-  width: 100%;
   padding: 8px 12px;
-  border: 0;
   border-bottom: 1px solid var(--line);
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
 .repo:last-child {
   border-bottom: 0;
-}
-
-.repo:hover:not(:disabled),
-.repo:focus-visible {
-  background: var(--hover);
-}
-
-.repo:disabled {
-  background: none;
-  color: inherit;
-  cursor: default;
-  opacity: 0.6;
-}
-
-.chosen,
-.chosen:hover:not(:disabled) {
-  background: var(--selected);
 }
 
 .repoLine {
