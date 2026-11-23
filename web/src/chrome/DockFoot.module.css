@@ -1,0 +1,8 @@
+/* A dock tab's foot (DockFoot.tsx): under its body, not scrolling with it. */
+
+@layer ui {
+  .foot {
+    flex: none;
+    padding: 8px 10px 10px;
+  }
+}

@@ -165,15 +165,16 @@
       visibility 0s var(--slow);
   }
 
-  /* The page's column. */
+  /* The page's column: the page, and what's beside it. What's beside can
+     slide past the window's end without the window scrolling to it. */
   .stage {
     position: relative;
     display: flex;
-    flex-direction: column;
     grid-row: 1;
     grid-column: -2 / -1;
     min-width: 0;
     min-height: 0;
+    overflow-x: clip;
   }
 
   /* The page that comes as the sidebar folds or opens fades in, in its
@@ -182,12 +183,101 @@
      again. */
   .page {
     flex: 1;
+    min-width: 0;
     min-height: 0;
     animation: global(page-in) 180ms var(--ease);
   }
 
   .railed .page {
     animation-name: global(page-in-folded);
+  }
+
+  /* Beside, docked: the page makes room. */
+  .beside {
+    display: flex;
+    flex: none;
+    min-height: 0;
+  }
+
+  .besideIn {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .beside .besideIn {
+    padding: var(--shell-inset) var(--shell-inset) var(--shell-bottom) 0;
+  }
+
+  /* Beside, over the page: the page under it keeps its width. */
+  .besideOver {
+    position: absolute;
+    top: var(--shell-inset);
+    right: var(--shell-inset);
+    bottom: var(--shell-bottom);
+    z-index: 30;
+    display: flex;
+  }
+
+  /* Opening and closing, it slides in from the window's end and out
+     past it, in the sidebar's time and ease. Docked, it's drawn back
+     past the window's end by its own width (--beside-size, the dock's)
+     and the page has that room until it comes: the two move as one. */
+  .beside.arriving {
+    animation: beside-open var(--slow) var(--ease);
+  }
+
+  .beside.leaving {
+    animation: beside-close var(--slow) var(--ease) forwards;
+  }
+
+  .besideOver.arriving {
+    animation: beside-over var(--slow) var(--ease);
+  }
+
+  .besideOver.leaving {
+    animation: beside-over-away var(--slow) var(--ease) forwards;
+  }
+
+  @keyframes beside-open {
+    from {
+      margin-right: calc(-1 * (var(--beside-size) + var(--shell-inset)));
+    }
+  }
+
+  /* Leaving is its own run, not arriving backwards: it sets off at
+     once, as arriving does. */
+  @keyframes beside-close {
+    to {
+      margin-right: calc(-1 * (var(--beside-size) + var(--shell-inset)));
+    }
+  }
+
+  @keyframes beside-over {
+    from {
+      opacity: 0;
+      transform: translateX(calc(100% + var(--shell-inset)));
+    }
+  }
+
+  @keyframes beside-over-away {
+    to {
+      opacity: 0;
+      transform: translateX(calc(100% + var(--shell-inset)));
+    }
+  }
+
+  /* On a narrow window what's beside is a sheet over the page. */
+  .narrow :is(.beside, .besideOver) {
+    position: absolute;
+    inset: var(--shell-inset) var(--shell-inset) var(--shell-bottom);
+    z-index: 30;
+    display: flex;
+  }
+
+  .narrow .besideIn {
+    flex: 1;
+    padding: 0;
   }
 
   /* The foot: the whole width, under the sidebar too. */
@@ -230,6 +320,8 @@
 
     .side,
     .scrim,
+    .beside,
+    .besideOver,
     .foot,
     .dim {
       display: none;

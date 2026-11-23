@@ -1,0 +1,28 @@
+/* Where you say something in a conversation beside the page
+   (Composer.tsx). */
+
+@layer ui {
+  .composer {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  /* What you're holding on the page: over the box, as wide as it says. */
+  .holding {
+    justify-self: start;
+    max-width: 100%;
+  }
+
+  .line {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .line textarea {
+    flex: 1;
+    min-width: 0;
+    resize: none;
+  }
+}

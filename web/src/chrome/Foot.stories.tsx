@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Foot } from "./Foot";
+import { FootBeside } from "./FootBeside";
 import { FootCrew } from "./FootCrew";
 import { FootSep } from "./FootSep";
 import { FootSidebar } from "./FootSidebar";
@@ -70,3 +71,22 @@ function Hidden() {
 }
 
 export const SidebarHidden: StoryObj = { render: () => <Hidden /> };
+
+// Beside's toggle, at the foot's end: closed with something there to peek
+// at, it's marked.
+function WithBeside() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Foot
+      start={
+        <>
+          <FootSidebar shown count={0} />
+          <Going />
+        </>
+      }
+      end={<FootBeside open={open} waiting={2} onPress={() => setOpen((o) => !o)} />}
+    />
+  );
+}
+
+export const BesidesToggle: StoryObj = { render: () => <WithBeside /> };

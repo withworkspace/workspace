@@ -1,0 +1,18 @@
+/* A dock's body (DockBody.tsx): what the open tab shows, scrolling in the
+   room the dock has left. */
+
+@layer ui {
+  .body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    scrollbar-width: thin;
+    font-size: var(--text-md);
+    /* The dock's lower corners, for what runs to its edges. */
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  }
+
+  .pad {
+    padding: 14px 16px 20px;
+  }
+}
