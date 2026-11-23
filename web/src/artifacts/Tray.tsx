@@ -1,5 +1,4 @@
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
-import { Button as AriaButton, Dialog as AriaDialog, DialogTrigger, Popover } from "react-aria-components";
 import { Icon } from "../ui/Icon";
 import { Copyable, Keys } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
@@ -9,6 +8,7 @@ import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { Segment, Segmented } from "../ui/Segmented";
+import { Popover } from "../ui/Popover";
 import { ToggleButton } from "../ui/ToggleButton";
 
 // Tweaks: what a version's page says can be changed about it, drawn
@@ -91,18 +91,22 @@ export function TweaksButton({ told, set, label }: { told: Told | undefined; set
   // page's (keys.ts). Not on the button, which has the focus again once
   // it's shut, when the page's keys should work.
   return (
-    <DialogTrigger>
-      <AriaButton className="ghost small tweaks-button" aria-label={label}>
-        <Icon name="sliders" size={13} /> Tweaks
-        {n ? <Count>{n}</Count> : null}
-      </AriaButton>
-      <Popover className="select-popover tweaks-popover" placement="bottom end" offset={4} data-field>
-        <AriaDialog className="tweaks-dialog" aria-label={label}>
-          <TweaksHead told={told} />
-          <TweaksBody told={told} set={set} />
-        </AriaDialog>
-      </Popover>
-    </DialogTrigger>
+    <Popover
+      className="tweaks-popover"
+      placement="bottom end"
+      aria-label={label}
+      trigger={
+        <Button variant="ghost" size="small" className="tweaks-button" aria-label={label}>
+          <Icon name="sliders" size={13} /> Tweaks
+          {n ? <Count>{n}</Count> : null}
+        </Button>
+      }
+    >
+      <div className="tweaks-dialog">
+        <TweaksHead told={told} />
+        <TweaksBody told={told} set={set} />
+      </div>
+    </Popover>
   );
 }
 

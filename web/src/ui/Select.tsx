@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { Select as AriaSelect, Button, ListBox, ListBoxItem, Popover, SelectValue } from "react-aria-components";
+import { Select as AriaSelect, Button, ListBox, ListBoxItem, SelectValue } from "react-aria-components";
 import { Icon } from "./Icon";
+import { PopoverSurface } from "./Popover";
 
 // Select is a dropdown, in place of the browser's own select: a button that
 // says what's chosen, and a list of the choices under it, both drawn here
@@ -31,9 +32,9 @@ export function Select({
         <SelectValue className="select-value">{({ selectedText }) => selectedText}</SelectValue>
         <Icon name="chevron-down" size={14} className="select-chevron" />
       </Button>
-      <Popover className="select-popover" offset={4} maxHeight={320} data-field>
+      <PopoverSurface maxHeight={320}>
         <ListBox className="select-list">{children}</ListBox>
-      </Popover>
+      </PopoverSurface>
     </AriaSelect>
   );
 }

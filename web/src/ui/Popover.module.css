@@ -1,0 +1,31 @@
+/* What opens from something, over the page (Popover.tsx): a raised card.
+   It's at least as wide as what opened it. */
+
+@layer ui {
+  .popover {
+    --backdrop: var(--raised);
+    display: flex;
+    flex-direction: column;
+    min-width: var(--trigger-width);
+    max-width: min(480px, calc(100vw - 16px));
+    background: var(--raised);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    outline: none;
+  }
+
+  .popover[data-entering] {
+    animation: global(fade) var(--fast) var(--ease);
+  }
+
+  /* What a Popover holds: as tall as the popover lets it be, scrolling
+     in itself past that. */
+  .dialog {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    outline: none;
+  }
+}

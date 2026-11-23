@@ -16856,7 +16856,6 @@ input[type="text"].tweak-text {
   flex-direction: column;
   min-height: 0;
   max-height: min(70vh, 560px);
-  outline: none;
 }
 
 .tweaks-button {
