@@ -7,6 +7,7 @@ import { Callout, Empty, humanError, Keys, Loading, toast, useTitle } from "../u
 import { Status, type StatusInfo, type Tone } from "../ui/status";
 import { Time } from "../ui/time";
 import { useLatest } from "../load";
+import { rowAfter } from "./after";
 import { RowPasses } from "./Passes";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
@@ -65,6 +66,14 @@ let kept: ReviewsList | undefined;
 let lastSelected = "";
 const foldedRows = new Set<string>();
 const openSections = new Set<string>();
+
+// reviewed moves the list's selection on from a pull request whose review
+// has just been posted, so coming back to the list is at the next one.
+export function reviewed(repo: string, number: number) {
+  const rows = (kept?.sections ?? []).filter((s) => !s.folded || openSections.has(s.key)).flatMap((s) => s.rows);
+  const next = rowAfter(rows, repo, number);
+  if (next) lastSelected = next;
+}
 
 export function ReviewsPage() {
   useTitle("Reviews");

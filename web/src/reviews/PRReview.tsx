@@ -39,7 +39,8 @@ import { GuideMark, GuideSection } from "./Guide";
 import { PRDescription, PRDiscussion, StackDescriptions } from "./Overview";
 import { PassesSection, PassMarks, standingWords } from "./Passes";
 import { useReviewPasses } from "./usePasses";
-import { Checks, prHref, prStatus } from "./Reviews";
+import { layersLeft } from "./after";
+import { Checks, prHref, prStatus, reviewed } from "./Reviews";
 import { useLatest } from "../load";
 import { PagePin } from "../shell/focus";
 import { Chip, chipClass } from "../ui/Chip";
@@ -503,8 +504,24 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
         head={diff.head}
         onClose={onClose}
         onDiscard={onDiscard}
-        onDone={(next) => {
-          done(next);
+        onPosted={(posted, mine) => {
+          // Nothing here still needs you: back to the list, at the next
+          // one. A stack keeps you until its last layer is reviewed.
+          if (!layersLeft(layers, posted.map((p) => p.number)).length) {
+            const url = posted.length === 1 ? posted[0].url : undefined;
+            toast(posted.length === 1 ? `Your review of ${pr.repo}#${posted[0].number} is on GitHub.` : `Your ${posted.length} reviews are on GitHub.`, {
+              tone: "done",
+              action: url ? { label: "See it on GitHub", run: () => window.open(url, "_blank", "noopener") } : undefined,
+            });
+            reviewed(pr.repo, pr.number);
+            navigate("/reviews");
+            return;
+          }
+          if (mine) done(mine);
+          else {
+            toast("Posted to GitHub.", { tone: "done" });
+            onClose();
+          }
           load();
           loadThreads();
           loadDiscussion();
@@ -614,6 +631,13 @@ function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: b
   );
 }
 
+// Posted is a review that's gone to GitHub: the pull request it's of, and
+// where it is there.
+interface Posted {
+  number: number;
+  url?: string;
+}
+
 interface LayerDraft {
   pr: PR;
   draft: ReviewData | null;
@@ -635,14 +659,16 @@ function PRSubmitDialog({
   head,
   onClose,
   onDiscard,
-  onDone,
+  onPosted,
 }: {
   d: PRDetail;
   passes?: ReviewPass[]; // this pull request's, as they stand
   head: string;
   onClose: () => void;
   onDiscard: () => void;
-  onDone: (next: ReviewState) => void;
+  // Every review chosen is on GitHub: the layers posted while this was open,
+  // and this pull request's reviews as they then are, if it was one of them.
+  onPosted: (posted: Posted[], mine?: ReviewState) => void;
 }) {
   const prs = d.stack?.layers ?? [d.pr];
   const [layers, setLayers] = useState<LayerDraft[]>(() => prs.map((pr) => ({ pr, draft: null, summary: "" })));
@@ -650,6 +676,9 @@ function PRSubmitDialog({
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
+  // What's been posted while this is open, a failed try before it included.
+  const posted = useRef<Posted[]>([]);
+  const mine = useRef<ReviewState | undefined>(undefined);
   const set = (i: number, patch: Partial<LayerDraft>) => setLayers((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
   // The commit a layer's review is of: the one this page shows, for the
   // layer it's on; for another, the one its draft was written on.
@@ -706,7 +735,6 @@ function PRSubmitDialog({
   const submit = async () => {
     if (!ready || busy) return;
     setBusy(true);
-    let mine: ReviewState | undefined;
     let failed = false;
     for (let i = 0; i < layers.length; i++) {
       const l = layers[i];
@@ -715,7 +743,8 @@ function PRSubmitDialog({
       try {
         const next = await submitPRReview(prAPI(l.pr.repo, l.pr.number), headOf(l), l.verdict, l.summary);
         set(i, { state: "posted" });
-        if (l.pr.number === d.pr.number) mine = next;
+        posted.current.push({ number: l.pr.number, url: next.url });
+        if (l.pr.number === d.pr.number) mine.current = next;
       } catch (e) {
         set(i, { state: undefined, error: (e as Error).message });
         failed = true;
@@ -723,10 +752,7 @@ function PRSubmitDialog({
       }
     }
     setBusy(false);
-    if (failed) return;
-    if (mine) return onDone(mine);
-    toast("Posted to GitHub.", { tone: "done" });
-    onClose();
+    if (!failed) onPosted(posted.current, mine.current);
   };
 
   useKeys(
