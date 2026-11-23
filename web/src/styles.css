@@ -1407,8 +1407,7 @@ main.stale > :not(.connection-banner) {
 .nav-card,
 .contents-menu,
 .folder-menu,
-.askbar,
-.askcard {
+.askbar {
   --backdrop: var(--raised);
   --well: var(--panel);
 }
@@ -5248,11 +5247,6 @@ dd > .more-link,
   background: var(--raised);
   text-align: left;
   white-space: normal;
-}
-
-.brief-ask .ask-suggestion.sel,
-.brief-ask .ask-suggestion:hover {
-  background: color-mix(in srgb, var(--accent) 10%, var(--raised));
 }
 
 /* --- nothing drafted: the conversation is the tab, or where it's begun --- */
@@ -16028,83 +16022,15 @@ body.nav-pointing .code-view code[data-rev] {
   color: var(--accent);
 }
 
+/* Picked or pointed at: the accent's tint, over the button's own colour.
+   The tint alone is see-through, and these stand over what's being read. */
 .ask-suggestion.sel,
 .ask-suggestion:hover {
   border-color: var(--accent-line);
-  background: var(--accent-soft);
+  background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--raised);
 }
 
-.askcard {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(100% - 10px);
-  display: flex;
-  flex-direction: column;
-  max-height: min(60vh, 520px);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-lg);
-  background: var(--raised);
-  box-shadow: var(--shadow-lg);
-}
-
-.askcard-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 6px 6px 12px;
-  border-bottom: 1px solid var(--line);
-  font-size: var(--text-sm);
-}
-
-.askcard-icon {
-  flex: none;
-  color: var(--accent);
-}
-
-.askcard-q {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.askcard-head .ask-ctx {
-  max-width: 35%;
-}
-
-.askcard-x {
-  flex: none;
-}
-
-.askcard-body {
-  display: grid;
-  gap: 12px;
-  min-height: 48px;
-  padding: 12px;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-
-.askcard-foot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px 6px 12px;
-  border-top: 1px solid var(--line);
-  color: var(--faint);
-  font-size: var(--text-xs);
-}
-
-/* Open it, once it's kept: a button, as Ask a follow-up is. */
-.askcard-foot .askcard-link {
-  color: var(--fg);
-}
-
-.ask-turn,
-.ask-live {
+.ask-turn {
   display: grid;
   gap: 6px;
   min-width: 0;
@@ -16141,21 +16067,6 @@ body.nav-pointing .code-view code[data-rev] {
 
 .ask-answer a[href^="#"]:hover {
   background: var(--accent-line);
-}
-
-.ask-you {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--line);
-  font-weight: 500;
-}
-
-.ask-you .icon {
-  flex: none;
-  color: var(--faint);
-  transform: scaleX(-1);
 }
 
 .ask-ws {
@@ -17312,115 +17223,7 @@ input[type="text"].tweak-text {
 .convo-askbar .askbar {
   box-shadow: var(--shadow-lg);
 }
-.convo-card {
-  max-height: min(60vh, 520px);
-}
-.convo-head {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 6px 6px 12px;
-  border-bottom: 1px solid var(--line);
-  font-size: var(--text-sm);
-}
-.convo-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.convo-body {
-  display: grid;
-  flex: 1;
-  align-content: start;
-  gap: 12px;
-  min-height: 48px;
-  padding: 12px;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-.convo-panel {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: var(--raised);
-}
-.convo-panel.popover {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  z-index: 40;
-  width: min(400px, calc(100% - 32px));
-  height: min(70vh, 600px);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-}
-.convo-dock {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  width: 380px;
-  min-height: 0;
-  border-left: 1px solid var(--line);
-}
-.convo-dock .convo-panel {
-  flex: 1;
-}
-.convo-panel .askcard-foot {
-  flex: none;
-}
-.convo-composer {
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 6px;
-  padding: 8px;
-  border-top: 1px solid var(--line);
-}
-.convo-composer .ask-ctx {
-  flex-basis: 100%;
-  max-width: max-content;
-}
-.convo-composer textarea {
-  flex: 1;
-  min-height: 32px;
-  max-height: 160px;
-  padding: 6px 8px;
-  resize: none;
-  field-sizing: content;
-}
-.convo-launcher {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  z-index: 40;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: var(--primary);
-  box-shadow: var(--shadow-lg);
-  color: var(--on-primary);
-}
-.convo-launcher:hover {
-  background: var(--primary-hover);
-}
-.convo-empty {
-  display: grid;
-  justify-items: start;
-  gap: 6px;
-}
-.convo-empty p {
-  margin: 0 0 4px;
-}
+
 .convo-you {
   display: grid;
   justify-items: end;

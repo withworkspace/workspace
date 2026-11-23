@@ -1,0 +1,14 @@
+/* A conversation that hasn't begun, beside the page (AskPane.tsx). */
+
+@layer ui {
+  .says {
+    margin: 0 0 10px;
+    color: var(--dim);
+  }
+
+  .offered {
+    display: grid;
+    justify-items: start;
+    gap: 6px;
+  }
+}

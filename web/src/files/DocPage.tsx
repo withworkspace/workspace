@@ -32,7 +32,7 @@ export const docKeys: [string, string][] = [
   ["t", "Show or hide its contents"],
   ["[ / ]", "Previous / next in its folder (or its kind's list)"],
   ["u", "What's in its folder; again to go up"],
-  ["/", "Go to the ask bar"],
+  ["/", "Go to the ask bar: what you ask opens beside the page"],
   ["a", "Ask (about what's selected, if anything)"],
   ["o", "Open it in Files"],
   ["r", "Reload"],
@@ -246,7 +246,7 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
     Escape: () => {
       if (folder !== undefined) setFolder(undefined);
       else if (menu) setMenu(false);
-      else if (tools.current?.hide() || asker.current?.close()) return;
+      else if (tools.current?.hide()) return;
       else back();
     },
     h: back,
@@ -363,7 +363,6 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
             ref={asker}
             about={aboutDoc(a.ref, title ?? name)}
             suggestions={suggest}
-            root={workspace.root}
             cite={cite}
             onOpen={() => {
               setFolder(undefined);
