@@ -5,7 +5,7 @@ import { passageChip, waiting } from "../ask/ask";
 import { type Draft, MarkdownEditor } from "../editor/LazyEditor";
 import { TrackedDoc } from "../editor/LazyTracked";
 import { useKeys } from "../keys";
-import type { Reload } from "../load";
+import { type Reload, useHere } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon, type IconName } from "../ui/Icon";
 import { Callout, humanError, Keys, toast, useMedia } from "../ui/kit";
@@ -81,6 +81,7 @@ const sideBySide = 1120;
 export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDetail; root: string; updated?: string; reload: Reload; onEscape: () => void }) {
   const slug = d.slug;
   const navigate = useNavigate();
+  const here = useHere();
 
   // Its planner's conversation, read again whenever the mission changes,
   // and followed while it's answered.
@@ -184,6 +185,8 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
       }
       done(x.message ?? (accept ? "Done." : "Declined."));
       setT(x);
+      // On to the mission, or to where it's moved: if you're still here.
+      if (!here()) return;
       if (accept && briefing) navigate(`/missions/${moved ?? slug}`);
       else if (moved && moved !== slug) navigate(briefHref(moved), { replace: true });
       else await reload();
@@ -217,7 +220,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
       if (thenConfirm) {
         const r = await act(slug, "confirm");
         done(r.message);
-        navigate(`/missions/${slug}`);
+        if (here()) navigate(`/missions/${slug}`);
         return;
       }
       done(changed ? "Saved." : "Nothing to save.");
