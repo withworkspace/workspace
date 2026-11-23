@@ -106,6 +106,12 @@
   font-size: var(--text-sm);
 }
 
+/* What's under the rest: a little apart, in smaller words. */
+.under {
+  margin-top: 4px;
+  font-size: var(--text-sm);
+}
+
 /* A row to point at, in a mission's details: its mark, its number and
    name on one line (cut short: its card has the rest), and at the row's
    end what kind of step it is. */

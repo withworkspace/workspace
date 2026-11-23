@@ -1,11 +1,13 @@
+import { Link } from "react-router";
 import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import css from "./MissionPlanCheckList.module.css";
 
 // A check of a step's: what it asks, how it last came out (or nothing,
-// where it hasn't been run), and who said so.
-export type StepCheck = { text: string; result?: "met" | "unmet" | "can't tell" | "yours"; by?: string };
+// where it hasn't been run), and who said so. Then, where they're given:
+// why it wasn't met, in a line, and where all it printed is kept.
+export type StepCheck = { text: string; result?: "met" | "unmet" | "can't tell" | "yours"; by?: string; why?: string; kept?: string };
 
 const results: Record<NonNullable<StepCheck["result"]>, [IconName, string]> = {
   met: ["check", css.met],
@@ -14,10 +16,11 @@ const results: Record<NonNullable<StepCheck["result"]>, [IconName, string]> = {
   yours: ["user", css.yours],
 };
 
-// MissionPlanCheckList is a step's checks in a mission's details, each
-// with how it last came out in its icon's colour, two lines of it at
-// most; said, with how it came out and who said it in words too, where
-// it isn't met.
+// MissionPlanCheckList is a step's checks, each with how it last came
+// out in its icon's colour, two lines of it at most; said, with how it
+// came out and who said it in words too, where it isn't met. Under one
+// that wasn't met is why, where that's known, and the way to all it
+// printed.
 export function MissionPlanCheckList({ checks, said }: { checks: StepCheck[]; said?: boolean }) {
   return (
     <ul className={css.checks}>
@@ -36,6 +39,16 @@ export function MissionPlanCheckList({ checks, said }: { checks: StepCheck[]; sa
                 </span>
               )}
             </span>
+            {((c.why && c.result && c.result !== "met") || c.kept) && (
+              <span className={css.more}>
+                {c.result !== "met" && c.why}
+                {c.kept && (
+                  <Link to={`/runs?show=${encodeURIComponent(c.kept)}`} className={css.kept} title="All it printed, and what it wrote">
+                    <Icon name="terminal" size={11} />
+                  </Link>
+                )}
+              </span>
+            )}
           </li>
         );
       })}

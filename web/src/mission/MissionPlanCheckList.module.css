@@ -54,3 +54,20 @@
 .yours .text {
   color: var(--fg);
 }
+
+/* Why it wasn't met, and where all it printed is kept: under what it
+   asks, quietly. */
+.more {
+  grid-column: 2;
+  color: var(--dim);
+}
+
+.kept {
+  margin-left: 6px;
+  color: var(--dim);
+  vertical-align: middle;
+}
+
+.kept:hover {
+  color: var(--fg);
+}

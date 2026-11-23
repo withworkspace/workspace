@@ -4,7 +4,6 @@ import { Chip } from "../ui/Chip";
 import { MissionCrewBadge } from "./MissionCrewBadge";
 import { MissionPlan } from "./MissionPlan";
 import { MissionPlanCheckList } from "./MissionPlanCheckList";
-import { MissionPlanChecks } from "./MissionPlanChecks";
 import { MissionPlanFold } from "./MissionPlanFold";
 import { MissionPlanLine } from "./MissionPlanLine";
 import { MissionPlanNote } from "./MissionPlanNote";
@@ -46,7 +45,7 @@ export const Plan: StoryObj = {
           state="current"
           why="Its second round came up short."
           under={
-            <MissionPlanChecks
+            <MissionPlanCheckList
               checks={[
                 { text: "The limits page names the header a client reads", result: "unmet", why: "docs/limits.md doesn't mention X-RateLimit-Remaining", kept: "r12" },
                 { text: "`make docs` builds", result: "met" },

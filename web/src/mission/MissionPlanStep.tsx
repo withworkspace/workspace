@@ -15,8 +15,9 @@ type MissionPlanStepProps = Omit<ComponentProps<"li">, "title" | "children"> & {
   children?: ReactNode;
   // Why it stands as it does, in a line.
   why?: ReactNode;
-  // What's under the rest: what its checks came to (MissionPlanChecks),
-  // or, of a row, the step said in full (MissionPlanNow).
+  // What's under the rest: what its checks came to (a
+  // MissionPlanCheckList), or, of a row, the step said in full
+  // (MissionPlanNow).
   under?: ReactNode;
   // row: a row to point at, in a list of them (MissionPlan rows): its
   // name on one line, cut short, and its kind at the row's end.
@@ -57,7 +58,7 @@ export function MissionPlanStep({ n, title, state, hint, children, why, under, r
         </span>
         {children && <span className={css.notes}>{children}</span>}
         {why && <span className={css.why}>{why}</span>}
-        {under}
+        {under && <div className={css.under}>{under}</div>}
       </span>
       {kind && !opened && (
         <span className={css.kind} title={kind.says}>

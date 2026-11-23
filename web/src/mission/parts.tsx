@@ -12,7 +12,7 @@ import { crewHue } from "./crewHue";
 import { MissionCrewBadge } from "./MissionCrewBadge";
 import { MissionCrewCard } from "./MissionCrewCard";
 import { MissionPlan } from "./MissionPlan";
-import { MissionPlanChecks, type PlanCheck } from "./MissionPlanChecks";
+import { MissionPlanCheckList, type StepCheck } from "./MissionPlanCheckList";
 import { MissionPlanNote } from "./MissionPlanNote";
 import { MissionPlanStep } from "./MissionPlanStep";
 import { type Tone } from "../ui/tone";
@@ -227,8 +227,9 @@ export function StepChecks({ s }: { s: Stage }) {
 }
 
 // checksOf is what a Work step's checks came to in their latest round,
-// those not met first, as MissionPlanChecks draws them.
-function checksOf(s: Stage): PlanCheck[] {
+// those not met first, each with why it wasn't and where all it printed
+// is kept.
+function checksOf(s: Stage): StepCheck[] {
   const order = { unmet: 0, "can't tell": 1, yours: 1, met: 2 } as const;
   return [...(s.checks ?? [])]
     .sort((a, b) => order[a.result ?? "met"] - order[b.result ?? "met"])
@@ -248,7 +249,7 @@ export function Stepper({ stages }: { stages: Stage[] }) {
           state={s.state}
           hint={s.type ? `${s.type}: ${s.text}` : s.text}
           why={s.why}
-          under={s.round && s.state !== "accepted" ? <MissionPlanChecks checks={checksOf(s)} /> : null}
+          under={s.round && s.state !== "accepted" ? <MissionPlanCheckList checks={checksOf(s)} /> : null}
         >
           {stepNotes(s)}
         </MissionPlanStep>

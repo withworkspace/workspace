@@ -3,7 +3,6 @@
 .now {
   display: grid;
   gap: 5px;
-  margin-top: 4px;
   padding: 7px 9px 8px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
