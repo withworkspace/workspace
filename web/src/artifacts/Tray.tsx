@@ -222,6 +222,7 @@ function Toggle({ id, t, value, set }: { id: string; t: Tweak; value: boolean; s
   return (
     <span id={id} className="tweak-switch">
       <Switch
+        className="tweak-toggle"
         on={on}
         aria-label={t.label}
         onChange={(v) => {
