@@ -1,4 +1,4 @@
-import { Status } from "../ui/status";
+import { Status } from "../ui/Status";
 import { type Need, needSays, needStatus } from "./need";
 import { SidebarRow } from "./SidebarRow";
 

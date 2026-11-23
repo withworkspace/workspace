@@ -6,7 +6,7 @@ import { TalkPane } from "../panes/TalkPane";
 import { talkStatus } from "../talk/Talk";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
-import { Status } from "../ui/status";
+import { Status } from "../ui/Status";
 import { besideWidths, floatBeside, pickBeside, toggleBeside, widenBeside } from "./chromeState";
 import { Dock } from "./Dock";
 import { DockDivide } from "./DockDivide";

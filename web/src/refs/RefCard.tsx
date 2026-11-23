@@ -7,7 +7,8 @@ import { type ArtifactDetail, type FileTree, type FileView, getArtifactDetail, t
 import { highlightCode, languageOf, useHighlighter } from "../review/highlight";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { headlineStatus, Status } from "../ui/status";
+import { Status } from "../ui/Status";
+import { headlineStatus } from "../ui/statusOf";
 import { useRefs } from "./known";
 import { goneCapsule, GROUND, isOutside, type Known, namedOf, type PageRef, refHref } from "./refs";
 import { type Surface, thingBlocks } from "./thing";

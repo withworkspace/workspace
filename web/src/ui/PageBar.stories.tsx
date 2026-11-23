@@ -4,7 +4,7 @@ import { Button } from "./Button";
 import { Count } from "./Count";
 import { Icon } from "./Icon";
 import { PageBar, pageBarTabsClass } from "./PageBar";
-import { Status } from "./status";
+import { Status } from "./Status";
 import { Tab, Tabs } from "./Tabs";
 import { ToggleButton } from "./ToggleButton";
 

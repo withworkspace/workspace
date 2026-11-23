@@ -13,7 +13,7 @@ import { ErrorCard } from "../ui/ErrorCard";
 import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
-import { Status } from "../ui/status";
+import { Status } from "../ui/Status";
 import { Time } from "../ui/time";
 import { talkHref, talkStatus } from "../talk/Talk";
 import { useLatest } from "../load";

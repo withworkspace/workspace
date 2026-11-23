@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { Chip } from "./Chip";
 import { Icon } from "./Icon";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "./Rows";
-import { Status } from "./status";
+import { Status } from "./Status";
 
 // A list of rows: each a link with its status, its title and what's beside
 // it, a quieter line under it, and facts at its end; one picked, one still

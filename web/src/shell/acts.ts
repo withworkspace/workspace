@@ -1,7 +1,7 @@
 import { type ActVerb, type FocusPin, prAPI, type Workspace } from "../api";
 import type { IconName } from "../ui/Icon";
 import { onGitHub, remoteOf } from "../refs/refs";
-import { crewStatus } from "../ui/status";
+import { crewStatus } from "../ui/statusOf";
 import { type Item, missionDo } from "./find";
 
 // What can be done to one of ws's own things, from Find: on the thing's

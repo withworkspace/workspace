@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Chip } from "../ui/Chip";
-import { Status } from "../ui/status";
+import { Status } from "../ui/Status";
 import { MissionCapsuleCard } from "./MissionCapsuleCard";
 import { MissionDecisionCard } from "./MissionDecisionCard";
 import { MissionDocCard } from "./MissionDocCard";

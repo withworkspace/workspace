@@ -18,7 +18,7 @@ import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Option, Select } from "../ui/Select";
-import { Status } from "../ui/status";
+import { Status } from "../ui/Status";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import {

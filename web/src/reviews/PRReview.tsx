@@ -42,7 +42,7 @@ import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { Dialog } from "../ui/Dialog";
 import { confirm } from "../ui/Confirm";
-import { Status } from "../ui/status";
+import { Status } from "../ui/Status";
 import { Time } from "../ui/time";
 import { GuideMark, GuideSection } from "./Guide";
 import { PRDescription, PRDiscussion, StackDescriptions } from "./Overview";
@@ -676,7 +676,7 @@ function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: b
             <li key={l.number} className={`${!whole && l.number === d.pr.number ? "here" : ""}${coming ? " going" : ""}`} aria-busy={coming || undefined}>
               <Link to={prHref(l.repo, l.number) + search} replace title={`${l.title} (#${l.number}): ${l.words}`}>
                 <span className="layer-n">{i + 1}</span>
-                {coming ? <Spinner size={13} /> : <Status s={s} iconOnly size={13} />}
+                {coming ? <Spinner size={13} /> : <Status s={s} iconOnly size={13} className="layer-stands" />}
                 <span className="layer-title">{l.title}</span>
                 <span className="mono dim">#{l.number}</span>
               </Link>

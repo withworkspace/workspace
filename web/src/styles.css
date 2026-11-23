@@ -356,15 +356,6 @@ input[type="checkbox"] {
   }
 }
 
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
 .tone-attention {
   --tone: var(--attention);
   --tone-fill: var(--attention-fill);
@@ -405,18 +396,6 @@ input[type="checkbox"] {
   --tone: var(--dim);
   --tone-fill: var(--faint);
   --tone-soft: var(--panel);
-}
-
-.status[class*="tone-"] {
-  color: var(--tone);
-}
-
-.status.live .icon {
-  animation: pulse 2.2s var(--ease) infinite;
-}
-
-.status.live .icon-spinner {
-  animation: spin 1s linear infinite;
 }
 
 .ref {
@@ -1206,7 +1185,7 @@ main {
   color: var(--dim);
 }
 
-.find-row > .status {
+.find-stands {
   flex: none;
 }
 
@@ -10270,7 +10249,7 @@ details.repo-group > summary::-webkit-details-marker {
 }
 
 .layer-list li a > .mono,
-.layer-list li a > .status {
+.layer-stands {
   flex: none;
 }
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Icon } from "../ui/Icon";
-import { Status } from "../ui/status";
+import { Status, statusClass } from "../ui/Status";
 import { Focus } from "./Focus";
 import { FocusRow } from "./FocusRow";
 import { pins as samplePins, type SamplePin } from "./samples";
@@ -61,7 +61,7 @@ export function SamplePins({
             p.status ? (
               <Status s={p.status} iconOnly />
             ) : (
-              <span className="status tone-quiet">
+              <span className={statusClass("quiet")}>
                 <Icon name={p.icon ?? "pin"} />
               </span>
             )

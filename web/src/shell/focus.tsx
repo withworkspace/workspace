@@ -10,7 +10,8 @@ import { thingIcon } from "../refs/views";
 import { Icon, type IconName } from "../ui/Icon";
 import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
-import { headlineStatus, Status } from "../ui/status";
+import { Status, statusClass } from "../ui/Status";
+import { headlineStatus } from "../ui/statusOf";
 import { Button } from "../ui/Button";
 import { Focus } from "../chrome/Focus";
 import { FocusRow } from "../chrome/FocusRow";
@@ -355,7 +356,7 @@ function PinRow({
 }
 
 const quiet = (name: IconName) => (
-  <span className="status tone-quiet">
+  <span className={statusClass("quiet")}>
     <Icon name={name} />
   </span>
 );
@@ -378,7 +379,7 @@ function useStands(pin: FocusPin, r: PageRef, workspace: Workspace, known?: Know
       const waits = !!t?.waiting && t.status === "open";
       return {
         icon: waits ? (
-          <span className="status tone-attention" title="Waiting on you">
+          <span className={statusClass("attention")} title="Waiting on you">
             <Icon name="reply" />
           </span>
         ) : (

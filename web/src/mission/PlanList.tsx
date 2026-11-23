@@ -15,7 +15,7 @@ import { useHoverDelay } from "../ui/useHoverDelay";
 import { RefContext } from "../refs/context";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { crewStatus } from "../ui/status";
+import { crewStatus } from "../ui/statusOf";
 import { duration, stamp } from "../ui/time";
 import { CrewBadge, MissionData, StepChecks, StepLimit, StepRuns } from "./parts";
 import { checksUnmet, foldNote, passedUnmet, planWindow, stepBundle, stepKind, stepText, stepTimes, stepYours, type StepTime, waitHow, type WaitHow, watchWords, worthOpening } from "./planRows";

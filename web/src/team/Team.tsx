@@ -13,7 +13,7 @@ import { Empty } from "../ui/Empty";
 import { humanError } from "../ui/text";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
-import { Status, type StatusInfo } from "../ui/status";
+import { Status, type StatusInfo } from "../ui/Status";
 import { dayLabel, Time } from "../ui/time";
 import { useLatest } from "../load";
 import { Chip } from "../ui/Chip";
