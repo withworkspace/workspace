@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
+import { Callout } from "./Callout";
 import { Icon, type IconName } from "./Icon";
 import { Spinner } from "./Spinner";
 import { Button } from "./Button";
@@ -8,47 +9,6 @@ import { getToasts, onToasts, setToasts, toast } from "./toast";
 export { toast };
 
 // The small shared pieces every page draws with.
-
-export type CalloutTone = "attention" | "info" | "danger" | "done" | "quiet" | "progress";
-
-const toneIcon: Record<CalloutTone, IconName> = {
-  attention: "alert",
-  info: "info",
-  danger: "x-circle",
-  done: "check-circle",
-  quiet: "info",
-  progress: "circle-dot",
-};
-
-// Callout is a note in the flow of a page: a tinted panel with a bar on
-// its left, an icon, a title, and what follows.
-export function Callout({
-  tone = "info",
-  icon,
-  title,
-  children,
-  actions,
-  className,
-}: {
-  tone?: CalloutTone;
-  icon?: IconName | null;
-  title?: ReactNode;
-  children?: ReactNode;
-  actions?: ReactNode;
-  className?: string;
-}) {
-  const ic = icon === null ? undefined : (icon ?? toneIcon[tone]);
-  return (
-    <div className={`callout tone-${tone}${className ? ` ${className}` : ""}`} role={tone === "danger" ? "alert" : undefined}>
-      {ic && <Icon name={ic} size={16} className="callout-icon" />}
-      <div className="callout-body">
-        {title && <div className="callout-title">{title}</div>}
-        {children && <div className="callout-text">{children}</div>}
-        {actions && <div className="callout-actions">{actions}</div>}
-      </div>
-    </div>
-  );
-}
 
 // Empty is a place with nothing in it yet: what it's for, and what to do.
 export function Empty({ icon = "inbox", title, children, action }: { icon?: IconName; title: ReactNode; children?: ReactNode; action?: ReactNode }) {
@@ -94,9 +54,9 @@ export function Skeleton({ rows = 4, className }: { rows?: number; className?: s
 }
 
 // ErrorCard is something that didn't load, in words, with a retry.
-export function ErrorCard({ error, retry, title = "Couldn't load this" }: { error: string; retry?: () => void; title?: string }) {
+export function ErrorCard({ error, retry, title = "Couldn't load this", className }: { error: string; retry?: () => void; title?: string; className?: string }) {
   return (
-    <Callout tone="danger" title={title} actions={retry && <Button onClick={retry}>Try again</Button>}>
+    <Callout tone="danger" title={title} className={className} actions={retry && <Button onClick={retry}>Try again</Button>}>
       {humanError(error)}
     </Callout>
   );

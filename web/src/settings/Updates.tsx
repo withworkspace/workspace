@@ -5,7 +5,8 @@ import { useLoaded } from "../load";
 import { shortVersion } from "../shell/version";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Callout, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
@@ -86,7 +87,7 @@ export function Updates({ running }: { running?: string }) {
   return (
     <div className="settings-updates">
       {standing === "waiting" && (
-        <Callout tone="info" icon="rotate" title={`ws ${up.installed} is installed`}>
+        <Callout className="settings-update-note" tone="info" icon="rotate" title={`ws ${up.installed} is installed`}>
           The daemon restarts onto it once nothing's at work
           {up.waits?.length ? (
             <>
@@ -107,7 +108,7 @@ export function Updates({ running }: { running?: string }) {
         </Callout>
       )}
       {standing === "out" && (
-        <Callout
+        <Callout className="settings-update-note"
           tone="attention"
           icon="arrow-up"
           title={`ws ${up.latest} is out`}
@@ -121,7 +122,7 @@ export function Updates({ running }: { running?: string }) {
         </Callout>
       )}
       {standing === "out-built" && (
-        <Callout tone="attention" icon="arrow-up" title={`ws ${up.latest} is out`}>
+        <Callout className="settings-update-note" tone="attention" icon="arrow-up" title={`ws ${up.latest} is out`}>
           This is {shortVersion(up.version)}, built from a clone rather than installed from a release, so it's changed where it was built: pull, and{" "}
           <span className="mono">just build</span>. {notes}
         </Callout>

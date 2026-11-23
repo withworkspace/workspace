@@ -26,7 +26,8 @@ import { Icon, type IconName } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
 import { CheckingNow, checkingTitle } from "./checking";
 import { Inline, plain } from "../ui/inline";
-import { Callout, type CalloutTone, Empty, ErrorCard, humanError, Skeleton, toast, useTitle } from "../ui/kit";
+import { Empty, ErrorCard, humanError, Skeleton, toast, useTitle } from "../ui/kit";
+import { Callout, type CalloutTone } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { headlineStatus, missionStateStatus, Status } from "../ui/status";
@@ -918,7 +919,7 @@ function CardView({ d, c, lead, reload, step, latest }: { d: MissionDetail; c: M
       {body}
     </Lead>
   ) : (
-    <Callout tone="quiet" icon={st.icon} title={title} className="headline also" actions={actions}>
+    <Callout tone="quiet" icon={st.icon} title={title} className="headline also" big actions={actions}>
       {body}
     </Callout>
   );

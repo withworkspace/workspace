@@ -12,7 +12,8 @@ import { afterSettling } from "../talk/proposals";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon, type IconName } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Callout, humanError, toast, useMedia } from "../ui/kit";
+import { humanError, toast, useMedia } from "../ui/kit";
+import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";
 import { BriefOutline, type DocId } from "./BriefOutline";
@@ -623,7 +624,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
         <div className="brief-main" ref={setMain}>
           <div className="brief-docs" ref={docs}>
             {stale && (
-              <Callout tone="attention" icon="alert" title="Proposed against an earlier version">
+              <Callout className="brief-docs-note" tone="attention" icon="alert" title="Proposed against an earlier version">
                 It's changed since, so accepting this is refused. Ask the planner for it again, from what's written now.
               </Callout>
             )}
@@ -631,7 +632,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
             {(planned || briefing) && (
               <>
                 {d.planProblem && (
-                  <Callout tone="attention" icon="alert" title="The plan doesn't read, so the mission works from its brief">
+                  <Callout className="brief-docs-note" tone="attention" icon="alert" title="The plan doesn't read, so the mission works from its brief">
                     {d.planProblem}
                   </Callout>
                 )}
@@ -639,7 +640,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
               </>
             )}
             {planProblem && (
-              <Callout tone="danger" icon="alert" title="ws didn't save the plan">
+              <Callout className="brief-docs-note" tone="danger" icon="alert" title="ws didn't save the plan">
                 <pre className="plan-problem">{planProblem}</pre>
               </Callout>
             )}

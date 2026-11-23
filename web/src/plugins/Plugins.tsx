@@ -4,7 +4,8 @@ import { addPlugin, ApiError, checkUpdates, getInstalledPlugins, type InstalledP
 import { type Reload, useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Callout, Empty, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { Empty, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
 import { Time } from "../ui/time";

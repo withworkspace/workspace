@@ -5,7 +5,8 @@ import type { Reload } from "../load";
 import { useKeys } from "../keys";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Callout, Empty, humanError, toast } from "../ui/kit";
+import { Empty, humanError, toast } from "../ui/kit";
+import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";
@@ -433,12 +434,12 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id?: string) => void }) {
         {b.capsule && b.commit && !b.stale && !b.replacedBy && <span className="verify-current">Current: its capsule hasn't moved since</span>}
       </div>
       {b.replacedBy && (
-        <Callout tone="quiet" icon="info" actions={<Button onClick={() => pick(b.replacedBy!)}>Open {b.replacedBy}</Button>}>
+        <Callout className="verify-head-note" tone="quiet" icon="info" actions={<Button onClick={() => pick(b.replacedBy!)}>Open {b.replacedBy}</Button>}>
           {b.replacedBy} has taken its place.
         </Callout>
       )}
       {b.verdict === "approved" && (
-        <Callout tone="done" icon="check-circle">
+        <Callout className="verify-head-note" tone="done" icon="check-circle">
           You approved it
           {b.verdictAt && (
             <>
@@ -450,7 +451,7 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id?: string) => void }) {
         </Callout>
       )}
       {b.verdict === "sent back" && (
-        <Callout
+        <Callout className="verify-head-note"
           tone="attention"
           icon="reply"
           title={
@@ -477,7 +478,7 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id?: string) => void }) {
         </Callout>
       )}
       {b.stale && !b.replacedBy && (
-        <Callout tone="attention" title="Stale">
+        <Callout className="verify-head-note" tone="attention" title="Stale">
           Its capsule has moved on to <span className="mono">{shortCommit(b.head)}</span> since. What this shows is of <span className="mono">{shortCommit(b.commit)}</span>.
         </Callout>
       )}

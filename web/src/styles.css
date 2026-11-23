@@ -437,60 +437,6 @@ input[type="checkbox"] {
   overflow: hidden;
 }
 
-/* Callouts: a tinted panel with a bar on its left. */
-
-:where(.callout) {
-  --tone: var(--attention);
-  --tone-fill: var(--attention-fill);
-  --tone-soft: var(--attention-soft);
-}
-
-.callout {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  background: var(--tone-soft);
-  border-left: 3px solid var(--tone-fill);
-  border-radius: var(--radius);
-  padding: 10px 14px 10px 12px;
-  margin-bottom: var(--space-5);
-}
-
-.callout.tone-quiet {
-  background: var(--well);
-  border-left-color: var(--line-strong);
-}
-
-.callout-icon {
-  color: var(--tone);
-  margin-top: 1px;
-}
-
-.callout-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.callout-title {
-  font-weight: 600;
-}
-
-.callout-title + .callout-text {
-  margin-top: 2px;
-}
-
-.callout-text {
-  color: var(--fg);
-}
-
-.callout-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: 10px;
-}
-
 .banner {
   display: flex;
   align-items: center;
@@ -2756,10 +2702,6 @@ button.on {
   }
 }
 
-.headline .callout-title {
-  font-size: var(--text-md);
-}
-
 .headline.also {
   margin-top: -4px;
 }
@@ -3465,7 +3407,7 @@ button.on {
   margin: 0 auto var(--space-6);
 }
 
-.brief-docs > .callout {
+.brief-docs-note {
   max-width: var(--brief-measure);
   margin-inline: auto;
 }
@@ -3476,7 +3418,7 @@ button.on {
 }
 
 .brief-doc + .brief-doc,
-.brief-doc + .callout + .brief-doc {
+.brief-doc + .brief-docs-note + .brief-doc {
   padding-top: var(--space-4);
   border-top: 1px solid var(--line);
 }
@@ -3924,7 +3866,7 @@ button.on {
     overflow: hidden;
   }
 
-  .brief-tab.side .brief-docs > .callout {
+  .brief-tab.side .brief-docs-note {
     grid-column: 1 / -1;
     max-width: none;
     margin: 16px 32px 0;
@@ -4832,7 +4774,7 @@ p.verify-meta {
   color: var(--done);
 }
 
-.verify-head .callout {
+.verify-head-note {
   margin-bottom: 0;
 }
 
@@ -6807,10 +6749,6 @@ a.work-file:hover {
   min-width: 0;
   margin: 0 auto;
   padding: var(--space-6) var(--space-8) calc(64px - var(--foot-height, 0px));
-}
-
-.settings-body .callout {
-  margin-bottom: var(--space-5);
 }
 
 .settings-body mark {
@@ -9084,7 +9022,7 @@ div.tc-bar {
   .change-bar,
   .doc-cursor,
   .add-comment,
-  .callout,
+  [data-callout],
   .brief-bar,
   .brief-outline,
   .brief-planner,
@@ -9887,7 +9825,7 @@ details.repo-group > summary::-webkit-details-marker {
   font-size: var(--text-sm);
 }
 
-.file-pane > .callout,
+.file-pane-note,
 .file-pane > .empty,
 .file-pane > .loading {
   margin: 8px 20px 16px;
@@ -16104,7 +16042,7 @@ a.plugin-row-out {
   margin-bottom: var(--space-3);
 }
 
-.settings-updates .callout {
+.settings-update-note {
   margin: 0;
 }
 
