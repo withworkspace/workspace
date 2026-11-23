@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { act, type CapsuleDetail, type Conclusion, type EndedCapsule, type Ending, type MissionDetail } from "../api";
 import type { Reload } from "../load";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { toast } from "../ui/toast";
@@ -167,7 +168,7 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
           ))}
         </fieldset>
       )}
-      {error && <div className="banner">{humanError(error)}</div>}
+      {error && <Banner>{humanError(error)}</Banner>}
       <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel
@@ -249,7 +250,7 @@ export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetai
               <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="its slug" />
             </label>
           )}
-          {error && <div className="banner">{humanError(error)}</div>}
+          {error && <Banner>{humanError(error)}</Banner>}
           <DialogActions>
             <Button variant="ghost" onClick={close}>
               Cancel

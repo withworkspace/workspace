@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Link, useNavigate } from "react-router";
 import { getBlob, type DiffFile } from "../api";
 import { useKeys } from "../keys";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { toast } from "../ui/toast";
 import { Keys } from "../ui/Keys";
@@ -613,7 +614,7 @@ function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api: string
         </Button>
       </header>
       <div className="nav-panel-body lines" ref={body}>
-        {error && <div className="banner">{error}</div>}
+        {error && <Banner>{error}</Banner>}
         {!lines && !error && <div className="dim nav-panel-loading">Reading {at.path}…</div>}
         {html.map((h, i) => (
           <div key={i} className="dl nav-line" data-line={i + 1}>

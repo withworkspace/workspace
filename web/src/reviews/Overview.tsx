@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { type Capsule, commentPR, type Discussion, getMission, getPR, type Mission, type PR, type Said } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { useAutosize } from "../ui/useAutosize";
 import { humanError } from "../ui/text";
@@ -220,7 +221,7 @@ function SayBox({ api, onSaid }: { api: string; onSaid: (d: Discussion) => void 
           }
         }}
       />
-      {error && <div className="banner">{humanError(error)}</div>}
+      {error && <Banner>{humanError(error)}</Banner>}
       <div className="note-actions">
         <span className="dim">Posts to GitHub at once, as you: it isn't part of your draft.</span>
         <span className="spacer-left" />

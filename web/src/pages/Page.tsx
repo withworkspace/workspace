@@ -57,6 +57,7 @@ import MarkdownEditor, { type Draft } from "../editor/MarkdownEditor";
 import { blockOf, type Note, noteElement, onPage, putInstead, setNotes } from "../editor/notes";
 import { linkNamed, type RefHost, type RefMark, refreshRefs } from "../editor/refs";
 import { Markdown } from "../markdown/LazyMarkdown";
+import { Banner } from "../ui/Banner";
 import { Calls } from "../ui/Calls";
 import { Icon, type IconName } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
@@ -773,42 +774,55 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
         />
       )}
       {tied?.changed && (
-        <div className="banner page-changed" role="alert">
-          <span>
-            <span className="mono">{tied.in?.path ?? tied.ref}</span> has changed since this page took it in. Bring in what changed before saving: it's merged with what you've written here.
-          </span>
-          <Button size="small" onClick={bringItIn} disabled={bringing}>
-            {bringing ? "Bringing it in…" : "Bring in what changed"}
-          </Button>
-        </div>
+        <Banner
+          tone="attention"
+          role="alert"
+          actions={
+            <Button size="small" onClick={bringItIn} disabled={bringing}>
+              {bringing ? "Bringing it in…" : "Bring in what changed"}
+            </Button>
+          }
+        >
+          <span className="mono">{tied.in?.path ?? tied.ref}</span> has changed since this page took it in. Bring in what changed before saving: it's merged with what you've written here.
+        </Banner>
       )}
       {tied?.gone && (
-        <div className="banner page-changed" role="alert">
-          <span>The file this page is tied to ({tied.ref}) isn't there any more: {tied.gone}.</span>
-        </div>
+        <Banner tone="attention" role="alert">
+          The file this page is tied to ({tied.ref}) isn't there any more: {tied.gone}.
+        </Banner>
       )}
       {filed && !tied && (
-        <div className="banner page-filed" role="status">
-          <Icon name="check" size={13} />
-          <span>
-            Filed as <Link to={docTo(filed.ref)} className="mono">{filed.ref.replace(":", " · ")}</Link>
-            {filed.landed ? ", landed" : ", in a capsule lifted for it"} <Time iso={filed.at} as="relative" />. It's edited there now: what you change here stays in the page.
-          </span>
-          <Link to={docTo(filed.ref)} className={buttonClass({ size: "small" })}>
-            Open the document
-          </Link>
-        </div>
+        <Banner
+          tone="done"
+          icon="check"
+          role="status"
+          actions={
+            <Link to={docTo(filed.ref)} className={buttonClass({ size: "small" })}>
+              Open the document
+            </Link>
+          }
+        >
+          Filed as <Link to={docTo(filed.ref)} className="mono">{filed.ref.replace(":", " · ")}</Link>
+          {filed.landed ? ", landed" : ", in a capsule lifted for it"} <Time iso={filed.at} as="relative" />. It's edited there now: what you change here stays in the page.
+        </Banner>
       )}
       {saving === "changed" && (
-        <div className="banner page-changed" role="alert">
-          <span>This page was changed somewhere else (another tab, perhaps) since you opened it here. Nothing more is saved from here until you choose.</span>
-          <Button size="small" onClick={reread}>
-            Read it again
-          </Button>
-          <Button size="small" onClick={keepMine}>
-            Keep what's here
-          </Button>
-        </div>
+        <Banner
+          tone="attention"
+          role="alert"
+          actions={
+            <>
+              <Button size="small" onClick={reread}>
+                Read it again
+              </Button>
+              <Button size="small" onClick={keepMine}>
+                Keep what's here
+              </Button>
+            </>
+          }
+        >
+          This page was changed somewhere else (another tab, perhaps) since you opened it here. Nothing more is saved from here until you choose.
+        </Banner>
       )}
       <Tabs className="page-tabs" value={tab} onChange={setTab} aria-label="The page, and passes over it">
         <Tab value="page">Page</Tab>
@@ -1157,17 +1171,19 @@ function PassTab({
         </Button>
       </header>
       {pass.failed && !pass.running && (
-        <div className="banner pass-failed" role="alert">
-          <span>The last run couldn't finish. {pass.failed}</span>
-        </div>
+        <Banner>The last run couldn't finish. {pass.failed}</Banner>
       )}
       {pass.moved && !pass.running && !!pass.runs && (
-        <div className="banner page-changed">
-          <span>The page has changed since this ran: what's below is of the page as it was.</span>
-          <Button size="small" disabled={busy} onClick={start}>
-            Run again
-          </Button>
-        </div>
+        <Banner
+          tone="attention"
+          actions={
+            <Button size="small" disabled={busy} onClick={start}>
+              Run again
+            </Button>
+          }
+        >
+          The page has changed since this ran: what's below is of the page as it was.
+        </Banner>
       )}
       {pass.running && (
         <div className="pass-running">

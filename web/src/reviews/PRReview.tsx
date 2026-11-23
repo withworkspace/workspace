@@ -31,6 +31,7 @@ import { type AskAbout, linesChip } from "../ask/ask";
 import { AskBar, type AskBarHandle } from "../ask/AskBar";
 import { useKeys } from "../keys";
 import { type AskedFinding, type ReviewDiff, type ReviewSource, ReviewView, type Selection } from "../review/Review";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { useTitle } from "../ui/useTitle";
@@ -919,7 +920,7 @@ function PRSubmitDialog({
                   {noGo.map((p) => `${p.title}: ${standingWords(p.standing).toLowerCase()}`).join("; ")}. Approving is yours to do: take what stands into your review, or dismiss what doesn't.
                 </Callout>
               )}
-              {l.error && <div className="banner">{humanError(l.error)}</div>}
+              {l.error && <Banner>{humanError(l.error)}</Banner>}
               {l.verdict && l.posting && !l.state && <PostingView p={l.posting} />}
             </section>
           );

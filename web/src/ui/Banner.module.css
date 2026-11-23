@@ -1,0 +1,25 @@
+/* A banner (Banner.tsx): a line in a tone, across the top of something. */
+
+@layer ui {
+  /* Its colours are its tone's: the tone-<tone> class beside this one
+     sets them. */
+  .banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 var(--space-4);
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    border-left: 3px solid var(--tone-fill);
+    background: var(--tone-soft);
+    color: var(--fg);
+  }
+
+  /* The words take the room, and break where they must: an error can be
+     one long path. */
+  .words {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}

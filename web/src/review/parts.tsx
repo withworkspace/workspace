@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { noteKinds, type Review, type Verdict } from "../api";
 import { useKeys } from "../keys";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { humanError } from "../ui/text";
 import { Keys } from "../ui/Keys";
@@ -96,7 +97,7 @@ export function SubmitDialog({
             }
           }}
         />
-        {error && <div className="banner">{humanError(error)}</div>}
+        {error && <Banner>{humanError(error)}</Banner>}
         <div className="note-actions">
           {draft && (
             <Button variant="ghost" onClick={onDiscard}>

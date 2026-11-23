@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { type GuideText, type ReviewGuide, runPRGuide } from "../api";
 import type { Order } from "../review/files";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/inline";
@@ -71,7 +72,7 @@ export function GuideSection({ api, guide, guided, onGuide, onGuided }: { api: s
           </p>
         )}
         {running && <GuideWriting guide={guide} again={!!g} />}
-        {guide.failed && !running && <div className="banner">{humanError(guide.failed)}</div>}
+        {guide.failed && !running && <Banner>{humanError(guide.failed)}</Banner>}
         {running && guide.draft ? (
           <GuideBody g={guide.draft} writing />
         ) : (

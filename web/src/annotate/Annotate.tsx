@@ -26,6 +26,7 @@ import {
 import { useKeys } from "../keys";
 import { type TrackedChange, TrackedDoc } from "../editor/LazyTracked";
 import { Markdown } from "../markdown/LazyMarkdown";
+import { Banner } from "../ui/Banner";
 import { NoteBody, NoteCard, NoteHead, NoteHint, noteHintActionClass, NoteId, NoteThread, NoteTurn } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
 import { Change } from "../ui/Change";
@@ -860,7 +861,7 @@ export function AnnotatedDoc({
           )}
         </Callout>
       )}
-      {error && <div className="banner">{humanError(error)}</div>}
+      {error && <Banner>{humanError(error)}</Banner>}
       {lost.length > 0 && (
         <section className="lost-notes">
           <div className="dim">
@@ -1361,7 +1362,7 @@ function Composer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: Threa
           />
         </>
       )}
-      {error && <div className="banner">{humanError(error)}</div>}
+      {error && <Banner>{humanError(error)}</Banner>}
       {pick.quote.exact && edit === undefined && (
         <Button variant="link" className="suggest-link" onClick={suggest}>
           <Icon name="pencil" size={12} /> Suggest an edit instead

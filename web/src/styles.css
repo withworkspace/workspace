@@ -437,23 +437,8 @@ input[type="checkbox"] {
   overflow: hidden;
 }
 
-.banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 var(--space-4);
-  padding: 8px 12px;
-  border-radius: var(--radius);
-  border-left: 3px solid var(--red-fill);
-  background: var(--red-soft);
-  color: var(--fg);
-}
-
-.banner::first-letter {
-  text-transform: uppercase;
-}
-
-main > .banner {
+/* The workspace didn't load: said under the top of the page. */
+.app-error {
   margin: var(--space-4) var(--space-8) 0;
 }
 
@@ -11113,15 +11098,6 @@ span.save-state {
   color: var(--attention);
 }
 
-.banner.page-changed {
-  border-left-color: var(--attention-fill);
-  background: var(--attention-soft);
-}
-
-.banner.page-changed span {
-  flex: 1;
-}
-
 /* Under words selected in a page: ask about them, or for a change. */
 .select-pop {
   position: absolute;
@@ -11144,16 +11120,6 @@ span.save-state {
 
 .pass-unavailable {
   color: var(--red);
-}
-
-/* A page filed as a document: where it went. */
-.banner.page-filed {
-  border-left-color: var(--green-fill);
-  background: var(--green-soft);
-}
-
-.banner.page-filed span {
-  flex: 1;
 }
 
 /* Filing a page, and starting one as a kind of document. */
@@ -11652,11 +11618,6 @@ a.source-chip.tone-attention:hover {
 
 .pass-about .dim {
   font-size: var(--text-sm);
-}
-
-.banner.pass-failed span {
-  flex: 1;
-  overflow-wrap: anywhere;
 }
 
 .pass-running {

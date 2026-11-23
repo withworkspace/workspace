@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import { createHost } from "../conversation/host";
 import { PageConversation } from "../conversation/PageConversation";
 import { refAt, thingOpenAt } from "../refs/refs";
+import { Banner } from "../ui/Banner";
 import { type IconName, icons } from "../ui/Icon";
 import { refsFound } from "../refs/found";
 import { useRefs } from "../refs/known";
@@ -230,9 +231,7 @@ function PluginFrame({ name }: { name: string }) {
   return (
     <div className="plugin-view">
       {refused && (
-        <div className="banner plugin-refused" role="alert">
-          {refused}
-        </div>
+        <Banner className="plugin-refused">{refused}</Banner>
       )}
       <PageConversation host={conversation} about={about}>
         <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} onLoad={() => frame.current?.loaded()} />

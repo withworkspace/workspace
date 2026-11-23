@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { act, writePR, type CapsuleDetail, type MissionDetail } from "../api";
 import type { Reload } from "../load";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { toast } from "../ui/toast";
@@ -101,7 +102,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
           <Checkbox className="setting-toggle open-pr-draft" checked={draft} onChange={setDraft}>
             Open it as a draft
           </Checkbox>
-          {error && <div className="banner">{humanError(error)}</div>}
+          {error && <Banner>{humanError(error)}</Banner>}
           <DialogActions>
             <Button variant="ghost" onClick={close}>
               Cancel

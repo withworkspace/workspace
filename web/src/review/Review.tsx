@@ -25,6 +25,7 @@ import {
   submitReview,
 } from "../api";
 import { type KeyMap, useKeys } from "../keys";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
 import { Excerpt } from "../ui/Excerpt";
@@ -1123,7 +1124,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
           </div>
         )}
         {moved && <Callout tone="attention" title={source.movedWords} actions={<Button onClick={reload}>Reload <Keys k="r" /></Button>} />}
-        {error && <div className="banner">{humanError(error)}</div>}
+        {error && <Banner>{humanError(error)}</Banner>}
         {parts.map((p) => (
           <section key={p.key} className={`review-view view-body view-${p.key}`} hidden={view !== p.key} aria-label={viewNames[p.key].label}>
             {typeof p.body === "function" ? p.body({ toFinding, toComment }) : p.body}

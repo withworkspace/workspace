@@ -4,6 +4,7 @@ import { type ArtifactContent, docAddress, docTo, filesTo, getDoc, GROUND, place
 import { goToSection, useSections } from "../files/Contents";
 import { useLatest } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { Skeleton } from "../ui/Skeleton";
 import { ErrorCard } from "../ui/ErrorCard";
@@ -87,8 +88,8 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
         </div>
       </header>
       {flights && flights.length > 0 && (
-        <div className="banner tone-progress doc-preview-flight">
-          <Icon name="box" size={13} /> Changed in{" "}
+        <Banner icon="box" className="doc-preview-flight">
+          Changed in{" "}
           {flights.map((c, i) => (
             <span key={c}>
               {i > 0 && ", "}
@@ -96,7 +97,7 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
             </span>
           ))}
           : in flight, so what's here may be about to change.
-        </div>
+        </Banner>
       )}
       {sections.filter((s) => s.level === 2).length > 1 && (
         <nav className="doc-preview-sections" aria-label="Its sections">

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { type DismissWhy, type PassFinding, type PassMark, type ReviewPass, runPRPass, settlePRFinding } from "../api";
 import { FindingActions, followWords, reviewDismissWhys } from "../review/Findings";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/inline";
@@ -164,7 +165,7 @@ function PassView({
         </Button>
       </header>
       {p.unavailable && <p className="dim rpass-note">It can't be run: {p.unavailable}.</p>}
-      {p.failed && !running && <div className="banner">{humanError(p.failed)}</div>}
+      {p.failed && !running && <Banner>{humanError(p.failed)}</Banner>}
       {running && steps.length > 0 && (
         <p className="dim rpass-note mono">
           {steps.length} {steps.length === 1 ? "step" : "steps"}: {clip(`${steps[steps.length - 1].tool} ${steps[steps.length - 1].input ?? ""}`, 110)}

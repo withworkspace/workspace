@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { type DocKind, type DocSaved, FileChanged, filePage, type PageFiling, type PageTied, savePageToFile, type SpaceRef } from "../api";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { humanError } from "../ui/text";
 import { Callout } from "../ui/Callout";
@@ -156,7 +157,7 @@ export function FileAs({
         </Callout>
       )}
       <p className="dim file-as-what">What's filed is the page as it reads: what its cells hold is kept as text, its questions are left out. The page stays, and says where it was filed.</p>
-      {error && <div className="banner">{error}</div>}
+      {error && <Banner>{error}</Banner>}
       <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
@@ -246,7 +247,7 @@ export function SaveToFile({
         </Callout>
       )}
       <p className="dim file-as-what">What's saved is the page as it reads: what its cells hold is kept as text, its questions are left out. The page keeps them.</p>
-      {error && <div className="banner">{error}</div>}
+      {error && <Banner>{error}</Banner>}
       <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
