@@ -5,7 +5,8 @@ import { type Reload, useLoaded } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Copyable, Empty, ErrorCard, Skeleton } from "../ui/kit";
+import { Empty, ErrorCard, Skeleton } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { crewStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
@@ -280,7 +281,7 @@ function CapsulePane({ d, x, label, select, review, reload, seen }: { d: Mission
         <div className="work-head-top">
           <Icon name="box" size={16} />
           <h2>{label(c.repo)}</h2>
-          <Copyable text={x.id} className="mono work-head-slug" title="Copy the capsule" />
+          <Copyable text={x.id} className="work-head-slug" title="Copy the capsule" />
           {c.branch && c.branch !== c.name && (
             <Chip tone="quiet" title="Its branch">
               <Icon name="branch" size={11} />
@@ -328,7 +329,7 @@ function CapsulePane({ d, x, label, select, review, reload, seen }: { d: Mission
             ))}
           {!!c.behind && <span title={`${c.behind} commits behind the default branch`}>{c.behind} behind</span>}
           {c.exists && (
-            <Copyable text={c.path} className="mono" title="Copy its folder">
+            <Copyable text={c.path} title="Copy its folder">
               {shortPath(c.path)}
             </Copyable>
           )}
@@ -372,7 +373,7 @@ function CapsulePane({ d, x, label, select, review, reload, seen }: { d: Mission
               <ul className="work-commits">
                 {sum.commits.map((m) => (
                   <li key={m.sha}>
-                    <Copyable text={m.sha.slice(0, 7)} className="mono" title="Copy the commit" />
+                    <Copyable text={m.sha.slice(0, 7)} className="work-commit-sha" title="Copy the commit" />
                     <span className="work-commit-subject" title={m.subject}>
                       {m.subject}
                     </span>

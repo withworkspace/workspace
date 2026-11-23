@@ -6,7 +6,8 @@ import { useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { type PageRef, wsAddress } from "../refs/refs";
 import { Icon } from "../ui/Icon";
-import { Callout, Copyable, ErrorCard, Skeleton, toast, useTitle } from "../ui/kit";
+import { Callout, ErrorCard, Skeleton, toast, useTitle } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Status } from "../ui/status";
 import { Time } from "../ui/time";
@@ -295,7 +296,7 @@ export function DocPage({ docRef }: { docRef: string }) {
                 {f.pr ? ` · #${f.pr.number}` : ""}
               </Link>
             ))}
-            <Copyable text={a.ref} className="mono doc-ref" title="Copy its ref">
+            <Copyable text={a.ref} className="doc-ref" title="Copy its ref">
               {a.ref.replace(":", " · ")}
             </Copyable>
             <span className="doc-actions">
@@ -356,7 +357,7 @@ export function DocPage({ docRef }: { docRef: string }) {
         )}
         {a?.path && !mission && (
           <p className="doc-path">
-            <Copyable text={a.path} className="mono" title="Copy where it is" />
+            <Copyable text={a.path} title="Copy where it is" />
           </p>
         )}
         {read && sib && sib.of > 1 && <Pager sib={sib} to={toDoc} />}

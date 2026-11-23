@@ -12,7 +12,8 @@ import { fuzzy, marked } from "../ui/fuzzy";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon, type IconName } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
-import { Callout, Copyable, Empty, ErrorCard, Loading, toast, useMedia, useTitle } from "../ui/kit";
+import { Callout, Empty, ErrorCard, Loading, toast, useMedia, useTitle } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { useLoaded } from "../load";
 import { TabbedBrowser } from "./WorktreeTabs";
@@ -814,7 +815,7 @@ function FilePane({
               </strong>
             ),
           )}
-          <Copyable text={path} className="file-copy" title="Copy its path (y)">
+          <Copyable text={path} className="file-copy" icon="inline" title="Copy its path (y)">
             {""}
           </Copyable>
         </div>
@@ -896,7 +897,7 @@ function FilePane({
           </Empty>
         ) : file.tooLarge ? (
           <Empty icon="file" title="Too large to show">
-            It's {sizeWords(file.size)}. Open it in an editor: <Copyable text={path} className="mono" />
+            It's {sizeWords(file.size)}. Open it in an editor: <Copyable text={path} />
           </Empty>
         ) : !file.lines.length ? (
           <Empty icon="file" title="An empty file" />

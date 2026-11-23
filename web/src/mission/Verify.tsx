@@ -5,7 +5,8 @@ import type { Reload } from "../load";
 import { useKeys } from "../keys";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Callout, Copyable, Empty, humanError, toast } from "../ui/kit";
+import { Callout, Empty, humanError, toast } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";
 import {
@@ -420,7 +421,7 @@ function BundleHead({ b, pick }: { b: Bundle; pick: (id?: string) => void }) {
                 <>
                   {" "}
                   at{" "}
-                  <Copyable text={b.commit} className="mono" title="Copy the commit">
+                  <Copyable text={b.commit} title="Copy the commit">
                     {shortCommit(b.commit)}
                   </Copyable>
                 </>
@@ -664,7 +665,7 @@ function CheckDetail({
           {c.lines.map((l, i) => (
             <span key={l}>
               {i > 0 && ", "}
-              <Copyable text={l} className="mono" title="Copy where it is" />
+              <Copyable text={l} title="Copy where it is" />
             </span>
           ))}
         </p>

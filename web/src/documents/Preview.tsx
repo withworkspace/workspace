@@ -5,7 +5,8 @@ import { goToSection, useSections } from "../files/Contents";
 import { useLatest } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
-import { Copyable, ErrorCard, Skeleton } from "../ui/kit";
+import { ErrorCard, Skeleton } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";
 import { ChangeLine } from "./Activity";
@@ -56,7 +57,7 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
           {kind && <Chip tone="quiet">{kind.title}</Chip>}
           {doc.state && kind?.states && <Chip tone={doc.state === kind.states[0] ? "quiet" : "done"}>{doc.state}</Chip>}
           {(doc.number || doc.date) && <span className="mono">{doc.number ?? doc.date}</span>}
-          <Copyable text={ref} className="mono doc-preview-ref" title="Copy its ref">
+          <Copyable text={ref} className="doc-preview-ref" title="Copy its ref">
             {`${repo} · ${doc.path}`}
           </Copyable>
         </div>

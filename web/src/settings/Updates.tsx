@@ -5,7 +5,8 @@ import { useLoaded } from "../load";
 import { shortVersion } from "../shell/version";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Callout, Copyable, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { Callout, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
 import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
@@ -99,7 +100,7 @@ export function Updates({ running }: { running?: string }) {
           ) : (
             ", which is any moment now. "
           )}
-          <Copyable text="ws daemon restart --now" className="mono">
+          <Copyable text="ws daemon restart --now">
             ws daemon restart --now
           </Copyable>{" "}
           doesn't wait.

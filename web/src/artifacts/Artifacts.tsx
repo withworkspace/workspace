@@ -9,7 +9,8 @@ import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../revie
 import { HoverCard, HoverCardHead, HoverCardLine, HoverCardTitle } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Copyable, Empty, ErrorCard, humanError, Loading, toast, useTitle } from "../ui/kit";
+import { Empty, ErrorCard, humanError, Loading, toast, useTitle } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Option, Select } from "../ui/Select";
 import { Status } from "../ui/status";
@@ -354,7 +355,7 @@ export function ArtifactPage() {
             <Icon name={st.icon} size={11} />
             {st.words}
           </Chip>
-          <Copyable text={v ? `${d.id}.v${v.n}` : d.id} className="ref" title="Copy its ref" />
+          <Copyable text={v ? `${d.id}.v${v.n}` : d.id} className="artifact-title-ref" title="Copy its ref" />
           <PagePin r={{ kind: "artifact", id: d.id }} />
         </div>
         {v && <VersionLine d={d} v={v} />}
@@ -529,7 +530,7 @@ function HomeLine({ d, n, onDone }: { d: ArtifactDetail; n: number; onDone: () =
   };
   return (
     <div className="artifact-note artifact-home dim">
-      <Icon name="branch" size={12} /> It lives in <Copyable text={home.where} className="mono" title="Copy its folder: how it's named for other people" /> too, for everyone with {home.repo}: v{home.version} is there
+      <Icon name="branch" size={12} /> It lives in <Copyable text={home.where} className="artifact-home-where" title="Copy its folder: how it's named for other people" /> too, for everyone with {home.repo}: v{home.version} is there
       {home.commit ? ` (${home.commit.slice(0, 7)})` : ""}.
       {n && n !== home.version && d.all.some((x) => x.n === n) ? (
         <Button variant="ghost" size="small" className="artifact-home-action" onClick={put} disabled={busy} title={`Promote v${n}: it takes v${home.version}'s place there, in one commit`}>

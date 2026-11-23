@@ -5,7 +5,8 @@ import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Copyable, Empty, ErrorCard, Loading, useTitle } from "../ui/kit";
+import { Empty, ErrorCard, Loading, useTitle } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
@@ -188,7 +189,7 @@ export function FoundArtifactPage() {
             <Icon name="check-circle" size={11} />
             Promoted
           </Chip>
-          <Copyable text={d.where} className="ref" title="Copy where it lives" />
+          <Copyable text={d.where} className="artifact-title-ref" title="Copy where it lives" />
         </div>
         <div className="artifact-note dim">
           <Icon name="branch" size={12} /> It lives in {d.label}, at <span className="mono">{d.where}</span>

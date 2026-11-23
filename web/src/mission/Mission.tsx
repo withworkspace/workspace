@@ -26,7 +26,8 @@ import { Icon, type IconName } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
 import { CheckingNow, checkingTitle } from "./checking";
 import { Inline, plain } from "../ui/inline";
-import { Callout, type CalloutTone, Copyable, Empty, ErrorCard, humanError, Skeleton, toast, useTitle } from "../ui/kit";
+import { Callout, type CalloutTone, Empty, ErrorCard, humanError, Skeleton, toast, useTitle } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { headlineStatus, missionStateStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
@@ -483,7 +484,7 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
         )}
         <dt>Slug</dt>
         <dd>
-          <Copyable text={d.slug} className="mono" />
+          <Copyable text={d.slug} icon="over" />
         </dd>
         {about && about.length > 0 && (
           <>

@@ -9,32 +9,6 @@ export { toast };
 
 // The small shared pieces every page draws with.
 
-// Copyable is a ref, path, hash or command that copies itself when
-// clicked, and says so.
-export function Copyable({ text, children, className, title }: { text: string; children?: ReactNode; className?: string; title?: string }) {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 1200);
-    return () => clearTimeout(t);
-  }, [copied]);
-  return (
-    <button
-      type="button"
-      className={`copyable${copied ? " copied" : ""}${className ? ` ${className}` : ""}`}
-      title={copied ? "Copied" : (title ?? `Copy ${text}`)}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        navigator.clipboard?.writeText(text).then(() => setCopied(true), () => toast("Couldn't copy: the browser said no"));
-      }}
-    >
-      <span className="copyable-text">{children ?? text}</span>
-      <Icon name={copied ? "check" : "copy"} size={12} className="copyable-icon" />
-    </button>
-  );
-}
-
 export type CalloutTone = "attention" | "info" | "danger" | "done" | "quiet" | "progress";
 
 const toneIcon: Record<CalloutTone, IconName> = {

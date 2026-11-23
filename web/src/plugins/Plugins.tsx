@@ -4,7 +4,8 @@ import { addPlugin, ApiError, checkUpdates, getInstalledPlugins, type InstalledP
 import { type Reload, useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Callout, Copyable, Empty, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { Callout, Empty, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
 import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
 import { Time } from "../ui/time";
 import { addsOf, changedSaid, fromOf, outCount, repoLink, stateOf, updateOf, wantedFrom } from "./installed";
@@ -288,7 +289,7 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
         {p.state === "setup" && (
           <div className="plugin-row-note tone-attention">
             It can't be used until {p.missing?.length === 1 ? "this is" : "these are"} set: <span className="mono">{(p.missing ?? []).join(", ")}</span>. In a terminal:{" "}
-            <Copyable text={`ws plugin config ${p.name} --ask`} className="mono">
+            <Copyable text={`ws plugin config ${p.name} --ask`}>
               ws plugin config {p.name} --ask
             </Copyable>
           </div>
@@ -296,7 +297,7 @@ function PluginRow({ p, icon, reload, onFailed }: { p: InstalledPlugin; icon?: s
         {p.state === "failed" && (
           <div className="plugin-row-note tone-danger">
             {humanError(p.error ?? "It didn't start")} Its log:{" "}
-            <Copyable text={`ws plugin logs ${p.name}`} className="mono">
+            <Copyable text={`ws plugin logs ${p.name}`}>
               ws plugin logs {p.name}
             </Copyable>
           </div>

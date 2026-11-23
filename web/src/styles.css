@@ -425,64 +425,6 @@ input[type="checkbox"] {
   color: var(--dim);
 }
 
-/* Copyable: a ref that copies itself. */
-.copyable {
-  all: unset;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  font: inherit;
-  cursor: copy;
-  border-radius: var(--radius-sm);
-  padding: 0 2px;
-  margin: 0 -2px;
-}
-
-.copyable-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.copyable {
-  position: relative;
-}
-
-.copyable-icon {
-  position: absolute;
-  left: calc(100% + 2px);
-  top: 50%;
-  translate: 0 -50%;
-  box-sizing: content-box;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  background: var(--raised);
-  box-shadow: var(--shadow-xs), 0 0 0 1px var(--line);
-  opacity: 0;
-  color: var(--dim);
-  pointer-events: none;
-  transition: opacity var(--fast) var(--ease);
-}
-
-.copyable:hover {
-  background: var(--hover);
-}
-
-.copyable:hover .copyable-icon,
-.copyable.copied .copyable-icon,
-.copyable:focus-visible .copyable-icon {
-  opacity: 1;
-}
-
-.copyable.copied .copyable-icon {
-  color: var(--green);
-}
-
-.copyable:focus-visible {
-  outline: 2px solid var(--accent);
-}
-
 /* Inline markdown, folded into a line or two */
 .inline-md code {
   font-size: 0.9em;
@@ -4434,13 +4376,6 @@ button.on {
     visibility 0s;
 }
 
-/* A copyable's icon shows after its text: here, where the text fills the
-   column, over the end of it. */
-.detail-side .copyable-icon {
-  left: auto;
-  right: 0;
-}
-
 .side-head {
   display: flex;
   justify-content: space-between;
@@ -5973,7 +5908,7 @@ button.work-left:hover {
   padding: 2px 0;
 }
 
-.work-commits .copyable {
+.work-commit-sha {
   color: var(--dim);
   font-size: var(--text-xs);
 }
@@ -9934,14 +9869,6 @@ details.repo-group > summary::-webkit-details-marker {
 
 .file-copy {
   margin-left: 8px;
-}
-
-.file-copy .copyable-icon {
-  position: static;
-  translate: none;
-  opacity: 0.6;
-  box-shadow: none;
-  background: transparent;
 }
 
 .file-pane-tools {
@@ -14315,7 +14242,7 @@ button.accent-button:hover:not(:disabled) {
   color: var(--fg);
 }
 
-.artifact-title-line .ref {
+.artifact-title-ref {
   margin-left: auto;
 }
 
@@ -14401,7 +14328,7 @@ button.accent-button:hover:not(:disabled) {
   max-width: none;
 }
 
-.artifact-home .copyable {
+.artifact-home-where {
   display: inline-flex;
   vertical-align: baseline;
   font-size: var(--text-sm);
