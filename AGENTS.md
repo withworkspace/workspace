@@ -53,6 +53,19 @@ Read `passes[].shots[].tiles`, and `passes[].storyboard` for a flow: one picture
 
 `just shots` is the same tool taking the README's pictures (`scripts/shots.mjs`).
 
+A change to how a kind of thing is styled (every text field, every button: a part moved into the library, a rule moved between layers) is checked by what the browser made of each, before and after: `web/scripts/looks.mjs` goes through a try's pages and dialogs (`looks.scenes.mjs` lists them) and writes down each thing's box and styles, at rest and focused, and `diff` says what moved. Nothing should, but what the change says it moves.
+
+```sh
+just try up marketing tweaks briefing files plugin-proposals
+cd web
+node scripts/looks.mjs snap before.json                  # text fields, unless --of '<selector>' says what
+just try restart                                         # with the change made
+node scripts/looks.mjs snap after.json
+node scripts/looks.mjs diff before.json after.json       # and again with --width 390
+```
+
+It sees only what its scenes reach: add a scene for what a change touches that none does.
+
 ## Releases
 
 Pushing a `v*` tag (`v1.4.0`; one with a `-`, `v1.4.0-rc.1`, is a prerelease) runs `.github/workflows/release.yml`: it builds ws with its web UI for darwin/arm64, linux/amd64 and linux/arm64, cgo on for code navigation, and publishes them as a GitHub release with checksums. A pull request that changes the workflow runs the builds without releasing. `ws upgrade` installs a release over the ws that's running (`internal/release`, which reads the same assets and `checksums.txt` as `scripts/install.sh`: change what a release publishes, and change both); a daemon restarts onto it once nothing's at work (`internal/daemon/restart.go`). The daemon looks once a day for ws's latest release, and for each plugin's that was installed from a repo (`ops.CheckUpdates`, from `internal/cli/updates_watch.go`): the web UI says what's out, and Settings' About upgrades (`ops.UpgradeWS`, the same `release.Upgrader` as `ws upgrade`).
