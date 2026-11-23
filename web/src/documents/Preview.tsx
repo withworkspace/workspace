@@ -5,7 +5,7 @@ import { goToSection, useSections } from "../files/Contents";
 import { useLatest } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
-import { Skeleton } from "../ui/kit";
+import { Skeleton } from "../ui/Skeleton";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
@@ -110,7 +110,7 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
         </nav>
       )}
       {error && <ErrorCard title="Couldn't read it" error={error} retry={load} />}
-      {!shown && !error && <Skeleton rows={8} />}
+      {!shown && !error && <Skeleton rows={8} className="doc-preview-skeleton" />}
       {shown && text !== undefined && (
         <article className="artifact-body prose doc-preview-body" ref={body}>
           <Markdown text={text} at={place} />

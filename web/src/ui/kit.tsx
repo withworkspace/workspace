@@ -7,17 +7,6 @@ export { toast };
 
 // The small shared pieces every page draws with.
 
-// Skeleton is the shape of what's coming: rows of grey bars.
-export function Skeleton({ rows = 4, className }: { rows?: number; className?: string }) {
-  return (
-    <div className={`skeleton${className ? ` ${className}` : ""}`} aria-hidden>
-      {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="skeleton-row" style={{ width: `${[92, 76, 84, 60, 88, 70][i % 6]}%` }} />
-      ))}
-    </div>
-  );
-}
-
 // Toasts: what an action did, for a few seconds, bottom centre, with an
 // action of its own (Undo, Open) when there's one.
 

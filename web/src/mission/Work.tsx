@@ -5,7 +5,7 @@ import { type Reload, useLoaded } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Skeleton } from "../ui/kit";
+import { Skeleton } from "../ui/Skeleton";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";

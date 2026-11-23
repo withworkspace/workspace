@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { getProcess, type ProcessInfo } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
-import { Skeleton } from "../ui/kit";
+import { Skeleton } from "../ui/Skeleton";
 import { ErrorCard } from "../ui/ErrorCard";
 import { useLoaded } from "../load";
 
