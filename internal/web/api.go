@@ -25,6 +25,12 @@ type Workspace struct {
 	Remotes       map[string]string `json:"remotes,omitempty"`
 	DefaultBranch string            `json:"defaultBranch,omitempty"`
 	Missions      []Mission         `json:"missions"`
+	// Needs is what needs you: what can't move without you, and only you.
+	// It's worked out from where each thing stands now, never kept
+	// (ops.Needs): the missions in your court, then the conversations
+	// that are your turn. The sidebar's Needs you, the counts beside its
+	// places, the tab's title and what the desktop is told are all this.
+	Needs []Need `json:"needs"`
 	// Focus is what you've pinned that stands, in your order: the
 	// sidebar's Focus.
 	Focus []FocusPin `json:"focus"`
@@ -102,6 +108,53 @@ type Places struct {
 	Sidebar []string `json:"sidebar"`
 	Menu    []string `json:"menu"`
 }
+
+// Need is something that needs you (ops.Need), as the web UI is given it.
+type Need struct {
+	// Key is the same for as long as it's the same need: what's said
+	// once of it (it lights up, the desktop is told) goes by it.
+	Key string `json:"key"`
+	// Of is the sort of thing it's on, and Ref that thing as a ref names
+	// it. In is the mission a conversation is about, where it's about
+	// one.
+	Of  NeedOf `json:"of"`
+	Ref string `json:"ref"`
+	In  string `json:"in,omitempty"`
+	// Kind is what it needs of you: a mission's headline's kind, or
+	// your-turn. Label is the headline's word for it, where it has one.
+	Kind  string `json:"kind"`
+	Label string `json:"label,omitempty"`
+	// Title is the thing's, and Text the sentence saying what it needs.
+	Title string `json:"title"`
+	Text  string `json:"text,omitempty"`
+	// Since is when it began, where the thing knows.
+	Since *time.Time `json:"since,omitempty"`
+	// To is where it's dealt with, in the web UI.
+	To string `json:"to"`
+}
+
+// NeedsAnnounce is a page asking which needs it should tell the desktop
+// of (POST /api/needs/announce): Keys are the needs that are new to it,
+// and Holding every need it has now. The daemon answers once for each
+// need, whichever page asks first (ops.Announce).
+type NeedsAnnounce struct {
+	Keys    []string `json:"keys"`
+	Holding []string `json:"holding"`
+}
+
+// NeedsAnnounced is the answer: Fresh are those of Keys no page had been
+// told to announce, which this one now is.
+type NeedsAnnounced struct {
+	Fresh []string `json:"fresh"`
+}
+
+// NeedOf is the sort of thing a need is on.
+type NeedOf string
+
+const (
+	NeedOfMission      NeedOf = "mission"
+	NeedOfConversation NeedOf = "conversation"
+)
 
 // FocusPin is a pin, as the sidebar draws it: its name, as ws writes it
 // (what a ref is read back from), and what the graph says of it where it

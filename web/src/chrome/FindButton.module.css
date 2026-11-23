@@ -1,0 +1,56 @@
+/* The sidebar's way to Find (FindButton.tsx). */
+
+@layer ui {
+  .find {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    flex: none;
+    width: 100%;
+    min-height: 28px;
+    /* Its icon starts where the places' do. */
+    padding: 4px 10px 4px 8px;
+    overflow: hidden;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    box-shadow: none;
+    background: var(--raised);
+    color: var(--dim);
+    font: inherit;
+    font-size: var(--text-sm);
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      color var(--fast) var(--ease),
+      border-color var(--fast) var(--ease);
+  }
+
+  .find:hover {
+    color: var(--fg);
+    border-color: var(--faint);
+  }
+
+  .find > svg {
+    flex: none;
+  }
+
+  .words {
+    flex: 1;
+    text-align: left;
+  }
+
+  .keys {
+    flex: none;
+  }
+
+  .words,
+  .keys {
+    transition: opacity var(--slow) ease-in 60ms;
+  }
+
+  [data-sidebar="rail"]:not(:hover, :has(:focus-visible)) :is(.words, .keys) {
+    opacity: 0;
+    transition: opacity var(--fast) var(--ease);
+  }
+}

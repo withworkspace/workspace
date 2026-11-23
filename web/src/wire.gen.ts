@@ -2490,6 +2490,69 @@ export interface NearFound extends SaidFound {
     out?: boolean;
 }
 
+// From web/api.go
+/**
+ * Need is something that needs you (ops.Need), as the web UI is given it.
+ */
+export interface Need {
+    /**
+     * Key is the same for as long as it's the same need: what's said
+     * once of it (it lights up, the desktop is told) goes by it.
+     */
+    key: string;
+    /**
+     * Of is the sort of thing it's on, and Ref that thing as a ref names
+     * it. In is the mission a conversation is about, where it's about
+     * one.
+     */
+    of: NeedOf;
+    ref: string;
+    in?: string;
+    /**
+     * Kind is what it needs of you: a mission's headline's kind, or
+     * your-turn. Label is the headline's word for it, where it has one.
+     */
+    kind: string;
+    label?: string;
+    /**
+     * Title is the thing's, and Text the sentence saying what it needs.
+     */
+    title: string;
+    text?: string;
+    /**
+     * Since is when it began, where the thing knows.
+     */
+    since?: string;
+    /**
+     * To is where it's dealt with, in the web UI.
+     */
+    to: string;
+}
+
+// From web/api.go
+export type NeedOf = "conversation" | "mission";
+
+// From web/api.go
+/**
+ * NeedsAnnounce is a page asking which needs it should tell the desktop
+ * of (POST /api/needs/announce): Keys are the needs that are new to it,
+ * and Holding every need it has now. The daemon answers once for each
+ * need, whichever page asks first (ops.Announce).
+ */
+export interface NeedsAnnounce {
+    keys: string[];
+    holding: string[];
+}
+
+// From web/api.go
+/**
+ * NeedsAnnounced is the answer: Fresh are those of Keys no page had been
+ * told to announce, which this one now is.
+ */
+export interface NeedsAnnounced {
+    fresh: string[];
+}
+
 // From ops/space_activity.go
 /**
  * DocChange is what a commit or a capsule did to a document.
@@ -5456,6 +5519,14 @@ export interface Workspace {
     remotes?: Record<string, string>;
     defaultBranch?: string;
     missions: Mission[];
+    /**
+     * Needs is what needs you: what can't move without you, and only you.
+     * It's worked out from where each thing stands now, never kept
+     * (ops.Needs): the missions in your court, then the conversations
+     * that are your turn. The sidebar's Needs you, the counts beside its
+     * places, the tab's title and what the desktop is told are all this.
+     */
+    needs: Need[];
     /**
      * Focus is what you've pinned that stands, in your order: the
      * sidebar's Focus.

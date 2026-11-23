@@ -349,7 +349,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
           </div>
         </div>
         <div className="page mission">
-          <div className="mission-main">
+          <div className="mission-main" data-page-scroller="">
             <Skeleton rows={6} />
           </div>
         </div>
@@ -421,7 +421,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
         </div>
       ) : (
       <div className={`page mission${docked ? " with-side" : ""}${wideTabs.includes(tab) ? " wide" : ""}`}>
-        <div className="mission-main">
+        <div className="mission-main" data-page-scroller="">
           {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
           <div role="tabpanel" id="mission-panel" aria-labelledby={`tab-${tab}`} className="tab-panel" key={tab}>
             {tab === "summary" && <Summary {...parts} full={!side} />}

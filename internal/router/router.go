@@ -465,7 +465,14 @@ func proxy(w http.ResponseWriter, r *http.Request, port int) {
 // the request came for; an address outside ws (itsHost) by its own, as it
 // knows no other, and with its own path before what's asked for.
 func proxyTo(w http.ResponseWriter, r *http.Request, target *url.URL, itsHost bool) {
+	// A run is reached on whichever loopback it listens on; an address
+	// outside ws is reached as it's written.
+	var transport http.RoundTripper
+	if !itsHost {
+		transport = runs.Loopback
+	}
 	p := &httputil.ReverseProxy{
+		Transport: transport,
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.SetURL(target)
 			if !itsHost {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Button as AriaButton, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
-import { Link, Navigate, NavLink, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType, useParams } from "react-router";
+import { Menu, MenuItem, MenuSection, MenuTrigger, Popover, Separator } from "react-aria-components";
+import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType, useParams } from "react-router";
 import { type Connection, NotSignedIn, setSettings, usePlugins, useWorkspace, type Workspace } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
 import { ComparePage, compareKeys } from "./artifacts/Compare";
@@ -31,10 +31,10 @@ import { PRReviewPage, prReviewKeys } from "./reviews/PRReview";
 import { ReviewsPage, reviewsKeys } from "./reviews/Reviews";
 import { repoOfPage, scopePrefix } from "./shell/find";
 import { Palette } from "./shell/Palette";
-import { useFaviconBadge, useNotifications, type Waiting } from "./shell/notify";
+import { useFaviconBadge, useNotifications } from "./shell/notify";
 import { Arrange } from "./shell/Arrange";
 import { askShutDown } from "./shell/daemon";
-import { arrange, headed, type Arrangement, type Arranged, type Place, placesOf, sameArrangement, saving } from "./shell/places";
+import { arrange, type Arrangement, type Arranged, type Place, placesOf, sameArrangement, saving } from "./shell/places";
 import { FocusKeys, FocusProvider, FocusSection } from "./shell/focus";
 import { noteVisit, visitAt } from "./shell/recent";
 import { wantsRoom } from "./shell/room";
@@ -42,17 +42,33 @@ import { shortVersion } from "./shell/version";
 import { WhatsNew } from "./shell/WhatsNew";
 import { TalkPage, TalksPage, talkKeys, talksKeys } from "./talk/Talk";
 import { TeamPage, teamKeys } from "./team/Team";
-import { Icon, type IconName } from "./ui/Icon";
+import { Icon } from "./ui/Icon";
 import { Logotype } from "./ui/Logotype";
-import { plain } from "./ui/inline";
 import { Viewer } from "./ui/Viewer";
-import { Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useTitle } from "./ui/kit";
-import { headlineStatus, Status } from "./ui/status";
+import { Confirmer, Dialog, Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useMedia, useTitle } from "./ui/kit";
 import { duration } from "./ui/time";
 import { SiloPoint } from "./silo/SiloPoint";
 import { Count } from "./ui/Count";
-import { Button, buttonClass } from "./ui/Button";
+import { buttonClass } from "./ui/Button";
+import { hideSidebar, narrowQuery, sidebarPlace } from "./chrome/chromeState";
+import { FindButton } from "./chrome/FindButton";
+import { Foot } from "./chrome/Foot";
+import { FootCrew } from "./chrome/FootCrew";
+import { FootSidebar } from "./chrome/FootSidebar";
+import { FootSep } from "./chrome/FootSep";
+import { type Need, useArrived, waitingOf } from "./chrome/need";
+import { Needs } from "./chrome/Needs";
+import { NotifyToggle } from "./chrome/NotifyToggle";
+import { Places } from "./chrome/Places";
+import { Shell } from "./chrome/Shell";
+import { Sidebar } from "./chrome/Sidebar";
+import { useChrome } from "./chrome/useChrome";
+import { WorkspaceName } from "./chrome/WorkspaceName";
 import { pageScroller } from "./ui/scroller";
+
+// Nothing needing you, before the workspace has said: the same list each
+// time, so what's worked out from it isn't worked out again.
+const noNeeds: Need[] = [];
 
 export function App() {
   const { workspace, error, connection } = useWorkspace();
@@ -74,7 +90,12 @@ export function App() {
   // that asks for the chrome expanded (ws:chrome-layout), while ws is on
   // that plugin's pages.
   const expandedFor = useFrameExpanded();
-  const reviewing = (wantsRoom(location.pathname) || (expandedFor !== undefined && expandedFor === onPlugin)) && !arranging;
+  const room = (wantsRoom(location.pathname) || (expandedFor !== undefined && expandedFor === onPlugin)) && !arranging;
+  // How this window is arranged, kept in the browser: whether you've
+  // hidden the sidebar. On a narrow window it's a drawer whatever else.
+  const [chrome, changeChrome] = useChrome(workspace?.root);
+  const narrow = useMedia(narrowQuery);
+  const place = sidebarPlace(chrome, room, narrow);
 
   // The drawer (on a narrow window) closes on going somewhere.
   useEffect(() => setDrawer(false), [location.pathname]);
@@ -99,7 +120,13 @@ export function App() {
   useKeyboarding();
   useScrollMemory();
 
-  const waiting = useMemo(() => waitingFor(workspace), [workspace]);
+  // What needs you: the sidebar's list, and what counts the places, tells
+  // the desktop and marks the tab.
+  const needs = workspace?.needs ?? noNeeds;
+  const waiting = useMemo(() => waitingOf(needs), [needs]);
+  const arrived = useArrived(workspace ? needs : undefined);
+  // Who's at work now, for the foot: a window on to the work.
+  const atWork = useMemo(() => (workspace?.missions ?? []).flatMap((m) => m.crew.filter((c) => !c.ended && c.activity === "working").map((c) => ({ m, c }))), [workspace]);
   useEffect(() => setTitleContext(workspace?.name ?? "ws", waiting.length), [workspace?.name, waiting.length]);
   useFaviconBadge(waiting.length > 0);
   const openPath = useCallback((p: string) => navigate(p), [navigate]);
@@ -139,9 +166,15 @@ export function App() {
     }
   };
   const startArranging = () => {
+    changeChrome((c) => hideSidebar(c, false)); // it's arranged where it is
     setArranging(true);
     setDrawer(true); // on a narrow window, the sidebar is the drawer
   };
+  // The sidebar's toggle, at the foot's start, which says how many need
+  // you while the sidebar's out of sight: on a narrow window it opens the
+  // drawer, elsewhere it hides and shows the sidebar.
+  const out = place === "hidden" || (place === "drawer" && !drawer);
+  const toggleSidebar = () => (narrow ? setDrawer((d) => !d) : changeChrome((c) => hideSidebar(c, !c.hidden)));
 
   if (closed) {
     return (
@@ -159,121 +192,120 @@ export function App() {
   }
   return (
     <FocusProvider workspace={workspace}>
-      <div className={`shell${reviewing ? " reviewing" : ""}${drawer ? " drawer" : ""}`}>
-        <div className="topbar" inert={dim}>
-          <Button variant="ghost" square onClick={() => setDrawer(true)} aria-label="Open the menu">
-            <Icon name="menu" size={18} />
-          </Button>
-          <WorkspaceMenu workspace={workspace} places={menu} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
-          {waiting.length > 0 && <Count tone="attention" className="topbar-count" title="Needs you">{waiting.length}</Count>}
-        </div>
-        <div
-          className="scrim"
-          onClick={() => {
-            setDrawer(false);
-            setArranging(false);
-          }}
-        />
-        <aside className="sidebar" aria-label="Workspace" inert={dim}>
-          <WorkspaceMenu workspace={workspace} places={menu} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
-          <button className="find" onClick={() => setPalette("")}>
-            <Icon name="search" size={14} />
-            <span>Find…</span>
-            <Keys k="mod+K" />
-          </button>
-          {arranging ? (
-            <Arrange start={{ sidebar, menu }} canReset={!!saved} onDone={saveArrangement} onCancel={() => setArranging(false)} onReset={resetArrangement} />
-          ) : (
-            <nav className="nav" aria-label="Places">
-              {headed(sidebar).map((title, i) => (
-                <NavPlace key={sidebar[i].id} place={sidebar[i]} title={title} />
-              ))}
-            </nav>
-          )}
-          {workspace && !arranging && <FocusSection workspace={workspace} plugins={plugins} path={location.pathname} />}
-          {workspace && !arranging && <Inbox workspace={workspace} path={location.pathname} notify={notify} />}
-        </aside>
-        {/* ws's half of a backdrop the app in the frame has up. A press on
-            it is said to the app like any press in ws (ws:outside), and
-            takes no focus from the frame: the dialog there still has the
-            keys. */}
-        {dim && <div className="frame-dim" onMouseDown={(e) => e.preventDefault()} />}
-        <main className={connection === "lost" && workspace ? "stale" : undefined} id="main">
-          <ConnectionBanner connection={connection} />
-          {error && <div className="banner">{error.message}</div>}
-          {!workspace && !error && <Loading what="Opening the workspace…" />}
-          {workspace && (
-            <RefsProvider workspace={workspace} plugins={plugins}>
-              <Routes>
-                <Route path="/" element={<MissionList missions={workspace.missions} />} />
-                <Route path="/missions/:slug" element={<MissionPage workspace={workspace} />} />
-                <Route path="/missions/:slug/artifact" element={<ArtifactPage workspace={workspace} />} />
-                <Route path="/missions/:slug/brief" element={<ToBrief />} />
-                <Route path="/missions/:slug/crew/:id" element={<CrewPage workspace={workspace} />} />
-                <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
-                <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
-                <Route path="/runs" element={<RunsPage workspace={workspace} />} />
-                <Route path="/apps/:name" element={<AppPage workspace={workspace} />} />
-                <Route path="/plugins" element={<Navigate to="/settings/plugins" replace />} />
-                <Route path="/settings" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
-                <Route path="/settings/:section" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
-                <Route path="/docs" element={<DocsAddress />} />
-                <Route path="/files" element={<FilesPage workspace={workspace} />} />
-                <Route path="/files/:repo" element={<FilesPage workspace={workspace} />} />
-                <Route path="/files/:repo/:capsule" element={<FilesPage workspace={workspace} />} />
-                <Route path="/reviews" element={<ReviewsPage />} />
-                <Route path="/reviews/:repo/:number" element={<PRReviewPage workspace={workspace} />} />
-                <Route path="/team" element={<TeamPage />} />
-                <Route path="/silo/:repo" element={<SiloPoint />} />
-                <Route path="/documents" element={<DocumentsPage workspace={workspace} />} />
-                <Route path="/documents/:repo" element={<SpacePage workspace={workspace} />} />
-                <Route path="/documents/local/:id" element={<LocalPageAt workspace={workspace} />} />
-                <Route path="/documents/:repo/*" element={<DocumentAt workspace={workspace} />} />
-                <Route path="/pages" element={<Navigate to="/documents" replace />} />
-                <Route path="/pages/open" element={<OpenAddress />} />
-                <Route path="/pages/:id" element={<PageAddress workspace={workspace} />} />
-                <Route path="/artifacts" element={<ArtifactsPage workspace={workspace} />} />
-                <Route path="/artifacts/compare" element={<ComparePage workspace={workspace} />} />
-                <Route path="/artifacts/in/*" element={<FoundArtifactPage />} />
-                <Route path="/artifacts/:id" element={<ArtifactView workspace={workspace} />} />
-                <Route path="/artifacts/:id/compare" element={<ComparePage workspace={workspace} />} />
-                <Route path="/artifacts/:id/:version" element={<ArtifactView workspace={workspace} />} />
-                <Route path="/conversations" element={<TalksPage workspace={workspace} />} />
-                <Route path="/conversations/:id" element={<TalkPage workspace={workspace} />} />
-                <Route path="/missions/:slug/conversations/:id" element={<TalkPage workspace={workspace} />} />
-                <Route path="/missions/:slug/review/:repo/:name" element={<Review workspace={workspace} />} />
-                <Route path="/missions/:slug/files/:repo/:name" element={<Explorer workspace={workspace} />} />
-                <Route path="/x/:name/*" element={<PluginPage plugins={plugins} ws={workspace?.version} />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </RefsProvider>
-          )}
-        </main>
-        {help && <Help keys={helpKeys(location.pathname)} onClose={() => setHelp(false)} />}
-        {palette !== undefined && workspace && (
-          <Palette
-            workspace={workspace}
-            plugins={plugins}
-            waiting={waiting}
-            start={palette}
-            pageRepo={repoOfPage(location.pathname, workspace.spaces)}
-            path={location.pathname}
-            search={location.search}
-            frameHere={frameHere}
-            onClose={() => setPalette(undefined)}
-            onHelp={() => {
-              setPalette(undefined);
-              setHelp(true);
-            }}
-            onShutDown={() => void askShutDown(() => setClosed(true))}
+      <Shell
+        sidebar={place}
+        drawerOpen={drawer}
+        onDrawerClose={() => {
+          setDrawer(false);
+          setArranging(false);
+        }}
+        dim={dim}
+        pageClassName={connection === "lost" && workspace ? "stale" : undefined}
+        side={
+          <Sidebar rail={room && !narrow}>
+            <WorkspaceMenu workspace={workspace} places={menu} onKeys={() => setHelp(true)} onClosed={() => setClosed(true)} />
+            <FindButton onPress={() => setPalette("")} />
+            {arranging ? (
+              <Arrange start={{ sidebar, menu }} canReset={!!saved} onDone={saveArrangement} onCancel={() => setArranging(false)} onReset={resetArrangement} />
+            ) : (
+              <Places places={sidebar} path={location.pathname} />
+            )}
+            {workspace && !arranging && <FocusSection workspace={workspace} plugins={plugins} path={location.pathname} />}
+            {!arranging && <Needs needs={needs} path={location.pathname} fresh={arrived} most={12} tool={notify.supported && <NotifyToggle on={notify.on} onToggle={notify.toggle} />} />}
+          </Sidebar>
+        }
+        foot={
+          <Foot
+            start={
+              <>
+                <FootSidebar shown={!out} count={needs.length} fresh={arrived.size > 0} onPress={toggleSidebar} />
+                {atWork.length > 0 && <FootSep />}
+                {atWork.map(({ m, c }) => (
+                  <FootCrew key={`${m.slug}:${c.id}`} id={c.id} mission={m.title} to={`/missions/${m.slug}/crew/${c.id}`} />
+                ))}
+              </>
+            }
           />
+        }
+        overlays={
+          <>
+            {help && <Help keys={helpKeys(location.pathname)} onClose={() => setHelp(false)} />}
+            {palette !== undefined && workspace && (
+              <Palette
+                workspace={workspace}
+                plugins={plugins}
+                waiting={waiting}
+                start={palette}
+                pageRepo={repoOfPage(location.pathname, workspace.spaces)}
+                path={location.pathname}
+                search={location.search}
+                frameHere={frameHere}
+                onClose={() => setPalette(undefined)}
+                onHelp={() => {
+                  setPalette(undefined);
+                  setHelp(true);
+                }}
+                onShutDown={() => void askShutDown(() => setClosed(true))}
+              />
+            )}
+            <Viewer />
+            <Toasts />
+            <Confirmer />
+            <WhatsNew version={workspace?.version} />
+            <FocusKeys workspace={workspace} plugins={plugins} />
+          </>
+        }
+      >
+        <ConnectionBanner connection={connection} />
+        {error && <div className="banner">{error.message}</div>}
+        {!workspace && !error && <Loading what="Opening the workspace…" />}
+        {workspace && (
+          <RefsProvider workspace={workspace} plugins={plugins}>
+            <Routes>
+              <Route path="/" element={<MissionList missions={workspace.missions} />} />
+              <Route path="/missions/:slug" element={<MissionPage workspace={workspace} />} />
+              <Route path="/missions/:slug/artifact" element={<ArtifactPage workspace={workspace} />} />
+              <Route path="/missions/:slug/brief" element={<ToBrief />} />
+              <Route path="/missions/:slug/crew/:id" element={<CrewPage workspace={workspace} />} />
+              <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage workspace={workspace} />} />
+              <Route path="/orchestrator" element={<OrchestratorPage workspace={workspace} />} />
+              <Route path="/runs" element={<RunsPage workspace={workspace} />} />
+              <Route path="/apps/:name" element={<AppPage workspace={workspace} />} />
+              <Route path="/plugins" element={<Navigate to="/settings/plugins" replace />} />
+              <Route path="/settings" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
+              <Route path="/settings/:section" element={<SettingsPage workspace={workspace} plugins={plugins} notify={notify} onArrange={startArranging} onClosed={() => setClosed(true)} />} />
+              <Route path="/docs" element={<DocsAddress />} />
+              <Route path="/files" element={<FilesPage workspace={workspace} />} />
+              <Route path="/files/:repo" element={<FilesPage workspace={workspace} />} />
+              <Route path="/files/:repo/:capsule" element={<FilesPage workspace={workspace} />} />
+              <Route path="/reviews" element={<ReviewsPage />} />
+              <Route path="/reviews/:repo/:number" element={<PRReviewPage workspace={workspace} />} />
+              <Route path="/team" element={<TeamPage />} />
+              <Route path="/silo/:repo" element={<SiloPoint />} />
+              <Route path="/documents" element={<DocumentsPage workspace={workspace} />} />
+              <Route path="/documents/:repo" element={<SpacePage workspace={workspace} />} />
+              <Route path="/documents/local/:id" element={<LocalPageAt workspace={workspace} />} />
+              <Route path="/documents/:repo/*" element={<DocumentAt workspace={workspace} />} />
+              <Route path="/pages" element={<Navigate to="/documents" replace />} />
+              <Route path="/pages/open" element={<OpenAddress />} />
+              <Route path="/pages/:id" element={<PageAddress workspace={workspace} />} />
+              <Route path="/artifacts" element={<ArtifactsPage workspace={workspace} />} />
+              <Route path="/artifacts/compare" element={<ComparePage workspace={workspace} />} />
+              <Route path="/artifacts/in/*" element={<FoundArtifactPage />} />
+              <Route path="/artifacts/:id" element={<ArtifactView workspace={workspace} />} />
+              <Route path="/artifacts/:id/compare" element={<ComparePage workspace={workspace} />} />
+              <Route path="/artifacts/:id/:version" element={<ArtifactView workspace={workspace} />} />
+              <Route path="/conversations" element={<TalksPage workspace={workspace} />} />
+              <Route path="/conversations/:id" element={<TalkPage workspace={workspace} />} />
+              <Route path="/missions/:slug/conversations/:id" element={<TalkPage workspace={workspace} />} />
+              <Route path="/missions/:slug/review/:repo/:name" element={<Review workspace={workspace} />} />
+              <Route path="/missions/:slug/files/:repo/:name" element={<Explorer workspace={workspace} />} />
+              <Route path="/x/:name/*" element={<PluginPage plugins={plugins} ws={workspace?.version} />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </RefsProvider>
         )}
-        <Viewer />
-        <Toasts />
-        <Confirmer />
-        <WhatsNew version={workspace?.version} />
-        <FocusKeys workspace={workspace} plugins={plugins} />
-      </div>
+      </Shell>
     </FocusProvider>
   );
 }
@@ -302,19 +334,10 @@ function WorkspaceMenu({
   // sidebar's would.
   const counted = places.filter((p) => p.count);
   const shutDown = () => void askShutDown(onClosed);
-  // data-field: keys typed in the menu are its own, not the page's (keys.ts).
   return (
     <MenuTrigger>
-      <AriaButton className="workspace-name" aria-label={`${name}: the workspace's menu`} data-field>
-        <span className="mark" aria-hidden>
-          {(name.match(/[\p{L}\p{N}]/u)?.[0] ?? "w").toUpperCase()}
-        </span>
-        <span title={workspace?.root}>{name}</span>
-        <Icon name="chevron-down" size={12} className="workspace-name-more" />
-        {counted.length > 0 && (
-          <span className="workspace-name-dot" title={counted.map((p) => `${p.label}: ${p.count} ${p.countTitle ?? "need you"}`).join("\n")} aria-label="In the menu, something wants you" />
-        )}
-      </AriaButton>
+      <WorkspaceName name={name} root={workspace?.root} wants={counted.length > 0 ? counted.map((p) => `${p.label}: ${p.count} ${p.countTitle ?? "need you"}`).join("\n") : undefined} />
+      {/* data-field: keys typed in the menu are its own, not the page's (keys.ts). */}
       <Popover className="select-popover workspace-menu" placement="bottom start" offset={4} data-field>
         <Menu className="select-list" aria-label="The workspace">
           {places.length > 0 && (
@@ -366,130 +389,6 @@ function WorkspaceMenu({
         </div>
       </Popover>
     </MenuTrigger>
-  );
-}
-
-// NavPlace is a place in the sidebar, with its group's title above it
-// where its group starts.
-function NavPlace({ place, title }: { place: Place; title?: string }) {
-  return (
-    <>
-      {title && <div className="nav-group-title">{title}</div>}
-      <NavItem to={place.to} icon={place.icon} label={place.label} count={place.count} countTitle={place.countTitle} match={place.match} />
-    </>
-  );
-}
-
-function NavItem({
-  to,
-  icon,
-  label,
-  count,
-  countTitle = "need you",
-  match,
-}: {
-  to: string;
-  icon: IconName;
-  label: string;
-  count?: number;
-  countTitle?: string;
-  match: (path: string) => boolean;
-}) {
-  const { pathname } = useLocation();
-  const on = match(pathname);
-  return (
-    <NavLink to={to} className={on ? "active" : ""} aria-current={on ? "page" : undefined} end>
-      <Icon name={icon} size={15} />
-      <span>{label}</span>
-      {!!count && (
-        <Count tone="attention" className="nav-count" title={`${count} ${countTitle}`}>
-          {count}
-        </Count>
-      )}
-    </NavLink>
-  );
-}
-
-// needsYou is whether a mission needs you: its headline's in your court,
-// now (the court's "Needs you", as the mission list groups it: stalled ones
-// too, as nothing moves on them until you say). One rule, for the list,
-// the sidebar, the tab's title, notifications and Find alike.
-const needsYou = (m: Workspace["missions"][number]) => m.headline.group === "needs-you";
-
-// talkWaits is whether a workspace conversation is your turn.
-const talkWaits = (t: Workspace["conversations"][number]) => !!t.waiting && t.status === "open";
-
-// waitingFor is everything that needs you: missions in your court, and
-// conversations where the agent has replied.
-function waitingFor(w?: Workspace): (Waiting & { kind: "mission" | "talk" })[] {
-  if (!w) return [];
-  const missions = w.missions
-    .filter(needsYou)
-    .map((m) => ({
-      kind: "mission" as const,
-      key: `m:${m.slug}:${m.headline.kind}:${m.headline.text}`,
-      title: m.title,
-      body: plain(m.headline.text || m.headline.label),
-      path: `/missions/${m.slug}`,
-    }));
-  const talks = w.conversations
-    .filter(talkWaits)
-    .map((t) => ({ kind: "talk" as const, key: `t:${t.id}:${t.updated}`, title: t.title || "Conversation", body: "The agent replied: your turn.", path: `/conversations/${t.id}` }));
-  return [...missions, ...talks];
-}
-
-// Inbox lists what needs you, a click each.
-function Inbox({ workspace, path, notify }: { workspace: Workspace; path: string; notify: ReturnType<typeof useNotifications> }) {
-  const missions = workspace.missions.filter(needsYou);
-  const talks = workspace.conversations.filter(talkWaits);
-  if (!missions.length && !talks.length) return null;
-  return (
-    <section className="inbox" aria-label="Needs you">
-      <h2>
-        Needs you
-        {notify.supported && (
-          <Button
-            variant="ghost" size="small" square
-            className={`notify-toggle ${notify.on ? " on" : ""}`}
-            onClick={notify.toggle}
-            title={notify.on ? "Desktop notifications are on: turn them off" : "Notify me on the desktop when something needs me"}
-            aria-pressed={notify.on}
-          >
-            <Icon name="bell" size={12} />
-          </Button>
-        )}
-      </h2>
-      {missions.slice(0, 8).map((m) => {
-        const to = `/missions/${m.slug}`;
-        return (
-          <Link key={m.slug} to={to} className={path.startsWith(to) ? "active" : ""} title={plain(m.headline.text)}>
-            <Status s={headlineStatus(m.headline)} iconOnly />
-            <span>{m.title}</span>
-          </Link>
-        );
-      })}
-      {missions.length > 8 && (
-        <Link to="/" className="inbox-more">
-          {missions.length - 8} more {missions.length - 8 === 1 ? "mission" : "missions"}
-        </Link>
-      )}
-      {talks.slice(0, 5).map((t) => {
-        const to = `/conversations/${t.id}`;
-        return (
-          <Link key={t.id} to={to} className={path === to ? "active" : ""}>
-            <span className="status tone-attention">
-              <Icon name="reply" />
-            </span>
-            <span>{t.title || t.opening}</span>
-          </Link>
-        );
-      })}
-      {talks.length > 5 && (
-        <Link to="/conversations" className="inbox-more">
-          {talks.length - 5} more {talks.length - 5 === 1 ? "conversation" : "conversations"}
-        </Link>
-      )}
-    </section>
   );
 }
 
@@ -612,25 +511,33 @@ function useScrollMemory() {
   const location = useLocation();
   const how = useNavigationType();
   useLayoutEffect(() => {
-    const main = pageScroller();
+    const main = document.getElementById("main");
     if (!main) return;
     const key = location.key;
     const want = how === "POP" ? scrolls.get(key) : undefined;
+    // What scrolls is asked for each time: a page may scroll a part of
+    // itself (ui/scroller.ts), which isn't there until the page has drawn.
     if (want === undefined) {
-      if (how !== "POP") main.scrollTop = 0;
+      const at = pageScroller();
+      if (how !== "POP" && at) at.scrollTop = 0;
     } else {
       // The page may still be loading: try for a moment as it fills.
       let tries = 0;
       const put = () => {
-        main.scrollTop = want;
-        if (Math.abs(main.scrollTop - want) > 2 && tries++ < 20) setTimeout(put, 50);
+        const at = pageScroller();
+        if (at) at.scrollTop = want;
+        if ((!at || Math.abs(at.scrollTop - want) > 2) && tries++ < 20) setTimeout(put, 50);
       };
       put();
     }
     // Kept as you scroll: by the time the next page draws, this one's gone.
-    const keep = () => scrolls.set(key, main.scrollTop);
-    main.addEventListener("scroll", keep, { passive: true });
-    return () => main.removeEventListener("scroll", keep);
+    // Heard on the way down to whatever scrolls, as a scroll doesn't come
+    // back up from a part of the page.
+    const keep = (e: Event) => {
+      if (e.target === pageScroller()) scrolls.set(key, (e.target as HTMLElement).scrollTop);
+    };
+    main.addEventListener("scroll", keep, { passive: true, capture: true });
+    return () => main.removeEventListener("scroll", keep, { capture: true });
   }, [location.key, how]);
 }
 

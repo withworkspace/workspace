@@ -336,3 +336,42 @@ func TestMountPath(t *testing.T) {
 		}
 	}
 }
+
+// A dev server that binds localhost can get ::1 alone: its run is up, as
+// ws counts it, so the router reaches it there.
+func TestARunOnTheOtherLoopbackIsReached(t *testing.T) {
+	l, err := net.Listen("tcp", "[::1]:0")
+	if err != nil {
+		t.Skip("no IPv6 loopback here:", err)
+	}
+	port := l.Addr().(*net.TCPAddr).Port
+	if c, err := net.Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port))); err == nil {
+		c.Close()
+		l.Close()
+		t.Skip("something else has the port on 127.0.0.1")
+	}
+	run := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { fmt.Fprintf(w, "run at %s", r.Host) })}
+	go run.Serve(l)
+	t.Cleanup(func() { run.Close() })
+
+	dir := t.TempDir()
+	Write(dir, File{PID: os.Getpid(), Root: "/x/shop", Name: "shop", Created: time.Now(), Web: 1, Routes: map[string]Route{
+		"web.feat.front": {Port: port, Mounts: []Mount{{Path: "/api", Need: "api", Port: port}}},
+		"old.feat.front": {Port: freePort(t)},
+	}})
+	rt := &Router{Dir: dir, Procs: func() (runs.Procs, error) { return runs.Procs{}, nil }}
+	const me = "127.0.0.1:50000"
+	for _, host := range []string{"web.feat.front.shop.localhost", "web.feat.front.shop.localhost/api"} {
+		r := httptest.NewRequest("GET", "http://"+host, nil)
+		r.RemoteAddr = me
+		w := httptest.NewRecorder()
+		rt.ServeHTTP(w, r)
+		if b := w.Body.String(); w.Code != 200 || b != "run at web.feat.front.shop.localhost" {
+			t.Errorf("%s: %d %q, want the run on ::1", host, w.Code, b)
+		}
+	}
+	// With nothing on either, it's still the page that says so.
+	if code, body := ask(rt, "old.feat.front.shop.localhost", me); code != 502 || !strings.Contains(body, "Not up yet") {
+		t.Errorf("a run on neither loopback: %d %q, want Not up yet", code, body)
+	}
+}

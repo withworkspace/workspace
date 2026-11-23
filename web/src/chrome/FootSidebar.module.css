@@ -1,0 +1,33 @@
+/* The sidebar's toggle, and how many need you while it's hidden
+   (FootSidebar.tsx). */
+
+@layer ui {
+  /* The panel's icon, with its line at the start: the sidebar's side. */
+  .flipped {
+    transform: scaleX(-1);
+  }
+
+  /* Something needs you: in what needs you's colour, and no pill, so the
+     foot stays one quiet line. */
+  .needs,
+  .needs:hover {
+    color: var(--attention);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* One has just arrived: it says so once, as its row in the sidebar
+     would. */
+  .fresh {
+    animation: arrived 1.6s var(--ease);
+  }
+
+  @keyframes arrived {
+    0%,
+    45% {
+      background: var(--attention-soft);
+      box-shadow: 0 0 0 1px
+        color-mix(in srgb, var(--attention-fill) 45%, transparent);
+    }
+  }
+}

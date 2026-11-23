@@ -1,0 +1,21 @@
+/* A crew at work, in the foot (FootCrew.tsx). */
+
+@layer ui {
+  /* Who it is stays, however short the room: its badge is the least of
+     it. */
+  .crew {
+    --foot-item-least: 46px;
+  }
+
+  .who {
+    display: inline-flex;
+    flex: none;
+  }
+
+  .mission {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
