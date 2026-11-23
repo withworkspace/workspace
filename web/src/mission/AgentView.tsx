@@ -21,6 +21,7 @@ import { pageScroller } from "../ui/scroller";
 import { Input } from "../ui/Input";
 import { Composer } from "../ui/Composer";
 import { Turn, TurnAvatar, TurnHead, TurnSaid } from "../ui/Turn";
+import { TypingDots } from "../ui/TypingDots";
 import { useWorkspace } from "../workspace/store";
 
 // The agent view: a crew as a conversation, the way in to it. What it was
@@ -233,11 +234,7 @@ export function AgentView({ slug, id, crew, live, onTerminal }: { slug: string; 
         )}
         {working && !asking && (
           <div className="typing agent-working">
-            <span className="typing-dots" aria-hidden>
-              <span />
-              <span />
-              <span />
-            </span>
+            <TypingDots />
             {pending ? (
               <>
                 {pending.tool === "Bash" ? "Running" : "Working on"} <code>{pending.edit?.path.split("/").pop() ?? pending.input?.slice(0, 80)}</code>

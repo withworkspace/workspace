@@ -47,6 +47,7 @@ import { clip, humanError } from "../ui/text";
 import { pageScroller } from "../ui/scroller";
 import { Segment, Segmented } from "../ui/Segmented";
 import { TextArea } from "../ui/TextArea";
+import { TypingDots } from "../ui/TypingDots";
 
 // Commenting on a document, as in a shared doc: you read it rendered,
 // highlight text and comment on it, and the comment is a thread, live at
@@ -1127,11 +1128,7 @@ function ThreadCard({ thread, active, hovered, replying, unplaced, onFocus, onHo
           )}
           {thread.answering && (
             <div className="typing">
-              <span className="typing-dots" aria-hidden>
-                <span />
-                <span />
-                <span />
-              </span>
+              <TypingDots />
               {resolved ? "Drafting what was decided" : "Answering"}
             </div>
           )}

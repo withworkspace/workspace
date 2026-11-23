@@ -4,6 +4,7 @@ import { type Call, Calls } from "./Calls";
 import { stepDoing } from "./commandLabel";
 import { Icon } from "./Icon";
 import { Button } from "./Button";
+import { TypingDots } from "./TypingDots";
 
 // Doing is a run going now as one line: what the agent's doing this
 // moment, the newest step taking the place of the one before, as Claude
@@ -18,11 +19,7 @@ export function Doing({ calls, root, idle = "Thinking" }: { calls: Call[]; root?
   return (
     <div className="doing">
       <div className="doing-line" aria-live="polite">
-        <span className="typing-dots" aria-hidden>
-          <span />
-          <span />
-          <span />
-        </span>
+        <TypingDots className="doing-dots" />
         {/* Keyed by the step, so a new one comes in as new. */}
         <span key={n} className="doing-now" title={last?.input}>
           {now}…
