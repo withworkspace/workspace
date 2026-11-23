@@ -59,6 +59,9 @@ type Service struct {
 	reading   map[string]*pageRead
 	pageTried map[string]time.Time
 	pageDue   map[string]bool
+	// saying: what's been said on a page is being read behind its first
+	// showing, and is in when this closes.
+	saying map[string]chan struct{}
 }
 
 type loadCall struct {

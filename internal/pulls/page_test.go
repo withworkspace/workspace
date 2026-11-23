@@ -116,6 +116,7 @@ func TestPageIsKeptAndAnsweredAtOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	w.said(89)
 	if d.Head != w.pr(89).HeadRefOid || d.Body != "Keys the cache by tenant." || d.Layer != 2 {
 		t.Fatalf("detail = %+v", d)
 	}
@@ -169,6 +170,7 @@ func TestStalePageIsReadBehindAndToldWhenItChanged(t *testing.T) {
 	if _, err := w.svc.KeptDetail("api", 89); err != nil {
 		t.Fatal(err)
 	}
+	w.said(89)
 	seen := w.svc.PageSeen("api", 89)
 
 	// A push: the head moves on GitHub. While GitHub's held, a read answers
@@ -251,6 +253,7 @@ func TestReadsBehindAreOneAtATime(t *testing.T) {
 	if _, err := w.svc.KeptDetail("api", 92); err != nil {
 		t.Fatal(err)
 	}
+	w.said(92)
 	w.pass(3 * time.Minute)
 	threads := w.threads.Load()
 	release := w.holdGitHub()
@@ -275,6 +278,7 @@ func TestPageIsForgottenOnceMerged(t *testing.T) {
 	if _, err := w.svc.KeptDetail("api", 92); err != nil {
 		t.Fatal(err)
 	}
+	w.said(92)
 	seen := w.svc.PageSeen("api", 92)
 	w.prsMu.Lock()
 	w.prs = w.prs[:3] // 92 is merged
@@ -295,6 +299,7 @@ func TestPageIsForgottenOnceMerged(t *testing.T) {
 	if _, err := w.svc.KeptDetail("api", 89); err != nil {
 		t.Fatal(err)
 	}
+	w.said(89) // kept in the records once what's been said is in
 	if pg, _ := keptPage(w.root, "api", 89); pg == nil {
 		t.Error("89's page wasn't kept")
 	}
@@ -378,6 +383,7 @@ func TestFirstShowDoesntWaitOnTheList(t *testing.T) {
 				t.Error("the stale list wasn't asked for again behind")
 			}
 			close(held)
+			w.said(92)
 			for {
 				w.svc.mu.Lock()
 				busy := w.svc.loading != nil
@@ -408,5 +414,161 @@ func TestFirstShowLooksForOneTheListHasnt(t *testing.T) {
 	w.pass(10 * time.Second)
 	if d, err := w.svc.KeptDetail("api", 92); err != nil || d.Head != w.pr(92).HeadRefOid {
 		t.Fatalf("detail = %+v, %v", d, err)
+	}
+	w.said(92)
+}
+
+// The first time a PR is shown, what it says it does and its diff don't
+// wait on what's been said on it: GitHub's threads and its discussion are
+// read behind, and those who ask for them wait for that alone.
+func TestFirstShowDoesntWaitOnWhatsBeenSaid(t *testing.T) {
+	w := newPageWorld(t)
+	held := make(chan struct{})
+	threads, said := w.gh.ReviewThreadsFn, w.gh.DiscussionFn
+	w.gh.ReviewThreadsFn = func(org, repo string, number int) ([]github.ReviewThread, error) {
+		<-held
+		return threads(org, repo, number)
+	}
+	w.gh.DiscussionFn = func(org, repo string, number int) ([]github.Said, error) {
+		<-held
+		return said(org, repo, number)
+	}
+	type shown struct {
+		d    *Detail
+		diff *Diffed
+		err  error
+	}
+	done := make(chan shown, 1)
+	go func() {
+		var x shown
+		if x.d, x.err = w.svc.KeptDetail("api", 89); x.err == nil {
+			x.diff, x.err = w.svc.KeptDiff("api", 89, ScopeLayer)
+		}
+		done <- x
+	}()
+	var x shown
+	select {
+	case x = <-done:
+	case <-time.After(5 * time.Second):
+		close(held)
+		<-done
+		t.Fatal("the first show waited on what's been said")
+	}
+	if x.err != nil {
+		close(held)
+		t.Fatal(x.err)
+	}
+	if x.d.Body != "Keys the cache by tenant." || len(x.diff.Files) != 1 || x.diff.Files[0].Path != "tenant.go" {
+		t.Errorf("detail = %+v, diff = %+v", x.d, x.diff.Files)
+	}
+	seen := w.svc.PageSeen("api", 89)
+
+	// Asking for what's been said waits for it, and no one asks GitHub twice.
+	type saidNow struct {
+		n   int
+		err error
+	}
+	got := make(chan saidNow, 2)
+	go func() {
+		th, err := w.svc.KeptThreads("api", 89)
+		if err != nil {
+			got <- saidNow{err: err}
+			return
+		}
+		got <- saidNow{n: len(th.Comments)}
+	}()
+	go func() {
+		d, err := w.svc.KeptDiscussion("api", 89)
+		if err != nil {
+			got <- saidNow{err: err}
+			return
+		}
+		got <- saidNow{n: len(d.Items)}
+	}()
+	select {
+	case g := <-got:
+		close(held)
+		t.Fatalf("what's been said was answered before GitHub had: %+v", g)
+	case <-time.After(100 * time.Millisecond):
+	}
+	asked := w.threads.Load()
+	close(held)
+	for range 2 {
+		if g := <-got; g.err != nil || g.n != 1 {
+			t.Errorf("what's been said = %+v", g)
+		}
+	}
+	if n := w.threads.Load() - asked; n != 1 {
+		t.Errorf("threads asked for %d times, want once", n)
+	}
+	// It's told as a change, for the open page, and kept in the records.
+	if w.svc.PageSeen("api", 89) == seen {
+		t.Error("the count didn't move when what's been said came in")
+	}
+	w.said(89)
+	again := &Service{Root: w.root, Remote: acme, GitHub: w.gh, Repos: w.svc.Repos, BareDir: w.svc.BareDir, Now: w.clockNow}
+	asks := w.asked.Load()
+	if th, err := again.KeptThreads("api", 89); err != nil || len(th.Comments) != 1 {
+		t.Errorf("after a restart, threads = %+v, %v", th, err)
+	}
+	if w.asked.Load() != asks {
+		t.Error("after a restart, GitHub was asked again")
+	}
+}
+
+// A daemon that stopped before what's been said came in reads the page
+// again, rather than answering one without it.
+func TestPageKeptWithoutWhatsBeenSaidIsReadAgain(t *testing.T) {
+	w := newPageWorld(t)
+	held := make(chan struct{})
+	threads := w.gh.ReviewThreadsFn
+	w.gh.ReviewThreadsFn = func(org, repo string, number int) ([]github.ReviewThread, error) {
+		<-held
+		return threads(org, repo, number)
+	}
+	first := make(chan error, 1)
+	go func() {
+		_, err := w.svc.KeptDetail("api", 92)
+		first <- err
+	}()
+	select {
+	case err := <-first:
+		if err != nil {
+			close(held)
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		close(held)
+		<-first
+		t.Fatal("the first show waited on what's been said")
+	}
+	again := &Service{Root: w.root, Remote: acme, GitHub: w.gh, Repos: w.svc.Repos, BareDir: w.svc.BareDir, Now: w.clockNow}
+	close(held)
+	if th, err := again.KeptThreads("api", 92); err != nil || len(th.Comments) != 1 {
+		t.Errorf("threads = %+v, %v", th, err)
+	}
+	w.said(92)
+	was := w.svc
+	w.svc = again
+	w.said(92)
+	w.svc = was
+}
+
+// said waits for what's been said on a PR to have been read behind its
+// first showing, and kept.
+func (w *pageWorld) said(number int) {
+	w.t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		w.svc.mu.Lock()
+		pg, busy := w.svc.pages[Key("api", number)], w.svc.saying[Key("api", number)] != nil
+		w.svc.mu.Unlock()
+		if !busy && (pg == nil || !pg.unsaid()) {
+			return
+		}
+		if time.Now().After(deadline) {
+			w.t.Fatalf("what's been said on api#%d wasn't read", number)
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
 }

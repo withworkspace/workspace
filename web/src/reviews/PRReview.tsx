@@ -110,26 +110,29 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
   const [docking, setDocking] = useState(false);
   useTitle(d ? `${d.pr.title} · ${ref}` : ref);
 
-  // Opening what's asked for: everything it's drawn from is read, and
-  // shown together. What's been said on GitHub, which can be slow, is
-  // shown with it if it's in by then, or once it is.
+  // Opening what's asked for: what it opens on (what it says it does, its
+  // changes, your review) is read, and shown together. What's been said
+  // on GitHub, on its lines and on itself, can be slow: it's shown with
+  // them if it's in by then, or once it is.
   const beginOpen = useLatest();
   useEffect(() => {
     const fresh = beginOpen();
     const a = prAPI(askedRepo, askedNumber);
     const reviewsRead = getReview(a);
-    const threadsRead = getPRThreads(a).then(
-      (t) => ({ t }),
-      (e: Error) => ({ e: e.message }),
-    );
     const passesRead = getPRPasses(a).catch(() => [] as ReviewPass[]);
     const guideRead = getPRGuide(a).catch(() => ({}) as ReviewGuide);
     let said: { x?: Discussion; e?: string } | undefined;
+    let lines: { t?: ReviewData; e?: string } | undefined;
     let open = false;
     const say = (s: { x?: Discussion; e?: string }) => {
       if (!fresh()) return;
       setDiscussion(s.x);
       setDiscussionError(s.e);
+    };
+    const thread = (s: { t?: ReviewData; e?: string }) => {
+      if (!fresh()) return;
+      setThreads(s.t);
+      setThreadsError(s.e);
     };
     getPRDiscussion(a)
       .then(
@@ -140,6 +143,15 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
         said = s;
         if (open) say(s);
       });
+    getPRThreads(a)
+      .then(
+        (t) => ({ t }),
+        (e: Error) => ({ e: e.message }),
+      )
+      .then((s) => {
+        lines = s;
+        if (open) thread(s);
+      });
     getPR(askedRepo, askedNumber).then(
       async (x) => {
         // What the review opens on. If it can't be read, the review
@@ -148,13 +160,12 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
           ([rs, diff]) => ({ rs, diff: diff as ReviewDiff }),
           () => undefined,
         );
-        const [t, p, g] = await Promise.all([threadsRead, passesRead, guideRead]);
+        const [p, g] = await Promise.all([passesRead, guideRead]);
         if (!fresh()) return;
         open = true;
         setD(x);
         setError(undefined);
-        setThreads("t" in t ? t.t : undefined);
-        setThreadsError("e" in t ? t.e : undefined);
+        thread(lines ?? {});
         say(said ?? {});
         setShown({ repo: askedRepo, number: askedNumber, whole: askedWhole, opened, passes: p, guide: g });
       },
@@ -394,6 +405,11 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
               </span>
             ))}
           {pr.updated && <Time iso={pr.updated} as="relative" className="dim" />}
+          {!whole && !threads && !threadsError && (
+            <span className="dim" title="The comments on its lines, and what's been said on it, are read after what it opens on: they show when they're in.">
+              <Icon name="spinner" className="spin" size={12} /> Reading the comments on GitHub…
+            </span>
+          )}
           {pr.mission && (
             <Link to={`/missions/${pr.mission.slug}`} className={chipClass("quiet", "pr-meta-chip")}>
               <Icon name="flag" size={11} /> {pr.mission.title}
