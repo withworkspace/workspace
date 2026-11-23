@@ -11,7 +11,12 @@ import { type Reload, useHere } from "../load";
 import { afterSettling } from "../talk/proposals";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon, type IconName } from "../ui/Icon";
-import { Callout, humanError, Keys, toast, useMedia } from "../ui/kit";
+import { Spinner } from "../ui/Spinner";
+import { useMedia } from "../ui/useMedia";
+import { toast } from "../ui/toast";
+import { humanError } from "../ui/text";
+import { Callout } from "../ui/Callout";
+import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";
 import { BriefOutline, type DocId } from "./BriefOutline";
 import { BriefPlanner, PassageTool, pickedIn, PlannerField, quoted } from "./BriefPlanner";
@@ -501,7 +506,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
                 <p className="dim">Its planner reads round what you asked for, asks what it needs to, and writes the brief and a plan with you. They're here to read, change and confirm.</p>
                 <div className="brief-start-act">
                   <Button variant="primary" type="button" onClick={briefIt} disabled={busy} aria-busy={busy}>
-                    <Icon name={busy ? "spinner" : "pencil"} className={busy ? "spin" : undefined} /> Brief it
+                    {busy ? <Spinner /> : <Icon name="pencil" />} Brief it
                   </Button>
                   <Button variant="ghost" type="button" onClick={() => setOwn(true)}>
                     Write it yourself
@@ -569,7 +574,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
           {!toolsFor && <span className="brief-toolbar-none dim">{ended ? "It's ended: nothing to edit" : toRead ? "Settle a document's changes, and it's yours to edit" : ""}</span>}
         </div>
         <div className="brief-act">
-          {busy && <Icon name="spinner" className="spin" />}
+          {busy && <Spinner />}
           {nav}
           {changed && (
             <Button variant="ghost" type="button" disabled={busy} onClick={() => setAgain((n) => n + 1)} title={p ? "Start over from what's proposed" : "Start over from what's written"}>
@@ -621,7 +626,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
         <div className="brief-main" ref={setMain}>
           <div className="brief-docs" ref={docs}>
             {stale && (
-              <Callout tone="attention" icon="alert" title="Proposed against an earlier version">
+              <Callout className="brief-docs-note" tone="attention" icon="alert" title="Proposed against an earlier version">
                 It's changed since, so accepting this is refused. Ask the planner for it again, from what's written now.
               </Callout>
             )}
@@ -629,7 +634,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
             {(planned || briefing) && (
               <>
                 {d.planProblem && (
-                  <Callout tone="attention" icon="alert" title="The plan doesn't read, so the mission works from its brief">
+                  <Callout className="brief-docs-note" tone="attention" icon="alert" title="The plan doesn't read, so the mission works from its brief">
                     {d.planProblem}
                   </Callout>
                 )}
@@ -637,7 +642,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
               </>
             )}
             {planProblem && (
-              <Callout tone="danger" icon="alert" title="ws didn't save the plan">
+              <Callout className="brief-docs-note" tone="danger" icon="alert" title="ws didn't save the plan">
                 <pre className="plan-problem">{planProblem}</pre>
               </Callout>
             )}
@@ -797,7 +802,7 @@ function DocPanel({
                 onClick={guard.rewrite}
                 title={guard.planned ? "Have its planner write the plan again, to fit the brief as it reads now (your edits to the brief go with it)" : "Have its planner write the plan, from the brief as it reads now"}
               >
-                <Icon name={guard.busy ? "spinner" : "sparkle"} size={12} className={guard.busy ? "spin" : undefined} /> {guard.planned ? "Rewrite from the brief" : "Write it from the brief"}
+                {guard.busy ? <Spinner size={12} /> : <Icon name="sparkle" size={12} />} {guard.planned ? "Rewrite from the brief" : "Write it from the brief"}
               </Button>
             )}
           </>

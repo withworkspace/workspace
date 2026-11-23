@@ -26,18 +26,24 @@ import {
 import { useKeys } from "../keys";
 import { type TrackedChange, TrackedDoc } from "../editor/LazyTracked";
 import { Markdown } from "../markdown/LazyMarkdown";
+import { Banner } from "../ui/Banner";
 import { NoteBody, NoteCard, NoteHead, NoteHint, noteHintActionClass, NoteId, NoteThread, NoteTurn } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
 import { Change } from "../ui/Change";
 import { Icon } from "../ui/Icon";
-import { Callout, humanError, Keys, toast, useAutosize, useMedia } from "../ui/kit";
+import { Spinner } from "../ui/Spinner";
+import { useMedia } from "../ui/useMedia";
+import { useAutosize } from "../ui/useAutosize";
+import { toast } from "../ui/toast";
+import { Callout } from "../ui/Callout";
+import { Keys } from "../ui/Keys";
 import { exact, stamp } from "../ui/time";
 import { BLOCK, blockLike, blockLines, blockSpan, blockWithLines, buildIndex, find, offsetOf, rangeOf, type Target, type TextIndex, targetOf, targetOfRange } from "./anchor";
 import { changes } from "./diff";
 import { useLatest, useLoaded } from "../load";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
-import { clip } from "../ui/text";
+import { clip, humanError } from "../ui/text";
 import { pageScroller } from "../ui/scroller";
 import { Segment, Segmented } from "../ui/Segmented";
 import { TextArea } from "../ui/TextArea";
@@ -776,7 +782,7 @@ export function AnnotatedDoc({
           )}
           {answering.length > 0 && (
             <Chip tone="progress">
-              <Icon name="spinner" size={11} className="spin" /> {answering.length} answering
+              <Spinner size={11} /> {answering.length} answering
             </Chip>
           )}
           {drafts.length > 0 && (
@@ -855,7 +861,7 @@ export function AnnotatedDoc({
           )}
         </Callout>
       )}
-      {error && <div className="banner">{humanError(error)}</div>}
+      {error && <Banner>{humanError(error)}</Banner>}
       {lost.length > 0 && (
         <section className="lost-notes">
           <div className="dim">
@@ -1207,7 +1213,7 @@ function EditCard({
         <span className="spacer-left" />
         {settling ? (
           <span className="dim busy">
-            <Icon name="spinner" className="spin" /> Writing it in…
+            <Spinner /> Writing it in…
           </span>
         ) : (
           <>
@@ -1356,7 +1362,7 @@ function Composer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: Threa
           />
         </>
       )}
-      {error && <div className="banner">{humanError(error)}</div>}
+      {error && <Banner>{humanError(error)}</Banner>}
       {pick.quote.exact && edit === undefined && (
         <Button variant="link" className="suggest-link" onClick={suggest}>
           <Icon name="pencil" size={12} /> Suggest an edit instead

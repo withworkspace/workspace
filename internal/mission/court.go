@@ -60,7 +60,7 @@ const (
 	KindBriefing  Kind = "briefing"   // a briefing agent writing the brief, or the planner at work on the plan
 	KindDeciding  Kind = "deciding"   // the orchestrator running, or about to
 	KindChecking  Kind = "checking"   // ws running and having judged a step's checks
-	KindMovingOn  Kind = "moving-on"  // ws taking in a merge at its Open Pull Request step: the plan moves on
+	KindMovingOn  Kind = "moving-on"  // ws between two things it does itself: passing a step and reaching the next, taking in a merge at its Open Pull Request step, asking GitHub of a pull request it's just opened
 	KindWritingPR Kind = "writing-pr" // the PR writer writing a pull request ws then opens
 
 	// Outside.
@@ -228,6 +228,10 @@ type PRFacts struct {
 	Review string
 	// Checks is the checks' rollup: failure, pending, success, or "" (none).
 	Checks string
+	// Unasked: ws opened it, and GitHub hasn't been asked how it stands
+	// since. No review and no checks, of such a one, is nothing known, not
+	// a pull request that needs neither.
+	Unasked bool
 }
 
 // DirectFacts is a capsule of a repo with no pull requests that has commits
@@ -690,6 +694,14 @@ func Resolve(s Snapshot) []Headline {
 			Action: Action{Label: "nothing to do"}})
 	}
 
+	// ws moving the plan on from a step it's passing, until what the next
+	// begins with says so itself (Mission.Moving).
+	if mv := m.Moving; mv != nil {
+		add(Headline{Court: CourtAgent, Kind: KindMovingOn, Label: "… moving on", By: "ws", Since: mv.Since,
+			Text:   fmt.Sprintf("ws is moving the plan on from step %d", mv.Step),
+			Action: Action{Label: "nothing to do"}})
+	}
+
 	// The orchestrator.
 	// Its run is marked underway as the event it's for is taken (ops.Notify),
 	// so there's no gap to guess across.
@@ -1052,6 +1064,12 @@ func sentenceOf(s string) string {
 func prHeadline(pr PRFacts) Headline {
 	h := Headline{By: pr.Ref, Action: Action{Verb: VerbOpen, Label: "open " + pr.Ref, Target: pr.Ref, URL: pr.URL}}
 	switch {
+	case pr.Unasked:
+		// ws's, for the moment it takes: neither ready to merge (which
+		// no review and no checks would otherwise read as) nor a mission
+		// nobody's on.
+		h.Court, h.Kind, h.Label, h.By = CourtAgent, KindMovingOn, "… moving on", "ws"
+		h.Text = pr.Ref + " is open: ws is asking GitHub how its checks and review stand"
 	case pr.Checks == "failure":
 		h.Court, h.Kind, h.Label = CourtYou, KindChecksFailing, "✗ checks"
 		h.Text = "Checks are failing on " + pr.Ref

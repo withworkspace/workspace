@@ -303,6 +303,13 @@ type Mission struct {
 	// nothing else says so in between. Crew recorded while it's set are
 	// the crew it's starting: they take it over (Crew.Starting).
 	Launching *Launching `toml:"launching,omitempty" json:"launching,omitempty"`
+	// Moving is ws moving the plan on from a step: from just before it
+	// passes the step (its checks all met, you going on at it) until what
+	// the next step begins with is marked or asked (crew being started,
+	// the planner's turn, a pull request being written, a question for
+	// you). Between those the mission would otherwise be at a step with
+	// nobody on it.
+	Moving *Moving `toml:"moving,omitempty" json:"moving,omitempty"`
 	// Planning is the planner's turn in its conversation (briefing the
 	// mission, or coming back to its plan): set as ws asks for the turn,
 	// cleared once its reply is recorded and the run that had it is over.
@@ -328,6 +335,13 @@ type Mission struct {
 // after which it stops counting.
 type Launching struct {
 	What  string    `toml:"what,omitempty" json:"what,omitempty"` // what they're for: "step 3", or ""
+	Since time.Time `toml:"since" json:"since"`
+}
+
+// Moving is ws moving a mission's plan on from step Step: a mark ws sets
+// as it begins and clears itself, as Launching is.
+type Moving struct {
+	Step  int       `toml:"step" json:"step"`
 	Since time.Time `toml:"since" json:"since"`
 }
 

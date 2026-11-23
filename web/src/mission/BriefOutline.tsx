@@ -2,7 +2,7 @@ import { type MouseEvent, type RefObject, useEffect, useState } from "react";
 import type { Stage } from "../api";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Keys } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import { type Edit, editsBySection } from "./briefpage";
 import { PlanList } from "./PlanList";
 import { Chip } from "../ui/Chip";
@@ -152,7 +152,7 @@ export function BriefOutline({
   };
   // A step of the list goes to it in the plan, which marks it a moment.
   const toStep = (e: MouseEvent) => {
-    const n = Number((e.target as Element).closest("li.step")?.querySelector(".step-n")?.textContent);
+    const n = Number((e.target as Element).closest("[data-plan-step]")?.getAttribute("data-plan-step"));
     const el = n ? stepIn(docs.current, n) : null;
     if (!el) return;
     goTo(el);
@@ -215,7 +215,7 @@ export function BriefOutline({
             {stages.length > 0 && (
               // (Keys go to a step by the plan itself: the list is the pointer's.)
               <div className="brief-steps" onClick={toStep}>
-                <PlanList stages={stages} />
+                <PlanList stages={stages} brief />
               </div>
             )}
           </>

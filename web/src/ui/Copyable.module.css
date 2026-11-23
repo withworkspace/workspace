@@ -1,0 +1,73 @@
+/* Copyable (Copyable.tsx): a ref that copies itself. */
+
+@layer ui {
+  .copyable {
+    all: unset;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    font: inherit;
+    cursor: copy;
+    border-radius: var(--radius-sm);
+    padding: 0 2px;
+    margin: 0 -2px;
+  }
+
+  .text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* After the words, over what follows them: there as it's pointed at. */
+  .icon {
+    position: absolute;
+    left: calc(100% + 2px);
+    top: 50%;
+    translate: 0 -50%;
+    box-sizing: content-box;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    background: var(--raised);
+    box-shadow: var(--shadow-xs), 0 0 0 1px var(--line);
+    opacity: 0;
+    color: var(--dim);
+    pointer-events: none;
+    transition: opacity var(--fast) var(--ease);
+  }
+
+  .copyable:hover {
+    background: var(--hover);
+  }
+
+  .copyable:hover .icon,
+  .copied .icon,
+  .copyable:focus-visible .icon {
+    opacity: 1;
+  }
+
+  .copied .icon {
+    color: var(--green);
+  }
+
+  .copyable:focus-visible {
+    outline: 2px solid var(--accent);
+  }
+
+  /* Where the words fill the room: over the end of them. */
+  .over .icon {
+    left: auto;
+    right: 0;
+  }
+
+  /* Always there, in the line. */
+  .inline .icon {
+    position: static;
+    translate: none;
+    opacity: 0.6;
+    box-shadow: none;
+    background: transparent;
+  }
+}

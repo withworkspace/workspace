@@ -79,6 +79,9 @@ func (w *Workspace) acceptStage(slug string, by Actor, why string) (Accepted, er
 	if err := w.acceptAllowed(m); err != nil {
 		return Accepted{}, err
 	}
+	if cur, ok := currentStep(w.Missions, m); ok {
+		defer w.moving(m.Slug, cur.N)()
+	}
 	acc, states, err := w.Missions.AcceptStage(m.Slug, by.By(), strings.TrimSpace(why))
 	if err != nil {
 		return Accepted{}, wrap(err)

@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { act, writePR, type CapsuleDetail, type MissionDetail } from "../api";
 import type { Reload } from "../load";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
-import { humanError, toast } from "../ui/kit";
+import { Spinner } from "../ui/Spinner";
+import { toast } from "../ui/toast";
+import { humanError } from "../ui/text";
 import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
@@ -84,7 +87,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
                 onChange={(e) => setTitle(e.target.value)}
               />
               <Button variant="ghost" size="small" onClick={write} disabled={writing || busy} title="Have the PR writer write its title and description, from the step it's for and PR.md">
-                <Icon name={writing ? "spinner" : "pencil"} size={12} /> {writing ? "Writing…" : "Write it"}
+                {writing ? <Spinner size={12} /> : <Icon name="pencil" size={12} />} {writing ? "Writing…" : "Write it"}
               </Button>
             </div>
             <TextArea
@@ -99,7 +102,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
           <Checkbox className="setting-toggle open-pr-draft" checked={draft} onChange={setDraft}>
             Open it as a draft
           </Checkbox>
-          {error && <div className="banner">{humanError(error)}</div>}
+          {error && <Banner>{humanError(error)}</Banner>}
           <DialogActions>
             <Button variant="ghost" onClick={close}>
               Cancel

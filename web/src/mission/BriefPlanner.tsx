@@ -9,7 +9,7 @@ import { ProposalCard, SettledMarker } from "../talk/Talk";
 import { settled } from "../talk/proposals";
 import { Calls } from "../ui/Calls";
 import { Icon } from "../ui/Icon";
-import { Keys } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import { docLines, type DocLine } from "./briefpage";
 import { Button } from "../ui/Button";
 import { Turn, TurnAvatar, TurnSaid } from "../ui/Turn";

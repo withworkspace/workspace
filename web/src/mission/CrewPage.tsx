@@ -5,7 +5,12 @@ import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
 import { useKeys } from "../keys";
-import { Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Loading } from "../ui/Loading";
+import { Empty } from "../ui/Empty";
+import { humanError } from "../ui/text";
+import { Keys } from "../ui/Keys";
 import { confirm } from "../ui/Confirm";
 import { crewStatus, Status, type StatusInfo } from "../ui/status";
 import type { TermState } from "./CrewTerminal";
@@ -82,7 +87,7 @@ export function CrewPage() {
       <header className="crew-head">
         <div className="crew-head-title">
           <h1>
-            {c?.role === "briefing" ? `Briefing agent ${id}` : <CrewBadge id={id} live={state === "live"} />}
+            {c?.role === "briefing" ? `Briefing agent ${id}` : <CrewBadge id={id} live={state === "live"} large />}
             <Status s={st} className="crew-head-status" />
           </h1>
           <div className="crew-head-sub">

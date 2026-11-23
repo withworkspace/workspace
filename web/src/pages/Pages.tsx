@@ -3,7 +3,11 @@ import { useNavigate } from "react-router";
 import { type DocKind, kindHint, newPage, pageAddress, type PageInfo } from "../api";
 import type { Back } from "./Page";
 import { Icon } from "../ui/Icon";
-import { humanError, Keys, Loading, toast } from "../ui/kit";
+import { Spinner } from "../ui/Spinner";
+import { toast } from "../ui/toast";
+import { Loading } from "../ui/Loading";
+import { humanError } from "../ui/text";
+import { Keys } from "../ui/Keys";
 import { Dialog, DialogActions } from "../ui/Dialog";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
@@ -73,7 +77,7 @@ export function PageRow({ page: p, kinds, selected, onHover, note }: { page: Pag
             )}
             {!!p.filling && (
               <Chip tone="progress">
-                <Icon name="spinner" size={11} className="spin" /> Filling {p.filling === 1 ? "a cell" : `${p.filling} cells`}
+                <Spinner size={11} /> Filling {p.filling === 1 ? "a cell" : `${p.filling} cells`}
               </Chip>
             )}
             {!!p.cells && !p.filling && <Chip tone="quiet">{p.cells === 1 ? "1 cell" : `${p.cells} cells`}</Chip>}

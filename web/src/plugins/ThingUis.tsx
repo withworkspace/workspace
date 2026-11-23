@@ -3,7 +3,8 @@ import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "re
 import { createPortal } from "react-dom";
 import * as api from "../api";
 import { Icon } from "../ui/Icon";
-import type { Anchor } from "../ui/hover";
+import { Spinner } from "../ui/Spinner";
+import type { Anchor } from "../ui/FloatingCard";
 import type { UiProps } from "./Uis";
 import { Button } from "../ui/Button";
 import { chipClass } from "../ui/Chip";
@@ -288,7 +289,7 @@ export function ThingSaveUi({ asked: asking, plugin, anchor, done }: UiProps) {
       <div className="thing-ui" role="status">
         {state.at === "saving" && (
           <p className="thing-ui-line">
-            <Icon name="spinner" size={14} className="spin" /> Saving {what} to its repo…
+            <Spinner size={14} /> Saving {what} to its repo…
           </p>
         )}
         {did && (

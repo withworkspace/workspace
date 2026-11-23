@@ -1,0 +1,7 @@
+/* A spinner (Spinner.tsx): the arc of an icon, turning. */
+
+@layer ui {
+  .spinner {
+    animation: global(spin) 0.9s linear infinite;
+  }
+}

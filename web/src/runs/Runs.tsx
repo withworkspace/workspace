@@ -4,7 +4,15 @@ import { endRun, getRunLog, getRunPast, getRuns, type Names, type RunDetail, typ
 import { type Reload, useLoaded } from "../load";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
-import { Callout, Copyable, Empty, ErrorCard, humanError, Skeleton, toast, useTitle } from "../ui/kit";
+import { Spinner } from "../ui/Spinner";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Skeleton } from "../ui/Skeleton";
+import { Empty } from "../ui/Empty";
+import { humanError } from "../ui/text";
+import { ErrorCard } from "../ui/ErrorCard";
+import { Callout } from "../ui/Callout";
+import { Copyable } from "../ui/Copyable";
 import { Time } from "../ui/time";
 import css from "./Runs.module.css";
 import { bare, came, commitSaid, forWhom, listed, placeOf, plain, type Said, split } from "./runRows";
@@ -340,7 +348,7 @@ function RunRow({ r, up, reload, show }: { r: RunDetail; up: Set<string>; reload
             onClick={end}
             title={live ? (task ? "Stop it now: it's kept as stopped" : "End it now, and run its recipe's stop") : task ? "Clear it away, with its output, its reports and the runs before it" : "Clear it away, its output with it"}
           >
-            <Icon name={busy ? "spinner" : live ? "stop" : "x"} size={11} /> {live ? "Stop" : "Clear"}
+            {busy ? <Spinner size={11} /> : <Icon name={live ? "stop" : "x"} size={11} />} {live ? "Stop" : "Clear"}
           </Button>
         </span>
       </div>
@@ -654,7 +662,7 @@ function SiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
             </Button>
           )}
           <Button variant="ghost" size="small" disabled={busy || !!st.error} onClick={resync} title="Give it its capsule's files in full again">
-            <Icon name={busy ? "spinner" : "rotate"} size={11} /> Resync
+            {busy ? <Spinner size={11} /> : <Icon name="rotate" size={11} />} Resync
           </Button>
         </span>
       </div>

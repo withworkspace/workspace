@@ -4,7 +4,13 @@ import { checkUpdates, getUpdates, type UpdatesInfo, upgradeWS } from "../api";
 import { useLoaded } from "../load";
 import { shortVersion } from "../shell/version";
 import { Icon } from "../ui/Icon";
-import { Callout, Copyable, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { Spinner } from "../ui/Spinner";
+import { toast } from "../ui/toast";
+import { Skeleton } from "../ui/Skeleton";
+import { humanError } from "../ui/text";
+import { ErrorCard } from "../ui/ErrorCard";
+import { Callout } from "../ui/Callout";
+import { Copyable } from "../ui/Copyable";
 import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
@@ -84,7 +90,7 @@ export function Updates({ running }: { running?: string }) {
   return (
     <div className="settings-updates">
       {standing === "waiting" && (
-        <Callout tone="info" icon="rotate" title={`ws ${up.installed} is installed`}>
+        <Callout className="settings-update-note" tone="info" icon="rotate" title={`ws ${up.installed} is installed`}>
           The daemon restarts onto it once nothing's at work
           {up.waits?.length ? (
             <>
@@ -98,20 +104,20 @@ export function Updates({ running }: { running?: string }) {
           ) : (
             ", which is any moment now. "
           )}
-          <Copyable text="ws daemon restart --now" className="mono">
+          <Copyable text="ws daemon restart --now">
             ws daemon restart --now
           </Copyable>{" "}
           doesn't wait.
         </Callout>
       )}
       {standing === "out" && (
-        <Callout
+        <Callout className="settings-update-note"
           tone="attention"
           icon="arrow-up"
           title={`ws ${up.latest} is out`}
           actions={
             <Button variant="primary" onClick={() => void upgrade()} disabled={!!busy}>
-              <Icon name={busy === "upgrade" ? "spinner" : "arrow-up"} size={12} /> {busy === "upgrade" ? "Upgrading…" : `Upgrade to ${up.latest}`}
+              {busy === "upgrade" ? <Spinner size={12} /> : <Icon name="arrow-up" size={12} />} {busy === "upgrade" ? "Upgrading…" : `Upgrade to ${up.latest}`}
             </Button>
           }
         >
@@ -119,7 +125,7 @@ export function Updates({ running }: { running?: string }) {
         </Callout>
       )}
       {standing === "out-built" && (
-        <Callout tone="attention" icon="arrow-up" title={`ws ${up.latest} is out`}>
+        <Callout className="settings-update-note" tone="attention" icon="arrow-up" title={`ws ${up.latest} is out`}>
           This is {shortVersion(up.version)}, built from a clone rather than installed from a release, so it's changed where it was built: pull, and{" "}
           <span className="mono">just build</span>. {notes}
         </Callout>
@@ -158,7 +164,7 @@ export function Updates({ running }: { running?: string }) {
             <span className="dim"> · {up.checks ? "the daemon looks once a day" : "the daemon doesn't look by itself"}</span>
           </span>
           <Button size="small" onClick={look} disabled={!!busy} title="Ask now for the latest release of ws, and of each plugin installed from a repo">
-            <Icon name={busy === "look" ? "spinner" : "rotate"} size={12} /> {busy === "look" ? "Looking…" : "Check now"}
+            {busy === "look" ? <Spinner size={12} /> : <Icon name="rotate" size={12} />} {busy === "look" ? "Looking…" : "Check now"}
           </Button>
         </dd>
         {up.plugins > 0 && (

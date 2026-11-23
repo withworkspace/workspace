@@ -1,0 +1,63 @@
+/* A step's card (MissionStepCard.tsx): what there isn't room for in its
+   row. */
+
+.card {
+  width: 340px;
+  gap: 8px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dim);
+}
+
+.stands {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.accepted {
+  color: var(--green);
+}
+
+.current {
+  color: var(--accent);
+}
+
+.title {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.text {
+  color: var(--dim);
+}
+
+.rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 10px;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.rows dt {
+  color: var(--dim);
+}
+
+.rows dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.checks {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}

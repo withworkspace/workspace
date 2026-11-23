@@ -1,5 +1,5 @@
 import { act, ApiError } from "../api";
-import { humanError } from "../ui/kit";
+import { humanError } from "../ui/text";
 import { confirm } from "../ui/Confirm";
 
 // archiveMission archives a mission, which burns its capsules. When one's

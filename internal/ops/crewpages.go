@@ -226,9 +226,9 @@ func (p crewPages) Paste(slug, id, text string) error {
 
 // Say gives a mission's crew a message: typed into, or sent to, crew the
 // daemon's running; an ended crew is resumed with it. From you, the end of
-// its turn is then yours (TalkedTo); from ws or the orchestrator, it's
-// logged as typed in, and the orchestrator's (Nudged). It says what it
-// did.
+// its turn is then yours (TalkedTo), unless it answers a question they
+// asked (AnsweredCrew); from ws or the orchestrator, it's logged as typed
+// in, and the orchestrator's (Nudged). It says what it did.
 func (w *Workspace) Say(slug, id, text string, by Actor) (string, error) {
 	c, key, err := w.crewOf(slug, id)
 	if err != nil {
@@ -242,7 +242,11 @@ func (w *Workspace) Say(slug, id, text string, by Actor) (string, error) {
 	case err == nil:
 		if by.IsYou() {
 			w.answeredCrew(slug, c, text)
-			w.Missions.TalkedTo(slug, id, text)
+			// The answer to a question of theirs isn't you taking them
+			// over: they carry on, watched as they were.
+			if answered, _ := w.Missions.AnsweredCrew(slug, id, text); !answered {
+				w.Missions.TalkedTo(slug, id, text)
+			}
 		} else if err := w.Missions.Nudged(slug, id, text, by.By()); err != nil {
 			return said, err
 		}

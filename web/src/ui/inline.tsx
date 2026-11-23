@@ -2,7 +2,7 @@ import { Fragment, type ReactNode, useContext } from "react";
 import { useRefs, useWanted } from "../refs/known";
 import { RefTag } from "../refs/RefTag";
 import { findRefs, type Known, refAt, refKey } from "../refs/refs";
-import { linkRefs, type Refs, RefContext } from "./hover";
+import { linkRefs, type Refs, RefContext } from "../refs/context";
 
 // Inline is agent-written markdown in a place with room for a line or two
 // (a log line, a summary, a list row): `code`, **bold**, *emphasis* and

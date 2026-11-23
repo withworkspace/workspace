@@ -1,0 +1,31 @@
+/* A step of the plan as a dot (MissionPlanPip.tsx). */
+
+.pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+}
+
+.accepted {
+  border-color: var(--green-fill);
+  background: var(--green-fill);
+}
+
+.warn {
+  border-color: var(--amber-fill);
+  background: var(--amber-fill);
+}
+
+.yours {
+  border-color: var(--accent);
+}
+
+.wait {
+  border-style: dotted;
+}
+
+.pip:hover {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 1px;
+}

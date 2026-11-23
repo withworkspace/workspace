@@ -268,7 +268,7 @@ act on ("Commit both and open PRs"); the user can always write their own.
 The orchestrator's question at a Work step whose checks came round not all
 met is that step's own: ws adds "Pass it" and "Send it back" to its
 answers, so the user can pass the step as it is from the question, and
-approving the bundle that shows its checks passes it too.`,
+approving the bundle that shows its checks passes it too.` + fmt.Sprintf(onStdin, "flag"),
 		Args: func(cmd *cobra.Command, args []string) error {
 			if !clear && len(args) == 0 {
 				return errors.New("say why the user is needed")
@@ -292,7 +292,11 @@ approving the bundle that shows its checks passes it too.`,
 				fmt.Fprintf(ui.Stderr, "  %s %s on %s\n", ui.Green.Render("✓"), strings.TrimSuffix(d.String(), "."), m.Slug)
 				return nil
 			}
-			f, err := ctx.Flag(m.Slug, strings.Join(args, " "), ops.ActorFromEnv(), options...)
+			question, err := wordsOf(args)
+			if err != nil {
+				return err
+			}
+			f, err := ctx.Flag(m.Slug, question, ops.ActorFromEnv(), options...)
 			if err != nil {
 				return err
 			}
@@ -356,6 +360,32 @@ agent) answer the same way, and that's their part done.`,
 	return cmd
 }
 
+// wordsOf is what a command was told, in its arguments: joined, or, where
+// they're a lone "-", read from stdin. A message with a backtick, a
+// dollar or a quote in it (a command, a check's words) is otherwise the
+// shell's to read first: inside double quotes it runs what's in the
+// backticks and leaves what that printed in their place.
+func wordsOf(args []string) (string, error) {
+	if len(args) == 1 && args[0] == "-" {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return "", fmt.Errorf("reading it from stdin: %w", err)
+		}
+		return strings.TrimSpace(string(data)), nil
+	}
+	return strings.TrimSpace(strings.Join(args, " ")), nil
+}
+
+// onStdin is how a command's help says so.
+const onStdin = `
+
+Give it as - to have it read from stdin, where it has a backtick, a $ or
+a quote in it, which a shell would read as its own:
+
+  ws mission %s - <<'EOF'
+  …
+  EOF`
+
 func newMissionResumeWithCmd() *cobra.Command {
 	var slug string
 	cmd := &cobra.Command{
@@ -371,7 +401,7 @@ once their turn is over) are resumed with it, and so count too; with
 [orchestrator] dispatch = "ask", or for crew that ended otherwise, the
 mission's page offers to resume them, which types the message in. Only crew that
 recorded a conversation can be resumed; for anything else, raise a
-follow-up with ws mission new.`,
+follow-up with ws mission new.` + fmt.Sprintf(onStdin, "resume-with c2"),
 		Args: cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := loadOps()
@@ -396,7 +426,13 @@ follow-up with ws mission new.`,
 			if c.Conversation == "" {
 				return fmt.Errorf("%s recorded no conversation, so it can't be resumed; raise a follow-up with ws mission new instead", c.ID)
 			}
-			msg := strings.TrimSpace(strings.Join(args[1:], " "))
+			msg, err := wordsOf(args[1:])
+			if err != nil {
+				return err
+			}
+			if msg == "" {
+				return errors.New("say what's left for it to do")
+			}
 			store := missionStore(ctx)
 			actor := ops.ActorFromEnv()
 			// Crew closed after reporting done (ws closes them once their

@@ -1,0 +1,18 @@
+/* Loading (Loading.tsx): a spinner and what's loading, after a moment. */
+
+@layer ui {
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 120px;
+    color: var(--dim);
+    opacity: 0;
+    transition: opacity var(--slow) var(--ease);
+  }
+
+  .shown {
+    opacity: 1;
+  }
+}

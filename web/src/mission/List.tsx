@@ -5,8 +5,11 @@ import type { Crew, HeadlineGroup, Mission } from "../api";
 import { useKeys } from "../keys";
 import { Inline, plain } from "../ui/inline";
 import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { CheckingLine } from "./checking";
-import { Empty, Keys, useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
+import { Empty } from "../ui/Empty";
+import { Keys } from "../ui/Keys";
 import { crewStatus, headlineStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { Chip } from "../ui/Chip";
@@ -192,7 +195,7 @@ function CrewChip({ crew }: { crew: Crew }) {
   const st = crewStatus(crew);
   return (
     <Chip tone={st.tone} className="crew-chip" title={`${crew.id}: ${st.words}`}>
-      <Icon name={st.icon} size={12} className={st.live ? (st.icon === "spinner" ? "spin" : "pulse") : undefined} />
+      {st.live && st.icon === "spinner" ? <Spinner size={12} /> : <Icon name={st.icon} size={12} className={st.live ? "pulse" : undefined} />}
       {crew.id}
     </Chip>
   );

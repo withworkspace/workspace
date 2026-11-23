@@ -6,10 +6,17 @@ import { useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
 import { refKey, refName } from "../refs/refs";
 import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../review/highlight";
-import { HoverCard } from "../ui/hover";
+import { HoverCard, HoverCardHead, HoverCardLine, HoverCardTitle } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Copyable, Empty, ErrorCard, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Loading } from "../ui/Loading";
+import { Empty } from "../ui/Empty";
+import { humanError } from "../ui/text";
+import { ErrorCard } from "../ui/ErrorCard";
+import { Copyable } from "../ui/Copyable";
+import { Keys } from "../ui/Keys";
 import { Option, Select } from "../ui/Select";
 import { Status } from "../ui/status";
 import { Time } from "../ui/time";
@@ -353,7 +360,7 @@ export function ArtifactPage() {
             <Icon name={st.icon} size={11} />
             {st.words}
           </Chip>
-          <Copyable text={v ? `${d.id}.v${v.n}` : d.id} className="ref" title="Copy its ref" />
+          <Copyable text={v ? `${d.id}.v${v.n}` : d.id} className="artifact-title-ref" title="Copy its ref" />
           <PagePin r={{ kind: "artifact", id: d.id }} />
         </div>
         {v && <VersionLine d={d} v={v} />}
@@ -461,17 +468,17 @@ export function ArtifactPage() {
       <div className="artifact-body">
         <div className="artifact-stage">
           {missing ? (
-            <Empty icon="search" title={`${d.id} has no v${asked}`} action={<Link to={artifactHref(d.id)}>Its latest, v{d.latest?.n}</Link>}>
+            <Empty className="artifact-empty" icon="search" title={`${d.id} has no v${asked}`} action={<Link to={artifactHref(d.id)}>Its latest, v{d.latest?.n}</Link>}>
               Its versions are {d.all.map((x) => `v${x.n}`).join(", ")}.
             </Empty>
           ) : !runnable ? (
-            <Empty icon="alert" title="There's no file to run">
+            <Empty className="artifact-empty" icon="alert" title="There's no file to run">
               {d.gone ? `Its folder has gone from ${d.where.replace(/[^/]+\/$/, "")}: what's here is what the records kept.` : `v${n}'s files aren't in ${d.where}.`}
             </Empty>
           ) : source ? (
             <Source id={d.id} n={n} />
           ) : stopped ? (
-            <Empty icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)}>Run it</Button>}>
+            <Empty className="artifact-empty" icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)}>Run it</Button>}>
               The frame's unloaded, and its scripts with it.
             </Empty>
           ) : (
@@ -528,7 +535,7 @@ function HomeLine({ d, n, onDone }: { d: ArtifactDetail; n: number; onDone: () =
   };
   return (
     <div className="artifact-note artifact-home dim">
-      <Icon name="branch" size={12} /> It lives in <Copyable text={home.where} className="mono" title="Copy its folder: how it's named for other people" /> too, for everyone with {home.repo}: v{home.version} is there
+      <Icon name="branch" size={12} /> It lives in <Copyable text={home.where} className="artifact-home-where" title="Copy its folder: how it's named for other people" /> too, for everyone with {home.repo}: v{home.version} is there
       {home.commit ? ` (${home.commit.slice(0, 7)})` : ""}.
       {n && n !== home.version && d.all.some((x) => x.n === n) ? (
         <Button variant="ghost" size="small" className="artifact-home-action" onClick={put} disabled={busy} title={`Promote v${n}: it takes v${home.version}'s place there, in one commit`}>
@@ -585,14 +592,14 @@ export function VersionStrip({ d, n, go, keys = ["[", "]"] }: { d: ArtifactDetai
             </button>
           }
         >
-          <span className="hovercard-head">
-            <span className="hovercard-title">v{x.n}</span>
+          <HoverCardHead>
+            <HoverCardTitle>v{x.n}</HoverCardTitle>
             <span className="dim">
               {byWords(x)}, <Time iso={x.at} as="relative" />
             </span>
-          </span>
-          <span className="hovercard-line">{x.note || <span className="dim">No note.</span>}</span>
-          {d.home?.version === x.n && <span className="hovercard-line dim">It's the version in {d.home.repo}: {d.home.where}</span>}
+          </HoverCardHead>
+          <HoverCardLine>{x.note || <span className="dim">No note.</span>}</HoverCardLine>
+          {d.home?.version === x.n && <HoverCardLine dim>It's the version in {d.home.repo}: {d.home.where}</HoverCardLine>}
         </HoverCard>
       ))}
       <span className="artifact-step-keys dim">
@@ -646,7 +653,7 @@ function Source({ id, n }: { id: string; n: number }) {
       {error ? (
         <ErrorCard error={error} />
       ) : value.binary ? (
-        <Empty icon="file" title={`${value.file} isn't text`}>
+        <Empty className="artifact-empty" icon="file" title={`${value.file} isn't text`}>
           It's {sizeWords(value.size)}, and the page shows it where it uses it.
         </Empty>
       ) : (

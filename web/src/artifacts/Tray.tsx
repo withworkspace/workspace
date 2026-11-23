@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 import { Icon } from "../ui/Icon";
-import { Copyable, Keys } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
+import { Keys } from "../ui/Keys";
 import { Option, Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
 import { changed, presetOn, readChange, readTold, said, type State, stateWords, takes, type Told, type Tweak, type Value } from "./tweaks";

@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import type { TrackedProps } from "./TrackedDoc";
-import { Skeleton } from "../ui/kit";
+import { Skeleton } from "../ui/Skeleton";
 
 export type { TrackedChange, TrackedProps } from "./TrackedDoc";
 

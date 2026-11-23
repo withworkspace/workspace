@@ -4,8 +4,15 @@ import { getTeam, type Know, type KnowKind, narrateTeam, seenTeam, summariseTeam
 import { useKeys } from "../keys";
 import { prHref } from "../reviews/Reviews";
 import { Icon, type IconName } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/inline";
-import { Callout, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Loading } from "../ui/Loading";
+import { Empty } from "../ui/Empty";
+import { humanError } from "../ui/text";
+import { Callout } from "../ui/Callout";
+import { Keys } from "../ui/Keys";
 import { Status, type StatusInfo } from "../ui/status";
 import { dayLabel, Time } from "../ui/time";
 import { useLatest } from "../load";
@@ -342,7 +349,7 @@ export function TeamPage() {
             <span className="dim reviews-asked" title="When git and GitHub were last looked at. While this page is open they're looked at every couple of minutes.">
               {loading ? (
                 <>
-                  <Icon name="spinner" className="spin" size={12} /> Looking…
+                  <Spinner size={12} /> Looking…
                 </>
               ) : (
                 <>
@@ -446,7 +453,7 @@ export function TeamPage() {
           )}
           {!!narrative?.writing && (
             <span className="team-writing" title="An agent is reading each change and writing what it does">
-              <Icon name="spinner" className="spin" size={12} /> Reading {narrative.writing} {narrative.writing === 1 ? "change" : "changes"}
+              <Spinner size={12} /> Reading {narrative.writing} {narrative.writing === 1 ? "change" : "changes"}
             </span>
           )}
           {summary && !summary.at && !summary.writing && summary.can > 0 && (
@@ -480,7 +487,7 @@ export function TeamPage() {
             <span className="spacer" />
             {summary.writing ? (
               <span className="team-writing">
-                <Icon name="spinner" className="spin" size={12} /> Writing it
+                <Spinner size={12} /> Writing it
               </span>
             ) : (
               <span className="team-summary-when">
@@ -653,7 +660,7 @@ function TeamRow({ id, item: it, names, repoOf, selected, open, fresh, dated, kn
           {it.gist && <Inline text={it.gist} className="team-gist" />}
           {it.narrative === "writing" && !it.gist && (
             <span className="team-gist dim">
-              <Icon name="spinner" className="spin" size={11} /> Reading the change…
+              <Spinner size={11} /> Reading the change…
             </span>
           )}
           {know && it.know?.map((k) => <KnowLine key={`${k.kind}:${k.file}:${k.text}`} know={k} repo={it.repo} />)}

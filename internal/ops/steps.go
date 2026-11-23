@@ -459,6 +459,7 @@ func (w *Workspace) tryPassStep(slug string, n int, by, why string, types ...str
 	if !ok || cur.N != n || !slices.Contains(types, cur.Step.Type) {
 		return "", nil
 	}
+	defer w.moving(slug, n)()
 	acc, states, err := w.Missions.AcceptStageAt(slug, n, by, why)
 	switch {
 	case errors.Is(err, mission.ErrStageMoved):

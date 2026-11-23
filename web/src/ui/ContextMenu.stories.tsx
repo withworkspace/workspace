@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { ContextMenuProvider, useContextMenu } from "./ContextMenu";
 import { Icon } from "./Icon";
-import { Keys } from "./kit";
+import { Keys } from "./Keys";
 import { MenuItem, MenuSection, MenuSeparator, MenuText } from "./Menu";
 import { Row, RowLine, RowMain, Rows, RowSub, RowTitle } from "./Rows";
 
