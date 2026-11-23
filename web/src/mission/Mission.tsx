@@ -48,7 +48,7 @@ import { Verify } from "./Verify";
 import { useRepoLabel, Work, workWords } from "./Work";
 import { crewElsewhere, work } from "./workRows";
 import { checkRows, rowKey, shownBundle, toApprove, waiting as bundleWaiting } from "./verifyRows";
-import { type Reload, useLoaded } from "../load";
+import { type Reload, useHere, useLoaded } from "../load";
 import { PagePin } from "../shell/focus";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
@@ -1146,6 +1146,7 @@ function actHref(d: MissionDetail, c: MissionCard, a: MissionAct): string | unde
 // are, and in what order, is ws's to say (mission.Cards).
 function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; lead: boolean; reload: Reload }) {
   const navigate = useNavigate();
+  const here = useHere();
   const [busy, setBusy] = useState(false);
   const [words, setWords] = useState("");
   const [opened, setOpened] = useState<MissionAct | undefined>();
@@ -1157,7 +1158,9 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
       .then((r) => {
         if (!r) return;
         if (verb === "end") return ended(d.slug, r.message, reload);
-        if (r.path) return navigate(r.path);
+        // Where it takes you (briefing: its own page) is for the card you
+        // pressed it on: gone somewhere else since, you're told instead.
+        if (r.path && here()) return navigate(r.path);
         toast(r.message, {
           tone: "done",
           action:

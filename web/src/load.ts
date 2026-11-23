@@ -90,6 +90,22 @@ export function useLoaded<T>(load: (() => Promise<T>) | null, deps: DependencyLi
   return { value, error, set: setValue, reload: loadAgain };
 }
 
+// useHere says whether a component's still there: true until it's gone.
+// For what follows something that takes a while (the daemon answering an
+// act): moving you on is for where you were when you asked, so it's
+// checked first. You may have gone somewhere else by then, and a
+// navigate called late still goes.
+export function useHere(): () => boolean {
+  const here = useRef(false);
+  useEffect(() => {
+    here.current = true;
+    return () => {
+      here.current = false;
+    };
+  }, []);
+  return useCallback(() => here.current, []);
+}
+
 // useLatest numbers a component's loads, for one that isn't a useLoaded
 // (it sets several things, or keeps what it's given): begin() at the start
 // of each load gives a fresh() that's true while it's the latest begun and
