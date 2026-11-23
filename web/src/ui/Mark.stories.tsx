@@ -6,7 +6,7 @@ import { Mark } from "./Mark";
 // A mark beside the two things it mustn't be mistaken for: a count of what
 // needs you (amber, a number), and nothing at all.
 
-const meta: Meta = { title: "Library/Mark" };
+const meta: Meta = { title: "Components/Mark" };
 export default meta;
 
 const row: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, width: 200 };

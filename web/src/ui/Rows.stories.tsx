@@ -9,7 +9,7 @@ import { Status } from "./status";
 // it, a quieter line under it, and facts at its end; one picked, one still
 // (with no link), one whose title runs long.
 
-const meta: Meta = { title: "Library/Rows" };
+const meta: Meta = { title: "Components/Rows" };
 export default meta;
 
 export const List: StoryObj = {

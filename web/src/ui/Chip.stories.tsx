@@ -6,7 +6,7 @@ import type { Tone } from "./tone";
 
 // Chips: grey, then in each tone, with an icon, and a link that's a chip.
 
-const meta: Meta = { title: "Library/Chip" };
+const meta: Meta = { title: "Components/Chip" };
 export default meta;
 
 const tones: Tone[] = ["attention", "progress", "done", "waiting", "danger", "info", "quiet"];
