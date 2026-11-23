@@ -82,7 +82,7 @@ export function CrewPage() {
       <header className="crew-head">
         <div className="crew-head-title">
           <h1>
-            {c?.role === "briefing" ? `Briefing agent ${id}` : <CrewBadge id={id} live={state === "live"} />}
+            {c?.role === "briefing" ? `Briefing agent ${id}` : <CrewBadge id={id} live={state === "live"} large />}
             <Status s={st} className="crew-head-status" />
           </h1>
           <div className="crew-head-sub">

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
-import { useHoverDelay } from "../ui/hover";
+import { useHoverDelay } from "../ui/useHoverDelay";
 import { Icon } from "../ui/Icon";
 import { useWorkspaceIfRead } from "../workspace/store";
 import { useRefs } from "./known";

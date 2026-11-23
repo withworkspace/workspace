@@ -1126,7 +1126,6 @@ main.stale > :not(.connection-banner) {
 .note-panel,
 .note-editor,
 .select-bar,
-.hovercard,
 .work-pane,
 .change-pop,
 .proposal,
@@ -2989,722 +2988,6 @@ button.on {
 }
 
 /* A crew's own colour, as a small badge with its id. */
-.crew-badge {
-  --hue: 228;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 5px;
-  font: 600 var(--text-xs) / 1 var(--mono);
-  color: hsl(var(--hue) 55% 38%);
-  background: hsl(var(--hue) 70% 50% / 0.12);
-  white-space: nowrap;
-}
-
-:root[data-theme="dark"] .crew-badge {
-  color: hsl(var(--hue) 75% 72%);
-  background: hsl(var(--hue) 70% 60% / 0.16);
-}
-
-.crew-badge.live {
-  box-shadow: inset 0 0 0 1px hsl(var(--hue) 60% 50% / 0.5);
-}
-
-/* A hover card: a ref, said more about, drawn over the page. */
-.hover-host {
-  display: inline-flex;
-  vertical-align: baseline;
-  border-radius: 5px;
-  cursor: default;
-}
-
-.hover-host:focus-visible {
-  outline: 2px solid var(--accent);
-}
-
-.ref-chip {
-  font: 600 var(--text-xs) / 18px var(--mono);
-  padding: 0 5px;
-  border-radius: 5px;
-  color: var(--dim);
-  background: var(--well);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.ref-text {
-  text-decoration: underline dotted var(--faint);
-  text-underline-offset: 3px;
-}
-
-.hover-host:hover .ref-chip,
-.hover-host:hover .ref-text {
-  color: var(--fg);
-  text-decoration-color: var(--dim);
-}
-
-.hovercard-title {
-  font-weight: 600;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.hovercard-strong {
-  font-weight: 500;
-}
-
-.hovercard-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px;
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.hovercard {
-  position: fixed;
-  z-index: 300;
-  display: grid;
-  gap: 4px;
-  width: 280px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--raised);
-  box-shadow: var(--shadow-lg);
-  font-size: var(--text-sm);
-  font-weight: 400;
-  color: var(--fg);
-  text-align: left;
-  white-space: normal;
-  animation: pop var(--fast) var(--ease);
-}
-
-.hovercard-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.hovercard-said {
-  margin-top: 2px;
-  padding-top: 6px;
-  border-top: 1px solid var(--line);
-  color: var(--dim);
-}
-
-/* The mission over time, along the top edge of its page: crew as thin bars
-   in their colours, quiet but for the one running now, and moments as
-   ticks hung over them. Over the bar under it, which the ticks reach. */
-.timeline {
-  position: relative;
-  z-index: 11;
-  padding: 0 14px;
-}
-
-.timeline-track {
-  position: relative;
-  height: calc(var(--lanes, 1) * 5px - 2px);
-}
-
-.timeline-bar {
-  --hue: 228;
-  position: absolute;
-  top: calc(var(--lane, 0) * 5px);
-  height: 3px;
-  border-radius: 2px;
-  background: hsl(var(--hue) 40% 58% / 0.4);
-  min-width: 3px;
-}
-
-.timeline-bar.live {
-  background: hsl(var(--hue) 55% 52% / 0.8);
-  animation: pulse 2.2s var(--ease) infinite;
-}
-
-/* A 2px line in its colour with a little of it glowing round, cut out of
-   the bars by a 1px ring of the page behind it. Centred by its margin, not
-   translate: a transform would cut the ring's backdrop loose from the
-   window. */
-.timeline-mark {
-  --mark: var(--faint);
-  position: absolute;
-  top: -1px;
-  width: 4px;
-  height: calc(100% + 3px);
-  margin-left: -2px;
-  border: 1px solid transparent;
-  border-radius: 0 0 2px 2px;
-  background:
-    linear-gradient(var(--mark), var(--mark)) padding-box,
-    var(--backdrop);
-  box-shadow:
-    0 0 3px color-mix(in srgb, var(--mark) 65%, transparent),
-    0 0 6px color-mix(in srgb, var(--mark) 30%, transparent);
-}
-
-/* Something to point at: 2px is a small target. */
-.timeline-mark::after {
-  content: "";
-  position: absolute;
-  inset: -3px -5px -7px;
-}
-
-.timeline-mark:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.timeline-mark.done,
-.timeline-kind.done {
-  --mark: var(--green-fill);
-}
-
-/* Yours is the button's fill and its label, so its icon reads whatever
-   the pick (the dark theme's accent is too pale under a white icon). */
-.timeline-mark.you,
-.timeline-kind.you {
-  --mark: var(--primary);
-  color: var(--on-primary);
-}
-
-.timeline-mark.decided,
-.timeline-kind.decided {
-  --mark: var(--violet-fill);
-}
-
-.timeline-mark.ask,
-.timeline-kind.ask {
-  --mark: var(--amber-fill);
-}
-
-/* What happened at a tick: each moment there, its kind, when, and what. */
-.hovercard.timeline-card {
-  width: 340px;
-  gap: 0;
-}
-
-.timeline-moment + .timeline-moment {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-}
-
-.timeline-kind {
-  --mark: var(--faint);
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--mark);
-  color: #fff;
-}
-
-.timeline-when {
-  margin-left: auto;
-  color: var(--dim);
-  font-variant-numeric: tabular-nums;
-}
-
-.timeline-what {
-  margin-top: 3px;
-  color: var(--dim);
-}
-
-/* Stages: a stepper, done, now and next. */
-.stepper {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.step {
-  position: relative;
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 10px;
-  padding: 2px 0 10px;
-}
-
-.step:last-child {
-  padding-bottom: 0;
-}
-
-.step::before {
-  content: "";
-  position: absolute;
-  left: 7px;
-  top: 18px;
-  bottom: 0;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--line);
-}
-
-.step:last-child::before {
-  display: none;
-}
-
-.step.accepted::before {
-  background: var(--green-fill);
-  opacity: 0.5;
-}
-
-.step-mark {
-  display: grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  margin-top: 1px;
-  border-radius: 50%;
-  border: 2px solid var(--line-strong);
-  background: var(--backdrop);
-  color: #fff;
-  transition:
-    background var(--slow) var(--ease),
-    border-color var(--slow) var(--ease),
-    box-shadow var(--slow) var(--ease);
-}
-
-.step.accepted .step-mark .icon {
-  animation: pop var(--slow) var(--ease);
-}
-
-.step.accepted .step-mark {
-  border-color: var(--green-fill);
-  background: var(--green-fill);
-}
-
-.step.current .step-mark {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.step.current .step-mark::after {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-.step-body {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.step-title {
-  font-weight: 500;
-}
-
-.step.todo .step-title {
-  color: var(--dim);
-  font-weight: 400;
-}
-
-.step-n {
-  color: var(--dim);
-  font-variant-numeric: tabular-nums;
-  margin-right: 2px;
-}
-
-.step-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-sm);
-}
-
-/* Who's on a step of the plan that isn't crew's: yours (a checkpoint),
-   CI's, outside's, the planner's. */
-.step-who {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  color: var(--dim);
-}
-
-.step-who.yours {
-  color: var(--accent);
-}
-
-.step-why {
-  color: var(--dim);
-  font-size: var(--text-sm);
-}
-
-/* A Work step's checks and clock: what's unmet, and time run out, stand
-   out. */
-.step-who.step-late {
-  color: var(--amber);
-}
-
-.step-checks {
-  list-style: none;
-  margin: 4px 0 0;
-  padding: 0;
-  font-size: var(--text-sm);
-}
-
-.step-check {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px;
-  color: var(--dim);
-}
-
-.step-check.not-met {
-  color: var(--fg);
-}
-
-.step-check-why {
-  flex-basis: 100%;
-  padding-left: 15px;
-  color: var(--dim);
-}
-
-/* The plan in a mission's details. A step is a row you can point at: its
-   mark (how it stands), its number and name on one line (cut short: its
-   card has the rest), and at the row's end what kind of step it is, in the
-   accent when it's yours. The rows reach 8px past the list each side, for
-   their hover. */
-.plan-list {
-  margin: 0 -8px;
-}
-
-.plan-list .step {
-  grid-template-columns: 16px minmax(0, 1fr) auto;
-  align-items: start;
-  padding: 3px 8px 9px;
-  border-radius: var(--radius);
-  transition: background var(--fast) var(--ease);
-}
-
-.plan-list .step::before {
-  left: 15px;
-  top: 21px;
-  bottom: -2px;
-}
-
-.plan-list .step:hover {
-  background: var(--hover);
-}
-
-.plan-list .step:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
-.plan-list .step-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.plan-list .step.plan-skipped .step-title {
-  text-decoration: line-through;
-  text-decoration-color: var(--faint);
-}
-
-.plan-list .step.plan-skipped .step-mark {
-  color: var(--faint);
-}
-
-.step-kind {
-  display: grid;
-  margin-top: 3px;
-  color: var(--faint);
-}
-
-.step.plan-yours .step-kind {
-  color: var(--accent);
-}
-
-/* The step the plan is on, opened in place where that says more than its
-   row: its kind and where, what it makes, who's on it, its clock, and
-   each check with how it stands. The row's second line and its kind are
-   said in it. */
-.plan-list .step.plan-opened {
-  grid-template-columns: 16px minmax(0, 1fr);
-}
-
-.plan-now {
-  display: grid;
-  gap: 5px;
-  margin-top: 4px;
-  padding: 7px 9px 8px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--raised);
-  font-size: var(--text-sm);
-}
-
-.plan-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 6px;
-  color: var(--dim);
-}
-
-.plan-line .icon {
-  flex: none;
-}
-
-.plan-line strong {
-  font-weight: 500;
-  color: var(--fg);
-}
-
-.plan-line.plan-warn {
-  color: var(--amber);
-}
-
-.plan-line.plan-yours {
-  color: var(--accent);
-}
-
-.plan-makes {
-  color: var(--dim);
-}
-
-.plan-checks {
-  list-style: none;
-  display: grid;
-  gap: 3px;
-  margin: 0;
-  padding: 0;
-}
-
-.plan-check {
-  display: grid;
-  grid-template-columns: 12px minmax(0, 1fr);
-  gap: 6px;
-  align-items: start;
-  color: var(--dim);
-}
-
-.plan-check .icon {
-  margin-top: 2px;
-}
-
-.plan-check-text {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-}
-
-.plan-check-met .icon {
-  color: var(--green);
-}
-
-.plan-check-unmet .icon {
-  color: var(--red);
-}
-
-.plan-check-cant .icon {
-  color: var(--amber);
-}
-
-.plan-check-yours .icon {
-  color: var(--accent);
-}
-
-.plan-check-none .icon {
-  color: var(--faint);
-}
-
-.plan-check-unmet .plan-check-text,
-.plan-check-cant .plan-check-text,
-.plan-check-yours .plan-check-text {
-  color: var(--fg);
-}
-
-/* A long plan shows the steps round the one it's on. What's folded away is
-   a row in the list where those steps are: how many, what's worth knowing
-   of them, and each as a pip you can point at. The line goes on through
-   it, dotted: steps are there. */
-.plan-fold {
-  position: relative;
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) auto;
-  gap: 0 10px;
-  align-items: start;
-  justify-content: stretch;
-  width: 100%;
-  min-height: 0;
-  padding: 3px 8px 9px;
-  border: 0;
-  border-radius: var(--radius);
-  background: none;
-  box-shadow: none;
-  font-size: var(--text-sm);
-  font-weight: 400;
-  line-height: 18px;
-  color: var(--dim);
-  text-align: left;
-}
-
-.plan-fold:hover {
-  background: var(--hover);
-  color: var(--fg);
-}
-
-.plan-fold::before {
-  content: "";
-  position: absolute;
-  left: 15px;
-  top: 0;
-  bottom: -2px;
-  width: 2px;
-  background: repeating-linear-gradient(var(--line-strong) 0 2px, transparent 2px 6px);
-}
-
-.plan-fold.fold-earlier::before {
-  background: repeating-linear-gradient(color-mix(in srgb, var(--green-fill) 55%, transparent) 0 2px, transparent 2px 6px);
-}
-
-.plan-fold.fold-end::before {
-  bottom: 50%;
-}
-
-.plan-fold-words {
-  grid-column: 2;
-  min-width: 0;
-}
-
-.plan-note {
-  margin-left: 6px;
-  color: var(--faint);
-}
-
-.plan-note.plan-warn {
-  color: var(--amber);
-}
-
-.plan-note.plan-yours {
-  color: var(--accent);
-}
-
-.plan-fold > .icon {
-  grid-column: 3;
-  margin-top: 3px;
-}
-
-/* A pip a step: done, passed with a check unmet, to come (a ring; in the
-   accent when it's yours; dotted when it waits on something outside). */
-.plan-pips {
-  grid-column: 2 / 4;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin-top: 4px;
-  padding-bottom: 2px;
-}
-
-.plan-pip {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line-strong);
-}
-
-.plan-pip.accepted {
-  border-color: var(--green-fill);
-  background: var(--green-fill);
-}
-
-.plan-pip.plan-warn {
-  border-color: var(--amber-fill);
-  background: var(--amber-fill);
-}
-
-.plan-pip.plan-yours {
-  border-color: var(--accent);
-}
-
-.plan-pip.plan-wait {
-  border-style: dotted;
-}
-
-.plan-pip:hover {
-  outline: 2px solid var(--accent-soft);
-  outline-offset: 1px;
-}
-
-/* A step's card: what there isn't room for in its row. */
-.hovercard.plan-card {
-  width: 340px;
-  gap: 8px;
-}
-
-.plan-card-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--dim);
-}
-
-.plan-card-state {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.plan-card-state.accepted {
-  color: var(--green);
-}
-
-.plan-card-state.current {
-  color: var(--accent);
-}
-
-.plan-card-title {
-  font-size: var(--text-md);
-  font-weight: 600;
-}
-
-.plan-card-text {
-  color: var(--dim);
-}
-
-.plan-card dl {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 4px 10px;
-  margin: 0;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-}
-
-.plan-card dt {
-  color: var(--dim);
-}
-
-.plan-card dd {
-  margin: 0;
-  min-width: 0;
-}
-
-.plan-card-checks {
-  display: grid;
-  gap: 4px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-}
-
 /* Decisions: the decision, its reason under, who and when. */
 .decisions {
   display: grid;
@@ -4235,14 +3518,6 @@ button.on {
    itself, beside it). A row goes to its step. */
 .brief-steps {
   margin: 4px -6px 0 -2px;
-}
-
-.brief-steps .plan-list .step {
-  cursor: pointer;
-}
-
-.brief-steps .plan-now {
-  display: none;
 }
 
 /* --- the documents --- */
@@ -6564,7 +5839,6 @@ h2.work-title {
   gap: 8px;
 }
 
-.work-crew-line .crew-badge,
 .work-crew-line .crew-line-link {
   flex: none;
   align-self: center;
@@ -7291,14 +6565,6 @@ a.work-file:hover {
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 14px;
-}
-
-.crew-head h1 .crew-badge {
-  height: 28px;
-  min-width: 36px;
-  padding: 0 8px;
-  font-size: var(--text-lg);
-  border-radius: 7px;
 }
 
 .crew-head-title {
@@ -9903,7 +9169,7 @@ div.tc-bar {
   .brief-outline,
   .brief-planner,
   .brief-ask-foot,
-  .timeline,
+  [data-mission-timeline],
   button {
     display: none !important;
   }
@@ -10864,12 +10130,6 @@ details.repo-group > summary::-webkit-details-marker {
 .finder-path .hit {
   color: var(--accent);
   font-weight: 700;
-}
-
-.hovercard-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
 }
 
 @media (max-width: 860px) {
@@ -12940,7 +12200,7 @@ button.finding-quote:hover {
   display: none;
 }
 
-.hovercard.ref-card {
+.ref-card {
   width: auto;
   min-width: 260px;
   max-width: min(560px, calc(100vw - 24px));
@@ -12990,7 +12250,7 @@ button.finding-quote:hover {
   font-size: var(--text-xs);
 }
 
-.ref-card .hovercard-line .line-chip {
+.ref-card .line-chip {
   margin-left: 6px;
 }
 
@@ -13010,24 +12270,6 @@ button.finding-quote:hover {
 
 /* Beside the list in Find there's room: a title wraps, as what's found by
    what it says does. */
-.thing-view.on-pane .hovercard-head {
-  align-items: flex-start;
-}
-
-.thing-view.on-pane .hovercard-head > .icon {
-  flex: none;
-  margin-top: 3px;
-}
-
-.thing-view.on-pane .hovercard-title {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.thing-view.on-pane .hovercard-line {
-  overflow-wrap: anywhere;
-}
-
 /* What it says, as markdown: at the card's size, its headings no larger
    than its words, and kept to the lines its block says (--lines). */
 .thing-md {
@@ -14476,15 +13718,6 @@ body.nav-pointing .code-view code[data-rev] {
   grid-template-columns: minmax(0, 1fr);
   gap: 4px;
   min-width: 0;
-}
-
-.find-said-card .hovercard-head {
-  align-items: flex-start;
-}
-
-.find-said-card .hovercard-head > .icon {
-  flex: none;
-  margin-top: 3px;
 }
 
 .find-said-title {
@@ -16735,16 +15968,6 @@ input[type="text"].tweak-text {
 }
 
 .verify-kept a:hover,
-.step-check-kept:hover {
-  color: var(--fg);
-}
-
-.step-check-kept {
-  margin-left: 6px;
-  color: var(--dim);
-  vertical-align: middle;
-}
-
 /* A task, on the Runs page and a mission's Work tab: what it came to is
    its mark and its words, in the tone of the result. */
 .task-mark {

@@ -29,7 +29,7 @@ import { Inline, plain } from "../ui/inline";
 import { Callout, type CalloutTone, Copyable, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useTitle } from "../ui/kit";
 import { headlineStatus, missionStateStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
-import { RefContext } from "../ui/hover";
+import { RefContext } from "../refs/context";
 import { useRefs } from "../refs/known";
 import { refAt, refKey } from "../refs/refs";
 import { RefTag } from "../refs/RefTag";
@@ -38,7 +38,7 @@ import { archiveMission } from "./archive";
 import { briefGoal } from "./brief";
 import { BriefTab, briefHref, briefKeys } from "./BriefTab";
 import { missionRefs } from "./refs";
-import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, MissionData, Stepper, Timeline, viewEvent } from "./parts";
+import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, MissionData, Stepper, viewEvent } from "./parts";
 import { EndButton, EndDialog, EndedCapsules, ended, HandedOn, ZChecks } from "./Ending";
 import { PlanList } from "./PlanList";
 import { waitHow } from "./planRows";
@@ -52,6 +52,8 @@ import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { Clamp } from "../ui/Clamp";
+import { MissionTimeline } from "./MissionTimeline";
+import { useTimeline } from "./timeline";
 import { PageBar, pageBarTabsClass } from "../ui/PageBar";
 import { MoreLink } from "../ui/MoreLink";
 import { GroupHead } from "../ui/GroupHead";
@@ -152,6 +154,7 @@ export function MissionPage() {
     changed: load,
   });
   useTitle(d?.title ?? "Mission");
+  const strip = useTimeline(d);
   const refs = useMemo(() => (d ? missionRefs(d) : undefined), [d]);
 
   const openArtifact = useCallback(
@@ -310,9 +313,7 @@ export function MissionPage() {
     const listed = inList;
     return (
       <div className="mission-page">
-        <div className="timeline" aria-hidden>
-          <div className="timeline-track" />
-        </div>
+        <MissionTimeline />
         <PageBar className="mission-bar" back={wayBack} status={listed && <Status s={headlineStatus(listed.headline)} iconOnly size={16} />} title={listed?.title} tabs={tabRow()} />
         <div className="page mission">
           <div className="mission-main" data-page-scroller="">
@@ -350,7 +351,7 @@ export function MissionPage() {
     <MissionData.Provider value={d}>
     <RefContext.Provider value={refs}>
     <div className={`mission-page${tab === "verify" || tab === "work" || tab === "brief" ? " fills" : ""}`}>
-      <Timeline d={d} />
+      {strip && <MissionTimeline {...strip} />}
       <PageBar
         className="mission-bar"
         back={wayBack}

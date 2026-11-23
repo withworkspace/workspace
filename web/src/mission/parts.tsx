@@ -1,13 +1,20 @@
-import { createContext, Fragment, type ReactNode, useContext, useRef, useState } from "react";
+import { createContext, Fragment, type ReactNode, useContext, useState } from "react";
 import { Link } from "react-router";
 import type { Artifact, CapsuleDetail, CrewDetail, Decision, MissionDetail, MissionEvent, Stage } from "../api";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { FloatingCard, HoverCard, RefContext, useHoverDelay } from "../ui/hover";
+import { HoverCard } from "../ui/HoverCard";
 import { Copyable } from "../ui/kit";
 import { crewStatus, exitWords, Status } from "../ui/status";
-import { dayKey, dayLabel, duration, stamp, Time, useNow } from "../ui/time";
+import { dayKey, dayLabel, duration, Time, useNow } from "../ui/time";
 import { Chip, chipClass } from "../ui/Chip";
+import { crewHue } from "./crewHue";
+import { MissionCrewBadge } from "./MissionCrewBadge";
+import { MissionCrewCard } from "./MissionCrewCard";
+import { MissionPlan } from "./MissionPlan";
+import { MissionPlanCheckList, type StepCheck } from "./MissionPlanCheckList";
+import { MissionPlanNote } from "./MissionPlanNote";
+import { MissionPlanStep } from "./MissionPlanStep";
 import { type Tone } from "../ui/tone";
 import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
@@ -15,57 +22,33 @@ import { capital } from "../ui/text";
 // The pieces a mission's page draws with: who did what (events), stages,
 // decisions, documents and capsules.
 
-// crewHue is a crew's own colour within its mission, the same wherever it
-// shows: c1 is always the first.
-const hues = [228, 152, 32, 330, 192, 272, 96, 8];
-export function crewHue(id: string): number {
-  const n = Number(/\d+/.exec(id)?.[0] ?? 0);
-  return hues[(Math.max(n, 1) - 1) % hues.length];
-}
+export { crewHue };
 
 // MissionData is the mission a page is about, for what draws a ref (a crew's
 // badge) to say more about it on hover.
 export const MissionData = createContext<MissionDetail | undefined>(undefined);
 
-export function CrewBadge({ id, live }: { id: string; live?: boolean }) {
+// CrewBadge is a mission's crew by name, which says more of it on hover
+// where the page knows the mission: who it is, where it stands, what it
+// last said.
+export function CrewBadge({ id, live, large }: { id: string; live?: boolean; large?: boolean }) {
   const d = useContext(MissionData);
   const c = d?.crew.find((x) => x.id === id);
-  const badge = (
-    <span className={`crew-badge${live ? " live" : ""}`} style={{ "--hue": crewHue(id) } as React.CSSProperties}>
-      {id}
-    </span>
-  );
+  const badge = <MissionCrewBadge id={id} live={live} large={large} />;
   if (!c) return badge;
-  // A hover card: who it is, where it stands, what it last said.
-  const st = crewStatus(c);
   return (
     <HoverCard trigger={badge}>
-      <span className="hovercard-head">
-        {badge}
-        <Status s={st} />
-      </span>
-      <span className="hovercard-line">
-        {c.role === "briefing" ? "Briefing agent" : c.model ? `${c.harness} on ${c.model}` : c.harness}
-        {c.capsule && <span className="dim"> in {c.capsule}</span>}
-      </span>
-      <span className="hovercard-line dim">
-        Started <Time iso={c.started} />
-        {c.endedAt && (
-          <>
-            , ended <Time iso={c.endedAt} />
-          </>
-        )}
-      </span>
-      {(c.note || c.lastReply) && (
-        <span className="hovercard-said">
-          <Inline text={c.note || c.lastReply || ""} lines={3} />
-        </span>
-      )}
-      {d && (
-        <Link to={`/missions/${d.slug}/crew/${c.id}`} className="hovercard-link">
-          {c.ended ? "Read its transcript" : "Open its terminal"} <Icon name="arrow-right" size={11} />
-        </Link>
-      )}
+      <MissionCrewCard
+        badge={<MissionCrewBadge id={id} live={live} />}
+        status={<Status s={crewStatus(c)} />}
+        what={c.role === "briefing" ? "Briefing agent" : c.model ? `${c.harness} on ${c.model}` : c.harness}
+        capsule={c.capsule}
+        started={<Time iso={c.started} />}
+        ended={c.endedAt && <Time iso={c.endedAt} />}
+        said={(c.note || c.lastReply) && <Inline text={c.note || c.lastReply || ""} lines={3} />}
+        to={d && `/missions/${d.slug}/crew/${c.id}`}
+        more={c.ended ? "Read its transcript" : "Open its terminal"}
+      />
     </HoverCard>
   );
 }
@@ -177,9 +160,9 @@ function StepWho({ s }: { s: Stage }) {
           ? ["sparkle", "planner", "The planner's: it writes the steps after it"]
           : ["clock", s.who === "CI" ? "CI" : "outside", `Waited for: ${s.whoSays ?? s.who}`];
   return (
-    <span className={`step-who ${s.who === "you" ? "yours" : ""}`} title={title}>
-      <Icon name={icon} size={11} /> {label}
-    </span>
+    <MissionPlanNote icon={icon} yours={s.who === "you"} title={title}>
+      {label}
+    </MissionPlanNote>
   );
 }
 
@@ -189,16 +172,16 @@ export function StepRuns({ s }: { s: Stage }) {
   const runs = s.runs ?? [];
   if (!runs.length) {
     return (
-      <span className="step-who" title={`In each ${s.inEach}: the orchestrator names the repos when it starts`}>
-        <Icon name="layers" size={11} /> in each {s.inEach}
-      </span>
+      <MissionPlanNote icon="layers" title={`In each ${s.inEach}: the orchestrator names the repos when it starts`}>
+        in each {s.inEach}
+      </MissionPlanNote>
     );
   }
   const done = runs.filter((r) => r.done).length;
   return (
-    <span className="step-who" title={runs.map((r) => `${r.repo}${r.done ? ": done" : ""}`).join("\n")}>
-      <Icon name="layers" size={11} /> {runs.length === done ? `in ${runs.length} repos` : `${done} of ${runs.length} repos done`}
-    </span>
+    <MissionPlanNote icon="layers" title={runs.map((r) => `${r.repo}${r.done ? ": done" : ""}`).join("\n")}>
+      {runs.length === done ? `in ${runs.length} repos` : `${done} of ${runs.length} repos done`}
+    </MissionPlanNote>
   );
 }
 
@@ -207,17 +190,16 @@ export function StepRuns({ s }: { s: Stage }) {
 export function StepLimit({ s }: { s: Stage }) {
   if (s.outOfTime) {
     return (
-      <span className="step-who step-late" title={`Its limit (${s.limit}) ran out while its crew were at it`}>
-        <Icon name="clock" size={11} /> out of time
-      </span>
+      <MissionPlanNote icon="clock" late title={`Its limit (${s.limit}) ran out while its crew were at it`}>
+        out of time
+      </MissionPlanNote>
     );
   }
   const at = s.deadline ? new Date(s.deadline) : null;
   return (
-    <span className="step-who" title={`Its limit: ${s.limit}. ws holds the clock from when crew start on it.`}>
-      <Icon name="clock" size={11} />{" "}
+    <MissionPlanNote icon="clock" title={`Its limit: ${s.limit}. ws holds the clock from when crew start on it.`}>
       {at ? `until ${at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : (s.limit ?? "").split(/[,;]/)[0]}
-    </span>
+    </MissionPlanNote>
   );
 }
 
@@ -232,117 +214,113 @@ export function StepChecks({ s }: { s: Stage }) {
   const title = checks.map((c) => `${c.result ? `${c.result}: ` : ""}${c.text}`).join("\n");
   if (!s.round) {
     return (
-      <span className="step-who" title={`Done when these are true:\n${title}`}>
-        <Icon name="list" size={11} /> {checks.length} {checks.length === 1 ? "check" : "checks"}
-      </span>
+      <MissionPlanNote icon="list" title={`Done when these are true:\n${title}`}>
+        {checks.length} {checks.length === 1 ? "check" : "checks"}
+      </MissionPlanNote>
     );
   }
   return (
-    <span className={`step-who${short ? " step-late" : ""}`} title={`Round ${s.round}:\n${title}`}>
-      <Icon name={short ? "alert" : "check"} size={11} /> {met} of {checks.length} met
-    </span>
+    <MissionPlanNote icon={short ? "alert" : "check"} late={short} title={`Round ${s.round}:\n${title}`}>
+      {met} of {checks.length} met
+    </MissionPlanNote>
   );
 }
 
-// CheckResults is what a Work step's checks came to in their latest
-// round, those not met first.
-function CheckResults({ s }: { s: Stage }) {
+// checksOf is what a Work step's checks came to in their latest round,
+// those not met first, each with why it wasn't and where all it printed
+// is kept.
+function checksOf(s: Stage): StepCheck[] {
   const order = { unmet: 0, "can't tell": 1, yours: 1, met: 2 } as const;
-  const checks = [...(s.checks ?? [])].sort((a, b) => order[a.result ?? "met"] - order[b.result ?? "met"]);
-  return (
-    <ul className="step-checks">
-      {checks.map((c) => (
-        <li key={c.text} className={`step-check ${c.result === "met" ? "met" : c.result ? "not-met" : ""}`}>
-          <Icon name={c.result === "met" ? "check" : c.result === "unmet" ? "x" : "question"} size={11} />{" "}
-          <span className="step-check-text">
-            <Inline text={c.text} />
-          </span>
-          {c.result && c.result !== "met" && c.evidence && <span className="step-check-why">{c.evidence.split("\n")[0]}</span>}
-          {c.kept && (
-            <Link to={`/runs?show=${encodeURIComponent(c.kept)}`} className="step-check-kept" title="All it printed, and what it wrote">
-              <Icon name="terminal" size={11} />
-            </Link>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
+  return [...(s.checks ?? [])]
+    .sort((a, b) => order[a.result ?? "met"] - order[b.result ?? "met"])
+    .map((c) => ({ text: c.text, result: c.result, why: c.evidence?.split("\n")[0], kept: c.kept }));
 }
 
+// Stepper is a mission's stages as its Summary has them: a MissionPlan,
+// with what's to be known of each step worked out here.
 export function Stepper({ stages }: { stages: Stage[] }) {
   return (
-    <ol className="stepper">
+    <MissionPlan>
       {stages.map((s) => (
-        <li key={s.n} className={`step ${s.state}`} title={s.type ? `${s.type}: ${s.text}` : s.text}>
-          <span className="step-mark" aria-hidden>
-            {s.state === "accepted" ? <Icon name="check" size={10} /> : null}
-          </span>
-          <span className="step-body">
-            <span className="step-title">
-              <span className="step-n">{s.n}</span> {s.title}
-              <span className="sr-only">{s.state === "accepted" ? " (done)" : s.state === "current" ? " (now)" : ""}</span>
-            </span>
-            {(s.crew?.length ||
-              (s.checkIn && s.state !== "accepted") ||
-              (s.who && s.who !== "crew") ||
-              s.opensPR ||
-              s.checks?.length ||
-              s.limit ||
-              s.carryOn ||
-              s.onlyIf ||
-              s.inEach ||
-              s.skipped ||
-              s.attempts) && (
-              <span className="step-meta">
-                {s.who && s.who !== "crew" && <StepWho s={s} />}
-                {s.type === "Verify" && (
-                  <span className="step-who" title="A verifier's: crew who didn't do the work show it by using it, and hand over a bundle">
-                    <Icon name="list-checks" size={11} /> verifier
-                  </span>
-                )}
-                {s.opensPR && s.who !== "ws" && (
-                  <span className="step-who" title="It makes a pull request: its crew open it through ws, which holds the guarantees about it">
-                    <Icon name="pr" size={11} /> opens a pull request
-                  </span>
-                )}
-                {s.skipped ? (
-                  <span className="step-who" title={s.why ? `Skipped: ${s.why}` : "Skipped"}>
-                    <Icon name="minus" size={11} /> skipped
-                  </span>
-                ) : s.onlyIf ? (
-                  <span className={`step-who${s.held ? " yours" : ""}`} title={`Only if ${s.onlyIf}: the orchestrator starts it or skips it`}>
-                    <Icon name="question" size={11} /> only if
-                  </span>
-                ) : null}
-                {s.inEach ? <StepRuns s={s} /> : null}
-                {s.attempts ? (
-                  <span className="step-who" title={`Started again ${s.attempts} ${s.attempts === 1 ? "time" : "times"}`}>
-                    <Icon name="rotate" size={11} /> attempt {s.attempts + 1}
-                  </span>
-                ) : null}
-                {s.carryOn ? (
-                  <span className="step-who" title={`The crew who did step ${s.carryOn} carry on with this one`}>
-                    <Icon name="reply" size={11} /> carries on from {s.carryOn}
-                  </span>
-                ) : null}
-                {s.limit && s.state !== "accepted" && <StepLimit s={s} />}
-                {s.checks?.length ? <StepChecks s={s} /> : null}
-                {s.crew?.map((c) => (
-                  <CrewBadge key={c} id={c} />
-                ))}
-                {s.checkIn && s.state !== "accepted" && (
-                  <span className="dim" title="The orchestrator stops for you after this stage">
-                    <Icon name="pause" size={11} /> check in after
-                  </span>
-                )}
-              </span>
-            )}
-            {s.why && <span className="step-why">{s.why}</span>}
-            {s.round && s.state !== "accepted" ? <CheckResults s={s} /> : null}
-          </span>
-        </li>
+        <MissionPlanStep
+          key={s.n}
+          n={s.n}
+          title={s.title}
+          state={s.state}
+          hint={s.type ? `${s.type}: ${s.text}` : s.text}
+          why={s.why}
+          under={s.round && s.state !== "accepted" ? <MissionPlanCheckList checks={checksOf(s)} /> : null}
+        >
+          {stepNotes(s)}
+        </MissionPlanStep>
       ))}
-    </ol>
+    </MissionPlan>
+  );
+}
+
+// stepNotes is what's to be known of a step, under its name, or nothing
+// where there's nothing to say.
+function stepNotes(s: Stage): ReactNode {
+  if (
+    !(
+      s.crew?.length ||
+      (s.checkIn && s.state !== "accepted") ||
+      (s.who && s.who !== "crew") ||
+      s.opensPR ||
+      s.checks?.length ||
+      s.limit ||
+      s.carryOn ||
+      s.onlyIf ||
+      s.inEach ||
+      s.skipped ||
+      s.attempts
+    )
+  )
+    return null;
+  return (
+    <>
+      {s.who && s.who !== "crew" && <StepWho s={s} />}
+      {s.type === "Verify" && (
+        <MissionPlanNote icon="list-checks" title="A verifier's: crew who didn't do the work show it by using it, and hand over a bundle">
+          verifier
+        </MissionPlanNote>
+      )}
+      {s.opensPR && s.who !== "ws" && (
+        <MissionPlanNote icon="pr" title="It makes a pull request: its crew open it through ws, which holds the guarantees about it">
+          opens a pull request
+        </MissionPlanNote>
+      )}
+      {s.skipped ? (
+        <MissionPlanNote icon="minus" title={s.why ? `Skipped: ${s.why}` : "Skipped"}>
+          skipped
+        </MissionPlanNote>
+      ) : s.onlyIf ? (
+        <MissionPlanNote icon="question" yours={s.held} title={`Only if ${s.onlyIf}: the orchestrator starts it or skips it`}>
+          only if
+        </MissionPlanNote>
+      ) : null}
+      {s.inEach ? <StepRuns s={s} /> : null}
+      {s.attempts ? (
+        <MissionPlanNote icon="rotate" title={`Started again ${s.attempts} ${s.attempts === 1 ? "time" : "times"}`}>
+          attempt {s.attempts + 1}
+        </MissionPlanNote>
+      ) : null}
+      {s.carryOn ? (
+        <MissionPlanNote icon="reply" title={`The crew who did step ${s.carryOn} carry on with this one`}>
+          carries on from {s.carryOn}
+        </MissionPlanNote>
+      ) : null}
+      {s.limit && s.state !== "accepted" && <StepLimit s={s} />}
+      {s.checks?.length ? <StepChecks s={s} /> : null}
+      {s.crew?.map((c) => (
+        <CrewBadge key={c} id={c} />
+      ))}
+      {s.checkIn && s.state !== "accepted" && (
+        <span className="dim" title="The orchestrator stops for you after this stage">
+          <Icon name="pause" size={11} /> check in after
+        </span>
+      )}
+    </>
   );
 }
 
@@ -640,141 +618,3 @@ export function CrewRow({ c, slug, detail }: { c: CrewDetail; slug: string; deta
     </div>
   );
 }
-
-// Timeline is the mission's life in a strip along the top of its page: when
-// each crew worked (in its colour, quietly; the one running now less so),
-// and the moments that mattered (stages accepted, reviews, decisions, what
-// was asked) as ticks over them, from its start to now. A tick says what
-// happened then on hover; moments too close to point at apart share one.
-export function Timeline({ d }: { d: MissionDetail }) {
-  const now = useNow();
-  const start = new Date(d.created).getTime();
-  const lastEvent = d.events.length ? new Date(d.events[d.events.length - 1].time).getTime() : start;
-  const end = d.state === "archived" || d.state === "landed" ? Math.max(lastEvent, start + 60_000) : now;
-  const span = Math.max(end - start, 60_000);
-  const at = (iso: string | number) => Math.min(100, Math.max(0, ((new Date(iso).getTime() - start) / span) * 100));
-  // When each crew ran: from the log, start (or resume) to end, so crew
-  // resumed days later show as two runs, not one long one; crew with
-  // nothing in the log, by when they started and ended.
-  const spans: { c: (typeof d.crew)[number]; from: number; to: number }[] = [];
-  for (const c of d.crew) {
-    const mine = d.events.filter((e) => e.by === c.id && /^crew_(started|resumed|ended)$/.test(e.kind));
-    if (!mine.length) {
-      const from = new Date(c.started).getTime();
-      spans.push({ c, from, to: c.endedAt ? new Date(c.endedAt).getTime() : c.ended ? from : now });
-      continue;
-    }
-    let open: number | undefined;
-    for (const e of mine) {
-      const t = new Date(e.time).getTime();
-      if (e.kind === "crew_ended") {
-        spans.push({ c, from: open ?? t, to: t });
-        open = undefined;
-      } else open ??= t;
-    }
-    if (open !== undefined) spans.push({ c, from: open, to: c.ended ? open : now });
-  }
-  // In lanes, so crew running at once don't cover each other.
-  const lanes: number[] = [];
-  const bars = spans
-    .sort((a, b) => a.from - b.from)
-    .map((sp, i) => {
-      let lane = lanes.findIndex((free) => free <= sp.from);
-      if (lane < 0) lane = lanes.push(0) - 1;
-      lanes[lane] = sp.to;
-      return { ...sp, lane, key: `${sp.c.id}-${i}` };
-    });
-  const marks = d.events.flatMap((e): TimelineMark[] => {
-    if (e.kind === "stage" && /accepted/.test(e.text)) return [{ e, icon: "check", cls: "done", what: `${d.plan ? "Step" : "Stage"} accepted` }];
-    if (e.kind === "review") return [{ e, icon: "eye", cls: "you", what: "Reviewed" }];
-    if (e.kind === "decision") return [{ e, icon: "gavel", cls: "decided", what: "Decided" }];
-    if (e.kind === "flag" || e.kind === "crew_asked") return [{ e, icon: "question", cls: "ask", what: "Asked" }];
-    return [];
-  });
-  // Ticks: marks within a few pixels of each other are one, in the colour
-  // of what matters most among them.
-  const ticks: { at: number; marks: TimelineMark[] }[] = [];
-  for (const m of marks) {
-    const x = at(m.e.time);
-    const last = ticks[ticks.length - 1];
-    if (last && x - last.at < tickApart) last.marks.push(m);
-    else ticks.push({ at: x, marks: [m] });
-  }
-  const hover = useHoverDelay<number>();
-  const els = useRef(new Map<number, HTMLElement>());
-  if (!bars.length && !marks.length) return null;
-  const laneCount = Math.max(1, Math.min(lanes.length, 3));
-  const shown = hover.shown === undefined ? undefined : ticks[hover.shown];
-  const anchor = hover.shown === undefined ? undefined : els.current.get(hover.shown);
-  return (
-    <div className="timeline" style={{ "--lanes": laneCount } as React.CSSProperties} aria-label="The mission over time">
-      <div className="timeline-track">
-        {bars
-          .filter((b) => b.lane < 3)
-          .map((b) => (
-            <span
-              key={b.key}
-              className={`timeline-bar${b.c.ended || b.to < now - 60_000 ? "" : " live"}`}
-              style={
-                {
-                  "--hue": crewHue(b.c.id),
-                  left: `${at(b.from)}%`,
-                  width: `max(3px, ${at(b.to) - at(b.from)}%)`,
-                  "--lane": b.lane,
-                } as React.CSSProperties
-              }
-              title={`${b.c.id}: ${stamp(b.from)}${b.to < now - 60_000 ? ` to ${stamp(b.to)} (${duration(b.from, b.to)})` : ", running now"}`}
-            />
-          ))}
-        {ticks.map((t, i) => (
-          <span
-            key={i}
-            ref={(el) => {
-              if (el) els.current.set(i, el);
-              else els.current.delete(i);
-            }}
-            className={`timeline-mark ${tickKinds.find((k) => t.marks.some((m) => m.cls === k))}`}
-            style={{ left: `${t.at}%` }}
-            tabIndex={0}
-            aria-label={t.marks.map((m) => `${stamp(m.e.time)}: ${m.what}`).join("; ")}
-            onMouseEnter={() => hover.over(i)}
-            onMouseLeave={hover.out}
-            onFocus={() => hover.over(i)}
-            onBlur={hover.out}
-          />
-        ))}
-      </div>
-      {shown && anchor && (
-        <FloatingCard anchor={anchor} className="timeline-card" onEnter={hover.stay} onLeave={hover.out}>
-          {/* Inside a card, refs are words: no cards in cards. */}
-          <RefContext.Provider value={undefined}>
-            {shown.marks.map((m, i) => (
-              <div key={i} className="timeline-moment">
-                <div className="hovercard-head">
-                  <span className={`timeline-kind ${m.cls}`}>
-                    <Icon name={m.icon} size={9} />
-                  </span>
-                  <span className="hovercard-strong">{m.what}</span>
-                  <span className="timeline-when">{stamp(m.e.time)}</span>
-                </div>
-                <Inline text={m.e.text} lines={3} className="timeline-what" />
-              </div>
-            ))}
-          </RefContext.Provider>
-        </FloatingCard>
-      )}
-    </div>
-  );
-}
-
-interface TimelineMark {
-  e: MissionEvent;
-  icon: IconName;
-  cls: "done" | "you" | "decided" | "ask";
-  what: string;
-}
-
-// How near two moments are (in hundredths of the strip) before they're
-// one tick, and which of a tick's kinds it's drawn as.
-const tickApart = 0.4;
-const tickKinds: TimelineMark["cls"][] = ["ask", "you", "done", "decided"];

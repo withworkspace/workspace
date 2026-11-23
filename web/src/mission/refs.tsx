@@ -1,13 +1,15 @@
-import { Link } from "react-router";
 import type { MissionDetail } from "../api";
-import { type Refs } from "../ui/hover";
-import { HoverCard } from "../ui/hover";
-import { Icon } from "../ui/Icon";
+import { type Refs } from "../refs/context";
+import { HoverCard } from "../ui/HoverCard";
 import { Inline } from "../ui/inline";
 import { Status, type StatusInfo } from "../ui/status";
 import { Time } from "../ui/time";
 import { ArtifactState, artifactTitle, CapsuleBadges, CrewBadge, isArtifact } from "./parts";
-import { Chip } from "../ui/Chip";
+import { MissionCapsuleCard } from "./MissionCapsuleCard";
+import { MissionDecisionCard } from "./MissionDecisionCard";
+import { MissionDocCard } from "./MissionDocCard";
+import { MissionRefChip } from "./MissionRefChip";
+import { MissionTalkCard } from "./MissionTalkCard";
 
 // missionRefs are the names a mission's page knows, for text that
 // mentions them to show each with its hover card: crew (c1), decisions
@@ -38,23 +40,15 @@ export function missionRefs(d: MissionDetail): Refs | undefined {
     const x = decisions.get(ref);
     if (x)
       return (
-        <HoverCard key={key} trigger={<span className="ref-chip">{ref}</span>}>
-          <span className="hovercard-head">
-            <Icon name="gavel" size={13} className="dim" />
-            <span className="hovercard-title">Decision {x.id}</span>
-            {x.state !== "current" && <Chip tone="quiet">{x.state === "superseded" ? "Replaced" : "Withdrawn"}</Chip>}
-          </span>
-          <span className="hovercard-strong">
-            <Inline text={x.what} />
-          </span>
-          {x.why && (
-            <span className="dim">
-              <Inline text={x.why} lines={4} />
-            </span>
-          )}
-          <span className="hovercard-line dim">
-            {x.by === "you" ? "You" : x.by}, <Time iso={x.at} as="relative" />
-          </span>
+        <HoverCard key={key} trigger={<MissionRefChip>{ref}</MissionRefChip>}>
+          <MissionDecisionCard
+            id={x.id}
+            stands={x.state === "current" ? undefined : x.state === "superseded" ? "Replaced" : "Withdrawn"}
+            what={<Inline text={x.what} />}
+            why={x.why && <Inline text={x.why} lines={4} />}
+            by={x.by === "you" ? "You" : x.by}
+            at={<Time iso={x.at} as="relative" />}
+          />
         </HoverCard>
       );
     const t = talks.get(ref);
@@ -68,78 +62,46 @@ export function missionRefs(d: MissionDetail): Refs | undefined {
               ? { icon: "reply", tone: "attention", words: "Your turn" }
               : { icon: "message", tone: "quiet", words: "Open" };
       return (
-        <HoverCard key={key} trigger={<span className="ref-chip">{ref}</span>}>
-          <span className="hovercard-head">
-            <Icon name="message" size={13} className="dim" />
-            <span className="hovercard-title">{t.title || t.opening}</span>
-          </span>
-          <Status s={st} />
-          {t.summary && (
-            <span className="hovercard-said">
-              <Inline text={t.summary} lines={4} />
-            </span>
-          )}
-          <Link to={`/missions/${d.slug}/conversations/${t.id}`} className="hovercard-link">
-            Open the conversation <Icon name="arrow-right" size={11} />
-          </Link>
+        <HoverCard key={key} trigger={<MissionRefChip>{ref}</MissionRefChip>}>
+          <MissionTalkCard title={t.title || t.opening} status={<Status s={st} />} summary={t.summary && <Inline text={t.summary} lines={4} />} to={`/missions/${d.slug}/conversations/${t.id}`} />
         </HoverCard>
       );
     }
     const c = capsules.get(ref);
     if (c)
       return (
-        <HoverCard key={key} trigger={<span className="ref-text mono">{ref}</span>}>
-          <span className="hovercard-head">
-            <Icon name="box" size={13} className="dim" />
-            <span className="hovercard-title mono">{ref}</span>
-          </span>
-          {c.branch && (
-            <span className="hovercard-line dim">
-              <Icon name="branch" size={11} /> {c.branch}
-            </span>
-          )}
-          <CapsuleBadges c={c} />
-          {c.exists && (
-            <span className="hovercard-links">
-              <Link to={`/missions/${d.slug}/review/${c.repo}/${c.name}`} className="hovercard-link">
-                Review its changes <Icon name="arrow-right" size={11} />
-              </Link>
-              <Link to={`/missions/${d.slug}/files/${c.repo}/${c.name}`} className="hovercard-link">
-                Its files <Icon name="arrow-right" size={11} />
-              </Link>
-            </span>
-          )}
+        <HoverCard
+          key={key}
+          trigger={
+            <MissionRefChip words mono>
+              {ref}
+            </MissionRefChip>
+          }
+        >
+          <MissionCapsuleCard
+            name={ref}
+            branch={c.branch}
+            badges={<CapsuleBadges c={c} />}
+            review={c.exists ? `/missions/${d.slug}/review/${c.repo}/${c.name}` : undefined}
+            files={c.exists ? `/missions/${d.slug}/files/${c.repo}/${c.name}` : undefined}
+          />
         </HoverCard>
       );
     const a = docs.get(ref);
     if (a) {
       const { title, desc } = artifactTitle(a);
+      const made = isArtifact(a);
       return (
-        <HoverCard key={key} trigger={<span className="ref-text">{ref}</span>}>
-          <span className="hovercard-head">
-            <Icon name={isArtifact(a) ? "artifact" : "file"} size={13} className="dim" />
-            <span className="hovercard-title">{title}</span>
-          </span>
-          <span className="hovercard-line">
-            <span className="dim">{a.kind}</span>
-            {isArtifact(a) && !!a.versions && <span className="dim">, {a.versions === 1 ? "1 version" : `${a.versions} versions`}</span>} <ArtifactState state={a.state} />
-          </span>
-          {desc && (
-            <span className="dim">
-              <Inline text={desc} lines={3} />
-            </span>
-          )}
-          {isArtifact(a) ? (
-            <Link to={`/artifacts/${a.ref}`} className="hovercard-link">
-              Open the artifact <Icon name="arrow-right" size={11} />
-            </Link>
-          ) : (
-            a.readable && (
-              <Link to={`/missions/${d.slug}/artifact?${new URLSearchParams({ ref: a.ref })}`} className="hovercard-link">
-                Read it <Icon name="arrow-right" size={11} />
-              </Link>
-            )
-          )}
+        <HoverCard key={key} trigger={<MissionRefChip words>{ref}</MissionRefChip>}>
+          <MissionDocCard
+            artifact={made}
+            title={title}
+            kind={a.kind}
+            versions={made ? a.versions : undefined}
+            state={<ArtifactState state={a.state} />}
+            desc={desc && <Inline text={desc} lines={3} />}
+            to={made ? `/artifacts/${a.ref}` : a.readable ? `/missions/${d.slug}/artifact?${new URLSearchParams({ ref: a.ref })}` : undefined}
+          />
         </HoverCard>
       );
     }
