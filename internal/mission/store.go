@@ -717,6 +717,29 @@ func (s Store) TalkedTo(slug, id, message string) (bool, error) {
 	return cleared, s.AppendLog(slug, Event{Kind: EventTold, Crew: id, By: "you", Text: strings.TrimSpace(message)})
 }
 
+// AnsweredCrew records that you answered a question crew asked: it's
+// taken back, and what you said is logged as told to them. Unlike
+// TalkedTo it doesn't make their turn's end yours: they asked so as to
+// carry on, and carry on as they were, with whoever was looking at their
+// turns (the orchestrator, after ws's message; you, if you were already
+// talking to them) still looking. It reports whether there was a
+// question.
+func (s Store) AnsweredCrew(slug, id, message string) (bool, error) {
+	answered := false
+	_, err := s.Update(slug, func(m *Mission) error {
+		for i := range m.Crew {
+			if c := &m.Crew[i]; c.ID == id {
+				answered = c.answered()
+			}
+		}
+		return nil
+	})
+	if err != nil || !answered {
+		return answered, err
+	}
+	return true, s.AppendLog(slug, Event{Kind: EventTold, Crew: id, By: "you", Text: strings.TrimSpace(message)})
+}
+
 // answered takes back a question crew asked (CrewAsking), which a message
 // sent to them answers, and reports whether there was one. That they
 // reported done isn't a message's to take back.

@@ -143,7 +143,7 @@ func Prompt(in Input) string {
 		if c, _ := m.CrewByID(in.CrewID); c.Pending != nil {
 			b.WriteString(heldTurn(in.CrewID, c.Pending, in.now()))
 		} else {
-			fmt.Fprintf(&b, "Crew %s has just finished a turn without reporting done or asking the user anything, after a message ws sent it (its opening prompt, or your last nudge). Its session is still open. Work out why it stopped from its last message and output: if it's finished, have it report done with a handoff (resume-with); if it's stuck or stopped early, resume-with what to do; if it put a question to the user in its reply, flag the user with that question rather than answering it yourself.\n", in.CrewID)
+			fmt.Fprintf(&b, "Crew %s has just finished a turn without reporting done or asking the user anything, after a message ws sent it (its opening prompt, or your last nudge) or the user's answer to a question it asked. Its session is still open. Work out why it stopped from its last message and output: if it's finished, have it report done with a handoff (resume-with); if it's stuck or stopped early, resume-with what to do; if it put a question to the user in its reply, flag the user with that question rather than answering it yourself.\n", in.CrewID)
 		}
 		if r := strings.TrimSpace(in.LastReply); r != "" {
 			fmt.Fprintf(&b, "\nIts last message:\n\n%s\n\n", clipHead(r, 4<<10, "\n…"))
