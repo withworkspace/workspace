@@ -1,7 +1,8 @@
 import { type Ref, useState } from "react";
 import { DockFoot } from "../chrome/DockFoot";
-import { Button } from "../ui/Button";
+import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
+import { Keys } from "../ui/kit";
 import css from "./Composer.module.css";
 
 type ComposerProps = {
@@ -17,8 +18,10 @@ type ComposerProps = {
 };
 
 // Composer is where you say something in a conversation beside the page:
-// at the pane's foot, under what's been said. ⏎ says it, ⇧⏎ is a new
-// line, esc gives the keys back to the page.
+// at the pane's foot, under what's been said. ⌘⏎ says it, as in a
+// conversation's own page and a crew's; ⏎ is a new line; esc gives the
+// keys back to the page. There's no button for it: the keys that say it
+// are said at the box's end, once there's something to say.
 export function Composer({
   placeholder,
   onSay,
@@ -62,7 +65,7 @@ export function Composer({
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
               if (e.nativeEvent.isComposing) return;
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 say();
               } else if (e.key === "Escape") {
@@ -72,15 +75,7 @@ export function Composer({
               }
             }}
           />
-          <Button
-            variant="primary"
-            size="small"
-            disabled={!text.trim() || saying}
-            aria-busy={saying}
-            onClick={say}
-          >
-            Send
-          </Button>
+<Keys k="mod+⏎" className={cx(css.keys, (!text.trim() || saying) && css.idle)} />
         </div>
       </div>
     </DockFoot>

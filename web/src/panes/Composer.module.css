@@ -25,4 +25,16 @@
     min-width: 0;
     resize: none;
   }
+
+  /* The keys that say it, where a button would be: faint until there's
+     something to say. They keep their room, so the box doesn't move. */
+  .keys {
+    flex: none;
+    margin-bottom: 4px;
+    transition: opacity var(--fast) var(--ease);
+  }
+
+  .idle {
+    opacity: 0.35;
+  }
 }
