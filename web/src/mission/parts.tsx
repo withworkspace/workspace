@@ -1,6 +1,6 @@
-import { createContext, Fragment, type ReactNode, useContext, useState } from "react";
+import { createContext, Fragment, type ReactNode, useContext } from "react";
 import { Link } from "react-router";
-import type { Artifact, CapsuleDetail, CrewDetail, Decision, MissionDetail, MissionEvent, Stage } from "../api";
+import type { Artifact, CapsuleDetail, CrewDetail, MissionDetail, MissionEvent, Stage } from "../api";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { HoverCard } from "../ui/HoverCard";
@@ -16,7 +16,6 @@ import { MissionPlanCheckList, type StepCheck } from "./MissionPlanCheckList";
 import { MissionPlanNote } from "./MissionPlanNote";
 import { MissionPlanStep } from "./MissionPlanStep";
 import { type Tone } from "../ui/tone";
-import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
 
 // The pieces a mission's page draws with: who did what (events), stages,
@@ -321,63 +320,6 @@ function stepNotes(s: Stage): ReactNode {
         </span>
       )}
     </>
-  );
-}
-
-// Decisions: those that stand, newest first; the rest (replaced or
-// withdrawn) folded.
-export function Decisions({ list, limit }: { list: Decision[]; limit?: number }) {
-  const [all, setAll] = useState(false);
-  const current = list.filter((d) => d.state === "current");
-  const shown = limit && !all ? current.slice(0, limit) : current;
-  const old = list.filter((d) => d.state !== "current");
-  const more = current.length - shown.length;
-  return (
-    <div className="decisions">
-      {shown.map((d) => (
-        <div key={d.id} className="decision">
-          <div className="decision-what">
-            <Inline text={d.what} />
-          </div>
-          {d.why && (
-            <div className="decision-why">
-              <Inline text={d.why} />
-            </div>
-          )}
-          <div className="decision-meta">
-            <Copyable text={d.id} />
-            <span>{d.by === "you" ? "You" : d.by}</span>
-            {d.from && <span>from {d.from}</span>}
-            <Time iso={d.at} as="relative" />
-          </div>
-        </div>
-      ))}
-      {(more > 0 || (old.length > 0 && (all || !limit))) && (
-        <div className="decisions-more">
-          {more > 0 && (
-            <Button variant="ghost" size="small" onClick={() => setAll(true)}>
-              Show {more} more
-            </Button>
-          )}
-          {old.length > 0 && (all || !limit) && (
-            <details className="old-decisions">
-              <summary>{old.length} replaced or withdrawn</summary>
-              {old.map((d) => (
-                <div key={d.id} className="decision old">
-                  <div className="decision-what">
-                    <Inline text={d.what} />
-                  </div>
-                  <div className="decision-meta">
-                    <Copyable text={d.id} />
-                    <span>{d.state === "superseded" ? `Replaced by ${d.supersededBy}` : `Withdrawn: ${d.withdrawnWhy}`}</span>
-                  </div>
-                </div>
-              ))}
-            </details>
-          )}
-        </div>
-      )}
-    </div>
   );
 }
 

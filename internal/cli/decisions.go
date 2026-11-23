@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/ui"
 )
 
@@ -51,12 +52,8 @@ or it can be withdrawn (--withdraw d1 "why").
 			if err != nil {
 				return err
 			}
-			store := missionStore(ctx)
 			if withdraw != "" {
-				if !mission.IsDecisionRef(withdraw) {
-					return fmt.Errorf("%q isn't a decision (they're named d1, d2, …)", withdraw)
-				}
-				if err := store.Withdraw(m.Slug, withdraw, raisedBy(), text); err != nil {
+				if _, err := ctx.WithdrawDecision(m.Slug, withdraw, text, ops.ActorFromEnv()); err != nil {
 					return err
 				}
 				fmt.Fprintf(ui.Stderr, "  %s %s withdrawn\n", ui.Green.Render("✓"), withdraw)
@@ -76,11 +73,11 @@ or it can be withdrawn (--withdraw d1 "why").
 					return fmt.Errorf("--about and --from name things ws show can show: %w", err)
 				}
 			}
-			d, err := store.Decide(m.Slug, mission.Decision{What: text, Why: why, By: raisedBy(), From: from, About: about, Supersedes: supersedes})
+			d, err := ctx.RecordDecision(m.Slug, ops.Deciding{What: text, Why: why, From: from, About: about, Supersedes: supersedes}, ops.ActorFromEnv())
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(ui.Stderr, "  %s %s recorded on %s\n", ui.Green.Render("✓"), d.ID, m.Slug)
+			fmt.Fprintf(ui.Stderr, "  %s %s recorded on %s\n", ui.Green.Render("✓"), d.Decision.ID, m.Slug)
 			return nil
 		},
 	}
@@ -106,6 +103,9 @@ func (g *graph) decisionView(id string) (*view, error) {
 		return nil, fmt.Errorf("mission %s has no decision %s", g.m.Slug, id)
 	}
 	v := &view{head: fmt.Sprintf("Decision %s (%s): %s", d.ID, d.State, d.What)}
+	if d.Asked != nil {
+		v.body = append(v.body, fmt.Sprintf("Answers %s's question: %s", d.Asked.By, d.Asked.Text))
+	}
 	if d.Why != "" {
 		v.body = append(v.body, "Why: "+d.Why)
 	}

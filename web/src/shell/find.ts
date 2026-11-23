@@ -1,6 +1,7 @@
 import type { ActionAsk, ActVerb, Plugin, Workspace } from "../api";
 import { docAddress, docRef, pageAddress, spaceAt, type SpaceRef } from "../api";
 import { GROUND, type Known, type Named, namedOf, type PageRef, refAt, refHref, type ThingAction } from "../refs/refs";
+import { decisionsPath } from "../mission/decisions";
 import { thingIcon } from "../refs/views";
 import { sectionsOf } from "../settings/sections";
 import type { WsDoing } from "./acts";
@@ -725,7 +726,7 @@ function saidTo(f: Found): string {
   }
   switch (f.thing) {
     case "decision":
-      return `/missions/${slug}`;
+      return decisionsPath(scope, f.ref);
     case "comment":
     case "review": {
       const [repo, name] = (f.of ?? "").split("/");

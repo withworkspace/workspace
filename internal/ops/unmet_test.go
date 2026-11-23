@@ -282,8 +282,8 @@ func TestJudge_IsToldWhatTheUserDecidedSince(t *testing.T) {
 }
 
 // What you tell crew who'd asked you something is a decision of yours,
-// with their question as its why: crew's own record of it is their word
-// for yours.
+// with their question kept beside it: crew's own record of it is their
+// word for yours.
 func TestAnsweredCrew_IsYourDecision(t *testing.T) {
 	w, _, _ := workFixture(t, "")
 	w.Missions.SetCrewStatus("cache", "c1", mission.CrewAsking, "Keep the VERSION file, or drop it?\n(A) drop it (B) keep it")
@@ -291,8 +291,12 @@ func TestAnsweredCrew_IsYourDecision(t *testing.T) {
 	c, _ := m.CrewByID("c1")
 	w.answeredCrew("cache", c, " A ")
 	all, _ := w.Missions.Decisions("cache")
-	if len(all) != 1 || all[0].By != "you" || all[0].What != "A" || all[0].Why != "the answer to c1's question: Keep the VERSION file, or drop it? (A) drop it (B) keep it" {
+	if len(all) != 1 || all[0].By != "you" || all[0].What != "A" || all[0].Why != "" || all[0].Asked == nil || *all[0].Asked != (mission.Asked{By: "c1", Text: "Keep the VERSION file, or drop it? (A) drop it (B) keep it"}) {
 		t.Fatalf("decisions = %+v", all)
+	}
+	// As agents read it, the question is still its why.
+	if got := all[0].Reason(); got != "the answer to c1's question: Keep the VERSION file, or drop it? (A) drop it (B) keep it" {
+		t.Errorf("its reason = %q", got)
 	}
 	// Told something it didn't ask about: that's talk, not a decision.
 	w.Missions.ClearStatus("cache", "c1")

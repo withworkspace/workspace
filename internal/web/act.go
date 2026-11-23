@@ -13,6 +13,8 @@ import (
 // you (POST /api/missions/{slug}/act).
 type Acting interface {
 	AnswerTask(slug string, n int, by ops.Actor, text string) (ops.Answered, error)
+	RecordDecision(slug string, d ops.Deciding, by ops.Actor) (ops.Decided, error)
+	WithdrawDecision(slug, id, why string, by ops.Actor) (ops.DecisionWithdrawn, error)
 	Dismiss(slug string, by ops.Actor) (ops.Dismissed, error)
 	AcceptStage(slug string, by ops.Actor, why string) (ops.Accepted, error)
 	CheckWait(slug string, by ops.Actor) (string, error)

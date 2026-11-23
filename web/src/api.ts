@@ -20,6 +20,8 @@ import type {
   ConversationApproval,
   ConversationCapsule,
   ConversationGuideGroup,
+  DecideRequest,
+  DecideResult,
   DismissWhy,
   DocHit,
   DocIn,
@@ -72,6 +74,7 @@ import type {
   UpdatesInfo,
   Upgraded,
   WhatsNewInfo,
+  WithdrawRequest,
   Worktree,
   GitHubOwners,
   GitHubRepos,
@@ -829,6 +832,13 @@ export interface ActOpts {
 // act does it, and says what happened.
 export const act = (slug: string, verb: ActVerb, opts: ActOpts = {}) =>
   send<{ message: string; path?: string }>("POST", `/api/missions/${encodeURIComponent(slug)}/act`, { verb, ...opts });
+
+// decide records a decision of yours on a mission (in place of another,
+// with supersedes), and says its name; withdrawDecision takes one that
+// stands back, saying why.
+export const decide = (slug: string, d: DecideRequest) => send<DecideResult>("POST", `/api/missions/${encodeURIComponent(slug)}/decisions`, d);
+export const withdrawDecision = (slug: string, id: string, why: string) =>
+  send<{ message: string }>("POST", `/api/missions/${encodeURIComponent(slug)}/decisions/${encodeURIComponent(id)}/withdraw`, { why } satisfies WithdrawRequest);
 
 // TermScreen is a running crew's screen, as the server emulates it: a line per
 // row with its colours as ANSI escapes, the cursor, and the terminal's size.

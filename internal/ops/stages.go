@@ -551,13 +551,18 @@ func (w *Workspace) AnswerTask(slug string, n int, by Actor, text string) (Answe
 	goOn, notYet := strings.EqualFold(text, mission.CheckInGoOn), strings.EqualFold(text, mission.CheckInNotYet)
 	decide := t.Step > 0 && t.Verb == mission.TaskAnswer // a Decide step
 	atStep := t.Step > 0 && !decide
-	if !(atStep && (goOn || notYet)) && !(decide && notYet) {
+	// What ws asks of its own, at no step, is what to do about something
+	// that stalled (the orchestrator did nothing, a pull request it
+	// couldn't write): the answer is for the orchestrator's next run,
+	// which is given it, and says nothing whoever comes later needs.
+	nudge := t.Question() && t.By == "ws"
+	if !(atStep && (goOn || notYet)) && !(decide && notYet) && !nudge {
 		// An answer is a decision whoever comes next should know: going on,
 		// or not yet, at a step of yours isn't. It's recorded first, so the
-		// answer is the log's latest.
+		// answer is the log's latest, with the question it answers.
 		w.Missions.Decide(m.Slug, mission.Decision{
 			What: text, By: by.By(),
-			Why: fmt.Sprintf("the answer to %s's question: %s", firstNonEmpty(t.By, mission.RoleOrchestrator), oneLine(t.Text)),
+			Asked: &mission.Asked{By: firstNonEmpty(t.By, mission.RoleOrchestrator), Text: oneLine(t.Text)},
 		})
 	}
 	// A step of yours stays yours unless you go on (or decide); a stage

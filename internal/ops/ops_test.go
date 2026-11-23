@@ -127,7 +127,8 @@ func TestDismiss(t *testing.T) {
 }
 
 // A check-in's Go on starts the next stage as ws's own dispatch; any
-// other answer goes to the orchestrator, and is a decision.
+// other answer goes to the orchestrator, and is a decision, kept with the
+// question it answers, unless the question was ws's own.
 func TestAnswer(t *testing.T) {
 	w, runs := fixture(t, "## Stages\n1. Propose it in `frontend/one`. Check in with me.\n2. Build it in `frontend/two`.\n", "one", "two")
 	host := &fakeHost{}
@@ -161,11 +162,24 @@ func TestAnswer(t *testing.T) {
 	if len(*runs) != 1 || (*runs)[0] != "cache/answer" {
 		t.Errorf("orchestrator runs = %v", *runs)
 	}
-	if all, _ := w.Missions.Decisions("cache"); len(all) != 1 || all[0].What != "In memory" {
+	if all, _ := w.Missions.Decisions("cache"); len(all) != 1 || all[0].What != "In memory" || all[0].Why != "" || all[0].Asked == nil || *all[0].Asked != (mission.Asked{By: "orchestrator", Text: "Which cache?"}) {
 		t.Errorf("decisions = %+v", all)
 	}
 	_, err = w.Answer("cache", AsYou, "again")
 	refusedWith(t, err, "nothing-asked")
+
+	// What ws asks of its own when something stalled is what to do about
+	// it now: the orchestrator runs with the answer, and it's no decision.
+	w.Missions.Ask("cache", "The orchestrator looked at c1 (done) but ran no commands, twice, so nothing happened. What should happen next?", "ws")
+	if a, err := w.Answer("cache", AsYou, "The daemon is back"); err != nil || a.Next != "the orchestrator is acting on it" {
+		t.Errorf("an answer to ws: %+v, %v", a, err)
+	}
+	if len(*runs) != 2 || (*runs)[1] != "cache/answer" {
+		t.Errorf("orchestrator runs = %v", *runs)
+	}
+	if all, _ := w.Missions.Decisions("cache"); len(all) != 1 {
+		t.Errorf("an answer to ws's own question is a decision: %+v", all)
+	}
 }
 
 func TestAttach(t *testing.T) {

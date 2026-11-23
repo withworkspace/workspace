@@ -1,0 +1,52 @@
+/* Where a decision was reckoned with (MissionDecisionEffects.tsx): a
+   quiet line each, under the decision. */
+
+.effects {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.effect {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mark {
+  flex: none;
+  align-self: center;
+}
+
+.met {
+  color: var(--green);
+}
+
+.unmet {
+  color: var(--red);
+}
+
+.open {
+  color: var(--dim);
+}
+
+.where {
+  flex: none;
+  font-weight: 500;
+  color: var(--fg);
+}
+
+/* The check's words, as far as the line has room. */
+.text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--faint);
+}

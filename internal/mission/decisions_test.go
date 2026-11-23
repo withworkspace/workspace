@@ -69,3 +69,78 @@ func TestDecisions(t *testing.T) {
 		t.Errorf("log = %s", got)
 	}
 }
+
+// A decision keeps the step it was made at: its crew's, else the one the
+// plan is at; none where there's no plan, or all of it's passed.
+func TestDecisionKeepsItsStep(t *testing.T) {
+	s := owned(t)
+	m, _ := s.Create("Cache")
+	step := func(by string) int {
+		t.Helper()
+		d, err := s.Decide(m.Slug, Decision{What: "x", By: by})
+		if err != nil {
+			t.Fatal(err)
+		}
+		all, _ := s.Decisions(m.Slug)
+		kept, _ := FindDecision(all, d.ID)
+		if kept.Step != d.Step {
+			t.Errorf("%s: recorded at step %d, kept as %d", d.ID, d.Step, kept.Step)
+		}
+		return d.Step
+	}
+	if n := step("you"); n != 0 {
+		t.Errorf("with no plan: step %d", n)
+	}
+	if err := s.WritePlan(m.Slug, checkedPlan); err != nil {
+		t.Fatal(err)
+	}
+	s.StartCrew(m.Slug, "shell", "")
+	if _, err := s.JoinStage(m.Slug, "c1", 1); err != nil {
+		t.Fatal(err)
+	}
+	if n := step("c1"); n != 1 {
+		t.Errorf("crew on step 1: step %d", n)
+	}
+	s.SetCrewStatus(m.Slug, "c1", CrewDone, "cached")
+	s.EndCrew(m.Slug, "c1", "exit 0")
+	if _, _, err := s.AcceptStage(m.Slug, "you", "passed"); err != nil {
+		t.Fatal(err)
+	}
+	if n := step("you"); n != 2 {
+		t.Errorf("yours, with the plan at step 2: step %d", n)
+	}
+	if n := step("c1"); n != 1 {
+		t.Errorf("crew whose step has passed: step %d", n)
+	}
+	if _, _, err := s.AcceptStage(m.Slug, "you", "read"); err != nil {
+		t.Fatal(err)
+	}
+	if n := step("you"); n != 0 {
+		t.Errorf("with every step passed: step %d", n)
+	}
+}
+
+// A decision made by answering keeps its question beside it, and one
+// recorded when the question was written into its why reads the same;
+// agents are told both as they always were.
+func TestDecisionKeepsWhatItAnswers(t *testing.T) {
+	old := `{"made":{"id":"d1","what":"A","why":"the answer to c1's question: Keep it, or drop it? (A) drop it","by":"you","at":"2026-11-20T10:00:00Z"}}`
+	now := `{"made":{"id":"d2","what":"Redis","why":"It's there already.","by":"you","at":"2026-11-20T11:00:00Z","asked":{"by":"orchestrator","text":"Which cache?"}}}`
+	plain := `{"made":{"id":"d3","what":"Key it per tenant.","why":"the answer to that is in the proposal","by":"c1","at":"2026-11-20T12:00:00Z"}}`
+	all := replayDecisions([][]byte{[]byte(old), []byte(now), []byte(plain)})
+	if len(all) != 3 {
+		t.Fatalf("decisions = %+v", all)
+	}
+	if d := all[0]; d.Why != "" || d.Asked == nil || *d.Asked != (Asked{By: "c1", Text: "Keep it, or drop it? (A) drop it"}) {
+		t.Errorf("an old answer: %+v", d)
+	}
+	if got, want := all[0].Line(), "d1 (you): A Why: the answer to c1's question: Keep it, or drop it? (A) drop it"; got != want {
+		t.Errorf("an old answer's line = %q, want %q", got, want)
+	}
+	if got, want := all[1].Reason(), "the answer to orchestrator's question: Which cache? It's there already."; got != want {
+		t.Errorf("an answer with a why of its own = %q, want %q", got, want)
+	}
+	if d := all[2]; d.Asked != nil || d.Reason() != "the answer to that is in the proposal" {
+		t.Errorf("a why that only starts like one: %+v", d)
+	}
+}

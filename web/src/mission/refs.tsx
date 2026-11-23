@@ -6,6 +6,7 @@ import { Status, type StatusInfo } from "../ui/status";
 import { Time } from "../ui/time";
 import { ArtifactState, artifactTitle, CapsuleBadges, CrewBadge, isArtifact } from "./parts";
 import { MissionCapsuleCard } from "./MissionCapsuleCard";
+import { decisionsPath, whoDecided } from "./decisions";
 import { MissionDecisionCard } from "./MissionDecisionCard";
 import { MissionDocCard } from "./MissionDocCard";
 import { MissionRefChip } from "./MissionRefChip";
@@ -46,8 +47,9 @@ export function missionRefs(d: MissionDetail): Refs | undefined {
             stands={x.state === "current" ? undefined : x.state === "superseded" ? "Replaced" : "Withdrawn"}
             what={<Inline text={x.what} />}
             why={x.why && <Inline text={x.why} lines={4} />}
-            by={x.by === "you" ? "You" : x.by}
+            by={whoDecided(x.by)}
             at={<Time iso={x.at} as="relative" />}
+            to={decisionsPath(d.slug, x.id)}
           />
         </HoverCard>
       );

@@ -630,9 +630,9 @@ describe("a document found by what it says", () => {
 describe("what ws records, found by what it says", () => {
   const said = (f: Partial<Found>): Found => ({ kind: "said", ref: "d1", title: "Key the cache by tenant", score: 9, scope: "cache", thing: "decision", place: "decision", what: "a decision", where: "mission cache", hint: "Tenants share nothing.", ...f });
 
-  it("is in Said, a line with where it's read, and goes to the thing's page", () => {
+  it("is in Said, a line with where it's read, and goes to the thing's page (a decision to its place in Decisions)", () => {
     const d = foundItem(said({}));
-    expect([d.group, d.kind, d.icon, d.to, d.notes]).toEqual(["said", "Decision", "gavel", "/missions/cache", ["cache"]]);
+    expect([d.group, d.kind, d.icon, d.to, d.notes]).toEqual(["said", "Decision", "gavel", "/missions/cache?tab=decisions&d=d1", ["cache"]]);
     expect(d.said?.ref).toBe("d1");
     const cases: [Partial<Found>, string, string][] = [
       [{ ref: "cache", thing: "mission", place: "brief", anchor: "constraints" }, "Brief", "/missions/cache?tab=brief"],
