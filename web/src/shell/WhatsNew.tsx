@@ -92,7 +92,7 @@ export function WhatsNewDialog({ title, entries, info, onClose }: { title: strin
     <Dialog title={title} onClose={onClose} bare className="whats-new">
       <header className="whats-new-head">
         <div className="whats-new-eyebrow">
-          <Logotype height={22} />
+          <Logotype height={22} className="whats-new-logotype" />
           <span className="whats-new-version mono">{shortVersion(info.version)}</span>
         </div>
         <h2>{title}</h2>
