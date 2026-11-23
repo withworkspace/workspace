@@ -113,7 +113,9 @@ export function FoundArtifacts() {
   // Read again when the artifacts here change: one promoted here is this
   // machine's, and leaves the list.
   const key = (workspace.artifacts ?? []).map((a) => `${a.id}:${a.status}:${a.home?.where ?? ""}`).join(" ");
-  const { value } = useLoaded(() => getArtifactsFound(), [key], { keep: true });
+  // And when a look behind a read has read the spaces again (spacesSeen):
+  // the list is what was found when they were last read.
+  const { value } = useLoaded(() => getArtifactsFound(), [key, workspace.spacesSeen], { keep: true });
   const found = value?.found ?? [];
   if (found.length === 0) return null;
   const tree = foundTree(found);
