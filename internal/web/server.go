@@ -472,6 +472,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/prs/{repo}/{number}/guide/run", s.runReviewGuide)
 	mux.HandleFunc("GET /api/prs/{repo}/{number}/discussion", s.prDiscussion)
 	mux.HandleFunc("POST /api/prs/{repo}/{number}/discussion", s.prComment)
+	mux.HandleFunc("POST /api/prs/{repo}/{number}/decline", s.prDecline)
 	mux.HandleFunc("POST /api/prs/{repo}/{number}/ask", s.prAsk)
 	mux.HandleFunc("POST /api/prs/{repo}/{number}/dock", s.prDock)
 	mux.HandleFunc("GET /api/team", s.teamView)

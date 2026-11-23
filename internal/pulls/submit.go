@@ -291,7 +291,8 @@ func (s *Service) Submit(repo string, number int, head, verdict, summary string)
 	Update(s.Root, repo, number, func(rec *Record) {
 		rec.Reviewed = &Reviewed{ID: r.ID, Verdict: verdict, Head: p.Commit, Base: base, At: at, URL: url, Prints: prints}
 	})
-	s.Stale() // what it asks of you has changed
+	s.settle(repo, number) // it doesn't ask for your review any more
+	s.Stale()              // what it asks of you has changed
 	return &Submitted{Review: r, URL: url}, nil
 }
 

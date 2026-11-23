@@ -20,6 +20,7 @@ import (
 	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/store"
 	"github.com/withworkspace/workspace/internal/ui"
 	"github.com/withworkspace/workspace/internal/web"
@@ -186,8 +187,12 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 		go pluginHost.Serve(ln)
 	}
 	defer pluginHost.Shutdown()
+	// The pull requests the web UI lists, which the daemon keeps current
+	// behind it: the same service, so a page shows what a look found.
+	var reviews *pulls.Service
 	if w := startWeb(s, prs, cmd.Root().Version); w != nil {
 		s.WebPort = w.Info().Port
+		reviews = w.Reviews
 		defer w.Close()
 	}
 	// Crew the daemon before this one shut down under, while they
@@ -206,6 +211,7 @@ func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
 	go routerLoop(root, s.WebPort, s.Log.Printf, stop)                       // names under .localhost, with [router] enabled
 	go checkUpdatesLoop(openOps(root, prs, daemonWS(s)), s.Log.Printf, stop) // later releases of ws and plugins, once a day
 	go followGroundsLoop(openOps(root, prs), s.Log.Printf, stop)             // each repo's ground kept up with its remote
+	go followReviewsLoop(reviews, s.Log.Printf, stop)                        // who's asking for your review by name
 	go noteRunning(openOps(root, prs, daemonWS(s)), s.Exe)                   // which ws this is, for what's new
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)

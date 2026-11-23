@@ -26,13 +26,19 @@ export function needStatus(n: Need): StatusInfo {
 // the marks of its writing taken out.
 export const needSays = (n: Need): string => plain(n.text ?? "");
 
+// toReview is whether a need is a pull request asking for your review:
+// someone else's work, listed apart from what's yours (Needs).
+export const toReview = (n: Need) => n.of === "pull";
+
 // waitingOf is the needs as what tells the desktop and counts the places
 // has them (shell/notify.ts's Waiting, with which place counts each). A
 // conversation about a mission is counted with the missions: it's in the
-// mission, not among Conversations.
+// mission, not among Conversations. A pull request counts at neither:
+// Reviews has a count of its own, of everything on its page that needs
+// you.
 export function waitingOf(needs: Need[]) {
   return needs.map((n) => ({
-    kind: n.of === "mission" || n.in ? ("mission" as const) : ("talk" as const),
+    kind: toReview(n) ? ("review" as const) : n.of === "mission" || n.in ? ("mission" as const) : ("talk" as const),
     key: n.key,
     title: n.title,
     body: needSays(n),

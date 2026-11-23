@@ -133,7 +133,13 @@ func headStamp(dir string) string {
 // pages' reads (groundsSeen, readsSeen), cheaply: counters, and a stamp of
 // each kept ground.
 func (s *Server) keptStamp() string {
-	return s.groundsSeen() + " " + seenOf(s.reads.Seen())
+	stamp := s.groundsSeen() + " " + seenOf(s.reads.Seen())
+	// The pull requests listed, which the view's needs and its Reviews
+	// count are from: the daemon asks GitHub of them behind.
+	if s.Reviews != nil {
+		stamp += " " + seenOf(s.Reviews.Seen())
+	}
+	return stamp
 }
 
 // seenOf is a counter as a view says it: none for 0.
