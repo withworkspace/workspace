@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TalkProposal, TalkTurn } from "../api";
-import { addedVersion, artifactNext, artifactWhere, docLead, kindName, made, settled, spoken, staleWords } from "./proposals";
+import { addedVersion, afterSettling, artifactNext, artifactWhere, docLead, kindName, made, settled, spoken, staleWords, startsMission } from "./proposals";
 
 // A proposed document's card names its kind in a sentence ("Add plan") and
 // leads with what it starts with, under its title.
@@ -198,5 +198,38 @@ describe("made", () => {
       { n: 2, kind: "dispatch", name: "Fix the test", tag: "c2", to: "/missions/token-cache", open: false },
       { n: 3, kind: "replan", name: "Split step 2", tag: "t4", to: "/missions/token-cache/conversations/t4", open: false },
     ]);
+  });
+});
+
+// Accepting a brief that starts its mission goes to the mission's summary,
+// wherever it's accepted; anything else stays, or follows a conversation
+// that's moved.
+describe("afterSettling", () => {
+  const prop = (x: Partial<TalkProposal>): TalkProposal => ({ n: 1, kind: "brief", state: "open", at: "2026-11-23T10:00:00Z", ...x }) as TalkProposal;
+  const briefing = prop({ title: "Archive old invoices", capsules: ["api/archive"] });
+  const edit = prop({ brief: "A new goal." });
+
+  it("knows a brief that starts its mission from an edit to one", () => {
+    expect(startsMission(briefing)).toBe(true);
+    expect(startsMission(prop({ slug: "archive-old-invoices" }))).toBe(true);
+    expect(startsMission(edit)).toBe(false);
+    expect(startsMission(prop({ kind: "plan", title: "A plan" }))).toBe(false);
+  });
+  it("goes to the mission's summary once its brief is confirmed", () => {
+    expect(afterSettling(briefing, "accept", "archive-invoices")).toBe("/missions/archive-invoices");
+  });
+  it("goes to the mission as it's named now, when confirming renamed it", () => {
+    expect(afterSettling(briefing, "accept", "archive-invoices", "/missions/archive-old-invoices/conversations/t1")).toBe("/missions/archive-old-invoices");
+  });
+  it("stays for a declined draft, and for an edit to a brief under way", () => {
+    expect(afterSettling(briefing, "decline", "archive-invoices")).toBeUndefined();
+    expect(afterSettling(edit, "accept", "archive-invoices")).toBeUndefined();
+    expect(afterSettling(undefined, "accept", "archive-invoices")).toBeUndefined();
+  });
+  it("follows a conversation that moved, for anything else", () => {
+    expect(afterSettling(edit, "accept", "old", "/missions/new/conversations/t1")).toBe("/missions/new/conversations/t1");
+  });
+  it("stays in a workspace's conversation", () => {
+    expect(afterSettling(briefing, "accept", "")).toBeUndefined();
   });
 });

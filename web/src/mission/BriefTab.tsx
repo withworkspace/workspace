@@ -6,6 +6,7 @@ import { type Draft, MarkdownEditor } from "../editor/LazyEditor";
 import { TrackedDoc } from "../editor/LazyTracked";
 import { useKeys } from "../keys";
 import { type Reload, useHere } from "../load";
+import { afterSettling } from "../talk/proposals";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon, type IconName } from "../ui/Icon";
 import { Callout, humanError, Keys, toast, useMedia } from "../ui/kit";
@@ -332,12 +333,18 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
     toField();
     return true;
   };
-  const settleOther = (n: number, action: "accept" | "decline", said?: object) =>
-    settleTalkProposal(slug, planner ?? "", n, action, said).then((x) => {
+  // A card in the planner's conversation, settled there: confirming a
+  // brief that starts the mission goes to its summary, as the bar's does.
+  const settleOther = (n: number, action: "accept" | "decline", said?: object) => {
+    const card = t?.proposals?.find((x) => x.n === n);
+    return settleTalkProposal(slug, planner ?? "", n, action, said).then((x) => {
       setT(x);
       if (x.message) done(x.message);
+      const to = afterSettling(card, action, slug, x.path);
+      if (to && here()) return navigate(to, { replace: to === x.path });
       return reload();
     }, failed);
+  };
 
   // --- the changes still to read ------------------------------------------
 

@@ -32,12 +32,12 @@ import { Inline } from "../ui/inline";
 import { Callout, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useAutosize, useDraft, useMedia, useTitle } from "../ui/kit";
 import { Status, type StatusInfo } from "../ui/status";
 import { Time } from "../ui/time";
-import { useLoaded } from "../load";
+import { useHere, useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
 import { refKey } from "../refs/refs";
 import { ArtifactProposalBody } from "./ArtifactProposal";
 import { PluginProposalCard } from "./PluginProposal";
-import { addedVersion, artifactNext, kindName, type Made, made, revisedText, type Settled, settled } from "./proposals";
+import { addedVersion, afterSettling, artifactNext, kindName, type Made, made, revisedText, type Settled, settled, startsMission } from "./proposals";
 import { PagePin } from "../shell/focus";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
@@ -442,12 +442,18 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
       )
       .finally(() => setSending(false));
   };
-  const settle = (n: number, action: "accept" | "decline", edits = {}) =>
-    settleTalkProposal(slug, id, n, action, edits).then(
+  // Settling a card: a brief confirmed that starts its mission goes to the
+  // mission's summary; a conversation that moved (its mission renamed) is
+  // followed. Either, only if you're still here when ws has answered.
+  const here = useHere();
+  const settle = (n: number, action: "accept" | "decline", edits = {}) => {
+    const p = d?.proposals?.find((x) => x.n === n);
+    return settleTalkProposal(slug, id, n, action, edits).then(
       (x) => {
         setD(x);
         if (x.message) toast(x.message, { tone: "done" });
-        if (x.path) navigate(x.path, { replace: true });
+        const to = afterSettling(p, action, slug, x.path);
+        if (to && here()) navigate(to, { replace: to === x.path });
       },
       (e: Error) => {
         toast(humanError(e.message), { tone: "danger" });
@@ -455,6 +461,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
         load();
       },
     );
+  };
   // An artifact proposed runs from the conversation's records.
   const frameOf = (n: number) => proposalFrameURL(slug, id, n);
   // Each proposal sits under the reply it came with: the first of the
@@ -1000,7 +1007,7 @@ function WsProposalCard({
     onSettle(p.n, action, action === "accept" ? edits() : {}).finally(() => setBusy(false));
   };
   // Briefing a mission, the brief comes with its name and capsules.
-  const briefing = p.kind === "brief" && (!!p.title || !!p.capsules?.length || !!p.docks?.length || !!p.slug);
+  const briefing = startsMission(p);
   const label = {
     decision: "Decision",
     mission: p.brief ? "Mission" : "Mission idea",
