@@ -46,7 +46,9 @@ import { archiveMission } from "./archive";
 import { briefGoal } from "./brief";
 import { BriefTab, briefHref, briefKeys } from "./BriefTab";
 import { missionRefs } from "./refs";
-import { ArtifactRow, CapsuleBadges, CrewRow, Decisions, Events, isArtifact, MissionData, Stepper, viewEvent } from "./parts";
+import { ArtifactRow, CapsuleBadges, CrewRow, Events, isArtifact, MissionData, Stepper, viewEvent } from "./parts";
+import { DecisionsSummary } from "./DecisionsSummary";
+import { DecisionsTab } from "./DecisionsTab";
 import { EndButton, EndDialog, EndedCapsules, ended, HandedOn, ZChecks } from "./Ending";
 import { PlanList } from "./PlanList";
 import { waitHow } from "./planRows";
@@ -75,25 +77,27 @@ import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
 
 // The mission page: its time along the top edge, then one bar (back, what
-// it's doing, its name, six tabs) that stays as the page scrolls, and the
+// it's doing, its name, seven tabs) that stays as the page scrolls, and the
 // tab under it. Summary leads with what needs you; Brief is the brief and
 // the plan, edited as they read, with its planner's conversation beside
 // them (BriefTab.tsx); Work is its capsules and documents; Verify is its
 // verification bundles, what crew handed over to show their work; Log is
-// everything that's happened, and its crew; Talk is conversations about it.
+// everything that's happened, and its crew; Talk is conversations about it;
+// Decisions is what's been decided on it, yours apart, and where a
+// decision's name leads (DecisionsTab.tsx).
 // The details (state, stages, documents, capsules and crew) are beside
 // Summary; on the other tabs, which want the room, s slides them in over
 // the page. Summary, Log and Talk are read, in a column; Brief, Verify and
 // Work take the page's width.
 
-const tabs = ["summary", "brief", "work", "verify", "log", "talk"] as const;
+const tabs = ["summary", "brief", "work", "verify", "log", "talk", "decisions"] as const;
 type Tab = (typeof tabs)[number];
-const tabNames: Record<Tab, string> = { summary: "Summary", brief: "Brief", work: "Work", verify: "Verify", log: "Log", talk: "Talk" };
+const tabNames: Record<Tab, string> = { summary: "Summary", brief: "Brief", work: "Work", verify: "Verify", log: "Log", talk: "Talk", decisions: "Decisions" };
 // The tabs that are somewhere to work, not something to read.
 const wideTabs: Tab[] = ["work", "verify"];
 
 export const missionKeys: [string, string][] = [
-  ["1–6", "Summary, Brief, Work, Verify, Log, Talk"],
+  ["1–7", "Summary, Brief, Work, Verify, Log, Talk, Decisions"],
   ["j / k", "Next / previous document or capsule, or a bundle's check"],
   ["⏎", "Open it: a capsule's review, a document's page"],
   ["v", "Review the capsule, or read the replies on a document"],
@@ -179,6 +183,8 @@ export function MissionPage() {
   const picked = params.get("b") ?? undefined;
   const pickBundle = (id?: string) => setParams(id ? { tab: "verify", b: id } : { tab: "verify" }, { replace: true });
   const bundle = useMemo(() => (d ? shownBundle(d.bundles, picked) : undefined), [d, picked]);
+  // The decision Decisions marks: the one its address names (d).
+  const markDecision = (id?: string) => setParams(id ? { tab: "decisions", d: id } : { tab: "decisions" }, { replace: true });
 
   // What the Work tab lists, and the row it opens on.
   const w = useMemo(() => (d ? work(d) : undefined), [d]);
@@ -251,6 +257,7 @@ export function MissionPage() {
     "4": () => setTab("verify"),
     "5": () => setTab("log"),
     "6": () => setTab("talk"),
+    "7": () => setTab("decisions"),
     ...listKeys,
     Enter: () => item?.open(),
     o: () => (item?.url ? window.open(item.url, "_blank", "noopener") : item?.open()),
@@ -414,6 +421,7 @@ export function MissionPage() {
             {tab === "verify" && <Verify d={d} bundle={bundle} pick={pickBundle} sel={item?.key} select={setSel} reload={load} />}
             {tab === "log" && <Log {...parts} />}
             {tab === "talk" && <MissionTalk slug={d.slug} talks={d.talks} planner={d.planner} />}
+            {tab === "decisions" && <DecisionsTab d={d} marked={params.get("d") ?? undefined} mark={markDecision} reload={load} />}
           </div>
         </div>
         {docked && <DetailSide {...parts} updated={updated} about={about} />}
@@ -605,7 +613,6 @@ function SideSection({ title, count, children }: { title: string; count?: string
 const sideArtifacts = 6;
 const summaryRecent = 5;
 const summaryRecentWithSide = 7;
-const summaryDecisions = 3;
 
 interface Parts {
   d: MissionDetail;
@@ -726,7 +733,7 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
         )}
         {d.decisions.some((x) => x.state === "current") && (
           <SummaryRow label="Decided">
-            <Decisions list={d.decisions} limit={summaryDecisions} />
+            <DecisionsSummary d={d} all={() => go("decisions")} />
           </SummaryRow>
         )}
         {events.length > 0 && (

@@ -389,6 +389,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/missions/{slug}/draft", s.dropDraft)
 	mux.HandleFunc("POST /api/missions", s.startMission)
 	mux.HandleFunc("POST /api/missions/{slug}/act", s.act)
+	mux.HandleFunc("POST /api/missions/{slug}/decisions", s.decide)
+	mux.HandleFunc("POST /api/missions/{slug}/decisions/{id}/withdraw", s.withdrawDecision)
 	mux.HandleFunc("POST /api/missions/{slug}/pr-write", s.writePR)
 	mux.HandleFunc("POST /api/missions/{slug}/runs", s.startRun)
 	mux.HandleFunc("POST /api/missions/{slug}/runs/stop", s.stopRun)

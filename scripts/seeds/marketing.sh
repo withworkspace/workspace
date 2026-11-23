@@ -765,6 +765,17 @@ EOF
 crew "$slug" c1
 says "$slug" c1 prompt
 work "$slug" c1 api/csv-export api "feat(httpapi): GET /invoices.csv, a row an invoice"
+# What's decided as it's built, by whoever decides it: crew at their step,
+# and you, whose word stands over the plan's. One of crew's is replaced by
+# one of yours, and one withdrawn, so the mission's Decisions tab has each
+# kind (d1 to d8, in the order they're made here).
+decided() {
+	local slug="$1" id="$2" capsule="$3"
+	shift 3
+	(cd "$dir/repos/$capsule" && as "$slug" "$id" mission decide "$@" >/dev/null 2>&1) || true
+}
+decided "$slug" c1 api/csv-export "Amounts are written as a customer reads them (1094.40), not in minor units" --why "The proposal asks for a file a customer opens in a spreadsheet, and a spreadsheet would read 109440 as the amount"
+decided "$slug" c1 api/csv-export "The export writes each row as it's read, with no limit on how many" --why "A CSV is taken whole, and the largest account has under ten thousand invoices"
 handoff '`ExportInvoices` in `internal/httpapi/export.go`, at `GET /invoices.csv`: a row an invoice, kept to `?customer=`.' 'Amounts are written as a customer reads them (`1094.40`), as the proposal asks.' 'The button in the dashboard.' |
 	done_with "$slug" c1 api/csv-export "GET /invoices.csv gives a row an invoice, kept to the filter."
 at "$slug" 2
@@ -772,13 +783,19 @@ says "$slug" c1 stop
 crew "$slug" c2
 says "$slug" c2 prompt
 work "$slug" c2 web/csv-export web "feat(invoices): export what the list shows as a CSV"
-(cd "$dir/repos/web/csv-export" && as "$slug" c2 mission decide "The dashboard is run with pnpm dev, against the api on :8080 (go run ./cmd/api, in its capsule)" --why "The verifier needs both running to see the export work" >/dev/null 2>&1) || true
+"$ws" mission decide -m "$slug" "Dates in the file are ISO 8601 (2026-03-01), whatever the customer's locale" --why "The file is read by spreadsheets and by scripts, and a locale's dates sort wrongly in both" >/dev/null 2>&1 || true
+decided "$slug" c2 web/csv-export "The dashboard is run with pnpm dev, against the api on :8080 (go run ./cmd/api, in its capsule)" --why "The verifier needs both running to see the export work"
+decided "$slug" c2 web/csv-export "Export is hidden while there's nothing to export" --why "A button that does nothing is noise in the toolbar"
+"$ws" mission decide -m "$slug" "With nothing to export, Export stays in the toolbar, disabled" --why "A button that comes and goes moves the rest of the toolbar under the pointer" --supersedes d5 >/dev/null 2>&1 || true
+decided "$slug" c2 web/csv-export "The download is named invoices.csv" --why "It's what the endpoint is called"
+"$ws" mission decide -m "$slug" --withdraw d7 "The browser names the download from the response, and the api already sends a dated name" >/dev/null 2>&1 || true
 handoff '`ExportButton` in `src/invoices/ExportButton.tsx`, at the end of the toolbar: it downloads `/invoices.csv` with the filter as it stands.' 'With nothing to export it is a disabled button, not a link, so it takes no click and no focus.' 'Nothing.' |
 	done_with "$slug" c2 web/csv-export "Export is in the invoices toolbar, and downloads what the filter shows."
 at "$slug" 3 # step 2 has no checks: the orchestrator accepts it (agent/$slug-orchestrator-1.md)
 says "$slug" c2 stop
 crew "$slug" c3
 says "$slug" c3 prompt
+decided "$slug" c3 web/csv-export "The browser check is run at 1280 wide, light and dark" --why "The check that's yours asks how the button sits in both"
 mkdir -p "$dir/.ws/missions/$slug/files"
 cp "$from"/bundle/* "$dir/.ws/missions/$slug/files/"
 (cd "$dir/repos/web/csv-export" && as "$slug" c3 mission bundle --set - >/dev/null <<'EOF'

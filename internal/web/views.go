@@ -244,7 +244,7 @@ func MissionOf(a Missions, root, slug string) (*MissionDetail, error) {
 	}
 	for _, dc := range v.Decisions {
 		d.Decisions = append(d.Decisions, Decision{ID: dc.ID, What: dc.What, Why: dc.Why, By: dc.By, From: dc.From, About: dc.About,
-			At: dc.At, State: DecisionState(dc.State), SupersededBy: dc.SupersededBy, WithdrawnWhy: dc.WithdrawnWhy})
+			At: dc.At, Step: dc.Step, State: DecisionState(dc.State), SupersededBy: dc.SupersededBy, WithdrawnWhy: dc.WithdrawnWhy})
 	}
 	talks := conversation.For(root, slug)
 	d.Talks = TalksIn(talks)

@@ -496,7 +496,8 @@ type Decision struct {
 	From         string        `json:"from,omitempty"`
 	About        []string      `json:"about,omitempty"`
 	At           time.Time     `json:"at"`
-	State        DecisionState `json:"state"` // current, superseded, withdrawn
+	Step         int           `json:"step,omitempty"` // the plan's step it was made at; 0 for none, or not known
+	State        DecisionState `json:"state"`          // current, superseded, withdrawn
 	SupersededBy string        `json:"supersededBy,omitempty"`
 	WithdrawnWhy string        `json:"withdrawnWhy,omitempty"`
 }

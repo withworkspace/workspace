@@ -69,3 +69,53 @@ func TestDecisions(t *testing.T) {
 		t.Errorf("log = %s", got)
 	}
 }
+
+// A decision keeps the step it was made at: its crew's, else the one the
+// plan is at; none where there's no plan, or all of it's passed.
+func TestDecisionKeepsItsStep(t *testing.T) {
+	s := owned(t)
+	m, _ := s.Create("Cache")
+	step := func(by string) int {
+		t.Helper()
+		d, err := s.Decide(m.Slug, Decision{What: "x", By: by})
+		if err != nil {
+			t.Fatal(err)
+		}
+		all, _ := s.Decisions(m.Slug)
+		kept, _ := FindDecision(all, d.ID)
+		if kept.Step != d.Step {
+			t.Errorf("%s: recorded at step %d, kept as %d", d.ID, d.Step, kept.Step)
+		}
+		return d.Step
+	}
+	if n := step("you"); n != 0 {
+		t.Errorf("with no plan: step %d", n)
+	}
+	if err := s.WritePlan(m.Slug, checkedPlan); err != nil {
+		t.Fatal(err)
+	}
+	s.StartCrew(m.Slug, "shell", "")
+	if _, err := s.JoinStage(m.Slug, "c1", 1); err != nil {
+		t.Fatal(err)
+	}
+	if n := step("c1"); n != 1 {
+		t.Errorf("crew on step 1: step %d", n)
+	}
+	s.SetCrewStatus(m.Slug, "c1", CrewDone, "cached")
+	s.EndCrew(m.Slug, "c1", "exit 0")
+	if _, _, err := s.AcceptStage(m.Slug, "you", "passed"); err != nil {
+		t.Fatal(err)
+	}
+	if n := step("you"); n != 2 {
+		t.Errorf("yours, with the plan at step 2: step %d", n)
+	}
+	if n := step("c1"); n != 1 {
+		t.Errorf("crew whose step has passed: step %d", n)
+	}
+	if _, _, err := s.AcceptStage(m.Slug, "you", "read"); err != nil {
+		t.Fatal(err)
+	}
+	if n := step("you"); n != 0 {
+		t.Errorf("with every step passed: step %d", n)
+	}
+}

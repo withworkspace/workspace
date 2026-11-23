@@ -1658,6 +1658,26 @@ export interface CrewSession {
     Final: boolean;
 }
 
+// From web/decisions.go
+/**
+ * DecideRequest is a decision of yours to record on a mission: what was
+ * decided, why, and the decision it replaces (none: it's new).
+ */
+export interface DecideRequest {
+    what: string;
+    why?: string;
+    supersedes?: string;
+}
+
+// From web/decisions.go
+/**
+ * DecideResult says what was recorded, and its name (d4).
+ */
+export interface DecideResult {
+    message: string;
+    id: string;
+}
+
 // From web/api.go
 /**
  * Decision is what was decided on a mission, and why.
@@ -1670,6 +1690,7 @@ export interface Decision {
     from?: string;
     about?: string[];
     at: string;
+    step?: number; // the plan's step it was made at; 0 for none, or not known
     state: DecisionState; // current, superseded, withdrawn
     supersededBy?: string;
     withdrawnWhy?: string;
@@ -5493,6 +5514,14 @@ export interface WhatsNewInfo {
      */
     missing: boolean;
     releases?: string;
+}
+
+// From web/decisions.go
+/**
+ * WithdrawRequest is why a decision is withdrawn.
+ */
+export interface WithdrawRequest {
+    why: string;
 }
 
 // From words/words.go

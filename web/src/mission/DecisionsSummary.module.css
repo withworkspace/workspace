@@ -1,0 +1,7 @@
+/* A mission's decisions on its Summary (DecisionsSummary.tsx). */
+
+.summary {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}

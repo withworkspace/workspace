@@ -34,6 +34,10 @@ type Decision struct {
 	From  string    `json:"from,omitempty"` // where it was decided: a ref
 	About []string  `json:"about,omitempty"`
 	At    time.Time `json:"at"`
+	// Step is the plan's step it was made at: its crew's, else the one
+	// the plan was at. 0 when there was none (no plan yet, or all of it
+	// passed), and on a decision recorded before ws kept it.
+	Step int `json:"step,omitempty"`
 	// Supersedes is the decision this one replaces.
 	Supersedes string `json:"supersedes,omitempty"`
 
@@ -107,9 +111,11 @@ func (s Store) Decide(slug string, d Decision) (Decision, error) {
 		return Decision{}, errors.New("say who decided")
 	}
 	err := s.write(func(tx *store.Tx) error {
-		if _, err := s.loadIn(tx, slug); err != nil {
+		m, err := s.loadIn(tx, slug)
+		if err != nil {
 			return err
 		}
+		d.Step = s.stepAt(m, d.By)
 		all, err := s.decisionsIn(tx, slug)
 		if err != nil {
 			return err
@@ -144,6 +150,21 @@ func (s Store) Decide(slug string, d Decision) (Decision, error) {
 	}
 	d.State = DecisionCurrent
 	return d, nil
+}
+
+// stepAt is the step a decision by someone is made at: the step they're
+// crew on, else the one the plan's at; 0 when there's neither.
+func (s Store) stepAt(m *Mission, by string) int {
+	brief, _ := s.ReadBrief(m.Slug)
+	states, _ := m.StageProgress(brief)
+	st, ok := StageFor(states, by)
+	if !ok {
+		st, ok = CurrentStage(states)
+	}
+	if !ok || st.Implicit {
+		return 0
+	}
+	return st.N
 }
 
 // Withdraw takes a decision back, saying why.

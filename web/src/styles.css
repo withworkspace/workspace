@@ -2732,53 +2732,6 @@ button.on {
 }
 
 /* A crew's own colour, as a small badge with its id. */
-/* Decisions: the decision, its reason under, who and when. */
-.decisions {
-  display: grid;
-  gap: 10px;
-}
-
-.decision-what {
-  font-weight: 500;
-}
-
-.decision-why {
-  color: var(--dim);
-  margin-top: 1px;
-}
-
-.decision-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
-  margin-top: 3px;
-  font-size: var(--text-sm);
-  color: var(--dim);
-}
-
-.decision.old .decision-what {
-  color: var(--dim);
-  text-decoration: line-through;
-  text-decoration-color: var(--faint);
-}
-
-.decisions-more {
-  display: grid;
-  gap: 6px;
-  justify-items: start;
-}
-
-.old-decisions summary {
-  cursor: pointer;
-  font-size: var(--text-sm);
-  color: var(--dim);
-}
-
-.old-decisions .decision {
-  margin-top: 8px;
-}
-
 /* Documents: a kind's icon, a short title, what was said of it. */
 .artifact-row {
   display: grid;
