@@ -1,0 +1,85 @@
+/* A mission over time, along the top edge of its page
+   (MissionTimeline.tsx): crew as thin bars in their colours, quiet but
+   for the one running now, and moments as ticks hung over them. Over the
+   bar under it, which the ticks reach. */
+
+.timeline {
+  position: relative;
+  z-index: 11;
+  padding: 0 14px;
+}
+
+.track {
+  position: relative;
+  height: calc(var(--lanes, 1) * 5px - 2px);
+}
+
+.bar {
+  --hue: 228;
+  position: absolute;
+  top: calc(var(--lane, 0) * 5px);
+  height: 3px;
+  border-radius: 2px;
+  background: hsl(var(--hue) 40% 58% / 0.4);
+  min-width: 3px;
+}
+
+.live {
+  background: hsl(var(--hue) 55% 52% / 0.8);
+  animation: global(pulse) 2.2s var(--ease) infinite;
+}
+
+/* A 2px line in its colour with a little of it glowing round, cut out of
+   the bars by a 1px ring of the page behind it. Centred by its margin, not
+   translate: a transform would cut the ring's backdrop loose from the
+   window. */
+.mark {
+  --mark: var(--faint);
+  position: absolute;
+  top: -1px;
+  width: 4px;
+  height: calc(100% + 3px);
+  margin-left: -2px;
+  border: 1px solid transparent;
+  border-radius: 0 0 2px 2px;
+  background:
+    linear-gradient(var(--mark), var(--mark)) padding-box,
+    var(--backdrop);
+  box-shadow:
+    0 0 3px color-mix(in srgb, var(--mark) 65%, transparent),
+    0 0 6px color-mix(in srgb, var(--mark) 30%, transparent);
+}
+
+/* Something to point at: 2px is a small target. */
+.mark::after {
+  content: "";
+  position: absolute;
+  inset: -3px -5px -7px;
+}
+
+.mark:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.done {
+  --mark: var(--green-fill);
+}
+
+.you {
+  --mark: var(--primary);
+}
+
+.decided {
+  --mark: var(--violet-fill);
+}
+
+.ask {
+  --mark: var(--amber-fill);
+}
+
+/* What happened at a tick: wider than a card is, its moments ruled apart. */
+.card {
+  width: 340px;
+  gap: 0;
+}

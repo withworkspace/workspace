@@ -3,7 +3,7 @@ import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "re
 import { createPortal } from "react-dom";
 import * as api from "../api";
 import { Icon } from "../ui/Icon";
-import type { Anchor } from "../ui/hover";
+import type { Anchor } from "../ui/FloatingCard";
 import type { UiProps } from "./Uis";
 import { Button } from "../ui/Button";
 import { chipClass } from "../ui/Chip";

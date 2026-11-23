@@ -1,3 +1,4 @@
+import { HoverCardHead, HoverCardLine, HoverCardTitle } from "../ui/HoverCard";
 import { ApiError, getPluginThing, type PluginThing } from "../api";
 import { useLoaded } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
@@ -74,40 +75,46 @@ export function ThingView({ named, record, surface, pointer }: { named?: Named; 
     else lines.push({ of: d, badges: [] });
   }
   if (!lines.length) return null;
+  // In a pane there's room for a name said whole, and long words break.
+  const pane = surface === "pane";
   return (
     <span className={`thing-view on-${surface}`}>
       {lines.map(({ of: d, badges }, i) => {
-        const chips = badges.map((b, j) => (
-          <Chip tone="quiet" className="line-chip" key={j}>
-            {said(b)}
-          </Chip>
-        ));
+        // On a line, a badge keeps a little from the words before it; in
+        // the head, the head's own gap does.
+        const badged = (onLine: boolean) =>
+          badges.map((b, j) => (
+            <Chip tone="quiet" className={onLine ? "line-chip" : undefined} key={j}>
+              {said(b)}
+            </Chip>
+          ));
+        const chips = badged(true);
         switch (d.block) {
           case "title":
             return (
-              <span key={i} className="hovercard-head">
+              <HoverCardHead key={i} top={pane}>
                 {d.icon && <Icon name={thingIcon(named)} size={13} className="dim" />}
-                <span className="hovercard-title">{said(d)}</span>
-                {chips}
-              </span>
+                <HoverCardTitle wrap={pane}>{said(d)}</HoverCardTitle>
+                {badged(false)}
+              </HoverCardHead>
             );
           case "subtitle":
             return (
-              <span key={i} className="hovercard-line dim">
+              <HoverCardLine key={i} dim wrap={pane}>
                 {said(d)}
                 {chips}
-              </span>
+              </HoverCardLine>
             );
           case "badge":
             return (
-              <span key={i} className="hovercard-line dim thing-badges">
+              <HoverCardLine key={i} dim wrap={pane} className="thing-badges">
                 <Chip tone="quiet" className="line-chip">{said(d)}</Chip>
                 {chips}
-              </span>
+              </HoverCardLine>
             );
           case "field":
             return (
-              <span key={i} className="hovercard-line dim">
+              <HoverCardLine key={i} dim wrap={pane}>
                 {d.label}:{" "}
                 {d.names
                   ? d.names.map((name, j) => (
@@ -117,7 +124,7 @@ export function ThingView({ named, record, surface, pointer }: { named?: Named; 
                       </span>
                     ))
                   : said(d)}
-              </span>
+              </HoverCardLine>
             );
           case "markdown":
             // What it says is its plugin's words: the names in them are

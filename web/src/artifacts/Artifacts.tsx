@@ -6,7 +6,7 @@ import { useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
 import { refKey, refName } from "../refs/refs";
 import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../review/highlight";
-import { HoverCard } from "../ui/hover";
+import { HoverCard, HoverCardHead, HoverCardLine, HoverCardTitle } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { Copyable, Empty, ErrorCard, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
@@ -585,14 +585,14 @@ export function VersionStrip({ d, n, go, keys = ["[", "]"] }: { d: ArtifactDetai
             </button>
           }
         >
-          <span className="hovercard-head">
-            <span className="hovercard-title">v{x.n}</span>
+          <HoverCardHead>
+            <HoverCardTitle>v{x.n}</HoverCardTitle>
             <span className="dim">
               {byWords(x)}, <Time iso={x.at} as="relative" />
             </span>
-          </span>
-          <span className="hovercard-line">{x.note || <span className="dim">No note.</span>}</span>
-          {d.home?.version === x.n && <span className="hovercard-line dim">It's the version in {d.home.repo}: {d.home.where}</span>}
+          </HoverCardHead>
+          <HoverCardLine>{x.note || <span className="dim">No note.</span>}</HoverCardLine>
+          {d.home?.version === x.n && <HoverCardLine dim>It's the version in {d.home.repo}: {d.home.where}</HoverCardLine>}
         </HoverCard>
       ))}
       <span className="artifact-step-keys dim">

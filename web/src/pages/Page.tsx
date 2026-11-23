@@ -67,7 +67,7 @@ import { useRefs } from "../refs/known";
 import { lookOf } from "../refs/views";
 import { findRefs, GROUND, isOutside, type Known, type PageRef, parseAddress, refAddress, refHref, refKey, refName, refOf } from "../refs/refs";
 import { useLoaded } from "../load";
-import { useHoverDelay } from "../ui/hover";
+import { useHoverDelay } from "../ui/useHoverDelay";
 import { Chip, chipClass } from "../ui/Chip";
 import { type Tone } from "../ui/tone";
 import { Count } from "../ui/Count";

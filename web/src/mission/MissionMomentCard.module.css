@@ -1,0 +1,51 @@
+/* What happened at a tick of a mission's timeline
+   (MissionMomentCard.tsx): each moment there, its kind, when, and what. */
+
+.moment + .moment {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+/* Its kind: a dot in the kind's colour, its icon in it. */
+.kind {
+  --mark: var(--faint);
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--mark);
+  color: #fff;
+}
+
+.done {
+  --mark: var(--green-fill);
+}
+
+/* Yours is the button's fill and its label, so its icon reads whatever
+   the pick (the dark theme's accent is too pale under a white icon). */
+.you {
+  --mark: var(--primary);
+  color: var(--on-primary);
+}
+
+.decided {
+  --mark: var(--violet-fill);
+}
+
+.ask {
+  --mark: var(--amber-fill);
+}
+
+.when {
+  margin-left: auto;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.what {
+  margin-top: 3px;
+  color: var(--dim);
+}
