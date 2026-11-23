@@ -1,16 +1,14 @@
-import { createContext, Fragment, type ReactNode, useContext, useRef, useState } from "react";
+import { createContext, Fragment, type ReactNode, useContext, useState } from "react";
 import { Link } from "react-router";
 import type { Artifact, CapsuleDetail, CrewDetail, Decision, MissionDetail, MissionEvent, Stage } from "../api";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { FloatingCard } from "../ui/FloatingCard";
 import { HoverCard } from "../ui/HoverCard";
-import { useHoverDelay } from "../ui/useHoverDelay";
-import { RefContext } from "../refs/context";
 import { Copyable } from "../ui/kit";
 import { crewStatus, exitWords, Status } from "../ui/status";
-import { dayKey, dayLabel, duration, stamp, Time, useNow } from "../ui/time";
+import { dayKey, dayLabel, duration, Time, useNow } from "../ui/time";
 import { Chip, chipClass } from "../ui/Chip";
+import { crewHue } from "./crewHue";
 import { type Tone } from "../ui/tone";
 import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
@@ -18,13 +16,7 @@ import { capital } from "../ui/text";
 // The pieces a mission's page draws with: who did what (events), stages,
 // decisions, documents and capsules.
 
-// crewHue is a crew's own colour within its mission, the same wherever it
-// shows: c1 is always the first.
-const hues = [228, 152, 32, 330, 192, 272, 96, 8];
-export function crewHue(id: string): number {
-  const n = Number(/\d+/.exec(id)?.[0] ?? 0);
-  return hues[(Math.max(n, 1) - 1) % hues.length];
-}
+export { crewHue };
 
 // MissionData is the mission a page is about, for what draws a ref (a crew's
 // badge) to say more about it on hover.
@@ -643,141 +635,3 @@ export function CrewRow({ c, slug, detail }: { c: CrewDetail; slug: string; deta
     </div>
   );
 }
-
-// Timeline is the mission's life in a strip along the top of its page: when
-// each crew worked (in its colour, quietly; the one running now less so),
-// and the moments that mattered (stages accepted, reviews, decisions, what
-// was asked) as ticks over them, from its start to now. A tick says what
-// happened then on hover; moments too close to point at apart share one.
-export function Timeline({ d }: { d: MissionDetail }) {
-  const now = useNow();
-  const start = new Date(d.created).getTime();
-  const lastEvent = d.events.length ? new Date(d.events[d.events.length - 1].time).getTime() : start;
-  const end = d.state === "archived" || d.state === "landed" ? Math.max(lastEvent, start + 60_000) : now;
-  const span = Math.max(end - start, 60_000);
-  const at = (iso: string | number) => Math.min(100, Math.max(0, ((new Date(iso).getTime() - start) / span) * 100));
-  // When each crew ran: from the log, start (or resume) to end, so crew
-  // resumed days later show as two runs, not one long one; crew with
-  // nothing in the log, by when they started and ended.
-  const spans: { c: (typeof d.crew)[number]; from: number; to: number }[] = [];
-  for (const c of d.crew) {
-    const mine = d.events.filter((e) => e.by === c.id && /^crew_(started|resumed|ended)$/.test(e.kind));
-    if (!mine.length) {
-      const from = new Date(c.started).getTime();
-      spans.push({ c, from, to: c.endedAt ? new Date(c.endedAt).getTime() : c.ended ? from : now });
-      continue;
-    }
-    let open: number | undefined;
-    for (const e of mine) {
-      const t = new Date(e.time).getTime();
-      if (e.kind === "crew_ended") {
-        spans.push({ c, from: open ?? t, to: t });
-        open = undefined;
-      } else open ??= t;
-    }
-    if (open !== undefined) spans.push({ c, from: open, to: c.ended ? open : now });
-  }
-  // In lanes, so crew running at once don't cover each other.
-  const lanes: number[] = [];
-  const bars = spans
-    .sort((a, b) => a.from - b.from)
-    .map((sp, i) => {
-      let lane = lanes.findIndex((free) => free <= sp.from);
-      if (lane < 0) lane = lanes.push(0) - 1;
-      lanes[lane] = sp.to;
-      return { ...sp, lane, key: `${sp.c.id}-${i}` };
-    });
-  const marks = d.events.flatMap((e): TimelineMark[] => {
-    if (e.kind === "stage" && /accepted/.test(e.text)) return [{ e, icon: "check", cls: "done", what: `${d.plan ? "Step" : "Stage"} accepted` }];
-    if (e.kind === "review") return [{ e, icon: "eye", cls: "you", what: "Reviewed" }];
-    if (e.kind === "decision") return [{ e, icon: "gavel", cls: "decided", what: "Decided" }];
-    if (e.kind === "flag" || e.kind === "crew_asked") return [{ e, icon: "question", cls: "ask", what: "Asked" }];
-    return [];
-  });
-  // Ticks: marks within a few pixels of each other are one, in the colour
-  // of what matters most among them.
-  const ticks: { at: number; marks: TimelineMark[] }[] = [];
-  for (const m of marks) {
-    const x = at(m.e.time);
-    const last = ticks[ticks.length - 1];
-    if (last && x - last.at < tickApart) last.marks.push(m);
-    else ticks.push({ at: x, marks: [m] });
-  }
-  const hover = useHoverDelay<number>();
-  const els = useRef(new Map<number, HTMLElement>());
-  if (!bars.length && !marks.length) return null;
-  const laneCount = Math.max(1, Math.min(lanes.length, 3));
-  const shown = hover.shown === undefined ? undefined : ticks[hover.shown];
-  const anchor = hover.shown === undefined ? undefined : els.current.get(hover.shown);
-  return (
-    <div className="timeline" style={{ "--lanes": laneCount } as React.CSSProperties} aria-label="The mission over time">
-      <div className="timeline-track">
-        {bars
-          .filter((b) => b.lane < 3)
-          .map((b) => (
-            <span
-              key={b.key}
-              className={`timeline-bar${b.c.ended || b.to < now - 60_000 ? "" : " live"}`}
-              style={
-                {
-                  "--hue": crewHue(b.c.id),
-                  left: `${at(b.from)}%`,
-                  width: `max(3px, ${at(b.to) - at(b.from)}%)`,
-                  "--lane": b.lane,
-                } as React.CSSProperties
-              }
-              title={`${b.c.id}: ${stamp(b.from)}${b.to < now - 60_000 ? ` to ${stamp(b.to)} (${duration(b.from, b.to)})` : ", running now"}`}
-            />
-          ))}
-        {ticks.map((t, i) => (
-          <span
-            key={i}
-            ref={(el) => {
-              if (el) els.current.set(i, el);
-              else els.current.delete(i);
-            }}
-            className={`timeline-mark ${tickKinds.find((k) => t.marks.some((m) => m.cls === k))}`}
-            style={{ left: `${t.at}%` }}
-            tabIndex={0}
-            aria-label={t.marks.map((m) => `${stamp(m.e.time)}: ${m.what}`).join("; ")}
-            onMouseEnter={() => hover.over(i)}
-            onMouseLeave={hover.out}
-            onFocus={() => hover.over(i)}
-            onBlur={hover.out}
-          />
-        ))}
-      </div>
-      {shown && anchor && (
-        <FloatingCard anchor={anchor} className="timeline-card" onEnter={hover.stay} onLeave={hover.out}>
-          {/* Inside a card, refs are words: no cards in cards. */}
-          <RefContext.Provider value={undefined}>
-            {shown.marks.map((m, i) => (
-              <div key={i} className="timeline-moment">
-                <div className="hovercard-head">
-                  <span className={`timeline-kind ${m.cls}`}>
-                    <Icon name={m.icon} size={9} />
-                  </span>
-                  <span className="hovercard-strong">{m.what}</span>
-                  <span className="timeline-when">{stamp(m.e.time)}</span>
-                </div>
-                <Inline text={m.e.text} lines={3} className="timeline-what" />
-              </div>
-            ))}
-          </RefContext.Provider>
-        </FloatingCard>
-      )}
-    </div>
-  );
-}
-
-interface TimelineMark {
-  e: MissionEvent;
-  icon: IconName;
-  cls: "done" | "you" | "decided" | "ask";
-  what: string;
-}
-
-// How near two moments are (in hundredths of the strip) before they're
-// one tick, and which of a tick's kinds it's drawn as.
-const tickApart = 0.4;
-const tickKinds: TimelineMark["cls"][] = ["ask", "you", "done", "decided"];
