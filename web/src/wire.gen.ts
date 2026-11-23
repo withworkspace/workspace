@@ -1691,9 +1691,23 @@ export interface Decision {
     about?: string[];
     at: string;
     step?: number; // the plan's step it was made at; 0 for none, or not known
+    /**
+     * Asked is the question it answers, for one made by answering.
+     */
+    asked?: DecisionAsked;
     state: DecisionState; // current, superseded, withdrawn
     supersededBy?: string;
     withdrawnWhy?: string;
+}
+
+// From web/api.go
+/**
+ * DecisionAsked is the question a decision answers: who asked (crew by
+ * id, "orchestrator" or "ws") and what.
+ */
+export interface DecisionAsked {
+    by: string;
+    text: string;
 }
 
 // From web/enums.go

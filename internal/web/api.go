@@ -487,19 +487,28 @@ type Pick struct {
 	Model   string `json:"model,omitempty"`
 }
 
+// DecisionAsked is the question a decision answers: who asked (crew by
+// id, "orchestrator" or "ws") and what.
+type DecisionAsked struct {
+	By   string `json:"by"`
+	Text string `json:"text"`
+}
+
 // Decision is what was decided on a mission, and why.
 type Decision struct {
-	ID           string        `json:"id"`
-	What         string        `json:"what"`
-	Why          string        `json:"why,omitempty"`
-	By           string        `json:"by"`
-	From         string        `json:"from,omitempty"`
-	About        []string      `json:"about,omitempty"`
-	At           time.Time     `json:"at"`
-	Step         int           `json:"step,omitempty"` // the plan's step it was made at; 0 for none, or not known
-	State        DecisionState `json:"state"`          // current, superseded, withdrawn
-	SupersededBy string        `json:"supersededBy,omitempty"`
-	WithdrawnWhy string        `json:"withdrawnWhy,omitempty"`
+	ID    string    `json:"id"`
+	What  string    `json:"what"`
+	Why   string    `json:"why,omitempty"`
+	By    string    `json:"by"`
+	From  string    `json:"from,omitempty"`
+	About []string  `json:"about,omitempty"`
+	At    time.Time `json:"at"`
+	Step  int       `json:"step,omitempty"` // the plan's step it was made at; 0 for none, or not known
+	// Asked is the question it answers, for one made by answering.
+	Asked        *DecisionAsked `json:"asked,omitempty"`
+	State        DecisionState  `json:"state"` // current, superseded, withdrawn
+	SupersededBy string         `json:"supersededBy,omitempty"`
+	WithdrawnWhy string         `json:"withdrawnWhy,omitempty"`
 }
 
 // ReReview is a capsule back with you: crew have addressed a review that

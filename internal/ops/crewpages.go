@@ -284,8 +284,7 @@ func (w *Workspace) answeredCrew(slug string, c mission.Crew, text string) {
 	if c.Status != mission.CrewAsking || strings.TrimSpace(c.Note) == "" || text == "" {
 		return
 	}
-	w.Missions.Decide(slug, mission.Decision{What: text, By: AsYou.By(),
-		Why: fmt.Sprintf("the answer to %s's question: %s", c.ID, oneLine(c.Note))})
+	w.Missions.Decide(slug, mission.Decision{What: text, By: AsYou.By(), Asked: &mission.Asked{By: c.ID, Text: oneLine(c.Note)}})
 }
 
 // browserKeys are the keys a browser names (KeyboardEvent.key) that aren't

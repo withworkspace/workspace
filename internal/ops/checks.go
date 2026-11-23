@@ -427,7 +427,7 @@ func (w *Workspace) decidedSince(m *mission.Mission, st mission.StageState) []st
 			continue
 		}
 		line := fmt.Sprintf("%s: %s", d.ID, sentence(oneLine(d.What)))
-		if why := oneLine(d.Why); why != "" {
+		if why := oneLine(d.Reason()); why != "" {
 			line += " Why: " + sentence(clipString(why, 600))
 		}
 		out = append(out, line)

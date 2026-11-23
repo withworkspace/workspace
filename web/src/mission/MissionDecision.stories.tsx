@@ -7,13 +7,15 @@ import { GroupHead } from "../ui/GroupHead";
 import { Icon } from "../ui/Icon";
 import { DecisionsSummary } from "./DecisionsSummary";
 import { DecisionsTab } from "./DecisionsTab";
+import type { DecisionEffect } from "./decisions";
 import { MissionDecision } from "./MissionDecision";
 import { MissionDecisionForm } from "./MissionDecisionForm";
 import { MissionDecisionGroup } from "./MissionDecisionGroup";
 import { MissionData } from "./parts";
 
-// A mission's decisions: one alone in each state (crew's, yours, the one
-// an address names, replaced, withdrawn, as Summary has it); groups of
+// A mission's decisions: one alone in each state (crew's, yours, one made
+// by answering, one a check was judged with, the one an address names,
+// replaced, withdrawn, as Summary has it); groups of
 // them as the Decisions tab lays them out (yours, then the work's by
 // step); the form one's written in, for each thing it does; and the
 // decisions of missions as ws gave them (fixtures/), as the tab and
@@ -33,6 +35,21 @@ const run = d("d4", "c2", "The dashboard is run with `pnpm dev`, against the api
 const thread = d("d9", "you", "Key the cache per tenant", "Tokens are issued per tenant", { from: "t2" });
 const hidden = d("d5", "c2", "Export is hidden while there's nothing to export", "A button that does nothing is noise in the toolbar", { state: "superseded", supersededBy: "d6", step: 2 });
 const named = d("d7", "c2", "The download is named invoices.csv", "It's what the endpoint is called", { state: "withdrawn", withdrawnWhy: "The browser names the download from the response", step: 2 });
+
+const answer = d("d10", "you", "A", "", {
+  why: undefined,
+  step: 1,
+  asked: {
+    by: "c1",
+    text: "A VERSION file would have to be kept in step with the tag by hand, and the release reads the tag. Options: (A, my recommendation) no VERSION file: the release's version is its tag, and nothing in the repo holds it; (B) add a VERSION file, as check 2 asks. A goes against check 2 as worded, so I need your call. Which one?",
+  },
+});
+const asked = d("d11", "you", "Keep this mission open, and fix it here", "", { why: undefined, asked: { by: "orchestrator", text: "The pull request merged, but the hooks still report crew as starting. End it, or fix that here?" } });
+const reckoned: DecisionEffect[] = [
+  { step: 1, check: 2, result: "met", text: "the greeting comes from `greeting()` in `main.go`, and a `VERSION` file holds the release's version" },
+  { step: 1, check: 3, result: "unmet", text: "the README says where the version is kept" },
+  { step: 1, text: "Version the greeting" },
+];
 
 const acts = (
   <>
@@ -58,11 +75,15 @@ export const One: StoryObj = {
           ["Crew's", <MissionDecision d={amounts} actions={acts} />],
           ["Yours: a rule beside it, and the step it was made at", <MissionDecision d={iso} yours step={2} actions={acts} />],
           ["From somewhere (a thread, a conversation)", <MissionDecision d={thread} yours />],
+          ["Yours by answering: the question over it, cut at two lines", <MissionDecision d={answer} yours step={1} actions={acts} />],
+          ["An answer to the orchestrator", <MissionDecision d={asked} yours />],
+          ["One a step's checks were judged with, and the step passed on", <MissionDecision d={answer} yours effects={reckoned} />],
           ["The one the address names", <MissionDecision d={rows} marked actions={acts} />],
           ["Replaced", <MissionDecision d={hidden} />],
           ["Withdrawn", <MissionDecision d={named} />],
           ["With no why", <MissionDecision d={{ ...run, why: undefined }} />],
           ["On Summary: yours, with no why, cut at two lines", <MissionDecision d={disabled} yours dense />],
+          ["On Summary: an answer, its question in a line", <MissionDecision d={answer} yours dense />],
         ] as [string, React.ReactNode][]
       ).map(([what, part]) => (
         <section key={what}>
@@ -79,7 +100,7 @@ export const Groups: StoryObj = {
     <Column>
       <MissionDecisionGroup
         title="Yours"
-        count={2}
+        count={4}
         note="They stand over what the plan asks."
         end={
           <Button variant="ghost" size="small">
@@ -89,6 +110,10 @@ export const Groups: StoryObj = {
       >
         <MissionDecision d={disabled} yours step={2} actions={acts} />
         <MissionDecision d={iso} yours step={2} actions={acts} />
+        <MissionDecisionGroup step title="When you were asked">
+          <MissionDecision d={answer} yours step={1} effects={reckoned.slice(0, 1)} actions={acts} />
+          <MissionDecision d={asked} yours actions={acts} />
+        </MissionDecisionGroup>
       </MissionDecisionGroup>
       <MissionDecisionGroup title="From the work" count={3} note="What crew and the orchestrator settled as they went.">
         <MissionDecisionGroup step title="Step 1 The endpoint">

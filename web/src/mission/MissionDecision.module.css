@@ -28,6 +28,28 @@
   box-shadow: inset 0 0 0 1px var(--accent-line);
 }
 
+/* The question it answers, over it: who asked, then their words. */
+.asked {
+  margin-bottom: 3px;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.asker {
+  margin-right: 6px;
+  font-weight: 500;
+}
+
+.dense .asked {
+  display: flex;
+  gap: 0;
+  min-width: 0;
+}
+
+.dense .asker {
+  flex: none;
+}
+
 .line {
   display: flex;
   align-items: flex-start;

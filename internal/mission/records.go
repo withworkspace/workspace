@@ -334,6 +334,7 @@ func replayDecisions(lines [][]byte) []Decision {
 		case l.Made != nil:
 			d := *l.Made
 			d.State = DecisionCurrent
+			d.asked()
 			if i, ok := at[d.Supersedes]; ok && d.Supersedes != "" {
 				out[i].State, out[i].SupersededBy = DecisionSuperseded, d.ID
 			}
@@ -450,7 +451,7 @@ func (s Store) decisionsGraph(tx *store.Tx, slug string, all []Decision) error {
 		if err := tx.Thing(o, store.Thing{Key: me, Kind: "decision", Title: d.What, State: d.State, Changed: changed}); err != nil {
 			return err
 		}
-		if err := tx.Words(o, store.Place{Thing: me, Kind: placeDecision, Title: d.What, Text: strings.TrimSpace(d.Why), Said: d.At}); err != nil {
+		if err := tx.Words(o, store.Place{Thing: me, Kind: placeDecision, Title: d.What, Text: strings.TrimSpace(d.Reason()), Said: d.At}); err != nil {
 			return err
 		}
 		link := func(kind string, dst store.Key) error {

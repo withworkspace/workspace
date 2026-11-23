@@ -7,7 +7,7 @@ import { Empty } from "../ui/Empty";
 import { humanError } from "../ui/text";
 import { toast } from "../ui/toast";
 import css from "./DecisionsTab.module.css";
-import { groupDecisions, stepOf } from "./decisions";
+import { effectsOf, groupDecisions, stepOf } from "./decisions";
 import { MissionDecision } from "./MissionDecision";
 import { type DecisionFormKind, MissionDecisionForm } from "./MissionDecisionForm";
 import { MissionDecisionGroup } from "./MissionDecisionGroup";
@@ -15,9 +15,11 @@ import { CrewBadge } from "./parts";
 
 // A mission's Decisions tab: everything decided on it, and the place a
 // decision's name leads to (?tab=decisions&d=d4, which marks it). Yours
-// first, since they stand over what the plan asks; then what crew and the
-// orchestrator settled as they went, by the step each was made at; then,
-// folded, those replaced or withdrawn. It's also where one's written: a
+// first, since they stand over what the plan asks: those you decided
+// outright, then what you said when you were asked, each with its
+// question; then what crew and the orchestrator settled as they went, by
+// the step each was made at; then, folded, those replaced or withdrawn.
+// One a check was judged with, or a step passed on, says so under it. It's also where one's written: a
 // decision of your own, one in place of another, or one withdrawn, each
 // kept in the record as a decision is never edited.
 export function DecisionsTab({ d, marked, mark, reload }: { d: MissionDetail; marked?: string; mark: (id?: string) => void; reload: Reload }) {
@@ -69,6 +71,8 @@ export function DecisionsTab({ d, marked, mark, reload }: { d: MissionDetail; ma
       yours={yours}
       step={yours ? stepOf(x, d.stages) : undefined}
       who={d.crew.some((c) => c.id === x.by) ? <CrewBadge id={x.by} /> : undefined}
+      asker={x.asked && d.crew.some((c) => c.id === x.asked!.by) ? <CrewBadge id={x.asked.by} /> : undefined}
+      effects={effectsOf(x.id, d.stages)}
       marked={marked === x.id}
       actions={
         x.state === "current" && (
@@ -102,10 +106,17 @@ export function DecisionsTab({ d, marked, mark, reload }: { d: MissionDetail; ma
   }
   return (
     <div className={css.tab}>
-      <MissionDecisionGroup title="Yours" count={g.yours.length} note="They stand over what the plan asks." end={!(open?.kind === "record") && record}>
+      <MissionDecisionGroup title="Yours" count={g.yours.length + g.answered.length} note="They stand over what the plan asks." end={!(open?.kind === "record") && record}>
         {form()}
         {g.yours.map((x) => row(x, true))}
-        {!g.yours.length && open?.kind !== "record" && <p className={css.none}>None yet. What you answer when you're asked is kept here, and you can record one of your own.</p>}
+        {!g.yours.length && !g.answered.length && open?.kind !== "record" && (
+          <p className={css.none}>None yet. What you answer when you're asked is kept here, and you can record one of your own.</p>
+        )}
+        {g.answered.length > 0 && (
+          <MissionDecisionGroup step title="When you were asked">
+            {g.answered.map((x) => row(x, true))}
+          </MissionDecisionGroup>
+        )}
       </MissionDecisionGroup>
       {g.work.length > 0 && (
         <MissionDecisionGroup title="From the work" count={g.worked} note="What crew and the orchestrator settled as they went.">

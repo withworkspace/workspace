@@ -38,6 +38,9 @@ type Decision struct {
 	// the plan was at. 0 when there was none (no plan yet, or all of it
 	// passed), and on a decision recorded before ws kept it.
 	Step int `json:"step,omitempty"`
+	// Asked is the question it answers, for one made by answering: what
+	// you said when crew, the orchestrator or ws asked.
+	Asked *Asked `json:"asked,omitempty"`
 	// Supersedes is the decision this one replaces.
 	Supersedes string `json:"supersedes,omitempty"`
 
@@ -46,6 +49,41 @@ type Decision struct {
 	SupersededBy string     `json:"supersededBy,omitempty"`
 	Withdrawn    *time.Time `json:"withdrawn,omitempty"`
 	WithdrawnWhy string     `json:"withdrawnWhy,omitempty"`
+}
+
+// Asked is a question a decision answers: who asked (crew by id, the
+// orchestrator, ws) and what, on one line.
+type Asked struct {
+	By   string `json:"by"`
+	Text string `json:"text"`
+}
+
+// answerTo is how a decision made by answering said so before ws kept the
+// question apart: in its why.
+var answerTo = regexp.MustCompile(`(?s)^the answer to (\S+)'s question: (.+)$`)
+
+// asked reads the question out of the why of a decision recorded before
+// ws kept it apart, so every answer has its question the same way.
+func (d *Decision) asked() {
+	if d.Asked != nil {
+		return
+	}
+	if m := answerTo.FindStringSubmatch(d.Why); m != nil {
+		d.Asked, d.Why = &Asked{By: m[1], Text: m[2]}, ""
+	}
+}
+
+// Reason is why, as agents read it: for an answer, that it's one and the
+// question it answers, then its why.
+func (d Decision) Reason() string {
+	if d.Asked == nil {
+		return d.Why
+	}
+	said := fmt.Sprintf("the answer to %s's question: %s", d.Asked.By, d.Asked.Text)
+	if d.Why != "" {
+		said += " " + d.Why
+	}
+	return said
 }
 
 // decisionLine is a line of decisions.jsonl: a decision made, or one
@@ -212,8 +250,8 @@ func (d Decision) Line() string {
 		who += ", from " + d.From
 	}
 	line := fmt.Sprintf("%s (%s): %s", d.ID, who, d.What)
-	if d.Why != "" {
-		line += " Why: " + d.Why
+	if why := d.Reason(); why != "" {
+		line += " Why: " + why
 	}
 	switch d.State {
 	case DecisionSuperseded:

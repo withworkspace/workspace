@@ -119,3 +119,28 @@ func TestDecisionKeepsItsStep(t *testing.T) {
 		t.Errorf("with every step passed: step %d", n)
 	}
 }
+
+// A decision made by answering keeps its question beside it, and one
+// recorded when the question was written into its why reads the same;
+// agents are told both as they always were.
+func TestDecisionKeepsWhatItAnswers(t *testing.T) {
+	old := `{"made":{"id":"d1","what":"A","why":"the answer to c1's question: Keep it, or drop it? (A) drop it","by":"you","at":"2026-11-20T10:00:00Z"}}`
+	now := `{"made":{"id":"d2","what":"Redis","why":"It's there already.","by":"you","at":"2026-11-20T11:00:00Z","asked":{"by":"orchestrator","text":"Which cache?"}}}`
+	plain := `{"made":{"id":"d3","what":"Key it per tenant.","why":"the answer to that is in the proposal","by":"c1","at":"2026-11-20T12:00:00Z"}}`
+	all := replayDecisions([][]byte{[]byte(old), []byte(now), []byte(plain)})
+	if len(all) != 3 {
+		t.Fatalf("decisions = %+v", all)
+	}
+	if d := all[0]; d.Why != "" || d.Asked == nil || *d.Asked != (Asked{By: "c1", Text: "Keep it, or drop it? (A) drop it"}) {
+		t.Errorf("an old answer: %+v", d)
+	}
+	if got, want := all[0].Line(), "d1 (you): A Why: the answer to c1's question: Keep it, or drop it? (A) drop it"; got != want {
+		t.Errorf("an old answer's line = %q, want %q", got, want)
+	}
+	if got, want := all[1].Reason(), "the answer to orchestrator's question: Which cache? It's there already."; got != want {
+		t.Errorf("an answer with a why of its own = %q, want %q", got, want)
+	}
+	if d := all[2]; d.Asked != nil || d.Reason() != "the answer to that is in the proposal" {
+		t.Errorf("a why that only starts like one: %+v", d)
+	}
+}

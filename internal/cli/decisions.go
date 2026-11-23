@@ -103,6 +103,9 @@ func (g *graph) decisionView(id string) (*view, error) {
 		return nil, fmt.Errorf("mission %s has no decision %s", g.m.Slug, id)
 	}
 	v := &view{head: fmt.Sprintf("Decision %s (%s): %s", d.ID, d.State, d.What)}
+	if d.Asked != nil {
+		v.body = append(v.body, fmt.Sprintf("Answers %s's question: %s", d.Asked.By, d.Asked.Text))
+	}
 	if d.Why != "" {
 		v.body = append(v.body, "Why: "+d.Why)
 	}
