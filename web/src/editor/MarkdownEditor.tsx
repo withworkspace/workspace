@@ -36,6 +36,7 @@ import { highlighting, nodeViews, placeholder, type Quote, quoteMarks } from "./
 import { Button } from "../ui/Button";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 
 // MarkdownEditor edits a markdown document as it reads: headings as
 // headings, lists as lists, a task's box to tick. Markdown typed is
@@ -369,7 +370,7 @@ function Source({ text, setText, onRich, initial, label, placeholder, onChange, 
         </div>,
         { toolbarIn, toolbarOn },
       )}
-      <textarea
+      <TextArea
         ref={ref}
         className="doc-source"
         value={text}

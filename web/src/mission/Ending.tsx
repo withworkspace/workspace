@@ -9,6 +9,7 @@ import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 
 // How a mission ends: landed (at Z, its code merged or landed), answered
 // (a finding, no code), handed on (its work raised as other missions) or
@@ -137,7 +138,7 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
         ))}
       </div>
       {ending && <div className="dim end-help">{endingHelp[ending]}.</div>}
-      <textarea value={text} rows={3} placeholder="What it came to: the finding, what landed, why it stops" aria-label="What it came to" onChange={(e) => setText(e.target.value)} />
+      <TextArea value={text} rows={3} placeholder="What it came to: the finding, what landed, why it stops" aria-label="What it came to" onChange={(e) => setText(e.target.value)} />
       {ending === "handed-on" && (
         <label className="end-to">
           <span>Handed on to</span>
@@ -233,7 +234,7 @@ export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetai
               ? "Its work won't be part of the mission, and it no longer holds it open. Its worktree is kept, in no mission."
               : "A mission is raised for it from what you say, to be briefed, or name one there is: it takes the capsule, which no longer holds this one open."}
           </p>
-          <textarea
+          <TextArea
             value={text}
             rows={3}
             autoFocus

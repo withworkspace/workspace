@@ -5,6 +5,7 @@ import { confirm, Confirmer } from "./Confirm";
 import { Dialog, DialogActions, DialogText } from "./Dialog";
 import { Option, Select } from "./Select";
 import { Input } from "./Input";
+import { TextArea } from "./TextArea";
 
 // Dialogs: press a button to open one. As it is, wide with fields (the
 // focus starts in the first), bare, and what confirm asks: one that does
@@ -35,7 +36,7 @@ function Fields({ close }: { close: () => void }) {
           <Option value="proposal">Proposal</Option>
         </Select>
         <Input type="text" placeholder="What it's named from" aria-label="Title" />
-        <textarea rows={3} placeholder="Why" aria-label="Why" />
+        <TextArea rows={3} placeholder="Why" aria-label="Why" />
       </div>
       <DialogActions>
         <Button onClick={close}>Cancel</Button>

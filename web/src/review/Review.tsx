@@ -50,6 +50,7 @@ import { capital } from "../ui/text";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Checkbox } from "../ui/Checkbox";
 import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -1764,7 +1765,7 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
           {linesWord(editing.target)} · <Keys k="tab" /> kind
         </span>
       </div>
-      <textarea
+      <TextArea
         ref={area}
         value={text}
         rows={Math.min(12, Math.max(3, text.split("\n").length + 1))}

@@ -133,21 +133,6 @@
     color: var(--fg);
   }
 
-  textarea {
-    background: var(--raised);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    padding: 7px 10px;
-    transition:
-      border-color var(--fast) var(--ease),
-      box-shadow var(--fast) var(--ease);
-  }
-
-  textarea {
-    resize: none;
-    line-height: 1.5;
-  }
-
   /* What has the keys' focus has a ring, until it says otherwise. It's in
      this layer, though it isn't an element alone, so that a part of the
      library can say otherwise (a menu's list, which shows its focus on an
@@ -303,12 +288,6 @@ input::placeholder {
   color: var(--dim);
   opacity: 0.8;
   font-family: var(--font);
-}
-
-textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 input[type="checkbox"] {

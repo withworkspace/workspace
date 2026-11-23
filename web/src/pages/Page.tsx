@@ -77,6 +77,7 @@ import { clip } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Tab, Tabs } from "../ui/Tabs";
 import { Checkbox } from "../ui/Checkbox";
+import { TextArea } from "../ui/TextArea";
 
 // A page: a document you write, saved as you go, with cells an agent fills
 // in. A line that starts with >> asks for something; ⏎ makes it a cell and
@@ -1029,7 +1030,7 @@ function ChangeBox({
   return (
     <div className="cell-panel change-box" ref={panel} style={{ top, left: 0 }} role="dialog" aria-label={label}>
       <div className="composer cell-composer">
-        <textarea
+        <TextArea
           ref={box}
           rows={1}
           value={text}
@@ -1342,7 +1343,7 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
       </ol>
       {!cell.answering && last?.by !== "you" && (
         <div className="composer cell-composer">
-          <textarea
+          <TextArea
             ref={box}
             rows={1}
             value={text}
@@ -1993,7 +1994,7 @@ function CellPanel({
         </div>
       )}
       <div className="composer cell-composer">
-        <textarea
+        <TextArea
           ref={box}
           rows={1}
           value={text}

@@ -5,6 +5,7 @@ import { Icon } from "../ui/Icon";
 import { humanError, Keys, useAutosize } from "../ui/kit";
 import { Dialog } from "../ui/Dialog";
 import { Button } from "../ui/Button";
+import { TextArea } from "../ui/TextArea";
 
 // What a capsule's review and a document's share: how verdicts and comment
 // states read, suggestions as written in a comment, replying, and
@@ -39,7 +40,7 @@ export function ReplyBox({ onSend, onCancel }: { onSend: (body: string) => void;
   }, []);
   return (
     <div className="reply-box" onClick={(e) => e.stopPropagation()}>
-      <textarea
+      <TextArea
         ref={area}
         value={text}
         rows={2}
@@ -119,7 +120,7 @@ export function SubmitDialog({
             </button>
           ))}
         </div>
-        <textarea
+        <TextArea
           ref={area}
           value={summary}
           rows={4}

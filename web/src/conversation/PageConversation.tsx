@@ -13,6 +13,7 @@ import { humanError, Keys, toast } from "../ui/kit";
 import { type ConversationHost, type Form, fit, givenWith, useHost } from "./host";
 import { Button, buttonClass } from "../ui/Button";
 import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 
 // PageConversation draws a page's conversation (host.ts) round the page:
 // the ask bar over its foot, the card the answer opens in over the bar, a
@@ -286,7 +287,7 @@ export function PageConversation({ host, about, root, children }: { host: Conver
   const box = (
     <div className={`convo-composer${sending ? " sending" : ""}`}>
       {holding}
-      <textarea ref={composer} rows={1} value={text} placeholder={placeholder} aria-label={placeholder} onChange={(e) => setText(e.target.value)} onKeyDown={typed} />
+      <TextArea ref={composer} rows={1} value={text} placeholder={placeholder} aria-label={placeholder} onChange={(e) => setText(e.target.value)} onKeyDown={typed} />
       <Button variant="primary" size="small" type="button" onClick={() => send(text)} disabled={!text.trim() || sending} aria-busy={sending}>
         {sending ? <Icon name="spinner" size={12} className="spin" /> : "Send"}
       </Button>

@@ -47,6 +47,7 @@ import { Chip, chipClass } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { clip } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
+import { TextArea } from "../ui/TextArea";
 
 // A pull request's review: the page a capsule's review is, on commits
 // fetched into the repo's clone. A stack opens as one review, its layers
@@ -815,7 +816,7 @@ function PRSubmitDialog({
                 </div>
               )}
               {l.verdict && !l.state && (
-                <textarea
+                <TextArea
                   ref={i === focus ? area : undefined}
                   value={l.summary}
                   rows={2}

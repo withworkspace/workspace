@@ -13,6 +13,7 @@ import { useLatest } from "../load";
 import { Button } from "../ui/Button";
 import { pageScroller } from "../ui/scroller";
 import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 
 // The agent view: a crew as a conversation, the way in to it. What it was
 // sent, what it said and the steps between, as it happens (the session
@@ -465,7 +466,7 @@ function Composer({ slug, id, crew, live, working }: { slug: string; id: string;
   if (!live && !canResume) return null;
   return (
     <div className="composer agent-composer">
-      <textarea
+      <TextArea
         ref={box}
         value={text}
         rows={1}

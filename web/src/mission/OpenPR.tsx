@@ -7,6 +7,7 @@ import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
 import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 
 // A pull request is opened through ws, so the process's rules about it are
 // held where ws is the one acting: it pushes the capsule's branch and opens
@@ -86,7 +87,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
                 <Icon name={writing ? "spinner" : "pencil"} size={12} /> {writing ? "Writing…" : "Write it"}
               </Button>
             </div>
-            <textarea
+            <TextArea
               value={body}
               rows={8}
               aria-label="Description"

@@ -46,6 +46,7 @@ import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusC
 import { pageScroller } from "../ui/scroller";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -183,7 +184,7 @@ export function TalkList({
   return (
     <>
       <div className={`composer new-talk${fresh ? " fresh" : ""}`}>
-        <textarea
+        <TextArea
           ref={box}
           value={text}
           rows={2}
@@ -665,7 +666,7 @@ export function TalkPage({ workspace }: { workspace: Workspace }) {
             </button>
           )}
           <div className="composer">
-            <textarea
+            <TextArea
               ref={box}
               value={text}
               rows={1}
@@ -1183,8 +1184,8 @@ function WsProposalCard({
         case "decision":
           return (
             <div className="proposal-edit">
-              <textarea value={what} rows={2} onChange={(e) => setWhat(e.target.value)} placeholder="The decision, in a sentence" aria-label="The decision" />
-              <textarea value={why} rows={2} onChange={(e) => setWhy(e.target.value)} placeholder="Why" aria-label="Why" />
+              <TextArea value={what} rows={2} onChange={(e) => setWhat(e.target.value)} placeholder="The decision, in a sentence" aria-label="The decision" />
+              <TextArea value={why} rows={2} onChange={(e) => setWhy(e.target.value)} placeholder="Why" aria-label="Why" />
             </div>
           );
         case "mission":
@@ -1209,19 +1210,19 @@ function WsProposalCard({
         case "dispatch":
           return (
             <div className="proposal-edit">
-              <textarea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What the crew's to do" aria-label="What the crew's to do" />
+              <TextArea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What the crew's to do" aria-label="What the crew's to do" />
             </div>
           );
         case "replan":
           return (
             <div className="proposal-edit">
-              <textarea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What to change in the plan" aria-label="What to change in the plan" />
+              <TextArea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What to change in the plan" aria-label="What to change in the plan" />
             </div>
           );
         case "comment":
           return (
             <div className="proposal-edit">
-              <textarea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What the comment says" aria-label="What the comment says" />
+              <TextArea value={text} rows={Math.min(10, Math.max(3, text.split("\n").length + 1))} onChange={(e) => setText(e.target.value)} placeholder="What the comment says" aria-label="What the comment says" />
             </div>
           );
         case "document":
@@ -1239,7 +1240,7 @@ function WsProposalCard({
           return (
             <div className="proposal-edit">
               {!p.to && <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Its title" aria-label="Its title" />}
-              <textarea
+              <TextArea
                 value={note}
                 rows={Math.min(6, Math.max(2, note.split("\n").length + 1))}
                 onChange={(e) => setNote(e.target.value)}

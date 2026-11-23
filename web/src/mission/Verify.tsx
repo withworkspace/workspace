@@ -34,6 +34,7 @@ import { capital } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
 import { cx } from "../ui/cx";
 import { Menu, MenuItem, MenuSection, MenuSeparator, MenuText } from "../ui/Menu";
+import { TextArea } from "../ui/TextArea";
 
 // The mission's Verify tab: its verification bundles, what crew handed
 // over to show their work is as its checks say. Those yours to approve are
@@ -712,7 +713,7 @@ function CheckDetail({
               <span>
                 What's not right? It goes back to {b.crew} with this check and what's shown here.
               </span>
-              <textarea autoFocus rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Say what you saw" />
+              <TextArea autoFocus rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Say what you saw" />
             </label>
           )}
           <div className="verify-yours-buttons">

@@ -9,6 +9,7 @@ import { Option, Select } from "../ui/Select";
 import { clearable, type IntoKind, type Lives, livesAt, promoteBlocked, promoteVersions, promotion } from "./shown";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
+import { TextArea } from "../ui/TextArea";
 
 // An artifact's lifetime, in the web UI: Promote, with the version chosen,
 // what it went into, and, the first time, where it's to live (a folder in
@@ -213,7 +214,7 @@ export function DiscardDialog({ a, workspace, onClose, onDone }: { a: ArtifactIn
         )}
         {a.id} still says what it was.
       </DialogText>
-      <textarea
+      <TextArea
         className="artifact-discard-why"
         autoFocus
         rows={3}
