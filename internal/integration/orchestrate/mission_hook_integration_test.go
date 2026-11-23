@@ -35,7 +35,7 @@ func hook(t *testing.T, w *testutil.Workspace, event, payload string) {
 func TestMissionHook_RecordsWhatCrewReport(t *testing.T) {
 	w, store := testutil.OrchestrateFixture(t)
 	store.StartCrewAs("cache", "cursor", "", "") // c2, no chat id yet
-	store.SetCrewStatus("cache", "c2", mission.CrewDone, "stage one done")
+	store.SetCrewStatus("cache", "c2", mission.CrewAsking, "stage two next?")
 	t.Setenv(mission.EnvMission, "cache")
 	t.Setenv(mission.EnvCrew, "c2")
 	crew := func() mission.Crew {
@@ -293,10 +293,15 @@ func TestMissionHook_DoneSurvivesAWakeUp(t *testing.T) {
 		t.Errorf("runs = %v", *runs)
 	}
 
-	// Your message is one: it clears the done, as ever.
-	hook(t, w, "prompt", `{"prompt":"Also add a benchmark."}`)
-	if c := crew(); c.Status != "" {
+	// Your message is one, and the done isn't a message's to take back
+	// either: only ws giving them more to do does.
+	hook(t, w, "prompt", `{"prompt":"Which suite was that?"}`)
+	if c := crew(); c.Status != mission.CrewDone {
 		t.Errorf("after your message: status %q", c.Status)
+	}
+	store.Nudged("cache", "c2", "Also add a benchmark.", "orchestrator")
+	if c := crew(); c.Status != "" {
+		t.Errorf("after ws gave it more to do: status %q", c.Status)
 	}
 }
 

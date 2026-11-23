@@ -348,7 +348,7 @@ func TestStore_HandoffMarks(t *testing.T) {
 	// Resumed under a mark, crew are starting again, whatever they last did.
 	s.EndCrew(slug, "c1", "exit 0")
 	s.StartLaunching(slug, "")
-	if _, err := s.ResumeCrew(slug, "c1"); err != nil {
+	if _, err := s.ResumeCrew(slug, "c1", "ws"); err != nil {
 		t.Fatal(err)
 	}
 	if load().Launching != nil || !starting("c1") {

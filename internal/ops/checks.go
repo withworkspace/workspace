@@ -458,16 +458,7 @@ func (w *Workspace) afterChecks(slug string, n int, round mission.CheckRound) st
 	}
 	round.N = max(rounds, 1)
 	if round.Met() {
-		m, err := w.Missions.Load(slug)
-		if err == nil {
-			if err := w.acceptAllowed(m); err != nil {
-				return fmt.Sprintf("step %d's checks are met, and it passes once the user's review is settled: %v", n, err)
-			}
-		}
-		if said := w.passStep(slug, n, "ws", fmt.Sprintf("its checks are met (round %d)", round.N), mission.StepWork); said != "" {
-			return said
-		}
-		return fmt.Sprintf("step %d's checks are met", n)
+		return w.passChecked(slug, n, round)
 	}
 	if cant := round.With(mission.CheckCantTell); len(cant) > 0 && len(round.With(mission.CheckUnmet)) == 0 {
 		return w.askAboutChecks(slug, n, round, "the judge can't tell of "+checkList(cant)+": it's yours to say")
@@ -479,6 +470,122 @@ func (w *Workspace) afterChecks(slug string, n int, round mission.CheckRound) st
 		return fmt.Sprintf("step %d's checks aren't all met (%s): the orchestrator decides what follows, by the process", n, round.Summary())
 	}
 	return w.askAboutChecks(slug, n, round, "the orchestrator isn't running to send it back")
+}
+
+// passChecked passes step n for ws, round's checks all met, and says what
+// it did. Three things stop it, and each is said on the mission rather
+// than left in ws's own log:
+//
+//   - Its crew are in a turn begun since they reported done (a message
+//     sent to them after it). What they're doing now isn't in what was
+//     checked, so the step isn't passed under them: TurnEnded looks again
+//     when the turn ends.
+//   - The capsule isn't at the commit the round ran at: they've committed
+//     since, so what's there isn't what was checked. Still running,
+//     they're asked to report done again, and it's checked again; gone,
+//     it's yours to say.
+//   - Anything else that refuses it is yours to pass, asked as checks not
+//     all met are.
+func (w *Workspace) passChecked(slug string, n int, round mission.CheckRound) string {
+	met := fmt.Sprintf("step %d's checks are met", n)
+	m, err := w.Missions.Load(slug)
+	if err != nil {
+		return met
+	}
+	if err := w.acceptAllowed(m); err != nil {
+		return fmt.Sprintf("%s, and it passes once the user's review is settled: %v", met, err)
+	}
+	brief, _ := w.Missions.ReadBrief(slug)
+	if _, id, ok := m.UncheckedDone(brief); ok {
+		return fmt.Sprintf("%s, and %s has reported done again since: ws checks that", met, id)
+	}
+	c, ok := m.CrewByID(round.Crew)
+	running := ok && c.Ended == nil
+	if running && c.InTurnSinceDone() {
+		return w.notePass(slug, fmt.Sprintf("%s (round %d): it passes when %s's turn ends, which began after they reported done", met, round.N, c.ID))
+	}
+	if head := w.capsuleHead(round.Capsule); round.Commit != "" && head != "" && head != round.Commit {
+		moved := fmt.Sprintf("%s is at %s, and the checks ran at %s", round.Capsule, shortCommit(head), shortCommit(round.Commit))
+		if running {
+			text := fmt.Sprintf("Step %d's checks are met for the work as it was when you reported done, and you've committed since (%s). If what you've added is finished, report done again with a handoff (ws mission done): ws checks it again, and passes the step on that.", n, moved)
+			if _, err := w.Say(slug, c.ID, text, AsWS); err == nil {
+				return w.notePass(slug, fmt.Sprintf("%s (round %d), but the work has changed since (%s): asked %s to report done again", met, round.N, moved, c.ID))
+			}
+		}
+		return w.askAboutChecks(slug, n, round, "the work has changed since they ran ("+moved+")")
+	}
+	said, err := w.tryPassStep(slug, n, "ws", fmt.Sprintf("its checks are met (round %d)", round.N), mission.StepWork)
+	switch {
+	case err == nil && said != "":
+		return said
+	case err == nil:
+		return met
+	}
+	if t, open := m.StepTask(n); open && t.Verb == mission.TaskChecks {
+		// You've been asked of it already: once is enough.
+		return fmt.Sprintf("%s, and ws still couldn't pass it: %v", met, err)
+	}
+	return w.askAboutChecks(slug, n, round, "ws couldn't pass it: "+err.Error())
+}
+
+// notePass says on the mission why a step whose checks are met isn't
+// passed yet, and gives it back to say.
+func (w *Workspace) notePass(slug, text string) string {
+	w.Missions.AppendLog(slug, mission.Event{Kind: mission.EventNote, Crew: "ws", Text: text}) //nolint:errcheck // a note
+	return text
+}
+
+// capsuleHead is the commit capsule (repo/name) is at, or "" where it
+// can't be read.
+func (w *Workspace) capsuleHead(capsule string) string {
+	repo, name, ok := strings.Cut(capsule, "/")
+	if !ok {
+		return ""
+	}
+	return gitOut(filepath.Join(w.WS().RepoDir(repo), name), "rev-parse", "HEAD")
+}
+
+// shortCommit is a commit as it's said in a sentence.
+func shortCommit(c string) string {
+	if len(c) > 9 {
+		return c[:9]
+	}
+	return c
+}
+
+// TurnEnded is what follows a turn of crew's ending. A step whose checks
+// came round met while they were in a turn begun since their done is
+// looked at again (passChecked), now that the turn's over; otherwise the
+// orchestrator looks, where the turn is its to look at (Notify).
+func (w *Workspace) TurnEnded(slug, crewID string) {
+	if said, ok := w.settleChecked(slug, crewID); ok {
+		execlog.Note(w.Root(), "checks "+slug, "%s", said)
+		return
+	}
+	w.Notify(slug, mission.OrchestratorEvent{Crew: crewID, Trigger: "quiet"})
+}
+
+// settleChecked looks again at the step the mission is at, when its
+// latest round of checks is all met, was run on crew crewID's done, which
+// still stands, and nothing passed it: what held it may be over. It says
+// what it did, and whether there was such a step.
+func (w *Workspace) settleChecked(slug, crewID string) (string, bool) {
+	m, err := w.Missions.Load(slug)
+	if err != nil || m.Checking != nil {
+		return "", false
+	}
+	cur, ok := currentStep(w.Missions, m)
+	if !ok || cur.Step.Type != mission.StepWork || len(cur.Step.Checks) == 0 || len(cur.Instances()) > 0 {
+		return "", false
+	}
+	round, ok := cur.Record.LatestChecks()
+	if !ok || !round.Met() || round.Crew != crewID {
+		return "", false
+	}
+	if c, ok := m.CrewByID(crewID); !ok || c.Status != mission.CrewDone || round.Done != "" && round.Done != c.DoneKey() {
+		return "", false
+	}
+	return w.passChecked(slug, cur.N, round), true
 }
 
 // askAboutChecks makes step n yours, its checks not all met: pass it as it
@@ -526,7 +633,11 @@ func (w *Workspace) passApproved(slug string, n int, round mission.CheckRound) s
 		ids = append(ids, b.ID)
 	}
 	why := fmt.Sprintf("you approved %s, its checks as they were (round %d: %s)", strings.Join(ids, ", "), round.N, round.Summary())
-	return w.passStep(slug, n, "you", why, cur.Step.Type)
+	said, err := w.tryPassStep(slug, n, "you", why, cur.Step.Type)
+	if err != nil {
+		return "" // it couldn't be passed on that: you're asked, and told why
+	}
+	return said
 }
 
 // bundleMovedOn reports whether a bundle's capsule isn't at the commit it
@@ -640,6 +751,9 @@ func (w *Workspace) carryOn(m *mission.Mission, st mission.StageState, crewID, t
 		var r *Refused
 		switch {
 		case err == nil:
+			// As for crew still running: resumed by you with what to put
+			// right, their done would otherwise stand (Store.ResumeCrew).
+			w.Missions.ClearStatus(m.Slug, c.ID)
 			w.Missions.JoinStage(m.Slug, c.ID, st.N)
 			return fmt.Sprintf("resumed %s to carry on at step %d", l.ID, st.N), nil
 		case errors.As(err, &r) && r.Code == "dispatch-limit":

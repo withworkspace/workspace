@@ -369,8 +369,13 @@ func (s Store) SetCrewProcess(slug, id string, pid int, capsule string) error {
 }
 
 // ResumeCrew reopens ended crew: the same crew, continuing its conversation,
-// rather than new crew. It clears the end and logs the resume.
-func (s Store) ResumeCrew(slug, id string) (Crew, error) {
+// rather than new crew. It clears the end and logs the resume. Resumed by
+// ws or the orchestrator (by), or by you with a message one of them left
+// (to carry on, to put something right), they've more to do, so what
+// they'd said of themselves is taken back. Resumed by you to talk to,
+// only a question they'd asked is: that they'd reported done stands, as
+// when you talk to crew still running (TalkedTo).
+func (s Store) ResumeCrew(slug, id, by string) (Crew, error) {
 	var crew Crew
 	found := false
 	if _, err := s.Update(slug, func(m *Mission) error {
@@ -383,7 +388,11 @@ func (s Store) ResumeCrew(slug, id string) (Crew, error) {
 				m.Crew[i].Conversing = false
 				m.Crew[i].PID = 0
 				m.Crew[i].Pending = nil // a new session waits on nothing yet
-				m.Crew[i].Status, m.Crew[i].Note, m.Crew[i].StatusAt = "", "", nil
+				if by == "you" && (m.Crew[i].ResumeWith == "" || m.Crew[i].ResumeWithBy == "you") {
+					m.Crew[i].answered()
+				} else {
+					m.Crew[i].Status, m.Crew[i].Note, m.Crew[i].StatusAt = "", "", nil
+				}
 				if m.Launching != nil {
 					// The crew ws was starting again: they hold the mark.
 					t := now()
@@ -443,11 +452,22 @@ func (c Crew) Done(m *Mission) bool {
 }
 
 // HandedBack reports whether crew has handed its work back: it reported
-// done (and nobody has talked to it since), or it finished briefing. Its
-// session may still be open, but it's no longer working: it doesn't make
-// its capsule busy, and whoever starts new crew there ends it.
+// done (and ws hasn't given it more to do since), or it finished briefing.
+// Its session may still be open, and you may be talking to it, but its
+// work is handed over: it doesn't make its capsule busy, and whoever
+// starts new crew there ends it.
 func (c Crew) HandedBack(m *Mission) bool {
 	return c.Status == CrewDone || c.Done(m)
+}
+
+// InTurnSinceDone reports whether crew who reported done are in a turn
+// begun since: on a message sent to them after it (yours, or one that
+// waited for their turn to end). Their done stands, but what they're
+// doing now isn't in it yet, so ws doesn't pass their step under them: it
+// looks again when the turn ends.
+func (c Crew) InTurnSinceDone() bool {
+	return c.Status == CrewDone && c.Ended == nil && c.Activity == ActivityWorking &&
+		c.StatusAt != nil && c.ActivityAt != nil && c.ActivityAt.After(*c.StatusAt)
 }
 
 // startingFor is how long crew recorded without a process are taken to be
@@ -672,17 +692,20 @@ func (s Store) SetCrewStatus(slug, id, status, note string) error {
 }
 
 // TalkedTo records that you sent crew a message: when its turn ends it's
-// answering you, and what it last said about itself (asking, done) has
-// been answered. It's logged, so the mission (and the orchestrator) knows
-// you've redirected it: what you said, or "" for what you typed in its
-// terminal, logged once a turn. It reports whether that cleared a status.
+// answering you, and a question it asked has been answered. That it
+// reported done stands: what you say to crew who've handed their work
+// over doesn't take that back, so their step can still be checked and
+// passed while you talk to them. Only ws giving them more to do does
+// (Nudged, ClearStatus), or their reporting again. It's logged, so the
+// mission (and the orchestrator) knows you've redirected it: what you
+// said, or "" for what you typed in its terminal, logged once a turn. It
+// reports whether that answered a question.
 func (s Store) TalkedTo(slug, id, message string) (bool, error) {
 	cleared, already := false, false
 	_, err := s.Update(slug, func(m *Mission) error {
 		for i := range m.Crew {
 			if c := &m.Crew[i]; c.ID == id {
-				cleared, already = c.Status != "", c.Conversing
-				c.Status, c.Note, c.StatusAt = "", "", nil
+				cleared, already = c.answered(), c.Conversing
 				c.Conversing = true
 			}
 		}
@@ -692,6 +715,17 @@ func (s Store) TalkedTo(slug, id, message string) (bool, error) {
 		return cleared, err
 	}
 	return cleared, s.AppendLog(slug, Event{Kind: EventTold, Crew: id, By: "you", Text: strings.TrimSpace(message)})
+}
+
+// answered takes back a question crew asked (CrewAsking), which a message
+// sent to them answers, and reports whether there was one. That they
+// reported done isn't a message's to take back.
+func (c *Crew) answered() bool {
+	if c.Status != CrewAsking {
+		return false
+	}
+	c.Status, c.Note, c.StatusAt = "", "", nil
+	return true
 }
 
 // ClearStatus takes back what crew last said of itself (done, asking):
@@ -710,12 +744,17 @@ func (s Store) ClearStatus(slug, id string) error {
 }
 
 // Nudged records that ws sent crew a message for the orchestrator (by, it
-// or ws): when its turn ends, the orchestrator looks again.
+// or ws): when its turn ends, the orchestrator looks again. They've been
+// given something to do, so what they'd said of themselves by then (done,
+// asking) isn't their latest word any more. What they say after it's sent
+// stands, even where they hadn't read it yet (a message waits for a
+// turn to end): it's taken back as it's sent, not as it's read.
 func (s Store) Nudged(slug, id, message, by string) error {
 	if _, err := s.Update(slug, func(m *Mission) error {
 		for i := range m.Crew {
 			if c := &m.Crew[i]; c.ID == id {
-				c.Conversing, c.ResumeWith = false, ""
+				c.Conversing, c.ResumeWith, c.ResumeWithBy = false, "", ""
+				c.Status, c.Note, c.StatusAt = "", "", nil
 			}
 		}
 		m.Waiting = nil
@@ -864,6 +903,10 @@ func (s Store) SetResumeWithBy(slug, id, message, by string) error {
 		for i := range m.Crew {
 			if m.Crew[i].ID == id {
 				m.Crew[i].ResumeWith = strings.TrimSpace(message)
+				m.Crew[i].ResumeWithBy = ""
+				if m.Crew[i].ResumeWith != "" {
+					m.Crew[i].ResumeWithBy = by
+				}
 				found = true
 			}
 		}
@@ -1160,11 +1203,12 @@ func (s Store) SetCrewDispatch(slug, id, by, text string) error {
 // Hook is what an agent reported through one of its hooks.
 type Hook struct {
 	// Prompted: the agent was sent a message (by you, or by ws for you). It's
-	// working, and what it said before (asking, done) has been answered.
+	// working, and a question it asked has been answered. That it reported
+	// done stands (TalkedTo says why).
 	Prompted bool
 	// WakeUp, with Prompted: the prompt is its harness waking it (a
 	// background task of its own ended), not a message. It's working, but
-	// nobody answered what it said before: that stays.
+	// nobody answered what it asked: that stays too.
 	WakeUp bool
 	// Activity, when set, replaces the crew's (ActivityWaiting at the end of
 	// its turn, ActivityPermission when it asks for one).
@@ -1212,7 +1256,7 @@ func (s Store) CrewHook(slug, id string, h Hook) error {
 				c.Activity, c.ActivityAt, c.Notice, c.Options = ActivityWorking, &t, "", nil
 				c.Pending = nil
 				if !h.WakeUp {
-					c.Status, c.Note, c.StatusAt = "", "", nil
+					c.answered()
 				}
 			case aboutQuestion:
 			case h.Activity == ActivityQuestion:

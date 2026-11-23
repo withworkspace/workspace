@@ -72,7 +72,7 @@ func Start(r Request) (Started, error) {
 	var c mission.Crew
 	prompt := l.Prompt
 	if r.Resume != "" {
-		c, err = r.Store.ResumeCrew(r.Slug, r.Resume)
+		c, err = r.Store.ResumeCrew(r.Slug, r.Resume, r.By)
 		if err == nil && c.ResumeWith != "" {
 			prompt = c.ResumeWith
 			r.Store.SetResumeWith(r.Slug, c.ID, "")

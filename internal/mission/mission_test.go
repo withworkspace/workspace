@@ -400,7 +400,7 @@ func TestResumeCrew(t *testing.T) {
 		t.Error("live crew offered for resume")
 	}
 
-	resumed, err := s.ResumeCrew(m.Slug, "c1")
+	resumed, err := s.ResumeCrew(m.Slug, "c1", "ws")
 	if err != nil || resumed.ID != "c1" || resumed.Conversation != "chat-1" {
 		t.Fatalf("ResumeCrew = %+v, %v", resumed, err)
 	}
@@ -412,7 +412,7 @@ func TestResumeCrew(t *testing.T) {
 	if events[0].Kind != EventCrewResumed || events[0].Crew != "c1" {
 		t.Errorf("last event = %+v", events[0])
 	}
-	if _, err := s.ResumeCrew(m.Slug, "c9"); err == nil {
+	if _, err := s.ResumeCrew(m.Slug, "c9", "ws"); err == nil {
 		t.Error("resuming unknown crew should fail")
 	}
 }
@@ -548,7 +548,7 @@ func TestCrewStatus(t *testing.T) {
 	}
 	s.SetCrewStatus(m.Slug, "c1", CrewDone, "added the cache")
 	s.EndCrew(m.Slug, "c1", "hangup")
-	s.ResumeCrew(m.Slug, "c1")
+	s.ResumeCrew(m.Slug, "c1", "ws")
 	got, _ = s.Load(m.Slug)
 	if got.Crew[0].Status != "" {
 		t.Errorf("resume kept status %q", got.Crew[0].Status)

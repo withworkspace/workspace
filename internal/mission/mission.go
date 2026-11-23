@@ -144,7 +144,9 @@ type Crew struct {
 
 	// Status is what the crew last said about itself: CrewAsking (needs the
 	// user), CrewDone (finished its part), or "". Note is the question or
-	// the summary. Both clear when the user next talks to the crew.
+	// the summary. A question clears when the crew are next sent a message;
+	// a done stands until ws gives them more to do, or they report again
+	// (Store.TalkedTo).
 	Status   string     `toml:"status,omitempty" json:"status,omitempty"`
 	Note     string     `toml:"note,omitempty" json:"note,omitempty"`
 	StatusAt *time.Time `toml:"status_at,omitempty" json:"status_at,omitempty"`
@@ -184,6 +186,10 @@ type Crew struct {
 	// ResumeWith is a message to send when this crew is next resumed
 	// (ws mission resume-with); it's used once.
 	ResumeWith string `toml:"resume_with,omitempty" json:"resume_with,omitempty"`
+	// ResumeWithBy is who left it ("you", "orchestrator", "ws"): resumed
+	// with a message of ws's, crew have more to do; with yours, or none,
+	// you're talking to them (Store.ResumeCrew).
+	ResumeWithBy string `toml:"resume_with_by,omitempty" json:"resume_with_by,omitempty"`
 	// Conversing: you've sent this crew a message since ws last did (its
 	// opening prompt, a nudge). When its turn ends, it's answering you, so
 	// it's your court; otherwise the orchestrator looks.
