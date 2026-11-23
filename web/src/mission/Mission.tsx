@@ -23,8 +23,8 @@ import { type KeyMap, useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { TalkList, talkHref } from "../talk/Talk";
 import { Icon, type IconName } from "../ui/Icon";
+import { Crumbs } from "../ui/Crumbs";
 import { CheckingNow, checkingTitle } from "./checking";
-import { TLink } from "../ui/TLink";
 import { Inline, plain } from "../ui/inline";
 import { Callout, type CalloutTone, Copyable, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useTitle } from "../ui/kit";
 import { headlineStatus, missionStateStatus, Status } from "../ui/status";
@@ -291,7 +291,7 @@ export function MissionPage() {
   if (error && !d) {
     return (
       <div className="page narrow">
-        <Crumbs />
+        <Crumbs steps={[{ to: "/", label: "Missions" }]} />
         <ErrorCard
           title={/not found|no mission/i.test(error) ? "There's no mission here" : "Couldn't load this mission"}
           error={/not found|no mission/i.test(error) ? `No mission is called ${slug}: it may have been renamed or deleted.` : error}
@@ -413,16 +413,6 @@ export function MissionPage() {
     </div>
     </RefContext.Provider>
     </MissionData.Provider>
-  );
-}
-
-function Crumbs() {
-  return (
-    <nav className="crumbs" aria-label="Breadcrumb">
-      <TLink to="/">
-        <Icon name="arrow-left" size={13} /> Missions
-      </TLink>
-    </nav>
   );
 }
 

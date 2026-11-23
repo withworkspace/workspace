@@ -1,8 +1,9 @@
 import { lazy, Suspense, useCallback, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { act, getMission } from "../api";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
+import { Crumbs } from "../ui/Crumbs";
 import { useKeys } from "../keys";
 import { Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
 import { confirm } from "../ui/Confirm";
@@ -77,11 +78,7 @@ export function CrewPage() {
         : { icon: "circle", tone: "quiet", words: "Not running" };
   return (
     <div className="page crew-page">
-      <nav className="crumbs" aria-label="Breadcrumb">
-        <Link to={`/missions/${slug}`}>
-          <Icon name="arrow-left" size={13} /> {m?.title ?? slug}
-        </Link>
-      </nav>
+      <Crumbs steps={[{ to: `/missions/${slug}`, label: m?.title ?? slug }]} />
       <header className="crew-head">
         <div className="crew-head-title">
           <h1>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Crumbs } from "../ui/Crumbs";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { docRef, GROUND, getRepos, getWorktrees, type Repo, type Worktree, worktreeAPI } from "../api";
 import { useKeys } from "../keys";
@@ -101,11 +102,7 @@ export function FilesPage() {
         head={
           <>
             {narrow && (
-              <nav className="crumbs" aria-label="Breadcrumb">
-                <Link to="/files">
-                  <Icon name="arrow-left" size={13} /> Repos
-                </Link>
-              </nav>
+              <Crumbs className="explorer-crumbs" steps={[{ to: "/files", label: "Repos" }]} />
             )}
             <WorktreeSwitch repo={r} current={name} mission={mission?.title} open={switching} setOpen={setSwitching} />
           </>

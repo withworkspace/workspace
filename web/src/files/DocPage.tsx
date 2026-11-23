@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Crumbs } from "../ui/Crumbs";
 import { Link, useLocation, useNavigate } from "react-router";
 import { type ArtifactContent, type Citation, type DocDraft, docAddress, docRef as fileRef, docTo, dropDraft, filesTo, GROUND, getCites, getDoc, getDraft, getSpaceActivity, getThreads, kindHint, placeOf, type SpaceFlight, spaceAt, spaceTo, type Talk } from "../api";
 import { useKeys } from "../keys";
@@ -263,11 +264,7 @@ export function DocPage({ docRef }: { docRef: string }) {
         {read && where ? (
           <PathCrumbs from={space ? { to: "/documents", label: "Documents" } : { to: "/files", label: "Repos" }} on={on} title={title ?? name} open={folder} toggle={(id) => openFolder(folder === id ? undefined : id)} nav={crumbs} />
         ) : (
-          <nav className="crumbs" aria-label="Breadcrumb">
-            <Link to={home}>
-              <Icon name="arrow-left" size={13} /> {space ? space.label : "Repos"}
-            </Link>
-          </nav>
+          <Crumbs steps={[{ to: home, label: space ? space.label : "Repos" }]} />
         )}
         {/* A document that starts with its own title is its own heading. */}
         {a && !/^(---\n[^]*?\n---\n\s*)?#\s/.test(a.text.trimStart()) && (

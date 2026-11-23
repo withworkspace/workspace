@@ -2040,7 +2040,6 @@ main {
 
 .review-crumbs {
   padding-top: 16px;
-  margin-bottom: 4px;
 }
 
 .review-head {
@@ -2685,31 +2684,6 @@ button.kind.on {
   .mission-page {
     --mission-bar-h: 70px;
   }
-}
-
-.crumbs {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  font-size: var(--text-sm);
-  color: var(--dim);
-}
-
-.crumbs a {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border-radius: var(--radius-sm);
-  transition: color var(--fast) var(--ease);
-}
-
-.crumbs a:hover {
-  color: var(--fg);
-}
-
-.crumbs .sep {
-  color: var(--faint);
 }
 
 button.on {
@@ -9911,7 +9885,7 @@ div.tc-bar {
 
   .connection-banner,
   .toasts,
-  .crumbs,
+  [data-crumbs],
   .doc-rail,
   .doc-pill-wrap,
   .contents-menu,
@@ -10013,7 +9987,7 @@ div.tc-bar {
   min-width: 0;
 }
 
-.explorer-where .crumbs {
+.explorer-where .explorer-crumbs {
   margin: 0;
 }
 
@@ -10418,7 +10392,7 @@ details.repo-group > summary::-webkit-details-marker {
   white-space: nowrap;
 }
 
-.explorer-tree-head .crumbs {
+.explorer-tree-head .explorer-crumbs {
   margin-bottom: 2px;
 }
 
@@ -14300,7 +14274,7 @@ body.nav-pointing .code-view code[data-rev] {
   background: none;
 }
 
-.path-crumbs .sep {
+.path-crumbs .path-sep {
   padding: 0 1px;
 }
 
