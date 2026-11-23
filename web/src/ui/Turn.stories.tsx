@@ -3,9 +3,9 @@ import { Doing } from "./Doing";
 import { Turn, TurnAvatar, TurnHead, TurnSaid } from "./Turn";
 
 // Turns: an exchange as a conversation's page draws it (who said each,
-// yours a bubble under your name, the agent's its words, ws's quiet, and
-// the turn going now), and the same exchange dense, as it's drawn beside
-// something else: no heads, yours to the right.
+// yours a bubble to the right under your name, the agent's its words to
+// the left, ws's quiet, and the turn going now), and the same exchange
+// dense, as it's drawn beside something else: no heads.
 
 const meta: Meta = { title: "Components/Turn" };
 export default meta;

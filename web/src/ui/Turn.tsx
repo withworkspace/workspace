@@ -17,8 +17,8 @@ type TurnProps = Omit<ComponentProps<"div">, "children"> & {
   // in under it.
   head?: ReactNode;
   // dense: beside something else (a page, a document, in a panel), where
-  // there's no room for who said it at each turn: yours is the bubble, to
-  // the right, and the rest is text, in smaller words.
+  // there's no room for who said it at each turn, and the words are
+  // smaller.
   dense?: boolean;
   // landed: it was there already (the run going until now), so it
   // doesn't come in again.
@@ -31,7 +31,8 @@ type TurnProps = Omit<ComponentProps<"div">, "children"> & {
 };
 
 // Turn is one turn of an exchange with an agent: something you said, what
-// it answered (its steps over its words), or a word of ws's own. Every
+// it answered (its steps over its words), or a word of ws's own. Yours
+// keep to the right, in a bubble; the rest are text, to the left. Every
 // place there's such an exchange draws it with these: a conversation's
 // page, crew's transcript, the brief's planner, the conversation beside a
 // page, a cell.

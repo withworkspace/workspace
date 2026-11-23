@@ -64,13 +64,24 @@
     overflow-wrap: anywhere;
   }
 
-  /* Your turns: a soft bubble, so the exchange reads as one. */
+  /* Your turns keep to the right, the other's to the left, so who said
+     what is where it is: a soft bubble, its point toward your name. */
   .you .said {
-    justify-self: start;
-    max-width: 100%;
+    justify-self: end;
+    max-width: 88%;
     padding: 8px 12px;
-    border-radius: 4px var(--radius-lg) var(--radius-lg) var(--radius-lg);
+    border-radius: var(--radius-lg) 4px var(--radius-lg) var(--radius-lg);
     background: var(--accent-soft);
+  }
+
+  /* Your head is at the right too, read from there: you, then when. */
+  .you .head {
+    flex-direction: row-reverse;
+  }
+
+  .you .body {
+    padding-left: 0;
+    padding-right: 30px;
   }
 
   .ws .said {
@@ -95,10 +106,7 @@
   }
 
   .dense.you .said {
-    justify-self: end;
-    max-width: 88%;
     padding: 6px 10px;
-    border-radius: var(--radius-lg) 4px var(--radius-lg) var(--radius-lg);
   }
 
   .dense.ws .said {
@@ -107,8 +115,10 @@
 
   /* On a phone there's no room to set it in. */
   @media (max-width: 720px) {
-    .body {
+    .body,
+    .you .body {
       padding-left: 0;
+      padding-right: 0;
     }
   }
 }
