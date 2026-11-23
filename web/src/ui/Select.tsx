@@ -38,7 +38,7 @@ export function Select({
   children: ReactNode; // Options
 }) {
   // data-field: keys typed here are the Select's, not the page's (keys.ts).
-  // data-select: a dialog doesn't start its focus on one (kit.tsx).
+  // data-select: a dialog doesn't start its focus on one (Dialog.tsx).
   return (
     <AriaSelect className={cx(css.select, size === "small" && css.small, size === "tiny" && css.tiny, fill && css.fill, className)} value={value} onChange={(v) => v != null && onChange(String(v))} isDisabled={disabled} aria-label={label}>
       <Button className={css.button} data-ui="" data-field data-select="">

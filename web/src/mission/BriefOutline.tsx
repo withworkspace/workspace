@@ -2,7 +2,7 @@ import { type MouseEvent, type RefObject, useEffect, useState } from "react";
 import type { Stage } from "../api";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Keys } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import { type Edit, editsBySection } from "./briefpage";
 import { PlanList } from "./PlanList";
 import { Chip } from "../ui/Chip";

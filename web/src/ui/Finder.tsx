@@ -2,6 +2,7 @@ import { createContext, type ReactNode, useContext, useEffect, useId, useRef, us
 import { cx } from "./cx";
 import css from "./Finder.module.css";
 import { Icon } from "./Icon";
+import { Spinner } from "./Spinner";
 import { Input } from "./Input";
 import { Modal } from "./Modal";
 
@@ -93,7 +94,7 @@ export function Finder({
             }
           }}
         />
-        {busy && <Icon name="spinner" size={14} className={css.busy} />}
+        {busy && <Spinner size={14} />}
       </div>
       <ul className={cx(css.list, listClassName)} id={`${id}-list`} ref={list} role="listbox" aria-label={label}>
         <Rows.Provider value={{ id, at, over: setCursor, pick: onPick }}>{children}</Rows.Provider>

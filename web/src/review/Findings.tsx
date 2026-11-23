@@ -2,7 +2,7 @@ import { type DismissWhy, type PassFinding } from "../api";
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Keys } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import type { Found, Row } from "./model";
 import { Button } from "../ui/Button";
 import { NoteBody, NoteCard, NoteHead } from "../ui/NoteCard";

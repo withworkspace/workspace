@@ -4,6 +4,7 @@ import { useCommandLabels } from "../workspace/store";
 import type { CommandLabel } from "../wire.gen";
 import { stepLabel } from "./commandLabel";
 import { Icon, type IconName } from "./Icon";
+import { Spinner } from "./Spinner";
 import { Chip } from "./Chip";
 import { Button } from "./Button";
 
@@ -114,7 +115,7 @@ function CallLine({ c, root, running, fileLink, labels }: { c: Call; running?: b
   return (
     <li className={`call${c.refused ? " refused" : c.error ? " error" : ""}${open ? " open" : ""}${running ? " running" : ""}`}>
       <button className="call-line" onClick={() => body && setOpen((o) => !o)} aria-expanded={body ? open : undefined} disabled={!body}>
-        <Icon name={running ? "spinner" : c.refused ? "ban" : iconFor(c.tool)} size={13} className={`call-icon${running ? " spin" : ""}`} />
+        {running ? <Spinner size={13} className="call-icon" /> : <Icon name={c.refused ? "ban" : iconFor(c.tool)} size={13} className="call-icon" />}
         <span className={`call-tool${doing ? " doing" : ""}`} title={doing ? short(c.input) : undefined}>
           {label}
         </span>
@@ -196,7 +197,7 @@ export function Plan({ todos, live }: { todos: NonNullable<Call["todos"]>; live?
       {todos.map((t, i) => (
         <li key={i} className={`plan-item s-${t.status}`}>
           <span className="plan-mark" aria-hidden>
-            {t.status === "completed" ? <Icon name="check" size={10} /> : t.status === "in_progress" && live ? <Icon name="spinner" size={10} className="spin" /> : null}
+            {t.status === "completed" ? <Icon name="check" size={10} /> : t.status === "in_progress" && live ? <Spinner size={10} /> : null}
           </span>
           <span>{t.status === "in_progress" && t.active ? t.active : t.content}</span>
           <span className="sr-only">{t.status === "completed" ? " (done)" : t.status === "in_progress" ? " (in hand)" : ""}</span>

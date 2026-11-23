@@ -5,7 +5,12 @@ import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Copyable, Empty, ErrorCard, Keys, Loading, useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
+import { Loading } from "../ui/Loading";
+import { Empty } from "../ui/Empty";
+import { ErrorCard } from "../ui/ErrorCard";
+import { Copyable } from "../ui/Copyable";
+import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import { filesWords, type FoundFolder as Folder, foundTree, widths } from "./shown";
@@ -187,7 +192,7 @@ export function FoundArtifactPage() {
             <Icon name="check-circle" size={11} />
             Promoted
           </Chip>
-          <Copyable text={d.where} className="ref" title="Copy where it lives" />
+          <Copyable text={d.where} className="artifact-title-ref" title="Copy where it lives" />
         </div>
         <div className="artifact-note dim">
           <Icon name="branch" size={12} /> It lives in {d.label}, at <span className="mono">{d.where}</span>
@@ -242,7 +247,7 @@ export function FoundArtifactPage() {
               <iframe key={`${d.version}#${run}`} className="artifact-frame" src={d.frame} sandbox="allow-scripts" referrerPolicy="no-referrer" title={d.title} style={px ? { width: px } : undefined} />
             </div>
           ) : (
-            <Empty icon="alert" title="There's no file to run">
+            <Empty className="artifact-empty" icon="alert" title="There's no file to run">
               {d.where} has no index.html.
             </Empty>
           )}

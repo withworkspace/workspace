@@ -4,8 +4,12 @@ import { type ArtifactContent, docAddress, docTo, filesTo, getDoc, GROUND, place
 import { goToSection, useSections } from "../files/Contents";
 import { useLatest } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
-import { Copyable, ErrorCard, Keys, Skeleton } from "../ui/kit";
+import { Skeleton } from "../ui/Skeleton";
+import { ErrorCard } from "../ui/ErrorCard";
+import { Copyable } from "../ui/Copyable";
+import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";
 import { ChangeLine } from "./Activity";
 import { withoutTitle, wordsIn } from "./happening";
@@ -55,7 +59,7 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
           {kind && <Chip tone="quiet">{kind.title}</Chip>}
           {doc.state && kind?.states && <Chip tone={doc.state === kind.states[0] ? "quiet" : "done"}>{doc.state}</Chip>}
           {(doc.number || doc.date) && <span className="mono">{doc.number ?? doc.date}</span>}
-          <Copyable text={ref} className="mono doc-preview-ref" title="Copy its ref">
+          <Copyable text={ref} className="doc-preview-ref" title="Copy its ref">
             {`${repo} · ${doc.path}`}
           </Copyable>
         </div>
@@ -84,8 +88,8 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
         </div>
       </header>
       {flights && flights.length > 0 && (
-        <div className="banner tone-progress doc-preview-flight">
-          <Icon name="box" size={13} /> Changed in{" "}
+        <Banner tone="progress" icon="box" className="doc-preview-flight">
+          Changed in{" "}
           {flights.map((c, i) => (
             <span key={c}>
               {i > 0 && ", "}
@@ -93,7 +97,7 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
             </span>
           ))}
           : in flight, so what's here may be about to change.
-        </div>
+        </Banner>
       )}
       {sections.filter((s) => s.level === 2).length > 1 && (
         <nav className="doc-preview-sections" aria-label="Its sections">
@@ -107,7 +111,7 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
         </nav>
       )}
       {error && <ErrorCard title="Couldn't read it" error={error} retry={load} />}
-      {!shown && !error && <Skeleton rows={8} />}
+      {!shown && !error && <Skeleton rows={8} className="doc-preview-skeleton" />}
       {shown && text !== undefined && (
         <article className="artifact-body prose doc-preview-body" ref={body}>
           <Markdown text={text} at={place} />

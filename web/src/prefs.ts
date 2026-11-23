@@ -10,7 +10,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 // Not here, each for its reason: the theme (ui/theme.ts: public/theme.js
 // reads its own key before the page is drawn), how the window's arranged
 // and where you've been (chrome/store.ts, shell/recent.ts: kept for each
-// workspace), and what's typed in a composer (ui/kit.tsx's useDraft: one
+// workspace), and what's typed in a composer (ui/useDraft.ts: one
 // each).
 
 export interface Prefs {

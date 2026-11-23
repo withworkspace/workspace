@@ -12,7 +12,15 @@ import { fuzzy, marked } from "../ui/fuzzy";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon, type IconName } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
-import { Callout, Copyable, Empty, ErrorCard, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
+import { useMedia } from "../ui/useMedia";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Loading } from "../ui/Loading";
+import { Empty } from "../ui/Empty";
+import { ErrorCard } from "../ui/ErrorCard";
+import { Callout } from "../ui/Callout";
+import { Copyable } from "../ui/Copyable";
+import { Keys } from "../ui/Keys";
 import { useLoaded } from "../load";
 import { TabbedBrowser } from "./WorktreeTabs";
 import { Chip } from "../ui/Chip";
@@ -813,7 +821,7 @@ function FilePane({
               </strong>
             ),
           )}
-          <Copyable text={path} className="file-copy" title="Copy its path (y)">
+          <Copyable text={path} className="file-copy" icon="inline" title="Copy its path (y)">
             {""}
           </Copyable>
         </div>
@@ -877,10 +885,10 @@ function FilePane({
           </span>
         )}
       </div>
-      {error && <ErrorCard title="Couldn't open this file" error={error} retry={() => setTries((n) => n + 1)} />}
-      {!file && !error && <Loading what="Opening it…" />}
+      {error && <ErrorCard className="file-pane-note" title="Couldn't open this file" error={error} retry={() => setTries((n) => n + 1)} />}
+      {!file && !error && <Loading className="file-pane-note" what="Opening it…" />}
       {file && file.deleted && (
-        <Callout tone="danger" icon="minus" title={`Deleted since it left ${base}`}>
+        <Callout className="file-pane-note" tone="danger" icon="minus" title={`Deleted since it left ${base}`}>
           This is how it was there.
         </Callout>
       )}
@@ -890,15 +898,15 @@ function FilePane({
             <img src={rawURL(api, path)} alt={path} data-viewable={path} title="Open it larger" />
           </div>
         ) : file.binary ? (
-          <Empty icon="file" title="A binary file">
+          <Empty className="file-pane-note" icon="file" title="A binary file">
             {sizeWords(file.size)}: there's no text to show.
           </Empty>
         ) : file.tooLarge ? (
-          <Empty icon="file" title="Too large to show">
-            It's {sizeWords(file.size)}. Open it in an editor: <Copyable text={path} className="mono" />
+          <Empty className="file-pane-note" icon="file" title="Too large to show">
+            It's {sizeWords(file.size)}. Open it in an editor: <Copyable text={path} />
           </Empty>
         ) : !file.lines.length ? (
-          <Empty icon="file" title="An empty file" />
+          <Empty className="file-pane-note" icon="file" title="An empty file" />
         ) : md && preview ? (
           <article className="artifact-body prose file-markdown">
             <Markdown text={file.lines.join("\n")} at={place} />

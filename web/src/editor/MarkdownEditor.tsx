@@ -9,7 +9,7 @@ import { EditorView } from "prosemirror-view";
 import { forwardRef, type ReactNode, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon, type IconName } from "../ui/Icon";
-import { useAutosize } from "../ui/kit";
+import { useAutosize } from "../ui/useAutosize";
 import { type CellHost, cellPlugins, cellView } from "./cells";
 import { copyMarkdown, pasteMarkdown } from "./clipboard";
 import { diagrams } from "./diagrams";

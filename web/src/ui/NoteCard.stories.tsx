@@ -4,7 +4,7 @@ import { Button } from "./Button";
 import { Chip } from "./Chip";
 import { Excerpt } from "./Excerpt";
 import { Icon } from "./Icon";
-import { Keys } from "./kit";
+import { Keys } from "./Keys";
 import { NoteBody, NoteCard, NoteHead, NoteHint, noteHintActionClass, NoteId, NoteStatus, NoteThread, NoteTurn } from "./NoteCard";
 import { ReplyBox } from "./ReplyBox";
 
@@ -81,7 +81,7 @@ export const Comments: StoryObj = {
             </NoteTurn>
           </NoteThread>
           <NoteHint>
-            <kbd>⏎</kbd> reply
+            <Keys k="⏎" /> reply
           </NoteHint>
         </NoteCard>
       </div>

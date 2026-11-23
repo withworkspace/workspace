@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { type CodeEnd, type CodeHit, codeNote, codeRematch, codeStream } from "../shell/find";
 import { CodeText, CodeWhere } from "../shell/CodeHitParts";
 import { FileIcon } from "../ui/FileIcon";
-import { humanError } from "../ui/kit";
+import { humanError } from "../ui/text";
 import { Finder, FinderNone, FinderRow } from "../ui/Finder";
 
 // CodeFinder is the explorer's own search, in a capsule: what its files

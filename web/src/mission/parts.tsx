@@ -4,7 +4,7 @@ import type { Artifact, CapsuleDetail, CrewDetail, Decision, MissionDetail, Miss
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { HoverCard } from "../ui/HoverCard";
-import { Copyable } from "../ui/kit";
+import { Copyable } from "../ui/Copyable";
 import { crewStatus, exitWords, Status } from "../ui/status";
 import { dayKey, dayLabel, duration, Time, useNow } from "../ui/time";
 import { Chip, chipClass } from "../ui/Chip";
@@ -345,7 +345,7 @@ export function Decisions({ list, limit }: { list: Decision[]; limit?: number })
             </div>
           )}
           <div className="decision-meta">
-            <Copyable text={d.id} className="ref" />
+            <Copyable text={d.id} />
             <span>{d.by === "you" ? "You" : d.by}</span>
             {d.from && <span>from {d.from}</span>}
             <Time iso={d.at} as="relative" />
@@ -368,7 +368,7 @@ export function Decisions({ list, limit }: { list: Decision[]; limit?: number })
                     <Inline text={d.what} />
                   </div>
                   <div className="decision-meta">
-                    <Copyable text={d.id} className="ref" />
+                    <Copyable text={d.id} />
                     <span>{d.state === "superseded" ? `Replaced by ${d.supersededBy}` : `Withdrawn: ${d.withdrawnWhy}`}</span>
                   </div>
                 </div>
@@ -498,7 +498,7 @@ export function ArtifactRow({ a, selected, open, compact, id }: { a: Artifact; s
           <div className="art-meta">
             {a.by && <span>{a.by}</span>}
             {a.added && <Time iso={a.added} as="relative" />}
-            <Copyable text={a.ref} className="ref" title="Copy its ref" />
+            <Copyable text={a.ref} title="Copy its ref" />
           </div>
         )}
       </div>

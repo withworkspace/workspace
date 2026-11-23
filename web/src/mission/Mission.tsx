@@ -26,7 +26,15 @@ import { Icon, type IconName } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
 import { CheckingNow, checkingTitle } from "./checking";
 import { Inline, plain } from "../ui/inline";
-import { Callout, type CalloutTone, Copyable, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Skeleton } from "../ui/Skeleton";
+import { Empty } from "../ui/Empty";
+import { humanError } from "../ui/text";
+import { ErrorCard } from "../ui/ErrorCard";
+import { Callout, type CalloutTone } from "../ui/Callout";
+import { Copyable } from "../ui/Copyable";
+import { Keys } from "../ui/Keys";
 import { headlineStatus, missionStateStatus, Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { RefContext } from "../refs/context";
@@ -482,7 +490,7 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
         )}
         <dt>Slug</dt>
         <dd>
-          <Copyable text={d.slug} className="mono" />
+          <Copyable text={d.slug} icon="over" />
         </dd>
         {about && about.length > 0 && (
           <>
@@ -916,7 +924,7 @@ function CardView({ d, c, lead, reload, step, latest }: { d: MissionDetail; c: M
       {body}
     </Lead>
   ) : (
-    <Callout tone="quiet" icon={st.icon} title={title} className="headline also" actions={actions}>
+    <Callout tone="quiet" icon={st.icon} title={title} className="headline also" big actions={actions}>
       {body}
     </Callout>
   );

@@ -31,8 +31,15 @@ import { type AskAbout, linesChip } from "../ask/ask";
 import { AskBar, type AskBarHandle } from "../ask/AskBar";
 import { useKeys } from "../keys";
 import { type AskedFinding, type ReviewDiff, type ReviewSource, ReviewView, type Selection } from "../review/Review";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
-import { Callout, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
+import { Spinner } from "../ui/Spinner";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Loading } from "../ui/Loading";
+import { Empty } from "../ui/Empty";
+import { Callout } from "../ui/Callout";
+import { Keys } from "../ui/Keys";
 import { Dialog } from "../ui/Dialog";
 import { confirm } from "../ui/Confirm";
 import { Status } from "../ui/status";
@@ -47,7 +54,7 @@ import { useLatest } from "../load";
 import { PagePin } from "../shell/focus";
 import { Chip, chipClass } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
-import { clip } from "../ui/text";
+import { clip, humanError } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
 import { TextArea } from "../ui/TextArea";
 import { useWorkspace } from "../workspace/store";
@@ -446,7 +453,7 @@ export function PRReviewPage() {
           {pr.updated && <Time iso={pr.updated} as="relative" className="dim" />}
           {!whole && !threads && !threadsError && (
             <span className="dim" title="The comments on its lines, and what's been said on it, are read after what it opens on: they show when they're in.">
-              <Icon name="spinner" className="spin" size={12} /> Reading the comments on GitHub…
+              <Spinner size={12} /> Reading the comments on GitHub…
             </span>
           )}
           {pr.mission && (
@@ -461,7 +468,7 @@ export function PRReviewPage() {
           )}
           {talks.map((t) => (
             <Link key={t.id} to={`/conversations/${t.id}`} className={chipClass(t.waiting && t.status === "open" ? "attention" : "quiet", "pr-meta-chip")} title={t.title || t.opening}>
-              <Icon name={t.answering ? "spinner" : "message"} size={11} className={t.answering ? "spin" : undefined} />
+              {t.answering ? <Spinner size={11} /> : <Icon name="message" size={11} />}
               {t.answering ? "Answering" : t.waiting && t.status === "open" ? "Answered" : t.status === "resolved" ? "Resolved" : "Asked"}: {clip(t.title || t.opening, 48)}
             </Link>
           ))}
@@ -669,7 +676,7 @@ function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: b
             <li key={l.number} className={`${!whole && l.number === d.pr.number ? "here" : ""}${coming ? " going" : ""}`} aria-busy={coming || undefined}>
               <Link to={prHref(l.repo, l.number) + search} replace title={`${l.title} (#${l.number}): ${l.words}`}>
                 <span className="layer-n">{i + 1}</span>
-                {coming ? <Icon name="spinner" size={13} className="spin" /> : <Status s={s} iconOnly size={13} />}
+                {coming ? <Spinner size={13} /> : <Status s={s} iconOnly size={13} />}
                 <span className="layer-title">{l.title}</span>
                 <span className="mono dim">#{l.number}</span>
               </Link>
@@ -678,7 +685,7 @@ function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: b
         })}
       </ol>
       <ToggleButton variant="ghost" size="small" className="whole-stack" pressed={whole} aria-busy={going?.whole || undefined} onChange={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
-        <Icon name={going?.whole && !whole ? "spinner" : "layers"} size={12} className={going?.whole && !whole ? "spin" : undefined} /> Whole stack <Keys k="w" />
+        {going?.whole && !whole ? <Spinner size={12} /> : <Icon name="layers" size={12} />} Whole stack <Keys k="w" />
       </ToggleButton>
     </div>
   );
@@ -868,7 +875,7 @@ function PRSubmitDialog({
                 )}
                 {l.state === "posting" && (
                   <span className="dim">
-                    <Icon name="spinner" className="spin" size={12} /> Posting…
+                    <Spinner size={12} /> Posting…
                   </span>
                 )}
               </header>
@@ -913,7 +920,7 @@ function PRSubmitDialog({
                   {noGo.map((p) => `${p.title}: ${standingWords(p.standing).toLowerCase()}`).join("; ")}. Approving is yours to do: take what stands into your review, or dismiss what doesn't.
                 </Callout>
               )}
-              {l.error && <div className="banner">{humanError(l.error)}</div>}
+              {l.error && <Banner>{humanError(l.error)}</Banner>}
               {l.verdict && l.posting && !l.state && <PostingView p={l.posting} />}
             </section>
           );

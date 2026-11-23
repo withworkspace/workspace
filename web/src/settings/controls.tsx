@@ -3,7 +3,7 @@ import { getModels, type ModelInfo, type Setting } from "../api";
 import { useLoaded } from "../load";
 import { defaultAccent, parseHex, pulled, showAccent, shownAs } from "../ui/accent";
 import { Icon } from "../ui/Icon";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Option, Select } from "../ui/Select";
 import { Switch } from "../ui/Switch";
 import { useTheme } from "../ui/theme";

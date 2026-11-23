@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactNode, useState } from "react";
 import { useLocation } from "react-router";
-import { useMedia } from "../ui/kit";
+import { useMedia } from "../ui/useMedia";
 import { narrowQuery, toggleBelow } from "./chromeState";
 import { billing, freezes, rounding, type SampleThing } from "./dockSamples";
 import { FindButton } from "./FindButton";

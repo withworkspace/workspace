@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Count } from "./Count";
 import { Icon } from "./Icon";
-import { Keys } from "./kit";
+import { Keys } from "./Keys";
 import { ToggleButton, type ToggleLook } from "./ToggleButton";
 
 // Toggle buttons: off and on, plain and ghost, small, square (an icon

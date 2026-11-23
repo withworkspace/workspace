@@ -171,12 +171,6 @@ a.link:hover {
   font-size: 0.92em;
 }
 
-.keys {
-  display: inline-flex;
-  gap: 3px;
-  vertical-align: baseline;
-}
-
 .dim {
   color: var(--dim);
 }
@@ -362,10 +356,6 @@ input[type="checkbox"] {
   }
 }
 
-.spin {
-  animation: spin 0.9s linear infinite;
-}
-
 .status {
   display: inline-flex;
   align-items: center;
@@ -435,64 +425,6 @@ input[type="checkbox"] {
   color: var(--dim);
 }
 
-/* Copyable: a ref that copies itself. */
-.copyable {
-  all: unset;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  font: inherit;
-  cursor: copy;
-  border-radius: var(--radius-sm);
-  padding: 0 2px;
-  margin: 0 -2px;
-}
-
-.copyable-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.copyable {
-  position: relative;
-}
-
-.copyable-icon {
-  position: absolute;
-  left: calc(100% + 2px);
-  top: 50%;
-  translate: 0 -50%;
-  box-sizing: content-box;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  background: var(--raised);
-  box-shadow: var(--shadow-xs), 0 0 0 1px var(--line);
-  opacity: 0;
-  color: var(--dim);
-  pointer-events: none;
-  transition: opacity var(--fast) var(--ease);
-}
-
-.copyable:hover {
-  background: var(--hover);
-}
-
-.copyable:hover .copyable-icon,
-.copyable.copied .copyable-icon,
-.copyable:focus-visible .copyable-icon {
-  opacity: 1;
-}
-
-.copyable.copied .copyable-icon {
-  color: var(--green);
-}
-
-.copyable:focus-visible {
-  outline: 2px solid var(--accent);
-}
-
 /* Inline markdown, folded into a line or two */
 .inline-md code {
   font-size: 0.9em;
@@ -505,188 +437,9 @@ input[type="checkbox"] {
   overflow: hidden;
 }
 
-/* Callouts: a tinted panel with a bar on its left. */
-
-:where(.callout) {
-  --tone: var(--attention);
-  --tone-fill: var(--attention-fill);
-  --tone-soft: var(--attention-soft);
-}
-
-.callout {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  background: var(--tone-soft);
-  border-left: 3px solid var(--tone-fill);
-  border-radius: var(--radius);
-  padding: 10px 14px 10px 12px;
-  margin-bottom: var(--space-5);
-}
-
-.callout.tone-quiet {
-  background: var(--well);
-  border-left-color: var(--line-strong);
-}
-
-.callout-icon {
-  color: var(--tone);
-  margin-top: 1px;
-}
-
-.callout-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.callout-title {
-  font-weight: 600;
-}
-
-.callout-title + .callout-text {
-  margin-top: 2px;
-}
-
-.callout-text {
-  color: var(--fg);
-}
-
-.callout-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: 10px;
-}
-
-.banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 var(--space-4);
-  padding: 8px 12px;
-  border-radius: var(--radius);
-  border-left: 3px solid var(--red-fill);
-  background: var(--red-soft);
-  color: var(--fg);
-}
-
-.banner::first-letter {
-  text-transform: uppercase;
-}
-
-main > .banner {
+/* The workspace didn't load: said under the top of the page. */
+.app-error {
   margin: var(--space-4) var(--space-8) 0;
-}
-
-/* Empty places, loading and skeletons */
-
-.empty {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--dim);
-}
-
-.empty-icon {
-  color: var(--faint);
-  margin-bottom: 4px;
-}
-
-.empty-title {
-  color: var(--fg);
-  font-weight: 600;
-}
-
-.empty-text {
-  max-width: 34em;
-}
-
-.empty-action {
-  margin-top: 8px;
-}
-
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 120px;
-  color: var(--dim);
-  opacity: 0;
-  transition: opacity var(--slow) var(--ease);
-}
-
-.loading.shown {
-  opacity: 1;
-}
-
-.skeleton {
-  display: grid;
-  gap: 12px;
-  padding: 8px 0;
-}
-
-.skeleton-row {
-  height: 12px;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, var(--well) 25%, var(--code-bg) 50%, var(--well) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
-}
-
-/* Toasts */
-
-.toasts {
-  position: fixed;
-  left: 50%;
-  /* Clear of the foot, where there is one (chrome/Shell). */
-  bottom: calc(20px + var(--foot-height, 0px));
-  transform: translateX(-50%);
-  z-index: 200;
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-  pointer-events: none;
-}
-
-.toast {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: min(560px, calc(100vw - 32px));
-  padding: 8px 14px;
-  border-radius: var(--radius-lg);
-  background: var(--fg);
-  color: var(--bg);
-  box-shadow: var(--shadow-lg);
-  pointer-events: auto;
-  animation: rise var(--slow) var(--ease);
-}
-
-.toast.tone-danger .icon {
-  color: var(--red-fill);
-}
-
-.toast.tone-done .icon {
-  color: var(--green-fill);
-}
-
-/* The toast is the text colour, so it's dark in the light theme: its link
-   is the accent as it reads on a dark surface, whatever the pick (the
-   light page's accent can be as dark as the toast). */
-.toast .toast-action {
-  font-weight: 600;
-  color: var(--accent-lifted);
-  margin-left: 4px;
-}
-
-/* In the dark theme the toast is light, so its link is the light page's
-   button, hovered. */
-:root[data-theme="dark"] .toast .toast-action {
-  color: oklch(from var(--brand-1) calc(l - 0.041) c h);
 }
 
 /* The keys dialog */
@@ -1363,11 +1116,6 @@ main {
   flex-direction: column;
 }
 
-.find-busy {
-  flex: none;
-  animation: spin 1s linear infinite;
-}
-
 .find-only {
   flex: none;
   display: inline-flex;
@@ -1603,7 +1351,7 @@ main {
   border-top: 1px solid var(--line);
 }
 
-.find-more .keys {
+.find-more-keys {
   margin-left: 6px;
 }
 
@@ -1622,7 +1370,7 @@ main {
   color: var(--dim);
 }
 
-.find-foot .keys {
+.find-foot-keys {
   margin-right: 3px;
 }
 
@@ -2829,10 +2577,6 @@ button.on {
   }
 }
 
-.headline .callout-title {
-  font-size: var(--text-md);
-}
-
 .headline.also {
   margin-top: -4px;
 }
@@ -3538,7 +3282,7 @@ button.on {
   margin: 0 auto var(--space-6);
 }
 
-.brief-docs > .callout {
+.brief-docs-note {
   max-width: var(--brief-measure);
   margin-inline: auto;
 }
@@ -3549,7 +3293,7 @@ button.on {
 }
 
 .brief-doc + .brief-doc,
-.brief-doc + .callout + .brief-doc {
+.brief-doc + .brief-docs-note + .brief-doc {
   padding-top: var(--space-4);
   border-top: 1px solid var(--line);
 }
@@ -3997,7 +3741,7 @@ button.on {
     overflow: hidden;
   }
 
-  .brief-tab.side .brief-docs > .callout {
+  .brief-tab.side .brief-docs-note {
     grid-column: 1 / -1;
     max-width: none;
     margin: 16px 32px 0;
@@ -4447,13 +4191,6 @@ button.on {
   transition:
     transform 220ms var(--ease),
     visibility 0s;
-}
-
-/* A copyable's icon shows after its text: here, where the text fills the
-   column, over the end of it. */
-.detail-side .copyable-icon {
-  left: auto;
-  right: 0;
 }
 
 .side-head {
@@ -4912,7 +4649,7 @@ p.verify-meta {
   color: var(--done);
 }
 
-.verify-head .callout {
+.verify-head-note {
   margin-bottom: 0;
 }
 
@@ -5159,41 +4896,6 @@ button.verify-plain:hover {
 .verify.verify-done {
   justify-content: center;
   min-height: 460px;
-}
-
-.verify-clear .empty,
-.verify-done .empty {
-  gap: 8px;
-}
-
-.verify-clear-mark {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 6px;
-  border-radius: 50%;
-  background: var(--done-soft);
-  color: var(--green);
-  animation: pop var(--slow) var(--ease);
-}
-
-.verify-clear .empty-title,
-.verify-done .empty-title {
-  font-size: var(--text-xl);
-  letter-spacing: -0.01em;
-}
-
-.verify-clear .empty-text,
-.verify-done .empty-text {
-  max-width: 44em;
-  font-size: var(--text-md);
-  line-height: 1.55;
-}
-
-.verify-clear .empty-action,
-.verify-done .empty-action {
-  margin-top: 14px;
 }
 
 button.verify-big {
@@ -5800,7 +5502,7 @@ h2.work-title {
   background: var(--raised);
 }
 
-.work-col .empty {
+.work-col-empty {
   padding-block: var(--space-8);
 }
 
@@ -5988,7 +5690,7 @@ button.work-left:hover {
   padding: 2px 0;
 }
 
-.work-commits .copyable {
+.work-commit-sha {
   color: var(--dim);
   font-size: var(--text-xs);
 }
@@ -6005,7 +5707,7 @@ button.work-left:hover {
   padding: 0 16px;
 }
 
-.silo-point .empty-action {
+.silo-point-acts {
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -6887,10 +6589,6 @@ a.work-file:hover {
   min-width: 0;
   margin: 0 auto;
   padding: var(--space-6) var(--space-8) calc(64px - var(--foot-height, 0px));
-}
-
-.settings-body .callout {
-  margin-bottom: var(--space-5);
 }
 
 .settings-body mark {
@@ -9150,7 +8848,7 @@ div.tc-bar {
   }
 
   .connection-banner,
-  .toasts,
+  [data-toasts],
   [data-crumbs],
   .doc-rail,
   .doc-pill-wrap,
@@ -9164,7 +8862,7 @@ div.tc-bar {
   .change-bar,
   .doc-cursor,
   .add-comment,
-  .callout,
+  [data-callout],
   .brief-bar,
   .brief-outline,
   .brief-planner,
@@ -9951,14 +9649,6 @@ details.repo-group > summary::-webkit-details-marker {
   margin-left: 8px;
 }
 
-.file-copy .copyable-icon {
-  position: static;
-  translate: none;
-  opacity: 0.6;
-  box-shadow: none;
-  background: transparent;
-}
-
 .file-pane-tools {
   display: flex;
   align-items: center;
@@ -9975,9 +9665,7 @@ details.repo-group > summary::-webkit-details-marker {
   font-size: var(--text-sm);
 }
 
-.file-pane > .callout,
-.file-pane > .empty,
-.file-pane > .loading {
+.file-pane-note {
   margin: 8px 20px 16px;
 }
 
@@ -11410,15 +11098,6 @@ span.save-state {
   color: var(--attention);
 }
 
-.banner.page-changed {
-  border-left-color: var(--attention-fill);
-  background: var(--attention-soft);
-}
-
-.banner.page-changed span {
-  flex: 1;
-}
-
 /* Under words selected in a page: ask about them, or for a change. */
 .select-pop {
   position: absolute;
@@ -11441,16 +11120,6 @@ span.save-state {
 
 .pass-unavailable {
   color: var(--red);
-}
-
-/* A page filed as a document: where it went. */
-.banner.page-filed {
-  border-left-color: var(--green-fill);
-  background: var(--green-soft);
-}
-
-.banner.page-filed span {
-  flex: 1;
 }
 
 /* Filing a page, and starting one as a kind of document. */
@@ -11949,11 +11618,6 @@ a.source-chip.tone-attention:hover {
 
 .pass-about .dim {
   font-size: var(--text-sm);
-}
-
-.banner.pass-failed span {
-  flex: 1;
-  overflow-wrap: anywhere;
 }
 
 .pass-running {
@@ -14330,7 +13994,7 @@ button.accent-button:hover:not(:disabled) {
   color: var(--fg);
 }
 
-.artifact-title-line .ref {
+.artifact-title-ref {
   margin-left: auto;
 }
 
@@ -14416,7 +14080,7 @@ button.accent-button:hover:not(:disabled) {
   max-width: none;
 }
 
-.artifact-home .copyable {
+.artifact-home-where {
   display: inline-flex;
   vertical-align: baseline;
   font-size: var(--text-sm);
@@ -14441,7 +14105,8 @@ button.accent-button:hover:not(:disabled) {
   background: var(--panel);
 }
 
-.artifact-stage > .empty {
+/* Nothing to show where an artifact would be: a way down its room. */
+.artifact-empty {
   margin-top: 12vh;
 }
 
@@ -14490,10 +14155,6 @@ button.accent-button:hover:not(:disabled) {
   display: grid;
   grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
   align-items: start;
-}
-
-.artifact-source-view > .empty {
-  margin-top: 12vh;
 }
 
 .artifact-source-view .artifact-source {
@@ -14906,10 +14567,6 @@ input[type="text"].tweak-text {
   min-height: 0;
   overflow: auto;
   background: var(--bg);
-}
-
-.compare-diff > .empty {
-  margin-top: 12vh;
 }
 
 .artifact-diff-head {
@@ -15866,8 +15523,7 @@ input[type="text"].tweak-text {
   color: var(--fg);
 }
 
-.doc-preview > .skeleton,
-.doc-preview > .error-card {
+.doc-preview-skeleton {
   margin: 16px 24px;
 }
 
@@ -16192,7 +15848,7 @@ a.plugin-row-out {
   margin-bottom: var(--space-3);
 }
 
-.settings-updates .callout {
+.settings-update-note {
   margin: 0;
 }
 

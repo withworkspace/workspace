@@ -42,10 +42,19 @@ import { WhatsNew } from "./shell/WhatsNew";
 import { useThingMenu } from "./shell/ThingMenu";
 import { TalkPage, TalksPage, talkKeys, talksKeys } from "./talk/Talk";
 import { TeamPage, teamKeys } from "./team/Team";
+import { Banner } from "./ui/Banner";
 import { Icon } from "./ui/Icon";
+import { Spinner } from "./ui/Spinner";
 import { Logotype } from "./ui/Logotype";
 import { Viewer } from "./ui/Viewer";
-import { Empty, humanError, Keys, Loading, setTitleContext, toast, Toasts, useMedia, useTitle } from "./ui/kit";
+import { useMedia } from "./ui/useMedia";
+import { setTitleContext, useTitle } from "./ui/useTitle";
+import { toast } from "./ui/toast";
+import { Toasts } from "./ui/Toasts";
+import { Loading } from "./ui/Loading";
+import { Empty } from "./ui/Empty";
+import { humanError } from "./ui/text";
+import { Keys } from "./ui/Keys";
 import { Confirmer } from "./ui/Confirm";
 import { Dialog } from "./ui/Dialog";
 import { duration } from "./ui/time";
@@ -294,7 +303,7 @@ export function App() {
       }
     >
       <ConnectionBanner connection={connection} />
-      {error && <div className="banner">{error.message}</div>}
+      {error && <Banner className="app-error">{error.message}</Banner>}
       {!workspace && !error && <Loading what="Opening the workspace…" />}
       {workspace && (
         <RefsProvider>
@@ -451,7 +460,7 @@ function ConnectionBanner({ connection }: { connection: Connection }) {
   if (!lostAt) return null;
   return (
     <div className="connection-banner" role="status">
-      <Icon name="spinner" className="spin" />
+      <Spinner />
       <span>
         Lost the workspace's daemon {duration(lostAt)} ago. Reconnecting… What's here may be out of date; <code>ws web</code> starts it again.
       </span>

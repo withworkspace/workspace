@@ -1,0 +1,55 @@
+/* A callout (Callout.tsx): a tinted panel with a bar on its left. */
+
+@layer ui {
+  /* Its colours are its tone's: the tone-<tone> class beside this one
+     sets them. */
+  .callout {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: var(--tone-soft);
+    border-left: 3px solid var(--tone-fill);
+    border-radius: var(--radius);
+    padding: 10px 14px 10px 12px;
+    margin-bottom: var(--space-5);
+  }
+
+  .quiet {
+    background: var(--well);
+    border-left-color: var(--line-strong);
+  }
+
+  .icon {
+    color: var(--tone);
+    margin-top: 1px;
+  }
+
+  .body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .title {
+    font-weight: 600;
+  }
+
+  .big .title {
+    font-size: var(--text-md);
+  }
+
+  .title + .text {
+    margin-top: 2px;
+  }
+
+  .text {
+    color: var(--fg);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: 10px;
+  }
+}

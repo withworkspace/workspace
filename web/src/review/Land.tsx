@@ -3,7 +3,9 @@ import { useNavigate } from "react-router";
 import { getLanding, landCapsule, type Landing, type LandStopped } from "../api";
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
-import { Callout, Keys, toast } from "../ui/kit";
+import { toast } from "../ui/toast";
+import { Callout } from "../ui/Callout";
+import { Keys } from "../ui/Keys";
 import { useLoaded } from "../load";
 import { Button } from "../ui/Button";
 

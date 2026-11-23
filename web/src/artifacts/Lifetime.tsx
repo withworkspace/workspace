@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
 import { type ArtifactDone, type ArtifactInfo, clearExpiredArtifacts, discardArtifact, getArtifactDetail, promoteArtifact, restoreArtifact } from "../api";
 import { useLoaded } from "../load";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
-import { Callout, humanError, Keys, toast } from "../ui/kit";
+import { toast } from "../ui/toast";
+import { humanError } from "../ui/text";
+import { Callout } from "../ui/Callout";
+import { Keys } from "../ui/Keys";
 import { confirm } from "../ui/Confirm";
 import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
 import { Option, Select } from "../ui/Select";
@@ -170,7 +174,7 @@ export function PromoteDialog({ a, version, onClose, onDone }: { a: ArtifactInfo
         </Callout>
       ) : null}
       {blocked && <p className="dim file-as-what">{blocked}</p>}
-      {(error || loadError) && <div className="banner">{error ?? loadError}</div>}
+      {(error || loadError) && <Banner>{error ?? loadError}</Banner>}
       <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
@@ -232,7 +236,7 @@ export function DiscardDialog({ a, onClose, onDone }: { a: ArtifactInfo; onClose
         }}
         aria-label="Why it's discarded"
       />
-      {error && <div className="banner">{error}</div>}
+      {error && <Banner>{error}</Banner>}
       <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
