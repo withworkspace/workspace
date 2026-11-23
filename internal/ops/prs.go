@@ -46,12 +46,14 @@ func (w *Workspace) ReviewsService() *pulls.Service {
 
 // reviewsLocal is what the workspace knows of branches that GitHub
 // doesn't: which are a mission's capsule's, and which are checked out.
+// Each capsule's branch is read from its HEAD (branchOf): the list of
+// pull requests asks this each time it's read, of every capsule there is.
 func (w *Workspace) reviewsLocal() pulls.Local {
 	local := pulls.Local{Missions: map[string]pulls.MissionRef{}, Capsules: map[string]string{}}
 	for _, repo := range w.WS().RepoNames {
 		capsules, _ := workspace.ListWorktrees(w.WS().RepoDir(repo))
 		for _, c := range capsules {
-			if b := workspace.GitCurrentBranch(filepath.Join(w.WS().RepoDir(repo), c)); b != "" {
+			if b := branchOf(filepath.Join(w.WS().RepoDir(repo), c)); b != "" {
 				local.Capsules[repo+"/"+b] = c
 			}
 		}
@@ -59,7 +61,7 @@ func (w *Workspace) reviewsLocal() pulls.Local {
 	missions, _ := w.Missions.InPlay()
 	for _, m := range missions {
 		for _, c := range m.Capsules {
-			branch := workspace.GitCurrentBranch(filepath.Join(w.WS().RepoDir(c.Repo), c.Name))
+			branch := branchOf(filepath.Join(w.WS().RepoDir(c.Repo), c.Name))
 			if branch == "" {
 				branch = c.Branch // burned: the branch it was on
 			}
@@ -75,7 +77,7 @@ func (w *Workspace) reviewsLocal() pulls.Local {
 func (w *Workspace) CapsuleOnBranch(repo, branch string) string {
 	capsules, _ := workspace.ListWorktrees(w.WS().RepoDir(repo))
 	for _, c := range capsules {
-		if workspace.GitCurrentBranch(filepath.Join(w.WS().RepoDir(repo), c)) == branch {
+		if branchOf(filepath.Join(w.WS().RepoDir(repo), c)) == branch {
 			return c
 		}
 	}
