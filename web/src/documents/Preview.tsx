@@ -88,7 +88,7 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
         </div>
       </header>
       {flights && flights.length > 0 && (
-        <Banner icon="box" className="doc-preview-flight">
+        <Banner tone="progress" icon="box" className="doc-preview-flight">
           Changed in{" "}
           {flights.map((c, i) => (
             <span key={c}>

@@ -194,7 +194,7 @@ export function DocumentsPage() {
                 Spaces
               </GroupHead>
               {error && !value && <ErrorCard title="Couldn't read the spaces" error={error} retry={reload} />}
-              {value?.problem && <Banner>Some of it may be behind: {value.problem}</Banner>}
+              {value?.problem && <Banner tone="attention">Some of it may be behind: {value.problem}</Banner>}
               {!value && !error && <Loading what="Reading the spaces…" />}
               {value && spaces.length === 0 && (
                 <Empty icon="file" title="No spaces of documents">
@@ -524,7 +524,7 @@ export function SpacePage() {
       {asKind && library.length === 0 && (
         <NewInFolder repo={repo} label={space.label} root={space.folder ?? ""} folders={folders.map(([f]) => f)} busy={starting} onStart={(title, to) => start(title, "", to)} onClose={() => setAsKind(false)} />
       )}
-      {value.problem && <Banner>It may be behind: {value.problem}</Banner>}
+      {value.problem && <Banner tone="attention">It may be behind: {value.problem}</Banner>}
       {!space.cloned ? (
         <Empty icon="box" title="Not cloned here">
           <code>ws setup {space.repo}</code> clones it.
