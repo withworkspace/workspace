@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button as AriaButton, Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { capsuleAPI, docRef, type FileTree, type FileView, getFile, getTree, pageOpenTo, rawURL, type TreeFile } from "../api";
@@ -20,6 +20,7 @@ import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { useWorkspace } from "../workspace/store";
+import { setPref, usePrefs } from "../prefs";
 
 // The file explorer: a capsule's files as they are now, without an editor
 // open. A tree on the left (everything, or only what's changed since the
@@ -138,36 +139,8 @@ const sizeWords = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n 
 // 1 is the file alone. Yours, in this browser, for every explorer: one
 // without the repos shows 2 for 3.
 export type Panes = 1 | 2 | 3;
-const panesKey = "ws-file-panes";
-const panesListeners = new Set<() => void>();
-function readPanes(): Panes {
-  try {
-    const n = Number(localStorage.getItem(panesKey));
-    return n === 1 || n === 2 ? n : 3;
-  } catch {
-    return 3;
-  }
-}
-let panesNow = readPanes();
-function setPanes(n: Panes) {
-  panesNow = n;
-  try {
-    if (n === 3) localStorage.removeItem(panesKey);
-    else localStorage.setItem(panesKey, String(n));
-  } catch {
-    // storage off: the choice lasts as long as the page
-  }
-  panesListeners.forEach((l) => l());
-}
-function usePanes(): Panes {
-  return useSyncExternalStore(
-    (l) => {
-      panesListeners.add(l);
-      return () => panesListeners.delete(l);
-    },
-    () => panesNow,
-  );
-}
+const setPanes = (n: Panes) => setPref("filePanes", n);
+const usePanes = (): Panes => usePrefs((s) => s.filePanes);
 
 const paneWords: Record<Panes, { label: string; sub: string }> = {
   3: { label: "3 panes", sub: "Repos, tree and file" },

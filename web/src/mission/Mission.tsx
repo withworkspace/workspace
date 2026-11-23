@@ -55,6 +55,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary as SummaryList, SummaryRow } from "../ui/Summary";
 import { useWorkspace } from "../workspace/store";
+import { usePref } from "../prefs";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -90,19 +91,10 @@ export const missionKeys: [string, string][] = [
   ...briefKeys,
 ];
 
-const sideKey = "ws:mission-side";
 
 // remembered is each mission's selection, kept while you open what's
 // selected and come back.
 const remembered = new Map<string, string>();
-
-function loadSide(): boolean {
-  try {
-    return localStorage.getItem(sideKey) !== "0";
-  } catch {
-    return true;
-  }
-}
 
 // Item is something on the page the cursor can be on.
 interface Item {
@@ -128,7 +120,7 @@ export function MissionPage() {
   const about = inList?.about;
   // The details beside Summary (kept, as you left them), and over another
   // tab (until you leave it).
-  const [side, setSide] = useState(loadSide);
+  const [side, setSide] = usePref("missionSide");
   const [over, setOver] = useState(false);
   useEffect(() => setOver(false), [tab, slug]);
   const docked = tab === "summary" && side;
@@ -213,15 +205,7 @@ export function MissionPage() {
 
   const move = (to: number) => items.length && setSel(items[Math.min(Math.max(to, 0), items.length - 1)].key);
   const setTab = (t: Tab) => setParams(t === "summary" ? {} : { tab: t }, { replace: true });
-  const toggleSide = () =>
-    setSide((v) => {
-      try {
-        localStorage.setItem(sideKey, v ? "0" : "1");
-      } catch {
-        // kept for this page only
-      }
-      return !v;
-    });
+  const toggleSide = () => setSide((v) => !v);
   const back = () => navigate("/");
   // esc closes what's open over the tab, or goes back to the missions.
   const escape = () => {
@@ -722,24 +706,10 @@ const isNotice = (text: string) => /^orchestrator: (warning|notice): /i.test(tex
 
 function Notices({ d }: { d: MissionDetail }) {
   const texts = [...new Set(d.events.filter((e) => isNotice(e.text)).map((e) => e.text.replace(/^orchestrator: /, "")))].slice(-1);
-  const [dismissed, setDismissed] = useState(() => {
-    try {
-      return new Set<string>(JSON.parse(localStorage.getItem("ws-dismissed") ?? "[]"));
-    } catch {
-      return new Set<string>();
-    }
-  });
-  const shown = texts.filter((t) => !dismissed.has(t.slice(0, 80)));
+  const [dismissed, setDismissed] = usePref("dismissed");
+  const shown = texts.filter((t) => !dismissed.includes(t.slice(0, 80)));
   if (!shown.length) return null;
-  const dismiss = (t: string) => {
-    const next = new Set(dismissed).add(t.slice(0, 80));
-    setDismissed(next);
-    try {
-      localStorage.setItem("ws-dismissed", JSON.stringify([...next].slice(-50)));
-    } catch {
-      // dismissed for this page only
-    }
-  };
+  const dismiss = (t: string) => setDismissed((was) => [...was.filter((x) => x !== t.slice(0, 80)), t.slice(0, 80)].slice(-50));
   return (
     <>
       {shown.map((t) => {

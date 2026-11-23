@@ -47,6 +47,7 @@ import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { capital } from "../ui/text";
 import { useWorkspace } from "../workspace/store";
+import { usePref } from "../prefs";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -105,22 +106,8 @@ export interface ReviewPart {
 const FILES_MIN = 200;
 const FILES_MAX = 640;
 
-function loadFilesWidth(): number | undefined {
-  try {
-    const w = Number(localStorage.getItem("ws:files-w"));
-    return w >= FILES_MIN && w <= FILES_MAX ? w : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function loadSplit(): boolean {
-  try {
-    return localStorage.getItem("ws:split") === "1";
-  } catch {
-    return false;
-  }
-}
+// A width that's kept is the list's only while it's one it can have.
+const filesWidthOf = (w: number | undefined) => (w !== undefined && w >= FILES_MIN && w <= FILES_MAX ? w : undefined);
 
 
 // targetOf is the lines a comment on these rows is on: the side picked
@@ -351,7 +338,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
   const [loadedLarge, setLoadedLarge] = useState<Record<string, DiffFile>>({});
   // Files whose change is as you reviewed it stay folded until opened.
   const [opened, setOpened] = useState<Record<string, boolean>>({});
-  const [splitChosen, setSplit] = useState(loadSplit);
+  const [splitChosen, setSplit] = usePref("reviewSplit");
   // On a narrow window there's room for one side only.
   const narrow = useMedia("(max-width: 860px)");
   const split = splitChosen && !narrow;
@@ -364,7 +351,10 @@ export function ReviewView({ source }: { source: ReviewSource }) {
   const [submitted, setSubmitted] = useState<{ review: ReviewData; state: ReviewState }>();
   const highlighting = useHighlighter();
   const [replying, setReplying] = useState<string>(); // the comment being answered
-  const [filesWidth, setFilesWidth] = useState(loadFilesWidth);
+  // The list's width while it's dragged, and as it was left (kept).
+  const [keptWidth, keepFilesWidth] = usePref("reviewFilesWidth");
+  const [dragged, setFilesWidth] = useState<number>();
+  const filesWidth = dragged ?? filesWidthOf(keptWidth);
   // What the diff is of: since your last review when there's been work
   // since ("auto"), or all the changes.
   const [scope, setScope] = useState<"auto" | "all">("auto");
@@ -866,22 +856,15 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     const up = () => {
       handle.removeEventListener("pointermove", move);
       handle.removeEventListener("pointerup", up);
-      try {
-        if (width) localStorage.setItem("ws:files-w", `${width}`);
-      } catch {
-        // fine
-      }
+      if (width) keepFilesWidth(width);
+      setFilesWidth(undefined);
     };
     handle.addEventListener("pointermove", move);
     handle.addEventListener("pointerup", up);
   };
   const resetFilesWidth = () => {
     setFilesWidth(undefined);
-    try {
-      localStorage.removeItem("ws:files-w");
-    } catch {
-      // fine
-    }
+    keepFilesWidth(undefined);
   };
   const onAnswer = useCallback((id: string, what: "reply" | "resolve" | "reopen", body?: string) => handlers.current.answer(id, what, body), []);
   const onReplyCancel = useCallback(() => setReplying(undefined), []);
@@ -895,15 +878,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
   const onGutterDown = useCallback((key: string, shift: boolean, side?: "old" | "new") => handlers.current.gutterDown(key, shift, side), []);
   const onDragOver = useCallback((key: string) => handlers.current.dragOver(key), []);
 
-  const toggleSplit = () =>
-    setSplit((s) => {
-      try {
-        localStorage.setItem("ws:split", s ? "0" : "1");
-      } catch {
-        // fine
-      }
-      return !s;
-    });
+  const toggleSplit = () => setSplit((s) => !s);
   const toggleSince = () => sinceable !== undefined && setScope((s) => (s === "auto" ? "all" : "auto"));
   const submit = () => {
     if (!diff) return;

@@ -21,6 +21,7 @@ import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { useWorkspace } from "../workspace/store";
+import { usePref } from "../prefs";
 
 // Documents: where the workspace's writing is read. Local is the pages
 // that aren't in a space (written here, on this machine); each space is a
@@ -680,24 +681,8 @@ const LIST_MIN = 280;
 const PREVIEW_MIN = 380;
 
 function useListWidth(): [number | undefined, (w: number | undefined) => void] {
-  const [w, setW] = useState<number | undefined>(() => {
-    try {
-      const n = Number(localStorage.getItem("ws:space-list-w"));
-      return n >= LIST_MIN ? n : undefined;
-    } catch {
-      return undefined;
-    }
-  });
-  const set = (n: number | undefined) => {
-    setW(n);
-    try {
-      if (n) localStorage.setItem("ws:space-list-w", `${n}`);
-      else localStorage.removeItem("ws:space-list-w");
-    } catch {
-      // fine
-    }
-  };
-  return [w, set];
+  const [w, set] = usePref("spaceListWidth");
+  return [w !== undefined && w >= LIST_MIN ? w : undefined, (n) => set(n || undefined)];
 }
 
 // ListEdge is the edge between a space's list and its preview: dragged,

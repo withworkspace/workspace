@@ -42,6 +42,7 @@ import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { pageScroller } from "../ui/scroller";
 import { useWorkspace } from "../workspace/store";
+import { usePref } from "../prefs";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -321,22 +322,8 @@ export function TalkPage() {
   useAutosize(box, text, 320);
   // What's come of it, beside it: when there's room, unless it's put away.
   const wide = useMedia("(min-width: 1240px)");
-  const [sideOn, setSideOn] = useState(() => {
-    try {
-      return localStorage.getItem("ws:talk-side") !== "off";
-    } catch {
-      return true;
-    }
-  });
-  const toggleSide = () =>
-    setSideOn((on) => {
-      try {
-        localStorage.setItem("ws:talk-side", on ? "off" : "on");
-      } catch {
-        // Not kept, then.
-      }
-      return !on;
-    });
+  const [sideOn, setSideOn] = usePref("talkSide");
+  const toggleSide = () => setSideOn((on) => !on);
   const side = wide && sideOn;
   // Load again whenever the workspace says it's changed: a turn, or the
   // run's output as it goes.

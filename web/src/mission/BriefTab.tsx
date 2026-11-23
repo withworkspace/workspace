@@ -18,6 +18,7 @@ import { BriefPlanner, PassageTool, pickedIn, PlannerField, quoted } from "./Bri
 import { type Doc, type Edit, edits, planAsk, planSteps, reading, type Settled, shown } from "./briefpage";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
+import { usePref } from "../prefs";
 
 // A mission's Brief tab: its brief and its plan as documents, in the
 // mission's own page. The brief is edited as it reads. The plan is read:
@@ -46,16 +47,6 @@ export const briefKeys: [string, string][] = [
 
 // briefHref is a mission's brief: its page's Brief tab.
 export const briefHref = (slug: string) => `/missions/${slug}?tab=brief`;
-
-const plannerKey = "ws:brief-planner";
-
-function loadPlanner(): boolean {
-  try {
-    return localStorage.getItem(plannerKey) !== "0";
-  } catch {
-    return true;
-  }
-}
 
 // DocState is where a document stands in the tab: what it comes to as
 // you've left it, whether that's other than what it shows (you edited it,
@@ -115,7 +106,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   // Writing it yourself, with nothing drafted.
   const [own, setOwn] = useState(false);
-  const [beside, setBeside] = useState(loadPlanner);
+  const [beside, setBeside] = usePref("briefPlanner");
   const [held, setHeld] = useState<string>();
   const [asking, setAsking] = useState(false);
   const field = useRef<HTMLInputElement>(null);
@@ -293,14 +284,7 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
       : briefing
         ? ["What's still open?", "Can Z be checked as it's written?", "What would you leave out?"]
         : ["Is the plan still right?", "What's changed since it started?"];
-  const fold = (to: boolean) => {
-    setBeside(to);
-    try {
-      localStorage.setItem(plannerKey, to ? "1" : "0");
-    } catch {
-      // kept for this page only
-    }
-  };
+  const fold = setBeside;
   const toField = () => {
     if (!canAsk) return;
     // (Folded away, the field's at the documents' foot: it's there already.)
