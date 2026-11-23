@@ -40,6 +40,10 @@ type Missions interface {
 	// wait on it, has found something the page wasn't given: the
 	// workspace's view is looked at then, not at the next poll.
 	Seen() <-chan struct{}
+	// WatchGit watches where git writes (each capsule's git folder, each
+	// repo's) until stop closes, and says on Seen when it has: a commit
+	// in a capsule reaches its pages then, not at the next poll.
+	WatchGit(stop <-chan struct{}, logf func(string, ...any))
 	// BundleFile is a file of one of a mission's bundles: where it is, and
 	// its content type.
 	BundleFile(slug, id, name string) (path, media string, err error)

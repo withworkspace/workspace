@@ -257,6 +257,9 @@ func (s *Server) Start() error {
 	// What's read behind a read that didn't wait (a space of documents,
 	// where a capsule stands) and found something new is looked at now.
 	seen := s.App.Seen() // the App the server starts with: read here, not in the goroutine
+	// And what git writes in a capsule or a repo is looked at as it's
+	// written: the hubs' polls are for what that can't see.
+	go s.App.WatchGit(s.ctx.Done(), s.Log.Printf)
 	go func() {
 		for {
 			select {
