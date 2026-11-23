@@ -29,6 +29,9 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+// dropsAlways: the fake agent drops every turn from now on.
+var dropsAlways atomic.Bool
+
 func fakeAgent() {
 	var conn *acp.Conn
 	ready := make(chan struct{})
@@ -79,6 +82,21 @@ func fakeAgent() {
 			cancelTurn.Store(cancel)
 			if strings.Contains(string(params), "again") {
 				say("Again, then.")
+				return map[string]any{"stopReason": "end_turn"}, nil
+			}
+			if text := promptText(params); strings.Contains(text, "drop") || dropsAlways.Load() {
+				// As Cursor when its connection drops: the call it was in
+				// left in_progress, the error its last words, and the turn
+				// ended as one it finished.
+				if strings.Contains(text, "drop always") {
+					dropsAlways.Store(true)
+				}
+				update(map[string]any{"sessionUpdate": "tool_call", "toolCallId": "d1", "kind": "execute", "title": "`just test`", "status": "in_progress",
+					"rawInput": map[string]any{"command": "just test"}})
+				say("\n\nError: RetriableError: the stream was closed")
+				return map[string]any{"stopReason": "end_turn"}, nil
+			} else if strings.Contains(text, "cut off") {
+				say("Picking up where it stopped.")
 				return map[string]any{"stopReason": "end_turn"}, nil
 			}
 			if _, after, ok := strings.Cut(promptText(params), "background "); ok {
@@ -311,5 +329,89 @@ func TestServer_ACPCrewDetachesWork(t *testing.T) {
 	want := []mission.Work{{What: "node e2e.js", From: harness.FromProcesses, PID: 7100, Wakes: mission.WakeNo}}
 	if c.Pending == nil || !reflect.DeepEqual(c.Pending.Work, want) {
 		t.Fatalf("pending %+v", c.Pending)
+	}
+}
+
+// droppedCrew starts crew on cursor-acp, their agent the fake one, told
+// prompt, with ws's wait before going on with a dropped turn cut short.
+func droppedCrew(t *testing.T, prompt string) (*Server, Spec, mission.Store, *atomic.Int32) {
+	t.Helper()
+	old := droppedWait
+	droppedWait = 10 * time.Millisecond
+	t.Cleanup(func() { droppedWait = old })
+	s, root := startServer(t, time.Minute)
+	var turnsEnded atomic.Int32
+	s.OnACPTurnEnded = func(slug, crewID string) { turnsEnded.Add(1) }
+	spec := crewOn(t, root, "")
+	exe, _ := os.Executable()
+	spec.Harness, spec.Args = "cursor-acp", nil
+	spec.Env = os.Environ()
+	spec.ACP = &harness.ACPRun{Agent: []string{exe, "-test.run=^$"}, Env: []string{envFakeAgent + "=1"}, Dir: root, Prompt: prompt}
+	if _, err := dialT(t, root).Start(spec); err != nil {
+		t.Fatal(err)
+	}
+	return s, spec, mission.Store{Root: root}, &turnsEnded
+}
+
+// typedIn are the messages ws typed into a mission's crew, as its log has
+// them.
+func typedIn(store mission.Store, slug string) []string {
+	var out []string
+	events, _ := store.ReadLog(slug, 0)
+	for _, e := range events {
+		if e.Kind == mission.EventResumeWith && e.By == "ws" {
+			out = append(out, e.Text)
+		}
+	}
+	return out
+}
+
+// A turn an error of the agent's cut off (Cursor's, when its connection
+// drops: ended as one it finished, the error its last words) isn't a
+// turn's end to look at. ws has the crew go on from it, says so on the
+// mission, and the turn that follows is the one that ends.
+func TestServer_ACPCrewGoesOnFromADroppedTurn(t *testing.T) {
+	_, spec, store, turnsEnded := droppedCrew(t, "drop this one")
+	crew := func() mission.Crew { m, _ := store.Load(spec.Slug); return m.Crew[0] }
+
+	eventually(t, "the turn after it", func() bool { return crew().LastReply == "Picking up where it stopped." })
+	eventually(t, "that turn's end to be told", func() bool { return turnsEnded.Load() == 1 })
+	said := typedIn(store, spec.Slug)
+	if len(said) != 1 || !strings.Contains(said[0], "cut off by an error from your own agent (RetriableError: the stream was closed)") {
+		t.Errorf("ws typed in %q", said)
+	}
+	// The call it was cut off in isn't work it's waiting on.
+	if c := crew(); c.Pending != nil || c.Activity != mission.ActivityWaiting {
+		t.Errorf("crew = %+v, pending %+v", c, c.Pending)
+	}
+	time.Sleep(50 * time.Millisecond)
+	if n := turnsEnded.Load(); n != 1 {
+		t.Errorf("turns ended = %d: the dropped one was told too", n)
+	}
+}
+
+// An agent whose every turn is cut off isn't sent on for ever: after
+// maxDropped in a row it's left as any turn that ended with nothing said.
+func TestServer_ACPCrewDroppedTurnsAreGivenUpOn(t *testing.T) {
+	_, spec, store, turnsEnded := droppedCrew(t, "drop always")
+	eventually(t, "the last of them to be told", func() bool { return turnsEnded.Load() == 1 })
+	if said := typedIn(store, spec.Slug); len(said) != maxDropped {
+		t.Errorf("ws went on with it %d times: %q", len(said), said)
+	}
+}
+
+// Crew who'd reported done before the turn was cut off have nothing to go
+// on with: their work's handed over, and only their last words were lost.
+func TestServer_ACPCrewDroppedAfterDoneIsLeft(t *testing.T) {
+	s, spec, store, turnsEnded := droppedCrew(t, "again")
+	eventually(t, "the first turn's end", func() bool { return turnsEnded.Load() == 1 })
+	if err := store.SetCrewStatus(spec.Slug, spec.CrewID, mission.CrewDone, "cached"); err != nil {
+		t.Fatal(err)
+	}
+	ag, _ := s.Agent(spec.Key())
+	ag.Send(acp.Text("drop this one"))
+	eventually(t, "the dropped turn's end", func() bool { return turnsEnded.Load() == 2 })
+	if said := typedIn(store, spec.Slug); len(said) != 0 {
+		t.Errorf("ws typed in %q", said)
 	}
 }

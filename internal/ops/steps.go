@@ -440,21 +440,35 @@ func (w *Workspace) passOnLand(slug, repo, name string) {
 // one of types, for whoever's done it (by, why), and moves the plan on.
 // It says what it did, or "" when the mission isn't at such a step.
 func (w *Workspace) passStep(slug string, n int, by, why string, types ...string) string {
-	m, err := w.Missions.Load(slug)
-	if err != nil {
-		return ""
-	}
-	cur, ok := currentStep(w.Missions, m)
-	if !ok || cur.N != n || !slices.Contains(types, cur.Step.Type) {
-		return ""
-	}
-	acc, states, err := w.Missions.AcceptStage(slug, by, why)
+	said, err := w.tryPassStep(slug, n, by, why, types...)
 	if err != nil {
 		return fmt.Sprintf("couldn't pass step %d: %v", n, err)
 	}
+	return said
+}
+
+// tryPassStep is passStep, with why it couldn't where it couldn't: for a
+// caller with something to do about that. A step someone else passed
+// meanwhile is as one the mission isn't at: "", and no error.
+func (w *Workspace) tryPassStep(slug string, n int, by, why string, types ...string) (string, error) {
+	m, err := w.Missions.Load(slug)
+	if err != nil {
+		return "", nil
+	}
+	cur, ok := currentStep(w.Missions, m)
+	if !ok || cur.N != n || !slices.Contains(types, cur.Step.Type) {
+		return "", nil
+	}
+	acc, states, err := w.Missions.AcceptStageAt(slug, n, by, why)
+	switch {
+	case errors.Is(err, mission.ErrStageMoved):
+		return "", nil
+	case err != nil:
+		return "", err
+	}
 	// What ws asked the user about the step is done.
 	w.Missions.CloseStepTasks(slug, n)
-	return fmt.Sprintf("passed step %d, and %s", n, w.afterAccept(slug, acc, states))
+	return fmt.Sprintf("passed step %d, and %s", n, w.afterAccept(slug, acc, states)), nil
 }
 
 // liftForStep lifts the capsule a Work step is in, when the mission hasn't

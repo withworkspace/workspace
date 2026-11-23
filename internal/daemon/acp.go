@@ -30,7 +30,23 @@ type acpCrew struct {
 	agent         *acp.Agent
 	record        string // its record's path
 	stopRequested atomic.Bool
+	// dropped is how many turns in a row an error of the agent's cut off
+	// (harness.TurnDropped), each of which ws had it go on from.
+	dropped atomic.Int32
 }
+
+// A turn an error of the agent's cut off is gone on with by ws, as you
+// would by sending it "continue": after droppedWait (as long again for
+// each in a row, the error being one that may pass), and no more than
+// maxDropped times in a row, after which it's left as any turn that ended
+// without the crew saying where they are.
+const maxDropped = 3
+
+var droppedWait = 5 * time.Second
+
+// droppedText is what crew are sent to go on from a turn that was cut
+// off.
+const droppedText = "Continue. Your last turn was cut off by an error from your own agent (%s), not ended by you, and ws is sending this in its place. The step you were in the middle of may not have finished: check what it left before you go on."
 
 // acpStartTimeout bounds starting an agent and its session.
 const acpStartTimeout = 90 * time.Second
@@ -152,9 +168,62 @@ func (s *Server) acpTurn(spec Spec, t acp.Turn) {
 	}
 	work := crew.LeftRunning(harness.AtTurnEnd(spec.Harness, t, func() *harness.Found { return s.processCheck(spec) }))
 	s.store.CrewHook(spec.Slug, spec.CrewID, mission.Hook{Activity: mission.ActivityWaiting, Reply: t.Reply, Work: work}) //nolint:errcheck // a notice
+	if why, dropped := harness.TurnDropped(spec.Harness, t); dropped && s.continueDropped(spec, why) {
+		return // not a turn's end to look at: it goes on
+	} else if !dropped {
+		if cr, ok := s.acpCrew(spec.Key()); ok {
+			cr.dropped.Store(0)
+		}
+	}
 	if s.OnACPTurnEnded != nil {
 		s.OnACPTurnEnded(spec.Slug, spec.CrewID)
 	}
+}
+
+// continueDropped has crew go on from a turn an error of their agent's
+// cut off (why), and reports whether it will: not crew who'd said where
+// they are before it (done, or asking: there's nothing to go on with),
+// nor past maxDropped in a row. It's sent after a wait, unless something
+// else has been sent them by then, or they've gone, and it's logged on
+// the mission as what ws typed in. Whose the turn is doesn't change with
+// it: crew you were talking to are still answering you.
+func (s *Server) continueDropped(spec Spec, why string) bool {
+	cr, ok := s.acpCrew(spec.Key())
+	if !ok || cr.stopRequested.Load() {
+		return false
+	}
+	if m, err := s.store.Load(spec.Slug); err == nil {
+		if c, ok := m.CrewByID(spec.CrewID); ok && c.Status != "" {
+			return false
+		}
+	}
+	n := cr.dropped.Add(1)
+	if n > maxDropped {
+		s.Log.Printf("%s: its turn was cut off again (%s), %d times in a row: left as it is", spec.Key(), why, n)
+		return false
+	}
+	text := fmt.Sprintf(droppedText, why)
+	wait := droppedWait * time.Duration(n)
+	s.Log.Printf("%s: its turn was cut off (%s): going on with it in %s", spec.Key(), why, wait)
+	go func() {
+		select {
+		case <-time.After(wait):
+		case <-cr.agent.Done():
+			return
+		}
+		if st := cr.agent.State(); cr.stopRequested.Load() || st.Ended || st.Working || st.Queued > 0 {
+			return // stopped, or sent something meanwhile: that goes on with it
+		}
+		if _, err := (crew.AgentRun{S: spec, Agent: cr.agent, Root: s.Root}).Say(text); err != nil {
+			s.Log.Printf("%s: couldn't go on with its cut-off turn: %v", spec.Key(), err)
+			if s.OnACPTurnEnded != nil {
+				s.OnACPTurnEnded(spec.Slug, spec.CrewID) // a turn's end after all
+			}
+			return
+		}
+		s.store.AppendLog(spec.Slug, mission.Event{Kind: mission.EventResumeWith, Crew: spec.CrewID, By: "ws", Text: "typed in: " + text}) //nolint:errcheck // a log entry
+	}()
+	return true
 }
 
 // followACP tells the mission when the agent waits on you, and when it's

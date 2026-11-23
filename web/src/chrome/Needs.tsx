@@ -24,6 +24,9 @@ type NeedsProps = {
   moreToReview?: string;
   // Beside its heading: a setting of the list's own.
   tool?: ReactNode;
+  // A row's menu, opened on it with the other button: asked for by
+  // where the row goes and what it's called.
+  menu?: (to: string, title?: string) => React.MouseEventHandler<Element> | undefined;
   className?: string;
 };
 
@@ -42,6 +45,7 @@ export function Needs({
   mostToReview = 4,
   moreToReview = "/reviews",
   tool,
+  menu,
   className,
 }: NeedsProps) {
   if (!needs.length) return null;
@@ -55,6 +59,7 @@ export function Needs({
           need={n}
           on={dealtWithAt(n, path)}
           fresh={fresh?.has(n.key)}
+          onContextMenu={menu?.(n.to, n.title)}
         />
       ))}
       {list.length > few && (

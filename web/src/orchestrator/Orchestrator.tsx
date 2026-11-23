@@ -15,6 +15,7 @@ import { GroupHead } from "../ui/GroupHead";
 import { Summary, SummaryRow } from "../ui/Summary";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { useWorkspace } from "../workspace/store";
+import { useThingMenu } from "../shell/ThingMenu";
 
 // The orchestrator's page: whether it's on and how it's set up, the
 // missions it's on now, and its latest runs; each run's own page has what
@@ -31,6 +32,7 @@ export const lookedAt = (r: Pick<OrchestratorRun, "for" | "trigger">) =>
   !r.trigger || r.for.includes(`(${r.trigger})`) ? r.for : `${r.for} (${r.trigger})`;
 
 export function OrchestratorPage() {
+  const menu = useThingMenu();
   const missions = useWorkspace((w) => w.missions);
   useTitle("Orchestrator");
   const key = useMemo(() => changedKey(missions), [missions]);
@@ -88,7 +90,7 @@ export function OrchestratorPage() {
               <Rows>
                 {deciding.map((m) => (
                   <Row key={m.slug}>
-                    <Link to={`/missions/${m.slug}`} className={rowLinkClass()}>
+                    <Link to={`/missions/${m.slug}`} className={rowLinkClass()} onContextMenu={menu(`/missions/${m.slug}`, m.title)}>
                       <Status s={headlineStatus(m.headline)} iconOnly />
                       <RowTitle>{m.title}</RowTitle>
                       <span className="dim">
@@ -120,11 +122,12 @@ export function OrchestratorPage() {
 
 // RunList is runs in brief, each a link to its page.
 export function RunList({ runs, withMission }: { runs: OrchestratorRun[]; withMission?: boolean }) {
+  const menu = useThingMenu();
   return (
     <Rows className="runs">
       {runs.map((r) => (
         <Row key={`${r.mission}/${r.id}`}>
-          <Link to={`/missions/${r.mission}/orchestrator/${r.id}`} className={rowLinkClass("orch-run-link")}>
+          <Link to={`/missions/${r.mission}/orchestrator/${r.id}`} className={rowLinkClass("orch-run-link")} onContextMenu={menu(`/missions/${r.mission}/orchestrator/${r.id}`)}>
             <Status s={outcome(r)} iconOnly size={16} className={rowStatusClass()} />
             <RowMain>
               <RowLine>

@@ -18,6 +18,7 @@ import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { capital } from "../ui/text";
 import { Input } from "../ui/Input";
+import { useThingMenu } from "../shell/ThingMenu";
 
 // Reviews: the open pull requests across every repo in the workspace.
 // Your teammates' come first, grouped by what each asks of you; yours sit
@@ -342,6 +343,7 @@ interface RowProps {
 }
 
 function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: RowProps) {
+  const menu = useThingMenu();
   const target = rowTarget(row);
   const pr = row.pr;
   const st = row.stack;
@@ -403,7 +405,7 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
   return (
     <Row selected={selected} id={`pr-row-${row.key}`} role="option" aria-selected={selected} className={`pr-row${st ? " stack-row" : ""}`} onMouseMove={onHover}>
       {target.to ? (
-        <Link to={target.to} className={rowLinkClass("pr-link")} onClick={() => remember({ selected: row.key })}>
+        <Link to={target.to} className={rowLinkClass("pr-link")} onContextMenu={menu(target.to)} onClick={() => remember({ selected: row.key })}>
           {body}
         </Link>
       ) : (

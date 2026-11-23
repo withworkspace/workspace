@@ -54,6 +54,7 @@ import { Suggestion } from "../review/Suggestion";
 import { cx } from "../ui/cx";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
+import { useThingMenu } from "../shell/ThingMenu";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -140,6 +141,7 @@ export function TalkList({
   docs?: boolean;
   planner?: string;
 }) {
+  const menu = useThingMenu();
   const hrefOf = (id: string) => (slug && id === planner ? `/missions/${slug}/brief` : talkHref(slug, id));
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -247,7 +249,7 @@ export function TalkList({
                 className="talk-row"
                 onMouseMove={() => i !== index && setIndex(i)}
               >
-                <TLink to={hrefOf(t.id)} className={rowLinkClass("talk-link")}>
+                <TLink to={hrefOf(t.id)} className={rowLinkClass("talk-link")} onContextMenu={menu(hrefOf(t.id), t.title || t.opening)}>
                   <Status s={st} iconOnly size={16} className={rowStatusClass()} />
                   <RowMain>
                     <RowLine>

@@ -51,6 +51,7 @@ import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusC
 import { Segment, Segmented, segmentClass, segmentedClass } from "../ui/Segmented";
 import { ToggleButton } from "../ui/ToggleButton";
 import { useWorkspace } from "../workspace/store";
+import { useThingMenu } from "../shell/ThingMenu";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
 // sandboxed frame. A version is its page and the files it loads beside
@@ -191,6 +192,7 @@ export function ArtifactsPage() {
 }
 
 function ArtifactListRow({ a, selected, onHover, onPromote }: { a: ArtifactInfo; selected: boolean; onHover: () => void; onPromote: () => void }) {
+  const menu = useThingMenu();
   const v = a.latest;
   // A live one in its last week says when it expires, with Promote beside
   // it; an expired one is dimmed, until it's cleared.
@@ -198,7 +200,7 @@ function ArtifactListRow({ a, selected, onHover, onPromote }: { a: ArtifactInfo;
   const dimmed = a.status === "discarded" || !!expiry?.expired;
   return (
     <Row selected={selected} id={`artifact-${a.id}`} role="option" aria-selected={selected} className={`artifact-list-row${dimmed ? " dimmed" : ""}`} onMouseMove={onHover}>
-      <TLink to={artifactHref(a.id)} className={rowLinkClass("artifact-list-link")}>
+      <TLink to={artifactHref(a.id)} className={rowLinkClass("artifact-list-link")} onContextMenu={menu(artifactHref(a.id), a.title)}>
         <Status s={artifactStatus(a)} iconOnly size={16} className={rowStatusClass()} />
         <RowMain>
           <RowLine>

@@ -1,4 +1,4 @@
-import { type ActVerb, prAPI, type Workspace } from "../api";
+import { type ActVerb, type FocusPin, prAPI, type Workspace } from "../api";
 import type { IconName } from "../ui/Icon";
 import { onGitHub, remoteOf } from "../refs/refs";
 import { crewStatus } from "../ui/status";
@@ -44,14 +44,31 @@ export function subjectOf(id: string | undefined): Subject | undefined {
 
 // WsDoing is something ws does to one of its things, from Find, that isn't
 // a mission's act: a conversation resolved or reopened, an artifact
-// restored, a pull request docked.
-export type WsDoing = { talk: string; status: "open" | "resolved" } | { restore: string } | { dock: string };
+// restored, a pull request docked, any of them pinned or unpinned (by
+// the name ws writes it with).
+export type WsDoing = { talk: string; status: "open" | "resolved" } | { restore: string } | { dock: string } | { pin: string } | { unpin: string };
 
 const row = (id: string, title: string, icon: IconName, more: Partial<Item>): Item => ({ id: `act:${id}`, group: "do", kind: "Do", title, icon, score: 0, ...more });
 
+// pinActs is keeping a thing in your focus, in the sidebar, or taking it
+// out: Unpin it for what's pinned, Pin it for what isn't. What's come to
+// an end (a mission landed or archived, a conversation resolved, an
+// artifact discarded) isn't offered a pin: it would leave your focus at
+// once (ops/focus.go). Nothing, from a daemon that keeps no pins.
+function pinActs(name: string, w: Workspace, ended: boolean): Item[] {
+  const pins = w.focus as FocusPin[] | undefined;
+  if (!pins) return [];
+  if (pins.some((p) => p.name === name)) return [row(`unpin:${name}`, "Unpin it", "pin", { hint: "out of your focus", doing: { ws: { unpin: name } } })];
+  return ended ? [] : [row(`pin:${name}`, "Pin it", "pin", { hint: "keep it in your focus, in the sidebar", doing: { ws: { pin: name } } })];
+}
+
+// A mission that's ended: there's nothing in it to focus on.
+const over = new Set(["landed", "answered", "handed-on", "dropped", "archived"]);
+
 // actsFor is what can be done to a thing of ws's own, as it stands now:
 // the first what it asks of you, if it asks; then what changes it; then
-// where else it's read. Nothing, for a thing the workspace doesn't hold.
+// where else it's read; and last, pinning it. Nothing, for a thing the
+// workspace doesn't hold.
 export function actsFor(s: Subject, w: Workspace): Item[] {
   switch (s.kind) {
     case "settings":
@@ -73,6 +90,7 @@ export function actsFor(s: Subject, w: Workspace): Item[] {
       if (m.state === "archived") verb("unarchive", "Unarchive it", "rotate", "bring it back");
       else verb("archive", "Archive it", "archive", "burns its capsules");
       out.push(row(`brief:${m.slug}`, "Its brief", "flag", { hint: "plan", to: `/missions/${encodeURIComponent(m.slug)}?tab=brief` }));
+      out.push(...pinActs(m.slug, w, over.has(m.state)));
       return out;
     }
     case "talk": {
@@ -84,6 +102,7 @@ export function actsFor(s: Subject, w: Workspace): Item[] {
       if (t.became) out.push(row(`became:${t.id}`, "The mission it became", "flag", { to: `/missions/${encodeURIComponent(t.became)}` }));
       const pr = t.pr && /^([\w.-]+)#(\d+)$/.exec(t.pr);
       if (pr) out.push(row(`pr:${t.id}`, `Its pull request, ${t.pr}`, "pr", { to: `/reviews/${encodeURIComponent(pr[1])}/${pr[2]}` }));
+      out.push(...pinActs(t.id, w, t.status === "resolved"));
       return out;
     }
     case "artifact": {
@@ -92,11 +111,13 @@ export function actsFor(s: Subject, w: Workspace): Item[] {
       const out: Item[] = [];
       if (a.status === "discarded") out.push(row(`restore:${a.id}`, "Restore it", "rotate", { doing: { ws: { restore: a.id } } }));
       if (a.versions > 1) out.push(row(`compare:${a.id}`, "Compare its versions", "layers", { to: `/artifacts/${encodeURIComponent(a.id)}/compare` }));
+      out.push(...pinActs(a.id, w, a.status === "discarded"));
       return out;
     }
     case "pr": {
       const out: Item[] = [row(`dock:${s.repo}#${s.number}`, "Dock it here", "branch", { hint: "check out a capsule, as ws dock does", doing: { ws: { dock: prAPI(s.repo, s.number) } } })];
       if (onGitHub(w, s.repo)) out.push(row(`github:${s.repo}#${s.number}`, "Open it on GitHub", "external", { to: `https://github.com/${remoteOf(w, s.repo)}/pull/${s.number}` }));
+      out.push(...pinActs(`${s.repo}#${s.number}`, w, false));
       return out;
     }
   }

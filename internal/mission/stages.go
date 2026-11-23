@@ -507,9 +507,26 @@ var ErrAllAccepted = errors.New("every stage is accepted")
 
 // AcceptStage accepts the current stage: its work is complete and good
 // enough. It's refused while any of the stage's crew are still working
-// (running, not reported done) or asking the user something. It returns
-// the stage accepted and the stages as they are now.
+// (running, not reported done) or asking the user something. Crew who
+// reported done and are in a turn begun since (a message sent to them
+// after it) hold it for ws and the orchestrator until that turn ends,
+// and not for you: it's yours to pass over them. So is a step whose crew
+// handed it over, had it checked, and were sent back since without
+// reporting again, once they've stopped: what you were asked of its
+// checks is yours to answer. It returns the stage accepted and the stages
+// as they are now.
 func (s Store) AcceptStage(slug, by, why string) (StageState, []StageState, error) {
+	return s.AcceptStageAt(slug, 0, by, why)
+}
+
+// ErrStageMoved is accepting a stage the mission isn't at any more.
+var ErrStageMoved = errors.New("the mission has moved on from that stage")
+
+// AcceptStageAt is AcceptStage for stage n, refused (ErrStageMoved) when
+// the mission isn't at it: for a pass decided from what was read a moment
+// before, which someone else may have made meanwhile. 0 is whichever it's
+// at.
+func (s Store) AcceptStageAt(slug string, n int, by, why string) (StageState, []StageState, error) {
 	brief, _ := s.ReadBrief(slug)
 	var accepted StageState
 	m, err := s.Update(slug, func(m *Mission) error {
@@ -518,6 +535,9 @@ func (s Store) AcceptStage(slug, by, why string) (StageState, []StageState, erro
 		if !ok {
 			return ErrAllAccepted
 		}
+		if n != 0 && cur.N != n {
+			return fmt.Errorf("%w: it's at %d, not %d", ErrStageMoved, cur.N, n)
+		}
 		if cur.Record != nil {
 			for _, id := range cur.Record.Crew {
 				for _, c := range m.Crew {
@@ -525,7 +545,13 @@ func (s Store) AcceptStage(slug, by, why string) (StageState, []StageState, erro
 					case c.ID != id || c.Role != "":
 					case c.Status == CrewAsking:
 						return fmt.Errorf("%w: %s is asking the user something", ErrStageBusy, id)
-					case c.Ended == nil && c.Status != CrewDone:
+					case c.Ended != nil:
+					case c.Status == CrewDone:
+						if by != "you" && c.InTurnSinceDone() {
+							return fmt.Errorf("%w: %s is in a turn begun since it reported done (a message sent to it): the step passes when that ends", ErrStageBusy, id)
+						}
+					case by == "you" && c.Activity != ActivityWorking && cur.Record.checkedFor(id):
+					default:
 						return fmt.Errorf("%w: %s is still working on it (it reports done when it's finished)", ErrStageBusy, id)
 					}
 				}
