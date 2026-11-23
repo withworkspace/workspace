@@ -5249,11 +5249,6 @@ dd > .more-link,
   white-space: normal;
 }
 
-.brief-ask .ask-suggestion.sel,
-.brief-ask .ask-suggestion:hover {
-  background: color-mix(in srgb, var(--accent) 10%, var(--raised));
-}
-
 /* --- nothing drafted: the conversation is the tab, or where it's begun --- */
 
 .brief-talk {
@@ -16027,10 +16022,12 @@ body.nav-pointing .code-view code[data-rev] {
   color: var(--accent);
 }
 
+/* Picked or pointed at: the accent's tint, over the button's own colour.
+   The tint alone is see-through, and these stand over what's being read. */
 .ask-suggestion.sel,
 .ask-suggestion:hover {
   border-color: var(--accent-line);
-  background: var(--accent-soft);
+  background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--raised);
 }
 
 .ask-turn {
