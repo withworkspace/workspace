@@ -5,7 +5,7 @@ import type { Reload } from "../load";
 import { came, commitSaid } from "../runs/runRows";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
 import { Time } from "../ui/time";
 import { Chip } from "../ui/Chip";

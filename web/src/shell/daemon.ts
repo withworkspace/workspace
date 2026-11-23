@@ -1,5 +1,5 @@
 import { shutDownDaemon } from "../api";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
 import { confirm } from "../ui/Confirm";
 import { useChromeStore } from "../chrome/store";

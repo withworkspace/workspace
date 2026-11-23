@@ -457,58 +457,6 @@ main > .banner {
   margin: var(--space-4) var(--space-8) 0;
 }
 
-/* Toasts */
-
-.toasts {
-  position: fixed;
-  left: 50%;
-  /* Clear of the foot, where there is one (chrome/Shell). */
-  bottom: calc(20px + var(--foot-height, 0px));
-  transform: translateX(-50%);
-  z-index: 200;
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-  pointer-events: none;
-}
-
-.toast {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: min(560px, calc(100vw - 32px));
-  padding: 8px 14px;
-  border-radius: var(--radius-lg);
-  background: var(--fg);
-  color: var(--bg);
-  box-shadow: var(--shadow-lg);
-  pointer-events: auto;
-  animation: rise var(--slow) var(--ease);
-}
-
-.toast.tone-danger .icon {
-  color: var(--red-fill);
-}
-
-.toast.tone-done .icon {
-  color: var(--green-fill);
-}
-
-/* The toast is the text colour, so it's dark in the light theme: its link
-   is the accent as it reads on a dark surface, whatever the pick (the
-   light page's accent can be as dark as the toast). */
-.toast .toast-action {
-  font-weight: 600;
-  color: var(--accent-lifted);
-  margin-left: 4px;
-}
-
-/* In the dark theme the toast is light, so its link is the light page's
-   button, hovered. */
-:root[data-theme="dark"] .toast .toast-action {
-  color: oklch(from var(--brand-1) calc(l - 0.041) c h);
-}
-
 /* The keys dialog */
 .keys-help {
   display: grid;
@@ -8915,7 +8863,7 @@ div.tc-bar {
   }
 
   .connection-banner,
-  .toasts,
+  [data-toasts],
   [data-crumbs],
   .doc-rail,
   .doc-pill-wrap,

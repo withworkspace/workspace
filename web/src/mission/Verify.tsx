@@ -5,7 +5,7 @@ import type { Reload } from "../load";
 import { useKeys } from "../keys";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Empty } from "../ui/Empty";
 import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";

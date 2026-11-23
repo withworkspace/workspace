@@ -4,7 +4,7 @@ import { FindingActions, followWords, reviewDismissWhys } from "../review/Findin
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/inline";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
 import { clip, humanError } from "../ui/text";

@@ -5,7 +5,7 @@ import { useLoaded } from "../load";
 import { shortVersion } from "../shell/version";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
 import { humanError } from "../ui/text";
 import { ErrorCard } from "../ui/ErrorCard";

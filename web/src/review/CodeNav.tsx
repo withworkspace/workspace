@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { getBlob, type DiffFile } from "../api";
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Keys } from "../ui/Keys";
 import { escapeHTML, highlightLines, languageOf } from "./highlight";
 import type { FileState, Row } from "./model";

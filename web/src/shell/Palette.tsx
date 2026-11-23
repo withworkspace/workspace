@@ -13,7 +13,7 @@ import { FileIcon } from "../ui/FileIcon";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { Status } from "../ui/status";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Keys } from "../ui/Keys";
 import { askShutDown } from "./daemon";
 import { setTheme } from "../ui/theme";

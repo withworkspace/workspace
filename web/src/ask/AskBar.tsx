@@ -3,7 +3,7 @@ import { ApiError, type TalkProposal } from "../api";
 import { paneAt, talkAt } from "../chrome/panes";
 import { useBeside, useChromeStore, useGive } from "../chrome/store";
 import { useTalk, useTalks } from "../conversation/talks";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
 import type { AskAbout } from "./ask";
 import { AskField } from "./AskField";

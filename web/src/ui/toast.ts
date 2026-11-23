@@ -1,5 +1,5 @@
 // What's said in passing, at the foot of the page, for a few seconds: what
-// was done, or what went wrong. toast says it; Toasts (kit.tsx) draws
+// was done, or what went wrong. toast says it; Toasts (Toasts.tsx) draws
 // what's being said. It's kept here, apart from how it's drawn, so a part
 // can say something without drawing anything.
 

@@ -4,7 +4,7 @@ import { addPlugin, ApiError, checkUpdates, getInstalledPlugins, type InstalledP
 import { type Reload, useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
 import { Empty } from "../ui/Empty";
 import { humanError } from "../ui/text";

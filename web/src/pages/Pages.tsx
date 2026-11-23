@@ -4,7 +4,7 @@ import { type DocKind, kindHint, newPage, pageAddress, type PageInfo } from "../
 import type { Back } from "./Page";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { humanError } from "../ui/text";
 import { Keys } from "../ui/Keys";

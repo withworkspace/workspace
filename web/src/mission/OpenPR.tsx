@@ -3,7 +3,7 @@ import { act, writePR, type CapsuleDetail, type MissionDetail } from "../api";
 import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
 import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";

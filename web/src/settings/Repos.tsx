@@ -6,7 +6,7 @@ import { Button } from "../ui/Button";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { GroupHead } from "../ui/GroupHead";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
 import { ErrorCard } from "../ui/ErrorCard";
 import { AddRepo } from "./AddRepo";

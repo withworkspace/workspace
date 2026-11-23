@@ -3,7 +3,7 @@ import { Button } from "./Button";
 import { Icon } from "./Icon";
 import { Keys } from "./Keys";
 import { Tooltip } from "./Tooltip";
-import { Toasts } from "./kit";
+import { Toasts } from "./Toasts";
 
 // Tooltips: rest the pointer on a button, or Tab to it. A Button's title
 // is one; a long one wraps. The last two can't be used now: the disabled

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { groupRepo, type Repo, type RepoGroup, showGroup } from "../api";
 import { Button } from "../ui/Button";
 import { cx } from "../ui/cx";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Option, Select } from "../ui/Select";
 import css from "./Groups.module.css";
 import { Segment, Segmented } from "../ui/Segmented";

@@ -1,40 +1,6 @@
-import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from "react";
-import { Icon } from "./Icon";
-import { Button } from "./Button";
-import { getToasts, onToasts, setToasts, toast } from "./toast";
+import { useEffect, useLayoutEffect, useState } from "react";
 
-export { toast };
-
-// The small shared pieces every page draws with.
-
-// Toasts: what an action did, for a few seconds, bottom centre, with an
-// action of its own (Undo, Open) when there's one.
-
-export function Toasts() {
-  const list = useSyncExternalStore(onToasts, getToasts);
-  return (
-    <div className="toasts" role="status" aria-live="polite" data-react-aria-top-layer="">
-      {list.map((t) => (
-        <div key={t.id} className={`toast tone-${t.tone}`}>
-          <Icon name={t.tone === "danger" ? "x-circle" : t.tone === "done" ? "check-circle" : "info"} size={14} />
-          <span>{t.text}</span>
-          {t.action && (
-            <Button
-              variant="link"
-              className="toast-action"
-              onClick={() => {
-                t.action!.run();
-                setToasts(getToasts().filter((x) => x.id !== t.id));
-              }}
-            >
-              {t.action.label}
-            </Button>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
+// Hooks every page uses.
 
 // useTitle names the browser tab after the page.
 let workspaceName = "ws";

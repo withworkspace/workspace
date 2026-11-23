@@ -4,7 +4,7 @@ import { useLoaded } from "../load";
 import { Button } from "../ui/Button";
 import { Chip } from "../ui/Chip";
 import { cx } from "../ui/cx";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
 import { Callout } from "../ui/Callout";
 import { Dialog } from "../ui/Dialog";

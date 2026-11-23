@@ -12,7 +12,7 @@ import { ProposalCard } from "../talk/Talk";
 import { Button } from "../ui/Button";
 import { Doing } from "../ui/Doing";
 import { Icon } from "../ui/Icon";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { humanError } from "../ui/text";
 import { ErrorCard } from "../ui/ErrorCard";

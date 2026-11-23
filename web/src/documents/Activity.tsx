@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { docAddress, docTo, fetchSpace, pullSpace, type Space, type SpaceActivity, type SpaceCommit, type SpaceDocChange, type SpaceFlight, type SpaceFresh } from "../api";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
