@@ -390,7 +390,7 @@ type docPlace struct {
 
 // DocWhere is where a mission's document can be changed, or why it can't.
 func (w *Workspace) DocWhere(m *mission.Mission, ref string) (docPlace, error) {
-	v := BuildMissionViewsFrom(w.WS(), nil, []*mission.Mission{m})[0]
+	v := w.missionView(m)
 	for _, av := range ResolveArtifacts(w.WS(), w.Missions, v) {
 		if av.Ref == ref {
 			return placeOf(av, v)
@@ -480,7 +480,7 @@ func (w *Workspace) Artifact(slug, ref string) (*DocText, error) {
 		if err != nil {
 			return nil, err
 		}
-		v := BuildMissionViewsFrom(w.WS(), nil, []*mission.Mission{m})[0]
+		v := w.missionView(m)
 		for _, av := range ResolveArtifacts(w.WS(), store, v) {
 			if av.Ref != ref {
 				continue

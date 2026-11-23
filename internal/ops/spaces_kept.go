@@ -79,13 +79,32 @@ func (k *keptSpaces) init() {
 }
 
 // Seen says when a look behind a read has found something other than
-// the pages were given: the workspace's view says it too (SpacesSeen), so
-// its event's due. One listener: the daemon's.
+// the pages were given, a space or a capsule: the views' stamps say it
+// too (SpacesSeen, dirtyMoved), so their events are due. One listener:
+// the daemon's.
 func (w *Workspace) Seen() <-chan struct{} {
 	w.spaces.mu.Lock()
 	defer w.spaces.mu.Unlock()
 	w.spaces.init()
+	// A capsule found other than a read was given is said here too.
+	w.git.mu.Lock()
+	w.git.found = w.tellSeen
+	w.git.mu.Unlock()
 	return w.spaces.told
+}
+
+// tellSeen says on Seen that something's other than the pages were
+// given: a look behind a read found it, or git's written where it's
+// watched (WatchGit). It doesn't wait.
+func (w *Workspace) tellSeen() {
+	w.spaces.mu.Lock()
+	w.spaces.init()
+	told := w.spaces.told
+	w.spaces.mu.Unlock()
+	select {
+	case told <- struct{}{}:
+	default: // one waiting to be heard stands for this
+	}
 }
 
 // SpacesSeen names how many times a look behind a read has found a space

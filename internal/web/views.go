@@ -32,10 +32,18 @@ type Missions interface {
 	// for its records, which say themselves when they change.
 	Stamp() string
 	MissionStamp(slug string) string
+	// KeepMission reads where a mission's capsules stand, where that isn't
+	// kept: before its page is told they've moved, so the page's read
+	// waits on nothing.
+	KeepMission(slug string)
 	// Seen says when what was read behind a page's read, which didn't
 	// wait on it, has found something the page wasn't given: the
 	// workspace's view is looked at then, not at the next poll.
 	Seen() <-chan struct{}
+	// WatchGit watches where git writes (each capsule's git folder, each
+	// repo's) until stop closes, and says on Seen when it has: a commit
+	// in a capsule reaches its pages then, not at the next poll.
+	WatchGit(stop <-chan struct{}, logf func(string, ...any))
 	// BundleFile is a file of one of a mission's bundles: where it is, and
 	// its content type.
 	BundleFile(slug, id, name string) (path, media string, err error)
@@ -350,7 +358,7 @@ func MissionOf(a Missions, root, slug string) (*MissionDetail, error) {
 	for _, c := range v.Capsules {
 		cd := CapsuleDetail{Capsule: Capsule{Repo: c.Repo, Name: c.Name, Branch: c.Branch, Path: c.Path, Exists: c.Exists}}
 		if st, ok := v.Status[c.Repo+"/"+c.Name]; ok {
-			cd.Dirty, cd.Ahead, cd.Behind, cd.Head = st.Dirty, st.Ahead, st.Behind, st.Head
+			cd.Dirty, cd.Ahead, cd.Behind, cd.Head, cd.Unread = st.Dirty, st.Ahead, st.Behind, st.Head, st.Unread
 		}
 		if c.PR != nil {
 			cd.PR = &PR{Number: c.PR.Number, Title: c.PR.Title, URL: c.PR.URL, Merged: c.PRS == mission.PRMerged, Checks: c.PR.StatusRollup}

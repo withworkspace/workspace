@@ -243,6 +243,47 @@ func TestKeptGit_SoonAnswersWithoutWaitingAndSaysWhenItsLooked(t *testing.T) {
 	}
 }
 
+// A capsule's head and branch are read from git's own files, loose or
+// packed, on a branch or detached: as git says them, with no git started.
+func TestHeadOf_ReadsWhatGitWouldWithoutGit(t *testing.T) {
+	dir, run := capsuleFixture(t)
+	same := func(what string) {
+		t.Helper()
+		want := strings.Split(run("repo/work", "rev-parse", "HEAD", "--abbrev-ref", "HEAD"), "\n")
+		before := git.Started()
+		head, branch, ok := headOf(dir)
+		if n := git.Started() - before; n != 0 {
+			t.Errorf("%s: headOf started git %d times, want none", what, n)
+		}
+		if !ok || head != want[0] || branch != want[1] {
+			t.Errorf("%s: headOf = %q, %q, %v; git says %q", what, head, branch, ok, want)
+		}
+		if got := askHeadBranch(dir); !got.keep || got.is != (headAndBranch{want[0], want[1]}) {
+			t.Errorf("%s: asked = %+v; git says %q", what, got, want)
+		}
+	}
+	same("a new capsule")
+	run("repo/work", "commit", "-q", "--allow-empty", "-m", "one")
+	same("a commit")
+	run("repo/work", "pack-refs", "--all")
+	same("its refs packed")
+	run("repo/work", "commit", "-q", "--allow-empty", "-m", "two")
+	same("a commit over a packed ref")
+	run("repo/work", "checkout", "-q", "-b", "feat/deep/name")
+	same("a branch with slashes")
+	run("repo/work", "checkout", "-q", "--detach")
+	same("detached")
+
+	// Where the files don't say, git's asked: a branch with no commit yet.
+	run("repo/work", "checkout", "-q", "--orphan", "empty")
+	if _, _, ok := headOf(dir); ok {
+		t.Error("a branch with no commit: headOf says it knows")
+	}
+	if _, _, ok := headOf(t.TempDir()); ok {
+		t.Error("not a worktree: headOf says it knows")
+	}
+}
+
 func TestBranchOf_ReadsHEADWithoutGit(t *testing.T) {
 	dir, run := capsuleFixture(t)
 	before := git.Started()
@@ -258,5 +299,59 @@ func TestBranchOf_ReadsHEADWithoutGit(t *testing.T) {
 	}
 	if got := branchOf(t.TempDir()); got != "" {
 		t.Errorf("not a worktree: branchOf = %q, want empty", got)
+	}
+}
+
+// Where a capsule stands is told to a mission's page without waiting on
+// git: unknown at first, then as a look behind the read found it, and
+// after the capsule moves as it stood until it's looked at again. The
+// daemon, seeing it's moved, reads it before it tells the page (standing):
+// the page's read then starts nothing.
+func TestKeptGit_StandingSoonWaitsOnNoGit(t *testing.T) {
+	dir, run := capsuleFixture(t)
+	g := &keptGit{}
+	told := make(chan struct{}, 8)
+	g.found = func() { told <- struct{}{} }
+	const base = "origin/main"
+
+	if _, known := g.standingSoon(dir, base); known {
+		t.Fatal("a capsule never asked of was said known")
+	}
+	moved := movedSince(t, g, dir, "")
+	select {
+	case <-told:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the look found where it stands, and told nobody")
+	}
+	if s, known := g.standingSoon(dir, base); !known || s != (standing{}) {
+		t.Fatalf("after the look: %+v, known %v; want level and clean, known", s, known)
+	}
+
+	// It moves, and the page reads before the daemon's seen it: as it stood.
+	run("repo/work", "commit", "-q", "--allow-empty", "-m", "one")
+	if s, known := g.standingSoon(dir, base); !known || s.ahead != 0 {
+		t.Fatalf("read after a commit: %+v, known %v; want as it stood (0 ahead), known", s, known)
+	}
+	moved = movedSince(t, g, dir, moved)
+	if s, _ := g.standingSoon(dir, base); s.ahead != 1 {
+		t.Fatalf("after the look: %+v, want 1 ahead", s)
+	}
+
+	// It moves, and the daemon reads it before the page does: the page's
+	// read has it, and starts nothing.
+	run("repo/work", "commit", "-q", "--allow-empty", "-m", "two")
+	if s := g.standing(dir, base); s.ahead != 2 {
+		t.Fatalf("kept after a second commit: %+v, want 2 ahead", s)
+	}
+	before := git.Started()
+	if s, known := g.standingSoon(dir, base); !known || s.ahead != 2 {
+		t.Fatalf("read after it was kept: %+v, known %v; want 2 ahead", s, known)
+	}
+	time.Sleep(50 * time.Millisecond) // a look, had one been asked for, would have begun
+	if n := git.Started() - before; n != 0 {
+		t.Errorf("a read of a capsule kept current started git %d times, want none", n)
+	}
+	if now := g.dirtyMoved(dir); now != moved {
+		t.Errorf("a read of a capsule kept current counted as moved: %q, was %q", now, moved)
 	}
 }

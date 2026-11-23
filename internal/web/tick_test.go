@@ -159,8 +159,10 @@ func BenchmarkMissionRead(b *testing.B) {
 	b.ReportMetric(float64(git.Started()-before)/float64(b.N), "git/op")
 }
 
-// What a page reads after every button and every change costs no git once
-// it's been read, until a capsule moves: then it's what the capsule now is.
+// What a page reads after every button and every change waits on no git:
+// where a capsule stands is read behind the first read, and once it has
+// been, a read starts none until the capsule moves. Its head is what the
+// capsule now is at once: that's read from git's own files.
 func TestReads_StartNoGitUntilACapsuleMoves(t *testing.T) {
 	s := tickServer(t)
 	read := func() *MissionDetail {
@@ -177,6 +179,14 @@ func TestReads_StartNoGitUntilACapsuleMoves(t *testing.T) {
 	first := read()
 	if len(first.Capsules) != 1 || first.Capsules[0].Head == "" {
 		t.Fatalf("mission-7's capsules = %+v", first.Capsules)
+	}
+	if !first.Capsules[0].Unread {
+		t.Errorf("the first read knew where its capsule stands: it waited on git, or was told of one never asked")
+	}
+	for deadline := time.Now().Add(5 * time.Second); read().Capsules[0].Unread; time.Sleep(5 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("where the capsule stands was never read behind the read")
+		}
 	}
 	before := git.Started()
 	for range 3 {

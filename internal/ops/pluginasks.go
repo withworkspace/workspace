@@ -231,7 +231,7 @@ func (w *Workspace) pluginRepos() (protocol.RepoListResult, error) {
 		for _, c := range names {
 			path := filepath.Join(dir, c)
 			pc := protocol.Capsule{Name: c, Path: path, Ground: c == workspace.GroundDir, Mission: missionOf[name+"/"+c]}
-			if _, branch := workspace.GitHeadBranch(path); branch != "HEAD" {
+			if branch := branchOf(path); branch != "HEAD" {
 				pc.Branch = branch
 			}
 			r.Capsules = append(r.Capsules, pc)

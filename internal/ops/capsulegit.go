@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"context"
 	"fmt"
 	"hash/fnv"
 	"maps"
@@ -55,7 +56,12 @@ type headAndBranch struct{ head, branch string }
 
 type aheadAndBehind struct{ ahead, behind int }
 
+// askHeadBranch reads them from git's own files where they say (headOf),
+// and asks git where they don't.
 func askHeadBranch(dir string) answer[headAndBranch] {
+	if head, branch, ok := headOf(dir); ok {
+		return answer[headAndBranch]{is: headAndBranch{head, branch}, keep: true}
+	}
 	out, err := git.Combined(dir, "rev-parse", "HEAD", "--abbrev-ref", "HEAD")
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	if err != nil || len(lines) != 2 {
@@ -87,9 +93,12 @@ func askCommitsSince(dir, base string) answer[int] {
 	return asked(n, err)
 }
 
+// askDirty asks read-only: a status that refreshes the index writes in a
+// capsule crew may be working in, and moves it (capsuleStamp), so what's
+// kept of it would be asked for again.
 func askDirty(dir string) answer[bool] {
-	out, err := git.Combined(dir, "status", "--porcelain")
-	return asked(err == nil && strings.TrimSpace(out) != "", err)
+	out, err := git.Read(context.Background(), dir, "status", "--porcelain")
+	return asked(err == nil && strings.TrimSpace(string(out)) != "", err)
 }
 
 // askedGit asks git each time.
@@ -123,6 +132,20 @@ type keptGit struct {
 	// slots bounds the looks behind reads (soon): a page listing every
 	// capsule of a repo mustn't start a process for each at once.
 	slots chan struct{}
+	// found, if set, is told when a look behind a read finds a capsule
+	// other than the read was given: whoever tells pages looks now, not at
+	// its next poll. It mustn't wait.
+	found func()
+}
+
+// tell says a look found something other than a read was given.
+func (g *keptGit) tell() {
+	g.mu.Lock()
+	found := g.found
+	g.mu.Unlock()
+	if found != nil {
+		found()
+	}
 }
 
 // lookSlots is how many looks behind reads run at once.
@@ -220,6 +243,7 @@ func soon[T comparable](g *keptGit, dir, what string, ask func() answer[T]) (v T
 		c.facts[what] = a.is
 		if !ok || a.is != v {
 			c.moved.Add(1)
+			g.tell()
 		}
 	})
 	return v, ok
@@ -261,9 +285,130 @@ func (g *keptGit) dirtySoon(dir string) (is, ok bool) {
 		c.dirty, c.dirtyAt = &a.is, time.Now()
 		if !ok || a.is != is {
 			c.moved.Add(1)
+			g.tell()
 		}
 	})
 	return is, ok
+}
+
+// standing is where a capsule stands, as a mission's page says it:
+// whether it has changes not committed, and how far it is from its
+// upstream, or, never pushed, how many commits it has that base hasn't
+// (what a pull request would open with).
+type standing struct {
+	dirty         bool
+	ahead, behind int
+}
+
+// standingOf is a capsule's standing from what's kept of it, if all of
+// it is.
+func standingOf(facts map[string]any, dirty *bool, base string) (standing, bool) {
+	upstream, ok := facts["upstream"].(bool)
+	if !ok || dirty == nil {
+		return standing{}, false
+	}
+	s := standing{dirty: *dirty}
+	if upstream {
+		ab, ok := facts["ahead"].(aheadAndBehind)
+		s.ahead, s.behind = ab.ahead, ab.behind
+		return s, ok
+	}
+	n, ok := facts["since "+base].(int)
+	s.ahead = n
+	return s, ok
+}
+
+// standing is where a capsule stands, asked of git where it isn't kept:
+// for whoever keeps it current (the daemon, when it sees a capsule has
+// moved, before it tells the pages), not for a page's read.
+func (g *keptGit) standing(dir, base string) standing {
+	s := standing{dirty: g.dirty(dir)}
+	if g.hasUpstream(dir) {
+		s.ahead, s.behind = g.aheadBehind(dir)
+	} else {
+		s.ahead = g.commitsSince(dir, base)
+	}
+	return s
+}
+
+// standingSoon is where a capsule stands without waiting on git, as soon
+// says a fact: as kept, or, when the capsule has moved since or it's
+// never been asked, as it was before (ok false when it's never been
+// known) while git's asked behind the read. A look that finds it other
+// than the read was told counts as found moved, and says so (tell).
+func (g *keptGit) standingSoon(dir, base string) (standing, bool) {
+	c := g.capsule(dir)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.current(dir)
+	if s, ok := standingOf(c.facts, c.dirty, base); ok {
+		if time.Since(c.dirtyAt) > dirtyFloor && !c.looking {
+			c.looking = true
+			go c.look(dir, c.since)
+		}
+		return s, true
+	}
+	was, known := standingOf(c.was, c.wasDirty, base)
+	if c.asking["standing"] == c.since+1 {
+		return was, known
+	}
+	since := c.since
+	c.asking["standing"] = since + 1
+	g.behind(func() {
+		dirty, upstream := askDirty(dir), askUpstream(dir)
+		var ahead answer[aheadAndBehind]
+		var commits answer[int]
+		if upstream.is {
+			ahead = askAheadBehind(dir)
+		} else {
+			commits = askCommitsSince(dir, base)
+		}
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		if c.asking["standing"] == since+1 {
+			delete(c.asking, "standing")
+		}
+		if since != c.since || !dirty.keep || !upstream.keep || (upstream.is && !ahead.keep) || (!upstream.is && !commits.keep) {
+			return // not said, or said of the capsule as it was: the next read asks again
+		}
+		c.facts["upstream"] = upstream.is
+		if upstream.is {
+			c.facts["ahead"] = ahead.is
+		} else {
+			c.facts["since "+base] = commits.is
+		}
+		if c.dirty == nil {
+			c.dirty, c.dirtyAt = &dirty.is, time.Now()
+		}
+		if now, _ := standingOf(c.facts, c.dirty, base); !known || now != was {
+			c.moved.Add(1)
+			g.tell()
+		}
+	})
+	return was, known
+}
+
+// soonGit is a capsule's git for a page's view of a mission: nothing
+// waits on git. What isn't kept is said as it was (or as nothing, never
+// known), and asked for behind the read.
+type soonGit struct{ g *keptGit }
+
+func (s soonGit) headBranch(dir string) (string, string) { return s.g.headBranch(dir) }
+func (s soonGit) hasUpstream(dir string) bool {
+	is, _ := soon(s.g, dir, "upstream", func() answer[bool] { return askUpstream(dir) })
+	return is
+}
+func (s soonGit) aheadBehind(dir string) (int, int) {
+	ab, _ := soon(s.g, dir, "ahead", func() answer[aheadAndBehind] { return askAheadBehind(dir) })
+	return ab.ahead, ab.behind
+}
+func (s soonGit) commitsSince(dir, base string) int {
+	n, _ := soon(s.g, dir, "since "+base, func() answer[int] { return askCommitsSince(dir, base) })
+	return n
+}
+func (s soonGit) dirty(dir string) bool {
+	is, _ := s.g.dirtySoon(dir)
+	return is
 }
 
 // kept is a fact of the capsule: as kept, or asked for and kept.
@@ -385,6 +530,66 @@ func branchOf(dir string) string {
 		return branch
 	}
 	return ref
+}
+
+// headOf is the commit dir's HEAD is at and the branch it's on ("HEAD"
+// when it's detached), read from git's own files as branchOf reads the
+// branch: its HEAD, then its branch's ref, loose or packed. No process,
+// and never behind: it's what git itself would read. ok is false where
+// the files don't say (a branch with no commit yet, refs kept as a
+// reftable, a ref that names another): git is asked there.
+func headOf(dir string) (head, branch string, ok bool) {
+	gitDir, common := gitDirs(dir)
+	if gitDir == "" {
+		return "", "", false
+	}
+	data, err := os.ReadFile(filepath.Join(gitDir, "HEAD"))
+	if err != nil {
+		return "", "", false
+	}
+	at := strings.TrimSpace(string(data))
+	ref, symbolic := strings.CutPrefix(at, "ref: ")
+	if !symbolic {
+		return at, "HEAD", isObjectName(at)
+	}
+	branch, isBranch := strings.CutPrefix(ref, "refs/heads/")
+	if !isBranch {
+		return "", "", false
+	}
+	if data, err := os.ReadFile(filepath.Join(common, filepath.FromSlash(ref))); err == nil {
+		head = strings.TrimSpace(string(data))
+		return head, branch, isObjectName(head)
+	}
+	packed, err := os.ReadFile(filepath.Join(common, "packed-refs"))
+	if err != nil {
+		return "", "", false
+	}
+	for line := range strings.Lines(string(packed)) {
+		if name, named := strings.CutSuffix(strings.TrimRight(line, "\r\n"), " "+ref); named && isObjectName(name) {
+			return name, branch, true
+		}
+	}
+	return "", "", false
+}
+
+// HeadOf is the commit a capsule's (or a ground's) HEAD is at, read from
+// git's own files where they say and asked of git where they don't: ""
+// if it has none. For what's read often (a page's passes, a mission's
+// re-reviews), which a git apiece would make wait.
+func HeadOf(dir string) string { return askHeadBranch(dir).is.head }
+
+// isObjectName is whether s is a commit's whole name: 40 hex digits, or
+// 64 in a repository that names by SHA-256.
+func isObjectName(s string) bool {
+	if len(s) != 40 && len(s) != 64 {
+		return false
+	}
+	for _, c := range s {
+		if !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 // capsuleStamp names what git's answers about a capsule are built from,

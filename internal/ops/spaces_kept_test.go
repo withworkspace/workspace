@@ -197,3 +197,30 @@ func TestDoc_RecordedByAsksNothingOfAMissionThatHasntMoved(t *testing.T) {
 		t.Errorf("opening it again started git %d times, want none", n)
 	}
 }
+
+// The artifacts found in the repos are listed from what's kept too: the
+// read starts no process and asks for a look, which reads the spaces.
+func TestKeptSpaces_FoundArtifactsStartNoProcess(t *testing.T) {
+	w, _ := spaceFixture(t)
+	looks := holdLooks(t)
+	before := git.Started()
+	if found, err := w.FoundArtifacts(context.Background()); err != nil || len(found) != 0 {
+		t.Fatalf("first read: %+v, %v", found, err)
+	}
+	if n := git.Started() - before; n != 0 {
+		t.Errorf("the first read started git %d times, want none", n)
+	}
+	if n := looks(); n != 1 {
+		t.Fatalf("%d looks asked for, want 1", n)
+	}
+	before = git.Started()
+	if _, err := w.FoundArtifacts(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if n := git.Started() - before; n != 0 {
+		t.Errorf("a read of spaces that haven't moved started git %d times, want none", n)
+	}
+	if n := looks(); n != 0 {
+		t.Errorf("%d looks asked for of spaces that haven't moved", n)
+	}
+}

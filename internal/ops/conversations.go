@@ -307,7 +307,7 @@ func (w *Workspace) sendToCrew(m *mission.Mission, ids []string) (string, error)
 	for _, c := range threads {
 		ids = append(ids, c.ID)
 	}
-	v := BuildMissionViewsFrom(w.WS(), nil, []*mission.Mission{m})[0]
+	v := w.missionView(m)
 	var av ArtifactView
 	found := false
 	for _, a := range ResolveArtifacts(w.WS(), w.Missions, v) {

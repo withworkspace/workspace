@@ -75,7 +75,10 @@ func (w *Workspace) refsKnown(ctx context.Context, trees, writing bool) *ref.Kno
 		k.Capsules[repo] = capsules
 		k.Branches[repo] = map[string]string{}
 		for _, c := range capsules {
-			if _, branch := workspace.GitHeadBranch(filepath.Join(ws.RepoDir(repo), c)); branch != "" && branch != "HEAD" {
+			// Read from git's own files (branchOf): what there is to name
+			// is asked for on every pin and every address read, and a git
+			// apiece was a process for each capsule in the workspace.
+			if branch := branchOf(filepath.Join(ws.RepoDir(repo), c)); branch != "" && branch != "HEAD" {
 				k.Branches[repo][branch] = c
 			}
 		}
@@ -189,7 +192,7 @@ func (w *Workspace) pin(ctx context.Context, k *ref.Known, said string, r ref.Re
 		return rv
 	}
 	dir := filepath.Join(ws.RepoDir(r.Repo), r.Worktree)
-	head, branch := workspace.GitHeadBranch(dir)
+	head, branch := w.git.headBranch(dir)
 	if branch != "" && branch != "HEAD" {
 		rv.Branch = branch
 		if out, err := git.Read(ctx, dir, "rev-parse", "--verify", "--quiet", "refs/remotes/origin/"+branch); err == nil && strings.TrimSpace(string(out)) != "" {

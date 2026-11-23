@@ -126,10 +126,12 @@ func (w *Workspace) labelled(f artifact.Found) FoundArtifact {
 
 // FoundArtifacts are the artifacts in the workspace's repos that no
 // artifact on this machine lives at: someone else's, or another
-// machine's. They're as the repos' grounds have them, read fresh; a space
-// that couldn't be read has its own as they were last kept.
+// machine's. They're as the repos' grounds had them when the spaces were
+// last read: a page's read of them starts no git, and where a ground has
+// moved since, the spaces are read again behind it (spacesKept), which
+// moves spacesSeen for the page to read again.
 func (w *Workspace) FoundArtifacts(ctx context.Context) ([]FoundArtifact, error) {
-	_, _, _ = w.Spaces(ctx)
+	_, _ = w.spacesKept()
 	found, err := w.Artifacts().Found(ctx)
 	if err != nil {
 		return nil, err

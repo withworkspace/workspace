@@ -28,6 +28,12 @@ type missionHub struct {
 	// wrote, if set, is told each topic a write to the records named that
 	// isn't a mission's.
 	wrote func(topic string)
+	// keep, if set, reads what a mission's page is told of its capsules
+	// before the page is told they've moved: the page's read then has it,
+	// and waits on nothing.
+	keep func(slug string)
+	// kick has it look now (nudge).
+	kick chan struct{}
 
 	mu   sync.Mutex
 	subs map[string]map[chan string]struct{} // by slug
@@ -35,7 +41,17 @@ type missionHub struct {
 }
 
 func newMissionHub(poll time.Duration, stamp func(string) string, records func() *store.DB) *missionHub {
-	return &missionHub{poll: poll, stamp: stamp, records: records, subs: map[string]map[chan string]struct{}{}, last: map[string]string{}}
+	return &missionHub{poll: poll, stamp: stamp, records: records, subs: map[string]map[chan string]struct{}{}, last: map[string]string{}, kick: make(chan struct{}, 1)}
+}
+
+// nudge has it look at the missions followed now, not at its next poll:
+// a look behind a page's read has found a capsule other than the page
+// was given. One that's waiting to be heard stands for those after it.
+func (h *missionHub) nudge() {
+	select {
+	case h.kick <- struct{}{}:
+	default:
+	}
 }
 
 // open is the missions someone has open: each followed by a page.
@@ -124,18 +140,30 @@ func (h *missionHub) run(ctx context.Context) {
 				}
 			}
 		case <-t.C:
-			for _, slug := range h.followed() {
-				st := h.stamp(slug)
-				h.mu.Lock()
-				moved := h.subs[slug] != nil && st != h.last[slug]
-				if moved {
-					h.last[slug] = st
-				}
-				h.mu.Unlock()
-				if moved {
-					h.tell(slug)
-				}
+			h.look()
+		case <-h.kick:
+			h.look()
+		}
+	}
+}
+
+// look tells the pages of each followed mission whose files or capsules
+// have moved since it last looked, having read what the page will ask of
+// its capsules (keep).
+func (h *missionHub) look() {
+	for _, slug := range h.followed() {
+		st := h.stamp(slug)
+		h.mu.Lock()
+		moved := h.subs[slug] != nil && st != h.last[slug]
+		if moved {
+			h.last[slug] = st
+		}
+		h.mu.Unlock()
+		if moved {
+			if h.keep != nil {
+				h.keep(slug)
 			}
+			h.tell(slug)
 		}
 	}
 }

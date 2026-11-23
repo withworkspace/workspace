@@ -246,6 +246,28 @@ type CapsuleStatus struct {
 	Dirty         bool
 	Ahead, Behind int
 	Head          string
+	// Unread: where it stands hasn't been read yet, and is being.
+	Unread bool
+}
+
+// KeepMission reads where each of a mission's capsules stands, where
+// that isn't kept: for the daemon, when it sees one has moved and before
+// it tells the mission's page, so the page's read has it.
+func (w *Workspace) KeepMission(slug string) {
+	m, err := w.load(slug)
+	if err != nil {
+		return
+	}
+	ws := w.WS()
+	var asking sync.WaitGroup
+	for _, c := range m.Capsules {
+		dir := filepath.Join(ws.RepoDir(c.Repo), c.Name)
+		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+			continue
+		}
+		asking.Go(func() { w.git.standing(dir, "origin/"+ws.DefaultBranch) })
+	}
+	asking.Wait()
 }
 
 // missionRuns is how many of the orchestrator's runs a mission's page
@@ -269,7 +291,9 @@ func (w *Workspace) Mission(slug string) (*MissionDetail, error) {
 		idx = w.opts.PRs.Peek(ws, gh, repos)
 		answered = len(idx) == len(repos) // Peek has only those GitHub's answered for
 	}
-	v := buildMissionViews(&w.git, ws, idx, []*mission.Mission{m})[0]
+	// Nothing here waits on git: what's kept of each capsule is said, and
+	// what isn't is asked for behind the read (soonGit, standingSoon).
+	v := buildMissionViews(soonGit{&w.git}, ws, idx, []*mission.Mission{m})[0]
 	d := &MissionDetail{MissionView: v, GitHub: answered, Status: map[string]CapsuleStatus{}, Runs: w.runsOf(m, missionRuns)}
 	d.CapsuleRuns, d.Recipes, d.Tasks = w.capsuleRuns(v)
 	d.Brief, _ = w.Missions.ReadBrief(slug)
@@ -303,32 +327,17 @@ func (w *Workspace) Mission(slug string) (*MissionDetail, error) {
 	if states, _ := m.StageProgress(d.Brief); !(len(states) == 1 && states[0].Implicit) {
 		d.Stages = states
 	}
-	// Each capsule's, asked of git together where it isn't kept: the
-	// first read after the daemon starts, or after they've moved.
-	statuses := make([]CapsuleStatus, len(v.Capsules))
-	var asking sync.WaitGroup
-	for i, c := range v.Capsules {
+	// Where each capsule stands, as kept. The daemon reads it again when
+	// it sees a capsule has moved, before it tells the page (KeepMission);
+	// a read that comes before that is told how it stood, or that it's
+	// not been read (Unread), and what a look behind it finds moves the
+	// mission's stamp, so the page reads again.
+	for _, c := range v.Capsules {
 		if !c.Exists {
 			continue
 		}
-		asking.Go(func() {
-			st := CapsuleStatus{Dirty: w.git.dirty(c.Path), Head: c.Head}
-			if w.git.hasUpstream(c.Path) {
-				st.Ahead, st.Behind = w.git.aheadBehind(c.Path)
-			} else {
-				// Never pushed, it has no upstream to be ahead of: what it
-				// has that the default branch hasn't is what it's ahead by
-				// (what a pull request would open with).
-				st.Ahead = w.git.commitsSince(c.Path, "origin/"+ws.DefaultBranch)
-			}
-			statuses[i] = st
-		})
-	}
-	asking.Wait()
-	for i, c := range v.Capsules {
-		if c.Exists {
-			d.Status[c.Repo+"/"+c.Name] = statuses[i]
-		}
+		s, known := w.git.standingSoon(c.Path, "origin/"+ws.DefaultBranch)
+		d.Status[c.Repo+"/"+c.Name] = CapsuleStatus{Dirty: s.dirty, Ahead: s.ahead, Behind: s.behind, Head: c.Head, Unread: !known}
 	}
 	d.Artifacts = ResolveArtifacts(ws, w.Missions, v)
 	d.Bundles = w.Bundles(m)

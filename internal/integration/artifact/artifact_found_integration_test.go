@@ -82,7 +82,16 @@ note = "Swimlanes for each person."
 	put("index.html", "<!doctype html>\n<title>Team board</title>\n<link rel=stylesheet href=css/board.css>\n")
 	testutil.CommitIn(t, ground, folder+"/css/board.css", "body { color: teal }", "Promote the team board")
 
-	found, err := app.FoundArtifacts(ctx)
+	// The list is what was found when the spaces were last read: a read
+	// asks for them to be read again behind it, and one after has it.
+	foundWhen := func(is func([]ops.FoundArtifact) bool) ([]ops.FoundArtifact, error) {
+		found, err := app.FoundArtifacts(ctx)
+		for deadline := time.Now().Add(5 * time.Second); err == nil && !is(found) && time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {
+			found, err = app.FoundArtifacts(ctx)
+		}
+		return found, err
+	}
+	found, err := foundWhen(func(f []ops.FoundArtifact) bool { return len(f) == 1 })
 	if err != nil || len(found) != 1 {
 		t.Fatalf("found: %+v, %v", found, err)
 	}
@@ -134,7 +143,7 @@ note = "Swimlanes for each person."
 	// Its stylesheet alone changes: it's another version, and the one
 	// before isn't served any more.
 	testutil.CommitIn(t, ground, folder+"/css/board.css", "body { color: crimson }", "Restyle the board")
-	found, err = app.FoundArtifacts(ctx)
+	found, err = foundWhen(func(f []ops.FoundArtifact) bool { return len(f) == 1 && f[0].Version != board.Version })
 	if err != nil || len(found) != 1 || found[0].Version == board.Version {
 		t.Fatalf("found, restyled: %+v, %v (was at %s)", found, err, board.Version)
 	}
@@ -148,7 +157,7 @@ note = "Swimlanes for each person."
 	// Taken out of the repo, it's found no more.
 	testutil.GitCmd(t, ground, "rm", "-r", "-q", folder)
 	testutil.GitCmd(t, ground, "-c", "user.name=Test", "-c", "user.email=test@test.com", "commit", "-q", "-m", "Discard the board")
-	if found, err := app.FoundArtifacts(ctx); err != nil || len(found) != 0 {
+	if found, err := foundWhen(func(f []ops.FoundArtifact) bool { return len(f) == 0 }); err != nil || len(found) != 0 {
 		t.Fatalf("found, once it's gone: %+v, %v", found, err)
 	}
 	if res := testutil.RunCommand(t, w.Root, nil, "find", "swimlanes"); strings.Contains(res.Stdout, name) {

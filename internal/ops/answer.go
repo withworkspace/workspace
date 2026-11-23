@@ -343,7 +343,7 @@ func (w *Workspace) talkReadPaths() []string {
 		out = append(out, g.Path)
 	}
 	missions, _ := w.Missions.InPlay()
-	for _, v := range BuildMissionViewsFrom(w.WS(), nil, missions) {
+	for _, v := range buildMissionViews(&w.git, w.WS(), nil, missions) {
 		for _, c := range v.Capsules {
 			if c.Exists {
 				out = append(out, c.Path)
@@ -702,7 +702,7 @@ func (w *Workspace) DocNow(m *mission.Mission, ref string) ([]byte, error) {
 		}
 		return os.ReadFile(d.Path)
 	}
-	v := BuildMissionViewsFrom(w.WS(), nil, []*mission.Mission{m})[0]
+	v := w.missionView(m)
 	for _, av := range ResolveArtifacts(w.WS(), w.Missions, v) {
 		if av.Ref == ref && av.Path != "" && av.State != "missing" {
 			return os.ReadFile(av.Path)
