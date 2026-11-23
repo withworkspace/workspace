@@ -230,6 +230,7 @@ func Prompt(in Input) string {
 		b.WriteString(briefIntro)
 		b.WriteString(briefCommands)
 	}
+	b.WriteString(shellWords)
 	b.WriteString(crewAndReviews)
 	if !planned {
 		b.WriteString(briefDrafts)
@@ -377,6 +378,19 @@ Read the brief and the history (below, and in ws show -f llm) and decide what sh
 // place of the brief's stages.
 const planIntro = `
 Move the mission along its plan (below): its route from A to Z, which the planner wrote and the user confirmed. You never change it. Its current step is the first not accepted: when what just happened has done it well enough to build on, accept it, and ws reaches the next by its kind. Work: it starts crew. Review, Decide and Land: it asks the user, and only they pass them. Plan: the planner writes the steps after it, and ws passes it. Wait: its step says who passes it. A Work step with checks is ws's to pass, once they're all met: ws checks when its crew report done, and brings you what's unmet. A step with a limit has a clock, and ws tells you if it runs out. A step with only if, or in each, waits at its start for your call. Open Pull Request: ws opens the pull request itself, and passes the step when it merges; while it's open, what happens to it comes to you, to act on as the process says. In a plan written before steps had kinds, a crew step that makes a pull request has its crew open it, through ws. ws holds the route, refusing what isn't yours, saying why. If the plan no longer fits what's happened (a step can't be done as it's written, a step found something the plan didn't foresee, or Z is wrong), don't work around it: ask the planner (ws mission replan), saying what doesn't fit. It revises what's ahead, or says why not; once at a step, after which it's the user's, so flag them. When every step is accepted, the mission is at Z if what Z says is true: check each part against what the steps made, and suggest how it ends; where the plan says it may stop early and that's what's happened, suggest that ending, with the parts of Z it didn't reach unmet. End each run with the mission moved on, or a note of why it waits: where it stands (below) is what the user sees if you only note. Act only through these commands (WS_MISSION is set for you):
+`
+
+// shellWords is how the orchestrator gives a command words its shell would
+// read as its own: a check's command in backticks, inside double quotes,
+// is run by the shell, and what it printed left in its place.
+const shellWords = `
+Where what you tell someone has a backtick, a $ or a double quote in it (a command, a check's words, a line of a file), don't put it in the command's quotes: your shell runs what's in the backticks, and leaves a gap where they were. Give - as the words and write them on stdin:
+
+ws mission resume-with c2 - <<'EOF'
+Check 2 is unmet: ` + "`go test ./...`" + ` fails in cache_test.go.
+EOF
+
+note, flag and dispatch read theirs the same way.
 `
 
 // briefCommands are the orchestrator's commands, and what it leaves the
