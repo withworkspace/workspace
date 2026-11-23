@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Doing } from "../ui/Doing";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
@@ -6,12 +6,8 @@ import {
   type ArtifactInfo,
   type DocKind,
   docAddress,
-  getTalk,
-  keepAsk,
   proposalFrameURL,
-  sayInTalk,
   setTalkStatus,
-  settleTalkProposal,
   startTalk,
   type Talk,
   type TalkDetail,
@@ -31,7 +27,9 @@ import { Inline } from "../ui/inline";
 import { Callout, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useAutosize, useDraft, useMedia, useTitle } from "../ui/kit";
 import { Status, type StatusInfo } from "../ui/status";
 import { Time } from "../ui/time";
-import { useHere, useLoaded } from "../load";
+import { useHere } from "../load";
+import { talkAt } from "../chrome/panes";
+import { useTalk, useTalks } from "../conversation/talks";
 import { RefTag } from "../refs/RefTag";
 import { refKey } from "../refs/refs";
 import { ArtifactProposalBody } from "./ArtifactProposal";
@@ -343,7 +341,19 @@ export function TalkPage() {
   // Load again whenever the workspace says it's changed: a turn, or the
   // run's output as it goes.
   const key = (slug ? mission?.updated : listed?.updated) ?? "";
-  const { value: d, error, set: setD, reload: load } = useLoaded<TalkDetail>(() => getTalk(slug, id), [slug, id, key], { keep: true });
+  // It's the window's (conversation/talks.ts), as the pane beside a page
+  // has it: what's said in one shows in the other. Shown here, it's
+  // followed while it's answered.
+  const to = talkAt(id, slug);
+  const held = useTalk(to);
+  const d = held?.detail;
+  const error = held?.gone || !d ? held?.error : undefined;
+  const setD = (x: TalkDetail) => useTalks.getState().told(to, x);
+  const load = useCallback(() => useTalks.getState().load(to), [to]);
+  useEffect(() => useTalks.getState().watch(to), [to]);
+  useEffect(() => {
+    void load();
+  }, [load, key]);
   const title = d ? name({ title: d.title, opening: d.turns[0]?.body }) : "";
   useTitle(title || "Conversation");
 
@@ -435,12 +445,11 @@ export function TalkPage() {
     if (!text.trim() || sending) return;
     setSending(true);
     follow.current = true;
-    sayInTalk(slug, id, text)
+    useTalks
+      .getState()
+      .say(to, text)
       .then(
-        (x) => {
-          setD(x);
-          setText("");
-        },
+        () => setText(""),
         (e: Error) => toast(humanError(e.message), { tone: "danger" }),
       )
       .finally(() => setSending(false));
@@ -451,9 +460,8 @@ export function TalkPage() {
   const here = useHere();
   const settle = (n: number, action: "accept" | "decline", edits = {}) => {
     const p = d?.proposals?.find((x) => x.n === n);
-    return settleTalkProposal(slug, id, n, action, edits).then(
+    return useTalks.getState().settle(to, n, action, edits).then(
       (x) => {
-        setD(x);
         if (x.message) toast(x.message, { tone: "done" });
         const to = afterSettling(p, action, slug, x.path);
         if (to && here()) navigate(to, { replace: to === x.path });
@@ -461,7 +469,7 @@ export function TalkPage() {
       (e: Error) => {
         toast(humanError(e.message), { tone: "danger" });
         // A plugin's items done before one wasn't are kept: show them.
-        load();
+        void load();
       },
     );
   };
@@ -493,11 +501,8 @@ export function TalkPage() {
       (e: Error) => toast(humanError(e.message), { tone: "danger" }),
     );
   const keep = () =>
-    keepAsk(slug, id).then(
-      (x) => {
-        setD(x);
-        toast("Kept: it's in Conversations.", { tone: "done" });
-      },
+    useTalks.getState().keep(to).then(
+      () => toast("Kept: it's in Conversations.", { tone: "done" }),
       (e: Error) => {
         if (!(e instanceof ApiError && e.status === 404)) return toast(humanError(e.message), { tone: "danger" });
         toast("That ask's gone: nobody kept it.");
