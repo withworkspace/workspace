@@ -29,6 +29,7 @@ import { Icon } from "../ui/Icon";
 import { Excerpt } from "../ui/Excerpt";
 import { NoteBody, NoteCard, NoteHead, NoteHint, NoteId, NoteStatus, NoteThread, NoteTurn } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
+import { Suggestion } from "./Suggestion";
 import { fuzzy } from "../ui/fuzzy";
 import { Inline } from "../ui/inline";
 import { Callout, humanError, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
@@ -1673,28 +1674,6 @@ function CommentCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, fo
         </>
       )}
     </NoteCard>
-  );
-}
-
-function Suggestion({ from, to }: { from: string[]; to: string }) {
-  return (
-    <div className="suggestion">
-      <div className="dim">Suggested change</div>
-      {from.map((l, i) => (
-        <div key={`d${i}`} className="sl d">
-          − {l}
-        </div>
-      ))}
-      {to === "" ? (
-        <div className="sl dim">(delete these lines)</div>
-      ) : (
-        to.split("\n").map((l, i) => (
-          <div key={`a${i}`} className="sl a">
-            + {l}
-          </div>
-        ))
-      )}
-    </div>
   );
 }
 

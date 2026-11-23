@@ -45,7 +45,9 @@ import { ToggleButton } from "../ui/ToggleButton";
 import { Input } from "../ui/Input";
 import { TextArea } from "../ui/TextArea";
 import { Composer } from "../ui/Composer";
+import { Change } from "../ui/Change";
 import { Excerpt } from "../ui/Excerpt";
+import { Suggestion } from "../review/Suggestion";
 import { cx } from "../ui/cx";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
@@ -1304,25 +1306,7 @@ function WsProposalCard({
               <Excerpt lines={p.excerpt} from={p.line ?? 1} />
             )}
             {p.text && <div className="proposal-what said-text">{p.text}</div>}
-            {p.suggestion != null && (
-              <div className="suggestion">
-                <div className="dim">Suggested change</div>
-                {(p.excerpt ?? []).map((l, i) => (
-                  <div key={`d${i}`} className="sl d">
-                    − {l}
-                  </div>
-                ))}
-                {p.suggestion === "" ? (
-                  <div className="sl dim">(delete these lines)</div>
-                ) : (
-                  p.suggestion.split("\n").map((l, i) => (
-                    <div key={`a${i}`} className="sl a">
-                      + {l}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+            {p.suggestion != null && <Suggestion from={p.excerpt} to={p.suggestion} />}
           </>
         );
       case "document": {
@@ -1402,33 +1386,18 @@ function RevisionChanges({ was, now }: { was: TalkProposal; now: TalkProposal })
   return (
     <details className="proposal-changes">
       <summary className="dim">What changed since proposal {was.n}</summary>
-      {a === b ? <div className="dim">Its words are as they were.</div> : <BriefDiff was={a} now={b} />}
+      {a === b ? <div className="dim">Its words are as they were.</div> : <BriefDiff className="proposal-changed" was={a} now={b} />}
     </details>
   );
 }
 
 // BriefDiff is what an edit to the brief changes: each changed passage,
 // as it read and as it would.
-function BriefDiff({ was, now }: { was: string; now: string }) {
+function BriefDiff({ was, now, className }: { was: string; now: string; className?: string }) {
   const lines = now.replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
   const hunks = changes(was, now);
   if (!hunks.length) return <div className="dim">No change.</div>;
   return (
-    <div className="brief-diff">
-      {hunks.map((h, i) => (
-        <div key={i} className="hunk">
-          {h.old.map((l, j) => (
-            <div key={`o${j}`} className="sl d">
-              {l || " "}
-            </div>
-          ))}
-          {lines.slice(h.newStart - 1, h.newEnd).map((l, j) => (
-            <div key={`n${j}`} className="sl a">
-              {l || " "}
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
+    <Change className={className} wrap struck hunks={hunks.map((h) => ({ was: h.old, now: lines.slice(h.newStart - 1, h.newEnd) }))} />
   );
 }

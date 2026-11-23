@@ -2522,18 +2522,9 @@ button.kind.on {
   min-height: 22px;
 }
 
-.suggestion {
+/* A suggested change (ui/Change.tsx), under what was said of it. */
+.suggested {
   margin-top: 8px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 4px 0;
-  font: var(--text-sm) / 18px var(--mono);
-  overflow-x: auto;
-}
-
-.suggestion > .dim {
-  padding: 0 8px 2px;
-  font-family: var(--font);
 }
 
 .sl {
@@ -8781,10 +8772,6 @@ blockquote.editor-on {
   font-weight: 400;
 }
 
-.doc-suggestion .sl {
-  white-space: pre-wrap;
-}
-
 /* The comment button beside a selection, or the cursor's paragraph. */
 .add-comment {
   position: absolute;
@@ -9041,11 +9028,6 @@ blockquote.editor-on {
 .doc-suggestion.edit {
   margin-top: 10px;
   padding: 8px 0;
-}
-
-.doc-suggestion.edit .sl {
-  font: var(--text-sm) / 1.5 var(--mono);
-  padding: 2px 8px;
 }
 
 .doc-suggestion .note-actions {
@@ -9807,7 +9789,7 @@ button.settled-marker-more:hover {
   cursor: pointer;
 }
 
-.proposal-changes > .brief-diff {
+.proposal-changes > .proposal-changed {
   margin-top: 6px;
 }
 
@@ -10077,32 +10059,6 @@ button.settled-marker-more:hover {
   display: flex;
   align-items: baseline;
   gap: 6px;
-}
-
-.brief-diff {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  font: var(--text-sm) / 1.5 var(--mono);
-  overflow: auto;
-}
-
-.brief-diff .hunk + .hunk {
-  border-top: 1px dashed var(--line);
-}
-
-.brief-diff .sl {
-  padding: 1px 10px;
-  white-space: pre-wrap;
-}
-
-.brief-diff .sl.d {
-  background: var(--del-bg);
-  text-decoration: line-through;
-  text-decoration-color: rgb(212 76 71 / 0.4);
-}
-
-.brief-diff .sl.a {
-  background: var(--add-bg);
 }
 
 @media (max-width: 720px) {

@@ -6,6 +6,7 @@ import { Keys } from "../ui/kit";
 import type { Found, Row } from "./model";
 import { Button } from "../ui/Button";
 import { NoteBody, NoteCard, NoteHead } from "../ui/NoteCard";
+import { Suggestion } from "./Suggestion";
 
 // What a pass found, in the diff: a card under the lines it's about, like
 // a comment's, but nobody's said it yet. Taking it puts it in your draft
@@ -90,25 +91,6 @@ export function FindingActions({
   );
 }
 
-// SuggestedLines is the code a finding would put in place of its lines.
-export function SuggestedLines({ from, to }: { from?: string[]; to: string }) {
-  return (
-    <div className="suggestion">
-      <div className="dim">Suggested change</div>
-      {(from ?? []).map((l, i) => (
-        <div key={`d${i}`} className="sl d">
-          − {l}
-        </div>
-      ))}
-      {to.split("\n").map((l, i) => (
-        <div key={`a${i}`} className="sl a">
-          + {l}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // FindingCard is a finding under its lines.
 export function FindingCard({
   row,
@@ -158,7 +140,7 @@ export function FindingCard({
       <NoteBody>
         <Inline text={f.text} />
       </NoteBody>
-      {f.suggest ? <SuggestedLines from={f.excerpt} to={f.suggest} /> : null}
+      {f.suggest ? <Suggestion from={f.excerpt} to={f.suggest} /> : null}
     </NoteCard>
   );
 }

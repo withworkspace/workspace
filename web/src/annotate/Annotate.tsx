@@ -28,6 +28,7 @@ import { type TrackedChange, TrackedDoc } from "../editor/LazyTracked";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { NoteBody, NoteCard, NoteHead, NoteHint, noteHintActionClass, NoteId, NoteThread, NoteTurn } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
+import { Change } from "../ui/Change";
 import { Icon } from "../ui/Icon";
 import { Callout, humanError, Keys, toast, useAutosize, useMedia } from "../ui/kit";
 import { exact, stamp } from "../ui/time";
@@ -1193,8 +1194,7 @@ function EditCard({
       <div className="suggestion-head">
         <Icon name="pencil" size={12} /> Suggested edit <span className="dim">by {s.by === "agent" ? "the agent" : s.by}</span>
       </div>
-      <div className="sl d">{s.from}</div>
-      {s.to === "" ? <div className="sl dim">(delete it)</div> : <div className="sl a">{s.to}</div>}
+      <Change bare wrap was={[s.from]} now={s.to === "" ? [] : [s.to]} gone="(delete it)" />
       {landing && (
         <div className="dim settled">
           Accepting writes it in and lands it on {landing} at once: there's no pull request. <Keys k="a" /> again does it.

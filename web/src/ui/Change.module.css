@@ -1,0 +1,67 @@
+/* What something would change (Change.tsx): the lines as they read, on
+   red, over the lines as they would, on green. */
+
+@layer ui {
+  .change {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font: var(--text-sm) / 18px var(--mono);
+    overflow-x: auto;
+  }
+
+  /* With a title, the box has a little room over it and under the
+     lines. */
+  .titled {
+    padding: 4px 0;
+  }
+
+  /* In a card that's a box already: the lines alone. */
+  .bare {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .title {
+    padding: 0 8px 2px;
+    color: var(--dim);
+    font-family: var(--font);
+  }
+
+  /* A passage of its own, ruled off from the one before. */
+  .hunk + .hunk {
+    border-top: 1px dashed var(--line);
+  }
+
+  /* Code: a line is a line, and a long one scrolls. */
+  .line {
+    padding: 0 8px;
+    white-space: pre;
+  }
+
+  /* Words: they wrap, with a little air between the lines. */
+  .wrap {
+    line-height: 1.5;
+  }
+
+  .wrap .line {
+    padding: 2px 8px;
+    white-space: pre-wrap;
+  }
+
+  .was {
+    background: var(--del-bg);
+  }
+
+  .struck {
+    text-decoration: line-through;
+    text-decoration-color: rgb(212 76 71 / 0.4);
+  }
+
+  .now {
+    background: var(--add-bg);
+  }
+
+  .gone {
+    color: var(--dim);
+  }
+}
