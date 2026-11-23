@@ -1,0 +1,62 @@
+/* The list of every tab a dock has (DockTabList.tsx): a small button at
+   the end of the row, and what it opens. */
+
+@layer ui {
+  .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex: none;
+    min-height: 22px;
+    margin-bottom: 4px;
+    padding: 2px 5px 2px 7px;
+    border: 0;
+    border-radius: var(--radius);
+    box-shadow: none;
+    background: none;
+    color: var(--dim);
+    font: inherit;
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+  }
+
+  .button:hover,
+  .button[data-pressed],
+  .button[aria-expanded="true"] {
+    color: var(--fg);
+    background: var(--hover);
+  }
+
+  .count {
+    font-weight: 500;
+  }
+
+  .pop {
+    width: min(340px, calc(100vw - 16px));
+    max-height: min(60vh, 480px);
+  }
+
+  .option {
+    font-size: var(--text-sm);
+  }
+
+  /* What a tab leads with (an icon, a crew's badge), in a column of its
+     own, so the names line up whatever leads them. */
+  .lead {
+    display: inline-flex;
+    justify-content: center;
+    flex: none;
+    min-width: 26px;
+    color: var(--dim);
+  }
+
+  .on {
+    font-weight: 500;
+  }
+
+  .check {
+    flex: none;
+    color: var(--accent);
+  }
+}

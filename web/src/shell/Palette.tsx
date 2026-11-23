@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { act, type ActionAsk, dockPR, newPage, type Plugin, restoreArtifact, runPluginAction, setTalkStatus, startMissionAbout, type Workspace } from "../api";
+import { act, type ActionAsk, dockPR, newPage, restoreArtifact, runPluginAction, setTalkStatus, startMissionAbout } from "../api";
 import { useKeys } from "../keys";
 import { archiveMission } from "../mission/archive";
 import { RefsScope, thingsNamed } from "../refs/known";
@@ -14,6 +14,7 @@ import { Icon } from "../ui/Icon";
 import { Status } from "../ui/status";
 import { humanError, Keys, toast } from "../ui/kit";
 import { confirm } from "../ui/Confirm";
+import { askShutDown } from "./daemon";
 import { setTheme } from "../ui/theme";
 import { clock } from "../ui/time";
 import {
@@ -45,7 +46,7 @@ import {
 } from "./find";
 import type { Waiting } from "./notify";
 import { CodeText, CodeWhere } from "./CodeHitParts";
-import type { FrameHere } from "../plugins/here";
+import { type FrameHere, useChromeStore } from "../chrome/store";
 import { around, hereAt, hereItems, keptAround, type Near, nearIds, nearItems } from "./here";
 import { loadMemory, noteChosen, noteVisit, recentItems, visitOf } from "./recent";
 import { PinButton, pinNameOf, useFocus } from "./focus";
@@ -57,6 +58,7 @@ import { Input } from "../ui/Input";
 import { Modal } from "../ui/Modal";
 import { cx } from "../ui/cx";
 import { finderBox, finderInput, finderOverlay } from "../ui/Finder";
+import { usePlugins, useWorkspace } from "../workspace/store";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
 // has, by what you remember of it. What the page holds (missions, pages,
@@ -103,8 +105,6 @@ const stale = 10 * 60 * 1000;
 const codeWait = 150;
 
 export function Palette({
-  workspace,
-  plugins,
   waiting,
   start,
   pageRepo,
@@ -112,11 +112,7 @@ export function Palette({
   search,
   frameHere,
   onClose,
-  onHelp,
-  onShutDown,
 }: {
-  workspace: Workspace;
-  plugins?: Plugin[];
   waiting: Waiting[];
   start?: string;
   pageRepo?: string;
@@ -124,9 +120,9 @@ export function Palette({
   search: string;
   frameHere?: FrameHere; // what a plugin's page said it shows beyond its address
   onClose: () => void;
-  onHelp: () => void;
-  onShutDown: () => void;
 }) {
+  const workspace = useWorkspace();
+  const plugins = usePlugins();
   const navigate = useNavigate();
   // How the plugins' things are named: what's typed may be one's name
   // (RAM-123), or where one is. Find sits outside what the pages name
@@ -466,8 +462,8 @@ export function Palette({
       onClose();
       const d = it.doing;
       if ("theme" in d) setTheme(d.theme);
-      else if ("help" in d) onHelp();
-      else if ("shutDown" in d) onShutDown();
+      else if ("help" in d) useChromeStore.getState().setHelp(true);
+      else if ("shutDown" in d) void askShutDown();
       else if ("ws" in d)
         doWs(d.ws).then(
           (said) => toast(said, { tone: "done" }),
@@ -796,7 +792,7 @@ export function Palette({
               // hand, and if they can't be had. A name one of its fields
               // holds is what it names, to go to (which closes Find), and
               // under it is what can be done to it.
-              <RefsScope workspace={workspace} known={known}>
+              <RefsScope known={known}>
                 <div className="find-thing" onClickCapture={(e) => (e.target as HTMLElement).closest(".named-ref, .hovercard-link") && onClose()}>
                   <ThingCard r={onThing} known={known} surface="pane" pointer={pointer} before={!mode && on?.said ? <SaidCard it={on} f={on.said} /> : undefined} />
                 </div>
@@ -813,7 +809,7 @@ export function Palette({
               <SaidCard it={on} f={on.said} />
             ) : on?.card ? (
               <>
-                <RefCardBody r={on.card} workspace={workspace} known={known} />
+                <RefCardBody r={on.card} known={known} />
                 <span className="ref-foot">
                   <PinButton r={on.card} />
                 </span>

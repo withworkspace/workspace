@@ -18,6 +18,7 @@ import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Input } from "../ui/Input";
+import { usePref } from "../prefs";
 
 // The mission's Work tab: what's been made, a row each, and the one that's
 // open beside it. Capsules come first, in the order they need you (in
@@ -27,16 +28,6 @@ import { Input } from "../ui/Input";
 // default branch; an output opens to be read. On a wide window the tab
 // fills what's under the mission's bar and each column scrolls by itself
 // (.mission-page.fills); on a narrow one they stack, and the page scrolls.
-
-const doneKey = "ws:work-done";
-
-function loadDone(): boolean {
-  try {
-    return localStorage.getItem(doneKey) === "1";
-  } catch {
-    return false;
-  }
-}
 
 // useRepoLabel is a repo's name as the workspace calls it (ws, for
 // workspace), and its own until that's known.
@@ -112,7 +103,7 @@ export function Work({
   seen?: string;
 }) {
   const label = useRepoLabel();
-  const [doneOpen, setDoneOpen] = useState(loadDone);
+  const [doneOpen, setDoneOpen] = usePref("workDone");
   const capsule = w.capsules.find((x) => x.key === shown);
   const output = capsule ? undefined : w.outputs.find((a) => outputKey(a) === shown);
   // Done is open while what's shown is in it.
@@ -120,11 +111,6 @@ export function Work({
   const toggleDone = () => {
     const open = !showDone;
     setDoneOpen(open);
-    try {
-      localStorage.setItem(doneKey, open ? "1" : "0");
-    } catch {
-      // kept for this page only
-    }
     if (!open && capsule?.where === "done" && w.opensOn && w.opensOn !== capsule.key) select(w.opensOn);
   };
   const rows = (list: WorkCapsule[]) => list.map((x) => <CapsuleRow key={x.key} d={d} x={x} selected={x.key === shown} select={select} label={label} review={review} seen={seen} />);

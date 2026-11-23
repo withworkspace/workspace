@@ -1,6 +1,6 @@
 import type { Workspace } from "../api";
 import type { SpaceRef } from "../api";
-import type { FrameHere } from "../plugins/here";
+import type { FrameHere } from "../chrome/store";
 import { GROUND, type Known, namedOf, type PageRef, refAt, thingOpenAt } from "../refs/refs";
 import { actsFor, subjectOf } from "./acts";
 import { actIcon, actsOn, type Found, foundItem, type Item } from "./find";

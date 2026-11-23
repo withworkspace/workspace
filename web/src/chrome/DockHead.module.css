@@ -1,0 +1,22 @@
+/* A dock's head (DockHead.tsx): its tabs, then its tools, over a line the
+   tab that's open sits on. */
+
+@layer ui {
+  .head {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    flex: none;
+    min-width: 0;
+    padding: 4px 6px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+    padding-bottom: 3px;
+  }
+}

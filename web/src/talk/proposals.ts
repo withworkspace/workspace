@@ -19,6 +19,27 @@ export function docLead(text: string): string {
   return clip(line, 280);
 }
 
+// startsMission: a proposal that briefs a mission, so accepting it is the
+// go-ahead that starts it. A mission's brief proposed while it's being
+// briefed comes with its name, its slug, or its capsules; an edit to a
+// brief already under way comes with none.
+export const startsMission = (p: Pick<TalkProposal, "kind" | "title" | "slug" | "capsules" | "docks">) =>
+  p.kind === "brief" && (!!p.title || !!p.capsules?.length || !!p.docks?.length || !!p.slug);
+
+// afterSettling is where settling a mission's proposal takes you, if
+// anywhere. Accepting one that starts the mission goes to the mission's
+// summary, wherever it was accepted: that's where it says what's
+// happening now. Otherwise it's where the conversation went, if it
+// moved (path, as ws gives it: its mission was renamed). slug is the
+// conversation's mission as it was.
+export function afterSettling(p: TalkProposal | undefined, action: "accept" | "decline", slug: string, path?: string): string | undefined {
+  if (slug && action === "accept" && p && startsMission(p)) {
+    const moved = path?.match(/^\/missions\/([^/]+)\//)?.[1];
+    return `/missions/${moved ?? slug}`;
+  }
+  return path;
+}
+
 // Settled is a turn ws wrote for you settling a card, as its marker says
 // it: whether you accepted it, what it was or made ("mission
 // token-cache"), where that is, if it's somewhere to go, and what else

@@ -1,0 +1,29 @@
+/* A conversation, beside the page (TalkPane.tsx). */
+
+@layer ui {
+  .turns {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .answering {
+    display: grid;
+    gap: 8px;
+  }
+
+  /* Nobody's kept it: said quietly, by the way to keep it. */
+  .unkept {
+    color: var(--faint);
+  }
+
+  .proposed {
+    margin: 14px 0 0;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--well);
+    color: var(--dim);
+    font-size: var(--text-sm);
+  }
+}

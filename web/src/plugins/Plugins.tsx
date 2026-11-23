@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { addPlugin, ApiError, checkUpdates, getInstalledPlugins, type InstalledPlugin, type Plugin, type PluginsInstalled, removePlugin, updatePlugin, type WantedPlugin } from "../api";
+import { addPlugin, ApiError, checkUpdates, getInstalledPlugins, type InstalledPlugin, type PluginsInstalled, removePlugin, updatePlugin, type WantedPlugin } from "../api";
 import { type Reload, useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { Callout, Copyable, Empty, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
@@ -8,6 +8,7 @@ import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
 import { Time } from "../ui/time";
 import { addsOf, changedSaid, fromOf, outCount, repoLink, stateOf, updateOf, wantedFrom } from "./installed";
 import { pluginIcon } from "./Plugin";
+import { usePlugins } from "../workspace/store";
 import { Chip, chipClass } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
@@ -36,7 +37,8 @@ const failed = (what: string, e: unknown): Failed => ({
   output: e instanceof ApiError ? e.output : undefined,
 });
 
-export function PluginsSection({ plugins: live }: { plugins?: Plugin[] }) {
+export function PluginsSection() {
+  const live = usePlugins();
   const { value: info, error, reload } = useLoaded<PluginsInstalled>(getInstalledPlugins, [], { keep: true });
   // What the sidebar follows says when a plugin starts, stops, comes or
   // goes: the list is read again then.

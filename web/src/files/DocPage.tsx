@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { type ArtifactContent, type Citation, type DocDraft, docAddress, docRef as fileRef, docTo, dropDraft, filesTo, GROUND, getCites, getDoc, getDraft, getSpaceActivity, getThreads, kindHint, placeOf, type SpaceFlight, spaceAt, spaceTo, type Talk, type Workspace } from "../api";
+import { type ArtifactContent, type Citation, type DocDraft, docAddress, docRef as fileRef, docTo, dropDraft, filesTo, GROUND, getCites, getDoc, getDraft, getSpaceActivity, getThreads, kindHint, placeOf, type SpaceFlight, spaceAt, spaceTo, type Talk } from "../api";
 import { useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { type PageRef, wsAddress } from "../refs/refs";
@@ -24,6 +24,7 @@ import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { clip } from "../ui/text";
 import { pageScroller } from "../ui/scroller";
+import { useWorkspace } from "../workspace/store";
 
 export const docKeys: [string, string][] = [
   ["e", "Edit it, here: as the page tied to it"],
@@ -32,7 +33,7 @@ export const docKeys: [string, string][] = [
   ["t", "Show or hide its contents"],
   ["[ / ]", "Previous / next in its folder (or its kind's list)"],
   ["u", "What's in its folder; again to go up"],
-  ["/", "Go to the ask bar"],
+  ["/", "Go to the ask bar: what you ask opens beside the page"],
   ["a", "Ask (about what's selected, if anything)"],
   ["o", "Open it in Files"],
   ["r", "Reload"],
@@ -62,7 +63,10 @@ export const docKeys: [string, string][] = [
 // passage picked out of it (ask/Selection.tsx's toolbar, or a): its answer
 // is a card over the text, whose citations of its sections scroll there.
 // An ask kept is a conversation about the document, listed below its text.
-export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: string }) {
+export function DocPage({ docRef }: { docRef: string }) {
+  const conversations = useWorkspace((w) => w.conversations);
+  const spaces = useWorkspace((w) => w.spaces);
+  const spacesSeen = useWorkspace((w) => w.spacesSeen);
   const ref = docRef;
   const navigate = useNavigate();
   const location = useLocation();
@@ -103,7 +107,7 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
   const canEdit = !!a?.editable && !a.mission;
   const edit = () => a && canEdit && navigate(docAddress(a.ref, a.page ?? true));
   // Back goes to its space, for one of a space's documents; else Files.
-  const space = where && where.worktree === GROUND ? spaceAt(workspace.spaces, where.repo, where.path) : undefined;
+  const space = where && where.worktree === GROUND ? spaceAt(spaces, where.repo, where.path) : undefined;
   const home = space ? spaceTo(space.repo) : files;
   // What cites a space's document, and what it cites.
   const [cites, setCites] = useState<{ citedBy: Citation[]; cites: Citation[] }>();
@@ -117,7 +121,7 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
     return () => {
       stale = true;
     };
-  }, [space?.repo, where?.path, workspace.spacesSeen]);
+  }, [space?.repo, where?.path, spacesSeen]);
   // A space's document says when it's in flight: changed in a capsule. As
   // ws keeps it, and read again when ws has found the space changed.
   const [flights, setFlights] = useState<SpaceFlight[]>([]);
@@ -131,10 +135,10 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
     return () => {
       stale = true;
     };
-  }, [space?.repo, where?.path, workspace.spacesSeen]);
+  }, [space?.repo, where?.path, spacesSeen]);
   // The conversations about it: asks that were kept, newest first.
   const asked = a?.ref;
-  const talks = useMemo(() => (asked ? workspace.conversations.filter((t) => t.doc === asked) : []), [workspace.conversations, asked]);
+  const talks = useMemo(() => (asked ? conversations.filter((t) => t.doc === asked) : []), [conversations, asked]);
   // Its contents: a rail where it fits, else the pill and its menu.
   const page = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLElement>(null);
@@ -246,7 +250,7 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
     Escape: () => {
       if (folder !== undefined) setFolder(undefined);
       else if (menu) setMenu(false);
-      else if (tools.current?.hide() || asker.current?.close()) return;
+      else if (tools.current?.hide()) return;
       else back();
     },
     h: back,
@@ -363,7 +367,6 @@ export function DocPage({ workspace, docRef }: { workspace: Workspace; docRef: s
             ref={asker}
             about={aboutDoc(a.ref, title ?? name)}
             suggestions={suggest}
-            root={workspace.root}
             cite={cite}
             onOpen={() => {
               setFolder(undefined);

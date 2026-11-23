@@ -377,6 +377,21 @@ func (s *Server) prComment(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, d)
 }
 
+// prDecline takes your name off the PR's reviewers on GitHub: it isn't
+// yours to review. What needs you no longer lists it, from now.
+func (s *Server) prDecline(w http.ResponseWriter, r *http.Request) {
+	repo, number, ok := s.prOf(w, r)
+	if !ok {
+		return
+	}
+	if err := s.App.DeclinePR(repo, number); err != nil {
+		prError(w, err)
+		return
+	}
+	s.topics[topicWorkspace].nudge()
+	writeJSON(w, http.StatusOK, struct{}{})
+}
+
 // prAsk starts an ask about the PR (and lines of it, if given), docking
 // it first so the agent can read it: the review's ask bar. It answers the
 // ask, as POST /api/asks does, to be followed and said to again as any

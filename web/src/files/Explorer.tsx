@@ -1,6 +1,6 @@
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
-import { capsuleAPI, docRef, type FileTree, type FileView, getFile, getTree, pageOpenTo, rawURL, type TreeFile, type Workspace } from "../api";
+import { capsuleAPI, docRef, type FileTree, type FileView, getFile, getTree, pageOpenTo, rawURL, type TreeFile } from "../api";
 import { useKeys, useOwnCodeSearch } from "../keys";
 import { CodeFinder } from "./CodeFinder";
 import { linesAsked, rendersAt } from "./lines";
@@ -21,6 +21,8 @@ import { GroupHead } from "../ui/GroupHead";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Menu, MenuItem } from "../ui/Menu";
 import { Finder, FinderNone, FinderRow } from "../ui/Finder";
+import { useWorkspace } from "../workspace/store";
+import { setPref, usePrefs } from "../prefs";
 
 // The file explorer: a capsule's files as they are now, without an editor
 // open. A tree on the left (everything, or only what's changed since the
@@ -139,36 +141,8 @@ const sizeWords = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n 
 // 1 is the file alone. Yours, in this browser, for every explorer: one
 // without the repos shows 2 for 3.
 export type Panes = 1 | 2 | 3;
-const panesKey = "ws-file-panes";
-const panesListeners = new Set<() => void>();
-function readPanes(): Panes {
-  try {
-    const n = Number(localStorage.getItem(panesKey));
-    return n === 1 || n === 2 ? n : 3;
-  } catch {
-    return 3;
-  }
-}
-let panesNow = readPanes();
-function setPanes(n: Panes) {
-  panesNow = n;
-  try {
-    if (n === 3) localStorage.removeItem(panesKey);
-    else localStorage.setItem(panesKey, String(n));
-  } catch {
-    // storage off: the choice lasts as long as the page
-  }
-  panesListeners.forEach((l) => l());
-}
-function usePanes(): Panes {
-  return useSyncExternalStore(
-    (l) => {
-      panesListeners.add(l);
-      return () => panesListeners.delete(l);
-    },
-    () => panesNow,
-  );
-}
+const setPanes = (n: Panes) => setPref("filePanes", n);
+const usePanes = (): Panes => usePrefs((s) => s.filePanes);
 
 const paneWords: Record<Panes, { label: string; sub: string }> = {
   3: { label: "3 panes", sub: "Repos, tree and file" },
@@ -234,10 +208,11 @@ function PanesGlyph({ n }: { n: Panes }) {
 }
 
 // Explorer is a mission's capsule's files.
-export function Explorer({ workspace }: { workspace: Workspace }) {
+export function Explorer() {
   const { slug = "", repo = "", name = "" } = useParams();
   const navigate = useNavigate();
-  const mission = workspace.missions.find((m) => m.slug === slug);
+  const mission = useWorkspace((w) => w.missions.find((m) => m.slug === slug));
+  const readsSeen = useWorkspace((w) => w.readsSeen);
   const api = capsuleAPI(slug, repo, name);
   return (
     <TabbedBrowser
@@ -245,7 +220,7 @@ export function Explorer({ workspace }: { workspace: Workspace }) {
       key={api}
       api={api}
       label={`${repo}/${name}`}
-      updated={`${mission?.updated ?? ""}:${workspace.readsSeen ?? ""}`}
+      updated={`${mission?.updated ?? ""}:${readsSeen ?? ""}`}
       reviewTo={`/missions/${slug}/review/${repo}/${name}`}
       docOf={(path) => docRef(repo, name, path)}
       search={{ repo, worktree: name }}

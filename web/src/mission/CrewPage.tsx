@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
-import { act, getMission, type Workspace } from "../api";
+import { act, getMission } from "../api";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
 import { useKeys } from "../keys";
@@ -13,6 +13,7 @@ import { CrewBadge } from "./parts";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { Tab, Tabs } from "../ui/Tabs";
+import { useWorkspace } from "../workspace/store";
 
 const CrewTerminal = lazy(() => import("./CrewTerminal"));
 
@@ -28,9 +29,9 @@ export const crewKeys: [string, string][] = [
 // CrewPage is crew at work: first as a conversation (the agent view: what
 // it's doing, what it asks, a box to tell it what's next), and its
 // terminal, for anything the conversation can't do.
-export function CrewPage({ workspace }: { workspace: Workspace }) {
+export function CrewPage() {
   const { slug = "", id = "" } = useParams();
-  const m = workspace.missions.find((m) => m.slug === slug);
+  const m = useWorkspace((w) => w.missions.find((m) => m.slug === slug));
   const listed = m?.crew.find((c) => c.id === id);
   // An archived mission's crew aren't in the workspace's list: its own
   // page says them.
@@ -114,7 +115,7 @@ export function CrewPage({ workspace }: { workspace: Workspace }) {
         ))}
       </Tabs>}
       {shown === "conversation" && (
-        <AgentView workspace={workspace} slug={slug} id={id} crew={c} live={state === "live"} onTerminal={state === "live" && !structured ? () => setView("terminal") : undefined} />
+        <AgentView slug={slug} id={id} crew={c} live={state === "live"} onTerminal={state === "live" && !structured ? () => setView("terminal") : undefined} />
       )}
       {!structured && <div className="term-panel" hidden={shown === "conversation"}>
         {state === "gone" ? (

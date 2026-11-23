@@ -6,6 +6,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/pulls"
 )
 
 func item(slug string, h mission.Headline) MissionItem {
@@ -35,7 +36,7 @@ func TestNeedsAreTheMissionsInYourCourtThenYourTurns(t *testing.T) {
 		talk("w2", at, conversation.You),                     // you spoke last
 		talk("w3", at.Add(time.Hour), conversation.You, conversation.Agent),
 	}
-	got := Needs(missions, talks)
+	got := Needs(missions, talks, nil)
 	var said []string
 	for _, n := range got {
 		said = append(said, n.Of+" "+n.Ref+" "+n.Kind)
@@ -62,23 +63,23 @@ func TestANeedsKeyChangesWhenItNeedsYouForSomethingElse(t *testing.T) {
 	review := item("m", mission.Headline{Court: mission.CourtYou, Kind: mission.KindStepReview, Since: at})
 	again := item("m", mission.Headline{Court: mission.CourtYou, Kind: mission.KindStepReview, Since: at, Text: "said another way"})
 	asks := item("m", mission.Headline{Court: mission.CourtYou, Kind: mission.KindCrewAsks, By: "c1", Since: at.Add(time.Minute)})
-	key := func(it MissionItem) string { return Needs([]MissionItem{it}, nil)[0].Key }
+	key := func(it MissionItem) string { return Needs([]MissionItem{it}, nil, nil)[0].Key }
 	if key(review) != key(again) {
 		t.Errorf("the same need, said another way, has another key: %q, %q", key(review), key(again))
 	}
 	if key(review) == key(asks) {
 		t.Errorf("a mission that asks after a review has the review's key: %q", key(asks))
 	}
-	first := Needs(nil, []*conversation.Conversation{talk("w1", at, conversation.You, conversation.Agent)})[0].Key
-	later := Needs(nil, []*conversation.Conversation{talk("w1", at, conversation.You, conversation.Agent, conversation.You, conversation.Agent)})[0].Key
+	first := Needs(nil, []*conversation.Conversation{talk("w1", at, conversation.You, conversation.Agent)}, nil)[0].Key
+	later := Needs(nil, []*conversation.Conversation{talk("w1", at, conversation.You, conversation.Agent, conversation.You, conversation.Agent)}, nil)[0].Key
 	if first == later {
 		t.Errorf("a conversation answered a second time has the first answer's key: %q", first)
 	}
 }
 
 func TestNothingNeedsYou(t *testing.T) {
-	if got := Needs(nil, nil); got == nil || len(got) != 0 {
-		t.Errorf("Needs(nil, nil) = %v, want an empty list", got)
+	if got := Needs(nil, nil, nil); got == nil || len(got) != 0 {
+		t.Errorf("Needs(nil, nil, nil) = %v, want an empty list", got)
 	}
 }
 
@@ -101,11 +102,63 @@ func TestAMissionsOwnConversationIsYourTurnToo(t *testing.T) {
 	// the need is the conversation's, and says which mission it's about.
 	working := item("dark", mission.Headline{Court: mission.CourtAgent, Kind: mission.KindWorking})
 	working.YourTurn = got
-	needs := Needs([]MissionItem{working}, []*conversation.Conversation{talk("w1", at, conversation.You, conversation.Agent)})
+	needs := Needs([]MissionItem{working}, []*conversation.Conversation{talk("w1", at, conversation.You, conversation.Agent)}, nil)
 	if len(needs) != 2 || needs[0].Ref != "w1" || needs[1].Ref != "t1" || needs[1].In != "dark" || needs[1].Of != NeedConversation {
 		t.Fatalf("needs = %+v, want the workspace's conversation, then the mission's with the mission it's about", needs)
 	}
 	if needs[0].Key == needs[1].Key {
 		t.Errorf("two conversations share a key: %q", needs[0].Key)
+	}
+}
+
+// A pull request that asks for your review by name needs you, after the
+// missions and the conversations: it's other people's work, and never
+// puts crew's ask further down. A stack is one need, and says so.
+func TestPullRequestsAskedOfYouByNameComeLast(t *testing.T) {
+	at := time.Date(2026, 11, 23, 9, 0, 0, 0, time.UTC)
+	missions := []MissionItem{item("asks", mission.Headline{Court: mission.CourtYou, Kind: mission.KindCrewAsks, Label: "? asks", Since: at})}
+	talks := []*conversation.Conversation{talk("w1", at, conversation.You, conversation.Agent)}
+	asked := []pulls.Asked{
+		{Key: "api#95", PR: pulls.PR{Repo: "api", Number: 95, Title: "Rate limits", Author: "carol", Words: "needs your review"}},
+		{Key: "api/stack-3", PR: pulls.PR{Repo: "api", Number: 89, Title: "Key by tenant", Author: "alice", Words: "needs your review"},
+			Stack: &pulls.Stack{Title: "Storage layer"}, More: 1},
+	}
+	got := Needs(missions, talks, asked)
+	var said []string
+	for _, n := range got {
+		said = append(said, n.Of+" "+n.Ref+" "+n.Kind)
+	}
+	want := []string{"mission asks crew-asks", "conversation w1 your-turn", "pull api#95 your-review", "pull api#89 your-review"}
+	if len(said) != len(want) {
+		t.Fatalf("needs = %v, want %v", said, want)
+	}
+	for i := range want {
+		if said[i] != want[i] {
+			t.Errorf("need %d = %q, want %q", i, said[i], want[i])
+		}
+	}
+	if got[2].Title != "Rate limits" || got[2].Text != "api#95, from carol, needs your review." {
+		t.Errorf("a pull request's need = %+v", got[2])
+	}
+	if got[3].Title != "Storage layer" || got[3].Text != "api#89, from alice, needs your review, and 1 more of its stack do." {
+		t.Errorf("a stack's need = %+v", got[3])
+	}
+}
+
+// A stack whose next layer asks once you've reviewed one is the need it
+// was; a pull request that asks again after your review is a new one.
+func TestAPullRequestsNeedIsNewWhenItAsksAgain(t *testing.T) {
+	key := func(a pulls.Asked) string { return Needs(nil, nil, []pulls.Asked{a})[0].Key }
+	layer := func(n int) pulls.Asked {
+		return pulls.Asked{Key: "api/stack-3", PR: pulls.PR{Repo: "api", Number: n}, Stack: &pulls.Stack{}}
+	}
+	if key(layer(89)) != key(layer(90)) {
+		t.Error("a stack's next layer arrived as a new need")
+	}
+	first := pulls.Asked{Key: "api#95", PR: pulls.PR{Repo: "api", Number: 95}}
+	again := first
+	again.PR.Reviewed = &pulls.MyReview{State: "changes_requested", Commit: "abc123"}
+	if key(first) == key(again) {
+		t.Error("asked again after your review, and it's the same need")
 	}
 }

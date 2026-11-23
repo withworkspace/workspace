@@ -413,6 +413,16 @@ func (w *Workspace) CommentPR(repo string, number int, body string) error {
 	return svc.Comment(repo, number, body)
 }
 
+// DeclinePR takes your name off a pull request's reviewers on GitHub: it
+// isn't yours to review, so it stops needing you.
+func (w *Workspace) DeclinePR(repo string, number int) error {
+	svc, err := w.reviews()
+	if err != nil {
+		return err
+	}
+	return svc.Decline(repo, number)
+}
+
 // MarkTeamSeen notes you've looked at the Team page: what's there now
 // isn't new to you next time.
 func (w *Workspace) MarkTeamSeen() error {

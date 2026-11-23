@@ -1,6 +1,6 @@
 import { lazy, type ReactNode, Suspense, useState } from "react";
 import { useNavigate } from "react-router";
-import { type DocKind, kindHint, newPage, pageAddress, type PageInfo, type Workspace } from "../api";
+import { type DocKind, kindHint, newPage, pageAddress, type PageInfo } from "../api";
 import type { Back } from "./Page";
 import { Icon } from "../ui/Icon";
 import { humanError, Keys, Loading, toast } from "../ui/kit";
@@ -28,10 +28,10 @@ export const pageKeys: [string, string][] = [
 // page you open.
 const Inner = lazy(() => import("./Page"));
 
-export function PagePage({ workspace, id, back }: { workspace: Workspace; id?: string; back?: Back }) {
+export function PagePage({ id, back }: { id?: string; back?: Back }) {
   return (
     <Suspense fallback={<Loading what="Opening the page…" />}>
-      <Inner workspace={workspace} id={id} back={back} />
+      <Inner id={id} back={back} />
     </Suspense>
   );
 }

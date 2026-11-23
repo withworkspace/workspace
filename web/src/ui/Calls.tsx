@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { useCommandLabels } from "../api";
+import { useCommandLabels } from "../workspace/store";
 import type { CommandLabel } from "../wire.gen";
 import { stepLabel } from "./commandLabel";
 import { Icon, type IconName } from "./Icon";

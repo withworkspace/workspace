@@ -119,7 +119,8 @@ func (p *Posting) submission() github.ReviewSubmission {
 // Posting works out what submitting a PR's draft with this verdict and
 // summary would post, without posting it. head is the commit reviewed.
 func (s *Service) Posting(repo string, number int, head, verdict, summary string) (*Posting, error) {
-	pr, st, err := s.Open(repo, number)
+	// (Found as it's known here, as Submit finds it.)
+	pr, st, err := s.Known(repo, number)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +256,10 @@ func (s *Service) Submit(repo string, number int, head, verdict, summary string)
 	if err != nil {
 		return nil, err
 	}
-	pr, st, err := s.Open(repo, number)
+	// The PR is found as it's known here, not asked for: posting a review
+	// marks the list stale, so asking would have GitHub asked about every
+	// repo before each review of a stack is posted.
+	pr, st, err := s.Known(repo, number)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +291,8 @@ func (s *Service) Submit(repo string, number int, head, verdict, summary string)
 	Update(s.Root, repo, number, func(rec *Record) {
 		rec.Reviewed = &Reviewed{ID: r.ID, Verdict: verdict, Head: p.Commit, Base: base, At: at, URL: url, Prints: prints}
 	})
-	s.Stale() // what it asks of you has changed
+	s.settle(repo, number) // it doesn't ask for your review any more
+	s.Stale()              // what it asks of you has changed
 	return &Submitted{Review: r, URL: url}, nil
 }
 

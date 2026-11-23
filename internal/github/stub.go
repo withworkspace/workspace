@@ -21,13 +21,17 @@ type Stub struct {
 	// OpenPRsFn answers OpenPRs; without it, PRsForRepoFn does.
 	OpenPRsFn         func(org, repo string) ([]PR, error)
 	ReviewRequestedFn func(org string) ([]PRRef, error)
-	StacksForRepoFn   func(org, repo string) ([]Stack, error)
-	SubmitReviewFn    func(org, repo string, number int, r ReviewSubmission) (string, error)
-	ReviewThreadsFn   func(org, repo string, number int) ([]ReviewThread, error)
-	ReplyToThreadFn   func(org, repo string, number int, threadID, body string) error
-	ResolveThreadFn   func(org, repo string, number int, threadID string, resolved bool) error
-	DiscussionFn      func(org, repo string, number int) ([]Said, error)
-	CommentFn         func(org, repo string, number int, body string) error
+	// AskedByNameFn answers AskedByName, and DropReviewRequestFn takes a
+	// name off a PR's reviewers; without it, there's no GitHub to.
+	AskedByNameFn       func(org string) ([]PRRef, error)
+	DropReviewRequestFn func(org, repo string, number int, login string) error
+	StacksForRepoFn     func(org, repo string) ([]Stack, error)
+	SubmitReviewFn      func(org, repo string, number int, r ReviewSubmission) (string, error)
+	ReviewThreadsFn     func(org, repo string, number int) ([]ReviewThread, error)
+	ReplyToThreadFn     func(org, repo string, number int, threadID, body string) error
+	ResolveThreadFn     func(org, repo string, number int, threadID string, resolved bool) error
+	DiscussionFn        func(org, repo string, number int) ([]Said, error)
+	CommentFn           func(org, repo string, number int, body string) error
 
 	// The Team page's.
 	ChangedPRsFn func(org, repo string, since time.Time) ([]PRActivity, error)

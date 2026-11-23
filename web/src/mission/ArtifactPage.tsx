@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { AnnotatedDoc, annotateKeys } from "../annotate/Annotate";
-import { type ArtifactContent, type DocDraft, dropDraft, getArtifact, getDraft, kindHint, placeOf, type Workspace } from "../api";
+import { type ArtifactContent, type DocDraft, dropDraft, getArtifact, getDraft, kindHint, placeOf } from "../api";
 import { useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { highlightCode, languageOf, useHighlighter } from "../review/highlight";
@@ -15,6 +15,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { pageScroller } from "../ui/scroller";
 import { capital } from "../ui/text";
+import { useWorkspace } from "../workspace/store";
 
 export const artifactKeys: [string, string][] = [
   ...annotateKeys.map(([k, what]): [string, string] => (k === "j / k" ? [k, `${what} (in code: scroll)`] : [k, what])),
@@ -29,13 +30,13 @@ export const artifactKeys: [string, string][] = [
 // ArtifactPage shows one of a mission's artifacts: markdown rendered, with
 // diagrams, to read and review (comments on its text) and edit in place
 // (e); anything else as code.
-export function ArtifactPage({ workspace }: { workspace: Workspace }) {
+export function ArtifactPage() {
   const { slug = "" } = useParams();
   const [params] = useSearchParams();
   const ref = params.get("ref") ?? "";
   const navigate = useNavigate();
   const location = useLocation();
-  const mission = workspace.missions.find((m) => m.slug === slug);
+  const mission = useWorkspace((w) => w.missions.find((m) => m.slug === slug));
   const [a, setA] = useState<ArtifactContent>();
   const [error, setError] = useState<string>();
   useHighlighter();

@@ -18,6 +18,7 @@ import { followed, frameSearch, type Params, readTweakParams } from "./tweaks";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { Segment, Segmented } from "../ui/Segmented";
+import { useWorkspace } from "../workspace/store";
 
 // Comparing: two versions side by side, of one artifact
 // (/artifacts/a3/compare?v=1,3) or of two
@@ -49,7 +50,8 @@ export const compareKeys: [string, string][] = [
 // one side of its diff.
 const NARROW = "(max-width: 860px)";
 
-export function ComparePage({ workspace }: { workspace: Workspace }) {
+export function ComparePage() {
+  const artifacts = useWorkspace((w) => w.artifacts);
   const { id } = useParams();
   const [search] = useSearchParams();
   const location = useLocation();
@@ -60,7 +62,7 @@ export function ComparePage({ workspace }: { workspace: Workspace }) {
   // or where it stands.
   const key = ids
     .map((i) => {
-      const b = workspace.artifacts?.find((a) => a.id === i);
+      const b = artifacts?.find((a) => a.id === i);
       return b ? `${i}:${b.versions}:${b.status}:${b.latest?.at ?? ""}:${b.title}` : i;
     })
     .join("|");
@@ -170,10 +172,10 @@ export function ComparePage({ workspace }: { workspace: Workspace }) {
   const sides: (0 | 1)[] = narrow ? [shown] : [0, 1];
   // What either side can be: the artifacts on the list, and any that's
   // here already (a discarded one, asked for).
-  const choices = (workspace.artifacts ?? []).filter((a) => a.status !== "discarded" || pair.some((s) => s.id === a.id));
+  const choices = (artifacts ?? []).filter((a) => a.status !== "discarded" || pair.some((s) => s.id === a.id));
   const pick = (i: 0 | 1, to: string) => {
     if (to === pair[i].id) return;
-    go(withSide(pair, i, { id: to, n: workspace.artifacts?.find((a) => a.id === to)?.latest?.n ?? 0 }));
+    go(withSide(pair, i, { id: to, n: artifacts?.find((a) => a.id === to)?.latest?.n ?? 0 }));
   };
 
   return (
@@ -251,7 +253,6 @@ export function ComparePage({ workspace }: { workspace: Workspace }) {
             i={i}
             pair={pair}
             d={i ? right : left}
-            workspace={workspace}
             choices={choices}
             onPick={(to) => pick(i, to)}
             go={go}
@@ -283,7 +284,6 @@ function SideHead({
   i,
   pair,
   d,
-  workspace,
   choices,
   onPick,
   go,
@@ -295,7 +295,6 @@ function SideHead({
   i: 0 | 1;
   pair: Pair;
   d: ArtifactDetail;
-  workspace: Workspace;
   choices: Workspace["artifacts"];
   onPick: (id: string) => void;
   go: (p: Pair) => void;
@@ -327,7 +326,7 @@ function SideHead({
           )}
         </span>
       </div>
-      {v && <VersionLine d={d} v={v} workspace={workspace} />}
+      {v && <VersionLine d={d} v={v} />}
       {v?.note && (
         <div className="artifact-note compare-note">
           <Inline text={v.note} lines={2} />

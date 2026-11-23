@@ -50,7 +50,7 @@ function fakeWs(path = "/things/2?tab=links") {
     },
     here: (name) => void said.heres.push(name),
     chromeLayout: (mode) => void said.layouts.push(mode),
-    conversation: createHost("jira"),
+    conversation: createHost(),
   };
   return { host, said, setTheme: (t: V1.Theme) => void (theme = t), setFind: (f: typeof find) => void (find = f) };
 }
@@ -351,14 +351,15 @@ describe("protocol 1's host", () => {
     client.conversation.open({ message: "Tidy it", as: "popover" });
     await tick();
     expect(host.conversation.state.settings).toEqual({ ask: true, allow: ["card", "popover"], holding: { label: "2 selected", text: "`plan`" }, context: "Brief → Plan" });
-    expect(host.conversation.state).toMatchObject({ open: true, want: "popover", opening: { message: "Tidy it", as: "popover" } });
+    expect(host.conversation.state).toMatchObject({ opening: { message: "Tidy it", as: "popover" } });
 
     session.conversation({ open: true, as: "popover", working: true });
     await tick();
     expect(heard).toEqual([{ open: true, as: "popover", working: true }]);
     client.conversation.close();
     await tick();
-    expect(host.conversation.state.open).toBe(false);
+    expect(host.conversation.state).toMatchObject({ closing: 1 });
+    expect(host.conversation.state.opening).toBeUndefined();
     client.close();
     session.close();
   });

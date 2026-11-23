@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import { type ArtifactDetail, type ArtifactInfo, type ArtifactSource, type ArtifactVersion, frameURL, getArtifactDetail, getArtifactSource, promoteArtifact, type Workspace } from "../api";
+import { type ArtifactDetail, type ArtifactInfo, type ArtifactSource, type ArtifactVersion, frameURL, getArtifactDetail, getArtifactSource, promoteArtifact } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
@@ -50,6 +50,7 @@ import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { Segment, Segmented, segmentClass, segmentedClass } from "../ui/Segmented";
 import { ToggleButton } from "../ui/ToggleButton";
+import { useWorkspace } from "../workspace/store";
 
 // Artifacts: versioned HTML prototypes, listed, and each run in a
 // sandboxed frame. A version is its page and the files it loads beside
@@ -84,9 +85,9 @@ export const artifactHref = (id: string, n?: number) => (n ? `/artifacts/${id}/v
 // From is where a version came from: a conversation or a mission, drawn
 // as its ref where this machine has it, its title where it hasn't (one
 // made on another machine).
-function From({ from, title, workspace, inline }: { from: string; title?: string; workspace: Workspace; inline?: boolean }) {
+function From({ from, title, inline }: { from: string; title?: string; inline?: boolean }) {
   const talk = missionTalk(from);
-  const here = isConversation(from) ? workspace.conversations.some((t) => t.id === from) : workspace.missions.some((m) => m.slug === (talk?.slug ?? from));
+  const here = useWorkspace((w) => (isConversation(from) ? w.conversations.some((t) => t.id === from) : w.missions.some((m) => m.slug === (talk?.slug ?? from))));
   if (!here) {
     return (
       <span className="artifact-from" title={title ? `${from}: ${title}` : from}>
@@ -116,10 +117,11 @@ function From({ from, title, workspace, inline }: { from: string; title?: string
 
 // --- The list
 
-export function ArtifactsPage({ workspace }: { workspace: Workspace }) {
+export function ArtifactsPage() {
+  const artifacts = useWorkspace((w) => w.artifacts);
   useTitle("Artifacts");
   const navigate = useNavigate();
-  const all = useMemo(() => workspace.artifacts ?? [], [workspace.artifacts]);
+  const all = useMemo(() => artifacts ?? [], [artifacts]);
   const [shown, setShown] = useState<Shown>("all");
   const [from, setFrom] = useState(ANYWHERE);
   const list = useMemo(() => listed(all, shown, from), [all, shown, from]);
@@ -161,7 +163,7 @@ export function ArtifactsPage({ workspace }: { workspace: Workspace }) {
                   ))}
                 </Select>
               )}
-              <ClearExpired all={all} workspace={workspace} />
+              <ClearExpired all={all} />
             </>
           )
         }
@@ -178,17 +180,17 @@ export function ArtifactsPage({ workspace }: { workspace: Workspace }) {
       ) : (
         <Rows className="artifacts" role="listbox" aria-label="Artifacts">
           {list.map((a, i) => (
-            <ArtifactListRow key={a.id} a={a} selected={i === index} onHover={() => i !== index && setIndex(i)} workspace={workspace} onPromote={() => setPromoting(a)} />
+            <ArtifactListRow key={a.id} a={a} selected={i === index} onHover={() => i !== index && setIndex(i)} onPromote={() => setPromoting(a)} />
           ))}
         </Rows>
       )}
-      <FoundArtifacts workspace={workspace} />
-      {promoting && <PromoteDialog a={promoting} workspace={workspace} onClose={() => setPromoting(undefined)} />}
+      <FoundArtifacts />
+      {promoting && <PromoteDialog a={promoting} onClose={() => setPromoting(undefined)} />}
     </div>
   );
 }
 
-function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: ArtifactInfo; selected: boolean; onHover: () => void; workspace: Workspace; onPromote: () => void }) {
+function ArtifactListRow({ a, selected, onHover, onPromote }: { a: ArtifactInfo; selected: boolean; onHover: () => void; onPromote: () => void }) {
   const v = a.latest;
   // A live one in its last week says when it expires, with Promote beside
   // it; an expired one is dimmed, until it's cleared.
@@ -223,7 +225,7 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
                 {a.from.map((f, i) => (
                   <span key={f.from}>
                     {i > 0 && ", "}
-                    <From from={f.from} title={f.title} workspace={workspace} inline />
+                    <From from={f.from} title={f.title} inline />
                   </span>
                 ))}
               </span>
@@ -254,10 +256,12 @@ function ArtifactListRow({ a, selected, onHover, workspace, onPromote }: { a: Ar
 
 // ArtifactPage is an artifact, with a version running in a frame that
 // fills the page: /artifacts/a3 (its latest), /artifacts/a3/v2.
-export function ArtifactPage({ workspace }: { workspace: Workspace }) {
+export function ArtifactPage() {
+  const artifacts = useWorkspace((w) => w.artifacts);
+  const missions = useWorkspace((w) => w.missions);
   const { id = "", version } = useParams();
   const navigate = useNavigate();
-  const brief = workspace.artifacts?.find((a) => a.id === id);
+  const brief = artifacts?.find((a) => a.id === id);
   // Read again when the workspace says it's changed: a new version, or
   // where it stands.
   const key = brief ? `${brief.versions}:${brief.status}:${brief.latest?.at ?? ""}:${brief.title}:${brief.home?.where ?? ""}:${brief.home?.version ?? ""}:${brief.promoted?.version ?? ""}:${brief.promoted?.into ?? ""}` : "";
@@ -296,7 +300,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
   const go = (to: number) => d && to !== n && navigate(artifactHref(id, to), { replace: true });
   // What Compare opens on: this version beside another, or beside another
   // artifact (the newest), when it has only the one.
-  const other = (workspace.artifacts ?? []).find((a) => a.id !== id && a.status !== "discarded" && a.latest);
+  const other = (artifacts ?? []).find((a) => a.id !== id && a.status !== "discarded" && a.latest);
   const comparing = d && v?.size && !d.gone ? compareFrom(id, v.n, d.all, other?.latest && { id: other.id, n: other.latest.n }) : undefined;
   useKeys({
     "[": () => d && go(stepVersion(d.all, n, -1)),
@@ -350,7 +354,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           <Copyable text={v ? `${d.id}.v${v.n}` : d.id} className="ref" title="Copy its ref" />
           <PagePin r={{ kind: "artifact", id: d.id }} />
         </div>
-        {v && <VersionLine d={d} v={v} workspace={workspace} />}
+        {v && <VersionLine d={d} v={v} />}
         {v?.note && (
           <div className="artifact-note">
             <Inline text={v.note} />
@@ -369,7 +373,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
             {d.promoted.into ? (
               <>
                 , into{" "}
-                {workspace.missions.some((m) => m.slug === d.promoted?.into) ? (
+                {missions.some((m) => m.slug === d.promoted?.into) ? (
                   <RefTag refKey={refKey({ kind: "mission", slug: d.promoted.into })} inline>
                     {d.promoted.into}
                   </RefTag>
@@ -445,7 +449,7 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
               </Button>
             )}
             {d.status === "discarded" && d.restorable && (
-              <Button variant="ghost" size="small" onClick={() => restore(d, workspace).then((done) => done && reload())} title="Put it back, as it was">
+              <Button variant="ghost" size="small" onClick={() => restore(d).then((done) => done && reload())} title="Put it back, as it was">
                 <Icon name="rotate" size={13} /> Restore
               </Button>
             )}
@@ -493,8 +497,8 @@ export function ArtifactPage({ workspace }: { workspace: Workspace }) {
           </TweaksTray>
         )}
       </div>
-      {dialog === "promote" && <PromoteDialog a={d} version={v?.n} workspace={workspace} onClose={() => setDialog("")} onDone={() => reload()} />}
-      {dialog === "discard" && <DiscardDialog a={d} workspace={workspace} onClose={() => setDialog("")} onDone={() => reload()} />}
+      {dialog === "promote" && <PromoteDialog a={d} version={v?.n} onClose={() => setDialog("")} onDone={() => reload()} />}
+      {dialog === "discard" && <DiscardDialog a={d} onClose={() => setDialog("")} onDone={() => reload()} />}
     </div>
   );
 }
@@ -535,7 +539,7 @@ function HomeLine({ d, n, onDone }: { d: ArtifactDetail; n: number; onDone: () =
 
 // VersionLine is a version in a line: v2 of 3, based on v1 (when it isn't
 // the one before), from where, by whom, and when.
-export function VersionLine({ d, v, workspace }: { d: ArtifactDetail; v: ArtifactVersion; workspace: Workspace }) {
+export function VersionLine({ d, v }: { d: ArtifactDetail; v: ArtifactVersion }) {
   return (
     <div className="artifact-version-line">
       <span>
@@ -544,7 +548,7 @@ export function VersionLine({ d, v, workspace }: { d: ArtifactDetail; v: Artifac
       {v.basedOn && v.basedOn !== v.n - 1 ? <span>based on v{v.basedOn}</span> : null}
       {v.from && (
         <span>
-          from <From from={v.from} title={v.fromTitle} workspace={workspace} />
+          from <From from={v.from} title={v.fromTitle} />
           {v.proposal ? `, proposal ${v.proposal}` : ""}
         </span>
       )}

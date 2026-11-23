@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useContext } from "react";
 import type { Setting, SettingChange } from "../api";
+import { useChromeStore } from "../chrome/store";
 import { askShutDown } from "../shell/daemon";
 import type { useNotifications } from "../shell/notify";
 import { Icon, type IconName } from "../ui/Icon";
@@ -23,8 +24,6 @@ export interface Page {
   change: (changes: SettingChange[], undo?: SettingChange[]) => Promise<void>;
   marked: string[];
   notify: Pick<ReturnType<typeof useNotifications>, "supported" | "on" | "toggle">;
-  arrange: () => void;
-  closed: () => void;
 }
 
 export const PageContext = createContext<Page | null>(null);
@@ -201,7 +200,7 @@ function ThemeRow() {
 // PlacesRow is the sidebar's arrangement: arranged in the sidebar itself,
 // which the button turns to. Here, whose it is, and the way back.
 function PlacesRow({ settings }: { settings: Setting[] }) {
-  const { arrange } = usePage();
+  const arrange = useChromeStore((s) => s.arrange);
   const mine = settings.find((s) => s.source === "yours") ?? settings.find((s) => s.source === "team");
   return (
     <RowShell label={words.places.label} tomlKey={settings.map((s) => (s === settings[0] ? name(s) : s.key)).join(" · ")} about={<Marked text={words.places.about} />} source={mine && <Source s={mine} brief />}>
@@ -238,10 +237,9 @@ function NotifyRow() {
 // DaemonRow shuts the daemon down, asking first: the workspace's menu
 // has it too.
 function DaemonRow() {
-  const { closed } = usePage();
   return (
     <RowShell label={words.daemon.label} about={<Marked text={words.daemon.about} />}>
-      <Button variant="danger" type="button" onClick={() => void askShutDown(closed)}>
+      <Button variant="danger" type="button" onClick={() => void askShutDown()}>
         <Icon name="power" size={13} />
         Shut down…
       </Button>

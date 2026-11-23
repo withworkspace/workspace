@@ -1,7 +1,7 @@
 // A backdrop in a plugin's app: what it puts behind a dialog, drawn with
 // the class ws's shell styles (.ws-backdrop, plugins/shell.css). In a
 // frame it can only dim the frame, so while the app's page has one ws dims
-// what's beside the frame (dim.ts, App.tsx), and the two read as one.
+// what's beside the frame (chrome/store.ts, App.tsx), and the two read as one.
 //
 // ws looks for it in the page; the app doesn't say. The frame is this
 // origin's own, so a watch on its document is told of a change in the same

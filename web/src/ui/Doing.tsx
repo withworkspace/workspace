@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCommandLabels } from "../api";
+import { useCommandLabels } from "../workspace/store";
 import { type Call, Calls } from "./Calls";
 import { stepDoing } from "./commandLabel";
 import { Icon } from "./Icon";

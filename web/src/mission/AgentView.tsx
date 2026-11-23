@@ -14,6 +14,7 @@ import { Button } from "../ui/Button";
 import { pageScroller } from "../ui/scroller";
 import { Input } from "../ui/Input";
 import { TextArea } from "../ui/TextArea";
+import { useWorkspace } from "../workspace/store";
 
 // The agent view: a crew as a conversation, the way in to it. What it was
 // sent, what it said and the steps between, as it happens (the session
@@ -123,7 +124,8 @@ function useFileLink(workspace: Workspace, slug: string, crew?: Crew) {
   }, [workspace, slug, crew?.capsule]);
 }
 
-export function AgentView({ workspace, slug, id, crew, live, onTerminal }: { workspace: Workspace; slug: string; id: string; crew?: Crew; live: boolean; onTerminal?: () => void }) {
+export function AgentView({ slug, id, crew, live, onTerminal }: { slug: string; id: string; crew?: Crew; live: boolean; onTerminal?: () => void }) {
+  const workspace = useWorkspace();
   const { t, error, reload } = useTranscript(slug, id);
   const [unseen, setUnseen] = useState(false);
   const follow = useRef(true);

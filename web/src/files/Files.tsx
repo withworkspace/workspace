@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
-import { docRef, GROUND, getRepos, getWorktrees, type Repo, type Workspace, type Worktree, worktreeAPI } from "../api";
+import { docRef, GROUND, getRepos, getWorktrees, type Repo, type Worktree, worktreeAPI } from "../api";
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
 import { Empty, ErrorCard, Keys, Loading, useMedia, useTitle } from "../ui/kit";
@@ -8,6 +8,7 @@ import { TabbedBrowser } from "./WorktreeTabs";
 import { useLoaded } from "../load";
 import { Count } from "../ui/Count";
 import { GroupHead, groupHeadClass } from "../ui/GroupHead";
+import { useWorkspace } from "../workspace/store";
 
 // Files: every repo in the workspace, as ws labels them (its display name
 // and colour, by group), and the files of its ground (its default branch,
@@ -32,7 +33,7 @@ export const filesKeys: [string, string][] = [
   ["esc", "Close the file"],
 ];
 
-export function FilesPage({ workspace }: { workspace: Workspace }) {
+export function FilesPage() {
   const { repo = "", capsule } = useParams();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -43,7 +44,8 @@ export function FilesPage({ workspace }: { workspace: Workspace }) {
 
   const r = repos?.find((x) => x.name === repo);
   // A capsule a mission has: it's reviewed there, and read again as it moves.
-  const mission = capsule ? workspace.missions.find((m) => m.capsules.some((c) => c.repo === repo && c.name === capsule)) : undefined;
+  const mission = useWorkspace((w) => (capsule ? w.missions.find((m) => m.capsules.some((c) => c.repo === repo && c.name === capsule)) : undefined));
+  const readsSeen = useWorkspace((w) => w.readsSeen);
   const column = repos && <RepoColumn repos={repos} current={repo} />;
 
   if (error && !repos) {
@@ -84,7 +86,7 @@ export function FilesPage({ workspace }: { workspace: Workspace }) {
         api={api}
         label={`${r.label}/${capsule ?? "ground"}`}
         before={narrow ? undefined : column}
-        updated={`${mission?.updated ?? ""}:${workspace.readsSeen ?? ""}`}
+        updated={`${mission?.updated ?? ""}:${readsSeen ?? ""}`}
         reviewTo={mission ? `/missions/${mission.slug}/review/${repo}/${capsule}` : undefined}
         docOf={(path) => docRef(repo, name, path)}
         search={capsule ? { repo, worktree: capsule } : undefined}
@@ -105,7 +107,7 @@ export function FilesPage({ workspace }: { workspace: Workspace }) {
                 </Link>
               </nav>
             )}
-            <WorktreeSwitch repo={r} current={name} mission={mission?.title} open={switching} setOpen={setSwitching} workspace={workspace} />
+            <WorktreeSwitch repo={r} current={name} mission={mission?.title} open={switching} setOpen={setSwitching} />
           </>
         }
       />
@@ -187,20 +189,20 @@ function WorktreeSwitch({
   mission,
   open,
   setOpen,
-  workspace,
 }: {
   repo: Repo;
   current: string;
   mission?: string;
   open: boolean;
   setOpen: (v: boolean) => void;
-  workspace: Workspace;
 }) {
+  const capsulesSeen = useWorkspace((w) => w.capsulesSeen);
+  const missions = useWorkspace((w) => w.missions);
   const navigate = useNavigate();
   const location = useLocation();
   // Answered at once, with what git hasn't said yet unread: read again when
   // it has (the workspace's capsulesSeen moves).
-  const { value: wts } = useLoaded<Worktree[]>(() => getWorktrees(repo.name).catch(() => []), [repo.name, workspace.capsulesSeen], { keep: true });
+  const { value: wts } = useLoaded<Worktree[]>(() => getWorktrees(repo.name).catch(() => []), [repo.name, capsulesSeen], { keep: true });
   // Until their branches are read, what the repo's listing says.
   const list: Worktree[] = wts ?? [{ name: GROUND, ground: true, branch: "" }, ...repo.capsules.map((c) => ({ name: c, branch: "" }))];
   const [sel, setSel] = useState(0);
@@ -236,7 +238,7 @@ function WorktreeSwitch({
     { modal: open },
   );
   const here = list.find((w) => w.name === current);
-  const missionOf = (name: string) => workspace.missions.find((m) => m.capsules.some((c) => c.repo === repo.name && c.name === name))?.title;
+  const missionOf = (name: string) => missions.find((m) => m.capsules.some((c) => c.repo === repo.name && c.name === name))?.title;
   return (
     <div className="wt-switch" ref={box}>
       <button className="wt-title" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)} title="Switch to the ground or another capsule (w)">

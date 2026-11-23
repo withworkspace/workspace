@@ -825,3 +825,53 @@ func TestPREvents(t *testing.T) {
 		}
 	}
 }
+
+// A pull request that asks for your review by name is among what needs
+// you, a press from its review; and taking your name off it on GitHub
+// takes it from there at once, before GitHub's asked for the list again.
+func TestAPullRequestAskedOfYouByNameNeedsYou(t *testing.T) {
+	w := newReviewsWorld(t)
+	pullNeeds := func() []Need {
+		t.Helper()
+		var ws Workspace
+		if code := getInto(t, w.s, "/api/workspace", &ws); code != 200 {
+			t.Fatalf("workspace: %d", code)
+		}
+		var out []Need
+		for _, n := range ws.Needs {
+			if n.Of == NeedOfPull {
+				out = append(out, n)
+			}
+		}
+		return out
+	}
+	// GitHub hasn't been asked: nothing's known to ask.
+	if got := pullNeeds(); len(got) != 0 {
+		t.Fatalf("before GitHub's been asked, needs = %+v", got)
+	}
+	var list ReviewsList
+	if code := getInto(t, w.s, "/api/reviews", &list); code != 200 {
+		t.Fatalf("list: %d", code)
+	}
+	got := pullNeeds()
+	if len(got) != 1 || got[0].Ref != "api#5" || got[0].Kind != ops.NeedYourReview || got[0].To != "/reviews/api/5" || got[0].Title != "Two, not one" ||
+		got[0].Text != "api#5, from alice, needs your review." {
+		t.Fatalf("needs = %+v", got)
+	}
+
+	var dropped string
+	w.gh.DropReviewRequestFn = func(org, repo string, number int, login string) error {
+		dropped = fmt.Sprintf("%s/%s#%d %s", org, repo, number, login)
+		return nil
+	}
+	res := do(t, w.s, "POST", "/api/prs/api/5/decline", true, func(r *http.Request) {
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("Origin", w.s.Info().Origin())
+	})
+	if res.StatusCode != 200 || dropped != "acme/api#5 me" {
+		t.Fatalf("decline: %d, dropped %q", res.StatusCode, dropped)
+	}
+	if got := pullNeeds(); len(got) != 0 {
+		t.Errorf("after your name was taken off, needs = %+v", got)
+	}
+}

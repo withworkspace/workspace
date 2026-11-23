@@ -48,8 +48,18 @@ type Service struct {
 	// time, however lately that was.
 	stale   bool
 	loading *loadCall
-	bodies  map[string]body
-	repoMu  map[string]*sync.Mutex
+	// What asks for your review by name is kept current behind the list
+	// (asked.go): moved counts each time what's listed has changed, due
+	// says the list is stale to whoever follows it, settled is when each
+	// PR was dealt with here since the list was asked for, and lookedFor
+	// what GitHub's search said the last time a look asked for the list.
+	moved     int64
+	due       chan struct{}
+	settled   map[string]time.Time
+	lookedFor []string
+	looked    bool
+	bodies    map[string]body
+	repoMu    map[string]*sync.Mutex
 
 	// The pages of PRs as they're kept (page.go), by Key: how many times
 	// each has changed, which are being read, when each was last, and
@@ -59,6 +69,9 @@ type Service struct {
 	reading   map[string]*pageRead
 	pageTried map[string]time.Time
 	pageDue   map[string]bool
+	// saying: what's been said on a page is being read behind its first
+	// showing, and is in when this closes.
+	saying map[string]chan struct{}
 }
 
 type loadCall struct {
@@ -99,12 +112,23 @@ func (s *Service) Peek() *List {
 	return s.kept()
 }
 
+// peekStale is the list as Peek has it, and whether GitHub would be asked
+// again for it (as List does): it's been a while, or something here has
+// changed what a PR asks of you since.
+func (s *Service) peekStale() (*List, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	l := s.kept()
+	return l, l == nil || s.stale || s.now().Sub(l.At) >= s.fresh()
+}
+
 // kept is the list in hand, or the records' when they hold a newer one
 // (another process asked GitHub since: a command, or the daemon). Called
 // with the lock held.
 func (s *Service) kept() *List {
 	if l, at, err := keptList(s.Root, s.listAt); err == nil && l != nil {
 		s.list, s.listAt = l, at
+		s.moved++
 	}
 	return s.list
 }
@@ -139,6 +163,9 @@ func (s *Service) List(force bool) (*List, error) {
 	s.loading = nil
 	if err == nil {
 		s.list, s.stale = l, false
+		// A new list is what a look's search is next held against.
+		s.looked = false
+		s.moved++
 		// Kept for the next process. One that can't be kept is still
 		// the list.
 		if at, kerr := keepList(s.Root, l); kerr == nil {
@@ -161,6 +188,12 @@ func (s *Service) Stale() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.stale = true
+	if s.due != nil {
+		select {
+		case s.due <- struct{}{}:
+		default: // it's been told already
+		}
+	}
 	if s.pageDue == nil {
 		s.pageDue = map[string]bool{}
 	}
@@ -254,6 +287,12 @@ func (s *Service) remote(repo string) ref.Remote {
 // out. The first owner that couldn't be asked is the error, beside what
 // the others said.
 func (s *Service) reviewRequested(repos []string) ([]github.PRRef, error) {
+	return s.searched(repos, s.GitHub.ReviewRequested)
+}
+
+// searched is what a search of each owner the repos are under found, of
+// the workspace's repos, each by its name here.
+func (s *Service) searched(repos []string, search func(owner string) ([]github.PRRef, error)) ([]github.PRRef, error) {
 	here := map[ref.Remote]string{}
 	var owners []string
 	for _, repo := range repos {
@@ -270,7 +309,7 @@ func (s *Service) reviewRequested(repos []string) ([]github.PRRef, error) {
 	var out []github.PRRef
 	var first error
 	for _, owner := range owners {
-		got, err := s.GitHub.ReviewRequested(owner)
+		got, err := search(owner)
 		if err != nil {
 			if first == nil {
 				first = fmt.Errorf("%s: %w", owner, err)

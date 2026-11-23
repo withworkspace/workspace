@@ -14,6 +14,7 @@ import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary, SummaryRow } from "../ui/Summary";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { useWorkspace } from "../workspace/store";
 
 // The orchestrator's page: whether it's on and how it's set up, the
 // missions it's on now, and its latest runs; each run's own page has what
@@ -21,19 +22,20 @@ import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusC
 
 // changedKey is when anything about the missions last changed: pages here
 // load again when it moves (a run's end is logged on its mission).
-function changedKey(workspace: Workspace) {
-  return workspace.missions.map((m) => m.updated).join("|");
+function changedKey(missions: Workspace["missions"]) {
+  return missions.map((m) => m.updated).join("|");
 }
 
 // lookedAt is what a run looked at, its trigger said once: "c1 (done)".
 export const lookedAt = (r: Pick<OrchestratorRun, "for" | "trigger">) =>
   !r.trigger || r.for.includes(`(${r.trigger})`) ? r.for : `${r.for} (${r.trigger})`;
 
-export function OrchestratorPage({ workspace }: { workspace: Workspace }) {
+export function OrchestratorPage() {
+  const missions = useWorkspace((w) => w.missions);
   useTitle("Orchestrator");
-  const key = useMemo(() => changedKey(workspace), [workspace]);
+  const key = useMemo(() => changedKey(missions), [missions]);
   const { value: info, error, reload: load } = useLoaded<OrchestratorInfo>(getOrchestrator, [key], { keep: true });
-  const deciding = workspace.missions.filter((m) => m.headline.kind === "deciding");
+  const deciding = missions.filter((m) => m.headline.kind === "deciding");
   const on: StatusInfo | undefined = info && (info.problem ? { icon: "x-circle", tone: "danger", words: "Can't run" } : info.enabled ? { icon: "check-circle", tone: "done", words: "On" } : { icon: "pause", tone: "quiet", words: "Off" });
   return (
     <div className="page">
@@ -152,9 +154,10 @@ function outcome(r: OrchestratorRun): StatusInfo {
   return { icon: "check-circle", tone: "done", words: `Acted${r.retry ? " on a second try" : ""}${refused}` };
 }
 
-export function OrchestratorRunPage({ workspace }: { workspace: Workspace }) {
+export function OrchestratorRunPage() {
   const { slug = "", id = "" } = useParams();
-  const m = workspace.missions.find((m) => m.slug === slug);
+  const m = useWorkspace((w) => w.missions.find((m) => m.slug === slug));
+  const root = useWorkspace((w) => w.root);
   useTitle(`Orchestrator run${m ? ` · ${m.title}` : ""}`);
   const { value: d, error, reload: load } = useLoaded<OrchestratorRunDetail>(() => getOrchestratorRun(slug, id), [slug, id]);
   return (
@@ -209,7 +212,7 @@ export function OrchestratorRunPage({ workspace }: { workspace: Workspace }) {
             <GroupHead count={d.log.length}>
               What it ran
             </GroupHead>
-            {d.log.length === 0 ? <div className="quiet-line">No calls recorded: only Claude Code reports them.</div> : <Calls calls={d.log} root={workspace.root} open />}
+            {d.log.length === 0 ? <div className="quiet-line">No calls recorded: only Claude Code reports them.</div> : <Calls calls={d.log} root={root} open />}
           </section>
           <section>
             <details className="fold">

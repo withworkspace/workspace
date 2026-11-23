@@ -39,6 +39,8 @@ const byKind: Record<string, Omit<StatusInfo, "words"> & { words?: string }> = {
   replied: { icon: "reply", tone: "attention", words: "Replied" },
   // a conversation whose agent has replied (a need's kind, not a headline's)
   "your-turn": { icon: "reply", tone: "attention", words: "Your turn" },
+  // a pull request that asks for your review by name (a need's kind too)
+  "your-review": { icon: "pr", tone: "attention", words: "Your review" },
   "checks-failing": { icon: "x-circle", tone: "danger", words: "Checks failing" },
   "changes-requested": { icon: "alert", tone: "attention", words: "Changes requested" },
   approve: { icon: "check-circle", tone: "attention", words: "Approve" },

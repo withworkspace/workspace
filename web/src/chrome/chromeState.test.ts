@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hideSidebar, read, resting, sidebarPlace, write } from "./chromeState";
+import { besideAbout, besideFront, besideShown, besideTabs, besideWidths, closeBesideTab, floatBeside, hideSidebar, openBeside, pickBeside, read, resting, sidebarPlace, toggleBeside, widenBeside, write } from "./chromeState";
 
 describe("where the sidebar is", () => {
   it("is the page's to say between open and the rail", () => {
@@ -36,7 +36,79 @@ describe("the arrangement, kept in the browser", () => {
     expect(read('{"hidden":"yes"}')).toEqual(resting);
   });
 
-  it("takes no notice of what a later ws kept beside it", () => {
-    expect(read('{"hidden":true,"beside":{"open":true}}')).toEqual({ hidden: true });
+  it("takes what's sound of what's beside and rests the rest", () => {
+    const got = read(JSON.stringify({ hidden: "yes", beside: { open: true, width: 99999, tabs: ["a", 3, "a", "", "b", "/ask/THING-2"], about: { a: "x", gone: "y", b: 3 }, front: 7, fronts: { x: "a", y: 2 } } }));
+    expect(got).toEqual({ hidden: false, beside: { open: true, over: false, width: besideWidths.max, tabs: ["a", "b"], about: { a: "x" }, front: undefined, fronts: { x: "a" } } });
+  });
+});
+
+describe("what's beside", () => {
+  const doc = "document:records:adr/3.md";
+  const ask = "/conversations/x";
+
+  it("opens a thing in front, once however often it's opened", () => {
+    const s = openBeside(openBeside(openBeside(resting, "a"), "b"), "a");
+    expect(s.beside).toMatchObject({ open: true, tabs: ["a", "b"], front: "a" });
+  });
+
+  it("has what's about this page's thing first, only on that thing's page", () => {
+    const s = openBeside(openBeside(resting, "anywhere"), ask, { about: doc, here: doc });
+    expect(besideTabs(s, doc)).toEqual({ here: [ask], anywhere: ["anywhere"], all: [ask, "anywhere"] });
+    expect(besideTabs(s, "mission:dark-mode").all).toEqual(["anywhere"]);
+    expect(besideTabs(s).all).toEqual(["anywhere"]);
+    expect(besideAbout(s, ask)).toBe(doc);
+    expect(besideAbout(s, "anywhere")).toBeUndefined();
+  });
+
+  it("isn't drawn where it has nothing, and is back with its page", () => {
+    const s = openBeside(resting, ask, { about: doc, here: doc });
+    expect(besideShown(s, "mission:dark-mode")).toBe(false);
+    expect(besideShown(s, doc)).toBe(true);
+    expect(besideShown(toggleBeside(s), doc)).toBe(false);
+  });
+
+  it("has in front again what was in front on this thing's page", () => {
+    let s = openBeside(openBeside(resting, "anywhere"), ask, { about: doc, here: doc });
+    s = pickBeside(s, "anywhere", "mission:dark-mode");
+    expect(besideFront(s, "mission:dark-mode")).toBe("anywhere");
+    expect(besideFront(s, doc)).toBe(ask);
+  });
+
+  it("puts a conversation that's begun where the one about to begin was", () => {
+    let s = openBeside(openBeside(openBeside(resting, "a"), "/ask/THING-2", { about: "thing:fixture/THING-2", here: "thing:fixture/THING-2" }), "c");
+    s = openBeside(s, ask, { inPlaceOf: "/ask/THING-2", about: "thing:fixture/THING-2", here: "thing:fixture/THING-2" });
+    expect(s.beside.tabs).toEqual(["a", ask, "c"]);
+    expect(s.beside.about).toEqual({ [ask]: "thing:fixture/THING-2" });
+    expect(s.beside.front).toBe(ask);
+  });
+
+  it("is a new tab at the end when the one to take the place of isn't there, and isn't itself", () => {
+    expect(openBeside(openBeside(resting, "a"), ask, { inPlaceOf: "/ask/THING-2" }).beside.tabs).toEqual(["a", ask]);
+    expect(openBeside(openBeside(resting, "a"), "a", { inPlaceOf: "a" }).beside.tabs).toEqual(["a"]);
+  });
+
+  it("brings the next forward when the one in front is closed, or the one before at the end", () => {
+    const s = openBeside(openBeside(openBeside(resting, "a"), "b"), "c");
+    expect(besideFront(closeBesideTab(pickBeside(s, "b"), "b"))).toBe("c");
+    expect(besideFront(closeBesideTab(s, "c"))).toBe("b");
+    expect(besideFront(closeBesideTab(pickBeside(s, "a"), "c"))).toBe("a");
+  });
+
+  it("closed, takes what was known of it with it, and stays open for what's beside another page", () => {
+    const s = closeBesideTab(openBeside(resting, ask, { about: doc, here: doc }), ask, doc);
+    expect(s.beside).toMatchObject({ open: true, tabs: [], about: {} });
+    expect(Object.values(s.beside.fronts)).not.toContain(ask);
+    expect(besideShown(s, doc)).toBe(false);
+  });
+
+  it("floats, and is as wide as it may be", () => {
+    expect(floatBeside(resting, true).beside.over).toBe(true);
+    expect(widenBeside(resting, 10).beside.width).toBe(besideWidths.min);
+    expect(widenBeside(resting, 512.4).beside.width).toBe(512);
+  });
+
+  it("is kept as it was", () => {
+    const s = widenBeside(floatBeside(openBeside(resting, ask, { about: doc, here: doc }), true), 500);
+    expect(read(write(s))).toEqual(s);
   });
 });

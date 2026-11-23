@@ -1,0 +1,12 @@
+/* The line between two lots of a dock's tabs (DockDivide.tsx). */
+
+@layer ui {
+  .divide {
+    flex: none;
+    align-self: center;
+    width: 1px;
+    height: 14px;
+    margin: 0 4px;
+    background: var(--line-strong);
+  }
+}

@@ -93,6 +93,16 @@ export function Verify({
     select(rowKey(bundle, r));
   };
 
+  // The bundle you're on now, for what's done once the daemon has
+  // answered: none once you've left the tab, or the page.
+  const here = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    here.current = bundle?.id;
+    return () => {
+      here.current = undefined;
+    };
+  }, [bundle?.id]);
+
   const run = (verb: ActVerb, opts: ActOpts, quiet = false, then?: () => void) => {
     if (!bundle) return;
     setBusy(true);
@@ -100,7 +110,9 @@ export function Verify({
       .then((r) => {
         if (!quiet) toast(r.message, { tone: "done" });
         if (verb === "bundle-send-back") setNotes((all) => ({ ...all, [bundle.id]: {} }));
-        then?.();
+        // What follows (on to the next bundle) is for where you were when
+        // you said it: gone somewhere else since, you're left there.
+        if (here.current === bundle.id) then?.();
         return reload();
       })
       .catch((e: Error) => {

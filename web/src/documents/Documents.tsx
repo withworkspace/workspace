@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
-import { type DocHit, docTo, getSpace, getSpaceActivity, getSpaces, pageAddress, searchDocuments, type SpaceActivity, type SpaceDoc, type SpaceKind, spaceTo, type Workspace } from "../api";
+import { type DocHit, docTo, getSpace, getSpaceActivity, getSpaces, pageAddress, searchDocuments, type SpaceActivity, type SpaceDoc, type SpaceKind, spaceTo } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { NewAsKind, PageRow, useStartPage } from "../pages/Pages";
@@ -23,6 +23,8 @@ import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Input } from "../ui/Input";
+import { useWorkspace } from "../workspace/store";
+import { usePref } from "../prefs";
 
 // Documents: where the workspace's writing is read. Local is the pages
 // that aren't in a space (written here, on this machine); each space is a
@@ -53,7 +55,8 @@ export const spaceKeys: [string, string][] = [
 // A row the cursor can be on: a page, or a space.
 type Target = { id: string; to: string };
 
-export function DocumentsPage({ workspace }: { workspace: Workspace }) {
+export function DocumentsPage() {
+  const workspace = useWorkspace();
   useTitle("Documents");
   const navigate = useNavigate();
   // Answered at once from what ws keeps: read again when it's read a
@@ -258,7 +261,8 @@ export function DocumentsPage({ workspace }: { workspace: Workspace }) {
 // kind that jumps the list there. The page doesn't scroll: the list and
 // the preview do, each by itself, and the edge between them is dragged.
 // On a narrow window it's the list alone, each document opened to read.
-export function SpacePage({ workspace }: { workspace: Workspace }) {
+export function SpacePage() {
+  const workspace = useWorkspace();
   const { repo = "" } = useParams();
   const navigate = useNavigate();
   // Both answered at once from what ws keeps, and read again when it's
@@ -680,24 +684,8 @@ const LIST_MIN = 280;
 const PREVIEW_MIN = 380;
 
 function useListWidth(): [number | undefined, (w: number | undefined) => void] {
-  const [w, setW] = useState<number | undefined>(() => {
-    try {
-      const n = Number(localStorage.getItem("ws:space-list-w"));
-      return n >= LIST_MIN ? n : undefined;
-    } catch {
-      return undefined;
-    }
-  });
-  const set = (n: number | undefined) => {
-    setW(n);
-    try {
-      if (n) localStorage.setItem("ws:space-list-w", `${n}`);
-      else localStorage.removeItem("ws:space-list-w");
-    } catch {
-      // fine
-    }
-  };
-  return [w, set];
+  const [w, set] = usePref("spaceListWidth");
+  return [w !== undefined && w >= LIST_MIN ? w : undefined, (n) => set(n || undefined)];
 }
 
 // ListEdge is the edge between a space's list and its preview: dragged,

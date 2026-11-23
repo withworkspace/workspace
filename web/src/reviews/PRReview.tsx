@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   askPR,
+  declinePR,
   type Discussion,
   dockPR,
   getPR,
@@ -25,7 +26,6 @@ import {
   submitPRReview,
   useEvents,
   type Verdict,
-  type Workspace,
 } from "../api";
 import { type AskAbout, linesChip } from "../ask/ask";
 import { AskBar, type AskBarHandle } from "../ask/AskBar";
@@ -34,13 +34,15 @@ import { type AskedFinding, type ReviewDiff, type ReviewSource, ReviewView, type
 import { Icon } from "../ui/Icon";
 import { Callout, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
 import { Dialog } from "../ui/Dialog";
+import { confirm } from "../ui/Confirm";
 import { Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { GuideMark, GuideSection } from "./Guide";
 import { PRDescription, PRDiscussion, StackDescriptions } from "./Overview";
 import { PassesSection, PassMarks, standingWords } from "./Passes";
 import { useReviewPasses } from "./usePasses";
-import { Checks, prHref, prStatus } from "./Reviews";
+import { layersLeft } from "./after";
+import { Checks, prHref, prStatus, reviewed } from "./Reviews";
 import { useLatest } from "../load";
 import { PagePin } from "../shell/focus";
 import { Chip, chipClass } from "../ui/Chip";
@@ -48,6 +50,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { clip } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
 import { TextArea } from "../ui/TextArea";
+import { useWorkspace } from "../workspace/store";
 
 // A pull request's review: the page a capsule's review is, on commits
 // fetched into the repo's clone. A stack opens as one review, its layers
@@ -63,7 +66,7 @@ import { TextArea } from "../ui/TextArea";
 export const prReviewKeys: [string, string][] = [
   ["[ / ]", "The layer below / above, in a stack"],
   ["w", "The whole stack together, or back to the layer"],
-  ["/", "Go to the ask bar"],
+  ["/", "Go to the ask bar: what you ask opens beside the page"],
   ["a", "Ask about the line (or the selected lines)"],
   ["A", "Ask about the pull request"],
   ["o", "Open it on GitHub"],
@@ -83,7 +86,8 @@ interface Shown {
   guide?: ReviewGuide;
 }
 
-export function PRReviewPage({ workspace }: { workspace: Workspace }) {
+export function PRReviewPage() {
+  const conversations = useWorkspace((w) => w.conversations);
   // The address says what's asked for; what's shown follows it once it's
   // been read. Moving to another layer, or to the whole stack and back,
   // keeps this one on screen until the next can be shown whole, then
@@ -112,26 +116,29 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
   const [docking, setDocking] = useState(false);
   useTitle(d ? `${d.pr.title} · ${ref}` : ref);
 
-  // Opening what's asked for: everything it's drawn from is read, and
-  // shown together. What's been said on GitHub, which can be slow, is
-  // shown with it if it's in by then, or once it is.
+  // Opening what's asked for: what it opens on (what it says it does, its
+  // changes, your review) is read, and shown together. What's been said
+  // on GitHub, on its lines and on itself, can be slow: it's shown with
+  // them if it's in by then, or once it is.
   const beginOpen = useLatest();
   useEffect(() => {
     const fresh = beginOpen();
     const a = prAPI(askedRepo, askedNumber);
     const reviewsRead = getReview(a);
-    const threadsRead = getPRThreads(a).then(
-      (t) => ({ t }),
-      (e: Error) => ({ e: e.message }),
-    );
     const passesRead = getPRPasses(a).catch(() => [] as ReviewPass[]);
     const guideRead = getPRGuide(a).catch(() => ({}) as ReviewGuide);
     let said: { x?: Discussion; e?: string } | undefined;
+    let lines: { t?: ReviewData; e?: string } | undefined;
     let open = false;
     const say = (s: { x?: Discussion; e?: string }) => {
       if (!fresh()) return;
       setDiscussion(s.x);
       setDiscussionError(s.e);
+    };
+    const thread = (s: { t?: ReviewData; e?: string }) => {
+      if (!fresh()) return;
+      setThreads(s.t);
+      setThreadsError(s.e);
     };
     getPRDiscussion(a)
       .then(
@@ -142,6 +149,15 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
         said = s;
         if (open) say(s);
       });
+    getPRThreads(a)
+      .then(
+        (t) => ({ t }),
+        (e: Error) => ({ e: e.message }),
+      )
+      .then((s) => {
+        lines = s;
+        if (open) thread(s);
+      });
     getPR(askedRepo, askedNumber).then(
       async (x) => {
         // What the review opens on. If it can't be read, the review
@@ -150,13 +166,12 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
           ([rs, diff]) => ({ rs, diff: diff as ReviewDiff }),
           () => undefined,
         );
-        const [t, p, g] = await Promise.all([threadsRead, passesRead, guideRead]);
+        const [p, g] = await Promise.all([passesRead, guideRead]);
         if (!fresh()) return;
         open = true;
         setD(x);
         setError(undefined);
-        setThreads("t" in t ? t.t : undefined);
-        setThreadsError("e" in t ? t.e : undefined);
+        thread(lines ?? {});
         say(said ?? {});
         setShown({ repo: askedRepo, number: askedNumber, whole: askedWhole, opened, passes: p, guide: g });
       },
@@ -258,6 +273,33 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
       )
       .finally(() => setDocking(false));
   };
+  // It isn't yours to review: your name comes off its reviewers on GitHub,
+  // which is where that's said, and it stops needing you. Others see it,
+  // so it's asked first.
+  const [declining, setDeclining] = useState(false);
+  const decline = async () => {
+    if (!d || declining) return;
+    const yes = await confirm({
+      title: "Not yours to review?",
+      body: (
+        <>
+          Your name comes off the reviewers of <span className="mono">{ref}</span> on GitHub, where {d.pr.author} and anyone else on it will see. Nobody's asked in your place.
+        </>
+      ),
+      confirm: "Take my name off",
+    });
+    if (!yes) return;
+    setDeclining(true);
+    declinePR(api)
+      .then(
+        () => {
+          toast(`Your name is off ${ref}'s reviewers.`, { tone: "done" });
+          navigate("/reviews");
+        },
+        (e: Error) => toast(humanError(e.message), { tone: "danger" }),
+      )
+      .finally(() => setDeclining(false));
+  };
   // ask goes to the ask bar: with lines in hand, or what a pass found, to
   // ask about them; with neither, about the whole of it.
   const ask = (lines?: Selection, finding?: AskedFinding) => {
@@ -286,7 +328,7 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
 
   // The conversations about it, as the workspace has them now: answering,
   // or your turn.
-  const talks = useMemo(() => workspace.conversations.filter((t) => t.pr === ref), [workspace.conversations, ref]);
+  const talks = useMemo(() => conversations.filter((t) => t.pr === ref), [conversations, ref]);
 
   if (error) {
     return (
@@ -376,6 +418,11 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
       <>
         <div className="pr-meta">
           {!whole && <Status s={prStatus(pr)} />}
+          {!whole && pr.asked === "you" && pr.state === "needs-review" && (
+            <Button variant="ghost" size="small" onClick={decline} disabled={declining} title="It isn't yours to review: take your name off its reviewers on GitHub">
+              {declining ? "Taking your name off…" : "Not mine"}
+            </Button>
+          )}
           <span>
             {pr.mine ? "Yours" : pr.author} · <span className="mono">{pr.branch}</span> <Icon name="arrow-right" size={11} />{" "}
             <span className="mono">{whole && d.stack ? d.stack.base : pr.base}</span>
@@ -396,6 +443,11 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
               </span>
             ))}
           {pr.updated && <Time iso={pr.updated} as="relative" className="dim" />}
+          {!whole && !threads && !threadsError && (
+            <span className="dim" title="The comments on its lines, and what's been said on it, are read after what it opens on: they show when they're in.">
+              <Icon name="spinner" className="spin" size={12} /> Reading the comments on GitHub…
+            </span>
+          )}
           {pr.mission && (
             <Link to={`/missions/${pr.mission.slug}`} className={chipClass("quiet", "pr-meta-chip")}>
               <Icon name="flag" size={11} /> {pr.mission.title}
@@ -506,8 +558,24 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
         head={diff.head}
         onClose={onClose}
         onDiscard={onDiscard}
-        onDone={(next) => {
-          done(next);
+        onPosted={(posted, mine) => {
+          // Nothing here still needs you: back to the list, at the next
+          // one. A stack keeps you until its last layer is reviewed.
+          if (!layersLeft(layers, posted.map((p) => p.number)).length) {
+            const url = posted.length === 1 ? posted[0].url : undefined;
+            toast(posted.length === 1 ? `Your review of ${pr.repo}#${posted[0].number} is on GitHub.` : `Your ${posted.length} reviews are on GitHub.`, {
+              tone: "done",
+              action: url ? { label: "See it on GitHub", run: () => window.open(url, "_blank", "noopener") } : undefined,
+            });
+            reviewed(pr.repo, pr.number);
+            navigate("/reviews");
+            return;
+          }
+          if (mine) done(mine);
+          else {
+            toast("Posted to GitHub.", { tone: "done" });
+            onClose();
+          }
           load();
           loadThreads();
           loadDiscussion();
@@ -537,12 +605,10 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
         ref={asker}
         about={askAbout}
         suggestions={suggest}
-        root={workspace.root}
         // A comment added to the draft is on its lines, read again.
         onSettled={(p) => p.kind === "comment" && p.state === "accepted" && bumpTook()}
       />
     ),
-    dismiss: () => asker.current?.close() ?? false,
     keys: {
       "[": () => go(layers[at - 1]),
       "]": () => go(layers[at + 1]),
@@ -617,6 +683,13 @@ function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: b
   );
 }
 
+// Posted is a review that's gone to GitHub: the pull request it's of, and
+// where it is there.
+interface Posted {
+  number: number;
+  url?: string;
+}
+
 interface LayerDraft {
   pr: PR;
   draft: ReviewData | null;
@@ -638,14 +711,16 @@ function PRSubmitDialog({
   head,
   onClose,
   onDiscard,
-  onDone,
+  onPosted,
 }: {
   d: PRDetail;
   passes?: ReviewPass[]; // this pull request's, as they stand
   head: string;
   onClose: () => void;
   onDiscard: () => void;
-  onDone: (next: ReviewState) => void;
+  // Every review chosen is on GitHub: the layers posted while this was open,
+  // and this pull request's reviews as they then are, if it was one of them.
+  onPosted: (posted: Posted[], mine?: ReviewState) => void;
 }) {
   const prs = d.stack?.layers ?? [d.pr];
   const [layers, setLayers] = useState<LayerDraft[]>(() => prs.map((pr) => ({ pr, draft: null, summary: "" })));
@@ -653,6 +728,9 @@ function PRSubmitDialog({
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
+  // What's been posted while this is open, a failed try before it included.
+  const posted = useRef<Posted[]>([]);
+  const mine = useRef<ReviewState | undefined>(undefined);
   const set = (i: number, patch: Partial<LayerDraft>) => setLayers((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
   // The commit a layer's review is of: the one this page shows, for the
   // layer it's on; for another, the one its draft was written on.
@@ -709,7 +787,6 @@ function PRSubmitDialog({
   const submit = async () => {
     if (!ready || busy) return;
     setBusy(true);
-    let mine: ReviewState | undefined;
     let failed = false;
     for (let i = 0; i < layers.length; i++) {
       const l = layers[i];
@@ -718,7 +795,8 @@ function PRSubmitDialog({
       try {
         const next = await submitPRReview(prAPI(l.pr.repo, l.pr.number), headOf(l), l.verdict, l.summary);
         set(i, { state: "posted" });
-        if (l.pr.number === d.pr.number) mine = next;
+        posted.current.push({ number: l.pr.number, url: next.url });
+        if (l.pr.number === d.pr.number) mine.current = next;
       } catch (e) {
         set(i, { state: undefined, error: (e as Error).message });
         failed = true;
@@ -726,10 +804,7 @@ function PRSubmitDialog({
       }
     }
     setBusy(false);
-    if (failed) return;
-    if (mine) return onDone(mine);
-    toast("Posted to GitHub.", { tone: "done" });
-    onClose();
+    if (!failed) onPosted(posted.current, mine.current);
   };
 
   useKeys(
