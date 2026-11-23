@@ -7,7 +7,7 @@ import { Keys } from "./kit";
 // Buttons: each variant, plain and small, then disabled, with an icon,
 // with a key, square (an icon alone), and a link drawn as a button.
 
-const meta: Meta = { title: "Library/Button" };
+const meta: Meta = { title: "Components/Button" };
 export default meta;
 
 const variants: { name: string; look: ButtonLook }[] = [

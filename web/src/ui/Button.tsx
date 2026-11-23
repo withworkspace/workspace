@@ -1,3 +1,5 @@
+import type { ReactNode, Ref } from "react";
+import { Button as AriaButton, type ButtonProps as AriaButtonProps } from "react-aria-components";
 import css from "./Button.module.css";
 import { cx } from "./cx";
 
@@ -9,13 +11,36 @@ export type ButtonLook = {
   square?: boolean;
 };
 
-type ButtonProps = ButtonLook & React.ComponentProps<"button">;
+// What a button takes: its look, and what react-aria's takes, said as the
+// browser says it (disabled, not isDisabled; a className that's a string).
+// title and aria-busy are the browser's too: react-aria's button drops
+// both, so they're put on the element here.
+type ButtonProps = ButtonLook &
+  Omit<AriaButtonProps, "className" | "style" | "children" | "isDisabled" | "render"> & {
+    className?: string;
+    disabled?: boolean;
+    title?: string;
+    "aria-busy"?: boolean;
+    children?: ReactNode;
+    ref?: Ref<HTMLButtonElement>;
+  };
 
-// Button is a button. Its type is the browser's (submit, in a form) unless
-// it's given one. data-ui says it's the library's: styles.css's rules for a
+// Button is a button: react-aria's, in ws's look. So it's pressed the same
+// by a mouse, a finger and the keys, and it's what a menu, a popover or a
+// tooltip opens from (inside a MenuTrigger it's the trigger, with nothing
+// more said). Its type is button unless it's given one: a form's own says
+// type="submit". data-ui says it's the library's: styles.css's rules for a
 // page's own buttons' states leave it to its module.
-export function Button({ variant, size, square, className, ...rest }: ButtonProps) {
-  return <button data-ui="" className={cx(lookOf({ variant, size, square }), className)} {...rest} />;
+export function Button({ variant, size, square, className, disabled, title, "aria-busy": busy, ...rest }: ButtonProps) {
+  return (
+    <AriaButton
+      data-ui=""
+      isDisabled={disabled}
+      className={cx(lookOf({ variant, size, square }), className)}
+      render={(props) => <button {...props} title={title} aria-busy={busy} />}
+      {...rest}
+    />
+  );
 }
 
 // buttonClass is a button's look for a link: a <Link> or an <a> that's an
