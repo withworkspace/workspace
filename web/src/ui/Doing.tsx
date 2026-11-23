@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useCommandLabels } from "../workspace/store";
+import css from "./Doing.module.css";
 import { type Call, Calls } from "./Calls";
+import { cx } from "./cx";
 import { stepDoing } from "./commandLabel";
 import { Icon } from "./Icon";
 import { Button } from "./Button";
@@ -17,17 +19,17 @@ export function Doing({ calls, root, idle = "Thinking" }: { calls: Call[]; root?
   const last = calls[n - 1];
   const now = last ? stepDoing(last, labels) : idle;
   return (
-    <div className="doing">
-      <div className="doing-line" aria-live="polite">
-        <TypingDots className="doing-dots" />
+    <div className={css.doing}>
+      <div className={css.line} aria-live="polite">
+        <TypingDots className={css.dots} />
         {/* Keyed by the step, so a new one comes in as new. */}
-        <span key={n} className="doing-now" title={last?.input}>
+        <span key={n} className={css.now} title={last?.input}>
           {now}…
         </span>
         {n > 0 && (
-          <Button variant="link" type="button" className="doing-steps" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+          <Button variant="link" type="button" className={css.steps} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
             {n} {n === 1 ? "step" : "steps"}
-            <Icon name="chevron-right" size={11} className={open ? "doing-chevron open" : "doing-chevron"} />
+            <Icon name="chevron-right" size={11} className={cx(css.chevron, open && css.open)} />
           </Button>
         )}
       </div>
