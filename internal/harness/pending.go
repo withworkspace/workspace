@@ -91,6 +91,27 @@ func PendingAtTurnEnd(name string, t acp.Turn) Pending {
 	return Pending{}
 }
 
+// ACPDropReader is a harness whose agent, over ACP, can end a turn it
+// couldn't finish the way it ends one it has: stopped with end_turn, the
+// session still up, and only its last words to say an error cut it off
+// (its connection to its model dropped). Nothing retries such a turn, and
+// nothing in the protocol tells it from one the agent ended to wait.
+type ACPDropReader interface {
+	// TurnDropped is whether the turn ended that way, with the error it
+	// ended on.
+	TurnDropped(t acp.Turn) (string, bool)
+}
+
+// TurnDropped is whether a turn of the named harness's crew over ACP was
+// cut off by an error of its agent's rather than ended by it, with the
+// error: false for a harness that can't tell.
+func TurnDropped(name string, t acp.Turn) (string, bool) {
+	if r, ok := registry[name].(ACPDropReader); ok {
+		return r.TurnDropped(t)
+	}
+	return "", false
+}
+
 // acpLeftRunning is what an ACP agent left running when a turn ended: each
 // command (an execute tool call) the turn began and left in_progress at
 // end_turn, which nothing wakes the agent for (an ACP agent can't start a

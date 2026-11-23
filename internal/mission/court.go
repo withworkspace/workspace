@@ -388,7 +388,10 @@ func (s Snapshot) Crew(c Crew) (CrewState, time.Time) {
 		// A mark ws set as it recorded them, and clears: not a guess from
 		// what they last did, which for crew resumed is from before.
 		return CrewStarting, *c.Starting
-	case c.HandedBack(s.M):
+	case c.HandedBack(s.M) && !c.Conversing && !c.InTurnSinceDone():
+		// Crew who've reported done and are answering you since are shown
+		// as any crew you're talking to: at work, then waiting with what
+		// they said.
 		return CrewHandedBack, timeOr(c.StatusAt, c.Started)
 	case c.Status == CrewAsking:
 		return CrewAsks, timeOr(c.StatusAt, c.Started)

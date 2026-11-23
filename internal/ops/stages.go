@@ -634,8 +634,11 @@ func (w *Workspace) answerAtWork(m *mission.Mission, t mission.Task, by Actor, t
 	}
 	switch {
 	case t.Verb == mission.TaskChecks && is(mission.ChecksPass, mission.CheckInGoOn):
-		if err := closeTask(); err != nil {
-			return out, true, err
+		// Your answer is kept, and the question stays open until the
+		// step has passed (which closes it): one that couldn't be passed
+		// is still yours to pass, with why it couldn't.
+		if _, _, err := w.Missions.AnswerTask(m.Slug, t.N, text, by.By(), true); err != nil {
+			return out, true, wrap(err)
 		}
 		acc, err := w.AcceptStage(m.Slug, by, "the user passed it, its checks as they were")
 		if err != nil {

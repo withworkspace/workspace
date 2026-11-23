@@ -151,6 +151,20 @@ func (r *StageRecord) LatestChecks() (CheckRound, bool) {
 	return r.Checks[len(r.Checks)-1], true
 }
 
+// checkedFor reports whether a round of the step's checks was run on
+// crew id's done: they've handed it over once.
+func (r *StageRecord) checkedFor(id string) bool {
+	if r == nil {
+		return false
+	}
+	for _, round := range r.Checks {
+		if round.Crew == id {
+			return true
+		}
+	}
+	return false
+}
+
 // ChecksMet reports whether the step's latest round of checks was all
 // met: what lets the orchestrator pass a step with checks.
 func (s StageState) ChecksMet() bool {

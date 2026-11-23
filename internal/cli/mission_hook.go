@@ -62,10 +62,11 @@ It never fails, so a hook can't get in the agent's way.`,
 // orchestrateQuietTurn hands crew's turn to the orchestrator when it ended
 // without the crew saying where it is (no ask, no done) after a message ws
 // sent it rather than one of yours: someone has to decide what's next, and
-// it's the orchestrator's call before it's yours.
+// it's the orchestrator's call before it's yours. A step that was held
+// for the turn to end is looked at first (ops.TurnEnded).
 func orchestrateQuietTurn(root, slug, crewID string) {
 	if ctx, err := LoadOps(root); err == nil {
-		ctx.Notify(slug, mission.OrchestratorEvent{Crew: crewID, Trigger: "quiet"})
+		ctx.TurnEnded(slug, crewID)
 	}
 }
 

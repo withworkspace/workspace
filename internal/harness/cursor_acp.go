@@ -105,6 +105,30 @@ func (c *CursorACP) Name() string { return "cursor-acp" }
 // in_progress. If it doesn't, ws sees nothing running here.
 func (c *CursorACP) PendingAtTurnEnd(t acp.Turn) Pending { return acpLeftRunning(t) }
 
+// cursorRetriable is how the last line of a turn's reply begins when an
+// error Cursor names retriable ended it.
+const cursorRetriable = "Error: RetriableError:"
+
+// TurnDropped: a turn that ended on an error Cursor calls retriable.
+//
+// SEEN (cursor-agent, November 2026): when the agent's connection to
+// Cursor's servers drops mid-turn, the prompt answers {stopReason:
+// end_turn} as for a turn it finished. Its last message ends with a line
+// "Error: RetriableError: …" saying what closed the stream, and the tool
+// call it was in is left in_progress. Cursor doesn't retry it. The
+// session stays up, and a message sent to it goes on from where it was.
+func (c *CursorACP) TurnDropped(t acp.Turn) (string, bool) {
+	if t.Err != nil || t.Stop != "end_turn" {
+		return "", false
+	}
+	lines := strings.Split(strings.TrimSpace(t.Reply), "\n")
+	last := strings.TrimSpace(lines[len(lines)-1])
+	if !strings.HasPrefix(last, cursorRetriable) {
+		return "", false
+	}
+	return strings.TrimSpace(strings.TrimPrefix(last, "Error:")), true
+}
+
 // Shells: a command still running in one of Cursor's shells at a turn's
 // end is a background shell, which nothing wakes the agent for over ACP.
 // One whose call is still in_progress the shell gives its pid; if Cursor

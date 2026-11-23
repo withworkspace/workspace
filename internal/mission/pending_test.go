@@ -16,7 +16,8 @@ var (
 // The end of a turn records what crew left running, as their harness said;
 // unknown, or nothing, records nothing. The next prompt clears it. A
 // prompt that's the harness waking them is no message: it leaves what they
-// said (done) in place. A message clears it, as ever.
+// said in place. A message answers a question they'd asked, and leaves
+// their done, which isn't a message's to take back.
 func TestCrewHook_PendingAndWakeUps(t *testing.T) {
 	fixedNow(t)
 	s := owned(t)
@@ -48,10 +49,15 @@ func TestCrewHook_PendingAndWakeUps(t *testing.T) {
 		t.Errorf("a stop with nothing running: pending %+v, status %q", c.Pending, c.Status)
 	}
 
-	// Your message clears the done.
+	// Your message leaves the done, and answers a question.
+	s.CrewHook(m.Slug, "c1", Hook{Prompted: true})
+	if c := crew(); c.Status != CrewDone || c.Note != "Stage one is in." {
+		t.Errorf("your message took back the done: status %q (%q)", c.Status, c.Note)
+	}
+	s.SetCrewStatus(m.Slug, "c1", CrewAsking, "Which suite?")
 	s.CrewHook(m.Slug, "c1", Hook{Prompted: true})
 	if c := crew(); c.Status != "" || c.Note != "" {
-		t.Errorf("your message left status %q", c.Status)
+		t.Errorf("your message left the question: status %q", c.Status)
 	}
 
 	// Work recorded ends; a later turn's isn't the watch's to end.
@@ -73,7 +79,7 @@ func TestCrewHook_PendingAndWakeUps(t *testing.T) {
 
 	// Resumed, its new session waits on nothing yet.
 	s.EndCrew(m.Slug, "c1", "exit 0")
-	s.ResumeCrew(m.Slug, "c1")
+	s.ResumeCrew(m.Slug, "c1", "ws")
 	if crew().Pending != nil {
 		t.Error("a resumed crew kept its last session's work")
 	}
