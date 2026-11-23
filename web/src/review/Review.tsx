@@ -33,7 +33,8 @@ import { ReplyBox } from "../ui/ReplyBox";
 import { Suggestion } from "./Suggestion";
 import { fuzzy } from "../ui/fuzzy";
 import { Inline } from "../ui/inline";
-import { Callout, humanError, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
+import { Callout, humanError, Loading, toast, useMedia, useTitle } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import { exact, stamp } from "../ui/time";
 import { highlightLines, languageOf, useHighlighter } from "./highlight";
 import { useCodeNav } from "./CodeNav";
@@ -1444,16 +1445,16 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
                       <span>{selectionLabel}</span>
                       {onComment && (
                         <Button variant="primary" onMouseDown={(e) => e.preventDefault()} onClick={onComment}>
-                          Comment <kbd>c</kbd>
+                          Comment <Keys k="c" />
                         </Button>
                       )}
                       {onAsk && (
                         <Button onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask an agent about these lines, with the code checked out here">
-                          Ask <kbd>a</kbd>
+                          Ask <Keys k="a" />
                         </Button>
                       )}
                       <span className="dim">
-                        <kbd>esc</kbd> clears
+                        <Keys k="esc" /> clears
                       </span>
                     </div>
                   ) : undefined
@@ -1664,7 +1665,7 @@ function CommentCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, fo
           )}
           {!draft && !replying && cursor && (
             <NoteHint>
-              <kbd>⏎</kbd> reply
+              <Keys k="⏎" /> reply
             </NoteHint>
           )}
           {replying && <ReplyBox onSend={(body) => onAnswer(note.id, "reply", body)} onCancel={onReplyCancel} />}
@@ -1734,10 +1735,10 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
         </Button>
         <span className="spacer-left" />
         <Button onClick={onCancel}>
-          Cancel <kbd>esc</kbd>
+          Cancel <Keys k="esc" />
         </Button>
         <Button variant="primary" onClick={save}>
-          {note ? "Save" : "Comment"} <kbd>⌘⏎</kbd>
+          {note ? "Save" : "Comment"} <Keys k="mod+⏎" />
         </Button>
       </div>
     </div>

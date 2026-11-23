@@ -1,6 +1,6 @@
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
-import { Keys } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import css from "./FindButton.module.css";
 
 // FindButton is the sidebar's way to Find: what it's called, and its key.

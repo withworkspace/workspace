@@ -9,19 +9,6 @@ export { toast };
 
 // The small shared pieces every page draws with.
 
-// Keys shows a key or a chord: "g m" is g then m, "mod+⏎" is ⌘⏎.
-export function Keys({ k, className }: { k: string; className?: string }) {
-  const mac = /Mac|iPhone|iPad/.test(navigator.platform);
-  const parts = k.split(" ").map((p) => p.replace(/^mod\+/, mac ? "⌘" : "Ctrl+").replace(/(^|\+|⌘)shift\+/, (_, before: string) => before + (mac ? "⇧" : "Shift+")));
-  return (
-    <span className={`keys${className ? ` ${className}` : ""}`}>
-      {parts.map((p, i) => (
-        <kbd key={i}>{p}</kbd>
-      ))}
-    </span>
-  );
-}
-
 // Copyable is a ref, path, hash or command that copies itself when
 // clicked, and says so.
 export function Copyable({ text, children, className, title }: { text: string; children?: ReactNode; className?: string; title?: string }) {

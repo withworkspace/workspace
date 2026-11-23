@@ -5,7 +5,8 @@ import type { Reload } from "../load";
 import { useKeys } from "../keys";
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Callout, Copyable, Empty, humanError, Keys, toast } from "../ui/kit";
+import { Callout, Copyable, Empty, humanError, toast } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";
 import {
   allClearWords,

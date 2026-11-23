@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Button } from "./Button";
 import { Icon } from "./Icon";
-import { Keys } from "./kit";
+import { Keys } from "./Keys";
 import { Tooltip } from "./Tooltip";
 import { Toasts } from "./kit";
 

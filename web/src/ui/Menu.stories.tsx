@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "./Button";
 import { Count } from "./Count";
 import { Icon } from "./Icon";
-import { Keys } from "./kit";
+import { Keys } from "./Keys";
 import { Menu, MenuItem, MenuSection, MenuSeparator, MenuText } from "./Menu";
 
 // Menus: press each to open it. Things to do, with icons, a count, a key

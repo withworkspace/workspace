@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "./Button";
 import { Composer } from "./Composer";
 import { Icon } from "./Icon";
-import { Keys } from "./kit";
+import { Keys } from "./Keys";
 
 // Composers: with a bar under the words (what sending does, and what's
 // pressed), with nothing to say in it, with something else to do, a

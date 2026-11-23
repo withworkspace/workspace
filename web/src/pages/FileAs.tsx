@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { type DocKind, type DocSaved, FileChanged, filePage, type PageFiling, type PageTied, savePageToFile, type SpaceRef } from "../api";
 import { Icon } from "../ui/Icon";
-import { Callout, humanError, Keys } from "../ui/kit";
+import { Callout, humanError } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import { Dialog, DialogActions } from "../ui/Dialog";
 import { Option, Select } from "../ui/Select";
 import { Button } from "../ui/Button";

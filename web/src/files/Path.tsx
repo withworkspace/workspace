@@ -3,7 +3,7 @@ import { Crumbs, CrumbSep } from "../ui/Crumbs";
 import { Link } from "react-router";
 import { type DocIn, GROUND, getSpace, getTree, type Space, type SpaceDoc, type SpaceRef, worktreeAPI } from "../api";
 import { Icon } from "../ui/Icon";
-import { Keys } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import { usePlaceUnder, useClickAway } from "./Contents";
 import { fileShelves, filterItems, type Here, holds, type Shelf, type ShelfItem, type Shelves, type Siblings, spaceShelves } from "./shelves";
 import { Input } from "../ui/Input";

@@ -1,7 +1,8 @@
 import { type ReactNode, type Ref, useRef } from "react";
 import css from "./Composer.module.css";
 import { cx } from "./cx";
-import { Keys, useAutosize } from "./kit";
+import { useAutosize } from "./kit";
+import { Keys } from "./Keys";
 import { TextArea } from "./TextArea";
 
 type ComposerProps = {

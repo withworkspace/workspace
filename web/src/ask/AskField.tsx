@@ -3,7 +3,7 @@ import { Button } from "../ui/Button";
 import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Keys } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import { Input } from "../ui/Input";
 
 // What's in hand, as the field shows it before its words: a passage

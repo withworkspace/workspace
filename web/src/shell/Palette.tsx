@@ -13,7 +13,8 @@ import { FileIcon } from "../ui/FileIcon";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { Status } from "../ui/status";
-import { humanError, Keys, toast } from "../ui/kit";
+import { humanError, toast } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import { askShutDown } from "./daemon";
 import { setTheme } from "../ui/theme";
 import { clock } from "../ui/time";
@@ -677,7 +678,7 @@ export function Palette({
                 {s.more > 0 && (
                   <p className="find-more">
                     {s.more} more
-                    {!group && s.group !== "best" && <Keys k="⇥" />}
+                    {!group && s.group !== "best" && <Keys k="⇥" className="find-more-keys" />}
                   </p>
                 )}
                 {s.note && <p className={`find-note${s.group === "code" && code.end?.capped ? " find-capped" : ""}`}>{s.note}</p>}
@@ -702,41 +703,41 @@ export function Palette({
           {mode ? (
             <div className="find-foot">
               <span>
-                <Keys k="⏎" /> {asking ? (asking.ask.type === "pick" ? "pick it" : "send it") : "do it"}
+                <Keys className="find-foot-keys" k="⏎" /> {asking ? (asking.ask.type === "pick" ? "pick it" : "send it") : "do it"}
               </span>
               <span>
-                <Keys k="esc" /> back
+                <Keys className="find-foot-keys" k="esc" /> back
               </span>
             </div>
           ) : (
             <div className="find-foot">
               <span>
-                <Keys k="⏎" /> go
+                <Keys className="find-foot-keys" k="⏎" /> go
               </span>
               <span>
-                <Keys k="mod+⏎" /> new tab
+                <Keys className="find-foot-keys" k="mod+⏎" /> new tab
               </span>
               <span>
-                <Keys k="⇥" /> {group ? "everything" : "only these"}
+                <Keys className="find-foot-keys" k="⇥" /> {group ? "everything" : "only these"}
               </span>
               {scope === "code" && tag && !q && (
                 <span>
-                  <Keys k="⌫" /> the whole workspace
+                  <Keys className="find-foot-keys" k="⌫" /> the whole workspace
                 </span>
               )}
               {(onThing || actable) && (
                 <span>
-                  <Keys k="mod+K" /> act on it
+                  <Keys className="find-foot-keys" k="mod+K" /> act on it
                 </span>
               )}
               {on?.ref && (
                 <span>
-                  <Keys k="mod+C" /> copy its name
+                  <Keys className="find-foot-keys" k="mod+C" /> copy its name
                 </span>
               )}
               {pinName && (
                 <span>
-                  <Keys k="mod+." /> {pinnedNow ? "unpin it" : "pin it"}
+                  <Keys className="find-foot-keys" k="mod+." /> {pinnedNow ? "unpin it" : "pin it"}
                 </span>
               )}
               {pulls?.at && pullsAge > stale && <span className="find-age">Pull requests as of {clock(pulls.at)}</span>}

@@ -1,6 +1,6 @@
 import { type Ref, type RefObject, useEffect, useImperativeHandle, useState } from "react";
 import { Icon } from "../ui/Icon";
-import { Keys } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import { type Passage, passageOf } from "./ask";
 import { Button } from "../ui/Button";
 import { pageScroller } from "../ui/scroller";
