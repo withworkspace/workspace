@@ -584,7 +584,7 @@ func (w *Workspace) approvedAsIs(m *mission.Mission, l mission.Look) bool {
 	if err != nil || approved == nil {
 		return false
 	}
-	v := BuildMissionViewsFrom(ws, nil, []*mission.Mission{m})[0]
+	v := w.missionView(m)
 	av := ResolveArtifact(ws, w.Missions, v, m.Artifacts[i])
 	if av.Path == "" {
 		return false

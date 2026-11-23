@@ -11,7 +11,6 @@ import (
 	"github.com/withworkspace/workspace/internal/ops"
 	pages "github.com/withworkspace/workspace/internal/page"
 	"github.com/withworkspace/workspace/internal/pulls"
-	"github.com/withworkspace/workspace/internal/review"
 )
 
 // Passes over a review (a pull request's, or a mission's capsule's): each
@@ -67,7 +66,7 @@ func (s *Server) passesOf(w http.ResponseWriter, r *http.Request) (of ops.Review
 	if !ok {
 		return of, "", false
 	}
-	return ops.OfCapsule(r.PathValue("slug"), r.PathValue("repo"), r.PathValue("name")), review.CommitOf(dir, "HEAD"), true
+	return ops.OfCapsule(r.PathValue("slug"), r.PathValue("repo"), r.PathValue("name")), ops.HeadOf(dir), true
 }
 
 // reviewPasses is every pass a review has, as it stands over this one.

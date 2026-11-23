@@ -243,6 +243,47 @@ func TestKeptGit_SoonAnswersWithoutWaitingAndSaysWhenItsLooked(t *testing.T) {
 	}
 }
 
+// A capsule's head and branch are read from git's own files, loose or
+// packed, on a branch or detached: as git says them, with no git started.
+func TestHeadOf_ReadsWhatGitWouldWithoutGit(t *testing.T) {
+	dir, run := capsuleFixture(t)
+	same := func(what string) {
+		t.Helper()
+		want := strings.Split(run("repo/work", "rev-parse", "HEAD", "--abbrev-ref", "HEAD"), "\n")
+		before := git.Started()
+		head, branch, ok := headOf(dir)
+		if n := git.Started() - before; n != 0 {
+			t.Errorf("%s: headOf started git %d times, want none", what, n)
+		}
+		if !ok || head != want[0] || branch != want[1] {
+			t.Errorf("%s: headOf = %q, %q, %v; git says %q", what, head, branch, ok, want)
+		}
+		if got := askHeadBranch(dir); !got.keep || got.is != (headAndBranch{want[0], want[1]}) {
+			t.Errorf("%s: asked = %+v; git says %q", what, got, want)
+		}
+	}
+	same("a new capsule")
+	run("repo/work", "commit", "-q", "--allow-empty", "-m", "one")
+	same("a commit")
+	run("repo/work", "pack-refs", "--all")
+	same("its refs packed")
+	run("repo/work", "commit", "-q", "--allow-empty", "-m", "two")
+	same("a commit over a packed ref")
+	run("repo/work", "checkout", "-q", "-b", "feat/deep/name")
+	same("a branch with slashes")
+	run("repo/work", "checkout", "-q", "--detach")
+	same("detached")
+
+	// Where the files don't say, git's asked: a branch with no commit yet.
+	run("repo/work", "checkout", "-q", "--orphan", "empty")
+	if _, _, ok := headOf(dir); ok {
+		t.Error("a branch with no commit: headOf says it knows")
+	}
+	if _, _, ok := headOf(t.TempDir()); ok {
+		t.Error("not a worktree: headOf says it knows")
+	}
+}
+
 func TestBranchOf_ReadsHEADWithoutGit(t *testing.T) {
 	dir, run := capsuleFixture(t)
 	before := git.Started()

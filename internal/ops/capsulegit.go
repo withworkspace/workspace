@@ -55,7 +55,12 @@ type headAndBranch struct{ head, branch string }
 
 type aheadAndBehind struct{ ahead, behind int }
 
+// askHeadBranch reads them from git's own files where they say (headOf),
+// and asks git where they don't.
 func askHeadBranch(dir string) answer[headAndBranch] {
+	if head, branch, ok := headOf(dir); ok {
+		return answer[headAndBranch]{is: headAndBranch{head, branch}, keep: true}
+	}
 	out, err := git.Combined(dir, "rev-parse", "HEAD", "--abbrev-ref", "HEAD")
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	if err != nil || len(lines) != 2 {
@@ -385,6 +390,66 @@ func branchOf(dir string) string {
 		return branch
 	}
 	return ref
+}
+
+// headOf is the commit dir's HEAD is at and the branch it's on ("HEAD"
+// when it's detached), read from git's own files as branchOf reads the
+// branch: its HEAD, then its branch's ref, loose or packed. No process,
+// and never behind: it's what git itself would read. ok is false where
+// the files don't say (a branch with no commit yet, refs kept as a
+// reftable, a ref that names another): git is asked there.
+func headOf(dir string) (head, branch string, ok bool) {
+	gitDir, common := gitDirs(dir)
+	if gitDir == "" {
+		return "", "", false
+	}
+	data, err := os.ReadFile(filepath.Join(gitDir, "HEAD"))
+	if err != nil {
+		return "", "", false
+	}
+	at := strings.TrimSpace(string(data))
+	ref, symbolic := strings.CutPrefix(at, "ref: ")
+	if !symbolic {
+		return at, "HEAD", isObjectName(at)
+	}
+	branch, isBranch := strings.CutPrefix(ref, "refs/heads/")
+	if !isBranch {
+		return "", "", false
+	}
+	if data, err := os.ReadFile(filepath.Join(common, filepath.FromSlash(ref))); err == nil {
+		head = strings.TrimSpace(string(data))
+		return head, branch, isObjectName(head)
+	}
+	packed, err := os.ReadFile(filepath.Join(common, "packed-refs"))
+	if err != nil {
+		return "", "", false
+	}
+	for line := range strings.Lines(string(packed)) {
+		if name, named := strings.CutSuffix(strings.TrimRight(line, "\r\n"), " "+ref); named && isObjectName(name) {
+			return name, branch, true
+		}
+	}
+	return "", "", false
+}
+
+// HeadOf is the commit a capsule's (or a ground's) HEAD is at, read from
+// git's own files where they say and asked of git where they don't: ""
+// if it has none. For what's read often (a page's passes, a mission's
+// re-reviews), which a git apiece would make wait.
+func HeadOf(dir string) string { return askHeadBranch(dir).is.head }
+
+// isObjectName is whether s is a commit's whole name: 40 hex digits, or
+// 64 in a repository that names by SHA-256.
+func isObjectName(s string) bool {
+	if len(s) != 40 && len(s) != 64 {
+		return false
+	}
+	for _, c := range s {
+		if !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 // capsuleStamp names what git's answers about a capsule are built from,

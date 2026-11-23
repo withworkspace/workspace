@@ -110,6 +110,15 @@ func BuildMissionViewsFrom(ws *workspace.Workspace, prs PRIndex, missions []*mis
 	return buildMissionViews(askedGit{}, ws, prs, missions)
 }
 
+// missionView is a mission's view with no pull requests, for what reads
+// where its documents and capsules are: what git says of each capsule is
+// as the workspace keeps it (the daemon's, until the capsule moves; a
+// command's, for its run), so a read of a document's threads starts no
+// git for a capsule that hasn't moved.
+func (w *Workspace) missionView(m *mission.Mission) MissionView {
+	return buildMissionViews(&w.git, w.WS(), nil, []*mission.Mission{m})[0]
+}
+
 // buildMissionViews is BuildMissionViewsFrom, with what git says of each
 // capsule from g: as kept, for a page's view (capsuleGit).
 func buildMissionViews(g capsuleGit, ws *workspace.Workspace, prs PRIndex, missions []*mission.Mission) []MissionView {
@@ -472,7 +481,7 @@ func ReReviews(ws *workspace.Workspace, m *mission.Mission) []review.ReReview {
 		if _, err := os.Stat(dir); err != nil {
 			return ""
 		}
-		return workspace.GitRevParse(dir, "HEAD")
+		return HeadOf(dir)
 	}
 	rr, _ := review.For(ws.Root, m.Slug).AwaitingReReview(m, head)
 	return rr
