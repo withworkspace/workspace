@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/cli"
@@ -67,6 +68,23 @@ func WebMissionAnswered(root string) func(string) (*web.MissionDetail, error) {
 			}
 			if time.Now().After(deadline) {
 				return d, errors.New("GitHub's answer never reached the mission's page")
+			}
+		}
+	}
+}
+
+// WebMissionRead is a mission as its page reads it again once where its
+// capsules stand, read behind its first read, has been.
+func WebMissionRead(root string) func(string) (*web.MissionDetail, error) {
+	return func(slug string) (*web.MissionDetail, error) {
+		w := daemonOps(root, ops.NewPRCache())
+		for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(5 * time.Millisecond) {
+			d, err := web.MissionOf(w, root, slug)
+			if err != nil || !slices.ContainsFunc(d.Capsules, func(c web.CapsuleDetail) bool { return c.Unread }) {
+				return d, err
+			}
+			if time.Now().After(deadline) {
+				return d, errors.New("where the mission's capsules stand never reached its page")
 			}
 		}
 	}

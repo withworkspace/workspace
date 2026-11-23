@@ -640,6 +640,10 @@ type CapsuleDetail struct {
 	Dirty  bool `json:"dirty,omitempty"`
 	Ahead  int  `json:"ahead,omitempty"`
 	Behind int  `json:"behind,omitempty"`
+	// Unread: whether it's dirty, and how far ahead and behind it is,
+	// haven't been read yet and are being: the mission's event comes
+	// when they have.
+	Unread bool `json:"unread,omitempty"`
 	PR     *PR  `json:"pr,omitempty"`
 	// Direct: its repo has no pull requests, and its commits land straight
 	// on the default branch when you say. ToLand is how many it has to

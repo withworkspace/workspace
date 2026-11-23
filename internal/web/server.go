@@ -252,9 +252,10 @@ func (s *Server) Start() error {
 			ws.nudge()
 		}
 	}
+	s.missions.keep = func(slug string) { s.App.KeepMission(slug) }
 	go s.missions.run(s.ctx)
-	// What's read behind a read that didn't wait (a space of documents)
-	// and found something new is looked at now.
+	// What's read behind a read that didn't wait (a space of documents,
+	// where a capsule stands) and found something new is looked at now.
 	seen := s.App.Seen() // the App the server starts with: read here, not in the goroutine
 	go func() {
 		for {
@@ -263,6 +264,7 @@ func (s *Server) Start() error {
 				return
 			case <-seen:
 				ws.nudge()
+				s.missions.nudge()
 			}
 		}
 	}()

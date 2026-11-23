@@ -144,9 +144,14 @@ export function MissionPage() {
   useEffect(() => {
     opened.current = false;
   }, [slug]);
+  // Where a capsule stands may not have been read when the page first
+  // asked (unread): the daemon reads it behind that, and may be done
+  // before this stream's open to say so. So the first is read again too.
+  const unread = useRef(false);
+  unread.current = !!d?.capsules?.some((c) => c.unread);
   useEvents(`mission:${slug}`, {
     hello: () => {
-      if (opened.current) load();
+      if (opened.current || unread.current) load();
       opened.current = true;
     },
     changed: load,

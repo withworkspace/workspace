@@ -113,7 +113,7 @@ func TestWebMissionAndArtifact(t *testing.T) {
 			t.Fatalf("git %v: %v\n%s", args, err, out)
 		}
 	}
-	if d, _ := testutil.WebMission(w.Root)("cache"); len(d.Capsules) != 1 || d.Capsules[0].Ahead != 1 {
+	if d, _ := testutil.WebMissionRead(w.Root)("cache"); len(d.Capsules) != 1 || d.Capsules[0].Ahead != 1 {
 		t.Errorf("a capsule never pushed, one commit on: %+v", d.Capsules)
 	}
 	arts := map[string]web.Artifact{}
