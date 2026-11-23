@@ -5,7 +5,7 @@ import { useKeys } from "../keys";
 import { prHref } from "../reviews/Reviews";
 import { Icon, type IconName } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";

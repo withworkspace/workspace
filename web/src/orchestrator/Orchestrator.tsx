@@ -4,7 +4,7 @@ import { Link, useParams } from "react-router";
 import { getOrchestrator, getOrchestratorRun, type OrchestratorInfo, type OrchestratorRun, type OrchestratorRunDetail, type Workspace } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Calls } from "../ui/Calls";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { useTitle } from "../ui/useTitle";
 import { Skeleton } from "../ui/Skeleton";
 import { Empty } from "../ui/Empty";

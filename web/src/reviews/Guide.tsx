@@ -4,7 +4,7 @@ import type { Order } from "../review/files";
 import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { toast } from "../ui/toast";
 import { Time } from "../ui/Time";
 import { duration } from "../ui/when";

@@ -14,7 +14,7 @@ import { MissionStepCard, missionStepCardClass } from "./MissionStepCard";
 import { useHoverDelay } from "../ui/useHoverDelay";
 import { RefContext } from "../refs/context";
 import { Icon } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { crewStatus } from "../ui/statusOf";
 import { duration, stamp } from "../ui/when";
 import { CrewBadge, MissionData, StepChecks, StepLimit, StepRuns } from "./parts";

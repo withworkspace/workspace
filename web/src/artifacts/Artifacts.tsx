@@ -8,7 +8,7 @@ import { refKey, refName } from "../refs/refs";
 import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../review/highlight";
 import { HoverCard, HoverCardHead, HoverCardLine, HoverCardTitle } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";

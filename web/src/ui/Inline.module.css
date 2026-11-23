@@ -1,0 +1,16 @@
+/* Inline markdown (Inline.tsx): what an agent wrote, folded into a line
+   or two of the words around it. */
+
+@layer ui {
+  .inline code {
+    font-size: 0.9em;
+  }
+
+  /* Cut to so many lines (--lines, from Inline's lines). */
+  .clamp {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: var(--lines, 2);
+    overflow: hidden;
+  }
+}

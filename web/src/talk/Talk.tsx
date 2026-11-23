@@ -24,7 +24,7 @@ import { Calls } from "../ui/Calls";
 import { TLink } from "../ui/TLink";
 import { Icon, type IconName } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { useDraft } from "../ui/useDraft";
 import { useMedia } from "../ui/useMedia";
 import { useTitle } from "../ui/useTitle";
@@ -779,7 +779,7 @@ function TalkSide({ d, slug, id, artifacts, goTo }: { d?: TalkDetail; slug: stri
       {named.length > 0 && (
         <section>
           <h3>Mentioned</h3>
-          <ul className="side-named inline-md">
+          <ul className="side-named" data-refs="">
             {shown.map(([k, said]) => (
               <li key={k}>
                 <RefTag refKey={k}>{said}</RefTag>

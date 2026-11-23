@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Decision } from "../api";
 import { cx } from "../ui/cx";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { Copyable } from "../ui/Copyable";
 import { Time } from "../ui/Time";
 import { Clamp } from "../ui/Clamp";

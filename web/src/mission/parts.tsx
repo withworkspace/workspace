@@ -2,7 +2,7 @@ import { createContext, Fragment, type ReactNode, useContext } from "react";
 import { Link } from "react-router";
 import type { Artifact, CapsuleDetail, CrewDetail, MissionDetail, MissionEvent, Stage } from "../api";
 import { Icon, type IconName } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { HoverCard } from "../ui/HoverCard";
 import { Copyable } from "../ui/Copyable";
 import { Status } from "../ui/Status";

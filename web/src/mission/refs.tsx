@@ -1,7 +1,7 @@
 import type { MissionDetail } from "../api";
 import { type Refs } from "../refs/context";
 import { HoverCard } from "../ui/HoverCard";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { Status, type StatusInfo } from "../ui/Status";
 import { Time } from "../ui/Time";
 import { ArtifactState, artifactTitle, CapsuleBadges, CrewBadge, isArtifact } from "./parts";

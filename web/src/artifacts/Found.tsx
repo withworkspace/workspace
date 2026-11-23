@@ -4,7 +4,7 @@ import { type ArtifactFound, type ArtifactFoundDetail, getArtifactFound, getArti
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { useTitle } from "../ui/useTitle";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";

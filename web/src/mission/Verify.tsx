@@ -4,7 +4,7 @@ import { act, type ActOpts, type ActVerb, type Bundle, type BundleEvidence, type
 import type { Reload } from "../load";
 import { useKeys } from "../keys";
 import { Icon, type IconName } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { toast } from "../ui/toast";
 import { Empty } from "../ui/Empty";
 import { Callout } from "../ui/Callout";

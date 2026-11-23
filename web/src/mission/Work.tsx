@@ -4,7 +4,7 @@ import { type Artifact, type CapsuleDetail, type ChangedFile, type CrewDetail, t
 import { type Reload, useLoaded } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { Skeleton } from "../ui/Skeleton";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";

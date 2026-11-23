@@ -6,7 +6,7 @@ import { artifactStatus, byWords } from "../artifacts/shown";
 import { type ArtifactDetail, type FileTree, type FileView, getArtifactDetail, type Repo, getFile, getTree, getWorktrees, type Workspace, type Worktree, worktreeAPI } from "../api";
 import { highlightCode, languageOf, useHighlighter } from "../review/highlight";
 import { Icon } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { Status } from "../ui/Status";
 import { headlineStatus } from "../ui/statusOf";
 import { useRefs } from "./known";

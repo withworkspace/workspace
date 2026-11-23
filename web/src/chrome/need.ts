@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Headline, Need } from "../api";
-import { plain } from "../ui/inline";
+import { plain } from "../ui/text";
 import type { StatusInfo } from "../ui/Status";
 import { headlineStatus } from "../ui/statusOf";
 
