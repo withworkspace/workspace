@@ -59,6 +59,9 @@ type Service struct {
 	reading   map[string]*pageRead
 	pageTried map[string]time.Time
 	pageDue   map[string]bool
+	// saying: what's been said on a page is being read behind its first
+	// showing, and is in when this closes.
+	saying map[string]chan struct{}
 }
 
 type loadCall struct {
@@ -97,6 +100,16 @@ func (s *Service) Peek() *List {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.kept()
+}
+
+// peekStale is the list as Peek has it, and whether GitHub would be asked
+// again for it (as List does): it's been a while, or something here has
+// changed what a PR asks of you since.
+func (s *Service) peekStale() (*List, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	l := s.kept()
+	return l, l == nil || s.stale || s.now().Sub(l.At) >= s.fresh()
 }
 
 // kept is the list in hand, or the records' when they hold a newer one

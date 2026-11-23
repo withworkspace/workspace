@@ -16,9 +16,11 @@ import (
 // what GitHub says of it, its layer as fetched, what it says it does,
 // GitHub's threads on its lines and what's been said on it, and its diffs.
 // The first time it's shown, that's read (from GitHub, and its commits
-// fetched); every time after, it's answered as kept at once, and read
-// again behind the answer when it's stale (one read at a time for each
-// PR). A read that finds something different moves the PR's count
+// fetched): what it says it does and its diffs are answered as soon as
+// they're in, and what's been said on it (its threads and discussion) is
+// read behind them, waited for only by those who ask for it. Every time
+// after, it's answered as kept at once, and read again behind the answer
+// when it's stale (one read at a time for each PR). A read that finds something different moves the PR's count
 // (PageSeen), which its open page follows, and reads again. What's kept
 // is in the records too, for the daemon when it starts again, and it's
 // forgotten once the PR is merged or closed.
@@ -57,6 +59,12 @@ type pageRead struct {
 	err  error
 }
 
+// unsaid: what's been said on it is still being read, behind its first
+// showing. (Read, each is there, or why it isn't.)
+func (pg *page) unsaid() bool {
+	return (pg.Threads == nil && pg.ThreadsErr == "") || (pg.Discussion == nil && pg.DiscussionErr == "")
+}
+
 // sinceOf names a review for what looking again shows since it.
 func sinceOf(rv *Reviewed) string { return rv.ID + " " + rv.Base + ".." + rv.Head }
 
@@ -89,7 +97,7 @@ func (s *Service) keptPage(repo string, number int) *page {
 		return pg
 	}
 	pg, _ = keptPage(s.Root, repo, number)
-	if pg == nil {
+	if pg == nil || pg.unsaid() { // one kept without what's been said is read again
 		return nil
 	}
 	s.mu.Lock()
@@ -204,17 +212,28 @@ func (s *Service) readPage(repo string, number int) (*page, error) {
 	return c.pg, c.err
 }
 
-// read is a PR's page read now: GitHub asked what it says of it (the list,
-// if it's stale), its commits fetched if they've moved, and its threads,
-// discussion and diffs read. One that's kept is answered when it can't be.
+// read is a PR's page read now: what GitHub says of it found in the list
+// (as kept, the first time; asked for again if it's stale, after), its
+// commits fetched if they've moved, and its threads, discussion and diffs
+// read. One that's kept is answered when it can't be.
 func (s *Service) read(repo string, number int) (*page, error) {
 	was := s.keptPage(repo, number)
 	var pr *PR
 	var st *Stack
 	if was == nil {
-		var err error
-		if pr, st, err = s.Open(repo, number); err != nil {
-			return nil, err
+		// The first time it's shown, it's found in the list as it's kept:
+		// showing it doesn't wait on GitHub being asked about every repo.
+		// A stale list is asked for again behind, and the page read again
+		// if it says something else of the PR (pageStale). One the list
+		// hasn't is looked for.
+		l, stale := s.peekStale()
+		if pr, st = l.Find(repo, number); pr == nil {
+			var err error
+			if pr, st, err = s.Open(repo, number); err != nil {
+				return nil, err
+			}
+		} else if stale {
+			go s.List(false)
 		}
 	} else {
 		l, err := s.List(false)
@@ -228,21 +247,28 @@ func (s *Service) read(repo string, number int) (*page, error) {
 		}
 	}
 
-	// What GitHub says is asked for while its commits are fetched.
-	var wg sync.WaitGroup
+	// What GitHub says is asked for while its commits are fetched. The
+	// first time it's shown, what's been said on it isn't waited for: it's
+	// not what the page opens on, and can be the slowest of them.
+	first := was == nil
+	var wg, saying sync.WaitGroup
 	var threads []github.ReviewThread
 	var said []github.Said
 	var threadsErr, saidErr error
 	var body string
-	wg.Add(3)
+	saying.Add(2)
 	go func() {
-		defer wg.Done()
+		defer saying.Done()
 		threads, threadsErr = s.GitHub.ReviewThreads(s.owner(repo), s.name(repo), number)
 	}()
-	go func() { defer wg.Done(); said, saidErr = s.GitHub.Discussion(s.owner(repo), s.name(repo), number) }()
+	go func() { defer saying.Done(); said, saidErr = s.GitHub.Discussion(s.owner(repo), s.name(repo), number) }()
+	wg.Add(1)
 	go func() { defer wg.Done(); body = s.body(pr) }()
 	l, err := s.layer(pr, st)
 	wg.Wait()
+	if !first {
+		saying.Wait()
+	}
 	if err != nil {
 		if was != nil {
 			return was, err
@@ -263,21 +289,27 @@ func (s *Service) read(repo string, number int) (*page, error) {
 			pg.Since[sinceOf(rv)] = sinceMode(l, rv)
 		}
 	}
-	switch {
-	case threadsErr == nil:
-		pg.Threads = threadsReview(repo, number, threads, l, me)
-	case was != nil && was.Threads != nil:
-		pg.Threads = was.Threads // as last read, rather than nothing
-	default:
-		pg.ThreadsErr = threadsErr.Error()
+	// What's been said, once GitHub has answered for it.
+	withSaid := func(pg *page) {
+		switch {
+		case threadsErr == nil:
+			pg.Threads = threadsReview(repo, number, threads, l, me)
+		case was != nil && was.Threads != nil:
+			pg.Threads = was.Threads // as last read, rather than nothing
+		default:
+			pg.ThreadsErr = threadsErr.Error()
+		}
+		switch {
+		case saidErr == nil:
+			pg.Discussion = discussion(said, me, pr.Head)
+		case was != nil && was.Discussion != nil:
+			pg.Discussion = was.Discussion
+		default:
+			pg.DiscussionErr = saidErr.Error()
+		}
 	}
-	switch {
-	case saidErr == nil:
-		pg.Discussion = discussion(said, me, pr.Head)
-	case was != nil && was.Discussion != nil:
-		pg.Discussion = was.Discussion
-	default:
-		pg.DiscussionErr = saidErr.Error()
+	if !first {
+		withSaid(pg)
 	}
 
 	// Its diffs: its own changes, what's changed since your review, and
@@ -297,9 +329,62 @@ func (s *Service) read(repo string, number int) (*page, error) {
 			pg.Diffs[diffOf(ScopeWhole, pg.Layer, nil, st)] = d
 		}
 	}
-	s.keepRead(repo, number, was, pg)
+	if !first {
+		s.keepRead(repo, number, was, pg)
+		return pg, nil
+	}
+	// Shown without what's been said, which is kept when it's in: unless
+	// the page has been read again by then, with its own.
+	key := Key(repo, number)
+	c := make(chan struct{})
+	s.mu.Lock()
+	if s.saying == nil {
+		s.saying = map[string]chan struct{}{}
+	}
+	s.saying[key] = c
+	s.mu.Unlock()
+	s.keepRead(repo, number, nil, pg)
+	go func() {
+		saying.Wait()
+		s.mu.Lock()
+		still := s.pages[key] == pg
+		s.mu.Unlock()
+		if still {
+			s.keepSaid(repo, number, pg, withSaid)
+		}
+		s.mu.Lock()
+		delete(s.saying, key)
+		s.mu.Unlock()
+		close(c)
+	}()
 	return pg, nil
 }
+
+// said is a PR's page with what's been said on it: the page itself,
+// unless that's still being read behind its first showing, which is
+// waited for.
+func (s *Service) said(repo string, number int, pg *page) *page {
+	if !pg.unsaid() {
+		return pg
+	}
+	key := Key(repo, number)
+	s.mu.Lock()
+	c := s.saying[key]
+	s.mu.Unlock()
+	if c != nil {
+		<-c
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if now := s.pages[key]; now != nil {
+		return now
+	}
+	return pg
+}
+
+// errUnsaid answers for what's been said on a page that was kept without
+// it and hasn't been read again yet.
+var errUnsaid = errors.New("what's been said on it hasn't been read yet")
 
 func (s *Service) hadWhole(pg *page) bool {
 	s.mu.Lock()
@@ -329,7 +414,8 @@ func (s *Service) keepRead(repo string, number int, was, pg *page) {
 		s.pageSeen[key]++
 	}
 	s.mu.Unlock()
-	if changed {
+	// (One still without what's been said is kept in the records with it.)
+	if changed && !pg.unsaid() {
 		s.persist(repo, number, pg)
 	}
 }
@@ -498,26 +584,32 @@ func (s *Service) KeptDiff(repo string, number int, scope string) (*Diffed, erro
 }
 
 // KeptThreads are GitHub's threads on a PR's lines as its page shows
-// them: as kept.
+// them: as kept, waited for while they're read behind its first showing.
 func (s *Service) KeptThreads(repo string, number int) (*review.Review, error) {
 	pg, err := s.shown(repo, number)
 	if err != nil {
 		return nil, err
 	}
-	if pg.Threads == nil {
+	if pg = s.said(repo, number, pg); pg.Threads == nil {
+		if pg.ThreadsErr == "" {
+			return nil, errUnsaid
+		}
 		return nil, errors.New(pg.ThreadsErr)
 	}
 	return pg.Threads, nil
 }
 
 // KeptDiscussion is what's been said on a PR as its page shows it: as
-// kept.
+// kept, waited for while it's read behind its first showing.
 func (s *Service) KeptDiscussion(repo string, number int) (*Discussion, error) {
 	pg, err := s.shown(repo, number)
 	if err != nil {
 		return nil, err
 	}
-	if pg.Discussion == nil {
+	if pg = s.said(repo, number, pg); pg.Discussion == nil {
+		if pg.DiscussionErr == "" {
+			return nil, errUnsaid
+		}
 		return nil, errors.New(pg.DiscussionErr)
 	}
 	return pg.Discussion, nil
@@ -530,6 +622,7 @@ func (s *Service) ThreadsNow(repo string, number int) (*review.Review, error) {
 	if err != nil {
 		return nil, err
 	}
+	pg = s.said(repo, number, pg)
 	threads, err := s.GitHub.ReviewThreads(s.owner(repo), s.name(repo), number)
 	if err != nil {
 		return nil, err
@@ -546,6 +639,7 @@ func (s *Service) DiscussionNow(repo string, number int) (*Discussion, error) {
 	if err != nil {
 		return nil, err
 	}
+	pg = s.said(repo, number, pg)
 	said, err := s.GitHub.Discussion(s.owner(repo), s.name(repo), number)
 	if err != nil {
 		return nil, err
