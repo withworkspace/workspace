@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Foot } from "./Foot";
+import { FootBelow } from "./FootBelow";
 import { FootBeside } from "./FootBeside";
 import { FootCrew } from "./FootCrew";
 import { FootSep } from "./FootSep";
@@ -90,3 +91,28 @@ function WithBeside() {
 }
 
 export const BesidesToggle: StoryObj = { render: () => <WithBeside /> };
+
+// Both docks' toggles, in the order the docks are in the window: Below's,
+// then Beside's at the end.
+function WithDocks() {
+  const [below, setBelow] = useState(true);
+  const [beside, setBeside] = useState(false);
+  return (
+    <Foot
+      start={
+        <>
+          <FootSidebar shown count={0} />
+          <Going />
+        </>
+      }
+      end={
+        <>
+          <FootBelow open={below} onPress={() => setBelow((o) => !o)} />
+          <FootBeside open={beside} waiting={1} onPress={() => setBeside((o) => !o)} />
+        </>
+      }
+    />
+  );
+}
+
+export const TheDocksToggles: StoryObj = { render: () => <WithDocks /> };

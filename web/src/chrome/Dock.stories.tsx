@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Button } from "../ui/Button";
 import { billing, crew, details, freezes, many, rounding, type SampleThing } from "./dockSamples";
+import { SampleBelow, useBelowStarted } from "./SampleBelow";
 import { SampleBeside } from "./SampleBeside";
 
 // A dock beside the page: a peek at a second thing while the page stays
@@ -15,6 +16,10 @@ import { SampleBeside } from "./SampleBeside";
 // width and the dock floats over its end. With more tabs than fit, they
 // give up room, then the row scrolls (a mouse's wheel turns it along),
 // and the list of them all is at its end.
+//
+// Below the page it's the same card along the bottom, for what's going
+// on: its tabs are views, not things you opened (but for a run's
+// terminal), and its head says which of each is shown.
 
 const meta: Meta = { title: "Chrome/Dock" };
 export default meta;
@@ -65,3 +70,22 @@ export const ThePagesOwnFirst: StoryObj = { render: () => <Peek things={[roundin
 
 // As narrow as it goes.
 export const Narrowest: StoryObj = { render: () => <Peek things={[rounding, billing, crew]} width={300} /> };
+
+function Low() {
+  const started = useBelowStarted(true);
+  if (!started) return null;
+  return (
+    <div style={{ ...frame, flexDirection: "column" }}>
+      <div style={page}>
+        <p>The page. It makes room for the dock.</p>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", margin: "0 12px 12px" }}>
+        <SampleBelow />
+      </div>
+    </div>
+  );
+}
+
+// Below the page: what's running and what it came to, here's or
+// everywhere's, and a run's terminal you opened. Its edge is its top.
+export const BelowThePage: StoryObj = { render: () => <Low /> };

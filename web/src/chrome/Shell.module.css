@@ -1,5 +1,5 @@
-/* The window (Shell.tsx): the sidebar, the page and the foot, placed, on
-   the ground they share. */
+/* The window (Shell.tsx): the sidebar, the page, what's beside it and
+   below it, and the foot, placed, on the ground they share. */
 
 @layer ui {
   .shell {
@@ -9,6 +9,11 @@
     --shell-bottom: var(--shell-inset);
     /* The sidebar's column: its card's width and the inset before it. */
     --shell-side: calc(232px + var(--shell-inset));
+    /* The most a dock below the page may be, however tall it was dragged
+       on a taller window: the page keeps the rest (Dock reads it). */
+    --dock-most: calc((100dvh - var(--foot-height, 0px)) * 0.6);
+    /* The room Below takes from the page: none, until it's there. */
+    --below-room: 0px;
 
     /* The horizon: the wordmark's run as a glow from the top of the page's
        column. It's --backdrop, what the page looks like at any point, so
@@ -131,7 +136,21 @@
   .footed {
     --shell-bottom: 4px;
     --foot-height: 30px;
-    --page-height: calc(100dvh - var(--foot-height));
+    --page-height: calc(100dvh - var(--foot-height) - var(--below-room));
+  }
+
+  /* Below is there: the page's room is less by the dock's height (as
+     tall as you made it, --below-size, or the most it may be here) and
+     what's under the dock. --page-height says so to what's sized by it,
+     which would otherwise run on under the dock. */
+  .belowed {
+    --below-room: calc(
+      min(var(--below-size), var(--dock-most)) + var(--shell-bottom)
+    );
+  }
+
+  .belowed:not(.footed) {
+    --page-height: calc(100dvh - var(--below-room));
   }
 
   .footed.narrow {
@@ -165,8 +184,9 @@
       visibility 0s var(--slow);
   }
 
-  /* The page's column: the page, and what's beside it. What's beside can
-     slide past the window's end without the window scrolling to it. */
+  /* The page's column: the page and what's below it, and what's beside
+     the two. What's beside can slide past the window's end without the
+     window scrolling to it. */
   .stage {
     position: relative;
     display: flex;
@@ -175,6 +195,21 @@
     min-width: 0;
     min-height: 0;
     overflow-x: clip;
+  }
+
+  /* The page, and what's below it. */
+  .column {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* While what's below slides, it's past the column's end: not over the
+     foot. */
+  .column.sliding {
+    overflow-y: clip;
   }
 
   /* The page that comes as the sidebar folds or opens fades in, in its
@@ -209,14 +244,17 @@
     padding: var(--shell-inset) var(--shell-inset) var(--shell-bottom) 0;
   }
 
-  /* Beside, over the page: the page under it keeps its width. */
+  /* Beside, over the page: the page under it keeps its width. It's over
+     the page only: it ends where what's below begins, and moves with
+     that as it opens and closes. */
   .besideOver {
     position: absolute;
     top: var(--shell-inset);
     right: var(--shell-inset);
-    bottom: var(--shell-bottom);
+    bottom: calc(var(--shell-bottom) + var(--below-room));
     z-index: 30;
     display: flex;
+    transition: bottom var(--slow) var(--ease);
   }
 
   /* Opening and closing, it slides in from the window's end and out
@@ -267,6 +305,54 @@
     }
   }
 
+  /* Below: under the page, which makes room. Set in from the sidebar's
+     card and from the window's end, or from what's beside. */
+  .below {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0 var(--shell-inset) var(--shell-bottom);
+  }
+
+  /* It slides up from the window's bottom and down past it, as what's
+     beside does from its end: drawn down by its own height, the page has
+     that room until it comes. */
+  .below.arriving {
+    animation: below-open var(--slow) var(--ease);
+  }
+
+  .below.leaving {
+    animation: below-close var(--slow) var(--ease) forwards;
+  }
+
+  @keyframes below-open {
+    from {
+      margin-bottom: calc(
+        -1 * (min(var(--below-size), var(--dock-most)) + var(--shell-bottom))
+      );
+    }
+  }
+
+  @keyframes below-close {
+    to {
+      margin-bottom: calc(
+        -1 * (min(var(--below-size), var(--dock-most)) + var(--shell-bottom))
+      );
+    }
+  }
+
+  /* On a narrow window what's below is a sheet over the page's lower
+     part: the page keeps its height. What's beside, a sheet over all of
+     the page, is over it. */
+  .narrow .below {
+    position: absolute;
+    inset: auto var(--shell-inset) var(--shell-bottom);
+    z-index: 30;
+    height: 60%;
+    padding: 0;
+  }
+
   /* On a narrow window what's beside is a sheet over the page. */
   .narrow :is(.beside, .besideOver) {
     position: absolute;
@@ -314,7 +400,8 @@
       height: auto;
     }
 
-    .stage {
+    .stage,
+    .column {
       display: block;
     }
 
@@ -322,6 +409,7 @@
     .scrim,
     .beside,
     .besideOver,
+    .below,
     .foot,
     .dim {
       display: none;

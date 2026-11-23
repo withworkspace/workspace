@@ -22,8 +22,11 @@
     width: var(--dock-size);
   }
 
+  /* As tall as it was made, up to the most its place lets it be (the
+     shell's --dock-most: a short window's page keeps some room). */
   .below {
     height: var(--dock-size);
+    max-height: var(--dock-most, none);
   }
 
   /* A sheet: it fills its place. */
@@ -31,6 +34,7 @@
     flex: 1;
     width: auto;
     height: auto;
+    max-height: none;
   }
 
   /* Over the page: as a mission's Details is on its other tabs. Its
