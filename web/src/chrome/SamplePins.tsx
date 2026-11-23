@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Icon } from "../ui/Icon";
-import { Status, statusClass } from "../ui/Status";
+import { Status } from "../ui/Status";
+import { StatusIcon } from "../ui/StatusIcon";
 import { Focus } from "./Focus";
 import { FocusRow } from "./FocusRow";
 import { pins as samplePins, type SamplePin } from "./samples";
@@ -61,9 +61,7 @@ export function SamplePins({
             p.status ? (
               <Status s={p.status} iconOnly />
             ) : (
-              <span className={statusClass("quiet")}>
-                <Icon name={p.icon ?? "pin"} />
-              </span>
+              <StatusIcon icon={p.icon ?? "pin"} tone="quiet" />
             )
           }
           on={path === p.to || path.startsWith(`${p.to}/`)}

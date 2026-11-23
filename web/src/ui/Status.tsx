@@ -22,18 +22,13 @@ export interface StatusInfo {
 
 // Status is one look for where something stands, used wherever a status
 // shows: an icon and its words in its tone, or the icon alone (the words
-// are then its tooltip). What stands where is worked out in statusOf.ts.
+// are then its tooltip). What stands where is worked out in statusOf.ts;
+// an icon in a tone that says nothing is a StatusIcon.
 export function Status({ s, iconOnly, title, size = 14, className }: { s: StatusInfo; iconOnly?: boolean; title?: string; size?: number; className?: string }) {
   return (
-    <span className={statusClass(s.tone, className)} title={title ?? (iconOnly ? s.words : undefined)}>
+    <span className={cx(css.status, toneClass(s.tone), className)} title={title ?? ((iconOnly && s.words) || undefined)}>
       {s.icon === "spinner" && s.live ? <Spinner size={size} /> : <Icon name={s.icon} size={size} className={s.live ? css.pulse : undefined} />}
-      {iconOnly ? <span className="sr-only">{s.words}</span> : <span>{s.words}</span>}
+      {iconOnly ? s.words && <span className="sr-only">{s.words}</span> : <span>{s.words}</span>}
     </span>
   );
-}
-
-// statusClass is a status's look for something drawn by hand: an icon
-// alone in a tone, which stands for a kind of thing and says nothing.
-export function statusClass(tone: Tone, className?: string): string {
-  return cx(css.status, toneClass(tone), className);
 }

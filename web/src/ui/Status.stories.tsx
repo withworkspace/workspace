@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Status, type StatusInfo, statusClass } from "./Status";
-import { Icon } from "./Icon";
+import { Status, type StatusInfo } from "./Status";
+import { StatusIcon } from "./StatusIcon";
 
 // A status: where something stands, in each tone, with the ones going on
 // now (their icon pulses, or turns); the icon alone, as a list's row has
-// it; and an icon in a tone drawn by hand, for a kind of thing.
+// it; and a StatusIcon, an icon in a tone with no words, for a kind of
+// thing.
 
 const meta: Meta = { title: "Components/Status" };
 export default meta;
@@ -45,13 +46,10 @@ export const IconOnly: StoryObj = {
         ))}
       </div>
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <span className={statusClass("quiet")}>
-          <Icon name="message" />
-        </span>
-        <span className={statusClass("attention")} title="Waiting on you">
-          <Icon name="reply" />
-        </span>
-        <span className="dim">by hand, with statusClass</span>
+        <StatusIcon icon="message" tone="quiet" />
+        <StatusIcon icon="reply" tone="attention" title="Waiting on you" />
+        <StatusIcon icon="circle-dot" tone="progress" live size={20} />
+        <span className="dim">StatusIcon: a tone's icon that says nothing</span>
       </div>
     </div>
   ),

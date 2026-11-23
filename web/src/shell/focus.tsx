@@ -10,7 +10,8 @@ import { thingIcon } from "../refs/views";
 import { Icon, type IconName } from "../ui/Icon";
 import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
-import { Status, statusClass } from "../ui/Status";
+import { Status } from "../ui/Status";
+import { StatusIcon } from "../ui/StatusIcon";
 import { headlineStatus } from "../ui/statusOf";
 import { Button } from "../ui/Button";
 import { Focus } from "../chrome/Focus";
@@ -355,11 +356,7 @@ function PinRow({
   return <FocusRow to={to} lead={icon} title={title} says={`${title}${pin.state && r.kind === "thing" ? ` · ${pin.state}` : ""}`} on={here} onUnpin={onUnpin} dragging={dragging} drop={drop} onContextMenu={menu(to, title)} {...drag} />;
 }
 
-const quiet = (name: IconName) => (
-  <span className={statusClass("quiet")}>
-    <Icon name={name} />
-  </span>
-);
+const quiet = (name: IconName) => <StatusIcon icon={name} tone="quiet" />;
 
 // useStands is how a pin stands, as an icon, and what it's called: from
 // what the workspace says of it where it says (a mission's headline, a
@@ -378,24 +375,14 @@ function useStands(pin: FocusPin, r: PageRef, workspace: Workspace, known?: Know
       const t = workspace.conversations.find((x) => x.id === r.id);
       const waits = !!t?.waiting && t.status === "open";
       return {
-        icon: waits ? (
-          <span className={statusClass("attention")} title="Waiting on you">
-            <Icon name="reply" />
-          </span>
-        ) : (
-          quiet("message")
-        ),
+        icon: waits ? <StatusIcon icon="reply" tone="attention" title="Waiting on you" /> : quiet("message"),
         title: t?.title || t?.opening || pin.title || r.id,
       };
     }
     case "pr": {
       const tone = pr?.checks === "failure" ? "danger" : pr?.state === "needs-review" || pr?.state === "back-with-you" ? "attention" : "quiet";
       return {
-        icon: (
-          <span className={`status tone-${tone}`} title={pr?.checks === "failure" ? "Its checks fail" : undefined}>
-            <Icon name="pr" />
-          </span>
-        ),
+        icon: <StatusIcon icon="pr" tone={tone} title={pr?.checks === "failure" ? "Its checks fail" : undefined} />,
         title: `${r.repo}#${r.number} ${pr?.title ?? pin.title ?? ""}`.trim(),
       };
     }

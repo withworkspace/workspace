@@ -23,6 +23,7 @@ import { type KeyMap, useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { TalkList, talkHref } from "../talk/Talk";
 import { Icon, type IconName } from "../ui/Icon";
+import { StatusIcon } from "../ui/StatusIcon";
 import { Crumbs } from "../ui/Crumbs";
 import { CheckingNow, checkingTitle } from "./checking";
 import { Inline } from "../ui/Inline";
@@ -872,9 +873,7 @@ function Lead({
         <div className="lead-body">
           {step && <div className="lead-step">{step}</div>}
           <div className="lead-line">
-            <span className={`status tone-${tone}${live ? " live" : ""} lead-icon`}>
-              <Icon name={icon} size={20} />
-            </span>
+            <StatusIcon icon={icon} tone={tone} live={live} size={20} className="lead-icon" />
             <h2 className="lead-title">{title}</h2>
           </div>
           <div className="lead-text">{children}</div>
