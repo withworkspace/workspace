@@ -133,6 +133,21 @@ func TestMission_GitHubAskedBehindTheRead(t *testing.T) {
 		}
 	}
 
+	// Where its capsule stands is read behind the first read too, and
+	// moves the stamps when it has: that's let land first, so what moves
+	// them after is GitHub's answer.
+	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(time.Millisecond) {
+		unread := false
+		for _, st := range read().Status {
+			unread = unread || st.Unread
+		}
+		if !unread {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("where the mission's capsule stands was never read behind the read")
+		}
+	}
 	stamp, wsStamp := w.MissionStamp("cache"), w.Stamp()
 	for range 5 {
 		if d := read(); d.GitHub || d.Capsules[0].PR != nil {
