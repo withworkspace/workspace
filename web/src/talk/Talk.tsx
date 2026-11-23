@@ -45,6 +45,7 @@ import { PageHead } from "../ui/PageHead";
 import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { pageScroller } from "../ui/scroller";
 import { ToggleButton } from "../ui/ToggleButton";
+import { Input } from "../ui/Input";
 
 // Conversations with an agent about the workspace: thinking something
 // through before there's a mission. The agent reads anything (the repos,
@@ -1189,7 +1190,7 @@ function WsProposalCard({
         case "mission":
           return (
             <div className="proposal-edit">
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" aria-label="Title" />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" aria-label="Title" />
               <MarkdownEditor initial={p.brief ?? ""} label="The brief" placeholder="The brief (none: an idea, to brief later)" compact onChange={setBrief} onCancel={() => setEditing(false)} />
             </div>
           );
@@ -1237,7 +1238,7 @@ function WsProposalCard({
         case "artifact":
           return (
             <div className="proposal-edit">
-              {!p.to && <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Its title" aria-label="Its title" />}
+              {!p.to && <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Its title" aria-label="Its title" />}
               <textarea
                 value={note}
                 rows={Math.min(6, Math.max(2, note.split("\n").length + 1))}

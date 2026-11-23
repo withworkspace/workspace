@@ -20,6 +20,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Menu, MenuItem } from "../ui/Menu";
+import { Input } from "../ui/Input";
 
 // The file explorer: a capsule's files as they are now, without an editor
 // open. A tree on the left (everything, or only what's changed since the
@@ -1056,7 +1057,7 @@ function FileFinder({ files, onPick, onClose }: { files: TreeFile[]; onPick: (pa
       <div className="palette" role="dialog" aria-modal="true" aria-label="Find a file" onMouseDown={(e) => e.stopPropagation()}>
         <div className="palette-input">
           <Icon name="search" size={16} />
-          <input
+          <Input
             autoFocus
             value={q}
             placeholder="Find a file by a few of its letters…"

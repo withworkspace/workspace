@@ -5,6 +5,7 @@ import { CodeText, CodeWhere } from "../shell/CodeHitParts";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon } from "../ui/Icon";
 import { humanError } from "../ui/kit";
+import { Input } from "../ui/Input";
 
 // CodeFinder is the explorer's own search, in a capsule: what its files
 // say, all of them (unchanged ones too: here you've chosen to look), as
@@ -69,7 +70,7 @@ export function CodeFinder({ repo, worktree, onPick, onClose }: { repo: string; 
       <div className="palette code-finder" role="dialog" aria-modal="true" aria-label="Search the files" onMouseDown={(e) => e.stopPropagation()}>
         <div className="palette-input">
           <Icon name="search" size={16} />
-          <input
+          <Input
             autoFocus
             value={q}
             placeholder={`Text in ${repo}/${worktree}'s files…`}

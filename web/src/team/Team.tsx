@@ -17,6 +17,7 @@ import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { Segment, Segmented } from "../ui/Segmented";
 import { ToggleButton } from "../ui/ToggleButton";
+import { Input } from "../ui/Input";
 
 // Team: what the people working in the workspace's repos have been doing,
 // by day, newest first. Each pull request, and each run of one person's
@@ -386,7 +387,7 @@ export function TeamPage() {
               <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
             </ToggleButton>
           )}
-          <input
+          <Input
             ref={filter}
             className="reviews-filter"
             value={q}

@@ -1,0 +1,21 @@
+/* A text box (Input.tsx). Its words are the element's (styles.css's
+   input, in the base layer: the page's font, and its size). */
+
+@layer ui {
+  .input {
+    background: var(--raised);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    transition:
+      border-color var(--fast) var(--ease),
+      box-shadow var(--fast) var(--ease);
+  }
+
+  /* Its focus is its border, in the accent, with a soft ring. */
+  .input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}

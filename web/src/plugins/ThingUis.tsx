@@ -8,6 +8,7 @@ import type { UiProps } from "./Uis";
 import { Button } from "../ui/Button";
 import { chipClass } from "../ui/Chip";
 import { Radio, RadioGroup } from "../ui/RadioGroup";
+import { Input } from "../ui/Input";
 
 // ws's UIs for a plugin's thing that lives in a repo, asked for by the
 // plugin's page from a button of its own (ui.ts): putting one there
@@ -205,7 +206,7 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
           <div className="thing-ui-group">
             <label>
               <span className="dim">In a folder there, if you like</span>
-              <input type="text" className="mono" value={under} placeholder="cross-stack" aria-label={`A folder of ${place.label} to group it in`} list="thing-ui-groups" disabled={busy} onChange={(e) => setUnder(e.currentTarget.value)} />
+              <Input type="text" className="mono" value={under} placeholder="cross-stack" aria-label={`A folder of ${place.label} to group it in`} list="thing-ui-groups" disabled={busy} onChange={(e) => setUnder(e.currentTarget.value)} />
             </label>
             <datalist id="thing-ui-groups">
               {(place.groups ?? []).map((g) => (
@@ -227,7 +228,7 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
           <label className="thing-ui-where">
             {!several && <span className="dim">It'll live at</span>}
             {/* biome-ignore lint/a11y/noAutofocus: the field is what was asked for */}
-            <input type="text" className="mono" value={elsewhere} placeholder="repo:folder/" aria-label="Where it'll live, as repo:folder/" autoFocus disabled={busy} onChange={(e) => setElsewhere(e.currentTarget.value)} />
+            <Input type="text" className="mono" value={elsewhere} placeholder="repo:folder/" aria-label="Where it'll live, as repo:folder/" autoFocus disabled={busy} onChange={(e) => setElsewhere(e.currentTarget.value)} />
           </label>
         )}
         {place && !place.direct && <p className="dim">{place.label} takes pull requests: it'll be left in a capsule, for you to open one from.</p>}

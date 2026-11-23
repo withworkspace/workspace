@@ -8,6 +8,7 @@ import { TLink } from "../ui/TLink";
 import { Chip } from "../ui/Chip";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { Input } from "../ui/Input";
 
 // Search over the spaces' documents: ranked, each led to the section
 // that says it best; kept to a kind, and where one stands, once a kind's
@@ -28,7 +29,7 @@ export function SearchBox({ q, setQ, inputRef, spaces, kind, setKind, state, set
     <div className="doc-search">
       <label className="doc-search-box">
         <Icon name="search" size={14} className="dim" />
-        <input
+        <Input
           ref={inputRef}
           value={q}
           placeholder="Search the documents: what they say, in a few words or a question"

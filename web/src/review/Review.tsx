@@ -49,6 +49,7 @@ import { Button, buttonClass } from "../ui/Button";
 import { capital } from "../ui/text";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Checkbox } from "../ui/Checkbox";
+import { Input } from "../ui/Input";
 
 export const reviewKeys: [string, string][] = [
   ["1 – 5", "Overview, Guide, Discussion, Passes, Changes (as many as the review has)"],
@@ -1817,7 +1818,7 @@ function Finder({ files, onPick, onClose }: { files: DiffFile[]; onPick: (i: num
   return (
     <div className="overlay" onClick={onClose}>
       <div className="finder" onClick={(e) => e.stopPropagation()}>
-        <input
+        <Input
           autoFocus
           value={q}
           placeholder="Jump to a file"

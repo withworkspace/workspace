@@ -10,6 +10,7 @@ import { useTheme } from "../ui/theme";
 import { said, shown } from "./sections";
 import { Button } from "../ui/Button";
 import { Segment, Segmented } from "../ui/Segmented";
+import { Input } from "../ui/Input";
 
 // A setting's control, by its kind: what it's set to, and the way to set
 // it. Each writes as soon as it's changed (a switch flipped, a field
@@ -102,7 +103,7 @@ function TextInput({ s, set, short, placeholder, blank, done }: Props & { short?
     done?.();
   };
   return (
-    <input
+    <Input
       ref={field}
       type="text"
       className={`setting-input${s.kind === "model" ? " mono" : ""}${short ? " short" : ""}`}
@@ -147,7 +148,7 @@ function Stepper({ s, set }: Props) {
       <Button type="button" disabled={n <= 1} title="One fewer" aria-label={`${s.label}: one fewer`} onClick={() => void set(n - 1)}>
         <Icon name="minus" size={12} />
       </Button>
-      <input
+      <Input
         type="text"
         inputMode="numeric"
         value={text}
@@ -208,7 +209,7 @@ function Picks({ s, set, reset }: Props) {
           </Button>
         </span>
       ))}
-      <input
+      <Input
         ref={field}
         type="text"
         className="mono"
@@ -416,7 +417,7 @@ function AccentInput({ s, set, reset }: Props) {
           <span className="accent-shown-tint">Selected</span>
           <span className="accent-shown-button">Button</span>
         </span>
-        <input
+        <Input
           type="text"
           className="mono setting-input"
           value={editing ?? picked}

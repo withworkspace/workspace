@@ -10,6 +10,7 @@ import { Icon } from "../ui/Icon";
 import { humanError, Keys, toast } from "../ui/kit";
 import { type AskAbout, anchorChip, type Chip, inCard, placed, waiting } from "./ask";
 import { Button, buttonClass } from "../ui/Button";
+import { Input } from "../ui/Input";
 
 // The ask bar (#123): always there at the foot of what you're reading,
 // with / to go to it. Ask about the whole of it, or pick something out of
@@ -366,7 +367,7 @@ export function AskBar<H>({
             </Button>
           </ChipView>
         )}
-        <input
+        <Input
           ref={input}
           value={text}
           placeholder={placeholder}

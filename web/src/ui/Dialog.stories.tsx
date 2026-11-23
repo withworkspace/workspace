@@ -4,6 +4,7 @@ import { Button } from "./Button";
 import { confirm, Confirmer } from "./Confirm";
 import { Dialog, DialogActions, DialogText } from "./Dialog";
 import { Option, Select } from "./Select";
+import { Input } from "./Input";
 
 // Dialogs: press a button to open one. As it is, wide with fields (the
 // focus starts in the first), bare, and what confirm asks: one that does
@@ -33,7 +34,7 @@ function Fields({ close }: { close: () => void }) {
           <Option value="note">Note</Option>
           <Option value="proposal">Proposal</Option>
         </Select>
-        <input type="text" placeholder="What it's named from" aria-label="Title" />
+        <Input type="text" placeholder="What it's named from" aria-label="Title" />
         <textarea rows={3} placeholder="Why" aria-label="Why" />
       </div>
       <DialogActions>

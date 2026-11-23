@@ -22,6 +22,7 @@ import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { Segment, Segmented } from "../ui/Segmented";
+import { Input } from "../ui/Input";
 
 // Documents: where the workspace's writing is read. Local is the pages
 // that aren't in a space (written here, on this machine); each space is a
@@ -525,7 +526,7 @@ export function SpacePage({ workspace }: { workspace: Workspace }) {
             <div className="space-list-top">
               <label className="doc-search-box space-search">
                 <Icon name="search" size={14} className="dim" />
-                <input ref={search} value={q} placeholder={`Search ${space.label}: what its documents say`} aria-label={`Search ${space.label}`} onChange={(e) => setQ(e.target.value)} onKeyDown={searchKeys} />
+                <Input ref={search} value={q} placeholder={`Search ${space.label}: what its documents say`} aria-label={`Search ${space.label}`} onChange={(e) => setQ(e.target.value)} onKeyDown={searchKeys} />
                 {q.trim() ? (
                   <span className="dim space-search-count">{found.error ? "Couldn't search" : !found.hits ? "Searching…" : `${found.hits.size} of ${space.count}`}</span>
                 ) : (
@@ -825,7 +826,7 @@ function NewInFolder({
       <div className="file-as-fields">
         <label>
           <span>Folder</span>
-          <input
+          <Input
             list="space-folders"
             value={folder}
             placeholder="(its top)"
@@ -840,7 +841,7 @@ function NewInFolder({
         </label>
         <label>
           <span>Title</span>
-          <input
+          <Input
             autoFocus
             value={title}
             placeholder="What it's about"

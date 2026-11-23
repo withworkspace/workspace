@@ -12,6 +12,7 @@ import css from "./AddRepo.module.css";
 import { GroupPick } from "./Groups";
 import { Checkbox } from "../ui/Checkbox";
 import { Radio, RadioGroup } from "../ui/RadioGroup";
+import { Input } from "../ui/Input";
 
 const ANOTHER = "\u0000another";
 
@@ -83,7 +84,7 @@ export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: 
           </Select>
         ) : null}
         {(another || (owners.value?.problem && list.length === 0)) && (
-          <input
+          <Input
             className={css.owner}
             placeholder="owner on GitHub"
             aria-label="Owner on GitHub"
@@ -96,7 +97,7 @@ export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: 
             autoFocus
           />
         )}
-        <input className={css.filter} placeholder="Filter…" aria-label="Filter the repos" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Input className={css.filter} placeholder="Filter…" aria-label="Filter the repos" value={q} onChange={(e) => setQ(e.target.value)} />
         <span className={cx("dim", css.when)}>
           {looking ? "asking GitHub…" : at ? `as of ${relative(at)}` : ""}
           {!looking && (
@@ -202,7 +203,7 @@ function Adding({ owner, repo, taken, groups, onCancel, onAdded }: { owner: stri
     >
       <div className={css.field}>
         <label htmlFor="add-repo-as">Its name here</label>
-        <input id="add-repo-as" className="mono" value={as} onChange={(e) => setAs(e.target.value)} aria-invalid={clash || bad} />
+        <Input id="add-repo-as" className="mono" value={as} onChange={(e) => setAs(e.target.value)} aria-invalid={clash || bad} />
         <span className={cx("dim", css.hint)}>
           {clash ? `There's a ${name} here already.` : bad ? "Letters, digits, '.', '_' and '-'." : name !== repo.name ? `It stays ${owner}/${repo.name} on GitHub.` : "Its folder under repos/, and what commands call it."}
         </span>

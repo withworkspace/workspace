@@ -53,6 +53,7 @@ import { actsFor, type Subject, subjectOf, type WsDoing } from "./acts";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { capital } from "../ui/text";
+import { Input } from "../ui/Input";
 
 // Palette is Find (⌘K): one box that gets you to anything the workspace
 // has, by what you remember of it. What the page holds (missions, pages,
@@ -585,7 +586,7 @@ export function Palette({
                 repo: {tag} <Icon name="x" size={10} />
               </button>
             )}
-            <input
+            <Input
               ref={input}
               autoFocus
               value={typed}

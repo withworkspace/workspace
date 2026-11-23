@@ -13,6 +13,7 @@ import { Button } from "../ui/Button";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowMain, RowSub, Rows } from "../ui/Rows";
 import { Checkbox } from "../ui/Checkbox";
+import { Input } from "../ui/Input";
 
 // Plugins, a section of Settings: the workspace's plugins, each with where it's from,
 // where it stands and what it adds; adding one, from the repo it's
@@ -171,7 +172,7 @@ function AddPlugin({ reload, onFailed }: { reload: Reload; onFailed: (f?: Failed
     >
       <label className="plugins-add-field">
         <span className="plugins-add-label">Add a plugin</span>
-        <input
+        <Input
           type="text"
           value={from}
           placeholder="owner/repo, or a folder on this machine"

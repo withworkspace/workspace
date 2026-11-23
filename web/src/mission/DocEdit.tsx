@@ -5,6 +5,7 @@ import { Callout, humanError, Keys, Skeleton, toast } from "../ui/kit";
 import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
 import { Segment, Segmented } from "../ui/Segmented";
+import { Input } from "../ui/Input";
 
 // DocEdit edits one of a mission's documents in place, as it reads, or
 // (no slug) a document outside any mission: a file in one of the
@@ -261,7 +262,7 @@ export function DocEdit({
           </Segmented>
         )}
         {commits && (
-          <input
+          <Input
             className="commit-line"
             value={message}
             placeholder={suggesting ? "Say why (each suggestion's thread opens with it)" : `Say what changed (the commit's message: "${a.saves?.subject ?? a.docKind?.subject ?? "Edit …"}" if not)`}

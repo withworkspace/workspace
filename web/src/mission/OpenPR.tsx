@@ -6,6 +6,7 @@ import { humanError, toast } from "../ui/kit";
 import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
+import { Input } from "../ui/Input";
 
 // A pull request is opened through ws, so the process's rules about it are
 // held where ws is the one acting: it pushes the capsule's branch and opens
@@ -73,7 +74,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
           </p>
           <div className="open-pr-form">
             <div className="open-pr-title">
-              <input
+              <Input
                 value={title}
                 autoFocus
                 aria-label="Title"

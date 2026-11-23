@@ -35,6 +35,7 @@ import { schema } from "./schema";
 import { highlighting, nodeViews, placeholder, type Quote, quoteMarks } from "./views";
 import { Button } from "../ui/Button";
 import { ToggleButton } from "../ui/ToggleButton";
+import { Input } from "../ui/Input";
 
 // MarkdownEditor edits a markdown document as it reads: headings as
 // headings, lists as lists, a task's box to tick. Markdown typed is
@@ -261,7 +262,7 @@ function LinkBox({ view, edit, close }: { view: EditorView; edit: LinkEdit; clos
   };
   return (
     <div className="doc-link" style={{ top: edit.top, left: edit.left }}>
-      <input
+      <Input
         autoFocus
         value={href}
         placeholder="https://…"

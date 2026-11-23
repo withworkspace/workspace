@@ -10,6 +10,7 @@ import { TLink } from "../ui/TLink";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { Row, RowLine, RowMain, RowTitle, rowLinkClass, rowStatusClass } from "../ui/Rows";
+import { Input } from "../ui/Input";
 
 // Pages: documents you write here, before or beside any mission. A line
 // that starts with >> asks for something (a table of the routes, what
@@ -138,7 +139,7 @@ export function NewAsKind({ kinds, busy, onStart, onClose }: { kinds: DocKind[];
       <div className="file-as-fields">
         <label>
           <span>Title</span>
-          <input
+          <Input
             autoFocus
             value={title}
             placeholder={k ? `What the ${k.title} is about` : "Its title"}

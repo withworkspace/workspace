@@ -19,6 +19,7 @@ import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
+import { Input } from "../ui/Input";
 
 // The Settings page: your settings for this workspace, in sections, the
 // list of them beside the sidebar and the one you're in beside that, to a
@@ -120,7 +121,7 @@ export function SettingsPage({
             <div className="settings-side-title">Settings</div>
             <label className="settings-find">
               <Icon name="search" size={13} />
-              <input
+              <Input
                 ref={field}
                 type="text"
                 placeholder="Find a setting…"

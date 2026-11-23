@@ -8,6 +8,7 @@ import { humanError, toast } from "../ui/kit";
 import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";
 import { ToggleButton } from "../ui/ToggleButton";
+import { Input } from "../ui/Input";
 
 // How a mission ends: landed (at Z, its code merged or landed), answered
 // (a finding, no code), handed on (its work raised as other missions) or
@@ -140,7 +141,7 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
       {ending === "handed-on" && (
         <label className="end-to">
           <span>Handed on to</span>
-          <input value={to} onChange={(e) => setTo(e.target.value)} placeholder={handedOn.length ? `and ${handedOn.join(", ")}, its capsules'` : "mission slugs"} />
+          <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder={handedOn.length ? `and ${handedOn.join(", ")}, its capsules'` : "mission slugs"} />
         </label>
       )}
       {z.length > 0 && (
@@ -158,7 +159,7 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
                 <ToggleButton size="small" className={checks[i].met === false ? "on-unmet" : undefined} pressed={checks[i].met === false} onChange={(on) => set(i, { met: on ? false : undefined })}>
                   <Icon name="x" size={12} /> Not met
                 </ToggleButton>
-                <input value={checks[i].how} onChange={(e) => set(i, { how: e.target.value })} placeholder={checks[i].met === false ? "Why not" : "How: what shows it"} aria-label={`How part ${i + 1} of Z is met, or why not`} />
+                <Input value={checks[i].how} onChange={(e) => set(i, { how: e.target.value })} placeholder={checks[i].met === false ? "Why not" : "How: what shows it"} aria-label={`How part ${i + 1} of Z is met, or why not`} />
               </div>
             </div>
           ))}
@@ -243,7 +244,7 @@ export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetai
           {open === "hand-on" && (
             <label className="end-to">
               <span>Or to a mission there is</span>
-              <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="its slug" />
+              <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="its slug" />
             </label>
           )}
           {error && <div className="banner">{humanError(error)}</div>}

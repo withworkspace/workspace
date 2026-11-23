@@ -12,6 +12,7 @@ import { useLoaded } from "../load";
 import { useLatest } from "../load";
 import { Button } from "../ui/Button";
 import { pageScroller } from "../ui/scroller";
+import { Input } from "../ui/Input";
 
 // The agent view: a crew as a conversation, the way in to it. What it was
 // sent, what it said and the steps between, as it happens (the session
@@ -421,7 +422,7 @@ export function PromptCard({
           if (own.trim()) answer({ text: own });
         }}
       >
-        <input value={own} onChange={(e) => setOwn(e.target.value)} placeholder="Or in your own words" aria-label="Your answer" disabled={busy} />
+        <Input value={own} onChange={(e) => setOwn(e.target.value)} placeholder="Or in your own words" aria-label="Your answer" disabled={busy} />
         <Button variant="primary" type="submit" disabled={busy || !own.trim()}>
           Answer
         </Button>

@@ -12,6 +12,7 @@ import { Icon, type IconName } from "../ui/Icon";
 import { humanError, Keys, toast } from "../ui/kit";
 import { type ConversationHost, type Form, fit, givenWith, useHost } from "./host";
 import { Button, buttonClass } from "../ui/Button";
+import { Input } from "../ui/Input";
 
 // PageConversation draws a page's conversation (host.ts) round the page:
 // the ask bar over its foot, the card the answer opens in over the bar, a
@@ -323,7 +324,7 @@ export function PageConversation({ host, about, root, children }: { host: Conver
               <div className={`askbar${sending ? " sending" : ""}`}>
                 <Icon name={working ? "spinner" : "sparkle"} size={14} className={`askbar-icon${working ? " spin" : ""}`} />
                 {holding}
-                <input ref={bar} value={text} placeholder={placeholder} aria-label={placeholder} aria-busy={sending} onChange={(e) => setText(e.target.value)} onKeyDown={typed} />
+                <Input ref={bar} value={text} placeholder={placeholder} aria-label={placeholder} aria-busy={sending} onChange={(e) => setText(e.target.value)} onKeyDown={typed} />
                 <Keys k="/" className="askbar-key" />
               </div>
             </div>

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { Option, Select } from "./Select";
+import { Input } from "./Input";
 
 // Selects: the size of a text box, small, tiny (in a line of words),
 // filling what it's in, disabled, and with a note on a choice.
@@ -35,7 +36,7 @@ export const Sizes: StoryObj = {
           A text box's
         </span>
         <Agents />
-        <input type="text" defaultValue="A text box beside it" style={{ width: 200 }} />
+        <Input type="text" defaultValue="A text box beside it" style={{ width: 200 }} />
       </div>
       <div style={row}>
         <span className="dim" style={{ width: 80 }}>

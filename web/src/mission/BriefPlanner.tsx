@@ -12,6 +12,7 @@ import { Keys } from "../ui/kit";
 import { docLines, type DocLine } from "./briefpage";
 import { Button } from "../ui/Button";
 import { pageScroller } from "../ui/scroller";
+import { Input } from "../ui/Input";
 
 // The planner, beside a mission's brief and plan (BriefTab.tsx): its
 // conversation as it's been said, where the brief's page used to keep it
@@ -215,7 +216,7 @@ export function PlannerField({
             </Button>
           </span>
         )}
-        <input
+        <Input
           ref={input}
           value={text}
           placeholder={says}

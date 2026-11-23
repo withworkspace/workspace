@@ -58,6 +58,7 @@ import { Segment, Segmented } from "../ui/Segmented";
 import { cx } from "../ui/cx";
 import { Menu, MenuItem } from "../ui/Menu";
 import { Tab, Tabs } from "../ui/Tabs";
+import { Input } from "../ui/Input";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -464,7 +465,7 @@ function Title({ d, reload }: { d: MissionDetail; reload: Reload }) {
   };
   if (editing) {
     return (
-      <input
+      <Input
         className="title-input"
         autoFocus
         value={value}
@@ -1268,7 +1269,7 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
   // Words are all the first asks for: the field, then its button.
   const wordsOnly = !!first?.field && first.do === "answer" && !first.text;
   const field = (a: MissionAct, focus: boolean) => (
-    <input value={words} onChange={(e) => setWords(e.target.value)} placeholder={a.field} disabled={busy} aria-label={a.field} autoFocus={focus} />
+    <Input value={words} onChange={(e) => setWords(e.target.value)} placeholder={a.field} disabled={busy} aria-label={a.field} autoFocus={focus} />
   );
   return (
     <div className="answer">
@@ -1363,7 +1364,7 @@ function QuickReply({ slug, id, reload }: { slug: string; id: string; reload: Re
           send();
         }}
       >
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Reply to ${id}…`} aria-label={`Reply to ${id}`} disabled={busy} />
+        <Input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Reply to ${id}…`} aria-label={`Reply to ${id}`} disabled={busy} />
         <Button variant="primary" type="submit" disabled={busy || !text.trim()}>
           Send
         </Button>
@@ -1448,7 +1449,7 @@ function Log({ d, selected, openArtifact, go }: Parts) {
               </Segment>
             ))}
           </Segmented>
-          <input type="text" className="search" placeholder="Search the log" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search the log" />
+          <Input type="text" className="search" placeholder="Search the log" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search the log" />
         </div>
         {events.length ? (
           <Events events={[...events].reverse()} />

@@ -6,6 +6,7 @@ import { toast } from "../ui/kit";
 import { Option, Select } from "../ui/Select";
 import css from "./Groups.module.css";
 import { Segment, Segmented } from "../ui/Segmented";
+import { Input } from "../ui/Input";
 
 const NONE = "\u0000none";
 const NEW = "\u0000new";
@@ -34,7 +35,7 @@ export function GroupPick({ value, groups, team, none, label, onPick, disabled }
     };
     const bad = /[\s,]/.test(name.trim());
     return (
-      <input
+      <Input
         ref={field}
         className={cx("mono", css.naming)}
         aria-label={`${label}: a new group`}

@@ -10,6 +10,7 @@ import { Button } from "../ui/Button";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Popover } from "../ui/Popover";
 import { ToggleButton } from "../ui/ToggleButton";
+import { Input } from "../ui/Input";
 
 // Tweaks: what a version's page says can be changed about it, drawn
 // here, beside its frame, and not by the page: a tray of its presets and
@@ -283,7 +284,7 @@ function NumberControl({ id, t, value, set }: { id: string; t: Tweak; value: num
   }
   return (
     <div className="tweak-number">
-      <input id={id} type="text" inputMode="decimal" value={text} onChange={(e) => put(e.target.value)} aria-invalid={!takes(t, Number(text)) || text.trim() === ""} />
+      <Input id={id} type="text" inputMode="decimal" value={text} onChange={(e) => put(e.target.value)} aria-invalid={!takes(t, Number(text)) || text.trim() === ""} />
       {t.unit && <span className="dim">{t.unit}</span>}
     </div>
   );
@@ -314,7 +315,7 @@ function Colour({ id, t, value, set }: { id: string; t: Tweak; value: string; se
 function Words({ id, t, value, set }: { id: string; t: Tweak; value: string; set: (v: Value) => void }) {
   const [text, setText] = useShown(value);
   return (
-    <input
+    <Input
       id={id}
       type="text"
       className="tweak-text"

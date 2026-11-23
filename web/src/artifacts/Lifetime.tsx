@@ -8,6 +8,7 @@ import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
 import { Option, Select } from "../ui/Select";
 import { clearable, type IntoKind, type Lives, livesAt, promoteBlocked, promoteVersions, promotion } from "./shown";
 import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
 
 // An artifact's lifetime, in the web UI: Promote, with the version chosen,
 // what it went into, and, the first time, where it's to live (a folder in
@@ -117,13 +118,13 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
         {kind === "start" && (
           <label>
             <span>Mission</span>
-            <input autoFocus value={text} placeholder="What the mission is: build the glow" onChange={(e) => setText(e.target.value)} aria-label="What the mission is" />
+            <Input autoFocus value={text} placeholder="What the mission is: build the glow" onChange={(e) => setText(e.target.value)} aria-label="What the mission is" />
           </label>
         )}
         {kind === "document" && (
           <label>
             <span>Document</span>
-            <input autoFocus className="mono" value={text} placeholder="repo:path/to/plan.md" onChange={(e) => setText(e.target.value)} aria-label="The document, as repo:path" />
+            <Input autoFocus className="mono" value={text} placeholder="repo:path/to/plan.md" onChange={(e) => setText(e.target.value)} aria-label="The document, as repo:path" />
           </label>
         )}
         {!home && d && (
@@ -143,7 +144,7 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
         {!home && lives === "other" && (
           <label>
             <span>Folder</span>
-            <input autoFocus className="mono" value={other} placeholder="repo:folder/" onChange={(e) => setOther(e.target.value)} aria-label="The folder it's to live in, as repo:folder/" />
+            <Input autoFocus className="mono" value={other} placeholder="repo:folder/" onChange={(e) => setOther(e.target.value)} aria-label="The folder it's to live in, as repo:folder/" />
           </label>
         )}
       </div>
