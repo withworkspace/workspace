@@ -4,8 +4,8 @@ import { type ButtonLook, lookOf } from "./Button";
 import { cx } from "./cx";
 import css from "./ToggleButton.module.css";
 
-// A toggle's look is a button's, but for a link's.
-export type ToggleLook = Omit<ButtonLook, "variant"> & { variant?: Exclude<ButtonLook["variant"], "link"> };
+// A toggle's look is a button's, but for a link's, or none.
+export type ToggleLook = Omit<ButtonLook, "variant"> & { variant?: Exclude<ButtonLook["variant"], "link" | "bare"> };
 
 type ToggleButtonProps = ToggleLook &
   Omit<AriaToggleButtonProps, "className" | "style" | "children" | "isDisabled" | "isSelected" | "defaultSelected" | "onChange" | "render" | "id"> & {

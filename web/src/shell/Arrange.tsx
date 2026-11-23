@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button as AriaButton, DropIndicator, GridList, GridListItem, isTextDropItem, useDragAndDrop, type DropItem, type ItemDropTarget } from "react-aria-components";
+import { DropIndicator, GridList, GridListItem, isTextDropItem, useDragAndDrop, type DropItem, type ItemDropTarget } from "react-aria-components";
 import { Icon } from "../ui/Icon";
 import { headed, move, type Arranged, type Place } from "./places";
 import { Button } from "../ui/Button";
@@ -93,21 +93,22 @@ function PlaceList({
         const title = titles[places.indexOf(p)];
         return (
           <GridListItem id={p.id} textValue={p.label} className="arrange-item">
-            <AriaButton slot="drag" className="arrange-grip" aria-label={`Move ${p.label}`}>
+            <Button variant="bare" slot="drag" className="arrange-grip" aria-label={`Move ${p.label}`}>
               <Icon name="grip" size={14} />
-            </AriaButton>
+            </Button>
             <Icon name={p.icon} size={15} />
             <span className="arrange-label">
               {p.label}
               {title && <span className="arrange-under">{title}</span>}
             </span>
-            <AriaButton
+            <Button
+              variant="bare"
               className="arrange-across"
-              onPress={() => put([p.id], other)}
+              onClick={() => put([p.id], other)}
               aria-label={list === "sidebar" ? `Move ${p.label} into the menu` : `Move ${p.label} back to the sidebar`}
             >
               <Icon name={list === "sidebar" ? "arrow-down" : "arrow-up"} size={13} />
-            </AriaButton>
+            </Button>
           </GridListItem>
         );
       }}

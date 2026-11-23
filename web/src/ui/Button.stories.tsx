@@ -71,3 +71,16 @@ export const Links: StoryObj = {
     </div>
   ),
 };
+
+// Bare: a Button with none of the library's look, for a part that draws
+// its own (here, by hand: a round one).
+export const Bare: StoryObj = {
+  render: () => (
+    <div className="page" style={cell}>
+      <Button variant="bare" aria-label="Add" style={{ width: 32, height: 32, minHeight: 0, padding: 0, borderRadius: 16, display: "grid", placeItems: "center" }}>
+        <Icon name="plus" size={14} />
+      </Button>
+      <span className="dim">Its class is all of its look: the library gives it none.</span>
+    </div>
+  ),
+};

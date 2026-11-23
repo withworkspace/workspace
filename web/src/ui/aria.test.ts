@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 // this was written, each until the part it needs is in the library: the
 // list only gets shorter, and a page that no longer imports it is taken
 // off.
-const still = ["App.tsx", "chrome/WorkspaceName.tsx", "files/Explorer.tsx", "mission/Mission.tsx", "mission/Verify.tsx", "shell/Arrange.tsx"];
+const still = ["App.tsx", "files/Explorer.tsx", "mission/Mission.tsx", "mission/Verify.tsx", "shell/Arrange.tsx"];
 
 const src = join(dirname(new URL(import.meta.url).pathname), "..");
 

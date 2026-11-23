@@ -39,6 +39,11 @@ describe("Button", () => {
     expect(out).toContain('aria-label="Pin"');
   });
 
+  it("has no look of the library's when it's bare, only the class it's given", () => {
+    expect(html({ variant: "bare", className: "arrange-grip" })).toContain('class="arrange-grip"');
+    expect(html({ variant: "bare", className: "arrange-grip" })).toContain('data-ui=""');
+  });
+
   it("has the page's class after its own", () => {
     expect(html({ variant: "ghost", className: "find-chip" })).toMatch(/class="[^"]*ghost[^" ]* find-chip"/);
   });

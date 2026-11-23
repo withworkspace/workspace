@@ -1,12 +1,15 @@
-import type { ReactNode, Ref } from "react";
+import type { CSSProperties, ReactNode, Ref } from "react";
 import { Button as AriaButton, type ButtonProps as AriaButtonProps } from "react-aria-components";
 import css from "./Button.module.css";
 import { cx } from "./cx";
 
 // How a button looks: its variant (a plain button without one), small or
-// not, and square, for one that's only an icon.
+// not, and square, for one that's only an icon. A bare one has none of
+// the library's look: it's a part's own button, drawn by the class that
+// part gives it (the workspace's name, a grip), and a Button for what a
+// Button does.
 export type ButtonLook = {
-  variant?: "primary" | "danger" | "ghost" | "link";
+  variant?: "primary" | "danger" | "ghost" | "link" | "bare";
   size?: "small";
   square?: boolean;
 };
@@ -18,6 +21,7 @@ export type ButtonLook = {
 type ButtonProps = ButtonLook &
   Omit<AriaButtonProps, "className" | "style" | "children" | "isDisabled" | "render"> & {
     className?: string;
+    style?: CSSProperties;
     disabled?: boolean;
     title?: string;
     "aria-busy"?: boolean;
@@ -55,6 +59,7 @@ const sizes = { small: css.small };
 // A link's look is its own: none of a button's box to undo. (The
 // library's other buttons, ToggleButton's too, are drawn with it.)
 export function lookOf({ variant, size, square }: ButtonLook): string {
+  if (variant === "bare") return "";
   if (variant === "link") return css.link;
   return cx(css.button, variant && variants[variant], square && css.square, size && sizes[size]);
 }
