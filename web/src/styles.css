@@ -9812,51 +9812,6 @@ details.repo-group > summary::-webkit-details-marker {
   display: none;
 }
 
-.plan-items {
-  list-style: none;
-  margin: 8px 0 2px;
-  padding: 0;
-  display: grid;
-  gap: 4px;
-  font-size: var(--text-sm);
-}
-
-.plan-item {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.plan-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line-strong);
-  flex: none;
-  translate: 0 2px;
-  color: #fff;
-}
-
-.plan-item.s-completed .plan-mark {
-  background: var(--green-fill);
-  border-color: var(--green-fill);
-}
-
-.plan-item.s-completed {
-  color: var(--dim);
-}
-
-.plan-item.s-in_progress {
-  font-weight: 500;
-}
-
-.plan-item.s-in_progress .plan-mark {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 .agent-working {
   margin-left: 30px;
 }
@@ -9994,7 +9949,7 @@ details.repo-group > summary::-webkit-details-marker {
   color: var(--accent);
 }
 
-.call .plan-items,
+.call-todos,
 .call-question {
   margin: 2px 0 8px 27px;
   font-size: var(--text-sm);

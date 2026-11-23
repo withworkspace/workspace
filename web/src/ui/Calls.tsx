@@ -7,6 +7,7 @@ import { Icon, type IconName } from "./Icon";
 import { Spinner } from "./Spinner";
 import { Chip } from "./Chip";
 import { Button } from "./Button";
+import { type Todo, Todos } from "./Todos";
 
 // Calls are the steps an agent took on the way to a reply: each tool it
 // used, what it gave it, and (opened) what came back. Folded under "n
@@ -24,7 +25,7 @@ export interface Call {
   refused?: boolean;
   pending?: boolean;
   edit?: { path: string; old?: string; new: string; all?: boolean };
-  todos?: { content: string; status: string; active?: string }[];
+  todos?: Todo[];
   questions?: { question: string; options?: string[] }[];
 }
 
@@ -134,7 +135,7 @@ function CallLine({ c, root, running, fileLink, labels }: { c: Call; running?: b
           )}
         </div>
       )}
-      {open && c.todos && <Plan todos={c.todos} />}
+      {open && c.todos && <Todos todos={c.todos} className="call-todos" />}
       {open && c.questions?.map((q, i) => (
         <div key={i} className="call-question">
           <div>{q.question}</div>
@@ -187,22 +188,5 @@ export function EditDiff({ edit, max = 14 }: { edit: NonNullable<Call["edit"]>; 
         </Button>
       )}
     </div>
-  );
-}
-
-// Plan is an agent's todo list: done, in hand, to do.
-export function Plan({ todos, live }: { todos: NonNullable<Call["todos"]>; live?: boolean }) {
-  return (
-    <ul className="plan-items">
-      {todos.map((t, i) => (
-        <li key={i} className={`plan-item s-${t.status}`}>
-          <span className="plan-mark" aria-hidden>
-            {t.status === "completed" ? <Icon name="check" size={10} /> : t.status === "in_progress" && live ? <Spinner size={10} /> : null}
-          </span>
-          <span>{t.status === "in_progress" && t.active ? t.active : t.content}</span>
-          <span className="sr-only">{t.status === "completed" ? " (done)" : t.status === "in_progress" ? " (in hand)" : ""}</span>
-        </li>
-      ))}
-    </ul>
   );
 }
