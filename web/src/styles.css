@@ -133,6 +133,13 @@
     color: var(--fg);
   }
 
+  /* A section of a page has a gap after it. In this layer so that a part
+     of the library that's a section (a dialog, a menu's group) can have
+     none. */
+  section {
+    margin-bottom: var(--space-6);
+  }
+
   /* What has the keys' focus has a ring, until it says otherwise. It's in
      this layer, though it isn't an element alone, so that a part of the
      library can say otherwise (a menu's list, which shows its focus on an
@@ -1173,10 +1180,6 @@ main.stale > :not(.connection-banner) {
 
 .page.narrow {
   max-width: 820px;
-}
-
-section {
-  margin-bottom: var(--space-6);
 }
 
 .spacer {

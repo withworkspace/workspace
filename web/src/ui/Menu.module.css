@@ -37,10 +37,9 @@
   }
 
   /* A menu's sections are its own groups, not the page's, which have a
-     gap after them (styles.css's section, outside any layer: hence
-     important, which a layer's has over it). */
+     gap after them. */
   .section {
-    margin: 0 !important;
+    margin: 0;
   }
 
   .header {
