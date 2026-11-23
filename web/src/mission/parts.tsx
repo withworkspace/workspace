@@ -9,6 +9,8 @@ import { crewStatus, exitWords, Status } from "../ui/status";
 import { dayKey, dayLabel, duration, Time, useNow } from "../ui/time";
 import { Chip, chipClass } from "../ui/Chip";
 import { crewHue } from "./crewHue";
+import { MissionCrewBadge } from "./MissionCrewBadge";
+import { MissionCrewCard } from "./MissionCrewCard";
 import { MissionPlan } from "./MissionPlan";
 import { MissionPlanChecks, type PlanCheck } from "./MissionPlanChecks";
 import { MissionPlanNote } from "./MissionPlanNote";
@@ -26,45 +28,27 @@ export { crewHue };
 // badge) to say more about it on hover.
 export const MissionData = createContext<MissionDetail | undefined>(undefined);
 
-export function CrewBadge({ id, live }: { id: string; live?: boolean }) {
+// CrewBadge is a mission's crew by name, which says more of it on hover
+// where the page knows the mission: who it is, where it stands, what it
+// last said.
+export function CrewBadge({ id, live, large }: { id: string; live?: boolean; large?: boolean }) {
   const d = useContext(MissionData);
   const c = d?.crew.find((x) => x.id === id);
-  const badge = (
-    <span className={`crew-badge${live ? " live" : ""}`} style={{ "--hue": crewHue(id) } as React.CSSProperties}>
-      {id}
-    </span>
-  );
+  const badge = <MissionCrewBadge id={id} live={live} large={large} />;
   if (!c) return badge;
-  // A hover card: who it is, where it stands, what it last said.
-  const st = crewStatus(c);
   return (
     <HoverCard trigger={badge}>
-      <span className="hovercard-head">
-        {badge}
-        <Status s={st} />
-      </span>
-      <span className="hovercard-line">
-        {c.role === "briefing" ? "Briefing agent" : c.model ? `${c.harness} on ${c.model}` : c.harness}
-        {c.capsule && <span className="dim"> in {c.capsule}</span>}
-      </span>
-      <span className="hovercard-line dim">
-        Started <Time iso={c.started} />
-        {c.endedAt && (
-          <>
-            , ended <Time iso={c.endedAt} />
-          </>
-        )}
-      </span>
-      {(c.note || c.lastReply) && (
-        <span className="hovercard-said">
-          <Inline text={c.note || c.lastReply || ""} lines={3} />
-        </span>
-      )}
-      {d && (
-        <Link to={`/missions/${d.slug}/crew/${c.id}`} className="hovercard-link">
-          {c.ended ? "Read its transcript" : "Open its terminal"} <Icon name="arrow-right" size={11} />
-        </Link>
-      )}
+      <MissionCrewCard
+        badge={<MissionCrewBadge id={id} live={live} />}
+        status={<Status s={crewStatus(c)} />}
+        what={c.role === "briefing" ? "Briefing agent" : c.model ? `${c.harness} on ${c.model}` : c.harness}
+        capsule={c.capsule}
+        started={<Time iso={c.started} />}
+        ended={c.endedAt && <Time iso={c.endedAt} />}
+        said={(c.note || c.lastReply) && <Inline text={c.note || c.lastReply || ""} lines={3} />}
+        to={d && `/missions/${d.slug}/crew/${c.id}`}
+        more={c.ended ? "Read its transcript" : "Open its terminal"}
+      />
     </HoverCard>
   );
 }

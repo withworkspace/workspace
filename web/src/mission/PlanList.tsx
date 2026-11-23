@@ -1,6 +1,7 @@
 import { Fragment, useContext, useMemo, useRef, useState } from "react";
 import type { MissionDetail, Stage, StageCheck } from "../api";
 import { FloatingCard } from "../ui/FloatingCard";
+import { MissionCrewBadge } from "./MissionCrewBadge";
 import { MissionPlanNote } from "./MissionPlanNote";
 import { useHoverDelay } from "../ui/useHoverDelay";
 import { RefContext } from "../refs/context";
@@ -8,7 +9,7 @@ import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/inline";
 import { crewStatus } from "../ui/status";
 import { duration, stamp } from "../ui/time";
-import { CrewBadge, crewHue, MissionData, StepChecks, StepLimit, StepRuns } from "./parts";
+import { CrewBadge, MissionData, StepChecks, StepLimit, StepRuns } from "./parts";
 import { checksUnmet, foldNote, passedUnmet, planWindow, stepBundle, stepKind, stepText, stepTimes, stepYours, type StepTime, waitHow, type WaitHow, watchWords, worthOpening } from "./planRows";
 import { Chip } from "../ui/Chip";
 import { capital } from "../ui/text";
@@ -331,9 +332,7 @@ function StepCard({ s, of, d, time }: { s: Stage; of: number; d?: MissionDetail;
       <>
         {(s.whoSays || s.who) && <Inline text={s.whoSays || s.who || ""} />}{" "}
         {s.crew?.map((id) => (
-          <span key={id} className="crew-badge" style={{ "--hue": crewHue(id) } as React.CSSProperties}>
-            {id}
-          </span>
+          <MissionCrewBadge key={id} id={id} />
         ))}
       </>
     ),
