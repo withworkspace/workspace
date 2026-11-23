@@ -1,3 +1,4 @@
+import { HoverCardHead, HoverCardLine, HoverCardTitle } from "../ui/HoverCard";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { act, type ActionAsk, dockPR, newPage, restoreArtifact, runPluginAction, setTalkStatus, startMissionAbout } from "../api";
@@ -775,14 +776,14 @@ export function Palette({
           <aside className="find-card ref-card" aria-label="About it">
             {on?.code ? (
               <>
-                <span className="hovercard-head">
+                <HoverCardHead>
                   <Icon name="file" size={13} className="dim" />
-                  <span className="hovercard-title mono">{on.code.path}</span>
-                </span>
-                <span className="hovercard-line dim">
+                  <HoverCardTitle className="mono">{on.code.path}</HoverCardTitle>
+                </HoverCardHead>
+                <HoverCardLine dim>
                   Line {on.code.line} in {on.code.repo}
                   {on.code.worktree === ".ground" ? ", its default branch" : `, capsule ${on.code.worktree}`}
-                </span>
+                </HoverCardLine>
               </>
             ) : on?.pull ? (
               <PullCard it={on} />
@@ -793,7 +794,7 @@ export function Palette({
               // holds is what it names, to go to (which closes Find), and
               // under it is what can be done to it.
               <RefsScope known={known}>
-                <div className="find-thing" onClickCapture={(e) => (e.target as HTMLElement).closest(".named-ref, .hovercard-link") && onClose()}>
+                <div className="find-thing" onClickCapture={(e) => (e.target as HTMLElement).closest(".named-ref, a[href]") && onClose()}>
                   <ThingCard r={onThing} known={known} surface="pane" pointer={pointer} before={!mode && on?.said ? <SaidCard it={on} f={on.said} /> : undefined} />
                 </div>
                 <div className="find-acts" aria-label="Do to it">
@@ -816,15 +817,15 @@ export function Palette({
               </>
             ) : on ? (
               <>
-                <span className="hovercard-head">
+                <HoverCardHead>
                   {on.status ? <Status s={on.status} iconOnly size={13} /> : <Icon name={on.icon ?? "chevron-right"} size={13} className="dim" />}
-                  <span className="hovercard-title">{on.title}</span>
-                </span>
-                <span className="hovercard-line dim">{on.kind}</span>
-                {on.hint && <span className="hovercard-line dim">{on.hint}</span>}
+                  <HoverCardTitle>{on.title}</HoverCardTitle>
+                </HoverCardHead>
+                <HoverCardLine dim>{on.kind}</HoverCardLine>
+                {on.hint && <HoverCardLine dim>{on.hint}</HoverCardLine>}
               </>
             ) : (
-              <span className="hovercard-line dim">What the cursor's on shows here.</span>
+              <HoverCardLine dim>What the cursor's on shows here.</HoverCardLine>
             )}
           </aside>
         )}
@@ -927,10 +928,10 @@ function SaidCard({ it, f }: { it: Item; f: Found }) {
   const about = [what, f.where, f.on ? `on ${f.on}` : "", f.state && f.place !== "brief" ? f.state : "", f.ended ? "archived" : ""].filter(Boolean);
   return (
     <div className="find-said-card">
-      <span className="hovercard-head">
+      <HoverCardHead top>
         <Icon name={it.icon ?? "message"} size={13} className="dim" />
         <span className="find-said-title">{it.title}</span>
-      </span>
+      </HoverCardHead>
       <span className="dim">{about.join(" · ")}</span>
       {f.snippet && f.snippet.length > 0 && (
         <span className="find-said">
@@ -947,31 +948,31 @@ function PullCard({ it }: { it: Item }) {
   const p = it.pull!;
   return (
     <>
-      <span className="hovercard-head">
+      <HoverCardHead>
         <Icon name="pr" size={13} className="dim" />
-        <span className="hovercard-title">{p.asks ? `${p.repo}#${p.number}` : p.title}</span>
-      </span>
+        <HoverCardTitle>{p.asks ? `${p.repo}#${p.number}` : p.title}</HoverCardTitle>
+      </HoverCardHead>
       {p.asks ? (
-        <span className="hovercard-line dim">It isn't among the open pull requests here. Choosing it asks GitHub.</span>
+        <HoverCardLine dim>It isn't among the open pull requests here. Choosing it asks GitHub.</HoverCardLine>
       ) : (
         <>
-          <span className="hovercard-line dim">
+          <HoverCardLine dim>
             {p.repo}#{p.number}
             {p.author ? `, by ${p.author}` : ""}
             {p.draft ? ", a draft" : ""}
-          </span>
+          </HoverCardLine>
           {p.words && (
-            <span className="hovercard-line">
+            <HoverCardLine>
               {p.words}
               {p.checks && (
                 <Chip tone={p.checks === "success" ? "done" : p.checks === "failure" ? "danger" : "quiet"}>
                   checks {p.checks === "success" ? "pass" : p.checks === "failure" ? "fail" : "running"}
                 </Chip>
               )}
-            </span>
+            </HoverCardLine>
           )}
-          {p.branch && <span className="hovercard-line dim mono">{p.branch}</span>}
-          {p.stack && <span className="hovercard-line dim">In a stack: {p.stack}</span>}
+          {p.branch && <HoverCardLine dim className="mono">{p.branch}</HoverCardLine>}
+          {p.stack && <HoverCardLine dim>In a stack: {p.stack}</HoverCardLine>}
         </>
       )}
     </>

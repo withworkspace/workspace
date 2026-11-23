@@ -38,14 +38,16 @@ export function HoverCard({ trigger, children, className }: { trigger: ReactNode
 }
 
 // HoverCardHead is a card's first line: what it's about (its mark, its
-// name), and where it stands.
-export function HoverCardHead({ className, ...rest }: ComponentProps<"span">) {
-  return <span className={cx(css.head, className)} {...rest} />;
+// name), and where it stands. top: its mark keeps to its name's first
+// line, where the name runs to more than one.
+export function HoverCardHead({ top, className, ...rest }: ComponentProps<"span"> & { top?: boolean }) {
+  return <span className={cx(css.head, top && css.top, className)} {...rest} />;
 }
 
-// HoverCardTitle is its name, cut short at the card's width.
-export function HoverCardTitle({ className, ...rest }: ComponentProps<"span">) {
-  return <span className={cx(css.title, className)} {...rest} />;
+// HoverCardTitle is its name, cut short at the card's width; wrap, said
+// whole, on as many lines as it takes (where there's room: a pane).
+export function HoverCardTitle({ wrap, className, ...rest }: ComponentProps<"span"> & { wrap?: boolean }) {
+  return <span className={cx(css.title, wrap && css.wrap, className)} {...rest} />;
 }
 
 // HoverCardStrong is a word or two that matter, in a line.
@@ -54,9 +56,9 @@ export function HoverCardStrong({ className, ...rest }: ComponentProps<"span">) 
 }
 
 // HoverCardLine is one thing said of it, on a line of its own; dim, one
-// that matters less.
-export function HoverCardLine({ dim, className, ...rest }: ComponentProps<"span"> & { dim?: boolean }) {
-  return <span className={cx(css.line, dim && css.dim, className)} {...rest} />;
+// that matters less; wrap, one whose long words break where they must.
+export function HoverCardLine({ dim, wrap, className, ...rest }: ComponentProps<"span"> & { dim?: boolean; wrap?: boolean }) {
+  return <span className={cx(css.line, dim && css.dim, wrap && css.breaks, className)} {...rest} />;
 }
 
 // HoverCardSaid is what was last said of it, under a rule.

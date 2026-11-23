@@ -28,6 +28,21 @@
     white-space: nowrap;
   }
 
+  /* A name on more than one line: its mark keeps to the first. */
+  .top {
+    align-items: flex-start;
+  }
+
+  .top > :global(.icon) {
+    flex: none;
+    margin-top: 3px;
+  }
+
+  .wrap {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .strong {
     font-weight: 500;
   }
@@ -39,6 +54,10 @@
 
   .dim {
     color: var(--dim);
+  }
+
+  .breaks {
+    overflow-wrap: anywhere;
   }
 
   .said {

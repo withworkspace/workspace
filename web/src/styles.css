@@ -2988,60 +2988,6 @@ button.on {
 }
 
 /* A crew's own colour, as a small badge with its id. */
-.ref-chip {
-  font: 600 var(--text-xs) / 18px var(--mono);
-  padding: 0 5px;
-  border-radius: 5px;
-  color: var(--dim);
-  background: var(--well);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.ref-text {
-  text-decoration: underline dotted var(--faint);
-  text-underline-offset: 3px;
-}
-
-.ref-chip:hover,
-.ref-text:hover {
-  color: var(--fg);
-  text-decoration-color: var(--dim);
-}
-
-.hovercard-title {
-  font-weight: 600;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.hovercard-strong {
-  font-weight: 500;
-}
-
-.hovercard-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px;
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.hovercard-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.hovercard-said {
-  margin-top: 2px;
-  padding-top: 6px;
-  border-top: 1px solid var(--line);
-  color: var(--dim);
-}
-
 /* Decisions: the decision, its reason under, who and when. */
 .decisions {
   display: grid;
@@ -10186,12 +10132,6 @@ details.repo-group > summary::-webkit-details-marker {
   font-weight: 700;
 }
 
-.hovercard-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-}
-
 @media (max-width: 860px) {
   .explorer-tree {
     border-right: 0;
@@ -12310,7 +12250,7 @@ button.finding-quote:hover {
   font-size: var(--text-xs);
 }
 
-.ref-card .hovercard-line .line-chip {
+.ref-card .line-chip {
   margin-left: 6px;
 }
 
@@ -12330,24 +12270,6 @@ button.finding-quote:hover {
 
 /* Beside the list in Find there's room: a title wraps, as what's found by
    what it says does. */
-.thing-view.on-pane .hovercard-head {
-  align-items: flex-start;
-}
-
-.thing-view.on-pane .hovercard-head > .icon {
-  flex: none;
-  margin-top: 3px;
-}
-
-.thing-view.on-pane .hovercard-title {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.thing-view.on-pane .hovercard-line {
-  overflow-wrap: anywhere;
-}
-
 /* What it says, as markdown: at the card's size, its headings no larger
    than its words, and kept to the lines its block says (--lines). */
 .thing-md {
@@ -13796,15 +13718,6 @@ body.nav-pointing .code-view code[data-rev] {
   grid-template-columns: minmax(0, 1fr);
   gap: 4px;
   min-width: 0;
-}
-
-.find-said-card .hovercard-head {
-  align-items: flex-start;
-}
-
-.find-said-card .hovercard-head > .icon {
-  flex: none;
-  margin-top: 3px;
 }
 
 .find-said-title {
