@@ -1,7 +1,7 @@
 import { type DismissWhy, type PassFinding } from "../api";
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { Keys } from "../ui/Keys";
 import type { Found, Row } from "./model";
 import { Button } from "../ui/Button";
@@ -138,7 +138,7 @@ export function FindingCard({
         </span>
       </NoteHead>
       <NoteBody>
-        <Inline text={f.text} />
+        <Inline text={f.text} className="note-said" />
       </NoteBody>
       {f.suggest ? <Suggestion from={f.excerpt} to={f.suggest} /> : null}
     </NoteCard>

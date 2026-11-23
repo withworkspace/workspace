@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Status } from "../ui/status";
+import { Status } from "../ui/Status";
 import { MissionCrewBadge } from "./MissionCrewBadge";
 import { MissionCrewCard } from "./MissionCrewCard";
 

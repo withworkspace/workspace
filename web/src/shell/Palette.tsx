@@ -12,12 +12,12 @@ import { marked } from "../ui/fuzzy";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Status } from "../ui/status";
+import { Status } from "../ui/Status";
 import { toast } from "../ui/toast";
 import { Keys } from "../ui/Keys";
 import { askShutDown } from "./daemon";
 import { setTheme } from "../ui/theme";
-import { clock } from "../ui/time";
+import { clock } from "../ui/when";
 import {
   actIcon,
   actingOn,
@@ -846,7 +846,7 @@ function Row({ it, on, section, onOver, onPick }: { it: Item; on: boolean; secti
   const says = section === "best" || section === "needs" || section === "linked" || section === "recent";
   return (
     <div id={`pal-${it.id}`} role="option" aria-selected={on} className={`find-row${on ? " on" : ""}`} onMouseMove={onOver} onClick={(e) => onPick(e.metaKey || e.ctrlKey)}>
-      {it.status ? <Status s={it.status} iconOnly /> : fileOf(it) ? <FileIcon path={fileOf(it)!} /> : <Icon name={it.icon ?? "chevron-right"} />}
+      {it.status ? <Status s={it.status} iconOnly className="find-stands" /> : fileOf(it) ? <FileIcon path={fileOf(it)!} /> : <Icon name={it.icon ?? "chevron-right"} />}
       <span className={`find-title${it.path ? " is-path" : ""}`}>
         <bdi>
           {runs.map((r, i) => {

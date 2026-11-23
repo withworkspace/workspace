@@ -2,7 +2,7 @@ import type { Workspace } from "../api";
 import sorrel from "../mission/fixtures/sorrel/workspace.json";
 import { arrange, type Place, placesOf } from "../shell/places";
 import type { IconName } from "../ui/Icon";
-import type { StatusInfo } from "../ui/status";
+import type { StatusInfo } from "../ui/Status";
 import { type Need, waitingOf } from "./need";
 
 // What the chrome's stories draw: Sorrel, the workspace the stories'

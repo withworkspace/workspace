@@ -12,7 +12,7 @@ import { ErrorCard } from "../ui/ErrorCard";
 import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { addsOf, changedSaid, fromOf, outCount, repoLink, stateOf, updateOf, wantedFrom } from "./installed";
 import { pluginIcon } from "./Plugin";
 import { usePlugins } from "../workspace/store";

@@ -1,6 +1,6 @@
 import { HoverCardHead, HoverCardStrong } from "../ui/HoverCard";
 import { Icon, type IconName } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { cx } from "../ui/cx";
 import css from "./MissionMomentCard.module.css";
 

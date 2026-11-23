@@ -33,14 +33,14 @@ import { NoteBody, NoteCard, NoteHead, NoteHint, NoteId, NoteStatus, NoteThread,
 import { ReplyBox } from "../ui/ReplyBox";
 import { Suggestion } from "./Suggestion";
 import { fuzzy } from "../ui/fuzzy";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { useMedia } from "../ui/useMedia";
 import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
-import { exact, stamp } from "../ui/time";
+import { exact, stamp } from "../ui/when";
 import { highlightLines, languageOf, useHighlighter } from "./highlight";
 import { useCodeNav } from "./CodeNav";
 import { LandBar } from "./Land";
@@ -1651,7 +1651,7 @@ function CommentCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, fo
             <Icon name="sparkle" size={11} /> Follow-up
           </span>
           <strong>{followWords[followup.kind] ?? followup.kind}</strong>
-          <Inline text={followup.text} />
+          <Inline text={followup.text} className="note-said" />
         </div>
       )}
       {!(resolved && !cursor) && (

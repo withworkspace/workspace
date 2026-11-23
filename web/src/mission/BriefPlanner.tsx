@@ -112,7 +112,7 @@ export function BriefPlanner({
           }
           return (
             <Turn key={turn.n} by={turn.by === "agent" ? "agent" : "ws"} dense landed>
-              {turn.calls && turn.calls.length > 0 && <Calls calls={turn.calls} root={root} />}
+              {turn.calls && turn.calls.length > 0 && <Calls calls={turn.calls} root={root} className="brief-calls" />}
               <TurnSaid>
                 <Markdown text={turn.body} pinned={turn.refs} />
               </TurnSaid>

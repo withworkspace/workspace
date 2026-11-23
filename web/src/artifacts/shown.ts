@@ -1,6 +1,6 @@
 import type { ArtifactFound, ArtifactInfo, ArtifactPromotion, ArtifactVersion } from "../api";
 import type { PageRef } from "../refs/refs";
-import type { StatusInfo } from "../ui/status";
+import type { StatusInfo } from "../ui/Status";
 
 // Artifacts, apart from how they're drawn: which the list shows, where a
 // version came from, and stepping through versions.

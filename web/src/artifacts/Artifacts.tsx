@@ -8,7 +8,7 @@ import { refKey, refName } from "../refs/refs";
 import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../review/highlight";
 import { HoverCard, HoverCardHead, HoverCardLine, HoverCardTitle } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
@@ -18,8 +18,8 @@ import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Option, Select } from "../ui/Select";
-import { Status } from "../ui/status";
-import { Time } from "../ui/time";
+import { Status } from "../ui/Status";
+import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
 import {
   ANYWHERE,

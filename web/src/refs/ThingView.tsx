@@ -3,7 +3,7 @@ import { ApiError, getPluginThing, type PluginThing } from "../api";
 import { useLoaded } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
-import { exact, stamp } from "../ui/time";
+import { exact, stamp } from "../ui/when";
 import { NoRefs } from "./known";
 import type { ReactNode } from "react";
 import type { Named, PageRef } from "./refs";

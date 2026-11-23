@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Headline, Need } from "../api";
-import { plain } from "../ui/inline";
-import { headlineStatus, type StatusInfo } from "../ui/status";
+import { plain } from "../ui/text";
+import type { StatusInfo } from "../ui/Status";
+import { headlineStatus } from "../ui/statusOf";
 
 // A need: something that can't move without you. The daemon works the
 // list out from where each thing stands now and never keeps it, so it

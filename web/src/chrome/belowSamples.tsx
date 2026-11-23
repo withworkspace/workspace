@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Row, RowLine, RowMain, RowMeta, RowSub, Rows, RowTitle } from "../ui/Rows";
-import { Status } from "../ui/status";
+import { Status } from "../ui/Status";
 import type { BelowView } from "./Below";
 import type { BelowWhere } from "./chromeState";
 

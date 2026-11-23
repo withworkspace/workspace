@@ -13,7 +13,7 @@ import { humanError } from "../ui/text";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import css from "./Runs.module.css";
 import { bare, came, commitSaid, forWhom, listed, placeOf, plain, type Said, split } from "./runRows";
 import { Chip } from "../ui/Chip";

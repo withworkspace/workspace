@@ -8,7 +8,8 @@ import type { WsDoing } from "./acts";
 import { placesOf } from "./places";
 import { fuzzy } from "../ui/fuzzy";
 import { type IconName, icons } from "../ui/Icon";
-import { crewStatus, headlineStatus, type StatusInfo } from "../ui/status";
+import type { StatusInfo } from "../ui/Status";
+import { crewStatus, headlineStatus } from "../ui/statusOf";
 import { type Tone } from "../ui/tone";
 import { capital } from "../ui/text";
 

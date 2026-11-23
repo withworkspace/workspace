@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { type DocHit, docTo, type SpaceDoc, type SpaceKind } from "../api";
 import { Icon } from "../ui/Icon";
 import { Option, Select } from "../ui/Select";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";

@@ -1,10 +1,12 @@
 import { useId } from "react";
+import css from "./Logotype.module.css";
+import { cx } from "./cx";
 
 // Logotype is the workspace logotype, as brand draws it (brand:svg/logotype-light.svg
 // and -dark.svg, which differ only in their colours): "work" in ink at 80%
 // (white, on a dark ground), "space" in the brand's run for the ground
-// it's on. The run's colours are styles.css's (.logotype-light-1 and the
-// rest): steps from the accent pick, which for the default pick are
+// it's on. The run's colours are its module's (.light1 and the rest):
+// steps from the accent pick, which for the default pick are
 // brand's own. Its box is tight to the ink. The gradients have ids of
 // their own each time it's drawn: one in a copy that isn't shown wouldn't
 // paint the others.
@@ -16,23 +18,23 @@ const space =
 export function Logotype({ height = 13, className }: { height?: number; className?: string }) {
   const id = useId();
   return (
-    <svg className={`logotype${className ? ` ${className}` : ""}`} viewBox="0 0 752.78 128.7" height={height} role="img" aria-label="workspace">
+    <svg className={cx(css.logotype, className)} viewBox="0 0 752.78 128.7" height={height} role="img" aria-label="workspace">
       <defs>
         <linearGradient id={`${id}-light`} x1="339" y1="0" x2="752.78" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0" className="logotype-light-1" />
-          <stop offset="0.62" className="logotype-light-2" />
-          <stop offset="1" className="logotype-light-3" />
+          <stop offset="0" className={css.light1} />
+          <stop offset="0.62" className={css.light2} />
+          <stop offset="1" className={css.light3} />
         </linearGradient>
         <linearGradient id={`${id}-dark`} x1="339" y1="0" x2="752.78" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0" className="logotype-dark-1" />
-          <stop offset="0.55" className="logotype-dark-2" />
-          <stop offset="0.78" className="logotype-dark-3" />
-          <stop offset="1" className="logotype-dark-4" />
+          <stop offset="0" className={css.dark1} />
+          <stop offset="0.55" className={css.dark2} />
+          <stop offset="0.78" className={css.dark3} />
+          <stop offset="1" className={css.dark4} />
         </linearGradient>
       </defs>
-      <path className="logotype-work" d={work} fillOpacity={0.8} />
-      <path className="logotype-space on-light" d={space} fill={`url(#${id}-light)`} />
-      <path className="logotype-space on-dark" d={space} fill={`url(#${id}-dark)`} />
+      <path className={css.work} d={work} fillOpacity={0.8} />
+      <path className={css.onLight} d={space} fill={`url(#${id}-light)`} />
+      <path className={css.onDark} d={space} fill={`url(#${id}-dark)`} />
     </svg>
   );
 }

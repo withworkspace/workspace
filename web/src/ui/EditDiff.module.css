@@ -1,0 +1,40 @@
+/* An edit as a diff (EditDiff.tsx): a box of code, the lines replaced on
+   red over the lines put there on green, a sign before each. */
+
+@layer ui {
+  .diff {
+    --backdrop: var(--raised);
+    --well: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font: var(--text-xs) / 1.6 var(--mono);
+    overflow-x: auto;
+    background: var(--raised);
+  }
+
+  .line {
+    white-space: pre;
+    padding: 0 10px 0 4px;
+  }
+
+  .was {
+    background: var(--del-bg);
+  }
+
+  .now {
+    background: var(--add-bg);
+  }
+
+  .sign {
+    display: inline-block;
+    width: 16px;
+    color: var(--dim);
+    user-select: none;
+  }
+
+  /* The way to the rest: in the accent, over a link button's own colours
+     (and its hover's). */
+  .more {
+    color: var(--accent) !important;
+  }
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getSpace, getSpaceActivity, type Space, type SpaceActivity, type SpaceDoc, spaceTo } from "../api";
 import { Icon } from "../ui/Icon";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
 import { lastChanged } from "./happening";
 import { Chip } from "../ui/Chip";

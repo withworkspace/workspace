@@ -1,0 +1,133 @@
+/* A step an agent took (CallLine.tsx): a line that's pressed to open on
+   what came back, under it and in from it. */
+
+@layer ui {
+  .call {
+    min-width: 0;
+  }
+
+  /* The line is a button, in none of a button's look. */
+  .line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 24px;
+    padding: 2px 6px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    box-shadow: none;
+    font-weight: 400;
+    text-align: left;
+    justify-content: flex-start;
+    color: var(--fg);
+  }
+
+  .line:hover:not(:disabled) {
+    background: var(--hover);
+  }
+
+  .line:active:not(:disabled) {
+    transform: translateY(0.5px);
+  }
+
+  /* A step with nothing to open on: as the rest, but not pressed. */
+  .line:disabled {
+    cursor: default;
+  }
+
+  .icon {
+    color: var(--dim);
+  }
+
+  .tool {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    flex: none;
+  }
+
+  /* A step that ran ws's commands, as what it's doing: one line, however
+     many it ran. */
+  .tool.doing {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .input {
+    font: var(--text-xs) var(--mono);
+    color: var(--dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .refused .icon,
+  .refused .tool {
+    color: var(--red);
+  }
+
+  .failed .tool {
+    color: var(--dim);
+  }
+
+  .running .tool {
+    color: var(--green);
+  }
+
+  /* What came back. */
+  .result {
+    margin: 2px 0 6px 27px;
+    padding: 8px 10px;
+    max-height: 280px;
+    overflow: auto;
+    border-radius: var(--radius);
+    background: var(--well);
+    font: var(--text-xs) / 1.5 var(--mono);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  /* The command a step read as, above what came back. */
+  .command {
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+
+  .command:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Steps that read as themselves: an edit as a diff, with the way to its
+     file; the todo list; a question and its options. */
+  .edit {
+    display: grid;
+    gap: 6px;
+    margin: 2px 0 8px 27px;
+  }
+
+  .fileLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--text-sm);
+    color: var(--accent);
+  }
+
+  /* (Over the list's own margin, whichever module comes first.) */
+  .call .todos,
+  .question {
+    margin: 2px 0 8px 27px;
+    font-size: var(--text-sm);
+  }
+
+  .question ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    color: var(--dim);
+  }
+}

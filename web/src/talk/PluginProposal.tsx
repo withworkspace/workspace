@@ -4,7 +4,7 @@ import { Markdown } from "../markdown/LazyMarkdown";
 import { pluginIcon } from "../plugins/Plugin";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
 

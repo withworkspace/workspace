@@ -10,7 +10,7 @@ import { Skeleton } from "../ui/Skeleton";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { ChangeLine } from "./Activity";
 import { withoutTitle, wordsIn } from "./happening";
 import { Chip } from "../ui/Chip";

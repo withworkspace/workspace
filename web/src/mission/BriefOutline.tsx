@@ -1,7 +1,7 @@
 import { type MouseEvent, type RefObject, useEffect, useState } from "react";
 import type { Stage } from "../api";
 import { Icon } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { Keys } from "../ui/Keys";
 import { type Edit, editsBySection } from "./briefpage";
 import { PlanList } from "./PlanList";

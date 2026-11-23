@@ -1,6 +1,6 @@
 import type { Repo, Workspace } from "../api";
 import { type IconName, icons } from "../ui/Icon";
-import { stripGlyph } from "../ui/status";
+import { stripGlyph } from "../ui/statusOf";
 import type { Named, PageRef } from "./refs";
 import { clip } from "../ui/text";
 

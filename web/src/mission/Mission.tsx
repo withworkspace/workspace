@@ -23,20 +23,22 @@ import { type KeyMap, useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { TalkList, talkHref } from "../talk/Talk";
 import { Icon, type IconName } from "../ui/Icon";
+import { StatusIcon } from "../ui/StatusIcon";
 import { Crumbs } from "../ui/Crumbs";
 import { CheckingNow, checkingTitle } from "./checking";
-import { Inline, plain } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
 import { Empty } from "../ui/Empty";
-import { humanError } from "../ui/text";
+import { humanError, plain } from "../ui/text";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Callout, type CalloutTone } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
-import { headlineStatus, missionStateStatus, Status } from "../ui/status";
-import { Time } from "../ui/time";
+import { Status } from "../ui/Status";
+import { headlineStatus, missionStateStatus } from "../ui/statusOf";
+import { Time } from "../ui/Time";
 import { RefContext } from "../refs/context";
 import { useRefs } from "../refs/known";
 import { refAt, refKey } from "../refs/refs";
@@ -871,9 +873,7 @@ function Lead({
         <div className="lead-body">
           {step && <div className="lead-step">{step}</div>}
           <div className="lead-line">
-            <span className={`status tone-${tone}${live ? " live" : ""} lead-icon`}>
-              <Icon name={icon} size={20} />
-            </span>
+            <StatusIcon icon={icon} tone={tone} live={live} size={20} className="lead-icon" />
             <h2 className="lead-title">{title}</h2>
           </div>
           <div className="lead-text">{children}</div>
