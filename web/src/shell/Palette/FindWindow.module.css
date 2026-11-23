@@ -1,0 +1,18 @@
+/* Find's box (FindWindow.tsx): what's typed, the list and its foot down
+   it, and beside them on a wide window, a pane for what the cursor's on. */
+
+.window {
+  display: flex;
+  width: min(640px, 100%);
+}
+
+.roomy {
+  width: min(1040px, 100%);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}

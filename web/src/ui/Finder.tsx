@@ -25,8 +25,8 @@ const Rows = createContext<{ id: string; at: number; over: (i: number) => void; 
 // It's driven by hand, not react-aria's autocomplete: that shows no
 // cursor until a key's pressed, and the pointer doesn't move it.
 //
-// Find itself (shell/Palette.tsx) is more than this, but draws its box
-// and its text box's row as this does: finderBox and finderInput.
+// Find itself (shell/Palette) is more than this, but draws its box and
+// its text box's row as this does: finderBox and finderInput.
 export function Finder({
   value,
   onChange,

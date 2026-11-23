@@ -22,6 +22,16 @@ export const scenes = [
   // The window.
   at("find", "/", { key: "Meta+k" }),
   at("find, asked", "/", { key: "Meta+k" }, { type: "inv" }),
+  at("find: files", "/", { key: "Meta+k" }, { type: "/money", then: 900 }),
+  at("find: code", "/", { key: "Meta+k" }, { type: "%invoice", then: 1500 }),
+  at("find: pull requests", "/", { key: "Meta+k" }, { type: "#", then: 900 }),
+  at("find: things to do", "/", { key: "Meta+k" }, { type: ">" }),
+  at("find: only one kind", "/", { key: "Meta+k" }, { type: "inv", then: 900 }, { key: "Tab" }),
+  at("find: what can be done to a mission", "/", { key: "Meta+k" }, { type: "penny", then: 900 }, { key: "Meta+k" }),
+  at("find: a plugin's thing", "/", { key: "Meta+k" }, { type: "THING-2", then: 1200 }),
+  at("find: what was said", "/", { key: "Meta+k" }, { type: "rounding", then: 1200 }),
+  at("find: nothing", "/", { key: "Meta+k" }, { type: "zzqqxx", then: 900 }),
+  at("find: from a mission", penny, { key: "Meta+k", then: 900 }),
 
   // Missions.
   at("missions", "/"),

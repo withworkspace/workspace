@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { type CodeEnd, type CodeHit, codeNote, codeRematch, codeStream } from "../shell/find";
-import { CodeText, CodeWhere } from "../shell/CodeHitParts";
-import { FileIcon } from "../ui/FileIcon";
+import { FindCodeHit, findCodeHitClass } from "../shell/Palette/FindCodeHit";
+import { FindNote } from "../shell/Palette/FindNote";
 import { humanError } from "../ui/text";
 import { Finder, FinderNone, FinderRow } from "../ui/Finder";
+import css from "./CodeFinder.module.css";
 
 // CodeFinder is the explorer's own search, in a capsule: what its files
 // say, all of them (unchanged ones too: here you've chosen to look), as
@@ -64,18 +65,21 @@ export function CodeFinder({ repo, worktree, onPick, onClose }: { repo: string; 
       onPick={(i) => onPick(hits[i].path, hits[i].line)}
       onClose={onClose}
       busy={!got.done}
-      className="code-finder"
-      listClassName="find-list"
-      after={note && <p className={`find-note${got.end?.capped ? " find-capped" : ""}`}>{note}</p>}
+      listClassName={css.list}
+      after={
+        note && (
+          <FindNote foot capped={!!got.end?.capped}>
+            {note}
+          </FindNote>
+        )
+      }
     >
       {hits.map((h, i) => (
-        <FinderRow key={`${h.path}:${h.line}:${i}`} index={i} className="find-row find-code">
-              <FileIcon path={h.path} />
-              <CodeWhere h={h} />
-              <CodeText h={h} />
+        <FinderRow key={`${h.path}:${h.line}:${i}`} index={i} className={findCodeHitClass}>
+          <FindCodeHit h={h} />
         </FinderRow>
       ))}
-      {!hits.length && got.done && <FinderNone className="palette-none">{want ? `No file here says “${want}”.` : "Type text to find in every file of the capsule."}</FinderNone>}
+      {!hits.length && got.done && <FinderNone className={css.none}>{want ? `No file here says “${want}”.` : "Type text to find in every file of the capsule."}</FinderNone>}
     </Finder>
   );
 }

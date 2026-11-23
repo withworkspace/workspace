@@ -1,0 +1,37 @@
+/* What a row of Find's is called (FindTitle.tsx): one line, cut short. */
+
+.title {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hit {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* A path: its folders quiet, its name standing out, read from the end
+   when it's too long to fit. */
+.path {
+  font: var(--text-sm) var(--mono);
+  color: var(--dim);
+  direction: rtl;
+  text-align: left;
+}
+
+.path > bdi {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.path .name {
+  color: var(--fg);
+}
+
+.path .hit {
+  color: var(--accent);
+  font-weight: 700;
+}

@@ -1,0 +1,45 @@
+/* One thing Find found (FindRow.tsx): a line, with the cursor on it or
+   not. */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.on {
+  background: var(--selected);
+}
+
+/* Its mark keeps its size, whatever the line holds. */
+.row > :global(.icon) {
+  flex: none;
+  color: var(--dim);
+}
+
+.row > :global(.status) {
+  flex: none;
+}
+
+/* More about it: the room that's left, and cut short there. */
+.hint {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* What kind of thing it is, at the line's end. */
+.kind {
+  flex: none;
+  margin-left: auto;
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
