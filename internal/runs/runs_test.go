@@ -3,9 +3,11 @@ package runs
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -736,5 +738,34 @@ func TestAStartThatDiedGivesUpItsName(t *testing.T) {
 	r, started := ensure(t, s, dir, recipe("web", Owner{Kind: ByNone}, time.Hour), time.Now())
 	if !started || r.Name != "web" {
 		t.Errorf("started %v as %s, want web", started, r.Name)
+	}
+}
+
+// A run that listens on ::1 alone is listening, so its Ready path is asked
+// there too: it isn't left waiting on 127.0.0.1.
+func TestUpAsksTheReadyPathOnTheOtherLoopback(t *testing.T) {
+	l, err := net.Listen("tcp", "[::1]:0")
+	if err != nil {
+		t.Skip("no IPv6 loopback here:", err)
+	}
+	port := l.Addr().(*net.TCPAddr).Port
+	if c, err := net.Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port))); err == nil {
+		c.Close()
+		l.Close()
+		t.Skip("something else has the port on 127.0.0.1")
+	}
+	srv := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/health" {
+			http.Error(w, "not yet", http.StatusServiceUnavailable)
+		}
+	})}
+	go srv.Serve(l)
+	t.Cleanup(func() { srv.Close() })
+
+	if r := (Run{Port: port, Ready: "/health"}); !r.Up() {
+		t.Error("a run answering its Ready path on ::1 isn't up")
+	}
+	if r := (Run{Port: port, Ready: "/other"}); r.Up() {
+		t.Error("a run answering 503 on ::1 is up")
 	}
 }

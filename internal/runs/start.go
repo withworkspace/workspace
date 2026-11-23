@@ -2,6 +2,7 @@ package runs
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -377,7 +378,7 @@ func (r Run) Up() bool {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
-	client := http.Client{Timeout: time.Second}
+	client := http.Client{Timeout: time.Second, Transport: Loopback}
 	resp, err := client.Get(r.Link() + path)
 	if err != nil {
 		return false
@@ -386,9 +387,44 @@ func (r Run) Up() bool {
 	return resp.StatusCode < 500
 }
 
+// loopbacks are where a run may listen. A dev server that binds localhost
+// gets whichever the name gives first, which for Node can be ::1 alone.
+var loopbacks = []string{"127.0.0.1", "::1"}
+
+// Loopback is how a run is asked over HTTP: at its port on 127.0.0.1, and
+// with nothing listening there, on ::1. It's what Listening counts as up,
+// so a run that's up is one that answers.
+var Loopback http.RoundTripper = func() *http.Transport {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.Proxy = nil
+	t.DialContext = dialLoopback
+	return t
+}()
+
+// dialLoopback dials addr, and where that's 127.0.0.1 with nothing
+// listening, the same port on ::1. The first refusal is what's returned
+// when neither answers.
+func dialLoopback(ctx context.Context, network, addr string) (net.Conn, error) {
+	d := net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
+	c, err := d.DialContext(ctx, network, addr)
+	if err == nil || !errors.Is(err, syscall.ECONNREFUSED) {
+		return c, err
+	}
+	host, port, splitErr := net.SplitHostPort(addr)
+	if splitErr != nil || host != loopbacks[0] {
+		return nil, err
+	}
+	for _, other := range loopbacks[1:] {
+		if c, otherErr := d.DialContext(ctx, network, net.JoinHostPort(other, port)); otherErr == nil {
+			return c, nil
+		}
+	}
+	return nil, err
+}
+
 // Listening is whether something answers on the run's port.
 func (r Run) Listening() bool {
-	for _, host := range []string{"127.0.0.1", "::1"} {
+	for _, host := range loopbacks {
 		c, err := net.DialTimeout("tcp", net.JoinHostPort(host, strconv.Itoa(r.Port)), 200*time.Millisecond)
 		if err == nil {
 			c.Close()
