@@ -3,7 +3,7 @@ import { type ReactNode, type RefObject, useMemo, useSyncExternalStore } from "r
 import { useWorkspaceIfRead } from "../workspace/store";
 import { RefCard } from "../refs/RefCard";
 import { refOf } from "../refs/refs";
-import type { Anchor } from "../ui/hover";
+import type { Anchor } from "../ui/FloatingCard";
 import { ThingPromoteUi, ThingSaveUi } from "./ThingUis";
 import { anchorIn, type Asked, type FrameUis } from "./ui";
 

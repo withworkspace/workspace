@@ -4,7 +4,13 @@ import { getReviews, type PassMark, type PR, type PRState, type ReviewRow, type 
 import { useKeys } from "../keys";
 import { useReviewsMemory } from "./memory";
 import { Icon, type IconName } from "../ui/Icon";
-import { Callout, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
+import { Spinner } from "../ui/Spinner";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Loading } from "../ui/Loading";
+import { Empty } from "../ui/Empty";
+import { Callout } from "../ui/Callout";
+import { Keys } from "../ui/Keys";
 import { Status, type StatusInfo, type Tone } from "../ui/status";
 import { Time } from "../ui/time";
 import { useLatest } from "../load";
@@ -16,7 +22,7 @@ import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { GroupHead } from "../ui/GroupHead";
 import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
-import { capital } from "../ui/text";
+import { capital, humanError } from "../ui/text";
 import { Input } from "../ui/Input";
 import { useThingMenu } from "../shell/ThingMenu";
 
@@ -176,7 +182,7 @@ export function ReviewsPage() {
             <span className="dim reviews-asked" title="When GitHub was last asked. While this page is open it's asked every couple of minutes.">
               {loading ? (
                 <>
-                  <Icon name="spinner" className="spin" size={12} /> Asking GitHub…
+                  <Spinner size={12} /> Asking GitHub…
                 </>
               ) : (
                 <>

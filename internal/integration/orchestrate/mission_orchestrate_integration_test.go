@@ -417,3 +417,37 @@ func latestPrompt(t *testing.T, store mission.Store) string {
 	})
 	return files[len(files)-1]
 }
+
+// What the orchestrator tells crew, or asks you, can be given on stdin: a
+// check's command in backticks is then kept as it's written, where a
+// shell, given it in double quotes, would have run it and left a gap.
+func TestOrchestratorsWordsOnStdin(t *testing.T) {
+	w, store := testutil.OrchestrateFixture(t)
+	t.Setenv(mission.EnvMission, "cache")
+	t.Setenv("WS_ROLE", "orchestrator")
+
+	testutil.WithStdin(t, "Check 2 is unmet: `go test ./...` fails with \"no such $FILE\".\n")
+	testutil.Run(t, w, nil, "mission", "resume-with", "c1", "-")
+	got, _ := store.Load("cache")
+	if got.Crew[0].ResumeWith != "Check 2 is unmet: `go test ./...` fails with \"no such $FILE\"." {
+		t.Errorf("resume-with = %q", got.Crew[0].ResumeWith)
+	}
+
+	testutil.WithStdin(t, "Should `make gen` run in CI?\n")
+	testutil.Run(t, w, nil, "mission", "flag", "-")
+	if got, _ := store.Load("cache"); got.Asking() == nil || got.Asking().Text != "Should `make gen` run in CI?" {
+		t.Errorf("flag = %+v", got.Asking())
+	}
+
+	testutil.WithStdin(t, "Orchestrator: `go vet` is clean.\n")
+	testutil.Run(t, w, nil, "mission", "note", "-")
+	events, _ := store.ReadLog("cache", 1)
+	if len(events) != 1 || events[0].Text != "Orchestrator: `go vet` is clean." {
+		t.Errorf("note = %+v", events)
+	}
+
+	testutil.WithStdin(t, "  \n")
+	if r := testutil.RunCommand(t, w.Root, nil, "mission", "resume-with", "c1", "-"); r.Err == nil || !strings.Contains(r.Err.Error(), "say what's left") {
+		t.Errorf("nothing on stdin: %v", r.Err)
+	}
+}

@@ -3,7 +3,11 @@ import { useParams } from "react-router";
 import { type AppAt, type AppDetail, type AppPointer, getApp, openApp, pointApp, restartApp, stopApp } from "../api";
 import { useLatest } from "../load";
 import { Icon, type IconName, icons } from "../ui/Icon";
-import { ErrorCard, humanError, toast, useTitle } from "../ui/kit";
+import { Spinner } from "../ui/Spinner";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { humanError } from "../ui/text";
+import { ErrorCard } from "../ui/ErrorCard";
 import { Option, Select } from "../ui/Select";
 import { Button } from "../ui/Button";
 import { useWorkspace } from "../workspace/store";
@@ -220,7 +224,7 @@ function AppState({ app, stopped }: { app?: AppDetail; stopped: boolean }) {
       </span>
     ) : (
       <span className="app-state" title={`It ends ${run.ends}.`}>
-        <Icon name="spinner" size={13} className="spin" /> Starting
+        <Spinner size={13} /> Starting
       </span>
     );
   }

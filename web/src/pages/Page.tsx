@@ -57,9 +57,16 @@ import MarkdownEditor, { type Draft } from "../editor/MarkdownEditor";
 import { blockOf, type Note, noteElement, onPage, putInstead, setNotes } from "../editor/notes";
 import { linkNamed, type RefHost, type RefMark, refreshRefs } from "../editor/refs";
 import { Markdown } from "../markdown/LazyMarkdown";
+import { Banner } from "../ui/Banner";
 import { Calls } from "../ui/Calls";
 import { Icon, type IconName } from "../ui/Icon";
-import { ErrorCard, humanError, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
+import { Spinner } from "../ui/Spinner";
+import { useMedia } from "../ui/useMedia";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Loading } from "../ui/Loading";
+import { ErrorCard } from "../ui/ErrorCard";
+import { Keys } from "../ui/Keys";
 import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
 import { RefCard } from "../refs/RefCard";
@@ -67,13 +74,13 @@ import { useRefs } from "../refs/known";
 import { lookOf } from "../refs/views";
 import { findRefs, GROUND, isOutside, type Known, type PageRef, parseAddress, refAddress, refHref, refKey, refName, refOf } from "../refs/refs";
 import { useLoaded } from "../load";
-import { useHoverDelay } from "../ui/hover";
+import { useHoverDelay } from "../ui/useHoverDelay";
 import { Chip, chipClass } from "../ui/Chip";
 import { type Tone } from "../ui/tone";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { MoreLink } from "../ui/MoreLink";
-import { clip } from "../ui/text";
+import { clip, humanError } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Tab, Tabs } from "../ui/Tabs";
 import { Checkbox } from "../ui/Checkbox";
@@ -681,7 +688,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
             </Button>
           ) : (
             <Chip tone="progress" title={planning.turns[0]?.body}>
-              <Icon name="spinner" size={11} className="spin" /> Planning{planning.run?.calls.length ? `: ${doing(planning.run.calls.at(-1)!, workspace.root).toLowerCase()}` : "…"}
+              <Spinner size={11} /> Planning{planning.run?.calls.length ? `: ${doing(planning.run.calls.at(-1)!, workspace.root).toLowerCase()}` : "…"}
             </Chip>
           ))}
         <ToggleButton
@@ -767,42 +774,55 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
         />
       )}
       {tied?.changed && (
-        <div className="banner page-changed" role="alert">
-          <span>
-            <span className="mono">{tied.in?.path ?? tied.ref}</span> has changed since this page took it in. Bring in what changed before saving: it's merged with what you've written here.
-          </span>
-          <Button size="small" onClick={bringItIn} disabled={bringing}>
-            {bringing ? "Bringing it in…" : "Bring in what changed"}
-          </Button>
-        </div>
+        <Banner
+          tone="attention"
+          role="alert"
+          actions={
+            <Button size="small" onClick={bringItIn} disabled={bringing}>
+              {bringing ? "Bringing it in…" : "Bring in what changed"}
+            </Button>
+          }
+        >
+          <span className="mono">{tied.in?.path ?? tied.ref}</span> has changed since this page took it in. Bring in what changed before saving: it's merged with what you've written here.
+        </Banner>
       )}
       {tied?.gone && (
-        <div className="banner page-changed" role="alert">
-          <span>The file this page is tied to ({tied.ref}) isn't there any more: {tied.gone}.</span>
-        </div>
+        <Banner tone="attention" role="alert">
+          The file this page is tied to ({tied.ref}) isn't there any more: {tied.gone}.
+        </Banner>
       )}
       {filed && !tied && (
-        <div className="banner page-filed" role="status">
-          <Icon name="check" size={13} />
-          <span>
-            Filed as <Link to={docTo(filed.ref)} className="mono">{filed.ref.replace(":", " · ")}</Link>
-            {filed.landed ? ", landed" : ", in a capsule lifted for it"} <Time iso={filed.at} as="relative" />. It's edited there now: what you change here stays in the page.
-          </span>
-          <Link to={docTo(filed.ref)} className={buttonClass({ size: "small" })}>
-            Open the document
-          </Link>
-        </div>
+        <Banner
+          tone="done"
+          icon="check"
+          role="status"
+          actions={
+            <Link to={docTo(filed.ref)} className={buttonClass({ size: "small" })}>
+              Open the document
+            </Link>
+          }
+        >
+          Filed as <Link to={docTo(filed.ref)} className="mono">{filed.ref.replace(":", " · ")}</Link>
+          {filed.landed ? ", landed" : ", in a capsule lifted for it"} <Time iso={filed.at} as="relative" />. It's edited there now: what you change here stays in the page.
+        </Banner>
       )}
       {saving === "changed" && (
-        <div className="banner page-changed" role="alert">
-          <span>This page was changed somewhere else (another tab, perhaps) since you opened it here. Nothing more is saved from here until you choose.</span>
-          <Button size="small" onClick={reread}>
-            Read it again
-          </Button>
-          <Button size="small" onClick={keepMine}>
-            Keep what's here
-          </Button>
-        </div>
+        <Banner
+          tone="attention"
+          role="alert"
+          actions={
+            <>
+              <Button size="small" onClick={reread}>
+                Read it again
+              </Button>
+              <Button size="small" onClick={keepMine}>
+                Keep what's here
+              </Button>
+            </>
+          }
+        >
+          This page was changed somewhere else (another tab, perhaps) since you opened it here. Nothing more is saved from here until you choose.
+        </Banner>
       )}
       <Tabs className="page-tabs" value={tab} onChange={setTab} aria-label="The page, and passes over it">
         <Tab value="page">Page</Tab>
@@ -812,7 +832,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
             <Tab key={p.name} value={p.name} title={p.about}>
               {p.title}
               {p.running ? (
-                <Icon name="spinner" size={11} className="spin" />
+                <Spinner size={11} />
               ) : open > 0 ? (
                 <Count tone={p.moved ? undefined : "attention"} title={`${open} open${p.moved ? ", from before the page changed" : ""}`}>
                   {open}
@@ -1137,7 +1157,7 @@ function PassTab({
         <Button variant={pass.runs ? undefined : "primary"} disabled={busy || !!pass.unavailable} onClick={start}>
           {busy ? (
             <>
-              <Icon name="spinner" size={12} className="spin" /> Running…
+              <Spinner size={12} /> Running…
             </>
           ) : pass.runs ? (
             <>
@@ -1151,22 +1171,24 @@ function PassTab({
         </Button>
       </header>
       {pass.failed && !pass.running && (
-        <div className="banner pass-failed" role="alert">
-          <span>The last run couldn't finish. {pass.failed}</span>
-        </div>
+        <Banner>The last run couldn't finish. {pass.failed}</Banner>
       )}
       {pass.moved && !pass.running && !!pass.runs && (
-        <div className="banner page-changed">
-          <span>The page has changed since this ran: what's below is of the page as it was.</span>
-          <Button size="small" disabled={busy} onClick={start}>
-            Run again
-          </Button>
-        </div>
+        <Banner
+          tone="attention"
+          actions={
+            <Button size="small" disabled={busy} onClick={start}>
+              Run again
+            </Button>
+          }
+        >
+          The page has changed since this ran: what's below is of the page as it was.
+        </Banner>
       )}
       {pass.running && (
         <div className="pass-running">
           <div className="cell-version">
-            <Icon name="spinner" size={12} className="spin" />
+            <Spinner size={12} />
             <span>{pass.runs ? "Reading the page again" : "Reading the page"}</span>
           </div>
           <Calls calls={live} root={root} open live />
@@ -1301,7 +1323,7 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
         {cell.answering && (
           <li className="cell-turn filling">
             <div className="cell-version">
-              <Icon name="spinner" size={12} className="spin" />
+              <Spinner size={12} />
               <span>{askingNow(cell) ? "Finding out" : "Writing it into the page"}</span>
             </div>
             <Calls calls={live} root={root} open live />
@@ -1515,7 +1537,7 @@ function PageMap({
           {failed > 0 && <Chip tone="danger">{failed} not filled</Chip>}
           {filling > 0 && (
             <Chip tone="progress">
-              <Icon name="spinner" size={11} className="spin" /> {filling} filling
+              <Spinner size={11} /> {filling} filling
             </Chip>
           )}
         </div>
@@ -1549,7 +1571,7 @@ function PageMap({
                     if (c.state.status === "stale" || c.state.status === "failed") openCell(c.name);
                   }}
                 >
-                  <Icon name={stateIcon[c.state.status]} size={11} className={c.state.status === "filling" || c.state.status === "starting" ? "spin" : undefined} />
+                  {c.state.status === "filling" || c.state.status === "starting" ? <Spinner size={11} /> : <Icon name={stateIcon[c.state.status]} size={11} />}
                   <span>{clip(c.prompt, 70)}</span>
                 </button>
               </li>
@@ -1566,7 +1588,7 @@ function PageMap({
               return (
                 <li key={p.name}>
                   <button className={`map-item map-cell${p.running ? " s-filling" : p.moved ? " s-stale" : " s-filled"}`} title={p.about} onClick={() => toPass(p.name)}>
-                    <Icon name={p.running ? "spinner" : p.moved ? "alert" : "check"} size={11} className={p.running ? "spin" : undefined} />
+                    {p.running ? <Spinner size={11} /> : <Icon name={p.moved ? "alert" : "check"} size={11} />}
                     <span>
                       {p.title}
                       {p.running ? ": running" : `: ${open} open${p.moved ? ", the page has changed since" : ""}`}
@@ -1918,7 +1940,7 @@ function CellPanel({
           {cell.answering && (
             <li className="cell-turn filling">
               <div className="cell-version">
-                <Icon name="spinner" size={12} className="spin" />
+                <Spinner size={12} />
                 <span>{askingNow(cell) ? "Answering" : all.length ? "Writing it again" : "Filling it in"}</span>
               </div>
               <Calls calls={live} root={root} open live />

@@ -1,3 +1,4 @@
+import { HoverCardHead, HoverCardLine, hoverCardLinkClass, HoverCardTitle } from "../ui/HoverCard";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { useLoaded } from "../load";
@@ -12,7 +13,7 @@ import { goneCapsule, GROUND, isOutside, type Known, namedOf, type PageRef, refH
 import { type Surface, thingBlocks } from "./thing";
 import { type Pointer, ThingView, useThing } from "./ThingView";
 import { thingIcon } from "./views";
-import { type Anchor, FloatingCard } from "../ui/hover";
+import { type Anchor, FloatingCard } from "../ui/FloatingCard";
 import { PinButton } from "../shell/focus";
 import { prOf } from "./prs";
 import { Chip } from "../ui/Chip";
@@ -74,12 +75,12 @@ const excerptRoom = 12;
 function Gone({ r, there }: { r: Extract<PageRef, { kind: "file" | "dir" }>; there: boolean }) {
   return (
     <>
-      <span className="hovercard-line dim">
+      <HoverCardLine dim>
         The capsule {r.worktree} is gone{r.commit ? ` (it was at ${r.commit.slice(0, 7)})` : ""}.{" "}
         {there ? "On the default branch now:" : "It isn't on the default branch either."}
-      </span>
+      </HoverCardLine>
       {there && (
-        <Link to={refHref({ ...r, worktree: GROUND })} className="hovercard-link">
+        <Link to={refHref({ ...r, worktree: GROUND })} className={hoverCardLinkClass()}>
           On the default branch now <Icon name="arrow-right" size={11} />
         </Link>
       )}
@@ -103,20 +104,20 @@ function FileCard({ r: named, known }: { r: Extract<PageRef, { kind: "file" }>; 
   const where = r.worktree === GROUND ? "default branch" : r.worktree;
   return (
     <>
-      <span className="hovercard-head">
+      <HoverCardHead>
         <Icon name="file" size={13} className="dim" />
-        <span className="hovercard-title mono">{r.path}</span>
-      </span>
-      <span className="hovercard-line dim">
+        <HoverCardTitle className="mono">{r.path}</HoverCardTitle>
+      </HoverCardHead>
+      <HoverCardLine dim>
         {r.repo}, {where}
         {r.line ? `, line${r.endLine && r.endLine > r.line ? `s ${r.line} to ${r.endLine}` : ` ${r.line}`}` : file ? `, ${file.lines.length} lines` : ""}
-      </span>
+      </HoverCardLine>
       {gone && <Gone r={named} there={!!file} />}
-      {error && !gone && <span className="hovercard-line dim">It can't be read: {error}</span>}
-      {named.commit && !gone && <span className="hovercard-line dim">Named at {named.commit.slice(0, 7)}.</span>}
-      {file?.binary && <span className="hovercard-line dim">Not text.</span>}
-      {file?.tooLarge && <span className="hovercard-line dim">Too large to show here.</span>}
-      {r.line && file && r.line > file.lines.length && <span className="hovercard-line dim">The file has only {file.lines.length} lines now.</span>}
+      {error && !gone && <HoverCardLine dim>It can't be read: {error}</HoverCardLine>}
+      {named.commit && !gone && <HoverCardLine dim>Named at {named.commit.slice(0, 7)}.</HoverCardLine>}
+      {file?.binary && <HoverCardLine dim>Not text.</HoverCardLine>}
+      {file?.tooLarge && <HoverCardLine dim>Too large to show here.</HoverCardLine>}
+      {r.line && file && r.line > file.lines.length && <HoverCardLine dim>The file has only {file.lines.length} lines now.</HoverCardLine>}
       {lines.length > 0 && (
         <span className="ref-excerpt">
           {lines.map((l, i) => (
@@ -128,7 +129,7 @@ function FileCard({ r: named, known }: { r: Extract<PageRef, { kind: "file" }>; 
           {file && to < file.lines.length && <span className="ref-code more">…</span>}
         </span>
       )}
-      <Link to={refHref(r, known)} className="hovercard-link">
+      <Link to={refHref(r, known)} className={hoverCardLinkClass()}>
         Open it in Files <Icon name="arrow-right" size={11} />
       </Link>
     </>
@@ -150,17 +151,17 @@ function DirCard({ r: named, known }: { r: Extract<PageRef, { kind: "dir" }>; kn
   const names = [...inside].sort((a, b) => Number(b.endsWith("/")) - Number(a.endsWith("/")) || a.localeCompare(b));
   return (
     <>
-      <span className="hovercard-head">
+      <HoverCardHead>
         <Icon name="layers" size={13} className="dim" />
-        <span className="hovercard-title mono">{r.path}/</span>
-      </span>
-      <span className="hovercard-line dim">
+        <HoverCardTitle className="mono">{r.path}/</HoverCardTitle>
+      </HoverCardHead>
+      <HoverCardLine dim>
         {r.repo}, {r.worktree === GROUND ? "default branch" : r.worktree}
         {tree && !tree.unread ? `, ${names.length} ${names.length === 1 ? "thing" : "things"} in it` : ""}
-      </span>
-      {tree?.unread && <span className="hovercard-line dim">Its files are still being read.</span>}
+      </HoverCardLine>
+      {tree?.unread && <HoverCardLine dim>Its files are still being read.</HoverCardLine>}
       {gone && !tree?.unread && <Gone r={named} there={names.length > 0} />}
-      {error && <span className="hovercard-line dim">It can't be read: {error}</span>}
+      {error && <HoverCardLine dim>It can't be read: {error}</HoverCardLine>}
       {names.length > 0 && (
         <span className="ref-excerpt">
           {names.slice(0, excerptRoom).map((n) => (
@@ -172,7 +173,7 @@ function DirCard({ r: named, known }: { r: Extract<PageRef, { kind: "dir" }>; kn
           {names.length > excerptRoom && <span className="ref-code more">…</span>}
         </span>
       )}
-      <Link to={refHref(r)} className="hovercard-link">
+      <Link to={refHref(r)} className={hoverCardLinkClass()}>
         Open it in Files <Icon name="arrow-right" size={11} />
       </Link>
     </>
@@ -186,24 +187,24 @@ function RepoCard({ r, label }: { r: Extract<PageRef, { kind: "repo" }>; label?:
   const capsules = (wts ?? []).filter((w) => !w.ground);
   return (
     <>
-      <span className="hovercard-head">
+      <HoverCardHead>
         <Icon name="box" size={13} className="dim" />
-        <span className="hovercard-title">{label || r.repo}</span>
+        <HoverCardTitle>{label || r.repo}</HoverCardTitle>
         {label && label !== r.repo && <span className="dim mono">{r.repo}</span>}
-      </span>
+      </HoverCardHead>
       {ground && (
-        <span className="hovercard-line dim">
+        <HoverCardLine dim>
           Default branch {ground.branch}
           {ground.behind ? `, ${ground.behind} behind` : ""}
-        </span>
+        </HoverCardLine>
       )}
       {wts && (
-        <span className="hovercard-line dim">
+        <HoverCardLine dim>
           {capsules.length === 0 ? "No capsules" : `${capsules.length} ${capsules.length === 1 ? "capsule" : "capsules"}: ${capsules.map((c) => c.name).join(", ")}`}
-        </span>
+        </HoverCardLine>
       )}
-      {error && <span className="hovercard-line dim">It can't be read: {error}</span>}
-      <Link to={refHref(r)} className="hovercard-link">
+      {error && <HoverCardLine dim>It can't be read: {error}</HoverCardLine>}
+      <Link to={refHref(r)} className={hoverCardLinkClass()}>
         Open it in Files <Icon name="arrow-right" size={11} />
       </Link>
     </>
@@ -214,28 +215,28 @@ function PRCard({ r }: { r: Extract<PageRef, { kind: "pr" }> }) {
   const { value: pr, error } = useLoaded(() => prOf(r.repo, r.number), [r.repo, r.number]);
   return (
     <>
-      <span className="hovercard-head">
+      <HoverCardHead>
         <Icon name="pr" size={13} className="dim" />
-        <span className="hovercard-title">{pr ? pr.title : `${r.repo}#${r.number}`}</span>
-      </span>
+        <HoverCardTitle>{pr ? pr.title : `${r.repo}#${r.number}`}</HoverCardTitle>
+      </HoverCardHead>
       {pr && (
         <>
-          <span className="hovercard-line dim">
+          <HoverCardLine dim>
             {r.repo}#{r.number}, by {pr.author}
             {pr.draft ? ", a draft" : ""}
-          </span>
-          <span className="hovercard-line">
+          </HoverCardLine>
+          <HoverCardLine>
             {pr.words}
             {pr.checks && <Chip className="line-chip" tone={pr.checks === "success" ? "done" : pr.checks === "failure" ? "danger" : "quiet"}>checks {pr.checks === "success" ? "pass" : pr.checks === "failure" ? "fail" : "running"}</Chip>}
-          </span>
-          <span className="hovercard-line dim">
+          </HoverCardLine>
+          <HoverCardLine dim>
             +{pr.additions} −{pr.deletions}, {pr.files} {pr.files === 1 ? "file" : "files"}
-          </span>
+          </HoverCardLine>
         </>
       )}
-      {error && <span className="hovercard-line dim">GitHub wasn't asked, or has no such pull request here.</span>}
-      {!pr && !error && <span className="hovercard-line dim">Asking…</span>}
-      <Link to={refHref(r)} className="hovercard-link">
+      {error && <HoverCardLine dim>GitHub wasn't asked, or has no such pull request here.</HoverCardLine>}
+      {!pr && !error && <HoverCardLine dim>Asking…</HoverCardLine>}
+      <Link to={refHref(r)} className={hoverCardLinkClass()}>
         Review it <Icon name="arrow-right" size={11} />
       </Link>
     </>
@@ -254,33 +255,33 @@ function ArtifactCard({ r }: { r: Extract<PageRef, { kind: "artifact" }> }) {
   const st = brief && artifactStatus(brief);
   return (
     <>
-      <span className="hovercard-head">
+      <HoverCardHead>
         <Icon name="artifact" size={13} className="dim" />
-        <span className="hovercard-title">{brief?.title ?? r.id}</span>
-      </span>
-      {!brief && <span className="hovercard-line dim">This machine has no artifact {r.id}.</span>}
+        <HoverCardTitle>{brief?.title ?? r.id}</HoverCardTitle>
+      </HoverCardHead>
+      {!brief && <HoverCardLine dim>This machine has no artifact {r.id}.</HoverCardLine>}
       {brief && (
-        <span className="hovercard-line dim">
+        <HoverCardLine dim>
           {r.version ? `${r.id}.v${r.version}, ` : `${r.id}, `}
           {v ? `v${v.n} of ${brief.versions}` : d ? `it has no v${n}: ${d.all.map((x) => `v${x.n}`).join(", ")}` : `${brief.versions} ${brief.versions === 1 ? "version" : "versions"}`}
           {st && <Chip className="line-chip" tone={st.tone}>{st.words}</Chip>}
-        </span>
+        </HoverCardLine>
       )}
       {v?.note && (
-        <span className="hovercard-line">
+        <HoverCardLine>
           <Inline text={v.note} lines={4} />
-        </span>
+        </HoverCardLine>
       )}
       {v && (
-        <span className="hovercard-line dim">
+        <HoverCardLine dim>
           {byWords(v)}
           {v.from ? `, from ${v.from}` : ""}
           {v.fromTitle ? ` (${v.fromTitle})` : ""}
-        </span>
+        </HoverCardLine>
       )}
-      {error && brief && <span className="hovercard-line dim">It can't be read: {error}</span>}
+      {error && brief && <HoverCardLine dim>It can't be read: {error}</HoverCardLine>}
       {brief && (
-        <Link to={refHref(r)} className="hovercard-link">
+        <Link to={refHref(r)} className={hoverCardLinkClass()}>
           Open the artifact <Icon name="arrow-right" size={11} />
         </Link>
       )}
@@ -328,33 +329,33 @@ export function ThingCard({
         <ThingView named={named} record={thing} surface={surface} pointer={pointer} />
       ) : (
         <>
-          <span className="hovercard-head">
+          <HoverCardHead>
             <Icon name={thingIcon(named)} size={13} className="dim" />
-            <span className="hovercard-title">{r.id}</span>
-          </span>
-          <span className="hovercard-line dim">
+            <HoverCardTitle>{r.id}</HoverCardTitle>
+          </HoverCardHead>
+          <HoverCardLine dim>
             {named?.title || `${r.plugin} ${what}`} {r.id}
-          </span>
+          </HoverCardLine>
         </>
       )}
       {thing === null && (
-        <span className="hovercard-line dim">
+        <HoverCardLine dim>
           {r.plugin} has no {what} called {r.id}.
-        </span>
+        </HoverCardLine>
       )}
       {error && (
-        <span className="hovercard-line dim">
+        <HoverCardLine dim>
           {r.plugin} couldn't be asked about it: {error}
-        </span>
+        </HoverCardLine>
       )}
-      {thing === undefined && !error && <span className="hovercard-line dim">Asking {r.plugin}…</span>}
+      {thing === undefined && !error && <HoverCardLine dim>Asking {r.plugin}…</HoverCardLine>}
       {/* One that isn't there has nowhere to go. */}
       {thing === null ? null : isOutside(href) ? (
-        <a href={href} target="_blank" rel="noreferrer" className="hovercard-link">
+        <a href={href} target="_blank" rel="noreferrer" className={hoverCardLinkClass()}>
           Open the {what} <Icon name="external" size={11} />
         </a>
       ) : (
-        <Link to={href} className="hovercard-link">
+        <Link to={href} className={hoverCardLinkClass()}>
           Open the {what} <Icon name="arrow-right" size={11} />
         </Link>
       )}
@@ -376,10 +377,10 @@ function body(r: PageRef, workspace: Workspace, known?: Known, repos?: Map<strin
       const m = workspace.missions.find((x) => x.slug === r.slug);
       return (
         <>
-          <span className="hovercard-head">
+          <HoverCardHead>
             <Icon name="flag" size={13} className="dim" />
-            <span className="hovercard-title">{m?.title ?? r.slug}</span>
-          </span>
+            <HoverCardTitle>{m?.title ?? r.slug}</HoverCardTitle>
+          </HoverCardHead>
           {m && (
             <>
               <Status s={headlineStatus(m.headline)} />
@@ -390,7 +391,7 @@ function body(r: PageRef, workspace: Workspace, known?: Known, repos?: Map<strin
               )}
             </>
           )}
-          <Link to={refHref(r)} className="hovercard-link">
+          <Link to={refHref(r)} className={hoverCardLinkClass()}>
             Open the mission <Icon name="arrow-right" size={11} />
           </Link>
         </>
@@ -400,17 +401,17 @@ function body(r: PageRef, workspace: Workspace, known?: Known, repos?: Map<strin
       const p = workspace.pages?.find((x) => x.id === r.id);
       return (
         <>
-          <span className="hovercard-head">
+          <HoverCardHead>
             <Icon name="file" size={13} className="dim" />
-            <span className="hovercard-title">{p?.title ?? r.id}</span>
-          </span>
-          <span className="hovercard-line dim">
+            <HoverCardTitle>{p?.title ?? r.id}</HoverCardTitle>
+          </HoverCardHead>
+          <HoverCardLine dim>
             Page {r.id}
             {p?.cells ? `, ${p.cells} ${p.cells === 1 ? "cell" : "cells"}` : ""}
             {p?.findings ? `, ${p.findings} open` : ""}
             {p?.stale ? `, ${p.stale} out of date` : ""}
-          </span>
-          <Link to={refHref(r)} className="hovercard-link">
+          </HoverCardLine>
+          <Link to={refHref(r)} className={hoverCardLinkClass()}>
             Open the page <Icon name="arrow-right" size={11} />
           </Link>
         </>
@@ -420,16 +421,16 @@ function body(r: PageRef, workspace: Workspace, known?: Known, repos?: Map<strin
       const t = workspace.conversations.find((x) => x.id === r.id);
       return (
         <>
-          <span className="hovercard-head">
+          <HoverCardHead>
             <Icon name="message" size={13} className="dim" />
-            <span className="hovercard-title">{t?.title || t?.opening || r.id}</span>
-          </span>
+            <HoverCardTitle>{t?.title || t?.opening || r.id}</HoverCardTitle>
+          </HoverCardHead>
           {t?.summary && (
             <span className="dim">
               <Inline text={t.summary} lines={4} />
             </span>
           )}
-          <Link to={refHref(r)} className="hovercard-link">
+          <Link to={refHref(r)} className={hoverCardLinkClass()}>
             Open the conversation <Icon name="arrow-right" size={11} />
           </Link>
         </>

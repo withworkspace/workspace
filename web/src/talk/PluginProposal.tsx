@@ -3,6 +3,7 @@ import { type PluginProposalItem, type TalkProposal } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { pluginIcon } from "../plugins/Plugin";
 import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/inline";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
@@ -109,7 +110,7 @@ export function PluginProposalCard({
         <div className="proposal-actions">
           {busy && (
             <span className="dim busy">
-              <Icon name="spinner" className="spin" /> {p.plugin} is doing it…
+              <Spinner /> {p.plugin} is doing it…
             </span>
           )}
           <span className="spacer" />

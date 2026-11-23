@@ -1,5 +1,5 @@
 import { changeFocus, type FocusPin } from "../api";
-import { toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { useWorkspaceStore } from "../workspace/store";
 
 // Writes of your pins (Focus, shell/focus.tsx), from wherever one's

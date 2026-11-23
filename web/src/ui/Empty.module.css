@@ -1,0 +1,67 @@
+/* An empty place (Empty.tsx): an icon, a title, a sentence, what to do. */
+
+@layer ui {
+  .empty {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--dim);
+  }
+
+  .icon {
+    color: var(--faint);
+    margin-bottom: 4px;
+  }
+
+  .title {
+    color: var(--fg);
+    font-weight: 600;
+  }
+
+  .text {
+    max-width: 34em;
+  }
+
+  .action {
+    margin-top: 8px;
+  }
+
+  /* A page's whole news: its icon in a disc, its words a size up. */
+  .big {
+    gap: 8px;
+  }
+
+  .disc {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 6px;
+    border-radius: 50%;
+    background: var(--well);
+    color: var(--dim);
+    animation: global(pop) var(--slow) var(--ease);
+  }
+
+  .done {
+    background: var(--done-soft);
+    color: var(--green);
+  }
+
+  .big .title {
+    font-size: var(--text-xl);
+    letter-spacing: -0.01em;
+  }
+
+  .big .text {
+    max-width: 44em;
+    font-size: var(--text-md);
+    line-height: 1.55;
+  }
+
+  .big .action {
+    margin-top: 14px;
+  }
+}

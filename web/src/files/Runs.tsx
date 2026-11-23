@@ -3,7 +3,10 @@ import { endRun, type RunDetail, runInWorktree, type WorktreeRunsInfo } from "..
 import type { Reload } from "../load";
 import { RunLine } from "../mission/Runs";
 import { Icon } from "../ui/Icon";
-import { Empty, humanError, toast } from "../ui/kit";
+import { Spinner } from "../ui/Spinner";
+import { toast } from "../ui/toast";
+import { Empty } from "../ui/Empty";
+import { humanError } from "../ui/text";
 import { Button } from "../ui/Button";
 
 // A ground's or capsule's Runs tab on the Files page (ws run): what's
@@ -65,7 +68,7 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
               onClick={() => start(n)}
               title={tasks.has(n) ? `Run its ${n} task, from its ws.repo.toml: what it comes to is kept` : `Run its ${n} recipe, from its ws.repo.toml, while you have it open here`}
             >
-              <Icon name={busy === n ? "spinner" : "play"} size={11} /> {busy === n ? `Starting ${n}…` : `Run ${n}`}
+              {busy === n ? <Spinner size={11} /> : <Icon name="play" size={11} />} {busy === n ? `Starting ${n}…` : `Run ${n}`}
             </Button>
           ))}
         </div>

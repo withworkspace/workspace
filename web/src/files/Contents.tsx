@@ -1,6 +1,6 @@
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "../ui/Icon";
-import { Keys } from "../ui/kit";
+import { Keys } from "../ui/Keys";
 import { progress, railRoom, type Section, sectionAt } from "./reading";
 import { Button } from "../ui/Button";
 import { pageScroller } from "../ui/scroller";

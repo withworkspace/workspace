@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { type DismissWhy, type PassFinding, type PassMark, type ReviewPass, runPRPass, settlePRFinding } from "../api";
 import { FindingActions, followWords, reviewDismissWhys } from "../review/Findings";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/inline";
-import { humanError, toast } from "../ui/kit";
+import { toast } from "../ui/toast";
 import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
-import { clip } from "../ui/text";
+import { clip, humanError } from "../ui/text";
 import { Checkbox } from "../ui/Checkbox";
 import { Excerpt } from "../ui/Excerpt";
 
@@ -142,7 +144,7 @@ function PassView({
     <article className={`review-pass st-${p.standing.status}`}>
       <header>
         <span className={`rpass-standing st-${p.standing.status}`}>
-          <Icon name={running ? "spinner" : standingIcon(p.standing)} size={13} className={running ? "spin" : undefined} /> {running && p.runs ? "Running again" : standingWords(p.standing)}
+          {running ? <Spinner size={13} /> : <Icon name={standingIcon(p.standing)} size={13} />} {running && p.runs ? "Running again" : standingWords(p.standing)}
         </span>
         <strong>{p.title}</strong>
         <span className="dim rpass-about">{p.about}</span>
@@ -163,7 +165,7 @@ function PassView({
         </Button>
       </header>
       {p.unavailable && <p className="dim rpass-note">It can't be run: {p.unavailable}.</p>}
-      {p.failed && !running && <div className="banner">{humanError(p.failed)}</div>}
+      {p.failed && !running && <Banner>{humanError(p.failed)}</Banner>}
       {running && steps.length > 0 && (
         <p className="dim rpass-note mono">
           {steps.length} {steps.length === 1 ? "step" : "steps"}: {clip(`${steps[steps.length - 1].tool} ${steps[steps.length - 1].input ?? ""}`, 110)}
@@ -274,7 +276,7 @@ export function PassMarks({ passes }: { passes?: ReviewPass[] }) {
         const running = !!p.running || p.standing.status === "running";
         return (
           <span key={p.name} className={`rpass-mark st-${running ? "running" : p.standing.status}`} title={`${p.title}: ${running ? "running" : standingWords(p.standing).toLowerCase()}`}>
-            <Icon name={running ? "spinner" : standingIcon(p.standing)} size={11} className={running ? "spin" : undefined} />
+            {running ? <Spinner size={11} /> : <Icon name={standingIcon(p.standing)} size={11} />}
           </span>
         );
       })}
@@ -294,7 +296,7 @@ export function RowPasses({ marks }: { marks?: PassMark[] }) {
           className={`rpass-standing st-${m.standing.status}${m.moved ? " moved" : ""}`}
           title={`The ${m.title} pass: ${standingWords(m.standing).toLowerCase()}${m.moved ? ". It's been pushed to since it ran" : ""}`}
         >
-          <Icon name={m.standing.status === "running" ? "spinner" : standingIcon(m.standing)} size={11} className={m.standing.status === "running" ? "spin" : undefined} /> {m.title}:{" "}
+          {m.standing.status === "running" ? <Spinner size={11} /> : <Icon name={standingIcon(m.standing)} size={11} />} {m.title}:{" "}
           {standingWords(m.standing).toLowerCase()}
         </span>
       ))}

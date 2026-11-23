@@ -376,3 +376,45 @@ func TestPRStep_MergeAtTheLastStepWakesTheOrchestrator(t *testing.T) {
 		t.Errorf("the last step: step 1 %+v, orchestrator ran %v", st.Record, *runs)
 	}
 }
+
+// headlineWith is the cache mission's headline, as a page has it, with
+// GitHub's lists as prs.
+func headlineWith(t *testing.T, w *Workspace, prs PRIndex) mission.Headline {
+	t.Helper()
+	m, err := w.Missions.Load("cache")
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := BuildMissionViewsFrom(w.WS(), prs, []*mission.Mission{m})[0]
+	events, _ := w.Missions.ReadLog("cache", 0)
+	return mission.Resolve(MissionSnapshot(v, "", events, nil, mission.DocThreads{}, false))[0]
+}
+
+// A pull request ws has seen open, which GitHub's lists as ws has them
+// don't have yet (ws has only just opened it, or its daemon's only just
+// started), is said as it was last seen: the mission waits on it, and
+// isn't one nobody's on. Nothing known of how it stands, it's ws's to ask,
+// not ready to merge. What GitHub says, once it has, is what's said; and
+// one seen closed isn't said to be open.
+func TestPRStep_SeenBeforeGitHubIsAsked(t *testing.T) {
+	w, _, _ := prFixture(t)
+	if h := headlineWith(t, w, PRIndex{}); h.Kind != mission.KindChecksRunning || !strings.Contains(h.Text, "frontend#5's checks are running") {
+		t.Errorf("last seen with its checks pending: %+v", h)
+	}
+
+	w.Missions.SeePR("cache", "frontend/one", mission.SeenPR{Number: 5})
+	h := headlineWith(t, w, PRIndex{})
+	if h.Court != mission.CourtAgent || h.Kind != mission.KindMovingOn || h.Text != "frontend#5 is open: ws is asking GitHub how its checks and review stand" {
+		t.Errorf("only just opened: %+v", h)
+	}
+
+	open := PRIndex{"frontend": repoPRs{open: map[string]*github.PR{"one": {Number: 5, HeadRefName: "one", ReviewDecision: "REVIEW_REQUIRED"}}}}
+	if h := headlineWith(t, w, open); h.Kind != mission.KindAwaitingReview {
+		t.Errorf("as GitHub has it: %+v", h)
+	}
+
+	w.Missions.SeePR("cache", "frontend/one", mission.SeenPR{Number: 5, Closed: true})
+	if h := headlineWith(t, w, PRIndex{}); h.Kind == mission.KindMovingOn || h.Kind == mission.KindChecksRunning || strings.Contains(h.Text, "frontend#5") {
+		t.Errorf("seen closed: %+v", h)
+	}
+}

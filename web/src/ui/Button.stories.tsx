@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Link } from "react-router";
 import { Button, type ButtonLook, buttonClass } from "./Button";
 import { Icon } from "./Icon";
-import { Keys } from "./kit";
+import { Keys } from "./Keys";
 
 // Buttons: each variant, plain and small, then disabled, with an icon,
 // with a key, square (an icon alone), and a link drawn as a button.

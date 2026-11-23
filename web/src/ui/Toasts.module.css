@@ -1,0 +1,16 @@
+/* Toasts (Toasts.tsx): where they're said, at the foot of the window. */
+
+@layer ui {
+  .toasts {
+    position: fixed;
+    left: 50%;
+    /* Clear of the foot, where there is one (chrome/Shell). */
+    bottom: calc(20px + var(--foot-height, 0px));
+    transform: translateX(-50%);
+    z-index: 200;
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+    pointer-events: none;
+  }
+}

@@ -1,0 +1,43 @@
+/* A toast (ToastPill.tsx): what an action did, in a dark pill. */
+
+@layer ui {
+  .toast {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: min(560px, calc(100vw - 32px));
+    padding: 8px 14px;
+    border-radius: var(--radius-lg);
+    background: var(--fg);
+    color: var(--bg);
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+    animation: global(rise) var(--slow) var(--ease);
+  }
+
+  .danger :global(.icon) {
+    color: var(--red-fill);
+  }
+
+  .done :global(.icon) {
+    color: var(--green-fill);
+  }
+
+  /* The toast is the text colour, so it's dark in the light theme: its link
+     is the accent as it reads on a dark surface, whatever the pick (the
+     light page's accent can be as dark as the toast). Hovered too: a
+     link's own hover is the text colour, which is the toast's. */
+  .toast .action,
+  .toast .action:hover {
+    font-weight: 600;
+    color: var(--accent-lifted);
+    margin-left: 4px;
+  }
+
+  /* In the dark theme the toast is light, so its link is the light page's
+     button, hovered. */
+  :global(:root[data-theme="dark"]) .toast .action,
+  :global(:root[data-theme="dark"]) .toast .action:hover {
+    color: oklch(from var(--brand-1) calc(l - 0.041) c h);
+  }
+}

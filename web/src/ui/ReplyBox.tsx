@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useKeys } from "../keys";
 import { Button } from "./Button";
-import { useAutosize } from "./kit";
+import { useAutosize } from "./useAutosize";
 import css from "./ReplyBox.module.css";
 import { TextArea } from "./TextArea";
 

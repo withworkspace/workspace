@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef, useState } from "react";
-import { useAutosize } from "./kit";
+import { useAutosize } from "./useAutosize";
 import { TextArea } from "./TextArea";
 
 // Text areas: empty, with words, growing with what's typed (useAutosize),

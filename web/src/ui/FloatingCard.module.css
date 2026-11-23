@@ -1,0 +1,26 @@
+/* A hover card's panel (FloatingCard.tsx): more about something, drawn
+   over the page by it. Where it is, react-aria says. */
+
+@layer ui {
+  .card {
+    --backdrop: var(--raised);
+    --well: var(--panel);
+    display: grid;
+    /* One column, the card's width: a long name is cut short in it, and
+       doesn't widen it. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    width: 280px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--raised);
+    box-shadow: var(--shadow-lg);
+    font-size: var(--text-sm);
+    font-weight: 400;
+    color: var(--fg);
+    text-align: left;
+    white-space: normal;
+    animation: global(pop) var(--fast) var(--ease);
+  }
+}

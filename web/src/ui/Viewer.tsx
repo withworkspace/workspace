@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useKeys } from "../keys";
 import { Icon } from "./Icon";
-import { Keys } from "./kit";
+import { Keys } from "./Keys";
 import { Button, buttonClass } from "./Button";
 
 // The viewer: a picture (an image, an SVG, a Mermaid diagram) over the

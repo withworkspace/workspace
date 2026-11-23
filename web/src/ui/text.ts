@@ -10,3 +10,12 @@ export function clip(s: string, n: number): string {
 export function capital(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+// humanError makes a server's error a sentence: capitalised, ending in a
+// full stop.
+export function humanError(e: string): string {
+  const s = e.trim().replace(/^error:\s*/i, "");
+  if (!s) return "Something went wrong.";
+  const t = capital(s);
+  return /[.!?)]$/.test(t) ? t : t + ".";
+}

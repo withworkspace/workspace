@@ -36,7 +36,7 @@ The orchestrator may dispatch [orchestrator] max_dispatches crew (default
 mission (launching crew, dismissing a flag) starts the count again.
 
 In a conversation about the mission, its agent proposes a dispatch instead
-(--propose): the user starts the crew, or not.`,
+(--propose): the user starts the crew, or not.` + fmt.Sprintf(onStdin, "dispatch"),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := loadOps()
@@ -84,7 +84,13 @@ In a conversation about the mission, its agent proposes a dispatch instead
 				pick := ctx.CrewPick(on)
 				harnessName, model = pick.Harness, pick.Model
 			}
-			dispatch := strings.TrimSpace(strings.Join(args, " "))
+			dispatch, err := wordsOf(args)
+			if err != nil {
+				return err
+			}
+			if dispatch == "" {
+				return errors.New("say what the crew are to do")
+			}
 			if len(reads) > 0 {
 				list, err := ctx.ReadFirstList(m, reads, userDirOr())
 				if err != nil {

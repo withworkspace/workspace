@@ -1,0 +1,17 @@
+/* A skeleton (Skeleton.tsx): the shape of what's coming, in grey bars. */
+
+@layer ui {
+  .skeleton {
+    display: grid;
+    gap: 12px;
+    padding: 8px 0;
+  }
+
+  .row {
+    height: 12px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(90deg, var(--well) 25%, var(--code-bg) 50%, var(--well) 75%);
+    background-size: 200% 100%;
+    animation: global(shimmer) 1.4s linear infinite;
+  }
+}

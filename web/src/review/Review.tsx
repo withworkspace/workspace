@@ -25,6 +25,7 @@ import {
   submitReview,
 } from "../api";
 import { type KeyMap, useKeys } from "../keys";
+import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { Crumbs } from "../ui/Crumbs";
 import { Excerpt } from "../ui/Excerpt";
@@ -33,7 +34,12 @@ import { ReplyBox } from "../ui/ReplyBox";
 import { Suggestion } from "./Suggestion";
 import { fuzzy } from "../ui/fuzzy";
 import { Inline } from "../ui/inline";
-import { Callout, humanError, Keys, Loading, toast, useMedia, useTitle } from "../ui/kit";
+import { useMedia } from "../ui/useMedia";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Loading } from "../ui/Loading";
+import { Callout } from "../ui/Callout";
+import { Keys } from "../ui/Keys";
 import { exact, stamp } from "../ui/time";
 import { highlightLines, languageOf, useHighlighter } from "./highlight";
 import { useCodeNav } from "./CodeNav";
@@ -50,7 +56,7 @@ import { type Cell, cellHTML, type Editing, type FileState, type Found, fileRows
 import { useLatest } from "../load";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
-import { capital } from "../ui/text";
+import { capital, humanError } from "../ui/text";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Checkbox } from "../ui/Checkbox";
 import { TextArea } from "../ui/TextArea";
@@ -1118,7 +1124,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
           </div>
         )}
         {moved && <Callout tone="attention" title={source.movedWords} actions={<Button onClick={reload}>Reload <Keys k="r" /></Button>} />}
-        {error && <div className="banner">{humanError(error)}</div>}
+        {error && <Banner>{humanError(error)}</Banner>}
         {parts.map((p) => (
           <section key={p.key} className={`review-view view-body view-${p.key}`} hidden={view !== p.key} aria-label={viewNames[p.key].label}>
             {typeof p.body === "function" ? p.body({ toFinding, toComment }) : p.body}
@@ -1444,16 +1450,16 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
                       <span>{selectionLabel}</span>
                       {onComment && (
                         <Button variant="primary" onMouseDown={(e) => e.preventDefault()} onClick={onComment}>
-                          Comment <kbd>c</kbd>
+                          Comment <Keys k="c" />
                         </Button>
                       )}
                       {onAsk && (
                         <Button onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask an agent about these lines, with the code checked out here">
-                          Ask <kbd>a</kbd>
+                          Ask <Keys k="a" />
                         </Button>
                       )}
                       <span className="dim">
-                        <kbd>esc</kbd> clears
+                        <Keys k="esc" /> clears
                       </span>
                     </div>
                   ) : undefined
@@ -1664,7 +1670,7 @@ function CommentCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, fo
           )}
           {!draft && !replying && cursor && (
             <NoteHint>
-              <kbd>⏎</kbd> reply
+              <Keys k="⏎" /> reply
             </NoteHint>
           )}
           {replying && <ReplyBox onSend={(body) => onAnswer(note.id, "reply", body)} onCancel={onReplyCancel} />}
@@ -1734,10 +1740,10 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
         </Button>
         <span className="spacer-left" />
         <Button onClick={onCancel}>
-          Cancel <kbd>esc</kbd>
+          Cancel <Keys k="esc" />
         </Button>
         <Button variant="primary" onClick={save}>
-          {note ? "Save" : "Comment"} <kbd>⌘⏎</kbd>
+          {note ? "Save" : "Comment"} <Keys k="mod+⏎" />
         </Button>
       </div>
     </div>

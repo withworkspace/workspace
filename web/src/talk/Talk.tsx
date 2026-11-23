@@ -23,8 +23,18 @@ import { CrewBadge } from "../mission/parts";
 import { Calls } from "../ui/Calls";
 import { TLink } from "../ui/TLink";
 import { Icon, type IconName } from "../ui/Icon";
+import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/inline";
-import { Callout, Empty, ErrorCard, humanError, Keys, Skeleton, toast, useDraft, useMedia, useTitle } from "../ui/kit";
+import { useDraft } from "../ui/useDraft";
+import { useMedia } from "../ui/useMedia";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Skeleton } from "../ui/Skeleton";
+import { Empty } from "../ui/Empty";
+import { humanError } from "../ui/text";
+import { ErrorCard } from "../ui/ErrorCard";
+import { Callout } from "../ui/Callout";
+import { Keys } from "../ui/Keys";
 import { Status, type StatusInfo } from "../ui/status";
 import { Time } from "../ui/time";
 import { useHere } from "../load";
@@ -1348,7 +1358,7 @@ function WsProposalCard({
         <div className="proposal-actions">
           {busy && (
             <span className="dim busy">
-              <Icon name="spinner" className="spin" />{" "}
+              <Spinner />{" "}
               {{ decision: "Recording…", mission: "Creating…", brief: "Writing…", dispatch: "Starting…", replan: "Asking…", comment: "Adding…", plan: "Writing…", document: p.to ? "Saving…" : "Adding…", artifact: "Adding…", plugin: "Doing it…" }[p.kind]}
             </span>
           )}

@@ -1,0 +1,9 @@
+/* Keys (Keys.tsx): a key or a chord, each key a kbd. */
+
+@layer ui {
+  .keys {
+    display: inline-flex;
+    gap: 3px;
+    vertical-align: baseline;
+  }
+}

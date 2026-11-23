@@ -781,6 +781,14 @@ func (s Store) claim(repo, worktree, want, recipe string, task bool) (name, dir 
 				}
 			}
 		}
+		if lerr == nil && old.State != Running {
+			// procs was read before this name was tried: a run another ws
+			// started since isn't in it, and reads as ended. Its name
+			// isn't taken from it on that: look again.
+			if now, err := load(dir, s.snapshot()); err == nil {
+				old = now
+			}
+		}
 		if lerr == nil && old.State == Running && recipe != "" && old.Recipe == recipe {
 			return "", "", 0, &old, nil
 		}

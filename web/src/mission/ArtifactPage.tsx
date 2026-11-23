@@ -7,7 +7,13 @@ import { useKeys } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { highlightCode, languageOf, useHighlighter } from "../review/highlight";
 import { Icon } from "../ui/Icon";
-import { Callout, Copyable, ErrorCard, Keys, Skeleton, toast, useTitle } from "../ui/kit";
+import { useTitle } from "../ui/useTitle";
+import { toast } from "../ui/toast";
+import { Skeleton } from "../ui/Skeleton";
+import { ErrorCard } from "../ui/ErrorCard";
+import { Callout } from "../ui/Callout";
+import { Copyable } from "../ui/Copyable";
+import { Keys } from "../ui/Keys";
 import { Time } from "../ui/time";
 import { DocEdit } from "./DocEdit";
 import { ArtifactState, artifactTitle } from "./parts";
@@ -112,7 +118,7 @@ export function ArtifactPage() {
           <ArtifactState state={a.state} />
           {a.by && <span>by {a.by}</span>}
           {a.added && <Time iso={a.added} as="relative" />}
-          <Copyable text={a.ref} className="mono doc-ref" title="Copy its ref">
+          <Copyable text={a.ref} className="doc-ref" title="Copy its ref">
             {a.ref.replace(":", " · ")}
           </Copyable>
           <span className="spacer" />
@@ -184,7 +190,7 @@ export function ArtifactPage() {
       )}
       {a?.path && (
         <p className="doc-path">
-          <Copyable text={a.path} className="mono" title="Copy where it is" />
+          <Copyable text={a.path} title="Copy where it is" />
         </p>
       )}
     </div>

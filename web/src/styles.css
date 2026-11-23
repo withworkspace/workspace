@@ -171,12 +171,6 @@ a.link:hover {
   font-size: 0.92em;
 }
 
-.keys {
-  display: inline-flex;
-  gap: 3px;
-  vertical-align: baseline;
-}
-
 .dim {
   color: var(--dim);
 }
@@ -362,10 +356,6 @@ input[type="checkbox"] {
   }
 }
 
-.spin {
-  animation: spin 0.9s linear infinite;
-}
-
 .status {
   display: inline-flex;
   align-items: center;
@@ -435,64 +425,6 @@ input[type="checkbox"] {
   color: var(--dim);
 }
 
-/* Copyable: a ref that copies itself. */
-.copyable {
-  all: unset;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  font: inherit;
-  cursor: copy;
-  border-radius: var(--radius-sm);
-  padding: 0 2px;
-  margin: 0 -2px;
-}
-
-.copyable-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.copyable {
-  position: relative;
-}
-
-.copyable-icon {
-  position: absolute;
-  left: calc(100% + 2px);
-  top: 50%;
-  translate: 0 -50%;
-  box-sizing: content-box;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  background: var(--raised);
-  box-shadow: var(--shadow-xs), 0 0 0 1px var(--line);
-  opacity: 0;
-  color: var(--dim);
-  pointer-events: none;
-  transition: opacity var(--fast) var(--ease);
-}
-
-.copyable:hover {
-  background: var(--hover);
-}
-
-.copyable:hover .copyable-icon,
-.copyable.copied .copyable-icon,
-.copyable:focus-visible .copyable-icon {
-  opacity: 1;
-}
-
-.copyable.copied .copyable-icon {
-  color: var(--green);
-}
-
-.copyable:focus-visible {
-  outline: 2px solid var(--accent);
-}
-
 /* Inline markdown, folded into a line or two */
 .inline-md code {
   font-size: 0.9em;
@@ -505,188 +437,9 @@ input[type="checkbox"] {
   overflow: hidden;
 }
 
-/* Callouts: a tinted panel with a bar on its left. */
-
-:where(.callout) {
-  --tone: var(--attention);
-  --tone-fill: var(--attention-fill);
-  --tone-soft: var(--attention-soft);
-}
-
-.callout {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  background: var(--tone-soft);
-  border-left: 3px solid var(--tone-fill);
-  border-radius: var(--radius);
-  padding: 10px 14px 10px 12px;
-  margin-bottom: var(--space-5);
-}
-
-.callout.tone-quiet {
-  background: var(--well);
-  border-left-color: var(--line-strong);
-}
-
-.callout-icon {
-  color: var(--tone);
-  margin-top: 1px;
-}
-
-.callout-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.callout-title {
-  font-weight: 600;
-}
-
-.callout-title + .callout-text {
-  margin-top: 2px;
-}
-
-.callout-text {
-  color: var(--fg);
-}
-
-.callout-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: 10px;
-}
-
-.banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 var(--space-4);
-  padding: 8px 12px;
-  border-radius: var(--radius);
-  border-left: 3px solid var(--red-fill);
-  background: var(--red-soft);
-  color: var(--fg);
-}
-
-.banner::first-letter {
-  text-transform: uppercase;
-}
-
-main > .banner {
+/* The workspace didn't load: said under the top of the page. */
+.app-error {
   margin: var(--space-4) var(--space-8) 0;
-}
-
-/* Empty places, loading and skeletons */
-
-.empty {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--dim);
-}
-
-.empty-icon {
-  color: var(--faint);
-  margin-bottom: 4px;
-}
-
-.empty-title {
-  color: var(--fg);
-  font-weight: 600;
-}
-
-.empty-text {
-  max-width: 34em;
-}
-
-.empty-action {
-  margin-top: 8px;
-}
-
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 120px;
-  color: var(--dim);
-  opacity: 0;
-  transition: opacity var(--slow) var(--ease);
-}
-
-.loading.shown {
-  opacity: 1;
-}
-
-.skeleton {
-  display: grid;
-  gap: 12px;
-  padding: 8px 0;
-}
-
-.skeleton-row {
-  height: 12px;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, var(--well) 25%, var(--code-bg) 50%, var(--well) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
-}
-
-/* Toasts */
-
-.toasts {
-  position: fixed;
-  left: 50%;
-  /* Clear of the foot, where there is one (chrome/Shell). */
-  bottom: calc(20px + var(--foot-height, 0px));
-  transform: translateX(-50%);
-  z-index: 200;
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-  pointer-events: none;
-}
-
-.toast {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: min(560px, calc(100vw - 32px));
-  padding: 8px 14px;
-  border-radius: var(--radius-lg);
-  background: var(--fg);
-  color: var(--bg);
-  box-shadow: var(--shadow-lg);
-  pointer-events: auto;
-  animation: rise var(--slow) var(--ease);
-}
-
-.toast.tone-danger .icon {
-  color: var(--red-fill);
-}
-
-.toast.tone-done .icon {
-  color: var(--green-fill);
-}
-
-/* The toast is the text colour, so it's dark in the light theme: its link
-   is the accent as it reads on a dark surface, whatever the pick (the
-   light page's accent can be as dark as the toast). */
-.toast .toast-action {
-  font-weight: 600;
-  color: var(--accent-lifted);
-  margin-left: 4px;
-}
-
-/* In the dark theme the toast is light, so its link is the light page's
-   button, hovered. */
-:root[data-theme="dark"] .toast .toast-action {
-  color: oklch(from var(--brand-1) calc(l - 0.041) c h);
 }
 
 /* The keys dialog */
@@ -1126,7 +879,6 @@ main.stale > :not(.connection-banner) {
 .note-panel,
 .note-editor,
 .select-bar,
-.hovercard,
 .work-pane,
 .change-pop,
 .proposal,
@@ -1364,11 +1116,6 @@ main {
   flex-direction: column;
 }
 
-.find-busy {
-  flex: none;
-  animation: spin 1s linear infinite;
-}
-
 .find-only {
   flex: none;
   display: inline-flex;
@@ -1604,7 +1351,7 @@ main {
   border-top: 1px solid var(--line);
 }
 
-.find-more .keys {
+.find-more-keys {
   margin-left: 6px;
 }
 
@@ -1623,7 +1370,7 @@ main {
   color: var(--dim);
 }
 
-.find-foot .keys {
+.find-foot-keys {
   margin-right: 3px;
 }
 
@@ -2830,10 +2577,6 @@ button.on {
   }
 }
 
-.headline .callout-title {
-  font-size: var(--text-md);
-}
-
 .headline.also {
   margin-top: -4px;
 }
@@ -2989,722 +2732,6 @@ button.on {
 }
 
 /* A crew's own colour, as a small badge with its id. */
-.crew-badge {
-  --hue: 228;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 5px;
-  font: 600 var(--text-xs) / 1 var(--mono);
-  color: hsl(var(--hue) 55% 38%);
-  background: hsl(var(--hue) 70% 50% / 0.12);
-  white-space: nowrap;
-}
-
-:root[data-theme="dark"] .crew-badge {
-  color: hsl(var(--hue) 75% 72%);
-  background: hsl(var(--hue) 70% 60% / 0.16);
-}
-
-.crew-badge.live {
-  box-shadow: inset 0 0 0 1px hsl(var(--hue) 60% 50% / 0.5);
-}
-
-/* A hover card: a ref, said more about, drawn over the page. */
-.hover-host {
-  display: inline-flex;
-  vertical-align: baseline;
-  border-radius: 5px;
-  cursor: default;
-}
-
-.hover-host:focus-visible {
-  outline: 2px solid var(--accent);
-}
-
-.ref-chip {
-  font: 600 var(--text-xs) / 18px var(--mono);
-  padding: 0 5px;
-  border-radius: 5px;
-  color: var(--dim);
-  background: var(--well);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.ref-text {
-  text-decoration: underline dotted var(--faint);
-  text-underline-offset: 3px;
-}
-
-.hover-host:hover .ref-chip,
-.hover-host:hover .ref-text {
-  color: var(--fg);
-  text-decoration-color: var(--dim);
-}
-
-.hovercard-title {
-  font-weight: 600;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.hovercard-strong {
-  font-weight: 500;
-}
-
-.hovercard-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px;
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.hovercard {
-  position: fixed;
-  z-index: 300;
-  display: grid;
-  gap: 4px;
-  width: 280px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--raised);
-  box-shadow: var(--shadow-lg);
-  font-size: var(--text-sm);
-  font-weight: 400;
-  color: var(--fg);
-  text-align: left;
-  white-space: normal;
-  animation: pop var(--fast) var(--ease);
-}
-
-.hovercard-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.hovercard-said {
-  margin-top: 2px;
-  padding-top: 6px;
-  border-top: 1px solid var(--line);
-  color: var(--dim);
-}
-
-/* The mission over time, along the top edge of its page: crew as thin bars
-   in their colours, quiet but for the one running now, and moments as
-   ticks hung over them. Over the bar under it, which the ticks reach. */
-.timeline {
-  position: relative;
-  z-index: 11;
-  padding: 0 14px;
-}
-
-.timeline-track {
-  position: relative;
-  height: calc(var(--lanes, 1) * 5px - 2px);
-}
-
-.timeline-bar {
-  --hue: 228;
-  position: absolute;
-  top: calc(var(--lane, 0) * 5px);
-  height: 3px;
-  border-radius: 2px;
-  background: hsl(var(--hue) 40% 58% / 0.4);
-  min-width: 3px;
-}
-
-.timeline-bar.live {
-  background: hsl(var(--hue) 55% 52% / 0.8);
-  animation: pulse 2.2s var(--ease) infinite;
-}
-
-/* A 2px line in its colour with a little of it glowing round, cut out of
-   the bars by a 1px ring of the page behind it. Centred by its margin, not
-   translate: a transform would cut the ring's backdrop loose from the
-   window. */
-.timeline-mark {
-  --mark: var(--faint);
-  position: absolute;
-  top: -1px;
-  width: 4px;
-  height: calc(100% + 3px);
-  margin-left: -2px;
-  border: 1px solid transparent;
-  border-radius: 0 0 2px 2px;
-  background:
-    linear-gradient(var(--mark), var(--mark)) padding-box,
-    var(--backdrop);
-  box-shadow:
-    0 0 3px color-mix(in srgb, var(--mark) 65%, transparent),
-    0 0 6px color-mix(in srgb, var(--mark) 30%, transparent);
-}
-
-/* Something to point at: 2px is a small target. */
-.timeline-mark::after {
-  content: "";
-  position: absolute;
-  inset: -3px -5px -7px;
-}
-
-.timeline-mark:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.timeline-mark.done,
-.timeline-kind.done {
-  --mark: var(--green-fill);
-}
-
-/* Yours is the button's fill and its label, so its icon reads whatever
-   the pick (the dark theme's accent is too pale under a white icon). */
-.timeline-mark.you,
-.timeline-kind.you {
-  --mark: var(--primary);
-  color: var(--on-primary);
-}
-
-.timeline-mark.decided,
-.timeline-kind.decided {
-  --mark: var(--violet-fill);
-}
-
-.timeline-mark.ask,
-.timeline-kind.ask {
-  --mark: var(--amber-fill);
-}
-
-/* What happened at a tick: each moment there, its kind, when, and what. */
-.hovercard.timeline-card {
-  width: 340px;
-  gap: 0;
-}
-
-.timeline-moment + .timeline-moment {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-}
-
-.timeline-kind {
-  --mark: var(--faint);
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--mark);
-  color: #fff;
-}
-
-.timeline-when {
-  margin-left: auto;
-  color: var(--dim);
-  font-variant-numeric: tabular-nums;
-}
-
-.timeline-what {
-  margin-top: 3px;
-  color: var(--dim);
-}
-
-/* Stages: a stepper, done, now and next. */
-.stepper {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.step {
-  position: relative;
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 10px;
-  padding: 2px 0 10px;
-}
-
-.step:last-child {
-  padding-bottom: 0;
-}
-
-.step::before {
-  content: "";
-  position: absolute;
-  left: 7px;
-  top: 18px;
-  bottom: 0;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--line);
-}
-
-.step:last-child::before {
-  display: none;
-}
-
-.step.accepted::before {
-  background: var(--green-fill);
-  opacity: 0.5;
-}
-
-.step-mark {
-  display: grid;
-  place-items: center;
-  width: 16px;
-  height: 16px;
-  margin-top: 1px;
-  border-radius: 50%;
-  border: 2px solid var(--line-strong);
-  background: var(--backdrop);
-  color: #fff;
-  transition:
-    background var(--slow) var(--ease),
-    border-color var(--slow) var(--ease),
-    box-shadow var(--slow) var(--ease);
-}
-
-.step.accepted .step-mark .icon {
-  animation: pop var(--slow) var(--ease);
-}
-
-.step.accepted .step-mark {
-  border-color: var(--green-fill);
-  background: var(--green-fill);
-}
-
-.step.current .step-mark {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.step.current .step-mark::after {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-.step-body {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.step-title {
-  font-weight: 500;
-}
-
-.step.todo .step-title {
-  color: var(--dim);
-  font-weight: 400;
-}
-
-.step-n {
-  color: var(--dim);
-  font-variant-numeric: tabular-nums;
-  margin-right: 2px;
-}
-
-.step-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-sm);
-}
-
-/* Who's on a step of the plan that isn't crew's: yours (a checkpoint),
-   CI's, outside's, the planner's. */
-.step-who {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  color: var(--dim);
-}
-
-.step-who.yours {
-  color: var(--accent);
-}
-
-.step-why {
-  color: var(--dim);
-  font-size: var(--text-sm);
-}
-
-/* A Work step's checks and clock: what's unmet, and time run out, stand
-   out. */
-.step-who.step-late {
-  color: var(--amber);
-}
-
-.step-checks {
-  list-style: none;
-  margin: 4px 0 0;
-  padding: 0;
-  font-size: var(--text-sm);
-}
-
-.step-check {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px;
-  color: var(--dim);
-}
-
-.step-check.not-met {
-  color: var(--fg);
-}
-
-.step-check-why {
-  flex-basis: 100%;
-  padding-left: 15px;
-  color: var(--dim);
-}
-
-/* The plan in a mission's details. A step is a row you can point at: its
-   mark (how it stands), its number and name on one line (cut short: its
-   card has the rest), and at the row's end what kind of step it is, in the
-   accent when it's yours. The rows reach 8px past the list each side, for
-   their hover. */
-.plan-list {
-  margin: 0 -8px;
-}
-
-.plan-list .step {
-  grid-template-columns: 16px minmax(0, 1fr) auto;
-  align-items: start;
-  padding: 3px 8px 9px;
-  border-radius: var(--radius);
-  transition: background var(--fast) var(--ease);
-}
-
-.plan-list .step::before {
-  left: 15px;
-  top: 21px;
-  bottom: -2px;
-}
-
-.plan-list .step:hover {
-  background: var(--hover);
-}
-
-.plan-list .step:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
-.plan-list .step-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.plan-list .step.plan-skipped .step-title {
-  text-decoration: line-through;
-  text-decoration-color: var(--faint);
-}
-
-.plan-list .step.plan-skipped .step-mark {
-  color: var(--faint);
-}
-
-.step-kind {
-  display: grid;
-  margin-top: 3px;
-  color: var(--faint);
-}
-
-.step.plan-yours .step-kind {
-  color: var(--accent);
-}
-
-/* The step the plan is on, opened in place where that says more than its
-   row: its kind and where, what it makes, who's on it, its clock, and
-   each check with how it stands. The row's second line and its kind are
-   said in it. */
-.plan-list .step.plan-opened {
-  grid-template-columns: 16px minmax(0, 1fr);
-}
-
-.plan-now {
-  display: grid;
-  gap: 5px;
-  margin-top: 4px;
-  padding: 7px 9px 8px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--raised);
-  font-size: var(--text-sm);
-}
-
-.plan-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 6px;
-  color: var(--dim);
-}
-
-.plan-line .icon {
-  flex: none;
-}
-
-.plan-line strong {
-  font-weight: 500;
-  color: var(--fg);
-}
-
-.plan-line.plan-warn {
-  color: var(--amber);
-}
-
-.plan-line.plan-yours {
-  color: var(--accent);
-}
-
-.plan-makes {
-  color: var(--dim);
-}
-
-.plan-checks {
-  list-style: none;
-  display: grid;
-  gap: 3px;
-  margin: 0;
-  padding: 0;
-}
-
-.plan-check {
-  display: grid;
-  grid-template-columns: 12px minmax(0, 1fr);
-  gap: 6px;
-  align-items: start;
-  color: var(--dim);
-}
-
-.plan-check .icon {
-  margin-top: 2px;
-}
-
-.plan-check-text {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-}
-
-.plan-check-met .icon {
-  color: var(--green);
-}
-
-.plan-check-unmet .icon {
-  color: var(--red);
-}
-
-.plan-check-cant .icon {
-  color: var(--amber);
-}
-
-.plan-check-yours .icon {
-  color: var(--accent);
-}
-
-.plan-check-none .icon {
-  color: var(--faint);
-}
-
-.plan-check-unmet .plan-check-text,
-.plan-check-cant .plan-check-text,
-.plan-check-yours .plan-check-text {
-  color: var(--fg);
-}
-
-/* A long plan shows the steps round the one it's on. What's folded away is
-   a row in the list where those steps are: how many, what's worth knowing
-   of them, and each as a pip you can point at. The line goes on through
-   it, dotted: steps are there. */
-.plan-fold {
-  position: relative;
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) auto;
-  gap: 0 10px;
-  align-items: start;
-  justify-content: stretch;
-  width: 100%;
-  min-height: 0;
-  padding: 3px 8px 9px;
-  border: 0;
-  border-radius: var(--radius);
-  background: none;
-  box-shadow: none;
-  font-size: var(--text-sm);
-  font-weight: 400;
-  line-height: 18px;
-  color: var(--dim);
-  text-align: left;
-}
-
-.plan-fold:hover {
-  background: var(--hover);
-  color: var(--fg);
-}
-
-.plan-fold::before {
-  content: "";
-  position: absolute;
-  left: 15px;
-  top: 0;
-  bottom: -2px;
-  width: 2px;
-  background: repeating-linear-gradient(var(--line-strong) 0 2px, transparent 2px 6px);
-}
-
-.plan-fold.fold-earlier::before {
-  background: repeating-linear-gradient(color-mix(in srgb, var(--green-fill) 55%, transparent) 0 2px, transparent 2px 6px);
-}
-
-.plan-fold.fold-end::before {
-  bottom: 50%;
-}
-
-.plan-fold-words {
-  grid-column: 2;
-  min-width: 0;
-}
-
-.plan-note {
-  margin-left: 6px;
-  color: var(--faint);
-}
-
-.plan-note.plan-warn {
-  color: var(--amber);
-}
-
-.plan-note.plan-yours {
-  color: var(--accent);
-}
-
-.plan-fold > .icon {
-  grid-column: 3;
-  margin-top: 3px;
-}
-
-/* A pip a step: done, passed with a check unmet, to come (a ring; in the
-   accent when it's yours; dotted when it waits on something outside). */
-.plan-pips {
-  grid-column: 2 / 4;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin-top: 4px;
-  padding-bottom: 2px;
-}
-
-.plan-pip {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line-strong);
-}
-
-.plan-pip.accepted {
-  border-color: var(--green-fill);
-  background: var(--green-fill);
-}
-
-.plan-pip.plan-warn {
-  border-color: var(--amber-fill);
-  background: var(--amber-fill);
-}
-
-.plan-pip.plan-yours {
-  border-color: var(--accent);
-}
-
-.plan-pip.plan-wait {
-  border-style: dotted;
-}
-
-.plan-pip:hover {
-  outline: 2px solid var(--accent-soft);
-  outline-offset: 1px;
-}
-
-/* A step's card: what there isn't room for in its row. */
-.hovercard.plan-card {
-  width: 340px;
-  gap: 8px;
-}
-
-.plan-card-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--dim);
-}
-
-.plan-card-state {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.plan-card-state.accepted {
-  color: var(--green);
-}
-
-.plan-card-state.current {
-  color: var(--accent);
-}
-
-.plan-card-title {
-  font-size: var(--text-md);
-  font-weight: 600;
-}
-
-.plan-card-text {
-  color: var(--dim);
-}
-
-.plan-card dl {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 4px 10px;
-  margin: 0;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-}
-
-.plan-card dt {
-  color: var(--dim);
-}
-
-.plan-card dd {
-  margin: 0;
-  min-width: 0;
-}
-
-.plan-card-checks {
-  display: grid;
-  gap: 4px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-}
-
 /* Decisions: the decision, its reason under, who and when. */
 .decisions {
   display: grid;
@@ -4237,14 +3264,6 @@ button.on {
   margin: 4px -6px 0 -2px;
 }
 
-.brief-steps .plan-list .step {
-  cursor: pointer;
-}
-
-.brief-steps .plan-now {
-  display: none;
-}
-
 /* --- the documents --- */
 
 .brief-main {
@@ -4263,7 +3282,7 @@ button.on {
   margin: 0 auto var(--space-6);
 }
 
-.brief-docs > .callout {
+.brief-docs-note {
   max-width: var(--brief-measure);
   margin-inline: auto;
 }
@@ -4274,7 +3293,7 @@ button.on {
 }
 
 .brief-doc + .brief-doc,
-.brief-doc + .callout + .brief-doc {
+.brief-doc + .brief-docs-note + .brief-doc {
   padding-top: var(--space-4);
   border-top: 1px solid var(--line);
 }
@@ -4722,7 +3741,7 @@ button.on {
     overflow: hidden;
   }
 
-  .brief-tab.side .brief-docs > .callout {
+  .brief-tab.side .brief-docs-note {
     grid-column: 1 / -1;
     max-width: none;
     margin: 16px 32px 0;
@@ -5172,13 +4191,6 @@ button.on {
   transition:
     transform 220ms var(--ease),
     visibility 0s;
-}
-
-/* A copyable's icon shows after its text: here, where the text fills the
-   column, over the end of it. */
-.detail-side .copyable-icon {
-  left: auto;
-  right: 0;
 }
 
 .side-head {
@@ -5637,7 +4649,7 @@ p.verify-meta {
   color: var(--done);
 }
 
-.verify-head .callout {
+.verify-head-note {
   margin-bottom: 0;
 }
 
@@ -5884,41 +4896,6 @@ button.verify-plain:hover {
 .verify.verify-done {
   justify-content: center;
   min-height: 460px;
-}
-
-.verify-clear .empty,
-.verify-done .empty {
-  gap: 8px;
-}
-
-.verify-clear-mark {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 6px;
-  border-radius: 50%;
-  background: var(--done-soft);
-  color: var(--green);
-  animation: pop var(--slow) var(--ease);
-}
-
-.verify-clear .empty-title,
-.verify-done .empty-title {
-  font-size: var(--text-xl);
-  letter-spacing: -0.01em;
-}
-
-.verify-clear .empty-text,
-.verify-done .empty-text {
-  max-width: 44em;
-  font-size: var(--text-md);
-  line-height: 1.55;
-}
-
-.verify-clear .empty-action,
-.verify-done .empty-action {
-  margin-top: 14px;
 }
 
 button.verify-big {
@@ -6525,7 +5502,7 @@ h2.work-title {
   background: var(--raised);
 }
 
-.work-col .empty {
+.work-col-empty {
   padding-block: var(--space-8);
 }
 
@@ -6564,7 +5541,6 @@ h2.work-title {
   gap: 8px;
 }
 
-.work-crew-line .crew-badge,
 .work-crew-line .crew-line-link {
   flex: none;
   align-self: center;
@@ -6714,7 +5690,7 @@ button.work-left:hover {
   padding: 2px 0;
 }
 
-.work-commits .copyable {
+.work-commit-sha {
   color: var(--dim);
   font-size: var(--text-xs);
 }
@@ -6731,7 +5707,7 @@ button.work-left:hover {
   padding: 0 16px;
 }
 
-.silo-point .empty-action {
+.silo-point-acts {
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -7293,14 +6269,6 @@ a.work-file:hover {
   margin-bottom: 14px;
 }
 
-.crew-head h1 .crew-badge {
-  height: 28px;
-  min-width: 36px;
-  padding: 0 8px;
-  font-size: var(--text-lg);
-  border-radius: 7px;
-}
-
 .crew-head-title {
   flex: 1;
   min-width: 0;
@@ -7621,10 +6589,6 @@ a.work-file:hover {
   min-width: 0;
   margin: 0 auto;
   padding: var(--space-6) var(--space-8) calc(64px - var(--foot-height, 0px));
-}
-
-.settings-body .callout {
-  margin-bottom: var(--space-5);
 }
 
 .settings-body mark {
@@ -9884,7 +8848,7 @@ div.tc-bar {
   }
 
   .connection-banner,
-  .toasts,
+  [data-toasts],
   [data-crumbs],
   .doc-rail,
   .doc-pill-wrap,
@@ -9898,12 +8862,12 @@ div.tc-bar {
   .change-bar,
   .doc-cursor,
   .add-comment,
-  .callout,
+  [data-callout],
   .brief-bar,
   .brief-outline,
   .brief-planner,
   .brief-ask-foot,
-  .timeline,
+  [data-mission-timeline],
   button {
     display: none !important;
   }
@@ -10685,14 +9649,6 @@ details.repo-group > summary::-webkit-details-marker {
   margin-left: 8px;
 }
 
-.file-copy .copyable-icon {
-  position: static;
-  translate: none;
-  opacity: 0.6;
-  box-shadow: none;
-  background: transparent;
-}
-
 .file-pane-tools {
   display: flex;
   align-items: center;
@@ -10709,9 +9665,7 @@ details.repo-group > summary::-webkit-details-marker {
   font-size: var(--text-sm);
 }
 
-.file-pane > .callout,
-.file-pane > .empty,
-.file-pane > .loading {
+.file-pane-note {
   margin: 8px 20px 16px;
 }
 
@@ -10864,12 +9818,6 @@ details.repo-group > summary::-webkit-details-marker {
 .finder-path .hit {
   color: var(--accent);
   font-weight: 700;
-}
-
-.hovercard-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
 }
 
 @media (max-width: 860px) {
@@ -12150,15 +11098,6 @@ span.save-state {
   color: var(--attention);
 }
 
-.banner.page-changed {
-  border-left-color: var(--attention-fill);
-  background: var(--attention-soft);
-}
-
-.banner.page-changed span {
-  flex: 1;
-}
-
 /* Under words selected in a page: ask about them, or for a change. */
 .select-pop {
   position: absolute;
@@ -12181,16 +11120,6 @@ span.save-state {
 
 .pass-unavailable {
   color: var(--red);
-}
-
-/* A page filed as a document: where it went. */
-.banner.page-filed {
-  border-left-color: var(--green-fill);
-  background: var(--green-soft);
-}
-
-.banner.page-filed span {
-  flex: 1;
 }
 
 /* Filing a page, and starting one as a kind of document. */
@@ -12691,11 +11620,6 @@ a.source-chip.tone-attention:hover {
   font-size: var(--text-sm);
 }
 
-.banner.pass-failed span {
-  flex: 1;
-  overflow-wrap: anywhere;
-}
-
 .pass-running {
   margin-bottom: var(--space-4);
   padding: 10px 12px;
@@ -12940,7 +11864,7 @@ button.finding-quote:hover {
   display: none;
 }
 
-.hovercard.ref-card {
+.ref-card {
   width: auto;
   min-width: 260px;
   max-width: min(560px, calc(100vw - 24px));
@@ -12990,7 +11914,7 @@ button.finding-quote:hover {
   font-size: var(--text-xs);
 }
 
-.ref-card .hovercard-line .line-chip {
+.ref-card .line-chip {
   margin-left: 6px;
 }
 
@@ -13010,24 +11934,6 @@ button.finding-quote:hover {
 
 /* Beside the list in Find there's room: a title wraps, as what's found by
    what it says does. */
-.thing-view.on-pane .hovercard-head {
-  align-items: flex-start;
-}
-
-.thing-view.on-pane .hovercard-head > .icon {
-  flex: none;
-  margin-top: 3px;
-}
-
-.thing-view.on-pane .hovercard-title {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.thing-view.on-pane .hovercard-line {
-  overflow-wrap: anywhere;
-}
-
 /* What it says, as markdown: at the card's size, its headings no larger
    than its words, and kept to the lines its block says (--lines). */
 .thing-md {
@@ -14478,15 +13384,6 @@ body.nav-pointing .code-view code[data-rev] {
   min-width: 0;
 }
 
-.find-said-card .hovercard-head {
-  align-items: flex-start;
-}
-
-.find-said-card .hovercard-head > .icon {
-  flex: none;
-  margin-top: 3px;
-}
-
 .find-said-title {
   font-weight: 600;
   min-width: 0;
@@ -15097,7 +13994,7 @@ button.accent-button:hover:not(:disabled) {
   color: var(--fg);
 }
 
-.artifact-title-line .ref {
+.artifact-title-ref {
   margin-left: auto;
 }
 
@@ -15183,7 +14080,7 @@ button.accent-button:hover:not(:disabled) {
   max-width: none;
 }
 
-.artifact-home .copyable {
+.artifact-home-where {
   display: inline-flex;
   vertical-align: baseline;
   font-size: var(--text-sm);
@@ -15208,7 +14105,8 @@ button.accent-button:hover:not(:disabled) {
   background: var(--panel);
 }
 
-.artifact-stage > .empty {
+/* Nothing to show where an artifact would be: a way down its room. */
+.artifact-empty {
   margin-top: 12vh;
 }
 
@@ -15257,10 +14155,6 @@ button.accent-button:hover:not(:disabled) {
   display: grid;
   grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
   align-items: start;
-}
-
-.artifact-source-view > .empty {
-  margin-top: 12vh;
 }
 
 .artifact-source-view .artifact-source {
@@ -15673,10 +14567,6 @@ input[type="text"].tweak-text {
   min-height: 0;
   overflow: auto;
   background: var(--bg);
-}
-
-.compare-diff > .empty {
-  margin-top: 12vh;
 }
 
 .artifact-diff-head {
@@ -16633,8 +15523,7 @@ input[type="text"].tweak-text {
   color: var(--fg);
 }
 
-.doc-preview > .skeleton,
-.doc-preview > .error-card {
+.doc-preview-skeleton {
   margin: 16px 24px;
 }
 
@@ -16735,16 +15624,6 @@ input[type="text"].tweak-text {
 }
 
 .verify-kept a:hover,
-.step-check-kept:hover {
-  color: var(--fg);
-}
-
-.step-check-kept {
-  margin-left: 6px;
-  color: var(--dim);
-  vertical-align: middle;
-}
-
 /* A task, on the Runs page and a mission's Work tab: what it came to is
    its mark and its words, in the tone of the result. */
 .task-mark {
@@ -16969,7 +15848,7 @@ a.plugin-row-out {
   margin-bottom: var(--space-3);
 }
 
-.settings-updates .callout {
+.settings-update-note {
   margin: 0;
 }
 

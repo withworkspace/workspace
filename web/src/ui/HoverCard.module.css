@@ -1,0 +1,84 @@
+/* A hover card (HoverCard.tsx): what's pointed at, and what a card says
+   of it, laid out. */
+
+@layer ui {
+  /* What's pointed at: it takes the keys' focus, as it takes the pointer. */
+  .host {
+    display: inline-flex;
+    vertical-align: baseline;
+    border-radius: 5px;
+    cursor: default;
+  }
+
+  .host:focus-visible {
+    outline: 2px solid var(--accent);
+  }
+
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .title {
+    font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* A name on more than one line: its mark keeps to the first. */
+  .top {
+    align-items: flex-start;
+  }
+
+  .top > :global(.icon) {
+    flex: none;
+    margin-top: 3px;
+  }
+
+  .wrap {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .strong {
+    font-weight: 500;
+  }
+
+  /* One thing said of it: a line of its own. */
+  .line {
+    display: block;
+  }
+
+  .dim {
+    color: var(--dim);
+  }
+
+  .breaks {
+    overflow-wrap: anywhere;
+  }
+
+  .said {
+    margin-top: 2px;
+    padding-top: 6px;
+    border-top: 1px solid var(--line);
+    color: var(--dim);
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+  }
+
+  .link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+}
