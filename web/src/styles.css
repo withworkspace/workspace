@@ -11817,7 +11817,9 @@ button.finding-quote:hover {
   display: none;
 }
 
-.ref-card {
+/* A ref's hover card is as wide as what it says, within these. Find's
+   pane holds the same lines (.find-card.ref-card) at a width of its own. */
+.ref-card:not(.find-card) {
   width: auto;
   min-width: 260px;
   max-width: min(560px, calc(100vw - 24px));
