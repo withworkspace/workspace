@@ -2958,7 +2958,7 @@ button.kind.on {
   margin: 0;
 }
 
-.mission-bar .tabs {
+.mission-tabs {
   flex: none;
   margin: 0 0 -1px;
   border-bottom: 0;
@@ -2980,7 +2980,7 @@ button.kind.on {
     display: block;
   }
 
-  .mission-bar .tabs {
+  .mission-tabs {
     overflow-x: auto;
     mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
   }
@@ -3089,62 +3089,6 @@ button.kind.on {
 
 button.on {
   color: var(--fg);
-}
-
-/* Tabs: a row of words, the one you're on underlined. */
-.tabs {
-  display: flex;
-  gap: 2px;
-  margin: 0 0 var(--space-5);
-  border-bottom: 1px solid var(--line);
-  overflow-x: auto;
-  scrollbar-width: none;
-  mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
-}
-
-.tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.tabs button {
-  position: relative;
-  flex: none;
-  gap: 6px;
-  min-height: 34px;
-  background: none;
-  border: 0;
-  border-radius: var(--radius) var(--radius) 0 0;
-  box-shadow: none;
-  padding: 6px 12px;
-  font-size: var(--text-md);
-  font-weight: 500;
-  color: var(--dim);
-}
-
-.tabs button:hover {
-  color: var(--fg);
-  background: var(--hover);
-}
-
-.tabs button::after {
-  content: "";
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: -1px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--accent);
-  transform: scaleX(0);
-  transition: transform var(--slow) var(--ease);
-}
-
-.tabs button.on {
-  color: var(--fg);
-}
-
-.tabs button.on::after {
-  transform: scaleX(1);
 }
 
 .tab-panel {
@@ -7970,14 +7914,6 @@ a.work-file:hover {
   white-space: nowrap;
 }
 
-.tabs button .icon {
-  color: var(--faint);
-}
-
-.tabs button.on .icon {
-  color: var(--accent);
-}
-
 /* A crew's terminal is dark in either theme, in colours of its own
    (CrewTerminal.tsx gives xterm the same): fixed, whatever the accent. */
 .term-frame {
@@ -10814,7 +10750,7 @@ div.tc-bar {
   .contents-menu,
   .folder-menu,
   .doc-pager,
-  .tabs,
+  [data-tabs],
   .detail-side,
   .annotate-bar,
   .margin,
@@ -13627,7 +13563,7 @@ a.source-chip.tone-attention:hover {
    a pass found is kept there, and drawn on the page's words only if you
    choose: never written into it. */
 
-.tabs.page-tabs {
+.page-tabs {
   margin-bottom: var(--space-4);
 }
 

@@ -12,6 +12,7 @@ import { AgentView } from "./AgentView";
 import { CrewBadge } from "./parts";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
+import { Tab, Tabs } from "../ui/Tabs";
 
 const CrewTerminal = lazy(() => import("./CrewTerminal"));
 
@@ -103,15 +104,15 @@ export function CrewPage({ workspace }: { workspace: Workspace }) {
           </Button>
         )}
       </header>
-      {!structured && <div className="tabs" role="tablist" aria-label="Crew">
+      {!structured && <Tabs value={shown} onChange={setView} aria-label="Crew">
         {(["conversation", "terminal"] as const).map((v) => (
-          <button key={v} role="tab" aria-selected={shown === v} className={shown === v ? "on" : ""} onClick={() => setView(v)}>
+          <Tab key={v} value={v}>
             <Icon name={v === "terminal" ? "terminal" : "message"} size={13} />
             {v === "terminal" ? "Terminal" : "Conversation"}
             {v === "conversation" && state === "live" && (c?.activity === "permission" || c?.activity === "question") && <Count tone="attention">1</Count>}
-          </button>
+          </Tab>
         ))}
-      </div>}
+      </Tabs>}
       {shown === "conversation" && (
         <AgentView workspace={workspace} slug={slug} id={id} crew={c} live={state === "live"} onTerminal={state === "live" && !structured ? () => setView("terminal") : undefined} />
       )}

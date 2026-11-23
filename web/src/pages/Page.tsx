@@ -75,6 +75,7 @@ import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
 import { clip } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
+import { Tab, Tabs } from "../ui/Tabs";
 
 // A page: a document you write, saved as you go, with cells an agent fills
 // in. A line that starts with >> asks for something; ⏎ makes it a cell and
@@ -825,14 +826,12 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
           </Button>
         </div>
       )}
-      <nav className="tabs page-tabs" role="tablist" aria-label="The page, and passes over it">
-        <button role="tab" className={tab === "page" ? "on" : ""} aria-selected={tab === "page"} onClick={() => setTab("page")}>
-          Page
-        </button>
+      <Tabs className="page-tabs" value={tab} onChange={setTab} aria-label="The page, and passes over it">
+        <Tab value="page">Page</Tab>
         {passes.map((p) => {
           const open = p.findings.filter((f) => f.state === "open").length;
           return (
-            <button key={p.name} role="tab" className={tab === p.name ? "on" : ""} aria-selected={tab === p.name} onClick={() => setTab(p.name)} title={p.about}>
+            <Tab key={p.name} value={p.name} title={p.about}>
               {p.title}
               {p.running ? (
                 <Icon name="spinner" size={11} className="spin" />
@@ -843,10 +842,10 @@ function Doc({ d, workspace, back, reread }: { d: PageDetail; workspace: Workspa
               ) : p.failed ? (
                 <Icon name="alert" size={11} className="tab-failed" />
               ) : null}
-            </button>
+            </Tab>
           );
         })}
-      </nav>
+      </Tabs>
       {current && (
         <PassTab
           pass={current}

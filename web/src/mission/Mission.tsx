@@ -57,6 +57,7 @@ import { Summary as SummaryList, SummaryRow } from "../ui/Summary";
 import { Segment, Segmented } from "../ui/Segmented";
 import { cx } from "../ui/cx";
 import { Menu, MenuItem } from "../ui/Menu";
+import { Tab, Tabs } from "../ui/Tabs";
 
 // The mission page: its time along the top edge, then one bar (back, what
 // it's doing, its name, six tabs) that stays as the page scrolls, and the
@@ -288,23 +289,14 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
     </TLink>
   );
   const tabRow = (count?: (t: Tab) => ReactNode) => (
-    <div className="tabs" role="tablist" aria-label="Mission">
+    <Tabs className="mission-tabs" value={tab} onChange={setTab} controls="mission-panel" aria-label="Mission">
       {tabs.map((t) => (
-        <button
-          key={t}
-          role="tab"
-          id={`tab-${t}`}
-          aria-selected={t === tab}
-          aria-controls="mission-panel"
-          className={t === tab ? "on" : ""}
-          onClick={() => setTab(t)}
-          title={`${tabNames[t]} (${tabs.indexOf(t) + 1})`}
-        >
+        <Tab key={t} value={t} title={`${tabNames[t]} (${tabs.indexOf(t) + 1})`}>
           {tabNames[t]}
           {count?.(t)}
-        </button>
+        </Tab>
       ))}
-    </div>
+    </Tabs>
   );
 
   if (error && !d) {
@@ -417,7 +409,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
       {tab === "brief" ? (
         // The brief has the page under the bar to itself: its panes reach
         // the page's edges, each scrolling by itself.
-        <div role="tabpanel" id="mission-panel" aria-labelledby="tab-brief" className="tab-panel brief-panel" key="brief">
+        <div role="tabpanel" id="mission-panel" aria-label={tabNames.brief} className="tab-panel brief-panel" key="brief">
           {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
           <BriefTab d={d} root={workspace.root} updated={updated} reload={load} onEscape={escape} />
         </div>
@@ -425,7 +417,7 @@ export function MissionPage({ workspace }: { workspace: Workspace }) {
       <div className={`page mission${docked ? " with-side" : ""}${wideTabs.includes(tab) ? " wide" : ""}`}>
         <div className="mission-main" data-page-scroller="">
           {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
-          <div role="tabpanel" id="mission-panel" aria-labelledby={`tab-${tab}`} className="tab-panel" key={tab}>
+          <div role="tabpanel" id="mission-panel" aria-label={tabNames[tab]} className="tab-panel" key={tab}>
             {tab === "summary" && <Summary {...parts} full={!side} />}
             {tab === "work" && w && (
               <Work d={d} w={w} shown={item?.key} select={setSel} review={review} openArtifact={openArtifact} reload={load} seen={workspace.readsSeen} />
