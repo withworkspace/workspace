@@ -72,6 +72,20 @@ func (r *checkRound) command(i int, c mission.Check, capsule, dir string, env []
 	return res
 }
 
+// metBefore is check i (from 0), a command ws ran in an earlier round
+// (before, with what it came to there) on the files the capsule's at now:
+// met as it was, logged, and not run again. It keeps that round's run.
+func (r *checkRound) metBefore(i int, c mission.Check, before mission.CheckRound, was mission.CheckResult) mission.CheckResult {
+	n, of := i+1, len(r.st.Step.Checks)
+	at := ""
+	if before.Commit != "" {
+		at = " at " + shortCommit(before.Commit)
+	}
+	r.log("step %d, check %d of %d: `%s` was met in round %d%s, and the files are the same now: not run again", r.st.N, n, of, c.Command, before.N, at)
+	return mission.CheckResult{Check: c.Text, Result: mission.CheckMet, By: "ws", Run: was.Run,
+		Evidence: fmt.Sprintf("met in round %d%s, and the capsule's files are the same now, all committed: not run again", before.N, at)}
+}
+
 // checkEnded is how a check that's a command ended, in a line: "passed in
 // 4s: met".
 func checkEnded(r mission.CheckResult) string {

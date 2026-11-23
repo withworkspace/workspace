@@ -105,7 +105,7 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 	if c, ok := m.CrewByID(crewID); ok && c.Capsule != "" && c.Capsule != RootPlace {
 		capsule, hasCapsule = c.Capsule, true // where the crew worked
 	}
-	dir, commit := "", ""
+	dir, commit, tree := "", "", ""
 	if hasCapsule {
 		repo, name, _ := strings.Cut(capsule, "/")
 		dir = filepath.Join(w.WS().RepoDir(repo), name)
@@ -113,6 +113,7 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 			dir, hasCapsule = "", false
 		} else {
 			commit = gitOut(dir, "rev-parse", "HEAD")
+			tree = cleanTree(dir)
 		}
 	}
 	if st.Step.Type == mission.StepVerify {
@@ -137,6 +138,11 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 		}
 		if !hasCapsule {
 			results[i] = mission.CheckResult{Check: c.Text, Result: mission.CheckCantTell, By: "ws", Evidence: "the step has no capsule to run it in"}
+		} else if before, res, ok := st.Record.MetOn(capsule, tree, c.Text); ok {
+			// The same files it was met on, all committed then and now:
+			// it's met, and isn't run again (a suite that takes minutes,
+			// for a done reported again with nothing changed).
+			results[i] = run.metBefore(i, c, before, res)
 		} else {
 			results[i] = run.command(i, c, capsule, dir, crew.Env(w.Root(), slug, ""))
 		}
@@ -158,7 +164,7 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 	if c, ok := m.CrewByID(crewID); ok {
 		done = c.DoneKey()
 	}
-	all := mission.CheckRound{Crew: crewID, Done: done, Capsule: capsule, Commit: commit, Results: results}
+	all := mission.CheckRound{Crew: crewID, Done: done, Capsule: capsule, Commit: commit, Tree: tree, Results: results}
 	if all.Met() {
 		// Recording the round ends ws's checking, and it's ws's until the
 		// step has passed and the next is reached: marked before, so
@@ -820,6 +826,17 @@ func gitOut(dir string, args ...string) string {
 		return ""
 	}
 	return strings.TrimSpace(string(out))
+}
+
+// cleanTree is the files the capsule at dir is at, as git names them (its
+// commit's tree), when nothing there is uncommitted: "" when something
+// is, or it can't be told.
+func cleanTree(dir string) string {
+	out, err := exec.Command("git", "-C", dir, "status", "--porcelain").Output()
+	if err != nil || strings.TrimSpace(string(out)) != "" {
+		return ""
+	}
+	return gitOut(dir, "rev-parse", "HEAD^{tree}")
 }
 
 // capsuleDiff is what a capsule's commits change from where it left base:

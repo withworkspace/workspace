@@ -91,11 +91,37 @@ type CheckRound struct {
 	N    int    `toml:"n" json:"n"`       // from 1
 	Crew string `toml:"crew" json:"crew"` // whose done it checked
 	// Done is which of their dones it checked (Crew.DoneKey).
-	Done    string        `toml:"done,omitempty" json:"done,omitempty"`
-	Capsule string        `toml:"capsule" json:"capsule"` // where: repo/name
-	Commit  string        `toml:"commit,omitempty" json:"commit,omitempty"`
+	Done    string `toml:"done,omitempty" json:"done,omitempty"`
+	Capsule string `toml:"capsule" json:"capsule"` // where: repo/name
+	Commit  string `toml:"commit,omitempty" json:"commit,omitempty"`
+	// Tree is the files the round ran on, as git names them (the commit's
+	// tree), where the capsule had nothing uncommitted: "" where it had,
+	// or isn't a repo. A command met on a tree needn't be run on it again.
+	Tree    string        `toml:"tree,omitempty" json:"tree,omitempty"`
 	Results []CheckResult `toml:"results" json:"results"`
 	At      time.Time     `toml:"at" json:"at"`
+}
+
+// MetOn is the latest round of the step's checks, in capsule, in which ws
+// ran the command check and it was met on the files tree names: what a
+// round on the same files can take as it stands. tree "" is no files
+// known, and matches nothing.
+func (r *StageRecord) MetOn(capsule, tree, check string) (CheckRound, CheckResult, bool) {
+	if r == nil || tree == "" {
+		return CheckRound{}, CheckResult{}, false
+	}
+	for i := len(r.Checks) - 1; i >= 0; i-- {
+		round := r.Checks[i]
+		if round.Capsule != capsule || round.Tree != tree {
+			continue
+		}
+		for _, res := range round.Results {
+			if res.Check == check && res.By == "ws" && res.Result == CheckMet {
+				return round, res, true
+			}
+		}
+	}
+	return CheckRound{}, CheckResult{}, false
 }
 
 // Met reports whether every check was met.
