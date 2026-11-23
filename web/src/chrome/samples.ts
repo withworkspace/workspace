@@ -60,6 +60,32 @@ export const crewAsks: Need = {
   to: "/missions/dark-mode-for-the-dashboard",
 };
 
+// Pull requests asking for your review by name, as the daemon lists them
+// after what's yours. Written here: what was taken has none. The last is
+// a stack, one need at its lowest layer that asks.
+const pull = (repo: string, number: number, title: string, text: string, key = `${repo}#${number}`): Need => ({
+  key: `pull|${key}|`,
+  of: "pull",
+  ref: `${repo}#${number}`,
+  kind: "your-review",
+  title,
+  text,
+  to: `/reviews/${repo}/${number}`,
+});
+export const toReview: Need[] = [
+  pull("api", 212, "Rate limit by key, not by address", "api#212, from ines, needs your review."),
+  pull("web", 87, "Invoice table keeps its header on scroll", "web#87, from tomas, needs your review again."),
+  pull("api", 205, "Webhook signing", "api#205, from ines, needs your review, and 2 more of its stack do.", "api/stack-4"),
+];
+
+// More of them than the list shows: the rest are a press away, in Reviews.
+export const manyToReview: Need[] = [
+  ...toReview,
+  pull("api", 214, "Drop the v1 export endpoint", "api#214, from priya, needs your review."),
+  pull("docs", 31, "Say how retries back off", "docs#31, from tomas, needs your review."),
+  pull("web", 90, "Totals to the penny in the summary", "web#90, from priya, needs your review."),
+];
+
 // What's new at some places since you last looked. Written here: ws
 // keeps no marks yet.
 export const news: Record<string, string> = {

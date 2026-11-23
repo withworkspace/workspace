@@ -11,7 +11,15 @@ import { type Need, useArrived } from "./need";
 import { Needs } from "./Needs";
 import { Places } from "./Places";
 import { SamplePins } from "./SamplePins";
-import { crewAsks, needs, news, placesFor, workspace } from "./samples";
+import {
+  crewAsks,
+  manyToReview,
+  needs,
+  news,
+  placesFor,
+  toReview,
+  workspace,
+} from "./samples";
 import { Sidebar } from "./Sidebar";
 import { WorkspaceName } from "./WorkspaceName";
 
@@ -172,6 +180,21 @@ export const APluginsPlaces: StoryObj = {
     <div style={ground}>
       <Card places={board} wants="Runs: 1 failed" />
       <Card rail places={board} wants="Runs: 1 failed" />
+    </div>
+  ),
+};
+
+// Pull requests that ask for your review by name: under a small heading
+// of their own, after what's yours. More than a few, and the rest are a
+// press away in Reviews; with nothing of yours, they're all there is. In
+// the rail the heading is a short rule.
+export const ToReview: StoryObj = {
+  render: () => (
+    <div style={{ ...ground, height: 720 }}>
+      <Card now={[...needs, ...toReview]} />
+      <Card now={[...needs.slice(0, 2), ...manyToReview]} />
+      <Card now={toReview.slice(0, 2)} />
+      <Card rail now={[...needs, ...toReview]} />
     </div>
   ),
 };

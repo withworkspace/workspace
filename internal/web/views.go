@@ -73,7 +73,11 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 	talks := conversation.ForWorkspace(root)
 	list, _ := talks.Talks()
 	out := Workspace{Name: v.Name, Root: root, Org: v.Org, Remotes: v.Elsewhere, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: talksOf(talks, list), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Spaces: []SpaceRef{}}
-	out.Needs = needsOf(ops.Needs(v.Missions, list))
+	var asked []pulls.Asked
+	if reviews != nil {
+		asked = reviews.AskedOfYou()
+	}
+	out.Needs = needsOf(ops.Needs(v.Missions, list, asked))
 	out.Focus = focusOf(v.Focus)
 	out.Apps = []AppInfo{}
 	for _, a := range v.Apps {
@@ -115,6 +119,11 @@ func needsOf(needs []ops.Need) []Need {
 			w.Since = &since
 		}
 		switch {
+		case n.Of == ops.NeedPull:
+			// A pull request's ref is repo#number: its review is at both.
+			if at := strings.LastIndex(n.Ref, "#"); at > 0 {
+				w.To = "/reviews/" + n.Ref[:at] + "/" + n.Ref[at+1:]
+			}
 		case n.Of == ops.NeedMission:
 			w.To = "/missions/" + n.Ref
 		case n.In != "":

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   askPR,
+  declinePR,
   type Discussion,
   dockPR,
   getPR,
@@ -32,7 +33,7 @@ import { AskBar, type AskBarHandle } from "../ask/AskBar";
 import { useKeys } from "../keys";
 import { type AskedFinding, type ReviewDiff, type ReviewSource, ReviewView, type Selection } from "../review/Review";
 import { Icon } from "../ui/Icon";
-import { Callout, Dialog, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
+import { Callout, confirm, Dialog, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
 import { Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { GuideMark, GuideSection } from "./Guide";
@@ -267,6 +268,33 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
       )
       .finally(() => setDocking(false));
   };
+  // It isn't yours to review: your name comes off its reviewers on GitHub,
+  // which is where that's said, and it stops needing you. Others see it,
+  // so it's asked first.
+  const [declining, setDeclining] = useState(false);
+  const decline = async () => {
+    if (!d || declining) return;
+    const yes = await confirm({
+      title: "Not yours to review?",
+      body: (
+        <>
+          Your name comes off the reviewers of <span className="mono">{ref}</span> on GitHub, where {d.pr.author} and anyone else on it will see. Nobody's asked in your place.
+        </>
+      ),
+      confirm: "Take my name off",
+    });
+    if (!yes) return;
+    setDeclining(true);
+    declinePR(api)
+      .then(
+        () => {
+          toast(`Your name is off ${ref}'s reviewers.`, { tone: "done" });
+          navigate("/reviews");
+        },
+        (e: Error) => toast(humanError(e.message), { tone: "danger" }),
+      )
+      .finally(() => setDeclining(false));
+  };
   // ask goes to the ask bar: with lines in hand, or what a pass found, to
   // ask about them; with neither, about the whole of it.
   const ask = (lines?: Selection, finding?: AskedFinding) => {
@@ -385,6 +413,11 @@ export function PRReviewPage({ workspace }: { workspace: Workspace }) {
       <>
         <div className="pr-meta">
           {!whole && <Status s={prStatus(pr)} />}
+          {!whole && pr.asked === "you" && pr.state === "needs-review" && (
+            <Button variant="ghost" size="small" onClick={decline} disabled={declining} title="It isn't yours to review: take your name off its reviewers on GitHub">
+              {declining ? "Taking your name off…" : "Not mine"}
+            </Button>
+          )}
           <span>
             {pr.mine ? "Yours" : pr.author} · <span className="mono">{pr.branch}</span> <Icon name="arrow-right" size={11} />{" "}
             <span className="mono">{whole && d.stack ? d.stack.base : pr.base}</span>

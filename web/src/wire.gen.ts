@@ -2502,15 +2502,16 @@ export interface Need {
     key: string;
     /**
      * Of is the sort of thing it's on, and Ref that thing as a ref names
-     * it. In is the mission a conversation is about, where it's about
-     * one.
+     * it (a mission's slug, w4, api#89). In is the mission a conversation
+     * is about, where it's about one.
      */
     of: NeedOf;
     ref: string;
     in?: string;
     /**
-     * Kind is what it needs of you: a mission's headline's kind, or
-     * your-turn. Label is the headline's word for it, where it has one.
+     * Kind is what it needs of you: a mission's headline's kind,
+     * your-turn, or your-review. Label is the headline's word for it,
+     * where it has one.
      */
     kind: string;
     label?: string;
@@ -2530,7 +2531,7 @@ export interface Need {
 }
 
 // From web/api.go
-export type NeedOf = "conversation" | "mission";
+export type NeedOf = "conversation" | "mission" | "pull";
 
 // From web/api.go
 /**
@@ -5523,8 +5524,9 @@ export interface Workspace {
      * Needs is what needs you: what can't move without you, and only you.
      * It's worked out from where each thing stands now, never kept
      * (ops.Needs): the missions in your court, then the conversations
-     * that are your turn. The sidebar's Needs you, the counts beside its
-     * places, the tab's title and what the desktop is told are all this.
+     * that are your turn, then the pull requests that ask for your review
+     * by name. The sidebar's Needs you, the counts beside its places, the
+     * tab's title and what the desktop is told are all this.
      */
     needs: Need[];
     /**
