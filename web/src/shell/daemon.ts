@@ -1,5 +1,6 @@
 import { shutDownDaemon } from "../api";
-import { confirm, humanError, toast } from "../ui/kit";
+import { humanError, toast } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
 
 // askShutDown shuts the workspace's daemon down, once you've said yes:
 // every crew it holds is hung up, and this page goes with it (closed says

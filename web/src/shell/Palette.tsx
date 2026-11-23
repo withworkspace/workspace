@@ -12,7 +12,8 @@ import { marked } from "../ui/fuzzy";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/status";
-import { confirm, humanError, Keys, toast } from "../ui/kit";
+import { humanError, Keys, toast } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
 import { setTheme } from "../ui/theme";
 import { clock } from "../ui/time";
 import {

@@ -1816,7 +1816,7 @@ function Finder({ files, onPick, onClose }: { files: DiffFile[]; onPick: (i: num
   const pick = matches[Math.min(sel, matches.length - 1)];
   return (
     <div className="overlay" onClick={onClose}>
-      <div className="dialog finder" onClick={(e) => e.stopPropagation()}>
+      <div className="finder" onClick={(e) => e.stopPropagation()}>
         <input
           autoFocus
           value={q}

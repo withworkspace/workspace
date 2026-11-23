@@ -3,7 +3,8 @@ import { Link } from "react-router";
 import { addPlugin, ApiError, checkUpdates, getInstalledPlugins, type InstalledPlugin, type Plugin, type PluginsInstalled, removePlugin, updatePlugin, type WantedPlugin } from "../api";
 import { type Reload, useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
-import { Callout, Copyable, Dialog, Empty, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { Callout, Copyable, Empty, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
 import { Time } from "../ui/time";
 import { addsOf, changedSaid, fromOf, outCount, repoLink, stateOf, updateOf, wantedFrom } from "./installed";
 import { pluginIcon } from "./Plugin";
@@ -324,11 +325,11 @@ function RemoveDialog({ p, onClose, onRemove }: { p: InstalledPlugin; onClose: (
   const [data, setData] = useState(false);
   return (
     <Dialog title={`Remove ${p.name}?`} onClose={onClose}>
-      <p className="dialog-text">
+      <DialogText>
         It's stopped and taken out of the workspace: its view leaves the sidebar, its commands go
         {p.names?.length ? `, and its things' names (${p.names.join(", ")}) are words again wherever they're written` : ""}. Its config in <code>ws.toml</code> and{" "}
         <code>ws.local.toml</code> is yours to remove.
-      </p>
+      </DialogText>
       <label className="plugins-remove-data">
         <input type="checkbox" checked={data} onChange={(e) => setData(e.target.checked)} />
         <span>
@@ -336,14 +337,14 @@ function RemoveDialog({ p, onClose, onRemove }: { p: InstalledPlugin; onClose: (
           <span className="dim"> Left alone, adding it again picks up where it was.</span>
         </span>
       </label>
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <Button variant="danger" onClick={() => onRemove(data)} autoFocus>
+        <Button variant="danger" onClick={() => onRemove(data)}>
           {data ? "Remove, and what it kept" : "Remove"}
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }

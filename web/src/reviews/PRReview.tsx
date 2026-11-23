@@ -32,7 +32,8 @@ import { AskBar, type AskBarHandle } from "../ask/AskBar";
 import { useKeys } from "../keys";
 import { type AskedFinding, type ReviewDiff, type ReviewSource, ReviewView, type Selection } from "../review/Review";
 import { Icon } from "../ui/Icon";
-import { Callout, Dialog, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
+import { Callout, Empty, humanError, Keys, Loading, toast, useTitle } from "../ui/kit";
+import { Dialog } from "../ui/Dialog";
 import { Status } from "../ui/status";
 import { Time } from "../ui/time";
 import { GuideMark, GuideSection } from "./Guide";
@@ -749,7 +750,7 @@ function PRSubmitDialog({
   const stack = layers.length > 1;
   const here = layers[Math.max(0, prs.findIndex((p) => p.number === d.pr.number))];
   return (
-    <Dialog title={stack ? "Submit the review of the stack" : "Submit the review"} onClose={onClose} className="submit pr-submit" wide>
+    <Dialog title={stack ? "Submit the review of the stack" : "Submit the review"} onClose={onClose} className="submit-dialog pr-submit" wide>
       <p>
         Submitting posts to GitHub, as you. It's the one thing here that leaves your machine, and a review can't be unsent, only dismissed: what's below is exactly what goes.
         {stack && " GitHub reviews one pull request at a time, so each layer has its own verdict; a layer with none is left alone."}

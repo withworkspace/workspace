@@ -4,7 +4,8 @@ import { act, type CapsuleDetail, type Conclusion, type EndedCapsule, type Endin
 import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/inline";
-import { Dialog, humanError, toast } from "../ui/kit";
+import { humanError, toast } from "../ui/kit";
+import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";
 import { ToggleButton } from "../ui/ToggleButton";
 
@@ -164,14 +165,14 @@ export function EndDialog({ d, onClose, reload }: { d: MissionDetail; onClose: (
         </fieldset>
       )}
       {error && <div className="banner">{humanError(error)}</div>}
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
         <Button variant={ending === "dropped" ? "danger" : "primary"} onClick={submit} disabled={!ending || !text.trim() || busy}>
           {ending ? `End it, ${endingWords[ending]}` : "End it"}
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }
@@ -246,14 +247,14 @@ export function CapsuleEnds({ slug, c, reload }: { slug: string; c: CapsuleDetai
             </label>
           )}
           {error && <div className="banner">{humanError(error)}</div>}
-          <div className="dialog-actions">
+          <DialogActions>
             <Button variant="ghost" onClick={close}>
               Cancel
             </Button>
             <Button variant={open === "drop" ? "danger" : "primary"} onClick={submit} disabled={busy || (!text.trim() && !(open === "hand-on" && to.trim()))}>
               {open === "drop" ? "Drop it" : "Hand it on"}
             </Button>
-          </div>
+          </DialogActions>
         </Dialog>
       )}
     </>

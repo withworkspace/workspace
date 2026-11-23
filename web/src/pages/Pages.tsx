@@ -3,7 +3,8 @@ import { useNavigate } from "react-router";
 import { type DocKind, kindHint, newPage, pageAddress, type PageInfo, type Workspace } from "../api";
 import type { Back } from "./Page";
 import { Icon } from "../ui/Icon";
-import { Dialog, humanError, Keys, Loading, toast } from "../ui/kit";
+import { humanError, Keys, Loading, toast } from "../ui/kit";
+import { Dialog, DialogActions } from "../ui/Dialog";
 import { Time } from "../ui/time";
 import { TLink } from "../ui/TLink";
 import { Chip } from "../ui/Chip";
@@ -157,14 +158,14 @@ export function NewAsKind({ kinds, busy, onStart, onClose }: { kinds: DocKind[];
           Its agents are told how one's written{k.guide ? <> (<span className="mono">{k.guide.split("/").slice(-3).join("/")}</span>)</> : null}, and <em>Draft it</em> lays it out that way. Once it's written, <em>File as…</em> files it at <span className="mono">{whereItGoes(k, title)}</span>.
         </p>
       )}
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
         <Button variant="primary" onClick={go} disabled={busy || !k || !title.trim()}>
           Start it <Keys k="⏎" />
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }

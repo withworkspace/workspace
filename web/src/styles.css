@@ -780,47 +780,6 @@ main > .banner {
   animation: fade var(--fast) var(--ease);
 }
 
-.dialog {
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 16px 20px 18px;
-  width: min(420px, 100%);
-  box-shadow: var(--shadow-lg);
-  animation: pop var(--slow) var(--ease);
-}
-
-.dialog:focus {
-  outline: none;
-}
-
-.dialog.wide {
-  width: min(560px, 100%);
-}
-
-.dialog-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: -4px -8px 10px 0;
-}
-
-.dialog-head h2 {
-  font-size: var(--text-lg);
-}
-
-.dialog-text {
-  color: var(--dim);
-  margin-bottom: 16px;
-}
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
 /* The keys dialog */
 .keys-help {
   display: grid;
@@ -1254,7 +1213,7 @@ main.stale > :not(.connection-banner) {
   --backdrop: var(--bg);
 }
 
-.dialog,
+.finder,
 .palette,
 .file,
 .note-card,
@@ -2511,6 +2470,11 @@ main {
 }
 
 .finder {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: pop var(--slow) var(--ease);
   width: min(560px, 90vw);
   padding: 0;
   overflow: hidden;
@@ -2836,7 +2800,7 @@ button.kind.on {
 }
 
 .note-editor textarea,
-.dialog.submit textarea {
+.submit-dialog textarea {
   width: 100%;
   margin: 8px 0;
   font: var(--text-md) / 1.5 var(--font);
@@ -2853,7 +2817,7 @@ button.kind.on {
   gap: 8px;
 }
 
-.dialog.submit p {
+.submit-dialog p {
   margin: 0 0 12px;
   color: var(--dim);
 }
@@ -12944,18 +12908,18 @@ a.note-id:hover {
 
 /* It sits 14vh down the page, as every dialog does: what's left is its
    height, and its layers scroll inside it. */
-.dialog.pr-submit {
+.pr-submit {
   width: min(760px, 94vw);
   max-height: calc(86vh - 32px);
   display: flex;
   flex-direction: column;
 }
 
-.dialog.pr-submit > * {
+.pr-submit > * {
   flex: none;
 }
 
-.dialog.pr-submit > .pr-submit-layers {
+.pr-submit > .pr-submit-layers {
   flex: 1 1 auto;
 }
 
@@ -15558,12 +15522,12 @@ body.nav-pointing .code-view code[data-rev] {
   color: var(--dim);
 }
 
-.dialog.end-mission p {
+.end-mission p {
   margin: 0 0 12px;
   color: var(--dim);
 }
 
-.dialog.end-mission textarea {
+.end-mission textarea {
   width: 100%;
   margin: 8px 0;
   font: var(--text-md) / 1.5 var(--font);
@@ -18668,12 +18632,12 @@ a [data-viewable] {
 /* What's new: once after an upgrade, and from Settings' About. Wide,
    with the horizon behind its head, the first entry large and the rest
    as cards. */
-.overlay:has(> .dialog.whats-new) {
+.overlay:has(.whats-new) {
   place-items: center;
   padding-top: 16px;
 }
 
-.dialog.whats-new {
+.whats-new {
   position: relative;
   width: min(820px, 100%);
   max-height: min(86vh, 900px);
@@ -18681,13 +18645,6 @@ a [data-viewable] {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.dialog-close-corner {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 1;
 }
 
 .whats-new-head {

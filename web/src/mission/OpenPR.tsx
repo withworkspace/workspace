@@ -2,7 +2,8 @@ import { useState } from "react";
 import { act, writePR, type CapsuleDetail, type MissionDetail } from "../api";
 import type { Reload } from "../load";
 import { Icon } from "../ui/Icon";
-import { Dialog, humanError, toast } from "../ui/kit";
+import { humanError, toast } from "../ui/kit";
+import { Dialog, DialogActions } from "../ui/Dialog";
 import { Button } from "../ui/Button";
 
 // A pull request is opened through ws, so the process's rules about it are
@@ -97,7 +98,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
             Open it as a draft
           </label>
           {error && <div className="banner">{humanError(error)}</div>}
-          <div className="dialog-actions">
+          <DialogActions>
             <Button variant="ghost" onClick={close}>
               Cancel
             </Button>
@@ -109,7 +110,7 @@ export function OpenPR({ d, c, reload }: { d: MissionDetail; c: CapsuleDetail; r
             >
               {title.trim() ? "Open it" : "Write and open it"}
             </Button>
-          </div>
+          </DialogActions>
         </Dialog>
       )}
     </>

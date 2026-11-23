@@ -4,7 +4,8 @@ import { checkUpdates, getUpdates, type UpdatesInfo, upgradeWS } from "../api";
 import { useLoaded } from "../load";
 import { shortVersion } from "../shell/version";
 import { Icon } from "../ui/Icon";
-import { Callout, confirm, Copyable, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { Callout, Copyable, ErrorCard, humanError, Skeleton, toast } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
 import { Button } from "../ui/Button";
 

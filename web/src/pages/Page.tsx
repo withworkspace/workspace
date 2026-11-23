@@ -60,7 +60,8 @@ import { linkNamed, type RefHost, type RefMark, refreshRefs } from "../editor/re
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Calls } from "../ui/Calls";
 import { Icon, type IconName } from "../ui/Icon";
-import { confirm, ErrorCard, humanError, Keys, Loading, toast, useAutosize, useMedia, useTitle } from "../ui/kit";
+import { ErrorCard, humanError, Keys, Loading, toast, useAutosize, useMedia, useTitle } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
 import { RefCard } from "../refs/RefCard";
 import { useRefs } from "../refs/known";

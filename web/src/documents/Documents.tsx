@@ -5,7 +5,8 @@ import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { NewAsKind, PageRow, useStartPage } from "../pages/Pages";
 import { Icon } from "../ui/Icon";
-import { Dialog, Empty, ErrorCard, humanError, Keys, Loading, useMedia, useTitle } from "../ui/kit";
+import { Empty, ErrorCard, humanError, Keys, Loading, useMedia, useTitle } from "../ui/kit";
+import { Dialog, DialogActions } from "../ui/Dialog";
 import { TLink } from "../ui/TLink";
 import { ActivityFold, Fresh, InFlight, inFlightPaths, Lately } from "./Activity";
 import { acrossSpaces } from "./happening";
@@ -859,7 +860,7 @@ function NewInFolder({
         <span className="mono">{`${repo} · ${root}${clean}${name}.md`}</span>,
         as {label} lands its changes.
       </p>
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
@@ -870,7 +871,7 @@ function NewInFolder({
         >
           Start it <Keys k="⏎" />
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }

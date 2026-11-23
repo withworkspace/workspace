@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { type DocKind, type DocSaved, FileChanged, filePage, type PageFiling, type PageTied, savePageToFile, type SpaceRef } from "../api";
 import { Icon } from "../ui/Icon";
-import { Callout, Dialog, humanError, Keys } from "../ui/kit";
+import { Callout, humanError, Keys } from "../ui/kit";
+import { Dialog, DialogActions } from "../ui/Dialog";
 import { Option, Select } from "../ui/Select";
 import { Button } from "../ui/Button";
 
@@ -153,14 +154,14 @@ export function FileAs({
       )}
       <p className="dim file-as-what">What's filed is the page as it reads: what its cells hold is kept as text, its questions are left out. The page stays, and says where it was filed.</p>
       {error && <div className="banner">{error}</div>}
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
         <Button variant="primary" onClick={file} disabled={!ready}>
           {busy ? (lands ? "Landing…" : "Filing…") : lands ? `File, and land on ${plan?.branch}` : "File it"} <Keys k="mod+⏎" />
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }
@@ -243,14 +244,14 @@ export function SaveToFile({
       )}
       <p className="dim file-as-what">What's saved is the page as it reads: what its cells hold is kept as text, its questions are left out. The page keeps them.</p>
       {error && <div className="banner">{error}</div>}
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
         <Button variant="primary" onClick={save} disabled={busy || !message.trim()}>
           {busy ? (lands ? "Landing…" : "Saving…") : lands ? `Save, and land on ${saves?.branch}` : "Save"} <Keys k="mod+⏎" />
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }

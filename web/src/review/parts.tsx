@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { noteKinds, type Review, type Verdict } from "../api";
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
-import { Dialog, humanError, Keys, useAutosize } from "../ui/kit";
+import { humanError, Keys, useAutosize } from "../ui/kit";
+import { Dialog } from "../ui/Dialog";
 import { Button } from "../ui/Button";
 
 // What a capsule's review and a document's share: how verdicts and comment
@@ -104,7 +105,7 @@ export function SubmitDialog({
     ["comment", "m", "Comment", "message"],
   ];
   return (
-    <Dialog title="Submit the review" onClose={onClose} className="submit" wide>
+    <Dialog title="Submit the review" onClose={onClose} className="submit-dialog" wide>
         <p>
           {draft
             ? `${draft.comments.length} new ${draft.comments.length === 1 ? "comment" : "comments"}${counts.length ? ` (${counts.join(", ")})` : ""}.`

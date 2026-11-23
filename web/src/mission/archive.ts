@@ -1,5 +1,6 @@
 import { act, ApiError } from "../api";
-import { confirm, humanError } from "../ui/kit";
+import { humanError } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
 
 // archiveMission archives a mission, which burns its capsules. When one's
 // work hasn't merged, the server refuses, saying which and why: you're

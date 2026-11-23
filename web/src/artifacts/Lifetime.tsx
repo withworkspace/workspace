@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { type ArtifactDone, type ArtifactInfo, clearExpiredArtifacts, discardArtifact, getArtifactDetail, promoteArtifact, restoreArtifact, type Workspace } from "../api";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
-import { Callout, confirm, Dialog, humanError, Keys, toast } from "../ui/kit";
+import { Callout, humanError, Keys, toast } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
+import { Dialog, DialogActions, DialogText } from "../ui/Dialog";
 import { Option, Select } from "../ui/Select";
 import { clearable, type IntoKind, type Lives, livesAt, promoteBlocked, promoteVersions, promotion } from "./shown";
 import { Button } from "../ui/Button";
@@ -75,7 +77,7 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
 
   return (
     <Dialog title={`Promote “${a.title}”`} onClose={onClose} className="artifact-promote" wide>
-      <p className="dialog-text">Promoting keeps it for good: it expires no more, and says which version was chosen and what it went into. It still takes new versions.</p>
+      <DialogText>Promoting keeps it for good: it expires no more, and says which version was chosen and what it went into. It still takes new versions.</DialogText>
       <div className="file-as-fields" onKeyDown={keys}>
         <label>
           <span>Version</span>
@@ -165,14 +167,14 @@ export function PromoteDialog({ a, version, workspace, onClose, onDone }: { a: A
       ) : null}
       {blocked && <p className="dim file-as-what">{blocked}</p>}
       {(error || loadError) && <div className="banner">{error ?? loadError}</div>}
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
         <Button variant="primary" onClick={go} disabled={busy || !n || !d || !!blocked}>
           {busy ? (lands ? "Landing…" : "Promoting…") : lands ? `Promote, and land on ${branch}` : "Promote"} <Keys k="mod+⏎" />
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }
@@ -201,7 +203,7 @@ export function DiscardDialog({ a, workspace, onClose, onDone }: { a: ArtifactIn
   };
   return (
     <Dialog title={`Discard “${a.title}”`} onClose={onClose}>
-      <p className="dialog-text">
+      <DialogText>
         It's taken off the list, with its versions. Its folder moves to <span className="mono">.ws/artifacts/.discarded</span>, and is deleted for good in 30 days: until then, <em>Restore</em> puts it back.{" "}
         {home && (
           <>
@@ -209,7 +211,7 @@ export function DiscardDialog({ a, workspace, onClose, onDone }: { a: ArtifactIn
           </>
         )}
         {a.id} still says what it was.
-      </p>
+      </DialogText>
       <textarea
         className="artifact-discard-why"
         autoFocus
@@ -226,14 +228,14 @@ export function DiscardDialog({ a, workspace, onClose, onDone }: { a: ArtifactIn
         aria-label="Why it's discarded"
       />
       {error && <div className="banner">{error}</div>}
-      <div className="dialog-actions">
+      <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
         <Button variant="danger" onClick={go} disabled={busy}>
           {busy ? (home ? "Landing…" : "Discarding…") : home ? `Discard, and land on ${workspace.defaultBranch ?? "it"}` : "Discard"} <Keys k="mod+⏎" />
         </Button>
-      </div>
+      </DialogActions>
     </Dialog>
   );
 }

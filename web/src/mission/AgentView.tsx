@@ -4,7 +4,8 @@ import { answerCrew, type Crew, type CrewAnswer, type CrewPrompt, getCrewPrompt,
 import { Markdown } from "../markdown/LazyMarkdown";
 import { type Call, Calls, EditDiff, Plan } from "../ui/Calls";
 import { Icon } from "../ui/Icon";
-import { confirm, Empty, ErrorCard, humanError, Keys, Loading, toast, useAutosize, useDraft } from "../ui/kit";
+import { Empty, ErrorCard, humanError, Keys, Loading, toast, useAutosize, useDraft } from "../ui/kit";
+import { confirm } from "../ui/Confirm";
 import { Time } from "../ui/time";
 import { CrewBadge } from "./parts";
 import { useLoaded } from "../load";
