@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState, memo } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, memo } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType, useParams } from "react-router";
 import { type Connection, NotSignedIn, setSettings } from "./api";
 import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
@@ -60,7 +60,7 @@ import { Dialog } from "./ui/Dialog";
 import { duration } from "./ui/when";
 import { SiloPoint } from "./silo/SiloPoint";
 import { Count } from "./ui/Count";
-import { buttonClass } from "./ui/Button";
+import { Button, buttonClass } from "./ui/Button";
 import { Below } from "./chrome/Below";
 import { useBelowViews } from "./chrome/belowViews";
 import { Beside } from "./chrome/Beside";
@@ -312,6 +312,7 @@ export function App() {
       }
     >
       <ConnectionBanner connection={connection} />
+      <UpdatedBanner version={workspace?.version} />
       {error && <Banner className="app-error">{error.message}</Banner>}
       {!workspace && !error && <Loading what="Opening the workspace…" />}
       {workspace && (
@@ -449,6 +450,32 @@ function WorkspaceMenu({ places }: { places: Place[] }) {
         <MenuText>Shut down the daemon…</MenuText>
       </MenuItem>
     </Menu>
+  );
+}
+
+// UpdatedBanner says when the daemon serving the page is another ws than
+// the one the page was loaded from: it was upgraded, and restarted onto the
+// new one, while the page stayed open. The page is the old ws's web UI,
+// which the new one may not answer as it expects: reloading it loads the
+// new one's.
+function UpdatedBanner({ version }: { version?: string }) {
+  const loaded = useRef<string>(undefined);
+  if (version && loaded.current === undefined) loaded.current = version;
+  if (!version || !loaded.current || version === loaded.current) return null;
+  return (
+    <Banner
+      tone="info"
+      icon="rotate"
+      role="status"
+      className="updated-banner"
+      actions={
+        <Button size="small" onClick={() => location.reload()}>
+          Reload
+        </Button>
+      }
+    >
+      ws was updated to {shortVersion(version)} while this page was open: reload it to use the new one.
+    </Banner>
   );
 }
 

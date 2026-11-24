@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { endRun, getRunLog, getRunPast, getRuns, type Names, type RunDetail, type RunsInfo, resyncSilo, type SiloState } from "../api";
+import { endRun, getRunPast, getRuns, useEvents, type Names, type RunDetail, type RunsInfo, resyncSilo, type SiloState } from "../api";
 import { type Reload, useLoaded } from "../load";
+import { useRunLog } from "./runlog";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
@@ -36,19 +37,12 @@ import { useWorkspace } from "../workspace/store";
 // the commit it ran at, its reports, and the runs of it before.
 // /runs?show=<ref> opens one, as a step's check links to its run.
 
-// lookEvery is how often the page asks again while it's in view: a run
-// coming up, or ending, shows within it.
-const lookEvery = 3000;
-
 export function RunsPage() {
   useTitle("Runs");
   const { value: info, error, reload } = useLoaded<RunsInfo>(getRuns, [], { keep: true });
-  useEffect(() => {
-    const t = setInterval(() => {
-      if (document.visibilityState === "visible") reload();
-    }, lookEvery);
-    return () => clearInterval(t);
-  }, [reload]);
+  // Read again when a run starts, comes up, ends or is cleared away, or a
+  // silo moves: the server says so (the runs topic).
+  useEvents("runs", { hello: reload, changed: reload });
   const { running, results, ended } = split(info?.runs ?? []);
   const up = new Set(running.map((r) => r.ref));
   const [params] = useSearchParams();
@@ -469,20 +463,12 @@ function TaskMore({ r, by, show }: { r: RunDetail; by?: string; show: string }) 
   );
 }
 
-// RunOutput is a run's output, asked for again while it runs, kept at
-// its end as more comes unless you've scrolled up.
+// RunOutput is a run's output, followed while it runs, kept at its end as
+// more comes unless you've scrolled up.
 function RunOutput({ ref_, live }: { ref_: string; live: boolean }) {
-  // Loaded again as it ends, for its last words.
-  const { value, error, reload } = useLoaded(() => getRunLog(ref_), [ref_, live], { keep: true });
+  const { value, error } = useRunLog(ref_, live);
   const pre = useRef<HTMLPreElement>(null);
   const stuck = useRef(true); // at the bottom: new output keeps it there
-  useEffect(() => {
-    if (!live) return;
-    const t = setInterval(() => {
-      if (document.visibilityState === "visible") reload();
-    }, 2000);
-    return () => clearInterval(t);
-  }, [live, reload]);
   const text = value ? plain(value.log) : "";
   useEffect(() => {
     const el = pre.current;
@@ -503,20 +489,13 @@ function RunOutput({ ref_, live }: { ref_: string; live: boolean }) {
   );
 }
 
-// RunMore is a run's output, asked for again while it runs, and how it
-// was started.
+// RunMore is a run's output, followed while it runs, and how it was
+// started.
 function RunMore({ r, by }: { r: RunDetail; by?: string }) {
   const live = r.state === "running";
-  const { value, error, reload } = useLoaded(() => getRunLog(r.ref), [r.ref], { keep: true });
+  const { value, error } = useRunLog(r.ref, live);
   const pre = useRef<HTMLPreElement>(null);
   const stuck = useRef(true); // at the bottom: new output keeps it there
-  useEffect(() => {
-    if (!live) return;
-    const t = setInterval(() => {
-      if (document.visibilityState === "visible") reload();
-    }, 2000);
-    return () => clearInterval(t);
-  }, [live, reload]);
   const text = value ? plain(value.log) : "";
   useEffect(() => {
     const el = pre.current;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
-import { type AppAt, type AppDetail, type AppPointer, getApp, openApp, pointApp, restartApp, stopApp } from "../api";
+import { type AppAt, type AppDetail, type AppPointer, getApp, openApp, pointApp, restartApp, stopApp, useEventsOf } from "../api";
 import { useLatest } from "../load";
 import { Icon, type IconName, icons } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
@@ -20,23 +20,22 @@ import { useWorkspace } from "../workspace/store";
 // (AppFrame, with at).
 //
 // Nothing runs until the page is opened. Opening it starts the run, or
-// joins the one that's running, and the page opens it again every
-// openEvery while it's in view: that's what keeps it. Once nobody has it
-// in view, ws ends it, 15 minutes on (runs.LookLinger). Stopped from here,
-// it isn't started again until you say.
+// joins the one that's running, and the page follows it over the tab's
+// socket while it's in view (app:<name>, app:<name>@<repo>/<worktree>):
+// that's what keeps it, and the page's told as it starts, comes up or
+// ends. Once nobody has it in view, ws ends it, 15 minutes on
+// (runs.LookLinger). Ended by itself, it's opened again (once in openEvery
+// at most, for one that keeps failing); stopped from here, it isn't
+// started again until you say.
 //
 // A workspace app's bar points each of its needs at a worktree of the
 // need's repo (the ground, the silo, a capsule), which starts the run
 // again on it. A worktree's app's needs are the nearest to it, as any
 // run's are: its bar says what met each.
 
-// openEvery is how often an open page says it's still open: well inside
-// the 15 minutes a run outlasts nobody looking.
+// openEvery is how often a run that's ended by itself is opened again, at
+// most.
 const openEvery = 60_000;
-// lookEvery is how often it asks how the run's doing: often while it's
-// coming up, less once it's up.
-const lookStarting = 1500;
-const lookUp = 10_000;
 
 export function AppPage() {
   const workspace = useWorkspace();
@@ -84,41 +83,43 @@ export function AppFrame({ name, title, icon: iconName, at }: { name: string; ti
     [latest],
   );
 
-  // Opened as the page is, and again every openEvery while it's in view
-  // and you haven't stopped it.
+  // Opened as the page is, and again as it's shown again, unless you've
+  // stopped it.
   const stoppedRef = useRef(stopped);
   stoppedRef.current = stopped;
+  const opened = useRef(0);
   useEffect(() => {
     setApp(undefined);
     setError(undefined);
     setStopped(false);
     stoppedRef.current = false;
+    opened.current = Date.now();
     void take(() => openApp(name, at));
     const again = () => {
-      if (document.visibilityState === "visible" && !stoppedRef.current) void take(() => openApp(name, at), true);
+      if (document.visibilityState !== "visible" || stoppedRef.current) return;
+      opened.current = Date.now();
+      void take(() => openApp(name, at), true);
     };
-    const t = setInterval(again, openEvery);
     document.addEventListener("visibilitychange", again);
-    return () => {
-      clearInterval(t);
-      document.removeEventListener("visibilitychange", again);
-    };
+    return () => document.removeEventListener("visibilitychange", again);
     // at is a new object each render: its repo and worktree are what matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, at?.repo, at?.worktree, take]);
 
-  // How the run's doing: asked again while it's in view.
   const ready = !!app?.ready;
-  useEffect(() => {
-    const t = setInterval(
-      () => {
-        if (document.visibilityState === "visible") void take(() => getApp(name, at), true);
-      },
-      ready ? lookUp : lookStarting,
-    );
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, at?.repo, at?.worktree, ready, take]);
+  // How the run's doing: asked when it's told it's moved. One that's ended
+  // by itself is opened again, but not more than once in openEvery.
+  const topic = at ? `app:${name}@${at.repo}/${at.worktree}` : `app:${name}`;
+  useEventsOf([topic], {
+    changed: () =>
+      void take(() => getApp(name, at), true).then((d) => {
+        const ended = d && d.run?.state !== "running";
+        if (ended && !stoppedRef.current && Date.now() - opened.current > openEvery) {
+          opened.current = Date.now();
+          void take(() => openApp(name, at), true);
+        }
+      }),
+  });
 
   const act = async (what: string, load: () => Promise<AppDetail>) => {
     setBusy(what);

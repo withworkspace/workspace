@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -30,6 +31,33 @@ func dialSocket(t *testing.T, s *Server, origin string) (*websocket.Conn, *http.
 	h.Set("Cookie", s.cookieName()+"="+s.Info().Token)
 	url := "ws" + strings.TrimPrefix(s.Info().Origin(), "http") + "/api/socket"
 	return websocket.Dial(ctx, url, &websocket.DialOptions{HTTPHeader: h})
+}
+
+// openSocket is a page's socket on s, from its own origin, signed in.
+func openSocket(t *testing.T, s *Server) *socketTalk {
+	t.Helper()
+	c, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { c.CloseNow() })
+	return talkTo(t, c)
+}
+
+// followOver is a page's socket on s following topic (as a page showing
+// app, for the plugins'), once it's said to be followed.
+func followOver(t *testing.T, s *Server, topic string, app ...string) *socketTalk {
+	t.Helper()
+	st := openSocket(t, s)
+	ask := SocketAsk{Op: SocketFollow, Topic: topic}
+	if len(app) > 0 {
+		ask.App = app[0]
+	}
+	st.ask(ask)
+	if got := st.next(3 * time.Second); got != "following "+topic {
+		t.Fatalf("following %s: %q", topic, got)
+	}
+	return st
 }
 
 // socketTalk is a page's side of a socket: what it asks, and what it's
@@ -63,6 +91,23 @@ func (st *socketTalk) ask(a SocketAsk) {
 	data, _ := json.Marshal(a)
 	if err := st.c.Write(context.Background(), websocket.MessageText, data); err != nil {
 		st.t.Fatal(err)
+	}
+}
+
+// nextOf is what it's told next of topic, within the time given: what's
+// told of other topics meanwhile (a write to a mission is a change to the
+// workspace's view too, told in no order) is passed over.
+func (st *socketTalk) nextOf(topic string, within time.Duration) string {
+	deadline := time.Now().Add(within)
+	for {
+		left := time.Until(deadline)
+		if left <= 0 {
+			return "(nothing)"
+		}
+		got := st.next(left)
+		if got == "(nothing)" || got == "(closed)" || st.last.Topic == topic {
+			return got
+		}
 	}
 }
 
@@ -126,14 +171,14 @@ func TestSocket(t *testing.T) {
 		t.Errorf("after the workspace changed: %q", got)
 	}
 	ms.AppendLog(one.Slug, mission.Event{Kind: mission.EventNote, Text: "hi"})
-	if got := st.next(3 * time.Second); got != "changed mission:"+one.Slug {
+	if got := st.nextOf("mission:"+one.Slug, 3*time.Second); got != "changed mission:"+one.Slug {
 		t.Errorf("after a write to the mission: %q", got)
 	}
 
 	st.ask(SocketAsk{Op: SocketLeave, Topic: "workspace"})
 	time.Sleep(100 * time.Millisecond)
 	fw.set("three")
-	if got := st.next(500 * time.Millisecond); got != "(nothing)" {
+	if got := st.nextOf("workspace", 500*time.Millisecond); got != "(nothing)" {
 		t.Errorf("a topic left: %q", got)
 	}
 
@@ -306,5 +351,83 @@ func TestWorkspaceView_BuiltOncePerChange(t *testing.T) {
 	}
 	if code := do(t, s, "GET", "/api/missions/nope", true, nil).StatusCode; code != http.StatusNotFound {
 		t.Errorf("a mission that isn't: %d", code)
+	}
+}
+
+// A conversation that isn't a talk (a pass, a cell) is followed as one is,
+// and told it's changed with nothing more: what's shown of it is worked out
+// of it, so the page reads it again.
+func TestSocket_FollowsAConversationThatIsntATalk(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	talks := conversation.ForWorkspace(root)
+	c, err := talks.OpenCell("p1", "Summarise it.", "", "", "", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := startTest(t, root, &fakeWorkspace{}, nil)
+	conn, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := talkTo(t, conn)
+	topic := "conversation:/" + c.ID
+	st.ask(SocketAsk{Op: SocketFollow, Topic: topic})
+	if got := st.next(3 * time.Second); got != "following "+topic {
+		t.Fatalf("following: %q", got)
+	}
+	talks.Say(c.ID, conversation.Turn{By: conversation.Agent, At: time.Now(), Body: "Done."})
+	if got := st.next(3 * time.Second); got != "changed "+topic || st.last.Conversation != nil {
+		t.Errorf("a turn said in it: %q, %+v", got, st.last.Conversation)
+	}
+}
+
+// A document being edited is followed by its editor, and told when its
+// file's written (crew committing to it): the editor reads it then.
+func TestSocket_FollowsADocument(t *testing.T) {
+	s := startTest(t, t.TempDir(), &fakeWorkspace{}, nil)
+	path := filepath.Join(t.TempDir(), "adr.md")
+	os.WriteFile(path, []byte("# ADR\n"), 0o644)
+	s.App = &fakeApp{Workspace: s.App.(*ops.Workspace), doc: func(ref string) (*ops.DocText, error) {
+		return &ops.DocText{Ref: ref, Path: path}, nil
+	}}
+	conn, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := talkTo(t, conn)
+	topic := "doc:/demo:docs/adr.md"
+	st.ask(SocketAsk{Op: SocketFollow, Topic: topic})
+	if got := st.next(3 * time.Second); got != "following "+topic {
+		t.Fatalf("following: %q", got)
+	}
+	time.Sleep(20 * time.Millisecond)
+	os.WriteFile(path, []byte("# ADR\n\nDecided.\n"), 0o644)
+	if got := st.next(3 * time.Second); got != "changed "+topic {
+		t.Errorf("its file written: %q", got)
+	}
+}
+
+// An app's topic names it, and its worktree for one of a worktree's.
+func TestAppTopicKey(t *testing.T) {
+	for _, c := range []struct {
+		key  string
+		name string
+		p    ops.AppPlace
+		ok   bool
+	}{
+		{"docs", "docs", ops.AtWorkspace, true},
+		{"web@demo/feat", "web", ops.AppPlace{Repo: "demo", Worktree: "feat"}, true},
+		{"web@demo", "", ops.AppPlace{}, false},
+		{"web@demo/a/b", "", ops.AppPlace{}, false},
+		{"", "", ops.AppPlace{}, false},
+	} {
+		name, p, ok := appOfKey(c.key)
+		if name != c.name || p != c.p || ok != c.ok {
+			t.Errorf("%q: %q %+v %v", c.key, name, p, ok)
+		}
+		if ok && appTopicKey(name, p) != c.key {
+			t.Errorf("%q made again: %q", c.key, appTopicKey(name, p))
+		}
 	}
 }

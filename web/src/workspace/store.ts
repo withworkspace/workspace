@@ -69,7 +69,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()((set, get) => ({
 
 // useFollowWorkspace keeps the store current, for as long as it's mounted
 // (once, in the shell) and the page is showing: it reads the workspace
-// when its event stream opens (so nothing that changed while it was closed
+// when it's followed on the tab's socket (so nothing that changed while it was closed
 // is missed) and again whenever the daemon says it changed. It never
 // polls. The plugins are followed the same way; showing is the plugin
 // whose app the page shows, if it shows one. That stream is how ws knows

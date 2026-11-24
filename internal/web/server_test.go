@@ -1,7 +1,6 @@
 package web
 
 import (
-	"bufio"
 	"encoding/json"
 	"io"
 	"net"
@@ -10,7 +9,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -593,71 +591,19 @@ func TestWithAccent(t *testing.T) {
 	}
 }
 
-// An open page holds the daemon up, and hears when what it shows
-// changes.
-func TestEvents(t *testing.T) {
-	var held atomic.Int32
-	hold := func() func() {
-		held.Add(1)
-		return func() { held.Add(-1) }
-	}
-	fw := &fakeWorkspace{title: "one"}
-	s := startTest(t, t.TempDir(), fw, hold)
-
-	req, _ := http.NewRequest("GET", s.Info().Origin()+"/api/events", nil)
-	req.AddCookie(&http.Cookie{Name: s.cookieName(), Value: s.Info().Token})
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res.Header.Get("Content-Type") != "text/event-stream" {
-		t.Fatalf("content type %q", res.Header.Get("Content-Type"))
-	}
-	events := make(chan string, 10)
-	go func() {
-		sc := bufio.NewScanner(res.Body)
-		for sc.Scan() {
-			if name, ok := strings.CutPrefix(sc.Text(), "event: "); ok {
-				events <- name
-			}
-		}
-		close(events)
-	}()
-	next := func() string {
-		select {
-		case e := <-events:
-			return e
-		case <-time.After(3 * time.Second):
-			return "(nothing)"
-		}
-	}
-	if e := next(); e != "hello" {
-		t.Fatalf("first event %q", e)
-	}
-	if held.Load() != 1 {
-		t.Errorf("held %d", held.Load())
-	}
-	fw.set("two")
-	if e := next(); e != "workspace" {
-		t.Errorf("after a change: %q", e)
-	}
-	res.Body.Close()
-	deadline := time.Now().Add(3 * time.Second)
-	for held.Load() != 0 && time.Now().Before(deadline) {
-		time.Sleep(10 * time.Millisecond)
-	}
-	if held.Load() != 0 {
-		t.Error("closing the page didn't release the daemon")
-	}
-}
-
-// Pages follow one stream, by topic: one that isn't there, or whose
-// service this server hasn't, is not found.
-func TestStreamTopics(t *testing.T) {
+// Topics a page follows: one that isn't there, or whose service this server
+// hasn't, is refused.
+func TestSocket_RefusesTopicsItHasntGot(t *testing.T) {
 	s := startTest(t, t.TempDir(), &fakeWorkspace{}, nil)
-	for _, topic := range []string{"nope", "reviews", "team"} {
-		if code := do(t, s, "GET", "/api/events?topic="+topic, true, nil).StatusCode; code != http.StatusNotFound {
-			t.Errorf("topic %s: %d, want 404", topic, code)
+	st := openSocket(t, s)
+	for _, c := range []struct{ topic, why string }{
+		{"nope", "no such topic: nope"},
+		{"reviews", "there's no GitHub to ask here"},
+		{"team", "the team's events aren't available here"},
+	} {
+		st.ask(SocketAsk{Op: SocketFollow, Topic: c.topic})
+		if got := st.next(3 * time.Second); got != "refused "+c.topic+": "+c.why {
+			t.Errorf("%s: %q", c.topic, got)
 		}
 	}
 }
@@ -681,46 +627,19 @@ func TestMissionEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(s.Close)
-
-	req, _ := http.NewRequest("GET", s.Info().Origin()+"/api/events?topic=mission:"+one.Slug, nil)
-	req.AddCookie(&http.Cookie{Name: s.cookieName(), Value: s.Info().Token})
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	events := make(chan string, 10)
-	go func() {
-		sc := bufio.NewScanner(res.Body)
-		for sc.Scan() {
-			if name, ok := strings.CutPrefix(sc.Text(), "event: "); ok {
-				events <- name
-			}
-		}
-		close(events)
-	}()
-	next := func(within time.Duration) string {
-		select {
-		case e := <-events:
-			return e
-		case <-time.After(within):
-			return "(nothing)"
-		}
-	}
-	if e := next(3 * time.Second); e != "hello" {
-		t.Fatalf("first event %q", e)
-	}
+	topic := "mission:" + one.Slug
+	st := followOver(t, s, topic)
 	ms.AppendLog(other.Slug, mission.Event{Kind: mission.EventNote, Text: "elsewhere"})
-	if e := next(300 * time.Millisecond); e != "(nothing)" {
-		t.Errorf("another mission's write: %q", e)
+	if got := st.next(300 * time.Millisecond); got != "(nothing)" {
+		t.Errorf("another mission's write: %q", got)
 	}
 	ms.AppendLog(one.Slug, mission.Event{Kind: mission.EventNote, Text: "hi"})
-	if e := next(300 * time.Millisecond); e != "mission:"+one.Slug {
-		t.Errorf("a write to its log: %q", e)
+	if got := st.next(300 * time.Millisecond); got != "changed "+topic {
+		t.Errorf("a write to its log: %q", got)
 	}
 	ms.WriteBrief(one.Slug, "# One\n\n## Goal\nSaid now.\n")
-	if e := next(3 * time.Second); e != "mission:"+one.Slug {
-		t.Errorf("its brief changing: %q", e)
+	if got := st.next(3 * time.Second); got != "changed "+topic {
+		t.Errorf("its brief changing: %q", got)
 	}
 }
 
@@ -741,45 +660,17 @@ func TestWorkspaceEvents_ToldAtOnceOfAWriteToTheRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(s.Close)
-
-	req, _ := http.NewRequest("GET", s.Info().Origin()+"/api/events?topic=workspace", nil)
-	req.AddCookie(&http.Cookie{Name: s.cookieName(), Value: s.Info().Token})
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	events := make(chan string, 10)
-	go func() {
-		sc := bufio.NewScanner(res.Body)
-		for sc.Scan() {
-			if name, ok := strings.CutPrefix(sc.Text(), "event: "); ok {
-				events <- name
-			}
-		}
-		close(events)
-	}()
-	next := func(within time.Duration) string {
-		select {
-		case e := <-events:
-			return e
-		case <-time.After(within):
-			return "(nothing)"
-		}
-	}
-	if e := next(3 * time.Second); e != "hello" {
-		t.Fatalf("first event %q", e)
-	}
+	st := followOver(t, s, "workspace")
 	one, err := ms.Create("One")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if e := next(2 * time.Second); e != "workspace" {
-		t.Errorf("a mission made: %q", e)
+	if got := st.next(2 * time.Second); got != "changed workspace" {
+		t.Errorf("a mission made: %q", got)
 	}
 	ms.AppendLog(one.Slug, mission.Event{Kind: mission.EventNote, Text: "hi"})
-	if e := next(2 * time.Second); e != "workspace" {
-		t.Errorf("a write to its log: %q", e)
+	if got := st.next(2 * time.Second); got != "changed workspace" {
+		t.Errorf("a write to its log: %q", got)
 	}
 }
 

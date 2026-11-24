@@ -143,6 +143,11 @@ func (c *viewCache) mission(s *Server, slug string) ([]byte, error) {
 	return c.get(s, missionTopic+slug, stamp, func() (any, error) { return s.missionDetail(slug) })
 }
 
+// runs is the Runs page's view as GET /api/runs serves it.
+func (c *viewCache) runs(s *Server) ([]byte, error) {
+	return c.get(s, topicRuns, s.runsStamp, func() (any, error) { return s.runsInfo() })
+}
+
 // forget drops what's kept: what it was built from has changed in a way
 // its stamp doesn't say (a write a page made, a test's App changed in
 // place).

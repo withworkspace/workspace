@@ -1,7 +1,13 @@
 package web
 
 import (
+	"encoding/json"
+	"fmt"
+	"hash/fnv"
+	"maps"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -110,7 +116,14 @@ func (s *Server) markLooked() {
 		case <-s.ctx.Done():
 			return
 		case now := <-t.C:
-			s.App.LookedAt(runs.Looking{Missions: s.missions.open(), Worktrees: s.files.open(now)})
+			open := s.files.open(now)
+			maps.Copy(open, s.filesFollowed.open()) // followed over a socket
+			s.App.LookedAt(runs.Looking{Missions: s.missions.open(), Worktrees: open})
+			for key := range s.apps.open() {
+				if name, p, ok := appOfKey(key); ok {
+					s.App.LookedAtApp(p, name)
+				}
+			}
 		}
 	}
 }
@@ -258,20 +271,55 @@ func namesOf(app Running, root string) NamesInfo {
 }
 
 func (s *Server) allRuns(w http.ResponseWriter, r *http.Request) {
-	list, err := s.App.Runs()
+	data, err := s.views.runs(s)
 	if err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-	now := time.Now()
-	out := RunsInfo{Names: namesOf(s.App, s.Root), Runs: []RunDetail{}, Silos: []ops.SiloState{}}
-	if s.Silos != nil {
-		out.Silos = append(out.Silos, s.Silos()...)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
+
+// runsInfo is what GET /api/runs serves: every run, read in full (the
+// process table too), which the runs' stamp says when to do again.
+func (s *Server) runsInfo() (RunsInfo, error) {
+	list, err := s.App.Runs()
+	if err != nil {
+		return RunsInfo{}, err
 	}
+	now := time.Now()
+	out := RunsInfo{Names: namesOf(s.App, s.Root), Runs: []RunDetail{}, Silos: s.siloStates()}
 	for _, run := range list {
 		out.Runs = append(out.Runs, RunDetailOf(run, s.Root, now))
 	}
-	writeJSON(w, http.StatusOK, out)
+	return out, nil
+}
+
+// siloStates is where the silos the daemon keeps stand.
+func (s *Server) siloStates() []ops.SiloState {
+	out := []ops.SiloState{}
+	if s.Silos != nil {
+		out = append(out, s.Silos()...)
+	}
+	return out
+}
+
+// runsStamp names what the Runs page is built from, cheaply: the runs'
+// stamp, and where the silos stand.
+func (s *Server) runsStamp() string {
+	silos, _ := json.Marshal(s.siloStates())
+	return s.App.RunsStamp() + " " + string(silos)
+}
+
+// runsFingerprint says whether what the Runs page shows has changed.
+func (s *Server) runsFingerprint() string {
+	data, err := s.views.runs(s)
+	if err != nil {
+		return "error: " + err.Error()
+	}
+	h := fnv.New64a()
+	h.Write(data)
+	return strconv.FormatUint(h.Sum64(), 16)
 }
 
 // endRun is POST /api/runs/stop: any run ended, or one that's ended
@@ -325,6 +373,9 @@ const runLogLines = 400
 type RunLog struct {
 	Ref string `json:"ref"`
 	Log string `json:"log"`
+	// Size is how much of the log it's as of: a page following it is told
+	// what's written after (RunLogOp).
+	Size int64 `json:"size"`
 }
 
 func (s *Server) runLog(w http.ResponseWriter, r *http.Request) {
@@ -333,12 +384,83 @@ func (s *Server) runLog(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "need the run's ref")
 		return
 	}
-	log, err := s.App.RunLog(ref, runLogLines)
+	log, size, _, err := s.App.RunLogSized(ref, runLogLines)
 	if err != nil {
 		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, http.StatusOK, RunLog{Ref: ref, Log: log})
+	writeJSON(w, http.StatusOK, RunLog{Ref: ref, Log: log, Size: size})
+}
+
+// RunLogOp is what's been written to a run's log that a page follows
+// (runlog:<ref>), told over the socket so the page needn't read it again:
+// the text from From (as much of it as the page has) to Size. A page that
+// holds less, or more, reads it whole.
+type RunLogOp struct {
+	From int64  `json:"from"`
+	Size int64  `json:"size"`
+	Text string `json:"text"`
+}
+
+// runLogMost is the most of a log a change says: more written at once is
+// read whole by the page (its last lines).
+const runLogMost = 256 << 10
+
+// runLogHub follows runs' logs (runlog:<ref>): each looked at every
+// transcriptPoll while it's followed (a stat), and what's been written
+// since read from where the last look got to.
+func (s *Server) runLogHub() *keyedHub {
+	type follow struct {
+		path string
+		size int64
+	}
+	var mu sync.Mutex
+	paths := map[string]string{}
+	h := newKeyedHub(runLogTopic, transcriptPoll, func(ref string) string {
+		mu.Lock()
+		path := paths[ref]
+		mu.Unlock()
+		info, err := os.Stat(path)
+		if path == "" || err != nil {
+			return ""
+		}
+		return fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano())
+	})
+	h.gone = func(ref string) {
+		mu.Lock()
+		delete(paths, ref)
+		mu.Unlock()
+	}
+	h.change = func(ref string, was any) (any, any) {
+		f, _ := was.(*follow)
+		if f == nil {
+			_, size, path, err := s.App.RunLogSized(ref, 0)
+			if err != nil {
+				return nil, &follow{}
+			}
+			mu.Lock()
+			paths[ref] = path
+			mu.Unlock()
+			return nil, &follow{path: path, size: size}
+		}
+		if f.path == "" {
+			return nil, f
+		}
+		text, size, more, gone, err := runs.ReadFrom(f.path, f.size, runLogMost)
+		switch {
+		case err != nil:
+			return reread, f // ended and cleared away: the page reads why
+		case gone || more:
+			f.size = size
+			return reread, f
+		case size == f.size:
+			return nil, f
+		}
+		op := &RunLogOp{From: f.size, Size: size, Text: text}
+		f.size = size
+		return op, f
+	}
+	return h
 }
 
 // PRWrite is POST /api/missions/{slug}/pr-write: a capsule whose pull

@@ -33,7 +33,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
+
+	"hash/fnv"
 )
 
 // Version is the record's version (run.json's "version").
@@ -538,6 +541,96 @@ func (s Store) List() ([]Run, error) {
 		}
 	}
 	return out, nil
+}
+
+// Stamp names where the store's runs stand, cheaply: each run's record and
+// exit, whether its process is there (not the whole process table, which
+// List reads), whether a service answers on its port, and how many earlier
+// runs each task keeps. It moves when a run starts, ends, comes up, or is
+// cleared away; not as it writes its output.
+func (s Store) Stamp() string { return s.stamp(filepath.Join(s.Dir(), "*", "*", "*", recordFile)) }
+
+// StampIn is Stamp for the runs in repo's ground or capsule worktree (the
+// workspace's own, for no repo).
+func (s Store) StampIn(repo, worktree string) string {
+	return s.stamp(filepath.Join(s.place(repo, worktree), "*", recordFile))
+}
+
+// Running is the run of recipe in repo's worktree (the workspace's, for no
+// repo) that's running, as its record says, without the process table:
+// false for none.
+func (s Store) Running(repo, worktree, recipe string) (Run, bool) {
+	paths, _ := filepath.Glob(filepath.Join(s.place(repo, worktree), "*", recordFile))
+	for _, p := range paths {
+		dir := filepath.Dir(p)
+		var r Run
+		if b, err := os.ReadFile(p); err != nil || json.Unmarshal(b, &r.Record) != nil || r.Recipe != recipe {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(dir, exitFile)); err == nil {
+			continue
+		}
+		r.Path, r.State = dir, Running
+		return r, true
+	}
+	return Run{}, false
+}
+
+// Starting is how far a run of recipe in repo's worktree (the workspace's,
+// for no repo) has got with its output, while it's starting: running, and
+// not yet answering on its port (a task, until it ends). false for none
+// that's starting: once it's up, what it writes isn't news.
+func (s Store) Starting(repo, worktree, recipe string) (string, bool) {
+	paths, _ := filepath.Glob(filepath.Join(s.place(repo, worktree), "*", recordFile))
+	for _, p := range paths {
+		dir := filepath.Dir(p)
+		var r Run
+		if b, err := os.ReadFile(p); err != nil || json.Unmarshal(b, &r.Record) != nil || r.Recipe != recipe {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(dir, exitFile)); err == nil {
+			continue
+		}
+		if !r.IsTask() && r.Port > 0 && r.Listening() {
+			continue
+		}
+		if info, err := os.Stat(filepath.Join(dir, logFile)); err == nil {
+			return fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano()), true
+		}
+		return "", true
+	}
+	return "", false
+}
+
+func (s Store) stamp(pattern string) string {
+	paths, _ := filepath.Glob(pattern)
+	h := fnv.New64a()
+	for _, p := range paths {
+		dir := filepath.Dir(p)
+		info, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		fmt.Fprintf(h, "%s %d %d", dir, info.Size(), info.ModTime().UnixNano())
+		if ex, err := os.Stat(filepath.Join(dir, exitFile)); err == nil {
+			fmt.Fprintf(h, " exit %d\n", ex.ModTime().UnixNano())
+			continue
+		}
+		var r Run
+		if b, err := os.ReadFile(p); err == nil && json.Unmarshal(b, &r.Record) == nil {
+			fmt.Fprintf(h, " alive %v", r.PID > 0 && syscall.Kill(r.PID, 0) == nil)
+			if !r.IsTask() && r.Port > 0 {
+				fmt.Fprintf(h, " up %v", r.Listening())
+			}
+			if r.IsTask() {
+				if past, err := os.ReadDir(s.pastOf(dir)); err == nil {
+					fmt.Fprintf(h, " past %d", len(past))
+				}
+			}
+		}
+		fmt.Fprintln(h)
+	}
+	return strconv.FormatUint(h.Sum64(), 16)
 }
 
 // load reads the run kept in dir.

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { type ArtifactContent, type DocDraft, type DocSaved, dropDraft, getThreads, openThread, putDraft, readDoc, saveDoc } from "../api";
+import { type ArtifactContent, type DocDraft, type DocSaved, dropDraft, getThreads, openThread, putDraft, readDoc, saveDoc, useEventsOf } from "../api";
 import { type Draft, MarkdownEditor, type Quote } from "../editor/LazyEditor";
 import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
@@ -112,9 +112,11 @@ export function DocEdit({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edit, start]);
 
-  // The document, watched while you edit.
-  useEffect(() => {
-    const id = setInterval(() => {
+  // The document, followed while you edit (doc:<slug>/<ref>): read again
+  // when its file's written, to see whether it's moved from what you're
+  // editing.
+  useEventsOf([`doc:${slug}/${a.ref}`], {
+    changed: () =>
       readDoc(slug, a.ref).then(
         (now) => {
           const { unsaved, start } = live.current;
@@ -124,10 +126,8 @@ export function DocEdit({
           toast(slug ? "The document changed (crew committed to it): you're editing it as it is now" : "The document changed: you're editing it as it is now", { tone: "info" });
         },
         () => {},
-      );
-    }, 3000);
-    return () => clearInterval(id);
-  }, [slug, a.ref]);
+      ),
+  });
 
   const close = () => {
     const { unsaved, edit, start } = live.current;

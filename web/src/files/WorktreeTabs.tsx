@@ -1,3 +1,4 @@
+import { pageSocket } from "../socket";
 import { type ReactNode, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
 import { type AppAt, getWorktreeRuns, type WorktreeRunsInfo } from "../api";
@@ -15,13 +16,10 @@ import { Count } from "../ui/Count";
 // tab is the address's ?view= (files, unsaid), so a link opens a
 // capsule's docs.
 //
-// Its runs are asked for again every lookEvery while the page is in view,
-// hiddenEvery while it isn't, on every tab: each ask is what says the page
-// is open (the server forgets one that hasn't asked for two minutes), which
-// keeps what was started from it, from its Runs or as one of its apps.
-
-const lookEvery = 3000;
-const hiddenEvery = 30000;
+// Its runs are followed over the tab's socket (worktree:<repo>/<name>),
+// read again when a run starts, comes up or ends; shown or hidden, on
+// every tab, as following it is what says the page is open, which keeps
+// what was started from it, from its Runs or as one of its apps.
 
 export interface WorktreeTabs {
   tabs: ReactNode;
@@ -34,15 +32,7 @@ export function useWorktreeTabs(at: AppAt): WorktreeTabs {
   const [params] = useSearchParams();
   const view = params.get("view") ?? "files";
   const { value: info, error, reload } = useLoaded<WorktreeRunsInfo>(() => getWorktreeRuns(at.repo, at.worktree), [at.repo, at.worktree]);
-  useEffect(() => {
-    let last = Date.now();
-    const t = setInterval(() => {
-      if (Date.now() - last < (document.visibilityState === "visible" ? lookEvery : hiddenEvery)) return;
-      last = Date.now();
-      reload();
-    }, lookEvery);
-    return () => clearInterval(t);
-  }, [reload]);
+  useEffect(() => pageSocket.follow(`worktree:${at.repo}/${at.worktree}`, { following: reload, changed: () => reload() }), [at.repo, at.worktree, reload]);
 
   const to = (v: string) => {
     const next = new URLSearchParams(params);

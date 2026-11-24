@@ -1,7 +1,8 @@
+import { pageSocket } from "../socket";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef, useState } from "react";
-import { crewScreenURL, type TermKey, type TermScreen, typeIntoCrew, useVisible } from "../api";
+import { type TermKey, type TermScreen, typeIntoCrew, useVisible } from "../api";
 
 // CrewTerminal is a running crew's terminal: its screen as the server
 // emulates it (frames from the server, not the raw stream, so nothing depends
@@ -72,35 +73,41 @@ export default function CrewTerminal({ slug, id, onState, onTitle }: { slug: str
     };
   }, [slug, id]);
 
-  // Its screen, streamed while the page is showing; showing again catches
-  // up with a fresh screen.
+  // Its screen, followed over the tab's socket while the page is showing
+  // (screen:<slug>/<crew>): the screen as it is once it's followed, then as
+  // it changes, then its end. Showing again catches up with a fresh screen;
+  // refused, the crew aren't running (any more).
   useEffect(() => {
     if (!visible || ended.current) return;
-    const es = new EventSource(crewScreenURL(slug, id));
-    es.addEventListener("screen", (e) => {
-      const t = term.current;
-      if (!t) return;
-      const sc = JSON.parse((e as MessageEvent).data) as TermScreen;
-      if (t.cols !== sc.w || t.rows !== sc.h) t.resize(sc.w, sc.h);
-      draw(t, sc);
-      fit.current();
-      if (!seen.current) t.focus();
-      seen.current = true;
-      onState("live");
-      onTitle(sc.title ?? "");
-    });
-    es.addEventListener("exit", () => {
-      es.close();
-      ended.current = true;
-      onState("ended");
-    });
-    es.onerror = () => {
-      if (es.readyState === EventSource.CLOSED) {
+    const leave = pageSocket.follow(`screen:${slug}/${id}`, {
+      changed: (said) => {
+        const op = said.screen;
+        if (!op) return;
+        if (op.exit) {
+          ended.current = true;
+          onState("ended");
+          leave();
+          return;
+        }
+        const t = term.current;
+        const sc = op.screen as TermScreen | undefined;
+        if (!t || !sc) return;
+        if (t.cols !== sc.w || t.rows !== sc.h) t.resize(sc.w, sc.h);
+        draw(t, sc);
+        fit.current();
+        if (!seen.current) t.focus();
+        seen.current = true;
+        onState("live");
+        onTitle(sc.title ?? "");
+      },
+      lost: (closed) => {
+        if (!closed) return; // the socket's gone a moment: it follows again, with a fresh screen
         ended.current = true;
         onState(seen.current ? "ended" : "gone");
-      }
-    };
-    return () => es.close();
+        leave();
+      },
+    });
+    return leave;
   }, [slug, id, visible, onState, onTitle]);
 
   return (

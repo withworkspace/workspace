@@ -14,7 +14,6 @@
 package web
 
 import (
-	"cmp"
 	"context"
 	"crypto/subtle"
 	"embed"
@@ -100,8 +99,8 @@ type Server struct {
 	// shows an agent's step that ran one (GET /api/commands, with the
 	// plugins' after them). nil for none: steps show their commands.
 	Labels []CommandLabel
-	// Hold keeps the daemon up while a page is open (each holds an
-	// event stream); nil for nothing to hold.
+	// Hold keeps the daemon up while a page is open (each holds a
+	// socket); nil for nothing to hold.
 	Hold func() (release func())
 	// Shutdown closes the daemon, as ws daemon stop does: its crew are hung
 	// up and the web UI goes with it (POST /api/shutdown, from the
@@ -139,6 +138,16 @@ type Server struct {
 	// transcripts is crew's sessions', each read as it grows by whoever
 	// follows it (followed).
 	transcripts *keyedHub
+	// filesFollowed is the Files page's grounds and capsules, each told when
+	// the runs move; a page that follows one has it open, for the runs
+	// started from it. runLogs is runs' logs, each told what's written.
+	filesFollowed *keyedHub
+	runLogs       *keyedHub
+	// apps is apps' pages, each told when its run moves (and following one
+	// keeps it); docs is documents being edited, each told when its file's
+	// written.
+	apps *keyedHub
+	docs *keyedHub
 	// files are the grounds and capsules open on the Files page, for the
 	// runs started there.
 	files filesOpen
@@ -240,6 +249,13 @@ func (s *Server) Start() error {
 	// repos, and the repos added being cloned, moved when a look behind
 	// a read finishes.
 	s.topics[topicGitHub] = newHub(topicGitHub, s.Poll, s.App.GitHubSeen)
+	// The Runs page: built when a run starts, comes up, ends or is cleared
+	// away (the runs' stamp, which reads no process table), or a silo
+	// moves; and every half a minute, for when a run ends (its owner's
+	// gone, its time's up) as it's swept.
+	runsHub := newHub(topicRuns, s.Poll, s.runsFingerprint)
+	runsHub.stamp, runsHub.floor = s.runsStamp, 30*time.Second
+	s.topics[topicRuns] = runsHub
 	for _, h := range s.topics {
 		go h.run(s.ctx)
 	}
@@ -258,6 +274,17 @@ func (s *Server) Start() error {
 	go s.talks.run(s.ctx)
 	s.transcripts = s.transcriptHub()
 	go s.transcripts.run(s.ctx)
+	s.filesFollowed = newKeyedHub(worktreeTopic, s.Poll, func(string) string { return s.App.RunsStamp() })
+	go s.filesFollowed.run(s.ctx)
+	s.runLogs = s.runLogHub()
+	go s.runLogs.run(s.ctx)
+	s.apps = newKeyedHub(appTopic, s.Poll, func(key string) string {
+		name, p, _ := appOfKey(key)
+		return s.App.AppStamp(p, name)
+	})
+	go s.apps.run(s.ctx)
+	s.docs = s.docHub()
+	go s.docs.run(s.ctx)
 	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
 	// A write to the records tells the followers of what it names at once:
 	// a mission's page, a conversation's; and one that names the
@@ -344,7 +371,7 @@ func (s *Server) now() time.Time {
 // Info is where the server listens, and its token.
 func (s *Server) Info() Info { return s.info }
 
-// Close stops serving, ends open event streams, and marks .ws/web.json as
+// Close stops serving, closes open sockets, and marks .ws/web.json as
 // not running (keeping the token).
 func (s *Server) Close() {
 	if s.srv == nil {
@@ -382,7 +409,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/whats-new/seen", s.seenWhatsNew)
 	mux.HandleFunc("POST /api/needs/announce", s.announceNeeds)
 	mux.HandleFunc("GET /api/whats-new/pictures/{name}", s.whatsNewPicture)
-	mux.HandleFunc("GET /api/events", s.stream)
 	mux.HandleFunc("GET /api/socket", s.socket)
 	mux.HandleFunc("GET /api/missions/{slug}", s.mission)
 	mux.HandleFunc("GET /api/missions/{slug}/artifact", s.artifact)
@@ -438,10 +464,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/repos/{repo}/worktrees/{worktree}/apps/{name}/stop", s.stopApp)
 	mux.HandleFunc("POST /api/silos/{repo}/point", s.pointSilo)
 	mux.HandleFunc("POST /api/silos/{repo}/resync", s.resyncSilo)
-	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/screen", s.crewScreen)
 	mux.HandleFunc("POST /api/missions/{slug}/crew/{id}/input", s.crewInput)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/transcript", s.crewTranscript)
-	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/transcript/stream", s.crewTranscriptStream)
 	mux.HandleFunc("POST /api/missions/{slug}/crew/{id}/say", s.crewSay)
 	mux.HandleFunc("POST /api/missions/{slug}/crew/{id}/answer", s.crewAnswer)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/prompt", s.crewPrompt)
@@ -811,6 +835,26 @@ func (s *Server) follow(topic, app string) (ch <-chan told, done func(), status 
 	if key, ok := topicKey(topic, transcriptTopic); ok {
 		subscribe = func() (<-chan told, func()) { return s.transcripts.subscribe(key) }
 	}
+	if key, ok := topicKey(topic, worktreeTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.filesFollowed.subscribe(key) }
+	}
+	if ref, ok := topicKey(topic, runLogTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.runLogs.subscribe(ref) }
+	}
+	if key, ok := topicKey(topic, appTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.apps.subscribe(key) }
+	}
+	if key, ok := topicKey(topic, docTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.docs.subscribe(key) }
+	}
+	if key, ok := topicKey(topic, screenTopic); ok {
+		ch, done, running := s.followScreen(key)
+		if !running {
+			_, id, _ := strings.Cut(key, "/")
+			return nil, nil, http.StatusNotFound, errors.New(id + " isn't running")
+		}
+		return ch, done, 0, nil
+	}
 	if ref, ok := prTopicRef(topic); ok && s.prs != nil {
 		subscribe = func() (<-chan told, func()) { return s.followPR(ref) }
 	}
@@ -832,45 +876,6 @@ func (s *Server) follow(topic, app string) (ch <-chan told, done func(), status 
 	}
 	ch, stop := subscribe()
 	return ch, func() { stop(); look() }, 0, nil
-}
-
-// stream is a page's event stream on one topic (follow), as server-sent
-// events: what a page from before the socket (socket.go) follows. An open
-// stream holds the daemon up.
-func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
-	topic := cmp.Or(r.URL.Query().Get("topic"), topicWorkspace)
-	ch, done, status, err := s.follow(topic, r.URL.Query().Get("app"))
-	if err != nil {
-		jsonError(w, status, err.Error())
-		return
-	}
-	defer done()
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		jsonError(w, http.StatusInternalServerError, "streaming unsupported")
-		return
-	}
-	if s.Hold != nil {
-		defer s.Hold()()
-	}
-	hd := w.Header()
-	hd.Set("Content-Type", "text/event-stream")
-	hd.Set("Cache-Control", "no-cache")
-	fmt.Fprint(w, "retry: 2000\nevent: hello\ndata: {}\n\n")
-	flusher.Flush()
-	ping := time.NewTicker(20 * time.Second)
-	defer ping.Stop()
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case t := <-ch:
-			fmt.Fprintf(w, "event: %s\ndata: {}\n\n", t.Name)
-		case <-ping.C:
-			fmt.Fprint(w, ": ping\n\n")
-		}
-		flusher.Flush()
-	}
 }
 
 // app serves the single-page app: its files, and index.html for any other

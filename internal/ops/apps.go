@@ -89,6 +89,32 @@ const appLogLines = 30
 // App is the workspace's app name, as it stands.
 func (w *Workspace) App(name string) (AppView, error) { return w.AppAt(AtWorkspace, name) }
 
+// AppStamp names where an app's run stands, cheaply: its place's runs,
+// while its run is starting how far its output's got (what its page shows
+// until it's up), and whether it's reached at its name yet (the router's
+// published it), which its page waits for too.
+func (w *Workspace) AppStamp(p AppPlace, name string) string {
+	st := w.runStore()
+	stamp := st.StampIn(p.Repo, p.Worktree)
+	if out, starting := st.Starting(p.Repo, p.Worktree, name); starting {
+		stamp += " starting " + out
+	}
+	if r, ok := st.Running(p.Repo, p.Worktree, name); ok {
+		stamp += fmt.Sprintf(" reached %v", w.reachable(r))
+	}
+	return stamp
+}
+
+// LookedAtApp says someone has the app at p open: its run, while it runs,
+// outlasts nobody looking (runs.LookLinger) from now, as opening it does.
+func (w *Workspace) LookedAtApp(p AppPlace, name string) error {
+	v, err := w.AppAt(p, name)
+	if err != nil || v.Run == nil || v.Run.State != runs.Running {
+		return err
+	}
+	return w.runStore().LookedRun(*v.Run, time.Now())
+}
+
 // AppAt is the recipe name at p, as an app stands. The workspace's has to
 // have a page to be one; a worktree's recipe is shown as one either way
 // (its repo's page starts any of its recipes from its Runs).

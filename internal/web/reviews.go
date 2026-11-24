@@ -34,7 +34,7 @@ type ReviewsCount struct {
 // ReviewsList is GET /api/reviews.
 type ReviewsList struct {
 	*pulls.List
-	// Stale: GitHub hasn't been asked lately (the page's event stream asks,
+	// Stale: GitHub hasn't been asked lately (the page's socket asks,
 	// and says when the list has changed). Error is why it couldn't be.
 	Stale bool   `json:"stale,omitempty"`
 	Error string `json:"error,omitempty"`

@@ -4135,7 +4135,7 @@ export interface ReviewsCount {
  */
 export interface ReviewsList extends PullsList {
     /**
-     * Stale: GitHub hasn't been asked lately (the page's event stream asks,
+     * Stale: GitHub hasn't been asked lately (the page's socket asks,
      * and says when the list has changed). Error is why it couldn't be.
      */
     stale?: boolean;
@@ -4279,6 +4279,24 @@ export interface RunInWorktree {
 export interface RunLog {
     ref: string;
     log: string;
+    /**
+     * Size is how much of the log it's as of: a page following it is told
+     * what's written after (RunLogOp).
+     */
+    size: number;
+}
+
+// From web/runs.go
+/**
+ * RunLogOp is what's been written to a run's log that a page follows
+ * (runlog:<ref>), told over the socket so the page needn't read it again:
+ * the text from From (as much of it as the page has) to Size. A page that
+ * holds less, or more, reads it whole.
+ */
+export interface RunLogOp {
+    from: number;
+    size: number;
+    text: string;
 }
 
 // From web/api.go
@@ -4474,6 +4492,18 @@ export interface Screen {
     title?: string;
 }
 
+// From web/terminal.go
+/**
+ * ScreenOp is a running crew's screen, told over the socket to a page that
+ * follows it (screen:<slug>/<crew>): the screen as it now is, each time it
+ * changes (at most one per screenEvery, and only the latest), or that the
+ * crew have ended (Exit).
+ */
+export interface ScreenOp {
+    screen?: Screen;
+    exit?: boolean;
+}
+
 // From web/settings.go
 /**
  * Setting is one key: what it's set to, and where that comes from
@@ -4621,6 +4651,14 @@ export interface SocketSaid {
      * Transcript is how a crew's session changed (its transcript topic's).
      */
     transcript?: TranscriptOp;
+    /**
+     * RunLog is what's been written to a run's log (its runlog topic's).
+     */
+    runLog?: RunLogOp;
+    /**
+     * Screen is a running crew's screen, or its end (its screen topic's).
+     */
+    screen?: ScreenOp;
 }
 
 // From web/enums.go
@@ -5322,7 +5360,7 @@ export interface TeamView extends TeamTimeline {
     repos: Record<string, TeamRepo>;
     /**
      * Stale: git and GitHub haven't been looked at lately (the page's
-     * event stream looks, and says when there's something new). Error is
+     * socket looks, and says when there's something new). Error is
      * why they couldn't be.
      */
     stale?: boolean;

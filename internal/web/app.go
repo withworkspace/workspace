@@ -54,6 +54,12 @@ type Running interface {
 	Run(ref string) (runs.Run, []runs.Run, error)
 	EndRun(ref string) error
 	RunLog(ref string, n int) (string, error)
+	// RunLogSized is RunLog with how much of the log it's as of, and
+	// where the log is, which a page following it is told the rest of.
+	RunLogSized(ref string, n int) (text string, size int64, path string, err error)
+	// RunsStamp names where the runs stand, cheaply: it moves when one
+	// starts, comes up, ends or is cleared away.
+	RunsStamp() string
 	Names() (on bool, want string, err error)
 	LookedAt(l runs.Looking) error
 	PointSilo(repo, capsule string, out io.Writer) error

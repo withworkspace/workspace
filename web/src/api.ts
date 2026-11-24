@@ -7,6 +7,7 @@ import { pageSocket } from "./socket";
 // (scripts/wiretypes, `just wire`). The types below are the ones not yet
 // moved there: move one by making the Go say what this file does.
 import type {
+  RunLog,
   HarnessTranscriptEntry as TranscriptEntry,
   Transcript,
   Action,
@@ -277,7 +278,7 @@ export function useVisible(): boolean {
 
 // A topic of the server's events: what a page follows to know when what it
 // shows has changed (internal/web/events.go).
-export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | `mission:${string}` | `conversation:${string}` | `pr:${string}`;
+export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | "runs" | `mission:${string}` | `conversation:${string}` | `pr:${string}`;
 
 // EventHandlers are what a page does as it follows a topic: when the
 // stream's open (hello: fetch what it shows, so nothing's missed), on each
@@ -318,6 +319,27 @@ export function useEvents(topic: Topic, on: EventHandlers, says = "") {
     };
   }, [topic, says, visible]);
   return visible;
+}
+
+// useEventsOf follows each of topics while the page is showing, as
+// useEvents follows one: a change to any is told once, those within a
+// moment of it after it (bursts). An empty list follows nothing.
+export function useEventsOf(topics: string[], on: EventHandlers) {
+  const visible = useVisible();
+  const handlers = useRef(on);
+  handlers.current = on;
+  const key = topics.join("\n");
+  useEffect(() => {
+    if (!visible || !key) return;
+    const changes = bursts(() => handlers.current.changed());
+    const leave = key.split("\n").map((topic) =>
+      pageSocket.follow(topic, { following: () => handlers.current.hello?.(), changed: () => changes.changed(), lost: (closed) => handlers.current.lost?.(closed) }),
+    );
+    return () => {
+      changes.stop();
+      for (const l of leave) l();
+    };
+  }, [key, visible]);
 }
 
 // PluginAction is something a plugin does when asked: of its own, or to
@@ -633,7 +655,7 @@ export const pointApp = (name: string, need: string, at: string) => send<AppDeta
 export const getRunPast = (ref: string) => getJSON<RunPast>(`/api/runs/past?ref=${encodeURIComponent(ref)}`);
 
 // getRunLog is the end of a run's output.
-export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(`/api/runs/log?ref=${encodeURIComponent(ref)}`);
+export const getRunLog = (ref: string) => getJSON<RunLog>(`/api/runs/log?ref=${encodeURIComponent(ref)}`);
 
 // runRecipe starts a capsule's recipe, for as long as someone has the
 // mission open (and 15 minutes after).
@@ -862,10 +884,6 @@ export interface TermScreen {
 
 
 const crewPath = (slug: string, id: string) => `/api/missions/${encodeURIComponent(slug)}/crew/${encodeURIComponent(id)}`;
-
-// crewScreenURL is the event stream of a running crew's screen: "screen"
-// events (TermScreen), then "exit".
-export const crewScreenURL = (slug: string, id: string) => `${crewPath(slug, id)}/screen`;
 
 export const typeIntoCrew = (slug: string, id: string, input: { key: TermKey } | { paste: string }) =>
   send<object>("POST", `${crewPath(slug, id)}/input`, input);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { type CapsuleDetail, type RunDetail, runRecipe, stopRun } from "../api";
 import type { Reload } from "../load";
@@ -28,16 +28,8 @@ export function RunsHere({ slug, c, open, reload }: { slug: string; c: CapsuleDe
   const running = new Set(runs.filter((r) => r.state === "running").map((r) => r.recipe ?? r.name));
   const recipes = open && c.exists ? (c.recipes ?? []).filter((n) => !running.has(n)) : [];
   const tasks = new Set(c.tasks ?? []);
-  // A task that's running is asked after until it ends: nothing else
-  // tells the page it has.
-  const tasking = runs.some((r) => r.type === "task" && r.state === "running");
-  useEffect(() => {
-    if (!tasking) return;
-    const t = setInterval(() => {
-      if (document.visibilityState === "visible") reload();
-    }, 2000);
-    return () => clearInterval(t);
-  }, [tasking, reload]);
+  // A task's end reaches the page by its mission's topic (its stamp has
+  // its capsules' runs): nothing asks after it.
   if (!runs.length && !recipes.length) return null;
   const start = (recipe: string) => {
     setBusy(recipe);
