@@ -7,7 +7,7 @@ import { foldersOf, shownIds, type TreeNode } from "./treeNodes";
 
 // A row's height, in px: the same for every row, which is what lets a
 // tree that draws only the rows in view say where each one is.
-const ROW = 26;
+const ROW = 22;
 
 // Tree is rows in folders that fold: a repo's files, a file's outline. It
 // draws nodes (treeNodes.ts makes them: treeOf from paths, compact,

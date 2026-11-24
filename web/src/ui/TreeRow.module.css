@@ -6,10 +6,10 @@
   .row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    height: var(--tree-row, 26px);
-    padding: 0 8px 0 4px;
-    border-radius: var(--radius);
+    gap: 4px;
+    height: var(--tree-row, 22px);
+    padding: 0 6px 0 2px;
+    border-radius: var(--radius-sm);
     color: var(--fg);
     white-space: nowrap;
     cursor: pointer;
@@ -36,12 +36,12 @@
   .indent {
     flex: none;
     align-self: stretch;
-    width: calc(var(--tree-level) * 14px);
-    margin-right: -6px;
+    width: calc(var(--tree-level) * 12px);
+    margin-right: -4px;
   }
 
   .guides {
-    background: repeating-linear-gradient(to right, transparent 0 7px, var(--line) 7px 8px, transparent 8px 14px);
+    background: repeating-linear-gradient(to right, transparent 0 7px, var(--line) 7px 8px, transparent 8px 12px);
   }
 
   .twist,
@@ -115,9 +115,9 @@
   .end {
     display: flex;
     flex: none;
-    gap: 6px;
+    gap: 4px;
     align-items: center;
     margin-left: auto;
-    padding-left: 8px;
+    padding-left: 6px;
   }
 }
