@@ -24,23 +24,40 @@ import (
 var (
 	namingMu sync.Mutex
 	naming   = map[string]func() *ref.Known{} // by root, made absolute
+	kept     = map[string]bool{}              // roots named by KeepName
 )
 
 // Name says how what there is to name in the workspace at root is found.
 // known is asked once in a transaction, when the first words that could
 // name something are written in it: it's inside a Write then, so it may
-// read the records and mustn't write them. nil takes it back.
+// read the records and mustn't write them. nil takes it back. A way kept
+// for the process's life (KeepName) isn't replaced by it.
 func Name(root string, known func() *ref.Known) {
+	name(root, known, false)
+}
+
+// KeepName is Name for whoever holds the workspace at root for the
+// process's life (the daemon): what it says stands, whoever names it
+// after, until it's taken back (nil).
+func KeepName(root string, known func() *ref.Known) {
+	name(root, known, true)
+}
+
+func name(root string, known func() *ref.Known, keep bool) {
 	if abs, err := filepath.Abs(root); err == nil {
 		root = abs
 	}
 	namingMu.Lock()
 	defer namingMu.Unlock()
-	if known == nil {
+	switch {
+	case known == nil:
 		delete(naming, root)
-		return
+		delete(kept, root)
+	case keep:
+		naming[root], kept[root] = known, true
+	case !kept[root]:
+		naming[root] = known
 	}
-	naming[root] = known
 }
 
 // names is what there is to name, as the workspace's holder finds it: nil
