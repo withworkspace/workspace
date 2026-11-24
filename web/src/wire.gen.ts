@@ -149,12 +149,14 @@ export interface AppDetail extends AppInfo {
 // From web/api.go
 /**
  * AppInfo is an app as a place has it: its recipe's name, what it's
- * called and its icon's name ("" for the default).
+ * called and its icon's name ("" for the default), and whether it's
+ * framed or opened in a browser tab of its own.
  */
 export interface AppInfo {
     name: string;
     title: string;
     icon?: string;
+    render: RecipeRender;
 }
 
 // From web/apps.go
@@ -3751,6 +3753,30 @@ export interface ReReview {
     total: number;
 }
 
+// From web/runs.go
+/**
+ * RecipeInfo is one of a place's recipes, as its Runs tab lists it: its
+ * name, what it's called (its display_name, or its page's title: "" for
+ * its name), its type and command. A service's Kind is what it's for, an
+ * app or a tool, and its Render how it's shown; Page, that it's an app
+ * with a tab of its own on the worktree (in Apps).
+ */
+export interface RecipeInfo {
+    name: string;
+    title?: string;
+    type: RunsType;
+    kind?: RecipeKind;
+    render?: RecipeRender;
+    command: string;
+    page?: boolean;
+}
+
+// From web/enums.go
+export type RecipeKind = "app" | "tool";
+
+// From web/enums.go
+export type RecipeRender = "inline" | "tab";
+
 // From ref/ref.go
 /**
  * Kind is what a ref names.
@@ -5901,21 +5927,21 @@ export interface Worktree {
 // From web/runs.go
 /**
  * WorktreeRunsInfo is GET /api/repos/{repo}/worktrees/{name}/runs: what's
- * running in a ground or capsule, and the names of its ws.repo.toml's
- * recipes that run there.
+ * running in a ground or capsule, and its ws.repo.toml's recipes that run
+ * there.
  */
 export interface WorktreeRunsInfo {
     runs: RunDetail[];
-    recipes: string[];
-    /**
-     * Tasks are those of Recipes that are tasks: run to their end, and
-     * kept for what they came to.
-     */
-    tasks: string[];
+    recipes: RecipeInfo[];
     /**
      * Apps are its recipes with a page: each a tab of the worktree's.
      */
     apps: AppInfo[];
+    /**
+     * Past are the earlier runs of its tasks, kept behind each one's
+     * latest (in Runs): with Runs, what's been run there lately.
+     */
+    past: RunDetail[];
 }
 
 // From web/api.go

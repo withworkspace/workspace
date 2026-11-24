@@ -68,9 +68,12 @@ export function Below({ views, sheet }: BelowProps) {
                 Everywhere
               </Segment>
             </Segmented>
-            <Button variant="ghost" size="small" square title="Close Below" onClick={() => change(toggleBelow)}>
-              <Icon name="x" size={13} />
-            </Button>
+            {/* Closing it is its toggle's, at the foot (FootBelow): a sheet has its own way out. */}
+            {sheet && (
+              <Button variant="ghost" size="small" square title="Close Below" onClick={() => change(toggleBelow)}>
+                <Icon name="x" size={13} />
+              </Button>
+            )}
           </>
         }
       >

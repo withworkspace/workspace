@@ -53,7 +53,7 @@ func TestApps(t *testing.T) {
 	res := do(t, s, "GET", "/api/workspace", true, nil)
 	var w Workspace
 	json.NewDecoder(res.Body).Decode(&w)
-	if len(w.Apps) != 1 || w.Apps[0] != (AppInfo{Name: "docs", Title: "API docs", Icon: "book"}) {
+	if len(w.Apps) != 1 || w.Apps[0] != (AppInfo{Name: "docs", Title: "API docs", Icon: "book", Render: RenderInline}) {
 		t.Fatalf("apps = %+v", w.Apps)
 	}
 	if !strings.Contains(res.Header.Get("Content-Security-Policy"), "frame-src 'self' http://*.localhost:* http://127.0.0.1:*") {
@@ -132,7 +132,11 @@ where = "silo"
 	res := do(t, s, "GET", base+"/runs", true, nil)
 	var info WorktreeRunsInfo
 	json.NewDecoder(res.Body).Decode(&info)
-	if res.StatusCode != 200 || len(info.Apps) != 1 || info.Apps[0].Title != "API docs" || strings.Join(info.Recipes, ",") != "docs,web" || len(info.Runs) != 0 {
+	var recipes []string
+	for _, rc := range info.Recipes {
+		recipes = append(recipes, rc.Name)
+	}
+	if res.StatusCode != 200 || len(info.Apps) != 1 || info.Apps[0].Title != "API docs" || strings.Join(recipes, ",") != "docs,web" || len(info.Runs) != 0 {
 		t.Fatalf("runs: %d %+v", res.StatusCode, info)
 	}
 	res, d := appCall(t, s, base+"/apps/docs/open", nil)

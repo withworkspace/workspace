@@ -826,6 +826,13 @@ function FilePane({
             {""}
           </Copyable>
         </div>
+        {file && image && !file.deleted && <span className="file-size dim num">{sizeWords(file.size)}</span>}
+        {file && !image && !file.binary && !file.tooLarge && (
+          <span className="file-size dim num">
+            {file.lines.length} {file.lines.length === 1 ? "line" : "lines"}
+            {file.size > 0 && ` · ${sizeWords(file.size)}`}
+          </span>
+        )}
         <div className="file-pane-tools">
           {md && file && !file.binary && !file.tooLarge && (
             <Segmented value={preview ? "rendered" : "text"} onChange={(v) => setPreview(() => v === "rendered")} aria-label="Markdown">
@@ -859,13 +866,6 @@ function FilePane({
         )}
         {entry?.oldPath && <span className="dim">from {entry.oldPath}</span>}
         {entry?.uncommitted && <Chip tone="attention">Not committed</Chip>}
-        {file && image && !file.deleted && <span className="dim num">{sizeWords(file.size)}</span>}
-        {file && !image && !file.binary && !file.tooLarge && (
-          <span className="dim num">
-            {file.lines.length} {file.lines.length === 1 ? "line" : "lines"}
-            {file.size > 0 && ` · ${sizeWords(file.size)}`}
-          </span>
-        )}
         {file && !image && file.changes.length > 0 && !(md && preview) && (
           <span className="change-legend" title="Marked beside the line numbers">
             {file.changes.some((c) => c.kind === "added") && (
@@ -1019,7 +1019,7 @@ function Code({
   });
   useKeys(rev ? codeNav.keys : {});
   return (
-    <div className="code-view folds" ref={body}>
+    <div className="code-view folds" ref={body} style={{ "--ln-digits": Math.max(2, String(html.length).length) } as React.CSSProperties}>
       {codeNav.card}
       {codeNav.picker}
       {codeNav.panel}

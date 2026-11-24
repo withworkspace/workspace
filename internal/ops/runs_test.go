@@ -104,8 +104,15 @@ func TestRunIn(t *testing.T) {
 	if len(in.Runs) != 1 || in.Runs[0].Name != "web" {
 		t.Errorf("the page's runs: %v", in.Runs)
 	}
-	if strings.Join(in.Recipes, ",") != "lint,web" || strings.Join(in.Tasks, ",") != "lint" {
-		t.Errorf("the page's recipes, the silo's left out, and its tasks: %v, %v", in.Recipes, in.Tasks)
+	var names, tasks []string
+	for _, rc := range in.Recipes {
+		names = append(names, rc.Name)
+		if rc.Task {
+			tasks = append(tasks, rc.Name)
+		}
+	}
+	if strings.Join(names, ",") != "lint,web" || strings.Join(tasks, ",") != "lint" {
+		t.Errorf("the page's recipes, the silo's left out, and its tasks: %v, %v", names, tasks)
 	}
 	if err := w.LookedAt(runs.Looking{Worktrees: map[string]bool{"frontend/.ground": true}}); err != nil {
 		t.Fatal(err)
@@ -120,6 +127,28 @@ func TestRunIn(t *testing.T) {
 	}
 	if !task.IsTask() || task.Owner.Kind != runs.ByNone || task.NRef() != "lint.ground.frontend#1" {
 		t.Errorf("task %+v", task.Record)
+	}
+	// Run again, the first is kept behind it: the page has both, what's
+	// been run there lately.
+	if _, done, err := w.runStore().WaitEnd(task, 10*time.Second, nil); err != nil || !done {
+		t.Fatalf("lint didn't end: %v", err)
+	}
+	again, err := w.RunIn("frontend", ".ground", "lint", AsYou)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, done, err := w.runStore().WaitEnd(again, 10*time.Second, nil); err != nil || !done {
+		t.Fatalf("lint didn't end again: %v", err)
+	}
+	in, err = w.RunsIn("frontend", ".ground")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(in.Runs) != 1 || in.Runs[0].NRef() != "lint.ground.frontend#2" {
+		t.Errorf("the page's runs, the latest of lint: %v", in.Runs)
+	}
+	if len(in.Past) != 1 || in.Past[0].NRef() != "lint.ground.frontend#1" {
+		t.Errorf("the runs of lint behind it: %v", in.Past)
 	}
 }
 

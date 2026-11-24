@@ -86,6 +86,7 @@ for wt in .ground orders-v2; do
 [run.service.docs]
 command = "DEMO_DIR=$PWD python3 ../../../apps/docs.py {port}"
 ready = "/"
+kind = "tool"
 page = { title = "API docs", icon = "book" }
 
 [run.service.docs.needs.records]

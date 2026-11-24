@@ -47,6 +47,11 @@
     color: var(--fg);
   }
 
+  /* A thing in front has more of its name than the ones behind it. */
+  .on:not(.own) {
+    max-width: min(320px, 100%);
+  }
+
   .on::after {
     transform: scaleX(1);
   }

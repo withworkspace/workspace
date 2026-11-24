@@ -64,7 +64,7 @@ import { Button, buttonClass } from "./ui/Button";
 import { Below } from "./chrome/Below";
 import { useBelowViews } from "./chrome/belowViews";
 import { Beside } from "./chrome/Beside";
-import { hideSidebar, narrowQuery, sidebarPlace, toggleBelow, toggleBeside } from "./chrome/chromeState";
+import { floatBeside, hideSidebar, narrowQuery, sidebarPlace, toggleBelow, toggleBeside } from "./chrome/chromeState";
 import { FindButton } from "./chrome/FindButton";
 import { Foot } from "./chrome/Foot";
 import { FootBelow } from "./chrome/FootBelow";
@@ -286,7 +286,7 @@ export function App() {
             (belowViews.length > 0 || beside.all.length > 0) && (
               <>
                 {belowViews.length > 0 && <FootBelow open={belowShown} onPress={() => changeChrome(toggleBelow)} />}
-                {beside.all.length > 0 && <FootBeside open={beside.shown} waiting={beside.all.length} onPress={() => changeChrome(toggleBeside)} />}
+                {beside.all.length > 0 && <FootBeside open={beside.shown} waiting={beside.all.length} onPress={() => changeChrome(toggleBeside)} over={beside.over} onOver={narrow ? undefined : (over) => changeChrome((c) => floatBeside(c, over))} />}
               </>
             )
           }

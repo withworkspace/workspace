@@ -63,13 +63,11 @@ export function useWorktreeTabs(at: AppAt): WorktreeTabs {
       error && !info ? (
         <ErrorCard title="Couldn't read its runs" error={error} retry={reload} />
       ) : (
-        <div className="page worktree-runs">
-          <WorktreeRuns repo={at.repo} name={at.worktree} value={info} reload={reload} />
-        </div>
+        <WorktreeRuns repo={at.repo} name={at.worktree} value={info} reload={reload} />
       );
   } else if (view !== "files") {
     const app = info?.apps.find((a) => a.name === view);
-    if (app) other = <AppFrame key={`${at.repo}/${at.worktree}/${app.name}`} name={app.name} title={app.title} icon={app.icon} at={at} />;
+    if (app) other = <AppFrame key={`${at.repo}/${at.worktree}/${app.name}`} name={app.name} title={app.title} icon={app.icon} render={app.render} at={at} />;
     else if (info)
       other = (
         <div className="page narrow">

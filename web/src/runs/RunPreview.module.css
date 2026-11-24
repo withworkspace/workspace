@@ -1,0 +1,116 @@
+/* A service in a frame (RunPreview.tsx): a slim bar, and the service as a
+   card under it, as an app's page draws one (.app-bar, .app-card). */
+
+.preview {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Where it's reached, as a browser's address bar has it. */
+.address {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--well);
+  color: var(--dim);
+  font: var(--text-xs) var(--mono);
+  text-decoration: none;
+}
+
+.address:hover {
+  color: var(--fg);
+  border-color: var(--dim);
+}
+
+.host {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dim);
+}
+
+.dot.up {
+  background: var(--green);
+}
+
+.card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* Drawn narrower than there's room for: centred on the card, a rule
+   either side. */
+.sized {
+  justify-content: center;
+  overflow-x: auto;
+}
+
+.frame {
+  display: block;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  /* The service is drawn as it draws itself: most are light only. */
+  background: #fff;
+}
+
+.sized .frame {
+  flex: none;
+  max-width: none;
+  border-inline: 1px solid var(--line);
+}
+
+.waiting {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.waiting p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+/* A phone has no room to draw it as wide as anything else. */
+@media (max-width: 640px) {
+  .widths {
+    display: none;
+  }
+}

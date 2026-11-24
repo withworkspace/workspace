@@ -13,7 +13,7 @@ import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/Status";
 import { headlineStatus } from "../ui/statusOf";
-import { besideWidths, floatBeside, pickBeside, toggleBeside, widenBeside } from "./chromeState";
+import { besideWidths, pickBeside, toggleBeside, widenBeside } from "./chromeState";
 import { Dock } from "./Dock";
 import { DockDivide } from "./DockDivide";
 import { DockEdge } from "./DockEdge";
@@ -38,7 +38,8 @@ type BesideProps = {
 // First what's about the thing this page is of (what you asked here),
 // which is there only on that thing's page: it's hidden as you leave and
 // back as you come back. Then what's about nothing, which is there
-// anywhere. It can float over the page instead of the page making room.
+// anywhere. It can float over the page instead of the page making room
+// (its toggle's menu, at the foot).
 //
 // One of the tabs may be a peek (z, on what the pointer's on): a mission,
 // a document, a pull request or a conversation, looked at and not opened.
@@ -86,17 +87,14 @@ export function Beside({ sheet }: BesideProps) {
   return (
     <Dock side="beside" label="Beside" size={now.width} over={over} sheet={sheet} edge={<DockEdge side="beside" label="Beside's width" size={now.width} {...besideWidths} onSize={(w) => change((s) => widenBeside(s, w))} />}>
       <DockHead
+        // Closing it, and floating it, are its toggle's at the foot
+        // (FootBeside). A sheet covers the page, so it has its own way out.
         tools={
-          <>
-            {!sheet && (
-              <Button variant="ghost" size="small" square aria-pressed={over} title={over ? "Dock it: the page makes room" : "Float it over the page"} onClick={() => change((s) => floatBeside(s, !s.beside.over))}>
-                <Icon name="float" size={13} />
-              </Button>
-            )}
+          sheet && (
             <Button variant="ghost" size="small" square title="Close Beside (\)" onClick={() => change(toggleBeside)}>
               <Icon name="x" size={13} />
             </Button>
-          </>
+          )
         }
       >
         <DockTabs

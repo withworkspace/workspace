@@ -709,6 +709,18 @@ type ServiceRecipe struct {
 	// Command is what's run, in a shell: {port} is the run's port, which
 	// $PORT holds too.
 	Command string `toml:"command"`
+	// DisplayName is what it's called in the web UI (Storefront), for its
+	// name: "" is its name.
+	DisplayName string `toml:"display_name,omitempty"`
+	// Kind is what it's for: an app (RunApp, the default), what's being
+	// built, as a dev server serves it; or a tool (RunTool), something
+	// that helps build it: API docs, Storybook, a mail catcher, a
+	// database's UI. The web UI's Runs tab lists them apart.
+	Kind string `toml:"kind,omitempty"`
+	// Render is how the web UI shows it: in a frame (RenderInline, the
+	// default), or in a browser tab of its own (RenderTab), for one that
+	// won't be framed or wants a whole window.
+	Render string `toml:"render,omitempty"`
 	// Ready is a path asked for over HTTP until it answers anything below
 	// 500: then the run's up. "" is up once something listens on its port.
 	Ready string `toml:"ready,omitempty"`
@@ -734,6 +746,8 @@ type ServiceRecipe struct {
 type TaskRecipe struct {
 	// Command is what's run, in a shell, to its end.
 	Command string `toml:"command"`
+	// DisplayName is what it's called in the web UI, as a service's is.
+	DisplayName string `toml:"display_name,omitempty"`
 	// Stop is run in the same place once the command has ended or been
 	// stopped: "" for nothing.
 	Stop string `toml:"stop,omitempty"`
@@ -759,19 +773,32 @@ const (
 	RunTask    = "task"
 )
 
+// What a service is for (ServiceRecipe.Kind), and how the web UI shows
+// it (ServiceRecipe.Render): "" is the first of each.
+const (
+	RunApp  = "app"
+	RunTool = "tool"
+
+	RenderInline = "inline"
+	RenderTab    = "tab"
+)
+
 // RunRecipe is a recipe of either sort, as what starts one reads it: its
 // table's keys, and which table it was in (Type). What only the other
 // sort has is empty.
 type RunRecipe struct {
 	// Type is RunService or RunTask.
-	Type    string
-	Command string
-	Stop    string
-	Where   string
-	Needs   map[string]RunNeed
-	// Ready and Page are a service's.
-	Ready string
-	Page  *RunPage
+	Type        string
+	Command     string
+	DisplayName string
+	Stop        string
+	Where       string
+	Needs       map[string]RunNeed
+	// Ready, Page, Kind and Render are a service's.
+	Ready  string
+	Page   *RunPage
+	Kind   string
+	Render string
 	// Reports and Timeout are a task's.
 	Reports map[string]RunReport
 	Timeout string
@@ -779,6 +806,25 @@ type RunRecipe struct {
 
 // IsTask is whether the recipe is a task.
 func (r RunRecipe) IsTask() bool { return r.Type == RunTask }
+
+// IsTool is whether the recipe is a service that's a tool, not an app.
+func (r RunRecipe) IsTool() bool { return !r.IsTask() && r.Kind == RunTool }
+
+// InTab is whether the web UI opens the recipe's run in a browser tab of
+// its own, rather than framing it.
+func (r RunRecipe) InTab() bool { return !r.IsTask() && r.Render == RenderTab }
+
+// Called is what the recipe's called in the web UI: its display_name,
+// else its page's title, else "" (its name, which the caller has).
+func (r RunRecipe) Called() string {
+	if n := strings.TrimSpace(r.DisplayName); n != "" {
+		return n
+	}
+	if r.Page != nil {
+		return strings.TrimSpace(r.Page.Title)
+	}
+	return ""
+}
 
 // Table is the recipe name's table as its file has it: [run.task.test].
 func (r RunRecipe) Table(name string) string {
@@ -797,10 +843,10 @@ func (r Runs) Recipes() map[string]RunRecipe {
 	}
 	out := make(map[string]RunRecipe, len(r.Service)+len(r.Task))
 	for name, t := range r.Task {
-		out[name] = RunRecipe{Type: RunTask, Command: t.Command, Stop: t.Stop, Where: t.Where, Needs: t.Needs, Reports: t.Reports, Timeout: t.Timeout}
+		out[name] = RunRecipe{Type: RunTask, Command: t.Command, DisplayName: t.DisplayName, Stop: t.Stop, Where: t.Where, Needs: t.Needs, Reports: t.Reports, Timeout: t.Timeout}
 	}
 	for name, s := range r.Service {
-		out[name] = RunRecipe{Type: RunService, Command: s.Command, Stop: s.Stop, Where: s.Where, Needs: s.Needs, Ready: s.Ready, Page: s.Page}
+		out[name] = RunRecipe{Type: RunService, Command: s.Command, DisplayName: s.DisplayName, Stop: s.Stop, Where: s.Where, Needs: s.Needs, Ready: s.Ready, Page: s.Page, Kind: s.Kind, Render: s.Render}
 	}
 	return out
 }
@@ -824,6 +870,23 @@ func twiceSaid(file string, r Runs) []string {
 	var out []string
 	for _, name := range r.Twice() {
 		out = append(out, fmt.Sprintf("%s: run.task.%s (a service is called %s too, and a recipe's name is one run's)", file, name, name))
+	}
+	return out
+}
+
+// valuesSaid is what r's services say that ws doesn't read, as
+// unknownKeys would say it, with why: a kind or a render that isn't one
+// of ws's, which is read as unsaid.
+func valuesSaid(file string, r Runs) []string {
+	var out []string
+	for _, name := range slices.Sorted(maps.Keys(r.Service)) {
+		s := r.Service[name]
+		if s.Kind != "" && s.Kind != RunApp && s.Kind != RunTool {
+			out = append(out, fmt.Sprintf("%s: run.service.%s.kind = %q (it's %q or %q: read as %q)", file, name, s.Kind, RunApp, RunTool, RunApp))
+		}
+		if s.Render != "" && s.Render != RenderInline && s.Render != RenderTab {
+			out = append(out, fmt.Sprintf("%s: run.service.%s.render = %q (it's %q or %q: read as %q)", file, name, s.Render, RenderInline, RenderTab, RenderInline))
+		}
 	}
 	return out
 }
@@ -916,6 +979,7 @@ func ParseRepoConfig(path string) (*RepoFileConfig, error) {
 		return nil, fmt.Errorf("parsing %s: %w", path, err)
 	}
 	cfg.Unknown = append(unknownKeys("ws.repo.toml", md), twiceSaid("ws.repo.toml", cfg.Run)...)
+	cfg.Unknown = append(cfg.Unknown, valuesSaid("ws.repo.toml", cfg.Run)...)
 	repoFilesMu.Lock()
 	repoFiles[path] = keptRepoFile{mod: info.ModTime(), size: info.Size(), cfg: &cfg}
 	repoFilesMu.Unlock()
@@ -1068,6 +1132,7 @@ func Parse(path string) (*Config, error) {
 		return nil, fmt.Errorf("parsing %s: %w", path, err)
 	}
 	cfg.Unknown = append(unknownKeys(filepath.Base(path), md), twiceSaid(filepath.Base(path), cfg.Run)...)
+	cfg.Unknown = append(cfg.Unknown, valuesSaid(filepath.Base(path), cfg.Run)...)
 	cfg.PluginOrder = pluginOrder(md)
 	return &cfg, nil
 }
