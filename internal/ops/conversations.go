@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -19,6 +20,14 @@ import (
 // version a thread is opened or answered on.
 
 // now is the time an operation is recorded at.
+// life is the workspace's life in this process (Options.Life).
+func (w *Workspace) life() context.Context {
+	if w.opts.Life != nil {
+		return w.opts.Life
+	}
+	return context.Background()
+}
+
 func (w *Workspace) now() time.Time {
 	if w.opts.Now != nil {
 		return w.opts.Now()

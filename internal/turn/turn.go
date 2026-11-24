@@ -19,8 +19,16 @@ import (
 	"github.com/withworkspace/workspace/internal/harness"
 )
 
+// ErrEnded is a turn's error when what it ran for ended first: the daemon
+// going, with it still at it. It's not the turn failing: whoever runs it
+// leaves it to be run again by the next.
+var ErrEnded = errors.New("ws stopped before it was finished")
+
 // Spec is a turn to run.
 type Spec struct {
+	// Life is what the turn's run for (the daemon's life): ended, the
+	// turn's agent is too, with everything it started. Nil is never.
+	Life    context.Context
 	Launch  harness.Launch
 	Env     []string      // the agent's whole environment
 	Timeout time.Duration // how long it may take
@@ -39,7 +47,14 @@ const waitDelay = 5 * time.Second
 // failing: it didn't start, timed out, or exited badly; what it said on
 // stderr comes with it.
 func Run(s Spec) (harness.Report, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), s.Timeout)
+	life := s.Life
+	if life == nil {
+		life = context.Background()
+	}
+	if life.Err() != nil {
+		return harness.Report{}, ErrEnded
+	}
+	ctx, cancel := context.WithTimeout(life, s.Timeout)
 	defer cancel()
 	var out, errOut bytes.Buffer
 	stdout, stderr := io.Writer(&out), io.Writer(&errOut)
@@ -78,7 +93,10 @@ func Run(s Spec) (harness.Report, error) {
 		execlog.Start(s.Root, s.Who, c.Args, c.Dir, c.Env, pid)
 		err = c.Wait()
 	}
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+	switch {
+	case life.Err() != nil:
+		err = ErrEnded
+	case errors.Is(ctx.Err(), context.DeadlineExceeded):
 		err = fmt.Errorf("it took longer than %s", s.Timeout)
 	}
 	result := "exit 0"
@@ -90,7 +108,7 @@ func Run(s Spec) (harness.Report, error) {
 	if rep.Session == "" {
 		rep.Session = l.Conversation // a session ws named for it
 	}
-	if err != nil {
+	if err != nil && err != ErrEnded {
 		if e := clip(errOut.String(), 500); e != "" {
 			err = fmt.Errorf("%w: %s", err, e)
 		}

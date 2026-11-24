@@ -1,6 +1,7 @@
 package orchestrator
 
 import (
+	"context"
 	"github.com/withworkspace/workspace/internal/turn"
 	"os"
 	"path/filepath"
@@ -28,12 +29,13 @@ var Timeout = 10 * time.Minute
 // printed. It runs in its own process group so a timeout kills everything it
 // started (a shell, a `gh pr checks --watch`), not just the agent: anything
 // left holding its output would keep Run waiting forever.
-func Run(l harness.Launch, root, slug, run string) (Report, error) {
+func Run(life context.Context, l harness.Launch, root, slug, run string) (Report, error) {
 	// The report is what the agent prints; what it says on stderr (Claude
 	// Code's sign-in warnings, say) goes to the process's stderr too
 	// (orchestrator.log, run by hand the terminal), and into the error if
 	// the run fails.
 	rep, err := turn.Run(turn.Spec{
+		Life:    life,
 		Launch:  l,
 		Env:     append(crew.Env(root, slug, ""), mission.EnvRole+"="+mission.RoleOrchestrator, mission.EnvRun+"="+run),
 		Timeout: Timeout,

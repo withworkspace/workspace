@@ -18,6 +18,7 @@ import (
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/prompt"
 	"github.com/withworkspace/workspace/internal/runs"
+	"github.com/withworkspace/workspace/internal/turn"
 )
 
 // Work's expansion, its checks: once crew report done at a Work step that
@@ -170,6 +171,11 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 		// step has passed and the next is reached: marked before, so
 		// there's no moment between with nobody on it.
 		defer w.moving(slug, st.N)()
+	}
+	// ws going while they ran isn't a round: the done's still unchecked,
+	// and the daemon after checks it (reconcileJobs).
+	if w.life().Err() != nil {
+		return "", turn.ErrEnded
 	}
 	round, err := w.Missions.RecordChecks(slug, st.N, all)
 	if err != nil {
@@ -442,7 +448,7 @@ func (w *Workspace) decidedSince(m *mission.Mission, st mission.StageState) []st
 // as a mission's judge does.
 func (w *Workspace) askJudge(pick harness.Pick, h harness.Converser, j prompt.Judging, who string, env []string, runPath string) (harness.Report, []prompt.Verdict, error) {
 	run := harness.ConverseRun{Prompt: prompt.Judge(j), Dir: firstNonEmpty(j.Dir, w.Root()), Model: pick.Model, Once: true}
-	rep, err := RunHeadless(w.Root(), who, env, runPath, judgeTimeout, h, run)
+	rep, err := RunHeadless(w.life(), w.Root(), who, env, runPath, judgeTimeout, h, run)
 	if err != nil {
 		return rep, nil, err
 	}

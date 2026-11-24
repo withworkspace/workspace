@@ -142,3 +142,43 @@ func TestQueueMarksInOrder(t *testing.T) {
 		t.Errorf("ran %s last, but %s was marked last (%v)", last.ID, want, marked)
 	}
 }
+
+// Stopped, the queue runs what's running out, drops what's waiting and
+// takes nothing more; it waits for what's running only so long.
+func TestQueueStop(t *testing.T) {
+	var mu sync.Mutex
+	var ran []string
+	release := make(chan struct{})
+	q := &Queue{Run: func(j Job) error {
+		mu.Lock()
+		ran = append(ran, j.ID)
+		mu.Unlock()
+		<-release
+		return nil
+	}}
+	q.Start(Job{Kind: Answer, Mission: "m", ID: "a"})
+	for !q.Busy() {
+		time.Sleep(time.Millisecond)
+	}
+	for {
+		mu.Lock()
+		n := len(ran)
+		mu.Unlock()
+		if n == 1 {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	q.Start(Job{Kind: Thread, Mission: "m", ID: "a"}) // waits behind a, in its lane
+	if q.Stop(50 * time.Millisecond) {
+		t.Fatal("finished, though a job's still running")
+	}
+	q.Start(Job{Kind: Answer, Mission: "m", ID: "b"}) // taken after: not run
+	close(release)
+	if !q.Stop(time.Second) {
+		t.Fatal("didn't finish once its job did")
+	}
+	if strings.Join(ran, ",") != "a" {
+		t.Errorf("ran %v, want only a", ran)
+	}
+}
