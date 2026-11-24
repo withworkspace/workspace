@@ -162,3 +162,34 @@ func TestAPullRequestsNeedIsNewWhenItAsksAgain(t *testing.T) {
 		t.Error("asked again after your review, and it's the same need")
 	}
 }
+
+// A mission in your court says what moves it on, from its lead card:
+// crew asking, their conversation; a step's checks yours to say, the
+// bundle that shows them. One resting in your court doesn't.
+func TestAMissionsNeedSaysWhatMovesItOn(t *testing.T) {
+	asks := item("asks", mission.Headline{Court: mission.CourtYou, Kind: mission.KindCrewAsks, By: "c1", Text: "c1 asks: which?"})
+	asks.Act = &mission.Act{Do: mission.DoReply, Target: "c1"}
+	got := Needs([]MissionItem{asks}, nil, nil)
+	if len(got) != 1 || got[0].Act == nil || got[0].Act.Do != mission.DoReply || got[0].Act.Target != "c1" {
+		t.Fatalf("needs = %+v, want the mission's with its act", got)
+	}
+}
+
+func TestLeadActIsTheLeadCardsFirst(t *testing.T) {
+	snap := mission.Snapshot{M: &mission.Mission{Slug: "dark"}}
+	reply := []mission.Headline{{Court: mission.CourtYou, Kind: mission.KindCrewAsks, By: "c1",
+		Action: mission.Action{Verb: mission.VerbReply, Target: "c1"}}}
+	if a := leadAct(snap, reply, conversation.For(t.TempDir(), "dark")); a == nil || a.Do != mission.DoReply || a.Target != "c1" {
+		t.Errorf("crew asking: act = %+v, want reply to c1", a)
+	}
+	verify := []mission.Headline{{Court: mission.CourtYou, Kind: mission.KindStepReview,
+		Action: mission.Action{Verb: mission.VerbReviewStep, Target: "1", Look: []mission.Look{{Name: "the checks", Bundle: "b1"}}}}}
+	if a := leadAct(snap, verify, conversation.For(t.TempDir(), "dark")); a == nil || a.Do != mission.DoVerify || a.Target != "b1" {
+		t.Errorf("a step to review: act = %+v, want verify b1", a)
+	}
+	resting := []mission.Headline{{Court: mission.CourtYou, Kind: mission.KindReady,
+		Action: mission.Action{Verb: mission.VerbLaunch}}}
+	if a := leadAct(snap, resting, conversation.For(t.TempDir(), "dark")); a != nil {
+		t.Errorf("a mission resting in your court: act = %+v, want none", a)
+	}
+}

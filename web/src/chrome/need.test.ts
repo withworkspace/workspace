@@ -154,7 +154,7 @@ describe("a need arriving", () => {
 });
 
 describe("where a need is dealt with", () => {
-  const dark = need({ to: "/missions/dark" });
+  const dark = need({ ref: "dark", to: "/missions/dark" });
 
   it("is its own page and the pages under it", () => {
     expect(dealtWithAt(dark, "/missions/dark")).toBe(true);
@@ -164,5 +164,13 @@ describe("where a need is dealt with", () => {
   it("isn't another thing whose name starts the same", () => {
     expect(dealtWithAt(dark, "/missions/dark-mode")).toBe(false);
     expect(dealtWithAt(dark, "/")).toBe(false);
+  });
+  it("is anywhere in its mission, when it goes to what moves it on", () => {
+    const asks = need({ of: "mission", ref: "dark", to: "/missions/dark/crew/c2" });
+    expect(dealtWithAt(asks, "/missions/dark/crew/c2")).toBe(true);
+    expect(dealtWithAt(asks, "/missions/dark")).toBe(true);
+    expect(dealtWithAt(asks, "/missions/dark-mode/crew/c2")).toBe(false);
+    const verify = need({ of: "mission", ref: "dark", to: "/missions/dark?tab=verify&b=b1" });
+    expect(dealtWithAt(verify, "/missions/dark")).toBe(true);
   });
 });

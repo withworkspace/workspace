@@ -73,6 +73,10 @@ type MissionItem struct {
 	// with nothing proposed: the mission goes on without them, so they're
 	// no headline of its, but each is your turn (Needs).
 	YourTurn []*conversation.Conversation
+	// Act is what moves it on, where it's in your court: its lead card's
+	// first act (mission.Card's Primary), or nil where there's none (its
+	// answers are to choose between). Where you go to deal with it.
+	Act *mission.Act
 }
 
 // Kind is a kind of document the workspace has: where one is filed, its
@@ -142,7 +146,9 @@ func (w *Workspace) Overview() (*Overview, error) {
 		talks := conversation.For(ws.Root, v.M.Slug)
 		threads, _ := talks.List()
 		snap := MissionSnapshot(v, brief, events, rrs, docThreadCourt(ws, v, brief, talks, threads), off)
-		it.Headline, it.At = mission.Resolve(snap)[0], snap.Position()
+		hs := mission.Resolve(snap)
+		it.Headline, it.At = hs[0], snap.Position()
+		it.Act = leadAct(snap, hs, talks)
 		it.YourTurn = yourTurns(threads)
 		for _, c := range v.Capsules {
 			if c.Exists {
@@ -159,6 +165,28 @@ func (w *Workspace) Overview() (*Overview, error) {
 		out.Missions = append(out.Missions, pastItem(ws, p))
 	}
 	return out, nil
+}
+
+// leadAct is the act that moves a mission in your court on: its lead
+// card's first, as its page offers it. Its planner's conversation is the
+// brief's own page's, where what it proposes for the brief and plan is
+// read and confirmed (as the page's own link to it goes), but what else
+// it proposed, which is confirmed in the conversation.
+func leadAct(snap mission.Snapshot, hs []mission.Headline, talks conversation.Store) *mission.Act {
+	if hs[0].Group() != mission.GroupNeedsYou {
+		return nil
+	}
+	cards := mission.CardsOf(snap, hs)
+	if len(cards) == 0 || cards[0].Primary == nil {
+		return nil
+	}
+	a := *cards[0].Primary
+	if a.Do == mission.DoTalk && cards[0].Kind != mission.KindProposed {
+		if p := talks.Planner(); p != nil && p.ID == a.Target {
+			a = mission.Act{Do: mission.DoBriefPage, Label: a.Label}
+		}
+	}
+	return &a
 }
 
 // pastItem is an archived mission in the lists: its row, and whether its
