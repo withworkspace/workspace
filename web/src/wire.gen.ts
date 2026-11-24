@@ -4492,6 +4492,18 @@ export interface Screen {
     title?: string;
 }
 
+// From web/terminal.go
+/**
+ * ScreenOp is a running crew's screen, told over the socket to a page that
+ * follows it (screen:<slug>/<crew>): the screen as it now is, each time it
+ * changes (at most one per screenEvery, and only the latest), or that the
+ * crew have ended (Exit).
+ */
+export interface ScreenOp {
+    screen?: Screen;
+    exit?: boolean;
+}
+
 // From web/settings.go
 /**
  * Setting is one key: what it's set to, and where that comes from
@@ -4643,6 +4655,10 @@ export interface SocketSaid {
      * RunLog is what's been written to a run's log (its runlog topic's).
      */
     runLog?: RunLogOp;
+    /**
+     * Screen is a running crew's screen, or its end (its screen topic's).
+     */
+    screen?: ScreenOp;
 }
 
 // From web/enums.go

@@ -885,10 +885,6 @@ export interface TermScreen {
 
 const crewPath = (slug: string, id: string) => `/api/missions/${encodeURIComponent(slug)}/crew/${encodeURIComponent(id)}`;
 
-// crewScreenURL is the event stream of a running crew's screen: "screen"
-// events (TermScreen), then "exit".
-export const crewScreenURL = (slug: string, id: string) => `${crewPath(slug, id)}/screen`;
-
 export const typeIntoCrew = (slug: string, id: string, input: { key: TermKey } | { paste: string }) =>
   send<object>("POST", `${crewPath(slug, id)}/input`, input);
 

@@ -28,6 +28,7 @@ const (
 	runLogTopic       = "runlog:"     // a run's output: its ref
 	appTopic          = "app:"        // an app's run: <name>, or <name>@<repo>/<worktree>
 	docTopic          = "doc:"        // a document being edited: <slug>/<ref>, the slug "" for the workspace's
+	screenTopic       = "screen:"     // a running crew's screen: <slug>/<crew>
 )
 
 // reread is the change that says only that a thing's changed: its
@@ -262,7 +263,7 @@ func topicKey(topic, prefix string) (string, bool) {
 	case docTopic:
 		_, ref, ok := strings.Cut(key, "/")
 		return key, ok && ref != ""
-	case transcriptTopic, worktreeTopic:
+	case transcriptTopic, worktreeTopic, screenTopic:
 		slug, id, ok := strings.Cut(key, "/")
 		return key, ok && slug != "" && id != "" && !strings.Contains(id, "/")
 	}

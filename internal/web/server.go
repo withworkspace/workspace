@@ -851,6 +851,14 @@ func (s *Server) follow(topic, app string) (ch <-chan told, done func(), status 
 	if key, ok := topicKey(topic, docTopic); ok {
 		subscribe = func() (<-chan told, func()) { return s.docs.subscribe(key) }
 	}
+	if key, ok := topicKey(topic, screenTopic); ok {
+		ch, done, running := s.followScreen(key)
+		if !running {
+			_, id, _ := strings.Cut(key, "/")
+			return nil, nil, http.StatusNotFound, errors.New(id + " isn't running")
+		}
+		return ch, done, 0, nil
+	}
 	if ref, ok := prTopicRef(topic); ok && s.prs != nil {
 		subscribe = func() (<-chan told, func()) { return s.followPR(ref) }
 	}

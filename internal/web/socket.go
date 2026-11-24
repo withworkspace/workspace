@@ -62,6 +62,8 @@ type SocketSaid struct {
 	Transcript *TranscriptOp `json:"transcript,omitempty"`
 	// RunLog is what's been written to a run's log (its runlog topic's).
 	RunLog *RunLogOp `json:"runLog,omitempty"`
+	// Screen is a running crew's screen, or its end (its screen topic's).
+	Screen *ScreenOp `json:"screen,omitempty"`
 }
 
 // socketPing is how often an idle socket is pinged, so one whose page has
@@ -140,12 +142,22 @@ func (ss *socketSession) follow(topic, app string) {
 	ss.mu.Unlock()
 	ss.say(SocketSaid{Kind: SocketFollowing, Topic: topic})
 	go func() {
+		// A screen that can't be sent now (the page is behind) waits, and
+		// is sent once it can, unless a newer comes first: it's the latest
+		// a page wants, not every one.
+		var waiting *SocketSaid
+		retry := time.NewTicker(screenEvery)
+		defer retry.Stop()
 		for {
 			select {
 			case <-ss.ctx.Done():
 				return
 			case <-stop:
 				return
+			case <-retry.C:
+				if waiting != nil && ss.offer(*waiting) {
+					waiting = nil
+				}
 			case t := <-ch:
 				said := SocketSaid{Kind: SocketChanged, Topic: topic}
 				switch op := t.Op.(type) {
@@ -155,6 +167,15 @@ func (ss *socketSession) follow(topic, app string) {
 					said.Transcript = op
 				case *RunLogOp:
 					said.RunLog = op
+				case *ScreenOp:
+					said.Screen = op
+					if !op.Exit {
+						waiting = nil
+						if !ss.offer(said) {
+							waiting = &said
+						}
+						continue
+					}
 				}
 				ss.say(said)
 			}
@@ -192,6 +213,18 @@ func (ss *socketSession) say(m SocketSaid) {
 	case <-ss.ctx.Done():
 	default:
 		ss.c.Close(websocket.StatusPolicyViolation, "too far behind")
+	}
+}
+
+// offer queues what's said if there's room, and says whether there was: for
+// what a newer will take the place of (a screen), which a page that's
+// behind needn't have its socket closed for.
+func (ss *socketSession) offer(m SocketSaid) bool {
+	select {
+	case ss.out <- m:
+		return true
+	default:
+		return false
 	}
 }
 

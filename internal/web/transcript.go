@@ -102,6 +102,8 @@ var sessionLookEvery = 2 * time.Second
 // crewTranscriptStream is GET .../transcript/stream: the transcript, then
 // again each time the session file changes, as "transcript" events. A
 // session that hasn't started yet (no file) is looked for until it has.
+// The web UI follows a transcript over its socket (transcriptHub); this
+// is for a tab from before, still open as its daemon's ws was upgraded.
 func (s *Server) crewTranscriptStream(w http.ResponseWriter, r *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {

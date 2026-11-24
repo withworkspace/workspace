@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/ops"
 )
@@ -132,5 +133,41 @@ func TestServer_CrewTerminal(t *testing.T) {
 	}
 	if r := do(t, s, "GET", "/api/missions/m/crew/c1/screen", false, nil); r.StatusCode != http.StatusUnauthorized {
 		t.Errorf("watched without signing in: %d", r.StatusCode)
+	}
+}
+
+// A page follows a running crew's screen over its socket: the screen as
+// it is, as soon as it's followed, then each change, then its end. Crew
+// that aren't running are refused.
+func TestSocket_FollowsACrewsScreen(t *testing.T) {
+	s := startTest(t, t.TempDir(), &fakeWorkspace{}, nil)
+	ft := &fakeTerminals{text: "$ ", changes: make(chan struct{}, 1), ended: make(chan struct{})}
+	fake(s).crew = ft
+	conn, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := talkTo(t, conn)
+	st.ask(SocketAsk{Op: SocketFollow, Topic: "screen:m/c2"})
+	if got := st.next(3 * time.Second); got != "refused screen:m/c2: c2 isn't running" {
+		t.Errorf("crew not running: %q", got)
+	}
+	st.ask(SocketAsk{Op: SocketFollow, Topic: "screen:m/c1"})
+	if got := st.next(3 * time.Second); got != "following screen:m/c1" {
+		t.Fatalf("following: %q", got)
+	}
+	if got := st.next(3 * time.Second); got != "changed screen:m/c1" || st.last.Screen == nil || st.last.Screen.Screen == nil || st.last.Screen.Screen.Text != "$ " {
+		t.Fatalf("its screen: %q, %+v", got, st.last.Screen)
+	}
+	ft.mu.Lock()
+	ft.text = "$ ls"
+	ft.mu.Unlock()
+	ft.changes <- struct{}{}
+	if got := st.next(3 * time.Second); got != "changed screen:m/c1" || st.last.Screen.Screen == nil || st.last.Screen.Screen.Text != "$ ls" {
+		t.Fatalf("a change: %q, %+v", got, st.last.Screen)
+	}
+	close(ft.ended)
+	if got := st.next(3 * time.Second); got != "changed screen:m/c1" || !st.last.Screen.Exit {
+		t.Errorf("its end: %q, %+v", got, st.last.Screen)
 	}
 }
