@@ -105,12 +105,20 @@ export function FilesPage() {
           else navigate("/files");
         }}
         empty={capsule ? "The capsule is empty." : "The repo is empty."}
+        aside={
+          mission && (
+            <Link to={`/missions/${mission.slug}`} className={chipClass(undefined, "wt-mission")} title={`The mission this capsule is for: ${mission.title}`}>
+              <Icon name="flag" size={12} />
+              <span>{mission.title}</span>
+            </Link>
+          )
+        }
         head={
           <>
             {narrow && (
               <Crumbs className="explorer-crumbs" steps={[{ to: "/files", label: "Repos" }]} />
             )}
-            <WorktreeSwitch repo={r} current={name} mission={mission} open={switching} setOpen={setSwitching} />
+            <WorktreeSwitch repo={r} current={name} open={switching} setOpen={setSwitching} />
           </>
         }
       />
@@ -189,13 +197,11 @@ function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
 function WorktreeSwitch({
   repo,
   current,
-  mission,
   open,
   setOpen,
 }: {
   repo: Repo;
   current: string;
-  mission?: { slug: string; title: string };
   open: boolean;
   setOpen: (v: boolean) => void;
 }) {
@@ -252,12 +258,6 @@ function WorktreeSwitch({
         {here?.dirty && current !== GROUND && <span className="dirty-dot" title="Changes not committed" />}
         <Icon name="chevron-down" size={13} className="wt-chevron" />
       </button>
-      {mission && (
-        <Link to={`/missions/${mission.slug}`} className={chipClass(undefined, "wt-mission")} title={`The mission this capsule is for: ${mission.title}`}>
-          <Icon name="flag" size={12} />
-          <span>{mission.title}</span>
-        </Link>
-      )}
       {open && (
         <ul className="wt-menu" role="listbox" aria-label={`${repo.label}'s ground and capsules`}>
           {list.map((w, i) => {

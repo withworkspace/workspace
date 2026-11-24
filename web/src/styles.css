@@ -8582,9 +8582,9 @@ details.repo-group > summary::-webkit-details-marker {
   border: 0;
   box-shadow: none;
   background: transparent;
-  font-size: var(--text-lg);
+  font-size: var(--text-md);
   font-weight: 650;
-  line-height: 22px;
+  line-height: 20px;
   flex: none;
 }
 
@@ -8620,10 +8620,16 @@ details.repo-group > summary::-webkit-details-marker {
   color: var(--dim);
 }
 
+.explorer-aside {
+  display: flex;
+  min-width: 0;
+  margin-left: auto;
+}
+
 .wt-mission {
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 36ch;
+  max-width: 44ch;
   text-decoration: none;
   box-shadow: inset 0 0 0 1px var(--line);
 }
@@ -8640,7 +8646,7 @@ details.repo-group > summary::-webkit-details-marker {
 .wt-menu {
   position: absolute;
   z-index: 20;
-  top: 34px;
+  top: 32px;
   left: -8px;
   width: max(100%, 300px);
   max-height: min(420px, 70vh);

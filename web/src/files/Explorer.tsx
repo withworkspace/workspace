@@ -258,6 +258,9 @@ export interface BrowserProps {
   // head is above the tree and the file, beside tabs: where you are, and
   // how to go elsewhere.
   head: ReactNode;
+  // aside is at the row's end, after the tabs: what it's part of (a
+  // capsule's mission).
+  aside?: ReactNode;
   // tabs are what else there is of the worktree beside its files (its
   // runs, its apps), across the top of the tree and the file. other is
   // what's shown in place of both, when one of those is picked.
@@ -280,7 +283,7 @@ export interface BrowserProps {
   empty: string;
 }
 
-export function FileBrowser({ api, label, head, tabs, other, before, updated, reviewTo, docOf, search, onEscape, empty }: BrowserProps) {
+export function FileBrowser({ api, label, head, aside, tabs, other, before, updated, reviewTo, docOf, search, onEscape, empty }: BrowserProps) {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const path = params.get("path") ?? "";
@@ -491,6 +494,7 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
       {panesMenu}
       <div className="explorer-where">{head}</div>
       {tabs}
+      {aside && <div className="explorer-aside">{aside}</div>}
     </div>
   );
   if (error && !tree && !other) {
