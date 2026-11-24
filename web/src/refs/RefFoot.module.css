@@ -1,0 +1,15 @@
+/* A ref's card's foot (RefFoot.tsx): how to go there, and pinning it. */
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.foot:empty {
+  display: none;
+}
+
+.foot :global(.pin-button) {
+  margin-left: auto;
+}

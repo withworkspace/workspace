@@ -1,0 +1,6 @@
+/* One thing to do to the thing in Find's pane (FindAct.tsx). */
+
+/* Its icon a little nearer its words than a button's. */
+.act {
+  gap: 5px;
+}

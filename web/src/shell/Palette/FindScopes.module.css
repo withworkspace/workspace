@@ -1,0 +1,38 @@
+/* What Find looks through (FindScopes.tsx): a row of tabs under the text
+   box. */
+
+.scopes {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font: 500 var(--text-xs) / 20px var(--font);
+  color: var(--dim);
+  background: transparent;
+  cursor: pointer;
+}
+
+.scope:hover {
+  background: var(--panel);
+}
+
+.scope.on {
+  color: var(--fg);
+  background: var(--selected);
+}
+
+/* The letter that says it, typed first. */
+.key {
+  min-width: 14px;
+  line-height: 14px;
+  border-bottom-width: 1px;
+}

@@ -703,21 +703,6 @@ input[type="checkbox"] {
   margin-left: auto;
 }
 
-/* A card's foot: how to go there, and pinning it. */
-.ref-foot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ref-foot:empty {
-  display: none;
-}
-
-.ref-foot .pin-button {
-  margin-left: auto;
-}
-
 .pin-button {
   display: inline-flex;
   align-items: center;
@@ -778,8 +763,7 @@ main.stale > :not(.connection-banner) {
 }
 
 .sheet,
-.nav-panel,
-.find-card {
+.nav-panel {
   --backdrop: var(--bg);
 }
 
@@ -980,334 +964,6 @@ main {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 2px;
-}
-
-/* ⌘K */
-.palette-hint {
-  color: var(--dim);
-  font-size: var(--text-sm);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  flex: 1;
-}
-
-.palette-kind {
-  margin-left: auto;
-  color: var(--dim);
-  font-size: var(--text-xs);
-  flex: none;
-}
-
-.palette-none {
-  color: var(--dim);
-  cursor: default !important;
-}
-
-/* Find: the box, what to look through, results in groups, and beside
-   them on a wide window, a card for what the cursor's on. */
-.find-window {
-  display: flex;
-  width: min(640px, 100%);
-}
-
-.find-window.roomy {
-  width: min(1040px, 100%);
-}
-
-.find-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.find-only {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: 0;
-  border-radius: 999px;
-  padding: 2px 8px;
-  font: 500 var(--text-xs) / 18px var(--font);
-  color: var(--accent);
-  background: var(--accent-soft);
-  cursor: pointer;
-}
-
-.find-chips {
-  display: flex;
-  gap: 4px;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--line);
-}
-
-.find-chips button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 0;
-  border-radius: 999px;
-  padding: 2px 9px;
-  font: 500 var(--text-xs) / 20px var(--font);
-  color: var(--dim);
-  background: transparent;
-  cursor: pointer;
-}
-
-.find-chips button:hover {
-  background: var(--panel);
-}
-
-.find-chips button.on {
-  color: var(--fg);
-  background: var(--selected);
-}
-
-.find-chips kbd {
-  min-width: 14px;
-  line-height: 14px;
-  border-bottom-width: 1px;
-}
-
-.find-list {
-  padding: 4px 6px 6px;
-  height: min(440px, 58vh);
-  overflow-y: auto;
-}
-
-.find-list section {
-  margin: 0;
-  padding: 0;
-}
-
-.find-list h3 {
-  margin: 0;
-  padding: 10px 10px 4px;
-  font: 600 var(--text-xs) / 16px var(--font);
-  color: var(--dim);
-}
-
-.find-list section:first-child h3 {
-  padding-top: 6px;
-}
-
-.find-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 6px 10px;
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-
-.find-row.on {
-  background: var(--selected);
-}
-
-.find-row > .icon {
-  flex: none;
-  color: var(--dim);
-}
-
-.find-stands {
-  flex: none;
-}
-
-.find-title {
-  flex: 0 1 auto;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.find-title .hit {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-/* A path: its folders quiet, its name standing out, read from the end
-   when it's too long to fit. */
-.find-title.is-path {
-  font: var(--text-sm) var(--mono);
-  color: var(--dim);
-  direction: rtl;
-  text-align: left;
-}
-
-.find-title.is-path > bdi {
-  direction: ltr;
-  unicode-bidi: isolate;
-}
-
-.find-title.is-path .name {
-  color: var(--fg);
-}
-
-.find-title.is-path .hit {
-  color: var(--accent);
-  font-weight: 700;
-}
-
-.find-row .palette-hint {
-  flex: 1 1 0;
-}
-
-.find-row .find-chip:first-of-type {
-  margin-left: auto;
-}
-
-.find-row .palette-hint + .find-chip {
-  margin-left: 0;
-}
-
-.find-more,
-.find-note {
-  margin: 0;
-  padding: 2px 10px 2px 34px;
-  font-size: var(--text-xs);
-  color: var(--faint);
-}
-
-/* A line a file says (code search): where, then the line, the match
-   marked. Two lines, the second in the code's own font. */
-.find-row.find-code {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  column-gap: 10px;
-  row-gap: 1px;
-  align-items: center;
-  padding: 5px 10px;
-}
-
-.find-code > .icon {
-  grid-row: span 2;
-  align-self: start;
-  margin-top: 2px;
-}
-
-.find-code-where {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-/* The path gives way from its start, so its name and :line stay. */
-.find-code-path {
-  display: flex;
-  min-width: 0;
-  font: var(--text-xs) var(--mono);
-  white-space: nowrap;
-}
-
-.find-code-file {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  direction: rtl;
-  text-align: left;
-}
-
-.find-code-file > bdi {
-  direction: ltr;
-  unicode-bidi: isolate;
-}
-
-.find-code-line {
-  flex: none;
-}
-
-.find-code-where .where-chip {
-  margin-left: 0;
-}
-
-.find-code-text {
-  min-width: 0;
-  font: var(--text-sm) var(--mono);
-  color: var(--dim);
-  white-space: pre;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background: none;
-  padding: 0;
-}
-
-.find-code-text mark {
-  color: var(--fg);
-  background: var(--accent-soft);
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px var(--accent-soft);
-}
-
-/* Code search stopped at its cap: said where it's seen, not faint. */
-.find-note.find-capped {
-  color: var(--attention);
-}
-
-.code-finder .find-list {
-  height: min(420px, 58vh);
-}
-
-.code-finder > .find-note {
-  padding: 7px 14px;
-  border-top: 1px solid var(--line);
-}
-
-.find-more-keys {
-  margin-left: 6px;
-}
-
-.find-list .palette-none {
-  margin: 0;
-  padding: 14px 10px;
-}
-
-.find-foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  padding: 7px 14px;
-  border-top: 1px solid var(--line);
-  font-size: var(--text-xs);
-  color: var(--dim);
-}
-
-.find-foot-keys {
-  margin-right: 3px;
-}
-
-.find-age {
-  margin-left: auto;
-}
-
-.find-card {
-  flex: none;
-  width: 380px;
-  min-width: 0;
-  display: grid;
-  align-content: start;
-  gap: 4px;
-  padding: 14px;
-  border-left: 1px solid var(--line);
-  background: var(--bg);
-  font-size: var(--text-sm);
-  overflow: hidden;
-}
-
-.find-card .ref-excerpt {
-  background: var(--raised);
-  overflow-x: hidden;
-}
-
-@media (max-width: 640px) {
-  .find-foot {
-    display: none;
-  }
 }
 
 /* The missions list: a status, the title with where it stands under it,
@@ -11469,7 +11125,9 @@ button.finding-quote:hover {
   display: none;
 }
 
-.ref-card {
+/* A ref's hover card is as wide as what it says, within these. What else
+   holds a card's lines (.ref-card: Find's pane) has a width of its own. */
+.ref-float {
   width: auto;
   min-width: 260px;
   max-width: min(560px, calc(100vw - 24px));
@@ -11537,8 +11195,6 @@ button.finding-quote:hover {
   margin-left: 0;
 }
 
-/* Beside the list in Find there's room: a title wraps, as what's found by
-   what it says does. */
 /* What it says, as markdown: at the card's size, its headings no larger
    than its words, and kept to the lines its block says (--lines). */
 .thing-md {
@@ -11575,45 +11231,6 @@ button.finding-quote:hover {
 .thing-md.kept {
   max-height: calc(var(--lines) * 1.5em);
   overflow: hidden;
-}
-
-/* What a thing says may be longer than Find is tall: its pane scrolls. */
-.find-card:has(.thing-view.on-pane) {
-  overflow-y: auto;
-}
-
-/* A plugin's thing in Find's pane: what it is, laid out as the pane's own
-   lines are, and under it what can be done to it. */
-.find-thing {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: start;
-  gap: 4px;
-  min-width: 0;
-}
-
-.find-acts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
-}
-
-.find-acts button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-/* What Find's in the middle of (the thing it's acting on, the action
-   that's asking): said before what's typed, and a click steps back out. */
-.find-only.find-doing {
-  max-width: 50%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* What a mission's about, in its details: each a name, with its card. */
@@ -12977,35 +12594,6 @@ body.nav-pointing .code-view code[data-rev] {
 .markdown h3.linked:hover .heading-link,
 .heading-link:focus-visible {
   opacity: 1;
-}
-
-/* Find's card for what ws records, found by what it says: its title, where
-   it is, and its words, those found marked as the documents' search marks
-   them; all of it wrapped to the card. */
-.find-said-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
-  min-width: 0;
-}
-
-.find-said-title {
-  font-weight: 600;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.find-said {
-  white-space: normal;
-  overflow-wrap: anywhere;
-  font-size: var(--text-sm);
-  color: var(--dim);
-}
-
-.find-said mark {
-  background: var(--accent-soft, var(--selected));
-  color: var(--fg);
-  border-radius: 2px;
 }
 
 /* How a mission ends: Z as checked, the End dialog, capsules that ended

@@ -1,0 +1,25 @@
+/* What Find's narrowed to, or in the middle of (FindTag.tsx): a pill
+   before what's typed. */
+
+.tag {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font: 500 var(--text-xs) / 18px var(--font);
+  color: var(--accent);
+  background: var(--accent-soft);
+  cursor: pointer;
+}
+
+/* What it's in the middle of may be a long name: it's cut short, and
+   leaves room to type. */
+.doing {
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,8 @@
+/* What Find's list says with nothing in it (FindNone.tsx). */
+
+.none {
+  margin: 0;
+  padding: 14px 10px;
+  color: var(--dim);
+  cursor: default;
+}

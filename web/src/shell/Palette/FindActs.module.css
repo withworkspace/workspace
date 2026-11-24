@@ -1,0 +1,10 @@
+/* What can be done to the thing in Find's pane (FindActs.tsx). */
+
+.acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}

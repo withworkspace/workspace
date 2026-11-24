@@ -1,0 +1,14 @@
+/* The explorer's own search (CodeFinder.tsx): a finder whose rows are
+   lines the files say, as Find's are. */
+
+/* As tall whether it's a line or fifty, as Find's list is. */
+.list {
+  padding: 4px 6px 6px;
+  height: min(420px, 58vh);
+  overflow-y: auto;
+}
+
+.none {
+  padding: 14px 10px;
+  cursor: default;
+}

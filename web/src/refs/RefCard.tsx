@@ -10,6 +10,7 @@ import { Inline } from "../ui/Inline";
 import { Status } from "../ui/Status";
 import { headlineStatus } from "../ui/statusOf";
 import { useRefs } from "./known";
+import { RefFoot } from "./RefFoot";
 import { goneCapsule, GROUND, isOutside, type Known, namedOf, type PageRef, refHref } from "./refs";
 import { type Surface, thingBlocks } from "./thing";
 import { type Pointer, ThingView, useThing } from "./ThingView";
@@ -464,12 +465,12 @@ export function RefCard({ r, el, onEnter, onLeave, hint = true }: { r: PageRef; 
   // Read here, outside the card: inside it, names are only words.
   const refs = useRefs();
   return (
-    <FloatingCard anchor={el} className={`ref-card k-${r.kind}`} onEnter={onEnter} onLeave={onLeave}>
+    <FloatingCard anchor={el} className={`ref-card ref-float k-${r.kind}`} onEnter={onEnter} onLeave={onLeave}>
       {body(r, workspace, refs?.known, refs?.repos)}
-      <span className="ref-foot">
+      <RefFoot>
         {hint && <span className="ref-hint dim">⌘-click its words to go there</span>}
         <PinButton r={r} />
-      </span>
+      </RefFoot>
     </FloatingCard>
   );
 }
