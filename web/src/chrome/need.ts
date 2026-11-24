@@ -48,9 +48,13 @@ export function waitingOf(needs: Need[]) {
 }
 
 // dealtWithAt is whether a page is where a need is dealt with: its own
-// page, or one under it (a mission's review, its crew).
-export const dealtWithAt = (need: Need, path: string) =>
-  path === need.to || path.startsWith(`${need.to}/`);
+// page, or one under it. A mission's goes where what moves it on is (its
+// crew's conversation, a bundle on Verify), but it's dealt with anywhere
+// in the mission: its page, any tab, its crew, a capsule's review.
+export function dealtWithAt(need: Need, path: string) {
+  const at = need.of === "mission" ? `/missions/${need.ref}` : need.to.split("?")[0];
+  return path === at || path.startsWith(`${at}/`);
+}
 
 // arrived is the needs that are new: those here now that weren't before.
 // Before anything was known (the page just opened) nothing has arrived:

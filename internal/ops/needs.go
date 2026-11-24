@@ -39,6 +39,10 @@ type Need struct {
 	Text  string
 	// Since is when it began, where the thing knows.
 	Since time.Time
+	// Act is what moves a mission's on (MissionItem.Act): where you go to
+	// deal with it, its crew's conversation, the bundle to verify. Nil
+	// where that's the mission's own page.
+	Act *mission.Act
 }
 
 // What a need is on.
@@ -153,6 +157,7 @@ func missionNeed(it MissionItem) (Need, bool) {
 		Kind: string(h.Kind), Label: h.Label,
 		Title: it.M.Title, Text: firstNonEmpty(h.Text, h.Label),
 		Since: h.Since,
+		Act:   it.Act,
 	}, true
 }
 

@@ -246,7 +246,7 @@ func needsOf(needs []ops.Need) []Need {
 				w.To = "/reviews/" + n.Ref[:at] + "/" + n.Ref[at+1:]
 			}
 		case n.Of == ops.NeedMission:
-			w.To = "/missions/" + n.Ref
+			w.To = missionPlace(n.Ref, n.Act)
 		case n.In != "":
 			w.To = "/missions/" + n.In + "/conversations/" + n.Ref
 		default:
@@ -255,6 +255,45 @@ func needsOf(needs []ops.Need) []Need {
 		out = append(out, w)
 	}
 	return out
+}
+
+// missionPlace is where a mission's need is dealt with: the page its
+// act opens (its crew's conversation, the bundle on Verify, the capsule's
+// review), as the mission's page links it (actHref, mission/Mission.tsx);
+// else the mission's page, where what moves it is a button.
+func missionPlace(slug string, a *mission.Act) string {
+	at := "/missions/" + slug
+	if a == nil {
+		return at
+	}
+	switch a.Do {
+	case mission.DoReply, mission.DoPermission, mission.DoCrew:
+		if a.Target != "" {
+			return at + "/crew/" + a.Target
+		}
+	case mission.DoReview:
+		if repo, name, ok := strings.Cut(a.Target, "/"); ok {
+			return at + "/review/" + repo + "/" + name
+		}
+	case mission.DoVerify:
+		if a.Target != "" {
+			return at + "?tab=verify&b=" + url.QueryEscape(a.Target)
+		}
+		return at + "?tab=verify"
+	case mission.DoRead:
+		if a.Target != "" {
+			return at + "/artifact?ref=" + url.QueryEscape(a.Target)
+		}
+	case mission.DoTalk:
+		if a.Target != "" {
+			return at + "/conversations/" + a.Target
+		}
+	case mission.DoBriefPage:
+		return at + "?tab=brief"
+	case mission.DoLog:
+		return at + "?tab=log"
+	}
+	return at
 }
 
 func focusOf(items []ops.FocusItem) []FocusPin {
