@@ -3874,6 +3874,13 @@ export interface Repo {
      */
     teamGroup?: string;
     groupYours?: boolean;
+    /**
+     * GroupLabel is what its group's called where it's shown (ws.toml's
+     * display_name, or the group's name), and GroupOrder where the group
+     * comes among them, lowest first.
+     */
+    groupLabel?: string;
+    groupOrder?: number;
 }
 
 // From web/github_repos.go
@@ -3904,6 +3911,13 @@ export interface RepoAdded {
  */
 export interface RepoGroup {
     name: string;
+    /**
+     * Label is what it's called where it's shown (ws.toml's display_name,
+     * or its name), and Order where it comes among them: they're served
+     * in it, lowest first.
+     */
+    label: string;
+    order?: number;
     repos: string[];
     /**
      * Hidden is as it is for you, TeamHidden as ws.toml says, and Chosen

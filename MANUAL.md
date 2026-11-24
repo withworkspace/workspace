@@ -266,6 +266,8 @@ A repo can belong to one group. Groups let you keep repos in the workspace that 
 ```toml
 [groups.platform]
 hidden = true
+display_name = "Platform"
+order = 2
 
 [repos.frontend]
 group = "product"
@@ -1226,6 +1228,8 @@ guide = "records:ARTIFACTS.md"
 | Field | Description |
 |---|---|
 | `hidden` | Leave the group's repos out of commands that cover every repo. Default `false`. |
+| `display_name` | What the group is called in the web UI's repos (Files and Settings). Defaults to its name. |
+| `order` | Where the group comes among the others, lowest first; groups of the same order come by name. Default `0`. Used by the web UI's repos and `ws group`. |
 
 ### ws.local.toml
 
@@ -1265,7 +1269,7 @@ You can override `display_name`, `color`, `after_create`, `group`, `landing`, `v
 
 **Group overrides:**
 
-`[groups.<name>] hidden = true|false` replaces the team's setting for you. `ws group show`, `hide` and `reset` write this for you.
+`[groups.<name>] hidden = true|false` replaces the team's setting for you. `ws group show`, `hide` and `reset` write this for you. `display_name` and `order` set here replace the team's too.
 
 **Boarded section:**
 

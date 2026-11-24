@@ -31,3 +31,9 @@
 .reset {
   margin-left: 8px;
 }
+
+.named {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}

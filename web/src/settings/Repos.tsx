@@ -22,6 +22,7 @@ export function Repos({ branch, org }: { branch?: string; org?: string }) {
   const { value: groups, reload: reloadGroups } = useLoaded<RepoGroup[]>(getGroups, [], { keep: true });
   const reload = () => Promise.all([reloadRepos(), reloadGroups()]).then(() => undefined);
   const groupNames = useMemo(() => (groups ?? []).map((g) => g.name), [groups]);
+  const groupLabels = useMemo(() => new Map((groups ?? []).map((g) => [g.name, g.label || g.name])), [groups]);
   // A repo added is cloned behind, and GitHub's asked behind what the
   // picker shows: the github topic says when either's done (one stream,
   // for the table and the picker both).
@@ -60,6 +61,7 @@ export function Repos({ branch, org }: { branch?: string; org?: string }) {
         <AddRepo
           seen={seen}
           groups={groupNames}
+          groupLabels={groupLabels}
           org={org}
           taken={taken}
           onClose={() => setAdding(false)}
@@ -125,7 +127,7 @@ export function Repos({ branch, org }: { branch?: string; org?: string }) {
                 </td>
                 <td className="mono dim">{r.aliases?.join(", ") || "—"}</td>
                 <td>
-                  <RepoGroupCell repo={r} groups={groupNames} done={reload} />
+                  <RepoGroupCell repo={r} groups={groupNames} labels={groupLabels} done={reload} />
                 </td>
                 <td className="dim">{r.landing === "direct" ? `straight to ${branch || "its default branch"}` : r.landing ? "pull request" : "—"}</td>
                 {yours > 0 && <td className={css.acts}>{r.yours && <Share repo={r.name} done={reload} />}</td>}

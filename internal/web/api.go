@@ -1208,6 +1208,11 @@ type Repo struct {
 	// it; GroupYours: Group is yours (ws.local.toml), not the team's.
 	TeamGroup  string `json:"teamGroup,omitempty"`
 	GroupYours bool   `json:"groupYours,omitempty"`
+	// GroupLabel is what its group's called where it's shown (ws.toml's
+	// display_name, or the group's name), and GroupOrder where the group
+	// comes among them, lowest first.
+	GroupLabel string `json:"groupLabel,omitempty"`
+	GroupOrder int    `json:"groupOrder,omitempty"`
 }
 
 // Worktree is a repo's ground (Name ".ground": its default branch,
