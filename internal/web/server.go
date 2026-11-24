@@ -133,6 +133,9 @@ type Server struct {
 	// missions tells a mission's open page when it changes (mission:<slug>).
 	missions *keyedHub
 	talks    *keyedHub // conversations'
+	// transcripts is crew's sessions', each read as it grows by whoever
+	// follows it (followed).
+	transcripts *keyedHub
 	// files are the grounds and capsules open on the Files page, for the
 	// runs started there.
 	files filesOpen
@@ -250,6 +253,8 @@ func (s *Server) Start() error {
 	// A conversation's followers hold it, and are told how it's changed.
 	s.talks.change = func(key string, was any) (any, any) { return conversationChange(s.Root, key, was) }
 	go s.talks.run(s.ctx)
+	s.transcripts = s.transcriptHub()
+	go s.transcripts.run(s.ctx)
 	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
 	// A write to the records tells the followers of what it names at once:
 	// a mission's page, a conversation's; and one that names the
@@ -786,6 +791,9 @@ func (s *Server) follow(topic, app string) (ch <-chan told, done func(), status 
 	}
 	if key, ok := topicKey(topic, conversationTopic); ok {
 		subscribe = func() (<-chan told, func()) { return s.talks.subscribe(key) }
+	}
+	if key, ok := topicKey(topic, transcriptTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.transcripts.subscribe(key) }
 	}
 	if ref, ok := prTopicRef(topic); ok && s.prs != nil {
 		subscribe = func() (<-chan told, func()) { return s.followPR(ref) }

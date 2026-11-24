@@ -23,6 +23,7 @@ import (
 const (
 	missionTopic      = "mission:"
 	conversationTopic = "conversation:"
+	transcriptTopic   = "transcript:" // a crew's session: <slug>/<crew>
 )
 
 // reread is the change that says only that a thing's changed: its
@@ -45,6 +46,8 @@ type keyedHub struct {
 	// for nothing they'd see, and now, what it is, for the next change to be
 	// from. Without it, followers are told only that it's changed.
 	change func(key string, was any) (op, now any)
+	// gone, if set, is told a thing nobody follows any more.
+	gone func(key string)
 	// kick has it look now (nudge).
 	kick chan struct{}
 
@@ -114,6 +117,9 @@ func (h *keyedHub) subscribe(key string) (<-chan told, func()) {
 			delete(h.subs, key)
 			delete(h.last, key)
 			delete(h.was, key)
+			if h.gone != nil {
+				h.gone(key)
+			}
 		}
 	}
 }
@@ -246,6 +252,9 @@ func topicKey(topic, prefix string) (string, bool) {
 	case conversationTopic:
 		scope, id, ok := strings.Cut(key, "/")
 		return key, ok && id != "" && !strings.Contains(id, "/") && !strings.Contains(scope, "/")
+	case transcriptTopic:
+		slug, id, ok := strings.Cut(key, "/")
+		return key, ok && slug != "" && id != "" && !strings.Contains(id, "/")
 	}
 	return key, true
 }

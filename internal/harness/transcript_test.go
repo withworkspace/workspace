@@ -14,7 +14,7 @@ func TestReadTranscript(t *testing.T) {
 	pi := ReadTranscript("pi", data)
 	var got []string
 	for _, e := range pi {
-		got = append(got, e.By)
+		got = append(got, string(e.By))
 	}
 	if strings.Join(got, " ") != "user call call call agent user agent user agent" || pi[1].Input != "cat note.txt" || pi[8].Text != "Hello" {
 		t.Errorf("pi: %v", got)

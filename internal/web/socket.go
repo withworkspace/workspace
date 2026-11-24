@@ -58,6 +58,8 @@ type SocketSaid struct {
 	// Conversation is how a conversation changed (its topic's, changed),
 	// when the page can be told: with none, it reads it again.
 	Conversation *ConversationOp `json:"conversation,omitempty"`
+	// Transcript is how a crew's session changed (its transcript topic's).
+	Transcript *TranscriptOp `json:"transcript,omitempty"`
 }
 
 // socketPing is how often an idle socket is pinged, so one whose page has
@@ -144,8 +146,11 @@ func (ss *socketSession) follow(topic, app string) {
 				return
 			case t := <-ch:
 				said := SocketSaid{Kind: SocketChanged, Topic: topic}
-				if op, ok := t.Op.(*ConversationOp); ok {
+				switch op := t.Op.(type) {
+				case *ConversationOp:
 					said.Conversation = op
+				case *TranscriptOp:
+					said.Transcript = op
 				}
 				ss.say(said)
 			}

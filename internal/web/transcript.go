@@ -1,11 +1,14 @@
 package web
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/harness"
@@ -21,6 +24,10 @@ type Transcript struct {
 	Entries   []harness.TranscriptEntry `json:"entries"`
 	// Earlier is how many entries before these were left out.
 	Earlier int `json:"earlier,omitempty"`
+	// Version is how much of the session file these are as of (its bytes
+	// to its last whole line): a change told over the socket as of less
+	// (TranscriptOp) is in it already.
+	Version int64 `json:"version"`
 }
 
 // CrewSession is where a crew's harness keeps its session: Path, or Why
@@ -47,6 +54,7 @@ func LoadTranscript(sess CrewSession) (*Transcript, error) {
 		return nil, err
 	}
 	t.Available = true
+	t.Version = transcriptSize(sess.Harness, data)
 	if entries := harness.ReadTranscript(sess.Harness, data); entries != nil {
 		t.Entries = entries
 	}
@@ -86,6 +94,10 @@ func (s *Server) crewTranscript(w http.ResponseWriter, r *http.Request) {
 // transcriptPoll is how often a stream looks at the session file. A look
 // is a stat: the file's read again only when it's changed.
 var transcriptPoll = 400 * time.Millisecond
+
+// sessionLookEvery is how often a session that hasn't started is looked
+// for, while it's followed.
+var sessionLookEvery = 2 * time.Second
 
 // crewTranscriptStream is GET .../transcript/stream: the transcript, then
 // again each time the session file changes, as "transcript" events. A
@@ -164,4 +176,112 @@ func (s *Server) crewTranscriptStream(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 	}
+}
+
+// transcriptSize is how much of a session file is read: to its last whole
+// line (one being written is read once it's ended), or all of an ACP
+// record, which is read whole.
+func transcriptSize(harnessName string, data []byte) int64 {
+	if harness.CapsOf(harnessName).Transcript == harness.TranscriptACP {
+		return int64(len(data))
+	}
+	return int64(bytes.LastIndexByte(data, '\n') + 1)
+}
+
+// TranscriptOp is how a crew's session a page holds has changed, told over
+// the socket (SocketSaid.Transcript) so the page needn't read it again:
+// its entries from From on (counted from the session's first; those
+// before are as the page has them), the session as it now stands
+// (Harness, Available, Why), as of Version (Transcript's). A page holding
+// fewer than From, or none of those from From on (they're before the
+// latest it holds), reads it whole.
+type TranscriptOp struct {
+	Version   int64                     `json:"version"`
+	From      int                       `json:"from"`
+	Entries   []harness.TranscriptEntry `json:"entries"`
+	Harness   string                    `json:"harness"`
+	Available bool                      `json:"available"`
+	Why       string                    `json:"why,omitempty"`
+}
+
+// transcriptFollow is a crew's session someone follows: where it is
+// (found once it's started), read as it grows.
+type transcriptFollow struct {
+	slug, id  string
+	sess      CrewSession
+	reader    *harness.TranscriptReader
+	lookedFor time.Time
+}
+
+// transcriptHub follows crew's sessions (transcript:<slug>/<crew>): each
+// file's looked at every transcriptPoll while it's followed (a stat), and
+// read, from where it got to, only when it's grown. A session that hasn't
+// started is looked for every sessionLookEvery, until it has.
+func (s *Server) transcriptHub() *keyedHub {
+	var mu sync.Mutex
+	paths := map[string]string{} // each followed session's file, once it's found
+	h := newKeyedHub(transcriptTopic, transcriptPoll, func(key string) string {
+		mu.Lock()
+		path := paths[key]
+		mu.Unlock()
+		if path == "" {
+			return fmt.Sprint(time.Now().UnixMilli() / sessionLookEvery.Milliseconds()) // a look for it, now and then
+		}
+		info, err := os.Stat(path)
+		if err != nil {
+			return ""
+		}
+		return fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano())
+	})
+	h.gone = func(key string) {
+		mu.Lock()
+		delete(paths, key)
+		mu.Unlock()
+	}
+	// find looks for where f's session is, and says whether it's found.
+	find := func(key string, f *transcriptFollow) bool {
+		f.lookedFor = time.Now()
+		got, err := s.App.Crew().Session(f.slug, f.id)
+		if err != nil {
+			return false
+		}
+		f.sess = CrewSession(got)
+		f.reader = harness.NewTranscriptReader(f.sess.Harness)
+		mu.Lock()
+		paths[key] = f.sess.Path
+		mu.Unlock()
+		return f.sess.Path != ""
+	}
+	h.change = func(key string, was any) (any, any) {
+		f, _ := was.(*transcriptFollow)
+		if f == nil {
+			// Followed from now: its reader's brought up to it as it is,
+			// and the page reads it after.
+			slug, id, _ := strings.Cut(key, "/")
+			f = &transcriptFollow{slug: slug, id: id}
+			if find(key, f) {
+				f.reader.Read(f.sess.Path) //nolint:errcheck // read again at the next change
+			}
+			return nil, f
+		}
+		from0 := false
+		if f.sess.Path == "" {
+			if f.sess.Final || time.Since(f.lookedFor) < sessionLookEvery || !find(key, f) {
+				return nil, f
+			}
+			from0 = true // started since: the page has none of it
+		}
+		got, err := f.reader.Read(f.sess.Path)
+		switch {
+		case err != nil:
+			return nil, f // half there: the next look
+		case got.Restarted:
+			return reread, f
+		case got.From == len(got.Entries) && !from0:
+			return nil, f
+		}
+		return &TranscriptOp{Version: got.Size, From: got.From, Entries: got.Entries[got.From:],
+			Harness: f.sess.Harness, Available: true, Why: f.sess.Why}, f
+	}
+	return h
 }

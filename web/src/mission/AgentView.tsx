@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
-import { answerCrew, type Crew, type CrewAnswer, type CrewPrompt, getCrewPrompt, getTranscript, sayToCrew, type Transcript, type TranscriptEntry, transcriptStreamURL, useVisible, type Workspace } from "../api";
+import { answerCrew, type Crew, type CrewAnswer, type CrewPrompt, getCrewPrompt, getTranscript, sayToCrew, type Transcript, type TranscriptEntry, useVisible, type Workspace } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { type Call, Calls } from "../ui/Calls";
 import { Icon } from "../ui/Icon";
 import { useDraft } from "../ui/useDraft";
+import { pageSocket } from "../socket";
+import { appliedTranscript } from "./transcript";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
@@ -32,10 +34,19 @@ import { useWorkspace } from "../workspace/store";
 // a question) answered from here; and a box to tell it what's next, or to
 // resume it with, once it's ended.
 
-// useTranscript follows a crew's transcript: an event stream while the
-// page is showing, read once otherwise (and when the stream can't be had).
+// useTranscript follows a crew's transcript over the tab's socket while the
+// page is showing (transcript:<slug>/<crew>): read whole once it's
+// followed, then told each change, which is applied to it as held
+// (appliedTranscript), and read whole again only when one can't be.
 export function useTranscript(slug: string, id: string): { t?: Transcript; error?: string; reload: () => void } {
   const [t, setT] = useState<Transcript>();
+  // held is what's held, as of now: a change is applied to it as it's told,
+  // not when the page next draws.
+  const held = useRef<Transcript>(undefined);
+  const put = useCallback((x: Transcript | undefined) => {
+    held.current = x;
+    setT(x);
+  }, []);
   const [error, setError] = useState<string>();
   const visible = useVisible();
   const begin = useLatest();
@@ -44,30 +55,32 @@ export function useTranscript(slug: string, id: string): { t?: Transcript; error
     getTranscript(slug, id).then(
       (x) => {
         if (!fresh()) return;
-        setT(x);
+        // A read that crossed a change told after it is older than what's held.
+        if (held.current?.available && x.version < (held.current.version ?? 0)) return;
+        put(x);
         setError(undefined);
       },
       (e: Error) => fresh() && setError(e.message),
     );
-  }, [slug, id, begin]);
-  // Another crew's: a read of the last one's, under way, is stale.
-  useEffect(() => void begin(), [slug, id, begin]);
+  }, [slug, id, begin, put]);
+  // Another crew's: a read of the last one's, under way, is stale, and
+  // what's held is the last one's.
+  useEffect(() => {
+    begin();
+    put(undefined);
+  }, [slug, id, begin, put]);
   useEffect(() => {
     if (!visible) return;
-    const es = new EventSource(transcriptStreamURL(slug, id));
-    es.addEventListener("transcript", (e) => {
-      try {
-        setT(JSON.parse((e as MessageEvent).data));
-        setError(undefined);
-      } catch {
-        // a torn message: the next one
-      }
+    return pageSocket.follow(`transcript:${slug}/${id}`, {
+      following: reload,
+      changed: (said) => {
+        const next = said.transcript ? appliedTranscript(held.current, said.transcript) : "read";
+        if (next === "read") reload();
+        else if (next) put(next);
+      },
+      lost: (closed) => closed && reload(),
     });
-    es.onerror = () => {
-      if (es.readyState === EventSource.CLOSED) reload();
-    };
-    return () => es.close();
-  }, [slug, id, visible, reload]);
+  }, [slug, id, visible, reload, put]);
   return { t, error, reload };
 }
 

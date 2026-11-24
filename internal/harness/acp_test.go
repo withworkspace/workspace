@@ -514,7 +514,7 @@ func TestReadACPTranscript(t *testing.T) {
 	entries := ReadTranscript("codex", []byte(record))
 	var got []string
 	for _, e := range entries {
-		s := e.By + ":" + firstNonEmptyString(e.Text, e.Tool)
+		s := string(e.By) + ":" + firstNonEmptyString(e.Text, e.Tool)
 		if e.Edit != nil {
 			s += " edit " + e.Edit.Path
 		}

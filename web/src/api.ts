@@ -7,6 +7,8 @@ import { pageSocket } from "./socket";
 // (scripts/wiretypes, `just wire`). The types below are the ones not yet
 // moved there: move one by making the Go say what this file does.
 import type {
+  HarnessTranscriptEntry as TranscriptEntry,
+  Transcript,
   Action,
   ArtifactContent,
   ArtifactDetail,
@@ -1446,37 +1448,12 @@ export const settleTalkProposal = (
 
 // A crew's transcript: its session as its harness keeps it (Claude Code's
 // and pi's), for reading beside its terminal or once it's ended.
-export interface TranscriptEntry {
-  by: "user" | "agent" | "call";
-  at?: string;
-  text?: string;
-  id?: string;
-  tool?: string;
-  input?: string;
-  result?: string;
-  error?: boolean;
-  refused?: boolean;
-  pending?: boolean; // nothing back yet: the step in hand, or waiting for permission
-  edit?: { path: string; old?: string; new: string; all?: boolean };
-  todos?: { content: string; status: "pending" | "in_progress" | "completed"; active?: string }[];
-  questions?: { question: string; header?: string; options?: string[]; multi?: boolean }[];
-}
+export type { TranscriptEntry };
 
-export interface Transcript {
-  harness: string;
-  available: boolean;
-  why?: string;
-  entries: TranscriptEntry[];
-  earlier?: number;
-}
+export type { Transcript };
 
 export const getTranscript = (slug: string, id: string) =>
   getJSON<Transcript>(`/api/missions/${encodeURIComponent(slug)}/crew/${encodeURIComponent(id)}/transcript`);
-
-// transcriptStreamURL is the event stream of a crew's transcript: it, then
-// again each time its session changes ("transcript" events).
-export const transcriptStreamURL = (slug: string, id: string) =>
-  `/api/missions/${encodeURIComponent(slug)}/crew/${encodeURIComponent(id)}/transcript/stream`;
 
 // sayToCrew sends crew a message: typed in if it's running, or resuming it
 // with it if it's ended.

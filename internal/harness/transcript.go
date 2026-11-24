@@ -18,15 +18,15 @@ import (
 // (By "user"), one it wrote ("agent"), or a tool call it made ("call"),
 // with the start of what came back.
 type TranscriptEntry struct {
-	By      string    `json:"by"`
-	At      time.Time `json:"at,omitzero"` // when it was written, if the harness says
-	Text    string    `json:"text,omitempty"`
-	ID      string    `json:"id,omitempty"` // a call's id
-	Tool    string    `json:"tool,omitempty"`
-	Input   string    `json:"input,omitempty"`
-	Result  string    `json:"result,omitempty"`
-	Error   bool      `json:"error,omitempty"`
-	Refused bool      `json:"refused,omitempty"`
+	By      TranscriptBy `json:"by"`
+	At      time.Time    `json:"at,omitzero"` // when it was written, if the harness says
+	Text    string       `json:"text,omitempty"`
+	ID      string       `json:"id,omitempty"` // a call's id
+	Tool    string       `json:"tool,omitempty"`
+	Input   string       `json:"input,omitempty"`
+	Result  string       `json:"result,omitempty"`
+	Error   bool         `json:"error,omitempty"`
+	Refused bool         `json:"refused,omitempty"`
 	// Pending: a call nothing has come back for yet. While crew run, it's
 	// the step in hand (or the one waiting for your permission).
 	Pending bool `json:"pending,omitempty"`
@@ -46,11 +46,31 @@ type TranscriptEdit struct {
 	All  bool   `json:"all,omitempty"` // every match replaced
 }
 
+// TranscriptBy is who an entry is of: what crew was sent (the user's),
+// what the agent said, or a call it made.
+type TranscriptBy string
+
+const (
+	ByUser  TranscriptBy = "user"
+	ByAgent TranscriptBy = "agent"
+	ByCall  TranscriptBy = "call"
+)
+
+// TodoStatus is where an item of the agent's plan stands.
+type TodoStatus string
+
+const (
+	TodoPending    TodoStatus = "pending"
+	TodoInProgress TodoStatus = "in_progress"
+	TodoCompleted  TodoStatus = "completed"
+)
+
 // TranscriptTodo is an item of the agent's plan.
 type TranscriptTodo struct {
-	Content string `json:"content"`
-	Status  string `json:"status"`           // pending, in_progress, completed
-	Active  string `json:"active,omitempty"` // as it reads while in hand
+	Content string     `json:"content"`
+	Status  TodoStatus `json:"status"`
+
+	Active string `json:"active,omitempty"` // as it reads while in hand
 }
 
 // TranscriptQuestion is a question the agent asked with its question tool.
@@ -110,10 +130,33 @@ func ReadTranscript(harnessName string, data []byte) []TranscriptEntry {
 type transcript struct {
 	out []TranscriptEntry
 	at  map[string]int // call id: index in out
+	// touched is the first entry changed (added, or a call answered) since
+	// it was last asked (changedFrom): len(out) when none has.
+	touched int
+	seen    bool // touched has been set
 }
 
-func (t *transcript) say(by, text string, at time.Time) {
+// touch notes entry i changed.
+func (t *transcript) touch(i int) {
+	if !t.seen || i < t.touched {
+		t.touched, t.seen = i, true
+	}
+}
+
+// changedFrom is the first entry changed since it was last asked, or
+// len(out) for none; and from now, none has.
+func (t *transcript) changedFrom() int {
+	from := len(t.out)
+	if t.seen {
+		from = t.touched
+	}
+	t.seen = false
+	return from
+}
+
+func (t *transcript) say(by TranscriptBy, text string, at time.Time) {
 	if text = strings.TrimSpace(text); text != "" {
+		t.touch(len(t.out))
 		t.out = append(t.out, TranscriptEntry{By: by, At: at, Text: ClipHead(text, transcriptTextMax, "…")})
 	}
 }
@@ -123,6 +166,7 @@ func (t *transcript) call(id, tool string, input json.RawMessage, at time.Time) 
 		t.at = map[string]int{}
 	}
 	t.at[id] = len(t.out)
+	t.touch(len(t.out))
 	e := TranscriptEntry{By: "call", At: at, ID: id, Tool: tool, Input: callInput(input), Pending: true}
 	callDetail(&e, input)
 	t.out = append(t.out, e)
@@ -169,7 +213,7 @@ func callDetail(e *TranscriptEntry, raw json.RawMessage) {
 		e.Edit = &TranscriptEdit{Path: path, New: ClipHead(in.Content, editMax, "…")}
 	case "todowrite":
 		for _, td := range in.Todos {
-			e.Todos = append(e.Todos, TranscriptTodo{Content: td.Content, Status: td.Status, Active: td.ActiveForm})
+			e.Todos = append(e.Todos, TranscriptTodo{Content: td.Content, Status: TodoStatus(td.Status), Active: td.ActiveForm})
 		}
 	case "askuserquestion":
 		for _, q := range in.Questions {
@@ -187,6 +231,7 @@ func (t *transcript) result(id, text string, isErr bool) {
 	if !ok {
 		return
 	}
+	t.touch(i)
 	e := &t.out[i]
 	e.Result, e.Error, e.Pending = ClipHead(strings.TrimSpace(text), resultMax, "…"), isErr, false
 	// Refused: by its permission rules, or by you at its prompt.
@@ -199,47 +244,52 @@ func (t *transcript) result(id, text string, isErr bool) {
 func readClaudeTranscript(data []byte) []TranscriptEntry {
 	var t transcript
 	for _, line := range strings.Split(string(data), "\n") {
-		var e struct {
-			Type        string    `json:"type"`
-			IsMeta      bool      `json:"isMeta"`
-			IsSidechain bool      `json:"isSidechain"`
-			Timestamp   time.Time `json:"timestamp"`
-			Message     struct {
-				Content json.RawMessage `json:"content"`
-			} `json:"message"`
-		}
-		if json.Unmarshal([]byte(line), &e) != nil || (e.Type != "user" && e.Type != "assistant") || e.IsMeta || e.IsSidechain {
-			continue
-		}
-		by := map[string]string{"user": "user", "assistant": "agent"}[e.Type]
-		var text string
-		if json.Unmarshal(e.Message.Content, &text) == nil {
-			t.say(by, text, e.Timestamp)
-			continue
-		}
-		var blocks []struct {
-			Type    string          `json:"type"`
-			Text    string          `json:"text"`
-			ID      string          `json:"id"`
-			Name    string          `json:"name"`
-			Input   json.RawMessage `json:"input"`
-			UseID   string          `json:"tool_use_id"`
-			Content json.RawMessage `json:"content"`
-			IsError bool            `json:"is_error"`
-		}
-		json.Unmarshal(e.Message.Content, &blocks)
-		for _, b := range blocks {
-			switch b.Type {
-			case "text":
-				t.say(by, b.Text, e.Timestamp)
-			case "tool_use":
-				t.call(b.ID, b.Name, b.Input, e.Timestamp)
-			case "tool_result":
-				t.result(b.UseID, resultText(b.Content), b.IsError)
-			}
-		}
+		t.claudeLine(line)
 	}
 	return t.out
+}
+
+// claudeLine reads one line of Claude Code's session file into t.
+func (t *transcript) claudeLine(line string) {
+	var e struct {
+		Type        string    `json:"type"`
+		IsMeta      bool      `json:"isMeta"`
+		IsSidechain bool      `json:"isSidechain"`
+		Timestamp   time.Time `json:"timestamp"`
+		Message     struct {
+			Content json.RawMessage `json:"content"`
+		} `json:"message"`
+	}
+	if json.Unmarshal([]byte(line), &e) != nil || (e.Type != "user" && e.Type != "assistant") || e.IsMeta || e.IsSidechain {
+		return
+	}
+	by := map[string]TranscriptBy{"user": ByUser, "assistant": ByAgent}[e.Type]
+	var text string
+	if json.Unmarshal(e.Message.Content, &text) == nil {
+		t.say(by, text, e.Timestamp)
+		return
+	}
+	var blocks []struct {
+		Type    string          `json:"type"`
+		Text    string          `json:"text"`
+		ID      string          `json:"id"`
+		Name    string          `json:"name"`
+		Input   json.RawMessage `json:"input"`
+		UseID   string          `json:"tool_use_id"`
+		Content json.RawMessage `json:"content"`
+		IsError bool            `json:"is_error"`
+	}
+	json.Unmarshal(e.Message.Content, &blocks)
+	for _, b := range blocks {
+		switch b.Type {
+		case "text":
+			t.say(by, b.Text, e.Timestamp)
+		case "tool_use":
+			t.call(b.ID, b.Name, b.Input, e.Timestamp)
+		case "tool_result":
+			t.result(b.UseID, resultText(b.Content), b.IsError)
+		}
+	}
 }
 
 // readPiTranscript reads pi's session file: message entries, each a user's,
@@ -247,61 +297,66 @@ func readClaudeTranscript(data []byte) []TranscriptEntry {
 func readPiTranscript(data []byte) []TranscriptEntry {
 	var t transcript
 	for _, line := range strings.Split(string(data), "\n") {
-		var e struct {
-			Type      string    `json:"type"`
-			Timestamp time.Time `json:"timestamp"`
-			Message   struct {
-				Role       string          `json:"role"`
-				Content    json.RawMessage `json:"content"`
-				ToolCallID string          `json:"toolCallId"`
-				IsError    bool            `json:"isError"`
-			} `json:"message"`
-		}
-		if json.Unmarshal([]byte(line), &e) != nil || e.Type != "message" {
-			continue
-		}
-		var blocks []struct {
+		t.piLine(line)
+	}
+	return t.out
+}
+
+// piLine reads one line of pi's session file into t.
+func (t *transcript) piLine(line string) {
+	var e struct {
+		Type      string    `json:"type"`
+		Timestamp time.Time `json:"timestamp"`
+		Message   struct {
+			Role       string          `json:"role"`
+			Content    json.RawMessage `json:"content"`
+			ToolCallID string          `json:"toolCallId"`
+			IsError    bool            `json:"isError"`
+		} `json:"message"`
+	}
+	if json.Unmarshal([]byte(line), &e) != nil || e.Type != "message" {
+		return
+	}
+	var blocks []struct {
+		Type      string          `json:"type"`
+		Text      string          `json:"text"`
+		ID        string          `json:"id"`
+		Name      string          `json:"name"`
+		Arguments json.RawMessage `json:"arguments"`
+	}
+	var text string
+	if json.Unmarshal(e.Message.Content, &text) == nil {
+		blocks = append(blocks, struct {
 			Type      string          `json:"type"`
 			Text      string          `json:"text"`
 			ID        string          `json:"id"`
 			Name      string          `json:"name"`
 			Arguments json.RawMessage `json:"arguments"`
-		}
-		var text string
-		if json.Unmarshal(e.Message.Content, &text) == nil {
-			blocks = append(blocks, struct {
-				Type      string          `json:"type"`
-				Text      string          `json:"text"`
-				ID        string          `json:"id"`
-				Name      string          `json:"name"`
-				Arguments json.RawMessage `json:"arguments"`
-			}{Type: "text", Text: text})
-		} else {
-			json.Unmarshal(e.Message.Content, &blocks)
-		}
-		switch e.Message.Role {
-		case "user":
-			for _, b := range blocks {
-				if b.Type == "text" {
-					t.say("user", b.Text, e.Timestamp)
-				}
-			}
-		case "assistant":
-			for _, b := range blocks {
-				switch b.Type {
-				case "text":
-					t.say("agent", b.Text, e.Timestamp)
-				case "toolCall":
-					t.call(b.ID, b.Name, b.Arguments, e.Timestamp)
-				}
-			}
-		case "toolResult":
-			var parts []string
-			for _, b := range blocks {
-				parts = append(parts, b.Text)
-			}
-			t.result(e.Message.ToolCallID, strings.Join(parts, "\n"), e.Message.IsError)
-		}
+		}{Type: "text", Text: text})
+	} else {
+		json.Unmarshal(e.Message.Content, &blocks)
 	}
-	return t.out
+	switch e.Message.Role {
+	case "user":
+		for _, b := range blocks {
+			if b.Type == "text" {
+				t.say("user", b.Text, e.Timestamp)
+			}
+		}
+	case "assistant":
+		for _, b := range blocks {
+			switch b.Type {
+			case "text":
+				t.say("agent", b.Text, e.Timestamp)
+			case "toolCall":
+				t.call(b.ID, b.Name, b.Arguments, e.Timestamp)
+			}
+		}
+	case "toolResult":
+		var parts []string
+		for _, b := range blocks {
+			parts = append(parts, b.Text)
+		}
+		t.result(e.Message.ToolCallID, strings.Join(parts, "\n"), e.Message.IsError)
+	}
 }

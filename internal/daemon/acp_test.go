@@ -214,7 +214,7 @@ func TestServer_ACPCrew(t *testing.T) {
 	entries := harness.ReadTranscript("codex", data)
 	var got []string
 	for _, e := range entries {
-		got = append(got, e.By+":"+e.Text+e.Input)
+		got = append(got, string(e.By)+":"+e.Text+e.Input)
 	}
 	if strings.Join(got, "|") != `user:go|agent:Starting.|call:ws mission note "on it"|call:curl https://example.com|agent:Done: note allow_once, curl decline.` {
 		t.Errorf("transcript = %q", got)

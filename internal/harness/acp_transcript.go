@@ -52,7 +52,7 @@ func readACPTranscript(data []byte) []TranscriptEntry {
 			if u.Update == acp.UpdatePlan {
 				todos := make([]TranscriptTodo, len(u.Entries))
 				for i, p := range u.Entries {
-					todos[i] = TranscriptTodo{Content: p.Content, Status: p.Status}
+					todos[i] = TranscriptTodo{Content: p.Content, Status: TodoStatus(p.Status)}
 				}
 				if plan >= 0 {
 					extras[plan].entry.Todos = nil // only the latest stands
