@@ -164,6 +164,12 @@ func skipDir(rel string) bool {
 		return true
 	case "backup", "swept": // copies of the records; what ws doctor swept aside
 		return true
+	case "cache", "runs":
+		// What's kept to be quick (code nav's facts: thousands of files,
+		// touched as they're read) and what ws run's processes write as
+		// they go (their output): neither is in the view, and walking
+		// them had it built again every tick while anything ran.
+		return true
 	case filepath.Join("artifacts", ".discarded"): // what's left of a discarded one is its row's
 		return true
 	}
