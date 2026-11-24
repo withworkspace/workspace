@@ -4,14 +4,15 @@ import { type Artifact, type CapsuleDetail, type ChangedFile, type CrewDetail, t
 import { type Reload, useLoaded } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Icon } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { Skeleton } from "../ui/Skeleton";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
-import { crewStatus, Status } from "../ui/status";
-import { Time } from "../ui/time";
+import { Status } from "../ui/Status";
+import { crewStatus } from "../ui/statusOf";
+import { Time } from "../ui/Time";
 import { CapsuleEnds, EndedCapsules } from "./Ending";
 import { canOpenPR, OpenPR } from "./OpenPR";
 import { RunsHere } from "./Runs";

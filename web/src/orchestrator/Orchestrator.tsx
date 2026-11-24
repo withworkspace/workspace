@@ -4,15 +4,17 @@ import { Link, useParams } from "react-router";
 import { getOrchestrator, getOrchestratorRun, type OrchestratorInfo, type OrchestratorRun, type OrchestratorRunDetail, type Workspace } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Calls } from "../ui/Calls";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { useTitle } from "../ui/useTitle";
 import { Skeleton } from "../ui/Skeleton";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
-import { headlineStatus, Status, type StatusInfo } from "../ui/status";
-import { duration, Time } from "../ui/time";
+import { Status, type StatusInfo } from "../ui/Status";
+import { headlineStatus } from "../ui/statusOf";
+import { Time } from "../ui/Time";
+import { duration } from "../ui/when";
 import { useLoaded } from "../load";
 import { Chip } from "../ui/Chip";
 import { PageHead } from "../ui/PageHead";
@@ -47,7 +49,7 @@ export function OrchestratorPage() {
   return (
     <div className="page">
       <PageHead title="Orchestrator">
-        {on && <Status s={on} className="mission-state" />}
+        {on && <Status s={on} />}
       </PageHead>
       <p className="lede">
         An agent that decides what happens between crew: when crew report done or go quiet, when you answer it or review, when a PR changes. It reads the mission, then
@@ -177,7 +179,7 @@ export function OrchestratorRunPage() {
         ]}
       />
       <PageHead title="Orchestrator run">
-        {d && <Status s={outcome(d)} className="mission-state" />}
+        {d && <Status s={outcome(d)} />}
       </PageHead>
       {error && <ErrorCard error={error} retry={load} />}
       {!d && !error && <Skeleton rows={6} />}

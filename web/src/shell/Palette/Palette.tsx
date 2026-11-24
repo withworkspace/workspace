@@ -9,7 +9,7 @@ import { forgetThing } from "../../refs/ThingView";
 import { Input } from "../../ui/Input";
 import { humanError } from "../../ui/text";
 import { setTheme } from "../../ui/theme";
-import { clock } from "../../ui/time";
+import { clock } from "../../ui/when";
 import { toast } from "../../ui/toast";
 import { useMedia } from "../../ui/useMedia";
 import { usePlugins, useWorkspace } from "../../workspace/store";

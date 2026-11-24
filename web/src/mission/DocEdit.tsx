@@ -6,7 +6,7 @@ import { Skeleton } from "../ui/Skeleton";
 import { humanError } from "../ui/text";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { Button } from "../ui/Button";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Input } from "../ui/Input";

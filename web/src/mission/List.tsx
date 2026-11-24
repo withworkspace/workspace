@@ -3,15 +3,17 @@ import { Link, useNavigate } from "react-router";
 import { TLink } from "../ui/TLink";
 import type { Crew, HeadlineGroup, Mission } from "../api";
 import { useKeys } from "../keys";
-import { Inline, plain } from "../ui/inline";
+import { Inline } from "../ui/Inline";
+import { plain } from "../ui/text";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { CheckingLine } from "./checking";
 import { useTitle } from "../ui/useTitle";
 import { Empty } from "../ui/Empty";
 import { Keys } from "../ui/Keys";
-import { crewStatus, headlineStatus, Status } from "../ui/status";
-import { Time } from "../ui/time";
+import { Status } from "../ui/Status";
+import { crewStatus, headlineStatus } from "../ui/statusOf";
+import { Time } from "../ui/Time";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
@@ -163,7 +165,7 @@ export function MissionList({ missions }: { missions: Mission[] }) {
                       </RowLine>
                       {m.headline.text && (
                         <RowSub className="mission-sub" title={plain(m.headline.text)}>
-                          {m.headline.checking ? <CheckingLine c={m.headline.checking} /> : <Inline text={m.headline.text} lines={1} />}
+                          {m.headline.checking ? <CheckingLine c={m.headline.checking} /> : <Inline text={m.headline.text} lines={1} className="mission-sub-said" />}
                         </RowSub>
                       )}
                     </RowMain>

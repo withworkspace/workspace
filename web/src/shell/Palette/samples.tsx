@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { FileIcon } from "../../ui/FileIcon";
 import { Icon } from "../../ui/Icon";
-import { Status } from "../../ui/status";
+import { Status } from "../../ui/Status";
 import type { Tone } from "../../ui/tone";
 import type { CodeHit, PullFound } from "../find";
 

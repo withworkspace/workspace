@@ -6,7 +6,7 @@ import { type Known, namedOf, type PageRef, refAt, refKey } from "../../refs/ref
 import { RefTag } from "../../refs/RefTag";
 import { HoverCardLine } from "../../ui/HoverCard";
 import { Icon } from "../../ui/Icon";
-import { Status } from "../../ui/status";
+import { Status } from "../../ui/Status";
 import { capital } from "../../ui/text";
 import { actIcon, type ActOn, actsOn, type Found, type Item } from "../find";
 import { FindAct } from "./FindAct";

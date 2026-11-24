@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Link } from "react-router";
 import { answerCrew, type Crew, type CrewAnswer, type CrewPrompt, getCrewPrompt, getTranscript, sayToCrew, type Transcript, type TranscriptEntry, transcriptStreamURL, useVisible, type Workspace } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
-import { type Call, Calls, EditDiff, Plan } from "../ui/Calls";
+import { type Call, Calls } from "../ui/Calls";
 import { Icon } from "../ui/Icon";
 import { useDraft } from "../ui/useDraft";
 import { toast } from "../ui/toast";
@@ -11,7 +11,9 @@ import { Empty } from "../ui/Empty";
 import { humanError } from "../ui/text";
 import { ErrorCard } from "../ui/ErrorCard";
 import { confirm } from "../ui/Confirm";
-import { Time } from "../ui/time";
+import { EditDiff } from "../ui/EditDiff";
+import { Time } from "../ui/Time";
+import { Todos } from "../ui/Todos";
 import { CrewBadge } from "./parts";
 import { useLoaded } from "../load";
 import { useLatest } from "../load";
@@ -21,6 +23,7 @@ import { pageScroller } from "../ui/scroller";
 import { Input } from "../ui/Input";
 import { Composer } from "../ui/Composer";
 import { Turn, TurnAvatar, TurnHead, TurnSaid } from "../ui/Turn";
+import { TypingDots } from "../ui/TypingDots";
 import { useWorkspace } from "../workspace/store";
 
 // The agent view: a crew as a conversation, the way in to it. What it was
@@ -233,11 +236,7 @@ export function AgentView({ slug, id, crew, live, onTerminal }: { slug: string; 
         )}
         {working && !asking && (
           <div className="typing agent-working">
-            <span className="typing-dots" aria-hidden>
-              <span />
-              <span />
-              <span />
-            </span>
+            <TypingDots />
             {pending ? (
               <>
                 {pending.tool === "Bash" ? "Running" : "Working on"} <code>{pending.edit?.path.split("/").pop() ?? pending.input?.slice(0, 80)}</code>
@@ -286,7 +285,7 @@ function PinnedPlan({ todos, live }: { todos: NonNullable<TranscriptEntry["todos
         </span>
         {now && <span className="pinned-plan-now">{now.active || now.content}</span>}
       </summary>
-      <Plan todos={todos} live={live} />
+      <Todos todos={todos} live={live} />
     </details>
   );
 }

@@ -4,7 +4,7 @@ import { act, type CapsuleDetail, type Conclusion, type EndedCapsule, type Endin
 import type { Reload } from "../load";
 import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
 import { Dialog, DialogActions } from "../ui/Dialog";

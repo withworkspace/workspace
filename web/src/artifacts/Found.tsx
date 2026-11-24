@@ -4,14 +4,14 @@ import { type ArtifactFound, type ArtifactFoundDetail, getArtifactFound, getArti
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { Icon } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import { useTitle } from "../ui/useTitle";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
 import { filesWords, type FoundFolder as Folder, foundTree, widths } from "./shown";
 import { Chip } from "../ui/Chip";

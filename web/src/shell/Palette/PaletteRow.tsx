@@ -1,6 +1,6 @@
 import { FileIcon } from "../../ui/FileIcon";
 import { Icon } from "../../ui/Icon";
-import { Status } from "../../ui/status";
+import { Status } from "../../ui/Status";
 import type { GroupKey, Item } from "../find";
 import { FindCodeRow } from "./FindCodeRow";
 import { FindRow } from "./FindRow";

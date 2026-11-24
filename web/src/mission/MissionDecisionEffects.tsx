@@ -1,6 +1,6 @@
 import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import type { DecisionEffect } from "./decisions";
 import css from "./MissionDecisionEffects.module.css";
 

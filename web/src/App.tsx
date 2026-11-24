@@ -57,7 +57,7 @@ import { humanError } from "./ui/text";
 import { Keys } from "./ui/Keys";
 import { Confirmer } from "./ui/Confirm";
 import { Dialog } from "./ui/Dialog";
-import { duration } from "./ui/time";
+import { duration } from "./ui/when";
 import { SiloPoint } from "./silo/SiloPoint";
 import { Count } from "./ui/Count";
 import { buttonClass } from "./ui/Button";

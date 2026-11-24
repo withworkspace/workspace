@@ -1,24 +1,11 @@
 import type { Crew, Headline, MissionState } from "../api";
-import { Icon, type IconName } from "./Icon";
+import type { StatusInfo } from "./Status";
 import { capital } from "./text";
+import type { Tone } from "./tone";
 
-// Status is one look for where something stands, used wherever a status
-// shows: an icon and a word, coloured by what it asks of you, not by hue.
-//
-//   attention  it needs you
-//   progress   an agent's on it
-//   waiting    waiting on something outside (checks, a reviewer)
-//   done       finished, or ready to be
-//   danger     failed, or stopped to ask a permission
-//   quiet      nothing's happening
-export type Tone = "attention" | "progress" | "waiting" | "done" | "danger" | "quiet";
-
-export interface StatusInfo {
-  icon: IconName;
-  tone: Tone;
-  words: string;
-  live?: boolean; // something's happening now: the icon pulses
-}
+// Where something stands, worked out of what ws says of it, for Status
+// (Status.tsx) to draw: a mission from its headline or its state, crew
+// from what they last reported.
 
 // stripGlyph drops the glyph a headline's label starts with
 // ("? asks", "↻ re-review"): the web shows an icon instead.
@@ -120,17 +107,6 @@ const stateInfo: Record<MissionState, StatusInfo> = {
 };
 
 export const missionStateStatus = (s: MissionState): StatusInfo => stateInfo[s] ?? { icon: "circle", tone: "quiet", words: s };
-
-// Status draws one: an icon, and its words unless only the icon's wanted
-// (the words are then its tooltip).
-export function Status({ s, iconOnly, title, size = 14, className }: { s: StatusInfo; iconOnly?: boolean; title?: string; size?: number; className?: string }) {
-  return (
-    <span className={`status tone-${s.tone}${s.live ? " live" : ""}${className ? ` ${className}` : ""}`} title={title ?? (iconOnly ? s.words : undefined)}>
-      <Icon name={s.icon} size={size} />
-      {iconOnly ? <span className="sr-only">{s.words}</span> : <span className="status-words">{s.words}</span>}
-    </span>
-  );
-}
 
 // exitWords turns how crew ended into words: "exit 129" is its terminal
 // closing (a hang-up), 130 an interrupt, 137 killed, 143 asked to stop.

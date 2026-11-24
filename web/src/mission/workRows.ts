@@ -1,6 +1,6 @@
 import type { Artifact, Bundle, CapsuleDetail, ChangedFile, CrewDetail, MissionDetail, Stage } from "../api";
 import type { IconName } from "../ui/Icon";
-import type { Tone } from "../ui/status";
+import type { Tone } from "../ui/tone";
 
 // What the mission's Work tab works out from the mission: its capsules in
 // the order they need you, each with the steps that ran in it, its crew

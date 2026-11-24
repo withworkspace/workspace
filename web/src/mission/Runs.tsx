@@ -7,7 +7,7 @@ import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";

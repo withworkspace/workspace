@@ -14,7 +14,7 @@ import { ErrorCard } from "../ui/ErrorCard";
 import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
-import { Time } from "../ui/time";
+import { Time } from "../ui/Time";
 import { DocEdit } from "./DocEdit";
 import { ArtifactState, artifactTitle } from "./parts";
 import { useLatest } from "../load";

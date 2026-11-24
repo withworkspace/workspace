@@ -1,0 +1,19 @@
+/* A status (Status.tsx): where something stands, as an icon and its
+   words, in the colour of its tone. */
+
+@layer ui {
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--tone);
+  }
+
+  /* Something's happening now. */
+  .pulse {
+    animation: global(pulse) 2.2s var(--ease) infinite;
+  }
+}

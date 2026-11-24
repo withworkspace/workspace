@@ -1,9 +1,9 @@
 import type { MissionDetail } from "../api";
 import { type Refs } from "../refs/context";
 import { HoverCard } from "../ui/HoverCard";
-import { Inline } from "../ui/inline";
-import { Status, type StatusInfo } from "../ui/status";
-import { Time } from "../ui/time";
+import { Inline } from "../ui/Inline";
+import { Status, type StatusInfo } from "../ui/Status";
+import { Time } from "../ui/Time";
 import { ArtifactState, artifactTitle, CapsuleBadges, CrewBadge, isArtifact } from "./parts";
 import { MissionCapsuleCard } from "./MissionCapsuleCard";
 import { decisionsPath, whoDecided } from "./decisions";

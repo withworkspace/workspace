@@ -1,4 +1,7 @@
 import { Fragment, type ReactNode, useContext } from "react";
+import css from "./Inline.module.css";
+import { cx } from "./cx";
+import { flatten } from "./text";
 import { useRefs, useWanted } from "../refs/known";
 import { RefTag } from "../refs/RefTag";
 import { findRefs, type Known, refAt, refKey } from "../refs/refs";
@@ -9,37 +12,6 @@ import { linkRefs, type Refs, RefContext } from "../refs/context";
 // [links](…) render; block syntax (fences, headings, bullets, quotes)
 // folds into the line, so no `**` or ``` ever shows. Links render as their
 // text: these lines often sit inside a link already.
-
-// flatten folds markdown's block syntax into one paragraph.
-export function flatten(md: string): string {
-  const out: string[] = [];
-  let fenced = false;
-  for (const raw of md.split("\n")) {
-    const line = raw.trim();
-    if (/^(```|~~~)/.test(line)) {
-      fenced = !fenced;
-      continue;
-    }
-    if (!line) continue;
-    if (fenced) {
-      out.push("`" + line.replace(/`/g, "") + "`");
-      continue;
-    }
-    if (/^\[\^[^\]]+\]:/.test(line)) continue; // a footnote's definition
-    if (/^\|?\s*:?-{3,}/.test(line)) continue; // a table's rule
-    const bullet = /^([-*+]|\d+[.)])\s+/.test(line);
-    const text = line
-      .replace(/^#{1,6}\s+/, "")
-      .replace(/^>\s?/, "")
-      .replace(/^([-*+]|\d+[.)])\s+(\[[ xX]\]\s+)?/, "");
-    out.push(bullet ? `• ${text}` : text);
-  }
-  return out
-    .join(" ")
-    .replace(/```[a-z]*\s*([^`]+?)\s*```/g, "`$1`") // a fence written inline
-    .replace(/\[\^[^\]]+\]:\s*/g, "") // a footnote's definition, inline
-    .replace(/``\s*([^`]+?)\s*``/g, "`$1`");
-}
 
 const token = /(`[^`]+`)|(\*\*[^*]+\*\*|__[^_]+__)|(\*[^*\s][^*]*\*)|(\[\^[^\]]+\])|(\[[^\]]+\]\([^)\s]+\))/g;
 
@@ -112,6 +84,8 @@ function parse(text: string, refs?: Refs, known?: Known): ReactNode[] {
 }
 
 // Inline renders text so: lines (if given) clamps it to that many lines.
+// data-refs is what the refs' rules go by (refs/RefTag.tsx): the names in
+// it are drawn as refs.
 export function Inline({ text, lines, className }: { text: string; lines?: number; className?: string }) {
   const refs = useContext(RefContext);
   // Inside a card the mission's refs are words (RefContext is cleared), and
@@ -119,18 +93,8 @@ export function Inline({ text, lines, className }: { text: string; lines?: numbe
   const known = useRefs()?.known;
   useWanted(text);
   return (
-    <span className={`inline-md${lines ? " clamp" : ""}${className ? ` ${className}` : ""}`} style={lines ? ({ "--lines": lines } as React.CSSProperties) : undefined}>
+    <span className={cx(css.inline, !!lines && css.clamp, className)} style={lines ? ({ "--lines": lines } as React.CSSProperties) : undefined} data-refs="">
       {parse(flatten(text), refs, known)}
     </span>
   );
 }
-
-// plain is the same text with no markup at all, for a title attribute or
-// a page's title.
-export const plain = (md: string) =>
-  flatten(md)
-    .replace(/`([^`]+)`/g, "$1")
-    .replace(/\*\*([^*]+)\*\*|__([^_]+)__/g, "$1$2")
-    .replace(/\*([^*\s][^*]*)\*/g, "$1")
-    .replace(/\[\^[^\]]+\]/g, "")
-    .replace(/\[([^\]]+)\]\([^)\s]+\)/g, "$1");

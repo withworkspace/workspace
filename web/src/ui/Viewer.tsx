@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useKeys } from "../keys";
+import css from "./Viewer.module.css";
+import { cx } from "./cx";
 import { Icon } from "./Icon";
 import { Keys } from "./Keys";
 import { Button, buttonClass } from "./Button";
@@ -94,7 +96,7 @@ function Stage({ viewing }: { viewing: Viewing }) {
     const { x, y, s } = now.current;
     el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${s})`;
     // A photo's pixels show as pixels close up; an SVG's redrawn sharp.
-    el.classList.toggle("pixels", !vector && s >= 3);
+    el.toggleAttribute("data-pixels", !vector && s >= 3);
   };
   const run = () => {
     if (frame.current) return;
@@ -215,7 +217,7 @@ function Stage({ viewing }: { viewing: Viewing }) {
   const drag = useRef<{ id: number; x: number; y: number; vx: number; vy: number; t: number; moved: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0 || (e.target as Element).closest(".viewer-tools, .viewer-title")) return;
+    if (e.button !== 0 || (e.target as Element).closest("[data-viewer-own]")) return;
     e.preventDefault();
     stage.current?.setPointerCapture(e.pointerId);
     cancelAnimationFrame(frame.current);
@@ -259,7 +261,7 @@ function Stage({ viewing }: { viewing: Viewing }) {
   // A double click zooms in on where it is, or (zoomed in already) back
   // to fitted.
   const onDoubleClick = (e: React.MouseEvent) => {
-    if ((e.target as Element).closest(".viewer-tools, .viewer-title")) return;
+    if ((e.target as Element).closest("[data-viewer-own]")) return;
     if (to.current.s > fit.current * 1.05) return toFit();
     const r = bounds();
     zoomAt(Math.max(fit.current * 2.5, 1), e.clientX - r.left, e.clientY - r.top);
@@ -296,7 +298,7 @@ function Stage({ viewing }: { viewing: Viewing }) {
 
   return (
     <div
-      className={`viewer${dragging ? " dragging" : ""}${closing ? " closing" : ""}`}
+      className={cx(css.viewer, dragging && css.dragging, closing && css.closing)}
       role="dialog"
       aria-modal="true"
       aria-label={viewing.title ?? "Picture"}
@@ -307,7 +309,7 @@ function Stage({ viewing }: { viewing: Viewing }) {
       onPointerCancel={onPointerUp}
       onDoubleClick={onDoubleClick}
     >
-      <div className={`viewer-body${size ? "" : " unsized"}`} ref={body}>
+      <div className={cx(css.body, !size && css.unsized)} ref={body}>
         {viewing.kind === "image" ? (
           <img
             src={viewing.src}
@@ -321,22 +323,26 @@ function Stage({ viewing }: { viewing: Viewing }) {
             onError={() => setFailed(true)}
           />
         ) : (
-          <div className="viewer-svg" dangerouslySetInnerHTML={{ __html: viewing.svg }} />
+          <div className={css.svg} dangerouslySetInnerHTML={{ __html: viewing.svg }} />
         )}
       </div>
-      {failed && <div className="viewer-failed">This picture couldn't be loaded.</div>}
-      {viewing.title && <div className="viewer-title">{viewing.title}</div>}
-      <div className="viewer-tools" onPointerDown={(e) => e.stopPropagation()}>
+      {failed && <div className={css.failed}>This picture couldn't be loaded.</div>}
+      {viewing.title && (
+        <div className={css.title} data-viewer-own="">
+          {viewing.title}
+        </div>
+      )}
+      <div className={css.tools} data-viewer-own="" onPointerDown={(e) => e.stopPropagation()}>
         <Button variant="ghost" square onClick={() => zoomAt(to.current.s / step, ...middle())} title="Zoom out (-)" aria-label="Zoom out">
           <Icon name="minus" size={15} />
         </Button>
-        <Button variant="ghost" className="viewer-zoom num" onClick={toActual} title="Its own size (1)">
+        <Button variant="ghost" className={css.zoom} onClick={toActual} title="Its own size (1)">
           {Math.round(zoom * 100)}%
         </Button>
         <Button variant="ghost" square onClick={() => zoomAt(to.current.s * step, ...middle())} title="Zoom in (+)" aria-label="Zoom in">
           <Icon name="plus" size={15} />
         </Button>
-        <Button variant="ghost" className="viewer-fit" onClick={toFit} title="Fit it to the window (0)">
+        <Button variant="ghost" className={css.fit} onClick={toFit} title="Fit it to the window (0)">
           Fit
         </Button>
         {viewing.kind === "image" && (
@@ -344,12 +350,12 @@ function Stage({ viewing }: { viewing: Viewing }) {
             <Icon name="external" size={14} />
           </a>
         )}
-        <span className="viewer-sep" />
+        <span className={css.sep} />
         <Button variant="ghost" square onClick={close} title="Close (esc)" aria-label="Close">
           <Icon name="x" size={15} />
         </Button>
       </div>
-      <div className="viewer-hint" aria-hidden>
+      <div className={css.hint} aria-hidden>
         Drag to move · scroll to zoom · <Keys k="0" /> fit · <Keys k="esc" /> close
       </div>
     </div>

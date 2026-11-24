@@ -1,0 +1,82 @@
+/* A run going now, as one line (Doing.tsx): what the agent's doing this
+   moment. The newest step comes in from below, its words lit by a sheen
+   passing over them; the steps are beside it, asked for. */
+
+@layer ui {
+  .doing {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: var(--dim);
+    font-size: var(--text-sm);
+  }
+
+  .line .dots {
+    flex: none;
+  }
+
+  .now {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: transparent;
+    background: linear-gradient(90deg, var(--dim) 0%, var(--dim) 40%, var(--fg) 50%, var(--dim) 60%, var(--dim) 100%) 0 0 / 250% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation:
+      arrive 220ms var(--ease) both,
+      sheen 2.4s linear infinite;
+  }
+
+  /* "n steps": a link button, small and quiet, over its own look and its
+     hover's, whichever module comes first. */
+  .doing .steps,
+  .doing .steps:hover {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: var(--text-xs);
+    color: var(--dim);
+  }
+
+  .chevron {
+    transition: transform 150ms var(--ease);
+  }
+
+  .open {
+    transform: rotate(90deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .now {
+      animation: none;
+      color: var(--dim);
+      background: none;
+    }
+  }
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes sheen {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}

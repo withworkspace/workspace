@@ -15,14 +15,13 @@
   background: var(--selected);
 }
 
-/* Its mark keeps its size, whatever the line holds. */
-.row > :global(.icon) {
+/* Its mark, first on the line, keeps its size, whatever the line holds. */
+.row > :first-child {
   flex: none;
-  color: var(--dim);
 }
 
-.row > :global(.status) {
-  flex: none;
+.row > :global(.icon) {
+  color: var(--dim);
 }
 
 /* More about it: the room that's left, and cut short there. */

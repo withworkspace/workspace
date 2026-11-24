@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
-import { Inline } from "../ui/inline";
+import { Inline } from "../ui/Inline";
 import css from "./MissionPlanCheckList.module.css";
 
 // A check of a step's: what it asks, how it last came out (or nothing,

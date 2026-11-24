@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { crewStatus } from "./status";
+import { crewStatus } from "./statusOf";
 
 const words = (c: Parameters<typeof crewStatus>[0]) => crewStatus(c).words;
 

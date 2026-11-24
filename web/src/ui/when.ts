@@ -115,16 +115,3 @@ export function duration(from: string | number, to: string | number = Date.now()
   }
   return `${Math.round(s / 86400)}d`;
 }
-
-// Time is a time as text, with the exact time on hover. Relative and age
-// tick with the page's clock.
-export function Time({ iso, as = "stamp", className }: { iso: string; as?: "stamp" | "relative" | "age" | "clock"; className?: string }) {
-  const at = useNow();
-  if (!iso) return null;
-  const text = as === "relative" ? relative(iso, at) : as === "age" ? age(iso, at) : as === "clock" ? clock(iso) : stamp(iso, at);
-  return (
-    <time dateTime={iso} title={exact(iso)} className={className}>
-      {text}
-    </time>
-  );
-}

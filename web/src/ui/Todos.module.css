@@ -1,0 +1,49 @@
+/* An agent's todo list (Todos.tsx): a ring by each, filled when it's
+   done, in the accent while it's in hand. */
+
+@layer ui {
+  .items {
+    list-style: none;
+    margin: 8px 0 2px;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+    font-size: var(--text-sm);
+  }
+
+  .item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .mark {
+    display: inline-grid;
+    place-items: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid var(--line-strong);
+    flex: none;
+    translate: 0 2px;
+    color: #fff;
+  }
+
+  .done {
+    color: var(--dim);
+  }
+
+  .done .mark {
+    background: var(--green-fill);
+    border-color: var(--green-fill);
+  }
+
+  .inHand {
+    font-weight: 500;
+  }
+
+  .inHand .mark {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}

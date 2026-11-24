@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { CrewBadge } from "../mission/parts";
 import { Icon } from "../ui/Icon";
-import { Status } from "../ui/status";
+import { Status } from "../ui/Status";
 import { Turn, TurnSaid } from "../ui/Turn";
 
 // Things to peek at, for the docks' stories: Sorrel's, written by hand,
