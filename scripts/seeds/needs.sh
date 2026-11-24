@@ -10,8 +10,8 @@
 # It adds the mission a-page-that-needs-an-api, with a capsule in demo
 # whose ws.repo.toml has:
 #
-#   web     a page (python3), which needs api: records' api recipe, handed
-#           over as $API_URL and mounted at /api
+#   web     a page (python3), "Storefront", which needs api: records' api
+#           recipe, handed over as $API_URL and mounted at /api
 #   admin   another, which needs the same api
 #
 # and gives records' ground the api recipe. Nothing's started: Run web on
@@ -54,6 +54,7 @@ cat >>"$capsule/ws.repo.toml" <<'TOML'
 [run.service.web]
 command = "python3 serve.py {port}"
 ready = "/"
+display_name = "Storefront"
 
 [run.service.web.needs.api]
 run = "records/api"   # records' api recipe: its ground's, as the mission has no capsule there

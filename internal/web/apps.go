@@ -74,7 +74,7 @@ type AppPoint struct {
 }
 
 func (s *Server) appDetail(v ops.AppView) AppDetail {
-	d := AppDetail{AppInfo: AppInfo{Name: v.Name, Title: v.Title, Icon: v.Icon}, Pointers: []AppPointer{}, Ready: v.Ready, Log: v.Log}
+	d := AppDetail{AppInfo: AppInfoOf(v.AppEntry), Pointers: []AppPointer{}, Ready: v.Ready, Log: v.Log}
 	for _, p := range v.Pointers {
 		ap := AppPointer{Need: p.Need, Repo: p.Repo, Folder: p.Folder, Recipe: p.Recipe, Choices: []string{}}
 		if p.At != "" {

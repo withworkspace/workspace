@@ -1,0 +1,87 @@
+/* A ground's or capsule's Runs tab (Runs.tsx): laid out as its Files are,
+   the list of its runs where the tree is, the one picked where the file
+   is. */
+
+.runs {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+/* Its apps, its tools and its tasks, a group each. */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 6px 16px;
+  border-right: 1px solid var(--line);
+}
+
+.group {
+  margin: 0;
+}
+
+/* Its task recipes not running, each to run, under the group's head. */
+.run {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 8px 8px;
+}
+
+/* A group's head is in the list's own room, not a page's. */
+.groupHead {
+  position: static;
+  margin: 0;
+  padding: 0 8px 4px;
+  border: 0;
+}
+
+.rows {
+  display: grid;
+  gap: 1px;
+}
+
+.quiet {
+  margin: 0;
+  padding: 2px 8px;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.none {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: -6px;
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+}
+
+.back:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+/* No room for both: one at a time, the list until a run's picked. */
+@media (max-width: 860px) {
+  .runs {
+    display: flex;
+    flex-direction: column;
+  }
+  .list {
+    border-right: 0;
+  }
+}

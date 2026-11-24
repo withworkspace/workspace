@@ -1,4 +1,5 @@
-import type { Mission, RunDetail, Talk } from "../api";
+import type { Mission, RecipeInfo, RunDetail, Talk } from "../api";
+import type { StatusInfo } from "../ui/Status";
 
 // What the Runs page says of a run: who it's for, where it runs, each
 // with somewhere to go when there's a page for it, and the order runs
@@ -140,3 +141,108 @@ export const plain = (log: string) =>
     .replace(escapes, "")
     .replace(/\r(?!\n)/g, "\n")
     .replace(/^\s*\n/, "");
+
+// runStatus is where a run stands, as a Status draws it: a service up,
+// coming up, or ended (and how); a task running, or what it came to.
+export function runStatus(r: RunDetail): StatusInfo {
+  if (r.type === "task") {
+    switch (r.result) {
+      case "running":
+        return { icon: "spinner", tone: "progress", words: "Running", live: true };
+      case "passed":
+        return { icon: "check-circle", tone: "done", words: "Passed" };
+      case "failed":
+        return { icon: "x-circle", tone: "danger", words: "Failed" };
+    }
+    return { icon: "circle-dashed", tone: "quiet", words: "Stopped" };
+  }
+  if (r.state === "running") return r.up ? { icon: "circle-dot", tone: "done", words: "Up", live: true } : { icon: "spinner", tone: "progress", words: "Starting", live: true };
+  if (r.state === "exited") return r.status ? { icon: "x-circle", tone: "danger", words: `Exited ${r.status}` } : { icon: "circle", tone: "quiet", words: "Exited" };
+  return { icon: "circle-dashed", tone: "quiet", words: "Gone" };
+}
+
+// runId is how a run is picked on a page: a task's run by its number
+// (ref#n), as its earlier runs are picked too; a service by its ref.
+export const runId = (r: RunDetail) => r.nref ?? r.ref;
+
+// startedBy is who started a run, and how, in a few words: "you, from a
+// terminal", "crew c2", "ws, for check 1 of step 2".
+export function startedBy(r: RunDetail): string {
+  if (r.check) return `ws, for check ${r.check.n} of step ${r.check.step}`;
+  if (r.owner === "run") return r.neededBy?.length ? `ws, as ${listed(r.neededBy.map(nameOfRef))} ${r.neededBy.length === 1 ? "needs" : "need"} it` : "ws, for a run that needed it";
+  const who = !r.by || r.by === "you" ? "you" : r.by === "ws" ? "ws" : `crew ${r.by}`;
+  switch (r.owner) {
+    case "pid":
+      return `${who}, from a terminal`;
+    case "looking":
+      if (r.app) return `${who}, by opening its ${r.app} tab`;
+      return r.mission ? `${who}, from the mission's page` : `${who}, from its files`;
+    case "conversation":
+      return `${who}, in a conversation`;
+  }
+  return who;
+}
+
+// nameOfRef is a run's name, from its ref (name.worktree.repo): what a
+// line about the runs of one place names another by.
+export const nameOfRef = (ref: string) => ref.split(".")[0];
+
+// A place's runs, as its Runs tab lists them: its services, a row for
+// each, apps apart from tools; and its tasks' runs.
+export interface PlaceRuns {
+  apps: ServiceRow[];
+  tools: ServiceRow[];
+  tasks: RunDetail[];
+}
+
+// ServiceRow is one of a place's services: its recipe (none for a command
+// run as it is), and its run, running or the last to end (kept an hour),
+// if it has one. name is the recipe's, or the run's.
+export interface ServiceRow {
+  name: string;
+  recipe?: RecipeInfo;
+  run?: RunDetail;
+}
+
+// placeRuns is a place's runs and recipes as its Runs tab lists them.
+// Each service recipe is a row whether it's running or not, with its
+// run, in the order its file's names have; after them, services run as
+// commands, with no recipe here (apps, as nothing says otherwise). Its
+// tasks' runs are what's running, then the rest, the last to end first,
+// the runs of a task kept behind its latest (past) among them.
+export function placeRuns(runs: RunDetail[], past: RunDetail[], recipes: RecipeInfo[]): PlaceRuns {
+  const services = runs.filter((r) => r.type !== "task");
+  const rows: ServiceRow[] = recipes.filter((rc) => rc.type !== "task").map((rc) => ({ name: rc.name, recipe: rc, run: services.find((r) => r.recipe === rc.name) }));
+  const named = new Set(rows.map((s) => s.name));
+  for (const r of services) if (!r.recipe || !named.has(r.recipe)) rows.push({ name: r.name, run: r });
+  const { running, results } = split([...runs.filter((r) => r.type === "task"), ...past]);
+  return {
+    apps: rows.filter((s) => s.recipe?.kind !== "tool"),
+    tools: rows.filter((s) => s.recipe?.kind === "tool"),
+    tasks: [...running, ...results],
+  };
+}
+
+// Picked is what a place's Runs tab shows of its runs: a service, or one
+// run of a task.
+export type Picked = { service: ServiceRow; task?: undefined } | { task: RunDetail; service?: undefined };
+
+// pickedIn is what's shown of a place's runs: the service asked for by
+// its name, or the task's run by its id (runId, or a task's ref alone for
+// its latest); or else the first worth a look: a service that's up, then
+// one running, then a task running, then the last task to end, then the
+// first app.
+export function pickedIn(p: PlaceRuns, ask: { service?: string; run?: string }): Picked | undefined {
+  const services = [...p.apps, ...p.tools];
+  const service = ask.service ? services.find((s) => s.name === ask.service) : undefined;
+  if (service) return { service };
+  if (ask.run) {
+    const task = p.tasks.find((r) => runId(r) === ask.run) ?? p.tasks.filter((r) => r.ref === ask.run).sort((a, b) => (b.n ?? 0) - (a.n ?? 0))[0];
+    if (task) return { task };
+  }
+  const live = services.find((s) => s.run?.state === "running" && s.run.up) ?? services.find((s) => s.run?.state === "running");
+  if (live) return { service: live };
+  const task = p.tasks[0];
+  if (task) return { task };
+  return services[0] && { service: services[0] };
+}

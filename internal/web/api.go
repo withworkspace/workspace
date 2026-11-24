@@ -96,11 +96,22 @@ type Workspace struct {
 }
 
 // AppInfo is an app as a place has it: its recipe's name, what it's
-// called and its icon's name ("" for the default).
+// called and its icon's name ("" for the default), and whether it's
+// framed or opened in a browser tab of its own.
 type AppInfo struct {
-	Name  string `json:"name"`
-	Title string `json:"title"`
-	Icon  string `json:"icon,omitempty"`
+	Name   string       `json:"name"`
+	Title  string       `json:"title"`
+	Icon   string       `json:"icon,omitempty"`
+	Render RecipeRender `json:"render"`
+}
+
+// AppInfoOf is an app as ops lists it, as the wire has it.
+func AppInfoOf(a ops.AppEntry) AppInfo {
+	render := RenderInline
+	if a.InTab {
+		render = RenderTab
+	}
+	return AppInfo{Name: a.Name, Title: a.Title, Icon: a.Icon, Render: render}
 }
 
 // Places is where the web UI's places go: the sidebar's, in order, and

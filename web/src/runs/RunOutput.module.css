@@ -1,0 +1,23 @@
+/* A run's output (RunOutput.tsx): as a terminal printed it, in a well. */
+
+.log {
+  margin: 0;
+  padding: 10px 14px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--well);
+  font: var(--text-xs) / 1.6 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  color: var(--dim);
+  font-family: var(--font);
+}
+
+.unread {
+  color: var(--dim);
+  font-size: var(--text-sm);
+}

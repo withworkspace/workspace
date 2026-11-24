@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { endRun, getRunPast, getRuns, useEvents, type Names, type RunDetail, type RunsInfo, resyncSilo, type SiloState } from "../api";
 import { type Reload, useLoaded } from "../load";
-import { useRunLog } from "./runlog";
+import { RunOutput } from "./RunOutput";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
@@ -16,7 +16,7 @@ import { Callout } from "../ui/Callout";
 import { Copyable } from "../ui/Copyable";
 import { Time } from "../ui/Time";
 import css from "./Runs.module.css";
-import { bare, came, commitSaid, forWhom, listed, placeOf, plain, type Said, split } from "./runRows";
+import { bare, came, commitSaid, forWhom, listed, placeOf, type Said, split } from "./runRows";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
@@ -458,34 +458,8 @@ function TaskMore({ r, by, show }: { r: RunDetail; by?: string; show: string }) 
           </>
         )}
       </dl>
-      <RunOutput ref_={one.nref ?? one.ref} live={live && one.nref === r.nref} />
+      <RunOutput runRef={one.nref ?? one.ref} live={live && one.nref === r.nref} className={css.log} />
     </div>
-  );
-}
-
-// RunOutput is a run's output, followed while it runs, kept at its end as
-// more comes unless you've scrolled up.
-function RunOutput({ ref_, live }: { ref_: string; live: boolean }) {
-  const { value, error } = useRunLog(ref_, live);
-  const pre = useRef<HTMLPreElement>(null);
-  const stuck = useRef(true); // at the bottom: new output keeps it there
-  const text = value ? plain(value.log) : "";
-  useEffect(() => {
-    const el = pre.current;
-    if (el && stuck.current) el.scrollTop = el.scrollHeight;
-  }, [text]);
-  if (error && !value) return <div className="quiet-line">Its output can't be read: {humanError(error)}</div>;
-  return (
-    <pre
-      ref={pre}
-      className={cx("verify-output", css.log)}
-      onScroll={(e) => {
-        const el = e.currentTarget;
-        stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
-      }}
-    >
-      {value ? text || "It printed nothing." : "…"}
-    </pre>
   );
 }
 
@@ -493,14 +467,6 @@ function RunOutput({ ref_, live }: { ref_: string; live: boolean }) {
 // started.
 function RunMore({ r, by }: { r: RunDetail; by?: string }) {
   const live = r.state === "running";
-  const { value, error } = useRunLog(r.ref, live);
-  const pre = useRef<HTMLPreElement>(null);
-  const stuck = useRef(true); // at the bottom: new output keeps it there
-  const text = value ? plain(value.log) : "";
-  useEffect(() => {
-    const el = pre.current;
-    if (el && stuck.current) el.scrollTop = el.scrollHeight;
-  }, [text]);
   return (
     <div className={css.more}>
       <dl className={css.facts}>
@@ -545,20 +511,7 @@ function RunMore({ r, by }: { r: RunDetail; by?: string }) {
           </>
         )}
       </dl>
-      {error && !value ? (
-        <div className="quiet-line">Its output can't be read: {humanError(error)}</div>
-      ) : (
-        <pre
-          ref={pre}
-          className={cx("verify-output", css.log)}
-          onScroll={(e) => {
-            const el = e.currentTarget;
-            stuck.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
-          }}
-        >
-          {value ? text || "Nothing yet." : "…"}
-        </pre>
-      )}
+      <RunOutput runRef={r.ref} live={live} className={css.log} />
     </div>
   );
 }
