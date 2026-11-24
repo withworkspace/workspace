@@ -141,15 +141,9 @@ func (w *Workspace) MissionStamp(slug string) string {
 			}
 			dir := filepath.Join(w.WS().RepoDir(c.Repo), c.Name)
 			note(dir) // made, or burned
-			// Its runs: one started or ended, and one that's exited. Not
-			// its records, which are written as it's looked at.
-			runsDir := filepath.Join(w.runStore().Dir(), c.Repo, c.Name)
-			note(runsDir)
-			if ents, err := os.ReadDir(runsDir); err == nil {
-				for _, e := range ents {
-					note(filepath.Join(runsDir, e.Name(), "exit"))
-				}
-			}
+			// Its runs: one started, up, ended (its process gone too) or
+			// cleared away (runs.Store.StampIn).
+			fmt.Fprintln(h, w.runStore().StampIn(c.Repo, c.Name))
 			// Found dirty, or clean, since the page was last told (keptGit).
 			fmt.Fprint(h, w.git.dirtyMoved(dir))
 		}

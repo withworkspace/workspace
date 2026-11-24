@@ -316,12 +316,25 @@ func (w *Workspace) EndRun(ref string) error {
 
 // RunLog is the last n lines of a run's output.
 func (w *Workspace) RunLog(ref string, n int) (string, error) {
+	text, _, _, err := w.RunLogSized(ref, n)
+	return text, err
+}
+
+// RunLogSized is RunLog, with how much of the log it's as of (its size as
+// it was read) and the log's path: what's written after it is read from
+// there (runs.ReadFrom).
+func (w *Workspace) RunLogSized(ref string, n int) (text string, size int64, path string, err error) {
 	r, err := w.runByRef(ref)
 	if err != nil {
-		return "", err
+		return "", 0, "", err
 	}
-	return r.Tail(n), nil
+	text, size = r.TailSized(n)
+	return text, size, r.LogPath(), nil
 }
+
+// RunsStamp names where the workspace's runs stand, cheaply
+// (runs.Store.Stamp): what the Runs page shows moves only when it does.
+func (w *Workspace) RunsStamp() string { return w.runStore().Stamp() }
 
 // Names is whether ws.local.toml's [router] gives the workspace names
 // under .localhost, and the name it asks for (its folder's, unset), as the

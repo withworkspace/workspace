@@ -33,7 +33,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
+
+	"hash/fnv"
 )
 
 // Version is the record's version (run.json's "version").
@@ -538,6 +541,49 @@ func (s Store) List() ([]Run, error) {
 		}
 	}
 	return out, nil
+}
+
+// Stamp names where the store's runs stand, cheaply: each run's record and
+// exit, whether its process is there (not the whole process table, which
+// List reads), whether a service answers on its port, and how many earlier
+// runs each task keeps. It moves when a run starts, ends, comes up, or is
+// cleared away; not as it writes its output.
+func (s Store) Stamp() string { return s.stamp(filepath.Join(s.Dir(), "*", "*", "*", recordFile)) }
+
+// StampIn is Stamp for the runs in repo's ground or capsule worktree.
+func (s Store) StampIn(repo, worktree string) string {
+	return s.stamp(filepath.Join(s.Dir(), repo, worktree, "*", recordFile))
+}
+
+func (s Store) stamp(pattern string) string {
+	paths, _ := filepath.Glob(pattern)
+	h := fnv.New64a()
+	for _, p := range paths {
+		dir := filepath.Dir(p)
+		info, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		fmt.Fprintf(h, "%s %d %d", dir, info.Size(), info.ModTime().UnixNano())
+		if ex, err := os.Stat(filepath.Join(dir, exitFile)); err == nil {
+			fmt.Fprintf(h, " exit %d\n", ex.ModTime().UnixNano())
+			continue
+		}
+		var r Run
+		if b, err := os.ReadFile(p); err == nil && json.Unmarshal(b, &r.Record) == nil {
+			fmt.Fprintf(h, " alive %v", r.PID > 0 && syscall.Kill(r.PID, 0) == nil)
+			if !r.IsTask() && r.Port > 0 {
+				fmt.Fprintf(h, " up %v", r.Listening())
+			}
+			if r.IsTask() {
+				if past, err := os.ReadDir(s.pastOf(dir)); err == nil {
+					fmt.Fprintf(h, " past %d", len(past))
+				}
+			}
+		}
+		fmt.Fprintln(h)
+	}
+	return strconv.FormatUint(h.Sum64(), 16)
 }
 
 // load reads the run kept in dir.

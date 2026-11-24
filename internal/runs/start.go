@@ -515,28 +515,72 @@ const tailBytes = 256 << 10
 
 // Tail is the last n lines of the run's log (of its last tailBytes).
 func (r Run) Tail(n int) string {
+	text, _ := r.TailSized(n)
+	return strings.TrimSuffix(text, "\n")
+}
+
+// TailSized is Tail as the log has it (its last line's end kept, so what's
+// written after follows on), with how much of the log it's as of: its
+// size when it was read, from which what's written after is read
+// (ReadFrom).
+func (r Run) TailSized(n int) (string, int64) {
 	f, err := os.Open(r.LogPath())
 	if err != nil {
-		return ""
+		return "", 0
 	}
 	defer f.Close()
 	cut := false
 	if st, err := f.Stat(); err == nil && st.Size() > tailBytes {
 		if _, err := f.Seek(-tailBytes, io.SeekEnd); err != nil {
-			return ""
+			return "", 0
 		}
 		cut = true
 	}
 	b, err := io.ReadAll(f)
 	if err != nil {
-		return ""
+		return "", 0
 	}
+	end, _ := f.Seek(0, io.SeekCurrent)
 	if i := bytes.IndexByte(b, '\n'); cut && i >= 0 {
 		b = b[i+1:] // the line it began in the middle of
 	}
+	ended := bytes.HasSuffix(b, []byte("\n"))
 	lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
 	if len(lines) > n {
 		lines = lines[len(lines)-n:]
 	}
-	return strings.Join(lines, "\n")
+	text := strings.Join(lines, "\n")
+	if ended && text != "" {
+		text += "\n" // as the log has it: what's written after follows on
+	}
+	return text, end
+}
+
+// ReadFrom is what's been written to the log at path from offset from on,
+// and its size now: at most max bytes of it (more is false when there's
+// more past them). A log shorter than from was begun again: gone is true.
+func ReadFrom(path string, from, max int64) (text string, size int64, more, gone bool, err error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", 0, false, false, err
+	}
+	defer f.Close()
+	st, err := f.Stat()
+	if err != nil {
+		return "", 0, false, false, err
+	}
+	if st.Size() < from {
+		return "", st.Size(), false, true, nil
+	}
+	if st.Size()-from > max {
+		return "", st.Size(), true, false, nil
+	}
+	if _, err := f.Seek(from, io.SeekStart); err != nil {
+		return "", 0, false, false, err
+	}
+	b, err := io.ReadAll(io.LimitReader(f, max))
+	if err != nil {
+		return "", 0, false, false, err
+	}
+	return string(b), from + int64(len(b)), false, false, nil
 }

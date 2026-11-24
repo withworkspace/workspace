@@ -7,6 +7,7 @@ import { pageSocket } from "./socket";
 // (scripts/wiretypes, `just wire`). The types below are the ones not yet
 // moved there: move one by making the Go say what this file does.
 import type {
+  RunLog,
   HarnessTranscriptEntry as TranscriptEntry,
   Transcript,
   Action,
@@ -277,7 +278,7 @@ export function useVisible(): boolean {
 
 // A topic of the server's events: what a page follows to know when what it
 // shows has changed (internal/web/events.go).
-export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | `mission:${string}` | `conversation:${string}` | `pr:${string}`;
+export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | "runs" | `mission:${string}` | `conversation:${string}` | `pr:${string}`;
 
 // EventHandlers are what a page does as it follows a topic: when the
 // stream's open (hello: fetch what it shows, so nothing's missed), on each
@@ -633,7 +634,7 @@ export const pointApp = (name: string, need: string, at: string) => send<AppDeta
 export const getRunPast = (ref: string) => getJSON<RunPast>(`/api/runs/past?ref=${encodeURIComponent(ref)}`);
 
 // getRunLog is the end of a run's output.
-export const getRunLog = (ref: string) => getJSON<{ ref: string; log: string }>(`/api/runs/log?ref=${encodeURIComponent(ref)}`);
+export const getRunLog = (ref: string) => getJSON<RunLog>(`/api/runs/log?ref=${encodeURIComponent(ref)}`);
 
 // runRecipe starts a capsule's recipe, for as long as someone has the
 // mission open (and 15 minutes after).

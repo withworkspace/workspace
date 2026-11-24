@@ -4279,6 +4279,24 @@ export interface RunInWorktree {
 export interface RunLog {
     ref: string;
     log: string;
+    /**
+     * Size is how much of the log it's as of: a page following it is told
+     * what's written after (RunLogOp).
+     */
+    size: number;
+}
+
+// From web/runs.go
+/**
+ * RunLogOp is what's been written to a run's log that a page follows
+ * (runlog:<ref>), told over the socket so the page needn't read it again:
+ * the text from From (as much of it as the page has) to Size. A page that
+ * holds less, or more, reads it whole.
+ */
+export interface RunLogOp {
+    from: number;
+    size: number;
+    text: string;
 }
 
 // From web/api.go
@@ -4621,6 +4639,10 @@ export interface SocketSaid {
      * Transcript is how a crew's session changed (its transcript topic's).
      */
     transcript?: TranscriptOp;
+    /**
+     * RunLog is what's been written to a run's log (its runlog topic's).
+     */
+    runLog?: RunLogOp;
 }
 
 // From web/enums.go

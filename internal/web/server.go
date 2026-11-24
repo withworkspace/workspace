@@ -139,6 +139,11 @@ type Server struct {
 	// transcripts is crew's sessions', each read as it grows by whoever
 	// follows it (followed).
 	transcripts *keyedHub
+	// filesFollowed is the Files page's grounds and capsules, each told when
+	// the runs move; a page that follows one has it open, for the runs
+	// started from it. runLogs is runs' logs, each told what's written.
+	filesFollowed *keyedHub
+	runLogs       *keyedHub
 	// files are the grounds and capsules open on the Files page, for the
 	// runs started there.
 	files filesOpen
@@ -240,6 +245,13 @@ func (s *Server) Start() error {
 	// repos, and the repos added being cloned, moved when a look behind
 	// a read finishes.
 	s.topics[topicGitHub] = newHub(topicGitHub, s.Poll, s.App.GitHubSeen)
+	// The Runs page: built when a run starts, comes up, ends or is cleared
+	// away (the runs' stamp, which reads no process table), or a silo
+	// moves; and every half a minute, for when a run ends (its owner's
+	// gone, its time's up) as it's swept.
+	runsHub := newHub(topicRuns, s.Poll, s.runsFingerprint)
+	runsHub.stamp, runsHub.floor = s.runsStamp, 30*time.Second
+	s.topics[topicRuns] = runsHub
 	for _, h := range s.topics {
 		go h.run(s.ctx)
 	}
@@ -258,6 +270,10 @@ func (s *Server) Start() error {
 	go s.talks.run(s.ctx)
 	s.transcripts = s.transcriptHub()
 	go s.transcripts.run(s.ctx)
+	s.filesFollowed = newKeyedHub(worktreeTopic, s.Poll, func(string) string { return s.App.RunsStamp() })
+	go s.filesFollowed.run(s.ctx)
+	s.runLogs = s.runLogHub()
+	go s.runLogs.run(s.ctx)
 	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
 	// A write to the records tells the followers of what it names at once:
 	// a mission's page, a conversation's; and one that names the
@@ -810,6 +826,12 @@ func (s *Server) follow(topic, app string) (ch <-chan told, done func(), status 
 	}
 	if key, ok := topicKey(topic, transcriptTopic); ok {
 		subscribe = func() (<-chan told, func()) { return s.transcripts.subscribe(key) }
+	}
+	if key, ok := topicKey(topic, worktreeTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.filesFollowed.subscribe(key) }
+	}
+	if ref, ok := topicKey(topic, runLogTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.runLogs.subscribe(ref) }
 	}
 	if ref, ok := prTopicRef(topic); ok && s.prs != nil {
 		subscribe = func() (<-chan told, func()) { return s.followPR(ref) }

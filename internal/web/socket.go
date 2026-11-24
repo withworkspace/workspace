@@ -60,6 +60,8 @@ type SocketSaid struct {
 	Conversation *ConversationOp `json:"conversation,omitempty"`
 	// Transcript is how a crew's session changed (its transcript topic's).
 	Transcript *TranscriptOp `json:"transcript,omitempty"`
+	// RunLog is what's been written to a run's log (its runlog topic's).
+	RunLog *RunLogOp `json:"runLog,omitempty"`
 }
 
 // socketPing is how often an idle socket is pinged, so one whose page has
@@ -151,6 +153,8 @@ func (ss *socketSession) follow(topic, app string) {
 					said.Conversation = op
 				case *TranscriptOp:
 					said.Transcript = op
+				case *RunLogOp:
+					said.RunLog = op
 				}
 				ss.say(said)
 			}

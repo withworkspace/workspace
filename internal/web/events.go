@@ -46,6 +46,7 @@ const (
 	topicWorkspace = "workspace"
 	topicReviews   = "reviews"
 	topicTeam      = "team"
+	topicRuns      = "runs" // the Runs page's: every run, and the silos
 )
 
 func newHub(name string, poll time.Duration, fingerprint func() string) *hub {
