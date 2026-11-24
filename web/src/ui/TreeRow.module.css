@@ -1,0 +1,123 @@
+/* A row of a tree (TreeRow.tsx): its indent, its twist, its mark, its
+   icon, its name, and its treats at the end. Its height is the tree's
+   (--tree-row), which a tree that draws only the rows in view counts by. */
+
+@layer ui {
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: var(--tree-row, 26px);
+    padding: 0 8px 0 4px;
+    border-radius: var(--radius);
+    color: var(--fg);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .hovered {
+    background: var(--hover);
+  }
+
+  /* Where the keys are: a bar at its start, as a list's cursor has. */
+  .focused {
+    background: var(--hover);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+
+  /* The one open in the page. */
+  .current {
+    background: var(--selected);
+  }
+
+  /* So far in as its level, with a line down from each folder it's in:
+     under that folder's twist. */
+  .indent {
+    flex: none;
+    align-self: stretch;
+    width: calc(var(--tree-level) * 14px);
+    margin-right: -6px;
+  }
+
+  .guides {
+    background: repeating-linear-gradient(to right, transparent 0 7px, var(--line) 7px 8px, transparent 8px 14px);
+  }
+
+  .twist,
+  .leaf {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    min-height: 0;
+  }
+
+  .twist {
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    color: var(--faint);
+    background: none;
+    box-shadow: none;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .twist[data-hovered] {
+    color: var(--fg);
+  }
+
+  .mark {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 14px;
+  }
+
+  .icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+  }
+
+  .name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mono {
+    font-family: var(--mono);
+    font-size: var(--text-xs);
+  }
+
+  .slash {
+    margin: 0 1px;
+    color: var(--faint);
+  }
+
+  .gone .name {
+    color: var(--dim);
+    text-decoration: line-through;
+    text-decoration-color: var(--faint);
+  }
+
+  .quiet .name {
+    color: var(--dim);
+  }
+
+  .quiet .icon {
+    opacity: 0.6;
+  }
+
+  .end {
+    display: flex;
+    flex: none;
+    gap: 6px;
+    align-items: center;
+    margin-left: auto;
+    padding-left: 8px;
+  }
+}

@@ -1,0 +1,32 @@
+/* A letter or a small icon in a tone, on a tree's row (TreeMark.tsx). */
+
+@layer ui {
+  .mark {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 14px;
+    height: 14px;
+    font: 700 10px / 1 var(--mono);
+  }
+
+  .done {
+    color: var(--done);
+  }
+
+  .attention {
+    color: var(--attention);
+  }
+
+  .danger {
+    color: var(--danger);
+  }
+
+  .accent {
+    color: var(--accent);
+  }
+
+  .quiet {
+    color: var(--faint);
+  }
+}

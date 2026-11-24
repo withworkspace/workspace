@@ -1,0 +1,30 @@
+/* A dot in a tone among a tree row's treats (TreeDot.tsx). */
+
+@layer ui {
+  .dot {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .done {
+    background: var(--done-fill);
+  }
+
+  .attention {
+    background: var(--attention-fill);
+  }
+
+  .danger {
+    background: var(--danger-fill);
+  }
+
+  .accent {
+    background: var(--accent);
+  }
+
+  .quiet {
+    background: var(--faint);
+  }
+}
