@@ -133,7 +133,6 @@ function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
     <Link key={r.name} to={`/files/${encodeURIComponent(r.name)}`} className={`repo-row${r.name === current ? " on" : ""}${r.cloned ? "" : " uncloned"}`} title={r.cloned ? r.name : `${r.name}: not cloned (ws setup ${r.name})`} aria-current={r.name === current ? "page" : undefined}>
       <span className="repo-dot" style={{ background: r.color }} />
       <span className="repo-label">{r.label}</span>
-      {r.label !== r.name && <span className="repo-name">{r.name}</span>}
       {r.capsules.length > 0 && (
         <span className="repo-capsules" title={`${r.capsules.length} ${r.capsules.length === 1 ? "capsule" : "capsules"}`}>
           {r.capsules.length}
