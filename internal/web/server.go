@@ -144,6 +144,11 @@ type Server struct {
 	// started from it. runLogs is runs' logs, each told what's written.
 	filesFollowed *keyedHub
 	runLogs       *keyedHub
+	// apps is apps' pages, each told when its run moves (and following one
+	// keeps it); docs is documents being edited, each told when its file's
+	// written.
+	apps *keyedHub
+	docs *keyedHub
 	// files are the grounds and capsules open on the Files page, for the
 	// runs started there.
 	files filesOpen
@@ -274,6 +279,13 @@ func (s *Server) Start() error {
 	go s.filesFollowed.run(s.ctx)
 	s.runLogs = s.runLogHub()
 	go s.runLogs.run(s.ctx)
+	s.apps = newKeyedHub(appTopic, s.Poll, func(key string) string {
+		name, p, _ := appOfKey(key)
+		return s.App.AppStamp(p, name)
+	})
+	go s.apps.run(s.ctx)
+	s.docs = s.docHub()
+	go s.docs.run(s.ctx)
 	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
 	// A write to the records tells the followers of what it names at once:
 	// a mission's page, a conversation's; and one that names the
@@ -832,6 +844,12 @@ func (s *Server) follow(topic, app string) (ch <-chan told, done func(), status 
 	}
 	if ref, ok := topicKey(topic, runLogTopic); ok {
 		subscribe = func() (<-chan told, func()) { return s.runLogs.subscribe(ref) }
+	}
+	if key, ok := topicKey(topic, appTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.apps.subscribe(key) }
+	}
+	if key, ok := topicKey(topic, docTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.docs.subscribe(key) }
 	}
 	if ref, ok := prTopicRef(topic); ok && s.prs != nil {
 		subscribe = func() (<-chan told, func()) { return s.followPR(ref) }

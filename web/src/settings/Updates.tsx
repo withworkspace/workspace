@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
-import { checkUpdates, getUpdates, type UpdatesInfo, upgradeWS } from "../api";
+import { checkUpdates, getUpdates, type UpdatesInfo, upgradeWS, useEventsOf } from "../api";
 import { useLoaded } from "../load";
 import { shortVersion } from "../shell/version";
 import { Icon } from "../ui/Icon";
@@ -38,14 +38,10 @@ export function Updates({ running }: { running?: string }) {
   const { value: up, error, set, reload } = useLoaded<UpdatesInfo>(getUpdates, [running], { keep: true });
   const [busy, setBusy] = useState<"look" | "upgrade">();
   const waiting = !!up?.installed;
-  // While a ws waits to be restarted onto, what it's waiting for changes.
-  useEffect(() => {
-    if (!waiting) return;
-    const t = setInterval(() => {
-      if (document.visibilityState === "visible") void reload();
-    }, 5000);
-    return () => clearInterval(t);
-  }, [waiting, reload]);
+  // While a ws waits to be restarted onto, what it's waiting for (crew
+  // mid-turn, an agent's run) changes with the workspace: read again when
+  // it does.
+  useEventsOf(waiting ? ["workspace"] : [], { changed: () => void reload() });
 
   const look = () => {
     setBusy("look");

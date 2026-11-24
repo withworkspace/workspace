@@ -2,9 +2,13 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"github.com/withworkspace/workspace/internal/doc"
+	"github.com/withworkspace/workspace/internal/ops"
 	"net/http"
+	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -106,3 +110,52 @@ func scope(r *http.Request) doc.Scope { return doc.Scope{Mission: r.PathValue("s
 
 // drafts are the drafts of the documents a request is about.
 func (s *Server) drafts(r *http.Request) doc.Drafts { return doc.Drafts{Root: s.Root, Scope: scope(r)} }
+
+// A document being edited is followed by its editor (doc:<slug>/<ref>), told
+// when its file's written, by crew committing to it, say: the editor reads
+// it then, to see whether it's another version than it's editing.
+
+// docHub follows documents being edited: each one's file looked at every
+// poll while it's followed (a stat), found where it is as it's first
+// followed.
+func (s *Server) docHub() *keyedHub {
+	var mu sync.Mutex
+	paths := map[string]string{}
+	pathOf := func(key string) string {
+		mu.Lock()
+		path, ok := paths[key]
+		mu.Unlock()
+		if ok {
+			return path
+		}
+		slug, ref, _ := strings.Cut(key, "/")
+		var d *ops.DocText
+		var err error
+		if slug == "" {
+			d, err = s.App.Doc(ref)
+		} else {
+			d, err = s.App.Artifact(slug, ref)
+		}
+		if err == nil && d != nil {
+			path = d.Path
+		}
+		mu.Lock()
+		paths[key] = path
+		mu.Unlock()
+		return path
+	}
+	h := newKeyedHub(docTopic, s.Poll, func(key string) string {
+		path := pathOf(key)
+		info, err := os.Stat(path)
+		if path == "" || err != nil {
+			return ""
+		}
+		return fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano())
+	})
+	h.gone = func(key string) {
+		mu.Lock()
+		delete(paths, key)
+		mu.Unlock()
+	}
+	return h
+}

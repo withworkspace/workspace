@@ -550,9 +550,56 @@ func (s Store) List() ([]Run, error) {
 // cleared away; not as it writes its output.
 func (s Store) Stamp() string { return s.stamp(filepath.Join(s.Dir(), "*", "*", "*", recordFile)) }
 
-// StampIn is Stamp for the runs in repo's ground or capsule worktree.
+// StampIn is Stamp for the runs in repo's ground or capsule worktree (the
+// workspace's own, for no repo).
 func (s Store) StampIn(repo, worktree string) string {
-	return s.stamp(filepath.Join(s.Dir(), repo, worktree, "*", recordFile))
+	return s.stamp(filepath.Join(s.place(repo, worktree), "*", recordFile))
+}
+
+// Running is the run of recipe in repo's worktree (the workspace's, for no
+// repo) that's running, as its record says, without the process table:
+// false for none.
+func (s Store) Running(repo, worktree, recipe string) (Run, bool) {
+	paths, _ := filepath.Glob(filepath.Join(s.place(repo, worktree), "*", recordFile))
+	for _, p := range paths {
+		dir := filepath.Dir(p)
+		var r Run
+		if b, err := os.ReadFile(p); err != nil || json.Unmarshal(b, &r.Record) != nil || r.Recipe != recipe {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(dir, exitFile)); err == nil {
+			continue
+		}
+		r.Path, r.State = dir, Running
+		return r, true
+	}
+	return Run{}, false
+}
+
+// Starting is how far a run of recipe in repo's worktree (the workspace's,
+// for no repo) has got with its output, while it's starting: running, and
+// not yet answering on its port (a task, until it ends). false for none
+// that's starting: once it's up, what it writes isn't news.
+func (s Store) Starting(repo, worktree, recipe string) (string, bool) {
+	paths, _ := filepath.Glob(filepath.Join(s.place(repo, worktree), "*", recordFile))
+	for _, p := range paths {
+		dir := filepath.Dir(p)
+		var r Run
+		if b, err := os.ReadFile(p); err != nil || json.Unmarshal(b, &r.Record) != nil || r.Recipe != recipe {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(dir, exitFile)); err == nil {
+			continue
+		}
+		if !r.IsTask() && r.Port > 0 && r.Listening() {
+			continue
+		}
+		if info, err := os.Stat(filepath.Join(dir, logFile)); err == nil {
+			return fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano()), true
+		}
+		return "", true
+	}
+	return "", false
 }
 
 func (s Store) stamp(pattern string) string {

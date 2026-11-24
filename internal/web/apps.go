@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/ops"
@@ -20,6 +21,10 @@ import (
 // apps, and a repo's worktree's (its tabs on the repo's page).
 type Apping interface {
 	AppAt(p ops.AppPlace, name string) (ops.AppView, error)
+	// AppStamp names where an app's run stands, cheaply; LookedAtApp says
+	// someone has it open, so its run lasts.
+	AppStamp(p ops.AppPlace, name string) string
+	LookedAtApp(p ops.AppPlace, name string) error
 	OpenAppAt(p ops.AppPlace, name string, by ops.Actor) (ops.AppView, error)
 	RestartAppAt(p ops.AppPlace, name string, by ops.Actor) (ops.AppView, error)
 	StopAppAt(p ops.AppPlace, name string) error
@@ -155,4 +160,34 @@ func (s *Server) pointApp(w http.ResponseWriter, r *http.Request) {
 	d := s.appDetail(v)
 	d.Said = done.String()
 	writeJSON(w, http.StatusOK, d)
+}
+
+// An app's page follows its run (app:<name>, or app:<name>@<repo>/<worktree>
+// for a worktree's): told when it starts, comes up or ends, and while it's
+// starting, as its output grows (AppStamp). Following it is what says the
+// page is open, which keeps its run (markLooked), as opening it again each
+// minute did.
+
+// appTopicKey is an app's topic's key: its name, and its place.
+func appTopicKey(name string, p ops.AppPlace) string {
+	if p.Repo == "" {
+		return name
+	}
+	return name + "@" + p.Repo + "/" + p.Worktree
+}
+
+// appOfKey is the app an app topic's key names.
+func appOfKey(key string) (string, ops.AppPlace, bool) {
+	name, at, worktree := strings.Cut(key, "@")
+	if name == "" || strings.ContainsAny(name, "/ ") {
+		return "", ops.AppPlace{}, false
+	}
+	if !worktree {
+		return name, ops.AtWorkspace, true
+	}
+	repo, wt, ok := strings.Cut(at, "/")
+	if !ok || repo == "" || wt == "" || strings.Contains(wt, "/") {
+		return "", ops.AppPlace{}, false
+	}
+	return name, ops.AppPlace{Repo: repo, Worktree: wt}, true
 }

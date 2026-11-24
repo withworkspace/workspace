@@ -119,6 +119,11 @@ func (s *Server) markLooked() {
 			open := s.files.open(now)
 			maps.Copy(open, s.filesFollowed.open()) // followed over a socket
 			s.App.LookedAt(runs.Looking{Missions: s.missions.open(), Worktrees: open})
+			for key := range s.apps.open() {
+				if name, p, ok := appOfKey(key); ok {
+					s.App.LookedAtApp(p, name)
+				}
+			}
 		}
 	}
 }

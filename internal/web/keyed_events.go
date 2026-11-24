@@ -26,6 +26,8 @@ const (
 	transcriptTopic   = "transcript:" // a crew's session: <slug>/<crew>
 	worktreeTopic     = "worktree:"   // a ground's or capsule's runs, on the Files page: <repo>/<name>
 	runLogTopic       = "runlog:"     // a run's output: its ref
+	appTopic          = "app:"        // an app's run: <name>, or <name>@<repo>/<worktree>
+	docTopic          = "doc:"        // a document being edited: <slug>/<ref>, the slug "" for the workspace's
 )
 
 // reread is the change that says only that a thing's changed: its
@@ -254,6 +256,12 @@ func topicKey(topic, prefix string) (string, bool) {
 	case conversationTopic:
 		scope, id, ok := strings.Cut(key, "/")
 		return key, ok && id != "" && !strings.Contains(id, "/") && !strings.Contains(scope, "/")
+	case appTopic:
+		_, _, ok := appOfKey(key)
+		return key, ok
+	case docTopic:
+		_, ref, ok := strings.Cut(key, "/")
+		return key, ok && ref != ""
 	case transcriptTopic, worktreeTopic:
 		slug, id, ok := strings.Cut(key, "/")
 		return key, ok && slug != "" && id != "" && !strings.Contains(id, "/")
