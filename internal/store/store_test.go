@@ -458,9 +458,10 @@ func TestProcesses_WriteAtOnce(t *testing.T) {
 	db.Write(bg, func(tx *Tx) error { _, err := tx.Exec(`INSERT INTO t (id, n) VALUES (1, 0)`); return err })
 
 	const procs, each = 12, 100
-	stop := make(chan struct{})
+	stop, looked := make(chan struct{}), make(chan struct{})
 	looks := 0
 	go func() {
+		defer close(looked)
 		for {
 			select {
 			case <-stop:
@@ -487,6 +488,7 @@ func TestProcesses_WriteAtOnce(t *testing.T) {
 	}
 	wg.Wait()
 	close(stop)
+	<-looked // done with looks
 	took := time.Since(start)
 	close(errs)
 	for err := range errs {
