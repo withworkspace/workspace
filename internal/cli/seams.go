@@ -153,5 +153,5 @@ func NoRunsWatcher(t interface{ Cleanup(func()) }) {
 }
 
 // RouteFile is the route file the daemon writes for the workspace at root
-// (routerLoop).
+// (the daemon's router loop).
 var RouteFile = daemon.RouteFile

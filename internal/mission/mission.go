@@ -94,7 +94,7 @@ type Capsule struct {
 	Repo   string `toml:"repo" json:"repo"`
 	Name   string `toml:"name" json:"name"`
 	Branch string `toml:"branch,omitempty" json:"branch,omitempty"`
-	// SeenPR is what was last seen of its PR on GitHub (prwatch.go), so a
+	// SeenPR is what was last seen of its PR on GitHub (daemon.WatchPRs), so a
 	// change is noticed once, whenever it's next looked at.
 	SeenPR *SeenPR `toml:"seen_pr,omitempty" json:"seen_pr,omitempty"`
 	// Landed is its landing, for a capsule of a repo that takes commits

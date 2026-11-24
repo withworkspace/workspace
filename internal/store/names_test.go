@@ -154,7 +154,9 @@ func TestKeepName_StandsOverName(t *testing.T) {
 		defer namingMu.Unlock()
 		return naming[root]
 	}
-	same := func(a, b func() *ref.Known) bool { return a != nil && b != nil && a() != nil && len(a().Things) == len(b().Things) }
+	same := func(a, b func() *ref.Known) bool {
+		return a != nil && b != nil && a() != nil && len(a().Things) == len(b().Things)
+	}
 	t.Cleanup(func() { Name(root, nil) })
 
 	Name(root, brief)
