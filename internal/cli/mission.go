@@ -13,6 +13,7 @@ import (
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/prompt"
 	"github.com/withworkspace/workspace/internal/review"
 	"github.com/withworkspace/workspace/internal/ui"
 )
@@ -584,11 +585,11 @@ func formatMissionLLM(ctx *ops.Workspace, v ops.MissionView, briefPath, brief st
 			}
 		}
 		b.WriteString("Steps (the plan's, with who's on each and ws's record of it; the current one is the first not accepted; ws show s<n> for one):\n")
-		for _, l := range stageLines(v.M, brief) {
+		for _, l := range prompt.StageLines(v.M, brief) {
 			b.WriteString("  " + l + "\n")
 		}
 	} else {
-		if lines := stageLines(v.M, brief); len(lines) > 0 {
+		if lines := prompt.StageLines(v.M, brief); len(lines) > 0 {
 			b.WriteString("Stages (the brief's plan, with ws's record of each; the current one is the first not accepted, and new crew work on it; ws show s<n> for one):\n")
 			for _, l := range lines {
 				b.WriteString("  " + l + "\n")
@@ -770,7 +771,7 @@ func printMissionText(ctx *ops.Workspace, v ops.MissionView, briefPath, brief st
 		fmt.Fprintf(w, "    %s\n", ui.Dim.Render(e.Words()))
 	}
 
-	if lines := stageLines(v.M, brief); len(lines) > 0 {
+	if lines := prompt.StageLines(v.M, brief); len(lines) > 0 {
 		title := "Stages"
 		if v.M.Plan != nil {
 			title = "Plan"
@@ -813,9 +814,8 @@ func printMissionText(ctx *ops.Workspace, v ops.MissionView, briefPath, brief st
 }
 
 func formatEventLine(e mission.Event, plain bool) string {
-	ts := e.Time.Local().Format("2006-01-02 15:04")
 	if plain {
-		ts = e.Time.UTC().Format("2006-01-02T15:04Z")
+		return prompt.EventLine(e)
 	}
 	var detail []string
 	if e.Repo != "" || e.Capsule != "" {
@@ -828,10 +828,7 @@ func formatEventLine(e mission.Event, plain bool) string {
 	if e.Crew != "" {
 		who = " (" + e.Crew + ")"
 	}
-	if plain {
-		return fmt.Sprintf("%s %s%s %s", ts, e.Kind, who, strings.Join(detail, " — "))
-	}
-	return fmt.Sprintf("%s  %s%s  %s", ui.Dim.Render(ts), e.Kind, ui.Dim.Render(who), strings.Join(detail, " — "))
+	return fmt.Sprintf("%s  %s%s  %s", ui.Dim.Render(e.Time.Local().Format("2006-01-02 15:04")), e.Kind, ui.Dim.Render(who), strings.Join(detail, " — "))
 }
 
 // --- note ---

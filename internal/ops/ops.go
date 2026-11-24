@@ -96,6 +96,10 @@ type Options struct {
 	// thread (job.Thread) in a mission ("" for the workspace's), or draft
 	// what a resolved thread decided (job.Draft). nil for no answers.
 	Answer func(kind, slug, id string)
+	// Live is what running crew show now (by key, slug/crew), from where
+	// they run: the orchestrator reads it. nil, or "" for crew it isn't
+	// running, reads what they left.
+	Live func(key string) string
 	// Now is the clock (default time.Now): tests set it.
 	Now func() time.Time
 	// PRs is what GitHub said of pull requests lately, which the views

@@ -12,6 +12,7 @@ import (
 	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/orchestrator"
 )
 
@@ -122,7 +123,8 @@ func runJob(root string) func(job.Job) error {
 				defer f.Close()
 				w = f
 			}
-			return orchestrate(ctx, orchestrateOptions{Slug: j.Mission, Crew: j.ID, Trigger: j.Why, Auto: true, Since: j.Since}, w)
+			return ctx.Orchestrate(ops.OrchestratorRun{Slug: j.Mission, Crew: j.ID, Trigger: j.Why, Auto: true, Since: j.Since,
+				Said: func(line string) { fmt.Fprintln(w, line) }})
 		case job.Answer, job.Thread:
 			return ctx.AnswerConversation(doc.Scope{Mission: j.Mission}, j.ID)
 		case job.Draft:

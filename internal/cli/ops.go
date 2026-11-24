@@ -65,6 +65,7 @@ func openOps(root string, prs *ops.PRCache, more ...func(*ops.Options)) *ops.Wor
 func opsOptions(root string) ops.Options {
 	return ops.Options{
 		Host:        hostFor(root),
+		Live:        liveOutput(root),
 		Orchestrate: func(slug, crewID, trigger string) { orchestrateSpawner(root, slug, crewID, trigger) },
 		Check:       func(slug, crewID string) { checkSpawner(root, slug, crewID) },
 		WritePR:     func(slug, capsule string) { prWriterSpawner(root, slug, capsule) },
