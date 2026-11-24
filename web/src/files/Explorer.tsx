@@ -527,13 +527,7 @@ export function FileBrowser({ api, label, head, tabs, other, before, updated, re
             {showTree && (
               <aside className="explorer-tree" aria-label="Files">
                 <div className="explorer-tree-head">
-                  {tree?.branch && (
-                    <div className="explorer-branch dim">
-                      <Icon name="branch" size={12} /> {tree.branch}
-                      {tree.base && <> · left {tree.baseRef.replace(/^origin\//, "")} at <span className="mono">{tree.base.slice(0, 7)}</span></>}
-                    </div>
-                  )}
-                  <div className="explorer-tools">
+                  <div className="explorer-tools" title={tree?.base ? `${tree.branch}, which left ${tree.baseRef.replace(/^origin\//, "")} at ${tree.base.slice(0, 7)}` : undefined}>
                     {tree && !tree.baseRef ? (
                       // Nothing to compare with (a repo's ground): just its files.
                       <span className="dim explorer-count">

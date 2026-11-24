@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from "reac
 import { docRef, GROUND, getRepos, getWorktrees, type Repo, type Worktree, worktreeAPI } from "../api";
 import { useKeys } from "../keys";
 import { Icon } from "../ui/Icon";
+import { chipClass } from "../ui/Chip";
 import { useMedia } from "../ui/useMedia";
 import { useTitle } from "../ui/useTitle";
 import { Loading } from "../ui/Loading";
@@ -109,7 +110,7 @@ export function FilesPage() {
             {narrow && (
               <Crumbs className="explorer-crumbs" steps={[{ to: "/files", label: "Repos" }]} />
             )}
-            <WorktreeSwitch repo={r} current={name} mission={mission?.title} open={switching} setOpen={setSwitching} />
+            <WorktreeSwitch repo={r} current={name} mission={mission} open={switching} setOpen={setSwitching} />
           </>
         }
       />
@@ -170,8 +171,8 @@ function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
           <details className="repo-group in-documents" open={spaces.some((r) => r.name === current)}>
             <summary className={groupHeadClass("repo-group-head")} title="Repos of documents: read in Documents, by their titles. Their files are here too.">
               In Documents <Count>{spaces.length}</Count>
-              <Link to="/documents" className="group-link" onClick={(e) => e.stopPropagation()}>
-                Open Documents
+              <Link to="/documents" className="group-link" title="Open Documents" onClick={(e) => e.stopPropagation()}>
+                Open
               </Link>
             </summary>
             {spaces.map(row)}
@@ -194,7 +195,7 @@ function WorktreeSwitch({
 }: {
   repo: Repo;
   current: string;
-  mission?: string;
+  mission?: { slug: string; title: string };
   open: boolean;
   setOpen: (v: boolean) => void;
 }) {
@@ -243,28 +244,20 @@ function WorktreeSwitch({
   const missionOf = (name: string) => missions.find((m) => m.capsules.some((c) => c.repo === repo.name && c.name === name))?.title;
   return (
     <div className="wt-switch" ref={box}>
-      <button className="wt-title" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)} title="Switch to the ground or another capsule (w)">
+      <button className="wt-title" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)} title={`${current === GROUND ? "The default branch, as it's checked out" : "A capsule"}. Switch to the ground or another capsule (w)`}>
         <span className="repo-dot" style={{ background: repo.color }} />
         <span className="wt-repo">{repo.label}</span>
         <span className="wt-sep">/</span>
         <span className={`wt-name${current === GROUND ? " ground" : ""}`}>{current === GROUND ? "ground" : current}</span>
+        {here?.dirty && current !== GROUND && <span className="dirty-dot" title="Changes not committed" />}
         <Icon name="chevron-down" size={13} className="wt-chevron" />
       </button>
-      <div className="wt-sub dim">
-        {current === GROUND ? (
-          <>
-            <Icon name="layers" size={12} /> The default branch, as it's checked out
-          </>
-        ) : mission ? (
-          <>
-            <Icon name="flag" size={12} /> {mission}
-          </>
-        ) : (
-          <>
-            <Icon name="box" size={12} /> A capsule{here?.dirty ? ", with changes not committed" : ""}
-          </>
-        )}
-      </div>
+      {mission && (
+        <Link to={`/missions/${mission.slug}`} className={chipClass(undefined, "wt-mission")} title={`The mission this capsule is for: ${mission.title}`}>
+          <Icon name="flag" size={12} />
+          <span>{mission.title}</span>
+        </Link>
+      )}
       {open && (
         <ul className="wt-menu" role="listbox" aria-label={`${repo.label}'s ground and capsules`}>
           {list.map((w, i) => {

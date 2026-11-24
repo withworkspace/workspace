@@ -8301,7 +8301,7 @@ div.tc-bar {
 
 /* Repos (files/Files.tsx): the repos, then the worktree. */
 .explorer.with-before {
-  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-columns: 184px minmax(0, 1fr);
 }
 
 .explorer-main {
@@ -8315,8 +8315,9 @@ div.tc-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px 16px;
-  padding: 10px 14px;
+  gap: 0 16px;
+  min-height: 40px;
+  padding: 0 14px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -8354,35 +8355,65 @@ div.tc-bar {
 }
 
 /* A worktree's tabs: Files, Runs, and each of its apps. */
+/* Underlined, as Tabs are, and standing on the bar's own line. */
 .worktree-tabs {
+  align-self: stretch;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 2px;
   min-width: 0;
+  min-height: 40px;
+  margin-bottom: -1px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
   overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .worktree-tab {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
+  padding: 0 10px;
   color: var(--dim);
   font-size: var(--text-sm);
+  font-weight: 500;
   white-space: nowrap;
   text-decoration: none;
 }
 
+.worktree-tab .icon {
+  color: var(--faint);
+}
+
 .worktree-tab:hover {
-  background: var(--hover);
   color: var(--fg);
 }
 
+.worktree-tab::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  transform: scaleX(0);
+  transition: transform var(--slow) var(--ease);
+}
+
 .worktree-tab[aria-current="page"] {
-  background: var(--selected);
   color: var(--fg);
-  font-weight: 500;
+}
+
+.worktree-tab[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+.worktree-tab[aria-current="page"] .icon {
+  color: var(--accent);
 }
 
 .worktree-tab-count {
@@ -8407,7 +8438,7 @@ div.tc-bar {
 
 .files-page {
   display: grid;
-  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-columns: 184px minmax(0, 1fr);
   height: 100%;
 }
 
@@ -8536,8 +8567,9 @@ details.repo-group > summary::-webkit-details-marker {
 /* The title: the repo and which worktree, switching from it. */
 .wt-switch {
   position: relative;
-  display: grid;
-  gap: 3px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -8553,6 +8585,7 @@ details.repo-group > summary::-webkit-details-marker {
   font-size: var(--text-lg);
   font-weight: 650;
   line-height: 22px;
+  flex: none;
 }
 
 .wt-title:hover,
@@ -8587,15 +8620,21 @@ details.repo-group > summary::-webkit-details-marker {
   color: var(--dim);
 }
 
-.wt-sub {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.wt-mission {
+  flex: 0 1 auto;
   min-width: 0;
-  font-size: var(--text-xs);
-  white-space: nowrap;
+  max-width: 36ch;
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.wt-mission span {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.wt-mission:hover {
+  color: var(--fg);
 }
 
 .wt-menu {
@@ -8672,8 +8711,8 @@ details.repo-group > summary::-webkit-details-marker {
 
 .explorer-tree-head {
   display: grid;
-  gap: 6px;
-  padding: 10px 12px 10px 14px;
+  gap: 4px;
+  padding: 5px 8px 5px 14px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -8711,7 +8750,10 @@ details.repo-group > summary::-webkit-details-marker {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 4px;
+}
+
+.explorer-tools .explorer-branch {
+  flex: 1;
 }
 
 .explorer-count {
@@ -11886,6 +11928,10 @@ body.nav-pointing .code-view code[data-rev] {
 .in-documents .group-link {
   margin-left: auto;
   font-weight: 400;
+}
+
+.in-documents > summary {
+  white-space: nowrap;
 }
 
 .space-folders {
