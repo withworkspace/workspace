@@ -1,7 +1,9 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"os"
 	"strings"
@@ -14,6 +16,7 @@ import (
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/pulls"
+	"github.com/withworkspace/workspace/internal/store"
 	"reflect"
 )
 
@@ -61,50 +64,91 @@ type Missions interface {
 	ArtifactsConfig() artifact.Config
 }
 
-// viewCache keeps the workspace's view as it was last built, as the JSON
-// GET /api/workspace serves, with the stamp it was built at. Told that the
-// workspace has changed, every open page asks for it at once, just after
-// the workspace's hub built it to see whether it had: built once, it's
-// served to them all. It's built again when the stamp has moved (a write
-// to the records, a file, a capsule) or a poll's passed since (for what
-// the stamp can't see, as the hub's floor is for), or by another App (a
-// test's).
+// viewCache keeps views as they were last built, as the JSON they're
+// served as, each with the stamp it was built at: the workspace's (GET
+// /api/workspace) and each mission's (GET /api/missions/{slug}). Told one
+// has changed, every page showing it asks for it at once (the workspace's
+// hub has just built it, to see whether it had): built once, it's served to
+// them all. It's built again when its stamp has moved (a write to the
+// records, a file, a capsule) or a poll's passed since (for what a stamp
+// can't see, as the hub's floor is for), after a write a page makes
+// (forget), or for another App (a test's).
 type viewCache struct {
-	mu    sync.Mutex // held while it's built, so those asking at once wait for one build
+	mu    sync.Mutex // held while one's built, so those asking at once wait for one build
+	views map[string]*keptView
+	built map[string]int // how many times each has been built: what a test counts
+}
+
+type keptView struct {
 	stamp string
 	app   uintptr
 	at    time.Time
 	data  []byte
-	built int // how many times it's been built: what a test counts
 }
 
-// workspace is the workspace's view as GET /api/workspace serves it.
-func (c *viewCache) workspace(s *Server) ([]byte, error) {
+// get is the view at key, as JSON: as kept, if it was built at its stamp
+// as it is now within a poll, by this App; else built now (build), and
+// kept. The stamp's taken once those asking before are done, so one
+// asking while it's built is served what was built. A view that can't be
+// built isn't kept, and its error is build's.
+func (c *viewCache) get(s *Server, key string, stampOf func() string, build func() (any, error)) ([]byte, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	stamp, app := s.App.Stamp()+" "+s.keptStamp(), appID(s.App)
-	if c.data != nil && stamp == c.stamp && app != 0 && app == c.app && time.Since(c.at) < s.Poll {
-		return c.data, nil
+	stamp, app := stampOf(), appID(s.App)
+	if v := c.views[key]; v != nil && v.stamp == stamp && app != 0 && v.app == app && time.Since(v.at) < s.Poll {
+		return v.data, nil
 	}
-	c.built++
-	v, err := s.workspaceView()
+	if c.views == nil {
+		c.views = map[string]*keptView{}
+	}
+	// Those nobody's asked for in a while go: a mission closed.
+	for k, v := range c.views {
+		if time.Since(v.at) > time.Minute {
+			delete(c.views, k)
+		}
+	}
+	if c.built == nil {
+		c.built = map[string]int{}
+	}
+	c.built[key]++
+	delete(c.views, key)
+	v, err := build()
 	if err != nil {
-		c.data = nil
 		return nil, err
 	}
 	data, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
-	c.stamp, c.app, c.at, c.data = stamp, app, time.Now(), data
+	c.views[key] = &keptView{stamp: stamp, app: app, at: time.Now(), data: data}
 	return data, nil
 }
 
+// workspace is the workspace's view as GET /api/workspace serves it.
+func (c *viewCache) workspace(s *Server) ([]byte, error) {
+	return c.get(s, "workspace", func() string { return s.App.Stamp() + " " + s.keptStamp() }, func() (any, error) { return s.workspaceView() })
+}
+
+// mission is a mission's view as GET /api/missions/{slug} serves it: its
+// stamp is what its page is built from but its records (MissionStamp),
+// with the records' change number, which every write moves.
+func (c *viewCache) mission(s *Server, slug string) ([]byte, error) {
+	stamp := func() string {
+		var seq int64
+		if db, err := store.Dial(s.Root); err == nil {
+			seq, _ = db.Seq(context.Background())
+		}
+		return fmt.Sprintf("%s %d %s", s.App.MissionStamp(slug), seq, s.keptStamp())
+	}
+	return c.get(s, missionTopic+slug, stamp, func() (any, error) { return s.missionDetail(slug) })
+}
+
 // forget drops what's kept: what it was built from has changed in a way
-// its stamp doesn't say (a test's App, changed in place).
+// its stamp doesn't say (a write a page made, a test's App changed in
+// place).
 func (c *viewCache) forget() {
 	c.mu.Lock()
-	c.data = nil
+	c.views = nil
 	c.mu.Unlock()
 }
 

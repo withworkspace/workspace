@@ -248,12 +248,12 @@ func TestWorkspaceView_BuiltOncePerChange(t *testing.T) {
 	if got := st.next(3 * time.Second); got != "following workspace" {
 		t.Fatalf("following: %q", got)
 	}
-	built := func() int {
+	built := func(key string) int {
 		s.views.mu.Lock()
 		defer s.views.mu.Unlock()
-		return s.views.built
+		return s.views.built[key]
 	}
-	before := built()
+	before := built("workspace")
 	ms.Create("Pushed")
 	if got := st.next(3 * time.Second); got != "changed workspace" {
 		t.Fatalf("after a mission's made: %q", got)
@@ -273,12 +273,38 @@ func TestWorkspaceView_BuiltOncePerChange(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	if n := built() - before; n != 1 {
+	if n := built("workspace") - before; n != 1 {
 		t.Errorf("built %d times for one change and eight pages, want once", n)
 	}
 	asks(t, s, "POST", "/api/focus", map[string]any{"pins": []any{}}, nil).Body.Close()
 	do(t, s, "GET", "/api/workspace", true, nil).Body.Close()
-	if n := built() - before; n != 2 {
+	if n := built("workspace") - before; n != 2 {
 		t.Errorf("after a write: built %d times in all, want twice", n)
+	}
+
+	// A mission's page, and what else shows the mission (its pane, its
+	// crew's page), ask for it at once when it changes: built once.
+	slug := "pushed"
+	before = built("mission:" + slug)
+	ms.AppendLog(slug, mission.Event{Kind: mission.EventNote, Text: "hi"})
+	for range 4 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			res := do(t, s, "GET", "/api/missions/"+slug, true, nil)
+			var d MissionDetail
+			json.NewDecoder(res.Body).Decode(&d)
+			res.Body.Close()
+			if d.Slug != slug {
+				t.Errorf("a page was served %q", d.Slug)
+			}
+		}()
+	}
+	wg.Wait()
+	if n := built("mission:"+slug) - before; n != 1 {
+		t.Errorf("built the mission %d times for four asking at once, want once", n)
+	}
+	if code := do(t, s, "GET", "/api/missions/nope", true, nil).StatusCode; code != http.StatusNotFound {
+		t.Errorf("a mission that isn't: %d", code)
 	}
 }
