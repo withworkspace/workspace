@@ -6,6 +6,8 @@
 export type PaneAt =
   | { kind: "conversation"; slug: string; id: string }
   | { kind: "ask"; thing: string }
+  // A conversation that hasn't begun, about nothing: C, anywhere.
+  | { kind: "new" }
   | { kind: "mission"; slug: string }
   // ref: the document as ws names it (repo:path, or repo/capsule:path).
   | { kind: "document"; ref: string }
@@ -19,6 +21,12 @@ export const talkAt = (id: string, slug = "") => (slug ? `/missions/${encodeURIC
 // and is there only while the thing's page is.
 export const askAt = (thing: string) => `/ask/${encodeURIComponent(thing)}`;
 
+// The address of a conversation you're about to begin, about nothing: open
+// beside whatever page you're on, with nothing said yet. ws has no
+// conversation for it until something is: then it's that conversation, in
+// this tab's place. (No conversation is called new: they're w1, t3.)
+export const newTalkAt = "/conversations/new";
+
 // A piece of an address as it was written, or as it is if it wasn't
 // written as one.
 function piece(s: string): string {
@@ -30,13 +38,14 @@ function piece(s: string): string {
 }
 
 // paneAt is the pane an address has, if what's there has one: a
-// conversation (the workspace's, or about a mission), one about a thing
-// that hasn't begun, a mission, a document (a file in a repo, as it is on
-// its default branch or, with ?in=, in a capsule) or a pull request. What
-// else the address says (a mission's tab, a document being edited, a
-// section) isn't the pane's.
+// conversation (the workspace's, or about a mission), one that hasn't
+// begun (about a thing, or about nothing), a mission, a document (a file
+// in a repo, as it is on its default branch or, with ?in=, in a capsule)
+// or a pull request. What else the address says (a mission's tab, a
+// document being edited, a section) isn't the pane's.
 export function paneAt(to: string): PaneAt | undefined {
   const path = to.split(/[?#]/)[0];
+  if (path === newTalkAt) return { kind: "new" };
   let m = /^\/missions\/([^/]+)\/conversations\/([^/]+)\/?$/.exec(path);
   if (m) return { kind: "conversation", slug: piece(m[1]), id: piece(m[2]) };
   m = /^\/conversations\/([^/]+)\/?$/.exec(path);
@@ -70,7 +79,8 @@ export function peekAt(href: string, origin: string): string | undefined {
   }
   if (url.origin !== origin) return undefined;
   const at = paneAt(url.pathname + url.search);
-  if (!at || at.kind === "ask") return undefined;
+  // One that hasn't begun isn't somewhere a link goes.
+  if (!at || at.kind === "ask" || at.kind === "new") return undefined;
   const path = url.pathname.replace(/\/$/, "");
   if (at.kind !== "document") return path;
   const capsule = url.searchParams.get("in");

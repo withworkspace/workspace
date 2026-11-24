@@ -48,7 +48,7 @@ export function SampleBeside({ things, own = [], over, onOver, size, onSize, onC
     if (left.length + own.length === 0) return onClose();
     if (front === id) setFront((left[open.findIndex((t) => t.id === id)] ?? left[left.length - 1] ?? own[0]).id);
   };
-  const tab = (t: SampleThing, mine: boolean) => <DockTab key={t.id} name={t.name} lead={t.lead} on={t.id === now.id} peek={t.id === peek} onPick={() => setFront(t.id)} onClose={mine ? () => close(t.id) : undefined} />;
+  const tab = (t: SampleThing, mine: boolean) => <DockTab key={t.id} name={t.name} lead={t.lead} on={t.id === now.id} passing={t.id === peek ? "a peek, which the next takes the place of" : undefined} onPick={() => setFront(t.id)} onClose={mine ? () => close(t.id) : undefined} />;
   const listed = (t: SampleThing) => ({ id: t.id, name: t.name, lead: t.lead, on: t.id === now.id, onPick: () => setFront(t.id) });
   return (
     <Dock side="beside" label="Beside" size={size} over={over && !sheet} sheet={sheet} edge={<DockEdge side="beside" label="Beside's width" size={size} min={300} max={760} rest={420} onSize={onSize} />}>

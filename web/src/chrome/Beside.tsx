@@ -5,6 +5,7 @@ import { titleOf } from "../documents/peek";
 import { AskPane } from "../panes/AskPane";
 import { DocumentPane } from "../panes/DocumentPane";
 import { MissionPane } from "../panes/MissionPane";
+import { NewTalkPane } from "../panes/NewTalkPane";
 import { PullRequestPane } from "../panes/PullRequestPane";
 import { TalkPane } from "../panes/TalkPane";
 import { talkStatus } from "../talk/Talk";
@@ -41,7 +42,10 @@ type BesideProps = {
 //
 // One of the tabs may be a peek (z, on what the pointer's on): a mission,
 // a document, a pull request or a conversation, looked at and not opened.
-// The next thing peeked at takes its place.
+// The next thing peeked at takes its place. Another may be a conversation
+// about to begin (C): nothing's kept of it until something's said, and
+// then it's that conversation, in its place. Both are named in italics,
+// which is how a tab says it isn't kept yet.
 //
 // What it shows is the window's (store.ts): this draws it, and changes
 // it.
@@ -72,11 +76,12 @@ export function Beside({ sheet }: BesideProps) {
   if (!front || !at) return null;
   const over = now.over && !sheet;
   const said = (t: string) => tabOf({ conversations, missions }, paneAt(t)!, paneAt(t)!.kind === "conversation" ? talkName(talks[t]?.detail) : names[t]);
+  const passing = (t: string) => (paneAt(t)?.kind === "new" ? "not begun: it's a conversation once you've said something" : t === peek ? "a peek, which the next takes the place of" : undefined);
   const pick = (t: string) => {
     change((s) => pickBeside(s, t, here));
     setPicks((n) => n + 1); // the one that's in front already is brought back into sight
   };
-  const tab = (t: string) => <DockTab key={t} {...said(t)} on={t === front} peek={t === peek} onPick={() => pick(t)} onClose={() => close(t)} />;
+  const tab = (t: string) => <DockTab key={t} {...said(t)} on={t === front} passing={passing(t)} onPick={() => pick(t)} onClose={() => close(t)} />;
   const listed = (t: string): ListedTab => ({ id: t, ...said(t), on: t === front, onPick: () => pick(t) });
   return (
     <Dock side="beside" label="Beside" size={now.width} over={over} sheet={sheet} edge={<DockEdge side="beside" label="Beside's width" size={now.width} {...besideWidths} onSize={(w) => change((s) => widenBeside(s, w))} />}>
@@ -113,6 +118,7 @@ export function Beside({ sheet }: BesideProps) {
       </DockHead>
       {at.kind === "conversation" && <TalkPane key={front} to={front} root={root} stamp={at.slug ? undefined : conversations.find((c) => c.id === at.id)?.updated} onGone={() => close(front)} />}
       {at.kind === "ask" && <AskPane key={front} to={front} thing={at.thing} />}
+      {at.kind === "new" && <NewTalkPane key={front} to={front} />}
       {at.kind === "mission" && <MissionPane key={front} to={front} slug={at.slug} />}
       {at.kind === "document" && <DocumentPane key={front} to={front} docRef={at.ref} />}
       {at.kind === "pr" && <PullRequestPane key={front} to={front} repo={at.repo} number={at.number} />}
@@ -128,6 +134,7 @@ export function Beside({ sheet }: BesideProps) {
 // their address: the file's name, the pull request's number.
 function tabOf(listed: Pick<Workspace, "conversations" | "missions">, at: PaneAt, read?: string): { name: string; lead: ReactNode } {
   if (at.kind === "ask") return { name: `Ask about ${at.thing}`, lead: <Icon name="sparkle" size={13} /> };
+  if (at.kind === "new") return { name: "New conversation", lead: <Icon name="message" size={13} /> };
   if (at.kind === "mission") {
     const m = listed.missions.find((x) => x.slug === at.slug);
     return { name: m?.title ?? at.slug, lead: m ? <Status s={headlineStatus(m.headline)} iconOnly size={13} /> : <Icon name="flag" size={13} /> };

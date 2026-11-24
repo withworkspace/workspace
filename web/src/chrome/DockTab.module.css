@@ -76,8 +76,8 @@
     white-space: nowrap;
   }
 
-  /* A peek: the next thing peeked at takes its place. */
-  .peek .name {
+  /* Not kept yet: a peek, a conversation that hasn't begun. */
+  .passing .name {
     font-style: italic;
   }
 

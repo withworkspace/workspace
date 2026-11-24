@@ -16,9 +16,10 @@ type DockTabProps = {
   // Closing it, for a tab that's a thing you opened. A tab without is the
   // dock's own, and stays.
   onClose?: () => void;
-  // It's a peek: the next thing peeked at takes its place. Its name is
-  // slanted, as an editor's preview tab is.
-  peek?: boolean;
+  // It isn't kept yet, and why, in a few words after its name: a peek,
+  // which the next thing peeked at takes the place of, or a conversation
+  // that hasn't begun. Its name is slanted, as an editor's preview tab is.
+  passing?: string;
 };
 
 // DockTab is one of the things open in a dock. Beside, a tab is a thing
@@ -31,17 +32,17 @@ export function DockTab({
   lead,
   count,
   onClose,
-  peek,
+  passing,
 }: DockTabProps) {
   return (
-    <span className={cx(css.tab, on && css.on, !onClose && css.own, peek && css.peek)}>
+    <span className={cx(css.tab, on && css.on, !onClose && css.own, passing && css.passing)}>
       <button
         type="button"
         data-ui=""
         role="tab"
         aria-selected={on}
         tabIndex={on ? 0 : -1}
-        title={peek ? `${name}: a peek, which the next takes the place of` : name}
+        title={passing ? `${name}: ${passing}` : name}
         className={css.pick}
         onClick={onPick}
       >

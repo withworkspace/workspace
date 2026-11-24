@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { askAt, paneAt, peekAt, talkAt } from "./panes";
+import { askAt, newTalkAt, paneAt, peekAt, talkAt } from "./panes";
 
 describe("what has a pane", () => {
   it("is a conversation, the workspace's or about a mission", () => {
@@ -10,6 +10,11 @@ describe("what has a pane", () => {
 
   it("is a conversation about a thing that hasn't begun", () => {
     expect(paneAt("/ask/THING-2")).toEqual({ kind: "ask", thing: "THING-2" });
+  });
+
+  it("is a conversation about nothing that hasn't begun, which no conversation's own address is", () => {
+    expect(paneAt(newTalkAt)).toEqual({ kind: "new" });
+    expect(paneAt(talkAt("w1"))).toEqual({ kind: "conversation", slug: "", id: "w1" });
   });
 
   it("is a mission, whichever of its tabs the address names", () => {
@@ -55,6 +60,7 @@ describe("what a link opens when it's peeked at", () => {
     expect(peekAt("https://github.com/withworkspace/workspace/pull/42", origin)).toBeUndefined();
     expect(peekAt("/settings/about", origin)).toBeUndefined();
     expect(peekAt("/ask/THING-2", origin)).toBeUndefined();
+    expect(peekAt(newTalkAt, origin)).toBeUndefined();
     expect(peekAt("/files/api", origin)).toBeUndefined();
   });
 });

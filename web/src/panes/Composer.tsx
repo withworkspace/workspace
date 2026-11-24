@@ -1,4 +1,4 @@
-import { type Ref, useState } from "react";
+import { type Ref, useRef, useState } from "react";
 import { DockFoot } from "../chrome/DockFoot";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
@@ -15,6 +15,11 @@ type ComposerProps = {
   holding?: { label: string; title?: string };
   // The box, for whoever gives it the keys.
   field?: Ref<HTMLTextAreaElement>;
+  // What's written, where the pane keeps it (a draft that outlasts the
+  // pane): given with onText. Without, it's the box's own, and goes with
+  // it.
+  text?: string;
+  onText?: (text: string) => void;
 };
 
 // How tall the box grows as you write, before it scrolls.
@@ -26,8 +31,13 @@ const tallest = 220;
 // grows as you write (ui/Composer.tsx). ⌘⏎ says it, ⏎ is a new line, esc
 // gives the keys back to the page. There's no button for it: the keys
 // that say it are in the box's corner while it has the keys.
-export function Composer({ placeholder, onSay, holding, field }: ComposerProps) {
-  const [text, setText] = useState("");
+export function Composer({ placeholder, onSay, holding, field, text: kept, onText }: ComposerProps) {
+  const [own, setOwn] = useState("");
+  const text = kept ?? own;
+  const setText = onText ?? setOwn;
+  // What's written now, for when what was said comes back.
+  const latest = useRef(text);
+  latest.current = text;
   const [saying, setSaying] = useState(false);
   const say = () => {
     const q = text.trim();
@@ -35,7 +45,7 @@ export function Composer({ placeholder, onSay, holding, field }: ComposerProps) 
     setSaying(true);
     onSay(q)
       .then(
-        () => setText((t) => (t.trim() === q ? "" : t)), // not what's been typed since
+        () => latest.current.trim() === q && setText(""), // not what's been typed since
         () => {}, // whoever couldn't say it has said why
       )
       .finally(() => setSaying(false));
