@@ -132,7 +132,10 @@ type Server struct {
 	topics map[string]*hub
 	// missions tells a mission's open page when it changes (mission:<slug>).
 	missions *keyedHub
-	talks    *keyedHub // conversations'
+	// views is what's been built of the workspace's view, for whoever asks
+	// next.
+	views viewCache
+	talks *keyedHub // conversations'
 	// transcripts is crew's sessions', each read as it grows by whoever
 	// follows it (followed).
 	transcripts *keyedHub
@@ -594,7 +597,20 @@ func (s *Server) Handler() http.Handler {
 		jsonError(w, http.StatusNotFound, "no such API: "+r.Method+" "+r.URL.Path)
 	})
 	mux.HandleFunc("/", s.app)
-	return s.guard(mux)
+	return s.guard(s.forgetsOnWrite(mux))
+}
+
+// forgetsOnWrite has the workspace's view built afresh after a write a
+// page makes (anything but a read): what it wrote may be what the view's
+// built from in a way its stamp doesn't say (an update looked for), and
+// the page reads the view next.
+func (s *Server) forgetsOnWrite(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			s.views.forget()
+		}
+	})
 }
 
 func (s *Server) origins() []string {
@@ -754,21 +770,21 @@ func (s *Server) shutdown(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) workspace(w http.ResponseWriter, r *http.Request) {
-	ws, err := s.workspaceView()
+	data, err := s.views.workspace(s)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, ws)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
 }
 
 // fingerprint says whether what the API serves has changed.
 func (s *Server) fingerprint() string {
-	ws, err := s.workspaceView()
+	data, err := s.views.workspace(s)
 	if err != nil {
 		return "error: " + err.Error()
 	}
-	data, _ := json.Marshal(ws)
 	h := fnv.New64a()
 	h.Write(data)
 	return strconv.FormatUint(h.Sum64(), 16)

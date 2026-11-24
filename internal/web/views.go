@@ -1,9 +1,11 @@
 package web
 
 import (
+	"encoding/json"
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/withworkspace/workspace/internal/artifact"
@@ -12,6 +14,7 @@ import (
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/pulls"
+	"reflect"
 )
 
 // What the API serves of the workspace, its missions and the orchestrator:
@@ -56,6 +59,63 @@ type Missions interface {
 	// where they're kept, and how long a live one lasts.
 	Artifacts() artifact.Store
 	ArtifactsConfig() artifact.Config
+}
+
+// viewCache keeps the workspace's view as it was last built, as the JSON
+// GET /api/workspace serves, with the stamp it was built at. Told that the
+// workspace has changed, every open page asks for it at once, just after
+// the workspace's hub built it to see whether it had: built once, it's
+// served to them all. It's built again when the stamp has moved (a write
+// to the records, a file, a capsule) or a poll's passed since (for what
+// the stamp can't see, as the hub's floor is for), or by another App (a
+// test's).
+type viewCache struct {
+	mu    sync.Mutex // held while it's built, so those asking at once wait for one build
+	stamp string
+	app   uintptr
+	at    time.Time
+	data  []byte
+	built int // how many times it's been built: what a test counts
+}
+
+// workspace is the workspace's view as GET /api/workspace serves it.
+func (c *viewCache) workspace(s *Server) ([]byte, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	stamp, app := s.App.Stamp()+" "+s.keptStamp(), appID(s.App)
+	if c.data != nil && stamp == c.stamp && app != 0 && app == c.app && time.Since(c.at) < s.Poll {
+		return c.data, nil
+	}
+	c.built++
+	v, err := s.workspaceView()
+	if err != nil {
+		c.data = nil
+		return nil, err
+	}
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	c.stamp, c.app, c.at, c.data = stamp, app, time.Now(), data
+	return data, nil
+}
+
+// forget drops what's kept: what it was built from has changed in a way
+// its stamp doesn't say (a test's App, changed in place).
+func (c *viewCache) forget() {
+	c.mu.Lock()
+	c.data = nil
+	c.mu.Unlock()
+}
+
+// appID is which App a is, by its pointer: 0 for one that isn't one, whose
+// view isn't kept.
+func appID(a App) uintptr {
+	v := reflect.ValueOf(a)
+	if v.Kind() != reflect.Pointer {
+		return 0
+	}
+	return v.Pointer()
 }
 
 // workspaceView is what GET /api/workspace serves.

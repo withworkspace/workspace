@@ -264,6 +264,7 @@ func fake(s *Server) *fakeApp {
 
 // setOps gives s the operations w, keeping what a test has faked.
 func setOps(s *Server, w *ops.Workspace) {
+	defer s.views.forget() // changed in place, a fakeApp is the same App
 	if f, ok := s.App.(*fakeApp); ok {
 		f.Workspace = w
 		return
@@ -849,6 +850,7 @@ func TestWorkspaceSaysItsVersion(t *testing.T) {
 		t.Errorf("version = %v, with none given", v)
 	}
 	s.Version = "v1.4.0"
+	s.views.forget() // a running server's version doesn't change but here
 	if v := asked()["version"]; v != "v1.4.0" {
 		t.Errorf("version = %v, want v1.4.0", v)
 	}

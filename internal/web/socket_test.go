@@ -3,9 +3,11 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/store/storetest"
 )
 
@@ -216,5 +219,66 @@ func TestSocket_FollowsAConversation(t *testing.T) {
 		if got := st.next(3 * time.Second); !strings.HasPrefix(got, "refused "+bad) {
 			t.Errorf("%q: %q", bad, got)
 		}
+	}
+}
+
+// Told the workspace has changed, every open page asks for its view at
+// once: it's built once, when the workspace's hub looks at it, and served
+// from that to them all. A write a page makes has it built afresh.
+func TestWorkspaceView_BuiltOncePerChange(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	ms := mission.Store{Root: root}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &Server{Root: root, Poll: 5 * time.Second, Assets: testApp, listener: ln}
+	s.App = testOps(s, ops.Options{})
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	c, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := talkTo(t, c)
+	st.ask(SocketAsk{Op: SocketFollow, Topic: "workspace"})
+	if got := st.next(3 * time.Second); got != "following workspace" {
+		t.Fatalf("following: %q", got)
+	}
+	built := func() int {
+		s.views.mu.Lock()
+		defer s.views.mu.Unlock()
+		return s.views.built
+	}
+	before := built()
+	ms.Create("Pushed")
+	if got := st.next(3 * time.Second); got != "changed workspace" {
+		t.Fatalf("after a mission's made: %q", got)
+	}
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			res := do(t, s, "GET", "/api/workspace", true, nil)
+			var ws Workspace
+			json.NewDecoder(res.Body).Decode(&ws)
+			res.Body.Close()
+			if len(ws.Missions) != 1 {
+				t.Errorf("a page was served %d missions", len(ws.Missions))
+			}
+		}()
+	}
+	wg.Wait()
+	if n := built() - before; n != 1 {
+		t.Errorf("built %d times for one change and eight pages, want once", n)
+	}
+	asks(t, s, "POST", "/api/focus", map[string]any{"pins": []any{}}, nil).Body.Close()
+	do(t, s, "GET", "/api/workspace", true, nil).Body.Close()
+	if n := built() - before; n != 2 {
+		t.Errorf("after a write: built %d times in all, want twice", n)
 	}
 }
