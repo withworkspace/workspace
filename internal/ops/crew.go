@@ -247,6 +247,10 @@ func (w *Workspace) Launch(slug string, d Dispatch, by Actor) (Launched, error) 
 		if carryOn {
 			w.Missions.SetResumeWith(m.Slug, resume, "") //nolint:errcheck // a message for a resume that didn't happen
 		}
+		if errors.Is(err, mission.ErrCrewRunning) || errors.Is(err, crew.ErrRunning) {
+			// Another launch of theirs got there first.
+			return Launched{}, refused("crew-running", "%s is still running: talk to it on its page", firstNonEmpty(resume, "the crew"))
+		}
 		return Launched{}, err
 	}
 	w.youActed(m.Slug, by)

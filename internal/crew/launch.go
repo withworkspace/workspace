@@ -1,6 +1,7 @@
 package crew
 
 import (
+	"errors"
 	"path/filepath"
 	"strings"
 	"time"
@@ -114,6 +115,12 @@ func Start(r Request) (Started, error) {
 		spec.ACP, spec.Prompt, args = &run, "", run.Agent
 	}
 	pid, err := r.Host.Launch(spec)
+	if errors.Is(err, ErrRunning) {
+		// They're running already, from a launch alongside this one:
+		// they're not ended, as recording that would say.
+		execlog.Note(r.Root, who, "not started again: %v", err)
+		return Started{}, err
+	}
 	if err != nil {
 		execlog.Start(r.Root, who, args, l.Dir, spec.Env, 0)
 		execlog.Note(r.Root, who, "failed to start: %v", err)

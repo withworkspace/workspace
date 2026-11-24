@@ -161,6 +161,11 @@ func endPlanning(root string, j job.Job) {
 // and didn't live to clear is cleared: the planner's turn, whose run went
 // with it, and crew it was starting and hadn't recorded.
 func reconcileJobs(root string, q *job.Queue, logf func(string, ...any)) {
+	// A server restarted in place has the pid of the one before it, so
+	// that one's answering marks would look like this one's, live.
+	if n, err := conversation.EndAnsweringBy(root, os.Getpid()); err == nil && n > 0 {
+		logf("%d conversations were being answered when the server before this one went: they're answered the next time something's said", n)
+	}
 	missions, err := mission.Store{Root: root}.InPlay()
 	if err != nil {
 		return

@@ -73,14 +73,18 @@ type Server struct {
 	store mission.Store
 	ln    net.Listener
 
-	mu      sync.Mutex
-	crews   map[string]*crewProc
-	agents  map[string]*acpCrew // crew over ACP (acp.go)
-	conns   map[*conn]bool
-	holds   int // Hold: something else keeping the server up (open web UIs)
-	idle    *time.Timer
-	closing bool
-	done    chan struct{}
+	mu     sync.Mutex
+	crews  map[string]*crewProc
+	agents map[string]*acpCrew // crew over ACP (acp.go)
+	// starting holds crew's key from their launch's check until they're
+	// in crews or agents, or failed: a second launch meanwhile is refused,
+	// not run alongside (an agent's start can take a minute).
+	starting map[string]bool
+	conns    map[*conn]bool
+	holds    int // Hold: something else keeping the server up (open web UIs)
+	idle     *time.Timer
+	closing  bool
+	done     chan struct{}
 
 	restartWanted bool   // to restart once nothing's at work
 	restarting    bool   // Shutdown was to restart: whoever ran Serve starts ws again
@@ -145,6 +149,7 @@ func (s *Server) Listen() error {
 	s.store = mission.Store{Root: s.Root}
 	s.crews = map[string]*crewProc{}
 	s.agents = map[string]*acpCrew{}
+	s.starting = map[string]bool{}
 	s.conns = map[*conn]bool{}
 	s.done = make(chan struct{})
 	if s.Log == nil {
@@ -504,27 +509,21 @@ func (s *Server) Launch(spec Spec) (int, error) {
 }
 
 func (s *Server) launch(spec Spec) (int, error) {
-	s.mu.Lock()
-	if s.closing {
-		s.mu.Unlock()
-		return 0, errors.New("server is shutting down")
+	if err := s.reserve(spec.Key()); err != nil {
+		return 0, err
 	}
-	if s.taken(spec.Key()) {
-		s.mu.Unlock()
-		return 0, fmt.Errorf("crew %s is already running", spec.Key())
-	}
-	s.mu.Unlock()
-
 	cmd := exec.Command(spec.Args[0], spec.Args[1:]...)
 	cmd.Dir = spec.Dir
 	cmd.Env = spec.Env
 	pane, err := termpane.Start(cmd, spec.Width, spec.Height)
 	if err != nil {
+		s.release(spec.Key())
 		return 0, err
 	}
 	cr := &crewProc{spec: spec, pane: pane, subs: map[*conn]*sub{}, watchers: map[chan struct{}]bool{}}
 
 	s.mu.Lock()
+	delete(s.starting, spec.Key())
 	s.crews[spec.Key()] = cr
 	s.checkIdleLocked()
 	s.mu.Unlock()
@@ -567,7 +566,9 @@ func (s *Server) watch(cr *crewProc) {
 	cr.mu.Unlock()
 
 	s.mu.Lock()
-	delete(s.crews, cr.spec.Key())
+	if s.crews[cr.spec.Key()] == cr { // not crew of the same key started since
+		delete(s.crews, cr.spec.Key())
+	}
 	s.checkIdleLocked()
 	s.mu.Unlock()
 }

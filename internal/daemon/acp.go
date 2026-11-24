@@ -52,16 +52,15 @@ const droppedText = "Continue. Your last turn was cut off by an error from your 
 const acpStartTimeout = 90 * time.Second
 
 func (s *Server) launchACP(spec Spec) (int, error) {
-	s.mu.Lock()
-	if s.closing {
-		s.mu.Unlock()
-		return 0, errors.New("server is shutting down")
+	if err := s.reserve(spec.Key()); err != nil {
+		return 0, err
 	}
-	if s.taken(spec.Key()) {
-		s.mu.Unlock()
-		return 0, fmt.Errorf("crew %s is already running", spec.Key())
-	}
-	s.mu.Unlock()
+	started := false
+	defer func() {
+		if !started {
+			s.release(spec.Key())
+		}
+	}()
 
 	run := *spec.ACP
 	path := s.store.ACPRecordPath(spec.Slug, spec.CrewID)
@@ -95,7 +94,9 @@ func (s *Server) launchACP(spec Spec) (int, error) {
 		return 0, err
 	}
 	cr := &acpCrew{spec: spec, agent: ag, record: path}
+	started = true
 	s.mu.Lock()
+	delete(s.starting, key)
 	s.agents[key] = cr
 	s.checkIdleLocked()
 	s.mu.Unlock()
@@ -113,11 +114,36 @@ func (s *Server) launchACP(spec Spec) (int, error) {
 	return ag.Client().Pid(), nil
 }
 
-// taken is whether crew of key are running, either kind (s.mu held).
+// taken is whether crew of key are running, either kind, or starting
+// (s.mu held).
 func (s *Server) taken(key string) bool {
 	_, term := s.crews[key]
 	_, agent := s.agents[key]
-	return term || agent
+	return term || agent || s.starting[key]
+}
+
+// reserve holds key for crew about to be started, unless crew of that key
+// are running or starting already (crew.ErrRunning), or the server's
+// going. The launch puts its crew in their map in the reservation's place,
+// or releases it.
+func (s *Server) reserve(key string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closing {
+		return errors.New("server is shutting down")
+	}
+	if s.taken(key) {
+		return fmt.Errorf("crew %s is %w", key, crew.ErrRunning)
+	}
+	s.starting[key] = true
+	return nil
+}
+
+// release gives up key's reservation: the crew didn't start.
+func (s *Server) release(key string) {
+	s.mu.Lock()
+	delete(s.starting, key)
+	s.mu.Unlock()
 }
 
 // agentLog is where an agent's own logging goes: the server's log.
@@ -286,7 +312,9 @@ func (s *Server) watchACP(cr *acpCrew, rec *acp.Recorder) {
 		s.Log.Printf("recording end of %s: %v", cr.spec.Key(), err)
 	}
 	s.mu.Lock()
-	delete(s.agents, cr.spec.Key())
+	if s.agents[cr.spec.Key()] == cr { // not crew of the same key started since
+		delete(s.agents, cr.spec.Key())
+	}
 	s.checkIdleLocked()
 	s.mu.Unlock()
 }

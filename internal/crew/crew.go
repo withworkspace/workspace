@@ -91,6 +91,10 @@ type Host interface {
 // ErrNotRunning is Stop or Say for crew the host isn't running.
 var ErrNotRunning = errors.New("not running here")
 
+// ErrRunning is Launch for crew the host is running (or starting) already:
+// they're not to be recorded as ended for it.
+var ErrRunning = errors.New("already running")
+
 // EndHook runs after a crew's end is recorded. stopped is true when it was
 // stopped (by the user, or the host shutting down) rather than ending by
 // itself.

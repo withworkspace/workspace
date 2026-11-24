@@ -12,6 +12,7 @@ import (
 	"time"
 
 	uv "github.com/charmbracelet/ultraviolet"
+	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/mission"
 )
 
@@ -397,6 +398,39 @@ func TestServer_CrewEndHookAndTranscript(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("no end hook for stopped crew")
+	}
+}
+
+// Two launches of the same crew at once start one: the other is told
+// they're running, though the first hasn't finished starting them.
+func TestServer_LaunchingTwiceStartsOne(t *testing.T) {
+	s, root := startServer(t, 0)
+	spec := crewOn(t, root, `while :; do sleep 0.05; done`)
+	errs := make(chan error, 8)
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Add(1)
+		go func() { defer wg.Done(); _, err := s.Launch(spec); errs <- err }()
+	}
+	wg.Wait()
+	close(errs)
+	started := 0
+	for err := range errs {
+		switch {
+		case err == nil:
+			started++
+		case !errors.Is(err, crew.ErrRunning):
+			t.Errorf("a launch failed otherwise: %v", err)
+		}
+	}
+	if started != 1 {
+		t.Errorf("%d started", started)
+	}
+	s.mu.Lock()
+	n := len(s.starting)
+	s.mu.Unlock()
+	if n != 0 {
+		t.Errorf("%d reservations left", n)
 	}
 }
 

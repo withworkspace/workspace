@@ -36,6 +36,14 @@ func TestStamp(t *testing.T) {
 	if w.Stamp() != before {
 		t.Error("the records' file moved the stamp")
 	}
+	touch(filepath.Join(w.Root(), ".ws", "cache", "nav", "ab", "cd.gob.gz"), "facts")
+	if w.Stamp() != before {
+		t.Error("code nav's cache moved the stamp")
+	}
+	touch(filepath.Join(w.Root(), ".ws", "runs", "frontend", "one", "dev", "out.log"), "listening on :3000")
+	if w.Stamp() != before {
+		t.Error("a run's output moved the stamp")
+	}
 	touch(filepath.Join(w.Missions.Dir(), "cache", "brief.md"), "## Goal\nCache it.\n")
 	moved := w.Stamp()
 	if moved == before {

@@ -59,7 +59,7 @@ func (s Store) Create(title string) (*Mission, error) {
 	for i := 2; ; i++ {
 		err := os.Mkdir(s.missionDir(slug), 0o755)
 		if err == nil {
-			if err := os.WriteFile(s.BriefPath(slug), []byte(briefTemplate(title)), 0o644); err != nil {
+			if err := writeFile(s.BriefPath(slug), []byte(briefTemplate(title))); err != nil {
 				return nil, err
 			}
 			t := now()
@@ -368,6 +368,10 @@ func (s Store) SetCrewProcess(slug, id string, pid int, capsule string) error {
 	return err
 }
 
+// ErrCrewRunning is ResumeCrew for crew that haven't ended: they're
+// running, or being started by another resume.
+var ErrCrewRunning = errors.New("still running")
+
 // ResumeCrew reopens ended crew: the same crew, continuing its conversation,
 // rather than new crew. It clears the end and logs the resume. Resumed by
 // ws or the orchestrator (by), or by you with a message one of them left
@@ -381,6 +385,11 @@ func (s Store) ResumeCrew(slug, id, by string) (Crew, error) {
 	if _, err := s.Update(slug, func(m *Mission) error {
 		for i := range m.Crew {
 			if m.Crew[i].ID == id {
+				// Asked here, in the write, not of what was read before
+				// it: two resumes at once start one session, not two.
+				if m.Crew[i].Ended == nil {
+					return fmt.Errorf("crew %s on %s is %w", id, slug, ErrCrewRunning)
+				}
 				m.Crew[i].Ended = nil
 				m.Crew[i].Exit = ""
 				m.Crew[i].Stopped = false
@@ -529,7 +538,7 @@ func (s Store) CreateBriefing(request string) (*Mission, error) {
 	if err != nil {
 		return nil, err
 	}
-	return m, os.WriteFile(s.BriefPath(m.Slug), nil, 0o644)
+	return m, writeFile(s.BriefPath(m.Slug), nil)
 }
 
 // WriteBrief replaces a mission's brief.
@@ -540,7 +549,33 @@ func (s Store) WriteBrief(slug, brief string) error {
 	if brief != "" && !strings.HasSuffix(brief, "\n") {
 		brief += "\n"
 	}
-	return os.WriteFile(s.BriefPath(slug), []byte(brief), 0o644)
+	return writeFile(s.BriefPath(slug), []byte(brief))
+}
+
+// writeFile writes a mission's file through a temporary one beside it,
+// renamed into place. Its brief and plan are read on every load to work
+// out where it is: written in place, a read could find one truncated and
+// take the mission for one with no plan; and a write cut short would
+// leave it so.
+func writeFile(path string, data []byte) error {
+	f, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*")
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(data)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Chmod(f.Name(), 0o644)
+	}
+	if err == nil {
+		err = os.Rename(f.Name(), path)
+	}
+	if err != nil {
+		os.Remove(f.Name())
+	}
+	return err
 }
 
 // IsUnwrittenBrief reports whether a brief is empty or still the template

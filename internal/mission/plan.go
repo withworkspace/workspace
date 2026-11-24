@@ -727,7 +727,7 @@ func (s Store) WritePlan(slug, plan string) error {
 	if !strings.HasSuffix(plan, "\n") {
 		plan += "\n"
 	}
-	return os.WriteFile(s.PlanPath(slug), []byte(plan), 0o644)
+	return writeFile(s.PlanPath(slug), []byte(plan))
 }
 
 // withPlan reads a mission's plan into it, as it's loaded: its steps are

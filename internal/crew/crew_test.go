@@ -2,6 +2,7 @@ package crew
 
 import (
 	"errors"
+	"fmt"
 	"github.com/withworkspace/workspace/internal/store/storetest"
 	"os"
 	"path/filepath"
@@ -180,6 +181,29 @@ func TestStart_FailedLaunchIsRecorded(t *testing.T) {
 	got, _ := store.Load(m.Slug)
 	if len(got.Crew) != 1 || got.Crew[0].Exit != "failed to start: no server" {
 		t.Errorf("crew = %+v", got.Crew)
+	}
+}
+
+type busyHost struct{ LocalHost }
+
+func (*busyHost) Launch(s Spec) (int, error) {
+	return 0, fmt.Errorf("crew %s is %w", s.Key(), ErrRunning)
+}
+
+// Crew a launch alongside this one started are running: this one's
+// failing doesn't record them ended.
+func TestStart_AlreadyRunningIsNotEnded(t *testing.T) {
+	store := mission.Store{Root: storetest.Own(t, t.TempDir()).Root()}
+	m, _ := store.Create("Twice")
+	store.StartCrew(m.Slug, "shell", "chat-1")
+	store.EndCrew(m.Slug, "c1", "stopped: hangup")
+	_, err := Start(Request{Store: store, Host: &busyHost{}, Slug: m.Slug, Harness: "shell", Resume: "c1", Prepare: shellLaunch("true")})
+	if !errors.Is(err, ErrRunning) {
+		t.Fatalf("err = %v", err)
+	}
+	got, _ := store.Load(m.Slug)
+	if c, _ := got.CrewByID("c1"); c.Ended != nil {
+		t.Errorf("running crew recorded ended: %+v", c)
 	}
 }
 

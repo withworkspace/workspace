@@ -120,6 +120,29 @@ func TestVersions(t *testing.T) {
 	}
 }
 
+// A daemon restarted in place has its old pid: the marks it held as that
+// pid end, in every scope, and another process's stay.
+func TestEndAnsweringBy(t *testing.T) {
+	s := threads(t)
+	mine, _ := s.OpenThread(NewThread{Kind: Ask, Anchor: anchor, By: You, Body: "Why?"}, at)
+	theirs, _ := s.OpenThread(NewThread{Kind: Ask, Anchor: anchor, By: You, Body: "How?"}, at)
+	if ok, _ := s.StartAnswering(mine.ID, os.Getpid()); !ok {
+		t.Fatal("couldn't mark")
+	}
+	if ok, _ := s.StartAnswering(theirs.ID, os.Getppid()); !ok {
+		t.Fatal("couldn't mark")
+	}
+	if n, err := EndAnsweringBy(s.Missions.Root, os.Getpid()); err != nil || n != 1 {
+		t.Fatalf("ended %d: %v", n, err)
+	}
+	if c, _ := s.Load(mine.ID); c.Answering {
+		t.Error("this process's mark outlived its start")
+	}
+	if c, _ := s.Load(theirs.ID); !c.Answering {
+		t.Error("another process's mark was ended")
+	}
+}
+
 // Who answers next, a session to resume, and one answering run at a time.
 func TestAnswering(t *testing.T) {
 	s := threads(t)

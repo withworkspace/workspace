@@ -1456,6 +1456,44 @@ func (s Store) EndAnswering(id string) {
 	s.write(func(tx *store.Tx) error { return s.setAnswering(tx, id, 0) })
 }
 
+// EndAnsweringBy ends every answering mark process pid holds, in any
+// scope, and says how many there were. A daemon starting calls it with its
+// own pid: one restarted in place (exec) keeps the pid of the one before,
+// whose marks would otherwise count as live until they ran out, though no
+// run of this process is answering yet.
+func EndAnsweringBy(root string, pid int) (int, error) {
+	n := 0
+	s := For(root, "")
+	err := s.write(func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT scope, id FROM conversations WHERE answering = ?`, pid)
+		if err != nil {
+			return err
+		}
+		type held struct{ scope, id string }
+		var marks []held
+		for rows.Next() {
+			var h held
+			if err := rows.Scan(&h.scope, &h.id); err != nil {
+				rows.Close()
+				return err
+			}
+			marks = append(marks, h)
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		for _, h := range marks {
+			if err := For(root, h.scope).setAnswering(tx, h.id, 0); err != nil {
+				return err
+			}
+		}
+		n = len(marks)
+		return nil
+	})
+	return n, err
+}
+
 // setAnswering marks a conversation answered by pid (0: by nothing), now.
 func (s Store) setAnswering(tx *store.Tx, id string, pid int) error {
 	at := stampOf(time.Now())
