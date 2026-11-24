@@ -774,7 +774,11 @@ func (s *Service) Narrate(snap *Snapshot, strands []string, since time.Time) int
 		s.writing[sub.Strand] = true
 		todo = append(todo, sub)
 	}
-	s.version++
+	// Only a gist starting is news: a look that starts none mustn't have
+	// every open Team page read it all again.
+	if len(todo) > 0 {
+		s.version++
+	}
 	s.mu.Unlock()
 	s.semOnce.Do(func() { s.sem = make(chan struct{}, narrateAtOnce) })
 	for _, sub := range todo {

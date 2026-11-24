@@ -252,8 +252,14 @@ func TestNarrate(t *testing.T) {
 		t.Errorf("narrative = %+v", tl.Narrative)
 	}
 	// Asked again, nothing's written again; the older ones can be asked for.
+	// And nothing's news: an open Team page asks each tick, and mustn't
+	// read it all again when nothing started.
+	v := w.svc.NarrativeVersion()
 	if n := w.svc.Narrate(snap, nil, time.Time{}); n != 0 {
 		t.Errorf("a second asking started %d", n)
+	}
+	if got := w.svc.NarrativeVersion(); got != v {
+		t.Errorf("an asking that started nothing moved the version from %d to %d", v, got)
 	}
 	all := w.svc.Timeline(snap, time.Time{})
 	if all.Narrative.Unwritten != 2 {
