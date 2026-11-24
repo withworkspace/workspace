@@ -984,7 +984,7 @@ function Code({
   });
   useKeys(rev ? codeNav.keys : {});
   return (
-    <div className="code-view" ref={body}>
+    <div className="code-view" ref={body} style={{ "--ln-digits": Math.max(2, String(html.length).length) } as React.CSSProperties}>
       {codeNav.card}
       {codeNav.picker}
       {codeNav.panel}

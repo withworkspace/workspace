@@ -9086,6 +9086,17 @@ details.repo-group > summary::-webkit-details-marker {
   --backdrop: var(--bg);
 }
 
+/* Its gutter is as wide as its last line's number, and starts where the
+   path above it does. */
+.file-pane > .code-view .code-line {
+  grid-template-columns: auto 4px minmax(0, 1fr);
+}
+
+.file-pane > .code-view .code-ln {
+  width: calc(var(--ln-digits, 4) * 1ch);
+  padding-left: 20px;
+}
+
 .code-line {
   display: grid;
   grid-template-columns: 56px 4px minmax(0, 1fr);
@@ -9224,6 +9235,14 @@ details.repo-group > summary::-webkit-details-marker {
 
   .code-line {
     grid-template-columns: 40px 3px minmax(0, 1fr);
+  }
+
+  .file-pane > .code-view .code-line {
+    grid-template-columns: auto 3px minmax(0, 1fr);
+  }
+
+  .file-pane > .code-view .code-ln {
+    padding-left: 12px;
   }
 }
 
