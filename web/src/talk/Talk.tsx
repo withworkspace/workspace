@@ -338,12 +338,9 @@ export function TalkPage() {
   const [sideOn, setSideOn] = usePref("talkSide");
   const toggleSide = () => setSideOn((on) => !on);
   const side = wide && sideOn;
-  // Load again whenever the workspace says it's changed: a turn, or the
-  // run's output as it goes.
-  const key = (slug ? mission?.updated : listed?.updated) ?? "";
   // It's the window's (conversation/talks.ts), as the pane beside a page
   // has it: what's said in one shows in the other. Shown here, it's
-  // followed while it's answered.
+  // followed: told each turn, and its agent's steps as it answers.
   const to = talkAt(id, slug);
   const held = useTalk(to);
   const d = held?.detail;
@@ -353,7 +350,7 @@ export function TalkPage() {
   useEffect(() => useTalks.getState().watch(to), [to]);
   useEffect(() => {
     void load();
-  }, [load, key]);
+  }, [load]);
   const title = d ? name({ title: d.title, opening: d.turns[0]?.body }) : "";
   useTitle(title || "Conversation");
 

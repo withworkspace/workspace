@@ -1188,6 +1188,27 @@ export interface ConversationGuideLeft {
     why: string;
 }
 
+// From web/talk.go
+/**
+ * ConversationOp is how a conversation a page holds has changed, told over
+ * the socket (SocketSaid.Conversation) so the page needn't read it again:
+ * its turns from From on (those before are as the page has them), and the
+ * rest of it as it is now. A page holding fewer than From turns has missed
+ * one, and holding it as of a later Version has this already: it reads it
+ * whole, or drops this.
+ */
+export interface ConversationOp {
+    version: number;
+    from: number;
+    turns: ConversationTurn[];
+    /**
+     * Conversation is all of it but its turns; Run is its agent's run as
+     * far as it's got, none when nobody's answering it.
+     */
+    conversation: ConversationConversation | null;
+    run?: TalkRun;
+}
+
 // From conversation/proposals.go
 /**
  * PluginItem is one thing a plugin's proposal does, as the plugin drafted
@@ -4578,6 +4599,11 @@ export interface SocketSaid {
     kind: SocketKind;
     topic: string;
     error?: string;
+    /**
+     * Conversation is how a conversation changed (its topic's, changed),
+     * when the page can be told: with none, it reads it again.
+     */
+    conversation?: ConversationOp;
 }
 
 // From web/enums.go
@@ -4885,6 +4911,12 @@ export interface Talk {
  */
 export interface TalkDetail extends ConversationConversation {
     run?: TalkRun;
+    /**
+     * Version is the records' change number it's as of, or later: a change
+     * told over the socket as of an earlier one (ConversationOp) is in it
+     * already.
+     */
+    version: number;
     /**
      * Message says what a write did, when it's worth saying (accepting a
      * proposal); Path is where the conversation is now, when it's moved

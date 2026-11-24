@@ -1,7 +1,8 @@
 import { create } from "zustand";
-import { ApiError, getTalk, keepAsk, sayInTalk, settleTalkProposal, type TalkDetail, type TalkGiven } from "../api";
+import { ApiError, getTalk, keepAsk, sayInTalk, settleTalkProposal, type TalkDetail, type TalkGiven, type TalkTurn } from "../api";
 import { bursts } from "../load";
 import { pageSocket } from "../socket";
+import type { ConversationOp } from "../wire.gen";
 import { paneAt } from "../chrome/panes";
 
 // The conversations the window is holding, in one store, by address (a
@@ -14,9 +15,11 @@ import { paneAt } from "../chrome/panes";
 // and it's there as it was last read, while it's read again.
 //
 // One that something's showing (watch) is followed, over the tab's socket
-// (conversation:<scope>/<id>): read again when a turn's said in it, or its
-// agent has written more of its steps as it answers. Nothing reads it
-// again and again.
+// (conversation:<scope>/<id>): read whole once it's followed, and from
+// then on told how it changes (a turn said, its agent's steps as it
+// answers, its status), which is applied to it as held (apply). It's read
+// whole again only when a change can't be applied: one's been missed, or
+// the server couldn't say. Nothing reads it again and again.
 
 export interface Held {
   detail?: TalkDetail;
@@ -31,6 +34,8 @@ interface TalksStore {
   talks: Record<string, Held>;
   // told is a conversation as it was just read or answered somewhere.
   told: (to: string, d: TalkDetail) => void;
+  // apply is a change told over the socket, applied to one as it's held.
+  apply: (to: string, op: ConversationOp) => void;
   // load reads one again.
   load: (to: string) => Promise<void>;
   // say says something in one; keep keeps an ask as a conversation;
@@ -49,6 +54,8 @@ interface TalksStore {
 // stop following each.
 const watched = new Map<string, number>();
 const following = new Map<string, () => void>();
+// loading is each conversation being read now.
+const loading = new Map<string, Promise<void>>();
 
 // talkTopic is a conversation's topic: its scope (its mission's slug, or
 // nothing for the workspace's) and its id, as the records name it.
@@ -74,7 +81,10 @@ export const useTalks = create<TalksStore>()((set, get) => {
     const at = where(to);
     if (!at || following.has(to)) return;
     const changes = bursts(() => void get().load(to));
-    const leave = pageSocket.follow(talkTopic(at.slug, at.id), { following: () => void get().load(to), changed: changes.changed });
+    const leave = pageSocket.follow(talkTopic(at.slug, at.id), {
+      following: () => void get().load(to),
+      changed: (said) => (said.conversation ? get().apply(to, said.conversation) : changes.changed()),
+    });
     following.set(to, () => {
       changes.stop();
       leave();
@@ -96,14 +106,32 @@ export const useTalks = create<TalksStore>()((set, get) => {
   };
   return {
     talks: {},
-    told: (to, d) => put(to, { detail: d }),
+    told: (to, d) => {
+      // A read that crossed a change told after it is older than what's held.
+      const held = get().talks[to]?.detail;
+      if (held?.version !== undefined && d.version !== undefined && d.version < held.version) return;
+      put(to, { detail: d });
+    },
+    apply: (to, op) => {
+      const next = applied(get().talks[to]?.detail, op);
+      if (next === "read") void get().load(to);
+      else if (next) put(to, { detail: next });
+    },
     load: (to) => {
       const at = where(to);
       if (!at) return Promise.resolve();
-      return getTalk(at.slug, at.id).then(
-        (d) => get().told(to, d),
-        (e: Error) => failed(to, e),
-      );
+      // Asked again while it's being read (a page opening, as it's
+      // followed): that read answers both.
+      const reading = loading.get(to);
+      if (reading) return reading;
+      const read = getTalk(at.slug, at.id)
+        .then(
+          (d) => get().told(to, d),
+          (e: Error) => failed(to, e),
+        )
+        .finally(() => loading.delete(to));
+      loading.set(to, read);
+      return read;
     },
     say: (to, body, given) => act(to, (slug, id) => sayInTalk(slug, id, body, given)),
     keep: (to) => act(to, (slug, id) => keepAsk(slug, id)),
@@ -137,3 +165,17 @@ export const useTalk = (to: string | undefined): Held | undefined => useTalks((s
 // talkName is what a conversation's called, for its tab: its title, or
 // what it opened with.
 export const talkName = (d: TalkDetail | undefined): string | undefined => d && (d.title || d.turns[0]?.body.slice(0, 80) || undefined);
+
+// applied is a conversation held with a change told over the socket
+// applied: undefined when the change is in it already (held as of a later
+// version), and "read" when it can't be applied (nothing's held, or turns
+// it should have are missing): it's read whole then.
+export function applied(held: TalkDetail | undefined, op: ConversationOp): TalkDetail | undefined | "read" {
+  if (!held || !op.conversation) return "read";
+  if (held.version !== undefined && op.version < held.version) return undefined;
+  if (op.from > held.turns.length) return "read";
+  // The change is the server's conversation, which the web UI's own type
+  // says more narrowly (its statuses, its proposals' kinds): the same JSON.
+  const rest = op.conversation as unknown as Omit<TalkDetail, "turns" | "run" | "version">;
+  return { ...rest, turns: [...held.turns.slice(0, op.from), ...(op.turns as unknown as TalkTurn[])], run: op.run, version: op.version };
+}

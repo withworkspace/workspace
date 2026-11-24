@@ -305,7 +305,7 @@ export function useEvents(topic: Topic, on: EventHandlers, says = "") {
       topic,
       {
         following: () => handlers.current.hello?.(),
-        changed: changes.changed,
+        changed: () => changes.changed(),
         lost: (closed) => handlers.current.lost?.(closed),
       },
       app,
@@ -1230,6 +1230,9 @@ export interface TalkDetail {
   capsules?: TalkCapsule[];
   message?: string; // what a write did (accepting a proposal)
   path?: string; // where the conversation is now, when it's moved (its mission renamed)
+  // version: the records' change number it's as of, or later: a change
+  // told as of an earlier one (ConversationOp) is in it already.
+  version?: number;
 }
 
 // A conversation is the workspace's (slug "") or a mission's (its Talk tab).

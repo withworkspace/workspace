@@ -55,6 +55,9 @@ type SocketSaid struct {
 	Kind  SocketKind `json:"kind"`
 	Topic string     `json:"topic"`
 	Error string     `json:"error,omitempty"`
+	// Conversation is how a conversation changed (its topic's, changed),
+	// when the page can be told: with none, it reads it again.
+	Conversation *ConversationOp `json:"conversation,omitempty"`
 }
 
 // socketPing is how often an idle socket is pinged, so one whose page has
@@ -139,8 +142,12 @@ func (ss *socketSession) follow(topic, app string) {
 				return
 			case <-stop:
 				return
-			case <-ch:
-				ss.say(SocketSaid{Kind: SocketChanged, Topic: topic})
+			case t := <-ch:
+				said := SocketSaid{Kind: SocketChanged, Topic: topic}
+				if op, ok := t.Op.(*ConversationOp); ok {
+					said.Conversation = op
+				}
+				ss.say(said)
 			}
 		}
 	}()

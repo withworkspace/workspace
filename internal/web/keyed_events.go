@@ -25,6 +25,12 @@ const (
 	conversationTopic = "conversation:"
 )
 
+// reread is the change that says only that a thing's changed: its
+// followers read it whole.
+var reread any = rereadOp{}
+
+type rereadOp struct{}
+
 // keyedHub tells the followers of topics of one kind (prefix), each by
 // its key: a mission's slug, a conversation's scope/id.
 type keyedHub struct {
@@ -34,16 +40,26 @@ type keyedHub struct {
 	// keep, if set, reads what a page is told of a thing before it's told
 	// it's moved: the page's read then has it, and waits on nothing.
 	keep func(key string)
+	// change, if set, is how a thing has changed since was (nil: since
+	// nobody followed it), for followers that hold what it shows: op, nil
+	// for nothing they'd see, and now, what it is, for the next change to be
+	// from. Without it, followers are told only that it's changed.
+	change func(key string, was any) (op, now any)
 	// kick has it look now (nudge).
 	kick chan struct{}
 
 	mu   sync.Mutex
-	subs map[string]map[chan string]struct{} // by key
-	last map[string]string                   // each followed thing's stamp, as last looked
+	subs map[string]map[chan told]bool // by key: each follower, and whether it's missed a change
+	last map[string]string             // each followed thing's stamp, as last looked
+	// changing is held while a change is worked out and told, so two
+	// aren't worked out from the same state at once (the records' and a
+	// look's); was is each followed thing as its followers were last told.
+	changing sync.Mutex
+	was      map[string]any
 }
 
 func newKeyedHub(prefix string, poll time.Duration, stamp func(string) string) *keyedHub {
-	return &keyedHub{prefix: prefix, poll: poll, stamp: stamp, subs: map[string]map[chan string]struct{}{}, last: map[string]string{}, kick: make(chan struct{}, 1)}
+	return &keyedHub{prefix: prefix, poll: poll, stamp: stamp, subs: map[string]map[chan told]bool{}, last: map[string]string{}, was: map[string]any{}, kick: make(chan struct{}, 1)}
 }
 
 // nudge has it look at the things followed now, not at its next poll: a
@@ -69,35 +85,76 @@ func (h *keyedHub) open() map[string]bool {
 
 // subscribe follows a thing: a channel of event names, and a function to
 // stop.
-func (h *keyedHub) subscribe(key string) (<-chan string, func()) {
-	ch := make(chan string, 8)
+func (h *keyedHub) subscribe(key string) (<-chan told, func()) {
+	ch := make(chan told, 8)
 	stamp := h.stamp(key) // the baseline the page fetches against
+	h.changing.Lock()
 	h.mu.Lock()
-	if len(h.subs[key]) == 0 {
+	first := len(h.subs[key]) == 0
+	if first {
 		h.last[key] = stamp
-		h.subs[key] = map[chan string]struct{}{}
+		h.subs[key] = map[chan told]bool{}
 	}
-	h.subs[key][ch] = struct{}{}
+	h.subs[key][ch] = false
 	h.mu.Unlock()
+	// A change is from what it was when it was first followed: a page
+	// reads it after it follows, so it has that, or later.
+	if first && h.change != nil {
+		_, h.was[key] = h.change(key, nil)
+	}
+
+	h.changing.Unlock()
 	return ch, func() {
+		h.changing.Lock()
+		defer h.changing.Unlock()
 		h.mu.Lock()
+		defer h.mu.Unlock()
 		delete(h.subs[key], ch)
 		if len(h.subs[key]) == 0 {
 			delete(h.subs, key)
 			delete(h.last, key)
+			delete(h.was, key)
 		}
-		h.mu.Unlock()
 	}
 }
 
-// tell sends a thing's followers its event.
+// tell tells a thing's followers it's changed, and how, where the hub
+// works that out (change): told nothing when nothing they'd see has. A
+// follower that missed a change (too far behind to be told) is told the
+// next with no op, so it reads the thing again.
 func (h *keyedHub) tell(key string) {
+	h.changing.Lock()
+	defer h.changing.Unlock()
+	t := told{Name: h.prefix + key}
+	if h.change != nil {
+		h.mu.Lock()
+		followed := len(h.subs[key]) > 0
+		h.mu.Unlock()
+		if !followed {
+			return
+		}
+		op, now := h.change(key, h.was[key])
+		h.was[key] = now
+		switch op {
+		case nil:
+			return
+		case reread:
+		default:
+			t.Op = op
+		}
+	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	for ch := range h.subs[key] {
+	for ch, missed := range h.subs[key] {
+		send := t
+		if missed {
+			send.Op = nil
+		}
 		select {
-		case ch <- h.prefix + key:
-		default: // a page that's this far behind will refetch anyway
+		case ch <- send:
+			h.subs[key][ch] = false
+		default: // a page that's this far behind reads it again when it's next told
+			h.subs[key][ch] = true
 		}
 	}
 }

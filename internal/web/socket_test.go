@@ -35,6 +35,7 @@ type socketTalk struct {
 	t    *testing.T
 	c    *websocket.Conn
 	said chan SocketSaid
+	last SocketSaid // what was told last
 }
 
 func talkTo(t *testing.T, c *websocket.Conn) *socketTalk {
@@ -68,6 +69,7 @@ func (st *socketTalk) next(within time.Duration) string {
 		if !ok {
 			return "(closed)"
 		}
+		st.last = m
 		s := string(m.Kind) + " " + m.Topic
 		if m.Error != "" {
 			s += ": " + m.Error
@@ -187,9 +189,26 @@ func TestSocket_FollowsAConversation(t *testing.T) {
 	if got := st.next(500 * time.Millisecond); got != "changed "+topic {
 		t.Errorf("a turn said in it: %q", got)
 	}
-	os.WriteFile(talks.RunPath(c.ID), []byte("reading cache.go\n"), 0o644)
-	if got := st.next(3 * time.Second); got != "changed "+topic {
-		t.Errorf("its agent's steps: %q", got)
+	// It's told what changed: the turn after the one it had, and the rest
+	// as it is now, as of the records' change.
+	op := st.last.Conversation
+	if op == nil || op.From != 1 || len(op.Turns) != 1 || op.Turns[0].Body != "Go on." || op.Conversation.ID != c.ID || op.Conversation.Turns != nil || op.Version == 0 {
+		t.Fatalf("the change: %+v", op)
+	}
+	// Being answered, its agent's steps are told as its run.
+	talks.StartAnswering(c.ID, os.Getpid())
+	if got := st.next(500 * time.Millisecond); got != "changed "+topic || st.last.Conversation == nil || !st.last.Conversation.Conversation.Answering || len(st.last.Conversation.Turns) != 0 {
+		t.Errorf("answering: %q, %+v", got, st.last.Conversation)
+	}
+	step := `{"type":"assistant","message":{"content":[{"type":"text","text":"Reading cache.go."}]}}` + "\n"
+	os.WriteFile(talks.RunPath(c.ID), []byte(step), 0o644)
+	if got := st.next(3 * time.Second); got != "changed "+topic || st.last.Conversation == nil || st.last.Conversation.Run == nil || st.last.Conversation.Run.Said != "Reading cache.go." {
+		t.Errorf("its agent's steps: %q, %+v", got, st.last.Conversation)
+	}
+	// What changes nothing a page sees is told nothing.
+	talks.SetGuideGiven(c.ID, conversation.GuideGiven{})
+	if got := st.next(500 * time.Millisecond); got != "(nothing)" {
+		t.Errorf("a change it doesn't show: %q", got)
 	}
 
 	for _, bad := range []string{"conversation:" + m.Slug, "conversation:a/b/c", "conversation:"} {

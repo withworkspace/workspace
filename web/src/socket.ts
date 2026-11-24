@@ -11,7 +11,9 @@ import type { SocketAsk, SocketSaid } from "./wire.gen";
 // or the socket couldn't open at all, as when it's signed out).
 export interface Follower {
   following?: () => void;
-  changed: () => void;
+  // changed is told what the server said: for a topic whose followers hold
+  // what it shows, how it changed (said.conversation), when it can say.
+  changed: (said: SocketSaid) => void;
   lost?: (closed: boolean) => void;
 }
 
@@ -110,7 +112,7 @@ export class PageSocket {
           for (const f of [...t.followers]) f.following?.();
           break;
         case "changed":
-          for (const f of [...t.followers]) f.changed();
+          for (const f of [...t.followers]) f.changed(said);
           break;
         case "refused":
           for (const f of [...t.followers]) f.lost?.(true);

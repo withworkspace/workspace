@@ -247,6 +247,8 @@ func (s *Server) Start() error {
 		scope, id, _ := strings.Cut(key, "/")
 		return s.App.ConversationStamp(scope, id)
 	})
+	// A conversation's followers hold it, and are told how it's changed.
+	s.talks.change = func(key string, was any) (any, any) { return conversationChange(s.Root, key, was) }
 	go s.talks.run(s.ctx)
 	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
 	// A write to the records tells the followers of what it names at once:
@@ -774,19 +776,19 @@ func (s *Server) fingerprint() string {
 // app the page shows, if it shows one: plugins are told who's looking, to
 // fetch to suit. A topic that can't be followed here is refused with its
 // status and why.
-func (s *Server) follow(topic, app string) (ch <-chan string, done func(), status int, err error) {
-	var subscribe func() (<-chan string, func())
+func (s *Server) follow(topic, app string) (ch <-chan told, done func(), status int, err error) {
+	var subscribe func() (<-chan told, func())
 	if h := s.topics[topic]; h != nil {
 		subscribe = h.subscribe
 	}
 	if slug, ok := topicKey(topic, missionTopic); ok {
-		subscribe = func() (<-chan string, func()) { return s.missions.subscribe(slug) }
+		subscribe = func() (<-chan told, func()) { return s.missions.subscribe(slug) }
 	}
 	if key, ok := topicKey(topic, conversationTopic); ok {
-		subscribe = func() (<-chan string, func()) { return s.talks.subscribe(key) }
+		subscribe = func() (<-chan told, func()) { return s.talks.subscribe(key) }
 	}
 	if ref, ok := prTopicRef(topic); ok && s.prs != nil {
-		subscribe = func() (<-chan string, func()) { return s.followPR(ref) }
+		subscribe = func() (<-chan told, func()) { return s.followPR(ref) }
 	}
 	switch {
 	case subscribe != nil:
@@ -838,8 +840,8 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
-		case name := <-ch:
-			fmt.Fprintf(w, "event: %s\ndata: {}\n\n", name)
+		case t := <-ch:
+			fmt.Fprintf(w, "event: %s\ndata: {}\n\n", t.Name)
 		case <-ping.C:
 			fmt.Fprint(w, ": ping\n\n")
 		}

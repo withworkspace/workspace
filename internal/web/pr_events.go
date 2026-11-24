@@ -48,23 +48,23 @@ type prHub struct {
 	stamp func(prRef) string
 
 	mu   sync.Mutex
-	subs map[prRef]map[chan string]struct{}
+	subs map[prRef]map[chan told]struct{}
 	last map[prRef]string
 }
 
 func newPRHub(poll time.Duration, stamp func(prRef) string) *prHub {
-	return &prHub{poll: poll, stamp: stamp, subs: map[prRef]map[chan string]struct{}{}, last: map[prRef]string{}}
+	return &prHub{poll: poll, stamp: stamp, subs: map[prRef]map[chan told]struct{}{}, last: map[prRef]string{}}
 }
 
 // subscribe follows a pull request: a channel of event names, and a
 // function to stop.
-func (h *prHub) subscribe(r prRef) (<-chan string, func()) {
-	ch := make(chan string, 8)
+func (h *prHub) subscribe(r prRef) (<-chan told, func()) {
+	ch := make(chan told, 8)
 	stamp := h.stamp(r) // the baseline the page fetches against
 	h.mu.Lock()
 	if len(h.subs[r]) == 0 {
 		h.last[r] = stamp
-		h.subs[r] = map[chan string]struct{}{}
+		h.subs[r] = map[chan told]struct{}{}
 	}
 	h.subs[r][ch] = struct{}{}
 	h.mu.Unlock()
@@ -105,7 +105,7 @@ func (h *prHub) run(ctx context.Context) {
 				h.last[r] = st
 				for ch := range h.subs[r] {
 					select {
-					case ch <- r.topic():
+					case ch <- told{Name: r.topic()}:
 					default: // a page that's this far behind will refetch anyway
 					}
 				}
@@ -118,10 +118,10 @@ func (h *prHub) run(ctx context.Context) {
 // followPR is a pull request page's stream: its own topic's events, and
 // the Reviews list's (which an open page keeps fresh, as the Reviews page
 // does), both as its topic's.
-func (s *Server) followPR(r prRef) (<-chan string, func()) {
-	out := make(chan string, 8)
+func (s *Server) followPR(r prRef) (<-chan told, func()) {
+	out := make(chan told, 8)
 	own, stopOwn := s.prs.subscribe(r)
-	var list <-chan string
+	var list <-chan told
 	stopList := func() {}
 	if h := s.topics[topicReviews]; h != nil {
 		list, stopList = h.subscribe()
@@ -136,7 +136,7 @@ func (s *Server) followPR(r prRef) (<-chan string, func()) {
 			case <-list:
 			}
 			select {
-			case out <- r.topic():
+			case out <- told{Name: r.topic()}:
 			default:
 			}
 		}
