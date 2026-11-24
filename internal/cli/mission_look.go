@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/withworkspace/workspace/internal/ops"
@@ -45,31 +44,4 @@ For you.`,
 	}
 	addMissionFlag(cmd, &slug)
 	return cmd
-}
-
-// watchWaitsEvery is how often the daemon looks for a watched Wait step
-// whose next look is due (the step says how often that is: mission.Watch).
-const watchWaitsEvery = time.Minute
-
-// watchWaitsLoop runs the checks of each watched Wait step a mission is
-// at, as its looks come due, and passes those that are met, until stop
-// closes. A look runs commands, so it's a loop of its own: a slow one
-// holds up nothing but the next look.
-func watchWaitsLoop(root string, logf func(string, ...any), stop <-chan struct{}) {
-	t := time.NewTicker(watchWaitsEvery)
-	defer t.Stop()
-	for {
-		select {
-		case <-stop:
-			return
-		case <-t.C:
-			ctx, err := LoadOps(root)
-			if err != nil {
-				continue
-			}
-			for _, said := range ctx.CheckWaits() {
-				logf("waits: %s", said)
-			}
-		}
-	}
 }

@@ -620,83 +620,6 @@ func crewStep(m *mission.Mission, crew string) (mission.StageRecord, bool) {
 	return mission.StageRecord{}, false
 }
 
-// runOwners says whether owners in the workspace's records have ended, for
-// a sweep: each mission read once.
-type runOwners struct {
-	root     string
-	missions map[string]*mission.Mission
-	missing  map[string]bool
-}
-
-func newRunOwners(root string) *runOwners {
-	return &runOwners{root: root, missions: map[string]*mission.Mission{}, missing: map[string]bool{}}
-}
-
-// mission is the mission slug, read once: gone is true when it isn't
-// there at all, and m is nil (gone false) when it couldn't be read.
-func (o *runOwners) mission(slug string) (m *mission.Mission, gone bool) {
-	if m, ok := o.missions[slug]; ok {
-		return m, false
-	}
-	if o.missing[slug] {
-		return nil, true
-	}
-	m, err := mission.Store{Root: o.root}.Load(slug)
-	if errors.Is(err, mission.ErrNotFound) {
-		o.missing[slug] = true
-		return nil, true
-	}
-	if err != nil {
-		return nil, false
-	}
-	o.missions[slug] = m
-	return m, false
-}
-
-func (o *runOwners) Ended(ow runs.Owner) string {
-	if ow.Mission != "" {
-		m, gone := o.mission(ow.Mission)
-		if gone {
-			return fmt.Sprintf("mission %s has gone", ow.Mission)
-		}
-		if m == nil {
-			return ""
-		}
-		if m.Ending != nil || m.State == mission.Archived {
-			return fmt.Sprintf("mission %s has ended", ow.Mission)
-		}
-		switch ow.Kind {
-		case runs.ByStep:
-			i := slices.IndexFunc(m.Stages, func(st mission.StageRecord) bool { return st.Text == ow.StepText })
-			switch {
-			case i < 0:
-				return fmt.Sprintf("step %d is no longer in mission %s's plan", ow.Step, ow.Mission)
-			case m.Stages[i].Skipped:
-				return fmt.Sprintf("step %d of mission %s was skipped", m.Stages[i].N, ow.Mission)
-			case m.Stages[i].Accepted != nil:
-				return fmt.Sprintf("step %d of mission %s has passed", m.Stages[i].N, ow.Mission)
-			}
-		case runs.ByCrew:
-			i := slices.IndexFunc(m.Crew, func(c mission.Crew) bool { return c.ID == ow.Crew })
-			if i < 0 || m.Crew[i].Ended != nil {
-				return fmt.Sprintf("crew %s of mission %s have closed", ow.Crew, ow.Mission)
-			}
-		}
-	}
-	if ow.Kind == runs.ByConversation {
-		c, err := conversationStore(o.root, ow.Mission).Load(ow.Conversation)
-		switch {
-		case errors.Is(err, conversation.ErrNotFound):
-			return fmt.Sprintf("conversation %s has gone", ow.Conversation)
-		case err != nil:
-			return ""
-		case c.Status == conversation.Resolved:
-			return fmt.Sprintf("conversation %s was resolved", ow.Conversation)
-		}
-	}
-	return ""
-}
-
 // runRecipes is the services and tasks of the ws.repo.toml where you
 // stand, or at the workspace's root, of its ws.toml.
 func runRecipes(w *ops.Workspace, here runHere) (map[string]config.RunRecipe, error) {
@@ -803,7 +726,7 @@ func newRunLsCmd() *cobra.Command {
 			}
 			root := w.WS().Root
 			store := runs.Store{Root: root}
-			swept, err := store.Sweep(newRunOwners(root), time.Now())
+			swept, err := w.SweepRuns(time.Now())
 			for _, s := range swept {
 				if s.Run.State == runs.Running {
 					fmt.Fprintf(os.Stderr, "Ended %s: %s.\n", s.Run.Ref(), s.Why)
@@ -1122,7 +1045,7 @@ stand in; with --all, every run in the workspace.`,
 			// What was started for those, and nothing needs now, ends with
 			// them, not at the daemon's next look.
 			if needs {
-				swept, _ := store.Sweep(newRunOwners(w.WS().Root), time.Now())
+				swept, _ := w.SweepRuns(time.Now())
 				for _, s := range swept {
 					if s.Run.State == runs.Running {
 						fmt.Fprintf(os.Stderr, "Ended %s: %s.\n", s.Run.Ref(), s.Why)

@@ -6,10 +6,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/harness"
-	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/orchestrator"
 	"github.com/withworkspace/workspace/internal/ui"
@@ -18,16 +16,6 @@ import (
 // orchestrateSpawner has the workspace's daemon run the orchestrator for
 // an event; tests stub it.
 var orchestrateSpawner orchestrator.Spawner = spawnOrchestrator
-
-// orchestrateHook is the end hook hosts run: crew's end is an event the
-// orchestrator may look at (it does when crew ended by themselves).
-func orchestrateHook(root string) crew.EndHook {
-	return func(spec crew.Spec, exit string, stopped bool) {
-		if ctx, err := LoadOps(root); err == nil {
-			ctx.Notify(spec.Slug, mission.OrchestratorEvent{Crew: spec.CrewID, Trigger: "ended", Stopped: stopped})
-		}
-	}
-}
 
 func newMissionOrchestrateCmd() *cobra.Command {
 	var slug, crewID, trigger, model string

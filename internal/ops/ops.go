@@ -130,6 +130,10 @@ type Options struct {
 	// (job.Orchestrate) isn't run, and conversations (job.Answer,
 	// job.Thread, job.Draft) aren't answered.
 	Jobs Jobs
+	// Plugins is the workspace's plugins as they run, in this process (the
+	// daemon's); nil reaches them through the daemon (PluginRunners).
+	// Close on it does nothing.
+	Plugins PluginRunner
 	// Live is what running crew show now (by key, slug/crew), from where
 	// they run: the orchestrator reads it. nil, or "" for crew it isn't
 	// running, reads what they left.

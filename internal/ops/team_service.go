@@ -11,6 +11,19 @@ import (
 	"github.com/withworkspace/workspace/internal/workspace"
 )
 
+// KeepTeam gives the workspace the Team page's service (TeamService),
+// for its life: the daemon's, which serves the page and writes its gists.
+// It's called once, before the workspace is used.
+func (w *Workspace) KeepTeam() {
+	if w.opts.Team == nil {
+		w.opts.Team = w.TeamService()
+	}
+}
+
+// Team is the Team page's service the workspace keeps (KeepTeam, or
+// Options.Team): nil for none.
+func (w *Workspace) Team() *team.Service { return w.opts.Team }
+
 // TeamService is the Team page's service for the workspace: each visible
 // repo's default branch read from its clone, and GitHub asked through
 // ctx's client.

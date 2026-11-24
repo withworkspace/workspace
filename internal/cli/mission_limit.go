@@ -64,28 +64,3 @@ orchestrator and the user may give a step more:
 	cmd.Flags().IntVar(&step, "step", 0, "the step, by its number (default: the one the mission's at)")
 	return cmd
 }
-
-// watchLimitsEvery is how often the daemon looks for a step whose time
-// has run out.
-const watchLimitsEvery = time.Minute
-
-// watchLimitsLoop says of each step whose time has run out while crew are
-// still at it, once, until stop closes.
-func watchLimitsLoop(root string, logf func(string, ...any), stop <-chan struct{}) {
-	t := time.NewTicker(watchLimitsEvery)
-	defer t.Stop()
-	for {
-		select {
-		case <-stop:
-			return
-		case <-t.C:
-			ctx, err := LoadOps(root)
-			if err != nil {
-				continue
-			}
-			for _, said := range ctx.CheckLimits() {
-				logf("limits: %s", said)
-			}
-		}
-	}
-}

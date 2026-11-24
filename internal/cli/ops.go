@@ -34,19 +34,9 @@ func init() {
 	}
 }
 
-// serverHost is this process's server, when this process is the
-// workspace's daemon: crew launched in it need no socket.
-var serverHost crew.Host
-
-// hostFor is where a workspace's crew run: this process's server, else the
-// workspace's over its socket (started when crew are first launched).
-// Tests replace it.
-var hostFor = func(root string) crew.Host {
-	if serverHost != nil {
-		return serverHost
-	}
-	return daemon.NewHost(root)
-}
+// hostFor is where a workspace's crew run: the workspace's daemon, over
+// its socket (started when crew are first launched). Tests replace it.
+var hostFor = func(root string) crew.Host { return daemon.NewHost(root) }
 
 // openOps is the workspace's operations for the daemon, its config read
 // again when it changes, and its views showing the pull requests prs has

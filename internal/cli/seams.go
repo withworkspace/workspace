@@ -4,10 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/crew"
+	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/plugin"
 	wsref "github.com/withworkspace/workspace/internal/ref"
 )
@@ -54,10 +58,27 @@ func UseLocalDispatchHost(root string) func() {
 // WatchHeld looks at turns held on crew's own work once, at now, as the
 // daemon does each tick, with alive standing in for the process table and
 // callDone for the daemon's ACP sessions.
-var WatchHeld = watchHeldAt
+func WatchHeld(root string, now time.Time, alive func(pid int) bool, callDone func(slug, crewID, call string) bool) {
+	if w, err := LoadOps(root); err == nil {
+		daemon.WatchHeld(w, now, alive, callDone)
+	}
+}
 
-// WatchPRsLoop is the daemon's watch of the missions' pull requests.
-var WatchPRsLoop = watchPRsLoop
+// WatchPRsLoop is the daemon's watch of the missions' pull requests, until
+// stop closes: every ops.WatchPRsEvery, and when a page's fetch brings news.
+func WatchPRsLoop(root string, prs *ops.PRCache, stop <-chan struct{}) {
+	t := time.NewTicker(ops.WatchPRsEvery)
+	defer t.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-t.C:
+		case <-prs.News():
+		}
+		daemon.WatchPRs(openOps(root, prs), prs)
+	}
+}
 
 // UseProcs stands procs in for the user's processes, which ws's hook
 // command reads for the process check, and returns a cleanup.
@@ -91,7 +112,11 @@ func CaptureOrchestratorRuns() (*[]string, func()) {
 // run once: what it logged.
 func SweepArtifacts(root string) []string {
 	var said []string
-	sweepArtifacts(root, func(f string, a ...any) { said = append(said, fmt.Sprintf(f, a...)) })
+	w, err := LoadOps(root)
+	if err != nil {
+		return []string{"artifacts: couldn't sweep: " + err.Error()}
+	}
+	daemon.SweepArtifacts(w, func(f string, a ...any) { said = append(said, fmt.Sprintf(f, a...)) })
 	return said
 }
 
@@ -102,7 +127,13 @@ var EvalMade = &evalMade
 // AnswerPlugin is what the daemon answers a plugin's requests with, in
 // the workspace at root.
 func AnswerPlugin(root string) func(context.Context, string, string, json.RawMessage) (any, error) {
-	return answerPlugin(openOps(root, nil))
+	w := openOps(root, nil)
+	return func(c context.Context, who, method string, params json.RawMessage) (any, error) {
+		if method == protocol.MethodShow {
+			return showForPlugin(w, c, params)
+		}
+		return w.AnswerPlugin(c, who, method, params)
+	}
 }
 
 // UseThings has ask stand in for the workspace's plugins when ws show
@@ -123,4 +154,4 @@ func NoRunsWatcher(t interface{ Cleanup(func()) }) {
 
 // RouteFile is the route file the daemon writes for the workspace at root
 // (routerLoop).
-var RouteFile = routeFile
+var RouteFile = daemon.RouteFile
