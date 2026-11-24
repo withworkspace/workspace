@@ -255,6 +255,11 @@
     z-index: 30;
     display: flex;
     transition: bottom var(--slow) var(--ease);
+    /* Over the page, it's a layer of its own when the page changes
+       (styles.css, by the page's): the page's pictures, before and
+       after, are drawn over everything that isn't one, and would be
+       drawn over this. */
+    view-transition-name: beside;
   }
 
   /* Opening and closing, it slides in from the window's end and out
@@ -359,6 +364,8 @@
     inset: var(--shell-inset) var(--shell-inset) var(--shell-bottom);
     z-index: 30;
     display: flex;
+    /* A sheet's over the page too. */
+    view-transition-name: beside;
   }
 
   .narrow .besideIn {
