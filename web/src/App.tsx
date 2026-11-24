@@ -29,7 +29,7 @@ import { Review, reviewKeys } from "./review/Review";
 import { PRReviewPage, prReviewKeys } from "./reviews/PRReview";
 import { ReviewsPage, reviewsKeys } from "./reviews/Reviews";
 import { repoOfPage, scopePrefix } from "./shell/find";
-import { Palette } from "./shell/Palette";
+import { Palette } from "./shell/Palette/Palette";
 import { useFaviconBadge, useNotifications } from "./shell/notify";
 import { Arrange } from "./shell/Arrange";
 import { askShutDown } from "./shell/daemon";
@@ -494,8 +494,8 @@ function useGlobalKeys() {
         // in any editor. With nothing selected, it's Find.
         if (e.target instanceof HTMLElement && e.target.closest(".pm") && !window.getSelection()?.isCollapsed) return;
         // With Find open, ⌘K is Find's own: it acts on what the cursor's
-        // on there (shell/Palette.tsx).
-        if (document.querySelector(".palette-overlay")) return;
+        // on there (shell/Palette/Palette.tsx).
+        if (useChromeStore.getState().find !== undefined) return;
         e.preventDefault();
         e.stopPropagation();
         openPalette();

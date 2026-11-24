@@ -1,0 +1,16 @@
+import type { ReactNode } from "react";
+import { cx } from "../../ui/cx";
+import { Icon } from "../../ui/Icon";
+import css from "./FindTag.module.css";
+
+// FindTag is said before what's typed in Find: what it's narrowed to (a
+// kind, a repo), or, with doing, what it's in the middle of (the thing
+// it's acting on, the action that's asking), which is cut short where
+// it's long. A press takes it away, and leaves the focus in the text box.
+export function FindTag({ doing, title, onClick, children }: { doing?: boolean; title: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button className={cx(css.tag, doing && css.doing)} onMouseDown={(e) => e.preventDefault()} onClick={onClick} title={title}>
+      {children} <Icon name="x" size={10} />
+    </button>
+  );
+}

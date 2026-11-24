@@ -18,8 +18,7 @@ describe("Finder", () => {
   });
 
   it("draws Find's box and its text box's row", () => {
-    const find = read("shell/Palette.tsx");
-    expect(find).toContain("finderBox");
-    expect(find).toContain("finderInput");
+    expect(read("shell/Palette/FindWindow.tsx")).toContain("finderBox");
+    expect(read("shell/Palette/FindBar.tsx")).toContain("finderInput");
   });
 });

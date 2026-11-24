@@ -1,0 +1,10 @@
+/* A plugin's thing in Find's pane (FindThing.tsx): laid out as the
+   pane's own lines are. */
+
+.thing {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+}

@@ -1,0 +1,17 @@
+/* A group of what Find found (FindSection.tsx), under its name. */
+
+.section {
+  margin: 0;
+  padding: 0;
+}
+
+.title {
+  margin: 0;
+  padding: 10px 10px 4px;
+  font: 600 var(--text-xs) / 16px var(--font);
+  color: var(--dim);
+}
+
+.section:first-child .title {
+  padding-top: 6px;
+}

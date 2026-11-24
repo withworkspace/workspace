@@ -1,0 +1,30 @@
+/* Find's card for what ws records, found by what it says
+   (FindSaidCard.tsx): its title, where it is, and its words, those found
+   marked as the documents' search marks them; all of it wrapped to the
+   pane. */
+
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.said {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.said mark {
+  background: var(--accent-soft, var(--selected));
+  color: var(--fg);
+  border-radius: 2px;
+}
