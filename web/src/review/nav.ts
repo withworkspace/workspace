@@ -14,6 +14,8 @@ export interface NavNames {
   why?: string;
   broken?: boolean;
   lines: Record<string, Named[]>;
+  // What can be folded: each a first line and a last (from 1).
+  folds?: [from: number, to: number][];
 }
 
 export interface NavTarget {

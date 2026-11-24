@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"unicode/utf8"
 )
 
@@ -133,6 +134,10 @@ type Names struct {
 	Why    string          `json:"why,omitempty"`
 	Broken bool            `json:"broken,omitempty"`
 	Lines  map[int][]Named `json:"lines"`
+	// Folds is what can be folded away: each a declaration or a scope of
+	// more than one line, as its first line and its last (from 1), by
+	// where they start, one to a line (the longest that starts there).
+	Folds [][2]int `json:"folds,omitempty"`
 }
 
 // Named is a name on a line: its columns in UTF-16 units from 0 (as a
@@ -223,7 +228,38 @@ func (s *Service) Names(dir, rev, p string) (*Names, error) {
 		sortNamed(names)
 		out.Lines[line] = names
 	}
+	out.Folds = f.folds()
 	return out, nil
+}
+
+// folds is the file's declarations and scopes of more than one line, as
+// lines: what Names says can be folded.
+func (f *Facts) folds() [][2]int {
+	ends := map[int]int{} // by first line: the furthest last line
+	add := func(at Span) {
+		if at.None() {
+			return
+		}
+		from, _ := f.Line(at.Start)
+		to, _ := f.Line(max(at.End-1, at.Start))
+		if to > from && to > ends[from] {
+			ends[from] = to
+		}
+	}
+	for _, sc := range f.Scopes {
+		if sc.Kind != "file" {
+			add(sc.Span)
+		}
+	}
+	for _, d := range f.Defs {
+		add(d.Extent)
+	}
+	out := make([][2]int, 0, len(ends))
+	for from, to := range ends {
+		out = append(out, [2]int{from, to})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i][0] < out[j][0] })
+	return out
 }
 
 func sortNamed(n []Named) {

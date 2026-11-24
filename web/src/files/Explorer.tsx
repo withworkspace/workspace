@@ -4,10 +4,11 @@ import { capsuleAPI, docRef, type FileTree, type FileView, getFile, getTree, pag
 import { useKeys, useOwnCodeSearch } from "../keys";
 import { CodeFinder } from "./CodeFinder";
 import { linesAsked, rendersAt } from "./lines";
+import { foldsOf, unfolded } from "./folds";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { escapeHTML, highlightLines, languageOf, useHighlighter } from "../review/highlight";
 import { useCodeNav } from "../review/CodeNav";
-import { getNavNow } from "../review/nav";
+import { getNames, getNavNow, type NavNames } from "../review/nav";
 import { fuzzy, marked } from "../ui/fuzzy";
 import { FileIcon } from "../ui/FileIcon";
 import { Icon, type IconName } from "../ui/Icon";
@@ -921,7 +922,9 @@ function FilePane({
 // Code is a file's lines, highlighted, numbered, the changed ones marked
 // in the gutter. A line number links to the line (#L12; shift-click for a
 // range). With a commit to read them at (rev), its names are links, as in
-// a review: hold ⌘ over one, or d on the picked line.
+// a review: hold ⌘ over one, or d on the picked line. A declaration, a
+// scope or a run of lines further in folds away at the mark beside its
+// first line (./folds), and opens again when a line in it is gone to.
 function Code({
   file,
   path,
@@ -959,6 +962,38 @@ function Code({
   const from = sel?.from ?? 0;
   const to = sel?.to ?? 0;
   const body = useRef<HTMLDivElement>(null);
+  // What folds: by the file's names where they're read, by indentation
+  // until then and where there are none.
+  const namesKey = rev ? `${api}\u0000${rev}\u0000${path}` : "";
+  const [names, setNames] = useState<{ key: string; names: NavNames }>();
+  useEffect(() => {
+    if (!rev) return;
+    let live = true;
+    getNames(api, rev, path).then(
+      (n) => live && setNames({ key: namesKey, names: n }),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [api, rev, path, namesKey]);
+  const found = names?.key === namesKey ? names.names.folds : undefined;
+  const folds = useMemo(() => foldsOf(file.lines, found), [file, found]);
+  // What's folded, by the line it starts at: of this file, and opened
+  // where a line in it is asked for.
+  const asked = `${path}#${from}-${to}`;
+  const [fold, setFold] = useState<{ path: string; asked: string; at: ReadonlySet<number> }>({ path, asked, at: new Set() });
+  let folded = fold.path === path ? fold.at : new Set<number>();
+  if (fold.asked !== asked || fold.path !== path) {
+    folded = unfolded(folds, folded, [from, to]);
+    setFold({ path, asked, at: folded });
+  }
+  const toggle = (at: number) => {
+    const next = new Set(folded);
+    if (!next.delete(at)) next.add(at);
+    setFold({ path, asked, at: next });
+  };
+  const foldAt = useMemo(() => new Map(folds.map((f) => [f.at, f])), [folds]);
   // To the line asked for (a link to it), not each time you click one.
   const clicked = (location.state as { clicked?: boolean } | null)?.clicked;
   useLayoutEffect(() => {
@@ -984,23 +1019,47 @@ function Code({
   });
   useKeys(rev ? codeNav.keys : {});
   return (
-    <div className="code-view" ref={body}>
+    <div className="code-view folds" ref={body}>
       {codeNav.card}
       {codeNav.picker}
       {codeNav.panel}
-      {html.map((h, i) => {
-        const n = i + 1;
-        const mark = marks.get(n);
-        return (
-          <div key={n} data-line={n} className={`code-line${mark ? ` m-${mark}` : ""}${n >= from && n <= to ? " picked" : ""}`}>
-            <button className="code-ln" onClick={(e) => pick(n, e)} tabIndex={-1} aria-label={`Line ${n}`}>
-              {n}
-            </button>
-            <span className="code-mark" aria-hidden />
-            <code data-rev={rev} data-path={path} data-line={n} data-side="new" dangerouslySetInnerHTML={{ __html: h || " " }} />
-          </div>
-        );
-      })}
+      {(() => {
+        const out: ReactNode[] = [];
+        let hiddenTo = 0;
+        html.forEach((h, i) => {
+          const n = i + 1;
+          if (n <= hiddenTo) return;
+          const mark = marks.get(n);
+          const f = foldAt.get(n);
+          const shut = !!f && folded.has(n);
+          if (shut) hiddenTo = f.to;
+          const code = <code data-rev={rev} data-path={path} data-line={n} data-side="new" dangerouslySetInnerHTML={{ __html: h || " " }} />;
+          out.push(
+            <div key={n} data-line={n} className={`code-line${mark ? ` m-${mark}` : ""}${n >= from && n <= to ? " picked" : ""}${shut ? " folded" : ""}`}>
+              <button className="code-ln" onClick={(e) => pick(n, e)} tabIndex={-1} aria-label={`Line ${n}`}>
+                {n}
+              </button>
+              <span className="code-mark" aria-hidden />
+              {f && (
+                <button className="code-fold" onClick={() => toggle(n)} tabIndex={-1} aria-expanded={!shut} aria-label={`${shut ? "Unfold" : "Fold"} ${f.to === n + 1 ? `line ${f.to}` : `lines ${n + 1} to ${f.to}`}`}>
+                  <Icon name={shut ? "chevron-right" : "chevron-down"} size={12} />
+                </button>
+              )}
+              {shut ? (
+                <span className="code-folded">
+                  {code}
+                  <button className="code-fold-more" onClick={() => toggle(n)} tabIndex={-1} title="Unfold">
+                    ⋯ {f.to - n} {f.to - n === 1 ? "line" : "lines"}
+                  </button>
+                </span>
+              ) : (
+                code
+              )}
+            </div>,
+          );
+        });
+        return out;
+      })()}
     </div>
   );
 }
