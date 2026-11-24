@@ -18,12 +18,11 @@ type SampleBesideProps = {
   // those: tabs with no way to close them.
   things: SampleThing[];
   own?: SampleThing[];
-  // Over the page or next to it, and switching between the two.
+  // Over the page or next to it (which is switched at the foot).
   over: boolean;
-  onOver: (over: boolean) => void;
   size: number;
   onSize: (size: number) => void;
-  // Closing it: its button, or its last tab closed.
+  // Closing it: a sheet's button, or its last tab closed.
   onClose: () => void;
   // On a narrow window: a sheet, with no edge and no floating.
   sheet?: boolean;
@@ -36,7 +35,7 @@ type SampleBesideProps = {
 // Which tabs are open and which is in front is kept here; whether it's
 // open, over the page, and how wide, is the window's, so the story has
 // them.
-export function SampleBeside({ things, own = [], over, onOver, size, onSize, onClose, sheet, peek }: SampleBesideProps) {
+export function SampleBeside({ things, own = [], over, size, onSize, onClose, sheet, peek }: SampleBesideProps) {
   const [open, setOpen] = useState(things);
   const [front, setFront] = useState((things[0] ?? own[0])?.id);
   const all = [...own, ...open];
@@ -54,16 +53,11 @@ export function SampleBeside({ things, own = [], over, onOver, size, onSize, onC
     <Dock side="beside" label="Beside" size={size} over={over && !sheet} sheet={sheet} edge={<DockEdge side="beside" label="Beside's width" size={size} min={300} max={760} rest={420} onSize={onSize} />}>
       <DockHead
         tools={
-          <>
-            {!sheet && (
-              <Button variant="ghost" size="small" square aria-pressed={over} title={over ? "Dock it: the page makes room" : "Float it over the page"} onClick={() => onOver(!over)}>
-                <Icon name="float" size={13} />
-              </Button>
-            )}
+          sheet && (
             <Button variant="ghost" size="small" square title="Close Beside" onClick={onClose}>
               <Icon name="x" size={13} />
             </Button>
-          </>
+          )
         }
       >
         <DockTabs

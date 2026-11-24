@@ -77,7 +77,7 @@ function Window({ on, beside, floats = false, closed = false, below, children }:
         sidebar={place}
         drawerOpen={drawer}
         onDrawerClose={() => setDrawer(false)}
-        beside={open && <SampleBeside things={beside} over={over} onOver={setOver} size={size} onSize={setSize} onClose={() => setOpen(false)} sheet={narrow} />}
+        beside={open && <SampleBeside things={beside} over={over} size={size} onSize={setSize} onClose={() => setOpen(false)} sheet={narrow} />}
         besideOver={over}
         besideSize={size}
         below={below && low.open && <SampleBelow sheet={narrow} />}
@@ -102,7 +102,7 @@ function Window({ on, beside, floats = false, closed = false, below, children }:
             end={
               <>
                 {below && <FootBelow open={low.open} onPress={() => change(toggleBelow)} />}
-                {beside.length > 0 && <FootBeside open={open} waiting={beside.length} onPress={() => setOpen((o) => !o)} />}
+                {beside.length > 0 && <FootBeside open={open} waiting={beside.length} onPress={() => setOpen((o) => !o)} over={over} onOver={narrow ? undefined : setOver} />}
               </>
             }
           />

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { Link } from "react-router";
 import { cx } from "../ui/cx";
 import css from "./FootItem.module.css";
@@ -16,6 +16,8 @@ type FootItemProps = {
   // Somewhere to go, in place of something to press.
   to?: string;
   onPress?: () => void;
+  // Its own menu, where it has more to it than pressing it does.
+  onContextMenu?: (e: MouseEvent<Element>) => void;
   className?: string;
   children: ReactNode;
 };
@@ -29,6 +31,7 @@ export function FootItem({
   shrink,
   to,
   onPress,
+  onContextMenu,
   className,
   children,
 }: FootItemProps) {
@@ -41,6 +44,7 @@ export function FootItem({
         aria-label={label}
         aria-current={on ? "page" : undefined}
         className={cls}
+        onContextMenu={onContextMenu}
       >
         {children}
       </Link>
@@ -55,6 +59,7 @@ export function FootItem({
       aria-pressed={on}
       className={cls}
       onClick={onPress}
+      onContextMenu={onContextMenu}
     >
       {children}
     </button>
