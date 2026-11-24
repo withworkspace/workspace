@@ -130,10 +130,9 @@ function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
     return [...by].sort(([a, ra], [b, rb]) => (a === "" ? -1 : b === "" ? 1 : Number(!!ra[0].hidden) - Number(!!rb[0].hidden) || (ra[0].groupOrder ?? 0) - (rb[0].groupOrder ?? 0) || a.localeCompare(b)));
   }, [repos]);
   const row = (r: Repo) => (
-    <Link key={r.name} to={`/files/${encodeURIComponent(r.name)}`} className={`repo-row${r.name === current ? " on" : ""}${r.cloned ? "" : " uncloned"}`} title={r.cloned ? r.name : `${r.name}: not cloned (ws setup ${r.name})`} aria-current={r.name === current ? "page" : undefined}>
+    <Link key={r.name} to={`/files/${encodeURIComponent(r.name)}`} className={`repo-row${r.name === current ? " on" : ""}${r.cloned ? "" : " uncloned"}`} title={r.cloned ? undefined : `Not cloned (ws setup ${r.name})`} aria-current={r.name === current ? "page" : undefined}>
       <span className="repo-dot" style={{ background: r.color }} />
       <span className="repo-label">{r.label}</span>
-      {r.label !== r.name && <span className="repo-name">{r.name}</span>}
       {r.capsules.length > 0 && (
         <span className="repo-capsules" title={`${r.capsules.length} ${r.capsules.length === 1 ? "capsule" : "capsules"}`}>
           {r.capsules.length}
