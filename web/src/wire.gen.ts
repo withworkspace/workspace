@@ -4553,6 +4553,33 @@ export interface SiloPoint {
     to: string;
 }
 
+// From web/socket.go
+/**
+ * SocketAsk is what a page sends its socket: to follow a topic, or leave
+ * it. App is the plugin whose app the page shows, for the plugins topic.
+ */
+export interface SocketAsk {
+    op: SocketOp;
+    topic: string;
+    app?: string;
+}
+
+// From web/socket.go
+export type SocketKind = "changed" | "following" | "refused";
+
+// From web/socket.go
+export type SocketOp = "follow" | "leave";
+
+// From web/socket.go
+/**
+ * SocketSaid is what a socket sends a page, of one of its topics.
+ */
+export interface SocketSaid {
+    kind: SocketKind;
+    topic: string;
+    error?: string;
+}
+
 // From web/enums.go
 export type SourceState = "changed" | "gone";
 

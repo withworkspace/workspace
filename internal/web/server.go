@@ -360,6 +360,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/needs/announce", s.announceNeeds)
 	mux.HandleFunc("GET /api/whats-new/pictures/{name}", s.whatsNewPicture)
 	mux.HandleFunc("GET /api/events", s.stream)
+	mux.HandleFunc("GET /api/socket", s.socket)
 	mux.HandleFunc("GET /api/missions/{slug}", s.mission)
 	mux.HandleFunc("GET /api/missions/{slug}/artifact", s.artifact)
 	mux.HandleFunc("GET /api/missions/{slug}/artifact/raw", s.artifactRaw)
@@ -753,16 +754,16 @@ func (s *Server) fingerprint() string {
 	return strconv.FormatUint(h.Sum64(), 16)
 }
 
-// stream is a page's event stream on a topic (?topic=workspace, the
-// default; reviews; team; plugins; mission:<slug>; pr:<repo>#<number>): it says when something
-// the page shows has changed, so the page never polls. An open stream holds
-// the daemon up. The plugins topic takes ?app=<name> from a page showing
-// that plugin's app.
-func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
-	topic := cmp.Or(r.URL.Query().Get("topic"), topicWorkspace)
+// follow is a page's following of a topic (?topic=workspace, the
+// default; reviews; team; plugins; mission:<slug>; pr:<repo>#<number>): a
+// channel of event names, said when something the page shows has changed,
+// and a function to stop. The plugins topic takes app, the plugin whose
+// app the page shows, if it shows one: plugins are told who's looking, to
+// fetch to suit. A topic that can't be followed here is refused with its
+// status and why.
+func (s *Server) follow(topic, app string) (ch <-chan string, done func(), status int, err error) {
 	var subscribe func() (<-chan string, func())
-	h := s.topics[topic]
-	if h != nil {
+	if h := s.topics[topic]; h != nil {
 		subscribe = h.subscribe
 	}
 	if slug, ok := strings.CutPrefix(topic, missionTopic); ok && slug != "" && !strings.ContainsAny(slug, "/ ") {
@@ -774,15 +775,34 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case subscribe != nil:
 	case topic == topicReviews, strings.HasPrefix(topic, prTopic):
-		jsonError(w, http.StatusNotFound, "there's no GitHub to ask here")
-		return
+		return nil, nil, http.StatusNotFound, errors.New("there's no GitHub to ask here")
 	case topic == topicTeam:
-		jsonError(w, http.StatusNotFound, "the team's events aren't available here")
-		return
+		return nil, nil, http.StatusNotFound, errors.New("the team's events aren't available here")
 	default:
-		jsonError(w, http.StatusNotFound, "no such topic: "+topic)
+		return nil, nil, http.StatusNotFound, errors.New("no such topic: " + topic)
+	}
+	look := func() {}
+	if topic == topicPlugins && s.Plugins != nil {
+		if !plugin.IsInstalled(s.Plugins.Root, app) {
+			app = ""
+		}
+		look = s.Plugins.Look(app)
+	}
+	ch, stop := subscribe()
+	return ch, func() { stop(); look() }, 0, nil
+}
+
+// stream is a page's event stream on one topic (follow), as server-sent
+// events: what a page from before the socket (socket.go) follows. An open
+// stream holds the daemon up.
+func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
+	topic := cmp.Or(r.URL.Query().Get("topic"), topicWorkspace)
+	ch, done, status, err := s.follow(topic, r.URL.Query().Get("app"))
+	if err != nil {
+		jsonError(w, status, err.Error())
 		return
 	}
+	defer done()
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		jsonError(w, http.StatusInternalServerError, "streaming unsupported")
@@ -791,18 +811,6 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 	if s.Hold != nil {
 		defer s.Hold()()
 	}
-	// Every page follows the plugins while it's showing, and says which
-	// plugin's app it shows, if it shows one: plugins are told who's
-	// looking, to fetch to suit.
-	if topic == topicPlugins && s.Plugins != nil {
-		app := r.URL.Query().Get("app")
-		if !plugin.IsInstalled(s.Plugins.Root, app) {
-			app = ""
-		}
-		defer s.Plugins.Look(app)()
-	}
-	ch, done := subscribe()
-	defer done()
 	hd := w.Header()
 	hd.Set("Content-Type", "text/event-stream")
 	hd.Set("Cache-Control", "no-cache")
