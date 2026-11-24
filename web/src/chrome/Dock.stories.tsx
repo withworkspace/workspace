@@ -28,7 +28,7 @@ const frame: React.CSSProperties = { position: "relative", display: "flex", heig
 const page: React.CSSProperties = { flex: 1, minWidth: 0, padding: 24, color: "var(--dim)" };
 
 function Peek({ things, own, floats = false, width = 420, peek }: { things: SampleThing[]; own?: SampleThing[]; floats?: boolean; width?: number; peek?: string }) {
-  const [over, setOver] = useState(floats);
+  const over = floats;
   const [size, setSize] = useState(width);
   const [open, setOpen] = useState(true);
   return (
@@ -43,7 +43,7 @@ function Peek({ things, own, floats = false, width = 420, peek }: { things: Samp
       </div>
       {open && (
         <div style={over ? { position: "absolute", top: 12, right: 12, bottom: 12, display: "flex" } : { display: "flex", margin: "12px 12px 12px 0" }}>
-          <SampleBeside things={things} own={own} over={over} onOver={setOver} size={size} onSize={setSize} onClose={() => setOpen(false)} peek={peek} />
+          <SampleBeside things={things} own={own} over={over} size={size} onSize={setSize} onClose={() => setOpen(false)} peek={peek} />
         </div>
       )}
     </div>
