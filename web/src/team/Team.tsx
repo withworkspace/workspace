@@ -82,7 +82,7 @@ const knowInfo: Record<KnowKind, { label: string; icon: IconName; title: string 
 const fileHref = (repo: string, path: string) => `/files/${encodeURIComponent(repo)}?${new URLSearchParams({ path })}`;
 
 // useTeamEvents calls changed when there's been a new look, or a gist's
-// been written: it holds the Team event stream while the page shows,
+// been written: it holds the Team topic, followed on its socket, while the page shows,
 // which is also what has the server look at git and GitHub every couple
 // of minutes, and write the gists of what's happened lately.
 function useTeamEvents(changed: () => void) {

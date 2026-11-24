@@ -1,8 +1,6 @@
 package web
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -43,66 +41,6 @@ type TermKey struct {
 
 // screenEvery caps how often a page gets a crew's screen.
 const screenEvery = 33 * time.Millisecond
-
-// crewScreen streams a running crew's screen as server-sent events: one
-// now, then each change (at most one per screenEvery), and exit when it
-// ends. The web UI follows a screen over its socket (followScreen); this
-// is for a tab from before, still open as its daemon's ws was upgraded.
-func (s *Server) crewScreen(w http.ResponseWriter, r *http.Request) {
-	slug, id := r.PathValue("slug"), r.PathValue("id")
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		jsonError(w, http.StatusInternalServerError, "streaming unsupported")
-		return
-	}
-	changes, ended, cancel, ok := s.App.Crew().Watch(slug, id)
-	if !ok {
-		jsonError(w, http.StatusNotFound, id+" isn't running")
-		return
-	}
-	defer cancel()
-	if s.Hold != nil {
-		defer s.Hold()()
-	}
-	h := w.Header()
-	h.Set("Content-Type", "text/event-stream")
-	h.Set("Cache-Control", "no-cache")
-	send := func() bool {
-		got, ok := s.App.Crew().Screen(slug, id)
-		sc := Screen(got)
-		if !ok {
-			return false
-		}
-		data, _ := json.Marshal(sc)
-		fmt.Fprintf(w, "event: screen\ndata: %s\n\n", data)
-		flusher.Flush()
-		return true
-	}
-	fmt.Fprint(w, "retry: 2000\n")
-	if !send() {
-		return
-	}
-	ping := time.NewTicker(20 * time.Second)
-	defer ping.Stop()
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ended:
-			fmt.Fprint(w, "event: exit\ndata: {}\n\n")
-			flusher.Flush()
-			return
-		case <-changes:
-			if !send() {
-				return
-			}
-			time.Sleep(screenEvery)
-		case <-ping.C:
-			fmt.Fprint(w, ": ping\n\n")
-			flusher.Flush()
-		}
-	}
-}
 
 // ScreenOp is a running crew's screen, told over the socket to a page that
 // follows it (screen:<slug>/<crew>): the screen as it now is, each time it

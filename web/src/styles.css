@@ -751,6 +751,14 @@ input[type="checkbox"] {
   color: var(--amber);
 }
 
+/* The daemon's another ws than the page was loaded from: said across the
+   top of the page, as a lost daemon is. */
+.updated-banner {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
 main {
   overflow: auto;
   min-width: 0;

@@ -64,7 +64,7 @@ export function prStatus(p: { state: PRState; words: string }): StatusInfo {
 export const prHref = (repo: string, number: number) => `/reviews/${encodeURIComponent(repo)}/${number}`;
 
 // useReviewsEvents calls changed when the list has: it holds the Reviews
-// event stream while the page shows, which is also what has the server
+// topic on its socket while the page shows, which is also what has the server
 // ask GitHub every couple of minutes. Closed, nothing is asked.
 export function useReviewsEvents(changed: () => void) {
   useEvents("reviews", { changed });

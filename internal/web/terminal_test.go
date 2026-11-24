@@ -1,7 +1,6 @@
 package web
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -57,52 +56,13 @@ func (f *fakeTerminals) Paste(slug, crew, text string) error {
 	return nil
 }
 
-// A page streams a running crew's screen, each change and its end, and
-// types and pastes into it, signed in and from its own origin only.
+// A page types and pastes into a running crew, signed in and from its own
+// origin only. (Its screen it follows over its socket:
+// TestSocket_FollowsACrewsScreen.)
 func TestServer_CrewTerminal(t *testing.T) {
 	s := startTest(t, t.TempDir(), &fakeWorkspace{}, nil)
 	ft := &fakeTerminals{text: "$ ", changes: make(chan struct{}, 1), ended: make(chan struct{})}
 	fake(s).crew = ft
-
-	res := do(t, s, "GET", "/api/missions/m/crew/c1/screen", true, nil)
-	if res.StatusCode != 200 || res.Header.Get("Content-Type") != "text/event-stream" {
-		t.Fatalf("stream: %d %s", res.StatusCode, res.Header.Get("Content-Type"))
-	}
-	events := bufio.NewReader(res.Body)
-	next := func() (string, Screen) {
-		t.Helper()
-		var name string
-		var sc Screen
-		for {
-			line, err := events.ReadString('\n')
-			if err != nil {
-				t.Fatalf("stream ended: %v", err)
-			}
-			line = strings.TrimRight(line, "\n")
-			switch {
-			case strings.HasPrefix(line, "event: "):
-				name = strings.TrimPrefix(line, "event: ")
-			case strings.HasPrefix(line, "data: "):
-				json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &sc)
-			case line == "" && name != "":
-				return name, sc
-			}
-		}
-	}
-	if name, sc := next(); name != "screen" || sc.Text != "$ " || sc.Width != 40 || !sc.CursorVisible {
-		t.Errorf("first: %s %+v", name, sc)
-	}
-	ft.mu.Lock()
-	ft.text = "$ echo hi\nhi"
-	ft.mu.Unlock()
-	ft.changes <- struct{}{}
-	if name, sc := next(); name != "screen" || !strings.Contains(sc.Text, "hi\nhi") {
-		t.Errorf("change: %s %+v", name, sc)
-	}
-	close(ft.ended)
-	if name, _ := next(); name != "exit" {
-		t.Errorf("end: %s", name)
-	}
 
 	input := func(in TermInput, signedIn bool, origin string) *http.Response {
 		data, _ := json.Marshal(in)
@@ -128,12 +88,6 @@ func TestServer_CrewTerminal(t *testing.T) {
 	if strings.Join(ft.typed, " ") != "Enter paste:ls\r" {
 		t.Errorf("typed %q", ft.typed)
 	}
-	if r := do(t, s, "GET", "/api/missions/m/crew/c9/screen", true, nil); r.StatusCode != http.StatusNotFound {
-		t.Errorf("crew not running: %d", r.StatusCode)
-	}
-	if r := do(t, s, "GET", "/api/missions/m/crew/c1/screen", false, nil); r.StatusCode != http.StatusUnauthorized {
-		t.Errorf("watched without signing in: %d", r.StatusCode)
-	}
 }
 
 // A page follows a running crew's screen over its socket: the screen as
@@ -156,7 +110,7 @@ func TestSocket_FollowsACrewsScreen(t *testing.T) {
 	if got := st.next(3 * time.Second); got != "following screen:m/c1" {
 		t.Fatalf("following: %q", got)
 	}
-	if got := st.next(3 * time.Second); got != "changed screen:m/c1" || st.last.Screen == nil || st.last.Screen.Screen == nil || st.last.Screen.Screen.Text != "$ " {
+	if got := st.next(3 * time.Second); got != "changed screen:m/c1" || st.last.Screen == nil || st.last.Screen.Screen == nil || st.last.Screen.Screen.Text != "$ " || st.last.Screen.Screen.Width != 40 || !st.last.Screen.Screen.CursorVisible {
 		t.Fatalf("its screen: %q, %+v", got, st.last.Screen)
 	}
 	ft.mu.Lock()

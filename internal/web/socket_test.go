@@ -33,6 +33,33 @@ func dialSocket(t *testing.T, s *Server, origin string) (*websocket.Conn, *http.
 	return websocket.Dial(ctx, url, &websocket.DialOptions{HTTPHeader: h})
 }
 
+// openSocket is a page's socket on s, from its own origin, signed in.
+func openSocket(t *testing.T, s *Server) *socketTalk {
+	t.Helper()
+	c, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { c.CloseNow() })
+	return talkTo(t, c)
+}
+
+// followOver is a page's socket on s following topic (as a page showing
+// app, for the plugins'), once it's said to be followed.
+func followOver(t *testing.T, s *Server, topic string, app ...string) *socketTalk {
+	t.Helper()
+	st := openSocket(t, s)
+	ask := SocketAsk{Op: SocketFollow, Topic: topic}
+	if len(app) > 0 {
+		ask.App = app[0]
+	}
+	st.ask(ask)
+	if got := st.next(3 * time.Second); got != "following "+topic {
+		t.Fatalf("following %s: %q", topic, got)
+	}
+	return st
+}
+
 // socketTalk is a page's side of a socket: what it asks, and what it's
 // told next (or "(nothing)" within the time given).
 type socketTalk struct {

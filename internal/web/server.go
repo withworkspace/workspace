@@ -14,7 +14,6 @@
 package web
 
 import (
-	"cmp"
 	"context"
 	"crypto/subtle"
 	"embed"
@@ -100,8 +99,8 @@ type Server struct {
 	// shows an agent's step that ran one (GET /api/commands, with the
 	// plugins' after them). nil for none: steps show their commands.
 	Labels []CommandLabel
-	// Hold keeps the daemon up while a page is open (each holds an
-	// event stream); nil for nothing to hold.
+	// Hold keeps the daemon up while a page is open (each holds a
+	// socket); nil for nothing to hold.
 	Hold func() (release func())
 	// Shutdown closes the daemon, as ws daemon stop does: its crew are hung
 	// up and the web UI goes with it (POST /api/shutdown, from the
@@ -372,7 +371,7 @@ func (s *Server) now() time.Time {
 // Info is where the server listens, and its token.
 func (s *Server) Info() Info { return s.info }
 
-// Close stops serving, ends open event streams, and marks .ws/web.json as
+// Close stops serving, closes open sockets, and marks .ws/web.json as
 // not running (keeping the token).
 func (s *Server) Close() {
 	if s.srv == nil {
@@ -410,7 +409,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/whats-new/seen", s.seenWhatsNew)
 	mux.HandleFunc("POST /api/needs/announce", s.announceNeeds)
 	mux.HandleFunc("GET /api/whats-new/pictures/{name}", s.whatsNewPicture)
-	mux.HandleFunc("GET /api/events", s.stream)
 	mux.HandleFunc("GET /api/socket", s.socket)
 	mux.HandleFunc("GET /api/missions/{slug}", s.mission)
 	mux.HandleFunc("GET /api/missions/{slug}/artifact", s.artifact)
@@ -466,10 +464,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/repos/{repo}/worktrees/{worktree}/apps/{name}/stop", s.stopApp)
 	mux.HandleFunc("POST /api/silos/{repo}/point", s.pointSilo)
 	mux.HandleFunc("POST /api/silos/{repo}/resync", s.resyncSilo)
-	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/screen", s.crewScreen)
 	mux.HandleFunc("POST /api/missions/{slug}/crew/{id}/input", s.crewInput)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/transcript", s.crewTranscript)
-	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/transcript/stream", s.crewTranscriptStream)
 	mux.HandleFunc("POST /api/missions/{slug}/crew/{id}/say", s.crewSay)
 	mux.HandleFunc("POST /api/missions/{slug}/crew/{id}/answer", s.crewAnswer)
 	mux.HandleFunc("GET /api/missions/{slug}/crew/{id}/prompt", s.crewPrompt)
@@ -880,45 +876,6 @@ func (s *Server) follow(topic, app string) (ch <-chan told, done func(), status 
 	}
 	ch, stop := subscribe()
 	return ch, func() { stop(); look() }, 0, nil
-}
-
-// stream is a page's event stream on one topic (follow), as server-sent
-// events: what a page from before the socket (socket.go) follows. An open
-// stream holds the daemon up.
-func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
-	topic := cmp.Or(r.URL.Query().Get("topic"), topicWorkspace)
-	ch, done, status, err := s.follow(topic, r.URL.Query().Get("app"))
-	if err != nil {
-		jsonError(w, status, err.Error())
-		return
-	}
-	defer done()
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		jsonError(w, http.StatusInternalServerError, "streaming unsupported")
-		return
-	}
-	if s.Hold != nil {
-		defer s.Hold()()
-	}
-	hd := w.Header()
-	hd.Set("Content-Type", "text/event-stream")
-	hd.Set("Cache-Control", "no-cache")
-	fmt.Fprint(w, "retry: 2000\nevent: hello\ndata: {}\n\n")
-	flusher.Flush()
-	ping := time.NewTicker(20 * time.Second)
-	defer ping.Stop()
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case t := <-ch:
-			fmt.Fprintf(w, "event: %s\ndata: {}\n\n", t.Name)
-		case <-ping.C:
-			fmt.Fprint(w, ": ping\n\n")
-		}
-		flusher.Flush()
-	}
 }
 
 // app serves the single-page app: its files, and index.html for any other

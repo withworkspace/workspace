@@ -166,7 +166,7 @@ func (d *daemon) closeDoneLoop(logf func(string, ...any), stop <-chan struct{}) 
 
 // Asks nobody kept (conversation/ask.go) are swept here, in the daemon: it
 // owns the records and is up whenever a page that could ask is open (a
-// page's event stream holds it up). It sweeps as it starts, which takes
+// page's socket holds it up). It sweeps as it starts, which takes
 // what was due while it was down, and then every SweepEvery.
 
 // sweepAsksLoop sweeps until stop closes.

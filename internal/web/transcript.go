@@ -2,7 +2,6 @@ package web
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -91,94 +90,13 @@ func (s *Server) crewTranscript(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, t)
 }
 
-// transcriptPoll is how often a stream looks at the session file. A look
-// is a stat: the file's read again only when it's changed.
+// transcriptPoll is how often a followed session file, or run's log, is
+// looked at. A look is a stat: the file's read only when it's changed.
 var transcriptPoll = 400 * time.Millisecond
 
 // sessionLookEvery is how often a session that hasn't started is looked
 // for, while it's followed.
 var sessionLookEvery = 2 * time.Second
-
-// crewTranscriptStream is GET .../transcript/stream: the transcript, then
-// again each time the session file changes, as "transcript" events. A
-// session that hasn't started yet (no file) is looked for until it has.
-// The web UI follows a transcript over its socket (transcriptHub); this
-// is for a tab from before, still open as its daemon's ws was upgraded.
-func (s *Server) crewTranscriptStream(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		jsonError(w, http.StatusInternalServerError, "streaming unsupported")
-		return
-	}
-	sess, ok := s.crewSession(w, r)
-	if !ok {
-		return
-	}
-	if s.Hold != nil {
-		defer s.Hold()()
-	}
-	h := w.Header()
-	h.Set("Content-Type", "text/event-stream")
-	h.Set("Cache-Control", "no-cache")
-	fmt.Fprint(w, "retry: 2000\n")
-	slug, id := r.PathValue("slug"), r.PathValue("id")
-	var size int64 = -1
-	var mod time.Time
-	send := func() {
-		t, err := LoadTranscript(sess)
-		if err != nil {
-			return // half there: the next look
-		}
-		data, _ := json.Marshal(t)
-		fmt.Fprintf(w, "event: transcript\ndata: %s\n\n", data)
-		flusher.Flush()
-	}
-	lookedFor := time.Time{}
-	look := func() {
-		if sess.Path == "" {
-			// Not started when the page opened: look again for it, now and
-			// then (a harness that keeps none, never).
-			if sess.Final || time.Since(lookedFor) < 2*time.Second {
-				return
-			}
-			lookedFor = time.Now()
-			got, err := s.App.Crew().Session(slug, id)
-			next := CrewSession(got)
-			if err != nil || next.Path == "" {
-				return
-			}
-			sess = next
-		}
-		info, err := os.Stat(sess.Path)
-		if err != nil {
-			return
-		}
-		if info.Size() == size && info.ModTime().Equal(mod) {
-			return
-		}
-		size, mod = info.Size(), info.ModTime()
-		send()
-	}
-	if sess.Path == "" {
-		send() // say why there's nothing yet
-	}
-	look()
-	tick := time.NewTicker(transcriptPoll)
-	defer tick.Stop()
-	ping := time.NewTicker(20 * time.Second)
-	defer ping.Stop()
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-tick.C:
-			look()
-		case <-ping.C:
-			fmt.Fprint(w, ": ping\n\n")
-			flusher.Flush()
-		}
-	}
-}
 
 // transcriptSize is how much of a session file is read: to its last whole
 // line (one being written is read once it's ended), or all of an ACP

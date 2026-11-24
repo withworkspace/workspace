@@ -19,7 +19,7 @@ type TeamView struct {
 	// Repos are the repos in it, as ws labels them.
 	Repos map[string]TeamRepo `json:"repos"`
 	// Stale: git and GitHub haven't been looked at lately (the page's
-	// event stream looks, and says when there's something new). Error is
+	// socket looks, and says when there's something new). Error is
 	// why they couldn't be.
 	Stale bool   `json:"stale,omitempty"`
 	Error string `json:"error,omitempty"`

@@ -1,13 +1,11 @@
 package web
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/withworkspace/workspace/internal/store/storetest"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -288,50 +286,26 @@ func TestReviewsDraftAndSubmit(t *testing.T) {
 func TestReviewsEvents(t *testing.T) {
 	w := newReviewsWorld(t)
 	getInto(t, w.s, "/api/reviews", &ReviewsList{})
-	req, _ := http.NewRequest("GET", w.s.Info().Origin()+"/api/events?topic=reviews", nil)
-	req.AddCookie(&http.Cookie{Name: w.s.cookieName(), Value: w.s.Info().Token})
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	lines := make(chan string, 32)
-	go func() {
-		sc := bufio.NewScanner(res.Body)
-		for sc.Scan() {
-			lines <- sc.Text()
-		}
-	}()
-	wait := func(want string) bool {
-		deadline := time.After(3 * time.Second)
-		for {
-			select {
-			case l := <-lines:
-				if l == want {
-					return true
-				}
-			case <-deadline:
-				return false
-			}
-		}
-	}
-	if !wait("event: hello") {
-		t.Fatal("no hello")
-	}
+	st := followOver(t, w.s, "reviews")
 	w.mu.Lock()
 	w.prs[0].IsDraft = true // it moves to another section
 	w.mu.Unlock()
-	if !wait("event: reviews") {
-		t.Error("the page wasn't told the list changed")
+	if got := st.nextOf("reviews", 3*time.Second); got != "changed reviews" {
+		t.Errorf("the page wasn't told the list changed: %q", got)
 	}
 }
 
 func TestReviewsWithoutGitHub(t *testing.T) {
 	s := startTest(t, t.TempDir(), &fakeWorkspace{}, nil)
-	for _, path := range []string{"/api/reviews", "/api/prs/api/5", "/api/prs/api/5/diff", "/api/prs/api/5/review", "/api/events?topic=reviews"} {
+	for _, path := range []string{"/api/reviews", "/api/prs/api/5", "/api/prs/api/5/diff", "/api/prs/api/5/review"} {
 		if res := do(t, s, "GET", path, true, nil); res.StatusCode != http.StatusNotFound {
 			t.Errorf("GET %s with no GitHub: %d", path, res.StatusCode)
 		}
+	}
+	st := openSocket(t, s)
+	st.ask(SocketAsk{Op: SocketFollow, Topic: "reviews"})
+	if got := st.next(3 * time.Second); got != "refused reviews: there's no GitHub to ask here" {
+		t.Errorf("following reviews with no GitHub: %q", got)
 	}
 }
 
@@ -777,52 +751,21 @@ func TestPREvents(t *testing.T) {
 	if code := getInto(t, w.s, "/api/prs/api/5/threads", &threads); code != 200 || len(threads.Comments) != 1 {
 		t.Fatalf("threads: %d %+v", code, threads)
 	}
-	req, _ := http.NewRequest("GET", w.s.Info().Origin()+"/api/events?topic="+url.QueryEscape("pr:api#5"), nil)
-	req.AddCookie(&http.Cookie{Name: w.s.cookieName(), Value: w.s.Info().Token})
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		t.Fatalf("stream: %d", res.StatusCode)
-	}
-	lines := make(chan string, 32)
-	go func() {
-		sc := bufio.NewScanner(res.Body)
-		for sc.Scan() {
-			lines <- sc.Text()
-		}
-	}()
-	wait := func(want string, within time.Duration) bool {
-		deadline := time.After(within)
-		for {
-			select {
-			case l := <-lines:
-				if l == want {
-					return true
-				}
-			case <-deadline:
-				return false
-			}
-		}
-	}
-	if !wait("event: hello", 3*time.Second) {
-		t.Fatal("no hello")
-	}
-	if wait("event: pr:api#5", 300*time.Millisecond) {
+	st := followOver(t, w.s, "pr:api#5")
+	if got := st.nextOf("pr:api#5", 300*time.Millisecond); got != "(nothing)" {
 		t.Error("told of a change when nothing had changed")
 	}
 	said.Store("nitpick: three, surely?")
-	if !wait("event: pr:api#5", 3*time.Second) {
-		t.Fatal("the page wasn't told its threads changed")
+	if got := st.nextOf("pr:api#5", 3*time.Second); got != "changed pr:api#5" {
+		t.Fatalf("the page wasn't told its threads changed: %q", got)
 	}
 	if code := getInto(t, w.s, "/api/prs/api/5/threads", &threads); code != 200 || threads.Comments[0].Body != "three, surely?" {
 		t.Errorf("threads after: %d %+v", code, threads.Comments)
 	}
 	for _, topic := range []string{"pr:api", "pr:api#x", "pr:../x#1"} {
-		if code := do(t, w.s, "GET", "/api/events?topic="+url.QueryEscape(topic), true, nil).StatusCode; code != http.StatusNotFound {
-			t.Errorf("topic %s: %d, want 404", topic, code)
+		st.ask(SocketAsk{Op: SocketFollow, Topic: topic})
+		if got := st.nextOf(topic, 3*time.Second); !strings.HasPrefix(got, "refused "+topic) {
+			t.Errorf("topic %s: %q, want it refused", topic, got)
 		}
 	}
 }

@@ -4135,7 +4135,7 @@ export interface ReviewsCount {
  */
 export interface ReviewsList extends PullsList {
     /**
-     * Stale: GitHub hasn't been asked lately (the page's event stream asks,
+     * Stale: GitHub hasn't been asked lately (the page's socket asks,
      * and says when the list has changed). Error is why it couldn't be.
      */
     stale?: boolean;
@@ -5360,7 +5360,7 @@ export interface TeamView extends TeamTimeline {
     repos: Record<string, TeamRepo>;
     /**
      * Stale: git and GitHub haven't been looked at lately (the page's
-     * event stream looks, and says when there's something new). Error is
+     * socket looks, and says when there's something new). Error is
      * why they couldn't be.
      */
     stale?: boolean;
