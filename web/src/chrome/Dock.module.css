@@ -37,12 +37,10 @@
     max-height: none;
   }
 
-  /* Over the page: as a mission's Details is on its other tabs. Its
-     --backdrop stays the solid colour, for what's cut out of it. */
+  /* Over the page: the same solid card, lifted off the page by a deeper
+     shadow. It isn't see-through: a blur of what's under it doesn't hold
+     in every browser while the page changes under it. */
   .over {
-    background: color-mix(in srgb, var(--backdrop) 80%, transparent);
-    -webkit-backdrop-filter: blur(12px) saturate(1.15);
-    backdrop-filter: blur(12px) saturate(1.15);
     box-shadow: var(--shadow-lg);
   }
 }

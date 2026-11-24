@@ -54,7 +54,7 @@ function Peek({ things, own, floats = false, width = 420, peek }: { things: Samp
 // document and a crew behind it.
 export const BesideThePage: StoryObj = { render: () => <Peek things={[rounding, billing, crew]} /> };
 
-// Over the page, a little see-through, with what's under it blurred.
+// Over the page: the same solid card, with a deeper shadow.
 export const OverThePage: StoryObj = { render: () => <Peek things={[billing, rounding]} floats /> };
 
 // One thing, which is most peeks.
