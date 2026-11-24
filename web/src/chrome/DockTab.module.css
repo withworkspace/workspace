@@ -76,6 +76,11 @@
     white-space: nowrap;
   }
 
+  /* A peek: the next thing peeked at takes its place. */
+  .peek .name {
+    font-style: italic;
+  }
+
   .count {
     color: var(--dim);
     font-size: var(--text-xs);

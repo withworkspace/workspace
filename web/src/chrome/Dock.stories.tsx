@@ -27,7 +27,7 @@ export default meta;
 const frame: React.CSSProperties = { position: "relative", display: "flex", height: 520, background: "var(--bg)" };
 const page: React.CSSProperties = { flex: 1, minWidth: 0, padding: 24, color: "var(--dim)" };
 
-function Peek({ things, own, floats = false, width = 420 }: { things: SampleThing[]; own?: SampleThing[]; floats?: boolean; width?: number }) {
+function Peek({ things, own, floats = false, width = 420, peek }: { things: SampleThing[]; own?: SampleThing[]; floats?: boolean; width?: number; peek?: string }) {
   const [over, setOver] = useState(floats);
   const [size, setSize] = useState(width);
   const [open, setOpen] = useState(true);
@@ -43,7 +43,7 @@ function Peek({ things, own, floats = false, width = 420 }: { things: SampleThin
       </div>
       {open && (
         <div style={over ? { position: "absolute", top: 12, right: 12, bottom: 12, display: "flex" } : { display: "flex", margin: "12px 12px 12px 0" }}>
-          <SampleBeside things={things} own={own} over={over} onOver={setOver} size={size} onSize={setSize} onClose={() => setOpen(false)} />
+          <SampleBeside things={things} own={own} over={over} onOver={setOver} size={size} onSize={setSize} onClose={() => setOpen(false)} peek={peek} />
         </div>
       )}
     </div>
@@ -59,6 +59,10 @@ export const OverThePage: StoryObj = { render: () => <Peek things={[billing, rou
 
 // One thing, which is most peeks.
 export const OneThing: StoryObj = { render: () => <Peek things={[freezes]} /> };
+
+// One of them a peek (z, on what the pointer's on): its name is slanted,
+// and the next thing peeked at takes its place.
+export const APeekAmongYours: StoryObj = { render: () => <Peek things={[billing, rounding]} peek="billing" /> };
 
 // More than fit: the tabs behind give up room, the row scrolls, and the
 // list of them all is at its end.

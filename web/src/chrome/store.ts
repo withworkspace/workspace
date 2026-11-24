@@ -2,7 +2,7 @@ import type { V1 } from "@withworkspace/ui-lib/protocol";
 import { useEffect, useMemo, useRef } from "react";
 import { create } from "zustand";
 import type { TalkDetail, TalkGiven, TalkProposal } from "../api";
-import { besideAbout, besideFront, besideTabs, type ChromeState, closeBesideTab, hideSidebar, openBeside, read, write } from "./chromeState";
+import { besideAbout, besideFront, besideTabs, type ChromeState, closeBesideTab, hideSidebar, openBeside, peekBeside, read, write } from "./chromeState";
 import { paneAt } from "./panes";
 
 // The window's state, in one store: how it's arranged (chromeState.ts:
@@ -115,6 +115,9 @@ interface ChromeStore {
   // takes the keys (a conversation's reply).
   open: (to: string, o?: { here?: boolean; inPlaceOf?: string; keys?: boolean }) => void;
   close: (to: string) => void;
+  // peek is z on a thing, by its address: it opens beside as the peek, in
+  // the last peek's place; on the peek in front, it closes it.
+  peek: (to: string) => void;
   // takeKeys is a pane taking the keys it was asked to: true once for
   // each asking, whenever the pane comes to it.
   takeKeys: (to: string) => boolean;
@@ -193,6 +196,10 @@ export const useChromeStore = create<ChromeStore>()((set, get) => ({
       const { [to]: _, ...rest } = s.keys;
       return { keys: rest };
     });
+  },
+  peek: (to) => {
+    const { here, change } = get();
+    change((c) => peekBeside(c, to, here));
   },
   takeKeys: (to) => {
     if (!get().keys[to]) return false;

@@ -19,7 +19,9 @@ type RowProps = React.ComponentProps<"li"> & {
 
 // Row is a row of a list. Its link (a <Link>, an <a>) takes rowLinkClass.
 export function Row({ selected, picked, flash, still, className, ...rest }: RowProps) {
-  return <li className={cx(css.row, selected && css.selected, picked && css.picked, flash && css.flash, still && css.still, className)} {...rest} />;
+  // data-cursor: the row the keys are on, for what acts on it from outside
+  // the list (z peeks at what it goes to: chrome/usePeekKey.ts).
+  return <li className={cx(css.row, selected && css.selected, picked && css.picked, flash && css.flash, still && css.still, className)} data-cursor={selected ? "" : undefined} {...rest} />;
 }
 
 // rowLinkClass is a row's link's look: the whole row, laid out.

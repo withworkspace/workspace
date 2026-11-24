@@ -1,0 +1,41 @@
+/* One of a mission's crew, in its peek (MissionPeekCrew.tsx). */
+
+.crew {
+  min-width: 0;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 8px;
+  margin: 0 -8px;
+  border-radius: var(--radius);
+  color: inherit;
+  font-size: var(--text-sm);
+}
+
+.link:hover {
+  background: var(--hover);
+  text-decoration: none;
+}
+
+.status {
+  flex: none;
+}
+
+.what {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dim);
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capsule {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+}

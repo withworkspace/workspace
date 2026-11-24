@@ -1,12 +1,17 @@
 import { type ReactNode, useEffect, useState } from "react";
 import type { Workspace } from "../api";
 import { talkName, useTalks } from "../conversation/talks";
+import { titleOf } from "../documents/peek";
 import { AskPane } from "../panes/AskPane";
+import { DocumentPane } from "../panes/DocumentPane";
+import { MissionPane } from "../panes/MissionPane";
+import { PullRequestPane } from "../panes/PullRequestPane";
 import { TalkPane } from "../panes/TalkPane";
 import { talkStatus } from "../talk/Talk";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/Status";
+import { headlineStatus } from "../ui/statusOf";
 import { besideWidths, floatBeside, pickBeside, toggleBeside, widenBeside } from "./chromeState";
 import { Dock } from "./Dock";
 import { DockDivide } from "./DockDivide";
@@ -17,6 +22,7 @@ import { DockTabList, type ListedTab } from "./DockTabList";
 import { DockTabs } from "./DockTabs";
 import { type PaneAt, paneAt } from "./panes";
 import { useBeside, useChromeStore } from "./store";
+import { useTabNames } from "./tabNames";
 import { useWorkspace } from "../workspace/store";
 
 type BesideProps = {
@@ -33,18 +39,25 @@ type BesideProps = {
 // back as you come back. Then what's about nothing, which is there
 // anywhere. It can float over the page instead of the page making room.
 //
+// One of the tabs may be a peek (z, on what the pointer's on): a mission,
+// a document, a pull request or a conversation, looked at and not opened.
+// The next thing peeked at takes its place.
+//
 // What it shows is the window's (store.ts): this draws it, and changes
 // it.
 export function Beside({ sheet }: BesideProps) {
   // What the workspace lists of its conversations (what a tab calls one,
   // and when one's changed), and where it is.
   const conversations = useWorkspace((w) => w.conversations);
+  const missions = useWorkspace((w) => w.missions);
   const root = useWorkspace((w) => w.root);
   const now = useBeside();
   const change = useChromeStore((s) => s.change);
   const close = useChromeStore((s) => s.close);
   const here = useChromeStore((s) => s.here);
   const talks = useTalks((s) => s.talks);
+  const names = useTabNames((s) => s.names);
+  const peek = useChromeStore((s) => s.chrome.beside.peek);
   const [picks, setPicks] = useState(0);
 
   // A conversation behind the one in front hasn't been read by a pane:
@@ -58,12 +71,12 @@ export function Beside({ sheet }: BesideProps) {
   const at = front ? paneAt(front) : undefined;
   if (!front || !at) return null;
   const over = now.over && !sheet;
-  const said = (t: string) => tabOf(conversations, paneAt(t)!, talkName(talks[t]?.detail));
+  const said = (t: string) => tabOf({ conversations, missions }, paneAt(t)!, paneAt(t)!.kind === "conversation" ? talkName(talks[t]?.detail) : names[t]);
   const pick = (t: string) => {
     change((s) => pickBeside(s, t, here));
     setPicks((n) => n + 1); // the one that's in front already is brought back into sight
   };
-  const tab = (t: string) => <DockTab key={t} {...said(t)} on={t === front} onPick={() => pick(t)} onClose={() => close(t)} />;
+  const tab = (t: string) => <DockTab key={t} {...said(t)} on={t === front} peek={t === peek} onPick={() => pick(t)} onClose={() => close(t)} />;
   const listed = (t: string): ListedTab => ({ id: t, ...said(t), on: t === front, onPick: () => pick(t) });
   return (
     <Dock side="beside" label="Beside" size={now.width} over={over} sheet={sheet} edge={<DockEdge side="beside" label="Beside's width" size={now.width} {...besideWidths} onSize={(w) => change((s) => widenBeside(s, w))} />}>
@@ -100,16 +113,27 @@ export function Beside({ sheet }: BesideProps) {
       </DockHead>
       {at.kind === "conversation" && <TalkPane key={front} to={front} root={root} stamp={at.slug ? undefined : conversations.find((c) => c.id === at.id)?.updated} onGone={() => close(front)} />}
       {at.kind === "ask" && <AskPane key={front} to={front} thing={at.thing} />}
+      {at.kind === "mission" && <MissionPane key={front} to={front} slug={at.slug} />}
+      {at.kind === "document" && <DocumentPane key={front} to={front} docRef={at.ref} />}
+      {at.kind === "pr" && <PullRequestPane key={front} to={front} repo={at.repo} number={at.number} />}
     </Dock>
   );
 }
 
 // tabOf is what a tab says of its thing: its name, cut short by the tab,
-// and how it stands. A conversation the workspace lists is said as its
-// list says it; one nobody's kept (an ask) isn't listed, and is called
-// what it was read as.
-function tabOf(listed: Workspace["conversations"], at: PaneAt, read?: string): { name: string; lead: ReactNode } {
+// and how it stands. A conversation or a mission the workspace lists is
+// said as its list says it; a conversation nobody's kept (an ask) isn't
+// listed, and is called what it was read as. A document and a pull
+// request are called what their pane read them as, and until then by
+// their address: the file's name, the pull request's number.
+function tabOf(listed: Pick<Workspace, "conversations" | "missions">, at: PaneAt, read?: string): { name: string; lead: ReactNode } {
   if (at.kind === "ask") return { name: `Ask about ${at.thing}`, lead: <Icon name="sparkle" size={13} /> };
-  const t = at.slug ? undefined : listed.find((c) => c.id === at.id);
+  if (at.kind === "mission") {
+    const m = listed.missions.find((x) => x.slug === at.slug);
+    return { name: m?.title ?? at.slug, lead: m ? <Status s={headlineStatus(m.headline)} iconOnly size={13} /> : <Icon name="flag" size={13} /> };
+  }
+  if (at.kind === "document") return { name: read ?? titleOf("", at.ref.slice(at.ref.indexOf(":") + 1)), lead: <Icon name="file" size={13} /> };
+  if (at.kind === "pr") return { name: read ?? `${at.repo}#${at.number}`, lead: <Icon name="pr" size={13} /> };
+  const t = at.slug ? undefined : listed.conversations.find((c) => c.id === at.id);
   return { name: t?.title || t?.opening || read || "Conversation", lead: t ? <Status s={talkStatus(t)} iconOnly size={13} /> : <Icon name="sparkle" size={13} /> };
 }

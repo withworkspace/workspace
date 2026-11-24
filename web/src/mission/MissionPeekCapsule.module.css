@@ -1,0 +1,43 @@
+/* One of the capsules a mission's work is in, in its peek
+   (MissionPeekCapsule.tsx). */
+
+.capsule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.icon {
+  flex: none;
+  color: var(--faint);
+}
+
+.name,
+.gone {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gone {
+  color: var(--faint);
+  text-decoration: line-through;
+}
+
+.pr {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  color: var(--dim);
+}
+
+.pr:hover {
+  color: var(--accent);
+}

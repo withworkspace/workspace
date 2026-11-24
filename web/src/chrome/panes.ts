@@ -3,7 +3,13 @@
 // web UI (the same address its own page has), so the tab and the page are
 // one thing's.
 
-export type PaneAt = { kind: "conversation"; slug: string; id: string } | { kind: "ask"; thing: string };
+export type PaneAt =
+  | { kind: "conversation"; slug: string; id: string }
+  | { kind: "ask"; thing: string }
+  | { kind: "mission"; slug: string }
+  // ref: the document as ws names it (repo:path, or repo/capsule:path).
+  | { kind: "document"; ref: string }
+  | { kind: "pr"; repo: string; number: number };
 
 // The address a conversation has beside the page: its own page's.
 export const talkAt = (id: string, slug = "") => (slug ? `/missions/${encodeURIComponent(slug)}/conversations/${encodeURIComponent(id)}` : `/conversations/${encodeURIComponent(id)}`);
@@ -13,16 +19,60 @@ export const talkAt = (id: string, slug = "") => (slug ? `/missions/${encodeURIC
 // and is there only while the thing's page is.
 export const askAt = (thing: string) => `/ask/${encodeURIComponent(thing)}`;
 
+// A piece of an address as it was written, or as it is if it wasn't
+// written as one.
+function piece(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
 // paneAt is the pane an address has, if what's there has one: a
-// conversation (the workspace's, or about a mission), or one about a
-// thing that hasn't begun.
+// conversation (the workspace's, or about a mission), one about a thing
+// that hasn't begun, a mission, a document (a file in a repo, as it is on
+// its default branch or, with ?in=, in a capsule) or a pull request. What
+// else the address says (a mission's tab, a document being edited, a
+// section) isn't the pane's.
 export function paneAt(to: string): PaneAt | undefined {
   const path = to.split(/[?#]/)[0];
   let m = /^\/missions\/([^/]+)\/conversations\/([^/]+)\/?$/.exec(path);
-  if (m) return { kind: "conversation", slug: decodeURIComponent(m[1]), id: decodeURIComponent(m[2]) };
+  if (m) return { kind: "conversation", slug: piece(m[1]), id: piece(m[2]) };
   m = /^\/conversations\/([^/]+)\/?$/.exec(path);
-  if (m) return { kind: "conversation", slug: "", id: decodeURIComponent(m[1]) };
+  if (m) return { kind: "conversation", slug: "", id: piece(m[1]) };
   m = /^\/ask\/([^/]+)\/?$/.exec(path);
-  if (m) return { kind: "ask", thing: decodeURIComponent(m[1]) };
+  if (m) return { kind: "ask", thing: piece(m[1]) };
+  m = /^\/missions\/([^/]+)\/?$/.exec(path);
+  if (m) return { kind: "mission", slug: piece(m[1]) };
+  m = /^\/reviews\/([^/]+)\/(\d+)\/?$/.exec(path);
+  if (m) return { kind: "pr", repo: piece(m[1]), number: Number(m[2]) };
+  // /documents/local/<id> is a page nobody's filed: it has no pane yet.
+  m = /^\/documents\/([^/]+)\/(.+)$/.exec(path);
+  if (m && m[1] !== "local") {
+    const capsule = new URLSearchParams(to.split("#")[0].split("?")[1] ?? "").get("in") ?? "";
+    return { kind: "document", ref: `${piece(m[1])}${capsule ? `/${capsule}` : ""}:${m[2].split("/").map(piece).join("/")}` };
+  }
   return undefined;
+}
+
+// peekAt is the tab a link opens when it's peeked at (z): the address of
+// the thing it goes to, without what the link says of where in it (a
+// mission's tab, a section, a document to edit), so two links to one
+// thing are one tab. Nothing, for a link that leaves ws or goes to
+// something with no pane.
+export function peekAt(href: string, origin: string): string | undefined {
+  let url: URL;
+  try {
+    url = new URL(href, origin);
+  } catch {
+    return undefined;
+  }
+  if (url.origin !== origin) return undefined;
+  const at = paneAt(url.pathname + url.search);
+  if (!at || at.kind === "ask") return undefined;
+  const path = url.pathname.replace(/\/$/, "");
+  if (at.kind !== "document") return path;
+  const capsule = url.searchParams.get("in");
+  return capsule ? `${path}?in=${encodeURIComponent(capsule)}` : path;
 }

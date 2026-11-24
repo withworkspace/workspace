@@ -79,6 +79,7 @@ import { Places } from "./chrome/Places";
 import { Shell } from "./chrome/Shell";
 import { Sidebar } from "./chrome/Sidebar";
 import { useBeside, useChromeStore, useFrameDim, useFrameExpanded, useFrameHere } from "./chrome/store";
+import { usePeekKey } from "./chrome/usePeekKey";
 import { WorkspaceName } from "./chrome/WorkspaceName";
 import { pageScroller } from "./ui/scroller";
 import { Menu, MenuItem, MenuSection, MenuSeparator, MenuText } from "./ui/Menu";
@@ -132,6 +133,8 @@ export function App() {
   // and closes it.
   const beside = useBeside();
   useKeys({ "\\": () => beside.all.length > 0 && changeChrome(toggleBeside) });
+  // z peeks at what the pointer's on, there (chrome/usePeekKey.ts).
+  usePeekKey();
   // Below, under the page: there while it has something to show, which
   // it hasn't yet (belowViews.ts). It has no key yet either.
   const belowViews = useBelowViews();
@@ -634,7 +637,8 @@ const globalKeys: [string, string][] = [
   ["g f", "Go to Files"],
   ["g o", "Go to the Orchestrator"],
   [".", "Pin what the page is to your Focus, or unpin it"],
-  ["\\", "Open or close what's beside the page: what you asked about it"],
+  ["z", "Peek at what the pointer's on (or the row the cursor's on) beside the page: a mission, a document, a pull request, a conversation. Again closes it"],
+  ["\\", "Open or close what's beside the page: what you asked about it, what you peeked at"],
   ["?", "These keys"],
   ["esc", "Close, or go back"],
 ];
