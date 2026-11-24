@@ -1470,8 +1470,10 @@ export type { TranscriptEntry };
 
 export type { Transcript };
 
-export const getTranscript = (slug: string, id: string) =>
-  getJSON<Transcript>(`/api/missions/${encodeURIComponent(slug)}/crew/${encodeURIComponent(id)}/transcript`);
+// last: only its latest entries, for what needs no more than what it's
+// doing now.
+export const getTranscript = (slug: string, id: string, last?: number) =>
+  getJSON<Transcript>(`/api/missions/${encodeURIComponent(slug)}/crew/${encodeURIComponent(id)}/transcript${last ? `?last=${last}` : ""}`);
 
 // sayToCrew sends crew a message: typed in if it's running, or resuming it
 // with it if it's ended.

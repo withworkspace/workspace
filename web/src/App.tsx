@@ -69,7 +69,8 @@ import { FindButton } from "./chrome/FindButton";
 import { Foot } from "./chrome/Foot";
 import { FootBelow } from "./chrome/FootBelow";
 import { FootBeside } from "./chrome/FootBeside";
-import { FootCrew } from "./chrome/FootCrew";
+import { FootCrewLive } from "./chrome/FootCrewLive";
+import { FootReady } from "./chrome/FootReady";
 import { FootSidebar } from "./chrome/FootSidebar";
 import { FootSep } from "./chrome/FootSep";
 import { type Need, useArrived, waitingOf } from "./chrome/need";
@@ -176,6 +177,7 @@ export function App() {
   const waiting = useMemo(() => waitingOf(needs), [needs]);
   const arrived = useArrived(workspace ? needs : undefined);
   // Who's at work now, for the foot: a window on to the work.
+  const ready = workspace?.reviews?.ready ?? 0;
   const atWork = useMemo(() => (workspace?.missions ?? []).flatMap((m) => m.crew.filter((c) => !c.ended && c.activity === "working").map((c) => ({ m, c }))), [workspace]);
   useEffect(() => setTitleContext(workspace?.name ?? "ws", waiting.length), [workspace?.name, waiting.length]);
   useFaviconBadge(waiting.length > 0);
@@ -269,9 +271,11 @@ export function App() {
           start={
             <>
               <FootSidebar shown={!out} count={needs.length} fresh={arrived.size > 0} onPress={toggleSidebar} />
+              {ready > 0 && <FootSep />}
+              <FootReady count={ready} />
               {atWork.length > 0 && <FootSep />}
               {atWork.map(({ m, c }) => (
-                <FootCrew key={`${m.slug}:${c.id}`} id={c.id} mission={m.title} to={`/missions/${m.slug}/crew/${c.id}`} />
+                <FootCrewLive key={`${m.slug}:${c.id}`} slug={m.slug} id={c.id} mission={m.title} />
               ))}
             </>
           }

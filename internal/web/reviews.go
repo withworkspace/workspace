@@ -25,9 +25,11 @@ import (
 // threads, asking an agent, and docking.
 
 // ReviewsCount is what the sidebar says of the Reviews page: how many PRs
-// need you, as GitHub last said.
+// need you, as GitHub last said. Ready is how many of your own are ready
+// to merge (its Ready to merge section, a stack one), for the foot.
 type ReviewsCount struct {
 	Count int       `json:"count"`
+	Ready int       `json:"ready,omitempty"`
 	At    time.Time `json:"at"`
 }
 

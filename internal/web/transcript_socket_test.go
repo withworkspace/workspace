@@ -117,3 +117,37 @@ func asJSON(t *testing.T, v []harness.TranscriptEntry) string {
 	data, _ := json.Marshal(v)
 	return string(data)
 }
+
+// ?last=n reads only a session's latest n entries, counting those before
+// as left out, as the foot reads what crew is doing.
+func TestTranscript_Last(t *testing.T) {
+	whole, err := os.ReadFile("../harness/testdata/claude-session.jsonl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "session.jsonl")
+	if err := os.WriteFile(path, whole, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := startTest(t, t.TempDir(), &fakeWorkspace{}, nil)
+	s.App = &fakeApp{Workspace: s.App.(*ops.Workspace), crew: sessionCrew{path: path}}
+	read := func(q string) Transcript {
+		t.Helper()
+		res := do(t, s, "GET", "/api/missions/m/crew/c1/transcript"+q, true, nil)
+		defer res.Body.Close()
+		var tr Transcript
+		json.NewDecoder(res.Body).Decode(&tr)
+		return tr
+	}
+	all, last := read(""), read("?last=2")
+	n := len(all.Entries)
+	if n < 3 {
+		t.Fatalf("the session has %d entries: too few to test", n)
+	}
+	if len(last.Entries) != 2 || last.Earlier != all.Earlier+n-2 || last.Version != all.Version {
+		t.Fatalf("last 2 of %d: %d from %d, version %d (%d)", n, len(last.Entries), last.Earlier, last.Version, all.Version)
+	}
+	if last.Entries[1].Text != all.Entries[n-1].Text || last.Entries[1].By != all.Entries[n-1].By {
+		t.Errorf("not the latest: %+v", last.Entries[1])
+	}
+}
