@@ -9030,6 +9030,17 @@ details.repo-group > summary::-webkit-details-marker {
   font-size: var(--text-sm);
 }
 
+/* How much there is of it, at the end of the path's row. */
+.file-size {
+  flex: none;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.file-meta:empty {
+  display: none;
+}
+
 .file-pane-note {
   margin: 8px 20px 16px;
 }
@@ -9063,6 +9074,16 @@ details.repo-group > summary::-webkit-details-marker {
   font: var(--text-sm) / 20px var(--mono);
   overflow-x: auto;
   tab-size: 4;
+}
+
+/* A file in the explorer is the page itself, as in an editor: no card
+   around its lines. */
+.file-pane > .code-view {
+  margin: 0 0 calc(64px - var(--foot-height, 0px));
+  border: 0;
+  border-radius: 0;
+  background: none;
+  --backdrop: var(--bg);
 }
 
 .code-line {
