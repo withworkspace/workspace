@@ -53,7 +53,7 @@ func TestOpenReadsConfigAgain(t *testing.T) {
 func TestConversations(t *testing.T) {
 	w, _ := fixture(t, "")
 	var answers []string
-	w.opts.Answer = func(kind, slug, id string) { answers = append(answers, kind+" "+slug+"/"+id) }
+	w.opts.Jobs = JobsOf(func(j job.Job) { answers = append(answers, j.Kind+" "+j.Mission+"/"+j.ID) }, job.Answer, job.Thread, job.Draft)
 	sc := doc.OfMission("cache")
 	text := []byte("# Plan\n\nCache per user.\n")
 	ref := "frontend/one:plan.md"

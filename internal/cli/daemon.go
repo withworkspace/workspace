@@ -6,7 +6,6 @@ import (
 	"log"
 	"maps"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -14,13 +13,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/withworkspace/workspace/internal/config"
-	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/execlog"
-	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
-	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/store"
 	"github.com/withworkspace/workspace/internal/ui"
 	"github.com/withworkspace/workspace/internal/web"
@@ -110,130 +105,18 @@ func ownBinary() string {
 	return exe
 }
 
-// runDaemon is the daemon, until it's shut down. restart says it shut down
-// to be started again (daemon.Server.Restart): by then everything it held
-// is closed.
+// runDaemon is the daemon, until it's shut down (daemon.Run), given what
+// only the commands know: their labels and words, and ws show's views.
 func runDaemon(cmd *cobra.Command, root, exe string) (restart bool, err error) {
-	s := &daemon.Server{Root: root, Log: log.New(os.Stderr, "daemon ", log.LstdFlags), Build: cmd.Root().Version, Exe: exe}
-	// A restart that isn't to be now waits for crew mid-turn. If
-	// the missions can't be read, it waits: nothing says none is.
-	s.CrewAtWork = func() []string {
-		ctx, err := LoadOps(root)
-		if err != nil {
-			return []string{fmt.Sprintf("the workspace's missions, which can't be read (%v)", err)}
-		}
-		return ctx.CrewAtWork()
-	}
-	// This process is the daemon: it takes the records itself, and
-	// never starts another to borrow them from. (Something that read
-	// a record before it had them would start one, which would do
-	// the same.)
-	store.Start = func(string) error {
-		return errors.New("the daemon reads its records once it's taken them, and starts no other")
-	}
-	// What ws records is this process's to serve: taken before the
-	// daemon's own socket answers, so a command that finds the daemon
-	// finds its records.
-	records, err := store.Own(root)
-	if err != nil {
-		return false, err
-	}
-	defer records.Close()
-	if err := records.CopyError(); err != nil {
-		s.Log.Printf("records: the day's copy wasn't taken: %v", err)
-	}
-	// Crew a server before this one left running when it died have
-	// nobody to record their end: record them as lost.
-	if n := (mission.Store{Root: root}).ReconcileCrew(crew.ProcessAlive); n > 0 {
-		s.Log.Printf("recorded %d crew as lost: their server went without ending them", n)
-	}
-	runsPoke := make(chan struct{}, 1)
-	orchestrate := orchestrateHook(root)
-	s.OnCrewEnded = func(spec crew.Spec, exit string, stopped bool) {
-		orchestrate(spec, exit, stopped)
-		pokeRuns(runsPoke) // runs their session owned
-	}
-	s.TrustFolders = func() bool {
-		l, err := config.ReadLocal(root)
-		return err == nil && l.Crew.TrustFolders
-	}
-	// A turn of crew over ACP that ended without the crew saying
-	// where it is, as a terminal crew's stop hook hands on.
-	s.OnACPTurnEnded = func(slug, crewID string) { orchestrateQuietTurn(root, slug, crewID) }
-	// The silos are kept from here: answered for before the socket is.
-	silosStop := make(chan struct{})
-	defer close(silosStop)
-	keepSilos(s, s.Log, silosStop)
-	if err := s.Listen(); err != nil {
-		return false, err
-	}
-	records.SetHold(s.Hold) // a command's connection keeps the daemon up, as a page does
-	serverHost = s          // crew launched here (from the web UI) need no socket
-	// Jobs (the orchestrator's runs, conversations' answers) run in
-	// here, a child of the server each.
-	s.Jobs = jobQueue(root, s.Log.Printf)
-	serverJobs = s.Jobs
-	reconcileJobs(root, s.Jobs, s.Log.Printf)
-	prs := ops.NewPRCache() // the web UI, the PR watcher and plugins share what GitHub said
-	// The workspace's plugins run in here, one process each, started
-	// when one's first needed. Commands reach them over their socket, and
-	// what they ask ws is answered from the workspace's operations.
-	pluginHost = newPluginHost(s, cmd.Root().Version)
-	pluginHost.Answer = answerPlugin(openOps(root, prs))
-	if ln, err := pluginHost.Listen(); err != nil {
-		s.Log.Printf("plugins: commands can't reach them: %v", err)
-	} else {
-		defer ln.Close()
-		go pluginHost.Serve(ln)
-	}
-	defer pluginHost.Shutdown()
-	// The pull requests the web UI lists, which the daemon keeps current
-	// behind it: the same service, so a page shows what a look found.
-	var reviews *pulls.Service
-	if w := startWeb(s, prs, cmd.Root().Version); w != nil {
-		s.WebPort = w.Info().Port
-		reviews = w.Reviews
-		defer w.Close()
-	}
-	// Crew the daemon before this one shut down under, while they
-	// were still at their work, carry on.
-	go resumeInterrupted(root, s.Log.Printf)
-	stop := make(chan struct{})
-	defer close(stop)
-	go watchPRsLoop(root, prs, stop)
-	go watchHeldLoop(root, s.ACPCallDone, stop)                              // turns held on crew's own work
-	go closeDoneLoop(root, s.Log.Printf, stop)                               // crew that reported done, their turn over
-	go sweepAsksLoop(root, s.Log.Printf, stop)                               // asks nobody kept
-	go watchLimitsLoop(root, s.Log.Printf, stop)                             // steps out of time
-	go watchWaitsLoop(root, s.Log.Printf, stop)                              // Wait steps ws watches
-	go sweepArtifactsLoop(root, s.Log.Printf, stop)                          // artifacts on this machine that expired
-	go sweepRunsLoop(root, s.Log.Printf, runsPoke, stop)                     // runs whose owner has gone, or whose time is up
-	go routerLoop(root, s.WebPort, s.Log.Printf, stop)                       // names under .localhost, with [router] enabled
-	go checkUpdatesLoop(openOps(root, prs, daemonWS(s)), s.Log.Printf, stop) // later releases of ws and plugins, once a day
-	go followGroundsLoop(openOps(root, prs), s.Log.Printf, stop)             // each repo's ground kept up with its remote
-	go followReviewsLoop(reviews, s.Log.Printf, stop)                        // who's asking for your review by name
-	go noteRunning(openOps(root, prs, daemonWS(s)), s.Exe)                   // which ws this is, for what's new
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
-	go func() {
-		sig := <-sigs
-		s.Shutdown("signal " + sig.String())
-	}()
-	err = s.Serve()
-	return s.Restarting(), err
-}
-
-// resumeInterrupted resumes the crew the last daemon shut down under that
-// were still at their work, and logs what it did with each.
-func resumeInterrupted(root string, logf func(string, ...any)) {
-	ctx, err := LoadOps(root)
-	if err != nil {
-		logf("resuming crew the last daemon shut down under: %v", err)
-		return
-	}
-	for _, r := range ctx.ResumeInterrupted() {
-		logf("%s", r)
-	}
+	version := cmd.Root().Version
+	return daemon.Run(daemon.Config{
+		Root: root, Build: version, Exe: exe,
+		Log:      log.New(os.Stderr, "daemon ", log.LstdFlags),
+		WS:       thisWS(version),
+		Labels:   commandLabels(newBuiltinRootCmd("")),
+		Reserved: reservedWord,
+		Show:     showForPlugin,
+	})
 }
 
 func newDaemonStatusCmd() *cobra.Command {

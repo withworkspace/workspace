@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/prompt"
 	"github.com/withworkspace/workspace/internal/ui"
 )
 
@@ -62,16 +63,8 @@ func conclusionLines(c mission.Conclusion) []string {
 // courtWords says whose court a mission is in: to you, or (forAgents) to
 // crew and the orchestrator, for whom you're "the user".
 func courtWords(c mission.Court, forAgents bool) string {
-	switch c {
-	case mission.CourtAgent:
-		return "an agent's court (crew or the orchestrator is on it)"
-	case mission.CourtYou:
-		if forAgents {
-			return "the user's court"
-		}
+	if c == mission.CourtYou && !forAgents {
 		return "your court"
-	case mission.CourtOutside:
-		return "outside (waiting on someone else: reviewers, checks, a merge, what a Wait step waits for)"
 	}
-	return "nobody's (archived)"
+	return prompt.CourtWords(c)
 }

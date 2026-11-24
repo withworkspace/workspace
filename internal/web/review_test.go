@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/plugin/fakeplugin"
@@ -137,7 +138,7 @@ func TestReviewWrites(t *testing.T) {
 	}
 	var submitted []string
 	s.clock = func() time.Time { return time.Date(2026, 11, 9, 10, 0, 0, 0, time.UTC) }
-	setOps(s, testOps(s, ops.Options{Orchestrate: func(slug, crewID, trigger string) { submitted = append(submitted, slug+"/"+trigger) }}))
+	setOps(s, testOps(s, ops.Options{Jobs: ops.JobsOf(func(j job.Job) { submitted = append(submitted, j.Mission+"/"+j.Why) }, job.Orchestrate)}))
 	api := "/api/missions/m/capsules/api/fix"
 
 	var d review.Diff

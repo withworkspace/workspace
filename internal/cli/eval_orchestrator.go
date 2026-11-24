@@ -274,7 +274,7 @@ func (e orchestratorEval) run(f ops.OrchestratorFixture) (res ops.EvalResult) {
 		before[r.ID] = true
 	}
 	var told bytes.Buffer
-	runErr := orchestrate(ctx, orchestrateOptions{Slug: f.Mission, Crew: f.Crew, Trigger: f.Trigger}, &told)
+	runErr := ctx.Orchestrate(ops.OrchestratorRun{Slug: f.Mission, Crew: f.Crew, Trigger: f.Trigger, Said: func(line string) { fmt.Fprintln(&told, line) }})
 	runs := orchestrator.Runs(store, f.Mission)
 	if len(runs) <= len(before) {
 		if runErr != nil {

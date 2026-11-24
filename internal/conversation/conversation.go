@@ -1247,6 +1247,10 @@ func (s Store) SetSummary(id, title, summary string, at time.Time) error {
 
 // RunPath is where a run answering a conversation writes what it prints,
 // as it goes, for its page to show. Its folder is made, for the run.
+// RunFile is where a run answering a conversation writes what it's doing
+// (RunPath), without making its folder: for a look at it.
+func (s Store) RunFile(id string) string { return filepath.Join(s.dir(), id+".run") }
+
 func (s Store) RunPath(id string) string {
 	os.MkdirAll(s.dir(), 0o755)
 	return filepath.Join(s.dir(), id+".run")

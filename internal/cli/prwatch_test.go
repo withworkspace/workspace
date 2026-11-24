@@ -7,6 +7,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 )
@@ -32,7 +33,7 @@ func TestWatchPRs(t *testing.T) {
 		if !orchestratorOn {
 			cfg.Orchestrator.Enabled = &off
 		}
-		ops.New(cfg, ws, nil, ops.Options{Orchestrate: func(slug, crewID, trigger string) { spawned = append(spawned, slug+"/"+trigger) }}).WatchPRs([]ops.MissionView{v})
+		ops.New(cfg, ws, nil, ops.Options{Jobs: ops.JobsOf(func(j job.Job) { spawned = append(spawned, j.Mission+"/"+j.Why) }, job.Orchestrate)}).WatchPRs([]ops.MissionView{v})
 	}
 	prEvents := func() []string {
 		events, _ := store.ReadLog(slug, 0)
@@ -95,7 +96,7 @@ func TestWatchPRs_MergePassingAStep(t *testing.T) {
 			t.Fatal(err)
 		}
 		v := ops.MissionView{M: m, State: mission.Review, Capsules: []ops.CapsuleView{{Capsule: m.Capsules[0], Exists: true, PR: &pr, PRS: prs}}}
-		ops.New(&config.Config{}, ws, nil, ops.Options{Orchestrate: func(string, string, string) { spawned++ }}).WatchPRs([]ops.MissionView{v})
+		ops.New(&config.Config{}, ws, nil, ops.Options{Jobs: ops.JobsOf(func(job.Job) { spawned++ }, job.Orchestrate)}).WatchPRs([]ops.MissionView{v})
 	}
 	watch(slug, github.PR{Number: 7, StatusRollup: "success"}, mission.PROpen) // first sighting
 	watch(slug, github.PR{Number: 7, MergedAt: time.Now().Format(time.RFC3339)}, mission.PRMerged)

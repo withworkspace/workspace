@@ -1,6 +1,9 @@
 package web
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,6 +16,7 @@ import (
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/store"
 )
 
 // Conversations with an agent about the workspace (w1, w2, …): the
@@ -45,6 +49,10 @@ type Talk struct {
 type TalkDetail struct {
 	*conversation.Conversation
 	Run *TalkRun `json:"run,omitempty"`
+	// Version is the records' change number it's as of, or later: a change
+	// told over the socket as of an earlier one (ConversationOp) is in it
+	// already.
+	Version int64 `json:"version"`
 	// Message says what a write did, when it's worth saying (accepting a
 	// proposal); Path is where the conversation is now, when it's moved
 	// (its mission renamed).
@@ -167,6 +175,12 @@ func (s *Server) answerTalk(w http.ResponseWriter, store conversation.Store, id 
 }
 
 func talkDetail(store conversation.Store, id string) (*TalkDetail, error) {
+	// The records' number is read first: what's read after is as of it,
+	// or later.
+	var version int64
+	if db, err := storeOf(store); err == nil {
+		version, _ = db.Seq(context.Background())
+	}
 	c, err := store.Load(id)
 	if err != nil {
 		return nil, err
@@ -182,7 +196,7 @@ func talkDetail(store conversation.Store, id string) (*TalkDetail, error) {
 			c.Proposals[i].HTML, c.Proposals[i].Tree = "", ""
 		}
 	}
-	d := &TalkDetail{Conversation: c}
+	d := &TalkDetail{Conversation: c, Version: version}
 	if c.Answering {
 		d.Run = &TalkRun{Calls: []harness.ToolCall{}}
 		if data, err := os.ReadFile(store.RunPath(id)); err == nil {
@@ -324,4 +338,57 @@ func clipRunes(s string, n int) string {
 		return s
 	}
 	return string(r[:n])
+}
+
+// storeOf is the records a conversation store's are in.
+func storeOf(s conversation.Store) (*store.DB, error) { return store.Dial(s.Missions.Root) }
+
+// ConversationOp is how a conversation a page holds has changed, told over
+// the socket (SocketSaid.Conversation) so the page needn't read it again:
+// its turns from From on (those before are as the page has them), and the
+// rest of it as it is now. A page holding fewer than From turns has missed
+// one, and holding it as of a later Version has this already: it reads it
+// whole, or drops this.
+type ConversationOp struct {
+	Version int64               `json:"version"`
+	From    int                 `json:"from"`
+	Turns   []conversation.Turn `json:"turns"`
+	// Conversation is all of it but its turns; Run is its agent's run as
+	// far as it's got, none when nobody's answering it.
+	Conversation *conversation.Conversation `json:"conversation"`
+	Run          *TalkRun                   `json:"run,omitempty"`
+}
+
+// conversationChange is how the conversation at key (scope/id) has changed
+// since was (a *TalkDetail its followers were told of; nil when they may
+// hold anything): op is nil when nothing they'd see has, and reread when
+// they're to read it whole (it can't be read here: they're told why when
+// they do). now is it as it is.
+func conversationChange(root, key string, was any) (op, now any) {
+	scope, id, _ := strings.Cut(key, "/")
+	d, err := talkDetail(conversation.For(root, scope), id)
+	if err != nil {
+		return reread, nil
+	}
+	prev, _ := was.(*TalkDetail)
+	if prev == nil {
+		return reread, d
+	}
+	from := 0
+	for from < len(prev.Turns) && from < len(d.Turns) && sameJSON(prev.Turns[from], d.Turns[from]) {
+		from++
+	}
+	head, prevHead := *d.Conversation, *prev.Conversation
+	head.Turns, prevHead.Turns = nil, nil
+	if from == len(prev.Turns) && from == len(d.Turns) && sameJSON(head, prevHead) && sameJSON(d.Run, prev.Run) {
+		return nil, d
+	}
+	return &ConversationOp{Version: d.Version, From: from, Turns: d.Turns[from:], Conversation: &head, Run: d.Run}, d
+}
+
+// sameJSON is whether a and b are sent as the same JSON.
+func sameJSON(a, b any) bool {
+	x, err1 := json.Marshal(a)
+	y, err2 := json.Marshal(b)
+	return err1 == nil && err2 == nil && bytes.Equal(x, y)
 }

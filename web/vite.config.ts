@@ -103,6 +103,9 @@ export default defineConfig(() => {
             {
               target: target.origin,
               changeOrigin: true,
+              // The page's socket (/api/socket) is proxied too, its Origin
+              // the server's own as every request's is.
+              ws: path === "/api",
               headers: { origin: target.origin, authorization: `Bearer ${target.token}` },
             },
           ]),

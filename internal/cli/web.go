@@ -1,20 +1,15 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/withworkspace/workspace/internal/daemon"
-	"github.com/withworkspace/workspace/internal/nav"
-	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/router"
-	"github.com/withworkspace/workspace/internal/team"
 	"github.com/withworkspace/workspace/internal/ui"
 	"github.com/withworkspace/workspace/internal/web"
 )
@@ -147,65 +142,6 @@ func openBrowser(url string) error {
 	default:
 		return exec.Command("xdg-open", url).Run()
 	}
-}
-
-// startWeb runs the web UI inside the daemon. A web UI that can't
-// start leaves the daemon running without one.
-func startWeb(s *daemon.Server, prs *ops.PRCache, version string) *web.Server {
-	w := newWeb(s, prs)
-	w.Version = version
-	if err := w.Start(); err != nil {
-		s.Log.Printf("no web UI: %v", err)
-		return nil
-	}
-	return w
-}
-
-// newWeb is the web UI for a daemon's workspace, with everything it
-// asks of ws given to it: web.Server knows nothing of the workspace, the
-// missions' verbs or crew's terminals but what's set here. A hook left
-// unset is an endpoint that says "not found" for good, so there's a test
-// that none is.
-func newWeb(s *daemon.Server, prs *ops.PRCache) *web.Server {
-	ctx, err := LoadOps(s.Root)
-	port := 0
-	var teamSvc *team.Service
-	if err == nil {
-		port = ctx.Config().Web.Port
-		teamSvc = teamService(ctx)
-	}
-	app := openOps(s.Root, prs, func(o *ops.Options) { o.Team = teamSvc }, daemonWS(s))
-	return &web.Server{
-		Root: s.Root, Port: port, Log: s.Log, App: app, Hold: s.Hold, Shutdown: s.Shutdown,
-		Reviews: app.PRService(), Team: teamSvc, Find: app.FindIndex(),
-		Nav:     nav.New(navCache(s.Root)),
-		Plugins: pluginHost,
-		Labels:  commandLabels(newBuiltinRootCmd("")),
-		Names:   func() []string { return webNames(s.Root) },
-		Silos:   daemonSilos,
-		ResyncSilo: func(repo string) error {
-			if siloKeeper == nil {
-				return errors.New("this daemon isn't keeping the silos: its log says why")
-			}
-			return siloKeeper.Resync(repo)
-		},
-	}
-}
-
-// webNames are the names the web UI is reached at through ws's router:
-// <workspace>.localhost, with the router's port where it isn't 80.
-func webNames(root string) []string {
-	name, ok := router.NameOf(root)
-	if !ok {
-		return nil
-	}
-	host := router.Host("", name)
-	return []string{host, fmt.Sprintf("%s:%d", host, router.Fallback), host + ":80"}
-}
-
-// navCache is where code navigation keeps what it's parsed.
-func navCache(root string) string {
-	return filepath.Join(root, ".ws", "cache", "nav")
 }
 
 // reviewPath is where the web UI reviews a mission's capsule.

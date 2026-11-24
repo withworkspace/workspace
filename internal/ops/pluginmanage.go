@@ -43,6 +43,15 @@ var PluginRunners = func(root string, start bool) (PluginRunner, error) {
 	return c, nil
 }
 
+// pluginRunner is the plugins as they run: the daemon's own, in it
+// (Options.Plugins), else through its socket (PluginRunners).
+func (w *Workspace) pluginRunner(start bool) (PluginRunner, error) {
+	if w.opts.Plugins != nil {
+		return w.opts.Plugins, nil
+	}
+	return PluginRunners(w.root, start)
+}
+
 // PluginAdded is how adding a plugin went, as ws plugin add -f json
 // prints it, for a program that adds one (plugin-dev, on every save).
 // It says how far it got, however it went.
@@ -180,7 +189,7 @@ func (w *Workspace) addPluginFolder(ctx context.Context, src string, link, build
 		res.Error = err.Error()
 		return res, plugin.Status{}, err
 	}
-	run, err := PluginRunners(w.root, true)
+	run, err := w.pluginRunner(true)
 	if err != nil {
 		res.Error = err.Error()
 		return res, plugin.Status{}, err
@@ -207,7 +216,7 @@ func (w *Workspace) RemovePlugin(ctx context.Context, name string, data bool) er
 	if !plugin.ValidName(name) || !slices.Contains(pluginFolders(w.root), name) {
 		return fmt.Errorf("%w: there's no plugin called %s", ErrNotFound, name)
 	}
-	if run, err := PluginRunners(w.root, false); err == nil {
+	if run, err := w.pluginRunner(false); err == nil {
 		run.Stop(ctx, name) //nolint:errcheck // not running is as good
 		run.Close()
 	}
@@ -327,7 +336,7 @@ type WantedPlugin struct{ Name, Source, Version string }
 // PluginStatuses are the workspace's plugins: as the daemon has them if
 // it can be reached, else as they were left.
 func (w *Workspace) PluginStatuses(ctx context.Context) []plugin.Status {
-	if run, err := PluginRunners(w.root, false); err == nil {
+	if run, err := w.pluginRunner(false); err == nil {
 		defer run.Close()
 		if out, err := run.Statuses(ctx); err == nil {
 			return out

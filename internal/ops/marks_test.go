@@ -247,7 +247,7 @@ func TestBriefingTurn_AtWorkFromAskedToReplied(t *testing.T) {
 
 	// Asked for: at work as the job's handed over, before any process has
 	// taken it.
-	w.opts.Answer = func(kind, mslug, id string) { s.look("asked for, not yet taken") }
+	w.opts.Jobs = JobsOf(func(job.Job) { s.look("asked for, not yet taken") }, job.Answer, job.Thread, job.Draft)
 	w.answer(job.Answer, doc.OfMission(slug), c.ID)
 	s.want("asked for, not yet taken", mission.KindBriefing, "The briefing agent is at work, in "+c.ID)
 	if got, _ := talks.Load(c.ID); got.Answering {
@@ -307,7 +307,7 @@ func TestPlannerTurn_AtWorkFromAskedToReplied(t *testing.T) {
 	}
 
 	// You say more, and its turn's asked for: at work from then.
-	w.opts.Answer = func(kind, mslug, id string) { s.look("asked for, not yet taken") }
+	w.opts.Jobs = JobsOf(func(job.Job) { s.look("asked for, not yet taken") }, job.Answer, job.Thread, job.Draft)
 	if _, err := w.SayInTalk(doc.OfMission("cache"), id, "Keep the fix small.", AsYou); err != nil {
 		t.Fatal(err)
 	}

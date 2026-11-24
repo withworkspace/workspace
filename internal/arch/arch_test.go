@@ -49,7 +49,13 @@ var allowed = map[string][]string{
 	"turn":         {"harness", "acp", "execlog"},
 	"crew":         {"harness", "mission", "termpane", "execlog", "acp"},
 	"orchestrator": {"mission", "harness", "prompt", "turn", "crew", "execlog", "git"},
-	"daemon":       {"crew", "harness", "acp", "termpane", "mission", "execlog"},
+	// The daemon: the crew it holds and the socket commands reach it on,
+	// and, put together around one ops.Workspace for its life, everything
+	// it runs (jobs, its loops, the web UI, plugins). Only cli starts it.
+	"daemon": append([]string{
+		"crew", "harness", "acp", "termpane", "execlog", "config", "workspace",
+		"ops", "orchestrator", "web", "plugin", "nav", "runs", "router",
+	}, domain...),
 	// Runs: what ws starts for someone and ends for them. It reads the
 	// user's processes as the process check does; whose records say an
 	// owner has ended is its caller's to say.

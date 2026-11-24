@@ -131,7 +131,14 @@ type Server struct {
 	// that tells its open pages when what they show has changed.
 	topics map[string]*hub
 	// missions tells a mission's open page when it changes (mission:<slug>).
-	missions *missionHub
+	missions *keyedHub
+	// views is what's been built of the workspace's view, for whoever asks
+	// next.
+	views viewCache
+	talks *keyedHub // conversations'
+	// transcripts is crew's sessions', each read as it grows by whoever
+	// follows it (followed).
+	transcripts *keyedHub
 	// files are the grounds and capsules open on the Files page, for the
 	// runs started there.
 	files filesOpen
@@ -236,24 +243,40 @@ func (s *Server) Start() error {
 	for _, h := range s.topics {
 		go h.run(s.ctx)
 	}
-	s.missions = newMissionHub(s.Poll, func(slug string) string { return s.App.MissionStamp(slug) }, func() *store.DB {
-		if db, err := store.Dial(s.Root); err == nil {
-			return db
-		}
-		return nil
-	})
-	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
-	// A write to the records that names the workspace (a conversation's
-	// turn, a page, a mission's record) is looked at now: its pages
-	// needn't wait for the next poll, which is for what only files and
-	// capsules show.
-	s.missions.wrote = func(topic string) {
-		if topic == topicWorkspace {
-			ws.nudge()
-		}
-	}
+	s.missions = newKeyedHub(missionTopic, s.Poll, func(slug string) string { return s.App.MissionStamp(slug) })
 	s.missions.keep = func(slug string) { s.App.KeepMission(slug) }
 	go s.missions.run(s.ctx)
+	// A conversation's agent writes its steps as it answers, which the
+	// records don't see: looked at every second while it's followed, as
+	// often as a page read one again before.
+	s.talks = newKeyedHub(conversationTopic, min(s.Poll, time.Second), func(key string) string {
+		scope, id, _ := strings.Cut(key, "/")
+		return s.App.ConversationStamp(scope, id)
+	})
+	// A conversation's followers hold it, and are told how it's changed.
+	s.talks.change = func(key string, was any) (any, any) { return conversationChange(s.Root, key, was) }
+	go s.talks.run(s.ctx)
+	s.transcripts = s.transcriptHub()
+	go s.transcripts.run(s.ctx)
+	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
+	// A write to the records tells the followers of what it names at once:
+	// a mission's page, a conversation's; and one that names the
+	// workspace (a conversation's turn, a page, a mission's record) has its
+	// hub look now, not at its next poll, which is for what only files and
+	// capsules show.
+	var records *store.DB
+	if db, err := store.Dial(s.Root); err == nil {
+		records = db
+	}
+	go watchRecords(s.ctx, records, func(topic string) {
+		if key, ok := topicKey(topic, missionTopic); ok {
+			s.missions.tell(key)
+		} else if key, ok := topicKey(topic, conversationTopic); ok {
+			s.talks.tell(key)
+		} else if topic == topicWorkspace {
+			ws.nudge()
+		}
+	})
 	// What's read behind a read that didn't wait (a space of documents,
 	// where a capsule stands) and found something new is looked at now.
 	seen := s.App.Seen() // the App the server starts with: read here, not in the goroutine
@@ -360,6 +383,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/needs/announce", s.announceNeeds)
 	mux.HandleFunc("GET /api/whats-new/pictures/{name}", s.whatsNewPicture)
 	mux.HandleFunc("GET /api/events", s.stream)
+	mux.HandleFunc("GET /api/socket", s.socket)
 	mux.HandleFunc("GET /api/missions/{slug}", s.mission)
 	mux.HandleFunc("GET /api/missions/{slug}/artifact", s.artifact)
 	mux.HandleFunc("GET /api/missions/{slug}/artifact/raw", s.artifactRaw)
@@ -573,7 +597,20 @@ func (s *Server) Handler() http.Handler {
 		jsonError(w, http.StatusNotFound, "no such API: "+r.Method+" "+r.URL.Path)
 	})
 	mux.HandleFunc("/", s.app)
-	return s.guard(mux)
+	return s.guard(s.forgetsOnWrite(mux))
+}
+
+// forgetsOnWrite has the workspace's view built afresh after a write a
+// page makes (anything but a read): what it wrote may be what the view's
+// built from in a way its stamp doesn't say (an update looked for), and
+// the page reads the view next.
+func (s *Server) forgetsOnWrite(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			s.views.forget()
+		}
+	})
 }
 
 func (s *Server) origins() []string {
@@ -733,56 +770,81 @@ func (s *Server) shutdown(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) workspace(w http.ResponseWriter, r *http.Request) {
-	ws, err := s.workspaceView()
+	data, err := s.views.workspace(s)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, ws)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
 }
 
 // fingerprint says whether what the API serves has changed.
 func (s *Server) fingerprint() string {
-	ws, err := s.workspaceView()
+	data, err := s.views.workspace(s)
 	if err != nil {
 		return "error: " + err.Error()
 	}
-	data, _ := json.Marshal(ws)
 	h := fnv.New64a()
 	h.Write(data)
 	return strconv.FormatUint(h.Sum64(), 16)
 }
 
-// stream is a page's event stream on a topic (?topic=workspace, the
-// default; reviews; team; plugins; mission:<slug>; pr:<repo>#<number>): it says when something
-// the page shows has changed, so the page never polls. An open stream holds
-// the daemon up. The plugins topic takes ?app=<name> from a page showing
-// that plugin's app.
-func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
-	topic := cmp.Or(r.URL.Query().Get("topic"), topicWorkspace)
-	var subscribe func() (<-chan string, func())
-	h := s.topics[topic]
-	if h != nil {
+// follow is a page's following of a topic (?topic=workspace, the
+// default; reviews; team; plugins; mission:<slug>; pr:<repo>#<number>): a
+// channel of event names, said when something the page shows has changed,
+// and a function to stop. The plugins topic takes app, the plugin whose
+// app the page shows, if it shows one: plugins are told who's looking, to
+// fetch to suit. A topic that can't be followed here is refused with its
+// status and why.
+func (s *Server) follow(topic, app string) (ch <-chan told, done func(), status int, err error) {
+	var subscribe func() (<-chan told, func())
+	if h := s.topics[topic]; h != nil {
 		subscribe = h.subscribe
 	}
-	if slug, ok := strings.CutPrefix(topic, missionTopic); ok && slug != "" && !strings.ContainsAny(slug, "/ ") {
-		subscribe = func() (<-chan string, func()) { return s.missions.subscribe(slug) }
+	if slug, ok := topicKey(topic, missionTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.missions.subscribe(slug) }
+	}
+	if key, ok := topicKey(topic, conversationTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.talks.subscribe(key) }
+	}
+	if key, ok := topicKey(topic, transcriptTopic); ok {
+		subscribe = func() (<-chan told, func()) { return s.transcripts.subscribe(key) }
 	}
 	if ref, ok := prTopicRef(topic); ok && s.prs != nil {
-		subscribe = func() (<-chan string, func()) { return s.followPR(ref) }
+		subscribe = func() (<-chan told, func()) { return s.followPR(ref) }
 	}
 	switch {
 	case subscribe != nil:
 	case topic == topicReviews, strings.HasPrefix(topic, prTopic):
-		jsonError(w, http.StatusNotFound, "there's no GitHub to ask here")
-		return
+		return nil, nil, http.StatusNotFound, errors.New("there's no GitHub to ask here")
 	case topic == topicTeam:
-		jsonError(w, http.StatusNotFound, "the team's events aren't available here")
-		return
+		return nil, nil, http.StatusNotFound, errors.New("the team's events aren't available here")
 	default:
-		jsonError(w, http.StatusNotFound, "no such topic: "+topic)
+		return nil, nil, http.StatusNotFound, errors.New("no such topic: " + topic)
+	}
+	look := func() {}
+	if topic == topicPlugins && s.Plugins != nil {
+		if !plugin.IsInstalled(s.Plugins.Root, app) {
+			app = ""
+		}
+		look = s.Plugins.Look(app)
+	}
+	ch, stop := subscribe()
+	return ch, func() { stop(); look() }, 0, nil
+}
+
+// stream is a page's event stream on one topic (follow), as server-sent
+// events: what a page from before the socket (socket.go) follows. An open
+// stream holds the daemon up.
+func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
+	topic := cmp.Or(r.URL.Query().Get("topic"), topicWorkspace)
+	ch, done, status, err := s.follow(topic, r.URL.Query().Get("app"))
+	if err != nil {
+		jsonError(w, status, err.Error())
 		return
 	}
+	defer done()
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		jsonError(w, http.StatusInternalServerError, "streaming unsupported")
@@ -791,18 +853,6 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 	if s.Hold != nil {
 		defer s.Hold()()
 	}
-	// Every page follows the plugins while it's showing, and says which
-	// plugin's app it shows, if it shows one: plugins are told who's
-	// looking, to fetch to suit.
-	if topic == topicPlugins && s.Plugins != nil {
-		app := r.URL.Query().Get("app")
-		if !plugin.IsInstalled(s.Plugins.Root, app) {
-			app = ""
-		}
-		defer s.Plugins.Look(app)()
-	}
-	ch, done := subscribe()
-	defer done()
 	hd := w.Header()
 	hd.Set("Content-Type", "text/event-stream")
 	hd.Set("Cache-Control", "no-cache")
@@ -814,8 +864,8 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
-		case name := <-ch:
-			fmt.Fprintf(w, "event: %s\ndata: {}\n\n", name)
+		case t := <-ch:
+			fmt.Fprintf(w, "event: %s\ndata: {}\n\n", t.Name)
 		case <-ping.C:
 			fmt.Fprint(w, ": ping\n\n")
 		}

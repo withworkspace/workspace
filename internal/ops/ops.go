@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/find"
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/release"
@@ -75,6 +77,44 @@ type loaded struct {
 	stamp string
 }
 
+// Jobs starts agents' work that outlives whoever asked for it (job.Job).
+type Jobs interface {
+	// Takes is whether it starts jobs of a kind: one it doesn't is done
+	// as Options.Jobs says.
+	Takes(kind string) bool
+	// Start starts a job of a kind it takes.
+	Start(job.Job)
+}
+
+// JobsOf is Jobs that starts each job of the kinds given (every kind, for
+// none) with start.
+func JobsOf(start func(job.Job), kinds ...string) Jobs {
+	return jobsFunc{start: start, kinds: kinds}
+}
+
+type jobsFunc struct {
+	start func(job.Job)
+	kinds []string
+}
+
+func (f jobsFunc) Takes(kind string) bool { return len(f.kinds) == 0 || slices.Contains(f.kinds, kind) }
+func (f jobsFunc) Start(j job.Job)        { f.start(j) }
+
+// takes is whether the workspace's Jobs start jobs of kind.
+func (w *Workspace) takes(kind string) bool {
+	return w.opts.Jobs != nil && w.opts.Jobs.Takes(kind)
+}
+
+// start has the workspace's Jobs start j, if they take its kind, and says
+// whether they did.
+func (w *Workspace) start(j job.Job) bool {
+	if !w.takes(j.Kind) {
+		return false
+	}
+	w.opts.Jobs.Start(j)
+	return true
+}
+
 // Options are what ops is given: where crew run, and where agents'
 // work is started (the daemon's jobs), which cli gives.
 type Options struct {
@@ -82,20 +122,22 @@ type Options struct {
 	// socket from a command, or the server itself, inside it. nil for
 	// nowhere: launching is refused, and a stage's crew are queued.
 	Host crew.Host
-	// Orchestrate runs the orchestrator on a mission, for a crew's event
-	// ("" for none) and a trigger (answer, review…).
-	Orchestrate func(slug, crewID, trigger string)
-	// Check has the daemon run and judge the checks of the step crew
-	// reported done at (job.Check). nil runs them there and then.
-	Check func(slug, crewID string)
-	// WritePR has the daemon write the pull request the PR writer's
-	// marked writing for a mission's capsule, and open it (job.PR). nil
-	// writes and opens it there and then.
-	WritePR func(slug, capsule string)
-	// Answer has the daemon answer a conversation (kind job.Answer) or a
-	// thread (job.Thread) in a mission ("" for the workspace's), or draft
-	// what a resolved thread decided (job.Draft). nil for no answers.
-	Answer func(kind, slug, id string)
+	// Jobs is where agents' work that outlives whoever asked for it is
+	// started: the daemon's queue, in it, or the way to it from a command.
+	// A job it doesn't take (nil takes none) is done as ws does without a
+	// daemon: a step's checks (job.Check) are run, and a pull request
+	// (job.PR) written and opened, there and then; the orchestrator
+	// (job.Orchestrate) isn't run, and conversations (job.Answer,
+	// job.Thread, job.Draft) aren't answered.
+	Jobs Jobs
+	// Plugins is the workspace's plugins as they run, in this process (the
+	// daemon's); nil reaches them through the daemon (PluginRunners).
+	// Close on it does nothing.
+	Plugins PluginRunner
+	// Live is what running crew show now (by key, slug/crew), from where
+	// they run: the orchestrator reads it. nil, or "" for crew it isn't
+	// running, reads what they left.
+	Live func(key string) string
 	// Now is the clock (default time.Now): tests set it.
 	Now func() time.Time
 	// PRs is what GitHub said of pull requests lately, which the views
@@ -139,6 +181,10 @@ func Open(root string, o Options) *Workspace {
 	w := New(&config.Config{}, &workspace.Workspace{Root: root}, nil, o)
 	w.reload = true
 	w.loaded()
+	// Held for the process's life (the daemon's), its way of finding names
+	// stands: a workspace loaded for a moment after it, with its index cold,
+	// doesn't take its place.
+	store.KeepName(w.Root(), w.namesKnown)
 	return w
 }
 

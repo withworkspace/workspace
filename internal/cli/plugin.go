@@ -36,19 +36,6 @@ import (
 // --help.
 const pluginsGroup = "plugins"
 
-// pluginHost is the workspace's plugins in this process, when it's the
-// daemon: nil in a command, which reaches them through the daemon.
-var pluginHost *plugin.Host
-
-// newPluginHost is the daemon's host for the workspace's plugins.
-func newPluginHost(s *daemon.Server, version string) *plugin.Host {
-	return &plugin.Host{Root: s.Root, Version: version, Log: s.Log, Hold: s.Hold, Reserved: reservedWord,
-		// How a plugin's things are named is kept in the workspace's
-		// records, by the plugin: names are found from there.
-		Keep: func(name string, refs []protocol.Ref) ([]string, error) { return plugin.KeepRefs(s.Root, name, refs) },
-	}
-}
-
 // reservedWord says whether a word after ws is one of ws's own commands,
 // which a plugin can't take.
 func reservedWord(word string) bool {
@@ -63,26 +50,13 @@ func reservedWord(word string) bool {
 	return false
 }
 
-// hostRunner is the daemon's own plugins, asked directly.
-type hostRunner struct{ h *plugin.Host }
-
-func (r hostRunner) Statuses(context.Context) ([]plugin.Status, error) { return r.h.Statuses(), nil }
-func (r hostRunner) Refresh(_ context.Context, name string) (plugin.Status, error) {
-	return r.h.Refresh(name)
-}
-func (r hostRunner) Stop(_ context.Context, name string) error { r.h.Stop(name); return nil }
-func (hostRunner) Close()                                      {}
-
 func init() {
 	// What adds, updates and removes a plugin (ops) starts and stops it
 	// where it runs: in this process, when it's the daemon; otherwise in
 	// the workspace's daemon, which is started, for a plugin that's to
 	// run, if it isn't running.
 	ops.PluginRunners = func(root string, start bool) (ops.PluginRunner, error) {
-		switch {
-		case pluginHost != nil && pluginHost.Root == root:
-			return hostRunner{pluginHost}, nil
-		case start:
+		if start {
 			return connectPlugins(root)
 		}
 		return plugin.Dial(root)

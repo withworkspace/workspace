@@ -141,3 +141,33 @@ func TestKeyOf(t *testing.T) {
 		}
 	}
 }
+
+// Whoever holds a workspace for the process's life names it for good: one
+// loaded for a moment after (a command's, a job's) doesn't take its place,
+// until it's taken back.
+func TestKeepName_StandsOverName(t *testing.T) {
+	root := t.TempDir()
+	held := func() *ref.Known { return jira() }
+	brief := func() *ref.Known { return &ref.Known{} }
+	asked := func() func() *ref.Known {
+		namingMu.Lock()
+		defer namingMu.Unlock()
+		return naming[root]
+	}
+	same := func(a, b func() *ref.Known) bool {
+		return a != nil && b != nil && a() != nil && len(a().Things) == len(b().Things)
+	}
+	t.Cleanup(func() { Name(root, nil) })
+
+	Name(root, brief)
+	KeepName(root, held)
+	Name(root, brief)
+	if got := asked(); !same(got, held) {
+		t.Error("a moment's name took the place of the one kept")
+	}
+	Name(root, nil)
+	Name(root, brief)
+	if got := asked(); !same(got, brief) {
+		t.Error("taken back, the kept one still stood")
+	}
+}

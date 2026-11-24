@@ -1188,6 +1188,27 @@ export interface ConversationGuideLeft {
     why: string;
 }
 
+// From web/talk.go
+/**
+ * ConversationOp is how a conversation a page holds has changed, told over
+ * the socket (SocketSaid.Conversation) so the page needn't read it again:
+ * its turns from From on (those before are as the page has them), and the
+ * rest of it as it is now. A page holding fewer than From turns has missed
+ * one, and holding it as of a later Version has this already: it reads it
+ * whole, or drops this.
+ */
+export interface ConversationOp {
+    version: number;
+    from: number;
+    turns: ConversationTurn[];
+    /**
+     * Conversation is all of it but its turns; Run is its agent's run as
+     * far as it's got, none when nobody's answering it.
+     */
+    conversation: ConversationConversation | null;
+    run?: TalkRun;
+}
+
 // From conversation/proposals.go
 /**
  * PluginItem is one thing a plugin's proposal does, as the plugin drafted
@@ -1968,6 +1989,12 @@ export interface GroupShownSet {
     hidden: boolean | null;
 }
 
+// From harness/transcript.go
+/**
+ * TodoStatus is where an item of the agent's plan stands.
+ */
+export type HarnessTodoStatus = "completed" | "in_progress" | "pending";
+
 // From harness/stream.go
 /**
  * ToolCall is one tool call a run made, and how it went.
@@ -1979,6 +2006,13 @@ export interface HarnessToolCall {
     error?: boolean;
     refused?: boolean; // not on its allowed list
 }
+
+// From harness/transcript.go
+/**
+ * TranscriptBy is who an entry is of: what crew was sent (the user's),
+ * what the agent said, or a call it made.
+ */
+export type HarnessTranscriptBy = "agent" | "call" | "user";
 
 // From harness/transcript.go
 /**
@@ -1999,7 +2033,7 @@ export interface HarnessTranscriptEdit {
  * with the start of what came back.
  */
 export interface HarnessTranscriptEntry {
-    by: string;
+    by: HarnessTranscriptBy;
     at?: string; // when it was written, if the harness says
     text?: string;
     id?: string; // a call's id
@@ -2039,7 +2073,7 @@ export interface HarnessTranscriptQuestion {
  */
 export interface HarnessTranscriptTodo {
     content: string;
-    status: string; // pending, in_progress, completed
+    status: HarnessTodoStatus;
     active?: string; // as it reads while in hand
 }
 
@@ -4553,6 +4587,42 @@ export interface SiloPoint {
     to: string;
 }
 
+// From web/socket.go
+/**
+ * SocketAsk is what a page sends its socket: to follow a topic, or leave
+ * it. App is the plugin whose app the page shows, for the plugins topic.
+ */
+export interface SocketAsk {
+    op: SocketOp;
+    topic: string;
+    app?: string;
+}
+
+// From web/socket.go
+export type SocketKind = "changed" | "following" | "refused";
+
+// From web/socket.go
+export type SocketOp = "follow" | "leave";
+
+// From web/socket.go
+/**
+ * SocketSaid is what a socket sends a page, of one of its topics.
+ */
+export interface SocketSaid {
+    kind: SocketKind;
+    topic: string;
+    error?: string;
+    /**
+     * Conversation is how a conversation changed (its topic's, changed),
+     * when the page can be told: with none, it reads it again.
+     */
+    conversation?: ConversationOp;
+    /**
+     * Transcript is how a crew's session changed (its transcript topic's).
+     */
+    transcript?: TranscriptOp;
+}
+
 // From web/enums.go
 export type SourceState = "changed" | "gone";
 
@@ -4858,6 +4928,12 @@ export interface Talk {
  */
 export interface TalkDetail extends ConversationConversation {
     run?: TalkRun;
+    /**
+     * Version is the records' change number it's as of, or later: a change
+     * told over the socket as of an earlier one (ConversationOp) is in it
+     * already.
+     */
+    version: number;
     /**
      * Message says what a write did, when it's worth saying (accepting a
      * proposal); Path is where the conversation is now, when it's moved
@@ -5396,6 +5472,31 @@ export interface Transcript {
      * Earlier is how many entries before these were left out.
      */
     earlier?: number;
+    /**
+     * Version is how much of the session file these are as of (its bytes
+     * to its last whole line): a change told over the socket as of less
+     * (TranscriptOp) is in it already.
+     */
+    version: number;
+}
+
+// From web/transcript.go
+/**
+ * TranscriptOp is how a crew's session a page holds has changed, told over
+ * the socket (SocketSaid.Transcript) so the page needn't read it again:
+ * its entries from From on (counted from the session's first; those
+ * before are as the page has them), the session as it now stands
+ * (Harness, Available, Why), as of Version (Transcript's). A page holding
+ * fewer than From, or none of those from From on (they're before the
+ * latest it holds), reads it whole.
+ */
+export interface TranscriptOp {
+    version: number;
+    from: number;
+    entries: HarnessTranscriptEntry[];
+    harness: string;
+    available: boolean;
+    why?: string;
 }
 
 // From web/transcript.go

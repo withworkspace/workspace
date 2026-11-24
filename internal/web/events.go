@@ -25,10 +25,19 @@ type hub struct {
 	floor time.Duration
 
 	mu        sync.Mutex
-	subs      map[chan string]struct{}
+	subs      map[chan told]struct{}
 	last      string
 	lastStamp string
 	lastFull  time.Time
+}
+
+// told is what a topic's followers are told when it's changed: the event
+// (the topic's name), and for a topic whose followers hold what it shows,
+// how it changed (Op: a *ConversationOp), so they needn't read it again.
+// With no Op, they read it again.
+type told struct {
+	Name string
+	Op   any
 }
 
 // The topics pages follow: the workspace (its missions, conversations,
@@ -40,14 +49,14 @@ const (
 )
 
 func newHub(name string, poll time.Duration, fingerprint func() string) *hub {
-	return &hub{poll: poll, fingerprint: fingerprint, name: name, subs: map[chan string]struct{}{}, kick: make(chan struct{}, 1)}
+	return &hub{poll: poll, fingerprint: fingerprint, name: name, subs: map[chan told]struct{}{}, kick: make(chan struct{}, 1)}
 }
 
 // subscribe returns a channel of event names, and a function to stop. The
 // page fetches what it shows after subscribing (on the stream's hello), so
 // anything that changes after this baseline reaches it.
-func (h *hub) subscribe() (<-chan string, func()) {
-	ch := make(chan string, 8)
+func (h *hub) subscribe() (<-chan told, func()) {
+	ch := make(chan told, 8)
 	var baseline string
 	first := !h.watching()
 	if first {
@@ -120,7 +129,7 @@ func (h *hub) run(ctx context.Context) {
 		if changed {
 			for ch := range h.subs {
 				select {
-				case ch <- h.name:
+				case ch <- told{Name: h.name}:
 				default: // a page that's this far behind will refetch anyway
 				}
 			}

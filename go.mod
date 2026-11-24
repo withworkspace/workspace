@@ -18,6 +18,7 @@ require (
 	github.com/charmbracelet/x/vt v0.1.0
 	github.com/cli/go-gh/v2 v2.17.0
 	github.com/coder/guts v1.8.0
+	github.com/coder/websocket v1.8.14
 	github.com/creack/pty v1.1.24
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/spf13/cobra v1.10.2

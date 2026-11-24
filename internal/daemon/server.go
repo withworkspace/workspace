@@ -598,6 +598,24 @@ func (cr *crewProc) fanOut() {
 	}
 }
 
+// Transcript is what running crew of key show now: a terminal's screen
+// and what scrolled off it, or an agent's turns; "" for crew this server
+// isn't running.
+func (s *Server) Transcript(key string) string {
+	s.mu.Lock()
+	cr, term := s.crews[key]
+	a, agent := s.agents[key]
+	s.mu.Unlock()
+	switch {
+	case term:
+		return cr.pane.Transcript()
+	case agent:
+		data, _ := os.ReadFile(a.record)
+		return harness.ACPTranscriptText(data)
+	}
+	return ""
+}
+
 // frame renders the crew's screen, scrolled back offset lines.
 func (cr *crewProc) frame(offset int) *Frame {
 	x, y, visible := cr.pane.Cursor()

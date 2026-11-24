@@ -13,14 +13,15 @@ import (
 
 // mission is the mission's page: everything about it.
 func (s *Server) mission(w http.ResponseWriter, r *http.Request) {
-	d, err := s.missionDetail(r.PathValue("slug"))
+	data, err := s.views.mission(s, r.PathValue("slug"))
 	switch {
 	case errors.Is(err, ErrNotFound):
 		jsonError(w, http.StatusNotFound, "no mission "+r.PathValue("slug"))
 	case err != nil:
 		jsonError(w, http.StatusInternalServerError, err.Error())
 	default:
-		writeJSON(w, http.StatusOK, d)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(data)
 	}
 }
 

@@ -21,7 +21,7 @@ func settledFixture(t *testing.T) (*Workspace, conversation.Store, *[]string) {
 	w, _, _ := reposFixture(t, settledPlan)
 	w.Missions.WriteBrief("cache", "## Goal\nFind why the totals are off.\n")
 	var woken []string
-	w.opts.Answer = func(kind, slug, id string) { woken = append(woken, kind+" "+slug+"/"+id) }
+	w.opts.Jobs = JobsOf(func(j job.Job) { woken = append(woken, j.Kind+" "+j.Mission+"/"+j.ID) }, job.Answer, job.Thread, job.Draft)
 	talks := conversation.For(w.Root(), "cache")
 	talks.OpenTalk(conversation.You, "the totals are off", time.Now())
 	talks.Say("t1", conversation.Turn{By: conversation.Agent, At: time.Now(), Body: "Here's what I'd do."})
@@ -225,7 +225,7 @@ func TestSettledCards_PutAway(t *testing.T) {
 func TestSettledCards_BriefingRenames(t *testing.T) {
 	w, _, _ := reposFixture(t, settledPlan)
 	var woken []string
-	w.opts.Answer = func(kind, slug, id string) { woken = append(woken, kind+" "+slug+"/"+id) }
+	w.opts.Jobs = JobsOf(func(j job.Job) { woken = append(woken, j.Kind+" "+j.Mission+"/"+j.ID) }, job.Answer, job.Thread, job.Draft)
 	m, _ := w.Missions.CreateBriefing("fe issue 45")
 	talks := conversation.For(w.Root(), m.Slug)
 	talks.OpenBriefing("fe issue 45", time.Now())

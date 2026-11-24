@@ -2,10 +2,13 @@ import type { Pinned, ThingAction } from "./refs/refs";
 import { useEffect, useRef, useState } from "react";
 import type { Place } from "./markdown/links";
 import { bursts } from "./load";
+import { pageSocket } from "./socket";
 // What the API sends and takes, generated from internal/web's Go types
 // (scripts/wiretypes, `just wire`). The types below are the ones not yet
 // moved there: move one by making the Go say what this file does.
 import type {
+  HarnessTranscriptEntry as TranscriptEntry,
+  Transcript,
   Action,
   ArtifactContent,
   ArtifactDetail,
@@ -259,10 +262,9 @@ export const getJSON = <T>(path: string) => request<T>("GET", path);
 
 export type Connection = "connecting" | "live" | "lost";
 
-// useVisible is whether the page is showing. Streams are held only while
-// it is: a browser allows six connections to one host, and streams held
-// open by every tab of the web UI used them up, leaving new requests (a
-// page's data) waiting for one that never came free.
+// useVisible is whether the page is showing. What it follows is followed
+// only while it is: a hidden tab's socket closes, and doesn't hold the
+// daemon up.
 export function useVisible(): boolean {
   const [visible, setVisible] = useState(() => document.visibilityState !== "hidden");
   useEffect(() => {
@@ -275,7 +277,7 @@ export function useVisible(): boolean {
 
 // A topic of the server's events: what a page follows to know when what it
 // shows has changed (internal/web/events.go).
-export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | `mission:${string}` | `pr:${string}`;
+export type Topic = "workspace" | "reviews" | "team" | "plugins" | "github" | `mission:${string}` | `conversation:${string}` | `pr:${string}`;
 
 // EventHandlers are what a page does as it follows a topic: when the
 // stream's open (hello: fetch what it shows, so nothing's missed), on each
@@ -287,26 +289,32 @@ export interface EventHandlers {
   lost?: (closed: boolean) => void;
 }
 
-// useEvents follows a topic while the page is showing (one stream each:
-// browsers allow only a few connections to a server, and every tab's
-// count). Showing again opens it again, and its hello catches up. A change
-// is told at once; those within a moment of it, once, after it (bursts).
-// says is what the stream's address says of the page besides its topic
-// ("&app=jira"): the stream is opened again when it changes.
+// useEvents follows a topic while the page is showing, over the tab's one
+// socket (pageSocket). Showing again follows it again, and its hello
+// catches up. A change is told at once; those within a moment of it, once,
+// after it (bursts). says is what the page says of itself besides its topic
+// ("&app=jira", the plugin whose app it shows): it's followed anew when it
+// changes.
 export function useEvents(topic: Topic, on: EventHandlers, says = "") {
   const visible = useVisible();
   const handlers = useRef(on);
   handlers.current = on;
   useEffect(() => {
     if (!visible) return;
-    const events = new EventSource(`/api/events?topic=${encodeURIComponent(topic)}${says}`);
     const changes = bursts(() => handlers.current.changed());
-    events.addEventListener("hello", () => handlers.current.hello?.());
-    events.addEventListener(topic, changes.changed);
-    events.onerror = () => handlers.current.lost?.(events.readyState === EventSource.CLOSED);
+    const app = new URLSearchParams(says.replace(/^&/, "")).get("app") ?? "";
+    const leave = pageSocket.follow(
+      topic,
+      {
+        following: () => handlers.current.hello?.(),
+        changed: () => changes.changed(),
+        lost: (closed) => handlers.current.lost?.(closed),
+      },
+      app,
+    );
     return () => {
       changes.stop();
-      events.close();
+      leave();
     };
   }, [topic, says, visible]);
   return visible;
@@ -1224,6 +1232,9 @@ export interface TalkDetail {
   capsules?: TalkCapsule[];
   message?: string; // what a write did (accepting a proposal)
   path?: string; // where the conversation is now, when it's moved (its mission renamed)
+  // version: the records' change number it's as of, or later: a change
+  // told as of an earlier one (ConversationOp) is in it already.
+  version?: number;
 }
 
 // A conversation is the workspace's (slug "") or a mission's (its Talk tab).
@@ -1437,37 +1448,12 @@ export const settleTalkProposal = (
 
 // A crew's transcript: its session as its harness keeps it (Claude Code's
 // and pi's), for reading beside its terminal or once it's ended.
-export interface TranscriptEntry {
-  by: "user" | "agent" | "call";
-  at?: string;
-  text?: string;
-  id?: string;
-  tool?: string;
-  input?: string;
-  result?: string;
-  error?: boolean;
-  refused?: boolean;
-  pending?: boolean; // nothing back yet: the step in hand, or waiting for permission
-  edit?: { path: string; old?: string; new: string; all?: boolean };
-  todos?: { content: string; status: "pending" | "in_progress" | "completed"; active?: string }[];
-  questions?: { question: string; header?: string; options?: string[]; multi?: boolean }[];
-}
+export type { TranscriptEntry };
 
-export interface Transcript {
-  harness: string;
-  available: boolean;
-  why?: string;
-  entries: TranscriptEntry[];
-  earlier?: number;
-}
+export type { Transcript };
 
 export const getTranscript = (slug: string, id: string) =>
   getJSON<Transcript>(`/api/missions/${encodeURIComponent(slug)}/crew/${encodeURIComponent(id)}/transcript`);
-
-// transcriptStreamURL is the event stream of a crew's transcript: it, then
-// again each time its session changes ("transcript" events).
-export const transcriptStreamURL = (slug: string, id: string) =>
-  `/api/missions/${encodeURIComponent(slug)}/crew/${encodeURIComponent(id)}/transcript/stream`;
 
 // sayToCrew sends crew a message: typed in if it's running, or resuming it
 // with it if it's ended.

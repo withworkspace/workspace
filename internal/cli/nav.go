@@ -10,6 +10,7 @@ import (
 	"unicode/utf16"
 
 	"github.com/spf13/cobra"
+	"github.com/withworkspace/workspace/internal/daemon"
 	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/nav"
 )
@@ -43,7 +44,7 @@ func navTarget(repo, rev string) (svc *nav.Service, dir, commit string, err erro
 	if err != nil || commit == "" {
 		return nil, "", "", fmt.Errorf("no commit %s in %s", rev, repo)
 	}
-	return nav.New(navCache(ctx.Root())), dir, commit, nil
+	return nav.New(daemon.NavCache(ctx.Root())), dir, commit, nil
 }
 
 func newNavNamesCmd() *cobra.Command {

@@ -13,6 +13,7 @@ import (
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/doc"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/page"
 	"github.com/withworkspace/workspace/internal/prompt"
@@ -203,7 +204,7 @@ func TestCapsulePass(t *testing.T) {
 			"check": {Looks: "Find what's wrong."},
 			"quick": {Looks: "Anything odd.", Cold: true},
 		}},
-	}, &workspace.Workspace{Root: root, DefaultBranch: "main"}, nil, Options{Answer: func(kind, slug, id string) { asked = append(asked, id) }})
+	}, &workspace.Workspace{Root: root, DefaultBranch: "main"}, nil, Options{Jobs: JobsOf(func(j job.Job) { asked = append(asked, j.ID) }, job.Answer, job.Thread, job.Draft)})
 	m, err := w.Missions.Create("Key by tenant")
 	if err != nil {
 		t.Fatal(err)

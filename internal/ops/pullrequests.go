@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -146,13 +147,13 @@ func (w *Workspace) openPR(slug, capsule string, o NewPullRequest, by Actor) (PR
 	if o.Title == "" {
 		// It can be opened: the PR writer writes it first. That takes a
 		// while, so it's the daemon's, where there's one to hand it to.
-		if w.opts.WritePR != nil && !o.inJob {
+		if w.takes(job.PR) && !o.inJob {
 			_, started, err := w.Missions.StartWritingPR(m.Slug, mission.WritingPR{Capsule: out.Capsule, Step: out.Step, Draft: o.Draft, By: by.By()})
 			if err != nil {
 				return PROpened{}, err
 			}
 			if started {
-				w.opts.WritePR(m.Slug, out.Capsule)
+				w.start(job.Job{Kind: job.PR, Mission: m.Slug, ID: out.Capsule})
 			}
 			out.Writing = true
 			return out, nil

@@ -25,21 +25,16 @@ import (
 // all what's said of one of its own) without running the command. The
 // views are here, so this is: the rest of what a plugin asks is ops'.
 
-// answerPlugin answers what a plugin asks ws (plugin.Host's Answer): a
-// view, from here, and everything else from the workspace's operations.
-func answerPlugin(ctx *ops.Workspace) func(context.Context, string, string, json.RawMessage) (any, error) {
-	return func(c context.Context, who, method string, params json.RawMessage) (any, error) {
-		if method != protocol.MethodShow {
-			return ctx.AnswerPlugin(c, who, method, params)
+// showForPlugin answers what a plugin asks ws show (protocol.MethodShow),
+// in the daemon (daemon.Config.Show): the view, from here.
+func showForPlugin(ctx *ops.Workspace, _ context.Context, params json.RawMessage) (any, error) {
+	var in protocol.ShowParams
+	if len(params) > 0 && string(params) != "null" {
+		if err := json.Unmarshal(params, &in); err != nil {
+			return nil, plugin.InvalidParams(err)
 		}
-		var in protocol.ShowParams
-		if len(params) > 0 && string(params) != "null" {
-			if err := json.Unmarshal(params, &in); err != nil {
-				return nil, plugin.InvalidParams(err)
-			}
-		}
-		return shownFor(ctx, in)
 	}
+	return shownFor(ctx, in)
 }
 
 // shownFor is what ws show shows of what in names, as the protocol has
