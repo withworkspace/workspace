@@ -9117,6 +9117,76 @@ details.repo-group > summary::-webkit-details-marker {
   color: var(--fg);
 }
 
+/* Folding: a mark beside the first line of what folds, there while the
+   pointer's over the code (always, where there's no pointer to be over
+   it), and what's folded away said after the line. */
+.code-view.folds .code-line {
+  grid-template-columns: 56px 4px 16px minmax(0, 1fr);
+}
+
+.file-pane > .code-view.folds .code-line {
+  grid-template-columns: auto 4px 16px minmax(0, 1fr);
+}
+
+.code-view.folds .code-line > code,
+.code-folded {
+  grid-column: 4;
+}
+
+.code-view.folds .code-line code {
+  padding-left: 4px;
+}
+
+.code-fold {
+  all: unset;
+  grid-column: 3;
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.code-view:hover .code-fold,
+.code-line.folded .code-fold {
+  opacity: 1;
+}
+
+.code-fold:hover {
+  color: var(--fg);
+}
+
+.code-folded {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.code-fold-more {
+  all: unset;
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--dim);
+  font-size: var(--text-xs);
+  line-height: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.code-fold-more:hover {
+  color: var(--fg);
+  border-color: var(--dim);
+}
+
+@media (hover: none) {
+  .code-fold {
+    opacity: 1;
+  }
+}
+
 .change-legend {
   display: inline-flex;
   gap: 10px;
@@ -9193,8 +9263,16 @@ details.repo-group > summary::-webkit-details-marker {
     grid-template-columns: 40px 3px minmax(0, 1fr);
   }
 
+  .code-view.folds .code-line {
+    grid-template-columns: 40px 3px 16px minmax(0, 1fr);
+  }
+
   .file-pane > .code-view .code-line {
     grid-template-columns: auto 3px minmax(0, 1fr);
+  }
+
+  .file-pane > .code-view.folds .code-line {
+    grid-template-columns: auto 3px 16px minmax(0, 1fr);
   }
 
   .file-pane > .code-view .code-ln {

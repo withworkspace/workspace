@@ -1,6 +1,8 @@
 package nav
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -105,6 +107,31 @@ func TestNames_EveryNameOnItsLineWithItsPart(t *testing.T) {
 		if got := named(mainGo, line, n.Lines[line]); got != w {
 			t.Errorf("line %d: got %q, want %q", line, got, w)
 		}
+	}
+}
+
+func TestNames_FoldsAreDeclarationsAndScopesOfMoreThanOneLine(t *testing.T) {
+	dir, rev := repoWith(t, map[string]string{"main.go": mainGo, "one.go": "package main\n\nfunc one() int { return 1 }\n"})
+	s := New(t.TempDir())
+	n, err := s.Names(dir, rev, "main.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The imports aren't a scope, and the struct is on one line: the
+	// method and main are what fold.
+	if got, want := fmt.Sprint(n.Folds), "[[10 12] [14 17]]"; got != want {
+		t.Errorf("folds: got %s, want %s", got, want)
+	}
+	// As the web UI reads them: pairs of lines.
+	if b, _ := json.Marshal(n); !strings.Contains(string(b), `"folds":[[10,12],[14,17]]`) {
+		t.Errorf("folds as JSON: %s", b)
+	}
+	one, err := s.Names(dir, rev, "one.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(one.Folds) != 0 {
+		t.Errorf("a file of one-line declarations folds nowhere: got %v", one.Folds)
 	}
 }
 
