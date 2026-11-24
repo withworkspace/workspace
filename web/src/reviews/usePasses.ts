@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getPRGuide, getPRPasses, type ReviewGuide, type ReviewPass, settlePRFinding, type DismissWhy } from "../api";
+import { getPRGuide, getPRPasses, type ReviewGuide, type ReviewPass, settlePRFinding, type DismissWhy, useEventsOf } from "../api";
+import { talkTopic } from "../conversation/talks";
 import { guideOrder } from "./Guide";
 import { setPref, usePrefs } from "../prefs";
 
 // A review's passes and its guide, as its page holds them: read from the
 // review's API (a pull request's, or a mission's capsule's: the routes
-// are the same under each), read again while one's running, and shaped
-// for the diff.
+// are the same under each), read again when one that's running moves (each
+// is a conversation of the workspace's, followed over the tab's socket
+// while its agent's at it), and shaped for the diff.
 
 // seed is what's been read of them already, for api: a pull request's
 // page reads the next layer's before it shows it, so they're there as it
@@ -49,20 +51,13 @@ export function useReviewPasses(api: string, seed?: { passes?: ReviewPass[]; gui
     loadPasses();
     loadGuide();
   }, [loadPasses, loadGuide]);
-  // While the guide's being written, or a pass is running, look again:
-  // what it's doing, and when it's done. The guide's read each second, as
-  // it shows what's written so far.
-  useEffect(() => {
-    if (!guide?.running) return;
-    const t = setInterval(loadGuide, 1000);
-    return () => clearInterval(t);
-  }, [guide?.running, loadGuide]);
-  const passing = !!passes?.some((p) => p.running || p.standing.status === "running");
-  useEffect(() => {
-    if (!passing) return;
-    const t = setInterval(loadPasses, 2500);
-    return () => clearInterval(t);
-  }, [passing, loadPasses]);
+  // While the guide's being written, or a pass is running, each is read
+  // again as its conversation moves: what it's doing (the guide shows
+  // what's written so far), and when it's done.
+  const guideTopics = guide?.running && guide.id ? [talkTopic("", guide.id)] : [];
+  useEventsOf(guideTopics, { hello: () => void loadGuide(), changed: () => void loadGuide() });
+  const passTopics = (passes ?? []).filter((p) => p.id && (p.running || p.standing.status === "running")).map((p) => talkTopic("", p.id!));
+  useEventsOf(passTopics, { hello: () => void loadPasses(), changed: () => void loadPasses() });
 
   const order = useMemo(
     () => (guide && guided ? guideOrder(guide) : undefined),

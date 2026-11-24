@@ -308,3 +308,31 @@ func TestWorkspaceView_BuiltOncePerChange(t *testing.T) {
 		t.Errorf("a mission that isn't: %d", code)
 	}
 }
+
+// A conversation that isn't a talk (a pass, a cell) is followed as one is,
+// and told it's changed with nothing more: what's shown of it is worked out
+// of it, so the page reads it again.
+func TestSocket_FollowsAConversationThatIsntATalk(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	talks := conversation.ForWorkspace(root)
+	c, err := talks.OpenCell("p1", "Summarise it.", "", "", "", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := startTest(t, root, &fakeWorkspace{}, nil)
+	conn, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := talkTo(t, conn)
+	topic := "conversation:/" + c.ID
+	st.ask(SocketAsk{Op: SocketFollow, Topic: topic})
+	if got := st.next(3 * time.Second); got != "following "+topic {
+		t.Fatalf("following: %q", got)
+	}
+	talks.Say(c.ID, conversation.Turn{By: conversation.Agent, At: time.Now(), Body: "Done."})
+	if got := st.next(3 * time.Second); got != "changed "+topic || st.last.Conversation != nil {
+		t.Errorf("a turn said in it: %q, %+v", got, st.last.Conversation)
+	}
+}

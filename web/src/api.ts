@@ -321,6 +321,27 @@ export function useEvents(topic: Topic, on: EventHandlers, says = "") {
   return visible;
 }
 
+// useEventsOf follows each of topics while the page is showing, as
+// useEvents follows one: a change to any is told once, those within a
+// moment of it after it (bursts). An empty list follows nothing.
+export function useEventsOf(topics: string[], on: EventHandlers) {
+  const visible = useVisible();
+  const handlers = useRef(on);
+  handlers.current = on;
+  const key = topics.join("\n");
+  useEffect(() => {
+    if (!visible || !key) return;
+    const changes = bursts(() => handlers.current.changed());
+    const leave = key.split("\n").map((topic) =>
+      pageSocket.follow(topic, { following: () => handlers.current.hello?.(), changed: () => changes.changed(), lost: (closed) => handlers.current.lost?.(closed) }),
+    );
+    return () => {
+      changes.stop();
+      for (const l of leave) l();
+    };
+  }, [key, visible]);
+}
+
 // PluginAction is something a plugin does when asked: of its own, or to
 // one of its things.
 export type PluginAction = ThingAction;
