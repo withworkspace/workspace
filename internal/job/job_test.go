@@ -57,3 +57,88 @@ func TestQueue(t *testing.T) {
 		t.Errorf("the panic wasn't logged: %q", logs)
 	}
 }
+
+// A mission's orchestrator and its checks take turns: neither replaces the
+// other waiting, and they run in the order asked for. So do a
+// conversation's thread and its draft.
+func TestQueueLanes(t *testing.T) {
+	var mu sync.Mutex
+	var ran []string
+	at, most := 0, 0
+	release := make(chan struct{})
+	q := &Queue{Run: func(j Job) error {
+		mu.Lock()
+		ran = append(ran, j.Kind+":"+j.ID)
+		at++
+		most = max(most, at)
+		mu.Unlock()
+		if j.ID == "first" {
+			<-release
+		}
+		time.Sleep(5 * time.Millisecond)
+		mu.Lock()
+		at--
+		mu.Unlock()
+		return nil
+	}}
+	q.Start(Job{Kind: Check, Mission: "m", ID: "first"})
+	time.Sleep(20 * time.Millisecond)
+	q.Start(Job{Kind: Orchestrate, Mission: "m", ID: "o1"})
+	q.Start(Job{Kind: Check, Mission: "m", ID: "c2"})
+	q.Start(Job{Kind: Orchestrate, Mission: "m", ID: "o2"}) // takes o1's place, not c2's
+	close(release)
+	q.Wait()
+	if got := strings.Join(ran, ","); got != "check:first,orchestrate:o2,check:c2" {
+		t.Errorf("ran %s", got)
+	}
+	if most != 1 {
+		t.Errorf("%d ran at once on one mission", most)
+	}
+	for _, k := range []string{Answer, Thread, Draft} {
+		if l := (Job{Kind: k, Mission: "m", ID: "w1"}).Lane(); l != "conversation m/w1" {
+			t.Errorf("%s's lane = %q", k, l)
+		}
+	}
+	if (Job{Kind: Orchestrate, Mission: "a"}).Lane() == (Job{Kind: Orchestrate, Mission: "b"}).Lane() {
+		t.Error("two missions share a lane")
+	}
+}
+
+// A job's mark is given in the order jobs are queued, so the one that runs
+// last on a lane has the mark that was given last.
+func TestQueueMarksInOrder(t *testing.T) {
+	var mu sync.Mutex
+	var marked []string
+	release := make(chan struct{})
+	var last Job
+	q := &Queue{
+		Run: func(j Job) error {
+			if j.ID == "first" {
+				<-release
+			}
+			mu.Lock()
+			last = j
+			mu.Unlock()
+			return nil
+		},
+		Queued: func(j Job) Job {
+			time.Sleep(time.Millisecond) // a write to the records
+			mu.Lock()
+			marked = append(marked, j.ID)
+			mu.Unlock()
+			return j
+		},
+	}
+	q.Start(Job{Kind: Orchestrate, Mission: "m", ID: "first"})
+	var wg sync.WaitGroup
+	for _, id := range []string{"a", "b", "c", "d"} {
+		wg.Add(1)
+		go func() { defer wg.Done(); q.Start(Job{Kind: Orchestrate, Mission: "m", ID: id}) }()
+	}
+	wg.Wait()
+	close(release)
+	q.Wait()
+	if want := marked[len(marked)-1]; last.ID != want {
+		t.Errorf("ran %s last, but %s was marked last (%v)", last.ID, want, marked)
+	}
+}
