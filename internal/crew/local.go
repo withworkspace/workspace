@@ -97,10 +97,13 @@ func (h *LocalHost) Launch(s Spec) (int, error) {
 		}
 		Finish(h.Store, s, exit, p.Transcript(), HowEnded(t.stopped.Load(), leaving), h.OnEnded)
 	}()
+	// The prompt's typer and the trust dialog's watch end with the crew,
+	// and Leave waits for them as it does for the end's record: neither
+	// writes to a mission that's been left.
 	if s.Prompt != "" {
-		go TypePrompt(h.Store.Root, s.Key(), t, s.Prompt)
+		h.ending.Go(func() { TypePrompt(h.Store.Root, s.Key(), t, s.Prompt) })
 	}
-	go WatchTrust(h.Store, h.Store.Root, s, t, h.TrustFolders)
+	h.ending.Go(func() { WatchTrust(h.Store, h.Store.Root, s, t, h.TrustFolders) })
 	return p.Pid(), nil
 }
 

@@ -90,7 +90,7 @@ type Server struct {
 	restarting    bool   // Shutdown was to restart: whoever ran Serve starts ws again
 	next          string // the ws found in place of Exe: its version
 
-	watchers sync.WaitGroup // crew end recorders; Shutdown waits for them
+	watchers sync.WaitGroup // crew end recorders, prompt typers and trust watches; Shutdown waits for them
 }
 
 type crewProc struct {
@@ -535,10 +535,12 @@ func (s *Server) launch(spec Spec) (int, error) {
 		defer s.watchers.Done()
 		s.watch(cr)
 	}()
+	// Both end with the crew, and Shutdown waits for them with its end's
+	// record: neither writes to a mission once the daemon's let go of it.
 	if spec.Prompt != "" {
-		go crew.TypePrompt(s.Root, spec.Key(), crew.PaneTerm(pane), spec.Prompt)
+		s.watchers.Go(func() { crew.TypePrompt(s.Root, spec.Key(), crew.PaneTerm(pane), spec.Prompt) })
 	}
-	go crew.WatchTrust(s.store, s.Root, spec, crew.PaneTerm(pane), s.TrustFolders)
+	s.watchers.Go(func() { crew.WatchTrust(s.store, s.Root, spec, crew.PaneTerm(pane), s.TrustFolders) })
 	return pane.Pid(), nil
 }
 
