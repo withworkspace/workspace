@@ -32,6 +32,10 @@ type Missions interface {
 	// for its records, which say themselves when they change.
 	Stamp() string
 	MissionStamp(slug string) string
+	// ConversationStamp is a conversation's (in a mission, or the
+	// workspace's for none) but for its records: what its agent has
+	// written of its steps as it answers.
+	ConversationStamp(scope, id string) string
 	// KeepMission reads where a mission's capsules stand, where that isn't
 	// kept: before its page is told they've moved, so the page's read
 	// waits on nothing.

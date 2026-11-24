@@ -131,7 +131,8 @@ type Server struct {
 	// that tells its open pages when what they show has changed.
 	topics map[string]*hub
 	// missions tells a mission's open page when it changes (mission:<slug>).
-	missions *missionHub
+	missions *keyedHub
+	talks    *keyedHub // conversations'
 	// files are the grounds and capsules open on the Files page, for the
 	// runs started there.
 	files filesOpen
@@ -236,24 +237,36 @@ func (s *Server) Start() error {
 	for _, h := range s.topics {
 		go h.run(s.ctx)
 	}
-	s.missions = newMissionHub(s.Poll, func(slug string) string { return s.App.MissionStamp(slug) }, func() *store.DB {
-		if db, err := store.Dial(s.Root); err == nil {
-			return db
-		}
-		return nil
-	})
-	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
-	// A write to the records that names the workspace (a conversation's
-	// turn, a page, a mission's record) is looked at now: its pages
-	// needn't wait for the next poll, which is for what only files and
-	// capsules show.
-	s.missions.wrote = func(topic string) {
-		if topic == topicWorkspace {
-			ws.nudge()
-		}
-	}
+	s.missions = newKeyedHub(missionTopic, s.Poll, func(slug string) string { return s.App.MissionStamp(slug) })
 	s.missions.keep = func(slug string) { s.App.KeepMission(slug) }
 	go s.missions.run(s.ctx)
+	// A conversation's agent writes its steps as it answers, which the
+	// records don't see: looked at every second while it's followed, as
+	// often as a page read one again before.
+	s.talks = newKeyedHub(conversationTopic, min(s.Poll, time.Second), func(key string) string {
+		scope, id, _ := strings.Cut(key, "/")
+		return s.App.ConversationStamp(scope, id)
+	})
+	go s.talks.run(s.ctx)
+	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
+	// A write to the records tells the followers of what it names at once:
+	// a mission's page, a conversation's; and one that names the
+	// workspace (a conversation's turn, a page, a mission's record) has its
+	// hub look now, not at its next poll, which is for what only files and
+	// capsules show.
+	var records *store.DB
+	if db, err := store.Dial(s.Root); err == nil {
+		records = db
+	}
+	go watchRecords(s.ctx, records, func(topic string) {
+		if key, ok := topicKey(topic, missionTopic); ok {
+			s.missions.tell(key)
+		} else if key, ok := topicKey(topic, conversationTopic); ok {
+			s.talks.tell(key)
+		} else if topic == topicWorkspace {
+			ws.nudge()
+		}
+	})
 	// What's read behind a read that didn't wait (a space of documents,
 	// where a capsule stands) and found something new is looked at now.
 	seen := s.App.Seen() // the App the server starts with: read here, not in the goroutine
@@ -766,8 +779,11 @@ func (s *Server) follow(topic, app string) (ch <-chan string, done func(), statu
 	if h := s.topics[topic]; h != nil {
 		subscribe = h.subscribe
 	}
-	if slug, ok := strings.CutPrefix(topic, missionTopic); ok && slug != "" && !strings.ContainsAny(slug, "/ ") {
+	if slug, ok := topicKey(topic, missionTopic); ok {
 		subscribe = func() (<-chan string, func()) { return s.missions.subscribe(slug) }
+	}
+	if key, ok := topicKey(topic, conversationTopic); ok {
+		subscribe = func() (<-chan string, func()) { return s.talks.subscribe(key) }
 	}
 	if ref, ok := prTopicRef(topic); ok && s.prs != nil {
 		subscribe = func() (<-chan string, func()) { return s.followPR(ref) }

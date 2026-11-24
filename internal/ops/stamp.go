@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/artifact"
+	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/store"
 )
@@ -154,6 +155,19 @@ func (w *Workspace) MissionStamp(slug string) string {
 		}
 	}
 	return fmt.Sprintf("%x", h.Sum64())
+}
+
+// ConversationStamp names what a conversation's page shows that its
+// records don't say (they tell of their own changes): what its agent's
+// written of its steps as it answers, in its run file. A stat, for a
+// conversation someone has open.
+func (w *Workspace) ConversationStamp(scope, id string) string {
+	path := conversation.For(w.Root(), scope).RunFile(id)
+	info, err := os.Stat(path)
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano())
 }
 
 // skipDir is what under .ws no page's view is built from, or is kept by a

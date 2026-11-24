@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/store/storetest"
 )
@@ -146,5 +148,54 @@ func TestSocket_RefusesAnotherOrigin(t *testing.T) {
 		t.Fatal("another origin's socket was opened")
 	} else if res == nil || res.StatusCode != http.StatusForbidden {
 		t.Errorf("another origin: %v (%v)", res, err)
+	}
+}
+
+// A conversation's page follows its own topic: told at once of a turn said
+// in it (the records say so), not of another's, and within a second of its
+// agent writing its steps as it answers, which the records don't see. So
+// nothing need read it again and again while it's answered.
+func TestSocket_FollowsAConversation(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	ms := mission.Store{Root: root}
+	m, _ := ms.Create("One")
+	talks := conversation.For(root, m.Slug)
+	now := time.Now()
+	c, err := talks.OpenTalk("you", "Why?", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, _ := talks.OpenTalk("you", "And this?", now)
+	s := startTest(t, root, &fakeWorkspace{}, nil)
+	conn, _, err := dialSocket(t, s, s.Info().Origin())
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := talkTo(t, conn)
+	topic := "conversation:" + m.Slug + "/" + c.ID
+	st.ask(SocketAsk{Op: SocketFollow, Topic: topic})
+	if got := st.next(3 * time.Second); got != "following "+topic {
+		t.Fatalf("following: %q", got)
+	}
+
+	talks.Say(other.ID, conversation.Turn{By: conversation.You, At: now, Body: "elsewhere"})
+	if got := st.next(500 * time.Millisecond); got != "(nothing)" {
+		t.Errorf("a turn in another conversation: %q", got)
+	}
+	talks.Say(c.ID, conversation.Turn{By: conversation.You, At: now, Body: "Go on."})
+	if got := st.next(500 * time.Millisecond); got != "changed "+topic {
+		t.Errorf("a turn said in it: %q", got)
+	}
+	os.WriteFile(talks.RunPath(c.ID), []byte("reading cache.go\n"), 0o644)
+	if got := st.next(3 * time.Second); got != "changed "+topic {
+		t.Errorf("its agent's steps: %q", got)
+	}
+
+	for _, bad := range []string{"conversation:" + m.Slug, "conversation:a/b/c", "conversation:"} {
+		st.ask(SocketAsk{Op: SocketFollow, Topic: bad})
+		if got := st.next(3 * time.Second); !strings.HasPrefix(got, "refused "+bad) {
+			t.Errorf("%q: %q", bad, got)
+		}
 	}
 }
