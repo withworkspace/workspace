@@ -14,8 +14,9 @@ const NEW = "\u0000new";
 // GroupPick is which group a repo's in, picked: one the workspace has, a
 // new one named, or none, where it can be in none (a repo of the team's
 // in a group of the team's can't be, for you alone). The team's group is
-// said as the team's.
-export function GroupPick({ value, groups, team, none, label, onPick, disabled }: { value: string; groups: string[]; team?: string; none: boolean; label: string; onPick: (group: string) => void; disabled?: boolean }) {
+// said as the team's. Groups are offered in the order given, by their
+// labels (display names) where they have them.
+export function GroupPick({ value, groups, labels, team, none, label, onPick, disabled }: { value: string; groups: string[]; labels?: Map<string, string>; team?: string; none: boolean; label: string; onPick: (group: string) => void; disabled?: boolean }) {
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
   const field = useRef<HTMLInputElement>(null);
@@ -55,7 +56,7 @@ export function GroupPick({ value, groups, team, none, label, onPick, disabled }
       />
     );
   }
-  const all = [...new Set([...groups, ...(value ? [value] : []), ...(team ? [team] : [])])].sort();
+  const all = [...new Set([...groups, ...[value, team].filter((g): g is string => !!g && !groups.includes(g)).sort()])];
   return (
     <Select
       aria-label={label}
@@ -71,7 +72,7 @@ export function GroupPick({ value, groups, team, none, label, onPick, disabled }
         ...(none ? [<Option key={NONE} value={NONE}>No group</Option>] : []),
         ...all.map((g) => (
           <Option key={g} value={g} note={g === team ? "the team's" : undefined}>
-            {g}
+            {labels?.get(g) ?? g}
           </Option>
         )),
         <Option key={NEW} value={NEW}>
@@ -85,7 +86,7 @@ export function GroupPick({ value, groups, team, none, label, onPick, disabled }
 // RepoGroupCell is a repo's group in the repos table, changed for you in
 // ws.local.toml: a repo of yours in any or none, one of the team's in any,
 // or back in the team's.
-export function RepoGroupCell({ repo, groups, done }: { repo: Repo; groups: string[]; done: () => void }) {
+export function RepoGroupCell({ repo, groups, labels, done }: { repo: Repo; groups: string[]; labels?: Map<string, string>; done: () => void }) {
   const [busy, setBusy] = useState(false);
   const team = repo.yours ? undefined : repo.groupYours ? repo.teamGroup || undefined : repo.group || undefined;
   const pick = (group: string) => {
@@ -100,7 +101,7 @@ export function RepoGroupCell({ repo, groups, done }: { repo: Repo; groups: stri
   };
   return (
     <span className={css.cell}>
-      <GroupPick value={repo.group ?? ""} groups={groups} team={team} none={repo.yours || !team} label={`${repo.name}'s group`} onPick={pick} disabled={busy} />
+      <GroupPick value={repo.group ?? ""} groups={groups} labels={labels} team={team} none={repo.yours || !team} label={`${repo.name}'s group`} onPick={pick} disabled={busy} />
       {!repo.yours && repo.groupYours && (
         <span className={cx("dim", css.over)} title={repo.teamGroup ? `The team has it in ${repo.teamGroup}` : "The team has it in no group"}>
           yours
@@ -147,7 +148,15 @@ export function Groups({ groups, repos, done }: { groups: RepoGroup[]; repos: Re
             <tbody>
               {groups.map((g) => (
                 <tr key={g.name}>
-                  <td className="mono">{g.name}</td>
+                  <td>
+                    {g.label && g.label !== g.name ? (
+                      <span className={css.named}>
+                        {g.label} <span className="mono dim">{g.name}</span>
+                      </span>
+                    ) : (
+                      <span className="mono">{g.name}</span>
+                    )}
+                  </td>
                   <td className="dim">{g.repos.length ? g.repos.map((r) => label.get(r) ?? r).join(", ") : "—"}</td>
                   <td>
                     <Segmented value={g.hidden ? "hidden" : "shown"} onChange={(v) => set(g.name, v === "hidden")} disabled={busy === g.name} aria-label={`${g.name}: shown or hidden`}>

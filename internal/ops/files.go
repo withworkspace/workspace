@@ -42,6 +42,10 @@ type Repo struct {
 	// it: "" where it isn't.
 	TeamGroup  string
 	GroupYours bool
+	// GroupLabel is what its group's called where it's shown, and
+	// GroupOrder where the group comes among them (lowest first).
+	GroupLabel string
+	GroupOrder int
 }
 
 // RepoLanding is how work lands in a repo: through a pull request, or
@@ -74,7 +78,7 @@ func (w *Workspace) Repos() []Repo {
 		out := []Repo{}
 		colors := w.repoColors()
 		for _, name := range ws.RepoNames {
-			r := Repo{Name: name, Label: ws.DisplayNameFor(name), Color: colors[name], Group: ws.GroupOf(name), Hidden: ws.IsHidden(name), Capsules: []string{}, Aliases: []string{}, Landing: RepoLanding(ws.Landing(name))}
+			r := Repo{Name: name, Label: ws.DisplayNameFor(name), Color: colors[name], Group: ws.GroupOf(name), GroupLabel: ws.GroupLabel(ws.GroupOf(name)), GroupOrder: ws.GroupOrders[ws.GroupOf(name)], Hidden: ws.IsHidden(name), Capsules: []string{}, Aliases: []string{}, Landing: RepoLanding(ws.Landing(name))}
 			if s, ok := ws.SpaceOf(name); ok && s.Folder == "" {
 				r.Documents = true
 			}

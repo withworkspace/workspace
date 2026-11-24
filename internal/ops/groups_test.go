@@ -132,3 +132,56 @@ func TestGroupRepo_ForYou(t *testing.T) {
 		t.Error("a group's name has no spaces")
 	}
 }
+
+// A group's display_name and order, in ws.toml, are what it's called and
+// where it comes: Groups are in their order, then by name, and a repo
+// carries its group's. Shown or hidden for you, a group keeps them.
+func TestGroups_DisplayNameAndOrder(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	os.WriteFile(filepath.Join(root, "ws.toml"), []byte(`[workspace]
+org = "acme"
+default_branch = "main"
+
+[repos.api]
+group = "platform"
+
+[repos.site]
+group = "web"
+
+[repos.tools]
+group = "aaa"
+
+[groups.platform]
+display_name = "Platform team"
+order = 2
+
+[groups.web]
+display_name = "Web"
+order = 1
+`), 0o644)
+	w := Open(root, Options{})
+	var names []string
+	for _, g := range w.Groups() {
+		names = append(names, g.Name)
+	}
+	if got := strings.Join(names, ","); got != "aaa,web,platform" {
+		t.Fatalf("groups in order: %s", got)
+	}
+	g, _ := groupNamed(w.Groups(), "platform")
+	if g.Label != "Platform team" || g.Order != 2 {
+		t.Fatalf("platform: %+v", g)
+	}
+	if g, _ := groupNamed(w.Groups(), "aaa"); g.Label != "aaa" {
+		t.Fatalf("aaa's label is its name: %+v", g)
+	}
+
+	hidden := true
+	if _, err := w.ShowGroup(context.Background(), AsYou, "platform", &hidden, false); err != nil {
+		t.Fatal(err)
+	}
+	w = Open(root, Options{})
+	if g, _ := groupNamed(w.Groups(), "platform"); !g.Hidden || g.Label != "Platform team" || g.Order != 2 {
+		t.Fatalf("platform hidden for you: %+v", g)
+	}
+}

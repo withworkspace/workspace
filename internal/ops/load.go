@@ -44,7 +44,15 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 
 	groupChoices := make(map[string]bool)
 	teamHidden := make(map[string]bool)
+	groupLabels := make(map[string]string)
+	groupOrders := make(map[string]int)
 	for name, g := range cfg.Groups {
+		if g.DisplayName != "" {
+			groupLabels[name] = g.DisplayName
+		}
+		if g.Order != 0 {
+			groupOrders[name] = g.Order
+		}
 		if cfg.IsHidden(name) {
 			hiddenGroups[name] = true
 		}
@@ -121,6 +129,8 @@ func Load(dir string) (*config.Config, *workspace.Workspace, github.Client, erro
 		HiddenGroups:     hiddenGroups,
 		GroupChoices:     groupChoices,
 		TeamHidden:       teamHidden,
+		GroupLabels:      groupLabels,
+		GroupOrders:      groupOrders,
 		TeamGroups:       teamGroups,
 		AliasMap:         aliasMap,
 		DisplayNames:     displayNames,

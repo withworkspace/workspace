@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"cmp"
 	"fmt"
 	"maps"
 	"os"
@@ -25,6 +26,8 @@ type Workspace struct {
 	HiddenGroups     map[string]bool              // groups left out of commands that cover every repo
 	GroupChoices     map[string]bool              // group → hidden, where it's your choice (ws.local.toml)
 	TeamHidden       map[string]bool              // groups ws.toml hides
+	GroupLabels      map[string]string            // group → display name, where it has one
+	GroupOrders      map[string]int               // group → where it comes among them, lowest first (0 where unsaid)
 	TeamGroups       map[string]string            // canonical name → ws.toml's group, where yours replaces it
 	AliasMap         map[string]string            // alias → canonical name
 	DisplayNames     map[string]string            // canonical name → display name
@@ -94,7 +97,8 @@ func (w *Workspace) IsHidden(repo string) bool {
 	return w.HiddenGroups[w.RepoGroups[repo]]
 }
 
-// GroupNames returns every group that has a repo or a visibility setting, sorted.
+// GroupNames returns every group that has a repo or a visibility setting,
+// in order: by GroupOrders, lowest first, then by name.
 func (w *Workspace) GroupNames() []string {
 	seen := make(map[string]bool)
 	for _, g := range w.RepoGroups {
@@ -103,7 +107,18 @@ func (w *Workspace) GroupNames() []string {
 	for g := range w.HiddenGroups {
 		seen[g] = true
 	}
-	return slices.Sorted(maps.Keys(seen))
+	names := slices.Sorted(maps.Keys(seen))
+	slices.SortStableFunc(names, func(a, b string) int { return cmp.Compare(w.GroupOrders[a], w.GroupOrders[b]) })
+	return names
+}
+
+// GroupLabel is what a group's called where it's shown: its display
+// name, or its name where it has none.
+func (w *Workspace) GroupLabel(group string) string {
+	if l := w.GroupLabels[group]; l != "" {
+		return l
+	}
+	return group
 }
 
 // ReposInGroup returns the repos in a group, sorted, whether or not it is hidden.

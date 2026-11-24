@@ -25,7 +25,7 @@ const ANOTHER = "\u0000another";
 // name here, and whether it's yours alone or the team's. What GitHub said
 // is shown at once, however old, and again once it's been asked: seen
 // moves when it has (the github topic, followed by the page).
-export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: number; org?: string; groups: string[]; taken: Set<string>; onClose: () => void; onAdded: () => void }) {
+export function AddRepo({ seen, org, groups, groupLabels, taken, onClose, onAdded }: { seen: number; org?: string; groups: string[]; groupLabels?: Map<string, string>; taken: Set<string>; onClose: () => void; onAdded: () => void }) {
   const owners = useLoaded(() => getGitHubOwners(), []);
   const [picked, setPicked] = useState<string>();
   const [typed, setTyped] = useState("");
@@ -162,14 +162,14 @@ export function AddRepo({ seen, org, groups, taken, onClose, onAdded }: { seen: 
         </Checkbox>
       )}
 
-      {chosen && <Adding key={`${owner}/${chosen.name}`} owner={owner} repo={chosen} taken={taken} groups={groups} onCancel={() => setChosen(undefined)} onAdded={onAdded} />}
+      {chosen && <Adding key={`${owner}/${chosen.name}`} owner={owner} repo={chosen} taken={taken} groups={groups} groupLabels={groupLabels} onCancel={() => setChosen(undefined)} onAdded={onAdded} />}
     </Dialog>
   );
 }
 
 // Adding is the repo chosen, about to be added: its name here (its name
 // on GitHub, unless that's taken here), and whose it is.
-function Adding({ owner, repo, taken, groups, onCancel, onAdded }: { owner: string; repo: AddableRepo; taken: Set<string>; groups: string[]; onCancel: () => void; onAdded: () => void }) {
+function Adding({ owner, repo, taken, groups, groupLabels, onCancel, onAdded }: { owner: string; repo: AddableRepo; taken: Set<string>; groups: string[]; groupLabels?: Map<string, string>; onCancel: () => void; onAdded: () => void }) {
   const [as, setAs] = useState(() => (taken.has(repo.name) ? `${owner}-${repo.name}` : repo.name));
   const [group, setGroup] = useState("");
   const [team, setTeam] = useState(false);
@@ -207,7 +207,7 @@ function Adding({ owner, repo, taken, groups, onCancel, onAdded }: { owner: stri
       <div className={css.field}>
         <span className={css.label}>Its group</span>
         <span>
-          <GroupPick value={group} groups={groups} none label="Its group" onPick={setGroup} />
+          <GroupPick value={group} groups={groups} labels={groupLabels} none label="Its group" onPick={setGroup} />
         </span>
       </div>
       <fieldset className={css.field}>

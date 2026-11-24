@@ -1,8 +1,10 @@
 package ops
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -18,15 +20,20 @@ import (
 // Group is one of the workspace's groups: its repos, whether it's hidden
 // for you, what the team says, and whether that's your choice.
 type Group struct {
-	Name  string
+	Name string
+	// Label is what it's called where it's shown (ws.toml's display_name,
+	// or its name), and Order where it comes among the groups (Groups
+	// are in it, lowest first).
+	Label string
+	Order int
 	Repos []string
 	// Hidden is as it is for you; TeamHidden is what ws.toml says; Chosen:
 	// Hidden is your choice (ws.local.toml), not the team's.
 	Hidden, TeamHidden, Chosen bool
 }
 
-// Groups are the workspace's groups, by name: every one a repo is in, or
-// that's hidden or shown by name.
+// Groups are the workspace's groups, in their order (then by name): every
+// one a repo is in, or that's hidden or shown by name.
 func (w *Workspace) Groups() []Group {
 	ws := w.WS()
 	seen := map[string]bool{}
@@ -37,19 +44,15 @@ func (w *Workspace) Groups() []Group {
 		seen[g] = true
 	}
 	out := []Group{}
-	for _, name := range slices.Sorted(func(yield func(string) bool) {
-		for g := range seen {
-			if !yield(g) {
-				return
-			}
-		}
-	}) {
+	names := slices.Sorted(maps.Keys(seen))
+	slices.SortStableFunc(names, func(a, b string) int { return cmp.Compare(ws.GroupOrders[a], ws.GroupOrders[b]) })
+	for _, name := range names {
 		_, chosen := ws.GroupChoices[name]
 		repos := ws.ReposInGroup(name)
 		if repos == nil {
 			repos = []string{}
 		}
-		out = append(out, Group{Name: name, Repos: repos, Hidden: ws.HiddenGroups[name], TeamHidden: ws.TeamHidden[name], Chosen: chosen})
+		out = append(out, Group{Name: name, Label: ws.GroupLabel(name), Order: ws.GroupOrders[name], Repos: repos, Hidden: ws.HiddenGroups[name], TeamHidden: ws.TeamHidden[name], Chosen: chosen})
 	}
 	return out
 }

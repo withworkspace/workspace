@@ -118,7 +118,8 @@ export function FilesPage() {
 }
 
 // RepoColumn is the workspace's repos, as ws labels them: ungrouped first,
-// then each group, hidden groups folded (unless what's open is in one). A
+// then each group in its order (ws.toml's order, then by name) under its
+// display name, hidden groups after, folded (unless what's open is in one). A
 // repo that's a space of documents has Documents for its home: it's folded
 // away at the foot, In Documents.
 function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
@@ -126,7 +127,7 @@ function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
   const groups = useMemo(() => {
     const by = new Map<string, Repo[]>();
     for (const r of repos) if (!r.documents) by.set(r.group ?? "", [...(by.get(r.group ?? "") ?? []), r]);
-    return [...by].sort(([a, ra], [b, rb]) => (a === "" ? -1 : b === "" ? 1 : Number(!!ra[0].hidden) - Number(!!rb[0].hidden) || a.localeCompare(b)));
+    return [...by].sort(([a, ra], [b, rb]) => (a === "" ? -1 : b === "" ? 1 : Number(!!ra[0].hidden) - Number(!!rb[0].hidden) || (ra[0].groupOrder ?? 0) - (rb[0].groupOrder ?? 0) || a.localeCompare(b)));
   }, [repos]);
   const row = (r: Repo) => (
     <Link key={r.name} to={`/files/${encodeURIComponent(r.name)}`} className={`repo-row${r.name === current ? " on" : ""}${r.cloned ? "" : " uncloned"}`} title={r.cloned ? r.name : `${r.name}: not cloned (ws setup ${r.name})`} aria-current={r.name === current ? "page" : undefined}>
@@ -151,7 +152,7 @@ function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
           rs[0].hidden ? (
             <details key={g} className="repo-group" open={rs.some((r) => r.name === current)}>
               <summary className={groupHeadClass("repo-group-head")}>
-                {g} <span className="dim">· hidden</span> <Count>{rs.length}</Count>
+                {rs[0].groupLabel || g} <span className="dim">· hidden</span> <Count>{rs.length}</Count>
               </summary>
               {rs.map(row)}
             </details>
@@ -159,7 +160,7 @@ function RepoColumn({ repos, current }: { repos: Repo[]; current: string }) {
             <section key={g || "-"} className="repo-group">
               {g && (
                 <GroupHead className="repo-group-head" count={rs.length}>
-                  {g}
+                  {rs[0].groupLabel || g}
                 </GroupHead>
               )}
               {rs.map(row)}

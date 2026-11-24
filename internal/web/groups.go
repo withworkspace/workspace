@@ -14,7 +14,12 @@ import (
 
 // RepoGroup is a repo's group in the workspace, as the API serves it.
 type RepoGroup struct {
-	Name  string   `json:"name"`
+	Name string `json:"name"`
+	// Label is what it's called where it's shown (ws.toml's display_name,
+	// or its name), and Order where it comes among them: they're served
+	// in it, lowest first.
+	Label string   `json:"label"`
+	Order int      `json:"order,omitempty"`
 	Repos []string `json:"repos"`
 	// Hidden is as it is for you, TeamHidden as ws.toml says, and Chosen
 	// whether Hidden is your choice rather than the team's.

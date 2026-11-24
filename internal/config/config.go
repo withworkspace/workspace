@@ -632,6 +632,11 @@ func (c *Config) OrchestratorMaxDispatches() int {
 // ws.local.toml can tell "not set" apart from an explicit false.
 type GroupConfig struct {
 	Hidden *bool `toml:"hidden,omitempty"`
+	// DisplayName is what the group's called where it's shown (the web
+	// UI's repos), for its name; Order is where it comes among the groups,
+	// lowest first, those of an order by name.
+	DisplayName string `toml:"display_name,omitempty"`
+	Order       int    `toml:"order,omitempty"`
 	// Yours: Hidden is your choice, from ws.local.toml, and Team what
 	// ws.toml says (nil for nothing: shown). Merge says them; neither file
 	// does.
@@ -1100,7 +1105,8 @@ func Discover(startDir string) (string, error) {
 // Merge returns a new Config with local overrides applied on top of base.
 // Only repos that exist in base are considered; unknown repos in local are skipped.
 // Aliases are appended; AfterCreate, Color, DisplayName, and Group replace if non-empty.
-// Group visibility set locally replaces the base setting; local groups may be
+// Group visibility set locally replaces the base setting, as do a group's
+// DisplayName and Order where they're set; local groups may be
 // new, so a repo can be moved into a group the team config never declared.
 func Merge(base, local *Config) *Config {
 	merged := &Config{
@@ -1130,10 +1136,17 @@ func Merge(base, local *Config) *Config {
 	maps.Copy(merged.Repos, base.Repos)
 	maps.Copy(merged.Groups, base.Groups)
 	for name, localGroup := range local.Groups {
+		g := merged.Groups[name]
 		if localGroup.Hidden != nil {
-			localGroup.Yours, localGroup.Team = true, base.Groups[name].Hidden
-			merged.Groups[name] = localGroup
+			g.Hidden, g.Yours, g.Team = localGroup.Hidden, true, base.Groups[name].Hidden
 		}
+		if localGroup.DisplayName != "" {
+			g.DisplayName = localGroup.DisplayName
+		}
+		if localGroup.Order != 0 {
+			g.Order = localGroup.Order
+		}
+		merged.Groups[name] = g
 	}
 	for name, localRepo := range local.Repos {
 		baseRepo, ok := merged.Repos[name]
@@ -1442,14 +1455,16 @@ func SaveSilo(root string, silo map[string]string) error {
 // ws.local.toml. A nil hidden removes the choice, so the team default applies.
 func SaveGroupVisibility(root, group string, hidden *bool) error {
 	return UpdateLocal(root, func(local *LocalConfig) {
-		if hidden == nil {
+		g := local.Groups[group]
+		g.Hidden = hidden
+		if g == (GroupConfig{}) {
 			delete(local.Groups, group)
 			return
 		}
 		if local.Groups == nil {
 			local.Groups = make(map[string]GroupConfig)
 		}
-		local.Groups[group] = GroupConfig{Hidden: hidden}
+		local.Groups[group] = g
 	})
 }
 
