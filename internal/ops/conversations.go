@@ -29,9 +29,9 @@ func (w *Workspace) now() time.Time {
 // answer has the daemon answer a conversation (kind job.Answer), a thread
 // (job.Thread), or draft what a resolved thread decided (job.Draft).
 func (w *Workspace) answer(kind string, sc doc.Scope, id string) {
-	if w.opts.Answer != nil {
+	if w.takes(kind) {
 		w.markPlanning(kind, sc, id)
-		w.opts.Answer(kind, sc.Mission, id)
+		w.start(job.Job{Kind: kind, Mission: sc.Mission, ID: id})
 	}
 }
 

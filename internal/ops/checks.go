@@ -14,6 +14,7 @@ import (
 	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/prompt"
 	"github.com/withworkspace/workspace/internal/runs"
@@ -73,8 +74,7 @@ func (w *Workspace) CrewDone(slug, crewID string) string {
 		return said
 	}
 	if st, id, ok := m.UncheckedDone(brief); ok && id == crewID {
-		if w.opts.Check != nil {
-			w.opts.Check(slug, crewID)
+		if w.start(job.Job{Kind: job.Check, Mission: slug, ID: crewID}) {
 			return fmt.Sprintf("ws runs step %d's checks", st.N)
 		}
 		said, err := w.RunChecks(slug, crewID)

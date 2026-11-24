@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/withworkspace/workspace/internal/config"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -22,7 +23,7 @@ func TestAskAPI(t *testing.T) {
 	os.MkdirAll(notes, 0o755)
 	os.WriteFile(filepath.Join(notes, "tokens.md"), []byte("# Tokens\n\n## Caching\n\nWe cache tokens\n*per user*, for an hour.\n"), 0o644)
 	var asked []string
-	setOps(s, testOps(s, ops.Options{Answer: func(kind, slug, id string) { asked = append(asked, kind+" "+slug+"/"+id) }}, func(c *config.Config, ws *workspace.Workspace) {
+	setOps(s, testOps(s, ops.Options{Jobs: ops.JobsOf(func(j job.Job) { asked = append(asked, j.Kind+" "+j.Mission+"/"+j.ID) }, job.Answer, job.Thread, job.Draft)}, func(c *config.Config, ws *workspace.Workspace) {
 		ws.RepoNames = []string{"records"}
 	}))
 

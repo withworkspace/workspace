@@ -21,6 +21,7 @@ import (
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/github"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/ref"
@@ -380,7 +381,7 @@ func TestReviewsDiscussion(t *testing.T) {
 func TestReviewsPasses(t *testing.T) {
 	w := newReviewsWorld(t)
 	var asked []string
-	w.s.App = testOps(w.s, ops.Options{Reviews: w.s.Reviews, Answer: func(kind, slug, id string) { asked = append(asked, id) }},
+	w.s.App = testOps(w.s, ops.Options{Reviews: w.s.Reviews, Jobs: ops.JobsOf(func(j job.Job) { asked = append(asked, j.ID) }, job.Answer, job.Thread, job.Draft)},
 		func(c *config.Config, _ *workspace.Workspace) {
 			c.Conversation.Harness = "claude"
 			c.Reviews.Passes = map[string]config.ReviewPassConfig{
@@ -510,7 +511,7 @@ func TestReviewsPasses(t *testing.T) {
 func TestReviewsFollowUp(t *testing.T) {
 	w := newReviewsWorld(t)
 	var asked []string
-	w.s.App = testOps(w.s, ops.Options{Reviews: w.s.Reviews, Answer: func(kind, slug, id string) { asked = append(asked, id) }},
+	w.s.App = testOps(w.s, ops.Options{Reviews: w.s.Reviews, Jobs: ops.JobsOf(func(j job.Job) { asked = append(asked, j.ID) }, job.Answer, job.Thread, job.Draft)},
 		func(c *config.Config, _ *workspace.Workspace) { c.Conversation.Harness = "claude" })
 	send := func(path, payload string, v any) int {
 		t.Helper()
@@ -611,7 +612,7 @@ func TestReviewsFollowUp(t *testing.T) {
 func TestReviewsGuide(t *testing.T) {
 	w := newReviewsWorld(t)
 	var asked []string
-	w.s.App = testOps(w.s, ops.Options{Reviews: w.s.Reviews, Answer: func(kind, slug, id string) { asked = append(asked, id) }},
+	w.s.App = testOps(w.s, ops.Options{Reviews: w.s.Reviews, Jobs: ops.JobsOf(func(j job.Job) { asked = append(asked, j.ID) }, job.Answer, job.Thread, job.Draft)},
 		func(c *config.Config, _ *workspace.Workspace) { c.Conversation.Harness = "claude" })
 	var diff pulls.Diffed
 	getInto(t, w.s, "/api/prs/api/5/diff", &diff)
@@ -683,7 +684,7 @@ func TestReviewsGuide(t *testing.T) {
 func TestReviewsAutoPasses(t *testing.T) {
 	w := newReviewsWorld(t)
 	var asked []string
-	app := testOps(w.s, ops.Options{Reviews: w.s.Reviews, Answer: func(kind, slug, id string) { asked = append(asked, id) }},
+	app := testOps(w.s, ops.Options{Reviews: w.s.Reviews, Jobs: ops.JobsOf(func(j job.Job) { asked = append(asked, j.ID) }, job.Answer, job.Thread, job.Draft)},
 		func(c *config.Config, _ *workspace.Workspace) {
 			c.Conversation.Harness = "claude"
 			c.Reviews.Guide.Auto = true

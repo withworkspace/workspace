@@ -8,6 +8,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/store/storetest"
 	"github.com/withworkspace/workspace/internal/workspace"
@@ -103,7 +104,7 @@ func reposFixture(t *testing.T, plan string) (*Workspace, *[]string, *fakeHost) 
 	os.MkdirAll(filepath.Join(ws.RepoDir("backend"), "two"), 0o755)
 	var runs []string
 	host := &fakeHost{}
-	w := New(&config.Config{}, ws, nil, Options{Host: host, Orchestrate: func(slug, crewID, trigger string) { runs = append(runs, slug+"/"+trigger) }})
+	w := New(&config.Config{}, ws, nil, Options{Host: host, Jobs: JobsOf(func(j job.Job) { runs = append(runs, j.Mission+"/"+j.Why) }, job.Orchestrate)})
 	harness.Register(fakeHarness{})
 	w.Config().Crew.Harness = "fake-crew"
 	m, _ := w.Missions.Create("Cache")

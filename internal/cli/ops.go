@@ -64,20 +64,23 @@ func openOps(root string, prs *ops.PRCache, more ...func(*ops.Options)) *ops.Wor
 // orchestrator's runs and conversations' answers in the daemon.
 func opsOptions(root string) ops.Options {
 	return ops.Options{
-		Host:        hostFor(root),
-		Live:        liveOutput(root),
-		Orchestrate: func(slug, crewID, trigger string) { orchestrateSpawner(root, slug, crewID, trigger) },
-		Check:       func(slug, crewID string) { checkSpawner(root, slug, crewID) },
-		WritePR:     func(slug, capsule string) { prWriterSpawner(root, slug, capsule) },
-		Answer: func(kind, slug, id string) {
-			switch kind {
+		Host: hostFor(root),
+		Live: liveOutput(root),
+		Jobs: ops.JobsOf(func(j job.Job) {
+			switch j.Kind {
+			case job.Orchestrate:
+				orchestrateSpawner(root, j.Mission, j.ID, j.Why)
+			case job.Check:
+				checkSpawner(root, j.Mission, j.ID)
+			case job.PR:
+				prWriterSpawner(root, j.Mission, j.ID)
 			case job.Thread:
-				threadSpawner(root, slug, id)
+				threadSpawner(root, j.Mission, j.ID)
 			case job.Draft:
-				draftSpawner(root, slug, id)
+				draftSpawner(root, j.Mission, j.ID)
 			default:
-				talkSpawner(root, slug, id)
+				talkSpawner(root, j.Mission, j.ID)
 			}
-		},
+		}),
 	}
 }

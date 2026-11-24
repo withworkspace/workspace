@@ -11,6 +11,7 @@ import (
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -26,7 +27,7 @@ func fixture(t *testing.T, brief string, capsules ...string) (*Workspace, *[]str
 		os.MkdirAll(filepath.Join(ws.RepoDir("frontend"), c), 0o755)
 	}
 	var runs []string
-	w := New(&config.Config{}, ws, nil, Options{Orchestrate: func(slug, crewID, trigger string) { runs = append(runs, slug+"/"+trigger) }})
+	w := New(&config.Config{}, ws, nil, Options{Jobs: JobsOf(func(j job.Job) { runs = append(runs, j.Mission+"/"+j.Why) }, job.Orchestrate)})
 	m, err := w.Missions.Create("Cache")
 	if err != nil {
 		t.Fatal(err)

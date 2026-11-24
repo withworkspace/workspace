@@ -2,6 +2,7 @@ package ops
 
 import (
 	"github.com/withworkspace/workspace/internal/execlog"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 )
 
@@ -29,9 +30,7 @@ func (w *Workspace) Notify(slug string, e mission.OrchestratorEvent) bool {
 			return false
 		}
 	}
-	if w.opts.Orchestrate != nil {
-		w.opts.Orchestrate(slug, e.Crew, e.Trigger)
-	}
+	w.start(job.Job{Kind: job.Orchestrate, Mission: slug, ID: e.Crew, Why: e.Trigger})
 	return true
 }
 

@@ -17,6 +17,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/conversation"
+	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/store/storetest"
@@ -273,20 +274,20 @@ func setOps(s *Server, w *ops.Workspace) {
 // answersInto has s's operations note each conversation they have the
 // daemon answer (of the kinds named; any, for none) as slug/id, into got.
 func answersInto(s *Server, got *[]string, kinds ...string) {
-	setOps(s, testOps(s, ops.Options{Answer: func(kind, slug, id string) {
-		if len(kinds) == 0 || slices.Contains(kinds, kind) {
-			*got = append(*got, slug+"/"+id)
+	setOps(s, testOps(s, ops.Options{Jobs: ops.JobsOf(func(j job.Job) {
+		if len(kinds) == 0 || slices.Contains(kinds, j.Kind) {
+			*got = append(*got, j.Mission+"/"+j.ID)
 		}
-	}}))
+	}, job.Answer, job.Thread, job.Draft)}))
 }
 
 // idsAnsweredInto is answersInto, noting each by its id alone.
 func idsAnsweredInto(s *Server, got *[]string, kinds ...string) {
-	setOps(s, testOps(s, ops.Options{Answer: func(kind, slug, id string) {
-		if len(kinds) == 0 || slices.Contains(kinds, kind) {
-			*got = append(*got, id)
+	setOps(s, testOps(s, ops.Options{Jobs: ops.JobsOf(func(j job.Job) {
+		if len(kinds) == 0 || slices.Contains(kinds, j.Kind) {
+			*got = append(*got, j.ID)
 		}
-	}}))
+	}, job.Answer, job.Thread, job.Draft)}))
 }
 
 func noRedirects() *http.Client {

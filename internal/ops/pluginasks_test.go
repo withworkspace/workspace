@@ -149,7 +149,7 @@ func TestPluginAsksWhatWSHasNot(t *testing.T) {
 func TestPluginStartsAConversation(t *testing.T) {
 	w, _ := fixture(t, "")
 	var answers []string
-	w.opts.Answer = func(kind, slug, id string) { answers = append(answers, kind+" "+slug+"/"+id) }
+	w.opts.Jobs = JobsOf(func(j job.Job) { answers = append(answers, j.Kind+" "+j.Mission+"/"+j.ID) }, job.Answer, job.Thread, job.Draft)
 
 	got, err := ask[protocol.ConversationStarted](t, w, protocol.MethodConversationStart, protocol.ConversationStartParams{Message: " Let's work out a mission for frontend#12. "})
 	if err != nil {
