@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"github.com/withworkspace/workspace/internal/orchestrator"
 	"github.com/withworkspace/workspace/internal/prompt"
 	"github.com/withworkspace/workspace/internal/review"
+	"github.com/withworkspace/workspace/internal/turn"
 )
 
 // OrchestratorRun is a run of the orchestrator asked for: the mission, the
@@ -91,9 +93,15 @@ func (w *Workspace) orchestratorSetup(r *OrchestratorRun) (*mission.Mission, har
 // couldn't run) puts the mission in your court, with what it said.
 func (w *Workspace) Orchestrate(r OrchestratorRun) error {
 	// The run marked as underway when it was asked for ends however
-	// this finishes.
+	// this finishes, but for ws going first: still marked, it's run again
+	// by the daemon after (reconcileJobs).
+	var ended bool
 	if !r.Since.IsZero() && r.Slug != "" {
-		defer w.Missions.EndOrchestrating(r.Slug, mission.OrchestratorRun{Since: r.Since})
+		defer func() {
+			if !ended {
+				w.Missions.EndOrchestrating(r.Slug, mission.OrchestratorRun{Since: r.Since})
+			}
+		}()
 	}
 	if r.Auto && !w.Config().OrchestratorEnabled() {
 		execlog.Note(w.WS().Root, "orchestrator "+r.Slug, "not run for %s: [orchestrator] enabled = false", strings.TrimSpace(r.Crew+" ("+r.Trigger+")"))
@@ -135,7 +143,7 @@ func (w *Workspace) Orchestrate(r OrchestratorRun) error {
 		if err != nil {
 			return orchestrator.Report{}, false, err
 		}
-		rep, runErr := orchestrator.Run(l, w.WS().Root, m.Slug, rec.ID)
+		rep, runErr := orchestrator.Run(w.life(), l, w.WS().Root, m.Slug, rec.ID)
 		summary := orchestrator.Summary(rep.Output, runErr)
 		store.AppendLog(m.Slug, mission.Event{Kind: mission.EventOrchestrate, Crew: "orchestrator", Run: rec.ID, Text: summary})
 		r.say("%s", summary)
@@ -150,6 +158,10 @@ func (w *Workspace) Orchestrate(r OrchestratorRun) error {
 		return rep, acted, runErr
 	}
 	rep, acted, runErr := runOnce(prompt, false)
+	if errors.Is(runErr, turn.ErrEnded) {
+		ended = true
+		return runErr
+	}
 	// A run that ran no ws mission command did nothing, not even
 	// its note: usually a model that took one refused command for
 	// "the shell is denied". Once more, told otherwise.

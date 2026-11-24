@@ -6,6 +6,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
 // Pointers say what meets a workspace recipe's needs, in place of the
@@ -49,8 +50,22 @@ func (s Store) Points(recipe string) map[string]string {
 	return out
 }
 
-// Point points recipe's need at worktree: "" is the nearest again.
+// Point points recipe's need at worktree: "" is the nearest again. It's
+// read, changed and written under a lock held across processes, so two
+// pointed at once are both kept.
 func (s Store) Point(recipe, need, worktree string) error {
+	path := s.pointsPath()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	lock, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		return err
+	}
+	defer lock.Close() // which lets go of it
+	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
+		return err
+	}
 	all, err := s.readPoints()
 	if err != nil {
 		all = map[string]map[string]string{} // unreadable: what's said now is what's kept
@@ -70,13 +85,24 @@ func (s Store) Point(recipe, need, worktree string) error {
 	if err != nil {
 		return err
 	}
-	path := s.pointsPath()
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	// Written beside it and moved into place: a read never finds it
+	// half written.
+	tmp, err := os.CreateTemp(filepath.Dir(path), "."+pointsFile+".*")
+	if err != nil {
 		return err
 	}
-	tmp := path + ".new"
-	if err := os.WriteFile(tmp, append(b, '\n'), 0o644); err != nil {
-		return err
+	_, err = tmp.Write(append(b, '\n'))
+	if cerr := tmp.Close(); err == nil {
+		err = cerr
 	}
-	return os.Rename(tmp, path)
+	if err == nil {
+		err = os.Chmod(tmp.Name(), 0o644)
+	}
+	if err == nil {
+		err = os.Rename(tmp.Name(), path)
+	}
+	if err != nil {
+		os.Remove(tmp.Name())
+	}
+	return err
 }

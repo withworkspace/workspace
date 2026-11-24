@@ -8,6 +8,7 @@
 package ops
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -140,6 +141,10 @@ type Options struct {
 	Live func(key string) string
 	// Now is the clock (default time.Now): tests set it.
 	Now func() time.Time
+	// Life is the workspace's life in this process (the daemon's): ended,
+	// the agents' turns it's running end with it, and what they were for
+	// is left for the next to do. nil is never.
+	Life context.Context
 	// PRs is what GitHub said of pull requests lately, which the views
 	// show (the daemon's, shared with its watcher); nil for none.
 	PRs *PRCache

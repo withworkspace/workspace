@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -101,6 +102,12 @@ func (w *Workspace) fixedSteps(m *mission.Mission) int {
 // briefing the mission; crew and the orchestrator follow it, and never
 // change it.
 func (w *Workspace) SetPlan(slug, text string, by Actor) (PlanSet, error) {
+	return w.setPlan(slug, text, by, nil)
+}
+
+// setPlan is SetPlan, written only if the plan's still was, when that's
+// given (refused as "changed" otherwise): looked at as it's written.
+func (w *Workspace) setPlan(slug, text string, by Actor, was *string) (PlanSet, error) {
 	m, err := w.load(slug)
 	if err != nil {
 		return PlanSet{}, err
@@ -131,7 +138,15 @@ func (w *Workspace) SetPlan(slug, text string, by Actor) (PlanSet, error) {
 		}
 		logged = "plan revised: " + rev.Summary()
 	}
-	if err := w.Missions.WritePlan(m.Slug, p.Text); err != nil {
+	if was == nil {
+		err = w.Missions.WritePlan(m.Slug, p.Text)
+	} else {
+		err = w.Missions.WriteFilesIf(m.Slug, mission.FileWrite{Plan: true, Was: *was, Now: p.Text})
+	}
+	if errors.Is(err, mission.ErrChanged) {
+		return PlanSet{}, &Refused{Code: "changed", Reason: "the plan has changed since it was read", Err: err}
+	}
+	if err != nil {
 		return PlanSet{}, err
 	}
 	w.Missions.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Crew: by.By(), Text: logged})
@@ -207,10 +222,14 @@ func (w *Workspace) acceptPlan(store conversation.Store, c *conversation.Convers
 	if err != nil {
 		return "", err
 	}
+	changed := refused("changed", "the plan has changed since this was proposed: ask in %s for it again, from the plan as it is now", c.ID)
 	if now, _ := w.Missions.ReadPlan(m.Slug); now != p.Was {
-		return "", refused("changed", "the plan has changed since this was proposed: ask in %s for it again, from the plan as it is now", c.ID)
+		return "", changed
 	}
-	set, err := w.SetPlan(m.Slug, p.Plan, AsYou)
+	set, err := w.setPlan(m.Slug, p.Plan, AsYou, &p.Was)
+	if errors.Is(err, mission.ErrChanged) {
+		return "", changed
+	}
 	if err != nil {
 		return "", err
 	}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/config"
@@ -60,6 +61,10 @@ type daemon struct {
 	runsPoke chan struct{}
 }
 
+// jobsGrace is how long the daemon waits, going, for jobs whose agents
+// it's ended to finish.
+const jobsGrace = 10 * time.Second
+
 // Run is the workspace's daemon, until it's shut down. restart says it
 // shut down to be started again (Server.Restart): by then everything it
 // held is closed.
@@ -100,6 +105,12 @@ func Run(cfg Config) (restart bool, err error) {
 	d.jobs = &job.Queue{Queued: markJob(root), Log: s.Log.Printf}
 	d.jobs.Run = d.runJob
 	s.Jobs = d.jobs
+	// The jobs' agents live as long as the daemon does: as it goes, their
+	// turns are ended (process group and all) and waited for, before the
+	// records they write to are closed. What they were for is left to the
+	// daemon after (reconcileJobs).
+	life, end := context.WithCancel(context.Background())
+	defer end()
 	// The workspace's plugins run in here, one process each, started
 	// when one's first needed. Commands reach them over their socket, and
 	// what they ask ws is answered from the workspace's operations.
@@ -123,6 +134,7 @@ func Run(cfg Config) (restart bool, err error) {
 		WS:      upgrader,
 		Pending: s.Pending,
 		AtWork:  s.AtWork,
+		Life:    life,
 	})
 	d.w.KeepTeam()
 	// A restart that isn't to be now waits for crew mid-turn.
@@ -180,6 +192,14 @@ func Run(cfg Config) (restart bool, err error) {
 	go func() {
 		sig := <-sigs
 		s.Shutdown("signal " + sig.String())
+	}()
+	// Deferred last, so done first: before the plugins, the web UI and
+	// the records are let go of.
+	defer func() {
+		end()
+		if !d.jobs.Stop(jobsGrace) {
+			s.Log.Printf("jobs still running %s after their agents were ended: going without them", jobsGrace)
+		}
 	}()
 	err = s.Serve()
 	return s.Restarting(), err

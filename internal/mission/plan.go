@@ -718,16 +718,7 @@ func (s Store) WritePlan(slug, plan string) error {
 	if _, err := s.Load(slug); err != nil {
 		return err
 	}
-	if strings.TrimSpace(plan) == "" {
-		if err := os.Remove(s.PlanPath(slug)); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-		return nil
-	}
-	if !strings.HasSuffix(plan, "\n") {
-		plan += "\n"
-	}
-	return writeFile(s.PlanPath(slug), []byte(plan))
+	return s.withFiles(slug, func() error { return s.writePlan(slug, plan) })
 }
 
 // withPlan reads a mission's plan into it, as it's loaded: its steps are

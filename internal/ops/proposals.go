@@ -2,6 +2,7 @@ package ops
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -272,14 +273,19 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 	if err != nil {
 		return "", store.Slug, err
 	}
+	// Looked at here to say so before anything's worked out, and again
+	// as they're written (WriteFilesIf), with nothing in between.
+	changed := func(file string) error {
+		return fmt.Errorf("the %s has changed since this was proposed: ask in %s for it again, from the %s as it is now", file, c.ID, file)
+	}
 	now, _ := ms.ReadBrief(m.Slug)
 	if now != p.Was {
-		return "", m.Slug, fmt.Errorf("the brief has changed since this was proposed: ask in %s for it again, from the brief as it is now", c.ID)
+		return "", m.Slug, changed("brief")
 	}
 	var plan *mission.Plan
 	if p.Plan != "" {
 		if now, _ := ms.ReadPlan(m.Slug); now != p.PlanWas {
-			return "", m.Slug, fmt.Errorf("the plan has changed since this was proposed: ask in %s for it again, from the plan as it is now", c.ID)
+			return "", m.Slug, changed("plan")
 		}
 		// Its quotes were held to the process when it was proposed.
 		if plan, err = mission.ParsePlan(p.Plan, nil); err != nil {
@@ -299,17 +305,21 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 	// The brief as it is comes with a plan, for a mission briefed when it
 	// was proposed: only the plan is new.
 	same := p.Brief == now
-	if !same {
-		if err := ms.WriteBrief(m.Slug, p.Brief); err != nil {
-			return "", m.Slug, err
+	writes := []mission.FileWrite{{Was: p.Was, Now: p.Brief}}
+	if plan != nil {
+		writes = append(writes, mission.FileWrite{Plan: true, Was: p.PlanWas, Now: plan.Text})
+	}
+	if err := ms.WriteFilesIf(m.Slug, writes...); err != nil {
+		if ch := (*mission.ChangedError)(nil); errors.As(err, &ch) {
+			return "", m.Slug, changed(ch.File)
 		}
+		return "", m.Slug, err
+	}
+	if !same {
 		ms.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: "brief written, from " + c.ID})
 	}
 	said := []string{"Wrote the new brief."}
 	if plan != nil {
-		if err := ms.WritePlan(m.Slug, plan.Text); err != nil {
-			return "", m.Slug, err
-		}
 		ms.AppendLog(m.Slug, mission.Event{Kind: mission.EventNote, Text: fmt.Sprintf("plan written, from %s: %d %s", c.ID, len(plan.Steps), plural(len(plan.Steps), "step"))})
 		said = []string{fmt.Sprintf("Wrote the new brief, and its plan (%d %s).", len(plan.Steps), plural(len(plan.Steps), "step"))}
 		if same {

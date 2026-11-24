@@ -89,6 +89,7 @@ type Queue struct {
 	mu      sync.Mutex
 	running map[string]bool  // by lane
 	waiting map[string][]Job // by lane, in the order they're to run
+	stopped bool             // Stop: nothing more's run
 	wg      sync.WaitGroup
 }
 
@@ -101,6 +102,10 @@ func (q *Queue) Start(j Job) {
 	}
 	q.mu.Lock()
 	defer q.mu.Unlock()
+	if q.stopped {
+		q.logf("%s isn't run: ws is going", j)
+		return
+	}
 	if q.running == nil {
 		q.running, q.waiting = map[string]bool{}, map[string][]Job{}
 	}
@@ -128,7 +133,7 @@ func (q *Queue) loop(lane string, j Job) {
 		q.run(j)
 		q.mu.Lock()
 		next := q.waiting[lane]
-		if len(next) == 0 {
+		if len(next) == 0 || q.stopped {
 			delete(q.waiting, lane)
 			delete(q.running, lane)
 			q.mu.Unlock()
@@ -162,6 +167,34 @@ func (q *Queue) Busy() bool {
 
 // Wait waits for every job taken so far, and those waiting behind them.
 func (q *Queue) Wait() { q.wg.Wait() }
+
+// Stop has the queue take no more jobs, and drop those waiting: what's
+// running is let finish (it's ended by ending what it's run for). It
+// waits up to grace for them, and says whether they finished. What a job
+// dropped was for is the next process's to take up: its mark is still on
+// it, or it's asked for again.
+func (q *Queue) Stop(grace time.Duration) bool {
+	q.mu.Lock()
+	q.stopped = true
+	for lane, js := range q.waiting {
+		for _, j := range js {
+			q.logf("%s isn't run: ws is going", j)
+		}
+		delete(q.waiting, lane)
+	}
+	q.mu.Unlock()
+	done := make(chan struct{})
+	go func() {
+		q.wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return true
+	case <-time.After(grace):
+		return false
+	}
+}
 
 func (q *Queue) logf(format string, args ...any) {
 	if q.Log != nil {

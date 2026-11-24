@@ -222,6 +222,10 @@ func (o *owner) serve() {
 	}
 }
 
+// afterCommit is told as a command's commit is made, before it's answered:
+// a test holds it there.
+var afterCommit = func() {}
+
 // handle is one command's connection: its hello, then its statements, a
 // transaction at a time. Whatever it leaves open when it goes (or when
 // its transaction outlives txLimit) is rolled back.
@@ -319,8 +323,19 @@ func (o *owner) handle(nc net.Conn) {
 				break
 			}
 			wrote := release != nil
+			// The limit's stopped before it's committed: once the commit's
+			// made, its answer must reach the command, which a limit
+			// closing the connection after it would lose (the command would
+			// say it failed, and might do it again). Past the limit
+			// already, the connection's being closed: it's rolled back, as
+			// it would have been, and the command's told no more.
+			if limit != nil && !limit.Stop() {
+				return
+			}
+			limit = nil
 			if req.Op == "commit" {
 				err = tx.Commit()
+				afterCommit()
 			} else {
 				err = tx.Rollback()
 			}

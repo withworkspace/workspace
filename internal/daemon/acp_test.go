@@ -234,9 +234,8 @@ func TestServer_ACPCrew(t *testing.T) {
 	if c := crew(); !c.Stopped {
 		t.Errorf("ended %+v, want stopped", c)
 	}
-	if _, ok := s.Agent(spec.Key()); ok {
-		t.Error("still held once ended")
-	}
+	// Let go of once its end's recorded, which comes first.
+	eventually(t, "it let go of", func() bool { _, ok := s.Agent(spec.Key()); return !ok })
 }
 
 // Crew over ACP that end a turn with a command left running (Codex's
