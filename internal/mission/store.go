@@ -546,10 +546,7 @@ func (s Store) WriteBrief(slug, brief string) error {
 	if _, err := s.Load(slug); err != nil {
 		return err
 	}
-	if brief != "" && !strings.HasSuffix(brief, "\n") {
-		brief += "\n"
-	}
-	return writeFile(s.BriefPath(slug), []byte(brief))
+	return s.withFiles(slug, func() error { return s.writeBrief(slug, brief) })
 }
 
 // writeFile writes a mission's file through a temporary one beside it,

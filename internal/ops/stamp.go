@@ -170,7 +170,7 @@ func skipDir(rel string) bool {
 	switch rel {
 	case "team", "prs", "bin", "hooks", "converse":
 		return true
-	case "backup", "swept": // copies of the records; what ws doctor swept aside
+	case "backup", "swept", "locks": // copies of the records; what ws doctor swept aside; locks held while files are written
 		return true
 	case "cache", "runs":
 		// What's kept to be quick (code nav's facts: thousands of files,
