@@ -172,7 +172,7 @@ func newWeb(s *daemon.Server, prs *ops.PRCache) *web.Server {
 	var teamSvc *team.Service
 	if err == nil {
 		port = ctx.Config().Web.Port
-		teamSvc = teamService(ctx)
+		teamSvc = ctx.TeamService()
 	}
 	app := openOps(s.Root, prs, func(o *ops.Options) { o.Team = teamSvc }, daemonWS(s))
 	return &web.Server{

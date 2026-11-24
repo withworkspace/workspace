@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -13,99 +12,10 @@ import (
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/team"
 	"github.com/withworkspace/workspace/internal/ui"
-	"github.com/withworkspace/workspace/internal/workspace"
 )
 
 // The Team page's side of the CLI: the service the web UI serves it from,
 // and ws team, which opens the page or prints a period.
-
-// teamService is the Team page's service for the workspace: each visible
-// repo's default branch read from its clone, and GitHub asked through
-// ctx's client.
-func teamService(ctx *ops.Workspace) *team.Service {
-	root := ctx.WS().Root
-	window, _ := team.ParseWindow(ctx.Config().Team.Window)
-	// Where there's a file answering for GitHub, there's no GitHub to link to.
-	var web func(repo string) string
-	if ctx.Config().GitHub.Fixture == "" {
-		web = func(repo string) string {
-			if !ctx.WS().OnGitHub(repo) {
-				return ""
-			}
-			return ctx.WS().RemoteOf(repo).URL()
-		}
-	}
-	// An agent writes gists unless [team] narrative says not to, or no
-	// harness here can.
-	var writer func(team.Ask) (string, error)
-	noWriter := ""
-	if !ctx.Config().TeamNarrative() {
-		noWriter = "[team] narrative is off"
-	} else if _, _, err := ops.Roles(ctx.Config()).ForTeam(); err != nil {
-		noWriter = err.Error()
-	} else {
-		writer = teamWriter(root)
-	}
-	var summariser func(team.SummaryAsk) (string, error)
-	if writer != nil {
-		summariser = teamSummariser(root)
-	}
-	return &team.Service{
-		Root: root, GitHub: ctx.GitHub(), Window: window, Web: web, Writer: writer, NoWriter: noWriter, Summariser: summariser,
-		Repos: func() []team.Repo {
-			c, err := LoadOps(root)
-			if err != nil {
-				return nil
-			}
-			var out []team.Repo
-			for _, name := range c.WS().ListedRepoNames() {
-				if info, err := os.Stat(c.WS().BareDir(name)); err == nil && info.IsDir() {
-					out = append(out, team.Repo{Name: name, Bare: c.WS().BareDir(name), Branch: c.WS().DefaultBranch, GitHub: c.WS().RemoteOf(name)})
-				}
-			}
-			return out
-		},
-		// Your capsules, compared with the default branch they left.
-		Capsules: func(repo string) []team.Capsule {
-			c, err := LoadOps(root)
-			if err != nil {
-				return nil
-			}
-			branch := c.WS().DefaultBranch
-			if branch == "" {
-				branch = "main"
-			}
-			names, _ := workspace.ListWorktrees(c.WS().RepoDir(repo))
-			out := make([]team.Capsule, 0, len(names))
-			for _, n := range names {
-				out = append(out, team.Capsule{Repo: repo, Name: n, Dir: filepath.Join(c.WS().RepoDir(repo), n), Base: "origin/" + branch})
-			}
-			return out
-		},
-		Watch: func() []team.Watch {
-			c, err := LoadOps(root)
-			if err != nil {
-				return nil
-			}
-			var out []team.Watch
-			for name, w := range c.Config().Team.Watch {
-				out = append(out, team.Watch{Name: name, Title: w.Title, Paths: w.Paths})
-			}
-			return out
-		},
-		People: func() map[string]team.PersonConfig {
-			c, err := LoadOps(root)
-			if err != nil {
-				return nil
-			}
-			out := map[string]team.PersonConfig{}
-			for key, p := range c.Config().Team.People {
-				out[key] = team.PersonConfig{Name: p.Name, Logins: p.Logins, Emails: p.Emails}
-			}
-			return out
-		},
-	}
-}
 
 func newTeamCmd() *cobra.Command {
 	var printOnly, read bool
@@ -156,7 +66,7 @@ the day when --since asks for more.`,
 			if _, err := team.ParseWindow(ctx.Config().Team.Window); err != nil {
 				return err
 			}
-			svc := teamService(ctx)
+			svc := ctx.TeamService()
 			var from time.Time
 			if since != "" {
 				if from, err = team.Since(since, time.Now()); err != nil {
@@ -216,7 +126,7 @@ func newTeamGistCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			svc := teamService(ctx)
+			svc := ctx.TeamService()
 			snap, err := svc.Look(false, time.Time{})
 			if snap == nil {
 				return err
@@ -264,7 +174,7 @@ func newTeamAccountCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			svc := teamService(ctx)
+			svc := ctx.TeamService()
 			var from time.Time
 			if since != "" {
 				if from, err = team.Since(since, time.Now()); err != nil {
