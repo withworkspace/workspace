@@ -18,4 +18,20 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  /* What it's doing: quieter than what it's on, and the first to go. */
+  .doing {
+    flex: 0 100 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--dim);
+    animation: came var(--slow) var(--ease);
+  }
+
+  @keyframes came {
+    from {
+      opacity: 0;
+    }
+  }
 }

@@ -37,8 +37,9 @@ import { useWorkspace } from "../workspace/store";
 // useTranscript follows a crew's transcript over the tab's socket while the
 // page is showing (transcript:<slug>/<crew>): read whole once it's
 // followed, then told each change, which is applied to it as held
-// (appliedTranscript), and read whole again only when one can't be.
-export function useTranscript(slug: string, id: string): { t?: Transcript; error?: string; reload: () => void } {
+// (appliedTranscript), and read whole again only when one can't be. last:
+// only its latest entries are held.
+export function useTranscript(slug: string, id: string, last?: number): { t?: Transcript; error?: string; reload: () => void } {
   const [t, setT] = useState<Transcript>();
   // held is what's held, as of now: a change is applied to it as it's told,
   // not when the page next draws.
@@ -52,7 +53,7 @@ export function useTranscript(slug: string, id: string): { t?: Transcript; error
   const begin = useLatest();
   const reload = useCallback(() => {
     const fresh = begin();
-    getTranscript(slug, id).then(
+    getTranscript(slug, id, last).then(
       (x) => {
         if (!fresh()) return;
         // A read that crossed a change told after it is older than what's held.
@@ -62,7 +63,7 @@ export function useTranscript(slug: string, id: string): { t?: Transcript; error
       },
       (e: Error) => fresh() && setError(e.message),
     );
-  }, [slug, id, begin, put]);
+  }, [slug, id, last, begin, put]);
   // Another crew's: a read of the last one's, under way, is stale, and
   // what's held is the last one's.
   useEffect(() => {
@@ -74,13 +75,13 @@ export function useTranscript(slug: string, id: string): { t?: Transcript; error
     return pageSocket.follow(`transcript:${slug}/${id}`, {
       following: reload,
       changed: (said) => {
-        const next = said.transcript ? appliedTranscript(held.current, said.transcript) : "read";
+        const next = said.transcript ? appliedTranscript(held.current, said.transcript, last) : "read";
         if (next === "read") reload();
         else if (next) put(next);
       },
       lost: (closed) => closed && reload(),
     });
-  }, [slug, id, visible, reload, put]);
+  }, [slug, id, last, visible, reload, put]);
   return { t, error, reload };
 }
 

@@ -1,0 +1,12 @@
+/* How many of your pull requests are ready to merge (FootReady.tsx). */
+
+@layer ui {
+  /* Something to do: in what needs you's colour, and no pill, as the
+     sidebar's count is. */
+  .ready,
+  .ready:hover {
+    color: var(--attention);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+}

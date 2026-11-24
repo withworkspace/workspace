@@ -38,4 +38,11 @@ describe("appliedTranscript", () => {
     expect(d.earlier).toBe(9);
     expect(d.entries[d.entries.length - 1].text).toBe("newer");
   });
+
+  it("keeps fewer, when it's held fewer", () => {
+    const tail: Transcript = { ...held, entries: [said("a"), said("b"), said("c")], earlier: 20 };
+    const d = appliedTranscript(tail, op({ from: 23, entries: [said("d")] }), 3) as Transcript;
+    expect(d.entries.map((e) => e.text)).toEqual(["b", "c", "d"]);
+    expect(d.earlier).toBe(21);
+  });
 });

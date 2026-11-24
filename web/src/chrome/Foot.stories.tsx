@@ -4,6 +4,7 @@ import { Foot } from "./Foot";
 import { FootBelow } from "./FootBelow";
 import { FootBeside } from "./FootBeside";
 import { FootCrew } from "./FootCrew";
+import { FootReady } from "./FootReady";
 import { FootSep } from "./FootSep";
 import { FootSidebar } from "./FootSidebar";
 import { needs } from "./samples";
@@ -18,8 +19,10 @@ export default meta;
 const Going = () => (
   <>
     <FootSep />
-    <FootCrew id="c1" mission="Dark mode for the dashboard" to="/missions/dark-mode-for-the-dashboard/crew/c1" />
-    <FootCrew id="c2" mission="Reminders for overdue invoices" to="/missions/reminders-for-overdue-invoices/crew/c2" />
+    <FootReady count={2} />
+    <FootSep />
+    <FootCrew id="c1" mission="Dark mode for the dashboard" doing="Editing Theme.tsx" to="/missions/dark-mode-for-the-dashboard/crew/c1" />
+    <FootCrew id="c2" mission="Reminders for overdue invoices" doing="Running the tests" to="/missions/reminders-for-overdue-invoices/crew/c2" />
   </>
 );
 

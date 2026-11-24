@@ -274,7 +274,13 @@ func reviewsCount(reviews *pulls.Service) *ReviewsCount {
 	if l == nil {
 		return nil
 	}
-	return &ReviewsCount{Count: l.Count, At: l.At}
+	out := &ReviewsCount{Count: l.Count, At: l.At}
+	for _, sec := range l.Sections {
+		if sec.Key == pulls.Ready {
+			out.Ready += len(sec.Rows)
+		}
+	}
+	return out
 }
 
 func docKinds(kinds []ops.Kind) []DocKind {

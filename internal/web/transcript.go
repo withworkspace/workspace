@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -86,6 +87,12 @@ func (s *Server) crewTranscript(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+	// ?last=n is only its latest n entries, for what needs no more than
+	// what it's doing now (the foot).
+	if last, err := strconv.Atoi(r.URL.Query().Get("last")); err == nil && last > 0 && len(t.Entries) > last {
+		cut := len(t.Entries) - last
+		t.Earlier, t.Entries = t.Earlier+cut, t.Entries[cut:]
 	}
 	writeJSON(w, http.StatusOK, t)
 }
