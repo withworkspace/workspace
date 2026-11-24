@@ -352,6 +352,26 @@ func TestRemote_ATransactionLeftOpenIsRolledBackAfterTheLimit(t *testing.T) {
 	}
 }
 
+// A command's commit that's made is answered as made, even when the limit
+// comes as it's being answered: the limit can't close the connection on
+// an answer, which the command would take for a failure and do again.
+func TestRemote_ACommitMadeIsAnsweredAsMade(t *testing.T) {
+	old, oldAfter := txLimit, afterCommit
+	txLimit = 200 * time.Millisecond
+	afterCommit = func() { time.Sleep(400 * time.Millisecond) } // past the limit, answering
+	defer func() { txLimit, afterCommit = old, oldAfter }()
+	db := own(t)
+	table(t, db)
+	c := borrow(t, db)
+	err := c.Write(bg, func(tx *Tx) error {
+		_, err := tx.Exec(`INSERT INTO t (s) VALUES ('made')`)
+		return err
+	})
+	if n := count(t, db); err != nil || n != 1 {
+		t.Fatalf("told %v, with %d rows: a commit made is answered as made", err, n)
+	}
+}
+
 func TestRemote_LayoutsMustAgree(t *testing.T) {
 	db := own(t)
 	// A command from a ws whose store is a layout ahead of the daemon's.
