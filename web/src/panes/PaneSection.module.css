@@ -1,0 +1,19 @@
+/* One part of what a pane says of its thing (PaneSection.tsx). */
+
+@layer ui {
+  .section {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    color: var(--dim);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+}

@@ -76,6 +76,11 @@
     white-space: nowrap;
   }
 
+  /* Not kept yet: a peek, a conversation that hasn't begun. */
+  .passing .name {
+    font-style: italic;
+  }
+
   .count {
     color: var(--dim);
     font-size: var(--text-xs);

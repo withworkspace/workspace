@@ -1,0 +1,13 @@
+/* A conversation about to begin, beside the page (NewTalkPane.tsx). */
+
+@layer ui {
+  .says {
+    margin: 0 0 8px;
+  }
+
+  .kept {
+    margin: 0;
+    color: var(--dim);
+    font-size: var(--text-sm);
+  }
+}

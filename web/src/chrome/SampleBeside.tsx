@@ -27,6 +27,8 @@ type SampleBesideProps = {
   onClose: () => void;
   // On a narrow window: a sheet, with no edge and no floating.
   sheet?: boolean;
+  // The one of them that's a peek, by its id.
+  peek?: string;
 };
 
 // SampleBeside is Beside as the stories draw it: the dock's parts put
@@ -34,7 +36,7 @@ type SampleBesideProps = {
 // Which tabs are open and which is in front is kept here; whether it's
 // open, over the page, and how wide, is the window's, so the story has
 // them.
-export function SampleBeside({ things, own = [], over, onOver, size, onSize, onClose, sheet }: SampleBesideProps) {
+export function SampleBeside({ things, own = [], over, onOver, size, onSize, onClose, sheet, peek }: SampleBesideProps) {
   const [open, setOpen] = useState(things);
   const [front, setFront] = useState((things[0] ?? own[0])?.id);
   const all = [...own, ...open];
@@ -46,7 +48,7 @@ export function SampleBeside({ things, own = [], over, onOver, size, onSize, onC
     if (left.length + own.length === 0) return onClose();
     if (front === id) setFront((left[open.findIndex((t) => t.id === id)] ?? left[left.length - 1] ?? own[0]).id);
   };
-  const tab = (t: SampleThing, mine: boolean) => <DockTab key={t.id} name={t.name} lead={t.lead} on={t.id === now.id} onPick={() => setFront(t.id)} onClose={mine ? () => close(t.id) : undefined} />;
+  const tab = (t: SampleThing, mine: boolean) => <DockTab key={t.id} name={t.name} lead={t.lead} on={t.id === now.id} passing={t.id === peek ? "a peek, which the next takes the place of" : undefined} onPick={() => setFront(t.id)} onClose={mine ? () => close(t.id) : undefined} />;
   const listed = (t: SampleThing) => ({ id: t.id, name: t.name, lead: t.lead, on: t.id === now.id, onPick: () => setFront(t.id) });
   return (
     <Dock side="beside" label="Beside" size={size} over={over && !sheet} sheet={sheet} edge={<DockEdge side="beside" label="Beside's width" size={size} min={300} max={760} rest={420} onSize={onSize} />}>

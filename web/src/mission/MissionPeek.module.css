@@ -1,0 +1,26 @@
+/* A mission, read beside another page (MissionPeek.tsx). */
+
+.peek {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.goal {
+  margin: 0;
+  color: var(--dim);
+}
+
+.stands {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

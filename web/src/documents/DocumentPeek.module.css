@@ -1,0 +1,54 @@
+/* A document, read beside another page (DocumentPeek.tsx). */
+
+.peek {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.path {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.words {
+  margin-inline-start: auto;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+.mission {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.mission:hover {
+  color: var(--accent);
+}
+
+/* What it says, at the size of words in the app and not of a document on
+   its own page: it's read in a column a third as wide. */
+.text {
+  min-width: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}

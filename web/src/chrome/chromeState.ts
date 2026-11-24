@@ -33,6 +33,10 @@ export interface ChromeState {
     about: Record<string, string>;
     // Which is in front.
     front?: string;
+    // The tab that's a peek (z, on what the pointer's on): there's one,
+    // and the next thing peeked at takes its place, so looking at one row
+    // after another leaves one tab and not a row of them.
+    peek?: string;
     // Which was in front on each thing's page ("" where the page is of
     // nothing): coming back to a thing, what was in front there is again.
     fronts: Record<string, string>;
@@ -161,8 +165,27 @@ export function closeBesideTab(s: ChromeState, ref: string, here?: string): Chro
   const fronts = Object.fromEntries(Object.entries(s.beside.fronts).filter(([, t]) => t !== ref));
   return {
     ...s,
-    beside: { ...s.beside, tabs: s.beside.tabs.filter((t) => t !== ref), about: without(s.beside.about, ref), front: next, fronts: next === undefined ? fronts : frontAt(fronts, here, next) },
+    beside: { ...s.beside, tabs: s.beside.tabs.filter((t) => t !== ref), about: without(s.beside.about, ref), front: next, fronts: next === undefined ? fronts : frontAt(fronts, here, next), peek: s.beside.peek === ref ? undefined : s.beside.peek },
   };
+}
+
+// peekBeside is z on a thing: it opens beside, in front, as the peek, in
+// the place of what was peeked at before. On the peek that's in front
+// already, it closes it: z opens and z closes. A thing that's open beside
+// as a tab of its own (a conversation you asked for) comes to the front
+// and stays one of yours, and z on it again does nothing: it wasn't a
+// peek, so it isn't z's to close.
+export function peekBeside(s: ChromeState, to: string, here?: string): ChromeState {
+  if (!s.beside.tabs.includes(to)) {
+    const opened = openBeside(s, to, { inPlaceOf: s.beside.peek, here });
+    return { ...opened, beside: { ...opened.beside, peek: to } };
+  }
+  if (besideShown(s, here) && besideFront(s, here) === to) return s.beside.peek === to ? closeBesideTab(s, to, here) : s;
+  // One that's about another thing's page is asked for here: it's there
+  // anywhere from now.
+  const anywhere = besideTabs(s, here).all.includes(to) ? s : { ...s, beside: { ...s.beside, about: without(s.beside.about, to) } };
+  const picked = pickBeside(anywhere, to, here);
+  return { ...picked, beside: { ...picked.beside, open: true } };
 }
 
 export const toggleBeside = (s: ChromeState): ChromeState => ({ ...s, beside: { ...s.beside, open: !s.beside.open } });
@@ -219,7 +242,7 @@ export function read(kept: string | null | undefined): ChromeState {
   const about = Object.fromEntries(Object.entries(strings(beside.about)).filter(([t]) => tabs.includes(t)));
   return {
     hidden: got.hidden === true,
-    beside: { open: beside.open === true, over: beside.over === true, width: widthWithin(beside.width), tabs, about, front: typeof beside.front === "string" ? beside.front : undefined, fronts: strings(beside.fronts) },
+    beside: { open: beside.open === true, over: beside.over === true, width: widthWithin(beside.width), tabs, about, front: typeof beside.front === "string" ? beside.front : undefined, fronts: strings(beside.fronts), peek: typeof beside.peek === "string" && tabs.includes(beside.peek) ? beside.peek : undefined },
     below: { open: below.open === true, height: heightWithin(below.height), tab: typeof below.tab === "string" && below.tab !== "" ? below.tab : undefined, where: below.where === "everywhere" ? "everywhere" : "here" },
   };
 }

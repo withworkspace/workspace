@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { besideAbout, besideFront, besideShown, besideTabs, besideWidths, belowHeights, belowWhere, closeBesideTab, floatBeside, heightenBelow, hideSidebar, openBeside, pickBeside, pickBelow, read, resting, showBelow, sidebarPlace, toggleBeside, toggleBelow, widenBeside, write } from "./chromeState";
+import { besideAbout, besideFront, besideShown, besideTabs, besideWidths, belowHeights, belowWhere, closeBesideTab, floatBeside, heightenBelow, hideSidebar, openBeside, peekBeside, pickBeside, pickBelow, read, resting, showBelow, sidebarPlace, toggleBeside, toggleBelow, widenBeside, write } from "./chromeState";
 
 describe("where the sidebar is", () => {
   it("is the page's to say between open and the rail", () => {
@@ -110,6 +110,58 @@ describe("what's beside", () => {
   it("is kept as it was", () => {
     const s = widenBeside(floatBeside(openBeside(resting, ask, { about: doc, here: doc }), true), 500);
     expect(read(write(s))).toEqual(s);
+  });
+});
+
+describe("a peek", () => {
+  const shown = (s: typeof resting) => ({ tabs: s.beside.tabs, front: besideFront(s), open: besideShown(s), peek: s.beside.peek });
+
+  it("opens beside in front, and the next takes its place", () => {
+    const one = peekBeside(resting, "/missions/dark-mode");
+    expect(shown(one)).toEqual({ tabs: ["/missions/dark-mode"], front: "/missions/dark-mode", open: true, peek: "/missions/dark-mode" });
+    const two = peekBeside(one, "/reviews/api/42");
+    expect(shown(two)).toEqual({ tabs: ["/reviews/api/42"], front: "/reviews/api/42", open: true, peek: "/reviews/api/42" });
+  });
+
+  it("is closed by peeking at the same thing again", () => {
+    const one = peekBeside(resting, "/missions/dark-mode");
+    expect(shown(peekBeside(one, "/missions/dark-mode"))).toEqual({ tabs: [], front: undefined, open: false, peek: undefined });
+  });
+
+  it("leaves the tabs you opened as they were, among them", () => {
+    const asked = openBeside(resting, "/conversations/w1");
+    const one = peekBeside(asked, "/missions/dark-mode");
+    const two = peekBeside(one, "/documents/records/adr/3.md");
+    expect(shown(two)).toEqual({ tabs: ["/conversations/w1", "/documents/records/adr/3.md"], front: "/documents/records/adr/3.md", open: true, peek: "/documents/records/adr/3.md" });
+    expect(shown(peekBeside(two, "/documents/records/adr/3.md"))).toEqual({ tabs: ["/conversations/w1"], front: "/conversations/w1", open: true, peek: undefined });
+  });
+
+  it("at a tab of yours brings it to the front, and isn't z's to close", () => {
+    const asked = openBeside(resting, "/conversations/w1");
+    const one = peekBeside(asked, "/missions/dark-mode");
+    const back = peekBeside(one, "/conversations/w1");
+    expect(shown(back)).toEqual({ tabs: ["/conversations/w1", "/missions/dark-mode"], front: "/conversations/w1", open: true, peek: "/missions/dark-mode" });
+    expect(peekBeside(back, "/conversations/w1")).toBe(back);
+  });
+
+  it("opens Beside again on what was peeked at before it was closed", () => {
+    const closed = toggleBeside(peekBeside(resting, "/missions/dark-mode"));
+    expect(besideShown(closed)).toBe(false);
+    expect(shown(peekBeside(closed, "/missions/dark-mode"))).toEqual({ tabs: ["/missions/dark-mode"], front: "/missions/dark-mode", open: true, peek: "/missions/dark-mode" });
+  });
+
+  it("at what's about another thing's page has it here too", () => {
+    const asked = openBeside(resting, "/conversations/w1", { about: "document:records:adr/3.md", here: "document:records:adr/3.md" });
+    const here = peekBeside(asked, "/conversations/w1", "mission:dark-mode");
+    expect(besideTabs(here, "mission:dark-mode").all).toEqual(["/conversations/w1"]);
+    expect(besideFront(here, "mission:dark-mode")).toBe("/conversations/w1");
+  });
+
+  it("isn't the peek once its tab's closed, and is kept only while its tab is", () => {
+    const one = peekBeside(resting, "/missions/dark-mode");
+    expect(closeBesideTab(one, "/missions/dark-mode").beside.peek).toBeUndefined();
+    expect(read(write(one)).beside.peek).toBe("/missions/dark-mode");
+    expect(read(JSON.stringify({ beside: { tabs: ["/conversations/w1"], peek: "/missions/dark-mode" } })).beside.peek).toBeUndefined();
   });
 });
 

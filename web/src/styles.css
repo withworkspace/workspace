@@ -874,6 +874,21 @@ main {
   animation: enter 180ms var(--ease) both;
 }
 
+/* What's beside, floating over the page (chrome/Shell.module.css), stays
+   as it is while the page under it changes: its layer is over the
+   page's, shows it as it is now, and doesn't move. */
+::view-transition-group(beside) {
+  animation: none;
+}
+
+::view-transition-old(beside) {
+  display: none;
+}
+
+::view-transition-new(beside) {
+  animation: none;
+}
+
 /* Motion */
 
 @keyframes spin {

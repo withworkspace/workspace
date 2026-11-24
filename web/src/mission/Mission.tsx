@@ -34,6 +34,7 @@ import { Empty } from "../ui/Empty";
 import { humanError, plain } from "../ui/text";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Callout, type CalloutTone } from "../ui/Callout";
+import { cardTone } from "./cardTone";
 import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Status } from "../ui/Status";
@@ -884,10 +885,6 @@ function Lead({
     </section>
   );
 }
-
-// A card's tone is whose it is: yours, failing (and yours), an agent's,
-// outside's, done, or nobody's in particular.
-const cardTone: Record<MissionCard["tone"], CalloutTone> = { you: "attention", failing: "danger", agent: "progress", outside: "info", done: "done", quiet: "quiet" };
 
 // CardView draws a card as it's given: its title, its sentence, and what
 // it offers. Nothing about how is worked out here.

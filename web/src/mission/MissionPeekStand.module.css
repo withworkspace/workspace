@@ -1,0 +1,11 @@
+/* One thing a mission stands on, in its peek (MissionPeekStand.tsx). */
+
+/* The room between them is the peek's (its gap), not each one's. */
+.stand {
+  min-width: 0;
+  margin: 0;
+}
+
+.nothing {
+  color: var(--dim);
+}

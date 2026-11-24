@@ -9,9 +9,8 @@ type DockProps = {
   label: string;
   // Its width beside the page, or its height below it.
   size: number;
-  // Over the page, not next to it: a little see-through, with what's
-  // under it blurred, and a deeper shadow. Where it sits is its place's
-  // to say (className).
+  // Over the page, not next to it: the same solid card, with a deeper
+  // shadow. Where it sits is its place's to say (className).
   over?: boolean;
   // A sheet, on a narrow window: it fills the place it's given, whatever
   // its size, and has no edge to drag.

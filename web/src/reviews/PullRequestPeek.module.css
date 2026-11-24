@@ -1,0 +1,84 @@
+/* A pull request, read beside another page (PullRequestPeek.tsx). */
+
+.peek {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.stands {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: var(--text-sm);
+}
+
+.by {
+  margin-inline-start: auto;
+  color: var(--dim);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  min-width: 0;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.branches {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.branch {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.into {
+  flex: none;
+  color: var(--faint);
+}
+
+.mission {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.mission:hover {
+  color: var(--accent);
+}
+
+.layers {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.says {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.silent {
+  margin: 0;
+  color: var(--dim);
+}
