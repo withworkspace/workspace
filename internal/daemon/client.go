@@ -292,6 +292,11 @@ func (c *Client) call(req request) (message, error) {
 			return message{}, errors.New("daemon connection closed")
 		}
 		if m.Error != "" {
+			// Crew already running are said so in words over the
+			// socket: they're crew.ErrRunning again here.
+			if msg, ok := strings.CutSuffix(m.Error, crew.ErrRunning.Error()); ok {
+				return m, fmt.Errorf("%s%w", msg, crew.ErrRunning)
+			}
 			return m, errors.New(m.Error)
 		}
 		return m, nil

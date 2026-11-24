@@ -368,6 +368,10 @@ func (s Store) SetCrewProcess(slug, id string, pid int, capsule string) error {
 	return err
 }
 
+// ErrCrewRunning is ResumeCrew for crew that haven't ended: they're
+// running, or being started by another resume.
+var ErrCrewRunning = errors.New("still running")
+
 // ResumeCrew reopens ended crew: the same crew, continuing its conversation,
 // rather than new crew. It clears the end and logs the resume. Resumed by
 // ws or the orchestrator (by), or by you with a message one of them left
@@ -381,6 +385,11 @@ func (s Store) ResumeCrew(slug, id, by string) (Crew, error) {
 	if _, err := s.Update(slug, func(m *Mission) error {
 		for i := range m.Crew {
 			if m.Crew[i].ID == id {
+				// Asked here, in the write, not of what was read before
+				// it: two resumes at once start one session, not two.
+				if m.Crew[i].Ended == nil {
+					return fmt.Errorf("crew %s on %s is %w", id, slug, ErrCrewRunning)
+				}
 				m.Crew[i].Ended = nil
 				m.Crew[i].Exit = ""
 				m.Crew[i].Stopped = false

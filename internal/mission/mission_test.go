@@ -415,6 +415,11 @@ func TestResumeCrew(t *testing.T) {
 	if _, err := s.ResumeCrew(m.Slug, "c9", "ws"); err == nil {
 		t.Error("resuming unknown crew should fail")
 	}
+	// Resumed already (by a resume alongside this one), they're refused,
+	// not started a second time.
+	if _, err := s.ResumeCrew(m.Slug, "c1", "ws"); !errors.Is(err, ErrCrewRunning) {
+		t.Errorf("resuming running crew = %v, want ErrCrewRunning", err)
+	}
 }
 
 func TestBriefingLifecycle(t *testing.T) {
