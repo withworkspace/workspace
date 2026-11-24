@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,14 +21,42 @@ func TestWorktreeRunsSaysTheFilesPageIsOpen(t *testing.T) {
 	s.App = testOps(s, ops.Options{}, func(_ *config.Config, ws *workspace.Workspace) { ws.RepoNames = []string{"api"} })
 	ground := filepath.Join(s.Root, "repos", "api", ".ground")
 	os.MkdirAll(ground, 0o755)
-	os.WriteFile(filepath.Join(ground, "ws.repo.toml"), []byte("[run.service.web]\ncommand = \"sleep 300\"\n\n[run.service.stack]\ncommand = \"sleep 300\"\nwhere = \"silo\"\n"), 0o644)
+	os.WriteFile(filepath.Join(ground, "ws.repo.toml"), []byte(`[run.service.web]
+command = "sleep 300"
+display_name = "Storefront"
+
+[run.service.docs]
+command = "sleep 300"
+kind = "tool"
+render = "tab"
+page = { title = "API docs" }
+
+[run.task.test]
+command = "true"
+
+[run.service.stack]
+command = "sleep 300"
+where = "silo"
+`), 0o644)
 
 	var got WorktreeRunsInfo
 	if st, _ := getJSON(t, s, "/api/repos/api/worktrees/.ground/runs", &got); st != 200 {
 		t.Fatalf("status %d", st)
 	}
-	if len(got.Runs) != 0 || strings.Join(got.Recipes, ",") != "web" {
-		t.Errorf("runs %v, recipes %v: want web alone, the silo's left out", got.Runs, got.Recipes)
+	var said []string
+	for _, rc := range got.Recipes {
+		said = append(said, fmt.Sprintf("%s %s %s %s %q page=%v", rc.Name, rc.Type, rc.Kind, rc.Render, rc.Title, rc.Page))
+	}
+	want := []string{
+		`docs service tool tab "API docs" page=true`,
+		`test task   "" page=false`,
+		`web service app inline "Storefront" page=false`,
+	}
+	if len(got.Runs) != 0 || strings.Join(said, "\n") != strings.Join(want, "\n") {
+		t.Errorf("runs %v, recipes:\n%s\nwant (the silo's left out):\n%s", got.Runs, strings.Join(said, "\n"), strings.Join(want, "\n"))
+	}
+	if len(got.Apps) != 1 || got.Apps[0].Title != "API docs" || got.Apps[0].Render != RenderTab {
+		t.Errorf("apps %+v: want API docs, opened in a tab", got.Apps)
 	}
 	if open := s.files.open(time.Now()); !open["api/.ground"] {
 		t.Errorf("open on Files: %v", open)

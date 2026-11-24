@@ -1,0 +1,36 @@
+/* A service or a task's run in a place's list of them (RunItem.tsx). */
+
+.link {
+  align-items: flex-start;
+  padding: 7px 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.title {
+  font-size: var(--text-md);
+}
+
+/* One that isn't running is quieter than one that is. */
+.over .title {
+  color: var(--dim);
+}
+
+/* Its recipe's name beside what it's called, or which run of a task. */
+.aside {
+  flex: none;
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.when {
+  margin-top: 1px;
+  color: var(--dim);
+  font-size: var(--text-xs);
+}

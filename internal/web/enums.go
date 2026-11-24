@@ -3,6 +3,7 @@ package web
 import (
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/ops"
 )
 
 // The values a wire field can take, where the store keeps it as a plain
@@ -10,6 +11,24 @@ import (
 // union of its constants (scripts/wiretypes), not just string. Where the
 // store names the values, these are its names, so they can't drift apart.
 // A value the store gains goes here too, or the web UI won't know of it.
+
+// RecipeKind is what a service is for: an app, what's being built, or a
+// tool that helps build it (a recipe's kind).
+type RecipeKind string
+
+const (
+	KindApp  RecipeKind = ops.RecipeApp
+	KindTool RecipeKind = ops.RecipeTool
+)
+
+// RecipeRender is how the web UI shows a service: framed, or in a browser
+// tab of its own (a recipe's render).
+type RecipeRender string
+
+const (
+	RenderInline RecipeRender = ops.RenderInline
+	RenderTab    RecipeRender = ops.RenderTab
+)
 
 // HeadlineGroup is which group of the missions list a headline puts its
 // mission in (mission.GroupNames, as words joined by hyphens).

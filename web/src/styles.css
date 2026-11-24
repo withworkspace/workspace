@@ -8353,30 +8353,6 @@ div.tc-bar {
   overflow: auto;
 }
 
-/* A worktree's Runs tab: its runs, and its recipes, each with Run. */
-.worktree-runs {
-  width: 100%;
-}
-
-.recipe-row {
-  display: grid;
-  grid-template-columns: minmax(80px, max-content) minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 4px;
-}
-
-.recipe-name {
-  font-weight: 500;
-}
-
-.recipe-command {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--text-xs);
-}
-
 /* A worktree's tabs: Files, Runs, and each of its apps. */
 .worktree-tabs {
   display: flex;
@@ -8699,26 +8675,6 @@ details.repo-group > summary::-webkit-details-marker {
   gap: 6px;
   padding: 10px 12px 10px 14px;
   border-bottom: 1px solid var(--line);
-}
-
-/* A ground's or capsule's runs, under its title on the Files page. */
-.files-runs {
-  display: grid;
-  gap: 6px;
-  padding: 4px 0 2px;
-}
-
-.files-runs .work-run-recipes {
-  margin-top: 0;
-}
-
-/* A long name is cut short. */
-.files-runs .work-run-link {
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .explorer-tree-head .explorer-crumbs {

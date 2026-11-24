@@ -1616,6 +1616,62 @@ func TestMerge_KeepsWhereThingsGo(t *testing.T) {
 // A file's recipes are in the table of the sort of run each is, and what
 // only the other sort has isn't read. A need or a report can be said in
 // the recipe's own table, or in one of its own.
+// A service says what it's for (an app, unsaid, or a tool), what it's
+// called and how the web UI shows it; a task what it's called. A kind or
+// a render ws doesn't know is said, and read as unsaid.
+func TestParseRepoConfig_ServicesAreAppsAndTools(t *testing.T) {
+	path := filepath.Join(t.TempDir(), RepoFileName)
+	os.WriteFile(path, []byte(`
+[run.service.web]
+command = "pnpm dev --port {port}"
+display_name = "Storefront"
+
+[run.service.storybook]
+command = "pnpm storybook -p {port}"
+kind = "tool"
+render = "tab"
+page = { title = "Stories" }
+
+[run.service.mail]
+command = "mailpit --listen :{port}"
+kind = "toool"
+render = "window"
+
+[run.task.test]
+command = "go test ./..."
+display_name = "Tests"
+kind = "tool"
+`), 0o644)
+	cfg, err := ParseRepoConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := cfg.Run.Recipes()
+	web, book, mail, test := all["web"], all["storybook"], all["mail"], all["test"]
+	if web.IsTool() || web.InTab() || web.Called() != "Storefront" {
+		t.Errorf("web, an app framed: %+v", web)
+	}
+	if !book.IsTool() || !book.InTab() || book.Called() != "Stories" {
+		t.Errorf("storybook, a tool in a tab, called as its page is: %+v", book)
+	}
+	if mail.IsTool() || mail.InTab() || mail.Called() != "" {
+		t.Errorf("mail, read as unsaid: %+v", mail)
+	}
+	if test.IsTool() || test.Called() != "Tests" {
+		t.Errorf("test, a task: %+v", test)
+	}
+	want := []string{
+		`ws.repo.toml: run.service.mail.kind = "toool" (it's "app" or "tool": read as "app")`,
+		`ws.repo.toml: run.service.mail.render = "window" (it's "inline" or "tab": read as "inline")`,
+		"ws.repo.toml: run.task.test.kind",
+	}
+	got := slices.Clone(cfg.Unknown)
+	slices.Sort(got)
+	if !slices.Equal(got, want) {
+		t.Errorf("unread:\n%s\nwant:\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
 func TestParseRepoConfig_RunsAreServicesAndTasks(t *testing.T) {
 	path := filepath.Join(t.TempDir(), RepoFileName)
 	os.WriteFile(path, []byte(`

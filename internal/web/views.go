@@ -202,7 +202,7 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 	out.Focus = focusOf(v.Focus)
 	out.Apps = []AppInfo{}
 	for _, a := range v.Apps {
-		out.Apps = append(out.Apps, AppInfo{Name: a.Name, Title: a.Title, Icon: a.Icon})
+		out.Apps = append(out.Apps, AppInfoOf(a))
 	}
 	out.SpacesSeen = v.SpacesSeen
 	out.CapsulesSeen = v.CapsulesSeen

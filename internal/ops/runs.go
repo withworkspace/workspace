@@ -183,13 +183,51 @@ func (w *Workspace) LookedAt(l runs.Looking) error {
 // started there lasts while someone has that worktree open on the page,
 // and runs.LookLinger after.
 
-// WorktreeRuns are the runs in a repo's ground or capsule, the names of
-// its recipes that run there (a silo's run in the silo, not here), and
-// those of them that are tasks.
+// WorktreeRuns are the runs in a repo's ground or capsule, and its
+// recipes that run there (a silo's run in the silo, not here), by name.
+// Past are the earlier runs of its tasks, kept behind each one's latest
+// (in Runs), the latest first: what's been run there lately, with the
+// runs that are kept.
 type WorktreeRuns struct {
 	Runs    []runs.Run
-	Recipes []string
-	Tasks   []string
+	Recipes []Recipe
+	Past    []runs.Run
+}
+
+// Recipe is one of a place's recipes, as a page lists it: its name, what
+// it's called (its display_name, or its page's title: "" for its name)
+// and its command; whether it's a task; a service's Kind (RecipeApp or
+// RecipeTool) and Render (RenderInline or RenderTab), "" for a task's;
+// and whether it has a page (an app's tab on the worktree).
+type Recipe struct {
+	Name, Called, Command string
+	Task                  bool
+	Kind, Render          string
+	Page                  bool
+}
+
+// What a service is for, and how a page shows it, as Recipe says them:
+// its file's words.
+const (
+	RecipeApp    = config.RunApp
+	RecipeTool   = config.RunTool
+	RenderInline = config.RenderInline
+	RenderTab    = config.RenderTab
+)
+
+// recipeOf is name's recipe as a page lists it.
+func recipeOf(name string, rc config.RunRecipe) Recipe {
+	out := Recipe{Name: name, Called: rc.Called(), Command: rc.Command, Task: rc.IsTask(), Page: rc.Page != nil}
+	if !out.Task {
+		out.Kind, out.Render = RecipeApp, RenderInline
+		if rc.IsTool() {
+			out.Kind = RecipeTool
+		}
+		if rc.InTab() {
+			out.Render = RenderTab
+		}
+	}
+	return out
 }
 
 // worktreeOf is the folder of repo's ground (workspace.GroundDir) or
@@ -218,20 +256,21 @@ func (w *Workspace) RunsIn(repo, name string) (WorktreeRuns, error) {
 	if _, err := w.worktreeOf(repo, name); err != nil {
 		return WorktreeRuns{}, err
 	}
-	out := WorktreeRuns{Runs: []runs.Run{}, Recipes: []string{}, Tasks: []string{}}
-	all, _ := w.runStore().List()
+	out := WorktreeRuns{Runs: []runs.Run{}, Recipes: []Recipe{}, Past: []runs.Run{}}
+	store := w.runStore()
+	all, _ := store.List()
 	for _, r := range all {
 		if r.Repo == repo && r.Worktree == name {
 			out.Runs = append(out.Runs, r)
+			if r.IsTask() && r.Past > 0 {
+				out.Past = append(out.Past, store.Past(r)...)
+			}
 		}
 	}
 	recipes := w.recipes(repo, name)
 	for _, n := range slices.Sorted(maps.Keys(recipes)) {
 		if recipes[n].Where != "silo" {
-			out.Recipes = append(out.Recipes, n)
-			if recipes[n].IsTask() {
-				out.Tasks = append(out.Tasks, n)
-			}
+			out.Recipes = append(out.Recipes, recipeOf(n, recipes[n]))
 		}
 	}
 	return out, nil

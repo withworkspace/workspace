@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
-import { type AppAt, type AppDetail, type AppPointer, getApp, openApp, pointApp, restartApp, stopApp, useEventsOf } from "../api";
+import { type AppAt, type AppDetail, type AppPointer, getApp, openApp, pointApp, type RecipeRender, restartApp, stopApp, useEventsOf } from "../api";
 import { useLatest } from "../load";
 import { Icon, type IconName, icons } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
@@ -9,7 +9,7 @@ import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Option, Select } from "../ui/Select";
-import { Button } from "../ui/Button";
+import { Button, buttonClass } from "../ui/Button";
 import { useWorkspace } from "../workspace/store";
 
 // An app: a recipe with a page, its run shown in a frame. As the Sketch
@@ -27,6 +27,10 @@ import { useWorkspace } from "../workspace/store";
 // (runs.LookLinger). Ended by itself, it's opened again (once in openEvery
 // at most, for one that keeps failing); stopped from here, it isn't
 // started again until you say.
+//
+// One whose recipe says render = "tab" isn't framed: the card says it's
+// opened in a tab of its own, and opens it, once it's up. The page still
+// keeps it while it's in view, as the framed one does.
 //
 // A workspace app's bar points each of its needs at a worktree of the
 // need's repo (the ground, the silo, a capsule), which starts the run
@@ -51,14 +55,15 @@ export function AppPage() {
   }
   return (
     <div className="app-view">
-      <AppFrame name={name} title={entry.title} icon={entry.icon} />
+      <AppFrame name={name} title={entry.title} icon={entry.icon} render={entry.render} />
     </div>
   );
 }
 
 // AppFrame is an app's bar and card: the workspace's (no at), or one of a
-// worktree's (at), whose tab already names it, so its bar doesn't.
-export function AppFrame({ name, title, icon: iconName, at }: { name: string; title: string; icon?: string; at?: AppAt }) {
+// worktree's (at), whose tab already names it, so its bar doesn't. render
+// is how its recipe says it's shown: framed, or in a tab of its own.
+export function AppFrame({ name, title, icon: iconName, at, render }: { name: string; title: string; icon?: string; at?: AppAt; render?: RecipeRender }) {
   const [app, setApp] = useState<AppDetail>();
   const [error, setError] = useState<string>();
   // stopped: you stopped it here, so the page doesn't start it again.
@@ -197,6 +202,13 @@ export function AppFrame({ name, title, icon: iconName, at }: { name: string; ti
         {error && !app ? (
           <div className="app-waiting">
             <ErrorCard title={`Couldn't start ${title}`} error={error} retry={() => void start()} />
+          </div>
+        ) : ready && run && render === "tab" ? (
+          <div className="app-waiting">
+            <p>{title} opens in a tab of its own, as its recipe says. It's kept running while you have this open, and 15 minutes after.</p>
+            <a className={buttonClass({ variant: "primary" })} href={run.link} target="_blank" rel="noreferrer" title={run.link}>
+              <Icon name="external" size={14} /> Open {title}
+            </a>
           </div>
         ) : ready && run ? (
           // Started again, it's another run: the frame loads afresh.

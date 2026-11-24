@@ -167,16 +167,40 @@ func (f *filesOpen) open(now time.Time) map[string]bool {
 }
 
 // WorktreeRunsInfo is GET /api/repos/{repo}/worktrees/{name}/runs: what's
-// running in a ground or capsule, and the names of its ws.repo.toml's
-// recipes that run there.
+// running in a ground or capsule, and its ws.repo.toml's recipes that run
+// there.
 type WorktreeRunsInfo struct {
-	Runs    []RunDetail `json:"runs"`
-	Recipes []string    `json:"recipes"`
-	// Tasks are those of Recipes that are tasks: run to their end, and
-	// kept for what they came to.
-	Tasks []string `json:"tasks"`
+	Runs    []RunDetail  `json:"runs"`
+	Recipes []RecipeInfo `json:"recipes"`
 	// Apps are its recipes with a page: each a tab of the worktree's.
 	Apps []AppInfo `json:"apps"`
+	// Past are the earlier runs of its tasks, kept behind each one's
+	// latest (in Runs): with Runs, what's been run there lately.
+	Past []RunDetail `json:"past"`
+}
+
+// RecipeInfo is one of a place's recipes, as its Runs tab lists it: its
+// name, what it's called (its display_name, or its page's title: "" for
+// its name), its type and command. A service's Kind is what it's for, an
+// app or a tool, and its Render how it's shown; Page, that it's an app
+// with a tab of its own on the worktree (in Apps).
+type RecipeInfo struct {
+	Name    string       `json:"name"`
+	Title   string       `json:"title,omitempty"`
+	Type    runs.Type    `json:"type"`
+	Kind    RecipeKind   `json:"kind,omitempty"`
+	Render  RecipeRender `json:"render,omitempty"`
+	Command string       `json:"command"`
+	Page    bool         `json:"page,omitempty"`
+}
+
+// RecipeInfoOf is one of ops' recipes as the wire has it.
+func RecipeInfoOf(rc ops.Recipe) RecipeInfo {
+	t := runs.Service
+	if rc.Task {
+		t = runs.Task
+	}
+	return RecipeInfo{Name: rc.Name, Title: rc.Called, Type: t, Kind: RecipeKind(rc.Kind), Render: RecipeRender(rc.Render), Command: rc.Command, Page: rc.Page}
 }
 
 // RunInWorktree is POST /api/repos/{repo}/worktrees/{name}/runs: a recipe
@@ -194,12 +218,18 @@ func (s *Server) worktreeRuns(w http.ResponseWriter, r *http.Request) {
 	}
 	now := time.Now()
 	s.files.saw(repo, name, now)
-	out := WorktreeRunsInfo{Runs: []RunDetail{}, Recipes: in.Recipes, Tasks: in.Tasks, Apps: []AppInfo{}}
+	out := WorktreeRunsInfo{Runs: []RunDetail{}, Recipes: []RecipeInfo{}, Apps: []AppInfo{}, Past: []RunDetail{}}
+	for _, rc := range in.Recipes {
+		out.Recipes = append(out.Recipes, RecipeInfoOf(rc))
+	}
 	for _, a := range s.App.AppsAt(ops.AppPlace{Repo: repo, Worktree: name}) {
-		out.Apps = append(out.Apps, AppInfo{Name: a.Name, Title: a.Title, Icon: a.Icon})
+		out.Apps = append(out.Apps, AppInfoOf(a))
 	}
 	for _, run := range in.Runs {
 		out.Runs = append(out.Runs, RunDetailOf(run, s.Root, now))
+	}
+	for _, run := range in.Past {
+		out.Past = append(out.Past, RunDetailOf(run, s.Root, now))
 	}
 	writeJSON(w, http.StatusOK, out)
 }

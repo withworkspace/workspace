@@ -39,13 +39,15 @@ func (p AppPlace) String() string {
 	return p.Repo + "/" + runs.Label(p.Worktree)
 }
 
-// AppEntry is an app as a place or a tab has it.
+// AppEntry is an app as a place or a tab has it: InTab, opened in a
+// browser tab of its own rather than framed (render = "tab").
 type AppEntry struct {
 	Name, Title, Icon string
+	InTab             bool
 }
 
-func entryOf(name string, p *config.RunPage) AppEntry {
-	return AppEntry{Name: name, Title: firstNonEmpty(strings.TrimSpace(p.Title), name), Icon: strings.TrimSpace(p.Icon)}
+func entryOf(name string, rc config.RunRecipe) AppEntry {
+	return AppEntry{Name: name, Title: firstNonEmpty(rc.Called(), name), Icon: strings.TrimSpace(rc.Page.Icon), InTab: rc.InTab()}
 }
 
 // Apps are the workspace's apps, by name.
@@ -60,7 +62,7 @@ func (w *Workspace) AppsAt(p AppPlace) []AppEntry {
 	for _, name := range slices.Sorted(maps.Keys(recipes)) {
 		rc := recipes[name]
 		if rc.Page != nil && (p.Repo == "" || rc.Where != "silo") {
-			out = append(out, entryOf(name, rc.Page))
+			out = append(out, entryOf(name, rc))
 		}
 	}
 	return out
@@ -131,7 +133,7 @@ func (w *Workspace) AppAt(p AppPlace, name string) (AppView, error) {
 	}
 	v := AppView{AppEntry: AppEntry{Name: name, Title: name}, Place: p}
 	if rc.Page != nil {
-		v.AppEntry = entryOf(name, rc.Page)
+		v.AppEntry = entryOf(name, rc)
 	}
 	if p.Repo == "" {
 		v.Pointers, _ = w.Pointers(name)

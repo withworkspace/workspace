@@ -14,7 +14,8 @@
 #
 #   test    go test with a coverage profile, kept as its coverage report
 #   lint    gofmt, which fails: the seed leaves a file badly formatted
-#   serve   a service, beside them (python3, if it's here)
+#   serve   a service beside them, a tool opened in a tab of its own:
+#           "Files", its folder listed (python3, if it's here)
 #
 # It runs test twice and lint once, so the Runs page has results, one of
 # them with a run behind it. Then a shell stands in as crew and reports
@@ -62,6 +63,9 @@ if command -v python3 >/dev/null; then
 [run.service.serve]
 command = "python3 -m http.server {port}"
 ready = "/"
+display_name = "Files"
+kind = "tool"
+render = "tab"
 TOML
 fi
 # What lint finds.

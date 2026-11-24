@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Mission, RunDetail } from "../api";
-import { bare, came, commitSaid, forWhom, placeOf, plain, split, took } from "./runRows";
+import type { Mission, RecipeInfo, RunDetail } from "../api";
+import { bare, came, commitSaid, forWhom, pickedIn, placeOf, placeRuns, plain, runId, runStatus, split, startedBy, took } from "./runRows";
 
 const run = (more: Partial<RunDetail> = {}): RunDetail => ({
   ref: "web.cache.frontend",
@@ -115,5 +115,74 @@ describe("words", () => {
   });
   it("takes a terminal's colours out of a log", () => {
     expect(plain("\x1b[32m  VITE\x1b[0m ready\r\n\x1b]8;;http://x\x07link\x1b]8;;\x07\nprogress 1\rprogress 2")).toBe("  VITE ready\r\nlink\nprogress 1\nprogress 2");
+  });
+});
+
+describe("runStatus", () => {
+  it("says a service up, coming up, or how it ended", () => {
+    expect(runStatus(run({ up: true }))).toMatchObject({ tone: "done", words: "Up", live: true });
+    expect(runStatus(run())).toMatchObject({ tone: "progress", words: "Starting" });
+    expect(runStatus(run({ state: "exited", status: 2 }))).toMatchObject({ tone: "danger", words: "Exited 2" });
+    expect(runStatus(run({ state: "exited", status: 0 }))).toMatchObject({ tone: "quiet", words: "Exited" });
+    expect(runStatus(run({ state: "gone" }))).toMatchObject({ tone: "quiet", words: "Gone" });
+  });
+  it("says what a task came to", () => {
+    const task = (more: Partial<RunDetail>) => run({ type: "task", state: "exited", ...more });
+    expect(runStatus(task({ state: "running", result: "running" }))).toMatchObject({ tone: "progress", live: true });
+    expect(runStatus(task({ result: "passed" })).tone).toBe("done");
+    expect(runStatus(task({ result: "failed" })).tone).toBe("danger");
+    expect(runStatus(task({ result: "stopped" })).tone).toBe("quiet");
+  });
+});
+
+describe("startedBy", () => {
+  it("says who started it, and from where", () => {
+    expect(startedBy(run({ owner: "pid", by: "you", ownerCommand: "zsh" }))).toBe("you, from a terminal");
+    expect(startedBy(run({ owner: "looking", by: "you" }))).toBe("you, from its files");
+    expect(startedBy(run({ owner: "looking", by: "you", mission: "cache-it" }))).toBe("you, from the mission's page");
+    expect(startedBy(run({ owner: "looking", by: "you", app: "docs" }))).toBe("you, by opening its docs tab");
+    expect(startedBy(run({ owner: "crew", by: "c2", mission: "cache-it", crew: "c2" }))).toBe("crew c2");
+    expect(startedBy(run({ owner: "none" }))).toBe("you");
+  });
+  it("says ws ran it for a step's check, or for what needs it", () => {
+    expect(startedBy(run({ type: "task", owner: "mission", by: "ws", check: { mission: "cache-it", step: 2, n: 1 } }))).toBe("ws, for check 1 of step 2");
+    expect(startedBy(run({ owner: "run", by: "ws", neededBy: ["web.cache.frontend"] }))).toBe("ws, as web needs it");
+    expect(startedBy(run({ owner: "run", by: "ws", neededBy: ["web.cache.frontend", "admin.cache.frontend"] }))).toBe("ws, as web and admin need it");
+    expect(startedBy(run({ owner: "run", by: "ws" }))).toBe("ws, for a run that needed it");
+  });
+});
+
+describe("a place's runs", () => {
+  const recipe = (name: string, more: Partial<RecipeInfo> = {}): RecipeInfo => ({ name, type: "service", kind: "app", render: "inline", command: "", ...more });
+  const recipes = [recipe("admin"), recipe("docs", { kind: "tool", render: "tab" }), recipe("test", { type: "task", kind: undefined, render: undefined }), recipe("web", { title: "Storefront" })];
+  const test = (n: number, ended: string) => run({ ref: "test.cache.frontend", nref: `test.cache.frontend#${n}`, n, recipe: "test", type: "task", state: "exited", result: "passed", ended });
+  const web = run({ ref: "web.cache.frontend", recipe: "web", up: true, started: "2026-11-19T10:00:00Z" });
+  const docs = run({ ref: "docs.cache.frontend", recipe: "docs", state: "exited", status: 1, ended: "2026-11-19T09:30:00Z" });
+  const adhoc = run({ ref: "npx-serve.cache.frontend", name: "npx-serve", started: "2026-11-19T08:00:00Z" });
+  const lint = run({ ref: "lint.cache.frontend", nref: "lint.cache.frontend#1", n: 1, type: "task", state: "running", result: "running", started: "2026-11-19T11:00:00Z" });
+  const p = placeRuns([web, docs, adhoc, lint, test(3, "2026-11-19T09:45:00Z")], [test(2, "2026-11-19T09:00:00Z"), test(1, "2026-11-18T09:00:00Z")], recipes);
+  it("lists each service recipe, running or not, with its run, apps apart from tools, and commands run as apps", () => {
+    expect(p.apps.map((s) => [s.name, s.run?.ref])).toEqual([
+      ["admin", undefined],
+      ["web", "web.cache.frontend"],
+      ["npx-serve", "npx-serve.cache.frontend"],
+    ]);
+    expect(p.tools.map((s) => [s.name, s.run?.state])).toEqual([["docs", "exited"]]);
+  });
+  it("lists tasks' runs, what's running first, then the last to end, the runs of a task among them", () => {
+    expect(p.tasks.map(runId)).toEqual(["lint.cache.frontend#1", "test.cache.frontend#3", "test.cache.frontend#2", "test.cache.frontend#1"]);
+  });
+  it("picks what's asked for, a task's ref being its latest, else a service that's up", () => {
+    expect(pickedIn(p, { service: "docs" })?.service?.name).toBe("docs");
+    expect(pickedIn(p, { run: "test.cache.frontend#2" })?.task?.n).toBe(2);
+    expect(pickedIn(p, { run: "test.cache.frontend" })?.task?.n).toBe(3);
+    expect(pickedIn(p, {})?.service?.name).toBe("web");
+    expect(pickedIn(p, { service: "gone" })?.service?.name).toBe("web");
+  });
+  it("picks a task's run with no service running, else the first app", () => {
+    const quiet = placeRuns([test(3, "2026-11-19T09:45:00Z")], [], recipes);
+    expect(pickedIn(quiet, {})?.task?.n).toBe(3);
+    expect(pickedIn(placeRuns([], [], recipes), {})?.service?.name).toBe("admin");
+    expect(pickedIn(placeRuns([], [], []), {})).toBeUndefined();
   });
 });
