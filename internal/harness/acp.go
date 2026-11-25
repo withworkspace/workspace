@@ -644,6 +644,9 @@ func readACPStream(out string) Report {
 			rep.Done, rep.Failed = false, ""
 		case e.Stop != "":
 			rep.Done, rep.Failed = true, ""
+			if e.Usage != nil {
+				rep.Usage = addUsage(rep.Usage, acpUsage(*e.Usage, ""))
+			}
 			if e.Stop != "end_turn" {
 				rep.Failed = stopFailure(e.Stop)
 			}

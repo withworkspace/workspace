@@ -143,7 +143,7 @@ func (w *Workspace) Orchestrate(r OrchestratorRun) error {
 		if err != nil {
 			return orchestrator.Report{}, false, err
 		}
-		rep, runErr := orchestrator.Run(w.life(), l, rv.Name(), w.WS().Root, m.Slug, rec.ID)
+		rep, runErr := orchestrator.Run(w.life(), l, rv.Name(), model, w.WS().Root, m.Slug, rec.ID)
 		summary := orchestrator.Summary(rep.Output, runErr)
 		store.AppendLog(m.Slug, mission.Event{Kind: mission.EventOrchestrate, Crew: "orchestrator", Run: rec.ID, Text: summary})
 		r.say("%s", summary)

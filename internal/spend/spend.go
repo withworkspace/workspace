@@ -105,25 +105,33 @@ func Keep(root, source string, f For, harnessName string, at time.Time, usage []
 // shown yet reads it, and a crew's session is read every few minutes.
 const Topic = "spend"
 
-// SessionSource is the source a crew's session is kept under.
+// SessionSource is the source a crew's session is kept under: its
+// harness's session, or (for one ws keeps the record of, an ACP crew's)
+// that record, by mission and crew.
 func SessionSource(harnessName, session string) string {
 	return "session " + harnessName + "/" + session
 }
 
+// RecordSource is the source an ACP crew's record is kept under.
+func RecordSource(mission, crew string) string {
+	return "record " + mission + "/" + crew
+}
+
 // ReadSession reads what a crew's session has spent since it was last
-// read, from its session file at path, and adds it to what's kept. It
-// reads only what was appended since (a file that shrank was replaced,
-// and is read again from the start, what was kept of it first let go),
-// and only whole lines. It says whether it found anything new.
-func ReadSession(root, path string, f For, harnessName, session string) (bool, error) {
-	if !harness.CapsOf(harnessName).Spends.Crew || session == "" {
+// read, from the file at path (its session file, or ws's record of it),
+// kept under source, and adds it to what's kept. model is the one it's on
+// where its harness doesn't say. It reads only what was appended since (a
+// file that shrank was replaced, and is read again from the start, what
+// was kept of it first let go), and only whole lines. It says whether it
+// found anything new.
+func ReadSession(root, path, source string, f For, harnessName, model string) (bool, error) {
+	if !harness.CapsOf(harnessName).Spends.Crew {
 		return false, nil
 	}
 	db, err := store.Open(root)
 	if err != nil {
 		return false, err
 	}
-	source := SessionSource(harnessName, session)
 	var from int64
 	var last string
 	err = db.Read(context.Background(), func(tx *store.Tx) error {
@@ -163,7 +171,7 @@ func ReadSession(root, path string, f For, harnessName, session string) (bool, e
 	if end < 0 {
 		return false, nil // a line not yet ended: read once it is
 	}
-	spent, last := harness.SessionSpend(harnessName, bytes.Split(data[:end], []byte("\n")), last)
+	spent, last := harness.SessionSpend(harnessName, model, bytes.Split(data[:end], []byte("\n")), last)
 	err = db.Write(context.Background(), func(tx *store.Tx) error {
 		if restart {
 			if _, err := tx.Exec(`DELETE FROM spend WHERE source = ?`, source); err != nil {

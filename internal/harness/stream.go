@@ -98,6 +98,7 @@ func ReadRun(data string) Report {
 func readCursorStream(out string) Report {
 	var rep Report
 	at := map[string]int{}
+	model := ""
 	for _, line := range strings.Split(out, "\n") {
 		var e struct {
 			Type      string `json:"type"`
@@ -113,6 +114,13 @@ func readCursorStream(out string) Report {
 				} `json:"content"`
 			} `json:"message"`
 			ToolCall map[string]json.RawMessage `json:"tool_call"`
+			Model    string                     `json:"model"` // the init line's
+			Usage    *struct {
+				Input      int64 `json:"inputTokens"`
+				Output     int64 `json:"outputTokens"`
+				CacheRead  int64 `json:"cacheReadTokens"`
+				CacheWrite int64 `json:"cacheWriteTokens"`
+			} `json:"usage"` // the result's
 		}
 		if json.Unmarshal([]byte(line), &e) != nil {
 			continue
@@ -121,6 +129,10 @@ func readCursorStream(out string) Report {
 			rep.Session = e.SessionID
 		}
 		switch e.Type {
+		case "system":
+			if e.Subtype == "init" {
+				model = e.Model
+			}
 		case "assistant":
 			var parts []string
 			for _, c := range e.Message.Content {
@@ -178,6 +190,11 @@ func readCursorStream(out string) Report {
 			if rep.Output == "" {
 				rep.Output = strings.TrimSpace(e.Result)
 			}
+			if u := e.Usage; u != nil {
+				// The model the run was started on, which may be Auto:
+				// Cursor doesn't say which it picked.
+				rep.Usage = addUsage(rep.Usage, Usage{Model: model, Input: u.Input, Output: u.Output, CacheRead: u.CacheRead, CacheWrite: u.CacheWrite})
+			}
 		}
 	}
 	return rep
@@ -207,7 +224,7 @@ func readPiStream(out string) Report {
 				} `json:"content"`
 			} `json:"result"`
 			Message struct {
-				Role         string          `json:"role"`
+				piMessage
 				Content      json.RawMessage `json:"content"`
 				StopReason   string          `json:"stopReason"`
 				ErrorMessage string          `json:"errorMessage"`
@@ -239,6 +256,9 @@ func readPiStream(out string) Report {
 		case "message_end":
 			if e.Message.Role != "assistant" {
 				continue
+			}
+			if u, ok := e.Message.usage(); ok {
+				rep.Usage = addUsage(rep.Usage, u)
 			}
 			var blocks []struct {
 				Type string `json:"type"`
