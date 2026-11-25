@@ -42,6 +42,7 @@ func (d *daemon) loops(w *web.Server, stop <-chan struct{}) {
 	go d.checkUpdatesLoop(logf, stop)                                       // later releases of ws and plugins, once a day
 	go d.followGroundsLoop(logf, stop)                                      // each repo's ground kept up with its remote
 	go followReviewsLoop(reviews, logf, stop)                               // who's asking for your review by name
+	go d.readCrewSpendLoop(logf, stop)                                      // what crew have spent, from their session files
 	go d.w.NoteRunning(func() string { return previousVersion(d.cfg.Exe) }) // which ws this is, for what's new
 	go d.w.NoteStarted()                                                    // and for the feed: an upgrade it restarted onto
 }
@@ -161,6 +162,38 @@ func (d *daemon) closeDoneLoop(logf func(string, ...any), stop <-chan struct{}) 
 			for _, said := range d.w.CloseDone(now) {
 				logf("done crew: %s", said)
 			}
+		}
+	}
+}
+
+// readCrewSpendEvery is how often the daemon reads what crew have spent
+// (ops.ReadCrewSpend): their session files are cleared after a while, and
+// each read is of what's been appended since the last.
+const readCrewSpendEvery = 5 * time.Minute
+
+// readCrewSpendLoop reads what crew on missions in play have spent, a
+// minute after the daemon starts and then every readCrewSpendEvery, until
+// stop closes.
+func (d *daemon) readCrewSpendLoop(logf func(string, ...any), stop <-chan struct{}) {
+	read := func() {
+		if _, err := d.w.ReadCrewSpend(); err != nil {
+			logf("spend: couldn't read what crew spent: %v", err)
+		}
+	}
+	select {
+	case <-stop:
+		return
+	case <-time.After(time.Minute):
+		read()
+	}
+	t := time.NewTicker(readCrewSpendEvery)
+	defer t.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-t.C:
+			read()
 		}
 	}
 }
