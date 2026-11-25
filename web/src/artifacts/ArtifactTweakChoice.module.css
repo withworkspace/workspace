@@ -1,0 +1,7 @@
+/* A tweak that's one of a few, as a row of buttons
+   (ArtifactTweakChoice.tsx). */
+
+.choice {
+  justify-self: start;
+  max-width: 100%;
+}

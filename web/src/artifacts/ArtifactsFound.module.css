@@ -1,0 +1,18 @@
+/* The artifacts ws found in the workspace's repos, under the page's own
+   (ArtifactsFound.tsx). */
+
+.found {
+  margin-top: 28px;
+}
+
+.title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.about {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+}

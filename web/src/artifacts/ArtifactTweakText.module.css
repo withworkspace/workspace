@@ -1,0 +1,7 @@
+/* A tweak that's a word or a line (ArtifactTweakText.tsx). */
+
+input[type="text"].text {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: var(--text-sm);
+}

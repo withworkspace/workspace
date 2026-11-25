@@ -1,0 +1,8 @@
+/* The dialog that discards an artifact (ArtifactDiscard.tsx): the box to
+   say why in. */
+
+.why {
+  width: 100%;
+  margin-bottom: 12px;
+  resize: vertical;
+}

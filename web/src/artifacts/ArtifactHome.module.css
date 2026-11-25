@@ -1,0 +1,18 @@
+/* Where a promoted artifact lives (ArtifactHome.tsx), read as a sentence,
+   with the one press that puts the version on the page there after it.
+   It's a note of the head's, as long as it needs to be. */
+
+.home {
+  line-height: 1.5;
+}
+
+.where {
+  display: inline-flex;
+  vertical-align: baseline;
+  font-size: var(--text-sm);
+}
+
+.home .action {
+  margin-left: 8px;
+  vertical-align: baseline;
+}

@@ -1,0 +1,18 @@
+/* A number typed (ArtifactTweakNumber.tsx): a short box, its unit after. */
+
+.number {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.number input[type="text"] {
+  width: 9ch;
+  padding: 4px 8px;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.number input[aria-invalid="true"] {
+  border-color: var(--red-fill);
+}
