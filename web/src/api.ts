@@ -914,6 +914,16 @@ export interface ModelInfo {
   name?: string;
   about?: string;
   default?: boolean;
+  // Where it sits among the others, where its name says (harness.Model):
+  // its maker, the model (family, version, shown as label), and what this
+  // one chooses of it. effort "" is the model's own.
+  vendor?: string;
+  family?: string;
+  version?: string;
+  label?: string;
+  effort?: string;
+  thinking?: boolean;
+  fast?: boolean;
 }
 
 export const getSettings = () => getJSON<SettingsInfo>("/api/settings");

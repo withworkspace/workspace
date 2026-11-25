@@ -3,6 +3,7 @@ import type { AddableRepo, Repo, UpdatesInfo } from "../api";
 import { Option } from "../ui/Select";
 import { SettingsField } from "./SettingsField";
 import { SettingsPicks } from "./SettingsPicks";
+import { SettingsModelPicker } from "./SettingsModelPicker";
 import { SettingsSelect } from "./SettingsSelect";
 import { SettingsSource } from "./SettingsSource";
 import { SettingsStepper } from "./SettingsStepper";
@@ -37,22 +38,16 @@ export function Agent({ stretch, value = "claude" }: { stretch?: boolean; value?
   );
 }
 
+// Claude Code's models, as its harness lists them.
+const claudeModels = [
+  { id: "opus", name: "Opus", about: "the latest Opus: the most capable" },
+  { id: "sonnet", name: "Sonnet", about: "the latest Sonnet: capable and quicker" },
+  { id: "haiku", name: "Haiku", about: "the latest Haiku: small and quick" },
+];
+
 export function Model({ stretch, value = "haiku" }: { stretch?: boolean; value?: string }) {
   const [v, setV] = useState(value);
-  return (
-    <SettingsSelect stretch={stretch} value={v} onChange={setV} aria-label="Model">
-      <Option value="haiku" note="fast · its default">
-        haiku
-      </Option>
-      <Option value="sonnet" note="balanced">
-        sonnet
-      </Option>
-      <Option value="opus" note="the most capable">
-        opus
-      </Option>
-      <Option value="another">Another, by name…</Option>
-    </SettingsSelect>
-  );
+  return <SettingsModelPicker stretch={stretch} models={claudeModels} value={v} onChange={setV} placeholder="the agent's own default" onAnother={none} aria-label="Model" />;
 }
 
 export function Field({ value, ...rest }: { value: string; short?: boolean; mono?: boolean; stretch?: boolean; placeholder?: string }) {

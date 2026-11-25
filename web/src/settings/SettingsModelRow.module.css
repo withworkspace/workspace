@@ -1,0 +1,78 @@
+/* A model in a model picker's list (SettingsModelRow.tsx): its name, then
+   quietly what it has (its efforts, thinks, fast), and a tick for the one
+   set. */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px 5px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  min-width: 0;
+  font-size: var(--text-md);
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+.row[aria-selected="true"] {
+  background: var(--selected);
+}
+
+.label {
+  flex: none;
+  max-width: 70%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chosen .label {
+  font-weight: 600;
+}
+
+.about {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.note {
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.has {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  color: var(--dim);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.efforts {
+  font-variant-numeric: tabular-nums;
+}
+
+.mark {
+  color: var(--faint);
+}
+
+.row[aria-selected="true"] .mark {
+  color: var(--dim);
+}
+
+.tick {
+  display: flex;
+  width: 14px;
+  flex: none;
+  color: var(--accent);
+}
