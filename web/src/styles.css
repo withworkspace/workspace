@@ -10239,7 +10239,7 @@ body.nav-pointing .code-view code[data-rev] {
   opacity: 1;
 }
 
-/* How a mission ends: Z as checked, the End dialog, capsules that ended
+/* How a mission ends: Z as it was checked, and capsules that ended
    alone. */
 .z-checks {
   list-style: none;
@@ -10269,6 +10269,10 @@ body.nav-pointing .code-view code[data-rev] {
   color: var(--red);
 }
 
+.z-checks li.unchecked > svg {
+  color: var(--dim);
+}
+
 .z-checks .z-how {
   color: var(--dim);
 }
@@ -10290,17 +10294,6 @@ body.nav-pointing .code-view code[data-rev] {
   width: 100%;
   margin: 8px 0;
   font: var(--text-md) / 1.5 var(--font);
-}
-
-.verdict.on.v-end {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.end-help {
-  margin-top: 6px;
-  font-size: var(--text-sm);
 }
 
 .open-pr-form {
@@ -10341,49 +10334,6 @@ body.nav-pointing .code-view code[data-rev] {
   margin: 0 0 10px;
   font-size: var(--text-sm);
   color: var(--dim);
-}
-
-.z-form {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 8px 12px 10px;
-  margin: 4px 0 12px;
-  display: grid;
-  gap: 10px;
-}
-
-.z-form legend {
-  padding: 0 4px;
-  color: var(--dim);
-  font-size: var(--text-sm);
-}
-
-.z-row {
-  display: grid;
-  gap: 4px;
-}
-
-.z-say {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.z-say input {
-  flex: 1;
-  min-width: 0;
-}
-
-.z-say .on-met {
-  border-color: var(--green-fill);
-  color: var(--green);
-  background: var(--green-soft);
-}
-
-.z-say .on-unmet {
-  border-color: var(--red-fill);
-  color: var(--red);
-  background: var(--red-soft);
 }
 
 .ended-capsules {
