@@ -1,0 +1,23 @@
+/* The files changed since the branch point (FilesChanged.tsx). */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.list .file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+}
+
+.list .file:hover {
+  background: var(--hover);
+}

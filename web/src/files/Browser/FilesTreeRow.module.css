@@ -1,0 +1,73 @@
+/* A folder or a file in the explorer's tree (FilesTreeRow.tsx). */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding-right: 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background var(--fast) var(--ease);
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+.row.cursor {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+:global(.keyboarding) .row.cursor {
+  background: var(--hover);
+}
+
+.row.current {
+  background: var(--selected);
+}
+
+.row.dir {
+  color: var(--fg);
+}
+
+.chevron {
+  color: var(--faint);
+  width: 16px;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row:not(.dir) .name {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+}
+
+.row.deleted .name {
+  color: var(--dim);
+  text-decoration: line-through;
+  text-decoration-color: var(--faint);
+}
+
+.changed {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-left: auto;
+  background: var(--amber-fill);
+  flex: none;
+}
+
+.row .dirty {
+  margin-left: auto;
+}
+
+.row .icon {
+  margin-right: -1px;
+}

@@ -1,0 +1,66 @@
+/* A worktree's tabs (FilesTabs.tsx): Files, Runs, and each of its apps.
+   Underlined, as Tabs are, and standing on the bar's own line. */
+
+.tabs {
+  align-self: stretch;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  min-width: 0;
+  min-height: 40px;
+  margin-bottom: -1px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.tab :global(.icon) {
+  color: var(--faint);
+}
+
+.tab:hover {
+  color: var(--fg);
+}
+
+.tab::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+  transform: scaleX(0);
+  transition: transform var(--slow) var(--ease);
+}
+
+.tab[aria-current="page"] {
+  color: var(--fg);
+}
+
+.tab[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+.tab[aria-current="page"] :global(.icon) {
+  color: var(--accent);
+}
+
+.count {
+  margin-left: 2px;
+}

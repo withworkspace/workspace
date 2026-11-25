@@ -1,0 +1,8 @@
+/* Nothing to show on the Runs tab (FilesRunsNone.tsx). */
+
+.none {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}

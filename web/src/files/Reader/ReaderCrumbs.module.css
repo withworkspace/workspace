@@ -1,0 +1,55 @@
+/* The reader's path (ReaderCrumbs.tsx): where it's from, each shelf it's
+   on (a kind's list, or a folder) a menu of what's there, and its title. */
+
+.path {
+  flex-wrap: wrap;
+  gap: 2px;
+  min-height: 24px;
+}
+
+.path .crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 0;
+  padding: 2px 5px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: inherit;
+}
+
+.path .crumb:hover {
+  color: var(--fg);
+  background: var(--hover);
+}
+
+.path .crumb :global(.icon) {
+  color: var(--faint);
+}
+
+.path .crumb.open {
+  background: var(--selected);
+  color: var(--fg);
+}
+
+.path .crumb.here {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.path .crumb.here:hover {
+  background: none;
+}
+
+.path .sep {
+  padding: 0 1px;
+}

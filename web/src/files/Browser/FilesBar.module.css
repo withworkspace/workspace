@@ -1,0 +1,29 @@
+/* The row across the top of a worktree (FilesBar.tsx): the panes, where
+   it is, its tabs and what it's part of. */
+
+.bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 16px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.where {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.where .crumbs {
+  margin: 0;
+}
+
+.aside {
+  display: flex;
+  min-width: 0;
+  margin-left: auto;
+}

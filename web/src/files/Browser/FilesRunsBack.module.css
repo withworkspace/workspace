@@ -1,0 +1,17 @@
+/* Back to the list of runs (FilesRunsBack.tsx). */
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: -6px;
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+}
+
+.back:hover {
+  background: var(--hover);
+  color: var(--fg);
+}

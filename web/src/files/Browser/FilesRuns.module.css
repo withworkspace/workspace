@@ -1,0 +1,32 @@
+/* A ground's or capsule's Runs tab (FilesRuns.tsx): laid out as its Files
+   are, the list of its runs where the tree is, the one picked where the
+   file is. */
+
+.runs {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+/* Its apps, its tools and its tasks, a group each. */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 6px 16px;
+  border-right: 1px solid var(--line);
+}
+
+/* No room for both: one at a time, the list until a run's picked. */
+@media (max-width: 860px) {
+  .runs {
+    display: flex;
+    flex-direction: column;
+  }
+  .list {
+    border-right: 0;
+  }
+}

@@ -1,0 +1,16 @@
+/* Which capsule a mission's explorer is of (FilesCapsule.tsx). */
+
+.capsule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: var(--text-md);
+  min-width: 0;
+}
+
+.capsule .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,22 @@
+/* The tree and the file (FilesBody.tsx), or another tab's room. */
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.body.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Another tab: the room of the tree and the file, both. */
+.other {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}

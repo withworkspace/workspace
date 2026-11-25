@@ -1,0 +1,24 @@
+/* A file found (FilesFinderRow.tsx): what you typed, marked in its path;
+   its name stands out. */
+
+.row {
+  gap: 8px;
+}
+
+.path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--text-sm) var(--mono);
+  color: var(--dim);
+}
+
+.path .name {
+  color: var(--fg);
+}
+
+.path .hit {
+  color: var(--accent);
+  font-weight: 700;
+}

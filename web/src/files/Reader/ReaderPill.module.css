@@ -1,0 +1,89 @@
+/* The reader's contents as a pill over its text (ReaderPill.tsx), stuck
+   to the top once you've scrolled past its title. */
+
+.wrap {
+  position: sticky;
+  top: 0;
+  height: 0;
+  z-index: 10;
+}
+
+.pill {
+  position: absolute;
+  top: 8px;
+  left: -12px;
+  right: -12px;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--raised) 88%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  text-align: left;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition:
+    opacity var(--slow) var(--ease),
+    transform var(--slow) var(--ease);
+}
+
+.pill:hover {
+  background: color-mix(in srgb, var(--raised) 88%, transparent);
+  border-color: var(--line-strong);
+}
+
+.wrap.shown .pill {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.pill :global(.icon) {
+  flex: none;
+  color: var(--faint);
+}
+
+.doc {
+  max-width: 30%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--dim);
+}
+
+.at {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.pct {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--faint);
+}
+
+.line {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width var(--fast) linear;
+}
+
+@media print {
+  .wrap {
+    display: none !important;
+  }
+}

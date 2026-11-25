@@ -1,0 +1,45 @@
+/* How many panes show (FilesPanes.tsx): at the start of the worktree's
+   row. */
+
+.button {
+  flex: none;
+  margin-left: -6px;
+  color: var(--dim);
+}
+
+.button[data-pressed],
+.button[aria-expanded="true"] {
+  color: var(--fg);
+  background: var(--hover);
+}
+
+.popover {
+  min-width: 220px;
+}
+
+.option .glyph {
+  color: var(--dim);
+}
+
+.words {
+  display: grid;
+  flex: 1;
+  line-height: 1.3;
+}
+
+.words :global(.dim) {
+  font-size: var(--text-xs);
+}
+
+.check {
+  color: var(--accent);
+}
+
+.keys {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 8px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-xs);
+}

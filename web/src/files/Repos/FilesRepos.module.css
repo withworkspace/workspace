@@ -1,0 +1,32 @@
+/* The workspace's repos, the Files page's column (FilesRepos.tsx). */
+
+.repos {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 18px 14px 10px;
+}
+
+.head h1 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 650;
+}
+
+.head :global(.dim) {
+  font-size: var(--text-xs);
+}
+
+.list {
+  flex: 1;
+  overflow: auto;
+  padding: 0 8px 40px;
+}
