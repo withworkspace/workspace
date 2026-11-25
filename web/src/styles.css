@@ -14804,7 +14804,10 @@ input[type="text"].tweak-text {
   color: var(--dim);
 }
 
-.verify-kept a:hover,
+.verify-kept a:hover {
+  color: var(--fg);
+}
+
 /* A task, on the Runs page and a mission's Work tab: what it came to is
    its mark and its words, in the tone of the result. */
 .task-mark {
