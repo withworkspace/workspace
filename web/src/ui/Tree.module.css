@@ -1,0 +1,22 @@
+/* A tree (Tree.tsx): rows in folders that fold. It scrolls in itself, in
+   whatever height the page gives it; how a row is drawn is
+   TreeRow.module.css. */
+
+@layer ui {
+  .tree {
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+    font-size: var(--text-md);
+    outline: none;
+  }
+
+  .item {
+    outline: none;
+  }
+
+  .empty {
+    padding: 12px;
+    color: var(--dim);
+  }
+}
