@@ -45,11 +45,12 @@ type keptTree struct {
 	ground          bool
 
 	head, branch string
-	// stamp is its git files as last looked at (capsuleStamp), and moves
-	// how many times they've moved since it was first kept: what's kept
-	// of it from git is of the stamp it was asked at.
-	stamp string
-	moves int64
+	// refs and index are its git files as last looked at
+	// (capsuleStamps), and moves how many times they've moved since it was
+	// first kept: what's kept of it from git is of the moves it was asked
+	// at.
+	refs, index string
+	moves       int64
 
 	dirty         bool
 	ahead, behind int
@@ -228,10 +229,16 @@ func (k *capsuleKeeper) refresh(t *keptTree) bool {
 	} else if branch := branchOf(t.dir); branch != t.branch {
 		t.branch, changed = branch, true
 	}
-	if stamp := capsuleStamp(t.dir); stamp != t.stamp || t.moves == 0 {
-		t.stamp, t.read, changed = stamp, false, true
+	refs, index := capsuleStamps(t.dir)
+	if refs != t.refs || index != t.index || t.moves == 0 {
+		// Only what's staged: whether it's dirty is all that's to ask.
+		onlyIndex := t.moves > 0 && refs == t.refs
+		t.refs, t.index, changed = refs, index, true
 		t.moves++
-		k.queue(t, false)
+		if !onlyIndex {
+			t.read = false
+		}
+		k.queue(t, onlyIndex)
 	}
 	return changed
 }
@@ -289,7 +296,7 @@ func (k *capsuleKeeper) answer(a treeAsk) {
 	}
 	switch {
 	case a.moves != t.moves:
-		k.queue(t, false) // asked of it as it was: again, of it as it is
+		k.queue(t, a.dirtyOnly && t.read) // asked of it as it was: again, of it as it is
 	case a.dirtyOnly:
 	case dirty.keep && ab.keep:
 		changed = changed || ab.is.ahead != t.ahead || ab.is.behind != t.behind || !t.read

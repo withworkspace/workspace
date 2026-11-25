@@ -177,3 +177,43 @@ func TestCapsuleKeeper_GroundsLookedAtWithoutGit(t *testing.T) {
 		t.Fatalf("looking at the grounds again started %d git processes, want none", n)
 	}
 }
+
+// What git's asked of a capsule is what its move can have changed: a
+// fetch that moved no ref asks nothing (it writes FETCH_HEAD all the
+// same), and something staged asks only whether it's dirty.
+func TestCapsuleKeeper_AsksOnlyWhatAMoveChanged(t *testing.T) {
+	was := lookedFor
+	lookedFor = 0 // no capsule's looked after: what's asked is what moved
+	t.Cleanup(func() { lookedFor = was })
+	w, run := keptFixture(t)
+	settled := func() int64 {
+		t.Helper()
+		before := git.Started()
+		time.Sleep(4 * gitGap)
+		waitFor(t, "nothing queued", func() bool {
+			w.caps.mu.Lock()
+			defer w.caps.mu.Unlock()
+			for _, tr := range w.caps.byDir {
+				if tr.queued {
+					return false
+				}
+			}
+			return true
+		})
+		return git.Started() - before
+	}
+	settled()
+
+	run(".bare", "fetch", "-q", ".", "main")
+	if n := settled(); n != 0 {
+		t.Errorf("a fetch that moved nothing: %d git processes, want none", n)
+	}
+	writeFile(t, filepath.Join(w.WS().RepoDir("records"), "note", "staged.md"), "# Staged\n")
+	run("note", "add", "staged.md")
+	if n := settled(); n != 1 {
+		t.Errorf("something staged: %d git processes, want 1 (whether it's dirty)", n)
+	}
+	if wt, _ := worktreeNamed(t, w, "note"); !wt.Dirty || wt.Unread {
+		t.Errorf("note = %+v, want dirty and read", wt)
+	}
+}

@@ -604,15 +604,28 @@ func isObjectName(s string) bool {
 }
 
 // capsuleStamp names what git's answers about a capsule are built from,
-// as it is now, without asking git: its HEAD, what's staged and its
-// HEAD's log (a commit, a checkout, a reset), its branch's ref, the refs
-// it's measured against (its own on origin, and the others there: a
-// fetch, a push), and its repo's config (an upstream set). File sizes and
-// times, and what HEAD says: no process is started.
+// as it is now, without asking git (capsuleStamps, both halves).
 func capsuleStamp(dir string) string {
+	refs, index := capsuleStamps(dir)
+	if refs == "" {
+		return "" // not a capsule, or gone: nothing's kept of it for long
+	}
+	return refs + " " + index
+}
+
+// capsuleStamps names what git's answers about a capsule are built from,
+// as it is now: refs, where its HEAD is and what it's measured against
+// (its HEAD and its HEAD's log, so a commit, a checkout, a reset; its
+// branch's ref; the refs on origin, its own and the others, so a fetch
+// that moved one, or a push; its repo's config, so an upstream set), and
+// index, what's staged, which moves whether it's dirty and nothing else.
+// File sizes and times, and what HEAD says: no process is started. Not
+// FETCH_HEAD: a fetch writes it whether or not anything moved, and one
+// that moved a ref moves the ref. Both "" when dir isn't a worktree.
+func capsuleStamps(dir string) (refs, index string) {
 	gitDir, common := gitDirs(dir)
 	if gitDir == "" {
-		return "" // not a capsule, or gone: nothing's kept of it for long
+		return "", ""
 	}
 	h := fnv.New64a()
 	note := func(path string) {
@@ -622,10 +635,10 @@ func capsuleStamp(dir string) string {
 	}
 	head, _ := os.ReadFile(filepath.Join(gitDir, "HEAD"))
 	h.Write(head)
-	for _, f := range []string{"HEAD", "index", filepath.Join("logs", "HEAD"), "FETCH_HEAD"} {
+	for _, f := range []string{"HEAD", filepath.Join("logs", "HEAD")} {
 		note(filepath.Join(gitDir, f))
 	}
-	for _, f := range []string{"config", "packed-refs", "FETCH_HEAD", filepath.Join("reftable", "tables.list")} {
+	for _, f := range []string{"config", "packed-refs", filepath.Join("reftable", "tables.list")} {
 		note(filepath.Join(common, f))
 	}
 	if ref, ok := strings.CutPrefix(strings.TrimSpace(string(head)), "ref: "); ok {
@@ -643,7 +656,12 @@ func capsuleStamp(dir string) string {
 			note(filepath.Join(common, "refs", "remotes", "origin", e.Name()))
 		}
 	}
-	return fmt.Sprintf("%x", h.Sum64())
+	refs = fmt.Sprintf("%x", h.Sum64())
+	index = "-"
+	if info, err := os.Stat(filepath.Join(gitDir, "index")); err == nil {
+		index = fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano())
+	}
+	return refs, index
 }
 
 // changesStamp names what a capsule's changes since it left base (a ref
