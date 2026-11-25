@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -12,8 +13,10 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/router"
 	"github.com/withworkspace/workspace/internal/team"
 )
@@ -493,6 +496,23 @@ func settingDefs(root string) []struct {
 		notifySetting("ws", "ws", "ws was upgraded, and the daemon restarted onto it.",
 			func(l *config.LocalConfig) *string { return &l.Notifications.WS }),
 	}})
+	// Each plugin that tells of things, as it registered its kinds when it
+	// last started: a group of its own, by its name.
+	notifies := pluginNotifies(root)
+	for _, name := range slices.Sorted(maps.Keys(notifies)) {
+		about := "What " + name + " tells you of."
+		if reg, ok := plugin.ReadRegistration(root, name); ok && reg.Description != "" {
+			about = strings.TrimSuffix(reg.Description, ".") + "."
+		}
+		var defs []settingDef
+		for _, k := range notifies[name] {
+			defs = append(defs, pluginNotifySetting(name, k))
+		}
+		out = append(out, struct {
+			group    roleDef
+			settings []settingDef
+		}{roleDef{id: PluginNotifyGroup(name), title: name, about: about}, defs})
+	}
 	out = append(out, struct {
 		group    roleDef
 		settings []settingDef
@@ -515,6 +535,56 @@ func notifySetting(key, label, about string, local func(l *config.LocalConfig) *
 			{Value: config.NotifyOff, Label: "Off"},
 		},
 		func(*config.Config) *string { var none string; return &none }, local)
+}
+
+// PluginNotifyGroup is the settings group of where a plugin's kinds of
+// notification are sent: the table they're written in,
+// notifications.plugin.jira.
+func PluginNotifyGroup(name string) string { return "notifications.plugin." + name }
+
+// pluginNotifySetting is where one of a plugin's kinds of notification is
+// sent ([notifications.plugin.jira] assigned): yours alone, as the
+// feed is, and where the plugin said until you say.
+func pluginNotifySetting(name string, k protocol.Notifies) settingDef {
+	def := config.NotifyFeed
+	if k.Default == protocol.RouteOff {
+		def = config.NotifyOff
+	}
+	choices := []SettingChoice{
+		{Value: config.NotifyFeed, Label: "Feed"},
+		{Value: config.NotifyDesktop, Label: "Feed and desktop"},
+		{Value: config.NotifyOff, Label: "Off"},
+	}
+	return settingDef{
+		section: PluginNotifyGroup(name), key: k.ID, label: k.Title, about: k.About, kind: "choice",
+		choices: func() []SettingChoice { return choices },
+		team:    func(*config.Config) any { return nil },
+		yours:   func(l *config.LocalConfig) any { return strOrNil(l.Notifications.Plugin[name][k.ID]) },
+		def:     func(config.Config) any { return def },
+		set: func(l *config.LocalConfig, v any) error {
+			if v == nil {
+				if kinds := l.Notifications.Plugin[name]; kinds != nil {
+					delete(kinds, k.ID)
+					if len(kinds) == 0 {
+						delete(l.Notifications.Plugin, name)
+					}
+				}
+				return nil
+			}
+			said, _ := v.(string)
+			if !slices.ContainsFunc(choices, func(c SettingChoice) bool { return c.Value == said }) {
+				return fmt.Errorf("%v isn't one of feed, desktop, off", v)
+			}
+			if l.Notifications.Plugin == nil {
+				l.Notifications.Plugin = map[string]map[string]string{}
+			}
+			if l.Notifications.Plugin[name] == nil {
+				l.Notifications.Plugin[name] = map[string]string{}
+			}
+			l.Notifications.Plugin[name][k.ID] = said
+			return nil
+		},
+	}
 }
 
 // routerEnabledSetting is [router] enabled: whether the daemon gives the

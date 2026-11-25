@@ -1,11 +1,17 @@
 package ops
 
 import (
+	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/notification"
+	"github.com/withworkspace/workspace/internal/plugin"
+	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/release"
 )
 
@@ -21,6 +27,10 @@ type Notified struct {
 	notification.Notification
 	// Desktop is whether its source is sent to the desktop as well.
 	Desktop bool
+	// Opens is the page a plugin's opens: its first ref's, one of the
+	// plugin's things in its app. "" for ws's own, whose page is said by
+	// its kind.
+	Opens string
 }
 
 // NotificationFeed is the feed: its notifications, newest first, and how
@@ -30,22 +40,71 @@ type NotificationFeed struct {
 	Unread        int
 }
 
-// notifyRoutes is where each source is sent, as ws.local.toml says now. A
-// file that doesn't read says nothing: every source to the feed.
-func notifyRoutes(root string) config.NotificationsConfig {
-	l, err := config.ReadLocal(root)
-	if err != nil {
-		return config.NotificationsConfig{}
-	}
-	return l.Notifications
+// routing is where each source, and each plugin's kind, is sent: as
+// ws.local.toml says now, and where it doesn't, as each plugin said of its
+// kinds when it last started.
+type routing struct {
+	said config.NotificationsConfig
+	// kinds is each installed plugin's kinds of notification, by name.
+	kinds map[string][]protocol.Notifies
 }
 
-// mutedSources is the sources sent nowhere.
-func mutedSources(routes config.NotificationsConfig) []string {
+// notifyRoutes is where each source is sent. A file that doesn't read
+// says nothing: every source to the feed, each plugin's kinds where the
+// plugin said.
+func notifyRoutes(root string) routing {
+	out := routing{kinds: pluginNotifies(root)}
+	if l, err := config.ReadLocal(root); err == nil {
+		out.said = l.Notifications
+	}
+	return out
+}
+
+// pluginNotifies is the kinds of notification each installed plugin
+// registered, when it last started: none of one whose kinds don't hold.
+func pluginNotifies(root string) map[string][]protocol.Notifies {
+	out := map[string][]protocol.Notifies{}
+	for _, name := range plugin.Installed(root) {
+		reg, ok := plugin.ReadRegistration(root, name)
+		if !ok || len(reg.Notifies) == 0 || protocol.NotifiesProblem(reg.Notifies) != "" {
+			continue
+		}
+		out[name] = reg.Notifies
+	}
+	return out
+}
+
+// pluginRoute is where the plugin's kind (its id) is sent.
+func (r routing) pluginRoute(name, id string) string {
+	def := ""
+	if k, ok := protocol.NotifiesKind(r.kinds[name], id); ok {
+		def = k.Default
+	}
+	return r.said.PluginRoute(name, id, def)
+}
+
+// route is where a notification is sent: by its source, or for a
+// plugin's, by its kind.
+func (r routing) route(n notification.Notification) string {
+	if name, ok := notification.PluginOf(n.Source); ok {
+		return r.pluginRoute(name, strings.TrimPrefix(n.Kind, name+":"))
+	}
+	return r.said.Route(n.Source)
+}
+
+// muted is the sources sent nowhere, and the plugins' kinds.
+func (r routing) muted() []string {
 	var out []string
 	for _, s := range notification.Sources {
-		if routes.Route(s) == config.NotifyOff {
+		if r.said.Route(s) == config.NotifyOff {
 			out = append(out, s)
+		}
+	}
+	for name, kinds := range r.kinds {
+		for _, k := range kinds {
+			if r.pluginRoute(name, k.ID) == config.NotifyOff {
+				out = append(out, notification.PluginKind(name, k.ID))
+			}
 		}
 	}
 	return out
@@ -55,14 +114,18 @@ func mutedSources(routes config.NotificationsConfig) []string {
 // unread where unread says.
 func (w *Workspace) Notifications(unread bool, limit int) (NotificationFeed, error) {
 	routes := notifyRoutes(w.root)
-	muted := mutedSources(routes)
+	muted := routes.muted()
 	list, err := notification.List(w.root, notification.Filter{Unread: unread, Muted: muted, Limit: limit})
 	if err != nil {
 		return NotificationFeed{}, err
 	}
 	out := NotificationFeed{Notifications: make([]Notified, 0, len(list))}
 	for _, n := range list {
-		out.Notifications = append(out.Notifications, Notified{Notification: n, Desktop: routes.Route(n.Source) == config.NotifyDesktop})
+		it := Notified{Notification: n, Desktop: routes.route(n) == config.NotifyDesktop}
+		if _, ok := notification.PluginOf(n.Source); ok && len(n.Refs) > 0 {
+			it.Opens = w.thingPage(n.Refs[0])
+		}
+		out.Notifications = append(out.Notifications, it)
 	}
 	out.Unread, err = notification.Unread(w.root, muted)
 	return out, err
@@ -71,7 +134,7 @@ func (w *Workspace) Notifications(unread bool, limit int) (NotificationFeed, err
 // UnreadNotifications is how many you haven't read: 0 where that can't
 // be said.
 func (w *Workspace) UnreadNotifications() int {
-	n, _ := notification.Unread(w.root, mutedSources(notifyRoutes(w.root)))
+	n, _ := notification.Unread(w.root, notifyRoutes(w.root).muted())
 	return n
 }
 
@@ -114,7 +177,7 @@ func (w *Workspace) ReadNotifications(ns []int64, all bool, by Actor) (Notificat
 	var count int
 	var err error
 	if all {
-		count, err = notification.ReadAll(w.root, mutedSources(notifyRoutes(w.root)))
+		count, err = notification.ReadAll(w.root, notifyRoutes(w.root).muted())
 	} else {
 		if len(ns) == 0 {
 			return NotificationsRead{}, invalid("say which: a notification's number (n3), or all of them")
@@ -196,4 +259,39 @@ func (w *Workspace) NoteStarted() {
 		Source: notification.SourceWS, Kind: notification.WSUpgraded,
 		Text: fmt.Sprintf("ws was upgraded to %s, from %s: the daemon restarted onto it", ws.Version, was),
 	})
+}
+
+// thingPage is the page one of a plugin's things opens: in its plugin's
+// app, or where it is outside ws. "" for a name that isn't one.
+func (w *Workspace) thingPage(name string) string {
+	r, kept, ok := w.ThingNamed(name)
+	if !ok {
+		return ""
+	}
+	if kept.Path != "" {
+		return "/x/" + kept.Plugin + strings.Replace(kept.Path, ref.Placeholder, url.PathEscape(r.ID), 1)
+	}
+	return r.URL
+}
+
+// pluginNotifies keeps a notification plugin who sends (notification/add):
+// one of the kinds it registered, in the feed under its name, once for
+// its key. One of a kind sent nowhere is kept all the same, and said
+// muted.
+func (w *Workspace) pluginNotifies(who string, in protocol.NotificationAddParams) (protocol.NotificationAdded, error) {
+	routes := notifyRoutes(w.root)
+	if _, ok := protocol.NotifiesKind(routes.kinds[who], in.Kind); !ok {
+		return protocol.NotificationAdded{}, plugin.InvalidParams(fmt.Errorf("%s registered no kind of notification %q", who, in.Kind))
+	}
+	if strings.TrimSpace(in.Text) == "" {
+		return protocol.NotificationAdded{}, plugin.InvalidParams(errors.New("the notification says nothing"))
+	}
+	n, added, err := notification.AddOnce(w.root, notification.Notification{
+		At: in.At, Source: notification.PluginSource(who), Kind: notification.PluginKind(who, in.Kind),
+		Text: strings.TrimSpace(in.Text), Refs: in.Refs, Key: in.Key, Attention: in.Attention,
+	})
+	if err != nil {
+		return protocol.NotificationAdded{}, err
+	}
+	return protocol.NotificationAdded{N: n.N, Added: added, Muted: routes.route(n) == config.NotifyOff}, nil
 }

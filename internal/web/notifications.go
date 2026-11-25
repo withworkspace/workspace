@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -27,9 +28,10 @@ type Notification struct {
 	Ref string    `json:"ref"`
 	At  time.Time `json:"at"`
 	// Source is where it comes from, which is what's routed: missions,
-	// pulls, plugins or ws.
+	// pulls, plugins or ws, or a plugin that told of it (plugin:jira).
 	Source string `json:"source"`
-	// Kind is what happened (mission.ended, pr.merged, plugin.update…).
+	// Kind is what happened (mission.ended, pr.merged, plugin.update…),
+	// or for a plugin's, which of its kinds (jira:assigned).
 	Kind string `json:"kind"`
 	// Text says it, as a sentence.
 	Text string `json:"text"`
@@ -87,7 +89,7 @@ func NotificationsOf(f ops.NotificationFeed) Notifications {
 	for _, n := range f.Notifications {
 		out.Notifications = append(out.Notifications, Notification{
 			N: n.N, Ref: n.Ref(), At: n.At, Source: n.Source, Kind: n.Kind, Text: n.Text,
-			To: notificationPlace(n.Notification), Refs: n.Refs, By: n.By,
+			To: cmp.Or(n.Opens, notificationPlace(n.Notification)), Refs: n.Refs, By: n.By,
 			Attention: n.Attention, Read: n.Read != nil, Desktop: n.Desktop,
 		})
 	}

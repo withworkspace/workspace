@@ -43,6 +43,12 @@ func (w *Workspace) AnswerPlugin(ctx context.Context, who, method string, params
 			return nil, err
 		}
 		return w.pluginStartsTalk(who, in.Message)
+	case protocol.MethodNotificationAdd:
+		var in protocol.NotificationAddParams
+		if err := decodeParams(params, &in); err != nil {
+			return nil, err
+		}
+		return w.pluginNotifies(who, in)
 	case protocol.MethodRemoteList:
 		var in protocol.RemoteListParams
 		if err := decodeParams(params, &in); err != nil {
