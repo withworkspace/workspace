@@ -53,6 +53,8 @@ type Workspace struct {
 	// git is what git said of each capsule, kept for the views pages read
 	// until the capsule moves.
 	git keptGit
+	// caps is every repo's worktrees, kept by the daemon (capsulekeeper.go).
+	caps capsuleKeeper
 	// spaces is what's kept of the spaces of documents, for the pages that
 	// read them (spaces_kept.go).
 	spaces keptSpaces

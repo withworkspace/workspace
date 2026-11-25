@@ -132,6 +132,10 @@ type keptGit struct {
 	// slots bounds the looks behind reads (soon): a page listing every
 	// capsule of a repo mustn't start a process for each at once.
 	slots chan struct{}
+	// keeper, once the daemon keeps the worktrees, names a capsule's git
+	// files as it keeps them (stampOf), in place of looking at them on
+	// every read.
+	keeper atomic.Pointer[capsuleKeeper]
 	// found, if set, is told when a look behind a read finds a capsule
 	// other than the read was given: whoever tells pages looks now, not at
 	// its next poll. It mustn't wait.
@@ -191,8 +195,15 @@ func (g *keptGit) capsule(dir string) *keptCapsule {
 
 // current drops what's kept if the capsule has moved since, keeping it as
 // what was. c.mu is held.
-func (c *keptCapsule) current(dir string) {
-	if stamp := capsuleStamp(dir); stamp != c.stamp || c.facts == nil {
+func (c *keptCapsule) current(dir string, g *keptGit) {
+	stamp, ok := "", false
+	if k := g.keeper.Load(); k != nil {
+		stamp, ok = k.stampOf(dir) // as the daemon keeps the capsule: no file's looked at
+	}
+	if !ok {
+		stamp = capsuleStamp(dir)
+	}
+	if stamp != c.stamp || c.facts == nil {
 		maps.Copy(c.was, c.facts)
 		if c.dirty != nil {
 			c.wasDirty = c.dirty
@@ -220,7 +231,7 @@ func soon[T comparable](g *keptGit, dir, what string, ask func() answer[T]) (v T
 	c := g.capsule(dir)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.current(dir)
+	c.current(dir, g)
 	if v, ok := c.facts[what].(T); ok {
 		return v, true
 	}
@@ -256,7 +267,7 @@ func (g *keptGit) dirtySoon(dir string) (is, ok bool) {
 	c := g.capsule(dir)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.current(dir)
+	c.current(dir, g)
 	if c.dirty != nil {
 		if time.Since(c.dirtyAt) > dirtyFloor && !c.looking {
 			c.looking = true
@@ -340,7 +351,7 @@ func (g *keptGit) standingSoon(dir, base string) (standing, bool) {
 	c := g.capsule(dir)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.current(dir)
+	c.current(dir, g)
 	if s, ok := standingOf(c.facts, c.dirty, base); ok {
 		if time.Since(c.dirtyAt) > dirtyFloor && !c.looking {
 			c.looking = true
@@ -416,7 +427,7 @@ func kept[T any](g *keptGit, dir, what string, ask func() answer[T]) T {
 	c := g.capsule(dir)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.current(dir)
+	c.current(dir, g)
 	if v, ok := c.facts[what].(T); ok {
 		return v
 	}
@@ -449,7 +460,7 @@ func (g *keptGit) dirty(dir string) bool {
 	c := g.capsule(dir)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.current(dir)
+	c.current(dir, g)
 	if c.dirty == nil {
 		a := askDirty(dir)
 		if a.keep {

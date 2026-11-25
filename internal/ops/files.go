@@ -97,6 +97,22 @@ func (w *Workspace) Repos() []Repo {
 			if ws.OnGitHub(name) {
 				r.GitHub = ws.RemoteOf(name).String()
 			}
+			if trees, kept := w.caps.worktrees(name, false); kept {
+				// As the daemon keeps them: no folder's read for it.
+				r.Branches = map[string]string{}
+				for _, t := range trees {
+					if t.Ground {
+						r.Cloned = true
+						continue
+					}
+					r.Capsules = append(r.Capsules, t.Name)
+					if t.Branch != "" && t.Branch != "HEAD" {
+						r.Branches[t.Name] = t.Branch
+					}
+				}
+				out = append(out, r)
+				continue
+			}
 			if info, err := os.Stat(ws.MainWorktree(name)); err == nil && info.IsDir() {
 				r.Cloned = true
 			}
@@ -168,6 +184,14 @@ func (w *Workspace) Worktrees(repo string) ([]Worktree, error) {
 		if !slices.Contains(ws.RepoNames, repo) {
 			return nil, ErrNotFound
 		}
+		// As the daemon keeps them, and looked after while they're shown.
+		if trees, kept := w.caps.worktrees(repo, true); kept {
+			out := make([]Worktree, 0, len(trees))
+			for _, t := range trees {
+				out = append(out, Worktree{Name: t.Name, Ground: t.Ground, Branch: t.Branch, Dirty: t.Dirty, Ahead: t.Ahead, Behind: t.Behind, Unread: !t.Read})
+			}
+			return out, nil
+		}
 		names, err := workspace.ListWorktrees(ws.RepoDir(repo))
 		if err != nil {
 			names = nil
@@ -227,6 +251,16 @@ func (w *Workspace) FindIndex() *find.Index {
 
 func (w *Workspace) newFindIndex() *find.Index {
 	ix := &find.Index{RepoAt: func(owner, name string) (string, bool) { return w.WS().RepoAt(owner, name) }}
+	// A ground's HEAD as the daemon keeps it, or as git's files say: a
+	// ground's looked at every couple of seconds while it's asked for, and
+	// a process apiece was one for every repo each time.
+	ix.HeadOf = func(dir string) (string, bool) {
+		if head, ok := w.caps.headOfKept(dir); ok {
+			return head, true
+		}
+		head, _, ok := headOf(dir)
+		return head, ok
+	}
 	ix.Worktrees = func() ([]find.Worktree, error) {
 		ws := w.WS()
 		branch := ws.DefaultBranch

@@ -66,8 +66,15 @@ func (w *Workspace) Stamp() string {
 		}
 	}
 	// Each capsule's HEAD, what's staged, and its HEAD's log (a commit,
-	// a checkout), as its repo's bare clone keeps them.
+	// a checkout), as its repo's bare clone keeps them: as the daemon keeps
+	// them, or looked at here.
+	if kept, ok := w.caps.stamp(); ok {
+		fmt.Fprintln(h, kept)
+	}
 	for _, repo := range w.WS().RepoNames {
+		if w.caps.keeping.Load() {
+			break
+		}
 		trees := filepath.Join(w.WS().BareDir(repo), "worktrees")
 		entries, _ := os.ReadDir(trees)
 		for _, e := range entries {
@@ -135,12 +142,16 @@ func (w *Workspace) MissionStamp(slug string) string {
 			fmt.Fprintf(h, "prs %s %d\n", repo, w.opts.PRs.Changes(repo))
 		}
 		for _, c := range m.Capsules {
-			trees := filepath.Join(w.WS().BareDir(c.Repo), "worktrees", c.Name)
-			for _, f := range []string{"HEAD", "index", filepath.Join("logs", "HEAD")} {
-				note(filepath.Join(trees, f))
-			}
 			dir := filepath.Join(w.WS().RepoDir(c.Repo), c.Name)
-			note(dir) // made, or burned
+			if kept, ok := w.caps.stampOf(dir); ok {
+				fmt.Fprintln(h, dir, kept) // as the daemon keeps it
+			} else {
+				trees := filepath.Join(w.WS().BareDir(c.Repo), "worktrees", c.Name)
+				for _, f := range []string{"HEAD", "index", filepath.Join("logs", "HEAD")} {
+					note(filepath.Join(trees, f))
+				}
+				note(dir) // made, or burned
+			}
 			// Its runs: one started, up, ended (its process gone too) or
 			// cleared away (runs.Store.StampIn).
 			fmt.Fprintln(h, w.runStore().StampIn(c.Repo, c.Name))
