@@ -1,0 +1,6 @@
+/* The Runs page's frame (RunsPageFrame.tsx): a page's, which is still
+   styles.css's, as every page shares it. */
+
+.page {
+  composes: page from global;
+}

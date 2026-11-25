@@ -1,0 +1,13 @@
+/* The reports kept with a task (RunsPageReports.tsx): chips. */
+
+.reports {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.report {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}

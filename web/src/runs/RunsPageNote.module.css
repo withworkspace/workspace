@@ -1,0 +1,6 @@
+/* A quiet line under a group's head (RunsPageNote.tsx): styles.css's
+   quiet-line, as Settings, Plugins and the Orchestrator share it. */
+
+.note {
+  composes: quiet-line from global;
+}

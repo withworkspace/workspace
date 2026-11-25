@@ -1,0 +1,76 @@
+/* A run's panel's head (RunPanelHead.tsx): what it's called, where it
+   stands and is reached, and what's done to it. As tall as it is: what's
+   shown under the panel's facts takes the rest. */
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px 10px;
+  min-height: 28px;
+}
+
+/* All but where it's reached keep their room: that's cut short. */
+.head > * {
+  flex: none;
+}
+
+.name {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.n {
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.status {
+  font-size: var(--text-sm);
+}
+
+.head > .spacer {
+  flex: 1;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* Where a service is reached: cut short where there's no room. */
+.head > .address {
+  flex: 0 1 auto;
+}
+
+.address {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.address:hover {
+  color: var(--fg);
+}
+
+.host {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  /* Its address under its name and what's done to it. */
+  .head {
+    flex-wrap: wrap;
+  }
+  .head > .address {
+    order: 1;
+    flex-basis: 100%;
+  }
+}

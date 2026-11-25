@@ -1,0 +1,32 @@
+/* Lost the workspace's daemon (WindowLost.tsx): said across the top of the
+   page, and what's under it dimmed. */
+
+.lost {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  font-size: var(--text-sm);
+  color: var(--fg);
+  background: var(--amber-soft);
+  border-bottom: 1px solid var(--line);
+  animation: global(fade) var(--slow) var(--ease);
+}
+
+.lost :global(.icon) {
+  color: var(--amber);
+}
+
+main.stale > :not(.lost) {
+  opacity: 0.6;
+  transition: opacity var(--slow) var(--ease);
+}
+
+@media print {
+  .lost {
+    display: none !important;
+  }
+}

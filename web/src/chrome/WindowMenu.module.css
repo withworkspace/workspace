@@ -1,0 +1,49 @@
+/* The workspace's menu (WindowMenu.tsx), opened from its name. */
+
+.menu {
+  min-width: 220px;
+}
+
+.menu kbd {
+  margin-left: auto;
+}
+
+/* Its foot: what this is, and which. The logotype, small, and the version
+   of ws that serves the page, under a rule. Not an item. */
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 10px;
+  border-top: 1px solid var(--line);
+}
+
+.version {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--text-xs) / 1 var(--mono);
+  color: var(--faint);
+}
+
+/* A place moved into the menu: its count at the row's end, and the page
+   you're on said by weight, as the sidebar's active one. */
+.menu .count {
+  margin-left: auto;
+}
+
+.current {
+  font-weight: 500;
+}
+
+.current :global(.icon) {
+  color: var(--accent);
+}
+
+/* A later release is out. */
+.later,
+.later :global(.icon) {
+  color: var(--accent);
+}
