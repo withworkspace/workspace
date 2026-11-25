@@ -68,6 +68,10 @@ func (w *Workspace) LiftForConversation(slug, id, repo, branch, base string, o C
 func (w *Workspace) putAwayCapsules(store conversation.Store, c *conversation.Conversation) []string {
 	var left []string
 	for _, cp := range c.Lifted() {
+		if _, ok := w.Missions.FindByCapsule(cp.Repo, cp.Name); ok {
+			// A mission it raised took it on: it's the mission's now.
+			continue
+		}
 		path := filepath.Join(w.WS().RepoDir(cp.Repo), cp.Name)
 		kept := false
 		if exists(path) {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -43,6 +44,19 @@ var LiftForMission = func(w *Workspace, slug, repo, branch string) error {
 	}
 	c, err := w.Lift(repo, branch, "", CapsuleOptions{Mission: slug, By: AsYou})
 	return madeQuietly(c, err)
+}
+
+// liftOrJoin gives a mission repo's capsule for branch: the one there,
+// when it's lifted already (by you, or by the conversation it came out
+// of), joined to it; else one lifted for it. A capsule another mission
+// has is refused, not taken. joined says it was there.
+func (w *Workspace) liftOrJoin(slug, repo, branch string) (joined bool, err error) {
+	name := workspace.CapsuleName(branch)
+	if !exists(filepath.Join(w.WS().RepoDir(repo), name)) {
+		return false, LiftForMission(w, slug, repo, branch)
+	}
+	_, err = w.Attach(slug, repo, name, false, AsYou)
+	return err == nil, err
 }
 
 // DockForMission docks existing work (a branch, or a PR's by its number)
@@ -368,16 +382,21 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 		if m.HasCapsule(repo, workspace.CapsuleName(branch)) {
 			continue
 		}
-		if err := LiftForMission(w, slug, repo, branch); err != nil {
+		joined, err := w.liftOrJoin(slug, repo, branch)
+		if err != nil {
 			failed = append(failed, cap+" ("+err.Error()+")")
 			continue
 		}
-		made = append(made, "lifted "+cap)
+		if joined {
+			made = append(made, "joined "+cap)
+		} else {
+			made = append(made, "lifted "+cap)
+		}
 	}
 	// A Work step in a repo the mission has no capsule in gets one.
 	if plan, err := mission.ParsePlan(p.Plan, nil); err == nil && p.Plan != "" {
 		for _, said := range w.liftForPlan(slug, plan, 0) {
-			if strings.HasPrefix(said, "lifted ") {
+			if strings.HasPrefix(said, "lifted ") || strings.HasPrefix(said, "joined ") {
 				made = append(made, said)
 			} else {
 				failed = append(failed, said)
@@ -547,17 +566,24 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 			planning = strings.TrimSuffix(b, ".")
 		}
 		said = append(said, fmt.Sprintf("Created mission %s with its brief: its planner plans it (%s), and confirming the plan starts it.", m.Slug, planning))
-		var lifted, failed []string
+		var lifted, joined, failed []string
 		for _, cap := range w.proposedCapsules(p) {
 			repo, branch, _ := strings.Cut(cap, "/")
-			if err := LiftForMission(w, m.Slug, repo, branch); err != nil {
+			there, err := w.liftOrJoin(m.Slug, repo, branch)
+			switch {
+			case err != nil:
 				failed = append(failed, cap+" ("+err.Error()+")")
-				continue
+			case there:
+				joined = append(joined, cap)
+			default:
+				lifted = append(lifted, cap)
 			}
-			lifted = append(lifted, cap)
 		}
 		if len(lifted) > 0 {
 			said = append(said, "Lifted "+strings.Join(lifted, ", ")+".")
+		}
+		if len(joined) > 0 {
+			said = append(said, "Joined "+strings.Join(joined, ", ")+", lifted already.")
 		}
 		if len(failed) > 0 {
 			said = append(said, "Couldn't lift "+strings.Join(failed, "; ")+": lift it with ws lift <repo> <branch> (WS_MISSION="+m.Slug+").")

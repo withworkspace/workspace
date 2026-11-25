@@ -103,7 +103,7 @@ and a --dock for existing work to build on (repo/branch, or repo#PR), and
 	cmd.Flags().BoolVar(&proposeIt, "propose", false, "in a conversation: propose the new brief (--set), for the user to accept, instead of writing it")
 	revisesFlag(cmd)
 	cmd.Flags().StringVar(&title, "title", "", "with --propose: a title for the mission, when briefing it")
-	cmd.Flags().StringArrayVar(&capsules, "capsule", nil, "with --propose: a capsule to lift for it, as repo/branch (repeatable), when briefing it")
+	cmd.Flags().StringArrayVar(&capsules, "capsule", nil, "with --propose: a capsule for it, as repo/branch (repeatable), when briefing it: lifted, or joined if it's lifted already")
 	cmd.Flags().StringArrayVar(&docks, "dock", nil, "with --propose: existing work to build on, as repo/branch or repo#PR (repeatable), when briefing it")
 	cmd.Flags().StringVar(&newSlug, "slug", "", "with --propose: a better slug for the mission, when briefing it")
 	return cmd

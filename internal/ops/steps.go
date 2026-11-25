@@ -473,11 +473,11 @@ func (w *Workspace) tryPassStep(slug string, n int, by, why string, types ...str
 }
 
 // liftForStep lifts the capsule a Work step is in, when the mission hasn't
-// one there: its repo/name, or in a repo, one named for the mission. It
-// says what it lifted, or "".
+// one there: its repo/name (joined, if it's lifted already), or in a repo,
+// one named for the mission. It says what it lifted or joined, or "".
 func (w *Workspace) liftForStep(slug string, st mission.StageState) string {
 	for _, said := range w.liftForPlan(slug, &mission.Plan{Steps: []mission.Step{*st.Step}}, 0) {
-		if strings.HasPrefix(said, "lifted ") {
+		if strings.HasPrefix(said, "lifted ") || strings.HasPrefix(said, "joined ") {
 			return said
 		}
 	}
