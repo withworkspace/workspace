@@ -1,0 +1,37 @@
+/* Not signed in, the daemon closed: a page of its own (WindowNotice.tsx). */
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font: 700 12px / 1 var(--font);
+  color: #fff;
+  background: var(--brand-gradient);
+  flex: none;
+}
+
+.notice {
+  max-width: 30rem;
+  margin: 18vh auto;
+  padding: 0 var(--space-5);
+}
+
+.notice .mark {
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  border-radius: 9px;
+  margin-bottom: 16px;
+}
+
+.notice h1 {
+  font-size: var(--text-xl);
+  margin-bottom: 8px;
+}
+
+.notice p {
+  color: var(--dim);
+  margin: 0 0 16px;
+}

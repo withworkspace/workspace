@@ -1,0 +1,25 @@
+/* What a run needs, in its panel (RunPanelNeeds.tsx): a line each, its
+   name first. */
+
+.needs {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.needs li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.need {
+  font-weight: 500;
+}
+
+.need::after {
+  content: ":";
+}

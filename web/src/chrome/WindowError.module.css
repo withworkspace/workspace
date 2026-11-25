@@ -1,0 +1,6 @@
+/* The workspace didn't load (WindowError.tsx): said under the top of the
+   page. */
+
+.error {
+  margin: var(--space-4) var(--space-8) 0;
+}

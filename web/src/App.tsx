@@ -1,72 +1,38 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, memo } from "react";
-import { Link, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useNavigationType, useParams } from "react-router";
-import { type Connection, NotSignedIn, setSettings } from "./api";
-import { ArtifactPage as ArtifactView, ArtifactsPage, artifactKeys as artifactViewKeys, artifactsKeys } from "./artifacts/Artifacts";
-import { ComparePage, compareKeys } from "./artifacts/Compare";
-import { FoundArtifactPage, foundArtifactKeys } from "./artifacts/Found";
-import { Explorer, explorerKeys } from "./files/Explorer";
-import { docKeys } from "./files/DocPage";
-import { FilesPage, filesKeys } from "./files/Files";
-import { DocumentsPage, documentsKeys, SpacePage, spaceKeys } from "./documents/Documents";
-import { codeSearchKey, isCodeSearchKey, leaderWithin, pageBinds, useKeys } from "./keys";
-import { ArtifactPage, artifactKeys } from "./mission/ArtifactPage";
-import { briefHref } from "./mission/BriefTab";
-import { CrewPage, crewKeys } from "./mission/CrewPage";
-import { listKeys, MissionList } from "./mission/List";
-import { MissionPage, missionKeys } from "./mission/Mission";
-import { OrchestratorPage, OrchestratorRunPage } from "./orchestrator/Orchestrator";
-import { AppPage } from "./apps/AppPage";
-import { NotificationsBell } from "./notifications/NotificationsBell";
-import { NotificationsPage } from "./notifications/NotificationsPage";
-import { RunsPage } from "./runs/Runs";
-import { useRefs } from "./refs/known";
-import type { Known } from "./refs/refs";
-import { hereAt } from "./shell/here";
-import { PluginPage } from "./plugins/Plugin";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useLocation, useMatch, useNavigate } from "react-router";
+import { NotSignedIn, setSettings } from "./api";
+import { useKeys } from "./keys";
 import { RefsProvider } from "./refs/known";
-import { SettingsPage, settingsKeys } from "./settings/Settings";
-import { pageKeys } from "./pages/Pages";
-import { DocsAddress, DocumentAt, LocalPageAt, OpenAddress, PageAddress } from "./documents/DocumentAt";
-import { Review, reviewKeys } from "./review/Review";
-import { PRReviewPage, prReviewKeys } from "./reviews/PRReview";
-import { prHref, ReviewsPage, reviewsKeys } from "./reviews/Reviews";
-import { repoOfPage, scopePrefix } from "./shell/find";
+import { prHref } from "./reviews/Reviews";
+import { repoOfPage } from "./shell/find";
 import { Palette } from "./shell/Palette/Palette";
 import { useFaviconBadge, useFeedNotifications, useNotifications } from "./shell/notify";
 import { Arrange } from "./shell/Arrange";
-import { askShutDown } from "./shell/daemon";
-import { arrange, type Arrangement, type Arranged, type Place, placesOf, sameArrangement, saving } from "./shell/places";
+import { arrange, type Arrangement, type Arranged, placesOf, sameArrangement, saving } from "./shell/places";
 import { FocusKeys, FocusSection } from "./shell/focus";
+import { helpKeys } from "./shell/helpKeys";
+import { Pages } from "./shell/Pages";
 import { noteVisit, visitAt } from "./shell/recent";
 import { wantsRoom } from "./shell/room";
-import { shortVersion } from "./shell/version";
+import { SaysHere } from "./shell/SaysHere";
+import { useGlobalKeys } from "./shell/useGlobalKeys";
+import { useKeyboarding } from "./shell/useKeyboarding";
+import { useScrollMemory } from "./shell/useScrollMemory";
 import { WhatsNew } from "./shell/WhatsNew";
 import { useThingMenu } from "./shell/ThingMenu";
-import { TalkPage, TalksPage, talkKeys, talksKeys } from "./talk/Talk";
-import { TeamPage, teamKeys } from "./team/Team";
-import { Banner } from "./ui/Banner";
-import { Icon } from "./ui/Icon";
-import { Spinner } from "./ui/Spinner";
-import { Logotype } from "./ui/Logotype";
 import { Viewer } from "./ui/Viewer";
 import { useMedia } from "./ui/useMedia";
-import { setTitleContext, useTitle } from "./ui/useTitle";
+import { setTitleContext } from "./ui/useTitle";
 import { toast } from "./ui/toast";
 import { Toasts } from "./ui/Toasts";
 import { Loading } from "./ui/Loading";
-import { Empty } from "./ui/Empty";
 import { humanError } from "./ui/text";
-import { Keys } from "./ui/Keys";
 import { Confirmer } from "./ui/Confirm";
-import { Dialog } from "./ui/Dialog";
-import { duration } from "./ui/when";
-import { SiloPoint } from "./silo/SiloPoint";
-import { Count } from "./ui/Count";
-import { Button, buttonClass } from "./ui/Button";
 import { Below } from "./chrome/Below";
 import { useBelowViews } from "./chrome/belowViews";
 import { Beside } from "./chrome/Beside";
 import { floatBeside, hideSidebar, narrowQuery, sidebarPlace, toggleBelow, toggleBeside } from "./chrome/chromeState";
+import { ConnectionBanner } from "./chrome/ConnectionBanner";
 import { FindButton } from "./chrome/FindButton";
 import { Foot } from "./chrome/Foot";
 import { FootBelow } from "./chrome/FootBelow";
@@ -76,19 +42,29 @@ import { FootReady } from "./chrome/FootReady";
 import { FootSends } from "./chrome/FootSends";
 import { FootSidebar } from "./chrome/FootSidebar";
 import { FootSep } from "./chrome/FootSep";
+import { KeysHelp } from "./chrome/KeysHelp";
 import { type Need, useArrived, waitingOf } from "./chrome/need";
 import { Needs } from "./chrome/Needs";
+import { Notice } from "./chrome/Notice";
 import { NotifyToggle } from "./chrome/NotifyToggle";
+import { NotificationsBell } from "./notifications/NotificationsBell";
 import { Places } from "./chrome/Places";
 import { Shell } from "./chrome/Shell";
 import { Sidebar } from "./chrome/Sidebar";
 import { useBeside, useChromeStore, useFrameDim, useFrameExpanded, useFrameHere } from "./chrome/store";
 import { newTalkAt } from "./chrome/panes";
+import { UpdatedBanner } from "./chrome/UpdatedBanner";
 import { usePeekKey } from "./chrome/usePeekKey";
-import { WorkspaceName } from "./chrome/WorkspaceName";
-import { pageScroller } from "./ui/scroller";
-import { Menu, MenuItem, MenuSection, MenuSeparator, MenuText } from "./ui/Menu";
-import { useFollowWorkspace, usePlugins, useWorkspace, useWorkspaceIfRead, useWorkspaceStore } from "./workspace/store";
+import { WindowError } from "./chrome/WindowError";
+import { windowStaleClass } from "./chrome/WindowLost";
+import { WorkspaceMenu } from "./chrome/WorkspaceMenu";
+import { useFollowWorkspace, usePlugins, useWorkspaceIfRead, useWorkspaceStore } from "./workspace/store";
+
+// App is the window: what's followed of the workspace, the keys
+// everywhere, and the chrome round the page (the sidebar, the foot, the
+// docks, what's opened over it). The page at the address is Pages'
+// (shell/Pages.tsx); what's drawn of the window's own is chrome/Window…
+// (stories: Chrome/Window).
 
 // Nothing needing you, before the workspace has said: the same list each
 // time, so what's worked out from it isn't worked out again.
@@ -261,7 +237,7 @@ export function App() {
       below={belowShown && workspace && <Below views={belowViews} sheet={narrow} />}
       belowSize={chrome.below.height}
       still={!workspace}
-      pageClassName={connection === "lost" && workspace ? "stale" : undefined}
+      pageClassName={connection === "lost" && workspace ? windowStaleClass : undefined}
       side={
         <Sidebar rail={room && !narrow}>
           <WorkspaceMenu places={menu} />
@@ -307,7 +283,7 @@ export function App() {
       }
       overlays={
         <>
-          {help && <Help keys={helpKeys(location.pathname)} onClose={() => setHelp(false)} />}
+          {help && <KeysHelp keys={helpKeys(location.pathname)} onClose={() => setHelp(false)} />}
           {palette !== undefined && workspace && (
             <Palette
              
@@ -330,7 +306,7 @@ export function App() {
     >
       <ConnectionBanner connection={connection} />
       <UpdatedBanner version={workspace?.version} />
-      {error && <Banner className="app-error">{error.message}</Banner>}
+      {error && <WindowError>{error.message}</WindowError>}
       {!workspace && !error && <Loading what="Opening the workspace…" />}
       {workspace && (
         <RefsProvider>
@@ -339,462 +315,5 @@ export function App() {
         </RefsProvider>
       )}
     </Shell>
-  );
-}
-
-// Pages is the page at the address. It's given nothing of the workspace
-// (each page reads what it needs from the store), so it's drawn again on
-// going somewhere, and not each time the shell round it is.
-const Pages = memo(function Pages({ notify }: { notify: ReturnType<typeof useNotifications> }) {
-  const missions = useWorkspace((w) => w.missions);
-  return (
-    <Routes>
-      <Route path="/" element={<MissionList missions={missions} />} />
-      <Route path="/missions/:slug" element={<MissionPage />} />
-      <Route path="/missions/:slug/artifact" element={<ArtifactPage />} />
-      <Route path="/missions/:slug/brief" element={<ToBrief />} />
-      <Route path="/missions/:slug/crew/:id" element={<CrewPage />} />
-      <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage />} />
-      <Route path="/orchestrator" element={<OrchestratorPage />} />
-      <Route path="/runs" element={<RunsPage />} />
-      <Route path="/notifications" element={<NotificationsPage />} />
-      <Route path="/apps/:name" element={<AppPage />} />
-      <Route path="/plugins" element={<Navigate to="/settings/plugins" replace />} />
-      <Route path="/settings" element={<SettingsPage notify={notify} />} />
-      <Route path="/settings/:section" element={<SettingsPage notify={notify} />} />
-      <Route path="/docs" element={<DocsAddress />} />
-      <Route path="/files" element={<FilesPage />} />
-      <Route path="/files/:repo" element={<FilesPage />} />
-      <Route path="/files/:repo/:capsule" element={<FilesPage />} />
-      <Route path="/reviews" element={<ReviewsPage />} />
-      <Route path="/reviews/:repo/:number" element={<PRReviewPage />} />
-      <Route path="/team" element={<TeamPage />} />
-      <Route path="/silo/:repo" element={<SiloPoint />} />
-      <Route path="/documents" element={<DocumentsPage />} />
-      <Route path="/documents/:repo" element={<SpacePage />} />
-      <Route path="/documents/local/:id" element={<LocalPageAt />} />
-      <Route path="/documents/:repo/*" element={<DocumentAt />} />
-      <Route path="/pages" element={<Navigate to="/documents" replace />} />
-      <Route path="/pages/open" element={<OpenAddress />} />
-      <Route path="/pages/:id" element={<PageAddress />} />
-      <Route path="/artifacts" element={<ArtifactsPage />} />
-      <Route path="/artifacts/compare" element={<ComparePage />} />
-      <Route path="/artifacts/in/*" element={<FoundArtifactPage />} />
-      <Route path="/artifacts/:id" element={<ArtifactView />} />
-      <Route path="/artifacts/:id/compare" element={<ComparePage />} />
-      <Route path="/artifacts/:id/:version" element={<ArtifactView />} />
-      <Route path="/conversations" element={<TalksPage />} />
-      <Route path="/conversations/:id" element={<TalkPage />} />
-      <Route path="/missions/:slug/conversations/:id" element={<TalkPage />} />
-      <Route path="/missions/:slug/review/:repo/:name" element={<Review />} />
-      <Route path="/missions/:slug/files/:repo/:name" element={<Explorer />} />
-      <Route path="/x/:name/*" element={<PluginPage />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-});
-
-// WorkspaceMenu is the workspace's name, opening what's of the workspace
-// rather than a place in it: Settings (where the theme is, and the way to
-// arrange the sidebar), Keys, and shutting its daemon down, which
-// otherwise stays open until it's closed. Places moved out of the sidebar
-// are at its top. At its foot is what this is and which: the logotype, and
-// the version of ws that serves the page.
-function WorkspaceMenu({ places }: { places: Place[] }) {
-  // What the menu says of the workspace, each read by itself: it isn't
-  // drawn again for anything else that changes.
-  const name = useWorkspaceIfRead((w) => w.name) ?? "ws";
-  const root = useWorkspaceIfRead((w) => w.root);
-  const version = useWorkspaceIfRead((w) => w.version);
-  const later = useWorkspaceIfRead((w) => w.later);
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  // A place in the menu that wants you says so on the name, as the
-  // sidebar's would.
-  const counted = places.filter((p) => p.count);
-  const shutDown = () => void askShutDown();
-  return (
-    <Menu
-      className="workspace-menu"
-      aria-label="The workspace"
-      trigger={<WorkspaceName name={name} root={root} wants={counted.length > 0 ? counted.map((p) => `${p.label}: ${p.count} ${p.countTitle ?? "need you"}`).join("\n") : undefined} />}
-      // What this is, and which: not an item, so the keys pass it by.
-      foot={
-        <div className="workspace-menu-foot">
-          <Logotype />
-          {version && (
-            <span className="workspace-menu-version" title={`ws ${version}: the daemon's, which serves this page`}>
-              {shortVersion(version)}
-            </span>
-          )}
-        </div>
-      }
-    >
-      {places.length > 0 && (
-        <MenuSection aria-label="Places">
-          {places.map((p) => (
-            <MenuItem key={p.id} id={`place:${p.id}`} textValue={p.label} className={p.match(pathname) ? "menu-current" : undefined} onAction={() => navigate(p.to)}>
-              <Icon name={p.icon} />
-              <MenuText>{p.label}</MenuText>
-              {!!p.count && (
-                <Count tone="attention" className="menu-count" title={`${p.count} ${p.countTitle ?? "need you"}`}>
-                  {p.count}
-                </Count>
-              )}
-            </MenuItem>
-          ))}
-        </MenuSection>
-      )}
-      {places.length > 0 && <MenuSeparator />}
-      <MenuItem id="settings" textValue="Settings" onAction={() => navigate("/settings")}>
-        <Icon name="sliders" />
-        <MenuText>Settings</MenuText>
-      </MenuItem>
-      <MenuItem id="keys" textValue="Keys" onAction={() => useChromeStore.getState().setHelp(true)}>
-        <Icon name="keyboard" />
-        <MenuText>Keys</MenuText>
-        <Keys k="?" />
-      </MenuItem>
-      {/* A later release, as the daemon last found: to where it's installed from. */}
-      {later && (
-        <MenuItem id="later" textValue={`ws ${later} is out`} className="menu-later" onAction={() => navigate("/settings/about#updates")}>
-          <Icon name="arrow-up" />
-          <MenuText>ws {later} is out</MenuText>
-        </MenuItem>
-      )}
-      <MenuSeparator />
-      <MenuItem id="shutdown" textValue="Shut down the daemon" tone="danger" onAction={shutDown}>
-        <Icon name="power" />
-        <MenuText>Shut down the daemon…</MenuText>
-      </MenuItem>
-    </Menu>
-  );
-}
-
-// UpdatedBanner says when the daemon serving the page is another ws than
-// the one the page was loaded from: it was upgraded, and restarted onto the
-// new one, while the page stayed open. The page is the old ws's web UI,
-// which the new one may not answer as it expects: reloading it loads the
-// new one's.
-function UpdatedBanner({ version }: { version?: string }) {
-  const loaded = useRef<string>(undefined);
-  if (version && loaded.current === undefined) loaded.current = version;
-  if (!version || !loaded.current || version === loaded.current) return null;
-  return (
-    <Banner
-      tone="info"
-      icon="rotate"
-      role="status"
-      className="updated-banner"
-      actions={
-        <Button size="small" onClick={() => location.reload()}>
-          Reload
-        </Button>
-      }
-    >
-      ws was updated to {shortVersion(version)} while this page was open: reload it to use the new one.
-    </Banner>
-  );
-}
-
-// ConnectionBanner says when the workspace's daemon has gone, and for how long:
-// what's on the page may be stale until it's back.
-function ConnectionBanner({ connection }: { connection: Connection }) {
-  const [lostAt, setLostAt] = useState<number>();
-  const [, tick] = useState(0);
-  useEffect(() => {
-    if (connection === "lost") setLostAt((t) => t ?? Date.now());
-    if (connection === "live") setLostAt(undefined);
-  }, [connection]);
-  useEffect(() => {
-    if (!lostAt) return;
-    const t = setInterval(() => tick((n) => n + 1), 1000);
-    return () => clearInterval(t);
-  }, [lostAt]);
-  if (!lostAt) return null;
-  return (
-    <div className="connection-banner" role="status">
-      <Spinner />
-      <span>
-        Lost the workspace's daemon {duration(lostAt)} ago. Reconnecting… What's here may be out of date; <code>ws web</code> starts it again.
-      </span>
-    </div>
-  );
-}
-
-// useGlobalKeys: ⌘K finds anything, ⌘P a file, ⌘⇧F text in the files, ?
-// shows the keys, and g then m, c, p,
-// a, r, t, f or o goes to Missions, Conversations, Pages, Artifacts,
-// Reviews, Team, Files or the Orchestrator. They're read before a page's own keys.
-function useGlobalKeys() {
-  const navigate = useNavigate();
-  const openPalette = useChromeStore((c) => c.openFind);
-  const openHelp = useCallback(() => useChromeStore.getState().setHelp(true), []);
-  useEffect(() => {
-    let g = 0;
-    const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "k") {
-        // In a document being edited, ⌘K with words selected is a link, as
-        // in any editor. With nothing selected, it's Find.
-        if (e.target instanceof HTMLElement && e.target.closest(".pm") && !window.getSelection()?.isCollapsed) return;
-        // With Find open, ⌘K is Find's own: it acts on what the cursor's
-        // on there (shell/Palette/Palette.tsx).
-        if (useChromeStore.getState().find !== undefined) return;
-        e.preventDefault();
-        e.stopPropagation();
-        openPalette();
-        return;
-      }
-      if (isCodeSearchKey(e)) {
-        // ⌘⇧F is Find, for what the files say: except where a page has a
-        // search box of its own (a capsule's files), which is nearer.
-        e.preventDefault();
-        const does = codeSearchKey(!!document.querySelector("[data-overlay]"));
-        if (does.to === "nothing") return; // something's open: the key's its, or nobody's
-        e.stopPropagation();
-        if (does.to === "own") does.open();
-        else openPalette(scopePrefix.code);
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "p") {
-        // ⌘P is Find, for files: except where a page has a file finder of
-        // its own (a capsule's files, a review's), which is nearer.
-        if (ownsFileFinder(window.location.pathname)) return;
-        e.preventDefault();
-        if (document.querySelector("[data-overlay]")) return; // something's open: not the browser's print, either
-        e.stopPropagation();
-        openPalette("/");
-        return;
-      }
-      if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey || document.querySelector("[data-overlay]")) return;
-      if (e.key === "?") {
-        e.preventDefault();
-        e.stopPropagation();
-        openHelp();
-        return;
-      }
-      // g then a key goes somewhere, unless the page uses that key itself
-      // (g, first, then o, open it, on a list): the page's keys win.
-      const to = { m: "/", c: "/conversations", p: "/documents", d: "/documents", a: "/artifacts", r: "/reviews", t: "/team", f: "/files", o: "/orchestrator" }[e.key];
-      if (to && Date.now() - g < leaderWithin && !pageBinds(e.key)) {
-        e.preventDefault();
-        e.stopPropagation();
-        g = 0;
-        navigate(to);
-        return;
-      }
-      g = e.key === "g" ? Date.now() : 0;
-    };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [navigate, openPalette, openHelp]);
-}
-
-// ownsFileFinder is whether the page at path finds files itself on ⌘P: a
-// capsule's or a repo's files.
-const ownsFileFinder = (path: string) => /^\/files\/[^/]+/.test(path) || path.includes("/files/");
-
-// useKeyboarding marks the page while you move by keys, so the keyboard's
-// cursor shows; moving the mouse hides it again.
-function useKeyboarding() {
-  useEffect(() => {
-    const nav = new Set(["j", "k", "ArrowUp", "ArrowDown", "g", "G", "n", "p"]);
-    const onKey = (e: KeyboardEvent) => nav.has(e.key) && !e.metaKey && !e.ctrlKey && document.body.classList.add("keyboarding");
-    const onMouse = () => document.body.classList.remove("keyboarding");
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("mousemove", onMouse);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("mousemove", onMouse);
-    };
-  }, []);
-}
-
-// useScrollMemory puts a page back where you left it when you come back
-// to it (back, forward); somewhere new starts at the top.
-const scrolls = new Map<string, number>();
-function useScrollMemory() {
-  const location = useLocation();
-  const how = useNavigationType();
-  useLayoutEffect(() => {
-    const main = document.getElementById("main");
-    if (!main) return;
-    const key = location.key;
-    const want = how === "POP" ? scrolls.get(key) : undefined;
-    // What scrolls is asked for each time: a page may scroll a part of
-    // itself (ui/scroller.ts), which isn't there until the page has drawn.
-    if (want === undefined) {
-      const at = pageScroller();
-      if (how !== "POP" && at) at.scrollTop = 0;
-    } else {
-      // The page may still be loading: try for a moment as it fills.
-      let tries = 0;
-      const put = () => {
-        const at = pageScroller();
-        if (at) at.scrollTop = want;
-        if ((!at || Math.abs(at.scrollTop - want) > 2) && tries++ < 20) setTimeout(put, 50);
-      };
-      put();
-    }
-    // Kept as you scroll: by the time the next page draws, this one's gone.
-    // Heard on the way down to whatever scrolls, as a scroll doesn't come
-    // back up from a part of the page.
-    const keep = (e: Event) => {
-      if (e.target === pageScroller()) scrolls.set(key, (e.target as HTMLElement).scrollTop);
-    };
-    main.addEventListener("scroll", keep, { passive: true, capture: true });
-    return () => main.removeEventListener("scroll", keep, { capture: true });
-  }, [location.key, how]);
-}
-
-// helpKeys are the keys for the page at path.
-function helpKeys(path: string): [string, string][] {
-  if (path === "/files" || path.startsWith("/files/")) return filesKeys;
-  if (path === "/documents") return documentsKeys;
-  if (path === "/artifacts") return artifactsKeys;
-  if (path === "/artifacts/compare" || /^\/artifacts\/[^/]+\/compare$/.test(path)) return compareKeys;
-  if (path.startsWith("/artifacts/in/")) return foundArtifactKeys;
-  if (path.startsWith("/artifacts/")) return artifactViewKeys;
-  if (path.startsWith("/documents/local/")) return pageKeys;
-  if (/^\/documents\/[^/]+\/.+/.test(path)) return new URLSearchParams(window.location.search).has("edit") ? pageKeys : docKeys;
-  if (path.startsWith("/documents/")) return spaceKeys;
-  if (path === "/reviews") return reviewsKeys;
-  if (path === "/team") return teamKeys;
-  if (path === "/settings" || path.startsWith("/settings/")) return settingsKeys;
-  if (path.startsWith("/reviews/")) return [...prReviewKeys, ...reviewKeys.filter(([k]) => k !== "esc"), ["esc", "Clear the selection, or back to Reviews"]];
-  if (path.includes("/review/")) return [...reviewKeys.filter(([k]) => k !== "esc"), ["L", "Land it on the default branch (a repo with no pull requests)"], ...reviewKeys.filter(([k]) => k === "esc")];
-  if (path.includes("/files/")) return explorerKeys;
-  if (path.endsWith("/artifact")) return artifactKeys;
-  if (path.includes("/crew/")) return crewKeys;
-  if (path.includes("/conversations/")) return talkKeys;
-  if (path === "/conversations") return talksKeys;
-  if (path.startsWith("/pages/")) return pageKeys;
-  if (path.startsWith("/missions/")) return missionKeys;
-  if (path === "/") return listKeys;
-  return [];
-}
-
-const globalKeys: [string, string][] = [
-  ["mod+K", "Find anything: a mission, a file, a pull request, an address"],
-  ["mod+P", "Find a file"],
-  ["mod+shift+F", "Find text in the files: the repo you're in (⌫ for everywhere), or a capsule's own"],
-  ["g m", "Go to Missions"],
-  ["g c", "Go to Conversations"],
-  ["g d / g p", "Go to Documents"],
-  ["g a", "Go to Artifacts"],
-  ["g r", "Go to Reviews"],
-  ["g t", "Go to Team"],
-  ["g f", "Go to Files"],
-  ["g o", "Go to the Orchestrator"],
-  [".", "Pin what the page is to your Focus, or unpin it"],
-  ["z", "Peek at what the pointer's on (or the row the cursor's on) beside the page: a mission, a document, a pull request, a conversation. Again closes it"],
-  ["C", "Begin a conversation beside the page: it's one once you've said something"],
-  ["\\", "Open or close what's beside the page: what you asked about it, what you peeked at"],
-  ["?", "These keys"],
-  ["esc", "Close, or go back"],
-];
-
-// KeyLabel draws a key as the key lists write it: "j / k" and "⏎ or o"
-// are alternatives, "g m" a sequence, "mod+K" a chord.
-export function KeyLabel({ k }: { k: string }) {
-  const alts = k.split(/\s+(?:\/|or)\s+/);
-  return (
-    <span className="key-label">
-      {alts.map((a, i) => (
-        <span key={i}>
-          {i > 0 && <span className="dim"> or </span>}
-          <Keys k={a} />
-        </span>
-      ))}
-    </span>
-  );
-}
-
-function Help({ keys, onClose }: { keys: [string, string][]; onClose: () => void }) {
-  useKeys({ "?": onClose }, { modal: true });
-  return (
-    <Dialog title="Keys" onClose={onClose} wide>
-      <div className="keys-help">
-        {keys.length > 0 && (
-          <div>
-            <h3>On this page</h3>
-            <dl>
-              {keys.map(([k, what]) => (
-                <div key={k}>
-                  <dt>
-                    <KeyLabel k={k} />
-                  </dt>
-                  <dd>{what}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        )}
-        <div>
-          <h3>Everywhere</h3>
-          <dl>
-            {globalKeys.map(([k, what]) => (
-              <div key={k}>
-                <dt>
-                  <KeyLabel k={k} />
-                </dt>
-                <dd>{what}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </div>
-    </Dialog>
-  );
-}
-
-// ToBrief is where the brief's own page was: its mission's Brief tab,
-// which is where ws still sends you to brief one.
-// SaysHere says what the page that's open is of (Find's Here), once, for
-// what's beside it (chrome/store.ts): what was opened about a thing is
-// there only on that thing's page. A plugin's page is of what its app
-// says it shows, which needs what there is to name; any other page's
-// address is enough.
-const nothingKnown: Known = { repos: new Map(), missions: [], pages: [], talks: [] };
-
-function SaysHere() {
-  const workspace = useWorkspace();
-  const location = useLocation();
-  const known = useRefs()?.known;
-  const frame = useFrameHere();
-  const setHere = useChromeStore((c) => c.setHere);
-  const id = hereAt(location.pathname, location.search, workspace, known ?? nothingKnown, frame)?.id;
-  useLayoutEffect(() => setHere(id), [setHere, id]);
-  useEffect(() => () => setHere(undefined), [setHere]);
-  return null;
-}
-
-function ToBrief() {
-  const { slug = "" } = useParams();
-  return <Navigate to={briefHref(slug)} replace />;
-}
-
-function NotFound() {
-  useTitle("Not found");
-  return (
-    <div className="page narrow">
-      <Empty icon="search" title="There's nothing here" action={<Link to="/" className={buttonClass()}>Back to missions</Link>}>
-        This page doesn't exist, or what it showed has gone.
-      </Empty>
-    </div>
-  );
-}
-
-function Notice({ title, children }: { title: string; children: React.ReactNode }) {
-  useTitle(title);
-  return (
-    <div className="notice">
-      <div className="mark" aria-hidden>
-        w
-      </div>
-      <h1>{title}</h1>
-      <p>{children}</p>
-    </div>
   );
 }

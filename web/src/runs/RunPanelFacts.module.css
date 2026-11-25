@@ -1,0 +1,55 @@
+/* How and why a run was run (RunPanelFacts.tsx): facts side by side, each
+   a quiet label over it, as many to a row as there's room for. As tall as
+   they are: what's shown under them takes the rest. */
+
+.facts {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px 20px;
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--well);
+}
+
+.fact {
+  min-width: 0;
+}
+
+.fact dt {
+  margin-bottom: 3px;
+  color: var(--dim);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.fact dd {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  min-width: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.aside {
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.command {
+  font-size: var(--text-xs);
+}
+
+.reports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

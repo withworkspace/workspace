@@ -1,0 +1,6 @@
+/* A group of the Runs page's rows (RunsPageList.tsx). */
+
+.list {
+  display: grid;
+  gap: 2px;
+}
