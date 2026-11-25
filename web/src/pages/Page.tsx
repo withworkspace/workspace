@@ -1,14 +1,9 @@
-import type { Node as PMNode } from "prosemirror-model";
 import { Selection, TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { FileAs, SaveToFile } from "./FileAs";
 import {
   bringIn,
-  type CellSource,
-  type DismissWhy,
-  dismissWhys,
   type DocKind,
   docTo,
   fillCell as startFilling,
@@ -29,22 +24,17 @@ import {
   type PageFiled,
   removePage,
   savePage,
-  type TalkCall,
-  type TalkTurn,
   tweakCell,
+  type DismissWhy,
 } from "../api";
 import {
   askAbout,
   blocksAt,
   caughtUp,
   type CellHost,
-  type CellState,
-  cellElement,
   cellMarkdown,
   cellsIn,
-  dropCell,
   fillCell,
-  keepCell,
   nameCell,
   placeBlocks,
   placeCell,
@@ -54,12 +44,10 @@ import {
   wrapCell,
 } from "../editor/cells";
 import MarkdownEditor, { type Draft } from "../editor/MarkdownEditor";
-import { blockOf, type Note, noteElement, onPage, putInstead, setNotes } from "../editor/notes";
+import { blockOf, type Note, putInstead, setNotes } from "../editor/notes";
 import { linkNamed, type RefHost, type RefMark, refreshRefs } from "../editor/refs";
-import { Markdown } from "../markdown/LazyMarkdown";
 import { Banner } from "../ui/Banner";
-import { Calls } from "../ui/Calls";
-import { Icon, type IconName } from "../ui/Icon";
+import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { useMedia } from "../ui/useMedia";
 import { useTitle } from "../ui/useTitle";
@@ -76,20 +64,30 @@ import { findRefs, GROUND, isOutside, type Known, type PageRef, parseAddress, re
 import { useLoaded } from "../load";
 import { useHoverDelay } from "../ui/useHoverDelay";
 import { Chip, chipClass } from "../ui/Chip";
-import { type Tone } from "../ui/tone";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";
-import { MoreLink } from "../ui/MoreLink";
 import { clip, humanError } from "../ui/text";
 import { ToggleButton } from "../ui/ToggleButton";
-import { Tab, Tabs } from "../ui/Tabs";
-import { Checkbox } from "../ui/Checkbox";
-import { Composer } from "../ui/Composer";
-import { SendKeys } from "../ui/SendKeys";
-import { sendKeys, useSendKey } from "../ui/sendKey";
-import { Turn, TurnSaid } from "../ui/Turn";
+import { Tab } from "../ui/Tabs";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
+import { CellPanel } from "./CellPanel";
+import { cellState, doing, versions } from "./cell";
+import { ChangeBox } from "./ChangeBox";
+import { FileAs, SaveToFile } from "./FileAs";
+import { FindingNote } from "./FindingNote";
+import { mapOf } from "./map";
+import { MapView } from "./MapView";
+import { PageBody } from "./PageBody";
+import { PageDoc } from "./PageDoc";
+import { PageFrame } from "./PageFrame";
+import { PageHeader } from "./PageHeader";
+import { PageRetry } from "./PageRetry";
+import { PageSaveState, type Saving } from "./PageSaveState";
+import { PageSelectPop } from "./PageSelectPop";
+import { PageTabFailed } from "./PageTabFailed";
+import { PageTabs } from "./PageTabs";
+import { PassTab } from "./PassTab";
 
 // A page: a document you write, saved as you go, with cells an agent fills
 // in. A line that starts with >> asks for something; ⏎ makes it a cell and
@@ -126,8 +124,6 @@ export default function PagePage({ id: given, back }: { id?: string; back?: Back
   if (!d) return <Loading what="Opening the page…" />;
   return <Doc key={`${d.id}:${reads}`} d={d} back={back ?? { to: "/documents", label: "Documents" }} reread={() => setReads((n) => n + 1)} />;
 }
-
-type Saving = "saved" | "unsaved" | "saving" | "changed" | "failed";
 
 // Draft it asks for a first draft at the page's end: content, so a cell,
 // which Keep as text makes yours. What reads the page and says things about
@@ -666,28 +662,24 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
   const current = passes.find((p) => p.name === tab);
 
   return (
-    <div className={`page page-page${showMap ? " with-map" : " narrow"}`}>
-      <header className="page-bar">
-        <Link to={back.to} className="back-link">
-          <Icon name="arrow-left" size={13} /> {back.label}
-        </Link>
-        <span className="dim">{id}</span>
+    <PageFrame map={showMap}>
+      <PageHeader back={back} id={id}>
         {kind && (
           <Chip tone="quiet" title={kindHint(kind)}>
             {kind.title}
           </Chip>
         )}
         {tied?.in && (
-          <Link to={filesTo(tied.in.repo, tied.in.worktree, tied.in.path)} className={chipClass("quiet", "mono page-file")} title={`Tied to ${tied.ref}: saving writes there. Open it in Files`}>
+          <Link to={filesTo(tied.in.repo, tied.in.worktree, tied.in.path)} className={chipClass("quiet", "mono")} title={`Tied to ${tied.ref}: saving writes there. Open it in Files`}>
             <Icon name="file" size={11} /> {tied.ref.replace(":", " · ")}
           </Link>
         )}
         <span className="spacer" />
         {planning &&
           (planning.turns.at(-1)?.by === "ws" ? (
-            <Button variant="link" className="save-state failed" title={planning.turns.at(-1)?.body} onClick={() => startFilling(id, planning.id).then(put, failed)}>
-              <Icon name="alert" size={12} /> Couldn't plan it: try again
-            </Button>
+            <PageRetry title={planning.turns.at(-1)?.body} onClick={() => startFilling(id, planning.id).then(put, failed)}>
+              Couldn't plan it: try again
+            </PageRetry>
           ) : (
             <Chip tone="progress" title={planning.turns[0]?.body}>
               <Spinner size={11} /> Planning{planning.run?.calls.length ? `: ${doing(planning.run.calls.at(-1)!, workspace.root).toLowerCase()}` : "…"}
@@ -732,11 +724,11 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
             <Icon name="file" size={12} /> File as…
           </Button>
         )}
-        <SaveState s={saving} retry={() => save().catch(() => {})} />
+        <PageSaveState state={saving} retry={() => save().catch(() => {})} />
         <Button variant="ghost" size="small" onClick={remove} title="Remove this page">
           Remove
         </Button>
-      </header>
+      </PageHeader>
       {filing && (
         <FileAs
           id={id}
@@ -826,7 +818,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           This page was changed somewhere else (another tab, perhaps) since you opened it here. Nothing more is saved from here until you choose.
         </Banner>
       )}
-      <Tabs className="page-tabs" value={tab} onChange={setTab} aria-label="The page, and passes over it">
+      <PageTabs value={tab} onChange={setTab}>
         <Tab value="page">Page</Tab>
         {passes.map((p) => {
           const open = p.findings.filter((f) => f.state === "open").length;
@@ -840,12 +832,12 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
                   {open}
                 </Count>
               ) : p.failed ? (
-                <Icon name="alert" size={11} className="tab-failed" />
+                <PageTabFailed />
               ) : null}
             </Tab>
           );
         })}
-      </Tabs>
+      </PageTabs>
       {current && (
         <PassTab
           pass={current}
@@ -868,8 +860,8 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           }}
         />
       )}
-      <div className="page-body" style={tab === "page" ? undefined : { display: "none" }}>
-      <div className="page-doc" ref={wrap}>
+      <PageBody map={showMap} hidden={tab !== "page"}>
+      <PageDoc ref={wrap}>
         <MarkdownEditor
           initial={d.text}
           label="The page"
@@ -886,7 +878,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           }}
         />
         {view && note && noted && (
-          <NoteCard
+          <FindingNote
             key={note}
             note={note}
             pass={noted.pass}
@@ -924,7 +916,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
           />
         )}
         {view && picked && !changing && !askingAbout && !adding && (
-          <div className="select-pop" style={{ top: picked.top, left: picked.left }} role="toolbar" aria-label="The words selected" onMouseDown={(e) => e.preventDefault()}>
+          <PageSelectPop top={picked.top} left={picked.left}>
             <Button variant="ghost" size="small" onClick={askOfSelection} title="Ask about these words: answered beside the page, and nothing's put in it">
               <Icon name="question" size={12} /> Ask
             </Button>
@@ -939,7 +931,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
             >
               <Icon name="sparkle" size={12} /> Change <Keys k="mod+⏎" />
             </Button>
-          </div>
+          </PageSelectPop>
         )}
         {view && askingAbout && (
           <ChangeBox
@@ -988,1077 +980,12 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
             onRetry={() => retry(opened)}
           />
         )}
-      </div>
-      {showMap && map && <PageMap map={map} passes={passes} toPass={setTab} goTo={goTo} openCell={(cell) => setOpen(cell)} />}
+      </PageDoc>
+      {showMap && map && <MapView map={map} passes={passes} toPass={setTab} goTo={goTo} openCell={(cell) => setOpen(cell)} />}
       {hover && hovered && hover.el.isConnected && (
         <RefCard r={hovered} el={hover.el} onEnter={hovering.stay} onLeave={hovering.out} />
       )}
-      </div>
-    </div>
-  );
-}
-
-// ChangeBox asks what should change in words of yours, under them: asked,
-// they become a cell, and an agent writes them again.
-function ChangeBox({
-  top,
-  onClose,
-  onAsk,
-  placeholder = "What should change here? Tighten it, make it a table, add what's missing…",
-  hint = "They become a cell: an agent writes them again, and your words are kept to put back.",
-  label = "Ask for these words to be changed",
-}: {
-  top: number;
-  onClose: () => void;
-  onAsk: (prompt: string) => void;
-  placeholder?: string;
-  hint?: string;
-  label?: string;
-}) {
-  const box = useRef<HTMLTextAreaElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
-  const [text, setText] = useState("");
-  useEffect(() => {
-    box.current?.focus();
-    const down = (e: MouseEvent) => !panel.current?.contains(e.target as Node) && onClose();
-    document.addEventListener("mousedown", down);
-    return () => document.removeEventListener("mousedown", down);
-  }, [onClose]);
-  const ask = () => text.trim() && onAsk(text.trim());
-  const sendKey = useSendKey();
-  return (
-    <div className="cell-panel change-box" ref={panel} style={{ top, left: 0 }} role="dialog" aria-label={label}>
-      <Composer
-        layout="beside"
-        className="cell-composer"
-        field={box}
-        value={text}
-        onChange={setText}
-        onSend={ask}
-        tallest={160}
-        placeholder={placeholder}
-        aria-label={label}
-        escape={onClose}
-      >
-        <Button variant="primary" size="small" disabled={!text.trim()} onClick={ask} title="Send it" keys={sendKeys(sendKey)}>
-          Ask <SendKeys />
-        </Button>
-      </Composer>
-      <div className="cell-panel-foot">
-        <span className="dim change-hint">{hint}</span>
-      </div>
-    </div>
-  );
-}
-
-// --- Passes
-
-const kindTone: Record<string, Tone> = { requirement: "done", vague: "attention", assumption: "waiting", missing: "attention", ambiguity: "attention" };
-
-// FindingBody is what a finding says: its kind, the words it's about, what
-// it has to say of them, and the words it proposes in their place.
-function FindingBody({ f, lost, onWords }: { f: PassFinding; lost?: boolean; onWords?: () => void }) {
-  return (
-    <>
-      <div className="finding-head">
-        <Chip tone={kindTone[f.kind] ?? "quiet"}>{f.kind}</Chip>
-        {f.quote &&
-          (onWords && !lost ? (
-            <button className="finding-quote" onClick={onWords} title="Go to these words on the page">
-              {f.quote}
-            </button>
-          ) : (
-            <span className={`finding-quote${lost ? " lost" : ""}`} title={lost ? "These words aren't on the page any more" : undefined}>
-              {f.quote}
-            </span>
-          ))}
-      </div>
-      <div className="finding-text">
-        <Markdown text={f.text} />
-      </div>
-      {f.suggest && (
-        <div className="finding-suggest">
-          <span className="dim">Should read</span>
-          <Markdown text={f.suggest} />
-        </div>
-      )}
-    </>
-  );
-}
-
-// PassTab is a pass over the page, on its tab: what it is, when it ran and
-// what it said, and what it found, each to deal with. Run again, it reads
-// the page as it is now; what you've settled stays settled.
-function PassTab({
-  pass,
-  root,
-  doc,
-  rev,
-  shown,
-  onShown,
-  onRun,
-  onSettle,
-  onWords,
-  onTake,
-  onFindOut,
-  asked,
-  onAsk,
-  onPut,
-  onCell,
-}: {
-  pass: PagePass;
-  root: string;
-  doc?: PMNode;
-  rev: number;
-  shown: boolean;
-  onShown: (on: boolean) => void;
-  onRun: () => Promise<void>;
-  onSettle: (f: PassFinding, state: PassFinding["state"], why?: DismissWhy) => void;
-  onWords: (f: PassFinding) => void;
-  onTake: (f: PassFinding) => void;
-  onFindOut: (f: PassFinding) => void;
-  // asked is the question asked of a finding, if one has been; onAsk asks
-  // more in it, onPut has its answer written into the page, and onCell
-  // goes to the cell it's become.
-  asked: (f: PassFinding) => PageCell | undefined;
-  onAsk: (cell: PageCell, body: string) => Promise<void>;
-  onPut: (f: PassFinding, cell: PageCell, body: string) => void;
-  onCell: (cell: PageCell) => void;
-}) {
-  const [starting, setStarting] = useState(false);
-  const [settled, setSettled] = useState(false);
-  const start = () => {
-    setStarting(true);
-    onRun().finally(() => setStarting(false));
-  };
-  const open = pass.findings.filter((f) => f.state === "open");
-  const put = pass.findings.filter((f) => f.state !== "open");
-  // Whose words have gone from the page since.
-  const lost = useMemo(() => new Set(doc ? pass.findings.filter((f) => f.quote && !onPage(doc, f.quote)).map((f) => f.key) : []), [doc, pass.findings, rev]);
-  const live = (pass.run?.calls ?? []).map((c, i, list) => (i === list.length - 1 && !c.result ? { ...c, pending: true } : c));
-  const busy = starting || !!pass.running;
-  return (
-    <div className="pass-tab" role="tabpanel" aria-label={pass.title}>
-      <header className="pass-head">
-        <div className="pass-about">
-          <p>{pass.about}</p>
-          <p className="dim">
-            {pass.skill ? (
-              <>
-                Its agent follows the workspace's skill <span className="mono">{pass.skill}</span>
-                {pass.args ? <>, asked “{pass.args}”</> : null}, and reads what it needs of the workspace.{" "}
-              </>
-            ) : pass.cold ? (
-              "Its agent is given the page and nothing else. "
-            ) : (
-              "Its agent reads the page and what it needs of the workspace. "
-            )}
-            What it says is kept here, beside the page: none of it is written into the page.
-          </p>
-          {pass.unavailable && <p className="pass-unavailable">It can't be run: {pass.unavailable}.</p>}
-        </div>
-        <Button variant={pass.runs ? undefined : "primary"} disabled={busy || !!pass.unavailable} onClick={start}>
-          {busy ? (
-            <>
-              <Spinner size={12} /> Running…
-            </>
-          ) : pass.runs ? (
-            <>
-              <Icon name="rotate" size={12} /> Run again
-            </>
-          ) : (
-            <>
-              <Icon name="play" size={12} /> Run
-            </>
-          )}
-        </Button>
-      </header>
-      {pass.failed && !pass.running && (
-        <Banner>The last run couldn't finish. {pass.failed}</Banner>
-      )}
-      {pass.moved && !pass.running && !!pass.runs && (
-        <Banner
-          tone="attention"
-          actions={
-            <Button size="small" disabled={busy} onClick={start}>
-              Run again
-            </Button>
-          }
-        >
-          The page has changed since this ran: what's below is of the page as it was.
-        </Banner>
-      )}
-      {pass.running && (
-        <div className="pass-running">
-          <div className="cell-version">
-            <Spinner size={12} />
-            <span>{pass.runs ? "Reading the page again" : "Reading the page"}</span>
-          </div>
-          <Calls calls={live} root={root} open live />
-        </div>
-      )}
-      {!!pass.runs && (
-        <>
-          <div className="pass-meta">
-            {pass.at && (
-              <span className="dim">
-                Ran <Time iso={pass.at} as="clock" />
-                {pass.runs > 1 ? `, ${pass.runs} times in all` : ""}
-              </span>
-            )}
-            <span className="spacer" />
-            <Checkbox className="pass-shown" checked={shown} onChange={onShown} title="Mark what it found on the words it's about, on the page. They're drawn over the page, not written into it.">
-              Show on the page
-            </Checkbox>
-          </div>
-          {pass.summary && (
-            <div className="pass-summary prose">
-              <Markdown text={pass.summary} />
-            </div>
-          )}
-          {open.length === 0 && put.length === 0 && <p className="dim">It found nothing to raise.</p>}
-          <ol className="findings">
-            {open.map((f) => (
-              <li key={f.key} className="finding">
-                <FindingBody f={f} lost={lost.has(f.key)} onWords={() => onWords(f)} />
-                <div className="finding-acts">
-                  {f.suggest && f.quote && !lost.has(f.key) && (
-                    <Button variant="primary" size="small" onClick={() => onTake(f)} title="Put these words on the page in place of those quoted">
-                      Use these words
-                    </Button>
-                  )}
-                  <Button size="small" onClick={() => onSettle(f, "done")} title="It's answered, or dealt with">
-                    <Icon name="check" size={12} /> Done
-                  </Button>
-                  {!asked(f) && (
-                    <Button variant="ghost" size="small" onClick={() => onFindOut(f)} title="Ask an agent to find this out: it answers here, under the finding, and nothing's put in the page">
-                      Find out
-                    </Button>
-                  )}
-                  <DismissAs onDismiss={(why) => onSettle(f, "dismissed", why)} />
-                  {lost.has(f.key) && <span className="dim">Its words aren't on the page any more.</span>}
-                </div>
-                {asked(f) && <FoundOut cell={asked(f)!} root={root} onAsk={(body) => onAsk(asked(f)!, body)} onPut={(body) => onPut(f, asked(f)!, body)} onCell={() => onCell(asked(f)!)} />}
-              </li>
-            ))}
-          </ol>
-          {put.length > 0 && (
-            <>
-              <MoreLink onClick={() => setSettled((v) => !v)} aria-expanded={settled}>
-                {settled ? "Hide" : "Show"} {put.length} settled
-              </MoreLink>
-              {settled && (
-                <ol className="findings settled">
-                  {put.map((f) => (
-                    <li key={f.key} className="finding">
-                      <FindingBody f={f} />
-                      <div className="finding-acts">
-                        <span className="dim">{f.state === "done" ? "Done" : `Dismissed${f.why ? `: ${dismissWhys.find(([w]) => w === f.why)?.[1].toLowerCase()}` : ""}`}</span>
-                        <Button variant="ghost" size="small" onClick={() => onSettle(f, "open")}>
-                          Open it again
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// FoundOut is what an agent found out about a finding, under it on the
-// pass's tab: its answers, what you asked after, and a box to ask more, or
-// to have it written into the page. Until then nothing of it is in the
-// page.
-function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: string; onAsk: (body: string) => Promise<void>; onPut: (body: string) => void; onCell: () => void }) {
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  const sendKey = useSendKey();
-  const written = versions(cell).length > 0;
-  const last = cell.turns.at(-1);
-  const live = (cell.run?.calls ?? []).map((c, i, list) => (i === list.length - 1 && !c.result ? { ...c, pending: true } : c));
-  const ask = () => {
-    const body = text.trim();
-    if (!body || busy) return;
-    setBusy(true);
-    onAsk(body)
-      .then(() => setText(""))
-      .finally(() => setBusy(false));
-  };
-  return (
-    <div className="found-out">
-      <ol className="cell-turns">
-        {cell.turns.slice(1).map((t) =>
-          t.by === "you" ? (
-            <li key={t.n} className="cell-turn">
-              <Turn by="you" dense landed>
-                <TurnSaid written>{t.body}</TurnSaid>
-              </Turn>
-            </li>
-          ) : t.by !== "agent" ? (
-            <li key={t.n} className="cell-turn failed">
-              <Icon name="alert" size={12} /> {t.body}
-            </li>
-          ) : t.answer ? (
-            <li key={t.n} className="cell-turn answer">
-              <Turn by="agent" dense landed>
-                <TurnSaid>
-                  <Markdown text={t.body} pinned={t.refs} />
-                </TurnSaid>
-                <Calls calls={t.calls ?? []} root={root} className="cell-calls" />
-              </Turn>
-            </li>
-          ) : (
-            <li key={t.n} className="cell-turn version">
-              <div className="cell-version">
-                <Icon name="sparkle" size={12} />
-                <span>Written into the page</span>
-                <Button variant="link" onClick={onCell}>
-                  Go to it
-                </Button>
-              </div>
-            </li>
-          ),
-        )}
-        {cell.answering && (
-          <li className="cell-turn filling">
-            <div className="cell-version">
-              <Spinner size={12} />
-              <span>{askingNow(cell) ? "Finding out" : "Writing it into the page"}</span>
-            </div>
-            <Calls calls={live} root={root} open live className="cell-calls" />
-          </li>
-        )}
-        {!cell.answering && last?.by === "you" && (
-          <li className="cell-turn failed">
-            <span className="dim">Its agent hasn't started.</span>
-          </li>
-        )}
-      </ol>
-      {!cell.answering && last?.by !== "you" && (
-        <Composer
-          layout="beside"
-          className="cell-composer"
-          value={text}
-          onChange={setText}
-          onSend={ask}
-          tallest={120}
-          placeholder={written ? "Ask more…" : "Ask more, or say what to put in the page…"}
-          aria-label="Ask more about this finding"
-          escape="leave"
-        >
-          {!written && (
-            <Button size="small" disabled={busy} onClick={() => onPut(text.trim())} title="Have it written into the page, under the words this is about: what it's answered, or what you say">
-              Put it in the page
-            </Button>
-          )}
-          <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={ask} title="Ask: it's answered here, and the page stays as it is" keys={sendKeys(sendKey)}>
-            Ask <SendKeys />
-          </Button>
-        </Composer>
-      )}
-    </div>
-  );
-}
-
-// NoteCard is a pass's finding, opened from its words on the page: under
-// them, with what to do about it.
-// DismissAs dismisses a finding, saying why: it's wrong, the page already
-// says it, or it's so but not worth acting on. How often each is how well
-// a pass does (ws show passes).
-function DismissAs({ onDismiss }: { onDismiss: (why: DismissWhy) => void }) {
-  const [asking, setAsking] = useState(false);
-  if (!asking)
-    return (
-      <Button variant="ghost" size="small" onClick={() => setAsking(true)} title="It isn't one: don't raise it again. You'll say why">
-        Dismiss
-      </Button>
-    );
-  return (
-    <span className="dismiss-as" role="group" aria-label="Dismiss it as">
-      <span className="dim">Dismiss as</span>
-      {dismissWhys.map(([why, label, title]) => (
-        <Button variant="ghost" size="small" key={why} title={title} onClick={() => onDismiss(why)}>
-          {label}
-        </Button>
-      ))}
-      <Button variant="ghost" size="small" square onClick={() => setAsking(false)} aria-label="Don't dismiss it" title="Don't dismiss it">
-        <Icon name="x" size={11} />
-      </Button>
-    </span>
-  );
-}
-
-function NoteCard({
-  note,
-  pass,
-  finding,
-  view,
-  wrap,
-  onClose,
-  onSettle,
-  onTake,
-  onFindOut,
-  onPass,
-}: {
-  note: string;
-  pass: PagePass;
-  finding: PassFinding;
-  view: EditorView;
-  wrap: React.RefObject<HTMLDivElement | null>;
-  onClose: () => void;
-  onSettle: (state: PassFinding["state"], why?: DismissWhy) => void;
-  onTake: () => void;
-  onFindOut: () => void;
-  onPass: () => void;
-}) {
-  const panel = useRef<HTMLDivElement>(null);
-  const [at, setAt] = useState<{ top: number; left: number }>();
-  useLayoutEffect(() => {
-    const mark = noteElement(view, note);
-    const host = wrap.current;
-    if (!mark || !host) return onClose();
-    const r = mark.getBoundingClientRect();
-    const w = host.getBoundingClientRect();
-    setAt({ top: r.bottom - w.top + 6, left: Math.max(0, Math.min(r.left - w.left, w.width - (panel.current?.offsetWidth ?? 440))) });
-  }, [view, note, wrap, onClose]);
-  useEffect(() => {
-    const down = (e: MouseEvent) => {
-      const t = e.target as Element;
-      if (panel.current?.contains(t) || t.closest?.("[data-note]")) return;
-      onClose();
-    };
-    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("mousedown", down);
-    document.addEventListener("keydown", key);
-    return () => {
-      document.removeEventListener("mousedown", down);
-      document.removeEventListener("keydown", key);
-    };
-  }, [onClose]);
-  return (
-    <div className="cell-panel note-panel" ref={panel} style={at ? { top: at.top, left: at.left } : { visibility: "hidden" }} role="dialog" aria-label={`From ${pass.title}`}>
-      <div className="note-from">
-        <Button variant="link" onClick={onPass} title="Open the pass it's from">
-          {pass.title}
-        </Button>
-        <span className="spacer" />
-        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close" keys="esc">
-          <Icon name="x" size={13} />
-        </Button>
-      </div>
-      <div className="finding">
-        <FindingBody f={finding} />
-        <div className="finding-acts">
-          {finding.suggest && (
-            <Button variant="primary" size="small" onClick={onTake}>
-              Use these words
-            </Button>
-          )}
-          <Button size="small" onClick={() => onSettle("done")}>
-            <Icon name="check" size={12} /> Done
-          </Button>
-          <Button variant="ghost" size="small" onClick={onFindOut}>
-            Find out
-          </Button>
-          <DismissAs onDismiss={(why) => onSettle("dismissed", why)} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- The map: the page as what it's made of and what it links to
-
-interface MapData {
-  outline: { pos: number; level: number; text: string }[];
-  cells: { pos: number; name: string; prompt: string; state: CellState }[];
-  // open: what's not ticked off: questions a check raised, tasks you wrote.
-  open: { pos: number; text: string }[];
-  // sources: the files its cells were written from, with how many cells
-  // rest on each.
-  sources: { src: CellSource; cells: number }[];
-}
-
-function mapOf(doc: PMNode, cells: PageCell[], root: string): MapData {
-  const map: MapData = { outline: [], cells: [], open: [], sources: [] };
-  const at = new Map<string, number>();
-  doc.forEach((top, offset) => {
-    if (top.type.name === "heading") map.outline.push({ pos: offset, level: top.attrs.level, text: top.textContent });
-    if (top.type.name === "cell") {
-      const cell = cells.find((c) => c.id === top.attrs.id);
-      map.cells.push({ pos: offset, name: top.attrs.id || top.attrs.key, prompt: top.attrs.prompt, state: cell ? cellState(cell, root) : { status: "starting" } });
-      for (const src of cell?.sources ?? []) {
-        const i = at.get(src.path);
-        if (i === undefined) at.set(src.path, map.sources.push({ src, cells: 1 }) - 1);
-        else map.sources[i].cells++;
-      }
-    }
-    top.descendants((node, pos) => {
-      if (node.type.name === "list_item" && node.attrs.checked === false && node.firstChild?.textContent) {
-        map.open.push({ pos: offset + 1 + pos, text: node.firstChild.textContent });
-      }
-      return true;
-    });
-  });
-  return map;
-}
-
-const stateIcon: Record<CellState["status"], IconName> = { starting: "spinner", filling: "spinner", filled: "check", stale: "alert", failed: "alert" };
-
-// PageMap is the page's map, beside it: its outline, its cells and where
-// each stands, what's open, and the files it rests on. Each goes to what
-// it names.
-function PageMap({
-  map,
-  passes,
-  toPass,
-  goTo,
-  openCell,
-}: {
-  map: MapData;
-  passes: PagePass[];
-  toPass: (name: string) => void;
-  goTo: (pos: number) => void;
-  openCell: (cell: string) => void;
-}) {
-  const ran = passes.filter((p) => p.runs || p.running);
-  const stale = map.cells.filter((c) => c.state.status === "stale").length;
-  const filling = map.cells.filter((c) => c.state.status === "filling" || c.state.status === "starting").length;
-  const failed = map.cells.filter((c) => c.state.status === "failed").length;
-  const nothing = !map.cells.length && !map.open.length && map.outline.length < 2 && !ran.length;
-  return (
-    <aside className="page-map" aria-label="This page's map">
-      {(map.open.length > 0 || stale > 0 || filling > 0 || failed > 0) && (
-        <div className="map-sum">
-          {map.open.length > 0 && <Chip tone="attention">{map.open.length} open</Chip>}
-          {stale > 0 && <Chip tone="attention">{stale} out of date</Chip>}
-          {failed > 0 && <Chip tone="danger">{failed} not filled</Chip>}
-          {filling > 0 && (
-            <Chip tone="progress">
-              <Spinner size={11} /> {filling} filling
-            </Chip>
-          )}
-        </div>
-      )}
-      {nothing && <p className="map-empty">As you write, this is the page in outline: its headings, its cells, what's open, and the files it rests on.</p>}
-      {map.outline.length > 1 && (
-        <section>
-          <h3>Outline</h3>
-          <ul>
-            {map.outline.map((h) => (
-              <li key={h.pos} style={{ paddingLeft: (Math.min(h.level, 4) - 1) * 10 }}>
-                <button className="map-item" onClick={() => goTo(h.pos)}>
-                  {h.text || "Untitled"}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {map.cells.length > 0 && (
-        <section>
-          <h3>Cells</h3>
-          <ul>
-            {map.cells.map((c) => (
-              <li key={c.name}>
-                <button
-                  className={`map-item map-cell s-${c.state.status}`}
-                  title={c.state.note ? `${c.prompt}: ${c.state.note}` : c.prompt}
-                  onClick={() => {
-                    goTo(c.pos);
-                    if (c.state.status === "stale" || c.state.status === "failed") openCell(c.name);
-                  }}
-                >
-                  {c.state.status === "filling" || c.state.status === "starting" ? <Spinner size={11} /> : <Icon name={stateIcon[c.state.status]} size={11} />}
-                  <span>{clip(c.prompt, 70)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {ran.length > 0 && (
-        <section>
-          <h3>Passes</h3>
-          <ul>
-            {ran.map((p) => {
-              const open = p.findings.filter((f) => f.state === "open").length;
-              return (
-                <li key={p.name}>
-                  <button className={`map-item map-cell${p.running ? " s-filling" : p.moved ? " s-stale" : " s-filled"}`} title={p.about} onClick={() => toPass(p.name)}>
-                    {p.running ? <Spinner size={11} /> : <Icon name={p.moved ? "alert" : "check"} size={11} />}
-                    <span>
-                      {p.title}
-                      {p.running ? ": running" : `: ${open} open${p.moved ? ", the page has changed since" : ""}`}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-      {map.open.length > 0 && (
-        <section>
-          <h3>Open</h3>
-          <ul>
-            {map.open.map((o) => (
-              <li key={o.pos}>
-                <button className="map-item map-open" title={o.text} onClick={() => goTo(o.pos)}>
-                  {clip(o.text, 90)}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {map.sources.length > 0 && (
-        <section>
-          <h3>Rests on</h3>
-          <ul>
-            {map.sources.map(({ src, cells }) => {
-              const href = sourceHref(src);
-              const name = sourceName(src);
-              const inner = (
-                <>
-                  <Icon name={src.state ? "alert" : "file"} size={11} />
-                  <span>{name}</span>
-                  {cells > 1 && <span className="dim">×{cells}</span>}
-                </>
-              );
-              const title = `${name}${src.state === "gone" ? ": gone since" : src.state ? ": changed since" : ""}${cells > 1 ? ` (${cells} cells)` : ""}`;
-              return (
-                <li key={src.path}>
-                  {href ? (
-                    <Link to={href} className={`map-item map-source${src.state ? " moved" : ""}`} title={title}>
-                      {inner}
-                    </Link>
-                  ) : (
-                    <span className={`map-item map-source${src.state ? " moved" : ""}`} title={title}>
-                      {inner}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-    </aside>
-  );
-}
-
-function SaveState({ s, retry }: { s: Saving; retry: () => void }) {
-  if (s === "failed") {
-    return (
-      <Button variant="link" className="save-state failed" onClick={retry}>
-        <Icon name="alert" size={12} /> Not saved: try again
-      </Button>
-    );
-  }
-  const words = { saved: "Saved", unsaved: "Saving…", saving: "Saving…", changed: "Not saving" }[s];
-  return (
-    <span className={`save-state ${s}`} role="status">
-      {s === "saved" && <Icon name="check" size={12} />}
-      {words}
-    </span>
-  );
-}
-
-// --- A cell, as its conversation says it stands
-
-// versions are what a cell's agent has written, oldest first.
-function versions(cell?: PageCell): TalkTurn[] {
-  return cell?.turns.filter((t) => t.by === "agent" && !t.answer) ?? [];
-}
-
-// asking is whether what a cell's agent has last been asked is a question,
-// to be answered beside the page.
-const askingNow = (cell: PageCell) => !![...cell.turns].reverse().find((t) => t.by === "you")?.ask;
-
-const shorten = (s: string, root: string) => s.split(root + "/").join("");
-
-// doing is what a step is, in a few words: "Reading api/routes.go".
-function doing(c: TalkCall, root: string): string {
-  const input = shorten(c.input, root).replace(/^repos\//, "");
-  const tail = input.length > 48 ? "…" + input.slice(-47) : input;
-  if (/^(read|view|cat)/i.test(c.tool)) return `Reading ${tail}`;
-  if (/^(grep|glob|search|find|ls)/i.test(c.tool)) return `Searching for ${tail}`;
-  return `Running ${clip(input, 48)}`;
-}
-
-function cellState(cell: PageCell, root: string): CellState {
-  const last = cell.turns.at(-1);
-  // A block of an outline its agent hasn't come to yet.
-  if (cell.queued) return { status: "starting", note: "To be written" };
-  if (cell.answering) {
-    const step = cell.run?.calls.at(-1);
-    return { status: "filling", note: step ? doing(step, root) : askingNow(cell) ? "Answering…" : versions(cell).length ? "Writing it again…" : "Starting…" };
-  }
-  if (last?.by === "ws") return { status: "failed", note: askingNow(cell) ? "Couldn't answer this" : "Couldn't fill this" };
-  if (last?.by === "you") return { status: "starting", note: "Not started" };
-  // A question, answered: it holds nothing, and says there's an answer.
-  if (!versions(cell).length) return { status: "filled", note: "Answered" };
-  if (last?.answer) return { status: "filled", note: "With an answer" };
-  const moved = changedSources(cell);
-  if (moved.length) return { status: "stale", note: `${sourcesChanged(moved)} since` };
-  if (cell.moved) return { status: "stale", note: `${besideChanged(cell)} since` };
-  // What its agent had to say of it is beside it: its head says there's
-  // something.
-  return { status: "filled", note: versions(cell).at(-1)?.notes ? "With a note from its agent" : undefined };
-}
-
-// besideChanged says what a cell was written beside that's changed.
-const besideChanged = (cell: PageCell) => (cell.moved === "page" ? "The page has changed" : "A cell above has changed");
-
-// outOfDate is why a cell's out of date, in a sentence's start, or "".
-function outOfDate(cell: PageCell): string {
-  const moved = changedSources(cell);
-  if (moved.length) return sourcesChanged(moved);
-  return cell.moved ? besideChanged(cell) : "";
-}
-
-// changedSources are the files a cell was written from that aren't as
-// they were.
-const changedSources = (cell: PageCell) => (cell.sources ?? []).filter((s) => s.state);
-
-// sourceName is a source as it's said: its repo and file (demo/main.go),
-// or in a capsule, with the capsule.
-function sourceName(s: CellSource): string {
-  if (!s.repo || !s.file) return s.path;
-  return s.worktree && s.worktree !== ".ground" ? `${s.repo}/${s.worktree}: ${s.file}` : `${s.repo}/${s.file}`;
-}
-
-const baseName = (s: CellSource) => (s.file ?? s.path).split("/").pop() ?? s.path;
-
-// sourcesChanged says what's changed, in a few words: "main.go has
-// changed", "3 files have changed".
-function sourcesChanged(moved: CellSource[]): string {
-  if (moved.length > 1) return `${moved.length} files have changed`;
-  return `${baseName(moved[0])} ${moved[0].state === "gone" ? "has gone" : "has changed"}`;
-}
-
-// sourceHref is where a source can be read: the Files page, for one in a
-// repo.
-function sourceHref(s: CellSource): string | undefined {
-  if (!s.repo || !s.file || s.state === "gone") return undefined;
-  const tree = s.worktree && s.worktree !== ".ground" ? `/${encodeURIComponent(s.worktree)}` : "";
-  return `/files/${encodeURIComponent(s.repo)}${tree}?${new URLSearchParams({ path: s.file })}`;
-}
-
-// CellPanel is a cell opened: what was asked for, each version and what
-// you asked to change between them, what the latest was written from, and
-// a box to ask for a change. It sits under the cell's head.
-function CellPanel({
-  cell,
-  view,
-  wrap,
-  root,
-  onClose,
-  onSay,
-  onRetry,
-}: {
-  cell: PageCell;
-  view: EditorView;
-  wrap: React.RefObject<HTMLDivElement | null>;
-  root: string;
-  onClose: () => void;
-  onSay: (body: string, ask?: boolean) => Promise<void>;
-  onRetry: () => Promise<void>;
-}) {
-  const panel = useRef<HTMLDivElement>(null);
-  const box = useRef<HTMLTextAreaElement>(null);
-  const sendKey = useSendKey();
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [at, setAt] = useState<{ top: number; left: number }>();
-
-  // Under the cell, so what it holds shows while you ask for a change; a
-  // cell too long for that has it under its head. Wherever that now is.
-  useLayoutEffect(() => {
-    const place = () => {
-      const el = cellElement(view, cell.id);
-      const head = el?.querySelector(".cell-head");
-      const host = wrap.current;
-      if (!el || !head || !host) return onClose(); // the cell's gone from the document
-      const c = el.getBoundingClientRect();
-      const r = c.height < window.innerHeight * 0.5 ? c : head.getBoundingClientRect();
-      const w = host.getBoundingClientRect();
-      const width = panel.current?.offsetWidth ?? 440;
-      setAt({ top: r.bottom - w.top + 6, left: Math.max(0, Math.min(c.left - w.left, w.width - width)) });
-    };
-    place();
-    window.addEventListener("resize", place);
-    return () => window.removeEventListener("resize", place);
-    // Placed again as the cell changes above or around it.
-  }, [view, cell, wrap, onClose]);
-
-  // Opened, it's ready for what you want changed.
-  const placed = !!at;
-  useEffect(() => {
-    if (placed) box.current?.focus();
-  }, [placed]);
-
-  useEffect(() => {
-    const down = (e: MouseEvent) => {
-      const t = e.target as Node;
-      if (panel.current?.contains(t) || cellElement(view, cell.id)?.querySelector(".cell-head")?.contains(t)) return;
-      onClose();
-    };
-    const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", down);
-    document.addEventListener("keydown", key, true);
-    return () => {
-      document.removeEventListener("mousedown", down);
-      document.removeEventListener("keydown", key, true);
-    };
-  }, [view, cell.id, onClose]);
-
-  const run = (what: () => Promise<void>) => {
-    setBusy(true);
-    what()
-      .catch((e: Error) => toast(humanError(e.message), { tone: "danger" }))
-      .finally(() => setBusy(false));
-  };
-  const all = versions(cell);
-  const latest = all.at(-1);
-  // A question with nothing written yet asks first, and can be told to put
-  // it in the page; a cell is changed first, and can just be asked.
-  const question = !latest && !!cell.turns[0]?.ask;
-  const send = (ask: boolean) => {
-    const body = text.trim() || (question && !ask ? "Write that up for the page, here." : "");
-    if (!body || busy) return;
-    run(() => onSay(body, ask).then(() => setText("")));
-  };
-  const read = cell.sources ?? [];
-  const moved = changedSources(cell);
-  const stale = outOfDate(cell);
-  // Written again from what's there now: it's asked to, naming what moved.
-  const again = () =>
-    run(() =>
-      onSay(
-        moved.length
-          ? `Since you wrote this, ${moved.map((m) => `${m.path} ${m.state === "gone" ? "has gone" : "has changed"}`).join(", ")}. Read what's there now, and write the cell again from it.`
-          : `${besideChanged(cell)} since you wrote this. Read the page again, and write the cell again from what's there now.`,
-      ),
-    );
-  const last = cell.turns.at(-1);
-  const unstarted = !cell.answering && last?.by !== "agent";
-  const live = (cell.run?.calls ?? []).map((c, i, list) => (i === list.length - 1 && !c.result ? { ...c, pending: true } : c));
-  return (
-    <div className="cell-panel" ref={panel} style={at ? { top: at.top, left: at.left } : { visibility: "hidden" }} role="dialog" aria-label="This cell">
-      <div className="cell-panel-head">
-        <span className="cell-glyph" aria-hidden>
-          »
-        </span>
-        <span className="cell-panel-prompt">{cell.turns[0]?.body}</span>
-        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close" keys="esc">
-          <Icon name="x" size={13} />
-        </Button>
-      </div>
-      {cell.turns.length > 1 || cell.answering || cell.turns[0]?.edited ? (
-        <ol className="cell-turns">
-          {cell.turns[0]?.edited && (
-            <li className="cell-turn version">
-              <div className="cell-version">
-                <Icon name="pencil" size={11} />
-                <span>Your words, as they were</span>
-                <Button variant="link" onClick={() => fillCell(view, cell.id, 0, cell.turns[0].edited!)} title="Put your own words back in the cell">
-                  Use this
-                </Button>
-              </div>
-            </li>
-          )}
-          {cell.turns.slice(1).map((t) => {
-            if (t.by === "you") {
-              return (
-                <li key={t.n} className="cell-turn">
-                  <Turn by="you" dense landed>
-                    <TurnSaid written>{t.body}</TurnSaid>
-                  </Turn>
-                  {t.edited && (
-                    <div className="cell-version yours">
-                      <Icon name="pencil" size={11} />
-                      <span>With your edits to it</span>
-                      <Button variant="link" onClick={() => fillCell(view, cell.id, 0, t.edited!)} title="Put the cell back as you'd edited it">
-                        Use this
-                      </Button>
-                    </div>
-                  )}
-                </li>
-              );
-            }
-            if (t.by !== "agent") {
-              return (
-                <li key={t.n} className="cell-turn failed">
-                  <Icon name="alert" size={12} /> {t.body}
-                </li>
-              );
-            }
-            if (t.answer) {
-              return (
-                <li key={t.n} className="cell-turn answer">
-                  <Turn by="agent" dense landed>
-                    <TurnSaid>
-                      <Markdown text={t.body} pinned={t.refs} />
-                    </TurnSaid>
-                    <Calls calls={t.calls ?? []} root={root} />
-                  </Turn>
-                </li>
-              );
-            }
-            const k = all.indexOf(t) + 1;
-            return (
-              <li key={t.n} className="cell-turn version">
-                <div className="cell-version">
-                  <Icon name="sparkle" size={12} />
-                  <span>{all.length > 1 ? `Version ${k}` : "Written"}</span>
-                  <Time iso={t.at} as="clock" className="dim" />
-                  {t !== latest && (
-                    <Button variant="link" onClick={() => fillCell(view, cell.id, k, t.body)} title="Put this version back in the cell">
-                      Use this
-                    </Button>
-                  )}
-                </div>
-                <Calls calls={t.calls ?? []} root={root} />
-                {t.notes && (
-                  <div className={`cell-notes${t === latest ? "" : " old"}`}>
-                    <span className="dim">Its agent's notes, to you</span>
-                    <Markdown text={t.notes} pinned={t.refs} />
-                  </div>
-                )}
-              </li>
-            );
-          })}
-          {cell.answering && (
-            <li className="cell-turn filling">
-              <div className="cell-version">
-                <Spinner size={12} />
-                <span>{askingNow(cell) ? "Answering" : all.length ? "Writing it again" : "Filling it in"}</span>
-              </div>
-              <Calls calls={live} root={root} open live />
-            </li>
-          )}
-        </ol>
-      ) : null}
-      {read.length > 0 && !cell.answering && (
-        <div className="cell-sources">
-          <span className="dim">From</span>
-          {read.map((src) => {
-            const name = sourceName(src);
-            const href = sourceHref(src);
-            const said = src.state === "gone" ? `${name}: gone since this was written` : src.state ? `${name}: changed since this was written` : name;
-            const inner = (
-              <>
-                <Icon name={src.state ? "alert" : "file"} size={11} />
-                {name.length > 40 ? `${name.split("/")[0]}/…/${baseName(src)}` : name}
-              </>
-            );
-            return href ? (
-              <Link key={src.path} to={href} className={chipClass(src.state ? "attention" : undefined, "source-chip")} title={`${said}. Open it in Files.`}>
-                {inner}
-              </Link>
-            ) : (
-              <Chip tone={src.state ? "attention" : undefined} key={src.path} className="source-chip" title={said}>
-                {inner}
-              </Chip>
-            );
-          })}
-        </div>
-      )}
-      {stale && !cell.answering && !unstarted && (
-        <div className="cell-stale">
-          <span>{stale} since this was written.</span>
-          <Button size="small" disabled={busy} onClick={again}>
-            Write it again
-          </Button>
-        </div>
-      )}
-      {unstarted && (
-        <div className="cell-unstarted">
-          <span className="dim">{last?.by === "ws" ? (askingNow(cell) ? "It couldn't be answered." : "It couldn't be filled.") : "Its agent hasn't started."}</span>
-          <Button size="small" disabled={busy} onClick={() => run(onRetry)}>
-            Try again
-          </Button>
-        </div>
-      )}
-      <Composer
-        layout="beside"
-        className="cell-composer"
-        field={box}
-        value={text}
-        onChange={setText}
-        // The key that sends is the first of the two; its other way,
-        // the other.
-        onSend={({ other }) => send(other ? !question : question)}
-        tallest={160}
-        placeholder={
-          question
-            ? "Ask more, or say what to put in the page…"
-            : latest
-              ? "Say what to change: group them by service, drop the last column… Or ask about it."
-              : "Add to what you asked for…"
-        }
-        aria-label={question ? "Ask more, or say what to put in the page" : "Change this cell, or ask about it"}
-        escape="leave"
-      >
-        {question ? (
-          <>
-            <Button size="small" disabled={busy} onClick={() => send(false)} title="Have it written into the page, here: what it's answered, or what you say" keys={sendKeys(sendKey, true)}>
-              Put it in the page
-            </Button>
-            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask: it's answered here, and the page stays as it is" keys={sendKeys(sendKey)}>
-              Ask <SendKeys />
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask about it: it's answered here, and the cell stays as it is" keys={sendKeys(sendKey, true)}>
-              Just ask
-            </Button>
-            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(false)} title="Have the cell written again, this way" keys={sendKeys(sendKey)}>
-              Change <SendKeys />
-            </Button>
-          </>
-        )}
-      </Composer>
-      <div className="cell-panel-foot">
-        {!question && (
-          <Button
-            variant="link"
-            title="Leave what it holds in the page as your own words: no longer a cell"
-            onClick={() => {
-              keepCell(view, cell.id);
-              onClose();
-            }}
-          >
-            Keep as text
-          </Button>
-        )}
-        <Button
-          variant="link"
-          title={question ? "Take the question out of the page" : "Take the cell out of the page, with what it holds"}
-          onClick={() => {
-            dropCell(view, cell.id);
-            onClose();
-          }}
-        >
-          Remove
-        </Button>
-        <span className="spacer" />
-        <span className="dim">{cell.id}</span>
-      </div>
-    </div>
+      </PageBody>
+    </PageFrame>
   );
 }

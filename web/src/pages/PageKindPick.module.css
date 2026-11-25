@@ -1,0 +1,8 @@
+/* A kind of document to start a page as (PageKindPick.tsx): a button,
+   in the accent once it's picked. */
+
+.pick.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}

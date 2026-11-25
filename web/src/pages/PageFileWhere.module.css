@@ -1,0 +1,15 @@
+/* Where a page would be filed (PageFileWhere.tsx). */
+
+.where {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.where.taken {
+  color: var(--red);
+}

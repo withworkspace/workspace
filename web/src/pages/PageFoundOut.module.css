@@ -1,0 +1,7 @@
+/* What was found out about a finding (PageFoundOut.tsx). */
+
+.foundOut {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}

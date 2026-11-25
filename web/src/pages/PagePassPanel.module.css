@@ -1,0 +1,8 @@
+/* A pass over a page, on its tab (PagePassPanel.tsx). What a pass found is
+   kept there, and drawn on the page's words only if you choose: never
+   written into it. */
+
+.panel {
+  max-width: 760px;
+  animation: global(enter) var(--slow) var(--ease);
+}

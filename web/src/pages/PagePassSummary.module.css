@@ -1,0 +1,5 @@
+/* What a pass said of the page as a whole (PagePassSummary.tsx). */
+
+.summary {
+  margin-bottom: var(--space-4);
+}

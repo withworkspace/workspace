@@ -1,0 +1,8 @@
+/* A pass reading the page (PagePassRunning.tsx). */
+
+.running {
+  margin-bottom: var(--space-4);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}

@@ -1,0 +1,9 @@
+/* The pass a finding opened from the page is from (PageNoteFrom.tsx). */
+
+.from {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px 0 12px;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}

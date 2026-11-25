@@ -1,0 +1,16 @@
+/* A file a cell was written from (PageSourceChip.tsx): a chip, and a link
+   to it in Files. */
+
+a.chip {
+  text-decoration: none;
+}
+
+a.chip:hover {
+  color: var(--fg);
+  background: var(--hover);
+}
+
+a.chip:global(.tone-attention):hover {
+  color: var(--tone);
+  filter: brightness(0.95);
+}

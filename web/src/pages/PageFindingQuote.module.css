@@ -1,0 +1,24 @@
+/* The page's words a finding is about (PageFindingQuote.tsx). */
+
+.quote {
+  all: unset;
+  min-width: 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--dim);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+button.quote {
+  cursor: pointer;
+}
+
+button.quote:hover {
+  color: var(--fg);
+  border-left-color: var(--accent);
+}
+
+.quote.lost {
+  text-decoration: line-through;
+}

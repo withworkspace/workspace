@@ -1,0 +1,8 @@
+/* The page, and its map beside it (PageBody.tsx). */
+
+.body.withMap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 236px;
+  gap: 32px;
+  align-items: start;
+}

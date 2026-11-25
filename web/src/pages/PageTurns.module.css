@@ -1,0 +1,15 @@
+/* What's been said in a cell or about a finding (PageTurns.tsx). */
+
+.turns {
+  list-style: none;
+  margin: 0;
+  padding: 8px 12px 2px;
+  display: grid;
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.turns.flush {
+  padding: 0;
+}

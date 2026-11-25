@@ -1,0 +1,67 @@
+/* A thing on the map (PageMapItem.tsx): a heading, a cell, a pass,
+   something open, a file. */
+
+.item {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+  margin-left: -6px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  box-shadow: none;
+  color: var(--dim);
+  font: inherit;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  text-decoration: none;
+  white-space: normal;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.item > span {
+  min-width: 0;
+}
+
+.item:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.item :global(.icon) {
+  flex: none;
+  position: relative;
+  top: 1px;
+}
+
+.item.filled :global(.icon) {
+  color: var(--faint);
+}
+
+.item.filling,
+.item.starting {
+  color: var(--progress);
+}
+
+.item.stale,
+.item.failed,
+.item.moved {
+  color: var(--attention);
+}
+
+.item.open::before {
+  content: "";
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--faint);
+  border-radius: 2px;
+  position: relative;
+  top: 1px;
+}

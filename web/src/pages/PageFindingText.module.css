@@ -1,0 +1,9 @@
+/* What a finding says (PageFindingText.tsx). */
+
+.text :global(.markdown) > :first-child {
+  margin-top: 0;
+}
+
+.text :global(.markdown) > :last-child {
+  margin-bottom: 0;
+}

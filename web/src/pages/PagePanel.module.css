@@ -1,0 +1,27 @@
+/* What's opened over a page's words (PagePanel.tsx): a cell's panel, under
+   its head; a finding, from its words. */
+
+.panel {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  position: absolute;
+  z-index: 20;
+  width: min(440px, 100%);
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-md);
+  animation: global(pop) var(--fast) var(--ease);
+}
+
+/* A finding opened from its words on the page: set in and padded as a
+   comment's card was. */
+.note {
+  margin: 4px 10px 8px 60px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}

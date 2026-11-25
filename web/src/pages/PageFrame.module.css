@@ -1,0 +1,10 @@
+/* A page's frame (PageFrame.tsx): the shell's page, to the width of its
+   words, or wider with the map beside them. */
+
+.frame:global(.page) {
+  max-width: 860px;
+}
+
+.frame.withMap:global(.page) {
+  max-width: 1180px;
+}

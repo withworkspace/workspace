@@ -1,0 +1,25 @@
+/* What a pass is, and Run (PagePassHead.tsx). */
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.about {
+  flex: 1;
+  min-width: 0;
+}
+
+.about p {
+  margin: 0 0 2px;
+}
+
+.about :global(.dim) {
+  font-size: var(--text-sm);
+}
+
+.unavailable {
+  color: var(--red);
+}
