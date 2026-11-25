@@ -166,11 +166,15 @@ function kinds() {
   return [...order[1].matchAll(/Kind\w+/g)].map((m) => value.get(m[0]) ?? fail(`court.go's ${m[0]} has no value`));
 }
 
+// ws is built first, for the tries below, while the fixtures there are
+// still there: the web UI's own code reads some of them (a sample
+// workspace, a test's mission), and doesn't build without them.
+if (spawnSync("just", ["build"], { cwd: here, stdio: ["ignore", 2, 2] }).status !== 0) fail("just build failed");
+
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 writeFileSync(join(out, "kinds.json"), JSON.stringify(kinds(), null, 2) + "\n");
 
-// (First: the web UI is built for the tries below, and its stories read it.)
 // Every case of the court's table (internal/mission/court_test.go), as the
 // cards ws makes of it: each kind of card there is, where no seed leaves
 // a mission.
@@ -180,12 +184,10 @@ const court = spawnSync("go", ["test", "./internal/mission", "-count=1", "-run",
   env: { ...process.env, WS_STORY_FIXTURES: "1" },
 });
 if (court.status !== 0) fail(`the court's cards weren't written:\n${court.stdout}${court.stderr}`);
-let built = false;
 for (const t of tries) {
   t.fullName = `stories-${t.name}`;
-  tryCommand("up", "-n", t.fullName, ...(built ? ["--no-build"] : []), ...t.seeds);
+  tryCommand("up", "-n", t.fullName, "--no-build", ...t.seeds);
   up.push(t.fullName);
-  built = true;
   const n = await capture(t);
   console.error(`${t.name}: ${n} missions`);
 }
