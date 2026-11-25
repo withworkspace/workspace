@@ -18,6 +18,19 @@ type Model struct {
 	About string `json:"about,omitempty"`
 	// Default is the agent's own default, where it says.
 	Default bool `json:"default,omitempty"`
+
+	// Where it sits among the others, where its name says (a picker's
+	// tree): its maker, then the model (its family and version, shown as
+	// Label: "Claude Opus 5.5"), then what this one chooses of that
+	// model: an effort ("" is the model's own), thinking, fast. Those a
+	// name says nothing of are left empty, and it's a model of its own.
+	Vendor   string `json:"vendor,omitempty"`
+	Family   string `json:"family,omitempty"`
+	Version  string `json:"version,omitempty"`
+	Label    string `json:"label,omitempty"`
+	Effort   string `json:"effort,omitempty"`
+	Thinking bool   `json:"thinking,omitempty"`
+	Fast     bool   `json:"fast,omitempty"`
 }
 
 // ModelLister is a harness that can say which models its agent offers.
@@ -67,13 +80,13 @@ func (c *Cursor) Models(ctx context.Context) ([]Model, error) {
 		if m == nil {
 			continue
 		}
-		models = append(models, Model{ID: m[1], Name: m[2], Default: strings.Contains(m[3], "default")})
+		models = append(models, placed(Model{ID: m[1], Name: m[2], Default: strings.Contains(m[3], "default")}))
 	}
 	return models, nil
 }
 
-// Models are Cursor's, as ACP names them: each model once, its effort
-// dropped (cursorACPModel).
+// Models are Cursor's, as ACP names them: each model once, its effort and
+// fast dropped (cursorACPModel), its place in the tree kept.
 func (c *CursorACP) Models(ctx context.Context) ([]Model, error) {
 	cur, err := c.cli()
 	if err != nil {
@@ -91,11 +104,12 @@ func (c *CursorACP) Models(ctx context.Context) ([]Model, error) {
 			continue
 		}
 		seen[id] = true
-		name := m.Name
+		one := m
+		one.ID, one.Effort, one.Fast = id, "", false
 		if id != m.ID {
-			name = id // its CLI name says the effort it's no longer at
+			one.Name = id // its CLI name says the effort it's no longer at
 		}
-		models = append(models, Model{ID: id, Name: name, Default: m.Default})
+		models = append(models, one)
 	}
 	return models, nil
 }
@@ -174,9 +188,16 @@ func (c *Codex) Models(ctx context.Context) ([]Model, error) {
 		if m.DefaultLvl != "" {
 			about += " Its default effort: " + m.DefaultLvl + "."
 		}
-		models = append(models, Model{ID: m.Slug, Name: m.Name, About: strings.TrimSpace(about)})
+		// Each is the model at an effort: one model in a picker.
+		at := placed(Model{ID: m.Slug})
+		at.Label = m.Name
+		one := at
+		one.ID, one.Name, one.About = m.Slug, m.Name, strings.TrimSpace(about)
+		models = append(models, one)
 		for _, l := range m.Levels {
-			models = append(models, Model{ID: m.Slug + "[" + l.Effort + "]", Name: m.Name + ", " + l.Effort, About: l.About})
+			one := at
+			one.ID, one.Name, one.About, one.Effort = m.Slug+"["+l.Effort+"]", m.Name+", "+l.Effort, l.About, l.Effort
+			models = append(models, one)
 		}
 	}
 	return models, nil
