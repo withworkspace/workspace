@@ -1,0 +1,68 @@
+/* What a repo's worktree switches to (FilesSwitchMenu.tsx). */
+
+.menu {
+  position: absolute;
+  z-index: 20;
+  top: 32px;
+  left: -8px;
+  width: max(100%, 300px);
+  max-height: min(420px, 70vh);
+  overflow: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  --backdrop: var(--raised);
+  --well: var(--panel);
+}
+
+.menu li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.menu li.on {
+  background: var(--hover);
+}
+
+.item {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 550;
+}
+
+.sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.ab {
+  font: var(--text-xs) var(--mono);
+  color: var(--dim);
+}
+
+.check {
+  color: var(--accent);
+}
+
+.menu li.none {
+  cursor: default;
+  font-size: var(--text-xs);
+}

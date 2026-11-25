@@ -1,0 +1,10 @@
+/* The conversations about a document (ReaderTalks.tsx). */
+
+/* How long ago each last changed, in a column at its end. */
+.age {
+  min-width: 2.5em;
+  text-align: right;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}

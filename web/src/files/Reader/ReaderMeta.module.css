@@ -1,0 +1,42 @@
+/* What's said of a document under its title (ReaderMeta.tsx). */
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0 0 var(--space-5);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.kind {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.ref {
+  font-size: var(--text-xs);
+  max-width: 420px;
+}
+
+/* Its buttons (Contents, Ask, Edit, Files) keep together at the right of
+   its details, on a line of their own where there isn't room. */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* Ask, by Edit and Files, in the accent. */
+button.ask {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
+button.ask:hover:not(:disabled) {
+  background: var(--accent-soft);
+}

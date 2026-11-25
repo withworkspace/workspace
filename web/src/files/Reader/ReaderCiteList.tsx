@@ -1,0 +1,44 @@
+import type { MouseEvent } from "react";
+import { Link } from "react-router";
+import { cx } from "../../ui/cx";
+import { GroupHead } from "../../ui/GroupHead";
+import { Icon } from "../../ui/Icon";
+import { Row, RowMain, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../../ui/Rows";
+import css from "./ReaderCiteList.module.css";
+
+export interface CiteItem {
+  key: string;
+  to: string;
+  title: string;
+  // Where: its file's name and the line.
+  file: string;
+  line: number;
+  // By a link in it, or naming it.
+  how: "link" | "name" | (string & {});
+  onContextMenu?: (e: MouseEvent) => void;
+}
+
+// ReaderCiteList is documents citing this one, or cited by it: each by its
+// title, and where (by a link in it, or naming it).
+export function ReaderCiteList({ title, items }: { title: string; items: CiteItem[] }) {
+  return (
+    <section className={css.list}>
+      <GroupHead count={items.length}>{title}</GroupHead>
+      <Rows>
+        {items.map((c) => (
+          <Row key={c.key}>
+            <Link to={c.to} className={rowLinkClass()} onContextMenu={c.onContextMenu}>
+              <Icon name="book" size={14} className={rowStatusClass("dim")} />
+              <RowMain>
+                <RowTitle>{c.title}</RowTitle>
+              </RowMain>
+              <span className={cx("dim mono", css.at)} title={c.how === "link" ? "A link in it" : "It names it"}>
+                {c.file}:{c.line}
+              </span>
+            </Link>
+          </Row>
+        ))}
+      </Rows>
+    </section>
+  );
+}

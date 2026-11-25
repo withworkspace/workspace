@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { type ArtifactContent, docAddress, docTo, filesTo, getDoc, GROUND, placeOf, type SpaceActivity, type SpaceDoc, type SpaceKind } from "../api";
-import { goToSection, useSections } from "../files/Contents";
+import { goToSection } from "../files/Reader/goToSection";
+import { useSections } from "../files/Reader/useSections";
 import { useLatest } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Banner } from "../ui/Banner";

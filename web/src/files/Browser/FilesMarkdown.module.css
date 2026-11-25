@@ -1,0 +1,5 @@
+/* A markdown file that's open, rendered (FilesMarkdown.tsx). */
+
+.markdown {
+  padding: 8px 20px calc(64px - var(--foot-height, 0px));
+}

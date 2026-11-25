@@ -1,15 +1,15 @@
 import { pageSocket } from "../socket";
 import { type ReactNode, useEffect } from "react";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { type AppAt, getWorktreeRuns, type WorktreeRunsInfo } from "../api";
 import { AppFrame } from "../apps/AppPage";
 import { useLoaded } from "../load";
-import { Icon, type IconName, icons } from "../ui/Icon";
+import { type IconName, icons } from "../ui/Icon";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
-import { type BrowserProps, FileBrowser } from "./Explorer";
+import { type BrowserProps, FileBrowser } from "./Browser/FileBrowser";
+import { FilesTab, FilesTabs } from "./Browser/FilesTabs";
 import { WorktreeRuns } from "./Runs";
-import { Count } from "../ui/Count";
 
 // A worktree's tabs, on its repo's page: its Files, its Runs, and each of
 // its apps (a recipe of its ws.repo.toml with a page), its run framed. The
@@ -42,19 +42,13 @@ export function useWorktreeTabs(at: AppAt): WorktreeTabs {
     return { search: q ? `?${q}` : "" };
   };
   const running = info?.runs.filter((r) => r.state === "running").length ?? 0;
-  const tab = (v: string, label: string, icon: IconName, count?: number) => (
-    <Link key={v} to={to(v)} className="worktree-tab" aria-current={view === v ? "page" : undefined} replace>
-      <Icon name={icon} size={14} />
-      {label}
-      {!!count && <Count className="worktree-tab-count">{count}</Count>}
-    </Link>
-  );
+  const tab = (v: string, label: string, icon: IconName, count?: number) => <FilesTab key={v} to={to(v)} icon={icon} label={label} count={count} current={view === v} />;
   const tabs = (
-    <nav className="worktree-tabs" aria-label="What's here">
+    <FilesTabs>
       {tab("files", "Files", "file")}
       {tab("runs", "Runs", "play", running)}
       {info?.apps.map((a) => tab(a.name, a.title, a.icon && a.icon in icons ? (a.icon as IconName) : "box"))}
-    </nav>
+    </FilesTabs>
   );
 
   let other: ReactNode;

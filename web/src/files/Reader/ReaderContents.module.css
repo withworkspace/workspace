@@ -1,0 +1,96 @@
+/* The reader's whole contents, as a menu (ReaderContents.tsx). */
+
+.menu {
+  position: fixed;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  width: min(340px, calc(100vw - 16px));
+  max-height: min(420px, 70vh);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  --backdrop: var(--raised);
+  --well: var(--panel);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.head b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.head .action {
+  margin-left: auto;
+  flex: none;
+  color: var(--accent);
+  font-size: var(--text-xs);
+}
+
+.list {
+  display: grid;
+  padding: 4px;
+  overflow: auto;
+}
+
+.empty {
+  margin: 0;
+  color: var(--faint);
+  font-size: var(--text-sm);
+}
+
+.list .empty {
+  padding: 5px 8px;
+}
+
+.item {
+  justify-content: flex-start;
+  min-height: 0;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  font-weight: 400;
+  text-align: left;
+  white-space: normal;
+}
+
+.item.l3 {
+  padding-left: 22px;
+  color: var(--dim);
+}
+
+.item.on {
+  background: var(--selected);
+  color: var(--fg);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: var(--text-xs);
+}
+
+@media print {
+  .menu {
+    display: none !important;
+  }
+}

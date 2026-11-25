@@ -1,0 +1,7 @@
+/* The file's pane with no file open (FilesOverview.tsx). */
+
+.overview {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 32px calc(64px - var(--foot-height, 0px));
+}

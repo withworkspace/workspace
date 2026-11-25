@@ -1,0 +1,35 @@
+/* A document read (Reader.tsx): its column, and its contents beside it
+   where there's room for them (../reading.ts says how much). */
+
+.reader.withRail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  column-gap: 40px;
+  align-items: start;
+}
+
+.column {
+  min-width: 0;
+  position: relative;
+}
+
+/* A heading gone to sits below the top, and below the pill. */
+.reader :global(.markdown) [data-anchor] {
+  scroll-margin-top: var(--space-4);
+}
+
+.reader.folded :global(.markdown) [data-anchor] {
+  scroll-margin-top: 60px;
+}
+
+.reader :global(.markdown) [data-anchor]:global(.flash) {
+  animation: global(flash) 1.6s var(--ease);
+  border-radius: var(--radius-sm);
+}
+
+/* Printed, it's the text alone: its contents beside it aren't. */
+@media print {
+  .reader.withRail {
+    display: block;
+  }
+}

@@ -1,0 +1,34 @@
+/* What the marks beside the line numbers mean (FilesChangeLegend.tsx). */
+
+.legend {
+  display: inline-flex;
+  gap: 10px;
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend i {
+  width: 4px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend i.added {
+  background: var(--green-fill);
+}
+
+.legend i.modified {
+  background: var(--accent);
+}
+
+.legend i.deleted {
+  width: 10px;
+  height: 2px;
+  background: var(--red-fill);
+}

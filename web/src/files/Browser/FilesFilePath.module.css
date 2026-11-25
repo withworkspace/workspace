@@ -1,0 +1,39 @@
+/* Where the open file is (FilesFilePath.tsx): its folders, its name. */
+
+.path {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+  font: var(--text-sm) var(--mono);
+}
+
+.path .crumb {
+  color: var(--dim);
+}
+
+.path .crumb:hover {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.path .sep {
+  color: var(--faint);
+  padding: 0 3px;
+}
+
+.path strong {
+  font-weight: 600;
+}
+
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.copy {
+  margin-left: 8px;
+}

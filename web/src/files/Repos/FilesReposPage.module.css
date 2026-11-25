@@ -1,0 +1,11 @@
+/* The Files page with no repo open (FilesReposPage.tsx). */
+
+.page {
+  display: grid;
+  grid-template-columns: 184px minmax(0, 1fr);
+  height: 100%;
+}
+
+.page.narrow {
+  grid-template-columns: minmax(0, 1fr);
+}

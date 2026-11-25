@@ -1,0 +1,44 @@
+/* The tree's pane (FilesTree.tsx): its tools, then its rows. */
+
+.tree {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--line);
+}
+
+/* Panes (as a review's): the first beside the app's rail is clear, so the
+   horizon shows through it, and those right of it are solid. On Files the
+   repos are clear and the tree and the file solid; a capsule's explorer
+   has no repos, so its tree is clear. */
+.tree.panel {
+  --backdrop: var(--panel);
+  --well: var(--panel);
+  background: var(--panel);
+}
+
+.head {
+  display: grid;
+  gap: 4px;
+  padding: 5px 8px 5px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.rows {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 6px 40px;
+  font-size: var(--text-sm);
+}
+
+.note {
+  padding: 8px 10px;
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 860px) {
+  .tree {
+    border-right: 0;
+  }
+}

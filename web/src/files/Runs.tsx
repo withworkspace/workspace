@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { endRun, type RecipeInfo, type RunDetail, runInWorktree, type WorktreeRunsInfo } from "../api";
 import type { Reload } from "../load";
 import { ServiceItem, TaskItem } from "../runs/RunItem";
@@ -8,15 +8,16 @@ import { RunPanel } from "../runs/RunPanel";
 import { pickedIn, placeRuns, runId, type ServiceRow } from "../runs/runRows";
 import { Button } from "../ui/Button";
 import { Empty } from "../ui/Empty";
-import { GroupHead } from "../ui/GroupHead";
 import { Icon } from "../ui/Icon";
-import { Rows } from "../ui/Rows";
 import { Spinner } from "../ui/Spinner";
 import { humanError } from "../ui/text";
 import { toast } from "../ui/toast";
 import { useMedia } from "../ui/useMedia";
 import { useWorkspace } from "../workspace/store";
-import css from "./Runs.module.css";
+import { FilesRuns } from "./Browser/FilesRuns";
+import { FilesRunsBack } from "./Browser/FilesRunsBack";
+import { FilesRunsGroup } from "./Browser/FilesRunsGroup";
+import { FilesRunsNone } from "./Browser/FilesRunsNone";
 
 // A ground's or capsule's Runs tab on the Files page (ws run), laid out as
 // its Files are: a list beside the one picked. The list is its services,
@@ -58,12 +59,12 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
 
   if (!place.apps.length && !place.tools.length && !place.tasks.length && !taskRecipes.length)
     return (
-      <div className={css.none}>
+      <FilesRunsNone>
         <Empty icon="play" title="Nothing runs here">
           Nothing's run in it lately, and its ws.repo.toml has no recipes: a repo says how it's run as [run.service.&lt;name&gt;] and [run.task.&lt;name&gt;] there, and ws run
           starts one from a terminal.
         </Empty>
-      </div>
+      </FilesRunsNone>
     );
 
   // to is this tab's address with one thing picked, or none (the list).
@@ -107,25 +108,16 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
   const isPicked = (s: ServiceRow | RunDetail) => !narrow && (picked?.service === s || picked?.task === s);
   const services = (title: string, rows: ServiceRow[]) =>
     rows.length > 0 && (
-      <section className={css.group}>
-        <GroupHead count={rows.length} className={css.groupHead}>
-          {title}
-        </GroupHead>
-        <Rows className={css.rows}>
-          {rows.map((s) => (
-            <ServiceItem key={s.name} s={s} to={to({ service: s.name })} picked={isPicked(s)} />
-          ))}
-        </Rows>
-      </section>
+      <FilesRunsGroup title={title} count={rows.length}>
+        {rows.map((s) => (
+          <ServiceItem key={s.name} s={s} to={to({ service: s.name })} picked={isPicked(s)} />
+        ))}
+      </FilesRunsGroup>
     );
   const idleTasks = taskRecipes.filter((rc) => !running.has(rc.name));
 
   const asked = !!(ask.service || ask.run);
-  const back = narrow && (
-    <Link to={to()} replace className={css.back} aria-label="Its runs" title="Its runs">
-      <Icon name="arrow-left" size={14} />
-    </Link>
-  );
+  const back = narrow && <FilesRunsBack to={to()} />;
   const panel = (() => {
     if (picked?.task) {
       const r = picked.task;
@@ -176,28 +168,28 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
       );
     }
     return (
-      <div className={css.none}>
+      <FilesRunsNone>
         <Empty icon="play" title="Nothing's run here lately">
           Run one of its tasks and it's shown here, with all it printed.
         </Empty>
-      </div>
+      </FilesRunsNone>
     );
   })();
 
   return (
-    <div className={css.runs}>
-      {(!narrow || !asked) && (
-        <aside className={css.list} aria-label="Its runs">
-          {services("Apps", place.apps)}
-          {services("Tools", place.tools)}
-          {(place.tasks.length > 0 || taskRecipes.length > 0) && (
-            <section className={css.group}>
-              <GroupHead count={place.tasks.length || undefined} className={css.groupHead}>
-                Tasks
-              </GroupHead>
-              {idleTasks.length > 0 && (
-                <div className={css.run}>
-                  {idleTasks.map((rc) => (
+    <FilesRuns
+      list={
+        (!narrow || !asked) && (
+          <>
+            {services("Apps", place.apps)}
+            {services("Tools", place.tools)}
+            {(place.tasks.length > 0 || taskRecipes.length > 0) && (
+              <FilesRunsGroup
+                title="Tasks"
+                count={place.tasks.length || undefined}
+                start={
+                  idleTasks.length > 0 &&
+                  idleTasks.map((rc) => (
                     <Button
                       size="small"
                       key={rc.name}
@@ -207,23 +199,19 @@ export function WorktreeRuns({ repo, name, value, reload }: { repo: string; name
                     >
                       {busy?.id === rc.name ? <Spinner size={11} /> : <Icon name="play" size={11} />} {rc.title || rc.name}
                     </Button>
-                  ))}
-                </div>
-              )}
-              {place.tasks.length === 0 ? (
-                <p className={css.quiet}>None of its tasks has run here lately. What a task comes to is kept a month, with the ten runs of it before.</p>
-              ) : (
-                <Rows className={css.rows}>
-                  {place.tasks.map((r) => (
-                    <TaskItem key={runId(r)} r={r} title={r.recipe ? recipes.get(r.recipe)?.title : undefined} to={to({ run: runId(r) })} picked={isPicked(r)} />
-                  ))}
-                </Rows>
-              )}
-            </section>
-          )}
-        </aside>
-      )}
-      {(!narrow || asked) && panel}
-    </div>
+                  ))
+                }
+                quiet={place.tasks.length === 0 && "None of its tasks has run here lately. What a task comes to is kept a month, with the ten runs of it before."}
+              >
+                {place.tasks.map((r) => (
+                  <TaskItem key={runId(r)} r={r} title={r.recipe ? recipes.get(r.recipe)?.title : undefined} to={to({ run: runId(r) })} picked={isPicked(r)} />
+                ))}
+              </FilesRunsGroup>
+            )}
+          </>
+        )
+      }
+      panel={(!narrow || asked) && panel}
+    />
   );
 }

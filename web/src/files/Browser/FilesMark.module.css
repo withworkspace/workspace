@@ -1,0 +1,40 @@
+/* A file's mark (FilesMark.tsx): its change since the branch point, in
+   its colour, or a blank of the same size so names line up. */
+
+.mark {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex: none;
+}
+
+.status {
+  font: 600 var(--text-xs) var(--font);
+  color: var(--amber);
+}
+
+.status.added {
+  color: var(--green);
+}
+
+.status.deleted {
+  color: var(--red);
+}
+
+.status.renamed,
+.status.copied {
+  color: var(--violet);
+}
+
+.mark.status {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}

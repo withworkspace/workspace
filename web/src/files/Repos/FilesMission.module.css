@@ -1,0 +1,18 @@
+/* The mission a capsule is for (FilesMission.tsx). */
+
+.mission {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 44ch;
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.mission span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mission:hover {
+  color: var(--fg);
+}

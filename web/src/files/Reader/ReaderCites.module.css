@@ -1,0 +1,7 @@
+/* What's listed below a document's text (ReaderCites.tsx). */
+
+.cites {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-6) 0 var(--space-4);
+}
