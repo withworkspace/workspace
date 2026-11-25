@@ -4,6 +4,7 @@ import { Decoration, DecorationSet, type EditorView, type NodeView } from "prose
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Mermaid } from "../markdown/Mermaid";
+import { segmentClass, segmentedClass } from "../ui/Segmented";
 import { view as openViewer } from "../ui/Viewer";
 import { highlightCode, loadHighlighter } from "../review/highlight";
 import { drawsDiagrams, isDiagram, showSource, showsSource } from "./diagrams";
@@ -135,13 +136,15 @@ class Diagram implements NodeView {
     this.dom.className = "diagram-block";
 
     this.toggle = document.createElement("div");
-    this.toggle.className = "segmented diagram-toggle";
+    this.toggle.className = segmentedClass({}, "diagram-toggle");
     this.toggle.contentEditable = "false";
     this.toggle.setAttribute("role", "group");
     this.toggle.setAttribute("aria-label", "Show the diagram or its source");
     const button = (label: string, source: boolean) => {
       const b = document.createElement("button");
       b.type = "button";
+      b.className = segmentClass();
+      b.dataset.ui = "";
       b.textContent = label;
       // The button takes the click, not the editor (which would move the
       // cursor there).
@@ -198,6 +201,9 @@ class Diagram implements NodeView {
     this.dom.classList.toggle("shows-source", source);
     this.buttons.drawn.setAttribute("aria-pressed", String(!source));
     this.buttons.source.setAttribute("aria-pressed", String(source));
+    // A segment's look says which is chosen by data-selected.
+    this.buttons.drawn.toggleAttribute("data-selected", !source);
+    this.buttons.source.toggleAttribute("data-selected", source);
     this.drawing.hidden = source;
     this.code.hidden = !source;
     if (!source) this.draw();
