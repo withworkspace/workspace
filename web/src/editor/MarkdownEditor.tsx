@@ -8,6 +8,7 @@ import { type Command, EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { forwardRef, type ReactNode, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { markdownClass } from "../markdown/LazyMarkdown";
 import { Icon, type IconName } from "../ui/Icon";
 import { useAutosize } from "../ui/useAutosize";
 import { type CellHost, cellPlugins, cellView } from "./cells";
@@ -181,7 +182,7 @@ const Rich = forwardRef<RichHandle, RichProps>(function Rich(props, ref) {
         ],
       }),
       nodeViews: props.cells ? { ...nodeViews, cell: cellView(() => p.current.cells) } : nodeViews,
-      attributes: { class: "markdown pm", role: "textbox", "aria-multiline": "true", "aria-label": props.label, spellcheck: "true" },
+      attributes: { class: `markdown pm ${markdownClass}`, role: "textbox", "aria-multiline": "true", "aria-label": props.label, spellcheck: "true" },
       handleDOMEvents: {
         focus: () => {
           p.current.onFocus?.();

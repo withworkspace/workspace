@@ -3,6 +3,8 @@ import { NodeSelection, Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet, type EditorView, type NodeView } from "prosemirror-view";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { codeBlockClass, codeLangClass } from "../markdown/CodeBlock";
+import { markdownCodeClass, markdownDiagramClass } from "../markdown/LazyMarkdown";
 import { Mermaid } from "../markdown/Mermaid";
 import { segmentClass, segmentedClass } from "../ui/Segmented";
 import { view as openViewer } from "../ui/Viewer";
@@ -84,9 +86,9 @@ class Code implements NodeView {
 
   constructor(private node: PMNode) {
     this.dom = document.createElement("pre");
-    this.dom.className = "code-block";
+    this.dom.className = `code-block ${codeBlockClass} ${markdownCodeClass}`;
     this.lang = document.createElement("span");
-    this.lang.className = "code-lang";
+    this.lang.className = codeLangClass;
     this.lang.contentEditable = "false";
     this.contentDOM = document.createElement("code");
     this.dom.append(this.lang, this.contentDOM);
@@ -175,9 +177,9 @@ class Diagram implements NodeView {
     this.root = createRoot(this.drawing);
 
     this.code = document.createElement("pre");
-    this.code.className = "code-block";
+    this.code.className = `code-block ${codeBlockClass} ${markdownCodeClass}`;
     this.lang = document.createElement("span");
-    this.lang.className = "code-lang";
+    this.lang.className = codeLangClass;
     this.lang.contentEditable = "false";
     this.lang.textContent = node.attrs.lang;
     this.contentDOM = document.createElement("code");
@@ -213,7 +215,7 @@ class Diagram implements NodeView {
     const code = this.node.textContent;
     if (code === this.drawn) return;
     this.drawn = code;
-    this.root.render(createElement(Mermaid, { code, viewable: false }));
+    this.root.render(createElement(Mermaid, { code, viewable: false, className: "mermaid", drawnClass: markdownDiagramClass, codeClass: markdownCodeClass }));
   }
 
   update(node: PMNode, decorations: readonly Decoration[]): boolean {

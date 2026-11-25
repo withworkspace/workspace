@@ -1,0 +1,34 @@
+/* A ```mermaid block drawn as its diagram (Mermaid.tsx). */
+
+.mermaid {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--well);
+  overflow-x: auto;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* As written, while Mermaid loads. */
+.loading {
+  opacity: 0.5;
+}
+
+/* What's wrong, over it as written. */
+.error > div {
+  color: var(--amber);
+  font-size: var(--text-sm);
+  margin-bottom: 4px;
+}
+
+@media print {
+  .mermaid {
+    break-inside: avoid;
+  }
+}

@@ -2,6 +2,7 @@ import "prosemirror-view/style/prosemirror.css";
 import { EditorState, Plugin } from "prosemirror-state";
 import { Decoration, DecorationSet, EditorView } from "prosemirror-view";
 import { useEffect, useMemo, useRef } from "react";
+import { markdownClass } from "../markdown/LazyMarkdown";
 import { type Change, trackChanges } from "./track";
 import { highlighting, nodeViews } from "./views";
 
@@ -54,7 +55,7 @@ export default function TrackedDoc({ text, changes, focus, settling, onSettle, o
       state: EditorState.create({ doc: tracked.doc, plugins: [highlighting, new Plugin({ props: { decorations: () => set } })] }),
       editable: () => false,
       nodeViews,
-      attributes: { class: "markdown pm tracked", "aria-label": "The document with its suggested edits" },
+      attributes: { class: `markdown pm tracked ${markdownClass}`, "aria-label": "The document with its suggested edits" },
       handleClick: (_view, _pos, event) => {
         const id = (event.target as HTMLElement).closest("[data-change]")?.getAttribute("data-change");
         if (id) on.current.onFocus?.(id);

@@ -13,6 +13,8 @@ import { RefLabel } from "./RefLabel";
 import { RefName } from "./RefName";
 import type { ThingRecord } from "./thing";
 import { ThingView } from "./ThingView";
+import { markdownClass } from "../markdown/LazyMarkdown";
+import { cx } from "../ui/cx";
 
 // Refs, from their parts: names in what's read, of each kind and shape,
 // with what's said after them, in markdown and in words that say
@@ -48,7 +50,7 @@ export const Names: StoryObj = {
     <div className="page" style={{ display: "grid", gap: 18, maxWidth: 720 }}>
       <div>
         <p className="dim">In markdown</p>
-        <div className="markdown">
+        <div className={cx("markdown", markdownClass)}>
           <p>{names}</p>
         </div>
       </div>
