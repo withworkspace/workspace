@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { type PluginProposalItem, type TalkProposal } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
-import { pluginIcon } from "../plugins/Plugin";
+import { pluginIcon } from "../plugins/pluginIcon";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { Inline } from "../ui/Inline";

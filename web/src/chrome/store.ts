@@ -92,7 +92,7 @@ interface ChromeStore {
   arranging: boolean;
   // The daemon was shut down from this window: the page went with it.
   closed: boolean;
-  // What a plugin's page in the frame says (plugins/Plugin.tsx), for the
+  // What a plugin's page in the frame says (plugins/PluginFrame.tsx), for the
   // shell, far from it in the tree. dim: its app has a backdrop up, which
   // can only dim the frame, so the shell dims what's beside the frame in
   // the same scrim, and the two read as one. here: what it shows beyond

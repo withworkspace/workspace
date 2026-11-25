@@ -22,7 +22,7 @@ import { RunsPage } from "./runs/Runs";
 import { useRefs } from "./refs/known";
 import type { Known } from "./refs/refs";
 import { hereAt } from "./shell/here";
-import { PluginPage } from "./plugins/Plugin";
+import { PluginPage } from "./plugins/PluginPage";
 import { RefsProvider } from "./refs/known";
 import { SettingsPage, settingsKeys } from "./settings/Settings";
 import { pageKeys } from "./pages/Pages";

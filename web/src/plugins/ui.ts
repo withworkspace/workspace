@@ -8,13 +8,13 @@ import { type Hovering, hovering } from "./hover";
 // name (ws:ui-open): what each is, how it behaves and what it does is
 // defined here in ws, never by the plugin. The page says which, what it's
 // about, and where on its page it's asked from (a box), and ws draws it
-// by there, over the frame (Uis.tsx). What comes of one that ws closes
-// goes back to the page (ws:ui-closed).
+// by there, over the frame (Uis/FrameUiLayer.tsx). What comes of one that
+// ws closes goes back to the page (ws:ui-closed).
 //
 // A new UI is a name in the frame protocol's V1.Uis, with what it's given
-// and what comes of it; its kind here; and what draws it, in Uis.tsx.
-// Both lists are typed by the protocol's names, so neither can be
-// forgotten.
+// and what comes of it; its kind here; and what draws it, in
+// Uis/FrameUi.tsx. Both lists are typed by the protocol's names, so
+// neither can be forgotten.
 
 // Asked is one of ws's UIs as a page asked for it.
 export interface Asked {
@@ -48,7 +48,7 @@ export const kinds: Readonly<Record<V1.UiName, UiKind>> = {
     refuses: (asked) => (typeof asked.with.ref === "string" && asked.with.ref && asked.box ? undefined : "ref-card is asked for with a ref, and the box of its words."),
   },
   // One of the plugin's own things put in a repo, and saved there, by
-  // the button that asked (ThingUis.tsx).
+  // the button that asked (Uis/ThingPromoteUi.tsx, Uis/ThingSaveUi.tsx).
   "thing-promote": { as: "open", refuses: (asked) => aboutThing("thing-promote", asked) },
   "thing-save": { as: "open", refuses: (asked) => aboutThing("thing-save", asked) },
 };

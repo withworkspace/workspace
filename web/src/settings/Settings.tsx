@@ -13,7 +13,7 @@ import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { useTheme } from "../ui/theme";
 import { forgetModels, valueSaid } from "./controls";
-import { PluginsSection } from "../plugins/Plugins";
+import { PluginsSection } from "../plugins/Settings/PluginsSection";
 import { ProcessAbout, ProcessFile } from "./Process";
 import { Repos } from "./Repos";
 import { Updates } from "./Updates";

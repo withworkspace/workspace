@@ -1,0 +1,9 @@
+/* A save of a plugin's thing to its repo (ThingSave.tsx): a line of how
+   it's going. */
+
+.line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
