@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import type { DiffFile } from "../api";
 import { Icon, type IconName } from "../ui/Icon";
 import { keyProps } from "../ui/keyHint";
-import { baseOf, dirOf, groupByOrder, groupFiles, type Order } from "./files";
+import { groupByOrder, groupFiles, type Order } from "./files";
+import { ReviewFiles } from "./ReviewFiles";
 import type { FileState } from "./model";
 import { Button } from "../ui/Button";
 import { ToggleButton } from "../ui/ToggleButton";
@@ -114,59 +115,7 @@ export function FileList({
           <bdi>{common}</bdi>
         </div>
       )}
-      {groups.map((g) => (
-        <section key={g.key} className="file-group">
-          {(groups.length > 1 || g.skim) && (
-            <div className={`file-group-head${g.skim || g.named ? " skim" : " cut-left"}`} title={g.title}>
-              <bdi>{g.label || "./"}</bdi>
-              {g.named && g.skim && <span className="dim"> · to skim</span>}
-            </div>
-          )}
-          <ul>
-            {g.files.map((i) => {
-              const f = files[i];
-              const s = states[i];
-              const n = counts[f.path] ?? 0;
-              const fn = found?.[f.path] ?? 0;
-              return (
-                <li
-                  key={f.path}
-                  className={`${current && here === i ? "here" : ""} ${s.viewed || s.unchanged ? "viewed" : ""}`}
-                  onClick={() => onPick(`${i}`)}
-                  title={`${f.path}${s.unchanged ? ": unchanged since you reviewed it" : guideNotes?.[f.path] ? `: ${guideNotes[f.path]}` : ""}`}
-                >
-                  <span className={`fstatus s-${f.status}`} title={f.status}>
-                    {f.status === "added" ? <Icon name="plus" size={11} /> : f.status === "deleted" ? <Icon name="minus" size={11} /> : f.status === "renamed" ? <Icon name="arrow-right" size={11} /> : <span className="fdot" />}
-                  </span>
-                  <span className="fname">{baseOf(f.path)}</span>
-                  {(g.skim || g.named) && (
-                    <span className="fdir cut-left">
-                      <bdi>{dirOf(f.path)}</bdi>
-                    </span>
-                  )}
-                  {fn > 0 && (
-                    <span className="note-count found-count" title={`${fn} ${fn === 1 ? "finding" : "findings"} of a pass, still open`}>
-                      <Icon name="sparkle" size={11} />
-                      {fn}
-                    </span>
-                  )}
-                  {n > 0 && (
-                    <span className="note-count" title={`${n} ${n === 1 ? "comment" : "comments"}`}>
-                      <Icon name="message" size={11} />
-                      {n}
-                    </span>
-                  )}
-                  <span className="counts">
-                    {f.additions > 0 && <span className="plus">+{f.additions}</span>}
-                    {f.deletions > 0 && <span className="minus">−{f.deletions}</span>}
-                  </span>
-                  <span className="check">{s.viewed ? <Icon name="check" size={12} /> : null}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+      <ReviewFiles files={files} groups={groups} states={states} here={current ? here : undefined} counts={counts} found={found} notes={guideNotes} onPick={onPick} />
     </>
   );
 }

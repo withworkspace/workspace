@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
-import { type FileTree, getTree, pageOpenTo } from "../../api";
+import { type FileTree, getTree, pageOpenTo, type TreeFile } from "../../api";
 import { useKeys, useOwnCodeSearch } from "../../keys";
 import { useHighlighter } from "../../review/highlight";
 import { Button } from "../../ui/Button";
@@ -8,6 +8,8 @@ import { Empty } from "../../ui/Empty";
 import { ErrorCard } from "../../ui/ErrorCard";
 import { Loading } from "../../ui/Loading";
 import { toast } from "../../ui/toast";
+import { Tree, type TreeControl } from "../../ui/Tree";
+import { foldersOf, leavesOf, type TreeNode } from "../../ui/treeNodes";
 import { useMedia } from "../../ui/useMedia";
 import { useTitle } from "../../ui/useTitle";
 import { CodeFinder } from "../CodeFinder";
@@ -19,13 +21,13 @@ import { FilesBody, FilesOther } from "./FilesBody";
 import { FilesExplorer } from "./FilesExplorer";
 import { FileOverview } from "./FileOverview";
 import { FilesPanes } from "./FilesPanes";
-import { FilesTree } from "./FilesTree";
-import { FilesTreeRow } from "./FilesTreeRow";
+import { FilesTree, filesTreeClass } from "./FilesTree";
+import { filesTreeLook } from "./filesTreeLook";
 import { FilesTreeTools } from "./FilesTreeTools";
 import { FilesView } from "./FilesView";
 import { FilesOverview } from "./FilesOverview";
 import { otherWords, paneChoices, paneWords, type Panes, setPanes, usePanes } from "./panes";
-import { ancestors, baseName, buildTree, flatten, type Node, type Row } from "./tree";
+import { ancestors, baseName, changedIn, filesTree } from "./tree";
 import { branchName, isMarkdown } from "./words";
 
 // The file explorer: a worktree's files as they are now, without an
@@ -108,28 +110,36 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
   const files = tree?.files ?? [];
   const changed = useMemo(() => files.filter((f) => f.status), [files]);
   const listed = changedOnly ? changed : files;
-  const nodes = useMemo(() => buildTree(listed), [listed]);
+  const nodes = useMemo(() => filesTree(listed), [listed]);
+  const folders = useMemo(() => foldersOf(nodes), [nodes]);
   const byPath = useMemo(() => new Map(files.map((f) => [f.path, f])), [files]);
 
   // Folders open: those you've opened, and every one a file you open is
-  // in. Showing only what's changed, all are open: it's a short list.
-  const [open, setOpen] = useState<Set<string>>(() => new Set(ancestors(path)));
+  // in. Showing only what's changed, all are open but those you've
+  // folded: it's a short list.
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set(ancestors(path)));
+  const [shut, setShut] = useState<ReadonlySet<string>>(new Set());
   useEffect(() => {
     if (path) setOpen((o) => (ancestors(path).every((a) => o.has(a)) ? o : new Set([...o, ...ancestors(path)])));
   }, [path]);
-  const isOpen = useCallback((n: Node) => changedOnly || open.has(n.path), [changedOnly, open]);
-  const rows = useMemo(() => flatten(nodes, isOpen), [nodes, isOpen]);
+  const opened = useMemo(() => (changedOnly ? new Set(folders.filter((f) => !shut.has(f))) : open), [changedOnly, folders, shut, open]);
+  const setOpened = (next: Set<string>) => (changedOnly ? setShut(new Set(folders.filter((f) => !next.has(f)))) : setOpen(next));
+  // A folder says how many changed files are in it, among all of them.
+  const counts = useMemo(() => (changedOnly ? undefined : changedIn(nodes)), [changedOnly, nodes]);
+  const look = useCallback((n: TreeNode<TreeFile>, at: { open: boolean }) => filesTreeLook(n, at, counts), [counts]);
 
-  // The tree's cursor: a row, by its path.
-  const [cursor, setCursor] = useState(path);
-  useEffect(() => {
-    if (path) setCursor(path);
-  }, [path]);
-  const at = Math.max(0, rows.findIndex((r) => r.node.path === cursor));
-  const treeRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    treeRef.current?.querySelector(`[data-path="${CSS.escape(cursor)}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [cursor, rows.length]);
+  // The tree's keys are its own (ui/Tree) while the focus is in it; the
+  // page's keys for them (j, k, o…) press them there from anywhere.
+  const treeControl = useRef<TreeControl>(null);
+  const press = (key: string) => () => treeControl.current?.press(key);
+  // A folder as the tree has it: one that holds only a folder is a row
+  // with it, under the inner one's path.
+  const rowOf = (folder: string) => folders.find((f) => f === folder || f.startsWith(`${folder}/`)) ?? folder;
+  const reveal = (folder: string) => {
+    const row = rowOf(folder);
+    setOpen((o) => new Set([...o, ...ancestors(`${row}/x`)]));
+    treeControl.current?.go(row);
+  };
 
   const select = (p: string) => {
     if (p === path) return;
@@ -139,24 +149,21 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
     if (changedOnly && !byPath.get(p)?.status) next.delete("only");
     setParams(next);
   };
-  const toggle = (n: Node, want?: boolean) =>
-    setOpen((o) => {
-      const s = new Set(o);
-      const opening = want ?? !s.has(n.path);
-      if (opening) s.add(n.path);
-      else s.delete(n.path);
-      return s;
-    });
   // A markdown file opens as a page, tied to it: edited with the page's
   // tools, and saved back when you say. ⏎ on the file that's open goes there.
   const docFor = (p: string) => (docOf && isMarkdown(p) && byPath.has(p) ? pageOpenTo(docOf(p)) : undefined);
-  const activate = (r?: Row, again = false) => {
-    if (!r) return;
-    setCursor(r.node.path);
-    if (r.node.dir) return toggle(r.node);
-    const doc = again && r.node.path === path ? docFor(path) : undefined;
+  // A file picked in the tree opens; ⏎ on the one that's open goes to it
+  // as a page. (o and a press don't: entered says which it was.)
+  const entered = useRef(false);
+  const pick = (n: TreeNode<TreeFile>) => {
+    const doc = entered.current && n.id === path ? docFor(path) : undefined;
     if (doc) navigate(doc);
-    else select(r.node.path);
+    else select(n.id);
+  };
+  const enter = () => {
+    entered.current = true;
+    treeControl.current?.press("Enter");
+    entered.current = false;
   };
   const setChangedOnly = (on: boolean) => {
     const next = new URLSearchParams(params);
@@ -165,7 +172,7 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
     setParams(next, { replace: true });
   };
   // The changed files in the tree's order, for [ and ].
-  const changedOrder = useMemo(() => flatten(buildTree(changed), () => true).filter((r) => !r.node.dir).map((r) => r.node.path), [changed]);
+  const changedOrder = useMemo(() => leavesOf(filesTree(changed)).map((n) => n.id), [changed]);
   const stepChanged = (d: number) => {
     if (!changedOrder.length) return;
     const i = changedOrder.indexOf(path);
@@ -180,7 +187,6 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
     const next = new URLSearchParams(params);
     next.set("path", p);
     if (changedOnly && !byPath.get(p)?.status) next.delete("only");
-    setCursor(p);
     navigate({ search: `?${next}`, hash: `#L${line}` });
   };
   // Following a name opens its definition here; b comes back, as many
@@ -204,27 +210,20 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
   useEffect(() => {
     if (!rendersAt(location.hash)) setPreview(false);
   }, [location.hash, path]);
-  const closeOrUp = () => {
-    const r = rows[at];
-    if (!r) return;
-    if (r.node.dir && isOpen(r.node) && !changedOnly) return toggle(r.node, false);
-    const up = rows.slice(0, at).findLast((x) => x.depth < r.depth);
-    if (up) setCursor(up.node.path);
-  };
   // Another tab picked: the tree's keys aren't the page's.
   const treeKeys = {
     t: () => setFinder(true),
     "mod+p": () => setFinder(true),
-    j: () => setCursor(rows[Math.min(at + 1, rows.length - 1)]?.node.path ?? cursor),
-    ArrowDown: () => setCursor(rows[Math.min(at + 1, rows.length - 1)]?.node.path ?? cursor),
-    k: () => setCursor(rows[Math.max(at - 1, 0)]?.node.path ?? cursor),
-    ArrowUp: () => setCursor(rows[Math.max(at - 1, 0)]?.node.path ?? cursor),
-    Enter: () => activate(rows[at], true),
-    o: () => activate(rows[at]),
-    l: () => rows[at]?.node.dir && toggle(rows[at].node, true),
-    ArrowRight: () => rows[at]?.node.dir && toggle(rows[at].node, true),
-    h: () => closeOrUp(),
-    ArrowLeft: () => closeOrUp(),
+    j: press("ArrowDown"),
+    ArrowDown: press("ArrowDown"),
+    k: press("ArrowUp"),
+    ArrowUp: press("ArrowUp"),
+    Enter: enter,
+    o: press("Enter"),
+    l: press("ArrowRight"),
+    ArrowRight: press("ArrowRight"),
+    h: press("ArrowLeft"),
+    ArrowLeft: press("ArrowLeft"),
     c: () => setChangedOnly(!changedOnly),
     "[": () => stepChanged(-1),
     "]": () => stepChanged(1),
@@ -265,8 +264,7 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
     if (readme) next.set("path", readme.path);
     else {
       next.delete("path");
-      setOpen((o) => new Set([...o, ...ancestors(`${path}/x`)]));
-      setCursor(path);
+      reveal(path);
     }
     setParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -336,9 +334,15 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
         <FilesBody single={narrow || alone}>
           {showTree && (
             <FilesTree
-              label={label}
               panel={withBefore}
-              rowsRef={treeRef}
+              rows={{
+                onKeyDownCapture: (e) => {
+                  if (e.nativeEvent.isTrusted) entered.current = e.key === "Enter";
+                },
+                onPointerDownCapture: () => {
+                  entered.current = false;
+                },
+              }}
               tools={
                 <FilesTreeTools
                   all={files.length}
@@ -356,27 +360,28 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
               note={tree?.truncated && `Only the first ${files.length} files are listed.`}
             >
               {!tree && <Loading what="Reading the files…" />}
-              {tree && !rows.length && (
+              {tree && !nodes.length && (
                 <Empty icon={changedOnly ? "check-circle" : "file"} title={changedOnly ? "Nothing's changed yet" : "No files"}>
                   {changedOnly ? `Nothing here differs from ${branchName(tree.baseRef)}, committed or not.` : empty}
                 </Empty>
               )}
-              {rows.map((r) => (
-                <FilesTreeRow
-                  key={r.node.path + (r.node.dir ? "/" : "")}
-                  name={r.node.name}
-                  path={r.node.path}
-                  depth={r.depth}
-                  dir={r.node.dir}
-                  open={r.node.dir && isOpen(r.node)}
-                  cursor={r.node.path === cursor}
-                  current={r.node.path === path}
-                  changed={changedOnly ? 0 : r.node.changed}
-                  status={r.node.file?.status}
-                  uncommitted={r.node.file?.uncommitted}
-                  onClick={() => activate(r)}
+              {tree && nodes.length > 0 && (
+                <Tree
+                  aria-label={label}
+                  className={filesTreeClass}
+                  nodes={nodes}
+                  look={look}
+                  open={opened}
+                  onOpen={setOpened}
+                  current={path || undefined}
+                  onPick={pick}
+                  control={treeControl}
+                  typeahead={false}
+                  marks
+                  mono
+                  virtual
                 />
-              ))}
+              )}
             </FilesTree>
           )}
           {showFile && (
@@ -402,10 +407,7 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
                   onDefinition={openDefinition}
                   onBackFromDefinition={backFromDefinition}
                   onBack={narrow ? unpick : undefined}
-                  onReveal={(p) => {
-                    setOpen((o) => new Set([...o, ...ancestors(p + "/x")]));
-                    setCursor(p);
-                  }}
+                  onReveal={reveal}
                 />
               ) : (
                 <FileOverview tree={tree} changed={changed} onOpen={select} onFind={() => setFinder(true)} />
