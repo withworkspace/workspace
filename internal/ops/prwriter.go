@@ -13,6 +13,7 @@ import (
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/prompt"
+	"github.com/withworkspace/workspace/internal/spend"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
 
@@ -123,7 +124,7 @@ func (w *Workspace) writePR(m *mission.Mission, c mission.Capsule, step int) (ti
 	run := harness.ConverseRun{Prompt: prompt.PRWriter(p), Dir: dir, Model: pick.Model, Once: true}
 	who = "the PR writer (" + pick.String() + ")"
 	runPath := filepath.Join(w.Missions.Dir(), m.Slug, "pr-writer.log")
-	rep, err := RunHeadless(w.life(), w.Root(), "pr-writer "+m.Slug, crew.Env(w.Root(), m.Slug, ""), runPath, prWriterTimeout, h, run)
+	rep, err := RunHeadless(w.life(), w.Root(), "pr-writer "+m.Slug, spend.For{Mission: m.Slug, Kind: spend.PR, Subject: capsule}, crew.Env(w.Root(), m.Slug, ""), runPath, prWriterTimeout, h, run)
 	if err != nil {
 		execlog.Note(w.Root(), "pr-writer "+m.Slug, "couldn't write %s's pull request: %v", capsule, err)
 		return "", "", who, err

@@ -2,6 +2,7 @@ import { type ReactNode, type Ref, useState } from "react";
 import { Button } from "./Button";
 import { cx } from "./cx";
 import { Icon } from "./Icon";
+import { keyProps } from "./keyHint";
 import { Input } from "./Input";
 import css from "./PageBar.module.css";
 import { TLink } from "./TLink";
@@ -9,7 +10,7 @@ import { TLink } from "./TLink";
 type PageBarProps = {
   // The way back: where to, what it says when pointed at, and its name
   // for a screen reader where that says more ("Back to the missions").
-  back: { to: string; title: string; label?: string };
+  back: { to: string; title: string; keys?: string; label?: string };
   // What it's doing, before its name (a Status, icon only).
   status?: ReactNode;
   // Its name: the page's h1, cut short before it pushes the rest off.
@@ -51,7 +52,7 @@ export function PageBar({ back, status, title, onRename, renameLabel = "Rename",
     <div ref={ref} className={cx(css.bar, className)} data-page-bar="">
       <div className={css.row}>
         <header className={css.head}>
-          <TLink to={back.to} className={css.back} title={back.title} aria-label={back.label ?? back.title}>
+          <TLink to={back.to} className={css.back} {...keyProps(back.keys, back.title)} aria-label={back.label ?? back.title}>
             <Icon name="arrow-left" size={15} />
           </TLink>
           {status && <span className={css.status}>{status}</span>}

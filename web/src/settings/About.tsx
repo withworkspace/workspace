@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { getProcess, type SettingsInfo } from "../api";
 import { useLoaded } from "../load";
 import { shortVersion } from "../shell/version";
-import { openWhatsNew } from "../shell/WhatsNew";
+import { openWhatsNew } from "../shell/WhatsNew/asked";
 import { Button } from "../ui/Button";
 import { useWorkspace } from "../workspace/store";
 import { BlockView } from "./BlockView";

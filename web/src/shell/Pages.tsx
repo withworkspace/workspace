@@ -1,9 +1,10 @@
 import { memo } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { AppPage } from "../apps/AppPage";
-import { ArtifactPage as ArtifactView, ArtifactsPage } from "../artifacts/Artifacts";
-import { ComparePage } from "../artifacts/Compare";
-import { FoundArtifactPage } from "../artifacts/Found";
+import { ArtifactPage as ArtifactView } from "../artifacts/ArtifactPage";
+import { ArtifactsPage } from "../artifacts/ArtifactsPage";
+import { ComparePage } from "../artifacts/ComparePage";
+import { FoundArtifactPage } from "../artifacts/FoundArtifactPage";
 import { NotFound } from "../chrome/NotFound";
 import { DocsAddress, DocumentAt, LocalPageAt, OpenAddress, PageAddress } from "../documents/DocumentAt";
 import { DocumentsPage, SpacePage } from "../documents/Documents";

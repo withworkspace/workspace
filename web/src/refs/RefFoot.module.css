@@ -9,7 +9,3 @@
 .foot:empty {
   display: none;
 }
-
-.foot :global(.pin-button) {
-  margin-left: auto;
-}

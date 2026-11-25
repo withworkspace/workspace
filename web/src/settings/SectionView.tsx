@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { SettingsInfo } from "../api";
 import { PluginsSection } from "../plugins/Settings/PluginsSection";
 import { PageHead } from "../ui/PageHead";
@@ -9,6 +10,7 @@ import { ProcessAbout } from "./ProcessAbout";
 import { ProcessFile } from "./ProcessFile";
 import { Repos } from "./Repos";
 import type { Section } from "./sections";
+import { SettingsUnder } from "./SettingsUnder";
 import { Yours } from "./Yours";
 
 // SectionView is the section you're in: its name, what it's about, its
@@ -24,7 +26,16 @@ export function SectionView({ section, sections, info, loading }: { section: Sec
       <PageHead title={section.title} />
       <p className="lede">{section.id === "process" ? <ProcessAbout /> : section.about}</p>
       {section.id === "yours" && info && <Yours info={info} sections={sections} />}
-      {section.id === "about" ? <About info={info} section={section} /> : section.blocks.map((b) => <BlockView key={b.id} block={b} />)}
+      {section.id === "about" ? (
+        <About info={info} section={section} />
+      ) : (
+        section.blocks.map((b, i) => (
+          <Fragment key={b.id}>
+            {b.under && b.under !== section.blocks[i - 1]?.under && <SettingsUnder title={b.under.title} about={b.under.about} />}
+            <BlockView block={b} />
+          </Fragment>
+        ))
+      )}
       {loading && waits && <Skeleton rows={4} />}
       {section.id === "plugins" && <PluginsSection />}
       {section.id === "repos" && <Repos branch={branch} org={org} />}

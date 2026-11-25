@@ -101,10 +101,10 @@ export function MissionDecisionForm({
         </div>
       )}
       <div className={css.foot}>
-        <Button variant="ghost" size="small" onClick={onCancel}>
+        <Button variant="ghost" size="small" onClick={onCancel} keys="esc">
           Cancel
         </Button>
-        <Button variant="primary" size="small" type="submit" disabled={busy || (!ready && !same)} unavailable={same ? `It reads as ${of} does: say what's decided in its place` : undefined} title={`${w.send} (⌘⏎)`}>
+        <Button variant="primary" size="small" type="submit" disabled={busy || (!ready && !same)} unavailable={same ? `It reads as ${of} does: say what's decided in its place` : undefined} title={w.send} keys="mod+⏎">
           {busy ? w.sending : w.send}
         </Button>
       </div>

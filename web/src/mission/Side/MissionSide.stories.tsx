@@ -116,9 +116,9 @@ export const Parts: StoryObj = {
       )}
       {column(
         <MissionSideSection title="Capsules" count={4}>
-          <MissionSideCapsule id="a" name="api/export-csv" title="Review it (v)" onReview={none} />
-          <MissionSideCapsule id="b" name="web/export-csv" title="Review it (v)" onReview={none} selected dirty />
-          {withPR && <MissionSideCapsule id="c" name={`${withPR.repo}/${withPR.name}`} title="Review it (v)" onReview={none} badges={<MissionCapsuleBadges c={{ ...withPR, dirty: false }} />} />}
+          <MissionSideCapsule id="a" name="api/export-csv" title="Review it" keys="v" onReview={none} />
+          <MissionSideCapsule id="b" name="web/export-csv" title="Review it" keys="v" onReview={none} selected dirty />
+          {withPR && <MissionSideCapsule id="c" name={`${withPR.repo}/${withPR.name}`} title="Review it" keys="v" onReview={none} badges={<MissionCapsuleBadges c={{ ...withPR, dirty: false }} />} />}
           <MissionSideCapsule id="d" name="api/old-try" title="Burned: its folder's gone" onReview={none} gone badges={<MissionCapsuleBadges c={{ repo: "api", name: "old-try", exists: false } as never} />} />
         </MissionSideSection>,
       )}

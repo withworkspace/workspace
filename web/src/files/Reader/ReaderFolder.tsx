@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { cx } from "../../ui/cx";
 import { Icon } from "../../ui/Icon";
 import { Input } from "../../ui/Input";
+import { keyProps } from "../../ui/keyHint";
 import { Keys } from "../../ui/Keys";
 import { filterItems, holds, type Shelf, type ShelfItem, type Shelves } from "../shelves";
 import css from "./ReaderFolder.module.css";
@@ -70,7 +71,7 @@ export function ReaderFolder({ shelves, id, here, on, anchor, column, openIn, go
     <div className={css.menu} ref={box} role="dialog" aria-label={`What's in ${shelf.name}`} onKeyDown={keys} style={pos ? { top: pos.top, left: pos.left } : { visibility: "hidden" }}>
       <div className={css.head}>
         {shelf.up !== undefined && (
-          <button type="button" className={css.up} onClick={up} title="Up a folder (u, or ⌫ with nothing typed)" aria-label="Up a folder">
+          <button type="button" className={css.up} {...keyProps("u", "Up a folder: ⌫ too, with nothing typed", up)} aria-label="Up a folder">
             <Icon name="arrow-up" size={12} />
           </button>
         )}

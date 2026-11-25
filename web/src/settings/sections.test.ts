@@ -174,6 +174,7 @@ describe("find", () => {
     expect(found("theme")).toEqual([["appearance", ["theme"]]]);
     expect(found("sidebar")).toEqual([["appearance", ["places"]]]);
     expect(found("send with")).toEqual([["keyboard", ["sendKey"]]]);
+    expect(found("key hints")).toEqual([["keyboard", ["keyHints"]]]);
     expect(found("notification")).toEqual([["notifications", ["notify"]]]);
     expect(found("shutting")).toEqual([["about", ["daemon"]]]);
   });
@@ -202,5 +203,27 @@ describe("minesOf", () => {
     expect(notifications.blocks[1].rows).toEqual([{ kind: "setting", s: feed, crumb: "Notifications" }]);
     // And it's no section of its own.
     expect(sections.filter((s) => s.id === "notifications")).toHaveLength(1);
+  });
+
+  it("puts each plugin's kinds of notification under Notifications, a block each, under Plugins", () => {
+    const kind = (key: string, label: string) => ({ section: "notifications.plugin.jira", key, label, kind: "choice", value: "feed", source: "default", choices: [] }) as unknown as Setting;
+    const assigned = kind("assigned", "Given to you");
+    const sections = sectionsOf({
+      groups: [
+        { id: "notifications", title: "Notifications", settings: [kind("missions", "Missions")] },
+        { id: "notifications.plugin.jira", title: "jira", about: "What jira tells you of.", settings: [assigned, kind("new", "New on the board")] },
+        { id: "notifications.plugin.sketch", title: "sketch", settings: [kind("shared", "Shared with you")] },
+      ],
+    } as unknown as SettingsInfo);
+    const notifications = sections.find((s) => s.id === "notifications")!;
+    expect(notifications.blocks.map((b) => [b.id, b.title, b.under?.title])).toEqual([
+      ["notify", undefined, undefined],
+      ["feed", "What happened", undefined],
+      ["notify-jira", "jira", "Plugins"],
+      ["notify-sketch", "sketch", "Plugins"],
+    ]);
+    expect(notifications.blocks[2].rows[0]).toEqual({ kind: "setting", s: assigned, crumb: "Notifications from jira" });
+    // No section of their own.
+    expect(sections.some((s) => s.id.startsWith("notifications.plugin"))).toBe(false);
   });
 });

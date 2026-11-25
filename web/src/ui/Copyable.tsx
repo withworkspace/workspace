@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import css from "./Copyable.module.css";
 import { cx } from "./cx";
 import { Icon } from "./Icon";
+import { clicked, keyHint, titleWithKeys } from "./keyHint";
 import { toast } from "./toast";
 
 // Copyable is a ref, path, hash or command that copies itself when
@@ -14,12 +15,14 @@ export function Copyable({
   children,
   className,
   title,
+  keys,
   icon = "after",
 }: {
   text: string;
   children?: ReactNode;
   className?: string;
   title?: string;
+  keys?: string; // the key that copies it, said after its title and hinted at (ui/keyHint.ts)
   icon?: "after" | "over" | "inline";
 }) {
   const [copied, setCopied] = useState(false);
@@ -34,8 +37,9 @@ export function Copyable({
       // The library's, so not styles.css's to draw as a button.
       data-ui=""
       className={cx(css.copyable, copied && css.copied, icon === "over" && css.over, icon === "inline" && css.inline, className)}
-      title={copied ? "Copied" : (title ?? `Copy ${text}`)}
+      title={copied ? "Copied" : titleWithKeys(title ?? `Copy ${text}`, keys)}
       onClick={(e) => {
+        if (keys && clicked(e)) keyHint(keys);
         e.preventDefault();
         e.stopPropagation();
         navigator.clipboard?.writeText(text).then(() => setCopied(true), () => toast("Couldn't copy: the browser said no"));

@@ -1,0 +1,31 @@
+/* A version's frame, and beside it the tray of its tweaks
+   (ArtifactBody.tsx). */
+
+.body {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--panel);
+}
+
+.body > .stage {
+  min-width: 0;
+}
+
+.compared + .compared {
+  border-left: 1px solid var(--line);
+}
+
+/* The tray goes under the frame, and scrolls there. */
+@media (max-width: 860px) {
+  .body {
+    flex-direction: column;
+  }
+}

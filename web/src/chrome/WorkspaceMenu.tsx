@@ -28,7 +28,7 @@ export function WorkspaceMenu({ places }: { places: Place[] }) {
   return (
     <WindowMenu
       trigger={<WorkspaceName name={name} root={root} wants={counted.length > 0 ? counted.map((p) => `${p.label}: ${p.count} ${p.countTitle ?? "need you"}`).join("\n") : undefined} />}
-      places={places.map((p) => ({ id: p.id, label: p.label, icon: p.icon, count: p.count, countTitle: p.countTitle, current: p.match(pathname) }))}
+      places={places.map((p) => ({ id: p.id, label: p.label, icon: p.icon, count: p.count, countTitle: p.countTitle, keys: p.keys, current: p.match(pathname) }))}
       version={version ? { full: version, short: shortVersion(version) } : undefined}
       later={later}
       onPlace={(id) => {

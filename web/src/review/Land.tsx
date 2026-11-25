@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { getLanding, landCapsule, type Landing, type LandStopped } from "../api";
-import { useKeys } from "../keys";
+import { useShortcut } from "../keys";
 import { Icon } from "../ui/Icon";
 import { toast } from "../ui/toast";
 import { Callout } from "../ui/Callout";
@@ -52,8 +52,12 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
       )
       .finally(() => setBusy(false));
   };
-  useKeys(can && !busy ? { L: () => setAsking(true) } : {});
-  useKeys(asking && !busy ? { Enter: land, Escape: () => setAsking(false) } : {}, { modal: asking });
+  // L asks, then ⏎ lands or esc takes it back: each key's bound here, and
+  // its button is given what comes back, which says the key.
+  const ask = useShortcut("L", () => setAsking(true), { enabled: can && !busy });
+  const confirm = { enabled: asking && !busy, modal: asking };
+  const landIt = useShortcut("Enter", land, confirm);
+  const cancel = useShortcut("Escape", () => setAsking(false), confirm);
 
   if (!l?.direct) return null;
   const n = l.commits.length;
@@ -106,10 +110,10 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
           title={`Land ${commits} on ${l.branch}?`}
           actions={
             <>
-              <Button variant="primary" onClick={land} disabled={busy}>
+              <Button variant="primary" onClick={landIt} disabled={busy}>
                 {busy ? "Landing…" : `Land on ${l.branch}`} <Keys k="⏎" />
               </Button>
-              <Button variant="ghost" onClick={() => setAsking(false)} disabled={busy}>
+              <Button variant="ghost" onClick={cancel} disabled={busy}>
                 Cancel <Keys k="esc" />
               </Button>
             </>
@@ -129,7 +133,7 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
           icon={l.approved ? "check-circle" : "info"}
           title={l.approved ? `Approved: land its ${commits} on ${l.branch}` : `${commits} to land on ${l.branch}, when you say`}
           actions={
-            <Button variant={l.approved ? "primary" : undefined} onClick={() => setAsking(true)}>
+            <Button variant={l.approved ? "primary" : undefined} onClick={ask}>
               <Icon name="arrow-right" size={13} /> Land on {l.branch} <Keys k="L" />
             </Button>
           }

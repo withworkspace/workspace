@@ -492,6 +492,7 @@ export function Brief({ d, root, updated, reload, onEscape }: { d: MissionDetail
                 type="button"
                 disabled={busy || primary.disabled}
                 onClick={primary.run}
+                keys="mod+⏎"
                 title={briefing && p ? "Nothing's written until you confirm it: your edits, and the changes you decline, go with it. The planner doesn't see them until then" : undefined}
               >
                 {primary.label} <Keys k="mod+⏎" />

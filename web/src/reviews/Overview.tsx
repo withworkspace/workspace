@@ -7,7 +7,7 @@ import { Icon } from "../ui/Icon";
 import { useAutosize } from "../ui/useAutosize";
 import { humanError } from "../ui/text";
 import { SendKeys } from "../ui/SendKeys";
-import { sendKeysSaid, sent, useSendKey } from "../ui/sendKey";
+import { sendKeys, sent, useSendKey } from "../ui/sendKey";
 import { Time } from "../ui/Time";
 import { Button } from "../ui/Button";
 import { TextArea } from "../ui/TextArea";
@@ -234,7 +234,7 @@ function SayBox({ api, onSaid }: { api: string; onSaid: (d: Discussion) => void 
       <div className="note-actions">
         <span className="dim">Posts to GitHub at once, as you: it isn't part of your draft.</span>
         <span className="spacer-left" />
-        <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={send} title={`Post it to GitHub (${sendKeysSaid(sendKey)})`}>
+        <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={send} title="Post it to GitHub" keys={sendKeys(sendKey)}>
           {busy ? "Posting…" : "Comment on GitHub"} <SendKeys />
         </Button>
       </div>

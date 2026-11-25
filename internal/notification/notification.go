@@ -7,9 +7,13 @@
 // same write: a mission of yours ended or was started for you, a pull
 // request this ws opened merged. What you did yourself isn't told back to
 // you. The rest are added by whoever knows (Add): a plugin's update is
-// out, ws was upgraded and the daemon restarted onto it.
+// out, ws was upgraded and the daemon restarted onto it, and a plugin
+// tells of what it saw (a Jira issue given to you), as one of the kinds it
+// registered: its source is the plugin's (PluginSource), its kind named
+// with the plugin's name (jira:assigned).
 //
-// Which sources reach the feed, and which the desktop too, is yours to say
+// Which sources reach the feed, and which you're told of as they happen
+// too, is yours to say
 // ([notifications] in ws.local.toml): that's applied where they're read
 // (ops), so nothing's lost by muting a source and changing your mind.
 package notification
@@ -35,8 +39,22 @@ const (
 	SourceWS       = "ws"       // ws was upgraded, and the daemon restarted onto it
 )
 
-// Sources is every source there is, in the order they're listed.
+// Sources is every source of ws's own, in the order they're listed. Each
+// plugin that notifies is a source of its own besides (PluginSource).
 var Sources = []string{SourceMissions, SourcePulls, SourcePlugins, SourceWS}
+
+// PluginSource is the source of what the plugin name tells of: plugin:jira.
+func PluginSource(name string) string { return "plugin:" + name }
+
+// PluginOf is the plugin a source is, or ok false for one of ws's own.
+func PluginOf(source string) (string, bool) {
+	name, ok := strings.CutPrefix(source, "plugin:")
+	return name, ok && name != ""
+}
+
+// PluginKind is how a plugin's kind of notification is named among every
+// kind: the plugin's name, a colon, its id (jira:assigned).
+func PluginKind(plugin, id string) string { return plugin + ":" + id }
 
 // Kinds that aren't an event's: what's added by whoever knows.
 const (
@@ -53,8 +71,9 @@ type Notification struct {
 	N      int64     `json:"n"`
 	At     time.Time `json:"at"`
 	Source string    `json:"source"`
-	// Kind is the event's it was made from (events.MissionEnded…), or one
-	// of this package's (PluginUpdate, WSUpgraded).
+	// Kind is the event's it was made from (events.MissionEnded…), one
+	// of this package's (PluginUpdate, WSUpgraded), or a plugin's
+	// (PluginKind: jira:assigned).
 	Kind string `json:"kind"`
 	// Text says what happened, as a sentence.
 	Text string `json:"text"`
@@ -68,6 +87,9 @@ type Notification struct {
 	// Attention marks one that went wrong: told apart in the feed, though
 	// nothing waits on you.
 	Attention bool `json:"attention,omitempty"`
+	// Key is what its source calls what happened: one added with a key
+	// its source added before isn't kept twice (AddOnce). "" for none.
+	Key string `json:"key,omitempty"`
 	// Read and Dismissed are when you read it and put it away: nil while
 	// you haven't.
 	Read      *time.Time `json:"read,omitempty"`
@@ -92,6 +114,13 @@ func init() {
 		CREATE INDEX notifications_unread ON notifications (source, n) WHERE read = '' AND dismissed = '';
 		-- What the feed remembers to know what's news: the ws last run.
 		CREATE TABLE notification_state (key TEXT PRIMARY KEY, value TEXT NOT NULL) WITHOUT ROWID;
+	`), store.SQL(`
+		-- A plugin's notifications: muted kind by kind, and kept once for
+		-- what its source calls what happened.
+		ALTER TABLE notifications ADD COLUMN kind TEXT NOT NULL DEFAULT '';
+		ALTER TABLE notifications ADD COLUMN key TEXT NOT NULL DEFAULT '';
+		UPDATE notifications SET kind = coalesce(json_extract(notification, '$.kind'), '');
+		CREATE UNIQUE INDEX notifications_key ON notifications (source, key) WHERE key <> '';
 	`))
 	events.OnAppend(func(tx *store.Tx, e events.Event) error {
 		n, ok := Of(e)
@@ -169,11 +198,34 @@ func timeOf(s string) *time.Time {
 
 // AddIn keeps n in tx, numbered. At defaults to now.
 func AddIn(tx *store.Tx, n Notification) (Notification, error) {
+	n, _, err := addIn(tx, n)
+	return n, err
+}
+
+// addIn keeps n in tx, numbered, and says it's added: false where its
+// source kept one with its key before, which is answered instead.
+func addIn(tx *store.Tx, n Notification) (Notification, bool, error) {
 	if strings.TrimSpace(n.Text) == "" {
-		return n, errors.New("notification: it says nothing")
+		return n, false, errors.New("notification: it says nothing")
 	}
 	if !known(n.Source) {
-		return n, fmt.Errorf("notification: no source %q", n.Source)
+		return n, false, fmt.Errorf("notification: no source %q", n.Source)
+	}
+	if n.Key != "" {
+		var was Notification
+		var id int64
+		var readAt, dismissed, line string
+		err := tx.QueryRow(`SELECT n, read, dismissed, notification FROM notifications WHERE source = ? AND key = ?`, n.Source, n.Key).Scan(&id, &readAt, &dismissed, &line)
+		switch {
+		case err == nil:
+			if json.Unmarshal([]byte(line), &was) != nil {
+				return n, false, fmt.Errorf("notification: n%d doesn't read", id)
+			}
+			was.N, was.Read, was.Dismissed = id, timeOf(readAt), timeOf(dismissed)
+			return was, false, nil
+		case !errors.Is(err, sql.ErrNoRows):
+			return n, false, err
+		}
 	}
 	if n.At.IsZero() {
 		n.At = time.Now()
@@ -181,20 +233,23 @@ func AddIn(tx *store.Tx, n Notification) (Notification, error) {
 	n.N, n.Read, n.Dismissed = 0, nil, nil
 	line, err := json.Marshal(n)
 	if err != nil {
-		return n, err
+		return n, false, err
 	}
-	res, err := tx.Exec(`INSERT INTO notifications (at, source, notification) VALUES (?, ?, ?)`, stampOf(n.At), n.Source, string(line))
+	res, err := tx.Exec(`INSERT INTO notifications (at, source, kind, key, notification) VALUES (?, ?, ?, ?, ?)`, stampOf(n.At), n.Source, n.Kind, n.Key, string(line))
 	if err != nil {
-		return n, err
+		return n, false, err
 	}
 	if n.N, err = res.LastInsertId(); err != nil {
-		return n, err
+		return n, false, err
 	}
 	tx.Changed(Topic, "workspace")
-	return n, nil
+	return n, true, nil
 }
 
 func known(source string) bool {
+	if _, ok := PluginOf(source); ok {
+		return true
+	}
 	for _, s := range Sources {
 		if s == source {
 			return true
@@ -229,13 +284,26 @@ func Add(root string, n Notification) (Notification, error) {
 	return n, err
 }
 
+// AddOnce keeps n in root's records, as Add does, unless its source kept
+// one with its key before: that one's answered, and added is false.
+func AddOnce(root string, n Notification) (out Notification, added bool, err error) {
+	err = write(root, func(tx *store.Tx) error {
+		var err error
+		out, added, err = addIn(tx, n)
+		return err
+	})
+	return out, added, err
+}
+
 // Filter is which notifications are listed.
 type Filter struct {
 	// Unread is only those you haven't read.
 	Unread bool
 	// Dismissed has those you put away listed too.
 	Dismissed bool
-	// Muted is the sources left out: those routed nowhere.
+	// Muted is the sources and kinds left out: those routed nowhere. A
+	// source (missions, plugin:jira) and a kind (mission.ended,
+	// jira:assigned) are never written alike, so one list holds both.
 	Muted []string
 	// Limit is the most listed, the latest; 0 for no limit.
 	Limit int
@@ -251,15 +319,26 @@ func (f Filter) where() (string, []any) {
 		where = append(where, "dismissed = ''")
 	}
 	if len(f.Muted) > 0 {
-		where = append(where, "source NOT IN ("+strings.TrimSuffix(strings.Repeat("?, ", len(f.Muted)), ", ")+")")
-		for _, s := range f.Muted {
-			args = append(args, s)
-		}
+		clause, more := mutedClause(f.Muted)
+		where = append(where, clause)
+		args = append(args, more...)
 	}
 	if len(where) == 0 {
 		return "", nil
 	}
 	return " WHERE " + strings.Join(where, " AND "), args
+}
+
+// mutedClause leaves out what's muted: by its source, or by its kind.
+func mutedClause(muted []string) (string, []any) {
+	marks := strings.TrimSuffix(strings.Repeat("?, ", len(muted)), ", ")
+	var args []any
+	for range 2 {
+		for _, s := range muted {
+			args = append(args, s)
+		}
+	}
+	return "source NOT IN (" + marks + ") AND kind NOT IN (" + marks + ")", args
 }
 
 // List is the notifications f picks, newest first.
@@ -320,10 +399,9 @@ func mark(root, column string, ns []int64, muted []string) (int, error) {
 				args = append(args, n)
 			}
 		} else if len(muted) > 0 {
-			q += " AND source NOT IN (" + strings.TrimSuffix(strings.Repeat("?, ", len(muted)), ", ") + ")"
-			for _, s := range muted {
-				args = append(args, s)
-			}
+			clause, more := mutedClause(muted)
+			q += " AND " + clause
+			args = append(args, more...)
 		}
 		res, err := tx.Exec(q, args...)
 		if err != nil {

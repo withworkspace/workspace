@@ -50,7 +50,7 @@ export function TeamSummary({ summary, folded, onFold, on, onTopic, names, onWri
                 </span>
               )}
               {summary.at && summary.stale && <span className={css.stale}>changed since</span>}
-              <Button variant="link" className={css.again} onClick={onWrite} title="Have it written again, from the changes as they are now (c)">
+              <Button variant="link" className={css.again} onClick={onWrite} title="Have it written again, from the changes as they are now" keys="c">
                 Write it again
               </Button>
             </>
@@ -65,7 +65,7 @@ export function TeamSummary({ summary, folded, onFold, on, onTopic, names, onWri
             return (
               <li key={t.name} className={cx(css.topic, pressed && css.on)}>
                 <div className={css.head}>
-                  <Button variant="bare" className={css.name} aria-pressed={pressed} onClick={() => onTopic(t)} title={pressed ? "Show every change" : "Show only its changes"}>
+                  <Button variant="bare" className={css.name} aria-pressed={pressed} onClick={() => onTopic(t)} title={pressed ? "Show every change" : "Show only its changes"} keys={pressed ? "esc" : undefined}>
                     {t.name}
                   </Button>
                   <span className={css.meta}>

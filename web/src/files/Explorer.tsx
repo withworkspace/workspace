@@ -50,7 +50,7 @@ export function Explorer() {
       empty="The capsule is empty."
       head={
         <>
-          <Crumbs className={filesBarCrumbsClass} steps={[{ to: `/missions/${slug}?tab=work`, label: mission?.title ?? slug }]} />
+          <Crumbs className={filesBarCrumbsClass} steps={[{ to: `/missions/${slug}?tab=work`, label: mission?.title ?? slug, keys: "esc" }]} />
           <FilesCapsule repo={repo} name={name} />
         </>
       }

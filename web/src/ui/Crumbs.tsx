@@ -3,11 +3,14 @@ import { Link } from "react-router";
 import css from "./Crumbs.module.css";
 import { cx } from "./cx";
 import { Icon } from "./Icon";
+import { keyProps } from "./keyHint";
 
 type CrumbsProps = {
   // Where the page is in, nearest first: the first is the way back, with
   // an arrow; any others are beside it, a dot between.
-  steps?: { to: string; label: ReactNode }[];
+  // A step's keys is the key that goes there too (esc, for the way back):
+  // said in its title, and hinted at (ui/keyHint.ts).
+  steps?: { to: string; label: ReactNode; keys?: string }[];
   // Or what a path of its own is made of (links, menus, CrumbSeps).
   children?: ReactNode;
   // The page's own class, to place it.
@@ -24,7 +27,7 @@ export function Crumbs({ steps, children, className, ref }: CrumbsProps) {
       {steps?.map((s, i) => (
         <Fragment key={i}>
           {i > 0 && <CrumbSep />}
-          <Link to={s.to}>
+          <Link to={s.to} {...(s.keys ? keyProps(s.keys) : {})}>
             {i === 0 && <Icon name="arrow-left" size={13} />} {s.label}
           </Link>
         </Fragment>

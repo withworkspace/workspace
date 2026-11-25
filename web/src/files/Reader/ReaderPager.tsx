@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { Icon } from "../../ui/Icon";
+import { hintOnClick } from "../../ui/keyHint";
 import { Keys } from "../../ui/Keys";
 import type { Siblings } from "../shelves";
 import css from "./ReaderPager.module.css";
@@ -12,7 +13,7 @@ export function ReaderPager({ sib, to }: { sib: Siblings; to: (path: string) => 
   return (
     <nav className={css.pager} aria-label={`In ${where}`}>
       {sib.prev?.path ? (
-        <Link to={to(sib.prev.path)} rel="prev">
+        <Link to={to(sib.prev.path)} rel="prev" onClick={hintOnClick("[")}>
           <small>
             <Icon name="arrow-left" size={12} /> Previous in {where} <Keys k="[" />
           </small>
@@ -27,7 +28,7 @@ export function ReaderPager({ sib, to }: { sib: Siblings; to: (path: string) => 
         in {where}
       </span>
       {sib.next?.path ? (
-        <Link className={css.next} to={to(sib.next.path)} rel="next">
+        <Link className={css.next} to={to(sib.next.path)} rel="next" onClick={hintOnClick("]")}>
           <small>
             <Keys k="]" /> Next in {where} <Icon name="arrow-right" size={12} />
           </small>

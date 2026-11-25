@@ -66,7 +66,7 @@ export function CrewConversationView({ slug, id, crew, live, t, error, reload, r
       plan={plan && <CrewPlan todos={plan} live={live} />}
       note={
         !t.available && (
-          <Empty icon="terminal" title="No transcript to show" action={onTerminal && <Button onClick={onTerminal}>Watch its terminal</Button>}>
+          <Empty icon="terminal" title="No transcript to show" action={onTerminal && <Button onClick={onTerminal} keys="t">Watch its terminal</Button>}>
             {t.why} You can still send it a message below.
           </Empty>
         )

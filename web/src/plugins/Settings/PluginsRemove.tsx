@@ -31,7 +31,7 @@ export function PluginsRemove({ name, names, onClose, onRemove }: PluginsRemoveP
         </span>
       </Checkbox>
       <DialogActions>
-        <Button variant="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose} keys="esc">
           Cancel
         </Button>
         <Button variant="danger" onClick={() => onRemove(data)}>

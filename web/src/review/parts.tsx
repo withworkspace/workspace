@@ -4,6 +4,7 @@ import { useKeys } from "../keys";
 import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { humanError } from "../ui/text";
+import { hintOnClick } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
 import { Dialog } from "../ui/Dialog";
 import { Button } from "../ui/Button";
@@ -75,7 +76,7 @@ export function SubmitDialog({
         </p>
         <div className="verdicts" role="radiogroup" aria-label="Verdict">
           {choices.map(([v, key, label, icon]) => (
-            <button key={v} role="radio" aria-checked={verdict === v} className={`verdict v-${v}${verdict === v ? " on" : ""}`} onClick={() => pick(v)}>
+            <button key={v} role="radio" aria-checked={verdict === v} className={`verdict v-${v}${verdict === v ? " on" : ""}`} onClick={hintOnClick(key, () => pick(v))}>
               <Icon name={icon} size={14} /> {label} <Keys k={key} />
             </button>
           ))}
@@ -105,10 +106,10 @@ export function SubmitDialog({
             </Button>
           )}
           <span className="spacer-left" />
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} keys="esc">
             Cancel
           </Button>
-          <Button variant="primary" onClick={submit} unavailable={verdict ? undefined : "Pick a verdict first"} title="Submit (⌘⏎)">
+          <Button variant="primary" onClick={submit} unavailable={verdict ? undefined : "Pick a verdict first"} title="Submit" keys="mod+⏎">
             Submit <Keys k="mod+⏎" />
           </Button>
         </div>

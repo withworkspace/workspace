@@ -1,0 +1,15 @@
+/* The head over a version's frame (ArtifactHead.tsx). */
+
+.head {
+  display: grid;
+  gap: 6px;
+  padding: var(--space-4) var(--space-6) var(--space-3);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+@media (max-width: 860px) {
+  .head {
+    padding: var(--space-3) var(--space-4);
+  }
+}

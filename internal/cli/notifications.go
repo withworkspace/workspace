@@ -33,7 +33,7 @@ things stand (ws status, and the web UI's Needs you).
   ws notifications read n3 n4    say you've read them (or --all)
   ws notifications dismiss n3    put one away
 
-Where each source is sent (the feed, the desktop as well, or nowhere) is
+Where each source is sent (the feed, told as it happens as well, or nowhere) is
 [notifications] in ws.local.toml, and Settings › Notifications.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

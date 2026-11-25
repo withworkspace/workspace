@@ -2644,11 +2644,12 @@ export interface Notification {
     at: string;
     /**
      * Source is where it comes from, which is what's routed: missions,
-     * pulls, plugins or ws.
+     * pulls, plugins or ws, or a plugin that told of it (plugin:jira).
      */
     source: string;
     /**
-     * Kind is what happened (mission.ended, pr.merged, plugin.update…).
+     * Kind is what happened (mission.ended, pr.merged, plugin.update…),
+     * or for a plugin's, which of its kinds (jira:assigned).
      */
     kind: string;
     /**
@@ -2674,7 +2675,8 @@ export interface Notification {
     attention?: boolean;
     read: boolean;
     /**
-     * Desktop is whether its source is sent to the desktop as well.
+     * Desktop is whether you're told of it as it happens ("Feed, and
+     * tell me"): in the page, or on the desktop while it's hidden.
      */
     desktop?: boolean;
 }
@@ -3465,10 +3467,10 @@ export interface Proposal {
     options?: string[];
 }
 
-// From protocol/protocol.go
+// From protocol/protocol.gen.go
 /**
- * Action is something a plugin can do when it's asked from Find: its id,
- * in lower-case letters, digits and hyphens, and what it's called there.
+ * Action is something a plugin can do when it's asked from Find: its id, in
+ * lower-case letters, digits and hyphens, and what it's called there.
  */
 export interface ProtocolAction {
     id: string;
@@ -3480,7 +3482,7 @@ export interface ProtocolAction {
     hint?: string;
 }
 
-// From protocol/protocol.go
+// From protocol/protocol.gen.go
 /**
  * Ask is one thing an action wants answered before it does anything.
  */
@@ -3494,18 +3496,18 @@ export interface ProtocolAsk {
     placeholder?: string;
 }
 
-// From protocol/protocol.go
+// From protocol/protocol.gen.go
 /**
- * Block is one piece of a view: what it is, and the field it shows. A
- * block whose field a thing has nothing for isn't drawn, and neither is
- * one of a kind a ws doesn't know.
+ * Block is one piece of a view: what it is, and the field it shows. A block
+ * whose field a thing has nothing for isn't drawn, and neither is one of a
+ * kind a ws doesn't know.
  */
 export interface ProtocolBlock {
     block: string;
     field: string;
     /**
-     * Label is what a BlockField says before its value, where that isn't
-     * the field's own.
+     * Label is what a BlockField says before its value, where that isn't the
+     * field's own.
      */
     label?: string;
     /**
@@ -3514,7 +3516,7 @@ export interface ProtocolBlock {
     lines?: number;
 }
 
-// From protocol/protocol.go
+// From protocol/protocol.gen.go
 /**
  * Field is one of the things a kind's things are made of: its name, in
  * lower-case letters, digits and underscores, what it is, and what it's
@@ -3525,14 +3527,14 @@ export interface ProtocolField {
     type: string;
     label?: string;
     /**
-     * Link is how a FieldRef or a FieldRefs points at what it names, in
-     * ws's graph: one of the Links. None, or one ws doesn't know, is
+     * Link is how a FieldRef or a FieldRefs points at what it names, in ws's
+     * graph: one of the Links. None, or one ws doesn't know, is
      * LinkMentions.
      */
     link?: string;
 }
 
-// From protocol/protocol.go
+// From protocol/protocol.gen.go
 /**
  * Option is one thing to pick: what's answered (Value), and what's shown.
  */
@@ -3542,14 +3544,14 @@ export interface ProtocolOption {
     hint?: string;
 }
 
-// From protocol/protocol.go
+// From protocol/protocol.gen.go
 /**
  * ProposalItem is one thing to be done: what it's called, the thing it's
- * done to (On, a name: RAM-12; "" for one made), what it'll be, row by
- * row, and at length (Markdown), and Payload, the plugin's own, which ws
- * keeps and sends back as it was when the item's accepted. An item names
- * an earlier one of the same proposal as #1, #2…; what it made is given
- * when it's accepted.
+ * done to (On, a name: RAM-12; "" for one made), what it'll be, row by row,
+ * and at length (Markdown), and Payload, the plugin's own, which ws keeps
+ * and sends back as it was when the item's accepted. An item names an
+ * earlier one of the same proposal as #1, #2…; what it made is given when
+ * it's accepted.
  */
 export interface ProtocolProposalItem {
     title: string;
@@ -3560,11 +3562,10 @@ export interface ProtocolProposalItem {
     payload: string;
 }
 
-// From protocol/protocol.go
+// From protocol/protocol.gen.go
 /**
- * ProposalRow is a label and what it'll be, and, for a change to
- * something that's there, what it was (Was, nil for a row that isn't a
- * change).
+ * ProposalRow is a label and what it'll be, and, for a change to something
+ * that's there, what it was (Was, nil for a row that isn't a change).
  */
 export interface ProtocolProposalRow {
     label: string;

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useKeys } from "../keys";
+import { useKeys, useShortcut } from "../keys";
 import css from "./Viewer.module.css";
 import { cx } from "./cx";
 import { Icon } from "./Icon";
@@ -276,14 +276,16 @@ function Stage({ viewing }: { viewing: Viewing }) {
     to.current = { ...to.current, x: to.current.x + dx, y: to.current.y + dy };
     run();
   };
+  // What the tools do, each with its key: the key's bound here, and the
+  // button given what comes back says it.
+  const modal = { modal: true };
+  const closeIt = useShortcut("Escape", close, modal);
+  const zoomIn = useShortcut(["+", "="], () => zoomAt(to.current.s * step, ...middle()), modal);
+  const zoomOut = useShortcut("-", () => zoomAt(to.current.s / step, ...middle()), modal);
+  const fitIt = useShortcut("0", toFit, modal);
+  const ownSize = useShortcut("1", toActual, modal);
   useKeys(
     {
-      Escape: close,
-      "+": () => zoomAt(to.current.s * step, ...middle()),
-      "=": () => zoomAt(to.current.s * step, ...middle()),
-      "-": () => zoomAt(to.current.s / step, ...middle()),
-      "0": toFit,
-      "1": toActual,
       ArrowLeft: () => nudge(80, 0),
       ArrowRight: () => nudge(-80, 0),
       ArrowUp: () => nudge(0, 80),
@@ -333,16 +335,16 @@ function Stage({ viewing }: { viewing: Viewing }) {
         </div>
       )}
       <div className={css.tools} data-viewer-own="" onPointerDown={(e) => e.stopPropagation()}>
-        <Button variant="ghost" square onClick={() => zoomAt(to.current.s / step, ...middle())} title="Zoom out (-)" aria-label="Zoom out">
+        <Button variant="ghost" square onClick={zoomOut} title="Zoom out" aria-label="Zoom out">
           <Icon name="minus" size={15} />
         </Button>
-        <Button variant="ghost" className={css.zoom} onClick={toActual} title="Its own size (1)">
+        <Button variant="ghost" className={css.zoom} onClick={ownSize} title="Its own size">
           {Math.round(zoom * 100)}%
         </Button>
-        <Button variant="ghost" square onClick={() => zoomAt(to.current.s * step, ...middle())} title="Zoom in (+)" aria-label="Zoom in">
+        <Button variant="ghost" square onClick={zoomIn} title="Zoom in" aria-label="Zoom in">
           <Icon name="plus" size={15} />
         </Button>
-        <Button variant="ghost" className={css.fit} onClick={toFit} title="Fit it to the window (0)">
+        <Button variant="ghost" className={css.fit} onClick={fitIt} title="Fit it to the window">
           Fit
         </Button>
         {viewing.kind === "image" && (
@@ -351,7 +353,7 @@ function Stage({ viewing }: { viewing: Viewing }) {
           </a>
         )}
         <span className={css.sep} />
-        <Button variant="ghost" square onClick={close} title="Close (esc)" aria-label="Close">
+        <Button variant="ghost" square onClick={closeIt} title="Close" aria-label="Close">
           <Icon name="x" size={15} />
         </Button>
       </div>

@@ -39,7 +39,7 @@ export function MissionSummaryCapsule({
         {badges}
         <span className={css.spacer} />
         {onReview && (
-          <Button size="small" onClick={onReview} title="Review its changes (v)">
+          <Button size="small" onClick={onReview} title="Review its changes" keys="v">
             <Icon name="eye" /> Review
           </Button>
         )}

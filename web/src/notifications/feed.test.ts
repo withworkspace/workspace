@@ -31,6 +31,7 @@ describe("the feed", () => {
   it("draws a notification by where it's from, and one that went wrong as an alert", () => {
     expect(sourceIcon({ source: "pulls" })).toBe("pr");
     expect(sourceIcon({ source: "plugins" })).toBe("box");
+    expect(sourceIcon({ source: "plugin:jira" })).toBe("box");
     expect(sourceIcon({ source: "ws" })).toBe("info");
     expect(sourceIcon({ source: "missions", attention: true })).toBe("alert");
     expect(sourceIcon({ source: "something-new" })).toBe("bell");

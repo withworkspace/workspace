@@ -3,6 +3,7 @@ import type { Place } from "../shell/places";
 import { Count } from "../ui/Count";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
+import { keyProps } from "../ui/keyHint";
 import { Mark } from "../ui/Mark";
 import css from "./PlaceLink.module.css";
 
@@ -24,6 +25,7 @@ export function PlaceLink({ place, on, news }: PlaceLinkProps) {
       to={place.to}
       aria-current={on ? "page" : undefined}
       className={cx(css.place, on && css.on)}
+      {...(place.keys ? keyProps(place.keys, place.label) : {})}
     >
       <Icon name={place.icon} size={15} className={css.icon} />
       <span className={css.words}>{place.label}</span>

@@ -33,7 +33,7 @@ export function MissionVerifyClear({ id, children, after, busy, onApprove, onAga
         icon="check"
         title="You're all clear"
         action={
-          <Button variant="primary" className={css.big} disabled={busy} onClick={onApprove} title="Approve it, with the checks as you've approved them">
+          <Button variant="primary" className={css.big} disabled={busy} onClick={onApprove} title="Approve it, with the checks as you've approved them" keys="mod+⏎">
             Approve {id} <Keys k="mod+⏎" />
           </Button>
         }

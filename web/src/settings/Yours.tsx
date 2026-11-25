@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import type { SettingsInfo } from "../api";
 import { Keys } from "../ui/Keys";
 import { sendKeys, useSendKey } from "../ui/sendKey";
+import { usePref } from "../prefs";
 import { useTheme } from "../ui/theme";
 import { fileName } from "./file";
 import { MineRow } from "./MineRow";
@@ -18,6 +19,7 @@ export function Yours({ info, sections }: { info: SettingsInfo; sections: Sectio
   const { notify } = usePage();
   const { choice } = useTheme();
   const sendKey = useSendKey();
+  const [keyHints] = usePref("keyHints");
   const mines = minesOf(sections);
   return (
     <>
@@ -51,6 +53,15 @@ export function Yours({ info, sections }: { info: SettingsInfo; sections: Sectio
             <span>
               <Keys k={sendKeys(sendKey)} /> sends
             </span>
+          </SettingsMineRow>
+          <SettingsMineRow>
+            <span>
+              <Link to="/settings/keyboard" className="link">
+                Keyboard
+              </Link>{" "}
+              · Key hints
+            </span>
+            <span>{keyHints ? "On" : "Off"}</span>
           </SettingsMineRow>
           <SettingsMineRow>
             <span>

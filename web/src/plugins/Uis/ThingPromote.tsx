@@ -79,7 +79,7 @@ export function ThingPromote({ what, places, pick, onPick, under, group, onUnder
         <Button variant="primary" size="small" type="submit" ref={go} disabled={busy || !ready}>
           {busy ? "Promoting…" : "Promote"}
         </Button>
-        <Button variant="ghost" size="small" type="button" disabled={busy} onClick={onCancel}>
+        <Button variant="ghost" size="small" type="button" disabled={busy} onClick={onCancel} keys="esc">
           Cancel
         </Button>
       </ThingUiButtons>

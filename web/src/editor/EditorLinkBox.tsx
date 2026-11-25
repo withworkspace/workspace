@@ -41,7 +41,7 @@ export function EditorLinkBox({ href: had, top, left, onDone, onClose }: EditorL
         }}
         onBlur={() => onClose()}
       />
-      <Button variant="primary" size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => onDone(href)}>
+      <Button variant="primary" size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => onDone(href)} keys="⏎">
         {had ? "Change" : "Link"}
       </Button>
       {had && (

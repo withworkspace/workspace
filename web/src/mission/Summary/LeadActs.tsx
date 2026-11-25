@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { act, type ActVerb, type MissionAct, type MissionCard, type MissionDetail } from "../../api";
 import { type Reload, useHere } from "../../load";
 import { Button, buttonClass } from "../../ui/Button";
+import { hintOnClick } from "../../ui/keyHint";
 import { Icon, type IconName } from "../../ui/Icon";
 import { Input } from "../../ui/Input";
 import { Keys } from "../../ui/Keys";
@@ -102,6 +103,9 @@ export function LeadActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionC
         {a.icon && <Icon name={a.icon as IconName} />} {a.label} {lead && a.key && <Keys k={a.key} />}
       </>
     );
+    // Its key is the page's (v, for the lead's review), which the lead's
+    // shows in it: pressed with the pointer, it hints at it.
+    const keys = lead ? a.key || undefined : undefined;
     if (a.do === "launch") return <MissionLeadLaunch key={i} picks={d.crewPicks} primary={accent && lead} again={!accent} busy={busy} launch={(p) => send("launch", { harness: p?.harness, model: p?.model })} />;
     if (a.do === "url") {
       // GitHub hasn't said where it is yet: its words, with nothing to open.
@@ -113,7 +117,7 @@ export function LeadActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionC
         );
       }
       return (
-        <a key={i} href={a.url} target="_blank" rel="noopener" className={buttonClass({ variant: accent && lead ? "primary" : undefined })}>
+        <a key={i} href={a.url} target="_blank" rel="noopener" className={buttonClass({ variant: accent && lead ? "primary" : undefined })} onClick={hintOnClick(keys)}>
           {inside} <Icon name="external" size={12} />
         </a>
       );
@@ -121,7 +125,7 @@ export function LeadActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionC
     const href = actHref(d, c, a);
     if (href) {
       return (
-        <Link key={i} to={href} className={buttonClass({ variant })}>
+        <Link key={i} to={href} className={buttonClass({ variant })} onClick={hintOnClick(keys)}>
           {inside}
         </Link>
       );
@@ -134,6 +138,7 @@ export function LeadActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionC
           key={i}
           variant={variant}
           disabled={busy}
+          keys={keys}
           onClick={() => {
             setWords("");
             setOpened(a);
@@ -144,7 +149,7 @@ export function LeadActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionC
       );
     }
     return (
-      <Button key={i} variant={variant} type={accent && a.field ? "submit" : "button"} disabled={busy || (accent && !!a.field && !a.text && a.do === "answer" && !words.trim() && !opened)} onClick={accent && a.field ? undefined : () => run(a)}>
+      <Button key={i} variant={variant} type={accent && a.field ? "submit" : "button"} disabled={busy || (accent && !!a.field && !a.text && a.do === "answer" && !words.trim() && !opened)} keys={keys} onClick={accent && a.field ? undefined : () => run(a)}>
         {inside}
       </Button>
     );

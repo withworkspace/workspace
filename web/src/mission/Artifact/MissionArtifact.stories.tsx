@@ -37,7 +37,7 @@ export const Parts: StoryObj = {
         added={editedDraft.at}
         docRef={editedDoc.ref}
         actions={
-          <Button size="small" title="Edit it here (e)">
+          <Button size="small" title="Edit it here" keys="e">
             <Icon name="pencil" size={12} /> Edit <Keys k="e" />
           </Button>
         }

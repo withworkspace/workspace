@@ -1,0 +1,89 @@
+/* What's new (WhatsNewDialog.tsx): once after an upgrade, and from
+   Settings' About. Wide, with the horizon behind its head. */
+
+:global([data-overlay]):has(.dialog) {
+  place-items: center;
+  padding-top: 16px;
+}
+
+.dialog {
+  position: relative;
+  width: min(820px, 100%);
+  max-height: min(86vh, 900px);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.head {
+  padding: 28px 32px 20px;
+  background:
+    radial-gradient(
+      ellipse 90% 190px at 50% 0,
+      color-mix(in srgb, var(--horizon-1) 30%, transparent),
+      color-mix(in srgb, var(--horizon-2) 16%, transparent) 40%,
+      color-mix(in srgb, var(--horizon-3) 6%, transparent) 72%,
+      transparent
+    ),
+    var(--raised);
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.head h2 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+}
+
+.head p {
+  margin: 0;
+}
+
+.body {
+  overflow-y: auto;
+  padding: 24px 32px;
+  display: grid;
+  gap: 24px;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 32px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 560px) {
+  .head {
+    padding: 24px 20px 16px;
+  }
+
+  .logotype {
+    height: 18px;
+    width: auto;
+  }
+
+  .head h2 {
+    font-size: 22px;
+  }
+
+  .body {
+    padding: 20px;
+  }
+
+  .foot {
+    padding: 12px 20px;
+  }
+}

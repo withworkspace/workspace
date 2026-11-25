@@ -18,7 +18,7 @@ export function FileOverview({ tree, changed, onOpen, onFind }: { tree?: FileTre
         icon="file"
         title="Pick a file"
         action={
-          <Button onClick={onFind}>
+          <Button onClick={onFind} title="Find a file" keys="t">
             <Icon name="search" /> Find a file <Keys k="t" />
           </Button>
         }

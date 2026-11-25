@@ -106,7 +106,7 @@ export function Side({
             return <MissionOutput key={key} id={`side-${key}`} a={a} compact selected={selected(key)} open={openArtifact} />;
           })}
           {d.artifacts.length > sideArtifacts && (
-            <MissionSideMore onClick={toWork}>
+            <MissionSideMore onClick={toWork} keys="3">
               {d.artifacts.length - sideArtifacts} more in Work
             </MissionSideMore>
           )}
@@ -121,7 +121,8 @@ export function Side({
               id={`side-${key}`}
               selected={selected(key)}
               onReview={() => review(c)}
-              title={c.exists ? "Review it (v)" : "Burned: its folder's gone"}
+              title={c.exists ? "Review it" : "Burned: its folder's gone"}
+              keys={c.exists ? "v" : undefined}
               gone={!c.exists}
               dirty={c.dirty}
               name={
@@ -164,7 +165,7 @@ export function Side({
           <CrewRow key={c.id} c={c} slug={d.slug} side />
         ))}
         {d.crew.length > live.length && (
-          <MissionSideMore onClick={toWork}>
+          <MissionSideMore onClick={toWork} keys="3">
             {live.length ? `${d.crew.length - live.length} earlier, in Work` : `${d.crew.length} so far, none on it now: in Work`}
           </MissionSideMore>
         )}

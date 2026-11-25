@@ -7,6 +7,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/spend"
 	"github.com/withworkspace/workspace/internal/team"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -75,7 +76,8 @@ func (w *Workspace) TeamService() *team.Service {
 			names, _ := workspace.ListWorktrees(w.WS().RepoDir(repo))
 			out := make([]team.Capsule, 0, len(names))
 			for _, n := range names {
-				out = append(out, team.Capsule{Repo: repo, Name: n, Dir: filepath.Join(w.WS().RepoDir(repo), n), Base: "origin/" + branch})
+				dir := filepath.Join(w.WS().RepoDir(repo), n)
+				out = append(out, team.Capsule{Repo: repo, Name: n, Dir: dir, Base: "origin/" + branch, Stamp: changesStamp(dir, "origin/"+branch)})
 			}
 			return out
 		},
@@ -114,7 +116,7 @@ func (w *Workspace) teamWriter() func(team.Ask) (string, error) {
 			return "", err
 		}
 		run := harness.ConverseRun{Prompt: team.GistPrompt(ask, w.WS().DisplayNameFor), Dir: root, Model: pick.Model, Alone: true, Once: true}
-		rep, err := RunHeadless(w.life(), root, "team gist "+ask.Subject.Strand, crew.Env(root, "", ""), "", gistTurnFor, h, run)
+		rep, err := RunHeadless(w.life(), root, "team gist "+ask.Subject.Strand, spend.For{Kind: spend.Team, Subject: "gist " + ask.Subject.Strand}, crew.Env(root, "", ""), "", gistTurnFor, h, run)
 		if err != nil {
 			return "", err
 		}
@@ -132,7 +134,7 @@ func (w *Workspace) teamSummariser() func(team.SummaryAsk) (string, error) {
 			return "", err
 		}
 		run := harness.ConverseRun{Prompt: team.SummaryPrompt(ask, w.WS().DisplayNameFor), Dir: root, Model: pick.Model, Alone: true, Once: true}
-		rep, err := RunHeadless(w.life(), root, "team account since "+ask.Since.Format("2006-01-02"), crew.Env(root, "", ""), "", gistTurnFor, h, run)
+		rep, err := RunHeadless(w.life(), root, "team account since "+ask.Since.Format("2006-01-02"), spend.For{Kind: spend.Team, Subject: "account"}, crew.Env(root, "", ""), "", gistTurnFor, h, run)
 		if err != nil {
 			return "", err
 		}

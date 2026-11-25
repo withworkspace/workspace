@@ -37,7 +37,7 @@ export function WorkOutputPane({ d, a, home, label, select, open }: { d: Mission
           </>
         }
         actions={
-          <Button size="small" onClick={() => open(a)} title={reads ? "Open its page, to comment on it or edit it (⏎)" : "Open it (⏎)"}>
+          <Button size="small" onClick={() => open(a)} title={reads ? "Open its page, to comment on it or edit it" : "Open it"} keys="⏎">
             <Icon name={reads || isArtifact(a) ? "arrow-up-right" : "external"} /> {reads ? "Open its page" : "Open it"} <Keys k="⏎" />
           </Button>
         }

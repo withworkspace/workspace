@@ -153,7 +153,7 @@ export const Tab: StoryObj = {
                   <MissionVerifyRow icon="x-circle" tone="danger" title="Over the limit, a client is told when to try again" line="Not right, you say" kind="wanted" selected onChoose={none} />
                   <MissionVerifyRow icon="user" tone="attention" title="The docs name the header a client reads" line="Left for you by c3 · 1 picture" kind="wanted" onChoose={none} />
                 </MissionVerifyGroup>
-                <MissionVerifyApprove says="1 check goes back to c3, with what the bundle showed and what you said. The one they hand over next takes its place." onSettle={none}>
+                <MissionVerifyApprove says="1 check goes back to c3, with what the bundle showed and what you said. The one they hand over next takes its place." onSettle={none} keys="mod+⏎">
                   Send back to c3 (1) <Keys k="mod+⏎" />
                 </MissionVerifyApprove>
                 <MissionVerifyGroup title="You approved" n={1} fold={{ open: true, onToggle: none }}>
@@ -232,10 +232,10 @@ export const AllClear: StoryObj = {
         <MissionVerifyPanes
           side={
             <MissionVerifyList>
-              <MissionVerifyApprove says="Approving b2 passes step 2." onSettle={none}>
+              <MissionVerifyApprove says="Approving b2 passes step 2." onSettle={none} keys="mod+⏎">
                 Approve b2 <Keys k="mod+⏎" />
               </MissionVerifyApprove>
-              <MissionVerifyApprove plain says="Approving b2 passes step 2. 2 checks are still left for you." onSettle={none}>
+              <MissionVerifyApprove plain says="Approving b2 passes step 2. 2 checks are still left for you." onSettle={none} keys="mod+⏎">
                 Approve b2 <Keys k="mod+⏎" />
               </MissionVerifyApprove>
             </MissionVerifyList>

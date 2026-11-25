@@ -9,7 +9,7 @@ import { humanError } from "../ui/text";
 import { TeamEventLine, TeamEvents, TeamEventSubject } from "./TeamEvents";
 import { TeamGist } from "./TeamGist";
 import { TeamKnow } from "./TeamKnow";
-import { TeamKnowLine } from "./TeamKnowLine";
+import { TeamNear } from "./TeamNear";
 import { TeamPulls } from "./TeamPulls";
 import { TeamRepoChip } from "./TeamRepoChip";
 import { TeamRow } from "./TeamRow";
@@ -73,12 +73,7 @@ export function TeamChange({ id, item: it, names, repoOf, selected, open, fresh,
         <>
           <TeamGist text={it.gist} reading={it.narrative === "writing"} />
           {know && it.know?.map((k) => <TeamKnow key={`${k.kind}:${k.file}:${k.text}`} know={k} repo={it.repo} />)}
-          {it.near?.map((n) => (
-            <TeamKnowLine key={n.capsule} kind={{ label: "Near you", icon: "box", tone: "progress", title: "A capsule of yours has changed some of the same files" }} title={n.files.join("\n")}>
-              Also changed in your <span className="mono">{n.capsule}</span>: {n.files.slice(0, 2).map((f) => f.split("/").pop()).join(", ")}
-              {n.files.length > 2 ? `, and ${n.files.length - 2} more` : ""}
-            </TeamKnowLine>
-          ))}
+          {it.near && <TeamNear near={it.near} />}
         </>
       }
       words={it.words}
@@ -108,12 +103,12 @@ export function TeamChange({ id, item: it, names, repoOf, selected, open, fresh,
         actions={
           <>
             {!several && (
-              <Button variant="ghost" size="small" onClick={onOpen} title="Open it (o)">
+              <Button variant="ghost" size="small" onClick={onOpen} title="Open it" keys="o">
                 <Icon name={here ? "pr" : "external"} size={13} /> {here ? "Review it here" : "Open on GitHub"} <Keys k="o" />
               </Button>
             )}
             {(it.narrative === "unwritten" || it.narrative === "failed") && (
-              <Button variant="ghost" size="small" onClick={onWrite} title="An agent reads the change and writes what it does, and what's worth knowing of it (w)">
+              <Button variant="ghost" size="small" onClick={onWrite} title="An agent reads the change and writes what it does, and what's worth knowing of it" keys="w">
                 <Icon name="sparkle" size={13} /> {it.narrative === "failed" ? "Try again" : it.gist ? "Read it again" : "Read the change"} <Keys k="w" />
               </Button>
             )}

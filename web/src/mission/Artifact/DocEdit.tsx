@@ -302,10 +302,10 @@ export function DocEdit({
                 Discard
               </Button>
             )}
-            <Button variant="ghost" onClick={close} disabled={busy} title="Leave, keeping your edit as a draft">
+            <Button variant="ghost" onClick={close} disabled={busy} title="Leave, keeping your edit as a draft" keys="esc">
               Close <Keys k="esc" />
             </Button>
-            <Button variant="primary" onClick={save} disabled={busy || !unsaved}>
+            <Button variant="primary" onClick={save} disabled={busy || !unsaved} keys="mod+⏎">
               {busy ? (suggesting ? "Suggesting…" : lands ? "Landing…" : "Saving…") : suggesting ? "Suggest" : lands ? `Save, and land on ${a.saves?.branch}` : "Save"} <Keys k="mod+⏎" />
             </Button>
           </>

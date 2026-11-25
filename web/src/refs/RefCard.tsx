@@ -1,4 +1,4 @@
-import { PinButton } from "../shell/focus";
+import { PinButton } from "../shell/PinButton";
 import type { Anchor } from "../ui/FloatingCard";
 import { useWorkspace } from "../workspace/store";
 import { useRefs } from "./known";
@@ -16,7 +16,7 @@ export function RefCard({ r, el, onEnter, onLeave, hint = true }: { r: PageRef; 
   // Read here, outside the card: inside it, names are only words.
   const refs = useRefs();
   return (
-    <RefFloat anchor={el} onEnter={onEnter} onLeave={onLeave} hint={hint} pin={<PinButton r={r} />}>
+    <RefFloat anchor={el} onEnter={onEnter} onLeave={onLeave} hint={hint} pin={<PinButton r={r} end />}>
       {refBody(r, workspace, refs?.known, refs?.repos)}
     </RefFloat>
   );

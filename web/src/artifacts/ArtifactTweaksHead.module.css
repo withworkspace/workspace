@@ -1,0 +1,28 @@
+/* The head over a frame's tweaks (ArtifactTweaksHead.tsx). */
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 var(--space-2) 0 var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.head h2 {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.end {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.copy {
+  color: var(--dim);
+  font-size: var(--text-xs);
+}

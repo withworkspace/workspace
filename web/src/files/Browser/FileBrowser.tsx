@@ -284,7 +284,7 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
       <FilesExplorer before={before}>
         {top}
         <div className="page narrow">
-          <ErrorCard title="Couldn't read the files" error={error} retry={loadTree} />
+          <ErrorCard title="Couldn't read the files" error={error} retry={loadTree} keys="r" />
         </div>
       </FilesExplorer>
     );

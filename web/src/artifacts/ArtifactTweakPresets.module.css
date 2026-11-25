@@ -1,0 +1,50 @@
+/* A preset (ArtifactTweakPresets.tsx): a button that sets several at
+   once, on while they're all as it gives them. */
+
+.presets {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+/* A button's words are centred, on one line: these are a label over a
+   line or two about it, from the left. */
+button.preset {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+  justify-items: start;
+  gap: 1px;
+  width: 100%;
+  min-height: 0;
+  white-space: normal;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  box-shadow: none;
+  color: var(--fg);
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: 400;
+}
+
+button.preset:hover {
+  background: var(--hover);
+}
+
+button.preset[aria-pressed="true"] {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.label {
+  font-weight: 550;
+}
+
+.description {
+  margin: 0;
+  color: var(--dim);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}

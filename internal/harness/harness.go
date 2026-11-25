@@ -151,6 +151,7 @@ type Caps struct {
 	Hooks      bool // lifecycle hooks ws can install (Hooks)
 	Models     bool // lists its own models (a ModelLister)
 	Transcript TranscriptVia
+	Spends     Spends // where it says what its agents spend
 }
 
 // CrewVia is how a harness's crew run.
@@ -193,6 +194,9 @@ func CapsOf(name string) Caps {
 	_, c.Converse = h.(Converser)
 	_, c.Hooks = h.(Hooks)
 	_, c.Models = h.(ModelLister)
+	if s, ok := h.(spender); ok {
+		c.Spends = s.spends()
+	}
 	return c
 }
 

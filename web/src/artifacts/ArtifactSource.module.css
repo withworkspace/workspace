@@ -1,0 +1,20 @@
+/* A version's source (ArtifactSource.tsx): its page, and for one with
+   more files, a list of them beside it, to read another. */
+
+.view {
+  min-height: 100%;
+  background: var(--bg);
+}
+
+.view.many {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  align-items: start;
+}
+
+/* A version's files go above its source, in a row that scrolls. */
+@media (max-width: 860px) {
+  .view.many {
+    display: block;
+  }
+}

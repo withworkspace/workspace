@@ -48,7 +48,7 @@ export function MissionBriefPlanner({ label, centre, reading, talk, action, onFo
         <span className={css.spacer} />
         {action}
         {onFold && (
-          <Button variant="ghost" square type="button" onClick={onFold} title="Fold the planner away (p)" aria-label="Fold the planner away">
+          <Button variant="ghost" square type="button" onClick={onFold} title="Fold the planner away" keys="p" aria-label="Fold the planner away">
             <Icon name="panel" size={14} />
           </Button>
         )}

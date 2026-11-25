@@ -207,7 +207,7 @@ export function ReviewsPage() {
               }
             }}
           />
-          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Ask GitHub again (r)">
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Ask GitHub again" keys="r">
             <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
           </Button>
         </>
@@ -235,7 +235,7 @@ export function ReviewsPage() {
     <div className="page reviews-page">
       {head}
       {(error || list.error) && (
-        <Callout tone="attention" title="GitHub couldn't be asked just now" actions={<Button onClick={refresh}>Try again</Button>}>
+        <Callout tone="attention" title="GitHub couldn't be asked just now" actions={<Button onClick={refresh} keys="r">Try again</Button>}>
           {humanError(error ?? list.error ?? "")} What's here is as of <Time iso={list.at} as="relative" />.
         </Callout>
       )}
@@ -431,7 +431,7 @@ function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: Row
         </a>
       )}
       {st && (
-        <Button variant="ghost" size="small" square className="stack-fold" onClick={onFold} title={`${folded ? "Show" : "Hide"} its layers (l)`} aria-expanded={!folded} aria-label="Its layers">
+        <Button variant="ghost" size="small" square className="stack-fold" onClick={onFold} title={`${folded ? "Show" : "Hide"} its layers`} keys="l" aria-expanded={!folded} aria-label="Its layers">
           <Icon name={folded ? "chevron-right" : "chevron-down"} size={13} />
         </Button>
       )}

@@ -31,7 +31,7 @@ function Bar({ title, status, under, at = "Summary" }: { title?: string; status?
   return (
     <PageBar
       className={missionFrameBarClass}
-      back={{ to: "/", title: "Missions (esc)", label: "Back to the missions" }}
+      back={{ to: "/", title: "Missions", keys: "esc", label: "Back to the missions" }}
       status={status}
       title={title}
       tabs={

@@ -3,7 +3,7 @@ import { Crumbs } from "../../ui/Crumbs";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { AnnotatedDoc } from "../../annotate/Annotate";
 import { type ArtifactContent, type DocDraft, dropDraft, getArtifact, getDraft, kindHint, placeOf } from "../../api";
-import { useKeys } from "../../keys";
+import { useKeys, useShortcut } from "../../keys";
 import { Markdown } from "../../markdown/LazyMarkdown";
 import { highlightCode, languageOf, useHighlighter } from "../../review/highlight";
 import { Icon } from "../../ui/Icon";
@@ -12,6 +12,7 @@ import { toast } from "../../ui/toast";
 import { Skeleton } from "../../ui/Skeleton";
 import { ErrorCard } from "../../ui/ErrorCard";
 import { Callout } from "../../ui/Callout";
+import { keyProps } from "../../ui/keyHint";
 import { Keys } from "../../ui/Keys";
 import { Time } from "../../ui/Time";
 import { artifactTitle } from "../outputs";
@@ -73,9 +74,12 @@ export function ArtifactPage() {
   const back = () => (location.key !== "default" ? navigate(-1) : navigate(`/missions/${slug}?tab=work`));
   // A document's own keys move through it; code just scrolls.
   const annotating = !!a?.annotatable;
-  // While you edit, the editor has the keys.
+  // What the page's buttons do too, each with its key: the key's bound
+  // here, and the button's handed what comes back, which says it. Not
+  // while you edit, when the editor has the keys.
+  const edit = useShortcut("e", startEdit, { enabled: canEdit && !editing });
+  const again = useShortcut("r", load, { enabled: !editing });
   useKeys(editing ? {} : {
-    ...(canEdit ? { e: startEdit } : {}),
     ...(annotating
       ? {}
       : {
@@ -89,7 +93,6 @@ export function ArtifactPage() {
     g: () => pageScroller()?.scrollTo({ top: 0 }),
     G: () => pageScroller()?.scrollTo({ top: pageScroller()!.scrollHeight }),
     o: () => a?.url && window.open(a.url, "_blank", "noopener"),
-    r: load,
     // A document's Esc clears what's picked out in it first: it goes back.
     ...(annotating ? {} : { Escape: back, h: back }),
   });
@@ -112,12 +115,12 @@ export function ArtifactPage() {
           actions={
             <>
               {a.markdown && !editing && (
-                <Button size="small" onClick={startEdit} unavailable={a.editable ? undefined : `Can't be edited here: ${a.uneditable}`} title="Edit it here (e)">
+                <Button size="small" onClick={edit} unavailable={a.editable ? undefined : `Can't be edited here: ${a.uneditable}`} title="Edit it here">
                   <Icon name="pencil" size={12} /> Edit <Keys k="e" />
                 </Button>
               )}
               {a.url && (
-                <a href={a.url} target="_blank" rel="noopener noreferrer" className={buttonClass({ size: "small" })} title="Open it where it lives (o)">
+                <a href={a.url} target="_blank" rel="noopener noreferrer" className={buttonClass({ size: "small" })} {...keyProps(editing ? undefined : "o", "Open it where it lives")}>
                   <Icon name="external" size={12} /> Open <Keys k="o" />
                 </a>
               )}
@@ -125,7 +128,7 @@ export function ArtifactPage() {
           }
         />
       )}
-      {error && <ErrorCard title="Couldn't open this document" error={error} retry={load} />}
+      {error && <ErrorCard title="Couldn't open this document" error={error} retry={again} />}
       {!a && !error && <Skeleton rows={10} />}
       {a && !editing && draft && (
         <Callout
@@ -134,7 +137,7 @@ export function ArtifactPage() {
           title="You've an unsaved edit of this"
           actions={
             <>
-              <Button variant="primary" size="small" onClick={startEdit}>
+              <Button variant="primary" size="small" onClick={edit}>
                 Go on editing <Keys k="e" />
               </Button>
               <Button variant="ghost" size="small" onClick={() => dropDraft(slug, ref).then(() => setDraft(null))}>

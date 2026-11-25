@@ -17,10 +17,10 @@ export function MissionBriefNav({ children, onBefore, onNext }: MissionBriefNavP
   return (
     <span className={css.nav}>
       <Chip tone="attention" className={css.chip}>{children}</Chip>
-      <Button variant="ghost" square type="button" onClick={onBefore} title="The change before (k)" aria-label="The change before">
+      <Button variant="ghost" square type="button" onClick={onBefore} title="The change before" keys="k" aria-label="The change before">
         <Icon name="chevron-up" size={13} />
       </Button>
-      <Button variant="ghost" square type="button" onClick={onNext} title="The next change (j)" aria-label="The next change">
+      <Button variant="ghost" square type="button" onClick={onNext} title="The next change" keys="j" aria-label="The next change">
         <Icon name="chevron-down" size={13} />
       </Button>
     </span>

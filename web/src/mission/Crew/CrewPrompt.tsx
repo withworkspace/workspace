@@ -52,7 +52,7 @@ export function CrewPrompt({ slug, crew, pending, fileLink, onTerminal, compact 
   };
   // Crew over ACP have no terminal: the card is the only way to answer.
   const terminal = crew.structured ? null : onTerminal ? (
-    <MoreLink onClick={onTerminal}>
+    <MoreLink onClick={onTerminal} keys="t">
       Answer in the terminal
     </MoreLink>
   ) : (

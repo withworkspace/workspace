@@ -1,8 +1,9 @@
 import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useChromeStore } from "../chrome/store";
-import { codeSearchKey, isCodeSearchKey, leaderWithin, pageBinds } from "../keys";
+import { codeSearchKey, isCodeSearchKey, leaderWithin } from "../keys";
 import { scopePrefix } from "./find";
+import { goKeys } from "./places";
 
 // useGlobalKeys: ⌘K finds anything, ⌘P a file, ⌘⇧F text in the files, ?
 // shows the keys, and g then m, c, p,
@@ -56,10 +57,12 @@ export function useGlobalKeys() {
         openHelp();
         return;
       }
-      // g then a key goes somewhere, unless the page uses that key itself
-      // (g, first, then o, open it, on a list): the page's keys win.
-      const to = { m: "/", c: "/conversations", p: "/documents", d: "/documents", a: "/artifacts", r: "/reviews", t: "/team", f: "/files", o: "/orchestrator" }[e.key];
-      if (to && Date.now() - g < leaderWithin && !pageBinds(e.key)) {
+      // g then a key goes somewhere, on every page: the sidebar's places
+      // say so. A page's key of the same letter is the page's alone, not
+      // straight after g: on a list, g (the first) then o goes to the
+      // Orchestrator, and ⏎ opens the first.
+      const to = Object.hasOwn(goKeys, e.key) ? goKeys[e.key] : undefined;
+      if (to && Date.now() - g < leaderWithin) {
         e.preventDefault();
         e.stopPropagation();
         g = 0;

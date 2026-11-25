@@ -88,6 +88,8 @@ interface ChromeStore {
   help: boolean;
   // On a narrow window the sidebar's a drawer: open or not.
   drawer: boolean;
+  // bell is the foot's bell's list of what you haven't read: open or not.
+  bell: boolean;
   // The sidebar's being arranged: its places, and which are in the menu.
   arranging: boolean;
   // The daemon was shut down from this window: the page went with it.
@@ -128,6 +130,7 @@ interface ChromeStore {
   closeFind: () => void;
   setHelp: (open: boolean) => void;
   setDrawer: (open: boolean | ((was: boolean) => boolean)) => void;
+  setBell: (open: boolean | ((was: boolean) => boolean)) => void;
   // arrange starts arranging the sidebar, where it is: shown, and on a
   // narrow window, the drawer open. stopArranging ends it, unsaved.
   arrange: () => void;
@@ -150,6 +153,7 @@ export const useChromeStore = create<ChromeStore>()((set, get) => ({
   find: undefined,
   help: false,
   drawer: false,
+  bell: false,
   arranging: false,
   closed: false,
   frame: { dim: false },
@@ -218,6 +222,10 @@ export const useChromeStore = create<ChromeStore>()((set, get) => ({
   setDrawer: (open) => {
     const to = typeof open === "function" ? open(get().drawer) : open;
     if (to !== get().drawer) set({ drawer: to });
+  },
+  setBell: (open) => {
+    const to = typeof open === "function" ? open(get().bell) : open;
+    if (to !== get().bell) set({ bell: to });
   },
   arrange: () => {
     get().change((c) => hideSidebar(c, false));

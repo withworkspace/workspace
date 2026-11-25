@@ -15,6 +15,7 @@ import (
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/prompt"
+	"github.com/withworkspace/workspace/internal/spend"
 )
 
 // Evaluating the judge: a fixture is a step's work as its crew left it and
@@ -268,7 +269,7 @@ func (w *Workspace) EvalJudge(f JudgeFixture, e JudgeEval) EvalResult {
 	}
 	start := time.Now()
 	// No mission, no crew: the judge's ws commands act for nobody.
-	rep, verdicts, err := w.askJudge(pick, h, j, "eval judge "+f.Name, crew.Env(w.Root(), "", ""), "")
+	rep, verdicts, err := w.askJudge(pick, h, j, "eval judge "+f.Name, spend.For{Kind: spend.Eval, Subject: f.Name}, crew.Env(w.Root(), "", ""), "")
 	res.TookMS = time.Since(start).Milliseconds()
 	res.Calls, res.Output = len(rep.Calls), rep.Output
 	if err != nil {

@@ -169,7 +169,7 @@ export function NewAsKind({ kinds, busy, onStart, onClose }: { kinds: DocKind[];
         <Button variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={go} disabled={busy || !k || !title.trim()}>
+        <Button variant="primary" onClick={go} disabled={busy || !k || !title.trim()} title="Start the page" keys="⏎">
           Start it <Keys k="⏎" />
         </Button>
       </DialogActions>

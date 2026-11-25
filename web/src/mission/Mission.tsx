@@ -1,8 +1,9 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { act, type Artifact, type CapsuleDetail, getMission, type MissionDetail, useEvents } from "../api";
-import { type KeyMap, useKeys } from "../keys";
+import { type KeyMap, useKeys, useShortcut } from "../keys";
 import { Icon } from "../ui/Icon";
+import { keyProps } from "../ui/keyHint";
 import { Crumbs } from "../ui/Crumbs";
 import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
@@ -24,7 +25,7 @@ import { Work } from "./Work/Work";
 import { crewElsewhere, work } from "./workRows";
 import { checkRows, rowKey, shownBundle, toApprove, waiting as bundleWaiting } from "./verifyRows";
 import { useLoaded } from "../load";
-import { PagePin } from "../shell/focus";
+import { PagePin } from "../shell/PagePin";
 import { Count } from "../ui/Count";
 import { buttonClass } from "../ui/Button";
 import { MissionTimeline } from "./MissionTimeline";
@@ -256,17 +257,19 @@ export function MissionPage() {
       else if (only?.length) setTab("work");
     },
     s: () => (tab === "summary" ? toggleSide() : setOver((v) => !v)),
-    r: load,
     h: back,
   });
+  // r reads it again, as Try again does where reading it failed: the
+  // button's handed this, and says the key.
+  const again = useShortcut("r", load);
 
   // The bar's ends, the same while the mission loads as once it has: back
   // to the missions, and the tabs (with what's waiting in each, once known).
-  const wayBack = { to: "/", title: "Missions (esc)", label: "Back to the missions" };
+  const wayBack = { to: "/", title: "Missions", keys: "esc", label: "Back to the missions" };
   const tabRow = (count?: (t: Tab) => ReactNode) => (
     <Tabs className={pageBarTabsClass()} value={tab} onChange={setTab} controls="mission-panel" aria-label="Mission">
       {tabs.map((t) => (
-        <Tab key={t} value={t} title={`${tabNames[t]} (${tabs.indexOf(t) + 1})`}>
+        <Tab key={t} value={t} title={tabNames[t]} keys={String(tabs.indexOf(t) + 1)}>
           {tabNames[t]}
           {count?.(t)}
         </Tab>
@@ -277,13 +280,13 @@ export function MissionPage() {
   if (error && !d) {
     return (
       <div className="page narrow">
-        <Crumbs steps={[{ to: "/", label: "Missions" }]} />
+        <Crumbs steps={[{ to: "/", label: "Missions", keys: "esc" }]} />
         <ErrorCard
           title={/not found|no mission/i.test(error) ? "There's no mission here" : "Couldn't load this mission"}
           error={/not found|no mission/i.test(error) ? `No mission is called ${slug}: it may have been renamed or deleted.` : error}
-          retry={load}
+          retry={again}
         />
-        <Link to="/" className={buttonClass()}>
+        <Link to="/" className={buttonClass()} {...keyProps("esc", "Back to the missions")}>
           <Icon name="arrow-left" /> All missions
         </Link>
       </div>
@@ -378,13 +381,13 @@ export function MissionPage() {
         // The brief has the page under the bar to itself: its panes reach
         // the page's edges, each scrolling by itself.
         <MissionFramePanel id="mission-panel" label={tabNames.brief} brief key="brief">
-          {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
+          {error && <ErrorCard title="Couldn't refresh" error={error} retry={again} />}
           <Brief d={d} root={root} updated={updated} reload={load} onEscape={escape} />
         </MissionFramePanel>
       ) : (
       <MissionFrameBody side={docked} wide={wideTabs.includes(tab)}>
         <MissionFrameMain>
-          {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
+          {error && <ErrorCard title="Couldn't refresh" error={error} retry={again} />}
           <MissionFramePanel id="mission-panel" label={tabNames[tab]} key={tab}>
             {tab === "summary" && <Summary d={d} selected={selected} review={review} full={!side} go={setTab} reload={load} />}
             {tab === "work" && w && (

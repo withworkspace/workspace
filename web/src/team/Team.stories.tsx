@@ -193,6 +193,18 @@ export const Day: StoryObj = {
   ),
 };
 
+// A change near more capsules of yours than are said one by one: one line
+// between them.
+export const NearMany: StoryObj = {
+  render: () => (
+    <div className="page">
+      <Rows role="listbox" aria-label="Today">
+        {row({ ...items[1], narrative: undefined, near: ["invoice-pdf", "vat-rates", "money-type", "pdf-fonts", "ledger"].map((c) => ({ capsule: `web/${c}`, files: ["web/src/invoices/pdf.ts"] })) })}
+      </Rows>
+    </div>
+  ),
+};
+
 export const Opened: StoryObj = {
   render: () => (
     <div className="page">

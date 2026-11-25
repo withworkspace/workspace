@@ -39,7 +39,8 @@ import {
   warmFind,
   withScope,
 } from "../find";
-import { pinNameOf, useFocus } from "../focus";
+import { pinNameOf } from "../pinNames";
+import { useFocus } from "../useFocus";
 import { around, hereAt, hereItems, keptAround, type Near, nearIds, nearItems } from "../here";
 import type { Waiting } from "../notify";
 import { doToThing } from "../perform";
@@ -541,7 +542,7 @@ export function Palette({
         tags={
           <>
             {doing && (
-              <FindTag doing onClick={back} title="Back (esc)">
+              <FindTag doing onClick={back} title="Back" keys="esc">
                 {doing}
               </FindTag>
             )}
@@ -551,7 +552,7 @@ export function Palette({
               </FindTag>
             )}
             {!mode && scope === "code" && tag && (
-              <FindTag onClick={() => setTag(undefined)} title="Search the whole workspace (⌫)">
+              <FindTag onClick={() => setTag(undefined)} title="Search the whole workspace" keys="⌫">
                 repo: {tag}
               </FindTag>
             )}

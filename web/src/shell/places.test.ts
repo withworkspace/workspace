@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arrange, headed, move, saving, type Place } from "./places";
+import { arrange, goKeys, goKeysTo, headed, move, placesOf, saving, type Place } from "./places";
 
 const place = (id: string, under?: string): Place => ({ id, to: `/${id}`, icon: "box", label: id, match: () => false, under });
 const ids = (ps: Place[]) => ps.map((p) => p.id);
@@ -73,5 +73,30 @@ describe("headed", () => {
   it("titles where a plugin's group starts, again if it's split", () => {
     const list = [place("missions"), place("x/a", "jira"), place("x/b", "jira"), place("team"), place("x/c", "jira")];
     expect(headed(list)).toEqual([undefined, "jira", undefined, undefined, "jira"]);
+  });
+});
+
+describe("the keys that go to a place", () => {
+  it("are g and its letter, for each of ws's own that has one", () => {
+    expect(goKeysTo("/")).toBe("g m");
+    expect(goKeysTo("/documents")).toBe("g d");
+    expect(goKeysTo("/files")).toBe("g f");
+    expect(goKeysTo("/runs")).toBeUndefined();
+  });
+
+  it("are what each place's link says, and every letter goes to one of them", () => {
+    const own = placesOf(undefined, []);
+    expect(own.filter((p) => p.keys).map((p) => [p.id, p.keys])).toEqual([
+      ["missions", "g m"],
+      ["conversations", "g c"],
+      ["documents", "g d"],
+      ["artifacts", "g a"],
+      ["reviews", "g r"],
+      ["team", "g t"],
+      ["files", "g f"],
+      ["orchestrator", "g o"],
+    ]);
+    const tos = new Set(own.map((p) => p.to));
+    expect(Object.values(goKeys).filter((to) => !tos.has(to))).toEqual([]);
   });
 });

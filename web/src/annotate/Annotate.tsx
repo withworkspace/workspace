@@ -710,7 +710,7 @@ export function AnnotatedDoc({
           </Button>
         )}
         {since && diff.length > 0 && (
-          <Button variant="ghost" size="small" onClick={() => setShowChanges((v) => !v)} title="Show or hide what's changed since you commented (i)">
+          <Button variant="ghost" size="small" onClick={() => setShowChanges((v) => !v)} title="Show or hide what's changed since you commented" keys="i">
             <Icon name="eye" size={13} /> {showChanges ? "Hide changes" : "Show changes"} <Keys k="i" />
           </Button>
         )}
@@ -721,7 +721,7 @@ export function AnnotatedDoc({
         ) : (
           <>
             {approved && <AnnotateBarNote>You approved an earlier version</AnnotateBarNote>}
-            <Button variant={open.some((t) => t.kind === "change") ? undefined : "primary"} disabled={approving || stale} onClick={approve} title="Approve the document as it is (⇧A)">
+            <Button variant={open.some((t) => t.kind === "change") ? undefined : "primary"} disabled={approving || stale} onClick={approve} title="Approve the document as it is" keys="⇧A">
               <Icon name="check" size={13} /> {approved ? "Approve again" : "Approve"} <Keys k="⇧A" />
             </Button>
           </>
@@ -750,7 +750,7 @@ export function AnnotatedDoc({
           tone="attention"
           title="This document has changed since it loaded"
           actions={
-            <Button onClick={onChanged}>
+            <Button onClick={onChanged} keys="r">
               Reload <Keys k="r" />
             </Button>
           }

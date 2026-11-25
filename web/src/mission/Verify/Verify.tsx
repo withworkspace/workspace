@@ -200,6 +200,7 @@ export function Verify({
                   disabled={busy}
                   onSettle={settle}
                   title={settleTitle}
+                  keys="mod+⏎"
                   says={
                     going.length
                       ? `${going.length} ${going.length === 1 ? "check goes" : "checks go"} back to ${bundle.crew}, with what the bundle showed and what you said. The one they hand over next takes its place.`

@@ -1,7 +1,6 @@
 import type { ReactElement } from "react";
 import { Count } from "../ui/Count";
 import { Icon, type IconName } from "../ui/Icon";
-import { Keys } from "../ui/Keys";
 import { Logotype } from "../ui/Logotype";
 import { Menu, MenuItem, MenuSection, MenuSeparator, MenuText } from "../ui/Menu";
 import { cx } from "../ui/cx";
@@ -16,6 +15,7 @@ export interface WindowMenuPlace {
   icon: IconName;
   count?: number;
   countTitle?: string;
+  keys?: string; // the keys that go there ("g m"), where it has them
   current?: boolean;
 }
 
@@ -66,7 +66,7 @@ export function WindowMenu({
       {places.length > 0 && (
         <MenuSection aria-label="Places">
           {places.map((p) => (
-            <MenuItem key={p.id} id={`place:${p.id}`} textValue={p.label} className={cx(p.current && css.current)} onAction={() => onPlace(p.id)}>
+            <MenuItem key={p.id} id={`place:${p.id}`} textValue={p.label} className={cx(p.current && css.current)} onAction={() => onPlace(p.id)} keys={p.keys}>
               <Icon name={p.icon} />
               <MenuText>{p.label}</MenuText>
               {!!p.count && (
@@ -83,10 +83,9 @@ export function WindowMenu({
         <Icon name="sliders" />
         <MenuText>Settings</MenuText>
       </MenuItem>
-      <MenuItem id="keys" textValue="Keys" onAction={onKeys}>
+      <MenuItem id="keys" textValue="Keys" onAction={onKeys} keys="?">
         <Icon name="keyboard" />
         <MenuText>Keys</MenuText>
-        <Keys k="?" />
       </MenuItem>
       {/* A later release, as the daemon last found: to where it's installed from. */}
       {later && (

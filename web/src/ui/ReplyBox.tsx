@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useKeys } from "../keys";
 import { Button } from "./Button";
-import { sendKeysSaid, sent, useSendKey } from "./sendKey";
+import { sendKeys, sent, useSendKey } from "./sendKey";
 import { useAutosize } from "./useAutosize";
 import css from "./ReplyBox.module.css";
 import { TextArea } from "./TextArea";
@@ -40,10 +40,10 @@ export function ReplyBox({ onSend, onCancel, placeholder = "Reply…", send = "R
         }}
       />
       <div className={css.actions}>
-        <Button variant="ghost" size="small" onClick={onCancel} title="Cancel (esc)">
+        <Button variant="ghost" size="small" onClick={onCancel} title="Cancel" keys="esc">
           Cancel
         </Button>
-        <Button variant="primary" size="small" disabled={!text.trim()} onClick={() => onSend(text)} title={`Send it (${sendKeysSaid(key)})`}>
+        <Button variant="primary" size="small" disabled={!text.trim()} onClick={() => onSend(text)} title="Send it" keys={sendKeys(key)}>
           {send}
         </Button>
       </div>

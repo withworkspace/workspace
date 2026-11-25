@@ -1,0 +1,24 @@
+/* A number between two ends (ArtifactTweakRange.tsx): a slider, and what
+   it's at. */
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.range input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.range output {
+  flex: none;
+  min-width: 5ch;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

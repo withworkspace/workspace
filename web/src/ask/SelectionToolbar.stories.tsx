@@ -16,7 +16,7 @@ export const OverAPassage: StoryObj = {
     <div style={{ height: 280, padding: 24, background: "var(--bg)" }}>
       <SelectionToolbar left={260} top={90} onAsk={none} onExplain={none} onLink={none} />
       <SelectionToolbar left={260} top={170} onAsk={none} onExplain={none} />
-      <SelectionToolbar left={260} top={250} onAsk={none} askTitle="Ask the planner about this passage (a)" />
+      <SelectionToolbar left={260} top={250} onAsk={none} askTitle="Ask the planner about this passage" />
     </div>
   ),
 };

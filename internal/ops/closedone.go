@@ -68,6 +68,10 @@ func closable(m *mission.Mission, c mission.Crew, now time.Time) bool {
 // closeEnded closes every crew session still open on mission m, which has
 // ended or is being archived: there's nothing left for them to do on it.
 func (w *Workspace) closeEnded(m *mission.Mission, why string) {
+	// What they spent last, read before they go.
+	if _, err := w.readCrewSpend(m); err != nil {
+		execlog.Note(w.Root(), "crew "+m.Slug, "couldn't read what its crew spent: %v", err)
+	}
 	var ids []string
 	for _, c := range m.Crew {
 		if c.Ended == nil {

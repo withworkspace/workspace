@@ -22,10 +22,10 @@ type SelectionToolbarProps = {
 // SelectionToolbar is what's offered over a passage picked out of what's
 // read: Ask about this (a), Explain, and Link. Pressing it keeps the
 // selection (and the focus) where they are.
-export function SelectionToolbar({ left, top, onAsk, askTitle = "Ask about this passage (a)", onExplain, onLink, ref }: SelectionToolbarProps) {
+export function SelectionToolbar({ left, top, onAsk, askTitle = "Ask about this passage", onExplain, onLink, ref }: SelectionToolbarProps) {
   return (
     <div ref={ref} className={css.tool} role="toolbar" aria-label="The passage picked out" style={{ left, top }} onMouseDown={(e) => e.preventDefault()}>
-      <Button type="button" onClick={onAsk} title={askTitle}>
+      <Button type="button" onClick={onAsk} title={askTitle} keys="a">
         <Icon name="sparkle" size={12} /> Ask about this <Keys k="a" />
       </Button>
       {onExplain && (

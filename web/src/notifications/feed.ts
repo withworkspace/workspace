@@ -19,6 +19,8 @@ export function sourceIcon(n: Pick<Notification, "source" | "attention">): IconN
     case "ws":
       return "info";
   }
+  // What a plugin told of (plugin:jira): a plugin's, as its updates are.
+  if (n.source.startsWith("plugin:")) return "box";
   return "bell";
 }
 

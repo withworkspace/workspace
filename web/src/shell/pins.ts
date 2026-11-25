@@ -2,7 +2,7 @@ import { changeFocus, type FocusPin } from "../api";
 import { toast } from "../ui/toast";
 import { useWorkspaceStore } from "../workspace/store";
 
-// Writes of your pins (Focus, shell/focus.tsx), from wherever one's
+// Writes of your pins (Focus, shell/useFocus.ts), from wherever one's
 // made: the sidebar, a card's Pin, Find, a row's menu. A write is
 // answered with how the pins are then, which is how the workspace has
 // them from then on, so what's drawn of them and what's offered (Pin it,

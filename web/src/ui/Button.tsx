@@ -1,7 +1,9 @@
 import type { CSSProperties, ReactNode, Ref } from "react";
 import { Button as AriaButton, type ButtonProps as AriaButtonProps } from "react-aria-components";
+import { keysOf } from "../keys";
 import css from "./Button.module.css";
 import { cx } from "./cx";
+import { keyHint, pointed, titleWithKeys } from "./keyHint";
 import { toast } from "./toast";
 import { Tooltip } from "./Tooltip";
 
@@ -28,6 +30,8 @@ type ButtonProps = ButtonLook &
     // Why it can't be used now, where that's worth saying: see below.
     unavailable?: string;
     title?: string;
+    // The key that does what pressing it does: see below.
+    keys?: string;
     "aria-busy"?: boolean;
     children?: ReactNode;
     ref?: Ref<HTMLButtonElement>;
@@ -43,6 +47,14 @@ type ButtonProps = ButtonLook &
 // Its title is a Tooltip: what it does, and its key. One that's square
 // (an icon alone) is named by it, unless it has an aria-label.
 //
+// Its key is one that does what pressing it does, and isn't written in
+// the title: the tooltip says it after ("Review its changes (v)"), and
+// pressed with the pointer, the button hints that there was a key
+// (ui/keyHint.ts), where you've asked for hints. It knows the key from
+// what it's given to press, when that's what useShortcut made (keys.ts:
+// the key's bound and said in one place), or from keys="v", for a key
+// bound elsewhere (as Keys reads one: "esc", "mod+⏎").
+//
 // A button that can't be used now is one of two things. disabled: it's
 // out of reach, to the pointer and the keys, and says nothing (while
 // something's being sent, say). Its title, if it has one, is the
@@ -51,9 +63,11 @@ type ButtonProps = ButtonLook &
 // focused, so its tooltip says why; pressing it does nothing but say why
 // again, in a toast, for whoever pressed before reading. Disabled as
 // well, it's disabled.
-export function Button({ variant, size, square, className, disabled, unavailable, title, "aria-busy": busy, "aria-label": label, type, onClick, onPress, ...rest }: ButtonProps) {
+export function Button({ variant, size, square, className, disabled, unavailable, title, keys, "aria-busy": busy, "aria-label": label, type, onClick, onPress, ...rest }: ButtonProps) {
   const why = disabled ? undefined : unavailable || undefined;
-  const says = why ?? (disabled ? undefined : title);
+  const key = keys ?? keysOf(onClick) ?? keysOf(onPress);
+  const titled = titleWithKeys(title, key);
+  const says = why ?? (disabled ? undefined : titled);
   const button = (
     <AriaButton
       data-ui=""
@@ -62,8 +76,17 @@ export function Button({ variant, size, square, className, disabled, unavailable
       className={cx(lookOf({ variant, size, square }), why && css.unavailable, className)}
       type={why ? "button" : type}
       onClick={why ? () => toast(why) : onClick}
-      onPress={why ? undefined : onPress}
-      render={(props) => <button {...props} title={disabled ? title : undefined} aria-busy={busy} aria-disabled={why ? true : undefined} />}
+      onPress={
+        why
+          ? undefined
+          : key
+            ? (e) => {
+                if (pointed(e)) keyHint(key);
+                onPress?.(e);
+              }
+            : onPress
+      }
+      render={(props) => <button {...props} title={disabled ? titled : undefined} aria-busy={busy} aria-disabled={why ? true : undefined} />}
       {...rest}
     />
   );

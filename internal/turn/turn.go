@@ -17,6 +17,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/execlog"
 	"github.com/withworkspace/workspace/internal/harness"
+	"github.com/withworkspace/workspace/internal/spend"
 )
 
 // ErrEnded is a turn's error when what it ran for ended first: the daemon
@@ -38,6 +39,11 @@ type Spec struct {
 	Tee, Stderr io.Writer
 	// Root and Who name the run in the exec log.
 	Root, Who string
+	// Harness is the agent's harness, by name.
+	Harness string
+	// For is who what it spends is kept for (spend.Keep): nothing's kept
+	// without a Kind.
+	For spend.For
 }
 
 // waitDelay is how long a command's output may stay open once it's gone.
@@ -107,6 +113,12 @@ func Run(s Spec) (harness.Report, error) {
 	rep := harness.ReadStream(l.Stream, out.String())
 	if rep.Session == "" {
 		rep.Session = l.Conversation // a session ws named for it
+	}
+	if s.For.Kind != "" && len(rep.Usage) > 0 {
+		source := "run " + start.UTC().Format(time.RFC3339Nano) + " " + s.Who
+		if err := spend.Keep(s.Root, source, s.For, s.Harness, start, rep.Usage); err != nil {
+			execlog.Note(s.Root, s.Who, "couldn't keep what it spent: %v", err)
+		}
 	}
 	if err != nil && err != ErrEnded {
 		if e := clip(errOut.String(), 500); e != "" {

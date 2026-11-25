@@ -54,7 +54,7 @@ export function AnnotateDecision({
               Cancel
             </Button>
           )}
-          <Button variant="primary" size="small" disabled={busy || !what.trim()} onClick={onRecord} title="Record it (⌘⏎)">
+          <Button variant="primary" size="small" disabled={busy || !what.trim()} onClick={onRecord} title="Record it" keys="mod+⏎">
             Record
           </Button>
         </>

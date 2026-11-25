@@ -3,6 +3,7 @@ import { answerCrew, type Crew, sayToCrew } from "../../api";
 import { Button } from "../../ui/Button";
 import { Composer } from "../../ui/Composer";
 import { Icon } from "../../ui/Icon";
+import { sendKeys, useSendKey } from "../../ui/sendKey";
 import { humanError } from "../../ui/text";
 import { toast } from "../../ui/toast";
 import { useDraft } from "../../ui/useDraft";
@@ -15,6 +16,8 @@ export function CrewTell({ slug, id, crew, live, working, field }: { slug: strin
   const [text, setText] = useDraft(`crew:${slug}/${id}`);
   const [busy, setBusy] = useState(false);
   const canResume = !live && !!crew && crew.ended;
+  // The key that sends, as the box has it (ui/Composer.tsx): the button's too.
+  const sendKey = useSendKey();
   const send = () => {
     if (!text.trim() || busy) return;
     setBusy(true);
@@ -66,7 +69,7 @@ export function CrewTell({ slug, id, crew, live, working, field }: { slug: strin
         )
       }
     >
-      <Button variant="primary" disabled={!text.trim() || busy} onClick={send}>
+      <Button variant="primary" disabled={!text.trim() || busy} onClick={send} keys={sendKeys(sendKey)}>
         {busy ? "Sending…" : live ? "Send" : "Resume"}
       </Button>
     </Composer>

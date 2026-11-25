@@ -4,9 +4,10 @@ import css from "./MissionSideMore.module.css";
 
 // MissionSideMore leads from what a part of a mission's details shows to
 // the rest of it, in another tab ("3 more in Work").
-export function MissionSideMore({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+// keys is the key that goes there too (the tab's number).
+export function MissionSideMore({ onClick, children, keys }: { onClick: () => void; children: ReactNode; keys?: string }) {
   return (
-    <MoreLink className={css.more} onClick={onClick}>
+    <MoreLink className={css.more} onClick={onClick} keys={keys}>
       {children}
     </MoreLink>
   );

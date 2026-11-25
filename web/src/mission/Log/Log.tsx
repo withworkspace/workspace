@@ -46,7 +46,7 @@ export function Log({
           {elsewhere.length < d.crew.length && (
             <>
               Crew are on{" "}
-              <MoreLink onClick={toWork}>
+              <MoreLink onClick={toWork} keys="3">
                 Work
               </MoreLink>
               , with the capsule each worked in.{" "}

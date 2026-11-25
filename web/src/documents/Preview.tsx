@@ -7,6 +7,7 @@ import { useLatest } from "../load";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
+import { keyProps } from "../ui/keyHint";
 import { Skeleton } from "../ui/Skeleton";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
@@ -75,7 +76,7 @@ export function Preview({ repo, doc, kind, activity, flights, anchor }: { repo: 
           {words > 0 && `${words.toLocaleString()} words · ${Math.max(1, Math.round(words / 230))} min read`}
         </p>
         <div className="doc-preview-actions">
-          <Link to={docTo(ref)} className={buttonClass({ variant: "primary" })} title="Read it in the reader, where it's asked about (⏎)">
+          <Link to={docTo(ref)} className={buttonClass({ variant: "primary" })} {...keyProps("⏎", "Read it in the reader, where it's asked about")}>
             <Icon name="book" size={13} /> Read it <Keys k="⏎" />
           </Link>
           {canEdit && (

@@ -212,3 +212,41 @@ func TestConversationCapsulesArentTheMissions(t *testing.T) {
 		t.Errorf("an ask's run: %+v, told %+v", run, said)
 	}
 }
+
+// A mission a conversation proposes in a capsule that's lifted already (by
+// the conversation's agent, here) is given that capsule, joined to it, not
+// refused one as there already; it's the mission's then, so putting the
+// conversation away leaves it be.
+func TestProposedMissionJoinsACapsuleLiftedAlready(t *testing.T) {
+	w := liftWorld(t)
+	store := conversation.ForWorkspace(w.Root())
+	c, err := store.OpenTalk(conversation.You, "How slow are our tests?", time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.LiftForConversation("", c.ID, "api", "parallel-tests", "", CapsuleOptions{By: AsYou}); err != nil {
+		t.Fatal(err)
+	}
+	c, err = store.Propose(c.ID, conversation.Proposal{Kind: conversation.ProposeMission, By: conversation.Agent, Title: "Parallel tests", Brief: "## Goal\nRun the tests in parallel.\n", Capsules: []string{"api/parallel-tests"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	said, err := w.SettleProposalIn(store, c.ID, len(c.Proposals), true, ProposalEdits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(said, "Joined api/parallel-tests, lifted already.") || strings.Contains(said, "Couldn't") {
+		t.Errorf("accepting it said %q", said)
+	}
+	m, ok := w.Missions.FindByCapsule("api", "parallel-tests")
+	if !ok || m.Title != "Parallel tests" {
+		t.Fatalf("the capsule's mission: %+v, %v", m, ok)
+	}
+
+	if _, err := w.SetTalkStatus(doc.Scope{}, c.ID, conversation.Resolved, AsYou); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(w.WS().RepoDir("api"), "parallel-tests", "main.go")); err != nil {
+		t.Errorf("the mission's capsule went with the conversation: %v", err)
+	}
+}

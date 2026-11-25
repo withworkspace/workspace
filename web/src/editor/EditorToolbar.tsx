@@ -37,6 +37,10 @@ type EditorToolProps = {
   // An icon, or words of two letters at most (H1).
   icon: IconName | string;
   title: string;
+  // The keys that do the same in the editor, as Keys reads them
+  // (mod+B): said after the title, and hinted at when the button's
+  // pressed with the pointer.
+  keys?: string;
   // Lit: the selection's in what it makes.
   on: boolean;
   disabled?: boolean;
@@ -45,7 +49,7 @@ type EditorToolProps = {
 
 // EditorTool is one of the toolbar's buttons. It keeps the editor's
 // selection when it's pressed: it acts on it.
-export function EditorTool({ icon, title, on, disabled, onPress }: EditorToolProps) {
+export function EditorTool({ icon, title, keys, on, disabled, onPress }: EditorToolProps) {
   return (
     <ToggleButton
       variant="ghost"
@@ -53,6 +57,7 @@ export function EditorTool({ icon, title, on, disabled, onPress }: EditorToolPro
       className={css.tool}
       pressed={on}
       title={title}
+      keys={keys}
       aria-label={title}
       disabled={disabled}
       onMouseDown={(e) => e.preventDefault()}

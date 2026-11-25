@@ -1,0 +1,80 @@
+/* One thing that's new (WhatsNewEntry.tsx): the first large, its picture
+   beside its words, and the rest as cards. */
+
+.words {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.words :global(.markdown) {
+  color: var(--dim);
+  justify-self: stretch;
+}
+
+.words :global(.markdown) > :first-child {
+  margin-top: 0;
+}
+
+.words :global(.markdown) > :last-child {
+  margin-bottom: 0;
+}
+
+.words h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.lead {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 24px;
+}
+
+.lead:not(:has(.picture)) {
+  grid-template-columns: 1fr;
+}
+
+.lead h3 {
+  font-size: 18px;
+}
+
+.lead :global(.markdown) {
+  font-size: var(--text-lg);
+}
+
+.card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  background: var(--bg);
+}
+
+.card h3 {
+  font-size: var(--text-md);
+}
+
+.lead .picture {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  object-position: top left;
+  border-radius: var(--radius-lg);
+}
+
+/* A card's picture keeps its own shape, up to a height: a picture is
+   cropped to what it shows, which is seldom 16:9. */
+.card .picture {
+  max-height: 240px;
+  object-fit: cover;
+  object-position: top left;
+}
+
+@media (max-width: 560px) {
+  .lead {
+    grid-template-columns: 1fr;
+  }
+}

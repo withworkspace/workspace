@@ -1,0 +1,16 @@
+/* Two versions' source diff (ArtifactCompareDiff.tsx), across both
+   columns of the comparison. */
+
+.diff {
+  grid-column: 1 / -1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg);
+}
+
+/* Each file that differs has its own diff, under its path. */
+.count {
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-sm);
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { threadKinds, type ThreadKind } from "../api";
 import { useKeys } from "../keys";
-import { sendKeysSaid, sent, useSendKey } from "../ui/sendKey";
+import { sendKeys, sent, useSendKey } from "../ui/sendKey";
 import { clip } from "../ui/text";
 import { useAutosize } from "../ui/useAutosize";
 import { AnnotateComposer } from "./AnnotateComposer";
@@ -77,7 +77,7 @@ export function ThreadComposer({ pick, onPost, onCancel }: { pick: Pick; onPost:
       onSuggest={suggest}
       canPost={edit !== undefined ? edit !== pick.quote.exact : !!text.trim()}
       onPost={post}
-      postKeys={sendKeysSaid(sendKey)}
+      postKeys={sendKeys(sendKey)}
       onCancel={onCancel}
     />
   );

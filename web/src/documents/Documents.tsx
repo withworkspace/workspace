@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { type DocHit, docTo, getSpace, getSpaceActivity, getSpaces, pageAddress, searchDocuments, type SpaceActivity, type SpaceDoc, type SpaceKind, spaceTo } from "../api";
-import { useKeys } from "../keys";
+import { useKeys, useShortcut } from "../keys";
 import { useLoaded } from "../load";
 import { NewAsKind, PageRow, useStartPage } from "../pages/Pages";
 import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
+import { hintOnClick, keyProps } from "../ui/keyHint";
 import { useMedia } from "../ui/useMedia";
 import { useTitle } from "../ui/useTitle";
 import { Loading } from "../ui/Loading";
@@ -122,9 +123,11 @@ export function DocumentsPage() {
     document.getElementById(targets[n]?.id ?? "")?.scrollIntoView({ block: "nearest" });
   };
   const open = () => targets[index] && navigate(targets[index].to);
+  // Starting a page, each way with its key: the buttons that do it are
+  // given these, and say the key.
+  const newPage = useShortcut("n", () => start());
+  const newAsKind = useShortcut("N", () => setAsKind(true), { enabled: kinds.length > 0 });
   useKeys({
-    n: () => start(),
-    ...(kinds.length ? { N: () => setAsKind(true) } : {}),
     "/": () => search.current?.focus(),
     ...(searching
       ? {
@@ -153,14 +156,14 @@ export function DocumentsPage() {
           <>
             {kinds.length > 0 && (
               <Button
-                onClick={() => setAsKind(true)}
+                onClick={newAsKind}
                 disabled={starting}
                 title="Start a page as one of the workspace's kinds of document: it's written as its guide says, and filed where the kind says"
               >
                 New as… <Keys k="N" />
               </Button>
             )}
-            <Button variant="primary" onClick={() => start()} disabled={starting}>
+            <Button variant="primary" onClick={newPage} disabled={starting} title="Start a page">
               <Icon name="plus" /> New page <Keys k="n" />
             </Button>
           </>
@@ -226,7 +229,7 @@ export function DocumentsPage() {
               {local.length === 0 ? (
                 <p className="dim documents-empty">
                   No pages here. A page is somewhere to write a problem down and work it out:{" "}
-                  <Button variant="link" onClick={() => start()}>
+                  <Button variant="link" onClick={newPage} title="Start a page">
                     start one
                   </Button>
                   .
@@ -357,8 +360,8 @@ export function SpacePage() {
     o: open,
     "/": () => search.current?.focus(),
     Escape: back,
-    n: () => setAsKind(true),
   });
+  const newHere = useShortcut("n", () => setAsKind(true));
   const searchKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const go: Record<string, () => void> = {
       ArrowDown: () => move(index + 1),
@@ -460,7 +463,9 @@ export function SpacePage() {
       <div className="page narrow">
         <ErrorCard title={`Couldn't read ${repo}`} error={error} retry={reload} />
         <p>
-          <Link to="/documents">Back to Documents</Link>
+          <Link to="/documents" onClick={hintOnClick("esc")}>
+            Back to Documents
+          </Link>
         </p>
       </div>
     );
@@ -479,7 +484,7 @@ export function SpacePage() {
         className="space-head"
         lead={
           <>
-            <Link to="/documents" className="space-back" title="Back to Documents (esc)">
+            <Link to="/documents" className="space-back" {...keyProps("esc", "Back to Documents")}>
               <Icon name="arrow-left" size={13} /> Documents
             </Link>
             <span className="space-slash" aria-hidden>
@@ -496,7 +501,7 @@ export function SpacePage() {
         actions={
           <Button
             variant="primary"
-            onClick={() => setAsKind(true)}
+            onClick={newHere}
             disabled={starting || !space.cloned}
             title={library.length ? `Start a page as one of ${space.label}'s kinds of document: written as its guide says, and filed here` : `Start a page to file in one of ${space.label}'s folders`}
           >
@@ -866,6 +871,8 @@ function NewInFolder({
           variant="primary"
           onClick={go}
           disabled={busy || !title.trim()}
+          title="Start the page"
+          keys="⏎"
         >
           Start it <Keys k="⏎" />
         </Button>

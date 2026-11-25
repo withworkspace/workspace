@@ -24,10 +24,11 @@ type NotificationsPanelProps = {
 };
 
 // NotificationsPanel is the feed as it opens from the foot's bell: its
-// heading with how many are unread and Mark all read, the feed by day
-// (each row read by its tick, without opening it), and the way to the
-// whole of it and to where each source is sent.
+// heading with how many are unread and Mark all read, what you haven't
+// read by day (a row read, by opening it or by its tick, leaves), and the
+// way to the whole of it and to where each source is sent.
 export function NotificationsPanel({ notifications, unread, error, onOpen, onRead, onDismiss, onReadAll, onLeave }: NotificationsPanelProps) {
+  const fresh = notifications?.filter((n) => !n.read);
   return (
     <div className={css.panel}>
       <header className={css.head}>
@@ -48,7 +49,12 @@ export function NotificationsPanel({ notifications, unread, error, onOpen, onRea
             What ws does for you is said here as it happens.
           </Empty>
         )}
-        {notifications && notifications.length > 0 && <NotificationFeed notifications={notifications} onOpen={onOpen} onRead={onRead} onDismiss={onDismiss} compact />}
+        {notifications && notifications.length > 0 && fresh?.length === 0 && (
+          <Empty icon="check" title="You're caught up">
+            What you've read is under All notifications.
+          </Empty>
+        )}
+        {fresh && fresh.length > 0 && <NotificationFeed notifications={fresh} onOpen={onOpen} onRead={onRead} onDismiss={onDismiss} compact />}
       </div>
       <footer className={css.foot}>
         <Link to="/notifications" className={buttonClass({ variant: "ghost", size: "small" })} onClick={onLeave}>
