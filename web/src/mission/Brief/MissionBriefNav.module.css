@@ -1,0 +1,19 @@
+/* The changes still to read, stepped through from the bar: where the
+   outline, which has them on a wide window, isn't (MissionBriefNav.tsx). */
+
+.nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 6px;
+}
+
+.nav .chip {
+  margin-right: 4px;
+}
+
+@media (min-width: 1021px) {
+  .nav {
+    display: none;
+  }
+}

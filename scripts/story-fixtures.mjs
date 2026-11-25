@@ -18,6 +18,9 @@
 //   workspace.json        GET /api/workspace
 //   repos.json            GET /api/repos
 //   missions/<slug>.json  GET /api/missions/<slug>
+//   talks/<slug>.<as>.json GET /api/missions/<slug>/conversations/<id>
+//                          (a mission's planner's conversation, for the
+//                          stories of its Brief tab: see briefed below)
 //
 // and fixtures/court.json: the cards of every case in the court's table of
 // tests, which has each kind of card, most of which no seed reaches.
@@ -50,7 +53,7 @@ const out = join(here, "web/src/mission/fixtures");
 const keep = process.argv.includes("--keep");
 
 const tries = [
-  { name: "sorrel", seeds: ["marketing"] },
+  { name: "sorrel", seeds: ["marketing"], also: briefed },
   { name: "demo", seeds: ["mission", "work", "waits", "checks-unmet"], also },
 ];
 
@@ -67,6 +70,18 @@ function tryCommand(...a) {
   const r = spawnSync(join(here, "scripts/try.sh"), a, { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
   if (r.status !== 0) fail(`scripts/try.sh ${a.join(" ")} failed`);
   return r.stdout.trim();
+}
+
+// briefed is what the sorrel try is left in beyond its seed, once its
+// missions are taken as marketing left them: the mission it leaves to
+// brief, briefed (the briefing seed: its planner has asked, and proposed
+// the brief twice, the second time with its plan). It's taken again under
+// a second name, with its planner's conversation, which is where what's
+// proposed is: what a mission's Brief tab draws.
+function briefed(ws, dir, t) {
+  const slug = "archive-invoices-older-than-seven-years";
+  tryCommand("seed", "-n", t.fullName, "briefing");
+  return { changed: [[slug, "briefed"]], made: [], talks: [[slug, "t1", "briefed"]] };
 }
 
 // also is what the demo try is left in beyond its seeds, once its
@@ -145,10 +160,13 @@ async function capture(t) {
     n++;
   }
   if (t.also) {
-    const { changed, made } = t.also(join(dir, ".try/ws"), dir);
+    const { changed, made, talks = [] } = t.also(join(dir, ".try/ws"), dir, t);
     for (const [slug, as] of changed) await mission(slug, `${slug}.${as}`);
     for (const slug of made) await mission(slug);
     n += changed.length + made.length;
+    // A conversation of a mission's, under the name the mission was taken as.
+    if (talks.length) mkdirSync(join(to, "talks"), { recursive: true });
+    for (const [slug, id, as] of talks) write(`talks/${slug}.${as}.json`, await get(`/api/missions/${encodeURIComponent(slug)}/conversations/${encodeURIComponent(id)}`));
   }
   // The workspace as it ends up, with every mission the stories have.
   write("workspace.json", await get("/api/workspace"));

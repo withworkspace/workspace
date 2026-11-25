@@ -1,0 +1,7 @@
+/* The plan's steps, as the mission's details list them: a row each, the
+   one it's at too (what that says opened is in its card, and in the plan
+   itself, beside it). A row goes to its step (MissionBriefSteps.tsx). */
+
+.steps {
+  margin: 4px -6px 0 -2px;
+}

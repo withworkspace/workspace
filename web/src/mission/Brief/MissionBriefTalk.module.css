@@ -1,0 +1,15 @@
+/* Nothing drafted: the conversation is the tab, or where it's begun
+   (MissionBriefTalk.tsx). */
+
+.talk {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (min-width: 1021px) {
+  .talk {
+    border-left: 1px solid var(--line);
+  }
+}

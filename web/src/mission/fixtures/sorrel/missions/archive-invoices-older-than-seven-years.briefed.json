@@ -1,0 +1,131 @@
+{
+  "slug": "archive-invoices-older-than-seven-years",
+  "title": "Archive invoices older than seven years",
+  "state": "briefing",
+  "created": "2026-11-20T15:14:23Z",
+  "request": "Archive invoices older than seven years",
+  "talks": [
+    {
+      "id": "t1",
+      "opening": "Archive invoices older than seven years",
+      "status": "open",
+      "waiting": true,
+      "proposed": 1,
+      "at": "2026-11-20T15:14:54.571004Z",
+      "updated": "2026-11-20T15:14:58.280186Z"
+    }
+  ],
+  "planner": "t1",
+  "brief": "",
+  "briefUnwritten": true,
+  "headlines": [
+    {
+      "court": "you",
+      "kind": "brief-talk",
+      "group": "needs-you",
+      "label": "↩ brief",
+      "text": "The brief's proposed, in t1: confirm it, and the mission starts",
+      "action": {
+        "verb": "talk",
+        "label": "read the brief",
+        "target": "t1"
+      },
+      "by": "t1"
+    }
+  ],
+  "cards": [
+    {
+      "kind": "brief-talk",
+      "court": "you",
+      "tone": "you",
+      "title": "The brief's proposed, in t1",
+      "detail": "Confirm it, and the mission starts",
+      "primary": {
+        "do": "talk",
+        "label": "Read the brief",
+        "icon": "reply",
+        "target": "t1"
+      },
+      "by": "t1"
+    }
+  ],
+  "runs": [],
+  "stages": [],
+  "capsules": [],
+  "crew": [],
+  "artifacts": [],
+  "bundles": [],
+  "decisions": [],
+  "events": [
+    {
+      "time": "2026-11-20T15:14:23Z",
+      "kind": "created",
+      "text": "mission created"
+    },
+    {
+      "time": "2026-11-20T15:14:54.571004Z",
+      "kind": "thread",
+      "text": "you started conversation t1: Archive invoices older than seven years"
+    },
+    {
+      "time": "2026-11-20T15:14:55.390464Z",
+      "kind": "thread",
+      "text": "agent on t1: Nothing archives an invoice today. `GET /invoices` (`api/internal/httpapi/invoices.go`) lists every invoice a studio has sent, and the dash…"
+    },
+    {
+      "time": "2026-11-20T15:14:56.202725Z",
+      "kind": "thread",
+      "text": "you on t1: Issue date, yes. Leave the ones still owed alone. No deleting."
+    },
+    {
+      "time": "2026-11-20T15:14:57.076089Z",
+      "kind": "thread",
+      "text": "agent proposed an edit to the brief in t1",
+      "by": "agent"
+    },
+    {
+      "time": "2026-11-20T15:14:57.096495Z",
+      "kind": "thread",
+      "text": "agent on t1: I've proposed the brief (proposal 1), with all three as recommended: seven years from the issue date, invoices still owed left alone, and n…"
+    },
+    {
+      "time": "2026-11-20T15:14:57.599356Z",
+      "kind": "thread",
+      "text": "you on t1: Count it in tax years: seven years after the end of the tax year it was issued in. And a studio should be able to bring one back. Then writ…"
+    },
+    {
+      "time": "2026-11-20T15:14:58.069919Z",
+      "kind": "thread",
+      "text": "agent proposed an edit to the brief, revising proposal 1 in t1",
+      "by": "agent"
+    },
+    {
+      "time": "2026-11-20T15:14:58.218464Z",
+      "kind": "thread",
+      "text": "agent proposed the brief, with its plan, revising proposal 2 in t1",
+      "by": "agent"
+    },
+    {
+      "time": "2026-11-20T15:14:58.256128Z",
+      "kind": "thread",
+      "text": "agent on t1: I've proposed the brief again with its plan, and confirming it starts the mission. **What changed in the brief.** The seven years now run f…"
+    }
+  ],
+  "github": true,
+  "crewPicks": {
+    "default": {
+      "harness": "claude",
+      "model": "sonnet"
+    },
+    "allowed": [
+      {
+        "harness": "claude",
+        "model": "opus"
+      },
+      {
+        "harness": "claude",
+        "model": "haiku"
+      }
+    ]
+  }
+}

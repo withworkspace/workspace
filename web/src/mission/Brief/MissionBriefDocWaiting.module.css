@@ -1,0 +1,8 @@
+/* A document's place, with nothing in it yet (MissionBriefDocWaiting.tsx). */
+
+.waiting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--space-5) 0;
+}

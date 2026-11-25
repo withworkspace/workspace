@@ -47,7 +47,9 @@ import { RefTag } from "../refs/RefTag";
 import { PromptCard, pendingCall } from "./AgentView";
 import { archiveMission } from "./archive";
 import { briefGoal } from "./brief";
-import { BriefTab, briefHref, briefKeys } from "./BriefTab";
+import { Brief } from "./Brief/Brief";
+import { briefHref } from "./Brief/href";
+import { briefKeys } from "./Brief/words";
 import { missionRefs } from "./refs";
 import { MissionOutput } from "./MissionOutput";
 import { MissionSideSection } from "./MissionSideSection";
@@ -87,7 +89,7 @@ import { usePref } from "../prefs";
 // it's doing, its name, seven tabs) that stays as the page scrolls, and the
 // tab under it. Summary leads with what needs you; Brief is the brief and
 // the plan, edited as they read, with its planner's conversation beside
-// them (BriefTab.tsx); Work is its capsules and documents; Verify is its
+// them (Brief/Brief.tsx); Work is its capsules and documents; Verify is its
 // verification bundles, what crew handed over to show their work; Log is
 // everything that's happened, and its crew; Talk is conversations about it;
 // Decisions is what's been decided on it, yours apart, and where a
@@ -419,7 +421,7 @@ export function MissionPage() {
         // the page's edges, each scrolling by itself.
         <div role="tabpanel" id="mission-panel" aria-label={tabNames.brief} className="tab-panel brief-panel" key="brief">
           {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
-          <BriefTab d={d} root={root} updated={updated} reload={load} onEscape={escape} />
+          <Brief d={d} root={root} updated={updated} reload={load} onEscape={escape} />
         </div>
       ) : (
       <div className={`page mission${docked ? " with-side" : ""}${wideTabs.includes(tab) ? " wide" : ""}`}>

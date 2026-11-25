@@ -1,0 +1,67 @@
+/* A section of the brief's outline (MissionBriefOutlineSection.tsx). */
+
+section.section {
+  margin-bottom: 18px;
+}
+
+.section h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 5px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.section h3 .tag,
+.at {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* The changes to read, and the step the mission's at: each a card. */
+.changes,
+.now {
+  margin: 0 -8px 18px;
+  padding: 9px 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-xs);
+}
+
+.changes h3 {
+  color: var(--attention);
+}
+
+.at {
+  color: var(--dim);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.changes p,
+.now p,
+.requested p {
+  margin: 0;
+  color: var(--dim);
+  line-height: 1.45;
+}
+
+.now p {
+  color: var(--fg);
+}
+
+.requested p {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

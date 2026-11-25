@@ -1,0 +1,36 @@
+/* Where the brief and plan stand, in the tab's bar (MissionBriefWhat.tsx). */
+
+.what {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.what :global(.icon) {
+  flex: none;
+}
+
+.what.attention :global(.icon) {
+  color: var(--attention);
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.text :global(.dim) {
+  font-weight: 400;
+}
+
+@media (min-width: 1021px) {
+  .what {
+    padding-right: 16px;
+  }
+}

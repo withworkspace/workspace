@@ -1,0 +1,64 @@
+/* What the planner proposed for the documents: a line, not a card. The
+   one they show leads back to them (MissionBriefProposed.tsx). */
+
+.proposed {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  width: 100%;
+  min-height: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--well);
+  box-shadow: none;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  text-align: left;
+}
+
+.proposed:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.proposed :global(.icon) {
+  flex: none;
+}
+
+.name {
+  flex: none;
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.fate {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proposed.struck .name {
+  color: var(--dim);
+  font-weight: 400;
+  text-decoration: line-through;
+  text-decoration-color: var(--faint);
+}
+
+.proposed.shown {
+  border-color: color-mix(in srgb, var(--attention) 45%, var(--line));
+  background: var(--attention-soft);
+}
+
+.proposed.shown :global(.icon):first-child,
+.proposed.shown .fate {
+  color: var(--attention);
+}
+
+.proposed.shown:hover {
+  border-color: var(--attention);
+}

@@ -1,0 +1,113 @@
+/* The brief or the plan (MissionBriefDoc.tsx). The document in it is the
+   reader's or the editor's, which still say markdown and pm. */
+
+.doc {
+  max-width: var(--brief-measure);
+  margin: 0 auto var(--space-6);
+}
+
+/* The documents' measure is the tab's to say, heads and text alike. */
+.doc :global(.prose) :global(.markdown) {
+  max-width: none;
+}
+
+/* (The one after another, or after what's said between them.) */
+.doc + .doc,
+.doc + * + .doc {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 24px;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.head .chip,
+.head button {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.doc :is(h1, h2, h3),
+.doc li {
+  scroll-margin-top: calc(var(--mission-bar-h) + 64px);
+}
+
+.doc :global(.pm) {
+  min-height: 6em;
+  padding-bottom: 1em;
+}
+
+.doc:last-of-type :global(.pm) {
+  min-height: 12em;
+}
+
+/* Where the mission is, on its plan (BriefPlanMarks.tsx): the step it's
+   at, with who's on it, and those behind it. */
+.doc[data-brief-doc="plan"] :global(.markdown) > ol:first-of-type > li {
+  border-radius: 2px;
+}
+
+.doc[data-brief-doc="plan"] :global(.markdown) > ol:first-of-type > li::before {
+  float: right;
+  margin: 3px 0 0 12px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--progress-soft);
+  color: var(--progress);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 18px;
+  pointer-events: none;
+}
+
+/* A step gone to from the outline, marked a moment (find.ts's flash). */
+:where(.doc) [data-brief-flash] {
+  animation: flash 1.2s var(--ease);
+}
+
+@keyframes flash {
+  from {
+    background: var(--accent-soft);
+  }
+}
+
+@media (min-width: 1021px) {
+  .doc :is(h1, h2, h3),
+  .doc li {
+    scroll-margin-top: 20px;
+  }
+
+  .doc.side[data-brief-doc] {
+    grid-row: 2;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    padding: 22px 32px 120px;
+    overflow-y: auto;
+    border-top: 0;
+  }
+
+  .doc.side[data-brief-doc] > * {
+    max-width: var(--brief-measure);
+    margin-inline: auto;
+  }
+
+  .doc.side[data-brief-doc="plan"] {
+    border-left: 1px solid var(--line);
+  }
+}

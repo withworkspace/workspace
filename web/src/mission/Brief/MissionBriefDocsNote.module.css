@@ -1,0 +1,14 @@
+/* What's said among the documents (MissionBriefDocsNote.tsx). */
+
+.note {
+  max-width: var(--brief-measure);
+  margin-inline: auto;
+}
+
+@media (min-width: 1021px) {
+  .note.side {
+    grid-column: 1 / -1;
+    max-width: none;
+    margin: 16px 32px 0;
+  }
+}
