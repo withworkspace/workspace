@@ -261,7 +261,7 @@ func (w *Workspace) TidyDocked() {
 			continue
 		}
 		// The branch ws made to check it out goes too: nothing of yours is on it.
-		if _, err := w.Burn(k.Repo, d.Capsule, BurnOptions{DropBranch: true}); err != nil {
+		if _, err := w.Burn(k.Repo, d.Capsule, BurnOptions{DropBranch: true, By: AsWS}); err != nil {
 			continue
 		}
 		forget("")

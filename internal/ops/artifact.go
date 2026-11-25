@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/artifact"
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -198,6 +199,7 @@ func (w *Workspace) AddArtifact(a ArtifactAdd, by Actor) (ArtifactAdded, error) 
 	if err != nil {
 		return ArtifactAdded{}, wrapArtifact(err)
 	}
+	w.artifactAdded(out, m, by)
 	if m != nil {
 		rec := mission.Artifact{Ref: out.Entry.ID, Kind: ArtifactKind, Label: out.Entry.Title, Crew: by.ID}
 		if err := w.Missions.AddArtifact(m.Slug, rec); err != nil {
@@ -206,6 +208,18 @@ func (w *Workspace) AddArtifact(a ArtifactAdd, by Actor) (ArtifactAdded, error) 
 		out.Recorded = m.Slug
 	}
 	return out, nil
+}
+
+// artifactAdded keeps that an artifact, or a version of one, was added.
+func (w *Workspace) artifactAdded(out ArtifactAdded, m *mission.Mission, by Actor) {
+	e := events.Event{Kind: events.ArtifactAdded, Artifact: out.Entry.ID, Text: out.Entry.Title}
+	if out.Version > 1 {
+		e.Text = fmt.Sprintf("v%d of %s", out.Version, out.Entry.Title)
+	}
+	if m != nil {
+		e.Mission = m.Slug
+	}
+	w.emit(e, by)
 }
 
 func cmpStr(a, b string) string {

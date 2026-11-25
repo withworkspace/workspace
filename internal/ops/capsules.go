@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/config"
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/ide"
 	"github.com/withworkspace/workspace/internal/mission"
@@ -202,9 +203,13 @@ const (
 
 // BurnOptions are how a capsule's burned.
 type BurnOptions struct {
-	Force      bool // even with changes nobody's committed
-	DropBranch bool // its branch is deleted too: ws made it, and nothing's on it
-	Silo       int  // SiloToGround or SiloDrop
+	Force      bool  // even with changes nobody's committed
+	DropBranch bool  // its branch is deleted too: ws made it, and nothing's on it
+	Silo       int   // SiloToGround or SiloDrop
+	By         Actor // who burns it: you, unless said
+	// quiet keeps no event of it: a capsule ws lifted for itself, to save
+	// a document in, whose saving is what's kept (doc.added).
+	quiet bool
 }
 
 // Burned is a capsule burned.
@@ -240,7 +245,9 @@ func (w *Workspace) Burn(repo, name string, o BurnOptions) (Burned, error) {
 	}
 	if owned {
 		out.Mission = owner.Slug
-		w.Missions.AppendLog(owner.Slug, mission.Event{Kind: mission.EventCapsuleBurned, Repo: repo, Capsule: name})
+		w.Missions.AppendLog(owner.Slug, mission.Event{Kind: mission.EventCapsuleBurned, Repo: repo, Capsule: name, By: o.By.By()})
+	} else if !o.quiet {
+		w.emit(events.Event{Kind: events.CapsuleBurned, Repo: repo, Capsule: name}, o.By)
 	}
 	if o.DropBranch && branch != "" {
 		git.Run(w.WS().BareDir(repo), "branch", "-q", "-D", branch)
@@ -277,6 +284,12 @@ type Landed struct {
 // landing is public the moment it's made. A confirmed push is returned
 // with any errors from recording the landing or cleaning up the capsule.
 func (w *Workspace) Land(repo, name string, by Actor, o workspace.LandOptions) (Landed, error) {
+	return w.land(repo, name, by, o, false)
+}
+
+// land is Land; quiet keeps no event of a capsule of no mission landed,
+// nor of its burning (BurnOptions.quiet).
+func (w *Workspace) land(repo, name string, by Actor, o workspace.LandOptions, quiet bool) (Landed, error) {
 	if err := MayLand(by); err != nil {
 		return Landed{}, err
 	}
@@ -352,6 +365,11 @@ func (w *Workspace) Land(repo, name string, by Actor, o workspace.LandOptions) (
 		return Landed{}, err
 	}
 	out := Landed{Landed: landed}
+	if owner == nil && !quiet {
+		// A mission's landing is kept as it records it (RecordLanding).
+		w.emit(events.Event{Kind: events.CapsuleLanded, Repo: repo, Capsule: name,
+			Text: fmt.Sprintf("%s on %s (%s)", commitsWord(len(landed.Commits)), landed.Branch, short(landed.Head))}, by)
+	}
 	if owner != nil {
 		out.Mission = owner.Slug
 		if workspace.GitRevParse(dir, "HEAD") != landed.Head {
@@ -368,7 +386,7 @@ func (w *Workspace) Land(repo, name string, by Actor, o workspace.LandOptions) (
 	}
 	if workspace.GitRevParse(dir, "HEAD") != landed.Head {
 		out.BurnErr = fmt.Errorf("%s/%s moved during landing", repo, name)
-	} else if _, err := w.Burn(repo, name, BurnOptions{}); err != nil {
+	} else if _, err := w.Burn(repo, name, BurnOptions{By: by, quiet: quiet}); err != nil {
 		out.BurnErr = err
 	}
 	return out, nil

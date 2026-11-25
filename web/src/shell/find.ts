@@ -172,7 +172,7 @@ const placeWords: Record<string, string> = {
 // settingWords are the words a section of Settings is looked for by.
 const settingWords: Record<string, string> = {
   appearance: "theme light dark accent sidebar",
-  notifications: "desktop alerts",
+  notifications: "desktop alerts feed sources mute",
   agents: "harness model claude codex roles",
   missions: "orchestrator briefing checks",
   repos: "clone fetch",
@@ -201,6 +201,8 @@ export function localItems(w: Workspace, plugins: Plugin[] = []): Item[] {
       ...place(p.to, p.label, p.icon, placeWords[p.id] ?? [p.under, p.id.split("/")[1], p.id.startsWith("apps/") ? "app run" : "view"].filter(Boolean).join(" ")),
       ...(p.id.startsWith("x/") ? { notes: [p.id.split("/")[1]] } : {}),
     })),
+    // The feed's page: it's opened from the foot's bell, not the sidebar.
+    place("/notifications", "Notifications", "bell", "feed inbox what happened unread merged ended news"),
     place("/settings", "Settings", "sliders", "preferences options config configuration"),
     ...sectionsOf().map((s) => ({
       ...place(`/settings/${s.id}`, s.title, s.icon, `settings ${settingWords[s.id] ?? ""}`),

@@ -40,6 +40,8 @@ import type {
   Landing,
   MissionDetail,
   NeedsAnnounced,
+  Notifications,
+  NotificationsAnnounced,
   NamesInfo,
   OrchestratorInfo,
   OrchestratorRunDetail,
@@ -136,6 +138,9 @@ export type {
   Need,
   NeedOf,
   NeedsAnnounced,
+  Notification,
+  Notifications,
+  NotificationsAnnounced,
   MissionCard,
   MissionDetail,
   MissionState,
@@ -1819,6 +1824,17 @@ export const upgradeWS = () => send<Upgraded>("POST", "/api/upgrade", {});
 // by any page: the daemon answers once for each, so they're told once
 // however many pages are open. holding is every need the page has now.
 export const announceNeeds = (keys: string[], holding: string[]) => send<NeedsAnnounced>("POST", "/api/needs/announce", { keys, holding }).then((a) => a.fresh);
+
+// Notifications: the feed of what happened, kept (what needs you isn't
+// here: it's the workspace's needs, worked out). Saying some are read, or
+// putting them away, answers with the feed as it is then.
+export const getNotifications = () => getJSON<Notifications>("/api/notifications");
+export const readNotifications = (ns: number[]) => send<Notifications>("POST", "/api/notifications/read", { ns });
+export const readAllNotifications = () => send<Notifications>("POST", "/api/notifications/read", { all: true });
+export const dismissNotifications = (ns: number[]) => send<Notifications>("POST", "/api/notifications/dismiss", { ns });
+// Which of these notifications, new to this page, the desktop hasn't been
+// told of by any page.
+export const announceNotifications = (ns: number[]) => send<NotificationsAnnounced>("POST", "/api/notifications/announce", { ns }).then((a) => a.fresh);
 
 // What's new: what this ws says is new, and what of it is unseen in this
 // workspace; and saying it's been seen.

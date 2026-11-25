@@ -88,7 +88,7 @@ func newBurnCmd() *cobra.Command {
 				}
 			}
 
-			burned, err := ctx.Burn(repo, capsule, ops.BurnOptions{Force: check.IsDirty, Silo: silo})
+			burned, err := ctx.Burn(repo, capsule, ops.BurnOptions{Force: check.IsDirty, Silo: silo, By: ops.ActorFromEnv()})
 			if err != nil {
 				return err
 			}

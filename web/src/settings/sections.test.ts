@@ -192,4 +192,14 @@ describe("minesOf", () => {
       ["missions", "Crew it starts"],
     ]);
   });
+
+  it("puts where what happened is sent under Notifications, after the desktop's switch", () => {
+    const feed: Setting = { section: "notifications", key: "missions", label: "Missions", about: "A mission ended by itself.", kind: "choice", value: "feed", source: "default", choices: [] } as unknown as Setting;
+    const sections = sectionsOf({ groups: [{ id: "notifications", title: "Notifications", about: "Where each source is sent.", settings: [feed] }] } as unknown as SettingsInfo);
+    const notifications = sections.find((s) => s.id === "notifications")!;
+    expect(notifications.blocks.map((b) => b.id)).toEqual(["notify", "feed"]);
+    expect(notifications.blocks[1].rows).toEqual([{ kind: "setting", s: feed, crumb: "Notifications" }]);
+    // And it's no section of its own.
+    expect(sections.filter((s) => s.id === "notifications")).toHaveLength(1);
+  });
 });

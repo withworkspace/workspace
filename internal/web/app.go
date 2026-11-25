@@ -38,6 +38,7 @@ type App interface {
 	Updating
 	WhatsNewing
 	Plugging
+	Notifying
 }
 
 // Running is runs (internal/runs): on a mission's page, a capsule's

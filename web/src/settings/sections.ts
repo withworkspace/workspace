@@ -47,7 +47,7 @@ export const words = {
   theme: { label: "Theme", about: "Light, dark, or as your system has it." },
   notify: {
     label: "Desktop notifications",
-    about: "A notification for each new thing that needs you, while this tab is in the background. The tab's icon lights either way.",
+    about: "A notification for each new thing that needs you, and for what happened that you've sent to the desktop below, while this tab is in the background. The tab's icon lights either way.",
   },
   daemon: {
     label: "The daemon",
@@ -84,7 +84,8 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   const groups = info?.groups ?? [];
   const section = (id: string, title: string, icon: IconName, about: string, heading?: string): Section => ({ id, title, icon, about, heading, blocks: [] });
   const appearance = section("appearance", "Appearance", "sun", "How the web UI looks.", "Interface");
-  const notifications = section("notifications", "Notifications", "bell", "What ws tells you of outside the page.");
+  const notifications = section("notifications", "Notifications", "bell", "What ws tells you of outside the page, and where what happened is sent.");
+  let feed: Block | undefined;
   const agents = section("agents", "Agents", "terminal", "The agent CLI each role runs in, and the model it's given.", "How work goes");
   const missions = section("missions", "Missions", "flag", "How a mission is briefed and moved on, and what ws holds on every one.");
   const team = section("team", "Team page", "user", "What the Team page says of each change, and how far back it looks.");
@@ -133,6 +134,9 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
       case "router":
         runs.blocks.push({ id: g.id, title: g.title, about: g.about, rows: rows(g.settings, g.title) });
         break;
+      case "notifications":
+        feed = { id: "feed", title: "What happened", about: g.about, rows: rows(g.settings, g.title) };
+        break;
       case "updates":
         about.blocks.push({ id: g.id, title: g.title, rows: rows(g.settings, g.title) });
         break;
@@ -142,6 +146,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   }
   appearance.blocks.push({ id: "ui", rows: ui });
   notifications.blocks.push({ id: "notify", rows: [{ kind: "notify" }] });
+  if (feed) notifications.blocks.push(feed);
   about.blocks.push({ id: "daemon", title: "Daemon", rows: [{ kind: "daemon" }] });
   return [appearance, notifications, agents, missions, team, repos, runs, ...others, process, plugins, yours, about];
 }

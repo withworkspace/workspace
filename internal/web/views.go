@@ -175,6 +175,7 @@ func (s *Server) workspaceView() (Workspace, error) {
 	v.Version = s.Version
 	// A release later than it, as the daemon last found: the menu says so.
 	v.Later = s.App.LaterWS()
+	v.Notifications = notificationsCount(s.App)
 	v.GroundsSeen, v.ReadsSeen = s.groundsSeen(), seenOf(s.reads.Seen())
 	return v, err
 }

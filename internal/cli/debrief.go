@@ -163,7 +163,7 @@ func runDebrief(ctx *ops.Workspace, days int, repoFilter string, burnDirtyLanded
 				)
 				skipped++
 			} else {
-				burned, err := ctx.Burn(c.Repo, c.Name, ops.BurnOptions{Force: forceBurn})
+				burned, err := ctx.Burn(c.Repo, c.Name, ops.BurnOptions{Force: forceBurn, By: ops.ActorFromEnv()})
 				if err != nil {
 					fmt.Fprintf(ui.Stderr, "  %s %s%s %s%s failed to remove: %v\n",
 						ui.Red.Render("✗"), repoName, repoPad, tag, tagPad, err,

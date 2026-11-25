@@ -257,6 +257,10 @@ func (w *Workspace) CheckUpdates(ctx context.Context) Updates {
 	if err := writeUpdates(w.root, k); err != nil {
 		execlog.Note(w.root, "updates", "what was found isn't kept: %v", err)
 	}
+	w.notifyPluginUpdates(was, k, func(name string) string {
+		src, _ := plugin.ReadSource(w.root, name)
+		return src.Tag
+	})
 	return w.Updates()
 }
 

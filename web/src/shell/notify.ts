@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { announceNeeds } from "../api";
+import { announceNeeds, announceNotifications, getNotifications } from "../api";
 import { shownAs, useAccent } from "../ui/accent";
 import { setPref, usePrefs } from "../prefs";
 
@@ -128,4 +128,39 @@ export function useNotifications(waiting: Waiting[], open: (path: string) => voi
   // The same until it's turned on or off: what's given it isn't drawn
   // again for nothing.
   return useMemo(() => ({ supported, on, toggle }), [on, toggle]);
+}
+
+// useFeedNotifications tells the desktop of what happened (the feed's
+// notifications), for the sources you've sent there ([notifications] in
+// ws.local.toml), while the page is hidden and desktop notifications are
+// on. latest is the newest notification's number, as the workspace's view
+// carries it: when it moves, what's new since is read, and the daemon
+// says which of it no page has told of yet, as it does for needs.
+export function useFeedNotifications(latest: number | undefined, on: boolean, open: (path: string) => void) {
+  const seen = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (latest === undefined) return;
+    const was = seen.current;
+    seen.current = latest;
+    // The first it hears of is where it starts: nothing's new to a page
+    // that's just opened.
+    if (was === undefined || latest <= was || !on || document.visibilityState !== "hidden") return;
+    void getNotifications()
+      .then(async (feed) => {
+        const fresh = feed.notifications.filter((n) => n.n > was && n.desktop && !n.read);
+        if (!fresh.length) return;
+        const told = await announceNotifications(fresh.map((n) => n.n));
+        for (const n of fresh.filter((f) => told.includes(f.n))) {
+          const note = new Notification(n.text, { tag: n.ref, icon: markIcon(false) });
+          note.onclick = () => {
+            window.focus();
+            open(n.to || "/notifications");
+            note.close();
+          };
+        }
+      })
+      .catch(() => {
+        // It's in the feed either way: the desktop is only told as well.
+      });
+  }, [latest, on, open]);
 }
