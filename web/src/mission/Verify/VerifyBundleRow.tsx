@@ -34,7 +34,7 @@ export function VerifyBundleRow({ bundles, open, pick }: { bundles: Bundle[]; op
       {todo.map((b) => chip(b))}
       {!todo.includes(open) && chip(open, true)}
       {!todo.length && (
-        <Button variant="ghost" size="small" square type="button" onClick={() => pick()} title={`Close ${open.id} (esc)`} aria-label={`Close ${open.id}`}>
+        <Button variant="ghost" size="small" square type="button" onClick={() => pick()} title={`Close ${open.id}`} keys="esc" aria-label={`Close ${open.id}`}>
           <Icon name="x" size={13} />
         </Button>
       )}

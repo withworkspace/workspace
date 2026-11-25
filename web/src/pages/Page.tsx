@@ -86,7 +86,7 @@ import { Tab, Tabs } from "../ui/Tabs";
 import { Checkbox } from "../ui/Checkbox";
 import { Composer } from "../ui/Composer";
 import { SendKeys } from "../ui/SendKeys";
-import { sendKeysSaid, useSendKey } from "../ui/sendKey";
+import { sendKeys, useSendKey } from "../ui/sendKey";
 import { Turn, TurnSaid } from "../ui/Turn";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
@@ -714,7 +714,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
         >
           <Icon name="link" size={12} /> Link names
         </Button>
-        <Button variant="ghost" size="small" disabled={!view || tab !== "page"} onClick={change} title="Ask for the words the cursor's in (or those selected) to be changed">
+        <Button variant="ghost" size="small" disabled={!view || tab !== "page"} onClick={change} title="Ask for the words the cursor's in (or those selected) to be changed" keys="mod+⏎">
           <Icon name="sparkle" size={12} /> Change <Keys k="mod+⏎" />
         </Button>
         {wide && (
@@ -935,6 +935,7 @@ function Doc({ d, back, reread }: { d: PageDetail; back: Back; reread: () => voi
                 change();
               }}
               title="Ask for these words to be changed: an agent writes them again, and yours are kept to put back"
+              keys="mod+⏎"
             >
               <Icon name="sparkle" size={12} /> Change <Keys k="mod+⏎" />
             </Button>
@@ -1024,6 +1025,7 @@ function ChangeBox({
     return () => document.removeEventListener("mousedown", down);
   }, [onClose]);
   const ask = () => text.trim() && onAsk(text.trim());
+  const sendKey = useSendKey();
   return (
     <div className="cell-panel change-box" ref={panel} style={{ top, left: 0 }} role="dialog" aria-label={label}>
       <Composer
@@ -1038,7 +1040,7 @@ function ChangeBox({
         aria-label={label}
         escape={onClose}
       >
-        <Button variant="primary" size="small" disabled={!text.trim()} onClick={ask}>
+        <Button variant="primary" size="small" disabled={!text.trim()} onClick={ask} title="Send it" keys={sendKeys(sendKey)}>
           Ask <SendKeys />
         </Button>
       </Composer>
@@ -1275,6 +1277,7 @@ function PassTab({
 function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: string; onAsk: (body: string) => Promise<void>; onPut: (body: string) => void; onCell: () => void }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const sendKey = useSendKey();
   const written = versions(cell).length > 0;
   const last = cell.turns.at(-1);
   const live = (cell.run?.calls ?? []).map((c, i, list) => (i === list.length - 1 && !c.result ? { ...c, pending: true } : c));
@@ -1353,7 +1356,7 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
               Put it in the page
             </Button>
           )}
-          <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={ask} title="Ask: it's answered here, and the page stays as it is">
+          <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={ask} title="Ask: it's answered here, and the page stays as it is" keys={sendKeys(sendKey)}>
             Ask <SendKeys />
           </Button>
         </Composer>
@@ -1444,7 +1447,7 @@ function NoteCard({
           {pass.title}
         </Button>
         <span className="spacer" />
-        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close (esc)">
+        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close" keys="esc">
           <Icon name="x" size={13} />
         </Button>
       </div>
@@ -1860,7 +1863,7 @@ function CellPanel({
           »
         </span>
         <span className="cell-panel-prompt">{cell.turns[0]?.body}</span>
-        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close (esc)">
+        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close" keys="esc">
           <Icon name="x" size={13} />
         </Button>
       </div>
@@ -2012,19 +2015,19 @@ function CellPanel({
       >
         {question ? (
           <>
-            <Button size="small" disabled={busy} onClick={() => send(false)} title={`Have it written into the page, here: what it's answered, or what you say (${sendKeysSaid(sendKey, true)})`}>
+            <Button size="small" disabled={busy} onClick={() => send(false)} title="Have it written into the page, here: what it's answered, or what you say" keys={sendKeys(sendKey, true)}>
               Put it in the page
             </Button>
-            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask: it's answered here, and the page stays as it is">
+            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask: it's answered here, and the page stays as it is" keys={sendKeys(sendKey)}>
               Ask <SendKeys />
             </Button>
           </>
         ) : (
           <>
-            <Button size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title={`Ask about it: it's answered here, and the cell stays as it is (${sendKeysSaid(sendKey, true)})`}>
+            <Button size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask about it: it's answered here, and the cell stays as it is" keys={sendKeys(sendKey, true)}>
               Just ask
             </Button>
-            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(false)} title="Have the cell written again, this way">
+            <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(false)} title="Have the cell written again, this way" keys={sendKeys(sendKey)}>
               Change <SendKeys />
             </Button>
           </>

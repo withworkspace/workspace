@@ -11,15 +11,16 @@ type PinToggleProps = {
   // Kept to the end of the line it's in (a ref card's foot, an artifact's
   // title line).
   end?: boolean;
-  // Says . pins it, as it does on a page.
-  keyHint?: boolean;
+  // The key that does the same, where there's one (. on a page, ⌘. in
+  // Find): said in its title and hinted at (ui/keyHint.ts).
+  keys?: string;
   onToggle: () => void;
 };
 
 // PinToggle pins a thing, or unpins it: Pin, and Pinned in the accent
 // while it is. It's a ghost Button saying aria-pressed rather than a
 // ToggleButton, whose pressed look has a fill this hasn't.
-export function PinToggle({ on, compact, end, keyHint, onToggle }: PinToggleProps) {
+export function PinToggle({ on, compact, end, keys, onToggle }: PinToggleProps) {
   return (
     <Button
       variant="ghost"
@@ -30,7 +31,8 @@ export function PinToggle({ on, compact, end, keyHint, onToggle }: PinToggleProp
         e.stopPropagation();
         onToggle();
       }}
-      title={(on ? "Take it out of your focus" : "Keep it in your focus, in the sidebar") + (keyHint ? " (.)" : "")}
+      title={on ? "Take it out of your focus" : "Keep it in your focus, in the sidebar"}
+      keys={keys}
       aria-pressed={on}
       aria-label={compact ? (on ? "Pinned" : "Pin") : undefined}
     >

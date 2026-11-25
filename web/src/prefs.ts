@@ -52,6 +52,9 @@ export interface Prefs {
   // The key that sends what you've written in a box (ui/sendKey.ts): ⌘⏎,
   // where ⏎ is a new line, or ⏎, where ⇧⏎ is.
   sendKey: "mod+enter" | "enter";
+  // Being told a thing has a key when you press it with the pointer
+  // (ui/keyHint.ts). Off unless you turn it on.
+  keyHints: boolean;
 }
 
 const defaults: Prefs = {
@@ -69,6 +72,7 @@ const defaults: Prefs = {
   foundFolded: [],
   dismissed: [],
   sendKey: "mod+enter",
+  keyHints: false,
 };
 
 // Where each was kept before they were one entry, and how it was written

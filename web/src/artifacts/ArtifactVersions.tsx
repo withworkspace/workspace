@@ -1,5 +1,6 @@
 import { HoverCard, HoverCardHead, HoverCardLine, HoverCardTitle } from "../ui/HoverCard";
 import { Keys } from "../ui/Keys";
+import { hintOnClick } from "../ui/keyHint";
 import { segmentClass, segmentedClass } from "../ui/Segmented";
 import { Time } from "../ui/Time";
 import { cx } from "../ui/cx";
@@ -23,6 +24,10 @@ type ArtifactVersionsProps = {
 // the repo is underlined. It's a segmented control's track, its segments
 // each inside a hover card.
 export function ArtifactVersions({ versions, current, onPick, keys }: ArtifactVersionsProps) {
+  // The version before the one shown, and the one after, are what the
+  // keys step to: pressed with the pointer, each hints at its key.
+  const at = versions.findIndex((x) => x.n === current);
+  const keyOf = (n: number) => (at > 0 && versions[at - 1].n === n ? keys[0] : at >= 0 && versions[at + 1]?.n === n ? keys[1] : undefined);
   return (
     <div className={segmentedClass({}, css.versions)} role="group" aria-label="Versions">
       {versions.map((x) => (
@@ -30,7 +35,7 @@ export function ArtifactVersions({ versions, current, onPick, keys }: ArtifactVe
           key={x.n}
           className={css.host}
           trigger={
-            <button data-ui="" aria-pressed={x.n === current} data-selected={x.n === current || undefined} onClick={() => onPick(x.n)} tabIndex={-1} className={segmentClass(x.home ? css.atHome : undefined)}>
+            <button data-ui="" aria-pressed={x.n === current} data-selected={x.n === current || undefined} onClick={hintOnClick(keyOf(x.n), () => onPick(x.n))} tabIndex={-1} className={segmentClass(x.home ? css.atHome : undefined)}>
               v{x.n}
             </button>
           }

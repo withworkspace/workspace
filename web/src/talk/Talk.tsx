@@ -16,7 +16,8 @@ import {
 } from "../api";
 import { changes } from "../annotate/diff";
 import { type Draft, MarkdownEditor } from "../editor/LazyEditor";
-import { useKeys } from "../keys";
+import { useKeys, useShortcut } from "../keys";
+import { sendKeys, useSendKey } from "../ui/sendKey";
 import { slugger } from "../markdown/links";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { CrewBadge } from "../mission/parts";
@@ -107,7 +108,7 @@ export function TalksPage() {
         actions={
           resolved > 0 && (
             <>
-              <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)}>
+              <Button variant="ghost" size="small" onClick={() => setShowResolved((v) => !v)} keys="⇧A">
                 {showResolved ? "Hide resolved" : `Show resolved (${resolved})`} <Keys k="⇧A" />
               </Button>
             </>
@@ -185,6 +186,7 @@ export function TalkList({
         }
       : {},
   );
+  const sendKey = useSendKey();
   const start = () => {
     if (!text.trim() || starting) return;
     setStarting(true);
@@ -223,7 +225,7 @@ export function TalkList({
           </>
         }
       >
-        <Button variant="primary" disabled={!text.trim() || starting} onClick={start}>
+        <Button variant="primary" disabled={!text.trim() || starting} onClick={start} keys={sendKeys(sendKey)}>
           {starting ? "Starting…" : "Start"}
         </Button>
       </Composer>
@@ -232,7 +234,7 @@ export function TalkList({
           <Empty icon="check-circle" title="Nothing open">
             Every conversation's resolved.{" "}
             {onToggleResolved && (
-              <MoreLink onClick={onToggleResolved}>
+              <MoreLink onClick={onToggleResolved} keys={keys ? "⇧A" : undefined}>
                 Show them
               </MoreLink>
             )}
@@ -508,9 +510,11 @@ export function TalkPage() {
     );
   useKeys({
     r: () => box.current?.focus(),
-    x: toggle,
     Escape: () => navigate(back),
   });
+  // Resolving it, or reopening it: x, and the button in the bar.
+  const resolve = useShortcut("x", toggle);
+  const sendKey = useSendKey();
   // To a proposal's card, from beside the conversation: clear of the bar.
   const goTo = (n: number) => {
     const m = pageScroller();
@@ -537,7 +541,7 @@ export function TalkPage() {
       <PageBar
         ref={head}
         className="talk-pagebar"
-        back={{ to: back, title: slug ? `Back to ${mission?.title ?? slug}` : "Back to the conversations" }}
+        back={{ to: back, title: slug ? `Back to ${mission?.title ?? slug}` : "Back to the conversations", keys: "esc" }}
         status={st && <Status s={st} iconOnly size={16} />}
         title={d ? title : undefined}
         actions={
@@ -558,7 +562,7 @@ export function TalkPage() {
               </ToggleButton>
             )}
             {d && (
-              <Button onClick={toggle} title={`${d.status === "resolved" ? "Reopen" : "Resolve"} (x)`}>
+              <Button onClick={resolve} title={d.status === "resolved" ? "Reopen" : "Resolve"}>
                 <Icon name={d.status === "resolved" ? "rotate" : "check"} size={13} />
                 {d.status === "resolved" ? "Reopen" : "Resolve"}
               </Button>
@@ -674,7 +678,7 @@ export function TalkPage() {
             aria-label="Reply"
             placeholder={d?.answering ? "Say more: it's sent once the agent's done" : d?.status === "resolved" ? "Reply to reopen it…" : "Reply…"}
           >
-            <Button variant="primary" disabled={!text.trim() || sending} onClick={send}>
+            <Button variant="primary" disabled={!text.trim() || sending} onClick={send} keys={sendKeys(sendKey)}>
               {sending ? "Sending…" : "Send"}
             </Button>
           </Composer>

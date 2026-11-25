@@ -21,7 +21,7 @@ type SelectionToolbarProps = {
 export function SelectionToolbar({ left, top, onAsk, onExplain, onLink, ref }: SelectionToolbarProps) {
   return (
     <div ref={ref} className={css.tool} role="toolbar" aria-label="The passage picked out" style={{ left, top }} onMouseDown={(e) => e.preventDefault()}>
-      <Button type="button" onClick={onAsk} title="Ask about this passage (a)">
+      <Button type="button" onClick={onAsk} title="Ask about this passage" keys="a">
         <Icon name="sparkle" size={12} /> Ask about this <Keys k="a" />
       </Button>
       <Button type="button" onClick={onExplain} title="Ask for this passage to be explained">

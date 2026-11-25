@@ -154,10 +154,10 @@ export function ArtifactPromote({ title, ready, versions, version: n, onVersion,
       {blocked && <p className="dim file-as-what">{blocked}</p>}
       {error && <Banner>{error}</Banner>}
       <DialogActions>
-        <Button variant="ghost" onClick={onClose} disabled={busy}>
+        <Button variant="ghost" onClick={onClose} disabled={busy} keys="esc">
           Cancel
         </Button>
-        <Button variant="primary" onClick={onGo} disabled={busy || !n || !ready || !!blocked}>
+        <Button variant="primary" onClick={onGo} disabled={busy || !n || !ready || !!blocked} keys="mod+⏎">
           {busy ? (lands ? "Landing…" : "Promoting…") : lands ? `Promote, and land on ${branch}` : "Promote"} <Keys k="mod+⏎" />
         </Button>
       </DialogActions>

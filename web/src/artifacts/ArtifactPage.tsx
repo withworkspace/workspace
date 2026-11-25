@@ -181,7 +181,7 @@ export function ArtifactPage() {
           <VersionStrip d={d} n={n} go={go} />
           <Segmented value={width} onChange={setWidth} disabled={source} aria-label="Width">
             {widths.map((w) => (
-              <Segment key={w.key} value={w.key} title={w.title}>
+              <Segment key={w.key} value={w.key} title={w.title} keys="w">
                 {w.label}
               </Segment>
             ))}
@@ -194,7 +194,7 @@ export function ArtifactPage() {
             onReload={again}
             onStop={() => setStopped((s) => !s)}
             onSource={setSource}
-            tweaks={framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} />}
+            tweaks={framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} keys="t" />}
             compare={
               comparing && {
                 to: compareHref(comparing),
@@ -220,7 +220,7 @@ export function ArtifactPage() {
           ) : source ? (
             <Source id={d.id} n={n} />
           ) : stopped ? (
-            <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)}>Run it</Button>}>
+            <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)} keys="x">Run it</Button>}>
               The frame's unloaded, and its scripts with it.
             </ArtifactEmpty>
           ) : (
@@ -228,7 +228,7 @@ export function ArtifactPage() {
           )}
         </ArtifactStage>
         {framed && tray && hasTweaks(told) && (
-          <TweaksTray told={told} set={tweaks.set} onClose={() => setTray(false)}>
+          <TweaksTray told={told} set={tweaks.set} onClose={() => setTray(false)} keys="t">
             {changed(told).length > 0 && (
               <Link className="link" to={compareHref([{ id: d.id, n }, { id: d.id, n }], [[], tweakParams(told)])} title="The same version twice, side by side: as it opens, and as it's set here">
                 <Icon name="split" size={12} /> Compare with how it opens

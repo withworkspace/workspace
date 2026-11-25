@@ -327,27 +327,27 @@ export function TeamPage() {
         <>
           {view && <TeamAsOf at={view.at} looking={loading} />}
           <Segmented value={byPeople ? "people" : "days"} onChange={(v) => arrange(v === "people")} aria-label="Arranged">
-            <Segment value="days" title="By day, newest first (p)">
+            <Segment value="days" title="By day, newest first" keys="p">
               Days
             </Segment>
-            <Segment value="people" title="By person: what each has open, has landed, and has been reviewing (p)">
+            <Segment value="people" title="By person: what each has open, has landed, and has been reviewing" keys="p">
               People
             </Segment>
           </Segmented>
           <Segmented value={period} onChange={pick} aria-label="Period">
-            {periods.map((p) => (
-              <Segment key={p.since} value={p.since} title={p.title}>
+            {periods.map((p, i) => (
+              <Segment key={p.since} value={p.since} title={p.title} keys={i < 3 ? String(i + 1) : undefined}>
                 {p.label}
               </Segment>
             ))}
           </Segmented>
           {narrative?.on && (
-            <ToggleButton variant="ghost" size="small" pressed={onlyKnow} onChange={know} title="Only the changes with something worth knowing (n)">
+            <ToggleButton variant="ghost" size="small" pressed={onlyKnow} onChange={know} title="Only the changes with something worth knowing" keys="n">
               <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
             </ToggleButton>
           )}
           <TeamFilter ref={filter} value={q} onChange={setQ} />
-          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Look at git and GitHub again (r)">
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Look at git and GitHub again" keys="r">
             <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
           </Button>
         </>
@@ -374,7 +374,7 @@ export function TeamPage() {
     <div className="page">
       {head}
       {(error || view.error) && (
-        <Callout tone="attention" title="The repos couldn't be looked at just now" actions={<Button onClick={refresh}>Try again</Button>}>
+        <Callout tone="attention" title="The repos couldn't be looked at just now" actions={<Button onClick={refresh} keys="r">Try again</Button>}>
           {humanError(error ?? view.error ?? "")} What's here is as of <Time iso={view.at} as="relative" />.
         </Callout>
       )}
@@ -411,14 +411,14 @@ export function TeamPage() {
             </TeamNarrativeReading>
           )}
           {summary && !summary.at && !summary.writing && summary.can > 0 && (
-            <Button variant="link" onClick={catchUp} title="An agent writes what the team's been working on in this period, from the changes that have been read (c)">
+            <Button variant="link" onClick={catchUp} title="An agent writes what the team's been working on in this period, from the changes that have been read" keys="c">
               Catch me up
             </Button>
           )}
           {narrative?.on && narrative.unwritten > 0 && (
             <span>
               {narrative.unwritten} {narrative.unwritten === 1 ? "change hasn't" : "changes haven't"} been read: those from before yesterday wait until you ask.{" "}
-              <Button variant="link" onClick={writeAll} title="Have an agent read them (⇧W)">
+              <Button variant="link" onClick={writeAll} title="Have an agent read them" keys="⇧W">
                 Read them
               </Button>
             </span>
@@ -441,7 +441,7 @@ export function TeamPage() {
           <span>
             Only <strong>{topic.name}</strong>: {topic.strands.length} {topic.strands.length === 1 ? "change" : "changes"}.
           </span>
-          <Button variant="link" onClick={() => setTopic(undefined)}>
+          <Button variant="link" onClick={() => setTopic(undefined)} keys="esc">
             Show everything <Keys k="esc" />
           </Button>
         </TeamNarrative>
@@ -466,7 +466,7 @@ export function TeamPage() {
               ))}
             </Rows>
             {d.bots > 0 && !q && (
-              <Button variant="link" onClick={bots} aria-expanded={showBots}>
+              <Button variant="link" onClick={bots} aria-expanded={showBots} keys="a">
                 <Icon name={showBots ? "chevron-down" : "chevron-right"} size={12} /> {d.bots} automated
               </Button>
             )}

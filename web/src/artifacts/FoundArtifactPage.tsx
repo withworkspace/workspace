@@ -6,6 +6,7 @@ import { useLoaded } from "../load";
 import { Button, buttonClass } from "../ui/Button";
 import { Chip } from "../ui/Chip";
 import { ErrorCard } from "../ui/ErrorCard";
+import { keyProps } from "../ui/keyHint";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/Inline";
 import { Keys } from "../ui/Keys";
@@ -47,7 +48,7 @@ export function FoundArtifactPage() {
   if (error && !d) {
     return (
       <div className="page narrow">
-        <ErrorCard error={error} retry={reload} title={`Couldn't open ${name}`} />
+        <ErrorCard error={error} retry={reload} keys="r" title={`Couldn't open ${name}`} />
         <p>
           <Link to="/artifacts">Back to Artifacts</Link>
         </p>
@@ -90,17 +91,17 @@ export function FoundArtifactPage() {
         <ArtifactTools>
           <Segmented value={width} onChange={setWidth} aria-label="Width">
             {widths.map((w) => (
-              <Segment key={w.key} value={w.key} title={w.title}>
+              <Segment key={w.key} value={w.key} title={w.title} keys="w">
                 {w.label}
               </Segment>
             ))}
           </Segmented>
           <ArtifactToolsEnd>
-            <Button variant="ghost" size="small" onClick={again} disabled={!page} title="Run it again, as the repo has it now">
+            <Button variant="ghost" size="small" onClick={again} disabled={!page} title="Run it again, as the repo has it now" keys="r">
               <Icon name="rotate" size={13} /> Reload <Keys k="r" />
             </Button>
             {page && (
-              <a className={buttonClass({ variant: "ghost" })} href={d.frame} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed">
+              <a className={buttonClass({ variant: "ghost" })} href={d.frame} target="_blank" rel="noopener noreferrer" {...keyProps("O", "In a tab of its own, still sandboxed")}>
                 <Icon name="external" size={13} /> Open alone
               </a>
             )}

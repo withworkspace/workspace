@@ -12,7 +12,8 @@ describe("Dialog", () => {
   // drawn over it from elsewhere on the page has to say it's to be left.
   it("leaves hover cards and toasts be", () => {
     expect(read("FloatingCard.tsx")).toContain('data-react-aria-top-layer=""');
-    expect(read("Toasts.tsx")).toContain('data-react-aria-top-layer=""');
+    // Toasts is react-aria's toast region, which says so of itself.
+    expect(read("Toasts.tsx")).toContain("<ToastRegion");
   });
 
   it("is what says something's open, for the app's keys", () => {

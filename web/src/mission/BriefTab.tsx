@@ -545,10 +545,10 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
   const nav = toRead > 0 && (
     <span className="brief-nav">
       <Chip tone="attention" className="brief-nav-chip">{at >= 0 ? `${at + 1} of ${toRead}` : `${toRead} ${toRead === 1 ? "change" : "changes"}`}</Chip>
-      <Button variant="ghost" square type="button" onClick={() => move(-1)} title="The change before (k)" aria-label="The change before">
+      <Button variant="ghost" square type="button" onClick={() => move(-1)} title="The change before" keys="k" aria-label="The change before">
         <Icon name="chevron-up" size={13} />
       </Button>
-      <Button variant="ghost" square type="button" onClick={() => move(1)} title="The next change (j)" aria-label="The next change">
+      <Button variant="ghost" square type="button" onClick={() => move(1)} title="The next change" keys="j" aria-label="The next change">
         <Icon name="chevron-down" size={13} />
       </Button>
     </span>
@@ -592,13 +592,14 @@ export function BriefTab({ d, root, updated, reload, onEscape }: { d: MissionDet
               type="button"
               disabled={busy || primary.disabled}
               onClick={primary.run}
+              keys="mod+⏎"
               title={briefing && p ? "Nothing's written until you confirm it: your edits, and the changes you decline, go with it. The planner doesn't see them until then" : undefined}
             >
               {primary.label} <Keys k="mod+⏎" />
             </Button>
           )}
           {wide && !open && hasPlanner && (
-            <Button variant="ghost" square type="button" className="brief-unfold" onClick={() => fold(true)} title="Show the planner's conversation (p)" aria-label="Show the planner's conversation">
+            <Button variant="ghost" square type="button" className="brief-unfold" onClick={() => fold(true)} title="Show the planner's conversation" keys="p" aria-label="Show the planner's conversation">
               <Icon name="panel" size={14} />
               {plannerWaits && <span className="brief-unfold-dot" aria-label="It has something for you" />}
             </Button>
@@ -669,7 +670,7 @@ function NoPlanner({ briefing, busy, briefIt, field, fold }: { briefing: boolean
         <span className="brief-planner-name">Planner</span>
         <span className="spacer" />
         {fold && (
-          <Button variant="ghost" square type="button" onClick={fold} title="Fold the planner away (p)" aria-label="Fold the planner away">
+          <Button variant="ghost" square type="button" onClick={fold} title="Fold the planner away" keys="p" aria-label="Fold the planner away">
             <Icon name="panel" size={14} />
           </Button>
         )}

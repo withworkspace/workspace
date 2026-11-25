@@ -1,6 +1,7 @@
 import { type ComponentProps, createContext, type ReactNode, useContext } from "react";
 import { Tab as AriaTab, TabList, Tabs as AriaTabs } from "react-aria-components";
 import { cx } from "./cx";
+import { keyHint, pointed, titleWithKeys } from "./keyHint";
 import css from "./Tabs.module.css";
 
 // The id of what the tabs change, for each Tab to say.
@@ -41,15 +42,18 @@ export function Tabs<T extends string>({
 }
 
 // Tab is one of them: its value, and what it shows (words, an icon
-// before, a count after). A title says more about it on hover.
-export function Tab({ value, title, className, children }: { value: string; title?: string; className?: string; children: ReactNode }) {
+// before, a count after). A title says more about it on hover. keys is
+// the key that shows it, said after the title and hinted as a Button's
+// is (ui/keyHint.ts).
+export function Tab({ value, title, keys, className, children }: { value: string; title?: string; keys?: string; className?: string; children: ReactNode }) {
   const controls = useContext(Controls);
+  const titled = titleWithKeys(title, keys);
   // react-aria's tab names a panel of its own, which isn't drawn: it says
   // the page's instead, and its title, which react-aria's drops. (It's a
   // div: only a tab that's a link, which these aren't, is anything else.)
-  const draw = (props: ComponentProps<"div">) => <div {...props} title={title} aria-controls={props["aria-selected"] ? controls : undefined} />;
+  const draw = (props: ComponentProps<"div">) => <div {...props} title={titled} aria-controls={props["aria-selected"] ? controls : undefined} />;
   return (
-    <AriaTab id={value} className={cx(css.tab, className)} render={(props) => draw(props as ComponentProps<"div">)}>
+    <AriaTab id={value} className={cx(css.tab, className)} onPress={keys ? (e) => pointed(e) && keyHint(keys) : undefined} render={(props) => draw(props as ComponentProps<"div">)}>
       {children}
     </AriaTab>
   );

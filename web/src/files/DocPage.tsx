@@ -315,7 +315,7 @@ export function DocPage({ docRef }: { docRef: string }) {
     >
       {folded && <ReaderPill title={title ?? name} sections={sections} reading={reading} open={menu} toggle={toggleMenu} pill={pill} />}
       {read && where ? (
-        <ReaderCrumbs from={space ? { to: "/documents", label: "Documents" } : { to: "/files", label: "Repos" }} on={on} title={title ?? name} open={folder} toggle={(id) => openFolder(folder === id ? undefined : id)} nav={crumbs} />
+        <ReaderCrumbs from={space ? { to: "/documents", label: "Documents" } : { to: "/files", label: "Repos" }} on={on} title={title ?? name} open={folder} up={folder === undefined ? shelves?.home.get(where.path) : shelves?.shelves.get(folder)?.up} toggle={(id) => openFolder(folder === id ? undefined : id)} nav={crumbs} />
       ) : (
         <Crumbs steps={[{ to: home, label: space ? space.label : "Repos" }]} />
       )}
@@ -338,7 +338,7 @@ export function DocPage({ docRef }: { docRef: string }) {
           filesTo={files}
         />
       )}
-      {error && <ErrorCard title="Couldn't open this document" error={error} retry={load} />}
+      {error && <ErrorCard title="Couldn't open this document" error={error} retry={load} keys="r" />}
       {!a && !error && <Skeleton rows={10} />}
       {a && !mission && draft && (
         <Callout

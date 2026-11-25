@@ -26,13 +26,15 @@ type FootBesideProps = {
 export function FootBeside({ open, waiting = 0, onPress, over = false, onOver }: FootBesideProps) {
   const marked = !open && waiting > 0;
   const menu = useContextMenu();
-  const says = open ? "Close Beside (\\)" : marked ? `Beside: ${waiting === 1 ? "something" : `${waiting} things`} to peek at` : "Beside: a peek at a second thing, next to the page";
+  const says = open ? "Close Beside" : marked ? `Beside: ${waiting === 1 ? "something" : `${waiting} things`} to peek at` : "Beside: a peek at a second thing, next to the page";
   const float = over ? "Dock it: the page makes room" : "Float it over the page";
   return (
     <FootItem
       on={open}
       label="Beside"
-      title={onOver ? `${says}. Right-click for more` : says}
+      title={says}
+      keys={"\\"}
+      more={onOver ? "Right-click for more" : undefined}
       onPress={onPress}
       onContextMenu={menu(
         "Beside",
@@ -43,7 +45,7 @@ export function FootBeside({ open, waiting = 0, onPress, over = false, onOver }:
                 <Icon name="float" />
                 <MenuText>{float}</MenuText>
               </MenuItem>
-              <MenuItem id="toggle" textValue={open ? "Close Beside" : "Open Beside"} onAction={onPress}>
+              <MenuItem id="toggle" textValue={open ? "Close Beside" : "Open Beside"} onAction={onPress} keys={"\\"}>
                 <Icon name="panel" />
                 <MenuText>{open ? "Close Beside" : "Open Beside"}</MenuText>
               </MenuItem>

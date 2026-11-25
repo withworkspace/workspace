@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Copyable } from "../ui/Copyable";
 import { Icon } from "../ui/Icon";
+import { keyProps } from "../ui/keyHint";
 import css from "./ArtifactTitleLine.module.css";
 
 type ArtifactTitleLineProps = {
@@ -18,7 +19,7 @@ type ArtifactTitleLineProps = {
 export function ArtifactTitleLine({ back, title, children }: ArtifactTitleLineProps) {
   return (
     <div className={css.line}>
-      <Link to={back.to} aria-label={back.label} title={back.label}>
+      <Link to={back.to} aria-label={back.label} {...keyProps("esc", back.label)}>
         <Icon name="arrow-left" size={14} />
       </Link>
       <h1>{title}</h1>

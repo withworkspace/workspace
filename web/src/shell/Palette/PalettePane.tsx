@@ -75,7 +75,7 @@ export function PalettePane({
             <ThingCard r={thing} known={known} surface="pane" pointer={pointer} before={finding && on?.said ? said(on, on.said) : undefined} />
           </FindThing>
           <FindActs>
-            {finding && <PinButton r={thing} />}
+            {finding && <PinButton r={thing} keys="mod+." />}
             {actsOn(namedOf(thing, known), thing.id).map((a) => (
               <FindAct key={`${a.ws ?? "its"}:${a.id}`} icon={actIcon(a.icon)} disabled={working} onClick={() => onDo(thing, a)}>
                 {a.title}
@@ -89,7 +89,7 @@ export function PalettePane({
         <>
           <RefCardBody r={on.card} known={known} pane />
           <RefFoot>
-            <PinButton r={on.card} end />
+            <PinButton r={on.card} end keys={finding ? "mod+." : undefined} />
           </RefFoot>
         </>
       ) : on ? (

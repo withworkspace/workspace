@@ -53,7 +53,7 @@ export function AnnotateComposer({
   onSuggest?: () => void;
   canPost: boolean;
   onPost: () => void;
-  // The keys that post it, as they're said (⌘⏎, or ⏎).
+  // The keys that post it, as Keys reads them (mod+⏎, or ⏎).
   postKeys: string;
   onCancel: () => void;
 }) {
@@ -61,7 +61,7 @@ export function AnnotateComposer({
     <div className={css.composer} onClick={(e) => e.stopPropagation()}>
       <Segmented fill value={kind} onChange={onKind} aria-label="What kind of comment">
         {threadKinds.map((k) => (
-          <Segment key={k} value={k} className={cx(css.kind, kinds[k])} title={`${kindWords[k]} (tab cycles)`}>
+          <Segment key={k} value={k} className={cx(css.kind, kinds[k])} title={kindWords[k]} keys="tab">
             <Icon name={kindIcon[k]} size={12} />
             {kindWords[k]}
           </Segment>
@@ -94,10 +94,10 @@ export function AnnotateComposer({
           </span>
         }
       >
-        <Button variant="ghost" size="small" onClick={onCancel} title="Cancel (esc)">
+        <Button variant="ghost" size="small" onClick={onCancel} title="Cancel" keys="esc">
           Cancel
         </Button>
-        <Button variant="primary" size="small" onClick={onPost} disabled={!canPost} title={`Post it (${postKeys})`}>
+        <Button variant="primary" size="small" onClick={onPost} disabled={!canPost} title="Post it" keys={postKeys}>
           {edit !== undefined ? "Suggest" : "Comment"}
         </Button>
       </AnnotateActions>

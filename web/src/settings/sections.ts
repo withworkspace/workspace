@@ -36,13 +36,14 @@ export function valueSaid(s: Setting, v: unknown = s.value): string {
 
 // A Row is a line of a section: a setting, or one of the page's own. The
 // sidebar's two keys ([ui] sidebar and menu) are one row, as they're one
-// arrangement; theme, sendKey and notify are kept in the browser, not in
-// a file; daemon is the daemon's switch.
+// arrangement; theme, sendKey, keyHints and notify are kept in the
+// browser, not in a file; daemon is the daemon's switch.
 export type Row =
   | { kind: "setting"; s: Setting; crumb?: string } // crumb: whose it is, said where the row is out of its block (Find)
   | { kind: "places"; settings: Setting[] }
   | { kind: "theme" }
   | { kind: "sendKey" }
+  | { kind: "keyHints" }
   | { kind: "notify" }
   | { kind: "daemon" };
 
@@ -56,6 +57,10 @@ export const words = {
   sendKey: {
     label: "Send with",
     about: "The key that sends what you write in a box: a reply, a message to crew, a comment. A form with more than one box keeps its own key.",
+  },
+  keyHints: {
+    label: "Key hints",
+    about: "When you press something with the pointer that has a key, ws says which, in passing. A key is in the tooltip of what it's for either way.",
   },
   notify: {
     label: "Desktop notifications",
@@ -96,7 +101,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   const groups = info?.groups ?? [];
   const section = (id: string, title: string, icon: IconName, about: string, heading?: string): Section => ({ id, title, icon, about, heading, blocks: [] });
   const appearance = section("appearance", "Appearance", "sun", "How the web UI looks.", "Interface");
-  const keyboard = section("keyboard", "Keyboard", "keyboard", "The keys you write with.");
+  const keyboard = section("keyboard", "Keyboard", "keyboard", "The key you send with, and being told of the keys you could have pressed.");
   const notifications = section("notifications", "Notifications", "bell", "What ws tells you of outside the page, and where what happened is sent.");
   let feed: Block | undefined;
   const agents = section("agents", "Agents", "terminal", "The agent CLI each role runs in, and the model it's given.", "How work goes");
@@ -158,7 +163,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
     }
   }
   appearance.blocks.push({ id: "ui", rows: ui });
-  keyboard.blocks.push({ id: "send", rows: [{ kind: "sendKey" }] });
+  keyboard.blocks.push({ id: "send", rows: [{ kind: "sendKey" }, { kind: "keyHints" }] });
   notifications.blocks.push({ id: "notify", rows: [{ kind: "notify" }] });
   if (feed) notifications.blocks.push(feed);
   about.blocks.push({ id: "daemon", title: "Daemon", rows: [{ kind: "daemon" }] });

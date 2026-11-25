@@ -53,10 +53,10 @@ export function ArtifactDiscard({ title, id, home, branch, why, onWhy, error, bu
       />
       {error && <Banner>{error}</Banner>}
       <DialogActions>
-        <Button variant="ghost" onClick={onClose} disabled={busy}>
+        <Button variant="ghost" onClick={onClose} disabled={busy} keys="esc">
           Cancel
         </Button>
-        <Button variant="danger" onClick={onGo} disabled={busy}>
+        <Button variant="danger" onClick={onGo} disabled={busy} keys="mod+⏎">
           {busy ? (home ? "Landing…" : "Discarding…") : home ? `Discard, and land on ${branch ?? "it"}` : "Discard"} <Keys k="mod+⏎" />
         </Button>
       </DialogActions>

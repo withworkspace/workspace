@@ -10,9 +10,9 @@ import { PinToggle } from "./PinToggle";
 const meta: Meta = { title: "Shell/PinToggle" };
 export default meta;
 
-function Pin({ start, compact, end, keyHint }: { start: boolean; compact?: boolean; end?: boolean; keyHint?: boolean }) {
+function Pin({ start, compact, end, keys }: { start: boolean; compact?: boolean; end?: boolean; keys?: string }) {
   const [on, setOn] = useState(start);
-  return <PinToggle on={on} compact={compact} end={end} keyHint={keyHint} onToggle={() => setOn(!on)} />;
+  return <PinToggle on={on} compact={compact} end={end} keys={keys} onToggle={() => setOn(!on)} />;
 }
 
 const row: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8 };
@@ -23,7 +23,7 @@ export const States: StoryObj = {
       <div style={row}>
         <Pin start={false} />
         <Pin start />
-        <Pin start={false} keyHint />
+        <Pin start={false} keys="." />
       </div>
       <div style={row}>
         <Pin start={false} compact />

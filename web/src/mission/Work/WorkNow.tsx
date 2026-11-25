@@ -21,7 +21,7 @@ export function WorkNow({ d, x, review }: { d: MissionDetail; x: WorkCapsule; re
       actions={
         <>
           {s.who === "you" && s.type === "Review" && x.c.exists && (
-            <Button variant="primary" size="small" onClick={() => review(x.c)}>
+            <Button variant="primary" size="small" onClick={() => review(x.c)} keys="v">
               <Icon name="eye" /> Review the change
             </Button>
           )}

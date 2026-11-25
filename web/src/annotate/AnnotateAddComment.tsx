@@ -1,5 +1,6 @@
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
+import { keyProps } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
 import css from "./AnnotateAddComment.module.css";
 
@@ -8,7 +9,7 @@ import css from "./AnnotateAddComment.module.css";
 // the cursor's paragraphs it's a plus. It keeps the selection when pressed.
 export function AnnotateAddComment({ top, text, onPress }: { top: number; text?: boolean; onPress: () => void }) {
   return (
-    <button className={cx(css.add, text && css.text)} style={{ top }} onMouseDown={(e) => e.preventDefault()} onClick={onPress} title="Comment (c)">
+    <button className={cx(css.add, text && css.text)} style={{ top }} onMouseDown={(e) => e.preventDefault()} {...keyProps("c", "Comment", () => onPress())}>
       {text ? (
         <>
           <Icon name="message" size={13} /> Comment <Keys k="c" />

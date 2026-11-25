@@ -1,32 +1,50 @@
-import { useSyncExternalStore } from "react";
-import css from "./Toasts.module.css";
+import { useRef, useSyncExternalStore } from "react";
+import { UNSAFE_PortalProvider as PortalProvider } from "react-aria";
+import { UNSTABLE_Toast as Toast, UNSTABLE_ToastRegion as ToastRegion } from "react-aria-components";
 import { ToastPill } from "./ToastPill";
-import { getToasts, onToasts, setToasts } from "./toast";
+import css from "./Toasts.module.css";
+import { type ToastItem, toasts } from "./toast";
 
 // Toasts draws what's being said in passing (ui/toast.ts): for a few
-// seconds, bottom centre, over everything, an open dialog too. One with
-// something to press goes once it's pressed.
+// seconds, in the window's bottom right corner, over everything, an open
+// dialog too, the newest at the bottom. Each rises in, and slides away
+// to the right as it goes. It's react-aria's toast region:
+// each is read out as it comes, kept while it's pointed at or focused,
+// and closed with its ×; one with something to press goes once it's
+// pressed.
+//
+// react-aria puts the region at the end of the page. It's put here
+// instead, in the shell, whose foot (--foot-height) it stands clear of.
 export function Toasts() {
-  const list = useSyncExternalStore(onToasts, getToasts);
+  const home = useRef<HTMLDivElement>(null);
+  // Which are leaving: what the queue says, read again when one starts to.
+  const going = useSyncExternalStore(toasts.onLeaving, toasts.goingNow);
   return (
-    <div className={css.toasts} role="status" aria-live="polite" data-toasts="" data-react-aria-top-layer="">
-      {list.map((t) => (
-        <ToastPill
-          key={t.id}
-          tone={t.tone}
-          action={
-            t.action && {
-              label: t.action.label,
-              run: () => {
-                t.action!.run();
-                setToasts(getToasts().filter((x) => x.id !== t.id));
-              },
-            }
-          }
-        >
-          {t.text}
-        </ToastPill>
-      ))}
+    <div ref={home} className={css.home}>
+      <PortalProvider getContainer={() => home.current ?? document.body}>
+        <ToastRegion<ToastItem> queue={toasts} className={css.toasts} data-toasts="">
+          {({ toast: t }) => (
+            <Toast toast={t} className={css.toast} data-leaving={going.has(t.key) || undefined}>
+              <ToastPill
+                tone={t.content.tone}
+                keys={t.content.keys}
+                action={
+                  t.content.action && {
+                    label: t.content.action.label,
+                    run: () => {
+                      t.content.action!.run();
+                      toasts.close(t.key);
+                    },
+                  }
+                }
+                closable
+              >
+                {t.content.text}
+              </ToastPill>
+            </Toast>
+          )}
+        </ToastRegion>
+      </PortalProvider>
     </div>
   );
 }

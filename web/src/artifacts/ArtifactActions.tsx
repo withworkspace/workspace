@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Button, buttonClass } from "../ui/Button";
 import { Icon } from "../ui/Icon";
+import { keyProps } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
 import { ToggleButton } from "../ui/ToggleButton";
 import { ArtifactToolsEnd } from "./ArtifactTools";
@@ -37,18 +38,18 @@ type ArtifactActionsProps = {
 export function ArtifactActions({ runnable, source, stopped, manyFiles, onReload, onStop, onSource, tweaks, compare, alone, keep, onRestore }: ArtifactActionsProps) {
   return (
     <ArtifactToolsEnd>
-      <Button variant="ghost" size="small" onClick={onReload} disabled={!runnable || source} title="Run it again">
+      <Button variant="ghost" size="small" onClick={onReload} disabled={!runnable || source} title="Run it again" keys="r">
         <Icon name="rotate" size={13} /> Reload <Keys k="r" />
       </Button>
-      <Button variant="ghost" size="small" onClick={onStop} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"}>
+      <Button variant="ghost" size="small" onClick={onStop} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"} keys="x">
         <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
       </Button>
-      <ToggleButton variant="ghost" size="small" pressed={source} onChange={onSource} disabled={!runnable} title={manyFiles ? "Its files, as they were written" : "Its HTML"}>
+      <ToggleButton variant="ghost" size="small" pressed={source} onChange={onSource} disabled={!runnable} title={manyFiles ? "Its files, as they were written" : "Its HTML"} keys="s">
         <Icon name="code" size={13} /> Source <Keys k="s" />
       </ToggleButton>
       {tweaks}
       {compare ? (
-        <Link className={buttonClass({ variant: "ghost" })} to={compare.to} title={compare.title}>
+        <Link className={buttonClass({ variant: "ghost" })} to={compare.to} {...keyProps("c", compare.title)}>
           <Icon name="split" size={13} /> Compare <Keys k="c" />
         </Link>
       ) : runnable ? (
@@ -57,12 +58,12 @@ export function ArtifactActions({ runnable, source, stopped, manyFiles, onReload
         </Button>
       ) : null}
       {alone ? (
-        <a className={buttonClass({ variant: "ghost" })} href={alone} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed, as it's set here">
+        <a className={buttonClass({ variant: "ghost" })} href={alone} target="_blank" rel="noopener noreferrer" {...keyProps("O", "In a tab of its own, still sandboxed, as it's set here")}>
           <Icon name="external" size={13} /> Open alone
         </a>
       ) : null}
       {keep && (
-        <Button variant="ghost" size="small" onClick={keep.onPromote} title={keep.promoted ? "Choose another version, or say what it went into now" : "Keep it for good: it expires no more"}>
+        <Button variant="ghost" size="small" onClick={keep.onPromote} title={keep.promoted ? "Choose another version, or say what it went into now" : "Keep it for good: it expires no more"} keys="p">
           <Icon name="check-circle" size={13} /> {keep.promoted ? "Promoted" : "Promote"} <Keys k="p" />
         </Button>
       )}

@@ -6,6 +6,7 @@ import { Chip } from "../../ui/Chip";
 import { Copyable } from "../../ui/Copyable";
 import { ErrorCard } from "../../ui/ErrorCard";
 import { Icon } from "../../ui/Icon";
+import { keyProps } from "../../ui/keyHint";
 import { Keys } from "../../ui/Keys";
 import { Skeleton } from "../../ui/Skeleton";
 import { Time } from "../../ui/Time";
@@ -65,19 +66,19 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
                 {c.branch}
               </Chip>
             )}
-            <MissionWorkState {...x.state} />
+            <MissionWorkState {...x.state} keys="o" />
           </>
         }
         actions={
           <>
             {open && canOpenPR(d, c) && <OpenPR d={d} c={c} reload={reload} />}
             {c.exists && (
-              <Link to={`/missions/${d.slug}/files/${c.repo}/${c.name}`} className={buttonClass({ size: "small" })} title="Browse its files (f)">
+              <Link to={`/missions/${d.slug}/files/${c.repo}/${c.name}`} className={buttonClass({ size: "small" })} {...keyProps("f", "Browse its files")}>
                 <Icon name="file" size={12} /> Files <Keys k="f" />
               </Link>
             )}
             {c.exists && (!sum || sum.commitCount > 0) && (
-              <Button size="small" onClick={() => review(c)} title="Review its changes (v)">
+              <Button size="small" onClick={() => review(c)} title="Review its changes" keys="v">
                 <Icon name="eye" /> Review <Keys k="v" />
               </Button>
             )}

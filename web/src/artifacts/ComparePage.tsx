@@ -186,20 +186,20 @@ export function ComparePage() {
         </ArtifactTitleLine>
         <ArtifactTools>
           <Segmented value={diff ? "diff" : "frames"} onChange={(v) => setDiff(v === "diff")} aria-label="What's compared">
-            <Segment value="frames" title="Each running in its frame (d)">
+            <Segment value="frames" title="Each running in its frame" keys="d">
               <Icon name="monitor" size={13} /> Frames
             </Segment>
-            <Segment value="diff" title="Their files, the left's against the right's (d)">
+            <Segment value="diff" title="Their files, the left's against the right's" keys="d">
               <Icon name="code" size={13} /> Source diff
             </Segment>
           </Segmented>
           {diff ? (
             !narrow && (
               <Segmented value={split ? "split" : "unified"} onChange={(v) => setSplit(v === "split")} aria-label="The diff">
-                <Segment value="unified" title="Unified (u)">
+                <Segment value="unified" title="Unified" keys="u">
                   <Icon name="unified" size={13} /> Unified
                 </Segment>
-                <Segment value="split" title="Side by side (u)">
+                <Segment value="split" title="Side by side" keys="u">
                   <Icon name="split" size={13} /> Split
                 </Segment>
               </Segmented>
@@ -207,7 +207,7 @@ export function ComparePage() {
           ) : (
             <Segmented value={width} onChange={setWidth} aria-label="Width">
               {widths.map((w) => (
-                <Segment key={w.key} value={w.key} title={`${w.title}, both`}>
+                <Segment key={w.key} value={w.key} title={`${w.title}, both`} keys="w">
                   {w.label}
                 </Segment>
               ))}
@@ -216,22 +216,22 @@ export function ComparePage() {
           {narrow && (
             <Segmented value={shown ? "right" : "left"} onChange={(v) => setShown(v === "right" ? 1 : 0)} aria-label="Which one's shown">
               {([0, 1] as const).map((i) => (
-                <Segment key={i} value={i ? "right" : "left"} title={`${i ? "The right" : "The left"} one (t)`}>
+                <Segment key={i} value={i ? "right" : "left"} title={`${i ? "The right" : "The left"} one`} keys="t">
                   {sideRef(pair[i])}
                 </Segment>
               ))}
             </Segmented>
           )}
           <ArtifactToolsEnd>
-            <Button variant="ghost" size="small" onClick={swap} title="Each where the other was: the diff the other way about">
+            <Button variant="ghost" size="small" onClick={swap} title="Each where the other was: the diff the other way about" keys="S">
               <Icon name="swap" size={13} /> Swap <Keys k="S" />
             </Button>
             {!diff && (
               <>
-                <Button variant="ghost" size="small" onClick={again} title="Run them again">
+                <Button variant="ghost" size="small" onClick={again} title="Run them again" keys="r">
                   <Icon name="rotate" size={13} /> Reload <Keys k="r" />
                 </Button>
-                <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} title={stopped ? "Run them again" : "Unload them: a script that loops stops"}>
+                <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} title={stopped ? "Run them again" : "Unload them: a script that loops stops"} keys="x">
                   <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
                 </Button>
               </>

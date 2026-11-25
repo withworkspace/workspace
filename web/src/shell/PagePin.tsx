@@ -5,5 +5,5 @@ import { PinButton } from "./PinButton";
 // compact is the pin alone, its words in its title: where a head's row
 // has no room for more. end keeps it to the end of the head's line.
 export function PagePin({ r, compact, end }: { r: PageRef; compact?: boolean; end?: boolean }) {
-  return <PinButton r={r} keyHint compact={compact} end={end} />;
+  return <PinButton r={r} keys="." compact={compact} end={end} />;
 }

@@ -6,14 +6,15 @@ import { changed, type Told } from "./tweaks";
 import { hasTweaks } from "./useTweaks";
 
 // TweaksToggle is the button that shows a frame's tray, or hides it:
-// there for a page that declares tweaks.
-export function TweaksToggle({ told, shown, onToggle }: { told: Told | undefined; shown: boolean; onToggle: () => void }) {
+// there for a page that declares tweaks. keys is the key that does the
+// same, where the page binds one.
+export function TweaksToggle({ told, shown, onToggle, keys }: { told: Told | undefined; shown: boolean; onToggle: () => void; keys?: string }) {
   if (!hasTweaks(told)) return null;
   const n = changed(told).length;
   return (
-    <ToggleButton variant="ghost" size="small" pressed={shown} onChange={onToggle} title="What its page says can be changed about it">
+    <ToggleButton variant="ghost" size="small" pressed={shown} onChange={onToggle} title="What its page says can be changed about it" keys={keys}>
       <Icon name="sliders" size={13} /> Tweaks
-      {n ? <Count>{n}</Count> : null} <Keys k="t" />
+      {n ? <Count>{n}</Count> : null} {keys && <Keys k={keys} />}
     </ToggleButton>
   );
 }

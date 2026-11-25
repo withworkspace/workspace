@@ -17,7 +17,7 @@ export function FilesPanes({ now, choices, onPick }: { now: PaneChoice; choices:
       onAction={(k) => onPick(Number(k) as Panes)}
       pageKeys
       trigger={
-        <Button variant="ghost" square className={css.button} aria-label={`Panes: ${now.label}`}>
+        <Button variant="ghost" square className={css.button} aria-label={`Panes: ${now.label}`} title={`Panes: ${now.label}`} keys="p">
           <FilesPanesGlyph n={now.n} />
         </Button>
       }

@@ -6,9 +6,9 @@ import type { StatusInfo } from "../ui/Status";
 // thing worth knowing, and what happened to it, in words and icons.
 
 export const periods: { since: string; label: string; title: string }[] = [
-  { since: "today", label: "Today", title: "Today (1)" },
-  { since: "7d", label: "7 days", title: "The last 7 days (2)" },
-  { since: "", label: "All", title: "As far back as ws has looked (3)" },
+  { since: "today", label: "Today", title: "Today" },
+  { since: "7d", label: "7 days", title: "The last 7 days" },
+  { since: "", label: "All", title: "As far back as ws has looked" },
 ];
 
 export const stateInfo: Record<StrandState, StatusInfo> = {

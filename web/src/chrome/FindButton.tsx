@@ -1,5 +1,6 @@
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
+import { hintOnClick } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
 import css from "./FindButton.module.css";
 
@@ -18,7 +19,7 @@ export function FindButton({
       data-ui=""
       aria-label="Find"
       className={cx(css.find, className)}
-      onClick={onPress}
+      onClick={hintOnClick("mod+K", onPress)}
     >
       <Icon name="search" size={14} />
       <span className={css.words}>Find…</span>

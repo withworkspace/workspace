@@ -24,7 +24,7 @@ export function Dialog({ title, onClose, children, className, wide, bare }: { ti
     el.querySelector<HTMLElement>(":is(textarea, input, button, [tabindex]:not([tabindex='-1'])):not([data-dialog-close], [data-select])")?.focus();
   }, []);
   const close = (
-    <Button variant="ghost" square className={bare ? css.closeCorner : undefined} data-dialog-close="" onClick={onClose} title="Close (esc)" aria-label="Close">
+    <Button variant="ghost" square className={bare ? css.closeCorner : undefined} data-dialog-close="" onClick={onClose} title="Close" keys="esc" aria-label="Close">
       <Icon name="x" size={14} />
     </Button>
   );

@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useContext } from "react";
 import { ToggleButton, ToggleButtonGroup } from "react-aria-components";
 import { cx } from "./cx";
+import { keyHint, pointed, titleWithKeys } from "./keyHint";
 import css from "./Segmented.module.css";
 import { Tooltip } from "./Tooltip";
 
@@ -56,17 +57,27 @@ export function Segmented<T extends string>({
 }
 
 // Segment is one of a Segmented's choices: its value, and what it shows.
-// A title says more about it, in a tooltip.
-export function Segment({ value, disabled: own, title, className, children }: { value: string; disabled?: boolean; title?: string; className?: string; children: ReactNode }) {
+// A title says more about it, in a tooltip. keys is the key that picks
+// it (or goes on to the next, as one key often does for all of them),
+// said and hinted as a Button's is.
+export function Segment({ value, disabled: own, title, keys, className, children }: { value: string; disabled?: boolean; title?: string; keys?: string; className?: string; children: ReactNode }) {
   const all = useContext(Disabled);
   const disabled = own || all;
+  const titled = titleWithKeys(title, keys);
   const segment = (
-    <ToggleButton id={value} data-ui="" isDisabled={own} className={cx(css.segment, className)} render={(props) => <button {...props} title={disabled ? title : undefined} />}>
+    <ToggleButton
+      id={value}
+      data-ui=""
+      isDisabled={own}
+      className={cx(css.segment, className)}
+      onPress={keys ? (e) => pointed(e) && keyHint(keys) : undefined}
+      render={(props) => <button {...props} title={disabled ? titled : undefined} />}
+    >
       {children}
     </ToggleButton>
   );
   // Its title is a Tooltip, as a Button's is; disabled, the browser's.
-  return title && !disabled ? <Tooltip text={title}>{segment}</Tooltip> : segment;
+  return titled && !disabled ? <Tooltip text={titled}>{segment}</Tooltip> : segment;
 }
 
 // segmentedClass and segmentClass are a segmented control's look for

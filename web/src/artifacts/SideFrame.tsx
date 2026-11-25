@@ -48,7 +48,7 @@ export function SideFrame({
   }
   if (stopped) {
     return (
-      <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={onRun}>Run them</Button>}>
+      <ArtifactEmpty icon="stop" title="Stopped" action={<Button onClick={onRun} keys="x">Run them</Button>}>
         The frames are unloaded, and their scripts with them.
       </ArtifactEmpty>
     );

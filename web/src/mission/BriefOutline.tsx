@@ -179,10 +179,10 @@ export function BriefOutline({
             {toRead === 1 ? "A change" : `${toRead} changes`} {briefing ? "since the draft before" : "to what's written"}
           </p>
           <div className="brief-changes-nav">
-            <Button size="small" className="changes-nav-button" type="button" onClick={() => move(-1)} title="The change before (k)" aria-label="The change before">
+            <Button size="small" className="changes-nav-button" type="button" onClick={() => move(-1)} title="The change before" keys="k" aria-label="The change before">
               <Icon name="chevron-up" size={12} /> <Keys k="k" />
             </Button>
-            <Button size="small" className="changes-nav-button" type="button" onClick={() => move(1)} title="The next change (j)" aria-label="The next change">
+            <Button size="small" className="changes-nav-button" type="button" onClick={() => move(1)} title="The next change" keys="j" aria-label="The next change">
               <Icon name="chevron-down" size={12} /> <Keys k="j" />
             </Button>
             <span className="spacer" />

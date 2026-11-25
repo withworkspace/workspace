@@ -1,12 +1,17 @@
 import type { MouseEvent, ReactNode } from "react";
 import { Link } from "react-router";
 import { cx } from "../ui/cx";
+import { keyProps } from "../ui/keyHint";
 import css from "./FootItem.module.css";
 
 type FootItemProps = {
   // What it says when pointed at, and what it's called when it's only an
   // icon.
   title?: string;
+  // The key that does what pressing it does, said after its title and
+  // hinted at (ui/keyHint.ts); more is said after that.
+  keys?: string;
+  more?: string;
   label?: string;
   // What it opens is open (the sidebar's toggle). Leave it unsaid for a
   // part that isn't a toggle.
@@ -26,6 +31,8 @@ type FootItemProps = {
 // what it opens, or a link to a place.
 export function FootItem({
   title,
+  keys,
+  more,
   label,
   on,
   shrink,
@@ -36,11 +43,14 @@ export function FootItem({
   children,
 }: FootItemProps) {
   const cls = cx(css.item, on && css.on, shrink && css.shrink, className);
+  const keyed = keyProps(keys, title, onPress && (() => onPress()));
+  const says = [keyed.title, more].filter(Boolean).join(". ") || undefined;
   if (to !== undefined) {
     return (
       <Link
         to={to}
-        title={title}
+        title={says}
+        onClick={keyed.onClick}
         aria-label={label}
         aria-current={on ? "page" : undefined}
         className={cls}
@@ -54,11 +64,11 @@ export function FootItem({
     <button
       type="button"
       data-ui=""
-      title={title}
+      title={says}
       aria-label={label}
       aria-pressed={on}
       className={cls}
-      onClick={onPress}
+      onClick={keyed.onClick}
       onContextMenu={onContextMenu}
     >
       {children}

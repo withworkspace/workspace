@@ -10,6 +10,7 @@ import { Copyable } from "../../ui/Copyable";
 import { Empty } from "../../ui/Empty";
 import { ErrorCard } from "../../ui/ErrorCard";
 import { Icon } from "../../ui/Icon";
+import { keyProps } from "../../ui/keyHint";
 import { Keys } from "../../ui/Keys";
 import { Loading } from "../../ui/Loading";
 import { Segment, Segmented } from "../../ui/Segmented";
@@ -120,21 +121,21 @@ export function FilePane({
           <>
             {md && text && (
               <Segmented value={preview ? "rendered" : "text"} onChange={(v) => setPreview(() => v === "rendered")} aria-label="Markdown">
-                <Segment value="rendered" title="Rendered (m)">
+                <Segment value="rendered" title="Rendered" keys="m">
                   Rendered
                 </Segment>
-                <Segment value="text" title="As text (m)">
+                <Segment value="text" title="As text" keys="m">
                   Text
                 </Segment>
               </Segmented>
             )}
             {docTo && text && !file.deleted && (
-              <Link to={docTo} className={buttonClass({ size: "small" })} title="Edit it as a page: cells, questions and passes, and saved back to the repo when you say (⏎)">
+              <Link to={docTo} className={buttonClass({ size: "small" })} {...keyProps("⏎", "Edit it as a page: cells, questions and passes, and saved back to the repo when you say")}>
                 <Icon name="pencil" size={12} /> Edit as a page <Keys k="⏎" />
               </Link>
             )}
             {reviewTo && entry?.status && entry.status !== "added" && (
-              <Link to={reviewTo} className={buttonClass({ size: "small" })} title="Review the capsule's changes (v)">
+              <Link to={reviewTo} className={buttonClass({ size: "small" })} {...keyProps("v", "Review the capsule's changes")}>
                 <Icon name="eye" size={12} /> Changes
               </Link>
             )}
