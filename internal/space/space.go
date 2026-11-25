@@ -88,7 +88,7 @@ func init() {
 		-- again, to say it.
 		ALTER TABLE space_things ADD COLUMN tree TEXT NOT NULL DEFAULT '';
 		DELETE FROM space_heads;
-	`))
+	`), standingStep)
 }
 
 // ThingKind is what a space's document is in the graph.
@@ -107,7 +107,7 @@ func graph(tx *store.Tx, repo string, e entry, title string, r read, c change) e
 	o := origin(repo, e.path)
 	me, _ := store.KeyOf(ref.Ref{Kind: ref.File, Repo: repo, Path: e.path})
 	at, _ := time.Parse(time.RFC3339, c.at)
-	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: at}); err != nil {
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: at, Stands: store.Stands{Standing: store.Lasting}}); err != nil {
 		return err
 	}
 	for _, n := range r.names {
@@ -581,3 +581,9 @@ func citations(ctx context.Context, db *store.DB, q string, args ...any) ([]Cita
 	})
 	return out, err
 }
+
+// standingStep is the part's seventh step: a space's document, written
+// before things had a standing, is kept true by being kept.
+var standingStep = store.SQL(`
+	UPDATE things SET standing = 'lasting' WHERE origin LIKE 'space:%' AND kind = 'document' AND standing = '';
+`)

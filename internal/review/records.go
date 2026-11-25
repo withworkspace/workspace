@@ -40,7 +40,7 @@ func init() {
 			scope TEXT NOT NULL, capsule TEXT NOT NULL, path TEXT NOT NULL, blob TEXT NOT NULL,
 			PRIMARY KEY (scope, capsule, path)
 		) WITHOUT ROWID;
-	`), store.Retired, sayWords)
+	`), store.Retired, sayWords, standingStep)
 }
 
 // scope is what the reviews are kept under: the mission, or the pull
@@ -207,7 +207,7 @@ func (s Store) graph(tx *store.Tx, r *Review) error {
 		state = r.Verdict
 	}
 	me := s.key(r.ID)
-	if err := tx.Thing(o, store.Thing{Key: me, Kind: "review", Title: "Review " + r.ID + " of " + r.Capsule, State: state, Changed: at}); err != nil {
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: "review", Title: "Review " + r.ID + " of " + r.Capsule, State: state, Changed: at, Stands: store.Stands{Standing: store.Passing}}); err != nil {
 		return err
 	}
 	if err := tx.Words(o, store.Place{Thing: me, Kind: "review", Text: strings.TrimSpace(r.Summary), Said: at}); err != nil {
@@ -224,7 +224,13 @@ func (s Store) graph(tx *store.Tx, r *Review) error {
 		if len([]rune(title)) > 100 {
 			title = string([]rune(title)[:100]) + "…"
 		}
-		if err := tx.Thing(o, store.Thing{Key: k, Kind: "comment", Title: title, State: n.Status, Changed: at}); err != nil {
+		// A comment is of its moment while it's open, and settled once it's
+		// answered (when isn't kept: it ages from what was last said).
+		cs := store.Stands{Standing: store.Passing}
+		if n.Status != "" && n.Status != Open {
+			cs.Standing = store.Settled
+		}
+		if err := tx.Thing(o, store.Thing{Key: k, Kind: "comment", Title: title, State: n.Status, Changed: at, Stands: cs}); err != nil {
 			return err
 		}
 		if err := tx.Words(o, store.Place{Thing: k, Kind: "comment", Text: said(n), Said: at}); err != nil {
@@ -354,3 +360,11 @@ func (s Store) files(capsule, path string) []store.Key {
 		{Name: ref.Ref{Kind: ref.File, Repo: repo, Worktree: ref.Ground, Path: path}.Name()},
 	}
 }
+
+// standingStep is the part's fourth step: a review written before things
+// had a standing is of its moment, as is a comment still open; one that's
+// answered is settled.
+var standingStep = store.SQL(`
+	UPDATE things SET standing = CASE WHEN kind = 'comment' AND state NOT IN ('', 'open') THEN 'settled' ELSE 'passing' END
+		WHERE origin LIKE 'review:%' AND standing = '';
+`)

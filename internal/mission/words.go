@@ -201,6 +201,40 @@ func standing(state string) string {
 	return state
 }
 
+// stands is how a mission stands in words every kind shares: in force
+// while it's in play (or parked), settled once it's ended, since it was
+// (gone, if it was dropped). What's said in it stands as it does, as
+// what's found is weighed (store.Stands.Under).
+func stands(m *Mission, ended time.Time) store.Stands {
+	if m.State != Archived {
+		return store.Stands{Standing: store.InForce}
+	}
+	if m.Ending != nil && m.Ending.Ending == EndDropped {
+		return store.Stands{Standing: store.Gone, Since: ended}
+	}
+	return store.Stands{Standing: store.Settled, Since: ended}
+}
+
+// decisionStands is how a decision stands: in force while it's current;
+// gone once it's withdrawn, or superseded, since then (when the decision
+// that superseded it was made).
+func decisionStands(d Decision, all []Decision) store.Stands {
+	switch {
+	case d.State == DecisionWithdrawn && d.Withdrawn != nil:
+		return store.Stands{Standing: store.Gone, Since: *d.Withdrawn}
+	case d.State == DecisionSuperseded:
+		for _, by := range all {
+			if by.ID == d.SupersededBy {
+				return store.Stands{Standing: store.Gone, Since: by.At}
+			}
+		}
+		return store.Stands{Standing: store.Gone}
+	case d.State == DecisionWithdrawn:
+		return store.Stands{Standing: store.Gone}
+	}
+	return store.Stands{Standing: store.InForce}
+}
+
 // BriefRef is what a mission's brief is called in it: its thing in the
 // graph, in the mission's scope.
 const BriefRef = "brief"
@@ -212,7 +246,7 @@ const BriefRef = "brief"
 func fileThing(slug, title, state string, f fileStamp, text []byte) store.Thing {
 	changed, _ := time.Parse(store.Stamp, f.mod)
 	if f.rel == briefFile {
-		return store.Thing{Key: store.Key{Scope: slug, Name: BriefRef}, Kind: placeBrief, Title: title, State: state, Changed: changed}
+		return store.Thing{Key: store.Key{Scope: slug, Name: BriefRef}, Kind: placeBrief, Title: title, State: state, Changed: changed, Stands: store.Stands{Standing: store.InForce}}
 	}
 	inFiles := strings.TrimPrefix(f.rel, MissionFilesDir+"/")
 	kind := placeFile
@@ -222,7 +256,9 @@ func fileThing(slug, title, state string, f fileStamp, text []byte) store.Thing 
 	if title = words.Title(text); title == "" {
 		title = path.Base(inFiles)
 	}
-	return store.Thing{Key: store.Key{Scope: slug, Name: "mission:" + inFiles}, Kind: kind, Title: title, State: state, Changed: changed}
+	// It stands in force, as its mission does: once that's ended, what's
+	// found in it is weighed as the mission (store.Stands.Under).
+	return store.Thing{Key: store.Key{Scope: slug, Name: "mission:" + inFiles}, Kind: kind, Title: title, State: state, Changed: changed, Stands: store.Stands{Standing: store.InForce}}
 }
 
 // placesOf is what a file of a mission says: its sections, each a place.

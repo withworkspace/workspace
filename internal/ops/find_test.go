@@ -16,6 +16,7 @@ import (
 	"github.com/withworkspace/workspace/internal/config"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/review"
+	"github.com/withworkspace/workspace/internal/store"
 	"github.com/withworkspace/workspace/internal/store/storetest"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -82,8 +83,9 @@ func TestFind_Ranking(t *testing.T) {
 	if err := json.Unmarshal(data, &file); err != nil {
 		t.Fatal(err)
 	}
+	now := recordsNow(t, w)
 	for _, c := range file.Cases {
-		found, _, err := w.Find(context.Background(), FindQuery{Words: c.Q, Limit: 5})
+		found, _, err := w.Find(context.Background(), FindQuery{Words: c.Q, Limit: 5, Now: now})
 		if err != nil {
 			t.Errorf("%q: %v", c.Q, err)
 			continue
@@ -288,4 +290,26 @@ func sameJSON(a, b any) bool {
 	x, _ := json.Marshal(a)
 	y, _ := json.Marshal(b)
 	return string(x) == string(y)
+}
+
+// recordsNow is when the records were made, as what's found ages: when a
+// mission's record last changed (not a word in its files: they're copied
+// here, and read as said now), so the cases rank as they did then.
+func recordsNow(t *testing.T, w *Workspace) time.Time {
+	t.Helper()
+	db, err := w.Records()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var said string
+	if err := db.Read(context.Background(), func(tx *store.Tx) error {
+		return tx.QueryRow(`SELECT max(changed) FROM missions`).Scan(&said)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	now, err := time.Parse(store.Stamp, said)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return now
 }

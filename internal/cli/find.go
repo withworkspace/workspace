@@ -5,10 +5,12 @@ import (
 	"io"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/withworkspace/workspace/internal/ops"
 	"github.com/withworkspace/workspace/internal/space"
+	"github.com/withworkspace/workspace/internal/store"
 	"github.com/withworkspace/workspace/internal/ui"
 	"github.com/withworkspace/workspace/internal/words"
 )
@@ -42,10 +44,14 @@ records.
 
 Words are matched whole and by their stems (cache finds caching and
 caches); every word counts for what it's worth, so a question can be asked
-in a sentence. A thing whose title holds the words comes first; what's of
-an archived mission, or a decision since superseded, a little below what's
-in play; a withdrawn decision not at all, unless --withdrawn. For an exact
-string in code, ws rg.`,
+in a sentence. A thing whose title holds the words comes first. What's
+still so (a decision that stands, a mission in play, a page) is weighed as
+it is; what was of its moment (a conversation's turns, a review's
+comments) less as it ages, and what's settled (a mission ended, a
+conversation resolved) less from when it settled, down to half; what's no
+longer so (a decision superseded, a mission dropped) lower still. Each
+says how it stands, and since when. A withdrawn decision isn't found at
+all, unless --withdrawn. For an exact string in code, ws rg.`,
 		Args:              cobra.MinimumNArgs(1),
 		PersistentPreRun:  func(cmd *cobra.Command, args []string) { cmd.SilenceUsage = true },
 		ValidArgsFunction: cobra.NoFileCompletions,
@@ -144,8 +150,8 @@ func writeFound(out io.Writer, format string, found []ops.Found, more, limit int
 		if f.Thing.State != "" && f.Place != "brief" {
 			about = append(about, f.Thing.State)
 		}
-		if f.Ended {
-			about = append(about, "archived")
+		if st := standsSaid(f, time.Now()); st != "" {
+			about = append(about, st)
 		}
 		if !f.Every {
 			about = append(about, "some of the words")
@@ -204,4 +210,59 @@ func writeFoundDocs(out io.Writer, format string, docs []ops.DocHit, more int, t
 	if more > 0 {
 		fmt.Fprintln(out, docsStyle(format, ui.Dim).Render(fmt.Sprintf("  %d more: ws documents search %s", more, typed)))
 	}
+}
+
+// standsSaid is how a thing found stands, and since when, in a few words
+// (archived 3 weeks ago, no longer so since yesterday, said 4 days ago):
+// what's said of something that's settled, or no longer so, isn't to be
+// taken as how things are.
+func standsSaid(f ops.Found, now time.Time) string {
+	said := ""
+	if !f.Said.IsZero() {
+		said = "said " + agoSaid(now, f.Said)
+	}
+	since := f.Stands.Since
+	var how string
+	switch {
+	case f.Stands.Standing == store.Gone:
+		how = "no longer so"
+	case f.Ended:
+		how = "archived"
+	case f.Stands.Standing == store.Settled:
+		how = "settled"
+	default:
+		return said
+	}
+	if !since.IsZero() {
+		how += " " + agoSaid(now, since)
+		if f.Stands.Standing == store.Gone {
+			how = "no longer so, since " + agoSaid(now, since)
+		}
+		return how
+	}
+	if said != "" {
+		return how + ", " + said
+	}
+	return how
+}
+
+// agoSaid is how long before now t was, in days and weeks as they're said:
+// today, yesterday, 4 days ago, 3 weeks ago, 5 months ago.
+func agoSaid(now, t time.Time) string {
+	y1, m1, d1 := now.Date()
+	y2, m2, d2 := t.In(now.Location()).Date()
+	days := int(time.Date(y1, m1, d1, 0, 0, 0, 0, time.UTC).Sub(time.Date(y2, m2, d2, 0, 0, 0, 0, time.UTC)).Hours() / 24)
+	switch {
+	case days <= 0:
+		return "today"
+	case days == 1:
+		return "yesterday"
+	case days < 14:
+		return fmt.Sprintf("%d days ago", days)
+	case days < 60:
+		return fmt.Sprintf("%d weeks ago", days/7)
+	case days < 730:
+		return fmt.Sprintf("%d months ago", days/30)
+	}
+	return fmt.Sprintf("%d years ago", days/365)
 }
