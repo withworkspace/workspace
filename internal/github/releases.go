@@ -12,8 +12,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	gh "github.com/cli/go-gh/v2"
 )
 
 // Releases reads a repo's releases and its source, for installing what's
@@ -31,7 +29,7 @@ var (
 // loggedIn says whether gh is here and logged in.
 func loggedIn() bool {
 	ghOnce.Do(func() {
-		_, _, err := gh.Exec("auth", "status")
+		_, _, err := ghExec("auth", "status")
 		ghReady = err == nil
 	})
 	return ghReady
@@ -51,7 +49,7 @@ func (Releases) Release(repo, tag string) (name string, files []string, ok bool,
 	if tag != "" {
 		args = append(args, tag)
 	}
-	stdOut, stdErr, err := gh.Exec(append(args, "--repo", repo, "--json", "tagName,assets")...)
+	stdOut, stdErr, err := ghExec(append(args, "--repo", repo, "--json", "tagName,assets")...)
 	if err != nil {
 		if strings.Contains(stdErr.String(), "release not found") {
 			return "", nil, false, nil
@@ -132,7 +130,7 @@ func (Releases) Download(repo, tag string, files []string, dir string) error {
 		for _, f := range files {
 			args = append(args, "--pattern", f)
 		}
-		if stdOut, stdErr, err := gh.Exec(args...); err != nil {
+		if stdOut, stdErr, err := ghExec(args...); err != nil {
 			return fmt.Errorf("downloading from %s's release %s: %s", repo, tag, ghError(stdOut.Bytes(), stdErr.String(), err))
 		}
 		return nil
@@ -175,7 +173,7 @@ func (Releases) Clone(repo, ref, dir string) error {
 	}
 	if loggedIn() {
 		args := append([]string{"repo", "clone", repo, dir, "--"}, depth...)
-		if stdOut, stdErr, err := gh.Exec(args...); err != nil {
+		if stdOut, stdErr, err := ghExec(args...); err != nil {
 			return fmt.Errorf("fetching %s's source: %s", repo, ghError(stdOut.Bytes(), stdErr.String(), err))
 		}
 		return nil

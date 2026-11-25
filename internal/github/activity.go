@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	gh "github.com/cli/go-gh/v2"
 )
 
 // What the Team page asks of GitHub: a repo's pull requests that have
@@ -80,7 +78,7 @@ func ChangedPRs(org, repo string, since time.Time) ([]PRActivity, error) {
 		if after != "" {
 			args = append(args, "-f", "after="+after)
 		}
-		stdOut, stdErr, err := gh.Exec(args...)
+		stdOut, stdErr, err := ghExec(args...)
 		if err != nil {
 			return nil, fmt.Errorf("changed PRs of %s: %s", repoSlug(org, repo), ghError(stdOut.Bytes(), stdErr.String(), err))
 		}

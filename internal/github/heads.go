@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	gh "github.com/cli/go-gh/v2"
-
 	"github.com/withworkspace/workspace/internal/ref"
 )
 
@@ -42,7 +40,7 @@ func Heads(repos []ref.Remote, branch string) (map[ref.Remote]string, error) {
 	out := map[ref.Remote]string{}
 	for start := 0; start < len(repos); start += headsPerQuery {
 		chunk := repos[start:min(start+headsPerQuery, len(repos))]
-		stdOut, stdErr, err := gh.Exec("api", "graphql", "-f", "query="+headsQuery(chunk, branch))
+		stdOut, stdErr, err := ghExec("api", "graphql", "-f", "query="+headsQuery(chunk, branch))
 		heads, perr := parseHeads(stdOut.Bytes(), chunk)
 		if perr != nil {
 			if err != nil {

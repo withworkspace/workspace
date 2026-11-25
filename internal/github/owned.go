@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-
-	gh "github.com/cli/go-gh/v2"
 )
 
 // Owner is someone repos can be added from: you, or an org you're in.
@@ -50,7 +48,7 @@ func Owners() ([]Owner, error) {
 	if err != nil {
 		return nil, err
 	}
-	stdOut, stdErr, err := gh.Exec("api", "user/orgs", "--paginate", "-q", ".[].login")
+	stdOut, stdErr, err := ghExec("api", "user/orgs", "--paginate", "-q", ".[].login")
 	if err != nil {
 		return nil, fmt.Errorf("gh api user/orgs: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
@@ -89,7 +87,7 @@ func ReposOf(owner string) ([]OwnedRepo, error) {
 		if after != "" {
 			args = append(args, "-F", "after="+after)
 		}
-		stdOut, stdErr, err := gh.Exec(args...)
+		stdOut, stdErr, err := ghExec(args...)
 		got, next, perr := parseOwned(stdOut.Bytes(), owner)
 		if err != nil || perr != nil {
 			if err == nil {

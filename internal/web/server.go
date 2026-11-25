@@ -36,6 +36,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/cost"
 	"github.com/withworkspace/workspace/internal/find"
 	"github.com/withworkspace/workspace/internal/nav"
 	"github.com/withworkspace/workspace/internal/ops"
@@ -635,7 +636,8 @@ func (s *Server) Handler() http.Handler {
 		jsonError(w, http.StatusNotFound, "no such API: "+r.Method+" "+r.URL.Path)
 	})
 	mux.HandleFunc("/", s.app)
-	return s.guard(s.forgetsOnWrite(mux))
+	cost.Start(s.Root)
+	return s.guard(s.forgetsOnWrite(cost.Wrap(mux)))
 }
 
 // forgetsOnWrite has the workspace's view built afresh after a write a

@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	gh "github.com/cli/go-gh/v2"
 )
 
 // PR represents a pull request associated with a branch.
@@ -82,7 +80,7 @@ func repoSlug(org, repo string) string {
 // PRsForRepo returns open PRs for a given org/repo.
 func PRsForRepo(org, repo string) ([]PR, error) {
 	fullRepo := repoSlug(org, repo)
-	stdOut, _, err := gh.Exec(
+	stdOut, _, err := ghExec(
 		"pr", "list",
 		"--repo", fullRepo,
 		"--state", "open",
@@ -113,7 +111,7 @@ func PRsForRepo(org, repo string) ([]PR, error) {
 // MergedPRsForRepo returns recently merged PRs for a given org/repo.
 func MergedPRsForRepo(org, repo string) ([]PR, error) {
 	fullRepo := repoSlug(org, repo)
-	stdOut, _, err := gh.Exec(
+	stdOut, _, err := ghExec(
 		"pr", "list",
 		"--repo", fullRepo,
 		"--state", "merged",
@@ -146,7 +144,7 @@ func MergedPRsForRepo(org, repo string) ([]PR, error) {
 // WorkflowRuns returns recent workflow runs for a repo/branch.
 func WorkflowRuns(org, repo, branch string, limit int) ([]WorkflowRun, error) {
 	fullRepo := repoSlug(org, repo)
-	stdOut, _, err := gh.Exec(
+	stdOut, _, err := ghExec(
 		"run", "list",
 		"--repo", fullRepo,
 		"--branch", branch,
@@ -167,7 +165,7 @@ func WorkflowRuns(org, repo, branch string, limit int) ([]WorkflowRun, error) {
 // PRFromNumber fetches a specific PR by number.
 func PRFromNumber(org, repo string, number int) (*PR, error) {
 	fullRepo := repoSlug(org, repo)
-	stdOut, _, err := gh.Exec(
+	stdOut, _, err := ghExec(
 		"pr", "view",
 		fmt.Sprintf("%d", number),
 		"--repo", fullRepo,
@@ -198,7 +196,7 @@ type PRDetailResult struct {
 // PRDetail fetches the body, check runs, and recent commits for a PR.
 func PRDetail(org, repo string, number int) (PRDetailResult, error) {
 	fullRepo := repoSlug(org, repo)
-	stdOut, _, err := gh.Exec(
+	stdOut, _, err := ghExec(
 		"pr", "view",
 		fmt.Sprintf("%d", number),
 		"--repo", fullRepo,

@@ -5,8 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	gh "github.com/cli/go-gh/v2"
 )
 
 // NewPR is a pull request to open: from a branch, onto a base, with what it
@@ -23,7 +21,7 @@ func CreatePR(org, repo string, n NewPR) (*PR, error) {
 	if n.Draft {
 		args = append(args, "--draft")
 	}
-	stdOut, stdErr, err := gh.Exec(args...)
+	stdOut, stdErr, err := ghExec(args...)
 	if err != nil {
 		return nil, fmt.Errorf("opening a pull request on GitHub: %s", ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
@@ -93,7 +91,7 @@ func (s *Stub) CreatePR(org, repo string, n NewPR) (*PR, error) {
 
 // MarkReady marks a draft pull request ready for review, with gh pr ready.
 func MarkReady(org, repo string, number int) error {
-	stdOut, stdErr, err := gh.Exec("pr", "ready", strconv.Itoa(number), "--repo", repoSlug(org, repo))
+	stdOut, stdErr, err := ghExec("pr", "ready", strconv.Itoa(number), "--repo", repoSlug(org, repo))
 	if err != nil {
 		return fmt.Errorf("marking %s#%d ready on GitHub: %s", repo, number, ghError(stdOut.Bytes(), stdErr.String(), err))
 	}
