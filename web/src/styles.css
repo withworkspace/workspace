@@ -799,13 +799,8 @@ main {
 }
 
 /* The files are under Changes. */
-.files-changes ~ .files-common,
-.files-changes ~ .file-group .file-group-head {
+.files-changes ~ .files-common {
   margin-left: 24px;
-}
-
-.files-changes ~ .file-group > ul {
-  padding-left: 16px;
 }
 
 /* How each pass stands, a mark each, beside Passes. */
@@ -830,23 +825,6 @@ main {
   color: var(--accent);
 }
 
-/* A folder, over its files. */
-.file-group-head {
-  margin: 8px 12px 2px;
-  font: var(--text-xs) var(--mono);
-  color: var(--dim);
-}
-
-.file-group-head.skim {
-  font-family: var(--font);
-  font-weight: 600;
-  margin-top: 14px;
-}
-
-.file-group li {
-  padding-left: 12px;
-}
-
 .files li {
   display: flex;
   align-items: center;
@@ -863,10 +841,6 @@ main {
 
 .files li.here {
   background: var(--selected);
-}
-
-.files li.viewed .fname {
-  color: var(--dim);
 }
 
 /* A file's name gives way only when it alone is wider than the list;
@@ -886,14 +860,6 @@ main {
   font-weight: 500;
 }
 
-/* Its folder, where its group isn't one: it takes what room is left. */
-.files .fdir {
-  flex: 1 1 0;
-  min-width: 0;
-  font: var(--text-xs) var(--mono);
-  color: var(--dim);
-}
-
 /* Something's new in a view since you looked (what's been said). */
 .files .fnews {
   width: 7px;
@@ -911,19 +877,6 @@ main {
   font-variant-numeric: tabular-nums;
 }
 
-.files .check {
-  display: inline-grid;
-  place-items: center;
-  width: 14px;
-  color: var(--green);
-}
-
-.files .note-count {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-
 /* A file's status: a small mark in its colour (modified, added, removed,
    renamed). */
 .files .fstatus {
@@ -934,13 +887,6 @@ main {
   border-radius: 4px;
   background: color-mix(in srgb, currentColor 14%, transparent);
   flex: none;
-}
-
-.fdot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
 }
 
 .fstatus {
@@ -1213,12 +1159,6 @@ main {
 
 .submit-button {
   white-space: nowrap;
-}
-
-.note-count {
-  font: 600 var(--text-xs) var(--font);
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
 }
 
 /* A comment's kind: a soft chip in its colour. */
@@ -4805,10 +4745,6 @@ button.settled-marker-more:hover {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-}
-
-.files .found-count {
-  color: var(--accent);
 }
 
 /* A review's passes, in the overview. */

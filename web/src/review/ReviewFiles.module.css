@@ -1,0 +1,55 @@
+/* A review's files, down the side (ReviewFiles.tsx). The list they're in
+   scrolls, not the tree: it's as tall as its rows, under Changes. */
+
+.files {
+  height: auto;
+  padding: 2px 4px 0 16px;
+  overflow: visible;
+}
+
+/* Said at a row's end, quietly: a group's to skim. */
+.said {
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+/* A file's folder, where its group isn't one. */
+.dir {
+  max-width: 14ch;
+  overflow: hidden;
+  font: var(--text-xs) var(--mono);
+  color: var(--dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.found {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+  font: 600 var(--text-xs) var(--font);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.counts {
+  display: flex;
+  gap: 4px;
+  font: var(--text-xs) var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.plus {
+  color: var(--green);
+}
+
+.minus {
+  color: var(--red);
+}
+
+/* The tick's place is kept, so what's before it lines up down the list. */
+.viewed {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+}
