@@ -1,11 +1,16 @@
 package ops
 
 import (
+	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/notification"
+	"github.com/withworkspace/workspace/internal/plugin"
 )
 
 // Where a source is sent is applied as the feed is read: one sent nowhere
@@ -53,5 +58,91 @@ func TestNotificationsAreYoursToRead(t *testing.T) {
 	}
 	if done, err := w.DismissNotifications([]int64{1}, AsYou); err != nil || done.Count != 1 || done.String() != "Dismissed 1 notification." {
 		t.Errorf("dismissed: %+v, %v", done, err)
+	}
+}
+
+// A plugin tells of what it saw as one of the kinds it registered: kept
+// once for its key, routed kind by kind (where it said until you say),
+// opening the thing it's about, and its kinds yours to set in Settings.
+func TestAPluginsNotifications(t *testing.T) {
+	w, _ := fixture(t, "")
+	root := w.Root()
+	if err := os.WriteFile(filepath.Join(root, "ws.toml"), []byte("[workspace]\norg = \"acme\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	installed(t, root, "jira", jiraIssue)
+	registered(t, root, "jira", plugin.Registration{Refs: []protocol.Ref{jiraIssue}, Description: "A Jira board", Notifies: []protocol.Notifies{
+		{ID: "assigned", Title: "Given to you", About: "Someone gives you an issue."},
+		{ID: "new", Title: "New on the board", Default: protocol.RouteOff},
+	}})
+	ask := func(in protocol.NotificationAddParams) (protocol.NotificationAdded, error) {
+		params, _ := json.Marshal(in)
+		got, err := w.AnswerPlugin(context.Background(), "jira", protocol.MethodNotificationAdd, params)
+		if err != nil {
+			return protocol.NotificationAdded{}, err
+		}
+		return got.(protocol.NotificationAdded), nil
+	}
+
+	if got, err := ask(protocol.NotificationAddParams{Kind: "assigned", Text: "Ana gave you RAM-1", Refs: []string{"RAM-1"}, Key: "k1"}); err != nil || !got.Added || got.Muted || got.N != 1 {
+		t.Fatalf("the first: %+v, %v", got, err)
+	}
+	if got, _ := ask(protocol.NotificationAddParams{Kind: "assigned", Text: "Ana gave you RAM-1", Key: "k1"}); got.Added || got.N != 1 {
+		t.Errorf("the same key again: %+v", got)
+	}
+	if got, _ := ask(protocol.NotificationAddParams{Kind: "new", Text: "RAM-2 is new", Refs: []string{"RAM-2"}}); !got.Added || !got.Muted {
+		t.Errorf("a kind the plugin sends nowhere by default is kept, muted: %+v", got)
+	}
+	for _, bad := range []protocol.NotificationAddParams{{Kind: "moved", Text: "x"}, {Kind: "assigned", Text: " "}} {
+		if _, err := ask(bad); err == nil {
+			t.Errorf("%+v was kept", bad)
+		}
+	}
+
+	feed, _ := w.Notifications(false, 0)
+	if len(feed.Notifications) != 1 || feed.Unread != 1 {
+		t.Fatalf("only the kind not off: %+v", feed)
+	}
+	if n := feed.Notifications[0]; n.Source != "plugin:jira" || n.Kind != "jira:assigned" || n.Opens != "/x/jira/issue/RAM-1" || n.Desktop {
+		t.Errorf("as listed: %+v", n)
+	}
+
+	// Yours: new to the feed, assigned to the desktop as well.
+	if _, err := w.SetSettings([]SettingChange{
+		{Section: "notifications.plugin.jira", Key: "new", Value: "feed"},
+		{Section: "notifications.plugin.jira", Key: "assigned", Value: "desktop"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	feed, _ = w.Notifications(false, 0)
+	if len(feed.Notifications) != 2 || !feed.Notifications[1].Desktop || feed.Notifications[0].Desktop {
+		t.Errorf("as you route them: %+v", feed)
+	}
+	data, _ := os.ReadFile(filepath.Join(root, "ws.local.toml"))
+	if !strings.Contains(string(data), "[notifications.plugin.jira]") {
+		t.Errorf("ws.local.toml:\n%s", data)
+	}
+
+	info, err := w.Settings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var group *SettingsGroup
+	for i := range info.Groups {
+		if info.Groups[i].ID == "notifications.plugin.jira" {
+			group = &info.Groups[i]
+		}
+	}
+	if group == nil || group.Title != "jira" || len(group.Settings) != 2 || group.About != "A Jira board." {
+		t.Fatalf("jira's group: %+v", group)
+	}
+	if s := group.Settings[1]; s.Label != "New on the board" || s.Default != "off" || s.Value != "feed" || s.Source != "yours" {
+		t.Errorf("new, set by you: %+v", s)
+	}
+	if _, err := w.SetSettings([]SettingChange{{Section: "notifications.plugin.jira", Key: "new", Clear: true}}); err != nil {
+		t.Fatal(err)
+	}
+	if feed, _ = w.Notifications(false, 0); len(feed.Notifications) != 1 {
+		t.Errorf("cleared, new is off again, as the plugin said: %+v", feed)
 	}
 }

@@ -64,7 +64,7 @@ export const words = {
   },
   notify: {
     label: "Desktop notifications",
-    about: "A notification for each new thing that needs you, and for what happened that you've sent to the desktop below, while this tab is in the background. The tab's icon lights either way.",
+    about: "A notification for each new thing that needs you, and for what happened that you've asked to be told of below, while this tab is in the background. With it in front, what happened is told in the page instead. The tab's icon lights either way.",
   },
   daemon: {
     label: "The daemon",
@@ -78,6 +78,9 @@ export interface Block {
   id: string;
   title?: string;
   about?: string;
+  // under is what a run of blocks are together (Notifications' blocks,
+  // one per plugin, under Plugins): said once, above the first.
+  under?: Under;
   rows: Row[];
   // roles: the block is the roles' table, each role's agent and model in
   // one line: its rows are those settings, for Find.
@@ -93,6 +96,21 @@ export interface Section {
   blocks: Block[];
 }
 
+export interface Under {
+  title: string;
+  about: string;
+}
+
+// fromPlugins heads where each plugin's kinds of notification are sent.
+export const fromPlugins: Under = {
+  title: "Plugins",
+  about: "What each plugin tells you of, kind by kind, and where each kind is sent. A plugin's kinds are listed once it has started.",
+};
+
+// pluginNotifyGroup is the group of where a plugin's kinds of
+// notification are sent (notifications.plugin.jira), or the plugin's name.
+const pluginNotifyGroup = (id: string): string | undefined => (id.startsWith("notifications.plugin.") ? id.slice("notifications.plugin.".length) : undefined);
+
 const agent = (s: Setting) => s.kind === "harness" || s.kind === "model";
 
 // sectionsOf is the page's sections, holding info's settings (none, until
@@ -104,6 +122,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   const keyboard = section("keyboard", "Keyboard", "keyboard", "The key you send with, and being told of the keys you could have pressed.");
   const notifications = section("notifications", "Notifications", "bell", "What ws tells you of outside the page, and where what happened is sent.");
   let feed: Block | undefined;
+  const fromEach: Block[] = [];
   const agents = section("agents", "Agents", "terminal", "The agent CLI each role runs in, and the model it's given.", "How work goes");
   const missions = section("missions", "Missions", "flag", "How a mission is briefed and moved on, and what ws holds on every one.");
   const team = section("team", "Team page", "user", "What the Team page says of each change, and how far back it looks.");
@@ -127,6 +146,11 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   agents.blocks.push(roles);
 
   for (const g of groups) {
+    const plugin = pluginNotifyGroup(g.id);
+    if (plugin) {
+      fromEach.push({ id: `notify-${plugin}`, title: g.title, about: g.about, under: fromPlugins, rows: rows(g.settings, `Notifications from ${g.title}`) });
+      continue;
+    }
     if (g.runs) {
       roles.rows.push(...rows(g.settings.filter(agent), g.title));
       const rest = g.settings.filter((s) => !agent(s));
@@ -166,6 +190,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   keyboard.blocks.push({ id: "send", rows: [{ kind: "sendKey" }, { kind: "keyHints" }] });
   notifications.blocks.push({ id: "notify", rows: [{ kind: "notify" }] });
   if (feed) notifications.blocks.push(feed);
+  notifications.blocks.push(...fromEach);
   about.blocks.push({ id: "daemon", title: "Daemon", rows: [{ kind: "daemon" }] });
   return [appearance, keyboard, notifications, agents, missions, team, repos, runs, ...others, process, plugins, yours, about];
 }

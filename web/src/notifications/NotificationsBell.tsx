@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { dismissNotifications, getNotifications, type Notification, type Notifications, readAllNotifications, readNotifications } from "../api";
 import { FootNotifications } from "../chrome/FootNotifications";
+import { useChromeStore } from "../chrome/store";
 import { useLoaded } from "../load";
 import { HeldPopover } from "../ui/Popover";
 import { toast } from "../ui/toast";
@@ -13,7 +14,9 @@ import { NotificationsPanel } from "./NotificationsPanel";
 // and says what you do with each notification. How many are unread is the
 // workspace's view's, so the bell is marked without the feed being read.
 export function NotificationsBell() {
-  const [open, setOpen] = useState(false);
+  // Open here, or from a toast that told of what's new (Show).
+  const open = useChromeStore((s) => s.bell);
+  const setOpen = useChromeStore((s) => s.setBell);
   const at = useRef<HTMLSpanElement>(null);
   const count = useWorkspace((w) => w.notifications);
   const feed = useLoaded(open ? getNotifications : null, [open, count.latest, count.unread], { keep: true });

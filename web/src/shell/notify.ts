@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { announceNeeds, announceNotifications, getNotifications } from "../api";
-import { shownAs, useAccent } from "../ui/accent";
+import { announceNeeds, announceNotifications, getNotifications, readNotifications } from "../api";
+import { useChromeStore } from "../chrome/store";
+import { tellingOf, toTell } from "../notifications/telling";
 import { setPref, usePrefs } from "../prefs";
+import { shownAs, useAccent } from "../ui/accent";
+import { toast } from "../ui/toast";
 
 // What needs you, told outside the page: a dot on the tab's icon whenever
 // something does, and (if you turn them on) a desktop notification for
@@ -130,12 +133,15 @@ export function useNotifications(waiting: Waiting[], open: (path: string) => voi
   return useMemo(() => ({ supported, on, toggle }), [on, toggle]);
 }
 
-// useFeedNotifications tells the desktop of what happened (the feed's
-// notifications), for the sources you've sent there ([notifications] in
-// ws.local.toml), while the page is hidden and desktop notifications are
-// on. latest is the newest notification's number, as the workspace's view
-// carries it: when it moves, what's new since is read, and the daemon
-// says which of it no page has told of yet, as it does for needs.
+// useFeedNotifications tells of what happened (the feed's notifications)
+// as it happens, for the sources and kinds you've asked to be told of
+// ("Feed, and tell me": desktop in ws.local.toml): in a toast while the
+// page is in front, on the desktop while it's hidden and desktop
+// notifications are on. latest is the newest notification's number, as
+// the workspace's view carries it: when it moves, what's new since is
+// read, and the daemon says which of it no page has told of yet, as it
+// does for needs, so it's told once, toast or desktop, however many pages
+// are open.
 export function useFeedNotifications(latest: number | undefined, on: boolean, open: (path: string) => void) {
   const seen = useRef<number | undefined>(undefined);
   useEffect(() => {
@@ -144,13 +150,33 @@ export function useFeedNotifications(latest: number | undefined, on: boolean, op
     seen.current = latest;
     // The first it hears of is where it starts: nothing's new to a page
     // that's just opened.
-    if (was === undefined || latest <= was || !on || document.visibilityState !== "hidden") return;
+    if (was === undefined || latest <= was) return;
+    const hidden = document.visibilityState === "hidden";
+    if (hidden && !on) return;
     void getNotifications()
       .then(async (feed) => {
-        const fresh = feed.notifications.filter((n) => n.n > was && n.desktop && !n.read);
+        const fresh = toTell(feed.notifications, was, hidden, window.location.pathname);
         if (!fresh.length) return;
-        const told = await announceNotifications(fresh.map((n) => n.n));
-        for (const n of fresh.filter((f) => told.includes(f.n))) {
+        const claimed = await announceNotifications(fresh.map((n) => n.n));
+        const told = fresh.filter((f) => claimed.includes(f.n));
+        if (!hidden) {
+          const t = tellingOf(told);
+          if (!t) return;
+          toast(t.text, {
+            ms: 8000,
+            action: {
+              label: t.label,
+              run: () => {
+                if (t.n !== undefined && t.to) {
+                  void readNotifications([t.n]).catch(() => {});
+                  open(t.to);
+                } else useChromeStore.getState().setBell(true);
+              },
+            },
+          });
+          return;
+        }
+        for (const n of told) {
           const note = new Notification(n.text, { tag: n.ref, icon: markIcon(false) });
           note.onclick = () => {
             window.focus();
@@ -160,7 +186,7 @@ export function useFeedNotifications(latest: number | undefined, on: boolean, op
         }
       })
       .catch(() => {
-        // It's in the feed either way: the desktop is only told as well.
+        // It's in the feed either way: this only tells of it as well.
       });
   }, [latest, on, open]);
 }

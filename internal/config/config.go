@@ -692,13 +692,19 @@ type UpdatesConfig struct {
 
 // NotificationsConfig is ws.local.toml's [notifications]: where each
 // source of notifications (internal/notification) is sent. "feed", the
-// default, is the feed alone; "desktop" is the desktop as well, while the
+// default, is the feed alone; "desktop" is told as it happens as well (a
+// toast in the web UI, or the desktop while it's hidden), while the
 // web UI is allowed to tell it; "off" is nowhere.
 type NotificationsConfig struct {
 	Missions string `toml:"missions,omitempty"` // a mission ended, or was started for you
 	Pulls    string `toml:"pulls,omitempty"`    // a pull request this ws opened merged
 	Plugins  string `toml:"plugins,omitempty"`  // a plugin's update is out
 	WS       string `toml:"ws,omitempty"`       // ws was upgraded
+	// Plugin is where each plugin's kinds of notification are sent, by the
+	// plugin's name and the kind's id ([notifications.plugin.jira]
+	// assigned = "desktop"). A kind it doesn't say goes where the plugin
+	// said it does by default.
+	Plugin map[string]map[string]string `toml:"plugin,omitempty"`
 }
 
 // Where a source of notifications is sent.
@@ -714,6 +720,19 @@ func (n NotificationsConfig) Route(source string) string {
 	said := map[string]string{"missions": n.Missions, "pulls": n.Pulls, "plugins": n.Plugins, "ws": n.WS}[source]
 	if said == NotifyDesktop || said == NotifyOff {
 		return said
+	}
+	return NotifyFeed
+}
+
+// PluginRoute is where the plugin's kind of notification is sent: as the
+// file says, or def (feed, unless the plugin said off) where it doesn't.
+func (n NotificationsConfig) PluginRoute(plugin, kind, def string) string {
+	switch said := n.Plugin[plugin][kind]; said {
+	case NotifyFeed, NotifyDesktop, NotifyOff:
+		return said
+	}
+	if def == NotifyOff {
+		return NotifyOff
 	}
 	return NotifyFeed
 }

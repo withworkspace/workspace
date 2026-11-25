@@ -123,3 +123,53 @@ func TestWas(t *testing.T) {
 		t.Errorf("and is now: %q", was)
 	}
 }
+
+// A plugin's notification is its own source's, kept once for its key,
+// and muted by its kind as well as by its source.
+func TestAPluginsNotifications(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	jira := PluginSource("jira")
+	add := func(kind, key, text string) (Notification, bool) {
+		t.Helper()
+		n, added, err := AddOnce(root, Notification{Source: jira, Kind: PluginKind("jira", kind), Key: key, Text: text, Refs: []string{"RAM-1"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return n, added
+	}
+	first, added := add("assigned", "k1", "Ana gave you RAM-1")
+	if !added || first.N != 1 || first.Kind != "jira:assigned" {
+		t.Errorf("the first: %+v, added %v", first, added)
+	}
+	if again, added := add("assigned", "k1", "Ana gave you RAM-1 again"); added || again.N != 1 || again.Text != "Ana gave you RAM-1" {
+		t.Errorf("the same key again is the one kept: %+v, added %v", again, added)
+	}
+	// Another source's key is its own.
+	if _, added, _ := AddOnce(root, Notification{Source: PluginSource("sketch"), Kind: "sketch:shared", Key: "k1", Text: "x"}); !added {
+		t.Error("another plugin's k1 wasn't kept")
+	}
+	add("new", "", "RAM-2 is new")
+	add("new", "", "RAM-3 is new") // no key: kept every time
+	if n, _ := Unread(root, nil); n != 4 {
+		t.Errorf("unread: %d", n)
+	}
+	if n, _ := Unread(root, []string{"jira:new"}); n != 2 {
+		t.Errorf("unread with jira:new muted: %d", n)
+	}
+	if n, _ := Unread(root, []string{jira}); n != 1 {
+		t.Errorf("unread with jira muted: %d", n)
+	}
+	if got, _ := List(root, Filter{Muted: []string{"jira:new", "jira:assigned"}}); len(got) != 1 || got[0].Source != "plugin:sketch" {
+		t.Errorf("listed with jira's kinds muted: %+v", got)
+	}
+	if n, _ := ReadAll(root, []string{"jira:new"}); n != 2 {
+		t.Errorf("reading all but jira:new read %d", n)
+	}
+	if name, ok := PluginOf(jira); !ok || name != "jira" {
+		t.Errorf("PluginOf(%q) = %q, %v", jira, name, ok)
+	}
+	if _, ok := PluginOf(SourcePlugins); ok {
+		t.Error("plugins (updates) is ws's own source")
+	}
+}
