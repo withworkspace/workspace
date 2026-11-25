@@ -231,6 +231,8 @@ type PRFacts struct {
 	Checks string
 	// Conflict: it doesn't merge cleanly onto its base.
 	Conflict bool
+	// MergeUnknown: GitHub is still working out whether it merges cleanly.
+	MergeUnknown bool
 	// Unasked: ws opened it, and GitHub hasn't been asked how it stands
 	// since. No review and no checks, of such a one, is nothing known, not
 	// a pull request that needs neither.
@@ -1089,6 +1091,11 @@ func prHeadline(pr PRFacts) Headline {
 	case pr.Review == "REVIEW_REQUIRED":
 		h.Court, h.Kind, h.Label = CourtOutside, KindAwaitingReview, "in review"
 		h.Text = pr.Ref + " is waiting for review · nothing for you to do"
+	case pr.MergeUnknown:
+		// Nothing else holds it up, but it may turn out to conflict: it's
+		// not yours to merge until GitHub has said.
+		h.Court, h.Kind, h.Label = CourtOutside, KindWaitingOn, "⧗ waiting"
+		h.Text = pr.Ref + ": GitHub is working out whether it merges cleanly · nothing for you to do"
 	default:
 		h.Court, h.Kind, h.Label = CourtYou, KindMerge, "✓ merge"
 		var why string

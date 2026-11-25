@@ -261,6 +261,11 @@ func TestClassify(t *testing.T) {
 		{"yours, approved, GitHub still working out whether it merges", func(p *github.PR) {
 			p.Author = "me"
 			p.ReviewDecision, p.Mergeable = "APPROVED", "UNKNOWN"
+		}, false, WaitingReview},
+		{"yours, no review needed, GitHub still working out whether it merges", func(p *github.PR) { p.Author = "me"; p.Mergeable = "UNKNOWN" }, false, WaitingReview},
+		{"yours, approved, and GitHub says it merges", func(p *github.PR) {
+			p.Author = "me"
+			p.ReviewDecision, p.Mergeable = "APPROVED", "MERGEABLE"
 		}, false, Ready},
 		{"yours, no review needed", func(p *github.PR) { p.Author = "me" }, false, Ready},
 		{"yours, reviewers asked", func(p *github.PR) { p.Author = "me"; p.Requested = []github.ReviewRequest{{Login: "alice"}} }, false, WaitingReview},

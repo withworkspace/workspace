@@ -358,6 +358,24 @@ func (c *PRCache) fetch(ws *workspace.Workspace, gh github.Client, repos []strin
 	}
 }
 
+// merges is what GitHub says of whether an open pull request merges
+// cleanly: that it conflicts, or that it's still working that out
+// (unknown), which it does once asked and again after its base moves.
+// While it is, one last seen to conflict still does: a conflict doesn't
+// go and come back, as news, each time the base moves.
+func merges(pr *github.PR, seen *mission.SeenPR) (conflict, unknown bool) {
+	switch pr.Mergeable {
+	case "CONFLICTING":
+		return true, false
+	case "UNKNOWN":
+		if seen != nil && seen.Number == pr.Number && seen.Conflict {
+			return true, false
+		}
+		return false, true
+	}
+	return false, false
+}
+
 // MissionSnapshot gathers what mission.Resolve needs from a mission's view
 // (capsules and PRs), brief, log, reviews and threads.
 func MissionSnapshot(v MissionView, brief string, events []mission.Event, rr []review.ReReview, threads mission.DocThreads, orchestratorOff bool) mission.Snapshot {
@@ -372,11 +390,14 @@ func MissionSnapshot(v MissionView, brief string, events []mission.Event, rr []r
 			}
 			continue
 		}
-		s.PRs = append(s.PRs, mission.PRFacts{
+		f := mission.PRFacts{
 			Capsule: c.Repo + "/" + c.Name, Ref: fmt.Sprintf("%s#%d", c.Repo, c.PR.Number), URL: c.PR.URL,
 			Merged: c.PRS == mission.PRMerged, Review: c.PR.ReviewDecision, Checks: c.PR.StatusRollup,
-			Conflict: c.PRS == mission.PROpen && c.PR.Mergeable == "CONFLICTING",
-		})
+		}
+		if c.PRS == mission.PROpen {
+			f.Conflict, f.MergeUnknown = merges(c.PR, c.SeenPR)
+		}
+		s.PRs = append(s.PRs, f)
 	}
 	for _, r := range rr {
 		t := r.Review.Tally()
