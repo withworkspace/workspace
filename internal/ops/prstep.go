@@ -146,8 +146,9 @@ func seenOf(m *mission.Mission, capsule string) *mission.SeenPR {
 // (closed without merging). It reports false when there's nothing to see.
 func (w *Workspace) sighting(c CapsuleView, prev *mission.SeenPR) (mission.SeenPR, bool) {
 	if c.PR != nil {
+		conflict, _ := merges(c.PR, prev)
 		return mission.SeenPR{Number: c.PR.Number, Merged: c.PRS == mission.PRMerged, Draft: c.PR.IsDraft && c.PRS != mission.PRMerged,
-			Review: c.PR.ReviewDecision, Checks: c.PR.StatusRollup, Conflict: c.PR.Mergeable == "CONFLICTING"}, true
+			Review: c.PR.ReviewDecision, Checks: c.PR.StatusRollup, Conflict: conflict}, true
 	}
 	gh := w.GitHub()
 	if prev == nil || prev.Merged || prev.Closed || gh == nil {

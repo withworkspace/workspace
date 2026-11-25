@@ -291,16 +291,31 @@ func classifyMine(gp github.PR) (state, words string) {
 		return Returned, "changes requested"
 	case gp.StatusRollup == "failure":
 		return Returned, "its checks are failing"
+	case gp.Mergeable == "CONFLICTING":
+		// Approved and green or not, it can't be merged as it is.
+		return Returned, "it conflicts with " + firstNonEmpty(gp.BaseRefName, "its base")
 	case gp.IsDraft:
 		return WaitingReview, "draft"
 	case gp.StatusRollup == "pending":
 		return WaitingReview, "its checks are running"
 	case gp.ReviewDecision == "APPROVED":
-		return Ready, "approved"
+		return ifMerges(gp, "approved")
 	case gp.ReviewDecision == "" && len(gp.Requested) == 0:
-		return Ready, "needs no review"
+		return ifMerges(gp, "needs no review")
 	}
 	return WaitingReview, "waiting for review"
+}
+
+// ifMerges is where one of yours that nothing else holds up stands: ready
+// to merge, unless GitHub is still working out whether it merges cleanly
+// (it does so once asked, and after its base moves). Until it's said,
+// it's waiting: it may turn out to conflict, and something that needs you
+// shouldn't show for a moment and go.
+func ifMerges(gp github.PR, words string) (state, why string) {
+	if gp.Mergeable == "UNKNOWN" {
+		return WaitingReview, "GitHub is working out whether it merges cleanly"
+	}
+	return Ready, words
 }
 
 // since is how long b is after a (RFC 3339 times), or 0 when it can't be
