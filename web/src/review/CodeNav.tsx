@@ -22,7 +22,7 @@ export function cellPlace(el: Element): { rev: string; path: string; line: numbe
   if (!code) return undefined;
   const { rev, path, line, side } = code.dataset;
   if (!rev || !path || !line) return undefined;
-  return { rev, path, line: Number(line), side: side === "old" ? "old" : "new", inPanel: !!code.closest(".nav-panel") };
+  return { rev, path, line: Number(line), side: side === "old" ? "old" : "new", inPanel: !!code.closest("[data-nav-panel]") };
 }
 
 // Where's somewhere to go back to: a row of the diff, or the panel open at

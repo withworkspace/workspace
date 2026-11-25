@@ -35,7 +35,7 @@ export function CodeNavPanel({
   children: ReactNode;
 }) {
   return (
-    <aside className={css.panel} aria-label={label}>
+    <aside className={css.panel} aria-label={label} data-nav-panel="">
       <header className={css.head}>
         {title}
         <span className="dim">{said}</span>
