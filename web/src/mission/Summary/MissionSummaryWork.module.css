@@ -1,0 +1,12 @@
+/* What Summary says of the Work tab (MissionSummaryWork.tsx). */
+
+.work {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-sm);
+}
+
+/* Under a capsule's line. */
+.work.afterCards {
+  margin-top: 6px;
+}

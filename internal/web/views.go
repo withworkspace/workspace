@@ -260,7 +260,7 @@ func needsOf(needs []ops.Need) []Need {
 
 // missionPlace is where a mission's need is dealt with: the page its
 // act opens (its crew's conversation, the bundle on Verify, the capsule's
-// review), as the mission's page links it (actHref, mission/Mission.tsx);
+// review), as the mission's page links it (actHref, mission/hrefs.ts);
 // else the mission's page, where what moves it is a button.
 func missionPlace(slug string, a *mission.Act) string {
 	at := "/missions/" + slug

@@ -19,7 +19,7 @@ import { type Draft, MarkdownEditor } from "../editor/LazyEditor";
 import { useKeys } from "../keys";
 import { slugger } from "../markdown/links";
 import { Markdown } from "../markdown/LazyMarkdown";
-import { CrewBadge } from "../mission/parts";
+import { CrewBadge } from "../mission/CrewBadge";
 import { Calls } from "../ui/Calls";
 import { TLink } from "../ui/TLink";
 import { Icon, type IconName } from "../ui/Icon";

@@ -9,7 +9,7 @@ import { VerifyBundleMenu } from "./VerifyBundleMenu";
 // them.
 export function VerifyNothingLeft({ bundles, pick }: { bundles: Bundle[]; pick: (id?: string) => void }) {
   return (
-    <MissionVerify done>
+    <MissionVerify done fills>
       <Empty
         big
         done

@@ -17,7 +17,7 @@ import { Keys } from "../ui/Keys";
 import { Time } from "../ui/Time";
 import { DocEdit } from "./DocEdit";
 import { MissionOutputState } from "./MissionOutputState";
-import { artifactTitle } from "./parts";
+import { artifactTitle } from "./outputs";
 import { useLatest } from "../load";
 import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";

@@ -1,0 +1,8 @@
+/* Where a capsule stands, as chips in a row (MissionCapsuleBadges.tsx). */
+
+.badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}

@@ -1,0 +1,36 @@
+/* One of the orchestrator's runs, in a mission's details
+   (MissionSideRun.tsx). */
+
+.run {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  margin: 0 -8px;
+  border-radius: var(--radius);
+}
+
+.run:hover {
+  background: var(--hover);
+}
+
+.what {
+  color: var(--dim);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* How long ago, at the end: the look of an age wherever it's shown. */
+.age {
+  font-variant-numeric: tabular-nums;
+  min-width: 2.5em;
+  text-align: right;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.run .age {
+  margin-left: auto;
+}

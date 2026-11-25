@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { MissionEvent } from "../api";
-import { endedWords, viewEvent } from "./parts";
+import { endedWords } from "./crewEnded";
+import { viewEvent } from "./eventView";
 
 const ev = (e: Partial<MissionEvent>): MissionEvent => ({ time: "2026-11-16T17:28:00Z", kind: "resume_with", text: "", ...e });
 

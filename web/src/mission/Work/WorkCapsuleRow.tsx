@@ -1,6 +1,6 @@
 import type { CapsuleDetail, MissionDetail } from "../../api";
 import { Icon } from "../../ui/Icon";
-import { CrewBadge } from "../parts";
+import { CrewBadge } from "../CrewBadge";
 import type { WorkCapsule } from "../workRows";
 import { MissionWorkLines } from "./MissionWorkLines";
 import { MissionWorkRow } from "./MissionWorkRow";

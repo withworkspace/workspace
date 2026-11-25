@@ -10,7 +10,7 @@ import { Icon } from "../../ui/Icon";
 import { Keys } from "../../ui/Keys";
 import { Spinner } from "../../ui/Spinner";
 import { Turn, TurnSaid } from "../../ui/Turn";
-import { MissionData } from "../parts";
+import { MissionData } from "../MissionData";
 import { PlanList } from "../PlanList";
 import { Brief } from "./Brief";
 import { MissionBrief } from "./MissionBrief";

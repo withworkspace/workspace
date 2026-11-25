@@ -1,0 +1,32 @@
+/* Who did something in a mission's log, when it isn't crew
+   (MissionLogActor.tsx). */
+
+.actor {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 18px;
+  border-radius: 5px;
+  color: var(--dim);
+  background: var(--well);
+}
+
+.you {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.orchestrator {
+  color: var(--violet);
+  background: var(--violet-soft);
+}
+
+.agent {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.ws :global(.icon) {
+  width: 8px;
+  height: 8px;
+}

@@ -33,19 +33,19 @@
 /* A wide window: the bundle's column and its check's pane fill the tab,
    each scrolling by itself. */
 @media (min-width: 1021px) {
-  :global(.mission-page.fills) .panes {
+  .panes.fills {
     flex: 1;
     align-items: stretch;
     min-height: 0;
   }
 
-  :global(.mission-page.fills) .side,
-  :global(.mission-page.fills) .pane {
+  .fills .side,
+  .fills .pane {
     overflow-y: auto;
     scrollbar-width: thin;
   }
 
-  :global(.mission-page.fills) .side {
+  .fills .side {
     padding-right: 8px;
   }
 }

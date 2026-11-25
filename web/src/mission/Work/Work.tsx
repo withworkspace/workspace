@@ -70,6 +70,7 @@ export function Work({
   }
   return (
     <MissionWork
+      fills
       list={
         <>
           <MissionWorkGroup count={w.capsules.length}>Capsules</MissionWorkGroup>

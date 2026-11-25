@@ -16,7 +16,7 @@ import { confirm } from "../ui/Confirm";
 import { EditDiff } from "../ui/EditDiff";
 import { Time } from "../ui/Time";
 import { Todos } from "../ui/Todos";
-import { CrewBadge } from "./parts";
+import { CrewBadge } from "./CrewBadge";
 import { useLoaded } from "../load";
 import { useLatest } from "../load";
 import { Button } from "../ui/Button";

@@ -16,7 +16,7 @@ import { Status, type StatusInfo } from "../ui/Status";
 import { crewStatus } from "../ui/statusOf";
 import type { TermState } from "./CrewTerminal";
 import { AgentView } from "./AgentView";
-import { CrewBadge } from "./parts";
+import { CrewBadge } from "./CrewBadge";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { Tab, Tabs } from "../ui/Tabs";

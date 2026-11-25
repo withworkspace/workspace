@@ -8,7 +8,7 @@ import { Time } from "../ui/Time";
 import css from "./MissionOutput.module.css";
 import { MissionOutputState } from "./MissionOutputState";
 import { MissionOutputThreads } from "./MissionOutputThreads";
-import { artifactTitle, isArtifact } from "./parts";
+import { artifactTitle, isArtifact } from "./outputs";
 
 const kindIcon: Record<string, IconName> = {
   proposal: "file",

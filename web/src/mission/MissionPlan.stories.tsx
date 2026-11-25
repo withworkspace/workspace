@@ -11,7 +11,8 @@ import { MissionPlanNow } from "./MissionPlanNow";
 import { MissionPlanPip } from "./MissionPlanPip";
 import { MissionPlanStep } from "./MissionPlanStep";
 import { MissionStepCard } from "./MissionStepCard";
-import { MissionData, Stepper } from "./parts";
+import { MissionData } from "./MissionData";
+import { Stepper } from "./Stepper";
 import { PlanList } from "./PlanList";
 
 // A mission's plan: steps done, the one it's on and those to come, with

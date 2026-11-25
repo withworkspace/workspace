@@ -1,0 +1,43 @@
+/* What's known of a mission, at the top of its details
+   (MissionSideFacts.tsx). */
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 10px;
+  margin: 0 0 20px;
+  align-items: baseline;
+}
+
+.facts dt {
+  color: var(--dim);
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Its state: the row to itself, what's done to it at the end. */
+.facts dd.state {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.state > button:first-of-type {
+  margin-left: auto;
+}
+
+.at {
+  color: var(--dim);
+}
+
+.about {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}

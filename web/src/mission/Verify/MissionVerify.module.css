@@ -1,6 +1,6 @@
 /* A mission's Verify tab laid out (MissionVerify.tsx). On a wide window
-   the tab fills what's under the mission's bar (.mission-page.fills, the
-   mission page's) and each column scrolls by itself; on a narrow one
+   the tab fills what's under the mission's bar (fills, as the mission
+   page's does) and each column scrolls by itself; on a narrow one
    they stack, and the page scrolls. */
 
 .verify {
@@ -17,7 +17,7 @@
 }
 
 @media (min-width: 1021px) {
-  :global(.mission-page.fills) .verify {
+  .verify.fills {
     height: 100%;
   }
 }

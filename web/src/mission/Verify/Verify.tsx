@@ -179,9 +179,10 @@ export function Verify({
   const todo = toApprove(d.bundles);
   const settleTitle = going.length ? "Send it back to its crew, with what you said" : left.length ? "Approve it as it is: checks are still left for you" : "Approve it: what it shows is as its checks say";
   return (
-    <MissionVerify>
+    <MissionVerify fills>
       {(d.bundles.length > 1 || !todo.includes(bundle)) && <VerifyBundleRow bundles={d.bundles} open={bundle} pick={pick} />}
       <MissionVerifyPanes
+        fills
         side={
           <>
             <VerifyBundleHead b={bundle} pick={pick} />
