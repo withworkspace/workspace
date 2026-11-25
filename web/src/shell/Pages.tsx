@@ -9,9 +9,9 @@ import { DocsAddress, DocumentAt, LocalPageAt, OpenAddress, PageAddress } from "
 import { DocumentsPage, SpacePage } from "../documents/Documents";
 import { Explorer } from "../files/Explorer";
 import { FilesPage } from "../files/Files";
-import { ArtifactPage } from "../mission/ArtifactPage";
+import { ArtifactPage } from "../mission/Artifact/ArtifactPage";
 import { CrewPage } from "../mission/Crew/CrewPage";
-import { MissionList } from "../mission/List";
+import { Missions } from "../mission/List/Missions";
 import { MissionPage } from "../mission/Mission";
 import { NotificationsPage } from "../notifications/NotificationsPage";
 import { OrchestratorPage } from "../orchestrator/OrchestratorPage";
@@ -36,7 +36,7 @@ export const Pages = memo(function Pages({ notify }: { notify: ReturnType<typeof
   const missions = useWorkspace((w) => w.missions);
   return (
     <Routes>
-      <Route path="/" element={<MissionList missions={missions} />} />
+      <Route path="/" element={<Missions missions={missions} />} />
       <Route path="/missions/:slug" element={<MissionPage />} />
       <Route path="/missions/:slug/artifact" element={<ArtifactPage />} />
       <Route path="/missions/:slug/brief" element={<ToBrief />} />

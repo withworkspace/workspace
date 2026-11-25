@@ -1,0 +1,50 @@
+/* What ws is running while it checks a step, under the headline
+   (MissionCheckingNow.tsx). */
+
+.now {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+  min-width: 0;
+}
+
+.command code {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+}
+
+.elapsed {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.line {
+  font: var(--text-sm) / 1.5 var(--mono);
+  background: var(--code-bg);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line.quiet {
+  color: var(--faint);
+  font-family: var(--font);
+}
+
+.after {
+  font-size: var(--text-sm);
+}

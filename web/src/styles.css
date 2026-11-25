@@ -706,49 +706,9 @@ main {
   }
 }
 
-.pulse {
-  animation: pulse 2.2s var(--ease) infinite;
-}
-
-/* The missions list: a status, the title with where it stands under it,
-   then a chip, its capsules and how long since it moved. */
-.mission-link {
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-}
-
-.crew-chip {
-  font-family: var(--mono);
-  font-weight: 500;
-}
-
 @media (max-width: 720px) {
   .page {
     padding: var(--space-4) var(--space-4) 48px;
-  }
-
-  .mission-link {
-    flex-wrap: wrap;
-    row-gap: 4px;
-  }
-
-  .mission-chip {
-    order: 3;
-    margin-left: 28px;
-  }
-
-  .mission-row .age {
-    order: 4;
-    margin-left: auto;
-  }
-
-  .mission-row .crew-chip {
-    display: none;
-  }
-
-  .mission-sub-said {
-    -webkit-line-clamp: 2;
   }
 }
 
@@ -1726,56 +1686,6 @@ button.on {
   margin-bottom: 4px;
 }
 
-/* A document being edited (mission/DocEdit.tsx). */
-.doc-edit {
-  display: grid;
-  gap: 12px;
-}
-
-.doc-edit .commit-line {
-  flex: 1 1 260px;
-  max-width: 420px;
-}
-
-.doc-edit .kept {
-  white-space: nowrap;
-}
-
-.editor-bar {
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 0;
-  background: linear-gradient(transparent, var(--bg) 30%);
-  font-size: var(--text-sm);
-}
-
-/* A mission's image or video (crew's proof), shown as it is
-   (mission/ArtifactPage.tsx): whole, within the page, on a quiet ground so
-   a screenshot's own edges show. */
-.artifact-media {
-  margin: 0;
-  display: grid;
-  gap: 8px;
-  justify-items: start;
-}
-
-.artifact-media img,
-.artifact-media video {
-  display: block;
-  max-width: 100%;
-  max-height: 80vh;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--well);
-}
-
-.artifact-code {
-  font-size: var(--text-sm);
-}
-
 /* Landing a capsule (a repo with no pull requests): what git or the
    repo's check said when it stopped, and the commits that would land. */
 .land-output {
@@ -1807,26 +1717,6 @@ button.on {
   max-width: 70ch;
 }
 
-/* A block of code: markdown/CodeBlock.module.css. This is its look for
-   what draws one by hand (mission/ArtifactPage.tsx). */
-.code-block {
-  position: relative;
-  background: var(--well);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 12px 16px;
-  overflow-x: auto;
-  font: var(--text-sm) / 1.6 var(--mono);
-  tab-size: 4;
-}
-
-.code-block code {
-  background: none;
-  border: 0;
-  padding: 0;
-  font: inherit;
-}
-
 .review-head .scope {
   color: var(--dim);
 }
@@ -1843,15 +1733,6 @@ button.on {
   color: var(--dim);
 }
 
-/* A box and its word, where a setting is ticked (a pull request as a
-   draft). */
-.setting-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 260px;
-}
-
 /* A line said where a list would be (Settings, Plugins, Runs). */
 .quiet-line {
   color: var(--dim);
@@ -1862,38 +1743,6 @@ button.on {
 
 .page.artifact-page {
   max-width: 980px;
-}
-
-.page.artifact-page.annotating {
-  max-width: 1240px;
-}
-
-.doc-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 12px;
-  margin: 0 0 var(--space-5);
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
-  font-size: var(--text-sm);
-  color: var(--dim);
-}
-
-.doc-kind {
-  font-weight: 600;
-  color: var(--fg);
-}
-
-.doc-ref {
-  font-size: var(--text-xs);
-  max-width: 420px;
-}
-
-.doc-path {
-  margin: var(--space-6) 0 0;
-  font-size: var(--text-xs);
-  color: var(--dim);
 }
 
 /* What's come of something, said quietly under it (a turn, a finding,
@@ -2658,10 +2507,6 @@ button.settled-marker-more:hover {
   .artifact-body .markdown {
     max-width: none;
     font-size: 11pt;
-  }
-
-  .code-block {
-    break-inside: avoid;
   }
 }
 
@@ -4709,115 +4554,6 @@ body.nav-pointing .lines code[data-rev] {
   font-size: var(--text-xs);
 }
 
-/* How a mission ends: Z as it was checked, and capsules that ended
-   alone. */
-.z-checks {
-  list-style: none;
-  padding: 0;
-  margin: 8px 0 0;
-  display: grid;
-  gap: 4px;
-}
-
-.z-checks li {
-  display: grid;
-  grid-template-columns: 16px 1fr;
-  gap: 6px;
-  align-items: start;
-}
-
-.z-checks li > .icon,
-.z-checks li > svg {
-  margin-top: 3px;
-}
-
-.z-checks li.met > svg {
-  color: var(--green);
-}
-
-.z-checks li.unmet > svg {
-  color: var(--red);
-}
-
-.z-checks li.unchecked > svg {
-  color: var(--dim);
-}
-
-.z-checks .z-how {
-  color: var(--dim);
-}
-
-.handed-on {
-  margin-top: 6px;
-}
-
-.end-mission p {
-  margin: 0 0 12px;
-  color: var(--dim);
-}
-
-.end-mission textarea {
-  width: 100%;
-  margin: 8px 0;
-  font: var(--text-md) / 1.5 var(--font);
-}
-
-.open-pr-form {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.open-pr-title {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.open-pr-title input {
-  flex: 1;
-  min-width: 0;
-}
-
-.open-pr-title button {
-  flex: none;
-  min-width: 82px;
-  justify-content: center;
-}
-
-.open-pr-form textarea {
-  width: 100%;
-  resize: vertical;
-}
-
-.open-pr-draft {
-  margin-bottom: 10px;
-}
-
-.end-to {
-  display: grid;
-  gap: 4px;
-  margin: 0 0 10px;
-  font-size: var(--text-sm);
-  color: var(--dim);
-}
-
-.ended-capsules {
-  list-style: none;
-  padding: 0;
-  margin: 6px 0 0;
-  display: grid;
-  gap: 4px;
-  font-size: var(--text-sm);
-}
-
-.ended-capsules li {
-  display: flex;
-  gap: 6px;
-  align-items: baseline;
-  min-width: 0;
-}
-
 /* What's in hand, as a chip, where a conversation's asked (panes/TalkPane.tsx,
    ui/Composer.tsx): AskField draws its own (ask/AskField.module.css). */
 .ask-ctx {
@@ -5756,55 +5492,6 @@ input[type="text"].tweak-text {
     border-left: 0;
     border-top: 1px solid var(--line);
   }
-}
-
-/* What ws is running while it checks a step, under the headline. */
-.checking-now {
-  display: grid;
-  gap: 6px;
-  margin-top: 2px;
-  min-width: 0;
-}
-
-.checking-command code {
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: bottom;
-}
-
-.checking-time {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--text-sm);
-}
-
-.checking-elapsed {
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.checking-line {
-  font: var(--text-sm) / 1.5 var(--mono);
-  background: var(--code-bg);
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.checking-line.quiet {
-  color: var(--faint);
-  font-family: var(--font);
-}
-
-.checking-after {
-  font-size: var(--text-sm);
 }
 
 /* Two sections side by side, where there's room for both. */

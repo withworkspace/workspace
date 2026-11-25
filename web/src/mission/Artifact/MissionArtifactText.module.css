@@ -1,0 +1,15 @@
+/* One of a mission's documents, read (MissionArtifactText.tsx). Its
+   markdown's size and measure are .prose's. */
+
+.text {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+@media (max-width: 860px) {
+  .text {
+    flex-direction: column;
+  }
+}

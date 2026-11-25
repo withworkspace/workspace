@@ -2,7 +2,7 @@ import type { Artifact, CapsuleDetail, MissionDetail } from "../../api";
 import type { Reload } from "../../load";
 import { usePref } from "../../prefs";
 import { Empty } from "../../ui/Empty";
-import { EndedCapsules } from "../Ending";
+import { EndedCapsules } from "../Ending/EndedCapsules";
 import { type Work as WorkModel, type WorkCapsule, outputHome, outputKey } from "../workRows";
 import { MissionWork } from "./MissionWork";
 import { MissionWorkEnded } from "./MissionWorkEnded";

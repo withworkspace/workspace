@@ -1,0 +1,25 @@
+/* The bar under a document being edited (MissionArtifactEditBar.tsx). */
+
+.bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  background: linear-gradient(transparent, var(--bg) 30%);
+  font-size: var(--text-sm);
+}
+
+.bar .message {
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+
+.bar .kept {
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}

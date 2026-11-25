@@ -1,0 +1,30 @@
+/* A mission in the missions list (MissionListRow.tsx): a status, the
+   title with where it stands under it, then a chip, its capsules and how
+   long since it moved. */
+
+.link {
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+}
+
+@media (max-width: 720px) {
+  .link {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .chip {
+    order: 3;
+    margin-left: 28px;
+  }
+
+  .row .age {
+    order: 4;
+    margin-left: auto;
+  }
+
+  .said {
+    -webkit-line-clamp: 2;
+  }
+}

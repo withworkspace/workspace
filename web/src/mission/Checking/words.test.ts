@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkingTitle, checkNumbers, clock } from "./checking";
+import { checkingTitle, checkNumbers, clock, limit } from "./words";
 
 describe("what's running while ws checks a step", () => {
   it("says how long, to the second", () => {
@@ -8,6 +8,11 @@ describe("what's running while ws checks a step", () => {
     expect(clock(80_000)).toBe("1m 20s");
     expect(clock(3_725_000)).toBe("1h 2m");
     expect(clock(-5)).toBe("0s");
+  });
+  it("says a step's limit as the plan does", () => {
+    expect(limit(15 * 60_000)).toBe("15m");
+    expect(limit(60 * 60_000)).toBe("1h");
+    expect(limit(90 * 60_000)).toBe("1h30m");
   });
   it("names checks by number", () => {
     expect(checkNumbers([2])).toBe("check 2");

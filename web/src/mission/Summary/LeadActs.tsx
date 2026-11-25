@@ -9,7 +9,7 @@ import { Keys } from "../../ui/Keys";
 import { humanError } from "../../ui/text";
 import { toast } from "../../ui/toast";
 import { archiveMission } from "../archive";
-import { ended } from "../Ending";
+import { ended } from "../Ending/ended";
 import { actHref } from "../hrefs";
 import { LeadCrewLink } from "./LeadCrewLink";
 import { LeadPrompt } from "./LeadPrompt";

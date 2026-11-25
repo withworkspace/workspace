@@ -1,0 +1,27 @@
+/* The line over one of a mission's documents (MissionArtifactMeta.tsx). */
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0 0 var(--space-5);
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.kind {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.ref {
+  font-size: var(--text-xs);
+  max-width: 420px;
+}
+
+.spacer {
+  flex: 1;
+}

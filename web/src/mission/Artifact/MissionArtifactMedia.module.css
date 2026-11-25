@@ -1,0 +1,20 @@
+/* A mission's image or video (crew's proof), shown as it is
+   (MissionArtifactMedia.tsx): whole, within the page, on a quiet ground
+   so a screenshot's own edges show. */
+
+.media {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.media img,
+.media video {
+  display: block;
+  max-width: 100%;
+  max-height: 80vh;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--well);
+}

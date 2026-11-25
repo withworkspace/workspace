@@ -5,8 +5,10 @@ import { Clamp } from "../../ui/Clamp";
 import { Inline } from "../../ui/Inline";
 import { headlineStatus } from "../../ui/statusOf";
 import { cardTone } from "../cardTone";
-import { CheckingNow, checkingTitle } from "../checking";
-import { HandedOn, ZChecks } from "../Ending";
+import { CheckingNow } from "../Checking/CheckingNow";
+import { checkingTitle } from "../Checking/words";
+import { MissionEndingHandedOn } from "../Ending/MissionEndingHandedOn";
+import { ZChecks } from "../Ending/ZChecks";
 import { LeadActs } from "./LeadActs";
 import { MissionLead } from "./MissionLead";
 import { MissionLeadNotice } from "./MissionLeadNotice";
@@ -45,13 +47,13 @@ export function LeadCard({ d, c, lead, reload, step, latest }: { d: MissionDetai
       {c.kind === "wrap-up" && d.conclude?.ending && (
         <>
           <ZChecks c={d.conclude} />
-          <HandedOn to={d.conclude.to} />
+          <MissionEndingHandedOn to={d.conclude.to} />
         </>
       )}
       {c.kind === "ended" && d.ending && (
         <>
           <ZChecks c={d.ending} />
-          <HandedOn to={d.ending.to} />
+          <MissionEndingHandedOn to={d.ending.to} />
         </>
       )}
     </>

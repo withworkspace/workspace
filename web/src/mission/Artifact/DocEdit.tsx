@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { type ArtifactContent, type DocDraft, type DocSaved, dropDraft, getThreads, openThread, putDraft, readDoc, saveDoc, useEventsOf } from "../api";
-import { type Draft, MarkdownEditor, type Quote } from "../editor/LazyEditor";
-import { toast } from "../ui/toast";
-import { Skeleton } from "../ui/Skeleton";
-import { humanError } from "../ui/text";
-import { Callout } from "../ui/Callout";
-import { Keys } from "../ui/Keys";
-import { Time } from "../ui/Time";
-import { Button } from "../ui/Button";
-import { Segment, Segmented } from "../ui/Segmented";
-import { Input } from "../ui/Input";
+import { type ArtifactContent, type DocDraft, type DocSaved, dropDraft, getThreads, openThread, putDraft, readDoc, saveDoc, useEventsOf } from "../../api";
+import { type Draft, MarkdownEditor, type Quote } from "../../editor/LazyEditor";
+import { toast } from "../../ui/toast";
+import { Skeleton } from "../../ui/Skeleton";
+import { humanError } from "../../ui/text";
+import { Callout } from "../../ui/Callout";
+import { Keys } from "../../ui/Keys";
+import { Time } from "../../ui/Time";
+import { Button } from "../../ui/Button";
+import { Segment, Segmented } from "../../ui/Segmented";
+import { MissionArtifactEdit } from "./MissionArtifactEdit";
+import { MissionArtifactEditBar } from "./MissionArtifactEditBar";
 
 // DocEdit edits one of a mission's documents in place, as it reads, or
 // (no slug) a document outside any mission: a file in one of the
@@ -150,7 +151,7 @@ export function DocEdit({
         setMoved(true);
         return toast("It's changed since you started: save your edit (it merges), or close and start again from it as it is to suggest", { tone: "danger" });
       }
-      const { suggestionsFor } = await import("../editor/suggest");
+      const { suggestionsFor } = await import("../../editor/suggest");
       const proposed = suggestionsFor(now.text, text);
       if (!proposed.length) return toast("Nothing to suggest: it reads as it did", { tone: "info" });
       for (const p of proposed) {
@@ -207,7 +208,7 @@ export function DocEdit({
   const suggesting = mode === "suggest";
   const commits = suggesting || !a.ref.startsWith("mission:");
   return (
-    <div className="doc-edit">
+    <MissionArtifactEdit>
       {a.saves && a.saves.how !== "capsule" && !suggesting && (
         <Callout tone={lands ? "attention" : "info"} icon={lands ? "alert" : "info"} title={lands ? `Saving lands it on ${a.saves.branch}` : `Saving lifts a capsule for it`}>
           {lands ? (
@@ -254,56 +255,62 @@ export function DocEdit({
           onCancel={close}
         />
       )}
-      <div className="editor-bar">
-        {a.annotatable && (
-          <Segmented value={suggesting ? "suggest" : "edit"} onChange={setMode} aria-label="Edit or suggest">
-            <Segment value="edit" title="Your changes are made: saving writes them in">
-              Edit
-            </Segment>
-            <Segment value="suggest" title="Your changes are offered: each becomes a suggestion on a thread, to accept or decline one by one">
-              Suggest
-            </Segment>
-          </Segmented>
-        )}
-        {commits && (
-          <Input
-            className="commit-line"
-            value={message}
-            placeholder={suggesting ? "Say why (each suggestion's thread opens with it)" : `Say what changed (the commit's message: "${a.saves?.subject ?? a.docKind?.subject ?? "Edit …"}" if not)`}
-            aria-label={suggesting ? "Why" : "The commit's message"}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                save();
+      <MissionArtifactEditBar
+        mode={
+          a.annotatable && (
+            <Segmented value={suggesting ? "suggest" : "edit"} onChange={setMode} aria-label="Edit or suggest">
+              <Segment value="edit" title="Your changes are made: saving writes them in">
+                Edit
+              </Segment>
+              <Segment value="suggest" title="Your changes are offered: each becomes a suggestion on a thread, to accept or decline one by one">
+                Suggest
+              </Segment>
+            </Segmented>
+          )
+        }
+        message={
+          commits
+            ? {
+                value: message,
+                placeholder: suggesting ? "Say why (each suggestion's thread opens with it)" : `Say what changed (the commit's message: "${a.saves?.subject ?? a.docKind?.subject ?? "Edit …"}" if not)`,
+                label: suggesting ? "Why" : "The commit's message",
+                onChange: setMessage,
+                onKeyDown: (e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    save();
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    close();
+                  }
+                },
               }
-              if (e.key === "Escape") {
-                e.preventDefault();
-                close();
-              }
-            }}
-          />
-        )}
-        <span className="dim kept">
-          {kept && unsaved ? (
+            : undefined
+        }
+        kept={
+          kept && unsaved ? (
             <>
               Draft kept <Time iso={kept} as="relative" />
             </>
-          ) : null}
-        </span>
-        <span className="spacer" />
-        {unsaved && (
-          <Button variant="ghost" onClick={discard} disabled={busy} title="Throw this edit away">
-            Discard
-          </Button>
-        )}
-        <Button variant="ghost" onClick={close} disabled={busy} title="Leave, keeping your edit as a draft">
-          Close <Keys k="esc" />
-        </Button>
-        <Button variant="primary" onClick={save} disabled={busy || !unsaved}>
-          {busy ? (suggesting ? "Suggesting…" : lands ? "Landing…" : "Saving…") : suggesting ? "Suggest" : lands ? `Save, and land on ${a.saves?.branch}` : "Save"} <Keys k="mod+⏎" />
-        </Button>
-      </div>
-    </div>
+          ) : null
+        }
+        actions={
+          <>
+            {unsaved && (
+              <Button variant="ghost" onClick={discard} disabled={busy} title="Throw this edit away">
+                Discard
+              </Button>
+            )}
+            <Button variant="ghost" onClick={close} disabled={busy} title="Leave, keeping your edit as a draft">
+              Close <Keys k="esc" />
+            </Button>
+            <Button variant="primary" onClick={save} disabled={busy || !unsaved}>
+              {busy ? (suggesting ? "Suggesting…" : lands ? "Landing…" : "Saving…") : suggesting ? "Suggest" : lands ? `Save, and land on ${a.saves?.branch}` : "Save"} <Keys k="mod+⏎" />
+            </Button>
+          </>
+        }
+      />
+    </MissionArtifactEdit>
   );
 }

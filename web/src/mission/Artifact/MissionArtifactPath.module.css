@@ -1,0 +1,7 @@
+/* Where a document is on disk (MissionArtifactPath.tsx). */
+
+.path {
+  margin: var(--space-6) 0 0;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}

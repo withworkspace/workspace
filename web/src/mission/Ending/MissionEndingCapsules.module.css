@@ -1,0 +1,17 @@
+/* Capsules that ended alone (MissionEndingCapsules.tsx). */
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  display: grid;
+  gap: 4px;
+  font-size: var(--text-sm);
+}
+
+.list li {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+}

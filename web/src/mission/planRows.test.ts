@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Bundle, MissionEvent, Stage } from "../api";
-import { foldNote, planWindow, stepBundle, stepText, stepTimes, waitHow, watchWords, worthOpening } from "./planRows";
+import { checksWords, foldNote, planWindow, stepBundle, stepText, stepTimes, waitHow, watchWords, worthOpening } from "./planRows";
 
 // A plan of n steps at step `at` (0: none started; n + 1: all done).
 function plan(n: number, at: number, over: Record<number, Partial<Stage>> = {}): Stage[] {
@@ -144,5 +144,27 @@ describe("waitHow", () => {
     const at = () => "14:02";
     expect(watchWords(wait({ passes: "watched" }), at)).toBe("ws hasn't looked yet");
     expect(watchWords(wait({ passes: "watched", watch: { since: "x", looked: "y", looks: 3, came: "not yet" } }), at)).toBe("ws last looked 14:02: not yet");
+  });
+});
+
+describe("checksWords", () => {
+  const step = (over: Partial<Stage>): Stage => ({ n: 3, title: "Verify", text: "Verify. It works.", state: "current", type: "Verify", ...over });
+  const check = (result?: "met" | "unmet") => ({ text: "It works", result }) as NonNullable<Stage["checks"]>[number];
+  const at = () => "14:02";
+
+  it("says how many checks there are before they've run", () => {
+    expect(checksWords(step({ checks: [check()] }), at)).toBe("1 check, not run yet");
+    expect(checksWords(step({ checks: [check(), check()] }), at)).toBe("2 checks, not run yet");
+  });
+
+  it("says how many were met in the latest round", () => {
+    expect(checksWords(step({ round: 2, checks: [check("met"), check("unmet")] }), at)).toBe("Checks, round 2: 1 of 2 met");
+  });
+
+  it("says a Wait's as ws last looked, and once it's passed, as ws last saw them", () => {
+    const wait = step({ type: "Wait", passes: "watched", checks: [check()] });
+    expect(checksWords(wait, at)).toBe("ws hasn't looked yet");
+    expect(checksWords({ ...wait, state: "accepted" }, at)).toBe("Its check, as ws last saw it");
+    expect(checksWords({ ...wait, state: "accepted", checks: [check(), check()] }, at)).toBe("Its checks, as ws last saw them");
   });
 });

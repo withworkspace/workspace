@@ -1,0 +1,16 @@
+/* A mission's crew at work, in its row of the list (MissionListCrew.tsx). */
+
+.chip {
+  font-family: var(--mono);
+  font-weight: 500;
+}
+
+.pulse {
+  animation: global(pulse) 2.2s var(--ease) infinite;
+}
+
+@media (max-width: 720px) {
+  .chip {
+    display: none;
+  }
+}
