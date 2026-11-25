@@ -129,13 +129,6 @@
         "label": "End it, answered",
         "icon": "check"
       },
-      "more": [
-        {
-          "do": "end-how",
-          "label": "Say how it ends…",
-          "quiet": true
-        }
-      ],
       "by": "orchestrator",
       "since": "2026-11-20T15:14:58.82689Z"
     }

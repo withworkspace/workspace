@@ -58,7 +58,6 @@ const (
 	DoBrief      = "brief"         // start briefing it
 	DoConfirm    = "confirm"       // confirm its brief and plan
 	DoEnd        = "end"           // end it, as suggested
-	DoEndHow     = "end-how"       // say how it ends
 	DoNotYet     = "not-yet"       // put the suggested ending aside
 	DoReopen     = "unend"         // take the ending back
 	DoArchive    = "archive"       // archive it
@@ -430,18 +429,13 @@ func (b cardBuilder) acts(c *Card, h Headline) {
 			c.More = []Act{{Do: DoReopen, Label: "Reopen", Quiet: true}}
 		}
 	case VerbEnd:
+		// A press ends it: as suggested, or (nothing suggested, every
+		// step done) as its work stands. Putting a suggestion aside is
+		// dismissing, which takes a question first where one's open:
+		// offered only where it's this.
 		c.Primary = &Act{Do: DoEnd, Label: label, Icon: "check"}
-		c.More = []Act{{Do: DoEndHow, Label: "Say how it ends…", Quiet: true}}
-		switch m := b.s.M; {
-		case m != nil && m.Conclude != nil && m.Conclude.Ending != "":
-			// Putting it aside is dismissing, which takes a question
-			// first where one's open: offered only where it's this.
-			if len(m.Tasks) == 0 && m.Dispatch == nil {
-				c.More = append(c.More, Act{Do: DoNotYet, Label: "Not yet", Quiet: true})
-			}
-		default:
-			// Nothing's suggested: how it ends is yours to say.
-			c.Primary, c.More = &Act{Do: DoEndHow, Label: "Wrap it up", Icon: "check"}, nil
+		if m := b.s.M; m != nil && m.Conclude != nil && m.Conclude.Ending != "" && len(m.Tasks) == 0 && m.Dispatch == nil {
+			c.More = []Act{{Do: DoNotYet, Label: "Not yet", Quiet: true}}
 		}
 	case VerbBrief:
 		c.Primary = &Act{Do: DoBrief, Label: "Brief it", Icon: "pencil"}

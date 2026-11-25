@@ -557,11 +557,17 @@ func newMissionEndCmd() *cobra.Command {
 		Use:   "end [what it came to]",
 		Short: "End the mission: as suggested, or as you say (the user's)",
 		Long: `End the mission. Without --as, it ends as the orchestrator (or crew)
-suggested with ws mission conclude. With --as, it ends as you say, with
-each part of Z checked as conclude does it:
+suggested with ws mission conclude; with nothing suggested and every step
+of its plan done, it ends landed if its work has merged, answered if it
+never had any. With --as, it ends as you say:
 
-  ws mission end --as dropped "Not worth it now"
-  ws mission end --as answered "Not a bug" --met "1: …" --unmet "2: …"
+  ws mission end --as dropped
+  ws mission end --as answered "Not a bug"
+
+Checking Z is for whoever suggests an ending, not for you: --met and
+--unmet are there if you want a part on the record, and the rest go
+unchecked. A mission that landed you rarely end at all: ws ends it once
+every pull request has merged and nothing else on it waits.
 
 An ended mission is in the past, out of what needs you; archive it to put
 it out of sight. ws mission reopen takes the ending back.`,
