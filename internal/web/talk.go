@@ -274,6 +274,62 @@ func (s *Server) setTalkStatus(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// TalkModel is what a conversation's next turns run on: its role's
+// harness, and the model, yours (Chosen) or the role's.
+type TalkModel struct {
+	Harness string `json:"harness"`
+	Model   string `json:"model"`
+	Chosen  bool   `json:"chosen,omitempty"`
+}
+
+func (s *Server) talkModel(w http.ResponseWriter, r *http.Request) {
+	s.withTalkStore(w, r, func(store conversation.Store) {
+		id := r.PathValue("id")
+		if _, err := talkDetail(store, id); err != nil {
+			s.answerTalk(w, store, id, err)
+			return
+		}
+		s.answerTalkModel(w, r, store, id)
+	})
+}
+
+// setTalkModel is you choosing the model a conversation's next turns run
+// on: {"model": ""} is its role's again.
+func (s *Server) setTalkModel(w http.ResponseWriter, r *http.Request) {
+	var b struct {
+		Model string `json:"model"`
+	}
+	if !readBody(w, r, &b) {
+		return
+	}
+	s.withTalkStore(w, r, func(store conversation.Store) {
+		id := r.PathValue("id")
+		if _, err := talkDetail(store, id); err != nil {
+			s.answerTalk(w, store, id, err)
+			return
+		}
+		if _, err := s.App.SetTalkModel(scope(r), id, b.Model, ops.AsYou); err != nil {
+			s.answerTalk(w, store, id, err)
+			return
+		}
+		s.answerTalkModel(w, r, store, id)
+	})
+}
+
+func (s *Server) answerTalkModel(w http.ResponseWriter, r *http.Request, store conversation.Store, id string) {
+	p, err := s.App.TalkPick(scope(r), id)
+	if err != nil {
+		s.answerTalk(w, store, id, err)
+		return
+	}
+	c, err := store.Load(id)
+	if err != nil {
+		s.answerTalk(w, store, id, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, TalkModel{Harness: p.Harness, Model: p.Model, Chosen: c.Model != nil && c.Model.Harness == p.Harness})
+}
+
 // settleProposal is you accepting (with any edits) or declining what the
 // agent proposed.
 func (s *Server) settleProposal(w http.ResponseWriter, r *http.Request) {

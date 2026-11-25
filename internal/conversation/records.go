@@ -357,6 +357,12 @@ func (c *Conversation) apply(l line) {
 		c.Status, c.StatusBy, c.StatusAt = l.Status.Status, l.Status.By, &at
 	case l.Session != nil:
 		c.Session = l.Session
+	case l.Model != nil:
+		if l.Model.Model == "" {
+			c.Model = nil
+		} else {
+			c.Model = l.Model
+		}
 	case l.Suggest != nil:
 		for i := range c.Suggestions {
 			if c.Suggestions[i].State == SuggestOpen {

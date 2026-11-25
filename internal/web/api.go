@@ -310,6 +310,8 @@ type Crew struct {
 	Options []string `json:"options,omitempty"`
 	// Structured is crew over ACP: no terminal, just its conversation.
 	Structured bool `json:"structured,omitempty"`
+	// SwitchModel: it can be put on another model while it runs.
+	SwitchModel bool `json:"switchModel,omitempty"`
 	// WaitingOn is the work it ended its turn to wait on, while ws holds
 	// that turn (mission.Crew.OwnWork): what it left running, in a line.
 	WaitingOn string `json:"waitingOn,omitempty"`

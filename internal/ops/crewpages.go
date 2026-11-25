@@ -33,6 +33,9 @@ type CrewPages interface {
 	Watch(slug, id string) (changes, ended <-chan struct{}, cancel func(), ok bool)
 	Key(slug, id string, k TermKey) error
 	Paste(slug, id, text string) error
+	// SwitchModel puts running crew on another model, their session going
+	// on (crew.Run's SwitchModel), and records it as theirs.
+	SwitchModel(slug, id, model string) (string, error)
 }
 
 // CrewSession is where a crew's harness keeps its session: Path, or Why
@@ -83,6 +86,7 @@ func (NoCrew) Prompt(slug, id string) (PromptView, bool)            { return Pro
 func (NoCrew) Screen(slug, id string) (Screen, bool)                { return Screen{}, false }
 func (NoCrew) Key(slug, id string, k TermKey) error                 { return errNotHere }
 func (NoCrew) Paste(slug, id, text string) error                    { return errNotHere }
+func (NoCrew) SwitchModel(slug, id, model string) (string, error)   { return "", errNotHere }
 func (NoCrew) Watch(slug, id string) (<-chan struct{}, <-chan struct{}, func(), bool) {
 	return nil, nil, nil, false
 }
@@ -223,6 +227,30 @@ func (p crewPages) Paste(slug, id, text string) error {
 		return errNotHere
 	}
 	return runs.Paste(slug+"/"+id, text)
+}
+
+func (p crewPages) SwitchModel(slug, id, model string) (string, error) {
+	model = strings.TrimSpace(model)
+	if model == "" {
+		return "", errors.New("say which model")
+	}
+	_, key, err := p.w.crewOf(slug, id)
+	if err != nil {
+		return "", err
+	}
+	runs, ok := p.w.runs()
+	if !ok {
+		return "", errNotHere
+	}
+	r, ok := runs.Run(key)
+	if !ok {
+		return "", fmt.Errorf("%s isn't running", id)
+	}
+	said, err := r.SwitchModel(model)
+	if err != nil {
+		return "", err
+	}
+	return said, p.w.Missions.SetCrewModel(slug, id, model)
 }
 
 // Say gives a mission's crew a message: typed into, or sent to, crew the

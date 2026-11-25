@@ -172,7 +172,7 @@ func (w *Workspace) AnswerConversation(sc doc.Scope, id string) error {
 	}
 	a := &answering{w: w, sc: sc, store: store, here: w.here(sc, c)}
 	pick, converser, perr := r.role(Roles(w.Config()))
-	a.pick = pick
+	a.pick = chosenModel(pick, c)
 	// The planner's turn is marked on its mission from when it was asked
 	// for (markPlanning), and here for a run nobody asked ws for; it ends with
 	// this run, its reply recorded, however the run ends.
@@ -606,6 +606,7 @@ func (w *Workspace) DraftDecision(slug, id string) error {
 	if err != nil {
 		return err
 	}
+	pick = chosenModel(pick, c)
 	session := ""
 	if c.Session != nil && c.Session.Harness == pick.Harness {
 		session = c.Session.ID
@@ -778,4 +779,13 @@ func turnCalls(calls []harness.ToolCall) []conversation.Call {
 		out = append(out, conversation.Call{Tool: c.Tool, Input: clipLine(c.Input, 300), Error: c.Error, Refused: c.Refused})
 	}
 	return out
+}
+
+// chosenModel is what a conversation's turns run on: its role's pick, on
+// the model you chose for it, where you chose one on that harness.
+func chosenModel(p harness.Pick, c *conversation.Conversation) harness.Pick {
+	if c != nil && c.Model != nil && c.Model.Harness == p.Harness && c.Model.Model != "" {
+		p.Model = c.Model.Model
+	}
+	return p
 }

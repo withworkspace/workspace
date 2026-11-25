@@ -343,7 +343,7 @@ func crewOf(c mission.Crew) Crew {
 	w := Crew{ID: c.ID, Harness: c.Harness, Model: c.Model, Role: c.Role, Capsule: c.Capsule, Started: c.Started,
 		Ended: c.Ended != nil, Starting: c.Ended == nil && c.Starting != nil,
 		Activity: CrewActivity(c.Activity), Status: c.Status, LastReply: c.LastReply, Notice: c.Notice, Options: c.Options,
-		Structured: harness.CapsOf(c.Harness).Crew == harness.CrewACP}
+		Structured: harness.CapsOf(c.Harness).Crew == harness.CrewACP, SwitchModel: harness.CapsOf(c.Harness).SwitchModel}
 	if work, ok := c.OwnWork(time.Now()); ok {
 		w.WaitingOn = mission.WorkWhat(work)
 	}

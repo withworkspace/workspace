@@ -198,6 +198,18 @@ func TestAnswering(t *testing.T) {
 	if c, _ = s.Load(c.ID); c.Session == nil || c.Session.ID != "abc" || len(c.Turns) != 2 {
 		t.Errorf("session = %+v", c)
 	}
+
+	// A model chosen for its turns, then the role's again.
+	if err := s.SetModel(c.ID, Model{Harness: "claude", Model: "opus", By: You, At: at}); err != nil {
+		t.Fatal(err)
+	}
+	if c, _ = s.Load(c.ID); c.Model == nil || c.Model.Model != "opus" || c.Model.Harness != "claude" || c.Session == nil {
+		t.Errorf("model = %+v", c.Model)
+	}
+	s.SetModel(c.ID, Model{Harness: "claude", By: You, At: at})
+	if c, _ = s.Load(c.ID); c.Model != nil {
+		t.Errorf("model after going back = %+v", c.Model)
+	}
 }
 
 // A suggestion replaces text that's in the document once; a newer one
