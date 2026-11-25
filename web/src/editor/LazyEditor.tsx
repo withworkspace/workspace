@@ -1,6 +1,8 @@
 import { lazy, Suspense } from "react";
 import { markdownClass } from "../markdown/LazyMarkdown";
+import { cx } from "../ui/cx";
 import type { EditorProps } from "./MarkdownEditor";
+import css from "./MarkdownEditor.module.css";
 
 export type { Draft, EditorProps } from "./MarkdownEditor";
 export type { Quote } from "./views";
@@ -14,9 +16,9 @@ export function MarkdownEditor(props: EditorProps) {
   return (
     <Suspense
       fallback={
-        <div className={`doc-editor loading${props.compact ? " compact" : ""}`}>
+        <div className={css.editor}>
           <div className="prose">
-            <div className={`markdown pm ${markdownClass}`}>{props.initial}</div>
+            <div className={cx("markdown pm", markdownClass, css.pm, props.compact && css.compact, css.loading)}>{props.initial}</div>
           </div>
         </div>
       }

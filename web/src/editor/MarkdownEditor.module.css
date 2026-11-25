@@ -1,0 +1,543 @@
+/* The document editor (MarkdownEditor.tsx), and the document ProseMirror
+   draws in it: drawn as the reader draws it (markdownClass), with what
+   only an editor has. Its node views and marks (views.ts, cells.ts,
+   notes.ts, schema.ts) and the read-only drawing of suggested edits
+   (TrackedDoc.tsx) are drawn by this module too: they're its document's.
+   The rules keep the order they had in styles.css. */
+
+.editor {
+  position: relative;
+}
+
+.body {
+  position: relative;
+}
+
+/* ProseMirror's element: the document itself. */
+.pm {
+  outline: none;
+  min-height: 16em;
+  padding-bottom: 3em;
+  caret-color: var(--accent);
+}
+
+/* In a card. */
+.pm.compact {
+  min-height: 8em;
+  padding-bottom: 1em;
+}
+
+/* As written, while the editor loads (LazyEditor.tsx). */
+.pm.loading {
+  white-space: pre-wrap;
+  color: var(--dim);
+}
+
+/* What to write, while there's nothing. (The paragraph it's said in: it's
+   a line of the document, where its text will be.) */
+.pm > .empty {
+  display: block;
+  padding: 0;
+  color: inherit;
+  text-align: inherit;
+}
+
+.pm .empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--faint);
+  pointer-events: none;
+}
+
+.pm li.task {
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  margin-left: -1.3em;
+}
+
+.pm li.task > input {
+  flex: none;
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.pm li.task > .taskBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.pm li.task > .taskBody > p {
+  margin: 0;
+}
+
+/* A block of code (views.ts' Code): it wraps, as it's typed. */
+.pm pre.code {
+  white-space: pre-wrap;
+}
+
+/* A diagram (```mermaid): drawn, or its source, with a toggle top left to
+   show one or the other, and room left above each for it. */
+.pm .diagram {
+  position: relative;
+}
+
+.pm .diagramToggle {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  z-index: 1;
+  padding: 1px;
+  user-select: none;
+}
+
+.pm .diagramToggle button {
+  min-height: 20px;
+  padding: 0 8px;
+  font-size: var(--text-xs);
+}
+
+/* drawn: what Mermaid draws in it, whichever it is. */
+.pm .diagram > pre.code,
+.pm .diagramDrawing > .drawn {
+  padding-top: 38px;
+}
+
+@media print {
+  .pm .diagramToggle {
+    display: none;
+  }
+}
+
+.pm :global(.ProseMirror-selectednode) {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.pm hr {
+  padding: 6px 0;
+  background-clip: content-box;
+}
+
+/* Markdown the editor has no shape for (HTML, a footnote, a link's
+   definition), shown as written (schema.ts). */
+.pm .rawBlock,
+.pm .rawInline {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  color: var(--dim);
+  background: var(--code-bg);
+  border-radius: var(--radius-sm);
+}
+
+.pm .rawBlock {
+  padding: 8px 10px;
+  white-space: pre-wrap;
+}
+
+.pm .rawInline {
+  padding: 1px 4px;
+}
+
+.pm img {
+  max-width: 100%;
+}
+
+/* The words open threads are on, as the reader highlights them. */
+.pm .threadMark.threadAsk {
+  background-color: rgb(211 139 29 / 0.17);
+}
+
+.pm .threadMark.threadChange {
+  background-color: rgb(212 76 71 / 0.16);
+}
+
+.pm .threadMark.threadNote {
+  background-color: rgb(138 138 148 / 0.17);
+}
+
+:global(:root[data-theme="dark"]) .pm .threadMark.threadAsk {
+  background-color: rgb(242 184 128 / 0.2);
+}
+
+:global(:root[data-theme="dark"]) .pm .threadMark.threadChange {
+  background-color: rgb(248 81 73 / 0.22);
+}
+
+:global(:root[data-theme="dark"]) .pm .threadMark.threadNote {
+  background-color: rgb(160 160 170 / 0.2);
+}
+
+/* Suggested edits in place (TrackedDoc.tsx): what goes struck through,
+   what comes underlined, the edit marked brighter; Accept and Decline
+   where it ends. */
+.pm .change {
+  border-radius: 2px;
+  text-decoration-thickness: 1.5px;
+  cursor: pointer;
+}
+
+.pm .del {
+  background: var(--del-bg);
+  text-decoration-line: line-through;
+  text-decoration-color: var(--red-fill);
+  color: var(--dim);
+}
+
+.pm .ins {
+  background: var(--add-bg);
+  text-decoration-line: underline;
+  text-decoration-color: var(--green-fill);
+  text-underline-offset: 3px;
+}
+
+.pm .del + .ins {
+  margin-left: 0.2em;
+}
+
+.pm .del.focus {
+  background: var(--del-strong);
+}
+
+.pm .ins.focus {
+  background: var(--add-strong);
+}
+
+.pm .changeBlock {
+  border-radius: var(--radius-sm);
+  box-shadow: -10px 0 0 var(--panel);
+  cursor: pointer;
+}
+
+.pm .changeBlock.del {
+  background: var(--del-bg);
+  box-shadow: -10px 0 0 var(--del-bg), -13px 0 0 var(--red-fill);
+}
+
+.pm .changeBlock.ins {
+  background: var(--add-bg);
+  text-decoration: none;
+  box-shadow: -10px 0 0 var(--add-bg), -13px 0 0 var(--green-fill);
+}
+
+/* An item's bullet stays clear of the edge. */
+.pm li.changeBlock.del,
+.pm li.changeBlock.ins {
+  box-shadow: none;
+  padding-left: 4px;
+}
+
+.pm .changeBlock.del.focus {
+  background: var(--del-strong);
+}
+
+.pm .changeBlock.ins.focus {
+  background: var(--add-strong);
+}
+
+.pm .changeBar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  padding: 2px 4px 2px 8px;
+  vertical-align: middle;
+  font-size: var(--text-xs);
+  line-height: 1;
+  color: var(--dim);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  white-space: nowrap;
+  user-select: none;
+}
+
+div.changeBar {
+  display: flex;
+  width: fit-content;
+  margin: -6px 0 1em;
+}
+
+.pm .changeBar.focused {
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.pm .changeBar button {
+  min-height: 22px;
+  padding: 1px 8px;
+}
+
+/* The line that asks for a cell, while it's typed (cells.ts): it reads
+   as an ask already. */
+.pm .cellAsking {
+  margin-left: -12px;
+  padding: 4px 10px 4px 12px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.pm .cellAsking::after {
+  content: "⏎ to ask";
+  float: right;
+  font: 400 var(--text-xs) / 22px var(--font);
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+/* A cell: a rule down its left, what was asked for over it, and what it
+   holds as the rest of the document reads. */
+.pm .cell {
+  position: relative;
+  margin: 1.1em 0 1.1em -12px;
+  padding-left: 10px;
+  border-left: 2px solid var(--accent-line);
+  border-radius: 1px;
+  transition: border-color var(--slow) var(--ease);
+}
+
+.pm .cell:hover,
+.pm .cell:focus-within {
+  border-left-color: var(--accent);
+}
+
+.cellHead {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 2px -4px;
+  padding: 1px 6px 1px 4px;
+  border-radius: var(--radius-sm);
+  font: var(--text-sm) / 20px var(--font);
+  color: var(--dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cellHead:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.cellGlyph {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.cellPrompt {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cellStatus {
+  flex: none;
+  max-width: 60%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--faint);
+}
+
+.cellStatus::before {
+  content: "·";
+  margin-right: 6px;
+}
+
+.pm .cell.filling,
+.pm .cell.starting {
+  border-left-color: var(--progress-fill);
+}
+
+.cell.filling .cellStatus,
+.cell.starting .cellStatus {
+  color: var(--progress);
+}
+
+.pm .cell.failed,
+.pm .cell.stale {
+  border-left-color: var(--attention-fill);
+}
+
+.cell.failed .cellStatus,
+.cell.stale .cellStatus {
+  color: var(--attention);
+}
+
+.cellBody > :first-child {
+  margin-top: 0;
+}
+
+.cellBody > :last-child {
+  margin-bottom: 0;
+}
+
+/* Nothing in it yet: lines where it'll be, moving while it's being
+   written. */
+.cell.blank .cellBody {
+  min-height: 54px;
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(var(--line), var(--line)) 0 6px / 62% 10px no-repeat,
+    linear-gradient(var(--line), var(--line)) 0 24px / 84% 10px no-repeat,
+    linear-gradient(var(--line), var(--line)) 0 42px / 46% 10px no-repeat;
+}
+
+.cell.blank.filling .cellBody,
+.cell.blank.starting .cellBody {
+  animation: global(pulse) 1.6s var(--ease) infinite;
+}
+
+/* Written again while it holds something: what's there waits, dimmed. */
+.cell.filling:not(.blank) .cellBody {
+  opacity: 0.55;
+  transition: opacity var(--slow) var(--ease);
+}
+
+@media (max-width: 860px) {
+  .pm .cell,
+  .pm .cellAsking {
+    margin-left: 0;
+  }
+}
+
+/* A finding's words, on the page (notes.ts): marked, and opened with a
+   click. */
+.pm .noteMark {
+  border-bottom: 2px dotted var(--attention-fill);
+  background: var(--attention-soft);
+  border-radius: 2px 2px 0 0;
+  cursor: pointer;
+}
+
+.pm .noteMark.cold {
+  border-bottom-color: var(--waiting-fill);
+  background: var(--waiting-soft);
+}
+
+.pm .noteMark.formal {
+  border-bottom-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.cell.filled .cellStatus {
+  color: var(--waiting);
+}
+
+/* A question asked in a page (>?): only its head, where it was asked. What
+   it's answered is in its panel, and nothing's in the page for it. */
+.pm .cellAsking.question {
+  background: var(--waiting-soft);
+  color: var(--waiting);
+}
+
+.pm .cellAsking.question::after {
+  color: var(--waiting);
+}
+
+.pm .cell.ask {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  border-left-color: var(--waiting-fill);
+}
+
+.pm .cell.ask .cellBody {
+  display: none;
+}
+
+.pm .cell.ask .cellGlyph {
+  color: var(--waiting);
+}
+
+.pm .cell.ask .cellHead {
+  margin-bottom: 0;
+}
+
+/* Answered, a question says so where it was asked: its answer's a click
+   away, and you weren't stopped to be shown it. */
+.pm .cell.ask.filled .cellStatus {
+  color: var(--waiting);
+  font-weight: 500;
+}
+
+/* A block of an outline, put in before it's written: what it'll say is in
+   its head, and it waits its turn. */
+.pm .cell.starting.blank .cellPrompt {
+  color: var(--fg);
+}
+
+/* Refs in the editor (refs.ts): what words name, marked as
+   somewhere to go, with more on hover. What's only read draws the same
+   from refs/RefName.module.css and refs/RefLabel.module.css. */
+
+.pm .namedRef {
+  text-decoration: underline dotted var(--faint);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.pm .namedRef:hover {
+  text-decoration-color: var(--accent);
+  color: var(--accent);
+}
+
+.pm .namedRef.kMission,
+.pm .namedRef.kPage,
+.pm .namedRef.kTalk,
+.pm .namedRef.kPr,
+.pm .namedRef.kThing {
+  font-weight: 500;
+}
+
+/* What's said after one: where a mission stands, a page's name. */
+.pm .refLabel {
+  margin-left: 5px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font: 500 var(--text-xs) / 18px var(--font);
+  color: var(--tone, var(--dim));
+  background: var(--tone-soft, var(--well));
+  vertical-align: 1px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* A ref drawn as a pill (refs/views.tsx: a repo), in its accent colour,
+   by its own text. */
+.pm .namedRef.shapePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--text);
+  background: color-mix(in srgb, var(--ref-accent, var(--accent)) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ref-accent, var(--accent)) 45%, transparent);
+}
+
+.pm .namedRef.shapePill:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--ref-accent, var(--accent)) 24%, transparent);
+}
+
+/* A ref's name, while its own text is shown in its place (the editor,
+   with the cursor elsewhere). */
+.pm .refHidden {
+  display: none;
+}

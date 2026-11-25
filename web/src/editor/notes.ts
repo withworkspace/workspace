@@ -2,6 +2,8 @@ import type { Node as PMNode } from "prosemirror-model";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet, type EditorView } from "prosemirror-view";
 import { cellContent } from "./cells";
+import { cx } from "../ui/cx";
+import css from "./MarkdownEditor.module.css";
 import { schema } from "./schema";
 import { quoteRanges } from "./views";
 
@@ -39,10 +41,13 @@ function whereIs(doc: PMNode, quote: string): { from: number; to: number }[] {
   return [];
 }
 
+// A pass's colour, where it has one of its own.
+const passes: Record<string, string | undefined> = { cold: css.cold, formal: css.formal };
+
 function build(doc: PMNode, notes: Note[]): NotesState {
   const decos: Decoration[] = [];
   for (const n of notes) {
-    for (const r of whereIs(doc, n.quote)) decos.push(Decoration.inline(r.from, r.to, { class: `note-mark pass-${n.pass}`, "data-note": n.key }));
+    for (const r of whereIs(doc, n.quote)) decos.push(Decoration.inline(r.from, r.to, { class: cx(css.noteMark, passes[n.pass]), "data-note": n.key }));
   }
   return { notes, decos: DecorationSet.create(doc, decos) };
 }

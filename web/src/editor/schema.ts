@@ -1,4 +1,6 @@
 import { type MarkSpec, type NodeSpec, Schema } from "prosemirror-model";
+import { codeBlockClass } from "../markdown/CodeBlock";
+import css from "./MarkdownEditor.module.css";
 
 // The editor's schema: markdown as the reader draws it (GitHub-flavoured:
 // tables, task lists, strikethrough), a node for each kind of mdast node.
@@ -32,7 +34,7 @@ const nodes: Record<string, NodeSpec> = {
     group: "block",
     code: true,
     defining: true,
-    toDOM: () => ["pre", { class: "code-block" }, ["code", 0]],
+    toDOM: () => ["pre", { class: codeBlockClass }, ["code", 0]],
     parseDOM: [{ tag: "pre", preserveWhitespace: "full" }],
   },
   bullet_list: {
@@ -54,7 +56,7 @@ const nodes: Record<string, NodeSpec> = {
     attrs: { checked: { default: null }, spread: { default: false } },
     content: "block+",
     defining: true,
-    toDOM: (n) => ["li", n.attrs.checked === null ? {} : { class: "task", "data-checked": String(n.attrs.checked) }, 0],
+    toDOM: (n) => ["li", n.attrs.checked === null ? {} : { class: css.task, "data-checked": String(n.attrs.checked) }, 0],
     parseDOM: [{ tag: "li" }],
   },
   // A table's first row is its header (markdown has no other kind).
@@ -76,7 +78,7 @@ const nodes: Record<string, NodeSpec> = {
     attrs: { text: {} },
     group: "block",
     atom: true,
-    toDOM: (n) => ["pre", { class: "raw-block" }, n.attrs.text],
+    toDOM: (n) => ["pre", { class: css.rawBlock }, n.attrs.text],
   },
   // A cell of a page: what an agent wrote where you asked for it (>> a
   // table of the routes). id is its conversation (w7; "" until the server's
@@ -92,7 +94,7 @@ const nodes: Record<string, NodeSpec> = {
     group: "block",
     isolating: true,
     defining: true,
-    toDOM: (n) => ["div", { class: "cell", "data-cell": n.attrs.id }, 0],
+    toDOM: (n) => ["div", { class: css.cell, "data-cell": n.attrs.id }, 0],
   },
   text: { group: "inline" },
   hard_break: { inline: true, group: "inline", selectable: false, toDOM: () => ["br"], parseDOM: [{ tag: "br" }] },
@@ -108,7 +110,7 @@ const nodes: Record<string, NodeSpec> = {
     inline: true,
     group: "inline",
     atom: true,
-    toDOM: (n) => ["code", { class: "raw-inline" }, n.attrs.text],
+    toDOM: (n) => ["code", { class: css.rawInline }, n.attrs.text],
   },
 };
 

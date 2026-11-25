@@ -1,0 +1,18 @@
+/* A link's address, asked for under its words (EditorLinkBox.tsx). */
+
+.box {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.box input {
+  width: min(320px, 60vw);
+}

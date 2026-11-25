@@ -3,7 +3,9 @@ import { type Command, type EditorState, Plugin, PluginKey, TextSelection } from
 import { Decoration, DecorationSet, type EditorView, type NodeView } from "prosemirror-view";
 import { parseMarkdown, saveMarkdown } from "./markdown";
 import { schema } from "./schema";
+import { cx } from "../ui/cx";
 import { clip } from "../ui/text";
+import css from "./MarkdownEditor.module.css";
 
 // Cells: places in a page where you asked for something and wrote on.
 //
@@ -114,7 +116,7 @@ export function cellPlugins(host: () => CellHost | undefined): Plugin[] {
               const st = states?.get(name);
               decos.push(Decoration.node(pos, pos + node.nodeSize, {}, { cell: st ?? null }));
             } else if (asking(node)) {
-              decos.push(Decoration.node(pos, pos + node.nodeSize, { class: `cell-asking${asking(node)?.ask ? " question" : ""}` }));
+              decos.push(Decoration.node(pos, pos + node.nodeSize, { class: cx(css.cellAsking, asking(node)?.ask && css.question) }));
             }
           });
           return DecorationSet.create(state.doc, decos);
@@ -123,6 +125,9 @@ export function cellPlugins(host: () => CellHost | undefined): Plugin[] {
     }),
   ];
 }
+
+// Where a cell stands, as its look.
+const statuses: Record<CellState["status"], string> = { starting: css.starting, filling: css.filling, filled: css.filled, stale: css.stale, failed: css.failed };
 
 // CellView draws a cell: a head saying what was asked for and where it
 // stands (clicked, the page opens it), then what it holds, to edit as any
@@ -142,24 +147,25 @@ export class CellView implements NodeView {
   ) {
     this.dom = document.createElement("div");
     this.head = document.createElement("div");
-    this.head.className = "cell-head";
+    // cell-head: what the page finds a cell's head by (pages/Page.tsx).
+    this.head.className = cx("cell-head", css.cellHead);
     this.head.contentEditable = "false";
     this.head.setAttribute("role", "button");
     this.head.title = "Ask for a change, or see what it read";
     const glyph = document.createElement("span");
-    glyph.className = "cell-glyph";
+    glyph.className = css.cellGlyph;
     glyph.setAttribute("aria-hidden", "true");
     this.glyph = glyph;
     this.prompt = document.createElement("span");
-    this.prompt.className = "cell-prompt";
+    this.prompt.className = css.cellPrompt;
     this.status = document.createElement("span");
-    this.status.className = "cell-status";
+    this.status.className = css.cellStatus;
     this.head.append(glyph, this.prompt, this.status);
     // The head takes the press (the editor would put the cursor there).
     this.head.addEventListener("mousedown", (e) => e.preventDefault());
     this.head.addEventListener("click", () => this.host()?.open(this.node.attrs.id, this.node.attrs.key));
     this.contentDOM = document.createElement("div");
-    this.contentDOM.className = "cell-body";
+    this.contentDOM.className = css.cellBody;
     this.dom.append(this.head, this.contentDOM);
     this.draw(decorations);
   }
@@ -169,7 +175,7 @@ export class CellView implements NodeView {
     const status = st?.status ?? (this.node.attrs.id ? "filled" : "starting");
     // A question that holds nothing is only its head.
     const ask = this.node.attrs.ask && !this.node.childCount;
-    this.dom.className = `cell s-${status}${this.node.childCount ? "" : " blank"}${ask ? " ask" : ""}${st?.note && status === "filled" ? " noted" : ""}`;
+    this.dom.className = cx(css.cell, statuses[status], !this.node.childCount && css.blank, ask && css.ask);
     this.glyph.textContent = ask ? "?" : "»";
     this.head.title = ask ? "Read the answer, ask more, or have it put in the page" : "Ask for a change, or see what it read";
     this.dom.dataset.cell = this.node.attrs.id || this.node.attrs.key;

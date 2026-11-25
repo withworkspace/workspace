@@ -2502,22 +2502,6 @@ button.on {
   display: none;
 }
 
-.brief-toolbar .doc-toolbar {
-  position: static;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-}
-
-.brief-toolbar .doc-toolbar .sep {
-  flex: none;
-}
-
-.brief-toolbar .doc-toolbar .spacer {
-  min-width: 8px;
-}
-
 /* Which document the toolbar's for, while the other's changes are being
    read and it isn't the one in front of you. */
 .brief-toolbar-for {
@@ -3085,11 +3069,6 @@ button.on {
     display: flex;
   }
 
-  .brief-toolbar .doc-toolbar {
-    flex-wrap: nowrap;
-    overflow: hidden;
-  }
-
   /* Its first button's glyph, not its padding, is where the text starts. */
   .brief-toolbar-slot {
     margin-left: -7px;
@@ -3275,217 +3254,6 @@ button.on {
   color: var(--attention);
 }
 
-/* The document editor (editor/MarkdownEditor.tsx): a document drawn as
-   the reader draws it (.markdown), with a toolbar over it. */
-.doc-editor {
-  position: relative;
-}
-
-.doc-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1px;
-  padding: 6px 0;
-  margin-bottom: 14px;
-  background: var(--backdrop);
-  border-bottom: 1px solid var(--line);
-  font-size: var(--text-sm);
-}
-
-/* In a card, it's part of the card. */
-.doc-editor.compact .doc-toolbar {
-  position: static;
-  background: none;
-}
-
-.doc-toolbar .doc-tool {
-  min-width: 28px;
-  padding: 4px 5px;
-}
-
-.doc-toolbar .h {
-  font-size: var(--text-xs);
-  font-weight: 650;
-  letter-spacing: 0.02em;
-}
-
-.doc-toolbar .sep {
-  width: 1px;
-  height: 16px;
-  margin: 0 6px;
-  background: var(--line);
-}
-
-.doc-toolbar .spacer {
-  flex: 1;
-}
-
-.doc-body {
-  position: relative;
-}
-
-/* ProseMirror's element: the document itself. */
-.pm {
-  outline: none;
-  min-height: 16em;
-  padding-bottom: 3em;
-  caret-color: var(--accent);
-}
-
-.doc-editor.compact .pm {
-  min-height: 8em;
-  padding-bottom: 1em;
-}
-
-.doc-editor.loading .pm {
-  white-space: pre-wrap;
-  color: var(--dim);
-}
-
-/* What to write, while there's nothing. (The paragraph it's said in is
-   the editor's own .empty, not a page's empty state: it's a line of the
-   document, where its text will be.) */
-.pm > .empty {
-  display: block;
-  padding: 0;
-  color: inherit;
-  text-align: inherit;
-}
-
-.pm .empty::before {
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  color: var(--faint);
-  pointer-events: none;
-}
-
-.pm li.task {
-  list-style: none;
-  display: flex;
-  align-items: baseline;
-  gap: 0.5em;
-  margin-left: -1.3em;
-}
-
-.pm li.task > input {
-  flex: none;
-  width: auto;
-  margin: 0;
-  cursor: pointer;
-}
-
-.pm li.task > .task-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.pm li.task > .task-body > p {
-  margin: 0;
-}
-
-.pm pre.code-block {
-  white-space: pre-wrap;
-}
-
-/* A diagram (```mermaid): drawn, or its source, with a toggle top left to
-   show one or the other, and room left above each for it. */
-.pm .diagram-block {
-  position: relative;
-}
-
-.pm .diagram-toggle {
-  position: absolute;
-  top: 6px;
-  left: 8px;
-  z-index: 1;
-  padding: 1px;
-  user-select: none;
-}
-
-.pm .diagram-toggle button {
-  min-height: 20px;
-  padding: 0 8px;
-  font-size: var(--text-xs);
-}
-
-.pm .diagram-block > pre.code-block,
-.pm .diagram-drawing > .mermaid,
-.pm .diagram-drawing > .mermaid-loading,
-.pm .diagram-drawing > .mermaid-error {
-  padding-top: 38px;
-}
-
-@media print {
-  .pm .diagram-toggle {
-    display: none;
-  }
-}
-
-.pm .ProseMirror-selectednode {
-  outline: 2px solid var(--accent-line);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
-
-.pm hr {
-  padding: 6px 0;
-  background-clip: content-box;
-}
-
-/* Markdown the editor has no shape for (HTML, a footnote, a link's
-   definition), shown as written. */
-.pm .raw-block,
-.pm .raw-inline {
-  font-family: var(--mono);
-  font-size: 0.86em;
-  color: var(--dim);
-  background: var(--code-bg);
-  border-radius: var(--radius-sm);
-}
-
-.pm .raw-block {
-  padding: 8px 10px;
-  white-space: pre-wrap;
-}
-
-.pm .raw-inline {
-  padding: 1px 4px;
-}
-
-.pm img {
-  max-width: 100%;
-}
-
-/* The words open threads are on, as the reader highlights them. */
-.pm .thread-mark.k-ask {
-  background-color: rgb(211 139 29 / 0.17);
-}
-
-.pm .thread-mark.k-change {
-  background-color: rgb(212 76 71 / 0.16);
-}
-
-.pm .thread-mark.k-note {
-  background-color: rgb(138 138 148 / 0.17);
-}
-
-:root[data-theme="dark"] .pm .thread-mark.k-ask {
-  background-color: rgb(242 184 128 / 0.2);
-}
-
-:root[data-theme="dark"] .pm .thread-mark.k-change {
-  background-color: rgb(248 81 73 / 0.22);
-}
-
-:root[data-theme="dark"] .pm .thread-mark.k-note {
-  background-color: rgb(160 160 170 / 0.2);
-}
-
 /* A document being edited (mission/DocEdit.tsx). */
 .doc-edit {
   display: grid;
@@ -3499,37 +3267,6 @@ button.on {
 
 .doc-edit .kept {
   white-space: nowrap;
-}
-
-/* The markdown itself, to edit as text. */
-.doc-source {
-  width: 100%;
-  min-height: 320px;
-  font: var(--text-md) / 1.6 var(--mono);
-  padding: 14px 16px;
-}
-
-.doc-editor.compact .doc-source {
-  min-height: 160px;
-  font-size: var(--text-sm);
-}
-
-/* A link's address, asked for under its words. */
-.doc-link {
-  position: absolute;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px;
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.doc-link input {
-  width: min(320px, 60vw);
 }
 
 .editor-bar {
@@ -5698,7 +5435,6 @@ button.settled-marker-more:hover {
     display: none;
   }
 
-
   .proposal {
     padding-left: 0;
     margin-left: 0;
@@ -5711,107 +5447,6 @@ button.settled-marker-more:hover {
   .talk-reply {
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
-}
-
-/* Suggested edits in place (editor/TrackedDoc.tsx): what goes struck
-   through, what comes underlined, the edit marked brighter; Accept and
-   Decline where it ends. */
-.pm .tc {
-  border-radius: 2px;
-  text-decoration-thickness: 1.5px;
-  cursor: pointer;
-}
-
-.pm .tc-del {
-  background: var(--del-bg);
-  text-decoration-line: line-through;
-  text-decoration-color: var(--red-fill);
-  color: var(--dim);
-}
-
-.pm .tc-ins {
-  background: var(--add-bg);
-  text-decoration-line: underline;
-  text-decoration-color: var(--green-fill);
-  text-underline-offset: 3px;
-}
-
-.pm .tc-del + .tc-ins {
-  margin-left: 0.2em;
-}
-
-.pm .tc-del.tc-focus {
-  background: var(--del-strong);
-}
-
-.pm .tc-ins.tc-focus {
-  background: var(--add-strong);
-}
-
-.pm .tc-block {
-  border-radius: var(--radius-sm);
-  box-shadow: -10px 0 0 var(--panel);
-  cursor: pointer;
-}
-
-.pm .tc-block.tc-del {
-  background: var(--del-bg);
-  box-shadow: -10px 0 0 var(--del-bg), -13px 0 0 var(--red-fill);
-}
-
-.pm .tc-block.tc-ins {
-  background: var(--add-bg);
-  text-decoration: none;
-  box-shadow: -10px 0 0 var(--add-bg), -13px 0 0 var(--green-fill);
-}
-
-/* An item's bullet stays clear of the edge. */
-.pm li.tc-block.tc-del,
-.pm li.tc-block.tc-ins {
-  box-shadow: none;
-  padding-left: 4px;
-}
-
-.pm .tc-block.tc-del.tc-focus {
-  background: var(--del-strong);
-}
-
-.pm .tc-block.tc-ins.tc-focus {
-  background: var(--add-strong);
-}
-
-.pm .tc-bar {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: 8px;
-  padding: 2px 4px 2px 8px;
-  vertical-align: middle;
-  font-size: var(--text-xs);
-  line-height: 1;
-  color: var(--dim);
-  background: var(--raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-xs);
-  white-space: nowrap;
-  user-select: none;
-}
-
-div.tc-bar {
-  display: flex;
-  width: fit-content;
-  margin: -6px 0 1em;
-}
-
-.pm .tc-bar.focused {
-  border-color: var(--accent-line);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.pm .tc-bar button {
-  min-height: 22px;
-  padding: 1px 8px;
 }
 
 /* Printing: a document (or any page) as a clean page of text, in light
@@ -8289,137 +7924,11 @@ span.save-state {
   top: 1px;
 }
 
-
-/* The line that asks for a cell, while it's typed: it reads as an ask
-   already. */
-.pm .cell-asking {
-  margin-left: -12px;
-  padding: 4px 10px 4px 12px;
-  border-radius: var(--radius);
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.pm .cell-asking::after {
-  content: "⏎ to ask";
-  float: right;
-  font: 400 var(--text-xs) / 22px var(--font);
-  color: var(--accent);
-  opacity: 0.7;
-}
-
-/* A cell: a rule down its left, what was asked for over it, and what it
-   holds as the rest of the document reads. */
-.pm .cell,
-.markdown .cell {
-  position: relative;
-  margin: 1.1em 0 1.1em -12px;
-  padding-left: 10px;
-  border-left: 2px solid var(--accent-line);
-  border-radius: 1px;
-  transition: border-color var(--slow) var(--ease);
-}
-
-.pm .cell:hover,
-.pm .cell:focus-within {
-  border-left-color: var(--accent);
-}
-
-.cell-head {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0 0 2px -4px;
-  padding: 1px 6px 1px 4px;
-  border-radius: var(--radius-sm);
-  font: var(--text-sm) / 20px var(--font);
-  color: var(--dim);
-  cursor: pointer;
-  user-select: none;
-}
-
-.cell-head:hover {
-  background: var(--hover);
-  color: var(--fg);
-}
-
+/* A cell's glyph, as the page draws it beside a cell (pages/Page.tsx).
+   The editor's cells are its module's (editor/MarkdownEditor.module.css). */
 .cell-glyph {
   color: var(--accent);
   font-weight: 700;
-}
-
-.cell-prompt {
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cell-status {
-  flex: none;
-  max-width: 60%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--faint);
-}
-
-.cell-status::before {
-  content: "·";
-  margin-right: 6px;
-}
-
-.pm .cell.s-filling,
-.pm .cell.s-starting {
-  border-left-color: var(--progress-fill);
-}
-
-.cell.s-filling .cell-status,
-.cell.s-starting .cell-status {
-  color: var(--progress);
-}
-
-.pm .cell.s-failed,
-.pm .cell.s-stale {
-  border-left-color: var(--attention-fill);
-}
-
-.cell.s-failed .cell-status,
-.cell.s-stale .cell-status {
-  color: var(--attention);
-}
-
-.cell-body > :first-child {
-  margin-top: 0;
-}
-
-.cell-body > :last-child {
-  margin-bottom: 0;
-}
-
-/* Nothing in it yet: lines where it'll be, moving while it's being
-   written. */
-.cell.blank .cell-body {
-  min-height: 54px;
-  border-radius: var(--radius-sm);
-  background:
-    linear-gradient(var(--line), var(--line)) 0 6px / 62% 10px no-repeat,
-    linear-gradient(var(--line), var(--line)) 0 24px / 84% 10px no-repeat,
-    linear-gradient(var(--line), var(--line)) 0 42px / 46% 10px no-repeat;
-}
-
-.cell.blank.s-filling .cell-body,
-.cell.blank.s-starting .cell-body {
-  animation: pulse 1.6s var(--ease) infinite;
-}
-
-/* Written again while it holds something: what's there waits, dimmed. */
-.cell.s-filling:not(.blank) .cell-body {
-  opacity: 0.55;
-  transition: opacity var(--slow) var(--ease);
 }
 
 /* A cell opened: under its head. */
@@ -8558,13 +8067,6 @@ a.source-chip.tone-attention:hover {
 
 .cell-panel-foot .change-hint {
   font: var(--text-xs) var(--font);
-}
-
-@media (max-width: 860px) {
-  .pm .cell,
-  .pm .cell-asking {
-    margin-left: 0;
-  }
 }
 
 /* Passes over a page (pages/Page.tsx): each on a tab beside the page. What
@@ -8712,24 +8214,6 @@ button.finding-quote:hover {
   font-size: var(--text-sm);
 }
 
-/* A finding's words, on the page: marked, and opened with a click. */
-.pm .note-mark {
-  border-bottom: 2px dotted var(--attention-fill);
-  background: var(--attention-soft);
-  border-radius: 2px 2px 0 0;
-  cursor: pointer;
-}
-
-.pm .note-mark.pass-cold {
-  border-bottom-color: var(--waiting-fill);
-  background: var(--waiting-soft);
-}
-
-.pm .note-mark.pass-formal {
-  border-bottom-color: var(--accent);
-  background: var(--accent-soft);
-}
-
 /* A finding opened from its words on the page: a cell's panel, set in
    and padded as a comment's card was. */
 .note-panel {
@@ -8748,72 +8232,6 @@ button.finding-quote:hover {
 
 .note-panel .finding {
   padding: 4px 12px 12px;
-}
-
-/* Refs in a page's editor (editor/refs.ts): what words name, marked as
-   somewhere to go, with more on hover. What's only read draws the same
-   from refs/RefName.module.css and refs/RefLabel.module.css. */
-
-.pm .named-ref {
-  text-decoration: underline dotted var(--faint);
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.pm .named-ref:hover {
-  text-decoration-color: var(--accent);
-  color: var(--accent);
-}
-
-.pm .named-ref.k-mission,
-.pm .named-ref.k-page,
-.pm .named-ref.k-talk,
-.pm .named-ref.k-pr,
-.pm .named-ref.k-thing {
-  font-weight: 500;
-}
-
-/* What's said after one: where a mission stands, a page's name. */
-.pm .ref-label {
-  margin-left: 5px;
-  padding: 0 6px;
-  border-radius: 999px;
-  font: 500 var(--text-xs) / 18px var(--font);
-  color: var(--tone, var(--dim));
-  background: var(--tone-soft, var(--well));
-  vertical-align: 1px;
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
-}
-
-/* A ref drawn as a pill (refs/views.tsx: a repo), in its accent colour,
-   by its own text. */
-.pm .named-ref.shape-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 7px;
-  border-radius: 999px;
-  font-weight: 500;
-  line-height: 1.45;
-  white-space: nowrap;
-  text-decoration: none;
-  color: var(--text);
-  background: color-mix(in srgb, var(--ref-accent, var(--accent)) 14%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ref-accent, var(--accent)) 45%, transparent);
-}
-
-.pm .named-ref.shape-pill:hover {
-  color: var(--text);
-  background: color-mix(in srgb, var(--ref-accent, var(--accent)) 24%, transparent);
-}
-
-/* A ref's name, while its own text is shown in its place (the editor,
-   with the cursor elsewhere). */
-.pm .ref-hidden {
-  display: none;
 }
 
 /* What's in Find's pane is laid out as a ref's card is (FindPane.tsx):
@@ -8860,39 +8278,6 @@ button.finding-quote:hover {
   margin-bottom: 0;
 }
 
-.cell.s-filled .cell-status {
-  color: var(--waiting);
-}
-
-/* A question asked in a page (>?): only its head, where it was asked. What
-   it's answered is in its panel, and nothing's in the page for it. */
-.pm .cell-asking.question {
-  background: var(--waiting-soft);
-  color: var(--waiting);
-}
-
-.pm .cell-asking.question::after {
-  color: var(--waiting);
-}
-
-.pm .cell.ask {
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
-  border-left-color: var(--waiting-fill);
-}
-
-.pm .cell.ask .cell-body {
-  display: none;
-}
-
-.pm .cell.ask .cell-glyph {
-  color: var(--waiting);
-}
-
-.pm .cell.ask .cell-head {
-  margin-bottom: 0;
-}
-
 .cell-turn.answer {
   padding: 2px 0 2px 10px;
   border-left: 2px solid var(--waiting-fill);
@@ -8911,19 +8296,6 @@ button.finding-quote:hover {
 
 .found-out .cell-composer {
   margin: 8px 0 0;
-}
-
-/* Answered, a question says so where it was asked: its answer's a click
-   away, and you weren't stopped to be shown it. */
-.pm .cell.ask.s-filled .cell-status {
-  color: var(--waiting);
-  font-weight: 500;
-}
-
-/* A block of an outline, put in before it's written: what it'll say is in
-   its head, and it waits its turn. */
-.pm .cell.s-starting.blank .cell-prompt {
-  color: var(--fg);
 }
 
 /* A mission's state, with Park beside it. */

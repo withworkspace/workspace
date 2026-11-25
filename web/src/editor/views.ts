@@ -6,12 +6,14 @@ import { createRoot, type Root } from "react-dom/client";
 import { codeBlockClass, codeLangClass } from "../markdown/CodeBlock";
 import { markdownCodeClass, markdownDiagramClass } from "../markdown/LazyMarkdown";
 import { Mermaid } from "../markdown/Mermaid";
+import { cx } from "../ui/cx";
 import { segmentClass, segmentedClass } from "../ui/Segmented";
 import { view as openViewer } from "../ui/Viewer";
 import { highlightCode, loadHighlighter } from "../review/highlight";
 import { drawsDiagrams, isDiagram, showSource, showsSource } from "./diagrams";
 import { schema } from "./schema";
 import { matchQuote } from "../annotate/anchor";
+import css from "./MarkdownEditor.module.css";
 
 // How a document draws while it's edited, where the schema's plain HTML
 // isn't enough: tasks with boxes you can tick, code highlighted with its
@@ -37,7 +39,7 @@ class Item implements NodeView {
       this.contentDOM = this.dom;
       return;
     }
-    this.dom.className = "task";
+    this.dom.className = css.task;
     const box = document.createElement("input");
     box.type = "checkbox";
     box.checked = node.attrs.checked;
@@ -55,7 +57,7 @@ class Item implements NodeView {
       view.dispatch(view.state.tr.setNodeMarkup(pos, null, { ...this.node.attrs, checked: !this.node.attrs.checked }));
     });
     const body = document.createElement("div");
-    body.className = "task-body";
+    body.className = css.taskBody;
     this.dom.append(box, body);
     this.box = box;
     this.contentDOM = body;
@@ -77,6 +79,10 @@ class Item implements NodeView {
   }
 }
 
+// A block of code is drawn as the reader draws one, in a document to read
+// (the editor's is), wrapping as it's typed.
+const codeClass = cx(codeBlockClass, markdownCodeClass, css.code);
+
 // Code is a fenced block, its language shown in the corner as the reader
 // shows it.
 class Code implements NodeView {
@@ -86,7 +92,7 @@ class Code implements NodeView {
 
   constructor(private node: PMNode) {
     this.dom = document.createElement("pre");
-    this.dom.className = `code-block ${codeBlockClass} ${markdownCodeClass}`;
+    this.dom.className = codeClass;
     this.lang = document.createElement("span");
     this.lang.className = codeLangClass;
     this.lang.contentEditable = "false";
@@ -135,10 +141,10 @@ class Diagram implements NodeView {
     decorations: readonly Decoration[],
   ) {
     this.dom = document.createElement("div");
-    this.dom.className = "diagram-block";
+    this.dom.className = css.diagram;
 
     this.toggle = document.createElement("div");
-    this.toggle.className = segmentedClass({}, "diagram-toggle");
+    this.toggle.className = segmentedClass({}, css.diagramToggle);
     this.toggle.contentEditable = "false";
     this.toggle.setAttribute("role", "group");
     this.toggle.setAttribute("aria-label", "Show the diagram or its source");
@@ -159,7 +165,7 @@ class Diagram implements NodeView {
 
     // Clicking the drawing selects the block, as clicking an image does.
     this.drawing = document.createElement("div");
-    this.drawing.className = "diagram-drawing";
+    this.drawing.className = css.diagramDrawing;
     this.drawing.contentEditable = "false";
     this.drawing.addEventListener("mousedown", (e) => {
       const pos = this.getPos();
@@ -177,7 +183,7 @@ class Diagram implements NodeView {
     this.root = createRoot(this.drawing);
 
     this.code = document.createElement("pre");
-    this.code.className = `code-block ${codeBlockClass} ${markdownCodeClass}`;
+    this.code.className = codeClass;
     this.lang = document.createElement("span");
     this.lang.className = codeLangClass;
     this.lang.contentEditable = "false";
@@ -200,7 +206,6 @@ class Diagram implements NodeView {
   // set shows it drawn or as its source.
   private set(source: boolean) {
     this.source = source;
-    this.dom.classList.toggle("shows-source", source);
     this.buttons.drawn.setAttribute("aria-pressed", String(!source));
     this.buttons.source.setAttribute("aria-pressed", String(source));
     // A segment's look says which is chosen by data-selected.
@@ -215,7 +220,7 @@ class Diagram implements NodeView {
     const code = this.node.textContent;
     if (code === this.drawn) return;
     this.drawn = code;
-    this.root.render(createElement(Mermaid, { code, viewable: false, className: "mermaid", drawnClass: markdownDiagramClass, codeClass: markdownCodeClass }));
+    this.root.render(createElement(Mermaid, { code, viewable: false, className: css.drawn, drawnClass: markdownDiagramClass, codeClass: markdownCodeClass }));
   }
 
   update(node: PMNode, decorations: readonly Decoration[]): boolean {
@@ -328,7 +333,7 @@ export function placeholder(text: string): Plugin {
         const doc = state.doc;
         const first = doc.firstChild;
         if (!text || doc.childCount !== 1 || !first?.isTextblock || first.content.size) return null;
-        return DecorationSet.create(doc, [Decoration.node(0, first.nodeSize, { class: "empty", "data-placeholder": text })]);
+        return DecorationSet.create(doc, [Decoration.node(0, first.nodeSize, { class: css.empty, "data-placeholder": text })]);
       },
     },
   });
@@ -360,6 +365,9 @@ export function quoteMarks(quotes: Quote[]): Plugin {
   });
 }
 
+// Each kind of thread's colour.
+const threadKinds: Record<string, string | undefined> = { ask: css.threadAsk, change: css.threadChange, note: css.threadNote };
+
 // findQuotes is where each quote is in the document: its text block by
 // block, a line break between blocks, as the reader's index has it
 // (annotate/anchor.ts), any run of white space as one space (the reader's
@@ -368,7 +376,7 @@ export function quoteMarks(quotes: Quote[]): Plugin {
 function findQuotes(doc: PMNode, quotes: Quote[]): DecorationSet {
   const decos: Decoration[] = [];
   quoteRanges(doc, quotes).forEach((ranges, i) => {
-    for (const r of ranges) decos.push(Decoration.inline(r.from, r.to, { class: `thread-mark k-${quotes[i].kind}` }));
+    for (const r of ranges) decos.push(Decoration.inline(r.from, r.to, { class: cx(css.threadMark, threadKinds[quotes[i].kind]) }));
   });
   return DecorationSet.create(doc, decos);
 }
