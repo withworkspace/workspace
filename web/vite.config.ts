@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
@@ -78,6 +79,12 @@ export default defineConfig(() => {
   const target = devTarget();
   return {
     plugins: [react(), katexFonts(), pluginShell(), keepDist()],
+    // Test files share workers rather than each starting its own: most run
+    // in a few tens of ms, and a fresh worker's start and imports cost
+    // several times that (about 24s for the suite against 14s). So nothing a
+    // test changes may outlive its file: spies, stubbed globals and env are
+    // put back after every test, and a file's vi.mock is its own.
+    test: { isolate: false, restoreMocks: true, unstubGlobals: true, unstubEnvs: true },
     // A component's own styles are a CSS module beside it (Runs.module.css),
     // its classes scoped to it. The scoped name keeps the file's and the
     // class's, so a page's classes still say where they're from in the
