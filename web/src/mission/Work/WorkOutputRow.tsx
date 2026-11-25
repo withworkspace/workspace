@@ -2,7 +2,8 @@ import type { Artifact } from "../../api";
 import { Icon } from "../../ui/Icon";
 import { MissionOutputState } from "../MissionOutputState";
 import { MissionOutputThreads } from "../MissionOutputThreads";
-import { artifactTitle, CrewBadge, isArtifact } from "../parts";
+import { CrewBadge } from "../CrewBadge";
+import { artifactTitle, isArtifact } from "../outputs";
 import { outputKey } from "../workRows";
 import { MissionWorkRow } from "./MissionWorkRow";
 

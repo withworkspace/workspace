@@ -5,7 +5,9 @@ import { Inline } from "../ui/Inline";
 import { Status, type StatusInfo } from "../ui/Status";
 import { Time } from "../ui/Time";
 import { MissionOutputState } from "./MissionOutputState";
-import { artifactTitle, CapsuleBadges, CrewBadge, isArtifact } from "./parts";
+import { CrewBadge } from "./CrewBadge";
+import { MissionCapsuleBadges } from "./MissionCapsuleBadges";
+import { artifactTitle, isArtifact } from "./outputs";
 import { MissionCapsuleCard } from "./MissionCapsuleCard";
 import { decisionsPath, whoDecided } from "./decisions";
 import { MissionDecisionCard } from "./MissionDecisionCard";
@@ -84,7 +86,7 @@ export function missionRefs(d: MissionDetail): Refs | undefined {
           <MissionCapsuleCard
             name={ref}
             branch={c.branch}
-            badges={<CapsuleBadges c={c} />}
+            badges={<MissionCapsuleBadges c={c} />}
             review={c.exists ? `/missions/${d.slug}/review/${c.repo}/${c.name}` : undefined}
             files={c.exists ? `/missions/${d.slug}/files/${c.repo}/${c.name}` : undefined}
           />

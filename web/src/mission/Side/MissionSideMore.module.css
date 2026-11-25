@@ -1,0 +1,7 @@
+/* The way to the rest, under a part of a mission's details
+   (MissionSideMore.tsx). */
+
+.more {
+  display: inline-block;
+  margin-top: 6px;
+}

@@ -1,0 +1,23 @@
+/* The outline beside the documents (MissionBriefOutline.tsx): a pane of
+   its own on a wide window, and not shown on a narrow one. */
+
+.outline {
+  display: none;
+  font-size: var(--text-sm);
+}
+
+@media (min-width: 1021px) {
+  .outline {
+    display: block;
+    min-height: 0;
+    padding: 18px 14px 32px var(--space-8);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+}
+
+@media print {
+  .outline {
+    display: none !important;
+  }
+}

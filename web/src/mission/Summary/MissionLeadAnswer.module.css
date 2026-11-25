@@ -1,0 +1,25 @@
+/* What a mission's card offers (MissionLeadAnswer.tsx). */
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.answer {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.form {
+  display: flex;
+  gap: 6px;
+}
+
+.form input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 10px;
+}

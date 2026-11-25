@@ -1,0 +1,20 @@
+/* Ending a capsule alone (MissionEndingDialog.tsx). */
+
+.dialog p {
+  margin: 0 0 12px;
+  color: var(--dim);
+}
+
+.dialog textarea {
+  width: 100%;
+  margin: 8px 0;
+  font: var(--text-md) / 1.5 var(--font);
+}
+
+.to {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 10px;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}

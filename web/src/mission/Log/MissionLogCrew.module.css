@@ -1,0 +1,23 @@
+/* A crew of a mission's, in its Log tab, and its handoff
+   (MissionLogCrew.tsx). */
+
+.crew {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.crew:last-child {
+  border-bottom: 0;
+}
+
+.handoff {
+  margin: 6px 0 0 30px;
+  min-height: 24px;
+  font-size: var(--text-sm);
+}
+
+:global(.keyboarding) .handoff.selected,
+.handoff.selected {
+  background: var(--selected);
+  border-color: var(--accent-line);
+}

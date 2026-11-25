@@ -1,0 +1,15 @@
+/* A crew's screen, in its terminal's frame (MissionCrewScreen.tsx): it's
+   loaded with the terminal, when a crew's page shows it. */
+.screen {
+  width: 100%;
+  overflow: hidden;
+  background: #101012;
+  padding: 10px;
+}
+
+.error {
+  padding: 6px 12px;
+  font-size: var(--text-xs);
+  color: #f0726c;
+  background: #18181c;
+}

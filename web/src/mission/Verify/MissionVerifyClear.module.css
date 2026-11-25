@@ -24,7 +24,7 @@ button.big {
 
 /* Where the tab fills what's under the mission's bar, it fills its pane. */
 @media (min-width: 1021px) {
-  :global(.mission-page.fills) .clear {
+  .clear.fills {
     min-height: 100%;
   }
 }

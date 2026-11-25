@@ -1,0 +1,6 @@
+/* A card under a mission's lead (MissionLeadNotice.tsx). */
+
+.notice {
+  margin-top: -4px;
+  margin-bottom: 12px;
+}

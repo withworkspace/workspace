@@ -48,7 +48,7 @@ export function WorkRuns({ slug, c, open, reload }: { slug: string; c: CapsuleDe
   };
   return (
     <>
-      <MissionWorkHeading count={runs.length > 0 ? runs.length : undefined}>Runs</MissionWorkHeading>
+      <MissionWorkHeading fills count={runs.length > 0 ? runs.length : undefined}>Runs</MissionWorkHeading>
       {runs.length > 0 && (
         <MissionWorkRuns>
           {runs.map((r) => (

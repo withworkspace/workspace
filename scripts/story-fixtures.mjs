@@ -18,6 +18,9 @@
 //   workspace.json        GET /api/workspace
 //   repos.json            GET /api/repos
 //   missions/<slug>.json  GET /api/missions/<slug>
+//   talks/<slug>.<as>.json GET /api/missions/<slug>/conversations/<id>
+//                          (a mission's planner's conversation, for the
+//                          stories of its Brief tab: see briefed below)
 //
 // and fixtures/court.json: the cards of every case in the court's table of
 // tests, which has each kind of card, most of which no seed reaches.
@@ -50,7 +53,7 @@ const out = join(here, "web/src/mission/fixtures");
 const keep = process.argv.includes("--keep");
 
 const tries = [
-  { name: "sorrel", seeds: ["marketing"] },
+  { name: "sorrel", seeds: ["marketing"], also: briefed },
   { name: "demo", seeds: ["mission", "work", "waits", "checks-unmet"], also },
 ];
 
@@ -67,6 +70,18 @@ function tryCommand(...a) {
   const r = spawnSync(join(here, "scripts/try.sh"), a, { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
   if (r.status !== 0) fail(`scripts/try.sh ${a.join(" ")} failed`);
   return r.stdout.trim();
+}
+
+// briefed is what the sorrel try is left in beyond its seed, once its
+// missions are taken as marketing left them: the mission it leaves to
+// brief, briefed (the briefing seed: its planner has asked, and proposed
+// the brief twice, the second time with its plan). It's taken again under
+// a second name, with its planner's conversation, which is where what's
+// proposed is: what a mission's Brief tab draws.
+function briefed(ws, dir, t) {
+  const slug = "archive-invoices-older-than-seven-years";
+  tryCommand("seed", "-n", t.fullName, "briefing");
+  return { changed: [[slug, "briefed"]], made: [], talks: [[slug, "t1", "briefed"]] };
 }
 
 // also is what the demo try is left in beyond its seeds, once its
@@ -145,10 +160,13 @@ async function capture(t) {
     n++;
   }
   if (t.also) {
-    const { changed, made } = t.also(join(dir, ".try/ws"), dir);
+    const { changed, made, talks = [] } = t.also(join(dir, ".try/ws"), dir, t);
     for (const [slug, as] of changed) await mission(slug, `${slug}.${as}`);
     for (const slug of made) await mission(slug);
     n += changed.length + made.length;
+    // A conversation of a mission's, under the name the mission was taken as.
+    if (talks.length) mkdirSync(join(to, "talks"), { recursive: true });
+    for (const [slug, id, as] of talks) write(`talks/${slug}.${as}.json`, await get(`/api/missions/${encodeURIComponent(slug)}/conversations/${encodeURIComponent(id)}`));
   }
   // The workspace as it ends up, with every mission the stories have.
   write("workspace.json", await get("/api/workspace"));
@@ -166,11 +184,15 @@ function kinds() {
   return [...order[1].matchAll(/Kind\w+/g)].map((m) => value.get(m[0]) ?? fail(`court.go's ${m[0]} has no value`));
 }
 
+// ws is built first, for the tries below, while the fixtures there are
+// still there: the web UI's own code reads some of them (a sample
+// workspace, a test's mission), and doesn't build without them.
+if (spawnSync("just", ["build"], { cwd: here, stdio: ["ignore", 2, 2] }).status !== 0) fail("just build failed");
+
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 writeFileSync(join(out, "kinds.json"), JSON.stringify(kinds(), null, 2) + "\n");
 
-// (First: the web UI is built for the tries below, and its stories read it.)
 // Every case of the court's table (internal/mission/court_test.go), as the
 // cards ws makes of it: each kind of card there is, where no seed leaves
 // a mission.
@@ -180,12 +202,10 @@ const court = spawnSync("go", ["test", "./internal/mission", "-count=1", "-run",
   env: { ...process.env, WS_STORY_FIXTURES: "1" },
 });
 if (court.status !== 0) fail(`the court's cards weren't written:\n${court.stdout}${court.stderr}`);
-let built = false;
 for (const t of tries) {
   t.fullName = `stories-${t.name}`;
-  tryCommand("up", "-n", t.fullName, ...(built ? ["--no-build"] : []), ...t.seeds);
+  tryCommand("up", "-n", t.fullName, "--no-build", ...t.seeds);
   up.push(t.fullName);
-  built = true;
   const n = await capture(t);
   console.error(`${t.name}: ${n} missions`);
 }

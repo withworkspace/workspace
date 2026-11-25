@@ -1,0 +1,53 @@
+/* A section in the brief's outline (MissionBriefOutlineItem.tsx): a map's
+   item, as a page's map has them, with what's to read at its end. */
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: calc(100% + 12px);
+  min-height: 0;
+  margin-left: -6px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  box-shadow: none;
+  color: var(--dim);
+  font: inherit;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  text-decoration: none;
+  white-space: normal;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.item > span {
+  min-width: 0;
+}
+
+.item:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.item.here {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+/* The one being read: a tick in the margin, as a tab's line is under it. */
+.item.here::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}

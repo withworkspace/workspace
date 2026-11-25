@@ -1,0 +1,140 @@
+/* A mission's page (MissionFrame.tsx): its bar, and the tab under it,
+   in a column or filling the window. */
+
+.frame {
+  /* The bar's height: 6px over a 34px row. What sticks under it starts there. */
+  --mission-bar-h: 40px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+:global(.page).body {
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-top: var(--space-4);
+}
+
+:global(.page).body:not(.wide) .main {
+  max-width: 916px;
+}
+
+/* The bar's tabs go under its edge, never past the window's. */
+.bar {
+  overflow-x: clip;
+}
+
+@media (max-width: 639.98px) {
+  /* The tabs wrap under the title. */
+  .frame {
+    --mission-bar-h: 70px;
+  }
+}
+
+.panel {
+  animation: global(enter) var(--slow) var(--ease);
+}
+
+@media (min-width: 1021px) {
+  .frame.fills .briefPanel {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* The details beside the tab, after a rule. */
+:global(.page).body.withSide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 32px;
+  background: linear-gradient(var(--line), var(--line)) no-repeat calc(100% - var(--space-8) - 240px - 16px) 0 / 1px 100%;
+}
+
+.main {
+  min-width: 0;
+}
+
+/* A column of a tab fits the window, and scrolls by itself: the tab's
+   column and the details beside it each scroll their own. */
+@media (min-width: 961px) {
+  .frame:not(.fills) {
+    height: 100%;
+  }
+
+  .frame:not(.fills) :global(.page).body {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .frame:not(.fills) :global(.page).body:not(.withSide) {
+    padding-right: 0;
+  }
+
+  .frame:not(.fills) .main {
+    /* Nothing's over it now: what sticks in it sticks at its top. */
+    --mission-bar-h: 0px;
+    min-height: 0;
+    max-width: none;
+    overflow-y: auto;
+    padding-top: var(--space-4);
+    /* No room kept at its end: room there is something to scroll to, and
+       a part should scroll only for what's in it. */
+    padding-bottom: 0;
+    scrollbar-width: thin;
+  }
+
+  .frame:not(.fills) :global(.page).body:not(.withSide) .main {
+    padding-right: var(--space-8);
+  }
+
+  .frame:not(.fills) :global(.page).body:not(.wide) .main > * {
+    max-width: 916px;
+  }
+
+  .frame:not(.fills) .main > .panel > :last-child {
+    margin-bottom: 0;
+  }
+
+  .frame:not(.fills) .main > .panel > dl:last-child > div:last-child {
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 960px) {
+  :global(.page).body.withSide {
+    display: block;
+    background: none;
+  }
+}
+
+/* Brief, Work and Verify fill the window: the tab takes the room under
+   the bar, and scrolls its own panes. */
+@media (min-width: 1021px) {
+  .frame.fills {
+    height: 100%;
+  }
+
+  .frame.fills :global(.page).body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: var(--space-4);
+  }
+
+  .frame.fills .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .frame.fills .panel {
+    flex: 1;
+    min-height: 0;
+  }
+}

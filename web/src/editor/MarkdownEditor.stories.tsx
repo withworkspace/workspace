@@ -148,8 +148,8 @@ function InABar() {
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   return (
     <>
-      <div className="brief-toolbar" style={{ padding: "8px 32px" }}>
-        <div className="brief-toolbar-slot" ref={setSlot} />
+      <div style={{ display: "flex", alignItems: "center", minWidth: 0, padding: "8px 32px" }}>
+        <div style={{ flex: 1, minWidth: 0, marginLeft: -7 }} ref={setSlot} />
       </div>
       {frame(<MarkdownEditor initial={doc} label="The brief" toolbarIn={slot} toolbarOn />)}
     </>

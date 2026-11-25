@@ -1,0 +1,18 @@
+/* What there is to do, at the end of the tab's bar (MissionBriefActs.tsx). */
+
+.act {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+}
+
+@media (min-width: 1021px) {
+  .act {
+    flex-wrap: nowrap;
+    margin-left: 0;
+    padding-left: 16px;
+  }
+}

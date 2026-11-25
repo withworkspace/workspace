@@ -1,5 +1,10 @@
 /* An output's text, to read (MissionWorkProse.tsx). */
 
+/* A file that isn't a document, as code. */
+.code {
+  font-size: var(--text-sm);
+}
+
 .prose {
   max-width: 84ch;
   padding-top: 12px;

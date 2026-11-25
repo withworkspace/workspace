@@ -1,5 +1,6 @@
 import type { Bundle, MissionEvent, Stage } from "../api";
 import type { IconName } from "../ui/Icon";
+import { capital } from "../ui/text";
 
 // What the plan beside a mission works out before it draws: which steps
 // show when there are too many to list, what a folded run says of itself,
@@ -153,3 +154,16 @@ export function stepText(s: Stage): string {
   const lead = `${s.title}.`;
   return s.text.startsWith(lead) ? s.text.slice(lead.length).trim() : s.text;
 }
+
+// checksWords is how a step's checks stand, in a line over them: how many
+// there are and how many were met in its latest round, or that they
+// haven't run; a Wait's, as ws last looked (at says when that was).
+export function checksWords(s: Stage, at: (iso: string) => string): string {
+  const checks = s.checks ?? [];
+  // A Wait's checks aren't run in rounds: ws looks, every so often.
+  if (s.type === "Wait") return s.state === "accepted" ? (checks.length === 1 ? "Its check, as ws last saw it" : "Its checks, as ws last saw them") : upperFirst(watchWords(s, at));
+  if (!s.round) return `${checks.length} ${checks.length === 1 ? "check" : "checks"}, not run yet`;
+  return `Checks, round ${s.round}: ${checks.filter((c) => c.result === "met").length} of ${checks.length} met`;
+}
+
+const upperFirst = (t: string) => (t.startsWith("ws ") ? t : capital(t));

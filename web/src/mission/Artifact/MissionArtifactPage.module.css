@@ -1,0 +1,9 @@
+/* The page of one of a mission's documents (MissionArtifactPage.tsx). */
+
+:global(.page).page {
+  max-width: 980px;
+}
+
+:global(.page).page.annotating {
+  max-width: 1240px;
+}

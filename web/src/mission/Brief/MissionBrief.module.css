@@ -1,0 +1,50 @@
+/* A mission's Brief tab (MissionBrief.tsx): the brief and the plan as
+   documents, edited as they read, with what they're made of down the left
+   and the planner's conversation down the right. One bar over them holds
+   where they stand, the editor's toolbar and what there is to confirm. On
+   a wide window it has the page under the mission's bar to itself, each
+   pane scrolling by itself; on a narrow one it's the documents, then the
+   conversation, down the page. Its parts read these widths. */
+
+.tab {
+  --brief-outline: 232px;
+  --brief-planner: 384px;
+  /* A document's measure: 70 characters, as one reads anywhere. */
+  --brief-measure: 680px;
+}
+
+/* A wide window: the tab is what's under the mission's bar, no more. The
+   outline, the documents and the planner are its three panes, and the
+   bar's three parts are their columns. */
+@media (min-width: 1021px) {
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* The panes paint the page's own ground (as the mission's bar does), so
+     what's drawn over them with a blur has something to blur: the details,
+     slid in over the planner. Text straight on the shell's ground, which
+     is outside the page's own layer, shows through one sharp. */
+  .panes {
+    flex: 1;
+    display: grid;
+    grid-template-columns: var(--brief-outline) minmax(0, 1fr);
+    min-height: 0;
+    background: var(--backdrop);
+  }
+
+  .tab.planner .panes {
+    grid-template-columns: var(--brief-outline) minmax(0, 1fr) var(--brief-planner);
+  }
+}
+
+/* Not much wider than that: the outline and the planner give a little. */
+@media (min-width: 1021px) and (max-width: 1180px) {
+  .tab {
+    --brief-outline: 200px;
+    --brief-planner: 340px;
+  }
+}

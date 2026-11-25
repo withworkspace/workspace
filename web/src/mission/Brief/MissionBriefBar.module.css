@@ -1,0 +1,41 @@
+/* Where it stands, the toolbar, what's to confirm (MissionBriefBar.tsx). */
+
+.bar {
+  position: sticky;
+  top: var(--mission-bar-h);
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 45px;
+  margin: 0 var(--space-8);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--backdrop);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 639.98px) {
+  .bar {
+    margin-inline: var(--space-4);
+  }
+}
+
+@media (min-width: 1021px) {
+  .bar {
+    position: static;
+    flex: none;
+    display: grid;
+    grid-template-columns: calc(var(--brief-outline) - var(--space-8)) minmax(0, 1fr) auto;
+    gap: 0;
+    padding: 0;
+    background: none;
+  }
+}
+
+@media print {
+  .bar {
+    display: none !important;
+  }
+}

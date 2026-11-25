@@ -5,8 +5,8 @@ import { useWorkspaceStore } from "../workspace/store";
 import { serve } from "../stories/api";
 import courtCases from "./fixtures/court.json";
 import allKinds from "./fixtures/kinds.json";
-import { SummaryLead } from "./Mission";
-import { MissionData } from "./parts";
+import { MissionData } from "./MissionData";
+import { SummaryLead } from "./Summary/SummaryLead";
 import { GroupHead } from "../ui/GroupHead";
 
 // A mission's banners: where it stands, as its Summary leads with it.

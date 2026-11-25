@@ -1,0 +1,11 @@
+/* The conversation a mission came out of (MissionSideCameFrom.tsx). */
+
+.from {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.from :global(.icon) {
+  align-self: center;
+}

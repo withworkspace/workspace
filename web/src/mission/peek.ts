@@ -2,7 +2,7 @@ import type { Headline, MissionDetail } from "../api";
 import { crewStatus, headlineStatus } from "../ui/statusOf";
 import { briefGoal } from "./brief";
 import { cardTone } from "./cardTone";
-import { checkingTitle } from "./checking";
+import { checkingTitle } from "./Checking/words";
 import type { MissionPeekProps } from "./MissionPeek";
 
 // A pull request's review here (reviews/Reviews.tsx's prHref, which this

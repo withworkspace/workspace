@@ -11,7 +11,7 @@ import { effectsOf, groupDecisions, stepOf } from "./decisions";
 import { MissionDecision } from "./MissionDecision";
 import { type DecisionFormKind, MissionDecisionForm } from "./MissionDecisionForm";
 import { MissionDecisionGroup } from "./MissionDecisionGroup";
-import { CrewBadge } from "./parts";
+import { CrewBadge } from "./CrewBadge";
 
 // A mission's Decisions tab: everything decided on it, and the place a
 // decision's name leads to (?tab=decisions&d=d4, which marks it). Yours

@@ -1,0 +1,41 @@
+/* What's docked under crew's conversation (MissionCrewDock.tsx). */
+.dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  display: grid;
+  gap: 10px;
+  margin: 0 -8px;
+  padding: 14px 8px 16px;
+  background: linear-gradient(transparent, var(--bg) 18px);
+}
+
+/* Newer: the pill a conversation's page has too (styles.css's
+   .new-pill), over the dock. */
+.pill {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-height: 26px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: transparent;
+  box-shadow: var(--shadow);
+  animation: global(rise) var(--slow) var(--ease);
+}
+
+.pill:hover {
+  color: var(--on-primary-hover);
+  background: var(--primary-hover) !important;
+}
+
+.dock .pill {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+}

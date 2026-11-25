@@ -1,0 +1,6 @@
+/* A quiet line over a document (MissionBriefDocNote.tsx). */
+
+.note {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+}

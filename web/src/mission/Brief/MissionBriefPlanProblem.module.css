@@ -1,0 +1,7 @@
+/* Why ws didn't save a plan (MissionBriefPlanProblem.tsx). */
+
+.problem {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: var(--text-sm);
+}

@@ -10,9 +10,10 @@ import { keyProps } from "../../ui/keyHint";
 import { Keys } from "../../ui/Keys";
 import { Skeleton } from "../../ui/Skeleton";
 import { Time } from "../../ui/Time";
-import { CapsuleEnds } from "../Ending";
-import { canOpenPR, OpenPR } from "../OpenPR";
-import { shortPath } from "../parts";
+import { CapsuleEnds } from "../Ending/CapsuleEnds";
+import { canOpenPR } from "../OpenPR/canOpenPR";
+import { OpenPR } from "../OpenPR/OpenPR";
+import { shortPath } from "../outputs";
 import { outputKey, type WorkCapsule } from "../workRows";
 import { MissionWorkBody } from "./MissionWorkBody";
 import { MissionWorkCommits } from "./MissionWorkCommits";
@@ -117,12 +118,12 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
         }
         pr={c.pr ? c.pr.title : undefined}
       />
-      <MissionWorkBody files={files.length > 0 && <WorkFiles d={d} c={c} files={files} more={sum?.changedMore} committed={sum?.commitCount ?? 0} />}>
+      <MissionWorkBody fills files={files.length > 0 && <WorkFiles d={d} c={c} files={files} more={sum?.changedMore} committed={sum?.commitCount ?? 0} />}>
         {x.now && <WorkNow d={d} x={x} review={review} />}
         {error && !sum && <ErrorCard title="Couldn't read what's changed" error={error} />}
         {x.crew.length > 0 && (
           <>
-            <MissionWorkHeading count={x.crew.length}>Crew here</MissionWorkHeading>
+            <MissionWorkHeading fills count={x.crew.length}>Crew here</MissionWorkHeading>
             <MissionWorkCrew>
               {x.crew.map((k) => (
                 <WorkCrewLine key={k.id} d={d} k={k} steps={x.steps.filter((s) => s.crew?.includes(k.id))} handoff={handoff(k)} select={select} />
@@ -133,7 +134,7 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
         <WorkRuns slug={d.slug} c={c} open={open} reload={reload} />
         {x.steps.length > 0 && (
           <>
-            <MissionWorkHeading count={x.steps.length}>Steps here</MissionWorkHeading>
+            <MissionWorkHeading fills count={x.steps.length}>Steps here</MissionWorkHeading>
             <MissionWorkSteps>
               {x.steps.map((s) => (
                 <WorkStepLine key={s.n} d={d} x={x} s={s} />
@@ -143,13 +144,13 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
         )}
         {sum && sum.commits.length > 0 && (
           <>
-            <MissionWorkHeading count={sum.commitCount}>Commits</MissionWorkHeading>
+            <MissionWorkHeading fills count={sum.commitCount}>Commits</MissionWorkHeading>
             <MissionWorkCommits commits={sum.commits} more={sum.commitCount - sum.commits.length} />
           </>
         )}
         {made.length > 0 && (
           <>
-            <MissionWorkHeading count={made.length}>Made here</MissionWorkHeading>
+            <MissionWorkHeading fills count={made.length}>Made here</MissionWorkHeading>
             <MissionWorkMade>
               {made.map((a) => (
                 <WorkOutputRow key={a.ref} a={a} selected={false} select={select} open={() => select(outputKey(a))} made />

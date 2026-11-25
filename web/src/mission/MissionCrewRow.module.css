@@ -1,0 +1,71 @@
+/* One of a mission's crew in a line (MissionCrewRow.tsx). */
+
+.row {
+  display: grid;
+  gap: 2px;
+  padding: 4px 0;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius-sm);
+}
+
+.link:hover .what {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.what {
+  min-width: 0;
+}
+
+.transcript {
+  font-size: var(--text-sm);
+  color: var(--accent);
+}
+
+.note {
+  color: var(--dim);
+  font-size: var(--text-sm);
+  padding-left: 30px;
+}
+
+.times,
+.dispatch {
+  color: var(--dim);
+  font-size: var(--text-sm);
+  padding-left: 30px;
+}
+
+/* In the details' narrow column. */
+.row.side {
+  padding: 3px 0;
+}
+
+.side .note {
+  padding-left: 0;
+}
+
+.side .link {
+  flex-wrap: wrap;
+  min-width: 0;
+  row-gap: 1px;
+}
+
+.side .what {
+  flex: 1 0 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

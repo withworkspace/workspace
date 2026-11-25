@@ -1,5 +1,5 @@
 import { Navigate, useParams } from "react-router";
-import { briefHref } from "../mission/BriefTab";
+import { briefHref } from "../mission/Brief/href";
 
 // ToBrief is where the brief's own page was: its mission's Brief tab,
 // which is where ws still sends you to brief one.

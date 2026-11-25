@@ -51,9 +51,9 @@ import { syntax } from "./syntax";
 //
 // It's drawn in its module's look, and says markdown too: that's the name
 // other places still know a document by, until each is told a class of
-// its own (their rules in styles.css, such as .brief-doc .markdown and
-// the refs' .markdown .named-ref, and the brief's code that finds its
-// steps and headings).
+// its own (their rules, such as the brief's documents' in
+// mission/Brief/MissionBriefDoc.module.css and the refs' .markdown
+// .named-ref, and the brief's code that finds its steps and headings).
 export const Markdown = memo(function Markdown({ text, lines, at, pinned, headingLink }: { text: string; lines?: boolean; at?: Place; pinned?: Pinned[]; headingLink?: (anchor: string) => void }) {
   useHighlighter();
   const box = useRef<HTMLDivElement>(null);

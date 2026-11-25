@@ -9,7 +9,8 @@ import { Skeleton } from "../../ui/Skeleton";
 import { Time } from "../../ui/Time";
 import { MissionOutputState } from "../MissionOutputState";
 import { MissionOutputThreads } from "../MissionOutputThreads";
-import { artifactTitle, CrewBadge, isArtifact, kindTitle } from "../parts";
+import { CrewBadge } from "../CrewBadge";
+import { artifactTitle, isArtifact, kindTitle } from "../outputs";
 import type { Home } from "../workRows";
 import { MissionWorkBody } from "./MissionWorkBody";
 import { MissionWorkEmpty } from "./MissionWorkEmpty";
@@ -60,7 +61,7 @@ export function WorkOutputPane({ d, a, home, label, select, open }: { d: Mission
           </>
         }
       />
-      <MissionWorkBody>
+      <MissionWorkBody fills>
         {error && !doc && <ErrorCard title="Couldn't read it" error={error} />}
         {reads && !doc && !error && <Skeleton rows={6} />}
         {doc &&

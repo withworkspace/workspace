@@ -185,9 +185,10 @@ export function Verify({
   const tryRuns = { slug: d.slug, capsule, moved: bundle.stale, reload };
   return (
     <VerifyTryRuns value={tryRuns}>
-      <MissionVerify>
+      <MissionVerify fills>
         {(d.bundles.length > 1 || !todo.includes(bundle)) && <VerifyBundleRow bundles={d.bundles} open={bundle} pick={pick} />}
         <MissionVerifyPanes
+          fills
           side={
             <>
               <VerifyBundleHead b={bundle} pick={pick} />

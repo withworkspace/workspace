@@ -1,0 +1,47 @@
+/* ws's brief to crew, folded (MissionCrewBriefed.tsx). */
+.briefed {
+  border-radius: var(--radius);
+  background: var(--well);
+  padding: 8px 12px;
+}
+
+.briefed summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.briefed summary::-webkit-details-marker {
+  display: none;
+}
+
+.chevron {
+  transition: transform var(--fast) var(--ease);
+}
+
+details[open] > summary .chevron {
+  transform: rotate(90deg);
+}
+
+.briefed .avatar {
+  width: 18px;
+  height: 18px;
+}
+
+/* Words as they were written: their line breaks are their own. */
+.said {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.briefed .said {
+  margin-top: 8px;
+  max-height: 360px;
+  overflow: auto;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}

@@ -10,6 +10,7 @@ import { Chip } from "../../ui/Chip";
 import { Icon } from "../../ui/Icon";
 import { Keys } from "../../ui/Keys";
 import { Status } from "../../ui/Status";
+import { MissionEndingCapsules } from "../Ending/MissionEndingCapsules";
 import { MissionCrewBadge } from "../MissionCrewBadge";
 import { MissionOutputState } from "../MissionOutputState";
 import { MissionOutputThreads } from "../MissionOutputThreads";
@@ -91,12 +92,7 @@ function List({ folded }: { folded?: boolean }) {
       </MissionWorkSub>
       {open && <MissionWorkRow icon={box} name="Records" stat={<MissionWorkLines additions={31} deletions={0} />} end={<MissionWorkState text="Landed Nov 23" tone="done" icon="check" />} quiet onSelect={none} />}
       <MissionWorkEnded>
-        <ul className="ended-capsules">
-          <li>
-            <Icon name="x" size={12} className="dim" />
-            <span className="mono">api/spike</span> <span className="dim">dropped: the spike answered it</span>
-          </li>
-        </ul>
+        <MissionEndingCapsules capsules={[{ repo: "api", name: "spike", why: "the spike answered it", dropped: true }]} />
       </MissionWorkEnded>
       <MissionWorkGroup count={4}>Outputs</MissionWorkGroup>
       <MissionWorkRow icon={<Icon name="file" size={14} />} name="Why the limit is a key's, not an address's" end={<MissionOutputState state="landed" />} output onSelect={none} />

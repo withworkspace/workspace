@@ -1,0 +1,11 @@
+/* The transcript: the same turns as a conversation
+   (MissionCrewTranscript.tsx), filling the view down to its dock. */
+.transcript {
+  flex: 1;
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+  padding-bottom: var(--space-5);
+  max-width: 820px;
+  position: relative;
+}

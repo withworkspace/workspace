@@ -1,0 +1,93 @@
+/* A mission's details (MissionSide.tsx): a column beside Summary that
+   stays under the bar as the page scrolls, or a card over another tab. */
+
+.side {
+  position: sticky;
+  top: var(--mission-bar-h);
+  align-self: start;
+  max-height: calc(var(--page-height, 100dvh) - var(--mission-bar-h));
+  overflow-y: auto;
+  margin: calc(-1 * var(--space-4)) -8px 0;
+  padding: var(--space-4) 8px 40px;
+  font-size: var(--text-sm);
+  scrollbar-width: thin;
+}
+
+/* Over a tab: a card at the window's right, slid out of sight until
+   it's opened. */
+.side.over {
+  --backdrop: color-mix(in srgb, var(--panel) 35%, var(--bg));
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 12px;
+  align-self: stretch;
+  width: 276px;
+  max-width: calc(100vw - 24px);
+  height: calc(var(--page-height, 100dvh) - var(--mission-bar-h) - 34px);
+  max-height: none;
+  margin: 0;
+  padding: 14px 18px 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--backdrop) 80%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  backdrop-filter: blur(12px) saturate(1.15);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(calc(100% + 24px));
+  visibility: hidden;
+  transition:
+    transform 180ms ease-in,
+    visibility 0s 180ms;
+}
+
+.side.over.open {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform 220ms var(--ease),
+    visibility 0s;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 28px;
+  margin-bottom: 12px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--dim);
+}
+
+/* Beside Summary, where the page fits the window and each column scrolls
+   by itself: it's the column's whole height, and scrolls with it. */
+@media (min-width: 961px) {
+  .side:not(.over) {
+    position: static;
+    align-self: stretch;
+    max-height: none;
+    margin-top: 0;
+    padding-bottom: 0;
+  }
+
+  .side:not(.over) > :last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* Narrow: under Summary, after a rule. */
+@media (max-width: 960px) {
+  .side:not(.over) {
+    position: static;
+    max-height: none;
+    margin: 28px 0 0;
+    padding: 20px 0 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media print {
+  .side {
+    display: none !important;
+  }
+}
