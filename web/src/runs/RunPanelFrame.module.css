@@ -1,0 +1,18 @@
+/* One run, as a place's Runs tab shows the one picked (RunPanelFrame.tsx):
+   its head, what's said of how and why it was run, and its preview or its
+   output filling what's left. */
+
+.panel {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px 12px;
+}
+
+@media (max-width: 860px) {
+  .panel {
+    padding: 12px 14px;
+  }
+}

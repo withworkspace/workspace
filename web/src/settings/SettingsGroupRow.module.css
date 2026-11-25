@@ -1,0 +1,15 @@
+/* A group in the groups table (SettingsGroupRow.tsx). */
+
+.named {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.team {
+  white-space: nowrap;
+}
+
+.reset {
+  margin-left: 8px;
+}

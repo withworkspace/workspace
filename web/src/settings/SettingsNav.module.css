@@ -1,0 +1,33 @@
+/* The list of the Settings page's sections (SettingsNav.tsx): places to
+   go, a link each. */
+
+.nav {
+  display: grid;
+  gap: 1px;
+}
+
+.nav .heading {
+  margin: 12px 0 0;
+  padding: 0 8px 4px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--faint);
+}
+
+.nav .heading:first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 1040px) {
+  .nav {
+    display: flex;
+    gap: 2px;
+    margin: -2px;
+    padding: 2px;
+    overflow-x: auto;
+  }
+
+  .nav .heading {
+    display: none;
+  }
+}

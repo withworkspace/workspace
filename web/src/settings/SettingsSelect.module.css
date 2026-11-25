@@ -1,0 +1,10 @@
+/* A setting picked from a list (SettingsSelect.tsx). */
+
+.select {
+  width: 232px;
+  max-width: 100%;
+}
+
+.select.stretch {
+  width: 100%;
+}

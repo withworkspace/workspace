@@ -1,0 +1,39 @@
+/* The runs of a task that are kept (RunsPagePast.tsx): a row of small
+   tabs above the one that's open. */
+
+.past {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.run {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--dim);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.run:hover {
+  color: var(--fg);
+}
+
+.run.on {
+  color: var(--fg);
+  background: var(--bg);
+  border-color: var(--dim);
+}
+
+.run.passed svg {
+  color: var(--green);
+}
+
+.run.failed svg {
+  color: var(--red);
+}

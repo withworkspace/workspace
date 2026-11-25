@@ -1,0 +1,46 @@
+/* The repo chosen, about to be added (SettingsAddRepoForm.tsx): its name
+   here, its group, and whose it is. */
+
+.adding {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field label,
+.field legend,
+.label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.field legend {
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.hint {
+  font-size: var(--text-sm);
+}
+
+.whose label {
+  font-weight: 400;
+}
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

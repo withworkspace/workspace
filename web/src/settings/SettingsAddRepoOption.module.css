@@ -1,0 +1,32 @@
+/* A repo on GitHub in the list to add from (SettingsAddRepoOption.tsx). */
+
+.repo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.repo:last-child {
+  border-bottom: 0;
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.pushed {
+  margin-left: auto;
+  font-size: var(--text-xs);
+}
+
+.about {
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

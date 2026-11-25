@@ -81,7 +81,7 @@
   /* The settings' list of sections is beside the sidebar: the glow behind
      a section is centred on the section's column, not on the two. */
   @media (min-width: 1041px) {
-    .shell:has(:global(.settings-side)) {
+    .shell:has([data-settings-side]) {
       --horizon-more: 224px;
     }
   }

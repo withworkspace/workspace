@@ -1,0 +1,19 @@
+/* A quiet line under a row's name (RunsPageSub.tsx). */
+
+.sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+}
+
+.sub a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 2px;
+}
+
+.sub a:hover {
+  color: var(--fg);
+  text-decoration-color: currentColor;
+}

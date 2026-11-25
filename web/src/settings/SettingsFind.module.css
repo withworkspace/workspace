@@ -1,0 +1,33 @@
+/* Find a setting (SettingsFind.tsx): the sidebar's Find, as a field. */
+
+.find {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--dim);
+  box-shadow: var(--shadow-xs);
+  cursor: text;
+}
+
+.find:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.find input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.find kbd {
+  border-bottom-width: 1px;
+}

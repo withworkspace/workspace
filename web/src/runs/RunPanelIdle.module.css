@@ -1,0 +1,9 @@
+/* A service that isn't running (RunPanelIdle.tsx): what Start does, where
+   the frame would be. */
+
+.idle {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}

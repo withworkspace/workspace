@@ -1,0 +1,44 @@
+/* A folder of the place picked, to group the thing in
+   (ThingPromoteFolder.tsx): a field, and the folders in use there to pick
+   from. */
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field label {
+  display: grid;
+  gap: 4px;
+}
+
+.field input {
+  width: 100%;
+}
+
+.folders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.folders button.folder {
+  height: auto;
+  min-height: 0;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--well);
+  color: var(--dim);
+  font: 500 var(--text-xs) / 18px var(--mono);
+  cursor: pointer;
+}
+
+.folders button.folder:hover {
+  color: var(--fg);
+}
+
+.folders button.folder[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}

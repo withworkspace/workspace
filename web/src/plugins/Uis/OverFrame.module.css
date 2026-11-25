@@ -1,0 +1,24 @@
+/* ws's own UI over a plugin's page (OverFrame.tsx): a panel by the button
+   that asked for it. */
+
+.catch {
+  position: fixed;
+  inset: 0;
+  z-index: 299;
+}
+
+.panel {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  position: fixed;
+  z-index: 300;
+  width: 320px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  animation: global(pop) var(--fast) var(--ease);
+}

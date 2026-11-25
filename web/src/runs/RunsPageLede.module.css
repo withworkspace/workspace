@@ -1,0 +1,6 @@
+/* What the Runs page is for (RunsPageLede.tsx): a page's lede, which is
+   still styles.css's, as Settings and the Orchestrator share it. */
+
+.lede {
+  composes: lede from global;
+}

@@ -1,0 +1,6 @@
+/* The page at an address that's nothing (WindowNotFound.tsx): a narrow
+   page's frame, which is still styles.css's, as every page shares it. */
+
+.page {
+  composes: page narrow from global;
+}

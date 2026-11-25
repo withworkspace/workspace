@@ -17,6 +17,6 @@ describe("Dialog", () => {
 
   it("is what says something's open, for the app's keys", () => {
     expect(read("Modal.tsx")).toContain('data-overlay=""');
-    expect(read("../App.tsx")).toContain('document.querySelector("[data-overlay]")');
+    expect(read("../shell/useGlobalKeys.ts")).toContain('document.querySelector("[data-overlay]")');
   });
 });

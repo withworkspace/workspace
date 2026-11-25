@@ -1,0 +1,16 @@
+/* Where the workspace's names stand (RunsPageNames.tsx), above the runs. */
+
+.names {
+  margin-bottom: var(--space-6);
+}
+
+.names a {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.note {
+  margin-top: 4px;
+  font-size: var(--text-sm);
+}

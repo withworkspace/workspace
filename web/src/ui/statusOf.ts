@@ -30,6 +30,7 @@ const byKind: Record<string, Omit<StatusInfo, "words"> & { words?: string }> = {
   "your-review": { icon: "pr", tone: "attention", words: "Your review" },
   "checks-failing": { icon: "x-circle", tone: "danger", words: "Checks failing" },
   "changes-requested": { icon: "alert", tone: "attention", words: "Changes requested" },
+  conflict: { icon: "x-circle", tone: "danger", words: "Conflicts" },
   approve: { icon: "check-circle", tone: "attention", words: "Approve" },
   accept: { icon: "check-circle", tone: "attention", words: "Accept" },
   merge: { icon: "pr", tone: "attention", words: "Merge" },

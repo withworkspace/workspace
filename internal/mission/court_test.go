@@ -336,6 +336,15 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 		{name: "PR's review asks for changes", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", Review: "CHANGES_REQUESTED"}}
 		}, court: CourtYou, kind: KindChangesRequested, group: GroupNeedsYou, verb: VerbOpen},
+		{name: "PR approved and green, but it conflicts", state: Review, edit: func(s *Snapshot) {
+			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "success", Conflict: true}}
+		}, court: CourtYou, kind: KindConflict, group: GroupNeedsYou, verb: VerbOpen, target: "api#88", text: "api#88 conflicts with its base"},
+		{name: "PR approved and green, GitHub working out whether it merges", state: Review, edit: func(s *Snapshot) {
+			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "success", MergeUnknown: true}}
+		}, court: CourtOutside, kind: KindWaitingOn, group: GroupWaiting, verb: VerbOpen, target: "api#88", text: "nothing for you to do"},
+		{name: "PR waiting for review, GitHub working out whether it merges", state: Review, edit: func(s *Snapshot) {
+			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", Review: "REVIEW_REQUIRED", Checks: "success", MergeUnknown: true}}
+		}, court: CourtOutside, kind: KindAwaitingReview, group: GroupWaiting, verb: VerbOpen},
 		{name: "PR approved and green", state: Review, edit: func(s *Snapshot) {
 			s.PRs = []PRFacts{{Capsule: "api/fix", Ref: "api#88", URL: "u", Review: "APPROVED", Checks: "success"}}
 		}, court: CourtYou, kind: KindMerge, group: GroupNeedsYou, verb: VerbMerge, target: "api#88", text: "approved and its checks pass"},
