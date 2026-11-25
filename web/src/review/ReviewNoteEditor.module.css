@@ -1,0 +1,41 @@
+/* A comment being written on a review's lines (ReviewNoteEditor.tsx). */
+
+/* Among the lines, it's level with the code already (DiffLines): it has
+   only the room around it. */
+.editor {
+  margin: 6px 14px 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-xs);
+  font: var(--text-md) / 1.5 var(--font);
+  scroll-margin: 40px 0 80px;
+  transition:
+    box-shadow var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  min-height: 22px;
+}
+
+.editor textarea {
+  width: 100%;
+  margin: 8px 0;
+  font: var(--text-md) / 1.5 var(--font);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spacer {
+  margin-left: auto;
+}

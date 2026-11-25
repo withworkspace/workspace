@@ -1,0 +1,31 @@
+/* Exactly what will be posted on a pull request, and where
+   (PullRequestPosting.tsx). */
+
+.posting {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--well);
+  font-size: var(--text-sm);
+}
+
+.where {
+  margin-bottom: 6px;
+}
+
+.posting pre {
+  margin: 4px 0 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  font: var(--text-sm) / 1.5 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.loose {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}

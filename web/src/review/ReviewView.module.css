@@ -1,0 +1,21 @@
+/* A review's controls in its head (ReviewView.tsx): what's only for a
+   wide window (the list down the side is there), or a narrow one (it
+   isn't). */
+
+.mobileOnly {
+  display: none !important;
+}
+
+@media (max-width: 860px) {
+  .mobileOnly {
+    display: inline-flex !important;
+  }
+
+  .desktopOnly {
+    display: none !important;
+  }
+}
+
+.submit {
+  white-space: nowrap;
+}

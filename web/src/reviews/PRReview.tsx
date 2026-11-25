@@ -13,28 +13,22 @@ import {
   getPRPasses,
   getPRThreads,
   getReview,
-  noteKinds,
-  type Posting,
   type PR,
   type PRDetail,
   prAPI,
-  previewPRReview,
   resendPR,
   respondPRThread,
   type Review as ReviewData,
   type ReviewGuide,
   type ReviewPass,
-  type ReviewState,
   type Unsent,
-  submitPRReview,
   useEvents,
   type Verdict,
 } from "../api";
 import { type AskAbout, linesChip } from "../ask/ask";
 import { AskBar, type AskBarHandle } from "../ask/AskBar";
-import { useKeys } from "../keys";
-import { type AskedFinding, type ReviewDiff, type ReviewSource, ReviewView, type Selection } from "../review/Review";
-import { Banner } from "../ui/Banner";
+import type { AskedFinding, ReviewDiff, ReviewSource, Selection } from "../review/source";
+import { ReviewView } from "../review/ReviewView";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { useTitle } from "../ui/useTitle";
@@ -42,26 +36,32 @@ import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { Callout } from "../ui/Callout";
-import { hintOnClick, keyProps } from "../ui/keyHint";
-import { Keys } from "../ui/Keys";
-import { Dialog } from "../ui/Dialog";
+import { keyProps } from "../ui/keyHint";
 import { confirm } from "../ui/Confirm";
 import { Status } from "../ui/Status";
 import { Time } from "../ui/Time";
-import { GuideMark, GuideSection } from "./Guide";
-import { PRDescription, PRDiscussion, StackDescriptions } from "./Overview";
-import { PassesSection, PassMarks, standingWords } from "./Passes";
+import { GuideMark } from "./GuideMark";
+import { GuideSection } from "./GuideSection";
+import { PRDescription } from "./PRDescription";
+import { PRDiscussion } from "./PRDiscussion";
+import { StackDescriptions } from "./StackDescriptions";
+import { PassesSection } from "./PassesSection";
+import { PassMarks } from "./PassMarks";
 import { PullRequestUnsent } from "./PullRequestUnsent";
 import { useReviewPasses } from "./usePasses";
 import { layersLeft } from "./after";
-import { Checks, prHref, prStatus, reviewed } from "./Reviews";
+import { LayerList } from "./LayerList";
+import { PRSubmitDialog } from "./PRSubmitDialog";
+import { PullRequestMeta, pullRequestMetaChipClass } from "./PullRequestMeta";
+import { PullRequestMetaChecks } from "./PullRequestMetaChecks";
+import { PullRequestName } from "./PullRequestName";
+import { PullRequestReviewer } from "./PullRequestReviewer";
+import css from "./PRReview.module.css";
+import { prHref, prStatus, reviewed } from "./Reviews";
 import { useLatest } from "../load";
 import { PagePin } from "../shell/PagePin";
-import { Chip, chipClass } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { clip, humanError } from "../ui/text";
-import { ToggleButton } from "../ui/ToggleButton";
-import { TextArea } from "../ui/TextArea";
 import { useWorkspace } from "../workspace/store";
 
 // A pull request's review: the page a capsule's review is, on commits
@@ -390,27 +390,7 @@ export function PRReviewPage() {
   const source: ReviewSource = {
     api,
     title: `${pr.title} · ${ref}`,
-    name: (
-      <span className="pr-name">
-        {whole && d.stack ? (
-          <>
-            {d.stack.title}
-            <Chip tone="quiet" className="pr-name-chip" title="Every layer's changes together: where the stack ends up">
-              <Icon name="layers" size={11} /> the whole stack · {layers.length} layers
-            </Chip>
-          </>
-        ) : (
-          <>
-            {pr.title} <span className="mono dim">{ref}</span>
-            {d.stack && d.layer ? (
-              <Chip tone="quiet" className="pr-name-chip" title="Where this layer sits in its stack: 1 is the bottom">
-                <Icon name="layers" size={11} /> {d.layer} of {layers.length}
-              </Chip>
-            ) : null}
-          </>
-        )}
-      </span>
-    ),
+    name: <PullRequestName title={whole && d.stack ? d.stack.title : pr.title} at={ref} layer={d.stack && d.layer ? { n: d.layer, of: layers.length } : undefined} whole={whole && d.stack ? { layers: layers.length } : undefined} />,
     back: { to: "/reviews", label: "Reviews" },
     headNow: whole ? undefined : d.head,
     updated: `${d.head}:${d.reviewed?.id ?? ""}:${took}`,
@@ -429,7 +409,7 @@ export function PRReviewPage() {
         <PagePin r={{ kind: "pr", repo: pr.repo, number: pr.number }} />
         <Button
           variant="ghost" size="small"
-          className="desktop-only"
+          className={css.desktopOnly}
           onClick={dock}
           disabled={docking}
           unavailable={pr.fork ? "It's from a fork: ws dock looks for its branch on origin, so it can't be opened here" : undefined}
@@ -446,7 +426,7 @@ export function PRReviewPage() {
     notices: (
       <>
         {!whole && d.unsent && <PullRequestUnsent unsent={d.unsent} busy={settling} onResend={(u) => settle(u, resendPR)} onDiscard={(u) => settle(u, discardPR)} />}
-        <div className="pr-meta">
+        <PullRequestMeta>
           {!whole && <Status s={prStatus(pr)} />}
           {!whole && pr.asked === "you" && pr.state === "needs-review" && (
             <Button variant="ghost" size="small" onClick={decline} disabled={declining} title="It isn't yours to review: take your name off its reviewers on GitHub">
@@ -457,21 +437,9 @@ export function PRReviewPage() {
             {pr.mine ? "Yours" : pr.author} · <span className="mono">{pr.branch}</span> <Icon name="arrow-right" size={11} />{" "}
             <span className="mono">{whole && d.stack ? d.stack.base : pr.base}</span>
           </span>
-          {pr.checks && !whole && (
-            <span className="pr-meta-checks">
-              <Checks checks={pr.checks} /> {pr.checks === "success" ? "Checks pass" : pr.checks === "failure" ? "Checks are failing" : "Checks are running"}
-            </span>
-          )}
+          {pr.checks && !whole && <PullRequestMetaChecks checks={pr.checks} />}
           {!whole &&
-            discussion?.reviewers.map((r) => (
-              <span
-                key={r.login}
-                className={`reviewer k-${r.kind}${r.stale ? " stale" : ""}`}
-                title={`${r.login} ${r.kind === "approved" ? "approved" : r.kind === "changes" ? "asked for changes" : "had a review dismissed"}${r.stale ? ", on earlier commits" : ""}`}
-              >
-                <Icon name={r.kind === "approved" ? "check-circle" : r.kind === "changes" ? "alert" : "message"} size={12} /> {r.login}
-              </span>
-            ))}
+            discussion?.reviewers.map((r) => <PullRequestReviewer key={r.login} login={r.login} kind={r.kind} stale={r.stale} />)}
           {pr.updated && <Time iso={pr.updated} as="relative" className="dim" />}
           {!whole && !threads && !threadsError && (
             <span className="dim" title="The comments on its lines, and what's been said on it, are read after what it opens on: they show when they're in.">
@@ -479,22 +447,22 @@ export function PRReviewPage() {
             </span>
           )}
           {pr.mission && (
-            <Link to={`/missions/${pr.mission.slug}`} className={chipClass("quiet", "pr-meta-chip")}>
+            <Link to={`/missions/${pr.mission.slug}`} className={pullRequestMetaChipClass("quiet")}>
               <Icon name="flag" size={11} /> {pr.mission.title}
             </Link>
           )}
           {d.docked && (
-            <Link to={`/files/${pr.repo}/${d.docked.capsule}`} className={chipClass("quiet", "pr-meta-chip")} title={d.docked.by === "ws" ? "ws docked it for a question: it's removed once this merges or closes, unless you change something in it" : "It's checked out here: browse its files"}>
+            <Link to={`/files/${pr.repo}/${d.docked.capsule}`} className={pullRequestMetaChipClass("quiet")} title={d.docked.by === "ws" ? "ws docked it for a question: it's removed once this merges or closes, unless you change something in it" : "It's checked out here: browse its files"}>
               <Icon name="box" size={11} /> {pr.repo}/{d.docked.capsule}
             </Link>
           )}
           {talks.map((t) => (
-            <Link key={t.id} to={`/conversations/${t.id}`} className={chipClass(t.waiting && t.status === "open" ? "attention" : "quiet", "pr-meta-chip")} title={t.title || t.opening}>
+            <Link key={t.id} to={`/conversations/${t.id}`} className={pullRequestMetaChipClass(t.waiting && t.status === "open" ? "attention" : "quiet")} title={t.title || t.opening}>
               {t.answering ? <Spinner size={11} /> : <Icon name="message" size={11} />}
               {t.answering ? "Answering" : t.waiting && t.status === "open" ? "Answered" : t.status === "resolved" ? "Resolved" : "Asked"}: {clip(t.title || t.opening, 48)}
             </Link>
           ))}
-        </div>
+        </PullRequestMeta>
         {d.needsRebase && (
           <Callout tone="attention" title="This layer needs a rebase">
             The layer below has moved on, and this one hasn't followed. Its changes show against the layer below as it was when this was pushed.
@@ -675,331 +643,3 @@ const suggest = (h?: PRHeld) =>
 // withFinding is a question about what a pass found, with what it found
 // said after it: the card leads with the question.
 const withFinding = (q: string, f: AskedFinding) => `${q}\n\nIt's about what the ${f.pass} pass found (${f.kind}): "${f.text}"`;
-
-// LayerList is a stack's layers down the side, bottom first: the order to
-// read them in.
-// going is the layer (or the whole stack) asked for and being read, to
-// show it's coming.
-function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: boolean; going?: { number: number; whole: boolean }; search: string; onWhole: () => void }) {
-  const st = d.stack!;
-  return (
-    <div className="layer-list">
-      <div className="files-head">
-        <span title={st.workedOut ? "ws worked it out: each of these pull requests is based on the last one's branch" : `Stack ${st.number} on GitHub`}>
-          Stack <span className="dim">· {st.layers.length} {st.layers.length === 1 ? "layer" : "layers"}{st.workedOut ? " · worked out" : ""}</span>
-        </span>
-        <span className="dim layer-keys">
-          <Keys k="[" /> <Keys k="]" />
-        </span>
-      </div>
-      <ol>
-        {st.merged ? <li className="merged dim">{st.merged} merged below</li> : null}
-        {st.layers.map((l, i) => {
-          const s = prStatus(l);
-          const coming = going && !going.whole && going.number === l.number;
-          return (
-            <li key={l.number} className={`${!whole && l.number === d.pr.number ? "here" : ""}${coming ? " going" : ""}`} aria-busy={coming || undefined}>
-              <Link to={prHref(l.repo, l.number) + search} replace title={`${l.title} (#${l.number}): ${l.words}`}>
-                <span className="layer-n">{i + 1}</span>
-                {coming ? <Spinner size={13} /> : <Status s={s} iconOnly size={13} className="layer-stands" />}
-                <span className="layer-title">{l.title}</span>
-                <span className="mono dim">#{l.number}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ol>
-      <ToggleButton variant="ghost" size="small" className="whole-stack" pressed={whole} aria-busy={going?.whole || undefined} onChange={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer." keys="w">
-        {going?.whole && !whole ? <Spinner size={12} /> : <Icon name="layers" size={12} />} Whole stack <Keys k="w" />
-      </ToggleButton>
-    </div>
-  );
-}
-
-// Posted is a review that's gone to GitHub: the pull request it's of, and
-// where it is there.
-interface Posted {
-  number: number;
-  url?: string;
-  // It's on its way to GitHub, posted behind: not there yet.
-  sending?: boolean;
-}
-
-interface LayerDraft {
-  pr: PR;
-  draft: ReviewData | null;
-  verdict?: Verdict;
-  summary: string;
-  posting?: Posting;
-  error?: string;
-  state?: "posting" | "posted";
-}
-
-// PRSubmitDialog ends the review by posting it to GitHub, as you: the one
-// thing here that leaves your machine. It shows what will be posted, and
-// where, before it is. GitHub reviews one pull request at a time, so a
-// stack's lists its layers, each with its comments and its own verdict; a
-// layer with no verdict is left alone.
-function PRSubmitDialog({
-  d,
-  passes,
-  head,
-  onClose,
-  onDiscard,
-  onPosted,
-}: {
-  d: PRDetail;
-  passes?: ReviewPass[]; // this pull request's, as they stand
-  head: string;
-  onClose: () => void;
-  onDiscard: () => void;
-  // Every review chosen is on GitHub: the layers posted while this was open,
-  // and this pull request's reviews as they then are, if it was one of them.
-  onPosted: (posted: Posted[], mine?: ReviewState) => void;
-}) {
-  const prs = d.stack?.layers ?? [d.pr];
-  const [layers, setLayers] = useState<LayerDraft[]>(() => prs.map((pr) => ({ pr, draft: null, summary: "" })));
-  const [focus, setFocus] = useState(() => Math.max(0, prs.findIndex((p) => p.number === d.pr.number)));
-  const [busy, setBusy] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const area = useRef<HTMLTextAreaElement>(null);
-  // What's been posted while this is open, a failed try before it included.
-  const posted = useRef<Posted[]>([]);
-  const mine = useRef<ReviewState | undefined>(undefined);
-  const set = (i: number, patch: Partial<LayerDraft>) => setLayers((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
-  // The commit a layer's review is of: the one this page shows, for the
-  // layer it's on; for another, the one its draft was written on.
-  const headOf = (l: LayerDraft) => (l.pr.number === d.pr.number ? head : (l.draft?.head ?? ""));
-
-  // Each layer's draft, as it's kept.
-  useEffect(() => {
-    let stopped = false;
-    Promise.all(prs.map((pr) => getReview(prAPI(pr.repo, pr.number)).then((s) => s.draft, () => null))).then((drafts) => {
-      if (stopped) return;
-      // (A review GitHub didn't take, made a draft again, has what was
-      // written with it.)
-      setLayers((ls) => ls.map((l, i) => ({ ...l, draft: drafts[i], summary: l.summary || drafts[i]?.summary || "" })));
-      setLoaded(true);
-    });
-    return () => {
-      stopped = true;
-    };
-  }, []);
-
-  // What a layer's verdict and summary would post, asked for as they change.
-  const want = layers.map((l) => `${l.verdict ?? ""}\u0000${l.summary}\u0000${l.draft?.comments.length ?? 0}`).join("\u0001");
-  // (An answer that comes once they've changed again is dropped.)
-  useEffect(() => {
-    if (!loaded) return;
-    let stale = false;
-    const t = setTimeout(() => {
-      layers.forEach((l, i) => {
-        if (!l.verdict || l.state) return;
-        previewPRReview(prAPI(l.pr.repo, l.pr.number), headOf(l), l.verdict, l.summary).then(
-          (posting) => !stale && set(i, { posting, error: undefined }),
-          (e: Error) => !stale && set(i, { posting: undefined, error: e.message }),
-        );
-      });
-    }, 250);
-    return () => {
-      stale = true;
-      clearTimeout(t);
-    };
-  }, [want, loaded]);
-
-  const pick = (i: number, v?: Verdict) => {
-    if (layers[i].state) return;
-    set(i, { verdict: layers[i].verdict === v ? undefined : v, posting: undefined, error: undefined });
-    setFocus(i);
-    setTimeout(() => area.current?.focus());
-  };
-  const approveAll = () => {
-    setLayers((ls) => ls.map((l) => (l.state || l.pr.mine || l.pr.draft ? l : { ...l, verdict: "approve" as Verdict, posting: undefined, error: undefined })));
-  };
-  const chosen = layers.filter((l) => l.verdict && !l.state);
-  const ready = chosen.length > 0 && chosen.every((l) => l.posting && !l.error);
-
-  // Posted bottom first, one pull request at a time: a layer that fails
-  // stops there, and those before it are on GitHub.
-  const submit = async () => {
-    if (!ready || busy) return;
-    setBusy(true);
-    let failed = false;
-    for (let i = 0; i < layers.length; i++) {
-      const l = layers[i];
-      if (!l.verdict || l.state === "posted") continue;
-      set(i, { state: "posting", error: undefined });
-      try {
-        const next = await submitPRReview(prAPI(l.pr.repo, l.pr.number), headOf(l), l.verdict, l.summary);
-        set(i, { state: "posted" });
-        posted.current.push({ number: l.pr.number, url: next.url, sending: next.sending });
-        if (l.pr.number === d.pr.number) mine.current = next;
-      } catch (e) {
-        set(i, { state: undefined, error: (e as Error).message });
-        failed = true;
-        break;
-      }
-    }
-    setBusy(false);
-    if (!failed) onPosted(posted.current, mine.current);
-  };
-
-  useKeys(
-    {
-      a: () => !layers[focus].pr.mine && pick(focus, "approve"),
-      c: () => !layers[focus].pr.mine && pick(focus, "changes"),
-      m: () => pick(focus, "comment"),
-      A: approveAll,
-      "[": () => setFocus((f) => Math.max(0, f - 1)),
-      "]": () => setFocus((f) => Math.min(layers.length - 1, f + 1)),
-      "mod+Enter": submit,
-    },
-    { modal: true },
-  );
-
-  // Passes with a finding that blocks still open: approving over one is
-  // said, not stopped.
-  const noGo = (passes ?? []).filter((p) => p.standing.status === "nogo");
-  const stack = layers.length > 1;
-  const here = layers[Math.max(0, prs.findIndex((p) => p.number === d.pr.number))];
-  return (
-    <Dialog title={stack ? "Submit the review of the stack" : "Submit the review"} onClose={onClose} className="submit-dialog pr-submit" wide>
-      <p>
-        Submitting posts to GitHub, as you. It's the one thing here that leaves your machine, and a review can't be unsent, only dismissed: what's below is exactly what goes.
-        {stack && " GitHub reviews one pull request at a time, so each layer has its own verdict; a layer with none is left alone."}
-      </p>
-      {stack && (
-        <div className="pr-submit-all">
-          <Button onClick={approveAll} disabled={busy} title="Give every layer that isn't a draft or yours an approval. Nothing's posted until you submit." keys="A">
-            <Icon name="check-circle" size={13} /> Approve every layer <Keys k="A" />
-          </Button>
-          <span className="dim">
-            <Keys k="[" /> <Keys k="]" /> pick a layer; <Keys k="a" /> <Keys k="c" /> <Keys k="m" /> its verdict
-          </span>
-        </div>
-      )}
-      <div className="pr-submit-layers">
-        {layers.map((l, i) => {
-          const counts = noteKinds.flatMap((k) => {
-            const n = l.draft?.comments.filter((c) => c.kind === k).length ?? 0;
-            return n ? [`${n} ${k}`] : [];
-          });
-          const total = l.draft?.comments.length ?? 0;
-          return (
-            <section key={l.pr.number} className={`pr-submit-layer${i === focus ? " focus" : ""}${l.state === "posted" ? " posted" : ""}`} onClick={() => setFocus(i)}>
-              <header>
-                {stack && <span className="layer-n">{i + 1}</span>}
-                <span className="layer-title">{l.pr.title}</span>
-                <span className="mono dim">
-                  {l.pr.repo}#{l.pr.number}
-                </span>
-                <span className="dim">
-                  {total ? `${total} ${total === 1 ? "comment" : "comments"}${counts.length ? ` (${counts.join(", ")})` : ""}` : "no comments"}
-                </span>
-                <span className="spacer-left" />
-                {l.state === "posted" && (
-                  <span className="settled-line done">
-                    <Icon name="check-circle" size={13} /> Posted
-                  </span>
-                )}
-                {l.state === "posting" && (
-                  <span className="dim">
-                    <Spinner size={12} /> Posting…
-                  </span>
-                )}
-              </header>
-              {!l.state && (
-                <div className="verdicts" role="radiogroup" aria-label={`Verdict for #${l.pr.number}`}>
-                  {(["approve", "changes", "comment"] as Verdict[]).map((v) => (
-                    <button
-                      key={v}
-                      role="radio"
-                      aria-checked={l.verdict === v}
-                      disabled={l.pr.mine && v !== "comment"}
-                      title={l.pr.mine && v !== "comment" ? "It's your own pull request: GitHub takes comments on it, not a verdict" : undefined}
-                      className={`verdict v-${v}${l.verdict === v ? " on" : ""}`}
-                      onClick={hintOnClick(v === "approve" ? "a" : v === "changes" ? "c" : "m", () => pick(i, v))}
-                    >
-                      <Icon name={v === "approve" ? "check-circle" : v === "changes" ? "alert" : "message"} size={14} /> {verdictEvents[v]}{" "}
-                      {i === focus && <Keys k={v === "approve" ? "a" : v === "changes" ? "c" : "m"} />}
-                    </button>
-                  ))}
-                  {stack && !l.verdict && <span className="dim left-alone">Left alone</span>}
-                </div>
-              )}
-              {l.verdict && !l.state && (
-                <TextArea
-                  ref={i === focus ? area : undefined}
-                  value={l.summary}
-                  rows={2}
-                  placeholder="A summary, if it helps (optional)"
-                  aria-label={`Summary for #${l.pr.number}`}
-                  onFocus={() => setFocus(i)}
-                  onChange={(e) => set(i, { summary: e.target.value })}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      submit();
-                    }
-                  }}
-                />
-              )}
-              {l.verdict === "approve" && !l.state && l.pr.number === d.pr.number && noGo.length > 0 && (
-                <Callout tone="attention" icon="alert" title={noGo.length === 1 ? `${noGo[0].title} is no go` : `${noGo.length} passes are no go`}>
-                  {noGo.map((p) => `${p.title}: ${standingWords(p.standing).toLowerCase()}`).join("; ")}. Approving is yours to do: take what stands into your review, or dismiss what doesn't.
-                </Callout>
-              )}
-              {l.error && <Banner>{humanError(l.error)}</Banner>}
-              {l.verdict && l.posting && !l.state && <PostingView p={l.posting} />}
-            </section>
-          );
-        })}
-      </div>
-      <div className="note-actions">
-        {here?.draft && !busy && (
-          <Button variant="ghost" onClick={onDiscard} title={`Throw away your draft comments on #${d.pr.number}`}>
-            Discard the draft
-          </Button>
-        )}
-        <span className="spacer-left" />
-        <Button variant="ghost" onClick={onClose} keys="esc">
-          {layers.some((l) => l.state === "posted") ? "Close" : "Cancel"}
-        </Button>
-        <Button variant="primary" onClick={submit} disabled={busy} unavailable={ready ? undefined : "Pick a verdict first"} title="Post to GitHub" keys="mod+⏎">
-          {busy ? "Posting…" : chosen.length > 1 ? `Post ${chosen.length} reviews to GitHub` : "Post to GitHub"} <Keys k="mod+⏎" />
-        </Button>
-      </div>
-    </Dialog>
-  );
-}
-
-// PostingView is exactly what will be posted on a pull request, and where.
-function PostingView({ p }: { p: Posting }) {
-  return (
-    <div className="posting">
-      <div className="posting-where dim">
-        Goes to{" "}
-        <a href={p.url} target="_blank" rel="noreferrer" className="link">
-          {p.url.replace(/^https:\/\//, "")}
-        </a>{" "}
-        as “{p.event === "APPROVE" ? "Approve" : p.event === "REQUEST_CHANGES" ? "Request changes" : "Comment"}”, at commit <span className="mono">{p.commit.slice(0, 7)}</span>.
-      </div>
-      {p.body && <pre className="posting-body">{p.body}</pre>}
-      {p.comments.map((c) => (
-        <div key={c.id} className="posting-comment">
-          <div className="mono dim">
-            {c.path}:{c.startLine ? `${c.startLine}–${c.line}` : c.line}
-            {c.side === "LEFT" ? " (removed lines)" : ""}
-          </div>
-          <pre>{c.body}</pre>
-        </div>
-      ))}
-      {!p.body && !p.comments.length && <div className="dim">No words: just the verdict.</div>}
-      {!!p.loose && (
-        <div className="dim posting-loose">
-          <Icon name="info" size={12} /> {p.loose === 1 ? "One comment is" : `${p.loose} comments are`} on lines outside the pull request's diff on GitHub, so {p.loose === 1 ? "it goes" : "they go"} in the review's body instead.
-        </div>
-      )}
-    </div>
-  );
-}

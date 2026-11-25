@@ -1,0 +1,16 @@
+/* A review's commits, folded over the changes (ReviewCommits.tsx). */
+
+.commits {
+  margin: 0 0 8px;
+  font-size: var(--text-sm);
+}
+
+.commits summary {
+  color: var(--dim);
+  cursor: pointer;
+}
+
+.commits ul {
+  margin: 6px 0;
+  padding-left: 16px;
+}

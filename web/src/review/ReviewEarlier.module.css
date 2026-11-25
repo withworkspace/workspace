@@ -1,0 +1,30 @@
+/* Your earlier reviews of it, folded over the changes (ReviewEarlier.tsx). */
+
+.earlier {
+  margin: 0 0 8px;
+  font-size: var(--text-sm);
+}
+
+.earlier summary {
+  color: var(--dim);
+  cursor: pointer;
+}
+
+.review {
+  margin: 8px 0 12px 16px;
+}
+
+.summary {
+  margin: 4px 0;
+  white-space: pre-wrap;
+}
+
+.review ul {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0;
+}
+
+.review li {
+  margin: 2px 0;
+}

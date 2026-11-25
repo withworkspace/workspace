@@ -1,0 +1,54 @@
+/* Submitting a pull request's review (PullRequestSubmit.tsx): what will
+   be posted, and where. It sits 14vh down the page, as every dialog does:
+   what's left is its height, and its layers scroll inside it. */
+
+.dialog {
+  width: min(760px, 94vw);
+  max-height: calc(86vh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog > * {
+  flex: none;
+}
+
+.dialog > .layers {
+  flex: 1 1 auto;
+}
+
+.dialog p {
+  margin: 0 0 12px;
+  color: var(--dim);
+}
+
+.dialog textarea {
+  width: 100%;
+  margin: 8px 0;
+  font: var(--text-md) / 1.5 var(--font);
+}
+
+.all {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: var(--text-sm);
+}
+
+.layers {
+  overflow: auto;
+  min-height: 0;
+  margin: 0 -4px 12px;
+  padding: 0 4px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spacer {
+  margin-left: auto;
+}

@@ -1,0 +1,85 @@
+/* A comment in a review (ReviewComment.tsx): a draft's, or a submitted
+   one, with what's been said since. */
+
+/* Among the lines, it's level with the code already (DiffLines): it has
+   only the room around it. Apart from them (on a file the diff doesn't
+   have), it sits level with where the code would be. */
+.card {
+  margin: 6px 14px 10px 0;
+}
+
+.card.apart {
+  margin: 6px 14px 10px 118px;
+}
+
+@media (max-width: 860px) {
+  .card.apart {
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+}
+
+/* Code named in what it says, apart from the lines: as code is anywhere
+   but a diff's lines. */
+.apart .followSaid code {
+  font: 0.9em var(--mono);
+  background: var(--code-bg);
+  border-radius: var(--radius-sm);
+  padding: 1px 4px;
+  white-space: normal;
+  word-break: normal;
+}
+
+.by {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.where {
+  font-size: var(--text-xs);
+}
+
+.keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+}
+
+/* What a follow-up said of it: whether what's been pushed since deals
+   with it. */
+.followup {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 6px;
+  padding: 5px 9px;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--amber-fill);
+  background: var(--amber-soft);
+  font-size: var(--text-sm);
+}
+
+.followup.addressed {
+  border-left-color: var(--green-fill);
+  background: var(--green-soft);
+}
+
+.followup.blocks {
+  border-left-color: var(--red-fill);
+  background: var(--red-soft);
+}
+
+.pass {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--accent);
+}

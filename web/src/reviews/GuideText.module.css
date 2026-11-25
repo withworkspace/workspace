@@ -1,0 +1,66 @@
+/* A review's guide (GuideText.tsx): what the change does, where that
+   differs from what it says it does, and its groups. */
+
+.draft {
+  margin-top: 8px;
+}
+
+.does {
+  margin: 0 0 8px;
+  font-size: var(--text-md);
+}
+
+.differs {
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--amber-fill);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--amber-soft);
+  font-size: var(--text-md);
+}
+
+.differs strong {
+  font-size: var(--text-sm);
+}
+
+.differs ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.same {
+  margin: 0 0 10px;
+  font-size: var(--text-sm);
+}
+
+.groups {
+  margin: 0 0 8px;
+  padding-left: 22px;
+  font-size: var(--text-sm);
+}
+
+.groups li {
+  margin: 3px 0;
+}
+
+.groups li.skim strong {
+  color: var(--dim);
+  font-weight: 500;
+}
+
+.why {
+  display: block;
+  color: var(--dim);
+}
+
+/* As far as it's got, while it's written. */
+.caret {
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  background: var(--accent);
+  animation: global(pulse) 1s ease-in-out infinite;
+}

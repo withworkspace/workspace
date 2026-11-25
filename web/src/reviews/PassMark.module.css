@@ -1,0 +1,19 @@
+/* How a pass stands, a mark beside Passes in a review's list (PassMark.tsx). */
+
+.mark {
+  display: inline-grid;
+  place-items: center;
+  color: var(--dim);
+}
+
+.mark.go {
+  color: var(--green);
+}
+
+.mark.nogo {
+  color: var(--red);
+}
+
+.mark.running {
+  color: var(--accent);
+}

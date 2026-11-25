@@ -1,0 +1,10 @@
+/* A small checkbox that shows something of a pass's or a guide's in the
+   diff (PassShow.tsx). */
+
+.show {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}

@@ -1,0 +1,16 @@
+/* Who said something on a pull request, and what they did (SaidHead.tsx). */
+
+.what {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--dim);
+}
+
+.what.approved {
+  color: var(--green);
+}
+
+.what.changes {
+  color: var(--red);
+}

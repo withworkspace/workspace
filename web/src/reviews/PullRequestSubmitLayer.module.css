@@ -1,0 +1,60 @@
+/* One pull request's review, in the dialog that posts it
+   (PullRequestSubmitLayer.tsx). Alone, it's not a card. */
+
+.layer {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+}
+
+.layer:only-child {
+  border: 0;
+  padding: 0;
+  background: none;
+}
+
+.layer.focus:not(:only-child) {
+  border-color: var(--accent-line);
+}
+
+.layer.posted {
+  opacity: 0.7;
+}
+
+.layer > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: var(--text-sm);
+}
+
+.n {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  flex: none;
+  font: 600 var(--text-xs) var(--font);
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+
+.title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.spacer {
+  margin-left: auto;
+}
+
+.alone {
+  align-self: center;
+  font-size: var(--text-sm);
+}

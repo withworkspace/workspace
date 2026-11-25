@@ -1,0 +1,26 @@
+/* A section of the Reviews page (ReviewsSection.tsx): pull requests by
+   what each asks of you. */
+
+.section {
+  margin-bottom: var(--space-4);
+}
+
+/* Where theirs end and yours begin. */
+.divide {
+  margin: var(--space-8) 0 var(--space-2);
+  padding: 0 8px;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.fold {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  font: inherit;
+}
+
+.fold:hover {
+  color: var(--fg);
+}

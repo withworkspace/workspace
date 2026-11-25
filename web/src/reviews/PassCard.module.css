@@ -1,0 +1,25 @@
+/* A review's pass, in the Passes view (PassCard.tsx). */
+
+.pass {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--well);
+  padding: 8px 12px;
+}
+
+.pass > header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: var(--text-sm);
+}
+
+.about {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.spacer {
+  margin-left: auto;
+}

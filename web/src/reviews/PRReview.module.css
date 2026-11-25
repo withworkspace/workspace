@@ -1,0 +1,7 @@
+/* A pull request's review (PRReview.tsx): what's only for a wide window. */
+
+@media (max-width: 860px) {
+  .desktopOnly {
+    display: none !important;
+  }
+}

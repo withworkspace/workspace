@@ -1,0 +1,18 @@
+/* What a review is of, said over the changes (ReviewStatus.tsx):
+   re-reviewing, or rebased since. */
+
+.status {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.icon {
+  margin-top: 2px;
+}

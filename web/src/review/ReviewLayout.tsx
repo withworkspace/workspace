@@ -1,0 +1,40 @@
+import type { CSSProperties, PointerEvent, ReactNode, Ref, UIEventHandler } from "react";
+import css from "./ReviewLayout.module.css";
+
+// ReviewLayout is a review's page: the list down the side (as wide as
+// it's been dragged), its edge to drag, the pane the views and the
+// changes are read in, and what stands over the pane's foot. What's
+// opened over the page (a card, a panel, a dialog) comes after.
+export function ReviewLayout({
+  width,
+  side,
+  children,
+  pane,
+  onPaneScroll,
+  onResize,
+  onResetWidth,
+  foot,
+  over,
+}: {
+  width?: number; // the list's, as dragged; its own otherwise
+  side: ReactNode;
+  children: ReactNode; // the pane's
+  pane?: Ref<HTMLDivElement>;
+  onPaneScroll?: UIEventHandler<HTMLDivElement>;
+  onResize: (e: PointerEvent<HTMLDivElement>) => void;
+  onResetWidth: () => void;
+  foot?: ReactNode;
+  over?: ReactNode;
+}) {
+  return (
+    <div className={css.review} style={width ? ({ "--files-w": `${width}px` } as CSSProperties) : undefined}>
+      <aside className={css.side}>{side}</aside>
+      <div className={css.resize} role="separator" aria-orientation="vertical" title="Drag to make the list of files wider or narrower; double-click to put it back" onPointerDown={onResize} onDoubleClick={onResetWidth} />
+      <div className={css.pane} ref={pane} onScroll={onPaneScroll}>
+        {children}
+      </div>
+      {foot && <div className={css.foot}>{foot}</div>}
+      {over}
+    </div>
+  );
+}

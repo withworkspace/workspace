@@ -1,0 +1,30 @@
+/* A review's head (ReviewHead.tsx): back, then its name, what the diff is
+   of and the review's controls. */
+
+.crumbs {
+  padding-top: 16px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 0 0 14px;
+}
+
+.head h1 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+/* The controls stay together: when there isn't room beside the name, they
+   move to a line of their own as one. */
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 12px;
+  margin-left: auto;
+}

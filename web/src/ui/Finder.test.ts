@@ -9,11 +9,11 @@ const read = (f: string) => readFileSync(join(src, f), "utf8");
 
 describe("Finder", () => {
   it("is what the files' two finders and the review's are", () => {
-    for (const f of ["files/Browser/FileFinder.tsx", "files/CodeFinder.tsx", "review/Review.tsx"]) expect(read(f), f).toMatch(/<Finder\b/);
+    for (const f of ["files/Browser/FileFinder.tsx", "files/CodeFinder.tsx", "review/ReviewFileJump.tsx"]) expect(read(f), f).toMatch(/<Finder\b/);
   });
 
   it("is the only place a text box moves a cursor down a list by hand, but for Find and the bars that suggest", () => {
-    const byHand = ["files/Browser/FileFinder.tsx", "files/CodeFinder.tsx", "review/Review.tsx"].filter((f) => /e\.ctrlKey && e\.key === "n"/.test(read(f)));
+    const byHand = ["files/Browser/FileFinder.tsx", "files/CodeFinder.tsx", "review/ReviewFileJump.tsx"].filter((f) => /e\.ctrlKey && e\.key === "n"/.test(read(f)));
     expect(byHand).toEqual([]);
   });
 

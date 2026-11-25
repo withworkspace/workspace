@@ -1,0 +1,12 @@
+/* What a pass said of the change (PassSummary.tsx). */
+
+.summary {
+  margin: 8px 0 0;
+  font-size: var(--text-md);
+  white-space: pre-wrap;
+}
+
+.summary time {
+  font-size: var(--text-xs);
+  margin-left: 4px;
+}
