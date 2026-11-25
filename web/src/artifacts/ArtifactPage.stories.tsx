@@ -85,7 +85,7 @@ function SourceOf({ many }: { many?: boolean }) {
           It's 70 bytes, and the page shows it where it uses it.
         </ArtifactEmpty>
       ) : (
-        <ArtifactSourceCode lines={html} />
+        <ArtifactSourceCode lines={html} path={at} />
       )}
     </ArtifactSource>
   );
