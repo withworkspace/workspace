@@ -1,0 +1,14 @@
+/* What a bundle's checks came to (MissionVerifyTally.tsx). */
+
+.tally {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-size: var(--text-sm);
+}
+
+.replaces {
+  margin-left: 4px;
+  color: var(--dim);
+}

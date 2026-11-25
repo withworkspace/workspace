@@ -1,0 +1,46 @@
+/* What's yours of a check while its bundle is yours to settle
+   (MissionVerifyYours.tsx). Kept at the pane's foot as the check
+   scrolls. It reaches the pane's edges, over the check's own padding. */
+
+.yours {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  gap: var(--space-3);
+  margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));
+  padding: 10px var(--space-5);
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: var(--raised);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.buttons button.on {
+  color: var(--done);
+  border-color: var(--done);
+  background: var(--done-soft);
+}
+
+.buttons button.on.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.note {
+  display: grid;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.note textarea {
+  width: 100%;
+  font-weight: 400;
+}

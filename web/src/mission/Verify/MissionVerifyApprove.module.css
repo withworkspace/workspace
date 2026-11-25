@@ -1,0 +1,28 @@
+/* The bundle's approval, under what's left for you
+   (MissionVerifyApprove.tsx). The one to press once nothing's left; with
+   a check still left it's a plain button, which still approves, as it
+   is. */
+
+.approve {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  margin: 0 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+
+.says {
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+button.plain {
+  color: var(--dim);
+}
+
+button.plain:hover {
+  color: var(--fg);
+}

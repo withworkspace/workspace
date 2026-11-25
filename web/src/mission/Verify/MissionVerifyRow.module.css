@@ -1,0 +1,95 @@
+/* A check in the open bundle's list (MissionVerifyRow.tsx). */
+
+.row {
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+  padding: 8px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  font-size: var(--text-md);
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: normal;
+}
+
+.row.selected {
+  background: var(--selected);
+}
+
+.mark {
+  flex: none;
+  display: inline-flex;
+  margin-top: 2px;
+  color: var(--tone);
+}
+
+.text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 500;
+}
+
+.line {
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+/* What's left for you stands out, while the bundle's yours to approve:
+   once it isn't, nothing in it wants you. */
+.row.wanted {
+  position: relative;
+  background: color-mix(in srgb, var(--attention-soft) 55%, transparent);
+}
+
+.row.wanted + .row.wanted {
+  margin-top: 2px;
+}
+
+.row.wanted::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--attention-fill);
+}
+
+.row.wanted.selected {
+  background: color-mix(in srgb, var(--attention-soft) 55%, var(--selected));
+}
+
+/* What's settled without you, and what you've approved, sit back: a line
+   each, its mark and its name. */
+.row.settled,
+.row.approved {
+  padding-block: 4px;
+}
+
+.row.settled:not(.selected):not(:hover) {
+  opacity: 0.55;
+}
+
+.row.approved:not(.selected):not(:hover) {
+  opacity: 0.7;
+}
+
+.settled .title,
+.approved .title {
+  font-weight: 400;
+}
+
+.settled .line,
+.approved .line {
+  display: none;
+}

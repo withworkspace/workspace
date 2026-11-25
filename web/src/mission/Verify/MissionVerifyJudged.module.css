@@ -1,0 +1,12 @@
+/* What the judge said of a check (MissionVerifyJudged.tsx). */
+
+.judged {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--tone-soft);
+}
+
+.judged strong {
+  color: var(--tone);
+}

@@ -1,0 +1,16 @@
+/* Where a bundle stands (MissionVerifyStanding.tsx). */
+
+.standing {
+  flex: none;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--dim);
+}
+
+.standing.attention {
+  color: var(--tone);
+}
+
+.standing.done {
+  color: var(--done);
+}

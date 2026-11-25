@@ -1,0 +1,31 @@
+/* The open bundle (MissionVerifyHead.tsx). */
+
+.head {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+section.head {
+  margin-bottom: 0;
+}
+
+.top {
+  display: grid;
+  gap: 4px;
+}
+
+.head h2 {
+  font-size: var(--text-lg);
+}
+
+.meta {
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.current {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--done);
+}

@@ -25,6 +25,7 @@ import { bare, came, commitSaid, forWhom, listed, placeOf, type Said, split } fr
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
+import { Printed } from "../ui/Printed";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary, SummaryRow } from "../ui/Summary";
 import { Row, RowMain, Rows, RowSub } from "../ui/Rows";
@@ -590,7 +591,7 @@ function SiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
               <p className="dim">
                 Its {hook.name} hook{hook.error ? `: ${hook.error}` : ""}
               </p>
-              <pre className={cx("verify-output", css.log)}>{hook.output || "It said nothing."}</pre>
+              <Printed className={css.log}>{hook.output || "It said nothing."}</Printed>
             </>
           )}
         </div>

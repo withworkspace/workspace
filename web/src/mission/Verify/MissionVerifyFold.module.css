@@ -1,0 +1,29 @@
+/* What a bundle didn't verify, and how to try it (MissionVerifyFold.tsx):
+   folded, a click each. */
+
+.fold {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm);
+}
+
+.fold summary {
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.fold ul {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.n {
+  margin-left: 6px;
+  font-weight: 400;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}

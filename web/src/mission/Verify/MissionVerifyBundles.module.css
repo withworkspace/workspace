@@ -1,0 +1,20 @@
+/* The row of a mission's bundles (MissionVerifyBundles.tsx). */
+
+.bundles {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.label {
+  margin-right: 4px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.label.attention {
+  color: var(--tone);
+}

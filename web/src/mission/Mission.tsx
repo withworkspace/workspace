@@ -57,7 +57,7 @@ import { DecisionsTab } from "./DecisionsTab";
 import { EndButton, EndDialog, EndedCapsules, ended, HandedOn, ZChecks } from "./Ending";
 import { PlanList } from "./PlanList";
 import { waitHow } from "./planRows";
-import { Verify } from "./Verify";
+import { Verify } from "./Verify/Verify";
 import { useRepoLabel } from "./Work/useRepoLabel";
 import { Work } from "./Work/Work";
 import { workWords } from "./Work/words";

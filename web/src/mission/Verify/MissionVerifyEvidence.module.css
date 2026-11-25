@@ -1,0 +1,27 @@
+/* A file that shows a check (MissionVerifyEvidence.tsx). */
+
+.evidence {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+
+.evidence figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+/* Before and after, side by side where there's room. */
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.pair > * {
+  flex: 1 1 260px;
+}

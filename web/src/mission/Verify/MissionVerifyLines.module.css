@@ -1,0 +1,7 @@
+/* Where a check is done (MissionVerifyLines.tsx). */
+
+.lines {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
