@@ -6,6 +6,7 @@ import (
 	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/review"
 
 	"github.com/withworkspace/workspace/internal/router"
@@ -64,6 +65,9 @@ type Workspace struct {
 	// absent until the Reviews page has been opened (GitHub isn't asked
 	// otherwise), or where there's no GitHub.
 	Reviews *ReviewsCount `json:"reviews,omitempty"`
+	// Sends is how what's been said from pull requests' pages stands:
+	// absent when nothing's on its way to GitHub and nothing failed.
+	Sends *pulls.Sends `json:"sends,omitempty"`
 	// Spaces are its spaces of documents (a repo of them, or a folder of
 	// one), as config says them: a document in one is read in Documents.
 	// Counts and folders aren't said here (GET /api/documents).

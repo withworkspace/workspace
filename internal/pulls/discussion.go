@@ -13,7 +13,8 @@ import (
 // What's been said on a PR itself, on GitHub, as the page's overview shows
 // it: who approved, asked for changes or commented and what they wrote
 // with it, and the comments that aren't on lines. Comments on lines are
-// threads (threads.go). A comment made from here posts at once.
+// threads (threads.go). A comment made from here is shown at once, and
+// sent behind (unsent.go).
 
 // What a thing said is.
 const (
@@ -36,6 +37,8 @@ type Said struct {
 	URL  string `json:"url,omitempty"`
 	// Stale: a review of commits the PR has moved on from.
 	Stale bool `json:"stale,omitempty"`
+	// Sending: a comment made from here that's on its way to GitHub.
+	Sending bool `json:"sending,omitempty"`
 }
 
 // Reviewer is someone else's latest verdict on a PR.
@@ -119,14 +122,20 @@ func discussion(said []github.Said, me, head string) *Discussion {
 	return out
 }
 
-// Comment says something on a PR itself, as you. It posts at once.
-func (s *Service) Comment(repo string, number int, body string) error {
-	if _, _, err := s.Open(repo, number); err != nil {
-		return err
-	}
+// Comment says something on a PR itself, as you, and is what's been said
+// on it with that: shown at once and sent behind, or, with nowhere to
+// send from, posted and read again.
+func (s *Service) Comment(repo string, number int, body string) (*Discussion, error) {
 	body = strings.TrimSpace(body)
 	if body == "" {
-		return fmt.Errorf("say something")
+		return nil, fmt.Errorf("say something")
 	}
-	return s.GitHub.Comment(s.owner(repo), s.name(repo), number, body)
+	behind, err := s.say(sendComment, "your comment on "+Key(repo, number), outgoing{Repo: repo, Number: number, Body: body})
+	if err != nil {
+		return nil, err
+	}
+	if behind {
+		return s.KeptDiscussion(repo, number)
+	}
+	return s.DiscussionNow(repo, number)
 }

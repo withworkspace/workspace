@@ -139,7 +139,13 @@ function SaidHead({ it }: { it: Said }) {
           on earlier commits
         </span>
       )}
-      <Time iso={it.at} as="relative" className="dim" />
+      {it.sending ? (
+        <span className="dim" title="It's on its way to GitHub">
+          Sending…
+        </span>
+      ) : (
+        <Time iso={it.at} as="relative" className="dim" />
+      )}
       {it.url && (
         <a className="link dim" href={it.url} target="_blank" rel="noreferrer" title="See it on GitHub" onClick={(e) => e.stopPropagation()}>
           <Icon name="external" size={11} />

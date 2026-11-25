@@ -16,6 +16,7 @@ import (
 	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/ops"
+	"github.com/withworkspace/workspace/internal/outbox"
 	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/release"
 	"github.com/withworkspace/workspace/internal/store"
@@ -49,10 +50,13 @@ type Config struct {
 // its life, which its jobs, loops, web UI and plugins all work through,
 // and what it keeps.
 type daemon struct {
-	cfg     Config
-	s       *Server
-	w       *ops.Workspace
-	jobs    *job.Queue
+	cfg  Config
+	s    *Server
+	w    *ops.Workspace
+	jobs *job.Queue
+	// outbox sends what's said to somewhere slow (a reply on a pull
+	// request, to GitHub), behind the answer.
+	outbox  *outbox.Queue
 	plugins *plugin.Host
 	silos   *workspace.SiloWatcher
 	prs     *ops.PRCache
@@ -111,6 +115,10 @@ func Run(cfg Config) (restart bool, err error) {
 	// daemon after (reconcileJobs).
 	life, end := context.WithCancel(context.Background())
 	defer end()
+	// What a page says to somewhere slow is kept and sent from here,
+	// behind its answer: what a daemon before this one hadn't sent is,
+	// once there's a GitHub to send it to (below).
+	d.outbox = &outbox.Queue{Root: root, Log: s.Log.Printf}
 	// The workspace's plugins run in here, one process each, started
 	// when one's first needed. Commands reach them over their socket, and
 	// what they ask ws is answered from the workspace's operations.
@@ -129,6 +137,7 @@ func Run(cfg Config) (restart bool, err error) {
 		Host:    s,
 		Live:    s.Transcript,
 		Jobs:    ops.JobsOf(d.jobs.Start),
+		Outbox:  d.outbox,
 		Plugins: hostRunner{d.plugins},
 		PRs:     d.prs,
 		WS:      upgrader,
@@ -172,6 +181,12 @@ func Run(cfg Config) (restart bool, err error) {
 	// The web UI, and the pull requests it lists, which the daemon keeps
 	// current behind it: the same service, so a page shows what a look
 	// found.
+	// What was said from a pull request's page and not sent when the
+	// daemon before this one went is sent now: the service that sends
+	// them is made first, as it says how, and the web UI started after,
+	// so nothing a page says is taken for something left behind.
+	d.w.PRService()
+	d.outbox.Resume()
 	w := d.startWeb()
 	if w != nil {
 		s.WebPort = w.Info().Port
@@ -199,6 +214,11 @@ func Run(cfg Config) (restart bool, err error) {
 		end()
 		if !d.jobs.Stop(jobsGrace) {
 			s.Log.Printf("jobs still running %s after their agents were ended: going without them", jobsGrace)
+		}
+		// A write being sent is let finish; those waiting are kept for
+		// the daemon after.
+		if !d.outbox.Stop(jobsGrace) {
+			s.Log.Printf("something was still being sent to GitHub after %s: going without it, to look at when ws is next up", jobsGrace)
 		}
 	}()
 	err = s.Serve()

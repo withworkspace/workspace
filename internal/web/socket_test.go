@@ -67,6 +67,8 @@ type socketTalk struct {
 	c    *websocket.Conn
 	said chan SocketSaid
 	last SocketSaid // what was told last
+	// passed is what nextOf has passed over, by topic.
+	passed map[string]int
 }
 
 func talkTo(t *testing.T, c *websocket.Conn) *socketTalk {
@@ -108,6 +110,10 @@ func (st *socketTalk) nextOf(topic string, within time.Duration) string {
 		if got == "(nothing)" || got == "(closed)" || st.last.Topic == topic {
 			return got
 		}
+		if st.passed == nil {
+			st.passed = map[string]int{}
+		}
+		st.passed[st.last.Topic]++
 	}
 }
 
@@ -173,6 +179,12 @@ func TestSocket(t *testing.T) {
 	ms.AppendLog(one.Slug, mission.Event{Kind: mission.EventNote, Text: "hi"})
 	if got := st.nextOf("mission:"+one.Slug, 3*time.Second); got != "changed mission:"+one.Slug {
 		t.Errorf("after a write to the mission: %q", got)
+	}
+	// The write is a change to the workspace's view too, told before the
+	// mission's or after it. One still to come is waited for: told as the
+	// workspace is left, it would be taken for one told after.
+	if st.passed["workspace"] == 0 {
+		st.nextOf("workspace", 3*time.Second)
 	}
 
 	st.ask(SocketAsk{Op: SocketLeave, Topic: "workspace"})

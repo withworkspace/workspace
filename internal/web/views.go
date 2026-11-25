@@ -194,7 +194,7 @@ func WorkspaceOf(a Missions, root string, reviews *pulls.Service) (Workspace, er
 	// of them needs you.
 	talks := conversation.ForWorkspace(root)
 	list, _ := talks.Talks()
-	out := Workspace{Name: v.Name, Root: root, Org: v.Org, Remotes: v.Elsewhere, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: talksOf(talks, list), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Spaces: []SpaceRef{}}
+	out := Workspace{Name: v.Name, Root: root, Org: v.Org, Remotes: v.Elsewhere, DefaultBranch: v.DefaultBranch, Missions: []Mission{}, Conversations: talksOf(talks, list), Pages: Pages(root), Artifacts: ArtifactsOf(a.Artifacts(), a.ArtifactsConfig()), ArtifactsRepo: a.ArtifactsConfig().Repo, Kinds: docKinds(v.Kinds), Docs: DocsUpdated(root), Reviews: reviewsCount(reviews), Sends: reviewSends(reviews), Spaces: []SpaceRef{}}
 	var asked []pulls.Asked
 	if reviews != nil {
 		asked = reviews.AskedOfYou()
@@ -303,6 +303,14 @@ func focusOf(items []ops.FocusItem) []FocusPin {
 		out = append(out, FocusPin{Name: it.Name, Kind: it.Kind, Title: it.Title, State: it.State})
 	}
 	return out
+}
+
+// reviewSends is how what's been said from pull requests' pages stands.
+func reviewSends(reviews *pulls.Service) *pulls.Sends {
+	if reviews == nil {
+		return nil
+	}
+	return reviews.Sends()
 }
 
 // reviewsCount is how many pull requests Reviews lists, as last asked.

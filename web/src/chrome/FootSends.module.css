@@ -1,0 +1,11 @@
+/* What's been sent to GitHub behind, and didn't get there (FootSends.tsx). */
+
+@layer ui {
+  /* Something to do: in what needs you's colour, as FootReady's is. */
+  .failed,
+  .failed:hover {
+    color: var(--attention);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+}

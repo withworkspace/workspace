@@ -77,6 +77,9 @@ type Note struct {
 	Suggestion *string `json:"suggestion,omitempty"`
 	Status     string  `json:"status"` // open, addressed, wontfix, resolved
 	Thread     []Reply `json:"thread"`
+	// Sending: its status was changed here (a pull request's thread,
+	// resolved or opened again) and GitHub hasn't been told yet.
+	Sending bool `json:"sending,omitempty"`
 }
 
 // Reply is a message in a comment's thread.
@@ -86,6 +89,9 @@ type Reply struct {
 	Body   string    `json:"body"`
 	Commit string    `json:"commit,omitempty"`
 	Status string    `json:"status,omitempty"`
+	// Sending: it was said here, in a pull request's thread, and is on its
+	// way to GitHub.
+	Sending bool `json:"sending,omitempty"`
 }
 
 // Counts says how many comments of each kind a review has.
@@ -431,6 +437,34 @@ func (s Store) Discard(capsule string) error {
 		s.changed(tx)
 		return tx.Forget(s.origin(r.ID))
 	})
+}
+
+// Unsubmit makes a submitted review its draft again, with its comments
+// and what was written with it: for one that was to be posted somewhere
+// and wasn't (a pull request's, which GitHub didn't take). It's refused
+// while there's a newer draft, as there's one at a time, and for a
+// mission's, which is logged and rendered once it's submitted.
+func (s Store) Unsubmit(id string) (*Review, error) {
+	if s.ofMission() {
+		return nil, errors.New("a mission's review isn't taken back once it's submitted")
+	}
+	var r *Review
+	err := s.write(func(tx *store.Tx) error {
+		var err error
+		if r, err = s.loadIn(tx, id); err != nil || r.State == Draft {
+			return err
+		}
+		draft, err := s.draftIn(tx, r.Capsule)
+		if err != nil {
+			return err
+		}
+		if draft != nil {
+			return fmt.Errorf("there's a newer draft review of %s: post or discard that one first", r.Capsule)
+		}
+		r.State, r.Verdict, r.Submitted = Draft, "", nil
+		return s.saveIn(tx, r)
+	})
+	return r, err
 }
 
 // Submit ends the capsule's draft with a verdict, at the commit reviewed:

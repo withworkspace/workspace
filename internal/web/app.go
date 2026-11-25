@@ -198,8 +198,10 @@ type Crewing interface {
 // accounts.
 type Posting interface {
 	SubmitPR(repo string, number int, head, verdict, summary string) (*pulls.Submitted, error)
-	RespondPR(repo string, number int, thread string, what review.Response, body string) error
-	CommentPR(repo string, number int, body string) error
+	RespondPR(repo string, number int, thread string, what review.Response, body string) (*review.Review, error)
+	CommentPR(repo string, number int, body string) (*pulls.Discussion, error)
+	ResendPR(repo string, number int, id int64) error
+	DiscardPR(repo string, number int, id int64) error
 	DeclinePR(repo string, number int) error
 	MarkTeamSeen() error
 	Narrate(snap *team.Snapshot, strands []string, since time.Time) int

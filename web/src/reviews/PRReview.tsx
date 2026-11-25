@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   askPR,
   declinePR,
+  discardPR,
   type Discussion,
   dockPR,
   getPR,
@@ -18,11 +19,13 @@ import {
   type PRDetail,
   prAPI,
   previewPRReview,
+  resendPR,
   respondPRThread,
   type Review as ReviewData,
   type ReviewGuide,
   type ReviewPass,
   type ReviewState,
+  type Unsent,
   submitPRReview,
   useEvents,
   type Verdict,
@@ -47,6 +50,7 @@ import { Time } from "../ui/Time";
 import { GuideMark, GuideSection } from "./Guide";
 import { PRDescription, PRDiscussion, StackDescriptions } from "./Overview";
 import { PassesSection, PassMarks, standingWords } from "./Passes";
+import { PullRequestUnsent } from "./PullRequestUnsent";
 import { useReviewPasses } from "./usePasses";
 import { layersLeft } from "./after";
 import { Checks, prHref, prStatus, reviewed } from "./Reviews";
@@ -307,6 +311,21 @@ export function PRReviewPage() {
       )
       .finally(() => setDeclining(false));
   };
+  // What was said from here that GitHub didn't take: sent again, or let
+  // go of. Either way the page reads what's left of them.
+  const [settling, setSettling] = useState<number>();
+  const settle = (u: Unsent, how: (api: string, id: number) => Promise<unknown>) => {
+    setSettling(u.id);
+    how(api, u.id)
+      .then(
+        () => load(),
+        (e: Error) => {
+          toast(humanError(e.message), { tone: "danger" });
+          return load();
+        },
+      )
+      .finally(() => setSettling(undefined));
+  };
   // ask goes to the ask bar: with lines in hand, or what a pass found, to
   // ask about them; with neither, about the whole of it.
   const ask = (lines?: Selection, finding?: AskedFinding) => {
@@ -424,6 +443,7 @@ export function PRReviewPage() {
     ),
     notices: (
       <>
+        {!whole && d.unsent && <PullRequestUnsent unsent={d.unsent} busy={settling} onResend={(u) => settle(u, resendPR)} onDiscard={(u) => settle(u, discardPR)} />}
         <div className="pr-meta">
           {!whole && <Status s={prStatus(pr)} />}
           {!whole && pr.asked === "you" && pr.state === "needs-review" && (
@@ -571,7 +591,9 @@ export function PRReviewPage() {
           // one. A stack keeps you until its last layer is reviewed.
           if (!layersLeft(layers, posted.map((p) => p.number)).length) {
             const url = posted.length === 1 ? posted[0].url : undefined;
-            toast(posted.length === 1 ? `Your review of ${pr.repo}#${posted[0].number} is on GitHub.` : `Your ${posted.length} reviews are on GitHub.`, {
+            // Posted behind, it's on its way: the foot says if it doesn't get there.
+            const where = posted.some((p) => p.sending) ? "on its way to GitHub" : "on GitHub";
+            toast(posted.length === 1 ? `Your review of ${pr.repo}#${posted[0].number} is ${where}.` : `Your ${posted.length} reviews are ${where.replace("its", "their")}.`, {
               tone: "done",
               action: url ? { label: "See it on GitHub", run: () => window.open(url, "_blank", "noopener") } : undefined,
             });
@@ -581,7 +603,7 @@ export function PRReviewPage() {
           }
           if (mine) done(mine);
           else {
-            toast("Posted to GitHub.", { tone: "done" });
+            toast(posted.some((p) => p.sending) ? "On its way to GitHub." : "Posted to GitHub.", { tone: "done" });
             onClose();
           }
           load();
@@ -593,7 +615,7 @@ export function PRReviewPage() {
     submitted: (r, state) => (
       <Callout
         tone="done"
-        title={`Posted to GitHub: ${verdictEvents[r.verdict!].toLowerCase()}`}
+        title={`${state.sending ? "On its way to GitHub" : "Posted to GitHub"}: ${verdictEvents[r.verdict!].toLowerCase()}`}
         actions={
           state.url ? (
             <a className={buttonClass()} href={state.url} target="_blank" rel="noreferrer">
@@ -602,7 +624,7 @@ export function PRReviewPage() {
           ) : undefined
         }
       >
-        Your review of {ref} is on GitHub. When they push, it's back with you, and opens on what's changed since.
+        Your review of {ref} is {state.sending ? "on its way to GitHub" : "on GitHub"}. When they push, it's back with you, and opens on what's changed since.
       </Callout>
     ),
     onAsk: ask,
@@ -696,6 +718,8 @@ function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: b
 interface Posted {
   number: number;
   url?: string;
+  // It's on its way to GitHub, posted behind: not there yet.
+  sending?: boolean;
 }
 
 interface LayerDraft {
@@ -749,7 +773,9 @@ function PRSubmitDialog({
     let stopped = false;
     Promise.all(prs.map((pr) => getReview(prAPI(pr.repo, pr.number)).then((s) => s.draft, () => null))).then((drafts) => {
       if (stopped) return;
-      setLayers((ls) => ls.map((l, i) => ({ ...l, draft: drafts[i] })));
+      // (A review GitHub didn't take, made a draft again, has what was
+      // written with it.)
+      setLayers((ls) => ls.map((l, i) => ({ ...l, draft: drafts[i], summary: l.summary || drafts[i]?.summary || "" })));
       setLoaded(true);
     });
     return () => {
@@ -803,7 +829,7 @@ function PRSubmitDialog({
       try {
         const next = await submitPRReview(prAPI(l.pr.repo, l.pr.number), headOf(l), l.verdict, l.summary);
         set(i, { state: "posted" });
-        posted.current.push({ number: l.pr.number, url: next.url });
+        posted.current.push({ number: l.pr.number, url: next.url, sending: next.sending });
         if (l.pr.number === d.pr.number) mine.current = next;
       } catch (e) {
         set(i, { state: undefined, error: (e as Error).message });

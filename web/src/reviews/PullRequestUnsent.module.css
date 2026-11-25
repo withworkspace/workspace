@@ -1,0 +1,13 @@
+/* What GitHub didn't take of what was said from a pull request's page
+   (PullRequestUnsent.tsx): a banner each, one under another. */
+
+.unsent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* What it said, after why it wasn't taken: quieter than the why. */
+.said {
+  opacity: 0.75;
+}

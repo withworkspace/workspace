@@ -12,8 +12,9 @@ import (
 
 // GitHub's review threads on a PR, read as a review's comments are, so
 // the page shows them on the lines they're on, with what's been said
-// since, and you reply and resolve from there. Replies and resolving post
-// at once: they're not part of a draft.
+// since, and you reply and resolve from there. Replies and resolving
+// aren't part of a draft: they're shown at once, and sent behind
+// (unsent.go).
 
 // ThreadsID is the id of the review the threads are shown as.
 const ThreadsID = "github"
@@ -154,19 +155,30 @@ func hunkExcerpt(hunk, side string, n int) []string {
 }
 
 // Respond is you on a GitHub thread: a reply, or resolving or reopening
-// it. It posts at once.
-func (s *Service) Respond(repo string, number int, threadID string, what review.Response, body string) error {
-	if _, _, err := s.Open(repo, number); err != nil {
-		return err
-	}
+// it. It's the PR's threads with that: shown at once and sent behind, or,
+// with nowhere to send from, posted and read again.
+func (s *Service) Respond(repo string, number int, threadID string, what review.Response, body string) (*review.Review, error) {
+	w := outgoing{Repo: repo, Number: number, Thread: threadID, What: what}
+	var doing string
 	switch what {
 	case review.Answer:
-		if strings.TrimSpace(body) == "" {
-			return fmt.Errorf("say something")
+		if w.Body = strings.TrimSpace(body); w.Body == "" {
+			return nil, fmt.Errorf("say something")
 		}
-		return s.GitHub.ReplyToThread(s.owner(repo), s.name(repo), number, threadID, strings.TrimSpace(body))
-	case review.Resolve, review.Reopen:
-		return s.GitHub.ResolveThread(s.owner(repo), s.name(repo), number, threadID, what == review.Resolve)
+		doing = "your reply on "
+	case review.Resolve:
+		doing = "resolving the thread on "
+	case review.Reopen:
+		doing = "reopening the thread on "
+	default:
+		return nil, fmt.Errorf("can't %q a thread", what)
 	}
-	return fmt.Errorf("can't %q a thread", what)
+	behind, err := s.say(sendThread, doing+s.where(repo, number, threadID), w)
+	if err != nil {
+		return nil, err
+	}
+	if behind {
+		return s.KeptThreads(repo, number)
+	}
+	return s.ThreadsNow(repo, number)
 }

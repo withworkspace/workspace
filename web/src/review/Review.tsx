@@ -1638,6 +1638,11 @@ function CommentCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, fo
           </span>
         )}
         {draft ? <NoteStatus>Draft</NoteStatus> : <NoteStatus status={note.status}>{statusWords[note.status] ?? note.status}</NoteStatus>}
+        {note.sending && (
+          <span className="dim" title="GitHub's being told">
+            Sending…
+          </span>
+        )}
         <span className="dim note-where">
           {note.side === "old" ? "removed " : ""}
           {linesWord(note)}
@@ -1662,6 +1667,11 @@ function CommentCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, fo
             <NoteThread>
               {note.thread.map((t, i) => (
                 <NoteTurn key={i} who={t.by === "you" ? "You" : t.by} said={t.body}>
+                  {t.sending && (
+                    <span className="dim" title="It's on its way to GitHub">
+                      Sending…
+                    </span>
+                  )}
                   {t.status && <NoteStatus status={t.status === "open" ? "reopened" : t.status}>{t.status === "open" ? "Reopened" : statusWords[t.status]}</NoteStatus>}
                   {t.commit && <span className="mono dim">{t.commit.slice(0, 7)}</span>}
                 </NoteTurn>

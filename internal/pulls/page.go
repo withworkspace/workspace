@@ -584,7 +584,8 @@ func (s *Service) KeptDiff(repo string, number int, scope string) (*Diffed, erro
 }
 
 // KeptThreads are GitHub's threads on a PR's lines as its page shows
-// them: as kept, waited for while they're read behind its first showing.
+// them: as kept, waited for while they're read behind its first showing,
+// with what's been said from here and not yet sent on them.
 func (s *Service) KeptThreads(repo string, number int) (*review.Review, error) {
 	pg, err := s.shown(repo, number)
 	if err != nil {
@@ -596,11 +597,12 @@ func (s *Service) KeptThreads(repo string, number int) (*review.Review, error) {
 		}
 		return nil, errors.New(pg.ThreadsErr)
 	}
-	return pg.Threads, nil
+	return withThreadWrites(pg.Threads, s.waiting(repo, number)), nil
 }
 
 // KeptDiscussion is what's been said on a PR as its page shows it: as
-// kept, waited for while it's read behind its first showing.
+// kept, waited for while it's read behind its first showing, with
+// comments made from here and not yet sent under it.
 func (s *Service) KeptDiscussion(repo string, number int) (*Discussion, error) {
 	pg, err := s.shown(repo, number)
 	if err != nil {
@@ -612,7 +614,7 @@ func (s *Service) KeptDiscussion(repo string, number int) (*Discussion, error) {
 		}
 		return nil, errors.New(pg.DiscussionErr)
 	}
-	return pg.Discussion, nil
+	return withComments(pg.Discussion, s.waiting(repo, number), s.me()), nil
 }
 
 // ThreadsNow reads GitHub's threads on a PR again, now, and keeps them:
@@ -629,7 +631,7 @@ func (s *Service) ThreadsNow(repo string, number int) (*review.Review, error) {
 	}
 	t := threadsReview(repo, number, threads, pg.Layer.in(s.BareDir(repo)), s.me())
 	s.keepSaid(repo, number, pg, func(x *page) { x.Threads, x.ThreadsErr = t, "" })
-	return t, nil
+	return withThreadWrites(t, s.waiting(repo, number)), nil
 }
 
 // DiscussionNow reads what's been said on a PR again, now, and keeps it:
@@ -646,7 +648,7 @@ func (s *Service) DiscussionNow(repo string, number int) (*Discussion, error) {
 	}
 	d := discussion(said, s.me(), pg.PR.Head)
 	s.keepSaid(repo, number, pg, func(x *page) { x.Discussion, x.DiscussionErr = d, "" })
-	return d, nil
+	return withComments(d, s.waiting(repo, number), s.me()), nil
 }
 
 // keepSaid keeps a page with what's been said read again: a copy, as a

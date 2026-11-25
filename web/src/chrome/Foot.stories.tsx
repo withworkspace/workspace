@@ -5,6 +5,7 @@ import { FootBelow } from "./FootBelow";
 import { FootBeside } from "./FootBeside";
 import { FootCrew } from "./FootCrew";
 import { FootReady } from "./FootReady";
+import { FootSends } from "./FootSends";
 import { FootSep } from "./FootSep";
 import { FootSidebar } from "./FootSidebar";
 import { needs } from "./samples";
@@ -37,6 +38,36 @@ export const CrewAtWork: StoryObj = {
         <>
           <FootSidebar shown count={0} />
           <Going />
+        </>
+      }
+    />
+  ),
+};
+
+// What's been said on pull requests and sent to GitHub behind: on its
+// way, and what GitHub didn't take.
+export const SendingToGitHub: StoryObj = {
+  render: () => (
+    <Foot
+      start={
+        <>
+          <FootSidebar shown count={0} />
+          <FootSep />
+          <FootSends sending={3} />
+        </>
+      }
+    />
+  ),
+};
+
+export const DidntReachGitHub: StoryObj = {
+  render: () => (
+    <Foot
+      start={
+        <>
+          <FootSidebar shown count={0} />
+          <FootSep />
+          <FootSends sending={1} failed={2} to="/reviews/api/89" />
         </>
       }
     />

@@ -186,18 +186,21 @@ func byName(l *List) []string {
 // Decline takes your name off a pull request's reviewers on GitHub: it
 // isn't yours to review, and nothing here can say so but GitHub. It no
 // longer asks for your review from now, before GitHub's asked again.
+//
+// GitHub's told behind, where there's somewhere to send from: if it
+// refuses, that's said on the PR's page (Unsent), and the PR asks for your
+// review again the next time GitHub's asked.
 func (s *Service) Decline(repo string, number int) error {
 	if s.GitHub == nil {
 		return errors.New("there's no GitHub to ask here")
 	}
-	me, err := s.GitHub.Viewer()
+	behind, err := s.say(sendDecline, "taking your name off "+Key(repo, number)+"'s reviewers", outgoing{Repo: repo, Number: number})
 	if err != nil {
-		return fmt.Errorf("asking GitHub who you are: %w", err)
-	}
-	if err := s.GitHub.DropReviewRequest(s.owner(repo), s.name(repo), number, me); err != nil {
 		return err
 	}
 	s.settle(repo, number)
-	s.Stale()
+	if !behind {
+		s.Stale()
+	}
 	return nil
 }

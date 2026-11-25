@@ -24,6 +24,7 @@ import (
 	"github.com/withworkspace/workspace/internal/github"
 	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/outbox"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/release"
 	"github.com/withworkspace/workspace/internal/store"
@@ -153,6 +154,10 @@ type Options struct {
 	// daemon's: nil for none.
 	Reviews *pulls.Service
 	Team    *team.Service
+	// Outbox is where what's said to somewhere slow (a reply on a pull
+	// request, to GitHub) is sent from, behind the answer: the daemon's.
+	// nil sends each as it's said, and waits.
+	Outbox *outbox.Queue
 	// GitHub is the client in place of the one the config makes: a test's
 	// stub. nil for the config's.
 	GitHub github.Client
