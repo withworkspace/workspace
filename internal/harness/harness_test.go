@@ -801,24 +801,43 @@ func TestRoles_ForConversation(t *testing.T) {
 	}
 }
 
-// The judge is the planner's agent and model unless [judge] says, and a
-// [judge] model alone goes on the planner's harness.
+// The judge is on the planner's agent unless [judge] says, on that
+// agent's small model unless [judge] names one, and a [judge] model alone
+// goes on the planner's harness.
 func TestRoles_ForJudge(t *testing.T) {
 	t.Setenv(EnvDefault, "")
 	p, _, err := Roles{Crew: Pick{Harness: "cursor"}, Briefing: Pick{Harness: "claude", Model: "opus"}}.ForJudge()
-	if err != nil || p.Harness != "claude" || p.Model != "opus" {
-		t.Errorf("the planner's: %+v, %v", p, err)
+	if err != nil || p.Harness != "claude" || p.Model != ClaudeOrchestratorModel {
+		t.Errorf("the planner's agent, its small model: %+v, %v", p, err)
 	}
 	p, _, _ = Roles{Crew: Pick{Harness: "claude"}, Judge: Pick{Model: "sonnet"}}.ForJudge()
 	if p.Harness != "claude" || p.Model != "sonnet" {
 		t.Errorf("a model alone: %+v", p)
 	}
 	p, _, _ = Roles{Briefing: Pick{Harness: "claude", Model: "opus"}, Judge: Pick{Harness: "cursor"}}.ForJudge()
-	if p.Harness != "cursor" || p.Model != CursorConverseModel {
+	if p.Harness != "cursor" || p.Model != CursorOrchestratorModel {
 		t.Errorf("its own harness: %+v", p)
 	}
 	if _, _, err := (Roles{Judge: Pick{Harness: "nope"}}).ForJudge(); err == nil {
 		t.Error("judged on no harness")
+	}
+}
+
+// The PR writer is on conversations' agent unless [pr_writer] says, on
+// that agent's small model unless [pr_writer] names one.
+func TestRoles_ForPRWriter(t *testing.T) {
+	t.Setenv(EnvDefault, "")
+	p, _, err := Roles{Conversation: Pick{Harness: "claude", Model: "opus"}}.ForPRWriter()
+	if err != nil || p.Harness != "claude" || p.Model != ClaudeOrchestratorModel {
+		t.Errorf("conversations' agent, its small model: %+v, %v", p, err)
+	}
+	p, _, _ = Roles{Conversation: Pick{Harness: "claude"}, PRWriter: Pick{Model: "sonnet"}}.ForPRWriter()
+	if p.Harness != "claude" || p.Model != "sonnet" {
+		t.Errorf("a model alone: %+v", p)
+	}
+	p, _, _ = Roles{PRWriter: Pick{Harness: "cursor-acp"}}.ForPRWriter()
+	if p.Harness != "cursor-acp" || p.Model != CursorOrchestratorModel {
+		t.Errorf("its own harness: %+v", p)
 	}
 }
 
