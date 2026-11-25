@@ -28,9 +28,10 @@ const tallest = 220;
 // Composer is where you say something in a conversation beside the page:
 // at the pane's foot, under what's been said. It's the app's composer (a
 // conversation's own page has it, and a crew's): the same box, which
-// grows as you write (ui/Composer.tsx). ⌘⏎ says it, ⏎ is a new line, esc
-// gives the keys back to the page. There's no button for it: the keys
-// that say it are in the box's corner while it has the keys.
+// grows as you write (ui/Composer.tsx). The key you've chosen says it
+// (ui/sendKey.ts), esc gives the keys back to the page. There's no
+// button for it: the keys that say it are in the box's corner while it
+// has the keys.
 export function Composer({ placeholder, onSay, holding, field, text: kept, onText }: ComposerProps) {
   const [own, setOwn] = useState("");
   const text = kept ?? own;

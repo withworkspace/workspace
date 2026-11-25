@@ -49,6 +49,9 @@ export interface Prefs {
   // The harness's warnings you've dismissed (the latest 50), by how each
   // starts.
   dismissed: string[];
+  // The key that sends what you've written in a box (ui/sendKey.ts): ⌘⏎,
+  // where ⏎ is a new line, or ⏎, where ⇧⏎ is.
+  sendKey: "mod+enter" | "enter";
 }
 
 const defaults: Prefs = {
@@ -65,12 +68,14 @@ const defaults: Prefs = {
   talkSide: true,
   foundFolded: [],
   dismissed: [],
+  sendKey: "mod+enter",
 };
 
 // Where each was kept before they were one entry, and how it was written
 // there: read once, the first time this ws is opened in a browser that
-// has them, and removed.
-const before: { [K in keyof Prefs]: [key: string, read: (said: string) => Prefs[K] | undefined] } = {
+// has them, and removed. One that's only ever been in the one entry has
+// none.
+const before: { [K in keyof Prefs]?: [key: string, read: (said: string) => Prefs[K] | undefined] } = {
   notify: ["ws-notify", (s) => s === "on"],
   filePanes: ["ws-file-panes", (s) => (s === "1" ? 1 : s === "2" ? 2 : undefined)],
   missionSide: ["ws:mission-side", (s) => s !== "0"],

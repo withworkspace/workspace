@@ -65,7 +65,7 @@ const settingsIn = (rows: Row[]) => rows.flatMap((r) => (r.kind === "setting" ? 
 
 describe("sectionsOf", () => {
   it("lists the sections before anything's loaded", () => {
-    expect(sectionsOf().map((s) => s.id)).toEqual(["appearance", "notifications", "agents", "missions", "team", "repos", "runs", "process", "plugins", "yours", "about"]);
+    expect(sectionsOf().map((s) => s.id)).toEqual(["appearance", "keyboard", "notifications", "agents", "missions", "team", "repos", "runs", "process", "plugins", "yours", "about"]);
     expect(sectionsOf().filter((s) => s.heading).map((s) => [s.heading, s.id])).toEqual([
       ["Interface", "appearance"],
       ["How work goes", "agents"],
@@ -113,7 +113,7 @@ describe("sectionsOf", () => {
 
   it("makes a group it doesn't know a section of its own, before the process", () => {
     const sections = sectionsOf(info([{ id: "github", title: "GitHub", about: "How ws asks GitHub.", settings: [setting("github", "host", "text")] }]));
-    expect(sections.map((s) => s.id)).toEqual(["appearance", "notifications", "agents", "missions", "team", "repos", "runs", "github", "process", "plugins", "yours", "about"]);
+    expect(sections.map((s) => s.id)).toEqual(["appearance", "keyboard", "notifications", "agents", "missions", "team", "repos", "runs", "github", "process", "plugins", "yours", "about"]);
     expect(rowsOf("github", sections)).toEqual([["github", ["[github] host"]]]);
   });
 
@@ -173,6 +173,7 @@ describe("find", () => {
   it("finds the page's own rows", () => {
     expect(found("theme")).toEqual([["appearance", ["theme"]]]);
     expect(found("sidebar")).toEqual([["appearance", ["places"]]]);
+    expect(found("send with")).toEqual([["keyboard", ["sendKey"]]]);
     expect(found("notification")).toEqual([["notifications", ["notify"]]]);
     expect(found("shutting")).toEqual([["about", ["daemon"]]]);
   });

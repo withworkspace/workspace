@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { useKeys } from "../keys";
 import { Button } from "./Button";
+import { sendKeysSaid, sent, useSendKey } from "./sendKey";
 import { useAutosize } from "./useAutosize";
 import css from "./ReplyBox.module.css";
 import { TextArea } from "./TextArea";
 
 // ReplyBox is you answering what a card says, in the card: it takes the
-// keys when it's drawn, ⌘⏎ sends, esc doesn't. While it's there the
-// page's keys are off.
+// keys when it's drawn, the key you've chosen sends (ui/sendKey.ts), esc
+// doesn't. While it's there the page's keys are off.
 export function ReplyBox({ onSend, onCancel, placeholder = "Reply…", send = "Reply" }: { onSend: (body: string) => void; onCancel: () => void; placeholder?: string; send?: string }) {
   const [text, setText] = useState("");
   const area = useRef<HTMLTextAreaElement>(null);
   useAutosize(area, text, 240);
+  const key = useSendKey();
   useKeys({}, { modal: true });
   useEffect(() => {
     area.current?.focus();
@@ -27,9 +29,10 @@ export function ReplyBox({ onSend, onCancel, placeholder = "Reply…", send = "R
         aria-label={send}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && text.trim()) {
+          if (e.nativeEvent.isComposing) return;
+          if (sent(e, key)) {
             e.preventDefault();
-            onSend(text);
+            if (text.trim()) onSend(text);
           } else if (e.key === "Escape") {
             e.preventDefault();
             onCancel();
@@ -40,7 +43,7 @@ export function ReplyBox({ onSend, onCancel, placeholder = "Reply…", send = "R
         <Button variant="ghost" size="small" onClick={onCancel} title="Cancel (esc)">
           Cancel
         </Button>
-        <Button variant="primary" size="small" disabled={!text.trim()} onClick={() => onSend(text)} title="Send it (⌘⏎)">
+        <Button variant="primary" size="small" disabled={!text.trim()} onClick={() => onSend(text)} title={`Send it (${sendKeysSaid(key)})`}>
           {send}
         </Button>
       </div>

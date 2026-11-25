@@ -29,6 +29,7 @@ import { Markdown } from "../markdown/LazyMarkdown";
 import { Banner } from "../ui/Banner";
 import { NoteBody, NoteCard, NoteHead, NoteHint, noteHintActionClass, NoteId, NoteThread, NoteTurn } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
+import { sendKeysSaid, sent, useSendKey } from "../ui/sendKey";
 import { Change } from "../ui/Change";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
@@ -1279,7 +1280,9 @@ function DecisionCard({
 }
 
 // Composer writes a new thread on what's highlighted: tab picks ask,
-// change or note; ⌘⏎ posts it, and it's live at once.
+// change or note; the key you've chosen posts it (ui/sendKey.ts), and
+// it's live at once. In an edit of your own, ⏎ is a new line of it, and
+// ⌘⏎ posts.
 function Composer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: ThreadKind, body: string, suggestion?: string) => Promise<void>; onCancel: () => void }) {
   const [kind, setKind] = useState<ThreadKind>("ask");
   const [text, setText] = useState("");
@@ -1287,6 +1290,7 @@ function Composer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: Threa
   const [edit, setEdit] = useState<string>();
   const [error, setError] = useState<string>();
   const area = useRef<HTMLTextAreaElement>(null);
+  const sendKey = useSendKey();
   useAutosize(area, text, 260);
   // While writing, the page's keys are off: these are the composer's. (Its
   // slot is see-through, not hidden, until it's placed: focus needs that.)
@@ -1326,7 +1330,8 @@ function Composer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: Threa
         aria-label={kindHints[kind]}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+          if (e.nativeEvent.isComposing) return;
+          if (sent(e, sendKey)) {
             e.preventDefault();
             post();
           } else if (e.key === "Escape") {
@@ -1373,7 +1378,7 @@ function Composer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: Threa
         <Button variant="ghost" size="small" onClick={onCancel} title="Cancel (esc)">
           Cancel
         </Button>
-        <Button variant="primary" size="small" onClick={post} disabled={edit !== undefined ? edit === pick.quote.exact : !text.trim()} title="Post it (⌘⏎)">
+        <Button variant="primary" size="small" onClick={post} disabled={edit !== undefined ? edit === pick.quote.exact : !text.trim()} title={`Post it (${sendKeysSaid(sendKey)})`}>
           {edit !== undefined ? "Suggest" : "Comment"}
         </Button>
       </div>
