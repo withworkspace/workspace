@@ -1,0 +1,6 @@
+/* What's said over the suggested edits, shown in place (AnnotatePreviewBar.tsx). */
+
+.bar {
+  border-left-color: var(--accent);
+  white-space: normal;
+}

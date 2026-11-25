@@ -1,0 +1,43 @@
+/* A few lines of a file in a ref's card (RefExcerpt.tsx). */
+
+.excerpt {
+  display: block;
+  margin: 4px 0 2px;
+  padding: 6px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* In Find's pane, the page's colour: raised from it, and cut at its
+   width. */
+.excerpt.raised {
+  background: var(--raised);
+  overflow-x: hidden;
+}
+
+.line {
+  display: flex;
+  gap: 10px;
+  padding: 0 10px 0 0;
+  font: var(--text-xs) / 18px var(--mono);
+  white-space: pre;
+}
+
+.line.named {
+  background: var(--accent-soft);
+}
+
+.line.more {
+  padding-left: 46px;
+  color: var(--faint);
+}
+
+.ln {
+  flex: none;
+  width: 36px;
+  text-align: right;
+  color: var(--faint);
+  user-select: none;
+}

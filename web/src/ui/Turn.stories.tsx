@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Doing } from "./Doing";
 import { Turn, TurnAvatar, TurnHead, TurnSaid } from "./Turn";
+import { markdownClass } from "../markdown/LazyMarkdown";
+import { cx } from "./cx";
 
 // Turns: an exchange as a conversation's page draws it (who said each,
 // yours a bubble to the right under your name, the agent's its words to
@@ -11,7 +13,7 @@ const meta: Meta = { title: "Components/Turn" };
 export default meta;
 
 const answer = (
-  <div className="markdown">
+  <div className={cx("markdown", markdownClass)}>
     <p>In one place, by one rule.</p>
     <p>
       <code>invoice.go</code> has <code>roundDiv</code>, which rounds half away from zero. Nothing else in the api divides an amount.
@@ -35,7 +37,7 @@ export const Page: StoryObj = {
       </Turn>
       <Turn by="agent" running head={<TurnHead avatar={<TurnAvatar by="agent" />} who="Agent" />}>
         <TurnSaid className="dim">
-          <div className="markdown">
+          <div className={cx("markdown", markdownClass)}>
             <p>Looking at where the dashboard divides.</p>
           </div>
         </TurnSaid>

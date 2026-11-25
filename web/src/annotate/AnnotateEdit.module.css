@@ -1,0 +1,6 @@
+/* A suggested edit in a thread (AnnotateEdit.tsx). */
+
+.seeApplied {
+  display: inline-flex !important;
+  color: var(--accent) !important;
+}

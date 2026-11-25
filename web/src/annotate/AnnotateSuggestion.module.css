@@ -1,0 +1,60 @@
+/* A suggested edit, or a decision to record, in a thread
+   (AnnotateSuggestion.tsx). */
+
+.suggestion {
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 6px 0;
+  background: var(--bg);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px 4px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.head .by {
+  font-weight: 400;
+}
+
+.suggestion.edit {
+  margin-top: 10px;
+  padding: 8px 0;
+}
+
+.suggestion .actions {
+  margin: 8px 8px 0;
+}
+
+.suggestion .busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-sm);
+}
+
+.suggestion.decision {
+  margin-top: 10px;
+  padding: 8px;
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.suggestion.decision .head {
+  padding: 0 0 4px;
+}
+
+.suggestion.decision textarea {
+  width: 100%;
+  margin: 4px 0;
+  font-size: var(--text-sm);
+}
+
+.suggestion.decision .actions {
+  margin: 6px 0 0;
+}

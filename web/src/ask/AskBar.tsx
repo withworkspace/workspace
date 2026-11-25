@@ -6,7 +6,7 @@ import { useTalk, useTalks } from "../conversation/talks";
 import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
 import type { AskAbout } from "./ask";
-import { AskField } from "./AskField";
+import { AskField, type AskPlace } from "./AskField";
 
 // The ask bar (#123): always there at the foot of what you're reading,
 // with / to go to it. Ask about the whole of it, or pick something out of
@@ -48,6 +48,7 @@ export function AskBar<H>({
   cite,
   onOpen,
   onSettled,
+  place,
   ref,
 }: {
   about: AskAbout<H>;
@@ -57,6 +58,7 @@ export function AskBar<H>({
   cite?: (href: string) => boolean;
   onOpen?: () => void; // it's been asked: what else is open on the page can close
   onSettled?: (p: TalkProposal) => void; // something it proposed has been accepted or declined
+  place?: AskPlace; // where it sits, if not at the foot of what's read (AskField)
   ref?: Ref<AskBarHandle<H>>;
 }) {
   const beside = useBeside();
@@ -130,6 +132,7 @@ export function AskBar<H>({
   return (
     <AskField
       field={field}
+      place={place}
       placeholder={hand ? hand.placeholder : there ? "Ask a follow-up…" : `Ask about ${about.title}…`}
       suggestions={suggestions(held)}
       holding={hand && { icon: hand.icon, text: hand.text, title: hand.title, kind: hand.kind, drop: { label: hand.drop, onDrop: () => setHeld(undefined) } }}

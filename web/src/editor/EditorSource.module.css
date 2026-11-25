@@ -1,0 +1,14 @@
+/* The markdown itself, to edit as text (EditorSource.tsx); smaller in a
+   card (compact). */
+
+.source {
+  width: 100%;
+  min-height: 320px;
+  font: var(--text-md) / 1.6 var(--mono);
+  padding: 14px 16px;
+}
+
+.source.compact {
+  min-height: 160px;
+  font-size: var(--text-sm);
+}

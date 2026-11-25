@@ -1,0 +1,10 @@
+/* A repo's colour (TeamRepoDot.tsx): as styles.css's .repo-dot, which
+   other pages still draw by hand. */
+
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+}

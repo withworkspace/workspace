@@ -184,6 +184,7 @@ export function PlannerField({
   return (
     <AskField
       className="brief-ask"
+      place="inline"
       field={input}
       placeholder={held ? held.placeholder : placeholder}
       busy={busy}

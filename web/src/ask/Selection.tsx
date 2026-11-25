@@ -1,13 +1,12 @@
-import { type Ref, type RefObject, useEffect, useImperativeHandle, useState } from "react";
-import { Icon } from "../ui/Icon";
-import { Keys } from "../ui/Keys";
-import { type Passage, passageOf } from "./ask";
-import { Button } from "../ui/Button";
+import { type Ref, type RefObject, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { pageScroller } from "../ui/scroller";
+import { type Passage, passageOf } from "./ask";
+import { SelectionToolbar } from "./SelectionToolbar";
 
 // The toolbar over a passage picked out of what's asked about (#123): Ask
-// about this (a), Explain, and Link. A page gives it where text is picked
-// out of, and what each does; the ask bar does the asking.
+// about this (a), Explain, and Link (SelectionToolbar). A page gives it
+// where text is picked out of, and what each does; the ask bar does the
+// asking. This is when it's up, and where.
 
 // passageIn is what's selected in root, as a passage: its text, a little
 // either side, and the section it's in (the h2 or h3 before it). undefined
@@ -63,6 +62,7 @@ export function SelectionTools({
   ref?: Ref<SelectionToolsHandle>;
 }) {
   const [at, setAt] = useState<{ left: number; top: number; passage: Passage }>();
+  const bar = useRef<HTMLDivElement>(null);
   useImperativeHandle(ref, () => ({
     hide: () => {
       if (!at) return false;
@@ -84,7 +84,7 @@ export function SelectionTools({
         const floor = (pageScroller()?.getBoundingClientRect().top ?? 0) + 44;
         setAt({ left: Math.max(120, Math.min(r.left + r.width / 2, window.innerWidth - 120)), top: Math.max(floor, r.top - 8), passage: p.passage });
       });
-    const mine = (e: Event) => !!(e.target as Element | null)?.closest?.(".seltool");
+    const mine = (e: Event) => !!bar.current?.contains(e.target as Node | null);
     // (A drag that started in the text can end outside it.)
     const up = (e: MouseEvent) => !mine(e) && look();
     const keyed = (e: KeyboardEvent) => e.shiftKey && look();
@@ -109,19 +109,5 @@ export function SelectionTools({
     fn(at.passage);
     getSelection()?.removeAllRanges();
   };
-  return (
-    <div className="seltool" role="toolbar" aria-label="The passage picked out" style={{ left: at.left, top: at.top }} onMouseDown={(e) => e.preventDefault()}>
-      <Button type="button" onClick={done(ask)} title="Ask about this passage (a)">
-        <Icon name="sparkle" size={12} /> Ask about this <Keys k="a" />
-      </Button>
-      <Button type="button" onClick={done(explain)} title="Ask for this passage to be explained">
-        <Icon name="quote" size={12} /> Explain
-      </Button>
-      {link && (
-        <Button type="button" onClick={done(link)} title="Copy a link to where it is: its section">
-          <Icon name="link" size={12} /> Link
-        </Button>
-      )}
-    </div>
-  );
+  return <SelectionToolbar ref={bar} left={at.left} top={at.top} onAsk={done(ask)} onExplain={done(explain)} onLink={link && done(link)} />;
 }

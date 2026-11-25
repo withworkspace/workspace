@@ -5,6 +5,15 @@ import { Icon, type IconName } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { Keys } from "../ui/Keys";
 import { Input } from "../ui/Input";
+import css from "./AskField.module.css";
+
+// AskPlace is where it sits: at the foot of what's read, stuck to the
+// bottom as it scrolls (foot, as it comes); in a column, in its flow
+// (inline: the brief's planner); framed by a foot that's the page's own,
+// centred in it (framed: a pull request's review); or over a page's
+// foot, centred and lifted (over: a plugin page's conversation).
+export type AskPlace = "foot" | "inline" | "framed" | "over";
+const places: Record<AskPlace, string | undefined> = { foot: undefined, inline: css.inline, framed: css.framed, over: css.over };
 
 // What's in hand, as the field shows it before its words: a passage
 // picked out of a document, lines of a diff, what a plugin's page says
@@ -33,8 +42,8 @@ type AskFieldProps = {
   suggestions?: string[];
   // The field, for whoever gives it the keys (/).
   field?: Ref<HTMLInputElement>;
-  // Where it sits is its page's to say: at the foot of what's read (as it
-  // comes), or the page's own (brief-ask, convo-askbar).
+  place?: AskPlace;
+  // A class of its page's, for finding it (brief-ask).
   className?: string;
 };
 
@@ -46,7 +55,7 @@ type AskFieldProps = {
 //
 // / goes to it (the page binds that). ↑ and ↓ go through what's offered,
 // ⏎ asks, esc gives the keys back to the page.
-export function AskField({ placeholder, onAsk, busy, holding, suggestions = [], field, className }: AskFieldProps) {
+export function AskField({ placeholder, onAsk, busy, holding, suggestions = [], field, place = "foot", className }: AskFieldProps) {
   const [text, setText] = useState("");
   const [asking, setAsking] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -87,23 +96,23 @@ export function AskField({ placeholder, onAsk, busy, holding, suggestions = [], 
   };
 
   return (
-    <div className={cx("askbar-wrap", className)}>
+    <div className={cx(css.wrap, places[place], className)}>
       {offered.length > 0 && (
-        <div className="ask-suggest" role="listbox" aria-label="Suggestions">
+        <div className={css.suggest} role="listbox" aria-label="Suggestions">
           {offered.map((s, i) => (
-            <button type="button" key={s} role="option" aria-selected={i === pick} className={`ask-suggestion${i === pick ? " sel" : ""}`} onMouseDown={(e) => e.preventDefault()} onMouseMove={() => i !== pick && setPick(i)} onClick={() => ask(s)}>
+            <button type="button" key={s} role="option" aria-selected={i === pick} className={cx(css.suggestion, i === pick && css.picked)} onMouseDown={(e) => e.preventDefault()} onMouseMove={() => i !== pick && setPick(i)} onClick={() => ask(s)}>
               <Icon name="sparkle" size={11} />
               {s}
             </button>
           ))}
         </div>
       )}
-      <div className={`askbar${working ? " sending" : ""}`}>
-        {working ? <Spinner size={14} className="askbar-icon" /> : <Icon name="sparkle" size={14} className="askbar-icon" />}
+      <div className={css.bar}>
+        {working ? <Spinner size={14} className={css.mark} /> : <Icon name="sparkle" size={14} className={css.mark} />}
         {holding && (
-          <span className={`ask-ctx ${holding.kind ?? "holding"}`} title={holding.title ?? holding.text}>
+          <span className={cx(css.held, holding.kind === "lines" && css.lines, holding.kind === "finding" && css.finding)} title={holding.title ?? holding.text}>
             <Icon name={holding.icon} size={11} />
-            <span className="q">{holding.text}</span>
+            <span className={css.heldText}>{holding.text}</span>
             {holding.drop && (
               <Button type="button" onClick={holding.drop.onDrop} title={holding.drop.label} aria-label={holding.drop.label}>
                 <Icon name="x" size={11} />
@@ -128,7 +137,7 @@ export function AskField({ placeholder, onAsk, busy, holding, suggestions = [], 
             setPick(-1);
           }}
         />
-        <Keys k="/" className="askbar-key" />
+        <Keys k="/" className={css.key} />
       </div>
     </div>
   );

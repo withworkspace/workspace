@@ -1,0 +1,9 @@
+/* An agent at it, in a thread (AnnotateTyping.tsx). */
+
+.typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}

@@ -1,0 +1,5 @@
+/* A chip at the end of a line of a ref's card (RefChip.tsx). */
+
+.chip {
+  margin-left: 6px;
+}

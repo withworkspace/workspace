@@ -1,0 +1,194 @@
+/* The ask field (AskField.tsx): at the foot of what's read, stuck to the
+   bottom as it scrolls, with what's offered standing over it as it's
+   gone to. Where else it sits is its place: inline in a column (the
+   brief's planner), framed by a foot that's the page's own (a review's),
+   or over a page's foot (a plugin page's conversation). */
+
+.wrap {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  margin-top: var(--space-6);
+  padding: 18px 0 16px;
+  background: linear-gradient(to bottom, transparent, var(--bg) 40%);
+}
+
+.wrap.inline {
+  position: relative;
+  bottom: auto;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+
+.wrap.framed {
+  position: relative;
+  max-width: 860px;
+  margin: 0 auto;
+  background: none;
+}
+
+/* The foot it's held in lets clicks beside it through. */
+.wrap.framed > * {
+  pointer-events: auto;
+}
+
+.wrap.over {
+  position: relative;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0;
+  background: none;
+}
+
+.bar {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow);
+  transition:
+    border-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.bar:focus-within {
+  border-color: var(--accent-line);
+  box-shadow: var(--shadow), 0 0 0 3px var(--accent-soft);
+}
+
+/* Over a page, it stands further off it, focused or not. */
+.over .bar {
+  box-shadow: var(--shadow-lg);
+}
+
+.mark {
+  flex: none;
+  color: var(--accent);
+}
+
+.bar input,
+.bar input:focus {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.key {
+  flex: none;
+  color: var(--faint);
+}
+
+.bar:focus-within .key {
+  visibility: hidden;
+}
+
+/* What's asked about, in hand: a passage, as a chip. */
+.held {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  max-width: 40%;
+  min-width: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--well);
+  color: var(--dim);
+  font-size: var(--text-xs);
+  font-style: italic;
+}
+
+.heldText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Lines of a pull request's diff: the file and its lines, as code; what
+   a pass found, as said. */
+.held.lines {
+  font-family: var(--mono);
+  font-style: normal;
+}
+
+.held.finding {
+  font-style: normal;
+}
+
+.held button {
+  all: unset;
+  display: inline-flex;
+  color: var(--faint);
+  cursor: pointer;
+}
+
+.held button:hover {
+  color: var(--fg);
+}
+
+.suggest {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% - 12px);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 0 4px;
+}
+
+/* Inline, what's offered stands over the foot of what's above the field,
+   which fades under it. */
+.inline .suggest {
+  left: -12px;
+  right: -12px;
+  bottom: 100%;
+  padding: 28px 12px 6px;
+  background: linear-gradient(to bottom, transparent, var(--bg) 26px);
+}
+
+.inline .suggestion {
+  background: var(--raised);
+  text-align: left;
+  white-space: normal;
+}
+
+.suggestion {
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 0;
+  padding: 4px 10px;
+  border-color: var(--line);
+  box-shadow: var(--shadow-xs);
+  font-weight: 400;
+}
+
+.suggestion :global(.icon) {
+  color: var(--accent);
+}
+
+/* Picked or pointed at: the accent's tint, over the button's own colour.
+   The tint alone is see-through, and these stand over what's being read. */
+.suggestion.picked,
+.suggestion:hover {
+  border-color: var(--accent-line);
+  background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--raised);
+}
+
+@media print {
+  .wrap {
+    display: none !important;
+  }
+}

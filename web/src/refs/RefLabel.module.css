@@ -1,0 +1,15 @@
+/* What's said after a name in what's read (RefLabel.tsx). A page's editor
+   draws the same from styles.css's .pm .ref-label. */
+
+:global(.markdown) .label {
+  margin-left: 5px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font: 500 var(--text-xs) / 18px var(--font);
+  color: var(--tone, var(--dim));
+  background: var(--tone-soft, var(--well));
+  vertical-align: 1px;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}

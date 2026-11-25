@@ -1,0 +1,64 @@
+/* A name in what's read, drawn as somewhere to go (RefName.tsx): in
+   markdown, and in words that say data-refs (Inline, a list of refs).
+   A page's editor draws the same from styles.css's .pm .named-ref. */
+
+:global(.markdown) .name,
+[data-refs] .name {
+  text-decoration: underline dotted var(--faint);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+:global(.markdown) a.name {
+  color: inherit;
+}
+
+:global(.markdown) .name:hover,
+[data-refs] .name:hover {
+  text-decoration-color: var(--accent);
+  color: var(--accent);
+}
+
+:global(.markdown) .name:is(.mission, .page, .talk, .pr, .thing),
+[data-refs] .name:is(.mission, .pr, .thing) {
+  font-weight: 500;
+}
+
+/* Words of the writer's own, linked to a thing: its kind's icon first. */
+:global(.markdown) .name.words .icon,
+[data-refs] .name.words .icon {
+  margin-right: 3px;
+  vertical-align: -1px;
+  color: var(--dim);
+}
+
+/* A ref drawn as a pill (refs/views.tsx: a repo), in its accent colour,
+   by its own text. */
+:global(.markdown) .name.pill,
+[data-refs] .name.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-weight: 500;
+  line-height: 1.45;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--text);
+  background: color-mix(in srgb, var(--ref-accent, var(--accent)) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ref-accent, var(--accent)) 45%, transparent);
+}
+
+:global(.markdown) .name.pill:hover,
+[data-refs] .name.pill:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--ref-accent, var(--accent)) 24%, transparent);
+}
+
+:global(.markdown) .name.pill .icon,
+[data-refs] .name.pill .icon {
+  margin: 0;
+  color: var(--ref-accent, var(--dim));
+}

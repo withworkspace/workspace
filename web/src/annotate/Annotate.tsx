@@ -3,7 +3,6 @@ import {
   act,
   approveDoc,
   type ArtifactContent,
-  type DocQuote,
   draftWaiting,
   getThreads,
   getThreadVersion,
@@ -11,7 +10,6 @@ import {
   pendingSuggestion,
   placeOf,
   recordDecision,
-  type Suggestion,
   sayOnThread,
   sendThreads,
   setThreadStatus,
@@ -27,28 +25,38 @@ import { useKeys } from "../keys";
 import { type TrackedChange, TrackedDoc } from "../editor/LazyTracked";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { Banner } from "../ui/Banner";
-import { NoteBody, NoteCard, NoteHead, NoteHint, noteHintActionClass, NoteId, NoteThread, NoteTurn } from "../ui/NoteCard";
-import { ReplyBox } from "../ui/ReplyBox";
-import { sendKeysSaid, sent, useSendKey } from "../ui/sendKey";
-import { Change } from "../ui/Change";
 import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { useMedia } from "../ui/useMedia";
-import { useAutosize } from "../ui/useAutosize";
 import { toast } from "../ui/toast";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { exact, stamp } from "../ui/when";
-import { BLOCK, blockLike, blockLines, blockSpan, blockWithLines, buildIndex, find, offsetOf, rangeOf, type Target, type TextIndex, targetOf, targetOfRange } from "./anchor";
+import { BLOCK, blockLike, blockLines, blockSpan, blockWithLines, buildIndex, find, offsetOf, rangeOf, type TextIndex, targetOf, targetOfRange } from "./anchor";
 import { changes } from "./diff";
 import { useLatest, useLoaded } from "../load";
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
-import { clip, humanError } from "../ui/text";
+import { humanError } from "../ui/text";
 import { pageScroller } from "../ui/scroller";
-import { Segment, Segmented } from "../ui/Segmented";
-import { TextArea } from "../ui/TextArea";
-import { TypingDots } from "../ui/TypingDots";
+import { AnnotateAddComment } from "./AnnotateAddComment";
+import { AnnotateBar, AnnotateBarNote } from "./AnnotateBar";
+import { AnnotateBlockMark } from "./AnnotateBlockMark";
+import { AnnotateChangeBar } from "./AnnotateChangeBar";
+import { AnnotateChangePop } from "./AnnotateChangePop";
+import { AnnotateCursor } from "./AnnotateCursor";
+import { AnnotateDocCol, AnnotateLayout, annotateLandedClass, AnnotateMargin, AnnotateSlot, AnnotateText } from "./AnnotateLayout";
+import { AnnotateLost } from "./AnnotateLost";
+import { AnnotateMarginHint } from "./AnnotateMarginHint";
+import { AnnotatePreviewBar } from "./AnnotatePreviewBar";
+import { AnnotateSheet } from "./AnnotateSheet";
+import { AnnotateThreadMarker } from "./AnnotateThreadMarker";
+import { type Box, caretAt, COMPOSER, GAP, type Geo, noGeo, num, type Pick, pickOf, type Placed, sinceYou, spotRect, stack } from "./geometry";
+import { ThreadCard } from "./ThreadCard";
+import { ThreadComposer } from "./ThreadComposer";
+import { kindWords } from "./words";
+
+export { annotateKeys } from "./words";
 
 // Commenting on a document, as in a shared doc: you read it rendered,
 // highlight text and comment on it, and the comment is a thread, live at
@@ -58,115 +66,11 @@ import { TypingDots } from "../ui/TypingDots";
 //
 // Highlights are drawn with the CSS Custom Highlight API, so the rendered
 // markdown (React's) is never touched: a thread is a Range over it.
-
-export const annotateKeys: [string, string][] = [
-  ["select, then c", "Comment on the text selected"],
-  ["j / k", "Next / previous paragraph"],
-  ["⇧↓ / ⇧↑", "Take in the next / previous paragraph"],
-  ["c", "Comment on the paragraphs (or the text selected)"],
-  ["n / p", "Next / previous open thread"],
-  ["⏎", "Reply"],
-  ["a / d", "Accept / decline the thread's suggested edit"],
-  ["v", "See the suggested edits in place, as tracked changes"],
-  ["x", "Resolve / reopen the thread"],
-  ["i", "Show / hide what's changed since you last commented"],
-  ["⇧A", "Approve the document"],
-  ["tab", "While writing: ask, change or note"],
-];
-
-const kindWords: Record<ThreadKind, string> = { ask: "Ask", change: "Change", note: "Note" };
-const kindIcon: Record<ThreadKind, "question" | "pencil" | "message"> = { ask: "question", change: "pencil", note: "message" };
-const kindHints: Record<ThreadKind, string> = {
-  ask: "What do you want to know?",
-  change: "What should change?",
-  note: "What do you want to say?",
-};
-
-// Spot is where a thread is drawn: a range of text, or a whole block with
-// no words of its own (a diagram).
-type Spot = { kind: "text"; start: number; end: number; range: Range } | { kind: "block"; el: HTMLElement };
-
-// Pick is what a new thread is on.
-interface Pick {
-  line: number;
-  endLine: number;
-  quote: DocQuote;
-  spot: Spot;
-}
-
-interface Placed {
-  thread: Thread;
-  spot?: Spot; // none: not found in this version
-  pos: number; // where it is in the text, to order by
-}
-
-const COMPOSER = "composer";
-const GAP = 8;
-
-interface Box {
-  top: number;
-  height: number;
-}
-
-// Geo is where everything over the document goes, measured after it's
-// drawn: the margin's cards, the cursor, the comment button, the marks on
-// commented diagrams, and the bars by what's changed.
-interface Geo {
-  cards: Record<string, number>;
-  height: number;
-  cursor?: Box;
-  button?: number;
-  marks: (Box & { id: string; left: number; width: number })[];
-  bars: (Box & { i: number; removed: boolean })[];
-  // anchors are where each thread's text starts, for the markers that stand
-  // in for the margin on a narrow window.
-  anchors?: { id: string; top: number }[];
-}
-
-const noGeo: Geo = { cards: {}, height: 0, marks: [], bars: [] };
-
-function spotRect(s: Spot): DOMRect | undefined {
-  if (s.kind === "block") return s.el.isConnected ? s.el.getBoundingClientRect() : undefined;
-  const rects = s.range.getClientRects();
-  for (const r of rects) if (r.width > 0) return r;
-  return rects[0];
-}
-
-function pickOf(ix: TextIndex, t: Target): Pick | undefined {
-  const range = rangeOf(ix, t.start, t.end);
-  return range && { line: t.line, endLine: t.endLine, quote: t.quote, spot: { kind: "text", start: t.start, end: t.end, range } };
-}
-
-// stack places cards level with what they're on, without overlapping:
-// the one in focus exactly, the rest pushed away from it.
-function stack(want: { id: string; top: number }[], height: (id: string) => number, focus?: string): Record<string, number> {
-  const pos = want.map((w) => w.top);
-  const f = Math.max(0, want.findIndex((w) => w.id === focus));
-  for (let i = f + 1; i < want.length; i++) pos[i] = Math.max(want[i].top, pos[i - 1] + height(want[i - 1].id) + GAP);
-  for (let i = f - 1; i >= 0; i--) pos[i] = Math.min(want[i].top, pos[i + 1] - height(want[i].id) - GAP);
-  const lift = pos.length && pos[0] < 0 ? -pos[0] : 0;
-  return Object.fromEntries(want.map((w, i) => [w.id, Math.round(pos[i] + lift)]));
-}
-
-function caretAt(x: number, y: number): { node: Node; offset: number } | undefined {
-  const p = document.caretPositionFromPoint?.(x, y);
-  if (p) return { node: p.offsetNode, offset: p.offset };
-  const r = (document as Document & { caretRangeFromPoint?: (x: number, y: number) => Range | null }).caretRangeFromPoint?.(x, y);
-  return r ? { node: r.startContainer, offset: r.startOffset } : undefined;
-}
-
-const linesWord = (n: { line: number; endLine: number }) => (n.endLine > n.line ? `lines ${n.line}–${n.endLine}` : `line ${n.line}`);
-const num = (id: string) => Number(id.slice(1));
-
-// sinceYou is the version of the document you last commented on (a thread
-// you opened, or a reply), and when.
-function sinceYou(threads: Thread[]): { version: string; at: string } | undefined {
-  let best: { version: string; at: string } | undefined;
-  for (const t of threads)
-    for (const turn of t.turns)
-      if (turn.by === "you" && turn.version && (!best || new Date(turn.at).getTime() > new Date(best.at).getTime())) best = { version: turn.version, at: turn.at };
-  return best;
-}
+//
+// AnnotatedDoc is what knows and does: the threads, where they are, the
+// cursor and what's picked, the keys. What it draws are the Annotate…
+// parts (the bar, the layout of column and margin, what's over the
+// document) and a ThreadCard for each thread.
 
 export function AnnotatedDoc({
   slug,
@@ -622,8 +526,8 @@ export function AnnotatedDoc({
     const t = setTimeout(() => {
       const hit = [...el.querySelectorAll<HTMLElement>("[data-block]")].filter((b) => words && b.textContent?.replace(/\s+/g, " ").includes(words));
       for (const b of hit) {
-        b.classList.add("just-changed");
-        setTimeout(() => b.classList.remove("just-changed"), 2400);
+        b.classList.add(annotateLandedClass);
+        setTimeout(() => b.classList.remove(annotateLandedClass), 2400);
       }
       hit[0]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }, 120);
@@ -769,31 +673,33 @@ export function AnnotatedDoc({
   );
 
   return (
-    <div className="annotating-doc">
-      <div className="annotate-bar">
-        <span className="annotate-counts">
-          {open.length > 0 && (
-            <Chip tone="quiet">
-              <Icon name="message" size={11} /> {open.length} open
-            </Chip>
-          )}
-          {waiting.length > 0 && (
-            <Chip tone="attention">
-              <Icon name="reply" size={11} /> {waiting.length} your turn
-            </Chip>
-          )}
-          {answering.length > 0 && (
-            <Chip tone="progress">
-              <Spinner size={11} /> {answering.length} answering
-            </Chip>
-          )}
-          {drafts.length > 0 && (
-            <Chip tone="attention">
-              <Icon name="gavel" size={11} /> {drafts.length} {drafts.length === 1 ? "decision" : "decisions"} to record
-            </Chip>
-          )}
-        </span>
-        <span className="spacer-left" />
+    <div>
+      <AnnotateBar
+        counts={
+          <>
+            {open.length > 0 && (
+              <Chip tone="quiet">
+                <Icon name="message" size={11} /> {open.length} open
+              </Chip>
+            )}
+            {waiting.length > 0 && (
+              <Chip tone="attention">
+                <Icon name="reply" size={11} /> {waiting.length} your turn
+              </Chip>
+            )}
+            {answering.length > 0 && (
+              <Chip tone="progress">
+                <Spinner size={11} /> {answering.length} answering
+              </Chip>
+            )}
+            {drafts.length > 0 && (
+              <Chip tone="attention">
+                <Icon name="gavel" size={11} /> {drafts.length} {drafts.length === 1 ? "decision" : "decisions"} to record
+              </Chip>
+            )}
+          </>
+        }
+      >
         {!own && toSend.length > 1 && (
           <Button
             disabled={sending || stale}
@@ -809,18 +715,18 @@ export function AnnotatedDoc({
           </Button>
         )}
         {own ? null : approvedNow ? (
-          <Chip tone="done" className="approved" title={`You approved this version ${exact(approved.at)}`}>
+          <Chip tone="done" title={`You approved this version ${exact(approved.at)}`}>
             <Icon name="check-circle" size={12} /> Approved
           </Chip>
         ) : (
           <>
-            {approved && <span className="dim approved-before">You approved an earlier version</span>}
+            {approved && <AnnotateBarNote>You approved an earlier version</AnnotateBarNote>}
             <Button variant={open.some((t) => t.kind === "change") ? undefined : "primary"} disabled={approving || stale} onClick={approve} title="Approve the document as it is (⇧A)">
               <Icon name="check" size={13} /> {approved ? "Approve again" : "Approve"} <Keys k="⇧A" />
             </Button>
           </>
         )}
-      </div>
+      </AnnotateBar>
       {offerStage && stage && (
         <Callout
           tone="done"
@@ -865,27 +771,19 @@ export function AnnotatedDoc({
       )}
       {error && <Banner>{humanError(error)}</Banner>}
       {lost.length > 0 && (
-        <section className="lost-notes">
-          <div className="dim">
-            {lost.length === 1 ? "A thread's" : `${lost.length} threads'`} text isn't in this version: it's been changed, or removed.
-          </div>
+        <AnnotateLost said={`${lost.length === 1 ? "A thread's" : `${lost.length} threads'`} text isn't in this version: it's been changed, or removed.`}>
           {lost.map((p) => (
             <div key={p.thread.id} id={`thread-${p.thread.id}`}>
               {card(p, true)}
             </div>
           ))}
-        </section>
+        </AnnotateLost>
       )}
+      {preview && <AnnotatePreviewBar count={edits.length} marked={preview.thread.id} />}
       {preview && (
-        <Callout tone="info" icon="eye" title={edits.length === 1 ? "The suggested edit, in place" : `${edits.length} suggested edits, in place`} className="preview-bar">
-          Struck through is what an edit takes out, underlined what it puts in. <Keys k="a" /> accepts the one marked ({preview.thread.id}), <Keys k="d" /> declines it; click another to mark it.{" "}
-          <Keys k="v" /> or <Keys k="esc" /> goes back.
-        </Callout>
-      )}
-      {preview && (
-        <div className="annotate preview">
-          <div className="doc-col">
-            <article className="artifact-body">
+        <AnnotateLayout>
+          <AnnotateDocCol>
+            <AnnotateText>
               <TrackedDoc
                 text={artifact.text}
                 changes={edits}
@@ -894,22 +792,18 @@ export function AnnotatedDoc({
                 onFocus={setPreviewing}
                 onSettle={(id, action) => settle(threads.find((x) => x.id === id), action)}
               />
-            </article>
-          </div>
-        </div>
+            </AnnotateText>
+          </AnnotateDocCol>
+        </AnnotateLayout>
       )}
-      <div className="annotate" style={preview ? { display: "none" } : undefined}>
-        <div className="doc-col" ref={docCol}>
-          <article className="artifact-body" ref={article} onClick={docClick} onMouseMove={textHover} onMouseLeave={() => hoverFromText.current && setHover(undefined)}>
+      <AnnotateLayout hidden={!!preview}>
+        <AnnotateDocCol ref={docCol}>
+          <AnnotateText ref={article} onClick={docClick} onMouseMove={textHover} onMouseLeave={() => hoverFromText.current && setHover(undefined)}>
             <Markdown text={artifact.text} lines at={place} />
-          </article>
-          {geo.cursor && <div className="doc-cursor" style={{ top: geo.cursor.top, height: geo.cursor.height }} />}
+          </AnnotateText>
+          {geo.cursor && <AnnotateCursor top={geo.cursor.top} height={geo.cursor.height} />}
           {geo.marks.map((m) => (
-            <div
-              key={m.id}
-              className={`block-mark${m.id === active || m.id === COMPOSER || m.id === hover ? " on" : ""}`}
-              style={{ top: m.top - 4, height: m.height + 8, left: m.left - 4, width: m.width + 8 }}
-            />
+            <AnnotateBlockMark key={m.id} on={m.id === active || m.id === COMPOSER || m.id === hover} top={m.top - 4} height={m.height + 8} left={m.left - 4} width={m.width + 8} />
           ))}
           {narrow &&
             (geo.anchors ?? []).map((a, i, all) => {
@@ -918,488 +812,60 @@ export function AnnotatedDoc({
               const t = p.thread;
               const stacked = all.slice(0, i).filter((b) => Math.abs(b.top - a.top) < 20).length;
               return (
-                <button
+                <AnnotateThreadMarker
                   key={a.id}
-                  className={`thread-marker k-${t.kind}${t.status === "resolved" ? " resolved" : ""}${waitingOnYou(t) ? " yours" : ""}${a.id === active ? " on" : ""}`}
-                  style={{ top: a.top + stacked * 24 }}
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  kind={t.kind}
+                  top={a.top + stacked * 24}
+                  turns={t.turns.length}
+                  resolved={t.status === "resolved"}
+                  yours={waitingOnYou(t)}
+                  on={a.id === active}
+                  label={`${kindWords[t.kind]} thread ${t.id}${t.status === "resolved" ? ", resolved" : ""}`}
+                  onPress={() => {
                     setActive(a.id);
                     setSheet(a.id);
                   }}
-                  aria-label={`${kindWords[t.kind]} thread ${t.id}${t.status === "resolved" ? ", resolved" : ""}`}
-                >
-                  <Icon name={t.status === "resolved" ? "check" : kindIcon[t.kind]} size={11} />
-                  {t.turns.length > 1 && <span>{t.turns.length}</span>}
-                </button>
+                />
               );
             })}
           {geo.bars.map((b) => (
-            <button
-              key={b.i}
-              className={`change-bar${b.removed ? " removed" : ""}${openChange === b.i ? " on" : ""}`}
-              style={{ top: b.top, height: b.height }}
-              title={b.removed ? "Removed since you last commented" : "Changed since you last commented"}
-              onClick={() => setOpenChange((o) => (o === b.i ? undefined : b.i))}
-            />
+            <AnnotateChangeBar key={b.i} top={b.top} height={b.height} removed={b.removed} on={openChange === b.i} onPress={() => setOpenChange((o) => (o === b.i ? undefined : b.i))} />
           ))}
           {openChange !== undefined && diff[openChange] && (
-            <ChangePop
+            <AnnotateChangePop
               top={(geo.bars.find((b) => b.i === openChange)?.top ?? 0) + (geo.bars.find((b) => b.i === openChange)?.height ?? 0) + 6}
               old={diff[openChange].old}
               added={diff[openChange].newEnd >= diff[openChange].newStart}
               onClose={() => setOpenChange(undefined)}
             />
           )}
-        </div>
-        <div className="margin" style={{ height: geo.height }}>
-          {geo.button !== undefined && !composing && !stale && (
-            <button
-              className={`add-comment${selection ? " text" : ""}`}
-              style={{ top: geo.button }}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={comment}
-              title="Comment (c)"
-            >
-              {selection ? (
-                <>
-                  <Icon name="message" size={13} /> Comment <Keys k="c" />
-                </>
-              ) : (
-                <>
-                  <Icon name="plus" size={12} /> <Keys k="c" />
-                </>
-              )}
-            </button>
-          )}
+        </AnnotateDocCol>
+        <AnnotateMargin height={geo.height}>
+          {geo.button !== undefined && !composing && !stale && <AnnotateAddComment top={geo.button} text={!!selection} onPress={comment} />}
           {shown.map((p) => (
-            <div
-              key={p.thread.id}
-              ref={setCard(p.thread.id)}
-              className="slot"
-              style={{ top: geo.cards[p.thread.id] ?? 0, opacity: geo.cards[p.thread.id] === undefined ? 0 : undefined }}
-            >
+            <AnnotateSlot key={p.thread.id} ref={setCard(p.thread.id)} top={geo.cards[p.thread.id]}>
               {card(p)}
-            </div>
+            </AnnotateSlot>
           ))}
-          {!shown.length && !composing && geo.button === undefined && !stale && (
-            <div className="margin-hint">
-              <Icon name="message" size={14} />
-              <span>
-                Select text to comment on it, or move with <Keys k="j" /> <Keys k="k" /> and press <Keys k="c" />. Ask a question, ask for a change, or leave a note:
-                an agent answers in the thread.
-              </span>
-            </div>
-          )}
+          {!shown.length && !composing && geo.button === undefined && !stale && <AnnotateMarginHint />}
           {composing && !narrow && (
-            <div key={COMPOSER} ref={setCard(COMPOSER)} className="slot" style={{ top: geo.cards[COMPOSER] ?? 0, opacity: geo.cards[COMPOSER] === undefined ? 0 : undefined }}>
-              <Composer pick={composing} onPost={post} onCancel={() => setComposing(undefined)} />
-            </div>
+            <AnnotateSlot key={COMPOSER} ref={setCard(COMPOSER)} top={geo.cards[COMPOSER]}>
+              <ThreadComposer pick={composing} onPost={post} onCancel={() => setComposing(undefined)} />
+            </AnnotateSlot>
           )}
-        </div>
-      </div>
+        </AnnotateMargin>
+      </AnnotateLayout>
       {narrow && (composing || (sheet && shown.some((p) => p.thread.id === sheet))) && (
-        <>
-          <div
-            className="sheet-scrim"
-            onClick={() => {
-              setSheet(undefined);
-              setComposing(undefined);
-            }}
-          />
-          <div className="sheet" role="dialog" aria-modal="true" aria-label={composing ? "New comment" : "Thread"}>
-            <div className="sheet-head">
-              <span className="sheet-grip" aria-hidden />
-              <Button
-                variant="ghost" size="small" square
-                onClick={() => {
-                  setSheet(undefined);
-                  setComposing(undefined);
-                }}
-                aria-label="Close"
-              >
-                <Icon name="x" size={14} />
-              </Button>
-            </div>
-            {composing ? (
-              <Composer pick={composing} onPost={post} onCancel={() => setComposing(undefined)} />
-            ) : (
-              card(shown.find((p) => p.thread.id === sheet)!)
-            )}
-          </div>
-        </>
+        <AnnotateSheet
+          label={composing ? "New comment" : "Thread"}
+          onClose={() => {
+            setSheet(undefined);
+            setComposing(undefined);
+          }}
+        >
+          {composing ? <ThreadComposer pick={composing} onPost={post} onCancel={() => setComposing(undefined)} /> : card(shown.find((p) => p.thread.id === sheet)!)}
+        </AnnotateSheet>
       )}
-    </div>
-  );
-}
-
-interface CardProps {
-  thread: Thread;
-  active: boolean;
-  hovered?: boolean;
-  replying: boolean;
-  unplaced: boolean;
-  onFocus: () => void;
-  onHover: (on: boolean) => void;
-  onReply: () => void;
-  onSay: (body: string) => void;
-  onReplyCancel: () => void;
-  onToggle: () => void;
-  onSettle: (action: "accept" | "decline") => void;
-  settling: boolean;
-  onSend: () => void;
-  own: boolean; // the document's in no mission: no crew to send to, no decisions
-  landing?: string; // accepting its edit lands it on this branch: asked once, a second accept does it
-  sending: boolean;
-  onPreview: () => void;
-  onDecide: (d: { action: "record"; what: string; why: string } | { action: "skip" }) => Promise<void>;
-}
-
-// ThreadCard is a thread in the margin: what you said, and what's been
-// said since. A resolved one is folded until it's in focus.
-function ThreadCard({ thread, active, hovered, replying, unplaced, onFocus, onHover, onReply, onSay, onReplyCancel, onToggle, onSettle, settling, onSend, sending, own, landing, onDecide, onPreview }: CardProps) {
-  const resolved = thread.status === "resolved";
-  const pending = !resolved ? pendingSuggestion(thread) : undefined;
-  const settled = (thread.suggestions ?? []).filter((s) => s.state === "accepted" || s.state === "declined");
-  const drafted = draftWaiting(thread);
-  const [deciding, setDeciding] = useState(false); // writing a decision of your own
-  const folded = resolved && !active && !unplaced && !drafted;
-  const yours = waitingOnYou(thread);
-  const crew = !resolved && withCrew(thread) ? thread.sent?.crew : undefined;
-  const sendable = !own && !resolved && thread.kind === "change" && !crew && !thread.answering && !pending;
-  const [first, ...rest] = thread.turns;
-  return (
-    <NoteCard
-      dense
-      className={`doc-note k-${thread.kind}`}
-      cursor={active}
-      hovered={hovered}
-      resolved={resolved}
-      folded={folded}
-      yours={yours}
-      onClick={onFocus}
-      onMouseEnter={() => onHover(true)}
-      onMouseLeave={() => onHover(false)}
-    >
-      <NoteHead
-        end={
-          <>
-            <NoteId>{thread.id}</NoteId>
-            <Button variant="ghost" size="small" className="note-toggle" onClick={(e) => (e.stopPropagation(), onFocus(), onToggle())} title={`${resolved ? "Reopen" : "Resolve"} (x)`}>
-              {resolved ? "Reopen" : "Resolve"}
-            </Button>
-          </>
-        }
-      >
-        <Chip className={`kind-chip k-${thread.kind}`}>
-          <Icon name={kindIcon[thread.kind]} size={11} />
-          {kindWords[thread.kind]}
-        </Chip>
-        {resolved ? (
-          <Chip tone="done">
-            <Icon name="check" size={11} /> Resolved
-          </Chip>
-        ) : crew ? (
-          <Chip tone="progress">{crew} is on it</Chip>
-        ) : yours ? (
-          <Chip tone="attention">Your turn</Chip>
-        ) : null}
-      </NoteHead>
-      {folded ? (
-        <NoteBody oneLine className="dim">
-          {first?.body}
-        </NoteBody>
-      ) : (
-        <>
-          {unplaced && (
-            <blockquote className="lost-quote" title={`opened on version ${thread.anchor.version} of the document, ${linesWord(thread.anchor)}`}>
-              {thread.anchor.quote?.exact ? clip(thread.anchor.quote.exact, 240) : `The whole of ${linesWord(thread.anchor)}`}
-            </blockquote>
-          )}
-          {first && <NoteBody>{first.body}</NoteBody>}
-          {rest.length > 0 && (
-            <NoteThread>
-              {rest.map((t) => (
-                <NoteTurn key={t.n} who={t.by === "you" ? "You" : t.by === "agent" ? "Agent" : t.by} quiet={t.by === "ws"} said={t.by === "you" ? t.body : <Markdown text={t.body} pinned={t.refs} />}>
-                  {t.changed && <span className="dim">changed it</span>}
-                  {t.commit && <span className="mono dim">{t.commit.slice(0, 7)}</span>}
-                </NoteTurn>
-              ))}
-            </NoteThread>
-          )}
-          {thread.answering && (
-            <div className="typing">
-              <TypingDots />
-              {resolved ? "Drafting what was decided" : "Answering"}
-            </div>
-          )}
-          {thread.sent?.finished && !resolved && (
-            <div className="dim settled">{thread.sent.crew} finished without saying it changed the document for this.</div>
-          )}
-          {settled.map((s) => (
-            <div key={s.n} className="dim settled">
-              {s.state === "accepted" ? `Edit accepted${s.commit ? `, committed ${s.commit.slice(0, 7)}` : ""}` : "Edit declined"}
-            </div>
-          ))}
-          {pending && <EditCard s={pending} active={active} onSettle={onSettle} settling={settling} onPreview={onPreview} landing={landing} />}
-          {drafted && thread.draft && <DecisionCard key={thread.draft.at} draft={thread.draft} onDecide={onDecide} />}
-          {thread.draft?.state === "recorded" && thread.draft.decision && <div className="dim settled">Recorded as {thread.draft.decision}</div>}
-          {!own && resolved && !thread.draft && !thread.answering && active && !deciding && (
-            <NoteHint>
-              <Button variant="link" className={noteHintActionClass()} onClick={(e) => (e.stopPropagation(), setDeciding(true))}>
-                Record what was decided
-              </Button>
-            </NoteHint>
-          )}
-          {deciding && !thread.draft && <DecisionCard onDecide={(d) => onDecide(d).then(() => setDeciding(false))} onCancel={() => setDeciding(false)} />}
-          {!replying && active && (
-            <NoteHint>
-              <Button variant="link" className={noteHintActionClass()} onClick={(e) => (e.stopPropagation(), onReply())}>
-                <Icon name="reply" size={12} /> Reply <Keys k="⏎" />
-              </Button>
-              {sendable && (
-                <Button
-                  variant="link"
-                  disabled={sending}
-                  title="Too big for an edit: hand it to crew (the crew that wrote it, or fresh crew in its capsule)"
-                  onClick={(e) => (e.stopPropagation(), onSend())}
-                >
-                  Send to crew
-                </Button>
-              )}
-            </NoteHint>
-          )}
-          {replying && <ReplyBox onSend={onSay} onCancel={onReplyCancel} />}
-        </>
-      )}
-    </NoteCard>
-  );
-}
-
-// EditCard is a suggested edit: what the markdown says, what it would
-// say, and accepting (written in, and committed in a capsule) or declining.
-function EditCard({
-  s,
-  active,
-  onSettle,
-  settling,
-  onPreview,
-  landing,
-}: {
-  s: Suggestion;
-  active: boolean;
-  onSettle: (action: "accept" | "decline") => void;
-  settling: boolean;
-  onPreview: () => void;
-  landing?: string;
-}) {
-  return (
-    <div className="doc-suggestion edit" onClick={(e) => e.stopPropagation()}>
-      <div className="suggestion-head">
-        <Icon name="pencil" size={12} /> Suggested edit <span className="dim">by {s.by === "agent" ? "the agent" : s.by}</span>
-      </div>
-      <Change bare wrap was={[s.from]} now={s.to === "" ? [] : [s.to]} gone="(delete it)" />
-      {landing && (
-        <div className="dim settled">
-          Accepting writes it in and lands it on {landing} at once: there's no pull request. <Keys k="a" /> again does it.
-        </div>
-      )}
-      <div className="note-actions">
-        <Button variant="link" className="see-applied" onClick={onPreview} title="See it in the document, as a tracked change (v)">
-          <Icon name="eye" size={12} /> See it in place
-        </Button>
-        <span className="spacer-left" />
-        {settling ? (
-          <span className="dim busy">
-            <Spinner /> Writing it in…
-          </span>
-        ) : (
-          <>
-            <Button variant="ghost" size="small" disabled={settling} onClick={() => onSettle("decline")} title="Decline it (d)">
-              Decline {active && <Keys k="d" />}
-            </Button>
-            <Button variant="primary" size="small" disabled={settling} onClick={() => onSettle("accept")} title={landing ? `Accept it, and land it on ${landing} (a)` : "Accept it (a)"}>
-              {landing ? `Land it on ${landing}` : "Accept"} {active && <Keys k="a" />}
-            </Button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// DecisionCard records what was decided in a resolved thread: as its agent
-// drafted it (skip it, or edit and record it), or in your own words.
-function DecisionCard({
-  draft,
-  onDecide,
-  onCancel,
-}: {
-  draft?: NonNullable<Thread["draft"]>;
-  onDecide: (d: { action: "record"; what: string; why: string } | { action: "skip" }) => Promise<void>;
-  onCancel?: () => void;
-}) {
-  const [what, setWhat] = useState(draft?.what ?? "");
-  const [why, setWhy] = useState(draft?.why ?? "");
-  const [busy, setBusy] = useState(false);
-  const run = (d: { action: "record"; what: string; why: string } | { action: "skip" }) => {
-    if (busy || (d.action === "record" && !d.what.trim())) return;
-    setBusy(true);
-    onDecide(d).finally(() => setBusy(false));
-  };
-  const keys = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      run({ action: "record", what, why });
-    }
-  };
-  return (
-    <div className="doc-suggestion decision" onClick={(e) => e.stopPropagation()}>
-      <div className="suggestion-head">
-        <Icon name="gavel" size={12} /> {draft ? "Record what was decided?" : "What was decided"} {draft && <span className="dim">drafted by {draft.by === "agent" ? "the agent" : draft.by}</span>}
-      </div>
-      <TextArea value={what} rows={Math.min(5, Math.max(2, Math.ceil(what.length / 40)))} placeholder="The decision, in a sentence" onChange={(e) => setWhat(e.target.value)} onKeyDown={keys} />
-      <TextArea value={why} rows={Math.min(5, Math.max(2, Math.ceil(why.length / 40)))} placeholder="Why" onChange={(e) => setWhy(e.target.value)} onKeyDown={keys} />
-      <div className="note-actions">
-        <span className="spacer-left" />
-        {draft ? (
-          <Button variant="ghost" size="small" disabled={busy} onClick={() => run({ action: "skip" })}>
-            Skip
-          </Button>
-        ) : (
-          <Button variant="ghost" size="small" onClick={onCancel}>
-            Cancel
-          </Button>
-        )}
-        <Button variant="primary" size="small" disabled={busy || !what.trim()} onClick={() => run({ action: "record", what, why })} title="Record it (⌘⏎)">
-          Record
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// Composer writes a new thread on what's highlighted: tab picks ask,
-// change or note; the key you've chosen posts it (ui/sendKey.ts), and
-// it's live at once. In an edit of your own, ⏎ is a new line of it, and
-// ⌘⏎ posts.
-function Composer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: ThreadKind, body: string, suggestion?: string) => Promise<void>; onCancel: () => void }) {
-  const [kind, setKind] = useState<ThreadKind>("ask");
-  const [text, setText] = useState("");
-  // An edit of your own: what the highlighted text should read.
-  const [edit, setEdit] = useState<string>();
-  const [error, setError] = useState<string>();
-  const area = useRef<HTMLTextAreaElement>(null);
-  const sendKey = useSendKey();
-  useAutosize(area, text, 260);
-  // While writing, the page's keys are off: these are the composer's. (Its
-  // slot is see-through, not hidden, until it's placed: focus needs that.)
-  useKeys({}, { modal: true });
-  useEffect(() => {
-    area.current?.focus({ preventScroll: true });
-  }, []);
-  const post = () => {
-    if (edit !== undefined) {
-      if (edit === pick.quote.exact) return;
-      onPost("change", text.trim() || "This should read differently.", edit).catch((e: Error) => setError(e.message));
-      return;
-    }
-    if (!text.trim()) return;
-    onPost(kind, text).catch((e: Error) => setError(e.message));
-  };
-  const suggest = () => {
-    setKind("change");
-    setEdit(pick.quote.exact);
-  };
-  return (
-    <div className="note-editor doc-note" onClick={(e) => e.stopPropagation()}>
-      <Segmented fill value={kind} onChange={setKind} aria-label="What kind of comment">
-        {threadKinds.map((k) => (
-          <Segment key={k} value={k} className={`note-kind k-${k}`} title={`${kindWords[k]} (tab cycles)`}>
-            <Icon name={kindIcon[k]} size={12} />
-            {kindWords[k]}
-          </Segment>
-        ))}
-      </Segmented>
-      <blockquote className="editor-on">{pick.quote.exact ? clip(pick.quote.exact.replace(/\s+/g, " "), 140) : "The whole diagram"}</blockquote>
-      <TextArea
-        ref={area}
-        value={text}
-        rows={2}
-        placeholder={kindHints[kind]}
-        aria-label={kindHints[kind]}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.nativeEvent.isComposing) return;
-          if (sent(e, sendKey)) {
-            e.preventDefault();
-            post();
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            onCancel();
-          } else if (e.key === "Tab") {
-            e.preventDefault();
-            const i = threadKinds.indexOf(kind);
-            setKind(threadKinds[(i + (e.shiftKey ? threadKinds.length - 1 : 1)) % threadKinds.length]);
-          }
-        }}
-      />
-      {edit !== undefined && (
-        <>
-          <div className="dim editor-on">It should read:</div>
-          <TextArea
-            className="edit-to"
-            value={edit}
-            rows={Math.min(10, Math.max(2, edit.split("\n").length + 1))}
-            onChange={(e) => setEdit(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                post();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                onCancel();
-              }
-            }}
-          />
-        </>
-      )}
-      {error && <Banner>{humanError(error)}</Banner>}
-      {pick.quote.exact && edit === undefined && (
-        <Button variant="link" className="suggest-link" onClick={suggest}>
-          <Icon name="pencil" size={12} /> Suggest an edit instead
-        </Button>
-      )}
-      <div className="note-actions">
-        <span className="dim composer-tip">
-          <Keys k="tab" /> kind
-        </span>
-        <span className="spacer-left" />
-        <Button variant="ghost" size="small" onClick={onCancel} title="Cancel (esc)">
-          Cancel
-        </Button>
-        <Button variant="primary" size="small" onClick={post} disabled={edit !== undefined ? edit === pick.quote.exact : !text.trim()} title={`Post it (${sendKeysSaid(sendKey)})`}>
-          {edit !== undefined ? "Suggest" : "Comment"}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// ChangePop is what a changed passage said when you last commented.
-function ChangePop({ top, old, added, onClose }: { top: number; old: string[]; added: boolean; onClose: () => void }) {
-  const text = old.join("\n").trim();
-  return (
-    <div className="change-pop" style={{ top }} onClick={(e) => e.stopPropagation()}>
-      <div className="note-head">
-        <span className="dim">{text ? "When you last commented, this read:" : "Added since you last commented."}</span>
-        <span className="spacer-left" />
-        <Button variant="ghost" size="small" square onClick={onClose} title="Close (esc)" aria-label="Close">
-          <Icon name="x" size={12} />
-        </Button>
-      </div>
-      {text && <pre className="was">{text}</pre>}
-      {!added && <div className="dim">Removed since.</div>}
     </div>
   );
 }

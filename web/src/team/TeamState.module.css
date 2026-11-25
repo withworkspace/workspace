@@ -1,0 +1,7 @@
+/* Where a change stands, in words (TeamState.tsx). */
+
+.state {
+  flex: none;
+  font-size: var(--text-xs);
+  background: none;
+}

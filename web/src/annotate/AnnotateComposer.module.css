@@ -1,0 +1,63 @@
+/* A new comment being written on a document (AnnotateComposer.tsx). */
+
+.composer {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
+  font: var(--text-md) / 1.5 var(--font);
+  scroll-margin: 40px 0 80px;
+  transition:
+    box-shadow var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.ask {
+  --kc: var(--k-question);
+}
+
+.note {
+  --kc: var(--k-nit);
+}
+
+.change {
+  --kc: var(--red);
+}
+
+.kind[data-selected] {
+  color: var(--kc);
+}
+
+blockquote.on {
+  margin: 10px 0 0;
+  padding: 2px 0 2px 10px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--dim);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.composer textarea {
+  width: 100%;
+  margin: 8px 0;
+  font: var(--text-md) / 1.5 var(--font);
+}
+
+.composer textarea.editTo {
+  margin-top: 4px;
+  background: var(--add-bg);
+  font: var(--text-sm) / 1.5 var(--mono);
+}
+
+.suggest {
+  display: inline-flex !important;
+  color: var(--accent) !important;
+}
+
+.tip {
+  font-size: var(--text-xs);
+}

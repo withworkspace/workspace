@@ -5,7 +5,7 @@ import { type FrameHere, useChromeStore } from "../../chrome/store";
 import { useKeys } from "../../keys";
 import { thingsNamed } from "../../refs/known";
 import { isOutside, type Known, namedOf, type PageRef, type ThingAction } from "../../refs/refs";
-import { forgetThing } from "../../refs/ThingView";
+import { forgetThing } from "../../refs/useThing";
 import { Input } from "../../ui/Input";
 import { humanError } from "../../ui/text";
 import { setTheme } from "../../ui/theme";

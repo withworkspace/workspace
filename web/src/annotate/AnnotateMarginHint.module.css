@@ -1,0 +1,24 @@
+/* What the margin says while there's nothing in it (AnnotateMarginHint.tsx). */
+
+.hint {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  color: var(--dim);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.icon {
+  margin-top: 3px;
+  color: var(--faint);
+}
+
+/* A narrow window has no margin to say it in. */
+@media (max-width: 860px) {
+  .hint {
+    display: none;
+  }
+}

@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { useHoverDelay } from "../ui/useHoverDelay";
-import { Icon } from "../ui/Icon";
+import type { Tone } from "../ui/tone";
 import { useWorkspaceIfRead } from "../workspace/store";
 import { useRefs } from "./known";
 import { RefCard } from "./RefCard";
+import { RefLabel } from "./RefLabel";
+import { RefName } from "./RefName";
 import { goneCapsule, GROUND, isOutside, type PageRef, refHref, refName, refOf } from "./refs";
 import { lookOf } from "./views";
 
@@ -38,29 +40,24 @@ export function RefTag({ refKey, words, inline, children }: { refKey: string; wo
   const { label, tone } = (!inline && look.after) || {};
   // Its own text in place of its name, unless the words are the writer's.
   const text = !words && look.text ? look.text : undefined;
-  const props = {
-    className: `named-ref k-${r.kind} shape-${look.shape}${words ? " ref-words" : ""}`,
-    style: look.accent ? ({ "--ref-accent": look.accent } as React.CSSProperties) : undefined,
+  const go = {
+    kind: r.kind,
+    shape: look.shape,
+    words,
+    icon: words || look.shape === "pill" ? look.icon : undefined,
+    accent: look.accent,
     title: text ? refName(r) : undefined,
-    "data-ref": refKey,
+    dataRef: refKey,
     onMouseEnter: (e: React.MouseEvent<HTMLElement>) => hover.over(e.currentTarget),
     onMouseLeave: hover.out,
     onFocus: (e: React.FocusEvent<HTMLElement>) => hover.over(e.currentTarget),
     onBlur: hover.out,
   };
-  const inside = (
-    <>
-      {(words || look.shape === "pill") && <Icon name={look.icon} size={12} className="ref-icon" />}
-      {text ?? children}
-    </>
-  );
   return (
     <>
       {inline ? (
-        <span
-          {...props}
-          role="link"
-          tabIndex={0}
+        <RefName
+          {...go}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -68,23 +65,18 @@ export function RefTag({ refKey, words, inline, children }: { refKey: string; wo
             else navigate(href);
           }}
         >
-          {inside}
-        </span>
+          {text ?? children}
+        </RefName>
       ) : outside ? (
-        <a href={href} target="_blank" rel="noreferrer" {...props}>
-          {inside}
-        </a>
+        <RefName {...go} href={href}>
+          {text ?? children}
+        </RefName>
       ) : (
-        <Link to={href} {...props}>
-          {inside}
-        </Link>
+        <RefName {...go} to={href}>
+          {text ?? children}
+        </RefName>
       )}
-      {label && (
-        // Not the text's own words: a reader quoting it leaves this out.
-        <span className={`ref-label${tone ? ` tone-${tone}` : ""}`} data-skip="">
-          {label}
-        </span>
-      )}
+      {label && <RefLabel tone={tone as Tone | undefined}>{label}</RefLabel>}
       {hover.shown && <RefCard r={r} el={hover.shown} onEnter={hover.stay} onLeave={hover.out} hint={false} />}
     </>
   );

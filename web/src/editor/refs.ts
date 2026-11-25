@@ -1,6 +1,8 @@
 import type { Node as PMNode } from "prosemirror-model";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet, type EditorView } from "prosemirror-view";
+import { cx } from "../ui/cx";
+import css from "./MarkdownEditor.module.css";
 
 // Refs: the things a document's words name (a file, a pull request, a
 // mission), drawn as what they are. Nothing's written into the document:
@@ -47,10 +49,17 @@ interface Drawn {
 
 const refsKey = new PluginKey<Drawn>("refs");
 
+// The kinds of ref whose name is drawn heavier: a thing of ws's own, or a
+// plugin's.
+const heavy: Partial<Record<string, string>> = { mission: css.kMission, page: css.kPage, talk: css.kTalk, pr: css.kPr, thing: css.kThing };
+
+// refClass is a ref's look in the editor: underlined, or a pill.
+const refClass = (kind: string, shape: string) => cx(css.namedRef, heavy[kind], shape === "pill" && css.shapePill);
+
 // pill is a ref's own text, drawn in place of its name.
 function pill(r: RefMark): HTMLElement {
   const el = document.createElement("span");
-  el.className = `named-ref k-${r.kind} shape-${r.shape ?? "words"} ref-shown`;
+  el.className = refClass(r.kind, r.shape ?? "words");
   if (r.accent) el.style.setProperty("--ref-accent", r.accent);
   el.contentEditable = "false";
   el.textContent = r.text ?? "";
@@ -71,9 +80,9 @@ function build(doc: PMNode, host: RefHost | undefined, sel?: { from: number; to:
     const style = r.accent ? `--ref-accent: ${r.accent}` : "";
     if (shown) {
       decos.push(Decoration.widget(from, () => pill(r), { side: -1, key: `pill:${r.key}:${text}:${r.accent ?? ""}`, marks: [] }));
-      decos.push(Decoration.inline(from, to, { class: "ref-hidden" }));
+      decos.push(Decoration.inline(from, to, { class: css.refHidden }));
     } else {
-      decos.push(Decoration.inline(from, to, { class: `named-ref k-${r.kind} shape-${r.words ? "words" : (r.shape ?? "words")}${r.words ? " ref-words" : ""}`, style, "data-ref": r.key }));
+      decos.push(Decoration.inline(from, to, { class: refClass(r.kind, r.words ? "words" : (r.shape ?? "words")), style, "data-ref": r.key }));
     }
     if (r.label) {
       const label = r.label;
@@ -83,7 +92,7 @@ function build(doc: PMNode, host: RefHost | undefined, sel?: { from: number; to:
           to,
           () => {
             const el = document.createElement("span");
-            el.className = `ref-label${tone ? ` tone-${tone}` : ""}`;
+            el.className = cx(css.refLabel, tone && `tone-${tone}`);
             el.contentEditable = "false";
             el.textContent = label;
             el.dataset.ref = r.key;

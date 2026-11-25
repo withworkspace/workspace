@@ -1,0 +1,10 @@
+/* An app's page (AppView.tsx): a recipe of the workspace's, its run in a
+   frame. Laid out as the Sketch canvas is: a slim bar (AppBar), and the
+   app as a card under it (AppCard). */
+
+.view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}

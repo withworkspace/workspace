@@ -635,6 +635,7 @@ export function PRReviewPage() {
         ref={asker}
         about={askAbout}
         suggestions={suggest}
+        place="framed"
         // A comment added to the draft is on its lines, read again.
         onSettled={(p) => p.kind === "comment" && p.state === "accepted" && bumpTook()}
       />

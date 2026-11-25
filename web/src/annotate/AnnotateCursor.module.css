@@ -1,0 +1,20 @@
+/* The paragraphs the keys are on, beside the document (AnnotateCursor.tsx). */
+
+.cursor {
+  position: absolute;
+  left: -12px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.55;
+  pointer-events: none;
+  transition:
+    top var(--fast) var(--ease),
+    height var(--fast) var(--ease);
+}
+
+@media print {
+  .cursor {
+    display: none !important;
+  }
+}

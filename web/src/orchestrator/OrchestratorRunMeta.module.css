@@ -1,0 +1,15 @@
+/* A run's facts, under its page's head (OrchestratorRunMeta.tsx). */
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin: -8px 0 var(--space-5);
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.meta strong {
+  color: var(--fg);
+  font-weight: 500;
+}

@@ -1,0 +1,291 @@
+/* Markdown as it reads (Markdown.tsx and its pieces): briefs, artifacts,
+   handoffs, reviews. The editor draws a document with the same look
+   (markdownClass), so nothing moves when you start editing. */
+
+.markdown {
+  font-size: var(--text-md);
+  line-height: 1.6;
+  max-width: 76ch;
+  overflow-wrap: break-word;
+}
+
+/* A document to read (a brief, a proposal): its code a size down from its
+   words. (Its words' size and measure are the page's: .prose .markdown in
+   styles.css.) Code is told it's a document's by .code; a diagram, once
+   it's drawn, by .diagram. */
+:global(.prose) .markdown .code,
+:global(.artifact-body) .markdown .code {
+  font-size: var(--text-md);
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  margin: 1.6em 0 0.5em;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.markdown h1 {
+  font-size: var(--text-2xl);
+  margin-top: 0.4em;
+}
+
+.markdown h2 {
+  font-size: 1.3em;
+}
+
+.markdown h3 {
+  font-size: 1.1em;
+}
+
+.markdown h4 {
+  font-size: 1em;
+}
+
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown blockquote,
+.markdown table,
+.markdown pre,
+.markdown .diagram {
+  margin: 0 0 1em;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 1.6em;
+}
+
+.markdown li > p {
+  margin: 0;
+}
+
+.markdown li:has(> input[type="checkbox"]) {
+  list-style: none;
+  margin-left: -1.3em;
+}
+
+.markdown a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown blockquote {
+  margin-left: 0;
+  padding: 2px 14px;
+  border-left: 3px solid var(--line-strong);
+  color: var(--dim);
+}
+
+.markdown blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* An alert (> [!NOTE]): a quote in its kind's colour, titled. */
+.markdown blockquote.alert {
+  --alert: var(--accent);
+  padding: 8px 14px;
+  border-left-color: var(--alert);
+  color: var(--fg);
+}
+
+.markdown .alertTitle {
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--alert);
+}
+
+.markdown blockquote.tip {
+  --alert: var(--green);
+}
+
+.markdown blockquote.important {
+  --alert: var(--violet);
+}
+
+.markdown blockquote.warning {
+  --alert: var(--amber);
+}
+
+.markdown blockquote.caution {
+  --alert: var(--red);
+}
+
+/* Front matter: folded away at the top, there when you want it. */
+.markdown .frontMatter {
+  margin: 0 0 1em;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.markdown .frontMatter > summary {
+  cursor: pointer;
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markdown .frontMatter > pre {
+  margin: 6px 0 0;
+}
+
+/* Maths, drawn by KaTeX: on lines of its own it scrolls when it's wider
+   than the page. */
+.markdown .maths {
+  margin: 0 0 1em;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+.markdown .maths :global(.katex-display) {
+  margin: 0.4em 0;
+}
+
+.markdown :global(.katex) {
+  font-size: 1.1em;
+}
+
+/* A link that leads outside the repo, or an image that isn't there. */
+.markdown .deadLink {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+/* Code in a line. (Not a block's: its code is CodeBlock's. :where keeps
+   the weight .markdown code had, which lost to .code-block code by coming
+   first; now the two don't meet.) */
+.markdown :where(:not(pre)) > code {
+  font-size: 0.86em;
+  padding: 1px 4px;
+}
+
+.markdown strong {
+  font-weight: 600;
+}
+
+/* Footnotes: smaller, under a rule, their back-links quiet. */
+.markdown :global(.footnotes) {
+  margin-top: 2em;
+  padding-top: 1em;
+  border-top: 1px solid var(--line);
+  font-size: 0.86em;
+  color: var(--dim);
+}
+
+.markdown :global(.footnotes) h2 {
+  font-size: 1em;
+  margin-top: 0;
+  color: var(--dim);
+}
+
+.markdown :global(.footnotes) a[data-footnote-backref] {
+  text-decoration: none;
+  font-size: 0.9em;
+  opacity: 0.7;
+}
+
+.markdown sup a[data-footnote-ref] {
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0 1px;
+}
+
+.markdown table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+.markdown th,
+.markdown td {
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.markdown th {
+  background: var(--well);
+}
+
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 1.6em 0;
+}
+
+.markdown img {
+  max-width: 100%;
+}
+
+/* While the reader loads: the text as written. */
+.loading {
+  white-space: pre-wrap;
+  color: var(--dim);
+}
+
+/* A heading's #, shown as it's hovered: it copies a link to it
+   (MarkdownHeading.tsx). */
+.markdown h2.linked,
+.markdown h3.linked {
+  position: relative;
+}
+
+.headingLink {
+  position: absolute;
+  top: 50%;
+  left: -22px;
+  width: 18px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--faint);
+  font-size: 0.85em;
+  font-weight: 400;
+  opacity: 0;
+  transform: translateY(-50%);
+}
+
+.headingLink::before {
+  content: "#";
+}
+
+.headingLink:hover {
+  background: none;
+  color: var(--accent);
+}
+
+.headingLink:active:not(:disabled) {
+  transform: translateY(-50%);
+}
+
+.markdown h2.linked:hover .headingLink,
+.markdown h3.linked:hover .headingLink,
+.headingLink:focus-visible {
+  opacity: 1;
+}
+
+@media print {
+  .markdown a {
+    color: inherit;
+  }
+
+  .markdown h1,
+  .markdown h2,
+  .markdown h3 {
+    break-after: avoid;
+  }
+}

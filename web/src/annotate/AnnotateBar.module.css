@@ -1,0 +1,30 @@
+/* The bar over a document being commented on (AnnotateBar.tsx). */
+
+.bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -6px 0 16px;
+  min-height: 28px;
+}
+
+.counts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.spacer {
+  margin-left: auto;
+}
+
+.note {
+  font-size: var(--text-sm);
+}
+
+@media print {
+  .bar {
+    display: none !important;
+  }
+}

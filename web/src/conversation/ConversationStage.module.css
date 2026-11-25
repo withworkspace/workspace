@@ -1,0 +1,30 @@
+/* A page's conversation, round the page (ConversationStage.tsx): the ask
+   field over its foot; the conversation itself opens beside it. */
+
+.stage {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.main {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.foot {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  padding: 0 16px 12px;
+  pointer-events: none;
+}
+
+.foot > * {
+  pointer-events: auto;
+}

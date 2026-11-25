@@ -1,0 +1,42 @@
+/* The comment button beside a selection, or the cursor's paragraph
+   (AnnotateAddComment.tsx). */
+
+.add {
+  position: absolute;
+  left: -34px;
+  z-index: 3;
+  min-height: 24px;
+  padding: 2px 6px;
+  color: var(--dim);
+  box-shadow: var(--shadow);
+  animation: global(pop) var(--fast) var(--ease);
+}
+
+.add.text {
+  left: 0;
+  padding: 4px 10px;
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+
+.add:hover {
+  color: var(--fg);
+}
+
+/* On a narrow window it waits in the corner. */
+@media (max-width: 860px) {
+  .add {
+    position: fixed;
+    left: auto !important;
+    right: 16px;
+    bottom: 16px;
+    top: auto !important;
+    z-index: 20;
+  }
+}
+
+@media print {
+  .add {
+    display: none !important;
+  }
+}

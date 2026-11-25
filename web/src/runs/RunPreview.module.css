@@ -1,5 +1,5 @@
 /* A service in a frame (RunPreview.tsx): a slim bar, and the service as a
-   card under it, as an app's page draws one (.app-bar, .app-card). */
+   card under it, as an app's page draws one (apps/AppBar, AppCard). */
 
 .preview {
   flex: 1;

@@ -1,0 +1,40 @@
+/* What a changed passage said when you last commented (AnnotateChangePop.tsx). */
+
+.pop {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  animation: global(pop) var(--fast) var(--ease);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  min-height: 22px;
+}
+
+.spacer {
+  margin-left: auto;
+}
+
+.pop .was {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--del-bg);
+  font: var(--text-sm) / 1.5 var(--mono);
+  white-space: pre-wrap;
+  max-height: 260px;
+  overflow: auto;
+}

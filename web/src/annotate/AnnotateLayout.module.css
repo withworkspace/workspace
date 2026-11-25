@@ -1,0 +1,140 @@
+/* A document being commented on (AnnotateLayout.tsx): the document's
+   column, and its margin of threads beside it. */
+
+.annotate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 48px;
+}
+
+@media (max-width: 1100px) {
+  .annotate {
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 32px;
+  }
+}
+
+.col {
+  position: relative;
+  min-width: 0;
+}
+
+/* The document runs the column's width: the markdown's measure (the
+   markdown's own class, drawn by Markdown and TrackedDoc) is let go. */
+.col :global(.markdown) {
+  max-width: none;
+}
+
+.col .text {
+  cursor: text;
+}
+
+.margin {
+  position: relative;
+  min-height: 100%;
+}
+
+.margin .slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transition: top var(--slow) var(--ease);
+}
+
+/* An edit just accepted, landing in the document. */
+.landed {
+  animation: landed 2.4s var(--ease);
+  border-radius: 4px;
+}
+
+@keyframes landed {
+  0%,
+  40% {
+    background: var(--add-strong);
+    box-shadow: 0 0 0 6px var(--add-strong);
+  }
+}
+
+@media (max-width: 860px) {
+  .annotate {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .annotate .margin {
+    position: static;
+    height: 0 !important;
+    min-height: 0;
+  }
+
+  .annotate .margin .slot {
+    display: none;
+  }
+
+  .col {
+    padding-right: 18px;
+  }
+}
+
+/* Threads' text is highlighted over the rendered words (the CSS Custom
+   Highlight API, by name), by kind; the one in focus brighter, what's
+   being written on in the indigo of a note being written, a suggested
+   edit's words struck. Each colour is fixed: they don't follow the accent. */
+
+::highlight(ws-note-active) {
+  background-color: rgb(255 196 0 / 0.42);
+}
+
+::highlight(ws-note-pending) {
+  background-color: rgb(94 106 210 / 0.3);
+}
+
+:root[data-theme="dark"] ::highlight(ws-note-active) {
+  background-color: rgb(255 196 0 / 0.32);
+}
+:root[data-theme="dark"] ::highlight(ws-note-pending) {
+  background-color: rgb(124 133 230 / 0.38);
+}
+
+::highlight(ws-note-ask) {
+  background-color: rgb(211 139 29 / 0.17);
+}
+
+::highlight(ws-note-change) {
+  background-color: rgb(212 76 71 / 0.16);
+}
+
+::highlight(ws-note-note) {
+  background-color: rgb(138 138 148 / 0.17);
+}
+
+:root[data-theme="dark"] ::highlight(ws-note-ask) {
+  background-color: rgb(242 184 128 / 0.2);
+}
+:root[data-theme="dark"] ::highlight(ws-note-change) {
+  background-color: rgb(248 81 73 / 0.22);
+}
+:root[data-theme="dark"] ::highlight(ws-note-note) {
+  background-color: rgb(160 160 170 / 0.2);
+}
+
+::highlight(ws-note-suggest) {
+  text-decoration: line-through;
+  text-decoration-color: rgb(212 76 71);
+  text-decoration-thickness: 2px;
+}
+
+@media print {
+  .margin {
+    display: none !important;
+  }
+
+  .annotate {
+    display: block;
+  }
+
+  ::highlight(ws-note-ask),
+  ::highlight(ws-note-change),
+  ::highlight(ws-note-note) {
+    background-color: transparent;
+  }
+}

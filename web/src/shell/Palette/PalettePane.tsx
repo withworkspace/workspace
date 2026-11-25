@@ -1,6 +1,7 @@
 import { PinButton } from "../focus";
 import { RefsScope } from "../../refs/known";
-import { RefCardBody, ThingCard } from "../../refs/RefCard";
+import { RefCardBody } from "../../refs/RefCardBody";
+import { ThingCard } from "../../refs/ThingCard";
 import { RefFoot } from "../../refs/RefFoot";
 import { type Known, namedOf, type PageRef, refAt, refKey } from "../../refs/refs";
 import { RefTag } from "../../refs/RefTag";
@@ -86,7 +87,7 @@ export function PalettePane({
         said(on, on.said)
       ) : on?.card ? (
         <>
-          <RefCardBody r={on.card} known={known} />
+          <RefCardBody r={on.card} known={known} pane />
           <RefFoot>
             <PinButton r={on.card} />
           </RefFoot>

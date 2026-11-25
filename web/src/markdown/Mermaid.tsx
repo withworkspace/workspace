@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
+import { cx } from "../ui/cx";
 import { useTheme } from "../ui/theme";
+import { CodeBlock, codeBlockClass } from "./CodeBlock";
+import css from "./Mermaid.module.css";
 
 // A ```mermaid block drawn as its diagram: by the reader (Markdown.tsx)
 // and by the editor (editor/views.ts), the same way, so a diagram reads
@@ -37,6 +40,19 @@ export async function drawMermaid(code: string, dark: boolean): Promise<Drawn> {
   }
 }
 
+type MermaidProps = {
+  code: string;
+  data?: Record<string, unknown>;
+  viewable?: boolean;
+  // Where it's drawn: className is what's drawn, whichever it is (the
+  // diagram, the code while it loads, or why it can't be drawn);
+  // drawnClass, the diagram once it's drawn; codeClass, the code shown as
+  // written, in either of the others.
+  className?: string;
+  drawnClass?: string;
+  codeClass?: string;
+};
+
 // Mermaid is a diagram drawn: as written while Mermaid loads, drawn again
 // in the other theme's colours when it changes, and as written, with the
 // first line of what's wrong, when it can't be drawn. data is the block's
@@ -44,7 +60,7 @@ export async function drawMermaid(code: string, dark: boolean): Promise<Drawn> {
 //
 // A click opens it in the viewer (ui/Viewer.tsx), to move around in,
 // unless viewable is false (the editor's, where a click selects it).
-export function Mermaid({ code, data = {}, viewable = true }: { code: string; data?: Record<string, unknown>; viewable?: boolean }) {
+export function Mermaid({ code, data = {}, viewable = true, className, drawnClass, codeClass }: MermaidProps) {
   const [drawn, setDrawn] = useState<Drawn>();
   const { dark } = useTheme();
   useEffect(() => {
@@ -56,20 +72,18 @@ export function Mermaid({ code, data = {}, viewable = true }: { code: string; da
   }, [code, dark]);
   if (drawn && "error" in drawn) {
     return (
-      <div className="mermaid-error" {...data} data-skip="">
+      <div className={cx(css.error, className)} {...data} data-skip="">
         <div>This diagram couldn't be drawn: {drawn.error.split("\n")[0]}</div>
-        <pre className="code-block">
-          <code>{code}</code>
-        </pre>
+        <CodeBlock className={codeClass}>{code}</CodeBlock>
       </div>
     );
   }
   if (!drawn)
     return (
-      <pre className="code-block mermaid-loading" {...data} data-skip="">
+      <pre className={cx(codeBlockClass, css.loading, codeClass, className)} {...data} data-skip="">
         {code}
       </pre>
     );
   const open = viewable ? { "data-viewable": "Diagram", title: "Open it larger" } : {};
-  return <div className="mermaid" {...data} {...open} data-skip="" dangerouslySetInnerHTML={{ __html: drawn.svg }} />;
+  return <div className={cx(css.mermaid, drawnClass, className)} {...data} {...open} data-skip="" dangerouslySetInnerHTML={{ __html: drawn.svg }} />;
 }

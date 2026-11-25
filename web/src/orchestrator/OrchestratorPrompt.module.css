@@ -1,0 +1,43 @@
+/* A run's prompt, folded under its summary (OrchestratorPrompt.tsx). */
+
+.fold summary {
+  cursor: pointer;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fold summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--fast) var(--ease);
+  margin-right: 2px;
+}
+
+.fold[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.fold[open] summary {
+  margin-bottom: 4px;
+}
+
+/* .prose.prompt's weight, which it had. */
+.prompt:global(.prose) {
+  margin-top: 8px;
+  padding: 4px 16px;
+  border-radius: var(--radius);
+  background: var(--well);
+  font-size: var(--text-sm);
+}

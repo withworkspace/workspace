@@ -1,0 +1,5 @@
+/* A day's or a person's rows on the Team page (TeamGroup.tsx). */
+
+.group {
+  margin-bottom: var(--space-4);
+}

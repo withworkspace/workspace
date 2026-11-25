@@ -1,0 +1,22 @@
+/* The line over the Team page's rows of what's going on with them
+   (TeamNarrative.tsx). */
+
+.narrative {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 0 8px var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.new {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.reading {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}

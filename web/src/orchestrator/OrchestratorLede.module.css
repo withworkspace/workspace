@@ -1,0 +1,7 @@
+/* What the orchestrator is, under its page's head (OrchestratorLede.tsx). */
+
+.lede {
+  max-width: 62ch;
+  margin: -8px 0 var(--space-5);
+  color: var(--dim);
+}

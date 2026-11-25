@@ -1,0 +1,16 @@
+/* Where a change was made (TeamRepoChip.tsx). */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pr {
+  font-size: var(--text-xs);
+}
+
+/* A change made in several repos: their colours, over each other. */
+.dot + .dot {
+  margin-left: -3px;
+}

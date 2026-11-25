@@ -1,0 +1,45 @@
+/* Over a passage picked out: Ask about this, Explain, Link
+   (SelectionToolbar.tsx). */
+
+.tool {
+  position: fixed;
+  z-index: 75;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius);
+  background: var(--fg);
+  box-shadow: var(--shadow-lg);
+  color: var(--bg);
+  font-size: var(--text-sm);
+  transform: translate(-50%, -100%);
+}
+
+.tool button {
+  gap: 5px;
+  min-height: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font-size: var(--text-sm);
+}
+
+.tool button:hover {
+  background: color-mix(in srgb, var(--bg) 18%, transparent);
+}
+
+.tool kbd {
+  border-color: currentColor;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+}
+
+@media print {
+  .tool {
+    display: none !important;
+  }
+}

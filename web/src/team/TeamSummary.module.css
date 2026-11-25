@@ -3,7 +3,7 @@
    page, who's on it and how many changes, and a sentence or two. */
 
 .summary {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 /* A bare button: nothing of a button's box (styles.css's base rule). */
