@@ -692,7 +692,8 @@ type UpdatesConfig struct {
 
 // NotificationsConfig is ws.local.toml's [notifications]: where each
 // source of notifications (internal/notification) is sent. "feed", the
-// default, is the feed alone; "desktop" is the desktop as well, while the
+// default, is the feed alone; "desktop" is told as it happens as well (a
+// toast in the web UI, or the desktop while it's hidden), while the
 // web UI is allowed to tell it; "off" is nowhere.
 type NotificationsConfig struct {
 	Missions string `toml:"missions,omitempty"` // a mission ended, or was started for you

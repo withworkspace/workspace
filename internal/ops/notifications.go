@@ -20,12 +20,14 @@ import (
 // out and never kept. Where each source is sent is yours to say
 // ([notifications] in ws.local.toml), and applied here, as the feed is
 // read: a source sent nowhere is left out of it and of its count, and one
-// sent to the desktop too is marked for the web UI to tell.
+// to be told of as it happens (desktop) is marked for the web UI to
+// tell: in a toast, or on the desktop while the page is hidden.
 
 // Notified is a notification as the feed has it for you.
 type Notified struct {
 	notification.Notification
-	// Desktop is whether its source is sent to the desktop as well.
+	// Desktop is whether you're told of it as it happens ("Feed, and
+	// tell me"): in the page, or on the desktop while it's hidden.
 	Desktop bool
 	// Opens is the page a plugin's opens: its first ref's, one of the
 	// plugin's things in its app. "" for ws's own, whose page is said by

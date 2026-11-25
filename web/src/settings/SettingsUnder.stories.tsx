@@ -16,7 +16,7 @@ export default meta;
 
 const routes = [
   { value: "feed", label: "Feed" },
-  { value: "desktop", label: "Feed and desktop" },
+  { value: "desktop", label: "Feed, and tell me" },
   { value: "off", label: "Off" },
 ];
 

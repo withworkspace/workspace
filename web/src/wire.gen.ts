@@ -2675,7 +2675,8 @@ export interface Notification {
     attention?: boolean;
     read: boolean;
     /**
-     * Desktop is whether its source is sent to the desktop as well.
+     * Desktop is whether you're told of it as it happens ("Feed, and
+     * tell me"): in the page, or on the desktop while it's hidden.
      */
     desktop?: boolean;
 }

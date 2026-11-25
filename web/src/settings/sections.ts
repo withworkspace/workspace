@@ -64,7 +64,7 @@ export const words = {
   },
   notify: {
     label: "Desktop notifications",
-    about: "A notification for each new thing that needs you, and for what happened that you've sent to the desktop below, while this tab is in the background. The tab's icon lights either way.",
+    about: "A notification for each new thing that needs you, and for what happened that you've asked to be told of below, while this tab is in the background. With it in front, what happened is told in the page instead. The tab's icon lights either way.",
   },
   daemon: {
     label: "The daemon",

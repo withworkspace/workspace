@@ -531,7 +531,7 @@ func notifySetting(key, label, about string, local func(l *config.LocalConfig) *
 	return choiceSetting("notifications", key, label, about, config.NotifyFeed,
 		[]SettingChoice{
 			{Value: config.NotifyFeed, Label: "Feed"},
-			{Value: config.NotifyDesktop, Label: "Feed and desktop"},
+			{Value: config.NotifyDesktop, Label: "Feed, and tell me"},
 			{Value: config.NotifyOff, Label: "Off"},
 		},
 		func(*config.Config) *string { var none string; return &none }, local)
@@ -552,7 +552,7 @@ func pluginNotifySetting(name string, k protocol.Notifies) settingDef {
 	}
 	choices := []SettingChoice{
 		{Value: config.NotifyFeed, Label: "Feed"},
-		{Value: config.NotifyDesktop, Label: "Feed and desktop"},
+		{Value: config.NotifyDesktop, Label: "Feed, and tell me"},
 		{Value: config.NotifyOff, Label: "Off"},
 	}
 	return settingDef{

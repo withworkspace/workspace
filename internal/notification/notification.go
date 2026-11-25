@@ -12,7 +12,8 @@
 // registered: its source is the plugin's (PluginSource), its kind named
 // with the plugin's name (jira:assigned).
 //
-// Which sources reach the feed, and which the desktop too, is yours to say
+// Which sources reach the feed, and which you're told of as they happen
+// too, is yours to say
 // ([notifications] in ws.local.toml): that's applied where they're read
 // (ops), so nothing's lost by muting a source and changing your mind.
 package notification
