@@ -1,0 +1,63 @@
+/* The artifacts found in the repos, as a tree (ArtifactFoundTree.tsx): a
+   repo, the folders its artifacts are grouped in, and theirs. Each folds,
+   and stays as it was left. */
+
+.tree .node + .node,
+.tree .body > .rows + .node {
+  margin-top: 4px;
+}
+
+.tree .node > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  width: fit-content;
+  padding: 3px 8px 3px 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tree .node > summary::-webkit-details-marker {
+  display: none;
+}
+
+.tree .node > summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin: 0 4px 0 2px;
+  border-right: 1.5px solid var(--dim);
+  border-bottom: 1.5px solid var(--dim);
+  transform: rotate(-45deg);
+  transition: transform var(--fast) var(--ease);
+}
+
+.tree .node[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.tree .node .node > summary {
+  font-weight: 500;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree .count {
+  color: var(--dim);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+/* What's in a folder is in from it, down a line. */
+.tree .body {
+  margin: 2px 0 8px 5px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}

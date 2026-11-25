@@ -1,0 +1,23 @@
+/* A version in a line (ArtifactVersionLine.tsx): each thing said of it,
+   a dot between. */
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 0;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.line > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.line > * + *::before {
+  content: "·";
+  margin: 0 7px;
+  color: var(--faint);
+}

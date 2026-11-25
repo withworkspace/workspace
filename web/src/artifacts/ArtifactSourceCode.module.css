@@ -1,0 +1,65 @@
+/* A file's lines, numbered (ArtifactSourceCode.tsx): a version's source,
+   on the page's own ground, with room round it in its stage. The
+   explorer's are files/Browser/FilesCode. */
+
+.code {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  min-height: 100%;
+  margin: var(--space-4) 20px calc(64px - var(--foot-height, 0px));
+  padding: 8px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  font: var(--text-sm) / 20px var(--mono);
+  overflow-x: auto;
+  tab-size: 4;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: 56px 4px minmax(0, 1fr);
+  min-width: max-content;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 20px;
+}
+
+.ln {
+  all: unset;
+  padding-right: 10px;
+  text-align: right;
+  color: var(--faint);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ln:hover {
+  color: var(--fg);
+}
+
+.mark {
+  border-radius: 2px;
+}
+
+.line code {
+  background: none;
+  border-radius: 0;
+  padding: 0 14px 0 10px;
+  font: inherit;
+  white-space: pre;
+}
+
+@media (max-width: 860px) {
+  .code {
+    margin: 0 0 48px;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .line {
+    grid-template-columns: 40px 3px minmax(0, 1fr);
+  }
+}

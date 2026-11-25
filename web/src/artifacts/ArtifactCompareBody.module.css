@@ -1,0 +1,15 @@
+/* Comparing (ArtifactCompareBody.tsx): two sides, each a head over its
+   frame, in two columns; the source diff spans both, under the heads,
+   which name its old side and its new. A narrow window has one column. */
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.body.one {
+  grid-template-columns: minmax(0, 1fr);
+}
