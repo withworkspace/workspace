@@ -1,0 +1,23 @@
+/* A setting's control and whose its value is (SettingsControl.tsx). */
+
+.control {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.control.start {
+  justify-items: start;
+}
+
+.control.stretch {
+  justify-items: stretch;
+}
+
+@media (max-width: 640px) {
+  .control {
+    justify-items: start;
+  }
+}

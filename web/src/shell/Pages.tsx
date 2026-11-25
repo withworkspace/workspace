@@ -15,7 +15,7 @@ import { MissionList } from "../mission/List";
 import { MissionPage } from "../mission/Mission";
 import { NotificationsPage } from "../notifications/NotificationsPage";
 import { OrchestratorPage, OrchestratorRunPage } from "../orchestrator/Orchestrator";
-import { PluginPage } from "../plugins/Plugin";
+import { PluginPage } from "../plugins/PluginPage";
 import { Review } from "../review/Review";
 import { PRReviewPage } from "../reviews/PRReview";
 import { ReviewsPage } from "../reviews/Reviews";

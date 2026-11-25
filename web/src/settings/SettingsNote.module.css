@@ -1,0 +1,18 @@
+/* Under a control, more about what it's at (SettingsNote.tsx). */
+
+.note {
+  max-width: 44ch;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  text-align: right;
+}
+
+.note.left {
+  text-align: left;
+}
+
+@media (max-width: 640px) {
+  .note {
+    text-align: left;
+  }
+}

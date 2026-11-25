@@ -1,0 +1,8 @@
+/* What Find has typed, marked where a row says it (SettingsMarked.tsx). */
+
+.mark {
+  padding: 0 1px;
+  border-radius: 2px;
+  color: inherit;
+  background: color-mix(in srgb, var(--amber-fill) 30%, transparent);
+}

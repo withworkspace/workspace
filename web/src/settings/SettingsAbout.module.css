@@ -1,0 +1,7 @@
+/* What a block is about (SettingsAbout.tsx). */
+
+.about {
+  max-width: 62ch;
+  margin: -4px 0 var(--space-3);
+  color: var(--dim);
+}

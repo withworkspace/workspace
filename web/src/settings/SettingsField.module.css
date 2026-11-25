@@ -1,0 +1,14 @@
+/* A setting that's typed (SettingsField.tsx). */
+
+.field {
+  width: 232px;
+  max-width: 100%;
+}
+
+.field.short {
+  width: 88px;
+}
+
+.field.stretch {
+  width: 100%;
+}

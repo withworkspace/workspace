@@ -1,0 +1,15 @@
+/* An owner's repos on GitHub, to pick one from (SettingsAddRepoList.tsx). */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  max-height: min(48vh, 420px);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.none {
+  margin: 0;
+  padding: 16px;
+}

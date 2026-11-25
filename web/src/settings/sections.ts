@@ -27,6 +27,13 @@ export function said(s: Setting, v: unknown): string {
   return s.choices?.find((c) => c.value === v)?.label ?? shown(v);
 }
 
+// valueSaid is a setting's value as a line of the page says it, out of
+// its control: a switch as On or Off, a choice by its label.
+export function valueSaid(s: Setting, v: unknown = s.value): string {
+  if (typeof v === "boolean") return v ? "On" : "Off";
+  return said(s, v);
+}
+
 // A Row is a line of a section: a setting, or one of the page's own. The
 // sidebar's two keys ([ui] sidebar and menu) are one row, as they're one
 // arrangement; theme and notify are kept in the browser, not in a file;

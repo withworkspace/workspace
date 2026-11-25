@@ -1,0 +1,21 @@
+/* What's out for the plugins from a repo (PluginsUpdates.tsx), and the
+   way to look now. */
+
+.looked {
+  font-size: var(--text-sm);
+}
+
+.updates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: var(--space-3);
+}
+
+@media (max-width: 640px) {
+  .looked {
+    display: none;
+  }
+}

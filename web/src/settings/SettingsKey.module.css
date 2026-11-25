@@ -1,0 +1,9 @@
+/* A setting's key in the file (SettingsKey.tsx). */
+
+.key {
+  padding: 0;
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--faint);
+  background: none;
+}

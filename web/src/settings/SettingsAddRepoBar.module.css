@@ -1,0 +1,27 @@
+/* The top of Add a repo (SettingsAddRepoBar.tsx): whose, a filter, and
+   how old GitHub's answer is. */
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.owner,
+.filter {
+  min-width: 0;
+}
+
+.filter {
+  flex: 1 1 160px;
+}
+
+.when {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-left: auto;
+  font-size: var(--text-sm);
+}
