@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Work's expansion: what a Work step says has to be true for it to be done
@@ -83,6 +84,80 @@ type CheckResult struct {
 	// ref: all it printed, how long it took, and the reports it wrote, for
 	// as long as the run's kept.
 	Run string `toml:"run,omitempty" json:"run,omitempty"`
+}
+
+// How is how the check went, in a line: for a command ws ran, how it
+// ended ("passed in 12s", "failed (exit 1) in 40s"), without what it
+// printed; for a judge's or a verifier's, the first line of what they said.
+func (r CheckResult) How() string {
+	first, _, _ := strings.Cut(strings.TrimSpace(r.Evidence), "\n")
+	return strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(first), ":"))
+}
+
+// Printed is the end of what a command ws ran printed, as kept with the
+// result (the lines after How): "" for one that printed nothing, or for a
+// check ws didn't run.
+func (r CheckResult) Printed() string {
+	if r.By != "ws" {
+		return ""
+	}
+	_, rest, _ := strings.Cut(strings.TrimSpace(r.Evidence), "\n")
+	return strings.TrimSpace(rest)
+}
+
+// Said is what an agent is told the check came to, on one line, cut to
+// about n bytes. A command ws ran and met is how it went and no more: what
+// it printed shows nothing a pass doesn't, and is kept on its run for
+// anyone who wants it. One that wasn't met is how it went and the end of
+// what it printed, where a failure says itself, with where the rest is
+// kept. What a judge or a verifier said is as they said it.
+func (r CheckResult) Said(n int) string {
+	if r.By != "ws" {
+		return clipStart(oneLineOf(r.Evidence), n)
+	}
+	how := r.How()
+	if r.Result == CheckMet {
+		return how
+	}
+	s := how
+	if p := oneLineOf(r.Printed()); p != "" {
+		s += ": " + clipEnd(p, n-len(how))
+	}
+	if r.Run != "" {
+		s += fmt.Sprintf(" (all it printed: `ws run logs %s`)", r.Run)
+	}
+	return s
+}
+
+// clipStart is s to about n bytes, from its start.
+func clipStart(s string, n int) string {
+	if n < 1 {
+		n = 1
+	}
+	if len(s) <= n {
+		return s
+	}
+	cut := n
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
+	}
+	return s[:cut] + "…"
+}
+
+// clipEnd is s to about n bytes, from its end: where a command's output
+// says how it failed.
+func clipEnd(s string, n int) string {
+	if n < 1 {
+		n = 1
+	}
+	if len(s) <= n {
+		return s
+	}
+	cut := len(s) - n
+	for cut < len(s) && !utf8.RuneStart(s[cut]) {
+		cut++
+	}
+	return "…" + strings.TrimLeft(strings.TrimPrefix(s[cut:], "…"), " ")
 }
 
 // CheckRound is a Work step's checks, run and judged once its crew

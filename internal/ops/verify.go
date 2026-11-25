@@ -231,11 +231,7 @@ func (w *Workspace) sendBackVerify(m *mission.Mission, st mission.StageState, ro
 		if r.Result != mission.CheckUnmet {
 			continue
 		}
-		fmt.Fprintf(&t, "- %s: unmet", r.Check)
-		if ev := strings.TrimSpace(r.Evidence); ev != "" {
-			fmt.Fprintf(&t, ". %s", clipString(oneLine(ev), 600))
-		}
-		t.WriteString("\n")
+		writeUnmet(&t, r, "unmet")
 	}
 	for i := len(m.Bundles) - 1; i >= 0; i-- {
 		if b := m.Bundles[i]; b.Crew == round.Crew && b.Stage == st.Text {
