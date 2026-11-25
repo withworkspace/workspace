@@ -1,0 +1,40 @@
+/* Some of a bundle's checks under a head (MissionVerifyGroup.tsx). */
+
+.group h3 {
+  margin: 0 0 4px 8px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.group h3.attention {
+  color: var(--tone);
+}
+
+.n {
+  margin-left: 6px;
+  font-weight: 400;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* You approved: its head is a button, which folds it. */
+.group.folds h3 {
+  margin-left: 2px;
+}
+
+.toggle {
+  gap: 4px;
+  min-height: 0;
+  padding: 2px 6px 2px 2px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  font: inherit;
+  color: var(--dim);
+}
+
+.toggle:hover {
+  color: var(--fg);
+  background: var(--hover);
+}

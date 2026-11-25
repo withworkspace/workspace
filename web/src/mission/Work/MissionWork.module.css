@@ -1,0 +1,56 @@
+/* A mission's Work tab laid out (MissionWork.tsx): the list, and the one
+   that's open beside it. On a wide window the tab fills what's under the
+   mission's bar (.mission-page.fills, the mission page's); narrower, the
+   pane goes under the list, and the page scrolls. */
+
+.work {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+  min-width: 0;
+}
+
+.list {
+  min-width: 0;
+}
+
+/* The pane: its head stays, its columns scroll. What's in it is on a
+   raised ground. */
+.pane {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-xs);
+}
+
+.pane:empty {
+  display: none;
+}
+
+@media (min-width: 1021px) {
+  :global(.mission-page.fills) .work {
+    height: 100%;
+    align-items: stretch;
+  }
+
+  :global(.mission-page.fills) .list {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding: 0 8px 24px 0;
+  }
+}
+
+/* Narrow: the pane under the list. */
+@media (max-width: 1020px) {
+  .work {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

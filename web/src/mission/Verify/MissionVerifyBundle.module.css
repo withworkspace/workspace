@@ -1,0 +1,31 @@
+/* A bundle in the row of them (MissionVerifyBundle.tsx). The one that's
+   open is in the row too when it isn't one to approve, with a dashed
+   edge. */
+
+.bundle {
+  gap: 8px;
+  min-height: 30px;
+  max-width: 100%;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.bundle.selected {
+  background: var(--selected);
+  border-color: var(--accent-line);
+}
+
+.other {
+  border-style: dashed;
+}
+
+.title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--text-md);
+}
+
+.other .title {
+  font-weight: 400;
+}

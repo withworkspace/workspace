@@ -1,0 +1,8 @@
+/* Where a running service answers (RunLink.tsx). */
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-sm);
+}

@@ -1,0 +1,6 @@
+/* Who's been in a capsule (MissionWorkCrew.tsx): a line a crew. */
+
+.crew {
+  display: grid;
+  gap: 10px;
+}

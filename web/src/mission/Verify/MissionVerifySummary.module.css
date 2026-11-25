@@ -1,0 +1,19 @@
+/* A bundle's summary (MissionVerifySummary.tsx): a few lines of it,
+   until you ask for the rest (ui/Clamp.tsx). */
+
+.summary {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.summary p {
+  margin: 0;
+  max-width: 84ch;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.summary p + p {
+  margin-top: 8px;
+}

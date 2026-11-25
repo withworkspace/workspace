@@ -1,0 +1,18 @@
+/* What a task came to, in words (RunCame.tsx). */
+
+.came {
+  font-size: var(--text-sm);
+}
+
+.came.passed {
+  color: var(--green);
+}
+
+.came.failed {
+  color: var(--red);
+}
+
+.came.stopped,
+.came.running {
+  color: var(--dim);
+}

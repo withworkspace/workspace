@@ -1,0 +1,62 @@
+/* What's under the head of what's open (MissionWorkBody.tsx): a column,
+   or two. .mission-page.fills is the mission page's, when the tab fills
+   what's under its bar. */
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+}
+
+.body.one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.col {
+  min-width: 0;
+  padding: 4px 16px 24px;
+}
+
+.col + .col {
+  border-left: 1px solid var(--line);
+}
+
+@media (min-width: 1021px) {
+  :global(.mission-page.fills) .col {
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+}
+
+/* Narrower: the files under the rest, the pane scrolling as one. */
+@media (max-width: 1320px) {
+  .body {
+    display: block;
+  }
+
+  :global(.mission-page.fills) .body {
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  :global(.mission-page.fills) .col {
+    overflow: visible;
+  }
+
+  .col {
+    padding-bottom: 8px;
+  }
+
+  .col + .col {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* Narrower still: the pane is under the list, and the page scrolls. */
+@media (max-width: 1020px) {
+  :global(.mission-page.fills) .body {
+    overflow: visible;
+  }
+}

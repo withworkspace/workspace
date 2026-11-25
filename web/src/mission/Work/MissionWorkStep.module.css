@@ -1,0 +1,76 @@
+/* A step that ran in the capsule (MissionWorkStep.tsx): a mark, its
+   number, what it is and whose. */
+
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 16px 20px minmax(0, 1fr);
+  gap: 0 8px;
+  padding: 3px 0;
+}
+
+.step + .step::before {
+  content: "";
+  position: absolute;
+  left: 7.5px;
+  top: -6px;
+  height: 12px;
+  border-left: 1px solid var(--line-strong);
+}
+
+.mark {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: var(--raised);
+}
+
+.accepted .mark {
+  background: var(--done-soft);
+  color: var(--done);
+}
+
+.current .mark {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.current .mark::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.todo .mark {
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+
+.n {
+  line-height: 20px;
+  text-align: right;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  line-height: 20px;
+}
+
+.title {
+  font-weight: 500;
+}
+
+.todo .title {
+  font-weight: 400;
+  color: var(--dim);
+}

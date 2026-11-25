@@ -1,0 +1,41 @@
+/* In hand, Up next, Done (MissionWorkSub.tsx): a quiet word over its
+   rows. Done is a button, which folds them to a line. */
+
+.sub {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+  margin: 10px 0 2px;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--faint);
+  background: none;
+  border: 0;
+  box-shadow: none;
+  text-align: left;
+}
+
+button.sub:hover {
+  background: none;
+  color: var(--dim);
+}
+
+.sub :global(.icon) {
+  transition: transform var(--fast) var(--ease);
+}
+
+.sub[aria-expanded="true"] :global(.icon) {
+  transform: rotate(90deg);
+}
+
+.rest {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 400;
+}

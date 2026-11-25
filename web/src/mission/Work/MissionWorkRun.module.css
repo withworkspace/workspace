@@ -1,0 +1,23 @@
+/* One of a capsule's runs (MissionWorkRun.tsx): its link and when it
+   ends. */
+
+.run {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+}
+
+.main {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-width: 0;
+}

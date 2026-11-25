@@ -1,0 +1,37 @@
+/* The rest of the bundles (MissionVerifyMenu.tsx): a button, and its
+   menu. */
+
+.more {
+  gap: 6px;
+  min-height: 30px;
+  padding: 3px 10px;
+  font-weight: 400;
+  color: var(--dim);
+}
+
+.end {
+  margin-left: auto;
+}
+
+.more[aria-expanded="true"] {
+  color: var(--fg);
+  background: var(--hover);
+}
+
+.menu {
+  min-width: 340px;
+}
+
+.item {
+  gap: 10px;
+}
+
+.back:not([data-focused]) {
+  opacity: 0.55;
+}
+
+@media (max-width: 1020px) {
+  .end {
+    margin-left: 0;
+  }
+}

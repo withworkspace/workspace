@@ -1,0 +1,45 @@
+/* A check of the open bundle, in its pane (MissionVerifyCheck.tsx). */
+
+.check {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+.check header {
+  display: grid;
+  gap: 8px;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta {
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.check h3 {
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.said {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.points {
+  margin: 0;
+  padding-left: 18px;
+  max-width: 72ch;
+  font-size: 14px;
+  line-height: 1.55;
+}

@@ -1,0 +1,16 @@
+/* What a command printed (Printed.tsx), in a well. */
+
+@layer ui {
+  .printed {
+    margin: 0;
+    padding: 10px 14px;
+    max-height: 360px;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--well);
+    font: var(--text-sm) / 1.6 var(--mono);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}

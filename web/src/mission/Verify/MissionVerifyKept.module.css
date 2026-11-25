@@ -1,0 +1,17 @@
+/* The way to the run ws kept of a check (MissionVerifyKept.tsx). */
+
+.kept {
+  margin: -4px 0 0;
+  font-size: var(--text-sm);
+}
+
+.kept a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--dim);
+}
+
+.kept a:hover {
+  color: var(--fg);
+}

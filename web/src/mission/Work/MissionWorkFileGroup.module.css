@@ -1,0 +1,31 @@
+/* A folder of a capsule's changed files (MissionWorkFileGroup.tsx). */
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: calc(100% + 12px);
+  min-height: 26px;
+  margin: 4px -6px 0;
+  padding: 2px 6px;
+  font-size: var(--text-sm);
+  color: var(--fg);
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+.head > :global(.icon) {
+  color: var(--faint);
+  transition: transform var(--fast) var(--ease);
+}
+
+.head[aria-expanded="true"] > :global(.icon) {
+  transform: rotate(90deg);
+}
+
+.n {
+  font-weight: 400;
+  color: var(--faint);
+}

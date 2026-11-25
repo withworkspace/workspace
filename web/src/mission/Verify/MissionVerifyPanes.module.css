@@ -1,0 +1,58 @@
+/* The open bundle (MissionVerifyPanes.tsx): its own column, and its
+   check's pane. */
+
+.panes {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+  min-width: 0;
+}
+
+.side {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  min-width: 0;
+}
+
+/* The pane is the card, so its edge stays put while the check scrolls in
+   it. */
+.pane {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+}
+
+.pane:empty {
+  display: none;
+}
+
+/* A wide window: the bundle's column and its check's pane fill the tab,
+   each scrolling by itself. */
+@media (min-width: 1021px) {
+  :global(.mission-page.fills) .panes {
+    flex: 1;
+    align-items: stretch;
+    min-height: 0;
+  }
+
+  :global(.mission-page.fills) .side,
+  :global(.mission-page.fills) .pane {
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  :global(.mission-page.fills) .side {
+    padding-right: 8px;
+  }
+}
+
+/* A narrow one: the bundle's column over its check. */
+@media (max-width: 1020px) {
+  .panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

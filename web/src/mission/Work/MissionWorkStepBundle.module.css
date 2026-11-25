@@ -1,0 +1,12 @@
+/* A bundle that shows a step (MissionWorkStepBundle.tsx). */
+
+.bundle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+}
+
+.bundle:hover {
+  text-decoration: underline;
+}

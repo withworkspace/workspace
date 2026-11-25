@@ -1,0 +1,23 @@
+/* A mission's Verify tab laid out (MissionVerify.tsx). On a wide window
+   the tab fills what's under the mission's bar (.mission-page.fills, the
+   mission page's) and each column scrolls by itself; on a narrow one
+   they stack, and the page scrolls. */
+
+.verify {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 0;
+}
+
+/* Nothing left to approve: that, in the middle of the tab. */
+.verify.done {
+  justify-content: center;
+  min-height: 460px;
+}
+
+@media (min-width: 1021px) {
+  :global(.mission-page.fills) .verify {
+    height: 100%;
+  }
+}

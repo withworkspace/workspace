@@ -1,0 +1,11 @@
+/* A dot that pulses (LiveDot.tsx): something's going on now. */
+
+@layer ui {
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: global(pulse) 2.2s var(--ease) infinite;
+  }
+}

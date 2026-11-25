@@ -1,0 +1,11 @@
+/* Lines added and taken away (MissionWorkLines.tsx). */
+
+.lines {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lines.tally {
+  margin-left: auto;
+  font: var(--text-xs) var(--mono);
+}

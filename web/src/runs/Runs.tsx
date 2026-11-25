@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { endRun, getRunPast, getRuns, useEvents, type Names, type RunDetail, type RunsInfo, resyncSilo, type SiloState } from "../api";
 import { type Reload, useLoaded } from "../load";
+import { RunCame } from "./RunCame";
+import { RunEnds } from "./RunEnds";
+import { RunLink } from "./RunLink";
+import { RunMark } from "./RunMark";
+import { RunName } from "./RunName";
 import { RunOutput } from "./RunOutput";
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
@@ -20,6 +25,7 @@ import { bare, came, commitSaid, forWhom, listed, placeOf, type Said, split } fr
 import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
+import { Printed } from "../ui/Printed";
 import { GroupHead } from "../ui/GroupHead";
 import { Summary, SummaryRow } from "../ui/Summary";
 import { Row, RowMain, Rows, RowSub } from "../ui/Rows";
@@ -207,18 +213,8 @@ function NeedsLine({ r, up }: { r: RunDetail; up: Set<string> }) {
 // TaskMark is what a task came to, as its row's mark: running, passed,
 // failed, or stopped before it ended.
 function TaskMark({ r }: { r: RunDetail }) {
-  if (r.result === "running")
-    return (
-      <span className="work-run-mark up" aria-hidden title="Running">
-        <span className="work-live-dot" />
-      </span>
-    );
-  const icon = r.result === "passed" ? "check-circle" : r.result === "failed" ? "x-circle" : "circle-dashed";
-  return (
-    <span className={`work-run-mark task-mark ${r.result}`} role="img" aria-label={r.result} title={came(r)}>
-      <Icon name={icon} size={13} />
-    </span>
-  );
+  if (r.result === "running") return <RunMark live up title="Running" />;
+  return <RunMark task={r.result} title={came(r)} />;
 }
 
 // CheckFor is the check of a mission's step a task was run for, going to
@@ -266,35 +262,26 @@ function RunRow({ r, up, reload, show }: { r: RunDetail; up: Set<string>; reload
         {task ? (
           <TaskMark r={r} />
         ) : (
-          <span className={`work-run-mark${live && r.up ? " up" : ""}`} aria-hidden title={live ? (r.up ? "Up" : "Not up yet") : undefined}>
-            {live ? <span className="work-live-dot" /> : <Icon name="circle" size={8} />}
-          </span>
+          <RunMark live={live} up={live && r.up} title={live ? (r.up ? "Up" : "Not up yet") : undefined} />
         )}
         <RowMain>
           <span className={css.top}>
-            <span className="mono work-run-name" title={r.nref ?? r.ref}>
+            <RunName className={css.name} title={r.nref ?? r.ref}>
               {r.name}
-            </span>
+            </RunName>
             {task ? (
-              <span className={`task-came ${r.result}`}>
+              <RunCame result={r.result}>
                 {came(r)}
                 {!live && r.ended && (
                   <span className="dim">
                     , <Time iso={r.ended} as="relative" />
                   </span>
                 )}
-              </span>
+              </RunCame>
             ) : live ? (
-              <a
-                href={r.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mono work-run-link"
-                title={`${r.up ? "Open it" : "Nothing's listening on its port yet"}${r.link !== r.local ? `: also ${bare(r.local)}` : ""}`}
-              >
+              <RunLink href={r.link} title={`${r.up ? "Open it" : "Nothing's listening on its port yet"}${r.link !== r.local ? `: also ${bare(r.local)}` : ""}`}>
                 {bare(r.link)}
-                <Icon name="arrow-up-right" size={11} />
-              </a>
+              </RunLink>
             ) : (
               <span className="dim">
                 {r.state === "exited" ? `exited ${r.status ?? 0}` : "gone: ended outside ws"}
@@ -328,7 +315,7 @@ function RunRow({ r, up, reload, show }: { r: RunDetail; up: Set<string>; reload
             {live && r.link !== r.local && <span className="mono">{bare(r.local)}</span>}
           </RowSub>
           {live && <NeedsLine r={r} up={up} />}
-          {live && r.ends && <span className="work-run-ends">Ends {r.ends}</span>}
+          {live && r.ends && <RunEnds>Ends {r.ends}</RunEnds>}
         </RowMain>
         <span className={css.when}>{(live || !task) && <Time iso={r.started} as="age" className="age" />}</span>
         <span className={css.actions}>
@@ -409,14 +396,14 @@ function TaskMore({ r, by, show }: { r: RunDetail; by?: string; show: string }) 
       )}
       <dl className={css.facts}>
         <dt>Result</dt>
-        <dd className={`task-came ${one.result}`}>
+        <RunCame as="dd" result={one.result}>
           {came(one)}
           {one.ended && (
             <span className="dim">
               , ended <Time iso={one.ended} />
             </span>
           )}
-        </dd>
+        </RunCame>
         <dt>Command</dt>
         <dd className="mono">
           <Copyable text={one.command}>{one.command}</Copyable>
@@ -555,12 +542,10 @@ function SiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
   return (
     <Row className={cx(css.row, open && css.open)}>
       <div className={css.line}>
-        <span className={`work-run-mark${st.watching ? " up" : ""}`} aria-hidden title={st.watching ? "Kept as files change" : "Not kept"}>
-          {st.watching ? <span className="work-live-dot" /> : <Icon name="circle" size={8} />}
-        </span>
+        <RunMark live={st.watching} up={st.watching} title={st.watching ? "Kept as files change" : "Not kept"} />
         <RowMain>
           <span className={css.top}>
-            <span className="mono work-run-name">{st.repo}</span>
+            <RunName className={css.name}>{st.repo}</RunName>
             <span className="dim">on</span>
             <span className="mono">{st.target}</span>
             {trouble && <Chip tone="waiting">{st.error ? "not kept" : last?.error ? "sync failed" : `${hook?.name} failed`}</Chip>}
@@ -606,7 +591,7 @@ function SiloRow({ st, reload }: { st: SiloState; reload: Reload }) {
               <p className="dim">
                 Its {hook.name} hook{hook.error ? `: ${hook.error}` : ""}
               </p>
-              <pre className={cx("verify-output", css.log)}>{hook.output || "It said nothing."}</pre>
+              <Printed className={css.log}>{hook.output || "It said nothing."}</Printed>
             </>
           )}
         </div>

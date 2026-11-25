@@ -1,0 +1,19 @@
+/* How to see a check for yourself (MissionVerifyYourself.tsx). */
+
+.yourself {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+
+.yourself h4 {
+  margin: 0 0 4px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.yourself ul {
+  margin: 0;
+  padding-left: 18px;
+}

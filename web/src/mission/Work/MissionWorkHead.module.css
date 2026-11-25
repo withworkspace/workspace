@@ -1,0 +1,68 @@
+/* The head of what's open in the Work tab (MissionWorkHead.tsx). */
+
+.head {
+  flex: none;
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  min-width: 0;
+}
+
+.top > :global(.icon) {
+  color: var(--dim);
+}
+
+.head h2 {
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+}
+
+.slug {
+  min-width: 0;
+  color: var(--dim);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 14px;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.meta > * {
+  min-width: 0;
+}
+
+.pr {
+  font-size: var(--text-sm);
+}
+
+.kind {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--dim);
+}
+
+h2.title {
+  max-width: 90ch;
+  line-height: 1.4;
+}
