@@ -635,6 +635,36 @@ func capsuleStamp(dir string) string {
 	return fmt.Sprintf("%x", h.Sum64())
 }
 
+// changesStamp names what a capsule's changes since it left base (a ref
+// on its remote, as origin/main) are read from, as it is now, without
+// asking git: its HEAD and its branch's ref (a commit, a checkout), what's
+// staged, and base's own ref (a fetch that moved it). Narrower than
+// capsuleStamp, which every fetch moves. "" when dir isn't a worktree. A
+// file edited and not staged moves none of it.
+func changesStamp(dir, base string) string {
+	gitDir, common := gitDirs(dir)
+	if gitDir == "" {
+		return ""
+	}
+	h := fnv.New64a()
+	note := func(path string) {
+		if info, err := os.Stat(path); err == nil {
+			fmt.Fprintf(h, "%s %d %d\n", path, info.Size(), info.ModTime().UnixNano())
+		}
+	}
+	head, _ := os.ReadFile(filepath.Join(gitDir, "HEAD"))
+	h.Write(head)
+	note(filepath.Join(gitDir, "index"))
+	if ref, ok := strings.CutPrefix(strings.TrimSpace(string(head)), "ref: "); ok {
+		note(filepath.Join(common, filepath.FromSlash(ref)))
+	}
+	note(filepath.Join(common, "refs", "remotes", filepath.FromSlash(base)))
+	// Refs that aren't files of their own.
+	note(filepath.Join(common, "packed-refs"))
+	note(filepath.Join(common, "reftable", "tables.list"))
+	return fmt.Sprintf("%x", h.Sum64())
+}
+
 // gitDirs is where git keeps a worktree's own files (its HEAD, its index)
 // and its repository's (refs, config): the same folder for a repository
 // that's not a linked worktree. Both "" when dir isn't one.
