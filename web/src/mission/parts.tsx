@@ -4,7 +4,6 @@ import type { Artifact, CapsuleDetail, CrewDetail, MissionDetail, MissionEvent, 
 import { Icon, type IconName } from "../ui/Icon";
 import { Inline } from "../ui/Inline";
 import { HoverCard } from "../ui/HoverCard";
-import { Copyable } from "../ui/Copyable";
 import { Status } from "../ui/Status";
 import { crewStatus, exitWords } from "../ui/statusOf";
 import { Time } from "../ui/Time";
@@ -17,7 +16,6 @@ import { MissionPlan } from "./MissionPlan";
 import { MissionPlanCheckList, type StepCheck } from "./MissionPlanCheckList";
 import { MissionPlanNote } from "./MissionPlanNote";
 import { MissionPlanStep } from "./MissionPlanStep";
-import { type Tone } from "../ui/tone";
 import { capital } from "../ui/text";
 
 // The pieces a mission's page draws with: who did what (events), stages,
@@ -327,19 +325,8 @@ function stepNotes(s: Stage): ReactNode {
 
 // Outputs (a mission's recorded artifacts: its documents, pull requests
 // and artifacts): a short title, what the agent said of it under, and its
-// kind and state as marks. An artifact (a3) opens on its own page,
-// /artifacts/a3.
-
-const kindIcon: Record<string, IconName> = {
-  proposal: "file",
-  adr: "gavel",
-  note: "book",
-  doc: "file",
-  handoff: "arrow-right",
-  review: "eye",
-  plan: "layers",
-  artifact: "artifact",
-};
+// kind and state as marks (MissionOutput). An artifact (a3) opens on its
+// own page, /artifacts/a3.
 
 const kindPlural: Record<string, string> = {
   proposal: "Proposals",
@@ -365,90 +352,9 @@ export function artifactTitle(a: Pick<Artifact, "kind" | "label" | "ref" | "by">
   return { title: label ? `${kindTitle(a.kind).replace(/s$/, "")}${a.by ? ` by ${a.by}` : ""}` : base, desc: label || undefined };
 }
 
-const stateTone: Record<string, Tone> = {
-  draft: "quiet",
-  private: "quiet",
-  open: "waiting",
-  "in review": "waiting",
-  approved: "done",
-  landed: "done",
-  merged: "done",
-  missing: "danger",
-  // An artifact's: live, promoted, discarded.
-  live: "progress",
-  promoted: "done",
-  discarded: "quiet",
-};
-
 // isArtifact is whether a mission's output is an artifact (a3): opened on
 // its own page, with its versions.
 export const isArtifact = (a: Pick<Artifact, "kind" | "ref">) => a.kind === "artifact" && /^a[1-9]\d*$/.test(a.ref);
-
-export function ArtifactState({ state }: { state: string }) {
-  return (
-    <Chip tone={stateTone[state] ?? "quiet"}>
-      {state === "private" && <Icon name="lock" size={11} />}
-      {capital(state)}
-    </Chip>
-  );
-}
-
-export function ArtifactThreads({ t }: { t: NonNullable<Artifact["threads"]> }) {
-  return (
-    <Chip tone={t.waiting ? "attention" : "quiet"} title={`${t.open} open threads${t.waiting ? `, ${t.waiting} waiting on you` : ""}`}>
-      <Icon name="message" size={11} />
-      {t.open}
-      {t.waiting > 0 && ` · ${t.waiting} your turn`}
-    </Chip>
-  );
-}
-
-export function ArtifactRow({ a, selected, open, compact, id }: { a: Artifact; selected?: boolean; open: (a: Artifact) => void; compact?: boolean; id?: string }) {
-  const { title, desc } = artifactTitle(a);
-  const openable = a.readable || !!a.url || isArtifact(a);
-  return (
-    <div
-      id={id}
-      className={`artifact-row${selected ? " selected" : ""}${openable ? " openable" : ""}${compact ? " compact" : ""}`}
-      onClick={() => openable && open(a)}
-      onKeyDown={(e) => e.key === "Enter" && openable && open(a)}
-      role={openable ? "link" : undefined}
-      tabIndex={openable ? 0 : undefined}
-      title={desc}
-    >
-      <Icon name={kindIcon[a.kind] ?? "file"} size={14} className="artifact-icon" />
-      <div className="artifact-body">
-        <div className="artifact-line">
-          <span className="artifact-title">{title}</span>
-          {isArtifact(a) && !!a.versions && (
-            <Chip tone="quiet" title={`${a.versions} ${a.versions === 1 ? "version" : "versions"}`}>
-              v{a.versions}
-            </Chip>
-          )}
-          {(!compact || isArtifact(a)) && <ArtifactState state={a.state} />}
-          {a.threads && <ArtifactThreads t={a.threads} />}
-          {!a.readable && a.url && <Icon name="external" size={12} className="dim" />}
-        </div>
-        {desc && (
-          <div className="artifact-desc">
-            <Inline text={desc} lines={compact ? 1 : 2} />
-          </div>
-        )}
-        {compact ? (
-          <div className="art-meta">
-            {isArtifact(a) ? `${a.ref}${a.by ? ` · ${a.by}` : ""}` : `${a.kind} · ${a.state}`}
-          </div>
-        ) : (
-          <div className="art-meta">
-            {a.by && <span>{a.by}</span>}
-            {a.added && <Time iso={a.added} as="relative" />}
-            <Copyable text={a.ref} title="Copy its ref" />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // shortPath shows a capsule's path from its repo down: the workspace's
 // own folders are the same for every capsule.

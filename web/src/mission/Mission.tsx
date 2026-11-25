@@ -49,7 +49,9 @@ import { archiveMission } from "./archive";
 import { briefGoal } from "./brief";
 import { BriefTab, briefHref, briefKeys } from "./BriefTab";
 import { missionRefs } from "./refs";
-import { ArtifactRow, CapsuleBadges, CrewRow, Events, isArtifact, MissionData, Stepper, viewEvent } from "./parts";
+import { MissionOutput } from "./MissionOutput";
+import { MissionSideSection } from "./MissionSideSection";
+import { CapsuleBadges, CrewRow, Events, isArtifact, MissionData, Stepper, viewEvent } from "./parts";
 import { DecisionsSummary } from "./DecisionsSummary";
 import { DecisionsTab } from "./DecisionsTab";
 import { EndButton, EndDialog, EndedCapsules, ended, HandedOn, ZChecks } from "./Ending";
@@ -537,24 +539,24 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
         )}
       </dl>
       {d.stages.length > 0 && (
-        <SideSection title={d.plan ? "Plan" : "Stages"} count={`${accepted} of ${d.stages.length} done`}>
+        <MissionSideSection title={d.plan ? "Plan" : "Stages"} count={`${accepted} of ${d.stages.length} done`}>
           <PlanList stages={d.stages} />
-        </SideSection>
+        </MissionSideSection>
       )}
       {d.artifacts.length > 0 && (
-        <SideSection title="Outputs" count={d.artifacts.length}>
+        <MissionSideSection title="Outputs" count={d.artifacts.length}>
           {d.artifacts.slice(0, sideArtifacts).map((a) => {
             const key = `a:${a.ref}`;
-            return <ArtifactRow key={key} id={`side-${key}`} a={a} compact selected={!!selected(key)} open={openArtifact} />;
+            return <MissionOutput key={key} id={`side-${key}`} a={a} compact selected={!!selected(key)} open={openArtifact} />;
           })}
           {d.artifacts.length > sideArtifacts && (
             <MoreLink className="more-under" onClick={() => go("work")}>
               {d.artifacts.length - sideArtifacts} more in Work
             </MoreLink>
           )}
-        </SideSection>
+        </MissionSideSection>
       )}
-      <SideSection title="Capsules" count={d.capsules.length || undefined}>
+      <MissionSideSection title="Capsules" count={d.capsules.length || undefined}>
         {d.capsules.map((c) => {
           const key = `c:${c.repo}/${c.name}`;
           return (
@@ -571,9 +573,9 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
         })}
         {!d.capsules.length && !d.endedCapsules?.length && <div className="side-none">None yet: crew lift one when they start.</div>}
         <EndedCapsules list={d.endedCapsules} />
-      </SideSection>
+      </MissionSideSection>
       {d.runs.length > 0 && (
-        <SideSection title="Orchestrator" count={d.runs.length}>
+        <MissionSideSection title="Orchestrator" count={d.runs.length}>
           {d.runs.slice(0, 4).map((r) => (
             <Link key={r.id} to={`/missions/${d.slug}/orchestrator/${r.id}`} className="side-run">
               <Status
@@ -589,9 +591,9 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
               <Time iso={r.started} as="age" className="age" />
             </Link>
           ))}
-        </SideSection>
+        </MissionSideSection>
       )}
-      <SideSection title="Crew" count={live.length ? `${live.length} on it` : undefined}>
+      <MissionSideSection title="Crew" count={live.length ? `${live.length} on it` : undefined}>
         {live.map((c) => (
           <CrewRow key={c.id} c={c} slug={d.slug} />
         ))}
@@ -601,20 +603,8 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
           </MoreLink>
         )}
         {!d.crew.length && <div className="side-none">Nobody yet.</div>}
-      </SideSection>
+      </MissionSideSection>
     </aside>
-  );
-}
-
-function SideSection({ title, count, children }: { title: string; count?: string | number; children: React.ReactNode }) {
-  return (
-    <section className="side-section">
-      <h3>
-        {title}
-        {count !== undefined && <span className="side-count">{count}</span>}
-      </h3>
-      {children}
-    </section>
   );
 }
 

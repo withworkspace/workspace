@@ -1,0 +1,20 @@
+/* A part of a mission's sidebar (MissionSideSection.tsx). */
+
+.section {
+  margin: 0 0 20px;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.count {
+  font-weight: 400;
+  color: var(--faint);
+}
