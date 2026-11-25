@@ -11,8 +11,3 @@
 .lines {
   background: none;
 }
-
-/* Held over a name (⌘), it's a link to where it's declared. */
-:global(body.nav-pointing) .code code[data-rev] {
-  cursor: pointer;
-}

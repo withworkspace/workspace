@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { CodeLines } from "../ui/CodeLines";
+import { rowEl } from "./rowEl";
 import { Link, useNavigate } from "react-router";
 import { getBlob, type DiffFile } from "../api";
 import { useKeys, useShortcut } from "../keys";
@@ -7,7 +9,7 @@ import { Icon } from "../ui/Icon";
 import { toast } from "../ui/toast";
 import { keyProps } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
-import { escapeHTML, highlightLines, languageOf } from "./highlight";
+import { highlightLines, languageOf } from "./highlight";
 import type { FileState, Row } from "./model";
 import { answerWords, caretAt, gapOf, getDefinition, getNames, getReferences, groupUses, nameAt, rangeOf, rowOf, textOffset, type NavAnswer, type NavRef, type NavReferences, type NavTarget, type Place, type Side } from "./nav";
 import { Button, buttonClass } from "../ui/Button";
@@ -344,7 +346,7 @@ export function useCodeNav(p: NavProps) {
       path: side === "old" ? (f.oldPath ?? f.path) : f.path,
       num: cell.num,
       text: cell.text,
-      el: document.getElementById(`row-${cursorRow.key}`),
+      el: rowEl(cursorRow.key),
     };
   };
 
@@ -567,14 +569,6 @@ function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api: string
     getBlob(api, at.rev, at.path).then(setLines, (e: Error) => setError(e.message));
   }, [api, at.rev, at.path]);
   const body = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = body.current?.querySelector<HTMLElement>(`[data-line="${at.line}"]`);
-    if (!el) return;
-    el.scrollIntoView({ block: "center" });
-    el.classList.remove("nav-flash");
-    void el.offsetWidth;
-    el.classList.add("nav-flash");
-  }, [lines, at.line]);
   const scroll = (by: number) => body.current?.scrollBy({ top: by * 20 });
   // Closing it and going back are a key and a button each: the key's
   // bound here, and the button's given what comes back.
@@ -592,7 +586,7 @@ function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api: string
     },
     { modal: true },
   );
-  const html = lines ? highlightLines(lines, languageOf(at.path)) : [];
+  const html = useMemo(() => (lines ? highlightLines(lines, languageOf(at.path)) : []), [lines, at.path]);
   return (
     <aside className="nav-panel" aria-label={`${at.path} at ${at.rev.slice(0, 7)}`}>
       <header className="nav-panel-head">
@@ -616,15 +610,11 @@ function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api: string
           <Icon name="x" size={13} />
         </Button>
       </header>
-      <div className="nav-panel-body lines" ref={body}>
+      <div className="nav-panel-body" ref={body}>
         {error && <Banner>{error}</Banner>}
         {!lines && !error && <div className="dim nav-panel-loading">Reading {at.path}…</div>}
-        {html.map((h, i) => (
-          <div key={i} className="dl nav-line" data-line={i + 1}>
-            <span className="ln">{i + 1}</span>
-            <code data-rev={at.rev} data-path={at.path} data-line={i + 1} data-side={at.side} dangerouslySetInnerHTML={{ __html: h || escapeHTML("") }} />
-          </div>
-        ))}
+        {/* The file's lines (ui/CodeLines), gone to the definition's: brought to the middle and flashed. */}
+        {lines && <CodeLines key={`${at.rev}:${at.path}`} html={html} path={at.path} rev={at.rev} side={at.side} reveal={at.line} />}
       </div>
     </aside>
   );

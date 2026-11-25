@@ -55,6 +55,10 @@ import { MissionContext } from "../reviews/Overview";
 import { PassesSection, PassMarks } from "../reviews/Passes";
 import { useReviewPasses } from "../reviews/usePasses";
 import { type FileGroup, groupByOrder, type Order, orderFiles, skimWords } from "./files";
+import { type DiffAt } from "../ui/DiffLine";
+import type { DiffCell, DiffPick } from "../ui/diffLayout";
+import { ReviewLines } from "./ReviewLines";
+import { rowEl } from "./rowEl";
 import { type Cell, cellHTML, type Editing, type FileState, type Found, fileRows, type Highlighted, isChange, isHead, navigable, type Placed, type Row, sameLine, type Target } from "./model";
 import { useLatest } from "../load";
 import { Chip } from "../ui/Chip";
@@ -610,7 +614,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
       pane.current?.scrollTo({ top: 0 });
       return;
     }
-    const el = row.type === "file" ? document.getElementById(`file-${row.file}`) : document.getElementById(`row-${row.key}`);
+    const el = row.type === "file" ? document.getElementById(`file-${row.file}`) : rowEl(row.key);
     el?.scrollIntoView({ block: row.type === "file" ? "start" : "nearest" });
   }, [row?.key, jump]);
 
@@ -750,26 +754,17 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     if (!selectFrom) select(row.key);
     setCursor(next.key);
   };
-  const dragging = useRef(false);
-  useEffect(() => {
-    const up = () => (dragging.current = false);
-    window.addEventListener("mouseup", up);
-    return () => window.removeEventListener("mouseup", up);
-  }, []);
   const rowClick = (key: string, shift: boolean) => {
     if (shift && sameFile(cursor, key)) {
       if (!selectFrom) select(cursor);
     } else select(undefined);
     setCursor(key);
   };
-  const gutterDown = (key: string, shift: boolean, side?: "old" | "new") => {
-    dragging.current = true;
-    if (!(shift && sameFile(cursor, key))) select(key, side);
-    else if (!selectFrom) select(cursor, side);
-    setCursor(key);
-  };
-  const dragOver = (key: string) => {
-    if (dragging.current && sameFile(selectFrom, key)) setCursor(key);
+  // Lines picked by their numbers (a press, shift, a drag along them):
+  // the selection is from the first to the last, where the cursor goes.
+  const pick = (p: DiffPick) => {
+    select(p.from, p.side);
+    setCursor(p.to);
   };
   // act is what's done with a pass's finding: taken into the draft (which
   // is then read again), dismissed, or asked about.
@@ -837,8 +832,8 @@ export function ReviewView({ source }: { source: ReviewSource }) {
 
   // Stable callbacks: FileSection only redraws when its own rows, cursor or
   // selection change.
-  const handlers = useRef({ activate, saveNote, cancel: closeEditor, comment, ask, rowClick, gutterDown, dragOver, answer, toggleFolded, act });
-  handlers.current = { activate, saveNote, cancel: closeEditor, comment, ask, rowClick, gutterDown, dragOver, answer, toggleFolded, act };
+  const handlers = useRef({ activate, saveNote, cancel: closeEditor, comment, ask, rowClick, pick, answer, toggleFolded, act });
+  handlers.current = { activate, saveNote, cancel: closeEditor, comment, ask, rowClick, pick, answer, toggleFolded, act };
   const onAct = useCallback<FindingAct>((on, what, why) => handlers.current.act(on, what, why), []);
   // toFinding shows the changes with the cursor on a finding (from the
   // list of them in Passes), opening its file if it's folded away. It
@@ -893,8 +888,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
   const onAsk = useCallback(() => handlers.current.ask(), []);
   const onFold = useCallback((file: number) => handlers.current.toggleFolded(file), []);
   const onRowClick = useCallback((key: string, shift: boolean) => handlers.current.rowClick(key, shift), []);
-  const onGutterDown = useCallback((key: string, shift: boolean, side?: "old" | "new") => handlers.current.gutterDown(key, shift, side), []);
-  const onDragOver = useCallback((key: string) => handlers.current.dragOver(key), []);
+  const onPick = useCallback((p: DiffPick) => handlers.current.pick(p), []);
 
   const toggleSplit = () => setSplit((s) => !s);
   const toggleSince = () => sinceable !== undefined && setScope((s) => (s === "auto" ? "all" : "auto"));
@@ -923,7 +917,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
     goToRow: (key) => {
       setCursor(key);
       window.setTimeout(() => {
-        const el = document.getElementById(`row-${key}`);
+        const el = rowEl(key);
         if (!el) return;
         el.scrollIntoView({ block: "center" });
         el.classList.remove("nav-flash");
@@ -1166,6 +1160,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
                 split={split}
                 cursor={row?.file === i ? cursor : ""}
                 selected={selection?.file === i ? selection.keys : undefined}
+                selectSide={selection?.file === i ? selectSide : undefined}
                 selectionEnd={selection?.file === i ? selectedRows.findLast((r) => r.type === "line")?.key : undefined}
                 selectionLabel={selection?.file === i && selectedTarget ? targetWords(selectedTarget) : undefined}
                 editing={editing?.file === i ? editing : undefined}
@@ -1178,8 +1173,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
                 onAsk={source.onAsk ? onAsk : undefined}
                 onFold={onFold}
                 onRowClick={onRowClick}
-                onGutterDown={onGutterDown}
-                onDragOver={onDragOver}
+                onPick={onPick}
                 replying={replying}
                 onAnswer={onAnswer}
                 onReplyCancel={onReplyCancel}
@@ -1308,6 +1302,7 @@ interface FileSectionProps {
   split: boolean;
   cursor: string; // the cursor's row, if it's in this file
   selected?: Set<string>;
+  selectSide?: "old" | "new"; // side by side, the column the lines were picked in
   selectionEnd?: string; // the selection's last row, where its bar goes
   selectionLabel?: string;
   editing?: Editing;
@@ -1320,8 +1315,7 @@ interface FileSectionProps {
   onAsk?: () => void; // ask an agent about the selected lines
   onFold: (file: number) => void; // open or fold a file unchanged since you reviewed it
   onRowClick: (key: string, shift: boolean) => void;
-  onGutterDown: (key: string, shift: boolean, side?: "old" | "new") => void;
-  onDragOver: (key: string) => void;
+  onPick: (pick: DiffPick) => void; // lines picked by their numbers
   replying?: string; // the comment you're answering
   onAnswer: (id: string, what: "reply" | "resolve" | "reopen", body?: string) => void;
   onReplyCancel: () => void;
@@ -1357,11 +1351,20 @@ function GuideGroupHead({ group }: { group: FileGroup }) {
 }
 
 const FileSection = memo(function FileSection(props: FileSectionProps) {
-  const { index, file, rows, state, split, cursor, selected, selectionEnd, selectionLabel, editing, highlighting } = props;
-  const { onRow, onActivate, onSave, onCancel, onComment, onAsk, onFold, onRowClick, onGutterDown, onDragOver, replying, onAnswer, onReplyCancel, dismissing, onAct, onDismissing, followups, note, navAt } = props;
+  const { index, file, rows, state, split, cursor, selected, selectSide, selectionEnd, selectionLabel, editing, highlighting } = props;
+  const { onRow, onActivate, onSave, onCancel, onComment, onAsk, onFold, onRowClick, onPick, replying, onAnswer, onReplyCancel, dismissing, onAct, onDismissing, followups, note, navAt } = props;
   // highlighting is a dependency: once the highlighter loads, colour.
   const hl = useMemo(() => highlight(file, state.blob), [file, state.blob, highlighting]);
-  const html = (c: Cell, side: "old" | "new") => cellHTML(hl, c, side);
+  const html = useCallback((c: DiffCell, side: "old" | "new") => cellHTML(hl, c as Cell, side), [hl]);
+  // Its rows under its head, and the lines picked among them: from the
+  // first to the last, as the part that draws them has it.
+  const lines = useMemo(() => rows.slice(1), [rows]);
+  const picked = useMemo((): DiffPick | undefined => {
+    if (!selected?.size) return undefined;
+    const from = lines.find((r) => selected.has(r.key));
+    const to = lines.findLast((r) => selected.has(r.key));
+    return from && to ? { from: from.key, to: to.key, side: selectSide } : undefined;
+  }, [lines, selected, selectSide]);
   // The lines the editor is on, for a suggestion to start from.
   const editorLines = () => {
     if (!editing) return [];
@@ -1415,41 +1418,35 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
         </p>
       )}
       {!state.viewed && !state.folded && (
-        <div className={`lines ${split ? "split" : "unified"}`}>
-          {rows.slice(1).map((r) =>
+        <ReviewLines
+          label={`Changes to ${file.path}`}
+          rows={lines}
+          split={split}
+          html={html}
+          at={navAt}
+          cursor={cursor || undefined}
+          picked={picked}
+          onPick={onPick}
+          // A number's press is a pick, told already; the editor's rows
+          // aren't somewhere the keys go.
+          onRow={(key, how) => !how.number && !key.endsWith(":editor") && onRowClick(key, how.shift)}
+          onGap={onActivate}
+          onNote={onActivate}
+          draw={(r) =>
             r.type === "editor" && editing ? (
-              <NoteEditor key={r.key} editing={editing} lines={editorLines()} onSave={onSave} onCancel={onCancel} />
+              <NoteEditor editing={editing} lines={editorLines()} onSave={onSave} onCancel={onCancel} />
             ) : r.type === "comment" ? (
-              <CommentCard
-                key={r.key}
-                row={r}
-                cursor={cursor === r.key}
-                replying={replying === r.placed.note.id}
-                onRow={onRow}
-                onAnswer={onAnswer}
-                onReplyCancel={onReplyCancel}
-                followup={r.placed.draft ? undefined : followups?.[r.placed.note.id]}
-              />
+              <CommentCard row={r} cursor={cursor === r.key} replying={replying === r.placed.note.id} onRow={onRow} onAnswer={onAnswer} onReplyCancel={onReplyCancel} followup={r.placed.draft ? undefined : followups?.[r.placed.note.id]} />
             ) : r.type === "finding" ? (
-              <FindingCard key={r.key} row={r} cursor={cursor === r.key} dismissing={dismissing === r.key} canAsk={!!onAsk} onRow={onRow} onAct={onAct} onDismissing={onDismissing} />
-            ) : (
-              <RowView
-                key={r.key}
-                row={r}
-                split={split}
-                navAt={navAt}
-                cursor={cursor === r.key}
-                selected={!!selected?.has(r.key)}
-                html={html}
-                onRowClick={onRowClick}
-                onGutterDown={onGutterDown}
-                onDragOver={onDragOver}
-                onActivate={onActivate}
-                bar={
-                  r.key === selectionEnd && selectionLabel ? (
-                    // It floats over the lines below rather than pushing them
-                    // down: nothing moves under the mouse while dragging.
-                    <div className="select-bar" onClick={(e) => e.stopPropagation()}>
+              <FindingCard row={r} cursor={cursor === r.key} dismissing={dismissing === r.key} canAsk={!!onAsk} onRow={onRow} onAct={onAct} onDismissing={onDismissing} />
+            ) : null
+          }
+          under={
+            selectionEnd && selectionLabel
+              ? {
+                  row: selectionEnd,
+                  what: (
+                    <div className="select-bar">
                       <span>{selectionLabel}</span>
                       {onComment && (
                         <Button variant="primary" onMouseDown={(e) => e.preventDefault()} onClick={onComment} keys="c">
@@ -1465,12 +1462,11 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
                         <Keys k="esc" /> clears
                       </span>
                     </div>
-                  ) : undefined
+                  ),
                 }
-              />
-            ),
-          )}
-        </div>
+              : undefined
+          }
+        />
       )}
     </section>
   );
@@ -1478,112 +1474,7 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
 
 // NavAt is where a file's sides are read, for code navigation: the
 // diff's base and head, and the file's path at each.
-export interface NavAt {
-  old: { rev: string; path: string };
-  new: { rev: string; path: string };
-}
-
-interface RowViewProps {
-  row: Row;
-  split: boolean;
-  navAt?: NavAt;
-  cursor: boolean;
-  selected: boolean;
-  html: (c: Cell, side: "old" | "new") => string;
-  onRowClick: (key: string, shift: boolean) => void;
-  onGutterDown: (key: string, shift: boolean, side?: "old" | "new") => void;
-  onDragOver: (key: string) => void;
-  onActivate: (r: Row) => void;
-  bar?: React.ReactNode; // the selection's bar, on its last row
-}
-
-// RowView is a row of the diff: a line, a gap, or a note. (An artifact's
-// source diff draws its rows with it, as a review's.)
-export function RowView({ row, split, navAt, cursor, selected, html, onRowClick, onGutterDown, onDragOver, onActivate, bar }: RowViewProps) {
-  const cls = (cursor ? " cursor" : "") + (selected ? " selected" : "");
-  if (row.type === "gap") {
-    return (
-      <div id={`row-${row.key}`} className={`gap${cls}`} onClick={() => onActivate(row)}>
-        <span className="gap-mark" aria-hidden>
-          <Icon name={row.count === undefined ? "chevron-down" : "more"} size={13} />
-        </span>
-        <span className="gap-words">{row.count === undefined ? "Show more" : `Show ${row.count} unchanged ${row.count === 1 ? "line" : "lines"}`}</span>
-        {row.section && <span className="gap-section">{row.section}</span>}
-      </div>
-    );
-  }
-  if (row.type === "note") {
-    return (
-      <div id={`row-${row.key}`} className={`note${cls}${row.large ? " clickable" : ""}`} onClick={() => row.large && onActivate(row)}>
-        {row.text}
-      </div>
-    );
-  }
-  if (row.type !== "line") return null;
-  // A cell says where its line is read, for following names in it.
-  const code = (c?: Cell, side?: "old" | "new") => {
-    if (!c) return <code className="empty" />;
-    const s = side ?? (c.kind === "d" ? "old" : "new");
-    const at = navAt?.[s];
-    return (
-      <code
-        className={`${c.kind}${c.shown ? " shown" : ""}`}
-        data-rev={at?.rev}
-        data-path={at?.path}
-        data-line={c.num}
-        data-side={s}
-        dangerouslySetInnerHTML={{ __html: html(c, s) + (c.noeol ? '<span class="noeol">⊘</span>' : "") }}
-      />
-    );
-  };
-  // The line numbers are where lines are picked: press there and drag to
-  // select, without selecting the text (which stays copyable).
-  const gutter = (side?: "old" | "new") => ({
-    onMouseDown: (e: React.MouseEvent) => {
-      if (e.button !== 0) return;
-      e.preventDefault();
-      onGutterDown(row.key, e.shiftKey, side);
-    },
-    onClick: (e: React.MouseEvent) => e.stopPropagation(),
-  });
-  const line = {
-    id: `row-${row.key}`,
-    onClick: (e: React.MouseEvent) => onRowClick(row.key, e.shiftKey),
-    onMouseEnter: () => onDragOver(row.key),
-  };
-  if (split) {
-    return (
-      <div {...line} className={`dl${cls}`}>
-        <span className={`ln gutter ${row.left?.kind ?? "empty"}`} {...gutter("old")}>
-          {row.left?.num}
-        </span>
-        {code(row.left, "old")}
-        <span className={`ln gutter ${row.right?.kind ?? "empty"}`} {...gutter("new")}>
-          {row.right?.num}
-        </span>
-        {code(row.right, "new")}
-        {bar}
-      </div>
-    );
-  }
-  const c = row.right ?? row.left!;
-  const kind = row.left && !row.right ? "d" : row.right && !row.left ? "a" : "c";
-  return (
-    <div {...line} className={`dl ${kind}${c.shown ? " shown" : ""}${cls}`}>
-      <span className="ln gutter" {...gutter()}>
-        {row.left?.num}
-      </span>
-      <span className="ln gutter" {...gutter()}>
-        {row.right?.num}
-      </span>
-      <span className="sign gutter" {...gutter()}>
-        {kind === "a" ? "+" : kind === "d" ? "−" : ""}
-      </span>
-      {code({ ...c, kind }, kind === "d" ? "old" : "new")}
-      {bar}
-    </div>
-  );
-}
+export type NavAt = DiffAt;
 
 const linesWord = (t: Target) => (t.endLine > t.line ? `lines ${t.line}–${t.endLine}` : `line ${t.line}`);
 
