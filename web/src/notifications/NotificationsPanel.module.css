@@ -1,0 +1,51 @@
+/* The feed, as it opens from the foot's bell (NotificationsPanel.tsx): a
+   heading, the feed, and its links under it. What holds it says how tall
+   it may be and scrolls it: its heading and its links stay where they
+   are as the feed goes by. */
+.panel {
+  width: min(400px, calc(100vw - 24px));
+}
+
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px 6px 14px;
+  background: var(--raised);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-md, 1rem);
+  font-weight: 600;
+}
+
+.space {
+  flex: 1;
+}
+
+.feed {
+  padding: 0 6px 6px;
+}
+
+.error {
+  margin: 0;
+  padding: 12px 8px;
+  color: var(--danger);
+}
+
+.foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: var(--raised);
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}

@@ -1,5 +1,5 @@
 /* A notification in the feed: its link takes the row's width, and what
-   puts it away sits at its end, shown while the row is pointed at or the
+   is done to it where it is (read, put away) sits at its end, shown while the row is pointed at or the
    keys are in it. */
 .row {
   display: flex;
@@ -51,19 +51,39 @@
   margin-inline-start: 8px;
 }
 
-.dismiss {
+/* What's done to it where it is: read, put away. Where there's a
+   pointer they're over the row's end while it's pointed at or the keys
+   are in it, in place of its mark and its time, and take no room of
+   their own. With none (a phone) they're always there, beside it. */
+.row {
+  position: relative;
+}
+
+.acts {
+  display: inline-flex;
   flex: none;
+  gap: 2px;
   margin-inline-end: 4px;
-  opacity: 0;
 }
 
-.row:hover .dismiss,
-.row:focus-within .dismiss {
-  opacity: 1;
-}
+@media (hover: hover) {
+  .acts {
+    position: absolute;
+    inset-inline-end: 4px;
+    top: 50%;
+    margin: 0;
+    padding: 2px;
+    transform: translateY(-50%);
+    background: var(--backdrop, var(--bg));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    opacity: 0;
+    pointer-events: none;
+  }
 
-@media (hover: none) {
-  .dismiss {
+  .row:hover .acts,
+  .row:focus-within .acts {
     opacity: 1;
+    pointer-events: auto;
   }
 }

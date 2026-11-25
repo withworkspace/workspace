@@ -54,7 +54,7 @@ export function NotificationsPage() {
           What ws does for you is said here as it happens: a mission that ends by itself, a pull request it opened merging, a plugin's update. What needs you is in the sidebar.
         </Empty>
       )}
-      {list && list.length > 0 && <NotificationFeed notifications={list} onOpen={open} onDismiss={(n) => void write(dismissNotifications([n.n]))} />}
+      {list && list.length > 0 && <NotificationFeed notifications={list} onOpen={open} onRead={open} onDismiss={(n) => void write(dismissNotifications([n.n]))} />}
     </div>
   );
 }

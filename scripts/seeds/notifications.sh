@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # A feed of notifications: missions started for you, a pull request merged, a plugin's update, an upgrade.
 #
-# For looking at the feed of what happened (Notifications in the sidebar,
-# its page, ws notifications), beside what needs you:
+# For looking at the feed of what happened (the bell in the foot, the
+# feed's page, ws notifications), beside what needs you:
 #
 #   scripts/try.sh up notifications
 #
@@ -33,4 +33,4 @@ add --source missions --kind mission.ended --ref the-export-test-is-flaky-on-ci 
 "$ws" WS_ROLE=orchestrator mission new "Docs still describe the old greeting" >/dev/null 2>&1
 add --source pulls --kind pr.checks_failed --attention --ref "demo#14" "demo#14's deploy check failed after it merged"
 
-echo "notifications: $("$ws" notifications | wc -l | tr -d ' ') unread of $("$ws" notifications --all | wc -l | tr -d ' '); the web UI's Notifications, or ws notifications --all"
+echo "notifications: $("$ws" notifications | wc -l | tr -d ' ') unread of $("$ws" notifications --all | wc -l | tr -d ' '); the bell in the web UI's foot, or ws notifications --all"

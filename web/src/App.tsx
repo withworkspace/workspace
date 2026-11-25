@@ -16,6 +16,7 @@ import { listKeys, MissionList } from "./mission/List";
 import { MissionPage, missionKeys } from "./mission/Mission";
 import { OrchestratorPage, OrchestratorRunPage } from "./orchestrator/Orchestrator";
 import { AppPage } from "./apps/AppPage";
+import { NotificationsBell } from "./notifications/NotificationsBell";
 import { NotificationsPage } from "./notifications/NotificationsPage";
 import { RunsPage } from "./runs/Runs";
 import { useRefs } from "./refs/known";
@@ -282,12 +283,14 @@ export function App() {
               ))}
             </>
           }
-          // The docks' toggles, in the order they're in the window. Below's
+          // The bell (what happened: the feed of notifications, opened over
+          // the page), then the docks' toggles, in the order they're in the window. Below's
           // is there while it has something to show. Beside's is there
           // while there's something to peek at here; closed, it's marked.
           end={
-            (belowViews.length > 0 || beside.all.length > 0) && (
+            workspace && (
               <>
+                <NotificationsBell />
                 {belowViews.length > 0 && <FootBelow open={belowShown} onPress={() => changeChrome(toggleBelow)} />}
                 {beside.all.length > 0 && <FootBeside open={beside.shown} waiting={beside.all.length} onPress={() => changeChrome(toggleBeside)} over={beside.over} onOver={narrow ? undefined : (over) => changeChrome((c) => floatBeside(c, over))} />}
               </>
