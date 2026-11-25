@@ -3,6 +3,8 @@ import { HoverCardHead, HoverCardLine, HoverCardTitle } from "../../ui/HoverCard
 import { Icon } from "../../ui/Icon";
 import type { PullFound } from "../find";
 import { textClass } from "../../ui/Text";
+import { findPaneCodeClass } from "./FindPane";
+import { cx } from "../../ui/cx";
 
 // FindPullCard says of a pull request, in Find's pane, what Find was told
 // of it: whose it is, where it stands, its checks, its branch and its
@@ -36,7 +38,7 @@ export function FindPullCard({ pull: p }: { pull: PullFound }) {
             </HoverCardLine>
           )}
           {p.branch && (
-            <HoverCardLine dim className={textClass("mono")}>
+            <HoverCardLine dim className={cx(textClass("mono"), findPaneCodeClass)}>
               {p.branch}
             </HoverCardLine>
           )}

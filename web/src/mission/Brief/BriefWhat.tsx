@@ -52,7 +52,7 @@ export function BriefWhat({ ended, briefing, proposal: p, draft, changed, confir
     return (
       <MissionBriefWhat icon="circle-dot">
         As written{" "}
-        <Text dim>
+        <Text dim className={missionBriefWhatQuietClass}>
           · at step {now.n} of {steps}
         </Text>
       </MissionBriefWhat>

@@ -1,6 +1,8 @@
 import { HoverCardHead, HoverCardLine, HoverCardTitle } from "../../ui/HoverCard";
 import { Icon } from "../../ui/Icon";
 import { textClass } from "../../ui/Text";
+import { findPaneCodeClass } from "./FindPane";
+import { cx } from "../../ui/cx";
 
 // FindCodeCard says, in Find's pane, where a line a file says is: its
 // path, its line, and the repo and capsule it's in (worktree: ".ground"
@@ -10,7 +12,7 @@ export function FindCodeCard({ path, line, repo, worktree }: { path: string; lin
     <>
       <HoverCardHead>
         <Icon name="file" size={13} className={textClass("dim")} />
-        <HoverCardTitle className={textClass("mono")}>{path}</HoverCardTitle>
+        <HoverCardTitle className={cx(textClass("mono"), findPaneCodeClass)}>{path}</HoverCardTitle>
       </HoverCardHead>
       <HoverCardLine dim>
         Line {line} in {repo}
