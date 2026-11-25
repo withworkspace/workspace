@@ -4,7 +4,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.9.0/node_modules/@withworkspace/ui-lib/dist/mark.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/mark.js
 var skipped = "a, pre, h1, h2, h3, h4, h5, h6, script, style, textarea, select, button, svg, [contenteditable]";
 var isElement = (n) => n.nodeType === 1;
 var isText = (n) => n.nodeType === 3;
@@ -136,7 +136,7 @@ function mark(el, finder) {
   return stop;
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.9.0/node_modules/@withworkspace/ui-lib/dist/shape.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/shape.js
 function isRecord(v) {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -150,7 +150,7 @@ function isVersions(v) {
   return Array.isArray(v) && v.every((n) => Number.isInteger(n) && n >= 1);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.9.0/node_modules/@withworkspace/ui-lib/dist/v1.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/v1.js
 var v1_exports = {};
 __export(v1_exports, {
   CONVERSATION_FORMS: () => CONVERSATION_FORMS,
@@ -160,9 +160,28 @@ __export(v1_exports, {
   isFoundRef: () => isFoundRef,
   isHostMessage: () => isHostMessage,
   isPageMessage: () => isPageMessage,
-  isWelcome: () => isWelcome
+  isWelcome: () => isWelcome,
+  pictureRefused: () => pictureRefused
 });
-var UI_NAMES = ["ref-card", "thing-promote", "thing-save"];
+function pictureRefused(src, origin, plugin) {
+  let url;
+  try {
+    url = new URL(src);
+  } catch {
+    return `picture is given its full address, not "${src}".`;
+  }
+  if (url.protocol === "https:")
+    return void 0;
+  if (url.protocol === "data:")
+    return /^data:image\//i.test(src) ? void 0 : "picture is given a data: address only of a picture: data:image/\u2026.";
+  const own = (at) => url.pathname.startsWith(`${at}/`);
+  if (url.origin === origin && (own(plugin.api) || own(plugin.base)))
+    return void 0;
+  if (url.protocol === "blob:")
+    return "picture can't be given a blob: address: ws's page can't read it. Give it as data: instead.";
+  return `picture is given an address on the web (https:), the picture itself (data:image/\u2026), or the plugin's own on ws's (under ${plugin.api}/ or ${plugin.base}/), not ${url.href}.`;
+}
+var UI_NAMES = ["ref-card", "thing-promote", "thing-save", "picture"];
 var CONVERSATION_FORMS = ["card", "docked", "popover"];
 function isTheme(m) {
   return isRecord(m) && (m.scheme === "light" || m.scheme === "dark") && isRecord(m.vars) && Object.values(m.vars).every(isString);
@@ -248,16 +267,16 @@ function isHostMessage(m) {
   }
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.9.0/node_modules/@withworkspace/ui-lib/dist/protocol.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/protocol.js
 var PROTOCOL_VERSIONS = [1];
 function isRefuse(m) {
   return isRecord(m) && m.type === "ws:refuse" && isVersions(m.versions) && isString(m.message);
 }
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.9.0/node_modules/@withworkspace/ui-lib/dist/version.js
-var VERSION = "0.9.0";
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/version.js
+var VERSION = "0.10.0";
 
-// node_modules/.pnpm/@withworkspace+ui-lib@0.9.0/node_modules/@withworkspace/ui-lib/dist/client.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/client.js
 var ProtocolError = class extends Error {
   /** The versions the page speaks. */
   page;
@@ -442,9 +461,37 @@ function client(port, welcome, doc) {
   };
   const promoteThing = (target, thing) => openUi("thing-promote", { target, with: aboutThing("promoteThing", thing) });
   const saveThing = (target, thing) => openUi("thing-save", { target, with: aboutThing("saveThing", thing) });
+  const viewPicture = (src, options2 = {}) => {
+    let full = src;
+    try {
+      full = new URL(src, doc?.defaultView?.location.href).href;
+    } catch {
+    }
+    const page = doc?.defaultView?.location.origin;
+    const why = v1_exports.pictureRefused(full, page && page !== "null" ? page : "", welcome.plugin);
+    if (why)
+      throw new TypeError(`ui.viewPicture(src): ${why}`);
+    return openUi("picture", { target: options2.target, with: { src: full, ...options2.title ? { title: options2.title } : {} } });
+  };
+  const viewClicked = (el) => {
+    if (!hasUi.has("picture"))
+      return false;
+    const img = el.tagName === "IMG" ? el : el.querySelector("img");
+    const src = el.getAttribute("data-ws-view-src") || img && (img.currentSrc || img.getAttribute("src"));
+    if (!img || !src)
+      return false;
+    const title = el.getAttribute("data-ws-view") || img.getAttribute("alt") || img.getAttribute("title") || void 0;
+    try {
+      viewPicture(src, { title, target: img }).catch(() => {
+      });
+    } catch {
+      return false;
+    }
+    return true;
+  };
   if (doc)
     applyTheme(doc, theme);
-  const wired = doc ? wire(doc, welcome, send, open, refCard) : void 0;
+  const wired = doc ? wire(doc, welcome, send, open, refCard, viewClicked) : void 0;
   port.onmessage = (e) => {
     const m = e.data;
     if (!v1_exports.isHostMessage(m))
@@ -570,7 +617,7 @@ function client(port, welcome, doc) {
         tellHere();
       };
     },
-    ui: { has: (name) => hasUi.has(name), open: openUi, refCard, promoteThing, saveThing },
+    ui: { has: (name) => hasUi.has(name), open: openUi, refCard, promoteThing, saveThing, viewPicture },
     setChromeLayout(mode) {
       if (mode !== "expanded" && mode !== "standard")
         throw new TypeError(`setChromeLayout("${String(mode)}"): the layout is "expanded" or "standard".`);
@@ -664,7 +711,7 @@ function applyTheme(doc, theme) {
   for (const [name, value] of Object.entries(theme.vars))
     root.style.setProperty(name, value);
 }
-function wire(doc, welcome, send, open, refCard) {
+function wire(doc, welcome, send, open, refCard, viewClicked) {
   const { keys } = welcome;
   let leaderAt = 0;
   let over;
@@ -721,6 +768,11 @@ function wire(doc, welcome, send, open, refCard) {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
       return;
     const target = e.target;
+    const viewable = target?.closest?.("[data-ws-view]");
+    if (viewable && viewClicked(viewable)) {
+      e.preventDefault();
+      return;
+    }
     const a = target?.closest?.("a[href]");
     if (!a || typeof a.href !== "string" || a.hasAttribute("download"))
       return;
@@ -998,7 +1050,34 @@ async function main() {
         )
       ),
       h("p", { className: "dim" }, "The conversation, on a thing's page: ", h("span", { data: { fixture: "talk" } }, talk)),
+      pictures(),
       h("p", { id: "notes", className: "dim" }, "Notes: back after a filter skips it, as it replaced the entry it was on.")
+    );
+  }
+  function pictures() {
+    const src = ws.api("/api/shelf.svg");
+    const thumb = h("img", { src, alt: "The shelf", className: "thumb", data: { wsView: "", fixture: "picture" } });
+    const said = h("span", { className: "dim", data: { fixture: "picture-said" } }, ws.ui.has("picture") ? "" : "This ws has no viewer.");
+    const ask = (to, title) => async () => {
+      said.textContent = "";
+      try {
+        await ws.ui.viewPicture(to, { title });
+        said.textContent = "Closed.";
+      } catch (err) {
+        said.textContent = err instanceof Error ? err.message : String(err);
+      }
+    };
+    const dot = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="32" cy="32" r="28" fill="#c0563f"/></svg>');
+    return h(
+      "p",
+      { className: "pictures" },
+      h("a", { href: src, target: "_blank" }, thumb),
+      " ",
+      h("button", { type: "button", data: { fixture: "picture-code" }, onclick: ask(dot, "A dot, from code") }, "viewPicture from code"),
+      " ",
+      h("button", { type: "button", data: { fixture: "picture-refused" }, onclick: ask("/api/workspace") }, "One of ws's own (refused)"),
+      " ",
+      said
     );
   }
   let unmark = () => {

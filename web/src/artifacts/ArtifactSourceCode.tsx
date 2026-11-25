@@ -1,17 +1,14 @@
+import { CodeLines } from "../ui/CodeLines";
 import css from "./ArtifactSourceCode.module.css";
 
-// ArtifactSourceCode is a file's lines, numbered: each line is its HTML,
-// coloured or escaped by whoever read it.
-export function ArtifactSourceCode({ lines }: { lines: string[] }) {
+// ArtifactSourceCode is a file's lines, numbered (ui/CodeLines draws
+// them), in a card on the page's own ground: each line is its HTML,
+// coloured or escaped by whoever read it. path is the file's, which names
+// the lines.
+export function ArtifactSourceCode({ lines, path }: { lines: string[]; path: string }) {
   return (
     <div className={css.code}>
-      {lines.map((h, i) => (
-        <div key={i} className={css.line}>
-          <span className={css.ln}>{i + 1}</span>
-          <span className={css.mark} aria-hidden />
-          <code dangerouslySetInnerHTML={{ __html: h || " " }} />
-        </div>
-      ))}
+      <CodeLines className={css.lines} html={lines} path={path} />
     </div>
   );
 }

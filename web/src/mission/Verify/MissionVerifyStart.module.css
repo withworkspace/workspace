@@ -1,0 +1,27 @@
+/* A recipe a bundle says to try, to start with a button (MissionVerifyStart.tsx). */
+
+.start {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  vertical-align: middle;
+}
+
+.going {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+}
+
+.open {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.where {
+  font-size: var(--text-sm);
+  color: var(--dim);
+}

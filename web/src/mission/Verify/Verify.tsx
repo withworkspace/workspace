@@ -19,6 +19,7 @@ import { VerifyBundleHead } from "./VerifyBundleHead";
 import { VerifyBundleRow } from "./VerifyBundleRow";
 import { VerifyCheck } from "./VerifyCheck";
 import { VerifyNothingLeft } from "./VerifyNothingLeft";
+import { VerifyTryRuns } from "./VerifyTryRuns";
 import { settles, verdictIcon } from "./words";
 
 // The mission's Verify tab: its verification bundles, what crew handed
@@ -178,58 +179,64 @@ export function Verify({
   };
   const todo = toApprove(d.bundles);
   const settleTitle = going.length ? "Send it back to its crew, with what you said" : left.length ? "Approve it as it is: checks are still left for you" : "Approve it: what it shows is as its checks say";
+  // The open bundle's capsule, as the mission has it, for the recipes its
+  // Try it names to start there.
+  const capsule = d.capsules.find((c) => `${c.repo}/${c.name}` === bundle.capsule);
+  const tryRuns = { slug: d.slug, capsule, moved: bundle.stale, reload };
   return (
-    <MissionVerify fills>
-      {(d.bundles.length > 1 || !todo.includes(bundle)) && <VerifyBundleRow bundles={d.bundles} open={bundle} pick={pick} />}
-      <MissionVerifyPanes
-        fills
-        side={
-          <>
-            <VerifyBundleHead b={bundle} pick={pick} />
-            <MissionVerifyList>
-              {left.length > 0 && (
-                <MissionVerifyGroup title="Left for you" n={left.length} attention>
-                  {/* They stand out while the bundle's yours to approve. */}
-                  {left.map((r) => row(r, 2, open ? "wanted" : undefined))}
-                </MissionVerifyGroup>
-              )}
-              {open && (
-                // The one to press once nothing's left for you; before that it still approves, as it is.
-                <MissionVerifyApprove
-                  plain={!going.length && left.length > 0}
-                  disabled={busy}
-                  onSettle={settle}
-                  title={settleTitle}
-                  keys="mod+⏎"
-                  says={
-                    going.length
-                      ? `${going.length} ${going.length === 1 ? "check goes" : "checks go"} back to ${bundle.crew}, with what the bundle showed and what you said. The one they hand over next takes its place.`
-                      : `${settles(bundle)}${left.length ? ` ${left.length} ${left.length === 1 ? "check is" : "checks are"} still left for you.` : ""}`
-                  }
-                >
-                  {going.length ? `Send back to ${bundle.crew} (${going.length})` : `Approve ${bundle.id}`} <Keys k="mod+⏎" />
-                </MissionVerifyApprove>
-              )}
-              {approved.length > 0 && (
-                <MissionVerifyGroup title="You approved" n={approved.length} fold={{ open: showApproved, onToggle: () => setUnfolded(!showApproved) }}>
-                  {showApproved && approved.map((r) => row(r, 1, "approved"))}
-                </MissionVerifyGroup>
-              )}
-              {settled.length > 0 && (
-                <MissionVerifyGroup title={left.length || approved.length ? "Settled without you" : "Its checks"} n={settled.length}>
-                  {settled.map((r) => row(r, 1, "settled"))}
-                </MissionVerifyGroup>
-              )}
-            </MissionVerifyList>
-          </>
-        }
-      >
-        {clear ? (
-          <VerifyAllClear b={bundle} rows={rows} busy={busy} settle={settle} again={() => rows[0] && choose(rows[0])} />
-        ) : (
-          cur && <VerifyCheck b={bundle} r={cur} open={open} busy={busy} look={() => look(cur)} note={cur.check ? mine[cur.check.n] : undefined} setNote={(text) => cur.check && note(cur.check.n, text)} />
-        )}
-      </MissionVerifyPanes>
-    </MissionVerify>
+    <VerifyTryRuns value={tryRuns}>
+      <MissionVerify fills>
+        {(d.bundles.length > 1 || !todo.includes(bundle)) && <VerifyBundleRow bundles={d.bundles} open={bundle} pick={pick} />}
+        <MissionVerifyPanes
+          fills
+          side={
+            <>
+              <VerifyBundleHead b={bundle} pick={pick} />
+              <MissionVerifyList>
+                {left.length > 0 && (
+                  <MissionVerifyGroup title="Left for you" n={left.length} attention>
+                    {/* They stand out while the bundle's yours to approve. */}
+                    {left.map((r) => row(r, 2, open ? "wanted" : undefined))}
+                  </MissionVerifyGroup>
+                )}
+                {open && (
+                  // The one to press once nothing's left for you; before that it still approves, as it is.
+                  <MissionVerifyApprove
+                    plain={!going.length && left.length > 0}
+                    disabled={busy}
+                    onSettle={settle}
+                    title={settleTitle}
+                    keys="mod+⏎"
+                    says={
+                      going.length
+                        ? `${going.length} ${going.length === 1 ? "check goes" : "checks go"} back to ${bundle.crew}, with what the bundle showed and what you said. The one they hand over next takes its place.`
+                        : `${settles(bundle)}${left.length ? ` ${left.length} ${left.length === 1 ? "check is" : "checks are"} still left for you.` : ""}`
+                    }
+                  >
+                    {going.length ? `Send back to ${bundle.crew} (${going.length})` : `Approve ${bundle.id}`} <Keys k="mod+⏎" />
+                  </MissionVerifyApprove>
+                )}
+                {approved.length > 0 && (
+                  <MissionVerifyGroup title="You approved" n={approved.length} fold={{ open: showApproved, onToggle: () => setUnfolded(!showApproved) }}>
+                    {showApproved && approved.map((r) => row(r, 1, "approved"))}
+                  </MissionVerifyGroup>
+                )}
+                {settled.length > 0 && (
+                  <MissionVerifyGroup title={left.length || approved.length ? "Settled without you" : "Its checks"} n={settled.length}>
+                    {settled.map((r) => row(r, 1, "settled"))}
+                  </MissionVerifyGroup>
+                )}
+              </MissionVerifyList>
+            </>
+          }
+        >
+          {clear ? (
+            <VerifyAllClear b={bundle} rows={rows} busy={busy} settle={settle} again={() => rows[0] && choose(rows[0])} />
+          ) : (
+            cur && <VerifyCheck b={bundle} r={cur} open={open} busy={busy} look={() => look(cur)} note={cur.check ? mine[cur.check.n] : undefined} setNote={(text) => cur.check && note(cur.check.n, text)} />
+          )}
+        </MissionVerifyPanes>
+      </MissionVerify>
+    </VerifyTryRuns>
   );
 }

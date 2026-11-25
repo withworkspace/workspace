@@ -2,16 +2,16 @@ import { useMemo, useState } from "react";
 import type { DiffFile } from "../api";
 import { useHighlighter } from "../review/highlight";
 import { type Cell, cellHTML, type FileState, fileRows, type Row } from "../review/model";
-import { highlight, RowView } from "../review/Review";
+import { highlight } from "../review/Review";
+import { DiffLines } from "../ui/DiffLines";
+import type { DiffCell } from "../ui/diffLayout";
 import { ArtifactCompareFile } from "./ArtifactCompareFile";
-
-const noop = () => undefined;
 
 // FileDiff is one file's diff between two versions: unified or side by
 // side, coloured, with the unchanged lines between the changes there to
-// open. A file that isn't text says only that it differs. Its lines are a
-// review's (review/Review.tsx's RowView, in the classes its rules go by:
-// lines, split or unified, and plain, for a diff nothing's picked in).
+// open. A file that isn't text says only that it differs. Its rows are as
+// a review lays a file out (review/model), drawn by ui/DiffLines: nothing's
+// picked in it.
 export function FileDiff({ file: f, lines, a, b, split, named }: { file: DiffFile; lines: string[]; a: string; b: string; split: boolean; named: boolean }) {
   const [expanded, setExpanded] = useState<FileState["expanded"]>({});
   const ready = useHighlighter();
@@ -29,27 +29,10 @@ export function FileDiff({ file: f, lines, a, b, split, named }: { file: DiffFil
       const last = gap === f.hunks.length;
       return { ...x, [gap]: n === 0 ? { top: 1e9, bottom: 0 } : { top: first ? 0 : e.top + n, bottom: last ? 0 : e.bottom + n } };
     });
-  const html = (c: Cell, side: "old" | "new") => cellHTML(hl, c, side);
+  const html = (c: DiffCell, side: "old" | "new") => cellHTML(hl, c as Cell, side);
   return (
     <ArtifactCompareFile path={named ? f.path : undefined} status={f.status} binary={f.binary} deletions={f.deletions} additions={f.additions} a={a} b={b}>
-      {!f.binary && (
-        <div className={`lines ${split ? "split" : "unified"} plain`}>
-          {rows.slice(1).map((r) => (
-            <RowView
-              key={r.key}
-              row={r}
-              split={split}
-              cursor={false}
-              selected={false}
-              html={html}
-              onRowClick={noop}
-              onGutterDown={noop}
-              onDragOver={noop}
-              onActivate={(r) => r.type === "gap" && expand(r.gap, r.count !== undefined && r.count <= 40 ? 0 : 20)}
-            />
-          ))}
-        </div>
-      )}
+      {!f.binary && <DiffLines aria-label={`Changes to ${f.path}`} rows={rows.slice(1)} split={split} html={html} onGap={(r) => r.type === "gap" && expand(r.gap, r.count !== undefined && r.count <= 40 ? 0 : 20)} />}
     </ArtifactCompareFile>
   );
 }

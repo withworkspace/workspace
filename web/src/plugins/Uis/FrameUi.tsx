@@ -1,6 +1,7 @@
 import type { V1 } from "@withworkspace/ui-lib/protocol";
 import { type ReactNode, type RefObject, useMemo } from "react";
 import { anchorIn, type Asked, type FrameUis } from "../ui";
+import { PictureUi } from "./PictureUi";
 import { RefCardUi } from "./RefCardUi";
 import { ThingPromoteUi } from "./ThingPromoteUi";
 import { ThingSaveUi } from "./ThingSaveUi";
@@ -11,6 +12,7 @@ const draws: Readonly<Record<V1.UiName, (props: UiProps) => ReactNode>> = {
   "ref-card": RefCardUi,
   "thing-promote": ThingPromoteUi,
   "thing-save": ThingSaveUi,
+  picture: PictureUi,
 };
 
 // FrameUi is one UI a plugin's page asked for, drawn by what draws its

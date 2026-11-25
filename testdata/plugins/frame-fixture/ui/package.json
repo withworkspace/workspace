@@ -8,7 +8,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@withworkspace/ui-lib": "0.9.0"
+    "@withworkspace/ui-lib": "0.10.0"
   },
   "devDependencies": {
     "esbuild": "0.28.2",

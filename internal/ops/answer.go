@@ -758,7 +758,7 @@ func RunHeadless(life context.Context, root, who string, f spend.For, env []stri
 			tee = f
 		}
 	}
-	rep, err := turn.Run(turn.Spec{Life: life, Launch: l, Env: env, Timeout: limit, Tee: tee, Root: root, Who: who, Harness: h.Name(), For: f})
+	rep, err := turn.Run(turn.Spec{Life: life, Launch: l, Env: env, Timeout: limit, Tee: tee, Root: root, Who: who, Harness: h.Name(), Model: r.Model, For: f})
 	switch {
 	case err != nil:
 		return rep, err

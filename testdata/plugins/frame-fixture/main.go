@@ -17,6 +17,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -373,8 +374,23 @@ func serve() http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		json.NewEncoder(w).Encode(map[string]any{"things": things, "poked": poked.Load()}) //nolint:errcheck // the app has gone
 	})
+	// A picture of the plugin's own, for the app to show in ws's viewer.
+	mux.HandleFunc("GET /api/shelf.svg", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		io.WriteString(w, shelf) //nolint:errcheck // the app has gone
+	})
 	return mux
 }
+
+// shelf is the plugin's picture: the shelf, with its three things on it.
+const shelf = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+<rect width="960" height="540" fill="#f4efe6"/>
+<rect x="80" y="380" width="800" height="24" rx="4" fill="#8a6a4a"/>
+<rect x="140" y="250" width="120" height="130" rx="10" fill="#d9a441"/>
+<circle cx="480" cy="320" r="60" fill="#5b8bb0"/>
+<path d="M680 380 L740 230 L800 380 Z" fill="#7a9e6b"/>
+<text x="480" y="470" font-family="sans-serif" font-size="28" text-anchor="middle" fill="#4a3a2a">The shelf: a lantern, a globe, a tent</text>
+</svg>`
 
 // What a conversation's agent proposes of the fixture's: things, new
 // (name, note, and beside, which may be an earlier one's #N) or a new

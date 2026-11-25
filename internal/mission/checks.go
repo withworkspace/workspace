@@ -43,6 +43,20 @@ const (
 // judge judging it.
 func (c Check) Run() bool { return c.Command != "" }
 
+// runRecipe is a command that asks for one of a repo's own recipes, and
+// nothing more: ws run test.
+var runRecipe = regexp.MustCompile(`^ws\s+run\s+([a-z0-9][a-z0-9_-]*)$`)
+
+// RecipeOf is the recipe a command asks for when it's `ws run <recipe>`
+// alone, or "": a check's that's a recipe's task is that task's run, and
+// a bundle's try: that's one is the user's to start with a button.
+func RecipeOf(command string) string {
+	if m := runRecipe.FindStringSubmatch(strings.TrimSpace(command)); m != nil {
+		return m[1]
+	}
+	return ""
+}
+
 // checkCommand is a check that's a command: `go test ./...` passes.
 var checkCommand = regexp.MustCompile("^`([^`]+)`\\s+(passes|fails)\\b\\s*(.*)$")
 
