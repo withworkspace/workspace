@@ -709,11 +709,14 @@ export interface BundleRan {
 // From web/api.go
 /**
  * BundleTry is something to do to see it yourself: Command where it
- * starts with one; Look, what to look for.
+ * starts with one; Look, what to look for. Recipe is the recipe a command
+ * that's `ws run <recipe>` alone asks for: the page starts it in the
+ * bundle's capsule with a button, where the capsule has it.
  */
 export interface BundleTry {
     text: string;
     command?: string;
+    recipe?: string;
     look?: boolean;
 }
 

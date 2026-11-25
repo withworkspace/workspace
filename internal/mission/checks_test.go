@@ -119,3 +119,22 @@ func TestCheckResult_Said(t *testing.T) {
 		t.Errorf("can't run said: %q", got)
 	}
 }
+
+// A command that's `ws run <recipe>` alone asks for that recipe: a check's
+// is the recipe's task run, a bundle's try: a button. Anything more is a
+// command like any other.
+func TestRecipeOf(t *testing.T) {
+	for cmd, want := range map[string]string{
+		"ws run web":           "web",
+		"  ws  run   e2e-api ": "e2e-api",
+		"ws run web --task":    "",
+		"ws run":               "",
+		"cd web && ws run web": "",
+		"npm run dev":          "",
+		"ws run Web":           "",
+	} {
+		if got := RecipeOf(cmd); got != want {
+			t.Errorf("RecipeOf(%q) = %q, want %q", cmd, got, want)
+		}
+	}
+}

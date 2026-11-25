@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -185,10 +184,6 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 	return w.afterChecks(slug, st.N, round), nil
 }
 
-// checkRecipe is a check's command that asks for one of the repo's own
-// recipes: ws run test.
-var checkRecipe = regexp.MustCompile(`^ws\s+run\s+([a-z0-9][a-z0-9_-]*)$`)
-
 // runCheckTask runs a step's check that's a command as a task (a run that
 // ends by itself, internal/runs) in the capsule at dir, and waits for it:
 // met when it passes or fails as the check says; can't tell when it
@@ -208,10 +203,8 @@ func (w *Workspace) runCheckTask(capsule, dir string, c mission.Check, env []str
 		// Its time outlasts the wait for it, so it's this that stops it.
 		Timeout: timeout + 5*time.Minute, By: "ws", Mission: of.Mission, Env: env, Check: &of, Wait: RunUpWait,
 	}
-	if m := checkRecipe.FindStringSubmatch(strings.TrimSpace(c.Command)); m != nil {
-		if w.recipes(repo, name)[m[1]].IsTask() {
-			ask.Recipe, ask.Command, ask.Name = m[1], "", ""
-		}
+	if recipe := mission.RecipeOf(c.Command); recipe != "" && w.recipes(repo, name)[recipe].IsTask() {
+		ask.Recipe, ask.Command, ask.Name = recipe, "", ""
 	}
 	up, err := w.StartRun(ask)
 	if err != nil {
