@@ -21,7 +21,7 @@ export const Media: StoryObj = {
   render: () => (
     <div style={{ display: "grid", gap: 24, width: 900, padding: 16, background: "var(--bg)" }}>
       <MissionArtifactMedia src={picture} label="The list, sorted" />
-      <MissionArtifactMedia src="" video label="mission:proof/list.webm" />
+      <MissionArtifactMedia src="data:video/webm;base64," video label="mission:proof/list.webm" />
     </div>
   ),
 };
