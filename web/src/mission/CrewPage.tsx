@@ -110,7 +110,7 @@ export function CrewPage() {
       </header>
       {!structured && <Tabs value={shown} onChange={setView} aria-label="Crew">
         {(["conversation", "terminal"] as const).map((v) => (
-          <Tab key={v} value={v}>
+          <Tab key={v} value={v} keys="t">
             <Icon name={v === "terminal" ? "terminal" : "message"} size={13} />
             {v === "terminal" ? "Terminal" : "Conversation"}
             {v === "conversation" && state === "live" && (c?.activity === "permission" || c?.activity === "question") && <Count tone="attention">1</Count>}
@@ -126,7 +126,7 @@ export function CrewPage() {
             icon="terminal"
             title={`${id} isn't running`}
             action={
-              <Button onClick={() => setView("conversation")}>
+              <Button onClick={() => setView("conversation")} keys="t">
                 <Icon name="message" /> Read its conversation
               </Button>
             }

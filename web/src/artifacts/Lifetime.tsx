@@ -176,10 +176,10 @@ export function PromoteDialog({ a, version, onClose, onDone }: { a: ArtifactInfo
       {blocked && <p className="dim file-as-what">{blocked}</p>}
       {(error || loadError) && <Banner>{error ?? loadError}</Banner>}
       <DialogActions>
-        <Button variant="ghost" onClick={onClose} disabled={busy}>
+        <Button variant="ghost" onClick={onClose} disabled={busy} keys="esc">
           Cancel
         </Button>
-        <Button variant="primary" onClick={go} disabled={busy || !n || !d || !!blocked}>
+        <Button variant="primary" onClick={go} disabled={busy || !n || !d || !!blocked} keys="mod+⏎">
           {busy ? (lands ? "Landing…" : "Promoting…") : lands ? `Promote, and land on ${branch}` : "Promote"} <Keys k="mod+⏎" />
         </Button>
       </DialogActions>
@@ -238,10 +238,10 @@ export function DiscardDialog({ a, onClose, onDone }: { a: ArtifactInfo; onClose
       />
       {error && <Banner>{error}</Banner>}
       <DialogActions>
-        <Button variant="ghost" onClick={onClose} disabled={busy}>
+        <Button variant="ghost" onClick={onClose} disabled={busy} keys="esc">
           Cancel
         </Button>
-        <Button variant="danger" onClick={go} disabled={busy}>
+        <Button variant="danger" onClick={go} disabled={busy} keys="mod+⏎">
           {busy ? (home ? "Landing…" : "Discarding…") : home ? `Discard, and land on ${defaultBranch ?? "it"}` : "Discard"} <Keys k="mod+⏎" />
         </Button>
       </DialogActions>

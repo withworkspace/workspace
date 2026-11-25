@@ -32,7 +32,7 @@ import { Excerpt } from "../ui/Excerpt";
 import { NoteBody, NoteCard, NoteHead, NoteHint, NoteId, NoteStatus, NoteThread, NoteTurn } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
 import { SendKeys } from "../ui/SendKeys";
-import { sent, useSendKey } from "../ui/sendKey";
+import { sendKeys, sent, useSendKey } from "../ui/sendKey";
 import { Suggestion } from "./Suggestion";
 import { fuzzy } from "../ui/fuzzy";
 import { Inline } from "../ui/Inline";
@@ -41,6 +41,7 @@ import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Callout } from "../ui/Callout";
+import { hintOnClick, keyProps } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
 import { exact, stamp } from "../ui/when";
 import { highlightLines, languageOf, useHighlighter } from "./highlight";
@@ -1032,7 +1033,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
       </aside>
       <div className="files-resize" role="separator" aria-orientation="vertical" title="Drag to make the list of files wider or narrower; double-click to put it back" onPointerDown={resizeFiles} onDoubleClick={resetFilesWidth} />
       <div className="diff-pane" ref={pane} onScroll={onPaneScroll}>
-        <Crumbs className="review-crumbs" steps={[source.back]} />
+        <Crumbs className="review-crumbs" steps={[{ ...source.back, keys: "esc" }]} />
         <header className="review-head">
           <h1>{source.name}</h1>
           {diff && (
@@ -1084,7 +1085,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
         {entries.length > 0 && (
           <nav className="review-tabs mobile-only" aria-label="Views">
             {[...entries, { key: "changes", ...viewNames.changes, n: viewKeys.length, news: undefined }].map((v) => (
-              <Button variant="ghost" size="small" key={v.key} className={view === v.key ? "on" : undefined} aria-pressed={view === v.key} onClick={() => show(v.key as ViewKey)}>
+              <Button variant="ghost" size="small" key={v.key} className={view === v.key ? "on" : undefined} aria-pressed={view === v.key} onClick={() => show(v.key as ViewKey)} keys={`${v.n}`}>
                 <Icon name={v.icon} size={12} /> {v.label}
                 {v.news && <span className="fnews" aria-label={v.news} />}
               </Button>
@@ -1125,7 +1126,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
             </span>
           </div>
         )}
-        {moved && <Callout tone="attention" title={source.movedWords} actions={<Button onClick={reload}>Reload <Keys k="r" /></Button>} />}
+        {moved && <Callout tone="attention" title={source.movedWords} actions={<Button onClick={reload} keys="r">Reload <Keys k="r" /></Button>} />}
         {error && <Banner>{humanError(error)}</Banner>}
         {parts.map((p) => (
           <section key={p.key} className={`review-view view-body view-${p.key}`} hidden={view !== p.key} aria-label={viewNames[p.key].label}>
@@ -1401,7 +1402,7 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
             {skimWords[file.skim]} · {state.folded ? "show" : "hide"}
           </Button>
         )}
-        <Checkbox className="viewed-box" checked={!!state.viewed} onChange={() => onActivate({ type: "file", key: `${index}`, file: index })} onClick={(e) => e.stopPropagation()}>
+        <Checkbox className="viewed-box" checked={!!state.viewed} onChange={() => onActivate({ type: "file", key: `${index}`, file: index })} {...keyProps("x", state.viewed ? "Mark it not viewed" : "Mark it viewed", (e: React.MouseEvent<HTMLLabelElement>) => e.stopPropagation())}>
           Viewed
         </Checkbox>
       </div>
@@ -1451,12 +1452,12 @@ const FileSection = memo(function FileSection(props: FileSectionProps) {
                     <div className="select-bar" onClick={(e) => e.stopPropagation()}>
                       <span>{selectionLabel}</span>
                       {onComment && (
-                        <Button variant="primary" onMouseDown={(e) => e.preventDefault()} onClick={onComment}>
+                        <Button variant="primary" onMouseDown={(e) => e.preventDefault()} onClick={onComment} keys="c">
                           Comment <Keys k="c" />
                         </Button>
                       )}
                       {onAsk && (
-                        <Button onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask an agent about these lines, with the code checked out here">
+                        <Button onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask an agent about these lines, with the code checked out here" keys="a">
                           Ask <Keys k="a" />
                         </Button>
                       )}
@@ -1625,7 +1626,8 @@ function CommentCard({ row, cursor, replying, onRow, onAnswer, onReplyCancel, fo
                 variant="ghost" size="small"
                 className="note-toggle"
                 onClick={(e) => (e.stopPropagation(), onRow(row.key), onAnswer(note.id, resolved ? "reopen" : "resolve"))}
-                title={`${resolved ? "Reopen" : "Resolve"} (x)`}
+                title={resolved ? "Reopen" : "Resolve"}
+                keys="x"
               >
                 {resolved ? "Reopen" : "Resolve"}
               </Button>
@@ -1719,7 +1721,7 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
     <div className="note-editor">
       <div className="note-head">
         {noteKinds.map((k) => (
-          <button key={k} className={`kind k-${k}${k === kind ? " on" : ""}`} onClick={() => setKind(k)} aria-pressed={k === kind}>
+          <button key={k} className={`kind k-${k}${k === kind ? " on" : ""}`} onClick={hintOnClick("tab", () => setKind(k))} aria-pressed={k === kind}>
             {capital(k)}
           </button>
         ))}
@@ -1754,10 +1756,10 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
           Suggest a change
         </Button>
         <span className="spacer-left" />
-        <Button onClick={onCancel}>
+        <Button onClick={onCancel} keys="esc">
           Cancel <Keys k="esc" />
         </Button>
-        <Button variant="primary" onClick={save}>
+        <Button variant="primary" onClick={save} keys={sendKeys(sendKey)}>
           {note ? "Save" : "Comment"} <SendKeys />
         </Button>
       </div>

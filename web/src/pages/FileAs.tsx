@@ -162,7 +162,7 @@ export function FileAs({
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={file} disabled={!ready}>
+        <Button variant="primary" onClick={file} disabled={!ready} title="File it as a document" keys="mod+⏎">
           {busy ? (lands ? "Landing…" : "Filing…") : lands ? `File, and land on ${plan?.branch}` : "File it"} <Keys k="mod+⏎" />
         </Button>
       </DialogActions>
@@ -252,7 +252,7 @@ export function SaveToFile({
         <Button variant="ghost" onClick={onClose} disabled={busy}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={save} disabled={busy || !message.trim()}>
+        <Button variant="primary" onClick={save} disabled={busy || !message.trim()} title="Save it to the repo" keys="mod+⏎">
           {busy ? (lands ? "Landing…" : "Saving…") : lands ? `Save, and land on ${saves?.branch}` : "Save"} <Keys k="mod+⏎" />
         </Button>
       </DialogActions>

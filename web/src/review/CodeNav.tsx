@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { getBlob, type DiffFile } from "../api";
-import { useKeys } from "../keys";
+import { useKeys, useShortcut } from "../keys";
 import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { toast } from "../ui/toast";
+import { keyProps } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
 import { escapeHTML, highlightLines, languageOf } from "./highlight";
 import type { FileState, Row } from "./model";
@@ -575,16 +576,18 @@ function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api: string
     el.classList.add("nav-flash");
   }, [lines, at.line]);
   const scroll = (by: number) => body.current?.scrollBy({ top: by * 20 });
+  // Closing it and going back are a key and a button each: the key's
+  // bound here, and the button's given what comes back.
+  const close = useShortcut("Escape", onClose, { modal: true });
+  const goBack = useShortcut("b", onBack, { modal: true });
   useKeys(
     {
-      Escape: onClose,
       j: () => scroll(1),
       ArrowDown: () => scroll(1),
       k: () => scroll(-1),
       ArrowUp: () => scroll(-1),
       "mod+d": () => scroll(20),
       "mod+u": () => scroll(-20),
-      b: onBack,
       o: () => browse && navigate(browse),
     },
     { modal: true },
@@ -602,14 +605,14 @@ function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api: string
         {at.how && <span className="dim nav-panel-how">{at.how}</span>}
         <span className="spacer-left" />
         {browse && (
-          <Link to={browse} className={buttonClass({ size: "small" })} title="Open it in Files, as it is now (o)">
+          <Link to={browse} className={buttonClass({ size: "small" })} {...keyProps("o", "Open it in Files, as it is now")}>
             Open <Keys k="o" />
           </Link>
         )}
-        <Button variant="ghost" size="small" onClick={onBack} title="Back" keys="b">
+        <Button variant="ghost" size="small" onClick={goBack} title="Back">
           <Icon name="arrow-left" size={12} /> <Keys k="b" />
         </Button>
-        <Button variant="ghost" size="small" onClick={onClose} title="Close" keys="esc">
+        <Button variant="ghost" size="small" onClick={close} title="Close">
           <Icon name="x" size={13} />
         </Button>
       </header>
@@ -645,15 +648,15 @@ function UsesPanel(props: {
   // The list as it's moved through: maybes only when opened.
   const flat = groups.flatMap((g) => [...g.uses, ...(open[g.title] ? g.maybes : [])]);
   const [pick, setPick] = useState(0);
+  const close = useShortcut("Escape", onClose, { modal: true });
+  const goBack = useShortcut("b", onBack, { modal: true });
   useKeys(
     {
-      Escape: onClose,
       j: () => setPick((i) => Math.min(i + 1, flat.length - 1)),
       ArrowDown: () => setPick((i) => Math.min(i + 1, flat.length - 1)),
       k: () => setPick((i) => Math.max(i - 1, 0)),
       ArrowUp: () => setPick((i) => Math.max(i - 1, 0)),
       Enter: () => flat[pick] && onGo(flat[pick]),
-      b: onBack,
     },
     { modal: true },
   );
@@ -684,10 +687,10 @@ function UsesPanel(props: {
           {uses.partial ? ", maybe more" : ""} · {sideWords(at.side)}
         </span>
         <span className="spacer-left" />
-        <Button variant="ghost" size="small" onClick={onBack} title="Back" keys="b">
+        <Button variant="ghost" size="small" onClick={goBack} title="Back">
           <Icon name="arrow-left" size={12} /> <Keys k="b" />
         </Button>
-        <Button variant="ghost" size="small" onClick={onClose} title="Close" keys="esc">
+        <Button variant="ghost" size="small" onClick={close} title="Close">
           <Icon name="x" size={13} />
         </Button>
       </header>

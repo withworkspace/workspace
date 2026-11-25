@@ -16,6 +16,7 @@ import { Empty } from "../ui/Empty";
 import { humanError } from "../ui/text";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
+import { hintOnClick, keyProps } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
 import { Option, Select } from "../ui/Select";
 import { Status } from "../ui/Status";
@@ -352,7 +353,7 @@ export function ArtifactPage() {
     <div className="artifact-view">
       <header className="artifact-head">
         <div className="artifact-title-line">
-          <Link to="/artifacts" className="ghost icon-button small" aria-label="Back to Artifacts" title="Back to Artifacts">
+          <Link to="/artifacts" className="ghost icon-button small" aria-label="Back to Artifacts" {...keyProps("esc", "Back to Artifacts")}>
             <Icon name="arrow-left" size={14} />
           </Link>
           <h1>{d.title}</h1>
@@ -405,7 +406,7 @@ export function ArtifactPage() {
           <VersionStrip d={d} n={n} go={go} />
           <Segmented value={width} onChange={setWidth} disabled={source} aria-label="Width">
             {widths.map((w) => (
-              <Segment key={w.key} value={w.key} title={w.title}>
+              <Segment key={w.key} value={w.key} title={w.title} keys="w">
                 {w.label}
               </Segment>
             ))}
@@ -419,21 +420,22 @@ export function ArtifactPage() {
               }}
               disabled={!runnable || source}
               title="Run it again"
+              keys="r"
             >
               <Icon name="rotate" size={13} /> Reload <Keys k="r" />
             </Button>
-            <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"}>
+            <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} disabled={!runnable || source} title={stopped ? "Run it again" : "Unload it: a script that loops stops"} keys="x">
               <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
             </Button>
-            <ToggleButton variant="ghost" size="small" pressed={source} onChange={setSource} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"}>
+            <ToggleButton variant="ghost" size="small" pressed={source} onChange={setSource} disabled={!runnable} title={v?.files && v.files > 1 ? "Its files, as they were written" : "Its HTML"} keys="s">
               <Icon name="code" size={13} /> Source <Keys k="s" />
             </ToggleButton>
-            {framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} />}
+            {framed && <TweaksToggle told={told} shown={tray} onToggle={() => setTray((x) => !x)} keys="t" />}
             {comparing ? (
               <Link
                 className={buttonClass({ variant: "ghost" }, "small")}
                 to={compareHref(comparing)}
-                title={comparing[0].id === d.id ? `v${comparing[0].n} and v${comparing[1].n}, side by side: two frames, or their source diff` : `Beside ${comparing[0].id}, side by side: two frames, or their source diff`}
+                {...keyProps("c", comparing[0].id === d.id ? `v${comparing[0].n} and v${comparing[1].n}, side by side: two frames, or their source diff` : `Beside ${comparing[0].id}, side by side: two frames, or their source diff`)}
               >
                 <Icon name="split" size={13} /> Compare <Keys k="c" />
               </Link>
@@ -443,12 +445,12 @@ export function ArtifactPage() {
               </Button>
             ) : null}
             {runnable ? (
-              <a className={buttonClass({ variant: "ghost" }, "small")} href={frameURL(d.id, n, opensAs)} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed, as it's set here">
+              <a className={buttonClass({ variant: "ghost" }, "small")} href={frameURL(d.id, n, opensAs)} target="_blank" rel="noopener noreferrer" {...keyProps("O", "In a tab of its own, still sandboxed, as it's set here")}>
                 <Icon name="external" size={13} /> Open alone
               </a>
             ) : null}
             {keepable && (
-              <Button variant="ghost" size="small" onClick={() => setDialog("promote")} title={d.status === "promoted" ? "Choose another version, or say what it went into now" : "Keep it for good: it expires no more"}>
+              <Button variant="ghost" size="small" onClick={() => setDialog("promote")} title={d.status === "promoted" ? "Choose another version, or say what it went into now" : "Keep it for good: it expires no more"} keys="p">
                 <Icon name="check-circle" size={13} /> {d.status === "promoted" ? "Promoted" : "Promote"} <Keys k="p" />
               </Button>
             )}
@@ -478,7 +480,7 @@ export function ArtifactPage() {
           ) : source ? (
             <Source id={d.id} n={n} />
           ) : stopped ? (
-            <Empty className="artifact-empty" icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)}>Run it</Button>}>
+            <Empty className="artifact-empty" icon="stop" title="Stopped" action={<Button onClick={() => setStopped(false)} keys="x">Run it</Button>}>
               The frame's unloaded, and its scripts with it.
             </Empty>
           ) : (
@@ -497,7 +499,7 @@ export function ArtifactPage() {
           )}
         </div>
         {framed && tray && hasTweaks(told) && (
-          <TweaksTray told={told} set={tweaks.set} onClose={() => setTray(false)}>
+          <TweaksTray told={told} set={tweaks.set} onClose={() => setTray(false)} keys="t">
             {changed(told).length > 0 && (
               <Link className="link" to={compareHref([{ id: d.id, n }, { id: d.id, n }], [[], tweakParams(told)])} title="The same version twice, side by side: as it opens, and as it's set here">
                 <Icon name="split" size={12} /> Compare with how it opens
@@ -580,6 +582,9 @@ export function VersionLine({ d, v }: { d: ArtifactDetail; v: ArtifactVersion })
 // VersionStrip is the versions, v1 v2 v3, each with its note on hover,
 // and the keys that step through them.
 export function VersionStrip({ d, n, go, keys = ["[", "]"] }: { d: ArtifactDetail; n: number; go: (n: number) => void; keys?: [string, string] }) {
+  // The version before the one shown, and the one after, are what the
+  // keys step to: pressed with the pointer, each hints at its key.
+  const keyOf = (to: number) => (to === n ? undefined : to === stepVersion(d.all, n, -1) ? keys[0] : to === stepVersion(d.all, n, 1) ? keys[1] : undefined);
   return (
     <div className={segmentedClass({}, "artifact-versions")} role="group" aria-label="Versions">
       {d.all.map((x) => (
@@ -587,7 +592,7 @@ export function VersionStrip({ d, n, go, keys = ["[", "]"] }: { d: ArtifactDetai
           key={x.n}
           className="artifact-version-host"
           trigger={
-            <button data-ui="" aria-pressed={x.n === n} data-selected={x.n === n || undefined} onClick={() => go(x.n)} tabIndex={-1} className={segmentClass(d.home?.version === x.n ? "at-home" : undefined)}>
+            <button data-ui="" aria-pressed={x.n === n} data-selected={x.n === n || undefined} onClick={hintOnClick(keyOf(x.n), () => go(x.n))} tabIndex={-1} className={segmentClass(d.home?.version === x.n ? "at-home" : undefined)}>
               v{x.n}
             </button>
           }

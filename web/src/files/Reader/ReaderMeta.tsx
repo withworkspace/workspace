@@ -4,6 +4,7 @@ import { Button, buttonClass } from "../../ui/Button";
 import { Chip, chipClass } from "../../ui/Chip";
 import { Copyable } from "../../ui/Copyable";
 import { Icon } from "../../ui/Icon";
+import { keyProps } from "../../ui/keyHint";
 import { Keys } from "../../ui/Keys";
 import css from "./ReaderMeta.module.css";
 
@@ -71,7 +72,7 @@ export function ReaderMeta({ kind, repo, worktree, ground, page, flights, docRef
         <Button size="small" onClick={onEdit} unavailable={editUnavailable} title="Edit it as a page: cells, questions and passes, saved back to the repo when you say" keys="e">
           <Icon name="pencil" size={12} /> Edit <Keys k="e" />
         </Button>
-        <Link to={filesTo} className={buttonClass({ size: "small" })} title="Open it in Files (o)">
+        <Link to={filesTo} className={buttonClass({ size: "small" })} {...keyProps("o", "Open it in Files")}>
           <Icon name="file" size={12} /> Files <Keys k="o" />
         </Link>
       </span>

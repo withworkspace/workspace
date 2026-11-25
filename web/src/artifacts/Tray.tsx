@@ -69,12 +69,13 @@ export function useTweaks(what: string): FrameTweaks {
 // hasTweaks is whether a frame's page declared any.
 export const hasTweaks = (told: Told | undefined): told is Told => !!told && told.tweaks.length > 0;
 
-// TweaksTray is a frame's tweaks, beside it: the artifact's page.
-export function TweaksTray({ told, set, onClose, children }: { told: Told; set: (some: State) => void; onClose: () => void; children?: ReactNode }) {
+// TweaksTray is a frame's tweaks, beside it: the artifact's page. keys
+// is the key that hides it, where the page binds one.
+export function TweaksTray({ told, set, onClose, keys, children }: { told: Told; set: (some: State) => void; onClose: () => void; keys?: string; children?: ReactNode }) {
   return (
     <aside className="tweaks-tray" aria-label="Tweaks">
       <TweaksHead told={told}>
-        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Hide the tweaks" title="Hide them" keys="t">
+        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Hide the tweaks" title="Hide them" keys={keys}>
           <Icon name="x" size={13} />
         </Button>
       </TweaksHead>
@@ -331,13 +332,13 @@ function Words({ id, t, value, set }: { id: string; t: Tweak; value: string; set
 
 // TweaksToggle is the button that shows a frame's tray, or hides it:
 // there for a page that declares tweaks.
-export function TweaksToggle({ told, shown, onToggle }: { told: Told | undefined; shown: boolean; onToggle: () => void }) {
+export function TweaksToggle({ told, shown, onToggle, keys }: { told: Told | undefined; shown: boolean; onToggle: () => void; keys?: string }) {
   if (!hasTweaks(told)) return null;
   const n = changed(told).length;
   return (
-    <ToggleButton variant="ghost" size="small" pressed={shown} onChange={onToggle} title="What its page says can be changed about it">
+    <ToggleButton variant="ghost" size="small" pressed={shown} onChange={onToggle} title="What its page says can be changed about it" keys={keys}>
       <Icon name="sliders" size={13} /> Tweaks
-      {n ? <Count>{n}</Count> : null} <Keys k="t" />
+      {n ? <Count>{n}</Count> : null} {keys && <Keys k={keys} />}
     </ToggleButton>
   );
 }

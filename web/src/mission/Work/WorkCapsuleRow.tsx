@@ -26,7 +26,7 @@ export function WorkCapsuleRow({ d, x, selected, select, label, review, seen }: 
       end={
         <>
           {here && <CrewBadge id={here.id} live />}
-          <MissionWorkState {...x.state} />
+          <MissionWorkState {...x.state} keys="o" />
         </>
       }
       selected={selected}

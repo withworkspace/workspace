@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import { cx } from "../../ui/cx";
 import { Icon } from "../../ui/Icon";
+import { keyProps } from "../../ui/keyHint";
 import type { Section } from "../reading";
 import css from "./ReaderPill.module.css";
 import type { Reading } from "./useReading";
@@ -12,7 +13,7 @@ export function ReaderPill({ title, sections, reading, open, toggle, pill }: { t
   const at = sections[reading.at];
   return (
     <div className={cx(css.wrap, reading.past && css.shown)}>
-      <button type="button" ref={pill} className={css.pill} data-contents-toggle aria-expanded={open} aria-hidden={!reading.past || undefined} tabIndex={reading.past ? undefined : -1} title="Its contents (t)" onClick={toggle}>
+      <button type="button" ref={pill} className={css.pill} data-contents-toggle aria-expanded={open} aria-hidden={!reading.past || undefined} tabIndex={reading.past ? undefined : -1} {...keyProps("t", "Its contents", toggle)}>
         <span className={css.doc}>{title}</span>
         <Icon name="chevron-right" size={12} />
         <span className={css.at}>{at ? at.text : "Top"}</span>

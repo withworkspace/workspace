@@ -24,6 +24,7 @@ import { MoreLink } from "../ui/MoreLink";
 import { pageScroller } from "../ui/scroller";
 import { Input } from "../ui/Input";
 import { Composer } from "../ui/Composer";
+import { sendKeys, useSendKey } from "../ui/sendKey";
 import { Turn, TurnAvatar, TurnHead, TurnSaid } from "../ui/Turn";
 import { TypingDots } from "../ui/TypingDots";
 import { useWorkspace } from "../workspace/store";
@@ -196,7 +197,7 @@ export function AgentView({ slug, id, crew, live, onTerminal }: { slug: string; 
     <div className="agent-view">
       {plan && <PinnedPlan todos={plan} live={live} />}
       {!t.available && (
-        <Empty icon="terminal" title="No transcript to show" action={onTerminal && <Button onClick={onTerminal}>Watch its terminal</Button>}>
+        <Empty icon="terminal" title="No transcript to show" action={onTerminal && <Button onClick={onTerminal} keys="t">Watch its terminal</Button>}>
           {t.why} You can still send it a message below.
         </Empty>
       )}
@@ -350,7 +351,7 @@ export function PromptCard({
   };
   // Crew over ACP have no terminal: the card is the only way to answer.
   const terminal = crew.structured ? null : onTerminal ? (
-    <MoreLink onClick={onTerminal}>
+    <MoreLink onClick={onTerminal} keys="t">
       Answer in the terminal
     </MoreLink>
   ) : (
@@ -455,6 +456,8 @@ function TellCrew({ slug, id, crew, live, working }: { slug: string; id: string;
   const [busy, setBusy] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
   const canResume = !live && !!crew && crew.ended;
+  // The key that sends, as the box has it (ui/Composer.tsx): the button's too.
+  const sendKey = useSendKey();
   const send = () => {
     if (!text.trim() || busy) return;
     setBusy(true);
@@ -507,7 +510,7 @@ function TellCrew({ slug, id, crew, live, working }: { slug: string; id: string;
         )
       }
     >
-      <Button variant="primary" disabled={!text.trim() || busy} onClick={send}>
+      <Button variant="primary" disabled={!text.trim() || busy} onClick={send} keys={sendKeys(sendKey)}>
         {busy ? "Sending…" : live ? "Send" : "Resume"}
       </Button>
     </Composer>

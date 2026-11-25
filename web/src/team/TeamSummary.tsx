@@ -65,7 +65,7 @@ export function TeamSummary({ summary, folded, onFold, on, onTopic, names, onWri
             return (
               <li key={t.name} className={cx(css.topic, pressed && css.on)}>
                 <div className={css.head}>
-                  <Button variant="bare" className={css.name} aria-pressed={pressed} onClick={() => onTopic(t)} title={pressed ? "Show every change" : "Show only its changes"}>
+                  <Button variant="bare" className={css.name} aria-pressed={pressed} onClick={() => onTopic(t)} title={pressed ? "Show every change" : "Show only its changes"} keys={pressed ? "esc" : undefined}>
                     {t.name}
                   </Button>
                   <span className={css.meta}>

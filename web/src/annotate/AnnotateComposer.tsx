@@ -61,7 +61,7 @@ export function AnnotateComposer({
     <div className={css.composer} onClick={(e) => e.stopPropagation()}>
       <Segmented fill value={kind} onChange={onKind} aria-label="What kind of comment">
         {threadKinds.map((k) => (
-          <Segment key={k} value={k} className={cx(css.kind, kinds[k])} title={`${kindWords[k]} (tab cycles)`}>
+          <Segment key={k} value={k} className={cx(css.kind, kinds[k])} title={kindWords[k]} keys="tab">
             <Icon name={kindIcon[k]} size={12} />
             {kindWords[k]}
           </Segment>

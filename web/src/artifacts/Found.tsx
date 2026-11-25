@@ -10,6 +10,7 @@ import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Copyable } from "../ui/Copyable";
+import { keyProps } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
 import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
@@ -170,7 +171,7 @@ export function FoundArtifactPage() {
   if (error && !d) {
     return (
       <div className="page narrow">
-        <ErrorCard error={error} retry={reload} title={`Couldn't open ${name}`} />
+        <ErrorCard error={error} retry={reload} keys="r" title={`Couldn't open ${name}`} />
         <p>
           <Link to="/artifacts">Back to Artifacts</Link>
         </p>
@@ -186,7 +187,7 @@ export function FoundArtifactPage() {
     <div className="artifact-view">
       <header className="artifact-head">
         <div className="artifact-title-line">
-          <Link to="/artifacts" className="ghost icon-button small" aria-label="Back to Artifacts" title="Back to Artifacts">
+          <Link to="/artifacts" className="ghost icon-button small" aria-label="Back to Artifacts" {...keyProps("esc", "Back to Artifacts")}>
             <Icon name="arrow-left" size={14} />
           </Link>
           <h1>{d.title}</h1>
@@ -217,7 +218,7 @@ export function FoundArtifactPage() {
         <div className="artifact-tools">
           <Segmented value={width} onChange={setWidth} aria-label="Width">
             {widths.map((w) => (
-              <Segment key={w.key} value={w.key} title={w.title}>
+              <Segment key={w.key} value={w.key} title={w.title} keys="w">
                 {w.label}
               </Segment>
             ))}
@@ -231,11 +232,12 @@ export function FoundArtifactPage() {
               }}
               disabled={!page}
               title="Run it again, as the repo has it now"
+              keys="r"
             >
               <Icon name="rotate" size={13} /> Reload <Keys k="r" />
             </Button>
             {page && (
-              <a className={buttonClass({ variant: "ghost" }, "small")} href={d.frame} target="_blank" rel="noopener noreferrer" title="In a tab of its own, still sandboxed">
+              <a className={buttonClass({ variant: "ghost" }, "small")} href={d.frame} target="_blank" rel="noopener noreferrer" {...keyProps("O", "In a tab of its own, still sandboxed")}>
                 <Icon name="external" size={13} /> Open alone
               </a>
             )}

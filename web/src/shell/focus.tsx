@@ -164,12 +164,13 @@ export function FocusKeys() {
 // compact is the pin alone, its words in its title: where a head's row
 // has no room for more.
 export function PagePin({ r, compact }: { r: PageRef; compact?: boolean }) {
-  return <PinButton r={r} keyHint compact={compact} />;
+  return <PinButton r={r} keys="." compact={compact} />;
 }
 
 // PinButton pins what a card's about, or unpins it: on a card, beside its
-// way there.
-export function PinButton({ r, keyHint, compact }: { r: PageRef; keyHint?: boolean; compact?: boolean }) {
+// way there. keys is the key that does the same, where there's one: a
+// page's own pin's, Find's for the row the cursor's on.
+export function PinButton({ r, keys, compact }: { r: PageRef; keys?: string; compact?: boolean }) {
   const focus = useFocus();
   const name = pinNameOf(r);
   if (!focus?.supported || !name) return null;
@@ -185,7 +186,7 @@ export function PinButton({ r, keyHint, compact }: { r: PageRef; keyHint?: boole
         else focus.pin(name);
       }}
       title={on ? "Take it out of your focus" : "Keep it in your focus, in the sidebar"}
-      keys={keyHint ? "." : undefined}
+      keys={keys}
       aria-pressed={on}
       aria-label={compact ? (on ? "Pinned" : "Pin") : undefined}
     >

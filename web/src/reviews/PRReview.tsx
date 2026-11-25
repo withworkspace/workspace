@@ -42,6 +42,7 @@ import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { Callout } from "../ui/Callout";
+import { hintOnClick, keyProps } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
 import { Dialog } from "../ui/Dialog";
 import { confirm } from "../ui/Confirm";
@@ -432,11 +433,12 @@ export function PRReviewPage() {
           onClick={dock}
           disabled={docking}
           unavailable={pr.fork ? "It's from a fork: ws dock looks for its branch on origin, so it can't be opened here" : undefined}
-          title={d.docked?.by === "you" ? `It's here: ${pr.repo}/${d.docked.capsule}` : "Dock it here, as ws dock does, to run it yourself (⇧O)"}
+          title={d.docked?.by === "you" ? `It's here: ${pr.repo}/${d.docked.capsule}` : "Dock it here, as ws dock does, to run it yourself"}
+          keys="O"
         >
           <Icon name="box" size={13} /> {docking ? "Docking…" : d.docked?.by === "you" ? d.docked.capsule : "Open here"}
         </Button>
-        <a className={buttonClass({ size: "small" })} href={pr.url} target="_blank" rel="noreferrer" title="Open it on GitHub (o)">
+        <a className={buttonClass({ size: "small" })} href={pr.url} target="_blank" rel="noreferrer" {...keyProps("o", "Open it on GitHub")}>
           <Icon name="external" size={12} /> GitHub
         </a>
       </>
@@ -868,7 +870,7 @@ function PRSubmitDialog({
       </p>
       {stack && (
         <div className="pr-submit-all">
-          <Button onClick={approveAll} disabled={busy} title="Give every layer that isn't a draft or yours an approval (⇧A). Nothing's posted until you submit.">
+          <Button onClick={approveAll} disabled={busy} title="Give every layer that isn't a draft or yours an approval. Nothing's posted until you submit." keys="A">
             <Icon name="check-circle" size={13} /> Approve every layer <Keys k="A" />
           </Button>
           <span className="dim">
@@ -916,7 +918,7 @@ function PRSubmitDialog({
                       disabled={l.pr.mine && v !== "comment"}
                       title={l.pr.mine && v !== "comment" ? "It's your own pull request: GitHub takes comments on it, not a verdict" : undefined}
                       className={`verdict v-${v}${l.verdict === v ? " on" : ""}`}
-                      onClick={() => pick(i, v)}
+                      onClick={hintOnClick(v === "approve" ? "a" : v === "changes" ? "c" : "m", () => pick(i, v))}
                     >
                       <Icon name={v === "approve" ? "check-circle" : v === "changes" ? "alert" : "message"} size={14} /> {verdictEvents[v]}{" "}
                       {i === focus && <Keys k={v === "approve" ? "a" : v === "changes" ? "c" : "m"} />}
@@ -960,7 +962,7 @@ function PRSubmitDialog({
           </Button>
         )}
         <span className="spacer-left" />
-        <Button variant="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose} keys="esc">
           {layers.some((l) => l.state === "posted") ? "Close" : "Cancel"}
         </Button>
         <Button variant="primary" onClick={submit} disabled={busy} unavailable={ready ? undefined : "Pick a verdict first"} title="Post to GitHub" keys="mod+⏎">

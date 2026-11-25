@@ -335,8 +335,8 @@ export function TeamPage() {
             </Segment>
           </Segmented>
           <Segmented value={period} onChange={pick} aria-label="Period">
-            {periods.map((p) => (
-              <Segment key={p.since} value={p.since} title={p.title}>
+            {periods.map((p, i) => (
+              <Segment key={p.since} value={p.since} title={p.title} keys={i < 3 ? String(i + 1) : undefined}>
                 {p.label}
               </Segment>
             ))}
@@ -374,7 +374,7 @@ export function TeamPage() {
     <div className="page">
       {head}
       {(error || view.error) && (
-        <Callout tone="attention" title="The repos couldn't be looked at just now" actions={<Button onClick={refresh}>Try again</Button>}>
+        <Callout tone="attention" title="The repos couldn't be looked at just now" actions={<Button onClick={refresh} keys="r">Try again</Button>}>
           {humanError(error ?? view.error ?? "")} What's here is as of <Time iso={view.at} as="relative" />.
         </Callout>
       )}
@@ -441,7 +441,7 @@ export function TeamPage() {
           <span>
             Only <strong>{topic.name}</strong>: {topic.strands.length} {topic.strands.length === 1 ? "change" : "changes"}.
           </span>
-          <Button variant="link" onClick={() => setTopic(undefined)}>
+          <Button variant="link" onClick={() => setTopic(undefined)} keys="esc">
             Show everything <Keys k="esc" />
           </Button>
         </TeamNarrative>
@@ -466,7 +466,7 @@ export function TeamPage() {
               ))}
             </Rows>
             {d.bots > 0 && !q && (
-              <Button variant="link" onClick={bots} aria-expanded={showBots}>
+              <Button variant="link" onClick={bots} aria-expanded={showBots} keys="a">
                 <Icon name={showBots ? "chevron-down" : "chevron-right"} size={12} /> {d.bots} automated
               </Button>
             )}

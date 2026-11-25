@@ -5,14 +5,15 @@ import { cx } from "./cx";
 const named: Record<string, string> = { Enter: "⏎", Escape: "esc", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→", Backspace: "⌫" };
 
 // keysSaid is a key or a chord as it's read, a key at a time: "g m" is g
-// then m, "mod+⏎" is ⌘⏎ on a Mac and Ctrl+⏎ elsewhere. A key written as
+// then m, "mod+⏎" is ⌘⏎ on a Mac and Ctrl+⏎ elsewhere, "mod+alt+1" ⌘⌥1. A key written as
 // a key map names it is read the same: "mod+Enter" is ⌘⏎, "Escape" esc.
 export function keysSaid(k: string): string[] {
   const mac = /Mac|iPhone|iPad/.test(navigator.platform);
   return k.split(" ").map((p) =>
     p
       .replace(/^mod\+/, mac ? "⌘" : "Ctrl+")
-      .replace(/(^|\+|⌘)shift\+/, (_, before: string) => before + (mac ? "⇧" : "Shift+"))
+      .replace(/(^|\+|⌘)alt\+/, (_, before: string) => before + (mac ? "⌥" : "Alt+"))
+      .replace(/(^|\+|⌘|⌥)shift\+/, (_, before: string) => before + (mac ? "⇧" : "Shift+"))
       .replace(/[A-Z][A-Za-z]+$/, (name) => named[name] ?? name),
   );
 }

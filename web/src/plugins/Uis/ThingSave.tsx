@@ -57,7 +57,7 @@ export function ThingSave({ what, saved, why, onAgain, onClose }: ThingSaveProps
             <Button variant="primary" size="small" type="button" onClick={onAgain}>
               Try again
             </Button>
-            <Button variant="ghost" size="small" type="button" onClick={onClose}>
+            <Button variant="ghost" size="small" type="button" onClick={onClose} keys="esc">
               Close
             </Button>
           </ThingUiButtons>

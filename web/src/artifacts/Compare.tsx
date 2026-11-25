@@ -13,6 +13,7 @@ import { useTitle } from "../ui/useTitle";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { ErrorCard } from "../ui/ErrorCard";
+import { keyProps } from "../ui/keyHint";
 import { Keys } from "../ui/Keys";
 import { Option, Select } from "../ui/Select";
 import { artifactHref, VersionLine, VersionStrip } from "./Artifacts";
@@ -187,7 +188,7 @@ export function ComparePage() {
     <div className="artifact-view compare-view">
       <header className="artifact-head">
         <div className="artifact-title-line">
-          <Link to={back} className="ghost icon-button small" aria-label={backLabel} title={backLabel}>
+          <Link to={back} className="ghost icon-button small" aria-label={backLabel} {...keyProps("esc", backLabel)}>
             <Icon name="arrow-left" size={14} />
           </Link>
           <h1>{same ? right.title : `${left.title} and ${right.title}`}</h1>
@@ -219,7 +220,7 @@ export function ComparePage() {
           ) : (
             <Segmented value={width} onChange={setWidth} aria-label="Width">
               {widths.map((w) => (
-                <Segment key={w.key} value={w.key} title={`${w.title}, both`}>
+                <Segment key={w.key} value={w.key} title={`${w.title}, both`} keys="w">
                   {w.label}
                 </Segment>
               ))}
@@ -228,22 +229,22 @@ export function ComparePage() {
           {narrow && (
             <Segmented className="compare-which" value={shown ? "right" : "left"} onChange={(v) => setShown(v === "right" ? 1 : 0)} aria-label="Which one's shown">
               {([0, 1] as const).map((i) => (
-                <Segment key={i} value={i ? "right" : "left"} title={`${i ? "The right" : "The left"} one (t)`}>
+                <Segment key={i} value={i ? "right" : "left"} title={`${i ? "The right" : "The left"} one`} keys="t">
                   {sideRef(pair[i])}
                 </Segment>
               ))}
             </Segmented>
           )}
           <span className="artifact-tools-end">
-            <Button variant="ghost" size="small" onClick={swap} title="Each where the other was: the diff the other way about">
+            <Button variant="ghost" size="small" onClick={swap} title="Each where the other was: the diff the other way about" keys="S">
               <Icon name="swap" size={13} /> Swap <Keys k="S" />
             </Button>
             {!diff && (
               <>
-                <Button variant="ghost" size="small" onClick={again} title="Run them again">
+                <Button variant="ghost" size="small" onClick={again} title="Run them again" keys="r">
                   <Icon name="rotate" size={13} /> Reload <Keys k="r" />
                 </Button>
-                <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} title={stopped ? "Run them again" : "Unload them: a script that loops stops"}>
+                <Button variant="ghost" size="small" onClick={() => setStopped((s) => !s)} title={stopped ? "Run them again" : "Unload them: a script that loops stops"} keys="x">
                   <Icon name={stopped ? "play" : "stop"} size={13} /> {stopped ? "Run" : "Stop"} <Keys k="x" />
                 </Button>
               </>
@@ -383,7 +384,7 @@ function SideFrame({
   }
   if (stopped) {
     return (
-      <Empty className="artifact-empty" icon="stop" title="Stopped" action={<Button onClick={onRun}>Run them</Button>}>
+      <Empty className="artifact-empty" icon="stop" title="Stopped" action={<Button onClick={onRun} keys="x">Run them</Button>}>
         The frames are unloaded, and their scripts with them.
       </Empty>
     );

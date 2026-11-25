@@ -12,14 +12,14 @@ const shown = 3;
 // latest few (those you decided outright before what you said when
 // asked), as they're the ones that stand over the plan, and the way to
 // all of them, saying how many there are and whose.
-export function DecisionsSummary({ d, all }: { d: MissionDetail; all: () => void }) {
+export function DecisionsSummary({ d, all, keys }: { d: MissionDetail; all: () => void; keys?: string }) {
   const g = useMemo(() => groupDecisions(d.decisions, d.stages), [d.decisions, d.stages]);
   return (
     <div className={css.summary}>
       {[...g.yours, ...g.answered].slice(0, shown).map((x) => (
         <MissionDecision key={x.id} d={x} yours dense />
       ))}
-      <MoreLink onClick={all}>{decisionsWords(g)} in Decisions</MoreLink>
+      <MoreLink onClick={all} keys={keys}>{decisionsWords(g)} in Decisions</MoreLink>
     </div>
   );
 }

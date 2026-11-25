@@ -124,7 +124,7 @@ export function ThreadCard({ thread, active, hovered, replying, unplaced, onFocu
           {deciding && !thread.draft && <DecisionCard onDecide={(d) => onDecide(d).then(() => setDeciding(false))} onCancel={() => setDeciding(false)} />}
           {!replying && active && (
             <NoteHint>
-              <Button variant="link" className={noteHintActionClass()} onClick={(e) => (e.stopPropagation(), onReply())}>
+              <Button variant="link" className={noteHintActionClass()} onClick={(e) => (e.stopPropagation(), onReply())} keys="⏎">
                 <Icon name="reply" size={12} /> Reply <Keys k="⏎" />
               </Button>
               {sendable && (

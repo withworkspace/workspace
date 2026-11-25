@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { DiffFile } from "../api";
 import { Icon, type IconName } from "../ui/Icon";
+import { keyProps } from "../ui/keyHint";
 import { baseOf, dirOf, groupByOrder, groupFiles, type Order } from "./files";
 import type { FileState } from "./model";
 import { Button } from "../ui/Button";
@@ -25,7 +26,7 @@ export function ViewList({ views, here, onPick }: { views: ViewEntry[]; here: st
   return (
     <ul className="files-views">
       {views.map((v) => (
-        <li key={v.key} className={here === v.key ? "here" : ""} onClick={() => onPick(v.key)} title={`${v.label}${v.news ? `: ${v.news}` : ""} (${v.n})`} aria-current={here === v.key ? "page" : undefined}>
+        <li key={v.key} className={here === v.key ? "here" : ""} {...keyProps(`${v.n}`, `${v.label}${v.news ? `: ${v.news}` : ""}`, () => onPick(v.key))} aria-current={here === v.key ? "page" : undefined}>
           <span className="fstatus s-view">
             <Icon name={v.icon} size={11} />
           </span>
@@ -79,7 +80,7 @@ export function FileList({
   return (
     <>
       <ul className="files-views files-changes">
-        <li className={current ? "here" : ""} onClick={onChanges} title={`Changes (${n})`} aria-current={current ? "page" : undefined}>
+        <li className={current ? "here" : ""} {...keyProps(`${n}`, "Changes", onChanges)} aria-current={current ? "page" : undefined}>
           <span className="fstatus s-view">
             <Icon name="code" size={11} />
           </span>

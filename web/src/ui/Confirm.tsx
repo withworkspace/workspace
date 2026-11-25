@@ -43,7 +43,9 @@ export function Confirmer() {
     <Dialog title={ask.title} onClose={() => done(false)}>
       {ask.body && <DialogText>{ask.body}</DialogText>}
       <DialogActions>
-        <Button onClick={() => done(false)}>Cancel</Button>
+        <Button onClick={() => done(false)} keys="esc">
+          Cancel
+        </Button>
         <Button variant={ask.danger ? "danger" : "primary"} onClick={() => done(true)} autoFocus={!ask.danger}>
           {ask.confirm}
         </Button>

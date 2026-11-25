@@ -2,6 +2,7 @@ import type { ReactNode, Ref } from "react";
 import { cx } from "../../ui/cx";
 import { DirtyDot } from "../../ui/DirtyDot";
 import { Icon } from "../../ui/Icon";
+import { keyProps } from "../../ui/keyHint";
 import { RepoDot } from "../../ui/RepoDot";
 import css from "./FilesSwitch.module.css";
 
@@ -25,7 +26,7 @@ type FilesSwitchProps = {
 export function FilesSwitch({ repo, color, name, ground, dirty, open, onToggle, menu, ref }: FilesSwitchProps) {
   return (
     <div className={css.switch} ref={ref}>
-      <button className={css.title} aria-haspopup="listbox" aria-expanded={open} onClick={onToggle} title={`${ground ? "The default branch, as it's checked out" : "A capsule"}. Switch to the ground or another capsule (w)`}>
+      <button className={css.title} aria-haspopup="listbox" aria-expanded={open} {...keyProps("w", `${ground ? "The default branch, as it's checked out" : "A capsule"}. Switch to the ground or another capsule`, onToggle)}>
         <RepoDot color={color} />
         <span className={cx(css.repo, css.cut)}>{repo}</span>
         <span className={css.sep}>/</span>

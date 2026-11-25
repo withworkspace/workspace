@@ -12,7 +12,7 @@ type MoreLinkProps = {
   | // Somewhere to go.
   { to: string; onClick?: undefined }
   // Something done here: the rest shown, another tab.
-  | ({ to?: undefined } & Pick<ComponentProps<typeof Button>, "onClick" | "title" | "aria-expanded">)
+  | ({ to?: undefined } & Pick<ComponentProps<typeof Button>, "onClick" | "title" | "keys" | "aria-expanded">)
 );
 
 // MoreLink is words in the accent that lead to the rest of something:

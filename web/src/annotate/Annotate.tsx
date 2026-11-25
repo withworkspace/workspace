@@ -750,7 +750,7 @@ export function AnnotatedDoc({
           tone="attention"
           title="This document has changed since it loaded"
           actions={
-            <Button onClick={onChanged}>
+            <Button onClick={onChanged} keys="r">
               Reload <Keys k="r" />
             </Button>
           }

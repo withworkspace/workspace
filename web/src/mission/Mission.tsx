@@ -19,10 +19,11 @@ import {
   type Talk,
   useEvents,
 } from "../api";
-import { type KeyMap, useKeys } from "../keys";
+import { type KeyMap, useKeys, useShortcut } from "../keys";
 import { Markdown } from "../markdown/LazyMarkdown";
 import { TalkList, talkHref } from "../talk/Talk";
 import { Icon, type IconName } from "../ui/Icon";
+import { hintOnClick, keyProps } from "../ui/keyHint";
 import { StatusIcon } from "../ui/StatusIcon";
 import { Crumbs } from "../ui/Crumbs";
 import { CheckingNow, checkingTitle } from "./checking";
@@ -300,9 +301,11 @@ export function MissionPage() {
       else if (only?.length) setTab("work");
     },
     s: () => (tab === "summary" ? toggleSide() : setOver((v) => !v)),
-    r: load,
     h: back,
   });
+  // r reads it again, as Try again does where reading it failed: the
+  // button's handed this, and says the key.
+  const again = useShortcut("r", load);
 
   // The bar's ends, the same while the mission loads as once it has: back
   // to the missions, and the tabs (with what's waiting in each, once known).
@@ -321,13 +324,13 @@ export function MissionPage() {
   if (error && !d) {
     return (
       <div className="page narrow">
-        <Crumbs steps={[{ to: "/", label: "Missions" }]} />
+        <Crumbs steps={[{ to: "/", label: "Missions", keys: "esc" }]} />
         <ErrorCard
           title={/not found|no mission/i.test(error) ? "There's no mission here" : "Couldn't load this mission"}
           error={/not found|no mission/i.test(error) ? `No mission is called ${slug}: it may have been renamed or deleted.` : error}
-          retry={load}
+          retry={again}
         />
-        <Link to="/" className={buttonClass()}>
+        <Link to="/" className={buttonClass()} {...keyProps("esc", "Back to the missions")}>
           <Icon name="arrow-left" /> All missions
         </Link>
       </div>
@@ -418,13 +421,13 @@ export function MissionPage() {
         // The brief has the page under the bar to itself: its panes reach
         // the page's edges, each scrolling by itself.
         <div role="tabpanel" id="mission-panel" aria-label={tabNames.brief} className="tab-panel brief-panel" key="brief">
-          {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
+          {error && <ErrorCard title="Couldn't refresh" error={error} retry={again} />}
           <BriefTab d={d} root={root} updated={updated} reload={load} onEscape={escape} />
         </div>
       ) : (
       <div className={`page mission${docked ? " with-side" : ""}${wideTabs.includes(tab) ? " wide" : ""}`}>
         <div className="mission-main" data-page-scroller="">
-          {error && <ErrorCard title="Couldn't refresh" error={error} retry={load} />}
+          {error && <ErrorCard title="Couldn't refresh" error={error} retry={again} />}
           <div role="tabpanel" id="mission-panel" aria-label={tabNames[tab]} className="tab-panel" key={tab}>
             {tab === "summary" && <Summary {...parts} full={!side} />}
             {tab === "work" && w && (
@@ -552,7 +555,7 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
             return <MissionOutput key={key} id={`side-${key}`} a={a} compact selected={!!selected(key)} open={openArtifact} />;
           })}
           {d.artifacts.length > sideArtifacts && (
-            <MoreLink className="more-under" onClick={() => go("work")}>
+            <MoreLink className="more-under" onClick={() => go("work")} keys="3">
               {d.artifacts.length - sideArtifacts} more in Work
             </MoreLink>
           )}
@@ -562,7 +565,7 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
         {d.capsules.map((c) => {
           const key = `c:${c.repo}/${c.name}`;
           return (
-            <button key={key} id={`side-${key}`} className={`side-capsule${selected(key)}`} onClick={() => review(c)} title={c.exists ? "Review it (v)" : "Burned: its folder's gone"} disabled={!c.exists}>
+            <button key={key} id={`side-${key}`} className={`side-capsule${selected(key)}`} {...keyProps(c.exists ? "v" : undefined, c.exists ? "Review it" : "Burned: its folder's gone", () => review(c))} disabled={!c.exists}>
               <span className="side-capsule-name">
                 {c.dirty && <span className="dirty-dot" title="Uncommitted changes" />}
                 <span className="mono">
@@ -600,7 +603,7 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
           <CrewRow key={c.id} c={c} slug={d.slug} />
         ))}
         {d.crew.length > live.length && (
-          <MoreLink className="more-under" onClick={() => go("work")}>
+          <MoreLink className="more-under" onClick={() => go("work")} keys="3">
             {live.length ? `${d.crew.length - live.length} earlier, in Work` : `${d.crew.length} so far, none on it now: in Work`}
           </MoreLink>
         )}
@@ -692,7 +695,7 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
         {goal && (
           <SummaryRow label="Goal">
             <Inline text={goal} />{" "}
-            <MoreLink className="more-under" onClick={() => go("brief")}>
+            <MoreLink className="more-under" onClick={() => go("brief")} keys="2">
               Brief
             </MoreLink>
           </SummaryRow>
@@ -717,7 +720,7 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
             <span className="dim summary-work">
               {workWords(w, label, d.slug) || "Nothing yet: crew lift a capsule when they start."}{" "}
               {(w.capsules.length > 0 || w.outputs.length > 0) && (
-                <MoreLink onClick={() => go("work")}>
+                <MoreLink onClick={() => go("work")} keys="3">
                   All of it in Work
                 </MoreLink>
               )}
@@ -733,14 +736,14 @@ function Summary({ d, selected, review, full, go, reload }: Parts & { full: bool
         )}
         {d.decisions.some((x) => x.state === "current") && (
           <SummaryRow label="Decided">
-            <DecisionsSummary d={d} all={() => go("decisions")} />
+            <DecisionsSummary d={d} all={() => go("decisions")} keys="7" />
           </SummaryRow>
         )}
         {events.length > 0 && (
           <SummaryRow label="Recently">
             <Events events={events.slice(-recent)} lines={2} />
             {events.length > recent && (
-              <MoreLink className="more-under" onClick={() => go("log")}>
+              <MoreLink className="more-under" onClick={() => go("log")} keys="5">
                 The whole log ({events.length})
               </MoreLink>
             )}
@@ -1101,6 +1104,9 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
         {a.icon && <Icon name={a.icon as IconName} />} {a.label} {lead && a.key && <Keys k={a.key} />}
       </>
     );
+    // Its key is the page's (v, for the lead's review), which the lead's
+    // shows in it: pressed with the pointer, it hints at it.
+    const keys = lead ? a.key || undefined : undefined;
     if (a.do === "launch") return <LaunchCrew key={i} picks={d.crewPicks} primary={accent && lead} again={!accent} busy={busy} launch={(p) => send("launch", { harness: p?.harness, model: p?.model })} />;
     if (a.do === "url") {
       // GitHub hasn't said where it is yet: its words, with nothing to open.
@@ -1112,7 +1118,7 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
         );
       }
       return (
-        <a key={i} href={a.url} target="_blank" rel="noopener" className={buttonClass({ variant: accent && lead ? "primary" : undefined })}>
+        <a key={i} href={a.url} target="_blank" rel="noopener" className={buttonClass({ variant: accent && lead ? "primary" : undefined })} onClick={hintOnClick(keys)}>
           {inside} <Icon name="external" size={12} />
         </a>
       );
@@ -1120,7 +1126,7 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
     const href = actHref(d, c, a);
     if (href) {
       return (
-        <Link key={i} to={href} className={buttonClass({ variant })}>
+        <Link key={i} to={href} className={buttonClass({ variant })} onClick={hintOnClick(keys)}>
           {inside}
         </Link>
       );
@@ -1133,6 +1139,7 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
           key={i}
           variant={variant}
           disabled={busy}
+          keys={keys}
           onClick={() => {
             setWords("");
             setOpened(a);
@@ -1143,7 +1150,7 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
       );
     }
     return (
-      <Button key={i} variant={variant} type={accent && a.field ? "submit" : "button"} disabled={busy || (accent && !!a.field && !a.text && a.do === "answer" && !words.trim() && !opened)} onClick={accent && a.field ? undefined : () => run(a)}>
+      <Button key={i} variant={variant} type={accent && a.field ? "submit" : "button"} disabled={busy || (accent && !!a.field && !a.text && a.do === "answer" && !words.trim() && !opened)} keys={keys} onClick={accent && a.field ? undefined : () => run(a)}>
         {inside}
       </Button>
     );
@@ -1345,7 +1352,7 @@ function Log({ d, selected, openArtifact, go }: Parts) {
           {elsewhere.length < d.crew.length && (
             <>
               Crew are on{" "}
-              <MoreLink onClick={() => go("work")}>
+              <MoreLink onClick={() => go("work")} keys="3">
                 Work
               </MoreLink>
               , with the capsule each worked in.{" "}

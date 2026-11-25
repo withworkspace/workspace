@@ -23,11 +23,12 @@ export function keyHint(keys: string) {
 }
 
 // titleWithKeys is what a part's tooltip says: what it does, then its
-// key, "Review its changes (v)". Either alone, where that's all there is.
+// key, "Review its changes (v)". With no title there's none: a key by
+// itself isn't a tooltip (what has no title draws its key itself, or is
+// plain enough without).
 export function titleWithKeys(title: string | undefined, keys: string | undefined): string | undefined {
-  if (!keys) return title;
-  const said = keysSaid(keys).join(" ");
-  return title ? `${title} (${said})` : said;
+  if (!keys || !title) return title;
+  return `${title} (${keysSaid(keys).join(" ")})`;
 }
 
 // pointed is whether a press was the pointer's: a mouse or a pen, which

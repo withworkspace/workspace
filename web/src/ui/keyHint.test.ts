@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { setPref } from "../prefs";
-import { keyHint, pointed, titleWithKeys } from "./keyHint";
+import { clicked, hintOnClick, keyHint, keyProps, pointed, titleWithKeys } from "./keyHint";
 import { keysSaid } from "./Keys";
 import { getToasts, setToasts } from "./toast";
 
@@ -38,6 +38,36 @@ describe("a key hint", () => {
   });
 });
 
+describe("a click on what isn't one of the library's parts", () => {
+  const mouse = { detail: 1, nativeEvent: { pointerType: "mouse" } };
+
+  it("is the pointer's unless it was the keys' own, a screen reader's or a finger's", () => {
+    expect(clicked(mouse)).toBe(true);
+    expect(clicked({ detail: 1 })).toBe(true); // a browser that doesn't say which pointer
+    expect(clicked({ detail: 0, nativeEvent: { pointerType: "" } })).toBe(false); // ⏎ on a link
+    expect(clicked({ detail: 1, nativeEvent: { pointerType: "touch" } })).toBe(false);
+  });
+
+  it("hints at the key, then does what the click does", () => {
+    setPref("keyHints", true);
+    let did = 0;
+    const props = keyProps("o", "Open it in Files", () => did++);
+    expect(props.title).toBe("Open it in Files (o)");
+    props.onClick?.(mouse);
+    expect(did).toBe(1);
+    expect(getToasts().map((t) => t.keys)).toEqual(["o"]);
+    props.onClick?.({ detail: 0 });
+    expect(did).toBe(2);
+    expect(getToasts()).toHaveLength(1);
+  });
+
+  it("is the title and the handler as given, with no key", () => {
+    const go = () => undefined;
+    expect(keyProps(undefined, "Open it", go)).toEqual({ title: "Open it", onClick: go });
+    expect(hintOnClick(undefined)).toBeUndefined();
+  });
+});
+
 describe("a title with its key", () => {
   it("says the key after what it does, as it's read", () => {
     expect(titleWithKeys("Review its changes", "v")).toBe("Review its changes (v)");
@@ -45,9 +75,9 @@ describe("a title with its key", () => {
     expect(titleWithKeys("Open it", "Enter")).toBe("Open it (⏎)");
   });
 
-  it("is either alone, where that's all there is", () => {
+  it("is the title alone with no key, and nothing with no title: a key by itself isn't a tooltip", () => {
     expect(titleWithKeys("Review its changes", undefined)).toBe("Review its changes");
-    expect(titleWithKeys(undefined, "v")).toBe("v");
+    expect(titleWithKeys(undefined, "v")).toBeUndefined();
     expect(titleWithKeys(undefined, undefined)).toBeUndefined();
   });
 });

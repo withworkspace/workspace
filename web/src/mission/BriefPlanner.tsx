@@ -242,7 +242,8 @@ export function PassageTool({ within, ask }: { within: RefObject<HTMLElement | n
           ask(at.passage);
           getSelection()?.removeAllRanges();
         }}
-        title="Ask the planner about this passage (a)"
+        title="Ask the planner about this passage"
+        keys="a"
       >
         <Icon name="sparkle" size={12} /> Ask about this <Keys k="a" />
       </Button>

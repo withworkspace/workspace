@@ -42,6 +42,7 @@ export function MissionVerifyYours({ crew, left, looked, busy, onLook, note, onN
           disabled={busy}
           onChange={onLook}
           title={left ? "Say it's fine as it is: it leaves what's left for you" : "Mark it as looked at, to keep your place: approving doesn't need it"}
+          keys="y"
         >
           <Icon name="check" size={14} /> {left ? "Approve check" : "Looked at"} <Keys k="y" />
         </ToggleButton>
@@ -52,6 +53,7 @@ export function MissionVerifyYours({ crew, left, looked, busy, onLook, note, onN
             pressed={note !== undefined}
             onChange={(on) => onNote(on ? "" : undefined)}
             title="Say what's not right of it: it goes back to its crew when you send the bundle back"
+            keys="n"
           >
             <Icon name="x" size={14} /> Not right <Keys k="n" />
           </ToggleButton>
