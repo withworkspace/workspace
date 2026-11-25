@@ -1,0 +1,28 @@
+/* What a crew left, under its line (MissionWorkLeft.tsx). */
+
+.left {
+  all: unset;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 3px 0 0 30px;
+  font-size: var(--text-sm);
+  color: var(--dim);
+  border-radius: var(--radius-sm);
+}
+
+button.left {
+  cursor: pointer;
+}
+
+button.left:hover {
+  color: var(--fg);
+}
+
+.left :global(.icon) {
+  flex: none;
+  align-self: center;
+  color: var(--faint);
+}

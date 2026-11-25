@@ -58,7 +58,9 @@ import { EndButton, EndDialog, EndedCapsules, ended, HandedOn, ZChecks } from ".
 import { PlanList } from "./PlanList";
 import { waitHow } from "./planRows";
 import { Verify } from "./Verify";
-import { useRepoLabel, Work, workWords } from "./Work";
+import { useRepoLabel } from "./Work/useRepoLabel";
+import { Work } from "./Work/Work";
+import { workWords } from "./Work/words";
 import { crewElsewhere, work } from "./workRows";
 import { checkRows, rowKey, shownBundle, toApprove, waiting as bundleWaiting } from "./verifyRows";
 import { type Reload, useHere, useLoaded } from "../load";

@@ -1,0 +1,29 @@
+/* A run's mark at the head of its line (RunMark.tsx). */
+
+.mark {
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+  color: var(--dim);
+}
+
+.up {
+  color: var(--green);
+}
+
+.ended {
+  padding-top: 4px;
+}
+
+/* A task that's ended: what it came to, in the result's colour. */
+.task {
+  padding-top: 3px;
+}
+
+.task.passed {
+  color: var(--green);
+}
+
+.task.failed {
+  color: var(--red);
+}

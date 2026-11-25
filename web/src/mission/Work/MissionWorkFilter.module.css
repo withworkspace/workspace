@@ -1,0 +1,8 @@
+/* The field changed files are filtered by (MissionWorkFilter.tsx). */
+
+.filter {
+  width: 130px;
+  min-height: 22px;
+  font: var(--text-xs) var(--font);
+  font-weight: 400;
+}

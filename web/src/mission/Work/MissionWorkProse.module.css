@@ -1,0 +1,6 @@
+/* An output's text, to read (MissionWorkProse.tsx). */
+
+.prose {
+  max-width: 84ch;
+  padding-top: 12px;
+}

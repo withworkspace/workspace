@@ -1,0 +1,6 @@
+/* A quiet line under a run's name (RunEnds.tsx). */
+
+.ends {
+  color: var(--dim);
+  font-size: var(--text-xs);
+}

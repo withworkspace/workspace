@@ -1,0 +1,27 @@
+/* The head of a part of what's open (MissionWorkHeading.tsx). */
+
+h3.heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  margin: 8px -16px 6px;
+  padding: 6px 16px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--dim);
+  background: var(--raised);
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* It stays as its column scrolls, where it does. */
+@media (min-width: 1321px) {
+  :global(.mission-page.fills) h3.heading {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+}

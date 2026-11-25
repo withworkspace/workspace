@@ -1,0 +1,21 @@
+/* A crew who's been in the capsule (MissionWorkCrewLine.tsx). */
+
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.line .link {
+  flex: none;
+  align-self: center;
+}
+
+.say {
+  flex: 1;
+  min-width: 0;
+}
+
+.say strong {
+  font-weight: 500;
+}

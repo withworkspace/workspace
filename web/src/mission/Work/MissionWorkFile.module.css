@@ -1,0 +1,60 @@
+/* One of a capsule's changed files (MissionWorkFile.tsx). */
+
+.file {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 -6px;
+  padding: 2px 6px 2px 20px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+}
+
+a.file:hover {
+  background: var(--hover);
+}
+
+.st {
+  font: 600 10px / 16px var(--mono);
+  text-align: center;
+  color: var(--dim);
+}
+
+.st.added {
+  color: var(--done);
+}
+
+.st.deleted {
+  color: var(--danger);
+}
+
+/* Cut short from the left: a file keeps its name. */
+.path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.path bdi {
+  font: 11.5px var(--mono);
+}
+
+.gone .name {
+  text-decoration: line-through;
+  text-decoration-color: var(--faint);
+}
+
+.skim {
+  opacity: 0.55;
+}
+
+.loose {
+  align-self: center;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--attention-fill);
+}

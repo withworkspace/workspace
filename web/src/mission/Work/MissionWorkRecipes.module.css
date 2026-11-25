@@ -1,0 +1,8 @@
+/* A capsule's recipes, each to run (MissionWorkRecipes.tsx). */
+
+.recipes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}

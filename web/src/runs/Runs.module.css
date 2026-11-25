@@ -29,9 +29,8 @@
   background: var(--hover);
 }
 
-/* work-run-name is the Work tab's, which a run's name is drawn with here
-   too. */
-.ended :global(.work-run-name) {
+/* A run that's ended has its name (a RunName) quieter. */
+.ended .name {
   color: var(--dim);
 }
 

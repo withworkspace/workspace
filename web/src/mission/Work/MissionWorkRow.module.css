@@ -1,0 +1,81 @@
+/* A row of the Work tab's list (MissionWorkRow.tsx): what it is, how
+   much, who's there now, where it stands. */
+
+.row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--fast) var(--ease);
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+.row.selected {
+  background: var(--selected);
+}
+
+.row > :global(.icon) {
+  color: var(--dim);
+}
+
+.row.output {
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.quiet .name {
+  color: var(--dim);
+}
+
+.plain .name {
+  font-weight: 400;
+}
+
+.slug {
+  flex: 0 1000 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dim);
+}
+
+.stat {
+  flex: none;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.when {
+  font-size: var(--text-xs);
+  color: var(--dim);
+  white-space: nowrap;
+}
