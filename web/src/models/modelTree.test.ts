@@ -32,6 +32,17 @@ describe("treeOf", () => {
     ]);
   });
 
+  it("puts Claude Code's alias and its efforts in one row", () => {
+    const at = (id: string, effort?: string) => ({ id: effort ? `${id}[${effort}]` : id, name: effort ? `Haiku, ${effort}` : "Haiku", label: "Haiku", effort });
+    const t = treeOf([at("haiku"), at("haiku", "low"), at("haiku", "high")]);
+    expect(t).toHaveLength(1);
+    const haiku = rowOf(t, "haiku[high]")!;
+    expect(t[0].rows).toEqual([haiku]);
+    expect(haiku.efforts).toEqual(["", "low", "high"]);
+    expect(pick(haiku, { ...none, effort: "high" }).id).toBe("haiku[high]");
+    expect(shortOf(haiku, haiku.models[2])).toBe("Haiku · high");
+  });
+
   it("has ACP's models without effort or fast", () => {
     const t = treeOf(acp);
     const o55 = rowOf(t, "claude-opus-5-5")!;

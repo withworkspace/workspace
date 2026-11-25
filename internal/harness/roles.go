@@ -177,8 +177,8 @@ func (r Roles) ForConversation() (Pick, Converser, error) {
 
 // ForTeam picks who writes the Team page's gists: [team] harness, else
 // the one conversations run on. The model is [team] model, else the
-// harness's small one (what it runs the orchestrator on): a gist is a
-// sentence or two from a diff, many times over.
+// harness's small one (smallModel): a gist is a sentence or two from a
+// diff, many times over.
 func (r Roles) ForTeam() (Pick, Converser, error) {
 	name := r.Team.Harness
 	if name == "" {
@@ -188,7 +188,7 @@ func (r Roles) ForTeam() (Pick, Converser, error) {
 		}
 		name = p.Harness
 	}
-	return smallPick(name, r.Team.Model)
+	return pickOn(name, r.Team.Model, smallModel)
 }
 
 // ForBriefingConversation picks who briefs a mission in a conversation:
@@ -212,7 +212,7 @@ func (r Roles) ForBriefingConversation() (Pick, Converser, error) {
 // planner's (ForBriefingConversation). The model is [judge] model, else
 // the harness's small one (smallModel): it reads a step's work against
 // its checks, which ws's evals found the small models judge as well as
-// the large.
+// the large, and no better for more effort.
 func (r Roles) ForJudge() (Pick, Converser, error) {
 	name := r.Judge.Harness
 	if name == "" {
@@ -222,14 +222,15 @@ func (r Roles) ForJudge() (Pick, Converser, error) {
 		}
 		name = p.Harness
 	}
-	return smallPick(name, r.Judge.Model)
+	return pickOn(name, r.Judge.Model, smallModel)
 }
 
 // ForPRWriter picks who writes a pull request's title and description:
 // headless, read-only, with fresh context. [pr_writer] harness, else
 // conversations' (ForConversation). The model is [pr_writer] model, else
-// the harness's small one (smallModel): ws's evals found the small models
-// write them as well as the large.
+// the one the harness runs the orchestrator on (orchestratorModel): ws's
+// evals found the small models write them as well as the large, and
+// Claude Code's Haiku better at the high effort it orchestrates at.
 func (r Roles) ForPRWriter() (Pick, Converser, error) {
 	name := r.PRWriter.Harness
 	if name == "" {
@@ -239,25 +240,45 @@ func (r Roles) ForPRWriter() (Pick, Converser, error) {
 		}
 		name = p.Harness
 	}
-	return smallPick(name, r.PRWriter.Model)
+	return pickOn(name, r.PRWriter.Model, orchestratorModel)
 }
 
-// smallPick is the named harness, on model, else on its small model: what
-// it runs the orchestrator on, or its conversation default if it runs
-// none.
-func smallPick(name, model string) (Pick, Converser, error) {
+// pickOn is the named harness, on model, else on the one dflt gives it.
+func pickOn(name, model string, dflt func(Converser) string) (Pick, Converser, error) {
 	c, err := converserNamed(name)
 	if err != nil {
 		return Pick{}, nil, err
 	}
 	p := Pick{Harness: c.Name(), Model: model}
-	if o, ok := c.(Orchestrator); ok && p.Model == "" {
-		p.Model = o.OrchestratorModel()
-	}
 	if p.Model == "" {
-		p.Model = c.ConverseModel()
+		p.Model = dflt(c)
 	}
 	return p, c, nil
+}
+
+// SmallModeler is a harness whose small model, for roles that don't think
+// at length, isn't the one it orchestrates on: Claude Code orchestrates at
+// a higher effort.
+type SmallModeler interface {
+	SmallModel() string
+}
+
+// smallModel is a harness's small model: its own say (SmallModeler), else
+// what it orchestrates on.
+func smallModel(c Converser) string {
+	if s, ok := c.(SmallModeler); ok && s.SmallModel() != "" {
+		return s.SmallModel()
+	}
+	return orchestratorModel(c)
+}
+
+// orchestratorModel is what a harness runs the orchestrator on, or its
+// conversation default if it runs none.
+func orchestratorModel(c Converser) string {
+	if o, ok := c.(Orchestrator); ok && o.OrchestratorModel() != "" {
+		return o.OrchestratorModel()
+	}
+	return c.ConverseModel()
 }
 
 func converserNamed(name string) (Converser, error) {
