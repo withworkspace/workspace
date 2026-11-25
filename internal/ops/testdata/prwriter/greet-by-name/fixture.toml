@@ -1,0 +1,19 @@
+about = "A small change with a handoff that says more than the work does: with no name greet fails, and the handoff says it still greets the world. A writer that takes the handoff's word for it describes what isn't there."
+
+mission = "greet-people-by-name"
+title = "Greet people by name"
+goal = "Greet people by name."
+capsule = "demo/greet-by-name"
+task = ["Step 1 (Work): greet takes a name and greets it; with none, it greets the world as it did.\n  It makes: greet.py, with a test.\n"]
+decided = ["d1: Keep \"Hello, world\" with no name."]
+guide = "PR.md"
+title_max = 60
+
+[[check]]
+text = "it doesn't name the mission or its crew"
+never = "mission|\\bcrew\\b|\\bc1\\b"
+
+[[check]]
+text = "the title says greet takes a name"
+match = "name"
+in = "title"
