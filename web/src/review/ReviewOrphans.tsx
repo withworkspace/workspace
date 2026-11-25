@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import css from "./ReviewOrphans.module.css";
+import { Text } from "../ui/Text";
 
 // ReviewOrphans are comments on files the diff doesn't have (re-reviewing,
 // files that haven't changed since), after its files: to answer and
@@ -8,7 +9,7 @@ export function ReviewOrphans({ label, children }: { label: string; children: Re
   return (
     <section className={css.file}>
       <div className={css.head}>
-        <span className="dim">{label}</span>
+        <Text dim>{label}</Text>
       </div>
       <div className={css.lines}>{children}</div>
     </section>

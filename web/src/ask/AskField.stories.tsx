@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { AskField } from "./AskField";
+import { Text } from "../ui/Text";
 
 // The ask field: the one place you ask an agent about what you're looking
 // at. Go to it and what's offered stands over it (↑ and ↓ go through
@@ -18,9 +19,9 @@ function Field({ held = false, busy = false, slow = false }: { held?: boolean; b
   const [asked, setAsked] = useState<string>();
   return (
     <div style={ground}>
-      <p className="dim" style={{ margin: "0 0 auto", paddingTop: 16 }}>
+      <Text as="p" dim style={{ margin: "0 0 auto", paddingTop: 16 }}>
         {asked ? `Asked: ${asked}` : "Nothing asked yet."}
-      </p>
+      </Text>
       <AskField
         placeholder={holding ? "Ask about this passage…" : "Ask about Usage-based billing…"}
         busy={busy}

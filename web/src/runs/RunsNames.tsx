@@ -4,6 +4,7 @@ import { Callout } from "../ui/Callout";
 import { Icon } from "../ui/Icon";
 import { bare } from "./runRows";
 import { RunsPageNames } from "./RunsPageNames";
+import { Text, textClass } from "../ui/Text";
 
 // RunsNames is where the workspace's names stand, or how to have them.
 export function RunsNames({ names: n }: { names: Names }) {
@@ -22,11 +23,11 @@ export function RunsNames({ names: n }: { names: Names }) {
   else
     state = (
       <>
-        <a href={n.web} target="_blank" rel="noopener noreferrer" className="mono">
+        <a href={n.web} target="_blank" rel="noopener noreferrer" className={textClass("mono")}>
           {bare(n.web ?? "")}
           <Icon name="arrow-up-right" size={11} />
         </a>
-        <span className="dim"> and each run below it, as {example.replace(`.${n.want}.`, `.${n.name}.`)}</span>
+        <Text dim> and each run below it, as {example.replace(`.${n.want}.`, `.${n.name}.`)}</Text>
       </>
     );
   return (
@@ -37,12 +38,12 @@ export function RunsNames({ names: n }: { names: Names }) {
         n.port ? (
           <>
             On :{n.port}
-            {n.fallback && <span className="dim">, as 80 is another program's or kept by the system</span>}
-            {n.heldBy ? <span className="dim">, held by the daemon at pid {n.heldBy}</span> : null}
-            <span className="dim">. One serves every workspace on this machine.</span>
+            {n.fallback && <Text dim>, as 80 is another program's or kept by the system</Text>}
+            {n.heldBy ? <Text dim>, held by the daemon at pid {n.heldBy}</Text> : null}
+            <Text dim>. One serves every workspace on this machine.</Text>
           </>
         ) : (
-          <span className="dim">None running</span>
+          <Text dim>None running</Text>
         )
       }
     />

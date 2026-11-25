@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Inline } from "../ui/Inline";
 import { Row, RowTitle, rowLinkClass } from "../ui/Rows";
 import { Status, type StatusInfo } from "../ui/Status";
+import { Text } from "../ui/Text";
 
 type OrchestratorMissionRowProps = {
   to: string;
@@ -21,9 +22,9 @@ export function OrchestratorMissionRow({ to, title, status, headline, onContextM
       <Link to={to} className={rowLinkClass()} onContextMenu={onContextMenu}>
         <Status s={status} iconOnly />
         <RowTitle>{title}</RowTitle>
-        <span className="dim">
+        <Text dim>
           <Inline text={headline} lines={1} />
-        </span>
+        </Text>
       </Link>
     </Row>
   );

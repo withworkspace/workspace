@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { HoverCardHead, HoverCardLine, hoverCardLinkClass, HoverCardTitle } from "../ui/HoverCard";
 import { Icon } from "../ui/Icon";
+import { Text, textClass } from "../ui/Text";
 
 type MissionDocCardProps = {
   // An artifact (made to look at), not a document to read.
@@ -25,14 +26,14 @@ export function MissionDocCard({ artifact, title, kind, versions, state, desc, t
   return (
     <>
       <HoverCardHead>
-        <Icon name={artifact ? "artifact" : "file"} size={13} className="dim" />
+        <Icon name={artifact ? "artifact" : "file"} size={13} className={textClass("dim")} />
         <HoverCardTitle>{title}</HoverCardTitle>
       </HoverCardHead>
       <HoverCardLine>
-        <span className="dim">{kind}</span>
-        {!!versions && <span className="dim">, {versions === 1 ? "1 version" : `${versions} versions`}</span>} {state}
+        <Text dim>{kind}</Text>
+        {!!versions && <Text dim>, {versions === 1 ? "1 version" : `${versions} versions`}</Text>} {state}
       </HoverCardLine>
-      {desc && <span className="dim">{desc}</span>}
+      {desc && <Text dim>{desc}</Text>}
       {to && (
         <Link to={to} className={hoverCardLinkClass()}>
           {artifact ? "Open the artifact" : "Read it"} <Icon name="arrow-right" size={11} />

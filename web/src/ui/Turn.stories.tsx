@@ -3,6 +3,7 @@ import { Doing } from "./Doing";
 import { Turn, TurnAvatar, TurnHead, TurnSaid } from "./Turn";
 import { markdownClass } from "../markdown/LazyMarkdown";
 import { cx } from "./cx";
+import { textClass } from "./Text";
 
 // Turns: an exchange as a conversation's page draws it (who said each,
 // yours a bubble to the right under your name, the agent's its words to
@@ -36,7 +37,7 @@ export const Page: StoryObj = {
         <TurnSaid>The agent stopped before it answered: its run was ended.</TurnSaid>
       </Turn>
       <Turn by="agent" running head={<TurnHead avatar={<TurnAvatar by="agent" />} who="Agent" />}>
-        <TurnSaid className="dim">
+        <TurnSaid className={textClass("dim")}>
           <div className={cx("markdown", markdownClass)}>
             <p>Looking at where the dashboard divides.</p>
           </div>

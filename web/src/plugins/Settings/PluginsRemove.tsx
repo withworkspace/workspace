@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Button } from "../../ui/Button";
 import { Checkbox } from "../../ui/Checkbox";
-import { cx } from "../../ui/cx";
 import { Dialog, DialogActions, DialogText } from "../../ui/Dialog";
 import css from "./PluginsRemove.module.css";
+import { Text } from "../../ui/Text";
 
 type PluginsRemoveProps = {
   name: string;
@@ -27,7 +27,7 @@ export function PluginsRemove({ name, names, onClose, onRemove }: PluginsRemoveP
       <Checkbox className={css.data} checked={data} onChange={setData}>
         <span>
           Remove what it kept for itself too: its data, and its secrets
-          <span className={cx("dim", css.alone)}> Left alone, adding it again picks up where it was.</span>
+          <Text dim className={css.alone}> Left alone, adding it again picks up where it was.</Text>
         </span>
       </Checkbox>
       <DialogActions>

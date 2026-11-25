@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Button } from "./Button";
 import { Empty } from "./Empty";
 import { MoreLink } from "./MoreLink";
+import { Text } from "./Text";
 
 // Empty places: a title alone, with a sentence, with something to press;
 // then the big one, plain and done, with words after what's pressed.
@@ -35,7 +36,7 @@ export const Big: StoryObj = {
         action={<Button variant="primary">Approve b3</Button>}
         foot={
           <>
-            <div className="dim">It lands once it's approved.</div>
+            <Text as="div" dim>It lands once it's approved.</Text>
             <MoreLink onClick={() => {}}>Look again</MoreLink>
           </>
         }

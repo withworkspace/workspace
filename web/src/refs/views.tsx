@@ -2,7 +2,7 @@ import type { Repo, Workspace } from "../api";
 import { type IconName, icons } from "../ui/Icon";
 import { stripGlyph } from "../ui/statusOf";
 import type { Named, PageRef } from "./refs";
-import { clip } from "../ui/text";
+import { clip } from "../ui/strings";
 
 // How each kind of ref is drawn, said once, here: the tag in what's read
 // (RefTag: a conversation, a thread, a log line) and the mark in a page's

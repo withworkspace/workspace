@@ -12,6 +12,7 @@ import { TalkProposal } from "./TalkProposal";
 import { TalkProposalChoice } from "./TalkProposalChoice";
 import { TalkProposalEdit } from "./TalkProposalEdit";
 import { proposalIcons } from "./words";
+import { Text } from "../ui/Text";
 
 // WsProposal is a card of ws's own (ProposalCard says which there are):
 // what's proposed, edited first or not (what the fields hold until it's
@@ -135,11 +136,11 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
         return (
           <TalkProposalEdit>
             <MarkdownEditor initial={p.text ?? ""} label="The document" compact autoFocus onChange={setDoc} onCancel={() => setEditing(false)} />
-            <div className="dim">
+            <Text as="div" dim>
               {p.to
                 ? "The whole document, as it's saved: it stays where it is, whatever its first heading says."
                 : "Its first heading is its title: where it goes, and its commit's message, are made from it when it's added."}
-            </div>
+            </Text>
           </TalkProposalEdit>
         );
       case "artifact":
@@ -153,7 +154,7 @@ export function WsProposal({ p, revisedFrom, kinds, artifacts, frameOf, inReview
               placeholder={p.to ? "What changed, and why" : "What it tries out"}
               aria-label="Its note"
             />
-            <div className="dim">The HTML is the agent's: ask it for another version to change that.</div>
+            <Text as="div" dim>The HTML is the agent's: ask it for another version to change that.</Text>
           </TalkProposalEdit>
         );
     }

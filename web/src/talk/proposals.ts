@@ -1,5 +1,5 @@
 import { docAddress, type TalkProposal, type TalkTurn } from "../api";
-import { clip } from "../ui/text";
+import { clip } from "../ui/strings";
 
 // What a proposal under a conversation's reply says of itself, worked out
 // from what the agent proposed; and what a card you settled says of

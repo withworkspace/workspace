@@ -3,7 +3,7 @@ import { getTalkModel, setTalkModel } from "../api";
 import { useLoaded } from "../load";
 import { modelsOf } from "../models/models";
 import { ModelSwitch } from "../models/ModelSwitch";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 
 // TalkModelSwitch is the model a conversation's turns run on, switched for

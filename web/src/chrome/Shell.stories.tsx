@@ -20,6 +20,7 @@ import { Shell } from "./Shell";
 import { Sidebar } from "./Sidebar";
 import { useChromeStore } from "./store";
 import { WorkspaceName } from "./WorkspaceName";
+import { Text } from "../ui/Text";
 
 // The whole window, with Beside: a peek at a second thing next to the
 // page. A document while you're in a conversation; a conversation while
@@ -48,9 +49,9 @@ function Page({ thing }: { thing: SampleThing }) {
   return (
     <div style={page}>
       <h1 style={{ fontSize: "var(--text-xl, 22px)", margin: "0 0 4px" }}>{thing.name}</h1>
-      <p className="dim" style={{ margin: "0 0 20px" }}>
+      <Text as="p" dim style={{ margin: "0 0 20px" }}>
         {thing.sub}
-      </p>
+      </Text>
       {thing.body}
     </div>
   );

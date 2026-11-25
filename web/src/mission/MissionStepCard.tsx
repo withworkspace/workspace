@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
 import css from "./MissionStepCard.module.css";
+import { Text } from "../ui/Text";
 
 type MissionStepCardProps = {
   // What kind of step it is, and which it is of how many ("step 3 of 7").
@@ -51,7 +52,7 @@ export function MissionStepCard({ kind, which, state, stands, title, text, rows 
       )}
       {checks && (
         <div className={css.checks}>
-          <div className="dim">{checksSay}</div>
+          <Text as="div" dim>{checksSay}</Text>
           {checks}
         </div>
       )}

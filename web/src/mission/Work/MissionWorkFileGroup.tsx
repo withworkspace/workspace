@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Icon } from "../../ui/Icon";
 import css from "./MissionWorkFileGroup.module.css";
 import { MissionWorkLines } from "./MissionWorkLines";
+import { Text } from "../../ui/Text";
 
 type MissionWorkFileGroupProps = {
   // The folder, as it's said: demo/, or "top level".
@@ -23,7 +24,7 @@ export function MissionWorkFileGroup({ dir, n, additions, deletions, open, onTog
     <div>
       <button className={css.head} aria-expanded={open} onClick={onToggle}>
         <Icon name="chevron-right" size={11} />
-        <span className="mono">{dir}</span>
+        <Text mono>{dir}</Text>
         <span className={css.n}>{n}</span>
         <MissionWorkLines additions={additions} deletions={deletions} tally />
       </button>

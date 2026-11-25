@@ -3,8 +3,8 @@ import { Keys } from "../ui/Keys";
 import { hintOnClick } from "../ui/keyHint";
 import { segmentClass, segmentedClass } from "../ui/Segmented";
 import { Time } from "../ui/Time";
-import { cx } from "../ui/cx";
 import css from "./ArtifactVersions.module.css";
+import { Text } from "../ui/Text";
 
 // A version, as the strip says it: who added it ("by you"), when, its
 // note, and, for the one that's in the repo the artifact lives in, where.
@@ -42,11 +42,11 @@ export function ArtifactVersions({ versions, current, onPick, keys }: ArtifactVe
         >
           <HoverCardHead>
             <HoverCardTitle>v{x.n}</HoverCardTitle>
-            <span className="dim">
+            <Text dim>
               {x.by}, <Time iso={x.at} as="relative" />
-            </span>
+            </Text>
           </HoverCardHead>
-          <HoverCardLine>{x.note || <span className="dim">No note.</span>}</HoverCardLine>
+          <HoverCardLine>{x.note || <Text dim>No note.</Text>}</HoverCardLine>
           {x.home && (
             <HoverCardLine dim>
               It's the version in {x.home.repo}: {x.home.where}
@@ -54,9 +54,9 @@ export function ArtifactVersions({ versions, current, onPick, keys }: ArtifactVe
           )}
         </HoverCard>
       ))}
-      <span className={cx(css.keys, "dim")}>
+      <Text dim className={css.keys}>
         <Keys k={keys[0]} /> <Keys k={keys[1]} />
-      </span>
+      </Text>
     </div>
   );
 }

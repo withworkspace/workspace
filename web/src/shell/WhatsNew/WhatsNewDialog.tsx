@@ -4,6 +4,7 @@ import { Dialog } from "../../ui/Dialog";
 import { Logotype } from "../../ui/Logotype";
 import css from "./WhatsNewDialog.module.css";
 import { WhatsNewVersion } from "./WhatsNewVersion";
+import { Text, textClass } from "../../ui/Text";
 
 type WhatsNewDialogProps = {
   title: string;
@@ -30,21 +31,21 @@ export function WhatsNewDialog({ title, version, lede, releases, onClose, childr
           <WhatsNewVersion>{version}</WhatsNewVersion>
         </div>
         <h2>{title}</h2>
-        <p className="dim">{lede}</p>
+        <Text as="p" dim>{lede}</Text>
       </header>
       <div className={css.body}>{children}</div>
       <footer className={css.foot}>
-        <span className="dim">
+        <Text dim>
           {releases && (
             <>
               There's more from further back than this ws keeps: it's on{" "}
-              <a className="link" href={releases} target="_blank" rel="noopener noreferrer">
+              <a className={textClass("link")} href={releases} target="_blank" rel="noopener noreferrer">
                 the releases page
               </a>
               .
             </>
           )}
-        </span>
+        </Text>
         <Button variant="primary" onClick={onClose} autoFocus>
           Got it
         </Button>

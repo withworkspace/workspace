@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "./Button";
 import { FileIcon } from "./FileIcon";
 import { Finder, FinderNone, FinderRow } from "./Finder";
+import { Text } from "./Text";
 
 // A finder: press the button, then type. The cursor starts on the first
 // row; the arrows (or Ctrl+N and Ctrl+P) and the pointer move it, and ⏎
@@ -29,7 +30,7 @@ function Files({ slow }: { slow?: boolean }) {
   return (
     <>
       <Button onClick={() => setOpen(true)}>{slow ? "Search the files" : "Find a file"}</Button>
-      <span className="dim">{picked ? `Picked ${picked}.` : "Nothing picked yet."}</span>
+      <Text dim>{picked ? `Picked ${picked}.` : "Nothing picked yet."}</Text>
       {open && (
         <Finder
           aria-label={slow ? "Search the files" : "Find a file"}
@@ -43,12 +44,12 @@ function Files({ slow }: { slow?: boolean }) {
             setOpen(false);
           }}
           onClose={() => setOpen(false)}
-          after={slow && <p className="dim" style={{ margin: 0, padding: "7px 14px", borderTop: "1px solid var(--line)" }}>{found.length} files</p>}
+          after={slow && <Text as="p" dim style={{ margin: 0, padding: "7px 14px", borderTop: "1px solid var(--line)" }}>{found.length} files</Text>}
         >
           {found.map((f, i) => (
             <FinderRow key={f} index={i}>
               <FileIcon path={f} />
-              <span className="mono">{f}</span>
+              <Text mono>{f}</Text>
             </FinderRow>
           ))}
           {!found.length && <FinderNone>No file matches “{q}”.</FinderNone>}

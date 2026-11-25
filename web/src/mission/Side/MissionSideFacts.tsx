@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { cx } from "../../ui/cx";
 import css from "./MissionSideFacts.module.css";
+import { textClass } from "../../ui/Text";
+import { srOnlyClass } from "../../ui/SrOnly";
 
 // MissionSideFacts is the top of a mission's details: what's known of it,
 // each a MissionSideFact, its name beside it.
@@ -27,8 +29,8 @@ export function MissionSideFact({
 }) {
   return (
     <>
-      <dt className={hideLabel ? "sr-only" : undefined}>{label}</dt>
-      <dd className={cx(kind && kinds[kind], mono && "mono") || undefined}>{children}</dd>
+      <dt className={hideLabel ? srOnlyClass : undefined}>{label}</dt>
+      <dd className={cx(kind && kinds[kind], mono && textClass("mono")) || undefined}>{children}</dd>
     </>
   );
 }

@@ -3,6 +3,7 @@ import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
 import css from "./ArtifactCompareFile.module.css";
 import { diffStatusWords } from "./words";
+import { Text } from "../ui/Text";
 
 type ArtifactCompareFileProps = {
   // Its path, said where there's more than the page to tell apart.
@@ -34,14 +35,14 @@ export function ArtifactCompareFile({ path, status, binary, deletions, additions
           </span>
         )}
         {binary ? (
-          <span className="dim">It isn't text: it {status === "modified" ? "differs" : `was ${diffStatusWords[status] ?? status}`}.</span>
+          <Text dim>It isn't text: it {status === "modified" ? "differs" : `was ${diffStatusWords[status] ?? status}`}.</Text>
         ) : (
           <>
             <span>
-              <span className="minus">−{deletions}</span> in {a}
+              <Text minus>−{deletions}</Text> in {a}
             </span>
             <span>
-              <span className="plus">+{additions}</span> in {b}
+              <Text plus>+{additions}</Text> in {b}
             </span>
           </>
         )}

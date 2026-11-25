@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Row, RowLine, RowMain, RowTitle, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
 import css from "./SpaceDocRow.module.css";
+import { Text } from "../ui/Text";
 
 type SpaceDocRowProps = {
   id: string;
@@ -30,7 +30,7 @@ export function SpaceDocRow({ id, to, title, selected, picked, onHover, onClick,
     <Row selected={selected} picked={picked} id={id} role="option" aria-selected={selected} onMouseMove={onHover}>
       <TLink to={to} className={rowLinkClass(css.link)} onContextMenu={onContextMenu} onClick={onClick} onDoubleClick={onDoubleClick}>
         {file !== undefined && <Icon name="file" size={16} className={rowStatusClass()} />}
-        {made !== undefined && <span className={cx(css.made, "mono dim")}>{made}</span>}
+        {made !== undefined && <Text mono dim className={css.made}>{made}</Text>}
         <RowMain>
           <RowLine>
             <RowTitle>{title}</RowTitle>
@@ -39,11 +39,11 @@ export function SpaceDocRow({ id, to, title, selected, picked, onHover, onClick,
           {hit}
         </RowMain>
         {changed && (
-          <span className={cx(css.changed, "dim")} title={`Last changed by ${changed.by ?? "someone"}`}>
+          <Text dim className={css.changed} title={`Last changed by ${changed.by ?? "someone"}`}>
             {changed.by?.split(" ")[0]} · <Time iso={changed.at} as="age" />
-          </span>
+          </Text>
         )}
-        {file !== undefined && <span className={cx("dim mono", css.file)}>{file}</span>}
+        {file !== undefined && <Text dim mono className={css.file}>{file}</Text>}
       </TLink>
     </Row>
   );

@@ -5,6 +5,7 @@ import { cx } from "../ui/cx";
 import { Icon, type IconName } from "../ui/Icon";
 import type { Tone } from "../ui/tone";
 import css from "./TeamKnowLine.module.css";
+import { textClass } from "../ui/Text";
 
 type TeamKnowLineProps = {
   // Its kind, in a chip: what it is, in words and an icon.
@@ -32,7 +33,7 @@ export function TeamKnowLine({ kind, title, children }: TeamKnowLineProps) {
 // says: it opens in Files (and not the row it's in).
 export function TeamKnowFile({ to, title, children }: { to: string; title: string; children: ReactNode }) {
   return (
-    <Link to={to} className={cx("mono", css.file)} onClick={(e) => e.stopPropagation()} title={title}>
+    <Link to={to} className={cx(textClass("mono"), css.file)} onClick={(e) => e.stopPropagation()} title={title}>
       {children}
     </Link>
   );

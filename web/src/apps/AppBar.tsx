@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "../ui/Icon";
 import css from "./AppBar.module.css";
+import { Text } from "../ui/Text";
 
 type AppBarProps = {
   // The app's icon and name: a workspace app's bar says them; a
@@ -31,7 +32,7 @@ export function AppBar({ icon, title, children, end }: AppBarProps) {
 export function AppBarNeed({ name, from, title }: { name: string; from?: string; title: string }) {
   return (
     <span className={css.need} title={title}>
-      <span className={css.name}>{name}</span> <span className="dim">from</span> {from}
+      <span className={css.name}>{name}</span> <Text dim>from</Text> {from}
     </span>
   );
 }

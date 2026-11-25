@@ -1,7 +1,7 @@
-import { cx } from "../../ui/cx";
 import { Icon } from "../../ui/Icon";
 import { Inline } from "../../ui/Inline";
 import css from "./MissionEndingZ.module.css";
+import { Text } from "../../ui/Text";
 
 // A part of Z as it was checked: met, not met, or nobody checked it; and
 // how, in the checker's words.
@@ -27,7 +27,7 @@ export function MissionEndingZ({ parts }: { parts: EndingZPart[] }) {
                 — <Inline text={z.how} />
               </span>
             )}
-            {z.stands === "unchecked" && <span className={cx(css.how, "dim")}> — not checked</span>}
+            {z.stands === "unchecked" && <Text dim className={css.how}> — not checked</Text>}
           </span>
         </li>
       ))}

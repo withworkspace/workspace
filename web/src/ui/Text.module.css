@@ -1,0 +1,33 @@
+/* Text (Text.tsx): words drawn quieter, in the code's type, or as a line
+   count's plus or minus. In a layer of its own, after the library's
+   parts: a part given a look (an Icon that's dim, an Input that's mono)
+   takes it, and a page's own class on it is drawn over it, as the global
+   .dim and .mono these were. */
+
+@layer text {
+  .mono {
+    font-family: var(--mono);
+    font-size: 0.92em;
+  }
+
+  .dim {
+    color: var(--dim);
+  }
+
+  .plus {
+    color: var(--green);
+  }
+
+  .minus {
+    color: var(--red);
+  }
+
+  a.link {
+    color: var(--accent);
+  }
+
+  a.link:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}

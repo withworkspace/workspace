@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Count } from "./Count";
 import { Icon } from "./Icon";
 import { Tab, Tabs } from "./Tabs";
+import { Text } from "./Text";
 
 // Tabs: words alone, with counts, with icons, and what one shows under
 // them. Press one, or move along them with the arrows.
@@ -26,9 +27,9 @@ function Mission() {
           </Tab>
         ))}
       </Tabs>
-      <div role="tabpanel" id="story-panel" aria-label={names[tab]} className="dim">
+      <Text as="div" dim role="tabpanel" id="story-panel" aria-label={names[tab]}>
         What {names[tab]} shows.
-      </div>
+      </Text>
     </div>
   );
 }
@@ -53,7 +54,7 @@ export const Rows: StoryObj = {
       <Mission />
       <Crew />
       <div style={{ width: 240 }}>
-        <span className="dim">Too narrow for the row: it scrolls, and fades at its end.</span>
+        <Text dim>Too narrow for the row: it scrolls, and fades at its end.</Text>
         <Mission />
       </div>
     </div>

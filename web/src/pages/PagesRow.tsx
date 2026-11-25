@@ -1,12 +1,12 @@
 import type { MouseEventHandler, ReactNode } from "react";
 import { Chip } from "../ui/Chip";
-import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { Row, RowLine, RowMain, RowTitle, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { Spinner } from "../ui/Spinner";
 import { Time } from "../ui/Time";
 import { TLink } from "../ui/TLink";
 import css from "./PagesRow.module.css";
+import { Text, textClass } from "../ui/Text";
 
 type PagesRowProps = {
   id: string;
@@ -44,7 +44,7 @@ export function PagesRow({ id, title, to, kind, file, filling, cells, stale, upd
               </Chip>
             )}
             {file && (
-              <Chip tone="quiet" className="mono" title={`Tied to ${file.ref}: saving it writes there`}>
+              <Chip tone="quiet" className={textClass("mono")} title={`Tied to ${file.ref}: saving it writes there`}>
                 <Icon name="file" size={11} /> {file.name}
               </Chip>
             )}
@@ -62,7 +62,7 @@ export function PagesRow({ id, title, to, kind, file, filling, cells, stale, upd
             {note}
           </RowLine>
         </RowMain>
-        <span className={cx("dim", css.ref)}>{id}</span>
+        <Text dim className={css.ref}>{id}</Text>
         <Time iso={updated} as="age" className="age" />
       </TLink>
     </Row>

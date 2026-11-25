@@ -7,6 +7,9 @@ import { Input } from "../ui/Input";
 import { Keys } from "../ui/Keys";
 import { Option, Select } from "../ui/Select";
 import type { IntoKind, Lives } from "./shown";
+import { Text, textClass } from "../ui/Text";
+import css from "./ArtifactPromote.module.css";
+import { cx } from "../ui/cx";
 
 type ArtifactPromoteProps = {
   // The artifact's title.
@@ -109,7 +112,7 @@ export function ArtifactPromote({ title, ready, versions, version: n, onVersion,
         {kind === "document" && (
           <label>
             <span>Document</span>
-            <Input autoFocus className="mono" value={text} placeholder="repo:path/to/plan.md" onChange={(e) => onText(e.target.value)} aria-label="The document, as repo:path" />
+            <Input autoFocus className={cx(textClass("mono"), css.code)} value={text} placeholder="repo:path/to/plan.md" onChange={(e) => onText(e.target.value)} aria-label="The document, as repo:path" />
           </label>
         )}
         {!home && ready && (
@@ -129,12 +132,12 @@ export function ArtifactPromote({ title, ready, versions, version: n, onVersion,
         {!home && lives === "other" && (
           <label>
             <span>Folder</span>
-            <Input autoFocus className="mono" value={other} placeholder="repo:folder/" onChange={(e) => onOther(e.target.value)} aria-label="The folder it's to live in, as repo:folder/" />
+            <Input autoFocus className={cx(textClass("mono"), css.code)} value={other} placeholder="repo:folder/" onChange={(e) => onOther(e.target.value)} aria-label="The folder it's to live in, as repo:folder/" />
           </label>
         )}
       </div>
       {kind === "mission" || kind === "start" ? (
-        <p className="dim file-as-what">It's recorded on the mission, among its artifacts, so whoever briefs it and its crew read it.</p>
+        <Text as="p" dim className="file-as-what">It's recorded on the mission, among its artifacts, so whoever briefs it and its crew read it.</Text>
       ) : null}
       {home ? (
         <Callout tone="attention" icon="branch" title={`It lives in ${home.where}`}>
@@ -151,7 +154,7 @@ export function ArtifactPromote({ title, ready, versions, version: n, onVersion,
           nothing asked. Every version stays on this machine.
         </Callout>
       ) : null}
-      {blocked && <p className="dim file-as-what">{blocked}</p>}
+      {blocked && <Text as="p" dim className="file-as-what">{blocked}</Text>}
       {error && <Banner>{error}</Banner>}
       <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy} keys="esc">

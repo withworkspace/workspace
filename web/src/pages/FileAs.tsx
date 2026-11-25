@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { type DocKind, type DocSaved, FileChanged, filePage, type PageFiling, type PageTied, savePageToFile, type SpaceRef } from "../api";
 import { Banner } from "../ui/Banner";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
 import { Dialog, DialogActions } from "../ui/Dialog";
 import { Option, Select } from "../ui/Select";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
-import { PageField } from "./PageField";
+import { PageField, pageFieldCodeClass } from "./PageField";
 import { PageFields } from "./PageFields";
 import { PageFileWhat } from "./PageFileWhat";
 import { PageFileWhere } from "./PageFileWhere";
+import { Text, textClass } from "../ui/Text";
+import { cx } from "../ui/cx";
 
 // FileAs files a page as a document of one of the workspace's kinds: a new file where the kind
 // says, named from its title, in a commit of yours on its repo's default branch: landed, in a repo
@@ -115,7 +117,7 @@ export function FileAs({
         </PageField>
         {!k && (
           <PageField label="Folder">
-            <Input className="mono" list="file-as-places" value={where} placeholder="repo:folder/" onChange={(e) => setWhere(e.target.value)} aria-label="The folder it's filed in, as repo:folder/" />
+            <Input className={cx(textClass("mono"), pageFieldCodeClass)} list="file-as-places" value={where} placeholder="repo:folder/" onChange={(e) => setWhere(e.target.value)} aria-label="The folder it's filed in, as repo:folder/" />
             <datalist id="file-as-places">
               {(spaces ?? []).map((s) => (
                 <option key={s.repo} value={`${s.repo}:${s.folder ?? ""}`}>
@@ -129,7 +131,7 @@ export function FileAs({
           <Input autoFocus value={name} placeholder="What it's named from" onChange={(e) => setName(e.target.value)} aria-label="Title" />
         </PageField>
         <PageField label="Commit">
-          <Input className="mono" value={subject} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
+          <Input className={cx(textClass("mono"), pageFieldCodeClass)} value={subject} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
         </PageField>
       </PageFields>
       {plan && (
@@ -144,7 +146,7 @@ export function FileAs({
               This repo has no pull requests: it's one commit, straight to {plan.branch}
               {plan.verify ? (
                 <>
-                  , once <span className="mono">{plan.verify}</span> passes
+                  , once <Text mono>{plan.verify}</Text> passes
                 </>
               ) : null}
               .
@@ -220,7 +222,7 @@ export function SaveToFile({
         }}
       >
         <PageField label="Commit">
-          <Input autoFocus className="mono" value={message} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
+          <Input autoFocus className={cx(textClass("mono"), pageFieldCodeClass)} value={message} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
         </PageField>
       </PageFields>
       {saves && saves.how !== "capsule" && (
@@ -230,7 +232,7 @@ export function SaveToFile({
               This repo has no pull requests: it's one commit, straight to {saves.branch}
               {saves.verify ? (
                 <>
-                  , once <span className="mono">{saves.verify}</span> passes
+                  , once <Text mono>{saves.verify}</Text> passes
                 </>
               ) : null}
               .

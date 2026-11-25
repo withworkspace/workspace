@@ -5,6 +5,7 @@ import { Row, RowLine, RowMain, RowSub, RowTitle, Rows, rowLinkClass, rowStatusC
 import { Status, type StatusInfo } from "../../ui/Status";
 import { Time } from "../../ui/Time";
 import css from "./ReaderTalks.module.css";
+import { textClass } from "../../ui/Text";
 
 export interface TalkItem {
   id: string;
@@ -35,7 +36,7 @@ export function ReaderTalks({ items }: { items: TalkItem[] }) {
                 <RowLine>
                   <RowTitle>{t.title}</RowTitle>
                 </RowLine>
-                {t.sub && <RowSub className="dim">{t.sub}</RowSub>}
+                {t.sub && <RowSub className={textClass("dim")}>{t.sub}</RowSub>}
               </RowMain>
               <Time iso={t.at} as="age" className={css.age} />
             </Link>

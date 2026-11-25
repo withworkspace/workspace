@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { ReplyBox } from "./ReplyBox";
+import { Text } from "./Text";
 
 // The reply box: as it's drawn (with the keys, nothing to send yet), and
 // one whose words and button say something else. What's sent is shown
@@ -14,7 +15,7 @@ function One(props: { placeholder?: string; send?: string }) {
   return (
     <div>
       <ReplyBox {...props} onSend={setSaid} onCancel={() => setSaid(undefined)} />
-      {said && <div className="dim">Sent: {said}</div>}
+      {said && <Text as="div" dim>Sent: {said}</Text>}
     </div>
   );
 }

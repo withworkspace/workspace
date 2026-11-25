@@ -9,6 +9,7 @@ import { Keys } from "../ui/Keys";
 import { useLoaded } from "../load";
 import { Button } from "../ui/Button";
 import css from "./LandBar.module.css";
+import { Text } from "../ui/Text";
 
 // LandBar is how a capsule lands when its repo has no pull requests: its
 // commits go straight to the default branch, when you say. It sits on the
@@ -65,7 +66,7 @@ export function LandBar({ repo, name, updated, back }: { repo: string; name: str
   const commits = `${n} ${n === 1 ? "commit" : "commits"}`;
   const how = (
     <>
-      There's no pull request: {n === 1 ? "it goes" : "they go"} straight to {l.branch}, rebased onto it{l.verify ? <>, once <span className="mono">{l.verify}</span> passes</> : null}. The capsule is burned after.
+      There's no pull request: {n === 1 ? "it goes" : "they go"} straight to {l.branch}, rebased onto it{l.verify ? <>, once <Text mono>{l.verify}</Text> passes</> : null}. The capsule is burned after.
     </>
   );
   if (l.landed) {

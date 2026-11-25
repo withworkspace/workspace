@@ -12,6 +12,7 @@ import { SettingsNavLink } from "./SettingsNavLink";
 import { SettingsRow } from "./SettingsRow";
 import { SettingsRows } from "./SettingsRows";
 import { SettingsSide } from "./SettingsSide";
+import { Text } from "../ui/Text";
 
 // The Settings page from its parts: the list of sections beside the one
 // you're in, with how many your file sets and the dot that says it has
@@ -63,7 +64,7 @@ function Page({ typed = "" }: { typed?: string }) {
         {words.length > 0 ? (
           <>
             <PageHead title={<>“{query.trim()}”</>}>
-              <span className="dim">3 settings</span>
+              <Text dim>3 settings</Text>
             </PageHead>
             <SettingsBlock title={<a href="#agents">Agents</a>}>
               <SettingsRows>
@@ -126,7 +127,7 @@ export const NothingFound: StoryObj = {
         <div style={{ height: "100vh", overflow: "auto" }}>
           <SettingsLayout side={<Side query={query} setQuery={setQuery} />}>
             <PageHead title={<>“{query.trim()}”</>}>
-              <span className="dim">0 settings</span>
+              <Text dim>0 settings</Text>
             </PageHead>
             <div className="quiet-line">No setting says that. What only a file sets (a repo's commands, paths) isn't here.</div>
           </SettingsLayout>

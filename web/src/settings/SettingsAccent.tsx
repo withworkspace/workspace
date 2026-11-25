@@ -3,6 +3,7 @@ import { cx } from "../ui/cx";
 import { Input } from "../ui/Input";
 import css from "./SettingsAccent.module.css";
 import { SettingsNote } from "./SettingsNote";
+import { textClass } from "../ui/Text";
 
 type SettingsAccentProps = {
   label: string;
@@ -58,7 +59,7 @@ export function SettingsAccent({ label, ours, accents, picked, hex, dark, pulled
         </span>
         <Input
           type="text"
-          className={cx("mono", css.hex)}
+          className={cx(textClass("mono"), css.hex)}
           value={hex}
           spellCheck={false}
           aria-label={`${label}, as hex`}

@@ -2,10 +2,11 @@ import type { ArtifactInfo } from "../api";
 import { useThingMenu } from "../shell/ThingMenu";
 import { Chip } from "../ui/Chip";
 import { Icon } from "../ui/Icon";
-import { ArtifactRow } from "./ArtifactRow";
+import { ArtifactRow, artifactRowCodeClass } from "./ArtifactRow";
 import { From } from "./From";
 import { artifactHref } from "./hrefs";
 import { artifactStatus, behind, byWords, expiryOf, keptIcon, keptTitle, keptWords } from "./shown";
+import { Text } from "../ui/Text";
 
 // ListRow is an artifact of this machine's, in the list: where it stands,
 // its latest version and its note, where it came from and where it's kept.
@@ -57,9 +58,9 @@ export function ListRow({ a, selected, onHover, onPromote }: { a: ArtifactInfo; 
       )}
       <span title={keptTitle(a)}>
         <Icon name={keptIcon(a)} size={11} /> {keptWords(a)}
-        {behind(a) > 0 && <span className="dim">, v{a.latest?.n} here</span>}
+        {behind(a) > 0 && <Text dim>, v{a.latest?.n} here</Text>}
       </span>
-      <span className="mono">{a.id}</span>
+      <Text mono className={artifactRowCodeClass}>{a.id}</Text>
     </ArtifactRow>
   );
 }

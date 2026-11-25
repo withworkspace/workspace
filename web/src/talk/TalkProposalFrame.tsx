@@ -1,6 +1,7 @@
 import { buttonClass } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import css from "./TalkProposalFrame.module.css";
+import { Text } from "../ui/Text";
 
 // TalkProposalFrame is a version, or a proposal, running in a small
 // frame, as the artifact's page runs one: sandbox="allow-scripts", no
@@ -10,7 +11,7 @@ import css from "./TalkProposalFrame.module.css";
 export function TalkProposalFrame({ src, caption, title }: { src: string; caption?: string; title: string }) {
   return (
     <figure className={css.frame}>
-      {caption && <figcaption className="dim">{caption}</figcaption>}
+      {caption && <Text as="figcaption" dim>{caption}</Text>}
       <iframe src={src} sandbox="allow-scripts" referrerPolicy="no-referrer" loading="lazy" title={title} />
       <a href={src} target="_blank" rel="noopener noreferrer" className={buttonClass({}, css.open)} title="Open it alone, in a tab of its own (still sandboxed)">
         <Icon name="external" size={12} /> Open larger

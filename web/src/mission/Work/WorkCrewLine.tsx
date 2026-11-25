@@ -10,6 +10,7 @@ import { outputKey } from "../workRows";
 import { MissionWorkCrewLine } from "./MissionWorkCrewLine";
 import { MissionWorkLeft } from "./MissionWorkLeft";
 import { howEnded } from "./words";
+import { Text } from "../../ui/Text";
 
 // A crew who's been in the capsule: where it stands or how it ended, the
 // steps it took and when, and what it left.
@@ -44,7 +45,7 @@ export function WorkCrewLine({ d, k, steps, handoff, select }: { d: MissionDetai
       }
     >
       {k.ended ? <strong title={ended}>{howEnded(k)}</strong> : <Status s={crewStatus(k)} />}{" "}
-      <span className="dim">
+      <Text dim>
         {steps.map((s) => `step ${s.n}, ${s.title}`).join("; ")}
         {steps.length > 0 && " · "}
         <Time iso={k.started} />
@@ -56,7 +57,7 @@ export function WorkCrewLine({ d, k, steps, handoff, select }: { d: MissionDetai
         ) : (
           ", still here"
         )}
-      </span>
+      </Text>
     </MissionWorkCrewLine>
   );
 }

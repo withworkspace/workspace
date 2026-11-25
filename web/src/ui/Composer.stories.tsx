@@ -4,6 +4,7 @@ import { Button } from "./Button";
 import { Composer } from "./Composer";
 import { Icon } from "./Icon";
 import { Keys } from "./Keys";
+import { Text } from "./Text";
 
 // Composers: with a bar under the words (what sending does, and what's
 // pressed), with nothing to say in it, with something else to do, a
@@ -30,7 +31,7 @@ export const Bar: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 18 }}>
       <div style={row}>
-        <span className="dim">With a hint</span>
+        <Text dim>With a hint</Text>
         <One
           rows={2}
           aria-label="Start a conversation"
@@ -50,7 +51,7 @@ export const Bar: StoryObj = {
         </One>
       </div>
       <div style={row}>
-        <span className="dim">Nothing to say</span>
+        <Text dim>Nothing to say</Text>
         <One aria-label="Reply" placeholder="Reply…">
           {(text) => (
             <Button variant="primary" disabled={!text.trim()}>
@@ -60,7 +61,7 @@ export const Bar: StoryObj = {
         </One>
       </div>
       <div style={row}>
-        <span className="dim">Something else to do</span>
+        <Text dim>Something else to do</Text>
         <One
           aria-label="Message api-1"
           start="Leave the export as it is: the rounding's the only thing to change."
@@ -83,7 +84,7 @@ export const Bar: StoryObj = {
         </One>
       </div>
       <div style={row}>
-        <span className="dim">Being sent</span>
+        <Text dim>Being sent</Text>
         <One aria-label="Reply" start="And the totals row?" busy>
           {() => (
             <Button variant="primary" disabled>
@@ -100,7 +101,7 @@ export const Beside: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 18 }}>
       <div style={row}>
-        <span className="dim">One thing to press</span>
+        <Text dim>One thing to press</Text>
         <One layout="beside" send="enter" aria-label="Ask for these words to be changed" placeholder="What should change here? Tighten it, make it a table, add what's missing…">
           {(text) => (
             <Button variant="primary" size="small" disabled={!text.trim()}>
@@ -110,7 +111,7 @@ export const Beside: StoryObj = {
         </One>
       </div>
       <div style={row}>
-        <span className="dim">Two</span>
+        <Text dim>Two</Text>
         <One layout="beside" send="enter" aria-label="Change this cell, or ask about it" start="Group them by service, and drop the last column.">
           {(text) => (
             <>
@@ -132,11 +133,11 @@ export const Corner: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 18 }}>
       <div style={row}>
-        <span className="dim">Keys in the corner</span>
+        <Text dim>Keys in the corner</Text>
         <One layout="corner" aria-label="Ask about this page" placeholder="Ask about this page…" />
       </div>
       <div style={row}>
-        <span className="dim">With something held</span>
+        <Text dim>With something held</Text>
         <One
           layout="corner"
           aria-label="Ask about this page"

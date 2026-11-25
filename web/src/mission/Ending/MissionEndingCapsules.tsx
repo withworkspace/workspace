@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { Icon } from "../../ui/Icon";
 import css from "./MissionEndingCapsules.module.css";
+import { Text, textClass } from "../../ui/Text";
 
 // A capsule that ended alone: dropped (and why, if it was said), or handed
 // on to a mission of its own.
@@ -13,19 +14,19 @@ export function MissionEndingCapsules({ capsules }: { capsules: EndingCapsule[] 
     <ul className={css.list}>
       {capsules.map((c) => (
         <li key={`${c.repo}/${c.name}`} title={c.why}>
-          <Icon name={c.dropped ? "x" : "arrow-right"} size={12} className="dim" />
-          <span className="mono">
+          <Icon name={c.dropped ? "x" : "arrow-right"} size={12} className={textClass("dim")} />
+          <Text mono>
             {c.repo}/{c.name}
-          </span>{" "}
+          </Text>{" "}
           {c.dropped ? (
-            <span className="dim">dropped{c.why ? `: ${c.why}` : ""}</span>
+            <Text dim>dropped{c.why ? `: ${c.why}` : ""}</Text>
           ) : (
-            <span className="dim">
+            <Text dim>
               handed on to{" "}
-              <Link to={`/missions/${c.to}`} className="link mono">
+              <Link to={`/missions/${c.to}`} className={textClass("link", "mono")}>
                 {c.to}
               </Link>
-            </span>
+            </Text>
           )}
         </li>
       ))}

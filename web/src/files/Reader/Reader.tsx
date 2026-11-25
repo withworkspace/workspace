@@ -1,6 +1,7 @@
 import type { ReactNode, Ref } from "react";
 import { cx } from "../../ui/cx";
 import css from "./Reader.module.css";
+import { Prose } from "../../ui/Prose";
 
 type ReaderProps = {
   // Its contents beside the text (a ReaderRail, in after), or folded into
@@ -33,8 +34,8 @@ export function Reader({ rail, folded, pageRef, columnRef, children, after }: Re
 // the page's prose.
 export function ReaderText({ ref, children }: { ref?: Ref<HTMLElement>; children: ReactNode }) {
   return (
-    <article className="artifact-body prose" ref={ref}>
+    <Prose as="article" className="artifact-body" ref={ref}>
       {children}
-    </article>
+    </Prose>
   );
 }

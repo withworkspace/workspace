@@ -1,6 +1,8 @@
-import type { ReactNode } from "react";
 import { cx } from "../ui/cx";
+import type { ReactNode } from "react";
 import css from "./SettingsRepoGroup.module.css";
+import { Text } from "../ui/Text";
+import { settingsTableQuietClass } from "./SettingsTable";
 
 type SettingsRepoGroupProps = {
   // The pick: a SettingsGroupPick.
@@ -17,9 +19,9 @@ export function SettingsRepoGroup({ children, over }: SettingsRepoGroupProps) {
     <span className={css.cell}>
       {children}
       {over && (
-        <span className={cx("dim", css.over)} title={over}>
+        <Text dim className={cx(css.over, settingsTableQuietClass)} title={over}>
           yours
-        </span>
+        </Text>
       )}
     </span>
   );

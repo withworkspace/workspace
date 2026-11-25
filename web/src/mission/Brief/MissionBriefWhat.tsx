@@ -23,3 +23,7 @@ export function MissionBriefWhat({ icon, tone, title, children }: MissionBriefWh
     </div>
   );
 }
+
+// missionBriefWhatQuietClass is what's said after the brief's state (as
+// Text dim): when it was proposed. It's not bold.
+export const missionBriefWhatQuietClass: string = css.quiet;

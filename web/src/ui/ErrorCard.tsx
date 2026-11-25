@@ -1,6 +1,6 @@
 import { Button } from "./Button";
 import { Callout } from "./Callout";
-import { humanError } from "./text";
+import { humanError } from "./strings";
 
 // ErrorCard is something that didn't load, in words, with a way to try
 // again where there is one: a Callout in danger, the error made a

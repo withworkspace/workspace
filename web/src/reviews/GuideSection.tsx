@@ -2,13 +2,14 @@ import { useState } from "react";
 import { type ReviewGuide, runPRGuide } from "../api";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { GuideBox } from "./GuideBox";
 import { GuideFoot } from "./GuideFoot";
 import { GuideText } from "./GuideText";
 import { GuideWriting } from "./GuideWriting";
 import { PassNote } from "./PassNote";
+import { Text } from "../ui/Text";
 
 // A review's guide, a view of its own: what the change does, where that
 // differs from what it says it does, and the order to read its files in.
@@ -21,7 +22,7 @@ export function GuideSection({ api, guide, guided, onGuide, onGuided }: { api: s
     return (
       <>
         <h2>Guide</h2>
-        <p className="dim">Reading the guide…</p>
+        <Text as="p" dim>Reading the guide…</Text>
       </>
     );
   }
@@ -39,12 +40,12 @@ export function GuideSection({ api, guide, guided, onGuide, onGuided }: { api: s
       <h2>Guide</h2>
       <GuideBox>
         {!g && !running && (
-          <p className="dim">
+          <Text as="p" dim>
             What the change does, where that differs from what it says it does, and the order to read its files in. An agent writes it from the change and the description alone.{" "}
             <Button size="small" onClick={run}>
               Write the guide
             </Button>
-          </p>
+          </Text>
         )}
         {running && <GuideWriting since={guide.since} thinking={guide.thinking} given={guide.given} again={!!g} />}
         {guide.failed && !running && <Banner>{humanError(guide.failed)}</Banner>}

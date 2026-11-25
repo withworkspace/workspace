@@ -23,6 +23,7 @@ import { TalkProposalWarnings } from "./TalkProposalWarnings";
 import { TalkProposalWhat } from "./TalkProposalWhat";
 import { TalkProposalWhere } from "./TalkProposalWhere";
 import { TalkProposalWhole } from "./TalkProposalWhole";
+import { Text } from "../ui/Text";
 
 // What a conversation's agent proposes, a card under its reply, from its
 // parts. Open: a decision, as it's confirmed, being edited, being done,
@@ -205,7 +206,7 @@ export const Artifact: StoryObj = {
         <TalkProposalEdit>
           <Input value="" onChange={none} placeholder="Its title" aria-label="Its title" />
           <TextArea value="" rows={2} onChange={none} placeholder="What it tries out" aria-label="Its note" />
-          <div className="dim">The HTML is the agent's: ask it for another version to change that.</div>
+          <Text as="div" dim>The HTML is the agent's: ask it for another version to change that.</Text>
         </TalkProposalEdit>
       </TalkProposal>
     </Cards>

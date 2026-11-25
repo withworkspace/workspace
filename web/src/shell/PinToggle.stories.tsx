@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { PinToggle } from "./PinToggle";
+import { Text } from "../ui/Text";
 
 // Pin, side by side: off and on, as the pin alone (a head with no room
 // for its words), and kept to the end of its line, as a ref card's foot
@@ -30,7 +31,7 @@ export const States: StoryObj = {
         <Pin start compact />
       </div>
       <div style={{ ...row, borderTop: "1px solid var(--line)", paddingTop: 8 }}>
-        <span className="dim">⌘-click its words to go there</span>
+        <Text dim>⌘-click its words to go there</Text>
         <Pin start={false} end />
       </div>
       <div style={{ ...row, borderTop: "1px solid var(--line)", paddingTop: 8 }}>

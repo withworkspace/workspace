@@ -6,7 +6,7 @@ import { talkAt } from "../chrome/panes";
 import { useChromeStore, useKeysAsked } from "../chrome/store";
 import { useTalks } from "../conversation/talks";
 import { Keys } from "../ui/Keys";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { useDraft } from "../ui/useDraft";
 import { Composer } from "./Composer";

@@ -15,6 +15,7 @@ import type { ThingRecord } from "./thing";
 import { ThingView } from "./ThingView";
 import { markdownClass } from "../markdown/LazyMarkdown";
 import { cx } from "../ui/cx";
+import { Text } from "../ui/Text";
 
 // Refs, from their parts: names in what's read, of each kind and shape,
 // with what's said after them, in markdown and in words that say
@@ -49,17 +50,17 @@ export const Names: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 18, maxWidth: 720 }}>
       <div>
-        <p className="dim">In markdown</p>
+        <Text as="p" dim>In markdown</Text>
         <div className={cx("markdown", markdownClass)}>
           <p>{names}</p>
         </div>
       </div>
       <div>
-        <p className="dim">In words that say data-refs (Inline, a list of refs)</p>
+        <Text as="p" dim>In words that say data-refs (Inline, a list of refs)</Text>
         <p data-refs="">{names}</p>
       </div>
       <div>
-        <p className="dim">Anywhere else</p>
+        <Text as="p" dim>Anywhere else</Text>
         <p>{names}</p>
       </div>
     </div>
@@ -73,9 +74,9 @@ function Open({ words, hint, children }: { words: string; hint?: boolean; childr
   const [el, setEl] = useState<HTMLElement | null>(null);
   return (
     <div style={{ height: 360 }}>
-      <span ref={setEl} className="dim">
+      <Text dim ref={setEl}>
         {words}
-      </span>
+      </Text>
       {el && (
         <RefFloat anchor={el} onEnter={none} onLeave={none} hint={hint}>
           {children}

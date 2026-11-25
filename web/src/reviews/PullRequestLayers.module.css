@@ -40,7 +40,7 @@
   color: inherit;
 }
 
-.layers li a > :global(.mono),
+.layers li a > .number,
 .stands {
   flex: none;
 }

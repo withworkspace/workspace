@@ -6,10 +6,11 @@ import { confirm } from "../../ui/Confirm";
 import { EditDiff } from "../../ui/EditDiff";
 import { Icon } from "../../ui/Icon";
 import { MoreLink } from "../../ui/MoreLink";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 import { MissionCrewPrompt, MissionCrewPromptActions, MissionCrewPromptAnswer, MissionCrewPromptFile, MissionCrewPromptInput, MissionCrewPromptOptions, MissionCrewPromptPath } from "./MissionCrewPrompt";
 import { screenContext, shortPath, wantsTo } from "./words";
+import { Text } from "../../ui/Text";
 
 type CrewPromptProps = {
   slug: string;
@@ -79,7 +80,7 @@ export function CrewPrompt({ slug, crew, pending, fileLink, onTerminal, compact 
         {pending?.edit && !compact && <EditDiff edit={pending.edit} max={10} />}
         {link && !compact && <MissionCrewPromptFile to={link} />}
         {!pending && !!about?.length && <MissionCrewPromptInput>{about.join("\n")}</MissionCrewPromptInput>}
-        {!pending && !about?.length && crew.notice && <div className="dim">{crew.notice}</div>}
+        {!pending && !about?.length && crew.notice && <Text as="div" dim>{crew.notice}</Text>}
         <MissionCrewPromptActions more={terminal}>
           <Button variant="primary" disabled={busy} onClick={() => answer({ permission: "allow" })}>
             <Icon name="check" size={13} /> Allow once

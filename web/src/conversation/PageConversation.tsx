@@ -6,7 +6,7 @@ import { askAt, paneAt, talkAt } from "../chrome/panes";
 import { useBeside, useChromeStore, useGive } from "../chrome/store";
 import { useKeys } from "../keys";
 import { toast } from "../ui/toast";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { ConversationStage } from "./ConversationStage";
 import { type ConversationHost, givenWith, useHost } from "./host";
 import { useTalk, useTalks } from "./talks";

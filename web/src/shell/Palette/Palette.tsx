@@ -7,7 +7,7 @@ import { thingsNamed } from "../../refs/known";
 import { isOutside, type Known, namedOf, type PageRef, type ThingAction } from "../../refs/refs";
 import { forgetThing } from "../../refs/useThing";
 import { Input } from "../../ui/Input";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { setTheme } from "../../ui/theme";
 import { clock } from "../../ui/when";
 import { toast } from "../../ui/toast";

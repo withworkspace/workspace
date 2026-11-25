@@ -21,7 +21,8 @@ import { useLatest } from "../load";
 import { rowAfter } from "./after";
 import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
-import { capital, humanError } from "../ui/text";
+import { capital, humanError } from "../ui/strings";
+import { Text } from "../ui/Text";
 
 // Reviews: the open pull requests across every repo in the workspace.
 // Your teammates' come first, grouped by what each asks of you; yours sit
@@ -221,7 +222,7 @@ export function ReviewsPage() {
           Nothing is open in this workspace's repos. Your teammates' pull requests show here when there are some, by what each asks of you, and yours below them.
         </Empty>
       )}
-      {total > 0 && !sections.length && <p className="dim">Nothing matches “{q}”.</p>}
+      {total > 0 && !sections.length && <Text as="p" dim>Nothing matches “{q}”.</Text>}
       {sections.map((s) => {
         const isOpen = sectionOpen(s);
         const firstYours = !!s.yours && !yoursShown;

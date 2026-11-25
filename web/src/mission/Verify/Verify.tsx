@@ -5,7 +5,7 @@ import type { Reload } from "../../load";
 import { Empty } from "../../ui/Empty";
 import { Inline } from "../../ui/Inline";
 import { Keys } from "../../ui/Keys";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 import { checkRows, type CheckRow, rowKey, rowLine, sendable, stillLeft, toApprove, verdictTone } from "../verifyRows";
 import { MissionVerify } from "./MissionVerify";

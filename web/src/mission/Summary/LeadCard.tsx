@@ -14,6 +14,7 @@ import { MissionLead } from "./MissionLead";
 import { MissionLeadNotice } from "./MissionLeadNotice";
 import { MissionLeadRequest } from "./MissionLeadRequest";
 import { actsShape, actsWide } from "./words";
+import { Text } from "../../ui/Text";
 
 // LeadCard draws a card as it's given: its title, its sentence, and what
 // it offers. The first leads the page (a MissionLead, with the step it's
@@ -42,7 +43,7 @@ export function LeadCard({ d, c, lead, reload, step, latest }: { d: MissionDetai
         ) : (
           <Inline text={detail} />
         ))}
-      {c.nothing && <div className="dim">Nothing for you to do</div>}
+      {c.nothing && <Text as="div" dim>Nothing for you to do</Text>}
       {lead && (c.kind === "to-brief" || c.kind === "briefing") && d.request && <MissionLeadRequest>Requested: {d.request}</MissionLeadRequest>}
       {c.kind === "wrap-up" && d.conclude?.ending && (
         <>

@@ -4,7 +4,7 @@ import { Button } from "../../ui/Button";
 import { Composer } from "../../ui/Composer";
 import { Icon } from "../../ui/Icon";
 import { sendKeys, useSendKey } from "../../ui/sendKey";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 import { useDraft } from "../../ui/useDraft";
 

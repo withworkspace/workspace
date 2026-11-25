@@ -5,7 +5,7 @@ import { ReviewFindingActions } from "../review/ReviewFindingActions";
 import { Banner } from "../ui/Banner";
 import { Button } from "../ui/Button";
 import { Excerpt } from "../ui/Excerpt";
-import { clip, humanError } from "../ui/text";
+import { clip, humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { PassCard } from "./PassCard";
 import { PassFinding as PassFindingPart } from "./PassFinding";
@@ -18,6 +18,7 @@ import { PassStanding } from "./PassStanding";
 import { PassSummary } from "./PassSummary";
 import { findingWhere as where, standingWords } from "./passWords";
 import css from "./PassView.module.css";
+import { Text } from "../ui/Text";
 
 // PassView is one of a review's passes, as the Passes view has it: how it
 // stands, run (again), whether what it found is drawn in the diff, what
@@ -129,10 +130,10 @@ export function PassView({
                 f.path ? (
                   <PassFindingLink onClick={() => (f.thread ? toComment(f.thread) : toFinding(p.name, f.key)) || setLines((l) => ({ ...l, [f.key]: !l[f.key] }))}>{where(f)}</PassFindingLink>
                 ) : (
-                  <span className="dim">The change as a whole</span>
+                  <Text dim>The change as a whole</Text>
                 )
               }
-              said={f.suggest ? <span className="dim">· suggests a change</span> : null}
+              said={f.suggest ? <Text dim>· suggests a change</Text> : null}
               end={
                 f.thread ? (
                   // It's about a comment you've made: there's nothing to take.
@@ -169,11 +170,11 @@ export function PassView({
                 key={f.key}
                 settled
                 kind={<span className="kind k-found">{f.kind}</span>}
-                where={<span className="dim mono">{f.path ? where(f) : "The change as a whole"}</span>}
+                where={<Text dim mono>{f.path ? where(f) : "The change as a whole"}</Text>}
                 said={
-                  <span className="dim">
+                  <Text dim>
                     {f.state === "done" ? (f.thread ? "Its comment's resolved" : "Taken into your review") : `Dismissed${f.why ? `: ${reviewDismissWhys.find(([w]) => w === f.why)?.[1].toLowerCase()}` : ""}`}
-                  </span>
+                  </Text>
                 }
                 end={
                   <Button variant="ghost" size="small" onClick={() => settle(f, "open")} title="It's open again: it counts toward go or no go">

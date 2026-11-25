@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { pointSilo } from "../api";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { SiloPointAsk } from "./SiloPointAsk";
 
 // /silo/<repo>?to=<capsule>&then=<address>: point a repo's silo at a

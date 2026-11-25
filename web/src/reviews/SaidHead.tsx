@@ -4,6 +4,7 @@ import { Icon } from "../ui/Icon";
 import { Time } from "../ui/Time";
 import { saidIcon, saidWords } from "./saidWords";
 import css from "./SaidHead.module.css";
+import { Text, textClass } from "../ui/Text";
 
 // SaidHead is who said something on a pull request, what they did (in its
 // colour: approved green, changes red), whether it's of earlier commits,
@@ -16,19 +17,19 @@ export function SaidHead({ it }: { it: Said }) {
         <Icon name={saidIcon(it.kind)} size={12} /> {saidWords[it.kind]}
       </span>
       {it.stale && (
-        <span className="dim" title="It's had commits pushed since this review">
+        <Text dim title="It's had commits pushed since this review">
           on earlier commits
-        </span>
+        </Text>
       )}
       {it.sending ? (
-        <span className="dim" title="It's on its way to GitHub">
+        <Text dim title="It's on its way to GitHub">
           Sending…
-        </span>
+        </Text>
       ) : (
-        <Time iso={it.at} as="relative" className="dim" />
+        <Time iso={it.at} as="relative" className={textClass("dim")} />
       )}
       {it.url && (
-        <a className="link dim" href={it.url} target="_blank" rel="noreferrer" title="See it on GitHub" onClick={(e) => e.stopPropagation()}>
+        <a className={textClass("link", "dim")} href={it.url} target="_blank" rel="noreferrer" title="See it on GitHub" onClick={(e) => e.stopPropagation()}>
           <Icon name="external" size={11} />
         </a>
       )}

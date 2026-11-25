@@ -7,6 +7,7 @@ import { MissionCrewBadge } from "./MissionCrewBadge";
 import { MissionPlanCheckList } from "./MissionPlanCheckList";
 import { MissionStepCard } from "./MissionStepCard";
 import { checksWords, stepBundle, stepKind, stepText, stepYours, type StepTime, waitHow } from "./planRows";
+import { Text } from "../ui/Text";
 
 // PlanStepCard is a step in full: what there isn't room for in its row. Its
 // text, who's on it and what it makes; once it's passed, why, how long it
@@ -65,9 +66,9 @@ export function PlanStepCard({ s, of, d, time }: { s: Stage; of: number; d?: Mis
     time?.from && time.to && (
       <>
         {duration(time.from, time.to)}{" "}
-        <span className="dim">
+        <Text dim>
           ({stamp(time.from)} to {stamp(time.to)})
-        </span>
+        </Text>
       </>
     ),
   );

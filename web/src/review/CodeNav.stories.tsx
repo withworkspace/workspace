@@ -4,6 +4,7 @@ import { CodeNavCard } from "./CodeNavCard";
 import { CodeNavPanel } from "./CodeNavPanel";
 import { CodeNavPicker } from "./CodeNavPicker";
 import { CodeNavUses } from "./CodeNavUses";
+import { Text } from "../ui/Text";
 
 // Following names in a review, from its parts: a name's card (one
 // definition, several it may be, still looking), d's list of a line's
@@ -75,7 +76,7 @@ export const WhoUsesIt: StoryObj = { render: () => <Uses /> };
 
 export const AFileBeingRead: StoryObj = {
   render: () => (
-    <CodeNavPanel label="nav.go" title={<span className="mono">internal/nav/nav.go:12</span>} said="with the change · 88cf294" how="by name" note="Reading internal/nav/nav.go…" onBack={none} onClose={none}>
+    <CodeNavPanel label="nav.go" title={<Text mono>internal/nav/nav.go:12</Text>} said="with the change · 88cf294" how="by name" note="Reading internal/nav/nav.go…" onBack={none} onClose={none}>
       {null}
     </CodeNavPanel>
   ),

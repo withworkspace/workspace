@@ -3,6 +3,7 @@ import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Input } from "../ui/Input";
 import css from "./SettingsPicks.module.css";
+import { textClass } from "../ui/Text";
 
 type SettingsPicksProps = {
   picks: string[];
@@ -50,7 +51,7 @@ export function SettingsPicks({ picks, label, example, onAdd, onDrop }: Settings
       <Input
         ref={field}
         type="text"
-        className="mono"
+        className={textClass("mono")}
         value={text}
         placeholder={picks.length > 0 ? "add another" : example}
         spellCheck={false}

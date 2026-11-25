@@ -10,6 +10,7 @@ import { Keys } from "../ui/Keys";
 import { CodeNavPanel } from "./CodeNavPanel";
 import { highlightLines, languageOf } from "./highlight";
 import type { Side } from "./nav";
+import { Text } from "../ui/Text";
 
 // NavPanel is a file at a commit, beside the diff, at a definition: read,
 // coloured and brought to the definition's line (ui/CodeLines). Names in
@@ -46,9 +47,9 @@ export function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api:
     <CodeNavPanel
       label={`${at.path} at ${at.rev.slice(0, 7)}`}
       title={
-        <span className="mono">
+        <Text mono>
           {at.path}:{at.line}
-        </span>
+        </Text>
       }
       said={
         <>

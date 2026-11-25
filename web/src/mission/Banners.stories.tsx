@@ -8,6 +8,7 @@ import allKinds from "./fixtures/kinds.json";
 import { MissionData } from "./MissionData";
 import { SummaryLead } from "./Summary/SummaryLead";
 import { GroupHead } from "../ui/GroupHead";
+import { Text } from "../ui/Text";
 
 // A mission's banners: where it stands, as its Summary leads with it.
 //
@@ -136,7 +137,7 @@ function Coverage({ of, what }: { of: Taken[]; what: string }) {
       {missing.length > 0 && (
         <>
           {" "}
-          <span className="dim">Not here:</span>{" "}
+          <Text dim>Not here:</Text>{" "}
           {missing.map((k) => (
             <code key={k} style={{ marginRight: 6 }}>
               {k}
@@ -208,7 +209,7 @@ export const Waits: StoryObj = {
         return (
           <section key={name}>
             <GroupHead>{what}</GroupHead>
-            {t ? <Shown t={t} /> : <p className="dim">No mission {name} among the fixtures.</p>}
+            {t ? <Shown t={t} /> : <Text as="p" dim>No mission {name} among the fixtures.</Text>}
           </section>
         );
       })}
@@ -223,6 +224,6 @@ export const One: StoryObj<{ mission: string }> = {
   argTypes: { mission: { control: "select", options: all.map((t) => `${t.from}/${t.name}`) } },
   render: ({ mission }) => {
     const t = all.find((x) => `${x.from}/${x.name}` === mission);
-    return <Column>{t ? <Shown t={t} /> : <p className="dim">Pick a mission.</p>}</Column>;
+    return <Column>{t ? <Shown t={t} /> : <Text as="p" dim>Pick a mission.</Text>}</Column>;
   },
 };

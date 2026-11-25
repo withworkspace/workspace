@@ -2,7 +2,7 @@ import { startAsk, type TalkDetail, type TalkProposal } from "../api";
 import { slugger } from "../markdown/links";
 import { spoken } from "../talk/proposals";
 import type { IconName } from "../ui/Icon";
-import { clip } from "../ui/text";
+import { clip } from "../ui/strings";
 
 // What the ask bar (AskBar.tsx) works out, apart from drawing it: what a
 // passage picked out is, how what's asked about shows as a chip, whether

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Chip } from "../../ui/Chip";
 import css from "./FilesFileMeta.module.css";
 import { type FileStatus, statusWords } from "./words";
+import { Text } from "../../ui/Text";
 
 type FilesFileMetaProps = {
   // How it's changed since the branch it left (base), if it has.
@@ -26,7 +27,7 @@ export function FilesFileMeta({ status, base, oldPath, uncommitted, legend }: Fi
       ) : (
         base && <Chip tone="quiet">Unchanged since {base}</Chip>
       )}
-      {oldPath && <span className="dim">from {oldPath}</span>}
+      {oldPath && <Text dim>from {oldPath}</Text>}
       {uncommitted && <Chip tone="attention">Not committed</Chip>}
       {legend}
     </div>

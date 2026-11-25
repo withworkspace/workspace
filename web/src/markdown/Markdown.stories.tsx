@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Markdown } from "./LazyMarkdown";
 import type { Place } from "./links";
+import { Prose } from "../ui/Prose";
 
 // A document as the reader draws it: every kind of block there is, alone
 // and as a document to read (.prose), its headings' links and what can't
@@ -102,8 +103,8 @@ export const EveryBlock: StoryObj = {
 
 export const ToRead: StoryObj = {
   render: () => (
-    <div style={{ padding: 32 }} className="prose">
+    <Prose style={{ padding: 32 }}>
       <Markdown text={text} at={at} lines />
-    </div>
+    </Prose>
   ),
 };

@@ -43,6 +43,7 @@ import { MissionWorkStep } from "./MissionWorkStep";
 import { MissionWorkStepBundle } from "./MissionWorkStepBundle";
 import { MissionWorkSteps } from "./MissionWorkSteps";
 import { MissionWorkSub } from "./MissionWorkSub";
+import { Text } from "../../ui/Text";
 
 // A mission's Work tab, from its parts: the whole tab, with a capsule open
 // (its head, the step the mission's on, who's been in it, its runs, steps
@@ -129,7 +130,7 @@ function Files() {
         <MissionWorkFile to="/" status="modified" dir="" name="go.mod" additions={2} deletions={0} title="go.mod" />
         <MissionWorkFile to="/" status="modified" dir="" name="go.sum" additions={6} deletions={0} skim title="go.sum · one to skim: a lock file" />
       </MissionWorkFileGroup>
-      <p className="dim">and 2 more</p>
+      <Text as="p" dim>and 2 more</Text>
     </>
   );
 }
@@ -194,13 +195,13 @@ function Capsule() {
               </>
             }
           >
-            <Status s={{ icon: "circle-dot", tone: "progress", words: "Working", live: true }} /> <span className="dim">step 3, Limit each key · today 09:41, still here</span>
+            <Status s={{ icon: "circle-dot", tone: "progress", words: "Working", live: true }} /> <Text dim>step 3, Limit each key · today 09:41, still here</Text>
           </MissionWorkCrewLine>
           <MissionWorkCrewLine badge={<MissionCrewBadge id="c1" />} to="/" link="Transcript" left={<MissionWorkLeft onOpen={none}>Design written as a plan: where the count is kept, and what a client is told.</MissionWorkLeft>}>
-            <strong>Done</strong> <span className="dim">step 1, Design it · yesterday 16:02 to 16:40</span>
+            <strong>Done</strong> <Text dim>step 1, Design it · yesterday 16:02 to 16:40</Text>
           </MissionWorkCrewLine>
           <MissionWorkCrewLine badge={<MissionCrewBadge id="c4" />} to="/" link="Transcript" left={<MissionWorkLeft>Stopped before it wrote anything: the gateway's tests were already failing on main.</MissionWorkLeft>}>
-            <strong>Stopped</strong> <span className="dim">step 2, Count requests · yesterday 16:44 to 16:51</span>
+            <strong>Stopped</strong> <Text dim>step 2, Count requests · yesterday 16:44 to 16:51</Text>
           </MissionWorkCrewLine>
         </MissionWorkCrew>
         <MissionWorkHeading count={5}>Runs</MissionWorkHeading>
@@ -210,7 +211,7 @@ function Capsule() {
             under={
               <>
                 <RunEnds>
-                  Needs redis (<span className="mono">cache / main</span>)
+                  Needs redis (<Text mono>cache / main</Text>)
                 </RunEnds>
                 <RunEnds>Ends 15 minutes after you close the mission</RunEnds>
               </>
@@ -238,18 +239,18 @@ function Capsule() {
           </MissionWorkRun>
           <MissionWorkRun mark={<RunMark ended />}>
             <RunName>worker</RunName>
-            <span className="dim">exited 0, 4 minutes ago</span>
+            <Text dim>exited 0, 4 minutes ago</Text>
           </MissionWorkRun>
           <MissionWorkRun mark={<RunMark task="passed" />} under={<RunEnds>At 3f9c2ab · check 1 of step 3</RunEnds>}>
             <RunName to="/">test</RunName>
             <RunCame result="passed">
-              Passed in 12s<span className="dim">, 2 minutes ago</span>
+              Passed in 12s<Text dim>, 2 minutes ago</Text>
             </RunCame>
           </MissionWorkRun>
           <MissionWorkRun mark={<RunMark task="failed" />} under={<RunEnds>At 3f9c2ab</RunEnds>}>
             <RunName to="/">lint</RunName>
             <RunCame result="failed">
-              Failed (exit 1) in 4s<span className="dim">, 2 minutes ago</span>
+              Failed (exit 1) in 4s<Text dim>, 2 minutes ago</Text>
             </RunCame>
           </MissionWorkRun>
         </MissionWorkRuns>
@@ -262,17 +263,17 @@ function Capsule() {
         <MissionWorkSteps>
           <MissionWorkStep n={2} title="Count requests a key" state="accepted" hint="Count requests a key: its checks were met">
             <MissionCrewBadge id="c4" />
-            <span className="dim">Work</span>
+            <Text dim>Work</Text>
             <MissionWorkStepBundle id="b2" to="/" title="b2: approved" />
           </MissionWorkStep>
           <MissionWorkStep n={3} title="Limit each key" state="current">
             <MissionCrewBadge id="c2" live />
-            <span className="dim">Work</span>
+            <Text dim>Work</Text>
             <Chip tone="info">now</Chip>
           </MissionWorkStep>
           <MissionWorkStep n={4} title="Read it" state="todo">
             <Chip tone="quiet">you</Chip>
-            <span className="dim">Review</span>
+            <Text dim>Review</Text>
           </MissionWorkStep>
         </MissionWorkSteps>
         <MissionWorkHeading count={5}>Commits</MissionWorkHeading>

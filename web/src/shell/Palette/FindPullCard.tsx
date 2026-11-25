@@ -2,6 +2,7 @@ import { Chip } from "../../ui/Chip";
 import { HoverCardHead, HoverCardLine, HoverCardTitle } from "../../ui/HoverCard";
 import { Icon } from "../../ui/Icon";
 import type { PullFound } from "../find";
+import { textClass } from "../../ui/Text";
 
 // FindPullCard says of a pull request, in Find's pane, what Find was told
 // of it: whose it is, where it stands, its checks, its branch and its
@@ -12,7 +13,7 @@ export function FindPullCard({ pull: p }: { pull: PullFound }) {
   return (
     <>
       <HoverCardHead>
-        <Icon name="pr" size={13} className="dim" />
+        <Icon name="pr" size={13} className={textClass("dim")} />
         <HoverCardTitle>{p.asks ? `${p.repo}#${p.number}` : p.title}</HoverCardTitle>
       </HoverCardHead>
       {p.asks ? (
@@ -35,7 +36,7 @@ export function FindPullCard({ pull: p }: { pull: PullFound }) {
             </HoverCardLine>
           )}
           {p.branch && (
-            <HoverCardLine dim className="mono">
+            <HoverCardLine dim className={textClass("mono")}>
               {p.branch}
             </HoverCardLine>
           )}

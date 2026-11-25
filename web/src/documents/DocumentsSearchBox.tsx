@@ -4,6 +4,7 @@ import { Icon } from "../ui/Icon";
 import { Input } from "../ui/Input";
 import { Keys } from "../ui/Keys";
 import css from "./DocumentsSearchBox.module.css";
+import { Text, textClass } from "../ui/Text";
 
 type DocumentsSearchBoxProps = {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -21,9 +22,9 @@ type DocumentsSearchBoxProps = {
 export function DocumentsSearchBox({ inputRef, q, setQ, placeholder, label, onKey, found, space }: DocumentsSearchBoxProps) {
   return (
     <label className={cx(css.box, space && css.space)}>
-      <Icon name="search" size={14} className="dim" />
+      <Icon name="search" size={14} className={textClass("dim")} />
       <Input ref={inputRef} value={q} placeholder={placeholder} aria-label={label} onChange={(e) => setQ(e.target.value)} onKeyDown={onKey} />
-      {found === undefined ? !q && <Keys k="/" /> : q.trim() ? <span className={cx("dim", css.count)}>{found}</span> : <Keys k="/" />}
+      {found === undefined ? !q && <Keys k="/" /> : q.trim() ? <Text dim className={css.count}>{found}</Text> : <Keys k="/" />}
     </label>
   );
 }

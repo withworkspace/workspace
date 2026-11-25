@@ -12,6 +12,7 @@ import { MissionDecision } from "./MissionDecision";
 import { MissionDecisionForm } from "./MissionDecisionForm";
 import { MissionDecisionGroup } from "./MissionDecisionGroup";
 import { MissionData } from "./MissionData";
+import { Text } from "../ui/Text";
 
 // A mission's decisions: one alone in each state (crew's, yours, one made
 // by answering, one a check was judged with, the one an address names,
@@ -171,7 +172,7 @@ export const Missions: StoryObj = {
       {decided.map(({ name, m }) => (
         <section key={name} style={{ marginBottom: 40 }}>
           <GroupHead>
-            {m.title} <span className="dim">{name}</span>
+            {m.title} <Text dim>{name}</Text>
           </GroupHead>
           <Mission m={m}>
             <DecisionsTab d={m} mark={nothing} reload={async () => {}} />
@@ -189,7 +190,7 @@ export const OnSummary: StoryObj = {
       {decided.map(({ name, m }) => (
         <section key={name} style={{ marginBottom: 32 }}>
           <GroupHead>
-            {m.title} <span className="dim">{name}</span>
+            {m.title} <Text dim>{name}</Text>
           </GroupHead>
           <Mission m={m}>
             <DecisionsSummary d={m} all={nothing} />

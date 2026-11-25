@@ -4,6 +4,7 @@ import { Icon } from "../ui/Icon";
 import { Spinner } from "../ui/Spinner";
 import { Time } from "../ui/Time";
 import css from "./DocumentsFresh.module.css";
+import { Text } from "../ui/Text";
 
 type DocumentsFreshProps = {
   fetching?: boolean; // it's being fetched
@@ -20,7 +21,7 @@ type DocumentsFreshProps = {
 // was fetched.
 export function DocumentsFresh({ fetching, behind, remote, dirty, pulling, onPull, fetched }: DocumentsFreshProps) {
   return (
-    <p className={cx(css.fresh, "dim", !!behind && css.behind)}>
+    <Text as="p" dim className={cx(css.fresh, !!behind && css.behind)}>
       {fetching ? (
         <>
           <Spinner size={12} /> Fetching…
@@ -47,6 +48,6 @@ export function DocumentsFresh({ fetching, behind, remote, dirty, pulling, onPul
           · fetched <Time iso={fetched} as="age" /> ago
         </span>
       )}
-    </p>
+    </Text>
   );
 }

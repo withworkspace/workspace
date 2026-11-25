@@ -17,6 +17,7 @@ import { MissionSideFact, MissionSideFacts } from "./MissionSideFacts";
 import { MissionSideMore } from "./MissionSideMore";
 import { MissionSideRun } from "./MissionSideRun";
 import { Side } from "./Side";
+import { Text } from "../../ui/Text";
 
 // A mission's details: as missions ws gave (mission/fixtures) have them,
 // side by side, and each part's states drawn from props.
@@ -35,7 +36,7 @@ const column = (children: ReactNode, key?: string) => (
 
 function Taken({ name }: { name: string }) {
   const m = takenMissions.find((x) => x.name === name);
-  if (!m) return <p className="dim">No mission {name} among the fixtures.</p>;
+  if (!m) return <Text as="p" dim>No mission {name} among the fixtures.</Text>;
   return (
     <MissionData.Provider value={m.d}>
       <Side d={m.d} selected={(k) => k === `c:${m.d.capsules[0]?.repo}/${m.d.capsules[0]?.name}`} openArtifact={none} review={none} toWork={none} reload={async () => {}} updated={m.d.events.at(-1)?.time} />
@@ -103,8 +104,8 @@ export const Parts: StoryObj = {
             <Time iso="2026-11-20T09:12:00Z" />
           </MissionSideFact>
           <MissionSideFact label="About" kind="about">
-            <span className="mono">PAY-2041</span>
-            <span className="mono">api#41</span>
+            <Text mono>PAY-2041</Text>
+            <Text mono>api#41</Text>
           </MissionSideFact>
           <MissionSideFact label="Raised from" mono>
             PAY-2041

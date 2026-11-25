@@ -13,7 +13,7 @@
   font-size: var(--text-sm);
 }
 
-.file > :global(.prose) {
+.file > .prose {
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -22,7 +22,7 @@
 }
 
 @media (max-width: 900px) {
-  .file > :global(.prose) {
+  .file > .prose {
     max-height: none;
   }
 }

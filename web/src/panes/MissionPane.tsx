@@ -9,7 +9,7 @@ import { ErrorCard } from "../ui/ErrorCard";
 import { Loading } from "../ui/Loading";
 import { Status } from "../ui/Status";
 import { headlineStatus } from "../ui/statusOf";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { Time } from "../ui/Time";
 import { useWorkspace } from "../workspace/store";
 

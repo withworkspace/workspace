@@ -1,9 +1,9 @@
 import { Button } from "../../ui/Button";
 import { Count } from "../../ui/Count";
-import { cx } from "../../ui/cx";
 import { Icon } from "../../ui/Icon";
 import { Segment, Segmented } from "../../ui/Segmented";
 import css from "./FilesTreeTools.module.css";
+import { Text } from "../../ui/Text";
 
 type FilesTreeToolsProps = {
   // Every file, and what's changed of them since the branch point.
@@ -28,9 +28,9 @@ export function FilesTreeTools({ all, changed, counted, changedOnly, canChange, 
   return (
     <div className={css.tools} title={title}>
       {counted ? (
-        <span className={cx("dim", css.count)}>
+        <Text dim className={css.count}>
           {all} {all === 1 ? "file" : "files"}
-        </span>
+        </Text>
       ) : (
         <Segmented fill className={css.show} value={changedOnly ? "changed" : "all"} onChange={(v) => onShow(v === "changed")} aria-label="Show">
           <Segment value="changed" title="Only what's changed since the branch point" keys="c" disabled={!canChange}>

@@ -13,3 +13,7 @@ export const pullRequestMetaChipClass = (tone: Tone) => chipClass(tone, css.chip
 export function PullRequestMeta({ children }: { children: ReactNode }) {
   return <div className={css.meta}>{children}</div>;
 }
+
+// pullRequestMetaCodeClass is a branch's name in the line (as Text mono):
+// in the words' colour, not quieter.
+export const pullRequestMetaCodeClass: string = css.code;

@@ -8,7 +8,7 @@ import { Crumbs } from "../ui/Crumbs";
 import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Skeleton } from "../ui/Skeleton";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { ErrorCard } from "../ui/ErrorCard";
 import { Status } from "../ui/Status";
 import { headlineStatus } from "../ui/statusOf";

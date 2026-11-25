@@ -2,7 +2,7 @@ import type { Bundle } from "../../api";
 import { Chip } from "../../ui/Chip";
 import { Inline } from "../../ui/Inline";
 import { Printed } from "../../ui/Printed";
-import { capital } from "../../ui/text";
+import { capital } from "../../ui/strings";
 import { type CheckRow, verdictTone, verdictWords } from "../verifyRows";
 import { MissionVerifyAsks } from "./MissionVerifyAsks";
 import { MissionVerifyCheck } from "./MissionVerifyCheck";

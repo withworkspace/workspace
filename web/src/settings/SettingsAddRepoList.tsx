@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { cx } from "../ui/cx";
 import { ListBox } from "../ui/ListBox";
 import { Skeleton } from "../ui/Skeleton";
 import css from "./SettingsAddRepoList.module.css";
+import { Text } from "../ui/Text";
 
 type SettingsAddRepoListProps = {
   label: string;
@@ -20,7 +20,7 @@ type SettingsAddRepoListProps = {
 // SettingsAddRepoList is an owner's repos on GitHub, to pick one from.
 export function SettingsAddRepoList({ label, value, onChange, loading, none, children }: SettingsAddRepoListProps) {
   return (
-    <ListBox className={css.list} aria-label={label} value={value} onChange={onChange} empty={loading ? <Skeleton rows={5} /> : none ? <p className={cx("dim", css.none)}>{none}</p> : null}>
+    <ListBox className={css.list} aria-label={label} value={value} onChange={onChange} empty={loading ? <Skeleton rows={5} /> : none ? <Text as="p" dim className={css.none}>{none}</Text> : null}>
       {children}
     </ListBox>
   );

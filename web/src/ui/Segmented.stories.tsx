@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Count } from "./Count";
 import { Icon } from "./Icon";
 import { Segment, Segmented, type SegmentedLook, segmentClass, segmentedClass } from "./Segmented";
+import { Text } from "./Text";
 
 // A segmented control: as it is, small, filling what it's in, with icons
 // and counts, disabled, and its look alone on something that isn't one.
@@ -67,28 +68,28 @@ export const Looks: StoryObj = {
   render: () => (
     <div className="page" style={{ display: "grid", gap: 20 }}>
       <div style={row}>
-        <span className="dim" style={{ width: 80 }}>
+        <Text dim style={{ width: 80 }}>
           Plain
-        </span>
+        </Text>
         <Widths />
         <Layout />
       </div>
       <div style={row}>
-        <span className="dim" style={{ width: 80 }}>
+        <Text dim style={{ width: 80 }}>
           Small
-        </span>
+        </Text>
         <Widths size="small" />
       </div>
       <div style={row}>
-        <span className="dim" style={{ width: 80 }}>
+        <Text dim style={{ width: 80 }}>
           Disabled
-        </span>
+        </Text>
         <Widths disabled />
       </div>
       <div style={row}>
-        <span className="dim" style={{ width: 80 }}>
+        <Text dim style={{ width: 80 }}>
           Fill
-        </span>
+        </Text>
         <div style={{ width: 360 }}>
           <Show />
         </div>

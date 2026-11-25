@@ -18,6 +18,7 @@ import { OrchestratorNone } from "./OrchestratorNone";
 import { OrchestratorPrompt } from "./OrchestratorPrompt";
 import { OrchestratorRunMeta } from "./OrchestratorRunMeta";
 import { agentOf, lookedAt, outcome } from "./words";
+import { Prose } from "../ui/Prose";
 
 // A run of the orchestrator's: what it was told, what it said and every
 // call it made, refused ones marked. This is what the page knows.
@@ -54,9 +55,9 @@ export function OrchestratorRunPage() {
           <section>
             <GroupHead>What it said</GroupHead>
             {d.output ? (
-              <div className="prose">
+              <Prose>
                 <Markdown text={d.output} />
-              </div>
+              </Prose>
             ) : (
               <OrchestratorNone>Nothing.</OrchestratorNone>
             )}

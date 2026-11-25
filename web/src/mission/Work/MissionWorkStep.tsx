@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cx } from "../../ui/cx";
 import { Icon } from "../../ui/Icon";
 import css from "./MissionWorkStep.module.css";
+import { SrOnly } from "../../ui/SrOnly";
 
 const states = { accepted: css.accepted, current: css.current, todo: css.todo };
 
@@ -19,7 +20,7 @@ export function MissionWorkStep({ n, title, state, hint, children }: { n: number
       <span className={css.line}>
         <span className={css.title}>{title}</span>
         {children}
-        <span className="sr-only">{state === "accepted" ? " (done)" : state === "current" ? " (now)" : ""}</span>
+        <SrOnly>{state === "accepted" ? " (done)" : state === "current" ? " (now)" : ""}</SrOnly>
       </span>
     </li>
   );

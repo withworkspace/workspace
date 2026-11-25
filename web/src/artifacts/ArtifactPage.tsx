@@ -41,6 +41,7 @@ import { TweaksTray } from "./TweaksTray";
 import { hasTweaks, useTweaks } from "./useTweaks";
 import { VersionLine } from "./VersionLine";
 import { VersionStrip } from "./VersionStrip";
+import { Text, textClass } from "../ui/Text";
 
 // An artifact's page. A version runs from a route of its own
 // (/frame/a3/v2, which sends the frame to where the version's files are),
@@ -169,7 +170,7 @@ export function ArtifactPage() {
                     {d.promoted.into}
                   </RefTag>
                 ) : (
-                  <span className="mono">{d.promoted.into}</span>
+                  <Text mono>{d.promoted.into}</Text>
                 )
               ) : undefined
             }
@@ -230,7 +231,7 @@ export function ArtifactPage() {
         {framed && tray && hasTweaks(told) && (
           <TweaksTray told={told} set={tweaks.set} onClose={() => setTray(false)} keys="t">
             {changed(told).length > 0 && (
-              <Link className="link" to={compareHref([{ id: d.id, n }, { id: d.id, n }], [[], tweakParams(told)])} title="The same version twice, side by side: as it opens, and as it's set here">
+              <Link className={textClass("link")} to={compareHref([{ id: d.id, n }, { id: d.id, n }], [[], tweakParams(told)])} title="The same version twice, side by side: as it opens, and as it's set here">
                 <Icon name="split" size={12} /> Compare with how it opens
               </Link>
             )}

@@ -13,6 +13,7 @@ import { MissionVerifySummary } from "./MissionVerifySummary";
 import { MissionVerifyTally } from "./MissionVerifyTally";
 import { VerifyTry } from "./VerifyTry";
 import { stepTitle } from "./words";
+import { Text } from "../../ui/Text";
 
 // VerifyBundleHead is the open bundle: who made it and of what, whether
 // it's still of its capsule as it is, what you've said of it, its summary
@@ -31,7 +32,7 @@ export function VerifyBundleHead({ b, pick }: { b: Bundle; pick: (id?: string) =
           {b.own ? ", who did the work it shows" : ", a verifier who didn't do the work"}
           {b.capsule && (
             <>
-              , of <span className="mono">{b.capsule}</span>
+              , of <Text mono>{b.capsule}</Text>
               {b.commit && (
                 <>
                   {" "}
@@ -86,7 +87,7 @@ export function VerifyBundleHead({ b, pick }: { b: Bundle; pick: (id?: string) =
       )}
       {b.stale && !b.replacedBy && (
         <MissionVerifyNote tone="attention" title="Stale">
-          Its capsule has moved on to <span className="mono">{shortCommit(b.head)}</span> since. What this shows is of <span className="mono">{shortCommit(b.commit)}</span>.
+          Its capsule has moved on to <Text mono>{shortCommit(b.head)}</Text> since. What this shows is of <Text mono>{shortCommit(b.commit)}</Text>.
         </MissionVerifyNote>
       )}
       <MissionVerifySummary text={b.summary} />

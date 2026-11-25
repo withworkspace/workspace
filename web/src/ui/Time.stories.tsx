@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Time } from "./Time";
+import { Text, textClass } from "./Text";
 
 // A time, each way it's said, for times from a minute ago to last year:
 // as it reads best from now, how long ago, a list's compact age, and the
@@ -30,7 +31,7 @@ export const Forms: StoryObj = {
     <div className="page">
       <table style={{ borderSpacing: "24px 6px", textAlign: "left" }}>
         <thead>
-          <tr className="dim">
+          <tr className={textClass("dim")}>
             <th />
             {forms.map((f) => (
               <th key={f} style={{ fontWeight: 500 }}>
@@ -42,7 +43,7 @@ export const Forms: StoryObj = {
         <tbody>
           {times.map(([name, iso]) => (
             <tr key={name}>
-              <td className="dim">{name}</td>
+              <Text as="td" dim>{name}</Text>
               {forms.map((f) => (
                 <td key={f}>
                   <Time iso={iso} as={f} />
@@ -53,7 +54,7 @@ export const Forms: StoryObj = {
         </tbody>
       </table>
       <p>
-        In a line of words, <Time iso={ago(12 * MIN)} as="relative" className="dim" />, in the class the page gives it.
+        In a line of words, <Time iso={ago(12 * MIN)} as="relative" className={textClass("dim")} />, in the class the page gives it.
       </p>
     </div>
   ),

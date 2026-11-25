@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { type DocHit, searchDocuments } from "../api";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 
 // useSpaceSearch is what a search of one space finds, by document (each
 // led to the section that says it best), as it's typed (a moment after

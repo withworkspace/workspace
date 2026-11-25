@@ -4,6 +4,7 @@ import { RowOf } from "./RowOf";
 import { type Found, keyOf } from "./sections";
 import { SettingsBlock } from "./SettingsBlock";
 import { SettingsRows } from "./SettingsRows";
+import { Text } from "../ui/Text";
 
 // Results is what Find found: each section's rows that say it, working
 // as they do in their section.
@@ -12,9 +13,9 @@ export function Results({ found, query, clear }: { found: Found[]; query: string
   return (
     <>
       <PageHead title={<>“{query.trim()}”</>}>
-        <span className="dim">
+        <Text dim>
           {n} {n === 1 ? "setting" : "settings"}
-        </span>
+        </Text>
       </PageHead>
       {found.length === 0 && <div className="quiet-line">No setting says that. What only a file sets (a repo's commands, paths) isn't here.</div>}
       {found.map(({ section, rows }) => (

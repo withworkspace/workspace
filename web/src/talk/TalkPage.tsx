@@ -18,7 +18,7 @@ import { pageScroller } from "../ui/scroller";
 import { sendKeys, useSendKey } from "../ui/sendKey";
 import { Skeleton } from "../ui/Skeleton";
 import { Status } from "../ui/Status";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Turn, TurnSaid } from "../ui/Turn";
@@ -41,6 +41,7 @@ import { TalkTurns } from "./TalkTurns";
 import { TurnView } from "./TurnView";
 import { Who } from "./Who";
 import { docAt, talkName, talkStatus } from "./words";
+import { Text, textClass } from "../ui/Text";
 import { TalkModelSwitch } from "./TalkModelSwitch";
 
 // The page scrolls in the app's main pane. Where a conversation rests as
@@ -321,7 +322,7 @@ export function TalkPage() {
         {error && <ErrorCard error={error} retry={load} />}
         {d?.summary && !side && <TalkSummary text={d.summary} />}
         {!d && !error && <Skeleton rows={6} />}
-        {d?.via && <p className="dim">Started from the {d.via} plugin, which worded the first message.</p>}
+        {d?.via && <Text as="p" dim>Started from the {d.via} plugin, which worded the first message.</Text>}
         {d?.ephemeral && (
           <Callout
             tone="quiet"
@@ -350,7 +351,7 @@ export function TalkPage() {
           {running && (
             <Turn by="agent" running aria-live="polite" head={<Who by="agent" />}>
               {d.run?.said && (
-                <TurnSaid className="dim" ref={reply}>
+                <TurnSaid className={textClass("dim")} ref={reply}>
                   <Markdown text={d.run.said} />
                 </TurnSaid>
               )}

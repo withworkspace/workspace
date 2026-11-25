@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { EditorLinkBox } from "./EditorLinkBox";
 import { EditorTool, EditorToolbar, EditorToolSep } from "./EditorToolbar";
+import { Text } from "../ui/Text";
 
 // The editor's toolbar, alone: over a document, with what the selection's
 // in lit; before there's an editor, nothing to press; in a card; in a
@@ -31,7 +32,7 @@ function Tools({ disabled = false }: { disabled?: boolean }) {
 
 const frame = (label: string, children: React.ReactNode) => (
   <div style={{ display: "grid", gap: 6 }}>
-    <span className="dim">{label}</span>
+    <Text dim>{label}</Text>
     {children}
   </div>
 );
@@ -66,7 +67,7 @@ export const Every: StoryObj = {
       {frame(
         "Its markdown",
         <EditorToolbar source onSource={none}>
-          <span className="dim">Markdown, as it's saved</span>
+          <Text dim>Markdown, as it's saved</Text>
         </EditorToolbar>,
       )}
     </div>

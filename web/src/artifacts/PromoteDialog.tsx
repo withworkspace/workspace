@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { type ArtifactDone, type ArtifactInfo, getArtifactDetail, promoteArtifact } from "../api";
 import { useLoaded } from "../load";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { toast } from "../ui/toast";
 import { useWorkspace } from "../workspace/store";
 import { ArtifactPromote } from "./ArtifactPromote";

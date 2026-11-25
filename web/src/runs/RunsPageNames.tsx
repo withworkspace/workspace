@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
-import { cx } from "../ui/cx";
 import { Summary, SummaryRow } from "../ui/Summary";
 import css from "./RunsPageNames.module.css";
+import { Text } from "../ui/Text";
 
 // RunsPageNames is where the workspace's names stand, with names on: where
 // this page and its runs are reached (names), why it's another name than
@@ -13,7 +13,7 @@ export function RunsPageNames({ names, note, router }: { names: ReactNode; note?
     <Summary className={css.names}>
       <SummaryRow label="Names">
         {names}
-        {note && <div className={cx("dim", css.note)}>{note}</div>}
+        {note && <Text as="div" dim className={css.note}>{note}</Text>}
       </SummaryRow>
       <SummaryRow label="Router">{router}</SummaryRow>
       <SummaryRow label="Settings">

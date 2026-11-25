@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { cx } from "../ui/cx";
 import { type Anchor, FloatingCard } from "../ui/FloatingCard";
 import css from "./RefFloat.module.css";
 import { RefFoot } from "./RefFoot";
+import { Text } from "../ui/Text";
 
 type RefFloatProps = {
   anchor: Anchor;
@@ -23,7 +23,7 @@ export function RefFloat({ anchor, onEnter, onLeave, hint, pin, children }: RefF
     <FloatingCard anchor={anchor} className={css.float} onEnter={onEnter} onLeave={onLeave}>
       {children}
       <RefFoot>
-        {hint && <span className={cx(css.hint, "dim")}>⌘-click its words to go there</span>}
+        {hint && <Text dim className={css.hint}>⌘-click its words to go there</Text>}
         {pin}
       </RefFoot>
     </FloatingCard>

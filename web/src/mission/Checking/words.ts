@@ -1,5 +1,5 @@
 import type { Checking } from "../../api";
-import { capital } from "../../ui/text";
+import { capital } from "../../ui/strings";
 
 // How what ws is running while it checks a step is said.
 

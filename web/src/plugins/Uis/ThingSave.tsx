@@ -3,6 +3,7 @@ import { Icon } from "../../ui/Icon";
 import { Spinner } from "../../ui/Spinner";
 import css from "./ThingSave.module.css";
 import { ThingUi, ThingUiButtons, ThingUiFailed, ThingUiTitle } from "./ThingUi";
+import { Text } from "../../ui/Text";
 
 // ThingSaveSaved is what came of a save.
 export type ThingSaveSaved = {
@@ -44,9 +45,9 @@ export function ThingSave({ what, saved, why, onAgain, onClose }: ThingSaveProps
               {saved.repo}:{saved.path}
             </code>
           </p>
-          {saved.merged && <p className="dim">It had changed there since: what was there is in it now.</p>}
-          {saved.capsule && <p className="dim">{saved.repo} takes pull requests: it's in {saved.capsule}, for you to open one from.</p>}
-          {!saved.changed && !saved.capsule && <p className="dim">It's there as it is here.</p>}
+          {saved.merged && <Text as="p" dim>It had changed there since: what was there is in it now.</Text>}
+          {saved.capsule && <Text as="p" dim>{saved.repo} takes pull requests: it's in {saved.capsule}, for you to open one from.</Text>}
+          {!saved.changed && !saved.capsule && <Text as="p" dim>It's there as it is here.</Text>}
         </>
       )}
       {!saved && why !== undefined && (

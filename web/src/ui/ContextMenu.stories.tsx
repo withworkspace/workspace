@@ -5,6 +5,7 @@ import { Icon } from "./Icon";
 import { Keys } from "./Keys";
 import { MenuItem, MenuSection, MenuSeparator, MenuText } from "./Menu";
 import { Row, RowLine, RowMain, Rows, RowSub, RowTitle } from "./Rows";
+import { Text } from "./Text";
 
 // A context menu: press a row with the other button of the mouse. Each
 // row has a menu of its own; pressing another row while one's open moves
@@ -72,7 +73,7 @@ function List() {
           </RowMain>
         </Row>
       </Rows>
-      <p className="dim">{said}</p>
+      <Text as="p" dim>{said}</Text>
     </div>
   );
 }

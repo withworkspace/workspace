@@ -3,7 +3,7 @@ import { type ArtifactContent, type DocDraft, type DocSaved, dropDraft, getThrea
 import { type Draft, MarkdownEditor, type Quote } from "../../editor/LazyEditor";
 import { toast } from "../../ui/toast";
 import { Skeleton } from "../../ui/Skeleton";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { Callout } from "../../ui/Callout";
 import { Keys } from "../../ui/Keys";
 import { Time } from "../../ui/Time";
@@ -11,6 +11,7 @@ import { Button } from "../../ui/Button";
 import { Segment, Segmented } from "../../ui/Segmented";
 import { MissionArtifactEdit } from "./MissionArtifactEdit";
 import { MissionArtifactEditBar } from "./MissionArtifactEditBar";
+import { Text } from "../../ui/Text";
 
 // DocEdit edits one of a mission's documents in place, as it reads, or
 // (no slug) a document outside any mission: a file in one of the
@@ -216,7 +217,7 @@ export function DocEdit({
               This repo has no pull requests: your edit is one commit, straight to {a.saves.branch}
               {a.saves.verify ? (
                 <>
-                  , once <span className="mono">{a.saves.verify}</span> passes
+                  , once <Text mono>{a.saves.verify}</Text> passes
                 </>
               ) : null}
               . Everyone sees it at once. Its message, below, is the only description there'll be.

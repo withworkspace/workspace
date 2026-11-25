@@ -10,6 +10,7 @@ import { Spinner } from "../../ui/Spinner";
 import { Time } from "../../ui/Time";
 import { MissionWorkRun } from "./MissionWorkRun";
 import { WorkTaskLine } from "./WorkTaskLine";
+import { Text, textClass } from "../../ui/Text";
 
 // WorkRunLine is one of a capsule's runs: a service, with where it
 // answers while it's running, what it needs and when it ends; or a task
@@ -31,11 +32,11 @@ export function WorkRunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; st
                   {n.name} (
                   {n.folder ? (
                     // A repo's folder: the worktree that meets it.
-                    <span className="mono" title={n.dir}>
+                    <Text mono title={n.dir}>
                       {n.repo} / {n.worktree}
-                    </span>
+                    </Text>
                   ) : (
-                    <a href={n.address} target="_blank" rel="noopener noreferrer" className="mono" title={n.address}>
+                    <a href={n.address} target="_blank" rel="noopener noreferrer" className={textClass("mono")} title={n.address}>
                       {n.run ?? n.address.replace(/^https?:\/\//, "")}
                     </a>
                   )}
@@ -61,14 +62,14 @@ export function WorkRunLine({ r, busy, stop }: { r: RunDetail; busy: boolean; st
           {r.link.replace(/^https?:\/\//, "").replace(/\/$/, "")}
         </RunLink>
       ) : (
-        <span className="dim">
+        <Text dim>
           {r.state === "exited" ? `exited ${r.status ?? 0}` : "gone"}
           {r.ended && (
             <>
               , <Time iso={r.ended} as="relative" />
             </>
           )}
-        </span>
+        </Text>
       )}
       {live && !r.up && <Chip tone="quiet">not up</Chip>}
     </MissionWorkRun>

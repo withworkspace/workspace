@@ -40,6 +40,7 @@ import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { pageScroller } from "../ui/scroller";
 import { useWorkspace } from "../workspace/store";
+import { Text } from "../ui/Text";
 
 export const docKeys: [string, string][] = [
   ["e", "Edit it, here: as the page tied to it"],
@@ -351,7 +352,7 @@ export function DocPage({ docRef }: { docRef: string }) {
             </Button>
           }
         >
-          Kept <Time iso={draft.at} as="relative" />. It's in <span className="mono">.ws/docs/drafts</span>: copy what you need into its page.
+          Kept <Time iso={draft.at} as="relative" />. It's in <Text mono>.ws/docs/drafts</Text>: copy what you need into its page.
         </Callout>
       )}
       {a && !mission && earlier > 0 && <ReaderEarlier count={earlier} docRef={a.ref} />}

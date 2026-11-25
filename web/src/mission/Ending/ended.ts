@@ -1,6 +1,6 @@
 import { act } from "../../api";
 import type { Reload } from "../../load";
-import { humanError } from "../../ui/text";
+import { humanError } from "../../ui/strings";
 import { toast } from "../../ui/toast";
 
 // ended toasts an ending, with an undo, and reads the mission again: its

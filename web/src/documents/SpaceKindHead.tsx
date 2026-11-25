@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import { Count } from "../ui/Count";
-import { cx } from "../ui/cx";
 import { GroupHead } from "../ui/GroupHead";
 import { Icon } from "../ui/Icon";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Option, Select } from "../ui/Select";
 import css from "./SpaceKindHead.module.css";
+import { Text } from "../ui/Text";
+import { Spacer } from "../ui/Spacer";
 
 // The segment for every state: no state is named this.
 const everyStand = "(all)";
@@ -38,8 +39,8 @@ export function SpaceKindHead({ title, count, states, stand, setStand, sorts, so
           ))}
         </Segmented>
       )}
-      <span className="spacer" />
-      <label className={cx(css.sort, "dim")}>
+      <Spacer />
+      <Text as="label" dim className={css.sort}>
         <Icon name="list" size={12} />
         <Select size="tiny" value={sort} onChange={setSort} aria-label={`Sort the ${title} list`}>
           {sorts.map(([v, label]) => (
@@ -48,7 +49,7 @@ export function SpaceKindHead({ title, count, states, stand, setStand, sorts, so
             </Option>
           ))}
         </Select>
-      </label>
+      </Text>
     </GroupHead>
   );
 }

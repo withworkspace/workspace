@@ -13,6 +13,7 @@ import { SettingsBlock } from "./SettingsBlock";
 import { SettingsFact, SettingsFacts } from "./SettingsFacts";
 import { SettingsRows } from "./SettingsRows";
 import { Updates } from "./Updates";
+import { Text, textClass } from "../ui/Text";
 
 // About is which ws this is and what's out that's later, and where the
 // workspace keeps what Settings shows. Its blocks are placed among those:
@@ -26,16 +27,16 @@ export function About({ info, section }: { info?: SettingsInfo; section: Section
       <SettingsBlock title="ws">
         <SettingsFacts>
           <SettingsFact term="Version">
-            <span className="mono" title={workspace.version}>
+            <Text mono title={workspace.version}>
               {workspace.version ? shortVersion(workspace.version) : "—"}
-            </span>
-            <div className="dim">The daemon's, which serves this page.</div>
+            </Text>
+            <Text as="div" dim>The daemon's, which serves this page.</Text>
           </SettingsFact>
           <SettingsFact term="What's new" id="whats-new">
             <Button size="small" onClick={openWhatsNew}>
               Show what's new
             </Button>
-            <div className="dim">Said once after an upgrade, and kept here.</div>
+            <Text as="div" dim>Said once after an upgrade, and kept here.</Text>
           </SettingsFact>
         </SettingsFacts>
       </SettingsBlock>
@@ -66,15 +67,15 @@ export function About({ info, section }: { info?: SettingsInfo; section: Section
             {workspace.root}
           </SettingsFact>
           <SettingsFact term="The team's settings">
-            <code title={info?.team}>{info ? fileName(info.team) : "ws.toml"}</code> <span className="dim">in the config repo, changed by commit</span>
+            <code title={info?.team}>{info ? fileName(info.team) : "ws.toml"}</code> <Text dim>in the config repo, changed by commit</Text>
           </SettingsFact>
           <SettingsFact term="Yours">
-            <code title={info?.file}>{info ? fileName(info.file) : "ws.local.toml"}</code> <span className="dim">beside it, not committed</span>
+            <code title={info?.file}>{info ? fileName(info.file) : "ws.local.toml"}</code> <Text dim>beside it, not committed</Text>
           </SettingsFact>
           {process && (
             <SettingsFact term="Process">
               <code title={process.file}>{process.name}</code>{" "}
-              <Link to="/settings/process" className="link">
+              <Link to="/settings/process" className={textClass("link")}>
                 as it's written
               </Link>
             </SettingsFact>

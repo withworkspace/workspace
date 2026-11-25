@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode, useContext } from "react";
 import css from "./Inline.module.css";
 import { cx } from "./cx";
-import { flatten } from "./text";
+import { flatten } from "./strings";
 import { useRefs, useWanted } from "../refs/known";
 import { RefTag } from "../refs/RefTag";
 import { findRefs, type Known, refAt, refKey } from "../refs/refs";

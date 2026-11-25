@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { cx } from "../ui/cx";
-import { humanError } from "../ui/text";
+import { humanError } from "../ui/strings";
 import { useRunLog } from "./runlog";
 import { plain } from "./runRows";
 import css from "./RunOutput.module.css";
