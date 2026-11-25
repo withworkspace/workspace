@@ -179,7 +179,9 @@ func indexThing(tx *store.Tx, name string, kind protocol.Ref, rec Record, all []
 	if err := tx.Forget(origin); err != nil {
 		return false, err
 	}
-	if err := tx.Thing(origin, store.Thing{Key: key, Kind: ThingKind, Title: title, State: fields[kind.Typed(protocol.FieldState)], Changed: rec.Changed}); err != nil {
+	// A plugin says its things' states in its own words, and not yet which
+	// of ws's standings each is: they stand in force, and don't age.
+	if err := tx.Thing(origin, store.Thing{Key: key, Kind: ThingKind, Title: title, State: fields[kind.Typed(protocol.FieldState)], Changed: rec.Changed, Stands: store.Stands{Standing: store.InForce}}); err != nil {
 		return false, err
 	}
 	tidy := rec

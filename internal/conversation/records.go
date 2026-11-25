@@ -62,7 +62,7 @@ func init() {
 		-- The highest number a scope has given a conversation, once the one
 		-- that had it is swept: a number's never given twice.
 		CREATE TABLE conversation_numbers (scope TEXT PRIMARY KEY, n INTEGER NOT NULL) WITHOUT ROWID;
-	`))
+	`), standingStep)
 }
 
 // sayAllWords is the part's third step: what every conversation says, for
@@ -625,3 +625,11 @@ func lineAt(l line) time.Time {
 	}
 	return time.Time{}
 }
+
+// standingStep is the part's fifth step: a conversation written before
+// things had a standing is of its moment while it's open, and settled
+// once it's resolved (since when isn't known: it ages from its last word).
+var standingStep = store.SQL(`
+	UPDATE things SET standing = CASE state WHEN 'resolved' THEN 'settled' ELSE 'passing' END
+		WHERE origin LIKE 'conversation:%' AND standing = '';
+`)

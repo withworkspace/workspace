@@ -135,7 +135,7 @@ func graphFound(tx *store.Tx, f Found) error {
 		return err
 	}
 	me := store.Key{Name: f.Name}
-	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: f.Title, State: string(Promoted), Changed: f.Changed}); err != nil {
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: f.Title, State: string(Promoted), Changed: f.Changed, Stands: Promoted.stands(f.Changed)}); err != nil {
 		return err
 	}
 	if f.Record == nil {

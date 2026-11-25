@@ -110,6 +110,9 @@ type Said struct {
 	// Gone is what's been withdrawn too: left out unless it's asked for.
 	Gone  bool
 	Limit int // things at most (20 if none)
+	// Now is when it's asked, as what's found ages (standing.go): now, if
+	// it's zero.
+	Now time.Time
 }
 
 // Found is a thing a search found, led to the place in it that's the best
@@ -130,16 +133,23 @@ type Found struct {
 	Every bool
 	Said  time.Time // its latest word, of those found
 	Ended bool      // it's of a mission that's archived
+	// Stands is how it stands, as its score was weighed: its own, or its
+	// mission's where that's settled or gone (Stands.Under).
+	Stands Stands
 }
 
-// How standing moves a thing's score: what's of an archived mission, or a
-// decision since superseded, is found, a little below what's in play.
+// How standing moves the score of a thing whose kind doesn't say its
+// standing (one written before things had one): what's of an archived
+// mission, or a decision since superseded, is found a little below what's
+// in play, and none of it ages.
 const settled = 0.85
 
 // Find is the things whose words best match q, best first, and how many
 // more matched than are given. Every thing with any of the words is
-// ranked together, as the documents are (words.Rank); a withdrawn
-// decision is left out unless q.Gone; ties go to the newer.
+// ranked together, as the documents are (words.Rank), then weighed by how
+// it stands and how long since (Stands.Worth): what's no longer so, and
+// what was of its moment long ago, is found below what's still so. A
+// withdrawn decision is left out unless q.Gone; ties go to the newer.
 func (db *DB) Find(ctx context.Context, q Said) (found []Found, more int, err error) {
 	if q.Limit <= 0 {
 		q.Limit = 20
@@ -200,7 +210,8 @@ func everyWord(tx *Tx, match, mission string) (map[Key]bool, error) {
 // place is a row a search found, as words.Rank is given it.
 type place struct {
 	thing       Thing
-	known       bool // it has a row in things
+	known       bool   // it has a row in things
+	in          Stands // its mission's, for what's in one
 	kind, at    string
 	heading     string
 	said        time.Time
@@ -213,7 +224,8 @@ func find(tx *Tx, m words.Query, s Said, every map[Key]bool) ([]Found, error) {
 			snippet(words, 2, char(2), char(3), '…', 16), substr(words.body, 1, 160),
 			bm25(words, 0.0, 1.0, 1.0),
 			t.kind IS NOT NULL, coalesce(t.kind, ''), coalesce(t.title, ''), coalesce(t.state, ''), coalesce(t.changed, ''),
-			coalesce(m.state, '')
+			coalesce(t.standing, ''), coalesce(t.since, ''),
+			coalesce(m.state, ''), coalesce(m.standing, ''), coalesce(m.since, '')
 		FROM words JOIN places p ON p.id = words.rowid
 			LEFT JOIN things t ON t.scope = p.scope AND t.name = p.name
 			LEFT JOIN things m ON m.scope = '' AND m.kind = 'mission' AND m.name = (CASE p.scope WHEN '' THEN p.name ELSE p.scope END)
@@ -231,10 +243,12 @@ func find(tx *Tx, m words.Query, s Said, every map[Key]bool) ([]Found, error) {
 			p                    place
 			id                   int64
 			said, changed, state string
+			since, inSince       string
 		)
 		if err := rows.Scan(&id, &p.thing.Key.Scope, &p.thing.Key.Name, &p.at, &p.kind, &said, &r.Title, &r.Heading,
 			&r.TitleMarked, &r.HeadingMarked, &r.Snippet, &r.Lead, &r.BM25,
-			&p.known, &p.thing.Kind, &p.thing.Title, &p.thing.State, &changed, &state); err != nil {
+			&p.known, &p.thing.Kind, &p.thing.Title, &p.thing.State, &changed, &p.thing.Standing, &since,
+			&state, &p.in.Standing, &inSince); err != nil {
 			return nil, err
 		}
 		if p.thing.State == "withdrawn" && !s.Gone {
@@ -242,6 +256,11 @@ func find(tx *Tx, m words.Query, s Said, every map[Key]bool) ([]Found, error) {
 		}
 		p.said, _ = time.Parse(Stamp, said)
 		p.thing.Changed, _ = time.Parse(Stamp, changed)
+		p.thing.Since, _ = time.Parse(Stamp, since)
+		p.in.Since, _ = time.Parse(Stamp, inSince)
+		if p.thing.Key.Scope == "" && p.thing.Kind == "mission" {
+			p.in = Stands{} // the mission itself: its own
+		}
 		p.ended = state == "archived"
 		p.gone = p.thing.State == "superseded" || p.thing.State == "withdrawn"
 		if !p.known { // a place in something that isn't a thing: as it says
@@ -258,6 +277,10 @@ func find(tx *Tx, m words.Query, s Said, every map[Key]bool) ([]Found, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	now := s.Now
+	if now.IsZero() {
+		now = time.Now()
+	}
 	ranked := words.Rank(m, found)
 	out := make([]Found, 0, len(ranked))
 	for _, r := range ranked {
@@ -266,7 +289,15 @@ func find(tx *Tx, m words.Query, s Said, every map[Key]bool) ([]Found, error) {
 		if r.Top {
 			f.At, f.Heading = "", "" // it's the thing as a whole that's asked for
 		}
-		if p.ended || p.gone {
+		f.Stands = p.thing.Stands.Under(p.in)
+		switch {
+		case f.Stands.Standing != "":
+			said := f.Said
+			if p.thing.Changed.After(said) {
+				said = p.thing.Changed
+			}
+			f.Score *= f.Stands.Worth(said, now)
+		case p.ended || p.gone:
 			f.Score *= settled
 		}
 		out = append(out, f)

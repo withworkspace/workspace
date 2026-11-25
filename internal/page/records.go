@@ -52,7 +52,7 @@ func init() {
 		) WITHOUT ROWID;
 		CREATE INDEX pages_listed ON pages (removed, changed);
 		CREATE INDEX pages_tied ON pages (tied) WHERE tied != '';
-	`), store.Retired)
+	`), store.Retired, standingStep)
 }
 
 // ThingKind is what a page is in the graph.
@@ -205,7 +205,7 @@ func graph(tx *store.Tx, id, title string, text []byte, changed time.Time) error
 		return err
 	}
 	me := store.Key{Name: id}
-	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: changed}); err != nil {
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: changed, Stands: store.Stands{Standing: store.Lasting}}); err != nil {
 		return err
 	}
 	if title == Untitled {
@@ -681,3 +681,9 @@ func (s Store) Litter(ctx context.Context) ([]string, error) {
 	}
 	return out, nil
 }
+
+// standingStep is the part's third step: a page, written before things had
+// a standing, is kept true by being kept.
+var standingStep = store.SQL(`
+	UPDATE things SET standing = 'lasting' WHERE origin LIKE 'page:%' AND standing = '';
+`)
