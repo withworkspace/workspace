@@ -24,7 +24,7 @@ import (
 // The daemon keeps one (Options.Reviews); reviews uses it, or makes one.
 func (w *Workspace) ReviewsService() *pulls.Service {
 	root := w.Root()
-	return &pulls.Service{
+	svc := &pulls.Service{
 		Root: root, Remote: func(repo string) ref.Remote { return w.WS().RemoteOf(repo) }, GitHub: w.GitHub(),
 		// While a Reviews page is open, GitHub is asked as often as the
 		// missions' PRs are watched.
@@ -42,6 +42,12 @@ func (w *Workspace) ReviewsService() *pulls.Service {
 		BareDir: func(repo string) string { return filepath.Join(root, "repos", repo, ".bare") },
 		Local:   w.reviewsLocal,
 	}
+	// In the daemon, what's said from a pull request's page is shown at
+	// once and sent behind.
+	if w.opts.Outbox != nil {
+		svc.SendBehind(w.opts.Outbox)
+	}
+	return svc
 }
 
 // reviewsLocal is what the workspace knows of branches that GitHub

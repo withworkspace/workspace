@@ -2768,6 +2768,11 @@ export interface PRDetail extends PullsDetail {
      * docked), when it can't.
      */
     noAsk?: string;
+    /**
+     * Unsent is what was said from here that GitHub didn't take (a reply,
+     * a comment, resolving a thread): to send again, or let go of.
+     */
+    unsent?: PullsUnsent[];
 }
 
 // From web/reviews.go
@@ -3691,6 +3696,18 @@ export interface PullsSection {
     rows: PullsRow[];
 }
 
+// From pulls/unsent.go
+/**
+ * Sends is how what's been said from pull requests' pages stands, across
+ * the workspace: how many are on their way to GitHub, how many it didn't
+ * take, and the first pull request with one of those (api#89).
+ */
+export interface PullsSends {
+    sending?: number;
+    failed?: number;
+    at?: string;
+}
+
 // From pulls/list.go
 /**
  * Stack is a stack of pull requests: one change that arrives as several,
@@ -3739,6 +3756,23 @@ export interface PullsStack {
      * off another PR.
      */
     onTopOf?: number;
+}
+
+// From pulls/unsent.go
+/**
+ * Unsent is something said from a pull request's page that GitHub didn't
+ * take: kept, to send again or let go of.
+ */
+export interface PullsUnsent {
+    id: number;
+    /**
+     * Doing is it in words (your reply on cache.go:3), Body what it said,
+     * and Error why GitHub didn't take it.
+     */
+    doing: string;
+    body?: string;
+    error: string;
+    at: string;
 }
 
 // From web/api.go
@@ -4098,6 +4132,11 @@ export interface ReviewNote {
     suggestion?: string;
     status: string; // open, addressed, wontfix, resolved
     thread: ReviewReply[];
+    /**
+     * Sending: its status was changed here (a pull request's thread,
+     * resolved or opened again) and GitHub hasn't been told yet.
+     */
+    sending?: boolean;
 }
 
 // From web/reviewpasses.go
@@ -4124,6 +4163,11 @@ export interface ReviewReply {
     body: string;
     commit?: string;
     status?: string;
+    /**
+     * Sending: it was said here, in a pull request's thread, and is on its
+     * way to GitHub.
+     */
+    sending?: boolean;
 }
 
 // From review/review.go
@@ -5806,6 +5850,11 @@ export interface Workspace {
      * otherwise), or where there's no GitHub.
      */
     reviews?: ReviewsCount;
+    /**
+     * Sends is how what's been said from pull requests' pages stands:
+     * absent when nothing's on its way to GitHub and nothing failed.
+     */
+    sends?: PullsSends;
     /**
      * Spaces are its spaces of documents (a repo of them, or a folder of
      * one), as config says them: a document in one is read in Documents.

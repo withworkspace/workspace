@@ -7,6 +7,7 @@ import { pageSocket } from "./socket";
 // (scripts/wiretypes, `just wire`). The types below are the ones not yet
 // moved there: move one by making the Go say what this file does.
 import type {
+  PullsUnsent,
   RunLog,
   HarnessTranscriptEntry as TranscriptEntry,
   Transcript,
@@ -548,7 +549,10 @@ export interface ReviewNote {
   url?: string; // where it is on GitHub
   suggestion?: string | null;
   status: NoteStatus;
-  thread: { by: string; at: string; body: string; commit?: string; status?: string }[];
+  // sending (a reply, or the comment's status): made here, in a pull
+  // request's thread, and on its way to GitHub.
+  thread: { by: string; at: string; body: string; commit?: string; status?: string; sending?: boolean }[];
+  sending?: boolean;
 }
 
 // DocQuote is text a thread highlights, with a little either side to find
@@ -1863,6 +1867,9 @@ export interface PRDetail {
   docked?: { capsule: string; branch: string; by: "ws" | "you"; at: string };
   talks: Talk[];
   noAsk?: string; // why an agent can't be asked about it
+  // What was said from here that GitHub didn't take, to send again or let
+  // go of.
+  unsent?: PullsUnsent[];
 }
 
 export const getPR = (repo: string, number: number | string) => getJSON<PRDetail>(prAPI(repo, number));
@@ -1949,6 +1956,7 @@ export interface Said {
   at: string;
   url?: string;
   stale?: boolean; // a review of commits it's moved on from
+  sending?: boolean; // a comment made from here, on its way to GitHub
 }
 
 // Discussion is what's been said on a pull request, oldest first, and
@@ -1960,8 +1968,15 @@ export interface Discussion {
 
 export const getPRDiscussion = (api: string) => getJSON<Discussion>(`${api}/discussion`);
 
-// commentPR says something on the pull request itself. It posts at once.
+// commentPR says something on the pull request itself. It answers with it
+// shown, as on its way: GitHub's told behind.
 export const commentPR = (api: string, body: string) => send<Discussion>("POST", `${api}/discussion`, { body });
+
+// Something said from a pull request's page that GitHub didn't take: sent
+// again, or let go of.
+export type Unsent = PullsUnsent;
+export const resendPR = (api: string, id: number) => send<Record<string, never>>("POST", `${api}/unsent/${id}/resend`);
+export const discardPR = (api: string, id: number) => send<Record<string, never>>("DELETE", `${api}/unsent/${id}`);
 
 // askPR asks about a pull request (about lines of its diff, when given),
 // docking it first: an ask, as startAsk's is about a document, followed

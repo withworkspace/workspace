@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/github"
+	"github.com/withworkspace/workspace/internal/outbox"
 	"github.com/withworkspace/workspace/internal/ref"
 	"github.com/withworkspace/workspace/internal/review"
 )
@@ -37,6 +38,9 @@ type Service struct {
 	// before GitHub is asked again (default a minute).
 	Now   func() time.Time
 	Fresh time.Duration
+	// Outbox is where what's said from a PR's page is sent from, behind
+	// the answer (SendBehind: the daemon's). nil posts at once.
+	Outbox *outbox.Queue
 
 	mu   sync.Mutex
 	list *List

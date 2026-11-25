@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   askPR,
   declinePR,
+  discardPR,
   type Discussion,
   dockPR,
   getPR,
@@ -18,11 +19,13 @@ import {
   type PRDetail,
   prAPI,
   previewPRReview,
+  resendPR,
   respondPRThread,
   type Review as ReviewData,
   type ReviewGuide,
   type ReviewPass,
   type ReviewState,
+  type Unsent,
   submitPRReview,
   useEvents,
   type Verdict,
@@ -47,6 +50,7 @@ import { Time } from "../ui/Time";
 import { GuideMark, GuideSection } from "./Guide";
 import { PRDescription, PRDiscussion, StackDescriptions } from "./Overview";
 import { PassesSection, PassMarks, standingWords } from "./Passes";
+import { PullRequestUnsent } from "./PullRequestUnsent";
 import { useReviewPasses } from "./usePasses";
 import { layersLeft } from "./after";
 import { Checks, prHref, prStatus, reviewed } from "./Reviews";
@@ -307,6 +311,21 @@ export function PRReviewPage() {
       )
       .finally(() => setDeclining(false));
   };
+  // What was said from here that GitHub didn't take: sent again, or let
+  // go of. Either way the page reads what's left of them.
+  const [settling, setSettling] = useState<number>();
+  const settle = (u: Unsent, how: (api: string, id: number) => Promise<unknown>) => {
+    setSettling(u.id);
+    how(api, u.id)
+      .then(
+        () => load(),
+        (e: Error) => {
+          toast(humanError(e.message), { tone: "danger" });
+          return load();
+        },
+      )
+      .finally(() => setSettling(undefined));
+  };
   // ask goes to the ask bar: with lines in hand, or what a pass found, to
   // ask about them; with neither, about the whole of it.
   const ask = (lines?: Selection, finding?: AskedFinding) => {
@@ -424,6 +443,7 @@ export function PRReviewPage() {
     ),
     notices: (
       <>
+        {!whole && d.unsent && <PullRequestUnsent unsent={d.unsent} busy={settling} onResend={(u) => settle(u, resendPR)} onDiscard={(u) => settle(u, discardPR)} />}
         <div className="pr-meta">
           {!whole && <Status s={prStatus(pr)} />}
           {!whole && pr.asked === "you" && pr.state === "needs-review" && (

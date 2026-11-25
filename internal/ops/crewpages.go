@@ -13,6 +13,7 @@ import (
 	"github.com/withworkspace/workspace/internal/crew"
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/outbox"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/review"
 	"github.com/withworkspace/workspace/internal/team"
@@ -370,7 +371,8 @@ func (w *Workspace) SendToCrew(slug, ref string, ids []string) (string, error) {
 }
 
 // The Reviews and Team pages' writes: posting your review of a pull
-// request, or a reply in one of its threads, to GitHub; noting you've seen
+// request to GitHub, a reply in one of its threads or a comment on it
+// (sent behind, in the daemon); noting you've seen
 // the Team page; and having gists and a period's account written. Each is
 // the service's (Options.Reviews, Options.Team: the daemon's, which its
 // pages read from too).
@@ -387,15 +389,17 @@ func (w *Workspace) SubmitPR(repo string, number int, head, verdict, summary str
 	return svc.Submit(repo, number, head, verdict, summary)
 }
 
-// RespondPR posts your reply in one of a pull request's threads, or
-// resolves or reopens it.
-func (w *Workspace) RespondPR(repo string, number int, thread string, what review.Response, body string) error {
+// RespondPR is your reply in one of a pull request's threads, or
+// resolving or reopening it, and is its threads with that. In the daemon
+// it's shown at once and sent to GitHub behind (Options.Outbox).
+func (w *Workspace) RespondPR(repo string, number int, thread string, what review.Response, body string) (*review.Review, error) {
 	svc, err := w.reviews()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if err := svc.Respond(repo, number, thread, what, body); err != nil {
-		return err
+	threads, err := svc.Respond(repo, number, thread, what, body)
+	if err != nil {
+		return nil, err
 	}
 	// What the follow-up said of a thread is settled with it.
 	switch what {
@@ -404,16 +408,43 @@ func (w *Workspace) RespondPR(repo string, number int, thread string, what revie
 	case review.Reopen:
 		w.followedUp(repo, number, thread, false)
 	}
-	return nil
+	return threads, nil
 }
 
-// CommentPR posts a comment of yours on a pull request itself.
-func (w *Workspace) CommentPR(repo string, number int, body string) error {
+// CommentPR is a comment of yours on a pull request itself, and is what's
+// been said on it with that: sent as RespondPR's is.
+func (w *Workspace) CommentPR(repo string, number int, body string) (*pulls.Discussion, error) {
+	svc, err := w.reviews()
+	if err != nil {
+		return nil, err
+	}
+	return svc.Comment(repo, number, body)
+}
+
+// ResendPR sends something said from a pull request's page that GitHub
+// didn't take again; DiscardPR lets go of it.
+func (w *Workspace) ResendPR(repo string, number int, id int64) error {
 	svc, err := w.reviews()
 	if err != nil {
 		return err
 	}
-	return svc.Comment(repo, number, body)
+	return unsent(svc.Resend(repo, number, id))
+}
+
+func (w *Workspace) DiscardPR(repo string, number int, id int64) error {
+	svc, err := w.reviews()
+	if err != nil {
+		return err
+	}
+	return unsent(svc.Discard(repo, number, id))
+}
+
+// unsent is err as ops says it: one that's no longer waiting isn't found.
+func unsent(err error) error {
+	if errors.Is(err, outbox.ErrNotFound) {
+		return fmt.Errorf("%w: it's no longer waiting to be sent", ErrNotFound)
+	}
+	return err
 }
 
 // DeclinePR takes your name off a pull request's reviewers on GitHub: it

@@ -551,13 +551,15 @@ func TestThreadsReadAsComments(t *testing.T) {
 		resolved = fmt.Sprint(id, " ", yes)
 		return nil
 	}
-	if err := w.svc.Respond("api", 89, "T1", review.Answer, " Good. "); err != nil || said != "T1: Good." {
-		t.Errorf("reply: %v, %q", err, said)
+	// With nowhere to send from, each is posted at once, and answers with
+	// the threads read again.
+	if now, err := w.svc.Respond("api", 89, "T1", review.Answer, " Good. "); err != nil || said != "T1: Good." || len(now.Comments) != 2 {
+		t.Errorf("reply: %v, %q, %+v", err, said, now)
 	}
-	if err := w.svc.Respond("api", 89, "T1", review.Resolve, ""); err != nil || resolved != "T1 true" {
+	if _, err := w.svc.Respond("api", 89, "T1", review.Resolve, ""); err != nil || resolved != "T1 true" {
 		t.Errorf("resolve: %v, %q", err, resolved)
 	}
-	if err := w.svc.Respond("api", 89, "T1", review.Answer, " "); err == nil {
+	if _, err := w.svc.Respond("api", 89, "T1", review.Answer, " "); err == nil {
 		t.Error("an empty reply was sent")
 	}
 }
@@ -607,10 +609,10 @@ func TestDiscussion(t *testing.T) {
 		said = fmt.Sprintf("%s/%s#%d: %s", org, repo, number, body)
 		return nil
 	}
-	if err := w.svc.Comment("api", 89, "  "); err == nil {
+	if _, err := w.svc.Comment("api", 89, "  "); err == nil {
 		t.Error("a comment with no words was taken")
 	}
-	if err := w.svc.Comment("api", 89, " Thanks. "); err != nil || !strings.HasSuffix(said, "/api#89: Thanks.") {
+	if now, err := w.svc.Comment("api", 89, " Thanks. "); err != nil || !strings.HasSuffix(said, "/api#89: Thanks.") || now == nil {
 		t.Errorf("comment: %v, said %q", err, said)
 	}
 }

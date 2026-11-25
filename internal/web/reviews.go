@@ -74,6 +74,9 @@ type PRDetail struct {
 	// NoAsk is why an agent can't be asked about it (a fork's can't be
 	// docked), when it can't.
 	NoAsk string `json:"noAsk,omitempty"`
+	// Unsent is what was said from here that GitHub didn't take (a reply,
+	// a comment, resolving a thread): to send again, or let go of.
+	Unsent []pulls.Unsent `json:"unsent,omitempty"`
 }
 
 // PRQuestion is what's asked about a PR: the question, and the lines of
@@ -209,7 +212,7 @@ func (s *Server) prDetail(w http.ResponseWriter, r *http.Request) {
 		prError(w, err)
 		return
 	}
-	out := PRDetail{Detail: d, Talks: PRTalks(s.Root, pulls.Key(repo, number))}
+	out := PRDetail{Detail: d, Talks: PRTalks(s.Root, pulls.Key(repo, number)), Unsent: s.Reviews.Unsent(repo, number)}
 	switch {
 	case d.PR.Fork:
 		out.NoAsk = "It's from a fork, which ws can't dock, so an agent can't read it here."
@@ -315,7 +318,8 @@ func (s *Server) prThreads(w http.ResponseWriter, r *http.Request) {
 }
 
 // prRespond is you on one of GitHub's threads: a reply, or resolving or
-// reopening it. It posts at once.
+// reopening it. It answers with the threads as they now show: GitHub's
+// told behind.
 func (s *Server) prRespond(w http.ResponseWriter, r *http.Request) {
 	repo, number, ok := s.prOf(w, r)
 	var b struct {
@@ -330,11 +334,7 @@ func (s *Server) prRespond(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "what is reply, resolve or reopen")
 		return
 	}
-	if err := s.App.RespondPR(repo, number, r.PathValue("id"), what, b.Body); err != nil {
-		prError(w, err)
-		return
-	}
-	t, err := s.Reviews.ThreadsNow(repo, number)
+	t, err := s.App.RespondPR(repo, number, r.PathValue("id"), what, b.Body)
 	if err != nil {
 		prError(w, err)
 		return
@@ -358,7 +358,8 @@ func (s *Server) prDiscussion(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, d)
 }
 
-// prComment is you saying something on the PR itself. It posts at once.
+// prComment is you saying something on the PR itself. It answers with
+// what's been said as it now shows: GitHub's told behind.
 func (s *Server) prComment(w http.ResponseWriter, r *http.Request) {
 	repo, number, ok := s.prOf(w, r)
 	var b struct {
@@ -367,16 +368,36 @@ func (s *Server) prComment(w http.ResponseWriter, r *http.Request) {
 	if !ok || !readBody(w, r, &b) {
 		return
 	}
-	if err := s.App.CommentPR(repo, number, b.Body); err != nil {
-		prError(w, err)
-		return
-	}
-	d, err := s.Reviews.DiscussionNow(repo, number)
+	d, err := s.App.CommentPR(repo, number, b.Body)
 	if err != nil {
 		prError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, d)
+}
+
+// prUnsent is something said from the PR's page that GitHub didn't take:
+// sent again (POST …/resend), or let go of (DELETE).
+func (s *Server) prUnsent(w http.ResponseWriter, r *http.Request) {
+	repo, number, ok := s.prOf(w, r)
+	if !ok {
+		return
+	}
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonError(w, http.StatusNotFound, "nothing's waiting to be sent by that name")
+		return
+	}
+	if r.Method == http.MethodDelete {
+		err = s.App.DiscardPR(repo, number, id)
+	} else {
+		err = s.App.ResendPR(repo, number, id)
+	}
+	if err != nil {
+		prError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, struct{}{})
 }
 
 // prDecline takes your name off the PR's reviewers on GitHub: it isn't

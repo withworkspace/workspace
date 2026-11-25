@@ -77,6 +77,9 @@ type Note struct {
 	Suggestion *string `json:"suggestion,omitempty"`
 	Status     string  `json:"status"` // open, addressed, wontfix, resolved
 	Thread     []Reply `json:"thread"`
+	// Sending: its status was changed here (a pull request's thread,
+	// resolved or opened again) and GitHub hasn't been told yet.
+	Sending bool `json:"sending,omitempty"`
 }
 
 // Reply is a message in a comment's thread.
@@ -86,6 +89,9 @@ type Reply struct {
 	Body   string    `json:"body"`
 	Commit string    `json:"commit,omitempty"`
 	Status string    `json:"status,omitempty"`
+	// Sending: it was said here, in a pull request's thread, and is on its
+	// way to GitHub.
+	Sending bool `json:"sending,omitempty"`
 }
 
 // Counts says how many comments of each kind a review has.

@@ -1,0 +1,305 @@
+package outbox
+
+import (
+	"errors"
+	"fmt"
+	"runtime/debug"
+	"sync"
+	"time"
+)
+
+// Kind is how a kind of write is sent: whoever makes writes of it says
+// (Queue.Handle).
+type Kind struct {
+	// Send makes the write there. An error is it refused, or not known to
+	// have been made: either way it's kept, failed, for whoever made it to
+	// send again or let go of.
+	Send func(Item) error
+	// Again says whether sending a write twice is the same as sending it
+	// once: one a daemon stopped in the middle of is then sent again. One
+	// that isn't (a comment: twice is two) is kept as failed, as it may
+	// have been made. nil: none is.
+	Again func(Item) bool
+	// Settled is told once a lane's writes of this kind have been sent:
+	// those made (still kept, so what's shown of them stays until this
+	// returns) and those that failed. It's where what they changed is
+	// read again.
+	Settled func(lane string, sent, failed []Item)
+}
+
+// atOnce is how many lanes' writes are sent at a time.
+const atOnce = 4
+
+// stoppedMidway is why a write a daemon stopped in the middle of, which
+// can't be sent twice, is failed.
+const stoppedMidway = "ws stopped while this was being sent, so it may have been: look before sending it again"
+
+// Queue sends what's in a workspace's outbox, in the daemon: each lane's
+// writes in the order they were made, one at a time.
+type Queue struct {
+	Root string
+	// Now is the clock (tests set it).
+	Now func() time.Time
+	// Log is told what couldn't be done.
+	Log func(format string, args ...any)
+
+	mu      sync.Mutex
+	kinds   map[string]Kind
+	running map[string]bool // by lane
+	slots   chan struct{}
+	stopped bool
+	wg      sync.WaitGroup
+}
+
+func (q *Queue) logf(format string, args ...any) {
+	if q.Log != nil {
+		q.Log(format, args...)
+	}
+}
+
+// Handle says how writes of a kind are sent. Said before Resume.
+func (q *Queue) Handle(kind string, k Kind) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.kinds == nil {
+		q.kinds = map[string]Kind{}
+	}
+	q.kinds[kind] = k
+}
+
+// Add keeps a write and starts sending its lane's, if they aren't being
+// sent already. op is the write as its kind reads it back (JSON); doing
+// is the write in words.
+func (q *Queue) Add(lane, kind, doing string, op any) (Item, error) {
+	now := time.Now()
+	if q.Now != nil {
+		now = q.Now()
+	}
+	it, err := add(q.Root, lane, kind, doing, op, now)
+	if err != nil {
+		return Item{}, err
+	}
+	q.kick(lane)
+	return it, nil
+}
+
+// Retry sends a write that failed again.
+func (q *Queue) Retry(id int64) error {
+	it, err := Get(q.Root, id)
+	if err != nil {
+		return err
+	}
+	moved, err := set(q.Root, id, Waiting, "", true, Failed)
+	if err != nil {
+		return err
+	}
+	if !moved {
+		return ErrNotFound
+	}
+	q.kick(it.Lane)
+	return nil
+}
+
+// Drop lets go of a write that failed: it's not made, and not kept.
+func (q *Queue) Drop(id int64) error {
+	n, err := remove(q.Root, Failed, id)
+	if err == nil && n == 0 {
+		err = ErrNotFound
+	}
+	return err
+}
+
+// Resume takes up what a daemon before this one left: a write it was in
+// the middle of is sent again if that's the same as once, and failed
+// otherwise, as it may have been made; then every lane with something
+// waiting is sent. Called once, before anything's added: a write being
+// sent by this daemon would be taken for one the last left.
+func (q *Queue) Resume() {
+	all, err := In(q.Root, "")
+	if err != nil {
+		q.logf("outbox: reading what's waiting: %v", err)
+		return
+	}
+	lanes := map[string]bool{}
+	for _, it := range all {
+		switch it.State {
+		case Sending:
+			q.mu.Lock()
+			k := q.kinds[it.Kind]
+			q.mu.Unlock()
+			if k.Again != nil && k.Again(it) {
+				if _, err := set(q.Root, it.ID, Waiting, "", false, Sending); err != nil {
+					q.logf("outbox: %s: %v", it, err)
+				}
+				lanes[it.Lane] = true
+				continue
+			}
+			q.logf("outbox: %s was being sent when the daemon before this one went: it's kept, to look at", it)
+			if _, err := set(q.Root, it.ID, Failed, stoppedMidway, true, Sending); err != nil {
+				q.logf("outbox: %s: %v", it, err)
+			}
+		case Waiting, Sent:
+			lanes[it.Lane] = true
+		}
+	}
+	for lane := range lanes {
+		q.kick(lane)
+	}
+}
+
+// kick starts sending a lane's writes, unless they're being sent.
+func (q *Queue) kick(lane string) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.stopped || q.running[lane] {
+		return
+	}
+	if q.running == nil {
+		q.running = map[string]bool{}
+		q.slots = make(chan struct{}, atOnce)
+	}
+	q.running[lane] = true
+	q.wg.Add(1)
+	go q.drain(lane)
+}
+
+// drain sends a lane's writes until none is waiting.
+func (q *Queue) drain(lane string) {
+	defer q.wg.Done()
+	for {
+		// What's waiting is read where kick looks, so a write added as
+		// this finds none starts a drain of its own.
+		q.mu.Lock()
+		items, err := In(q.Root, lane)
+		var todo []Item
+		for _, it := range items {
+			// (One of a kind nobody here sends waits for a ws that does.)
+			if (it.State == Waiting || it.State == Sent) && q.kinds[it.Kind].Send != nil {
+				todo = append(todo, it)
+			}
+		}
+		if err != nil || len(todo) == 0 || q.stopped {
+			if err != nil {
+				q.logf("outbox: reading %s's: %v", lane, err)
+			}
+			delete(q.running, lane)
+			q.mu.Unlock()
+			return
+		}
+		q.mu.Unlock()
+		q.slots <- struct{}{}
+		q.send(lane, todo)
+		<-q.slots
+	}
+}
+
+// send sends a lane's waiting writes in turn, tells each kind how its
+// went, and then forgets those made.
+func (q *Queue) send(lane string, todo []Item) {
+	sent, failed := map[string][]Item{}, map[string][]Item{}
+	var kinds []string
+	note := func(m map[string][]Item, it Item) {
+		if len(sent[it.Kind])+len(failed[it.Kind]) == 0 {
+			kinds = append(kinds, it.Kind)
+		}
+		m[it.Kind] = append(m[it.Kind], it)
+	}
+	for _, it := range todo {
+		if it.State == Sent { // made by a daemon before this one, which didn't live to say
+			note(sent, it)
+			continue
+		}
+		q.mu.Lock()
+		k, stopped := q.kinds[it.Kind], q.stopped
+		q.mu.Unlock()
+		if stopped {
+			break // it waits for the next daemon
+		}
+		err := q.sendOne(k, it)
+		if errors.Is(err, errGone) {
+			continue
+		}
+		if err != nil {
+			q.logf("outbox: %s failed: %v", it, err)
+			it.State, it.Error = Failed, err.Error()
+			if _, serr := set(q.Root, it.ID, Failed, it.Error, true, Sending); serr != nil {
+				q.logf("outbox: %s: %v", it, serr)
+			}
+			note(failed, it)
+			continue
+		}
+		it.State = Sent
+		if _, serr := set(q.Root, it.ID, Sent, "", true, Sending); serr != nil {
+			q.logf("outbox: %s: %v", it, serr)
+		}
+		note(sent, it)
+	}
+	var done []int64
+	for _, kind := range kinds {
+		q.mu.Lock()
+		k := q.kinds[kind]
+		q.mu.Unlock()
+		if k.Settled != nil {
+			q.settled(k, lane, sent[kind], failed[kind])
+		}
+		for _, it := range sent[kind] {
+			done = append(done, it.ID)
+		}
+	}
+	if _, err := remove(q.Root, Sent, done...); err != nil {
+		q.logf("outbox: forgetting what %s was sent: %v", lane, err)
+	}
+}
+
+// errGone: a write that was waiting isn't any more.
+var errGone = errors.New("it's no longer waiting")
+
+// sendOne marks a write as being sent, and sends it. A panic fails it.
+func (q *Queue) sendOne(k Kind, it Item) (err error) {
+	moved, err := set(q.Root, it.ID, Sending, "", false, Waiting)
+	if err != nil {
+		return err
+	}
+	if !moved {
+		return errGone
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			q.logf("outbox: sending %s: %v\n%s", it, r, debug.Stack())
+			err = fmt.Errorf("ws failed sending it: %v", r)
+		}
+	}()
+	return k.Send(it)
+}
+
+func (q *Queue) settled(k Kind, lane string, sent, failed []Item) {
+	defer func() {
+		if r := recover(); r != nil {
+			q.logf("outbox: after sending %s's: %v\n%s", lane, r, debug.Stack())
+		}
+	}()
+	k.Settled(lane, sent, failed)
+}
+
+// Wait waits until nothing's being sent.
+func (q *Queue) Wait() { q.wg.Wait() }
+
+// Stop has the queue send no more: a write being sent is let finish, up to
+// grace, and those waiting are the next daemon's. It says whether what
+// was being sent finished.
+func (q *Queue) Stop(grace time.Duration) bool {
+	q.mu.Lock()
+	q.stopped = true
+	q.mu.Unlock()
+	done := make(chan struct{})
+	go func() {
+		q.wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return true
+	case <-time.After(grace):
+		return false
+	}
+}

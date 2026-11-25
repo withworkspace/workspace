@@ -27,7 +27,7 @@ import { pageKeys } from "./pages/Pages";
 import { DocsAddress, DocumentAt, LocalPageAt, OpenAddress, PageAddress } from "./documents/DocumentAt";
 import { Review, reviewKeys } from "./review/Review";
 import { PRReviewPage, prReviewKeys } from "./reviews/PRReview";
-import { ReviewsPage, reviewsKeys } from "./reviews/Reviews";
+import { prHref, ReviewsPage, reviewsKeys } from "./reviews/Reviews";
 import { repoOfPage, scopePrefix } from "./shell/find";
 import { Palette } from "./shell/Palette/Palette";
 import { useFaviconBadge, useNotifications } from "./shell/notify";
@@ -71,6 +71,7 @@ import { FootBelow } from "./chrome/FootBelow";
 import { FootBeside } from "./chrome/FootBeside";
 import { FootCrewLive } from "./chrome/FootCrewLive";
 import { FootReady } from "./chrome/FootReady";
+import { FootSends } from "./chrome/FootSends";
 import { FootSidebar } from "./chrome/FootSidebar";
 import { FootSep } from "./chrome/FootSep";
 import { type Need, useArrived, waitingOf } from "./chrome/need";
@@ -178,6 +179,10 @@ export function App() {
   const arrived = useArrived(workspace ? needs : undefined);
   // Who's at work now, for the foot: a window on to the work.
   const ready = workspace?.reviews?.ready ?? 0;
+  // What's been said on pull requests and is on its way to GitHub, or
+  // didn't get there: the pull request that says which is where to go.
+  const sends = workspace?.sends;
+  const sendsAt = sends?.at?.match(/^(.+)#(\d+)$/);
   const atWork = useMemo(() => (workspace?.missions ?? []).flatMap((m) => m.crew.filter((c) => !c.ended && c.activity === "working").map((c) => ({ m, c }))), [workspace]);
   useEffect(() => setTitleContext(workspace?.name ?? "ws", waiting.length), [workspace?.name, waiting.length]);
   useFaviconBadge(waiting.length > 0);
@@ -273,6 +278,8 @@ export function App() {
               <FootSidebar shown={!out} count={needs.length} fresh={arrived.size > 0} onPress={toggleSidebar} />
               {ready > 0 && <FootSep />}
               <FootReady count={ready} />
+              {sends && <FootSep />}
+              {sends && <FootSends sending={sends.sending} failed={sends.failed} to={sendsAt ? prHref(sendsAt[1], Number(sendsAt[2])) : undefined} />}
               {atWork.length > 0 && <FootSep />}
               {atWork.map(({ m, c }) => (
                 <FootCrewLive key={`${m.slug}:${c.id}`} slug={m.slug} id={c.id} mission={m.title} />
