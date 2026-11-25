@@ -1,7 +1,8 @@
 import { type CrewDetail, getTranscript, type TranscriptEntry } from "../../api";
 import { useLoaded } from "../../load";
 import { MoreLink } from "../../ui/MoreLink";
-import { PromptCard, pendingCall } from "../AgentView";
+import { CrewPrompt } from "../Crew/CrewPrompt";
+import { pendingCall } from "../Crew/groups";
 import { MissionLeadPrompt } from "./MissionLeadPrompt";
 
 // LeadPrompt is what crew are stopped on, answered from the mission's
@@ -15,7 +16,7 @@ export function LeadPrompt({ slug, crew }: { slug: string; crew: CrewDetail }) {
   );
   return (
     <MissionLeadPrompt>
-      <PromptCard slug={slug} crew={crew} pending={pending} compact />
+      <CrewPrompt slug={slug} crew={crew} pending={pending} compact />
       <MoreLink to={`/missions/${slug}/crew/${crew.id}`}>
         Open {crew.id}'s conversation
       </MoreLink>

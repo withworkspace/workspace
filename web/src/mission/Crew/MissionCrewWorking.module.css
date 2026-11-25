@@ -1,0 +1,25 @@
+/* Crew at work, set in under the avatar as its words are
+   (MissionCrewWorking.tsx). */
+.working {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  margin-left: 30px;
+}
+
+.working code {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: bottom;
+}
+
+@media (max-width: 720px) {
+  .working {
+    margin-left: 0;
+  }
+}

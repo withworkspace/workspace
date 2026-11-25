@@ -104,7 +104,7 @@ export const WhatMovesIt: StoryObj = {
           wide
           actions={
             <MissionLeadPrompt>
-              <div style={{ padding: 12, border: "1px solid var(--line)", borderRadius: 8 }}>What it's stopped on (crew's PromptCard)</div>
+              <div style={{ padding: 12, border: "1px solid var(--line)", borderRadius: 8 }}>What it's stopped on (crew's CrewPrompt)</div>
               <MoreLink to="/">Open c2's conversation</MoreLink>
             </MissionLeadPrompt>
           }

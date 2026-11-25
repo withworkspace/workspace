@@ -1,5 +1,5 @@
 import type { Transcript } from "../api";
-import { useTranscript } from "../mission/AgentView";
+import { useTranscript } from "../mission/Crew/useTranscript";
 import { stepDoing } from "../ui/commandLabel";
 import { useCommandLabels } from "../workspace/store";
 import type { CommandLabel } from "../wire.gen";

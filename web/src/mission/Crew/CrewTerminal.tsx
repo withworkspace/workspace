@@ -1,15 +1,16 @@
-import { pageSocket } from "../socket";
+import { pageSocket } from "../../socket";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef, useState } from "react";
-import { type TermKey, type TermScreen, typeIntoCrew, useVisible } from "../api";
+import { type TermKey, type TermScreen, typeIntoCrew, useVisible } from "../../api";
+import { MissionCrewScreen } from "./MissionCrewScreen";
 
 // CrewTerminal is a running crew's terminal: its screen as the server
 // emulates it (frames from the server, not the raw stream, so nothing depends
 // on joining halfway), and what you type, sent key by key for the server
 // to encode for the modes the crew has on. It's drawn at the crew's size,
 // with the font scaled to fit: the size is the crew's.
-// Loaded only when a crew's page is opened.
+// Loaded only when a crew's page is opened. MissionCrewScreen draws it.
 
 export type TermState = "connecting" | "live" | "ended" | "gone";
 
@@ -110,12 +111,7 @@ export default function CrewTerminal({ slug, id, onState, onTitle }: { slug: str
     return leave;
   }, [slug, id, visible, onState, onTitle]);
 
-  return (
-    <>
-      <div ref={host} className="crew-term" />
-      {error && <div className="term-error">Not sent: {error}</div>}
-    </>
-  );
+  return <MissionCrewScreen ref={host} error={error} />;
 }
 
 // draw paints a screen: each row erased and written at its place, then the

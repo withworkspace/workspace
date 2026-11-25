@@ -6,7 +6,7 @@ import { docKeys } from "../files/DocPage";
 import { explorerKeys } from "../files/Explorer";
 import { filesKeys } from "../files/Files";
 import { artifactKeys } from "../mission/ArtifactPage";
-import { crewKeys } from "../mission/CrewPage";
+import { crewKeys } from "../mission/Crew/CrewPage";
 import { listKeys } from "../mission/List";
 import { missionKeys } from "../mission/Mission";
 import { pageKeys } from "../pages/Pages";

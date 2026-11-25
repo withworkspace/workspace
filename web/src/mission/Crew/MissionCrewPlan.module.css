@@ -1,0 +1,79 @@
+/* Crew's plan, pinned on top of its conversation (MissionCrewPlan.tsx). */
+.plan {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  margin-bottom: var(--space-4);
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--raised) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-xs);
+}
+
+.plan summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--text-sm);
+  min-width: 0;
+}
+
+.plan summary::-webkit-details-marker {
+  display: none;
+}
+
+.chevron {
+  transition: transform var(--fast) var(--ease);
+}
+
+details[open] > summary .chevron {
+  transform: rotate(90deg);
+}
+
+.title {
+  font-weight: 600;
+}
+
+.progress {
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+  flex: none;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  background: var(--green-fill);
+  transition: width var(--slow) var(--ease);
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+}
+
+.now {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dim);
+}
+
+.plan[open] .now {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .plan .progress {
+    display: none;
+  }
+}

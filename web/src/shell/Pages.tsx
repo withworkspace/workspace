@@ -10,7 +10,7 @@ import { DocumentsPage, SpacePage } from "../documents/Documents";
 import { Explorer } from "../files/Explorer";
 import { FilesPage } from "../files/Files";
 import { ArtifactPage } from "../mission/ArtifactPage";
-import { CrewPage } from "../mission/CrewPage";
+import { CrewPage } from "../mission/Crew/CrewPage";
 import { MissionList } from "../mission/List";
 import { MissionPage } from "../mission/Mission";
 import { NotificationsPage } from "../notifications/NotificationsPage";

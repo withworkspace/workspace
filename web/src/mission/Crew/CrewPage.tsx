@@ -1,26 +1,28 @@
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
-import { act, getMission } from "../api";
-import { useLoaded } from "../load";
-import { Icon } from "../ui/Icon";
-import { Crumbs } from "../ui/Crumbs";
-import { useKeys } from "../keys";
-import { useTitle } from "../ui/useTitle";
-import { toast } from "../ui/toast";
-import { Loading } from "../ui/Loading";
-import { Empty } from "../ui/Empty";
-import { humanError } from "../ui/text";
-import { Keys } from "../ui/Keys";
-import { confirm } from "../ui/Confirm";
-import { Status, type StatusInfo } from "../ui/Status";
-import { crewStatus } from "../ui/statusOf";
+import { act, getMission } from "../../api";
+import { useLoaded } from "../../load";
+import { Icon } from "../../ui/Icon";
+import { Crumbs } from "../../ui/Crumbs";
+import { useKeys } from "../../keys";
+import { useTitle } from "../../ui/useTitle";
+import { toast } from "../../ui/toast";
+import { Loading } from "../../ui/Loading";
+import { Empty } from "../../ui/Empty";
+import { humanError } from "../../ui/text";
+import { confirm } from "../../ui/Confirm";
+import type { StatusInfo } from "../../ui/Status";
+import { crewStatus } from "../../ui/statusOf";
 import type { TermState } from "./CrewTerminal";
-import { AgentView } from "./AgentView";
-import { CrewBadge } from "./CrewBadge";
-import { Count } from "../ui/Count";
-import { Button } from "../ui/Button";
-import { Tab, Tabs } from "../ui/Tabs";
-import { useWorkspace } from "../workspace/store";
+import { CrewConversation } from "./CrewConversation";
+import { MissionCrewHead } from "./MissionCrewHead";
+import { MissionCrewPage } from "./MissionCrewPage";
+import { MissionCrewTerminal } from "./MissionCrewTerminal";
+import { CrewBadge } from "../CrewBadge";
+import { Count } from "../../ui/Count";
+import { Button } from "../../ui/Button";
+import { Tab, Tabs } from "../../ui/Tabs";
+import { useWorkspace } from "../../workspace/store";
 
 const CrewTerminal = lazy(() => import("./CrewTerminal"));
 
@@ -56,11 +58,13 @@ export function CrewPage() {
   const [params, setParams] = useSearchParams();
   const shown = params.get("view") === "terminal" && !structured ? "terminal" : "conversation";
   const setView = (v: "terminal" | "conversation") => setParams(v === "terminal" ? { view: "terminal" } : {}, { replace: true });
+  // The box to write to crew, which r gives the keys.
+  const tell = useRef<HTMLTextAreaElement>(null);
   useKeys({
     t: () => !structured && setView(shown === "terminal" ? "conversation" : "terminal"),
     r: () => {
       if (shown !== "conversation") setView("conversation");
-      requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".agent-composer textarea")?.focus());
+      requestAnimationFrame(() => tell.current?.focus());
     },
   });
   const stop = async () => {
@@ -83,31 +87,23 @@ export function CrewPage() {
         ? { icon: "spinner", tone: "quiet", words: "Connecting", live: true }
         : { icon: "circle", tone: "quiet", words: "Not running" };
   return (
-    <div className="page crew-page">
+    <MissionCrewPage>
       <Crumbs steps={[{ to: `/missions/${slug}`, label: m?.title ?? slug }]} />
-      <header className="crew-head">
-        <div className="crew-head-title">
-          <h1>
-            {c?.role === "briefing" ? `Briefing agent ${id}` : <CrewBadge id={id} live={state === "live"} large />}
-            <Status s={st} className="crew-head-status" />
-          </h1>
-          <div className="crew-head-sub">
-            {c && <span>{c.role === "briefing" ? "briefing" : c.model ? `${c.harness} on ${c.model}` : c.harness}</span>}
-            {structured && <span className="dim">over ACP, no terminal</span>}
-            {c?.capsule && (
-              <span className="mono">
-                <Icon name="box" size={12} /> {c.capsule}
-              </span>
-            )}
-            {title && <span className="mono term-title" title="What its terminal calls itself">{title}</span>}
-          </div>
-        </div>
-        {state === "live" && (
-          <Button onClick={stop}>
-            <Icon name="stop" size={12} /> Stop
-          </Button>
-        )}
-      </header>
+      <MissionCrewHead
+        name={c?.role === "briefing" ? `Briefing agent ${id}` : <CrewBadge id={id} live={state === "live"} large />}
+        status={st}
+        runs={c && (c.role === "briefing" ? "briefing" : c.model ? `${c.harness} on ${c.model}` : c.harness)}
+        acp={structured}
+        capsule={c?.capsule}
+        termTitle={title}
+        actions={
+          state === "live" && (
+            <Button onClick={stop}>
+              <Icon name="stop" size={12} /> Stop
+            </Button>
+          )
+        }
+      />
       {!structured && <Tabs value={shown} onChange={setView} aria-label="Crew">
         {(["conversation", "terminal"] as const).map((v) => (
           <Tab key={v} value={v}>
@@ -118,9 +114,9 @@ export function CrewPage() {
         ))}
       </Tabs>}
       {shown === "conversation" && (
-        <AgentView slug={slug} id={id} crew={c} live={state === "live"} onTerminal={state === "live" && !structured ? () => setView("terminal") : undefined} />
+        <CrewConversation slug={slug} id={id} crew={c} live={state === "live"} onTerminal={state === "live" && !structured ? () => setView("terminal") : undefined} field={tell} />
       )}
-      {!structured && <div className="term-panel" hidden={shown === "conversation"}>
+      {!structured && <div hidden={shown === "conversation"}>
         {state === "gone" ? (
           <Empty
             icon="terminal"
@@ -135,27 +131,12 @@ export function CrewPage() {
           </Empty>
         ) : (
           <Suspense fallback={<Loading what="Opening the terminal…" />}>
-            <div className="term-frame">
+            <MissionCrewTerminal id={id} state={state === "live" || state === "ended" ? state : undefined}>
               <CrewTerminal slug={slug} id={id} onState={onState} onTitle={onTitle} />
-              {state === "live" && (
-                <div className="term-bar">
-                  <span className="term-focus">
-                    <Icon name="keyboard" size={12} /> Typing goes to {id} while the terminal has focus, <Keys k="esc" /> included. Click outside to stop.
-                  </span>
-                  <span className="dim">
-                    <Keys k="mod+C" /> copies, <Keys k="mod+V" /> pastes
-                  </span>
-                </div>
-              )}
-              {state === "ended" && (
-                <div className="term-bar ended">
-                  <Icon name="info" size={12} /> {id} has ended: this is its last screen.
-                </div>
-              )}
-            </div>
+            </MissionCrewTerminal>
           </Suspense>
         )}
       </div>}
-    </div>
+    </MissionCrewPage>
   );
 }
