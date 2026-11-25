@@ -1,7 +1,7 @@
 import { getPR, type PR } from "../api";
 
 // A pull request, read once while the page is open: for its card, and for
-// how it stands where it's pinned (shell/focus.tsx).
+// how it stands where it's pinned (shell/useStands.tsx).
 const prs = new Map<string, Promise<PR>>();
 
 export const prOf = (repo: string, number: number) => {

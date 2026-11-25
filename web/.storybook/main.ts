@@ -9,6 +9,8 @@ const config: StorybookConfig = {
   // Its docs read props with the TypeScript compiler's API, which isn't
   // TypeScript 7's; nothing here is documented that way.
   typescript: { reactDocgen: false },
+  // What's new's pictures, where the daemon serves them: the entries' own.
+  staticDirs: [{ from: "../../internal/whatsnew/entries", to: "/api/whats-new/pictures" }],
   // It says nothing of this repo to anyone.
   core: { disableTelemetry: true, disableWhatsNewNotifications: true },
 };

@@ -35,7 +35,7 @@ import { useReading } from "./Reader/useReading";
 import { useSections } from "./Reader/useSections";
 import { useShelves } from "./Reader/useShelves";
 import { type Here, type Shelf, siblings, trail } from "./shelves";
-import { PagePin } from "../shell/focus";
+import { PagePin } from "../shell/PagePin";
 import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
 import { pageScroller } from "../ui/scroller";

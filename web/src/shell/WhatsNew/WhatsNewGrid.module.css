@@ -1,0 +1,15 @@
+/* What's new after the first (WhatsNewGrid.tsx): cards, as many across as
+   fit, and one a row when the window's narrow. */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+@media (max-width: 560px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

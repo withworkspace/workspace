@@ -1,0 +1,53 @@
+{
+  "version": "v0.17.0",
+  "release": false,
+  "unseen": [],
+  "entries": [
+    {
+      "slug": "ask-beside",
+      "version": "v0.16.0",
+      "title": "What you ask about a page opens beside it",
+      "body": "Ask about a document, a pull request or a plugin's page from the bar at\nits foot, and the conversation opens **beside the page**, where you carry\nit on. It stays with that page: leave and it's out of the way, come back\nand it's there. `\\` opens and closes it.",
+      "link": "/documents"
+    },
+    {
+      "slug": "the-foot",
+      "version": "v0.16.0",
+      "title": "A foot along the bottom, and a sidebar you can hide",
+      "body": "A line along the bottom of the window shows which crew are working: press\none to go and watch it. Its first button hides the sidebar, for the page's\nwhole width; hidden, it says how many things need you.",
+      "link": "/",
+      "picture": "/api/whats-new/pictures/the-foot.webp"
+    },
+    {
+      "slug": "find-acts-here",
+      "version": "v0.13.0",
+      "title": "⌘K does things where you are",
+      "body": "On a mission, conversation or pull request, **⌘K** lists what you can do to\nit before you type: park, archive, resolve, dock. Every place is in it too,\nplugins' and Settings' among them.",
+      "picture": "/api/whats-new/pictures/find-here.webp"
+    },
+    {
+      "slug": "plugins-in-settings",
+      "version": "v0.13.0",
+      "title": "Plugins and updates, in Settings",
+      "body": "Add, update and remove plugins from **Settings › Plugins**. ws looks for a\nnew release once a day, and **Settings › About** upgrades it.",
+      "link": "/settings/plugins",
+      "picture": "/api/whats-new/pictures/plugins.webp"
+    },
+    {
+      "slug": "silos-kept-by-the-daemon",
+      "version": "v0.13.0",
+      "title": "The daemon keeps your silos",
+      "body": "Silos stay synced without `ws silo watch` open: the daemon mirrors each\nas files change, and catches up when it restarts. **Runs** shows how each\nstands and its last hook's output.",
+      "link": "/runs"
+    },
+    {
+      "slug": "whats-new",
+      "version": "v0.13.0",
+      "title": "ws says what's new when it's upgraded",
+      "body": "After an upgrade, a few lines on what's new, once. They stay on\n**Settings › About**.",
+      "link": "/settings/about#whats-new"
+    }
+  ],
+  "missing": false,
+  "releases": "https://github.com/withworkspace/workspace/releases"
+}
