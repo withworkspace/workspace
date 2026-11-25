@@ -158,7 +158,7 @@ export function PageConversation({ host, about, children }: { host: Conversation
         {about && settings.ask && !away && (
           <div className="convo-foot">
             <AskField
-              className="convo-askbar"
+              place="over"
               field={bar}
               placeholder={has ? "Ask a follow-up…" : (settings.placeholder ?? `Ask about ${about.thing}…`)}
               busy={working}

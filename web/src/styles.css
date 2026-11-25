@@ -792,8 +792,7 @@ main.stale > :not(.connection-banner) {
 .findings > .finding,
 .nav-card,
 .contents-menu,
-.folder-menu,
-.askbar {
+.folder-menu {
   --backdrop: var(--raised);
   --well: var(--panel);
 }
@@ -2976,30 +2975,6 @@ button.on {
 
 .brief-planner-foot:empty {
   display: none;
-}
-
-.brief-ask.askbar-wrap {
-  position: relative;
-  bottom: auto;
-  margin: 0;
-  padding: 0;
-  background: none;
-}
-
-/* What to ask, offered over the foot of what's above the field, which
-   fades under it. */
-.brief-ask .ask-suggest {
-  left: -12px;
-  right: -12px;
-  bottom: 100%;
-  padding: 28px 12px 6px;
-  background: linear-gradient(to bottom, transparent, var(--bg) 26px);
-}
-
-.brief-ask .ask-suggestion {
-  background: var(--raised);
-  text-align: left;
-  white-space: normal;
 }
 
 /* --- nothing drafted: the conversation is the tab, or where it's begun --- */
@@ -11268,63 +11243,8 @@ body.nav-pointing .code-view code[data-rev] {
   min-width: 0;
 }
 
-/* The ask bar (ask/AskBar.tsx): always there at the foot of what's read,
-   stuck to the bottom as it scrolls; an answer is a card over the text,
-   and the suggestions stand above the bar as it's gone to. */
-.askbar-wrap {
-  position: sticky;
-  bottom: 0;
-  z-index: 30;
-  margin-top: var(--space-6);
-  padding: 18px 0 16px;
-  background: linear-gradient(to bottom, transparent, var(--bg) 40%);
-}
-
-.askbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-lg);
-  background: var(--raised);
-  box-shadow: var(--shadow);
-  transition:
-    border-color var(--fast) var(--ease),
-    box-shadow var(--fast) var(--ease);
-}
-
-.askbar:focus-within {
-  border-color: var(--accent-line);
-  box-shadow: var(--shadow), 0 0 0 3px var(--accent-soft);
-}
-
-.askbar-icon {
-  flex: none;
-  color: var(--accent);
-}
-
-.askbar input,
-.askbar input:focus {
-  flex: 1;
-  min-width: 0;
-  padding: 2px 0;
-  border: 0;
-  outline: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-.askbar-key {
-  flex: none;
-  color: var(--faint);
-}
-
-.askbar:focus-within .askbar-key {
-  visibility: hidden;
-}
-
-/* What's asked about, in hand: a passage, as a chip. */
+/* What's in hand, as a chip, where a conversation's asked (panes/TalkPane.tsx,
+   ui/Composer.tsx): AskField draws its own (ask/AskField.module.css). */
 .ask-ctx {
   display: inline-flex;
   align-items: center;
@@ -11370,40 +11290,9 @@ body.nav-pointing .code-view code[data-rev] {
   color: var(--fg);
 }
 
-.ask-suggest {
-  position: absolute;
-  left: 0;
-  bottom: calc(100% - 12px);
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 0 0 4px;
-}
-
-.ask-suggestion {
-  justify-content: flex-start;
-  gap: 6px;
-  min-height: 0;
-  padding: 4px 10px;
-  border-color: var(--line);
-  box-shadow: var(--shadow-xs);
-  font-weight: 400;
-}
-
-.ask-suggestion .icon {
-  color: var(--accent);
-}
-
-/* Picked or pointed at: the accent's tint, over the button's own colour.
-   The tint alone is see-through, and these stand over what's being read. */
-.ask-suggestion.sel,
-.ask-suggestion:hover {
-  border-color: var(--accent-line);
-  background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--raised);
-}
-
-/* A citation of one of the document's sections: it scrolls there. */
+/* A citation of one of the document's sections: it scrolls there (the
+   dock's samples, chrome/dockSamples.tsx; a conversation's turn has its
+   own, conversation/ConvoTurn.module.css). */
 .ask-answer a[href^="#"] {
   display: inline-flex;
   align-items: center;
@@ -11430,7 +11319,8 @@ button.accent-button:hover:not(:disabled) {
   background: var(--accent-soft);
 }
 
-/* Over a passage picked out: Ask about this, Explain, Link. */
+/* Over a passage picked out of the brief's documents (mission/BriefPlanner.tsx;
+   a document page's is ask/SelectionToolbar.tsx). */
 .seltool {
   position: fixed;
   z-index: 75;
@@ -11485,17 +11375,6 @@ button.accent-button:hover:not(:disabled) {
   pointer-events: none;
 }
 
-.review-foot .askbar-wrap {
-  position: relative;
-  max-width: 860px;
-  margin: 0 auto;
-  background: none;
-}
-
-.review-foot .askbar-wrap > * {
-  pointer-events: auto;
-}
-
 @media (max-width: 860px) {
   .review-foot {
     padding: 0 12px;
@@ -11503,7 +11382,6 @@ button.accent-button:hover:not(:disabled) {
 }
 
 @media print {
-  .askbar-wrap,
   .review-foot,
   .seltool {
     display: none !important;
@@ -12404,16 +12282,6 @@ input[type="text"].tweak-text {
 }
 .convo-foot > * {
   pointer-events: auto;
-}
-.askbar-wrap.convo-askbar {
-  position: relative;
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 0;
-  background: none;
-}
-.convo-askbar .askbar {
-  box-shadow: var(--shadow-lg);
 }
 
 .convo-given {

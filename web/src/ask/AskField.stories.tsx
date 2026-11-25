@@ -43,3 +43,23 @@ export const WhileItsAsked: StoryObj = { render: () => <Field slow /> };
 
 // Its agent is answering: nothing more is asked here till it's done.
 export const Busy: StoryObj = { render: () => <Field busy /> };
+
+// Where it sits, other than at the foot of what's read: inline in a
+// column (the brief's planner, what's offered over a fade), framed by a
+// foot that's the page's own (a review's), and over a page's foot,
+// lifted (a plugin page's conversation). Go to each to see what's offered.
+export const Places: StoryObj = {
+  render: () => (
+    <div style={{ display: "grid", gap: 96, padding: "96px 24px 24px", background: "var(--bg)" }}>
+      <div style={{ position: "relative", maxWidth: 520 }}>
+        <AskField place="inline" placeholder="Ask the planner…" suggestions={["What's still open?", "Make step 2 smaller, with its checks said first, and the rest after it"]} onAsk={() => {}} />
+      </div>
+      <div style={{ position: "relative" }}>
+        <AskField place="framed" placeholder="Ask about #41…" suggestions={["What does it change?", "Is anything risky?"]} holding={{ icon: "code", text: "api/limit.go:12–30", kind: "lines", drop: { label: "Ask about the whole pull request", onDrop: () => {} } }} onAsk={() => {}} />
+      </div>
+      <div style={{ position: "relative" }}>
+        <AskField place="over" placeholder="Ask about THING-2…" holding={{ icon: "layers", text: "3 cards", title: "THING-2, THING-4, THING-7" }} busy onAsk={() => {}} />
+      </div>
+    </div>
+  ),
+};
