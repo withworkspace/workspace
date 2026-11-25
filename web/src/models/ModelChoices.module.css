@@ -1,0 +1,62 @@
+/* What a model picker chooses of a model (ModelChoices.tsx): its
+   effort, thinking and fast in a line, then the name that comes to and
+   Use. */
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.effort {
+  flex: none;
+}
+
+.toggles {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.toggles:empty {
+  display: none;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.icon {
+  color: var(--faint);
+}
+
+.use {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.id {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0;
+  background: none;
+  font: var(--text-xs) var(--mono);
+  color: var(--dim);
+}

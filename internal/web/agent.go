@@ -45,6 +45,22 @@ func (s *Server) crewSay(w http.ResponseWriter, r *http.Request) {
 	agentReply(w, msg, err)
 }
 
+// crewModel puts running crew on another model, their session going on.
+func (s *Server) crewModel(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Model string `json:"model"`
+	}
+	if !readBody(w, r, &req) {
+		return
+	}
+	if strings.TrimSpace(req.Model) == "" {
+		jsonError(w, http.StatusBadRequest, "say which model")
+		return
+	}
+	msg, err := s.App.Crew().SwitchModel(r.PathValue("slug"), r.PathValue("id"), req.Model)
+	agentReply(w, msg, err)
+}
+
 func (s *Server) crewAnswer(w http.ResponseWriter, r *http.Request) {
 	var req AnswerRequest
 	if !readBody(w, r, &req) {

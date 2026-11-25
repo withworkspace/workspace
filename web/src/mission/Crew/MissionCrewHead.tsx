@@ -8,8 +8,9 @@ type MissionCrewHeadProps = {
   // Who it is: its badge, or a briefing agent's name.
   name: ReactNode;
   status: StatusInfo;
-  // What it runs on ("claude on sonnet"), or that it's briefing.
-  runs?: string;
+  // What it runs on ("claude on sonnet", or its model's switch while it
+  // runs), or that it's briefing.
+  runs?: ReactNode;
   // Over ACP: no terminal.
   acp?: boolean;
   capsule?: string;

@@ -57,6 +57,7 @@ import { ToggleButton } from "../ui/ToggleButton";
 import { Input } from "../ui/Input";
 import { TextArea } from "../ui/TextArea";
 import { Composer } from "../ui/Composer";
+import { TalkModelSwitch } from "./TalkModelSwitch";
 import { PageBar } from "../ui/PageBar";
 import { Turn, TurnAvatar, TurnHead, TurnSaid, turnTimeClass } from "../ui/Turn";
 import { Change } from "../ui/Change";
@@ -678,6 +679,7 @@ export function TalkPage() {
             aria-label="Reply"
             placeholder={d?.answering ? "Say more: it's sent once the agent's done" : d?.status === "resolved" ? "Reply to reopen it…" : "Reply…"}
           >
+            {d && <TalkModelSwitch slug={slug} id={id} chosen={d.model?.model} />}
             <Button variant="primary" disabled={!text.trim() || sending} onClick={send} keys={sendKeys(sendKey)}>
               {sending ? "Sending…" : "Send"}
             </Button>

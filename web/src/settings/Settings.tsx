@@ -8,7 +8,7 @@ import { Skeleton } from "../ui/Skeleton";
 import { toast } from "../ui/toast";
 import { useTitle } from "../ui/useTitle";
 import { fileName, written } from "./file";
-import { forgetModels } from "./models";
+import { forgetModels } from "../models/models";
 import { type Page, PageContext } from "./page";
 import { Results } from "./Results";
 import { find, minesOf, sectionAt, sectionsOf, wordsOf } from "./sections";

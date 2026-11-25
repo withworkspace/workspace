@@ -8,6 +8,7 @@ import (
 	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/doc"
+	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/ops"
 	pages "github.com/withworkspace/workspace/internal/page"
 	"github.com/withworkspace/workspace/internal/pulls"
@@ -106,6 +107,8 @@ type Conversing interface {
 	SayInTalk(sc doc.Scope, id, body string, by ops.Actor) (*conversation.Conversation, error)
 	SayInTalkGiven(sc doc.Scope, id, body string, given *conversation.Given, by ops.Actor) (*conversation.Conversation, error)
 	SetTalkStatus(sc doc.Scope, id, status string, by ops.Actor) (*conversation.Conversation, error)
+	TalkPick(sc doc.Scope, id string) (harness.Pick, error)
+	SetTalkModel(sc doc.Scope, id, model string, by ops.Actor) (*conversation.Conversation, error)
 	Ask(a ops.Asked, by ops.Actor) (*conversation.Conversation, error)
 	KeepAsk(sc doc.Scope, id string, by ops.Actor) (*conversation.Conversation, error)
 	SaveDraft(sc doc.Scope, d doc.Draft) error

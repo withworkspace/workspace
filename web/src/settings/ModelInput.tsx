@@ -1,17 +1,14 @@
 import { useState } from "react";
 import { useLoaded } from "../load";
-import { Option } from "../ui/Select";
 import type { ControlProps } from "./controlProps";
-import { modelsOf } from "./models";
+import { modelsOf } from "../models/models";
 import { shown } from "./sections";
 import { SettingsNote } from "./SettingsNote";
-import { SettingsSelect } from "./SettingsSelect";
+import { ModelPicker } from "../models/ModelPicker";
 import { TextInput } from "./TextInput";
 
-const own = "\u0000own";
-const another = "\u0000another";
-
-// ModelInput is a role's model: one of those its harness lists, or
+// ModelInput is a role's model: one of those its harness lists, picked
+// from them as a tree (a model, then its effort, thinking, fast), or
 // another, typed by name (a harness that lists none has the field alone).
 export function ModelInput(p: ControlProps) {
   const { s, set, stretch } = p;
@@ -39,23 +36,18 @@ export function ModelInput(p: ControlProps) {
     );
   }
   return (
-    <SettingsSelect
-      stretch={stretch}
-      value={cur || own}
-      aria-label={s.label}
-      onChange={(v) => {
-        if (v === another) setTyping(true);
-        else if (v !== own) void set(v);
-      }}
-    >
-      {!cur && <Option value={own}>The agent's own default</Option>}
-      {cur && !models.some((m) => m.id === cur) && <Option value={cur}>{cur}</Option>}
-      {models.map((m) => (
-        <Option key={m.id} value={m.id} note={[m.about ?? (m.name !== m.id ? m.name : ""), m.id === def ? "its default" : ""].filter(Boolean).join(" · ")}>
-          {m.id}
-        </Option>
-      ))}
-      <Option value={another}>Another, by name…</Option>
-    </SettingsSelect>
+    <>
+      <ModelPicker
+        stretch={stretch}
+        models={models}
+        value={cur}
+        placeholder={placeholder}
+        busy={asking}
+        aria-label={s.label}
+        onChange={(v) => void set(v)}
+        onAnother={() => setTyping(true)}
+      />
+      {note}
+    </>
   );
 }

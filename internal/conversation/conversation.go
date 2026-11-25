@@ -438,6 +438,10 @@ type Conversation struct {
 	Turns    []Turn     `json:"turns"`
 	// Session is the agent session its turns resume, once there is one.
 	Session *Session `json:"session,omitempty"`
+	// Model is the model you chose for its turns, over its role's, on the
+	// harness it was chosen on (a name is that harness's): none, or one
+	// chosen on another, and its turns are on the role's.
+	Model *Model `json:"model,omitempty"`
 	// Answering: an agent is answering it now (worked out, not stored),
 	// and since when.
 	Answering      bool       `json:"answering,omitempty"`
@@ -535,6 +539,15 @@ func (c *Conversation) Pending() *Suggestion {
 type Session struct {
 	Harness string `json:"harness"`
 	ID      string `json:"id"`
+}
+
+// Model is a model chosen for a conversation's turns, as the harness it
+// was chosen on names it.
+type Model struct {
+	Harness string    `json:"harness"`
+	Model   string    `json:"model"`
+	By      string    `json:"by"`
+	At      time.Time `json:"at"`
 }
 
 // Agent is who the agent answering a conversation is in its turns; ws is
@@ -704,6 +717,7 @@ type line struct {
 	Turn       *Turn            `json:"turn,omitempty"`
 	Status     *statusLine      `json:"status,omitempty"`
 	Session    *Session         `json:"session,omitempty"`
+	Model      *Model           `json:"model,omitempty"`
 	Suggest    *Suggestion      `json:"suggest,omitempty"`
 	Suggestion *settled         `json:"suggestion,omitempty"`
 	Sent       *Sent            `json:"sent,omitempty"`
@@ -1415,6 +1429,13 @@ func (s Store) VersionText(version string) ([]byte, error) { return s.versions()
 // SetSession records the agent session a conversation's turns resume.
 func (s Store) SetSession(id string, sess Session) error {
 	_, err := s.update(id, func(tx *store.Tx, c *Conversation) error { return s.add(tx, c, line{Session: &sess}) })
+	return err
+}
+
+// SetModel records the model its next turns run on, over its role's; a
+// model of "" goes back to the role's.
+func (s Store) SetModel(id string, m Model) error {
+	_, err := s.update(id, func(tx *store.Tx, c *Conversation) error { return s.add(tx, c, line{Model: &m}) })
 	return err
 }
 
