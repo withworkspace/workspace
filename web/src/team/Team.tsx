@@ -27,6 +27,7 @@ import { Segment, Segmented } from "../ui/Segmented";
 import { ToggleButton } from "../ui/ToggleButton";
 import { Input } from "../ui/Input";
 import { useTeamMemory } from "./memory";
+import { TeamSummary } from "./TeamSummary";
 
 // Team: what the people working in the workspace's repos have been doing,
 // by day, newest first. Each pull request, and each run of one person's
@@ -473,55 +474,15 @@ export function TeamPage() {
         </p>
       )}
       {total > 0 && summary && (summary.topics?.length || summary.writing || summary.failed) && (
-        <section className="team-summary" aria-label="What the team's been working on">
-          <GroupHead>
-            <Button
-              variant="link"
-              className="group-fold"
-              aria-expanded={!foldSummary}
-              onClick={() => {
-                remember({ foldSummary: !foldSummary });
-              }}
-            >
-              <Icon name={foldSummary ? "chevron-right" : "chevron-down"} size={12} /> Being worked on
-            </Button>
-            <span className="spacer" />
-            {summary.writing ? (
-              <span className="team-writing">
-                <Spinner size={12} /> Writing it
-              </span>
-            ) : (
-              <span className="team-summary-when">
-                {summary.at && (
-                  <>
-                    Written <Time iso={summary.at} as="relative" />
-                    {summary.stale ? ", and things have changed since" : ""}
-                  </>
-                )}{" "}
-                <Button variant="link" onClick={catchUp} title="Have it written again, from the changes as they are now (c)">
-                  Write it again
-                </Button>
-              </span>
-            )}
-          </GroupHead>
-          {!foldSummary && summary.failed && <p className="team-gist-error team-summary-failed">It couldn't be written: {humanError(summary.failed)}</p>}
-          {!foldSummary && (
-            <ul className="team-topics">
-              {summary.topics?.map((t) => (
-                <li key={t.name} className={topic?.name === t.name ? "on" : undefined}>
-                  <button className="team-topic" aria-pressed={topic?.name === t.name} onClick={() => setTopic(topic?.name === t.name ? undefined : t)} title="Show only its changes">
-                    <span className="team-topic-name">{t.name}</span>
-                    <span className="team-topic-people dim">{names(t.people).join(", ")}</span>
-                    <span className="team-topic-count dim">
-                      {t.strands.length} {t.strands.length === 1 ? "change" : "changes"}
-                    </span>
-                  </button>
-                  <Inline text={t.text} className="team-topic-text" />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <TeamSummary
+          summary={summary}
+          folded={foldSummary}
+          onFold={() => remember({ foldSummary: !foldSummary })}
+          on={topic?.name}
+          onTopic={(t) => setTopic(topic?.name === t.name ? undefined : t)}
+          names={names}
+          onWrite={catchUp}
+        />
       )}
       {topic && (
         <p className="team-narrative">

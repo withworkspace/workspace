@@ -1,0 +1,89 @@
+/* A notification in the feed: its link takes the row's width, and what
+   is done to it where it is (read, put away) sits at its end, shown while the row is pointed at or the
+   keys are in it. */
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.link {
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.plain {
+  appearance: none;
+  background: none;
+  border: 0;
+  font: inherit;
+  text-align: start;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.icon {
+  color: var(--dim);
+  flex: none;
+}
+
+.icon.attention {
+  color: var(--danger);
+}
+
+.text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.text.unread {
+  font-weight: 500;
+}
+
+/* Its words wrap in what's left of the row, never under the mark. */
+.main {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mark {
+  flex: none;
+  margin-inline-start: 8px;
+}
+
+/* What's done to it where it is: read, put away. Where there's a
+   pointer they're over the row's end while it's pointed at or the keys
+   are in it, in place of its mark and its time, and take no room of
+   their own. With none (a phone) they're always there, beside it. */
+.row {
+  position: relative;
+}
+
+.acts {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  margin-inline-end: 4px;
+}
+
+@media (hover: hover) {
+  .acts {
+    position: absolute;
+    inset-inline-end: 4px;
+    top: 50%;
+    margin: 0;
+    padding: 2px;
+    transform: translateY(-50%);
+    background: var(--backdrop, var(--bg));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .row:hover .acts,
+  .row:focus-within .acts {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

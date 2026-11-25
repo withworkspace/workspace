@@ -323,7 +323,7 @@ func (w *Workspace) liftForDefaultBranch(repo, branch string) (*lifted, error) {
 
 // undo leaves nothing of it: no capsule, no branch.
 func (l *lifted) undo() {
-	l.w.Burn(l.repo, l.capsule, BurnOptions{Force: true, DropBranch: true})
+	l.w.Burn(l.repo, l.capsule, BurnOptions{Force: true, DropBranch: true, quiet: true})
 }
 
 // commitAndLand commits the file rel (slash-separated; add: a new one) as
@@ -349,7 +349,7 @@ func (l *lifted) commitAndLand(rel, subject, body, what string, add bool) (*DocS
 		saved.Message = fmt.Sprintf("%s in a new capsule, %s/%s (%s): it's yours, to add to or open a pull request from", what, l.repo, l.capsule, shortSHA(saved.Commit))
 		return saved, nil
 	}
-	res, err := w.Land(l.repo, l.capsule, AsYou, l.land)
+	res, err := w.land(l.repo, l.capsule, AsYou, l.land, true)
 	if err != nil {
 		l.undo()
 		var stopped *workspace.LandError

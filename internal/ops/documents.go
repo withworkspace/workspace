@@ -12,6 +12,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/doc"
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/review"
@@ -664,7 +665,11 @@ func (w *Workspace) AmendDocument(ref, was, text, body string) (*DocSaved, error
 	if err != nil {
 		return nil, err
 	}
-	return w.saveWorkspaceDoc(ref, base, text+"\n", "", body, false)
+	saved, err := w.saveWorkspaceDoc(ref, base, text+"\n", "", body, false)
+	if err == nil && saved != nil {
+		w.emit(events.Event{Kind: events.DocAmended, Doc: cmp.Or(saved.Ref, ref), Text: workspace.DocTitle([]byte(text))}, ActorFromEnv())
+	}
+	return saved, err
 }
 
 // kindNamed is the workspace's kind of document called name, or why

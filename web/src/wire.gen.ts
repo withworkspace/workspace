@@ -2631,6 +2631,101 @@ export interface NeedsAnnounced {
     fresh: string[];
 }
 
+// From web/notifications.go
+/**
+ * Notification is one thing that happened, as the feed lists it.
+ */
+export interface Notification {
+    /**
+     * N is its number, and Ref how it's named (n12).
+     */
+    n: number;
+    ref: string;
+    at: string;
+    /**
+     * Source is where it comes from, which is what's routed: missions,
+     * pulls, plugins or ws.
+     */
+    source: string;
+    /**
+     * Kind is what happened (mission.ended, pr.merged, plugin.update…).
+     */
+    kind: string;
+    /**
+     * Text says it, as a sentence.
+     */
+    text: string;
+    /**
+     * To is the page it opens: "" where there's none.
+     */
+    to?: string;
+    /**
+     * Refs is what it's about, as ws names them.
+     */
+    refs?: string[];
+    /**
+     * By is who did it: ws, the orchestrator, crew by id (crew:c1), or ""
+     * where nobody here did.
+     */
+    by?: string;
+    /**
+     * Attention marks one that went wrong.
+     */
+    attention?: boolean;
+    read: boolean;
+    /**
+     * Desktop is whether its source is sent to the desktop as well.
+     */
+    desktop?: boolean;
+}
+
+// From web/notifications.go
+/**
+ * Notifications is GET /api/notifications: the feed, newest first, and how
+ * many of it you haven't read.
+ */
+export interface Notifications {
+    notifications: Notification[];
+    unread: number;
+}
+
+// From web/notifications.go
+/**
+ * NotificationsAnnounce is a page asking which notifications it should
+ * tell the desktop of (POST /api/notifications/announce), and
+ * NotificationsAnnounced the answer: those no page had told of yet.
+ */
+export interface NotificationsAnnounce {
+    ns: number[];
+}
+
+// From web/notifications.go
+export interface NotificationsAnnounced {
+    fresh: number[];
+}
+
+// From web/notifications.go
+/**
+ * NotificationsCount is the feed as the workspace's view carries it: how
+ * many you haven't read, and the newest's number, which moves when one is
+ * added, so a page showing the feed reads it again.
+ */
+export interface NotificationsCount {
+    unread: number;
+    latest: number;
+}
+
+// From web/notifications.go
+/**
+ * NotificationsMark is which notifications a page says you've read, or
+ * puts away (POST /api/notifications/read, …/dismiss): those numbered Ns,
+ * or, read only, All of the feed.
+ */
+export interface NotificationsMark {
+    ns?: number[];
+    all?: boolean;
+}
+
 // From ops/space_activity.go
 /**
  * DocChange is what a commit or a capsule did to a document.
@@ -5811,6 +5906,11 @@ export interface Workspace {
      * tab's title and what the desktop is told are all this.
      */
     needs: Need[];
+    /**
+     * Notifications is the feed of what happened (GET /api/notifications),
+     * as a count: beside Needs, which is what can't move without you.
+     */
+    notifications: NotificationsCount;
     /**
      * Focus is what you've pinned that stands, in your order: the
      * sidebar's Focus.

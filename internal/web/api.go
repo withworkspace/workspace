@@ -33,6 +33,9 @@ type Workspace struct {
 	// by name. The sidebar's Needs you, the counts beside its places, the
 	// tab's title and what the desktop is told are all this.
 	Needs []Need `json:"needs"`
+	// Notifications is the feed of what happened (GET /api/notifications),
+	// as a count: beside Needs, which is what can't move without you.
+	Notifications NotificationsCount `json:"notifications"`
 	// Focus is what you've pinned that stands, in your order: the
 	// sidebar's Focus.
 	Focus []FocusPin `json:"focus"`

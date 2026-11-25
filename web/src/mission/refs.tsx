@@ -4,7 +4,8 @@ import { HoverCard } from "../ui/HoverCard";
 import { Inline } from "../ui/Inline";
 import { Status, type StatusInfo } from "../ui/Status";
 import { Time } from "../ui/Time";
-import { ArtifactState, artifactTitle, CapsuleBadges, CrewBadge, isArtifact } from "./parts";
+import { MissionOutputState } from "./MissionOutputState";
+import { artifactTitle, CapsuleBadges, CrewBadge, isArtifact } from "./parts";
 import { MissionCapsuleCard } from "./MissionCapsuleCard";
 import { decisionsPath, whoDecided } from "./decisions";
 import { MissionDecisionCard } from "./MissionDecisionCard";
@@ -100,7 +101,7 @@ export function missionRefs(d: MissionDetail): Refs | undefined {
             title={title}
             kind={a.kind}
             versions={made ? a.versions : undefined}
-            state={<ArtifactState state={a.state} />}
+            state={<MissionOutputState state={a.state} />}
             desc={desc && <Inline text={desc} lines={3} />}
             to={made ? `/artifacts/${a.ref}` : a.readable ? `/missions/${d.slug}/artifact?${new URLSearchParams({ ref: a.ref })}` : undefined}
           />

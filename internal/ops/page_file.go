@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/withworkspace/workspace/internal/doc"
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/page"
 	"github.com/withworkspace/workspace/internal/workspace"
 )
@@ -197,6 +198,7 @@ func (w *Workspace) addDoc(d newDoc, at time.Time) (*DocAdding, error) {
 		break
 	}
 	out.Ref, out.Commit, out.Message = saved.Ref, saved.Commit, saved.Message
+	w.emit(events.Event{Kind: events.DocAdded, Repo: repo, Doc: out.Ref, Text: d.title}, ActorFromEnv())
 	return out, nil
 }
 

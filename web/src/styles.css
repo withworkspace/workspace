@@ -2305,74 +2305,6 @@ button.on {
 }
 
 /* A crew's own colour, as a small badge with its id. */
-/* Documents: a kind's icon, a short title, what was said of it. */
-.artifact-row {
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 10px;
-  padding: 8px 10px;
-  margin: 0 -10px;
-  border-radius: var(--radius);
-  transition: background var(--fast) var(--ease);
-}
-
-.artifact-row.openable {
-  cursor: pointer;
-}
-
-.artifact-row.openable:hover {
-  background: var(--hover);
-}
-
-.keyboarding .artifact-row.selected,
-.artifact-row.selected {
-  background: var(--selected);
-}
-
-.artifact-icon {
-  color: var(--dim);
-  margin-top: 2px;
-}
-
-.artifact-body {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.artifact-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.artifact-title {
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.artifact-desc {
-  color: var(--dim);
-  font-size: var(--text-sm);
-}
-
-.art-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 10px;
-  font-size: var(--text-xs);
-  color: var(--dim);
-}
-
-.artifact-row.compact {
-  padding: 5px 8px;
-  margin: 0 -8px;
-}
-
 /* Capsules */
 .cards {
   display: grid;
@@ -3770,25 +3702,6 @@ button.on {
 
 .came-from .icon {
   align-self: center;
-}
-
-.side-section {
-  margin: 0 0 20px;
-}
-
-.side-section h3 {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin: 0 0 8px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--dim);
-}
-
-.side-count {
-  font-weight: 400;
-  color: var(--faint);
 }
 
 .side-none {
@@ -11719,70 +11632,6 @@ button.finding-quote:hover {
 }
 
 
-/* The period's account: what the team's been working on, as topics.
-   A topic's name leaves only its changes showing. */
-
-.team-summary {
-  margin-bottom: var(--space-5);
-}
-
-.team-summary-when {
-  font-weight: 400;
-}
-
-.team-summary-failed {
-  margin: 2px 10px 6px;
-}
-
-.team-topics {
-  list-style: none;
-  margin: 0;
-  padding: 2px 10px;
-  display: grid;
-  gap: 10px;
-}
-
-.team-topics li {
-  display: grid;
-  gap: 2px;
-  padding-left: 10px;
-  border-left: 2px solid var(--line);
-}
-
-.team-topics li.on {
-  border-left-color: var(--accent);
-}
-
-.team-topic {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.team-topic-name {
-  font-weight: 600;
-}
-
-.team-topic:hover .team-topic-name {
-  color: var(--accent);
-}
-
-.team-topic-people,
-.team-topic-count {
-  font-size: var(--text-sm);
-}
-
-.team-topic-text {
-  overflow-wrap: anywhere;
-}
-
 /* A mission's state, with Park beside it. */
 .props dd.state-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 
@@ -13558,6 +13407,7 @@ button.accent-button:hover:not(:disabled) {
    (artifacts/Tray.tsx): what its page says can be changed about it. */
 .artifact-body {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
 }

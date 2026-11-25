@@ -16,7 +16,9 @@ import { Time } from "../ui/Time";
 import { CapsuleEnds, EndedCapsules } from "./Ending";
 import { canOpenPR, OpenPR } from "./OpenPR";
 import { RunsHere } from "./Runs";
-import { ArtifactState, ArtifactThreads, artifactTitle, CrewBadge, endedWords, isArtifact, kindTitle, shortPath } from "./parts";
+import { MissionOutputState } from "./MissionOutputState";
+import { MissionOutputThreads } from "./MissionOutputThreads";
+import { artifactTitle, CrewBadge, endedWords, isArtifact, kindTitle, shortPath } from "./parts";
 import { type Home, type Work as WorkModel, type WorkCapsule, type WorkState, fileGroups, outputHome, outputKey } from "./workRows";
 import { Chip, chipClass } from "../ui/Chip";
 import { Count } from "../ui/Count";
@@ -253,8 +255,8 @@ function OutputRow({ a, selected, select, open, made }: { a: Artifact; selected:
         <span className="work-row-name">{handoff ? (desc ?? title) : title}</span>
       </span>
       <span className="work-row-end">
-        {a.threads && <ArtifactThreads t={a.threads} />}
-        {stands ? <ArtifactState state={a.state} /> : <Time iso={a.added} as="relative" className="work-row-when" />}
+        {a.threads && <MissionOutputThreads t={a.threads} />}
+        {stands ? <MissionOutputState state={a.state} /> : <Time iso={a.added} as="relative" className="work-row-when" />}
       </span>
     </div>
   );
@@ -653,8 +655,8 @@ function OutputPane({ d, a, home, label, select, open }: { d: MissionDetail; a: 
               {home.capsule.c.name !== d.slug && <span className="mono"> {home.capsule.c.name}</span>}
             </Button>
           )}
-          <ArtifactState state={a.state} />
-          {a.threads && <ArtifactThreads t={a.threads} />}
+          <MissionOutputState state={a.state} />
+          {a.threads && <MissionOutputThreads t={a.threads} />}
           {!handoff && desc && <span>{desc}</span>}
         </div>
       </header>

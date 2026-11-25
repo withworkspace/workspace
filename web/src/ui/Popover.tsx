@@ -58,3 +58,17 @@ export function Popover({ trigger, "aria-label": label, children, ...surface }: 
     </DialogTrigger>
   );
 }
+
+// HeldPopover is a Popover whose trigger isn't around it: something else
+// is pressed for it (a part of the foot, which is no Button), so whether
+// it's open is said, and so is the element it opens by. What's in it is a
+// dialog, named by aria-label, as a Popover's is.
+export function HeldPopover({ open, onOpenChange, at, "aria-label": label, children, ...surface }: Omit<SurfaceProps, "children"> & Required<HeldProps> & { "aria-label": string; children: ReactNode }) {
+  return (
+    <PopoverSurface {...surface} open={open} onOpenChange={onOpenChange} at={at}>
+      <Dialog className={css.dialog} aria-label={label}>
+        {children}
+      </Dialog>
+    </PopoverSurface>
+  );
+}

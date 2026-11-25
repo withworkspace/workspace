@@ -2,6 +2,7 @@ package capsule_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -339,5 +340,39 @@ func appendTo(t *testing.T, path, text, drop string) {
 	}
 	if err := os.WriteFile(path, []byte(strings.Replace(string(data), drop, "", 1)+text), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// A landing is something this ws did: it's kept as an event, by you, and
+// so is the capsule's burning after it. ws events lists them.
+func TestLand_IsKeptAsAnEvent(t *testing.T) {
+	w := testutil.LandWorkspace(t, "")
+	testutil.Run(t, w, nil, "lift", "records", "note")
+	dir := testutil.CapsuleDir(w, "records", "note")
+	testutil.CommitIn(t, dir, "notes/a.md", "# A\n", "docs: add note a")
+	testutil.Run(t, w, nil, "land", "records", "note")
+
+	r := testutil.Run(t, w, nil, "events", "-f", "json")
+	var kinds []string
+	for _, line := range strings.Split(strings.TrimSpace(r.Stdout), "\n") {
+		var e struct{ Kind, By, Repo, Capsule, Text string }
+		if err := json.Unmarshal([]byte(line), &e); err != nil {
+			t.Fatalf("%q: %v", line, err)
+		}
+		if e.By != "you" || e.Repo != "records" || e.Capsule != "note" {
+			t.Errorf("event: %+v", e)
+		}
+		if e.Kind == "capsule.landed" && !strings.Contains(e.Text, "1 commit on main") {
+			t.Errorf("what it says: %q", e.Text)
+		}
+		kinds = append(kinds, e.Kind)
+	}
+	if got := strings.Join(kinds, " "); got != "capsule.landed capsule.burned" {
+		t.Errorf("kept: %s\n%s", got, r.Stdout)
+	}
+
+	r = testutil.Run(t, w, nil, "events", "--kind", "capsule.landed")
+	if !strings.Contains(r.Stdout, "capsule.landed") || strings.Contains(r.Stdout, "capsule.burned") {
+		t.Errorf("one kind:\n%s", r.Stdout)
 	}
 }
