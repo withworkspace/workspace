@@ -184,7 +184,8 @@ export function PinButton({ r, keyHint, compact }: { r: PageRef; keyHint?: boole
         if (on) focus.unpin(name);
         else focus.pin(name);
       }}
-      title={(on ? "Take it out of your focus" : "Keep it in your focus, in the sidebar") + (keyHint ? " (.)" : "")}
+      title={on ? "Take it out of your focus" : "Keep it in your focus, in the sidebar"}
+      keys={keyHint ? "." : undefined}
       aria-pressed={on}
       aria-label={compact ? (on ? "Pinned" : "Pin") : undefined}
     >

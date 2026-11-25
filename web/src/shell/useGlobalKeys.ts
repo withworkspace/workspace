@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useChromeStore } from "../chrome/store";
 import { codeSearchKey, isCodeSearchKey, leaderWithin, pageBinds } from "../keys";
 import { scopePrefix } from "./find";
+import { goKeys } from "./places";
 
 // useGlobalKeys: ⌘K finds anything, ⌘P a file, ⌘⇧F text in the files, ?
 // shows the keys, and g then m, c, p,
@@ -58,7 +59,7 @@ export function useGlobalKeys() {
       }
       // g then a key goes somewhere, unless the page uses that key itself
       // (g, first, then o, open it, on a list): the page's keys win.
-      const to = { m: "/", c: "/conversations", p: "/documents", d: "/documents", a: "/artifacts", r: "/reviews", t: "/team", f: "/files", o: "/orchestrator" }[e.key];
+      const to = Object.hasOwn(goKeys, e.key) ? goKeys[e.key] : undefined;
       if (to && Date.now() - g < leaderWithin && !pageBinds(e.key)) {
         e.preventDefault();
         e.stopPropagation();

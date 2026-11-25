@@ -306,7 +306,7 @@ export function MissionPage() {
 
   // The bar's ends, the same while the mission loads as once it has: back
   // to the missions, and the tabs (with what's waiting in each, once known).
-  const wayBack = { to: "/", title: "Missions (esc)", label: "Back to the missions" };
+  const wayBack = { to: "/", title: "Missions", keys: "esc", label: "Back to the missions" };
   const tabRow = (count?: (t: Tab) => ReactNode) => (
     <Tabs className={pageBarTabsClass()} value={tab} onChange={setTab} controls="mission-panel" aria-label="Mission">
       {tabs.map((t) => (

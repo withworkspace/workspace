@@ -34,3 +34,40 @@ export function titleWithKeys(title: string | undefined, keys: string | undefine
 // are used beside a keyboard. Not the keys' own (⏎ on what has the
 // focus), a screen reader's, or a finger's.
 export const pointed = (e: { pointerType: string }) => e.pointerType === "mouse" || e.pointerType === "pen";
+
+// What a click says of how it was made: how many presses of the pointer
+// (none: ⏎ or space on what has the focus, or a screen reader), and, in a
+// browser that says, which kind of pointer.
+type Click = { detail: number; nativeEvent?: unknown };
+
+// clicked is whether a click was the pointer's, as pointed is of a press:
+// for what isn't react-aria's, and has only the browser's click to go by.
+export function clicked(e: Click): boolean {
+  if (e.detail === 0) return false;
+  const kind = (e.nativeEvent as { pointerType?: string } | undefined)?.pointerType;
+  return !kind || pointed({ pointerType: kind });
+}
+
+// hintOnClick is a click handler that hints at keys, then does what
+// onClick does: for what shows its key itself (Find's button, with ⌘K in
+// it) and so has no title to say it in.
+export function hintOnClick<E extends Click>(keys: string | undefined, onClick?: (e: E) => void): ((e: E) => void) | undefined {
+  if (!keys) return onClick;
+  return (e) => {
+    if (clicked(e)) keyHint(keys);
+    onClick?.(e);
+  };
+}
+
+// keyProps is a key said and hinted by what isn't one of the library's
+// parts: a link drawn as a button, a part's own button. It's the title
+// and the click handler to give it:
+//
+//   <Link to={files} className={buttonClass()} {...keyProps("o", "Open it in Files")}>
+//
+// The title is the browser's, with the key after it; onClick is what the
+// thing does when it's clicked besides, if anything. With no key, they're
+// the title and the handler as given.
+export function keyProps<E extends Click>(keys: string | undefined, title?: string, onClick?: (e: E) => void): { title: string | undefined; onClick: ((e: E) => void) | undefined } {
+  return { title: titleWithKeys(title, keys), onClick: hintOnClick(keys, onClick) };
+}

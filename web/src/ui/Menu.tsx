@@ -1,6 +1,8 @@
 import type { ReactElement, ReactNode } from "react";
 import { Header, Menu as AriaMenu, MenuItem as AriaMenuItem, MenuSection as AriaMenuSection, MenuTrigger, Separator } from "react-aria-components";
 import { cx } from "./cx";
+import { keyHint, pointed } from "./keyHint";
+import { Keys } from "./Keys";
 import css from "./Menu.module.css";
 import { type Placement, PopoverSurface } from "./Popover";
 
@@ -73,11 +75,30 @@ export function MenuList({
 
 // MenuItem is one thing to do: its id, the words typing finds it by
 // (textValue), and what it shows, which is a row: an icon, MenuText, a
-// count or a key at its end. A danger one is in red.
-export function MenuItem({ id, textValue, onAction, tone, className, children }: { id: string; textValue: string; onAction?: () => void; tone?: "danger"; className?: string; children: ReactNode }) {
+// count or a key at its end. A danger one is in red. keys is the key
+// that does the same without the menu: it's drawn at the row's end, and
+// hinted at when the item's picked with the pointer (ui/keyHint.ts).
+export function MenuItem({
+  id,
+  textValue,
+  onAction,
+  tone,
+  keys,
+  className,
+  children,
+}: {
+  id: string;
+  textValue: string;
+  onAction?: () => void;
+  tone?: "danger";
+  keys?: string;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <AriaMenuItem id={id} textValue={textValue} onAction={onAction} className={cx(css.item, tone === "danger" && css.danger, className)}>
+    <AriaMenuItem id={id} textValue={textValue} onAction={onAction} onPress={keys ? (e) => pointed(e) && keyHint(keys) : undefined} className={cx(css.item, tone === "danger" && css.danger, className)}>
       {children}
+      {keys && <Keys k={keys} />}
     </AriaMenuItem>
   );
 }

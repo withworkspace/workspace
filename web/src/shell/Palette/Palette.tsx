@@ -541,7 +541,7 @@ export function Palette({
         tags={
           <>
             {doing && (
-              <FindTag doing onClick={back} title="Back (esc)">
+              <FindTag doing onClick={back} title="Back" keys="esc">
                 {doing}
               </FindTag>
             )}
@@ -551,7 +551,7 @@ export function Palette({
               </FindTag>
             )}
             {!mode && scope === "code" && tag && (
-              <FindTag onClick={() => setTag(undefined)} title="Search the whole workspace (⌫)">
+              <FindTag onClick={() => setTag(undefined)} title="Search the whole workspace" keys="⌫">
                 repo: {tag}
               </FindTag>
             )}
