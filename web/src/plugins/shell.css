@@ -28,7 +28,7 @@ html[data-framed] body {
    plugin's thing), which the app asked ws to find and drew as a link where
    it stands, as the frame protocol says one is drawn (a.ws-ref, with ws's
    word for it in data-ws-ref). It looks as a ref does in ws's own pages
-   (styles.css: .named-ref), so a name reads the same in a plugin's page as
+   (refs/RefName.module.css), so a name reads the same in a plugin's page as
    beside it. Nothing has the class unless the app asked. The class and
    the attribute are both in the selector so that an app's rule for the
    links in its prose doesn't take a ref over; one that names .ws-ref can. */

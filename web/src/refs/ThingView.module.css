@@ -1,0 +1,48 @@
+/* A plugin's thing, drawn from its fields as its plugin declared for where
+   it's shown (ThingView.tsx): a line for each block, a badge on the line
+   of the title or subtitle before it. */
+
+.view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  min-width: 0;
+}
+
+/* What it says, as markdown: at the card's size, its headings no larger
+   than its words, and kept to the lines its block says (--lines). */
+.md {
+  min-width: 0;
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.md :global(.markdown) {
+  max-width: none;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.md :global(.markdown) :is(h1, h2, h3, h4) {
+  margin: 0.8em 0 0.25em;
+  font-size: 1em;
+  line-height: inherit;
+}
+
+.md :global(.markdown) > :first-child {
+  margin-top: 0;
+}
+
+.md :global(.markdown) > :last-child {
+  margin-bottom: 0;
+}
+
+.md :global(.markdown) :is(p, ul, ol, blockquote, table, pre) {
+  margin-bottom: 0.5em;
+}
+
+.md.kept {
+  max-height: calc(var(--lines) * 1.5em);
+  overflow: hidden;
+}

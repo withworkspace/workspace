@@ -7,7 +7,7 @@ import css from "./FindThing.module.css";
 // to close.
 export function FindThing({ onGo, children }: { onGo?: () => void; children: ReactNode }) {
   return (
-    <div className={css.thing} onClickCapture={(e) => (e.target as HTMLElement).closest(".named-ref, a[href]") && onGo?.()}>
+    <div className={css.thing} onClickCapture={(e) => (e.target as HTMLElement).closest("[data-ref], a[href]") && onGo?.()}>
       {children}
     </div>
   );

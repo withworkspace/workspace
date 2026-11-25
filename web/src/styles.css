@@ -9571,26 +9571,18 @@ button.finding-quote:hover {
   padding: 4px 12px 12px;
 }
 
-/* Refs (refs/): what words name, marked as somewhere to go, with more on
-   hover. The same in a page's editor (editor/refs.ts) and in what's only
-   read (refs/RefTag.tsx: a conversation, a thread, a pass, a handoff). */
+/* Refs in a page's editor (editor/refs.ts): what words name, marked as
+   somewhere to go, with more on hover. What's only read draws the same
+   from refs/RefName.module.css and refs/RefLabel.module.css. */
 
-.pm .named-ref,
-.markdown .named-ref,
-[data-refs] .named-ref {
+.pm .named-ref {
   text-decoration: underline dotted var(--faint);
   text-decoration-thickness: 1.5px;
   text-underline-offset: 3px;
   cursor: pointer;
 }
 
-.markdown a.named-ref {
-  color: inherit;
-}
-
-.pm .named-ref:hover,
-.markdown .named-ref:hover,
-[data-refs] .named-ref:hover {
+.pm .named-ref:hover {
   text-decoration-color: var(--accent);
   color: var(--accent);
 }
@@ -9599,27 +9591,12 @@ button.finding-quote:hover {
 .pm .named-ref.k-page,
 .pm .named-ref.k-talk,
 .pm .named-ref.k-pr,
-.markdown .named-ref.k-mission,
-.markdown .named-ref.k-page,
-.markdown .named-ref.k-talk,
-.markdown .named-ref.k-pr,
-[data-refs] .named-ref.k-mission,
-[data-refs] .named-ref.k-pr,
-:is(.pm, .markdown, [data-refs]) .named-ref.k-thing {
+.pm .named-ref.k-thing {
   font-weight: 500;
 }
 
-/* Words of the writer's own, linked to a thing: its kind's icon first. */
-.markdown .named-ref.ref-words .ref-icon,
-[data-refs] .named-ref.ref-words .ref-icon {
-  margin-right: 3px;
-  vertical-align: -1px;
-  color: var(--dim);
-}
-
 /* What's said after one: where a mission stands, a page's name. */
-.pm .ref-label,
-.markdown .ref-label {
+.pm .ref-label {
   margin-left: 5px;
   padding: 0 6px;
   border-radius: 999px;
@@ -9632,13 +9609,9 @@ button.finding-quote:hover {
   user-select: none;
 }
 
-.markdown .ref-label {
-  cursor: default;
-}
-
 /* A ref drawn as a pill (refs/views.tsx: a repo), in its accent colour,
    by its own text. */
-:is(.pm, .markdown, [data-refs]) .named-ref.shape-pill {
+.pm .named-ref.shape-pill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -9653,14 +9626,9 @@ button.finding-quote:hover {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ref-accent, var(--accent)) 45%, transparent);
 }
 
-:is(.pm, .markdown, [data-refs]) .named-ref.shape-pill:hover {
+.pm .named-ref.shape-pill:hover {
   color: var(--text);
   background: color-mix(in srgb, var(--ref-accent, var(--accent)) 24%, transparent);
-}
-
-:is(.pm, .markdown, [data-refs]) .named-ref.shape-pill .ref-icon {
-  margin: 0;
-  color: var(--ref-accent, var(--dim));
 }
 
 /* A ref's name, while its own text is shown in its place (the editor,
@@ -9669,112 +9637,11 @@ button.finding-quote:hover {
   display: none;
 }
 
-/* A ref's hover card is as wide as what it says, within these. What else
-   holds a card's lines (.ref-card: Find's pane) has a width of its own. */
-.ref-float {
-  width: auto;
-  min-width: 260px;
-  max-width: min(560px, calc(100vw - 24px));
-}
-
+/* What's in Find's pane is laid out as a ref's card is (FindPane.tsx):
+   a path in it, in the code's type, small. */
 .ref-card .mono {
   font-family: var(--mono);
   font-size: var(--text-xs);
-}
-
-.ref-excerpt {
-  display: block;
-  margin: 4px 0 2px;
-  padding: 6px 0;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--bg);
-  overflow: hidden;
-}
-
-.ref-code {
-  display: flex;
-  gap: 10px;
-  padding: 0 10px 0 0;
-  font: var(--text-xs) / 18px var(--mono);
-  white-space: pre;
-}
-
-.ref-code.named {
-  background: var(--accent-soft);
-}
-
-.ref-code.more {
-  padding-left: 46px;
-  color: var(--faint);
-}
-
-.ref-ln {
-  flex: none;
-  width: 36px;
-  text-align: right;
-  color: var(--faint);
-  user-select: none;
-}
-
-.ref-hint {
-  font-size: var(--text-xs);
-}
-
-.ref-card .line-chip {
-  margin-left: 6px;
-}
-
-/* A plugin's thing, drawn from its fields as its plugin declared for where
-   it's shown (refs/ThingView.tsx): a line for each block, a badge on the
-   line of the title or subtitle before it. */
-.thing-view {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
-  min-width: 0;
-}
-
-.thing-view .thing-badges .line-chip:first-child {
-  margin-left: 0;
-}
-
-/* What it says, as markdown: at the card's size, its headings no larger
-   than its words, and kept to the lines its block says (--lines). */
-.thing-md {
-  min-width: 0;
-  margin-top: 2px;
-  font-size: var(--text-sm);
-  line-height: 1.5;
-}
-
-.thing-md .markdown {
-  max-width: none;
-  font-size: inherit;
-  line-height: inherit;
-}
-
-.thing-md .markdown :is(h1, h2, h3, h4) {
-  margin: 0.8em 0 0.25em;
-  font-size: 1em;
-  line-height: inherit;
-}
-
-.thing-md .markdown > :first-child {
-  margin-top: 0;
-}
-
-.thing-md .markdown > :last-child {
-  margin-bottom: 0;
-}
-
-.thing-md .markdown :is(p, ul, ol, blockquote, table, pre) {
-  margin-bottom: 0.5em;
-}
-
-.thing-md.kept {
-  max-height: calc(var(--lines) * 1.5em);
-  overflow: hidden;
 }
 
 /* What a mission's about, in its details: each a name, with its card. */

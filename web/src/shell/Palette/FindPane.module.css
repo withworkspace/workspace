@@ -19,10 +19,3 @@
 .scrolls {
   overflow-y: auto;
 }
-
-/* A few lines of a file, in a ref's card: raised from the pane, and
-   cut at its width. */
-.pane :global(.ref-excerpt) {
-  background: var(--raised);
-  overflow-x: hidden;
-}

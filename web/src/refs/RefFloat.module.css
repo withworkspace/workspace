@@ -1,0 +1,13 @@
+/* A ref's card over the page (RefFloat.tsx). */
+
+/* As wide as what it says, within these. What else holds a card's lines
+   (Find's pane) has a width of its own. */
+.float {
+  width: auto;
+  min-width: 260px;
+  max-width: min(560px, calc(100vw - 24px));
+}
+
+.hint {
+  font-size: var(--text-xs);
+}
