@@ -65,7 +65,7 @@ export function SiloPoint() {
         {to ? (
           <>
             Its files become {to}'s, and its after_switch hook restarts what runs in it.{then ? " Then you go on to it." : ""}
-            {error && <p className="tone-danger">{error}</p>}
+            {error && <p className="silo-point-error">{error}</p>}
           </>
         ) : (
           "This page points a silo at a capsule: it's opened from ws's router, with the capsule to point it at."

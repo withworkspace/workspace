@@ -3991,6 +3991,11 @@ button.on {
   justify-content: center;
 }
 
+/* Why it couldn't: tone-danger alone only sets the tone's variables. */
+.silo-point-error {
+  color: var(--danger);
+}
+
 /* Markdown: briefs, artifacts, handoffs, reviews */
 
 .markdown {
