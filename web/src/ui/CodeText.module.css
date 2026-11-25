@@ -1,0 +1,66 @@
+/* A line's code (CodeText.tsx): the code's face, and its syntax in the
+   code's own colours. Its spacing and what's behind it are the row's. */
+
+@layer ui {
+  .text {
+    font: inherit;
+    background: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  /* The file's last line doesn't end in a newline. */
+  .noeol {
+    margin-left: 6px;
+    color: var(--red);
+    user-select: none;
+  }
+
+  /* Syntax, as highlight.js names it, in the code's own colours. */
+  .text :global(.hljs-keyword),
+  .text :global(.hljs-selector-tag),
+  .text :global(.hljs-literal) {
+    color: var(--hl-keyword);
+  }
+
+  .text :global(.hljs-string),
+  .text :global(.hljs-regexp),
+  .text :global(.hljs-addition),
+  .text :global(.hljs-template-string) {
+    color: var(--hl-string);
+  }
+
+  .text :global(.hljs-comment),
+  .text :global(.hljs-quote),
+  .text :global(.hljs-meta) {
+    font-style: italic;
+    color: var(--hl-comment);
+  }
+
+  .text :global(.hljs-number),
+  .text :global(.hljs-symbol),
+  .text :global(.hljs-bullet) {
+    color: var(--hl-number);
+  }
+
+  .text :global(.hljs-title),
+  .text :global(.hljs-section),
+  .text :global(.hljs-name) {
+    color: var(--hl-title);
+  }
+
+  .text :global(.hljs-type),
+  .text :global(.hljs-built_in),
+  .text :global(.hljs-selector-class),
+  .text :global(.hljs-deletion) {
+    color: var(--hl-type);
+  }
+
+  .text :global(.hljs-attr),
+  .text :global(.hljs-attribute),
+  .text :global(.hljs-variable),
+  .text :global(.hljs-template-variable),
+  .text :global(.hljs-property) {
+    color: var(--hl-attr);
+  }
+}

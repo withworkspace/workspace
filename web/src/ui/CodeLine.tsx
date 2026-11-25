@@ -1,6 +1,7 @@
 import { memo, type ReactNode } from "react";
 import css from "./CodeLine.module.css";
 import type { CodeMark } from "./codeLayout";
+import { CodeText } from "./CodeText";
 import { cx } from "./cx";
 import { Icon } from "./Icon";
 
@@ -11,10 +12,8 @@ import { Icon } from "./Icon";
 // (after: a comment on it), which stays in view however far the code's
 // scrolled sideways.
 //
-// Its code says where it is (data-rev, data-path, data-line, data-side):
-// what follows a name in it reads those. The html is the line highlighted
-// (review/highlight's highlightLines), or escaped: it's never what
-// someone typed, unescaped.
+// Its code is a CodeText, which says where the line is for what follows
+// a name in it.
 export const CodeLine = memo(function CodeLine({
   n,
   html,
@@ -44,7 +43,7 @@ export const CodeLine = memo(function CodeLine({
 }) {
   const marks: Record<CodeMark, string | undefined> = { added: css.added, modified: css.modified, removedAfter: css.removedAfter };
   const away = fold ? fold - n : 0;
-  const code = <code className={css.code} data-rev={rev} data-path={path} data-line={n} data-side={side} dangerouslySetInnerHTML={{ __html: html || " " }} />;
+  const code = <CodeText className={css.code} html={html} rev={rev} path={path} line={n} side={side} />;
   return (
     <>
       <div data-line={n} className={cx(css.line, folds && css.folds, mark && marks[mark], picked && css.picked)}>

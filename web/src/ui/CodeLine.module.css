@@ -114,11 +114,8 @@
 
   .code {
     padding: 0 14px 0 10px;
-    font: inherit;
     white-space: var(--code-space, pre);
     overflow-wrap: anywhere;
-    background: none;
-    border-radius: 0;
   }
 
   .folds .code {
@@ -162,53 +159,5 @@
     width: var(--code-width, 100%);
     font-family: var(--font);
     white-space: normal;
-  }
-
-  /* Syntax, as highlight.js names it, in the code's own colours. */
-  .code :global(.hljs-keyword),
-  .code :global(.hljs-selector-tag),
-  .code :global(.hljs-literal) {
-    color: var(--hl-keyword);
-  }
-
-  .code :global(.hljs-string),
-  .code :global(.hljs-regexp),
-  .code :global(.hljs-addition),
-  .code :global(.hljs-template-string) {
-    color: var(--hl-string);
-  }
-
-  .code :global(.hljs-comment),
-  .code :global(.hljs-quote),
-  .code :global(.hljs-meta) {
-    font-style: italic;
-    color: var(--hl-comment);
-  }
-
-  .code :global(.hljs-number),
-  .code :global(.hljs-symbol),
-  .code :global(.hljs-bullet) {
-    color: var(--hl-number);
-  }
-
-  .code :global(.hljs-title),
-  .code :global(.hljs-section),
-  .code :global(.hljs-name) {
-    color: var(--hl-title);
-  }
-
-  .code :global(.hljs-type),
-  .code :global(.hljs-built_in),
-  .code :global(.hljs-selector-class),
-  .code :global(.hljs-deletion) {
-    color: var(--hl-type);
-  }
-
-  .code :global(.hljs-attr),
-  .code :global(.hljs-attribute),
-  .code :global(.hljs-variable),
-  .code :global(.hljs-template-variable),
-  .code :global(.hljs-property) {
-    color: var(--hl-attr);
   }
 }

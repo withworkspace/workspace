@@ -6,6 +6,7 @@ import { Button } from "./Button";
 import { CodeLines } from "./CodeLines";
 import { type CodeChange, type CodeRange, marksOf } from "./codeLayout";
 import { NoteBody, NoteCard, NoteHead, NoteId } from "./NoteCard";
+import { goNow } from "../stories/code";
 import treeSource from "./Tree.tsx?raw";
 
 // A file's lines to read: highlighted and numbered, with lines picked by
@@ -15,59 +16,7 @@ import treeSource from "./Tree.tsx?raw";
 const meta: Meta = { title: "Components/CodeLines" };
 export default meta;
 
-const go = `// Package nav is code navigation for reviews and the explorer: which
-// words in a file are names, where a name is defined, and where a
-// definition is used.
-package nav
-
-import (
-	"errors"
-	"fmt"
-	"path/filepath"
-)
-
-// CacheMax is the most the facts kept on disk take up.
-const CacheMax = 200 << 20
-
-// Service answers questions about names, for any repo at any commit.
-type Service struct {
-	Runtime Runtime
-	disk    disk
-	facts   *lru[*Facts]   // by blob and grammar
-	trees   *lru[*gitTree] // by git directory and commit
-	answers *lru[*Answer]  // by question: a commit's don't change
-}
-
-// New is a service that keeps what it parses in cacheDir ("" for memory
-// only), and prunes it there now and then.
-func New(cacheDir string) *Service {
-	s := &Service{
-		Runtime: Builtin(),
-		disk:    disk{dir: cacheDir},
-		facts:   newLRU[*Facts](2000),
-		trees:   newLRU[*gitTree](8),
-		answers: newLRU[*Answer](5000),
-	}
-	if cacheDir != "" {
-		go s.disk.prune(CacheMax)
-	}
-	return s
-}
-
-// Tree is a git directory's files at a commit.
-func (s *Service) Tree(dir, rev string) (Tree, error) {
-	if rev == "" {
-		return nil, errors.New("nav: no commit to read " + filepath.Base(dir) + " at, which is what a worktree with nothing committed in it has, so there's nothing to say of its names yet")
-	}
-	t, err := s.tree(dir, rev)
-	if err != nil {
-		return nil, fmt.Errorf("nav: %w", err)
-	}
-	return t, nil
-}
-`;
-
-const goLines = go.trimEnd().split("\n");
+const goLines = goNow;
 const tsxLines = treeSource.trimEnd().split("\n");
 
 // The lines highlighted, once the highlighter's here: plain until then.

@@ -1,0 +1,30 @@
+/* A file's diff (DiffLines.tsx): the code's face, and its rows in runs.
+   How a line is drawn is DiffLine.module.css; a gap, DiffGap's; a note,
+   DiffNote's. */
+
+@layer ui {
+  .lines {
+    font: var(--text-sm) / 20px var(--mono);
+    tab-size: 4;
+    color: var(--fg);
+  }
+
+  /* A run of rows: one that's nowhere near what's in view isn't laid
+     out, and keeps the height it had when it last was. */
+  .run {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 4000px;
+  }
+
+  /* A row of the page's own (a comment on the lines above it): level
+     with the code, past the numbers and the sign; side by side, past the
+     old side's numbers. */
+  .other {
+    padding-left: calc((var(--diff-digits) * 1ch + 16px) * 2 + 18px);
+    font-family: var(--font);
+  }
+
+  .beside {
+    padding-left: calc(var(--diff-digits) * 1ch + 16px);
+  }
+}

@@ -1,0 +1,32 @@
+/* What a diff says in place of lines (DiffNote.tsx): words in the UI's
+   face. */
+
+@layer ui {
+  .note {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    font: var(--text-sm) / 1.5 var(--font);
+    color: var(--dim);
+    text-align: left;
+  }
+
+  /* One that's pressed for the lines it stands for. */
+  .pressed {
+    min-height: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .pressed:hover {
+    color: var(--accent);
+  }
+
+  .cursor {
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+}
