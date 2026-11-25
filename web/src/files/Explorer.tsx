@@ -515,9 +515,10 @@ export function FileBrowser({ api, label, head, aside, tabs, other, before, upda
   // time); with none, the tree's always there, to pick one from.
   const fileOpen = !!path && !folder;
   const alone = !narrow && fileOpen && shown === 1;
-  // Another tab has the room of the tree and the file both; the repos
-  // beside it are as you've picked the panes.
-  const withBefore = !!before && !narrow && (shown === 3 || (!fileOpen && !other));
+  // The repos beside it are as you've picked the panes, with a file open
+  // or not: the menu and p always move something. (Another tab has the
+  // room of the tree and the file both.)
+  const withBefore = !!before && !narrow && shown === 3;
   const showTree = narrow ? !path : !alone;
   const showFile = !narrow || !!path;
   return (
