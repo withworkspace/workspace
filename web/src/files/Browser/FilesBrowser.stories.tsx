@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import type { TreeFile } from "../../api";
 import { Markdown } from "../../markdown/LazyMarkdown";
 import { Button, buttonClass } from "../../ui/Button";
+import { CodeLines as UICodeLines } from "../../ui/CodeLines";
+import { marksOf } from "../../ui/codeLayout";
 import { Crumbs } from "../../ui/Crumbs";
 import { Empty } from "../../ui/Empty";
 import { Finder, FinderNone } from "../../ui/Finder";
@@ -18,7 +20,7 @@ import { FilesBody } from "./FilesBody";
 import { FilesCapsule } from "./FilesCapsule";
 import { FilesChanged } from "./FilesChanged";
 import { FilesChangeLegend } from "./FilesChangeLegend";
-import { FilesCode, FilesCodeLine } from "./FilesCode";
+import { FilesCode, filesCodeLinesClass } from "./FilesCode";
 import { FilesExplorer } from "./FilesExplorer";
 import { FilesFile, filesFileNoteClass } from "./FilesFile";
 import { FilesFileHead } from "./FilesFileHead";
@@ -79,47 +81,28 @@ const lines = [
 ];
 
 function Code({ picked }: { picked?: [number, number] }) {
-  const [shut, setShut] = useState(new Set([4]));
-  const folds = new Map([
-    [4, 8],
-    [10, 17],
-    [13, 15],
+  const marks = marksOf([
+    { kind: "added", start: 11, end: 12 },
+    { kind: "modified", start: 14 },
+    { kind: "deleted", start: 16 },
   ]);
-  const marks = new Map<number, "added" | "modified" | "deleted-after">([
-    [11, "added"],
-    [12, "added"],
-    [14, "modified"],
-    [16, "deleted-after"],
-  ]);
-  const out: ReactNode[] = [];
-  let hiddenTo = 0;
-  lines.forEach((text, i) => {
-    const n = i + 1;
-    if (n <= hiddenTo) return;
-    const to = folds.get(n);
-    const isShut = shut.has(n);
-    if (to && isShut) hiddenTo = to;
-    out.push(
-      <FilesCodeLine
-        key={n}
-        n={n}
-        html={text.replace(/&/g, "&amp;").replace(/</g, "&lt;")}
-        mark={marks.get(n)}
-        picked={!!picked && n >= picked[0] && n <= picked[1]}
-        fold={to ? { to, shut: isShut } : undefined}
+  return (
+    <FilesCode>
+      <UICodeLines
+        className={filesCodeLinesClass}
+        html={lines.map((text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;"))}
         path="src/report/summary.ts"
-        onPick={none}
-        onFold={() =>
-          setShut((s) => {
-            const next = new Set(s);
-            if (!next.delete(n)) next.add(n);
-            return next;
-          })
-        }
-      />,
-    );
-  });
-  return <FilesCode digits={2}>{out}</FilesCode>;
+        marks={marks}
+        picked={picked && { from: picked[0], to: picked[1] }}
+        folds={[
+          { at: 4, to: 8 },
+          { at: 10, to: 17 },
+          { at: 13, to: 15 },
+        ]}
+        folded={new Set([4])}
+      />
+    </FilesCode>
+  );
 }
 
 // The tree as the explorer draws it (ui/Tree, with the explorer's look):
