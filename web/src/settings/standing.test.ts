@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { standingOf } from "./Updates";
+import { standingOf } from "./standing";
 
 const up = (over: Partial<Parameters<typeof standingOf>[0]> = {}) => ({ version: "v1.3.0", release: true, newer: false, ...over });
 

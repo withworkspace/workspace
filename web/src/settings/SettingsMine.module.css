@@ -1,0 +1,41 @@
+/* What's yours alone, a row each (SettingsMine.tsx). */
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.what,
+.value {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.value {
+  font-size: var(--text-sm);
+}
+
+.value > :first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .value {
+    grid-column: 1;
+  }
+}

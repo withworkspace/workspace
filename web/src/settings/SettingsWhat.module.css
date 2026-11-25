@@ -1,0 +1,27 @@
+/* What a setting is (SettingsWhat.tsx): its name, its key, what it says. */
+
+.what {
+  min-width: 0;
+}
+
+.label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.crumb {
+  color: var(--dim);
+  font-weight: 400;
+}
+
+.about {
+  max-width: 58ch;
+  margin-top: 2px;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}

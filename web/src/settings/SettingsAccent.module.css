@@ -1,0 +1,115 @@
+/* The accent's control (SettingsAccent.tsx): ws's own and a few others to
+   pick from, any other from the picker under the last, the hex it's at,
+   and the accent as this theme shows it, in text, as a tint and on the
+   button. */
+
+.accent {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.swatches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  all: unset;
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  cursor: pointer;
+  transition: transform var(--fast) var(--ease);
+}
+
+/* Over button:hover, which would paint it the hover colour. */
+button.swatch:hover {
+  background: var(--swatch);
+  transform: scale(1.08);
+}
+
+.swatch[aria-pressed="true"],
+.swatch.on {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--swatch);
+}
+
+.swatch:focus-visible,
+.swatch:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* Any other: a wheel, till one's picked from it, then that. */
+.swatch.any:not(.on) {
+  background: conic-gradient(#e5484d, #f5a524, #46a758, #0e8a8a, #3e63dd, #8e4ec6, #e5484d);
+}
+
+.swatch.any input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.line .hex {
+  width: 88px;
+  max-width: 100%;
+  padding: 4px 8px;
+}
+
+.shown {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.shownText {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.shownTint {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.shownButton {
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  color: var(--on-primary);
+  background: var(--primary);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .accent {
+    justify-items: start;
+  }
+
+  .line {
+    justify-content: flex-start;
+  }
+}

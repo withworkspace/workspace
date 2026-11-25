@@ -1,0 +1,50 @@
+/* A whole number, stepped (SettingsStepper.tsx). */
+
+.stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--raised);
+  overflow: hidden;
+}
+
+.stepper:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.stepper input[type="text"] {
+  width: 44px;
+  padding: 6px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.stepper button {
+  all: unset;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  color: var(--dim);
+  cursor: pointer;
+}
+
+.stepper button:hover:not(:disabled) {
+  color: var(--fg);
+  background: var(--hover);
+}
+
+.stepper button:disabled {
+  color: var(--faint);
+  cursor: default;
+}
+
+.stepper button:focus-visible {
+  color: var(--accent);
+  background: var(--accent-soft);
+}

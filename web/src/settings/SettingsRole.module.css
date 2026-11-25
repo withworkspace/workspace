@@ -1,0 +1,39 @@
+/* A role in the roles' table (SettingsRole.tsx). Its columns are the
+   table's head's (SettingsRoles.module.css). */
+
+.role {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px 190px;
+  gap: 6px 16px;
+  align-items: start;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.role:last-child {
+  border-bottom: 0;
+}
+
+/* Why a role can't run, or what it follows where it isn't set itself. */
+.note {
+  max-width: 58ch;
+  margin-top: 4px;
+  font-size: var(--text-sm);
+  font-style: italic;
+  color: var(--dim);
+}
+
+.note.problem {
+  font-style: normal;
+  color: var(--tone);
+}
+
+@media (max-width: 640px) {
+  .role {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .role > .what {
+    grid-column: 1 / -1;
+  }
+}

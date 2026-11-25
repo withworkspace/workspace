@@ -1,0 +1,9 @@
+/* A block of a section (SettingsBlock.tsx): named in an address's hash. */
+
+.block {
+  scroll-margin-top: var(--space-5);
+}
+
+.block > .head a:hover {
+  color: var(--fg);
+}

@@ -1,0 +1,70 @@
+/* A section in the Settings page's list (SettingsNavLink.tsx). */
+
+a.link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  color: var(--dim);
+  transition:
+    background var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+a.link :global(.icon) {
+  color: var(--faint);
+}
+
+a.link:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+a.link.current {
+  background: var(--raised);
+  color: var(--fg);
+  font-weight: 500;
+  box-shadow: var(--shadow-xs), 0 0 0 1px var(--line);
+}
+
+a.link.current :global(.icon) {
+  color: var(--accent);
+}
+
+/* Finding: a section with nothing found in it stands back. */
+a.link.faded {
+  opacity: 0.45;
+}
+
+.link .count {
+  margin-left: auto;
+}
+
+/* Something in the section wants a look. */
+.unread {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--attention-fill);
+}
+
+.link .unread + .count {
+  margin-left: 0;
+}
+
+@media (min-width: 861px) {
+  a.link {
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1040px) {
+  a.link {
+    flex: none;
+  }
+}

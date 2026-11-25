@@ -1,0 +1,20 @@
+/* Things to know, each named (SettingsFacts.tsx). */
+
+.facts {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.facts dt {
+  padding-top: 1px;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
