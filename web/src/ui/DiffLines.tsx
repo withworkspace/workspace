@@ -23,7 +23,9 @@ const RUN = 200;
 //            it) or dragged along (the run). Side by side, the pick is of
 //            the column its number is in
 //   cursor   the row the page's keys are on; onRow is told when a row's
-//            pressed, for the page to put them there
+//            pressed, for the page to put them there, and how: with
+//            shift held, and whether it was a number (which is a pick,
+//            told to onPick already)
 //   onGap    a gap's pressed: the page reads the file and opens it. With
 //            every gap open it's the whole file, the change in place
 //   onNote   a note that stands for lines (a large diff) is pressed
@@ -53,7 +55,7 @@ export function DiffLines<R extends Keyed>({
   picked?: DiffPick;
   onPick?: (pick: DiffPick) => void;
   cursor?: string;
-  onRow?: (key: string) => void;
+  onRow?: (key: string, how: { shift: boolean; number: boolean }) => void;
   onGap?: (row: R) => void;
   onNote?: (row: R) => void;
   draw?: (row: R) => ReactNode;
@@ -100,8 +102,9 @@ export function DiffLines<R extends Keyed>({
   // A press on a row puts the page's keys there; a number's press is a
   // pick, and what's pressed in a row of the page's own is its own.
   const press = (e: React.MouseEvent) => {
-    const el = (e.target as HTMLElement).closest<HTMLElement>("[data-row]");
-    if (el?.dataset.row !== undefined) latest.current.onRow?.(el.dataset.row);
+    const target = e.target as HTMLElement;
+    const el = target.closest<HTMLElement>("[data-row]");
+    if (el?.dataset.row !== undefined) latest.current.onRow?.(el.dataset.row, { shift: e.shiftKey, number: !!target.closest("[data-pick]") });
   };
 
   const runs: ReactNode[] = [];

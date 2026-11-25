@@ -330,14 +330,19 @@ func (cl *Client) reopen(ctx context.Context, method, id string, p SessionParams
 // Prompt sends a message and waits for the agent's turn to end: its stop
 // reason (end_turn, cancelled, max_tokens, max_turn_requests, refusal).
 func (cl *Client) Prompt(ctx context.Context, blocks ...ContentBlock) (string, error) {
-	var r struct {
-		StopReason string `json:"stopReason"`
-	}
+	stop, _, err := cl.PromptTurn(ctx, blocks...)
+	return stop, err
+}
+
+// PromptTurn is Prompt, with what the turn spent where the agent says
+// (nil where it doesn't).
+func (cl *Client) PromptTurn(ctx context.Context, blocks ...ContentBlock) (string, *Usage, error) {
+	var r promptResponse
 	err := cl.conn.Call(ctx, "session/prompt", map[string]any{
 		"sessionId": cl.SessionID(),
 		"prompt":    blocks,
 	}, &r)
-	return r.StopReason, err
+	return r.StopReason, r.usage(), err
 }
 
 // Cancel asks the agent to stop its turn; the prompt then ends, cancelled.

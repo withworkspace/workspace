@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -39,8 +40,10 @@ type Spec struct {
 	Tee, Stderr io.Writer
 	// Root and Who name the run in the exec log.
 	Root, Who string
-	// Harness is the agent's harness, by name.
-	Harness string
+	// Harness is the agent's harness, by name, and Model the model it was
+	// asked for: what it spent is kept on that model where its harness
+	// doesn't say which.
+	Harness, Model string
 	// For is who what it spends is kept for (spend.Keep): nothing's kept
 	// without a Kind.
 	For spend.For
@@ -116,7 +119,13 @@ func Run(s Spec) (harness.Report, error) {
 	}
 	if s.For.Kind != "" && len(rep.Usage) > 0 {
 		source := "run " + start.UTC().Format(time.RFC3339Nano) + " " + s.Who
-		if err := spend.Keep(s.Root, source, s.For, s.Harness, start, rep.Usage); err != nil {
+		usage := slices.Clone(rep.Usage)
+		for i := range usage {
+			if usage[i].Model == "" {
+				usage[i].Model = s.Model
+			}
+		}
+		if err := spend.Keep(s.Root, source, s.For, s.Harness, start, usage); err != nil {
 			execlog.Note(s.Root, s.Who, "couldn't keep what it spent: %v", err)
 		}
 	}

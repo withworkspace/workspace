@@ -683,7 +683,7 @@ func bundleOf(slug string, b ops.BundleView, head string) Bundle {
 	tries := func(ts []mission.BundleTry) []BundleTry {
 		var out []BundleTry
 		for _, t := range ts {
-			out = append(out, BundleTry{Text: t.Text, Command: t.Command, Look: t.Look})
+			out = append(out, BundleTry{Text: t.Text, Command: t.Command, Recipe: mission.RecipeOf(t.Command), Look: t.Look})
 		}
 		return out
 	}

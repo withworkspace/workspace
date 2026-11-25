@@ -65,7 +65,7 @@ func TestReadSession(t *testing.T) {
 	f := For{Mission: "m", Kind: Crew, Subject: "c1"}
 	read := func(want bool) {
 		t.Helper()
-		got, err := ReadSession(root, path, f, "claude", "s")
+		got, err := ReadSession(root, path, SessionSource("claude", "s"), f, "claude", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -115,7 +115,29 @@ func TestReadSession(t *testing.T) {
 	}
 
 	// A harness that says nothing of what its crew spend isn't read.
-	if got, err := ReadSession(root, path, f, "cursor", "s"); got || err != nil {
+	if got, err := ReadSession(root, path, SessionSource("cursor", "s"), f, "cursor", ""); got || err != nil {
 		t.Fatalf("cursor: %v %v", got, err)
+	}
+}
+
+// An ACP crew's spend is read from ws's own record of its session, on the
+// model the crew was launched on where the agent doesn't say.
+func TestReadSessionACPRecord(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	path := filepath.Join(t.TempDir(), "crew-c1.acp.jsonl")
+	os.WriteFile(path, []byte(`{"at":"2026-11-25T10:00:00Z","sent":[{"type":"text","text":"go"}]}`+"\n"+
+		`{"at":"2026-11-25T10:00:09Z","stop":"end_turn","usage":{"input":10,"output":2,"cacheRead":40}}`+"\n"), 0o644)
+	f := For{Mission: "m", Kind: Crew, Subject: "c1"}
+	if got, err := ReadSession(root, path, RecordSource("m", "c1"), f, "opencode", "big-pickle"); err != nil || !got {
+		t.Fatalf("read: %v %v", got, err)
+	}
+	l := lines(t, root, "m")["crew big-pickle"]
+	if l.Input != 10 || l.Output != 2 || l.CacheRead != 40 || l.Harness != "opencode" {
+		t.Fatalf("got %+v", l)
+	}
+	// cursor-agent's ACP says nothing of what it spends: not read.
+	if got, _ := ReadSession(root, path, RecordSource("m", "c2"), f, "cursor-acp", ""); got {
+		t.Fatal("cursor-acp was read")
 	}
 }

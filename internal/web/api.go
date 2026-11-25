@@ -442,10 +442,13 @@ type BundleNote struct {
 }
 
 // BundleTry is something to do to see it yourself: Command where it
-// starts with one; Look, what to look for.
+// starts with one; Look, what to look for. Recipe is the recipe a command
+// that's `ws run <recipe>` alone asks for: the page starts it in the
+// bundle's capsule with a button, where the capsule has it.
 type BundleTry struct {
 	Text    string `json:"text"`
 	Command string `json:"command,omitempty"`
+	Recipe  string `json:"recipe,omitempty"`
 	Look    bool   `json:"look,omitempty"`
 }
 

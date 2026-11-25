@@ -46,7 +46,7 @@ export function Source({ id, n }: { id: string; n: number }) {
           It's {sizeWords(value.size)}, and the page shows it where it uses it.
         </ArtifactEmpty>
       ) : (
-        <ArtifactSourceCode lines={lines} />
+        <ArtifactSourceCode lines={lines} path={value.file} />
       )}
     </ArtifactSource>
   );

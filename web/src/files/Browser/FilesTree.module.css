@@ -26,13 +26,23 @@
 
 .rows {
   flex: 1;
+  min-height: 0;
+  padding: 0 6px;
   overflow: auto;
-  padding: 6px 6px 40px;
   font-size: var(--text-sm);
+}
+
+/* The tree scrolls in itself, so the room over and under its rows is its
+   own. (Not beside them: a tree that draws only the rows in view makes
+   each as wide as itself, room and all.) */
+.list {
+  padding: 6px 0 40px;
+  box-sizing: border-box;
 }
 
 .note {
   padding: 8px 10px;
+  border-top: 1px solid var(--line);
   color: var(--dim);
   font-size: var(--text-xs);
 }
