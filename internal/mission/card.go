@@ -193,7 +193,7 @@ const nothingToDo = " · nothing for you to do"
 
 func toneOf(h Headline) Tone {
 	switch h.Kind {
-	case KindChecksFailing, KindChangesRequested:
+	case KindChecksFailing, KindChangesRequested, KindConflict:
 		return ToneFailing
 	case KindWrapUp, KindLanded, KindEnded:
 		return ToneDone
@@ -214,7 +214,7 @@ var kindWords = map[Kind]string{
 	KindCrewAsks: "Crew ask", KindPermission: "Crew want a permission", KindFlag: "A question", KindReReview: "Back for your re-review",
 	KindStepReview: "Yours to review", KindToDo: "Yours to do", KindReplies: "A reply to post", KindBriefTalk: "The plan", KindProposed: "To confirm",
 	KindQueued: "Crew queued", KindResume: "Crew to resume", KindReplied: "Crew wait for you", KindChecksFailing: "Checks failing",
-	KindChangesRequested: "Changes asked for", KindApprove: "To approve", KindAccept: "To accept", KindMerge: "Ready to merge", KindLand: "To land",
+	KindChangesRequested: "Changes asked for", KindConflict: "Conflicts with its base", KindApprove: "To approve", KindAccept: "To accept", KindMerge: "Ready to merge", KindLand: "To land",
 	KindWrapUp: "Ready to end", KindStalled: "Nobody's on it", KindWorking: "Crew at work", KindLaunching: "Crew starting", KindOwnWork: "Your own work",
 	KindAnswering: "An agent's answering", KindBriefing: "Being briefed", KindChecking: "ws is checking", KindWritingPR: "Writing a pull request", KindMovingOn: "Moving on", KindDeciding: "The orchestrator's deciding",
 	KindChecksRunning: "Checks running", KindAwaitingReview: "In review", KindWaitingOn: "Waiting", KindLanded: "Landed", KindEnded: "Ended",

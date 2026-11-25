@@ -89,6 +89,50 @@ func TestPRStep_RedChecksComeRound(t *testing.T) {
 	}
 }
 
+// While GitHub is working out whether a pull request merges (it does
+// after its base moves), one seen to conflict still does: it's not news a
+// second time when GitHub says so again. One not seen to is unknown.
+func TestPRStep_ConflictWhileGitHubWorksItOut(t *testing.T) {
+	w, _, _ := prFixture(t)
+	conflicts := func() (n int) {
+		for _, l := range prLog(t, w) {
+			if strings.HasPrefix(l, mission.PREventConflict+": ") {
+				n++
+			}
+		}
+		return n
+	}
+	watchPR(t, w, github.PR{StatusRollup: "success", Mergeable: "UNKNOWN"})
+	if conflicts() != 0 {
+		t.Fatalf("unknown, not seen to conflict: %v", prLog(t, w))
+	}
+	watchPR(t, w, github.PR{StatusRollup: "success", Mergeable: "CONFLICTING"})
+	watchPR(t, w, github.PR{StatusRollup: "success", Mergeable: "UNKNOWN"})
+	watchPR(t, w, github.PR{StatusRollup: "success", Mergeable: "CONFLICTING"})
+	if conflicts() != 1 {
+		t.Errorf("a conflict, unknown, a conflict: said %d times: %v", conflicts(), prLog(t, w))
+	}
+	m, _ := w.Missions.Load("cache")
+	seen := m.Capsules[0].SeenPR
+	for _, c := range []struct {
+		mergeable         string
+		seen              *mission.SeenPR
+		conflict, unknown bool
+	}{
+		{"MERGEABLE", seen, false, false},
+		{"", seen, false, false},
+		{"CONFLICTING", nil, true, false},
+		{"UNKNOWN", seen, true, false},
+		{"UNKNOWN", nil, false, true},
+		{"UNKNOWN", &mission.SeenPR{Number: 5}, false, true},
+		{"UNKNOWN", &mission.SeenPR{Number: 4, Conflict: true}, false, true}, // another pull request's
+	} {
+		if conflict, unknown := merges(&github.PR{Number: 5, Mergeable: c.mergeable}, c.seen); conflict != c.conflict || unknown != c.unknown {
+			t.Errorf("merges(%q, %+v) = %v, %v", c.mergeable, c.seen, conflict, unknown)
+		}
+	}
+}
+
 // A draft whose checks pass is the orchestrator's to mark ready, by the
 // process; with the orchestrator off, yours to go on from, which marks it
 // ready; and where ws holds review_before_ready, your review's.

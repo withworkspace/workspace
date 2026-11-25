@@ -1,0 +1,15 @@
+/* Putting a plugin's thing in a repo (ThingPromote.tsx): where it would
+   live, said or typed. */
+
+.where {
+  display: grid;
+  gap: 4px;
+}
+
+.else {
+  justify-self: start;
+}
+
+.where input {
+  width: 100%;
+}

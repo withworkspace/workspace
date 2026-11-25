@@ -1,0 +1,31 @@
+/* What one of ws's UIs for a plugin's thing says (ThingUi.tsx), in its
+   panel: its lines in a column, what's pressed at its foot. */
+
+.ui {
+  display: grid;
+  gap: 8px;
+}
+
+.ui p {
+  margin: 0;
+}
+
+.title {
+  font-weight: 600;
+}
+
+.ui code {
+  overflow-wrap: anywhere;
+  font-size: var(--text-xs);
+}
+
+.failed {
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}

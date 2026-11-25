@@ -1,0 +1,13 @@
+/* Whether what a plugin kept goes with it (PluginsRemove.tsx). */
+
+.data {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.data .alone {
+  display: block;
+  font-size: var(--text-sm);
+}

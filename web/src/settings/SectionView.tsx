@@ -1,5 +1,5 @@
 import type { SettingsInfo } from "../api";
-import { PluginsSection } from "../plugins/Plugins";
+import { PluginsSection } from "../plugins/Settings/PluginsSection";
 import { PageHead } from "../ui/PageHead";
 import { Skeleton } from "../ui/Skeleton";
 import { useWorkspace } from "../workspace/store";

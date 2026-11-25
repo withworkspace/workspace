@@ -1,10 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { createHost } from "../conversation/host";
 import { PageConversation } from "../conversation/PageConversation";
 import { refAt, thingOpenAt } from "../refs/refs";
-import { Banner } from "../ui/Banner";
-import { type IconName, icons } from "../ui/Icon";
 import { refsFound } from "../refs/found";
 import { useRefs } from "../refs/known";
 import { usePlugins, useWorkspaceIfRead } from "../workspace/store";
@@ -15,7 +13,8 @@ import { type Frame, listen } from "./frame";
 import { frameBase, viewBase } from "./paths";
 import { onThemeChange, theme } from "./theme";
 import { frameUis } from "./ui";
-import { FrameUiLayer } from "./Uis";
+import { PluginView } from "./PluginView";
+import { FrameUiLayer } from "./Uis/FrameUiLayer";
 
 // A plugin's view: the plugin's app, in a frame, at /x/<name>/…. The frame
 // is a page ws serves (the shell, /plugin-frame/<name>/…: ws's tokens, an
@@ -42,19 +41,9 @@ import { FrameUiLayer } from "./Uis";
 // (conversation/PageConversation.tsx): the app says how it may be had
 // (ws:conversation), as ws's own pages do.
 
-// pluginIcon is the icon a plugin asked for, if ws has it.
-export function pluginIcon(name?: string): IconName {
-  return name && name in icons ? (name as IconName) : "box";
-}
-
-// A plugin's page is its own frame and its own connection: another
-// plugin's is another of each.
-export function PluginPage() {
-  const { name = "" } = useParams();
-  return <PluginFrame key={name} name={name} />;
-}
-
-function PluginFrame({ name }: { name: string }) {
+// PluginFrame is what a plugin's page knows: the frame's connection, and
+// what's said over it. PluginView draws it.
+export function PluginFrame({ name }: { name: string }) {
   const plugins = usePlugins();
   const location = useLocation();
   const navigate = useNavigate();
@@ -229,14 +218,10 @@ function PluginFrame({ name }: { name: string }) {
     );
   }
   return (
-    <div className="plugin-view">
-      {refused && (
-        <Banner className="plugin-refused">{refused}</Banner>
-      )}
+    <PluginView refused={refused} over={<FrameUiLayer uis={uis} frame={iframe} plugin={name} />}>
       <PageConversation host={conversation} about={about}>
         <iframe ref={iframe} src={start} title={plugin?.views[0]?.title ?? name} onLoad={() => frame.current?.loaded()} />
       </PageConversation>
-      <FrameUiLayer uis={uis} frame={iframe} plugin={name} />
-    </div>
+    </PluginView>
   );
 }
