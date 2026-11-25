@@ -375,6 +375,7 @@ function Writing({ quote, suggesting }: { quote?: string; suggesting?: boolean }
       onSuggest={() => setEdit(quote)}
       canPost={edit !== undefined ? edit !== quote : !!text.trim()}
       onPost={none}
+      postKeys="⌘⏎"
       onCancel={none}
     />
   );

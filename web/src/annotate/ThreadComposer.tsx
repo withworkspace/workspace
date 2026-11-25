@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { threadKinds, type ThreadKind } from "../api";
 import { useKeys } from "../keys";
+import { sendKeysSaid, sent, useSendKey } from "../ui/sendKey";
 import { clip } from "../ui/text";
 import { useAutosize } from "../ui/useAutosize";
 import { AnnotateComposer } from "./AnnotateComposer";
 import type { Pick } from "./geometry";
 
 // ThreadComposer writes a new thread on what's highlighted: tab picks ask,
-// change or note; ⌘⏎ posts it, and it's live at once.
+// change or note; the key you've chosen posts it (ui/sendKey.ts), and
+// it's live at once. In an edit of your own, ⏎ is a new line of it, and
+// ⌘⏎ posts.
 export function ThreadComposer({ pick, onPost, onCancel }: { pick: Pick; onPost: (kind: ThreadKind, body: string, suggestion?: string) => Promise<void>; onCancel: () => void }) {
   const [kind, setKind] = useState<ThreadKind>("ask");
   const [text, setText] = useState("");
@@ -15,6 +18,7 @@ export function ThreadComposer({ pick, onPost, onCancel }: { pick: Pick; onPost:
   const [edit, setEdit] = useState<string>();
   const [error, setError] = useState<string>();
   const area = useRef<HTMLTextAreaElement>(null);
+  const sendKey = useSendKey();
   useAutosize(area, text, 260);
   // While writing, the page's keys are off: these are the composer's. (Its
   // slot is see-through, not hidden, until it's placed: focus needs that.)
@@ -44,7 +48,8 @@ export function ThreadComposer({ pick, onPost, onCancel }: { pick: Pick; onPost:
       onText={setText}
       textRef={area}
       onKeys={(e) => {
-        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        if (e.nativeEvent.isComposing) return;
+        if (sent(e, sendKey)) {
           e.preventDefault();
           post();
         } else if (e.key === "Escape") {
@@ -72,6 +77,7 @@ export function ThreadComposer({ pick, onPost, onCancel }: { pick: Pick; onPost:
       onSuggest={suggest}
       canPost={edit !== undefined ? edit !== pick.quote.exact : !!text.trim()}
       onPost={post}
+      postKeys={sendKeysSaid(sendKey)}
       onCancel={onCancel}
     />
   );

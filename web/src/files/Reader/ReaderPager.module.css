@@ -1,0 +1,67 @@
+/* The documents either side of it, and where it is among them
+   (ReaderPager.tsx). */
+
+.pager {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 10px;
+  margin: var(--space-6) 0 0;
+}
+
+.pager a {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--fg);
+  transition: border-color var(--fast) var(--ease);
+}
+
+.pager a:hover {
+  border-color: var(--accent-line);
+}
+
+.pager small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.pager b {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pager .next {
+  text-align: right;
+}
+
+.pager .next small {
+  justify-content: flex-end;
+}
+
+.pager .pos {
+  align-self: center;
+  color: var(--faint);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.pager .none {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+}
+
+@media print {
+  .pager {
+    display: none !important;
+  }
+}

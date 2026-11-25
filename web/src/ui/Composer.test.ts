@@ -31,6 +31,10 @@ describe("Composer", () => {
     expect(html({ send: "enter" })).toContain("<kbd>⏎</kbd>");
   });
 
+  it("shows the key you've chosen where it isn't told one: ⌘⏎, till you choose", () => {
+    expect(html()).toMatch(/<kbd>(⌘|Ctrl\+)⏎<\/kbd>/);
+  });
+
   it("has what's pressed beside the words, and no bar or keys of its own", () => {
     const out = html({ layout: "beside", send: "enter" }, "Ask");
     expect(out).toMatch(/<\/textarea>Ask<\/div>$/);

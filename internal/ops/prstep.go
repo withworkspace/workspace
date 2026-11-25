@@ -6,6 +6,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/mission"
 )
@@ -92,13 +93,16 @@ func (w *Workspace) WatchPRs(views []MissionView) {
 		if !act && merged && w.atZ(slug) {
 			act = true
 		}
-		if act {
-			w.Notify(slug, mission.OrchestratorEvent{Trigger: "pr"})
-		}
+		looking := act && w.Notify(slug, mission.OrchestratorEvent{Trigger: "pr"})
 		// An ending suggested landed, held until now (crew were still at
-		// it, say), ends once nothing holds it.
+		// it, say), ends once nothing holds it. So does one nothing
+		// suggested an ending for, its plan done and this its last
+		// merge, where the orchestrator isn't about to look: when it
+		// is, that's asked again as its run finishes (Orchestrate).
 		if c := v.M.Conclude; c != nil && c.Ending == mission.EndLanded {
 			w.endWhenMerged(slug)
+		} else if c == nil && merged && !looking {
+			w.endAtZ(slug, time.Time{})
 		}
 	}
 }

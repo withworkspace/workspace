@@ -1,0 +1,33 @@
+/* A group of a worktree's runs (FilesRunsGroup.tsx). */
+
+.group {
+  margin: 0;
+}
+
+/* Its task recipes not running, each to run, under the group's head. */
+.start {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 8px 8px;
+}
+
+/* A group's head is in the list's own room, not a page's. */
+.head {
+  position: static;
+  margin: 0;
+  padding: 0 8px 4px;
+  border: 0;
+}
+
+.rows {
+  display: grid;
+  gap: 1px;
+}
+
+.quiet {
+  margin: 0;
+  padding: 2px 8px;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}

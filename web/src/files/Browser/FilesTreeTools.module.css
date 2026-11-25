@@ -1,0 +1,17 @@
+/* The tree's head (FilesTreeTools.tsx): what it shows, and finding. */
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count {
+  flex: 1;
+  padding-left: 2px;
+  font-size: var(--text-sm);
+}
+
+.show {
+  flex: 1;
+}

@@ -4,23 +4,26 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/mission"
 )
 
-// Endings: a mission ends landed, answered, handed on or dropped, with Z
-// checked, each part met or not and how. The orchestrator (or crew)
-// suggests how it ends (Conclude), and you end it (End); a capsule can end
+// Endings: a mission ends landed, answered, handed on or dropped. The
+// orchestrator (or crew) suggests how it ends (Conclude), with Z checked,
+// each part met or not and how, and you end it (End); a capsule can end
 // alone, handed on to another mission or dropped. ws doesn't judge whether
-// a part of Z is met: it holds that each was looked at, and that an ending
-// is what it says (landed is at Z with its work merged; handed on names
-// where to).
+// a part of Z is met: it holds that whoever suggests an ending looked at
+// each, and that an ending is what it says (landed is at Z with its work
+// merged; handed on names where to). Checking Z isn't asked of you: by
+// the time you'd be asked, the work has merged.
 //
 // One ending is ws's to make itself, unless [missions] end_when_merged is
-// off: landed, as the orchestrator suggested, once nothing else on the
-// mission waits (endWhenMerged). Merging was yours, and a mission with
-// code is finished once it has merged; left for you, finished missions
-// piled up waiting for a click.
+// off: landed, once nothing else on the mission waits. As the orchestrator
+// suggested (endWhenMerged), or, where it had its turn and suggested
+// nothing, with the plan done and every pull request merged (endAtZ).
+// Merging was yours, and a mission with code is finished once it has
+// merged; left for you, finished missions piled up waiting for a click.
 
 // EndAs is how a mission ends, as said: the ending as written, what it
 // came to, each part of Z met or not ("<n>: <how>"), and for handed on,
@@ -113,6 +116,23 @@ func (w *Workspace) notEndingLanded(m *mission.Mission) string {
 		return "nothing suggests it landed"
 	case c.By != AsOrchestrator.By():
 		return "the orchestrator didn't suggest it"
+	}
+	if why := heldOpen(m); why != "" {
+		return why
+	}
+	brief, _ := w.Missions.ReadBrief(m.Slug)
+	if !sameZ(m.Z(brief), c.Z) {
+		return "Z has changed since it was suggested"
+	}
+	return w.notLanded(m)
+}
+
+// heldOpen says what on a mission keeps ws from ending it itself: "" when
+// nothing does. It's parked, something waits on you (a question, a step of
+// yours, crew queued), crew are still at it, or it wrote a Plan whose
+// build is yours to decide.
+func heldOpen(m *mission.Mission) string {
+	switch {
 	case m.State == mission.Parked:
 		return "it's parked"
 	case len(m.Tasks) > 0:
@@ -130,11 +150,90 @@ func (w *Workspace) notEndingLanded(m *mission.Mission) string {
 			return "it wrote a Plan, and whether it's built is the user's to say"
 		}
 	}
-	brief, _ := w.Missions.ReadBrief(m.Slug)
-	if !sameZ(m.Z(brief), c.Z) {
-		return "Z has changed since it was suggested"
+	return ""
+}
+
+// endAtZ ends a mission landed that nothing suggested an ending for: every
+// step of its plan is passed, its work has all merged or landed, and
+// nothing else on it waits (heldOpen), where ws holds end_when_merged. Z
+// goes unchecked: nobody checked it. The orchestrator has its turn first:
+// it isn't ended while a run of its is underway, but the one that began
+// at run, which is asking as it finishes. It says why not, when it
+// doesn't: "" is ended.
+func (w *Workspace) endAtZ(slug string, run time.Time) (Concluded, string) {
+	if !w.Config().EndWhenMerged() {
+		return Concluded{}, "end_when_merged is off"
 	}
-	return w.notLanded(m)
+	m, err := w.load(slug)
+	if err != nil {
+		return Concluded{}, err.Error()
+	}
+	switch {
+	case m.Ending != nil:
+		return Concluded{}, "it has ended"
+	case m.Conclude != nil:
+		return Concluded{}, "an ending is suggested"
+	case m.Orchestrating != nil && !m.Orchestrating.Since.Equal(run):
+		return Concluded{}, "the orchestrator is looking at it"
+	}
+	if why := heldOpen(m); why != "" {
+		return Concluded{}, why
+	}
+	brief, _ := w.Missions.ReadBrief(m.Slug)
+	if !planDone(m, brief) {
+		return Concluded{}, "its plan has steps to go"
+	}
+	if why := w.notLanded(m); why != "" {
+		return Concluded{}, why
+	}
+	c := mission.Conclusion{Ending: mission.EndLanded, Text: landedUnsaid, Z: mission.Conclusion{}.OnZ(m.Z(brief)), By: AsWS.By(), At: w.now()}
+	if err := w.Missions.End(m.Slug, c); err != nil {
+		return Concluded{}, err.Error()
+	}
+	return Concluded{Slug: m.Slug, Conclusion: c, Ended: true}, ""
+}
+
+// What a mission came to, where nobody said: its plan, done.
+const (
+	landedUnsaid   = "Every step of the plan done, and its work merged."
+	answeredUnsaid = "Every step of the plan done."
+	handedOnUnsaid = "Its work handed on."
+)
+
+// planDone reports whether the mission has a plan, with every step of it
+// passed.
+func planDone(m *mission.Mission, brief string) bool {
+	if m.Plan == nil || len(m.Plan.Steps) == 0 {
+		return false
+	}
+	states, _ := m.StageProgress(brief)
+	_, stepToGo := mission.CurrentStage(states)
+	return !stepToGo
+}
+
+// unsuggested is how a mission ends when you end it and nothing suggested
+// how: with every step of its plan passed, landed where its work has
+// merged or landed, handed on where its capsules all were, answered where
+// it never had any. Z goes unchecked. Short of that it's refused: what's
+// left is to drop it, or to say how it ends.
+func (w *Workspace) unsuggested(m *mission.Mission) (mission.Conclusion, error) {
+	brief, _ := w.Missions.ReadBrief(m.Slug)
+	if !planDone(m, brief) {
+		return mission.Conclusion{}, refused("nothing-suggested", "nothing suggests how it ends, and its plan isn't done: drop it (ws mission end --as dropped), or say how it ends (--as answered, --as handed-on)")
+	}
+	c := mission.Conclusion{Z: mission.Conclusion{}.OnZ(m.Z(brief))}
+	why := w.notLanded(m)
+	switch to := m.HandedOnTo(); {
+	case why == "":
+		c.Ending, c.Text = mission.EndLanded, landedUnsaid
+	case len(m.Capsules) == 0 && len(to) > 0:
+		c.Ending, c.Text, c.To = mission.EndHandedOn, handedOnUnsaid, to
+	case len(m.Capsules) == 0:
+		c.Ending, c.Text = mission.EndAnswered, answeredUnsaid
+	default:
+		return mission.Conclusion{}, refused("not-landed", "%s: it ends landed once its work has merged or landed. To give it up, drop it (ws mission end --as dropped)", why)
+	}
+	return c, nil
 }
 
 // planKind is the document kind of a Plan, for something to be built: a
@@ -142,7 +241,11 @@ func (w *Workspace) notEndingLanded(m *mission.Mission) string {
 const planKind = "plan"
 
 // End ends a mission: as its suggested ending (as nil), or as you say.
-// It's yours alone, and refused while crew are still at work on it.
+// With nothing suggested and every step of its plan passed, it ends as
+// its work stands (unsuggested). Nothing's asked of you about Z: a
+// suggestion made on a Z that's changed since keeps the checks of the
+// parts still there. It's yours alone, and refused while crew are still
+// at work on it.
 func (w *Workspace) End(slug string, as *EndAs, by Actor) (Concluded, error) {
 	if !by.IsYou() {
 		return Concluded{}, refused("not-yours", "ending a mission is the user's: suggest how it ends, with Z checked, with ws mission conclude")
@@ -166,12 +269,14 @@ func (w *Workspace) End(slug string, as *EndAs, by Actor) (Concluded, error) {
 			return Concluded{}, err
 		}
 	case m.Conclude == nil || m.Conclude.Ending == "":
-		return Concluded{}, refused("nothing-suggested", "nothing suggests how it ends: say how (landed, answered, handed on or dropped), with each part of Z met or not")
+		if c, err = w.unsuggested(m); err != nil {
+			return Concluded{}, err
+		}
 	default:
 		c = *m.Conclude
 		brief, _ := w.Missions.ReadBrief(m.Slug)
 		if z := m.Z(brief); !sameZ(z, c.Z) && !(c.Ending == mission.EndDropped && len(c.Z) == 0) {
-			return Concluded{}, refused("z-changed", "Z has changed since ending it %s was suggested: say how it ends again, with Z as it is now", c.Ending.Words())
+			c.Z = c.OnZ(z)
 		}
 	}
 	c.By, c.At = by.By(), w.now()
@@ -212,19 +317,22 @@ func stillOpen(m *mission.Mission) error {
 }
 
 // conclusion is how a mission ends as said, held to what its ending
-// needs: Z checked part by part (dropping it needn't), landed only at Z
-// with its work merged or landed, handed on only to missions there are.
+// needs: Z checked part by part, landed only at Z with its work merged or
+// landed, handed on only to missions there are. Checking Z is for whoever
+// suggests an ending: dropping it needn't, and neither need you, whose
+// ending leaves unchecked the parts you don't speak of, and whose
+// dropping needn't say why.
 func (w *Workspace) conclusion(m *mission.Mission, as EndAs, by Actor) (mission.Conclusion, error) {
 	ending, err := mission.ParseEnding(as.Ending)
 	if err != nil {
 		return mission.Conclusion{}, invalid("%s", err)
 	}
 	text := strings.TrimSpace(as.Text)
-	if text == "" {
+	if text == "" && !(by.IsYou() && ending == mission.EndDropped) {
 		return mission.Conclusion{}, invalid("say what it came to: the finding, what landed, why it stops")
 	}
 	brief, _ := w.Missions.ReadBrief(m.Slug)
-	checks, err := mission.CheckZ(m.Z(brief), as.Met, as.Unmet, ending == mission.EndDropped)
+	checks, err := mission.CheckZ(m.Z(brief), as.Met, as.Unmet, ending == mission.EndDropped || by.IsYou())
 	if err != nil {
 		return mission.Conclusion{}, invalid("%s", err)
 	}
@@ -235,7 +343,7 @@ func (w *Workspace) conclusion(m *mission.Mission, as EndAs, by Actor) (mission.
 	switch ending {
 	case mission.EndLanded:
 		for i, z := range checks {
-			if !z.Met {
+			if z.Checked() && !z.Met {
 				return mission.Conclusion{}, refused("not-at-z", "landed is at Z, and part %d of Z isn't met (%s): end it answered, handed on or dropped, saying why it stops before Z", i+1, z.How)
 			}
 		}

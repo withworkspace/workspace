@@ -1,0 +1,21 @@
+/* A worktree's page (FilesExplorer.tsx): the repos (on Repos), then the
+   worktree: a row of where it is and its tabs, across the top of what the
+   tab shows (its tree and a file, or another tab's, the room of both). */
+
+.explorer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100%;
+}
+
+/* Repos (files/Files.tsx): the repos, then the worktree. */
+.explorer.withBefore {
+  grid-template-columns: 184px minmax(0, 1fr);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}

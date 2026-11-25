@@ -35,6 +35,7 @@ export function AnnotateComposer({
   onSuggest,
   canPost,
   onPost,
+  postKeys,
   onCancel,
 }: {
   kind: ThreadKind;
@@ -52,6 +53,8 @@ export function AnnotateComposer({
   onSuggest?: () => void;
   canPost: boolean;
   onPost: () => void;
+  // The keys that post it, as they're said (⌘⏎, or ⏎).
+  postKeys: string;
   onCancel: () => void;
 }) {
   return (
@@ -94,7 +97,7 @@ export function AnnotateComposer({
         <Button variant="ghost" size="small" onClick={onCancel} title="Cancel (esc)">
           Cancel
         </Button>
-        <Button variant="primary" size="small" onClick={onPost} disabled={!canPost} title="Post it (⌘⏎)">
+        <Button variant="primary" size="small" onClick={onPost} disabled={!canPost} title={`Post it (${postKeys})`}>
           {edit !== undefined ? "Suggest" : "Comment"}
         </Button>
       </AnnotateActions>

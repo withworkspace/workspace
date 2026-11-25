@@ -1,0 +1,10 @@
+/* Beside the repos, with none open (FilesPick.tsx): a solid pane, as a
+   file's is, the repos the clear one. */
+
+.pick {
+  display: grid;
+  place-items: center;
+  padding: 40px;
+  --backdrop: var(--bg);
+  background: var(--bg);
+}

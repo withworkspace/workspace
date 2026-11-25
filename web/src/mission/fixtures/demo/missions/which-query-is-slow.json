@@ -52,11 +52,6 @@
       },
       "more": [
         {
-          "do": "end-how",
-          "label": "Say how it ends…",
-          "quiet": true
-        },
-        {
           "do": "not-yet",
           "label": "Not yet",
           "quiet": true

@@ -1,0 +1,14 @@
+/* What's said of the open file under its head (FilesFileMeta.tsx). */
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 20px;
+  font-size: var(--text-sm);
+}
+
+.meta:empty {
+  display: none;
+}

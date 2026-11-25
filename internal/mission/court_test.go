@@ -111,7 +111,13 @@ func TestResolve_EveryMissionIsInOneCourt(t *testing.T) {
 			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
 			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(time.Hour)}, {Text: "Merged.", N: 2, Of: 2, Accepted: ago(time.Minute)}}
 			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
-		}, court: CourtYou, kind: KindWrapUp, group: GroupNeedsYou, verb: VerbEnd, text: "check each part of Z"},
+		}, court: CourtYou, kind: KindWrapUp, group: GroupNeedsYou, verb: VerbEnd, text: "Every step of the plan is done"},
+		{name: "every step passed and its work merged, nothing suggested", state: Active, edit: func(s *Snapshot) {
+			s.M.Plan, _ = ParsePlan(planWithOutside, nil)
+			s.M.Stages = []StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: ago(time.Hour)}, {Text: "Merged.", N: 2, Of: 2, Accepted: ago(time.Minute)}}
+			s.M.Crew = []Crew{{ID: "c1", Status: CrewDone, Ended: ago(time.Hour)}}
+			s.CapsulesLanded = true
+		}, court: CourtYou, kind: KindWrapUp, group: GroupNeedsYou, verb: VerbEnd, text: "Every step of the plan is done, and its work has merged"},
 		{name: "an ending suggested", state: Active, edit: func(s *Snapshot) {
 			s.M.Conclude = &Conclusion{Ending: EndAnswered, Text: "Not a bug.", By: "orchestrator", Z: []ZCheck{{Z: "Product told.", Met: true, How: "in the handoff"}}}
 		}, court: CourtYou, kind: KindWrapUp, group: GroupNeedsYou, verb: VerbEnd, text: "Ready to end, answered (at Z: 1 of 1 met): Not a bug."},

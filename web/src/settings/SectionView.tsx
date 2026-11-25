@@ -18,7 +18,7 @@ export function SectionView({ section, sections, info, loading }: { section: Sec
   const branch = useWorkspace((w) => w.defaultBranch);
   const org = useWorkspace((w) => w.org);
   // The sections whose rows are all the page's own needn't wait.
-  const waits = section.id !== "notifications" && section.id !== "process" && section.id !== "about" && section.id !== "plugins";
+  const waits = section.id !== "keyboard" && section.id !== "notifications" && section.id !== "process" && section.id !== "about" && section.id !== "plugins";
   return (
     <>
       <PageHead title={section.title} />

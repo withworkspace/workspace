@@ -1,0 +1,158 @@
+/* What's on one of the shelves in the reader's path (ReaderFolder.tsx):
+   filter it, step onto one, go up, or open it where it's listed in full. */
+
+.menu {
+  position: fixed;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  width: min(340px, calc(100vw - 16px));
+  max-height: min(420px, 70vh);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  --backdrop: var(--raised);
+  --well: var(--panel);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.head b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.head .up {
+  flex: none;
+  min-height: 0;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  color: var(--dim);
+}
+
+.head .up:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.head a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  margin-left: auto;
+  color: var(--accent);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.menu .filter,
+.menu .filter:focus {
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  font: inherit;
+}
+
+.list {
+  display: grid;
+  padding: 4px;
+  overflow: auto;
+}
+
+.empty {
+  margin: 0;
+  color: var(--faint);
+  font-size: var(--text-sm);
+}
+
+.list .empty {
+  padding: 5px 8px;
+}
+
+.item {
+  justify-content: flex-start;
+  min-height: 0;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  font-weight: 400;
+  text-align: left;
+  gap: 8px;
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+.item :global(.icon) {
+  flex: none;
+  color: var(--faint);
+}
+
+.title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--faint);
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+
+.item:hover,
+.item.sel {
+  background: var(--hover);
+}
+
+.item.here .title {
+  font-weight: 600;
+}
+
+.item.here .note {
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: var(--text-xs);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: var(--text-xs);
+}
+
+@media print {
+  .menu {
+    display: none !important;
+  }
+}

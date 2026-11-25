@@ -1,0 +1,56 @@
+/* The title of a repo's worktree (FilesSwitch.tsx): the repo and which
+   worktree, switching from it. */
+
+.switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.title {
+  justify-content: flex-start;
+  gap: 7px;
+  min-width: 0;
+  margin: 0 -8px;
+  padding: 4px 8px;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  font-size: var(--text-md);
+  font-weight: 650;
+  line-height: 20px;
+  flex: none;
+}
+
+.title:hover,
+.title[aria-expanded="true"] {
+  background: var(--hover);
+}
+
+.cut {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repo {
+  flex: 0 1 auto;
+  color: var(--dim);
+  font-weight: 500;
+}
+
+.name {
+  flex: 0 1 auto;
+}
+
+.sep {
+  color: var(--faint);
+  font-weight: 400;
+}
+
+.chevron {
+  flex: none;
+  color: var(--dim);
+}

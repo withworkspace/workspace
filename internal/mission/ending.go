@@ -11,12 +11,13 @@ import (
 
 // Endings. A mission ends at Z, or earlier with a reason, in one of four
 // ways: landed (at Z, its code merged or landed), answered (a finding and
-// no code), handed on (its work raised as other missions) or dropped. Z is
-// checked when it ends, each part met or not, and how. The orchestrator
-// (or crew) suggests the ending (Mission.Conclude); it's yours to confirm
-// (Mission.Ending). Archiving stays, for putting a mission out of sight. A
-// capsule can end alone too: handed on to another mission, which takes it,
-// or dropped (EndedCapsule).
+// no code), handed on (its work raised as other missions) or dropped. The
+// orchestrator (or crew) suggests the ending (Mission.Conclude) with Z
+// checked, each part met or not, and how: that's what the ended mission
+// shows. Ending it (Mission.Ending) asks no checking of you: a landed
+// mission ws ends itself, and what you end, you end in a press. Archiving
+// stays, for putting a mission out of sight. A capsule can end alone too:
+// handed on to another mission, which takes it, or dropped (EndedCapsule).
 
 // Ending is how a mission, or a capsule alone, ended.
 type Ending string
@@ -60,12 +61,16 @@ func endingList() string {
 }
 
 // ZCheck is one part of Z, checked when the mission ends: met or not, and
-// how (what shows it), or why not.
+// how (what shows it), or why not. One with neither wasn't checked.
 type ZCheck struct {
 	Z   string `toml:"z" json:"z"`
 	Met bool   `toml:"met" json:"met"`
 	How string `toml:"how,omitempty" json:"how,omitempty"`
 }
+
+// Checked reports whether the part was checked at all: met, or not met
+// with why.
+func (z ZCheck) Checked() bool { return z.Met || z.How != "" }
 
 // Conclusion is how a mission ends: suggested, for you to confirm
 // (Mission.Conclude), or confirmed (Mission.Ending).
@@ -102,12 +107,13 @@ func (c Conclusion) AtZ() bool {
 	return met == of
 }
 
-// ZWords is Z as checked, in a few words: "Z met (2 of 2)", "early: Z 1 of
-// 3 met"; "" for a mission without a Z.
+// ZWords is Z as checked, in a few words: "at Z: 2 of 2 met", "early: 1 of
+// 3 of Z met"; "" for a mission without a Z, or one whose Z nobody
+// checked.
 func (c Conclusion) ZWords() string {
 	met, of := c.Met()
 	switch {
-	case of == 0:
+	case of == 0 || !slices.ContainsFunc(c.Z, ZCheck.Checked):
 		return ""
 	case met == of:
 		return fmt.Sprintf("at Z: %d of %d met", met, of)
@@ -125,7 +131,33 @@ func (c Conclusion) Summary() string {
 	if len(c.To) > 0 {
 		head += " to " + strings.Join(c.To, ", ")
 	}
-	return head + ": " + oneLineOf(c.Text)
+	return head + c.came()
+}
+
+// came is what it came to, after how it ended: ": <the text>", or nothing
+// where nothing was said.
+func (c Conclusion) came() string {
+	if strings.TrimSpace(c.Text) == "" {
+		return ""
+	}
+	return ": " + oneLineOf(c.Text)
+}
+
+// OnZ is the conclusion's checks on Z as it is now: a part still there
+// keeps how it was checked, and one that's new is unchecked. It's what an
+// ending suggested on a Z that's changed since ends with.
+func (c Conclusion) OnZ(z []string) []ZCheck {
+	if len(z) == 0 {
+		return nil
+	}
+	out := make([]ZCheck, len(z))
+	for i, part := range z {
+		out[i] = ZCheck{Z: part}
+		if j := slices.IndexFunc(c.Z, func(was ZCheck) bool { return was.Z == part }); j >= 0 {
+			out[i] = c.Z[j]
+		}
+	}
+	return out
 }
 
 func oneLineOf(s string) string { return strings.Join(strings.Fields(s), " ") }

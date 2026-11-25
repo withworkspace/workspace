@@ -1,0 +1,51 @@
+/* A repo in the Files page's column (FilesRepoRow.tsx). */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  color: var(--fg);
+  font-size: var(--text-md);
+  text-decoration: none;
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+.row.on {
+  background: var(--selected);
+  font-weight: 600;
+}
+
+.row.uncloned {
+  color: var(--dim);
+}
+
+.label {
+  flex: 0 1 auto;
+  min-width: 4ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.capsules {
+  margin-left: auto;
+  flex: none;
+  min-width: 18px;
+  padding: 0 5px;
+  font: 600 var(--text-xs) / 16px var(--font);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--dim);
+  border-radius: 999px;
+  background: var(--well);
+}
+
+.row.on .capsules {
+  background: var(--raised);
+}

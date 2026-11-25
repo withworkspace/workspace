@@ -3,18 +3,20 @@ import css from "./Composer.module.css";
 import { cx } from "./cx";
 import { useAutosize } from "./useAutosize";
 import { Keys } from "./Keys";
+import { type SendKey, sendKeys, sent, useSendKey } from "./sendKey";
 import { TextArea } from "./TextArea";
 
 type ComposerProps = {
   // What's typed, which is the page's to keep (a draft, say).
   value: string;
   onChange: (value: string) => void;
-  // Sending it, by its key. mod is whether ⌘ (or ctrl) was held: a
-  // composer whose ⏎ sends one way and ⌘⏎ another reads it.
-  onSend: (how: { mod: boolean }) => void;
-  // The key that sends: ⌘⏎, where ⏎ is a new line (the default), or ⏎,
-  // where ⇧⏎ is.
-  send?: "mod+enter" | "enter";
+  // Sending it, by its key. other is whether it was the second of two
+  // ways to send (ui/sendKey.ts): a composer that sends two ways reads it.
+  onSend: (how: { other: boolean }) => void;
+  // The key that sends: ⌘⏎, where ⏎ is a new line, or ⏎, where ⇧⏎ is.
+  // It's yours to choose (Settings › Keyboard), so a page doesn't say:
+  // this is for a story, or a test.
+  send?: SendKey;
   placeholder?: string;
   "aria-label": string;
   // How many lines it starts at, and how tall it grows before it scrolls.
@@ -48,14 +50,14 @@ type ComposerProps = {
 // crew, what should change. It's one box around the words and what's
 // pressed, which has the ring while the words have the keys, and grows
 // as they're written. The words are the page's (value, onChange); the
-// key that sends them is here, and what it shows of itself: in a bar the
-// keys are beside the button while the box has the keys, and a button
-// beside the words says its own.
+// key that sends them is here, the one you've chosen, and what it shows
+// of itself: in a bar the keys are beside the button while the box has
+// the keys, and a button beside the words says its own (SendKeys).
 export function Composer({
   value,
   onChange,
   onSend,
-  send = "mod+enter",
+  send: given,
   placeholder,
   rows = 1,
   tallest,
@@ -79,7 +81,9 @@ export function Composer({
     if (typeof field === "function") field(el);
     else if (field) field.current = el;
   };
-  const keys = send === "mod+enter" ? "mod+⏎" : "⏎";
+  const yours = useSendKey();
+  const send = given ?? yours;
+  const keys = sendKeys(send);
   return (
     <div className={cx(css.composer, layout === "beside" && css.beside, layout === "corner" && css.corner, className)} data-composer="">
       {over && <div className={css.over}>{over}</div>}
@@ -95,10 +99,10 @@ export function Composer({
         onBlur={onBlur}
         onKeyDown={(e) => {
           if (e.nativeEvent.isComposing) return;
-          const mod = e.metaKey || e.ctrlKey;
-          if (e.key === "Enter" && (send === "enter" ? !e.shiftKey : mod)) {
+          const how = sent(e, send);
+          if (how) {
             e.preventDefault();
-            onSend({ mod });
+            onSend(how);
           } else if (e.key === "Escape" && escape !== "leave") {
             e.preventDefault();
             if (escape === "blur") e.currentTarget.blur();

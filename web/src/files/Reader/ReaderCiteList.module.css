@@ -1,0 +1,6 @@
+/* Documents citing this one, or cited by it (ReaderCiteList.tsx). */
+
+.list .at {
+  flex: none;
+  font-size: var(--text-xs);
+}
