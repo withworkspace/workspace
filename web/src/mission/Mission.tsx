@@ -64,7 +64,7 @@ import { workWords } from "./Work/words";
 import { crewElsewhere, work } from "./workRows";
 import { checkRows, rowKey, shownBundle, toApprove, waiting as bundleWaiting } from "./verifyRows";
 import { type Reload, useHere, useLoaded } from "../load";
-import { PagePin } from "../shell/focus";
+import { PagePin } from "../shell/PagePin";
 import { Chip } from "../ui/Chip";
 import { Count } from "../ui/Count";
 import { Button, buttonClass } from "../ui/Button";

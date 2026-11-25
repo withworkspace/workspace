@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { GROUND, type Known, refNamed } from "../refs/refs";
-import { pageRefAt, pinNameOf } from "./focus";
+import { pageRefAt, pinNameOf } from "./pinNames";
 
 const known: Known = {
   repos: new Map(),

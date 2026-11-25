@@ -1,4 +1,4 @@
-import { PinButton } from "../focus";
+import { PinButton } from "../PinButton";
 import { RefsScope } from "../../refs/known";
 import { RefCardBody } from "../../refs/RefCardBody";
 import { ThingCard } from "../../refs/ThingCard";
@@ -89,7 +89,7 @@ export function PalettePane({
         <>
           <RefCardBody r={on.card} known={known} pane />
           <RefFoot>
-            <PinButton r={on.card} />
+            <PinButton r={on.card} end />
           </RefFoot>
         </>
       ) : on ? (

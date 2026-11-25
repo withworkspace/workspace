@@ -49,7 +49,7 @@ import { compareFrom, compareHref } from "./pair";
 import { hasTweaks, TweaksToggle, TweaksTray, useTweaks } from "./Tray";
 import { changed, followed, frameSearch, readTweakParams, TWEAK, tweakParams } from "./tweaks";
 import { ClearExpired, DiscardDialog, PromoteDialog, restore } from "./Lifetime";
-import { PagePin } from "../shell/focus";
+import { PagePin } from "../shell/PagePin";
 import { FoundArtifacts } from "./Found";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
@@ -361,7 +361,7 @@ export function ArtifactPage() {
             {st.words}
           </Chip>
           <Copyable text={v ? `${d.id}.v${v.n}` : d.id} className="artifact-title-ref" title="Copy its ref" />
-          <PagePin r={{ kind: "artifact", id: d.id }} />
+          <PagePin r={{ kind: "artifact", id: d.id }} end />
         </div>
         {v && <VersionLine d={d} v={v} />}
         {v?.note && (

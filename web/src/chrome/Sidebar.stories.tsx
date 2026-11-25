@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { useLocation } from "react-router";
-import { Arrange } from "../shell/Arrange";
+import { Arrange } from "../shell/Arrange/Arrange";
 import { arrange, type Place, placesOf } from "../shell/places";
 import { Button } from "../ui/Button";
 import { FindButton } from "./FindButton";
@@ -239,7 +239,7 @@ export const PuttingPinsInOrder: StoryObj = {
 // Arranging the sidebar: its places as rows with a grip, and under them
 // those in the workspace's menu. It takes the places' room, and Focus and
 // Needs you step aside until it's done. It's the app's own part
-// (shell/Arrange.tsx), in the new card as it is.
+// (shell/Arrange/Arrange.tsx), in the new card as it is.
 function Arranging() {
   const [done, setDone] = useState<string>();
   const start = arrange(placesOf(workspace, []));
