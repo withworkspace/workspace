@@ -1,31 +1,23 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, NavLink, useLocation, useParams } from "react-router";
-import { getProcess, getSettings, setSettings, type SettingChange, type SettingsGroup, type SettingsInfo } from "../api";
+import { Navigate, useLocation, useParams } from "react-router";
+import { getSettings, setSettings, type SettingChange, type SettingsInfo } from "../api";
 import { useKeys } from "../keys";
 import { useLoaded } from "../load";
-import { shortVersion } from "../shell/version";
-import { Icon } from "../ui/Icon";
-import { useTitle } from "../ui/useTitle";
-import { toast } from "../ui/toast";
-import { Skeleton } from "../ui/Skeleton";
 import { ErrorCard } from "../ui/ErrorCard";
-import { Callout } from "../ui/Callout";
-import { Keys } from "../ui/Keys";
-import { useTheme } from "../ui/theme";
-import { forgetModels, valueSaid } from "./controls";
-import { PluginsSection } from "../plugins/Settings/PluginsSection";
-import { ProcessAbout, ProcessFile } from "./Process";
-import { Repos } from "./Repos";
-import { Updates } from "./Updates";
-import { openWhatsNew } from "../shell/WhatsNew";
-import { type Page, PageContext, RowOf, SettingCell, usePage, useSetting, without } from "./Row";
-import { type Block, find, type Found, keyOf, type Mine, minesOf, name, sectionAt, type Section, sectionsOf, wordsOf } from "./sections";
-import { Count } from "../ui/Count";
-import { Button } from "../ui/Button";
-import { PageHead } from "../ui/PageHead";
-import { GroupHead } from "../ui/GroupHead";
-import { Input } from "../ui/Input";
-import { useWorkspace } from "../workspace/store";
+import { Skeleton } from "../ui/Skeleton";
+import { toast } from "../ui/toast";
+import { useTitle } from "../ui/useTitle";
+import { fileName, written } from "./file";
+import { forgetModels } from "./models";
+import { type Page, PageContext } from "./page";
+import { Results } from "./Results";
+import { find, minesOf, sectionAt, sectionsOf, wordsOf } from "./sections";
+import { SectionView } from "./SectionView";
+import { SettingsFind } from "./SettingsFind";
+import { SettingsLayout } from "./SettingsLayout";
+import { SettingsNav, SettingsNavHeading } from "./SettingsNav";
+import { SettingsNavLink } from "./SettingsNavLink";
+import { SettingsSide } from "./SettingsSide";
 
 // The Settings page: your settings for this workspace, in sections, the
 // list of them beside the sidebar and the one you're in beside that, to a
@@ -36,18 +28,15 @@ import { useWorkspace } from "../workspace/store";
 // away, and the team's or the default applies again. A few are kept in
 // this browser (the theme, desktop notifications), and say so. Each
 // section has an address (/settings/agents), and Find reads them all.
+//
+// This is what the page knows and does: the settings as ws answered for
+// them, what's typed into Find, and the writes. What it draws is parts
+// that are given what to draw (Settings…, each with its module), by way
+// of the components that say which part a thing of the settings' is
+// drawn as (SectionView, BlockView, RowOf and the rows, Control and the
+// controls).
 
 export const settingsKeys: [string, string][] = [["/", "Find a setting"]];
-
-// written is a change as it reads in the file, for its toast.
-function written(c: SettingChange): string {
-  if (c.clear) return `${name(c)} cleared`;
-  const quote = (x: unknown) => (typeof x === "string" ? `"${x}"` : String(x));
-  const v = Array.isArray(c.value) ? `[${c.value.map(quote).join(", ")}]` : quote(c.value);
-  return `${name(c)} = ${v}`;
-}
-
-const fileName = (path: string) => path.split("/").pop() ?? path;
 
 export function SettingsPage({
   notify,
@@ -110,353 +99,45 @@ export function SettingsPage({
   const page: Page = { all, change, marked: finding ? wordsOf(query) : [], notify };
   const mine = minesOf(sections).length;
   const unread = info?.unknown?.length ?? 0;
+  const clear = () => setQuery("");
 
   return (
     <PageContext.Provider value={page}>
-      <div className="page settings-page">
-        <aside className="settings-side" aria-label="Settings">
-          <div className="settings-side-in">
-            <div className="settings-side-title">Settings</div>
-            <label className="settings-find">
-              <Icon name="search" size={13} />
-              <Input
-                ref={field}
-                type="text"
-                placeholder="Find a setting…"
-                value={query}
-                spellCheck={false}
-                autoComplete="off"
-                aria-label="Find a setting"
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key !== "Escape") return;
-                  setQuery("");
-                  e.currentTarget.blur();
-                }}
-              />
-              <Keys k="/" />
-            </label>
-            <nav className="nav settings-nav" aria-label="Sections">
+      <SettingsLayout
+        side={
+          <SettingsSide title="Settings" find={<SettingsFind ref={field} value={query} onChange={setQuery} onClear={clear} />}>
+            <SettingsNav>
               {sections.map((sec) => {
                 const hits = found.find((f) => f.section.id === sec.id)?.rows.length ?? 0;
-                const on = !finding && sec.id === section?.id;
+                // Yours says how many your file sets, and whether it has keys ws doesn't read.
+                const yours = !finding && sec.id === "yours";
                 return (
                   <Fragment key={sec.id}>
-                    {sec.heading && <h2>{sec.heading}</h2>}
-                    <NavLink to={`/settings/${sec.id}`} className={() => (on ? "active" : finding && hits === 0 ? "none" : "")} aria-current={on ? "page" : undefined} onClick={() => setQuery("")}>
-                      <Icon name={sec.icon} size={15} />
-                      <span>{sec.title}</span>
-                      {finding && hits > 0 && <Count className="nav-count">{hits}</Count>}
-                      {!finding && sec.id === "yours" && unread > 0 && <span className="settings-unread" title={unread === 1 ? "A key ws doesn't read" : `${unread} keys ws doesn't read`} />}
-                      {!finding && sec.id === "yours" && mine > 0 && (
-                        <Count className="nav-count" title={`${mine} set by you`}>
-                          {mine}
-                        </Count>
-                      )}
-                    </NavLink>
+                    {sec.heading && <SettingsNavHeading>{sec.heading}</SettingsNavHeading>}
+                    <SettingsNavLink
+                      to={`/settings/${sec.id}`}
+                      icon={sec.icon}
+                      current={!finding && sec.id === section?.id}
+                      faded={finding && hits === 0}
+                      count={finding ? (hits > 0 ? hits : undefined) : yours && mine > 0 ? mine : undefined}
+                      countTitle={yours && mine > 0 ? `${mine} set by you` : undefined}
+                      unread={yours && unread > 0 ? (unread === 1 ? "A key ws doesn't read" : `${unread} keys ws doesn't read`) : undefined}
+                      onClick={clear}
+                    >
+                      {sec.title}
+                    </SettingsNavLink>
                   </Fragment>
                 );
               })}
-            </nav>
-          </div>
-        </aside>
-        <div className="settings-body">
-          {error && <ErrorCard error={error} retry={load} />}
-          {/* An old address, till the settings say which section it's in now. */}
-          {!section && !finding && !settled && <Skeleton rows={6} />}
-          {finding ?<Results found={found} query={query} clear={() => setQuery("")} /> : section && <SectionView section={section} sections={sections} info={info} loading={!settled} />}
-        </div>
-      </div>
+            </SettingsNav>
+          </SettingsSide>
+        }
+      >
+        {error && <ErrorCard error={error} retry={load} />}
+        {/* An old address, till the settings say which section it's in now. */}
+        {!section && !finding && !settled && <Skeleton rows={6} />}
+        {finding ? <Results found={found} query={query} clear={clear} /> : section && <SectionView section={section} sections={sections} info={info} loading={!settled} />}
+      </SettingsLayout>
     </PageContext.Provider>
-  );
-}
-
-// Results is what Find found: each section's rows that say it, working
-// as they do in their section.
-function Results({ found, query, clear }: { found: Found[]; query: string; clear: () => void }) {
-  const n = found.reduce((sum, f) => sum + f.rows.length, 0);
-  return (
-    <>
-      <PageHead title={<>“{query.trim()}”</>}>
-        <span className="dim">
-          {n} {n === 1 ? "setting" : "settings"}
-        </span>
-      </PageHead>
-      {found.length === 0 && <div className="quiet-line">No setting says that. What only a file sets (a repo's commands, paths) isn't here.</div>}
-      {found.map(({ section, rows }) => (
-        <section key={section.id} className="settings-block">
-          <GroupHead className="settings-group">
-            <Link to={`/settings/${section.id}`} onClick={clear}>
-              {section.title}
-            </Link>
-          </GroupHead>
-          <div className="setting-rows">
-            {rows.map((row) => (
-              <RowOf key={keyOf(row)} row={row} found />
-            ))}
-          </div>
-        </section>
-      ))}
-    </>
-  );
-}
-
-function SectionView({ section, sections, info, loading }: { section: Section; sections: Section[]; info?: SettingsInfo; loading: boolean }) {
-  const branch = useWorkspace((w) => w.defaultBranch);
-  const org = useWorkspace((w) => w.org);
-  // The sections whose rows are all the page's own needn't wait.
-  const waits = section.id !== "notifications" && section.id !== "process" && section.id !== "about" && section.id !== "plugins";
-  return (
-    <>
-      <PageHead title={section.title} />
-      <p className="lede">{section.id === "process" ? <ProcessAbout /> : section.about}</p>
-      {section.id === "yours" && info && <Yours info={info} sections={sections} />}
-      {section.id === "about" ? <About info={info} section={section} /> : section.blocks.map((b) => <BlockView key={b.id} block={b} />)}
-      {loading && waits && <Skeleton rows={4} />}
-      {section.id === "plugins" && <PluginsSection />}
-      {section.id === "repos" && <Repos branch={branch} org={org} />}
-      {section.id === "process" && <ProcessFile />}
-    </>
-  );
-}
-
-// BlockView is a block: its heading, what it says, and its rows (the
-// roles' table, for theirs). Its id is what an address's hash names.
-function BlockView({ block }: { block: Block }) {
-  if (block.roles) {
-    if (block.roles.length === 0) return null;
-    return (
-      <section id={block.id} className="settings-block">
-        <Roles roles={block.roles} />
-      </section>
-    );
-  }
-  if (block.rows.length === 0) return null;
-  return (
-    <section id={block.id} className="settings-block">
-      {block.title && <GroupHead className="settings-group">{block.title}</GroupHead>}
-      {block.about && <p className="settings-about">{block.about}</p>}
-      <div className="setting-rows">
-        {block.rows.map((row) => (
-          <RowOf key={keyOf(row)} row={row} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// Roles is every role's agent in one table: the agent CLI it runs in, and
-// the model it's given, with why it can't run if it can't, and what it
-// follows where it isn't set itself.
-function Roles({ roles }: { roles: SettingsGroup[] }) {
-  return (
-    <div className="settings-roles">
-      <div className="settings-roles-head">
-        <span>Role</span>
-        <span>Agent</span>
-        <span>Model</span>
-      </div>
-      {roles.map((g) => {
-        const harness = g.settings.find((s) => s.kind === "harness");
-        const model = g.settings.find((s) => s.kind === "model");
-        return (
-          <div key={g.id} className="settings-role">
-            <div className="setting-what">
-              <div className="setting-label">
-                <span>{g.title}</span>
-                <code className="setting-key">[{g.id}]</code>
-              </div>
-              {g.about && <div className="setting-about">{g.about}</div>}
-              {g.runs?.problem && (
-                <div className="settings-role-note tone-danger">
-                  <Icon name="alert" size={12} /> {g.runs.problem}
-                </div>
-              )}
-              {g.runs?.note && <div className="settings-role-note">{g.runs.note}</div>}
-            </div>
-            {harness ? <SettingCell s={harness} /> : <span />}
-            {model ? <SettingCell s={model} /> : <span />}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// Unread is the keys either file has that ws doesn't read.
-function Unread({ info }: { info: SettingsInfo }) {
-  if (!info.unknown || info.unknown.length === 0) return null;
-  return (
-    <Callout tone="attention" title="ws doesn't read these">
-      Misspelt, or in the wrong file, they're passed over without a word:
-      <ul className="settings-unknown">
-        {info.unknown.map((u) => (
-          <li key={u}>
-            <code>{u}</code>
-          </li>
-        ))}
-      </ul>
-    </Callout>
-  );
-}
-
-// Yours is what's yours alone: what your file sets, each with what it
-// would be without yours and the way back; the keys ws doesn't read; and
-// what this browser keeps.
-function Yours({ info, sections }: { info: SettingsInfo; sections: Section[] }) {
-  const { notify } = usePage();
-  const { choice } = useTheme();
-  const mines = minesOf(sections);
-  return (
-    <>
-      <Unread info={info} />
-      <section className="settings-block">
-        <GroupHead className="settings-group" count={mines.length}>
-          What {fileName(info.file)} sets
-        </GroupHead>
-        {mines.length === 0 && <div className="quiet-line">Nothing: every setting is the team's, or ws's default.</div>}
-        <div className="settings-mine">
-          {mines.map((m) => (
-            <MineRow key={name(m.s)} m={m} />
-          ))}
-        </div>
-      </section>
-      <section className="settings-block">
-        <GroupHead className="settings-group">In this browser</GroupHead>
-        <div className="settings-mine">
-          <div className="settings-mine-row">
-            <span>
-              <Link to="/settings/appearance" className="link">
-                Appearance
-              </Link>{" "}
-              · Theme
-            </span>
-            <span>{{ system: "As the system has it", light: "Light", dark: "Dark" }[choice]}</span>
-          </div>
-          <div className="settings-mine-row">
-            <span>
-              <Link to="/settings/notifications" className="link">
-                Notifications
-              </Link>{" "}
-              · Desktop notifications
-            </span>
-            <span>{notify.on ? "On" : "Off"}</span>
-          </div>
-        </div>
-      </section>
-    </>
-  );
-}
-
-function MineRow({ m }: { m: Mine }) {
-  const { reset } = useSetting(m.s);
-  const plain = m.s.kind === "bool" || m.s.kind === "choice";
-  return (
-    <div className="settings-mine-row">
-      <div className="settings-mine-what">
-        <span>
-          <Link to={`/settings/${m.section.id}`} className="link">
-            {m.section.title}
-          </Link>{" "}
-          · {m.what}
-        </span>
-        <code className="setting-key">{name(m.s)}</code>
-      </div>
-      <div className="settings-mine-value">
-        <span className={plain ? undefined : "mono"}>{valueSaid(m.s)}</span>
-        <span className="dim">otherwise {without(m.s)}</span>
-      </div>
-      <Button variant="ghost" size="small" onClick={reset}>
-        Reset
-      </Button>
-    </div>
-  );
-}
-
-// About is which ws this is and what's out that's later, and where the
-// workspace keeps what Settings shows. Its blocks are placed among those:
-// Updates under the version, the daemon last.
-function About({ info, section }: { info?: SettingsInfo; section: Section }) {
-  const workspace = useWorkspace();
-  const process = useLoaded(getProcess, [], { keep: true }).value;
-  const updates = section.blocks.find((b) => b.id === "updates");
-  return (
-    <>
-      <section className="settings-block">
-        <GroupHead className="settings-group">ws</GroupHead>
-        <dl className="settings-facts">
-          <dt>Version</dt>
-          <dd>
-            <span className="mono" title={workspace.version}>
-              {workspace.version ? shortVersion(workspace.version) : "—"}
-            </span>
-            <div className="dim">The daemon's, which serves this page.</div>
-          </dd>
-          <dt id="whats-new">What's new</dt>
-          <dd>
-            <Button size="small" onClick={openWhatsNew}>
-              Show what's new
-            </Button>
-            <div className="dim">Said once after an upgrade, and kept here.</div>
-          </dd>
-        </dl>
-      </section>
-      <section id="updates" className="settings-block">
-        <GroupHead className="settings-group">Updates</GroupHead>
-        <Updates running={workspace.version} />
-        {updates && (
-          <div className="setting-rows">
-            {updates.rows.map((row) => (
-              <RowOf key={keyOf(row)} row={row} />
-            ))}
-          </div>
-        )}
-      </section>
-      <section className="settings-block">
-        <GroupHead className="settings-group">This workspace</GroupHead>
-        <dl className="settings-facts">
-          <dt>Name</dt>
-          <dd>{workspace.name}</dd>
-          {workspace.org && (
-            <>
-              <dt>Organisation</dt>
-              <dd className="mono">{workspace.org}</dd>
-            </>
-          )}
-          {workspace.defaultBranch && (
-            <>
-              <dt>Default branch</dt>
-              <dd className="mono">{workspace.defaultBranch}</dd>
-            </>
-          )}
-          <dt>Where it is</dt>
-          <dd className="mono">{workspace.root}</dd>
-          <dt>The team's settings</dt>
-          <dd>
-            <code title={info?.team}>{info ? fileName(info.team) : "ws.toml"}</code> <span className="dim">in the config repo, changed by commit</span>
-          </dd>
-          <dt>Yours</dt>
-          <dd>
-            <code title={info?.file}>{info ? fileName(info.file) : "ws.local.toml"}</code> <span className="dim">beside it, not committed</span>
-          </dd>
-          {process && (
-            <>
-              <dt>Process</dt>
-              <dd>
-                <code title={process.file}>{process.name}</code>{" "}
-                <Link to="/settings/process" className="link">
-                  as it's written
-                </Link>
-              </dd>
-            </>
-          )}
-        </dl>
-      </section>
-      {section.blocks
-        .filter((b) => b.id !== "updates")
-        .map((b) => (
-          <BlockView key={b.id} block={b} />
-        ))}
-    </>
   );
 }

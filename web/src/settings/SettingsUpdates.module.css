@@ -1,0 +1,47 @@
+/* Updates, on Settings' About: what's out, over where it was found
+   (SettingsUpdates.tsx). */
+
+.updates {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.note {
+  margin: 0;
+}
+
+.notes {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.waits {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+
+.error {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 3px;
+  font-size: var(--text-sm);
+  color: var(--danger);
+}
+
+.error :global(.icon) {
+  flex: none;
+  align-self: flex-start;
+  margin-top: 3px;
+}
+
+.looked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+}

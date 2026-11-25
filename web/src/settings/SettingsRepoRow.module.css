@@ -1,0 +1,29 @@
+/* A repo in the repos table (SettingsRepoRow.tsx): its name with its
+   "yours", what it's called, and what can be done to one of yours. The
+   table itself is SettingsTable's. */
+
+.name {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.key {
+  white-space: nowrap;
+}
+
+.called {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.github {
+  white-space: nowrap;
+}
+
+.acts {
+  text-align: right;
+  white-space: nowrap;
+}

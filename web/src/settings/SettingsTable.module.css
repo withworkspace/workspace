@@ -1,0 +1,37 @@
+/* The workspace's repos, and its groups: lists to read
+   (SettingsTable.tsx). */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  padding: 0 12px 6px 0;
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--dim);
+  border-bottom: 1px solid var(--line);
+}
+
+.table td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: baseline;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.table :global(.dim) {
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 640px) {
+  .table th:nth-child(4),
+  .table td:nth-child(4) {
+    display: none;
+  }
+}

@@ -1,0 +1,22 @@
+/* A row (SettingsRow.tsx): what a setting is and says, then its control,
+   and under that whose its value is. */
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, max-content);
+  gap: 8px 32px;
+  align-items: start;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+/* A control that wants the room goes under the words. */
+.row.wide {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

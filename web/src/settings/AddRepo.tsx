@@ -1,23 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { type AddableRepo, addRepo, getGitHubOwners, getGitHubRepos } from "../api";
+import { type AddableRepo, getGitHubOwners, getGitHubRepos } from "../api";
 import { useLoaded } from "../load";
-import { Button } from "../ui/Button";
-import { Chip } from "../ui/Chip";
-import { cx } from "../ui/cx";
-import { toast } from "../ui/toast";
-import { Skeleton } from "../ui/Skeleton";
 import { Callout } from "../ui/Callout";
 import { Dialog } from "../ui/Dialog";
-import { Option, Select } from "../ui/Select";
 import { relative } from "../ui/when";
-import css from "./AddRepo.module.css";
-import { GroupPick } from "./Groups";
-import { Checkbox } from "../ui/Checkbox";
-import { Radio, RadioGroup } from "../ui/RadioGroup";
-import { Input } from "../ui/Input";
-import { ListBox, ListBoxOption } from "../ui/ListBox";
-
-const ANOTHER = "\u0000another";
+import { AddRepoAdding } from "./AddRepoAdding";
+import { SettingsAddRepoAll } from "./SettingsAddRepoAll";
+import { SettingsAddRepoBar } from "./SettingsAddRepoBar";
+import { SettingsAddRepoList } from "./SettingsAddRepoList";
+import { SettingsAddRepoOption } from "./SettingsAddRepoOption";
 
 // AddRepo picks a repo from GitHub and adds it to the workspace: whose
 // (you, or an org you're in, or another named), which of theirs (newest
@@ -60,56 +51,32 @@ export function AddRepo({ seen, org, groups, groupLabels, taken, onClose, onAdde
 
   return (
     <Dialog title="Add a repo from GitHub" onClose={onClose} wide>
-      <div className={css.top}>
-        {list.length > 0 ? (
-          <Select
-            aria-label="Whose repos"
-            value={another ? ANOTHER : owner}
-            onChange={(v) => {
-              setChosen(undefined);
-              if (v === ANOTHER) setAnother(true);
-              else {
-                setAnother(false);
-                setPicked(v);
-              }
-            }}
-          >
-            {[
-              ...list.map((o) => (
-                <Option key={o.login} value={o.login} note={o.you ? "you" : undefined}>
-                  {o.login}
-                </Option>
-              )),
-              <Option key={ANOTHER} value={ANOTHER}>
-                Another owner…
-              </Option>,
-            ]}
-          </Select>
-        ) : null}
-        {(another || (owners.value?.problem && list.length === 0)) && (
-          <Input
-            className={css.owner}
-            placeholder="owner on GitHub"
-            aria-label="Owner on GitHub"
-            value={typed}
-            onChange={(e) => {
-              setAnother(true);
-              setTyped(e.target.value);
-              setChosen(undefined);
-            }}
-            autoFocus
-          />
-        )}
-        <Input className={css.filter} placeholder="Filter…" aria-label="Filter the repos" value={q} onChange={(e) => setQ(e.target.value)} />
-        <span className={cx("dim", css.when)}>
-          {looking ? "asking GitHub…" : at ? `as of ${relative(at)}` : ""}
-          {!looking && (
-            <Button variant="link" onClick={look}>
-              Look again
-            </Button>
-          )}
-        </span>
-      </div>
+      <SettingsAddRepoBar
+        owners={list}
+        owner={owner}
+        another={another}
+        naming={another || (!!owners.value?.problem && list.length === 0)}
+        named={typed}
+        filter={q}
+        when={looking ? "asking GitHub…" : at ? `as of ${relative(at)}` : ""}
+        looking={looking}
+        onOwner={(login) => {
+          setChosen(undefined);
+          setAnother(false);
+          setPicked(login);
+        }}
+        onAnother={() => {
+          setChosen(undefined);
+          setAnother(true);
+        }}
+        onNamed={(text) => {
+          setAnother(true);
+          setTyped(text);
+          setChosen(undefined);
+        }}
+        onFilter={setQ}
+        onLook={look}
+      />
 
       {owners.value?.problem && list.length === 0 && (
         <Callout tone="danger" title="GitHub couldn't say whose repos there are">
@@ -132,107 +99,20 @@ export function AddRepo({ seen, org, groups, groupLabels, taken, onClose, onAdde
         </Callout>
       )}
 
-      <ListBox
-        className={css.list}
-        aria-label={`${owner}'s repos`}
+      <SettingsAddRepoList
+        label={`${owner}'s repos`}
         value={chosen?.name}
         onChange={(name) => setChosen(shown.find((r) => r.name === name))}
-        empty={!repos.value ? owner ? <Skeleton rows={5} /> : null : looking ? <Skeleton rows={5} /> : <p className={cx("dim", css.none)}>{q ? "None of these match." : "Nothing to add here."}</p>}
+        loading={!repos.value ? !!owner : !!looking}
+        none={repos.value && !looking ? (q ? "None of these match." : "Nothing to add here.") : undefined}
       >
-        {shown.map((r) => {
-          const here = !!r.here;
-          return (
-            <ListBoxOption key={r.name} value={r.name} textValue={r.name} disabled={here} className={css.repo} title={here ? `Here already, as ${r.here}` : undefined}>
-              <span className={css.repoLine}>
-                <span className="mono">{r.name}</span>
-                {r.private && <Chip>private</Chip>}
-                {r.fork && <Chip>fork</Chip>}
-                {r.archived && <Chip tone="quiet">archived</Chip>}
-                {here && <Chip tone="done">here{r.here !== r.name ? ` as ${r.here}` : ""}</Chip>}
-                {r.pushedAt && <span className={cx("dim", css.pushed)}>pushed {relative(r.pushedAt)}</span>}
-              </span>
-              {r.description && <span className={cx("dim", css.about)}>{r.description}</span>}
-            </ListBoxOption>
-          );
-        })}
-      </ListBox>
-      {hidden > 0 && (
-        <Checkbox className={cx("dim", css.all)} checked={all} onChange={setAll}>
-          Show forks and archived repos ({hidden})
-        </Checkbox>
-      )}
+        {shown.map((r) => (
+          <SettingsAddRepoOption key={r.name} repo={r} />
+        ))}
+      </SettingsAddRepoList>
+      {hidden > 0 && <SettingsAddRepoAll hidden={hidden} checked={all} onChange={setAll} />}
 
-      {chosen && <Adding key={`${owner}/${chosen.name}`} owner={owner} repo={chosen} taken={taken} groups={groups} groupLabels={groupLabels} onCancel={() => setChosen(undefined)} onAdded={onAdded} />}
+      {chosen && <AddRepoAdding key={`${owner}/${chosen.name}`} owner={owner} repo={chosen} taken={taken} groups={groups} groupLabels={groupLabels} onCancel={() => setChosen(undefined)} onAdded={onAdded} />}
     </Dialog>
-  );
-}
-
-// Adding is the repo chosen, about to be added: its name here (its name
-// on GitHub, unless that's taken here), and whose it is.
-function Adding({ owner, repo, taken, groups, groupLabels, onCancel, onAdded }: { owner: string; repo: AddableRepo; taken: Set<string>; groups: string[]; groupLabels?: Map<string, string>; onCancel: () => void; onAdded: () => void }) {
-  const [as, setAs] = useState(() => (taken.has(repo.name) ? `${owner}-${repo.name}` : repo.name));
-  const [group, setGroup] = useState("");
-  const [team, setTeam] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const name = as.trim();
-  const clash = taken.has(name);
-  const bad = !/^[A-Za-z0-9_-][A-Za-z0-9._-]*$/.test(name);
-  const add = () => {
-    setBusy(true);
-    addRepo({ owner, name: repo.name, as: name !== repo.name ? name : undefined, group: group || undefined, team })
-      .then((r) => {
-        toast(r.message);
-        onAdded();
-      })
-      .catch((e: Error) => {
-        toast(e.message, { tone: "danger", ms: 8000 });
-        setBusy(false);
-      });
-  };
-  return (
-    <form
-      className={css.adding}
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!clash && !bad && !busy) add();
-      }}
-    >
-      <div className={css.field}>
-        <label htmlFor="add-repo-as">Its name here</label>
-        <Input id="add-repo-as" className="mono" value={as} onChange={(e) => setAs(e.target.value)} aria-invalid={clash || bad} />
-        <span className={cx("dim", css.hint)}>
-          {clash ? `There's a ${name} here already.` : bad ? "Letters, digits, '.', '_' and '-'." : name !== repo.name ? `It stays ${owner}/${repo.name} on GitHub.` : "Its folder under repos/, and what commands call it."}
-        </span>
-      </div>
-      <div className={css.field}>
-        <span className={css.label}>Its group</span>
-        <span>
-          <GroupPick value={group} groups={groups} labels={groupLabels} none label="Its group" onPick={setGroup} />
-        </span>
-      </div>
-      <fieldset className={css.field}>
-        <legend>Whose</legend>
-        <RadioGroup className={css.whose} value={team ? "team" : "me"} onChange={(v) => setTeam(v === "team")} aria-label="Whose">
-          <Radio value="me">
-            <span>
-              Just me <span className="dim">— in ws.local.toml</span>
-            </span>
-          </Radio>
-          <Radio value="team">
-            <span>
-              The team <span className="dim">— in ws.toml, committed and pushed</span>
-            </span>
-          </Radio>
-        </RadioGroup>
-      </fieldset>
-      <div className={css.buttons}>
-        <Button variant="ghost" type="button" onClick={onCancel} disabled={busy}>
-          Cancel
-        </Button>
-        <Button variant="primary" type="submit" disabled={clash || bad || busy}>
-          {busy ? "Adding…" : team ? `Add ${owner}/${repo.name} for the team` : `Add ${owner}/${repo.name}`}
-        </Button>
-      </div>
-    </form>
   );
 }
