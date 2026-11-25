@@ -281,7 +281,8 @@ func (s *Server) prPreview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, p)
 }
 
-// prSubmit posts the PR's draft to GitHub, as you.
+// prSubmit posts the PR's draft to GitHub, as you: in the daemon it's kept
+// as submitted and answered at once, and posted behind.
 func (s *Server) prSubmit(w http.ResponseWriter, r *http.Request) {
 	repo, number, ok := s.prOf(w, r)
 	var b prSubmitBody
@@ -298,7 +299,7 @@ func (s *Server) prSubmit(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	st.URL = sub.URL
+	st.URL, st.Sending = sub.URL, sub.Sending
 	writeJSON(w, http.StatusOK, st)
 }
 

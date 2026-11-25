@@ -3773,6 +3773,11 @@ export interface PullsUnsent {
     body?: string;
     error: string;
     at: string;
+    /**
+     * Draft: it's a review, kept here as submitted: letting go of it
+     * makes it your draft again, comments and all.
+     */
+    draft?: boolean;
 }
 
 // From web/api.go
@@ -4198,9 +4203,12 @@ export interface ReviewState {
     reviews: (ReviewReview)[];
     viewed: Record<string, string>;
     /**
-     * URL is where a review just submitted is on GitHub (a pull request's).
+     * URL is where a review just submitted is on GitHub (a pull request's),
+     * and Sending that it's on its way there: kept here as submitted, and
+     * posted behind.
      */
     url?: string;
+    sending?: boolean;
 }
 
 // From web/reviews.go

@@ -20,6 +20,16 @@ type Kind struct {
 	// that isn't (a comment: twice is two) is kept as failed, as it may
 	// have been made. nil: none is.
 	Again func(Item) bool
+	// Made says whether a write a daemon stopped in the middle of, which
+	// can't be sent twice, was made there: one that was is done with, one
+	// that wasn't is sent, and one it can't say of is kept as failed. It's
+	// asked as the lane's sent, not as the daemon starts. nil: it can't be
+	// said of any.
+	Made func(Item) (bool, error)
+	// Halts: one of this kind failing holds those of it waiting behind it
+	// in its lane, which fail too, unsent, as they were to be made in
+	// order (a stack's reviews, bottom first).
+	Halts bool
 	// Settled is told once a lane's writes of this kind have been sent:
 	// those made (still kept, so what's shown of them stays until this
 	// returns) and those that failed. It's where what they changed is
@@ -46,6 +56,9 @@ type Queue struct {
 	mu      sync.Mutex
 	kinds   map[string]Kind
 	running map[string]bool // by lane
+	// check is the writes a daemon before this one was in the middle of,
+	// whose kind can say whether they were made (Kind.Made).
+	check   map[int64]bool
 	slots   chan struct{}
 	stopped bool
 	wg      sync.WaitGroup
@@ -110,9 +123,9 @@ func (q *Queue) Drop(id int64) error {
 }
 
 // Resume takes up what a daemon before this one left: a write it was in
-// the middle of is sent again if that's the same as once, and failed
-// otherwise, as it may have been made; then every lane with something
-// waiting is sent. Called once, before anything's added: a write being
+// the middle of is sent again if that's the same as once; if its kind can
+// say whether it was made, it's asked; and otherwise it's failed, as it
+// may have been made. Then every lane with something waiting is sent. Called once, before anything's added: a write being
 // sent by this daemon would be taken for one the last left.
 func (q *Queue) Resume() {
 	all, err := In(q.Root, "")
@@ -131,6 +144,16 @@ func (q *Queue) Resume() {
 				if _, err := set(q.Root, it.ID, Waiting, "", false, Sending); err != nil {
 					q.logf("outbox: %s: %v", it, err)
 				}
+				lanes[it.Lane] = true
+				continue
+			}
+			if k.Made != nil {
+				q.mu.Lock()
+				if q.check == nil {
+					q.check = map[int64]bool{}
+				}
+				q.check[it.ID] = true
+				q.mu.Unlock()
 				lanes[it.Lane] = true
 				continue
 			}
@@ -174,7 +197,7 @@ func (q *Queue) drain(lane string) {
 		var todo []Item
 		for _, it := range items {
 			// (One of a kind nobody here sends waits for a ws that does.)
-			if (it.State == Waiting || it.State == Sent) && q.kinds[it.Kind].Send != nil {
+			if (it.State == Waiting || it.State == Sent || it.State == Sending && q.check[it.ID]) && q.kinds[it.Kind].Send != nil {
 				todo = append(todo, it)
 			}
 		}
@@ -204,6 +227,27 @@ func (q *Queue) send(lane string, todo []Item) {
 		}
 		m[it.Kind] = append(m[it.Kind], it)
 	}
+	// fail keeps a write as failed, with why, and holds those behind it
+	// where its kind says to.
+	fail := func(k Kind, it Item, why string) {
+		it.State, it.Error = Failed, why
+		if _, err := set(q.Root, it.ID, Failed, why, true, Sending); err != nil {
+			q.logf("outbox: %s: %v", it, err)
+		}
+		note(failed, it)
+		if k.Halts {
+			for _, held := range q.hold(lane, it) {
+				note(failed, held)
+			}
+		}
+	}
+	made := func(it Item) {
+		it.State = Sent
+		if _, err := set(q.Root, it.ID, Sent, "", true, Sending); err != nil {
+			q.logf("outbox: %s: %v", it, err)
+		}
+		note(sent, it)
+	}
 	for _, it := range todo {
 		if it.State == Sent { // made by a daemon before this one, which didn't live to say
 			note(sent, it)
@@ -215,24 +259,37 @@ func (q *Queue) send(lane string, todo []Item) {
 		if stopped {
 			break // it waits for the next daemon
 		}
+		if it.State == Sending {
+			// A daemon before this one was in the middle of it: its kind
+			// says whether it got there.
+			q.mu.Lock()
+			delete(q.check, it.ID)
+			q.mu.Unlock()
+			was, err := q.wasMade(k, it)
+			if err != nil {
+				q.logf("outbox: %s was being sent when the daemon before this one went, and whether it got there can't be said (%v): it's kept, to look at", it, err)
+				fail(k, it, stoppedMidway)
+				continue
+			}
+			if was {
+				made(it)
+				continue
+			}
+			if _, err := set(q.Root, it.ID, Waiting, "", false, Sending); err != nil {
+				q.logf("outbox: %s: %v", it, err)
+				continue
+			}
+		}
 		err := q.sendOne(k, it)
 		if errors.Is(err, errGone) {
 			continue
 		}
 		if err != nil {
 			q.logf("outbox: %s failed: %v", it, err)
-			it.State, it.Error = Failed, err.Error()
-			if _, serr := set(q.Root, it.ID, Failed, it.Error, true, Sending); serr != nil {
-				q.logf("outbox: %s: %v", it, serr)
-			}
-			note(failed, it)
+			fail(k, it, err.Error())
 			continue
 		}
-		it.State = Sent
-		if _, serr := set(q.Root, it.ID, Sent, "", true, Sending); serr != nil {
-			q.logf("outbox: %s: %v", it, serr)
-		}
-		note(sent, it)
+		made(it)
 	}
 	var done []int64
 	for _, kind := range kinds {
@@ -249,6 +306,43 @@ func (q *Queue) send(lane string, todo []Item) {
 	if _, err := remove(q.Root, Sent, done...); err != nil {
 		q.logf("outbox: forgetting what %s was sent: %v", lane, err)
 	}
+}
+
+// hold fails the writes of a kind waiting behind one of it that failed, in
+// its lane, unsent: they were to be made in order. It's those it held.
+func (q *Queue) hold(lane string, behind Item) []Item {
+	items, err := In(q.Root, lane)
+	if err != nil {
+		q.logf("outbox: reading %s's: %v", lane, err)
+		return nil
+	}
+	why := "not sent: " + behind.Doing + ", before it, wasn't taken"
+	var out []Item
+	for _, it := range items {
+		if it.ID <= behind.ID || it.Kind != behind.Kind || it.State != Waiting {
+			continue
+		}
+		if moved, err := set(q.Root, it.ID, Failed, why, true, Waiting); err == nil && moved {
+			it.State, it.Error = Failed, why
+			out = append(out, it)
+		}
+	}
+	return out
+}
+
+// wasMade asks a kind whether a write was made. A panic is that it can't
+// be said.
+func (q *Queue) wasMade(k Kind, it Item) (was bool, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			q.logf("outbox: asking whether %s was made: %v\n%s", it, r, debug.Stack())
+			err = fmt.Errorf("ws failed asking: %v", r)
+		}
+	}()
+	if k.Made == nil {
+		return false, errors.New("its kind can't say")
+	}
+	return k.Made(it)
 }
 
 // errGone: a write that was waiting isn't any more.

@@ -26,6 +26,9 @@ import (
 // is kept, with why, and said on the page (Unsent), to send again or let
 // go of.
 //
+// Your review of it goes the same way (submit.go): kept here as submitted
+// when it's posted, and sent behind as it was worked out then.
+//
 // A service with nowhere to send from (a command's) posts at once.
 
 // The kinds of write a pull request's page makes.
@@ -33,6 +36,7 @@ const (
 	sendThread  = "pr-thread"  // a reply in a thread, or resolving or reopening it
 	sendComment = "pr-comment" // a comment on the pull request itself
 	sendDecline = "pr-decline" // your name taken off its reviewers
+	sendReview  = "pr-review"  // your review of it, kept here as submitted
 )
 
 // outgoing is one of them, as it's kept: which pull request, and what's
@@ -43,6 +47,12 @@ type outgoing struct {
 	Thread string          `json:"thread,omitempty"`
 	What   review.Response `json:"what,omitempty"`
 	Body   string          `json:"body,omitempty"`
+	// A review's: which of the PR's reviews it is, what's posted for it
+	// (as it was worked out when it was submitted), and the review kept
+	// as yours before it, for taking it back.
+	Review  string    `json:"review,omitempty"`
+	Posting *Posting  `json:"posting,omitempty"`
+	Was     *Reviewed `json:"was,omitempty"`
 }
 
 func outgoingOf(it outbox.Item) (outgoing, bool) {
@@ -82,6 +92,26 @@ func (s *Service) SendBehind(q *outbox.Queue) {
 			return nil
 		}),
 	})
+	q.Handle(sendReview, outbox.Kind{
+		Send: s.send,
+		// Twice is two reviews: one the daemon stopped in the middle of is
+		// looked for on GitHub.
+		Made: func(it outbox.Item) (bool, error) {
+			w, ok := outgoingOf(it)
+			if !ok {
+				return false, errors.New("what was to be sent can't be read")
+			}
+			return s.reviewMade(w, it.Queued)
+		},
+		// A stack's are posted bottom first: one refused holds the rest.
+		Halts: true,
+		// Taken or not, GitHub's asked again: what a PR asks of you has
+		// changed, or, refused, still stands.
+		Settled: func(lane string, sent, failed []outbox.Item) {
+			s.Stale()
+			s.sentBehind(nil)(lane, sent, failed)
+		},
+	})
 	q.Handle(sendDecline, outbox.Kind{
 		Send:  s.send,
 		Again: func(outbox.Item) bool { return true },
@@ -108,6 +138,8 @@ func (s *Service) post(kind string, w outgoing) error {
 	}
 	owner, name := s.owner(w.Repo), s.name(w.Repo)
 	switch kind {
+	case sendReview:
+		return s.postReview(w)
 	case sendThread:
 		if w.What == review.Answer {
 			return s.GitHub.ReplyToThread(owner, name, w.Number, w.Thread, w.Body)
@@ -125,33 +157,45 @@ func (s *Service) post(kind string, w outgoing) error {
 	return fmt.Errorf("ws doesn't know how to send %s", kind)
 }
 
-// sentBehind is what a kind is told once a pull request's writes of it have
-// been sent: what those made changed is read again (read), and the page
-// looks again, at that and at what failed.
+// sentBehind is what a kind is told once a lane's writes of it have been
+// sent: for each pull request they were of, what those made changed is
+// read again (read, nil for nothing), and its page looks again, at that
+// and at what failed.
 func (s *Service) sentBehind(read func(repo string, number int, sent []outbox.Item) error) func(string, []outbox.Item, []outbox.Item) {
 	return func(lane string, sent, failed []outbox.Item) {
-		w, ok := outgoing{}, false
-		for _, it := range append(slices.Clone(sent), failed...) {
-			if w, ok = outgoingOf(it); ok {
-				break
+		// (A stack's lane holds several pull requests'.)
+		var keys []string
+		of := map[string]outgoing{}
+		made := map[string][]outbox.Item{}
+		for i, it := range append(slices.Clone(sent), failed...) {
+			w, ok := outgoingOf(it)
+			if !ok {
+				continue
+			}
+			key := Key(w.Repo, w.Number)
+			if _, seen := of[key]; !seen {
+				keys, of[key] = append(keys, key), w
+			}
+			if i < len(sent) {
+				made[key] = append(made[key], it)
 			}
 		}
-		if !ok {
-			return
-		}
-		if len(sent) > 0 {
-			if err := read(w.Repo, w.Number, sent); err != nil {
-				// GitHub has them: what's kept shows them as made, until
-				// it can be read again.
-				s.mu.Lock()
-				if s.pageDue == nil {
-					s.pageDue = map[string]bool{}
+		for _, key := range keys {
+			w := of[key]
+			if len(made[key]) > 0 && read != nil {
+				if err := read(w.Repo, w.Number, made[key]); err != nil {
+					// GitHub has them: what's kept shows them as made, until
+					// it can be read again.
+					s.mu.Lock()
+					if s.pageDue == nil {
+						s.pageDue = map[string]bool{}
+					}
+					s.pageDue[key] = true
+					s.mu.Unlock()
 				}
-				s.pageDue[Key(w.Repo, w.Number)] = true
-				s.mu.Unlock()
 			}
+			s.bump(w.Repo, w.Number)
 		}
-		s.bump(w.Repo, w.Number)
 	}
 }
 
@@ -223,14 +267,24 @@ func (s *Service) where(repo string, number int, thread string) string {
 }
 
 // waiting is what's kept to send for a PR, in the order it was made:
-// nothing, where nothing's sent behind.
+// nothing, where nothing's sent behind. (Its review may be in its stack's
+// lane, so every lane is read: there's never much waiting.)
 func (s *Service) waiting(repo string, number int) []outbox.Item {
 	if s.Outbox == nil {
 		return nil
 	}
-	items, _ := outbox.In(s.Root, laneOf(repo, number))
-	return items
+	all, _ := outbox.In(s.Root, "")
+	var out []outbox.Item
+	for _, it := range all {
+		if w, ok := outgoingOf(it); ok && ours(it) && w.Repo == repo && w.Number == number {
+			out = append(out, it)
+		}
+	}
+	return out
 }
+
+// ours: a write is one of a pull request's page's.
+func ours(it outbox.Item) bool { return strings.HasPrefix(it.Kind, "pr-") }
 
 // withThreadWrites is a PR's threads with writes shown on them: a reply in
 // its thread, a thread resolved or open again. One that failed isn't
@@ -304,6 +358,9 @@ type Unsent struct {
 	Body  string    `json:"body,omitempty"`
 	Error string    `json:"error"`
 	At    time.Time `json:"at"`
+	// Draft: it's a review, kept here as submitted: letting go of it
+	// makes it your draft again, comments and all.
+	Draft bool `json:"draft,omitempty"`
 }
 
 // Unsent is what was said from a PR's page that GitHub didn't take, oldest
@@ -315,7 +372,14 @@ func (s *Service) Unsent(repo string, number int) []Unsent {
 			continue
 		}
 		w, _ := outgoingOf(it)
-		out = append(out, Unsent{ID: it.ID, Doing: it.Doing, Body: w.Body, Error: it.Error, At: it.Queued})
+		u := Unsent{ID: it.ID, Doing: it.Doing, Body: w.Body, Error: it.Error, At: it.Queued}
+		if it.Kind == sendReview {
+			u.Draft = true
+			if w.Posting != nil {
+				u.Body = w.Posting.Body
+			}
+		}
+		out = append(out, u)
 	}
 	return out
 }
@@ -340,7 +404,7 @@ func (s *Service) Sends() *Sends {
 	for _, it := range items {
 		w, ok := outgoingOf(it)
 		switch {
-		case !ok || !strings.HasPrefix(it.Lane, "pr "):
+		case !ok || !ours(it):
 		case it.Unsent():
 			out.Sending++
 		case it.State == outbox.Failed:
@@ -355,24 +419,25 @@ func (s *Service) Sends() *Sends {
 	return out
 }
 
-// its is a write GitHub didn't take, if it's this PR's.
-func (s *Service) its(repo string, number int, id int64) error {
+// its is a write kept to send, if it's this PR's.
+func (s *Service) its(repo string, number int, id int64) (outbox.Item, outgoing, error) {
 	if s.Outbox == nil {
-		return outbox.ErrNotFound
+		return outbox.Item{}, outgoing{}, outbox.ErrNotFound
 	}
 	it, err := outbox.Get(s.Root, id)
 	if err != nil {
-		return err
+		return it, outgoing{}, err
 	}
-	if it.Lane != laneOf(repo, number) {
-		return outbox.ErrNotFound
+	w, ok := outgoingOf(it)
+	if !ok || !ours(it) || w.Repo != repo || w.Number != number {
+		return it, w, outbox.ErrNotFound
 	}
-	return nil
+	return it, w, nil
 }
 
 // Resend sends something GitHub didn't take again.
 func (s *Service) Resend(repo string, number int, id int64) error {
-	if err := s.its(repo, number, id); err != nil {
+	if _, _, err := s.its(repo, number, id); err != nil {
 		return err
 	}
 	if err := s.Outbox.Retry(id); err != nil {
@@ -382,10 +447,21 @@ func (s *Service) Resend(repo string, number int, id int64) error {
 	return nil
 }
 
-// Discard lets go of something GitHub didn't take: it isn't sent.
+// Discard lets go of something GitHub didn't take: it isn't sent. A
+// review, which is kept here as submitted, is made your draft again
+// first: nothing written in it is lost.
 func (s *Service) Discard(repo string, number int, id int64) error {
-	if err := s.its(repo, number, id); err != nil {
+	it, w, err := s.its(repo, number, id)
+	if err != nil {
 		return err
+	}
+	if it.State != outbox.Failed {
+		return outbox.ErrNotFound
+	}
+	if it.Kind == sendReview {
+		if err := s.takeBack(w); err != nil {
+			return err
+		}
 	}
 	if err := s.Outbox.Drop(id); err != nil {
 		return err

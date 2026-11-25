@@ -13,8 +13,9 @@ type Props = {
 };
 
 // PullRequestUnsent is what was said from a pull request's page that
-// GitHub didn't take (a reply, a comment, resolving a thread): each with
-// why, and to send again or let go of. What's said here is shown at once
+// GitHub didn't take (a reply, a comment, resolving a thread, your review
+// of it): each with why, and to send again or let go of. A review isn't
+// let go of: it's made your draft again. What's said here is shown at once
 // and sent behind, so a refusal comes after the page has moved on: this
 // is where it's said, until something's done about it.
 export function PullRequestUnsent({ unsent, busy, onResend, onDiscard }: Props) {
@@ -30,8 +31,14 @@ export function PullRequestUnsent({ unsent, busy, onResend, onDiscard }: Props) 
               <Button size="small" disabled={busy === u.id} onClick={() => onResend(u)} title="Send it to GitHub again">
                 Try again
               </Button>
-              <Button variant="ghost" size="small" disabled={busy === u.id} onClick={() => onDiscard(u)} title="Let go of it: it isn't sent">
-                Discard
+              <Button
+                variant="ghost"
+                size="small"
+                disabled={busy === u.id}
+                onClick={() => onDiscard(u)}
+                title={u.draft ? "Make it your draft again, with its comments: it isn't posted" : "Let go of it: it isn't sent"}
+              >
+                {u.draft ? "Back to a draft" : "Discard"}
               </Button>
             </>
           }

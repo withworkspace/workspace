@@ -584,6 +584,7 @@ export interface ReviewState {
   reviews: Review[];
   viewed: Record<string, string>;
   url?: string; // a pull request's: where the review just submitted is on GitHub
+  sending?: boolean; // or that it's on its way there, posted behind
 }
 
 const send = <T>(method: string, path: string, body?: unknown) => request<T>(method, path, { body });

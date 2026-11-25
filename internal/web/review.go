@@ -155,8 +155,11 @@ type ReviewState struct {
 	Draft   *review.Review    `json:"draft"`
 	Reviews []*review.Review  `json:"reviews"`
 	Viewed  map[string]string `json:"viewed"`
-	// URL is where a review just submitted is on GitHub (a pull request's).
-	URL string `json:"url,omitempty"`
+	// URL is where a review just submitted is on GitHub (a pull request's),
+	// and Sending that it's on its way there: kept here as submitted, and
+	// posted behind.
+	URL     string `json:"url,omitempty"`
+	Sending bool   `json:"sending,omitempty"`
 }
 
 // reviewing resolves what the request reviews (a mission's capsule, or a

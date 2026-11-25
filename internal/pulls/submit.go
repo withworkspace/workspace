@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/github"
 	"github.com/withworkspace/workspace/internal/review"
@@ -246,11 +247,20 @@ func looseComment(n review.Note) string {
 type Submitted struct {
 	Review *review.Review `json:"review"`
 	URL    string         `json:"url,omitempty"` // the review on GitHub
+	// Sending: it's kept here as submitted, and on its way to GitHub.
+	Sending bool `json:"sending,omitempty"`
 }
 
 // Submit posts a PR's draft review to GitHub with a verdict, as you, and
-// then keeps it: the commit reviewed stays in the clone, with each file's
+// keeps it: the commit reviewed stays in the clone, with each file's
 // fingerprint, for looking again.
+//
+// Where there's somewhere to send from (SendBehind), it's kept first, as
+// submitted, and sent behind: what's sent is the posting as it was worked
+// out here, whatever's written since. A stack's reviews take turns on the
+// stack, in the order they were submitted (bottom first), and one GitHub
+// refuses holds those behind it. One it refuses is said on the PR's page
+// (Unsent), to send again or make a draft of again.
 func (s *Service) Submit(repo string, number int, head, verdict, summary string) (*Submitted, error) {
 	p, err := s.Posting(repo, number, head, verdict, summary)
 	if err != nil {
@@ -273,27 +283,142 @@ func (s *Service) Submit(repo string, number int, head, verdict, summary string)
 			base = b
 		}
 	}
-	url, err := s.GitHub.SubmitReview(s.owner(repo), s.name(repo), number, p.submission())
+	if s.Outbox == nil {
+		url, err := s.GitHub.SubmitReview(s.owner(repo), s.name(repo), number, p.submission())
+		if err != nil {
+			return nil, err
+		}
+		// It's posted: from here on, nothing may lose that.
+		r, _, err := s.keepReview(repo, number, l, base, p, verdict, summary, url)
+		if err != nil {
+			return &Submitted{URL: url}, fmt.Errorf("the review is on GitHub (%s), but ws couldn't keep it: %w", url, err)
+		}
+		s.Stale() // what it asks of you has changed
+		return &Submitted{Review: r, URL: url}, nil
+	}
+	r, was, err := s.keepReview(repo, number, l, base, p, verdict, summary, "")
 	if err != nil {
 		return nil, err
 	}
-	// It's posted: from here on, nothing may lose that.
-	store := s.Store(repo, number)
+	w := outgoing{Repo: repo, Number: number, Review: r.ID, Posting: p, Was: was}
+	if _, err := s.Outbox.Add(reviewLane(repo, number, st), sendReview, "your review of "+Key(repo, number), w); err != nil {
+		// It can't be kept to send, so it isn't submitted: a draft again.
+		s.takeBack(w)
+		return nil, err
+	}
+	s.bump(repo, number)
+	return &Submitted{Review: r, Sending: true}, nil
+}
+
+// keepReview keeps a PR's draft as your review of it, submitted: in its
+// reviews, with the commit reviewed kept in the clone and each file's
+// fingerprint, and it no longer asks for your review. url is where it is
+// on GitHub, "" for one still to be sent. It's the review, and the one
+// kept as yours before it.
+func (s *Service) keepReview(repo string, number int, l *layer, base string, p *Posting, verdict, summary, url string) (*review.Review, *Reviewed, error) {
 	at := s.now()
-	r, err := store.Submit(Key(repo, number), review.Diffed{Dir: l.dir, BaseRef: l.baseRef, Base: base, Head: p.Commit}, verdict, summary, at)
+	r, err := s.Store(repo, number).Submit(Key(repo, number), review.Diffed{Dir: l.dir, BaseRef: l.baseRef, Base: base, Head: p.Commit}, verdict, summary, at)
 	if err != nil {
-		return &Submitted{URL: url}, fmt.Errorf("the review is on GitHub (%s), but ws couldn't keep it: %w", url, err)
+		return nil, nil, err
 	}
 	prints, _ := review.Fingerprints(l.dir, base, p.Commit)
 	release := s.lockRepo(repo)
 	Keep(l.dir, ReviewedRef(number, r.ID), p.Commit)
 	release()
+	var was *Reviewed
 	Update(s.Root, repo, number, func(rec *Record) {
+		was = rec.Reviewed
 		rec.Reviewed = &Reviewed{ID: r.ID, Verdict: verdict, Head: p.Commit, Base: base, At: at, URL: url, Prints: prints}
 	})
 	s.settle(repo, number) // it doesn't ask for your review any more
-	s.Stale()              // what it asks of you has changed
-	return &Submitted{Review: r, URL: url}, nil
+	return r, was, nil
+}
+
+// reviewLane is what a PR's review takes turns on: its stack, so a
+// stack's are posted in the order they were submitted, or itself.
+func reviewLane(repo string, number int, st *Stack) string {
+	if st != nil && len(st.Layers) > 0 {
+		return "stack " + Key(repo, st.Layers[0].Number)
+	}
+	return laneOf(repo, number)
+}
+
+// sendReview posts a review kept here to GitHub, and keeps where it is.
+func (s *Service) postReview(w outgoing) error {
+	if w.Posting == nil {
+		return errors.New("what was to be posted can't be read")
+	}
+	if s.GitHub == nil {
+		return errors.New("there's no GitHub to ask here")
+	}
+	url, err := s.GitHub.SubmitReview(s.owner(w.Repo), s.name(w.Repo), w.Number, w.Posting.submission())
+	if err != nil {
+		return err
+	}
+	s.reviewAt(w, url)
+	return nil
+}
+
+// reviewAt keeps where a review sent behind is on GitHub.
+func (s *Service) reviewAt(w outgoing, url string) {
+	Update(s.Root, w.Repo, w.Number, func(rec *Record) {
+		if rec.Reviewed != nil && rec.Reviewed.ID == w.Review {
+			rec.Reviewed.URL = url
+		}
+	})
+}
+
+// states are GitHub's names for a review as it stands, by the event that
+// made it.
+var states = map[string]string{github.EventApprove: "APPROVED", github.EventRequestChanges: "CHANGES_REQUESTED", github.EventComment: "COMMENTED"}
+
+// madeSkew is how far GitHub's clock may be behind this one's and a
+// review there still be the one sent from here.
+const madeSkew = 5 * time.Minute
+
+// reviewMade says whether a review the daemon stopped in the middle of
+// sending is on GitHub: yours, of that commit, with that verdict, made no
+// earlier than it was submitted here. Posting it twice would be two.
+func (s *Service) reviewMade(w outgoing, queued time.Time) (bool, error) {
+	if w.Posting == nil || s.GitHub == nil {
+		return false, errors.New("what was to be posted can't be read")
+	}
+	me, err := s.GitHub.Viewer()
+	if err != nil {
+		return false, err
+	}
+	said, err := s.GitHub.Discussion(s.owner(w.Repo), s.name(w.Repo), w.Number)
+	if err != nil {
+		return false, err
+	}
+	for i := len(said) - 1; i >= 0; i-- {
+		g := said[i]
+		if g.State != states[w.Posting.Event] || !sameLogin(g.Author, me) || g.Commit != w.Posting.Commit {
+			continue
+		}
+		if at, err := time.Parse(time.RFC3339, g.At); err == nil && at.Before(queued.Add(-madeSkew)) {
+			continue
+		}
+		s.reviewAt(w, g.URL)
+		return true, nil
+	}
+	return false, nil
+}
+
+// takeBack makes a review that was to be sent your draft again, and what
+// was kept as your review before it is again. It's refused while there's
+// a newer draft.
+func (s *Service) takeBack(w outgoing) error {
+	if _, err := s.Store(w.Repo, w.Number).Unsubmit(w.Review); err != nil && !errors.Is(err, review.ErrNotFound) {
+		return err
+	}
+	_, err := Update(s.Root, w.Repo, w.Number, func(rec *Record) {
+		if rec.Reviewed != nil && rec.Reviewed.ID == w.Review {
+			rec.Reviewed = w.Was
+		}
+	})
+	s.Stale() // it asks for your review again
+	return err
 }
 
 // nonEmpty is s as a list of one, or of none if there's nothing in it.

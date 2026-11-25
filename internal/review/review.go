@@ -439,6 +439,34 @@ func (s Store) Discard(capsule string) error {
 	})
 }
 
+// Unsubmit makes a submitted review its draft again, with its comments
+// and what was written with it: for one that was to be posted somewhere
+// and wasn't (a pull request's, which GitHub didn't take). It's refused
+// while there's a newer draft, as there's one at a time, and for a
+// mission's, which is logged and rendered once it's submitted.
+func (s Store) Unsubmit(id string) (*Review, error) {
+	if s.ofMission() {
+		return nil, errors.New("a mission's review isn't taken back once it's submitted")
+	}
+	var r *Review
+	err := s.write(func(tx *store.Tx) error {
+		var err error
+		if r, err = s.loadIn(tx, id); err != nil || r.State == Draft {
+			return err
+		}
+		draft, err := s.draftIn(tx, r.Capsule)
+		if err != nil {
+			return err
+		}
+		if draft != nil {
+			return fmt.Errorf("there's a newer draft review of %s: post or discard that one first", r.Capsule)
+		}
+		r.State, r.Verdict, r.Submitted = Draft, "", nil
+		return s.saveIn(tx, r)
+	})
+	return r, err
+}
+
 // Submit ends the capsule's draft with a verdict, at the commit reviewed:
 // it's kept, rendered for agents as an artifact, and logged. An approval
 // needs no comments; anything else does, or a summary. A capsule with no

@@ -205,3 +205,113 @@ func TestResume(t *testing.T) {
 }
 
 func sleep() { time.Sleep(time.Millisecond) }
+
+// A kind that halts: one of its writes failing fails those of it waiting
+// behind it in the lane, unsent, and leaves the other kinds' to be sent.
+func TestHalts(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	var mu sync.Mutex
+	var sent []string
+	gate := make(chan struct{})
+	send := func(it Item) error {
+		<-gate
+		mu.Lock()
+		defer mu.Unlock()
+		if it.Doing == "middle" {
+			return errors.New("no")
+		}
+		sent = append(sent, it.Doing)
+		return nil
+	}
+	var told []string
+	q := &Queue{Root: root}
+	q.Handle("review", Kind{Send: send, Halts: true, Settled: func(lane string, ok, failed []Item) {
+		mu.Lock()
+		defer mu.Unlock()
+		for _, it := range failed {
+			told = append(told, it.Doing)
+		}
+	}})
+	q.Handle("reply", Kind{Send: send})
+	for _, w := range [][2]string{{"review", "bottom"}, {"review", "middle"}, {"reply", "a reply"}, {"review", "top"}} {
+		if _, err := q.Add("stack", w[0], w[1], op{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	close(gate)
+	q.Wait()
+	if got := strings.Join(sent, ", "); got != "bottom, a reply" {
+		t.Errorf("sent %q", got)
+	}
+	if got := states(t, root, "stack"); got != "middle failed, top failed" {
+		t.Errorf("kept: %q", got)
+	}
+	if got := strings.Join(told, ", "); got != "middle, top" {
+		t.Errorf("its kind was told of %q", got)
+	}
+	items, _ := In(root, "stack")
+	if items[1].Error != "not sent: middle, before it, wasn't taken" {
+		t.Errorf("why the one behind wasn't sent: %q", items[1].Error)
+	}
+	// One sent again by itself is sent.
+	if err := q.Retry(items[1].ID); err != nil {
+		t.Fatal(err)
+	}
+	q.Wait()
+	if got := strings.Join(sent, ", "); got != "bottom, a reply, top" {
+		t.Errorf("sent %q", got)
+	}
+}
+
+// A write a daemon stopped in the middle of, whose kind can say whether
+// it got there: one that did is done with, one that didn't is sent, and
+// one it can't say of is kept as failed.
+func TestResumeAsks(t *testing.T) {
+	root := t.TempDir()
+	storetest.Own(t, root)
+	before := &Queue{Root: root}
+	before.stopped = true
+	for _, doing := range []string{"there", "not there", "who knows"} {
+		it, err := before.Add("a", "review", doing, op{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		set(root, it.ID, Sending, "", false)
+	}
+	var mu sync.Mutex
+	var sent, done []string
+	q := &Queue{Root: root}
+	q.Handle("review", Kind{
+		Send: func(it Item) error {
+			mu.Lock()
+			defer mu.Unlock()
+			sent = append(sent, it.Doing)
+			return nil
+		},
+		Made: func(it Item) (bool, error) {
+			if it.Doing == "who knows" {
+				return false, errors.New("GitHub is down")
+			}
+			return it.Doing == "there", nil
+		},
+		Settled: func(lane string, ok, failed []Item) {
+			mu.Lock()
+			defer mu.Unlock()
+			for _, it := range ok {
+				done = append(done, it.Doing)
+			}
+		},
+	})
+	q.Resume()
+	q.Wait()
+	if got := strings.Join(sent, ", "); got != "not there" {
+		t.Errorf("sent %q", got)
+	}
+	if got := strings.Join(done, ", "); got != "there, not there" {
+		t.Errorf("said to be made: %q", got)
+	}
+	if got := states(t, root, "a"); got != "who knows failed" {
+		t.Errorf("kept: %q", got)
+	}
+}

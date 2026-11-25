@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/withworkspace/workspace/internal/github"
 	"github.com/withworkspace/workspace/internal/outbox"
 	"github.com/withworkspace/workspace/internal/review"
 )
@@ -98,5 +99,56 @@ func TestReviewsSentBehind(t *testing.T) {
 	}
 	if ws = (Workspace{}); getInto(t, w.s, "/api/workspace", &ws) != 200 || ws.Sends != nil {
 		t.Errorf("the workspace's sends, with nothing waiting: %+v", ws.Sends)
+	}
+}
+
+// Your review, where the service sends behind: answered as submitted and
+// on its way, before GitHub has it, and kept with where it is once it has.
+func TestReviewsReviewSentBehind(t *testing.T) {
+	w := newReviewsWorld(t)
+	q := &outbox.Queue{Root: w.s.Root}
+	w.s.Reviews.SendBehind(q)
+	gate := make(chan struct{})
+	post := w.gh.SubmitReviewFn
+	w.gh.SubmitReviewFn = func(org, repo string, number int, r github.ReviewSubmission) (string, error) {
+		<-gate
+		return post(org, repo, number, r)
+	}
+	var d PRDetail
+	getInto(t, w.s, "/api/prs/api/5", &d)
+
+	req, _ := http.NewRequest("POST", w.s.Info().Origin()+"/api/prs/api/5/review/submit", strings.NewReader(`{"head":"`+d.Head+`","verdict":"approve","summary":""}`))
+	req.AddCookie(&http.Cookie{Name: w.s.cookieName(), Value: w.s.Info().Token})
+	req.Header.Set("Origin", w.s.Info().Origin())
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	var st ReviewState
+	if err := json.NewDecoder(res.Body).Decode(&st); err != nil || res.StatusCode != 200 {
+		t.Fatalf("submit: %d %v", res.StatusCode, err)
+	}
+	if !st.Sending || st.URL != "" || st.Draft != nil || len(st.Reviews) != 1 || st.Reviews[0].State != review.Submitted {
+		t.Errorf("answered with %+v", st)
+	}
+	w.mu.Lock()
+	n := len(w.posted)
+	w.mu.Unlock()
+	if n != 0 {
+		t.Fatal("GitHub had it before it answered")
+	}
+	if d = (PRDetail{}); getInto(t, w.s, "/api/prs/api/5", &d) != 200 || d.Reviewed == nil || d.Reviewed.URL != "" {
+		t.Errorf("the PR, as it's sent: %+v", d.Reviewed)
+	}
+
+	close(gate)
+	q.Wait()
+	w.mu.Lock()
+	n = len(w.posted)
+	w.mu.Unlock()
+	if d = (PRDetail{}); getInto(t, w.s, "/api/prs/api/5", &d) != 200 || n != 1 || d.Reviewed == nil || d.Reviewed.URL == "" || len(d.Unsent) != 0 {
+		t.Errorf("once sent: posted %d, %+v, unsent %+v", n, d.Reviewed, d.Unsent)
 	}
 }
