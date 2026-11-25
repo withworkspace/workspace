@@ -1,0 +1,29 @@
+/* How a space stands with its remote, beside its name
+   (DocumentsFresh.tsx); under it, on a narrow window. */
+
+.fresh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 0 6px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+  font-size: var(--text-sm);
+}
+
+.fresh.behind {
+  color: var(--fg);
+}
+
+.fresh button {
+  margin-left: 4px;
+}
+
+@media (width <= 1020px) {
+  .fresh {
+    flex-basis: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+}

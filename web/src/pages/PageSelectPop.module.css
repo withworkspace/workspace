@@ -1,0 +1,16 @@
+/* Under words selected in a page: ask about them, or for a change
+   (PageSelectPop.tsx). */
+
+.pop {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  position: absolute;
+  z-index: 5;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  box-shadow: var(--shadow-lg);
+}

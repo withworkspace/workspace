@@ -1,0 +1,10 @@
+/* What a pass found (PassFindings.tsx), one under another. */
+
+.findings {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

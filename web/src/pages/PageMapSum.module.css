@@ -1,0 +1,8 @@
+/* What's open, out of date or filling, over the map (PageMapSum.tsx). */
+
+.sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 12px;
+}

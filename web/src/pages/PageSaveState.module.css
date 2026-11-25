@@ -1,0 +1,13 @@
+/* Where saving the page stands (PageSaveState.tsx). */
+
+span.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--faint);
+  font-size: var(--text-sm);
+}
+
+.state.changed {
+  color: var(--attention);
+}

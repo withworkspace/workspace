@@ -1,0 +1,30 @@
+/* A group of the guide's, in the diff above its first file
+   (ReviewGuideGroup.tsx): what the files are, and why they're read here. */
+
+.group {
+  margin: 24px 2px 4px;
+  max-width: 820px;
+}
+
+.group h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.group h3 > .icon {
+  color: var(--accent);
+}
+
+.group.skim h3 {
+  color: var(--dim);
+  font-weight: 500;
+}
+
+.group p {
+  margin: 2px 0 0 19px;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}

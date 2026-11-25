@@ -1,0 +1,30 @@
+/* The verdicts a review's submitted with, one to pick (ReviewVerdicts.tsx). */
+
+.verdicts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.verdict {
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.verdict.on.approve {
+  border-color: var(--green-fill);
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.verdict.on.changes {
+  border-color: var(--red-fill);
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.verdict.on.comment {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}

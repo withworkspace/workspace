@@ -1,0 +1,17 @@
+/* A cell's panel's foot (PagePanelFoot.tsx). */
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 10px;
+  font-size: var(--text-sm);
+}
+
+.foot :global(.dim) {
+  font: var(--text-xs) var(--mono);
+}
+
+.foot .hint {
+  font: var(--text-xs) var(--font);
+}

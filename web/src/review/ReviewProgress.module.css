@@ -1,0 +1,16 @@
+/* How many of a review's files are viewed (ReviewProgress.tsx), under
+   the Changes view. */
+
+.progress {
+  height: 3px;
+  margin: 4px 12px 8px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.progress > div {
+  height: 100%;
+  background: var(--green-fill);
+  transition: width var(--slow) var(--ease);
+}

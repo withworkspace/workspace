@@ -2,20 +2,20 @@ import { lazy, type ReactNode, Suspense, useState } from "react";
 import { useNavigate } from "react-router";
 import { type DocKind, kindHint, newPage, pageAddress, type PageInfo } from "../api";
 import type { Back } from "./Page";
-import { Icon } from "../ui/Icon";
-import { Spinner } from "../ui/Spinner";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { humanError } from "../ui/text";
 import { Keys } from "../ui/Keys";
 import { Dialog, DialogActions } from "../ui/Dialog";
-import { Time } from "../ui/Time";
-import { TLink } from "../ui/TLink";
-import { Chip } from "../ui/Chip";
 import { Button } from "../ui/Button";
-import { Row, RowLine, RowMain, RowTitle, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { Input } from "../ui/Input";
 import { useThingMenu } from "../shell/ThingMenu";
+import { PageField } from "./PageField";
+import { PageFields } from "./PageFields";
+import { PageFileWhat } from "./PageFileWhat";
+import { PageKindPick } from "./PageKindPick";
+import { PageKindPicks } from "./PageKindPicks";
+import { PagesRow } from "./PagesRow";
 
 // Pages: documents you write here, before or beside any mission. A line
 // that starts with >> asks for something (a table of the routes, what
@@ -57,50 +57,28 @@ export function useStartPage() {
   return { start, starting };
 }
 
-// PageRow is a page in a list: its title, its kind, the file it's tied to,
-// its cells, and when it last changed. note says more of it, after its
-// chips (where it's filed, say).
+// PageRow is a page in a list, drawn as a PagesRow: its title, its kind,
+// the file it's tied to, its cells, and when it last changed. note says
+// more of it, after its chips (where it's filed, say).
 export function PageRow({ page: p, kinds, selected, onHover, note }: { page: PageInfo; kinds: DocKind[]; selected: boolean; onHover: () => void; note?: ReactNode }) {
   const menu = useThingMenu();
+  const kind = p.kind ? kinds.find((k) => k.name === p.kind) : undefined;
   return (
-    <Row selected={selected} id={`page-${p.id}`} role="option" aria-selected={selected} onMouseMove={onHover}>
-      <TLink to={pageAddress(p)} className={rowLinkClass("page-link")} onContextMenu={menu(pageAddress(p), p.title)}>
-        <Icon name="file" size={16} className={rowStatusClass("page-status")} />
-        <RowMain>
-          <RowLine>
-            <RowTitle>{p.title}</RowTitle>
-            {p.kind && <KindChip kind={kinds.find((k) => k.name === p.kind)} name={p.kind} />}
-            {p.source && (
-              <Chip tone="quiet" className="mono" title={`Tied to ${p.source.ref}: saving it writes there`}>
-                <Icon name="file" size={11} /> {p.source.ref.replace(/^[^:]*:/, "").split("/").pop()}
-              </Chip>
-            )}
-            {!!p.filling && (
-              <Chip tone="progress">
-                <Spinner size={11} /> Filling {p.filling === 1 ? "a cell" : `${p.filling} cells`}
-              </Chip>
-            )}
-            {!!p.cells && !p.filling && <Chip tone="quiet">{p.cells === 1 ? "1 cell" : `${p.cells} cells`}</Chip>}
-            {!!p.stale && !p.filling && (
-              <Chip tone="attention" title="Written from files that have changed since">
-                {p.stale === 1 ? "1 out of date" : `${p.stale} out of date`}
-              </Chip>
-            )}
-            {note}
-          </RowLine>
-        </RowMain>
-        <span className="dim page-ref">{p.id}</span>
-        <Time iso={p.updated} as="age" className="age" />
-      </TLink>
-    </Row>
-  );
-}
-
-function KindChip({ kind, name }: { kind?: DocKind; name: string }) {
-  return (
-    <Chip tone="quiet" title={kind ? kindHint(kind) : `A kind the workspace no longer has (${name})`}>
-      {kind?.title ?? name}
-    </Chip>
+    <PagesRow
+      id={p.id}
+      title={p.title}
+      to={pageAddress(p)}
+      kind={p.kind ? { title: kind?.title ?? p.kind, hint: kind ? kindHint(kind) : `A kind the workspace no longer has (${p.kind})` } : undefined}
+      file={p.source && { name: p.source.ref.replace(/^[^:]*:/, "").split("/").pop() ?? "", ref: p.source.ref }}
+      filling={p.filling}
+      cells={p.cells}
+      stale={p.stale}
+      updated={p.updated}
+      note={note}
+      selected={selected}
+      onHover={onHover}
+      onContextMenu={menu(pageAddress(p), p.title)}
+    />
   );
 }
 
@@ -134,17 +112,16 @@ export function NewAsKind({ kinds, busy, onStart, onClose }: { kinds: DocKind[];
   const k = kinds.find((x) => x.name === kind);
   const go = () => k && title.trim() && onStart(title.trim(), k.name);
   return (
-    <Dialog title="Start a page as…" onClose={onClose} className="new-as" wide>
-      <div className="kind-picks" role="radiogroup" aria-label="Kind of document">
+    <Dialog title="Start a page as…" onClose={onClose} wide>
+      <PageKindPicks>
         {kinds.map((x) => (
-          <button key={x.name} role="radio" aria-checked={x.name === kind} className={`kind-pick${x.name === kind ? " on" : ""}`} onClick={() => setKind(x.name)} title={kindHint(x)}>
+          <PageKindPick key={x.name} on={x.name === kind} onClick={() => setKind(x.name)} title={kindHint(x)}>
             {x.title}
-          </button>
+          </PageKindPick>
         ))}
-      </div>
-      <div className="file-as-fields">
-        <label>
-          <span>Title</span>
+      </PageKindPicks>
+      <PageFields>
+        <PageField label="Title">
           <Input
             autoFocus
             value={title}
@@ -158,12 +135,12 @@ export function NewAsKind({ kinds, busy, onStart, onClose }: { kinds: DocKind[];
               }
             }}
           />
-        </label>
-      </div>
+        </PageField>
+      </PageFields>
       {k && (
-        <p className="dim file-as-what">
+        <PageFileWhat>
           Its agents are told how one's written{k.guide ? <> (<span className="mono">{k.guide.split("/").slice(-3).join("/")}</span>)</> : null}, and <em>Draft it</em> lays it out that way. Once it's written, <em>File as…</em> files it at <span className="mono">{whereItGoes(k, title)}</span>.
-        </p>
+        </PageFileWhat>
       )}
       <DialogActions>
         <Button variant="ghost" onClick={onClose}>

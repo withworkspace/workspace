@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Talk } from "../api";
-import { TalkList } from "../talk/Talk";
+import { TalkList } from "../talk/TalkList";
 
 // TalkTab is the mission's Talk tab: conversations about where it's going
 // (its plan, what next, what was decided) while crew get on with it.

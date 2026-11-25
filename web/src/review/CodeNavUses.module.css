@@ -1,0 +1,30 @@
+/* Who uses a definition (CodeNavUses.tsx). */
+
+.def {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 6px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.none {
+  padding: 16px;
+}
+
+.title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 14px 6px 4px;
+}
+
+.changed {
+  color: var(--progress);
+}
+
+.maybes {
+  margin: 2px 0 0 2px;
+}

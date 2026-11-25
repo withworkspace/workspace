@@ -1,0 +1,35 @@
+/* A space's list (SpaceList.tsx): what's over it stays while it scrolls
+   (wide), and a row leaves out its file's name when the list is
+   narrow (SpaceDocRow). */
+
+.list {
+  min-width: 0;
+}
+
+.scroll {
+  container-type: inline-size;
+}
+
+.scroll > section + section {
+  margin-top: var(--space-4);
+}
+
+@media (width > 1020px) {
+  .list {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .top {
+    flex: none;
+  }
+
+  .scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-bottom: var(--space-6);
+  }
+}

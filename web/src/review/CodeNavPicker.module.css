@@ -1,0 +1,24 @@
+/* d's list of the names on a line, to follow one (CodeNavPicker.tsx):
+   drawn as a name's card is, pinned. */
+
+.picker {
+  position: fixed;
+  z-index: 90;
+  max-width: min(560px, calc(100vw - 16px));
+  min-width: 240px;
+  background: var(--raised);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 8px 10px;
+  font-size: var(--text-sm);
+  animation: global(fade) var(--fast) var(--ease);
+}
+
+.how {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: var(--text-xs);
+}

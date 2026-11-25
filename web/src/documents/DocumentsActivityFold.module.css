@@ -1,0 +1,80 @@
+/* What's happening in a space, folded to a line over its list
+   (DocumentsActivityFold.tsx), open for In flight and Changed lately
+   side by side. */
+
+.fold {
+  margin: 0 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--raised) 70%, transparent);
+}
+
+.fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-lg);
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold > summary:hover {
+  background: var(--hover);
+}
+
+.fold > summary strong {
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.latest {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.caret {
+  flex: none;
+  margin-left: auto;
+  transition: transform var(--fast) var(--ease);
+}
+
+.fold[open] > summary {
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.fold[open] .caret {
+  transform: rotate(180deg);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 0 var(--space-6);
+  align-items: start;
+  padding: 4px 6px 6px;
+}
+
+.fold .body > section,
+.fold .body > section + section {
+  margin: 0;
+  min-width: 0;
+}
+
+/* Wide, the list scrolls under it: it keeps to a part of the window. */
+@media (width > 1020px) {
+  .fold .body {
+    max-height: 40vh;
+    overflow: auto;
+  }
+}

@@ -10,8 +10,8 @@
   background: linear-gradient(transparent, var(--bg) 18px);
 }
 
-/* Newer: the pill a conversation's page has too (styles.css's
-   .new-pill), over the dock. */
+/* Newer: the pill a conversation's page has too (talk/TalkReply.tsx),
+   over the dock. */
 .pill {
   position: absolute;
   top: -22px;

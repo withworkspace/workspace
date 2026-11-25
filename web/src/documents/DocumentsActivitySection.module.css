@@ -1,0 +1,7 @@
+/* In flight, or changed lately (DocumentsActivitySection.tsx): folded
+   over a space's list, its heading doesn't stick. */
+
+.head.flat {
+  position: static;
+  background: none;
+}

@@ -1,0 +1,12 @@
+/* What came of a proposal, in its foot (TalkProposalSettled.tsx). */
+
+.line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.line.done {
+  color: var(--green);
+}

@@ -1,0 +1,10 @@
+/* An artifact's version proposed when there are newer ones
+   (TalkProposalStale.tsx). */
+
+.stale {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--attention);
+  font-size: var(--text-sm);
+}

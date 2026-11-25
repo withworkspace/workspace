@@ -1,0 +1,117 @@
+/* An item of what a plugin proposed (TalkPluginItem.tsx): ticked to
+   accept with the rest, its title, what it's on, what came of it, its
+   rows, what it says, and why it wasn't done. Alone, it's the card's
+   whole body, with no well or number of its own. */
+
+.item {
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--well);
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.item.alone {
+  padding: 0;
+  background: none;
+}
+
+.item.left {
+  opacity: 0.6;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.n {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+}
+
+.alone .n {
+  display: none;
+}
+
+.title {
+  font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.on {
+  font-size: var(--text-sm);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.made {
+  color: var(--green);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.rows {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  font-size: var(--text-md);
+}
+
+.rows > div {
+  display: contents;
+}
+
+.rows dt {
+  color: var(--dim);
+}
+
+.rows dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* What an item says at length reads as the rows do, a size under the
+   reply's. */
+.item .text,
+.item .text :is(p, li, blockquote) {
+  font-size: var(--text-md);
+}
+
+.item .text :global(.markdown) > :first-child {
+  margin-top: 0;
+}
+
+.item .text :global(.markdown) > :last-child {
+  margin-bottom: 0;
+}
+
+.text > summary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.problem {
+  color: var(--red);
+  font-size: var(--text-sm);
+}
+
+.say {
+  font-size: var(--text-sm);
+}

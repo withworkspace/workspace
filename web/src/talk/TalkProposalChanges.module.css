@@ -1,0 +1,15 @@
+/* What a revision changed of the proposal it revises, folded under its
+   head (TalkProposalChanges.tsx). */
+
+.changes {
+  margin: 8px 14px 0;
+  font-size: var(--text-sm);
+}
+
+.changes > summary {
+  cursor: pointer;
+}
+
+.changes > .changed {
+  margin-top: 6px;
+}

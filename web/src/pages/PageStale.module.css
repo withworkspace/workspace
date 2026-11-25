@@ -1,0 +1,14 @@
+/* What's changed since a cell was written (PageStale.tsx). */
+
+.stale {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 0;
+  font-size: var(--text-sm);
+  color: var(--attention);
+}
+
+.stale span {
+  flex: 1;
+}

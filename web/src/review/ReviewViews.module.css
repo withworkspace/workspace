@@ -1,0 +1,12 @@
+/* A review's views down the side (ReviewViews.tsx): what's read beside
+   the changes, then the changes, whose files are under them. */
+
+.list {
+  padding-top: 10px !important;
+}
+
+.list + .list {
+  margin-top: 4px;
+  padding-top: 8px !important;
+  border-top: 1px solid var(--line);
+}

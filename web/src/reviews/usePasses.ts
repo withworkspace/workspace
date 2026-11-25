@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getPRGuide, getPRPasses, type ReviewGuide, type ReviewPass, settlePRFinding, type DismissWhy, useEventsOf } from "../api";
 import { talkTopic } from "../conversation/talks";
-import { guideOrder } from "./Guide";
+import { guideOrder } from "./guideOrder";
 import { setPref, usePrefs } from "../prefs";
 
 // A review's passes and its guide, as its page holds them: read from the

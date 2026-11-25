@@ -1,0 +1,8 @@
+/* Why a finding is dismissed (ReviewDismissAs.tsx). */
+
+.as {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}

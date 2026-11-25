@@ -1,0 +1,13 @@
+/* What a pass found (PageFindings.tsx). */
+
+.findings {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.findings.settled {
+  font-size: var(--text-sm);
+}

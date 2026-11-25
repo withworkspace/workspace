@@ -1,6 +1,6 @@
 import type { Talk } from "../../api";
 import { useThingMenu } from "../../shell/ThingMenu";
-import { talkHref, talkStatus } from "../../talk/Talk";
+import { talkHref, talkStatus } from "../../talk/words";
 import { clip } from "../../ui/text";
 import { ReaderTalks } from "./ReaderTalks";
 

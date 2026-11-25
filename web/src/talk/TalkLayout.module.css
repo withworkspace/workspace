@@ -1,0 +1,20 @@
+/* A conversation's page (TalkLayout.tsx): a thin bar stuck to the top
+   (its name, what it's about, Resolve), turns down the middle, a composer
+   pinned to the bottom; and, with room, what's come of it beside it. */
+
+.layout:global(.page) {
+  max-width: 780px;
+  padding-top: 0;
+  padding-bottom: 0;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout.side:global(.page) {
+  max-width: 1080px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 236px;
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: 32px;
+}

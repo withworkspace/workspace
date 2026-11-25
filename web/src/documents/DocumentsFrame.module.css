@@ -1,0 +1,5 @@
+/* Documents' page (DocumentsFrame.tsx): it takes the window's width. */
+
+:global(.page).frame {
+  max-width: none;
+}

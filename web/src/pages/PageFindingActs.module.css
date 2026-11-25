@@ -1,0 +1,10 @@
+/* What's done with a finding (PageFindingActs.tsx). */
+
+.acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: var(--text-sm);
+}

@@ -4,13 +4,6 @@
   position: relative;
 }
 
-/* A card among the lines (a comment, a finding, the editor) is level with
-   the code already (DiffLines): it has only the room around it. */
-.lines :global(.diff-note),
-.lines :global(.note-editor) {
-  margin: 6px 14px 10px 0;
-}
-
 /* A line gone to (following a name) flashes once, over what each of its
    cells paints. */
 .lines :global(.nav-flash) {

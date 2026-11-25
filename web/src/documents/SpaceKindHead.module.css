@@ -1,0 +1,16 @@
+/* A kind's list's heading in a space (SpaceKindHead.tsx). */
+
+.head {
+  flex-wrap: wrap;
+}
+
+.stands {
+  margin-left: var(--space-2);
+}
+
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 400;
+}

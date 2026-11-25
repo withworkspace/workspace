@@ -1,0 +1,22 @@
+/* Landing a capsule (a repo with no pull requests, LandBar.tsx): what git
+   or the repo's check said when it stopped, and the commits that would
+   land. */
+
+.output {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  max-height: 240px;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+}
+
+.commits {
+  margin: 8px 0 0;
+  padding-left: 1.4em;
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+}

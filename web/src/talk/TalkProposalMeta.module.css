@@ -1,0 +1,7 @@
+/* What else a card says of what's proposed, as chips (TalkProposalMeta.tsx). */
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

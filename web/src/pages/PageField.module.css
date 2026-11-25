@@ -1,0 +1,23 @@
+/* One of what's filled in to file a page (PageField.tsx): its name and
+   its field, each in a column of PageFields'. */
+
+/* A label in it (react-aria's own, for a Select) is laid out as it is. */
+label.field,
+.field label {
+  display: contents;
+}
+
+label.field > span,
+.field label > span {
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.field input {
+  width: 100%;
+  min-width: 0;
+}
+
+.field input:global(.mono) {
+  font: var(--text-sm) / 1.5 var(--mono);
+}

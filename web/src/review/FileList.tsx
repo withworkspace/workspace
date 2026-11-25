@@ -1,50 +1,20 @@
 import { useMemo } from "react";
 import type { DiffFile } from "../api";
-import { Icon, type IconName } from "../ui/Icon";
-import { keyProps } from "../ui/keyHint";
-import { groupByOrder, groupFiles, type Order } from "./files";
-import { ReviewFiles } from "./ReviewFiles";
-import type { FileState } from "./model";
 import { Button } from "../ui/Button";
+import { Icon } from "../ui/Icon";
 import { ToggleButton } from "../ui/ToggleButton";
-
-// ViewEntry is one of a review's views in the list down the side: what's
-// read beside the changes (the overview, the guide, what's been said, the
-// passes), each shown alone in the pane.
-export interface ViewEntry {
-  key: string;
-  label: string;
-  icon: IconName;
-  n: number; // its key: 1 for the first
-  mark?: React.ReactNode; // how it stands (each pass), beside its name
-  count?: number; // how much is in it (what's been said)
-  news?: string; // what's new in it since you looked
-}
-
-// ViewList is the review's views, above the changes.
-export function ViewList({ views, here, onPick }: { views: ViewEntry[]; here: string; onPick: (key: string) => void }) {
-  if (!views.length) return null;
-  return (
-    <ul className="files-views">
-      {views.map((v) => (
-        <li key={v.key} className={here === v.key ? "here" : ""} {...keyProps(`${v.n}`, `${v.label}${v.news ? `: ${v.news}` : ""}`, () => onPick(v.key))} aria-current={here === v.key ? "page" : undefined}>
-          <span className="fstatus s-view">
-            <Icon name={v.icon} size={11} />
-          </span>
-          <span className="fname plain">{v.label}</span>
-          {v.mark && <span className="view-mark">{v.mark}</span>}
-          {v.count ? <span className="view-count">{v.count}</span> : null}
-          {v.news && <span className="fnews" aria-label={v.news} />}
-        </li>
-      ))}
-    </ul>
-  );
-}
+import { groupByOrder, groupFiles, type Order } from "./files";
+import type { FileState } from "./model";
+import { ReviewCommon } from "./ReviewCommon";
+import { ReviewFiles } from "./ReviewFiles";
+import { ReviewProgress } from "./ReviewProgress";
+import { ReviewViewRow } from "./ReviewViewRow";
+import { ReviewViews } from "./ReviewViews";
+import css from "./FileList.module.css";
 
 // FileList is the Changes view's entry and, under it, the diff's files in
-// groups: a folder's files under the folder, each row the file's name. A
-// folder is cut short from its left, so what's nearest the file is what's
-// kept.
+// groups: a folder's files under the folder, or the guide's groups in its
+// order, each row the file's name.
 export function FileList({
   files,
   states,
@@ -80,41 +50,41 @@ export function FileList({
   const viewedCount = states.filter((s) => s.viewed).length;
   return (
     <>
-      <ul className="files-views files-changes">
-        <li className={current ? "here" : ""} {...keyProps(`${n}`, "Changes", onChanges)} aria-current={current ? "page" : undefined}>
-          <span className="fstatus s-view">
-            <Icon name="code" size={11} />
-          </span>
-          <span className="fname plain">Changes</span>
-          <span className="view-count">
-            {viewedCount}/{files.length}
-          </span>
-          <span className="files-tools" onClick={(e) => e.stopPropagation()}>
-            {onOrder && (
-              <ToggleButton
-                variant="ghost" size="small"
-                className="files-order"
-                pressed={!!order}
-                onChange={onOrder}
-                title={order ? "The files are in the guide's order: switch to their folders'" : "Read the files in the guide's order"}
-              >
-                <Icon name="sparkle" size={12} /> Guide
-              </ToggleButton>
-            )}
-            <Button variant="ghost" size="small" square onClick={onFind} title="Jump to a file" keys="t" aria-label="Jump to a file">
-              <Icon name="search" size={13} />
-            </Button>
-          </span>
-        </li>
-      </ul>
-      <div className="progress" title={`${viewedCount} of ${files.length} ${files.length === 1 ? "file" : "files"} viewed`}>
-        <div style={{ width: files.length ? `${(100 * viewedCount) / files.length}%` : 0 }} />
-      </div>
-      {common && (
-        <div className="files-common cut-left" title={`Every file to read is under ${common}`}>
-          <bdi>{common}</bdi>
-        </div>
-      )}
+      <ReviewViews>
+        <ReviewViewRow
+          icon="code"
+          label="Changes"
+          n={n}
+          here={current}
+          count={
+            <>
+              {viewedCount}/{files.length}
+            </>
+          }
+          onPick={onChanges}
+          tools={
+            <>
+              {onOrder && (
+                <ToggleButton
+                  variant="ghost"
+                  size="small"
+                  className={css.order}
+                  pressed={!!order}
+                  onChange={onOrder}
+                  title={order ? "The files are in the guide's order: switch to their folders'" : "Read the files in the guide's order"}
+                >
+                  <Icon name="sparkle" size={12} /> Guide
+                </ToggleButton>
+              )}
+              <Button variant="ghost" size="small" square onClick={onFind} title="Jump to a file" keys="t" aria-label="Jump to a file">
+                <Icon name="search" size={13} />
+              </Button>
+            </>
+          }
+        />
+      </ReviewViews>
+      <ReviewProgress viewed={viewedCount} of={files.length} />
+      {common && <ReviewCommon path={common} />}
       <ReviewFiles files={files} groups={groups} states={states} here={current ? here : undefined} counts={counts} found={found} notes={guideNotes} onPick={onPick} />
     </>
   );

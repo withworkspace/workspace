@@ -1,0 +1,114 @@
+/* A review's page (ReviewLayout.tsx): the list down the side, its edge to
+   drag, the pane the views and the changes are read in, and a foot over
+   it. */
+
+.review {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--files-w, 280px) minmax(0, 1fr);
+  height: 100%;
+}
+
+/* The list's edge, to drag it wider or narrower. */
+.resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--files-w, 280px) - 3px);
+  width: 6px;
+  z-index: 2;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.resize:hover,
+.resize:active {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* Panes: the first beside the app's rail is clear, so the horizon shows
+   through it, and those right of it are solid. Here, the list is clear and
+   the review is solid; alone (on a phone), the review is the first pane,
+   and clear. */
+.side {
+  border-right: 1px solid var(--line);
+  overflow: auto;
+  padding-bottom: 20px;
+  font-size: var(--text-sm);
+}
+
+/* What's listed down the side (a review's views, a stack's layers) is
+   rows. */
+.side ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px;
+}
+
+.side li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background var(--fast) var(--ease);
+}
+
+.side li:hover {
+  background: var(--hover);
+}
+
+.pane {
+  overflow: auto;
+  padding: 0 24px 40vh;
+}
+
+@media (min-width: 861px) {
+  .pane {
+    --backdrop: var(--bg);
+    background: var(--bg);
+  }
+}
+
+/* The foot (a pull request's ask bar): over the foot of the pane,
+   outside its scroll, so it stays put however far down it goes (there's
+   room below to scroll clear of it). It's in the grid's last column, the
+   pane's, and lets clicks beside the bar through. */
+.foot {
+  position: absolute;
+  grid-column: -2 / -1;
+  grid-row: 1;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  padding: 0 24px;
+  background: linear-gradient(to bottom, transparent, var(--bg) 36px);
+  pointer-events: none;
+}
+
+@media (max-width: 860px) {
+  .review {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .review .side,
+  .review .resize {
+    display: none;
+  }
+
+  .pane {
+    padding: 0 12px 40vh;
+  }
+
+  .foot {
+    padding: 0 12px;
+  }
+}
+
+@media print {
+  .foot {
+    display: none !important;
+  }
+}

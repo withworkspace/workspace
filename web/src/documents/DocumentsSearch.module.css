@@ -1,0 +1,9 @@
+/* A search of every space's documents (DocumentsSearch.tsx): what's
+   typed, then what kind and where it stands. */
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 var(--space-4);
+}

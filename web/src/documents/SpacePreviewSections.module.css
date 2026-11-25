@@ -1,0 +1,28 @@
+/* The document picked's sections (SpacePreviewSections.tsx): a pill
+   each. */
+
+.sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sections button {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--dim);
+  font-size: var(--text-xs);
+  text-decoration: none;
+}
+
+.sections button:hover {
+  background: var(--hover);
+  color: var(--fg);
+}

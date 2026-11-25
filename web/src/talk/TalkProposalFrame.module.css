@@ -1,0 +1,26 @@
+/* A version, or a proposal, running in a small frame
+   (TalkProposalFrame.tsx), with Open larger under it. */
+
+.frame {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.frame figcaption {
+  font-size: var(--text-xs);
+}
+
+.frame iframe {
+  display: block;
+  width: 100%;
+  height: 260px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.frame .open {
+  justify-self: end;
+}

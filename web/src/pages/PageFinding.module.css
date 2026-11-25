@@ -1,0 +1,20 @@
+/* One thing a pass found (PageFinding.tsx). */
+
+.card {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+
+.card.settled {
+  background: none;
+  color: var(--dim);
+}
+
+/* In a PagePanel, opened from its words. */
+.in {
+  padding: 4px 12px 12px;
+}

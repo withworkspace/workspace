@@ -1,0 +1,7 @@
+/* What's done with an open finding (ReviewFindingActions.tsx). */
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

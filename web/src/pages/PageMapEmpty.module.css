@@ -1,0 +1,6 @@
+/* The map of a page with nothing to map yet (PageMapEmpty.tsx). */
+
+.empty {
+  margin: 0;
+  color: var(--faint);
+}

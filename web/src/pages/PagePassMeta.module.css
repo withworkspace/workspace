@@ -1,0 +1,9 @@
+/* When a pass ran, and whether it's shown on the page (PagePassMeta.tsx). */
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+}

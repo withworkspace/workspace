@@ -1,0 +1,36 @@
+/* A review's views as tabs (ReviewTabs.tsx): on a narrow window, where
+   the list down the side isn't, they're a row under the head. */
+
+.tabs {
+  display: none !important;
+  gap: 4px;
+  width: calc(100% + 24px);
+  box-sizing: border-box;
+  margin: 0 -12px 10px;
+  padding: 0 12px 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+}
+
+@media (max-width: 860px) {
+  .tabs {
+    display: inline-flex !important;
+  }
+}
+
+.tabs .tab {
+  flex: none;
+  gap: 5px;
+}
+
+.tabs .tab.on {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.news {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+}

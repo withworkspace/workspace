@@ -1,0 +1,8 @@
+/* A pass in the Passes view (PassView.tsx): what's done with a finding
+   about a comment you've made. */
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

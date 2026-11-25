@@ -1,31 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { getReviews, type PassMark, type PR, type PRState, type ReviewRow, type Stack, useEvents } from "../api";
+import { useNavigate } from "react-router";
+import { getReviews, type PR, type PRState, type ReviewRow, useEvents } from "../api";
 import { useKeys } from "../keys";
 import { useReviewsMemory } from "./memory";
 import { Icon, type IconName } from "../ui/Icon";
-import { Spinner } from "../ui/Spinner";
 import { useTitle } from "../ui/useTitle";
 import { toast } from "../ui/toast";
 import { Loading } from "../ui/Loading";
 import { Empty } from "../ui/Empty";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
-import { Status, type StatusInfo } from "../ui/Status";
+import type { StatusInfo } from "../ui/Status";
 import type { Tone } from "../ui/tone";
 import { Time } from "../ui/Time";
+import { PullRow } from "./PullRow";
+import { ReviewsAsOf } from "./ReviewsAsOf";
+import { ReviewsFilter } from "./ReviewsFilter";
+import { ReviewsSection } from "./ReviewsSection";
 import { useLatest } from "../load";
 import { rowAfter } from "./after";
-import { RowPasses } from "./Passes";
-import { Chip } from "../ui/Chip";
-import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
-import { GroupHead } from "../ui/GroupHead";
-import { Row, RowLine, RowMain, RowMeta, RowSub, RowTitle, Rows, rowLinkClass, rowStatusClass } from "../ui/Rows";
 import { capital, humanError } from "../ui/text";
-import { Input } from "../ui/Input";
-import { useThingMenu } from "../shell/ThingMenu";
 
 // Reviews: the open pull requests across every repo in the workspace.
 // Your teammates' come first, grouped by what each asks of you; yours sit
@@ -179,34 +175,8 @@ export function ReviewsPage() {
       title="Reviews"
       actions={
         <>
-          {list && (
-            <span className="dim reviews-asked" title="When GitHub was last asked. While this page is open it's asked every couple of minutes.">
-              {loading ? (
-                <>
-                  <Spinner size={12} /> Asking GitHub…
-                </>
-              ) : (
-                <>
-                  As of <Time iso={list.at} as="relative" />
-                </>
-              )}
-            </span>
-          )}
-          <Input
-            ref={filter}
-            className="reviews-filter"
-            value={q}
-            placeholder="Filter: text, repo, author"
-            aria-label="Filter pull requests"
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape" || e.key === "Enter") {
-                e.preventDefault();
-                if (e.key === "Escape") setQ("");
-                e.currentTarget.blur();
-              }
-            }}
-          />
+          {list && <ReviewsAsOf at={list.at} asking={loading} />}
+          <ReviewsFilter ref={filter} value={q} onChange={setQ} />
           <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Ask GitHub again" keys="r">
             <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
           </Button>
@@ -232,7 +202,7 @@ export function ReviewsPage() {
   const total = list.sections.reduce((n, s) => n + s.rows.length, 0);
   let yoursShown = false;
   return (
-    <div className="page reviews-page">
+    <div className="page">
       {head}
       {(error || list.error) && (
         <Callout tone="attention" title="GitHub couldn't be asked just now" actions={<Button onClick={refresh} keys="r">Try again</Button>}>
@@ -257,45 +227,31 @@ export function ReviewsPage() {
         const firstYours = !!s.yours && !yoursShown;
         if (s.yours) yoursShown = true;
         return (
-          <section key={s.key} aria-label={s.title} className={s.yours ? "yours" : undefined}>
-            {firstYours && <div className="reviews-divide">Yours</div>}
-            <GroupHead>
-              {s.folded ? (
-                <Button
-                  variant="link"
-                  className="group-fold"
-                  aria-expanded={isOpen}
-                  onClick={() => {
-                    remember((m) => ({ openSections: { ...m.openSections, [s.key]: !m.openSections[s.key] } }));
-                  }}
-                >
-                  <Icon name={isOpen ? "chevron-down" : "chevron-right"} size={12} /> {s.title}
-                </Button>
-              ) : (
-                s.title
-              )}{" "}
-              <Count>{s.rows.length}</Count>
-            </GroupHead>
-            {isOpen && (
-              <Rows className="prs" role="listbox" aria-label={s.title}>
-                {s.rows.map((r) => (
-                  <RowView
-                    key={r.key}
-                    row={r}
-                    selected={current?.key === r.key}
-                    folded={!!foldedRows[r.key]}
-                    onHover={() => current?.key !== r.key && setSelected(r.key)}
-                    onOpen={() => {
-                      remember({ selected: r.key });
-                      open(r);
-                    }}
-                    onFold={() => fold(r)}
-                    passes={list?.passes}
-                  />
-                ))}
-              </Rows>
-            )}
-          </section>
+          <ReviewsSection
+            key={s.key}
+            title={s.title}
+            count={s.rows.length}
+            folds={s.folded}
+            open={isOpen}
+            yoursFirst={firstYours}
+            onFold={() => remember((m) => ({ openSections: { ...m.openSections, [s.key]: !m.openSections[s.key] } }))}
+          >
+            {s.rows.map((r) => (
+              <PullRow
+                key={r.key}
+                row={r}
+                selected={current?.key === r.key}
+                folded={!!foldedRows[r.key]}
+                onHover={() => current?.key !== r.key && setSelected(r.key)}
+                onOpen={() => {
+                  remember({ selected: r.key });
+                  open(r);
+                }}
+                onFold={() => fold(r)}
+                passes={list?.passes}
+              />
+            ))}
+          </ReviewsSection>
         );
       })}
     </div>
@@ -305,176 +261,11 @@ export function ReviewsPage() {
 // rowTarget is where a row opens: a teammate's, its review here (a stack
 // at the lowest layer that needs you); yours, its mission, which already
 // says what moves it on, or with none, GitHub, where it's merged.
-function rowTarget(r: ReviewRow): { to?: string; href?: string } {
+export function rowTarget(r: ReviewRow): { to?: string; href?: string } {
   const pr = r.pr ?? r.stack!.layers.find((l) => l.number === r.stack!.open) ?? r.stack!.layers[0];
   if (pr.mine) {
     const mission = r.pr ? r.pr.mission : r.stack!.layers.find((l) => l.mission)?.mission;
     return mission ? { to: `/missions/${mission.slug}` } : { href: pr.url };
   }
   return { to: prHref(pr.repo, pr.number) };
-}
-
-function Size({ additions, deletions, files }: { additions: number; deletions: number; files?: number }) {
-  return (
-    <RowMeta className="pr-size" title={files !== undefined ? `${files} ${files === 1 ? "file" : "files"} changed` : undefined}>
-      <span className="plus">+{additions}</span> <span className="minus">−{deletions}</span>
-      {files !== undefined && (
-        <span className="dim">
-          {files} {files === 1 ? "file" : "files"}
-        </span>
-      )}
-    </RowMeta>
-  );
-}
-
-// Checks is a pull request's checks, as a mark: passing, failing, running.
-export function Checks({ checks }: { checks?: PR["checks"] }) {
-  if (!checks) return <span className="pr-checks none" />;
-  const [icon, words]: [IconName, string] = checks === "success" ? ["check", "Checks pass"] : checks === "failure" ? ["x", "Checks are failing"] : ["clock", "Checks are running"];
-  return (
-    <span className={`pr-checks c-${checks}`} title={words}>
-      <Icon name={icon} size={12} />
-      <span className="sr-only">{words}</span>
-    </span>
-  );
-}
-
-interface RowProps {
-  row: ReviewRow;
-  selected: boolean;
-  folded: boolean;
-  onHover: () => void;
-  onOpen: () => void;
-  onFold: () => void;
-  passes?: Record<string, PassMark[]>; // how passes stand, by pull request
-}
-
-function RowView({ row, selected, folded, onHover, onOpen, onFold, passes }: RowProps) {
-  const menu = useThingMenu();
-  const target = rowTarget(row);
-  const pr = row.pr;
-  const st = row.stack;
-  const status = prStatus(pr ?? st!);
-  // (A field GitHub left out is absent, so each is read from whichever
-  // the row is, not from the first that has it.)
-  const of = <T,>(a: (p: PR) => T, b: (s: Stack) => T): T => (pr ? a(pr) : b(st!));
-  const repo = of((p) => p.repo, (s) => s.repo);
-  const author = of((p) => p.author, (s) => s.author);
-  const mine = of((p) => p.mine, (s) => s.mine);
-  const mission = of((p) => p.mission, (s) => s.layers.find((l) => l.mission)?.mission);
-  const updated = of((p) => p.updated, (s) => s.layers.reduce((a, l) => (l.updated && l.updated > a ? l.updated : a), ""));
-  const onTopOf = of((p) => p.onTopOf, (s) => s.onTopOf);
-  const body = (
-    <>
-      <Status s={status} iconOnly size={16} className={rowStatusClass()} />
-      <RowMain>
-        <RowLine>
-          <RowTitle>{of((p) => p.title, (s) => s.title)}</RowTitle>
-          {st && (
-            <Chip tone="quiet" title={st.workedOut ? "A stack ws worked out: each of these pull requests is based on the last one's branch" : `Stack ${st.number} on GitHub`}>
-              <Icon name="layers" size={11} /> stack of {st.layers.length}
-            </Chip>
-          )}
-          {pr?.draft && <Chip tone="quiet">Draft</Chip>}
-          {pr?.asked === "team" && (
-            <Chip tone="quiet" title="Asked of a team you're in">
-              Your team
-            </Chip>
-          )}
-          {!!onTopOf && (
-            <Chip tone="quiet" title="Its base is that pull request's branch">
-              on top of #{onTopOf}
-            </Chip>
-          )}
-          {mission && (
-            <Chip tone="quiet" title={`From the mission ${mission.title}`}>
-              <Icon name="flag" size={11} /> {mission.title}
-            </Chip>
-          )}
-          {pr?.capsule && (
-            <Chip tone="quiet" title={`Checked out here in ${pr.repo}/${pr.capsule}`}>
-              <Icon name="box" size={11} /> {pr.capsule}
-            </Chip>
-          )}
-          {pr && <RowPasses marks={passes?.[`${pr.repo}#${pr.number}`]} />}
-        </RowLine>
-        <RowSub>
-          {mine ? "You" : author} · {repo}
-          {pr && <> · #{pr.number}</>} · {of((p) => p.words, (s) => s.words)}
-          {st?.merged ? ` · ${st.merged} merged below` : ""}
-        </RowSub>
-      </RowMain>
-      <Size additions={of((p) => p.additions, (s) => s.additions)} deletions={of((p) => p.deletions, (s) => s.deletions)} files={pr?.files} />
-      <Checks checks={pr?.checks} />
-      {updated ? <Time iso={updated} as="age" className="age" /> : <span className="age" />}
-    </>
-  );
-  return (
-    <Row selected={selected} id={`pr-row-${row.key}`} role="option" aria-selected={selected} className={`pr-row${st ? " stack-row" : ""}`} onMouseMove={onHover}>
-      {target.to ? (
-        <Link to={target.to} className={rowLinkClass("pr-link")} onContextMenu={menu(target.to)} onClick={() => remember({ selected: row.key })}>
-          {body}
-        </Link>
-      ) : (
-        <a
-          href={target.href}
-          target="_blank"
-          rel="noreferrer"
-          className={rowLinkClass("pr-link")}
-          title="Opens on GitHub: it's merged there"
-          onClick={(e) => {
-            e.preventDefault();
-            onOpen();
-          }}
-        >
-          {body}
-        </a>
-      )}
-      {st && (
-        <Button variant="ghost" size="small" square className="stack-fold" onClick={onFold} title={`${folded ? "Show" : "Hide"} its layers`} keys="l" aria-expanded={!folded} aria-label="Its layers">
-          <Icon name={folded ? "chevron-right" : "chevron-down"} size={13} />
-        </Button>
-      )}
-      {st && !folded && <Layers stack={st} passes={passes} />}
-    </Row>
-  );
-}
-
-// Layers are a stack's pull requests, bottom first: the order to read
-// them in. Each has its own state, and opens its own review.
-function Layers({ stack, passes }: { stack: Stack; passes?: Record<string, PassMark[]> }) {
-  return (
-    <ol className="stack-layers">
-      {stack.layers.map((l) => {
-        const s = prStatus(l);
-        const inner = (
-          <>
-            <Status s={s} iconOnly size={13} />
-            <span className="layer-title">{l.title}</span>
-            <span className="mono dim">#{l.number}</span>
-            <span className={`layer-words tone-${s.tone}`}>{l.words}</span>
-            <RowPasses marks={passes?.[`${l.repo}#${l.number}`]} />
-            <span className="spacer" />
-            <span className="pr-size">
-              <span className="plus">+{l.additions}</span> <span className="minus">−{l.deletions}</span>
-            </span>
-            <Checks checks={l.checks} />
-          </>
-        );
-        return (
-          <li key={l.number}>
-            {l.mine && !l.mission ? (
-              <a href={l.url} target="_blank" rel="noreferrer" className="layer-link">
-                {inner}
-              </a>
-            ) : (
-              <Link to={l.mine && l.mission ? `/missions/${l.mission.slug}` : prHref(l.repo, l.number)} className="layer-link">
-                {inner}
-              </Link>
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
 }

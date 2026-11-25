@@ -1,0 +1,28 @@
+/* One thing said on a pull request on GitHub (SaidItem.tsx): a card, its
+   head over what was said; a bot's folded to its head. */
+
+.said {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--well);
+}
+
+.said > header,
+.said > summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+}
+
+.said > summary {
+  cursor: pointer;
+  color: var(--dim);
+}
+
+.said > .body {
+  padding: 2px 12px 10px;
+  font-size: var(--text-sm);
+}

@@ -1,0 +1,5 @@
+/* The page's tab and its passes' (PageTabs.tsx). */
+
+.tabs {
+  margin-bottom: var(--space-4);
+}
