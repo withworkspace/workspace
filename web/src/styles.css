@@ -850,18 +850,6 @@ main.stale > :not(.connection-banner) {
   margin: 0 0 16px;
 }
 
-.command {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font: var(--text-md) var(--mono);
-  padding: 8px 10px 8px 12px;
-  border-radius: var(--radius);
-  background: var(--well);
-  border: 1px solid var(--line);
-}
-
 /* Moving between a list and its page: the page cross-fades, the sidebar
    stays. */
 main {
@@ -4482,15 +4470,11 @@ button.on {
   justify-self: center;
 }
 
-/* The orchestrator's page and its runs. */
+/* A page's lede, under its head (Settings, Runs). */
 .lede {
   max-width: 62ch;
   margin: -8px 0 var(--space-5);
   color: var(--dim);
-}
-
-.orchestrator-facts {
-  margin-bottom: var(--space-6);
 }
 
 /* The Settings page: the list of its sections in a column docked beside
@@ -5231,50 +5215,10 @@ button.accent-swatch:hover {
   }
 }
 
+/* A line said where a list would be (Settings, Plugins, Runs). */
 .quiet-line {
   color: var(--dim);
   padding: 6px 8px;
-}
-
-.orch-run-link {
-  gap: 12px;
-}
-
-.run-time {
-  min-width: 6em;
-}
-
-.command.snippet {
-  margin-top: 8px;
-  align-items: flex-start;
-}
-
-.command.snippet code {
-  background: none;
-  padding: 0;
-  white-space: pre;
-}
-
-.run-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 20px;
-  margin: -8px 0 var(--space-5);
-  color: var(--dim);
-  font-size: var(--text-sm);
-}
-
-.run-meta strong {
-  color: var(--fg);
-  font-weight: 500;
-}
-
-.prose.prompt {
-  margin-top: 8px;
-  padding: 4px 16px;
-  border-radius: var(--radius);
-  background: var(--well);
-  font-size: var(--text-sm);
 }
 
 /* Reviewing a document: comments on its text, in the margin */

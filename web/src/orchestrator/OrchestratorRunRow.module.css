@@ -1,0 +1,13 @@
+/* A run of the orchestrator's, in its list (OrchestratorRunRow.tsx). */
+
+.link {
+  gap: 12px;
+}
+
+.time {
+  min-width: 6em;
+  text-align: right;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
