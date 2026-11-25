@@ -30,6 +30,20 @@
     pointer-events: auto;
   }
 
+  /* Going: away to the right, fading, as long as toast.ts's leaveMs.
+     Kept down where motion is (toast.ts closes it at once there). */
+  .toast[data-leaving] {
+    animation: leave 180ms var(--ease) forwards;
+    pointer-events: none;
+  }
+
+  @keyframes leave {
+    to {
+      opacity: 0;
+      transform: translateX(calc(100% + 20px));
+    }
+  }
+
   .toast[data-focus-visible] {
     outline: 2px solid var(--accent);
     outline-offset: 2px;

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { UNSAFE_PortalProvider as PortalProvider } from "react-aria";
 import { UNSTABLE_Toast as Toast, UNSTABLE_ToastRegion as ToastRegion } from "react-aria-components";
 import { ToastPill } from "./ToastPill";
@@ -7,7 +7,8 @@ import { type ToastItem, toasts } from "./toast";
 
 // Toasts draws what's being said in passing (ui/toast.ts): for a few
 // seconds, in the window's bottom right corner, over everything, an open
-// dialog too, the newest at the bottom. It's react-aria's toast region:
+// dialog too, the newest at the bottom. Each rises in, and slides away
+// to the right as it goes. It's react-aria's toast region:
 // each is read out as it comes, kept while it's pointed at or focused,
 // and closed with its ×; one with something to press goes once it's
 // pressed.
@@ -16,12 +17,14 @@ import { type ToastItem, toasts } from "./toast";
 // instead, in the shell, whose foot (--foot-height) it stands clear of.
 export function Toasts() {
   const home = useRef<HTMLDivElement>(null);
+  // Which are leaving: what the queue says, read again when one starts to.
+  const going = useSyncExternalStore(toasts.onLeaving, toasts.goingNow);
   return (
     <div ref={home} className={css.home}>
       <PortalProvider getContainer={() => home.current ?? document.body}>
         <ToastRegion<ToastItem> queue={toasts} className={css.toasts} data-toasts="">
           {({ toast: t }) => (
-            <Toast toast={t} className={css.toast}>
+            <Toast toast={t} className={css.toast} data-leaving={going.has(t.key) || undefined}>
               <ToastPill
                 tone={t.content.tone}
                 keys={t.content.keys}

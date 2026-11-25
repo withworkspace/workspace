@@ -1,4 +1,5 @@
-/* A toast (ToastPill.tsx): what an action did, in a dark pill. */
+/* A toast (ToastPill.tsx): what an action did, on a raised card in the
+   page's own theme: light in the light theme, dark in the dark. */
 
 @layer ui {
   .toast {
@@ -8,8 +9,9 @@
     max-width: min(560px, calc(100vw - 32px));
     padding: 8px 14px;
     border-radius: var(--radius-lg);
-    background: var(--fg);
-    color: var(--bg);
+    border: 1px solid var(--line);
+    background: var(--raised);
+    color: var(--fg);
     box-shadow: var(--shadow-lg);
     pointer-events: auto;
     animation: global(rise) var(--slow) var(--ease);
@@ -49,29 +51,24 @@
     background: color-mix(in oklch, currentColor 14%, transparent);
   }
 
-  .danger > :global(.icon) {
+  .tone {
+    flex: none;
+  }
+
+  .danger .tone {
     color: var(--red-fill);
   }
 
-  .done > :global(.icon) {
+  .done .tone {
     color: var(--green-fill);
   }
 
-  /* The toast is the text colour, so it's dark in the light theme: its link
-     is the accent as it reads on a dark surface, whatever the pick (the
-     light page's accent can be as dark as the toast). Hovered too: a
-     link's own hover is the text colour, which is the toast's. */
+  /* Its link is the accent, as the theme has it, and stays so hovered (a
+     link's own hover is the text colour). */
   .toast .action,
   .toast .action:hover {
     font-weight: 600;
-    color: var(--accent-lifted);
+    color: var(--accent);
     margin-left: 4px;
-  }
-
-  /* In the dark theme the toast is light, so its link is the light page's
-     button, hovered. */
-  :global(:root[data-theme="dark"]) .toast .action,
-  :global(:root[data-theme="dark"]) .toast .action:hover {
-    color: oklch(from var(--brand-1) calc(l - 0.041) c h);
   }
 }

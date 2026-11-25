@@ -6,10 +6,10 @@ import { Icon } from "./Icon";
 import { Keys } from "./Keys";
 import css from "./ToastPill.module.css";
 
-// ToastPill is one thing said in passing: a dark pill with its tone's icon,
-// the words (and a key after them, for a key hint), something to press
-// where there is (Undo, Open), and, closable, an × that shows when it's
-// pointed at or focused. Toasts draws the ones being said, each in
+// ToastPill is one thing said in passing: a raised pill, in the page's
+// theme, with its tone's icon, the words (and a key after them, for a key
+// hint), something to press where there is (Undo, Open), and, closable,
+// an × that shows when it's pointed at or focused. Toasts draws the ones being said, each in
 // react-aria's Toast, which the words name and the × closes (their
 // slots); toast() (ui/toast.ts) says one. Alone, as in a story, it's the
 // pill and nothing more.
@@ -28,7 +28,7 @@ export function ToastPill({
 }) {
   return (
     <div className={cx(css.toast, tone === "danger" && css.danger, tone === "done" && css.done)}>
-      <Icon name={tone === "danger" ? "x-circle" : tone === "done" ? "check-circle" : "info"} size={14} />
+      <Icon name={tone === "danger" ? "x-circle" : tone === "done" ? "check-circle" : "info"} size={14} className={css.tone} />
       <ToastContent className={css.content}>
         <Text slot="title">
           {children}
