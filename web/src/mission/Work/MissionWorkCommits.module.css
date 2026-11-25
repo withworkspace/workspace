@@ -32,3 +32,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* How many more there are: a line of words, not a commit's columns. */
+.commits .more {
+  display: block;
+}

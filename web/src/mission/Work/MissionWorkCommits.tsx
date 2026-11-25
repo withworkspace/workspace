@@ -1,4 +1,5 @@
 import { Copyable } from "../../ui/Copyable";
+import { cx } from "../../ui/cx";
 import { Time } from "../../ui/Time";
 import css from "./MissionWorkCommits.module.css";
 
@@ -17,7 +18,7 @@ export function MissionWorkCommits({ commits, more }: { commits: { sha: string; 
           <Time iso={m.time} as="relative" className="dim" />
         </li>
       ))}
-      {!!more && more > 0 && <li className="dim">and {more} more</li>}
+      {!!more && more > 0 && <li className={cx("dim", css.more)}>and {more} more</li>}
     </ul>
   );
 }
