@@ -26,7 +26,7 @@ func TestRun_TimeoutKillsWhatItStarted(t *testing.T) {
 	pidFile := filepath.Join(t.TempDir(), "child")
 	l := harness.Launch{Dir: t.TempDir(), Args: []string{"/bin/sh", "-c", `sleep 30 & echo $! > ` + pidFile + `; echo started; wait`}}
 	start := time.Now()
-	out, err := Run(context.Background(), l, "", t.TempDir(), "m", "run-1")
+	out, err := Run(context.Background(), l, "", "", t.TempDir(), "m", "run-1")
 	took := time.Since(start)
 	t.Logf("returned after %s", took)
 	if took > 5*time.Second {
@@ -106,7 +106,7 @@ func TestRun_Logged(t *testing.T) {
 	root := t.TempDir()
 	storetest.Own(t, root)
 	os.MkdirAll(root+"/.ws", 0o755)
-	Run(context.Background(), harness.Launch{Dir: root, Args: []string{"/bin/sh", "-c", "echo hi; exit 3"}}, "", root, "cache", "run-1")
+	Run(context.Background(), harness.Launch{Dir: root, Args: []string{"/bin/sh", "-c", "echo hi; exit 3"}}, "", "", root, "cache", "run-1")
 	data, _ := os.ReadFile(root + "/.ws/exec.log")
 	log := string(data)
 	for _, want := range []string{"[orchestrator cache] start pid", "$ /bin/sh -c 'echo hi; exit 3'", "WS_ROLE=orchestrator", "[orchestrator cache] end pid", "exit status 3 · 3 bytes of output"} {

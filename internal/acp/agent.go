@@ -371,7 +371,7 @@ func (a *Agent) turnsLoop() {
 		a.turn(t)
 		a.changed()
 
-		stop, err := a.client.Prompt(a.ctx, q.blocks...)
+		stop, usage, err := a.client.PromptTurn(a.ctx, q.blocks...)
 
 		a.mu.Lock()
 		t.End, t.Stop, t.Err, t.Reply = time.Now(), stop, err, a.tr.Reply()
@@ -381,7 +381,7 @@ func (a *Agent) turnsLoop() {
 		if err != nil {
 			a.record(Event{At: t.End, Error: err.Error()})
 		} else {
-			a.record(Event{At: t.End, Stop: stop})
+			a.record(Event{At: t.End, Stop: stop, Usage: usage})
 		}
 		if q.done != nil {
 			q.done <- t

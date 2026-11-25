@@ -97,7 +97,7 @@ internal/
   execlog/            .ws/exec.log: every process ws starts
   events/             what this ws did, kept 90 days (ws events): a mission's log shares its own in the same write, ops emits the rest
   notification/       the feed of what happened, each read or not (ws notifications): made from events as they're kept, or added by whoever knows
-  spend/              what agents spent, as tokens by model and day and who for (a mission's orchestrator, crew, checks…): kept from each headless turn, and read from crew's session files by the daemon
+  spend/              what agents spent, as tokens by model and day and who for (a mission's orchestrator, crew, checks…): kept from each headless turn, and read by the daemon from crew's session files (an ACP crew's from ws's record, which keeps each turn's usage)
   release/            ws's own releases: finding the latest, fetching one, putting it in place of the ws that's running (ws upgrade)
 
   ops/                the application layer: each operation that spans stores, once, and the views every front end shows
