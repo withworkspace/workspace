@@ -319,7 +319,8 @@ func stepWhose(st mission.StageState) string {
 }
 
 // liftForPlan lifts the capsules the plan's steps after fixed name that the
-// mission hasn't got, in repos of the workspace, as accepting a brief
+// mission hasn't got, in repos of the workspace (or joins them, lifted
+// already), as accepting a brief
 // lifts its capsules: crew are started there when the plan reaches them. A
 // Work step that names a repo the mission has no capsule in gets one, named
 // for the mission. It says what it did, or couldn't.
@@ -349,11 +350,16 @@ func (w *Workspace) liftForPlan(slug string, p *mission.Plan, fixed int) []strin
 		if m.HasCapsule(r, workspace.CapsuleName(name)) {
 			continue
 		}
-		if err := LiftForMission(w, slug, r, name); err != nil {
+		joined, err := w.liftOrJoin(slug, r, name)
+		if err != nil {
 			said = append(said, fmt.Sprintf("couldn't lift %s/%s for step %d (%v): ws lift %s %s", r, name, st.N, err, r, name))
 			continue
 		}
-		said = append(said, fmt.Sprintf("lifted %s/%s for step %d", r, name, st.N))
+		if joined {
+			said = append(said, fmt.Sprintf("joined %s/%s for step %d", r, name, st.N))
+		} else {
+			said = append(said, fmt.Sprintf("lifted %s/%s for step %d", r, name, st.N))
+		}
 	}
 	return said
 }

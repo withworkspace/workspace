@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/conversation"
@@ -147,7 +148,9 @@ func (w *Workspace) Archive(slug string, burnAll bool, by Actor) (StateSet, erro
 				return StateSet{}, refused("capsules-left", "%s's agent lifted capsules that couldn't be put away, so the mission isn't archived: %s", c.ID, strings.Join(left, "; "))
 			}
 			for _, cp := range c.Lifted() {
-				burned = append(burned, cp.Ref())
+				if !slices.Contains(burned, cp.Ref()) { // the mission's too, taken on from it
+					burned = append(burned, cp.Ref())
+				}
 			}
 		}
 	}
