@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { type DocKind, type DocSaved, FileChanged, filePage, type PageFiling, type PageTied, savePageToFile, type SpaceRef } from "../api";
 import { Banner } from "../ui/Banner";
-import { Icon } from "../ui/Icon";
 import { humanError } from "../ui/text";
 import { Callout } from "../ui/Callout";
 import { Keys } from "../ui/Keys";
@@ -9,6 +8,10 @@ import { Dialog, DialogActions } from "../ui/Dialog";
 import { Option, Select } from "../ui/Select";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
+import { PageField } from "./PageField";
+import { PageFields } from "./PageFields";
+import { PageFileWhat } from "./PageFileWhat";
+import { PageFileWhere } from "./PageFileWhere";
 
 // FileAs files a page as a document of one of the workspace's kinds: a new file where the kind
 // says, named from its title, in a commit of yours on its repo's default branch: landed, in a repo
@@ -98,10 +101,9 @@ export function FileAs({
   const lands = plan?.how === "land";
 
   return (
-    <Dialog title="File as a document" onClose={onClose} className="file-as" wide>
-      <div className="file-as-fields" onKeyDown={keys}>
-        <label>
-          <span>Kind</span>
+    <Dialog title="File as a document" onClose={onClose} wide>
+      <PageFields onKeyDown={keys}>
+        <PageField label="Kind">
           <Select fill value={k} onChange={setK} aria-label="Kind of document">
             {kinds.map((x) => (
               <Option key={x.name} value={x.name}>
@@ -110,10 +112,9 @@ export function FileAs({
             ))}
             <Option value="">No kind: in a folder…</Option>
           </Select>
-        </label>
+        </PageField>
         {!k && (
-          <label>
-            <span>Folder</span>
+          <PageField label="Folder">
             <Input className="mono" list="file-as-places" value={where} placeholder="repo:folder/" onChange={(e) => setWhere(e.target.value)} aria-label="The folder it's filed in, as repo:folder/" />
             <datalist id="file-as-places">
               {(spaces ?? []).map((s) => (
@@ -122,22 +123,19 @@ export function FileAs({
                 </option>
               ))}
             </datalist>
-          </label>
+          </PageField>
         )}
-        <label>
-          <span>Title</span>
+        <PageField label="Title">
           <Input autoFocus value={name} placeholder="What it's named from" onChange={(e) => setName(e.target.value)} aria-label="Title" />
-        </label>
-        <label>
-          <span>Commit</span>
+        </PageField>
+        <PageField label="Commit">
           <Input className="mono" value={subject} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
-        </label>
-      </div>
+        </PageField>
+      </PageFields>
       {plan && (
-        <p className={`file-as-where${plan.taken ? " taken" : ""}`}>
-          <Icon name="file" size={12} /> <span className="mono">{plan.ref.replace(":", " · ")}</span>
+        <PageFileWhere at={plan.ref} taken={plan.taken}>
           {plan.taken && <span>: there's one there already. Give it another title.</span>}
-        </p>
+        </PageFileWhere>
       )}
       {plan && (
         <Callout tone={lands ? "attention" : "info"} icon={lands ? "alert" : "info"} title={lands ? `Filing lands it on ${plan.branch}` : "Filing lifts a capsule for it"}>
@@ -156,7 +154,7 @@ export function FileAs({
           )}
         </Callout>
       )}
-      <p className="dim file-as-what">What's filed is the page as it reads: what its cells hold is kept as text, its questions are left out. The page stays, and says where it was filed.</p>
+      <PageFileWhat>What's filed is the page as it reads: what its cells hold is kept as text, its questions are left out. The page stays, and says where it was filed.</PageFileWhat>
       {error && <Banner>{error}</Banner>}
       <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>
@@ -211,12 +209,9 @@ export function SaveToFile({
     }
   };
   return (
-    <Dialog title="Save to the repo" onClose={onClose} className="file-as" wide>
-      <p className="file-as-where">
-        <Icon name="file" size={12} /> <span className="mono">{tied.ref.replace(":", " · ")}</span>
-      </p>
-      <div
-        className="file-as-fields"
+    <Dialog title="Save to the repo" onClose={onClose} wide>
+      <PageFileWhere at={tied.ref} />
+      <PageFields
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey || (e.target as HTMLElement).tagName === "INPUT")) {
             e.preventDefault();
@@ -224,11 +219,10 @@ export function SaveToFile({
           }
         }}
       >
-        <label>
-          <span>Commit</span>
+        <PageField label="Commit">
           <Input autoFocus className="mono" value={message} onChange={(e) => setMessage(e.target.value)} aria-label="The commit's message" />
-        </label>
-      </div>
+        </PageField>
+      </PageFields>
       {saves && saves.how !== "capsule" && (
         <Callout tone={lands ? "attention" : "info"} icon={lands ? "alert" : "info"} title={lands ? `Saving lands it on ${saves.branch}` : "Saving lifts a capsule for it"}>
           {lands ? (
@@ -246,7 +240,7 @@ export function SaveToFile({
           )}
         </Callout>
       )}
-      <p className="dim file-as-what">What's saved is the page as it reads: what its cells hold is kept as text, its questions are left out. The page keeps them.</p>
+      <PageFileWhat>What's saved is the page as it reads: what its cells hold is kept as text, its questions are left out. The page keeps them.</PageFileWhat>
       {error && <Banner>{error}</Banner>}
       <DialogActions>
         <Button variant="ghost" onClick={onClose} disabled={busy}>

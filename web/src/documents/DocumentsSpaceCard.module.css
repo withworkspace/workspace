@@ -1,0 +1,62 @@
+/* A space as a card on Documents (DocumentsSpaceCard.tsx). */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-xs);
+  transition:
+    border-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow);
+}
+
+:global(.keyboarding) .card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px 14px 8px;
+  color: var(--fg);
+}
+
+.head :global(.repo-dot) {
+  flex: none;
+  width: 10px;
+  height: 10px;
+}
+
+.head > :global(.mono) {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+}
+
+.title {
+  flex: none;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.count {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--text-sm);
+  color: var(--dim);
+  white-space: nowrap;
+}

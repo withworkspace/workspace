@@ -43,7 +43,12 @@ func thingOrigin(name, kind, ref string) store.Origin {
 type Record struct {
 	Kind, Ref string
 	Changed   time.Time
-	Fields    map[string]string
+	// Standing is where it stands, as the plugin said in words every kind
+	// shares (protocol's Standings), and Since since when: "" and zero
+	// where it said nothing.
+	Standing string
+	Since    time.Time
+	Fields   map[string]string
 	// Found is what ws read it at, for one ws found in a space (found.go):
 	// "" for one the plugin told ws of.
 	Found string
@@ -179,7 +184,7 @@ func indexThing(tx *store.Tx, name string, kind protocol.Ref, rec Record, all []
 	if err := tx.Forget(origin); err != nil {
 		return false, err
 	}
-	if err := tx.Thing(origin, store.Thing{Key: key, Kind: ThingKind, Title: title, State: fields[kind.Typed(protocol.FieldState)], Changed: rec.Changed}); err != nil {
+	if err := tx.Thing(origin, store.Thing{Key: key, Kind: ThingKind, Title: title, State: fields[kind.Typed(protocol.FieldState)], Changed: rec.Changed, Stands: rec.stands()}); err != nil {
 		return false, err
 	}
 	tidy := rec
@@ -194,6 +199,20 @@ func indexThing(tx *store.Tx, name string, kind protocol.Ref, rec Record, all []
 	return true, tx.Words(origin, store.Place{Thing: key, Kind: ThingKind, Title: rec.Ref + " " + title, Text: foundBy(kind, tidy), Said: rec.Changed})
 }
 
+// stands is how a plugin's thing stands, in ws's words: as the plugin said
+// (the state field says the same in its own words, for people), or in
+// force where it said nothing ws knows. Since is kept for one that's
+// settled or gone.
+func (r Record) stands() store.Stands {
+	switch s := store.Standing(r.Standing); s {
+	case store.Settled, store.Gone:
+		return store.Stands{Standing: s, Since: r.Since}
+	case store.Lasting, store.InForce, store.Passing:
+		return store.Stands{Standing: s}
+	}
+	return store.Stands{Standing: store.InForce}
+}
+
 // forgetThing removes one of name's things: its record, and what was
 // made of it.
 func forgetThing(tx *store.Tx, name, kind, ref string) error {
@@ -206,7 +225,7 @@ func forgetThing(tx *store.Tx, name, kind, ref string) error {
 // thingsOf are the records ws keeps of name's things: of one kind, or of
 // every kind (""), in order.
 func thingsOf(tx *store.Tx, name, kind string) ([]Record, error) {
-	q, args := `SELECT kind, ref, changed, fields, found FROM plugin_things WHERE plugin = ?`, []any{name}
+	q, args := `SELECT kind, ref, changed, standing, since, fields, found FROM plugin_things WHERE plugin = ?`, []any{name}
 	if kind != "" {
 		q, args = q+` AND kind = ?`, append(args, kind)
 	}
@@ -218,11 +237,12 @@ func thingsOf(tx *store.Tx, name, kind string) ([]Record, error) {
 	var out []Record
 	for rows.Next() {
 		var r Record
-		var changed, fields string
-		if err := rows.Scan(&r.Kind, &r.Ref, &changed, &fields, &r.Found); err != nil {
+		var changed, since, fields string
+		if err := rows.Scan(&r.Kind, &r.Ref, &changed, &r.Standing, &since, &fields, &r.Found); err != nil {
 			return nil, err
 		}
 		r.Changed, _ = time.Parse(store.Stamp, changed)
+		r.Since, _ = time.Parse(store.Stamp, since)
 		if err := json.Unmarshal([]byte(fields), &r.Fields); err != nil {
 			return nil, fmt.Errorf("what's kept of %s's %s: %w", name, r.Ref, err)
 		}
@@ -297,19 +317,24 @@ func PutThings(root, name string, things []protocol.Thing) (refused []protocol.T
 				return err
 			}
 			changed := t.Changed.UTC().Format(store.Stamp)
-			var wasChanged, wasFields string
-			switch err := tx.QueryRow(`SELECT changed, fields FROM plugin_things WHERE plugin = ? AND kind = ? AND ref = ?`, name, t.Kind, t.Ref).Scan(&wasChanged, &wasFields); {
+			since := ""
+			if !t.Since.IsZero() {
+				since = t.Since.UTC().Format(store.Stamp)
+			}
+			var wasChanged, wasStanding, wasSince, wasFields string
+			switch err := tx.QueryRow(`SELECT changed, standing, since, fields FROM plugin_things WHERE plugin = ? AND kind = ? AND ref = ?`, name, t.Kind, t.Ref).Scan(&wasChanged, &wasStanding, &wasSince, &wasFields); {
 			case errors.Is(err, sql.ErrNoRows):
 			case err != nil:
 				return err
-			case wasChanged == changed && wasFields == string(told):
+			case wasChanged == changed && wasStanding == t.Standing && wasSince == since && wasFields == string(told):
 				continue // as ws has it
 			}
-			if _, err := tx.Exec(`INSERT INTO plugin_things (plugin, kind, ref, changed, fields) VALUES (?, ?, ?, ?, ?)
-				ON CONFLICT (plugin, kind, ref) DO UPDATE SET changed = excluded.changed, fields = excluded.fields`, name, t.Kind, t.Ref, changed, string(told)); err != nil {
+			if _, err := tx.Exec(`INSERT INTO plugin_things (plugin, kind, ref, changed, standing, since, fields) VALUES (?, ?, ?, ?, ?, ?, ?)
+				ON CONFLICT (plugin, kind, ref) DO UPDATE SET changed = excluded.changed, standing = excluded.standing, since = excluded.since, fields = excluded.fields`,
+				name, t.Kind, t.Ref, changed, t.Standing, since, string(told)); err != nil {
 				return err
 			}
-			if _, err := indexThing(tx, name, kind.Ref, Record{Kind: t.Kind, Ref: t.Ref, Changed: t.Changed, Fields: fields}, kept); err != nil {
+			if _, err := indexThing(tx, name, kind.Ref, Record{Kind: t.Kind, Ref: t.Ref, Changed: t.Changed, Standing: t.Standing, Since: t.Since, Fields: fields}, kept); err != nil {
 				return err
 			}
 		}
@@ -372,8 +397,8 @@ func ThingOf(root, name, kind, ref string) (Record, bool, error) {
 	rec := Record{Kind: kind, Ref: ref}
 	found := false
 	err = db.Read(context.Background(), func(tx *store.Tx) error {
-		var changed, fields string
-		switch err := tx.QueryRow(`SELECT changed, fields, found FROM plugin_things WHERE plugin = ? AND kind = ? AND ref = ?`, name, kind, ref).Scan(&changed, &fields, &rec.Found); {
+		var changed, since, fields string
+		switch err := tx.QueryRow(`SELECT changed, standing, since, fields, found FROM plugin_things WHERE plugin = ? AND kind = ? AND ref = ?`, name, kind, ref).Scan(&changed, &rec.Standing, &since, &fields, &rec.Found); {
 		case errors.Is(err, sql.ErrNoRows):
 			return nil
 		case err != nil:
@@ -381,6 +406,7 @@ func ThingOf(root, name, kind, ref string) (Record, bool, error) {
 		}
 		found = true
 		rec.Changed, _ = time.Parse(store.Stamp, changed)
+		rec.Since, _ = time.Parse(store.Stamp, since)
 		return json.Unmarshal([]byte(fields), &rec.Fields)
 	})
 	return rec, found, err

@@ -1,0 +1,36 @@
+/* A conversation's summary so far, folded over its turns when there's no
+   column beside them (TalkSummary.tsx). */
+
+.summary {
+  margin-bottom: var(--space-5);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--well);
+}
+
+.summary summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.summary summary::-webkit-details-marker {
+  display: none;
+}
+
+.chevron {
+  transition: transform var(--fast) var(--ease);
+}
+
+details[open] > summary .chevron {
+  transform: rotate(90deg);
+}
+
+.summary[open] summary {
+  margin-bottom: 6px;
+}

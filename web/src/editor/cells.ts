@@ -447,7 +447,8 @@ export function dropCell(view: EditorView, name: string) {
   view.dispatch(tr);
 }
 
-// cellElement is a cell as it's drawn, to put something beside.
+// cellElement is a cell as it's drawn, to put something beside: found by
+// its name (its class is its module's).
 export function cellElement(view: EditorView, name: string): HTMLElement | null {
-  return name ? view.dom.querySelector<HTMLElement>(`.cell[data-cell="${CSS.escape(name)}"]`) : null;
+  return name ? view.dom.querySelector<HTMLElement>(`[data-cell="${CSS.escape(name)}"]`) : null;
 }

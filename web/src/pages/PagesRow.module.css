@@ -1,0 +1,14 @@
+/* A page in a list (PagesRow.tsx). */
+
+.link {
+  gap: 12px;
+  padding: 8px 10px;
+}
+
+.status {
+  color: var(--faint);
+}
+
+.ref {
+  font: var(--text-xs) var(--mono);
+}

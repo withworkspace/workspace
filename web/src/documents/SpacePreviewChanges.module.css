@@ -1,0 +1,14 @@
+/* The changes to the document picked lately (SpacePreviewChanges.tsx),
+   under its text. */
+
+.changes {
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.changes h3 {
+  margin: 0 8px 4px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--dim);
+}

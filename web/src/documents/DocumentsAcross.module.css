@@ -1,0 +1,15 @@
+/* What's happening across the spaces (DocumentsAcross.tsx): two sections
+   side by side, where there's room for both. */
+
+.across {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 0 var(--space-6);
+  align-items: start;
+  margin-bottom: var(--space-5);
+}
+
+.across > section {
+  margin: 0;
+  min-width: 0;
+}

@@ -63,7 +63,7 @@ func init() {
 			changed TEXT NOT NULL, changed_by TEXT NOT NULL,
 			record TEXT NOT NULL              -- its artifact.toml there (Artifact), as JSON: '' for none
 		) WITHOUT ROWID;
-	`))
+	`), standingStep)
 }
 
 // Local is where an artifact on this machine is kept: .ws/artifacts.
@@ -283,7 +283,7 @@ func graph(tx *store.Tx, k *kept) error {
 		return nil
 	}
 	me := store.Key{Name: k.ID}
-	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: k.Title, State: string(k.Status), Changed: k.LastAt()}); err != nil {
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: k.Title, State: string(k.Status), Changed: k.LastAt(), Stands: k.Status.stands(k.LastAt())}); err != nil {
 		return err
 	}
 	linked := map[string]bool{}
@@ -1136,3 +1136,23 @@ func (s Store) Convert(ctx context.Context) ([]Entry, error) {
 	})
 	return out, err
 }
+
+// stands is how an artifact stands in words every kind shares: a live one
+// is of its moment (it expires), a promoted one is kept for good, and a
+// discarded one is gone, since it last changed.
+func (s Status) stands(last time.Time) store.Stands {
+	switch s {
+	case Promoted:
+		return store.Stands{Standing: store.Lasting}
+	case Discarded:
+		return store.Stands{Standing: store.Gone, Since: last}
+	}
+	return store.Stands{Standing: store.Passing}
+}
+
+// standingStep is the part's third step: an artifact written before things
+// had a standing stands as its status says (Status.stands).
+var standingStep = store.SQL(`
+	UPDATE things SET standing = CASE state WHEN 'promoted' THEN 'lasting' WHEN 'discarded' THEN 'gone' ELSE 'passing' END
+		WHERE (origin LIKE 'artifact:%' OR origin LIKE 'artifact-found:%') AND kind = 'artifact' AND standing = '';
+`)

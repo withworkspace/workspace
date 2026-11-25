@@ -1,0 +1,15 @@
+/* What's proposed, in a card's body (TalkProposalWhat.tsx), and why. */
+
+.what {
+  font-weight: 500;
+}
+
+/* Words as they were written: their line breaks are their own. */
+.said {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.why {
+  color: var(--dim);
+}

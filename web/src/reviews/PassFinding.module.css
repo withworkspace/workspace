@@ -1,0 +1,37 @@
+/* One thing a pass found (PassFinding.tsx): a rule down its left, red
+   for one that blocks, quiet once it's settled. */
+
+.finding {
+  padding: 6px 10px;
+  border-left: 3px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--raised);
+}
+
+.finding.blocks {
+  border-left-color: var(--k-blocking);
+}
+
+.finding.settled {
+  border-left-color: var(--line);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: var(--text-sm);
+  min-height: 24px;
+}
+
+.spacer {
+  margin-left: auto;
+}
+
+.text {
+  margin-top: 2px;
+  font-size: var(--text-md);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

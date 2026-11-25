@@ -1,0 +1,29 @@
+/* What a cell's agent had to say of what it wrote (PageNotes.tsx). */
+
+.notes {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--waiting-fill);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--waiting-soft);
+  font-size: var(--text-sm);
+}
+
+.notes.old {
+  border-left-color: var(--line-strong);
+  background: none;
+  color: var(--dim);
+}
+
+.notes > .label {
+  display: block;
+  font-size: var(--text-xs);
+}
+
+.notes :global(.markdown) > :first-child {
+  margin-top: 0;
+}
+
+.notes :global(.markdown) > :last-child {
+  margin-bottom: 0;
+}

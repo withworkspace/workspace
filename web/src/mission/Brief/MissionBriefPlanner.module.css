@@ -1,6 +1,6 @@
 /* The planner's pane (MissionBriefPlanner.tsx): its head, what's been
    said, and where it's asked. What's settled in it is the conversation's
-   own marker, which still says settled-marker. */
+   own marker (talk/TalkSettled.tsx). */
 
 .planner {
   display: flex;
@@ -63,10 +63,6 @@
 
 .calls {
   min-width: 0;
-}
-
-.body :global(.settled-marker) {
-  padding-left: 0;
 }
 
 /* Where it's asked: at the conversation's foot, which stays in reach as

@@ -1,0 +1,74 @@
+/* A card you settled (TalkSettled.tsx): a turn ws wrote for you, which
+   the agent read as yours, drawn as a muted line of what happened, not as
+   your bubble. Its icon sits where a turn's avatar does. */
+
+.marker {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  animation: global(enter) var(--slow) var(--ease);
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mark {
+  flex: none;
+  width: 22px;
+  color: var(--faint);
+}
+
+.marker.accepted .mark {
+  color: var(--green);
+  opacity: 0.7;
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 2px;
+}
+
+.text a:hover {
+  color: var(--fg);
+  text-decoration-color: currentColor;
+}
+
+button.more {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+button.more:hover {
+  color: var(--fg);
+}
+
+.time {
+  flex: none;
+  font-size: var(--text-xs);
+}
+
+.edits {
+  padding: 8px 12px;
+  margin-left: 30px;
+  border-left: 2px solid var(--line);
+  font-size: var(--text-sm);
+}

@@ -1,0 +1,14 @@
+/* What a conversation was asked of, over its turns (TalkAnchor.tsx): the
+   lines, or the passage when its lines weren't found. */
+
+.anchor {
+  margin: 0 0 var(--space-4);
+}
+
+.quote {
+  padding: 6px 12px;
+  border-left: 2px solid var(--line);
+  color: var(--dim);
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+}

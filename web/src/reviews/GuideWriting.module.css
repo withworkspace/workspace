@@ -1,0 +1,10 @@
+/* A guide being written (GuideWriting.tsx): for how long, and what it
+   was given. */
+
+.writing p {
+  margin: 0 0 6px;
+}
+
+.given {
+  font-size: var(--text-sm);
+}

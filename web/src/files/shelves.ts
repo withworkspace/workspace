@@ -1,5 +1,5 @@
 import type { Space, SpaceDoc } from "../api";
-import { sorted } from "../documents/Library";
+import { sorted } from "../documents/sorted";
 
 // Where a document is kept, as the reader's crumbs name it (#123, "Getting
 // around"): its path, each step of it a menu of what's there, and its

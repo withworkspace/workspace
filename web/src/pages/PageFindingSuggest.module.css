@@ -1,0 +1,21 @@
+/* What a finding proposes the words read (PageFindingSuggest.tsx). */
+
+.suggest :global(.markdown) > :first-child {
+  margin-top: 0;
+}
+
+.suggest :global(.markdown) > :last-child {
+  margin-bottom: 0;
+}
+
+.suggest {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--green-soft);
+}
+
+.suggest > .label {
+  display: block;
+  font-size: var(--text-xs);
+}

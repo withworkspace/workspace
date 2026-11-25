@@ -1,0 +1,28 @@
+/* The edge between a space's list and its preview (SpaceEdge.tsx): a
+   line shows on it when it's pointed at, focused or dragged. */
+
+.edge {
+  position: relative;
+  align-self: stretch;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.edge::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  transition: background var(--fast) var(--ease);
+}
+
+.edge:hover::after,
+.edge:focus-visible::after,
+.edge.dragging::after {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}

@@ -1,0 +1,23 @@
+/* A space's list and, beside it, the document picked (SpaceSplit.tsx);
+   the list alone on a narrow window. */
+
+.split {
+  display: grid;
+  grid-template-columns: var(--space-list-w, minmax(280px, 5fr)) var(--space-6) minmax(380px, 7fr);
+  align-items: start;
+}
+
+@media (width > 1020px) {
+  .split {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+  }
+}
+
+@media (width <= 1020px) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

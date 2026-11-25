@@ -55,7 +55,7 @@ func init() {
 			name TEXT NOT NULL,         -- the thing's, in its repo: its folder
 			PRIMARY KEY (plugin, kind, ref)
 		) WITHOUT ROWID;
-	`))
+	`), standingStep)
 }
 
 // Origin is what ws keeps in its graph for a plugin (its things, and
@@ -259,3 +259,13 @@ func Forget(root, name string) error {
 		return tx.ForgetUnder(Origin(name))
 	})
 }
+
+// standingStep is the part's fourth step: where a plugin's thing stands,
+// as the plugin says in words every kind shares, and since when (empty where
+// it says nothing); one written before stands in force, as one the plugin
+// says nothing of does.
+var standingStep = store.SQL(`
+	ALTER TABLE plugin_things ADD COLUMN standing TEXT NOT NULL DEFAULT '';
+	ALTER TABLE plugin_things ADD COLUMN since TEXT NOT NULL DEFAULT '';
+	UPDATE things SET standing = 'open' WHERE kind = 'thing' AND standing = '';
+`)

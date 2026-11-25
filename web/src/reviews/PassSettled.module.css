@@ -1,0 +1,10 @@
+/* What a pass found that's settled, folded (PassSettled.tsx). */
+
+.settled {
+  margin-top: 8px;
+  font-size: var(--text-sm);
+}
+
+.settled summary {
+  cursor: pointer;
+}

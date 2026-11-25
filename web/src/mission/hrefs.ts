@@ -1,5 +1,5 @@
 import type { MissionAct, MissionCard, MissionDetail } from "../api";
-import { talkHref } from "../talk/Talk";
+import { talkHref } from "../talk/words";
 import { briefHref } from "./Brief/href";
 import { bundleLink } from "./Work/words";
 

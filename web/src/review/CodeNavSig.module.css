@@ -1,0 +1,11 @@
+/* A definition's signature, or a line that uses it (CodeNavSig.tsx). */
+
+.sig {
+  display: block;
+  font: var(--text-sm) / 18px var(--mono);
+  background: none;
+  border: 0;
+  padding: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

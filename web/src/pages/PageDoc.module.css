@@ -1,0 +1,6 @@
+/* The page's words (PageDoc.tsx): what's opened over them is placed in it. */
+
+.doc {
+  position: relative;
+  min-width: 0;
+}

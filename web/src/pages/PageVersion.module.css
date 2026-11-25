@@ -1,0 +1,13 @@
+/* A line about a cell's version (PageVersion.tsx). */
+
+.version.yours {
+  justify-self: end;
+}
+
+.version {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}

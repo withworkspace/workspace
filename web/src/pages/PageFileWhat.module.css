@@ -1,0 +1,6 @@
+/* What filing a page does (PageFileWhat.tsx). */
+
+.what {
+  margin: 12px 0;
+  font-size: var(--text-sm);
+}

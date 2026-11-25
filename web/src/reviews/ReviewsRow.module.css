@@ -1,0 +1,41 @@
+/* A pull request, or a stack of them, on the Reviews page (ReviewsRow.tsx). */
+
+.row {
+  position: relative;
+}
+
+/* Every row leaves room for a stack's fold, so the columns line up. */
+.link {
+  gap: 12px;
+  padding: 8px 10px;
+  padding-right: 40px;
+  color: inherit;
+}
+
+.row .size {
+  min-width: 124px;
+  justify-content: flex-end;
+  font: var(--text-xs) var(--mono);
+  font-variant-numeric: tabular-nums;
+  gap: 6px;
+}
+
+.plus {
+  color: var(--green);
+}
+
+.minus {
+  color: var(--red);
+}
+
+@media (max-width: 860px) {
+  .row .size .files {
+    display: none;
+  }
+}
+
+.fold {
+  position: absolute;
+  top: 9px;
+  right: 8px;
+}

@@ -1,0 +1,8 @@
+/* A finding's kind, and the words it's about (PageFindingHead.tsx). */
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}

@@ -1,0 +1,20 @@
+/* Commenting on a pull request itself (SaidReply.tsx). */
+
+.reply {
+  max-width: 820px;
+  margin-top: 10px;
+}
+
+.reply textarea {
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spacer {
+  margin-left: auto;
+}

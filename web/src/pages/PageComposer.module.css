@@ -1,0 +1,10 @@
+/* A cell's composer (ui/Composer.tsx, beside), placed in its panel
+   (PageComposer.tsx). */
+
+.composer {
+  margin: 10px 10px 0;
+}
+
+.composer.flush {
+  margin: 8px 0 0;
+}

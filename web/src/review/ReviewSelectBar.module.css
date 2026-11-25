@@ -1,0 +1,20 @@
+/* Under lines picked in a review (ReviewSelectBar.tsx): the line numbers
+   are the handle, and this hangs from the last. */
+
+.bar {
+  position: absolute;
+  top: 100%;
+  right: 12px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+  padding: 4px 6px 4px 12px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  font: var(--text-sm) var(--font);
+  width: max-content;
+}

@@ -1,0 +1,10 @@
+/* A conversation's summary so far, beside it (TalkSideSummary.tsx). */
+
+.summary {
+  color: var(--dim);
+  line-height: 1.5;
+}
+
+.summary > :first-child {
+  margin-top: 0;
+}

@@ -1,0 +1,18 @@
+/* A pull request's name, in its review's head (PullRequestName.tsx). */
+
+.name {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.ref {
+  font-family: var(--mono);
+  font-size: var(--text-md);
+  font-weight: 400;
+}
+
+.chip {
+  align-self: center;
+}

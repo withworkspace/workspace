@@ -1,0 +1,45 @@
+/* Where a search is typed (DocumentsSearchBox.tsx): Documents' over the
+   spaces, a space's over its list (space). */
+
+.box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+
+.box:focus-within {
+  border-color: var(--accent);
+}
+
+.box input {
+  flex: 1;
+  border: 0;
+  outline: none;
+  background: transparent;
+  padding: 0;
+}
+
+.box.space {
+  margin-bottom: var(--space-3);
+  padding: 5px 10px;
+}
+
+.box.space input,
+.box.space input:focus,
+.box.space input:focus-visible {
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.count {
+  flex: none;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}

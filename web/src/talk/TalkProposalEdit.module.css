@@ -1,0 +1,11 @@
+/* A proposal being edited before it's confirmed (TalkProposalEdit.tsx). */
+
+.edit {
+  display: grid;
+  gap: 8px;
+}
+
+.edit > textarea,
+.edit > input {
+  width: 100%;
+}

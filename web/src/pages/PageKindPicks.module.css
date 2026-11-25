@@ -1,0 +1,8 @@
+/* The kinds of document to start a page as (PageKindPicks.tsx). */
+
+.picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}

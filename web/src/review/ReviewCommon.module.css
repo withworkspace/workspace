@@ -1,0 +1,15 @@
+/* What every file of a review's path starts with, said once
+   (ReviewCommon.tsx), under Changes. Cut short from the left: a folder
+   keeps what's nearest its files. The words are in a <bdi>, so they still
+   read left to right. */
+
+.common {
+  margin: 0 12px 2px 24px;
+  font: var(--text-xs) var(--mono);
+  color: var(--dim);
+  direction: rtl;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

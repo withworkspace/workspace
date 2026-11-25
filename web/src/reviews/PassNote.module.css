@@ -1,0 +1,23 @@
+/* Something said of a pass, or a guide, under its head (PassNote.tsx). */
+
+.note {
+  margin: 6px 0 0;
+  font-size: var(--text-sm);
+}
+
+/* The step it's at, while it runs: one line. */
+.note.steps {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* It's been pushed to since. */
+.note.moved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--amber);
+}

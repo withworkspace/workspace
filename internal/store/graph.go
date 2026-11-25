@@ -33,6 +33,9 @@ type Thing struct {
 	Title   string
 	State   string // where it stands: open, resolved…
 	Changed time.Time
+	// Stands is what its State is in words every kind shares (standing.go),
+	// and since when, for what's settled or gone.
+	Stands
 }
 
 // Link is one thing pointing at another, and why.
@@ -84,11 +87,19 @@ const Stamp = "2006-01-02T15:04:05.000000Z"
 
 // Thing records what a thing is, for the record at origin.
 func (tx *Tx) Thing(origin Origin, t Thing) error {
-	_, err := tx.Exec(`INSERT INTO things (scope, name, kind, title, state, changed, origin) VALUES (?, ?, ?, ?, ?, ?, ?)
+	_, err := tx.Exec(`INSERT INTO things (scope, name, kind, title, state, changed, standing, since, origin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (scope, name) DO UPDATE SET kind = excluded.kind, title = excluded.title, state = excluded.state,
-			changed = excluded.changed, origin = excluded.origin`,
-		t.Key.Scope, t.Key.Name, t.Kind, t.Title, t.State, t.Changed.UTC().Format(Stamp), string(origin))
+			changed = excluded.changed, standing = excluded.standing, since = excluded.since, origin = excluded.origin`,
+		t.Key.Scope, t.Key.Name, t.Kind, t.Title, t.State, t.Changed.UTC().Format(Stamp), string(t.Standing), stampOr(t.Since), string(origin))
 	return err
+}
+
+// stampOr is a time as Stamp writes it, or "" for none.
+func stampOr(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format(Stamp)
 }
 
 // Titled gives the things the record at origin wrote a title, where
@@ -189,9 +200,9 @@ func (tx *Tx) ThingsAt(keys ...Key) (map[Key]Thing, error) {
 	out := map[Key]Thing{}
 	for _, k := range keys {
 		var t Thing
-		var changed string
-		err := tx.QueryRow(`SELECT kind, title, state, changed FROM things WHERE scope = ? AND name = ?`, k.Scope, k.Name).
-			Scan(&t.Kind, &t.Title, &t.State, &changed)
+		var changed, since string
+		err := tx.QueryRow(`SELECT kind, title, state, changed, standing, since FROM things WHERE scope = ? AND name = ?`, k.Scope, k.Name).
+			Scan(&t.Kind, &t.Title, &t.State, &changed, &t.Standing, &since)
 		if errors.Is(err, sql.ErrNoRows) {
 			continue
 		}
@@ -200,6 +211,7 @@ func (tx *Tx) ThingsAt(keys ...Key) (map[Key]Thing, error) {
 		}
 		t.Key = k
 		t.Changed, _ = time.Parse(Stamp, changed)
+		t.Since, _ = time.Parse(Stamp, since)
 		out[k] = t
 	}
 	return out, nil

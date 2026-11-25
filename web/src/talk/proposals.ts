@@ -160,7 +160,7 @@ export function addedVersion(result: string | undefined): { id: string; n: numbe
   return m ? { id: m[1], n: Number(m[2]) } : undefined;
 }
 
-// --- Beside a conversation: what's come of it (Talk.tsx's TalkSide)
+// --- Beside a conversation: what's come of it (SideOf.tsx)
 
 // Made is something a conversation's proposal made, or would once it's
 // confirmed (open): what to call it, a short tag after that (a2.v1, d3,

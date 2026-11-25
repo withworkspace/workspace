@@ -1,0 +1,24 @@
+/* A document a search found (DocumentsHitRow.tsx): the section that says
+   it best, and its words with those found marked. */
+
+.link {
+  align-items: flex-start;
+}
+
+.link .snippet {
+  display: block;
+  white-space: normal;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.link mark {
+  background: var(--accent-soft, var(--selected));
+  color: var(--fg);
+  border-radius: 2px;
+}
+
+.where {
+  flex: none;
+  font-size: var(--text-xs);
+}

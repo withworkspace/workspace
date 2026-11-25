@@ -1,0 +1,64 @@
+/* One of a review's views down the side (ReviewViewRow.tsx). */
+
+.row {
+  min-height: 30px;
+}
+
+/* Over the side's hover, as the one showing. */
+.row.here,
+.row.here:hover {
+  background: var(--selected);
+}
+
+/* Its icon, in a small square in the accent. */
+.mark {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  flex: none;
+  font: 600 var(--text-xs) var(--font);
+  color: var(--accent);
+}
+
+/* Its name gives way only when it alone is wider than the list; what's
+   after it sits at the row's end. */
+.name {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-right: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font);
+  font-weight: 500;
+}
+
+.stands {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.count {
+  font: var(--text-xs) var(--mono);
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Something's new in it since you looked (what's been said). */
+.news {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex: none;
+}
+
+.tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}

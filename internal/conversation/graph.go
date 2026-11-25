@@ -31,7 +31,21 @@ func (s Store) keepThing(tx *store.Tx, c *Conversation, changed time.Time) error
 	if title == "" && len(c.Turns) > 0 {
 		title = oneLine(c.Turns[0].Body)
 	}
-	return tx.Thing(s.origin(c.ID), store.Thing{Key: s.key(c.ID), Kind: c.What, Title: title, State: c.Status, Changed: changed})
+	return tx.Thing(s.origin(c.ID), store.Thing{Key: s.key(c.ID), Kind: c.What, Title: title, State: c.Status, Changed: changed, Stands: c.stands()})
+}
+
+// stands is how a conversation stands in words every kind shares: of its
+// moment while it's open (it ages from its last word), settled once it's
+// resolved, since it was.
+func (c *Conversation) stands() store.Stands {
+	if c.Status != Resolved {
+		return store.Stands{Standing: store.Passing}
+	}
+	st := store.Stands{Standing: store.Settled}
+	if c.StatusAt != nil {
+		st.Since = *c.StatusAt
+	}
+	return st
 }
 
 // linkAnchor links a conversation to what it's anchored to.

@@ -1,0 +1,62 @@
+/* A stack's layers on the Reviews page (ReviewsLayers.tsx), bottom first,
+   hung off its row by a rule. */
+
+.layers {
+  list-style: none;
+  margin: 0 8px 6px 17px;
+  padding: 0 0 0 16px;
+  border-left: 1px solid var(--line-strong);
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  color: inherit;
+}
+
+.link:hover {
+  background: var(--hover);
+}
+
+.title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.words {
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.words:global(.tone-attention) {
+  color: var(--tone);
+}
+
+/* As wide as a row's, so the columns line up. */
+.size {
+  min-width: 124px;
+  justify-content: flex-end;
+  font: var(--text-xs) var(--mono);
+  font-variant-numeric: tabular-nums;
+  gap: 6px;
+}
+
+.plus {
+  color: var(--green);
+}
+
+.minus {
+  color: var(--red);
+}
+
+@media (max-width: 860px) {
+  .words {
+    display: none;
+  }
+}

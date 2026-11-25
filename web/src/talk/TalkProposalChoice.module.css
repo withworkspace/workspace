@@ -1,0 +1,13 @@
+/* What you can do with a proposal that's open, in its foot
+   (TalkProposalChoice.tsx). */
+
+.busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+}
+
+.spacer {
+  flex: 1;
+}

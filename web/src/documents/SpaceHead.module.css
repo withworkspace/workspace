@@ -1,0 +1,40 @@
+/* A space's page's head (SpaceHead.tsx): back to Documents, its name,
+   how many documents it has and how it stands with its remote. */
+
+.head {
+  gap: 8px 10px;
+  margin-bottom: var(--space-4);
+}
+
+.head h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.head h1 :global(.repo-dot) {
+  width: 12px;
+  height: 12px;
+}
+
+.head .back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--dim);
+}
+
+.head .back:hover {
+  color: var(--fg);
+}
+
+.head .slash {
+  margin-inline: -2px;
+  font-size: var(--text-lg);
+  color: var(--faint);
+}
+
+.head .count {
+  font-size: var(--text-sm);
+  color: var(--dim);
+}

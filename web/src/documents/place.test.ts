@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { docAddress, type DocKind, type PageInfo, pageAddress, type Space, type SpaceDoc, spaceAt } from "../api";
-import { sorted } from "./Library";
+import { sorted } from "./sorted";
 import { placePages, refPlace } from "./place";
 
 const spaces: Space[] = [

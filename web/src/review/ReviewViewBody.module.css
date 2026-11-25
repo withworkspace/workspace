@@ -1,0 +1,28 @@
+/* One of a review's views (ReviewViewBody.tsx): one shows at a time, and
+   the rest keep their state, hidden. */
+
+.view[hidden] {
+  display: none !important;
+}
+
+/* A view that's read (the overview, the guide, what's been said, the
+   passes), as against the changes. */
+.read {
+  max-width: 900px;
+  padding: 6px 0 16px;
+}
+
+.read > h2 {
+  margin: 22px 0 8px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.read > h2:first-child {
+  margin-top: 4px;
+}
+
+.read :global(.prose) {
+  max-width: 820px;
+}

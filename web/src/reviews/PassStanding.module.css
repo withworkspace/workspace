@@ -1,0 +1,31 @@
+/* How a pass stands, as a soft chip (PassStanding.tsx). */
+
+.standing {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: var(--text-xs);
+  line-height: 18px;
+  color: var(--dim);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.standing.go {
+  color: var(--green);
+}
+
+.standing.nogo {
+  color: var(--red);
+}
+
+.standing.running {
+  color: var(--accent);
+}
+
+/* On a row of the Reviews list: of the commit before, it's dimmed. */
+.standing.moved {
+  opacity: 0.6;
+}

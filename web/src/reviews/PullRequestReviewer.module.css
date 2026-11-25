@@ -1,0 +1,20 @@
+/* Where another reviewer stands, in a pull request's meta line
+   (PullRequestReviewer.tsx). */
+
+.reviewer {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.reviewer.approved .icon {
+  color: var(--green);
+}
+
+.reviewer.changes .icon {
+  color: var(--red);
+}
+
+.reviewer.stale {
+  opacity: 0.6;
+}

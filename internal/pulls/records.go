@@ -51,7 +51,7 @@ func init() {
 			diffs TEXT NOT NULL,
 			PRIMARY KEY (repo, number)
 		) WITHOUT ROWID;
-	`))
+	`), standingStep)
 }
 
 func readRecords(root string, fn func(tx *store.Tx) error) error {
@@ -159,7 +159,9 @@ func graph(tx *store.Tx, repo string, number int, r *Record, at time.Time) error
 	}
 	me := store.Key{Name: Key(repo, number)}
 	title := strings.TrimSpace(r.Title)
-	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: at}); err != nil {
+	// A pull request's words are of its moment: what it changed, as it was
+	// told when it was opened.
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: at, Stands: store.Stands{Standing: store.Passing}}); err != nil {
 		return err
 	}
 	return tx.Words(o, store.Place{Thing: me, Kind: ThingKind, Title: title, Text: strings.TrimSpace(r.Body), Said: at})
@@ -359,3 +361,9 @@ func dropPages(root string, gone func(repo string, number int) bool) ([]Kept, er
 		return nil
 	})
 }
+
+// standingStep is the part's fourth step: a pull request's words, written
+// before things had a standing, are of their moment.
+var standingStep = store.SQL(`
+	UPDATE things SET standing = 'passing' WHERE origin LIKE 'pulls:%' AND standing = '';
+`)

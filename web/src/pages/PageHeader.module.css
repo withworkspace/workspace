@@ -1,0 +1,22 @@
+/* The bar over a page (PageHeader.tsx): back, its name, what's done with it. */
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-height: 28px;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.header .back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--dim);
+}
+
+.header .back:hover {
+  color: var(--fg);
+}

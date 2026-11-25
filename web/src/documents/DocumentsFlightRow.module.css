@@ -1,0 +1,15 @@
+/* A capsule with changes to documents (DocumentsFlightRow.tsx). */
+
+.row {
+  align-items: flex-start;
+}
+
+.main {
+  gap: 3px;
+}
+
+.changes {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: var(--text-sm);
+}

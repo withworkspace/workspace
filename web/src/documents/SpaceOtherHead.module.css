@@ -1,0 +1,6 @@
+/* Over a space's folders, below its kinds (SpaceOtherHead.tsx). */
+
+.head {
+  margin: var(--space-5) 0 var(--space-2);
+  font-size: var(--text-md);
+}

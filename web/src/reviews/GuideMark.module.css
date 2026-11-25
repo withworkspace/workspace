@@ -1,0 +1,5 @@
+/* How a review's guide stands, beside its name in the list (GuideMark.tsx). */
+
+.bad {
+  color: var(--red);
+}

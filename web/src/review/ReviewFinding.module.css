@@ -1,0 +1,20 @@
+/* What a pass found, under the lines it's about (ReviewFinding.tsx). */
+
+/* A card among the lines is level with the code already (DiffLines): it
+   has only the room around it. */
+.card {
+  margin: 6px 14px 10px 0;
+}
+
+.pass {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.where {
+  font-size: var(--text-xs);
+}

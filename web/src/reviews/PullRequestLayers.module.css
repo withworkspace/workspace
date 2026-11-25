@@ -1,0 +1,82 @@
+/* A stack's layers down the side of a pull request's review
+   (PullRequestLayers.tsx), bottom first. Its rows are the side's
+   (review/ReviewLayout.module.css): what's here is theirs on top. */
+
+.layers {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 10px 8px 14px;
+  font-weight: 600;
+}
+
+.keys {
+  font-weight: 400;
+}
+
+.layers ol {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px;
+}
+
+.layers li.here,
+.layers li.here:hover {
+  background: var(--selected);
+}
+
+.layers li a {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  color: inherit;
+}
+
+.layers li a > :global(.mono),
+.stands {
+  flex: none;
+}
+
+.layers li a:hover {
+  background: var(--hover);
+}
+
+.layers li.here a {
+  background: var(--selected);
+  font-weight: 500;
+}
+
+.layers li.merged {
+  padding: 2px 8px 4px 31px;
+  font-size: var(--text-xs);
+}
+
+.n {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  flex: none;
+  font: 600 var(--text-xs) var(--font);
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.whole {
+  margin: 6px 12px 0;
+}

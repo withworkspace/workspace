@@ -1,0 +1,9 @@
+/* Whether a pass's findings are marked on the page (PagePassShown.tsx). */
+
+.shown {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dim);
+  cursor: pointer;
+}

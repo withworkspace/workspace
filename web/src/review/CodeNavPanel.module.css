@@ -1,0 +1,56 @@
+/* The panel beside the diff in code navigation (CodeNavPanel.tsx): a file
+   at a definition, or who uses one. */
+
+.panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
+  width: min(46vw, 760px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-left: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-lg);
+  animation: global(fade) var(--fast) var(--ease);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--text-sm);
+}
+
+.how {
+  font-size: var(--text-xs);
+}
+
+.spacer {
+  margin-left: auto;
+}
+
+.body {
+  overflow: auto;
+  flex: 1;
+  padding-bottom: 30vh;
+}
+
+.note {
+  padding: 16px;
+}
+
+.body.uses {
+  padding: 8px 12px 30vh;
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 860px) {
+  .panel {
+    width: 100vw;
+  }
+}

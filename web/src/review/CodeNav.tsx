@@ -1,18 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { CodeLines } from "../ui/CodeLines";
-import { rowEl } from "./rowEl";
-import { Link, useNavigate } from "react-router";
-import { getBlob, type DiffFile } from "../api";
-import { useKeys, useShortcut } from "../keys";
-import { Banner } from "../ui/Banner";
-import { Icon } from "../ui/Icon";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { DiffFile } from "../api";
 import { toast } from "../ui/toast";
-import { keyProps } from "../ui/keyHint";
-import { Keys } from "../ui/Keys";
-import { highlightLines, languageOf } from "./highlight";
+import { CodeNavCard } from "./CodeNavCard";
+import { CodeNavPicker } from "./CodeNavPicker";
 import type { FileState, Row } from "./model";
-import { answerWords, caretAt, gapOf, getDefinition, getNames, getReferences, groupUses, nameAt, rangeOf, rowOf, textOffset, type NavAnswer, type NavRef, type NavReferences, type NavTarget, type Place, type Side } from "./nav";
-import { Button, buttonClass } from "../ui/Button";
+import { caretAt, gapOf, getDefinition, getNames, getReferences, nameAt, rangeOf, rowOf, textOffset, type NavAnswer, type NavReferences, type NavTarget, type Place, type Side } from "./nav";
+import { NavPanel } from "./NavPanel";
+import { rowEl } from "./rowEl";
+import { UsesPanel } from "./UsesPanel";
 
 // Following names in a review: hold ⌘ and a name under the pointer is a
 // link; rest on it for its card, click it to go to its definition (in the
@@ -27,7 +22,7 @@ export function cellPlace(el: Element): { rev: string; path: string; line: numbe
   if (!code) return undefined;
   const { rev, path, line, side } = code.dataset;
   if (!rev || !path || !line) return undefined;
-  return { rev, path, line: Number(line), side: side === "old" ? "old" : "new", inPanel: !!code.closest(".nav-panel") };
+  return { rev, path, line: Number(line), side: side === "old" ? "old" : "new", inPanel: !!code.closest("[data-nav-panel]") };
 }
 
 // Where's somewhere to go back to: a row of the diff, or the panel open at
@@ -402,18 +397,23 @@ export function useCodeNav(p: NavProps) {
   };
 
   const cardEl = card && (
-    <NavCard
-      card={card}
+    <CodeNavCard
+      answer={card.answer}
+      rect={card.rect}
+      pinned={card.pinned}
+      definedHere={card.place.part === "d"}
       onClose={() => setCard(undefined)}
       onGo={(t) => (card.place.part === "d" ? usesOf(card.place) : go(t, card.place.side, card.answer?.how, card.place.inPanel))}
       onFollow={() => (card.place.part === "d" ? usesOf(card.place) : card.answer && follow(card.answer, card.place, card.rect))}
     />
   );
   const pickEl = picking && (
-    <NamePicker
-      picking={picking}
+    <CodeNavPicker
+      names={picking.names}
+      rect={picking.rect}
       onClose={() => setPicking(undefined)}
-      onPick={(n) => {
+      onPick={(i) => {
+        const n = picking.names[i];
         setPicking(undefined);
         ask({ rev: picking.rev, path: picking.path, line: picking.line, col: n.from, side: picking.side, inPanel: false, part: n.part }, picking.rect, "follow");
       }}
@@ -452,263 +452,4 @@ export function useCodeNav(p: NavProps) {
       />
     ));
   return { card: cardEl, picker: pickEl, panel: panelEl, keys };
-}
-
-// NavCard is a name's card: where it's defined and what it says, or the
-// definitions it may be, to pick from.
-function NavCard({ card, onClose, onGo, onFollow }: { card: Card; onClose: () => void; onGo: (t: NavTarget) => void; onFollow: () => void }) {
-  const a = card.answer;
-  const list = a && (a.answer === "candidates" || a.targets.length > 1) ? a.targets : undefined;
-  const [pick, setPick] = useState(0);
-  useKeys(
-    card.pinned
-      ? {
-          Escape: onClose,
-          j: () => setPick((i) => Math.min(i + 1, (list?.length ?? 1) - 1)),
-          ArrowDown: () => setPick((i) => Math.min(i + 1, (list?.length ?? 1) - 1)),
-          k: () => setPick((i) => Math.max(i - 1, 0)),
-          ArrowUp: () => setPick((i) => Math.max(i - 1, 0)),
-          Enter: () => (list ? onGo(list[pick]) : onFollow()),
-        }
-      : {},
-    { modal: card.pinned },
-  );
-  const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number }>();
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const h = el.offsetHeight;
-    const w = el.offsetWidth;
-    const below = card.rect.bottom + 6;
-    const top = below + h > window.innerHeight - 8 ? Math.max(8, card.rect.top - h - 6) : below;
-    setPos({ top, left: Math.max(8, Math.min(card.rect.left, window.innerWidth - w - 8)) });
-  }, [card.rect, a]);
-  const one = a && !list ? a.targets[0] : undefined;
-  return (
-    <div ref={ref} className={`nav-card${card.pinned ? " pinned" : ""}`} style={pos ?? { visibility: "hidden" }} onMouseDown={(e) => e.stopPropagation()}>
-      {!a && <div className="dim">Looking…</div>}
-      {one && (
-        <button className="nav-card-target" onClick={() => onGo(one)}>
-          {one.signature && <code className="nav-sig">{one.signature}</code>}
-          {one.doc && <div className="nav-doc">{one.doc}</div>}
-          <div className="nav-where mono dim">
-            {one.path}:{one.line}
-          </div>
-        </button>
-      )}
-      {a && !one && !list && <div className="nav-sig">{a.external?.module ? `${a.external.module}${a.external.name ? `.${a.external.name}` : ""}` : a.name}</div>}
-      {list && (
-        <ul className="nav-list">
-          {list.map((t, i) => (
-            <li key={`${t.path}:${t.line}`} className={i === pick ? "picked" : ""} onMouseEnter={() => setPick(i)} onClick={() => onGo(t)}>
-              <code className="nav-sig">{t.signature || `${t.kind} ${a!.name}`}</code>
-              <span className="mono dim">
-                {t.path}:{t.line}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {a && (
-        <div className="nav-how dim">
-          <span className={`nav-answer a-${a.answer}`}>{card.place.part === "d" ? "Defined here: click for who uses it" : answerWords(a)}</span>
-          {a.answer === "candidates" && a.how && <span> · {a.how}</span>}
-          {a.partial && <span title="It ran out of time or files to read, and may have missed some"> · partial</span>}
-          {a.external?.url && (
-            <a href={a.external.url} target="_blank" rel="noreferrer">
-              Docs <Icon name="external" size={10} />
-            </a>
-          )}
-          {card.pinned && <Keys k="esc" />}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// NamePicker is d's list: the names on a line, to follow one.
-function NamePicker({ picking, onClose, onPick }: { picking: Picking; onClose: () => void; onPick: (n: Picking["names"][number]) => void }) {
-  const [pick, setPick] = useState(0);
-  const n = picking.names.length;
-  useKeys(
-    {
-      Escape: onClose,
-      j: () => setPick((i) => Math.min(i + 1, n - 1)),
-      ArrowDown: () => setPick((i) => Math.min(i + 1, n - 1)),
-      k: () => setPick((i) => Math.max(i - 1, 0)),
-      ArrowUp: () => setPick((i) => Math.max(i - 1, 0)),
-      Enter: () => onPick(picking.names[pick]),
-      d: () => onPick(picking.names[pick]),
-    },
-    { modal: true },
-  );
-  const top = Math.min(picking.rect.bottom + 4, window.innerHeight - 40 - n * 26);
-  return (
-    <div className="nav-card pinned nav-picker" style={{ top, left: Math.max(8, picking.rect.left + 120) }} onMouseDown={(e) => e.stopPropagation()}>
-      <div className="dim nav-how">Go to the definition of</div>
-      <ul className="nav-list">
-        {picking.names.map((x, i) => (
-          <li key={`${x.from}`} className={i === pick ? "picked" : ""} onMouseEnter={() => setPick(i)} onClick={() => onPick(x)}>
-            <code>{x.text}</code>
-            <span className="dim">{x.part === "m" ? "member" : x.part === "d" ? "defined here" : x.part === "i" ? "import" : ""}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-// NavPanel is a file at a commit, beside the diff, at a definition. Names
-// in it are links too, and following one stays in the panel.
-function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api: string; at: PanelAt; browse?: string; sideWords: (side: Side) => string; onClose: () => void; onBack: () => void }) {
-  const navigate = useNavigate();
-  const [lines, setLines] = useState<string[]>();
-  const [error, setError] = useState<string>();
-  useEffect(() => {
-    getBlob(api, at.rev, at.path).then(setLines, (e: Error) => setError(e.message));
-  }, [api, at.rev, at.path]);
-  const body = useRef<HTMLDivElement>(null);
-  const scroll = (by: number) => body.current?.scrollBy({ top: by * 20 });
-  // Closing it and going back are a key and a button each: the key's
-  // bound here, and the button's given what comes back.
-  const close = useShortcut("Escape", onClose, { modal: true });
-  const goBack = useShortcut("b", onBack, { modal: true });
-  useKeys(
-    {
-      j: () => scroll(1),
-      ArrowDown: () => scroll(1),
-      k: () => scroll(-1),
-      ArrowUp: () => scroll(-1),
-      "mod+d": () => scroll(20),
-      "mod+u": () => scroll(-20),
-      o: () => browse && navigate(browse),
-    },
-    { modal: true },
-  );
-  const html = useMemo(() => (lines ? highlightLines(lines, languageOf(at.path)) : []), [lines, at.path]);
-  return (
-    <aside className="nav-panel" aria-label={`${at.path} at ${at.rev.slice(0, 7)}`}>
-      <header className="nav-panel-head">
-        <span className="mono">
-          {at.path}:{at.line}
-        </span>
-        <span className="dim">
-          {sideWords(at.side)} · {at.rev.slice(0, 7)}
-        </span>
-        {at.how && <span className="dim nav-panel-how">{at.how}</span>}
-        <span className="spacer-left" />
-        {browse && (
-          <Link to={browse} className={buttonClass({ size: "small" })} {...keyProps("o", "Open it in Files, as it is now")}>
-            Open <Keys k="o" />
-          </Link>
-        )}
-        <Button variant="ghost" size="small" onClick={goBack} title="Back">
-          <Icon name="arrow-left" size={12} /> <Keys k="b" />
-        </Button>
-        <Button variant="ghost" size="small" onClick={close} title="Close">
-          <Icon name="x" size={13} />
-        </Button>
-      </header>
-      <div className="nav-panel-body" ref={body}>
-        {error && <Banner>{error}</Banner>}
-        {!lines && !error && <div className="dim nav-panel-loading">Reading {at.path}…</div>}
-        {/* The file's lines (ui/CodeLines), gone to the definition's: brought to the middle and flashed. */}
-        {lines && <CodeLines key={`${at.rev}:${at.path}`} html={html} path={at.path} rev={at.rev} side={at.side} reveal={at.line} />}
-      </div>
-    </aside>
-  );
-}
-
-// UsesPanel is who uses a definition: in this change first, then
-// elsewhere, maybes folded under each.
-function UsesPanel(props: {
-  at: PanelAt;
-  uses: NavReferences;
-  inChange: (path: string) => boolean;
-  changed: (path: string, line: number) => boolean;
-  onGo: (u: NavRef) => void;
-  sideWords: (side: Side) => string;
-  onClose: () => void;
-  onBack: () => void;
-}) {
-  const { at, uses, inChange, changed, onGo, sideWords, onClose, onBack } = props;
-  const groups = groupUses(uses.uses, inChange, changed);
-  const [open, setOpen] = useState<Record<string, boolean>>({});
-  // The list as it's moved through: maybes only when opened.
-  const flat = groups.flatMap((g) => [...g.uses, ...(open[g.title] ? g.maybes : [])]);
-  const [pick, setPick] = useState(0);
-  const close = useShortcut("Escape", onClose, { modal: true });
-  const goBack = useShortcut("b", onBack, { modal: true });
-  useKeys(
-    {
-      j: () => setPick((i) => Math.min(i + 1, flat.length - 1)),
-      ArrowDown: () => setPick((i) => Math.min(i + 1, flat.length - 1)),
-      k: () => setPick((i) => Math.max(i - 1, 0)),
-      ArrowUp: () => setPick((i) => Math.max(i - 1, 0)),
-      Enter: () => flat[pick] && onGo(flat[pick]),
-    },
-    { modal: true },
-  );
-  useEffect(() => {
-    document.querySelector(".nav-uses li.picked")?.scrollIntoView({ block: "nearest" });
-  }, [pick]);
-  const row = (u: NavRef) => {
-    const i = flat.indexOf(u);
-    return (
-      <li key={`${u.path}:${u.line}:${u.col}`} className={i === pick ? "picked" : ""} onMouseEnter={() => i >= 0 && setPick(i)} onClick={() => onGo(u)}>
-        <span className="mono dim nav-use-at">
-          {u.path}:{u.line}
-          {changed(u.path, u.line) && <span className="nav-use-changed"> changed</span>}
-        </span>
-        <code className="nav-sig">{u.text}</code>
-      </li>
-    );
-  };
-  const count = uses.uses.filter((u) => !u.maybe).length;
-  return (
-    <aside className="nav-panel" aria-label={`Who uses ${uses.name}`}>
-      <header className="nav-panel-head">
-        <span>
-          Who uses <code>{uses.name}</code>
-        </span>
-        <span className="dim">
-          {count} {count === 1 ? "use" : "uses"}
-          {uses.partial ? ", maybe more" : ""} · {sideWords(at.side)}
-        </span>
-        <span className="spacer-left" />
-        <Button variant="ghost" size="small" onClick={goBack} title="Back">
-          <Icon name="arrow-left" size={12} /> <Keys k="b" />
-        </Button>
-        <Button variant="ghost" size="small" onClick={close} title="Close">
-          <Icon name="x" size={13} />
-        </Button>
-      </header>
-      <div className="nav-panel-body nav-uses">
-        {uses.def && (
-          <div className="nav-uses-def">
-            <code className="nav-sig">{uses.def.signature || uses.name}</code>
-            <span className="mono dim">
-              {uses.def.path}:{uses.def.line}
-            </span>
-          </div>
-        )}
-        {!groups.length && <div className="dim nav-panel-loading">Nothing else uses it.</div>}
-        {groups.map((g) => (
-          <section key={g.title}>
-            {(groups.length > 1 || g.title !== "Elsewhere") && <h3 className="nav-uses-title">{g.title}</h3>}
-            <ul className="nav-list">{g.uses.map(row)}</ul>
-            {g.maybes.length > 0 && (
-              <>
-                <Button variant="ghost" size="small" className="nav-maybes" onClick={() => setOpen((o) => ({ ...o, [g.title]: !o[g.title] }))} title="Uses that weren't followed to it, but could be it: one of several by that name, or an interface's method it may satisfy">
-                  {open[g.title] ? "Hide" : "Show"} {g.maybes.length} that may be
-                </Button>
-                {open[g.title] && <ul className="nav-list maybes">{g.maybes.map(row)}</ul>}
-              </>
-            )}
-          </section>
-        ))}
-      </div>
-    </aside>
-  );
 }

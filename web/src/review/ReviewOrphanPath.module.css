@@ -1,0 +1,6 @@
+/* The file an orphaned comment is on (ReviewOrphanPath.tsx). */
+
+.path {
+  margin: 8px 0 0 60px;
+  font-size: var(--text-xs);
+}

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/withworkspace/workspace/internal/artifact"
 	"github.com/withworkspace/workspace/internal/conversation"
@@ -37,6 +38,8 @@ type FindQuery struct {
 	// Gone is what's been withdrawn too: it's left out unless asked for.
 	Gone  bool
 	Limit int
+	// Now is when it's asked, as what's found ages: now, if it's zero.
+	Now time.Time
 }
 
 // Found is a thing found in the records, as ws show names it.
@@ -84,7 +87,7 @@ func (w *Workspace) Find(ctx context.Context, q FindQuery) ([]Found, int, error)
 	// A plugin's things that live in a repo are found in the spaces: what's
 	// new there is read. A space that can't be read is as it was last read.
 	w.Spaces(ctx) //nolint:errcheck // its documents' search says so
-	found, more, err := db.Find(ctx, store.Said{Words: q.Words, Mission: q.Mission, Gone: q.Gone, Limit: cmp.Or(q.Limit, 20)})
+	found, more, err := db.Find(ctx, store.Said{Words: q.Words, Mission: q.Mission, Gone: q.Gone, Limit: cmp.Or(q.Limit, 20), Now: q.Now})
 	if err != nil {
 		return nil, 0, err
 	}

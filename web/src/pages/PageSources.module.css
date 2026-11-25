@@ -1,0 +1,10 @@
+/* The files a cell was written from (PageSources.tsx). */
+
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px 0;
+  font-size: var(--text-sm);
+}

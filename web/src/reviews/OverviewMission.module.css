@@ -1,0 +1,8 @@
+/* The mission a capsule's for, in its review's overview (OverviewMission.tsx). */
+
+.mission {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
