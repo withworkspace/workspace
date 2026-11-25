@@ -1,0 +1,10 @@
+/* A conversation's turns (TalkTurns.tsx), each with the cards it came
+   with (TalkTurnGroup.tsx). */
+
+.turns {
+  flex: 1;
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+  padding-bottom: var(--space-5);
+}

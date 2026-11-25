@@ -1,0 +1,10 @@
+/* Where a conversation's started, over the list (TalkNew.tsx); from "New
+   mission", it flashes to say it's where to write. */
+
+.new {
+  margin-bottom: var(--space-6);
+}
+
+.new.fresh {
+  animation: global(flash) 1.6s var(--ease);
+}

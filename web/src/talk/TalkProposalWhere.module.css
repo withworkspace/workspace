@@ -1,0 +1,47 @@
+/* Where a review comment an agent proposed goes (TalkProposalWhere.tsx):
+   its kind, as a soft chip in its colour, the pull request and the lines. */
+
+.where {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: var(--text-sm);
+}
+
+.kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 600 var(--text-xs) / 18px var(--font);
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 0;
+  color: var(--kc, var(--dim));
+  background: color-mix(in srgb, var(--kc, var(--dim)) 12%, transparent);
+  box-shadow: none;
+  min-height: 0;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.blocking {
+  --kc: var(--k-blocking);
+}
+
+.suggestion {
+  --kc: var(--k-suggestion);
+}
+
+.question {
+  --kc: var(--k-question);
+}
+
+.nit {
+  --kc: var(--k-nit);
+}
+
+.change {
+  --kc: var(--red);
+}

@@ -1,0 +1,21 @@
+/* Something a conversation made, beside it (TalkSideMade.tsx): the thing,
+   and, when it's pointed at, a way back to where it was proposed. */
+
+.made {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.made .where {
+  flex: none;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 2px;
+  opacity: 0;
+}
+
+.made:hover .where,
+.where:focus-visible {
+  opacity: 1;
+}

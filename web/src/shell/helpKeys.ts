@@ -12,7 +12,7 @@ import { reviewKeys } from "../review/Review";
 import { prReviewKeys } from "../reviews/PRReview";
 import { reviewsKeys } from "../reviews/Reviews";
 import { settingsKeys } from "../settings/Settings";
-import { talkKeys, talksKeys } from "../talk/Talk";
+import { talkKeys, talksKeys } from "../talk/words";
 import { teamKeys } from "../team/Team";
 
 // helpKeys are the keys for the page at path.

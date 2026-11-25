@@ -1,0 +1,17 @@
+/* An artifact proposed, running (TalkProposalFrames.tsx): a version beside
+   the one it revises, one under the other when narrow. */
+
+.frames {
+  display: grid;
+  gap: 10px;
+}
+
+.frames.two {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 720px) {
+  .frames.two {
+    grid-template-columns: 1fr;
+  }
+}

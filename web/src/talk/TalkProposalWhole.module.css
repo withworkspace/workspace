@@ -1,0 +1,8 @@
+/* What a card commits you to (a mission's brief, a document), shown whole
+   (TalkProposalWhole.tsx). */
+
+.whole {
+  padding: 4px 14px;
+  border-radius: var(--radius);
+  background: var(--well);
+}

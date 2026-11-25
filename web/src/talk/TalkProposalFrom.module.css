@@ -1,0 +1,5 @@
+/* Which plugin a proposal came through (TalkProposalFrom.tsx). */
+
+.from {
+  font-size: var(--text-xs);
+}

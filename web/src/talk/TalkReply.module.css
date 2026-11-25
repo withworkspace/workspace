@@ -1,0 +1,38 @@
+/* The reply box, pinned to the bottom of the page (TalkReply.tsx), with
+   the pill that says a reply's come below where you're reading. */
+
+.reply {
+  position: sticky;
+  bottom: 0;
+  margin: 0 -8px;
+  padding: 12px 8px 16px;
+  background: linear-gradient(transparent, var(--bg) 16px);
+  z-index: 4;
+}
+
+.pill {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-height: 26px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: transparent;
+  box-shadow: var(--shadow);
+  animation: global(rise) var(--slow) var(--ease);
+}
+
+.pill:hover {
+  color: var(--on-primary-hover);
+  background: var(--primary-hover) !important;
+}
+
+@media (max-width: 720px) {
+  .reply {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}

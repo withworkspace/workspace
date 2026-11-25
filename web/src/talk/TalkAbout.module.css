@@ -1,0 +1,41 @@
+/* What a conversation's about, after its name in the bar (TalkAbout.tsx):
+   one line, which gives way first. */
+
+.about {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.about > * {
+  flex: none;
+}
+
+.thing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--dim);
+}
+
+.thing:hover {
+  color: var(--fg);
+}
+
+.about .thing {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Its name and Resolve are what the bar's for. */
+@media (max-width: 720px) {
+  .about {
+    display: none;
+  }
+}

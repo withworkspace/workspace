@@ -1,0 +1,14 @@
+/* What a conversation names, or the capsules it lifted, beside it
+   (TalkSideNamed.tsx): a few to a line. */
+
+.named {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.named li {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}

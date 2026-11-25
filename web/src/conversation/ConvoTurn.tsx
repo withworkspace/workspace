@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { TalkDetail, TalkTurn } from "../api";
 import { Markdown } from "../markdown/LazyMarkdown";
-import { SettledMarker } from "../talk/Talk";
+import { SettledMarker } from "../talk/SettledMarker";
 import { settled } from "../talk/proposals";
 import { Calls } from "../ui/Calls";
 import { Turn, TurnSaid } from "../ui/Turn";

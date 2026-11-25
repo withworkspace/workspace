@@ -8,7 +8,7 @@ import { MissionPane } from "../panes/MissionPane";
 import { NewTalkPane } from "../panes/NewTalkPane";
 import { PullRequestPane } from "../panes/PullRequestPane";
 import { TalkPane } from "../panes/TalkPane";
-import { talkStatus } from "../talk/Talk";
+import { talkStatus } from "../talk/words";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/Status";

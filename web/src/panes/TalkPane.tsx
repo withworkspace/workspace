@@ -8,7 +8,7 @@ import { useChromeStore, useGives, useKeysAsked } from "../chrome/store";
 import { ConvoTurn } from "../conversation/ConvoTurn";
 import { useTalk, useTalks } from "../conversation/talks";
 import { Markdown } from "../markdown/LazyMarkdown";
-import { ProposalCard } from "../talk/Talk";
+import { ProposalCard } from "../talk/ProposalCard";
 import { Button } from "../ui/Button";
 import { Doing } from "../ui/Doing";
 import { Icon } from "../ui/Icon";

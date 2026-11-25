@@ -1,0 +1,97 @@
+/* A proposal: a card under the reply it came with (TalkProposal.tsx). Its
+   head says what kind it is, its body what's proposed, and its foot what
+   you do (open) or what came of it (settled). One that's open stands out;
+   one declined, superseded or withdrawn is faded. */
+
+.card {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  margin-left: 30px;
+}
+
+/* Gone to from beside the conversation (TalkPage's goTo). */
+.card:global(.flash) {
+  animation: global(flash) 1.6s var(--ease);
+}
+
+.card.open {
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 0;
+}
+
+.icon {
+  color: var(--accent);
+}
+
+.card.faded .icon {
+  color: var(--dim);
+}
+
+.label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.title {
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.revises {
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.body {
+  padding: 8px 14px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.card.faded .body {
+  opacity: 0.6;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.foot.settled {
+  margin-top: 6px;
+  font-size: var(--text-sm);
+  justify-content: space-between;
+}
+
+@media (max-width: 720px) {
+  .card {
+    padding-left: 0;
+    margin-left: 0;
+  }
+}

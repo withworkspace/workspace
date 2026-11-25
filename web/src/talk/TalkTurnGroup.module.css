@@ -1,0 +1,17 @@
+/* A turn and the cards it came with (TalkTurnGroup.tsx). One that's a
+   card you settled is said quietly, and a run of them reads as one:
+   closer together than turns are. */
+
+.group {
+  display: grid;
+  gap: 10px;
+}
+
+.settled {
+  margin-top: 6px;
+  font-size: var(--text-sm);
+}
+
+.group.settled + .group.settled {
+  margin-top: calc(10px - var(--space-5));
+}

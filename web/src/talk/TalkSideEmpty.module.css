@@ -1,0 +1,7 @@
+/* What the column beside a conversation says before anything's come of
+   it (TalkSideEmpty.tsx). */
+
+.empty {
+  margin: 0;
+  color: var(--faint);
+}

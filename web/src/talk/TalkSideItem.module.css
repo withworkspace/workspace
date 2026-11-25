@@ -1,0 +1,61 @@
+/* A thing in the column beside a conversation (TalkSideItem.tsx): a line
+   that goes to it, quiet until it's pointed at; one to confirm says so. */
+
+.item {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+  margin-left: -6px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  box-shadow: none;
+  color: var(--dim);
+  font: inherit;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  text-decoration: none;
+  white-space: normal;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.item > span {
+  min-width: 0;
+}
+
+.item:hover {
+  background: var(--hover);
+  color: var(--fg);
+}
+
+.item .icon {
+  flex: none;
+  position: relative;
+  top: 1px;
+  color: var(--faint);
+}
+
+.item.open {
+  color: var(--fg);
+}
+
+.item.open .icon {
+  color: var(--attention, var(--accent));
+}
+
+.item.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.tag {
+  color: var(--faint);
+  font: var(--text-xs) var(--mono);
+  white-space: nowrap;
+}
