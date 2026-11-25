@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@withworkspace/ui-lib':
-        specifier: 0.9.0
-        version: 0.9.0
+        specifier: 0.10.0
+        version: 0.10.0
     devDependencies:
       esbuild:
         specifier: 0.28.2
@@ -297,8 +297,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@withworkspace/ui-lib@0.9.0':
-    resolution: {integrity: sha512-ZhKBygRAcgR41VRirIceUTwkBVhk2cAhylEmByA+98BF+gw8EEzQfE64yCU5P/gFlIA0SxK4srAhhkHEQO+PMA==}
+  '@withworkspace/ui-lib@0.10.0':
+    resolution: {integrity: sha512-udJFU410gzUTCjic34sdAY373O2YtMFWhy288SYbGrITEROW0segmWj1SLb7iLxv7bREqUDfAZs6uxUuF6YtyA==}
 
   esbuild@0.28.2:
     resolution: {integrity: sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==}
@@ -450,7 +450,7 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
-  '@withworkspace/ui-lib@0.9.0': {}
+  '@withworkspace/ui-lib@0.10.0': {}
 
   esbuild@0.28.2:
     optionalDependencies:

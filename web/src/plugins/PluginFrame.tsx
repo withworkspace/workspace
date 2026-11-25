@@ -12,7 +12,7 @@ import { useChromeStore, useFrameHere } from "../chrome/store";
 import { type Frame, listen } from "./frame";
 import { frameBase, viewBase } from "./paths";
 import { onThemeChange, theme } from "./theme";
-import { frameUis } from "./ui";
+import { frameUis, kinds } from "./ui";
 import { PluginView } from "./PluginView";
 import { FrameUiLayer } from "./Uis/FrameUiLayer";
 
@@ -71,7 +71,7 @@ export function PluginFrame({ name }: { name: string }) {
   // The UIs of ws's own the app has asked for (a ref's card, by its
   // words), drawn over the frame; what comes of one ws closes, the app
   // is told.
-  const [uis] = useState(() => frameUis((id, result) => frame.current?.uiClosed(id, result)));
+  const [uis] = useState(() => frameUis((id, result) => frame.current?.uiClosed(id, result), kinds, name));
 
   // What there is to name, and the workspace: what the refs in the app's
   // words are found by, and drawn from.

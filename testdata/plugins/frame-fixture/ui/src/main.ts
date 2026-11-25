@@ -255,7 +255,38 @@ async function main() {
         ),
       ),
       h("p", { className: "dim" }, "The conversation, on a thing's page: ", h("span", { data: { fixture: "talk" } }, talk)),
+      pictures(),
       h("p", { id: "notes", className: "dim" }, "Notes: back after a filter skips it, as it replaced the entry it was on."),
+    );
+  }
+
+  // Pictures shown in ws's viewer: one marked to be (data-ws-view), in a
+  // link to its file that a key held follows; one asked for from code;
+  // and one elsewhere on ws's, which isn't the plugin's to show.
+  function pictures(): Node {
+    const src = ws.api("/api/shelf.svg");
+    const thumb = h("img", { src, alt: "The shelf", className: "thumb", data: { wsView: "", fixture: "picture" } });
+    const said = h("span", { className: "dim", data: { fixture: "picture-said" } }, ws.ui.has("picture") ? "" : "This ws has no viewer.");
+    const ask = (to: string, title?: string) => async () => {
+      said.textContent = "";
+      try {
+        await ws.ui.viewPicture(to, { title });
+        said.textContent = "Closed.";
+      } catch (err) {
+        said.textContent = err instanceof Error ? err.message : String(err);
+      }
+    };
+    const dot = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="32" cy="32" r="28" fill="#c0563f"/></svg>');
+    return h(
+      "p",
+      { className: "pictures" },
+      h("a", { href: src, target: "_blank" }, thumb),
+      " ",
+      h("button", { type: "button", data: { fixture: "picture-code" }, onclick: ask(dot, "A dot, from code") }, "viewPicture from code"),
+      " ",
+      h("button", { type: "button", data: { fixture: "picture-refused" }, onclick: ask("/api/workspace") }, "One of ws's own (refused)"),
+      " ",
+      said,
     );
   }
 
