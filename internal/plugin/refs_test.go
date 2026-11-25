@@ -850,3 +850,77 @@ func TestKitGivesAThingForARepo(t *testing.T) {
 		t.Errorf("given with what's there now: %+v, %v", given, err)
 	}
 }
+
+// A plugin says where each of its things stands, in words every kind
+// shares, and since when: ws keeps it, weighs what's found of the thing
+// by it, and takes a change to it alone as a change.
+func TestAPluginsThingStandsAsItSays(t *testing.T) {
+	root := t.TempDir()
+	db := storetest.Own(t, root)
+	if _, err := plugin.KeepRefs(root, "jira", []protocol.Ref{issueKind}); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 11, 25, 12, 0, 0, 0, time.UTC)
+	month := 30 * 24 * time.Hour
+	told := func(ref, standing string, since time.Time) protocol.Thing {
+		return protocol.Thing{Kind: "issue", Ref: ref, Changed: now.Add(-3 * month), Standing: standing, Since: since,
+			Fields: map[string]string{"title": "Retry the webhook", "status": "whatever Jira calls it"}}
+	}
+	if _, err := plugin.PutThings(root, "jira", []protocol.Thing{
+		told("RAM-1", protocol.StandingOpen, time.Time{}),
+		told("RAM-2", protocol.StandingSettled, now.Add(-2*month)),
+		told("RAM-3", protocol.StandingGone, now.Add(-month)),
+		told("RAM-4", "", time.Time{}),
+		told("RAM-5", "not one ws knows", time.Time{}),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	stands := func() map[string]store.Stands {
+		t.Helper()
+		out := map[string]store.Stands{}
+		err := db.Read(context.Background(), func(tx *store.Tx) error {
+			things, err := tx.ThingsAt(store.Key{Name: "RAM-1"}, store.Key{Name: "RAM-2"}, store.Key{Name: "RAM-3"}, store.Key{Name: "RAM-4"}, store.Key{Name: "RAM-5"})
+			for k, th := range things {
+				out[k.Name] = th.Stands
+			}
+			return err
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	got := stands()
+	for ref, want := range map[string]store.Stands{
+		"RAM-1": {Standing: store.InForce},
+		"RAM-2": {Standing: store.Settled, Since: now.Add(-2 * month)},
+		"RAM-3": {Standing: store.Gone, Since: now.Add(-month)},
+		"RAM-4": {Standing: store.InForce},
+		"RAM-5": {Standing: store.InForce},
+	} {
+		if g := got[ref]; g.Standing != want.Standing || !g.Since.Equal(want.Since) {
+			t.Errorf("%s stands %+v, want %+v", ref, g, want)
+		}
+	}
+	if rec, _, _ := plugin.ThingOf(root, "jira", "issue", "RAM-2"); rec.Standing != protocol.StandingSettled || !rec.Since.Equal(now.Add(-2*month)) {
+		t.Errorf("RAM-2 as kept: %+v", rec)
+	}
+	found, _, err := db.Find(context.Background(), store.Said{Words: "retry the webhook", Now: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	at := map[string]int{}
+	for i, f := range found {
+		at[f.Thing.Key.Name] = i
+	}
+	if !(at["RAM-1"] < at["RAM-2"] && at["RAM-2"] < at["RAM-3"]) {
+		t.Errorf("found %v: what's open, then what's settled, then what's gone", at)
+	}
+	// Reopened: its standing alone changes, and that's a change.
+	if _, err := plugin.PutThings(root, "jira", []protocol.Thing{told("RAM-2", protocol.StandingOpen, time.Time{})}); err != nil {
+		t.Fatal(err)
+	}
+	if g := stands()["RAM-2"]; g.Standing != store.InForce || !g.Since.IsZero() {
+		t.Errorf("RAM-2 reopened stands %+v", g)
+	}
+}
