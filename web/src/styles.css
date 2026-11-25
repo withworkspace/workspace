@@ -6757,7 +6757,8 @@ div.tc-bar {
     padding: 0;
   }
 
-  .doc-reader.with-rail {
+  /* Over the screen's grid, which comes later and weighs the same. */
+  .page.doc-reader.with-rail {
     display: block;
   }
 
