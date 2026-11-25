@@ -1,0 +1,59 @@
+/* A file's lines (CodeLines.tsx): the code's face and its box, which
+   scrolls sideways in itself. How a line is drawn is CodeLine.module.css,
+   which reads what's set here. */
+
+@layer ui {
+  .lines {
+    --code-row: 20px;
+    --code-back: var(--backdrop, var(--bg));
+
+    overflow: auto;
+    font: var(--text-sm) / var(--code-row) var(--mono);
+    tab-size: 4;
+    color: var(--fg);
+    background: var(--code-back);
+  }
+
+  /* The twists that fold show while the pointer's over the code. */
+  .lines:hover {
+    --code-twists: 1;
+  }
+
+  /* Long lines wrap: nothing's wider than the box. */
+  .wrap {
+    --code-space: pre-wrap;
+
+    overflow-x: hidden;
+  }
+
+  .wrap [data-line] {
+    min-width: 0;
+  }
+
+  /* A run of lines: one that's nowhere near what's in view isn't laid
+     out, and keeps the height its lines would have (--code-run is how
+     many). It's by the run and not by the line: a file of thousands has
+     a few dozen of these, where a line each cost more than it saved. */
+  .run {
+    min-width: max-content;
+    content-visibility: auto;
+    contain-intrinsic-size: auto calc(var(--code-run) * var(--code-row));
+  }
+
+  .wrap .run {
+    min-width: 0;
+  }
+
+  /* A line gone to flashes once, in the accent. */
+  .lines [data-arrived] {
+    animation: arrived 1.2s var(--ease);
+  }
+
+  @keyframes arrived {
+    from {
+      box-shadow:
+        inset 0 0 0 999px var(--accent-soft),
+        inset 3px 0 0 var(--accent);
+    }
+  }
+}

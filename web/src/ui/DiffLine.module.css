@@ -1,0 +1,130 @@
+/* A line of a diff (DiffLine.tsx): numbers, a sign and code in one
+   column, or each side's number and code side by side. Each cell paints
+   itself: its change's colour, under the tint of a picked line. What
+   DiffLines sets is read here: --diff-digits (how wide the numbers are). */
+
+@layer ui {
+  .line {
+    --number: calc(var(--diff-digits) * 1ch + 16px);
+
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--number) var(--number) 18px minmax(0, 1fr);
+    scroll-margin: 40px 0 80px;
+  }
+
+  .split {
+    grid-template-columns: var(--number) minmax(0, 1fr) var(--number) minmax(0, 1fr);
+  }
+
+  /* Where the page's keys are: a bar at its start, over a wash. */
+  .cursor::after {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    box-shadow:
+      inset 3px 0 0 var(--accent),
+      inset 0 0 0 999px var(--cursor-bg);
+  }
+
+  .number,
+  .sign,
+  .code {
+    --tint: transparent;
+    --back: transparent;
+
+    background: linear-gradient(var(--tint), var(--tint)), var(--back);
+  }
+
+  .picked {
+    --tint: var(--select-bg);
+  }
+
+  /* A line that wraps keeps its number beside its first line. */
+  .number {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    padding: 0 8px;
+    font: inherit;
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    line-height: inherit;
+    text-align: right;
+    color: var(--faint);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    outline: none;
+    user-select: none;
+    touch-action: none;
+  }
+
+  button.number {
+    cursor: pointer;
+  }
+
+  button.number:hover {
+    color: var(--accent);
+  }
+
+  .number.picked {
+    color: var(--fg);
+  }
+
+  .sign {
+    color: var(--dim);
+    text-align: center;
+    user-select: none;
+  }
+
+  .code {
+    min-width: 0;
+    padding: 0 10px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .split .code {
+    border-right: 1px solid var(--line);
+  }
+
+  .split .code:last-child {
+    border-right: 0;
+  }
+
+  .added {
+    --back: var(--add-bg);
+  }
+
+  .removed {
+    --back: var(--del-bg);
+  }
+
+  .number.added {
+    --back: var(--add-strong);
+
+    color: var(--dim);
+  }
+
+  .number.removed {
+    --back: var(--del-strong);
+
+    color: var(--dim);
+  }
+
+  /* An unchanged line opened up from between hunks: quieter than the
+     diff's own. */
+  .shown {
+    color: var(--dim);
+  }
+
+  /* Side by side, a side with no line: hatched. */
+  .none {
+    --back: repeating-linear-gradient(-45deg, transparent 0 4px, var(--line) 4px 5px);
+  }
+}

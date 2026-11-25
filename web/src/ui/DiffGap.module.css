@@ -1,0 +1,44 @@
+/* Unchanged lines not shown, between a diff's hunks (DiffGap.tsx): a
+   band across the diff, in the UI's face. */
+
+@layer ui {
+  .gap {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 0;
+    padding: 0 10px 0 calc(var(--diff-digits) * 1ch + 20px);
+    font: var(--text-sm) / 26px var(--font);
+    color: var(--dim);
+    text-align: left;
+    background: var(--gap-bg);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    outline: none;
+    cursor: pointer;
+    scroll-margin: 40px 0 80px;
+    transition: color var(--fast) var(--ease);
+  }
+
+  .gap:hover,
+  .cursor {
+    color: var(--accent);
+  }
+
+  .cursor {
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+
+  /* What the lines are in (a function's name), as git says it. */
+  .section {
+    min-width: 0;
+    overflow: hidden;
+    font: var(--text-xs) var(--mono);
+    color: var(--faint);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
