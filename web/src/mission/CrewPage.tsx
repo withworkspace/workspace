@@ -16,6 +16,7 @@ import { Status, type StatusInfo } from "../ui/Status";
 import { crewStatus } from "../ui/statusOf";
 import type { TermState } from "./CrewTerminal";
 import { AgentView } from "./AgentView";
+import { CrewModelSwitch } from "./CrewModelSwitch";
 import { CrewBadge } from "./parts";
 import { Count } from "../ui/Count";
 import { Button } from "../ui/Button";
@@ -92,7 +93,14 @@ export function CrewPage() {
             <Status s={st} className="crew-head-status" />
           </h1>
           <div className="crew-head-sub">
-            {c && <span>{c.role === "briefing" ? "briefing" : c.model ? `${c.harness} on ${c.model}` : c.harness}</span>}
+            {c &&
+              (state === "live" && c.switchModel ? (
+                <span>
+                  {c.role === "briefing" ? "briefing on" : c.harness} <CrewModelSwitch slug={slug} crew={c} />
+                </span>
+              ) : (
+                <span>{c.role === "briefing" ? "briefing" : c.model ? `${c.harness} on ${c.model}` : c.harness}</span>
+              ))}
             {structured && <span className="dim">over ACP, no terminal</span>}
             {c?.capsule && (
               <span className="mono">
