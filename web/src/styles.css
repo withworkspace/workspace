@@ -13723,7 +13723,7 @@ a.plugin-row-out {
   gap: 4px;
 }
 
-.thing-ui-groups button.thing-ui-group {
+.thing-ui-groups button.thing-ui-folder {
   height: auto;
   min-height: 0;
   padding: 0 7px;
@@ -13735,11 +13735,11 @@ a.plugin-row-out {
   cursor: pointer;
 }
 
-.thing-ui-groups button.thing-ui-group:hover {
+.thing-ui-groups button.thing-ui-folder:hover {
   color: var(--fg);
 }
 
-.thing-ui-groups button.thing-ui-group[aria-pressed="true"] {
+.thing-ui-groups button.thing-ui-folder[aria-pressed="true"] {
   background: var(--accent-soft);
   color: var(--accent);
 }

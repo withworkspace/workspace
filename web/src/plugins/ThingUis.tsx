@@ -217,7 +217,7 @@ export function ThingPromoteUi({ asked: asking, plugin, anchor, done }: UiProps)
             {!!place.groups?.length && (
               <div className="thing-ui-groups" role="group" aria-label="The folders in use there">
                 {place.groups.slice(0, 8).map((g) => (
-                  <button key={g} type="button" className={chipClass(undefined, "thing-ui-group")} aria-pressed={group === g} disabled={busy} onClick={() => setUnder(group === g ? "" : g)}>
+                  <button key={g} type="button" className={chipClass(undefined, "thing-ui-folder")} aria-pressed={group === g} disabled={busy} onClick={() => setUnder(group === g ? "" : g)}>
                     {g}
                   </button>
                 ))}
