@@ -29,6 +29,7 @@ import { MissionVerifyRow } from "./MissionVerifyRow";
 import { MissionVerifySaid } from "./MissionVerifySaid";
 import { MissionVerifyShot } from "./MissionVerifyShot";
 import { MissionVerifyStanding } from "./MissionVerifyStanding";
+import { MissionVerifyStart } from "./MissionVerifyStart";
 import { MissionVerifySummary } from "./MissionVerifySummary";
 import { MissionVerifyTally } from "./MissionVerifyTally";
 import { MissionVerifyYours } from "./MissionVerifyYours";
@@ -283,6 +284,40 @@ export const Rows: StoryObj = {
         <MissionVerifyRow icon="check-circle" tone="done" title={<Inline text="`go test ./...` passes" />} line="ws ran it" kind="settled" onChoose={none} />
         <MissionVerifyRow icon="check-circle" tone="done" title={<Inline text="`go vet ./...` passes" />} line="ws ran it" kind="settled" selected onChoose={none} />
       </div>
+    </div>
+  ),
+};
+
+// A recipe Try it names (`ws run web`), started with a button in the
+// bundle's capsule: before it's asked for, while it is, running with
+// nothing answering yet, and up; a task being run, and once it passed or
+// failed; and one whose capsule
+// has moved on since the bundle. Beside a command to copy and a look for,
+// as Try it has them.
+export const Start: StoryObj = {
+  render: () => (
+    <div className="page" style={{ display: "grid", gap: 16, width: 520 }}>
+      <MissionVerifyFold
+        title="Try it"
+        items={[
+          <MissionVerifyStart recipe="web" state="idle" where="demo/refunds" start={none} />,
+          <span>
+            <span className="dim">Look for</span> the Refunds tab, on the order page
+          </span>,
+        ]}
+      />
+      <MissionVerifyYourself
+        items={[
+          <MissionVerifyStart recipe="web" state="starting" where="demo/refunds" start={none} />,
+          <MissionVerifyStart recipe="web" state="running" link="http://web.refunds.demo.localhost:7400" where="demo/refunds" start={none} />,
+          <MissionVerifyStart recipe="web" state="up" link="http://web.refunds.demo.localhost:7400" where="demo/refunds" start={none} />,
+          <MissionVerifyStart recipe="shots" task state="up" where="demo/refunds" start={none} />,
+          <MissionVerifyStart recipe="shots" task state="idle" came="passed" where="demo/refunds" start={none} />,
+          <MissionVerifyStart recipe="shots" task state="idle" came="failed" where="demo/refunds" start={none} />,
+          <MissionVerifyStart recipe="web" state="idle" where="demo/refunds" note="The capsule has moved on since this bundle: it starts as it is now" start={none} />,
+          <MissionVerifyCommand text="make seed && make dev" />,
+        ]}
+      />
     </div>
   ),
 };
