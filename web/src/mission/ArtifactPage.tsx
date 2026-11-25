@@ -16,7 +16,8 @@ import { Copyable } from "../ui/Copyable";
 import { Keys } from "../ui/Keys";
 import { Time } from "../ui/Time";
 import { DocEdit } from "./DocEdit";
-import { ArtifactState, artifactTitle } from "./parts";
+import { MissionOutputState } from "./MissionOutputState";
+import { artifactTitle } from "./parts";
 import { useLatest } from "../load";
 import { Button, buttonClass } from "../ui/Button";
 import { PageHead } from "../ui/PageHead";
@@ -115,7 +116,7 @@ export function ArtifactPage() {
           ) : (
             <span className="doc-kind">{capital(a.kind)}</span>
           )}
-          <ArtifactState state={a.state} />
+          <MissionOutputState state={a.state} />
           {a.by && <span>by {a.by}</span>}
           {a.added && <Time iso={a.added} as="relative" />}
           <Copyable text={a.ref} className="doc-ref" title="Copy its ref">
