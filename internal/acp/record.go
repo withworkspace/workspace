@@ -29,6 +29,8 @@ type Event struct {
 	// Stop is a turn's end: its stop reason. Error is a turn that failed.
 	Stop  string `json:"stop,omitempty"`
 	Error string `json:"error,omitempty"`
+	// Usage is what the turn that stopped spent, where the agent said.
+	Usage *Usage `json:"usage,omitempty"`
 	// Ask is the agent asking something of the client, and Answer its
 	// answer (Answer.Ask is the ask's id).
 	Ask    *Ask    `json:"ask,omitempty"`
