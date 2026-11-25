@@ -2,7 +2,7 @@ import { pageSocket } from "../socket";
 import { type ReactNode, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
 import { type AppAt, getWorktreeRuns, type WorktreeRunsInfo } from "../api";
-import { AppFrame } from "../apps/AppPage";
+import { AppFrame } from "../apps/AppFrame";
 import { useLoaded } from "../load";
 import { Icon, type IconName, icons } from "../ui/Icon";
 import { Empty } from "../ui/Empty";

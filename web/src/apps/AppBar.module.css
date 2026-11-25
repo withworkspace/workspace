@@ -1,0 +1,60 @@
+/* The slim bar over an app (AppBar.tsx). */
+
+.bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+}
+
+.icon {
+  flex: none;
+  color: var(--dim);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pointer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: var(--space-2);
+}
+
+.name {
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+}
+
+.need {
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+}
+
+.link:hover {
+  background: var(--hover);
+  color: var(--fg);
+}

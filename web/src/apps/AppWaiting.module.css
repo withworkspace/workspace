@@ -1,0 +1,27 @@
+/* An app's card with nothing to frame (AppWaiting.tsx). */
+
+.waiting {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: var(--space-6);
+  color: var(--dim);
+}
+
+.waiting p {
+  margin: 0 0 var(--space-3);
+}
+
+/* What the run last said: Printed, as it was drawn here before it was
+   one, unboxed and in the smaller type. */
+.log {
+  max-width: 100%;
+  max-height: none;
+  padding: var(--space-3);
+  border: 0;
+  color: var(--fg);
+  font-size: var(--text-xs);
+  line-height: inherit;
+  overflow-wrap: normal;
+  word-break: break-word;
+}
