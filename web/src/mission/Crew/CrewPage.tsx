@@ -15,6 +15,7 @@ import type { StatusInfo } from "../../ui/Status";
 import { crewStatus } from "../../ui/statusOf";
 import type { TermState } from "./CrewTerminal";
 import { CrewConversation } from "./CrewConversation";
+import { CrewModelSwitch } from "./CrewModelSwitch";
 import { MissionCrewHead } from "./MissionCrewHead";
 import { MissionCrewPage } from "./MissionCrewPage";
 import { MissionCrewTerminal } from "./MissionCrewTerminal";
@@ -92,7 +93,20 @@ export function CrewPage() {
       <MissionCrewHead
         name={c?.role === "briefing" ? `Briefing agent ${id}` : <CrewBadge id={id} live={state === "live"} large />}
         status={st}
-        runs={c && (c.role === "briefing" ? "briefing" : c.model ? `${c.harness} on ${c.model}` : c.harness)}
+        runs={
+          c &&
+          (state === "live" && c.switchModel ? (
+            <>
+              {c.role === "briefing" ? "briefing on" : c.harness} <CrewModelSwitch slug={slug} crew={c} />
+            </>
+          ) : c.role === "briefing" ? (
+            "briefing"
+          ) : c.model ? (
+            `${c.harness} on ${c.model}`
+          ) : (
+            c.harness
+          ))
+        }
         acp={structured}
         capsule={c?.capsule}
         termTitle={title}

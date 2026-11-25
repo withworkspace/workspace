@@ -41,6 +41,7 @@ import { TalkTurns } from "./TalkTurns";
 import { TurnView } from "./TurnView";
 import { Who } from "./Who";
 import { docAt, talkName, talkStatus } from "./words";
+import { TalkModelSwitch } from "./TalkModelSwitch";
 
 // The page scrolls in the app's main pane. Where a conversation rests as
 // it goes on: at its end, but never past the start of the reply that's
@@ -376,6 +377,7 @@ export function TalkPage() {
             aria-label="Reply"
             placeholder={d?.answering ? "Say more: it's sent once the agent's done" : d?.status === "resolved" ? "Reply to reopen it…" : "Reply…"}
           >
+            {d && <TalkModelSwitch slug={slug} id={id} chosen={d.model?.model} />}
             <Button variant="primary" disabled={!text.trim() || sending} onClick={send} keys={sendKeys(sendKey)}>
               {sending ? "Sending…" : "Send"}
             </Button>

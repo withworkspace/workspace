@@ -1,10 +1,12 @@
 package crew
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/withworkspace/workspace/internal/acp"
@@ -31,6 +33,11 @@ type Run interface {
 	// records of the crew: what its hooks said it was asking. An answer
 	// to what isn't being asked is ErrNotOnScreen, and nothing's sent.
 	Answer(c mission.Crew, a Answer) (string, error)
+	// SwitchModel puts it on another model, its session going on: typed
+	// into its terminal as you'd type it (Claude Code's /model), or its
+	// agent's session switched. It says what it did; a harness that can't
+	// is an error, and nothing's done.
+	SwitchModel(model string) (string, error)
 }
 
 // Runs are the crew a host holds in this process (the daemon's server),
@@ -110,6 +117,35 @@ func (r TermRun) Say(text string) (string, error) {
 	r.T.SendKey(uv.KeyPressEvent{Code: uv.KeyEnter})
 	execlog.Note(r.Root, "crew "+r.S.Key(), "typed in (%d chars):\n%s", len(text), text)
 	return "Sent to " + r.S.CrewID + ".", nil
+}
+
+// SwitchModel types its harness's command for another model into its
+// terminal, key by key (a paste of it would be text to send, not a
+// command), and submits it.
+func (r TermRun) SwitchModel(model string) (string, error) {
+	h, err := harness.Get(r.S.Harness)
+	if err != nil {
+		return "", err
+	}
+	sw, ok := h.(harness.ModelSwitcher)
+	if !ok {
+		return "", fmt.Errorf("%s's model can't be changed while it runs", r.S.Harness)
+	}
+	line := sw.SwitchModel(model)
+	for _, ch := range line {
+		ev := uv.KeyPressEvent{Code: unicode.ToLower(ch), Text: string(ch)}
+		if ch == ' ' {
+			ev.Code = uv.KeySpace
+		}
+		if unicode.ToLower(ch) != ch {
+			ev.ShiftedCode = ch
+		}
+		r.T.SendKey(ev)
+	}
+	time.Sleep(settle)
+	r.T.SendKey(uv.KeyPressEvent{Code: uv.KeyEnter})
+	execlog.Note(r.Root, "crew "+r.S.Key(), "typed in: %s", line)
+	return "Switched " + r.S.CrewID + " to " + model + ".", nil
 }
 
 // Asking is the menu on its screen, read as answering it would read it.
@@ -228,6 +264,26 @@ func (r AgentRun) Say(text string) (string, error) {
 		return "Sent: " + r.S.CrewID + " gets it when its turn ends.", nil
 	}
 	return "Sent to " + r.S.CrewID + ".", nil
+}
+
+// SwitchModel switches its agent's session to another model, as its
+// harness names it over ACP.
+func (r AgentRun) SwitchModel(model string) (string, error) {
+	h, err := harness.Get(r.S.Harness)
+	if err != nil {
+		return "", err
+	}
+	name, settings, ok := harness.ACPModel(h, model)
+	if !ok {
+		return "", fmt.Errorf("%s's model can't be changed while it runs", r.S.Harness)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := r.Agent.SetModel(ctx, name, settings); err != nil {
+		return "", err
+	}
+	execlog.Note(r.Root, "crew "+r.S.Key(), "model switched to %s", model)
+	return "Switched " + r.S.CrewID + " to " + model + ".", nil
 }
 
 // Asking is what its agent is waiting on you for, as a prompt card shows

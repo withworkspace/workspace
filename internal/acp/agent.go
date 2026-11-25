@@ -248,6 +248,25 @@ func (a *Agent) setMode(ctx context.Context, want string) error {
 	return fmt.Errorf("the agent has no mode %q", want)
 }
 
+// SetModel switches its session to another model, and the settings that
+// go with it (its effort), as starting it does, by the session's config
+// options: ACP lets them change at any time, so the session goes on, and
+// the agent takes them from its next turn (or the one running, as the
+// agent does).
+func (a *Agent) SetModel(ctx context.Context, model string, settings []Setting) error {
+	if model != "" {
+		if err := a.setOption(ctx, "model", model); err != nil {
+			return err
+		}
+	}
+	for _, s := range settings {
+		if err := a.setOption(ctx, s.Category, s.Want); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // setOption sets the session's setting of category to the value want
 // names.
 func (a *Agent) setOption(ctx context.Context, category, want string) error {

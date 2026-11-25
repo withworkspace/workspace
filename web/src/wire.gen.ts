@@ -1014,6 +1014,12 @@ export interface ConversationConversation {
      */
     session?: ConversationSession;
     /**
+     * Model is the model you chose for its turns, over its role's, on the
+     * harness it was chosen on (a name is that harness's): none, or one
+     * chosen on another, and its turns are on the role's.
+     */
+    model?: ConversationModel;
+    /**
      * Answering: an agent is answering it now (worked out, not stored),
      * and since when.
      */
@@ -1191,6 +1197,18 @@ export interface ConversationGuideGroup {
 export interface ConversationGuideLeft {
     path: string;
     why: string;
+}
+
+// From conversation/conversation.go
+/**
+ * Model is a model chosen for a conversation's turns, as the harness it
+ * was chosen on names it.
+ */
+export interface ConversationModel {
+    harness: string;
+    model: string;
+    by: string;
+    at: string;
 }
 
 // From web/talk.go
@@ -1630,6 +1648,10 @@ export interface Crew {
      * Structured is crew over ACP: no terminal, just its conversation.
      */
     structured?: boolean;
+    /**
+     * SwitchModel: it can be put on another model while it runs.
+     */
+    switchModel?: boolean;
     /**
      * WaitingOn is the work it ended its turn to wait on, while ws holds
      * that turn (mission.Crew.OwnWork): what it left running, in a line.
@@ -5172,6 +5194,17 @@ export interface TalkDetail extends ConversationConversation {
      */
     message?: string;
     path?: string;
+}
+
+// From web/talk.go
+/**
+ * TalkModel is what a conversation's next turns run on: its role's
+ * harness, and the model, yours (Chosen) or the role's.
+ */
+export interface TalkModel {
+    harness: string;
+    model: string;
+    chosen?: boolean;
 }
 
 // From web/talk.go

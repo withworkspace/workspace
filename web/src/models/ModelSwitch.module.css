@@ -1,0 +1,22 @@
+/* What something running is on (ModelSwitch.tsx): a quiet button in a
+   line of facts, the chip, the model, a chevron. */
+
+.switch {
+  gap: 5px;
+  max-width: 320px;
+  min-width: 0;
+  font-weight: 400;
+}
+
+.icon,
+.chevron {
+  flex: none;
+  color: var(--dim);
+}
+
+.value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

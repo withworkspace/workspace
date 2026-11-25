@@ -49,8 +49,27 @@ func init() {
 			line TEXT NOT NULL,
 			PRIMARY KEY (slug, n)
 		) WITHOUT ROWID;
-	`), store.Retired, wordsStep, confirmedStep, filesAgainStep)
+	`), store.Retired, wordsStep, confirmedStep, filesAgainStep, standingStep)
 }
+
+// standingStep is the part's sixth step: what a mission wrote before
+// things had a standing stands as stands and decisionStands say: a mission
+// in force while it's in play, settled once it's archived, since it was
+// (gone, if it was dropped); a decision in force while it's current, gone
+// once it isn't (since when isn't known here: it ages from when it was
+// made); its brief and files in force, as what's in it stands as it does.
+var standingStep = store.SQL(`
+	UPDATE things SET
+		standing = coalesce((SELECT CASE
+			WHEN m.state <> 'archived' THEN 'open'
+			WHEN json_extract(m.record, '$.ending.ending') = 'dropped' THEN 'gone'
+			ELSE 'settled' END FROM missions m WHERE m.slug = things.name), 'open'),
+		since = coalesce((SELECT m.ended FROM missions m WHERE m.slug = things.name AND m.state = 'archived'), '')
+		WHERE origin LIKE 'mission:%' AND kind = 'mission' AND standing = '';
+	UPDATE things SET standing = CASE state WHEN 'current' THEN 'open' ELSE 'gone' END
+		WHERE origin LIKE 'decision:%' AND standing = '';
+	UPDATE things SET standing = 'open' WHERE origin LIKE 'missionfile:%' AND standing = '';
+`)
 
 // filesAgainStep is the part's fifth step: the files of missions in play
 // are read again when next asked for (Reread), to be things in the graph,
@@ -267,7 +286,7 @@ func (s Store) keep(tx *store.Tx, m *Mission) error {
 		return err
 	}
 	changed(tx, m.Slug)
-	return s.missionGraph(tx, m)
+	return s.missionGraph(tx, m, timeOf(ended))
 }
 
 // changed names what a write to a mission changed: its page, and the
@@ -388,14 +407,14 @@ func decisionOrigin(slug, id string) store.Origin {
 	return store.Origin("decision:" + slug + "/" + id)
 }
 
-func (s Store) missionGraph(tx *store.Tx, m *Mission) error {
+func (s Store) missionGraph(tx *store.Tx, m *Mission, ended time.Time) error {
 	o := missionOrigin(m.Slug)
 	if err := tx.Forget(o); err != nil {
 		return err
 	}
 	me := store.Key{Name: m.Slug}
 	state := standing(string(m.State))
-	if err := tx.Thing(o, store.Thing{Key: me, Kind: "mission", Title: m.Title, State: state, Changed: time.Now()}); err != nil {
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: "mission", Title: m.Title, State: state, Changed: time.Now(), Stands: stands(m, ended)}); err != nil {
 		return err
 	}
 	if err := tx.Retitle(fileOrigin(m.Slug, briefFile), m.Title); err != nil {
@@ -448,7 +467,7 @@ func (s Store) decisionsGraph(tx *store.Tx, slug string, all []Decision) error {
 		if d.Withdrawn != nil {
 			changed = *d.Withdrawn
 		}
-		if err := tx.Thing(o, store.Thing{Key: me, Kind: "decision", Title: d.What, State: d.State, Changed: changed}); err != nil {
+		if err := tx.Thing(o, store.Thing{Key: me, Kind: "decision", Title: d.What, State: d.State, Changed: changed, Stands: decisionStands(d, all)}); err != nil {
 			return err
 		}
 		if err := tx.Words(o, store.Place{Thing: me, Kind: placeDecision, Title: d.What, Text: strings.TrimSpace(d.Reason()), Said: d.At}); err != nil {

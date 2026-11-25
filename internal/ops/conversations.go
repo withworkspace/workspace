@@ -9,6 +9,7 @@ import (
 
 	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/doc"
+	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/job"
 	"github.com/withworkspace/workspace/internal/mission"
 )
@@ -441,4 +442,54 @@ func openChangesToSend(store conversation.Store, doc string) ([]string, error) {
 		return nil, fmt.Errorf("%w: no change asked for on %s is open and not with crew", conversation.ErrNotFound, doc)
 	}
 	return ids, nil
+}
+
+// TalkPick is what a conversation's next turns run on: the agent its role
+// answers it with, on the model you chose for it, where you did.
+func (w *Workspace) TalkPick(sc doc.Scope, id string) (harness.Pick, error) {
+	store, err := w.Conversations(sc)
+	if err != nil {
+		return harness.Pick{}, err
+	}
+	c, err := store.Load(id)
+	if err != nil {
+		return harness.Pick{}, err
+	}
+	p, err := w.rolePick(c)
+	if err != nil {
+		return harness.Pick{}, err
+	}
+	return chosenModel(p, c), nil
+}
+
+// SetTalkModel chooses the model a conversation's next turns run on, as
+// its role's harness names it; "" goes back to the role's own. Its
+// session goes on: the agent takes the model as its next turn starts.
+func (w *Workspace) SetTalkModel(sc doc.Scope, id, model string, by Actor) (*conversation.Conversation, error) {
+	store, err := w.Conversations(sc)
+	if err != nil {
+		return nil, err
+	}
+	c, err := store.Load(id)
+	if err != nil {
+		return nil, err
+	}
+	p, err := w.rolePick(c)
+	if err != nil {
+		return nil, err
+	}
+	if err := store.SetModel(id, conversation.Model{Harness: p.Harness, Model: strings.TrimSpace(model), By: by.By(), At: w.now()}); err != nil {
+		return nil, err
+	}
+	return store.Load(id)
+}
+
+// rolePick is the agent a conversation's role answers it with.
+func (w *Workspace) rolePick(c *conversation.Conversation) (harness.Pick, error) {
+	r, ok := responders[c.What]
+	if !ok {
+		return harness.Pick{}, fmt.Errorf("%s: ws doesn't answer a conversation that's %q", c.ID, c.What)
+	}
+	p, _, err := r.role(Roles(w.Config()))
+	return p, err
 }

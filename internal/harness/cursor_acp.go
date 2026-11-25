@@ -261,14 +261,16 @@ func (c *CursorACP) agent() ([]string, error) {
 	return []string{bin, "acp"}, nil
 }
 
-// cursorEffort is an effort the CLI's model names end in.
-var cursorEffort = regexp.MustCompile(`-(low|medium|high|xhigh|max)$`)
+// cursorEffort is an effort the CLI's model names end in, and fast after
+// it where it's said.
+var cursorEffort = regexp.MustCompile(`-(?:(?:none|minimal|low|medium|high|xhigh|max|extra-high)(?:-fast)?|fast)$`)
 
 // cursorACPModel is a model as the cursor harness names it, for ACP: the
 // CLI's names carry an effort ("claude-haiku-5-5-medium"), but ACP offers
 // each model once, at its own effort, so the effort is dropped and the
-// model found by its name ("claude-haiku-5-5"). Others ("auto", a name
-// ACP has) are as given.
+// model found by its name ("claude-haiku-5-5"). So is "-fast": ACP's
+// model is the one name either way ("claude-opus-5-5-high-fast" is
+// "claude-opus-5-5"). Others ("auto", a name ACP has) are as given.
 func cursorACPModel(m string) string {
 	return cursorEffort.ReplaceAllString(strings.TrimSpace(m), "")
 }

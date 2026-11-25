@@ -69,6 +69,28 @@ type acpModeler interface {
 func (c *Codex) acpModel(m string) (string, []acp.Setting)     { return codexModel(m) }
 func (c *CursorACP) acpModel(m string) (string, []acp.Setting) { return cursorACPModel(m), nil }
 
+// ACPModel is a model as ws's config names it for h, as h's agent is told
+// it over ACP: the model, and the settings that go with it (its effort).
+// It's false for a harness whose crew don't run over ACP.
+func ACPModel(h Harness, model string) (string, []acp.Setting, bool) {
+	m, ok := h.(acpModeler)
+	if !ok {
+		return "", nil, false
+	}
+	name, settings := m.acpModel(model)
+	return name, settings, true
+}
+
+// ModelSwitcher is a harness whose agent, running in a terminal, takes
+// another model mid-session by a command typed in: Claude Code's and
+// Cursor's /model.
+type ModelSwitcher interface {
+	SwitchModel(model string) string
+}
+
+func (c *Claude) SwitchModel(model string) string { return "/model " + model }
+func (c *Cursor) SwitchModel(model string) string { return "/model " + model }
+
 // WithModel puts a role's model on crew's ACP run where it has none:
 // Resume isn't told one, and a session resumed with none goes on with the
 // agent's own default (Codex warns that it was recorded with another).

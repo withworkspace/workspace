@@ -1307,6 +1307,21 @@ type Hook struct {
 	Conversation string
 }
 
+// SetCrewModel records the model crew were switched to while running:
+// what they run on from then, and are resumed on.
+func (s Store) SetCrewModel(slug, id, model string) error {
+	_, err := s.Update(slug, func(m *Mission) error {
+		for i := range m.Crew {
+			if m.Crew[i].ID == id {
+				m.Crew[i].Model = model
+				return nil
+			}
+		}
+		return fmt.Errorf("mission %s has no crew %s", slug, id)
+	})
+	return err
+}
+
 // lastReplyMax keeps a crew's last reply to what's worth showing.
 const lastReplyMax = 1500
 

@@ -56,13 +56,14 @@ func layouts() map[string]int {
 func init() {
 	// The store's own part: what's kept of the file itself, and what
 	// changed, for pages to be told; then the graph (graph.go), what
-	// things say (words.go), and what you've pinned of them (focus.go).
+	// things say (words.go), what you've pinned of them (focus.go), and
+	// where things stand in words every kind shares (standing.go).
 	Define("store", SQL(`
 		CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value) WITHOUT ROWID;
 		INSERT OR IGNORE INTO meta (key, value) VALUES ('seq', 0);
 		CREATE TABLE changes (topic TEXT PRIMARY KEY, seq INTEGER NOT NULL) WITHOUT ROWID;
 		CREATE INDEX changes_seq ON changes (seq);
-	`), SQL(graphTables), SQL(wordTables), SQL(focusTables))
+	`), SQL(graphTables), SQL(wordTables), SQL(focusTables), SQL(standingColumns))
 }
 
 // bringForward runs every part's steps the file hasn't had, the store's

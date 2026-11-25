@@ -1,0 +1,36 @@
+/* A model picker's button (ModelPicker.tsx): as a
+   SettingsSelect's, what's set and a chevron. */
+
+.button {
+  justify-content: space-between;
+  gap: 8px;
+  width: 232px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 7px 8px 7px 10px;
+  font-size: var(--text-md);
+  font-weight: 400;
+  text-align: left;
+  box-shadow: none;
+}
+
+.stretch {
+  width: 100%;
+}
+
+.value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholder {
+  color: var(--dim);
+}
+
+.chevron {
+  flex: none;
+  color: var(--dim);
+}

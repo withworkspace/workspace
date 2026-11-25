@@ -145,13 +145,16 @@ func Names() []string {
 // it for, how its crew are held, and where their transcript is read from.
 // Ask it of a harness here rather than by asserting an interface.
 type Caps struct {
-	Crew       CrewVia
-	Headless   bool // the orchestrator: one-off turns (an Orchestrator)
-	Converse   bool // turns that resume a session (a Converser)
-	Hooks      bool // lifecycle hooks ws can install (Hooks)
-	Models     bool // lists its own models (a ModelLister)
-	Transcript TranscriptVia
-	Spends     Spends // where it says what its agents spend
+	Crew     CrewVia
+	Headless bool // the orchestrator: one-off turns (an Orchestrator)
+	Converse bool // turns that resume a session (a Converser)
+	Hooks    bool // lifecycle hooks ws can install (Hooks)
+	Models   bool // lists its own models (a ModelLister)
+	// SwitchModel: its crew can be put on another model while they run,
+	// their session going on (a ModelSwitcher, or crew over ACP).
+	SwitchModel bool
+	Transcript  TranscriptVia
+	Spends      Spends // where it says what its agents spend
 }
 
 // CrewVia is how a harness's crew run.
@@ -194,6 +197,9 @@ func CapsOf(name string) Caps {
 	_, c.Converse = h.(Converser)
 	_, c.Hooks = h.(Hooks)
 	_, c.Models = h.(ModelLister)
+	_, typed := h.(ModelSwitcher)
+	_, acp := h.(acpModeler)
+	c.SwitchModel = typed || (acp && c.Crew == CrewACP)
 	if s, ok := h.(spender); ok {
 		c.Spends = s.spends()
 	}

@@ -86,6 +86,8 @@ import type {
   GitHubOwners,
   GitHubRepos,
   RepoGroup,
+  TalkModel,
+  ConversationModel,
 } from "./wire.gen";
 export type {
   CommandLabel,
@@ -217,6 +219,8 @@ export type {
   GitHubRepos,
   AddableRepo,
   RepoGroup,
+  TalkModel,
+  ConversationModel,
 } from "./wire.gen";
 
 // Mirrors internal/web/api.go.
@@ -914,6 +918,16 @@ export interface ModelInfo {
   name?: string;
   about?: string;
   default?: boolean;
+  // Where it sits among the others, where its name says (harness.Model):
+  // its maker, the model (family, version, shown as label), and what this
+  // one chooses of it. effort "" is the model's own.
+  vendor?: string;
+  family?: string;
+  version?: string;
+  label?: string;
+  effort?: string;
+  thinking?: boolean;
+  fast?: boolean;
 }
 
 export const getSettings = () => getJSON<SettingsInfo>("/api/settings");
@@ -1226,6 +1240,7 @@ export interface TalkGiven {
 export interface TalkDetail {
   id: string;
   kind: string;
+  model?: ConversationModel; // the model you chose for its turns, over its role's
   goal?: string; // what it's for, when it's for something: "brief" is its mission's planner's (briefing it, then carrying on)
   what?: string; // what it is, as it's answered: "talk", "pr", "doc" (an ask about a document), …
   // anchor: what it's about, when it's about a pull request (and lines of
@@ -1277,6 +1292,10 @@ export const startTalk = (slug: string, body: string) => send<TalkDetail>("POST"
 export const sayInTalk = (slug: string, id: string, body: string, given?: TalkGiven) =>
   send<TalkDetail>("POST", talkPath(slug, id, "/say"), given ? { body, given } : { body });
 export const setTalkStatus = (slug: string, id: string, status: "open" | "resolved") => send<TalkDetail>("POST", talkPath(slug, id, "/status"), { status });
+// What a conversation's next turns run on, and choosing its model ("" is
+// its role's again).
+export const getTalkModel = (slug: string, id: string) => getJSON<TalkModel>(talkPath(slug, id, "/model"));
+export const setTalkModel = (slug: string, id: string, model: string) => send<TalkModel>("POST", talkPath(slug, id, "/model"), { model });
 
 // Asking from an ask bar (ask/AskBar.tsx): mirrors internal/web/asks.go. An
 // ask is the workspace's conversation from the start, about a document
@@ -1490,6 +1509,9 @@ export const getTranscript = (slug: string, id: string, last?: number) =>
 
 // sayToCrew sends crew a message: typed in if it's running, or resuming it
 // with it if it's ended.
+// switchCrewModel puts running crew on another model, its session going
+// on.
+export const switchCrewModel = (slug: string, id: string, model: string) => send<{ message: string }>("POST", `${crewPath(slug, id)}/model`, { model });
 export const sayToCrew = (slug: string, id: string, text: string) =>
   send<{ message: string }>("POST", `/api/missions/${encodeURIComponent(slug)}/crew/${encodeURIComponent(id)}/say`, { text });
 
