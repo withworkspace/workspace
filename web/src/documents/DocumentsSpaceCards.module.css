@@ -1,0 +1,13 @@
+/* The spaces as cards (DocumentsSpaceCards.tsx): as many to a row as
+   fit; one or two stretch to the row. */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.cards.few {
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+}

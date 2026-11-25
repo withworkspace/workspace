@@ -1,0 +1,22 @@
+/* A space's page (SpaceFrame.tsx). Wide, the page doesn't scroll: the
+   list and the preview fill the window, each scrolling by itself, and
+   what's over them stays. Narrow, it's the list alone, and the page
+   scrolls. */
+
+:global(.page).frame {
+  max-width: none;
+}
+
+@media (width > 1020px) {
+  :global(main) :global(.page).frame {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-bottom: var(--space-4);
+    overflow: hidden;
+  }
+
+  .frame > :not([data-space-split]) {
+    flex: none;
+  }
+}

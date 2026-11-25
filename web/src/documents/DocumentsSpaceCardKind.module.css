@@ -1,0 +1,46 @@
+/* A kind of document on a space's card, or a folder
+   (DocumentsSpaceCardKind.tsx). */
+
+li > .link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1px 8px;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  color: var(--fg);
+}
+
+li > .link:hover {
+  background: var(--hover);
+}
+
+.kind {
+  flex: none;
+  font-weight: 500;
+}
+
+.kind:global(.mono) {
+  font-weight: 400;
+  font-size: var(--text-sm);
+}
+
+.last {
+  flex: 0 1 auto;
+  max-width: 70%;
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.stands {
+  order: 3;
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}

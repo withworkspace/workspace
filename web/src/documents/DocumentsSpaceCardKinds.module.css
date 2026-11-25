@@ -1,0 +1,12 @@
+/* A space's card's kinds, or its folders (DocumentsSpaceCardKinds.tsx). */
+
+.kinds {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 6px;
+}
+
+.reading {
+  padding: 5px 8px;
+  font-size: var(--text-sm);
+}

@@ -1,0 +1,31 @@
+/* A document in a space's list (SpaceDocRow.tsx): its number or date
+   first, in a column; who changed it last, or its file's name, last. A
+   narrow list leaves out the file's name. */
+
+.link .made {
+  flex: none;
+  width: 84px;
+  font-size: var(--text-xs);
+}
+
+.link .changed {
+  flex: none;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.link .file {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+}
+
+@container (max-width: 560px) {
+  .link .file {
+    display: none;
+  }
+}

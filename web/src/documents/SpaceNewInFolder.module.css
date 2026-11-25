@@ -1,0 +1,29 @@
+/* Starting a page to file in a space's folder (SpaceNewInFolder.tsx):
+   each field's name beside it, then where it will be filed. */
+
+.fields {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.fields label {
+  display: contents;
+}
+
+.fields label > span {
+  color: var(--dim);
+  font-size: var(--text-sm);
+}
+
+.fields input {
+  width: 100%;
+  min-width: 0;
+}
+
+.what {
+  margin: 12px 0;
+  font-size: var(--text-sm);
+}

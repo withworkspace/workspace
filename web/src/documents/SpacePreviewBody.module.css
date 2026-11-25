@@ -1,0 +1,7 @@
+/* The document picked's text (SpacePreviewBody.tsx), at a reading
+   width. */
+
+.body {
+  max-width: 76ch;
+  padding: 16px 24px 8px;
+}

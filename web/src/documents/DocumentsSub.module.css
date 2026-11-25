@@ -1,0 +1,6 @@
+/* What's said after a heading's count, in its words' weight
+   (DocumentsSub.tsx). */
+
+.sub {
+  font-weight: 400;
+}

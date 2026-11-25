@@ -1,5 +1,5 @@
 import { artifactKeys as artifactViewKeys, artifactsKeys, compareKeys, foundArtifactKeys } from "../artifacts/keys";
-import { documentsKeys, spaceKeys } from "../documents/Documents";
+import { documentsKeys, spaceKeys } from "../documents/keys";
 import { docKeys } from "../files/DocPage";
 import { explorerKeys } from "../files/Explorer";
 import { filesKeys } from "../files/Files";

@@ -1,0 +1,26 @@
+/* Where a search found a document, under it in a space's list
+   (SpaceHitLine.tsx). */
+
+.line {
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.heading {
+  flex: none;
+  color: var(--fg);
+}
+
+.snippet {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line mark {
+  background: var(--accent-soft, var(--selected));
+  color: inherit;
+  border-radius: 2px;
+}
