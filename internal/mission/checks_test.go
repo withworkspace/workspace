@@ -78,3 +78,44 @@ func TestConfirmedStep(t *testing.T) {
 		t.Errorf("the idea: %+v", i)
 	}
 }
+
+// An agent told what a check came to is told how a command ws ran went,
+// and none of what it printed when it was met; when it wasn't, the end of
+// what it printed, where a failure says itself, and where the rest is.
+func TestCheckResult_Said(t *testing.T) {
+	out := "=== RUN TestA\n" + strings.Repeat("ok noise\n", 200) + "--- FAIL: TestCache (0.01s)\n    cache_test.go:12: want 2, got 1\nFAIL"
+	failed := CheckResult{Check: "`go test ./...` passes", Result: CheckUnmet, By: "ws", Run: "check-1-1.cache.api#2",
+		Evidence: "failed (exit 1) in 40s:\n" + out}
+	if got := failed.How(); got != "failed (exit 1) in 40s" {
+		t.Errorf("How: %q", got)
+	}
+	if got := failed.Printed(); got != out {
+		t.Errorf("Printed: %q", got)
+	}
+	said := failed.Said(300)
+	if !strings.HasPrefix(said, "failed (exit 1) in 40s: …") || !strings.Contains(said, "cache_test.go:12: want 2, got 1 FAIL") || strings.Contains(said, "=== RUN") {
+		t.Errorf("unmet said the wrong end of what it printed: %q", said)
+	}
+	if !strings.HasSuffix(said, "(all it printed: `ws run logs check-1-1.cache.api#2`)") {
+		t.Errorf("unmet said nothing of where the rest is: %q", said)
+	}
+
+	passed := CheckResult{Check: "`go test ./...` passes", Result: CheckMet, By: "ws", Run: "check-1-1.cache.api#3",
+		Evidence: "passed in 12s:\n" + strings.Repeat("ok  pkg 0.1s\n", 50)}
+	if got := passed.Said(600); got != "passed in 12s" {
+		t.Errorf("met said more than how it went: %q", got)
+	}
+
+	judged := CheckResult{Check: "the cache is named", Result: CheckUnmet, By: "the judge (claude)", Evidence: "cache.go names nothing:\nsee line 3"}
+	if got := judged.Said(600); got != "cache.go names nothing: see line 3" {
+		t.Errorf("judge's said: %q", got)
+	}
+	if got := judged.Printed(); got != "" {
+		t.Errorf("a judge printed nothing: %q", got)
+	}
+
+	cantRun := CheckResult{Check: "`pytest` passes", Result: CheckCantTell, By: "ws", Evidence: "couldn't run it (exit 127): sh: pytest: not found"}
+	if got := cantRun.Said(600); got != "couldn't run it (exit 127): sh: pytest: not found" {
+		t.Errorf("can't run said: %q", got)
+	}
+}
