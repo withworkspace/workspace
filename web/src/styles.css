@@ -3978,24 +3978,6 @@ button.on {
   font-size: var(--text-sm);
 }
 
-/* /silo/<repo>: point a silo, from ws's router. */
-.silo-point {
-  max-width: 560px;
-  margin: 12vh auto 0;
-  padding: 0 16px;
-}
-
-.silo-point-acts {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-}
-
-/* Why it couldn't: tone-danger alone only sets the tone's variables. */
-.silo-point-error {
-  color: var(--danger);
-}
-
 /* Markdown: briefs, artifacts, handoffs, reviews */
 
 .markdown {
