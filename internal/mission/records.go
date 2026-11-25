@@ -295,7 +295,7 @@ func (s Store) appendLog(tx *store.Tx, slug string, e Event) error {
 		return err
 	}
 	changed(tx, slug)
-	return nil
+	return share(tx, slug, e)
 }
 
 // decisionsIn is every decision on a mission in tx, oldest first, with how

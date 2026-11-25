@@ -1,0 +1,19 @@
+/* The bell, in the foot (FootNotifications.tsx). */
+
+@layer ui {
+  /* Its icon, and the mark on its corner while something's unread. */
+  .icon {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .mark {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+  }
+
+  .count {
+    font-variant-numeric: tabular-nums;
+  }
+}
