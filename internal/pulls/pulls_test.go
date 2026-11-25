@@ -253,6 +253,15 @@ func TestClassify(t *testing.T) {
 		{"yours, changes requested", func(p *github.PR) { p.Author = "me"; p.ReviewDecision = "CHANGES_REQUESTED" }, false, Returned},
 		{"yours, checks failing", func(p *github.PR) { p.Author = "me"; p.ReviewDecision = "APPROVED"; p.StatusRollup = "failure" }, false, Returned},
 		{"yours, approved", func(p *github.PR) { p.Author = "me"; p.ReviewDecision = "APPROVED"; p.StatusRollup = "success" }, false, Ready},
+		{"yours, approved, and it conflicts", func(p *github.PR) {
+			p.Author = "me"
+			p.ReviewDecision, p.StatusRollup, p.Mergeable = "APPROVED", "success", "CONFLICTING"
+		}, false, Returned},
+		{"yours, no review needed, and it conflicts", func(p *github.PR) { p.Author = "me"; p.Mergeable = "CONFLICTING" }, false, Returned},
+		{"yours, approved, GitHub still working out whether it merges", func(p *github.PR) {
+			p.Author = "me"
+			p.ReviewDecision, p.Mergeable = "APPROVED", "UNKNOWN"
+		}, false, Ready},
 		{"yours, no review needed", func(p *github.PR) { p.Author = "me" }, false, Ready},
 		{"yours, reviewers asked", func(p *github.PR) { p.Author = "me"; p.Requested = []github.ReviewRequest{{Login: "alice"}} }, false, WaitingReview},
 		{"yours, review required", func(p *github.PR) { p.Author = "me"; p.ReviewDecision = "REVIEW_REQUIRED" }, false, WaitingReview},

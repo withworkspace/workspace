@@ -291,6 +291,9 @@ func classifyMine(gp github.PR) (state, words string) {
 		return Returned, "changes requested"
 	case gp.StatusRollup == "failure":
 		return Returned, "its checks are failing"
+	case gp.Mergeable == "CONFLICTING":
+		// Approved and green or not, it can't be merged as it is.
+		return Returned, "it conflicts with " + firstNonEmpty(gp.BaseRefName, "its base")
 	case gp.IsDraft:
 		return WaitingReview, "draft"
 	case gp.StatusRollup == "pending":

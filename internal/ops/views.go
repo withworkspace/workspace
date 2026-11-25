@@ -150,9 +150,9 @@ func buildMissionViews(g capsuleGit, ws *workspace.Workspace, prs PRIndex, missi
 			} else if seen := c.SeenPR; seen != nil && seen.Number > 0 && !seen.Merged && !seen.Closed {
 				cv.LastSeen = &mission.PRFacts{
 					Capsule: c.Repo + "/" + c.Name, Ref: fmt.Sprintf("%s#%d", c.Repo, seen.Number),
-					Review: seen.Review, Checks: seen.Checks,
+					Review: seen.Review, Checks: seen.Checks, Conflict: seen.Conflict,
 					// Nothing seen of how it stands: it's only been opened.
-					Unasked: seen.Review == "" && seen.Checks == "",
+					Unasked: seen.Review == "" && seen.Checks == "" && !seen.Conflict,
 				}
 				if web := ws.RemoteOf(c.Repo).URL(); web != "" {
 					cv.LastSeen.URL = fmt.Sprintf("%s/pull/%d", web, seen.Number)
@@ -375,6 +375,7 @@ func MissionSnapshot(v MissionView, brief string, events []mission.Event, rr []r
 		s.PRs = append(s.PRs, mission.PRFacts{
 			Capsule: c.Repo + "/" + c.Name, Ref: fmt.Sprintf("%s#%d", c.Repo, c.PR.Number), URL: c.PR.URL,
 			Merged: c.PRS == mission.PRMerged, Review: c.PR.ReviewDecision, Checks: c.PR.StatusRollup,
+			Conflict: c.PRS == mission.PROpen && c.PR.Mergeable == "CONFLICTING",
 		})
 	}
 	for _, r := range rr {

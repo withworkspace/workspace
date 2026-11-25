@@ -12,7 +12,7 @@ func TestParseOpenPRs(t *testing.T) {
 	data := `{"data": {"repository": {"pullRequests": {
 		"pageInfo": {"hasNextPage": true, "endCursor": "c2"},
 		"nodes": [
-			{"number": 89, "title": "Key by tenant", "url": "u", "state": "OPEN", "isDraft": true, "reviewDecision": "REVIEW_REQUIRED",
+			{"number": 89, "title": "Key by tenant", "url": "u", "state": "OPEN", "isDraft": true, "reviewDecision": "REVIEW_REQUIRED", "mergeable": "CONFLICTING",
 			 "headRefName": "tenant", "headRefOid": "abc", "baseRefName": "storage", "isCrossRepository": true,
 			 "additions": 12, "deletions": 3, "changedFiles": 2, "createdAt": "2026-11-09T10:00:00Z", "updatedAt": "2026-11-10T10:00:00Z",
 			 "author": {"__typename": "User", "login": "alice"},
@@ -28,7 +28,7 @@ func TestParseOpenPRs(t *testing.T) {
 	}
 	pr := prs[0]
 	if pr.Number != 89 || pr.Title != "Key by tenant" || pr.Author != "alice" || pr.Bot || !pr.IsDraft || pr.BaseRefName != "storage" || pr.HeadRefName != "tenant" || pr.HeadRefOid != "abc" ||
-		pr.Additions != 12 || pr.Deletions != 3 || pr.ChangedFiles != 2 || !pr.IsCrossRepository || pr.ReviewDecision != "REVIEW_REQUIRED" || pr.StatusRollup != "failure" || pr.UpdatedAt != "2026-11-10T10:00:00Z" {
+		pr.Additions != 12 || pr.Deletions != 3 || pr.ChangedFiles != 2 || !pr.IsCrossRepository || pr.ReviewDecision != "REVIEW_REQUIRED" || pr.StatusRollup != "failure" || pr.Mergeable != "CONFLICTING" || pr.UpdatedAt != "2026-11-10T10:00:00Z" {
 		t.Errorf("pr = %+v", pr)
 	}
 	if len(pr.Requested) != 2 || pr.Requested[0].Login != "me" || pr.Requested[1].Team != "backend" {

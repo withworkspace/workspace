@@ -13,6 +13,7 @@
   "replied",
   "checks-failing",
   "changes-requested",
+  "conflict",
   "approve",
   "accept",
   "merge",

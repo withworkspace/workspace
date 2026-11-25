@@ -23,7 +23,7 @@ const openPRsQuery = `query($owner: String!, $repo: String!, $after: String) {
     pullRequests(states: OPEN, first: 50, after: $after, orderBy: {field: UPDATED_AT, direction: DESC}) {
       pageInfo { hasNextPage endCursor }
       nodes {
-        number title url state isDraft reviewDecision
+        number title url state isDraft reviewDecision mergeable
         headRefName headRefOid baseRefName isCrossRepository
         additions deletions changedFiles createdAt updatedAt
         author { __typename login }
@@ -40,7 +40,8 @@ const openPRPages = 10
 
 // OpenPRs is a repo's open PRs for the Reviews page: who opened each (a
 // bot?), who's asked to review it, the latest review by each person and
-// the commit it was of, its size, and its checks.
+// the commit it was of, its size, its checks, and whether it merges
+// cleanly.
 //
 // VERIFIED (github.com, 2026-11-10): gh pr list --json latestReviews
 // leaves each review's commit empty, and asks for every check and every

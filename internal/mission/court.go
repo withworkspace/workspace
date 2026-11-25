@@ -43,6 +43,7 @@ const (
 	KindReplied          Kind = "replied"           // crew finished its turn without asking or reporting done
 	KindChecksFailing    Kind = "checks-failing"    // a PR's checks are failing
 	KindChangesRequested Kind = "changes-requested" // a PR's review asks for changes
+	KindConflict         Kind = "conflict"          // a PR conflicts with its base
 	KindApprove          Kind = "approve"           // the current stage's document: its threads are resolved, approve it?
 	KindAccept           Kind = "accept"            // crew reported the stage done; the orchestrator is off
 	KindMerge            Kind = "merge"             // a PR is ready to merge
@@ -80,7 +81,7 @@ const (
 
 var kindOrder = []Kind{
 	KindCrewAsks, KindPermission, KindFlag, KindReReview, KindStepReview, KindToDo, KindReplies, KindBriefTalk, KindProposed, KindQueued, KindResume, KindReplied,
-	KindChecksFailing, KindChangesRequested, KindApprove, KindAccept, KindMerge, KindLand, KindWrapUp, KindStalled,
+	KindChecksFailing, KindChangesRequested, KindConflict, KindApprove, KindAccept, KindMerge, KindLand, KindWrapUp, KindStalled,
 	KindWorking, KindLaunching, KindOwnWork, KindAnswering, KindBriefing, KindChecking, KindWritingPR, KindMovingOn, KindDeciding,
 	KindChecksRunning, KindAwaitingReview, KindWaitingOn,
 	KindLanded, KindEnded, KindToBrief, KindReady, KindParked, KindArchived,
@@ -228,6 +229,8 @@ type PRFacts struct {
 	Review string
 	// Checks is the checks' rollup: failure, pending, success, or "" (none).
 	Checks string
+	// Conflict: it doesn't merge cleanly onto its base.
+	Conflict bool
 	// Unasked: ws opened it, and GitHub hasn't been asked how it stands
 	// since. No review and no checks, of such a one, is nothing known, not
 	// a pull request that needs neither.
@@ -1076,6 +1079,10 @@ func prHeadline(pr PRFacts) Headline {
 	case pr.Review == "CHANGES_REQUESTED":
 		h.Court, h.Kind, h.Label = CourtYou, KindChangesRequested, "✗ changes"
 		h.Text = pr.Ref + ": a reviewer asked for changes"
+	case pr.Conflict:
+		// Whatever its checks and review say, it can't be merged as it is.
+		h.Court, h.Kind, h.Label = CourtYou, KindConflict, "✗ conflict"
+		h.Text = pr.Ref + " conflicts with its base"
 	case pr.Checks == "pending":
 		h.Court, h.Kind, h.Label = CourtOutside, KindChecksRunning, "◌ checks"
 		h.Text = pr.Ref + "'s checks are running · nothing for you to do"
