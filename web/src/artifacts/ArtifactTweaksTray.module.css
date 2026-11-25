@@ -1,0 +1,35 @@
+/* The tray of a version's tweaks, beside its frame
+   (ArtifactTweaksTray.tsx): what its page says can be changed about it. */
+
+.tray {
+  flex: none;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.foot {
+  flex: none;
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm);
+}
+
+.foot a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* The tray goes under the frame, and scrolls there. */
+@media (max-width: 860px) {
+  .tray {
+    width: auto;
+    max-height: 45%;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}

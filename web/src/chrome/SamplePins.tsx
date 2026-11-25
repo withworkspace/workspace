@@ -14,7 +14,7 @@ type SamplePinsProps = {
 };
 
 // SamplePins is Focus for the stories: the sample pins, which unpin and
-// drag into order as the app's do. It stands in for shell/focus.tsx's
+// drag into order as the app's do. It stands in for shell/FocusSection.tsx's
 // FocusSection, which keeps the pins with the daemon and will draw these
 // same parts.
 export function SamplePins({

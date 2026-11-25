@@ -1,0 +1,9 @@
+/* The page a version runs on (ArtifactView.tsx): its head, and a frame
+   that fills what's under it. */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}

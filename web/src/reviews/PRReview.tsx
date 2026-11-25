@@ -56,7 +56,7 @@ import { useReviewPasses } from "./usePasses";
 import { layersLeft } from "./after";
 import { Checks, prHref, prStatus, reviewed } from "./Reviews";
 import { useLatest } from "../load";
-import { PagePin } from "../shell/focus";
+import { PagePin } from "../shell/PagePin";
 import { Chip, chipClass } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { clip, humanError } from "../ui/text";

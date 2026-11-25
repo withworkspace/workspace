@@ -1,0 +1,27 @@
+/* Pin, or Pinned (PinToggle.tsx): a ghost, in the accent while it's on,
+   its pin filled. */
+
+.pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pin.on {
+  color: var(--accent);
+}
+
+.pin.on .icon {
+  fill: currentColor;
+}
+
+/* The pin alone: a square's width at a small button's height. */
+button.compact {
+  padding: 4px;
+  min-width: 28px;
+}
+
+/* Kept to the end of the line it's in. */
+.pin.end {
+  margin-left: auto;
+}

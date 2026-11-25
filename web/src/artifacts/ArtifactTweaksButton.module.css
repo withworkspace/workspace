@@ -1,0 +1,19 @@
+/* A frame's tweaks behind a button (ArtifactTweaksButton.tsx): a side of
+   a comparison. */
+
+.popover {
+  width: 300px;
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: min(70vh, 560px);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}

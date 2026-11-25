@@ -1,0 +1,49 @@
+/* An artifact in a list (ArtifactRow.tsx). */
+
+.row.dimmed .title {
+  color: var(--dim);
+}
+
+/* A row with Promote beside it: in its last week, or expired. */
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.link {
+  flex: 1;
+  min-width: 0;
+}
+
+.promote {
+  flex: none;
+  margin-right: 6px;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta :global(.mono) {
+  font-size: var(--text-xs);
+  color: var(--faint);
+}
+
+/* Who by and when, at its end: a list's age, styles.css's, as the
+   missions' list and others share it, kept to the row's first line. */
+.when {
+  composes: age from global;
+  min-width: 0;
+  white-space: nowrap;
+  align-self: flex-start;
+  margin-top: 2px;
+}

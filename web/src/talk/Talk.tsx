@@ -46,7 +46,7 @@ import { refKey } from "../refs/refs";
 import { ArtifactProposalBody } from "./ArtifactProposal";
 import { PluginProposalCard } from "./PluginProposal";
 import { addedVersion, afterSettling, artifactNext, kindName, type Made, made, revisedText, type Settled, settled, startsMission } from "./proposals";
-import { PagePin } from "../shell/focus";
+import { PagePin } from "../shell/PagePin";
 import { Chip } from "../ui/Chip";
 import { Button, buttonClass } from "../ui/Button";
 import { MoreLink } from "../ui/MoreLink";

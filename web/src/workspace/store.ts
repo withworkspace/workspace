@@ -29,7 +29,7 @@ interface WorkspaceStore {
   // steps show their commands.
   commandLabels: CommandLabel[];
   // Your pins as a write of them answered, until the workspace is next
-  // read (shell/focus.tsx): they're the workspace's from then.
+  // read (shell/useFocus.ts): they're the workspace's from then.
   focusAnswered?: FocusPin[];
 
   // read reads the workspace again; readPlugins its plugins, and with

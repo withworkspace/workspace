@@ -355,3 +355,37 @@ func TestKeptGit_StandingSoonWaitsOnNoGit(t *testing.T) {
 		t.Errorf("a read of a capsule kept current counted as moved: %q, was %q", now, moved)
 	}
 }
+
+func TestChangesStamp_MovesWithWhatACapsulesChangesAreReadFrom(t *testing.T) {
+	capsule, run := capsuleFixture(t)
+	if changesStamp(t.TempDir(), "origin/main") != "" {
+		t.Error("a folder that isn't a worktree has a stamp")
+	}
+	stamp := changesStamp(capsule, "origin/main")
+	if stamp == "" {
+		t.Fatal("a capsule has no stamp")
+	}
+	moved := func(what string, want bool) {
+		t.Helper()
+		now := changesStamp(capsule, "origin/main")
+		if (now != stamp) != want {
+			t.Errorf("%s: moved = %v, want %v", what, now != stamp, want)
+		}
+		stamp = now
+	}
+	// A fetch that brings nothing moves nothing, where it moves capsuleStamp.
+	run("repo/.bare", "fetch", "-q", "origin")
+	moved("a fetch of nothing", false)
+	// A file edited and not staged moves nothing git keeps.
+	os.WriteFile(filepath.Join(capsule, "a.txt"), []byte("a\n"), 0o644)
+	moved("an edit", false)
+	run("repo/work", "add", "a.txt")
+	moved("staging it", true)
+	run("repo/work", "commit", "-q", "-m", "a")
+	moved("a commit", true)
+	// The default branch moves on its remote, and is fetched.
+	run("seed", "commit", "-q", "--allow-empty", "-m", "more")
+	run("seed", "push", "-q", "origin", "main")
+	run("repo/.bare", "fetch", "-q", "origin")
+	moved("a fetch that moved the base", true)
+}

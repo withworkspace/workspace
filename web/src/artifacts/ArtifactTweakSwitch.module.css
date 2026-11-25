@@ -1,0 +1,6 @@
+/* A tweak's switch (ArtifactTweakSwitch.tsx): in its label's line, with
+   no room of its own over and under it. */
+
+.toggle {
+  margin: 0;
+}

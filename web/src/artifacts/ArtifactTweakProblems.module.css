@@ -1,0 +1,19 @@
+/* What's wrong with how a page declares its tweaks
+   (ArtifactTweakProblems.tsx). */
+
+.problems {
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.problems summary {
+  cursor: pointer;
+  color: var(--attention);
+}
+
+.problems ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+}

@@ -1,0 +1,26 @@
+/* The versions' strip (ArtifactVersions.tsx): a segmented control's
+   track, with the keys that step through it at its end. */
+
+.versions {
+  align-items: center;
+}
+
+.host {
+  display: inline-flex;
+  outline: none;
+}
+
+/* The version that's in the repo an artifact lives in. */
+.versions button.atHome {
+  text-decoration: underline;
+  text-decoration-color: var(--accent-line);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px 0 4px;
+}

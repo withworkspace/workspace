@@ -92,10 +92,21 @@ type Service struct {
 	// nil for none.
 	Capsules func(repo string) []Capsule
 
-	// near is what your capsules have changed, as last read.
-	nearMu sync.Mutex
-	near   map[string]map[string][]string
-	nearAt time.Time
+	// Moved, if set, is told when a look behind a read finds something
+	// other than the read was given (near.go): whoever tells pages looks
+	// now, not at its next poll. It mustn't wait.
+	Moved func()
+
+	// near is what your capsules have changed, as last read (near.go), by
+	// repo/name; nearRepos the repos a page has asked about; nearAt when
+	// they were last looked at, and nearLooking whether they're being.
+	// nearRead asks git what a capsule has changed (tests set it).
+	nearMu      sync.Mutex
+	near        map[string]*nearCapsule
+	nearRepos   map[string]bool
+	nearAt      time.Time
+	nearLooking bool
+	nearRead    func(Capsule) ([]string, error)
 
 	mu sync.Mutex
 	// snap is the last look, and prs the pull requests it kept, as this

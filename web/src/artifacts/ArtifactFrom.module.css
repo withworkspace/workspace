@@ -1,0 +1,6 @@
+/* Where a version came from, that this machine hasn't got
+   (ArtifactFrom.tsx): words, not a ref. */
+
+.from {
+  color: var(--fg);
+}
