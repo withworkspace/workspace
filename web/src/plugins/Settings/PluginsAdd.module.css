@@ -1,0 +1,39 @@
+/* The field a plugin's added from (PluginsAdd.tsx), what adding one does
+   under it. */
+
+.add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 6px 8px;
+  max-width: 720px;
+  margin-bottom: var(--space-6);
+}
+
+.field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.field input {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+}
+
+.add button {
+  height: 32px;
+}
+
+.about {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}

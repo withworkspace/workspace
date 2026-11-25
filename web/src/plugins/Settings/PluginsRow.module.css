@@ -1,0 +1,112 @@
+/* A plugin, in Settings (PluginsRow.tsx): its icon, what it's from and
+   adds under its name, and what's to be done to it at its right. */
+
+.row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 8px;
+}
+
+.icon {
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+  color: var(--dim);
+}
+
+.row.ready .icon {
+  color: var(--accent);
+}
+
+.row.failed .icon {
+  color: var(--danger);
+}
+
+.main {
+  display: grid;
+  gap: 3px;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 500;
+  color: var(--fg);
+}
+
+a.title:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.row.wanted .title {
+  color: var(--dim);
+}
+
+.top .version {
+  font-size: var(--text-sm);
+}
+
+a.out {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.about {
+  max-width: 72ch;
+}
+
+.sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+}
+
+.sub a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 2px;
+}
+
+.sub a:hover {
+  color: var(--fg);
+  text-decoration-color: currentColor;
+}
+
+.note {
+  max-width: 72ch;
+  font-size: var(--text-sm);
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+
+.note.toned {
+  color: var(--tone);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+  .actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}

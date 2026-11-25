@@ -1,0 +1,7 @@
+/* A quiet line under a group of plugins (PluginsNote.tsx), as the global
+   .quiet-line is drawn elsewhere. */
+
+.note {
+  color: var(--dim);
+  padding: 6px 8px;
+}
