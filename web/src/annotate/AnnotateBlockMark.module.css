@@ -1,0 +1,13 @@
+/* A box round a commented diagram (AnnotateBlockMark.tsx). */
+
+.mark {
+  position: absolute;
+  border: 2px solid rgb(211 139 29 / 0.45);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+}
+
+.mark.on {
+  border-color: var(--amber-fill);
+  background: var(--amber-soft);
+}

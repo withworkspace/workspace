@@ -1,0 +1,6 @@
+/* What's come of a thread, quietly, in its card (AnnotateSettled.tsx). */
+
+.settled {
+  margin-top: 6px;
+  font-size: var(--text-sm);
+}

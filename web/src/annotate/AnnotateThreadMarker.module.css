@@ -1,0 +1,46 @@
+/* Threads beside their text, on a narrow window: a small marker each
+   (AnnotateThreadMarker.tsx). */
+
+.marker {
+  position: absolute;
+  right: -10px;
+  z-index: 4;
+  min-height: 22px;
+  min-width: 22px;
+  padding: 0 6px;
+  gap: 3px;
+  border-radius: 11px;
+  font-size: var(--text-xs);
+  color: var(--kc, var(--dim));
+  background: var(--raised);
+  border-color: color-mix(in srgb, var(--kc, var(--dim)) 45%, transparent);
+  box-shadow: var(--shadow);
+}
+
+.ask {
+  --kc: var(--k-question);
+}
+
+.note {
+  --kc: var(--k-nit);
+}
+
+.change {
+  --kc: var(--red);
+}
+
+.marker.yours {
+  color: #fff;
+  background: var(--amber-fill);
+  border-color: transparent;
+}
+
+.marker.resolved {
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.marker.on {
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
+  border-color: var(--accent);
+}

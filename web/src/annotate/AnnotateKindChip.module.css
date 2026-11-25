@@ -1,0 +1,18 @@
+/* A thread's kind, at the head of its card (AnnotateKindChip.tsx). */
+
+.chip {
+  color: var(--kc, var(--dim));
+  background: color-mix(in srgb, var(--kc, var(--dim)) 12%, transparent);
+}
+
+.ask {
+  --kc: var(--k-question);
+}
+
+.note {
+  --kc: var(--k-nit);
+}
+
+.change {
+  --kc: var(--red);
+}
