@@ -77,7 +77,7 @@ export function WorkCapsulePane({ d, x, label, select, review, reload, seen }: {
               </Link>
             )}
             {c.exists && (!sum || sum.commitCount > 0) && (
-              <Button size="small" onClick={() => review(c)} title="Review its changes (v)">
+              <Button size="small" onClick={() => review(c)} title="Review its changes" keys="v">
                 <Icon name="eye" /> Review <Keys k="v" />
               </Button>
             )}

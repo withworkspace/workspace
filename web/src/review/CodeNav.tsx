@@ -606,10 +606,10 @@ function NavPanel({ api, at, browse, sideWords, onClose, onBack }: { api: string
             Open <Keys k="o" />
           </Link>
         )}
-        <Button variant="ghost" size="small" onClick={onBack} title="Back (b)">
+        <Button variant="ghost" size="small" onClick={onBack} title="Back" keys="b">
           <Icon name="arrow-left" size={12} /> <Keys k="b" />
         </Button>
-        <Button variant="ghost" size="small" onClick={onClose} title="Close (esc)">
+        <Button variant="ghost" size="small" onClick={onClose} title="Close" keys="esc">
           <Icon name="x" size={13} />
         </Button>
       </header>
@@ -684,10 +684,10 @@ function UsesPanel(props: {
           {uses.partial ? ", maybe more" : ""} · {sideWords(at.side)}
         </span>
         <span className="spacer-left" />
-        <Button variant="ghost" size="small" onClick={onBack} title="Back (b)">
+        <Button variant="ghost" size="small" onClick={onBack} title="Back" keys="b">
           <Icon name="arrow-left" size={12} /> <Keys k="b" />
         </Button>
-        <Button variant="ghost" size="small" onClick={onClose} title="Close (esc)">
+        <Button variant="ghost" size="small" onClick={onClose} title="Close" keys="esc">
           <Icon name="x" size={13} />
         </Button>
       </header>

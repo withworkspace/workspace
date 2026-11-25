@@ -91,7 +91,7 @@ export function Beside({ sheet }: BesideProps) {
         // (FootBeside). A sheet covers the page, so it has its own way out.
         tools={
           sheet && (
-            <Button variant="ghost" size="small" square title="Close Beside (\)" onClick={() => change(toggleBeside)}>
+            <Button variant="ghost" size="small" square title="Close Beside" keys={"\\"} onClick={() => change(toggleBeside)}>
               <Icon name="x" size={13} />
             </Button>
           )

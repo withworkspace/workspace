@@ -1,5 +1,7 @@
+import { createElement as h } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { claimCodeSearch, codeSearchKey, isCodeSearchKey } from "./keys";
+import { claimCodeSearch, codeSearchKey, isCodeSearchKey, keysOf, useShortcut } from "./keys";
 
 const key = (k: Partial<KeyboardEvent>) => ({ metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, key: "", ...k });
 
@@ -47,5 +49,38 @@ describe("mod+shift+F", () => {
     if (b.to === "own") b.open();
     outer();
     expect(got).toEqual(["inner", "outer"]);
+  });
+});
+
+describe("useShortcut", () => {
+  // What it gives back, as a button given it would read it.
+  function Says({ keys, enabled, did }: { keys: string | string[]; enabled?: boolean; did?: () => void }) {
+    const fn = useShortcut(keys, did ?? (() => undefined), { enabled });
+    fn();
+    return h("i", null, keysOf(fn) ?? "none");
+  }
+  const said = (props: Parameters<typeof Says>[0]) => renderToStaticMarkup(h(Says, props));
+
+  it("gives back what it was given, saying its key", () => {
+    let did = 0;
+    expect(said({ keys: "v", did: () => did++ })).toBe("<i>v</i>");
+    expect(did).toBe(1);
+  });
+
+  it("says the first of several keys", () => {
+    expect(said({ keys: ["+", "="] })).toBe("<i>+</i>");
+  });
+
+  it("says no key while it isn't bound, and still does what it does", () => {
+    let did = 0;
+    expect(said({ keys: "v", enabled: false, did: () => did++ })).toBe("<i>none</i>");
+    expect(did).toBe(1);
+  });
+
+  it("is lost by a function around it", () => {
+    const fn = Object.assign(() => undefined, { keys: "v" });
+    expect(keysOf(fn)).toBe("v");
+    expect(keysOf(() => fn())).toBeUndefined();
+    expect(keysOf(undefined)).toBeUndefined();
   });
 });

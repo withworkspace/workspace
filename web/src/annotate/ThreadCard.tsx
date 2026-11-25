@@ -67,7 +67,7 @@ export function ThreadCard({ thread, active, hovered, replying, unplaced, onFocu
         end={
           <>
             <NoteId>{thread.id}</NoteId>
-            <Button variant="ghost" size="small" onClick={(e) => (e.stopPropagation(), onFocus(), onToggle())} title={`${resolved ? "Reopen" : "Resolve"} (x)`}>
+            <Button variant="ghost" size="small" onClick={(e) => (e.stopPropagation(), onFocus(), onToggle())} title={resolved ? "Reopen" : "Resolve"} keys="x">
               {resolved ? "Reopen" : "Resolve"}
             </Button>
           </>

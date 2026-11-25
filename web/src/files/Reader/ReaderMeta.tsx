@@ -61,14 +61,14 @@ export function ReaderMeta({ kind, repo, worktree, ground, page, flights, docRef
       <span className={css.actions}>
         {pin}
         {contents && (
-          <Button size="small" ref={contents.ref} data-contents-toggle aria-expanded={contents.open} onClick={contents.onToggle} title="Its contents (t)">
+          <Button size="small" ref={contents.ref} data-contents-toggle aria-expanded={contents.open} onClick={contents.onToggle} title="Its contents" keys="t">
             <Icon name="list" size={12} /> Contents <Keys k="t" />
           </Button>
         )}
-        <Button size="small" className={css.ask} onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask about it, or about what's selected (a)">
+        <Button size="small" className={css.ask} onMouseDown={(e) => e.preventDefault()} onClick={onAsk} title="Ask about it, or about what's selected" keys="a">
           <Icon name="sparkle" size={12} /> Ask <Keys k="a" />
         </Button>
-        <Button size="small" onClick={onEdit} unavailable={editUnavailable} title="Edit it as a page: cells, questions and passes, saved back to the repo when you say (e)">
+        <Button size="small" onClick={onEdit} unavailable={editUnavailable} title="Edit it as a page: cells, questions and passes, saved back to the repo when you say" keys="e">
           <Icon name="pencil" size={12} /> Edit <Keys k="e" />
         </Button>
         <Link to={filesTo} className={buttonClass({ size: "small" })} title="Open it in Files (o)">

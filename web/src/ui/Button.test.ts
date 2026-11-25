@@ -42,6 +42,15 @@ describe("Button", () => {
     expect(html({ title: "Save it (s)" })).not.toContain("aria-label");
   });
 
+  it("says its key after its title, from keys or from what it's given to press, and is named without it", () => {
+    expect(html({ title: "Save it", keys: "s", disabled: true })).toContain('title="Save it (s)"');
+    expect(html({ title: "Close", keys: "Escape", disabled: true })).toContain('title="Close (esc)"');
+    const save = Object.assign(() => undefined, { keys: "s" });
+    expect(html({ title: "Save it", onClick: save, disabled: true })).toContain('title="Save it (s)"');
+    expect(html({ title: "Save it", onClick: () => save(), disabled: true })).toContain('title="Save it"');
+    expect(html({ title: "Close", keys: "esc", square: true })).toContain('aria-label="Close"');
+  });
+
   it("looks disabled and says so when it's unavailable, but can still be pointed at and focused", () => {
     const out = html({ unavailable: "Pick a verdict first", type: "submit" });
     expect(out).toContain('aria-disabled="true"');

@@ -104,7 +104,7 @@ export function MissionDecisionForm({
         <Button variant="ghost" size="small" onClick={onCancel}>
           Cancel
         </Button>
-        <Button variant="primary" size="small" type="submit" disabled={busy || (!ready && !same)} unavailable={same ? `It reads as ${of} does: say what's decided in its place` : undefined} title={`${w.send} (⌘⏎)`}>
+        <Button variant="primary" size="small" type="submit" disabled={busy || (!ready && !same)} unavailable={same ? `It reads as ${of} does: say what's decided in its place` : undefined} title={w.send} keys="mod+⏎">
           {busy ? w.sending : w.send}
         </Button>
       </div>

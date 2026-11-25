@@ -84,7 +84,7 @@ export function BriefPlanner({
         <span className="spacer" />
         {action}
         {fold && (
-          <Button variant="ghost" square type="button" onClick={fold} title="Fold the planner away (p)" aria-label="Fold the planner away">
+          <Button variant="ghost" square type="button" onClick={fold} title="Fold the planner away" keys="p" aria-label="Fold the planner away">
             <Icon name="panel" size={14} />
           </Button>
         )}

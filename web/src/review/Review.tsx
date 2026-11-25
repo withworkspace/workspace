@@ -1053,7 +1053,7 @@ export function ReviewView({ source }: { source: ReviewSource }) {
           )}
           <span className="review-actions">
             {changes && diff && sinceable !== undefined && (
-              <Button variant="ghost" size="small" onClick={toggleSince} title="Switch between what's changed since your last review and all of it (i)">
+              <Button variant="ghost" size="small" onClick={toggleSince} title="Switch between what's changed since your last review and all of it" keys="i">
                 {sinceShown ? "Show all changes" : `Only since ${sinceName}`} <Keys k="i" />
               </Button>
             )}
@@ -1063,20 +1063,20 @@ export function ReviewView({ source }: { source: ReviewSource }) {
                 <Icon name="file" size={12} /> Browse files
               </Link>
             )}
-            <Button variant="ghost" size="small" className="mobile-only" onClick={() => setFinder(true)} title="Jump to a file (t)">
+            <Button variant="ghost" size="small" className="mobile-only" onClick={() => setFinder(true)} title="Jump to a file" keys="t">
               <Icon name="file" size={13} /> Files
             </Button>
             {changes && (
               <Segmented className="desktop-only" value={split ? "split" : "unified"} onChange={toggleSplit} aria-label="Diff layout">
-                <Segment value="unified" title="Unified (u)">
+                <Segment value="unified" title="Unified" keys="u">
                   <Icon name="unified" size={13} /> Unified
                 </Segment>
-                <Segment value="split" title="Side by side (u)">
+                <Segment value="split" title="Side by side" keys="u">
                   <Icon name="split" size={13} /> Split
                 </Segment>
               </Segmented>
             )}
-            <Button variant="primary" className="submit-button" onClick={submit} unavailable={source.readOnly} title="Submit the review (s)">
+            <Button variant="primary" className="submit-button" onClick={submit} unavailable={source.readOnly} title="Submit the review" keys="s">
               {draft ? `Submit review · ${draft.comments.length}` : "Submit review"} <Keys k="s" />
             </Button>
           </span>

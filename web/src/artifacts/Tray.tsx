@@ -74,7 +74,7 @@ export function TweaksTray({ told, set, onClose, children }: { told: Told; set: 
   return (
     <aside className="tweaks-tray" aria-label="Tweaks">
       <TweaksHead told={told}>
-        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Hide the tweaks" title="Hide them (t)">
+        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Hide the tweaks" title="Hide them" keys="t">
           <Icon name="x" size={13} />
         </Button>
       </TweaksHead>

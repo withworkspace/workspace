@@ -108,7 +108,7 @@ export function SubmitDialog({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={submit} unavailable={verdict ? undefined : "Pick a verdict first"} title="Submit (⌘⏎)">
+          <Button variant="primary" onClick={submit} unavailable={verdict ? undefined : "Pick a verdict first"} title="Submit" keys="mod+⏎">
             Submit <Keys k="mod+⏎" />
           </Button>
         </div>

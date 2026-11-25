@@ -48,7 +48,7 @@ export function DismissAs({ onDismiss, onCancel }: { onDismiss: (why: DismissWhy
           {label} <Keys k={`${i + 1}`} />
         </Button>
       ))}
-      <Button variant="ghost" size="small" square onClick={onCancel} aria-label="Don't dismiss it" title="Don't dismiss it (esc)">
+      <Button variant="ghost" size="small" square onClick={onCancel} aria-label="Don't dismiss it" title="Don't dismiss it" keys="esc">
         <Icon name="x" size={11} />
       </Button>
     </span>
@@ -76,14 +76,14 @@ export function FindingActions({
   if (dismissing) return <DismissAs onDismiss={onDismiss} onCancel={() => onDismissing(false)} />;
   return (
     <span className="finding-actions" onClick={(e) => e.stopPropagation()}>
-      <Button variant="primary" size="small" onClick={onTake} title="Put it in your draft review as a comment, marked as the agent's: yours to edit, and posted only when you submit (⏎)">
+      <Button variant="primary" size="small" onClick={onTake} title="Put it in your draft review as a comment, marked as the agent's: yours to edit, and posted only when you submit" keys="⏎">
         Take {cursor && <Keys k="⏎" />}
       </Button>
-      <Button variant="ghost" size="small" onClick={() => onDismissing(true)} title="It isn't one: don't raise it again. You'll say why (D)">
+      <Button variant="ghost" size="small" onClick={() => onDismissing(true)} title="It isn't one: don't raise it again. You'll say why" keys="D">
         Dismiss {cursor && <Keys k="D" />}
       </Button>
       {canAsk && onAsk && (
-        <Button variant="ghost" size="small" onClick={onAsk} title="Ask an agent about it, with the code checked out here (a)">
+        <Button variant="ghost" size="small" onClick={onAsk} title="Ask an agent about it, with the code checked out here" keys="a">
           Ask {cursor && <Keys k="a" />}
         </Button>
       )}

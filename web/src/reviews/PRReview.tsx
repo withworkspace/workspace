@@ -707,7 +707,7 @@ function LayerList({ d, whole, going, search, onWhole }: { d: PRDetail; whole: b
           );
         })}
       </ol>
-      <ToggleButton variant="ghost" size="small" className="whole-stack" pressed={whole} aria-busy={going?.whole || undefined} onChange={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer. (w)">
+      <ToggleButton variant="ghost" size="small" className="whole-stack" pressed={whole} aria-busy={going?.whole || undefined} onChange={onWhole} title="Every layer's changes together, to see where the stack ends up. It's for reading: comments are made on a layer." keys="w">
         {going?.whole && !whole ? <Spinner size={12} /> : <Icon name="layers" size={12} />} Whole stack <Keys k="w" />
       </ToggleButton>
     </div>
@@ -963,7 +963,7 @@ function PRSubmitDialog({
         <Button variant="ghost" onClick={onClose}>
           {layers.some((l) => l.state === "posted") ? "Close" : "Cancel"}
         </Button>
-        <Button variant="primary" onClick={submit} disabled={busy} unavailable={ready ? undefined : "Pick a verdict first"} title="Post to GitHub (⌘⏎)">
+        <Button variant="primary" onClick={submit} disabled={busy} unavailable={ready ? undefined : "Pick a verdict first"} title="Post to GitHub" keys="mod+⏎">
           {busy ? "Posting…" : chosen.length > 1 ? `Post ${chosen.length} reviews to GitHub` : "Post to GitHub"} <Keys k="mod+⏎" />
         </Button>
       </div>

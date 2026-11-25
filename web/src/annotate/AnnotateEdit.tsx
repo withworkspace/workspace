@@ -37,7 +37,7 @@ export function AnnotateEdit({
       title="Suggested edit"
       by={`by ${by === "agent" ? "the agent" : by}`}
       actionsStart={
-        <Button variant="link" className={css.seeApplied} onClick={onPreview} title="See it in the document, as a tracked change (v)">
+        <Button variant="link" className={css.seeApplied} onClick={onPreview} title="See it in the document, as a tracked change" keys="v">
           <Icon name="eye" size={12} /> See it in place
         </Button>
       }
@@ -46,10 +46,10 @@ export function AnnotateEdit({
           <AnnotateSuggestionBusy>Writing it in…</AnnotateSuggestionBusy>
         ) : (
           <>
-            <Button variant="ghost" size="small" disabled={settling} onClick={() => onSettle("decline")} title="Decline it (d)">
+            <Button variant="ghost" size="small" disabled={settling} onClick={() => onSettle("decline")} title="Decline it" keys="d">
               Decline {active && <Keys k="d" />}
             </Button>
-            <Button variant="primary" size="small" disabled={settling} onClick={() => onSettle("accept")} title={landing ? `Accept it, and land it on ${landing} (a)` : "Accept it (a)"}>
+            <Button variant="primary" size="small" disabled={settling} onClick={() => onSettle("accept")} title={landing ? `Accept it, and land it on ${landing}` : "Accept it"} keys="a">
               {landing ? `Land it on ${landing}` : "Accept"} {active && <Keys k="a" />}
             </Button>
           </>

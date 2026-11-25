@@ -207,7 +207,7 @@ export function ReviewsPage() {
               }
             }}
           />
-          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Ask GitHub again (r)">
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Ask GitHub again" keys="r">
             <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
           </Button>
         </>

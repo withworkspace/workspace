@@ -327,10 +327,10 @@ export function TeamPage() {
         <>
           {view && <TeamAsOf at={view.at} looking={loading} />}
           <Segmented value={byPeople ? "people" : "days"} onChange={(v) => arrange(v === "people")} aria-label="Arranged">
-            <Segment value="days" title="By day, newest first (p)">
+            <Segment value="days" title="By day, newest first" keys="p">
               Days
             </Segment>
-            <Segment value="people" title="By person: what each has open, has landed, and has been reviewing (p)">
+            <Segment value="people" title="By person: what each has open, has landed, and has been reviewing" keys="p">
               People
             </Segment>
           </Segmented>
@@ -342,12 +342,12 @@ export function TeamPage() {
             ))}
           </Segmented>
           {narrative?.on && (
-            <ToggleButton variant="ghost" size="small" pressed={onlyKnow} onChange={know} title="Only the changes with something worth knowing (n)">
+            <ToggleButton variant="ghost" size="small" pressed={onlyKnow} onChange={know} title="Only the changes with something worth knowing" keys="n">
               <Icon name="eye" size={13} /> Worth knowing {worth > 0 && <Count tone="attention">{worth}</Count>}
             </ToggleButton>
           )}
           <TeamFilter ref={filter} value={q} onChange={setQ} />
-          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Look at git and GitHub again (r)">
+          <Button variant="ghost" size="small" onClick={refresh} disabled={loading} title="Look at git and GitHub again" keys="r">
             <Icon name="rotate" size={13} /> Refresh <Keys k="r" />
           </Button>
         </>
@@ -411,14 +411,14 @@ export function TeamPage() {
             </TeamNarrativeReading>
           )}
           {summary && !summary.at && !summary.writing && summary.can > 0 && (
-            <Button variant="link" onClick={catchUp} title="An agent writes what the team's been working on in this period, from the changes that have been read (c)">
+            <Button variant="link" onClick={catchUp} title="An agent writes what the team's been working on in this period, from the changes that have been read" keys="c">
               Catch me up
             </Button>
           )}
           {narrative?.on && narrative.unwritten > 0 && (
             <span>
               {narrative.unwritten} {narrative.unwritten === 1 ? "change hasn't" : "changes haven't"} been read: those from before yesterday wait until you ask.{" "}
-              <Button variant="link" onClick={writeAll} title="Have an agent read them (⇧W)">
+              <Button variant="link" onClick={writeAll} title="Have an agent read them" keys="⇧W">
                 Read them
               </Button>
             </span>

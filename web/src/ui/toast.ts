@@ -7,6 +7,7 @@ export interface ToastItem {
   id: number;
   text: string;
   tone: "info" | "danger" | "done";
+  keys?: string; // a key said after the words, as Keys draws one (a key hint)
   action?: { label: string; run: () => void };
 }
 
@@ -29,8 +30,8 @@ export function onToasts(l: () => void): () => void {
 // toast says something, for a few seconds (longer when there's something
 // to press: Undo, Open). Three at most are shown: a new one takes the
 // oldest's place.
-export function toast(text: string, opts: { tone?: ToastItem["tone"]; action?: ToastItem["action"]; ms?: number } = {}) {
+export function toast(text: string, opts: { tone?: ToastItem["tone"]; action?: ToastItem["action"]; keys?: string; ms?: number } = {}) {
   const id = ++toastID;
-  setToasts([...toasts.slice(-2), { id, text, tone: opts.tone ?? "info", action: opts.action }]);
+  setToasts([...toasts.slice(-2), { id, text, tone: opts.tone ?? "info", action: opts.action, keys: opts.keys }]);
   setTimeout(() => setToasts(toasts.filter((t) => t.id !== id)), opts.ms ?? (opts.action ? 6000 : 3500));
 }

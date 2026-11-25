@@ -53,7 +53,7 @@ export function AnnotateComposer({
   onSuggest?: () => void;
   canPost: boolean;
   onPost: () => void;
-  // The keys that post it, as they're said (⌘⏎, or ⏎).
+  // The keys that post it, as Keys reads them (mod+⏎, or ⏎).
   postKeys: string;
   onCancel: () => void;
 }) {
@@ -94,10 +94,10 @@ export function AnnotateComposer({
           </span>
         }
       >
-        <Button variant="ghost" size="small" onClick={onCancel} title="Cancel (esc)">
+        <Button variant="ghost" size="small" onClick={onCancel} title="Cancel" keys="esc">
           Cancel
         </Button>
-        <Button variant="primary" size="small" onClick={onPost} disabled={!canPost} title={`Post it (${postKeys})`}>
+        <Button variant="primary" size="small" onClick={onPost} disabled={!canPost} title="Post it" keys={postKeys}>
           {edit !== undefined ? "Suggest" : "Comment"}
         </Button>
       </AnnotateActions>

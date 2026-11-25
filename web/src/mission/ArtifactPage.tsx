@@ -124,7 +124,7 @@ export function ArtifactPage() {
           </Copyable>
           <span className="spacer" />
           {a.markdown && !editing && (
-            <Button size="small" onClick={startEdit} unavailable={a.editable ? undefined : `Can't be edited here: ${a.uneditable}`} title="Edit it here (e)">
+            <Button size="small" onClick={startEdit} unavailable={a.editable ? undefined : `Can't be edited here: ${a.uneditable}`} title="Edit it here" keys="e">
               <Icon name="pencil" size={12} /> Edit <Keys k="e" />
             </Button>
           )}

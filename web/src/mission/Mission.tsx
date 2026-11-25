@@ -310,7 +310,7 @@ export function MissionPage() {
   const tabRow = (count?: (t: Tab) => ReactNode) => (
     <Tabs className={pageBarTabsClass()} value={tab} onChange={setTab} controls="mission-panel" aria-label="Mission">
       {tabs.map((t) => (
-        <Tab key={t} value={t} title={`${tabNames[t]} (${tabs.indexOf(t) + 1})`}>
+        <Tab key={t} value={t} title={tabNames[t]} keys={String(tabs.indexOf(t) + 1)}>
           {tabNames[t]}
           {count?.(t)}
         </Tab>
@@ -1278,7 +1278,7 @@ function CapsuleCard({ c, selected, review }: { c: CapsuleDetail; selected: (k: 
         <CapsuleBadges c={c} />
         <span className="spacer" />
         {c.exists && (
-          <Button size="small" onClick={() => review(c)} title="Review its changes (v)">
+          <Button size="small" onClick={() => review(c)} title="Review its changes" keys="v">
             <Icon name="eye" /> Review
           </Button>
         )}

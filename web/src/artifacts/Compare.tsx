@@ -198,20 +198,20 @@ export function ComparePage() {
         </div>
         <div className="artifact-tools">
           <Segmented value={diff ? "diff" : "frames"} onChange={(v) => setDiff(v === "diff")} aria-label="What's compared">
-            <Segment value="frames" title="Each running in its frame (d)">
+            <Segment value="frames" title="Each running in its frame" keys="d">
               <Icon name="monitor" size={13} /> Frames
             </Segment>
-            <Segment value="diff" title="Their files, the left's against the right's (d)">
+            <Segment value="diff" title="Their files, the left's against the right's" keys="d">
               <Icon name="code" size={13} /> Source diff
             </Segment>
           </Segmented>
           {diff ? (
             !narrow && (
               <Segmented value={split ? "split" : "unified"} onChange={(v) => setSplit(v === "split")} aria-label="The diff">
-                <Segment value="unified" title="Unified (u)">
+                <Segment value="unified" title="Unified" keys="u">
                   <Icon name="unified" size={13} /> Unified
                 </Segment>
-                <Segment value="split" title="Side by side (u)">
+                <Segment value="split" title="Side by side" keys="u">
                   <Icon name="split" size={13} /> Split
                 </Segment>
               </Segmented>

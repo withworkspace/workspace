@@ -86,7 +86,7 @@ import { Tab, Tabs } from "../ui/Tabs";
 import { Checkbox } from "../ui/Checkbox";
 import { Composer } from "../ui/Composer";
 import { SendKeys } from "../ui/SendKeys";
-import { sendKeysSaid, useSendKey } from "../ui/sendKey";
+import { sendKeys, useSendKey } from "../ui/sendKey";
 import { Turn, TurnSaid } from "../ui/Turn";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
@@ -1444,7 +1444,7 @@ function NoteCard({
           {pass.title}
         </Button>
         <span className="spacer" />
-        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close (esc)">
+        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close" keys="esc">
           <Icon name="x" size={13} />
         </Button>
       </div>
@@ -1860,7 +1860,7 @@ function CellPanel({
           »
         </span>
         <span className="cell-panel-prompt">{cell.turns[0]?.body}</span>
-        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close (esc)">
+        <Button variant="ghost" size="small" square onClick={onClose} aria-label="Close" title="Close" keys="esc">
           <Icon name="x" size={13} />
         </Button>
       </div>
@@ -2012,7 +2012,7 @@ function CellPanel({
       >
         {question ? (
           <>
-            <Button size="small" disabled={busy} onClick={() => send(false)} title={`Have it written into the page, here: what it's answered, or what you say (${sendKeysSaid(sendKey, true)})`}>
+            <Button size="small" disabled={busy} onClick={() => send(false)} title="Have it written into the page, here: what it's answered, or what you say" keys={sendKeys(sendKey, true)}>
               Put it in the page
             </Button>
             <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask: it's answered here, and the page stays as it is">
@@ -2021,7 +2021,7 @@ function CellPanel({
           </>
         ) : (
           <>
-            <Button size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title={`Ask about it: it's answered here, and the cell stays as it is (${sendKeysSaid(sendKey, true)})`}>
+            <Button size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask about it: it's answered here, and the cell stays as it is" keys={sendKeys(sendKey, true)}>
               Just ask
             </Button>
             <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(false)} title="Have the cell written again, this way">

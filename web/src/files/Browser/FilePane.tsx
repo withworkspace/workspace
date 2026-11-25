@@ -120,10 +120,10 @@ export function FilePane({
           <>
             {md && text && (
               <Segmented value={preview ? "rendered" : "text"} onChange={(v) => setPreview(() => v === "rendered")} aria-label="Markdown">
-                <Segment value="rendered" title="Rendered (m)">
+                <Segment value="rendered" title="Rendered" keys="m">
                   Rendered
                 </Segment>
-                <Segment value="text" title="As text (m)">
+                <Segment value="text" title="As text" keys="m">
                   Text
                 </Segment>
               </Segmented>

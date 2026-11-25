@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { Keys } from "./Keys";
 import css from "./Toasts.module.css";
 import { ToastPill } from "./ToastPill";
 import { getToasts, onToasts, setToasts } from "./toast";
@@ -25,6 +26,12 @@ export function Toasts() {
           }
         >
           {t.text}
+          {t.keys && (
+            <>
+              {" "}
+              <Keys k={t.keys} />
+            </>
+          )}
         </ToastPill>
       ))}
     </div>

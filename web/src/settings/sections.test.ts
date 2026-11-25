@@ -174,6 +174,7 @@ describe("find", () => {
     expect(found("theme")).toEqual([["appearance", ["theme"]]]);
     expect(found("sidebar")).toEqual([["appearance", ["places"]]]);
     expect(found("send with")).toEqual([["keyboard", ["sendKey"]]]);
+    expect(found("key hints")).toEqual([["keyboard", ["keyHints"]]]);
     expect(found("notification")).toEqual([["notifications", ["notify"]]]);
     expect(found("shutting")).toEqual([["about", ["daemon"]]]);
   });

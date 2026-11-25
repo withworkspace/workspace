@@ -50,7 +50,7 @@ export function TeamSummary({ summary, folded, onFold, on, onTopic, names, onWri
                 </span>
               )}
               {summary.at && summary.stale && <span className={css.stale}>changed since</span>}
-              <Button variant="link" className={css.again} onClick={onWrite} title="Have it written again, from the changes as they are now (c)">
+              <Button variant="link" className={css.again} onClick={onWrite} title="Have it written again, from the changes as they are now" keys="c">
                 Write it again
               </Button>
             </>
