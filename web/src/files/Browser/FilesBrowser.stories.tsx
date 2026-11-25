@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { type ReactNode, useState } from "react";
 import { Link } from "react-router";
+import type { TreeFile } from "../../api";
 import { Markdown } from "../../markdown/LazyMarkdown";
 import { Button, buttonClass } from "../../ui/Button";
 import { Crumbs } from "../../ui/Crumbs";
@@ -11,6 +12,7 @@ import { Icon } from "../../ui/Icon";
 import { Keys } from "../../ui/Keys";
 import { Loading } from "../../ui/Loading";
 import { Segment, Segmented } from "../../ui/Segmented";
+import { Tree as UITree } from "../../ui/Tree";
 import { FilesBar, filesBarCrumbsClass } from "./FilesBar";
 import { FilesBody } from "./FilesBody";
 import { FilesCapsule } from "./FilesCapsule";
@@ -29,11 +31,12 @@ import { FilesMarkdown } from "./FilesMarkdown";
 import { FilesOverview } from "./FilesOverview";
 import { FilesPanes, FilesPanesGlyph } from "./FilesPanes";
 import { FilesTab, FilesTabs } from "./FilesTabs";
-import { FilesTree } from "./FilesTree";
-import { FilesTreeRow } from "./FilesTreeRow";
+import { FilesTree, filesTreeClass } from "./FilesTree";
+import { filesTreeLook } from "./filesTreeLook";
 import { FilesTreeTools } from "./FilesTreeTools";
 import { FilesView } from "./FilesView";
 import { paneChoices, type Panes } from "./panes";
+import { changedIn, filesTree } from "./tree";
 
 // The file explorer, from its parts: a mission's capsule's files with one
 // open (its bar, its tree, the file with its changed lines marked and a
@@ -119,20 +122,35 @@ function Code({ picked }: { picked?: [number, number] }) {
   return <FilesCode digits={2}>{out}</FilesCode>;
 }
 
+// The tree as the explorer draws it (ui/Tree, with the explorer's look):
+// a folder folded over three changed files, and each way a file's changed.
+const treeFiles: TreeFile[] = [
+  { path: "docs/guides/late.md", status: "modified" },
+  { path: "docs/guides/setup.md", status: "added" },
+  { path: "docs/guides/old.md", status: "deleted" },
+  { path: "src/invoices/money.ts", status: "modified" },
+  { path: "src/invoices/sort.ts", status: "deleted" },
+  { path: "src/report/summary.ts", status: "added", uncommitted: true },
+  { path: "src/styles/theme.css", status: "renamed" },
+  { path: "src/App.tsx" },
+  { path: "package.json" },
+];
+const treeNodes = filesTree(treeFiles);
+const treeCounts = changedIn(treeNodes);
+
 function Tree() {
   return (
-    <>
-      <FilesTreeRow name="docs/guides" path="docs/guides" depth={0} dir changed={3} onClick={none} />
-      <FilesTreeRow name="src" path="src" depth={0} dir open onClick={none} />
-      <FilesTreeRow name="invoices" path="src/invoices" depth={1} dir open onClick={none} />
-      <FilesTreeRow name="money.ts" path="src/invoices/money.ts" depth={2} status="modified" onClick={none} />
-      <FilesTreeRow name="sort.ts" path="src/invoices/sort.ts" depth={2} status="deleted" onClick={none} />
-      <FilesTreeRow name="report" path="src/report" depth={1} dir open onClick={none} />
-      <FilesTreeRow name="summary.ts" path="src/report/summary.ts" depth={2} status="added" uncommitted cursor current onClick={none} />
-      <FilesTreeRow name="theme.css" path="src/styles/theme.css" depth={1} status="renamed" onClick={none} />
-      <FilesTreeRow name="App.tsx" path="src/App.tsx" depth={1} onClick={none} />
-      <FilesTreeRow name="package.json" path="package.json" depth={0} onClick={none} />
-    </>
+    <UITree
+      aria-label="web/late-invoices"
+      className={filesTreeClass}
+      nodes={treeNodes}
+      look={(n, at) => filesTreeLook(n, at, treeCounts)}
+      startOpen={["src", "src/invoices", "src/report"]}
+      current="src/report/summary.ts"
+      typeahead={false}
+      marks
+      mono
+    />
   );
 }
 
@@ -153,7 +171,7 @@ function Explorer({ panes = 2, file = true }: { panes?: Panes; file?: boolean })
         />
         <FilesBody single={panes === 1}>
           {panes > 1 && (
-            <FilesTree label="web/late-invoices" tools={<FilesTreeTools all={14} changed={5} changedOnly={false} canChange onShow={none} onFind={none} onSearch={none} />}>
+            <FilesTree tools={<FilesTreeTools all={14} changed={5} changedOnly={false} canChange onShow={none} onFind={none} onSearch={none} />}>
               <Tree />
             </FilesTree>
           )}
@@ -241,7 +259,7 @@ export const TreeStates: StoryObj = {
         </Empty>,
       ].map((rows, i) => (
         <div key={i} style={{ width: 300, display: "flex" }}>
-          <FilesTree label="web/late-invoices" panel={i === 0} tools={<FilesTreeTools all={14} changed={5} changedOnly={i === 2} canChange onShow={none} onFind={none} />} note={i === 0 ? "Only the first 10 files are listed." : undefined}>
+          <FilesTree panel={i === 0} tools={<FilesTreeTools all={14} changed={5} changedOnly={i === 2} canChange onShow={none} onFind={none} />} note={i === 0 ? "Only the first 10 files are listed." : undefined}>
             {rows}
           </FilesTree>
         </div>
