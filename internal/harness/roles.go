@@ -188,18 +188,7 @@ func (r Roles) ForTeam() (Pick, Converser, error) {
 		}
 		name = p.Harness
 	}
-	c, err := converserNamed(name)
-	if err != nil {
-		return Pick{}, nil, err
-	}
-	p := Pick{Harness: c.Name(), Model: r.Team.Model}
-	if o, ok := c.(Orchestrator); ok && p.Model == "" {
-		p.Model = o.OrchestratorModel()
-	}
-	if p.Model == "" {
-		p.Model = c.ConverseModel()
-	}
-	return p, c, nil
+	return smallPick(name, r.Team.Model)
 }
 
 // ForBriefingConversation picks who briefs a mission in a conversation:
@@ -220,54 +209,51 @@ func (r Roles) ForBriefingConversation() (Pick, Converser, error) {
 
 // ForJudge picks who judges a Work step's checks in words: an agent with
 // fresh context, headless and read-only. [judge] harness, else the
-// planner's (ForBriefingConversation). The model is [judge] model, else,
-// on the planner's harness, the planner's model, else the harness's
-// conversation default: a judgement is worth the planner's model, not the
-// orchestrator's small one.
+// planner's (ForBriefingConversation). The model is [judge] model, else
+// the harness's small one (smallModel): it reads a step's work against
+// its checks, which ws's evals found the small models judge as well as
+// the large.
 func (r Roles) ForJudge() (Pick, Converser, error) {
-	if r.Judge.Harness == "" {
-		p, c, err := r.ForBriefingConversation()
+	name := r.Judge.Harness
+	if name == "" {
+		p, _, err := r.ForBriefingConversation()
 		if err != nil {
 			return Pick{}, nil, err
 		}
-		if r.Judge.Model != "" {
-			p.Model = r.Judge.Model
-		}
-		return p, c, nil
+		name = p.Harness
 	}
-	c, err := converserNamed(r.Judge.Harness)
-	if err != nil {
-		return Pick{}, nil, err
-	}
-	p := Pick{Harness: c.Name(), Model: r.Judge.Model}
-	if p.Model == "" {
-		p.Model = c.ConverseModel()
-	}
-	return p, c, nil
+	return smallPick(name, r.Judge.Model)
 }
 
 // ForPRWriter picks who writes a pull request's title and description:
 // headless, read-only, with fresh context. [pr_writer] harness, else
-// conversations' (ForConversation). The model is [pr_writer] model, else,
-// on conversations' harness, theirs, else the harness's conversation
-// default: it reads the change and writes for people, which wants more
-// than the orchestrator's small model.
+// conversations' (ForConversation). The model is [pr_writer] model, else
+// the harness's small one (smallModel): ws's evals found the small models
+// write them as well as the large.
 func (r Roles) ForPRWriter() (Pick, Converser, error) {
-	if r.PRWriter.Harness == "" {
-		p, c, err := r.ForConversation()
+	name := r.PRWriter.Harness
+	if name == "" {
+		p, _, err := r.ForConversation()
 		if err != nil {
 			return Pick{}, nil, err
 		}
-		if r.PRWriter.Model != "" {
-			p.Model = r.PRWriter.Model
-		}
-		return p, c, nil
+		name = p.Harness
 	}
-	c, err := converserNamed(r.PRWriter.Harness)
+	return smallPick(name, r.PRWriter.Model)
+}
+
+// smallPick is the named harness, on model, else on its small model: what
+// it runs the orchestrator on, or its conversation default if it runs
+// none.
+func smallPick(name, model string) (Pick, Converser, error) {
+	c, err := converserNamed(name)
 	if err != nil {
 		return Pick{}, nil, err
 	}
-	p := Pick{Harness: c.Name(), Model: r.PRWriter.Model}
+	p := Pick{Harness: c.Name(), Model: model}
+	if o, ok := c.(Orchestrator); ok && p.Model == "" {
+		p.Model = o.OrchestratorModel()
+	}
 	if p.Model == "" {
 		p.Model = c.ConverseModel()
 	}

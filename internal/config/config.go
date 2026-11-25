@@ -27,11 +27,12 @@ type Config struct {
 	// Conversation is the agent that answers threads on documents.
 	Conversation AgentConfig `toml:"conversation"`
 	// Judge is the agent that judges a Work step's checks in words, with
-	// fresh context: unset, the planner's (briefing's) agent and model.
+	// fresh context: unset, the planner's (briefing's) agent, on its small
+	// model.
 	Judge AgentConfig `toml:"judge"`
 	// PRWriter is the agent that writes the title and description of a
 	// pull request ws opens, from the step it's for and PR.md: unset,
-	// conversations' agent and model.
+	// conversations' agent, on its small model.
 	PRWriter PRWriterConfig `toml:"pr_writer"`
 	Missions MissionsConfig `toml:"missions"`
 	Agents   AgentsConfig   `toml:"agents"`

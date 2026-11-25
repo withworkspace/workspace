@@ -142,14 +142,17 @@ func TestProposals_FlagResumeWithConclude(t *testing.T) {
 	}
 }
 
-// fileOrchestrator stands in for an agent that follows the one line it's
-// given: it reports how many lines that was, then reads the file it names.
+// fileOrchestrator stands in for an agent given its prompt on a command
+// line, which follows the one line it's given: it reports how many lines
+// that was, then reads the file it names. It says too whether it was
+// handed the whole prompt, as an ACP agent is sent it.
 type fileOrchestrator struct{ testutil.EchoOrchestrator }
 
 func (fileOrchestrator) Name() string { return "file-orchestrator" }
 func (fileOrchestrator) Orchestrate(r harness.OrchestratorRun) (harness.Launch, error) {
-	script := `printf 'lines=%s\n' "$(printf '%s' "$0" | wc -l | tr -d ' ')"; for w in $0; do case "$w" in /*.prompt.md) head -n 1 "$w";; esac; done`
-	return harness.Launch{Args: []string{"/bin/sh", "-c", script, r.Prompt}, Dir: r.Dir}, nil
+	script := `printf 'lines=%s whole=%s\n' "$(printf '%s' "$0" | wc -l | tr -d ' ')" "$1"; for w in $0; do case "$w" in /*.prompt.md) head -n 1 "$w";; esac; done`
+	whole := strings.Contains(r.Prompt, "Start with `ws show -f llm`")
+	return harness.Launch{Args: []string{"/bin/sh", "-c", script, r.OnCommandLine(), fmt.Sprint(whole)}, Dir: r.Dir}, nil
 }
 
 func TestOrchestrate_PromptGoesInAFileNotTheCommandLine(t *testing.T) {
@@ -168,8 +171,9 @@ func TestOrchestrate_PromptGoesInAFileNotTheCommandLine(t *testing.T) {
 			summary = e.Text
 		}
 	}
-	// One line on the command line, and the agent found the prompt from it.
-	if !strings.Contains(summary, "lines=0") || !strings.Contains(summary, `You are the orchestrator for the mission "Cache"`) {
+	// One line on the command line, and the agent found the prompt from it;
+	// the whole prompt is there too, for an agent that's sent it.
+	if !strings.Contains(summary, "lines=0 whole=true") || !strings.Contains(summary, `You are the orchestrator for the mission "Cache"`) {
 		t.Errorf("summary = %q", summary)
 	}
 }

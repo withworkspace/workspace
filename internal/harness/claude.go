@@ -180,6 +180,11 @@ func capsuleGitRules(paths []string) []string {
 // --allowedTools takes one rule per argument, so -- ends the list before the
 // prompt. --no-session-persistence keeps these runs out of the user's
 // /resume list (their output is in orchestrator.log).
+//
+// It's given the whole prompt as its argument, as the judge's and the PR
+// writer's are, not the line pointing at its file: reading that cost every
+// run a turn first. ws's prompts stay under Linux's limit on one argument
+// (128 KiB): orchestrator.promptMax is 112 KiB.
 func (c *Claude) Orchestrate(r OrchestratorRun) (Launch, error) {
 	bin, err := c.bin()
 	if err != nil {

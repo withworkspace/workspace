@@ -195,5 +195,5 @@ func (c *Cursor) Orchestrate(r OrchestratorRun) (Launch, error) {
 	if r.Model != "" {
 		args = append(args, "--model", r.Model)
 	}
-	return Launch{Args: append(args, "--", r.Prompt), Dir: dir, Stream: StreamCursor}, nil
+	return Launch{Args: append(args, "--", r.OnCommandLine()), Dir: dir, Stream: StreamCursor}, nil
 }
