@@ -136,7 +136,8 @@ func (w *Workspace) Orchestrate(r OrchestratorRun) error {
 		}
 		store.AppendLog(m.Slug, mission.Event{Kind: mission.EventOrchestrateRun, Crew: "orchestrator", Run: rec.ID, Text: start})
 		var err error
-		if run.Prompt, err = orchestrator.WritePrompt(store, m.Slug, rec.ID, prompt); err != nil {
+		run.Prompt = prompt
+		if run.Pointer, err = orchestrator.WritePrompt(store, m.Slug, rec.ID, prompt); err != nil {
 			return orchestrator.Report{}, false, err
 		}
 		l, err := rv.Orchestrate(run)

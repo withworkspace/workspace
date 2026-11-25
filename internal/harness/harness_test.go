@@ -313,7 +313,7 @@ func TestClaude_ResumeAndAvailability(t *testing.T) {
 func TestClaude_Orchestrate(t *testing.T) {
 	t.Setenv(EnvClaudeBin, "")
 	l, err := fakeClaude(map[string]string{"claude": "/bin/claude"}).Orchestrate(OrchestratorRun{
-		Prompt: "Read the prompt file.", Dir: "/root", Model: "haiku",
+		Prompt: "the whole prompt", Pointer: "Read the prompt file.", Dir: "/root", Model: "haiku",
 		Capsules: []string{"/root/repos/api/fix", "/root/repos/odd path/x"},
 		Grounds:  []string{"/root/repos/demo/.ground"},
 	})
@@ -339,8 +339,9 @@ func TestClaude_Orchestrate(t *testing.T) {
 			t.Errorf("args shouldn't contain %q: %s", never, args)
 		}
 	}
-	// -- ends --allowedTools' list, so the prompt isn't taken for a rule.
-	if n := len(l.Args); l.Args[n-2] != "--" || l.Args[n-1] != "Read the prompt file." || l.Dir != "/root" {
+	// -- ends --allowedTools' list, so the prompt isn't taken for a rule;
+	// the prompt itself, not the line pointing at its file.
+	if n := len(l.Args); l.Args[n-2] != "--" || l.Args[n-1] != "the whole prompt" || l.Dir != "/root" {
 		t.Errorf("tail = %q, dir %q", l.Args[n-2:], l.Dir)
 	}
 }
@@ -362,7 +363,7 @@ func TestCursor_ModelAndOrchestratorDefault(t *testing.T) {
 func TestCursor_Orchestrate(t *testing.T) {
 	c := fakeCursor(map[string]string{"cursor-agent": "/bin/ca"}, "", nil)
 	scratch := t.TempDir()
-	l, err := c.Orchestrate(OrchestratorRun{Prompt: "Read /w/p.md.", Dir: "/w", Model: "auto", Scratch: scratch, Grounds: []string{"/w/repos/api/.ground"}})
+	l, err := c.Orchestrate(OrchestratorRun{Prompt: "the whole prompt", Pointer: "Read /w/p.md.", Dir: "/w", Model: "auto", Scratch: scratch, Grounds: []string{"/w/repos/api/.ground"}})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -55,8 +55,9 @@ func PromptFile(store mission.Store, slug, run string) string {
 	return filepath.Join(runsDir(store, slug), run+".prompt.md")
 }
 
-// WritePrompt writes the prompt where the agent will read it, and returns
-// the one line that goes on the agent's command line instead. A long,
+// WritePrompt keeps the prompt with the run, and returns the one line that
+// goes on the agent's command line instead, for a harness given its prompt
+// there (harness.OrchestratorRun.OnCommandLine). A long,
 // multi-line prompt passed as an argument gets cursor-agent killed (as it
 // did crew before their prompts were typed in), and could pass the
 // argument size limit; a file has neither problem.

@@ -311,9 +311,12 @@ type Orchestrator interface {
 
 // OrchestratorRun is one headless orchestrator run.
 type OrchestratorRun struct {
-	Prompt string // what's passed: one line pointing at the prompt file
-	Dir    string // where it runs (the workspace root)
-	Model  string // "" for the agent's own default
+	// Prompt is the whole prompt. Pointer, where there is one, is a line
+	// pointing at the file it's kept in, for a harness that's given its
+	// prompt on a command line (OnCommandLine).
+	Prompt, Pointer string
+	Dir             string // where it runs (the workspace root)
+	Model           string // "" for the agent's own default
 	// Capsules are the paths of the mission's capsules, and Grounds the
 	// workspace's repos' .grounds (their default branches), which it may
 	// inspect read-only (git -C <path> log, …).
@@ -322,4 +325,16 @@ type OrchestratorRun struct {
 	// Scratch is a folder the harness may keep what limits a run in (its
 	// permissions, an extension): ws's own, never the user's.
 	Scratch string
+}
+
+// OnCommandLine is the prompt as a harness that's given it on a command
+// line takes it: the line pointing at its file where there's one, as a
+// long, multi-line argument gets cursor-agent killed and could pass the
+// argument size limit. An ACP agent is sent the prompt itself (Prompt):
+// read from a file, it costs the agent a turn first, every run.
+func (r OrchestratorRun) OnCommandLine() string {
+	if r.Pointer != "" {
+		return r.Pointer
+	}
+	return r.Prompt
 }

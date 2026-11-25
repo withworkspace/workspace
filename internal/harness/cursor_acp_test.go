@@ -157,12 +157,15 @@ func TestCursorACPLaunches(t *testing.T) {
 		}
 	}
 
-	l, err = c.Orchestrate(OrchestratorRun{Prompt: "go", Dir: "/w", Scratch: scratch, Model: "auto"})
+	// Sent the prompt itself, not the line pointing at its file: reading
+	// that would cost it a turn first.
+	l, err = c.Orchestrate(OrchestratorRun{Prompt: "go", Pointer: "Read /w/p.md first", Dir: "/w", Scratch: scratch, Model: "auto"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	r = *l.ACP
 	if r.Mode != "agent" || r.Model != "auto" || r.Dir != runDir || !strings.Contains(r.Prompt, "the folder you work on is /w") ||
+		!strings.HasSuffix(r.Prompt, "go") || strings.Contains(r.Prompt, "/w/p.md") ||
 		!commandAllowed("ws mission note x", r.Allow) || commandAllowed("ws burn a/b", r.Allow) {
 		t.Errorf("orchestrator run = %+v", r)
 	}
