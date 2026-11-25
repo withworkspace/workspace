@@ -732,14 +732,57 @@ func sendBackText(st mission.StageState, round mission.CheckRound) string {
 		if r.Result == mission.CheckMet {
 			continue
 		}
-		fmt.Fprintf(&b, "- %s: %s", r.Check, r.Result)
-		if ev := strings.TrimSpace(r.Evidence); ev != "" {
-			fmt.Fprintf(&b, ". %s", clipString(oneLine(ev), 600))
-		}
-		b.WriteString("\n")
+		writeUnmet(&b, r, "unmet")
 	}
 	b.WriteString("\nPut it right, commit, and report done again with a handoff (ws mission done): ws runs the checks again.")
 	return b.String()
+}
+
+// sentBackOutputMax is how much of the end of what a command ws ran
+// printed crew are given when their step comes back for it: about the
+// last screen, where a failure says itself.
+const sentBackOutputMax = 1500
+
+// writeUnmet writes a check that isn't met as crew are told it when their
+// step comes back, as a list item: the check and what it came to (said),
+// then why. For a command ws ran, that's how it ended, the end of what it
+// printed as it printed it, and where all of it is kept (its run), so
+// they needn't run it again to see; for what a judge or verifier said,
+// what they said.
+func writeUnmet(b *strings.Builder, r mission.CheckResult, said string) {
+	fmt.Fprintf(b, "- %s: %s", r.Check, said)
+	printed := r.Printed()
+	if r.By != "ws" || (printed == "" && r.Run == "") {
+		if ev := strings.TrimSpace(r.Evidence); ev != "" {
+			fmt.Fprintf(b, ". %s", clipString(oneLine(ev), 600))
+		}
+		b.WriteString("\n")
+		return
+	}
+	fmt.Fprintf(b, ". %s\n", sentence(r.How()))
+	if printed != "" {
+		b.WriteString("  The end of what it printed:\n\n  ```\n")
+		for _, l := range strings.Split(lastLines(printed, sentBackOutputMax), "\n") {
+			b.WriteString("  " + l + "\n")
+		}
+		b.WriteString("  ```\n")
+	}
+	if r.Run != "" {
+		fmt.Fprintf(b, "  All it printed: `ws run logs %s`.\n", r.Run)
+	}
+}
+
+// lastLines is the end of s, to about n bytes, from the start of a line.
+func lastLines(s string, n int) string {
+	s = strings.TrimSpace(s)
+	if len(s) <= n {
+		return s
+	}
+	s = s[len(s)-n:]
+	if i := strings.IndexByte(s, '\n'); i >= 0 && i < len(s)-1 {
+		s = s[i+1:]
+	}
+	return "…\n" + s
 }
 
 // carryOn has crew carry on at step st with text: typed into them if

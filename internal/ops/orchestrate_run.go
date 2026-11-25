@@ -245,8 +245,8 @@ func (w *Workspace) orchestratorInput(m *mission.Mission, crewID, trigger string
 				in.Round = r.N
 				for _, c := range r.Results {
 					line := fmt.Sprintf("%s: %s (by %s)", c.Check, c.Result, c.By)
-					if ev := strings.TrimSpace(c.Evidence); ev != "" {
-						line += ": " + clipLine(ev, 600)
+					if said := c.Said(600); said != "" {
+						line += ": " + said
 					}
 					in.Checks = append(in.Checks, line)
 				}

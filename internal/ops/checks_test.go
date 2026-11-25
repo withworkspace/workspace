@@ -271,3 +271,29 @@ func TestChecks_CarryingOnWithCrewStillRunning(t *testing.T) {
 		t.Error("c1's done at step 1 is taken for one at step 2")
 	}
 }
+
+// Crew whose step comes back for a command ws ran are given the end of
+// what it printed, as it printed it, and where all of it is: not the start
+// of it run onto one line.
+func TestSendBackText_CommandsEnd(t *testing.T) {
+	out := "=== RUN TestA\n" + strings.Repeat("ok noise\n", 400) + "--- FAIL: TestCache (0.01s)\n    cache_test.go:12: want 2, got 1\nFAIL"
+	round := mission.CheckRound{N: 2, Results: []mission.CheckResult{
+		{Check: "`go test ./...` passes", Result: mission.CheckMet, By: "ws", Evidence: "passed in 3s:\nok"},
+		{Check: "`go test ./...` passes", Result: mission.CheckUnmet, By: "ws", Run: "check-1-1.cache.api#2", Evidence: "failed (exit 1) in 40s:\n" + out},
+		{Check: "the cache is named", Result: mission.CheckUnmet, By: "the judge (claude)", Evidence: "cache.go names nothing"},
+	}}
+	got := sendBackText(mission.StageState{N: 1}, round)
+	for _, want := range []string{
+		"- `go test ./...` passes: unmet. failed (exit 1) in 40s.\n",
+		"    cache_test.go:12: want 2, got 1\n  FAIL\n  ```\n",
+		"All it printed: `ws run logs check-1-1.cache.api#2`.",
+		"- the cache is named: unmet. cache.go names nothing\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("sent back without %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "=== RUN") || strings.Contains(got, "passed in 3s") || len(got) > sentBackOutputMax+800 {
+		t.Errorf("sent back too much (%d bytes):\n%s", len(got), got)
+	}
+}

@@ -669,8 +669,8 @@ func (g *graph) stageView(n int) (*view, error) {
 			lines := []string{fmt.Sprintf("Checks, round %d, of %s's done (%s, %s): %s.", round.N, round.Crew, firstNonEmpty(shortSHA(round.Commit), "no commit"), when(round.At), round.Summary())}
 			for _, c := range round.Results {
 				line := fmt.Sprintf("- %s: %s, by %s", c.Check, c.Result, c.By)
-				if ev := strings.TrimSpace(c.Evidence); ev != "" {
-					line += ": " + clipLine(ev, 300)
+				if said := c.Said(300); said != "" {
+					line += ": " + said
 				}
 				lines = append(lines, line)
 			}

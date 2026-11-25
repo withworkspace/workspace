@@ -377,8 +377,8 @@ func (g *graph) bundleView(id string) (*view, error) {
 		lines := []string{fmt.Sprintf("Its step's checks, as ws last ran and had them judged (round %d, %s, %s): %s.", r.N, firstNonEmpty(shortSHA(r.Commit), "no commit"), when(r.At), r.Summary())}
 		for _, c := range r.Results {
 			line := fmt.Sprintf("- %s: %s, by %s", c.Check, c.Result, c.By)
-			if ev := strings.TrimSpace(c.Evidence); ev != "" {
-				line += ": " + clipLine(ev, 300)
+			if said := c.Said(300); said != "" {
+				line += ": " + said
 			}
 			lines = append(lines, line)
 		}
