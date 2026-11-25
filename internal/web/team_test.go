@@ -243,10 +243,17 @@ func TestTeamSeenAndNear(t *testing.T) {
 		return []team.Capsule{{Repo: repo, Name: "try", Dir: capsule, Base: "origin/main"}}
 	}
 
+	// The read doesn't wait for git to say what the capsule has changed:
+	// it's read behind it, and said by the read after.
 	v = TeamView{}
 	getInto(t, s, "/api/team", &v)
 	if v.Seen == nil {
 		t.Error("seen isn't said after looking")
+	}
+	for until := time.Now().Add(10 * time.Second); len(v.Days[0].Items[0].Near) == 0 && time.Now().Before(until); {
+		time.Sleep(5 * time.Millisecond)
+		v = TeamView{}
+		getInto(t, s, "/api/team", &v)
 	}
 	near := v.Days[0].Items[0].Near
 	if len(near) != 1 || near[0].Capsule != "api/try" || len(near[0].Files) != 1 || near[0].Files[0] != "a.txt" {

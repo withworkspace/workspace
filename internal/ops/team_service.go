@@ -75,7 +75,8 @@ func (w *Workspace) TeamService() *team.Service {
 			names, _ := workspace.ListWorktrees(w.WS().RepoDir(repo))
 			out := make([]team.Capsule, 0, len(names))
 			for _, n := range names {
-				out = append(out, team.Capsule{Repo: repo, Name: n, Dir: filepath.Join(w.WS().RepoDir(repo), n), Base: "origin/" + branch})
+				dir := filepath.Join(w.WS().RepoDir(repo), n)
+				out = append(out, team.Capsule{Repo: repo, Name: n, Dir: dir, Base: "origin/" + branch, Stamp: changesStamp(dir, "origin/"+branch)})
 			}
 			return out
 		},

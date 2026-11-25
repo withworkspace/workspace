@@ -235,6 +235,9 @@ func (s *Server) Start() error {
 		// the repos are looked at straight after.
 		h.baseline = func() string { return s.snapFingerprint(s.Team.Peek()) }
 		s.topics[topicTeam] = h
+		// What's near you is read behind the page's read: it's told when
+		// that finds something.
+		s.Team.Moved = h.nudge
 	}
 	if s.Plugins != nil {
 		// What plugins add, and where each stands: the host counts its
