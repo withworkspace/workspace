@@ -16,6 +16,11 @@
     animation: arrive var(--slow) var(--ease);
   }
 
+  /* It holds the focus for its keys: nothing to show for it. */
+  .viewer:focus {
+    outline: none;
+  }
+
   .dragging {
     cursor: grabbing;
   }

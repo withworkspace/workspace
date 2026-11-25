@@ -1,6 +1,7 @@
-import type { V1 } from "@withworkspace/ui-lib/protocol";
+import { V1 } from "@withworkspace/ui-lib/protocol";
 import type { Anchor } from "../ui/FloatingCard";
 import { type Hovering, hovering } from "./hover";
+import { apiBase, frameBase } from "./paths";
 
 // ws's own UI, for a plugin's page. Some of what a page wants shown is
 // ws's to know or to do (a ref's card), and none of it can a frame draw
@@ -36,8 +37,8 @@ export interface UiKind {
   // ws is done with it or the page closes it (a dialog).
   as: "hover" | "open";
   // Why what the page gave isn't what it takes, if it isn't: a sentence
-  // for whoever's writing the page.
-  refuses?(asked: Asked): string | undefined;
+  // for whoever's writing the page. plugin is whose page asked.
+  refuses?(asked: Asked, plugin: string): string | undefined;
 }
 
 // The UIs ws has for a plugin's page, each by its name in the protocol.
@@ -51,7 +52,20 @@ export const kinds: Readonly<Record<V1.UiName, UiKind>> = {
   // the button that asked (Uis/ThingPromoteUi.tsx, Uis/ThingSaveUi.tsx).
   "thing-promote": { as: "open", refuses: (asked) => aboutThing("thing-promote", asked) },
   "thing-save": { as: "open", refuses: (asked) => aboutThing("thing-save", asked) },
+  // A picture over the whole window, in ws's viewer (Uis/PictureUi.tsx).
+  // It's drawn in ws's page, so it's only ever an address ws's page may
+  // show a picture from, and one on ws's is the plugin's own.
+  picture: { as: "open", refuses: (asked, plugin) => pictureRefused(asked, plugin) },
 };
+
+// pictureRefused is why a picture asked for can't be shown, if it can't:
+// the protocol's rule, for this plugin, on this ws.
+export function pictureRefused(asked: Asked, plugin: string, origin = globalThis.location?.origin ?? ""): string | undefined {
+  const { src, title } = asked.with;
+  if (typeof src !== "string") return "picture is asked for with its address: { src }.";
+  if (title !== undefined && typeof title !== "string") return "picture's title is words.";
+  return V1.pictureRefused(src, origin, { api: apiBase(plugin), base: frameBase(plugin) });
+}
 
 // aboutThing is why a UI about one of a plugin's things wasn't given one,
 // if it wasn't: a thing is its kind, and the plugin's name for it.
@@ -96,7 +110,8 @@ const sameAsking = (a: Asked, b: Asked) => a.ui === b.ui && sameBox(a.box, b.box
 
 // frameUis keeps one frame's. closed tells the page that ws closed one,
 // and with what. has is the UIs there are: ws's own, unless a test says.
-export function frameUis(closed: (id: number, result: unknown) => void, has: Readonly<Record<string, UiKind>> = kinds): FrameUis {
+// plugin is whose page it is.
+export function frameUis(closed: (id: number, result: unknown) => void, has: Readonly<Record<string, UiKind>> = kinds, plugin = ""): FrameUis {
   const card: Hovering<Asked> = hovering(sameAsking);
   // The asking that's hovering, as the page has it: the one it closes.
   let hoverId: number | undefined;
@@ -118,7 +133,7 @@ export function frameUis(closed: (id: number, result: unknown) => void, has: Rea
     open(asked) {
       const kind = Object.hasOwn(has, asked.ui) ? has[asked.ui] : undefined;
       if (!kind) return `This ws has no UI called ${asked.ui}. Update ws.`;
-      const why = kind.refuses?.(asked);
+      const why = kind.refuses?.(asked, plugin);
       if (why) return why;
       if (kind.as === "hover") {
         hoverId = asked.id;

@@ -1,7 +1,7 @@
 import { V1 } from "@withworkspace/ui-lib/protocol";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HIDE_AFTER, SHOW_AFTER } from "./hover";
-import { anchorIn, type Asked, frameUis, kinds, type UiKind } from "./ui";
+import { anchorIn, type Asked, frameUis, kinds, pictureRefused, type UiKind } from "./ui";
 
 const box = { x: 212, y: 96.5, width: 54, height: 18 };
 const card = (id: number, ref = "THING-2", at = box): Asked => ({ id, ui: "ref-card", box: at, with: { ref } });
@@ -12,11 +12,36 @@ describe("the UIs ws has for a plugin's page", () => {
   });
 
   it("a ref's card is asked for with a ref, and the box of its words", () => {
-    const refuses = (asked: Asked) => kinds["ref-card"].refuses?.(asked);
+    const refuses = (asked: Asked) => kinds["ref-card"].refuses?.(asked, "fake");
     expect(refuses(card(1))).toBeUndefined();
     expect(refuses({ id: 1, ui: "ref-card", with: { ref: "THING-2" } })).toMatch(/box/);
     expect(refuses({ id: 1, ui: "ref-card", box, with: {} })).toMatch(/ref/);
     expect(refuses({ id: 1, ui: "ref-card", box, with: { ref: 2 } })).toMatch(/ref/);
+  });
+
+  it("a picture is asked for by an address ws shows a picture from, and one on ws's is the plugin's own", () => {
+    const refused = (w: Record<string, unknown>) => pictureRefused({ id: 1, ui: "picture", with: w }, "jira", "http://ws.test");
+    expect(refused({ src: "http://ws.test/plugins/jira/api/issues/RAM-3/attachments/1", title: "now.png" })).toBeUndefined();
+    expect(refused({ src: "http://ws.test/plugin-frame/jira/logo.svg" })).toBeUndefined();
+    expect(refused({ src: "https://example.com/a.png" })).toBeUndefined();
+    expect(refused({ src: "data:image/png;base64,iVBORw0KGgo=" })).toBeUndefined();
+    // Another plugin's, ws's own, or what isn't a picture's address.
+    expect(refused({ src: "http://ws.test/plugins/sketch/a.png" })).toMatch(/under \/plugins\/jira\//);
+    expect(refused({ src: "http://ws.test/api/workspace" })).toBeDefined();
+    expect(refused({ src: "data:text/html,<script>" })).toBeDefined();
+    expect(refused({ src: "/plugins/jira/a.png" })).toMatch(/full address/);
+    expect(refused({})).toMatch(/src/);
+    expect(refused({ src: "https://example.com/a.png", title: 3 })).toMatch(/title/);
+  });
+
+  it("a picture is open until the person closes it, and the page is told", () => {
+    const closed = vi.fn();
+    const uis = frameUis(closed, kinds, "jira");
+    expect(uis.open({ id: 1, ui: "picture", with: { src: "http://localhost:3000/plugins/jira/a.png" } })).toMatch(/plugin's own/);
+    expect(uis.open({ id: 2, ui: "picture", with: { src: "https://example.com/a.png" } })).toBeUndefined();
+    expect(uis.opened().map((o) => o.ui)).toEqual(["picture"]);
+    uis.done(2);
+    expect(closed.mock.calls).toEqual([[2, undefined]]);
   });
 });
 

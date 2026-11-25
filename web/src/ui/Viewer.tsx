@@ -14,15 +14,27 @@ import { Button, buttonClass } from "./Button";
 // Anything drawn with data-viewable opens it on a click, wherever it is
 // in the app: an <img>, or an element with an <svg> inside (a Mermaid
 // diagram's). One inside a link is the link's. view() opens it from code.
+// A plugin's page asks for it too (plugins/Uis/PictureUi.tsx).
 
 export type Viewing = { kind: "image"; src: string; title?: string } | { kind: "svg"; svg: string; title?: string };
 
 let current: Viewing | null = null;
+let onClosed: (() => void) | undefined;
 const listeners = new Set<() => void>();
 
-export function view(v: Viewing | null) {
+// view shows v, or nothing. closed runs once v isn't shown any more:
+// closed, or another shown in its place.
+export function view(v: Viewing | null, closed?: () => void) {
+  const was = onClosed;
   current = v;
+  onClosed = v ? closed : undefined;
   listeners.forEach((l) => l());
+  was?.();
+}
+
+// unview takes v down, if it's still what's shown.
+export function unview(v: Viewing) {
+  if (current === v) view(null);
 }
 
 function useViewing(): Viewing | null {
@@ -88,6 +100,18 @@ function Stage({ viewing }: { viewing: Viewing }) {
   const to = useRef<At>({ x: 0, y: 0, s: 1 });
   const fit = useRef(1);
   const frame = useRef(0);
+  // The keys are the viewer's while it's up, so it takes the focus: from
+  // a plugin's frame too, whose keys ws wouldn't hear. It gives it back
+  // as it goes, where nothing's taken it since.
+  useEffect(() => {
+    const before = document.activeElement;
+    stage.current?.focus({ preventScroll: true });
+    return () => {
+      const now = document.activeElement;
+      const lost = !now || now === document.body || !now.isConnected;
+      if (lost && before instanceof HTMLElement && before.isConnected) before.focus({ preventScroll: true });
+    };
+  }, []);
   const vector = viewing.kind === "svg" || /\.svg($|\?)/i.test(viewing.src) || viewing.src.startsWith("data:image/svg");
 
   const paint = () => {
@@ -305,6 +329,7 @@ function Stage({ viewing }: { viewing: Viewing }) {
       aria-modal="true"
       aria-label={viewing.title ?? "Picture"}
       ref={stage}
+      tabIndex={-1}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
