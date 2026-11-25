@@ -1,0 +1,26 @@
+/* A change's pull requests, one in each repo it was made in
+   (TeamPulls.tsx). */
+
+.pulls {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: var(--text-sm);
+}
+
+.pulls li > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  background: var(--well);
+  color: inherit;
+}
+
+.pulls li > a:hover {
+  background: var(--hover);
+}

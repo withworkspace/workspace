@@ -1,0 +1,14 @@
+/* What a change does, as an agent wrote it (TeamGist.tsx). */
+
+.gist {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.gist.reading {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dim);
+  font-size: var(--text-sm);
+}

@@ -1,0 +1,27 @@
+/* Something worth knowing of a change (TeamKnowLine.tsx). */
+
+/* Each line is its kind, then what it says: the kinds are one column,
+   as wide as the widest of them, so what they say starts in line. */
+.line {
+  display: grid;
+  grid-template-columns: 7.25rem minmax(0, 1fr);
+  column-gap: 8px;
+  align-items: baseline;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.kind {
+  justify-self: start;
+  position: relative;
+  top: 1px;
+}
+
+.file {
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.file:hover {
+  color: var(--accent);
+}

@@ -1,0 +1,52 @@
+/* A change on the Team page (TeamRow.tsx). */
+
+.link {
+  gap: 12px;
+  padding: 8px 10px;
+  color: inherit;
+  cursor: pointer;
+}
+
+.main {
+  gap: 3px;
+}
+
+.new {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.sub {
+  overflow-wrap: anywhere;
+}
+
+.people {
+  max-width: 200px;
+  color: var(--text);
+}
+
+.size {
+  min-width: 84px;
+  justify-content: flex-end;
+  font: var(--text-xs) var(--mono);
+  font-variant-numeric: tabular-nums;
+  gap: 6px;
+}
+
+.time {
+  min-width: 2.5em;
+  text-align: right;
+  color: var(--dim);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  .people,
+  .size {
+    display: none;
+  }
+}

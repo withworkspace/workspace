@@ -1,0 +1,18 @@
+/* Where you'd read to when you last looked (TeamSeenLine.tsx). */
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 8px;
+  color: var(--dim);
+  font-size: var(--text-xs);
+}
+
+.line::before,
+.line::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
