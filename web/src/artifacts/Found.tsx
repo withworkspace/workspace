@@ -53,7 +53,7 @@ function FoundRow({ a }: { a: ArtifactFound }) {
   const menu = useThingMenu();
   return (
     <Row className="artifact-list-row">
-      <TLink to={foundHref(a.name)} className={rowLinkClass()} onContextMenu={menu(foundHref(a.name), a.name)}>
+      <TLink to={foundHref(a.name)} className={rowLinkClass("artifact-list-link")} onContextMenu={menu(foundHref(a.name), a.name)}>
         <Icon name="artifact" size={16} className={rowStatusClass()}  />
         <RowMain>
           <RowLine>
