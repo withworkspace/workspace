@@ -172,6 +172,7 @@ const placeWords: Record<string, string> = {
 // settingWords are the words a section of Settings is looked for by.
 const settingWords: Record<string, string> = {
   appearance: "theme light dark accent sidebar",
+  keyboard: "keys enter send new line shortcut",
   notifications: "desktop alerts feed sources mute",
   agents: "harness model claude codex roles",
   missions: "orchestrator briefing checks",

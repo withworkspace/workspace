@@ -6,7 +6,8 @@ import { Banner } from "../ui/Banner";
 import { Icon } from "../ui/Icon";
 import { useAutosize } from "../ui/useAutosize";
 import { humanError } from "../ui/text";
-import { Keys } from "../ui/Keys";
+import { SendKeys } from "../ui/SendKeys";
+import { sendKeysSaid, sent, useSendKey } from "../ui/sendKey";
 import { Time } from "../ui/Time";
 import { Button } from "../ui/Button";
 import { TextArea } from "../ui/TextArea";
@@ -193,6 +194,7 @@ function SayBox({ api, onSaid }: { api: string; onSaid: (d: Discussion) => void 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const area = useRef<HTMLTextAreaElement>(null);
+  const sendKey = useSendKey();
   useAutosize(area, text, 240);
   const send = () => {
     if (!text.trim() || busy) return;
@@ -218,7 +220,8 @@ function SayBox({ api, onSaid }: { api: string; onSaid: (d: Discussion) => void 
         aria-label="Comment on the pull request"
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+          if (e.nativeEvent.isComposing) return;
+          if (sent(e, sendKey)) {
             e.preventDefault();
             send();
           } else if (e.key === "Escape") {
@@ -231,8 +234,8 @@ function SayBox({ api, onSaid }: { api: string; onSaid: (d: Discussion) => void 
       <div className="note-actions">
         <span className="dim">Posts to GitHub at once, as you: it isn't part of your draft.</span>
         <span className="spacer-left" />
-        <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={send} title="Post it to GitHub (⌘⏎)">
-          {busy ? "Posting…" : "Comment on GitHub"} <Keys k="mod+⏎" />
+        <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={send} title={`Post it to GitHub (${sendKeysSaid(sendKey)})`}>
+          {busy ? "Posting…" : "Comment on GitHub"} <SendKeys />
         </Button>
       </div>
     </div>

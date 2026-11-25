@@ -85,6 +85,8 @@ import { ToggleButton } from "../ui/ToggleButton";
 import { Tab, Tabs } from "../ui/Tabs";
 import { Checkbox } from "../ui/Checkbox";
 import { Composer } from "../ui/Composer";
+import { SendKeys } from "../ui/SendKeys";
+import { sendKeysSaid, useSendKey } from "../ui/sendKey";
 import { Turn, TurnSaid } from "../ui/Turn";
 import { useWorkspace } from "../workspace/store";
 import { usePref } from "../prefs";
@@ -1031,14 +1033,13 @@ function ChangeBox({
         value={text}
         onChange={setText}
         onSend={ask}
-        send="enter"
         tallest={160}
         placeholder={placeholder}
         aria-label={label}
         escape={onClose}
       >
         <Button variant="primary" size="small" disabled={!text.trim()} onClick={ask}>
-          Ask <Keys k="⏎" />
+          Ask <SendKeys />
         </Button>
       </Composer>
       <div className="cell-panel-foot">
@@ -1342,7 +1343,6 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
           value={text}
           onChange={setText}
           onSend={ask}
-          send="enter"
           tallest={120}
           placeholder={written ? "Ask more…" : "Ask more, or say what to put in the page…"}
           aria-label="Ask more about this finding"
@@ -1354,7 +1354,7 @@ function FoundOut({ cell, root, onAsk, onPut, onCell }: { cell: PageCell; root: 
             </Button>
           )}
           <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={ask} title="Ask: it's answered here, and the page stays as it is">
-            Ask <Keys k="⏎" />
+            Ask <SendKeys />
           </Button>
         </Composer>
       )}
@@ -1770,6 +1770,7 @@ function CellPanel({
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
+  const sendKey = useSendKey();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [at, setAt] = useState<{ top: number; left: number }>();
@@ -1995,9 +1996,9 @@ function CellPanel({
         field={box}
         value={text}
         onChange={setText}
-        // ⏎ is the first of the two; ⌘⏎ the other.
-        onSend={({ mod }) => send(mod ? !question : question)}
-        send="enter"
+        // The key that sends is the first of the two; its other way,
+        // the other.
+        onSend={({ other }) => send(other ? !question : question)}
         tallest={160}
         placeholder={
           question
@@ -2011,20 +2012,20 @@ function CellPanel({
       >
         {question ? (
           <>
-            <Button size="small" disabled={busy} onClick={() => send(false)} title="Have it written into the page, here: what it's answered, or what you say (⌘⏎)">
+            <Button size="small" disabled={busy} onClick={() => send(false)} title={`Have it written into the page, here: what it's answered, or what you say (${sendKeysSaid(sendKey, true)})`}>
               Put it in the page
             </Button>
             <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask: it's answered here, and the page stays as it is">
-              Ask <Keys k="⏎" />
+              Ask <SendKeys />
             </Button>
           </>
         ) : (
           <>
-            <Button size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title="Ask about it: it's answered here, and the cell stays as it is (⌘⏎)">
+            <Button size="small" disabled={!text.trim() || busy} onClick={() => send(true)} title={`Ask about it: it's answered here, and the cell stays as it is (${sendKeysSaid(sendKey, true)})`}>
               Just ask
             </Button>
             <Button variant="primary" size="small" disabled={!text.trim() || busy} onClick={() => send(false)} title="Have the cell written again, this way">
-              Change <Keys k="⏎" />
+              Change <SendKeys />
             </Button>
           </>
         )}

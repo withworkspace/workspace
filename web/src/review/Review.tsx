@@ -31,6 +31,8 @@ import { Crumbs } from "../ui/Crumbs";
 import { Excerpt } from "../ui/Excerpt";
 import { NoteBody, NoteCard, NoteHead, NoteHint, NoteId, NoteStatus, NoteThread, NoteTurn } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
+import { SendKeys } from "../ui/SendKeys";
+import { sent, useSendKey } from "../ui/sendKey";
 import { Suggestion } from "./Suggestion";
 import { fuzzy } from "../ui/fuzzy";
 import { Inline } from "../ui/Inline";
@@ -1695,6 +1697,8 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
   const [kind, setKind] = useState<NoteKind>(note?.kind || "suggestion");
   const [text, setText] = useState(() => (note ? joinSuggestion(note.body, note.suggestion) : ""));
   const area = useRef<HTMLTextAreaElement>(null);
+  // The key that saves it is the one you've chosen (ui/sendKey.ts).
+  const sendKey = useSendKey();
   // While writing, the page's keys are off: these are the editor's.
   useKeys({}, { modal: true });
   useEffect(() => {
@@ -1731,7 +1735,8 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
         placeholder="What should change, or what do you want to know?"
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+          if (e.nativeEvent.isComposing) return;
+          if (sent(e, sendKey)) {
             e.preventDefault();
             save();
           } else if (e.key === "Escape") {
@@ -1753,7 +1758,7 @@ function NoteEditor({ editing, lines, onSave, onCancel }: { editing: Editing; li
           Cancel <Keys k="esc" />
         </Button>
         <Button variant="primary" onClick={save}>
-          {note ? "Save" : "Comment"} <Keys k="mod+⏎" />
+          {note ? "Save" : "Comment"} <SendKeys />
         </Button>
       </div>
     </div>

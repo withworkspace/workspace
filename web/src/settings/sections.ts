@@ -36,12 +36,13 @@ export function valueSaid(s: Setting, v: unknown = s.value): string {
 
 // A Row is a line of a section: a setting, or one of the page's own. The
 // sidebar's two keys ([ui] sidebar and menu) are one row, as they're one
-// arrangement; theme and notify are kept in the browser, not in a file;
-// daemon is the daemon's switch.
+// arrangement; theme, sendKey and notify are kept in the browser, not in
+// a file; daemon is the daemon's switch.
 export type Row =
   | { kind: "setting"; s: Setting; crumb?: string } // crumb: whose it is, said where the row is out of its block (Find)
   | { kind: "places"; settings: Setting[] }
   | { kind: "theme" }
+  | { kind: "sendKey" }
   | { kind: "notify" }
   | { kind: "daemon" };
 
@@ -52,6 +53,10 @@ export const words = {
     about: "Which places are in the sidebar and in what order, and which are moved out of it into the workspace's menu. Yours, setting either, replaces the team's arrangement.",
   },
   theme: { label: "Theme", about: "Light, dark, or as your system has it." },
+  sendKey: {
+    label: "Send with",
+    about: "The key that sends what you write in a box: a reply, a message to crew, a comment. A form with more than one box keeps its own key.",
+  },
   notify: {
     label: "Desktop notifications",
     about: "A notification for each new thing that needs you, and for what happened that you've sent to the desktop below, while this tab is in the background. The tab's icon lights either way.",
@@ -91,6 +96,7 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
   const groups = info?.groups ?? [];
   const section = (id: string, title: string, icon: IconName, about: string, heading?: string): Section => ({ id, title, icon, about, heading, blocks: [] });
   const appearance = section("appearance", "Appearance", "sun", "How the web UI looks.", "Interface");
+  const keyboard = section("keyboard", "Keyboard", "keyboard", "The keys you write with.");
   const notifications = section("notifications", "Notifications", "bell", "What ws tells you of outside the page, and where what happened is sent.");
   let feed: Block | undefined;
   const agents = section("agents", "Agents", "terminal", "The agent CLI each role runs in, and the model it's given.", "How work goes");
@@ -152,10 +158,11 @@ export function sectionsOf(info?: SettingsInfo): Section[] {
     }
   }
   appearance.blocks.push({ id: "ui", rows: ui });
+  keyboard.blocks.push({ id: "send", rows: [{ kind: "sendKey" }] });
   notifications.blocks.push({ id: "notify", rows: [{ kind: "notify" }] });
   if (feed) notifications.blocks.push(feed);
   about.blocks.push({ id: "daemon", title: "Daemon", rows: [{ kind: "daemon" }] });
-  return [appearance, notifications, agents, missions, team, repos, runs, ...others, process, plugins, yours, about];
+  return [appearance, keyboard, notifications, agents, missions, team, repos, runs, ...others, process, plugins, yours, about];
 }
 
 // sectionAt is the section an old address's hash named (/settings#process,
