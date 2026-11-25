@@ -1,0 +1,27 @@
+/* What's shown of a run (RunPanelBody.tsx): it takes what's left of the
+   height, the frame or the output. */
+
+.body {
+  flex: 1;
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  padding-top: 8px;
+}
+
+.log {
+  flex: 1;
+  min-height: 0;
+}
+
+.waitingLog {
+  flex: 1;
+  min-height: 0;
+  max-height: 360px;
+}
+
+@media (max-width: 860px) {
+  .body {
+    min-height: 60vh;
+  }
+}

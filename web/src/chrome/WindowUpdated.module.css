@@ -1,0 +1,8 @@
+/* The daemon's another ws than the page was loaded from (WindowUpdated.tsx):
+   said across the top of the page, as a lost daemon is. */
+
+.updated {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}

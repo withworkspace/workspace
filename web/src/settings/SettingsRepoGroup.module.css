@@ -1,0 +1,11 @@
+/* A repo's group, picked in its row (SettingsRepoGroup.tsx). */
+
+.cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.over {
+  font-size: var(--text-xs);
+}

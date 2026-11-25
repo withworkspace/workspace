@@ -1,0 +1,54 @@
+/* One of the Runs page's rows (RunsPageRow.tsx): a run or a silo, a line
+   each, what's under it opened below. */
+
+.row {
+  padding: 8px;
+}
+
+.open {
+  background: var(--hover);
+}
+
+/* A run that's ended has its name (a RunName) quieter. */
+.ended .name {
+  color: var(--dim);
+}
+
+.line {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto auto;
+  align-items: start;
+  gap: 10px;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-width: 0;
+}
+
+.when {
+  padding-top: 2px;
+}
+
+/* How long since it started: a list's age, styles.css's, as the missions
+   list and others share it. */
+.age {
+  composes: age from global;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+}
+
+@media (max-width: 640px) {
+  .line {
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+  }
+  .when {
+    display: none;
+  }
+}

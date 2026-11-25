@@ -1,0 +1,30 @@
+/* The keys, in the Keys dialog (WindowKeys.tsx): a group each, a key's
+   label in a column beside what it does. */
+
+.keys {
+  display: grid;
+  gap: 16px;
+}
+
+.keys h3 {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+
+.keys dl {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.keys dl > div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: baseline;
+}
+
+.keys dd {
+  margin: 0;
+}

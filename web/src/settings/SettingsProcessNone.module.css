@@ -1,0 +1,7 @@
+/* No process yet (SettingsProcessNone.tsx). */
+
+.none {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--well);
+}

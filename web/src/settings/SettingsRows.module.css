@@ -1,0 +1,6 @@
+/* A block's rows (SettingsRows.tsx): the first has no hairline over it. */
+
+.rows > :first-child {
+  border-top: 0;
+  padding-top: 6px;
+}

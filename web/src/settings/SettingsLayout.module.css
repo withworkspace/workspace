@@ -1,0 +1,40 @@
+/* The Settings page (SettingsLayout.tsx): the list of its sections in a
+   column docked beside the sidebar, and the section you're in centred in
+   what's left, to a width. */
+
+.page:global(.page) {
+  --settings-side: 224px;
+  display: grid;
+  grid-template-columns: var(--settings-side) minmax(0, 1fr);
+  align-items: stretch;
+  max-width: none;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.body {
+  width: 100%;
+  max-width: 824px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-8) calc(64px - var(--foot-height, 0px));
+}
+
+/* Narrower than both sidebars and a section want: the list of sections
+   runs along the top, the section under it. */
+@media (max-width: 1040px) {
+  .page:global(.page) {
+    display: block;
+  }
+
+  .body {
+    padding-top: var(--space-5);
+  }
+}
+
+@media (max-width: 640px) {
+  .body {
+    padding-inline: var(--space-4);
+  }
+}

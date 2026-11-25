@@ -1,0 +1,9 @@
+/* Forks and archived repos, shown too (SettingsAddRepoAll.tsx). */
+
+.all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: var(--text-sm);
+}

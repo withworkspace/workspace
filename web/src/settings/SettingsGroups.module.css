@@ -1,0 +1,12 @@
+/* Groups, in Settings' repos (SettingsGroups.tsx): each shown or hidden
+   for you. */
+
+.groups {
+  margin-top: 24px;
+}
+
+.head {
+  margin: 0 0 4px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
