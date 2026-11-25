@@ -38,16 +38,6 @@ function typing(target: EventTarget | null): boolean {
 // While a modal (help, a finder) is open, only its keys work.
 let modals = 0;
 
-// The key maps bound now, so what's global (the go-to keys) can tell a
-// key the page uses itself.
-const bound = new Set<{ current: KeyMap }>();
-
-// pageBinds is whether a page binds key now (named as keyName names it).
-export function pageBinds(key: string): boolean {
-  for (const m of bound) if (key in m.current) return true;
-  return false;
-}
-
 // useKeys binds keys for as long as the component is mounted. Keys typed
 // into a field are the field's, apart from Escape. A modal's keys work
 // while it's open, and nobody else's do.
@@ -57,7 +47,6 @@ export function useKeys(keys: KeyMap, opts: { modal?: boolean } = {}) {
   const modal = !!opts.modal;
   useEffect(() => {
     if (modal) modals++;
-    bound.add(current);
     const onKey = (e: KeyboardEvent) => {
       // Handled already (an editor's own Escape, say, which may have closed
       // it, and with it the modal that kept this one quiet).
@@ -73,7 +62,6 @@ export function useKeys(keys: KeyMap, opts: { modal?: boolean } = {}) {
     window.addEventListener("keydown", onKey);
     return () => {
       if (modal) modals--;
-      bound.delete(current);
       window.removeEventListener("keydown", onKey);
     };
   }, [modal]);
