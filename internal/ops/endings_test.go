@@ -79,12 +79,137 @@ func TestConcludeAndEnd(t *testing.T) {
 	_, err = w.Unend("cache", AsYou)
 	refusedWith(t, err, "not-ended")
 
-	// Nothing suggested: you say how, or it's refused.
+	// Nothing suggested, and no plan done: you say how, or it's refused.
 	_, err = w.End("cache", nil, AsYou)
 	refusedWith(t, err, "nothing-suggested")
-	// Dropping needn't check Z.
-	if _, err := w.End("cache", &EndAs{Ending: "dropped", Text: "not worth it"}, AsYou); err != nil {
+	// Dropping needn't check Z, nor say why.
+	if _, err := w.End("cache", &EndAs{Ending: "dropped"}, AsYou); err != nil {
 		t.Errorf("dropping: %v", err)
+	}
+	if m, _ := w.Missions.Load("cache"); m.Ending == nil || m.Ending.Summary() != "dropped" {
+		t.Errorf("dropped, saying nothing: %+v", m.Ending)
+	}
+}
+
+// Checking Z is for whoever suggests an ending, not for you: your ending
+// leaves unchecked the parts you say nothing of, and says so nowhere as
+// "not met". A part you do say isn't met still keeps it from landed.
+func TestYourEndingNeedntCheckZ(t *testing.T) {
+	w, _ := fixture(t, endingBrief, "fix")
+	_, err := w.Conclude("cache", EndAs{Ending: "answered", Text: "Not a bug"}, AsOrchestrator)
+	if err == nil || !strings.Contains(err.Error(), "part 1 of Z") {
+		t.Errorf("the orchestrator's, with Z unchecked: %v", err)
+	}
+	if _, err := w.End("cache", &EndAs{Ending: "answered"}, AsYou); err == nil {
+		t.Error("answered, with no answer, was taken")
+	}
+	e, err := w.End("cache", &EndAs{Ending: "answered", Text: "Not a bug", Met: []string{"1: told in the thread"}}, AsYou)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if z := e.Conclusion.Z; len(z) != 2 || !z[0].Checked() || z[1].Checked() {
+		t.Errorf("Z as checked = %+v, want the first checked and the second not", z)
+	}
+	if got := e.Conclusion.Summary(); got != "answered (early: 1 of 2 of Z met): Not a bug" {
+		t.Errorf("summary = %q", got)
+	}
+
+	w = landedFixture(t)
+	_, err = w.End("cache", &EndAs{Ending: "landed", Text: "Fixed", Unmet: []string{"2: no test"}}, AsYou)
+	refusedWith(t, err, "not-at-z")
+	e, err = w.End("cache", &EndAs{Ending: "landed", Text: "Fixed"}, AsYou)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := e.Conclusion.Summary(); got != "landed: Fixed" {
+		t.Errorf("landed with Z unchecked: summary = %q", got)
+	}
+}
+
+const donePlan = "## Z\n- Merged.\n## Stops early\n- None.\n## Steps\n1. Fix it.\n   - who: crew\n2. Merged.\n   - who: outside: a teammate's merge\n"
+
+// planIsDone gives the mission donePlan, with both its steps passed.
+func planIsDone(t *testing.T, w *Workspace) {
+	t.Helper()
+	if err := w.Missions.WritePlan("cache", donePlan); err != nil {
+		t.Fatal(err)
+	}
+	at := time.Now()
+	w.Missions.Update("cache", func(m *mission.Mission) error {
+		m.Stages = []mission.StageRecord{{Text: "Fix it.", N: 1, Of: 2, Accepted: &at}, {Text: "Merged.", N: 2, Of: 2, Accepted: &at}}
+		return nil
+	})
+}
+
+// With every step of the plan passed and nothing suggested, ending it is a
+// press: landed where its work has merged or landed, answered where it
+// never had any, and refused while work of its hasn't merged.
+func TestEndWithNothingSuggested(t *testing.T) {
+	w := landedFixture(t)
+	planIsDone(t, w)
+	e, err := w.End("cache", nil, AsYou)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c := e.Conclusion; c.Ending != mission.EndLanded || c.By != "you" || len(c.Z) != 1 || c.Z[0].Checked() || c.ZWords() != "" {
+		t.Errorf("ended = %+v", c)
+	}
+
+	w, _ = fixture(t, "## Goal\nx\n")
+	planIsDone(t, w)
+	if e, err := w.End("cache", nil, AsYou); err != nil || e.Conclusion.Ending != mission.EndAnswered {
+		t.Errorf("no capsules: %+v, %v", e, err)
+	}
+
+	w, _ = fixture(t, "## Goal\nx\n", "fix")
+	planIsDone(t, w)
+	_, err = w.End("cache", nil, AsYou)
+	refusedWith(t, err, "not-landed")
+}
+
+// A mission the orchestrator suggested no ending for is ws's to end too,
+// landed, once its plan is done, its work merged and nothing else on it
+// waits: after the orchestrator's turn, not during one.
+func TestEndAtZ(t *testing.T) {
+	w := landedFixture(t)
+	if _, why := w.endAtZ("cache", time.Time{}); why != "its plan has steps to go" {
+		t.Errorf("no plan: %q", why)
+	}
+	planIsDone(t, w)
+
+	run, _ := w.Missions.StartOrchestrating("cache", "pr", time.Minute)
+	if _, why := w.endAtZ("cache", time.Time{}); why != "the orchestrator is looking at it" {
+		t.Errorf("during a run: %q", why)
+	}
+	w.Missions.Update("cache", func(m *mission.Mission) error {
+		m.Tasks = []mission.Task{{N: 1, Kind: "question", Verb: "answer", Text: "Ship it?"}}
+		return nil
+	})
+	if _, why := w.endAtZ("cache", run.Since); why != "it waits on the user for something" {
+		t.Errorf("with a question open: %q", why)
+	}
+	w.Missions.Update("cache", func(m *mission.Mission) error { m.Tasks = nil; return nil })
+	off := false
+	w.Config().Missions.EndWhenMerged = &off
+	if _, why := w.endAtZ("cache", run.Since); why != "end_when_merged is off" {
+		t.Errorf("end_when_merged off: %q", why)
+	}
+	w.Config().Missions.EndWhenMerged = nil
+
+	// As its own run finishes, it ends.
+	c, why := w.endAtZ("cache", run.Since)
+	if why != "" || !c.Ended || c.Conclusion.By != "ws" || c.Conclusion.Ending != mission.EndLanded || c.Conclusion.ZWords() != "" {
+		t.Fatalf("ended = %+v, %q", c, why)
+	}
+	if m, _ := w.Missions.Load("cache"); m.Ending == nil || m.Ending.By != "ws" || len(m.Ending.Z) != 1 || m.Ending.Z[0].Checked() {
+		t.Errorf("after: %+v", m.Ending)
+	}
+
+	// Work that hasn't merged keeps it.
+	w, _ = fixture(t, endingBrief, "fix")
+	planIsDone(t, w)
+	if _, why := w.endAtZ("cache", time.Time{}); !strings.Contains(why, "neither merged nor landed") {
+		t.Errorf("unmerged: %q", why)
 	}
 }
 
@@ -103,15 +228,22 @@ func TestEndWaitsForCrew(t *testing.T) {
 	}
 }
 
-// A suggestion made on a Z that's changed since isn't ended on.
-func TestEndRefusesAChangedZ(t *testing.T) {
+// A suggestion made on a Z that's changed since still ends, keeping the
+// checks of the parts that are still there: a new part is unchecked.
+func TestEndOnAChangedZ(t *testing.T) {
 	w, _ := fixture(t, endingBrief)
 	if _, err := w.Conclude("cache", EndAs{Ending: "answered", Text: "x", Met: []string{"1: a", "2: b"}}, AsOrchestrator); err != nil {
 		t.Fatal(err)
 	}
-	w.Missions.WriteBrief("cache", "## Goal\nx\n\n## Acceptance\n- Something else.\n")
-	_, err := w.End("cache", nil, AsYou)
-	refusedWith(t, err, "z-changed")
+	w.Missions.WriteBrief("cache", "## Goal\nx\n\n## Acceptance\n- Something else.\n- Product know the cause.\n")
+	e, err := w.End("cache", nil, AsYou)
+	if err != nil {
+		t.Fatal(err)
+	}
+	z := e.Conclusion.Z
+	if len(z) != 2 || z[0].Z != "Something else." || z[0].Checked() || !z[1].Met || z[1].How != "a" {
+		t.Errorf("Z as checked = %+v", z)
+	}
 }
 
 // A capsule ends alone: handed on to a mission raised for it (which takes

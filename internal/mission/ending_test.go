@@ -93,6 +93,28 @@ func TestCheckZ(t *testing.T) {
 	}
 }
 
+// Z nobody checked isn't Z unmet: it's said nowhere, and a conclusion
+// that says nothing it came to is its ending alone. Checks carry over to
+// Z as it is now by a part's words.
+func TestConclusion_ZUnchecked(t *testing.T) {
+	c := Conclusion{Ending: EndLanded, Z: []ZCheck{{Z: "Merged."}, {Z: "Seen in a browser."}}}
+	if c.ZWords() != "" || c.Summary() != "landed" {
+		t.Errorf("unchecked: %q, %q", c.ZWords(), c.Summary())
+	}
+	c.Z[0] = ZCheck{Z: "Merged.", Met: true, How: "api#4"}
+	c.Text = "Shipped."
+	if c.Summary() != "landed (early: 1 of 2 of Z met): Shipped." {
+		t.Errorf("one checked: %q", c.Summary())
+	}
+	z := c.OnZ([]string{"Documented.", "Merged."})
+	if len(z) != 2 || z[0].Checked() || z[0].Z != "Documented." || !z[1].Met || z[1].How != "api#4" {
+		t.Errorf("on Z as it is now: %+v", z)
+	}
+	if c.OnZ(nil) != nil {
+		t.Error("checks on no Z")
+	}
+}
+
 func TestDeriveState_FromThePlanAndItsEnding(t *testing.T) {
 	merged := func(Capsule) CapsuleFacts { return CapsuleFacts{Exists: true, PR: PRMerged} }
 	none := func(Capsule) CapsuleFacts { return CapsuleFacts{} }

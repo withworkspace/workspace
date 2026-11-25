@@ -117,7 +117,7 @@ const (
 	VerbMerge      Verb = "merge"         // merge PR Target, at URL
 	VerbLand       Verb = "land"          // review capsule Target's commits, and land them (ws land)
 	VerbArchive    Verb = "archive"       // archive the mission
-	VerbEnd        Verb = "end"           // end the mission: as its conclusion suggests, or (none suggested) as you say, Z checked
+	VerbEnd        Verb = "end"           // end the mission: as its conclusion suggests, or (none suggested, every step done) as its work stands
 	VerbBrief      Verb = "brief"         // start briefing it: a briefing conversation, or agent
 	VerbConfirm    Verb = "confirm"       // confirm its brief and plan, both written: it starts
 	VerbTalk       Verb = "talk"          // open the mission's conversation Target (t3) in the web UI
@@ -914,7 +914,7 @@ func concludeHeadline(c Conclusion) Headline {
 		text += " (" + z + ")"
 	}
 	return Headline{Court: CourtYou, Kind: KindWrapUp, Label: "✓ wrap up", By: firstNonEmpty(c.By, "orchestrator"), Since: c.At,
-		Text:   text + ": " + oneLineOf(c.Text),
+		Text:   text + c.came(),
 		Action: Action{Verb: VerbEnd, Label: "end it, " + c.Ending.Words()}}
 }
 
@@ -928,7 +928,7 @@ func endedHeadline(c Conclusion) Headline {
 		text += " to " + strings.Join(c.To, ", ")
 	}
 	return Headline{Court: CourtYou, Kind: KindEnded, Label: c.Ending.Words(), By: firstNonEmpty(c.By, "you"), Since: c.At,
-		Text:   text + ": " + oneLineOf(c.Text),
+		Text:   text + c.came(),
 		Action: Action{Verb: VerbArchive, Label: "archive it"}}
 }
 
@@ -1195,10 +1195,15 @@ func (s Snapshot) restingHeadline() Headline {
 		return Headline{Court: CourtYou, Kind: KindAccept, Label: "✓ yours", Text: text, Action: action}
 	case s.atZ():
 		// Every step of the plan is passed, and nothing's suggested how it
-		// ends: it's yours to say, with Z checked.
+		// ends: ending it is a press, landed where its work has merged.
+		if s.CapsulesLanded {
+			return Headline{Court: CourtYou, Kind: KindWrapUp, Label: "✓ wrap up",
+				Text:   "Every step of the plan is done, and its work has merged",
+				Action: Action{Verb: VerbEnd, Label: "end it, landed"}}
+		}
 		return Headline{Court: CourtYou, Kind: KindWrapUp, Label: "✓ wrap up",
-			Text:   "Every step of the plan is done: check each part of Z, and end it",
-			Action: Action{Verb: VerbEnd, Label: "wrap it up"}}
+			Text:   "Every step of the plan is done",
+			Action: Action{Verb: VerbEnd, Label: "end it"}}
 	case s.State == Review:
 		// Every capsule has a PR, but GitHub wasn't asked how they stand.
 		return Headline{Court: CourtOutside, Kind: KindAwaitingReview, Label: "in review", Text: "Its PRs are up, waiting for review and merge · nothing for you to do",
