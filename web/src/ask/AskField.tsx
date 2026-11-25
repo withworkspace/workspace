@@ -43,7 +43,7 @@ type AskFieldProps = {
   // The field, for whoever gives it the keys (/).
   field?: Ref<HTMLInputElement>;
   place?: AskPlace;
-  // A class of its page's, for finding it (brief-ask).
+  // A class of its page's, to place it or find it.
   className?: string;
 };
 

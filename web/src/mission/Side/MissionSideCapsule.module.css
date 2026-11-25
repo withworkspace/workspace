@@ -1,0 +1,44 @@
+/* A capsule in a mission's details (MissionSideCapsule.tsx): a row the
+   column's width, pressed to review it. */
+
+.capsule {
+  display: grid;
+  justify-items: start;
+  justify-content: stretch;
+  gap: 4px;
+  width: calc(100% + 16px);
+  margin: 0 -8px;
+  padding: 5px 8px;
+  min-height: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  font-weight: 400;
+  text-align: left;
+}
+
+.capsule:hover {
+  background: var(--hover);
+}
+
+.capsule.selected {
+  background: var(--selected);
+}
+
+.capsule:disabled {
+  background: transparent;
+  color: var(--dim);
+}
+
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.name .path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

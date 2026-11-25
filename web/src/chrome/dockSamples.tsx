@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CrewBadge } from "../mission/parts";
+import { CrewBadge } from "../mission/CrewBadge";
 import { Icon } from "../ui/Icon";
 import { Status } from "../ui/Status";
 import { Turn, TurnSaid } from "../ui/Turn";

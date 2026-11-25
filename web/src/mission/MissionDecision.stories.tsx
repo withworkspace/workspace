@@ -11,7 +11,7 @@ import type { DecisionEffect } from "./decisions";
 import { MissionDecision } from "./MissionDecision";
 import { MissionDecisionForm } from "./MissionDecisionForm";
 import { MissionDecisionGroup } from "./MissionDecisionGroup";
-import { MissionData } from "./parts";
+import { MissionData } from "./MissionData";
 
 // A mission's decisions: one alone in each state (crew's, yours, one made
 // by answering, one a check was judged with, the one an address names,

@@ -1,6 +1,6 @@
 import type { MissionDetail, Stage } from "../../api";
 import { Chip } from "../../ui/Chip";
-import { CrewBadge } from "../parts";
+import { CrewBadge } from "../CrewBadge";
 import type { WorkCapsule } from "../workRows";
 import { MissionWorkStep } from "./MissionWorkStep";
 import { MissionWorkStepBundle } from "./MissionWorkStepBundle";

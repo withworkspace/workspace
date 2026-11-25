@@ -1,0 +1,147 @@
+/* The planner's pane (MissionBriefPlanner.tsx): its head, what's been
+   said, and where it's asked. What's settled in it is the conversation's
+   own marker, which still says settled-marker. */
+
+.planner {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-top: 1px solid var(--line);
+}
+
+.head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px var(--space-8);
+  font-size: var(--text-sm);
+}
+
+.name {
+  font-weight: 600;
+}
+
+.id {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--well);
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+}
+
+.id:hover {
+  color: var(--fg);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 6px var(--space-8) 18px;
+}
+
+/* (Each is as tall as it is: the conversation scrolls, it isn't squeezed.) */
+.body > * {
+  flex: none;
+}
+
+.body > p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.calls {
+  min-width: 0;
+}
+
+.body :global(.settled-marker) {
+  padding-left: 0;
+}
+
+/* Where it's asked: at the conversation's foot, which stays in reach as
+   the page scrolls. */
+.foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 4px var(--space-8) 14px;
+  background: linear-gradient(to bottom, transparent, var(--bg) 30%);
+}
+
+.foot:empty {
+  display: none;
+}
+
+/* Nothing drafted: the conversation is in the documents' place. */
+.planner.centre {
+  width: min(100%, 780px);
+  border: 0;
+}
+
+.planner.centre .body [data-turn] :global(.markdown) {
+  font-size: var(--text-lg);
+  line-height: 1.6;
+}
+
+@media (max-width: 639.98px) {
+  .head,
+  .body,
+  .foot {
+    padding-inline: var(--space-4);
+  }
+}
+
+@media (min-width: 1021px) {
+  .planner {
+    min-height: 0;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+
+  .head {
+    padding: 10px 12px 10px 16px;
+  }
+
+  .body {
+    padding: 6px 16px 18px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .foot {
+    position: relative;
+    flex: none;
+    padding: 4px 12px 14px;
+    background: none;
+  }
+
+  .planner.centre .head {
+    padding: 16px 24px 8px;
+  }
+
+  .planner.centre .body {
+    padding: 8px 24px 24px;
+  }
+
+  .planner.centre .foot {
+    padding: 4px 24px 24px;
+  }
+}
+
+@media print {
+  .planner {
+    display: none !important;
+  }
+}

@@ -23,7 +23,7 @@ export function WorkFiles({ d, c, files, more, committed }: { d: MissionDetail; 
     });
   return (
     <>
-      <MissionWorkHeading count={files.length + (more ?? 0)} end={files.length > 8 ? <MissionWorkFilter value={filter} onChange={setFilter} /> : null}>
+      <MissionWorkHeading fills count={files.length + (more ?? 0)} end={files.length > 8 ? <MissionWorkFilter value={filter} onChange={setFilter} /> : null}>
         {committed ? "Changed files" : "Not committed"}
       </MissionWorkHeading>
       {groups.map((g) => (

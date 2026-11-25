@@ -1,0 +1,6 @@
+/* What crew last said (MissionSummarySaid.tsx). The document in it still
+   says markdown. */
+
+.said :global(.markdown) > :first-child {
+  margin-top: 0;
+}

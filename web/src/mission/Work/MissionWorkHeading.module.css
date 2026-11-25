@@ -17,9 +17,9 @@ h3.heading {
   flex: 1;
 }
 
-/* It stays as its column scrolls, where it does. */
+/* It stays as its column scrolls, where it does (fills). */
 @media (min-width: 1321px) {
-  :global(.mission-page.fills) h3.heading {
+  h3.heading.fills {
     position: sticky;
     top: 0;
     z-index: 2;

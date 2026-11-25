@@ -1,0 +1,25 @@
+/* One of a mission's files as code (MissionArtifactCode.tsx). */
+
+.code {
+  position: relative;
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  overflow-x: auto;
+  font: var(--text-sm) / 1.6 var(--mono);
+  tab-size: 4;
+}
+
+.code code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+}
+
+@media print {
+  .code {
+    break-inside: avoid;
+  }
+}

@@ -1,0 +1,15 @@
+/* The button that brings the planner back (MissionBriefUnfold.tsx). */
+
+.unfold {
+  position: relative;
+}
+
+.dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--attention);
+}

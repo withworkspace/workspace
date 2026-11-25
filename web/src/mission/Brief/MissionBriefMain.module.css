@@ -1,0 +1,14 @@
+/* The pane the documents are in (MissionBriefMain.tsx). */
+
+.main {
+  position: relative;
+  min-width: 0;
+}
+
+@media (min-width: 1021px) {
+  .main {
+    display: flex;
+    min-height: 0;
+    border-left: 1px solid var(--line);
+  }
+}

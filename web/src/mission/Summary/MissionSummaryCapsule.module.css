@@ -1,0 +1,27 @@
+/* A capsule in a line on a mission's Summary (MissionSummaryCapsule.tsx). */
+
+.card {
+  padding: 8px 10px;
+  margin: 0 -10px;
+  border-radius: var(--radius);
+}
+
+.card.selected {
+  background: var(--selected);
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.name {
+  font-weight: 500;
+}
+
+.spacer {
+  flex: 1;
+}

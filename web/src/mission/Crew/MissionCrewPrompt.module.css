@@ -1,0 +1,83 @@
+/* What crew are stopped on: a permission or a question
+   (MissionCrewPrompt.tsx). */
+.card {
+  --backdrop: var(--raised);
+  --well: var(--panel);
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--tone-fill) 40%, transparent);
+  border-left: 3px solid var(--tone-fill);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow);
+  animation: global(rise) var(--slow) var(--ease);
+}
+
+.card.compact {
+  box-shadow: none;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.head > .icon {
+  color: var(--tone);
+  translate: 0 2px;
+}
+
+.path {
+  margin-left: 6px;
+}
+
+.input {
+  margin: 0;
+  padding: 8px 10px;
+  max-height: 160px;
+  overflow: auto;
+  border-radius: var(--radius);
+  background: var(--well);
+  font: var(--text-sm) / 1.5 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* The way to a file crew ask leave to change. */
+.file {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-sm);
+  color: var(--accent);
+}
+
+.answer {
+  display: flex;
+  gap: 6px;
+}
+
+.answer input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 10px;
+}

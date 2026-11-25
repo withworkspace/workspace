@@ -1,0 +1,19 @@
+/* Stepping through the changes to read, in the outline
+   (MissionBriefChangesNav.tsx). */
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.nav .button {
+  gap: 3px;
+  padding-inline: 6px;
+}
+
+.spacer {
+  flex: 1;
+}

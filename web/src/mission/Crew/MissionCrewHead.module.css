@@ -1,0 +1,53 @@
+/* The head of a crew's page (MissionCrewHead.tsx). */
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+}
+
+.title h1 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: var(--text-xl);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.status {
+  font-size: var(--text-sm);
+  padding: 1px 8px 1px 6px;
+  border-radius: 999px;
+  background: var(--tone-soft);
+}
+
+.sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+/* Its capsule and its terminal's title, in code's letters. */
+.sub .fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.termTitle {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

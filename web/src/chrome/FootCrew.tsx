@@ -1,4 +1,4 @@
-import { CrewBadge } from "../mission/parts";
+import { CrewBadge } from "../mission/CrewBadge";
 import css from "./FootCrew.module.css";
 import { FootItem } from "./FootItem";
 

@@ -1,0 +1,37 @@
+/* Z as it was checked (MissionEndingZ.tsx). */
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 4px;
+}
+
+.list li {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 6px;
+  align-items: start;
+}
+
+.list li > :global(.icon),
+.list li > svg {
+  margin-top: 3px;
+}
+
+.list li.met > svg {
+  color: var(--green);
+}
+
+.list li.unmet > svg {
+  color: var(--red);
+}
+
+.list li.unchecked > svg {
+  color: var(--dim);
+}
+
+.list .how {
+  color: var(--dim);
+}

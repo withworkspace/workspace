@@ -1,0 +1,7 @@
+/* A document's sections in the outline (MissionBriefOutlineList.tsx). */
+
+ul.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

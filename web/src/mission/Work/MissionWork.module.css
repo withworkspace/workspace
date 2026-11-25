@@ -1,6 +1,6 @@
 /* A mission's Work tab laid out (MissionWork.tsx): the list, and the one
    that's open beside it. On a wide window the tab fills what's under the
-   mission's bar (.mission-page.fills, the mission page's); narrower, the
+   mission's bar (fills: the mission page's tabs that do); narrower, the
    pane goes under the list, and the page scrolls. */
 
 .work {
@@ -36,12 +36,12 @@
 }
 
 @media (min-width: 1021px) {
-  :global(.mission-page.fills) .work {
+  .work.fills {
     height: 100%;
     align-items: stretch;
   }
 
-  :global(.mission-page.fills) .list {
+  .fills .list {
     overflow-y: auto;
     scrollbar-width: thin;
     padding: 0 8px 24px 0;

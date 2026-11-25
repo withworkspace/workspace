@@ -1,0 +1,32 @@
+/* The planner's field at the documents' foot, when it's folded away:
+   over their last lines, which fade under it, as the ask bar is on a
+   document (MissionBriefAskFoot.tsx). It's only there on a wide window. */
+
+@media (min-width: 1021px) {
+  .foot {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    padding: 30px 40px 16px;
+    background: linear-gradient(to bottom, transparent, var(--bg) 46%);
+    pointer-events: none;
+  }
+
+  .foot > * {
+    max-width: var(--brief-measure);
+    margin-inline: auto !important;
+    pointer-events: auto;
+  }
+
+  .foot.side > * {
+    max-width: 720px;
+  }
+}
+
+@media print {
+  .foot {
+    display: none !important;
+  }
+}

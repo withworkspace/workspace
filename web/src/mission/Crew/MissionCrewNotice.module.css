@@ -1,0 +1,9 @@
+/* A harness's notice in the transcript (MissionCrewNotice.tsx). */
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}

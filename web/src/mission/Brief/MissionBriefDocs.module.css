@@ -1,0 +1,33 @@
+/* The brief and the plan, together (MissionBriefDocs.tsx). */
+
+.docs {
+  position: relative;
+  min-width: 0;
+  padding: 22px var(--space-8) 48px;
+}
+
+@media (max-width: 639.98px) {
+  .docs {
+    padding-inline: var(--space-4);
+  }
+}
+
+@media (min-width: 1021px) {
+  .docs {
+    flex: 1;
+    min-height: 0;
+    padding: 22px 40px 120px;
+    overflow-y: auto;
+    scroll-padding-top: 16px;
+  }
+
+  /* Side by side, when there's room for both at a column worth reading:
+     the brief and the plan each have the tab's height. */
+  .docs.side {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: 0;
+    overflow: hidden;
+  }
+}

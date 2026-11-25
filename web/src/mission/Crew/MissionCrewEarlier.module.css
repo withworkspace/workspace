@@ -1,0 +1,9 @@
+/* Entries left out of the transcript (MissionCrewEarlier.tsx). */
+.earlier {
+  font-size: var(--text-sm);
+  color: var(--dim);
+  text-align: center;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--well);
+}

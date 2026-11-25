@@ -1,0 +1,13 @@
+/* The passage a turn of yours was about (MissionBriefQuoted.tsx). */
+
+.quoted {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  margin-bottom: 6px;
+  padding-left: 8px;
+  overflow: hidden;
+  border-left: 2px solid var(--accent-line);
+  color: var(--dim);
+  font-style: italic;
+}

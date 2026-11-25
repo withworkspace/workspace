@@ -1,0 +1,52 @@
+/* Opening a pull request from a capsule (MissionOpenPR.tsx). */
+
+.dialog p {
+  margin: 0 0 12px;
+  color: var(--dim);
+}
+
+.dialog textarea {
+  width: 100%;
+  margin: 8px 0;
+  font: var(--text-md) / 1.5 var(--font);
+}
+
+.form {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.title {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.title input {
+  flex: 1;
+  min-width: 0;
+}
+
+.title button {
+  flex: none;
+  min-width: 82px;
+  justify-content: center;
+}
+
+.form textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+/* A box and its word. */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 260px;
+}
+
+.draft {
+  margin-bottom: 10px;
+}

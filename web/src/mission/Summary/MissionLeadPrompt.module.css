@@ -1,0 +1,7 @@
+/* What crew are stopped on, in a mission's lead (MissionLeadPrompt.tsx). */
+
+.prompt {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}

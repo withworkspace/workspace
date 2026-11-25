@@ -1,0 +1,15 @@
+/* A run of crew's steps between its turns: set in under the avatar, as
+   a turn's words are (MissionCrewCalls.tsx). */
+.calls {
+  margin-top: -10px;
+  padding-left: 30px;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .calls {
+    padding-left: 0;
+  }
+}

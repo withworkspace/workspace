@@ -1,0 +1,38 @@
+/* What crew last said, at the foot of a mission's lead
+   (MissionLeadLatest.tsx). */
+
+.latest {
+  margin: 0;
+  padding: 2px 20px 4px;
+  border-top: 1px solid color-mix(in srgb, var(--tone-fill) 14%, var(--line));
+  background: var(--raised);
+}
+
+.said {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.said + .said {
+  border-top: 1px solid var(--line);
+}
+
+.said dt {
+  color: var(--dim);
+  font-size: var(--text-sm);
+  padding-top: 1px;
+}
+
+.said dd {
+  margin: 0;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .said {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}

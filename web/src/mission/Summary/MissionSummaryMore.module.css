@@ -1,0 +1,7 @@
+/* The way to the rest, under a row of a mission's Summary
+   (MissionSummaryMore.tsx). */
+
+.more {
+  display: inline-block;
+  margin-top: 6px;
+}

@@ -1,0 +1,23 @@
+/* Over a mission's log (MissionLogTools.tsx): whose, and a search. */
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tools .search {
+  margin-left: auto;
+  min-width: 200px;
+  padding: 4px 10px;
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 720px) {
+  .tools .search {
+    margin-left: 0;
+    flex: 1;
+  }
+}

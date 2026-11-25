@@ -2,7 +2,7 @@ import { changes } from "../annotate/diff";
 import type { MissionDetail, Stage, TalkDetail, TalkProposal, TalkTurn } from "../api";
 import { placed } from "../ask/ask";
 
-// What a mission's Brief tab (BriefTab.tsx) works out, apart from drawing
+// What a mission's Brief tab (Brief/Brief.tsx) works out, apart from drawing
 // it: the brief and the plan as it shows them (as they are, or as the agent
 // last proposed them), what each changed since the version before, as
 // edits to accept or decline one by one, and the proposal confirming them
