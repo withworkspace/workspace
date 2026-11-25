@@ -1,0 +1,138 @@
+/* The Team page's account of a period (TeamSummary.tsx): its heading,
+   with when it was written, then its topics, each a name that filters the
+   page, who's on it and how many changes, and a sentence or two. */
+
+.summary {
+  margin-bottom: var(--space-5);
+}
+
+/* A bare button: nothing of a button's box (styles.css's base rule). */
+.fold,
+.name {
+  all: unset;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.fold:focus-visible,
+.name:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.bar {
+  flex-wrap: wrap;
+}
+
+.fold {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fold:hover {
+  color: var(--fg);
+}
+
+.when {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 6px;
+  margin-left: auto;
+  font-weight: 400;
+  font-size: var(--text-xs);
+}
+
+.stale::before,
+.again:not(:first-child)::before {
+  content: "·";
+  margin-right: 6px;
+  color: var(--dim);
+}
+
+.stale {
+  color: var(--amber);
+}
+
+.again {
+  color: var(--accent);
+}
+
+.again:hover {
+  text-decoration: underline;
+}
+
+.failed {
+  margin: 4px 8px 8px;
+  font-size: var(--text-sm);
+  color: var(--dim);
+}
+
+.topics {
+  list-style: none;
+  margin: 0;
+  padding: 4px 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.topic {
+  display: grid;
+  gap: 4px;
+  padding: 8px 12px;
+  border-left: 2px solid var(--line);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.topic:hover {
+  background: var(--hover);
+}
+
+.on {
+  border-left-color: var(--accent);
+  background: var(--hover);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  min-width: 0;
+}
+
+.name {
+  font-weight: 600;
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+
+.name:hover,
+.on .name {
+  color: var(--accent);
+}
+
+.meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-size: var(--text-xs);
+  color: var(--dim);
+}
+
+.meta > span + span::before {
+  content: "·";
+  margin-right: 8px;
+}
+
+.text {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
