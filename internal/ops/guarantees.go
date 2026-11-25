@@ -25,7 +25,7 @@ var (
 	GuaranteeReviewBeforeLand  = Guarantee{"missions.review_before_land", "ws lands a mission's capsule in a repo with no pull requests only once the user's latest review of it approves it as it is"}
 	GuaranteeReviewBeforeReady = Guarantee{"missions.review_before_ready", "ws marks a mission's draft pull request ready only once the user's latest review of its capsule approves the commit it's at"}
 	GuaranteeRepliesNeedMe     = Guarantee{"missions.replies_need_me", "ws posts a reply drafted to a person on a mission's pull request only once the user has approved it; a reply to a bot needn't wait"}
-	GuaranteeEndWhenMerged     = Guarantee{"missions.end_when_merged", "ws ends a mission landed itself once the orchestrator suggests it landed (every part of Z met, every pull request merged) and nothing else on it waits for the user or crew; any other ending waits for the user"}
+	GuaranteeEndWhenMerged     = Guarantee{"missions.end_when_merged", "ws ends a mission landed itself once the orchestrator suggests it landed (every part of Z met, every pull request merged) and nothing else on it waits for the user or crew, and so it does one whose plan is done and pull requests merged after a turn of the orchestrator's that suggested no ending; any other ending waits for the user, who isn't asked to check Z"}
 )
 
 // guaranteeMaxRounds is how many rounds of a step's checks ws lets come

@@ -173,6 +173,13 @@ func (w *Workspace) Orchestrate(r OrchestratorRun) error {
 	if !acted && trigger != "manual" {
 		orchestratorDidNothing(store, m.Slug, what, rep.Output, runErr)
 	}
+	// It had its turn, and suggested no ending for a mission whose plan
+	// is done and work merged: ws ends it, landed, with Z unchecked.
+	if r.Auto && runErr == nil {
+		if c, why := w.endAtZ(m.Slug, r.Since); why == "" {
+			r.say("%s", c)
+		}
+	}
 	return runErr
 }
 

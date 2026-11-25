@@ -54,7 +54,7 @@ import { MissionSideSection } from "./MissionSideSection";
 import { CapsuleBadges, CrewRow, Events, isArtifact, MissionData, Stepper, viewEvent } from "./parts";
 import { DecisionsSummary } from "./DecisionsSummary";
 import { DecisionsTab } from "./DecisionsTab";
-import { EndButton, EndDialog, EndedCapsules, ended, HandedOn, ZChecks } from "./Ending";
+import { DropButton, EndedCapsules, ended, HandedOn, ZChecks } from "./Ending";
 import { PlanList } from "./PlanList";
 import { waitHow } from "./planRows";
 import { Verify } from "./Verify/Verify";
@@ -488,7 +488,7 @@ function DetailSide({ d, selected, openArtifact, review, updated, about, over, o
         <dd className="state-row">
           <Status s={missionStateStatus(d.state)} />
           <ParkButton d={d} reload={reload} />
-          <EndButton d={d} reload={reload} />
+          <DropButton d={d} reload={reload} />
         </dd>
         {d.at && (
           <>
@@ -1029,7 +1029,6 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
   const [busy, setBusy] = useState(false);
   const [words, setWords] = useState("");
   const [opened, setOpened] = useState<MissionAct | undefined>();
-  const [how, setHow] = useState(false);
   const send = (verb: ActVerb, body: { text?: string; crew?: string; task?: number; harness?: string; model?: string } = {}) => {
     setBusy(true);
     // Archiving asks first when it would burn work that hasn't merged.
@@ -1077,8 +1076,6 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
         return send("resume", { crew: a.target });
       case "not-yet":
         return send("dismiss");
-      case "end-how":
-        return setHow(true);
       default:
         return send(a.do as ActVerb);
     }
@@ -1190,7 +1187,6 @@ function CardActs({ d, c, lead, reload }: { d: MissionDetail; c: MissionCard; le
           </Button>
         </form>
       )}
-      {how && <EndDialog d={d} onClose={() => setHow(false)} reload={reload} />}
     </div>
   );
 }

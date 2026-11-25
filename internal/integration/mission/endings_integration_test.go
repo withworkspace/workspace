@@ -111,11 +111,20 @@ func TestWeb_Endings(t *testing.T) {
 	if _, err := act("cache", web.ActRequest{Verb: "drop", Capsule: "backend/cache-lookup", Text: "done elsewhere"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := act("cache", web.ActRequest{Verb: "end", Ending: "answered", Text: "x", Met: []string{"1: y"}}); err == nil || !strings.Contains(err.Error(), "part 2 of Z") {
-		t.Errorf("ended with part of Z unchecked: %v", err)
+	// Checking Z isn't asked of you: an ending of yours leaves unchecked
+	// the parts it says nothing of, and dropping needn't say why.
+	said, err = act("cache", web.ActRequest{Verb: "end", Ending: "answered", Text: "x", Met: []string{"1: y"}})
+	if err != nil || !strings.HasPrefix(said, "Ended, answered (early: 1 of 2 of Z met)") {
+		t.Fatalf("ended with part of Z unchecked: %q, %v", said, err)
 	}
-	if _, err := act("cache", web.ActRequest{Verb: "end", Ending: "dropped", Text: "done elsewhere"}); err != nil {
+	if d, _ := testutil.WebMission(w.Root)("cache"); d.Ending == nil || len(d.Ending.Z) != 2 || d.Ending.Z[1].Met || d.Ending.Z[1].How != "" {
+		t.Errorf("Z as checked: %+v", d.Ending)
+	}
+	if _, err := act("cache", web.ActRequest{Verb: "unend"}); err != nil {
 		t.Fatal(err)
+	}
+	if said, err := act("cache", web.ActRequest{Verb: "end", Ending: "dropped"}); err != nil || !strings.HasPrefix(said, "Ended, dropped") {
+		t.Fatalf("dropped, saying nothing: %q, %v", said, err)
 	}
 	d, _ = testutil.WebMission(w.Root)("cache")
 	if len(d.EndedCapsules) != 1 || d.EndedCapsules[0].Ending != "dropped" || d.State != "dropped" || len(d.Capsules) != 0 {

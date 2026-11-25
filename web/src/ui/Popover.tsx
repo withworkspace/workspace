@@ -45,10 +45,11 @@ export function PopoverSurface({ placement = "bottom start", offset = 4, maxHeig
 // about something. Its trigger is a Button (or a ToggleButton); what's in
 // it is a dialog to a screen reader, named by aria-label, and has the
 // focus while it's open. Escape, or a press outside, shuts it, and the
-// focus goes back to the button.
-export function Popover({ trigger, "aria-label": label, children, ...surface }: Omit<SurfaceProps, "children"> & { trigger: ReactElement; "aria-label": string; children: ReactNode }) {
+// focus goes back to the button. It can be open from the first
+// (defaultOpen), for a picture of it.
+export function Popover({ trigger, "aria-label": label, defaultOpen, children, ...surface }: Omit<SurfaceProps, "children"> & { trigger: ReactElement; "aria-label": string; defaultOpen?: boolean; children: ReactNode }) {
   return (
-    <DialogTrigger>
+    <DialogTrigger defaultOpen={defaultOpen}>
       {trigger}
       <PopoverSurface {...surface}>
         <Dialog className={css.dialog} aria-label={label}>
