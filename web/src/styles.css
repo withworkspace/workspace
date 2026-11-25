@@ -12255,60 +12255,6 @@ input[type="text"].tweak-text {
   margin: var(--space-3) var(--space-4);
 }
 
-/* A page's conversation (conversation/PageConversation.tsx), round the
-   page: the ask bar over its foot and the card over the bar, a popover
-   over its corner (or the launcher where the bar's off), and a pane
-   docked beside it, which the page gives up room to. */
-.convo-stage {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-}
-.convo-main {
-  position: relative;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-}
-.convo-foot {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 30;
-  padding: 0 16px 12px;
-  pointer-events: none;
-}
-.convo-foot > * {
-  pointer-events: auto;
-}
-
-.convo-given {
-  justify-self: end;
-  max-width: 90%;
-  color: var(--faint);
-  font-size: var(--text-xs);
-}
-.convo-given summary {
-  cursor: pointer;
-  text-align: right;
-}
-.convo-given-label {
-  margin-top: 6px;
-  color: var(--dim);
-}
-.convo-given pre {
-  max-height: 200px;
-  margin: 2px 0 0;
-  padding: 6px 8px;
-  overflow: auto;
-  border-radius: var(--radius-sm);
-  background: var(--well);
-  font-family: var(--mono);
-  font-size: var(--text-xs);
-  white-space: pre-wrap;
-}
 /* What ws is running while it checks a step, under the headline. */
 .checking-now {
   display: grid;

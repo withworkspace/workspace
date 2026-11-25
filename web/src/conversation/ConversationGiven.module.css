@@ -1,0 +1,31 @@
+/* What a page gave the agent with what you said, folded
+   (ConversationGiven.tsx). */
+
+.given {
+  justify-self: end;
+  max-width: 90%;
+  color: var(--faint);
+  font-size: var(--text-xs);
+}
+
+.given summary {
+  cursor: pointer;
+  text-align: right;
+}
+
+.label {
+  margin-top: 6px;
+  color: var(--dim);
+}
+
+.given pre {
+  max-height: 200px;
+  margin: 2px 0 0;
+  padding: 6px 8px;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+}

@@ -7,6 +7,7 @@ import { useBeside, useChromeStore, useGive } from "../chrome/store";
 import { useKeys } from "../keys";
 import { toast } from "../ui/toast";
 import { humanError } from "../ui/text";
+import { ConversationStage } from "./ConversationStage";
 import { type ConversationHost, givenWith, useHost } from "./host";
 import { useTalk, useTalks } from "./talks";
 
@@ -152,22 +153,23 @@ export function PageConversation({ host, about, children }: { host: Conversation
   );
 
   return (
-    <div className="convo-stage">
-      <div className="convo-main">
-        {children}
-        {about && settings.ask && !away && (
-          <div className="convo-foot">
-            <AskField
-              place="over"
-              field={bar}
-              placeholder={has ? "Ask a follow-up…" : (settings.placeholder ?? `Ask about ${about.thing}…`)}
-              busy={working}
-              holding={settings.holding && { icon: "layers", text: settings.holding.label, title: settings.holding.text ?? settings.holding.label }}
-              onAsk={(q) => send(q)}
-            />
-          </div>
-        )}
-      </div>
-    </div>
+    <ConversationStage
+      foot={
+        about &&
+        settings.ask &&
+        !away && (
+          <AskField
+            place="over"
+            field={bar}
+            placeholder={has ? "Ask a follow-up…" : (settings.placeholder ?? `Ask about ${about.thing}…`)}
+            busy={working}
+            holding={settings.holding && { icon: "layers", text: settings.holding.label, title: settings.holding.text ?? settings.holding.label }}
+            onAsk={(q) => send(q)}
+          />
+        )
+      }
+    >
+      {children}
+    </ConversationStage>
   );
 }
