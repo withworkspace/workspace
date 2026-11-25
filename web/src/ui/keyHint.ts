@@ -1,6 +1,6 @@
 import { usePrefs } from "../prefs";
 import { keysSaid } from "./Keys";
-import { getToasts, toast } from "./toast";
+import { saying, toast } from "./toast";
 
 // A key hint is ws saying, in passing, that what you just pressed with
 // the pointer has a key: the next time, it's quicker. It's said only
@@ -18,7 +18,7 @@ import { getToasts, toast } from "./toast";
 // A key that's still being said isn't said again over itself.
 export function keyHint(keys: string) {
   if (!usePrefs.getState().keyHints) return;
-  if (getToasts().some((t) => t.keys === keys)) return;
+  if (saying().some((t) => t.keys === keys)) return;
   toast("There's a key for that:", { keys });
 }
 

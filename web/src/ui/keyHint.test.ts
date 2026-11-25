@@ -2,23 +2,23 @@ import { afterEach, describe, expect, it } from "vitest";
 import { setPref } from "../prefs";
 import { clicked, hintOnClick, keyHint, keyProps, pointed, titleWithKeys } from "./keyHint";
 import { keysSaid } from "./Keys";
-import { getToasts, setToasts } from "./toast";
+import { saying, toasts } from "./toast";
 
 afterEach(() => {
   setPref("keyHints", false);
-  setToasts([]);
+  toasts.clear();
 });
 
 describe("a key hint", () => {
   it("isn't said unless you've asked for hints", () => {
     keyHint("v");
-    expect(getToasts()).toEqual([]);
+    expect(saying()).toEqual([]);
   });
 
   it("says the key, once you have", () => {
     setPref("keyHints", true);
     keyHint("o");
-    expect(getToasts().map((t) => t.keys)).toEqual(["o"]);
+    expect(saying().map((t) => t.keys)).toEqual(["o"]);
   });
 
   it("isn't said over itself while it's still being said, but is for another key, and again once it's gone", () => {
@@ -27,10 +27,10 @@ describe("a key hint", () => {
     keyHint("j");
     keyHint("k");
     keyHint("j");
-    expect(getToasts().map((t) => t.keys)).toEqual(["j", "k"]);
-    setToasts([]);
+    expect(saying().map((t) => t.keys)).toEqual(["k", "j"]); // newest first
+    toasts.clear();
     keyHint("j");
-    expect(getToasts().map((t) => t.keys)).toEqual(["j"]);
+    expect(saying().map((t) => t.keys)).toEqual(["j"]);
   });
 
   it("is for a mouse or a pen, not the keys' own press, a screen reader's or a finger's", () => {
@@ -55,10 +55,10 @@ describe("a click on what isn't one of the library's parts", () => {
     expect(props.title).toBe("Open it in Files (o)");
     props.onClick?.(mouse);
     expect(did).toBe(1);
-    expect(getToasts().map((t) => t.keys)).toEqual(["o"]);
+    expect(saying().map((t) => t.keys)).toEqual(["o"]);
     props.onClick?.({ detail: 0 });
     expect(did).toBe(2);
-    expect(getToasts()).toHaveLength(1);
+    expect(saying()).toHaveLength(1);
   });
 
   it("is the title and the handler as given, with no key", () => {

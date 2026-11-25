@@ -1,16 +1,37 @@
-/* Toasts (Toasts.tsx): where they're said, at the foot of the window. */
+/* Toasts (Toasts.tsx): where they're said, the window's bottom right. */
 
 @layer ui {
+  /* Where the region's put: in the shell, so it reads --foot-height. */
+  .home {
+    display: contents;
+  }
+
   .toasts {
     position: fixed;
-    left: 50%;
+    right: 20px;
     /* Clear of the foot, where there is one (chrome/Shell). */
     bottom: calc(20px + var(--foot-height, 0px));
-    transform: translateX(-50%);
     z-index: 200;
-    display: grid;
+    display: flex;
+    /* Newest first in the list, at the bottom on the page. */
+    flex-direction: column-reverse;
+    align-items: flex-end;
     gap: 8px;
-    justify-items: center;
+    max-width: calc(100vw - 40px);
+    outline: none;
+    /* The page between them is the page's to click. */
     pointer-events: none;
+  }
+
+  /* One toast: what's focused, by F6 then Tab, or by the keys in it. */
+  .toast {
+    border-radius: var(--radius-lg);
+    outline: none;
+    pointer-events: auto;
+  }
+
+  .toast[data-focus-visible] {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 }
