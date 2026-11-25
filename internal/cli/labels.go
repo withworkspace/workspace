@@ -52,6 +52,8 @@ var labels = map[string]string{
 	"conversation withdraw": "Taking back {1}",
 	"talk":                  "Starting a conversation",
 
+	"events": "Reading what ws has done",
+
 	"daemon":         "Looking at the daemon",
 	"daemon restart": "Restarting the daemon",
 	"daemon status":  "Checking the daemon",

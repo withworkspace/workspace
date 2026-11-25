@@ -12,6 +12,7 @@ import (
 
 	"github.com/withworkspace/plugin/protocol"
 	"github.com/withworkspace/workspace/internal/artifact"
+	"github.com/withworkspace/workspace/internal/events"
 	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/space"
@@ -287,6 +288,14 @@ func (w *Workspace) PromoteArtifact(p ArtifactPromote, by Actor) (ArtifactDone, 
 		return ArtifactDone{}, wrapArtifact(err)
 	}
 	out.Into = went
+	promoted := events.Event{Kind: events.ArtifactPromoted, Artifact: id, Text: fmt.Sprintf("v%d of %s", v, out.Entry.Title)}
+	switch {
+	case m != nil:
+		promoted.Mission = m.Slug
+	case went != "":
+		promoted.Doc = went
+	}
+	w.emit(promoted, by)
 	if m != nil {
 		if start != "" {
 			out.Started = m.Slug

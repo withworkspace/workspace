@@ -65,7 +65,7 @@ func (w *Workspace) WatchPRs(views []MissionView) {
 			}
 			events := append(mission.PRChanges(fmt.Sprintf("%s#%d", c.Repo, now.Number), was, now), said...)
 			for _, e := range events {
-				w.Missions.AppendLog(slug, mission.Event{Kind: mission.EventPR, What: e.What, Repo: c.Repo, Capsule: c.Name, Text: e.Text})
+				w.Missions.AppendLog(slug, mission.Event{Kind: mission.EventPR, What: e.What, Repo: c.Repo, Capsule: c.Name, By: "ws", Text: e.Text})
 			}
 			if len(events) == 0 {
 				continue

@@ -1864,6 +1864,14 @@ A few commands that don't fit neatly into the concepts above:
 - **It's yours to run.** Crew and the orchestrator are refused: it changes the ws every crew and the daemon run.
 - **The daemon looks for you.** Once a day a workspace's daemon asks GitHub for ws's latest release (and for the latest of each plugin installed from a repo: see [Plugins](#plugins)). It only looks: nothing's installed. A later release is said in the web UI: a line in the workspace's menu (*ws v1.4.0 is out*), and on Settings, under *About*, where *Upgrade* installs it as `ws upgrade` does, and the page says what the daemon's waiting for before it restarts onto it. A ws built from a clone is told what's out, and to build it again where it was built. *Check now* looks at once. `[updates] check = false` in `ws.local.toml` (the switch beside it) stops the daemon looking by itself: it's yours alone, as it's your machine that asks. A look that got no answer (no network) is tried again within the hour, and what was found is kept in `.ws/cache/updates.json`, so a daemon that's started again doesn't look again that day.
 
+**`ws events`** — what this ws did, oldest first: a capsule landed or burned, a pull request opened, merged or failing its checks, a mission started or ended, an artifact added or promoted, a document added or amended, a decision made. Each says who did it (you, crew by id, the orchestrator, or ws itself) and, where an orchestrator's run caused it, which run.
+
+- **Only what this ws did.** For you, or for crew and the orchestrator on your missions. Nothing is shared and nothing is a teammate's: how something this ws did turns out (a pull request it opened merging) is its, and a teammate's pull request merging isn't.
+- **Kept 90 days**, in the workspace's records (`.ws/ws.db`). What a mission's log says of it (started, landed, a decision, a pull request, ended) is kept there with it, in the same write.
+- `--since` takes what `ws team --since` does, or a length of time (`2h`); `--kind capsule.landed` one kind (repeatable); `-m <slug>` a mission's; `-n` how many of the latest (50); `--follow` keeps printing each new one; `-f json` prints one per line.
+
+They're what notifications, and later workflows, are made from.
+
 **`ws status`** — shows all repos and their worktrees with git status. Use `--format json` for machine-readable output.
 
 **`ws jump`** (alias `j`) — navigate to any capsule. Supports fuzzy matching and interactive pickers:

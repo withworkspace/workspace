@@ -74,6 +74,7 @@ ws alone opens the web UI, as ws web does; ws status lists every repo and capsul
 	cmd.AddCommand(newProcessCmd())
 	cmd.AddCommand(newPluginCmd())
 	cmd.AddCommand(newEvalCmd())
+	cmd.AddCommand(newEventsCmd())
 
 	return cmd
 }
