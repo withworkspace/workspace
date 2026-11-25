@@ -13,6 +13,7 @@ import (
 	"github.com/withworkspace/workspace/internal/git"
 	"github.com/withworkspace/workspace/internal/harness"
 	"github.com/withworkspace/workspace/internal/mission"
+	"github.com/withworkspace/workspace/internal/spend"
 )
 
 const (
@@ -29,7 +30,7 @@ var Timeout = 10 * time.Minute
 // printed. It runs in its own process group so a timeout kills everything it
 // started (a shell, a `gh pr checks --watch`), not just the agent: anything
 // left holding its output would keep Run waiting forever.
-func Run(life context.Context, l harness.Launch, root, slug, run string) (Report, error) {
+func Run(life context.Context, l harness.Launch, harnessName, root, slug, run string) (Report, error) {
 	// The report is what the agent prints; what it says on stderr (Claude
 	// Code's sign-in warnings, say) goes to the process's stderr too
 	// (orchestrator.log, run by hand the terminal), and into the error if
@@ -42,6 +43,8 @@ func Run(life context.Context, l harness.Launch, root, slug, run string) (Report
 		Stderr:  os.Stderr,
 		Root:    root,
 		Who:     "orchestrator " + slug,
+		Harness: harnessName,
+		For:     spend.For{Mission: slug, Kind: spend.Orchestrate, Subject: run},
 	})
 	return Report{Output: rep.Output, Calls: rep.Calls}, err
 }

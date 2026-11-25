@@ -18,6 +18,7 @@ import (
 	"github.com/withworkspace/workspace/internal/mission"
 	"github.com/withworkspace/workspace/internal/prompt"
 	"github.com/withworkspace/workspace/internal/runs"
+	"github.com/withworkspace/workspace/internal/spend"
 	"github.com/withworkspace/workspace/internal/turn"
 )
 
@@ -397,7 +398,7 @@ func (w *Workspace) judge(m *mission.Mission, st mission.StageState, crewID, cap
 		j.Artifacts = append(j.Artifacts, line)
 	}
 	runPath := filepath.Join(w.Missions.Dir(), m.Slug, "judge.log")
-	_, verdicts, err = w.askJudge(pick, h, j, "judge "+m.Slug, crew.Env(w.Root(), m.Slug, ""), runPath)
+	_, verdicts, err = w.askJudge(pick, h, j, "judge "+m.Slug, spend.For{Mission: m.Slug, Kind: spend.Check, Subject: fmt.Sprintf("step %d", st.N)}, crew.Env(w.Root(), m.Slug, ""), runPath)
 	if err != nil {
 		execlog.Note(w.Root(), "judge "+m.Slug, "couldn't judge step %d: %v", st.N, err)
 		return nil, "", err
@@ -446,9 +447,9 @@ func (w *Workspace) decidedSince(m *mission.Mission, st mission.StageState) []st
 // to, and its answer read as a verdict for each of j's checks. A mission's
 // checks and an eval's fixture both come through here, so an eval judges
 // as a mission's judge does.
-func (w *Workspace) askJudge(pick harness.Pick, h harness.Converser, j prompt.Judging, who string, env []string, runPath string) (harness.Report, []prompt.Verdict, error) {
+func (w *Workspace) askJudge(pick harness.Pick, h harness.Converser, j prompt.Judging, who string, f spend.For, env []string, runPath string) (harness.Report, []prompt.Verdict, error) {
 	run := harness.ConverseRun{Prompt: prompt.Judge(j), Dir: firstNonEmpty(j.Dir, w.Root()), Model: pick.Model, Once: true}
-	rep, err := RunHeadless(w.life(), w.Root(), who, env, runPath, judgeTimeout, h, run)
+	rep, err := RunHeadless(w.life(), w.Root(), who, f, env, runPath, judgeTimeout, h, run)
 	if err != nil {
 		return rep, nil, err
 	}

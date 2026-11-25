@@ -37,6 +37,9 @@ type Report struct {
 	// before it writes, which says nothing of what it thinks.
 	Draft    string
 	Thinking bool
+	// Usage is what it spent, by model, where its harness says (Claude
+	// Code's result line): nil where it doesn't, or it didn't finish.
+	Usage []Usage
 }
 
 // SoFar is what it's said so far: the message it's writing, else the last
@@ -371,6 +374,7 @@ func readClaudeStream(out string) Report {
 		case "result":
 			rep.Done = true
 			rep.Output = strings.TrimSpace(e.Result)
+			rep.Usage = claudeResultUsage([]byte(line))
 			for _, d := range e.Denials {
 				if i, ok := at[d.ID]; ok {
 					rep.Calls[i].Refused = true

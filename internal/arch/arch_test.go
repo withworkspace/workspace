@@ -23,7 +23,7 @@ var anything = []string{"*"}
 
 // domain is the packages that each keep one store, for the rows that may
 // read any of them.
-var domain = []string{"mission", "conversation", "review", "page", "doc", "pulls", "team", "find", "space", "process", "artifact", "notification"}
+var domain = []string{"mission", "conversation", "review", "page", "doc", "pulls", "team", "find", "space", "process", "artifact", "notification", "spend"}
 
 // leaves may be imported by any package: they import nothing of ws's (but
 // store, which ranks what's said by words, and keys what's named as ref
@@ -50,10 +50,11 @@ var allowed = map[string][]string{
 	"space":        {"workspace"},
 	"nav":          {"nav/grammars/typespec"},
 	"harness":      {"acp"},
+	"spend":        {"harness"}, // what agents spent, as their harness reports it
 	"prompt":       domain,
-	"turn":         {"harness", "acp", "execlog"},
+	"turn":         {"harness", "acp", "execlog", "spend"},
 	"crew":         {"harness", "mission", "termpane", "execlog", "acp"},
-	"orchestrator": {"mission", "harness", "prompt", "turn", "crew", "execlog", "git"},
+	"orchestrator": {"mission", "harness", "prompt", "turn", "crew", "execlog", "git", "spend"},
 	// The daemon: the crew it holds and the socket commands reach it on,
 	// and, put together around one ops.Workspace for its life, everything
 	// it runs (jobs, its loops, the web UI, plugins). Only cli starts it.

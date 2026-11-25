@@ -19,6 +19,7 @@ import (
 	"github.com/withworkspace/workspace/internal/page"
 	"github.com/withworkspace/workspace/internal/plugin"
 	"github.com/withworkspace/workspace/internal/prompt"
+	"github.com/withworkspace/workspace/internal/spend"
 	"github.com/withworkspace/workspace/internal/turn"
 )
 
@@ -725,13 +726,13 @@ func (w *Workspace) runConverse(store conversation.Store, id string, h harness.C
 	if r.Sandbox {
 		limit = TurnForRunning
 	}
-	return RunHeadless(w.life(), w.Root(), who, env, store.RunPath(id), limit, h, r)
+	return RunHeadless(w.life(), w.Root(), who, spend.For{Mission: store.Slug, Kind: spend.Talk, Subject: id}, env, store.RunPath(id), limit, h, r)
 }
 
 // RunHeadless runs a conversing agent once, headless, and reads what it
 // said and did. What it prints is also written to runPath as it goes, if
-// there's one.
-func RunHeadless(life context.Context, root, who string, env []string, runPath string, limit time.Duration, h harness.Converser, r harness.ConverseRun) (harness.Report, error) {
+// there's one; what it spent is kept for f.
+func RunHeadless(life context.Context, root, who string, f spend.For, env []string, runPath string, limit time.Duration, h harness.Converser, r harness.ConverseRun) (harness.Report, error) {
 	if r.Scratch == "" {
 		r.Scratch = filepath.Join(root, ".ws", "converse")
 	}
@@ -757,7 +758,7 @@ func RunHeadless(life context.Context, root, who string, env []string, runPath s
 			tee = f
 		}
 	}
-	rep, err := turn.Run(turn.Spec{Life: life, Launch: l, Env: env, Timeout: limit, Tee: tee, Root: root, Who: who})
+	rep, err := turn.Run(turn.Spec{Life: life, Launch: l, Env: env, Timeout: limit, Tee: tee, Root: root, Who: who, Harness: h.Name(), For: f})
 	switch {
 	case err != nil:
 		return rep, err
