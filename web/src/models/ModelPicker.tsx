@@ -5,16 +5,16 @@ import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { HeldPopover } from "../ui/Popover";
 import { rowOf, shortOf, treeOf } from "./modelTree";
-import css from "./SettingsModelPicker.module.css";
-import { SettingsModelPanel } from "./SettingsModelPanel";
+import css from "./ModelPicker.module.css";
+import { ModelPanel } from "./ModelPanel";
 
-// SettingsModelPicker is a role's model, picked from what its harness
-// lists: a button that says what's set, by its model and what it chooses
-// of it ("Claude Opus 5.5 · high · fast"), and opens the panel to find
-// another (SettingsModelPanel). What's set that the harness doesn't list
-// is said as it's written; nothing set is placeholder. onAnother is for a
+// ModelPicker is a model picked from what a harness lists, as a role's
+// is in Settings: a button that says what's set, by its model and what it
+// chooses of it ("Claude Opus 5.5 · high · fast"), and opens the panel to
+// find another (ModelPanel). What's set that the harness doesn't list is
+// said as it's written; nothing set is placeholder. onAnother is for a
 // name typed instead; open starts it open, for a picture of it.
-export function SettingsModelPicker({
+export function ModelPicker({
   models,
   value,
   placeholder,
@@ -48,7 +48,7 @@ export function SettingsModelPicker({
         <Icon name="chevron-down" size={14} className={css.chevron} />
       </Button>
       <HeldPopover open={open} onOpenChange={setOpen} at={at} aria-label={label} placement="bottom start" maxHeight={600}>
-        <SettingsModelPanel
+        <ModelPanel
           models={models}
           value={value}
           busy={busy}

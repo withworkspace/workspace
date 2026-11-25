@@ -1,15 +1,15 @@
 import { cx } from "../ui/cx";
 import { Icon } from "../ui/Icon";
 import { effortWords, type ModelRow } from "./modelTree";
-import css from "./SettingsModelRow.module.css";
+import css from "./ModelRow.module.css";
 
-// SettingsModelRow is one model in a model picker's list: its name (and
+// ModelRow is one model in a model picker's list: its name (and
 // what the harness says of it, where it's one name alone), the efforts it
 // runs at, whether it thinks and has a fast way, and whether
 // what's set is one of its names (chosen) or the agent's default is. on
 // is the picker's cursor being on it; the focus stays in the picker's
 // text box, which says so (id).
-export function SettingsModelRow({ id, row, on, chosen, onPress, onUse }: { id: string; row: ModelRow; on: boolean; chosen: boolean; onPress: () => void; onUse: () => void }) {
+export function ModelRow({ id, row, on, chosen, onPress, onUse }: { id: string; row: ModelRow; on: boolean; chosen: boolean; onPress: () => void; onUse: () => void }) {
   const named = row.efforts.filter(Boolean);
   const range = named.length > 1 ? `${effortWords[named[0]]}–${effortWords[named[named.length - 1]]}` : named.length ? effortWords[named[0]] : "";
   return (

@@ -5,13 +5,13 @@ import { Icon } from "../ui/Icon";
 import { Input } from "../ui/Input";
 import { Spinner } from "../ui/Spinner";
 import { choiceOf, find, type ModelChoice, pick, rowOf, treeOf } from "./modelTree";
-import { SettingsModelChoices } from "./SettingsModelChoices";
-import css from "./SettingsModelPanel.module.css";
-import { SettingsModelRow } from "./SettingsModelRow";
+import { ModelChoices } from "./ModelChoices";
+import css from "./ModelPanel.module.css";
+import { ModelRow } from "./ModelRow";
 
 const nothing: ModelChoice = { effort: "", thinking: false, fast: false };
 
-// SettingsModelPanel is a model picker's inside: a text box over a
+// ModelPanel is a model picker's inside (ModelPicker, ModelSwitch): a text box over a
 // harness's models, a row for each model (its names together: each
 // effort, thinking or not, fast or not), under its maker; and under the
 // list, what's chosen of the model the cursor's on, and Use.
@@ -25,7 +25,7 @@ const nothing: ModelChoice = { effort: "", thinking: false, fast: false };
 //
 // It's driven by hand, as Finder is, for the same reasons: react-aria's
 // autocomplete shows no cursor till a key's pressed.
-export function SettingsModelPanel({
+export function ModelPanel({
   models,
   value,
   busy,
@@ -111,7 +111,7 @@ export function SettingsModelPanel({
               {s.rows.map((r) => {
                 const i = n++;
                 return (
-                  <SettingsModelRow
+                  <ModelRow
                     key={r.key}
                     id={`${id}-${i}`}
                     row={r}
@@ -132,7 +132,7 @@ export function SettingsModelPanel({
         )}
       </ul>
       {row && model && (
-        <SettingsModelChoices
+        <ModelChoices
           row={row}
           model={model}
           onUse={use}

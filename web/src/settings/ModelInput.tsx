@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useLoaded } from "../load";
 import type { ControlProps } from "./controlProps";
-import { modelsOf } from "./models";
+import { modelsOf } from "../models/models";
 import { shown } from "./sections";
 import { SettingsNote } from "./SettingsNote";
-import { SettingsModelPicker } from "./SettingsModelPicker";
+import { ModelPicker } from "../models/ModelPicker";
 import { TextInput } from "./TextInput";
 
 // ModelInput is a role's model: one of those its harness lists, picked
@@ -37,7 +37,7 @@ export function ModelInput(p: ControlProps) {
   }
   return (
     <>
-      <SettingsModelPicker
+      <ModelPicker
         stretch={stretch}
         models={models}
         value={cur}

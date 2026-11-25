@@ -4,14 +4,14 @@ import { Icon } from "../ui/Icon";
 import { Segment, Segmented } from "../ui/Segmented";
 import { Switch } from "../ui/Switch";
 import { choiceOf, effortWords, type ModelChoice, type ModelRow } from "./modelTree";
-import css from "./SettingsModelChoices.module.css";
+import css from "./ModelChoices.module.css";
 
-// SettingsModelChoices is what a model picker chooses of the model the
+// ModelChoices is what a model picker chooses of the model the
 // cursor's on: its effort, thinking and fast, each where the model has
 // more than one; then the name that comes to (model), and Use, which sets
 // it. A choice the model has only with others changes those too (the
 // picker's to work out, onChoose).
-export function SettingsModelChoices({
+export function ModelChoices({
   row,
   model,
   onChoose,

@@ -3,7 +3,7 @@ import type { AddableRepo, Repo, UpdatesInfo } from "../api";
 import { Option } from "../ui/Select";
 import { SettingsField } from "./SettingsField";
 import { SettingsPicks } from "./SettingsPicks";
-import { SettingsModelPicker } from "./SettingsModelPicker";
+import { ModelPicker } from "../models/ModelPicker";
 import { SettingsSelect } from "./SettingsSelect";
 import { SettingsSource } from "./SettingsSource";
 import { SettingsStepper } from "./SettingsStepper";
@@ -47,7 +47,7 @@ const claudeModels = [
 
 export function Model({ stretch, value = "haiku" }: { stretch?: boolean; value?: string }) {
   const [v, setV] = useState(value);
-  return <SettingsModelPicker stretch={stretch} models={claudeModels} value={v} onChange={setV} placeholder="the agent's own default" onAnother={none} aria-label="Model" />;
+  return <ModelPicker stretch={stretch} models={claudeModels} value={v} onChange={setV} placeholder="the agent's own default" onAnother={none} aria-label="Model" />;
 }
 
 export function Field({ value, ...rest }: { value: string; short?: boolean; mono?: boolean; stretch?: boolean; placeholder?: string }) {

@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import type { ModelInfo } from "../api";
 import samples from "./modelSamples.json";
-import { SettingsModelPanel } from "./SettingsModelPanel";
-import { SettingsModelPicker } from "./SettingsModelPicker";
+import { ModelPanel } from "./ModelPanel";
+import { ModelPicker } from "./ModelPicker";
 
 // A role's model picker, on Cursor's whole list as its CLI gave it
 // (2026-11-25): each model once, under its maker, its efforts, thinking
@@ -12,7 +12,7 @@ import { SettingsModelPicker } from "./SettingsModelPicker";
 // are the same and the choices fewer. A harness whose names say nothing
 // of where they sit (Claude Code's aliases) is a plain list.
 
-const meta: Meta = { title: "Settings/SettingsModelPicker" };
+const meta: Meta = { title: "Models/ModelPicker" };
 export default meta;
 
 const cursor = samples.cursor as ModelInfo[];
@@ -27,7 +27,7 @@ function Picker({ models, value: start, open }: { models: ModelInfo[]; value: st
   const [value, setValue] = useState(start);
   return (
     <div style={{ padding: 32, minHeight: 640 }}>
-      <SettingsModelPicker models={models} value={value} onChange={setValue} onAnother={() => {}} placeholder="the agent's own default" aria-label="Model" open={open} />
+      <ModelPicker models={models} value={value} onChange={setValue} onAnother={() => {}} placeholder="the agent's own default" aria-label="Model" open={open} />
       <p style={{ marginTop: 12, font: "var(--text-xs) var(--mono)", color: "var(--dim)" }}>{value || "(nothing set)"}</p>
     </div>
   );
@@ -38,7 +38,7 @@ function Panel({ models, value }: { models: ModelInfo[]; value: string }) {
   return (
     <div style={{ padding: 32 }}>
       <div style={{ display: "inline-flex", border: "1px solid var(--line)", borderRadius: 10, background: "var(--raised)", boxShadow: "var(--shadow)" }}>
-        <SettingsModelPanel models={models} value={used} onUse={setUsed} onAnother={() => {}} />
+        <ModelPanel models={models} value={used} onUse={setUsed} onAnother={() => {}} />
       </div>
       <p style={{ marginTop: 12, font: "var(--text-xs) var(--mono)", color: "var(--dim)" }}>{used}</p>
     </div>
