@@ -166,13 +166,14 @@ const placeWords: Record<string, string> = {
   team: "people timeline who landed merged what's happening",
   files: "files capsules ground browse runs apps",
   orchestrator: "agent decides what's next runs",
+  notifications: "feed inbox what happened unread merged ended news",
   runs: "processes dev servers ports http localhost names router running",
 };
 
 // settingWords are the words a section of Settings is looked for by.
 const settingWords: Record<string, string> = {
   appearance: "theme light dark accent sidebar",
-  notifications: "desktop alerts",
+  notifications: "desktop alerts feed sources mute",
   agents: "harness model claude codex roles",
   missions: "orchestrator briefing checks",
   repos: "clone fetch",

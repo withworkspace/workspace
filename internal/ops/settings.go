@@ -483,12 +483,38 @@ func settingDefs(root string) []struct {
 	out = append(out, struct {
 		group    roleDef
 		settings []settingDef
+	}{roleDef{id: "notifications", title: "Notifications", about: "What happened that you'd want to know, kept as a feed: where each source of it is sent. Yours alone, as the feed is. What needs you is told apart from these, and always listed."}, []settingDef{
+		notifySetting("missions", "Missions", "A mission ended by itself, or one was started for you by crew or the orchestrator.",
+			func(l *config.LocalConfig) *string { return &l.Notifications.Missions }),
+		notifySetting("pulls", "Pull requests", "A pull request this ws opened merged.",
+			func(l *config.LocalConfig) *string { return &l.Notifications.Pulls }),
+		notifySetting("plugins", "Plugins", "A plugin's update is out.",
+			func(l *config.LocalConfig) *string { return &l.Notifications.Plugins }),
+		notifySetting("ws", "ws", "ws was upgraded, and the daemon restarted onto it.",
+			func(l *config.LocalConfig) *string { return &l.Notifications.WS }),
+	}})
+	out = append(out, struct {
+		group    roleDef
+		settings []settingDef
 	}{roleDef{id: "ui", title: "Appearance", about: "How the web UI looks."}, []settingDef{
 		accentSetting(),
 		placesSetting("sidebar", "Sidebar", "The places in the sidebar, in order. A place in neither list goes at the sidebar's end, or the menu's for one whose home is the menu (Runs). Arrange them from Settings, under Appearance (Arrange the sidebar…). Yours, setting either list, replaces the team's arrangement."),
 		placesSetting("menu", "In the menu", "The places moved out of the sidebar into the workspace's menu, in order. Arrange them from Settings, under Appearance (Arrange the sidebar…)."),
 	}})
 	return out
+}
+
+// notifySetting is where one source of notifications is sent
+// ([notifications] <source>). It's yours alone: ws.toml has no
+// [notifications].
+func notifySetting(key, label, about string, local func(l *config.LocalConfig) *string) settingDef {
+	return choiceSetting("notifications", key, label, about, config.NotifyFeed,
+		[]SettingChoice{
+			{Value: config.NotifyFeed, Label: "Feed"},
+			{Value: config.NotifyDesktop, Label: "Feed and desktop"},
+			{Value: config.NotifyOff, Label: "Off"},
+		},
+		func(*config.Config) *string { var none string; return &none }, local)
 }
 
 // routerEnabledSetting is [router] enabled: whether the daemon gives the

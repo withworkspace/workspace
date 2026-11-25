@@ -1,0 +1,69 @@
+/* A notification in the feed: its link takes the row's width, and what
+   puts it away sits at its end, shown while the row is pointed at or the
+   keys are in it. */
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.link {
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.plain {
+  appearance: none;
+  background: none;
+  border: 0;
+  font: inherit;
+  text-align: start;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.icon {
+  color: var(--dim);
+  flex: none;
+}
+
+.icon.attention {
+  color: var(--danger);
+}
+
+.text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.text.unread {
+  font-weight: 500;
+}
+
+/* Its words wrap in what's left of the row, never under the mark. */
+.main {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mark {
+  flex: none;
+  margin-inline-start: 8px;
+}
+
+.dismiss {
+  flex: none;
+  margin-inline-end: 4px;
+  opacity: 0;
+}
+
+.row:hover .dismiss,
+.row:focus-within .dismiss {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .dismiss {
+    opacity: 1;
+  }
+}

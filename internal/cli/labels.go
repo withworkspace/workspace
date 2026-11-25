@@ -54,6 +54,10 @@ var labels = map[string]string{
 
 	"events": "Reading what ws has done",
 
+	"notifications":         "Reading notifications",
+	"notifications dismiss": "Dismissing notifications",
+	"notifications read":    "Marking notifications read",
+
 	"daemon":         "Looking at the daemon",
 	"daemon restart": "Restarting the daemon",
 	"daemon status":  "Checking the daemon",

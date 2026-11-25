@@ -23,7 +23,7 @@ var anything = []string{"*"}
 
 // domain is the packages that each keep one store, for the rows that may
 // read any of them.
-var domain = []string{"mission", "conversation", "review", "page", "doc", "pulls", "team", "find", "space", "process", "artifact"}
+var domain = []string{"mission", "conversation", "review", "page", "doc", "pulls", "team", "find", "space", "process", "artifact", "notification"}
 
 // leaves may be imported by any package: they import nothing of ws's (but
 // store, which ranks what's said by words, and keys what's named as ref
@@ -36,6 +36,7 @@ var leaves = []string{"git", "slug", "events", "execlog", "job", "ref", "release
 var allowed = map[string][]string{
 	"store":        {"words", "ref"},
 	"events":       {"store"},
+	"notification": {"events"},
 	"workspace":    {"config", "git", "slug"},
 	"mission":      {"slug", "git"},
 	"conversation": {"mission", "doc"},

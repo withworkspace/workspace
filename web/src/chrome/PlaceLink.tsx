@@ -29,7 +29,7 @@ export function PlaceLink({ place, on, news }: PlaceLinkProps) {
       <span className={css.words}>{place.label}</span>
       {counted && (
         <Count
-          tone="attention"
+          tone={place.quiet ? undefined : "attention"}
           className={css.count}
           title={`${place.count} ${place.countTitle ?? "need you"}`}
         >

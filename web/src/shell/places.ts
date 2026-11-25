@@ -20,6 +20,8 @@ export interface Place {
   label: string;
   count?: number;
   countTitle?: string;
+  // quiet: its count is of what's there to read, not of what needs you.
+  quiet?: boolean;
   match: (path: string) => boolean;
   // under is the group a plugin's view names: its title shows above it
   // in the sidebar.
@@ -117,6 +119,18 @@ export function placesOf(workspace: Workspace | undefined, waiting: (Waiting & {
     { id: "team", to: "/team", icon: "user", label: "Team", match: (p) => p === "/team" },
     { id: "files", to: "/files", icon: "layers", label: "Repos", match: (p) => p === "/files" || p.startsWith("/files/") },
     { id: "orchestrator", to: "/orchestrator", icon: "sparkle", label: "Orchestrator", match: (p) => p.startsWith("/orchestrator") },
+    // Last of the sidebar's own, so it's above what needs you: what
+    // happened, beside what can't move without you.
+    {
+      id: "notifications",
+      to: "/notifications",
+      icon: "bell",
+      label: "Notifications",
+      count: workspace?.notifications?.unread,
+      countTitle: "unread",
+      quiet: true,
+      match: (p) => p === "/notifications",
+    },
     { id: "runs", to: "/runs", icon: "play", label: "Runs", match: (p) => p === "/runs", home: "menu" },
   ];
   // The workspace's apps: its own recipes with a page, each its run framed.

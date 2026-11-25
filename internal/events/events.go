@@ -168,8 +168,21 @@ func Append(tx *store.Tx, e Event) (Event, error) {
 		return e, err
 	}
 	tx.Changed(Topic)
+	for _, fn := range after {
+		if err := fn(tx, e); err != nil {
+			return e, err
+		}
+	}
 	return e, nil
 }
+
+// after is what's run for each event as it's kept, in its transaction.
+var after []func(tx *store.Tx, e Event) error
+
+// OnAppend has fn run for each event as it's kept, in the transaction
+// that keeps it: what's made from events (a notification) is made with
+// them, or not at all. Called from a package's init.
+func OnAppend(fn func(tx *store.Tx, e Event) error) { after = append(after, fn) }
 
 // Emit keeps e in root's records, in a transaction of its own.
 func Emit(root string, e Event) (Event, error) {

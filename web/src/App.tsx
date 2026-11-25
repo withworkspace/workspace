@@ -16,6 +16,7 @@ import { listKeys, MissionList } from "./mission/List";
 import { MissionPage, missionKeys } from "./mission/Mission";
 import { OrchestratorPage, OrchestratorRunPage } from "./orchestrator/Orchestrator";
 import { AppPage } from "./apps/AppPage";
+import { NotificationsPage } from "./notifications/NotificationsPage";
 import { RunsPage } from "./runs/Runs";
 import { useRefs } from "./refs/known";
 import type { Known } from "./refs/refs";
@@ -30,7 +31,7 @@ import { PRReviewPage, prReviewKeys } from "./reviews/PRReview";
 import { ReviewsPage, reviewsKeys } from "./reviews/Reviews";
 import { repoOfPage, scopePrefix } from "./shell/find";
 import { Palette } from "./shell/Palette/Palette";
-import { useFaviconBadge, useNotifications } from "./shell/notify";
+import { useFaviconBadge, useFeedNotifications, useNotifications } from "./shell/notify";
 import { Arrange } from "./shell/Arrange";
 import { askShutDown } from "./shell/daemon";
 import { arrange, type Arrangement, type Arranged, type Place, placesOf, sameArrangement, saving } from "./shell/places";
@@ -183,6 +184,8 @@ export function App() {
   useFaviconBadge(waiting.length > 0);
   const openPath = useCallback((p: string) => navigate(p), [navigate]);
   const notify = useNotifications(waiting, openPath);
+  // And what happened, where you've sent its source to the desktop.
+  useFeedNotifications(workspace?.notifications?.latest, notify.on, openPath);
 
   const places = useMemo(() => placesOf(workspace, waiting, plugins), [workspace, waiting, plugins]);
   // What's just been arranged, until the workspace says it back.
@@ -344,6 +347,7 @@ const Pages = memo(function Pages({ notify }: { notify: ReturnType<typeof useNot
       <Route path="/missions/:slug/orchestrator/:id" element={<OrchestratorRunPage />} />
       <Route path="/orchestrator" element={<OrchestratorPage />} />
       <Route path="/runs" element={<RunsPage />} />
+      <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/apps/:name" element={<AppPage />} />
       <Route path="/plugins" element={<Navigate to="/settings/plugins" replace />} />
       <Route path="/settings" element={<SettingsPage notify={notify} />} />

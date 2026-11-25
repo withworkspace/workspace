@@ -43,6 +43,7 @@ func (d *daemon) loops(w *web.Server, stop <-chan struct{}) {
 	go d.followGroundsLoop(logf, stop)                                      // each repo's ground kept up with its remote
 	go followReviewsLoop(reviews, logf, stop)                               // who's asking for your review by name
 	go d.w.NoteRunning(func() string { return previousVersion(d.cfg.Exe) }) // which ws this is, for what's new
+	go d.w.NoteStarted()                                                    // and for the feed: an upgrade it restarted onto
 }
 
 // Crew that end a turn to wait on work they left running have that turn

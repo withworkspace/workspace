@@ -762,7 +762,7 @@ The planner and the orchestrator are told which are on. They're on the Settings 
 **The Settings page** (*Settings* in the workspace's menu) is your settings for the workspace, in sections: the list of them is beside the sidebar, and the one you're in beside that (on a narrow window the list runs along the top). Each section has an address (`/settings/agents`), and `/settings` is the first.
 
 - *Appearance*: the theme (light, dark, or as your system has it), the web UI's accent, and the sidebar's arrangement, as a button that puts the sidebar into its edit mode.
-- *Notifications*: desktop notifications, on or off (the bell beside *Needs you* in the sidebar is the same switch).
+- *Notifications*: desktop notifications, on or off (the bell beside *Needs you* in the sidebar is the same switch); and, under *What happened*, where each source of [notifications](#other-commands) is sent: the feed, the feed and the desktop, or nowhere (`[notifications]`).
 - *Agents*: each role's agent and model (crew, briefing, the orchestrator, conversations, the judge, the Team page) in one table, with why a role can't run if it can't, and what it follows where it isn't set itself (the Team page's agent follows conversations', and the judge briefing's); under it, what else crew may be launched on.
 - *Missions*: where a mission's briefed, the orchestrator's switches, and the *Guarantees*.
 - *Team page*, and *Repos*: the git protocol, and the team's repos as `ws.toml` has them (what each is called, its aliases and group, and how work lands in it), shown, not changed.
@@ -1260,6 +1260,8 @@ backend = [".ground"]
 **Agent overrides:** `[agents] guide`, `skills`, `process` and `pr`, and each `[crew]`, `[briefing]`, `[orchestrator]`, `[conversation]`, `[judge]` and `[pr_writer]` setting, replaces the shared value (see [Agents](#missions) under Missions), so you can run Claude Code while the team default is Cursor.
 
 **Updates:** `[updates] check = false` stops this workspace's daemon looking, once a day, for a later release of ws and of each plugin installed from a repo (see [`ws upgrade`](#other-commands)). It's here only: it's your machine that asks.
+
+**Notifications:** `[notifications]` says where each source of what happened is sent (see [`ws notifications`](#other-commands)): `missions` (a mission ended by itself, or was started for you by crew or the orchestrator), `pulls` (a pull request this ws opened merged), `plugins` (a plugin's update is out) and `ws` (ws was upgraded). Each is `"feed"` (the default: the feed alone), `"desktop"` (the desktop as well, while the web UI's desktop notifications are on) or `"off"` (nowhere). It's here only: the feed is yours. It's read each time the feed is, so a source turned off and on again has lost nothing.
 
 **Artifacts:** `[artifacts] path` says where the artifacts you promote live, whatever `ws.toml` says: `".ws"` keeps them on this machine, unless you name a folder for one as you promote it. One that lives in a repo already still goes there.
 
@@ -1871,6 +1873,14 @@ A few commands that don't fit neatly into the concepts above:
 - `--since` takes what `ws team --since` does, or a length of time (`2h`); `--kind capsule.landed` one kind (repeatable); `-m <slug>` a mission's; `-n` how many of the latest (50); `--follow` keeps printing each new one; `-f json` prints one per line.
 
 They're what notifications, and later workflows, are made from.
+
+**`ws notifications`** — what happened that you'd want to know, newest first: the unread, or with `--all` the whole feed. It's a feed of yours, kept in the workspace's records, each notification read or not until you dismiss it.
+
+- **What happened, not what needs you.** A need (the web UI's *Needs you*, `ws status`) is something that can't move without you, worked out from where things stand and gone when they move on. A notification is something that happened, which you needn't act on: it's kept, as the record of it.
+- **What's in it:** a mission that ended by itself (`end_when_merged`), or one crew or the orchestrator started for you; a pull request this ws opened merging; a plugin's update out; ws upgraded, and the daemon restarted onto it. Most are made from [`ws events`](#other-commands), in the same write. What you did yourself isn't told back to you.
+- **In the web UI** it's *Notifications* in the sidebar, last of ws's own places so it's above *Needs you*, with how many are unread. Its page is the feed by day: a row opens what it's about and is read; `×` puts it away; *Mark all read* reads the lot.
+- `ws notifications read n3 n4` (or `--all`) says you've read them, and `ws notifications dismiss n3` puts one away. They're yours to say: crew and the orchestrator are refused. `-f json` prints one per line.
+- **Where each source is sent** is `[notifications]` in [ws.local.toml](#wslocaltoml), and *Settings › Notifications*: the feed, the desktop as well, or nowhere. The desktop is told once, by the web UI's tab while it's in the background, as it is of what needs you.
 
 **`ws status`** — shows all repos and their worktrees with git status. Use `--format json` for machine-readable output.
 

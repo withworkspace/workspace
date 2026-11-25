@@ -102,6 +102,9 @@ type LocalConfig struct {
 	// Updates is whether this workspace's daemon looks for later releases:
 	// yours alone, as it's your machine that asks.
 	Updates UpdatesConfig `toml:"updates,omitempty"`
+	// Notifications is where each source of notifications is sent: yours
+	// alone, as the feed is.
+	Notifications NotificationsConfig `toml:"notifications,omitempty"`
 	// Plugin is your config for each plugin, over the team's.
 	Plugin map[string]map[string]any `toml:"plugin,omitempty"`
 }
@@ -685,6 +688,34 @@ type RouterConfig struct {
 type UpdatesConfig struct {
 	// Check is whether it looks: unset, it does.
 	Check *bool `toml:"check,omitempty"`
+}
+
+// NotificationsConfig is ws.local.toml's [notifications]: where each
+// source of notifications (internal/notification) is sent. "feed", the
+// default, is the feed alone; "desktop" is the desktop as well, while the
+// web UI is allowed to tell it; "off" is nowhere.
+type NotificationsConfig struct {
+	Missions string `toml:"missions,omitempty"` // a mission ended, or was started for you
+	Pulls    string `toml:"pulls,omitempty"`    // a pull request this ws opened merged
+	Plugins  string `toml:"plugins,omitempty"`  // a plugin's update is out
+	WS       string `toml:"ws,omitempty"`       // ws was upgraded
+}
+
+// Where a source of notifications is sent.
+const (
+	NotifyFeed    = "feed"
+	NotifyDesktop = "desktop"
+	NotifyOff     = "off"
+)
+
+// Route is where source is sent: the feed, unless the file says desktop
+// or off.
+func (n NotificationsConfig) Route(source string) string {
+	said := map[string]string{"missions": n.Missions, "pulls": n.Pulls, "plugins": n.Plugins, "ws": n.WS}[source]
+	if said == NotifyDesktop || said == NotifyOff {
+		return said
+	}
+	return NotifyFeed
 }
 
 // Checks is whether the daemon looks for later releases by itself.
