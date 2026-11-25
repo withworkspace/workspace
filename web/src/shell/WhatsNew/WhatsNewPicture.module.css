@@ -1,0 +1,9 @@
+/* An entry's picture in What's new (WhatsNewPicture.tsx). Its shape is
+   the entry's (WhatsNewEntry.module.css). */
+
+.picture {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}

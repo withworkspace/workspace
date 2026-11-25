@@ -35,9 +35,3 @@
 .ref {
   margin-left: auto;
 }
-
-/* The page's own Pin, quiet beside what's there. It's shell/focus.tsx's
-   to draw, and takes no class: it's known here by its own. */
-.line :global(.pin-button) {
-  margin-left: auto;
-}

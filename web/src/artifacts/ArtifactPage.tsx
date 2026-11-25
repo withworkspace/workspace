@@ -5,7 +5,7 @@ import { useKeys } from "../keys";
 import { useLoaded } from "../load";
 import { RefTag } from "../refs/RefTag";
 import { refKey } from "../refs/refs";
-import { PagePin } from "../shell/focus";
+import { PagePin } from "../shell/PagePin";
 import { Button } from "../ui/Button";
 import { Chip } from "../ui/Chip";
 import { ErrorCard } from "../ui/ErrorCard";
@@ -146,7 +146,7 @@ export function ArtifactPage() {
             {st.words}
           </Chip>
           <ArtifactTitleRef text={v ? `${d.id}.v${v.n}` : d.id} title="Copy its ref" />
-          <PagePin r={{ kind: "artifact", id: d.id }} />
+          <PagePin r={{ kind: "artifact", id: d.id }} end />
         </ArtifactTitleLine>
         {v && <VersionLine d={d} v={v} />}
         {v?.note && (

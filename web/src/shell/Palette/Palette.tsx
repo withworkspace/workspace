@@ -39,7 +39,8 @@ import {
   warmFind,
   withScope,
 } from "../find";
-import { pinNameOf, useFocus } from "../focus";
+import { pinNameOf } from "../pinNames";
+import { useFocus } from "../useFocus";
 import { around, hereAt, hereItems, keptAround, type Near, nearIds, nearItems } from "../here";
 import type { Waiting } from "../notify";
 import { doToThing } from "../perform";

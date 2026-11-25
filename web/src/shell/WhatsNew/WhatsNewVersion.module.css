@@ -1,0 +1,9 @@
+/* A release in What's new (WhatsNewVersion.tsx): small, in a well. */
+
+.version {
+  font-size: var(--text-xs);
+  color: var(--dim);
+  background: var(--well);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
