@@ -4,7 +4,7 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// ../../../../../../ui-lib/frame-picture/dist/mark.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/mark.js
 var skipped = "a, pre, h1, h2, h3, h4, h5, h6, script, style, textarea, select, button, svg, [contenteditable]";
 var isElement = (n) => n.nodeType === 1;
 var isText = (n) => n.nodeType === 3;
@@ -136,7 +136,7 @@ function mark(el, finder) {
   return stop;
 }
 
-// ../../../../../../ui-lib/frame-picture/dist/shape.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/shape.js
 function isRecord(v) {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -150,7 +150,7 @@ function isVersions(v) {
   return Array.isArray(v) && v.every((n) => Number.isInteger(n) && n >= 1);
 }
 
-// ../../../../../../ui-lib/frame-picture/dist/v1.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/v1.js
 var v1_exports = {};
 __export(v1_exports, {
   CONVERSATION_FORMS: () => CONVERSATION_FORMS,
@@ -267,16 +267,16 @@ function isHostMessage(m) {
   }
 }
 
-// ../../../../../../ui-lib/frame-picture/dist/protocol.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/protocol.js
 var PROTOCOL_VERSIONS = [1];
 function isRefuse(m) {
   return isRecord(m) && m.type === "ws:refuse" && isVersions(m.versions) && isString(m.message);
 }
 
-// ../../../../../../ui-lib/frame-picture/dist/version.js
-var VERSION = "0.0.0";
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/version.js
+var VERSION = "0.10.0";
 
-// ../../../../../../ui-lib/frame-picture/dist/client.js
+// node_modules/.pnpm/@withworkspace+ui-lib@0.10.0/node_modules/@withworkspace/ui-lib/dist/client.js
 var ProtocolError = class extends Error {
   /** The versions the page speaks. */
   page;
@@ -477,7 +477,7 @@ function client(port, welcome, doc) {
     if (!hasUi.has("picture"))
       return false;
     const img = el.tagName === "IMG" ? el : el.querySelector("img");
-    const src = img && (img.currentSrc || img.getAttribute("src"));
+    const src = el.getAttribute("data-ws-view-src") || img && (img.currentSrc || img.getAttribute("src"));
     if (!img || !src)
       return false;
     const title = el.getAttribute("data-ws-view") || img.getAttribute("alt") || img.getAttribute("title") || void 0;
