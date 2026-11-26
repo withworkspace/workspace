@@ -220,7 +220,7 @@ func debriefReason(c workspace.CapsuleInfo) string {
 	if c.Merged {
 		return "landed"
 	}
-	return fmt.Sprintf("inactive (%d days)", int(workspace.DaysSince(c.LastCommit)))
+	return fmt.Sprintf("inactive (%d days)", workspace.DaysSince(c.LastCommit))
 }
 
 func orbitExtra(c workspace.CapsuleInfo, prsByBranch map[string]*github.PR) string {

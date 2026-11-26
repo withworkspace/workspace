@@ -118,7 +118,7 @@ func QuoteLines(text []byte, exact string) (line, end int, ok bool) {
 	if exact == "" {
 		return 0, 0, false
 	}
-	start, stop := -1, -1
+	var start, stop int
 	if i := strings.Index(src, exact); i >= 0 {
 		start, stop = i, i+len(exact)
 	} else {

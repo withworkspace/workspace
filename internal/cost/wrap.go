@@ -78,7 +78,7 @@ func tallies(c counts) map[string]Tally {
 	m := map[string]Tally{}
 	for k := range kinds {
 		if c.t[k].N > 0 {
-			m[Kind(k).String()] = Tally{c.t[k].N, ms(c.t[k].Dur)}
+			m[k.String()] = Tally{c.t[k].N, ms(c.t[k].Dur)}
 		}
 	}
 	return m

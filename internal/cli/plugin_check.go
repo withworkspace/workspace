@@ -96,7 +96,7 @@ func checkPlugin(dir string, out io.Writer) (fatal bool, err error) {
 	}
 	host := &plugin.Host{Root: scratch, Version: "check", Reserved: reservedWord}
 	defer host.Shutdown()
-	st, err := host.Refresh(m.Name)
+	_, err = host.Refresh(m.Name)
 	if err != nil {
 		fmt.Fprintf(out, "%s %s doesn't start: %v\n", m.Name, m.Version, err)
 		if log, lerr := os.ReadFile(plugin.LogPath(scratch, m.Name)); lerr == nil && len(log) > 0 {
@@ -107,7 +107,7 @@ func checkPlugin(dir string, out io.Writer) (fatal bool, err error) {
 	// A plugin says what went wrong as it started in its log: a migration
 	// that doesn't apply to an empty database is the usual one.
 	time.Sleep(100 * time.Millisecond)
-	st = host.Status(m.Name)
+	st := host.Status(m.Name)
 
 	r := st.Registration
 	fmt.Fprintf(out, "%s %s\n", m.Name, m.Version)

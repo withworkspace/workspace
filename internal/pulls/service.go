@@ -456,7 +456,7 @@ func (s *Service) layer(pr *PR, st *Stack) (*layer, error) {
 		return nil, err
 	}
 	l := &layer{dir: s.BareDir(pr.Repo), head: head, baseRef: BaseRef(pr.Base)}
-	tip := ""
+	var tip string
 	if st != nil {
 		for i := range st.Layers {
 			if st.Layers[i].Number == pr.Number && i > 0 {

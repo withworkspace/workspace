@@ -234,8 +234,7 @@ func TestSweepEndsARunWhoseTimeIsUp(t *testing.T) {
 	if swept, _ := s.Sweep(nil, time.Now().Add(59*time.Minute)); len(swept) != 0 {
 		t.Fatal("swept before its time")
 	}
-	r, err := s.Keep(r, 2*time.Hour, time.Now())
-	if err != nil {
+	if _, err := s.Keep(r, 2*time.Hour, time.Now()); err != nil {
 		t.Fatal(err)
 	}
 	if swept, _ := s.Sweep(nil, time.Now().Add(90*time.Minute)); len(swept) != 0 {

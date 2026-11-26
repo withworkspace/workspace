@@ -340,7 +340,6 @@ func (ix *Index) fresh(ctx context.Context, wait time.Duration) (*snapshot, erro
 	}
 	var grounds, capsules []chan struct{}
 	for _, wt := range ix.wts {
-		wt := wt
 		if wt.Name == Ground {
 			if job := ix.groundDue(wt, now); job != nil {
 				grounds = append(grounds, job)

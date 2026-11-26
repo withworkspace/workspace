@@ -54,7 +54,7 @@ description from stdin.`,
 				return err
 			}
 			by := ops.ActorFromEnv()
-			capsule := ""
+			var capsule string
 			if len(args) == 1 {
 				capsule = args[0]
 			} else if capsule, err = prCapsule(ctx, m, by); err != nil {

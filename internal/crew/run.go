@@ -356,7 +356,7 @@ func (r AgentRun) Answer(_ mission.Crew, a Answer) (string, error) {
 	}
 	var ans acp.Answer
 	var err error
-	words := ""
+	var words string
 	switch {
 	case a.Permission != "":
 		ans, err = harness.PermissionAnswer(*ask.Permission, a.Permission)

@@ -1131,7 +1131,7 @@ func rank(from string, s site, in byte, member bool, imported map[string]bool) i
 		score += 500
 	}
 	d := s.def()
-	fits := false
+	var fits bool
 	switch {
 	case member:
 		fits = memberKinds[d.Kind] || d.Kind == "func"
