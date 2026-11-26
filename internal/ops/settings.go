@@ -495,6 +495,8 @@ func settingDefs(root string) []struct {
 			func(l *config.LocalConfig) *string { return &l.Notifications.Plugins }),
 		notifySetting("ws", "Workspace", "Workspace was upgraded and restarted.",
 			func(l *config.LocalConfig) *string { return &l.Notifications.WS }),
+		notifySetting("automations", "Automations", "What an automation of yours says, or that one couldn't run.",
+			func(l *config.LocalConfig) *string { return &l.Notifications.Automations }),
 	}})
 	// Each plugin that tells of things, as it registered its kinds when it
 	// last started: a group of its own, by its name.

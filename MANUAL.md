@@ -1883,6 +1883,23 @@ A few commands that don't fit neatly into the concepts above:
 
 They're what notifications, and later automations, are made from.
 
+**`ws automation`** — what ws does when something happens: a rule you write as a small Starlark file, run on the workspace's events (`ws events`), in the daemon.
+
+```python
+# Notify me if Brendan pushes a new drawing.
+when = event("thing.added", kind = "sketch", by = "brendan")
+may = ["notify"]
+
+def run(e):
+    notify("%s drew %s" % (e.by.short, e.title), open = e.thing)
+```
+
+- **`when`** is which events it's for: `event(kind, field = value, …)`, read as a Wait's `- until:` is (`pr.merged`, `pr = "api#212"`; a value may be a pattern; `by` a person's name, `"me"` for you), or a list of them, for any. ws matches it without running the script.
+- **`may`** is what it may do: `notify` (a notification in your feed, from **Automations**, routed in Settings as the other sources are) and `converse` (start a conversation of the workspace's, with what to look at, for an agent to answer). Nothing else reaches outside a script: Starlark has no files, network or clock.
+- **`run`** is called with each event it's for, as `e` (`e.kind`, `e.by.short`, `e.title`, `e.pr`, `e.thing`, `e.changes`, `e.commits`…). Without one, the event's notified as `ws events` says it. It can read with `show(ref)` (what `ws show` says), `events(kind, since = "7d", …)` and `refs_in(text)`, and `log(text)` keeps a line in its run's record.
+- **Once.** It runs from the next event after it's added, once for each event. A step that reaches outside it (a notify, a converse) is kept as it's started and as it's done, so a run that's run again (the daemon stopped mid-run) doesn't do it twice; one that was started and never said done stops the run, *unsure*, and you're told. You're told once when an automation can't run, not at every event. It isn't run on what it started itself.
+- `add <file.star>` adds it (by its file's name, or `--name`), on, replacing one by its name; `check <file.star>` says what's wrong with one, adding nothing; `list` says each, what it's for and may do, and how its last run went; `runs [name]` its runs; `off <name>` and `on <name>` stop and start it (on again, from the next event); `rm <name>` takes it away. Its file is `.ws/automations/<name>.star`.
+
 **`ws notifications`** — what happened that you'd want to know, newest first: the unread, or with `--all` the whole feed. It's a feed of yours, kept in the workspace's records, each notification read or not until you dismiss it.
 
 - **What happened, not what needs you.** A need (the web UI's *Needs you*, `ws status`) is something that can't move without you, worked out from where things stand and gone when they move on. A notification is something that happened, which you needn't act on: it's kept, as the record of it.

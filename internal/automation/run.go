@@ -23,6 +23,9 @@ type Hooks struct {
 	// Notify keeps a notification of the automation's, about refs (the
 	// first what it opens).
 	Notify func(a *Automation, text string, refs []string) error
+	// Failed tells you the automation couldn't run, and why (Notify, with
+	// what's said, where it's unset).
+	Failed func(a *Automation, why string) error
 	// Converse starts a conversation of the workspace's with a first
 	// message, about refs, and says its id.
 	Converse func(a *Automation, text string, about []string) (string, error)
@@ -217,13 +220,18 @@ func (e *Engine) runOn(a *Automation, st *State, ev events.Event) string {
 
 // failed tells you an automation failed, once for what it failed with.
 func (e *Engine) failed(name string, st *State, why string) {
-	if st.Failed == why || e.Hooks.Notify == nil {
+	if st.Failed == why {
 		return
 	}
 	_ = setFailed(e.Root, name, why)
 	st.Failed = why
 	a := &Automation{Name: name}
-	_ = e.Hooks.Notify(a, fmt.Sprintf("Automation %s couldn't run: %s", name, why), nil)
+	switch {
+	case e.Hooks.Failed != nil:
+		_ = e.Hooks.Failed(a, why)
+	case e.Hooks.Notify != nil:
+		_ = e.Hooks.Notify(a, fmt.Sprintf("Automation %s couldn't run: %s", name, why), nil)
+	}
 }
 
 // errUnsure is a run stopped at a step that was started and never said

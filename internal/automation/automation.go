@@ -28,6 +28,7 @@ package automation
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -280,7 +281,10 @@ func maysOf(v starlark.Value) ([]string, error) {
 // scriptError is what's wrong with a script, as its line says it.
 func scriptError(err error) error {
 	if ee, ok := err.(*starlark.EvalError); ok {
-		return fmt.Errorf("%s", strings.TrimSpace(ee.Backtrace()))
+		if n := len(ee.CallStack); n > 0 {
+			return fmt.Errorf("%s: %s", ee.CallStack[n-1].Pos, ee.Msg)
+		}
+		return errors.New(ee.Msg)
 	}
 	return err
 }

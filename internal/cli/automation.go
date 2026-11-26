@@ -1,0 +1,318 @@
+package cli
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/spf13/cobra"
+
+	"github.com/withworkspace/workspace/internal/automation"
+	"github.com/withworkspace/workspace/internal/ui"
+)
+
+// ws automation: your automations (internal/automation).
+func newAutomationCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "automation",
+		Short: "Your automations: rules in Starlark, run on what ws does and hears of",
+		Long: `An automation is what ws does when something happens: a rule, written as
+a small Starlark file, run on the workspace's events (ws events).
+
+  # Notify me if Brendan pushes a new drawing.
+  when = event("thing.added", kind = "sketch", by = "brendan")
+  may = ["notify"]
+
+  def run(e):
+      notify("%s drew %s" % (e.by.short, e.title), open = e.thing)
+
+when is which events it's for: event(kind, field = value...), as a Wait's
+until reads them (pr.merged pr="api#212", thing.changed status="Done"), or
+a list of them. may is what it may do: notify (a notification in your
+feed, from Automations) and converse (start a conversation, with what to
+look at). run is called with each event it's for, as e (e.kind, e.by.short,
+e.title, e.pr, e.thing, e.changes...); without one, the event's notified as
+it is. It can read with show(ref), events(kind, since = "7d", ...) and
+refs_in(text), and log(text) for its run's record.
+
+It runs in the daemon, from the next event after it's added: once an
+event, each step that reaches outside it (notify, converse) done once
+even if the run's run again. You're told once when one can't run.
+
+  ws automation add drawing.star     add it (by its file's name, or --name), on
+  ws automation check drawing.star   say what's wrong with it, adding nothing
+  ws automation list                 each, what it's for and may do, and how its last run went
+  ws automation runs [name]          its runs, the latest first
+  ws automation off <name>           stop it (on starts it again, from the next event)
+  ws automation rm <name>            take it away`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error { return listAutomations(false) },
+	}
+	cmd.AddCommand(newAutomationAddCmd(), newAutomationCheckCmd(), newAutomationListCmd(), newAutomationRunsCmd(),
+		newAutomationSetCmd("on"), newAutomationSetCmd("off"), newAutomationRmCmd())
+	return cmd
+}
+
+// automationFile is a script and the name it's to have: --name, or its
+// file's.
+func automationFile(path, name string) (string, []byte, error) {
+	src, err := os.ReadFile(path)
+	if err != nil {
+		return "", nil, err
+	}
+	if name == "" {
+		name = strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	}
+	return name, src, nil
+}
+
+func newAutomationAddCmd() *cobra.Command {
+	var name string
+	cmd := &cobra.Command{
+		Use:   "add <file.star>",
+		Short: "Add an automation, on, run from the next event (one by its name already is replaced)",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			w, err := loadOps()
+			if err != nil {
+				return err
+			}
+			name, src, err := automationFile(args[0], name)
+			if err != nil {
+				return err
+			}
+			a, err := (&automation.Engine{Root: w.Root()}).Add(name, src)
+			if err != nil {
+				return fmt.Errorf("%s: %w", name, err)
+			}
+			fmt.Fprintf(ui.Stdout, "Added %s, on: when %s, it %s.\n", a.Name, a.WhenSaid(), maySaid(a))
+			fmt.Fprintln(ui.Stdout, ui.Dim.Render("  It runs in the daemon, from the next event."))
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&name, "name", "", "what it's called (default: its file's name)")
+	return cmd
+}
+
+func newAutomationCheckCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "check <file.star>",
+		Short: "Say what's wrong with an automation, adding nothing",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			name, src, err := automationFile(args[0], "")
+			if err != nil {
+				return err
+			}
+			a, err := automation.Check(name, src)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(ui.Stdout, "%s is good: when %s, it %s.\n", a.Name, a.WhenSaid(), maySaid(a))
+			return nil
+		},
+	}
+}
+
+func newAutomationListCmd() *cobra.Command {
+	var format string
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "Your automations: each, what it's for, what it may do, and how its last run went",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			return listAutomations(format == "json")
+		},
+	}
+	cmd.Flags().StringVarP(&format, "format", "f", "", "text (the default) or json")
+	return cmd
+}
+
+// automationListed is an automation as ws automation list says it.
+type automationListed struct {
+	Name    string          `json:"name"`
+	About   string          `json:"about,omitempty"`
+	When    string          `json:"when,omitempty"`
+	May     []string        `json:"may"`
+	On      bool            `json:"on"`
+	Problem string          `json:"problem,omitempty"`
+	Failed  string          `json:"failed,omitempty"`
+	Last    *automation.Run `json:"last,omitempty"`
+}
+
+func listAutomations(asJSON bool) error {
+	w, err := loadOps()
+	if err != nil {
+		return err
+	}
+	list, bad := automation.List(w.Root())
+	states, err := automation.States(w.Root())
+	if err != nil {
+		return err
+	}
+	var out []automationListed
+	for _, a := range list {
+		st := states[a.Name]
+		l := automationListed{Name: a.Name, About: a.About, When: a.WhenSaid(), May: append([]string{}, a.May...), On: st.On, Failed: st.Failed}
+		if runs, _ := automation.Runs(w.Root(), a.Name, 1); len(runs) > 0 {
+			l.Last = &runs[0]
+		}
+		out = append(out, l)
+	}
+	for name, err := range bad {
+		out = append(out, automationListed{Name: name, May: []string{}, On: states[name].On, Problem: err.Error()})
+	}
+	if asJSON {
+		for _, l := range out {
+			line, _ := json.Marshal(l)
+			fmt.Fprintln(ui.Stdout, string(line))
+		}
+		return nil
+	}
+	if len(out) == 0 {
+		fmt.Fprintln(ui.Stderr, ui.Dim.Render("  none yet: ws automation add <file.star> (ws automation --help says how one's written)"))
+		return nil
+	}
+	for _, l := range out {
+		state := "on"
+		if !l.On {
+			state = "off"
+		}
+		fmt.Fprintf(ui.Stdout, "%s  %s\n", l.Name, ui.Dim.Render(state))
+		if l.About != "" {
+			fmt.Fprintf(ui.Stdout, "  %s\n", l.About)
+		}
+		switch {
+		case l.Problem != "":
+			fmt.Fprintf(ui.Stdout, "  can't be read: %s\n", firstLineOf(l.Problem))
+			continue
+		case l.Failed != "":
+			fmt.Fprintf(ui.Stdout, "  couldn't run: %s\n", firstLineOf(l.Failed))
+		}
+		may := "notify the event"
+		if len(l.May) > 0 {
+			may = strings.Join(l.May, ", ")
+		}
+		fmt.Fprintf(ui.Stdout, "  %s\n", ui.Dim.Render("when "+l.When+" · may "+may))
+		if l.Last != nil {
+			fmt.Fprintf(ui.Stdout, "  %s\n", ui.Dim.Render(fmt.Sprintf("last ran on e%d, %s: %s", l.Last.Event, l.Last.At.Local().Format("Jan 02 15:04"), l.Last.State)))
+		}
+	}
+	return nil
+}
+
+func newAutomationRunsCmd() *cobra.Command {
+	var limit int
+	var format string
+	cmd := &cobra.Command{
+		Use:   "runs [name]",
+		Short: "An automation's runs (every one's, with no name), the latest first",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			w, err := loadOps()
+			if err != nil {
+				return err
+			}
+			name := ""
+			if len(args) == 1 {
+				name = args[0]
+			}
+			runs, err := automation.Runs(w.Root(), name, limit)
+			if err != nil {
+				return err
+			}
+			for _, r := range runs {
+				if format == "json" {
+					line, _ := json.Marshal(r)
+					fmt.Fprintln(ui.Stdout, string(line))
+					continue
+				}
+				line := fmt.Sprintf("%s %-20s e%-5d %s", ui.Dim.Render(r.At.Local().Format("Jan 02 15:04")), r.Name, r.Event, r.State)
+				if r.Error != "" {
+					line += ": " + firstLineOf(r.Error)
+				}
+				fmt.Fprintln(ui.Stdout, line)
+				for _, l := range strings.Split(strings.TrimSpace(r.Log), "\n") {
+					if l != "" {
+						fmt.Fprintln(ui.Stdout, ui.Dim.Render("    "+l))
+					}
+				}
+			}
+			if len(runs) == 0 && format != "json" {
+				fmt.Fprintln(ui.Stderr, ui.Dim.Render("  none yet"))
+			}
+			return nil
+		},
+	}
+	cmd.Flags().IntVarP(&limit, "limit", "n", 20, "how many of the latest")
+	cmd.Flags().StringVarP(&format, "format", "f", "", "text (the default) or json (one run per line)")
+	return cmd
+}
+
+func newAutomationSetCmd(to string) *cobra.Command {
+	short := "Stop an automation: it isn't run until it's on again"
+	if to == "on" {
+		short = "Start an automation that's off again, from the next event"
+	}
+	return &cobra.Command{
+		Use:   to + " <name>",
+		Short: short,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			w, err := loadOps()
+			if err != nil {
+				return err
+			}
+			if err := automation.SetOn(w.Root(), args[0], to == "on"); errors.Is(err, automation.ErrNotFound) {
+				return fmt.Errorf("there's no automation %s (ws automation list)", args[0])
+			} else if err != nil {
+				return err
+			}
+			fmt.Fprintf(ui.Stdout, "%s is %s.\n", args[0], to)
+			return nil
+		},
+	}
+}
+
+func newAutomationRmCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "rm <name>",
+		Short: "Take an automation away: its file, and what's kept of its runs",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			w, err := loadOps()
+			if err != nil {
+				return err
+			}
+			if err := (&automation.Engine{Root: w.Root()}).Remove(args[0]); errors.Is(err, automation.ErrNotFound) {
+				return fmt.Errorf("there's no automation %s (ws automation list)", args[0])
+			} else if err != nil {
+				return err
+			}
+			fmt.Fprintf(ui.Stdout, "Took %s away.\n", args[0])
+			return nil
+		},
+	}
+}
+
+// maySaid is what an automation may do, in a sentence.
+func maySaid(a *automation.Automation) string {
+	if len(a.May) == 0 {
+		return "notifies the event"
+	}
+	return "may " + strings.Join(a.May, " and ")
+}
+
+func firstLineOf(s string) string {
+	line, _, _ := strings.Cut(strings.TrimSpace(s), "\n")
+	return line
+}

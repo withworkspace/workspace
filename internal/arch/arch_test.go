@@ -62,7 +62,7 @@ var allowed = map[string][]string{
 	// it runs (jobs, its loops, the web UI, plugins). Only cli starts it.
 	"daemon": append([]string{
 		"crew", "harness", "acp", "termpane", "execlog", "config", "workspace",
-		"ops", "orchestrator", "web", "plugin", "nav", "runs", "router",
+		"ops", "orchestrator", "web", "plugin", "nav", "runs", "router", "automation",
 	}, domain...),
 	// Runs: what ws starts for someone and ends for them. It reads the
 	// user's processes as the process check does; whose records say an
@@ -76,7 +76,7 @@ var allowed = map[string][]string{
 	"plugin/fakeplugin": {"acp"},
 	"ops": append([]string{
 		"config", "workspace", "git", "slug", "execlog", "github", "ide",
-		"harness", "acp", "prompt", "turn", "crew", "orchestrator", "termpane", "plugin", "runs", "router", "whatsnew",
+		"harness", "acp", "prompt", "turn", "crew", "orchestrator", "termpane", "plugin", "runs", "router", "whatsnew", "automation",
 	}, domain...),
 	"web":      append([]string{"ops", "crew", "harness", "nav", "plugin", "runs", "router", "whatsnew"}, domain...),
 	"cli":      anything,

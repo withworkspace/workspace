@@ -54,6 +54,15 @@ var labels = map[string]string{
 
 	"events": "Reading what ws has done",
 
+	"automation":       "Listing automations",
+	"automation add":   "Adding an automation",
+	"automation check": "Checking an automation",
+	"automation list":  "Listing automations",
+	"automation runs":  "Reading what automations did",
+	"automation on":    "Turning {1} on",
+	"automation off":   "Turning {1} off",
+	"automation rm":    "Taking {1} away",
+
 	"notifications":         "Reading notifications",
 	"notifications dismiss": "Dismissing notifications",
 	"notifications read":    "Marking notifications read",

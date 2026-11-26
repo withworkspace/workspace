@@ -38,11 +38,14 @@ const (
 	SourcePulls    = "pulls"    // a pull request this ws opened merged
 	SourcePlugins  = "plugins"  // a plugin's update is out
 	SourceWS       = "ws"       // ws was upgraded, and the daemon restarted onto it
+	// SourceAutomations is what your automations say, and that one
+	// couldn't run.
+	SourceAutomations = "automations"
 )
 
 // Sources is every source of ws's own, in the order they're listed. Each
 // plugin that notifies is a source of its own besides (PluginSource).
-var Sources = []string{SourceMissions, SourcePulls, SourcePlugins, SourceWS}
+var Sources = []string{SourceMissions, SourcePulls, SourcePlugins, SourceWS, SourceAutomations}
 
 // PluginSource is the source of what the plugin name tells of: plugin:jira.
 func PluginSource(name string) string { return "plugin:" + name }
