@@ -2,6 +2,7 @@ package ops
 
 import (
 	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 	"time"
@@ -162,6 +163,13 @@ func watchFolders(stop <-chan struct{}, logf func(string, ...any), folders func(
 			// A file's mode or times alone: nothing git says has moved.
 			if ev.Op == fsnotify.Chmod || heed != nil && !heed(ev.Name) {
 				continue
+			}
+			// A folder made is listed at once, not at the next listing: what's
+			// written in it next is watched.
+			if ev.Has(fsnotify.Create) {
+				if fi, err := os.Stat(ev.Name); err == nil && fi.IsDir() {
+					list()
+				}
 			}
 			written[watchedFolder(ev.Name, watched)] = true
 			if due != nil {
