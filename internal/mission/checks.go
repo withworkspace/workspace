@@ -32,6 +32,10 @@ type Check struct {
 	// Yours is a check of a Verify step that the verifier doesn't settle:
 	// it's the user's, with what the verifier left to help.
 	Yours bool `json:"yours,omitempty"`
+	// Until is a Wait's check that's an event, as events.ParseMatch reads
+	// one (pr.merged pr=api#212): it's met by one ws keeps once the
+	// mission's reached the step, or by how things stand when it does.
+	Until string `json:"until,omitempty"`
 }
 
 // What a command check expects of its command.
@@ -43,6 +47,10 @@ const (
 // Run reports whether ws runs the check (it's a command), rather than the
 // judge judging it.
 func (c Check) Run() bool { return c.Command != "" }
+
+// Heard reports whether the check is an event ws waits to hear of
+// (Until), rather than a command it runs.
+func (c Check) Heard() bool { return c.Until != "" }
 
 // runRecipe is a command that asks for one of a repo's own recipes, and
 // nothing more: ws run test.

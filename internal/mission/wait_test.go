@@ -57,7 +57,7 @@ func TestParsePlanRefusesAWaitsCheckInWords(t *testing.T) {
 	for written, want := range map[string]string{
 		"1. Wait: The release is out.\n   - on: you\n   - check: the release is published\n": "a Wait's check is a command ws runs",
 		"1. Wait: The release is out.\n   - on:\n":                                           "on: is empty",
-		"1. Wait: The release is out.\n   - makes: a release\n":                              "makes: isn't something a Wait step takes: it takes - on:, - in:, - check:, - only if:",
+		"1. Wait: The release is out.\n   - makes: a release\n":                              "makes: isn't something a Wait step takes: it takes - on:, - in:, - check:, - until:, - only if:",
 	} {
 		_, err := ParsePlan("## Z\n- x\n## Stops early\n- None.\n## Steps\n"+written, nil)
 		if err == nil || !strings.Contains(err.Error(), want) {
@@ -121,6 +121,31 @@ func TestSaysDone(t *testing.T) {
 	for _, answer := range []string{"Not yet", "which version do I tag?", "donetsk", "I'm done with this", ""} {
 		if note, ok := SaysDone(answer); ok {
 			t.Errorf("%q marks it done (%q)", answer, note)
+		}
+	}
+}
+
+// A Wait's until is an event ws hears of, read as the plan is: one that
+// isn't is refused, saying what there is.
+func TestParsePlanReadsAWaitsUntil(t *testing.T) {
+	parse := func(steps string) (*Plan, error) {
+		return ParsePlan("## Z\n- x\n## Stops early\n- None.\n## Steps\n"+steps, nil)
+	}
+	p, err := parse("1. Wait: The API change merges.\n   - on: alice\n   - until: pr.merged pr=api#212\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	steps := p.Steps
+	if c := steps[0].Checks; len(c) != 1 || !c[0].Heard() || c[0].Until != "pr.merged pr=api#212" || c[0].Run() || !steps[0].Watched() {
+		t.Errorf("checks = %+v", c)
+	}
+	for plan, want := range map[string]string{
+		"1. Wait: x\n   - until: pr.mergd pr=api#212\n": `"pr.mergd" isn't a kind of event`,
+		"1. Wait: x\n   - until: pr.merged colour=red\n": `"colour" isn't a field pr.merged events say`,
+		"1. Work: x\n   - until: pr.merged pr=api#1\n":   "until: isn't something a Work step takes",
+	} {
+		if _, err := parse(plan); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%q: %v, want it to say %q", plan, err, want)
 		}
 	}
 }

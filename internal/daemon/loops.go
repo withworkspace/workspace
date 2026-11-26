@@ -261,6 +261,15 @@ const watchWaitsEvery = time.Minute
 func (d *daemon) watchWaitsLoop(logf func(string, ...any), stop <-chan struct{}) {
 	t := time.NewTicker(watchWaitsEvery)
 	defer t.Stop()
+	// A Wait whose until is an event ws hears of is looked at as soon as
+	// one it waits on is kept, not at its next look.
+	var told <-chan struct{}
+	if db, err := d.w.Records(); err == nil {
+		ch, unwatch := db.Watch()
+		defer unwatch()
+		told = ch
+	}
+	last := d.w.LatestEvent()
 	for {
 		select {
 		case <-stop:
@@ -268,6 +277,12 @@ func (d *daemon) watchWaitsLoop(logf func(string, ...any), stop <-chan struct{})
 		case <-t.C:
 			for _, said := range d.w.CheckWaits() {
 				logf("waits: %s", said)
+			}
+		case <-told:
+			var said []string
+			said, last = d.w.CheckWaitsHeard(last)
+			for _, s := range said {
+				logf("waits: %s", s)
 			}
 		}
 	}

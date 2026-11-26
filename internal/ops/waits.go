@@ -82,6 +82,10 @@ func waitsOnWords(st mission.StageState) string {
 func waitCommands(st mission.StageState) string {
 	var out []string
 	for _, c := range st.Step.Checks {
+		if c.Heard() {
+			out = append(out, "`"+c.Until+"`")
+			continue
+		}
 		out = append(out, "`"+c.Command+"`")
 	}
 	return strings.Join(out, ", ")
@@ -135,6 +139,11 @@ func (w *Workspace) lookAtWait(m *mission.Mission, st mission.StageState) ([]mis
 	results := make([]mission.CheckResult, len(st.Step.Checks))
 	met := len(results) > 0
 	for i, c := range st.Step.Checks {
+		if c.Heard() {
+			results[i] = w.untilResult(st, c)
+			met = met && results[i].Result == mission.CheckMet
+			continue
+		}
 		who := fmt.Sprintf("watch %s step %d, %d of %d", m.Slug, st.N, i+1, len(results))
 		since, pid := time.Now(), 0
 		results[i] = runCheckWithin(dir, c, env, checkHooks{Started: func(p int) {
@@ -237,6 +246,9 @@ func (w *Workspace) CheckWaits() []string {
 	if err != nil {
 		return nil
 	}
+	// What's heard of a pull request is heard as the Reviews list is read:
+	// a mission waiting on one keeps it read.
+	w.freshenForWaits(missions)
 	var out []string
 	for _, m := range missions {
 		if !Watched(m) || m.ToBrief() {

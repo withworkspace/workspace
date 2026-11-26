@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/withworkspace/workspace/internal/events"
 )
 
 // The catalogue of plan steps: the kinds of step a plan is made of, which
@@ -78,8 +80,8 @@ var Catalogue = []StepType{
 		About:  "the user lands the mission's capsule in a repo that has no pull requests (its commits go straight to its default branch). The step is done once it's landed.",
 		Params: []StepParam{paramIn, paramOnlyIf}},
 	{Name: StepWait, Who: WhoOutside, Words: WordsNeeded,
-		About:  "the mission waits on something that happens outside it. Say what it waits for, and who it's on. On the user, for what they do themselves (cut a release tag, approve a publish, flip a setting): ws asks them, with what to do, and they mark it done. On anyone or anything else (a deploy, a teammate's review, another team): it waits. Nothing passes a Wait by itself unless it has a check: where a command can show it's happened, give one, and ws watches for it and passes the step; without one, nobody is watching, and it's passed when someone says it's happened.",
-		Params: []StepParam{paramWaitOn, paramWaitIn, paramWaitCheck, paramOnlyIf}},
+		About:  "the mission waits on something that happens outside it. Say what it waits for, and who it's on. On the user, for what they do themselves (cut a release tag, approve a publish, flip a setting): ws asks them, with what to do, and they mark it done. On anyone or anything else (a deploy, a teammate's review, another team): it waits. Nothing passes a Wait by itself unless it has an until or a check: where ws hears of it (a pull request merging, a Jira issue moving, commits landing, a run ending), say the event with until, and ws passes the step as it happens; else where a command can show it's happened, give a check, and ws watches for it; with neither, nobody is watching, and it's passed when someone says it's happened.",
+		Params: []StepParam{paramWaitOn, paramWaitIn, paramWaitCheck, paramWaitUntil, paramOnlyIf}},
 	{Name: StepPlan, Who: WhoPlanner, Words: WordsMay,
 		About:  "the planner writes the steps after this one, from what the steps before it made: for what can't be planned until they've run (the fix, once the cause is found).",
 		Params: []StepParam{paramOnlyIf}},
@@ -235,6 +237,16 @@ var (
 				return fmt.Sprintf("check: %q is in words, and a Wait's check is a command ws runs to see whether it's happened (`gh release view v1.4.0` passes): give a command, or leave the check out and say what it waits for in the step", v)
 			}
 			st.Checks = append(st.Checks, c)
+			return ""
+		}}
+	paramWaitUntil = StepParam{Key: "until", Many: true, About: "the event that shows it's happened, as ws hears of it: its kind, then what it's of as field=value (pr.merged pr=api#212; thing.changed thing=RAM-881 status=Done; commits.landed repo=records path=decisions/*; run.ended run=deploy status=passed), a line each. ws passes the step as soon as it hears of one, or when the mission reaches it if it's so already. Better than a check where ws hears of it: nothing's run, and nothing waits on a look",
+		read: func(st *Step, v string) string {
+			v = strings.TrimSpace(strings.Trim(strings.TrimSpace(v), "`"))
+			m, err := events.ParseMatch(v)
+			if err != nil {
+				return fmt.Sprintf("until: %q: %v", v, err)
+			}
+			st.Checks = append(st.Checks, Check{Text: "until " + m.String(), Until: m.String()})
 			return ""
 		}}
 	paramFrom = StepParam{Key: "from", About: "where the options are, if they're written somewhere (the options in `mission:findings.md`)",
