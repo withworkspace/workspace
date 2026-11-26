@@ -29,6 +29,7 @@ import (
 	"github.com/withworkspace/workspace/internal/outbox"
 	"github.com/withworkspace/workspace/internal/pulls"
 	"github.com/withworkspace/workspace/internal/release"
+	"github.com/withworkspace/workspace/internal/runs"
 	"github.com/withworkspace/workspace/internal/store"
 	"github.com/withworkspace/workspace/internal/team"
 	"github.com/withworkspace/workspace/internal/workspace"
@@ -57,12 +58,17 @@ type Workspace struct {
 	git keptGit
 	// caps is every repo's worktrees, kept by the daemon (capsulekeeper.go).
 	caps capsuleKeeper
+	// runs is where every run stands, kept by the daemon (runskeeper.go).
+	runsKept runs.Keeper
 	// overview is each mission's row in the workspace's view, kept till
 	// what it's built from moves (overview_kept.go).
 	overview keptOverview
 	// spaces is what's kept of the spaces of documents, for the pages that
 	// read them (spaces_kept.go).
 	spaces keptSpaces
+	// missions is what a mission's page is told by that's kept: the
+	// writes in its folder, and its record as last read (mission_kept.go).
+	missions keptMissions
 
 	// updates is one look for later releases, or one upgrade, at a time;
 	// plugins is one plugin added, updated or removed at a time.

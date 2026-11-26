@@ -55,6 +55,11 @@ type Missions interface {
 	// repo's) until stop closes, and says on Seen when it has: a commit
 	// in a capsule reaches its pages then, not at the next poll.
 	WatchGit(stop <-chan struct{}, logf func(string, ...any))
+	// WatchRuns keeps where every run stands until stop closes, telling
+	// moved when one starts, comes up, ends or is cleared away: the
+	// runs' stamps (RunsStamp, AppStamp, MissionStamp's) are then read
+	// from what's kept.
+	WatchRuns(stop <-chan struct{}, logf func(string, ...any), moved func())
 	// Following says who's following what (the missions whose pages are
 	// open, the worktrees followed in Files): what's kept of their
 	// capsules is kept current while they are.
@@ -172,7 +177,13 @@ func (c *viewCache) mission(s *Server, slug string) ([]byte, error) {
 		}
 		return fmt.Sprintf("%s %d %s", s.App.MissionStamp(slug), seq, s.keptStamp())
 	}
-	return c.get(s, missionTopic+slug, stamp, func() (any, error) { return s.missionDetail(slug) })
+	return c.get(s, missionTopic+slug, stamp, func() (any, error) {
+		d, err := s.missionDetail(slug)
+		if err == nil && s.missions != nil && s.missions.follows(slug) {
+			s.warmCapsules(slug, d) // what its tabs read next
+		}
+		return d, err
+	})
 }
 
 // runs is the Runs page's view as GET /api/runs serves it.

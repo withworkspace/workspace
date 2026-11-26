@@ -53,6 +53,18 @@ type keyedHub struct {
 	change func(key string, was any) (op, now any)
 	// gone, if set, is told a thing nobody follows any more.
 	gone func(key string)
+	// version, if set, is the version of a thing its followers are told
+	// it's now at (told.Version).
+	version func(key string) int64
+	// pathOf, if set, is the file a thing's stamp is of (a stat of it):
+	// while it's watched (watch), the hub's told when it's written, and
+	// its polls pass it by but every fileSweep. "" while there's none yet.
+	pathOf func(key string) string
+	watch  *fileWatch
+	// held is the file each thing followed has watched; swept, when every
+	// thing was last looked at.
+	held  map[string]string
+	swept time.Time
 	// kick has it look now (nudge).
 	kick chan struct{}
 
@@ -110,8 +122,11 @@ func (h *keyedHub) subscribe(key string) (<-chan told, func()) {
 	if first && h.change != nil {
 		_, h.was[key] = h.change(key, nil)
 	}
-
 	h.changing.Unlock()
+	// Its file's watched from its first look, which is now.
+	if first && h.pathOf != nil && h.watch != nil {
+		h.nudge()
+	}
 	return ch, func() {
 		h.changing.Lock()
 		defer h.changing.Unlock()
@@ -122,6 +137,10 @@ func (h *keyedHub) subscribe(key string) (<-chan told, func()) {
 			delete(h.subs, key)
 			delete(h.last, key)
 			delete(h.was, key)
+			if path, ok := h.held[key]; ok {
+				h.watch.release(path, h)
+				delete(h.held, key)
+			}
 			if h.gone != nil {
 				h.gone(key)
 			}
@@ -154,6 +173,9 @@ func (h *keyedHub) tell(key string) {
 			t.Op = op
 		}
 	}
+	if h.version != nil {
+		t.Version = h.version(key)
+	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for ch, missed := range h.subs[key] {
@@ -168,6 +190,13 @@ func (h *keyedHub) tell(key string) {
 			h.subs[key][ch] = true
 		}
 	}
+}
+
+// follows is whether anyone follows key.
+func (h *keyedHub) follows(key string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return len(h.subs[key]) > 0
 }
 
 func (h *keyedHub) followed() []string {
@@ -190,6 +219,14 @@ func (h *keyedHub) run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
+			// A poll: what's watched is told as it's written, and looked
+			// at regardless only every fileSweep.
+			all := time.Since(h.swept) >= fileSweep
+			if all {
+				h.swept = time.Now()
+			}
+			h.lookAt(all)
+			continue
 		case <-h.kick:
 		}
 		h.look()
@@ -198,8 +235,14 @@ func (h *keyedHub) run(ctx context.Context) {
 
 // look tells the followers of each thing whose stamp has moved since it
 // last looked, having read what the page will ask of it (keep).
-func (h *keyedHub) look() {
+func (h *keyedHub) look() { h.lookAt(true) }
+
+// lookAt is look, passing by the things whose file's watched unless all.
+func (h *keyedHub) lookAt(all bool) {
 	for _, key := range h.followed() {
+		if h.watched(key) && !all {
+			continue
+		}
 		st := h.stamp(key)
 		h.mu.Lock()
 		moved := h.subs[key] != nil && st != h.last[key]
@@ -268,4 +311,34 @@ func topicKey(topic, prefix string) (string, bool) {
 		return key, ok && slug != "" && id != "" && !strings.Contains(id, "/")
 	}
 	return key, true
+}
+
+// watched is whether key's file is watched, watching it (and letting the
+// one it had go) when it's another, or wasn't there.
+func (h *keyedHub) watched(key string) bool {
+	if h.pathOf == nil || h.watch == nil {
+		return false
+	}
+	path := h.pathOf(key)
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.subs[key] == nil {
+		return false // let go meanwhile
+	}
+	had, ok := h.held[key]
+	if ok && had == path {
+		return h.watch.watching(path)
+	}
+	if ok {
+		h.watch.release(had, h)
+		delete(h.held, key)
+	}
+	if path == "" {
+		return false
+	}
+	if h.held == nil {
+		h.held = map[string]string{}
+	}
+	h.held[key] = path
+	return h.watch.hold(path, h)
 }

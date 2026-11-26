@@ -2586,6 +2586,11 @@ export interface NamesInfo {
  */
 export interface NavNow {
     rev: string;
+    /**
+     * Unread: it's never been read, and is being (Rev is ""): the
+     * workspace's readsSeen moves when it has been.
+     */
+    unread?: boolean;
 }
 
 // From web/around.go

@@ -341,6 +341,7 @@ func (w *Workspace) Mission(slug string) (*MissionDetail, error) {
 	if err != nil {
 		return nil, err
 	}
+	w.missions.keep(slug, m) // what its stamp's of, from now
 	ws := w.WS()
 	var idx PRIndex
 	answered := true

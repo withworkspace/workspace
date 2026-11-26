@@ -282,9 +282,16 @@ func TestServer_Act(t *testing.T) {
 	if json.NewDecoder(res.Body).Decode(&d); d.Planner != "t1" || !d.BriefUnwritten {
 		t.Errorf("its planner %q, unwritten %v", d.Planner, d.BriefUnwritten)
 	}
+	// Written outside the page (by its planner), it's seen once the
+	// watch on its folder has said so: read until it has.
 	(mission.Store{Root: s.Root}).WriteBrief(idea.Slug, "## Goal\nThe flaky test passes.\n")
-	res = do(t, s, "GET", "/api/missions/"+idea.Slug, true, nil)
-	if d = (MissionDetail{}); json.NewDecoder(res.Body).Decode(&d) == nil && d.BriefUnwritten {
-		t.Errorf("a written brief, unwritten")
+	for deadline := time.Now().Add(3 * time.Second); ; time.Sleep(20 * time.Millisecond) {
+		res = do(t, s, "GET", "/api/missions/"+idea.Slug, true, nil)
+		if d = (MissionDetail{}); json.NewDecoder(res.Body).Decode(&d) == nil && !d.BriefUnwritten {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("a written brief, unwritten")
+		}
 	}
 }

@@ -460,6 +460,11 @@ func (s *Server) runLogHub() *keyedHub {
 		}
 		return fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano())
 	})
+	h.pathOf = func(ref string) string {
+		mu.Lock()
+		defer mu.Unlock()
+		return paths[ref]
+	}
 	h.gone = func(ref string) {
 		mu.Lock()
 		delete(paths, ref)

@@ -68,7 +68,8 @@ type soonRead struct {
 	sum     uint64 // its JSON's hash
 	stamp   string
 	at      time.Time
-	err     error // the last read's, when nothing's kept
+	from    time.Time // when the read that's kept began
+	err     error     // the last read's, when nothing's kept
 	looking chan struct{}
 	// owed: a page was answered while a read was under way (what was
 	// kept, or that it's unread), so it's told if the read finds other.
@@ -107,6 +108,13 @@ func (k *keptReads) Seen() int64 { return k.seen.Load() }
 // behind the read as the type says; unread when it's never been read and
 // the first read is still under way after firstWait.
 func (k *keptReads) soon(key, dir string, read func() (any, error)) (v any, unread bool, err error) {
+	return k.soonWithin(key, dir, readFloor, read)
+}
+
+// soonWithin is soon, what's kept being fresh for floor at most: with 0,
+// every ask is answered as kept and has it read again behind (for what
+// the capsule's stamp doesn't see, its files as they're edited).
+func (k *keptReads) soonWithin(key, dir string, floor time.Duration, read func() (any, error)) (v any, unread bool, err error) {
 	stamp := ops.CapsuleStamp(dir)
 	now := time.Now()
 	k.mu.Lock()
@@ -118,7 +126,7 @@ func (k *keptReads) soon(key, dir string, read func() (any, error)) (v any, unre
 		k.soons[key] = e
 	}
 	e.asked, e.dir, e.read = now, dir, read
-	fresh := e.value != nil && stamp != "" && e.stamp == stamp && now.Sub(e.at) < readFloor
+	fresh := e.value != nil && stamp != "" && e.stamp == stamp && now.Sub(e.at) < floor
 	failed := e.value == nil && e.err != nil && e.stamp == stamp && now.Sub(e.at) < readFloor
 	switch {
 	case fresh:
@@ -184,6 +192,18 @@ func (k *keptReads) refresh() {
 	}
 }
 
+// current is what's kept at key, if it was read at stamp, and when that
+// read began: nothing's read for it.
+func (k *keptReads) current(key, stamp string) (any, time.Time, bool) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	k.init()
+	if e := k.soons[key]; e != nil && e.value != nil && stamp != "" && e.stamp == stamp {
+		return e.value, e.from, true
+	}
+	return nil, time.Time{}, false
+}
+
 // peek is a tree or summary as kept, read or not: nothing's read for it.
 func (k *keptReads) peek(key string) (any, bool) {
 	k.mu.Lock()
@@ -202,6 +222,7 @@ func (k *keptReads) look(e *soonRead, stamp string, read func() (any, error)) {
 	e.looking = done
 	go func() {
 		k.slots <- struct{}{}
+		from := time.Now()
 		v, err := read()
 		<-k.slots
 		var sum uint64
@@ -217,7 +238,7 @@ func (k *keptReads) look(e *soonRead, stamp string, read func() (any, error)) {
 		case err == nil:
 			tell = e.owed && (e.value == nil || sum != e.sum)
 			e.value, e.sum, e.err = v, sum, nil
-			e.stamp, e.at = stamp, time.Now()
+			e.stamp, e.at, e.from = stamp, time.Now(), from
 		case e.value == nil:
 			// Said again for a while, not read again at every ask.
 			tell = e.owed

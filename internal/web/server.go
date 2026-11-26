@@ -37,6 +37,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/withworkspace/workspace/internal/conversation"
 	"github.com/withworkspace/workspace/internal/cost"
 	"github.com/withworkspace/workspace/internal/find"
 	"github.com/withworkspace/workspace/internal/nav"
@@ -167,7 +168,16 @@ type Server struct {
 	prs    *prHub
 	findMu sync.Mutex // guards giving Find its pull requests
 	// reads are a capsule's files as pages have read them (kept.go).
-	reads  keptReads
+	reads keptReads
+	// followedFiles are the files the followed topics show, watched
+	// (filewatch.go).
+	followedFiles *fileWatch
+	// routes are the patterns Handler served (Routes).
+	routes []string
+	// warming is the missions whose capsules are being read behind their
+	// pages (warmCapsules).
+	warming sync.Map
+
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -279,8 +289,19 @@ func (s *Server) Start() error {
 	for _, h := range s.topics {
 		go h.run(s.ctx)
 	}
-	s.missions = newKeyedHub(missionTopic, s.Poll, func(slug string) string { return s.App.MissionStamp(slug) })
+	// A mission's page: told when a write to the records names it (below),
+	// and when what else it's built from moves (its stamp: its folder, its
+	// capsules, their runs, its repos' pull requests), which is kept in
+	// memory and nudged as it moves; looked at every sweep regardless, and
+	// built again every missionFloor, as a headline says how long things
+	// have taken. The page is built before it's told, and told only when
+	// what it's served has changed: then it's served as kept (mission).
+	s.missions = newKeyedHub(missionTopic, max(s.Poll, s.Sweep), func(slug string) string {
+		return s.App.MissionStamp(slug) + " " + strconv.FormatInt(s.now().UnixNano()/int64(missionFloor), 10)
+	})
 	s.missions.keep = func(slug string) { s.App.KeepMission(slug) }
+	s.missions.change = func(slug string, was any) (any, any) { return s.missionChange(slug, was) }
+	s.missions.version = func(slug string) int64 { return s.views.versionOf(missionTopic + slug) }
 	go s.missions.run(s.ctx)
 	// A conversation's agent writes its steps as it answers, which the
 	// records don't see: looked at every second while it's followed, as
@@ -291,12 +312,24 @@ func (s *Server) Start() error {
 	})
 	// A conversation's followers hold it, and are told how it's changed.
 	s.talks.change = func(key string, was any) (any, any) { return conversationChange(s.Root, key, was) }
+	// What's written to a followed file (a conversation's agent's steps, a
+	// crew's session, a run's output, a document) is told as it's written.
+	s.followedFiles = newFileWatch(s.Log.Printf)
+	go s.followedFiles.run(s.ctx)
+	s.talks.watch, s.talks.pathOf = s.followedFiles, func(key string) string {
+		scope, id, _ := strings.Cut(key, "/")
+		return conversation.For(s.Root, scope).RunFile(id)
+	}
 	go s.talks.run(s.ctx)
 	s.transcripts = s.transcriptHub()
+	s.transcripts.watch = s.followedFiles
 	go s.transcripts.run(s.ctx)
-	s.filesFollowed = newKeyedHub(worktreeTopic, s.Poll, func(string) string { return s.App.RunsStamp() })
+	// A worktree's runs in Files: told when the runs move (WatchRuns,
+	// below), its poll only for what that missed.
+	s.filesFollowed = newKeyedHub(worktreeTopic, max(s.Poll, s.Sweep), func(string) string { return s.App.RunsStamp() })
 	go s.filesFollowed.run(s.ctx)
 	s.runLogs = s.runLogHub()
+	s.runLogs.watch = s.followedFiles
 	go s.runLogs.run(s.ctx)
 	s.apps = newKeyedHub(appTopic, s.Poll, func(key string) string {
 		name, p, _ := appOfKey(key)
@@ -304,6 +337,7 @@ func (s *Server) Start() error {
 	})
 	go s.apps.run(s.ctx)
 	s.docs = s.docHub()
+	s.docs.watch = s.followedFiles
 	go s.docs.run(s.ctx)
 	go s.markLooked() // runs started from a mission's page, or Files, last while it's open
 	// A write to the records tells the followers of what it names at once:
@@ -334,6 +368,14 @@ func (s *Server) Start() error {
 	// And what git writes in a capsule or a repo is looked at as it's
 	// written: the hubs' polls are for what that can't see.
 	go s.App.WatchGit(s.ctx.Done(), s.Log.Printf)
+	// And a run that starts, comes up, ends or is cleared away reaches the
+	// pages that show runs as it does: their stamps read what's kept.
+	go s.App.WatchRuns(s.ctx.Done(), s.Log.Printf, func() {
+		runsHub.nudge()
+		s.filesFollowed.nudge()
+		s.apps.nudge()
+		s.missions.nudge()
+	})
 	// What's followed is what the daemon keeps current: a mission's page
 	// open, a capsule in Files.
 	s.App.Following(func() (missions, worktrees []string) {
@@ -430,9 +472,30 @@ func (s *Server) cookieName() string {
 	return fmt.Sprintf("ws_%08x", h.Sum32())
 }
 
+// routes is a mux that keeps the patterns it's given.
+type routes struct {
+	*http.ServeMux
+	patterns []string
+}
+
+func (m *routes) HandleFunc(pattern string, h func(http.ResponseWriter, *http.Request)) {
+	m.patterns = append(m.patterns, pattern)
+	m.ServeMux.HandleFunc(pattern, h)
+}
+
+func (m *routes) Handle(pattern string, h http.Handler) {
+	m.patterns = append(m.patterns, pattern)
+	m.ServeMux.Handle(pattern, h)
+}
+
+// Routes are the patterns the web UI serves (as "GET /api/…"), once it's
+// started: what a test asks every one of.
+func (s *Server) Routes() []string { return slices.Clone(s.routes) }
+
 // Handler is the whole web UI behind its guard.
 func (s *Server) Handler() http.Handler {
-	mux := http.NewServeMux()
+	mux := &routes{ServeMux: http.NewServeMux()}
+	defer func() { s.routes = mux.patterns }()
 	mux.HandleFunc("GET /auth", s.auth)
 	mux.HandleFunc("GET /api/workspace", s.workspace)
 	mux.HandleFunc("POST /api/shutdown", s.shutdown)
@@ -667,7 +730,7 @@ func (s *Server) Handler() http.Handler {
 	})
 	mux.HandleFunc("/", s.app)
 	cost.Start(s.Root)
-	return s.guard(s.forgetsOnWrite(cost.Wrap(mux)))
+	return s.guard(s.forgetsOnWrite(cost.Wrap(mux.ServeMux)))
 }
 
 // forgetsOnWrite has the workspace's view built afresh after a write a

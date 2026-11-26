@@ -59,13 +59,47 @@ func Start(root string) bool {
 }
 
 func write(v any) {
+	if l, ok := v.(Line); ok {
+		outMu.Lock()
+		each := observer
+		outMu.Unlock()
+		if each != nil {
+			each(l)
+		}
+	}
+	outMu.Lock()
+	defer outMu.Unlock()
+	if out == nil {
+		return
+	}
 	b, err := json.Marshal(v)
 	if err != nil {
 		return
 	}
-	outMu.Lock()
 	_, _ = out.Write(append(b, '\n')) // a cost line not written is only not counted
+}
+
+// observer, if set, is told each request's line (Observe).
+var observer func(Line)
+
+// Observe measures each request from now on, telling each its line, with
+// or without Env: what a test asks of every route. Handlers made before
+// it (Wrap) aren't measured. stop stops it, and measuring with it, unless
+// Env had it measured anyway.
+func Observe(each func(Line)) (stop func()) {
+	outMu.Lock()
+	observer = each
+	byEnv := out != nil
 	outMu.Unlock()
+	on.Store(true)
+	return func() {
+		outMu.Lock()
+		observer = nil
+		outMu.Unlock()
+		if !byEnv {
+			on.Store(false)
+		}
+	}
 }
 
 // Tally is one kind's count and time, as written.

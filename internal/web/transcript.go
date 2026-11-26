@@ -200,6 +200,11 @@ func (s *Server) transcriptHub() *keyedHub {
 		}
 		return fmt.Sprintf("%d %d", info.Size(), info.ModTime().UnixNano())
 	})
+	h.pathOf = func(key string) string {
+		mu.Lock()
+		defer mu.Unlock()
+		return paths[key]
+	}
 	h.gone = func(key string) {
 		mu.Lock()
 		delete(paths, key)

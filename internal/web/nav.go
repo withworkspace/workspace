@@ -38,6 +38,9 @@ func (s *Server) navAt(w http.ResponseWriter, r *http.Request) (dir, rev, path s
 // now, for the explorer to ask its names at (nav.Service.Now).
 type NavNow struct {
 	Rev string `json:"rev"`
+	// Unread: it's never been read, and is being (Rev is ""): the
+	// workspace's readsSeen moves when it has been.
+	Unread bool `json:"unread,omitempty"`
 }
 
 func (s *Server) navNow(w http.ResponseWriter, r *http.Request) {
@@ -49,12 +52,20 @@ func (s *Server) navNow(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	rev, err := s.Nav.Now(dir)
-	if err != nil {
+	// What the worktree's files are takes git (its status, and a commit
+	// of them when they've changed): it's answered as kept, and read
+	// again behind every answer (a file edited doesn't move the capsule's
+	// stamp), the page told (readsSeen) when that's other than it was
+	// given.
+	v, unread, err := s.reads.soonWithin(keyOf("nav-now", dir), dir, 0, func() (any, error) { return s.Nav.Now(dir) })
+	switch {
+	case err != nil:
 		jsonError(w, http.StatusUnprocessableEntity, err.Error())
-		return
+	case unread:
+		writeJSON(w, http.StatusOK, NavNow{Unread: true})
+	default:
+		writeJSON(w, http.StatusOK, NavNow{Rev: v.(string)})
 	}
-	writeJSON(w, http.StatusOK, NavNow{Rev: rev})
 }
 
 func (s *Server) navNames(w http.ResponseWriter, r *http.Request) {
