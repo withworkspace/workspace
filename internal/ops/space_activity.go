@@ -275,7 +275,7 @@ func (w *Workspace) PullSpace(ctx context.Context, repo string) (SpaceFresh, err
 	}
 	// The ground's documents are read in now, as a command would: the page
 	// that pulled reads them straight after.
-	w.Spaces(ctx)
+	_, _, _ = w.Spaces(ctx) // spaceFresh, next, says if they can't be
 	f = w.spaceFresh(ctx, s)
 	w.keepFresh(s.Repo, f)
 	return f, nil

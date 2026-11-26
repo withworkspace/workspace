@@ -34,7 +34,7 @@ func (w *Workspace) Stamp() string {
 	}
 	ws := filepath.Join(w.Root(), ".ws")
 	walk := func(dir string, skipMissions bool) {
-		filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error { // its walk passes over what it can't read
 			if err != nil {
 				return nil
 			}
@@ -130,7 +130,7 @@ func (w *Workspace) missionStamp(slug string, m *mission.Mission) string {
 		}
 	}
 	dir := filepath.Join(w.Missions.Dir(), slug)
-	filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error { // its walk passes over what it can't read
 		if err != nil {
 			return nil
 		}
@@ -194,7 +194,7 @@ func (w *Workspace) stampFolders() []string {
 	out := []string{root}
 	inPlay, known := w.Missions.InPlaySlugs()
 	add := func(dir string, skipMissions bool) {
-		filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error { // its walk passes over what it can't read
 			if err != nil || !d.IsDir() {
 				return nil
 			}

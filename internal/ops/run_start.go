@@ -285,7 +285,7 @@ func (w *Workspace) startRun(a RunAsk, above []string) (RunUp, error) {
 	}
 	// It's recorded as needing them now, which is what keeps them.
 	for _, h := range held {
-		store.HoldUntil(h, time.Time{})
+		logFailed(store.HoldUntil(h, time.Time{}))
 	}
 	if !started {
 		// Another ws started the recipe at the same moment: that run's

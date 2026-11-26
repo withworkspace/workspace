@@ -51,8 +51,8 @@ func (r *checkRound) log(format string, a ...any) {
 func (r *checkRound) command(i int, c mission.Check, capsule, dir string, env []string) mission.CheckResult {
 	n, of := i+1, len(r.st.Step.Checks)
 	since := time.Now()
-	r.w.Missions.SetChecking(r.slug, mission.Checking{Step: r.st.N, Crew: r.crew, Of: of, N: n, Command: c.Command,
-		Judged: r.judged, Since: since, Until: since.Add(checkTimeout)})
+	logFailed(r.w.Missions.SetChecking(r.slug, mission.Checking{Step: r.st.N, Crew: r.crew, Of: of, N: n, Command: c.Command,
+		Judged: r.judged, Since: since, Until: since.Add(checkTimeout)}))
 	r.log("step %d, check %d of %d started: `%s`", r.st.N, n, of, c.Command)
 	who := fmt.Sprintf("check %s step %d, %d of %d", r.slug, r.st.N, n, of)
 	pid := 0
@@ -61,7 +61,7 @@ func (r *checkRound) command(i int, c mission.Check, capsule, dir string, env []
 			pid = p
 			execlog.Start(r.w.Root(), who, []string{"sh", "-c", c.Command}, dir, env, p)
 		},
-		Line: func(line string) { r.w.Missions.CheckingLine(r.slug, since, line) },
+		Line: func(line string) { _ = r.w.Missions.CheckingLine(r.slug, since, line) }, // a line not kept is only not shown
 	})
 	ended := checkEnded(res)
 	if pid == 0 {
@@ -96,8 +96,8 @@ func checkEnded(r mission.CheckResult) string {
 // logs it. It returns when.
 func (r *checkRound) judging(who string) time.Time {
 	since := time.Now()
-	r.w.Missions.SetChecking(r.slug, mission.Checking{Step: r.st.N, Crew: r.crew, Of: len(r.st.Step.Checks), Judged: r.judged,
-		Judge: who, Since: since, Until: since.Add(judgeTimeout)})
+	logFailed(r.w.Missions.SetChecking(r.slug, mission.Checking{Step: r.st.N, Crew: r.crew, Of: len(r.st.Step.Checks), Judged: r.judged,
+		Judge: who, Since: since, Until: since.Add(judgeTimeout)}))
 	r.log("step %d: %s started reading %s", r.st.N, who, mission.CheckNumbers(r.judged))
 	return since
 }

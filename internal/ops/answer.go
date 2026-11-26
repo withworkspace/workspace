@@ -222,7 +222,7 @@ func (w *Workspace) AnswerConversation(sc doc.Scope, id string) error {
 		if out.err != nil {
 			return out.err
 		}
-		store.SetSummary(id, out.title, out.summary, w.now())
+		logFailed(store.SetSummary(id, out.title, out.summary, w.now()))
 	}
 	return nil
 }
@@ -260,7 +260,7 @@ func (a *answering) converse(r responder, h harness.Converser) (harness.Report, 
 		return a.w.runConverse(a.store, c.ID, h, run)
 	})
 	if rep.Session != "" && rep.Session != session {
-		a.store.SetSession(c.ID, conversation.Session{Harness: a.pick.Harness, ID: rep.Session})
+		logFailed(a.store.SetSession(c.ID, conversation.Session{Harness: a.pick.Harness, ID: rep.Session}))
 	}
 	return rep, err
 }
@@ -616,7 +616,7 @@ func (w *Workspace) DraftDecision(slug, id string) error {
 		return w.runConverse(store, c.ID, h, harness.ConverseRun{Prompt: prompt.Draft(m, c, session != ""), Dir: w.Root(), Model: pick.Model, Session: session})
 	})
 	if rep.Session != "" && rep.Session != session {
-		store.SetSession(c.ID, conversation.Session{Harness: pick.Harness, ID: rep.Session})
+		logFailed(store.SetSession(c.ID, conversation.Session{Harness: pick.Harness, ID: rep.Session}))
 	}
 	if err != nil {
 		return err
@@ -756,7 +756,7 @@ func RunHeadless(life context.Context, root, who string, f spend.For, env []stri
 	if runPath != "" {
 		if f, err := os.Create(runPath); err == nil {
 			defer f.Close()
-			f.WriteString(harness.RunHeader(l.Stream)) // how to read the rest
+			_, _ = f.WriteString(harness.RunHeader(l.Stream)) // how to read the rest
 			tee = f
 		}
 	}

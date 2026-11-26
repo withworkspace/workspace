@@ -310,7 +310,7 @@ func (r *Rg) search(ctx context.Context, roots []SearchRoot, emit func(Match) er
 	})
 	if readErr != nil {
 		cancel()
-		io.Copy(io.Discard, out)
+		_, _ = io.Copy(io.Discard, out) // drained so it can end: the read's error is the one said
 	}
 	waitErr := c.Wait()
 

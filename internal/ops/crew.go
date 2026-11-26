@@ -242,7 +242,7 @@ func (w *Workspace) Launch(slug string, d Dispatch, by Actor) (Launched, error) 
 	})
 	if err != nil {
 		if counted {
-			w.Missions.ReleaseDispatch(m.Slug) // nothing started: the allowance isn't used up
+			logFailed(w.Missions.ReleaseDispatch(m.Slug)) // nothing started: the allowance isn't used up
 		}
 		if carryOn {
 			w.Missions.SetResumeWith(m.Slug, resume, "") //nolint:errcheck // a message for a resume that didn't happen
@@ -273,7 +273,7 @@ func (w *Workspace) LaunchQueued(slug string, by Actor) (Launched, error) {
 	if err != nil {
 		return l, err
 	}
-	w.Missions.QueueDispatch(m.Slug, nil)
+	logFailed(w.Missions.QueueDispatch(m.Slug, nil))
 	// A step that runs in several repos queues its runs' crew one at a
 	// time: the next is queued now.
 	w.queueNextRun(m.Slug)

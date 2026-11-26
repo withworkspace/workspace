@@ -134,7 +134,7 @@ func (w *Workspace) postReply(slug string, r mission.Reply, by Actor) error {
 	if err != nil {
 		return fmt.Errorf("posting the reply on %s: %w", r.Where(), err)
 	}
-	w.Missions.SettleReply(slug, r.N, true)
+	logFailed(w.Missions.SettleReply(slug, r.N, true))
 	w.Missions.AppendLogAfter(slug, mission.Event{Kind: mission.EventPR, What: mission.PREventReplied, Repo: repo, Crew: by.By(),
 		Text: fmt.Sprintf("replied on %s, to %s: %s", r.Where(), firstNonEmpty(r.To, "the thread"), clipString(oneLine(r.Text), 200))})
 	return nil

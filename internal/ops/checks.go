@@ -55,7 +55,7 @@ func (w *Workspace) CrewDone(slug, crewID string) string {
 		// crew are; the orchestrator passes the step once every run is.
 		if c, ok := m.CrewByID(crewID); ok {
 			if in, ok := st.Instance(c.Capsule); ok && in.Done == nil {
-				w.Missions.SetInstance(slug, st.N, in.Repo, c.Capsule, true)
+				logFailed(w.Missions.SetInstance(slug, st.N, in.Repo, c.Capsule, true))
 			}
 		}
 	}
@@ -131,7 +131,7 @@ func (w *Workspace) RunChecks(slug, crewID string) (string, error) {
 		}
 	}
 	run := w.checkRound(slug, st, crewID, judged)
-	defer w.Missions.ClearChecking(slug, st.N) // recording the round clears it; failing to, this does
+	defer func() { logFailed(w.Missions.ClearChecking(slug, st.N)) }() // recording the round clears it; failing to, this does
 	var ran []string
 	for i, c := range checks {
 		if !c.Run() {
@@ -790,8 +790,8 @@ func (w *Workspace) carryOn(m *mission.Mission, st mission.StageState, crewID, t
 	if c.Ended == nil {
 		if _, err := w.Say(m.Slug, c.ID, text, by); err == nil {
 			// It has more to do: its done is no longer its latest word.
-			w.Missions.ClearStatus(m.Slug, c.ID)
-			w.Missions.JoinStage(m.Slug, c.ID, st.N)
+			logFailed(w.Missions.ClearStatus(m.Slug, c.ID))
+			logFailed(w.Missions.JoinStage(m.Slug, c.ID, st.N))
 			return fmt.Sprintf("told %s, which is still running, to carry on at step %d", c.ID, st.N), nil
 		}
 	}
@@ -800,7 +800,7 @@ func (w *Workspace) carryOn(m *mission.Mission, st mission.StageState, crewID, t
 			return "", err
 		}
 		if w.opts.Host == nil || !by.IsYou() && !w.Config().OrchestratorAutoDispatch() {
-			w.Missions.JoinStage(m.Slug, c.ID, st.N)
+			logFailed(w.Missions.JoinStage(m.Slug, c.ID, st.N))
 			return fmt.Sprintf("%s has ended: the mission's page offers to resume it to carry on at step %d", c.ID, st.N), nil
 		}
 		l, err := w.Launch(m.Slug, Dispatch{Resume: c.ID, Stage: st.N}, by)
@@ -809,14 +809,14 @@ func (w *Workspace) carryOn(m *mission.Mission, st mission.StageState, crewID, t
 		case err == nil:
 			// As for crew still running: resumed by you with what to put
 			// right, their done would otherwise stand (Store.ResumeCrew).
-			w.Missions.ClearStatus(m.Slug, c.ID)
-			w.Missions.JoinStage(m.Slug, c.ID, st.N)
+			logFailed(w.Missions.ClearStatus(m.Slug, c.ID))
+			logFailed(w.Missions.JoinStage(m.Slug, c.ID, st.N))
 			return fmt.Sprintf("resumed %s to carry on at step %d", l.ID, st.N), nil
 		case errors.As(err, &r) && r.Code == "dispatch-limit":
-			w.Missions.JoinStage(m.Slug, c.ID, st.N)
+			logFailed(w.Missions.JoinStage(m.Slug, c.ID, st.N))
 			return fmt.Sprintf("ws has started as many crew without the user as it may: the mission's page offers to resume %s to carry on at step %d", c.ID, st.N), nil
 		}
-		w.Missions.SetResumeWith(m.Slug, c.ID, "")
+		logFailed(w.Missions.SetResumeWith(m.Slug, c.ID, ""))
 	}
 	// Fresh crew, with what the crew before them handed off.
 	capsule := c.Capsule

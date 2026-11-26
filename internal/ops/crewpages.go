@@ -216,7 +216,7 @@ func (p crewPages) Key(slug, id string, k TermKey) error {
 		return err
 	}
 	if ev.Code == uv.KeyEnter && ev.Mod == 0 {
-		p.w.Missions.TalkedTo(slug, id, "")
+		logFailed(p.w.Missions.TalkedTo(slug, id, ""))
 	}
 	return nil
 }
@@ -274,7 +274,7 @@ func (w *Workspace) Say(slug, id, text string, by Actor) (string, error) {
 			// The answer to a question of theirs isn't you taking them
 			// over: they carry on, watched as they were.
 			if answered, _ := w.Missions.AnsweredCrew(slug, id, text); !answered {
-				w.Missions.TalkedTo(slug, id, text)
+				logFailed(w.Missions.TalkedTo(slug, id, text))
 			}
 		} else if err := w.Missions.Nudged(slug, id, text, by.By()); err != nil {
 			return said, err
@@ -293,7 +293,7 @@ func (w *Workspace) Say(slug, id, text string, by Actor) (string, error) {
 	}
 	l, err := w.Launch(slug, Dispatch{Resume: id}, by)
 	if err != nil {
-		w.Missions.SetResumeWith(slug, id, "")
+		logFailed(w.Missions.SetResumeWith(slug, id, ""))
 		return "", err
 	}
 	if by.IsYou() {
@@ -313,7 +313,7 @@ func (w *Workspace) answeredCrew(slug string, c mission.Crew, text string) {
 	if c.Status != mission.CrewAsking || strings.TrimSpace(c.Note) == "" || text == "" {
 		return
 	}
-	w.Missions.Decide(slug, mission.Decision{What: text, By: AsYou.By(), Asked: &mission.Asked{By: c.ID, Text: oneLine(c.Note)}})
+	logFailed(w.Missions.Decide(slug, mission.Decision{What: text, By: AsYou.By(), Asked: &mission.Asked{By: c.ID, Text: oneLine(c.Note)}}))
 }
 
 // browserKeys are the keys a browser names (KeyboardEvent.key) that aren't

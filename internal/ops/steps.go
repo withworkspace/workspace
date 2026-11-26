@@ -173,7 +173,7 @@ func (w *Workspace) openPRStep(m *mission.Mission, st mission.StageState, done s
 				asks = append(asks, fmt.Sprintf("the mission has no capsule in %s to open one from: lift one, or start the step without it", in.Repo))
 				continue
 			}
-			w.Missions.SetInstance(m.Slug, st.N, in.Repo, capsule, false)
+			logFailed(w.Missions.SetInstance(m.Slug, st.N, in.Repo, capsule, false))
 			s, ask := w.openPRIn(m, st, capsule, false)
 			if ask != "" {
 				asks = append(asks, ask)
@@ -384,7 +384,7 @@ func (w *Workspace) PassOnMerge(slug, capsule string) bool {
 	// What ws asked about the pull request while it was open is moot, and
 	// so is what the orchestrator asked at the step (whether to merge it,
 	// what to do about a check).
-	w.Missions.Ask(slug, "", "ws")
+	logFailed(w.Missions.Ask(slug, "", "ws"))
 	w.settleAsked(m, cur.N, began, "its pull request merged")
 	return true
 }

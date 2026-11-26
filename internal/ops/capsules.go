@@ -194,7 +194,9 @@ func (w *Workspace) board(repo, name string) error {
 	if err := w.WS().Board(repo, name); err != nil {
 		return nil // not there to board
 	}
-	config.SaveBoarded(w.Root(), w.WS().Boarded)
+	if err := config.SaveBoarded(w.Root(), w.WS().Boarded); err != nil {
+		return err
+	}
 	return ide.Regenerate(w.Root(), w.WS().Boarded, w.WS().DisplayNames, w.WS().RemoteOf)
 }
 
@@ -231,17 +233,17 @@ type Burned struct {
 func (w *Workspace) Burn(repo, name string, o BurnOptions) (Burned, error) {
 	out := Burned{Repo: repo, Name: name}
 	if w.WS().IsBoarded(repo, name) {
-		w.WS().Unboard(repo, name)
-		config.SaveBoarded(w.Root(), w.WS().Boarded)
+		logFailed(w.WS().Unboard(repo, name))
+		logFailed(config.SaveBoarded(w.Root(), w.WS().Boarded))
 		out.IDEErr = ide.Regenerate(w.Root(), w.WS().Boarded, w.WS().DisplayNames, w.WS().RemoteOf)
 	}
 	branch := workspace.GitCurrentBranch(filepath.Join(w.WS().RepoDir(repo), name))
 	owner, owned := w.Missions.FindByCapsule(repo, name)
 	if owned && branch != "" {
-		w.Missions.Update(owner.Slug, func(m *mission.Mission) error {
+		logFailed(w.Missions.Update(owner.Slug, func(m *mission.Mission) error {
 			m.AddCapsuleBranch(repo, name, branch)
 			return nil
-		})
+		}))
 	}
 	if err := w.WS().RemoveWorktree(repo, name, o.Force); err != nil {
 		return out, err
@@ -253,7 +255,7 @@ func (w *Workspace) Burn(repo, name string, o BurnOptions) (Burned, error) {
 		w.emit(events.Event{Kind: events.CapsuleBurned, Repo: repo, Capsule: name}, o.By)
 	}
 	if o.DropBranch && branch != "" {
-		git.Run(w.WS().BareDir(repo), "branch", "-q", "-D", branch)
+		logFailed(git.Run(w.WS().BareDir(repo), "branch", "-q", "-D", branch))
 	}
 	if target, ok := w.WS().Silo[repo]; ok && target == name {
 		out.Silo = true
@@ -265,7 +267,7 @@ func (w *Workspace) Burn(repo, name string, o BurnOptions) (Burned, error) {
 				out.SiloErr = err
 			}
 		}
-		config.SaveSilo(w.Root(), w.WS().Silo)
+		logFailed(config.SaveSilo(w.Root(), w.WS().Silo))
 	}
 	return out, nil
 }

@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -321,6 +322,22 @@ func (w *Workspace) load(slug string) (*mission.Mission, error) {
 	return m, nil
 }
 
+// logFailed says on stderr (the daemon's log) that a write after what was
+// done couldn't be kept, and where: what was done stands, so it isn't
+// returned. It's given all a write returns (logFailed(w.Missions.Ask(…)))
+// and reads the last as its error; nil says nothing.
+func logFailed(results ...any) {
+	if len(results) == 0 {
+		return
+	}
+	err, _ := results[len(results)-1].(error)
+	if err == nil {
+		return
+	}
+	_, file, line, _ := runtime.Caller(1)
+	log.Printf("%s:%d: couldn't keep it: %v", filepath.Base(file), line, err)
+}
+
 // closeStepTasks takes step n's tasks out of the queue once what they asked
 // is done. What was done stands if they can't be: it's said on stderr (the
 // daemon's log), and the task is left for you to see.
@@ -335,6 +352,6 @@ func (w *Workspace) closeStepTasks(slug string, n int) {
 // changes a mission counts.
 func (w *Workspace) youActed(slug string, by Actor) {
 	if by.IsYou() {
-		w.Missions.UserActed(slug)
+		logFailed(w.Missions.UserActed(slug))
 	}
 }

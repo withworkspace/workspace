@@ -48,10 +48,16 @@ func (w *Workspace) Litter(ctx context.Context) ([]Litter, error) {
 	if err := add("artifacts'", paths, err); err != nil {
 		return nil, err
 	}
-	add("pull requests', from before the records", pulls.Litter(root), nil)
-	add("Team's, from before the records", team.Litter(root), nil)
+	if err := add("pull requests', from before the records", pulls.Litter(root), nil); err != nil {
+		return nil, err
+	}
+	if err := add("Team's, from before the records", team.Litter(root), nil); err != nil {
+		return nil, err
+	}
 	if before := filepath.Join(root, ".ws", "before-db"); exists(before) {
-		add("brought into the records once, and kept", []string{before}, nil)
+		if err := add("brought into the records once, and kept", []string{before}, nil); err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }

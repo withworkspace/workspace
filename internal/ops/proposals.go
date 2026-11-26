@@ -341,7 +341,7 @@ func (w *Workspace) acceptBrief(store conversation.Store, c *conversation.Conver
 			said = []string{fmt.Sprintf("Wrote its plan (%d %s).", len(plan.Steps), plural(len(plan.Steps), "step"))}
 		}
 	}
-	ms.UserActed(m.Slug)
+	logFailed(ms.UserActed(m.Slug))
 	// Briefing it, accepting this is the go-ahead: ws is starting it from
 	// here, through naming it and lifting its capsules, and that's marked
 	// before the proposal stops being yours to confirm.
@@ -533,13 +533,13 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 	if !store.Workspace() {
 		ref = store.Slug + "/" + c.ID
 	}
-	ms.Update(m.Slug, func(mm *mission.Mission) error {
+	logFailed(ms.Update(m.Slug, func(mm *mission.Mission) error {
 		mm.Conversation = ref
 		if !store.Workspace() {
 			mm.From = store.Slug
 		}
 		return nil
-	})
+	}))
 	// What it was proposed as being about, which the thing then says of
 	// it. A name ws no longer reads (its plugin's gone since) is left
 	// out, and said: the mission's made all the same.
@@ -595,7 +595,7 @@ func (w *Workspace) acceptMission(store conversation.Store, c *conversation.Conv
 	for _, d := range c.KeptDecisions() {
 		rec, err := ms.Decide(m.Slug, mission.Decision{What: d.What, Why: d.Why, By: conversation.You, From: c.ID})
 		if err == nil {
-			store.SettleProposal(c.ID, d.N, conversation.ProposalAccepted, m.Slug+":"+rec.ID, conversation.You, time.Now())
+			logFailed(store.SettleProposal(c.ID, d.N, conversation.ProposalAccepted, m.Slug+":"+rec.ID, conversation.You, time.Now()))
 			moved++
 		}
 	}

@@ -51,9 +51,10 @@ func (w *Workspace) SaidOf(keys ...store.Key) ([]Said, error) {
 		return nil, err
 	}
 	ctx := context.Background()
-	w.Missions.Reread(ctx)
-	w.pages().Reread(ctx)
-	w.Spaces(ctx)
+	// Read again behind them: what reads them next says if they can't be.
+	_, _ = w.Missions.Reread(ctx)
+	_, _ = w.pages().Reread(ctx)
+	_, _, _ = w.Spaces(ctx)
 	var out []Said
 	err = db.Read(context.Background(), func(tx *store.Tx) error {
 		links, err := tx.LinksTo(keys...)

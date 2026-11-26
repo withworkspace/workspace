@@ -290,7 +290,7 @@ func (w *Workspace) atPRStep(slug string, st mission.StageState, capsule string,
 			said = append(said, what+": crew at work in "+capsule+" have it")
 		case n > w.Config().MaxRounds():
 			text := fmt.Sprintf("%s, again: that's round %d, more than ws lets come round before it's yours (%s). Have it fixed once more, or leave it to you?", what, n, guaranteeMaxRounds(w.Config().MaxRounds()).Key)
-			w.Missions.Ask(slug, text, "ws", "Fix it", "Leave it to me")
+			logFailed(w.Missions.Ask(slug, text, "ws", "Fix it", "Leave it to me"))
 			said = append(said, what+": it's the user's, past max_rounds")
 		default:
 			wake = true
@@ -319,7 +319,7 @@ func (w *Workspace) prNeeds(slug, what string) string {
 	if w.Notify(slug, mission.OrchestratorEvent{Trigger: "pr"}) {
 		return "the orchestrator decides what follows, by the process"
 	}
-	w.Missions.Ask(slug, what+". The orchestrator isn't running: say what to do, or do it.", "ws")
+	logFailed(w.Missions.Ask(slug, what+". The orchestrator isn't running: say what to do, or do it.", "ws"))
 	return "the user's asked"
 }
 
@@ -339,7 +339,7 @@ func (w *Workspace) readyWhenGreen(slug string, st mission.StageState, capsule, 
 			return said
 		}
 		text := fmt.Sprintf("%s's checks pass, and it's a draft. ws holds %s: review %s, approving it, and ws marks it ready.", ref, GuaranteeReviewBeforeReady.Key, capsule)
-		w.Missions.AskAtStep(slug, mission.TaskApprove, text, st.N)
+		logFailed(w.Missions.AskAtStep(slug, mission.TaskApprove, text, st.N))
 		return ref + " is green: the user's asked to review it before it's marked ready"
 	}
 	if w.Config().OrchestratorEnabled() {
@@ -347,7 +347,7 @@ func (w *Workspace) readyWhenGreen(slug string, st mission.StageState, capsule, 
 		return ref + " is green, and a draft"
 	}
 	text := fmt.Sprintf("%s's checks pass, and it's a draft: go on, and ws marks it ready for review.", ref)
-	w.Missions.AskAtStep(slug, mission.TaskApprove, text, st.N)
+	logFailed(w.Missions.AskAtStep(slug, mission.TaskApprove, text, st.N))
 	return ref + " is green: the user's asked to mark it ready"
 }
 
@@ -410,12 +410,12 @@ func (w *Workspace) MarkReady(slug, capsule string, by Actor) (string, error) {
 	}
 	ready := *seen
 	ready.Draft = false
-	w.Missions.SeePR(m.Slug, capsule, ready) // seen as it's marked: not news
+	logFailed(w.Missions.SeePR(m.Slug, capsule, ready)) // seen as it's marked: not news
 	ref := fmt.Sprintf("%s#%d", repo, seen.Number)
 	w.Missions.AppendLogAfter(m.Slug, mission.Event{Kind: mission.EventPR, What: mission.PREventMarkedReadyBy, Repo: repo, Capsule: name, Crew: by.By(),
 		Text: fmt.Sprintf("%s marked ready for review, at step %d", ref, cur.N)})
 	if t, ok := m.StepTask(cur.N); ok && t.Verb == mission.TaskApprove {
-		w.Missions.CloseTask(m.Slug, t.N, by.By(), "")
+		logFailed(w.Missions.CloseTask(m.Slug, t.N, by.By(), ""))
 	}
 	w.opts.PRs.Forget(repo)
 	w.youActed(m.Slug, by)

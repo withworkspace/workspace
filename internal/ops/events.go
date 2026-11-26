@@ -20,7 +20,7 @@ func (w *Workspace) emit(e events.Event, by Actor) {
 	if e.Cause == "" {
 		e.Cause = os.Getenv(mission.EnvRun)
 	}
-	events.Emit(w.Root(), e)
+	logFailed(events.Emit(w.Root(), e))
 }
 
 // byOf is who an actor is, as an event says it.

@@ -229,7 +229,7 @@ func (w *Workspace) startInstances(m *mission.Mission, st mission.StageState, on
 			said = append(said, "no capsule in "+in.Repo)
 			continue
 		}
-		w.Missions.SetInstance(m.Slug, st.N, in.Repo, capsule, false)
+		logFailed(w.Missions.SetInstance(m.Slug, st.N, in.Repo, capsule, false))
 		if m2, err := w.Missions.Load(m.Slug); err == nil {
 			m = m2
 			st, _ = currentStep(w.Missions, m)
@@ -249,7 +249,7 @@ func (w *Workspace) oneDispatch(slug string, launched *int, said string) {
 		return
 	}
 	if *launched > 0 {
-		w.Missions.ReleaseDispatch(slug)
+		logFailed(w.Missions.ReleaseDispatch(slug))
 	}
 	*launched++
 }
@@ -271,7 +271,7 @@ func (w *Workspace) carryOnInstances(m *mission.Mission, from, st mission.StageS
 				id = c.ID
 			}
 		}
-		w.Missions.SetInstance(m.Slug, st.N, in.Repo, in.Capsule, false)
+		logFailed(w.Missions.SetInstance(m.Slug, st.N, in.Repo, in.Capsule, false))
 		m2, err := w.Missions.Load(m.Slug)
 		if err != nil {
 			continue
@@ -428,7 +428,7 @@ func (w *Workspace) queueNextRun(slug string) string {
 		if !ok {
 			continue
 		}
-		w.Missions.SetInstance(slug, cur.N, in.Repo, capsule, false)
+		logFailed(w.Missions.SetInstance(slug, cur.N, in.Repo, capsule, false))
 		if m, err = w.Missions.Load(slug); err != nil {
 			return ""
 		}

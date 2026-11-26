@@ -452,7 +452,7 @@ func (w *Workspace) acceptSuggestion(m *mission.Mission, id string, at time.Time
 		ref: c.Anchor.Doc, place: place, store: store,
 		body:    fmt.Sprintf("A suggested edit, accepted from thread %s on mission %s: %s", id, m.Slug, clipString(oneLine(c.Turns[0].Body), 200)),
 		subject: cmp.Or(place.kindSubject(w.WS(), []byte(updated)), fmt.Sprintf("Accept suggestion on %s (%s)", filepath.ToSlash(place.Rel), id)),
-		drop:    func() { doc.Drafts{Root: w.WS().Root, Scope: doc.OfMission(m.Slug)}.Drop(c.Anchor.Doc) },
+		drop:    func() { logFailed(doc.Drafts{Root: w.WS().Root, Scope: doc.OfMission(m.Slug)}.Drop(c.Anchor.Doc)) },
 	}, base, updated, "")
 	if err != nil {
 		return "", err

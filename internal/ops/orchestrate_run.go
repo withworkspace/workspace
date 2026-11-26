@@ -100,7 +100,7 @@ func (w *Workspace) Orchestrate(r OrchestratorRun) error {
 	if !r.Since.IsZero() && r.Slug != "" {
 		defer func() {
 			if !ended {
-				w.Missions.EndOrchestrating(r.Slug, mission.OrchestratorRun{Since: r.Since})
+				logFailed(w.Missions.EndOrchestrating(r.Slug, mission.OrchestratorRun{Since: r.Since}))
 			}
 		}()
 	}
@@ -118,7 +118,7 @@ func (w *Workspace) Orchestrate(r OrchestratorRun) error {
 	what := orchestrator.Describe(crewID, trigger)
 	if r.Since.IsZero() { // run by hand: mark it underway here
 		if run, err := store.StartOrchestrating(m.Slug, what, orchestrator.RunFor()); err == nil {
-			defer store.EndOrchestrating(m.Slug, run)
+			defer func() { logFailed(store.EndOrchestrating(m.Slug, run)) }()
 		}
 	}
 	with := rv.Name() + " " + model
@@ -387,5 +387,5 @@ func orchestratorDidNothing(store mission.Store, slug, what, out string, runErr 
 		text += " It said: " + gist
 	}
 	text += " What should happen next?"
-	store.Ask(slug, text, "ws")
+	logFailed(store.Ask(slug, text, "ws"))
 }
