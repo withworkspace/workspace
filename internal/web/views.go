@@ -177,7 +177,13 @@ func (c *viewCache) mission(s *Server, slug string) ([]byte, error) {
 		}
 		return fmt.Sprintf("%s %d %s", s.App.MissionStamp(slug), seq, s.keptStamp())
 	}
-	return c.get(s, missionTopic+slug, stamp, func() (any, error) { return s.missionDetail(slug) })
+	return c.get(s, missionTopic+slug, stamp, func() (any, error) {
+		d, err := s.missionDetail(slug)
+		if err == nil && s.missions != nil && s.missions.follows(slug) {
+			s.warmCapsules(slug, d) // what its tabs read next
+		}
+		return d, err
+	})
 }
 
 // runs is the Runs page's view as GET /api/runs serves it.

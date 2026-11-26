@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/ops"
@@ -55,6 +56,10 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 	var v any
 	var err error
 	if stamp := ops.CapsuleStamp(dir); stamp != "" {
+		if as, ok := s.fileAsIs(dir, baseRef, p, stamp); ok {
+			writeJSON(w, http.StatusOK, as)
+			return
+		}
 		v, err = s.reads.kept(keyOf("file", dir, baseRef, p, stamp, fileStamp(dir, p)), read)
 	} else {
 		v, err = read()
@@ -107,4 +112,43 @@ func (s *Server) raw(w http.ResponseWriter, r *http.Request) {
 	// An SVG opened on its own runs nothing.
 	w.Header().Set("Content-Security-Policy", "sandbox; default-src 'none'; style-src 'unsafe-inline'")
 	http.ServeContent(w, r, "", info.ModTime(), f)
+}
+
+// fileAsIs is a file read with no git, when the capsule's tree is kept
+// as the capsule is (stamp: the explorer reads it before it opens a
+// file), lists it unchanged, and it's not been written since that tree
+// was read: nothing's changed in it since the branch point, so there's
+// nothing to mark. false (not listed, changed, written since, or no tree
+// kept): read it with git.
+func (s *Server) fileAsIs(dir, baseRef, path, stamp string) (*review.FileView, bool) {
+	kept, from, ok := s.reads.current(keyOf("tree", dir, baseRef), stamp)
+	if !ok {
+		return nil, false
+	}
+	t := kept.(*review.Tree)
+	if t.Base == "" || t.Truncated {
+		return nil, false
+	}
+	listed := false
+	for _, f := range t.Files {
+		if f.Path == path {
+			if f.Status != "" {
+				return nil, false
+			}
+			listed = true
+			break
+		}
+	}
+	if !listed {
+		return nil, false
+	}
+	info, err := os.Stat(filepath.Join(dir, filepath.FromSlash(path)))
+	if err != nil || !info.ModTime().Before(from) {
+		return nil, false
+	}
+	v, err := review.ReadFileAsIs(dir, path)
+	if err != nil {
+		return nil, false
+	}
+	return v, true
 }

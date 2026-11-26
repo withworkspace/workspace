@@ -1,6 +1,8 @@
 package reads_test
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -9,8 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coder/websocket"
+
 	"github.com/withworkspace/workspace/internal/cost"
 	"github.com/withworkspace/workspace/internal/testutil"
+	"github.com/withworkspace/workspace/internal/web"
 )
 
 // A read starts no git (the rule: what a page reads is what the daemon
@@ -42,7 +47,10 @@ func TestReads_StartNoGit(t *testing.T) {
 
 	w, _ := testutil.OrchestrateFixture(t)
 	s := testutil.WebServer(t, w.Root)
-	time.Sleep(500 * time.Millisecond) // the daemon's first look at what it keeps
+	// The mission's page is open, as it is when its tabs read: it follows
+	// the mission, which has what its tabs read next read behind it.
+	follow(t, s, "mission:cache")
+	time.Sleep(time.Second) // the daemon's first look at what it keeps
 
 	get := func(path, read string) int {
 		req, _ := http.NewRequest("GET", s.Info().Origin()+path, nil)
@@ -100,10 +108,7 @@ var (
 		"/api/repos/{repo}/worktrees/{name}/nav/now":          "where code navigation's names are of: git status of the working tree, each read",
 		"/api/missions/{slug}/capsules/{repo}/{name}/nav/now": "as the worktree's nav/now",
 	}
-	firstReads = map[string]string{
-		"/api/missions/{slug}/capsules/{repo}/{name}/diff": "a capsule's diff is read in the first read of it at each commit, and kept by the commit",
-		"/api/repos/{repo}/worktrees/{name}/file":          "a file's lines that changed are read in the first read of it, and kept by the commit and the file",
-	}
+	firstReads = map[string]string{}
 )
 
 // fill is pattern with each of its wildcards given a value the fixture
@@ -129,4 +134,30 @@ func fill(pattern string) string {
 		out += "?path=README.md&line=1&col=1"
 	}
 	return out
+}
+
+// follow has a page's socket on s follow topic until t ends.
+func follow(t *testing.T, s *web.Server, topic string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	h := http.Header{}
+	h.Set("Origin", s.Info().Origin())
+	h.Set("Authorization", "Bearer "+s.Info().Token)
+	c, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(s.Info().Origin(), "http")+"/api/socket", &websocket.DialOptions{HTTPHeader: h})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { c.CloseNow() })
+	ask, _ := json.Marshal(web.SocketAsk{Op: web.SocketFollow, Topic: topic})
+	if err := c.Write(ctx, websocket.MessageText, ask); err != nil {
+		t.Fatal(err)
+	}
+	go func() { // what it's told is let be
+		for {
+			if _, _, err := c.Read(context.Background()); err != nil {
+				return
+			}
+		}
+	}()
 }

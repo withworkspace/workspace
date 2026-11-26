@@ -196,33 +196,57 @@ func ReadFile(dir, baseRef, path string) (*FileView, error) {
 		v.Deleted, v.Lines = true, lines
 		return v, nil
 	}
-	info, err := os.Stat(full)
-	if err != nil {
-		return nil, err
-	}
-	if info.IsDir() {
-		return nil, fmt.Errorf("%s is a folder", path)
-	}
-	v.Size = info.Size()
-	if v.Size > FileMax {
-		v.TooLarge = true
-		return v, nil
-	}
-	data, err := os.ReadFile(full)
-	if err != nil {
-		return nil, err
-	}
-	if bytes.IndexByte(data, 0) >= 0 {
-		v.Binary = true
-		return v, nil
-	}
-	if text := strings.TrimSuffix(string(data), "\n"); text != "" {
-		v.Lines = strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
+	if done, err := readLines(v, full, path); done || err != nil {
+		return v, err
 	}
 	if base != "" {
 		v.Changes = changesSince(dir, base, path)
 	}
 	return v, nil
+}
+
+// ReadFileAsIs is ReadFile of a file that has nothing changed since the
+// branch point, as whoever asks knows (the capsule's summary doesn't list
+// it): its lines, and no git. One that isn't there is an error.
+func ReadFileAsIs(dir, path string) (*FileView, error) {
+	v := &FileView{Path: path, Lines: []string{}, Changes: []Change{}}
+	full, err := ResolvePath(dir, path)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := readLines(v, full, path); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// readLines reads the file at full into v: done when there's no more to
+// say of it (too large, or not text).
+func readLines(v *FileView, full, path string) (done bool, err error) {
+	info, err := os.Stat(full)
+	if err != nil {
+		return true, err
+	}
+	if info.IsDir() {
+		return true, fmt.Errorf("%s is a folder", path)
+	}
+	v.Size = info.Size()
+	if v.Size > FileMax {
+		v.TooLarge = true
+		return true, nil
+	}
+	data, err := os.ReadFile(full)
+	if err != nil {
+		return true, err
+	}
+	if bytes.IndexByte(data, 0) >= 0 {
+		v.Binary = true
+		return true, nil
+	}
+	if text := strings.TrimSuffix(string(data), "\n"); text != "" {
+		v.Lines = strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
+	}
+	return false, nil
 }
 
 // changesSince is where path's lines differ from base, in its lines now

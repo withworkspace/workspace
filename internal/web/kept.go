@@ -68,7 +68,8 @@ type soonRead struct {
 	sum     uint64 // its JSON's hash
 	stamp   string
 	at      time.Time
-	err     error // the last read's, when nothing's kept
+	from    time.Time // when the read that's kept began
+	err     error     // the last read's, when nothing's kept
 	looking chan struct{}
 	// owed: a page was answered while a read was under way (what was
 	// kept, or that it's unread), so it's told if the read finds other.
@@ -184,6 +185,18 @@ func (k *keptReads) refresh() {
 	}
 }
 
+// current is what's kept at key, if it was read at stamp, and when that
+// read began: nothing's read for it.
+func (k *keptReads) current(key, stamp string) (any, time.Time, bool) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	k.init()
+	if e := k.soons[key]; e != nil && e.value != nil && stamp != "" && e.stamp == stamp {
+		return e.value, e.from, true
+	}
+	return nil, time.Time{}, false
+}
+
 // peek is a tree or summary as kept, read or not: nothing's read for it.
 func (k *keptReads) peek(key string) (any, bool) {
 	k.mu.Lock()
@@ -202,6 +215,7 @@ func (k *keptReads) look(e *soonRead, stamp string, read func() (any, error)) {
 	e.looking = done
 	go func() {
 		k.slots <- struct{}{}
+		from := time.Now()
 		v, err := read()
 		<-k.slots
 		var sum uint64
@@ -217,7 +231,7 @@ func (k *keptReads) look(e *soonRead, stamp string, read func() (any, error)) {
 		case err == nil:
 			tell = e.owed && (e.value == nil || sum != e.sum)
 			e.value, e.sum, e.err = v, sum, nil
-			e.stamp, e.at = stamp, time.Now()
+			e.stamp, e.at, e.from = stamp, time.Now(), from
 		case e.value == nil:
 			// Said again for a while, not read again at every ask.
 			tell = e.owed

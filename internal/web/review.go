@@ -360,3 +360,35 @@ func (s *Server) submitReview(w http.ResponseWriter, r *http.Request) {
 	_, err := s.App.SubmitReview(of, d, b.Verdict, b.Summary, ops.AsYou)
 	s.answerReview(w, store, capsule, err)
 }
+
+// warmCapsules reads, behind, what a mission's page that's open reads of
+// its capsules next (each one's diff and summary, as its Work and Verify
+// tabs and its review ask for them), so they're kept when it does: a
+// read of one runs no git. One mission's at a time, one capsule after
+// another; what's kept as its capsule is now is a lookup.
+func (s *Server) warmCapsules(slug string, d *MissionDetail) {
+	if _, busy := s.warming.LoadOrStore(slug, true); busy {
+		return
+	}
+	caps := make([]Capsule, 0, len(d.Capsules))
+	for _, c := range d.Capsules {
+		if c.Exists {
+			caps = append(caps, c.Capsule)
+		}
+	}
+	go func() {
+		defer s.warming.Delete(slug)
+		for _, c := range caps {
+			dir, baseRef, err := s.App.CapsuleDir(slug, c.Repo, c.Name)
+			if err != nil {
+				continue
+			}
+			stamp := ops.CapsuleStamp(dir)
+			if stamp == "" {
+				continue
+			}
+			s.reads.kept(keyOf("diff", dir, baseRef, "", stamp), func() (any, error) { return review.Compare(dir, baseRef) })
+			s.reads.soon(keyOf("summary", dir, baseRef), dir, func() (any, error) { return review.Summarize(dir, baseRef) })
+		}
+	}()
+}

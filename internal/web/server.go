@@ -174,6 +174,9 @@ type Server struct {
 	followedFiles *fileWatch
 	// routes are the patterns Handler served (Routes).
 	routes []string
+	// warming is the missions whose capsules are being read behind their
+	// pages (warmCapsules).
+	warming sync.Map
 
 	ctx    context.Context
 	cancel context.CancelFunc
