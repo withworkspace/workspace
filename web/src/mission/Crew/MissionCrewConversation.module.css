@@ -5,5 +5,15 @@
   max-width: 820px;
   display: flex;
   flex-direction: column;
-  min-height: calc(var(--page-height, 100dvh) - 220px);
+  /* As tall as the room under the mission's bar and the crew's, so what's
+     docked at its foot sits at the window's while there's little to say:
+     the page's height, less the timeline, those two bars and the room
+     kept over the column. */
+  min-height: calc(var(--page-height, 100dvh) - 100px);
+}
+
+@media (max-width: 960px) {
+  .view {
+    min-height: calc(var(--page-height, 100dvh) - 150px);
+  }
 }

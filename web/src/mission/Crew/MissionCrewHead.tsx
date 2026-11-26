@@ -17,32 +17,44 @@ type MissionCrewHeadProps = {
   capsule?: string;
   // What its terminal calls itself.
   termTitle?: string;
+  // Which of it is shown: its conversation or its terminal (a Segmented).
+  view?: ReactNode;
   // What's done to it (Stop).
   actions?: ReactNode;
 };
 
-// MissionCrewHead is the head of a crew's page: who it is and how it
-// stands, then what it runs on, where, and what its terminal calls itself.
-export function MissionCrewHead({ name, status, runs, acp, capsule, termTitle, actions }: MissionCrewHeadProps) {
+// MissionCrewHead is the bar of a crew's page, under the mission's: who it
+// is and how it stands, what it runs on, where, and what its terminal
+// calls itself, all in one row that stays while the page scrolls; then
+// which of it is shown, and what's done to it. Its facts give way first,
+// its terminal's title before the rest.
+export function MissionCrewHead({ name, status, runs, acp, capsule, termTitle, view, actions }: MissionCrewHeadProps) {
   return (
     <header className={css.head}>
-      <div className={css.title}>
-        <h1>
-          {name}
-          <Status s={status} className={css.status} />
-        </h1>
-        <div className={css.sub}>
-          {runs && <span>{runs}</span>}
-          {acp && <Text dim>over ACP, no terminal</Text>}
-          {capsule && (
-            <Text mono className={css.fact}>
-              <Icon name="box" size={12} /> {capsule}
-            </Text>
-          )}
-          {termTitle && <Text mono className={cx(css.fact, css.termTitle)} title="Terminal title">{termTitle}</Text>}
-        </div>
+      <div className={css.who}>
+        <h2 className={css.name}>{name}</h2>
+        <Status s={status} className={css.status} />
       </div>
-      {actions}
+      <div className={css.facts}>
+        {runs && <span className={css.fact}>{runs}</span>}
+        {acp && <Text dim className={css.fact}>over ACP, no terminal</Text>}
+        {capsule && (
+          <Text mono className={css.fact} title={capsule}>
+            <Icon name="box" size={12} /> {capsule}
+          </Text>
+        )}
+        {termTitle && (
+          <Text mono className={cx(css.fact, css.termTitle)} title={`Terminal title: ${termTitle}`}>
+            {termTitle}
+          </Text>
+        )}
+      </div>
+      {(view || actions) && (
+        <div className={css.end}>
+          {view}
+          {actions}
+        </div>
+      )}
     </header>
   );
 }

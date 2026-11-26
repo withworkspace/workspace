@@ -3,7 +3,9 @@
   --backdrop: var(--raised);
   --well: var(--panel);
   position: sticky;
-  top: 0;
+  /* Flush under the crew's bar: the column that scrolls keeps room at its
+     top, which a sticky part keeps too, unless it's taken back. */
+  top: calc(-1 * var(--space-4));
   z-index: 6;
   margin-bottom: var(--space-4);
   padding: 8px 12px;
@@ -12,6 +14,14 @@
   background: color-mix(in srgb, var(--raised) 92%, transparent);
   backdrop-filter: blur(8px);
   box-shadow: var(--shadow-xs);
+}
+
+/* The whole page scrolls: under the mission's bar and the crew's
+   (MissionCrewHead, 36px). */
+@media (max-width: 960px) {
+  .plan {
+    top: calc(var(--mission-bar-h, 0px) + 36px);
+  }
 }
 
 .plan summary {
