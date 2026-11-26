@@ -82,6 +82,9 @@ type capsuleKeeper struct {
 	byCommon map[string][]*keptTree
 	asks     chan treeAsk
 	tell     func()
+	// groundMoved, if set, is told a repo whose ground's head moved (not
+	// as it's first read): what landed on it is heard (HearGrounds).
+	groundMoved func(repo string)
 	// following, once the web server says, is who's following what.
 	following atomic.Pointer[followed]
 	// capsulesOf is a mission's capsules' folders, as kept.
@@ -106,7 +109,15 @@ func (w *Workspace) keepCapsules(stop <-chan struct{}, moved <-chan []string) {
 	k.asks = make(chan treeAsk, 1024)
 	k.tell = w.tellSeen
 	k.capsulesOf = w.followedCapsules
+	hear := make(chan string, 64)
+	k.groundMoved = func(repo string) {
+		select {
+		case hear <- repo:
+		default: // one waiting stands for it
+		}
+	}
 	k.mu.Unlock()
+	go w.hearGroundsAsTheyMove(stop, hear)
 	for range capsuleAskers {
 		go k.asker(stop)
 	}
@@ -237,6 +248,9 @@ func (k *capsuleKeeper) refresh(t *keptTree) bool {
 	changed := false
 	if head, branch, ok := headOf(t.dir); ok {
 		changed = head != t.head || branch != t.branch
+		if t.ground && t.head != "" && head != t.head && k.groundMoved != nil {
+			k.groundMoved(t.repo)
+		}
 		t.head, t.branch = head, branch
 	} else if branch := branchOf(t.dir); branch != t.branch {
 		t.branch, changed = branch, true

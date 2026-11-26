@@ -33,6 +33,42 @@ import (
 // before isn't news. Nor is a ground that's been put somewhere that isn't
 // ahead of where it was (a branch rewritten).
 
+// groundSettle is how long after a ground's head moves what landed on it
+// is heard: a pull writes its files together.
+var groundSettle = 500 * time.Millisecond
+
+// hearGroundsAsTheyMove hears what lands on each repo the keeper says its
+// ground moved for (told on moved), as it does, until stop closes: the
+// follow of the grounds hears every one besides, for what this missed.
+func (w *Workspace) hearGroundsAsTheyMove(stop <-chan struct{}, moved <-chan string) {
+	db, err := w.Records()
+	if err != nil {
+		return
+	}
+	due := map[string]bool{}
+	var settle <-chan time.Time
+	for {
+		select {
+		case <-stop:
+			return
+		case repo := <-moved:
+			due[repo] = true
+			if settle == nil {
+				settle = time.After(groundSettle)
+			}
+		case <-settle:
+			settle = nil
+			for repo := range due {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+				_, err := w.hearGround(ctx, db, repo)
+				cancel()
+				logFailed(err)
+			}
+			clear(due)
+		}
+	}
+}
+
 // groundHeardMax is the most commits one move is heard as: past it, the
 // latest are.
 const groundHeardMax = 500

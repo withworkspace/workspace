@@ -102,3 +102,31 @@ func TestHearGrounds(t *testing.T) {
 		t.Errorf("kept: %d", len(list))
 	}
 }
+
+// In the daemon, what lands on a ground is heard as its head moves, not
+// at the next follow of the grounds.
+func TestHearGrounds_AsTheGroundMoves(t *testing.T) {
+	w, _ := spaceFixture(t)
+	ground := filepath.Join(w.Root(), "repos", "records", workspace.GroundDir)
+	if _, err := w.HearGrounds(context.Background()); err != nil { // where it is, noted
+		t.Fatal(err)
+	}
+	stop, done := make(chan struct{}), make(chan struct{})
+	t.Cleanup(func() { close(stop); <-done })
+	go func() {
+		defer close(done)
+		w.WatchGit(stop, t.Logf)
+	}()
+	waitFor(t, "the ground kept", func() bool { _, ok := w.caps.factsOf(ground); return ok })
+
+	os.WriteFile(filepath.Join(ground, "adr", "0002-queue.md"), []byte("# One queue\n"), 0o644)
+	for _, args := range [][]string{{"add", "-A"}, {"-c", "user.name=Ana", "-c", "user.email=ana@example.com", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "Decide one queue"}} {
+		if out, err := exec.Command("git", append([]string{"-C", ground}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	waitFor(t, "the commit heard", func() bool {
+		got, _ := events.List(w.Root(), events.Filter{Kinds: []string{events.CommitsLanded}})
+		return len(got) == 1 && got[0].Text == "Decide one queue"
+	})
+}
