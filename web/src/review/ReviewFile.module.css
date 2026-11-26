@@ -1,14 +1,24 @@
 /* A file in a review (ReviewFile.tsx): its head, stuck to the top while
-   it's read, what the guide says of it, and its lines. */
+   it's read, what the guide says of it, and its lines. The files run the
+   pane's width, edge to edge (out across its gutter, ReviewLayout's
+   --review-gutter), one after another with a rule between: the names and
+   the lines are what's read, not cards around them. */
 
 .file {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  margin: 12px 0;
+  margin: 0 calc(-1 * var(--review-gutter, 0px));
+  border-top: 1px solid var(--line);
   /* Under what stays at the pane's top (ReviewLayout's --review-stick). */
   scroll-margin-top: var(--review-stick, 0px);
-  background: var(--raised);
-  box-shadow: var(--shadow-xs);
+  background: var(--bg);
+}
+
+.file:first-of-type {
+  margin-top: 10px;
+}
+
+/* The last closes with a rule of its own. */
+.file:not(:has(~ .file)) {
+  border-bottom: 1px solid var(--line);
 }
 
 .head {
@@ -18,23 +28,20 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 12px;
+  padding: 7px var(--review-gutter, 12px);
   background: var(--panel);
   border-bottom: 1px solid var(--line);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   font-size: var(--text-sm);
   cursor: pointer;
 }
 
 .file.viewed .head {
   border-bottom: 0;
-  border-radius: var(--radius-lg);
   color: var(--dim);
 }
 
 .file.folded .head {
   border-bottom: 0;
-  border-radius: var(--radius-lg);
 }
 
 .head.cursor {
@@ -116,7 +123,7 @@
   align-items: baseline;
   gap: 8px;
   margin: 0;
-  padding: 8px 12px;
+  padding: 8px var(--review-gutter, 12px);
   border-bottom: 1px solid var(--line);
   background: var(--accent-soft);
   font-size: var(--text-md);
@@ -133,5 +140,4 @@
 .file.folded .guide {
   border-top: 1px solid var(--line);
   border-bottom: 0;
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
