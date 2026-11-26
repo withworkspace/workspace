@@ -227,3 +227,27 @@ func TestRefPathsFromWhatsKept(t *testing.T) {
 		t.Error("groundsSeen didn't move with the ground's HEAD")
 	}
 }
+
+// A capsule that moves (a commit) has what a page lately asked of it read
+// again behind, as the daemon's told: the next ask is answered with it as
+// it is, without waiting, and the page's told it changed.
+func TestTreeReadAgainWhenItsCapsuleMoves(t *testing.T) {
+	s, dir := reviewServer(t)
+	const tree = "/api/missions/m/capsules/api/fix/tree"
+	var tr struct {
+		review.Tree
+		Unread bool `json:"unread"`
+	}
+	getJSON(t, s, tree, &tr)
+	waitFor(t, "the first read", s.reads.lookingDone)
+	seen := s.reads.Seen()
+	os.WriteFile(filepath.Join(dir, "more.txt"), []byte("more\n"), 0o644)
+	if out, err := git.Combined(dir, "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false", "add", "more.txt"); err != nil {
+		t.Fatalf("%v: %s", err, out)
+	}
+	s.reads.refresh() // as the daemon does, told the capsule's moved
+	waitFor(t, "read again behind", func() bool { return s.reads.Seen() > seen })
+	if _, gits := getJSON(t, s, tree, &tr); gits != 0 || len(tr.Files) != 2 {
+		t.Errorf("after the capsule moved: %d files, %d git on the read", len(tr.Files), gits)
+	}
+}

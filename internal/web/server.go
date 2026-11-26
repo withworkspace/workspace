@@ -324,6 +324,9 @@ func (s *Server) Start() error {
 			case <-s.ctx.Done():
 				return
 			case <-seen:
+				// A capsule's moved, among what's told here: what's been
+				// read of it for a page is read again, as the pages look.
+				s.reads.refresh()
 				ws.nudge()
 				s.missions.nudge()
 			}
