@@ -5,12 +5,13 @@ import { Excerpt } from "../ui/Excerpt";
 import { Icon } from "../ui/Icon";
 import { Inline } from "../ui/Inline";
 import { Keys } from "../ui/Keys";
-import { NoteBody, NoteCard, NoteHead, NoteHint, NoteId, NoteStatus, NoteThread, NoteTurn } from "../ui/NoteCard";
+import { NoteCard, NoteHead, NoteHint, NoteId, NoteStatus } from "../ui/NoteCard";
 import { ReplyBox } from "../ui/ReplyBox";
 import { capital } from "../ui/strings";
 import { followWords, linesWord } from "./findings";
 import { statusWords } from "./words";
 import css from "./ReviewComment.module.css";
+import { ReviewSaid, saidAt } from "./ReviewSaid";
 import { Suggestion } from "./Suggestion";
 import { Text } from "../ui/Text";
 
@@ -76,11 +77,6 @@ export function ReviewComment({
         }
       >
         {note.kind ? <span className={`kind k-${note.kind}`}>{capital(note.kind)}</span> : <span className="kind k-none">Comment</span>}
-        {note.by && (
-          <span className={css.by} title={note.by === "agent" ? "Proposed by an agent, added by you: yours to edit" : `${note.by} on GitHub`}>
-            <Icon name={note.by === "agent" ? "sparkle" : "user"} size={11} /> {note.by === "agent" ? "Agent's" : note.by}
-          </span>
-        )}
         {draft ? <NoteStatus>Draft</NoteStatus> : <NoteStatus status={note.status}>{statusWords[note.status] ?? note.status}</NoteStatus>}
         {note.sending && (
           <Text dim title="Sending to GitHub">
@@ -105,23 +101,36 @@ export function ReviewComment({
       )}
       {!(resolved && !cursor) && (
         <>
-          {note.body && <NoteBody>{note.body}</NoteBody>}
-          {note.suggestion != null && <Suggestion from={note.excerpt} to={note.suggestion} />}
-          {note.thread.length > 0 && (
-            <NoteThread>
-              {note.thread.map((t, i) => (
-                <NoteTurn key={i} who={t.by === "you" ? "You" : t.by} said={t.body}>
-                  {t.sending && (
-                    <Text dim title="Sending to GitHub">
-                      Sending…
-                    </Text>
-                  )}
-                  {t.status && <NoteStatus status={t.status === "open" ? "reopened" : t.status}>{t.status === "open" ? "Reopened" : statusWords[t.status]}</NoteStatus>}
-                  {t.commit && <Text mono dim>{t.commit.slice(0, 7)}</Text>}
-                </NoteTurn>
-              ))}
-            </NoteThread>
-          )}
+          <div className={css.thread}>
+            <ReviewSaid
+              who={note.by === "agent" ? <><Icon name="sparkle" size={11} /> Agent</> : note.by && note.by !== "you" ? note.by : "You"}
+              title={note.by === "agent" ? "Proposed by an agent, added by you: yours to edit" : undefined}
+              at={saidAt(note.at)}
+            >
+              {note.body || undefined}
+            </ReviewSaid>
+            {note.suggestion != null && <Suggestion from={note.excerpt} to={note.suggestion} />}
+            {note.thread.map((t, i) => (
+              <ReviewSaid
+                key={i}
+                who={t.by === "you" ? "You" : t.by}
+                at={saidAt(t.at)}
+                marks={
+                  <>
+                    {t.status && <NoteStatus status={t.status === "open" ? "reopened" : t.status}>{t.status === "open" ? "Reopened" : statusWords[t.status]}</NoteStatus>}
+                    {t.commit && <Text mono dim>{t.commit.slice(0, 7)}</Text>}
+                    {t.sending && (
+                      <Text dim title="Sending to GitHub">
+                        Sending…
+                      </Text>
+                    )}
+                  </>
+                }
+              >
+                {t.body}
+              </ReviewSaid>
+            ))}
+          </div>
           {!draft && !replying && cursor && (
             <NoteHint>
               <Keys k="⏎" /> reply

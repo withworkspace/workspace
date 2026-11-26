@@ -571,6 +571,9 @@ func TestThreadsReadAsComments(t *testing.T) {
 	if len(a.Excerpt) != 1 || !strings.Contains(a.Excerpt[0], "func key") {
 		t.Errorf("excerpt = %q", a.Excerpt)
 	}
+	if want := time.Date(2026, 11, 10, 9, 0, 0, 0, time.UTC); !a.At.Equal(want) {
+		t.Errorf("said at %v, want its first comment's %v", a.At, want)
+	}
 	if len(a.Thread) != 2 || a.Thread[0].By != "alice" || a.Thread[1].By != "you" {
 		t.Errorf("thread = %+v", a.Thread)
 	}

@@ -4270,6 +4270,11 @@ export interface ReviewNote {
     by?: string;
     url?: string;
     /**
+     * At is when it was said: made in a draft here, or its first comment
+     * on GitHub. Notes kept before it was have none.
+     */
+    at?: string;
+    /**
      * Suggestion replaces the lines, when set ("" suggests deleting them).
      */
     suggestion?: string;

@@ -74,6 +74,9 @@ type Note struct {
 	// else's comment on a pull request. URL is where it is on GitHub.
 	By  string `json:"by,omitempty"`
 	URL string `json:"url,omitempty"`
+	// At is when it was said: made in a draft here, or its first comment
+	// on GitHub. Notes kept before it was have none.
+	At time.Time `json:"at,omitzero"`
 	// Suggestion replaces the lines, when set ("" suggests deleting them).
 	Suggestion *string `json:"suggestion,omitempty"`
 	Status     string  `json:"status"` // open, addressed, wontfix, resolved
@@ -311,7 +314,7 @@ func (s Store) AddNote(capsule string, d Diffed, n NewNote, at time.Time) (*Revi
 		r.Base, r.Head, r.BaseRef = d.Base, d.Head, d.BaseRef
 		r.Comments = append(r.Comments, Note{
 			ID: nextNoteID(r), Path: n.Path, Side: n.Side, Line: n.Line, EndLine: n.EndLine,
-			Commit: commit, Excerpt: lines[n.Line-1 : n.EndLine], Kind: n.Kind, Body: strings.TrimSpace(n.Body), By: n.By,
+			Commit: commit, Excerpt: lines[n.Line-1 : n.EndLine], Kind: n.Kind, Body: strings.TrimSpace(n.Body), By: n.By, At: at,
 			Suggestion: n.Suggestion, Status: "open", Thread: []Reply{},
 		})
 		return s.saveIn(tx, r)
@@ -340,7 +343,7 @@ func (s Store) addGeneral(capsule string, d Diffed, n NewNote, at time.Time) (*R
 			}
 		}
 		r.Base, r.Head, r.BaseRef = d.Base, d.Head, d.BaseRef
-		r.Comments = append(r.Comments, Note{ID: nextNoteID(r), Commit: d.Head, Excerpt: []string{}, Kind: n.Kind, Body: strings.TrimSpace(n.Body), By: n.By, Status: "open", Thread: []Reply{}})
+		r.Comments = append(r.Comments, Note{ID: nextNoteID(r), Commit: d.Head, Excerpt: []string{}, Kind: n.Kind, Body: strings.TrimSpace(n.Body), By: n.By, At: at, Status: "open", Thread: []Reply{}})
 		return s.saveIn(tx, r)
 	})
 	return r, err

@@ -66,6 +66,7 @@ func threadsReview(repo string, number int, threads []github.ReviewThread, l *la
 func threadNote(t github.ReviewThread, l *layer, me string) review.Note {
 	first := t.Comments[0]
 	n := review.Note{ID: t.ID, Path: t.Path, Side: "new", Status: review.Open, URL: first.URL, Thread: []review.Reply{}}
+	n.At, _ = time.Parse(time.RFC3339, first.At)
 	if !sameLogin(first.Author, me) {
 		n.By = first.Author
 	}
