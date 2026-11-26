@@ -41,8 +41,7 @@ func (e *Error) Unwrap() error { return e.Err }
 
 // ExitCode is the code git exited with, or -1 when err isn't git exiting.
 func ExitCode(err error) int {
-	var exit *exec.ExitError
-	if errors.As(err, &exit) {
+	if exit, ok := errors.AsType[*exec.ExitError](err); ok {
 		return exit.ExitCode()
 	}
 	return -1
@@ -144,7 +143,7 @@ func Lines(dir string, args ...string) []string {
 		return nil
 	}
 	var lines []string
-	for _, l := range strings.Split(out, "\n") {
+	for l := range strings.SplitSeq(out, "\n") {
 		if l = strings.TrimSpace(l); l != "" {
 			lines = append(lines, l)
 		}

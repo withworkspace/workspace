@@ -283,7 +283,7 @@ func (t *transcript) result(id, text string, isErr bool) {
 // tool_use, tool_result); the rest of its lines are bookkeeping.
 func readClaudeTranscript(data []byte) []TranscriptEntry {
 	var t transcript
-	for _, line := range strings.Split(string(data), "\n") {
+	for line := range strings.SplitSeq(string(data), "\n") {
 		t.claudeLine(line)
 	}
 	return t.out
@@ -336,7 +336,7 @@ func (t *transcript) claudeLine(line string) {
 // the assistant's (text and toolCall blocks) or a tool's result.
 func readPiTranscript(data []byte) []TranscriptEntry {
 	var t transcript
-	for _, line := range strings.Split(string(data), "\n") {
+	for line := range strings.SplitSeq(string(data), "\n") {
 		t.piLine(line)
 	}
 	return t.out

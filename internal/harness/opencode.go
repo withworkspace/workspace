@@ -203,7 +203,7 @@ func (o *OpenCode) Models(ctx context.Context) ([]Model, error) {
 		return nil, err
 	}
 	var models []Model
-	for _, line := range strings.Split(string(out), "\n") {
+	for line := range strings.SplitSeq(string(out), "\n") {
 		id := strings.TrimSpace(line)
 		if id == "" || strings.ContainsAny(id, " \t{}\"") || !strings.Contains(id, "/") {
 			continue

@@ -81,13 +81,13 @@ var tsBuiltins = map[string]bool{}
 var tsUtilityTypes = map[string]bool{}
 
 func init() {
-	for _, n := range strings.Fields(`Partial Required Readonly Record Pick Omit Exclude Extract NonNullable ReturnType Parameters InstanceType Awaited Uppercase Lowercase ThisType`) {
+	for n := range strings.FieldsSeq(`Partial Required Readonly Record Pick Omit Exclude Extract NonNullable ReturnType Parameters InstanceType Awaited Uppercase Lowercase ThisType`) {
 		tsUtilityTypes[n] = true
 	}
 }
 
 func init() {
-	for _, n := range strings.Fields(`undefined NaN Infinity globalThis window document console navigator location
+	for n := range strings.FieldsSeq(`undefined NaN Infinity globalThis window document console navigator location
 		Object Array String Number Boolean Symbol BigInt Function Date RegExp Error TypeError RangeError SyntaxError
 		Map Set WeakMap WeakSet Promise Proxy Reflect JSON Math Intl ArrayBuffer DataView Uint8Array Int32Array Float64Array
 		URL URLSearchParams Headers Request Response fetch AbortController Event EventTarget CustomEvent
@@ -111,7 +111,7 @@ func (typescript) Builtin(name string) bool { return tsBuiltins[name] }
 var nodeBuiltins = map[string]bool{}
 
 func init() {
-	for _, n := range strings.Fields(`assert buffer child_process cluster crypto dgram dns events fs http http2 https net os path
+	for n := range strings.FieldsSeq(`assert buffer child_process cluster crypto dgram dns events fs http http2 https net os path
 		perf_hooks process querystring readline stream string_decoder timers tls tty url util v8 vm worker_threads zlib test`) {
 		nodeBuiltins[n] = true
 	}
@@ -132,7 +132,7 @@ func (typescript) Docs(module, name string) string {
 		return "https://developer.mozilla.org/en-US/docs/Web/API/" + strings.Join(parts, "/")
 	}
 	m := strings.TrimPrefix(module, "node:")
-	if base := strings.SplitN(m, "/", 2)[0]; nodeBuiltins[base] || strings.HasPrefix(module, "node:") {
+	if base, _, _ := strings.Cut(m, "/"); nodeBuiltins[base] || strings.HasPrefix(module, "node:") {
 		return "https://nodejs.org/api/" + base + ".html"
 	}
 	return "https://www.npmjs.com/package/" + tsPackageName(module)
@@ -193,7 +193,7 @@ var tsWrappers = map[string]string{"string": "String", "number": "Number", "bool
 var tsGlobalObjects = map[string]bool{}
 
 func init() {
-	for _, n := range strings.Fields(`Object Array String Number Boolean Symbol BigInt Function Date RegExp Error TypeError RangeError SyntaxError
+	for n := range strings.FieldsSeq(`Object Array String Number Boolean Symbol BigInt Function Date RegExp Error TypeError RangeError SyntaxError
 		Map Set WeakMap WeakSet Promise Proxy Reflect JSON Math Intl ArrayBuffer DataView Uint8Array Int32Array Float64Array
 		globalThis undefined NaN Infinity parseInt parseFloat isNaN isFinite encodeURIComponent decodeURIComponent encodeURI decodeURI`) {
 		tsGlobalObjects[n] = true

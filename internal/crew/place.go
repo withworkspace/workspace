@@ -3,6 +3,7 @@ package crew
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"syscall"
 
@@ -91,9 +92,7 @@ func BusyIn(m *mission.Mission) map[string]string {
 func PreferFree(capsules []Capsule, busy map[string]string, handedBack map[string][]string, want string) (Place, error) {
 	if want == "" {
 		occupied := map[string]string{}
-		for c, id := range busy {
-			occupied[c] = id
-		}
+		maps.Copy(occupied, busy)
 		for c, ids := range handedBack {
 			if _, ok := occupied[c]; !ok && len(ids) > 0 {
 				occupied[c] = ids[0]

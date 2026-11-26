@@ -351,8 +351,8 @@ func (w *Workspace) land(repo, name string, by Actor, o workspace.LandOptions, q
 				return err
 			}
 			err := w.Missions.PrepareLanding(owner.Slug, repo, name, mission.LandingAttempt{
-				Landing: mission.Landing{At: time.Now(), Head: candidate.Head},
-				Branch:  candidate.Branch, Commits: candidate.Commits, Settled: candidate.Settled,
+				At: time.Now(), Head: candidate.Head,
+				Branch: candidate.Branch, Commits: candidate.Commits, Settled: candidate.Settled,
 			})
 			if err != nil {
 				return fmt.Errorf("couldn't record the landing before pushing: %w", err)
@@ -542,8 +542,7 @@ func (w *Workspace) LandCapsule(repo, name string) (*LandOutcome, error) {
 		return nil, err
 	}
 	out, err := w.Land(repo, name, AsYou, workspace.LandOptions{Quiet: true})
-	var stopped *workspace.LandError
-	if errors.As(err, &stopped) {
+	if stopped, ok := errors.AsType[*workspace.LandError](err); ok {
 		// A sentence, unless it starts with the capsule's name.
 		msg := stopped.Msg
 		if !strings.HasPrefix(msg, repo) && msg != "" {

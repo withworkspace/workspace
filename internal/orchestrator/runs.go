@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -116,8 +117,8 @@ func Runs(store mission.Store, slug string) []RunRecord {
 	dir := runsDir(store, slug)
 	ids := runIDs(dir)
 	out := make([]RunRecord, 0, len(ids))
-	for i := len(ids) - 1; i >= 0; i-- {
-		if r, err := LoadRun(store, slug, ids[i]); err == nil {
+	for _, id := range slices.Backward(ids) {
+		if r, err := LoadRun(store, slug, id); err == nil {
 			r.Prompt = ""
 			out = append(out, *r)
 		}

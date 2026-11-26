@@ -368,8 +368,8 @@ type proposalSettled struct {
 // Became is the mission a conversation became: the latest mission
 // proposal accepted in it, or "".
 func (c *Conversation) Became() string {
-	for i := len(c.Proposals) - 1; i >= 0; i-- {
-		if p := c.Proposals[i]; p.Kind == ProposeMission && p.State == ProposalAccepted {
+	for _, p := range slices.Backward(c.Proposals) {
+		if p.Kind == ProposeMission && p.State == ProposalAccepted {
 			return p.Result
 		}
 	}
@@ -637,8 +637,8 @@ func (c *Conversation) LatestOpen(kind string) *Proposal {
 // LatestPlan is the plan last proposed in a conversation and still open:
 // on its own, or with a brief. "" for none.
 func (c *Conversation) LatestPlan() string {
-	for i := len(c.Proposals) - 1; i >= 0; i-- {
-		p := c.Proposals[i]
+	for _, p := range slices.Backward(c.Proposals) {
+
 		if p.State == ProposalOpen && p.Plan != "" && (p.Kind == ProposePlan || p.Kind == ProposeBrief) {
 			return p.Plan
 		}

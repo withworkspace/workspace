@@ -205,14 +205,12 @@ func (w *Workspace) CheckGitHub() CheckCategory {
 	var wg sync.WaitGroup
 	for _, names := range byOwner {
 		for _, name := range names {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				err := CheckGitHubReachFunc(w.RemoteOf(name))
 				mu.Lock()
 				errs[name] = err
 				mu.Unlock()
-			}()
+			})
 		}
 	}
 	wg.Wait()

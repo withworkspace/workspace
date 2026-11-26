@@ -82,7 +82,7 @@ const ownedQuery = `query($login: String!, $after: String) {
 func ReposOf(owner string) ([]OwnedRepo, error) {
 	var out []OwnedRepo
 	after := ""
-	for page := 0; page < maxRepoPages; page++ {
+	for range maxRepoPages {
 		args := []string{"api", "graphql", "-f", "query=" + ownedQuery, "-F", "login=" + owner}
 		if after != "" {
 			args = append(args, "-F", "after="+after)

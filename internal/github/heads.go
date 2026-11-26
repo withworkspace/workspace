@@ -3,6 +3,7 @@ package github
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/withworkspace/workspace/internal/ref"
@@ -48,9 +49,7 @@ func Heads(repos []ref.Remote, branch string) (map[ref.Remote]string, error) {
 			}
 			return out, perr
 		}
-		for repo, oid := range heads {
-			out[repo] = oid
-		}
+		maps.Copy(out, heads)
 	}
 	return out, nil
 }

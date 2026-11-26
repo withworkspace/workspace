@@ -1181,8 +1181,8 @@ func aside(p string) bool {
 // and close (List<Foo>, list[Foo]), or an array's element (Foo[]).
 func genericArg(written string, open, close byte) string {
 	t := strings.TrimSpace(written)
-	if strings.HasSuffix(t, "[]") {
-		return strings.TrimSuffix(t, "[]")
+	if before, ok := strings.CutSuffix(t, "[]"); ok {
+		return before
 	}
 	i := strings.IndexByte(t, open)
 	if i < 0 || !strings.HasSuffix(t, string(close)) {
@@ -1196,7 +1196,7 @@ func isQualified(s string) bool {
 	if s == "" {
 		return false
 	}
-	for _, part := range strings.Split(s, ".") {
+	for part := range strings.SplitSeq(s, ".") {
 		if part == "" || strings.ContainsAny(part, " ()[]<>\"'") {
 			return false
 		}

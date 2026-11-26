@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -129,7 +130,7 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 		if note == "" {
 			note = "(no note)"
 		}
-		for _, l := range strings.Split(note, "\n") {
+		for l := range strings.SplitSeq(note, "\n") {
 			v.body = append(v.body, "      "+l)
 		}
 		if ver.From != "" {
@@ -158,8 +159,8 @@ func artifactShowView(ctx *ops.Workspace, ref string, full bool) (*view, error) 
 		// Every version's ref, the one asked for (or the latest) first:
 		// nothing to work out by analogy.
 		refs := []string{artifact.VersionRef(e.ID, show)}
-		for i := len(e.Versions) - 1; i >= 0; i-- {
-			if n := e.Versions[i].N; n != show {
+		for _, v := range slices.Backward(e.Versions) {
+			if n := v.N; n != show {
 				refs = append(refs, artifact.VersionRef(e.ID, n))
 			}
 		}

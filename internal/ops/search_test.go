@@ -250,8 +250,8 @@ func TestParseRgJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []rgMatch{
-		{path: "/w/repos/fe/.ground/src/a.ts", Match: Match{Line: 2, Column: 1, Text: "needle é needle", Submatches: []Span{{0, 6}, {10, 16}}}},
-		{path: "/w/repos/fe/.ground/\xe9.txt", Match: Match{Line: 9, Column: 6, Text: "caf\xe9 x", Submatches: []Span{{5, 6}}}},
+		{path: "/w/repos/fe/.ground/src/a.ts", Line: 2, Column: 1, Text: "needle é needle", Submatches: []Span{{0, 6}, {10, 16}}},
+		{path: "/w/repos/fe/.ground/\xe9.txt", Line: 9, Column: 6, Text: "caf\xe9 x", Submatches: []Span{{5, 6}}},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got  %+v\nwant %+v", got, want)
@@ -431,8 +431,7 @@ func TestSearch(t *testing.T) {
 
 	t.Run("no pattern", func(t *testing.T) {
 		err := w.Search(context.Background(), SearchRequest{Roots: roots}, func(Match) error { return nil })
-		var inv *Invalid
-		if !errors.As(err, &inv) {
+		if _, ok := errors.AsType[*Invalid](err); !ok {
 			t.Errorf("err = %v, want invalid", err)
 		}
 	})

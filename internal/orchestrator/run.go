@@ -112,7 +112,7 @@ func RetryNote(last Report) string {
 // Gist is the start of what the orchestrator said, for a line or two: its
 // first paragraph with something in it, without markdown's emphasis.
 func Gist(out string) string {
-	for _, para := range strings.Split(strings.TrimSpace(out), "\n\n") {
+	for para := range strings.SplitSeq(strings.TrimSpace(out), "\n\n") {
 		p := strings.Join(strings.Fields(strings.NewReplacer("**", "", "__", "", "`", "").Replace(para)), " ")
 		if p == "" || p == "…" || p == "..." {
 			continue

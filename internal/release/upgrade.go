@@ -71,8 +71,7 @@ func (u Upgrader) Look(ctx context.Context, version string) (Upgraded, error) {
 func (u Upgrader) Install(ctx context.Context, r Upgraded) (Upgraded, error) {
 	path, says, err := u.Source.Fetch(ctx, r.To, u.OS, u.Arch, u.Exe)
 	if err != nil {
-		var unwritable *Unwritable
-		if errors.As(err, &unwritable) {
+		if _, ok := errors.AsType[*Unwritable](err); ok {
 			return r, fmt.Errorf("%w: ws upgrade replaces %s where it is. Run it as whoever that folder belongs to, or install a release somewhere of your own with scripts/install.sh [version] [dir]", err, u.Exe)
 		}
 		return r, err

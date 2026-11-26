@@ -164,7 +164,7 @@ func (o ConfigOption) Pick(want string) string {
 	for _, exact := range []bool{true, false} {
 		for _, v := range o.Values {
 			id, name := strings.ToLower(v.Value), strings.ToLower(v.Name)
-			bare := strings.SplitN(id, "[", 2)[0]
+			bare, _, _ := strings.Cut(id, "[")
 			if exact && (id == w || bare == w || name == w) {
 				return v.Value
 			}

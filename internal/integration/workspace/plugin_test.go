@@ -505,8 +505,7 @@ func TestAPluginAsksWhatWSShows(t *testing.T) {
 		return got.(protocol.Shown), nil
 	}
 	code := func(err error) int {
-		var re *acp.RPCError
-		if errors.As(err, &re) {
+		if re, ok := errors.AsType[*acp.RPCError](err); ok {
 			return re.Code
 		}
 		return 0

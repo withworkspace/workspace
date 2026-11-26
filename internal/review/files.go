@@ -58,7 +58,7 @@ func ReadTree(dir, baseRef string) (*Tree, error) {
 		return nil, err
 	}
 	at := map[string]int{}
-	for _, p := range strings.Split(strings.TrimSuffix(string(out), "\x00"), "\x00") {
+	for p := range strings.SplitSeq(strings.TrimSuffix(string(out), "\x00"), "\x00") {
 		if p == "" {
 			continue
 		}
@@ -243,7 +243,7 @@ func changesSince(dir, base, path string) []Change {
 		}
 		return list
 	}
-	for _, line := range strings.Split(string(out), "\n") {
+	for line := range strings.SplitSeq(string(out), "\n") {
 		if !strings.HasPrefix(line, "@@ ") {
 			continue
 		}

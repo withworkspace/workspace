@@ -99,7 +99,7 @@ func readCursorStream(out string) Report {
 	var rep Report
 	at := map[string]int{}
 	model := ""
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		var e struct {
 			Type      string `json:"type"`
 			Subtype   string `json:"subtype"`
@@ -209,7 +209,7 @@ const piRefused = "Refused:"
 func readPiStream(out string) Report {
 	var rep Report
 	at := map[string]int{}
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		var e struct {
 			Type       string          `json:"type"`
 			ID         string          `json:"id"`
@@ -303,7 +303,7 @@ func readClaudeStream(out string) Report {
 	last := ""
 	var draft strings.Builder
 	thinking := false
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		var e struct {
 			Type      string `json:"type"`
 			Subtype   string `json:"subtype"`

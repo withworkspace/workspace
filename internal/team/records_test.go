@@ -25,8 +25,8 @@ func has(events []Event, id string) bool {
 func TestService_Window(t *testing.T) {
 	w := newWorld(t)
 	w.prs = []github.PRActivity{
-		{PR: github.PR{Number: 5, Title: "fix: old", State: "MERGED", Author: "ben-acme", CreatedAt: "2026-10-19T09:00:00Z", MergedAt: "2026-10-20T09:00:00Z", UpdatedAt: "2026-10-20T09:00:00Z"}},
-		{PR: github.PR{Number: 12, Title: "feat: cache tokens", State: "OPEN", Author: "ana-acme", CreatedAt: stamp(8, 9), UpdatedAt: stamp(9, 9)}},
+		{Number: 5, Title: "fix: old", State: "MERGED", Author: "ben-acme", CreatedAt: "2026-10-19T09:00:00Z", MergedAt: "2026-10-20T09:00:00Z", UpdatedAt: "2026-10-20T09:00:00Z"},
+		{Number: 12, Title: "feat: cache tokens", State: "OPEN", Author: "ana-acme", CreatedAt: stamp(8, 9), UpdatedAt: stamp(9, 9)},
 	}
 	snap, err := w.svc.Look(false, time.Time{})
 	if err != nil {
@@ -63,7 +63,7 @@ func TestService_Window(t *testing.T) {
 // writes, the other reads, and neither loses the other's gists.
 func TestService_TwoProcesses(t *testing.T) {
 	w := newWorld(t)
-	w.prs = []github.PRActivity{{PR: github.PR{Number: 12, Title: "feat: cache tokens", State: "OPEN", Author: "ana-acme", CreatedAt: stamp(9, 9), UpdatedAt: stamp(9, 9)}}}
+	w.prs = []github.PRActivity{{Number: 12, Title: "feat: cache tokens", State: "OPEN", Author: "ana-acme", CreatedAt: stamp(9, 9), UpdatedAt: stamp(9, 9)}}
 	daemon, command := w.svc, w.service()
 	if _, err := daemon.Look(false, time.Time{}); err != nil {
 		t.Fatal(err)
@@ -76,7 +76,7 @@ func TestService_TwoProcesses(t *testing.T) {
 	}
 	// Later, the command looks; the daemon has its look without one.
 	w.now = w.now.Add(time.Hour)
-	w.prs = append(w.prs, github.PRActivity{PR: github.PR{Number: 13, Title: "fix: evict", State: "OPEN", Author: "ben-acme", CreatedAt: stamp(10, 12), UpdatedAt: stamp(10, 12)}})
+	w.prs = append(w.prs, github.PRActivity{Number: 13, Title: "fix: evict", State: "OPEN", Author: "ben-acme", CreatedAt: stamp(10, 12), UpdatedAt: stamp(10, 12)})
 	if _, err := command.Look(true, time.Time{}); err != nil {
 		t.Fatal(err)
 	}

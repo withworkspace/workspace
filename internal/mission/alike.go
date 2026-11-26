@@ -60,7 +60,7 @@ var (
 var commonWords = map[string]bool{}
 
 func init() {
-	for _, w := range strings.Fields(`a an the and or but of to in on at for from with by as is are was were be been being
+	for w := range strings.FieldsSeq(`a an the and or but of to in on at for from with by as is are was were be been being
 		it its this that these those there their they them then than so such not no nor can could should would will shall may might must
 		do does did done have has had having into onto over under out up down off only also just very more most less much many
 		some any each every all both either neither own same other another which who whom whose what when where why how while because
@@ -90,7 +90,7 @@ func described(s string) (names map[string]float64, words map[string]bool) {
 		}
 		parts := []string{tok}
 		if strings.Contains(tok, "/") {
-			for _, p := range strings.Split(tok, "/") {
+			for p := range strings.SplitSeq(tok, "/") {
 				if isName(p) {
 					parts = append(parts, p) // WS_CREW/WS_MISSION names both
 				}

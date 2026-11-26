@@ -51,24 +51,24 @@ func (python) Hoists(scope string, d Def) bool { return scope == "function" }
 var pyBuiltins = map[string]string{} // name: the page it's documented on
 
 func init() {
-	for _, n := range strings.Fields(`abs aiter all anext any ascii bin breakpoint callable chr compile delattr dir divmod enumerate eval exec
+	for n := range strings.FieldsSeq(`abs aiter all anext any ascii bin breakpoint callable chr compile delattr dir divmod enumerate eval exec
 		filter format getattr globals hasattr hash help hex id input isinstance issubclass iter len locals map max min next oct open ord pow print
 		repr reversed round setattr sorted sum vars zip __import__ super property staticmethod classmethod`) {
 		pyBuiltins[n] = "functions.html#" + n
 	}
-	for _, n := range strings.Fields(`bool bytearray bytes complex dict float frozenset int list memoryview object range set slice str tuple type`) {
+	for n := range strings.FieldsSeq(`bool bytearray bytes complex dict float frozenset int list memoryview object range set slice str tuple type`) {
 		pyBuiltins[n] = "stdtypes.html#" + n
 	}
-	for _, n := range strings.Fields(`BaseException Exception ArithmeticError AssertionError AttributeError EOFError FileNotFoundError ImportError
+	for n := range strings.FieldsSeq(`BaseException Exception ArithmeticError AssertionError AttributeError EOFError FileNotFoundError ImportError
 		ModuleNotFoundError IndexError KeyError KeyboardInterrupt LookupError MemoryError NameError NotImplementedError OSError IOError
 		OverflowError PermissionError RecursionError RuntimeError StopIteration StopAsyncIteration SyntaxError SystemExit TimeoutError
 		TypeError UnboundLocalError UnicodeDecodeError UnicodeEncodeError ValueError ZeroDivisionError Warning DeprecationWarning UserWarning`) {
 		pyBuiltins[n] = "exceptions.html#" + n
 	}
-	for _, n := range strings.Fields(`None True False NotImplemented Ellipsis __debug__`) {
+	for n := range strings.FieldsSeq(`None True False NotImplemented Ellipsis __debug__`) {
 		pyBuiltins[n] = "constants.html#" + n
 	}
-	for _, n := range strings.Fields(`__name__ __file__ __doc__ __package__ __spec__ __path__ __builtins__ __all__`) {
+	for n := range strings.FieldsSeq(`__name__ __file__ __doc__ __package__ __spec__ __path__ __builtins__ __all__`) {
 		pyBuiltins[n] = "../reference/import.html"
 	}
 }
@@ -80,7 +80,7 @@ func (python) Builtin(name string) bool { _, ok := pyBuiltins[name]; return ok }
 var pyStdlib = map[string]bool{}
 
 func init() {
-	for _, n := range strings.Fields(`abc argparse array ast asyncio base64 bisect builtins calendar collections concurrent contextlib copy csv
+	for n := range strings.FieldsSeq(`abc argparse array ast asyncio base64 bisect builtins calendar collections concurrent contextlib copy csv
 		ctypes dataclasses datetime decimal difflib dis email enum errno functools gc getpass glob gzip hashlib heapq hmac html http importlib
 		inspect io ipaddress itertools json logging math mimetypes multiprocessing operator os pathlib pickle platform pprint queue random re
 		secrets select shlex shutil signal socket sqlite3 ssl stat statistics string struct subprocess sys tarfile tempfile textwrap threading
@@ -101,7 +101,7 @@ func (python) Docs(module, name string) string {
 		}
 		return "https://docs.python.org/3/library/" + page
 	}
-	top := strings.SplitN(module, ".", 2)[0]
+	top, _, _ := strings.Cut(module, ".")
 	if !pyStdlib[top] {
 		return "" // a package's name isn't its module's
 	}

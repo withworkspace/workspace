@@ -198,7 +198,7 @@ func (e orchestratorEval) run(f ops.OrchestratorFixture) (res ops.EvalResult) {
 	}
 	made = true
 	said := map[string]string{}
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		if m := hookLine.FindStringSubmatch(strings.TrimSpace(line)); m != nil {
 			said[m[1]] = strings.TrimSpace(m[2])
 		}

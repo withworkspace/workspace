@@ -205,7 +205,7 @@ func graph(tx *store.Tx, id, title string, text []byte, changed time.Time) error
 		return err
 	}
 	me := store.Key{Name: id}
-	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: changed, Stands: store.Stands{Standing: store.Lasting}}); err != nil {
+	if err := tx.Thing(o, store.Thing{Key: me, Kind: ThingKind, Title: title, Changed: changed, Standing: store.Lasting}); err != nil {
 		return err
 	}
 	if title == Untitled {

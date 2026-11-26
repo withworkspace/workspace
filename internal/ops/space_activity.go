@@ -129,14 +129,14 @@ func spaceLately(ctx context.Context, ground string, s workspace.Space, titles m
 		return nil, err
 	}
 	commits := []SpaceCommit{}
-	for _, rec := range strings.Split(string(out), "\x1e") {
+	for rec := range strings.SplitSeq(string(out), "\x1e") {
 		head, rest, _ := strings.Cut(strings.TrimLeft(rec, "\n"), "\n")
 		f := strings.Split(head, "\x1f")
 		if len(f) < 4 {
 			continue
 		}
 		c := SpaceCommit{SHA: f[0], At: f[1], By: f[2], Subject: f[3], Docs: []SpaceDocChange{}}
-		for _, line := range strings.Split(rest, "\n") {
+		for line := range strings.SplitSeq(rest, "\n") {
 			status, p, ok := strings.Cut(line, "\t")
 			if !ok || !s.Has(p) {
 				continue
@@ -180,14 +180,14 @@ func (w *Workspace) spaceInFlight(ctx context.Context, s workspace.Space, titles
 		}
 		changed := map[string]DocChange{}
 		if d, err := (git.Cmd{Ctx: ctx, Dir: dir, Args: []string{"diff", "--no-renames", "--name-status", base, "--"}, ReadOnly: true}).Output(); err == nil {
-			for _, line := range strings.Split(string(d), "\n") {
+			for line := range strings.SplitSeq(string(d), "\n") {
 				if status, p, ok := strings.Cut(line, "\t"); ok && s.Has(p) {
 					changed[p] = how(status)
 				}
 			}
 		}
 		if u, err := (git.Cmd{Ctx: ctx, Dir: dir, Args: []string{"ls-files", "--others", "--exclude-standard", "--"}, ReadOnly: true}).Output(); err == nil {
-			for _, p := range strings.Split(string(u), "\n") {
+			for p := range strings.SplitSeq(string(u), "\n") {
 				if s.Has(p) {
 					changed[p] = "added"
 				}

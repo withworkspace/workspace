@@ -431,7 +431,7 @@ func materialOf(bare string, sub Subject, room int) (Material, error) {
 	var m Material
 	at := map[string]int{}
 	for _, stat := range stats {
-		for _, line := range strings.Split(stat, "\n") {
+		for line := range strings.SplitSeq(stat, "\n") {
 			n := strings.SplitN(line, "\t", 3)
 			if len(n) < 3 {
 				continue
@@ -593,7 +593,7 @@ func quoted(s string) string {
 func ParseGist(reply string, files []FileChange) (string, []Know, error) {
 	var gist string
 	var know []Know
-	for _, line := range strings.Split(reply, "\n") {
+	for line := range strings.SplitSeq(reply, "\n") {
 		line = strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(line), "-*"))
 		lower := strings.ToLower(line)
 		switch {

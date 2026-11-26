@@ -259,8 +259,8 @@ func (w *Workspace) mergeFirst(m *mission.Mission, st mission.StageState, capsul
 // lastCrewIn is the crew who last worked in a capsule (not briefing or
 // answering), or "".
 func lastCrewIn(m *mission.Mission, capsule string) string {
-	for i := len(m.Crew) - 1; i >= 0; i-- {
-		if c := m.Crew[i]; c.Capsule == capsule && c.Role == "" {
+	for _, c := range slices.Backward(m.Crew) {
+		if c.Capsule == capsule && c.Role == "" {
 			return c.ID
 		}
 	}
@@ -311,7 +311,7 @@ func (w *Workspace) prDraft(m *mission.Mission, capsule string, step int) (title
 func briefGoal(brief string) string {
 	var b strings.Builder
 	in := false
-	for _, line := range strings.Split(brief, "\n") {
+	for line := range strings.SplitSeq(brief, "\n") {
 		if strings.HasPrefix(line, "#") {
 			in = strings.EqualFold(strings.TrimSpace(strings.TrimLeft(line, "# ")), "goal")
 			continue

@@ -115,7 +115,7 @@ func releaseAsAnyone(repo, tag string) (name string, files []string, ok bool, er
 		return "", nil, false, fmt.Errorf("reading %s's release %s: %w", repo, tag, err)
 	}
 	files = []string{"checksums.txt"}
-	for _, line := range strings.Split(string(list), "\n") {
+	for line := range strings.SplitSeq(string(list), "\n") {
 		if fields := strings.Fields(line); len(fields) == 2 {
 			files = append(files, strings.TrimPrefix(fields[1], "*"))
 		}
@@ -186,8 +186,7 @@ func (Releases) Clone(repo, ref, dir string) error {
 		if said == "" {
 			said = err.Error()
 		}
-		var exit *exec.ExitError
-		if errors.As(err, &exit) {
+		if _, ok := errors.AsType[*exec.ExitError](err); ok {
 			return fmt.Errorf("fetching %s's source: %s (is it there, and public? gh auth login reads a private one as you)", repo, lastLine(said))
 		}
 		return fmt.Errorf("fetching %s's source: %s", repo, said)

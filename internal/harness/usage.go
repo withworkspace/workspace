@@ -133,7 +133,7 @@ func (s *spentBy) add(at time.Time, u Usage) {
 		}
 		i = len(s.out)
 		s.at[k] = i
-		s.out = append(s.out, Spent{Day: day, Usage: Usage{Model: u.Model}})
+		s.out = append(s.out, Spent{Day: day, Model: u.Model})
 	}
 	s.out[i].Add(u)
 }

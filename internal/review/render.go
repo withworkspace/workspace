@@ -149,7 +149,7 @@ func RenderComment(r *Review, id string) (text string, ok bool) {
 
 // quote writes text as a blockquote.
 func quote(b *strings.Builder, text string) {
-	for _, l := range strings.Split(text, "\n") {
+	for l := range strings.SplitSeq(text, "\n") {
 		b.WriteString(strings.TrimRight("> "+l, " ") + "\n")
 	}
 	b.WriteString("\n")

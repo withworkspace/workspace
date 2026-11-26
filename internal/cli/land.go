@@ -67,8 +67,7 @@ can't land.`,
 			out, err := ctx.Land(repo, capsule, by, workspace.LandOptions{Step: func(step string) {
 				fmt.Fprintf(ui.Stderr, "  %s %s\n", ui.Dim.Render("·"), step)
 			}})
-			var stopped *workspace.LandError
-			if errors.As(err, &stopped) {
+			if stopped, ok := errors.AsType[*workspace.LandError](err); ok {
 				if stopped.Output != "" {
 					fmt.Fprintln(ui.Stderr, ui.Dim.Render(indent(stopped.Output, "    ")))
 				}

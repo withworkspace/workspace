@@ -2,6 +2,7 @@ package acp
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 	"time"
 )
@@ -201,10 +202,10 @@ func (t *Transcript) Call(id string) *ToolCall {
 // turn's final message, once the turn has ended. "" if it's said nothing
 // since.
 func (t *Transcript) Reply() string {
-	for i := len(t.Items) - 1; i >= 0; i-- {
-		switch t.Items[i].Kind {
+	for _, v := range slices.Backward(t.Items) {
+		switch v.Kind {
 		case ItemAgent:
-			return t.Items[i].Text
+			return v.Text
 		case ItemUser:
 			return ""
 		}

@@ -200,7 +200,7 @@ func TestExportMission_TheFilesTheyWereKeptIn(t *testing.T) {
 	lines := func(path string) []string {
 		data, _ := os.ReadFile(path)
 		var out []string
-		for _, l := range strings.Split(string(data), "\n") {
+		for l := range strings.SplitSeq(string(data), "\n") {
 			if l = strings.TrimSpace(l); l != "" {
 				out = append(out, l)
 			}

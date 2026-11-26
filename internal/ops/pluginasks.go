@@ -104,8 +104,7 @@ func pluginSaved(out protocol.RemoteSaved, err error) (any, error) {
 // conversation, and its page.
 func (w *Workspace) pluginStartsTalk(who, message string) (protocol.ConversationStarted, error) {
 	c, err := w.StartTalkVia(who, message)
-	var invalid *Invalid
-	if errors.As(err, &invalid) {
+	if _, ok := errors.AsType[*Invalid](err); ok {
 		return protocol.ConversationStarted{}, plugin.InvalidParams(err)
 	}
 	if err != nil {

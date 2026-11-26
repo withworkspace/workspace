@@ -236,7 +236,7 @@ func (w *Workspace) numberTaken(repo, dir, base string) string {
 	if err != nil {
 		return ""
 	}
-	for _, rel := range strings.Fields(out) {
+	for rel := range strings.FieldsSeq(out) {
 		k, f := w.KindOf(repo, rel)
 		if k == nil || !k.Numbered() {
 			continue

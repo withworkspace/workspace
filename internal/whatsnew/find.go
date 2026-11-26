@@ -66,7 +66,7 @@ func releasedIn(root, path string) (string, error) {
 		return "", err
 	}
 	var first string
-	for _, tag := range strings.Fields(tags) {
+	for tag := range strings.FieldsSeq(tags) {
 		if release.IsTag(tag) && (first == "" || release.Newer(first, tag)) {
 			first = tag
 		}

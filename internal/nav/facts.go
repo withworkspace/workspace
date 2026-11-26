@@ -219,7 +219,7 @@ func Build(lang string, src []byte, matches []Match, broken bool) *Facts {
 					continue
 				}
 				scopeAt[s] = len(scopes)
-				scopes = append(scopes, scoped{Scope: Scope{Kind: kind, Span: s}, order: len(scopes)})
+				scopes = append(scopes, scoped{Kind: kind, Span: s, order: len(scopes)})
 			case name == "namespace.name":
 				// Set below, once the scope in the same match is known.
 			case name == "export.name":
@@ -603,10 +603,7 @@ func (f *Facts) ImportAt(pos int32) (int, bool) {
 
 // Line is the line a byte is on, from 1, and the byte its line starts at.
 func (f *Facts) Line(pos int32) (line int, start int32) {
-	i := sort.Search(len(f.Lines), func(i int) bool { return f.Lines[i] > pos }) - 1
-	if i < 0 {
-		i = 0
-	}
+	i := max(sort.Search(len(f.Lines), func(i int) bool { return f.Lines[i] > pos })-1, 0)
 	return i + 1, f.Lines[i]
 }
 

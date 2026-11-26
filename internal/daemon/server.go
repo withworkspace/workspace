@@ -229,11 +229,9 @@ func (s *Server) Shutdown(reason string) {
 
 	var wg sync.WaitGroup
 	for _, cr := range crews {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			cr.pane.Close(3 * time.Second)
-		}()
+		})
 	}
 	wg.Wait()
 	s.watchers.Wait() // every crew's end is on its mission before we exit
@@ -530,11 +528,9 @@ func (s *Server) launch(spec Spec) (int, error) {
 	s.Log.Printf("launched %s (%s) pid %d in %s: %s", spec.Key(), spec.Harness, pane.Pid(), spec.Dir, argsForLog(spec.Args))
 
 	go cr.fanOut()
-	s.watchers.Add(1)
-	go func() {
-		defer s.watchers.Done()
+	s.watchers.Go(func() {
 		s.watch(cr)
-	}()
+	})
 	// Both end with the crew, and Shutdown waits for them with its end's
 	// record: neither writes to a mission once the daemon's let go of it.
 	if spec.Prompt != "" {

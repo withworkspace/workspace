@@ -2,6 +2,7 @@ package conversation
 
 import (
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -68,7 +69,7 @@ func ParseOutline(reply string) (lead string, blocks []Block, ok bool) {
 		}
 		cur = nil
 	}
-	for _, line := range strings.Split(strings.ReplaceAll(reply[at[1]:], "\r\n", "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.ReplaceAll(reply[at[1]:], "\r\n", "\n"), "\n") {
 		t := strings.TrimSpace(line)
 		switch m := blockField.FindStringSubmatch(t); {
 		case blockLine.MatchString(t):
@@ -103,9 +104,9 @@ func ParseOutline(reply string) (lead string, blocks []Block, ok bool) {
 // Plan is the blocks a cell's agent planned, in the order they go in the
 // page, or nil if it planned none (it wrote the cell).
 func (c *Conversation) Plan() []Block {
-	for i := len(c.Turns) - 1; i >= 0; i-- {
-		if len(c.Turns[i].Blocks) > 0 {
-			return c.Turns[i].Blocks
+	for _, v := range slices.Backward(c.Turns) {
+		if len(v.Blocks) > 0 {
+			return v.Blocks
 		}
 	}
 	return nil

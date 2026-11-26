@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -209,7 +210,7 @@ func lastAssistantText(path string) string {
 	}
 	data, _ := io.ReadAll(f)
 	lines := strings.Split(string(data), "\n")
-	for i := len(lines) - 1; i >= 0; i-- {
+	for _, line := range slices.Backward(lines) {
 		var entry struct {
 			Role    string `json:"role"`
 			Message struct {
@@ -219,7 +220,7 @@ func lastAssistantText(path string) string {
 				} `json:"content"`
 			} `json:"message"`
 		}
-		if json.Unmarshal([]byte(lines[i]), &entry) != nil || entry.Role != "assistant" {
+		if json.Unmarshal([]byte(line), &entry) != nil || entry.Role != "assistant" {
 			continue
 		}
 		var parts []string

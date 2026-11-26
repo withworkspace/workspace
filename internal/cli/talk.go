@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -143,8 +144,8 @@ func newConversationListCmd() *cobra.Command {
 				return err
 			}
 			n := 0
-			for i := len(list) - 1; i >= 0; i-- {
-				c := list[i]
+			for _, c := range slices.Backward(list) {
+
 				if c.Kind != conversation.Talk || ((c.Status != conversation.Open || c.Ephemeral) && !all) {
 					continue
 				}

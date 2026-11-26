@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"maps"
 	"os"
 	"sync"
 	"testing"
@@ -80,9 +81,7 @@ func (a *fakeAgent) handle(ctx context.Context, method string, params json.RawMe
 		return map[string]any{"protocolVersion": 1, "agentCapabilities": map[string]any{"loadSession": true}}, nil
 	case "session/new":
 		r := map[string]any{"sessionId": a.session}
-		for k, v := range a.New {
-			r[k] = v
-		}
+		maps.Copy(r, a.New)
 		return r, nil
 	case "session/load", "session/resume":
 		var p struct {

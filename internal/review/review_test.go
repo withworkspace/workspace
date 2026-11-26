@@ -29,8 +29,6 @@ func reviewing(t *testing.T) (Store, Diffed) {
 
 var at = time.Date(2026, 11, 9, 10, 12, 0, 0, time.UTC)
 
-func ptr(s string) *string { return &s }
-
 func TestDraftAndNotes(t *testing.T) {
 	s, d := reviewing(t)
 	r, err := s.AddNote("api/fix", d, NewNote{Path: "cache.go", Side: "new", Line: 3, EndLine: 4, Kind: "blocking", Body: "Key by tenant too."}, at)
@@ -45,7 +43,7 @@ func TestDraftAndNotes(t *testing.T) {
 		t.Errorf("comment = %+v", c)
 	}
 	// The old side's lines come from the base.
-	r, err = s.AddNote("api/fix", d, NewNote{Path: "cache.go", Side: "old", Line: 3, Kind: "nit", Suggestion: ptr("")}, at)
+	r, err = s.AddNote("api/fix", d, NewNote{Path: "cache.go", Side: "old", Line: 3, Kind: "nit", Suggestion: new("")}, at)
 	if err != nil || len(r.Comments) != 2 || r.Comments[1].ID != "r1.c2" || r.Comments[1].Commit != d.Base || r.Comments[1].Excerpt[0] != "func key(id string) string {" {
 		t.Fatalf("old side = %+v, %v", r.Comments, err)
 	}
@@ -108,7 +106,7 @@ func TestSubmit(t *testing.T) {
 	if _, err := s.Submit("api/fix", d, "maybe", "x", at); err == nil {
 		t.Error("unknown verdict should fail")
 	}
-	s.AddNote("api/fix", d, NewNote{Path: "cache.go", Side: "new", Line: 3, EndLine: 4, Kind: "blocking", Body: "Key by tenant.", Suggestion: ptr("func key(t Token) string {\n\treturn t.Tenant + \"/\" + t.ID")}, at)
+	s.AddNote("api/fix", d, NewNote{Path: "cache.go", Side: "new", Line: 3, EndLine: 4, Kind: "blocking", Body: "Key by tenant.", Suggestion: new("func key(t Token) string {\n\treturn t.Tenant + \"/\" + t.ID")}, at)
 	s.AddNote("api/fix", d, NewNote{Path: "added.go", Side: "new", Line: 3, Kind: "nit", Body: "Drop the dashes."}, at)
 	r, err := s.Submit("api/fix", d, Changes, "Close.\nTwo things.", at)
 	if err != nil {

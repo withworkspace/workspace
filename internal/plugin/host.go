@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -977,15 +978,11 @@ func (h *Host) Status(name string) Status {
 			st.Refused = slices.Clone(p.refused)
 			if len(p.badges) > 0 {
 				st.Badges = map[string]int{}
-				for k, v := range p.badges {
-					st.Badges[k] = v
-				}
+				maps.Copy(st.Badges, p.badges)
 			}
 			if len(p.syncs) > 0 {
 				st.Syncs = map[string]SyncState{}
-				for k, v := range p.syncs {
-					st.Syncs[k] = v
-				}
+				maps.Copy(st.Syncs, p.syncs)
 			}
 		}
 		p.mu.Unlock()

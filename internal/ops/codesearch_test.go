@@ -325,11 +325,11 @@ func TestCodeRoots(t *testing.T) {
 	l := find.Layout{
 		Grounds: []find.Worktree{{Repo: "b", Name: find.Ground, Dir: "/w/repos/b/.ground"}, {Repo: "a", Name: find.Ground, Dir: "/w/repos/a/.ground"}},
 		Capsules: []find.CapsuleChanges{
-			{Worktree: find.Worktree{Repo: "a", Name: "z-fix", Dir: "/w/repos/a/z-fix"}, Files: map[string]string{"x.go": find.Modified, "old.go": find.Removed, "n.go": find.Added}},
-			{Worktree: find.Worktree{Repo: "a", Name: "gone-only", Dir: "/w/repos/a/gone-only"}, Files: map[string]string{"y.go": find.Removed}},
-			{Worktree: find.Worktree{Repo: "a", Name: "clean", Dir: "/w/repos/a/clean"}, Files: map[string]string{}},
-			{Worktree: find.Worktree{Repo: "a", Name: "b-fix", Dir: "/w/repos/a/b-fix"}, Files: map[string]string{"x.go": find.Modified}},
-			{Worktree: find.Worktree{Repo: "b", Name: "fix", Dir: "/w/repos/b/fix"}, Files: map[string]string{"q.go": find.Added}},
+			{Repo: "a", Name: "z-fix", Dir: "/w/repos/a/z-fix", Files: map[string]string{"x.go": find.Modified, "old.go": find.Removed, "n.go": find.Added}},
+			{Repo: "a", Name: "gone-only", Dir: "/w/repos/a/gone-only", Files: map[string]string{"y.go": find.Removed}},
+			{Repo: "a", Name: "clean", Dir: "/w/repos/a/clean", Files: map[string]string{}},
+			{Repo: "a", Name: "b-fix", Dir: "/w/repos/a/b-fix", Files: map[string]string{"x.go": find.Modified}},
+			{Repo: "b", Name: "fix", Dir: "/w/repos/b/fix", Files: map[string]string{"q.go": find.Added}},
 		},
 	}
 	roots, replaced, err := codeRoots(l, "")
@@ -360,8 +360,8 @@ func TestCodeRoots(t *testing.T) {
 
 // Many changed files go to ripgrep in several runs, none too long.
 func TestBatchRoots(t *testing.T) {
-	ground := SearchRoot{SearchRoot: workspace.SearchRoot{Repo: "a", Worktree: ".ground", Path: "/r/a/.ground"}}
-	capsule := SearchRoot{SearchRoot: workspace.SearchRoot{Repo: "a", Worktree: "fix", Path: "/r/a/fix"}}
+	ground := SearchRoot{Repo: "a", Worktree: ".ground", Path: "/r/a/.ground"}
+	capsule := SearchRoot{Repo: "a", Worktree: "fix", Path: "/r/a/fix"}
 	for i := range 10 {
 		capsule.Files = append(capsule.Files, fmt.Sprintf("f%d.go", i))
 	}

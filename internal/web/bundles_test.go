@@ -84,7 +84,7 @@ func TestBundles(t *testing.T) {
 // A bundle whose capsule has moved on since says it's stale, and where the
 // capsule is now.
 func TestBundleOf_Stale(t *testing.T) {
-	v := ops.BundleView{Bundle: mission.Bundle{ID: "b1", Capsule: "web/x", Commit: "abc1234def"}}
+	v := ops.BundleView{ID: "b1", Capsule: "web/x", Commit: "abc1234def"}
 	if b := bundleOf("m", v, "abc1234"); b.Stale {
 		t.Errorf("stale at its own commit: %+v", b)
 	}
@@ -101,7 +101,7 @@ func TestBundleOf_Stale(t *testing.T) {
 // it's ws that says so.
 func TestBundleOf_RanAndJudged(t *testing.T) {
 	v := ops.BundleView{
-		Bundle:     mission.Bundle{ID: "b1", Own: true, Checks: []mission.BundleCheck{{N: 1, Check: "it's cached", Verdict: mission.CheckMet, Said: "it is"}}},
+		ID: "b1", Own: true, Checks: []mission.BundleCheck{{N: 1, Check: "it's cached", Verdict: mission.CheckMet, Said: "it is"}},
 		StepChecks: []mission.Check{{Text: "it's cached"}, {Text: "`go build ./...` passes", Command: "go build ./...", Expect: mission.CheckPasses}},
 		Ran: &mission.CheckRound{Commit: "abc", Results: []mission.CheckResult{
 			{Check: "it's cached", Result: mission.CheckCantTell, Evidence: "the judge couldn't be asked", By: "ws"},

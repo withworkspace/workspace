@@ -49,7 +49,7 @@ func (golang) Exported(d Def) bool {
 var goBuiltins = map[string]bool{}
 
 func init() {
-	for _, n := range strings.Fields(`any bool byte comparable complex64 complex128 error float32 float64
+	for n := range strings.FieldsSeq(`any bool byte comparable complex64 complex128 error float32 float64
 		int int8 int16 int32 int64 rune string uint uint8 uint16 uint32 uint64 uintptr
 		true false iota nil
 		append cap clear close complex copy delete imag len make max min new panic print println real recover`) {
@@ -74,9 +74,9 @@ func (golang) Docs(module, name string) string {
 // results ((Foo, error) is Foo).
 func (golang) TypeName(written string) []string {
 	t := strings.TrimSpace(written)
-	if strings.HasPrefix(t, "(") {
+	if after, ok := strings.CutPrefix(t, "("); ok {
 		// A function's results: the first, less its name.
-		inner := strings.TrimSuffix(strings.TrimPrefix(t, "("), ")")
+		inner := strings.TrimSuffix(after, ")")
 		t = strings.TrimSpace(splitTop(inner, ',')[0])
 		if f := strings.Fields(t); len(f) == 2 && !strings.ContainsAny(f[0], "*.[") {
 			t = f[1]
@@ -196,7 +196,7 @@ func goModules(e Env, from string) []goModule {
 func goModLines(src string) []string {
 	var out []string
 	block := ""
-	for _, line := range strings.Split(src, "\n") {
+	for line := range strings.SplitSeq(src, "\n") {
 		if i := strings.Index(line, "//"); i >= 0 {
 			line = line[:i]
 		}
@@ -231,8 +231,8 @@ func goPackage(e Env, from, importPath string) (string, bool) {
 		if importPath == m.path {
 			return m.dir, true
 		}
-		if strings.HasPrefix(importPath, m.path+"/") {
-			return path.Join(m.dir, strings.TrimPrefix(importPath, m.path+"/")), true
+		if after, ok := strings.CutPrefix(importPath, m.path+"/"); ok {
+			return path.Join(m.dir, after), true
 		}
 	}
 	// Vendored, beside the nearest go.mod or at the top.

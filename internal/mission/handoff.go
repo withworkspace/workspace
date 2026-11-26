@@ -53,7 +53,7 @@ func ParseHandoff(text string) (*Handoff, error) {
 	sections := map[string]*strings.Builder{}
 	var other strings.Builder
 	var cur *strings.Builder
-	for _, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
 		if g := handoffHeading.FindStringSubmatch(line); g != nil {
 			name := strings.ToLower(strings.Trim(g[1], "*_: "))
 			if name == "read" || name == "read next" {
@@ -130,7 +130,7 @@ func parseReadFirst(text string) ([]ReadItem, error) {
 		return nil, nil
 	}
 	var items []ReadItem
-	for _, line := range strings.Split(text, "\n") {
+	for line := range strings.SplitSeq(text, "\n") {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
@@ -173,7 +173,7 @@ func (h *Handoff) LeftLine() string {
 	if nothing(h.Left) {
 		return ""
 	}
-	for _, l := range strings.Split(h.Left, "\n") {
+	for l := range strings.SplitSeq(h.Left, "\n") {
 		if g := listItem.FindStringSubmatch(l); g != nil {
 			l = g[1]
 		}

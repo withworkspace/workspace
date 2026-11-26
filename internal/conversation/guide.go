@@ -105,7 +105,7 @@ func ParseGuide(reply string, in func(path string) bool) *ReviewGuide {
 		}
 		cur = nil
 	}
-	for _, line := range strings.Split(strings.ReplaceAll(reply, "\r\n", "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.ReplaceAll(reply, "\r\n", "\n"), "\n") {
 		t := strings.TrimSpace(line)
 		if m := guideHead.FindStringSubmatch(t); m != nil {
 			flush()

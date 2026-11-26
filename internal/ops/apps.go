@@ -131,7 +131,7 @@ func (w *Workspace) AppAt(p AppPlace, name string) (AppView, error) {
 	case !ok:
 		return AppView{}, fmt.Errorf("%w: %s has no recipe %s (%s in its %s)", ErrNotFound, p, name, tablesOf(name), config.RepoFileName)
 	}
-	v := AppView{AppEntry: AppEntry{Name: name, Title: name}, Place: p}
+	v := AppView{Name: name, Title: name, Place: p}
 	if rc.Page != nil {
 		v.AppEntry = entryOf(name, rc)
 	}

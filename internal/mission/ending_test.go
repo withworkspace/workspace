@@ -68,8 +68,7 @@ func TestCheckZ(t *testing.T) {
 
 	// Refused, with every problem.
 	_, err = CheckZ(z, []string{"1: merged", "1: again", "4: nope", "merged", "2:"}, nil, false)
-	var mz *MalformedZ
-	if !errors.As(err, &mz) {
+	if _, ok := errors.AsType[*MalformedZ](err); !ok {
 		t.Fatalf("err = %v, want MalformedZ", err)
 	}
 	for _, want := range []string{"checked twice", "Z has no part 4", "doesn't say which part", "part 2 of Z is met, but not how", "part 3 of Z (Docs updated.) isn't checked"} {

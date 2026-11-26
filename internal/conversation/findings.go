@@ -192,7 +192,7 @@ func parseFindings(reply string, places bool) (summary string, findings []Findin
 		}
 		cur, body, quote, suggest = nil, nil, nil, nil
 	}
-	for _, line := range strings.Split(strings.ReplaceAll(reply, "\r\n", "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.ReplaceAll(reply, "\r\n", "\n"), "\n") {
 		t := strings.TrimSpace(line)
 		if inSuggest {
 			if t == fence {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -261,12 +262,7 @@ type Diffed struct {
 }
 
 func validKind(k string) bool {
-	for _, v := range Kinds {
-		if k == v {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(Kinds, k)
 }
 
 // AddNote adds a comment to the capsule's draft, starting one if there's

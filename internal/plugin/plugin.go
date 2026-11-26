@@ -137,7 +137,7 @@ func ValidUIPath(p string) bool {
 	}
 	// A browser reads %2e%2e as .. too: it's the path as it's read that
 	// mustn't climb out.
-	for _, seg := range strings.Split(u.Path, "/") {
+	for seg := range strings.SplitSeq(u.Path, "/") {
 		if seg == "." || seg == ".." {
 			return false
 		}

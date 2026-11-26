@@ -182,7 +182,7 @@ func BriefAcceptance(brief string) []string {
 	var items []string
 	var prose []string
 	in := false
-	for _, line := range strings.Split(strings.ReplaceAll(brief, "\r\n", "\n"), "\n") {
+	for line := range strings.SplitSeq(strings.ReplaceAll(brief, "\r\n", "\n"), "\n") {
 		if acceptanceHeading.MatchString(line) && !in {
 			in = true
 			continue

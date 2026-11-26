@@ -186,7 +186,7 @@ func checksum(path, sums string) error {
 		return err
 	}
 	name, want := filepath.Base(path), ""
-	for _, line := range strings.Split(string(list), "\n") {
+	for line := range strings.SplitSeq(string(list), "\n") {
 		if fields := strings.Fields(line); len(fields) == 2 && strings.TrimPrefix(fields[1], "*") == name {
 			want = fields[0]
 		}

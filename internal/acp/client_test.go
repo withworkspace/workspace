@@ -107,7 +107,7 @@ func TestPromptHearsTheTurnInOrder(t *testing.T) {
 	_, cl := connectFake(t, func(a *fakeAgent) {
 		a.Turn = func(ctx context.Context, a *fakeAgent, text string) string {
 			a.update(map[string]any{"sessionUpdate": UpdateToolCall, "toolCallId": "t1", "title": "ls", "kind": "execute", "status": "pending"})
-			for i := 0; i < 200; i++ {
+			for range 200 {
 				a.say("x")
 			}
 			a.update(map[string]any{"sessionUpdate": UpdateToolCallEdit, "toolCallId": "t1", "status": "completed",

@@ -36,8 +36,7 @@ func Build(dir string, out io.Writer) error {
 	cmd.Dir = dir
 	cmd.Stdout, cmd.Stderr = out, out
 	if err := cmd.Run(); err != nil {
-		var exit *exec.ExitError
-		if errors.As(err, &exit) {
+		if _, ok := errors.AsType[*exec.ExitError](err); ok {
 			return fmt.Errorf("%s failed", strings.Join(m.Build, " "))
 		}
 		return fmt.Errorf("%s: %w", strings.Join(m.Build, " "), err)

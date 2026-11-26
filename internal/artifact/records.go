@@ -677,7 +677,7 @@ func (s Store) freshen(ctx context.Context) (int, error) {
 				if err != nil {
 					return err
 				}
-				k = &kept{Entry: Entry{ID: "a" + strconv.Itoa(n), N: n, Place: Local, Folder: r.folder}}
+				k = &kept{ID: "a" + strconv.Itoa(n), N: n, Place: Local, Folder: r.folder}
 			}
 			k.Artifact = *r.a
 			if err := saveIn(tx, k, r.info); err != nil {
@@ -780,7 +780,7 @@ func (s Store) Add(ctx context.Context, n New) (Entry, error) {
 			if err != nil {
 				return err
 			}
-			k := &kept{Entry: Entry{ID: "a" + strconv.Itoa(num), N: num, Place: Local, Folder: name, Artifact: *a}}
+			k := &kept{ID: "a" + strconv.Itoa(num), N: num, Place: Local, Folder: name, Artifact: *a}
 			if err := saveIn(tx, k, info); err != nil {
 				return err
 			}

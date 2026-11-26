@@ -433,8 +433,7 @@ func (w *Workspace) readyOnApproval(m *mission.Mission, cur mission.StageState, 
 		return ""
 	}
 	said, err := w.MarkReady(m.Slug, capsule, AsWS)
-	var r *Refused
-	if errors.As(err, &r) {
+	if _, ok := errors.AsType[*Refused](err); ok {
 		return ""
 	}
 	if err != nil {

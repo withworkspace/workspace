@@ -446,7 +446,7 @@ func (f fixtureWork) layOutGit(dir, repo, branch string) error {
 	if err := evalGit(dir, "remote", "remove", "origin"); err != nil {
 		return err
 	}
-	for _, ref := range strings.Fields(gitOut(dir, "for-each-ref", "--format=%(refname)")) {
+	for ref := range strings.FieldsSeq(gitOut(dir, "for-each-ref", "--format=%(refname)")) {
 		if err := evalGit(dir, "update-ref", "-d", ref); err != nil {
 			return err
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"path"
 	"strings"
 	"sync"
@@ -194,9 +195,7 @@ func (w *Workspace) readRemote(ctx context.Context, reader RemoteReader, k plugi
 		return nil, err
 	}
 	out := map[string]string{}
-	for name, v := range fields {
-		out[name] = v
-	}
+	maps.Copy(out, fields)
 	out[k.Typed(protocol.FieldTitle)] = t.Title // its manifest's, whatever the plugin said
 	return out, nil
 }
