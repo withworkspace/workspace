@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Four missions, each at a Wait step, one for each way a Wait is passed.
+# Five missions, each at a Wait step, one for each way a Wait is passed: by you, watched, manual, and until an event.
 #
 # A Wait says who it's on, and nothing passes it by itself unless it has a
 # check. This seed has one of each, to look at side by side: it asks no
@@ -65,12 +65,17 @@ wait_mission "On the registry" on-the-registry \
 wait_mission "Platform deploy" platform-deploy \
 	"**Platform deploy.** The platform team deploys the token service to prd." \
 	"   - on: the platform team"
+wait_mission "Decide the queue" decide-the-queue \
+	"**Decide the queue.** Someone on the team decides how the queue's shared, and lands it in records." \
+	"   - on: the team
+   - until: commits.landed repo=records path=decisions/*"
 
 cat <<EOF
-waits: four missions, each at step 2 of 3, a Wait.
+waits: five missions, each at step 2 of 3, a Wait.
 
   /missions/cut-the-tag       on you, Manual: Mark done passes it
   /missions/tag-and-publish   on you, Watched: touch $TRY_DIR/tagged, and ws passes it (or Mark done, and it looks)
   /missions/on-the-registry   on the release workflow, Watched: touch $TRY_DIR/published, then Look now
   /missions/platform-deploy   on the platform team, Manual: Mark done, once it's happened
+  /missions/decide-the-queue  on the team, Until: land a file under decisions/ in records, and ws passes it as it hears of it
 EOF

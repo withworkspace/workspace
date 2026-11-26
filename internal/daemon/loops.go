@@ -261,6 +261,15 @@ const watchWaitsEvery = time.Minute
 func (d *daemon) watchWaitsLoop(logf func(string, ...any), stop <-chan struct{}) {
 	t := time.NewTicker(watchWaitsEvery)
 	defer t.Stop()
+	// A Wait whose until is an event ws hears of is looked at as soon as
+	// one it waits on is kept, not at its next look.
+	var told <-chan struct{}
+	if db, err := d.w.Records(); err == nil {
+		ch, unwatch := db.Watch()
+		defer unwatch()
+		told = ch
+	}
+	last := d.w.LatestEvent()
 	for {
 		select {
 		case <-stop:
@@ -268,6 +277,12 @@ func (d *daemon) watchWaitsLoop(logf func(string, ...any), stop <-chan struct{})
 		case <-t.C:
 			for _, said := range d.w.CheckWaits() {
 				logf("waits: %s", said)
+			}
+		case <-told:
+			var said []string
+			said, last = d.w.CheckWaitsHeard(last)
+			for _, s := range said {
+				logf("waits: %s", s)
 			}
 		}
 	}
@@ -463,6 +478,18 @@ var (
 // once, until what stops it does). What landed on each is heard as
 // events (HearGrounds).
 func (d *daemon) followGroundsLoop(logf func(string, ...any), stop <-chan struct{}) {
+	// Where each ground is, heard at once: a move since the daemon last
+	// ran is heard now, and one from now on (the keeper hears it as it's
+	// made) is heard from here, not taken for the first look.
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		if heard, err := d.w.HearGrounds(ctx); err != nil {
+			logf("events: %v", err)
+		} else if len(heard) > 0 {
+			logf("events: heard %d from the grounds", len(heard))
+		}
+		cancel()
+	}
 	t := time.NewTimer(followGroundsFirst)
 	defer t.Stop()
 	said := map[string]string{} // repo → why it couldn't be followed, as last logged

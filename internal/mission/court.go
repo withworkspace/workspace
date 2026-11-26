@@ -998,8 +998,11 @@ func (s Snapshot) stepWaitHeadline(st StageState) Headline {
 func checkCommands(checks []Check) string {
 	var out []string
 	for _, c := range checks {
-		if c.Run() {
+		switch {
+		case c.Run():
 			out = append(out, "`"+c.Command+"`")
+		case c.Heard():
+			out = append(out, "until `"+c.Until+"`")
 		}
 	}
 	return strings.Join(out, ", ")
