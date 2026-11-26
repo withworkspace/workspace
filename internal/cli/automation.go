@@ -38,6 +38,17 @@ e.title, e.pr, e.thing, e.changes...); without one, the event's notified as
 it is. It can read with show(ref), events(kind, since = "7d", ...) and
 refs_in(text), and log(text) for its run's record.
 
+A run can wait: wait(event("run.ended", run = "deploy"), timeout = "2h")
+parks it till an event it's for is kept (it's then that event) or its time's
+up (None), and it's run again from the top, each step it took before given
+what it came to. And when can pace it:
+
+  event("thing.changed", kind = "sketch", settle = "10m", per = "thing")
+      run once a sketch's changes have been quiet ten minutes, e.batch
+      all of them
+  event("pr.checks_failed", at_most = "1/h", per = "pr")
+      at most once an hour each pull request; what's past it is held
+
 It runs in the daemon, from the next event after it's added: once an
 event, each step that reaches outside it (notify, converse) done once
 even if the run's run again. You're told once when one can't run.
@@ -235,6 +246,9 @@ func newAutomationRunsCmd() *cobra.Command {
 					continue
 				}
 				line := fmt.Sprintf("%s %-20s e%-5d %s", ui.Dim.Render(r.At.Local().Format("Jan 02 15:04")), r.Name, r.Event, r.State)
+				if r.Key != "" {
+					line += ui.Dim.Render(" (" + r.Key + ")")
+				}
 				if r.Error != "" {
 					line += ": " + firstLineOf(r.Error)
 				}

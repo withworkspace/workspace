@@ -3,6 +3,7 @@ package automation
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -44,6 +45,19 @@ func init() {
 			result TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (name, event, step)
 		) WITHOUT ROWID;
+	`), store.SQL(`
+		-- Workflows: what a run's held for (its per key, for at_most), and
+		-- what's settling (settle): a key's events, run once they've been
+		-- quiet. A run parked at a wait() keeps its waiting step.
+		ALTER TABLE automation_runs ADD COLUMN key TEXT NOT NULL DEFAULT '';
+		CREATE INDEX automation_runs_key ON automation_runs (name, key, at);
+		CREATE TABLE automation_settling (
+			name TEXT NOT NULL,
+			key TEXT NOT NULL,
+			due TEXT NOT NULL,
+			events TEXT NOT NULL,              -- the events' numbers, as JSON, oldest first
+			PRIMARY KEY (name, key)
+		) WITHOUT ROWID;
 	`))
 }
 
@@ -55,6 +69,11 @@ const (
 	// Unsure is a run stopped at a step that was started and never said
 	// it was done: whether it was done isn't known, so it isn't again.
 	Unsure = "unsure"
+	// Waiting is a run parked at a wait(), till what it waits for or its
+	// time's up.
+	Waiting = "waiting"
+	// Held is an event at_most held back: it isn't run.
+	Held = "held"
 )
 
 // State is what ws keeps of an automation.
@@ -75,6 +94,8 @@ type Run struct {
 	State string    `json:"state"`
 	Error string    `json:"error,omitempty"`
 	Log   string    `json:"log,omitempty"`
+	// Key is its per key (the pull request, the thing), where it has one.
+	Key string `json:"key,omitempty"`
 }
 
 func stampOf(t time.Time) string { return t.UTC().Format(store.Stamp) }
@@ -160,7 +181,7 @@ var ErrNotFound = errors.New("there's no automation by that name")
 
 // forget lets go of what's kept of name.
 func forget(tx *store.Tx, name string) error {
-	for _, q := range []string{`DELETE FROM automations WHERE name = ?`, `DELETE FROM automation_runs WHERE name = ?`, `DELETE FROM automation_steps WHERE name = ?`} {
+	for _, q := range []string{`DELETE FROM automations WHERE name = ?`, `DELETE FROM automation_runs WHERE name = ?`, `DELETE FROM automation_steps WHERE name = ?`, `DELETE FROM automation_settling WHERE name = ?`} {
 		if _, err := tx.Exec(q, name); err != nil {
 			return err
 		}
@@ -180,7 +201,7 @@ func latestEvent(tx *store.Tx) (int64, error) {
 func Runs(root, name string, limit int) ([]Run, error) {
 	var out []Run
 	err := read(root, func(tx *store.Tx) error {
-		q, args := `SELECT n, name, event, at, state, error, log FROM automation_runs`, []any{}
+		q, args := `SELECT n, name, event, at, state, error, log, key FROM automation_runs`, []any{}
 		if name != "" {
 			q, args = q+` WHERE name = ?`, append(args, name)
 		}
@@ -193,7 +214,7 @@ func Runs(root, name string, limit int) ([]Run, error) {
 		for rows.Next() {
 			var r Run
 			var at string
-			if err := rows.Scan(&r.N, &r.Name, &r.Event, &at, &r.State, &r.Error, &r.Log); err != nil {
+			if err := rows.Scan(&r.N, &r.Name, &r.Event, &at, &r.State, &r.Error, &r.Log, &r.Key); err != nil {
 				return err
 			}
 			r.At = timeOf(at)
@@ -214,13 +235,120 @@ func runState(tx *store.Tx, name string, event int64) (string, error) {
 	return state, err
 }
 
-// startRun keeps name's run on event as running.
-func startRun(root, name string, event int64, at time.Time) error {
+// startRun keeps name's run on event as running, for key.
+func startRun(root, name string, event int64, key string, at time.Time) error {
 	return write(root, func(tx *store.Tx) error {
-		_, err := tx.Exec(`INSERT INTO automation_runs (name, event, at, state) VALUES (?, ?, ?, ?)
-			ON CONFLICT (name, event) DO UPDATE SET state = excluded.state, at = excluded.at`, name, event, stampOf(at), Running)
+		_, err := tx.Exec(`INSERT INTO automation_runs (name, event, at, state, key) VALUES (?, ?, ?, ?, ?)
+			ON CONFLICT (name, event) DO UPDATE SET state = excluded.state, key = excluded.key`, name, event, stampOf(at), Running, key)
 		return err
 	})
+}
+
+// runsSince is how many of name's runs for key began at or after since,
+// held back ones aside: what at_most counts.
+func runsSince(root, name, key string, since time.Time) (int, error) {
+	var n int
+	err := read(root, func(tx *store.Tx) error {
+		return tx.QueryRow(`SELECT count(*) FROM automation_runs WHERE name = ? AND key = ? AND at >= ? AND state != ?`, name, key, stampOf(since), Held).Scan(&n)
+	})
+	return n, err
+}
+
+// waitingStep is a run parked at a wait(): its event, its step, and what
+// it waits for.
+type waitingStep struct {
+	event int64
+	step  int
+	w     waitFor
+}
+
+// waitFor is a wait() as kept: what it waits for, after which event, till
+// when.
+type waitFor struct {
+	Match string    `json:"match"`
+	After int64     `json:"after"`
+	Due   time.Time `json:"due"`
+}
+
+// waitingSteps are name's runs parked at a wait().
+func waitingSteps(root, name string) ([]waitingStep, error) {
+	var out []waitingStep
+	err := read(root, func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT event, step, result FROM automation_steps WHERE name = ? AND state = 'waiting' ORDER BY event, step`, name)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var ws waitingStep
+			var result string
+			if err := rows.Scan(&ws.event, &ws.step, &result); err != nil {
+				return err
+			}
+			if json.Unmarshal([]byte(result), &ws.w) == nil {
+				out = append(out, ws)
+			}
+		}
+		return rows.Err()
+	})
+	return out, err
+}
+
+// settling is a key's events, settling: run once they've been quiet till
+// due.
+type settling struct {
+	key    string
+	due    time.Time
+	events []int64
+}
+
+// settle keeps event as one of key's settling for name, quiet till due.
+func settle(root, name, key string, event int64, due time.Time) error {
+	return write(root, func(tx *store.Tx) error {
+		var had string
+		err := tx.QueryRow(`SELECT events FROM automation_settling WHERE name = ? AND key = ?`, name, key).Scan(&had)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		var evs []int64
+		_ = json.Unmarshal([]byte(had), &evs)
+		evs = append(evs, event)
+		b, _ := json.Marshal(evs)
+		_, err = tx.Exec(`INSERT INTO automation_settling (name, key, due, events) VALUES (?, ?, ?, ?)
+			ON CONFLICT (name, key) DO UPDATE SET due = excluded.due, events = excluded.events`, name, key, stampOf(due), string(b))
+		return err
+	})
+}
+
+// settled are name's keys whose events have been quiet till now, taken
+// from what's settling.
+func settled(root, name string, now time.Time) ([]settling, error) {
+	var out []settling
+	err := write(root, func(tx *store.Tx) error {
+		rows, err := tx.Query(`SELECT key, due, events FROM automation_settling WHERE name = ? AND due <= ?`, name, stampOf(now))
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			var st settling
+			var due, evs string
+			if err := rows.Scan(&st.key, &due, &evs); err != nil {
+				rows.Close()
+				return err
+			}
+			st.due = timeOf(due)
+			_ = json.Unmarshal([]byte(evs), &st.events)
+			out = append(out, st)
+		}
+		rows.Close()
+		for _, st := range out {
+			if _, err := tx.Exec(`DELETE FROM automation_settling WHERE name = ? AND key = ?`, name, st.key); err != nil {
+				return err
+			}
+		}
+		return rows.Err()
+	})
+	return out, err
 }
 
 // endRun keeps how name's run on event ended, and moves its place in the

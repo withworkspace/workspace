@@ -123,8 +123,10 @@ func (e *Engine) load(name string) (*Automation, error) {
 const passMost = 500
 
 // RunDue runs each automation that's on on the events after its place,
-// those it's for, and moves its place past them. It says what it did, a
-// line a run.
+// those it's for, and moves its place past them: as each one's pace says
+// (settling, held back past at_most), with what it parked at a wait()
+// picked up where it's met or its time's up. It says what it did, a line
+// a run.
 func (e *Engine) RunDue() []string {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -148,56 +150,170 @@ func (e *Engine) RunDue() []string {
 			e.failed(name, &st, "its file can't be read: "+err.Error())
 			continue
 		}
-		list, err := events.List(e.Root, events.Filter{After: st.After})
-		if err != nil || len(list) == 0 {
-			continue
-		}
-		if len(list) > passMost {
-			list = list[:passMost]
-		}
 		var own map[string]bool
 		_ = read(e.Root, func(tx *store.Tx) error {
 			own, err = conversationsOf(tx, name)
 			return err
 		})
-		for _, ev := range list {
-			if !a.Matches(ev) || ev.By == events.ByWorkflow(name) || own[ev.Conversation] {
+		ours := func(ev events.Event) bool { return ev.By == events.ByWorkflow(name) || own[ev.Conversation] }
+		said = append(said, e.resume(a, &st, ours)...)
+		list, err := events.List(e.Root, events.Filter{After: st.After})
+		if err == nil && len(list) > 0 {
+			if len(list) > passMost {
+				list = list[:passMost]
+			}
+			for _, ev := range list {
+				pace, ok := a.PaceOf(ev)
+				if !ok || ours(ev) {
+					continue
+				}
+				if pace.Settle > 0 {
+					_ = settle(e.Root, name, keyOf(pace, ev), ev.N, e.now().Add(pace.Settle))
+					continue
+				}
+				if line := e.runOn(a, &st, ev, pace, nil, false); line != "" {
+					said = append(said, line)
+				}
+			}
+			// Past every event it's been matched against: those it ran on
+			// moved it as they ended.
+			last := list[len(list)-1].N
+			_ = write(e.Root, func(tx *store.Tx) error { return passed(tx, name, last) })
+		}
+		// What's settled, run once on its last event, with all of them.
+		done, _ := settled(e.Root, name, e.now())
+		for _, s := range done {
+			batch := eventsNumbered(e.Root, s.events)
+			if len(batch) == 0 {
 				continue
 			}
-			if line := e.runOn(a, &st, ev); line != "" {
+			ev := batch[len(batch)-1]
+			pace, _ := a.PaceOf(ev)
+			if line := e.runOn(a, &st, ev, pace, batch, false); line != "" {
 				said = append(said, line)
 			}
 		}
-		// Past every event it's been matched against: those it ran on
-		// moved it as they ended.
-		last := list[len(list)-1].N
-		_ = write(e.Root, func(tx *store.Tx) error { return passed(tx, name, last) })
 	}
 	return said
 }
 
-// runOn runs a on ev, once: a run that's been had already isn't run
-// again, but one stopped part way through is (its steps done are given
-// what they came to). It says what it did.
-func (e *Engine) runOn(a *Automation, st *State, ev events.Event) string {
+// resume picks up a's runs parked at a wait(): one whose event's come
+// (after it was parked), or whose time's up, is run again, its wait given
+// the event, or None.
+func (e *Engine) resume(a *Automation, st *State, ours func(events.Event) bool) []string {
+	waits, err := waitingSteps(e.Root, a.Name)
+	if err != nil || len(waits) == 0 {
+		return nil
+	}
+	var said []string
+	for _, w := range waits {
+		m, err := events.ParseMatch(w.w.Match)
+		if err != nil {
+			continue
+		}
+		result := ""
+		list, _ := events.List(e.Root, events.Filter{After: w.w.After, Kinds: []string{m.Kind}})
+		for _, ev := range list {
+			if m.Matches(ev) && !ours(ev) {
+				b, _ := json.Marshal(ev)
+				result = string(b)
+				break
+			}
+		}
+		if result == "" && e.now().Before(w.w.Due) {
+			continue // still waiting
+		}
+		if result == "" {
+			result = "null" // its time's up
+		}
+		if err := keepStep(e.Root, a.Name, w.event, w.step, "wait", "done", result); err != nil {
+			continue
+		}
+		evs := eventsNumbered(e.Root, []int64{w.event})
+		if len(evs) == 0 {
+			continue
+		}
+		pace, _ := a.PaceOf(evs[0])
+		if line := e.runOn(a, st, evs[0], pace, nil, true); line != "" {
+			said = append(said, line)
+		}
+	}
+	return said
+}
+
+// keyOf is what pace keeps ev apart by: its per field's value, "" for
+// none.
+func keyOf(p Pace, ev events.Event) string {
+	if p.Per == "" {
+		return ""
+	}
+	return events.FieldOf(ev, p.Per)
+}
+
+// eventsNumbered are the events numbered ns, in that order, as kept.
+func eventsNumbered(root string, ns []int64) []events.Event {
+	if len(ns) == 0 {
+		return nil
+	}
+	lowest := ns[0]
+	for _, n := range ns {
+		lowest = min(lowest, n)
+	}
+	list, err := events.List(root, events.Filter{After: lowest - 1})
+	if err != nil {
+		return nil
+	}
+	by := map[int64]events.Event{}
+	for _, ev := range list {
+		by[ev.N] = ev
+	}
+	var out []events.Event
+	for _, n := range ns {
+		if ev, ok := by[n]; ok {
+			out = append(out, ev)
+		}
+	}
+	return out
+}
+
+// runOn runs a on ev (with batch, what settled with it), once: a run
+// that's been had already isn't run again, but one stopped part way
+// through is (its steps done are given what they came to), and one
+// parked at a wait() is when it's picked up (again). One at_most holds
+// back is kept as held. It says what it did.
+func (e *Engine) runOn(a *Automation, st *State, ev events.Event, pace Pace, batch []events.Event, again bool) string {
 	var was string
 	_ = read(e.Root, func(tx *store.Tx) error {
 		var err error
 		was, err = runState(tx, a.Name, ev.N)
 		return err
 	})
-	switch was {
-	case Ran, Failed, Unsure:
+	switch {
+	case was == Ran, was == Failed, was == Unsure, was == Held, was == Waiting && !again:
 		_ = endRun(e.Root, a.Name, ev.N, was, "", "") // its place, past it
 		return ""
 	}
-	if err := startRun(e.Root, a.Name, ev.N, e.now()); err != nil {
+	key := keyOf(pace, ev)
+	if pace.AtMost > 0 && was == "" {
+		if n, err := runsSince(e.Root, a.Name, key, e.now().Add(-pace.AtMostIn)); err == nil && n >= pace.AtMost {
+			why := fmt.Sprintf("held back: it's run %d of at most %d in %s", n, pace.AtMost, shortDuration(pace.AtMostIn))
+			if key != "" {
+				why += " for " + key
+			}
+			_ = startRun(e.Root, a.Name, ev.N, key, e.now())
+			_ = endRun(e.Root, a.Name, ev.N, Held, why, "")
+			return fmt.Sprintf("%s on %s: %s", a.Name, ev.Ref(), why)
+		}
+	}
+	if err := startRun(e.Root, a.Name, ev.N, key, e.now()); err != nil {
 		return ""
 	}
-	r := &run{e: e, a: a, ev: ev}
+	r := &run{e: e, a: a, ev: ev, batch: batch}
 	err := r.do()
 	state, why := Ran, ""
 	switch {
+	case errors.Is(err, errParked):
+		state = Waiting
 	case errors.Is(err, errUnsure):
 		state, why = Unsure, err.Error()
 	case err != nil:
@@ -205,10 +321,10 @@ func (e *Engine) runOn(a *Automation, st *State, ev events.Event) string {
 	}
 	_ = endRun(e.Root, a.Name, ev.N, state, why, strings.Join(r.log, "\n"))
 	switch {
-	case state == Ran && st.Failed != "":
+	case (state == Ran || state == Waiting) && st.Failed != "":
 		_ = setFailed(e.Root, a.Name, "")
 		st.Failed = ""
-	case state != Ran:
+	case state == Failed || state == Unsure:
 		e.failed(a.Name, st, why)
 	}
 	line := fmt.Sprintf("%s on %s: %s", a.Name, ev.Ref(), state)
@@ -238,11 +354,17 @@ func (e *Engine) failed(name string, st *State, why string) {
 // it was done.
 var errUnsure = errors.New("a step was started and never said it was done: it isn't done again, in case it was")
 
+// errParked is a run parked at a wait(): it's run again when what it waits
+// for comes, or its time's up.
+var errParked = errors.New("parked at a wait")
+
 // run is one automation run on one event.
 type run struct {
-	e     *Engine
-	a     *Automation
-	ev    events.Event
+	e  *Engine
+	a  *Automation
+	ev events.Event
+	// batch is what settled with ev (settle), ev last: nil for none.
+	batch []events.Event
 	steps int
 	log   []string
 }
@@ -272,20 +394,37 @@ func (r *run) do() error {
 	if !ok {
 		return fmt.Errorf("it has no run any more")
 	}
-	if _, err := starlark.Call(thread, fn, starlark.Tuple{eventValue(r.ev)}, nil); err != nil {
-		var unsure bool
-		if errors.Is(err, errUnsure) {
-			unsure = true
-		}
-		if ee, ok := err.(*starlark.EvalError); ok && errors.Is(ee.Unwrap(), errUnsure) {
-			unsure = true
-		}
-		if unsure {
-			return errUnsure
+	if _, err := starlark.Call(thread, fn, starlark.Tuple{batchValue(r.ev, r.batch)}, nil); err != nil {
+		for _, sentinel := range []error{errParked, errUnsure} {
+			if errors.Is(err, sentinel) {
+				return sentinel
+			}
+			if ee, ok := err.(*starlark.EvalError); ok && errors.Is(ee.Unwrap(), sentinel) {
+				return sentinel
+			}
 		}
 		return scriptError(err)
 	}
 	return nil
+}
+
+// read is a read that's kept as a step, so a run that's run again (a
+// wait() met, the daemon stopped) is given what it read the first time
+// and goes the same way: its result kept as JSON.
+func (r *run) read(builtin string, get func() (any, error)) (any, error) {
+	result, err := r.step(builtin, func() (string, error) {
+		v, err := get()
+		if err != nil {
+			return "", err
+		}
+		b, err := json.Marshal(v)
+		return string(b), err
+	})
+	if err != nil {
+		return nil, err
+	}
+	var v any
+	return v, json.Unmarshal([]byte(result), &v)
 }
 
 // step does what reaches outside the run, once: a step done already (the
@@ -324,6 +463,7 @@ func (r *run) builtins() starlark.StringDict {
 		"show":     starlark.NewBuiltin("show", r.show),
 		"events":   starlark.NewBuiltin("events", r.events),
 		"refs_in":  starlark.NewBuiltin("refs_in", r.refsIn),
+		"wait":     starlark.NewBuiltin("wait", r.wait),
 	}
 }
 
@@ -380,12 +520,18 @@ func (r *run) show(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 	if err := starlark.UnpackArgs(b.Name(), args, kwargs, "ref", &ref); err != nil {
 		return nil, err
 	}
-	if r.e.Hooks.Show == nil {
-		return starlark.None, nil
-	}
-	got, err := r.e.Hooks.Show(ref)
-	if err != nil || got == nil {
-		return starlark.None, nil
+	got, err := r.read("show", func() (any, error) {
+		if r.e.Hooks.Show == nil {
+			return nil, nil
+		}
+		got, err := r.e.Hooks.Show(ref)
+		if err != nil {
+			return nil, nil // what can't be said is None
+		}
+		return got, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return valueOf(got), nil
 }
@@ -415,17 +561,98 @@ func (r *run) events(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 		return nil, fmt.Errorf("events: since: %v", err)
 	}
 	match := m.(matchValue).m
-	list, err := events.List(r.e.Root, events.Filter{Since: r.e.now().Add(-back), Kinds: []string{match.Kind}})
+	got, err := r.read("events", func() (any, error) {
+		list, err := events.List(r.e.Root, events.Filter{Since: r.e.now().Add(-back), Kinds: []string{match.Kind}})
+		if err != nil {
+			return nil, err
+		}
+		out := []events.Event{}
+		for _, ev := range list {
+			if match.Matches(ev) {
+				out = append(out, ev)
+			}
+		}
+		return out, nil
+	})
 	if err != nil {
 		return nil, err
 	}
 	var out []starlark.Value
-	for _, ev := range list {
-		if match.Matches(ev) {
-			out = append(out, eventValue(ev))
-		}
+	for _, ev := range eventsOf(got) {
+		out = append(out, eventValue(ev))
 	}
 	return starlark.NewList(out), nil
+}
+
+// eventsOf is events as a read kept them (JSON's types), as events.
+func eventsOf(v any) []events.Event {
+	b, _ := json.Marshal(v)
+	var out []events.Event
+	_ = json.Unmarshal(b, &out)
+	return out
+}
+
+// wait is wait(event(...), timeout = "1d"): the run parks here till an
+// event it's for is kept, and is run again from the top once one is (or
+// its time's up): this is then the event, or None.
+func (r *run) wait(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var which starlark.Value
+	timeout := "1d"
+	if err := starlark.UnpackArgs(b.Name(), args, kwargs, "event", &which, "timeout?", &timeout); err != nil {
+		return nil, err
+	}
+	m, ok := which.(matchValue)
+	if !ok {
+		return nil, fmt.Errorf("wait takes an event(), as wait(event(\"run.ended\", run = \"deploy\"), timeout = \"2h\")")
+	}
+	d, err := lengthOf(timeout)
+	if err != nil {
+		return nil, fmt.Errorf("wait: timeout: %v", err)
+	}
+	if d > maxWait {
+		return nil, fmt.Errorf("wait: timeout: at most %s", shortDuration(maxWait))
+	}
+	r.steps++
+	n := r.steps
+	state, result, err := stepState(r.e.Root, r.a.Name, r.ev.N, n)
+	switch {
+	case err != nil:
+		return nil, err
+	case state == "done":
+		if result == "null" || result == "" {
+			return starlark.None, nil
+		}
+		var ev events.Event
+		if err := json.Unmarshal([]byte(result), &ev); err != nil {
+			return nil, err
+		}
+		return eventValue(ev), nil
+	case state == "waiting":
+		return nil, errParked
+	}
+	after, err := latest(r.e.Root)
+	if err != nil {
+		return nil, err
+	}
+	kept, _ := json.Marshal(waitFor{Match: m.m.String(), After: after, Due: r.e.now().Add(d)})
+	if err := keepStep(r.e.Root, r.a.Name, r.ev.N, n, "wait", "waiting", string(kept)); err != nil {
+		return nil, err
+	}
+	return nil, errParked
+}
+
+// maxWait is the longest a run may wait.
+const maxWait = 7 * 24 * time.Hour
+
+// latest is the number of the latest event kept.
+func latest(root string) (int64, error) {
+	var n int64
+	err := read(root, func(tx *store.Tx) error {
+		var err error
+		n, err = latestEvent(tx)
+		return err
+	})
+	return n, err
 }
 
 // refsIn is refs_in(text): the refs a text names, each with .ref and
@@ -435,10 +662,24 @@ func (r *run) refsIn(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tupl
 	if err := starlark.UnpackArgs(b.Name(), args, kwargs, "text", &text); err != nil {
 		return nil, err
 	}
+	got, err := r.read("refs_in", func() (any, error) {
+		out := [][2]string{}
+		if r.e.Hooks.RefsIn != nil {
+			out = append(out, r.e.Hooks.RefsIn(text)...)
+		}
+		return out, nil
+	})
+	if err != nil {
+		return nil, err
+	}
 	var out []starlark.Value
-	if r.e.Hooks.RefsIn != nil {
-		for _, f := range r.e.Hooks.RefsIn(text) {
-			out = append(out, starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{"ref": starlark.String(f[0]), "kind": starlark.String(f[1])}))
+	pairs, _ := got.([]any)
+	for _, p := range pairs {
+		f, _ := p.([]any)
+		if len(f) == 2 {
+			ref, _ := f[0].(string)
+			kind, _ := f[1].(string)
+			out = append(out, starlarkstruct.FromStringDict(starlarkstruct.Default, starlark.StringDict{"ref": starlark.String(ref), "kind": starlark.String(kind)}))
 		}
 	}
 	return starlark.NewList(out), nil
@@ -472,8 +713,23 @@ func stringsOf(l *starlark.List) []string {
 	return out
 }
 
+// batchValue is the event a run's run on, with what settled with it as
+// e.batch (it alone, for one that didn't settle).
+func batchValue(e events.Event, batch []events.Event) starlark.Value {
+	if len(batch) == 0 {
+		batch = []events.Event{e}
+	}
+	vs := make([]starlark.Value, len(batch))
+	for i, b := range batch {
+		vs[i] = eventValue(b)
+	}
+	return eventValueWith(e, starlark.StringDict{"batch": starlark.NewList(vs)})
+}
+
 // eventValue is an event as a script has it: e.kind, e.by.short, e.title…
-func eventValue(e events.Event) starlark.Value {
+func eventValue(e events.Event) starlark.Value { return eventValueWith(e, nil) }
+
+func eventValueWith(e events.Event, more starlark.StringDict) starlark.Value {
 	var data map[string]any
 	b, _ := json.Marshal(e)
 	_ = json.Unmarshal(b, &data)
@@ -499,6 +755,9 @@ func eventValue(e events.Event) starlark.Value {
 	}
 	if _, ok := d["commits"]; !ok {
 		d["commits"] = starlark.NewList(nil)
+	}
+	for k, v := range more {
+		d[k] = v
 	}
 	return starlarkstruct.FromStringDict(starlarkstruct.Default, d)
 }

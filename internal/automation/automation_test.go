@@ -118,7 +118,7 @@ func TestEngine_StepsAreDoneOnce(t *testing.T) {
 	ev := emit(t, e.Root, sketch)
 	// As though the daemon stopped once notify had been done, before the
 	// run was said to have ended.
-	startRun(e.Root, "drawing", ev.N, e.now())
+	startRun(e.Root, "drawing", ev.N, "", e.now())
 	keepStep(e.Root, "drawing", ev.N, 1, "notify", "done", "")
 	e.RunDue()
 	if len(got.notified) != 0 {
@@ -129,7 +129,7 @@ func TestEngine_StepsAreDoneOnce(t *testing.T) {
 	}
 
 	ev = emit(t, e.Root, sketch)
-	startRun(e.Root, "drawing", ev.N, e.now())
+	startRun(e.Root, "drawing", ev.N, "", e.now())
 	keepStep(e.Root, "drawing", ev.N, 1, "notify", "started", "")
 	e.RunDue()
 	runs, _ := Runs(e.Root, "drawing", 1)

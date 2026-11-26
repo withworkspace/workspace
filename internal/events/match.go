@@ -152,3 +152,54 @@ func like(pattern, s string) bool {
 	ok, _ := path.Match(strings.ToLower(pattern), strings.ToLower(s))
 	return ok
 }
+
+// FieldOf is e's value for a field as a Match names it (pr, thing, repo,
+// by…), or for a thing's own field, what it changed to: "" for none.
+func FieldOf(e Event, key string) string {
+	switch strings.ToLower(key) {
+	case "by":
+		return e.By
+	case "repo":
+		return e.Repo
+	case "capsule":
+		if e.Capsule == "" {
+			return ""
+		}
+		return e.Repo + "/" + e.Capsule
+	case "branch":
+		return e.Branch
+	case "mission":
+		return e.Mission
+	case "pr":
+		return e.PR
+	case "doc":
+		return e.Doc
+	case "thing":
+		return e.Thing
+	case "kind":
+		return firstOf(e.ThingKind, e.ProposalKind)
+	case "run":
+		return e.Run
+	case "conversation":
+		return e.Conversation
+	case "status":
+		return e.Status
+	case "title":
+		return e.Title
+	case "origin":
+		return e.Origin
+	}
+	for _, c := range e.Changes {
+		if strings.EqualFold(c.Field, key) {
+			return c.To
+		}
+	}
+	return ""
+}
+
+func firstOf(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
+}

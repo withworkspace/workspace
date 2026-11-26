@@ -35,7 +35,9 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
@@ -58,6 +60,8 @@ type Automation struct {
 	// About is what it's for, in your words: its first comment's lines.
 	About string
 	When  []events.Match
+	// Paces are how often each of When runs it (settle, at_most, per).
+	Paces []Pace
 	May   []string
 	// Source is its file, as read.
 	Source []byte
@@ -84,14 +88,35 @@ func (a *Automation) Allows(what string) bool {
 
 // Matches is whether e is one a is for.
 func (a *Automation) Matches(e events.Event) bool {
-	return slices.ContainsFunc(a.When, func(m events.Match) bool { return m.Matches(e) })
+	_, ok := a.PaceOf(e)
+	return ok
+}
+
+// PaceOf is how often the first of When that e matches runs a: false for
+// none.
+func (a *Automation) PaceOf(e events.Event) (Pace, bool) {
+	for i, m := range a.When {
+		if m.Matches(e) {
+			if i < len(a.Paces) {
+				return a.Paces[i], true
+			}
+			return Pace{}, true
+		}
+	}
+	return Pace{}, false
 }
 
 // WhenSaid is when, as written.
 func (a *Automation) WhenSaid() string {
 	var out []string
-	for _, m := range a.When {
-		out = append(out, m.String())
+	for i, m := range a.When {
+		said := m.String()
+		if i < len(a.Paces) {
+			if p := a.Paces[i].String(); p != "" {
+				said += " (" + p + ")"
+			}
+		}
+		out = append(out, said)
 	}
 	return strings.Join(out, " · ")
 }
@@ -127,8 +152,12 @@ func Check(name string, src []byte) (*Automation, error) {
 	if !ok {
 		return nil, fmt.Errorf("it says no when: which events it's for, as when = event(\"pr.merged\", pr = \"api#212\")")
 	}
-	if a.When, err = matchesOf(when); err != nil {
+	ms, err := matchesOf(when)
+	if err != nil {
 		return nil, err
+	}
+	for _, m := range ms {
+		a.When, a.Paces = append(a.When, m.m), append(a.Paces, m.pace)
 	}
 	if may, ok := globals["may"]; ok {
 		if a.May, err = maysOf(may); err != nil {
@@ -188,8 +217,47 @@ func aboutOf(src []byte) string {
 	return strings.Join(out, " ")
 }
 
+// Pace is how often an event() runs an automation: settled (once its
+// events have been quiet for Settle, with all of them), at most AtMost
+// times each AtMostIn, each kept apart by Per (one of the event's
+// fields, as a Match names them: pr, thing, repo…).
+type Pace struct {
+	Settle   time.Duration
+	AtMost   int
+	AtMostIn time.Duration
+	Per      string
+}
+
+// String is the Pace as event() says it: settle=10m at_most=1/h per=pr.
+func (p Pace) String() string {
+	var out []string
+	if p.Settle > 0 {
+		out = append(out, "settle="+shortDuration(p.Settle))
+	}
+	if p.AtMost > 0 {
+		out = append(out, fmt.Sprintf("at_most=%d/%s", p.AtMost, shortDuration(p.AtMostIn)))
+	}
+	if p.Per != "" {
+		out = append(out, "per="+p.Per)
+	}
+	return strings.Join(out, " ")
+}
+
+// shortDuration is d as a script writes it: 10m, 1h, 2h30m.
+func shortDuration(d time.Duration) string {
+	s := d.String()
+	s = strings.TrimSuffix(strings.TrimSuffix(s, "0s"), "0m")
+	if strings.HasSuffix(s, "h0") {
+		s = strings.TrimSuffix(s, "0")
+	}
+	return s
+}
+
 // matchValue is an event() as a script holds it.
-type matchValue struct{ m events.Match }
+type matchValue struct {
+	m    events.Match
+	pace Pace
+}
 
 func (v matchValue) String() string        { return "event(" + v.m.String() + ")" }
 func (v matchValue) Type() string          { return "event" }
@@ -207,8 +275,19 @@ func eventBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		return nil, fmt.Errorf("event's kind is a string, not %s", args[0].Type())
 	}
 	written := kind
+	var pace Pace
 	for _, kv := range kwargs {
 		key, _ := starlark.AsString(kv[0])
+		if key == "settle" || key == "at_most" || key == "per" {
+			s, ok := starlark.AsString(kv[1])
+			if !ok {
+				return nil, fmt.Errorf("event's %s is a string, as settle = \"10m\", at_most = \"1/h\", per = \"pr\"", key)
+			}
+			if err := pace.set(key, s); err != nil {
+				return nil, err
+			}
+			continue
+		}
 		var value string
 		switch v := kv[1].(type) {
 		case starlark.String:
@@ -227,16 +306,51 @@ func eventBuiltin(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 	if err != nil {
 		return nil, err
 	}
-	return matchValue{m}, nil
+	if pace.Per != "" {
+		if _, err := events.ParseMatch(kind + " " + pace.Per + "=*"); err != nil {
+			return nil, fmt.Errorf("per: %w", err)
+		}
+	}
+	return matchValue{m: m, pace: pace}, nil
+}
+
+// set reads one of a Pace's: settle (a length of time), at_most (n/time,
+// as 1/h, 3/1d) or per (a field).
+func (p *Pace) set(key, v string) error {
+	switch key {
+	case "settle":
+		d, err := lengthOf(v)
+		if err != nil {
+			return fmt.Errorf("settle: %w", err)
+		}
+		p.Settle = d
+	case "at_most":
+		n, in, ok := strings.Cut(v, "/")
+		count, err := strconv.Atoi(n)
+		if !ok || err != nil || count < 1 {
+			return fmt.Errorf("at_most: %q is how many in how long, as 1/h or 3/1d", v)
+		}
+		if in == "h" || in == "d" || in == "m" {
+			in = "1" + in
+		}
+		d, err := lengthOf(in)
+		if err != nil {
+			return fmt.Errorf("at_most: %w", err)
+		}
+		p.AtMost, p.AtMostIn = count, d
+	case "per":
+		p.Per = strings.ToLower(strings.TrimSpace(v))
+	}
+	return nil
 }
 
 // matchesOf is when, read: an event(), or a list of them.
-func matchesOf(v starlark.Value) ([]events.Match, error) {
+func matchesOf(v starlark.Value) ([]matchValue, error) {
 	switch w := v.(type) {
 	case matchValue:
-		return []events.Match{w.m}, nil
+		return []matchValue{w}, nil
 	case *starlark.List, starlark.Tuple:
-		var out []events.Match
+		var out []matchValue
 		iter := starlark.Iterate(w)
 		defer iter.Done()
 		var x starlark.Value
@@ -245,7 +359,7 @@ func matchesOf(v starlark.Value) ([]events.Match, error) {
 			if !ok {
 				return nil, fmt.Errorf("when has a %s in it: each is an event()", x.Type())
 			}
-			out = append(out, m.m)
+			out = append(out, m)
 		}
 		if len(out) == 0 {
 			return nil, fmt.Errorf("when is empty: say which events it's for")
@@ -290,7 +404,7 @@ func scriptError(err error) error {
 }
 
 // builtinNames are every builtin a run's given (run.builtins).
-var builtinNames = []string{"notify", "converse", "log", "show", "events", "refs_in"}
+var builtinNames = []string{"notify", "converse", "log", "show", "events", "refs_in", "wait"}
 
 // checkBuiltins are what a file's top level is read with: event, and
 // every other builtin's name, so run can use them, refusing to be called
