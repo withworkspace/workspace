@@ -180,8 +180,10 @@ func (c *CursorACP) Resume(dir, conversation string) (Launch, error) {
 }
 
 // Its models are Cursor's, as the cursor harness's are.
-func (c *CursorACP) ConverseModel() string     { return CursorConverseModel }
-func (c *CursorACP) OrchestratorModel() string { return CursorOrchestratorModel }
+// Its defaults are the cursor harness's models, named as ACP has them:
+// the effort the CLI's names say isn't one ACP runs at (cursorACPModel).
+func (c *CursorACP) ConverseModel() string     { return cursorACPModel(CursorConverseModel) }
+func (c *CursorACP) OrchestratorModel() string { return cursorACPModel(CursorOrchestratorModel) }
 
 // Converse runs one turn of a conversation in agent mode, from a folder
 // of ws's own, its commands those a conversation may run, going on with
@@ -261,31 +263,56 @@ func (c *CursorACP) agent() ([]string, error) {
 	return []string{bin, "acp"}, nil
 }
 
-// cursorEffort is an effort the CLI's model names end in, and fast after
-// it where it's said.
-var cursorEffort = regexp.MustCompile(`-(?:(?:none|minimal|low|medium|high|xhigh|max|extra-high)(?:-fast)?|fast)$`)
+// cursorSuffix is what the CLI's model names end in that ACP's don't: an
+// effort, thinking (before or after the effort), fast.
+var cursorSuffix = regexp.MustCompile(`-(?:none|minimal|low|medium|high|xhigh|max|extra-high|thinking|fast)$`)
 
 // cursorACPModel is a model as the cursor harness names it, for ACP: the
 // CLI's names carry an effort ("claude-haiku-5-5-medium"), but ACP offers
 // each model once, at its own effort, so the effort is dropped and the
-// model found by its name ("claude-haiku-5-5"). So is "-fast": ACP's
-// model is the one name either way ("claude-opus-5-5-high-fast" is
-// "claude-opus-5-5"). Others ("auto", a name ACP has) are as given.
+// model found by its name ("claude-haiku-5-5"). So are "-fast" and
+// "-thinking": ACP's model is the one name either way
+// ("claude-opus-5-5-high-fast" is "claude-opus-5-5",
+// "claude-opus-5-thinking-high" "claude-opus-5"). Others ("auto", a name
+// ACP has) are as given.
+//
+// VERIFIED (cursor-agent 2026.11.22, a paid plan, the model each turn ran
+// on read from Cursor's usage dashboard): ACP runs a model at the one
+// effort it lists for it, whatever's asked. `--model claude-haiku-5-5-low
+// acp`, -max, -thinking-low, a bracket override, and the CLI's own config
+// set to low before launching, each ran "Haiku 5.5 thinking high". A value
+// it doesn't list is refused ("Invalid model value"). --model at launch
+// does pick the model (while session/new reports the last one chosen).
 func cursorACPModel(m string) string {
-	return cursorEffort.ReplaceAllString(strings.TrimSpace(m), "")
+	m = strings.TrimSpace(m)
+	for {
+		bare := cursorSuffix.ReplaceAllString(m, "")
+		if bare == m {
+			return m
+		}
+		m = bare
+	}
+}
+
+// sessionsDir is where Cursor keeps ACP sessions ("" if it can't tell).
+func (c *CursorACP) sessionsDir() string {
+	if c.sessions != "" {
+		return c.sessions
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, ".cursor", "acp-sessions")
 }
 
 // sessionKept is whether Cursor can load an ACP session: it has its
 // store.db. Where it can't tell (no sessions folder at all), it says yes,
 // and loading says if not.
 func (c *CursorACP) sessionKept(id string) bool {
-	dir := c.sessions
+	dir := c.sessionsDir()
 	if dir == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return true
-		}
-		dir = filepath.Join(home, ".cursor", "acp-sessions")
+		return true
 	}
 	if _, err := os.Stat(dir); err != nil {
 		return true

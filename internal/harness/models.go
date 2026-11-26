@@ -3,11 +3,16 @@ package harness
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/withworkspace/workspace/internal/acp"
 )
 
 // Model is one a harness's agent can run on, as ws's config names it for
@@ -85,33 +90,163 @@ func (c *Cursor) Models(ctx context.Context) ([]Model, error) {
 	return models, nil
 }
 
-// Models are Cursor's, as ACP names them: each model once, its effort and
-// fast dropped (cursorACPModel), its place in the tree kept.
+// Models are Cursor's as its ACP offers them: a session's model setting,
+// one value per model at the one effort ACP runs it at
+// ("claude-haiku-5-5[thinking=true,context=300k,reasoning_effort=high]"),
+// each a model of its own named by its bare name, which is what it's
+// picked by (acp.ConfigOption.Pick). Its effort, thinking and fast are
+// said, not chosen: ACP takes no other (see CursorACP). Not the CLI's
+// list: of its 58 names once efforts are dropped, 20 (every -thinking
+// one, and older spellings) aren't ACP's, and 11 of ACP's aren't among
+// them (cursor-agent 2026.11.05).
+//
+// It opens a session to ask, no turn run (a few seconds), takes how each
+// is shown from the CLI's list (`--list-models`), and removes the
+// folder Cursor keeps it in, as a session that ran nothing can't be
+// loaded anyway (sessionKept).
 func (c *CursorACP) Models(ctx context.Context) ([]Model, error) {
-	cur, err := c.cli()
+	agent, err := c.agent()
 	if err != nil {
 		return nil, err
 	}
-	all, err := cur.Models(ctx)
+	dir, err := os.MkdirTemp("", "ws-cursor-models-")
 	if err != nil {
 		return nil, err
+	}
+	defer os.RemoveAll(dir)
+	s, err := openACPSession(ctx, acp.Command{Args: agent, Dir: dir}, cursorLogin, dir)
+	if err != nil {
+		return nil, fmt.Errorf("asking Cursor's ACP for its models: %w", err)
+	}
+	if sd := c.sessionsDir(); sd != "" && s.ID != "" && !strings.ContainsAny(s.ID, `/\`) && !strings.HasPrefix(s.ID, ".") && !c.sessionKept(s.ID) {
+		os.RemoveAll(filepath.Join(sd, s.ID))
+	}
+	opt := s.Option("model")
+	if opt == nil {
+		return nil, errors.New("Cursor's ACP offered no model setting")
+	}
+	// ACP names a model by its id alone; the CLI's list has it as it's
+	// shown ("Claude Haiku 5.5"), where the names meet.
+	labels := map[string]string{}
+	if cur, err := c.cli(); err == nil {
+		if all, err := cur.Models(ctx); err == nil {
+			for _, m := range all {
+				if id := cursorACPModel(m.ID); labels[id] == "" && m.Label != "" {
+					labels[id] = m.Label
+				}
+			}
+		}
 	}
 	var models []Model
-	seen := map[string]bool{}
-	for _, m := range all {
-		id := cursorACPModel(m.ID)
-		if seen[id] {
-			continue
+	for _, v := range opt.Values {
+		m := cursorACPOffered(v)
+		if l := labels[m.ID]; l != "" && m.Vendor != "" {
+			m.Label = l
+		} else if m.Vendor != "" {
+			m.Label = idLabel(m.ID)
 		}
-		seen[id] = true
-		one := m
-		one.ID, one.Effort, one.Fast = id, "", false
-		if id != m.ID {
-			one.Name = id // its CLI name says the effort it's no longer at
-		}
-		models = append(models, one)
+		models = append(models, m)
 	}
 	return models, nil
+}
+
+// cursorACPOffered is one of the models Cursor's ACP offers, as a Model:
+// its bare name, its place in the tree, and what its value fixes.
+func cursorACPOffered(v acp.ConfigValue) Model {
+	bare, params, _ := strings.Cut(v.Value, "[")
+	if bare == "default" {
+		return Model{ID: "auto", Name: v.Name, Default: true, About: "Cursor picks the model."}
+	}
+	m := placed(Model{ID: bare})
+	m.Name, m.Effort, m.Thinking, m.Fast = v.Name, "", false, false
+	context := ""
+	for _, p := range strings.Split(strings.TrimSuffix(params, "]"), ",") {
+		k, val, _ := strings.Cut(p, "=")
+		switch k {
+		case "effort", "reasoning_effort", "reasoning":
+			if val == "extra-high" {
+				val = "xhigh"
+			}
+			if isModelEffort(val) {
+				m.Effort = val
+			}
+		case "thinking":
+			m.Thinking = val == "true"
+		case "fast":
+			m.Fast = val == "true"
+		case "context":
+			context = val
+		}
+	}
+	var said []string
+	if m.Effort != "" {
+		said = append(said, m.Effort+" effort")
+	}
+	if m.Thinking {
+		said = append(said, "thinking")
+	}
+	if m.Fast {
+		said = append(said, "fast")
+	}
+	if context != "" {
+		said = append(said, context+" context")
+	}
+	if len(said) > 0 {
+		m.About = "Over ACP, Cursor runs it only as: " + strings.Join(said, ", ") + "."
+	}
+	return m
+}
+
+// idLabel is a model's id as it might be shown, for one no list shows:
+// "claude-sonnet-4-6" is "Claude Sonnet 4.6", "glm-5p3-flash" "GLM 5p3
+// Flash".
+func idLabel(id string) string {
+	var words []string
+	for _, w := range strings.Split(id, "-") {
+		n := len(words)
+		switch {
+		case n > 0 && isDigits(w) && isVersion(words[n-1]):
+			words[n-1] += "." + w // 4-6 is 4.6
+		case strings.EqualFold(w, "gpt") || strings.EqualFold(w, "glm"):
+			words = append(words, strings.ToUpper(w))
+		case w != "":
+			words = append(words, strings.ToUpper(w[:1])+w[1:])
+		}
+	}
+	return strings.Join(words, " ")
+}
+
+func isDigits(s string) bool {
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return s != ""
+}
+
+// isVersion is a version's first part: digits, then at most a dot's more.
+func isVersion(s string) bool {
+	return isDigits(strings.ReplaceAll(s, ".", "")) && strings.Count(s, ".") == 0
+}
+
+// openACPSession starts an agent, signs in (auth, if any), opens a session
+// in dir and ends the agent: the session as it was offered. Tests replace
+// it.
+var openACPSession = func(ctx context.Context, cmd acp.Command, auth, dir string) (acp.Session, error) {
+	ctx, cancel := context.WithTimeout(ctx, modelsTimeout)
+	defer cancel()
+	cl, err := acp.Start(ctx, cmd, acp.Callbacks{})
+	if err != nil {
+		return acp.Session{}, err
+	}
+	defer cl.Close(2 * time.Second) //nolint:errcheck // done with it
+	if auth != "" {
+		if err := cl.Authenticate(ctx, auth); err != nil {
+			return acp.Session{}, fmt.Errorf("signing in (%s): %w", auth, err)
+		}
+	}
+	return cl.NewSession(ctx, acp.SessionParams{Dir: dir})
 }
 
 // Models are Claude Code's aliases, each for its latest model, then each
